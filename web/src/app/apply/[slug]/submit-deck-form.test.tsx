@@ -70,4 +70,31 @@ describe("SubmitDeckForm", () => {
     expect(errorCopy(COPY, "weird", 500)).toBe("generic");
     expect(errorCopy(COPY, undefined, 502)).toBe("generic");
   });
+
+  // G21 P2-A — intake templates: questions render as `answers[<key>]` fields
+  // (the name the submit route parses), the program consent text sits under
+  // the data-principle sentence, and no template = no fieldset at all.
+  it("renders the template's questions as answers[key] fields + the program consent text", () => {
+    const withTemplate = renderToStaticMarkup(
+      <SubmitDeckForm
+        slug="demo-program-abcdefgh"
+        copy={COPY}
+        questions={[
+          { key: "team_size", label: "Team size", type: "number", required: true },
+          { key: "stage", label: "Stage", type: "select", required: false, options: ["Seed", "Series A"] },
+          { key: "repo", label: "Repo", type: "url", required: false },
+        ]}
+        programConsentText="The Round 1 team reads your evidence."
+      />,
+    );
+    expect(withTemplate).toContain('data-testid="apply-template-questions"');
+    expect(withTemplate).toMatch(/<input[^>]*type="number"[^>]*required=""[^>]*name="answers\[team_size\]"/);
+    expect(withTemplate).toMatch(/<select[^>]*name="answers\[stage\]"/);
+    expect(withTemplate).toContain('<option value="Series A">Series A</option>');
+    expect(withTemplate).toMatch(/<input[^>]*type="url"[^>]*name="answers\[repo\]"/);
+    expect(withTemplate).toContain('data-testid="apply-program-consent">The Round 1 team reads your evidence.</p>');
+    expect(withTemplate).toContain(`data-testid="apply-data-principle">${DATA_PRINCIPLE_SENTENCE}</p>`);
+    expect(out).not.toContain("apply-template-questions");
+    expect(out).not.toContain("apply-program-consent");
+  });
 });

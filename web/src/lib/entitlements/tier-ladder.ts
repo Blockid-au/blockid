@@ -276,7 +276,7 @@ const VC_SM_FEATURES: readonly Feature[] = [
   "lp_export",
   "lp_report",
   // G20-F1 (2026-09-20): the Program / Fund "Cohort dashboard" bullet —
-  // /workspace/accelerator/cohort and /quarterly-report gate on this flag
+  // /workspace/evaluations/cohort (the BlockID Cohort, G21 P2-A) and /quarterly-report gate on this flag
   // (plans.csv + migration 0414).
   "accelerator.cohort",
 ];

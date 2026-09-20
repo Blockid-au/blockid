@@ -64,6 +64,20 @@ export interface EvaluationBatch {
   createdAt: string;
   startedAt: string | null;
   finishedAt: string | null;
+  // G21 P2-A (migration 0422) — the BlockID Cohort columns. Null / 1 when
+  // 0422 is not applied yet (mapBatchRow tolerates the missing keys).
+  /** The program this cohort belongs to ("Spacecubed AI Fellowship 2026"); `name` stays the round label. */
+  programName: string | null;
+  /** program_intakes.id the cohort was filled from. */
+  intakeId: string | null;
+  /** intake_templates.id (questions + rubric weights + consent text). */
+  templateId: string | null;
+  /** Bumped whenever rubric_weights change; stamped on every cohort snapshot. */
+  weightsVersion: number;
+  /** From the paid pilot order; the CSV import refuses rows beyond it. Null = plan quota only. */
+  applicantsCap: number | null;
+  /** pilot_orders.id that delivered this cohort. */
+  pilotOrderId: string | null;
 }
 
 export interface EvaluationBatchItem {
@@ -270,6 +284,15 @@ export function mapBatchRow(row: Row): EvaluationBatch {
     createdAt: String(row.created_at ?? ""),
     startedAt: str(row.started_at),
     finishedAt: str(row.finished_at),
+    programName: str(row.program_name),
+    intakeId: str(row.intake_id),
+    templateId: str(row.template_id),
+    weightsVersion: Math.max(1, Math.round(finite(row.weights_version) ?? 1)),
+    applicantsCap: (() => {
+      const n = finite(row.applicants_cap);
+      return n != null && n > 0 ? Math.round(n) : null;
+    })(),
+    pilotOrderId: str(row.pilot_order_id),
   };
 }
 

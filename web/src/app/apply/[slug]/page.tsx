@@ -3,7 +3,9 @@
 // Server shell: resolves the intake by slug (404 unknown / not migrated),
 // renders the "closed" card when the acceptance rules say so, otherwise the
 // client form (submit-deck-form.tsx) with every string already resolved
-// from the intake.* catalogue (EN / VI by the blockid_lang cookie).
+// from the intake.* catalogue (EN / VI by the blockid_lang cookie). G21
+// P2-A: when the intake links an intake_templates row, its questions render
+// below the fixed fields and its consent text under the data principle.
 //
 // Unlisted: `robots: noindex` + robots.txt disallows /apply/ + the sitemap
 // is an allow-list that never mentions it. `/submit` stays the public-index
@@ -16,6 +18,7 @@ import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { getLocale } from "@/lib/i18n";
 import { getMessages, t } from "@/lib/i18n/t";
 import { lookupPublicIntake, type IntakeRejection } from "@/lib/intake/program-intakes";
+import { getTemplateById } from "@/lib/intake/templates";
 import { DATA_PRINCIPLE_SENTENCE } from "@/lib/valuation-certificate/types";
 import { SubmitDeckForm, type SubmitDeckCopy } from "./submit-deck-form";
 
@@ -43,7 +46,9 @@ export default async function ApplyPage({ params }: Props) {
   const found = await lookupPublicIntake(slug);
   if (!found.ok) notFound();
   const { intake, acceptance } = found;
-  const locale = await getLocale();
+  // G21 P2-A — a linked intake template adds its questions + consent text;
+  // no template (or 0422 not applied) = the fixed form, unchanged.
+  const [locale, template] = await Promise.all([getLocale(), getTemplateById(intake.templateId)]);
   const m = await getMessages(locale);
 
   // The consent sentence must be the approved DATA_PRINCIPLE_SENTENCE verbatim
@@ -83,7 +88,7 @@ export default async function ApplyPage({ params }: Props) {
 
         {acceptance.ok ? (
           <div className="rounded-2xl border border-line-subtle bg-surface-sunken p-6 shadow-xl sm:p-8">
-            <SubmitDeckForm slug={intake.slug} copy={copy} />
+            <SubmitDeckForm slug={intake.slug} copy={copy} questions={template?.questions ?? []} programConsentText={template?.consentText ?? null} />
           </div>
         ) : (
           <div className="rounded-2xl border border-line-subtle bg-surface-sunken p-8 text-center shadow-xl" data-testid="apply-closed" data-reason={acceptance.reason}>

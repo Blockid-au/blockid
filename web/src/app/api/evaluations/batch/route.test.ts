@@ -27,6 +27,10 @@ vi.mock("@/lib/entitlements", () => ({
 const getReportQuotaMock = vi.fn();
 vi.mock("@/lib/evaluations/report-quota", () => ({ getReportQuota: (u: unknown) => getReportQuotaMock(u) }));
 
+// G21 P2-A — the caller's live paid pilot stamps applicants_cap / pilot_order_id.
+const findActivePilotOrderMock = vi.fn();
+vi.mock("@/lib/pilots/paid-orders", () => ({ findActivePilotOrder: (id: string) => findActivePilotOrderMock(id) }));
+
 const countPendingMock = vi.fn();
 const createBatchMock = vi.fn();
 const listBatchesMock = vi.fn();
@@ -55,6 +59,7 @@ function post(body: unknown, raw = false): Request {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  findActivePilotOrderMock.mockResolvedValue(null);
   getCurrentUserMock.mockResolvedValue(USER);
   getEntitlementsMock.mockResolvedValue(PROGRAM_FLAGS);
   getReportQuotaMock.mockResolvedValue({ limit: 100, used: 10, remaining: 90, unlimited: false });
@@ -199,6 +204,28 @@ describe("/api/evaluations/batch", () => {
     expect(input.rubricWeights.mpc).toBe(25);
     expect(input.rubricWeights.bogus).toBeUndefined();
     expect(ownedMock).toHaveBeenCalledWith("u-1", ["e-1", "e-2"]);
+  });
+
+  // G21 P2-A — an empty BlockID Cohort (filled by CSV import / intake link)
+  // with the 0422 metadata; a live paid pilot stamps its cap + order id.
+  it("allow_empty creates an empty cohort with program_name / template_id and the pilot cap; bad template_id → 400", async () => {
+    findActivePilotOrderMock.mockResolvedValue({ id: "po-1", applicants_cap: 25 });
+    const res = await POST(post({ evaluation_ids: [], allow_empty: true, name: "Round 1", program_name: "Fellowship 2026", template_id: "11111111-2222-4333-8444-555555555555" }));
+    expect(res.status).toBe(201);
+    expect((await res.json()).queued).toBe(0);
+    expect(ownedMock).not.toHaveBeenCalled();
+    expect(createBatchMock.mock.calls[0][0]).toMatchObject({
+      evaluationIds: [],
+      programName: "Fellowship 2026",
+      templateId: "11111111-2222-4333-8444-555555555555",
+      intakeId: null,
+      applicantsCap: 25,
+      pilotOrderId: "po-1",
+      plan: "investor_vc_small",
+      channel: "workspace",
+    });
+    expect((await POST(post({ evaluation_ids: [], allow_empty: true, template_id: "nope" }))).status).toBe(400);
+    expect((await POST(post({ evaluation_ids: [] }))).status).toBe(400);
   });
 
   it("defaults the name and surfaces createBatch failures", async () => {

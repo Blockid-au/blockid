@@ -29,7 +29,9 @@
 //   4. finaliseBatch() — recount; when no item is queued/running the batch
 //      closes (done, or failed when every item failed) and ONE
 //      `weekly_next_step` notification is written: "Batch '{name}' scored:
-//      {done}/{total}" with href to the cohort page.
+//      {done}/{total}" with href to the cohort page. G21 P2-A: a closing
+//      batch also takes a `batch_complete` cohort snapshot (fail-soft — a
+//      missing 0422 table only logs) and emits `batch_scored` (FI envelope).
 //
 // Rubric weights: the pipeline has no weight input (computeSVI /
 // orchestrateReport score every startup identically — see batch-shared.ts),
@@ -59,6 +61,8 @@ import {
   sweepExpiredLeases,
 } from "@/lib/evaluations/batch";
 import { BATCH_ITEMS_PER_TICK, flattenDimensionScores, type EvaluationBatch } from "@/lib/evaluations/batch-shared";
+import { takeCohortSnapshot } from "@/lib/evaluations/cohort-snapshots";
+import { emitFiEvent } from "@/lib/analytics/fi-events";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -224,6 +228,7 @@ export async function GET(request: Request) {
   }
 
   const { batch: refreshed, closed } = await finaliseBatch(batch.id);
+  let snapshotId: string | null = null;
   if (closed && refreshed) {
     await insertNotification({
       userId: refreshed.userId,
@@ -231,6 +236,27 @@ export async function GET(request: Request) {
       payload: batchNotificationPayload(refreshed),
       dedupeKey: `batch:${refreshed.id}`,
       throttleMs: 24 * 60 * 60 * 1000,
+    });
+    // G21 P2-A — the cohort's `batch_complete` snapshot (delta baseline) +
+    // the FI `batch_scored` event. Neither may fail the tick.
+    try {
+      const snap = await takeCohortSnapshot(refreshed.id, { reason: "batch_complete", batch: refreshed });
+      if (snap.ok) snapshotId = snap.snapshot.id;
+      else console.warn("[evaluation-batch-runner] snapshot skipped", snap.error);
+    } catch (err) {
+      console.warn("[evaluation-batch-runner] snapshot threw", err instanceof Error ? err.message : String(err));
+    }
+    emitFiEvent("batch_scored", {
+      organisation: refreshed.userId,
+      userId: refreshed.userId,
+      plan: owner?.plan ?? null,
+      channel: "cron",
+      batch_id: refreshed.id,
+      done: refreshed.doneCount,
+      failed: refreshed.failedCount,
+      total: refreshed.total,
+      status: refreshed.status,
+      ...(snapshotId ? { snapshot_id: snapshotId } : {}),
     });
   }
 
@@ -244,6 +270,7 @@ export async function GET(request: Request) {
     done,
     failed,
     closed,
+    snapshotId,
     budgetExceeded,
     leases: { requeued: swept.requeued, expired: swept.failed },
     items: summaries,

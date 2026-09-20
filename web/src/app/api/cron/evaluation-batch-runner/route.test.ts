@@ -31,7 +31,12 @@ const h = vi.hoisted(() => ({
   recordMock: vi.fn(),
   notifyMock: vi.fn(),
   enqueueMock: vi.fn(),
+  snapshotMock: vi.fn(),
+  emitMock: vi.fn(),
 }));
+// G21 P2-A — the closing batch takes a cohort snapshot + emits batch_scored.
+vi.mock("@/lib/evaluations/cohort-snapshots", () => ({ takeCohortSnapshot: (id: string, opts: unknown) => h.snapshotMock(id, opts) }));
+vi.mock("@/lib/analytics/fi-events", () => ({ emitFiEvent: (name: string, env: unknown) => h.emitMock(name, env) }));
 
 // S20-B — outbound webhook emitter (enqueue only).
 vi.mock("@/lib/webhooks/registry", () => ({ enqueueWebhook: (...a: unknown[]) => h.enqueueMock(...a) }));
@@ -72,6 +77,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   process.env.CRON_SECRET = "test-secret";
   h.supabaseAvailable = true;
+  h.snapshotMock.mockResolvedValue({ ok: true, snapshot: { id: "snap-1" } });
   h.aiConfigured = true;
   h.claimMock.mockResolvedValue(BATCH);
   h.nextItemsMock.mockResolvedValue([item(1, "e-1"), item(2, "e-2")]);
@@ -217,6 +223,12 @@ describe("/api/cron/evaluation-batch-runner", () => {
     });
     expect(batchNotificationPayload(closedBatch as never).title).toBe("Batch 'Cohort 4' scored: 2/3");
     expect(json.closed).toBe(true);
+    // G21 P2-A: batch_complete snapshot + batch_scored, once each.
+    expect(h.snapshotMock).toHaveBeenCalledTimes(1);
+    expect(h.snapshotMock).toHaveBeenCalledWith("b-1", { reason: "batch_complete", batch: closedBatch });
+    expect(json.snapshotId).toBe("snap-1");
+    expect(h.emitMock).toHaveBeenCalledTimes(1);
+    expect(h.emitMock).toHaveBeenCalledWith("batch_scored", expect.objectContaining({ organisation: "u-1", batch_id: "b-1", done: 2, failed: 1, total: 3, status: "done", snapshot_id: "snap-1", channel: "cron" }));
     expect(json.batch).toMatchObject({ id: "b-1", status: "done", done: 2, failed: 1, total: 3 });
   });
 

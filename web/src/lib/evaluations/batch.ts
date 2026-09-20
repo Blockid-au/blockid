@@ -39,6 +39,7 @@ import {
   type RubricWeights,
 } from "./batch-shared";
 import { loadCohortDecisions } from "./cohort-decisions";
+import { emitFiEvent } from "@/lib/analytics/fi-events";
 
 export { BATCH_FEATURES, LP_REPORT_FEATURES, canBatchScore, canExportLpReport } from "./batch-shared";
 
@@ -46,6 +47,8 @@ type Row = Record<string, unknown>;
 
 const BATCH_COLUMNS =
   "id, user_id, name, rubric_weights, status, total, done_count, failed_count, created_at, started_at, finished_at";
+/** G21 P2-A (0422) — the BlockID Cohort columns; readers fall back to BATCH_COLUMNS on 42703 until 0422 is applied. */
+const BATCH_COLUMNS_V2 = `${BATCH_COLUMNS}, program_name, intake_id, template_id, weights_version, applicants_cap, pilot_order_id`;
 const ITEM_COLUMNS =
   "id, batch_id, evaluation_id, status, report_id, snapshot_id, share_token, svi_total, dimension_scores, error, scored_at";
 
@@ -58,6 +61,17 @@ function isMissingTable(error: unknown): boolean {
   return (error as { code?: string } | null)?.code === "42P01";
 }
 
+function isMissingColumn(error: unknown): boolean {
+  return (error as { code?: string } | null)?.code === "42703";
+}
+
+/** Run a batch read with the 0422 columns, retrying on the 0322-only shape (42703 = column missing). */
+async function withBatchColumns<T extends { error: unknown }>(run: (cols: string) => PromiseLike<T>): Promise<T> {
+  const res = await run(BATCH_COLUMNS_V2);
+  if (res.error && isMissingColumn(res.error)) return run(BATCH_COLUMNS);
+  return res;
+}
+
 // ---------------------------------------------------------------------------
 // Reads
 // ---------------------------------------------------------------------------
@@ -66,31 +80,72 @@ function isMissingTable(error: unknown): boolean {
 export async function listBatches(userId: string, limit = 50): Promise<EvaluationBatch[]> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return [];
-  const { data, error } = await supabase
-    .from("evaluation_batches")
-    .select(BATCH_COLUMNS)
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  const { data, error } = await withBatchColumns((cols) =>
+    supabase.from("evaluation_batches").select(cols).eq("user_id", userId).order("created_at", { ascending: false }).limit(limit),
+  );
   if (error) {
     if (!isMissingTable(error)) console.error("[blockid:evaluations:batch] list failed", error);
     return [];
   }
-  return ((data ?? []) as Row[]).map(mapBatchRow);
+  return ((data ?? []) as unknown as Row[]).map(mapBatchRow);
 }
 
 /** One batch, only if `userId` queued it. */
 export async function getBatchForUser(userId: string, batchId: string): Promise<EvaluationBatch | null> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
-  const { data, error } = await supabase
-    .from("evaluation_batches")
-    .select(BATCH_COLUMNS)
-    .eq("id", batchId)
-    .eq("user_id", userId)
-    .maybeSingle();
+  const { data, error } = await withBatchColumns((cols) =>
+    supabase.from("evaluation_batches").select(cols).eq("id", batchId).eq("user_id", userId).maybeSingle(),
+  );
   if (error || !data) return null;
-  return mapBatchRow(data as Row);
+  return mapBatchRow(data as unknown as Row);
+}
+
+/** One batch by id regardless of owner — the cron runner / snapshot writer. */
+export async function getBatchById(batchId: string): Promise<EvaluationBatch | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+  const { data, error } = await withBatchColumns((cols) => supabase.from("evaluation_batches").select(cols).eq("id", batchId).maybeSingle());
+  if (error || !data) return null;
+  return mapBatchRow(data as unknown as Row);
+}
+
+/**
+ * G21 P2-A — what the CSV import dedupes against: every evaluation already in
+ * the cohort with its website, founder e-mail and the project's ABN (0410).
+ * Decorative on failure (an empty list only weakens dedupe, never blocks).
+ */
+export async function loadBatchDedupeSources(batchId: string): Promise<Array<{ website: string | null; founderEmail: string | null; abn: string | null }>> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from("evaluation_batch_items")
+      .select("evaluation_id, evaluations:evaluation_id (website, founder_email, projects:project_id (abn))")
+      .eq("batch_id", batchId)
+      .limit(1000);
+    if (error || !data) return [];
+    return (data as Array<Row & { evaluations?: Row | Row[] | null }>).map((r) => {
+      const ev = (Array.isArray(r.evaluations) ? r.evaluations[0] : r.evaluations) ?? {};
+      const p = ((Array.isArray(ev.projects) ? ev.projects[0] : ev.projects) ?? {}) as Row;
+      return {
+        website: ev.website == null ? null : String(ev.website),
+        founderEmail: ev.founder_email == null ? null : String(ev.founder_email),
+        abn: p.abn == null ? null : String(p.abn),
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
+/** How many items (any status) the batch holds — the applicants_cap check. */
+export async function countBatchItems(batchId: string): Promise<number> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return 0;
+  const { count, error } = await supabase.from("evaluation_batch_items").select("id", { count: "exact", head: true }).eq("batch_id", batchId);
+  if (error) return 0;
+  return count ?? 0;
 }
 
 export async function listBatchItems(batchId: string): Promise<EvaluationBatchItem[]> {
@@ -146,7 +201,7 @@ export interface EvaluationJoin {
   stage: number | null;
 }
 
-async function loadEvaluationJoins(evaluationIds: string[]): Promise<Map<string, EvaluationJoin>> {
+export async function loadEvaluationJoins(evaluationIds: string[]): Promise<Map<string, EvaluationJoin>> {
   const out = new Map<string, EvaluationJoin>();
   if (evaluationIds.length === 0) return out;
   const supabase = getSupabaseAdmin();
@@ -266,40 +321,113 @@ export type CreateBatchResult =
   | { ok: true; batch: EvaluationBatch }
   | { ok: false; error: "service_unavailable" | "create_failed"; message: string };
 
-export async function createBatch(input: {
+export interface CreateBatchInput {
   userId: string;
   name: string;
   rubricWeights: unknown;
+  /** May be empty (G21 P2-A): an empty cohort is created `done` (nothing to score) and flips to `queued` when the CSV import adds items. */
   evaluationIds: string[];
-}): Promise<CreateBatchResult> {
+  // G21 P2-A (0422) — optional cohort metadata; dropped on the 0322-only shape.
+  programName?: string | null;
+  intakeId?: string | null;
+  templateId?: string | null;
+  applicantsCap?: number | null;
+  pilotOrderId?: string | null;
+  /** FI analytics envelope for `cohort_created` (plan of the acting account, channel). */
+  plan?: string | null;
+  channel?: string | null;
+  email?: string | null;
+}
+
+export async function createBatch(input: CreateBatchInput): Promise<CreateBatchResult> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return { ok: false, error: "service_unavailable", message: "Database unavailable" };
   const ids = Array.from(new Set(input.evaluationIds));
-  const { data, error } = await supabase
-    .from("evaluation_batches")
-    .insert({
-      user_id: input.userId,
-      name: input.name,
-      rubric_weights: normaliseWeights(input.rubricWeights),
-      status: "queued",
-      total: ids.length,
-    })
-    .select(BATCH_COLUMNS)
-    .single();
+  const base: Row = {
+    user_id: input.userId,
+    name: input.name,
+    rubric_weights: normaliseWeights(input.rubricWeights),
+    status: ids.length > 0 ? "queued" : "done",
+    total: ids.length,
+  };
+  if (ids.length === 0) base.finished_at = new Date().toISOString();
+  const extra: Row = {};
+  if (input.programName != null) extra.program_name = input.programName.slice(0, 160);
+  if (input.intakeId != null) extra.intake_id = input.intakeId;
+  if (input.templateId != null) extra.template_id = input.templateId;
+  if (input.applicantsCap != null && input.applicantsCap > 0) extra.applicants_cap = Math.round(input.applicantsCap);
+  if (input.pilotOrderId != null) extra.pilot_order_id = input.pilotOrderId;
+
+  let res = await supabase.from("evaluation_batches").insert({ ...base, ...extra }).select(BATCH_COLUMNS_V2).single();
+  if (res.error && isMissingColumn(res.error)) {
+    // 0422 not applied: insert the 0322 shape (the cohort metadata is dropped, not failed).
+    res = await supabase.from("evaluation_batches").insert(base).select(BATCH_COLUMNS).single();
+  }
+  const { data, error } = res;
   if (error || !data) {
     console.error("[blockid:evaluations:batch] insert failed", error);
     return { ok: false, error: "create_failed", message: isMissingTable(error) ? "Batch scoring is not enabled on this server yet." : "Could not queue the batch" };
   }
-  const batch = mapBatchRow(data as Row);
-  const { error: itemErr } = await supabase
-    .from("evaluation_batch_items")
-    .insert(ids.map((evaluation_id) => ({ batch_id: batch.id, evaluation_id, status: "queued" })));
-  if (itemErr) {
-    console.error("[blockid:evaluations:batch] items insert failed", itemErr);
-    await supabase.from("evaluation_batches").delete().eq("id", batch.id);
-    return { ok: false, error: "create_failed", message: "Could not queue the batch items" };
+  const batch = mapBatchRow(data as unknown as Row);
+  if (ids.length > 0) {
+    const { error: itemErr } = await supabase
+      .from("evaluation_batch_items")
+      .insert(ids.map((evaluation_id) => ({ batch_id: batch.id, evaluation_id, status: "queued" })));
+    if (itemErr) {
+      console.error("[blockid:evaluations:batch] items insert failed", itemErr);
+      await supabase.from("evaluation_batches").delete().eq("id", batch.id);
+      return { ok: false, error: "create_failed", message: "Could not queue the batch items" };
+    }
   }
+  // G21 P0-D / P2-A — FI envelope: organisation = the evaluator account.
+  emitFiEvent("cohort_created", {
+    organisation: input.userId,
+    userId: input.userId,
+    plan: input.plan ?? null,
+    channel: input.channel ?? "workspace",
+    email: input.email ?? null,
+    batch_id: batch.id,
+    items: ids.length,
+    ...(batch.programName ? { program_name: batch.programName } : {}),
+    ...(batch.pilotOrderId ? { pilot_order_id: batch.pilotOrderId } : {}),
+  });
   return { ok: true, batch };
+}
+
+export type AddToBatchResult =
+  | { ok: true; added: string[]; alreadyPresent: string[]; batch: EvaluationBatch }
+  | { ok: false; error: "service_unavailable" | "add_failed"; message: string };
+
+/**
+ * G21 P2-A — append evaluations to an existing cohort (the CSV import).
+ * Ids already in the batch are skipped (UNIQUE(batch_id, evaluation_id)),
+ * `total` grows by the number added, and a `done` / `failed` batch goes back
+ * to `queued` so the runner picks the new items up on its next tick.
+ */
+export async function addEvaluationsToBatch(batch: EvaluationBatch, evaluationIds: string[]): Promise<AddToBatchResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { ok: false, error: "service_unavailable", message: "Database unavailable" };
+  const ids = Array.from(new Set(evaluationIds));
+  if (ids.length === 0) return { ok: true, added: [], alreadyPresent: [], batch };
+  const { data: existing, error: exErr } = await supabase.from("evaluation_batch_items").select("evaluation_id").eq("batch_id", batch.id).in("evaluation_id", ids);
+  if (exErr) return { ok: false, error: "add_failed", message: "Could not read the cohort" };
+  const present = new Set(((existing ?? []) as Row[]).map((r) => String(r.evaluation_id)));
+  const fresh = ids.filter((id) => !present.has(id));
+  if (fresh.length > 0) {
+    const { error } = await supabase.from("evaluation_batch_items").insert(fresh.map((evaluation_id) => ({ batch_id: batch.id, evaluation_id, status: "queued" })));
+    if (error) {
+      console.error("[blockid:evaluations:batch] add items failed", error);
+      return { ok: false, error: "add_failed", message: "Could not add the startups to the cohort" };
+    }
+  }
+  const patch: Row = { total: batch.total + fresh.length };
+  if (fresh.length > 0 && (batch.status === "done" || batch.status === "failed")) {
+    patch.status = "queued";
+    patch.finished_at = null;
+  }
+  const { data, error: upErr } = await withBatchColumns((cols) => supabase.from("evaluation_batches").update(patch).eq("id", batch.id).select(cols).single());
+  const refreshed = !upErr && data ? mapBatchRow(data as unknown as Row) : { ...batch, total: batch.total + fresh.length, status: (patch.status as BatchStatus | undefined) ?? batch.status };
+  return { ok: true, added: fresh, alreadyPresent: ids.filter((id) => present.has(id)), batch: refreshed };
 }
 
 // ---------------------------------------------------------------------------
@@ -511,12 +639,7 @@ export async function finaliseBatch(batchId: string): Promise<{ batch: Evaluatio
     patch.status = done > 0 ? "done" : "failed";
     patch.finished_at = new Date().toISOString();
   }
-  const { data: updated, error: upErr } = await supabase
-    .from("evaluation_batches")
-    .update(patch)
-    .eq("id", batchId)
-    .select(BATCH_COLUMNS)
-    .single();
+  const { data: updated, error: upErr } = await withBatchColumns((cols) => supabase.from("evaluation_batches").update(patch).eq("id", batchId).select(cols).single());
   if (upErr || !updated) return { batch: null, closed: false };
-  return { batch: mapBatchRow(updated as Row), closed };
+  return { batch: mapBatchRow(updated as unknown as Row), closed };
 }

@@ -1,8 +1,14 @@
 // GET|POST /api/evaluations/batch — Program batch scoring queue (T0272, G12
 // sprint S5; docs/plans/evaluator-traction-2026-09-10.md §3c-7).
 //
-//   POST { evaluation_ids: string[], name?: string, rubric_weights?: {ftv..svm} }
+//   POST { evaluation_ids: string[], name?: string, rubric_weights?: {ftv..svm},
+//          allow_empty?: true, program_name?: string, template_id?: uuid, intake_id?: uuid }
 //        → 201 { ok:true, batch_id, queued, quota_left, batch }
+//        G21 P2-A: `allow_empty: true` creates an empty BlockID Cohort (status
+//        done, nothing to score) that the CSV import / intake link fills;
+//        program_name / template_id / intake_id are the 0422 cohort columns;
+//        applicants_cap + pilot_order_id are stamped from the caller's live
+//        paid Cohort Validation Pilot (pilot_orders) when there is one.
 //   GET  → 200 { ok:true, batches:[…] }   (the Cohorts list, newest first)
 //
 //   401 anonymous · 403 feature_locked (Scout / Firm — no lp_export /
@@ -24,6 +30,8 @@ import { getEntitlements, recordGateHit } from "@/lib/entitlements";
 import { getReportQuota } from "@/lib/evaluations/report-quota";
 import { countPendingBatchItems, createBatch, listBatches, ownedEvaluationIds } from "@/lib/evaluations/batch";
 import { BATCH_MAX_ITEMS, canBatchScore, normaliseWeights } from "@/lib/evaluations/batch-shared";
+import { isUuid } from "@/lib/security/request-guards";
+import { findActivePilotOrder } from "@/lib/pilots/paid-orders";
 import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
@@ -64,7 +72,7 @@ async function POST_handler(request: Request) {
   const { user, response } = await gate();
   if (!user) return response;
 
-  const read = await readJsonBody<{ evaluation_ids?: unknown; name?: unknown; rubric_weights?: unknown } | null>(request, BODY_MAX_BYTES);
+  const read = await readJsonBody<{ evaluation_ids?: unknown; name?: unknown; rubric_weights?: unknown; allow_empty?: unknown; program_name?: unknown; template_id?: unknown; intake_id?: unknown } | null>(request, BODY_MAX_BYTES);
   if (!read.ok) return read.response;
   const body = read.body ?? {};
   if (typeof body !== "object") {
@@ -72,9 +80,20 @@ async function POST_handler(request: Request) {
   }
   const rawIds = Array.isArray(body.evaluation_ids) ? body.evaluation_ids : null;
   const ids = Array.from(new Set((rawIds ?? []).filter((v): v is string => typeof v === "string" && v.trim().length > 0).map((v) => v.trim())));
-  if (!rawIds || ids.length === 0) {
+  const allowEmpty = body.allow_empty === true;
+  if (!allowEmpty && (!rawIds || ids.length === 0)) {
     return NextResponse.json({ ok: false, error: "invalid_input", message: "evaluation_ids must be a non-empty array" }, { status: 400 });
   }
+  // G21 P2-A — cohort metadata (0422).
+  const programName = typeof body.program_name === "string" && body.program_name.trim() ? body.program_name.trim().slice(0, 160) : null;
+  if (body.template_id != null && body.template_id !== "" && !isUuid(body.template_id)) {
+    return NextResponse.json({ ok: false, error: "invalid_input", message: "template_id must be a template id" }, { status: 400 });
+  }
+  if (body.intake_id != null && body.intake_id !== "" && !isUuid(body.intake_id)) {
+    return NextResponse.json({ ok: false, error: "invalid_input", message: "intake_id must be an intake id" }, { status: 400 });
+  }
+  const templateId = isUuid(body.template_id) ? body.template_id : null;
+  const intakeId = isUuid(body.intake_id) ? body.intake_id : null;
   if (ids.length > BATCH_MAX_ITEMS) {
     return NextResponse.json({ ok: false, error: "invalid_input", message: `A batch holds up to ${BATCH_MAX_ITEMS} startups` }, { status: 400 });
   }
@@ -82,7 +101,7 @@ async function POST_handler(request: Request) {
   const weights = normaliseWeights(body.rubric_weights);
 
   // Every id must be an evaluation the caller holds (as evaluator).
-  const owned = await ownedEvaluationIds(user.id, ids);
+  const owned = ids.length > 0 ? await ownedEvaluationIds(user.id, ids) : new Set<string>();
   const foreign = ids.filter((id) => !owned.has(id));
   if (foreign.length > 0) {
     return NextResponse.json(
@@ -141,7 +160,22 @@ async function POST_handler(request: Request) {
     );
   }
 
-  const result = await createBatch({ userId: user.id, name, rubricWeights: weights, evaluationIds: ids });
+  // A live paid pilot caps the cohort (applicants_cap) and is recorded on it.
+  const pilot = await findActivePilotOrder(user.id).catch(() => null);
+  const result = await createBatch({
+    userId: user.id,
+    name,
+    rubricWeights: weights,
+    evaluationIds: ids,
+    programName,
+    templateId,
+    intakeId,
+    applicantsCap: pilot?.applicants_cap ?? null,
+    pilotOrderId: pilot?.id ?? null,
+    plan: user.plan ?? null,
+    email: user.email,
+    channel: "workspace",
+  });
   if (!result.ok) {
     return NextResponse.json({ ok: false, error: result.error, message: result.message }, { status: result.error === "service_unavailable" ? 503 : 500 });
   }

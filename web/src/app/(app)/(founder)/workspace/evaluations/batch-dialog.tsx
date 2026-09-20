@@ -12,14 +12,13 @@ import { Loader2, X } from "lucide-react";
 import { useModalDialog } from "@/hooks/useModalDialog";
 import type { EvaluationListRow } from "@/lib/evaluations";
 import {
-  DIMENSION_KEYS,
-  DIMENSION_LABELS,
   equalWeights,
   isEqualWeights,
   normaliseWeights,
   type EvaluationBatch,
   type RubricWeights,
 } from "@/lib/evaluations/batch-shared";
+import { RubricWeightsSliders } from "@/components/evaluations/RubricWeightsSliders";
 
 export interface BatchQueuedResult {
   batch_id: string;
@@ -51,7 +50,6 @@ export function BatchDialog({ selected, quotaRemaining, quotaLimit, trialActive 
   useModalDialog(dialogRef, { onClose, initialFocus: "#batch-name" });
 
   const normalised = React.useMemo(() => normaliseWeights(weights), [weights]);
-  const rawSum = DIMENSION_KEYS.reduce((s, k) => s + (Number(weights[k]) || 0), 0);
   const insufficient = quotaRemaining != null && quotaRemaining < n;
 
   async function submit(e: React.FormEvent) {
@@ -122,29 +120,7 @@ export function BatchDialog({ selected, quotaRemaining, quotaLimit, trialActive 
               </button>
             </div>
             {showWeights ? (
-              <div id="batch-weight-sliders" role="group" aria-labelledby="batch-weights-label" className="mt-2 space-y-2" data-testid="weight-sliders">
-                {DIMENSION_KEYS.map((k) => (
-                  <div key={k} className="grid grid-cols-[1fr_auto_auto] items-center gap-3 text-xs">
-                    <label htmlFor={`w-${k}`} className="text-ink-700">{DIMENSION_LABELS[k]}</label>
-                    <input
-                      id={`w-${k}`}
-                      type="range"
-                      min={0}
-                      max={40}
-                      step={0.5}
-                      value={weights[k]}
-                      aria-valuetext={`${normalised[k]}% of the weighted score`}
-                      onChange={(e) => setWeights((w) => ({ ...w, [k]: Number(e.target.value) }))}
-                      className="w-40 max-w-full accent-brand-600"
-                    />
-                    <span className="w-14 text-right tabular-nums text-ink-800" aria-hidden="true">{normalised[k]}%</span>
-                  </div>
-                ))}
-                <div className="flex items-center justify-between text-xs text-ink-500">
-                  <span>Sliders sum to {Math.round(rawSum * 10) / 10}; the split is normalised to 100% and only changes the displayed weighted score — the SVI stays unweighted.</span>
-                  <button type="button" onClick={() => setWeights(equalWeights())} className="inline-flex min-h-6 shrink-0 items-center font-medium text-brand-700 hover:underline cursor-pointer">Equal weights</button>
-                </div>
-              </div>
+              <RubricWeightsSliders weights={weights} onChange={setWeights} labelledBy="batch-weights-label" />
             ) : null}
           </div>
 

@@ -39,6 +39,9 @@ vi.mock("@/lib/evaluations/batch", () => ({
   getBatchForUser: (u: string, id: string) => getBatchMock(u, id),
   loadCohortRows: (b: unknown) => loadRowsMock(b),
 }));
+// G21 P2-A — the header's "Last snapshot" line.
+const latestSnapshotsMock = vi.fn();
+vi.mock("@/lib/evaluations/cohort-snapshots", () => ({ latestSnapshots: (id: string) => latestSnapshotsMock(id) }));
 
 const USER = {
   id: "u-1", email: "prog@accel.au", displayName: "Pat", role: "user", plan: "investor_vc_small",
@@ -67,6 +70,7 @@ beforeEach(() => {
   getEntitlementsMock.mockResolvedValue(["lp_export", "lp_report", "portfolio"]);
   getBatchMock.mockResolvedValue(BATCH);
   loadRowsMock.mockResolvedValue(ROWS);
+  latestSnapshotsMock.mockResolvedValue({ latest: null, previous: null, count: 0 });
 });
 
 describe("/workspace/evaluations/cohort/[batchId]", () => {
@@ -133,5 +137,24 @@ describe("/workspace/evaluations/cohort/[batchId]", () => {
     expect(out).not.toContain("/api/reports/quarterly?batch=b-1");
     expect(out).toContain("Sponsor / LP report — Program");
     expect(out).toContain("/pricing?segment=evaluator");
+  });
+
+  // G21 P2-A — the header carries the CSV import control, the "Last snapshot"
+  // line (none yet / date · n) and the Snapshot / Re-score actions.
+  it("renders the CSV import control and the last-snapshot line", async () => {
+    let out = await html();
+    expect(out).toContain('data-testid="cohort-import"');
+    expect(out).toContain('href="/samples/cohort-import.csv"');
+    expect(out).toContain("Last snapshot: none yet");
+    expect(out).toContain('data-testid="cohort-snapshot-now"');
+    expect(out).toContain('data-testid="cohort-rescore"');
+    expect(out).not.toContain("cohort-import-cap");
+
+    latestSnapshotsMock.mockResolvedValue({ latest: { takenAt: "2026-09-19T10:00:00Z", summary: { n: 3 } }, previous: null, count: 2 });
+    getBatchMock.mockResolvedValue({ ...BATCH, programName: "Spacecubed AI Fellowship", applicantsCap: 25 });
+    out = await html();
+    expect(out).toContain("Last snapshot: 19 Sept 2026 · n 3 · 2 on record");
+    expect(out).toContain('data-testid="batch-program">Spacecubed AI Fellowship');
+    expect(out).toContain("3 of 25 pilot places used");
   });
 });

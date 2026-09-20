@@ -310,12 +310,12 @@ describe("NAV_GROUPS — sidebar size per persona", () => {
     // advisor Digest leaf are hidden (lib/features/hidden.ts) — investors
     // drop to 7 leaves, advisors to 6, and both lose the Reports group
     // entirely (it had no other leaf for them). Accelerators keep Quarterly
-    // + LP report.
+    // + LP report, and G21 P2-A adds the Templates leaf (8).
     const cases: Array<[PersonaKey, Segment, number, string[]]> = [
       ["investor_angel", "investor_angel", 7, ["Home", "Deal flow"]],
       ["investor_vc", "investor_vc", 7, ["Home", "Deal flow"]],
       ["advisor", "advisor", 6, ["Home", "Deal flow"]],
-      ["accelerator", "accelerator", 7, ["Home", "Deal flow", "Reports"]],
+      ["accelerator", "accelerator", 8, ["Home", "Deal flow", "Reports"]],
     ];
     for (const [persona, segment, count, groups] of cases) {
       const rows = sidebarFor(persona, segment, 5);

@@ -72,7 +72,13 @@ export const LEGACY_REDIRECTS: readonly LegacyRedirect[] = Object.freeze([
   { source: "/workspace/portfolio", destination: "/workspace/investor/portfolio", permanent: true, note: "alias page deleted" },
   { source: "/workspace/client-roster", destination: "/workspace/advisor/roster", permanent: true, note: "alias page deleted" },
   { source: "/workspace/advisor-notes", destination: "/workspace/advisor/notes", permanent: true, note: "alias page deleted" },
-  { source: "/workspace/cohort", destination: "/workspace/accelerator/cohort", permanent: true, note: "alias page deleted" },
+  { source: "/workspace/cohort", destination: "/workspace/evaluations/cohort", permanent: true, note: "alias page deleted; G21 P2-A: re-pointed at the one BlockID Cohort (was /workspace/accelerator/cohort)" },
+  // G21 P2-A — one cohort model. The legacy accelerator_cohorts /
+  // cohort_members grid (0021) and its hidden add-founder card are gone;
+  // evaluation_batches IS the BlockID Cohort. Config redirects run before
+  // routing, so nothing sits behind a loading.tsx boundary (G20 lesson).
+  { source: "/workspace/accelerator/cohort", destination: "/workspace/evaluations/cohort", permanent: true, note: "G21 P2-A: legacy cohort grid → BlockID Cohort index" },
+  { source: "/workspace/accelerator/cohort/add", destination: "/workspace/evaluations/cohort", permanent: true, note: "G21 P2-A: hidden add-founder card → cohort index (CSV import / intake link)" },
   // Retired paywall page — was a server redirect to /pricing carrying its
   // query string; Next config redirects pass the query through unchanged.
   { source: "/workspace/reports/upgrade", destination: "/pricing", permanent: true, note: "alias page deleted (query passes through)" },

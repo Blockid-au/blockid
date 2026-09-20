@@ -37,6 +37,7 @@ import { intakeAcceptance, IntakeStoreError, supabaseIntakeStore } from "./progr
 import type { ClassifyDeckResult } from "@/lib/pitchdeck/classify";
 import { coverageSummary } from "@/lib/pitchdeck/classify";
 import type { CreateEvaluationResult } from "@/lib/evaluations";
+import { validateAnswers, type IntakeTemplate } from "./templates-shared";
 import type { ReportCharge } from "@/lib/evaluations/report-quota";
 import type { IntakeSubmissionReceivedPayload } from "@/lib/webhooks/registry";
 
@@ -68,6 +69,8 @@ export interface SubmissionInput {
   deck: DeckInput | null;
   /** Raw client IP — hashed before storage; never stored in the clear. */
   ip?: string | null;
+  /** G21 P2-A: raw template answers (`answers[<key>]` form fields) — validated against the intake's template. */
+  answers?: Record<string, unknown> | null;
 }
 
 export type SubmissionErrorCode =
@@ -131,7 +134,10 @@ export interface RunnerDeps {
   createEvaluation?: (
     owner: OwnerUser,
     input: { name: string; website: string | null; founder_email: string; description: string | null },
+    options?: { consentText?: string | null },
   ) => Promise<CreateEvaluationResult>;
+  /** G21 P2-A: the intake's template (questions + consent text); null when none / not migrated. */
+  getTemplate?: (templateId: string | null) => Promise<IntakeTemplate | null>;
   previewReportCharge?: (owner: OwnerUser, kind: "full") => Promise<Pick<ReportCharge, "via" | "credits">>;
   runReport?: (args: { projectId: string; requestedByUserId: string }) => Promise<{ reportId: string; shareToken: string | null; svi: number }>;
   recordReport?: (args: {
@@ -227,9 +233,18 @@ async function defaultGetOwner(ownerUserId: string): Promise<OwnerUser | null> {
   return { id: row.id, email: row.email, plan: row.plan ?? "free", displayName: row.display_name };
 }
 
-async function defaultCreateEvaluation(owner: OwnerUser, input: { name: string; website: string | null; founder_email: string; description: string | null }) {
+async function defaultCreateEvaluation(
+  owner: OwnerUser,
+  input: { name: string; website: string | null; founder_email: string; description: string | null },
+  options: { consentText?: string | null } = {},
+) {
   const { createEvaluation } = await import("@/lib/evaluations");
-  return createEvaluation(owner, input);
+  return createEvaluation(owner, input, options);
+}
+
+async function defaultGetTemplate(templateId: string | null) {
+  const { getTemplateById } = await import("@/lib/intake/templates");
+  return getTemplateById(templateId);
 }
 
 async function defaultPreview(owner: OwnerUser, kind: "full") {
@@ -295,6 +310,19 @@ export async function runIntakeSubmission(input: SubmissionInput, deps: RunnerDe
   if (!deckCheck.ok) return { ok: false, error: deckCheck.error, message: deckCheck.message };
   const deck = input.deck!;
 
+  // G21 P2-A — template questions: validate the answers before anything is
+  // stored; a missing template (deleted / not migrated) means the fixed form.
+  let template: IntakeTemplate | null = null;
+  let answers: Record<string, string | number> = {};
+  if (intake.templateId) {
+    template = await (deps.getTemplate ?? defaultGetTemplate)(intake.templateId).catch(() => null);
+    if (template && template.questions.length > 0) {
+      const checked = validateAnswers(template.questions, input.answers ?? {});
+      if (!checked.ok) return { ok: false, error: "invalid_input", message: checked.message, reason: checked.field };
+      answers = checked.answers;
+    }
+  }
+
   let count = 0;
   try {
     count = (await store.countSubmissions([intake.id])).get(intake.id) ?? 0;
@@ -330,6 +358,7 @@ export async function runIntakeSubmission(input: SubmissionInput, deps: RunnerDe
       website: fields.website,
       deckStoragePath: deckPath,
       ipHash: hashIp(input.ip),
+      answers,
     });
   } catch (err) {
     if (err instanceof IntakeStoreError && err.code === "duplicate") return { ok: false, error: "duplicate", message: "This email has already applied to this program" };
@@ -366,12 +395,16 @@ export async function runIntakeSubmission(input: SubmissionInput, deps: RunnerDe
   let projectId: string | null = null;
   if (owner) {
     try {
-      const created = await (deps.createEvaluation ?? defaultCreateEvaluation)(owner, {
-        name: fields.startupName,
-        website: fields.website,
-        founder_email: fields.founderEmail,
-        description: deckSummary,
-      });
+      const created = await (deps.createEvaluation ?? defaultCreateEvaluation)(
+        owner,
+        {
+          name: fields.startupName,
+          website: fields.website,
+          founder_email: fields.founderEmail,
+          description: deckSummary,
+        },
+        { consentText: template?.consentText ?? null },
+      );
       if (created.ok) {
         evaluationId = created.evaluation.id;
         projectId = created.evaluation.projectId;

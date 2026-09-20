@@ -72,7 +72,10 @@ describe("intakeAcceptance", () => {
 describe("normaliseIntakeInput", () => {
   it("defaults: max 200, auto_report OFF unless boolean true (F-4)", () => {
     const r = normaliseIntakeInput({ name: "  Cohort 5 " });
-    expect(r).toEqual({ ok: true, value: { name: "Cohort 5", blurb: null, opensAt: null, closesAt: null, maxSubmissions: DEFAULT_MAX_SUBMISSIONS, autoReport: false } });
+    expect(r).toEqual({ ok: true, value: { name: "Cohort 5", blurb: null, opensAt: null, closesAt: null, maxSubmissions: DEFAULT_MAX_SUBMISSIONS, autoReport: false, templateId: null } });
+    // G21 P2-A: template_id must be a uuid when given; absent / "" → null.
+    expect(normaliseIntakeInput({ name: "x", template_id: "nope" })).toMatchObject({ ok: false });
+    expect((normaliseIntakeInput({ name: "x", template_id: "11111111-2222-4333-8444-555555555555" }) as { value: { templateId: string | null } }).value.templateId).toBe("11111111-2222-4333-8444-555555555555");
     expect(normaliseIntakeInput({ name: "x", auto_report: "true" }).ok && (normaliseIntakeInput({ name: "x", auto_report: "true" }) as { value: { autoReport: boolean } }).value.autoReport).toBe(false);
     expect((normaliseIntakeInput({ name: "x", auto_report: true }) as { value: { autoReport: boolean } }).value.autoReport).toBe(true);
   });

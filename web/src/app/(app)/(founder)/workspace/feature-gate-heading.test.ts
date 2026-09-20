@@ -8,7 +8,9 @@
 // first <h1> of every workspace page precedes its first <FeatureGate>.
 //
 // /workspace/esop/offers followed on 2026-09-20 (G20-sweep: the founder sweep
-// reported h1_count_0 on it) — no exceptions remain.
+// reported h1_count_0 on it) — no exceptions remain. G21 P2-A retired the
+// legacy /workspace/accelerator/cohort page (redirects to
+// /workspace/evaluations/cohort), so six gated pages remain.
 
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
@@ -29,7 +31,7 @@ describe("workspace pages keep their h1 outside <FeatureGate>", () => {
   const root = join(process.cwd(), "src", "app", "(app)", "(founder)", "workspace");
   const gated = pages(root).filter((f) => /<FeatureGate\b/.test(readFileSync(f, "utf8")));
   it("finds the gated pages", () => {
-    expect(gated.length).toBeGreaterThanOrEqual(7);
+    expect(gated.length).toBeGreaterThanOrEqual(6);
   });
   for (const file of gated) {
     const rel = file.slice(root.length + 1);

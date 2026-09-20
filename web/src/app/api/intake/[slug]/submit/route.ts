@@ -1,7 +1,8 @@
 // POST /api/intake/[slug]/submit — public founder application (G14 S35, D2).
 //
 // multipart/form-data: startup_name, founder_name?, founder_email, website?,
-// consent ("on" | "true"), deck (PDF / DOCX ≤ 25 MB), and the honeypot
+// consent ("on" | "true"), deck (PDF / DOCX ≤ 25 MB), answers[<key>] for the
+// linked intake template's questions (G21 P2-A), and the honeypot
 // field `company_website_confirm` (must stay empty — a bot that fills it
 // gets a silent 204 and nothing is stored).
 //
@@ -82,6 +83,13 @@ async function POST_handler(request: Request, { params }: Ctx) {
     deck = { buffer: Buffer.from(await file.arrayBuffer()), filename: (file.name || "deck.pdf").slice(0, 200), mimeType: file.type, size: file.size };
   }
 
+  // G21 P2-A — template answers travel as `answers[<key>]` fields.
+  const answers: Record<string, unknown> = {};
+  for (const [k, v] of form.entries()) {
+    const m = /^answers\[([a-z][a-z0-9_]{0,39})\]$/.exec(k);
+    if (m && typeof v === "string") answers[m[1]!] = v;
+  }
+
   const result = await runIntakeSubmission({
     slug,
     startupName: text(form.get("startup_name")),
@@ -91,6 +99,7 @@ async function POST_handler(request: Request, { params }: Ctx) {
     consent: text(form.get("consent")),
     deck,
     ip: clientIp(request),
+    answers,
   });
 
   if (!result.ok) {

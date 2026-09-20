@@ -111,6 +111,19 @@ export interface CreateEvaluationInput {
   founder_email?: string | null;
   state?: string | null;
   industry?: string | null;
+  // G21 P2-A — the CSV import's extra columns (all optional).
+  /** projects.stage 0..7. */
+  stage?: number | null;
+  /** Evaluator-private notes on the evaluations row (the import stores "Deck: <url>"). */
+  notes?: string | null;
+  /** projects.abn (11 digits, 0410) — the import's dedupe key. */
+  abn?: string | null;
+}
+
+/** G21 P2-A — per-call options for createEvaluation (the CSV import / intake templates). */
+export interface CreateEvaluationOptions {
+  /** Program consent text appended to the founder invite e-mail (intake_templates.consent_text). */
+  consentText?: string | null;
 }
 
 export type CreateEvaluationResult =
@@ -181,6 +194,9 @@ export interface NormalisedCreateInput {
   founderEmail: string | null;
   state: AuState | null;
   industry: string | null;
+  stage: number | null;
+  notes: string | null;
+  abn: string | null;
 }
 
 export function normaliseCreateInput(
@@ -232,7 +248,20 @@ export function normaliseCreateInput(
       ? raw.industry.trim().slice(0, 60)
       : null;
 
-  return { ok: true, value: { name, website, description, founderEmail, state, industry } };
+  let stage: number | null = null;
+  if (raw.stage != null && raw.stage !== ("" as unknown)) {
+    const n = Number(raw.stage);
+    if (!Number.isInteger(n) || n < 0 || n > 7) return { ok: false, message: "Stage must be a whole number from 0 to 7" };
+    stage = n;
+  }
+  const notes = typeof raw.notes === "string" && raw.notes.trim() ? raw.notes.trim().slice(0, 2000) : null;
+  let abn: string | null = null;
+  if (typeof raw.abn === "string" && raw.abn.trim()) {
+    abn = raw.abn.replace(/\s+/g, "");
+    if (!/^\d{11}$/.test(abn)) return { ok: false, message: "ABN must be 11 digits" };
+  }
+
+  return { ok: true, value: { name, website, description, founderEmail, state, industry, stage, notes, abn } };
 }
 
 function toSlug(name: string): string {
@@ -269,15 +298,18 @@ export function buildFounderInviteEmail(args: {
   evaluatorName: string;
   startupName: string;
   claimUrl: string;
+  /** G21 P2-A — the program's consent text (intake_templates.consent_text), rendered verbatim as its own paragraph. */
+  consentText?: string | null;
 }): { subject: string; html: string } {
   const who = escapeHtml(args.evaluatorName);
   const startup = escapeHtml(args.startupName);
+  const consent = args.consentText?.trim() ? `\n  <p style="margin:0 0 16px 0;padding:12px 14px;border:1px solid #E2E8F0;border-radius:10px;background:#F8FAFC;font-size:14px;line-height:1.6;" data-consent="program">${escapeHtml(args.consentText.trim())}</p>` : "";
   const subject = `${args.evaluatorName} is evaluating ${args.startupName} on BlockID — claim it to share your evidence`;
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(subject)}</title></head><body style="margin:0;padding:24px;background:#F1F5F9;color:#0F172A;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;"><div style="max-width:560px;margin:0 auto;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:32px;">
   <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#64748B;">BlockID.au</p>
   <h1 style="margin:0 0 16px 0;font-size:20px;line-height:1.3;">${who} is evaluating ${startup} on BlockID</h1>
   <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;">${who} has added <strong>${startup}</strong> to the startups they are evaluating. Every startup they track is scored on the same 8-dimension rubric.</p>
-  <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;">Claim it to share your evidence: once you claim the profile, any Trusted Business Report ${who} runs on ${startup} is shared with you, and you can add the evidence that lifts the score — you stay in control of what is shared.</p>
+  <p style="margin:0 0 16px 0;font-size:15px;line-height:1.6;">Claim it to share your evidence: once you claim the profile, any Trusted Business Report ${who} runs on ${startup} is shared with you, and you can add the evidence that lifts the score — you stay in control of what is shared.</p>${consent}
   <p style="margin:24px 0;"><a href="${escapeHtml(args.claimUrl)}" style="display:inline-block;background:#4F46E5;color:#FFFFFF;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px;">Claim ${startup} on BlockID</a></p>
   <p style="margin:0;font-size:12px;line-height:1.6;color:#64748B;">If you were not expecting this, ignore it — nothing is shared until you claim. Your data belongs to your startup; BlockID stores it so every report builds on your own evidence.</p>
 </div></body></html>`;
@@ -472,6 +504,7 @@ export async function canAccessProjectAsEvaluator(
 export async function createEvaluation(
   evaluator: Pick<AppUser, "id" | "email" | "plan" | "displayName">,
   rawInput: CreateEvaluationInput,
+  options: CreateEvaluationOptions = {},
 ): Promise<CreateEvaluationResult> {
   const parsed = normaliseCreateInput(rawInput);
   if (!parsed.ok) return { ok: false, error: "invalid_input", message: parsed.message };
@@ -508,18 +541,24 @@ export async function createEvaluation(
   const hasActiveProject = ownedRows.some((p) => !p.archived_at);
 
   // 1. projects row owned by the evaluator. attribution_* left untouched.
-  const { data: project, error: projectError } = await supabase
-    .from("projects")
-    .insert({
-      user_id: evaluator.id,
-      name: input.name,
-      slug,
-      description: input.description,
-      industry: input.industry,
-      is_default: !hasActiveProject,
-    })
-    .select("id, name, slug, industry, stage, description")
-    .single();
+  // G21 P2-A: stage / abn only when the import supplied them (abn is 0410 —
+  // a 42703 on an un-migrated server retries without it).
+  const projectRow0: Row = {
+    user_id: evaluator.id,
+    name: input.name,
+    slug,
+    description: input.description,
+    industry: input.industry,
+    is_default: !hasActiveProject,
+  };
+  if (input.stage != null) projectRow0.stage = input.stage;
+  if (input.abn) projectRow0.abn = input.abn;
+  let projectRes = await supabase.from("projects").insert(projectRow0).select("id, name, slug, industry, stage, description").single();
+  if (projectRes.error && (projectRes.error as { code?: string }).code === "42703" && input.abn) {
+    delete projectRow0.abn;
+    projectRes = await supabase.from("projects").insert(projectRow0).select("id, name, slug, industry, stage, description").single();
+  }
+  const { data: project, error: projectError } = projectRes;
   if (projectError || !project) {
     console.error("[blockid:evaluations] project insert failed", projectError);
     return { ok: false, error: "create_failed", message: "Failed to create the startup" };
@@ -542,6 +581,7 @@ export async function createEvaluation(
       invited_at: inviteToken ? nowIso : null,
       website: input.website,
       state: input.state,
+      ...(input.notes ? { notes: input.notes } : {}),
     })
     .select(EVALUATION_COLUMNS)
     .single();
@@ -582,6 +622,7 @@ export async function createEvaluation(
       evaluatorName,
       startupName: input.name,
       claimUrl: claimUrlForToken(inviteToken),
+      consentText: options.consentText ?? null,
     });
     try {
       // Spam Act: the founder may not be a BlockID user yet — identity line +

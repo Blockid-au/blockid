@@ -381,9 +381,9 @@ const EVALUATOR_HOME: NavGroup = {
       segments: ["advisor"],
     },
     {
-      href: "/workspace/accelerator/cohort",
+      href: "/workspace/evaluations/cohort",
       label: { en: "Cohort", vi: "Khóa ươm" },
-      tooltip: { en: "Every startup in your program, scored weekly", vi: "Mọi startup trong chương trình, chấm điểm hàng tuần" },
+      tooltip: { en: "Your program round on one rubric: import, score, compare, track", vi: "Đợt chương trình trên một rubric: nhập, chấm điểm, so sánh, theo dõi" },
       icon: Building2,
       segments: ["accelerator"],
     },
@@ -428,6 +428,16 @@ const DEALFLOW: NavGroup = {
       icon: ClipboardCheck,
       segments: EVALUATOR_NAV_SEGMENTS,
       aliases: ["Applications", "Intake inbox", "Apply link"],
+    },
+    {
+      // G21 P2-A — reusable intake templates (questions, rubric weights,
+      // consent text) that an intake link or a BlockID Cohort is created with.
+      href: "/workspace/accelerator/templates",
+      label: { en: "Templates", vi: "Mẫu tiếp nhận" },
+      tooltip: { en: "Intake question sets, rubric weights and consent text you reuse every round", vi: "Bộ câu hỏi tiếp nhận, trọng số rubric và văn bản đồng ý dùng lại mỗi đợt" },
+      icon: FileText,
+      segments: ["accelerator"],
+      aliases: ["Intake templates", "Question set"],
     },
   ],
 };
