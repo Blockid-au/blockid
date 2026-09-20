@@ -142,7 +142,7 @@ const FROM_LABELS: Readonly<Record<string, string>> = Object.freeze({
   "/workspace/funding": "Money Finder",
   "/workspace/evidence": "Evidence Vault",
   "/workspace/raise/term-sheet": "Term Sheet AI",
-  "/workspace/accelerator/quarterly-report": "Quarterly Report",
+  "/workspace/accelerator/quarterly-report": "Cohort Report",
   "/workspace/exit/benchmark": "Exit Readiness",
   "/workspace/reports": "Reports",
 });

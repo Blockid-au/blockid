@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-20T21:17:42.523Z",
+  "generated_at": "2026-09-20T21:31:55.704Z",
   "ledger_present": true,
-  "total_files": 303,
+  "total_files": 305,
   "files": [
     "0001_init.sql",
     "0002_score_v2.sql",
@@ -276,7 +276,9 @@
     "0420_revenue_events_kind_one_offs.sql",
     "0421_erasure_map_pilot_orders.sql",
     "0422_cohort_v2.sql",
+    "0423_cohort_overrides_members.sql",
     "0425_erasure_map_corrections.sql",
+    "0426_erasure_map_cohort_members.sql",
     "20260814_tech_analyses.sql",
     "20260815120000_analyzer_runs.sql",
     "20260816_clevel_reports_v2.sql",

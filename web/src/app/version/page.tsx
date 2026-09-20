@@ -146,6 +146,17 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.20.0",
+    date: "2026-09-20",
+    title: "Cohort intelligence (G21 P2 — advisor-feedback upgrade) + P1 review fixes",
+    changes: [
+      "[G21] One BlockID Cohort model (0422): CSV import with validation / dedupe / pilot cap / consented founder invites, reusable intake templates on /apply, cohort snapshots + re-score + Δ; legacy cohort pages redirect",
+      "[G21] The BlockID Cohort view (0423): SVI · Evidence Confidence · BlockID Verified · Δ · gaps · review status · decision · shortlist columns, URL-synced filters, compare drawer, overrides with reason codes beside the canonical SVI, program weights for the ranking, reviewer roles + invites, decision log, CSV",
+      "[G21] Six-stage program journey with mentor-gap lists; Cohort Report for sponsors (HTML / PDF / CSV, benchmark only with n, reviewer signature); demo-day pack; pilot delivery kit with success-metric capture; feedback letters with preview → confirm",
+      "[G21 review] Stage benchmark counts companies not analysis rows; one evidence-confidence number per report across web / PDF / DOCX; every remaining percentile / median gated on n; corrections panel project-scoped; claims re-sync after expiry; erasure map complete (0425, 0426)",
+    ],
+  },
+  {
     version: "3.19.0",
     date: "2026-09-20",
     title: "Evidence & explainability (G21 P1 — advisor-feedback upgrade)",

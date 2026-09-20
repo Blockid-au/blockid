@@ -212,12 +212,12 @@ export function buildAdvisorProps(m: Messages, lang: Lang = "en"): SolutionPageP
   };
 }
 
-/** The six-stage workflow (Intake → Assessment → Selection → Program → Demo day → Sponsor reporting): two shipped bullets per stage. */
+/** The six-stage workflow (Intake → Assessment → Selection → Program → Demo day → Sponsor reporting): three shipped bullets per stage (G21 P2: import, snapshots, filters, overrides, feedback letters, demo-day pack, Cohort Report, pilot metrics). */
 function acceleratorJourney(m: Messages): SolutionJourneyStep[] {
   const step = (n: 1 | 2 | 3 | 4 | 5 | 6): SolutionJourneyStep => ({
     window: t(m, `solutions.accelerator.journey.window${n}`),
     headline: t(m, `solutions.accelerator.journey.step${n}.head`),
-    bullets: [t(m, `solutions.accelerator.journey.step${n}.b1`), t(m, `solutions.accelerator.journey.step${n}.b2`)],
+    bullets: [t(m, `solutions.accelerator.journey.step${n}.b1`), t(m, `solutions.accelerator.journey.step${n}.b2`), t(m, `solutions.accelerator.journey.step${n}.b3`)],
   });
   return [step(1), step(2), step(3), step(4), step(5), step(6)];
 }

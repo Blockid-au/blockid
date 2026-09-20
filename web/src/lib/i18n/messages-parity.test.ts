@@ -179,7 +179,9 @@ describe("solutions.* approved wording", () => {
     }
     expect(EN["solutions.accelerator.faq.a1"]).toMatch(/cohort table/);
     expect(EN["solutions.accelerator.faq.a1"]).toMatch(/CSV/);
-    expect(EN["solutions.accelerator.faq.a2"]).toMatch(/sponsor \/ LP report/);
+    // G21 P2-C: the sponsor / LP export is the Cohort Report (HTML / PDF / CSV).
+    expect(EN["solutions.accelerator.faq.a2"]).toMatch(/Cohort Report/);
+    expect(EN["solutions.accelerator.faq.a2"]).toMatch(/PDF or CSV/);
   });
 });
 
