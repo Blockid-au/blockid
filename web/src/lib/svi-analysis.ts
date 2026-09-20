@@ -1955,7 +1955,10 @@ export function computeSVI(
     : totalSVI >= 80 ? "Below Average"
     : "Early Stage";
 
-  const summary = `${sviLabel} Startup Value Index — ${stageLabel} stage (${stage === 0 ? "p" : "P"}${percentileRank}th percentile for stage). ${
+  // G21 P1 review: the summary names the band and the stage only — the
+  // static-table `percentileRank` is an estimate without an n and is never
+  // printed (score-governance § 7; the cohort result carries the published rank).
+  const summary = `${sviLabel} Startup Value Index — ${stageLabel} stage. ${
     riskPenalties.length > 0
       ? `${riskPenalties.length} risk factor${riskPenalties.length > 1 ? "s" : ""} detected. `
       : ""
