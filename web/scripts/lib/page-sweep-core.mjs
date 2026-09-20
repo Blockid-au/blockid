@@ -21,7 +21,7 @@ export const REACT_418_RE = /Minified React error #418/;
  * browser has no Google account — always true in a headless sweep, never a
  * product error (G20-F2, seen on /auth/login and every /auth/login?next= bounce).
  */
-export const FEDCM_NOISE_RE = /^(Provider's accounts list is empty|Not signed in with the identity provider)\.?$/;
+export const FEDCM_NOISE_RE = /^(Provider's accounts list is empty|Not signed in with the identity provider)\.?$|^\[GSI_LOGGER\]: FedCM get\(\) rejects with NetworkError|^\[auth:google\] client one_tap (unknown_reason|opt_out_or_no_session)$/;
 export const CSP_INLINE_SCRIPT_RE = /(Refused to execute inline script because it violates|Executing inline script violates) the following Content Security Policy directive/;
 export const NOISE_URL_RE = /google-analytics\.com|googletagmanager\.com|\/g\/collect|cloudflareinsights|stripe\.com\/b|r\.stripe\.com/;
 export const FAILED_RESOURCE_RE = /Failed to load resource: the server responded with a status of (\d+)/;

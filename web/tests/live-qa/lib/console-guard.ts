@@ -34,7 +34,7 @@ const REACT_418_RE = /Minified React error #418/;
  * product error (G20-F2 page sweep, 2026-09-20). Mirrored in
  * scripts/lib/page-sweep-core.mjs (parity pinned by scripts/page-sweep.test.mjs).
  */
-export const FEDCM_NOISE_RE = /^(Provider's accounts list is empty|Not signed in with the identity provider)\.?$/;
+export const FEDCM_NOISE_RE = /^(Provider's accounts list is empty|Not signed in with the identity provider)\.?$|^\[GSI_LOGGER\]: FedCM get\(\) rejects with NetworkError|^\[auth:google\] client one_tap (unknown_reason|opt_out_or_no_session)$/;
 
 /**
  * Chromium's wording for a refused nonce-less inline script under

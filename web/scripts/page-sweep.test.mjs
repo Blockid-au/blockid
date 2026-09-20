@@ -157,8 +157,11 @@ describe("allow-list parity with tests/live-qa/lib/console-guard.ts", () => {
   it("FedCM 'no Google account' console lines are allowed (headless browsers never have one)", () => {
     const fedcm = { type: "console", text: "Not signed in with the identity provider." };
     const fedcm2 = { type: "console", text: "Provider's accounts list is empty." };
+    const fedcm3 = { type: "console", text: "[GSI_LOGGER]: FedCM get() rejects with NetworkError: Error retrieving a token." };
+    const fedcm4 = { type: "console", text: "[auth:google] client one_tap unknown_reason" };
     const other = { type: "console", text: "Not signed in with the identity provider. Also something else" };
-    expect(filterConsole([fedcm, fedcm2, other]).errors).toEqual([other]);
+    const realGis = { type: "console", text: "[auth:google] client one_tap unregistered_origin" };
+    expect(filterConsole([fedcm, fedcm2, fedcm3, fedcm4, other, realGis]).errors).toEqual([other, realGis]);
   });
   it("filterConsole applies the guard rules (≤ 2 CSP refusals with the CF tag, #418 with email obfuscation, allowed-request echoes)", () => {
     const csp = { type: "console", text: "Executing inline script violates the following Content Security Policy directive 'script-src'" };
