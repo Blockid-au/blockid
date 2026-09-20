@@ -29,4 +29,20 @@ describe("estimatePages", () => {
     r.dimensions[0].strengths = [...r.dimensions[0].strengths, Array.from({ length: 800 }, () => "word").join(" ")];
     expect(estimatePages(r).pages).toBeGreaterThan(before + 1);
   });
+
+  // G19-S41: the ledger tables are compact — the standard demo stays ≤ 16 pages
+  // with all 8 of them, and a ledger costs more than a single pending line.
+  it("standard demo with 8 ledger tables stays ≤ 16 estimated pages; a ledger table costs more than a pending line, a pre-S41 chapter nothing", () => {
+    const r = demoReportV2();
+    expect(r.dimensions.every((d) => d.scoreBreakdown?.assessed)).toBe(true);
+    const withLedger = estimatePages(r).pages;
+    expect(withLedger).toBeLessThanOrEqual(16);
+    const pending = demoReportV2();
+    for (const d of pending.dimensions) d.scoreBreakdown = { base: 40, signals: [], confidenceMultiplier: 0.2, adjustment: 0, assessed: false };
+    const none = demoReportV2();
+    for (const d of none.dimensions) delete d.scoreBreakdown;
+    expect(estimatePages(pending).pages).toBeLessThan(withLedger);
+    expect(estimatePages(none).pages).toBeLessThanOrEqual(estimatePages(pending).pages);
+    expect(withLedger - estimatePages(none).pages).toBeLessThanOrEqual(1.2);
+  });
 });

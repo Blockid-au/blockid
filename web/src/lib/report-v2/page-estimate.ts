@@ -22,6 +22,13 @@ const FULL_VISUAL_PAGES = 0.3;
 const CARD_VISUAL_PAGES = 0.15;
 const CHAPTER_OVERHEAD_PAGES = 0.2; // header + evidence table + stamp
 const CARD_OVERHEAD_PAGES = 0.12;
+// G19-S41: "How this score was built" — one compact table per full chapter
+// (base + signals + score + factors + adjustment, 8.5 pt rows). Measured on
+// the demo: 8 tables ≈ +1 rendered page (23 → 24), so ≈ 0.03 per table plus
+// ≈ 0.01 per row; an unassessed chapter shows a single pending line.
+const LEDGER_TABLE_PAGES = 0.03;
+const LEDGER_ROW_PAGES = 0.01;
+const LEDGER_FIXED_ROWS = 5; // base, score, weight×confidence, verification, adjustment
 
 function wc(...parts: Array<string | string[] | undefined | null>): number {
   let n = 0;
@@ -48,7 +55,9 @@ function chapterCost(ch: DimensionChapter, freeTier: boolean): { pages: number; 
     ...ch.criteria.map((c) => [c.verdict, ...c.strengths, ...c.gaps, c.nextAction]),
   );
   const visuals = 1 + (freeTier ? 0 : ch.secondaryVisuals.length);
-  return { pages: CHAPTER_OVERHEAD_PAGES + visuals * FULL_VISUAL_PAGES + words / WORDS_PER_PAGE, words };
+  const bd = ch.scoreBreakdown;
+  const ledger = !bd ? 0 : bd.assessed ? LEDGER_TABLE_PAGES + (bd.signals.length + LEDGER_FIXED_ROWS) * LEDGER_ROW_PAGES : LEDGER_ROW_PAGES;
+  return { pages: CHAPTER_OVERHEAD_PAGES + visuals * FULL_VISUAL_PAGES + ledger + words / WORDS_PER_PAGE, words };
 }
 
 export function estimatePages(report: ReportV2): PageEstimate {

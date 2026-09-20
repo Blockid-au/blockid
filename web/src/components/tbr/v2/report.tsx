@@ -84,7 +84,7 @@ export function TbrReportV2({ report, strings, locale = "en", upgradeHref, after
       <TbrExecutive report={report} title={t.secExecutive} locale={locale} />
       {report.dimensions.map((ch, i) => (
         <Fragment key={ch.dim}>
-          <TbrChapter chapter={ch} index={i + 2} locale={locale} upgradeHref={upgradeHref} locked={Boolean(lockCards) && ch.renderAs === "card"} forceFull={forceFull} />
+          <TbrChapter chapter={ch} index={i + 2} locale={locale} verificationLevel={report.cover.verification?.level ?? null} upgradeHref={upgradeHref} locked={Boolean(lockCards) && ch.renderAs === "card"} forceFull={forceFull} />
           {i === railAfterIdx && unlock && railFor(unlock.mode)}
         </Fragment>
       ))}

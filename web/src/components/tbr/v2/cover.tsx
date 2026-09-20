@@ -2,12 +2,44 @@
 // three questions strip and the dimension table (spec §A.1 row 0).
 
 import { GROWTH_PHASE_LABELS } from "@/lib/growth/phase-taxonomy";
+import { getTbrStrings } from "@/lib/i18n/tbr-strings";
 import { DIMENSION_OWNERS } from "@/lib/report-pipeline/dimension-owners";
 import { VisualFigure } from "@/lib/report-visuals/react";
+import { coverLedgerCells, pendingDimsLine } from "@/lib/report-v2/ledger-rows";
 import { DIM_ORDER, type ReportV2 } from "@/lib/report-v2/schema";
 import { cn } from "@/lib/utils";
 import { AbnBadge } from "@/components/verification/abn-badge";
 import { AgentBadge, TBR_V2_SECTION_IDS, TbrSection, bandLabel, bandText } from "./shared";
+
+/** G19-S41 — the cover ledger strip "base 100 → dims → stage → penalties → total" + "N of 8 dimensions pending". */
+export function TbrCoverLedger({ report, locale = "en" }: { report: ReportV2; locale?: "en" | "vi" }) {
+  const cells = coverLedgerCells(report.cover, locale);
+  const pending = pendingDimsLine(report.cover, locale);
+  if (cells.length === 0 && !pending) return null;
+  const t = getTbrStrings(locale).ledger;
+  return (
+    <div data-tbr-cover-ledger className="space-y-1">
+      {cells.length > 0 && (
+        <div className="flex flex-wrap items-center gap-1 text-[11px]">
+          <span className="mr-1 text-[10px] font-semibold uppercase tracking-wide text-ink-500">{t.coverTitle}</span>
+          {cells.map((cell, i) => (
+            <span key={cell.label} className="inline-flex items-center gap-1">
+              {i > 0 && <span className="text-ink-300 dark:text-ink-600">→</span>}
+              <span className={cn("rounded-md border px-1.5 py-0.5 tabular-nums", i === cells.length - 1 ? "border-brand-300 bg-brand-50 font-semibold text-brand-700 dark:border-brand-700 dark:bg-brand-950/40 dark:text-brand-300" : "border-ink-200 text-ink-700 dark:border-ink-700 dark:text-ink-200")}>
+                <span className="text-ink-500 dark:text-ink-400">{cell.label}</span> {cell.value}
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
+      {pending && (
+        <p data-tbr-pending-dims className="text-[11px] text-ink-500 dark:text-ink-400">
+          {pending}
+        </p>
+      )}
+    </div>
+  );
+}
 
 export function TbrCover({ report, title, locale = "en" }: { report: ReportV2; title: string; locale?: "en" | "vi" }) {
   const c = report.cover;
@@ -45,6 +77,7 @@ export function TbrCover({ report, title, locale = "en" }: { report: ReportV2; t
             </p>
           </div>
           {strip && <VisualFigure spec={strip} caption={null} />}
+          <TbrCoverLedger report={report} locale={locale} />
           <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_260px]">
             <table className="w-full text-xs">
               <thead>

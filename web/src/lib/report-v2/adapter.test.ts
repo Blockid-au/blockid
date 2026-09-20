@@ -6,9 +6,56 @@
 
 import { describe, expect, it } from "vitest";
 import type { AssembledReport } from "@/lib/report-pipeline/types";
-import { benchmarkStageFrom, fromAssembledReport, fromSnapshot, inferPhase, resolveReportV2, type SnapshotInput } from "./adapter";
+import { computeSVI, type SVIExtractedSignals } from "@/lib/svi-analysis";
+import { benchmarkStageFrom, fromAssembledReport, fromSnapshot, inferPhase, pendingDimCount, resolveReportV2, scoreBreakdownFromSub, sviLedgerFrom, type SnapshotInput } from "./adapter";
 import { demoSnapshotInput } from "./fixtures";
+import { ledgerReconciles } from "./ledger-rows";
 import { DIM_ORDER, assertReportV2, isReportV2 } from "./schema";
+
+/** G19-S41: an all-false engine input with overrides (mirrors svi-analysis.test.ts makeSignals). */
+function engineSignals(overrides: Partial<SVIExtractedSignals> = {}): SVIExtractedSignals {
+  return {
+    hasCoFounder: false,
+    founderExperience: "first-time",
+    founderSectorFit: false,
+    hasAdvisors: false,
+    marketSize: "unknown",
+    problemClarity: "vague",
+    hasCustomerInterviews: false,
+    isAIWrapper: false,
+    hasMoat: false,
+    hasNetworkEffect: false,
+    hasDataAdvantage: false,
+    hasSwitchingCosts: false,
+    hasProduct: false,
+    hasDemo: false,
+    hasSourceCode: false,
+    hasWebsite: false,
+    hasApp: false,
+    hasRevenue: false,
+    revenueBand: "pre-revenue",
+    hasCustomers: false,
+    hasSocialProof: false,
+    hasAnalytics: false,
+    hasCapTable: false,
+    hasVesting: false,
+    hasShareholdersAgreement: false,
+    hasBoardCadence: false,
+    hasFinancialAudit: false,
+    esopAllocated: false,
+    hasPitchDeck: false,
+    hasFinancialModel: false,
+    hasDataRoom: false,
+    targetRaiseMentioned: false,
+    raiseMentioned: false,
+    hasABN: false,
+    hasIPProtection: false,
+    hasContracts: false,
+    hasLegalDocs: false,
+    evidenceLevel: "self_declared",
+    ...overrides,
+  };
+}
 
 function minimalScores(): SnapshotInput["dimStates"] {
   return {
@@ -226,6 +273,69 @@ describe("fromAssembledReport", () => {
     const tre = r.dimensions.find((d) => d.dim === "tre")!;
     expect(tre.score).toBe(58);
     expect(tre.verdict).toContain("No cohort data");
+  });
+
+  // G19-S41 — the engine ledger travels into the document.
+  it("copies the engine's per-dimension breakdown into scoreBreakdown (signals, confidence, adjustment) and reconciles with the score", () => {
+    const analysis = computeSVI(engineSignals({ founderExperience: "serial", hasCoFounder: true, hasPitchDeck: true, hasABN: true, evidenceLevel: "document_uploaded" }), undefined, undefined, undefined, undefined, undefined, undefined, null, 2);
+    const r = assertReportV2(fromAssembledReport(report, { subs: analysis.subs, sviAnalysis: analysis, dimensionScores: analysis.dimensionScores }));
+    const ftv = r.dimensions.find((d) => d.dim === "ftv")!;
+    const sub = analysis.subs.find((s) => s.key === "ftv")!;
+    expect(ftv.scoreBreakdown).toBeDefined();
+    expect(ftv.scoreBreakdown!.base).toBe(50);
+    expect(ftv.scoreBreakdown!.signals).toEqual([
+      { signal: "Serial founder with exits", points: 35, source: "document_uploaded" },
+      { signal: "Co-founder team", points: 15, source: "document_uploaded" },
+    ]);
+    expect(ftv.scoreBreakdown!.assessed).toBe(true);
+    expect(ftv.scoreBreakdown!.adjustment).toBe(sub.adjustment);
+    expect(ftv.scoreBreakdown!.confidenceMultiplier).toBe(analysis.confidenceMultiplier);
+    expect(ftv.scoreBreakdown!.verificationMultiplier).toBe(1); // L2 = ×1.00
+    expect(ledgerReconciles(ftv.scoreBreakdown!, ftv.score)).toBe(true);
+    expect(ftv.band).toBe("strong");
+    for (const d of r.dimensions) expect(d.scoreBreakdown).toBeDefined();
+  });
+
+  it("an unassessed dimension (pure baseline) gets band pending, '—' semantics and an honest verdict; the cover counts it", () => {
+    const analysis = computeSVI(engineSignals({ hasPitchDeck: true }));
+    const r = assertReportV2(fromAssembledReport(report, { subs: analysis.subs, sviAnalysis: analysis, dimensionScores: analysis.dimensionScores }));
+    const iri = r.dimensions.find((d) => d.dim === "iri")!;
+    expect(iri.band).toBe("developing");
+    expect(iri.scoreBreakdown!.assessed).toBe(true);
+    const svm = r.dimensions.find((d) => d.dim === "svm")!;
+    expect(svm.score).toBe(35); // the baseline is still carried (D1) …
+    expect(svm.band).toBe("pending"); // … but never presented as a score
+    expect(svm.benchmark.percentile).toBeNull();
+    expect(svm.scoreBreakdown).toMatchObject({ assessed: false, signals: [], base: 35 });
+    expect(svm.verdict).toContain("not assessed yet");
+    expect(r.cover.dims.svm.band).toBe("pending");
+    expect(pendingDimCount(r.cover)).toBe(7);
+    // Only the iri criterion was synthesised, so 'tre' etc. are pending from the ledger, not from a missing score.
+    expect(r.cover.dims.iri.band).toBe("developing");
+  });
+
+  it("cover.sviLedger is the engine ledger and its fields sum to the total; a pre-S41 analysis yields no ledger", () => {
+    const analysis = computeSVI(engineSignals({ hasCoFounder: true, marketSize: "large", hasRevenue: true, revenueBand: "early", sector: "saas" }));
+    const r = assertReportV2(fromAssembledReport(report, { subs: analysis.subs, sviAnalysis: analysis, sviTotal: analysis.totalSVI }));
+    const l = r.cover.sviLedger!;
+    expect(l).toBeDefined();
+    const dims = DIM_ORDER.reduce((a, d) => a + l.dimAdjustments[d], 0);
+    expect(l.base + dims + l.stageBonus + l.riskPenalties + l.sectorAdj + l.metricsBonus + l.ciBoost + l.floorClamp).toBe(l.total);
+    expect(l.total).toBe(analysis.totalSVI);
+    expect(l.total).toBe(r.cover.svi.total);
+    expect(l.sectorAdj).toBe(4);
+    const legacy = assertReportV2(fromAssembledReport(report, { subs: [{ key: "tre", value: 58 }] }));
+    expect(legacy.cover.sviLedger).toBeUndefined();
+    expect(legacy.dimensions.find((d) => d.dim === "tre")!.scoreBreakdown).toBeUndefined();
+    expect(legacy.dimensions.find((d) => d.dim === "tre")!.band).toBe("developing");
+  });
+
+  it("scoreBreakdownFromSub / sviLedgerFrom are fail-soft on partial or pre-S41 shapes", () => {
+    expect(scoreBreakdownFromSub(undefined)).toBeUndefined();
+    expect(scoreBreakdownFromSub({ key: "tre", value: 50 })).toBeUndefined();
+    expect(scoreBreakdownFromSub({ key: "tre", value: 50, base: 30, breakdown: [], adjustment: -4 }, null)).toEqual({ base: 30, signals: [], confidenceMultiplier: 0.2, adjustment: -4, assessed: false });
+    expect(sviLedgerFrom(null)).toBeUndefined();
+    expect(sviLedgerFrom({ base: 100, dimAdjustments: { tre: 1 } } as never)?.dimAdjustments).toEqual({ tre: 1, mpc: 0, ftv: 0, ptd: 0, cgh: 0, iri: 0, lco: 0, svm: 0 });
   });
 });
 

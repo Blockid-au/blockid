@@ -143,6 +143,66 @@ describe("<TbrReportV2>", () => {
     expect(html).toContain("Bằng chứng tăng trưởng &amp; doanh thu");
   });
 
+  // G19-S41 — "How this score was built".
+  it("renders the score ledger table in all 8 demo chapters: base, every signal with ± points and a source chip, × confidence, = adjustment", () => {
+    const report = demoReportV2();
+    const html = renderToStaticMarkup(<TbrReportV2 report={report} />);
+    expect((html.match(/data-tbr-ledger="/g) ?? []).length).toBe(8);
+    expect((html.match(/data-tbr-ledger-state="assessed"/g) ?? []).length).toBe(8);
+    expect((html.match(/How this score was built/g) ?? []).length).toBe(8);
+    const ftv = report.dimensions.find((d) => d.dim === "ftv")!;
+    const block = html.slice(html.indexOf('data-tbr-ledger="ftv"'), html.indexOf('data-tbr-primary="ftv"'));
+    expect(block).toContain("Base 50");
+    for (const s of ftv.scoreBreakdown!.signals) {
+      expect(block).toContain(s.signal);
+      expect(block).toContain(`+${s.points}`);
+    }
+    expect(block).toContain("document");
+    expect(block).toContain(`= score ${ftv.score}/100`);
+    expect(block).toContain("× weight 15 % × evidence confidence 0.75");
+    expect(block).toContain("× verification L2 1.00");
+    expect(block).toContain(`= adjustment +${ftv.scoreBreakdown!.adjustment} on the SVI base of 100`);
+    expect(block).not.toContain("Not assessed yet");
+  });
+
+  it("an unassessed dimension shows the pending band ('—'), the single honest line with what to add, and the cover counts it", () => {
+    const report = demoReportV2();
+    const svm = report.dimensions.find((d) => d.dim === "svm")!;
+    svm.scoreBreakdown = { base: 35, signals: [], confidenceMultiplier: 0.2, adjustment: -1, assessed: false };
+    svm.band = "pending";
+    svm.scoreNote = "Owner proposed 48; reconciled to 45 (±10 of the deterministic 35).";
+    report.cover.dims.svm.band = "pending";
+    const html = renderToStaticMarkup(<TbrReportV2 report={report} />);
+    const block = html.slice(html.indexOf('data-tbr-ledger="svm"'), html.indexOf('data-tbr-primary="svm"'));
+    expect(block).toContain('data-tbr-ledger-state="pending"');
+    expect(block).toContain("Not assessed yet — no evidence for this dimension.");
+    expect(block).toContain("Add: upload, url");
+    expect(block).not.toContain("Base 35");
+    expect(block).toContain("Score note");
+    expect(block).toContain("Owner proposed 48");
+    expect(html).toContain('data-tbr-pending-dims');
+    expect(html).toContain("1 of 8 dimensions pending");
+    // The header shows "—", never the baseline number, for a pending chapter.
+    const header = html.slice(html.indexOf(`id="${TBR_V2_SECTION_IDS.dim("svm")}"`), html.indexOf('data-tbr-ledger="svm"'));
+    expect(header).toContain(">—<");
+    expect(header).not.toContain(">35<");
+  });
+
+  it("cover ledger strip renders base → dims → stage → penalties → total from cover.sviLedger, and the Vietnamese ledger has diacritics", () => {
+    const report = demoReportV2();
+    report.cover.sviLedger = { base: 100, dimAdjustments: { tre: 4, mpc: 3, ftv: 4, ptd: 3, cgh: 2, iri: 2, lco: 2, svm: 1 }, stageBonus: 8, riskPenalties: -6, sectorAdj: 4, metricsBonus: 0, ciBoost: 0, floorClamp: 0, total: 127 };
+    const html = renderToStaticMarkup(<TbrReportV2 report={report} />);
+    expect(html).toContain("data-tbr-cover-ledger");
+    for (const cell of ["SVI ledger", "Base</span> 100", "8 dimensions</span> +21", "Stage bonus</span> +8", "Risk penalties</span> −6", "Sector</span> +4", "Total</span> 127"]) expect(html).toContain(cell);
+    expect(html).not.toContain("Metrics</span>");
+    const vi = renderToStaticMarkup(<TbrReportV2 report={report} locale="vi" />);
+    expect(vi).toContain("Điểm này được xây dựng như thế nào");
+    expect(vi).toContain("Sổ cái SVI");
+    expect(vi).toContain("× độ tin cậy bằng chứng 0.75");
+    expect(vi).toContain("tài liệu tải lên");
+    expect(vi).not.toContain("How this score was built");
+  });
+
   // G14-S36 — the cover badge reads cover.verification.
   it("cover shows 'Verified ABN' for the L2 demo, 'ABN not verified' at L0, and no badge on a pre-S36 document", () => {
     const demo = renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} />);

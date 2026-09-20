@@ -80,6 +80,32 @@ describe("renderTbrPdf — standard tier", () => {
     expect(text).not.toContain("Unlock the full");
   }, 60_000);
 
+  // G19-S41 — the ledger table is the same rows as the web chapter.
+  it("renders 'How this score was built' in every chapter with the signal rows, the confidence factor and the adjustment; a pending chapter gets the honest line", async () => {
+    const report = demoReportV2();
+    const svm = report.dimensions.find((d) => d.dim === "svm")!;
+    svm.scoreBreakdown = { base: 35, signals: [], confidenceMultiplier: 0.2, adjustment: -1, assessed: false };
+    svm.band = "pending";
+    report.cover.dims.svm.band = "pending";
+    report.cover.sviLedger = { base: 100, dimAdjustments: { tre: 4, mpc: 3, ftv: 4, ptd: 3, cgh: 2, iri: 2, lco: 2, svm: 1 }, stageBonus: 8, riskPenalties: -6, sectorAdj: 4, metricsBonus: 0, ciBoost: 0, floorClamp: 0, total: 127 };
+    const { buffer } = await renderTbrPdf(report);
+    const text = await fullText(buffer);
+    expect((text.match(/HOW THIS SCORE WAS BUILT/g) ?? []).length).toBe(8);
+    const ftv = report.dimensions.find((d) => d.dim === "ftv")!;
+    for (const s of ftv.scoreBreakdown!.signals) expect(text).toContain(s.signal);
+    expect(text).toContain("Base 50");
+    expect(text).toContain("+15");
+    expect(text).toContain(`= score ${ftv.score}/100`);
+    expect(text).toContain("× weight 15 % × evidence confidence 0.75");
+    expect(text).toContain("× verification L2 1.00");
+    expect(text).toContain(`= adjustment +${ftv.scoreBreakdown!.adjustment} on the SVI base of 100`);
+    expect(text).toContain("Not assessed yet");
+    expect(text).toContain("Add: upload, url");
+    expect(text).toContain("1 of 8 dimensions pending");
+    expect(text).toContain("SVI LEDGER");
+    expect(text).toContain("Total 127");
+  }, 60_000);
+
   it("keeps a caller-supplied 'Prepared with <model via provider>' line verbatim", async () => {
     const report = demoReportV2();
     const { buffer } = await renderTbrPdf(report, { preparedWith: "Prepared with DeepSeek-V4-Flash via DeepInfra." });

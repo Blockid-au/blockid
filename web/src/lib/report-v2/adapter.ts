@@ -561,7 +561,7 @@ function buildChapter(c: ChapterCtx, phase: PhaseGateResult, tier: ReportTierV2)
   const verdict = !c.scored
     ? `${owner.title} was not scored in this snapshot — re-run the analysis to populate this chapter.`
     : !c.assessed
-      ? words(verdictSrc || `${owner.title} is not assessed yet — no evidence reached this dimension, so the ${c.score} shown in the ledger is the stage baseline, not a score.`, 80)
+      ? words(`${owner.title} is not assessed yet — no evidence reached this dimension, so the ${c.score} in the ledger is the stage baseline, not a score.${verdictSrc ? ` Start with: ${verdictSrc}` : ""}`, 80)
       : words(verdictSrc || `${owner.title} scores ${c.score}/100 (${c.band}) against a ${c.stageLabel} median of ${c.p50}.`, 80);
   const floor = PHASE_EXIT_RULES[phase.currentPhase].dimensionFloors[c.dim as keyof typeof PHASE_EXIT_RULES.vision.dimensionFloors];
   const lift = Math.max(1, Math.round((owner.weight * Math.max(0, 70 - c.score)) / 100));

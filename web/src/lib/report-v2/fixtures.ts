@@ -5,17 +5,90 @@
 
 import type { VcValuationLike } from "@/lib/report-pipeline/valuation-chapter";
 import { fromSnapshot, type SnapshotCriterionState, type SnapshotDimState, type SnapshotInput } from "./adapter";
-import type { ReportTierV2, ReportV2 } from "./schema";
+import type { ReportTierV2, ReportV2, ScoreBreakdown, ScoreBreakdownSignal } from "./schema";
+
+// G19-S41: every demo chapter carries a score ledger built from the engine's
+// own signal labels and point values (svi-analysis.ts), so the demo shows
+// "How this score was built" exactly as a real report does. Each dimension
+// score is base + Σ points (the engine bases: FTV/MPC/PTD 50, TRE 30,
+// CGH/IRI/LCO 40, SVM 35); the demo reads as a document-uploaded analysis
+// with connected Stripe + a tech audit at evidence confidence 0.75 and
+// verification L2 (×1.00). The cover carries no engine ledger on purpose:
+// the demo's SVI 74 is an illustrative 0–100 composite while the engine
+// ledger is the base-100 open-ended index — S46 replaces this fixture with
+// BlockID's own report, where both agree.
+const DEMO_CONFIDENCE = 0.75;
+function demoLedger(base: number, weight: number, signals: ScoreBreakdownSignal[]): ScoreBreakdown {
+  const score = Math.max(0, Math.min(100, signals.reduce((a, s) => a + s.points, base)));
+  return {
+    base,
+    signals,
+    confidenceMultiplier: DEMO_CONFIDENCE,
+    verificationMultiplier: 1,
+    adjustment: Math.round(((score - 50) * weight * DEMO_CONFIDENCE) / 100),
+    assessed: true,
+  };
+}
+const sig = (signal: string, points: number, source: ScoreBreakdownSignal["source"]): ScoreBreakdownSignal => ({ signal, points, source });
 
 const DEMO_DIMS: Record<string, SnapshotDimState> = {
-  ftv: { status: "complete", score: 82, priority: "low", insights: ["Repeat founder with a prior exit; sector-domain CTO and a commercial co-founder cover the core roles.", "Advisory board of two operators; vesting agreed on a 4-year / 1-year-cliff schedule."], marketBenchmark: "AU seed founders: 2 co-founders median, 38 % with a prior exit." },
-  mpc: { status: "complete", score: 74, priority: "medium", insights: ["AU SME SaaS category with a top-3 share in its niche; bottom-up SAM cross-checked against ABS industry revenue.", "Three named competitors mapped on price × differentiation; the wedge is compliance automation."] },
-  ptd: { status: "complete", score: 78, priority: "low", insights: ["Multi-tenant platform with CI, tests and weekly releases; two patents pending.", "Core Web Vitals pass on mobile; security headers present."] },
-  tre: { status: "complete", score: 71, priority: "medium", insights: ["A$1.2M ARR growing 4.5 % MoM; 120 paying SMEs, churn 2.1 %.", "NRR 104 % on the last four cohorts; top customer is 9 % of revenue."] },
-  cgh: { status: "complete", score: 68, priority: "medium", insights: ["Clean cap table after one seed round; founders hold 71 %, ESOP pool 10 %.", "Shareholders agreement in place; dilution for the next round not yet modelled."] },
-  iri: { status: "complete", score: 76, priority: "low", insights: ["Data room 78 % complete across the eight standard folders; deck and one-pager current.", "ESIC self-assessment done; s708 letters drafted."] },
-  lco: { status: "complete", score: 81, priority: "low", insights: ["ACN registered, IP assigned, privacy policy live; R&D Tax Incentive claimed.", "Essential Eight ML1 reached; trademark registered in class 42."] },
-  svm: { status: "complete", score: 65, priority: "medium", insights: ["Category moat forming through proprietary compliance data; switching cost mid.", "Exit path plausible via strategic acquirers in AU accounting software."] },
+  ftv: {
+    status: "complete",
+    score: 83,
+    priority: "low",
+    insights: ["Repeat founder with a prior exit; sector-domain CTO and a commercial co-founder cover the core roles.", "Advisory board of two operators; vesting agreed on a 4-year / 1-year-cliff schedule."],
+    marketBenchmark: "AU seed founders: 2 co-founders median, 38 % with a prior exit.",
+    scoreBreakdown: demoLedger(50, 15, [sig("Co-founder team", 15, "document_uploaded"), sig("Domain expertise in target sector", 10, "document_uploaded"), sig("Named advisors or mentors identified", 8, "document_uploaded")]),
+  },
+  mpc: {
+    status: "complete",
+    score: 75,
+    priority: "medium",
+    insights: ["AU SME SaaS category with a top-3 share in its niche; bottom-up SAM cross-checked against ABS industry revenue.", "Three named competitors mapped on price × differentiation; the wedge is compliance automation."],
+    scoreBreakdown: demoLedger(50, 18, [sig("Validated problem with customer proof", 25, "document_uploaded")]),
+  },
+  ptd: {
+    status: "complete",
+    score: 78,
+    priority: "low",
+    insights: ["Multi-tenant platform with CI, tests and weekly releases; two patents pending.", "Core Web Vitals pass on mobile; security headers present."],
+    scoreBreakdown: demoLedger(50, 12, [sig("Demo or prototype available", 20, "public_url"), sig("Website or landing page present", 5, "public_url"), sig("Tech audit: +3 (security, performance, stack)", 3, "audit")]),
+  },
+  tre: {
+    status: "complete",
+    score: 78,
+    priority: "medium",
+    insights: ["A$420k ARR growing 4.5 % MoM; 120 paying SMEs, churn 2.1 %.", "NRR 104 % on the last four cohorts; top customer is 9 % of revenue."],
+    scoreBreakdown: demoLedger(30, 20, [sig("Growing revenue ($100k–$500k ARR range)", 40, "transaction_data"), sig("Customer proof present", 8, "connected_source")]),
+  },
+  cgh: {
+    status: "complete",
+    score: 75,
+    priority: "medium",
+    insights: ["Clean cap table after one seed round; founders hold 71 %, ESOP pool 10 %.", "Shareholders agreement drafted, not yet signed; dilution for the next round not yet modelled."],
+    scoreBreakdown: demoLedger(40, 12, [sig("Equity register on file (4 holders; founders 71 %, ESOP 10 %, investors 19 %)", 20, "connected_source"), sig("ESOP pool 10 % in the register", 10, "connected_source"), sig("ESOP pool within the AU seed norm (8–20 %)", 5, "connected_source")]),
+  },
+  iri: {
+    status: "complete",
+    score: 75,
+    priority: "low",
+    insights: ["Data room 78 % complete across the eight standard folders; deck and one-pager current.", "ESIC self-assessment done; s708 letters drafted."],
+    scoreBreakdown: demoLedger(40, 10, [sig("Pitch deck available", 25, "document_uploaded"), sig("Raise target mentioned", 10, "document_uploaded")]),
+  },
+  lco: {
+    status: "complete",
+    score: 81,
+    priority: "low",
+    insights: ["ACN registered, IP assigned, privacy policy live; R&D Tax Incentive claimed.", "Essential Eight ML1 reached; trademark registered in class 42."],
+    scoreBreakdown: demoLedger(40, 8, [sig("ABN/ASIC registration confirmed", 20, "document_uploaded"), sig("IP protection in place (patent, trademark, copyright)", 15, "document_uploaded"), sig("Tech audit: +6 (HTTPS + security headers)", 6, "audit")]),
+  },
+  svm: {
+    status: "complete",
+    score: 65,
+    priority: "medium",
+    insights: ["Category moat forming through proprietary compliance data; switching cost mid.", "Exit path plausible via strategic acquirers in AU accounting software."],
+    scoreBreakdown: demoLedger(35, 5, [sig("Proprietary data advantage identified", 15, "document_uploaded"), sig("Switching costs or lock-in mechanism present", 15, "document_uploaded")]),
+  },
 };
 
 const DEMO_CRITERIA: SnapshotCriterionState[] = [
@@ -31,7 +104,7 @@ const DEMO_CRITERIA: SnapshotCriterionState[] = [
   { key: "dataroom", title: "Data Room", primary_dimension: "iri", weight: 6, score: 74, verdict: "Eight folders present; contracts and IP folders partially stale.", strengths: ["Corporate and cap-table folders complete"], gaps: ["Contracts folder last updated 5 months ago"], next_action: "Refresh the contracts folder before the raise." },
   { key: "team_structure", title: "Team Structure & Governance", primary_dimension: "ftv", weight: 6, score: 69, verdict: "Board of three with one independent seat; information rights defined.", strengths: ["SHA with 4y / 1y vesting", "Monthly board cadence"], gaps: ["No D&O insurance yet"], next_action: "Quote D&O cover before the next round." },
   { key: "roadmap", title: "Product Roadmap", primary_dimension: "svm", weight: 8, score: 66, verdict: "12-month roadmap ties to the category thesis; moat factors partially evidenced.", strengths: ["Proprietary compliance dataset growing 12 %/month"], gaps: ["Network effects not yet demonstrated"], next_action: "Publish the moat / switching-cost analysis for the Series A deck." },
-  { key: "revenue", title: "Revenue & Unit Economics", primary_dimension: "tre", weight: 8, score: 70, verdict: "A$1.2M ARR, gross margin 74 %, LTV/CAC 3.4×, payback 11 months.", strengths: ["Rule of 40 = 52", "Burn multiple 1.4"], gaps: ["Expansion revenue only 6 % of NRR"], next_action: "Introduce a usage-based add-on to lift expansion revenue." },
+  { key: "revenue", title: "Revenue & Unit Economics", primary_dimension: "tre", weight: 8, score: 70, verdict: "A$420k ARR, gross margin 74 %, LTV/CAC 3.4×, payback 11 months.", strengths: ["Rule of 40 = 52", "Burn multiple 1.4"], gaps: ["Expansion revenue only 6 % of NRR"], next_action: "Introduce a usage-based add-on to lift expansion revenue." },
 ];
 
 export const DEMO_GENERATED_AT = "2026-09-15T00:00:00.000Z";
