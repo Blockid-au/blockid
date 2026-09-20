@@ -52,7 +52,8 @@ import { writeAssembledReportJson, writeSnapshotReportV2 } from "@/lib/report-v2
 import { loadCapTableInput } from "@/lib/svi/cap-table-input";
 import { effectiveConfidenceLevel } from "@/lib/svi/rescore-from-evidence";
 import { applyFounderExecution } from "@/lib/founder/execution-load";
-import type { GatherDb } from "@/lib/report-pipeline/gather";
+import { loadDimensionEvidenceRows, type GatherDb } from "@/lib/report-pipeline/gather";
+import { hubRowsToEvidenceItems } from "@/lib/evidence/hub-rows";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -345,6 +346,9 @@ export async function loadProjectReportContext(args: {
     dimension: String(e.dimension ?? ""),
     label: String(e.label ?? ""),
   }));
+  // G19-S43: the project-scoped Evidence Hub (svi_dimension_evidence) joins the
+  // account-scoped rows — the pipeline used to ignore every hub upload.
+  if (args.projectId) evidenceItems.push(...(await loadHubEvidenceItems(args.projectId)));
 
   const { data: criteriaRows } = await supabase
     .from("evaluation_criteria")
@@ -570,6 +574,24 @@ async function loadEvidence(accountId: string): Promise<Row[]> {
   return (data ?? []) as Row[];
 }
 
+/**
+ * G19-S43: the project's Evidence Hub rows (`svi_dimension_evidence`) as
+ * `EvidenceItem`s for extractSignals / computeSVI — origin-capped (S36 D4:
+ * founder upload ≤ document_uploaded, reviewer-signed may reach
+ * third_party_verified), rejected rows dropped. Fail-soft: a missing table /
+ * column reads as no rows.
+ */
+export async function loadHubEvidenceItems(projectId: string): Promise<EvidenceItem[]> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return [];
+  try {
+    const rows = await loadDimensionEvidenceRows(supabase as unknown as GatherDb, projectId);
+    return hubRowsToEvidenceItems(rows);
+  } catch {
+    return [];
+  }
+}
+
 /** Insert an svi_analyses row from a computed analysis; returns its id (slug). */
 async function insertAnalysisRow(args: {
   email: string;
@@ -746,7 +768,7 @@ export async function runTrustReportForProject(args: {
     const capTableInput = await loadCapTableInput(getSupabaseAdmin() as unknown as GatherDb | null, project.userId, project.id);
     // G14-S37: the owner's structured founder profile overrides the regex founder flags (fail-soft).
     const { signals } = await applyFounderExecution(
-      extractSignals({ rawText: rawInput }, undefined, loadEvidenceItems(await loadEvidence(account.id))),
+      extractSignals({ rawText: rawInput }, undefined, [...loadEvidenceItems(await loadEvidence(account.id)), ...(await loadHubEvidenceItems(project.id))]),
       { accountId: project.userId, email: ownerEmail, projectId: project.id },
     );
     // G14-S36 (F-6): the project's verification level scales the confidence (null → unchanged).
@@ -891,8 +913,10 @@ export async function runRescoreForProject(args: {
   // S-R5 §C.7: the equity register feeds CGH (fail-soft: null → keyword score).
   const capTableInput = await loadCapTableInput(getSupabaseAdmin() as unknown as GatherDb | null, project.userId, project.id);
   // G14-S37: the owner's structured founder profile overrides the regex founder flags (fail-soft).
+  // G19-S43: the Evidence Hub rows score alongside the account-scoped ones.
+  const hubItems = await loadHubEvidenceItems(project.id);
   const { signals } = await applyFounderExecution(
-    extractSignals({ rawText: rawInput }, undefined, loadEvidenceItems(evidenceRows)),
+    extractSignals({ rawText: rawInput }, undefined, [...loadEvidenceItems(evidenceRows), ...hubItems]),
     { accountId: project.userId, email: ownerEmail, projectId: project.id },
   );
   // G14-S36 (F-6): the project's verification level scales the confidence (null → unchanged).
@@ -927,7 +951,7 @@ export async function runRescoreForProject(args: {
       industry: project.industry ?? null,
       stageLabel: analysis.stageLabel,
       summary: analysis.summary,
-      evidenceCount: evidenceRows.length,
+      evidenceCount: evidenceRows.length + hubItems.length,
       requested_by: args.requestedByUserId,
     },
     dimensionScores,

@@ -190,6 +190,8 @@ export interface ReportContext {
   criteriaData: Record<CriterionKey, CriterionData>;
   stage: number;
   locale: "en" | "vi";
+  /** G19-S43: projects.verification_level (0–5) — a verified ABN is never asked for again. */
+  verificationLevel?: number | null;
 
   // Gather phase results
   gatherResults: GatherResults;

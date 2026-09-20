@@ -85,6 +85,7 @@ vi.mock("@/lib/projects", () => ({
 import {
   buildSviAnalysisFromStored,
   generateAndPersistReport,
+  loadHubEvidenceItems,
   loadProjectReportContext,
   projectReportToSnapshotShapes,
   runRescoreForProject,
@@ -329,5 +330,54 @@ describe("runRescoreForProject", () => {
     expect(v2).toBeTruthy();
     const doc = (v2.payload as { report_v2: { dimensions: Array<{ dim: string; score: number }> } }).report_v2;
     expect(doc.dimensions).toHaveLength(8);
+  });
+});
+
+describe("G19-S43 — the Evidence Hub (svi_dimension_evidence) reaches the pipeline and the engine", () => {
+  const HUB = [
+    { dimension: "tre", evidence_type: "revenue_proof", evidence_label: "Bank statements", evidence_value_or_url: "q2.pdf", confidence_level: "third_party_verified", is_verified: false, review_status: "pending", created_at: "2026-09-01T00:00:00.000Z" },
+    { dimension: "lco", evidence_type: "ip_assignment", evidence_label: "IP deed", confidence_level: "third_party_verified", is_verified: true, verified_at: "2026-09-05T00:00:00.000Z", review_status: "approved" },
+    { dimension: "cgh", evidence_type: "board_minutes", evidence_label: "Minutes", review_status: "rejected" },
+  ];
+
+  it("loadProjectReportContext merges the project's hub rows into evidenceItems (origin-capped: founder upload ≤ document_uploaded, reviewer-signed keeps third_party_verified; rejected dropped)", async () => {
+    state.queue.push({ table: "svi_evidence", data: [{ evidence_type: "github", confidence_level: "verified", dimension: "ptd", label: "repo" }] });
+    state.queue.push({ table: "svi_dimension_evidence", data: HUB });
+    state.queue.push({ table: "evaluation_criteria", data: [] });
+    const res = await loadProjectReportContext({ ownerEmail: "scout@fund.vc", projectId: "p-1" });
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.ctx.evidenceItems).toEqual([
+      { evidence_type: "github", confidence_level: "verified", dimension: "ptd", label: "repo" },
+      { evidence_type: "revenue_proof", confidence_level: "document_uploaded", dimension: "tre", label: "Bank statements", origin: "founder_upload" },
+      { evidence_type: "ip_assignment", confidence_level: "third_party_verified", dimension: "lco", label: "IP deed", origin: "reviewer" },
+    ]);
+    const hubRead = state.calls.find((c) => c.table === "svi_dimension_evidence")!;
+    expect(hubRead.eqs).toEqual([{ col: "project_id", val: "p-1" }]);
+  });
+
+  it("loadHubEvidenceItems is fail-soft (a query error reads as no rows) and runRescoreForProject scores the hub rows (TRE revenue proof lifts the total; evidenceCount includes them)", async () => {
+    expect(await loadHubEvidenceItems("p-1")).toEqual([]);
+
+    const runWith = async (hub: unknown[]) => {
+      state.queue = [];
+      state.calls = [];
+      state.queue.push({ table: "app_users", data: { email: "scout@fund.vc" } });
+      state.queue.push({ table: "svi_evidence", data: [] });
+      state.queue.push({ table: "svi_dimension_evidence", data: hub });
+      state.queue.push({ table: "svi_analyses", data: null });
+      state.queue.push({ table: "svi_snapshots", data: null });
+      state.queue.push({ table: "svi_snapshots", data: { id: "snap-3" } });
+      return runRescoreForProject({ projectId: "p-1", requestedByUserId: "u-1" });
+    };
+    const without = await runWith([]);
+    const withHub = await runWith(HUB);
+    expect(withHub.svi).toBeGreaterThan(without.svi);
+    const snap = state.calls.find((c) => c.table === "svi_snapshots" && c.op === "insert")!.payload as Record<string, unknown>;
+    expect((snap.analysis_json as Record<string, unknown>).evidenceCount).toBe(2);
+    const analysisRow = state.calls.find((c) => c.table === "svi_analyses" && c.op === "insert")!.payload as { analysis_json: { subs: Array<{ key: string; breakdown?: Array<{ signal: string }> }>; signals: { hasRevenue: boolean; evidenceLevel: string } } };
+    expect(analysisRow.analysis_json.signals.hasRevenue).toBe(true);
+    expect(analysisRow.analysis_json.signals.evidenceLevel).toBe("third_party_verified");
+    expect(analysisRow.analysis_json.subs.find((s) => s.key === "tre")?.breakdown?.some((b) => /revenue/i.test(b.signal))).toBe(true);
   });
 });

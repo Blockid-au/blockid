@@ -9,9 +9,11 @@ import {
   SVI_VERSION,
   nextRungConfidence,
   applyCapTableInput,
+  isHubEvidenceCode,
   type CapTableInput,
   type SVIExtractedSignals,
 } from "./svi-analysis";
+import { catalogueLift, engineGapLift } from "./svi-lift";
 
 // ---------------------------------------------------------------------------
 // Helper: build a minimal signals object with overrides
@@ -788,5 +790,63 @@ describe("computeSVI — verificationLevel multiplier", () => {
     expect(nextRungConfidence("self_declared")).toBe(EVIDENCE_CONFIDENCE.public_url);
     expect(nextRungConfidence("transaction_data")).toBe(EVIDENCE_CONFIDENCE.third_party_verified);
     expect(nextRungConfidence("third_party_verified")).toBe(1);
+  });
+});
+
+// ===========================================================================
+// G19-S43 — Evidence Hub rows reach the engine; one lift model
+// ===========================================================================
+describe("extractSignals — Evidence Hub rows (G19-S43)", () => {
+  it("a hub catalogue code moves the flags it evidences (cap table, pitch deck, revenue proof, ABN)", () => {
+    const s = extractSignals({ rawText: "We build software." }, undefined, [
+      { evidence_type: "cap_table_spreadsheet", confidence_level: "document_uploaded", dimension: "cgh", label: "Cap table", origin: "founder_upload" },
+      { evidence_type: "pitch_deck", confidence_level: "document_uploaded", dimension: "iri", label: "Deck", origin: "founder_upload" },
+      { evidence_type: "revenue_proof", confidence_level: "document_uploaded", dimension: "tre", label: "Invoices", origin: "founder_upload" },
+      { evidence_type: "abn_registration", confidence_level: "document_uploaded", dimension: "lco", label: "ABN", origin: "founder_upload" },
+    ]);
+    expect(s.hasCapTable).toBe(true);
+    expect(s.hasPitchDeck).toBe(true);
+    expect(s.hasRevenue).toBe(true);
+    expect(s.hasCustomers).toBe(true);
+    expect(s.revenueBand).toBe("early");
+    expect(s.hasABN).toBe(true);
+    expect(isHubEvidenceCode("cap_table_spreadsheet")).toBe(true);
+    expect(isHubEvidenceCode("document")).toBe(false);
+  });
+
+  it("a founder-upload hub row lifts the evidence level to document_uploaded but never past it; a reviewer-signed row may reach third_party_verified; a legacy row without origin is unchanged", () => {
+    const founder = extractSignals({ rawText: "We build software." }, undefined, [{ evidence_type: "revenue_proof", confidence_level: "third_party_verified", dimension: "tre", label: "x", origin: "founder_upload" }]);
+    expect(founder.evidenceLevel).toBe("document_uploaded");
+    const reviewer = extractSignals({ rawText: "We build software." }, undefined, [{ evidence_type: "revenue_proof", confidence_level: "third_party_verified", dimension: "tre", label: "x", origin: "reviewer" }]);
+    expect(reviewer.evidenceLevel).toBe("third_party_verified");
+    const legacy = extractSignals({ rawText: "We build software." }, undefined, [{ evidence_type: "document", confidence_level: "third_party_verified", dimension: "ptd", label: "x" }]);
+    expect(legacy.evidenceLevel).toBe("self_declared");
+  });
+
+  it("a hub row on TRE changes the TRE ledger (revenue signal appears) and the total", () => {
+    const base = computeSVI(makeSignals());
+    const withHub = computeSVI(extractSignals({ rawText: "We build software." }, undefined, [{ evidence_type: "revenue_proof", confidence_level: "document_uploaded", dimension: "tre", label: "Invoices", origin: "founder_upload" }]));
+    const tre = withHub.subs.find((s) => s.key === "tre")!;
+    expect(tre.assessed).toBe(true);
+    expect(tre.breakdown?.some((b) => /revenue/i.test(b.signal))).toBe(true);
+    expect(withHub.totalSVI).toBeGreaterThan(base.totalSVI);
+  });
+});
+
+describe("computeSVI — evidenceGaps / nextActions read the one lift model (G19-S43 D2)", () => {
+  it("every gap impact equals the catalogue lift of its code (the ladder step sums two public-URL items) and nextActions quote the same numbers", () => {
+    const a = computeSVI(makeSignals());
+    expect(a.evidenceGaps.length).toBeGreaterThan(5);
+    for (const g of a.evidenceGaps) {
+      if (g.code) expect(g.impact).toBe(catalogueLift(g.code));
+      else expect(g.impact).toBe(engineGapLift("evidence_ladder"));
+    }
+    const capGap = a.evidenceGaps.find((g) => g.label === "Create cap table")!;
+    expect(capGap).toMatchObject({ code: "cap_table_spreadsheet", impact: catalogueLift("cap_table_spreadsheet") });
+    const capAction = a.nextActions.find((n) => n.title === "Build your cap table now")!;
+    expect(capAction.impact).toBe(`+${catalogueLift("cap_table_spreadsheet")} SVI points`);
+    // Never the pre-S43 literals.
+    expect(a.evidenceGaps.map((g) => g.impact)).not.toContain(18);
+    expect(a.nextActions.map((n) => n.impact)).not.toContain("+18 SVI points");
   });
 });

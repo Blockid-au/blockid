@@ -75,15 +75,20 @@ export function liftForSource(dim: string, source: string | null | undefined): n
   return catalogueLift(catalogueCodeForSource(dim, source));
 }
 
-/** The next band boundary a score is working towards (70 strong, 85 exceptional). */
+/**
+ * The band boundary a score is working towards: 70 (strong) while it is
+ * clearly below it, 85 (exceptional) once it sits within 5 points of strong
+ * or above — a 69 is at the boundary, so its meaningful next milestone is
+ * the exceptional band, not "+1".
+ */
 export function nextBandTarget(score: number): number {
-  return score < 70 ? 70 : 85;
+  return score < 65 ? 70 : 85;
 }
 
 /**
  * Fallback for actions that are not catalogue items: criterion (or dimension)
  * weight × the gap to the next band, scaled onto the catalogue's 1–10 range
- * (weight 8 × gap 20 → 6; weight 6 × gap 1 → 1). Never the pre-S43
+ * (weight 8 × gap 20 → 6; weight 6 × gap 16 → 4). Never the pre-S43
  * `weight × (70 − score) / 100` that printed "+1" on every chapter.
  */
 export function derivedLift(weight: number, score: number): number {
