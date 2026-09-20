@@ -9646,3 +9646,5 @@
 {"ts":"2026-09-20T09:00:48Z","status":"success","gates":"12/12","skipped":0,"gitleaks":"ok","lint":"ok","swapped":1,"rollback":"n/a","pid":"2432386","reason":"","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-09-20T09:24:20Z","status":"failed","gates":"5/6","skipped":0,"gitleaks":"ok","lint":"ok","swapped":0,"rollback":"n/a","pid":"2432386","reason":"Unit tests failed (exit 1) \u2014 see /tmp/blockid-deploy-vitest.log. Fix before deploy.","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
 {"ts":"2026-09-20T09:51:45Z","status":"success","gates":"12/12","skipped":0,"gitleaks":"ok","lint":"ok","swapped":1,"rollback":"n/a","pid":"2652090","reason":"","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-20T10:28:25Z","status":"success","gates":"12/12","skipped":0,"gitleaks":"ok","lint":"ok","swapped":1,"rollback":"n/a","pid":"2802471","reason":"","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}
+{"ts":"2026-09-20T11:05:39Z","status":"success","gates":"12/12","skipped":0,"gitleaks":"ok","lint":"ok","swapped":1,"rollback":"n/a","pid":"2959778","reason":"","note":"Tri\u1ec3n khai t\u1eeb src l\u00ean public"}

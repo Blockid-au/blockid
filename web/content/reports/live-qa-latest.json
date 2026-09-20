@@ -1,43 +1,24 @@
 {
-  "ts": "2026-09-20T10:00:14.689Z",
-  "startedAt": "2026-09-20T09:52:00Z",
+  "ts": "2026-09-20T11:06:23.553Z",
+  "startedAt": "2026-09-20T11:05:58Z",
   "baseURL": "https://blockid.au",
-  "exitCode": 1,
-  "passed": 208,
-  "failed": 3,
-  "skipped": 14,
+  "exitCode": 0,
+  "passed": 10,
+  "failed": 0,
+  "skipped": 0,
   "flaky": 0,
   "expectedFailures": 0,
-  "durationMs": 492660.914,
+  "durationMs": 23925.722,
   "account": {
-    "email": "qa-live-20260920-0952@blockid.au",
-    "userId": "a05085a5-3ee4-4b65-ad58-5062d621c2c0",
-    "projectId": "9b0b6475-2e8c-47cb-b25a-9fd5cf461912",
-    "plan": "growth",
-    "elevated": true
+    "email": "qa-live-20260920-1105@blockid.au",
+    "userId": "d5315fbd-df78-4b89-b1e7-5e85379ca1a1",
+    "projectId": "c847002d-8571-4afb-92eb-265569208735",
+    "plan": "free",
+    "elevated": false
   },
   "erasure": {
     "ok": true,
-    "detail": "erased a05085a5-3ee4-4b65-ad58-5062d621c2c0; verify dry-run exit 2 (no app_users row for the QA founder email)"
+    "detail": "erased d5315fbd-df78-4b89-b1e7-5e85379ca1a1; verify dry-run exit 2 (no app_users row for the QA founder email)"
   },
-  "findings": [
-    {
-      "spec": "02-revenue.spec.ts",
-      "project": "live-qa",
-      "title": "Xero: either a real OAuth redirect or the 'not available yet' label — never a JSON 503 page",
-      "error": "Error: expect(locator).toHaveText(expected) failed\n\nLocator: getByTestId('data-sources').getByTestId('xero-unavailable')\nExpected pattern: /Xero — not available yet/\nTimeout: 15000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toHaveText\" with timeout 15000ms\n  - waiting for getByTestId('data-sources').getByTestId('xero-unavailable')\n"
-    },
-    {
-      "spec": "26-member-lane.spec.ts",
-      "project": "live-qa",
-      "title": "anonymous /invites/<token> shows the invite and asks to sign in; the member accepts and lands in the workspace",
-      "error": "TimeoutError: page.waitForURL: Timeout 30000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation until \"load\"\n  navigated to \"https://blockid.au/dashboard\"\n  navigated to \"https://blockid.au/dashboard\"\n============================================================"
-    },
-    {
-      "spec": "34-purchase-path.spec.ts",
-      "project": "live-qa",
-      "title": "(a) /signup?plan=founder_starter renders the 7-day trial terms, the Starter price and the Stripe card field",
-      "error": "Error: expect(locator).toHaveCount(expected) failed\n\nLocator:  getByTestId('signup-card-field').locator('iframe')\nExpected: 1\nReceived: 2\nTimeout:  30000ms\n\nCall log:\n  - Expect \"toHaveCount\" with timeout 30000ms\n  - waiting for getByTestId('signup-card-field').locator('iframe')\n    63 × locator resolved to 2 elements\n       - unexpected value \"2\"\n"
-    }
-  ]
+  "findings": []
 }
