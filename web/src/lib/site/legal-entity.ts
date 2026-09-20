@@ -53,8 +53,9 @@ export function sellerOfRecordLine(): string {
 
 /** Marketing footer line — names both roles so the split reads as intended. */
 export function marketingLine(year: number = new Date().getFullYear()): string {
+  const marketing: string = LEGAL_ENTITY.marketingOperator;
   const built =
-    LEGAL_ENTITY.marketingOperator === LEGAL_ENTITY.operator
+    marketing === LEGAL_ENTITY.operator
       ? `© ${year} ${LEGAL_ENTITY.operator} · ${LEGAL_ENTITY_ABN_LABEL}`
       : `© ${year} ${LEGAL_ENTITY.brand} · built by ${LEGAL_ENTITY.marketingOperator}`;
   return `${built} · Billing, legal and invoices: ${LEGAL_ENTITY.operator} ${LEGAL_ENTITY_ABN_LABEL} · ${LEGAL_ENTITY.city}`;
