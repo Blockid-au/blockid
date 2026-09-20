@@ -73,13 +73,15 @@ export default function ApiIndexPage() {
               BlockID Public API
             </h1>
             <p className="mt-4 text-lg md:text-xl text-ink-500">
-              No auth required. No key to email us for. Just call the endpoint.
+              Five public endpoints with no key at all; five more behind a
+              bk_live_ key you mint yourself.
             </p>
             <p className="mt-3 text-sm text-ink-400 max-w-lg mx-auto">
-              Four public endpoints for ecosystem partners — SVI Index
-              aggregates, the pricing experiment harness, and the
-              first-principles idea questions engine. The same registry that
-              renders this page emits{" "}
+              Public: SVI Index aggregates, the Business ID profile JSON, the
+              pricing experiment harness and the first-principles idea
+              questions engine. Keyed: credit-metered SVI analysis and the
+              Evaluator API v1 (evaluations, dossier, assessments — Fund,
+              Program and Index API plans). The same registry that renders this page emits{" "}
               <Link
                 href="/api/openapi.json"
                 className="text-brand-600 hover:underline"

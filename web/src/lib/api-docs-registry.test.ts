@@ -28,6 +28,8 @@ const SLUGS = [
   "pricing-test-assign",
   "pricing-test-event",
   "idea-questions",
+  "v1-analyze",
+  "v1-id-profile",
   "v1-evaluations-list",
   "v1-evaluations-dossier",
   "v1-evaluations-assessment-read",
@@ -36,8 +38,8 @@ const SLUGS = [
 const PARAM_INS: readonly ApiParamIn[] = ["query", "path", "body"] as const;
 
 describe("api-docs-registry: registry integrity", () => {
-  it("ships exactly the 8 documented endpoints (4 public no-auth + 4 Evaluator API v1)", () => {
-    expect(API_ENDPOINTS).toHaveLength(8);
+  it("ships exactly the 10 documented endpoints (5 public no-auth + analyze + 4 Evaluator API v1)", () => {
+    expect(API_ENDPOINTS).toHaveLength(10);
   });
 
   it("every slug is unique", () => {
@@ -294,9 +296,21 @@ describe("api-docs-registry: Evaluator API v1 (G14-S38) — auth pins", () => {
       expect(e.auth?.planGate).toMatch(/Fund/);
       expect(e.auth?.planGate).toMatch(/Program/);
     }
-    for (const slug of ["svi-index", "pricing-test-assign", "pricing-test-event", "idea-questions"] as const) {
+    for (const slug of ["svi-index", "pricing-test-assign", "pricing-test-event", "idea-questions", "v1-id-profile"] as const) {
       expect((getEndpointBySlug(slug) as ApiEndpointDoc).auth).toBeUndefined();
     }
+  });
+
+  it("G18-B: v1-analyze is bearer + `analyze` scope with no plan gate (credit-metered); v1-id-profile is public with the optional partner bearer described, never shown", () => {
+    const analyze = getEndpointBySlug("v1-analyze") as ApiEndpointDoc;
+    expect(analyze.auth?.scheme).toBe("bearer");
+    expect(analyze.auth?.scope).toBe("analyze");
+    expect(analyze.auth?.planGate).toMatch(/^none/);
+    expect(analyze.errorCodes.some((c) => c.code === 402 && /insufficient_credits/.test(c.when))).toBe(true);
+    const profile = getEndpointBySlug("v1-id-profile") as ApiEndpointDoc;
+    expect(profile.auth).toBeUndefined();
+    expect(profile.description).toMatch(/id:public:read/);
+    expect(profile.errorCodes.some((c) => c.code === 404)).toBe(true);
   });
 
   it("read endpoints require evaluations:read; the write endpoint requires evaluations:write", () => {

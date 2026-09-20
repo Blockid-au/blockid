@@ -4,13 +4,14 @@ import "server-only";
 // authenticated Evaluator API v1 entries).
 //
 // One source of truth for both the human-readable /developers/api pages and
-// the machine-readable /api/openapi.json spec. Most entries document a
+// the machine-readable /api/openapi.json spec. Five entries document a
 // PUBLIC endpoint — no session or bearer auth required (`src/app/api/index/svi`,
-// `src/app/api/pricing-test/*`, `src/app/api/idea-questions`). The
-// `/api/v1/evaluations*` entries (G14-S38) are the exception: they require
-// `Authorization: Bearer bk_live_…` plus a scope (`ApiEndpointDoc.auth`) and
-// stay in lock-step with `src/app/api/v1/evaluations/**` + `lib/api-v1/auth.ts`
-// + `lib/api-scopes.ts` — see docs/API-REFERENCE.md §9 for the prose version.
+// `src/app/api/pricing-test/*`, `src/app/api/idea-questions`,
+// `src/app/api/v1/id/[slug]`). The `/api/v1/evaluations*` entries (G14-S38)
+// and `/api/v1/analyze` require `Authorization: Bearer bk_live_…` plus a scope
+// (`ApiEndpointDoc.auth`) and stay in lock-step with `src/app/api/v1/**` +
+// `lib/api-v1/auth.ts` + `lib/api-auth.ts` + `lib/api-scopes.ts` — see
+// docs/API-REFERENCE.md §9–§10 for the prose version.
 //
 // PII / secret guard: no example may contain a real session id, bearer
 // token, or user email. Fake placeholders only (e.g. "sess-example-1234",
@@ -42,7 +43,7 @@ export interface ApiRateLimitDoc {
   bucket: string;
 }
 
-/** G14-S38: bearer-key auth for the Evaluator API v1 endpoints. Absent = public, no-auth (every pre-S38 entry). */
+/** Bearer-key auth (Evaluator API v1 G14-S38, and the partner `analyze` endpoint). Absent = public, no-auth. */
 export interface ApiAuthDoc {
   scheme: "bearer";
   header: string;
@@ -385,14 +386,14 @@ console.log(r.recommendation.primaryFeature);`,
 };
 
 // ── Evaluator API v1 (G14-S38) — Bearer bk_live_… + scope, api.access plan
-// gate (Fund / Program only). See docs/API-REFERENCE.md §9 and
+// gate (Fund, Program and Index API plans per plans.csv). See docs/API-REFERENCE.md §9 and
 // src/app/api/v1/evaluations/**.
 
 const V1_AUTH_READ: ApiAuthDoc = {
   scheme: "bearer",
   header: "Authorization: Bearer bk_live_…",
   scope: "evaluations:read",
-  planGate: "api.access (Fund and Program plans)",
+  planGate: "api.access (Fund, Program and Index API plans)",
   note: "Create a key under Workspace → Settings → Enterprise → API keys, with the `evaluations:read` scope (evaluator accounts only).",
 };
 
@@ -404,7 +405,7 @@ const V1_AUTH_WRITE: ApiAuthDoc = {
 
 const V1_AUTH_ERRORS: ApiErrorCodeDoc[] = [
   { code: 401, when: "Missing, malformed or unknown/revoked `Authorization: Bearer bk_live_…` key." },
-  { code: 402, when: "`plan_required` — the key owner's plan no longer carries `api.access` (Fund / Program only; re-checked on every call, not just at key creation)." },
+  { code: 402, when: "`plan_required` — the key owner's plan no longer carries `api.access` (Fund, Program and Index API plans; re-checked on every call, not just at key creation)." },
   { code: 403, when: "`insufficient_scope` — the key lacks the scope this endpoint needs." },
   { code: 429, when: "`rate_limited` — the key's per-minute budget (default 60/min) is spent. `Retry-After` header carries the wait." },
 ];
@@ -584,11 +585,157 @@ await fetch(
   auth: V1_AUTH_WRITE,
 };
 
+// ── Partner API (pre-S38, documented G18-B 2026-09-19) ────────────────────
+// `POST /api/v1/analyze` is the original bk_live_ endpoint (scope `analyze`,
+// the default on every key; credit-metered, no plan gate — see
+// src/app/api/v1/analyze/route.ts + lib/api-auth.ts). `GET /api/v1/id/{slug}`
+// is the anonymous-allowed public verified-profile JSON (optional partner
+// bearer lifts the rate limit; see src/app/api/v1/id/[slug]/route.ts).
+
+const V1_AUTH_ANALYZE: ApiAuthDoc = {
+  scheme: "bearer",
+  header: "Authorization: Bearer bk_live_…",
+  scope: "analyze",
+  planGate: "none — any plan; every call spends one `svi_analysis` credit (402 `insufficient_credits` when the balance is empty)",
+  note: "Create a key under Workspace → Settings → Enterprise → API keys. `analyze` is the default scope on every key; the per-key budget defaults to 60 calls / minute.",
+};
+
+const V1_ANALYZE: ApiEndpointDoc = {
+  slug: "v1-analyze",
+  method: "POST",
+  path: "/api/v1/analyze",
+  title: "Analyze — SVI score from a startup description",
+  summary:
+    "Score a startup description on the 8-dimension Startup Value Index and get the stage, the per-dimension scores and the top evidence gaps.",
+  description:
+    "The partner entry point to the SVI engine. Send a plain-text description (optionally with `startupName`, `websiteUrl`, `industry`, `stage` — they are appended to the text as extra signal) and receive the same deterministic `computeSVI` result the workspace uses: total score, detected stage, the 8 dimension scores and the three highest-impact evidence gaps, plus a `meta` block (engine version, confidence %, summary, risk-flag count, top 5 gaps with a suggested action). Each successful call spends one `svi_analysis` credit from the key owner's balance and returns the remaining balance as `creditsRemaining`. Legacy field names `name` / `rawText` / `text` / `website` are still accepted.",
+  params: [
+    { name: "description", in: "body", type: "string", required: true, description: "Free-text description of the startup (problem, product, market, team, traction). Also accepted as `rawText` or `text`.", example: "Marketplace connecting Australian tradies with commercial builders; 40 paying builders in NSW, A$18k MRR." },
+    { name: "startupName", in: "body", type: "string", required: false, description: "Company name (also `name`).", example: "Example Trades Pty Ltd" },
+    { name: "websiteUrl", in: "body", type: "string", required: false, description: "Public website (also `website`). Appended as signal; not crawled by this endpoint.", example: "https://example.com" },
+    { name: "industry", in: "body", type: "string", required: false, description: "Free-text industry hint.", example: "marketplace" },
+    { name: "stage", in: "body", type: "string", required: false, description: "Free-text stage hint (idea, mvp, revenue, growth, scale).", example: "revenue" },
+  ],
+  requestBodyExample: `{
+  "startupName": "Example Trades Pty Ltd",
+  "description": "Marketplace connecting Australian tradies with commercial builders; 40 paying builders in NSW, A$18k MRR, two full-time founders.",
+  "websiteUrl": "https://example.com",
+  "industry": "marketplace",
+  "stage": "revenue"
+}`,
+  responseExample: `{
+  "ok": true,
+  "sviScore": 58,
+  "stage": "revenue",
+  "stageLabel": "Early revenue",
+  "dimensions": [
+    { "key": "ftv", "label": "Founder-Team Viability", "score": 61 },
+    { "key": "mpc", "label": "Market & Problem Clarity", "score": 66 },
+    { "key": "tre", "label": "Traction & Revenue Evidence", "score": 54 }
+  ],
+  "topGaps": [
+    { "label": "No connected revenue source", "impact": 8 },
+    { "label": "Team size and roles not evidenced", "impact": 6 },
+    { "label": "No customer references", "impact": 5 }
+  ],
+  "creditsRemaining": 24,
+  "meta": {
+    "version": "svi-2026-09",
+    "confidence": 62,
+    "summary": "Early-revenue marketplace with founder-declared traction; connect Stripe or upload invoices to lift TRE.",
+    "riskFlags": 1,
+    "allGaps": [{ "priority": "high", "label": "No connected revenue source", "action": "Connect Stripe or upload the last 3 months of invoices.", "impact": 8 }]
+  }
+}`,
+  curlSnippet: `curl -X POST "${BASE_URL}/api/v1/analyze" \\
+  -H "Authorization: Bearer ${FAKE_BEARER}" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "startupName": "Example Trades Pty Ltd",
+    "description": "Marketplace connecting Australian tradies with commercial builders; 40 paying builders in NSW, A$18k MRR.",
+    "stage": "revenue"
+  }'`,
+  jsSnippet: `const res = await fetch("${BASE_URL}/api/v1/analyze", {
+  method: "POST",
+  headers: { Authorization: "Bearer ${FAKE_BEARER}", "Content-Type": "application/json" },
+  body: JSON.stringify({
+    startupName: "Example Trades Pty Ltd",
+    description: "Marketplace connecting Australian tradies with commercial builders; 40 paying builders in NSW, A$18k MRR.",
+    stage: "revenue",
+  }),
+});
+const { sviScore, stage, dimensions, topGaps, creditsRemaining } = await res.json();
+console.log(sviScore, stage, dimensions.length, topGaps[0], creditsRemaining);`,
+  rateLimit: { perMinute: 60, bucket: "v1-api-key" },
+  errorCodes: [
+    { code: 401, when: "`unauthorized` — missing, malformed, unknown, inactive, expired or rate-limited `Authorization: Bearer bk_live_…` key (a spent per-minute budget also answers 401 on this endpoint)." },
+    { code: 402, when: "`insufficient_credits` — the key owner's balance cannot cover one `svi_analysis`; `balance` is returned." },
+    { code: 400, when: "`invalid_input` — body is not JSON or `description` (/ `rawText` / `text`) is empty." },
+    { code: 500, when: "`analysis_failed` — the engine threw; nothing was charged." },
+  ],
+  changelog: [
+    { date: "2026-08-20", note: "Partner API v1 — bk_live_ keys, credit-metered SVI analysis." },
+    { date: "2026-09-17", note: "G14-S38: `analyze` became the explicit default scope on every key (migration 0409)." },
+    { date: "2026-09-19", note: "Documented under /developers/api and openapi.json (G18-B)." },
+  ],
+  auth: V1_AUTH_ANALYZE,
+};
+
+const V1_ID_PROFILE: ApiEndpointDoc = {
+  slug: "v1-id-profile",
+  method: "GET",
+  path: "/api/v1/id/{slug}",
+  title: "Business ID — Public Verified Profile JSON",
+  summary:
+    "The PII-whitelisted public profile behind /id/{slug}: legal name, verification level, trust score, badges, capability scores and attestations.",
+  description:
+    "Returns exactly the projection `readPublicProfile()` renders on the public /id/{slug} page — nothing that is not on that page can reach this endpoint (`PublicBusinessProfileSchema`). Anonymous callers are allowed because the profile is already public and indexable; an unindexed or missing slug is a 404, never an empty 200, so the slug space cannot be enumerated. Sending `Authorization: Bearer …` is optional: a valid partner token with the `id:public:read` scope lifts the per-minute ceiling from 200 (per IP) to 2,000; an invalid token is a 401 rather than a silent fall-back. Cache: `public, max-age=300, s-maxage=3600, stale-while-revalidate=60`; CORS `*`. The W3C Verifiable Credential for the same profile is `GET /api/v1/id/{slug}/vc` (see docs/API-REFERENCE.md §10).",
+  params: [
+    { name: "slug", in: "path", type: "string", required: true, description: "The business's public slug — the same one in the /id/{slug} URL.", example: "example-trades" },
+  ],
+  responseExample: `{
+  "ok": true,
+  "data": {
+    "slug": "example-trades",
+    "legalName": "Example Trades Pty Ltd",
+    "verificationLevel": 3,
+    "trustScore": 71.5,
+    "lastVerifiedAt": "2026-09-01T02:14:00.000Z",
+    "badges": ["abn_verified", "connected_source"],
+    "capabilityScores": { "ftv": 61, "mpc": 66, "tre": 54 },
+    "attestations": [],
+    "jurisdiction": "AU-NSW",
+    "publicUrl": "https://blockid.au/id/example-trades",
+    "rowKind": "live"
+  },
+  "_meta": { "authenticated": false, "rateLimitRemaining": 199 }
+}`,
+  curlSnippet: `# replace {slug} with the business's public slug (the /id/{slug} URL)
+curl "${BASE_URL}/api/v1/id/{slug}"`,
+  jsSnippet: `// replace {slug} with the business's public slug (the /id/{slug} URL)
+const res = await fetch("${BASE_URL}/api/v1/id/{slug}");
+if (res.status === 404) throw new Error("no public profile for that slug");
+const { data } = await res.json();
+console.log(data.legalName, data.verificationLevel, data.trustScore);`,
+  rateLimit: { perMinute: 200, bucket: "v1-id-public (2,000 with a partner bearer)" },
+  errorCodes: [
+    { code: 404, when: "`not_found` — no indexed public profile for that slug (identical for missing and unindexed)." },
+    { code: 401, when: "An `Authorization` header was sent but the partner token is invalid or lacks `id:public:read`." },
+    { code: 429, when: "`rate_limited` — 200 / min per IP anonymous, 2,000 / min with a partner bearer." },
+  ],
+  changelog: [
+    { date: "2026-08-12", note: "Public Verified Business Profile JSON (Master Upgrade Plan §11.1) + Verifiable Credential sibling." },
+    { date: "2026-09-19", note: "Documented under /developers/api and openapi.json (G18-B)." },
+  ],
+};
+
 export const API_ENDPOINTS: ApiEndpointDoc[] = [
   SVI_INDEX,
   PRICING_TEST_ASSIGN,
   PRICING_TEST_EVENT,
   IDEA_QUESTIONS,
+  V1_ANALYZE,
+  V1_ID_PROFILE,
   V1_EVALUATIONS_LIST,
   V1_EVALUATIONS_DOSSIER,
   V1_EVALUATIONS_ASSESSMENT_READ,
