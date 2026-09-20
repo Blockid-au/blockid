@@ -96,7 +96,7 @@ export default async function OneClickReportPage({ searchParams }: PageProps) {
       <PageHero
         eyebrow="For Australian founders"
         title="See how investors look at your startup — in one click."
-        sub="Upload your pitch deck or paste your website. Get the full Trusted Business Report — your Startup Value Index score across 8 dimensions and an AUD valuation range — in your inbox. No signup. A$3 GST-incl."
+        sub="Upload your pitch deck or paste your website. Get the full Trusted Business Report — your Startup Value Index score across 8 dimensions and an AUD valuation range — in your inbox. No signup. A$3 inc. GST"
         visual={
           <div className="rounded-xl border border-line-subtle bg-surface p-6 text-left shadow-2 md:p-7">
             <Suspense fallback={null}>

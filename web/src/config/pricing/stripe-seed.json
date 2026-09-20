@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-09-16T14:52:17.810Z",
+  "generated_at": "2026-09-20T00:20:27.742Z",
   "plans": [
     {
       "plan_id": "founder_starter",
@@ -106,10 +106,10 @@
       "segment": "accelerator",
       "stripe_env_var": "STRIPE_PRICE_ACCEL_ENTERPRISE",
       "currency": "aud",
-      "monthly_amount_cents": 350000,
+      "monthly_amount_cents": null,
       "annual_amount_cents": 3500000,
-      "interval": "monthly",
-      "trial_days": 14
+      "interval": "custom",
+      "trial_days": 0
     },
     {
       "plan_id": "founder_package",

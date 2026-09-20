@@ -50,6 +50,7 @@ vi.mock("@/lib/email", () => ({
   sendCreditLowAlert: vi.fn(async () => ({ ok: true, id: "test" })),
 }));
 
+import { RND_REPORT_CREDITS, SVI_ANALYSIS_CREDITS } from "./credits-public";
 import {
   FEATURE_COSTS,
   PLAN_CREDITS,
@@ -68,6 +69,13 @@ import {
 // ── FEATURE_COSTS ─────────────────────────────────────────────────────────
 
 describe("FEATURE_COSTS", () => {
+  // G18-A: the client-safe mirrors in credits-public.ts must equal the
+  // server table — "use client" surfaces quote them.
+  it("credits-public mirrors (svi_analysis, rnd_report) equal the server table", () => {
+    expect(SVI_ANALYSIS_CREDITS).toBe(FEATURE_COSTS.svi_analysis);
+    expect(RND_REPORT_CREDITS).toBe(FEATURE_COSTS.rnd_report);
+  });
+
   it("pins the headline paid features at their advertised price", () => {
     // These are the surfaces marketed on /pricing and referenced in
     // memory `feedback_transparent_pricing` (always show cost). Any drift
@@ -242,10 +250,10 @@ describe("promo deadline gate", () => {
     expect(SIGNUP_CREDITS()).toBe(5);
   });
 
-  it("SIGNUP_CREDITS() drops to 2 after the promo (revenue guardrail)", () => {
+  it("SIGNUP_CREDITS() drops to FREE_SIGNUP_CREDITS (3) after the promo — same figure PLAN_CREDITS.free grants", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-08-02T00:00:00Z"));
-    expect(SIGNUP_CREDITS()).toBe(2);
+    expect(SIGNUP_CREDITS()).toBe(3);
   });
 });
 

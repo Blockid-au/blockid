@@ -779,3 +779,12 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # it runs as plain node, not through cron-runner, so the exit never feeds cron-health.
 # Docs: docs/ops/link-check.md.
 40 3 * * * cd /home/dovanlong/blockid.au/web && node scripts/link-check.mjs --base https://blockid.au --include-sitemap --max 1500 >> /data/logs/blockid-link-check.log 2>&1
+
+# G18-A (2026-09-19) — weekly Stripe price audit (plain node, read-only
+# prices.retrieve, no ids or keys in output). Resolves every STRIPE_PRICE_* in
+# src/config/pricing/stripe-price-catalogue.json from web/.env(.runtime), diffs
+# amount / interval / active / tax_behavior, writes
+# content/reports/stripe-price-audit-latest.json and Telegrams (e-mail fallback)
+# on drift. Exits 1 on drift; like link-check it bypasses cron-runner.
+# Docs: docs/ops/pricing-truth.md · docs/ops/crontab-setup.md § G18-A.
+20 3 * * 1 cd /home/dovanlong/blockid.au/web && node scripts/stripe-price-audit.mjs >> /data/logs/blockid-stripe-price-audit.log 2>&1

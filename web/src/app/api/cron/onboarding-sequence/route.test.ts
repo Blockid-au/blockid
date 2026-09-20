@@ -1,7 +1,8 @@
 // Colocated vitest for /api/cron/onboarding-sequence — the pre-analysis mailer.
 //
 // The route fires the 3-touch onboarding sequence (D+1 workspace-ready welcome,
-// D+3 Evidence Vault CTA, D+7 Founding 100 scarcity pitch) to users who signed
+// D+3 Evidence Vault CTA, D+7 Starter / Growth upgrade pitch priced from
+// plans-v2 — the Founding 100 A$5 promo closed 2026-09-01) to users who signed
 // up but have NOT yet run an SVI analysis. Once they do, /api/cron/email-drip +
 // /api/cron/weekly-insights take over. Silent regressions this suite pins:
 //
@@ -277,7 +278,11 @@ describe("/api/cron/onboarding-sequence — step selection", () => {
     ]);
   });
 
-  it("D+7 fires with the Founding 100 A$5 subject line for a user signed up 7 days ago", async () => {
+  it("D+7 fires the Starter / Growth upgrade (priced from plans-v2, never the closed A$5 promo) for a user signed up 7 days ago", async () => {
+    const { PLANS_V2, formatAud } = await import("@/lib/plans-v2");
+    const { GENERATED_PLANS_BY_ID } = await import("@/config/pricing/plans.generated");
+    const starter = PLANS_V2.find((p) => p.id === "founder_starter")!;
+    const growth = PLANS_V2.find((p) => p.id === "founder_growth")!;
     state.users = [
       { id: "u3", email: "c@x.io", display_name: "Cam Smith", created_at: daysAgoIso(7) },
     ];
@@ -285,9 +290,19 @@ describe("/api/cron/onboarding-sequence — step selection", () => {
     state.notifCounts.set("c@x.io|onboarding_d3", 1);
     await GET(req("GET", { authorization: `Bearer ${SECRET}` }));
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
-    expect(sendEmailMock.mock.calls[0][0].subject).toBe(
-      "Cam, only a few Founding 100 spots left at A$5",
+    const mail = sendEmailMock.mock.calls[0][0];
+    expect(mail.subject).toBe(
+      `Cam, ${starter.name} is ${formatAud(starter.monthly_aud)}/mo with a ${starter.trial_days}-day free trial`,
     );
+    expect(mail.html).toContain(`${growth.name} — ${formatAud(growth.monthly_aud)}/mo`);
+    expect(mail.html).toContain(
+      `${GENERATED_PLANS_BY_ID["founder_starter"].usage_limits.monthly_credits} AI credits`,
+    );
+    expect(mail.html).toContain(
+      `${GENERATED_PLANS_BY_ID["founder_growth"].usage_limits.monthly_credits} AI credits`,
+    );
+    expect(mail.html).toContain("/pricing");
+    expect(`${mail.subject} ${mail.html}`).not.toMatch(/Founding|A\$5\b|lifetime|founding-50|A\$99\b/);
     expect(state.inserts[0].notification_type).toBe("onboarding_d7");
   });
 

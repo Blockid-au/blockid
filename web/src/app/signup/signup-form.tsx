@@ -337,6 +337,7 @@ function InnerForm(props: SignupFormProps) {
             ? (selectedPlan.annualPriceDisplay ?? selectedPlan.priceDisplay)
             : selectedPlan.priceDisplay,
         interval: effectiveInterval === "annual" ? "year" : "month",
+        trialDays: selectedPlan.trialDays,
       })
     : "";
 

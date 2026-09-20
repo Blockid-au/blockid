@@ -47,14 +47,31 @@ vi.mock("@/lib/plans", () => ({
     cadence: id === "founder_scale" ? "yearly" : id === "founder_package" ? "once" : "monthly",
     price: id === "founder_scale" ? 500 : id === "founder_package" ? 149 : 100,
   }),
+  // Real map shape (lib/plans.ts) — G18-A remaps legacy ids through it.
+  LEGACY_PLAN_MAP: {
+    founding50: { id: "founder_starter", interval: "monthly" },
+    growth: { id: "founder_growth", interval: "monthly" },
+    growth_annual: { id: "founder_growth", interval: "yearly" },
+  },
 }));
 
+// G18-A: the target rung resolves from the plans table (v2 SKUs priced by
+// `plans.stripe_price_id[_annual]`). The mock mirrors the production rows the
+// suite touches; `getPlanCachedMock` lets a test override one lookup.
+const getPlanCachedMock = vi.fn(async (id: string) => ({
+  id,
+  name: id,
+  segment: "founder",
+  interval: id === "founder_scale" ? "yearly" : id === "founder_package" ? "once" : "monthly",
+  price_aud_cents: id === "founder_scale" ? 50000 : id === "founder_package" ? 14900 : 10000,
+  annual_price_aud_cents: id === "founder_growth" ? 69000 : 0,
+  stripe_price_id:
+    id === "founder_scale" ? "price_scale" : id === "founder_package" ? "price_package" : id === "founder_growth" ? "price_growth" : null,
+  stripe_price_id_annual: id === "founder_growth" ? "price_growth_annual" : null,
+  feature_flags: [],
+}));
 vi.mock("@/lib/plans-db", () => ({
-  getPlanCached: async (id: string) => ({
-    id,
-    segment: "founder",
-    price_aud_cents: id === "founder_scale" ? 50000 : id === "founder_package" ? 14900 : 10000,
-  }),
+  getPlanCached: (id: string) => getPlanCachedMock(id),
 }));
 
 vi.mock("@/lib/stripe/addon-schedule", () => ({
@@ -241,5 +258,60 @@ describe("POST /api/stripe/change-plan — one-off plan keeps the subscription u
     const [params] = stripeMock.checkout.sessions.create.mock.calls[0] as [{ metadata: Record<string, string> }];
     expect(params.metadata).not.toHaveProperty("cancel_subscription_id");
     expect(stripeMock.subscriptions.cancel).not.toHaveBeenCalled();
+  });
+});
+
+// G18-A (2026-09-19): a plan switch books the v2 rung's own Stripe price
+// (plans.stripe_price_id) — legacy ids remap, and the legacy A$99 / A$950
+// Growth prices are never sent to Stripe.
+describe("POST /api/stripe/change-plan — v2 rungs + legacy remap (G18-A)", () => {
+  function switchReq(newPlanId: string) {
+    return new Request("http://x/api/stripe/change-plan", {
+      method: "POST",
+      body: JSON.stringify({ newPlanId }),
+    });
+  }
+
+  it("switches an active subscription onto the v2 price from the plans row", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1" });
+    wireSupabase("cus_123", "founder_starter");
+    stripeMock.subscriptions.list.mockResolvedValue({
+      data: [{ id: "sub_abc", items: { data: [{ id: "si_1" }] } }],
+    });
+    stripeMock.subscriptions.update.mockResolvedValue({ id: "sub_abc" });
+
+    const res = await POST(switchReq("founder_growth"));
+    expect(res.status).toBe(200);
+    expect(stripeMock.subscriptions.update).toHaveBeenCalledWith(
+      "sub_abc",
+      expect.objectContaining({ items: [{ id: "si_1", price: "price_growth" }] }),
+    );
+  });
+
+  it("remaps legacy 'growth_annual' to founder_growth billed on the annual v2 price", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1" });
+    wireSupabase("cus_123", "founder_starter");
+    stripeMock.subscriptions.list.mockResolvedValue({
+      data: [{ id: "sub_abc", items: { data: [{ id: "si_1" }] } }],
+    });
+    stripeMock.subscriptions.update.mockResolvedValue({ id: "sub_abc" });
+
+    const res = await POST(switchReq("growth_annual"));
+    expect(res.status).toBe(200);
+    expect(stripeMock.subscriptions.update).toHaveBeenCalledWith(
+      "sub_abc",
+      expect.objectContaining({ items: [{ id: "si_1", price: "price_growth_annual" }] }),
+    );
+    expect(getPlanCachedMock).toHaveBeenCalledWith("founder_growth");
+  });
+
+  it("answers 400 (not a legacy price) when the plans row carries no Stripe price", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1" });
+    wireSupabase("cus_123", "founder_starter");
+    const res = await POST(switchReq("investor_vc_ent"));
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { reason: string };
+    expect(body.reason).toMatch(/Stripe price not configured for plan "investor_vc_ent"/);
+    expect(stripeMock.subscriptions.update).not.toHaveBeenCalled();
   });
 });

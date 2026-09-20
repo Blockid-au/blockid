@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
-import { getPlan, isGrowthEarlyBird, type LegacyPlan } from "@/lib/plans";
+import { getPlan, LEGACY_PLAN_MAP, type LegacyPlan } from "@/lib/plans";
 import { isFoundingPromoActive } from "@/lib/founding-promo";
 import { PLANS_V2, formatAud } from "@/lib/plans-v2";
 import { resolveIntervalPrice } from "@/lib/plans/billing-interval";
@@ -80,13 +80,13 @@ async function POST_handler(request: Request) {
   }
 
   const {
-    plan: planId,
+    plan: rawPlanId,
     couponCode,
     resellerCode: bodyResellerCode,
     promoCode: bodyPromoCode,
     origin: bodyOrigin,
     projectId: bodyProjectId,
-    interval: bodyInterval,
+    interval: rawInterval,
   } =
     (body as {
       plan?: string;
@@ -110,6 +110,23 @@ async function POST_handler(request: Request) {
       // the dataroom against that project. Ignored by every other planId.
       projectId?: string;
     }) ?? {};
+
+  // G18-A (2026-09-19): legacy subscription ids (`growth`, `growth_annual`)
+  // remap to their v2 successor before anything else looks at the plan. The
+  // `plans` table still carries those rows (no Stripe price id) so a stale
+  // caller used to fall through to the legacy A$99 env price — and, after the
+  // 2026-08-01 "early bird", to STRIPE_PRICE_GROWTH_499 (A$499/mo), a figure
+  // no page has ever shown. `founding50` keeps its explicit 410 below.
+  const legacy =
+    typeof rawPlanId === "string" && rawPlanId !== "founding50"
+      ? LEGACY_PLAN_MAP[rawPlanId]
+      : undefined;
+  const planId = legacy ? legacy.id : rawPlanId;
+  const bodyInterval: "monthly" | "annual" | undefined = legacy
+    ? legacy.interval === "yearly"
+      ? "annual"
+      : "monthly"
+    : rawInterval;
 
   // Post-cutover fast-fail — refuse Founding 100 checkouts once the A$5 promo
   // window closes (2026-09-01 UTC). Placed here (before the reseller /
@@ -287,11 +304,6 @@ async function POST_handler(request: Request) {
       { ok: false, reason: "Invalid or free plan" },
       { status: 400 },
     );
-  }
-
-  // After the Growth early-bird deadline, switch to the standard $499/mo price.
-  if (planId === "growth" && !isGrowthEarlyBird()) {
-    priceId = process.env.STRIPE_PRICE_GROWTH_499 ?? priceId;
   }
 
   if (!priceId) {

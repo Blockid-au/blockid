@@ -44,19 +44,40 @@ host.
 All four are declared by `plans.generated.ts` (from `plans.csv`) so
 resolution goes through `plans-db.ts` → `process.env[stripe_env_var]`.
 
-## Legacy founder + growth SKUs
+## Legacy founder + growth SKUs — NOT required (G18-A, 2026-09-19)
 
-| Env var                        | Consumer                                                    | Missing consequence                                         |
-|--------------------------------|-------------------------------------------------------------|-------------------------------------------------------------|
-| `STRIPE_PRICE_FOUNDING50`      | `lib/stripe.ts` STRIPE_PRICE_MAP + Founding-50 checkout     | Founding 100 one-off ($5) checkout breaks (`/founding-50`).  |
-| `STRIPE_PRICE_FOUNDER`         | Same map                                                    | Legacy Founder monthly (no longer sold); low priority.       |
-| `STRIPE_PRICE_GROWTH`          | Same map + Reseller wholesale subs                          | Reseller wholesale subscription route errors.                |
-| `STRIPE_PRICE_GROWTH_ANNUAL`   | Same map                                                    | Annual (save 20%) Growth CTA breaks.                         |
-| `STRIPE_PRICE_GROWTH_499`      | Same map                                                    | Legacy $499 tier (no longer sold); low priority.             |
-| `STRIPE_PRICE_PILOT`           | Same map                                                    | Pilot SKU checkout breaks.                                   |
-| `STRIPE_PRICE_ACCELERATOR`     | Same map                                                    | Accelerator pack checkout breaks.                            |
-| `STRIPE_PRICE_SVI_ANALYSIS`    | Same map                                                    | Single SVI analysis pay-as-you-go route breaks.              |
-| `STRIPE_PRICE_SVI_ANALYSIS_25` | Same map                                                    | 25-analysis bundle checkout breaks.                          |
+> **Removed from the required list 2026-09-19 (G18-A pricing truth).** None of
+> the nine vars below has a consumer in `web/src` any more: the keys were
+> dropped from `lib/stripe.ts` `STRIPE_PRICE_MAP`, `/api/stripe/checkout`
+> remaps `growth` / `growth_annual` → `founder_growth` (and lost the
+> `STRIPE_PRICE_GROWTH_499` early-bird escalation), the reseller wholesale
+> route books `STRIPE_PRICE_FOUNDER_GROWTH`, `/api/stripe/analysis` books
+> `STRIPE_PRICE_ONE_CLICK_REPORT`, and the `/api/lead` Founding-50 checkout
+> fork is gone. They stay in `.env` only so the admin
+> `/dashboard/admin/stripe-sync` audit can still show the grandfathered
+> prices, and in `stripe-price-catalogue.json` as `legacy: true` (the weekly
+> `scripts/stripe-price-audit.mjs` tolerates them unset).
+>
+> **Founder action — safe to archive in Stripe** once the dashboard shows no
+> active subscription on the price (archiving keeps existing subscriptions
+> billing; never delete): `STRIPE_PRICE_FOUNDING50` (A$3 one-off),
+> `STRIPE_PRICE_FOUNDER` (A$99/mo), `STRIPE_PRICE_GROWTH` (A$99/mo),
+> `STRIPE_PRICE_GROWTH_499` (A$499/mo), `STRIPE_PRICE_GROWTH_ANNUAL`
+> (A$950/yr), `STRIPE_PRICE_PILOT` (A$5,000), `STRIPE_PRICE_ACCELERATOR`
+> (A$20,000/yr), `STRIPE_PRICE_SVI_ANALYSIS` (A$1), `STRIPE_PRICE_SVI_ANALYSIS_25`
+> (A$25). Full ladder + parity: `docs/ops/pricing-truth.md`.
+
+| Env var                        | Consumer (2026-09-19)                        | Missing consequence                 |
+|--------------------------------|----------------------------------------------|-------------------------------------|
+| `STRIPE_PRICE_FOUNDING50`      | admin stripe-sync audit row only (legacy)    | none for customers                  |
+| `STRIPE_PRICE_FOUNDER`         | none                                         | none                                |
+| `STRIPE_PRICE_GROWTH`          | admin stripe-sync audit row only (legacy)    | none for customers                  |
+| `STRIPE_PRICE_GROWTH_ANNUAL`   | admin stripe-sync audit row only (legacy)    | none for customers                  |
+| `STRIPE_PRICE_GROWTH_499`      | none                                         | none                                |
+| `STRIPE_PRICE_PILOT`           | none                                         | none                                |
+| `STRIPE_PRICE_ACCELERATOR`     | none                                         | none                                |
+| `STRIPE_PRICE_SVI_ANALYSIS`    | none                                         | none                                |
+| `STRIPE_PRICE_SVI_ANALYSIS_25` | none                                         | none                                |
 
 ## Credit packs
 
@@ -127,9 +148,12 @@ webhook endpoint (`we_1TYooWJ7OAnXQ9sVpIpaTzqP`, 2026-09-17) — resolves the
 1. `STRIPE_PRICE_FOUNDER_STARTER` — default plan on the `/signup` page.
    Missing here means the Start Trial button 500s.
 2. `STRIPE_PRICE_FOUNDER_GROWTH` — marketing CTA target on the pricing
-   page.
-3. `STRIPE_PRICE_FOUNDER_SCALE` — needed for the power-user upsell path.
-4. Everything else — nice-to-have, no signup blocker.
+   page; also the reseller wholesale price (G18-A).
+3. `STRIPE_PRICE_FOUNDER_SCALE` — retired 2026-09-08 (Pro); the Stripe
+   price is **inactive**. Keep the var for grandfathered renewals only.
+4. Everything on the ladder (`docs/ops/pricing-truth.md`) — verified weekly by
+   `scripts/stripe-price-audit.mjs` (crontab § G18-A); the nine legacy vars
+   above are not required.
 
 ## Non-signup env vars (out of scope for this audit)
 

@@ -35,7 +35,7 @@ export interface GuestPaidCheckoutProps {
   file?: File | null;
   /** Required when inputType === "website_url". */
   url?: string;
-  /** Price copy, inc GST. */
+  /** Price copy, inc. GST. */
   priceLabel?: string;
 }
 
@@ -186,7 +186,7 @@ export function GuestPaidCheckout({
           Get your full report — {priceLabel}
         </h2>
         <p className="mt-1 text-xs text-muted">
-          One-off payment, inc GST. No account needed. We email the PDF a
+          One-off payment, inc. GST. No account needed. We email the PDF a
           couple of minutes after payment clears.
         </p>
 

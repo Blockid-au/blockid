@@ -2,10 +2,18 @@
 // Creates a Stripe Checkout Session for a single per-analysis SVI payment.
 // Does NOT require auth — allows guest checkout with email.
 // Body: { email, slug? }
+//
+// G18-A (2026-09-19): books the A$3 inc. GST One-Click Report price
+// (`STRIPE_PRICE_ONE_CLICK_REPORT`, sku_one_click_report_3aud) — the one
+// pay-as-you-go figure on the public ladder. Until now it chose between
+// `STRIPE_PRICE_SVI_ANALYSIS` (A$1 "early bird") and
+// `STRIPE_PRICE_SVI_ANALYSIS_25` (A$25) on a 2026-08-01 deadline, so the
+// paywall card that sent people here had been charging A$25 for weeks while
+// no page showed that amount. The webhook grant (`blockid_type:
+// "svi_analysis"` → svi_analysis_credits + 1) is unchanged.
 
 import { NextResponse } from "next/server";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
-import { isEarlyBird } from "@/lib/plans";
 import { sessionIdempotencyKey } from "@/lib/stripe/idempotency";
 import { apiRoute } from "@/lib/audit/api-route";
 
@@ -38,9 +46,7 @@ async function POST_handler(request: Request) {
   const stripe = getStripe()!;
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://blockid.au";
 
-  const priceId = isEarlyBird()
-    ? STRIPE_PRICE_MAP.svi_analysis // A$1 early-bird
-    : STRIPE_PRICE_MAP.svi_analysis_25; // $25 standard
+  const priceId = STRIPE_PRICE_MAP.one_click_report; // A$3 inc. GST
 
   if (!priceId) {
     return NextResponse.json(

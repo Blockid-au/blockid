@@ -275,7 +275,9 @@ const FOUNDER: Plan[] = [
     name: "Enterprise",
     monthly_aud: null,
     annual_aud: null,
-    trial_days: 7,
+    // G18-A (2026-09-19): contact-sales rows carry no trial — plans.csv / DB
+    // trial_days = 0. This said 7.
+    trial_days: 0,
     cta_kind: "contact",
     tagline: "Multi-entity groups",
     // Moved to the contact-sales row below the public 3-rung ladder.
@@ -407,7 +409,8 @@ const INVESTOR: Plan[] = [
     name: "VC Enterprise",
     monthly_aud: null,
     annual_aud: null,
-    trial_days: 7,
+    // G18-A (2026-09-19): contact-sales — plans.csv / DB trial_days = 0.
+    trial_days: 0,
     cta_kind: "contact",
     tagline: "Fund-grade",
     public: false,
@@ -519,7 +522,9 @@ const ACCELERATOR: Plan[] = [
     name: "Cohort Enterprise",
     monthly_aud: 3500,
     annual_aud: 35000,
-    trial_days: 14,
+    // G18-A (2026-09-19): contact-sales, no self-serve trial (plans.csv /
+    // migration 0413). Said 14 while the row was wrongly `monthly`.
+    trial_days: 0,
     cta_kind: "contact",
     tagline: "Unlimited startups, white-label",
     public: false,
@@ -582,6 +587,27 @@ export const PUBLIC_HIDDEN_PLAN_IDS: readonly string[] = PLANS_V2
  */
 export function publicPlansForSegment(segment: Segment): Plan[] {
   return plansForSegment(segment).filter((p) => p.public !== false);
+}
+
+/**
+ * GST display rule (G18-A, 2026-09-19 — one rule for every surface).
+ *
+ * Every price on the site is GST-INCLUSIVE (Stripe prices are minted with
+ * `tax_behavior: "inclusive"`; the 14 legacy/evaluator/credit prices still
+ * carrying `unspecified` are a founder dashboard fix — docs/ops/pricing-truth.md).
+ * Two spellings only:
+ *   • after an amount, the suffix `inc. GST` — "A$3 inc. GST" (`withGst()`);
+ *   • as a policy sentence, the adjective `GST-inclusive` — the /pricing
+ *     footer line `GST_POLICY_LINE`, stated once per surface.
+ * Never the hyphenated, unpunctuated, "incl." / "-incl." / "included" /
+ * unhyphenated-"inclusive" variants — pricing/gst-wording.test.ts greps for them.
+ */
+export const GST_SUFFIX = "inc. GST";
+export const GST_POLICY_LINE = "AUD pricing, GST-inclusive. Every charge produces an ATO tax invoice.";
+
+/** "A$3 inc. GST" — the long form for confirm steps, receipts and e-mails. */
+export function withGst(label: string): string {
+  return `${label} ${GST_SUFFIX}`;
 }
 
 /** Format AUD price. Returns "Custom" for null (contact-sales SKUs). */

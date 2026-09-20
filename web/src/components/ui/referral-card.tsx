@@ -1,5 +1,6 @@
 "use client";
 
+import { REFEREE_BONUS_CREDITS, REFERRER_CREDITS } from "@/lib/credits-public";
 import * as React from "react";
 import { CheckCircle2, Copy, ExternalLink, Gift, Mail, Users } from "lucide-react";
 
@@ -98,7 +99,7 @@ export function ReferralCard() {
             Invite founders, you both earn credits
           </h3>
           <p className="text-xs text-ink-500">
-            You get 2 credits, they get 1 bonus credit on signup.
+            You get {REFERRER_CREDITS} credits, they get {REFEREE_BONUS_CREDITS} bonus credit{REFEREE_BONUS_CREDITS === 1 ? "" : "s"} on signup.
           </p>
         </div>
       </div>

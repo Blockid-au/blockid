@@ -55,10 +55,9 @@ describe("PLANS_V2 catalogue", () => {
       expect(row, `${p.id} missing from plans.csv`).toBeDefined();
       if (p.monthly_aud !== null) expect(p.monthly_aud, p.id).toBe(row!.price_aud_cents / 100);
       if (p.annual_aud !== null) expect(p.annual_aud, p.id).toBe(row!.annual_price_aud_cents / 100);
-      // founder_enterprise / investor_vc_ent are custom-interval rows whose
-      // csv trial_days is 0; the marketing card keeps a 7-day figure for the
-      // contact-sales conversation, so only self-serve rows are pinned.
-      if (row!.interval === "monthly") expect(p.trial_days, p.id).toBe(row!.trial_days);
+      // G18-A (2026-09-19): every row is pinned, contact-sales ones included —
+      // founder_enterprise / investor_vc_ent used to say 7 against a csv/DB 0.
+      expect(p.trial_days, p.id).toBe(row!.trial_days);
     }
   });
 

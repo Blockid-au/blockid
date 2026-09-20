@@ -2,7 +2,7 @@
  * POST /api/reports/checkout — Trust Business Report paywall Path A.
  *
  * Master Upgrade Plan §8.4 Path A: creates a Stripe Checkout Session for
- * the A$3 inc-GST one-off SKU (§14bis D1; re-priced from A$5.50 in place
+ * the A$3 inc. GST one-off SKU (§14bis D1; re-priced from A$5.50 in place
  * 2026-09-10, D3), inserts a report_orders row
  * in CHECKOUT_INITIATED status, and returns the hosted-checkout URL for
  * the client to redirect to.

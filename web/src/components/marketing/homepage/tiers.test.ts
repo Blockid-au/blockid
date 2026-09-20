@@ -60,7 +60,7 @@ describe("HOMEPAGE_TIERS", () => {
     );
     expect(ONE_CLICK_REPORT_3AUD.unit_amount_incl_gst_cents).toBe(300);
     // GST-inclusive, because that is how Stripe charges it.
-    expect(report.priceSuffix).toContain("inc GST");
+    expect(report.priceSuffix).toContain("inc. GST");
   });
 
   it("prices the workspace rung from the generated plan ladder", () => {

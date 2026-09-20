@@ -253,6 +253,14 @@ export default async function DocsPage() {
   // for a week after Growth became A$69 (2026-09-08).
   const starterMonthly = `A$${GENERATED_PLANS_BY_ID.founder_starter.price_aud_cents / 100}/mo`;
   const growthMonthly = `A$${GENERATED_PLANS_BY_ID.founder_growth.price_aud_cents / 100}/mo`;
+  // G18-A (2026-09-19): the evaluator line was typed by hand and omitted Fund.
+  const evaluatorLadder = (["investor_angel", "investor_advisor", "investor_vc_small", "investor_fund"] as const)
+    .map((id) => {
+      const row = GENERATED_PLANS_BY_ID[id];
+      return `${row.name} A$${(row.price_aud_cents / 100).toLocaleString("en-AU")}/mo`;
+    })
+    .join(" · ");
+  const evaluatorTrialDays = GENERATED_PLANS_BY_ID.investor_angel.trial_days;
   const weights = cfg.svi_weights;
 
   return (
@@ -584,10 +592,10 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
               </p>
               <ul className="text-sm text-ink-600 space-y-1 list-disc list-inside">
                 <li>A$3 per Trusted Business Report on any startup you enter, pay as you go</li>
-                <li>Scout A$79/mo · Firm A$149/mo · Program A$349/mo — reports included, tracked startups, seats, white-label</li>
+                <li>{evaluatorLadder} — reports included, tracked startups, seats, white-label</li>
                 <li>Fund A$999/mo (investor firms, API access) · Intake link A$249/mo (program intake at /apply/[slug]) · Index API A$299/mo</li>
                 <li>Accelerator cohorts: Cohort 25 A$5K/yr · Cohort 100 A$15K/yr (batch scoring + LP report)</li>
-                <li>7-day free trial on Scout / Firm / Program, card required; nothing billed if cancelled before day 7</li>
+                <li>{evaluatorTrialDays}-day free trial on Scout / Firm / Program / Fund, card required; nothing billed if cancelled before day {evaluatorTrialDays + 1}</li>
                 <li>Evaluator pilots: a 30-day Program comp for up to 5 programs at a time — apply at <Link href="/pilot" className="text-brand-600 underline">/pilot</Link></li>
                 <li>Reseller / wholesale: Contact Sales (all payments run through the single BlockID Stripe account; prices are GST-inclusive)</li>
               </ul>

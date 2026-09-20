@@ -53,7 +53,7 @@ export interface V3Sku {
 }
 
 /**
- * The A$3.00 inc-GST one-off SKU that unlocks a full Trusted Business Report for one
+ * The A$3.00 inc. GST one-off SKU that unlocks a full Trusted Business Report for one
  * business, one time. Ships in Phase 1 as the paywall entry point.
  *
  * Re-priced in place 2026-09-10 (founder decision D3 / Q-C, G12 §3a): one
@@ -73,11 +73,11 @@ export const TRUST_REPORT_5AUD: V3Sku = {
   stripe_managed: true,
   description:
     "Full 13-area Trusted Business Report for one business, valid 90 days. 8-dimension SVI score, AUD valuation range with methods, evidence citations, 30/60/90-day plan, PDF+DOCX export, share link with trust badge.",
-  display_price_label: "A$3.00 inc-GST",
+  display_price_label: "A$3.00 inc. GST",
 };
 
 /**
- * The A$3.00 inc-GST one-off SKU that fuels the guest-onboarding funnel:
+ * The A$3.00 inc. GST one-off SKU that fuels the guest-onboarding funnel:
  * a visitor uploads a pitch deck OR pastes a website URL, pays A$3, and
  * receives a full SVI valuation + Trusted Biz Report by email — no signup
  * required. Rows land in `guest_analyses` (migration 20260825_guest_analysis)
@@ -95,11 +95,11 @@ export const ONE_CLICK_REPORT_3AUD: V3Sku = {
   stripe_managed: true,
   description:
     "Full SVI valuation from your pitch deck or website — 8-dimension investor scorecard, comparable valuation range (AUD low/mid/high), instant email delivery. No signup required.",
-  display_price_label: "A$3.00 inc-GST",
+  display_price_label: "A$3.00 inc. GST",
 };
 
 /**
- * The A$3.00 inc-GST one-off Money Finder report (G11 T0242, plan §4e/§4g).
+ * The A$3.00 inc. GST one-off Money Finder report (G11 T0242, plan §4e/§4g).
  * A guest answers the 3-question /funding intake, sees the free preview, and
  * pays A$3 for the analysis: ranked grants + programs against their profile,
  * eligibility checklist, A$ estimates (R&DTI / ESIC) and a 12-month timeline.
@@ -117,7 +117,7 @@ export const FUNDING_REPORT_3AUD: V3Sku = {
   stripe_managed: true,
   description:
     "Ranked Australian grants and programs for one startup profile — eligibility checklist, A$ estimates, 12-month timeline and next actions, emailed as a private link. No signup required.",
-  display_price_label: "A$3.00 inc-GST",
+  display_price_label: "A$3.00 inc. GST",
 };
 
 /** Ordered listing of the report SKUs (checkout + paywall copy). */

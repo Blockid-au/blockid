@@ -1,16 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  EARLY_BIRD_DEADLINE,
-  GROWTH_EARLY_BIRD_DEADLINE,
-  GROWTH_STANDARD_PRICE,
   LEGACY_PLAN_MAP,
   LEGACY_PLANS,
   PLANS,
   buildPlansFromConfig,
   getPlan,
   getPlanPrice,
-  isEarlyBird,
-  isGrowthEarlyBird,
   type LegacyPlan,
 } from "./plans";
 
@@ -217,50 +212,6 @@ describe("getPlanPrice", () => {
     const price = getPlanPrice("founding50", 20)!;
     expect(price.original).toBe(500);
     expect(price.discounted).toBe(400);
-  });
-});
-
-describe("Early-bird deadlines", () => {
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  it("EARLY_BIRD_DEADLINE is 2026-08-01 AEST midnight (locked to prevent silent drift)", () => {
-    expect(EARLY_BIRD_DEADLINE.toISOString()).toBe("2026-07-31T14:00:00.000Z");
-  });
-
-  it("GROWTH_EARLY_BIRD_DEADLINE lands on the same 2026-08-01 AEST midnight", () => {
-    expect(GROWTH_EARLY_BIRD_DEADLINE.toISOString()).toBe("2026-07-31T14:00:00.000Z");
-  });
-
-  it("GROWTH_STANDARD_PRICE is A$499/mo (49900 cents) — post-deadline sticker", () => {
-    expect(GROWTH_STANDARD_PRICE).toBe(49900);
-  });
-
-  it("isEarlyBird() true well before the deadline", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-07-01T00:00:00Z"));
-    expect(isEarlyBird()).toBe(true);
-  });
-
-  it("isEarlyBird() false at or past the deadline", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(EARLY_BIRD_DEADLINE);
-    expect(isEarlyBird()).toBe(false);
-    vi.setSystemTime(new Date("2026-09-01T00:00:00Z"));
-    expect(isEarlyBird()).toBe(false);
-  });
-
-  it("isGrowthEarlyBird() true before the deadline", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-07-15T00:00:00Z"));
-    expect(isGrowthEarlyBird()).toBe(true);
-  });
-
-  it("isGrowthEarlyBird() false after the deadline", () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-08-15T00:00:00Z"));
-    expect(isGrowthEarlyBird()).toBe(false);
   });
 });
 

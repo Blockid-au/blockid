@@ -149,10 +149,24 @@ describe("getCtaVariant — anchor rows", () => {
     expect(v.subtext).toMatch(/no card/i);
   });
 
-  it("founding50 rows across every phase point at /founding-50 or /pricing (never external)", () => {
+  it("founding50 rows across every phase point at /pricing or /signup (never /founding-50, never external)", () => {
     for (const phase of SVI_PHASES) {
       const v = getCtaVariant(phase, "founding50");
-      expect(v.href).toMatch(/^\/(founding-50|pricing)/);
+      expect(v.href).toMatch(/^\/(pricing|signup)/);
+    }
+  });
+
+  // G18-A: no row may type a price or sell a retired / closed SKU.
+  it("no row advertises a price, the closed Founding promo or the retired Pro tier", () => {
+    for (const phase of SVI_PHASES) {
+      for (const surface of CTA_SURFACES) {
+        const v = getCtaVariant(phase, surface);
+        const text = `${v.label} ${v.subtext ?? ""}`;
+        expect(text).not.toMatch(/A\$\s?\d/);
+        expect(text).not.toMatch(/founding/i);
+        expect(text).not.toMatch(/\bPro\b/);
+        expect(v.href).not.toMatch(/founding-50/);
+      }
     }
   });
 

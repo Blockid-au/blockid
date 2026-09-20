@@ -17,11 +17,32 @@ import {
 } from "@/lib/email-preferences";
 import { redactPii } from "@/lib/log-redact";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
+import { PLANS_V2, formatAud, type Plan } from "@/lib/plans-v2";
+import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
 const BATCH_LIMIT = 50;
+
+// Pricing truth (G18-A, 2026-09-20): the day-9 upsell used to pitch the
+// Founding 100 A$5 lifetime promo (closed 2026-09-01) and "returns to
+// A$99/mo". It now sells Starter / Growth, every figure read from plans-v2
+// (price, trial) and plans.csv via plans.generated (monthly credits).
+function ladderPlan(id: string): Plan {
+  const plan = PLANS_V2.find((p) => p.id === id);
+  if (!plan) throw new Error(`plans-v2: unknown plan id "${id}"`);
+  return plan;
+}
+function monthlyCredits(id: string): number {
+  return GENERATED_PLANS_BY_ID[id]?.usage_limits?.monthly_credits ?? 0;
+}
+const STARTER = ladderPlan("founder_starter");
+const GROWTH = ladderPlan("founder_growth");
+const STARTER_PRICE = `${formatAud(STARTER.monthly_aud)}/mo`;
+const GROWTH_PRICE = `${formatAud(GROWTH.monthly_aud)}/mo`;
+const STARTER_CREDITS = monthlyCredits(STARTER.id);
+const GROWTH_CREDITS = monthlyCredits(GROWTH.id);
 
 interface QueueRow {
   id: string;
@@ -202,24 +223,31 @@ const TEMPLATES: Record<1 | 4 | 9, EmailTemplate> = {
           </div>
 
           <p style="font-size:15px;line-height:1.7;color:#333;margin:0 0 16px;">
-            Ready to unlock the full BlockID toolkit? Upgrade to <strong>Founding 100</strong> for a
-            one-time payment of <strong>A$5</strong> — lifetime access, no recurring fees.
+            Ready to unlock the full BlockID toolkit? The <strong>${STARTER.name}</strong> plan is
+            <strong>${STARTER_PRICE}</strong> and <strong>${GROWTH.name}</strong> is <strong>${GROWTH_PRICE}</strong> —
+            both inc. GST, both with a ${STARTER.trial_days}-day free trial, cancel any time.
           </p>
           <div style="background:#fffbeb;border-radius:10px;padding:16px 20px;margin:0 0 24px;">
-            <p style="font-size:14px;font-weight:600;color:#92400e;margin:0 0 10px;">Founding 100 includes:</p>
+            <p style="font-size:14px;font-weight:600;color:#92400e;margin:0 0 10px;">${STARTER.name} (${STARTER_PRICE}) includes:</p>
             <ul style="margin:0;padding-left:20px;font-size:14px;color:#333;line-height:2.2;">
-              <li>50 credits (lifetime)</li>
-              <li>Evidence Vault — connect GitHub, Stripe, GA4</li>
-              <li>Cap Table AI — equity split, vesting, ESOP</li>
+              <li>${STARTER_CREDITS} AI credits every month</li>
+              <li>Data room — filling up in the order investors ask</li>
+              <li>Live investor link — NDA click-wrap and watermarked PDFs</li>
+              <li>Founder Radar — grant and program deadline alerts</li>
+            </ul>
+            <p style="font-size:14px;font-weight:600;color:#92400e;margin:14px 0 10px;">${GROWTH.name} (${GROWTH_PRICE}) adds:</p>
+            <ul style="margin:0;padding-left:20px;font-size:14px;color:#333;line-height:2.2;">
+              <li>${GROWTH_CREDITS} AI credits every month</li>
+              <li>Cap table sync — equity split, vesting, ESOP</li>
               <li>Term Sheet AI — analyse any investor term sheet</li>
-              <li>Full SVI history and benchmark reports</li>
+              <li>Investor matching and unlimited grant application drafts</li>
             </ul>
           </div>
           <div style="text-align:center;margin:28px 0;">
-            <a href="${site}/pricing" style="display:inline-block;background:#6c5ce7;color:#fff;text-decoration:none;padding:14px 36px;border-radius:8px;font-size:15px;font-weight:600;">Upgrade for A$5 — Lifetime Access →</a>
+            <a href="${site}/pricing" style="display:inline-block;background:#6c5ce7;color:#fff;text-decoration:none;padding:14px 36px;border-radius:8px;font-size:15px;font-weight:600;">Start a ${STARTER.trial_days}-day free trial →</a>
           </div>
           <p style="font-size:13px;color:#64748b;text-align:center;">
-            Spots are limited. After the Founding 100 fills, this plan returns to A$99/mo.
+            No lock-in. Your free account stays as it is if you do nothing.
           </p>
         </td></tr>
         <tr><td style="background:#1a1a2e;padding:20px 24px;text-align:center;">

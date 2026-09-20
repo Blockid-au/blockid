@@ -263,7 +263,9 @@ const PROMO_DEADLINE = new Date("2026-08-01T00:00:00+10:00");
 export const isPromoActive = () => new Date() < PROMO_DEADLINE;
 
 /** Signup credits — 5 during promo (normally 2). */
-export const SIGNUP_CREDITS = () => isPromoActive() ? 5 : 2;
+// G18-A (2026-09-19): post-promo figure is FREE_SIGNUP_CREDITS (3), the same
+// number PLAN_CREDITS.free grants and client copy quotes — this said 2.
+export const SIGNUP_CREDITS = () => isPromoActive() ? 5 : FREE_SIGNUP_CREDITS;
 
 // Grants are sized so that a subscriber who burns EVERY included credit on the
 // most expensive action still leaves ≥70% gross margin.
@@ -273,7 +275,7 @@ export const SIGNUP_CREDITS = () => isPromoActive() ? 5 : 2;
 // A$0.40–1.20 of model spend per run. (`svi_analysis` at 0.50 credits runs the
 // deterministic computeSVI() and costs ~nothing, so it never binds.)
 //
-// Worst-case arithmetic, at A$1.20/run and revenue ex-GST (inc-GST ÷ 1.1):
+// Worst-case arithmetic, at A$1.20/run and revenue ex-GST (inc. GST ÷ 1.1):
 //   A$29  → ex-GST 26.36 → 30% budget 7.91 → 6.6 runs → 20 credits → GM 69.6%
 //   A$69  → ex-GST 62.73 → 30% budget 18.82 → 15.7 runs → 45 credits → GM 71.4%
 //   A$299 → ex-GST 271.82 → 30% budget 81.55 → 68 runs → 200 credits → GM 70.6%

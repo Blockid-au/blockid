@@ -195,7 +195,7 @@ Run a Startup Value Index analysis.
 | Field | Value |
 |-------|-------|
 | **Auth** | Public (1 free per email) or Session cookie |
-| **Credit cost** | 1 credit (authenticated users) |
+| **Credit cost** | 0.5 credits (authenticated users) — `FEATURE_COSTS.svi_analysis` |
 
 **Request body:**
 
@@ -288,7 +288,7 @@ Get an independent AI-generated SVI score to compare with the deterministic scor
 | Field | Value |
 |-------|-------|
 | **Auth** | Session cookie (required) |
-| **Credit cost** | 1 credit |
+| **Credit cost** | 0.25 credits — `FEATURE_COSTS.ai_score` |
 
 **Request body:**
 
@@ -340,7 +340,7 @@ Generate a 500-700 word AI-written SVI report.
 | Field | Value |
 |-------|-------|
 | **Auth** | Session cookie (required) |
-| **Credit cost** | 3 credits |
+| **Credit cost** | 0.5 credits — `FEATURE_COSTS.svi_report` |
 
 **Request body:**
 
@@ -383,7 +383,7 @@ Run competitive research with web search.
 | Field | Value |
 |-------|-------|
 | **Auth** | Session cookie (required) |
-| **Credit cost** | 2 credits |
+| **Credit cost** | 0.5 credits — `FEATURE_COSTS.research` |
 
 **Request body:**
 
@@ -812,7 +812,7 @@ Create a Stripe Checkout for a single per-analysis SVI payment (guest checkout).
 }
 ```
 
-**Notes:** Price is A$1 during early-bird period (before 2026-06-15), A$25 after.
+**Notes:** Books the A$3.00 inc. GST One-Click Report price (`STRIPE_PRICE_ONE_CLICK_REPORT`). The A$1 / A$25 early-bird pair was retired 2026-09-19 (G18-A).
 
 **Example:**
 
@@ -1176,7 +1176,7 @@ AI-powered term sheet analysis.
 | Field | Value |
 |-------|-------|
 | **Auth** | Session cookie (required) |
-| **Credit cost** | 3 credits |
+| **Credit cost** | 1 credit — `FEATURE_COSTS.term_sheet` |
 
 **Request body:**
 
@@ -2027,6 +2027,21 @@ e-mail fallback) and an auto-reply. Audited by `apiRoute` with an anonymous acto
 > A$1 list price (packs bring it to ≈ A$0.60). Every paid run shows its credit cost and word count before it is
 > charged, and is spent before the run so a failed run refunds rather than double-charges.
 
+| Feature | Cost | Notes |
+|---------|------|-------|
+| SVI Analysis | 0.5 | First analysis free for unauthenticated users |
+| AI Score | 0.25 | Independent AI scoring comparison |
+| Competitive Research | 0.5 | Uses Claude web search |
+| SVI Report | 0.5 | 500-700 word AI report |
+| Term Sheet AI | 1 | Claude-powered analysis + dilution diff |
+| R&D Report | 1 | Standard 10-page report (`rnd_deep_dive` 1.5) |
+| Pitch Deck outline | 1 | From SVI data (`pitch_video` 2) |
+| Money Finder | 3 | Included on Starter+ via `grant_finder`; application draft 2 |
+| Valuation Certificate | 5 | Included Growth+ / Startup Package |
+| Evidence Upload | 0 | Free |
+| Investor Score | 0 | Free |
+| Dilution Calculator | 0 | Free |
+
 | Feature | Credits | Notes |
 |---------|---------|-------|
 | SVI analysis (`svi_analysis`, `/api/v1/analyze`, `/api/svi`) | 0.5 | First analysis free for anonymous visitors; from the second run in 30 days an e-mail is asked first. |
@@ -2063,3 +2078,19 @@ e-mail fallback) and an auto-reply. Audited by `apiRoute` with an anonymous acto
 
 Legacy: the Founding 100 lifetime deal closed 2026-09-01 (buyers keep a legacy plan); A$299 Pro was retired
 2026-09-08 (`founder_scale` stays in the catalogue as `public: false`).
+
+### Included credits per plan
+
+Source of truth: `web/src/config/pricing/plans.csv` (`usage_limits.monthly_credits`) and
+`web/src/lib/credits-public.ts` (`FREE_SIGNUP_CREDITS`). Prices are A$ inc. GST; see
+`docs/ops/pricing-truth.md` for the full ladder.
+
+| Plan | Credits | Recurring | Price |
+|------|---------|-----------|-------|
+| Free | 3 on signup | No | A$0 |
+| Starter (`founder_starter`) | 20 | Monthly | A$29/mo |
+| Growth (`founder_growth`) | 45 | Monthly | A$69/mo |
+| Startup Package (`founder_package`) | 25 seed credits | No (one-off) | A$149 |
+| Cohort 25 (`accelerator_starter`) | 200 | Monthly | A$500/mo (A$5,000/yr) |
+| Cohort 100 (`accelerator_growth`) | 800 | Monthly | A$1,500/mo (A$15,000/yr) |
+| Credit packs | 5 / 10 / 25 / 50 / 100 | No | A$5 / A$9 / A$20 / A$35 / A$60 |

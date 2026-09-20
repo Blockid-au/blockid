@@ -54,7 +54,7 @@ import {
 } from "@/lib/auth";
 import { sendWholesaleWelcome } from "@/lib/email";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
+import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import {
   scopedReseller,
   ResellerScopeError,
@@ -173,15 +173,23 @@ interface ExecuteError {
 
 /**
  * Wholesale Stripe plan → Stripe price id resolver. Mirrors the plan id used
- * by create-startup (WHOLESALE_PLAN_ID = "founder_growth") to the STRIPE_PRICE
- * env var slots wired in web/src/lib/stripe.ts. Wholesale reuses the same
- * Stripe Price as retail Growth per plan §C.1.5 — the reseller pays the same
- * A$99/mo list price and the discount tier flows through the promotion_code
- * attach on the subscription.
+ * by create-startup (WHOLESALE_PLAN_ID = "founder_growth") to the Stripe
+ * Price the retail ladder sells. Wholesale reuses the same Stripe Price as
+ * retail Growth per plan §C.1.5 — the reseller pays the same list price
+ * (A$69/mo, `STRIPE_PRICE_FOUNDER_GROWTH`, plans.csv `founder_growth`) and
+ * the discount tier flows through the promotion_code attach on the
+ * subscription.
+ *
+ * G18-A (2026-09-19): until now this read `STRIPE_PRICE_MAP.growth` — the
+ * legacy 2025 "Growth" price at A$99/mo, tax_behavior=unspecified — so a
+ * wholesale subscription booked A$30/mo more than the founder-facing rung.
+ * The env var is read directly (not via STRIPE_PRICE_MAP) because the v2
+ * rows bill through `plans.stripe_price_id`; both are seeded from the same
+ * `STRIPE_PRICE_FOUNDER_GROWTH` value.
  */
 function resolveStripePriceForPlan(planId: string): string | null {
   if (planId === "founder_growth") {
-    return STRIPE_PRICE_MAP.growth ?? null;
+    return process.env.STRIPE_PRICE_FOUNDER_GROWTH ?? null;
   }
   return null;
 }
@@ -676,7 +684,7 @@ function describeStripeWiring(outcome: StripeWiringOutcome): string {
     case "not_ready":
       return `Stripe subscription deferred — reseller billing not ready (${outcome.reason}). Complete /reseller/settings then retry from /reseller/customers.`;
     case "price_missing":
-      return `Stripe subscription deferred — no price env var configured for plan ${outcome.plan_id}. Set STRIPE_PRICE_GROWTH and retry.`;
+      return `Stripe subscription deferred — no price env var configured for plan ${outcome.plan_id}. Set STRIPE_PRICE_FOUNDER_GROWTH and retry.`;
     case "not_configured":
       return "Stripe not configured on this host — subscription deferred.";
     case "failed":

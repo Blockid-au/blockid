@@ -14,6 +14,7 @@ import { CtaBand, FeatureGrid, PageHero, Section } from "@/components/marketing/
 import { LogoCloud } from "@/components/landing/logo-cloud";
 import { StickyCta } from "@/components/sales/sticky-cta";
 import { PricingFeatureNotice } from "@/components/landing/pricing-feature-notice";
+import { GST_POLICY_LINE } from "@/lib/plans-v2";
 
 // S31-D: static + ISR (300 s, the edge TTL in
 // lib/security/public-cacheable-routes.ts). The catalogue is code
@@ -276,7 +277,7 @@ const PRICING_GUARANTEES = [
   "7-day free trial on every Founder and Evaluator plan",
   "14-day pilot on request (Cohort / Enterprise)",
   "No lock-in — cancel any time",
-  "AUD pricing, GST-inclusive. Every charge produces an ATO tax invoice.",
+  GST_POLICY_LINE,
 ] as const;
 
 const CONTACT_SALES_ICONS = { investor_vc_ent: Building2, accelerator_enterprise: Users, index_api: Database } as const;

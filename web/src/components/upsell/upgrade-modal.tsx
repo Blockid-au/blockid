@@ -6,6 +6,7 @@
 
 "use client";
 
+import { pricingHrefForPlan } from "@/lib/entitlements/feature-requirement";
 import * as React from "react";
 import { X } from "lucide-react";
 
@@ -72,7 +73,9 @@ export function UpgradeModal() {
         body: JSON.stringify({ plan: copy.suggestedPlan }),
       });
       if (res.status === 401) {
-        window.location.href = `/auth/login?next=/pricing?plan=${copy.suggestedPlan}`;
+        // G18-A: encode the nested URL (the `?plan=` used to attach to /auth/login) and
+        // land on the suggested card's fragment — /pricing never read `plan`.
+        window.location.href = `/auth/login?next=${encodeURIComponent(pricingHrefForPlan(copy.suggestedPlan))}`;
         return;
       }
       const data = await res.json();

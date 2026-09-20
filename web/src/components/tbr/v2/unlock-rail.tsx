@@ -80,7 +80,7 @@ export function TbrUnlockRail({ mode, chapterCount, onUnlock, orderId, generateH
                 Unlock for {price}
                 <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
               </button>
-              <p className="text-center text-[11px] text-ink-600 dark:text-ink-300">One-off, GST included. You confirm the exact price and credit cost before anything is charged.</p>
+              <p className="text-center text-[11px] text-ink-600 dark:text-ink-300">One-off inc. GST. You confirm the exact price and credit cost before anything is charged.</p>
             </>
           ) : mode === "included" ? (
             <>

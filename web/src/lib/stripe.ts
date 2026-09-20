@@ -31,15 +31,18 @@ export function getStripe(): Stripe | null {
  * price_xxx IDs here or (better) load them from env vars.
  */
 export const STRIPE_PRICE_MAP: Record<string, string | undefined> = {
-  founding50: process.env.STRIPE_PRICE_FOUNDING50,
-  founder: process.env.STRIPE_PRICE_FOUNDER,
-  growth: process.env.STRIPE_PRICE_GROWTH,
-  growth_annual: process.env.STRIPE_PRICE_GROWTH_ANNUAL,
-  growth_499: process.env.STRIPE_PRICE_GROWTH_499,
-  pilot: process.env.STRIPE_PRICE_PILOT,
-  accelerator: process.env.STRIPE_PRICE_ACCELERATOR,
-  svi_analysis: process.env.STRIPE_PRICE_SVI_ANALYSIS,
-  svi_analysis_25: process.env.STRIPE_PRICE_SVI_ANALYSIS_25,
+  // G18-A (2026-09-19): the nine pre-v2 keys that lived here — founding50,
+  // founder, growth, growth_annual, growth_499, pilot, accelerator,
+  // svi_analysis, svi_analysis_25 — are gone. None of them is on the public
+  // ladder (docs/ops/pricing-truth.md) and every path that still read one
+  // could charge an amount no page shows: the reseller wholesale route booked
+  // legacy Growth A$99 for founder_growth (A$69), a `planId:"growth"`
+  // checkout escalated to the A$499 price after the 2026-08-01 early-bird,
+  // and the SVI paywall's "Quick Report" card posted to the A$25 analysis
+  // price. Legacy plan ids now remap to their v2 successor at checkout
+  // (`LEGACY_PLAN_MAP` in lib/plans.ts); the env vars are documented as
+  // "safe to archive in Stripe" for the founder. Grandfathered subscriptions
+  // are recognised by webhook metadata, never by these keys.
   // Credit packs (prices match Stripe Dashboard — Stripe is source of truth)
   credits_5: process.env.STRIPE_PRICE_CREDITS_5,     // A$5  = 5 credits
   credits_10: process.env.STRIPE_PRICE_CREDITS_10,   // A$9  = 10 credits
@@ -49,11 +52,11 @@ export const STRIPE_PRICE_MAP: Record<string, string | undefined> = {
   // Startup Package — one-off A$149 SKU. Provisions the guided founder flow
   // per web/supabase/migrations/0118_startup_package.sql.
   founder_package: process.env.STRIPE_PRICE_STARTUP_PACKAGE,
-  // One-Click Investor Analysis — A$3.00 inc-GST guest paywall
+  // One-Click Investor Analysis — A$3.00 inc. GST guest paywall
   // (sku_one_click_report_3aud). Populated by scripts/stripe/sync-plans.mjs;
   // consumed by the guest checkout route (Phase 2).
   one_click_report: process.env.STRIPE_PRICE_ONE_CLICK_REPORT,
-  // Money Finder report — A$3.00 inc-GST guest paywall on /funding
+  // Money Finder report — A$3.00 inc. GST guest paywall on /funding
   // (sku_funding_report_3aud, T0242). Mint with scripts/sync-stripe-pricing.mjs;
   // consumed by POST /api/funding/checkout.
   funding_report: process.env.STRIPE_PRICE_FUNDING_REPORT,

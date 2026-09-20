@@ -1799,7 +1799,7 @@ describe("renderDripBody — tbr_unlock_24h", () => {
     expect(out.html).toContain("<strong>traction</strong>");
     expect(out.html).toContain("confirm before anything is charged");
     expect(out.html).not.toContain("stripe.com");
-    expect(out.text).toContain(`(${price} one-off, GST included)`);
+    expect(out.text).toContain(`(${price} one-off inc. GST)`);
     expect(out.text).toContain("https://blockid.au/workspace/reports/business?pid=p-1");
     expect(out.html).toContain("Unsubscribe");
   });

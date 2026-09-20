@@ -217,7 +217,7 @@ export function ReportPaywallGate({
             <dd className="font-mono text-base font-semibold">
               {PATH_A_LABEL}
               <span className="ml-1 text-xs text-[var(--fintech-ink-muted,#94a3b8)]">
-                inc-GST
+                inc. GST
               </span>
             </dd>
           </div>
@@ -242,7 +242,7 @@ export function ReportPaywallGate({
             type="button"
             onClick={handleCheckout}
             disabled={pending !== null}
-            aria-label={`Confirm and pay ${PATH_A_LABEL} inc-GST via Stripe`}
+            aria-label={`Confirm and pay ${PATH_A_LABEL} inc. GST via Stripe`}
             className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-[var(--fintech-accent,#22d3ee)] px-4 text-sm font-semibold text-[var(--fintech-bg-primary,#0b1220)] transition-colors hover:bg-[var(--fintech-accent-hover,#67e8f9)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-focus-ring,rgba(34,211,238,0.4))] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary,#0b1220)] disabled:cursor-not-allowed disabled:opacity-60"
           >
             {pending === "checkout"

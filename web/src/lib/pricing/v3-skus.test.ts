@@ -35,7 +35,7 @@ describe("report SKU catalogue", () => {
     expect(TRUST_REPORT_5AUD.cadence).toBe("one_off");
     expect(TRUST_REPORT_5AUD.credits_per_cycle).toBe(0);
     expect(TRUST_REPORT_5AUD.stripe_managed).toBe(true);
-    expect(TRUST_REPORT_5AUD.display_price_label).toBe("A$3.00 inc-GST");
+    expect(TRUST_REPORT_5AUD.display_price_label).toBe("A$3.00 inc. GST");
     expect(TRUST_REPORT_5AUD.display_price_label).not.toContain("5.50");
     expect(TRUST_REPORT_5AUD.description).toMatch(/13-area/);
     expect(TRUST_REPORT_5AUD.description).toMatch(/valid 90 days/);
@@ -46,7 +46,7 @@ describe("report SKU catalogue", () => {
     expect(ONE_CLICK_REPORT_3AUD.tier).toBe("one_click_report");
     expect(ONE_CLICK_REPORT_3AUD.unit_amount_incl_gst_cents).toBe(300);
     expect(ONE_CLICK_REPORT_3AUD.cadence).toBe("one_off");
-    expect(ONE_CLICK_REPORT_3AUD.display_price_label).toBe("A$3.00 inc-GST");
+    expect(ONE_CLICK_REPORT_3AUD.display_price_label).toBe("A$3.00 inc. GST");
   });
 
   it("Money Finder report is a A$3.00 GST-inclusive one-off, Stripe-managed, its own tier (T0242)", () => {
@@ -56,7 +56,7 @@ describe("report SKU catalogue", () => {
     expect(FUNDING_REPORT_3AUD.cadence).toBe("one_off");
     expect(FUNDING_REPORT_3AUD.credits_per_cycle).toBe(0);
     expect(FUNDING_REPORT_3AUD.stripe_managed).toBe(true);
-    expect(FUNDING_REPORT_3AUD.display_price_label).toBe("A$3.00 inc-GST");
+    expect(FUNDING_REPORT_3AUD.display_price_label).toBe("A$3.00 inc. GST");
     // §5a positioning: the description sells analysis, never the grant list.
     expect(FUNDING_REPORT_3AUD.description).toMatch(/eligibility checklist/i);
     expect(FUNDING_REPORT_3AUD.description).toMatch(/12-month timeline/i);
@@ -87,7 +87,7 @@ describe("report SKU catalogue", () => {
       expect(s.unit_amount_incl_gst_cents).toBe(300);
       expect(s.cadence).toBe("one_off");
       expect(s.credits_per_cycle).toBe(0);
-      expect(s.display_price_label).toMatch(/inc-GST$/);
+      expect(s.display_price_label).toMatch(/inc. GST$/);
     }
   });
 

@@ -63,8 +63,8 @@ describe("TRIAL_DAYS + TRIAL_WARNING_HOURS_BEFORE constants", () => {
     expect(TRIAL_DAYS).toBe(7);
   });
 
-  it("pins the pre-charge warning window at 48h (drip email cadence)", () => {
-    expect(TRIAL_WARNING_HOURS_BEFORE).toBe(48);
+  it("pins the pre-charge warning window at 72h — the installed trial-end-reminder cron (T-3 d), G18-A", () => {
+    expect(TRIAL_WARNING_HOURS_BEFORE).toBe(72);
   });
 
   it("both constants are integers > 0", () => {
@@ -188,6 +188,25 @@ describe("TRIAL_COPY.after_trial", () => {
     const line = TRIAL_COPY.after_trial({ planName: "Pro", price: "A$29" });
     expect(line).toContain(`${TRIAL_DAYS} days`);
   });
+
+  // G18-A: the Programs rungs (Intake link / Cohort 25 / Cohort 100) carry
+  // trial_days 14 on plans.csv — the signup price line must say 14, not 7.
+  it("follows the plan's own trial length when given (14-day Programs rungs)", () => {
+    const line = TRIAL_COPY.after_trial({
+      planName: "Cohort 25",
+      price: "A$5,000",
+      interval: "year",
+      trialDays: 14,
+    });
+    expect(line).toBe("After 14 days, you'll pay A$5,000/year for Cohort 25. Cancel anytime.");
+  });
+
+  it("falls back to TRIAL_DAYS for 0 / null / non-integer trial lengths", () => {
+    for (const trialDays of [0, null, undefined, 2.5, -3]) {
+      const line = TRIAL_COPY.after_trial({ planName: "Pro", price: "A$29", trialDays });
+      expect(line).toContain(`After ${TRIAL_DAYS} days`);
+    }
+  });
 });
 
 describe("TRIAL_COPY.card_disclosure", () => {
@@ -196,7 +215,7 @@ describe("TRIAL_COPY.card_disclosure", () => {
     expect(line).toContain("2026-08-15");
   });
 
-  it("cites the warning-hours constant (48h before)", () => {
+  it("cites the warning-hours constant (72h before)", () => {
     const line = TRIAL_COPY.card_disclosure("2026-08-15");
     expect(line).toContain(`${TRIAL_WARNING_HOURS_BEFORE}h before`);
   });

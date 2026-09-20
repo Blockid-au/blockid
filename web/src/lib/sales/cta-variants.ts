@@ -10,6 +10,13 @@
  * project_platform_roadmap): vision → validation → traction → growth →
  * fundraising → scale. Surfaces are the marketing pages we mount the
  * CTA on today.
+ *
+ * G18-A (2026-09-19): the "founding50" surface rows used to sell the
+ * Founding 100 promo (A$5 lifetime, closed 2026-09-01, /founding-50 is a 301)
+ * and the pricing/landing rows said "Founder Pro" for founder_growth (Pro
+ * A$299 was retired 2026-09-08). Every row now names a ladder rung —
+ * Starter / Growth / Scout — and links to /pricing or /signup. Prices are
+ * NOT typed here: the rows name the tier, the card shows the amount.
  */
 
 export const SVI_PHASES = [
@@ -56,10 +63,10 @@ const VARIANTS: Record<`${SviPhase}:${CtaSurface}`, CtaVariant> = {
     subtext: "No card required. Takes 2 minutes.",
   },
   "vision:founding50": {
-    label: "Claim a Founding-50 spot — A$5",
-    href: "/founding-50",
+    label: "See the Starter plan",
+    href: "/pricing#tier-starter",
     tone: "amber",
-    subtext: "Lifetime SVI account. 100 spots only.",
+    subtext: "7-day trial. Data room + investor link.",
   },
   "vision:landing": {
     label: "Score my startup — free",
@@ -76,10 +83,10 @@ const VARIANTS: Record<`${SviPhase}:${CtaSurface}`, CtaVariant> = {
     subtext: "Card required. Charged on Day 8.",
   },
   "validation:founding50": {
-    label: "Lock in Founding-50 price",
-    href: "/founding-50",
+    label: "Start the Starter trial",
+    href: "/signup?plan=founder_starter&trial=1",
     tone: "amber",
-    subtext: "A$5 lifetime — 100 spots only.",
+    subtext: "Card required. Charged on Day 8.",
   },
   "validation:landing": {
     label: "Start 7-day free trial",
@@ -90,19 +97,19 @@ const VARIANTS: Record<`${SviPhase}:${CtaSurface}`, CtaVariant> = {
 
   // ── Traction (early revenue / users) ─────────────────────────────────
   "traction:pricing": {
-    label: "Start 7-day trial — Founder Pro",
+    label: "Start 7-day trial — Growth",
     href: "/signup?plan=founder_growth&trial=1",
     tone: "accent",
     subtext: "Full workspace + investor exports.",
   },
   "traction:founding50": {
-    label: "Founding-50 A$5 — includes Pro",
-    href: "/founding-50",
+    label: "See the Growth plan",
+    href: "/pricing#tier-growth",
     tone: "amber",
-    subtext: "Cheaper than one month of Pro.",
+    subtext: "Cap-table sync, data room, investor matching.",
   },
   "traction:landing": {
-    label: "Start 7-day Pro trial",
+    label: "Start 7-day Growth trial",
     href: "/signup?plan=founder_growth&trial=1",
     tone: "accent",
     subtext: "Everything you need to raise.",
@@ -119,7 +126,7 @@ const VARIANTS: Record<`${SviPhase}:${CtaSurface}`, CtaVariant> = {
     label: "See growth plans",
     href: "/pricing?tier=founder&highlight=founder-growth",
     tone: "accent",
-    subtext: "Or claim a Founding-50 spot below.",
+    subtext: "Starter and Growth, side by side.",
   },
   "growth:landing": {
     label: "Book a demo",
@@ -136,10 +143,10 @@ const VARIANTS: Record<`${SviPhase}:${CtaSurface}`, CtaVariant> = {
     subtext: "Deal-room + LP exports.",
   },
   "fundraising:founding50": {
-    label: "Founding-50 A$5 — includes Investor",
-    href: "/founding-50",
+    label: "See the Scout plan",
+    href: "/pricing?segment=evaluator#tier-scout",
     tone: "amber",
-    subtext: "Data room + LP evidence pack.",
+    subtext: "Deal-flow feed + weekly Progress Radar.",
   },
   "fundraising:landing": {
     label: "Open a fundraise deal-room",
@@ -159,7 +166,7 @@ const VARIANTS: Record<`${SviPhase}:${CtaSurface}`, CtaVariant> = {
     label: "See enterprise pricing",
     href: "/pricing?tier=accelerator",
     tone: "accent",
-    subtext: "Founding-50 not sized for scale.",
+    subtext: "Cohort and enterprise rungs.",
   },
   "scale:landing": {
     label: "Book an enterprise demo",

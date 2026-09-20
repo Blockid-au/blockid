@@ -5,7 +5,7 @@
  * plan §4a / §4g / §5a, transparent-pricing rule).
  *
  * Three rails, decided by the caller from auth + entitlement state:
- *   guest    — email + Stripe Checkout, A$3.00 inc-GST (POST /api/funding/checkout)
+ *   guest    — email + Stripe Checkout, A$3.00 inc. GST (POST /api/funding/checkout)
  *   credits  — signed in, 3 credits; CreditConfirm shows cost + balance BEFORE
  *              the call (POST /api/funding/report); 402 opens CreditGate
  *   plan     — `grant_finder` entitlement: included, one click
@@ -265,7 +265,7 @@ function GuestRail({
     <form onSubmit={onSubmit} className="space-y-3" data-rail-form="guest">
       <p className="text-3xl font-semibold text-primary">
         {FUNDING_REPORT_PRICE_LABEL}
-        <span className="ml-1 text-sm font-normal text-secondary">.00 inc-GST · one-off</span>
+        <span className="ml-1 text-sm font-normal text-secondary">.00 inc. GST · one-off</span>
       </p>
       <p className="text-xs text-secondary">
         Your report link is emailed to you and opens straight after payment. No account needed.

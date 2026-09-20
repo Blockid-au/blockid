@@ -110,7 +110,7 @@ export const HOMEPAGE_TIERS: readonly HomepageTier[] = [
         "report",
       ),
     ),
-    priceSuffix: "one-off, inc GST",
+    priceSuffix: "one-off, inc. GST",
     ask: "A$3, once. No account, no subscription",
     gist: "The written report — the working behind the number, 10+ pages",
     includes: [

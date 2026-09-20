@@ -14,6 +14,24 @@ export const FREE_SIGNUP_CREDITS = 3;
 /** Credits one SVI analysis costs — mirrors FEATURE_COSTS.svi_analysis. */
 export const SVI_ANALYSIS_CREDITS = 0.5;
 
+/**
+ * Credits one standard R&D report costs — mirrors FEATURE_COSTS.rnd_report.
+ * G18-A (2026-09-19): the R&D lock rails (`rnd-page-lock.tsx`,
+ * `rnd-locked-section.tsx`) are "use client" and had typed "A$1" /
+ * "From A$0.50 per section" by hand; they read this instead. Pinned equal to
+ * the server table by credits.test.ts.
+ */
+export const RND_REPORT_CREDITS = 1;
+
+/**
+ * Referral rewards after the 2026-08-01 promo end — mirrors lib/referrals.ts
+ * (server-only). G18-A (2026-09-19): /workspace/settings/referrals still
+ * promised "You get 5 credits. They get 3" from the promo while the server
+ * granted 2 / 1 and components/ui/referral-card.tsx said 2 / 1.
+ */
+export const REFERRER_CREDITS = 2;
+export const REFEREE_BONUS_CREDITS = 1;
+
 /** How many SVI runs the free grant covers, for copy ("enough for N analyses"). */
 export function freeSignupAnalyses(): number {
   return Math.floor(FREE_SIGNUP_CREDITS / SVI_ANALYSIS_CREDITS);

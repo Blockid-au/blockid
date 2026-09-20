@@ -68,7 +68,7 @@ export interface PlatformConfig {
   // source of truth for what actually gets charged (STRIPE_PRICE_ONE_CLICK_REPORT);
   // this value drives the /pricing surface + guest funnel copy so ops can
   // A/B the display without a redeploy.
-  guest_analysis_price_aud_cents: number;   // e.g. 300 = A$3.00 inc-GST
+  guest_analysis_price_aud_cents: number;   // e.g. 300 = A$3.00 inc. GST
 
   // ── Referral ────────────────────────────────────────────────────────────────
   referral_credits: number;         // credits granted per referral

@@ -53,14 +53,31 @@ const TIER_TO_PLAN_ID: Readonly<Record<PlanTier, string>> = Object.freeze({
   accel_ent: "accelerator_enterprise",
 });
 
-const TIER_ANCHORS: Readonly<Record<string, string>> = Object.freeze({
+/**
+ * Plan id → the /pricing card fragment (mirrors TIER_ANCHORS in
+ * components/landing/pricing-matrix.tsx). G18-A (2026-09-19): exported +
+ * completed (Fund / Intake / Cohort rungs) so every upsell links
+ * `/pricing…#tier-<x>` instead of a `?highlight=` / `?plan=` param nothing reads.
+ */
+export const TIER_ANCHORS: Readonly<Record<string, string>> = Object.freeze({
   founder_free: "#tier-free",
   founder_starter: "#tier-starter",
   founder_growth: "#tier-growth",
   investor_angel: "#tier-scout",
   investor_advisor: "#tier-firm",
   investor_vc_small: "#tier-program",
+  investor_fund: "#tier-fund",
+  accelerator_intake: "#tier-intake",
+  accelerator_starter: "#tier-cohort-25",
+  accelerator_growth: "#tier-cohort-100",
 });
+
+/** `/pricing?segment=<segment>#tier-<x>` for a plan id (no fragment when unknown). */
+export function pricingHrefForPlan(planId: string | null | undefined, segment?: string | null): string {
+  const q = segment ? `?segment=${encodeURIComponent(segment)}` : "";
+  const anchor = planId ? (TIER_ANCHORS[planId] ?? "") : "";
+  return `/pricing${q}${anchor}`;
+}
 
 /** Slugs the resolver knows a friendly name for; everything else is humanised. */
 const LABELS: Readonly<Record<string, string>> = Object.freeze({
