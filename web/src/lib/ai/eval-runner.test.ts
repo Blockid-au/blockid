@@ -395,6 +395,21 @@ describe("must_cite / primary_visual (TBR-<dim>-v2.0.0 fixtures)", () => {
     const res = await runEval(fx, promptVersion, { runCase: runner });
     expect(res.per_case[0].positivePoints).toBe(6);
   });
+
+  // G19-S41 — the verdict must explain the score with a ledger signal.
+  it("verdict_must_mention_any: +1 when the verdict names a ledger signal (case-insensitive), -1 when it names none", async () => {
+    const expected = { ...tbrExpected, must_cite: 0, verdict_must_mention_any: ["Early revenue traction", "Analytics connected"] };
+    const good = await runEval(fixture([{ expected }]), promptVersion, {
+      runCase: mockRunner([{ proposed_score: 52, confidence: 0.7, gaps: ["cohort"], verdict: "TRE sits at 46: early revenue traction (+20) is the only signal.", primary_visual: { kind: "sparkline" } }]),
+    });
+    expect(good.per_case[0].possiblePoints).toBe(7);
+    expect(good.per_case[0].positivePoints).toBe(7);
+    const bad = await runEval(fixture([{ expected }]), promptVersion, {
+      runCase: mockRunner([{ proposed_score: 52, confidence: 0.7, gaps: ["cohort"], verdict: "Traction is developing.", primary_visual: { kind: "sparkline" } }]),
+    });
+    expect(bad.per_case[0].positivePoints).toBe(5);
+    expect(bad.per_case[0].hardFail).toBe(false);
+  });
 });
 
 // ── S-R5: grounded share, demotion gate, nightly dry-run over the 24 TBR fixtures ──

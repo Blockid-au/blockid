@@ -35,6 +35,33 @@ describe("dimStatesFromRow / snapshotInputFromRow", () => {
     expect(input).toMatchObject({ snapshotId: "s-1", projectId: "p-1", accountId: "acct-1", startupName: "From meta", industry: "SaaS", stageLabel: "Seed", sviTotal: 58, tier: "free" });
     expect(snapshotInputFromRow(ROW, { startupName: "Ctx wins" }).startupName).toBe("Ctx wins");
   });
+
+  // G19-S41 — a post-S41 analysis_json (subs[].breakdown + ledger) becomes the chapter / cover ledgers; older rows get none.
+  it("lifts the score ledger out of analysis_json when present and leaves pre-S41 rows without one", () => {
+    expect(snapshotInputFromRow(ROW).sviLedger).toBeNull();
+    expect(snapshotInputFromRow(ROW).dimStates.tre.scoreBreakdown).toBeUndefined();
+    const ledger = { base: 100, dimAdjustments: { tre: 2, mpc: 1, ftv: 0, ptd: 0, cgh: 0, iri: 0, lco: 0, svm: 0 }, stageBonus: 5, riskPenalties: -10, sectorAdj: 0, metricsBonus: 0, ciBoost: 0, floorClamp: 0, total: 98 };
+    const row = {
+      ...ROW,
+      analysis_json: {
+        ...ROW.analysis_json,
+        confidenceMultiplier: 0.5,
+        ledger,
+        subs: [
+          { key: "tre", value: 61, adjustment: 2, base: 30, breakdown: [{ signal: "Early revenue traction", points: 20, source: "self_declared" }], assessed: true, gaps: [] },
+          { key: "cgh", value: 40, adjustment: 0, base: 40, breakdown: [], assessed: false, gaps: [] },
+        ],
+      },
+    };
+    const input = snapshotInputFromRow(row);
+    expect(input.sviLedger).toEqual(ledger);
+    expect(input.dimStates.tre.scoreBreakdown).toMatchObject({ base: 30, confidenceMultiplier: 0.5, adjustment: 2, assessed: true, signals: [{ signal: "Early revenue traction", points: 20, source: "self_declared" }] });
+    expect(input.dimStates.cgh.scoreBreakdown).toMatchObject({ assessed: false });
+    const r = reportV2FromSnapshotRow(row);
+    expect(r.cover.sviLedger).toEqual(ledger);
+    expect(r.dimensions.find((d) => d.dim === "tre")!.scoreBreakdown!.signals).toHaveLength(1);
+    expect(r.dimensions.find((d) => d.dim === "cgh")!.band).toBe("pending");
+  });
 });
 
 describe("reportV2FromSnapshotRow", () => {

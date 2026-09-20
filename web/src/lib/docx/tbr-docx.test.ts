@@ -91,6 +91,34 @@ describe("buildTbrDocx", () => {
     expect(text).toContain("Auschain PTY LTD");
   }, 60_000);
 
+  // G19-S41 — the ledger table is the same rows as the web chapter and the PDF.
+  it("renders 'How this score was built' per chapter (signal rows, confidence factor, adjustment), the pending line and the cover ledger strip", async () => {
+    const report = demoReportV2();
+    const svm = report.dimensions.find((d) => d.dim === "svm")!;
+    svm.scoreBreakdown = { base: 35, signals: [], confidenceMultiplier: 0.2, adjustment: -1, assessed: false };
+    svm.band = "pending";
+    svm.scoreNote = "Owner proposed 48; reconciled to 45 (±10 of the deterministic 35).";
+    report.cover.dims.svm.band = "pending";
+    report.cover.sviLedger = { base: 100, dimAdjustments: { tre: 4, mpc: 3, ftv: 4, ptd: 3, cgh: 2, iri: 2, lco: 2, svm: 1 }, stageBonus: 8, riskPenalties: -6, sectorAdj: 4, metricsBonus: 0, ciBoost: 0, floorClamp: 0, total: 127 };
+    const { buffer } = await buildTbrDocx(report);
+    const { doc } = await unzip(buffer);
+    const text = xmlText(doc);
+    expect((text.match(/HOW THIS SCORE WAS BUILT/g) ?? []).length).toBe(8);
+    const ftv = report.dimensions.find((d) => d.dim === "ftv")!;
+    for (const s of ftv.scoreBreakdown!.signals) expect(text).toContain(s.signal);
+    expect(text).toContain("Base 50");
+    expect(text).toContain(`= score ${ftv.score}/100`);
+    expect(text).toContain("× weight 15 % × evidence confidence 0.75");
+    expect(text).toContain("× verification L2 1.00");
+    expect(text).toContain(`= adjustment +${ftv.scoreBreakdown!.adjustment} on the SVI base of 100`);
+    expect(text).toContain("Not assessed yet");
+    expect(text).toContain("Add: upload, url");
+    expect(text).toContain("Score note: Owner proposed 48");
+    expect(text).toContain("1 of 8 dimensions pending");
+    expect(text).toContain("SVI LEDGER");
+    expect(text).toContain("Total 127");
+  }, 60_000);
+
   it("free fixture: card chapters carry the a11y table + upgrade line, no valuation method table, same order", async () => {
     const report = freeFixtureReportV2();
     const { buffer, images } = await buildTbrDocx(report);

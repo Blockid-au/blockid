@@ -221,6 +221,44 @@ describe("dispatchDimensionChapters — happy path", () => {
     expect(tre.scoreNote).toMatch(/reconciled/);
   });
 
+  // G19-S41 — the engine ledger travels with every chapter and into the owner's user turn.
+  it("copies the SVI ledger onto each chapter (scoreBreakdown), hands scoreLedger to the owner prompt with the 'never invent a signal' rule, and renders an unassessed dimension as pending", async () => {
+    const context = makeContext();
+    const users: string[] = [];
+    const caller: StructuredModelCaller = async ({ messages, system }) => {
+      users.push(`${system ?? ""}\n${messages[0].content}`);
+      const m = messages[0].content.match(/"dim": "(\w+)"/);
+      return { ok: true, text: validChapter((m?.[1] ?? "tre") as DimKey, context), tokensIn: 100, tokensOut: 50 };
+    };
+    const chapters = await dispatchDimensionChapters(context, "standard", async () => "unused", { ...baseOpts, modelCaller: caller });
+    // Acme Rail: co-founders + MRR A$12,000 → FTV and TRE are assessed; the prose never mentions a cap table → CGH is a pure baseline.
+    const ftv = chapters.get("ftv")!;
+    const ftvSub = context.sviAnalysis.subs.find((s) => s.key === "ftv")!;
+    expect(ftv.scoreBreakdown).toBeDefined();
+    expect(ftv.scoreBreakdown!.assessed).toBe(true);
+    expect(ftv.scoreBreakdown!.signals).toEqual(ftvSub.breakdown);
+    expect(ftv.scoreBreakdown!.adjustment).toBe(ftvSub.adjustment);
+    expect(ftv.scoreBreakdown!.confidenceMultiplier).toBe(context.sviAnalysis.confidenceMultiplier);
+    expect(ftv.band).not.toBe("pending");
+    const cgh = chapters.get("cgh")!;
+    expect(context.sviAnalysis.subs.find((s) => s.key === "cgh")!.assessed).toBe(false);
+    expect(cgh.scoreBreakdown).toMatchObject({ assessed: false, signals: [], base: 40 });
+    expect(cgh.band).toBe("pending");
+    expect(cgh.benchmark.percentile).toBeNull();
+    // The owner turn carries the ledger (base, signals, confidence, adjustment, assessed) and the rule.
+    const ftvTurn = users.find((u) => u.includes('"dim": "ftv"'))!;
+    expect(ftvTurn).toContain('"scoreLedger"');
+    expect(ftvTurn).toContain(ftvSub.breakdown![0].signal);
+    expect(ftvTurn).toContain('"assessed": true');
+    expect(ftvTurn).toMatch(/never invent a signal/i);
+    expect(ftvTurn).toMatch(/Explain the score using scoreLedger/);
+    const cghTurn = users.find((u) => u.includes('"dim": "cgh"'))!;
+    expect(cghTurn).toContain('"assessed": false');
+    // Schema-valid with the ledger on board.
+    const parsed = reportV2Schema.shape.dimensions.safeParse(DIM_ORDER.map((d) => chapters.get(d)));
+    expect(parsed.success, JSON.stringify(parsed.success ? null : parsed.error.issues.slice(0, 3))).toBe(true);
+  });
+
   it("streams every chapter through onChapter (SSE dimension_complete)", async () => {
     const context = makeContext();
     const s = scripted((dim) => validChapter(dim, context));

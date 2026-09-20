@@ -544,6 +544,7 @@ function dimensionRoleCard(role: AgentRole, dim: DimKey, context: ReportContext)
     startupContextBlock(context),
     `- Deterministic ${dim.toUpperCase()} score: ${typeof dimScore === "number" ? `${Math.round(dimScore)}/100` : "not scored"}`,
     `- Stage benchmark ${dim.toUpperCase()}: p25 ${bench.p25} · p50 ${bench.p50} · p75 ${bench.p75}`,
+    `- Score ledger: the user turn carries scoreLedger (base → each signal ± points with its source → × confidence → adjustment). Explain the score using the ledger — cite its signals by name; never invent a signal, a point value or a source.`,
     "",
     `## Frameworks to apply`,
     owner.frameworks.map((f) => `- ${f}`).join("\n"),

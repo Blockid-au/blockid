@@ -14,7 +14,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { fromSnapshot, resolveReportV2, type SnapshotCriterionState, type SnapshotDimState, type SnapshotInput } from "./adapter";
+import { fromSnapshot, resolveReportV2, scoreBreakdownFromSub, type SnapshotCriterionState, type SnapshotDimState, type SnapshotInput, type SubScoreLike, type SviAnalysisLike } from "./adapter";
 import { isReportV2, type ReportTierV2, type ReportV2 } from "./schema";
 import { readSnapshotReportV2 } from "./storage";
 import { primeComparables } from "@/lib/valuation/comparables-repo.server";
@@ -81,6 +81,16 @@ export interface SnapshotReportContext {
 /** Adapter input for a snapshot row (exported so tests and the dossier can share it). */
 export function snapshotInputFromRow(row: SnapshotRowLike, ctx: SnapshotReportContext = {}): SnapshotInput {
   const meta = (row.analysis_json && typeof row.analysis_json === "object" ? (row.analysis_json as Row) : {}) as { industry?: string | null; stageLabel?: string | null; startupName?: string | null };
+  // G19-S41: `analysis_json` is the SVIAnalysis — snapshots written after S41
+  // carry `subs[].breakdown` + `ledger`, which become the chapter / cover
+  // ledgers. Older rows simply have none (no ledger rendered, band unchanged).
+  const analysis = meta as SviAnalysisLike & { subs?: SubScoreLike[] };
+  const subByKey = new Map((Array.isArray(analysis.subs) ? analysis.subs : []).map((s) => [s.key, s] as const));
+  const dimStates = dimStatesFromRow(row);
+  for (const k of DIM_KEYS) {
+    const bd = scoreBreakdownFromSub(subByKey.get(k), analysis);
+    if (bd && dimStates[k]) dimStates[k] = { ...dimStates[k], scoreBreakdown: bd };
+  }
   return {
     snapshotId: row.id,
     projectId: row.project_id ?? null,
@@ -91,7 +101,8 @@ export function snapshotInputFromRow(row: SnapshotRowLike, ctx: SnapshotReportCo
     stageLabel: ctx.stageLabel ?? meta.stageLabel ?? null,
     stage: typeof row.stage === "number" ? row.stage : null,
     sviTotal: typeof row.svi_total === "number" && Number.isFinite(row.svi_total) ? row.svi_total : null,
-    dimStates: dimStatesFromRow(row),
+    dimStates,
+    sviLedger: analysis.ledger ?? null,
     criterionStates: Array.isArray(row.criterion_results) ? (row.criterion_results as SnapshotCriterionState[]) : null,
     phaseId: ctx.phaseId ?? null,
     verificationLevel: ctx.verificationLevel ?? null,

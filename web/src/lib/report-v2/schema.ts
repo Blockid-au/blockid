@@ -74,6 +74,62 @@ export interface CriterionCard {
   agent: AgentRole;
 }
 
+// ── G19-S41: score ledger ("how this score was built") ──────────────────────
+
+/** Where a ledger signal came from (the six evidence-ladder rungs + audit / penalty / stage). */
+export const SCORE_SIGNAL_SOURCES = [
+  "self_declared",
+  "public_url",
+  "document_uploaded",
+  "connected_source",
+  "transaction_data",
+  "third_party_verified",
+  "audit",
+  "penalty",
+  "stage",
+] as const;
+export type ScoreSignalSource = (typeof SCORE_SIGNAL_SOURCES)[number];
+
+export interface ScoreBreakdownSignal {
+  signal: string;
+  points: number;
+  source: ScoreSignalSource;
+  /** Omitted = moves the 0–100 score; "adjustment" = applied to the SVI adjustment after the confidence step. */
+  scale?: "adjustment";
+}
+
+/**
+ * Per-chapter ledger, copied from `SVISubScore.breakdown` (svi-analysis.ts):
+ * `clamp(base + Σ score-scale points) === score` and
+ * `round((score − 50) × weight/100 × confidenceMultiplier) + Σ adjustment-scale points === adjustment`.
+ * `assessed:false` = no real input moved the dimension (pure baseline) — the
+ * chapter renders as pending, never as a confident number.
+ */
+export interface ScoreBreakdown {
+  base: number;
+  signals: ScoreBreakdownSignal[];
+  /** The effective evidence confidence the formula used (0.2–1.0). */
+  confidenceMultiplier: number;
+  /** Business-verification factor already inside `confidenceMultiplier` (L0 0.85 … L5 1.10, bounded); informational. */
+  verificationMultiplier?: number;
+  /** The dimension's signed contribution to the SVI total. */
+  adjustment: number;
+  assessed: boolean;
+}
+
+/** Report-level ledger: every field signed so that base + Σ dims + stage + penalties + sector + metrics + ci + floorClamp === total. */
+export interface SviLedger {
+  base: 100;
+  dimAdjustments: Record<DimKey, number>;
+  stageBonus: number;
+  riskPenalties: number;
+  sectorAdj: number;
+  metricsBonus: number;
+  ciBoost: number;
+  floorClamp: number;
+  total: number;
+}
+
 export interface DimensionChapter {
   dim: DimKey;
   title: string;
@@ -109,6 +165,8 @@ export interface DimensionChapter {
   /** Owner-proposed score before the ±10 clamp (§C.11); `scoreNote` explains a reconciliation. */
   proposedScore?: number;
   scoreNote?: string;
+  /** G19-S41: "How this score was built" — absent on documents stored before S41. */
+  scoreBreakdown?: ScoreBreakdown;
 }
 
 export type ValuationMethodKey =
@@ -262,6 +320,8 @@ export interface ReportV2 {
      * valid; the adapter always fills it (level 0 when unknown).
      */
     verification?: CoverVerification;
+    /** G19-S41: base 100 → dims → stage → penalties → total; absent on pre-S41 documents. */
+    sviLedger?: SviLedger;
   };
   executive: {
     thesis: string;
@@ -355,6 +415,40 @@ const coverVerification = z.object({
 });
 export type CoverVerification = z.infer<typeof coverVerification>;
 
+// G19-S41
+const scoreSignalSource = z.enum(SCORE_SIGNAL_SOURCES);
+const scoreBreakdownSignal = z.object({
+  signal: z.string().min(1),
+  points: z.number(),
+  source: scoreSignalSource,
+  scale: z.literal("adjustment").optional(),
+});
+export const scoreBreakdownSchema = z.object({
+  base: z.number().min(0).max(100),
+  signals: z.array(scoreBreakdownSignal),
+  confidenceMultiplier: z.number().min(0).max(1),
+  verificationMultiplier: z.number().positive().optional(),
+  adjustment: z.number(),
+  assessed: z.boolean(),
+});
+const dimAdjustments = z.object({ tre: z.number(), mpc: z.number(), ftv: z.number(), ptd: z.number(), cgh: z.number(), iri: z.number(), lco: z.number(), svm: z.number() });
+export const sviLedgerSchema = z
+  .object({
+    base: z.literal(100),
+    dimAdjustments,
+    stageBonus: z.number(),
+    riskPenalties: z.number().max(0),
+    sectorAdj: z.number(),
+    metricsBonus: z.number(),
+    ciBoost: z.number(),
+    floorClamp: z.number(),
+    total: z.number(),
+  })
+  .refine(
+    (l) => Object.values(l.dimAdjustments).reduce((a, b) => a + b, 0) + l.base + l.stageBonus + l.riskPenalties + l.sectorAdj + l.metricsBonus + l.ciBoost + l.floorClamp === l.total,
+    { message: "sviLedger fields must sum exactly to total" },
+  );
+
 const auditStamp = z.object({
   grounded: z.boolean(),
   uncited: z.number().int().nonnegative(),
@@ -413,6 +507,7 @@ const dimensionChapter = z
     degradeReason: z.string().optional(),
     proposedScore: z.number().optional(),
     scoreNote: z.string().optional(),
+    scoreBreakdown: scoreBreakdownSchema.optional(),
   })
   .refine((c) => c.evidence.length > 0 || c.primaryVisual.dataState !== "real", {
     message: "a chapter with no evidence rows cannot claim a `real` primary visual",
@@ -551,6 +646,7 @@ export const reportV2Schema = z.object({
     }),
     visuals: z.array(visualSpec),
     verification: coverVerification.optional(),
+    sviLedger: sviLedgerSchema.optional(),
   }),
   executive: z.object({
     thesis: z.string(),

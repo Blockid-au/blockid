@@ -43,6 +43,8 @@ import { aud, BAND_COLOUR } from "@/lib/report-visuals";
 import { visualToPng, type PngResult } from "@/lib/report-visuals/png";
 import type { Band, DataState, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { projectForTier, type FreeTierProjection, type TrimLevel } from "@/lib/report-v2/free-tier";
+import { coverLedgerCells, isUnassessed, ledgerRowsFor, pendingDimsLine, pendingLine } from "@/lib/report-v2/ledger-rows";
+import { getTbrStrings } from "@/lib/i18n/tbr-strings";
 import { DIM_ORDER, type DimensionChapter, type ReportV2 } from "@/lib/report-v2/schema";
 import { buildValuationView, CONNECTORS_HREF } from "@/lib/report-v2/valuation-view";
 import { PDF_ENTITY_LINE, PDF_FINANCIAL_PROJECTION_DISCLAIMER, PDF_GENERAL_ADVICE_DISCLAIMER } from "@/lib/pdf/advice-disclaimer";
@@ -238,8 +240,44 @@ function cover(report: ReportV2, images: TbrDocxImages, locale: "en" | "vi", pre
     ),
   );
   if (strip) out.push(...figure(strip, images, CONTENT_PX, null));
+  out.push(...coverLedger(report, locale));
   if (radar) out.push(...figure(radar, images, 340, radar.subtitle ?? null));
   out.push(kicker("Where · Worth · Next"), p(`Where: ${c.threeQuestions.where}`), p(`Worth: ${c.threeQuestions.worth}`), p(`Next: ${c.threeQuestions.next}`), small(preparedWith, FAINT));
+  return out;
+}
+
+/** G19-S41 — cover ledger strip + "N of 8 dimensions pending" (same cells as web / PDF). */
+function coverLedger(report: ReportV2, locale: "en" | "vi"): Block[] {
+  const cells = coverLedgerCells(report.cover, locale);
+  const pending = pendingDimsLine(report.cover, locale);
+  const out: Block[] = [];
+  if (cells.length) {
+    out.push(kicker(getTbrStrings(locale).ledger.coverTitle));
+    out.push(small(cells.map((c) => `${c.label} ${c.value}`).join("  →  "), INK));
+  }
+  if (pending) out.push(small(pending));
+  return out;
+}
+
+/** G19-S41 — "How this score was built" table (ledger-rows.ts), or the single pending line. */
+function scoreLedger(ch: DimensionChapter, locale: "en" | "vi", verificationLevel: number | null): Block[] {
+  if (!ch.scoreBreakdown) return [];
+  const strings = getTbrStrings(locale).ledger;
+  const out: Block[] = [kicker(strings.title)];
+  if (isUnassessed(ch)) {
+    const line = pendingLine(ch, locale);
+    out.push(small(`${line.text}${line.add ? ` ${line.add}` : ""}`, INK));
+  } else {
+    const rows = ledgerRowsFor(ch, locale, verificationLevel);
+    out.push(
+      table(
+        [strings.thSignal, strings.thPoints, strings.thSource],
+        rows.map((r) => [`${r.label}${r.adjustmentScale ? ` (${strings.adjustmentScale})` : ""}`, r.points, r.source]),
+        [64, 12, 24],
+      ),
+    );
+  }
+  if (ch.scoreNote) out.push(small(`${strings.scoreNote}: ${ch.scoreNote}`));
   return out;
 }
 
@@ -279,7 +317,7 @@ function chapterHeader(ch: DimensionChapter): Block[] {
   ];
 }
 
-function chapter(ch: DimensionChapter, index: number, images: TbrDocxImages, locale: "en" | "vi", projection: FreeTierProjection): Block[] {
+function chapter(ch: DimensionChapter, index: number, images: TbrDocxImages, locale: "en" | "vi", projection: FreeTierProjection, verificationLevel: number | null): Block[] {
   const title = locale === "vi" ? ch.titleVi : ch.title;
   const out: Block[] = [...(projection.free ? [] : [pageBreak()]), h1(title, String(index)), ...chapterHeader(ch)];
   if (projection.free && ch.renderAs === "card") {
@@ -290,6 +328,8 @@ function chapter(ch: DimensionChapter, index: number, images: TbrDocxImages, loc
     out.push(p(`Unlock the full ${ch.title} chapter — upgrade at blockid.au/pricing`, { size: 16, color: BRAND }));
     return out;
   }
+  // G19-S41: the ledger follows the evidence-table trim rule on the free tier (as in the PDF).
+  if (projection.show.evidenceTables) out.push(...scoreLedger(ch, locale, verificationLevel));
   out.push(...figure(ch.primaryVisual, images, CONTENT_PX, `${ch.primaryVisual.title} · ${stateLabel(ch.primaryVisual.dataState)}${ch.primaryVisual.subtitle ? ` — ${ch.primaryVisual.subtitle}` : ""}`));
   out.push(p(ch.verdict));
   if (projection.show.evidenceTables) {
@@ -458,7 +498,7 @@ export async function buildTbrDocx(report: ReportV2, opts: TbrDocxOptions = {}):
   const children: Block[] = [
     ...cover(r, images, locale, prepared),
     ...executive(r, images, locale),
-    ...r.dimensions.flatMap((ch, i) => chapter(ch, i + 2, images, locale, projection)),
+    ...r.dimensions.flatMap((ch, i) => chapter(ch, i + 2, images, locale, projection, r.cover.verification?.level ?? null)),
     ...valuation(r, images, locale, projection),
     ...phaseGates(r, images, locale, projection),
     ...money(r, images, projection),

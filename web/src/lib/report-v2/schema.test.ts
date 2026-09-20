@@ -7,6 +7,7 @@ import { demoReportV2, preRevenueFixtureReportV2 } from "./fixtures";
 import {
   DATA_PRINCIPLE_SENTENCE,
   DIM_ORDER,
+  SCORE_SIGNAL_SOURCES,
   ReportV2ValidationError,
   assertReportV2,
   isReportV2,
@@ -47,6 +48,42 @@ describe("ReportV2 schema — happy path", () => {
       expect(d.primaryVisual.svg).toContain("<title");
       expect(d.criteria.length).toBeGreaterThanOrEqual(1);
     }
+  });
+
+  // G19-S41 — the score ledger.
+  it("ledger signals sum to adjustment: every demo chapter carries a scoreBreakdown whose base + signals is the score and whose formula gives the adjustment", () => {
+    const r = assertReportV2(demoReportV2());
+    for (const d of r.dimensions) {
+      const bd = d.scoreBreakdown!;
+      expect(bd, d.dim).toBeDefined();
+      expect(bd.assessed).toBe(true);
+      expect(bd.signals.length).toBeGreaterThanOrEqual(1);
+      const raw = bd.signals.filter((s) => !s.scale).reduce((a, s) => a + s.points, bd.base);
+      expect(Math.max(0, Math.min(100, raw)), d.dim).toBe(d.score);
+      const post = bd.signals.filter((s) => s.scale === "adjustment").reduce((a, s) => a + s.points, 0);
+      expect(Math.round(((d.score - 50) * d.weight * bd.confidenceMultiplier) / 100) + post, d.dim).toBe(bd.adjustment);
+      for (const s of bd.signals) expect(SCORE_SIGNAL_SOURCES).toContain(s.source);
+    }
+  });
+
+  it("scoreBreakdown / cover.sviLedger are optional (pre-S41 documents stay valid) but validated when present", () => {
+    const legacy = clone();
+    for (const d of legacy.dimensions) delete d.scoreBreakdown;
+    delete legacy.cover.sviLedger;
+    expect(issuesOf(legacy)).toEqual([]);
+
+    const bad = clone();
+    bad.dimensions[0].scoreBreakdown!.signals[0].source = "guesswork" as never;
+    expect(issuesOf(bad).some((i) => i.includes("dimensions.0.scoreBreakdown.signals.0.source"))).toBe(true);
+
+    const withLedger = clone();
+    withLedger.cover.sviLedger = { base: 100, dimAdjustments: { tre: 3, mpc: 2, ftv: 4, ptd: 1, cgh: 1, iri: 1, lco: 1, svm: 0 }, stageBonus: 8, riskPenalties: -10, sectorAdj: 4, metricsBonus: 0, ciBoost: 0, floorClamp: 0, total: 115 };
+    expect(issuesOf(withLedger)).toEqual([]);
+    withLedger.cover.sviLedger.total = 116;
+    expect(issuesOf(withLedger).some((i) => i.includes("sum exactly to total"))).toBe(true);
+    withLedger.cover.sviLedger.total = 115;
+    withLedger.cover.sviLedger.riskPenalties = 10;
+    expect(issuesOf(withLedger).some((i) => i.includes("cover.sviLedger.riskPenalties"))).toBe(true);
   });
 });
 

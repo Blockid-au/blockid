@@ -33,6 +33,8 @@ import { setVisualPdfFont } from "@/lib/report-visuals/pdf";
 import { HELVETICA, pdfFontsForLocale, vietnameseHyphenation, type PdfFontSet } from "@/lib/pdf/fonts";
 import type { Band, DataState, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { levelForEstimate, MAX_TRIM_LEVEL, projectForTier, type FreeTierProjection, type TrimLevel } from "@/lib/report-v2/free-tier";
+import { coverLedgerCells, isUnassessed, ledgerRowsFor, pendingDimsLine, pendingLine } from "@/lib/report-v2/ledger-rows";
+import { getTbrStrings } from "@/lib/i18n/tbr-strings";
 import { defaultPreparedWith } from "@/lib/report-v2/prepared-with";
 import { DIM_ORDER, type DimensionChapter, type ReportV2 } from "@/lib/report-v2/schema";
 import { buildValuationView, CONNECTORS_HREF } from "@/lib/report-v2/valuation-view";
@@ -286,6 +288,7 @@ function Cover({ report, locale, preparedWith }: { report: ReportV2; locale: "en
         </View>
       </View>
       {strip && <Figure spec={strip} caption={null} />}
+      <CoverLedger report={report} locale={locale} />
       {radar && <Figure spec={radar} widthPt={230} caption={radar.subtitle ?? null} />}
       <View style={s.softBox} wrap={false}>
         <Text style={s.th}>Where · Worth · Next</Text>
@@ -294,6 +297,59 @@ function Cover({ report, locale, preparedWith }: { report: ReportV2; locale: "en
         <Text style={s.body}>{t(`Next: ${c.threeQuestions.next}`)}</Text>
       </View>
       <Text style={s.tiny}>{t(preparedWith)}</Text>
+    </View>
+  );
+}
+
+/** G19-S41 — cover ledger strip + "N of 8 dimensions pending" (same cells as the web cover). */
+function CoverLedger({ report, locale }: { report: ReportV2; locale: "en" | "vi" }) {
+  const cells = coverLedgerCells(report.cover, locale);
+  const pending = pendingDimsLine(report.cover, locale);
+  if (cells.length === 0 && !pending) return null;
+  const strings = getTbrStrings(locale).ledger;
+  return (
+    <View style={[s.softBox, { marginTop: 4 }]} wrap={false}>
+      {cells.length > 0 && <Text style={s.th}>{t(strings.coverTitle)}</Text>}
+      {cells.length > 0 && <Text style={s.small}>{t(cells.map((c) => `${c.label} ${c.value}`).join("  →  "))}</Text>}
+      {pending && <Text style={s.small}>{t(pending)}</Text>}
+    </View>
+  );
+}
+
+/**
+ * G19-S41 — "How this score was built": the same rows as the web chapter
+ * (ledger-rows.ts). Unassessed chapters get the single pending line.
+ */
+function ScoreLedger({ ch, locale, verificationLevel }: { ch: DimensionChapter; locale: "en" | "vi"; verificationLevel: number | null }) {
+  if (!ch.scoreBreakdown) return null;
+  const strings = getTbrStrings(locale).ledger;
+  const rows = ledgerRowsFor(ch, locale, verificationLevel);
+  const pending = isUnassessed(ch) ? pendingLine(ch, locale) : null;
+  return (
+    <View style={s.table} wrap={false}>
+      <View style={s.tr}>
+        <Text style={[s.th, s.cell3]}>{t(strings.title)}</Text>
+        {!pending && <Text style={[s.th, s.cell1, s.right]}>{t(strings.thPoints)}</Text>}
+        {!pending && <Text style={[s.th, s.cell1]}>{t(strings.thSource)}</Text>}
+      </View>
+      {pending ? (
+        <View style={s.tr}>
+          <Text style={[s.td, s.small]}>{t(`${pending.text}${pending.add ? ` ${pending.add}` : ""}`)}</Text>
+        </View>
+      ) : (
+        rows.map((r, i) => (
+          <View key={i} style={s.tr}>
+            <Text style={[s.td, s.cell3, ...(r.kind !== "signal" ? [s.bold] : [])]}>{t(`${r.label}${r.adjustmentScale ? ` (${strings.adjustmentScale})` : ""}`)}</Text>
+            <Text style={[s.td, s.cell1, s.right]}>{t(r.points)}</Text>
+            <Text style={[s.td, s.cell1, s.tiny]}>{t(r.source)}</Text>
+          </View>
+        ))
+      )}
+      {ch.scoreNote ? (
+        <View style={s.tr}>
+          <Text style={[s.td, s.small]}>{t(`${strings.scoreNote}: ${ch.scoreNote}`)}</Text>
+        </View>
+      ) : null}
     </View>
   );
 }
@@ -364,7 +420,7 @@ function ChapterHeader({ ch }: { ch: DimensionChapter }) {
   );
 }
 
-function Chapter({ ch, index, locale, projection }: { ch: DimensionChapter; index: number; locale: "en" | "vi"; projection: FreeTierProjection }) {
+function Chapter({ ch, index, locale, projection, verificationLevel }: { ch: DimensionChapter; index: number; locale: "en" | "vi"; projection: FreeTierProjection; verificationLevel: number | null }) {
   const title = locale === "vi" ? ch.titleVi : ch.title;
   if (projection.free && ch.renderAs === "card") {
     return (
@@ -390,6 +446,8 @@ function Chapter({ ch, index, locale, projection }: { ch: DimensionChapter; inde
     <View>
       <SectionHead no={String(index)} title={title} />
       <ChapterHeader ch={ch} />
+      {/* G19-S41: the ledger follows the evidence-table trim rule on the free tier. */}
+      {projection.show.evidenceTables && <ScoreLedger ch={ch} locale={locale} verificationLevel={verificationLevel} />}
       <Figure spec={ch.primaryVisual} widthPt={Math.min(482, 420)} caption={`${ch.primaryVisual.title} · ${stateLabel(ch.primaryVisual.dataState)}${ch.primaryVisual.subtitle ? ` — ${ch.primaryVisual.subtitle}` : ""}`} />
       <Text style={[s.body, { marginBottom: 6 }]}>{t(ch.verdict)}</Text>
 
@@ -764,7 +822,7 @@ export function TbrReportPdf({ report, level = 0, preparedWith, locale }: TbrPdf
   r.dimensions.forEach((ch, i) => {
     body.push(
       <View key={ch.dim} break={!projection.free}>
-        <Chapter ch={ch} index={i + 2} locale={loc} projection={projection} />
+        <Chapter ch={ch} index={i + 2} locale={loc} projection={projection} verificationLevel={report.cover.verification?.level ?? null} />
       </View>,
     );
   });

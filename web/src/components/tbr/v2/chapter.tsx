@@ -6,7 +6,9 @@
 // compact so every chapter still carries one `svg[role=img]`.
 
 import { GROWTH_PHASE_LABELS } from "@/lib/growth/phase-taxonomy";
+import { getTbrStrings } from "@/lib/i18n/tbr-strings";
 import { VisualFigure } from "@/lib/report-visuals/react";
+import { isUnassessed, ledgerRowsFor, pendingLine } from "@/lib/report-v2/ledger-rows";
 import type { DimensionChapter } from "@/lib/report-v2/schema";
 import { cn } from "@/lib/utils";
 import { AgentBadge, AuditStampLine, Bullets, TBR_V2_SECTION_IDS, TbrSection, bandLabel, bandSurface, bandText, stateLabel } from "./shared";
@@ -15,10 +17,73 @@ import { TbrLockedChapterPreview } from "./locked-preview";
 
 const WINDOW_LABEL = { this_week: "this week", "30d": "next 30 days", "90d": "next 90 days" } as const;
 
+/**
+ * G19-S41 — "How this score was built": base → each signal ± points (source
+ * chip) → = score → × weight × confidence (× verification) → = adjustment.
+ * An unassessed chapter shows one honest pending line instead; `scoreNote`
+ * (owner reconciliation / chart provenance) is shown whenever present.
+ */
+export function TbrScoreLedger({ chapter, locale = "en", verificationLevel }: { chapter: DimensionChapter; locale?: "en" | "vi"; verificationLevel?: number | null }) {
+  const t = getTbrStrings(locale).ledger;
+  const ch = chapter;
+  if (!ch.scoreBreakdown) return null;
+  const rows = ledgerRowsFor(ch, locale, verificationLevel);
+  const unassessed = isUnassessed(ch);
+  const pending = unassessed ? pendingLine(ch, locale) : null;
+  return (
+    <div data-tbr-ledger={ch.dim} data-tbr-ledger-state={unassessed ? "pending" : "assessed"} className="rounded-lg border border-ink-200 dark:border-ink-800 print:break-inside-avoid">
+      <table className="w-full text-xs">
+        <caption className="px-3 py-1.5 text-left text-[10px] font-semibold uppercase tracking-wide text-ink-500">{t.title}</caption>
+        {pending ? (
+          <tbody>
+            <tr className="border-t border-ink-100 dark:border-ink-800/60">
+              <td colSpan={3} className="px-3 py-2 text-ink-600 dark:text-ink-300">
+                {pending.text}
+                {pending.add ? <span className="ml-1 text-ink-500 dark:text-ink-400">{pending.add}</span> : null}
+              </td>
+            </tr>
+          </tbody>
+        ) : (
+          <>
+            <thead>
+              <tr className="border-t border-ink-100 text-left text-[10px] uppercase tracking-wide text-ink-400 dark:border-ink-800/60">
+                <th className="px-3 py-1 font-medium">{t.thSignal}</th>
+                <th className="px-3 py-1 text-right font-medium">{t.thPoints}</th>
+                <th className="px-3 py-1 font-medium">{t.thSource}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={i} className={cn("border-t border-ink-100 dark:border-ink-800/60", r.kind !== "signal" && "bg-ink-50/60 dark:bg-ink-900/40")}>
+                  <td className={cn("px-3 py-1 text-ink-700 dark:text-ink-200", r.kind !== "signal" && "font-medium")}>
+                    {r.label}
+                    {r.adjustmentScale ? <span className="ml-1 text-[10px] text-ink-400">({t.adjustmentScale})</span> : null}
+                  </td>
+                  <td className={cn("px-3 py-1 text-right tabular-nums", r.points.startsWith("−") ? "text-red-700 dark:text-red-300" : "text-ink-700 dark:text-ink-200")}>{r.points}</td>
+                  <td className="px-3 py-1">
+                    {r.source ? <span className="rounded-full border border-ink-200 px-1.5 py-0.5 text-[10px] text-ink-500 dark:border-ink-700 dark:text-ink-400">{r.source}</span> : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </>
+        )}
+      </table>
+      {ch.scoreNote ? (
+        <p data-tbr-score-note={ch.dim} className="border-t border-ink-100 px-3 py-1.5 text-[11px] text-ink-500 dark:border-ink-800/60 dark:text-ink-400">
+          <span className="font-semibold">{t.scoreNote}:</span> {ch.scoreNote}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export interface TbrChapterProps {
   chapter: DimensionChapter;
   index: number;
   locale?: "en" | "vi";
+  /** G19-S41: cover verification level, for the "× verification L2" ledger row. */
+  verificationLevel?: number | null;
   upgradeHref?: string;
   /**
    * G16-B: render the free-tier cut as a LOCKED preview (title, first
@@ -30,7 +95,7 @@ export interface TbrChapterProps {
   forceFull?: boolean;
 }
 
-export function TbrChapter({ chapter, index, locale = "en", upgradeHref = "/pricing", locked = false, forceFull = false }: TbrChapterProps) {
+export function TbrChapter({ chapter, index, locale = "en", verificationLevel, upgradeHref = "/pricing", locked = false, forceFull = false }: TbrChapterProps) {
   const ch = chapter;
   const id = TBR_V2_SECTION_IDS.dim(ch.dim);
   const title = locale === "vi" ? ch.titleVi : ch.title;
@@ -73,6 +138,7 @@ export function TbrChapter({ chapter, index, locale = "en", upgradeHref = "/pric
     return (
       <TbrSection id={id} kicker={String(index)} title={title}>
         {header}
+        <TbrScoreLedger chapter={ch} locale={locale} verificationLevel={verificationLevel} />
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_280px]">
           <div className="space-y-2">
             <p className="text-sm text-ink-700 dark:text-ink-200">{ch.verdict}</p>
@@ -92,6 +158,7 @@ export function TbrChapter({ chapter, index, locale = "en", upgradeHref = "/pric
   return (
     <TbrSection id={id} kicker={String(index)} title={title}>
       {header}
+      <TbrScoreLedger chapter={ch} locale={locale} verificationLevel={verificationLevel} />
       <div data-tbr-primary={ch.dim} className="rounded-xl border border-ink-200 p-3 dark:border-ink-800 print:break-inside-avoid">
         <VisualFigure spec={ch.primaryVisual} caption={`${ch.primaryVisual.title} · ${stateLabel(ch.primaryVisual.dataState)}${ch.primaryVisual.subtitle ? ` — ${ch.primaryVisual.subtitle}` : ""}`} />
       </div>

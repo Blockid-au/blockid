@@ -136,7 +136,200 @@ export interface TbrStrings {
 
   // Executive summary sub-labels
   execHeroPer100: string;
+
+  // G19-S41 — score ledger ("How this score was built") on every chapter,
+  // the cover ledger strip and the pending-dimension line. Web, PDF and DOCX
+  // all read these; nothing is hard-coded in the components.
+  ledger: TbrLedgerStrings;
 }
+
+export interface TbrLedgerStrings {
+  title: string;
+  thSignal: string;
+  thPoints: string;
+  thSource: string;
+  base: (base: number) => string;
+  /** "= score 82/100 (base + signals, clamped 0–100)" */
+  score: (score: number) => string;
+  weight: (weightPct: number) => string;
+  confidence: (multiplier: string) => string;
+  verification: (level: number, multiplier: string) => string;
+  adjustment: (signed: string) => string;
+  /** Marker on the LCO evidence-vault rows that move the adjustment, not the raw score. */
+  adjustmentScale: string;
+  pending: string;
+  pendingAdd: (what: string) => string;
+  scoreNote: string;
+  source: Record<"self_declared" | "public_url" | "document_uploaded" | "connected_source" | "transaction_data" | "third_party_verified" | "audit" | "penalty" | "stage", string>;
+  // Cover strip
+  coverTitle: string;
+  coverBase: string;
+  coverDims: string;
+  coverStage: string;
+  coverPenalties: string;
+  coverSector: string;
+  coverMetrics: string;
+  coverCi: string;
+  coverFloor: string;
+  coverTotal: string;
+  pendingDims: (n: number, total: number) => string;
+}
+
+const ledgerEn: TbrLedgerStrings = {
+  title: "How this score was built",
+  thSignal: "Signal",
+  thPoints: "Points",
+  thSource: "Source",
+  base: (base) => `Base ${base}`,
+  score: (score) => `= score ${score}/100 (base + signals, clamped 0–100)`,
+  weight: (w) => `× weight ${w} %`,
+  confidence: (m) => `× evidence confidence ${m}`,
+  verification: (level, m) => `× verification L${level} ${m}`,
+  adjustment: (signed) => `= adjustment ${signed} on the SVI base of 100`,
+  adjustmentScale: "applied to the adjustment",
+  pending: "Not assessed yet — no evidence for this dimension.",
+  pendingAdd: (what) => `Add: ${what}`,
+  scoreNote: "Score note",
+  source: {
+    self_declared: "self-declared",
+    public_url: "public URL",
+    document_uploaded: "document",
+    connected_source: "connector",
+    transaction_data: "transactions",
+    third_party_verified: "third-party verified",
+    audit: "audit",
+    penalty: "penalty",
+    stage: "stage",
+  },
+  coverTitle: "SVI ledger",
+  coverBase: "Base",
+  coverDims: "8 dimensions",
+  coverStage: "Stage bonus",
+  coverPenalties: "Risk penalties",
+  coverSector: "Sector",
+  coverMetrics: "Metrics",
+  coverCi: "Competitive intel",
+  coverFloor: "Floor",
+  coverTotal: "Total",
+  pendingDims: (n, total) => `${n} of ${total} dimensions pending`,
+};
+
+const ledgerVi: TbrLedgerStrings = {
+  title: "Điểm này được xây dựng như thế nào",
+  thSignal: "Tín hiệu",
+  thPoints: "Điểm",
+  thSource: "Nguồn",
+  base: (base) => `Điểm nền ${base}`,
+  score: (score) => `= điểm ${score}/100 (nền + tín hiệu, giới hạn 0–100)`,
+  weight: (w) => `× trọng số ${w} %`,
+  confidence: (m) => `× độ tin cậy bằng chứng ${m}`,
+  verification: (level, m) => `× xác minh L${level} ${m}`,
+  adjustment: (signed) => `= điều chỉnh ${signed} trên nền SVI 100`,
+  adjustmentScale: "áp dụng vào điều chỉnh",
+  pending: "Chưa đánh giá — chưa có bằng chứng cho khía cạnh này.",
+  pendingAdd: (what) => `Bổ sung: ${what}`,
+  scoreNote: "Ghi chú điểm",
+  source: {
+    self_declared: "tự khai",
+    public_url: "URL công khai",
+    document_uploaded: "tài liệu tải lên",
+    connected_source: "nguồn kết nối",
+    transaction_data: "dữ liệu giao dịch",
+    third_party_verified: "bên thứ ba xác minh",
+    audit: "kiểm định",
+    penalty: "phạt",
+    stage: "giai đoạn",
+  },
+  coverTitle: "Sổ cái SVI",
+  coverBase: "Nền",
+  coverDims: "8 khía cạnh",
+  coverStage: "Thưởng giai đoạn",
+  coverPenalties: "Phạt rủi ro",
+  coverSector: "Ngành",
+  coverMetrics: "Chỉ số",
+  coverCi: "Tình báo cạnh tranh",
+  coverFloor: "Sàn",
+  coverTotal: "Tổng",
+  pendingDims: (n, total) => `${n} trên ${total} khía cạnh chưa đánh giá`,
+};
+
+const ledgerEs: TbrLedgerStrings = {
+  title: "Cómo se construyó esta puntuación",
+  thSignal: "Señal",
+  thPoints: "Puntos",
+  thSource: "Fuente",
+  base: (base) => `Base ${base}`,
+  score: (score) => `= puntuación ${score}/100 (base + señales, limitada a 0–100)`,
+  weight: (w) => `× peso ${w} %`,
+  confidence: (m) => `× confianza de la evidencia ${m}`,
+  verification: (level, m) => `× verificación L${level} ${m}`,
+  adjustment: (signed) => `= ajuste ${signed} sobre la base SVI de 100`,
+  adjustmentScale: "aplicado al ajuste",
+  pending: "Aún no evaluada — sin evidencia para esta dimensión.",
+  pendingAdd: (what) => `Añadir: ${what}`,
+  scoreNote: "Nota de puntuación",
+  source: {
+    self_declared: "autodeclarado",
+    public_url: "URL pública",
+    document_uploaded: "documento",
+    connected_source: "conector",
+    transaction_data: "transacciones",
+    third_party_verified: "verificado por terceros",
+    audit: "auditoría",
+    penalty: "penalización",
+    stage: "etapa",
+  },
+  coverTitle: "Libro SVI",
+  coverBase: "Base",
+  coverDims: "8 dimensiones",
+  coverStage: "Bono de etapa",
+  coverPenalties: "Penalizaciones de riesgo",
+  coverSector: "Sector",
+  coverMetrics: "Métricas",
+  coverCi: "Inteligencia competitiva",
+  coverFloor: "Mínimo",
+  coverTotal: "Total",
+  pendingDims: (n, total) => `${n} de ${total} dimensiones pendientes`,
+};
+
+const ledgerJa: TbrLedgerStrings = {
+  title: "このスコアの内訳",
+  thSignal: "シグナル",
+  thPoints: "ポイント",
+  thSource: "出所",
+  base: (base) => `基準値 ${base}`,
+  score: (score) => `= スコア ${score}/100（基準値 + シグナル、0–100 に制限）`,
+  weight: (w) => `× ウェイト ${w} %`,
+  confidence: (m) => `× エビデンス信頼度 ${m}`,
+  verification: (level, m) => `× 検証 L${level} ${m}`,
+  adjustment: (signed) => `= 調整 ${signed}（SVI 基準値 100 に対して）`,
+  adjustmentScale: "調整に適用",
+  pending: "未評価 — この項目のエビデンスがありません。",
+  pendingAdd: (what) => `追加: ${what}`,
+  scoreNote: "スコア注記",
+  source: {
+    self_declared: "自己申告",
+    public_url: "公開 URL",
+    document_uploaded: "アップロード資料",
+    connected_source: "連携データ",
+    transaction_data: "取引データ",
+    third_party_verified: "第三者検証",
+    audit: "監査",
+    penalty: "ペナルティ",
+    stage: "ステージ",
+  },
+  coverTitle: "SVI 台帳",
+  coverBase: "基準値",
+  coverDims: "8 項目",
+  coverStage: "ステージ加点",
+  coverPenalties: "リスク減点",
+  coverSector: "セクター",
+  coverMetrics: "指標",
+  coverCi: "競合分析",
+  coverFloor: "下限",
+  coverTotal: "合計",
+  pendingDims: (n, total) => `${total} 項目中 ${n} 項目が未評価`,
+};
 
 const en: TbrStrings = {
   reportTitle: "Trusted Business Report",
@@ -264,6 +457,7 @@ const en: TbrStrings = {
   footerReanalyse: "Re-analyse →",
 
   execHeroPer100: "/ 100",
+  ledger: ledgerEn,
 };
 
 const vi: TbrStrings = {
@@ -392,6 +586,7 @@ const vi: TbrStrings = {
   footerReanalyse: "Phan tich lai →",
 
   execHeroPer100: "/ 100",
+  ledger: ledgerVi,
 };
 
 // ── Spanish (ES) ─────────────────────────────────────────────────────────────
@@ -525,6 +720,7 @@ const es: TbrStrings = {
   footerReanalyse: "Reanalizar →",
 
   execHeroPer100: "/ 100",
+  ledger: ledgerEs,
 };
 
 // ── Japanese (JA) ────────────────────────────────────────────────────────────
@@ -658,6 +854,7 @@ const ja: TbrStrings = {
   footerReanalyse: "再分析 →",
 
   execHeroPer100: "/ 100",
+  ledger: ledgerJa,
 };
 
 export const TBR_STRINGS: Record<TbrLocale, TbrStrings> = { en, vi, es, ja };

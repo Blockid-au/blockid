@@ -234,6 +234,59 @@ export interface SVIExtractedSignals {
   pilotCount?: number;
 }
 
+// ─── G19-S41: score ledger ("why this score") ────────────────────────────────
+//
+// Every point a dimension earns or loses is recorded next to the prose line
+// that always explained it, so the report can show base → each signal ±
+// points (with where it came from) → × confidence → adjustment, and the
+// owner agent can cite the same facts. The formula is unchanged (D1): the
+// ledger explains, it does not change the score.
+
+/** Where a ledger signal came from. The first six are the evidence ladder rungs. */
+export type SviSignalSource =
+  | "self_declared"
+  | "public_url"
+  | "document_uploaded"
+  | "connected_source"
+  | "transaction_data"
+  | "third_party_verified"
+  | "audit"
+  | "penalty"
+  | "stage";
+
+export interface SVIScoreSignal {
+  signal: string;
+  points: number;
+  source: SviSignalSource;
+  /**
+   * Omitted = the points move the 0–100 raw score (before the weight ×
+   * confidence step). `"adjustment"` = applied straight to the dimension's
+   * SVI adjustment after that step (only the LCO evidence-vault ±).
+   */
+  scale?: "adjustment";
+}
+
+export const SVI_DIM_KEYS = ["ftv", "mpc", "ptd", "tre", "cgh", "iri", "lco", "svm"] as const;
+export type SviDimKey = (typeof SVI_DIM_KEYS)[number];
+
+/**
+ * Report-level ledger. Every field is signed so that
+ * `base + Σ dimAdjustments + stageBonus + riskPenalties + sectorAdj +
+ * metricsBonus + ciBoost + floorClamp === total` exactly (`riskPenalties`
+ * is therefore ≤ 0; `floorClamp` is the lift to the 0 floor, normally 0).
+ */
+export interface SVILedger {
+  base: 100;
+  dimAdjustments: Record<SviDimKey, number>;
+  stageBonus: number;
+  riskPenalties: number;
+  sectorAdj: number;
+  metricsBonus: number;
+  ciBoost: number;
+  floorClamp: number;
+  total: number;
+}
+
 export interface SVISubScore {
   label: string;
   key: string;
@@ -242,6 +295,19 @@ export interface SVISubScore {
   rationale: string;
   evidence: string[];
   gaps: string[];
+  // G19-S41 — always set by computeSVI(); optional only because rows
+  // stored before S41 (analysis_json, rescore paths, fixtures) lack them and
+  // readers must keep rendering those as plain scores without a ledger.
+  /** The raw baseline before any signal (50 / 40 / 35 / 30). */
+  base?: number;
+  /** Every signal that moved the score — `clamp(base + Σ points) === value`. */
+  breakdown?: SVIScoreSignal[];
+  /**
+   * False when no real input (text signal, register row, audit, evidence
+   * vault) moved this dimension — the value is a pure baseline and the
+   * report renders the dimension as pending, not as a score.
+   */
+  assessed?: boolean;
 }
 
 export interface RiskPenalty {
@@ -299,6 +365,10 @@ export interface SVIAnalysis {
   websiteUrl?: string;     // the website analyzed, if any
   // v2.2: CI-derived SVI boosts and market EBITDA metrics
   ciBoost?: number;         // Total SVI points added from competitive intelligence
+  /** G19-S41: sector-specific bonus (was folded into netAdjustment only). */
+  sectorAdj?: number;
+  /** G19-S41: the signed report-level ledger; its fields sum exactly to `totalSVI`. */
+  ledger?: SVILedger;
   marketEbitdaMetrics?: MarketEbitdaMetrics; // Market-level EBITDA benchmarks for this sector
   // G14-S36: business-verification multiplier (F-6). Present only when the
   // caller passed `projects.verification_level`; `ladderConfidence` is what
@@ -992,25 +1062,40 @@ export function computeSVI(
     ? boundedVerificationConfidence(ladderConfidence, verification.level, nextRungConfidence(signals.evidenceLevel))
     : ladderConfidence;
 
+  // G19-S41 ledger helpers. A keyword / figure read from the founder's own
+  // input is graded by the ORIGIN of that input (S36): prose = self_declared,
+  // prose with a link = public_url, an uploaded file = document_uploaded. A
+  // connector or audit overlay lifts the ladder above those rungs but never
+  // tells us which flag it set, so text flags keep the input-origin rung.
+  const declared: SviSignalSource =
+    signals.evidenceLevel === "public_url" || signals.evidenceLevel === "document_uploaded" ? signals.evidenceLevel : "self_declared";
+  /** Record a signal on a dimension ledger and hand the label back to the prose list. */
+  const note = (ledger: SVIScoreSignal[], signal: string, points: number, source: SviSignalSource = declared, scale?: "adjustment"): string => {
+    ledger.push(scale ? { signal, points, source, scale } : { signal, points, source });
+    return signal;
+  };
+
   // ── Dimension 1: FTV — Founder & Team Value (15%) ──────────────────────────
-  let ftvRaw = 50;
+  const ftvBase = 50;
+  let ftvRaw = ftvBase;
   const ftvEvidence: string[] = [];
   const ftvGaps: string[] = [];
+  const ftvB: SVIScoreSignal[] = [];
 
   if (signals.founderExperience === "serial") {
-    ftvRaw += 35; ftvEvidence.push("Serial founder with exits");
+    ftvRaw += 35; ftvEvidence.push(note(ftvB, "Serial founder with exits", 35));
   } else if (signals.founderExperience === "experienced") {
-    ftvRaw += 20; ftvEvidence.push("Experienced founder (10+ years)");
+    ftvRaw += 20; ftvEvidence.push(note(ftvB, "Experienced founder (10+ years)", 20));
   } else {
     ftvGaps.push("Add founder background and track record");
   }
-  if (signals.hasCoFounder) { ftvRaw += 15; ftvEvidence.push("Co-founder team"); }
+  if (signals.hasCoFounder) { ftvRaw += 15; ftvEvidence.push(note(ftvB, "Co-founder team", 15)); }
   else { ftvGaps.push("Consider adding a co-founder for complementary skills"); }
 
-  if (signals.founderSectorFit) { ftvRaw += 10; ftvEvidence.push("Domain expertise in target sector"); }
+  if (signals.founderSectorFit) { ftvRaw += 10; ftvEvidence.push(note(ftvB, "Domain expertise in target sector", 10)); }
   else { ftvGaps.push("Highlight relevant domain experience"); }
 
-  if (signals.hasAdvisors) { ftvRaw += 8; ftvEvidence.push("Named advisors or mentors identified"); }
+  if (signals.hasAdvisors) { ftvRaw += 8; ftvEvidence.push(note(ftvB, "Named advisors or mentors identified", 8)); }
   else { ftvGaps.push("Add named advisors or industry mentors to strengthen credibility"); }
 
   // G14-S37: the structured execution rubric (founder profile, canonical).
@@ -1025,193 +1110,205 @@ export function computeSVI(
   // Repo audit boost for FTV (engineering team quality)
   if (repoAuditBoosts && repoAuditBoosts.ftvBoost !== 0) {
     ftvRaw += repoAuditBoosts.ftvBoost;
-    if (repoAuditBoosts.ftvBoost > 0) ftvEvidence.push(`Code audit: +${repoAuditBoosts.ftvBoost} (team quality, testing, CI/CD maturity)`);
-    else ftvEvidence.push(`Code audit: ${repoAuditBoosts.ftvBoost} (engineering gaps detected)`);
+    if (repoAuditBoosts.ftvBoost > 0) ftvEvidence.push(note(ftvB, `Code audit: +${repoAuditBoosts.ftvBoost} (team quality, testing, CI/CD maturity)`, repoAuditBoosts.ftvBoost, "audit"));
+    else ftvEvidence.push(note(ftvB, `Code audit: ${repoAuditBoosts.ftvBoost} (engineering gaps detected)`, repoAuditBoosts.ftvBoost, "audit"));
   }
 
   const ftvScore = clamp(ftvRaw, 0, 100);
   const ftvAdj = Math.round((ftvScore - 50) * 0.15 * confidence);
 
   // ── Dimension 2: MPC — Market & Problem Clarity (18%) ─────────────────────
-  let mpcRaw = 50;
+  const mpcBase = 50;
+  let mpcRaw = mpcBase;
   const mpcEvidence: string[] = [];
   const mpcGaps: string[] = [];
+  const mpcB: SVIScoreSignal[] = [];
 
   if (signals.problemClarity === "validated") {
-    mpcRaw += 25; mpcEvidence.push("Validated problem with customer proof");
+    mpcRaw += 25; mpcEvidence.push(note(mpcB, "Validated problem with customer proof", 25));
   } else if (signals.problemClarity === "clear") {
-    mpcRaw += 10; mpcEvidence.push("Clear problem statement");
+    mpcRaw += 10; mpcEvidence.push(note(mpcB, "Clear problem statement", 10));
     mpcGaps.push("Add customer validation proof (interviews, LOIs, surveys)");
   } else {
     mpcGaps.push("Clarify the problem being solved");
   }
 
   if (signals.marketSize === "large") {
-    mpcRaw += 20; mpcEvidence.push("Large addressable market (billion+)");
+    mpcRaw += 20; mpcEvidence.push(note(mpcB, "Large addressable market (billion+)", 20));
   } else if (signals.marketSize === "medium") {
-    mpcRaw += 12; mpcEvidence.push("Medium addressable market (hundreds of millions)");
+    mpcRaw += 12; mpcEvidence.push(note(mpcB, "Medium addressable market (hundreds of millions)", 12));
   } else if (signals.marketSize === "small") {
-    mpcRaw += 5; mpcEvidence.push("Small / niche addressable market");
+    mpcRaw += 5; mpcEvidence.push(note(mpcB, "Small / niche addressable market", 5));
   } else {
     mpcGaps.push("Define total addressable market size (TAM/SAM/SOM)");
   }
 
-  if (signals.hasCustomerInterviews) { mpcRaw += 8; mpcEvidence.push("Customer interviews documented"); }
+  if (signals.hasCustomerInterviews) { mpcRaw += 8; mpcEvidence.push(note(mpcB, "Customer interviews documented", 8)); }
   else { mpcGaps.push("Document at least 5 customer discovery interviews"); }
 
   const mpcScore = clamp(mpcRaw, 0, 100);
   const mpcAdj = Math.round((mpcScore - 50) * 0.18 * confidence);
 
   // ── Dimension 3: PTD — Product & Technical Depth (12%) ────────────────────
-  let ptdRaw = 50;
+  const ptdBase = 50;
+  let ptdRaw = ptdBase;
   const ptdEvidence: string[] = [];
   const ptdGaps: string[] = [];
+  const ptdB: SVIScoreSignal[] = [];
 
-  if (signals.hasDemo) { ptdRaw += 20; ptdEvidence.push("Demo or prototype available"); }
+  if (signals.hasDemo) { ptdRaw += 20; ptdEvidence.push(note(ptdB, "Demo or prototype available", 20)); }
   else { ptdGaps.push("Create a live demo or prototype"); }
 
-  if (signals.hasSourceCode) { ptdRaw += 15; ptdEvidence.push("Source code repository linked"); }
+  if (signals.hasSourceCode) { ptdRaw += 15; ptdEvidence.push(note(ptdB, "Source code repository linked", 15)); }
   else { ptdGaps.push("Link GitHub/GitLab repository"); }
 
-  if (signals.hasApp) { ptdRaw += 10; ptdEvidence.push("Mobile app present"); }
+  if (signals.hasApp) { ptdRaw += 10; ptdEvidence.push(note(ptdB, "Mobile app present", 10)); }
 
-  if (signals.hasWebsite) { ptdRaw += 5; ptdEvidence.push("Website or landing page present"); }
+  if (signals.hasWebsite) { ptdRaw += 5; ptdEvidence.push(note(ptdB, "Website or landing page present", 5)); }
   else { ptdGaps.push("Create a public website or landing page"); }
 
-  if (signals.hasProduct) { ptdRaw += 10; ptdEvidence.push("Product described or referenced"); }
+  if (signals.hasProduct) { ptdRaw += 10; ptdEvidence.push(note(ptdB, "Product described or referenced", 10)); }
 
   // Tech audit boost for PTD
   if (techAuditBoosts && techAuditBoosts.ptdBoost !== 0) {
     ptdRaw += techAuditBoosts.ptdBoost;
-    if (techAuditBoosts.ptdBoost > 0) ptdEvidence.push(`Tech audit: +${techAuditBoosts.ptdBoost} (security, performance, stack)`);
-    else ptdEvidence.push(`Tech audit: ${techAuditBoosts.ptdBoost} (technical gaps detected)`);
+    if (techAuditBoosts.ptdBoost > 0) ptdEvidence.push(note(ptdB, `Tech audit: +${techAuditBoosts.ptdBoost} (security, performance, stack)`, techAuditBoosts.ptdBoost, "audit"));
+    else ptdEvidence.push(note(ptdB, `Tech audit: ${techAuditBoosts.ptdBoost} (technical gaps detected)`, techAuditBoosts.ptdBoost, "audit"));
   }
 
   // Repo audit boost for PTD (architecture, CI/CD, testing, code quality)
   if (repoAuditBoosts && repoAuditBoosts.ptdBoost !== 0) {
     ptdRaw += repoAuditBoosts.ptdBoost;
-    if (repoAuditBoosts.ptdBoost > 0) ptdEvidence.push(`Code audit: +${repoAuditBoosts.ptdBoost} (architecture, CI/CD, testing)`);
-    else ptdEvidence.push(`Code audit: ${repoAuditBoosts.ptdBoost} (codebase gaps detected)`);
+    if (repoAuditBoosts.ptdBoost > 0) ptdEvidence.push(note(ptdB, `Code audit: +${repoAuditBoosts.ptdBoost} (architecture, CI/CD, testing)`, repoAuditBoosts.ptdBoost, "audit"));
+    else ptdEvidence.push(note(ptdB, `Code audit: ${repoAuditBoosts.ptdBoost} (codebase gaps detected)`, repoAuditBoosts.ptdBoost, "audit"));
   }
 
   const ptdScore = clamp(ptdRaw, 0, 100);
   const ptdAdj = Math.round((ptdScore - 50) * 0.12 * confidence);
 
   // ── Dimension 4: TRE — Traction & Revenue Evidence (20%) ─────────────────
-  let treRaw = 30;
+  const treBase = 30;
+  let treRaw = treBase;
   const treEvidence: string[] = [];
   const treGaps: string[] = [];
+  const treB: SVIScoreSignal[] = [];
 
   if (signals.revenueBand === "scaling") {
-    treRaw = 90; treEvidence.push("Scaling revenue ($1M+ ARR range)");
+    treRaw = 90; treEvidence.push(note(treB, "Scaling revenue ($1M+ ARR range)", 90 - treBase));
   } else if (signals.revenueBand === "growing") {
-    treRaw = 70; treEvidence.push("Growing revenue ($100k–$500k ARR range)");
+    treRaw = 70; treEvidence.push(note(treB, "Growing revenue ($100k–$500k ARR range)", 70 - treBase));
   } else if (signals.revenueBand === "early") {
-    treRaw = 50; treEvidence.push("Early revenue traction");
+    treRaw = 50; treEvidence.push(note(treB, "Early revenue traction", 50 - treBase));
     treGaps.push("Scale to $100k ARR to lift Traction & Revenue score");
   } else {
     treGaps.push("Get first paying customer to significantly lift Traction & Revenue score");
   }
 
-  if (signals.hasCustomers) { treRaw = Math.min(100, treRaw + 8); treEvidence.push("Customer proof present"); }
-  if (signals.hasAnalytics) { treRaw = Math.min(100, treRaw + 8); treEvidence.push("Analytics connected"); }
+  if (signals.hasCustomers) { treRaw = Math.min(100, treRaw + 8); treEvidence.push(note(treB, "Customer proof present", 8)); }
+  if (signals.hasAnalytics) { treRaw = Math.min(100, treRaw + 8); treEvidence.push(note(treB, "Analytics connected", 8)); }
   else { treGaps.push("Connect Google Analytics or Search Console"); }
 
-  if (signals.hasSocialProof) { treRaw = Math.min(100, treRaw + 5); treEvidence.push("Social proof / community present"); }
+  if (signals.hasSocialProof) { treRaw = Math.min(100, treRaw + 5); treEvidence.push(note(treB, "Social proof / community present", 5)); }
 
   // Tech audit boost for TRE
   if (techAuditBoosts && techAuditBoosts.treBoost > 0) {
     treRaw = Math.min(100, treRaw + techAuditBoosts.treBoost);
-    treEvidence.push(`Tech audit: +${techAuditBoosts.treBoost} (social/analytics/testimonials)`);
+    treEvidence.push(note(treB, `Tech audit: +${techAuditBoosts.treBoost} (social/analytics/testimonials)`, techAuditBoosts.treBoost, "audit"));
   }
 
   // Repo audit boost for TRE (commit activity, stars, forks)
   if (repoAuditBoosts && repoAuditBoosts.treBoost > 0) {
     treRaw = Math.min(100, treRaw + repoAuditBoosts.treBoost);
-    treEvidence.push(`Code audit: +${repoAuditBoosts.treBoost} (commit activity, community traction)`);
+    treEvidence.push(note(treB, `Code audit: +${repoAuditBoosts.treBoost} (commit activity, community traction)`, repoAuditBoosts.treBoost, "audit"));
   }
 
   const treScore = clamp(treRaw, 0, 100);
   const treAdj = Math.round((treScore - 50) * 0.20 * confidence);
 
   // ── Dimension 5: CGH — Cap Table & Governance Health (12%) ───────────────
-  let cghRaw = 40;
+  const cghBase = 40;
+  let cghRaw = cghBase;
   const cghEvidence: string[] = [];
   const cghGaps: string[] = [];
+  const cghB: SVIScoreSignal[] = [];
 
   const register = capTableInput ?? null;
   const regFounder = register ? pct(register.founderPct) : null;
   const regEsop = register ? pct(register.esopPct) : null;
 
-  if (signals.hasCapTable) { cghRaw += 20; cghEvidence.push(register ? `Equity register on file (${register.holders ?? "?"} holders; founders ${regFounder ?? "?"} %, ESOP ${regEsop ?? 0} %, investors ${pct(register.investorPct) ?? 0} %)` : "Cap table referenced"); }
+  if (signals.hasCapTable) { cghRaw += 20; cghEvidence.push(register ? note(cghB, `Equity register on file (${register.holders ?? "?"} holders; founders ${regFounder ?? "?"} %, ESOP ${regEsop ?? 0} %, investors ${pct(register.investorPct) ?? 0} %)`, 20, "connected_source") : note(cghB, "Cap table referenced", 20)); }
   else { cghGaps.push("Create a cap table with founder equity split"); }
 
-  if (signals.hasVesting) { cghRaw += 15; cghEvidence.push(register?.vestingFlag ? "Vesting schedule recorded in the register" : "Vesting schedule in place"); }
+  if (signals.hasVesting) { cghRaw += 15; cghEvidence.push(register?.vestingFlag ? note(cghB, "Vesting schedule recorded in the register", 15, "connected_source") : note(cghB, "Vesting schedule in place", 15)); }
   else { cghGaps.push("Add founder vesting (standard: 4 years, 1 year cliff)"); }
 
-  if (signals.hasShareholdersAgreement) { cghRaw += 15; cghEvidence.push(register?.shaFlag ? "Shareholders agreement on file" : "Shareholders agreement referenced"); }
+  if (signals.hasShareholdersAgreement) { cghRaw += 15; cghEvidence.push(register?.shaFlag ? note(cghB, "Shareholders agreement on file", 15, "connected_source") : note(cghB, "Shareholders agreement referenced", 15)); }
   else { cghGaps.push("Create a shareholders agreement (SHA)"); }
 
-  if (signals.esopAllocated) { cghRaw += 10; cghEvidence.push(regEsop !== null && regEsop > 0 ? `ESOP pool ${regEsop} % in the register` : "ESOP/option pool allocated"); }
+  if (signals.esopAllocated) { cghRaw += 10; cghEvidence.push(regEsop !== null && regEsop > 0 ? note(cghB, `ESOP pool ${regEsop} % in the register`, 10, "connected_source") : note(cghB, "ESOP/option pool allocated", 10)); }
   else { cghGaps.push("Allocate ESOP pool (8–15% is standard AU seed)"); }
 
   // Register-only signals (S-R5): pool inside the AU norm, founder majority.
   if (register) {
-    if (regEsop !== null && regEsop >= CAP_TABLE_ESOP_NORM.min && regEsop <= CAP_TABLE_ESOP_NORM.max) { cghRaw += 5; cghEvidence.push(`ESOP pool within the AU seed norm (${CAP_TABLE_ESOP_NORM.min}–${CAP_TABLE_ESOP_NORM.max} %)`); }
+    if (regEsop !== null && regEsop >= CAP_TABLE_ESOP_NORM.min && regEsop <= CAP_TABLE_ESOP_NORM.max) { cghRaw += 5; cghEvidence.push(note(cghB, `ESOP pool within the AU seed norm (${CAP_TABLE_ESOP_NORM.min}–${CAP_TABLE_ESOP_NORM.max} %)`, 5, "connected_source")); }
     else if (regEsop !== null && regEsop > CAP_TABLE_ESOP_NORM.max) { cghGaps.push(`ESOP pool ${regEsop} % is above the AU norm — investors will ask why`); }
-    if (regFounder !== null && regFounder >= CAP_TABLE_FOUNDER_MAJORITY.min && regFounder <= CAP_TABLE_FOUNDER_MAJORITY.max) { cghRaw += 5; cghEvidence.push(`Founders hold ${regFounder} % — a fundable majority`); }
+    if (regFounder !== null && regFounder >= CAP_TABLE_FOUNDER_MAJORITY.min && regFounder <= CAP_TABLE_FOUNDER_MAJORITY.max) { cghRaw += 5; cghEvidence.push(note(cghB, `Founders hold ${regFounder} % — a fundable majority`, 5, "connected_source")); }
     else if (regFounder !== null && regFounder < CAP_TABLE_FOUNDER_MAJORITY.min) { cghGaps.push(`Founders hold ${regFounder} % — below 50 % before a priced round is a dilution flag`); }
   }
 
-  if (signals.hasBoardCadence) { cghRaw += 10; cghEvidence.push("Regular board cadence established"); }
+  if (signals.hasBoardCadence) { cghRaw += 10; cghEvidence.push(note(cghB, "Regular board cadence established", 10)); }
   else { cghGaps.push("Establish quarterly board meetings with minutes"); }
 
-  if (signals.hasFinancialAudit) { cghRaw += 15; cghEvidence.push("Financial audit completed"); }
+  if (signals.hasFinancialAudit) { cghRaw += 15; cghEvidence.push(note(cghB, "Financial audit completed", 15)); }
 
   const cghScore = clamp(cghRaw, 0, 100);
   const cghAdj = Math.round((cghScore - 50) * 0.12 * confidence);
 
   // ── Dimension 6: IRI — Investor Readiness Index (10%) ────────────────────
-  let iriRaw = 40;
+  const iriBase = 40;
+  let iriRaw = iriBase;
   const iriEvidence: string[] = [];
   const iriGaps: string[] = [];
+  const iriB: SVIScoreSignal[] = [];
 
-  if (signals.hasPitchDeck) { iriRaw += 25; iriEvidence.push("Pitch deck available"); }
+  if (signals.hasPitchDeck) { iriRaw += 25; iriEvidence.push(note(iriB, "Pitch deck available", 25)); }
   else { iriGaps.push("Upload a pitch deck to the Evidence Vault"); }
 
-  if (signals.hasFinancialModel) { iriRaw += 20; iriEvidence.push("Financial model uploaded"); }
+  if (signals.hasFinancialModel) { iriRaw += 20; iriEvidence.push(note(iriB, "Financial model uploaded", 20)); }
   else { iriGaps.push("Add a financial model or revenue forecast"); }
 
-  if (signals.hasDataRoom) { iriRaw += 25; iriEvidence.push("Data room prepared"); }
+  if (signals.hasDataRoom) { iriRaw += 25; iriEvidence.push(note(iriB, "Data room prepared", 25)); }
   else { iriGaps.push("Create a data room / due diligence folder"); }
 
-  if (signals.targetRaiseMentioned) { iriRaw += 10; iriEvidence.push("Raise target mentioned"); }
+  if (signals.targetRaiseMentioned) { iriRaw += 10; iriEvidence.push(note(iriB, "Raise target mentioned", 10)); }
   else { iriGaps.push("State your raise amount and intended use of funds"); }
 
   const iriScore = clamp(iriRaw, 0, 100);
   const iriAdj = Math.round((iriScore - 50) * 0.10 * confidence);
 
   // ── Dimension 7: LCO — Legal & Compliance (8%) ───────────────────────────
-  let lcoRaw = 40;
+  const lcoBase = 40;
+  let lcoRaw = lcoBase;
   const lcoEvidence: string[] = [];
   const lcoGaps: string[] = [];
+  const lcoB: SVIScoreSignal[] = [];
 
-  if (signals.hasABN) { lcoRaw += 20; lcoEvidence.push("ABN/ASIC registration confirmed"); }
+  if (signals.hasABN) { lcoRaw += 20; lcoEvidence.push(note(lcoB, "ABN/ASIC registration confirmed", 20)); }
   else { lcoGaps.push("Register with ASIC and obtain ABN"); }
 
-  if (signals.hasIPProtection) { lcoRaw += 15; lcoEvidence.push("IP protection in place (patent, trademark, copyright)"); }
+  if (signals.hasIPProtection) { lcoRaw += 15; lcoEvidence.push(note(lcoB, "IP protection in place (patent, trademark, copyright)", 15)); }
   else { lcoGaps.push("Consider filing a trademark or provisional patent"); }
 
-  if (signals.hasContracts) { lcoRaw += 10; lcoEvidence.push("Contracts or ToS documented"); }
+  if (signals.hasContracts) { lcoRaw += 10; lcoEvidence.push(note(lcoB, "Contracts or ToS documented", 10)); }
   else { lcoGaps.push("Draft customer contracts or terms of service"); }
 
-  if (signals.hasLegalDocs) { lcoRaw += 15; lcoEvidence.push("Legal documentation present"); }
+  if (signals.hasLegalDocs) { lcoRaw += 15; lcoEvidence.push(note(lcoB, "Legal documentation present", 15)); }
   else { lcoGaps.push("Engage a solicitor to draft company constitution and legal docs"); }
 
   // Tech audit boost for LCO (security headers = compliance maturity)
   if (techAuditBoosts && techAuditBoosts.lcoBoost > 0) {
     lcoRaw += techAuditBoosts.lcoBoost;
-    lcoEvidence.push(`Tech audit: +${techAuditBoosts.lcoBoost} (HTTPS + security headers)`);
+    lcoEvidence.push(note(lcoB, `Tech audit: +${techAuditBoosts.lcoBoost} (HTTPS + security headers)`, techAuditBoosts.lcoBoost, "audit"));
   }
 
   const lcoScore = clamp(lcoRaw, 0, 100);
@@ -1222,11 +1319,11 @@ export function computeSVI(
     if (evidenceBoosts) {
       if (evidenceBoosts.lco_pct < 50) {
         lcoAdj -= 10;
-        lcoGaps.push("Evidence vault: LCO documents less than 50% complete — upload legal docs to unlock full score");
+        lcoGaps.push(note(lcoB, "Evidence vault: LCO documents less than 50% complete — upload legal docs to unlock full score", -10, "document_uploaded", "adjustment"));
       }
       if (evidenceBoosts.overall_pct > 75) {
         lcoAdj += 5;
-        lcoEvidence.push("Evidence vault: overall completeness >75% — compliance bonus applied");
+        lcoEvidence.push(note(lcoB, "Evidence vault: overall completeness >75% — compliance bonus applied", 5, "document_uploaded", "adjustment"));
       }
     }
   } catch {
@@ -1234,30 +1331,32 @@ export function computeSVI(
   }
 
   // ── Dimension 8: SVM — Strategic Vision & Moat (5%) ──────────────────────
-  let svmRaw = 35;
+  const svmBase = 35;
+  let svmRaw = svmBase;
   const svmEvidence: string[] = [];
   const svmGaps: string[] = [];
+  const svmB: SVIScoreSignal[] = [];
 
-  if (signals.hasMoat) { svmRaw += 35; svmEvidence.push("Defensible moat or competitive advantage identified"); }
+  if (signals.hasMoat) { svmRaw += 35; svmEvidence.push(note(svmB, "Defensible moat or competitive advantage identified", 35)); }
   else { svmGaps.push("Articulate your defensible advantage (data, network, switching cost)"); }
 
-  if (signals.hasNetworkEffect) { svmRaw += 20; svmEvidence.push("Network effect present"); }
+  if (signals.hasNetworkEffect) { svmRaw += 20; svmEvidence.push(note(svmB, "Network effect present", 20)); }
 
-  if (signals.hasDataAdvantage) { svmRaw += 15; svmEvidence.push("Proprietary data advantage identified"); }
+  if (signals.hasDataAdvantage) { svmRaw += 15; svmEvidence.push(note(svmB, "Proprietary data advantage identified", 15)); }
 
-  if (signals.hasSwitchingCosts) { svmRaw += 15; svmEvidence.push("Switching costs or lock-in mechanism present"); }
+  if (signals.hasSwitchingCosts) { svmRaw += 15; svmEvidence.push(note(svmB, "Switching costs or lock-in mechanism present", 15)); }
 
   // Tech audit boost for SVM (custom tech stack = moat)
   if (techAuditBoosts && techAuditBoosts.svmBoost !== 0) {
     svmRaw += techAuditBoosts.svmBoost;
-    if (techAuditBoosts.svmBoost > 0) svmEvidence.push(`Tech audit: +${techAuditBoosts.svmBoost} (custom stack, API depth)`);
-    else svmEvidence.push(`Tech audit: ${techAuditBoosts.svmBoost} (generic CMS, low tech moat)`);
+    if (techAuditBoosts.svmBoost > 0) svmEvidence.push(note(svmB, `Tech audit: +${techAuditBoosts.svmBoost} (custom stack, API depth)`, techAuditBoosts.svmBoost, "audit"));
+    else svmEvidence.push(note(svmB, `Tech audit: ${techAuditBoosts.svmBoost} (generic CMS, low tech moat)`, techAuditBoosts.svmBoost, "audit"));
   }
 
   // Repo audit boost for SVM (proprietary tech, AI/ML, infrastructure)
   if (repoAuditBoosts && repoAuditBoosts.svmBoost > 0) {
     svmRaw += repoAuditBoosts.svmBoost;
-    svmEvidence.push(`Code audit: +${repoAuditBoosts.svmBoost} (proprietary stack, notable libs, infra-as-code)`);
+    svmEvidence.push(note(svmB, `Code audit: +${repoAuditBoosts.svmBoost} (proprietary stack, notable libs, infra-as-code)`, repoAuditBoosts.svmBoost, "audit"));
   }
 
   const svmScore = clamp(svmRaw, 0, 100);
@@ -1513,6 +1612,21 @@ export function computeSVI(
   const effectiveMetricsBonus = metricsBonus ?? 0;
   const effectiveCIBoost = ciBoosts ? ciTotalBoost : 0;
   const totalSVI = Math.round(Math.max(0, 100 + netAdj + stageBonus - totalPenalty + effectiveMetricsBonus + sectorAdj + effectiveCIBoost));
+  // G19-S41: the signed report-level ledger. Every term is an integer, so the
+  // only way the sum can differ from `totalSVI` is the 0 floor — recorded as
+  // `floorClamp` so the fields always add up exactly.
+  const unclampedTotal = 100 + netAdj + stageBonus - totalPenalty + effectiveMetricsBonus + sectorAdj + effectiveCIBoost;
+  const ledger: SVILedger = {
+    base: 100,
+    dimAdjustments: { ftv: ftvAdj, mpc: mpcAdj, ptd: ptdAdj, tre: treAdj, cgh: cghAdj, iri: iriAdj, lco: lcoAdj, svm: svmAdj },
+    stageBonus,
+    riskPenalties: -totalPenalty,
+    sectorAdj,
+    metricsBonus: effectiveMetricsBonus,
+    ciBoost: effectiveCIBoost,
+    floorClamp: totalSVI - unclampedTotal,
+    total: totalSVI,
+  };
 
   const percentileRank = calcPercentileRank(totalSVI, stage);
 
@@ -1525,6 +1639,9 @@ export function computeSVI(
       rationale: `${signals.founderExperience === "serial" ? "Serial founder" : signals.founderExperience === "experienced" ? "Experienced founder" : "First-time founder"}. ${signals.hasCoFounder ? "Co-founder team." : "Solo founder."} ${signals.hasAdvisors ? "Advisors identified." : "No advisors mentioned."}`,
       evidence: ftvEvidence,
       gaps: ftvGaps,
+      base: ftvBase,
+      breakdown: ftvB,
+      assessed: ftvB.some((x) => x.points !== 0),
     },
     {
       label: "Market & Problem",
@@ -1534,6 +1651,9 @@ export function computeSVI(
       rationale: `Market clarity and problem validation. ${signals.problemClarity === "validated" ? "Validated with customer evidence." : signals.problemClarity === "clear" ? "Problem is clear but needs validation." : "Problem needs clarification."} Market: ${signals.marketSize}.`,
       evidence: mpcEvidence,
       gaps: mpcGaps,
+      base: mpcBase,
+      breakdown: mpcB,
+      assessed: mpcB.some((x) => x.points !== 0),
     },
     {
       label: "Product & Technical",
@@ -1543,6 +1663,9 @@ export function computeSVI(
       rationale: `${signals.hasProduct ? "Product built or described." : "No product described."} ${signals.hasDemo ? "Demo or prototype available." : "No demo yet."} ${signals.hasSourceCode ? "Source code linked." : "No source code linked."}`,
       evidence: ptdEvidence,
       gaps: ptdGaps,
+      base: ptdBase,
+      breakdown: ptdB,
+      assessed: ptdB.some((x) => x.points !== 0),
     },
     {
       label: "Traction & Revenue",
@@ -1552,6 +1675,9 @@ export function computeSVI(
       rationale: `Revenue band: ${signals.revenueBand.replace(/-/g, " ")}. ${signals.hasCustomers ? "Customer proof present." : "No customer proof mentioned."} ${signals.hasAnalytics ? "Analytics in place." : "No analytics connected."}`,
       evidence: treEvidence,
       gaps: treGaps,
+      base: treBase,
+      breakdown: treB,
+      assessed: treB.some((x) => x.points !== 0),
     },
     {
       label: "Cap Table & Governance",
@@ -1561,6 +1687,9 @@ export function computeSVI(
       rationale: `${signals.hasCapTable ? "Cap table present." : "No cap table mentioned."} ${signals.hasShareholdersAgreement ? "SHA confirmed." : "No SHA mentioned."} ${signals.hasVesting ? "Vesting in place." : "No vesting mentioned."}`,
       evidence: cghEvidence,
       gaps: cghGaps,
+      base: cghBase,
+      breakdown: cghB,
+      assessed: cghB.some((x) => x.points !== 0),
     },
     {
       label: "Investor Readiness",
@@ -1570,6 +1699,9 @@ export function computeSVI(
       rationale: `${signals.hasPitchDeck ? "Pitch deck present." : "No pitch deck uploaded."} ${signals.hasFinancialModel ? "Financial model available." : "No financial model."} ${signals.hasDataRoom ? "Data room prepared." : "No data room."}`,
       evidence: iriEvidence,
       gaps: iriGaps,
+      base: iriBase,
+      breakdown: iriB,
+      assessed: iriB.some((x) => x.points !== 0),
     },
     {
       label: "Legal & Compliance",
@@ -1579,6 +1711,9 @@ export function computeSVI(
       rationale: `${signals.hasABN ? "ABN/ASIC registered." : "No ABN/registration found."} ${signals.hasIPProtection ? "IP protection in place." : "No IP protection mentioned."} ${signals.hasContracts ? "Contracts present." : "No contracts referenced."}`,
       evidence: lcoEvidence,
       gaps: lcoGaps,
+      base: lcoBase,
+      breakdown: lcoB,
+      assessed: lcoB.some((x) => x.points !== 0),
     },
     {
       label: "Strategic Vision & Moat",
@@ -1588,6 +1723,9 @@ export function computeSVI(
       rationale: `${signals.hasMoat ? "Competitive moat identified." : "No moat identified."} ${signals.hasNetworkEffect ? "Network effect present." : ""} ${signals.hasDataAdvantage ? "Data advantage present." : ""}`.trim(),
       evidence: svmEvidence,
       gaps: svmGaps,
+      base: svmBase,
+      breakdown: svmB,
+      assessed: svmB.some((x) => x.points !== 0),
     },
   ];
 
@@ -1746,6 +1884,8 @@ export function computeSVI(
     sectorLabel,
     dimensionScores,
     ciBoost: effectiveCIBoost !== 0 ? effectiveCIBoost : undefined,
+    sectorAdj,
+    ledger,
     marketEbitdaMetrics: ciBoosts?.ebitdaMetrics,
     meta: verification ? { verification: { ...verification, ladderConfidence, effectiveConfidence: confidence } } : undefined,
   };
