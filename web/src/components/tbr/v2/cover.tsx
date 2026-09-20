@@ -29,25 +29,25 @@ export function TbrCoverLedger({ report, locale = "en" }: { report: ReportV2; lo
   return (
     <div data-tbr-cover-ledger className="space-y-1">
       {(cells.length > 0 || evidence) && (
-        <div className="flex flex-wrap items-center gap-1 text-[11px]">
-          {cells.length > 0 && <span className="mr-1 text-[10px] font-semibold uppercase tracking-wide text-ink-500">{t.coverTitle}</span>}
+        <div className="flex flex-wrap items-center gap-1 text-xs">
+          {cells.length > 0 && <span className="mr-1 text-[11px] font-semibold uppercase tracking-wide text-muted">{t.coverTitle}</span>}
           {cells.map((cell, i) => (
             <span key={cell.label} className="inline-flex items-center gap-1">
-              {i > 0 && <span className="text-ink-300 dark:text-ink-600">→</span>}
-              <span className={cn("rounded-md border px-1.5 py-0.5 tabular-nums", i === cells.length - 1 ? "border-brand-300 bg-brand-50 font-semibold text-brand-700 dark:border-brand-700 dark:bg-brand-950/40 dark:text-brand-300" : "border-ink-200 text-ink-700 dark:border-ink-700 dark:text-ink-200")}>
-                <span className="text-ink-500 dark:text-ink-400">{cell.label}</span> {cell.value}
+              {i > 0 && <span className="text-muted">→</span>}
+              <span className={cn("rounded-md border px-1.5 py-0.5 tabular-nums", i === cells.length - 1 ? "border-brand-300 dark:border-brand-800 bg-surface-sunken font-semibold text-action" : "border-line-subtle text-secondary")}>
+                <span className="text-muted">{cell.label}</span> {cell.value}
               </span>
             </span>
           ))}
           {evidence && (
-            <span data-tbr-cover-evidence className="ml-1 rounded-md border border-ink-200 px-1.5 py-0.5 text-ink-600 dark:border-ink-700 dark:text-ink-300">
+            <span data-tbr-cover-evidence className="ml-1 rounded-md border border-line-subtle px-1.5 py-0.5 text-secondary">
               {evidence}
             </span>
           )}
         </div>
       )}
       {pending && (
-        <p data-tbr-pending-dims className="text-[11px] text-ink-500 dark:text-ink-400">
+        <p data-tbr-pending-dims className="text-xs text-muted">
           {pending}
         </p>
       )}
@@ -68,21 +68,21 @@ export function TbrCover({ report, title, locale = "en" }: { report: ReportV2; t
   const hero = coverHero(report, locale);
   const { pending, showPctl } = hero;
   return (
-    <TbrSection id={TBR_V2_SECTION_IDS.cover} kicker="0" title={title} pageBreak>
+    <TbrSection id={TBR_V2_SECTION_IDS.cover} kicker="0" title={title} purpose={v2Strings(locale).s47.purpose.cover} pageBreak>
       <div>
-        <p className="flex flex-wrap items-center gap-2 text-xl font-bold text-ink-900 dark:text-ink-100">
+        <p className="flex flex-wrap items-center gap-2 text-xl font-bold text-primary">
           {c.startupName}
           {/* S36: business verification at generation time (absent on pre-S36 stored documents). */}
           {c.verification && <AbnBadge level={c.verification.level} />}
         </p>
-        <p className="text-sm text-ink-600 dark:text-ink-400">
+        <p className="text-sm text-secondary">
           {c.sector} · {t.phase}:{" "}
-          <span data-tbr-phase-badge className="rounded-full border border-brand-200 bg-brand-50 px-2 py-0.5 text-xs font-semibold text-brand-700 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-300">
+          <span data-tbr-phase-badge className="rounded-full border border-brand-300 dark:border-brand-800 bg-surface-sunken px-2 py-0.5 text-xs font-semibold text-action">
             {phaseLabel(c.phaseId, locale)}
           </span>{" "}
           · {date}
           {report.source !== "pipeline" && (
-            <span className="ml-2 rounded-full border border-ink-200 px-2 py-0.5 text-[10px] uppercase tracking-wide text-ink-500 dark:border-ink-700 dark:text-ink-400">
+            <span className="ml-2 rounded-full border border-line-subtle px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted">
               {report.source === "fixture" ? t.demoData : t.builtFromSnapshot}
             </span>
           )}
@@ -90,30 +90,30 @@ export function TbrCover({ report, title, locale = "en" }: { report: ReportV2; t
       </div>
 
       {/* G19-S44 — the "current value" hero: A$ range (or pending) + SVI at a glance. */}
-      <div data-tbr-hero className="grid gap-4 rounded-2xl border border-ink-200 p-4 md:grid-cols-[minmax(0,1fr)_auto] dark:border-ink-800 print:break-inside-avoid">
+      <div data-tbr-hero className="grid gap-4 rounded-2xl border border-line-subtle p-4 md:grid-cols-[minmax(0,1fr)_auto] print:break-inside-avoid">
         <div className="min-w-0 space-y-1">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">{s.currentValue}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{s.currentValue}</p>
           {pending ? (
-            <p data-tbr-hero-value="pending" className="text-xl font-bold leading-snug text-ink-700 dark:text-ink-200 md:text-2xl">
+            <p data-tbr-hero-value="pending" className="text-xl font-bold leading-snug text-secondary md:text-2xl">
               {s.valuationPending}
             </p>
           ) : (
             <>
-              <p data-tbr-hero-value="range" className="text-3xl font-black tabular-nums tracking-tight text-ink-900 dark:text-ink-100 md:text-4xl">
+              <p data-tbr-hero-value="range" className="text-3xl font-black tabular-nums tracking-tight text-primary md:text-4xl">
                 {hero.rangeLabel}
               </p>
-              <p className="text-xs text-ink-500 dark:text-ink-400">{hero.subline}</p>
+              <p className="text-xs text-muted">{hero.subline}</p>
             </>
           )}
         </div>
         <div className="flex items-center gap-3">
           {ring && <VisualFigure spec={ring} caption={null} className="w-[110px]" />}
           <div className="space-y-0.5">
-            <p data-tbr-hero-svi className="text-lg font-bold tabular-nums text-ink-900 dark:text-ink-100">{hero.sviLabel}</p>
+            <p data-tbr-hero-svi className="text-lg font-bold tabular-nums text-primary">{hero.sviLabel}</p>
             <p className={cn("text-sm font-semibold", bandText(c.svi.band))}>{bandLabel(c.svi.band, locale)}</p>
-            {c.svi.deltaVsLast !== null && <p className="text-xs text-ink-500 dark:text-ink-400">{t.deltaVsLast(`${c.svi.deltaVsLast >= 0 ? "+" : ""}${c.svi.deltaVsLast}`)}</p>}
+            {c.svi.deltaVsLast !== null && <p className="text-xs text-muted">{t.deltaVsLast(`${c.svi.deltaVsLast >= 0 ? "+" : ""}${c.svi.deltaVsLast}`)}</p>}
             {c.svi.cohortPercentile !== null && (
-              <p data-tbr-hero-percentile className="text-xs text-ink-500 dark:text-ink-400">
+              <p data-tbr-hero-percentile className="text-xs text-muted">
                 {t.thPctl} {c.svi.cohortPercentile}
                 {c.svi.cohortN ? ` (n=${c.svi.cohortN})` : ""}
               </p>
@@ -128,7 +128,7 @@ export function TbrCover({ report, title, locale = "en" }: { report: ReportV2; t
       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_260px]">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-ink-200 text-left text-[10px] uppercase tracking-wide text-ink-500 dark:border-ink-700 dark:text-ink-400">
+            <tr className="border-b border-line-subtle text-left text-[11px] uppercase tracking-wide text-muted">
               <th className="py-1 pr-2">{t.thDimension}</th>
               <th className="py-1 pr-2">{t.thOwner}</th>
               <th className="py-1 pr-2 text-right">{t.thWeight}</th>
@@ -141,19 +141,19 @@ export function TbrCover({ report, title, locale = "en" }: { report: ReportV2; t
             {DIM_ORDER.map((d) => {
               const row = c.dims[d];
               return (
-                <tr key={d} className="border-b border-ink-100 dark:border-ink-800/60">
+                <tr key={d} className="border-b border-line-subtle">
                   <td className="py-1 pr-2">
-                    <a href={`#${TBR_V2_SECTION_IDS.dim(d)}`} className="font-medium text-ink-700 hover:text-brand-600 dark:text-ink-200">
-                      <span className="font-mono text-[10px] text-ink-400">{d.toUpperCase()}</span> {locale === "vi" ? DIMENSION_OWNERS[d].titleVi : DIMENSION_OWNERS[d].title}
+                    <a href={`#${TBR_V2_SECTION_IDS.dim(d)}`} className="font-medium text-secondary hover:text-action">
+                      <span className="font-mono text-xs text-muted">{d.toUpperCase()}</span> {locale === "vi" ? DIMENSION_OWNERS[d].titleVi : DIMENSION_OWNERS[d].title}
                     </a>
                   </td>
                   <td className="py-1 pr-2">
                     <AgentBadge role={DIMENSION_OWNERS[d].primary} />
                   </td>
-                  <td className="py-1 pr-2 text-right tabular-nums text-ink-500">{row.weight}</td>
+                  <td className="py-1 pr-2 text-right tabular-nums text-muted">{row.weight}</td>
                   <td className={cn("py-1 pr-2 text-right font-bold tabular-nums", bandText(row.band))}>{row.band === "pending" ? "—" : row.score}</td>
-                  <td className={cn("py-1 text-right tabular-nums text-ink-500", showPctl && "pr-2")}>{row.p50}</td>
-                  {showPctl && <td className="py-1 text-right tabular-nums text-ink-500">{row.percentile ?? "—"}</td>}
+                  <td className={cn("py-1 text-right tabular-nums text-muted", showPctl && "pr-2")}>{row.p50}</td>
+                  {showPctl && <td className="py-1 text-right tabular-nums text-muted">{row.percentile ?? "—"}</td>}
                 </tr>
               );
             })}

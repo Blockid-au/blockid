@@ -3,6 +3,8 @@
 // renderToStaticMarkup because this workspace does not install
 // @testing-library/react (see components/analyze/stage-banner.test.tsx).
 
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { assertReportV2 } from "@/lib/report-v2/schema";
 import { fromSnapshot } from "@/lib/report-v2/adapter";
 import { describe, expect, it } from "vitest";
@@ -212,7 +214,8 @@ describe("<TbrReportV2>", () => {
     ];
     for (const en of OLD_EN_CHROME) expect(html, en).not.toContain(en);
     const vi = TBR_STRINGS.vi.v2;
-    for (const s of [vi.chapter.evidence, vi.chapter.strengths, vi.executive.topStrengths, vi.appendix.method, vi.appendix.dataPrinciple, vi.phaseGates.met, vi.cover.thDimension, vi.audit.auditor, TBR_STRINGS.vi.secExecutive, TBR_STRINGS.vi.secAppendix.replace("&", "&amp;")]) {
+    // G19-S47: the S44 "Top strengths / Top gaps" lists are gone — the executive cards carry the s47 labels.
+    for (const s of [vi.chapter.evidence, vi.chapter.strengths, vi.s47.whyBack, vi.s47.whatMustChange, vi.s47.verdict, vi.s47.actions, vi.appendix.method, vi.appendix.dataPrinciple, vi.phaseGates.met, vi.cover.thDimension, vi.audit.auditor, TBR_STRINGS.vi.secExecutive, TBR_STRINGS.vi.secAppendix.replace("&", "&amp;")]) {
       expect(html, s).toContain(s);
     }
     // Diacritics all over the chrome, not just the chapter titles.
@@ -598,5 +601,68 @@ describe("<TbrReportV2> evidence CTAs (G19-S43)", () => {
     const empty = renderToStaticMarkup(<TbrReportV2 report={fromSnapshot({ dimStates: { tre: { score: 40 } } })} locale="vi" />);
     expect(empty).toContain("Hoàn thiện hồ sơ tài trợ →");
     expect(empty).toContain("Chưa có dòng bằng chứng nào cho khía cạnh này.");
+  });
+});
+
+// ── G19-S47: report-wide typography + theme guard ────────────────────────────
+describe("<TbrReportV2> typography guard (G19-S47)", () => {
+  const BLOCKID = readFileSync(path.join(process.cwd(), "test-fixtures", "report-v2", "blockid-executive-2026-09-20.md"), "utf8");
+  const textOf = (html: string) =>
+    html
+      .replace(/<svg[\s\S]*?<\/svg>/g, "")
+      .replace(/<[^>]+>/g, "\n")
+      .replace(/&amp;/g, "&");
+
+  function blockidLike(): ReturnType<typeof demoReportV2> {
+    const r = demoReportV2();
+    r.cover.startupName = "BlockID.au";
+    r.executive.thesis = BLOCKID;
+    r.executive.strengths = ["Founder & Team Value 100/100 (strong)."];
+    r.executive.gaps = ["Traction & Revenue Evidence 46/100 — 24 below the strong band."];
+    delete r.executive.structured;
+    // A chapter verdict written as markdown (pre-S47 owner output) must render as plain paragraphs too.
+    r.dimensions[0]!.verdict = "**TRE** is developing. Stripe shows A$12k MRR. Growth is 8% a month. The cohort p50 is 52.";
+    return r;
+  }
+
+  for (const [name, report] of [
+    ["demo", demoReportV2()],
+    ["BlockID fixture", blockidLike()],
+  ] as const) {
+    it(`${name}: no '**', '<!--' or '#'-led line anywhere; every section carries a purpose line; verdicts are ≤ 3-sentence paragraphs; no 10px text; every dark: class is a border tint`, () => {
+      const html = renderToStaticMarkup(<TbrReportV2 report={report} />);
+      expect(html).not.toContain("**");
+      expect(html).not.toContain("<!--");
+      expect(textOf(html)).not.toMatch(/^\s*#/m);
+      expect(textOf(html)).not.toMatch(/^\s*>\s/m);
+      expect((html.match(/data-tbr-section-purpose/g) ?? []).length).toBe(15);
+      // Chapter verdicts: the TRE verdict renders as separate <p> paragraphs of ≤ 3 sentences.
+      const tre = html.slice(html.indexOf('data-testid="tbr-verdict-tre"'), html.indexOf("data-tbr-evidence-row"));
+      const paras = tre.match(/<p [^>]*>([^<]*)<\/p>/g) ?? [];
+      expect(paras.length).toBeGreaterThanOrEqual(1);
+      for (const p of paras) expect((p.match(/[.!?](\s|<)/g) ?? []).length).toBeLessThanOrEqual(3);
+      // Typography floor: no 10px text (labels ≥ 11px, content ≥ 12px).
+      expect(html).not.toContain("text-[10px]");
+      // Theme contract: the root sets its surface + text; no dark:text-* / dark:bg-* on fixed grounds (border tints only).
+      expect(html).toContain('class="space-y-12 bg-surface text-primary"');
+      // Border tints, plus the shared ABN badge's solid emerald pair (bg-emerald-950 + text-emerald-200, 9:1).
+      for (const m of html.matchAll(/dark:[a-z0-9/-]+/g)) expect(m[0], m[0]).toMatch(/^dark:(border-|bg-emerald-950$|text-emerald-200$)/);
+      expect(html).not.toMatch(/bg-(white|sky|orange|amber|brand|emerald|red)-\d+\/\d+/);
+      expect(html).not.toMatch(/bg-white\b/);
+      // Zebra rows on the ledger / evidence / register tables.
+      expect(html).toContain("bg-surface-sunken");
+    });
+  }
+
+  it("the BlockID fixture's executive shows a headline, 3 reason cards, a verdict pill and the sparkline carries no in-chart state badge", () => {
+    const html = renderToStaticMarkup(<TbrReportV2 report={blockidLike()} />);
+    expect(html).toContain("data-tbr-exec-headline");
+    expect((html.match(/data-tbr-exec-card="reason"/g) ?? []).length).toBe(3);
+    expect(html).toContain("data-tbr-exec-verdict-pill");
+    const spark = html.slice(html.indexOf('data-visual-kind="sparkline"'));
+    const svg = spark.slice(0, spark.indexOf("</svg>"));
+    expect(svg).not.toContain(">benchmark only<");
+    expect(svg).not.toContain(">real data<");
+    expect(spark).toMatch(/<figcaption[^>]*>[^<]*·\s*(real data|partial data|benchmark only|target, not actual)/);
   });
 });

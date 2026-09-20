@@ -61,12 +61,12 @@ export default function TbrDemoPage() {
       />
 
       <MarketingSection kicker="Sample report" title="Trusted Business Report — demo startup">
-        <div className="rounded-2xl border border-line-subtle bg-white p-4 md:p-8 text-ink-900">
+        <div className="rounded-2xl border border-line-subtle bg-surface p-4 text-primary md:p-8">
           <TbrReportV2 report={report} upgradeHref="/pricing" />
         </div>
         <p className="mt-4 text-xs text-tertiary">
           The interactive report adds investor views, Peer-5 similarity and a Q&amp;A chat on top of these chapters. Preview the founder journey in the{" "}
-          <Link className="text-brand-600 underline" href="/showcase/atlassian?step=1">
+          <Link className="text-action underline" href="/showcase/atlassian?step=1">
             Atlassian showcase
           </Link>
           .
@@ -75,15 +75,15 @@ export default function TbrDemoPage() {
 
       <MarketingSection kicker="Ready for a real one?" title="Ask a founder to mint their TBR">
         <div className="grid gap-3 sm:grid-cols-3">
-          <Link href="/showcase/atlassian?step=1" className="group block rounded-2xl border border-line-subtle bg-white p-5 transition-colors hover:border-brand-500/50">
+          <Link href="/showcase/atlassian?step=1" className="group block rounded-2xl border border-line-subtle bg-surface p-5 transition-colors hover:border-line">
             <p className="text-sm font-semibold text-secondary">Interactive showcase</p>
             <p className="mt-1 text-xs text-tertiary">Walk through a fully-populated demo report step by step.</p>
           </Link>
-          <Link href="/sample" className="group block rounded-2xl border border-line-subtle bg-white p-5 transition-colors hover:border-brand-500/50">
+          <Link href="/sample" className="group block rounded-2xl border border-line-subtle bg-surface p-5 transition-colors hover:border-line">
             <p className="text-sm font-semibold text-secondary">Sample report gallery</p>
             <p className="mt-1 text-xs text-tertiary">Compare TBR variants across sectors and stages.</p>
           </Link>
-          <Link href="/investor" className="group block rounded-2xl border border-line-subtle bg-white p-5 transition-colors hover:border-brand-500/50">
+          <Link href="/investor" className="group block rounded-2xl border border-line-subtle bg-surface p-5 transition-colors hover:border-line">
             <p className="text-sm font-semibold text-secondary">Investor home</p>
             <p className="mt-1 text-xs text-tertiary">Browse startups with a real SVI grade and request the pack.</p>
           </Link>

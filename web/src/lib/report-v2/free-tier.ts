@@ -23,7 +23,7 @@
 //
 // Pure: no I/O, no React; client-safe.
 
-import type { DimensionChapter, ReportV2 } from "./schema";
+import type { DimensionChapter, ExecutiveStructured, ReportV2 } from "./schema";
 import { estimatePages } from "./page-estimate";
 
 export const MAX_TRIM_LEVEL = 4;
@@ -46,6 +46,28 @@ const words = (s: string, n: number): string => {
   const parts = s.trim().split(/\s+/).filter(Boolean);
   return parts.length <= n ? s.trim() : `${parts.slice(0, n).join(" ")}…`;
 };
+
+/**
+ * G19-S47: the structured executive on the free tier —
+ *   level ≥ 1  summary ≤ 2 paragraphs, actions ≤ 3
+ *   level ≥ 2  benchmarks + key insight dropped, card bodies ≤ 25 words
+ *   level ≥ 3  reasons / gaps ≤ 2 each, bodies ≤ 15 words, actions ≤ 2
+ *   level ≥ 4  summary 1 paragraph ≤ 40 words
+ */
+export function projectExecutiveStructured(x: ExecutiveStructured, level: TrimLevel): ExecutiveStructured {
+  if (level === 0) return x;
+  const bodyCap = level >= 3 ? 15 : level >= 2 ? 25 : 60;
+  const out: ExecutiveStructured = {
+    ...x,
+    summary: level >= 4 ? [words(x.summary[0] ?? "", 40)] : x.summary.slice(0, 2),
+    reasonsToBack: x.reasonsToBack.slice(0, level >= 3 ? 2 : 3).map((r) => ({ ...r, body: words(r.body, bodyCap) })),
+    criticalGaps: x.criticalGaps.slice(0, level >= 3 ? 2 : 3).map((g) => ({ ...g, body: words(g.body, bodyCap) })),
+    actions: x.actions.slice(0, level >= 3 ? 2 : 3).map((a) => ({ ...a, detail: words(a.detail, level >= 2 ? 15 : 30) })),
+    benchmarks: level >= 2 ? [] : x.benchmarks,
+  };
+  if (level >= 2) delete out.keyInsight;
+  return out;
+}
 
 function projectChapter(ch: DimensionChapter, free: boolean, level: TrimLevel): DimensionChapter {
   if (!free) return ch;
@@ -84,7 +106,11 @@ export function projectForTier(report: ReportV2, level: TrimLevel = 0): FreeTier
   const projected: ReportV2 = {
     ...report,
     dimensions: report.dimensions.map((ch) => projectChapter(ch, true, level)),
-    executive: { ...report.executive, visuals: level >= 4 ? [] : report.executive.visuals },
+    executive: {
+      ...report.executive,
+      visuals: level >= 4 ? [] : report.executive.visuals,
+      ...(report.executive.structured ? { structured: projectExecutiveStructured(report.executive.structured, level) } : {}),
+    },
     // G19-S43: Money on the Table now carries real matches — level 4 keeps the top 2 rows.
     moneyOnTable: { ...report.moneyOnTable, grants: report.moneyOnTable.grants.slice(0, level >= 4 ? 2 : 3), programs: report.moneyOnTable.programs.slice(0, level >= 4 ? 2 : 3), visuals: level >= 4 ? [] : report.moneyOnTable.visuals },
     // G19-S43: the P0 / P1 evidence rows follow the register rule (≤ 3 rows, dropped with the register at level 3); level 4 keeps 3 steps.

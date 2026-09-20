@@ -16,7 +16,7 @@ import { CRITERIA } from "@/lib/evaluation-criteria";
 import { DIMENSION_OWNERS } from "@/lib/report-pipeline/dimension-owners";
 import type { DimensionChapter } from "@/lib/report-v2/schema";
 import { cn } from "@/lib/utils";
-import { AgentBadge, AuditStampLine, Bullets, TBR_V2_SECTION_IDS, TbrSection, bandLabel, bandSurface, bandText, phaseLabel, stateLabel, type TbrUiLocale } from "./shared";
+import { AgentBadge, AuditStampLine, Bullets, Chip, Prose, TABLE_CLASS, TBR_V2_SECTION_IDS, THEAD_CLASS, TbrSection, WindowChip, bandLabel, bandSurface, bandText, phaseLabel, stateLabel, v2Strings, zebraRow, type TbrUiLocale } from "./shared";
 import { FounderExecutionCard, founderExecutionFromChapter } from "./founder-execution-card";
 import { TbrLockedChapterPreview } from "./locked-preview";
 
@@ -26,11 +26,11 @@ export function CtaLink({ row, locale = "en" }: { row: EvidenceRowView; locale?:
   if (!row.cta) return null;
   return (
     <span data-tbr-cta className="inline-flex flex-wrap items-center gap-1.5">
-      <span className="text-ink-700 dark:text-ink-200">{row.cta.label}</span>
-      <a href={row.cta.href} className="rounded-md border border-brand-300 bg-brand-50 px-1.5 py-0.5 text-[10px] font-semibold text-brand-700 hover:bg-brand-100 dark:border-brand-700 dark:bg-brand-950/40 dark:text-brand-300">
+      <span className="text-secondary">{row.cta.label}</span>
+      <a href={row.cta.href} className="rounded-md border border-brand-300 dark:border-brand-800 bg-surface-sunken px-1.5 py-0.5 text-xs font-semibold text-action hover:bg-surface-sunken">
         {t.addNow}
       </a>
-      {row.cta.liftLabel ? <span className="rounded-full border border-ink-200 px-1.5 py-0.5 text-[10px] tabular-nums text-ink-500 dark:border-ink-700 dark:text-ink-400">{row.cta.liftLabel}</span> : null}
+      {row.cta.liftLabel ? <span className="rounded-full border border-line-subtle px-1.5 py-0.5 text-xs tabular-nums text-muted">{row.cta.liftLabel}</span> : null}
     </span>
   );
 }
@@ -41,27 +41,29 @@ export function TbrEvidenceTable({ chapter, locale = "en" }: { chapter: Dimensio
   const rows = evidenceRowsView(chapter.evidence, locale);
   const empty = emptyEvidenceLine(locale);
   return (
-    <div className="rounded-lg border border-ink-200 dark:border-ink-800">
-      <table className="w-full text-xs">
-        <caption className="px-3 py-1.5 text-left text-[10px] font-semibold uppercase tracking-wide text-ink-500">{t.evidence}</caption>
+    <div className="rounded-lg border border-line-subtle">
+      <table className={TABLE_CLASS}>
+        <caption className="px-3 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted">{t.evidence}</caption>
         {rows.length > 0 ? (
           <tbody>
-            {rows.map((e) => (
-              <tr key={e.evidence_id} data-tbr-evidence-row={e.cta ? "cta" : e.status} className="border-t border-ink-100 dark:border-ink-800/60">
-                <td className="px-3 py-1 font-mono text-[10px] text-ink-400">{e.evidence_id}</td>
-                <td className="px-3 py-1 text-ink-700 dark:text-ink-200">{e.cta ? <CtaLink row={e} locale={locale} /> : e.label}</td>
-                <td className="px-3 py-1 text-ink-500">{e.source}</td>
-                <td className="px-3 py-1 text-ink-500">{e.statusLabel}</td>
-                <td className="px-3 py-1 text-ink-500">{e.observedAt}</td>
+            {rows.map((e, i) => (
+              <tr key={e.evidence_id} data-tbr-evidence-row={e.cta ? "cta" : e.status} className={zebraRow(i)}>
+                <td className="px-3 py-1 font-mono text-xs text-muted">{e.evidence_id}</td>
+                <td className="px-3 py-1 text-secondary">{e.cta ? <CtaLink row={e} locale={locale} /> : e.label}</td>
+                <td className="px-3 py-1">
+                  <Chip kind="source">{e.source}</Chip>
+                </td>
+                <td className="px-3 py-1 text-muted">{e.statusLabel}</td>
+                <td className="px-3 py-1 text-muted">{e.observedAt}</td>
               </tr>
             ))}
           </tbody>
         ) : (
           <tbody>
-            <tr className="border-t border-ink-100 dark:border-ink-800/60">
-              <td className="px-3 py-2 text-ink-500 dark:text-ink-400">
+            <tr className="border-t border-line-subtle">
+              <td className="px-3 py-2 text-muted">
                 {empty.text}{" "}
-                <a href={empty.href} className="font-semibold text-brand-700 hover:underline dark:text-brand-300">
+                <a href={empty.href} className="font-semibold text-action hover:underline">
                   {empty.ctaLabel}
                 </a>
               </td>
@@ -91,21 +93,21 @@ export function TbrScoreLedger({ chapter, locale = "en", verificationLevel }: { 
   // G19-S43: a pending chapter links the same CTAs its evidence table shows.
   const pendingCtas = unassessed ? chapterCtaRows(ch, locale) : [];
   return (
-    <div data-tbr-ledger={ch.dim} data-tbr-ledger-state={unassessed ? "pending" : "assessed"} className="rounded-lg border border-ink-200 dark:border-ink-800 print:break-inside-avoid">
-      <table className="w-full text-xs">
-        <caption className="px-3 py-1.5 text-left text-[10px] font-semibold uppercase tracking-wide text-ink-500">{t.title}</caption>
+    <div data-tbr-ledger={ch.dim} data-tbr-ledger-state={unassessed ? "pending" : "assessed"} className="rounded-lg border border-line-subtle print:break-inside-avoid">
+      <table className={TABLE_CLASS}>
+        <caption className="px-3 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted">{t.title}</caption>
         {pending ? (
           <tbody>
-            <tr className="border-t border-ink-100 dark:border-ink-800/60">
-              <td colSpan={3} className="px-3 py-2 text-ink-600 dark:text-ink-300">
+            <tr className="border-t border-line-subtle">
+              <td colSpan={3} className="px-3 py-2 text-secondary">
                 {pending.text}
-                {pendingCtas.length === 0 && pending.add ? <span className="ml-1 text-ink-500 dark:text-ink-400">{pending.add}</span> : null}
+                {pendingCtas.length === 0 && pending.add ? <span className="ml-1 text-muted">{pending.add}</span> : null}
               </td>
             </tr>
             {pendingCtas.length > 0 && (
-              <tr className="border-t border-ink-100 dark:border-ink-800/60">
+              <tr className="border-t border-line-subtle">
                 <td colSpan={3} className="px-3 py-2">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-500">{pendingCtasHeading(locale)}</p>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{pendingCtasHeading(locale)}</p>
                   <ul data-tbr-pending-ctas={ch.dim} className="mt-1 space-y-1">
                     {pendingCtas.map((r) => (
                       <li key={r.evidence_id}>
@@ -119,8 +121,8 @@ export function TbrScoreLedger({ chapter, locale = "en", verificationLevel }: { 
           </tbody>
         ) : (
           <>
-            <thead>
-              <tr className="border-t border-ink-100 text-left text-[10px] uppercase tracking-wide text-ink-400 dark:border-ink-800/60">
+            <thead className={THEAD_CLASS}>
+              <tr className="border-t border-line-subtle">
                 <th className="px-3 py-1 font-medium">{t.thSignal}</th>
                 <th className="px-3 py-1 text-right font-medium">{t.thPoints}</th>
                 <th className="px-3 py-1 font-medium">{t.thSource}</th>
@@ -128,15 +130,13 @@ export function TbrScoreLedger({ chapter, locale = "en", verificationLevel }: { 
             </thead>
             <tbody>
               {rows.map((r, i) => (
-                <tr key={i} className={cn("border-t border-ink-100 dark:border-ink-800/60", r.kind !== "signal" && "bg-ink-50/60 dark:bg-ink-900/40")}>
-                  <td className={cn("px-3 py-1 text-ink-700 dark:text-ink-200", r.kind !== "signal" && "font-medium")}>
+                <tr key={i} className={cn(zebraRow(i), r.kind !== "signal" && "bg-surface-sunken font-medium")}>
+                  <td className={cn("px-3 py-1 text-secondary", r.kind !== "signal" && "font-medium")}>
                     {r.label}
-                    {r.adjustmentScale ? <span className="ml-1 text-[10px] text-ink-400">({t.adjustmentScale})</span> : null}
+                    {r.adjustmentScale ? <span className="ml-1 text-xs text-muted">({t.adjustmentScale})</span> : null}
                   </td>
-                  <td className={cn("px-3 py-1 text-right tabular-nums", r.points.startsWith("−") ? "text-red-700 dark:text-red-300" : "text-ink-700 dark:text-ink-200")}>{r.points}</td>
-                  <td className="px-3 py-1">
-                    {r.source ? <span className="rounded-full border border-ink-200 px-1.5 py-0.5 text-[10px] text-ink-500 dark:border-ink-700 dark:text-ink-400">{r.source}</span> : null}
-                  </td>
+                  <td className={cn("px-3 py-1 text-right tabular-nums", r.points.startsWith("−") ? "text-bear" : "text-secondary")}>{r.points}</td>
+                  <td className="px-3 py-1">{r.source ? <Chip kind="source">{r.source}</Chip> : null}</td>
                 </tr>
               ))}
             </tbody>
@@ -144,12 +144,18 @@ export function TbrScoreLedger({ chapter, locale = "en", verificationLevel }: { 
         )}
       </table>
       {ch.scoreNote ? (
-        <p data-tbr-score-note={ch.dim} className="border-t border-ink-100 px-3 py-1.5 text-[11px] text-ink-500 dark:border-ink-800/60 dark:text-ink-400">
+        <p data-tbr-score-note={ch.dim} className="border-t border-line-subtle px-3 py-1.5 text-xs text-muted">
           <span className="font-semibold">{t.scoreNote}:</span> {ch.scoreNote}
         </p>
       ) : null}
     </div>
   );
+}
+
+/** G19-S47: the criterion quality level as a label, never the raw enum ("exceptional" → "Exceptional" / VI). */
+function qualityLabel(quality: string, locale: TbrUiLocale): string {
+  const table = getTbrStrings(locale).v2.s47.quality;
+  return (table as Record<string, string>)[quality] ?? quality;
 }
 
 /** Whitespace / trailing-punctuation-insensitive key for bullet dedupe. */
@@ -200,10 +206,10 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
     <div className={cn("flex flex-wrap items-center gap-3 rounded-xl border p-4", bandSurface(ch.band))}>
       <div className="flex items-baseline gap-1">
         <span className={cn("text-4xl font-black tabular-nums tracking-tight", bandText(ch.band))}>{ch.band === "pending" ? "—" : ch.score}</span>
-        <span className="text-xs text-ink-500">{t.per100}</span>
+        <span className="text-xs text-muted">{t.per100}</span>
       </div>
       <div className="space-y-1">
-        <div className="flex flex-wrap items-center gap-2 text-xs text-ink-600 dark:text-ink-300">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-secondary">
           <span className={cn("font-semibold", bandText(ch.band))}>{bandLabel(ch.band, locale)}</span>
           <span>· {t.weight(ch.weight)}</span>
           <span>· {t.owner}</span>
@@ -212,11 +218,11 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
             <AgentBadge key={r} role={r} kind="support" />
           ))}
         </div>
-        <p className="text-[11px] text-ink-500 dark:text-ink-400">
+        <p className="text-xs text-muted">
           {t.benchmarks(ch.benchmark.p25, ch.benchmark.p50, ch.benchmark.p75)}
           {ch.benchmark.percentile !== null ? ` · ${t.youPercentile(ch.benchmark.percentile)}` : ""}
           {" · "}
-          <span data-tbr-floor-chip={ch.dim} className={cn("rounded-md border px-1 py-px tabular-nums", ch.phaseLens.floorMet === false ? "border-orange-200 text-orange-700 dark:border-orange-900 dark:text-orange-300" : "border-ink-200 dark:border-ink-700")}>
+          <span data-tbr-floor-chip={ch.dim} className={cn("rounded-md border px-1 py-px tabular-nums", ch.phaseLens.floorMet === false ? "border-orange-300 dark:border-orange-800 text-bear" : "border-line-subtle")}>
             {phaseLabel(ch.phaseLens.phaseId, locale)} · {floorChip}
           </span>
         </p>
@@ -224,9 +230,10 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
     </div>
   );
 
+  const purpose = v2Strings(locale).s47.purpose.dimension(ch.weight);
   if (ch.renderAs === "card" && locked) {
     return (
-      <TbrSection id={id} kicker={String(index)} title={title}>
+      <TbrSection id={id} kicker={String(index)} title={title} purpose={purpose}>
         {header}
         <TbrLockedChapterPreview chapter={ch} locale={locale} />
       </TbrSection>
@@ -235,14 +242,14 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
 
   if (ch.renderAs === "card" && !forceFull) {
     return (
-      <TbrSection id={id} kicker={String(index)} title={title}>
+      <TbrSection id={id} kicker={String(index)} title={title} purpose={purpose}>
         {header}
         <TbrScoreLedger chapter={ch} locale={locale} verificationLevel={verificationLevel} />
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_280px]">
           <div className="space-y-2">
-            <p className="text-sm text-ink-700 dark:text-ink-200">{ch.verdict}</p>
-            {ch.gaps[0] && <p className="text-xs text-ink-600 dark:text-ink-300">▲ {ch.gaps[0]}</p>}
-            <a href={upgradeHref} className="inline-flex items-center rounded-lg border border-brand-300 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-100 dark:border-brand-700 dark:bg-brand-950/40 dark:text-brand-300">
+            <Prose text={ch.verdict} testId={`tbr-verdict-${ch.dim}`} />
+            {ch.gaps[0] && <p className="text-xs text-secondary">▲ {ch.gaps[0]}</p>}
+            <a href={upgradeHref} className="inline-flex items-center rounded-lg border border-brand-300 dark:border-brand-800 bg-surface-sunken px-3 py-1.5 text-xs font-semibold text-action hover:bg-surface-sunken">
               {t.unlockChapter(title)}
             </a>
           </div>
@@ -255,13 +262,13 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
   }
 
   return (
-    <TbrSection id={id} kicker={String(index)} title={title}>
+    <TbrSection id={id} kicker={String(index)} title={title} purpose={purpose}>
       {header}
       <TbrScoreLedger chapter={ch} locale={locale} verificationLevel={verificationLevel} />
-      <div data-tbr-primary={ch.dim} className="rounded-xl border border-ink-200 p-3 dark:border-ink-800 print:break-inside-avoid">
+      <div data-tbr-primary={ch.dim} className="rounded-xl border border-line-subtle p-3 print:break-inside-avoid">
         <VisualFigure spec={ch.primaryVisual} caption={`${ch.primaryVisual.title} · ${stateLabel(ch.primaryVisual.dataState, locale)}${ch.primaryVisual.subtitle ? ` — ${ch.primaryVisual.subtitle}` : ""}`} />
       </div>
-      <p className="text-sm leading-relaxed text-ink-800 dark:text-ink-200">{ch.verdict}</p>
+      <Prose text={ch.verdict} testId={`tbr-verdict-${ch.dim}`} />
 
       <TbrEvidenceTable chapter={ch} locale={locale} />
 
@@ -271,15 +278,15 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
           const compact = cardModes.get(c.key) === "compact";
           const owner = compact ? owningChapter(c.key) : null;
           return (
-          <div key={c.key} data-tbr-card={c.key} data-tbr-card-mode={compact ? "compact" : "full"} className={cn("rounded-lg border p-3 print:break-inside-avoid", compact ? "border-dashed border-ink-200 dark:border-ink-800" : "border-ink-200 dark:border-ink-800")}>
+          <div key={c.key} data-tbr-card={c.key} data-tbr-card-mode={compact ? "compact" : "full"} className={cn("rounded-lg border p-3 print:break-inside-avoid", compact ? "border-dashed border-line-subtle" : "border-line-subtle")}>
             <div className="flex items-center justify-between gap-2">
-              <p className="text-sm font-semibold text-ink-800 dark:text-ink-100">{c.title}</p>
+              <p className="text-sm font-semibold text-primary">{c.title}</p>
               <span className={cn("text-sm font-bold tabular-nums", bandText(c.score >= 70 ? "strong" : c.score >= 40 ? "developing" : "early"))}>{c.score}</span>
             </div>
-            <p className="mt-1 text-xs text-ink-600 dark:text-ink-300">{c.verdict}</p>
+            <Prose text={c.verdict} size="xs" className="mt-1" />
             {compact && owner && (
-              <p className="mt-1 text-[11px]">
-                <a href={`#${owner.id}`} className="text-brand-700 underline-offset-2 hover:underline dark:text-brand-300">
+              <p className="mt-1 text-xs">
+                <a href={`#${owner.id}`} className="text-action underline-offset-2 hover:underline">
                   {s.fullCardIn(owner.title)}
                 </a>
               </p>
@@ -290,9 +297,11 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
                 <Bullets title={t.gaps} tone="bad" items={c.gaps.slice(0, 3)} />
               </div>
             )}
-            {!compact && c.nextAction && <p className="mt-2 text-[11px] text-brand-700 dark:text-brand-300">{t.next}: {c.nextAction}</p>}
-            <p className="mt-1 text-[10px] text-ink-400">
-              {c.quality} · {c.agent.toUpperCase()} · {c.grounded ? t.grounded : t.uncited}
+            {!compact && c.nextAction && <p className="mt-2 text-xs text-action">{t.next}: {c.nextAction}</p>}
+            <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+              <Chip kind="band">{qualityLabel(c.quality, locale)}</Chip>
+              <Chip kind="support">{c.agent}</Chip>
+              <span>{c.grounded ? t.grounded : t.uncited}</span>
             </p>
           </div>
           );
@@ -305,13 +314,16 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
           <Bullets title={t.gaps} tone="bad" items={extraGaps} />
         </div>
       )}
-      <div className="rounded-lg border border-brand-200/70 bg-brand-50/50 px-3 py-2 text-xs dark:border-brand-900/60 dark:bg-brand-950/20">
-        <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-300">{t.nextAction(t.window[ch.nextAction.window])}</p>
+      <div className="rounded-lg border border-brand-300 dark:border-brand-800 bg-surface-sunken px-3 py-2 text-xs">
+        <p className="flex flex-wrap items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-action">
+          <span>{t.nextAction(t.window[ch.nextAction.window])}</span>
+          <WindowChip window={ch.nextAction.window} locale={locale} />
+        </p>
         {(() => {
           // G19-S43: the catalogue label ("Stripe (revenue)"), never the raw enum "stripe".
           const v = nextActionView(ch, locale);
           return (
-            <p data-tbr-next-action={ch.dim} className="text-ink-800 dark:text-ink-100">
+            <p data-tbr-next-action={ch.dim} className="text-primary">
               {ch.nextAction.title} — {t.expectedLift(ch.nextAction.expectedLift)}
               {v.evidence ? ` · ${t.evidenceToAdd(v.evidence)}` : ""}
             </p>
@@ -321,7 +333,7 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
       {ch.secondaryVisuals.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2 print:break-inside-avoid">
           {ch.secondaryVisuals.map((v) => (
-            <VisualFigure key={v.id} spec={v} caption={`${v.title} · ${stateLabel(v.dataState, locale)}`} className="rounded-lg border border-ink-200 p-2 dark:border-ink-800" />
+            <VisualFigure key={v.id} spec={v} caption={`${v.title} · ${stateLabel(v.dataState, locale)}`} className="rounded-lg border border-line-subtle p-2" />
           ))}
         </div>
       )}

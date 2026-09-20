@@ -13,6 +13,10 @@ import { describe, expect, it } from "vitest";
 import { PromptEvalFixture, runEval, shouldPromote, type FixtureCase } from "@/lib/ai/eval-runner";
 import type { PromptVersion } from "@/lib/ai/prompt-registry";
 import { DimensionChapterInput, DimensionChapterPayload } from "./agent-dispatcher";
+import { draftFromPayload, ExecutiveSummaryInput, ExecutiveSummaryPayload, type ExecutiveSummaryPayload as ExecutivePayload } from "./executive-summary";
+import { finaliseExecutiveStructured } from "@/lib/report-v2/executive-structure";
+import { EXECUTIVE_VERDICT_LABELS, hasMarkdownSyntax } from "@/lib/report-v2/schema";
+import { demoReportV2 } from "@/lib/report-v2/fixtures";
 import { DIM_ORDER, DIMENSION_OWNERS, benchmarkFor, type DimKey } from "./dimension-owners";
 
 const FIXTURE_DIR = path.join(process.cwd(), "test-fixtures", "prompt-eval");
@@ -61,8 +65,8 @@ function goodPayload(c: FixtureCase): Record<string, unknown> {
   return { ...payload, proposed_score: input.deterministicScore };
 }
 
-/** G19 fixtures beside the eight per-dimension files: S41 score ledger, S46 valuation inputs. */
-const G19_FIXTURES = ["TBR-ledger-v2.1.0.json", "TBR-valuation-inputs-v2.1.0.json"];
+/** G19 fixtures beside the eight per-dimension files: S41 score ledger, S46 valuation inputs, S47 structured executive. */
+const G19_FIXTURES = ["TBR-executive-v2.2.0.json", "TBR-ledger-v2.1.0.json", "TBR-valuation-inputs-v2.1.0.json"];
 
 describe("TBR-<dim>-v2.0.0 fixtures", () => {
   it("ships exactly eight TBR-<dim>-v2.0.0 fixtures, one per dimension, discoverable by the nightly runner naming rule (plus the G19 TBR-ledger + TBR-valuation-inputs fixtures)", () => {
@@ -279,5 +283,92 @@ describe("TBR-valuation-inputs-v2.1.0 fixture (G19-S42/S46)", () => {
       runCase: async (c) => ({ ok: true, data: goodPayload(c), latencyMs: 10, costUsd: 0.001, runId: c.id }),
     });
     expect(silent.accuracy_pct).toBeLessThan(good.accuracy_pct);
+  });
+});
+
+// ── G19-S47: the structured executive fixture — JSON contract, no markdown, valid verdict, the lowest dim named ──
+
+describe("TBR-executive-v2.2.0 fixture (G19-S47)", () => {
+  const raw = readFileSync(path.join(FIXTURE_DIR, "TBR-executive-v2.2.0.json"), "utf8");
+  const fx = PromptEvalFixture.parse(JSON.parse(raw));
+  const execPv: PromptVersion = { ...pv("tre"), agent: "TBR-executive", version: "2.2.0" };
+  type Input = { lowestDim: string; chapters: Array<{ dim: string; title: string; score: number; band: string; evidenceIds: string[]; nextAction: string; expectedLift: number }>; phase: { id: string; label: string; blockers: string[] } | null; svi: number };
+
+  /** A contract-shaped CEO answer that satisfies the case: names the lowest dim in a gap, cites where ids exist, valid label. */
+  function goodExecutivePayload(c: FixtureCase): ExecutivePayload {
+    const input = c.input as unknown as Input;
+    const lowest = input.chapters.find((ch) => ch.dim === input.lowestDim)!;
+    const cite = (ch: { evidenceIds: string[] }) => (ch.evidenceIds[0] ? ` [ev:${ch.evidenceIds[0]}]` : " [unevidenced]");
+    const strongest = [...input.chapters].sort((a, b) => b.score - a.score);
+    const weakest = [...input.chapters].sort((a, b) => a.score - b.score);
+    return {
+      headline: `${(c.input as { startupName: string }).startupName}: SVI ${input.svi} with ${lowest.title} the gap to close`,
+      summary: [`The startup scores SVI ${input.svi}.${cite(strongest[0])}`, `${lowest.title} is the lowest dimension at ${lowest.score}.${cite(lowest)}`],
+      key_insight: `${lowest.title} decides the next gate.`,
+      reasons_to_back: strongest.slice(0, 3).map((ch) => ({ title: `${ch.title} is strong`, body: `Scores ${ch.score}.${cite(ch)}`, dim: ch.dim })),
+      critical_gaps: weakest.slice(0, 3).map((ch) => ({ title: `${ch.title} below the gate`, body: `${ch.nextAction}.${cite(ch)}`, dim: ch.dim, lift: ch.expectedLift })),
+      benchmarks: input.chapters.map((ch) => ({ dim: ch.dim, score: ch.score, band: ch.band })),
+      phase_now: input.phase ? { phase_id: input.phase.id, label: input.phase.label, blocker: input.phase.blockers[0] ?? "", what_it_takes: `${lowest.nextAction}.` } : null,
+      verdict: { label: input.svi >= 70 ? "back_with_conditions" : "watch", condition: input.svi >= 70 ? `${lowest.nextAction}.` : undefined, confidence: 0.6 },
+      actions: weakest.slice(0, 3).map((ch, i) => ({ title: ch.nextAction, detail: `${ch.nextAction} within the window.`, window: i === 0 ? "this_week" : "30d", dim: ch.dim })),
+    };
+  }
+
+  /** The eval-runner reads flat `gaps` / `verdict` / `confidence` keys — project the contract onto them. */
+  function evalShape(p: ExecutivePayload): Record<string, unknown> {
+    return { ...p, gaps: p.critical_gaps.map((g) => `${g.title} ${g.body ?? ""}`), verdict: `${p.verdict.label} ${p.verdict.condition ?? ""}`, confidence: p.verdict.confidence };
+  }
+
+  it("carries a seed (Stripe-evidenced, TRE lowest, must cite) and an idea (nothing evidenced, FTV lowest, no citation) case; every input is a valid CEO user turn", () => {
+    expect(fx.cases.map((c) => c.id)).toEqual(["case_executive_seed_saas", "case_executive_idea_prerevenue"]);
+    for (const c of fx.cases) {
+      const parsed = ExecutiveSummaryInput.safeParse(c.input);
+      expect(parsed.success, JSON.stringify(parsed.success ? null : parsed.error.issues.slice(0, 2))).toBe(true);
+      if (!parsed.success) continue;
+      expect(parsed.data.chapters).toHaveLength(8);
+      const lowest = parsed.data.chapters.find((ch) => ch.dim === parsed.data.lowestDim)!;
+      // must_have_gaps names the lowest dimension's title word.
+      expect(c.expected.must_have_gaps.some((g) => lowest.title.includes(g))).toBe(true);
+      expect(c.expected.must_cite).toBe(parsed.data.chapters.some((ch) => ch.evidenceIds.length > 0) ? 1 : 0);
+      for (const label of c.expected.verdict_must_mention_any ?? []) expect(EXECUTIVE_VERDICT_LABELS).toContain(label);
+      // Markdown tokens are forbidden terms on every case.
+      expect(c.expected.must_not_hallucinate).toEqual(expect.arrayContaining(["**", "<!--"]));
+    }
+  });
+
+  it("a contract-shaped answer parses, finalises without markdown, keeps a valid verdict label and a gap naming the lowest dim — and is promotable; a markdown / invented-figure answer hard-fails", async () => {
+    const demo = demoReportV2();
+    for (const c of fx.cases) {
+      const payload = goodExecutivePayload(c);
+      expect(ExecutiveSummaryPayload.safeParse(payload).success).toBe(true);
+      const input = c.input as unknown as Input;
+      const s = finaliseExecutiveStructured(draftFromPayload(payload), { chapters: demo.dimensions, phase: demo.executive.phaseNow, locale: "en" });
+      expect(hasMarkdownSyntax(JSON.stringify(s))).toBe(false);
+      expect(EXECUTIVE_VERDICT_LABELS).toContain(s.verdict.label);
+      expect(s.criticalGaps.some((g) => g.dim === input.lowestDim)).toBe(true);
+      expect(s.reasonsToBack).toHaveLength(3);
+      expect(s.criticalGaps).toHaveLength(3);
+    }
+    const good = await runEval(fx, execPv, { runCase: async (c) => ({ ok: true, data: evalShape(goodExecutivePayload(c)), latencyMs: 10, costUsd: 0.001, runId: c.id }) });
+    expect(good.accuracy_pct).toBeGreaterThanOrEqual(0.8);
+    expect(good.hard_fail).toBe(false);
+    expect(shouldPromote(good)).toBe(true);
+
+    const markdown = await runEval(fx, execPv, {
+      runCase: async (c) => {
+        const p = goodExecutivePayload(c);
+        return { ok: true, data: evalShape({ ...p, headline: `**${p.headline}**` }), latencyMs: 10, costUsd: 0.001, runId: c.id };
+      },
+    });
+    expect(markdown.hard_fail).toBe(true);
+    expect(shouldPromote(markdown)).toBe(false);
+
+    const invented = await runEval(fx, execPv, {
+      runCase: async (c) => {
+        const p = goodExecutivePayload(c);
+        return { ok: true, data: evalShape({ ...p, summary: [...(p.summary as string[]), "ARR A$2.4M supports a Series B."] }), latencyMs: 10, costUsd: 0.001, runId: c.id };
+      },
+    });
+    expect(invented.hard_fail).toBe(true);
   });
 });

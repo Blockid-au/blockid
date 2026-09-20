@@ -20,6 +20,7 @@ import { comparablesCounts, topComparables } from "@/lib/valuation/comparables-r
 import { PHASE_EXIT_RULES, type PhaseGateResult } from "@/lib/growth/phase-gate";
 import { inferPhase } from "@/lib/growth/infer-phase";
 import { derivedLift } from "@/lib/svi-lift";
+import { ensureExecutiveStructured } from "./executive-structure";
 import { GROWTH_PHASE_IDS, GROWTH_PHASE_LABELS, type GrowthPhaseId } from "@/lib/growth/phase-taxonomy";
 import { DIMENSION_OWNERS, DIM_ORDER, criteriaForDimension, type DimKey } from "@/lib/report-pipeline/dimension-owners";
 import { buildValuationChapter, type ValuationAskInput, type VcValuationLike } from "@/lib/report-pipeline/valuation-chapter";
@@ -1184,7 +1185,10 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
     },
     pageBudget: { free: FREE_PAGE_BUDGET },
   };
-  return report;
+  // G19-S47: the executive sections (headline / paragraphs / reasons / gaps /
+  // verdict / actions) are always present — parsed from the summary text or
+  // built from the chapters, the valuation and the plan.
+  return ensureExecutiveStructured(report);
 }
 
 function fmtShort(v: number): string {
@@ -1317,7 +1321,9 @@ export function fromAssembledReport(report: Pick<AssembledReport, "id" | "tier" 
  * build one from the v1 snapshot columns. Never throws on a bad stored row.
  */
 export function resolveReportV2(stored: unknown, fallback: SnapshotInput, validate: (v: unknown) => v is ReportV2): ReportV2 {
-  if (stored && validate(stored)) return stored;
+  // G19-S47: a document stored before S47 (or with a stale block) gets its
+  // executive sections on read — the same parser the pipeline uses.
+  if (stored && validate(stored)) return ensureExecutiveStructured(stored);
   return fromSnapshot(fallback);
 }
 

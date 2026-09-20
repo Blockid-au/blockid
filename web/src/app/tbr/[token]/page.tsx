@@ -180,7 +180,7 @@ export default async function TbrSharePage({
 
   const pdfMode = pdf === "1";
   return (
-    <div className="min-h-screen bg-white dark:bg-ink-950">
+    <div className="min-h-screen bg-surface text-primary">
       <BusinessReportClient
         projectId={result.row.project_id ?? "shared"}
         initialData={result.persisted}
@@ -193,7 +193,7 @@ export default async function TbrSharePage({
       {/* Wave 27A — investor lead-capture modal. Anon only, never in PDF. */}
       {!pdfMode && <TbrLeadModal token={token} />}
       {!pdfMode && (
-        <footer className="text-center text-[10px] text-ink-400 dark:text-ink-500 pb-6 px-4 print:hidden">
+        <footer className="text-center text-xs text-muted pb-6 px-4 print:hidden">
           This report is being viewed. The founder can see aggregate view counts (no PII).
         </footer>
       )}

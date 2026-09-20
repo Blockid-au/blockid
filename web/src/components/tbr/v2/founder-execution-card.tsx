@@ -112,41 +112,41 @@ export function FounderExecutionCard(props: FounderExecutionCardProps) {
   const structuredLabel = data.structured ? "structured profile" : "profile without structured fields";
   const capNotice = data.capReason ?? DEFAULT_CAP_NOTICE;
   return (
-    <div className="rounded-lg border border-ink-200 p-3 dark:border-ink-800 print:break-inside-avoid" data-testid="founder-execution-card" data-execution-score={data.executionScore} data-execution-capped={cappedAttr}>
+    <div className="rounded-lg border border-line-subtle p-3 print:break-inside-avoid" data-testid="founder-execution-card" data-execution-score={data.executionScore} data-execution-capped={cappedAttr}>
       <div className="flex items-center justify-between gap-2">
-        <p className="text-sm font-semibold text-ink-800 dark:text-ink-100">Founder Execution</p>
+        <p className="text-sm font-semibold text-primary">Founder Execution</p>
         <span className={cn("text-sm font-bold tabular-nums", bandText(band))}>
           {data.executionScore}
-          <span className="text-[10px] font-normal text-ink-400">/100</span>
+          <span className="text-xs font-normal text-muted">/100</span>
         </span>
       </div>
-      <p className="mt-1 text-xs text-ink-600 dark:text-ink-300">
+      <p className="mt-1 text-xs text-secondary">
         Structured rubric over the founder profile — {sourceLabel}
         {clippedNote}.
       </p>
       {data.breakdown.length > 0 && (
-        <table className="mt-2 w-full text-[11px]">
+        <table className="mt-2 w-full text-xs">
           <caption className="sr-only">Founder execution rubric breakdown</caption>
           <tbody>
             {data.breakdown.map((b) => (
-              <tr key={b.key} className="border-t border-ink-100 dark:border-ink-800/60" data-execution-row={b.key}>
-                <td className="py-0.5 pr-2 text-ink-700 dark:text-ink-200">{b.label}</td>
-                <td className="py-0.5 pr-2 text-right tabular-nums text-ink-800 dark:text-ink-100">
+              <tr key={b.key} className="border-t border-line-subtle" data-execution-row={b.key}>
+                <td className="py-0.5 pr-2 text-secondary">{b.label}</td>
+                <td className="py-0.5 pr-2 text-right tabular-nums text-primary">
                   {b.points}
-                  <span className="text-ink-400">/{b.max}</span>
+                  <span className="text-muted">/{b.max}</span>
                 </td>
-                {!compact && <td className="py-0.5 text-ink-500">{b.evidence}</td>}
+                {!compact && <td className="py-0.5 text-muted">{b.evidence}</td>}
               </tr>
             ))}
           </tbody>
         </table>
       )}
       {data.capped && (
-        <p className="mt-2 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] text-amber-800 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200" data-testid="founder-execution-cap">
+        <p className="mt-2 rounded-md border border-amber-300 dark:border-amber-800 bg-surface-sunken px-2 py-1 text-xs text-warn" data-testid="founder-execution-cap">
           {capNotice}
         </p>
       )}
-      <p className="mt-1 text-[10px] text-ink-400">rubric v{data.rubricVersion} · CHRO · {structuredLabel}</p>
+      <p className="mt-1 text-xs text-muted">rubric v{data.rubricVersion} · CHRO · {structuredLabel}</p>
     </div>
   );
 }

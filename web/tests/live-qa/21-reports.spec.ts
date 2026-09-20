@@ -573,3 +573,34 @@ test.describe("Founder execution profile (S37)", () => {
     expect(res.body.analysis?.signals?.founderExecution?.score).toBeGreaterThan(0);
   });
 });
+
+// G19-S47 — the structured executive summary: the demo report AND BlockID's
+// own showcase report (a STORED report_v2, restructured on read or by
+// scripts/report/restructure-stored.mjs) open with a headline, ≥ 3 reason
+// cards, a verdict pill — and never the raw CEO markdown (`**`, `# `,
+// `<!-- SCORE -->`) or a "100/100 (strong)" score restatement.
+test.describe("TBR executive summary — structured (G19-S47)", () => {
+  for (const path of ["/tbr/demo", "/showcase/blockid/report"]) {
+    test(`${path}: executive shows a headline, ≥ 3 reason cards, a verdict pill and no markdown tokens`, async ({ page, visit }, testInfo) => {
+      await visit(path);
+      const exec = page.locator("#tbr-executive");
+      await expect(exec).toBeVisible({ timeout: 30_000 });
+      const headline = exec.locator("[data-tbr-exec-headline]");
+      await expect(headline).toBeVisible();
+      const reasons = await exec.locator('[data-tbr-exec-card="reason"]').count();
+      const gaps = await exec.locator('[data-tbr-exec-card="gap"]').count();
+      const pill = exec.locator("[data-tbr-exec-verdict-pill]");
+      await expect(pill).toBeVisible();
+      const text = await exec.innerText();
+      await evidence(testInfo, "executive", { path, headline: await headline.innerText(), reasons, gaps, verdict: await pill.innerText(), words: text.split(/\s+/).length });
+      expect(reasons).toBeGreaterThanOrEqual(3);
+      expect(gaps).toBeGreaterThanOrEqual(1);
+      expect(text).not.toContain("**");
+      expect(text).not.toMatch(/^\s*#/m);
+      expect(text).not.toContain("<!--");
+      expect(text).not.toMatch(/\d{1,3}\/100 \((strong|developing|early)\)/);
+      expect(text).not.toMatch(/below the (strong|developing) band/);
+      expect(text).not.toMatch(/Top strengths|Top gaps/);
+    });
+  }
+});

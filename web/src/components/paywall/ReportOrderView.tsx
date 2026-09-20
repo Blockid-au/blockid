@@ -54,7 +54,7 @@ export function ReportOrderExportLinks({ orderId, locale = "en", surface = "orde
       <a
         href={reportOrderExportHref(orderId, "docx")}
         onClick={() => trackEvent("tbr_export", { format: "docx", surface })}
-        className="inline-flex h-10 items-center rounded-xl border border-slate-300 px-4 text-sm font-medium hover:border-brand-400"
+        className="inline-flex h-10 items-center rounded-xl border border-slate-300 px-4 text-sm font-medium hover:border-line"
         data-testid="report-order-docx"
       >
         {t.v2.order.downloadDocx}
@@ -71,12 +71,12 @@ export function ReportOrderReady({ order, report, locale = "en" }: { order: Orde
   return (
     <article className="space-y-6" data-testid="report-order-ready" data-report-order-source={v2 ? "report_v2" : "legacy_markdown"}>
       <header className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight text-ink-900">{v2 ? t.reportTitle : report.title}</h1>
-        <p className="text-sm text-ink-600">
+        <h1 className="text-2xl font-bold tracking-tight text-primary">{v2 ? t.reportTitle : report.title}</h1>
+        <p className="text-sm text-secondary">
           {v2 ? `${v2.cover.startupName} · ${v2.dimensions.length} ${t.tocDimensions.toLowerCase()}` : `${report.totalWords.toLocaleString("en-AU")} words · ${report.sectionsCount} sections`} · {report.tier}
           {order.generatedAt ? ` · ${t.v2.order.generated(new Date(order.generatedAt).toLocaleDateString(dateLocale))}` : null}
         </p>
-        <p className="text-xs text-ink-500">
+        <p className="text-xs text-muted">
           {order.amountAud > 0 ? t.v2.order.paid(withGst(`A$${(order.amountAud / 100).toFixed(2)}`)) : t.v2.order.redeemed(order.creditsUsed)}
           {order.expiresAt ? ` · ${t.v2.order.availableUntil(new Date(order.expiresAt).toLocaleDateString(dateLocale))}` : null}
         </p>
@@ -86,8 +86,8 @@ export function ReportOrderReady({ order, report, locale = "en" }: { order: Orde
 
       {v2 ? (
         <>
-          <p className="text-xs text-ink-500">
-            <a href={reportOrderPath(order.orderId)} className="font-medium text-brand-700 underline underline-offset-2 dark:text-brand-300">
+          <p className="text-xs text-muted">
+            <a href={reportOrderPath(order.orderId)} className="font-medium text-action underline underline-offset-2">
               {t.v2.order.openInWorkspace}
             </a>
           </p>
@@ -96,15 +96,15 @@ export function ReportOrderReady({ order, report, locale = "en" }: { order: Orde
       ) : (
         <>
           {report.executiveSummary ? (
-            <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
-              <h2 className="mb-2 text-lg font-semibold text-ink-900">{t.secExecutive}</h2>
+            <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-surface p-6">
+              <h2 className="mb-2 text-lg font-semibold text-primary">{t.secExecutive}</h2>
               <div className="prose prose-sm dark:prose-invert max-w-none">
                 <Markdown>{report.executiveSummary}</Markdown>
               </div>
             </section>
           ) : null}
-          <details className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6" data-testid="report-order-legacy">
-            <summary className="cursor-pointer text-sm font-semibold text-ink-800 dark:text-ink-100">{t.v2.order.legacyText(report.totalWords)}</summary>
+          <details className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-surface p-6" data-testid="report-order-legacy">
+            <summary className="cursor-pointer text-sm font-semibold text-primary">{t.v2.order.legacyText(report.totalWords)}</summary>
             <div className="prose prose-sm dark:prose-invert mt-4 max-w-none">
               <Markdown>{report.markdown}</Markdown>
             </div>
@@ -118,13 +118,13 @@ export function ReportOrderReady({ order, report, locale = "en" }: { order: Orde
 export function ReportOrderPending({ message, locale = "en" }: { message: string; locale?: TbrLocale }) {
   const t = getTbrStrings(locale).v2.order;
   return (
-    <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-3" aria-live="polite" data-testid="report-order-pending">
-      <h2 className="text-lg font-semibold text-ink-900">{t.pendingTitle}</h2>
-      <p className="text-sm text-ink-600 leading-relaxed">{message}</p>
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800" role="progressbar" aria-label={t.pendingAria}>
+    <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-surface p-6 space-y-3" aria-live="polite" data-testid="report-order-pending">
+      <h2 className="text-lg font-semibold text-primary">{t.pendingTitle}</h2>
+      <p className="text-sm text-secondary leading-relaxed">{message}</p>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200" role="progressbar" aria-label={t.pendingAria}>
         <div className="h-full w-1/3 animate-pulse rounded-full bg-brand-500" />
       </div>
-      <p className="text-xs text-ink-500">{t.pendingLeave}</p>
+      <p className="text-xs text-muted">{t.pendingLeave}</p>
     </section>
   );
 }
@@ -132,11 +132,11 @@ export function ReportOrderPending({ message, locale = "en" }: { message: string
 export function ReportOrderBlocked({ refunded, message, failureReason, locale = "en" }: { refunded: boolean; message: string; failureReason?: string; locale?: TbrLocale }) {
   const t = getTbrStrings(locale).v2.order;
   return (
-    <section className="rounded-2xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-6 space-y-3" role="alert" data-testid="report-order-blocked">
-      <h2 className="text-lg font-semibold text-ink-900">{refunded ? t.blockedRefunded : t.blockedUnavailable}</h2>
-      <p className="text-sm text-ink-700 leading-relaxed">{message}</p>
-      {failureReason ? <p className="text-xs font-mono text-ink-500">{t.reference(failureReason)}</p> : null}
-      <a href="/dashboard" className="inline-flex h-10 items-center rounded-xl border border-slate-300 px-4 text-sm font-medium hover:border-brand-400">
+    <section className="rounded-2xl border border-amber-300 dark:border-amber-800 bg-surface-sunken p-6 space-y-3" role="alert" data-testid="report-order-blocked">
+      <h2 className="text-lg font-semibold text-primary">{refunded ? t.blockedRefunded : t.blockedUnavailable}</h2>
+      <p className="text-sm text-secondary leading-relaxed">{message}</p>
+      {failureReason ? <p className="text-xs font-mono text-muted">{t.reference(failureReason)}</p> : null}
+      <a href="/dashboard" className="inline-flex h-10 items-center rounded-xl border border-slate-300 px-4 text-sm font-medium hover:border-line">
         {t.backToDashboard}
       </a>
     </section>
@@ -149,7 +149,7 @@ export function ReportOrderView({ orderId, locale = "en" }: ReportOrderViewProps
 
   if (state.phase === "loading" || state.phase === "idle") {
     return (
-      <p className="text-sm text-ink-600" role="status">
+      <p className="text-sm text-secondary" role="status">
         {t.loading}
       </p>
     );

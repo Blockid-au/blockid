@@ -30,7 +30,7 @@ export function VisualFigure({ spec, caption, className, hideTable }: VisualFigu
     <figure className={className} data-visual-kind={spec.kind} data-visual-state={spec.dataState}>
       <div className="w-full [&>svg]:h-auto [&>svg]:w-full [&>svg]:max-w-full" dangerouslySetInnerHTML={{ __html: svg }} />
       {caption !== null && (
-        <figcaption className="mt-1 text-[11px] text-ink-500 dark:text-ink-400">
+        <figcaption className="mt-1 text-xs text-muted">
           {caption ?? spec.title}
         </figcaption>
       )}

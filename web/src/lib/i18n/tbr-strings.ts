@@ -532,6 +532,56 @@ export interface TbrV2Strings {
       nothingYet: string;
     };
   };
+  /** G19-S47: structured executive summary + report-wide section lead-ins. */
+  s47: TbrS47Strings;
+}
+
+export type TbrV2VerdictLabel = "back" | "back_with_conditions" | "watch" | "not_yet";
+
+export interface TbrS47Strings {
+  /** Executive block labels. */
+  keyInsight: string;
+  whyBack: string;
+  whatMustChange: string;
+  benchmarks: string;
+  whereYouAre: string;
+  blocker: string;
+  whatItTakes: string;
+  verdict: string;
+  verdictLabel: Record<TbrV2VerdictLabel, string>;
+  confidence: (pct: number) => string;
+  condition: string;
+  actions: string;
+  lift: (n: number) => string;
+  openChapter: (title: string) => string;
+  noCondition: string;
+  /** Deterministic fallback copy (`structureExecutive` when the CEO text has no structure). */
+  headlineFallback: (name: string, svi: number, band: string) => string;
+  headlinePending: (name: string) => string;
+  worthParagraph: (low: string, high: string, pct: number) => string;
+  worthPending: string;
+  phaseParagraph: (phase: string, pct: number, next: string | null) => string;
+  noBlocker: string;
+  takesFallback: (action: string) => string;
+  reasonTitle: (dimTitle: string) => string;
+  gapTitle: (dimTitle: string) => string;
+  conditionFallback: (action: string) => string;
+  actionDetail: (owner: string, lift: number) => string;
+  /** Criterion quality level labels (never the raw enum on a card). */
+  quality: Record<"incomplete" | "basic" | "good" | "strong" | "exceptional", string>;
+  /** Table headers the appendix register / money table used to hard-code. */
+  th: { id: string; label: string; source: string; status: string; dims: string };
+  /** One-line purpose under every section title (number · title · purpose). */
+  purpose: {
+    cover: string;
+    executive: string;
+    dimension: (weight: number) => string;
+    valuation: string;
+    phaseGates: string;
+    money: string;
+    actionPlan: string;
+    appendix: string;
+  };
 }
 
 const v2En: TbrV2Strings = {
@@ -737,6 +787,46 @@ const v2En: TbrV2Strings = {
       nothingYet: "Nothing to show here yet.",
     },
   },
+  s47: {
+    keyInsight: "Key insight",
+    whyBack: "Why back this startup",
+    whatMustChange: "What must change",
+    benchmarks: "Stage benchmarks",
+    whereYouAre: "Where you are",
+    blocker: "Blocker",
+    whatItTakes: "What it takes",
+    verdict: "Verdict",
+    verdictLabel: { back: "Back", back_with_conditions: "Back with conditions", watch: "Watch", not_yet: "Not yet" },
+    confidence: (pct) => `confidence ${pct}%`,
+    condition: "Condition",
+    actions: "Recommended actions",
+    lift: (n) => `+${n} SVI`,
+    openChapter: (title) => `Open the ${title} chapter`,
+    noCondition: "No condition attached.",
+    headlineFallback: (name, svi, band) => `${name}: SVI ${svi}, ${band} for its stage`,
+    headlinePending: (name) => `${name}: evidence still pending`,
+    worthParagraph: (low, high, pct) => `The consensus valuation sits between ${low} and ${high} (confidence ${pct}%), from the applicable methods weighed in the Valuation chapter.`,
+    worthPending: "A valuation range is pending — revenue or team evidence would let the applicable methods run.",
+    phaseParagraph: (phase, pct, next) => `The startup is in the ${phase} phase with ${pct}% of the exit gate cleared${next ? `; the next phase is ${next}` : ""}.`,
+    noBlocker: "No blocker on the current gate.",
+    takesFallback: (action) => `Clearing the gate starts with: ${action}.`,
+    reasonTitle: (dimTitle) => `${dimTitle} is a strength`,
+    gapTitle: (dimTitle) => `${dimTitle} below benchmark`,
+    conditionFallback: (action) => `Subject to: ${action}.`,
+    actionDetail: (owner, lift) => `Owner ${owner} · worth +${lift} SVI`,
+    quality: { incomplete: "Incomplete", basic: "Basic", good: "Good", strong: "Strong", exceptional: "Exceptional" },
+    th: { id: "Id", label: "Label", source: "Source", status: "Status", dims: "Dims" },
+    purpose: {
+      cover: "The three answers an evaluator needs first: where the startup is, what it is worth, what comes next.",
+      executive: "The CEO agent's synthesis of every chapter: the case for backing, the gaps, the verdict and the next moves.",
+      dimension: (weight) => `One of the eight SVI dimensions (${weight}% of the index) — score ledger, evidence, criterion cards, next action.`,
+      valuation: "The methods that apply at this stage, their inputs and how the consensus range was reached.",
+      phaseGates: "The 13 criteria against the 12 growth phases — what the current gate requires and what is still open.",
+      money: "Grants and programs matched to the saved funding profile, with fit and deadlines.",
+      actionPlan: "The 90-day plan the chapters agree on, ordered by expected lift.",
+      appendix: "Method, data principle, the evidence register and the auditor log behind every claim.",
+    },
+  },
 };
 
 const v2Vi: TbrV2Strings = {
@@ -940,6 +1030,46 @@ const v2Vi: TbrV2Strings = {
       openReport: "Mở báo cáo đầy đủ",
       fromReport: (date) => `Từ báo cáo ngày ${date}`,
       nothingYet: "Chưa có gì để hiển thị ở đây.",
+    },
+  },
+  s47: {
+    keyInsight: "Điểm mấu chốt",
+    whyBack: "Vì sao nên đầu tư",
+    whatMustChange: "Điều cần thay đổi",
+    benchmarks: "Chuẩn theo giai đoạn",
+    whereYouAre: "Bạn đang ở đâu",
+    blocker: "Rào cản",
+    whatItTakes: "Cần gì để vượt qua",
+    verdict: "Kết luận",
+    verdictLabel: { back: "Nên đầu tư", back_with_conditions: "Đầu tư có điều kiện", watch: "Theo dõi", not_yet: "Chưa đến lúc" },
+    confidence: (pct) => `độ tin cậy ${pct}%`,
+    condition: "Điều kiện",
+    actions: "Hành động đề xuất",
+    lift: (n) => `+${n} SVI`,
+    openChapter: (title) => `Mở chương ${title}`,
+    noCondition: "Không kèm điều kiện.",
+    headlineFallback: (name, svi, band) => `${name}: SVI ${svi}, ${band} so với giai đoạn`,
+    headlinePending: (name) => `${name}: bằng chứng còn đang chờ`,
+    worthParagraph: (low, high, pct) => `Định giá đồng thuận nằm trong khoảng ${low} đến ${high} (độ tin cậy ${pct}%), từ các phương pháp áp dụng được cân nhắc ở chương Định giá.`,
+    worthPending: "Khoảng định giá đang chờ — bằng chứng doanh thu hoặc đội ngũ sẽ cho phép các phương pháp áp dụng chạy.",
+    phaseParagraph: (phase, pct, next) => `Startup đang ở giai đoạn ${phase}, đã hoàn thành ${pct}% cổng thoát${next ? `; giai đoạn tiếp theo là ${next}` : ""}.`,
+    noBlocker: "Không có rào cản ở cổng hiện tại.",
+    takesFallback: (action) => `Vượt qua cổng bắt đầu bằng: ${action}.`,
+    reasonTitle: (dimTitle) => `${dimTitle} là điểm mạnh`,
+    gapTitle: (dimTitle) => `${dimTitle} dưới chuẩn`,
+    conditionFallback: (action) => `Với điều kiện: ${action}.`,
+    actionDetail: (owner, lift) => `Phụ trách ${owner} · mức nâng kỳ vọng +${lift} SVI`,
+    quality: { incomplete: "Chưa đủ", basic: "Cơ bản", good: "Tốt", strong: "Mạnh", exceptional: "Xuất sắc" },
+    th: { id: "Mã", label: "Nhãn", source: "Nguồn", status: "Trạng thái", dims: "Khía cạnh" },
+    purpose: {
+      cover: "Ba câu trả lời nhà đánh giá cần trước tiên: startup đang ở đâu, đáng giá bao nhiêu, bước tiếp theo là gì.",
+      executive: "Tổng hợp của tác nhân CEO từ mọi chương: lý do nên đầu tư, khoảng trống, kết luận và những bước tiếp theo.",
+      dimension: (weight) => `Một trong tám khía cạnh SVI (${weight}% chỉ số) — sổ cái điểm, bằng chứng, thẻ tiêu chí, hành động tiếp theo.`,
+      valuation: "Các phương pháp áp dụng ở giai đoạn này, đầu vào của chúng và cách đạt tới khoảng đồng thuận.",
+      phaseGates: "13 tiêu chí đối chiếu 12 giai đoạn tăng trưởng — cổng hiện tại yêu cầu gì và điều gì còn mở.",
+      money: "Tài trợ và chương trình khớp với hồ sơ tài trợ đã lưu, kèm độ phù hợp và hạn chót.",
+      actionPlan: "Kế hoạch 90 ngày mà các chương thống nhất, xếp theo mức nâng kỳ vọng.",
+      appendix: "Phương pháp, nguyên tắc dữ liệu, sổ đăng ký bằng chứng và nhật ký kiểm toán đằng sau mọi nhận định.",
     },
   },
 };

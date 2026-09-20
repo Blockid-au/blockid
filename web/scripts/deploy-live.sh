@@ -1446,7 +1446,9 @@ done
 # Capture playwright's exit code via PIPESTATUS[0] — piping to `tail` without
 # `set -o pipefail` would otherwise mask a non-zero exit and false-pass.
 set +e
-npx --no-install playwright test tests/e2e/smoke/post-deploy.spec.ts --reporter=list 2>&1 | tail -40
+# G19-S47: tbr-contrast.spec.ts samples every text node on /tbr/demo in
+# light + dark and fails below WCAG 4.5:1 — the report theme contract guard.
+npx --no-install playwright test tests/e2e/smoke/post-deploy.spec.ts tests/e2e/smoke/tbr-contrast.spec.ts --reporter=list 2>&1 | tail -40
 PW_EXIT=${PIPESTATUS[0]}
 set -e
 if [ "$PW_EXIT" -ne 0 ]; then

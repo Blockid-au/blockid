@@ -47,7 +47,9 @@ import { coverHero } from "@/lib/report-v2/cover-hero";
 import { coverLedgerCells, isUnassessed, ledgerRowsFor, pendingDimsLine, pendingLine } from "@/lib/report-v2/ledger-rows";
 import { chapterCtaRows, coverEvidenceLine, emptyEvidenceLine, evidenceRowsView, moneyEmptyState, nextActionLine, pendingCtasHeading, planEvidenceRows, type EvidenceRowView } from "@/lib/report-v2/evidence-view";
 import { getTbrS43Strings, getTbrStrings } from "@/lib/i18n/tbr-strings";
-import { DIM_ORDER, type DimensionChapter, type ReportV2 } from "@/lib/report-v2/schema";
+import { DIM_ORDER, type DimensionChapter, type ExecutiveStructured, type ReportV2 } from "@/lib/report-v2/schema";
+import { ensureExecutiveStructured } from "@/lib/report-v2/executive-structure";
+import { proseParagraphs } from "@/lib/report-v2/paragraphs";
 import { buildValuationView, CONNECTORS_HREF } from "@/lib/report-v2/valuation-view";
 import { PDF_ENTITY_LINE, PDF_FINANCIAL_PROJECTION_DISCLAIMER, PDF_GENERAL_ADVICE_DISCLAIMER } from "@/lib/pdf/advice-disclaimer";
 import { defaultPreparedWith } from "@/lib/report-v2/prepared-with";
@@ -302,23 +304,115 @@ function scoreLedger(ch: DimensionChapter, locale: "en" | "vi", verificationLeve
   return out;
 }
 
+/** G19-S47: prose as ≤ 3-sentence paragraphs (markdown stripped) — the DOCX twin of `<Prose>`. */
+function paragraphs(text: string, opts: { size?: number; color?: string; after?: number } = {}): Paragraph[] {
+  return proseParagraphs(text).map((para) => p(para, { size: opts.size, color: opts.color, after: opts.after ?? 80 }));
+}
+
+const VERDICT_HEX: Record<ExecutiveStructured["verdict"]["label"], string> = {
+  back: BAND_COLOUR.strong.replace("#", ""),
+  back_with_conditions: BAND_COLOUR.developing.replace("#", ""),
+  watch: BAND_COLOUR.early.replace("#", ""),
+  not_yet: BAND_COLOUR.pending.replace("#", ""),
+};
+
+/** A 2-column card table for the reason / gap groups (title · body · dim · lift per cell). */
+function cardTable(items: Array<{ title: string; body: string; dim?: string; lift?: number }>, accentHex: string, locale: "en" | "vi"): Table {
+  const s47 = getTbrStrings(locale).v2.s47;
+  const cell = (it: (typeof items)[number] | null, index: number) =>
+    new TableCell({
+      borders: { ...cellBorders, left: { style: BorderStyle.SINGLE, size: 18, color: it ? accentHex : GRID } },
+      width: { size: 50, type: WidthType.PERCENTAGE },
+      margins: { top: 80, bottom: 80, left: 120, right: 120 },
+      children: it
+        ? [
+            new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: `${String(index + 1).padStart(2, "0")}  ${it.title}`, font: FONT, size: 20, bold: true, color: INK })] }),
+            p(it.body, { size: 17, color: INK, after: 40 }),
+            ...(it.dim || typeof it.lift === "number"
+              ? [
+                  new Paragraph({
+                    spacing: { after: 0 },
+                    children: [
+                      ...(it.dim ? [new TextRun({ text: `${it.dim.toUpperCase()} · ${locale === "vi" ? DIMENSION_OWNERS[it.dim as keyof typeof DIMENSION_OWNERS].titleVi : DIMENSION_OWNERS[it.dim as keyof typeof DIMENSION_OWNERS].shortLabel}`, font: FONT, size: 14, color: BRAND, bold: true })] : []),
+                      ...(typeof it.lift === "number" ? [new TextRun({ text: `${it.dim ? "   " : ""}${s47.lift(it.lift)}`, font: FONT, size: 14, color: MUTED })] : []),
+                    ],
+                  }),
+                ]
+              : []),
+          ]
+        : [new Paragraph({ children: [] })],
+    });
+  const rows: TableRow[] = [];
+  for (let i = 0; i < items.length; i += 2) rows.push(new TableRow({ children: [cell(items[i], i), cell(items[i + 1] ?? null, i + 1)] }));
+  return new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows });
+}
+
 function executive(report: ReportV2, images: TbrDocxImages, locale: "en" | "vi"): Block[] {
-  const e = report.executive;
-  const ph = e.phaseNow;
-  const blockers = topBlockers(ph, 3);
-  return [
+  // G19-S47: the structured sections (parsed on the fly for a pre-S47 row) — never the raw thesis.
+  const e = ensureExecutiveStructured(report).executive;
+  const x = e.structured!;
+  const s47 = getTbrStrings(locale).v2.s47;
+  const windowLabel = getTbrStrings(locale).v2.chapter.window;
+  const phase = GROWTH_PHASE_LABELS[x.phaseNow.phaseId]?.[locale] ?? x.phaseNow.label;
+  const confidencePct = Math.round(x.verdict.confidence * 100);
+  const verdictHex = VERDICT_HEX[x.verdict.label];
+  const out: Block[] = [
     pageBreak(),
     h1("Executive Summary", "1"),
-    small(`CEO · confidence ${Math.round(e.confidence * 100)}%`),
-    p(e.thesis),
-    ...bullets("Top strengths", e.strengths, "+"),
-    ...bullets("Top gaps", e.gaps, "^"),
-    p(`Phase now: ${GROWTH_PHASE_LABELS[ph.currentPhase][locale]} → next gate: ${ph.nextPhase ? GROWTH_PHASE_LABELS[ph.nextPhase][locale] : "final phase"} · ${ph.completionPct}% cleared`),
-    ...(blockers.length ? blockers.map((b) => small(`▲ ${b.detail}`)) : [small("No blockers on the current gate.")]),
-    p(`Verdict: ${e.verdict}`, { bold: true }),
-    ...e.visuals.flatMap((v) => figure(v, images, CONTENT_PX, null)),
-    auditLine(e.audit.grounded, e.audit.uncited, e.audit.revised),
+    small(s47.purpose.executive),
+    small(`CEO · ${getTbrStrings(locale).v2.s44.evidenceConfidence(Math.round(e.confidence * 100))}`),
+    new Paragraph({ spacing: { before: 120, after: 120 }, children: [new TextRun({ text: x.headline, font: FONT, size: 30, bold: true, color: INK })] }),
+    ...x.summary.map((para) => p(para, { after: 100 })),
   ];
+  if (x.keyInsight) {
+    out.push(kicker(s47.keyInsight));
+    out.push(new Paragraph({ spacing: { after: 120 }, indent: { left: 240 }, border: { left: { style: BorderStyle.SINGLE, size: 18, color: BRAND, space: 8 } }, children: [new TextRun({ text: x.keyInsight, font: FONT, size: 20, color: INK })] }));
+  }
+  if (x.reasonsToBack.length) {
+    out.push(kicker(s47.whyBack));
+    out.push(cardTable(x.reasonsToBack, BAND_COLOUR.strong.replace("#", ""), locale));
+    out.push(p("", { after: 60 }));
+  }
+  if (x.criticalGaps.length) {
+    out.push(kicker(s47.whatMustChange));
+    out.push(cardTable(x.criticalGaps, BAND_COLOUR.early.replace("#", ""), locale));
+    out.push(p("", { after: 60 }));
+  }
+  if (x.benchmarks.length) {
+    out.push(kicker(s47.benchmarks));
+    out.push(
+      new Paragraph({
+        spacing: { after: 100 },
+        children: x.benchmarks.map((b) => new TextRun({ text: `${b.dim.toUpperCase()} ${b.band === "pending" ? "—" : b.score} · ${bandLabel(b.band)}    `, font: FONT, size: 16, color: bandHex(b.band), bold: true })),
+      }),
+    );
+  }
+  out.push(kicker(`${s47.whereYouAre} · ${phase}`));
+  out.push(p(`${s47.blocker}: ${x.phaseNow.blocker}`, { size: 18 }));
+  out.push(p(`${s47.whatItTakes}: ${x.phaseNow.whatItTakes}`, { size: 18 }));
+  out.push(...e.visuals.flatMap((v) => figure(v, images, CONTENT_PX, null)));
+  out.push(
+    new Paragraph({
+      spacing: { before: 120, after: 40 },
+      border: { left: { style: BorderStyle.SINGLE, size: 18, color: verdictHex, space: 8 } },
+      indent: { left: 240 },
+      children: [
+        new TextRun({ text: `${s47.verdict}: `, font: FONT, size: 20, bold: true, color: INK }),
+        new TextRun({ text: s47.verdictLabel[x.verdict.label], font: FONT, size: 22, bold: true, color: verdictHex }),
+        new TextRun({ text: `   ${s47.confidence(confidencePct)}`, font: FONT, size: 16, color: MUTED }),
+      ],
+    }),
+  );
+  out.push(new Paragraph({ spacing: { after: 120 }, indent: { left: 240 }, children: [new TextRun({ text: `${s47.condition}: ${x.verdict.condition ?? s47.noCondition}`, font: FONT, size: 18, color: INK })] }));
+  if (x.actions.length) {
+    out.push(kicker(s47.actions));
+    x.actions.forEach((a, i) => {
+      out.push(new Paragraph({ spacing: { after: 20 }, indent: { left: 240 }, children: [new TextRun({ text: `${i + 1}. ${a.title}`, font: FONT, size: 18, bold: true, color: INK })] }));
+      out.push(new Paragraph({ spacing: { after: 60 }, indent: { left: 480 }, children: [new TextRun({ text: `${a.detail}  (${windowLabel[a.window]}${a.dim ? ` · ${a.dim.toUpperCase()}` : ""})`, font: FONT, size: 16, color: MUTED })] }));
+    });
+  }
+  out.push(auditLine(e.audit.grounded, e.audit.uncited, e.audit.revised));
+  return out;
 }
 
 function auditLine(grounded: boolean, uncited: number, revised: boolean, frameworks?: string[]): Paragraph {
@@ -342,7 +436,7 @@ function chapter(ch: DimensionChapter, index: number, images: TbrDocxImages, loc
   const title = locale === "vi" ? ch.titleVi : ch.title;
   const out: Block[] = [...(projection.free ? [] : [pageBreak()]), h1(title, String(index)), ...chapterHeader(ch)];
   if (projection.free && ch.renderAs === "card") {
-    out.push(p(ch.verdict));
+    out.push(...paragraphs(ch.verdict));
     if (ch.gaps[0]) out.push(small(`▲ ${ch.gaps[0]}`));
     out.push(...figure(ch.primaryVisual, images, 360, `${ch.primaryVisual.title} · ${stateLabel(ch.primaryVisual.dataState)}`));
     out.push(...a11yTable(ch.primaryVisual, 8));
@@ -352,7 +446,7 @@ function chapter(ch: DimensionChapter, index: number, images: TbrDocxImages, loc
   // G19-S41: the ledger follows the evidence-table trim rule on the free tier (as in the PDF).
   if (projection.show.evidenceTables) out.push(...scoreLedger(ch, locale, verificationLevel));
   out.push(...figure(ch.primaryVisual, images, CONTENT_PX, `${ch.primaryVisual.title} · ${stateLabel(ch.primaryVisual.dataState)}${ch.primaryVisual.subtitle ? ` — ${ch.primaryVisual.subtitle}` : ""}`));
-  out.push(p(ch.verdict));
+  out.push(...paragraphs(ch.verdict));
   if (projection.show.evidenceTables) {
     out.push(kicker("Evidence"));
     // G19-S43: real rows first, then every missing input as a CTA row.
@@ -366,7 +460,7 @@ function chapter(ch: DimensionChapter, index: number, images: TbrDocxImages, loc
   }
   for (const c of ch.criteria) {
     out.push(new Paragraph({ heading: HeadingLevel.HEADING_2, spacing: { before: 160, after: 60 }, children: [new TextRun({ text: `${c.title} — `, font: FONT, size: 22, bold: true, color: INK }), new TextRun({ text: String(c.score), font: FONT, size: 22, bold: true, color: bandHex(bandOf(c.score)) })] }));
-    out.push(small(c.verdict, INK));
+    out.push(...paragraphs(c.verdict, { size: 16, color: INK, after: 60 }));
     if (projection.show.criterionDetail) {
       out.push(...bullets("Strengths", c.strengths.slice(0, 3), "+"), ...bullets("Gaps", c.gaps.slice(0, 3), "^"));
       if (c.nextAction) out.push(small(`Next: ${c.nextAction}`, BRAND));
@@ -431,7 +525,7 @@ function valuation(report: ReportV2, images: TbrDocxImages, locale: "en" | "vi",
       out.push(h2(vs.consistencyTitle));
       for (const n of view.consistency) out.push(small(n));
     }
-    if (v.narrative) out.push(p(v.narrative));
+    if (v.narrative) out.push(...paragraphs(v.narrative));
     for (const x of others) out.push(...figure(x, images, 420, `${x.title} · ${stateLabel(x.dataState)}`));
   }
   out.push(auditLine(v.audit.grounded, v.audit.uncited, v.audit.revised));

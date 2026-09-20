@@ -89,7 +89,9 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { supabaseChapterCache, type ChapterCache, type ChapterCacheDb } from "./chapter-cache";
 import { applyConsistencyGates } from "./consistency-gates";
 import { executiveFromChapters, fromAssembledReport, inferPhase, type MoneyOnTableInput } from "@/lib/report-v2/adapter";
-import { isReportV2, type CriterionCard, type DimensionChapter, type ReportTierV2, type ReportV2 } from "@/lib/report-v2/schema";
+import { structureExecutive } from "@/lib/report-v2/executive-structure";
+import { dispatchExecutiveSummary, executiveOutputContract } from "./executive-summary";
+import { isReportV2, type CriterionCard, type DimensionChapter, type ExecutiveStructured, type ReportTierV2, type ReportV2 } from "@/lib/report-v2/schema";
 import { recordFullyDegraded, type DegradedEventWriter, type FullyDegradedReason } from "./pipeline-health";
 
 // ── AI caller contract ──────────────────────────────────────────────────────
@@ -602,10 +604,20 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
         : deterministicConsistencyIssues(context);
 
     // CEO executive summary — deterministic after the deadline / on a partial run.
-    context.executiveSummary =
-      partialDims || deadline.expired()
-        ? deterministicExecutiveSummary(context, partialDims ? "partial re-run" : "deadline")
-        : await generateExecutiveSummary(context, callAI);
+    // G19-S47: the live call returns the structured sections (JSON contract)
+    // beside the thesis; a deterministic / prose summary is structured on read.
+    if (partialDims || deadline.expired()) {
+      context.executiveSummary = deterministicExecutiveSummary(context, partialDims ? "partial re-run" : "deadline");
+      context.executiveStructured = null;
+    } else {
+      const ceo = await generateExecutiveSummary(context, callAI, {
+        allowRepair: () => !deadline.expired() && monthlyOk() && budget.remaining >= 2,
+        businessId: input.projectId ?? null,
+        userId: input.userId ?? null,
+      });
+      context.executiveSummary = ceo.thesis;
+      context.executiveStructured = ceo.structured;
+    }
     emit({ type: "executive_complete", summary: context.executiveSummary });
 
     // LLM Auditor (ported from Google Agent Garden llm-auditor sample) —
@@ -852,45 +864,38 @@ export function deterministicConsistencyIssues(context: ReportContext): string[]
 
 // ── CEO Executive Summary ───────────────────────────────────────────────────
 
+/** The placeholder the placeholder-detection (`fullyDegradedReason`) keys on. */
+function placeholderExecutiveSummary(context: ReportContext): string {
+  return `## Executive Summary\n\n**${context.startupName}** — SVI Score: ${context.sviAnalysis.totalSVI} (${context.sviAnalysis.stageLabel})\n\n*Executive summary generation encountered an error. Please refer to individual section analyses below.*`;
+}
+
+/**
+ * G19-S47: ONE metered CEO call on the synthesis class with the executive
+ * JSON contract in the OUTPUT_SCHEMA slot (`executive-summary.ts`). A
+ * structured answer becomes `executive.structured` + a plain-text thesis; a
+ * prose answer is kept verbatim as the thesis (structured on read); a failed
+ * call keeps the placeholder shell — never a thrown error.
+ */
 async function generateExecutiveSummary(
   context: ReportContext,
   callAI: AICaller,
-): Promise<string> {
-  const summaries = [...context.criterionResults.entries()]
-    .map(([key, result]) => `**${key}** (${result.score}/100): ${result.highlights.slice(0, 2).join("; ")}`)
-    .join("\n");
-  const chapters = context.dimensionChapters
-    ? [...context.dimensionChapters.values()].map((c) => `**${c.dim.toUpperCase()}** ${c.score}/100 (${c.band}): ${c.verdict}`).join("\n")
-    : "";
+  opts: { allowRepair?: () => boolean; businessId?: string | null; userId?: string | null } = {},
+): Promise<{ thesis: string; structured: ExecutiveStructured | null }> {
   const gate = context.phaseGate;
-  const phaseNow = gate
-    ? `\nPhase now: ${gate.currentPhaseLabel} (${gate.completionPct}% of the exit gate cleared)${gate.blockers.length ? `; blockers: ${gate.blockers.map((b) => b.detail).join("; ")}` : "; no blockers"}${gate.nextPhase ? `; next phase ${gate.nextPhase}` : ""}`
-    : "";
-
-  const systemPrompt = buildAgentPrompt("ceo", context, { phaseId: gate?.currentPhase });
-  const userPrompt = `## Executive Summary Generation
-
-Based on ALL 13 criterion analyses below, write a comprehensive Executive Summary (500-800 words).
-
-${summaries}
-${chapters ? `\n## Dimension chapter verdicts (owner agents)\n${chapters}\n` : ""}
-SVI Score: ${context.sviAnalysis.totalSVI}
-Stage: ${context.sviAnalysis.stageLabel}${phaseNow}
-${context.consistencyIssues?.length ? `\nConsistency Issues:\n${context.consistencyIssues.join("\n")}` : ""}
-
-Include:
-1. One-paragraph startup overview
-2. Investment thesis: top 3 reasons to back this startup
-3. Top 3 critical gaps
-4. Stage-appropriate benchmarks
-5. Overall verdict and next milestone${gate ? "\n6. Phase now: the current growth phase, its blockers (exactly the ones listed above) and what clears the gate" : ""}`;
-
+  const systemPrompt = buildAgentPrompt("ceo", context, { phaseId: gate?.currentPhase, outputSchema: executiveOutputContract() });
   try {
-    // CEO final synthesis — the one call routed to Opus 5 on the quality tier.
-    return await callAI(systemPrompt, userPrompt, 2000, "synthesis");
-  } catch {
-    return `## Executive Summary\n\n**${context.startupName}** — SVI Score: ${context.sviAnalysis.totalSVI} (${context.sviAnalysis.stageLabel})\n\n*Executive summary generation encountered an error. Please refer to individual section analyses below.*`;
+    const out = await dispatchExecutiveSummary(context, callAI, {
+      systemPrompt,
+      allowRepair: opts.allowRepair,
+      businessId: opts.businessId ?? null,
+      userId: opts.userId ?? null,
+    });
+    if (out.thesis !== null) return { thesis: out.thesis, structured: out.structured };
+    if (out.reason) console.warn(`[report-pipeline] CEO summary: ${out.reason}`);
+  } catch (err) {
+    console.warn("[report-pipeline] CEO summary threw:", err instanceof Error ? err.message : String(err));
   }
+  return { thesis: placeholderExecutiveSummary(context), structured: null };
 }
 
 // ── LLM Auditor (Agent Garden pattern) ──────────────────────────────────────
@@ -1090,6 +1095,9 @@ export function buildReportV2(
         phaseNow: context.phaseGate ?? base.executive.phaseNow,
         thesis: context.executiveSummary?.trim() || base.executive.thesis,
         audit: { ...base.executive.audit, grounded: (context.sectionAudits ?? []).some((r) => r.sectionId === "executive" && r.grounded) },
+        // G19-S47: the CEO call's sections, else the thesis parsed against the
+        // PIPELINE chapters (the adapter's own block was built on its fallback chapters).
+        structured: context.executiveStructured ?? structuredFromThesis(context, base, withValuation, dimensions, fromCards.confidence ?? base.executive.confidence),
       },
       appendix: { ...base.appendix, evidenceRegister: context.evidenceRows ?? [], auditLog: context.sectionAudits ?? [] },
       quality: { ...base.quality, score: context.qualityScore ?? base.quality.score, groundedShare, degradedSections: degraded, consistencyIssues: report.consistencyIssues },
@@ -1104,6 +1112,20 @@ export function buildReportV2(
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
+
+/** G19-S47: the thesis parsed against the PIPELINE chapters; the adapter's own block when the chapters are unusable. */
+function structuredFromThesis(context: ReportContext, base: ReportV2, doc: ReportV2, dimensions: DimensionChapter[], confidence: number): ReportV2["executive"]["structured"] {
+  try {
+    return structureExecutive(context.executiveSummary?.trim() || base.executive.thesis, dimensions, doc.valuation, context.phaseGate ?? base.executive.phaseNow, {
+      locale: context.locale,
+      cover: { startupName: doc.cover.startupName, svi: doc.cover.svi },
+      actionPlan: doc.actionPlan.steps,
+      confidence,
+    });
+  } catch {
+    return base.executive.structured;
+  }
+}
 
 /**
  * G19-S43: `gatherResults.grants` (grant-advisor matches on the saved grant

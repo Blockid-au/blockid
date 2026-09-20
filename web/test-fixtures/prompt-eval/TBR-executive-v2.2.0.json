@@ -1,0 +1,88 @@
+{
+  "agent": "TBR-executive",
+  "version": "2.2.0",
+  "purpose": "Trusted Business Report v2 — G19-S47 structured executive summary: the CEO call returns the JSON contract (headline / 2–3 paragraphs / key insight / 3 reasons / 3 gaps / benchmarks / phase now / verdict / ≤ 5 actions) with no markdown syntax, a valid verdict label, ≥ 1 critical gap naming the lowest dimension, citations where the chapters list citable ids, and no invented figure",
+  "cases": [
+    {
+      "id": "case_executive_seed_saas",
+      "name": "Seed SaaS — Stripe-evidenced revenue, TRE lowest: the gap names Traction, the verdict is a valid label, evidence is cited",
+      "input": {
+        "startupName": "Acme Compliance",
+        "svi": 74,
+        "stageLabel": "Seed",
+        "phase": {
+          "id": "investor_review",
+          "label": "Investor Progress Review",
+          "completionPct": 67,
+          "nextPhase": "co_founders",
+          "blockers": ["TRE scores 46 — Investor Progress Review needs 55."]
+        },
+        "criteria": [
+          { "key": "traction", "score": 46, "highlights": ["MRR A$12,000 from 9 customers", "Expansion revenue only 6 % of NRR"] },
+          { "key": "team", "score": 83, "highlights": ["Two prior exits", "CTO with 12 years in compliance SaaS"] },
+          { "key": "market", "score": 75, "highlights": ["SME compliance TAM A$1.2B", "Pilot customers renewed"] }
+        ],
+        "chapters": [
+          { "dim": "tre", "title": "Traction & Revenue Evidence", "score": 46, "band": "developing", "verdict": "Stripe shows A$12,000 MRR from 9 paying customers; expansion is thin.", "nextAction": "Publish a cohort retention table", "expectedLift": 6, "evidenceIds": ["ev-stripe-mrr-01"] },
+          { "dim": "mpc", "title": "Market Pull & Category", "score": 75, "band": "strong", "verdict": "Pilot customers renewed; the category thesis is published.", "nextAction": "Quantify the serviceable market", "expectedLift": 3, "evidenceIds": ["ev-market-01"] },
+          { "dim": "ftv", "title": "Founder & Team Value", "score": 83, "band": "strong", "verdict": "Two exits and a domain CTO.", "nextAction": "Add an advisory board", "expectedLift": 2, "evidenceIds": ["ev-linkedin-01"] },
+          { "dim": "ptd", "title": "Product & Tech Depth", "score": 78, "band": "strong", "verdict": "Live product, CI passing.", "nextAction": "Publish the roadmap", "expectedLift": 2, "evidenceIds": ["ev-github-01"] },
+          { "dim": "cgh", "title": "Capital & Governance Health", "score": 75, "band": "strong", "verdict": "Clean register, ESOP in place.", "nextAction": "Adopt a board cadence", "expectedLift": 2, "evidenceIds": [] },
+          { "dim": "iri", "title": "Investor Readiness Index", "score": 75, "band": "strong", "verdict": "Data room complete.", "nextAction": "Draft the shareholders' agreement", "expectedLift": 2, "evidenceIds": [] },
+          { "dim": "lco", "title": "Legal & Compliance Order", "score": 81, "band": "strong", "verdict": "Trademark filed, privacy policy live.", "nextAction": "Register the IP assignment", "expectedLift": 1, "evidenceIds": [] },
+          { "dim": "svm", "title": "Strategic Vision & Moat", "score": 65, "band": "developing", "verdict": "Dataset growing; network effects unproven.", "nextAction": "Publish the moat analysis", "expectedLift": 3, "evidenceIds": [] }
+        ],
+        "lowestDim": "tre",
+        "valuation": { "lowAud": 6000000, "midAud": 7800000, "highAud": 9800000, "confidence": 0.85 },
+        "consistencyIssues": []
+      },
+      "expected": {
+        "confidence": { "min": 0.3 },
+        "must_have_gaps": ["Traction"],
+        "must_not_hallucinate": ["ARR A$2", "Series B", "NRR 130", "**", "<!--"],
+        "must_cite": 1,
+        "verdict_must_mention_any": ["back", "back_with_conditions", "watch", "not_yet"]
+      }
+    },
+    {
+      "id": "case_executive_idea_prerevenue",
+      "name": "Idea stage — nothing evidenced, FTV lowest: no citation expected, no invented revenue, a gap names the founding team",
+      "input": {
+        "startupName": "Greenfield",
+        "svi": 41,
+        "stageLabel": "Idea",
+        "phase": {
+          "id": "vision",
+          "label": "Vision & Mission",
+          "completionPct": 20,
+          "nextPhase": "customer_development",
+          "blockers": ["Missing required criteria: team, idea"]
+        },
+        "criteria": [
+          { "key": "idea", "score": 48, "highlights": ["Problem stated, not yet validated"] },
+          { "key": "team", "score": 35, "highlights": ["Solo founder, no co-founder"] }
+        ],
+        "chapters": [
+          { "dim": "tre", "title": "Traction & Revenue Evidence", "score": 30, "band": "early", "verdict": "Pre-revenue; no customers yet.", "nextAction": "Run 10 customer interviews", "expectedLift": 4, "evidenceIds": [] },
+          { "dim": "mpc", "title": "Market Pull & Category", "score": 48, "band": "developing", "verdict": "Problem stated, market not sized.", "nextAction": "Size the market", "expectedLift": 3, "evidenceIds": [] },
+          { "dim": "ftv", "title": "Founder & Team Value", "score": 28, "band": "early", "verdict": "Solo founder without a technical co-founder.", "nextAction": "Find a technical co-founder", "expectedLift": 6, "evidenceIds": [] },
+          { "dim": "ptd", "title": "Product & Tech Depth", "score": 35, "band": "early", "verdict": "No prototype yet.", "nextAction": "Ship a prototype", "expectedLift": 4, "evidenceIds": [] },
+          { "dim": "cgh", "title": "Capital & Governance Health", "score": 40, "band": "developing", "verdict": "No company registered.", "nextAction": "Incorporate", "expectedLift": 2, "evidenceIds": [] },
+          { "dim": "iri", "title": "Investor Readiness Index", "score": 32, "band": "early", "verdict": "No deck, no data room.", "nextAction": "Draft a one-pager", "expectedLift": 2, "evidenceIds": [] },
+          { "dim": "lco", "title": "Legal & Compliance Order", "score": 45, "band": "developing", "verdict": "Nothing filed.", "nextAction": "Check the trademark", "expectedLift": 1, "evidenceIds": [] },
+          { "dim": "svm", "title": "Strategic Vision & Moat", "score": 50, "band": "developing", "verdict": "Vision stated; moat unproven.", "nextAction": "Write the moat hypothesis", "expectedLift": 2, "evidenceIds": [] }
+        ],
+        "lowestDim": "ftv",
+        "valuation": null,
+        "consistencyIssues": []
+      },
+      "expected": {
+        "confidence": { "min": 0.2 },
+        "must_have_gaps": ["Founder"],
+        "must_not_hallucinate": ["MRR A$", "ARR A$", "paying customers", "**", "<!--"],
+        "must_cite": 0,
+        "verdict_must_mention_any": ["watch", "not_yet", "back_with_conditions"]
+      }
+    }
+  ]
+}
