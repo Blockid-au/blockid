@@ -15,11 +15,16 @@ import { CRITERIA } from "@/lib/evaluation-criteria";
 import type { DimKey, EvidenceSource } from "@/lib/report-pipeline/dimension-owners";
 import { catalogueCodeForSource, catalogueItem, catalogueLift, derivedLift, liftForSource } from "@/lib/svi-lift";
 import type { EvidenceCta, EvidenceRow } from "./schema";
+import { CONNECTORS_HREF } from "./valuation-view";
 
-/** Where each kind of input is added — the only internal hrefs a CTA row may carry. */
+/**
+ * Where each kind of input is added — the only internal hrefs a CTA row may
+ * carry. Every value is a live page under app/(app)/(founder)/workspace/**
+ * (the deploy's gate-8 link check fails on a dead internal href).
+ */
 export const CTA_HREFS = {
-  /** Stripe / Xero / GA4 / GitHub OAuth connectors (the live page; `/workspace/settings/connectors` does not exist). */
-  connectors: "/workspace/evidence/connectors",
+  /** Stripe / Xero / GA4 / GitHub OAuth connectors — the S42 constant (`/workspace/settings/connectors` never existed). */
+  connectors: CONNECTORS_HREF,
   /** The 13-criteria intake. */
   criteria: "/workspace/score/criteria",
   /** The Evidence Hub (`svi_dimension_evidence` uploads per dimension). */
@@ -168,6 +173,51 @@ export function bestMissingCta(rows: readonly EvidenceRow[]): EvidenceRow | unde
 /** Sources already evidenced (a connector present → never "Connect X"). */
 export function evidencedSources(rows: readonly EvidenceRow[]): Set<EvidenceSource> {
   return new Set(rows.filter((r) => r.status === "evidenced" || r.status === "partial").map((r) => r.source));
+}
+
+/** Structural subset of `svi-analysis.ts:SVIEvidenceGap` (P0 / P1 / P2 gaps the engine found). */
+export interface EvidenceGapLike {
+  priority: "P0" | "P1" | "P2";
+  label: string;
+  action: string;
+  impact: number;
+  evidenceType: string;
+  code?: string;
+}
+
+const GAP_SOURCE: Record<string, EvidenceSource> = { transaction_data: "stripe", connected_source: "connector_other", public_url: "url", document_uploaded: "upload", self_declared: "self_declared" };
+
+/** Deterministic id for an engine gap row (stable across runs, like the GATHER rows). */
+function gapId(label: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < label.length; i += 1) h = Math.imul(h ^ label.charCodeAt(i), 0x01000193) >>> 0;
+  return `gap-${h.toString(16).padStart(8, "0")}`;
+}
+
+/**
+ * The engine's P0 / P1 evidence gaps as linked CTA rows for
+ * `actionPlan.evidenceToAdd` — the catalogue code (when the gap names one)
+ * gives the page and the lift; otherwise the Evidence Hub and the gap's own
+ * `impact` (already catalogue-derived in svi-analysis.ts).
+ */
+export function evidenceGapRows(gaps: readonly EvidenceGapLike[], observedAt: string, priorities: ReadonlyArray<"P0" | "P1" | "P2"> = ["P0", "P1"]): EvidenceRow[] {
+  return gaps
+    .filter((g) => priorities.includes(g.priority))
+    .map((g) => {
+      const entry = catalogueItem(g.code);
+      const dims: DimKey[] = entry ? [entry.dim] : [];
+      const cta: EvidenceCta = g.code && entry ? { label: g.label, href: hrefForCode(g.code), lift: entry.item.estimatedSviImpact } : { label: g.label, href: CTA_HREFS.evidence, lift: g.impact };
+      return {
+        evidence_id: gapId(`${g.priority}|${g.label}`),
+        source: GAP_SOURCE[g.evidenceType] ?? "self_declared",
+        label: `${g.priority}: ${g.label}`,
+        status: "missing" as const,
+        observedAt,
+        value: g.action,
+        dims,
+        cta,
+      };
+    });
 }
 
 /** "+N SVI" for a CTA, or "" when the row carries no lift. */

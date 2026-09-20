@@ -7,10 +7,12 @@
 import { describe, expect, it } from "vitest";
 import type { AssembledReport } from "@/lib/report-pipeline/types";
 import { computeSVI, type SVIExtractedSignals } from "@/lib/svi-analysis";
-import { benchmarkStageFrom, fromAssembledReport, fromSnapshot, inferPhase, pendingDimCount, resolveReportV2, scoreBreakdownFromSub, sviLedgerFrom, type SnapshotInput } from "./adapter";
+import { benchmarkStageFrom, buildMoneyOnTable, coverEvidenceLevelFrom, fromAssembledReport, fromSnapshot, inferPhase, levelForMultiplier, pendingDimCount, resolveReportV2, scoreBreakdownFromSub, sviLedgerFrom, type SnapshotInput } from "./adapter";
+import { CTA_HREFS, GATHER_MISSING_CTAS, withCta } from "./evidence-cta";
+import { catalogueLift } from "@/lib/svi-lift";
 import { demoSnapshotInput } from "./fixtures";
 import { ledgerReconciles } from "./ledger-rows";
-import { DIM_ORDER, assertReportV2, isReportV2 } from "./schema";
+import { DIM_ORDER, assertReportV2, isReportV2, type EvidenceRow } from "./schema";
 
 /** G19-S41: an all-false engine input with overrides (mirrors svi-analysis.test.ts makeSignals). */
 function engineSignals(overrides: Partial<SVIExtractedSignals> = {}): SVIExtractedSignals {
@@ -198,7 +200,8 @@ describe("fromSnapshot — shapes the platform stores today", () => {
       expect(d.phaseLens.phaseId).toBe("investor_review");
       expect(d.audit.auditor).toBe("llm-auditor");
       expect(d.secondaryVisuals.length).toBeGreaterThanOrEqual(1);
-      expect(d.evidence).toEqual([]);
+      // G19-S43: the demo carries evidence rows (filtered per dimension); a bare snapshot still has none.
+      expect(d.evidence.every((e) => e.dims.includes(d.dim))).toBe(true);
       expect(d.primaryVisual.dataState).not.toBe("real");
     }
   });
@@ -348,5 +351,121 @@ describe("resolveReportV2", () => {
     expect(fallback.source).toBe("adapter");
     const nul = resolveReportV2(null, { dimStates: minimalScores() }, isReportV2);
     expect(nul.dimensions).toHaveLength(8);
+  });
+});
+
+// ── G19-S43 — evidence & data CTAs, one lift model, founder-fit next actions ─
+describe("fromSnapshot — G19-S43 evidence rows, next actions, plan, money, cover", () => {
+  const assembled: Pick<AssembledReport, "id" | "tier" | "sections" | "executiveSummary" | "qualityScore" | "consistencyIssues" | "createdAt"> = {
+    id: "rpt-s43",
+    tier: "standard",
+    executiveSummary: "",
+    qualityScore: 70,
+    consistencyIssues: [],
+    createdAt: "2026-09-20T00:00:00.000Z",
+    sections: [{ id: "s1", title: "Revenue", agentRole: "cfo", criterion: "revenue", content: "Recurring revenue.", score: 60, visuals: [], wordCount: 2 }],
+  };
+  const stripe: EvidenceRow = { evidence_id: "ev-stripe", source: "stripe", label: "Stripe revenue (last sync)", status: "evidenced", observedAt: "2026-09-10T00:00:00.000Z", dims: ["tre", "iri"] };
+  const missingRepo = withCta({ evidence_id: "ev-repo", source: "github", label: "GitHub repository a/b", status: "missing", observedAt: "2026-09-15T00:00:00.000Z", dims: ["ptd", "ftv"] }, GATHER_MISSING_CTAS.repo_audit);
+  const missingCap = withCta({ evidence_id: "ev-cap", source: "upload", label: "Cap-table register", status: "missing", observedAt: "2026-09-15T00:00:00.000Z", dims: ["cgh"] }, GATHER_MISSING_CTAS.cap_table);
+
+  it("evidence rows are filtered per chapter and land in the appendix register; a missing row keeps its cta", () => {
+    const r = assertReportV2(fromSnapshot({ dimStates: minimalScores(), evidenceRows: [stripe, missingRepo, missingCap] }));
+    expect(r.dimensions.find((d) => d.dim === "tre")!.evidence.map((e) => e.evidence_id)).toEqual(["ev-stripe"]);
+    expect(r.dimensions.find((d) => d.dim === "ptd")!.evidence[0]).toMatchObject({ status: "missing", cta: { href: CTA_HREFS.connectors, lift: catalogueLift("github_repo") } });
+    expect(r.dimensions.find((d) => d.dim === "cgh")!.evidence[0].cta?.href).toBe(CTA_HREFS.equity);
+    expect(r.dimensions.find((d) => d.dim === "svm")!.evidence).toEqual([]);
+    expect(r.appendix.evidenceRegister).toHaveLength(3);
+  });
+
+  it("next action: the linked gap when nothing else is cheaper, the lowest criterion's own step otherwise, never the DIMENSION_ACTIONS default, lift from the one model", () => {
+    const r = assertReportV2(fromSnapshot({ dimStates: minimalScores(), evidenceRows: [stripe, missingRepo, missingCap], criterionStates: [{ key: "code_git", title: "Code & Git", primary_dimension: "ptd", weight: 8, score: 30, verdict: "", strengths: [], gaps: ["No CI"], next_action: "Add CI to the repository" }] }));
+    // PTD: the code_git card at 30 (weight 8 → 8 × 40 / 25 = 10, clamped) outranks the +6 GitHub CTA.
+    expect(r.dimensions.find((d) => d.dim === "ptd")!.nextAction).toEqual({ title: "Add CI to the repository", window: "this_week", expectedLift: 10 });
+    // CGH: no card below the band → the cap-table CTA at the catalogue lift, this week.
+    expect(r.dimensions.find((d) => d.dim === "cgh")!.nextAction).toEqual({ title: GATHER_MISSING_CTAS.cap_table.label, window: "this_week", expectedLift: catalogueLift("cap_table_spreadsheet"), evidenceToAdd: "upload" });
+    // TRE: Stripe is present → the generic "Connect Stripe" is skipped for "Connect Google Analytics"; lift from the catalogue (ga4 → user_growth_chart).
+    expect(r.dimensions.find((d) => d.dim === "tre")!.nextAction).toMatchObject({ title: "Connect Google Analytics", evidenceToAdd: "ga4", expectedLift: catalogueLift("user_growth_chart") });
+    for (const d of r.dimensions) expect(d.nextAction.expectedLift).toBeGreaterThanOrEqual(1);
+  });
+
+  it("never 'Register ABN' on a Verified-ABN company, never 'Find a co-founder' with ≥ 2 co-founders", () => {
+    const verified = assertReportV2(fromSnapshot({ dimStates: minimalScores(), verificationLevel: 2, coFounders: 3 }));
+    expect(verified.dimensions.find((d) => d.dim === "lco")!.nextAction.title).not.toMatch(/abn|asic/i);
+    expect(verified.dimensions.find((d) => d.dim === "ftv")!.nextAction.title).not.toMatch(/co-?founder/i);
+    const unverified = assertReportV2(fromSnapshot({ dimStates: minimalScores(), verificationLevel: 0, coFounders: 1 }));
+    expect(unverified.dimensions.find((d) => d.dim === "lco")!.nextAction.title).toBe("Register ABN");
+    expect(unverified.dimensions.find((d) => d.dim === "ftv")!.nextAction.title).toBe("Find a co-founder");
+  });
+
+  it("chapter strengths / gaps never repeat the criterion-card bullets; the '0 below the strong band' executive gap is gone", () => {
+    const r = assertReportV2(fromSnapshot(demoSnapshotInput()));
+    for (const d of r.dimensions) {
+      const cardBullets = new Set(d.criteria.flatMap((c) => [...c.strengths, ...c.gaps]));
+      for (const s of [...d.strengths, ...d.gaps]) expect(cardBullets.has(s)).toBe(false);
+    }
+    expect(r.executive.gaps.some((g) => / 0 below the strong band/.test(g))).toBe(false);
+    expect(r.executive.gaps).toEqual(["Strategic Vision & Moat 65/100 — 5 below the strong band."]);
+    const strong = assertReportV2(fromSnapshot({ dimStates: { tre: { score: 80 }, mpc: { score: 75 }, ftv: { score: 90 } } }));
+    expect(strong.executive.gaps).toEqual([]);
+  });
+
+  it("90-day plan: ≤ 5 steps spread 30 / 60 / 90 by lift rank (≥ 1 per column at ≥ 3 steps), no duplicate step, lifts = the chapters' own; P0 / P1 gaps become evidenceToAdd rows", () => {
+    const r = assertReportV2(
+      fromSnapshot({
+        dimStates: minimalScores(),
+        evidenceRows: [missingRepo, missingCap],
+        evidenceGaps: [
+          { priority: "P0", label: "Create cap table", action: "Build a cap table", impact: 8, evidenceType: "document_uploaded", code: "cap_table_spreadsheet" },
+          { priority: "P1", label: "Upload pitch deck", action: "Upload it", impact: 5, evidenceType: "document_uploaded", code: "pitch_deck" },
+          { priority: "P2", label: "Add named advisors", action: "x", impact: 4, evidenceType: "self_declared", code: "advisor_bios" },
+        ],
+      }),
+    );
+    const steps = r.actionPlan.steps;
+    expect(steps.length).toBeGreaterThanOrEqual(3);
+    expect(steps.length).toBeLessThanOrEqual(5);
+    expect(new Set(steps.map((s) => s.day))).toEqual(new Set([30, 60, 90]));
+    expect(steps.map((s) => s.day)).toEqual(steps.map((_, i) => [30, 60, 90][i % 3]));
+    expect(new Set(steps.map((s) => s.title)).size).toBe(steps.length);
+    for (let i = 1; i < steps.length; i += 1) expect(steps[i - 1].expectedLift).toBeGreaterThanOrEqual(steps[i].expectedLift);
+    for (const s of steps) expect(s.expectedLift).toBe(r.dimensions.find((d) => d.dim === s.dimension)!.nextAction.expectedLift);
+    expect(r.actionPlan.evidenceToAdd?.map((e) => e.label)).toEqual(["P0: Create cap table", "P1: Upload pitch deck"]);
+    expect(r.actionPlan.evidenceToAdd?.[0].cta).toEqual({ label: "Create cap table", href: CTA_HREFS.equity, lift: catalogueLift("cap_table_spreadsheet") });
+    expect(r.cover.threeQuestions.next).toMatch(/\+\d+ SVI/);
+    expect(r.cover.threeQuestions.next).not.toMatch(/\+1 SVI/);
+  });
+
+  it("Money on the Table: GATHER matches fill the chapter (sorted by fit, total from published amounts); no profile → empty with the grant-profile subtitle; adapter path never says re-run", () => {
+    const r = assertReportV2(fromSnapshot({ dimStates: minimalScores(), moneyOnTable: { grants: [{ id: "a", name: "A", amountAud: 10_000, fit: 40 }, { id: "b", name: "B", amountAud: null, fit: 80 }], programs: [{ id: "p", name: "P", amountAud: 5_000, fit: 50 }] } }));
+    expect(r.moneyOnTable.grants.map((g) => g.id)).toEqual(["b", "a"]);
+    expect(r.moneyOnTable.totalAud).toBe(15_000);
+    expect(r.moneyOnTable.visuals[0].dataState).toBe("real");
+    const none = assertReportV2(fromSnapshot({ dimStates: minimalScores() }));
+    expect(none.moneyOnTable).toMatchObject({ grants: [], programs: [], totalAud: 0 });
+    expect(none.moneyOnTable.visuals[0].subtitle).toMatch(/No grant profile yet — complete it at \/workspace\/funding/);
+    expect(none.moneyOnTable.visuals[0].subtitle).not.toMatch(/re-run/i);
+    const empty = buildMoneyOnTable({ grants: [], programs: [] });
+    expect(empty.visuals[0].subtitle).toMatch(/No open match/);
+  });
+
+  it("cover.evidenceLevel: from the analysis (confidenceMultiplier + signals.evidenceLevel), nearest rung when the level is absent, absent on a bare snapshot", () => {
+    const analysis = computeSVI(engineSignals({ evidenceLevel: "document_uploaded" }));
+    const r = assertReportV2(fromAssembledReport(assembled, { subs: analysis.subs, sviAnalysis: analysis }));
+    expect(r.cover.evidenceLevel).toEqual({ level: "document_uploaded", confidenceMultiplier: 0.5 });
+    expect(coverEvidenceLevelFrom({ confidenceMultiplier: 0.73 })).toEqual({ level: "connected_source", confidenceMultiplier: 0.73 });
+    expect(coverEvidenceLevelFrom({ meta: { verification: { ladderConfidence: 0.2, effectiveConfidence: 0.17 } } })).toEqual({ level: "self_declared", confidenceMultiplier: 0.17 });
+    expect(coverEvidenceLevelFrom(null)).toBeUndefined();
+    expect(levelForMultiplier(0.95)).toBe("transaction_data");
+    expect(assertReportV2(fromSnapshot({ dimStates: minimalScores() })).cover.evidenceLevel).toBeUndefined();
+  });
+
+  it("fromAssembledReport threads evidence rows, engine gaps, co-founders and grant matches through to the document", () => {
+    const analysis = computeSVI(engineSignals({ hasCoFounder: true }));
+    const r = assertReportV2(fromAssembledReport(assembled, { subs: analysis.subs, sviAnalysis: analysis, evidenceRows: [missingRepo], moneyOnTable: { grants: [{ id: "g", name: "G", amountAud: 1, fit: 1 }], programs: [] } }));
+    expect(r.dimensions.find((d) => d.dim === "ptd")!.evidence).toHaveLength(1);
+    expect(r.actionPlan.evidenceToAdd?.length).toBeGreaterThan(0);
+    expect(r.moneyOnTable.grants).toHaveLength(1);
+    expect(r.dimensions.find((d) => d.dim === "ftv")!.nextAction.title).not.toMatch(/co-?founder/i);
   });
 });

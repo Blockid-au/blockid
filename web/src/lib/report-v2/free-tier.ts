@@ -85,8 +85,10 @@ export function projectForTier(report: ReportV2, level: TrimLevel = 0): FreeTier
     ...report,
     dimensions: report.dimensions.map((ch) => projectChapter(ch, true, level)),
     executive: { ...report.executive, visuals: level >= 4 ? [] : report.executive.visuals },
-    moneyOnTable: { ...report.moneyOnTable, grants: report.moneyOnTable.grants.slice(0, 3), programs: report.moneyOnTable.programs.slice(0, 3), visuals: level >= 4 ? [] : report.moneyOnTable.visuals },
-    actionPlan: { ...report.actionPlan, steps: report.actionPlan.steps.slice(0, 5), visuals: level >= 4 ? [] : report.actionPlan.visuals },
+    // G19-S43: Money on the Table now carries real matches — level 4 keeps the top 2 rows.
+    moneyOnTable: { ...report.moneyOnTable, grants: report.moneyOnTable.grants.slice(0, level >= 4 ? 2 : 3), programs: report.moneyOnTable.programs.slice(0, level >= 4 ? 2 : 3), visuals: level >= 4 ? [] : report.moneyOnTable.visuals },
+    // G19-S43: the P0 / P1 evidence rows follow the register rule (≤ 3 rows, dropped with the register at level 3); level 4 keeps 3 steps.
+    actionPlan: { ...report.actionPlan, steps: report.actionPlan.steps.slice(0, level >= 4 ? 3 : 5), visuals: level >= 4 ? [] : report.actionPlan.visuals, ...(report.actionPlan.evidenceToAdd ? { evidenceToAdd: report.actionPlan.evidenceToAdd.slice(0, level >= 3 ? 0 : 3) } : {}) },
     phaseGates: { ...report.phaseGates, visuals: report.phaseGates.visuals.filter((v) => v.kind === "route_map") },
     valuation: { ...report.valuation, visuals: report.valuation.visuals.filter((v) => v.kind === "range_bars"), narrative: "" },
     appendix: {
@@ -98,14 +100,14 @@ export function projectForTier(report: ReportV2, level: TrimLevel = 0): FreeTier
   if (level >= 1) dropped.push("criterion cards beyond 2 per chapter");
   if (level >= 2) dropped.push("evidence tables", "phase lens");
   if (level >= 3) dropped.push("evidence register", "auditor log");
-  if (level >= 4) dropped.push("executive / money / action-plan charts");
+  if (level >= 4) dropped.push("executive / money / action-plan charts", "grants beyond the top 2", "action steps beyond 3");
   return {
     report: projected,
     free,
     level,
     dropped,
-    moneyLimit: 3,
-    actionSteps: Math.min(5, report.actionPlan.steps.length),
+    moneyLimit: level >= 4 ? 2 : 3,
+    actionSteps: Math.min(level >= 4 ? 3 : 5, report.actionPlan.steps.length),
     show: level >= 2 ? { evidenceTables: false, phaseLens: false, criterionDetail: false } : showAll,
   };
 }

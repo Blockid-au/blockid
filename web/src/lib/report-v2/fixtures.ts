@@ -4,8 +4,9 @@
 // number is illustrative and the demo page says so.
 
 import type { VcValuationLike } from "@/lib/report-pipeline/valuation-chapter";
-import { fromSnapshot, type SnapshotCriterionState, type SnapshotDimState, type SnapshotInput } from "./adapter";
-import type { ReportTierV2, ReportV2, ScoreBreakdown, ScoreBreakdownSignal } from "./schema";
+import { fromSnapshot, type MoneyOnTableInput, type SnapshotCriterionState, type SnapshotDimState, type SnapshotInput } from "./adapter";
+import { GATHER_MISSING_CTAS } from "./evidence-cta";
+import type { EvidenceRow, ReportTierV2, ReportV2, ScoreBreakdown, ScoreBreakdownSignal } from "./schema";
 
 // G19-S41: every demo chapter carries a score ledger built from the engine's
 // own signal labels and point values (svi-analysis.ts), so the demo shows
@@ -108,6 +109,35 @@ const DEMO_CRITERIA: SnapshotCriterionState[] = [
 ];
 
 export const DEMO_GENERATED_AT = "2026-09-15T00:00:00.000Z";
+
+/**
+ * G19-S43 — the demo's evidence rows, as GATHER + the Evidence Hub would mint
+ * them: Stripe revenue (TRE), the cap-table register (CGH), a tech audit
+ * (PTD) and a reviewer-verified hub upload (LCO) — plus two `missing` rows
+ * with linked CTAs (no GitHub token on PTD / FTV; no LinkedIn export on FTV)
+ * so /tbr/demo shows CTA rows exactly as a real report does.
+ */
+export function demoEvidenceRows(): EvidenceRow[] {
+  return [
+    { evidence_id: "ev-connected-revenue-stripe", source: "stripe", label: "Stripe revenue (last sync)", status: "evidenced", observedAt: "2026-09-10T00:00:00.000Z", value: "mrr_aud = 100000; prior_mrr_aud = 95700; churn_90d_pct = 2.1", dims: ["tre", "iri", "cgh"], confidence: "transaction_data" },
+    { evidence_id: "ev-cap-table-demo", source: "upload", label: "Cap-table register (shareholders + ESOP pool)", status: "evidenced", observedAt: "2026-09-12T00:00:00.000Z", value: "holders = 4; founders_pct = 71; esop_pct = 10; investors_pct = 19; vesting = true", dims: ["cgh", "iri", "lco"], confidence: "connected_source" },
+    { evidence_id: "ev-tech-audit-demo", source: "url", label: "Technical audit: https://demo.example.com", status: "evidenced", observedAt: "2026-09-14T00:00:00.000Z", value: "grade B; TTFB 310 ms; security A", dims: ["ptd", "svm", "lco"], confidence: "public_url" },
+    { evidence_id: "ev-hub-lco-ip-assignment", source: "upload", label: "IP assignment agreement — Evidence Hub, reviewer-verified", status: "evidenced", observedAt: "2026-09-08T00:00:00.000Z", dims: ["lco"], confidence: "third_party_verified" },
+    { evidence_id: "ev-missing-repo-audit", source: "github", label: "GitHub repository demo/compliance-saas", status: "missing", observedAt: DEMO_GENERATED_AT, value: "Connect GitHub (Evidence → Connectors) to audit the repository — link only, not audited", dims: ["ptd", "ftv"], cta: GATHER_MISSING_CTAS.repo_audit },
+    { evidence_id: "ev-missing-founder-signals", source: "linkedin", label: "Founder profile (LinkedIn export / URL)", status: "missing", observedAt: DEMO_GENERATED_AT, value: "No founder profile yet — upload the LinkedIn PDF export", dims: ["ftv"], cta: GATHER_MISSING_CTAS.founder_signals },
+  ];
+}
+
+/** G19-S43 — two grant matches + one program, as grant-advisor returns them for a NSW SaaS at seed. */
+export function demoMoneyOnTable(): MoneyOnTableInput {
+  return {
+    grants: [
+      { id: "rdti", name: "R&D Tax Incentive (refundable offset)", amountAud: 87_000, fit: 84, url: "https://business.gov.au/grants-and-programs/research-and-development-tax-incentive" },
+      { id: "mvp-nsw", name: "NSW MVP Ventures", amountAud: 200_000, deadline: "2026-11-30", fit: 71, url: "https://www.investment.nsw.gov.au/grants-and-rebates/mvp-ventures/" },
+    ],
+    programs: [{ id: "startmate", name: "Startmate Accelerator", amountAud: 120_000, deadline: "2026-10-15", fit: 58, url: "https://www.startmate.com/accelerator" }],
+  };
+}
 
 const DEMO_SOURCE_LABEL = "BlockID static table (2026-06) · Bessemer Venture Partners";
 const DEMO_BASELINE_SOURCE = "Cut Through Venture — State of Australian Startup Funding 2024/25 medians";
@@ -256,6 +286,17 @@ export function demoSnapshotInput(tier: ReportTierV2 = "standard"): SnapshotInpu
     // derivation and cross-checks (Stripe-evidenced revenue, no ask stated).
     vc: demoVcValuation(),
     revenueEvidenceIds: ["ev-connected-revenue-stripe"],
+    // G19-S43: evidence rows (with two linked CTA rows), the engine's P0 / P1
+    // gaps, two grants + one program, three co-founders, and the cover's
+    // "Evidence: connected sources (×0.75)" line.
+    evidenceRows: demoEvidenceRows(),
+    evidenceGaps: [
+      { priority: "P1", label: "Link source code repository", action: "Connect GitHub or GitLab to verify product progress", impact: 6, evidenceType: "connected_source", code: "github_repo" },
+      { priority: "P2", label: "Add named advisors", action: "Engage 1–2 industry advisors and list them in your materials", impact: 4, evidenceType: "self_declared", code: "advisor_bios" },
+    ],
+    coFounders: 3,
+    evidenceLevel: { level: "connected_source", confidenceMultiplier: DEMO_CONFIDENCE },
+    moneyOnTable: demoMoneyOnTable(),
     source: "fixture",
   };
 }
