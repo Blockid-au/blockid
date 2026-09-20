@@ -10,9 +10,13 @@
 //   - writes are a best-effort UPDATE after the row exists — never part of
 //     the INSERT — so a missing column can never break snapshot creation.
 // Callers fall back to `adapter.ts` when the read returns null.
+//
+// G19-S47: every read returns the document with `executive.structured`
+// present (a pre-S47 row is parsed on read — `executive-structure.ts`).
 
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ensureExecutiveStructured } from "./executive-structure";
 import { isReportV2, type ReportV2 } from "./schema";
 
 type Db = SupabaseClient;
@@ -42,7 +46,7 @@ export async function readSnapshotReportV2(db: Db, snapshotId: string): Promise<
       return null;
     }
     const stored = (data as { report_v2?: unknown } | null)?.report_v2;
-    return stored && isReportV2(stored) ? stored : null;
+    return stored && isReportV2(stored) ? ensureExecutiveStructured(stored) : null;
   } catch {
     return null;
   }
@@ -89,7 +93,7 @@ export async function readAssembledReportJson(db: Db, reportId: string): Promise
       return null;
     }
     const stored = (data as { report_json?: unknown } | null)?.report_json;
-    return stored && isReportV2(stored) ? stored : null;
+    return stored && isReportV2(stored) ? ensureExecutiveStructured(stored) : null;
   } catch {
     return null;
   }
@@ -120,7 +124,7 @@ export async function readEvaluationReportV2(db: Db, evaluationReportId: string)
       return null;
     }
     const stored = (data as { report_v2?: unknown } | null)?.report_v2;
-    return stored && isReportV2(stored) ? stored : null;
+    return stored && isReportV2(stored) ? ensureExecutiveStructured(stored) : null;
   } catch {
     return null;
   }

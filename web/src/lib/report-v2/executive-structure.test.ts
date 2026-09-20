@@ -221,7 +221,10 @@ describe("finaliseExecutiveStructured — the CEO JSON path", () => {
 
 describe("ensureExecutiveStructured / hasValidExecutiveStructured / executiveThesisFromStructured", () => {
   it("adds a valid block to a document without one, keeps a valid stored block untouched (same reference), and replaces an invalid stored block", () => {
+    // The adapter now stores the block (fromSnapshot → ensureExecutiveStructured); a pre-S47 row has none.
     const demo = demoReportV2();
+    expect(hasValidExecutiveStructured(demo)).toBe(true);
+    delete demo.executive.structured;
     expect(hasValidExecutiveStructured(demo)).toBe(false);
     const ensured = ensureExecutiveStructured(demo);
     expect(hasValidExecutiveStructured(ensured)).toBe(true);

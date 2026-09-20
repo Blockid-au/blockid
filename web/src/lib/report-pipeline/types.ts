@@ -3,7 +3,7 @@
 import type { SVIAnalysis, EvidenceItem } from "@/lib/svi-analysis";
 import type { CriterionKey } from "@/lib/evaluation-criteria";
 import type { PhaseGateResult } from "@/lib/growth/phase-gate";
-import type { DimensionChapter, EvidenceRow, ReportV2 } from "@/lib/report-v2/schema";
+import type { DimensionChapter, EvidenceRow, ExecutiveStructured, ReportV2 } from "@/lib/report-v2/schema";
 import type { DimKey } from "./dimension-owners";
 
 // ── Agent Roles ─────────────────────────────────────────────────────────────
@@ -201,6 +201,8 @@ export interface ReportContext {
 
   // Synthesis
   executiveSummary?: string;
+  /** G19-S47: the CEO call's validated sections (null / absent → structured on read from the thesis). */
+  executiveStructured?: ExecutiveStructured | null;
   qualityScore?: number;
   consistencyIssues?: string[];
   /** Unsupported/fabricated claims flagged by the LLM Auditor (Agent Garden pattern). */

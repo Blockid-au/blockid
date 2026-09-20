@@ -310,10 +310,10 @@ function reasonsFromChapters(chapters: readonly DimensionChapter[], locale: Loca
     .filter((c) => c.band !== "pending" && !exclude.has(c.dim))
     .sort((a, b) => b.score - a.score || b.weight - a.weight)
     .map((c) => {
-      const bullet = firstBullet([...c.criteria.flatMap((k) => k.strengths), ...c.strengths]);
+      const bullet = firstBullet([...(c.criteria ?? []).flatMap((k) => k.strengths ?? []), ...(c.strengths ?? [])]);
       return {
         title: truncateWords(bullet ?? L.reasonTitle(dimTitle(c.dim, chapters, locale)), 12),
-        body: capSentences(c.verdict, EXECUTIVE_CAPS.paragraphWords) || dimTitle(c.dim, chapters, locale),
+        body: capSentences(c.verdict ?? "", EXECUTIVE_CAPS.paragraphWords) || dimTitle(c.dim, chapters, locale),
         dim: c.dim,
       };
     });
@@ -323,13 +323,13 @@ function gapsFromChapters(chapters: readonly DimensionChapter[], locale: Locale 
   const L = s47(locale);
   return [...chapters]
     .filter((c) => !exclude.has(c.dim))
-    .sort((a, b) => b.nextAction.expectedLift - a.nextAction.expectedLift || a.score - b.score)
+    .sort((a, b) => (b.nextAction?.expectedLift ?? 0) - (a.nextAction?.expectedLift ?? 0) || a.score - b.score)
     .map((c) => {
-      const bullet = firstBullet([...c.criteria.flatMap((k) => k.gaps), ...c.gaps]);
-      const lift = c.nextAction.expectedLift > 0 ? c.nextAction.expectedLift : undefined;
+      const bullet = firstBullet([...(c.criteria ?? []).flatMap((k) => k.gaps ?? []), ...(c.gaps ?? [])]);
+      const lift = (c.nextAction?.expectedLift ?? 0) > 0 ? c.nextAction.expectedLift : undefined;
       return {
         title: truncateWords(bullet ?? L.gapTitle(dimTitle(c.dim, chapters, locale)), 12),
-        body: capSentences(c.nextAction.title, EXECUTIVE_CAPS.paragraphWords) || capSentences(c.verdict, EXECUTIVE_CAPS.paragraphWords) || dimTitle(c.dim, chapters, locale),
+        body: capSentences(c.nextAction?.title ?? "", EXECUTIVE_CAPS.paragraphWords) || capSentences(c.verdict ?? "", EXECUTIVE_CAPS.paragraphWords) || dimTitle(c.dim, chapters, locale),
         dim: c.dim,
         ...(lift !== undefined ? { lift } : {}),
       };
@@ -352,7 +352,7 @@ function actionsFromPlan(plan: readonly ActionStep[] | undefined, chapters: read
   }));
   if (fromPlan.length) return fromPlan;
   return [...chapters]
-    .filter((c) => c.nextAction.title.trim())
+    .filter((c) => c.nextAction?.title?.trim())
     .sort((a, b) => b.nextAction.expectedLift - a.nextAction.expectedLift)
     .slice(0, EXECUTIVE_CAPS.actions)
     .map((c) => ({
@@ -483,7 +483,7 @@ export function structureExecutive(
       const dim = inferDim(it.title, it.body, chapters);
       if (dim) usedGap.add(dim);
       const ch = dim ? chapters.find((c) => c.dim === dim) : undefined;
-      const lift = ch && ch.nextAction.expectedLift > 0 ? ch.nextAction.expectedLift : undefined;
+      const lift = ch && (ch.nextAction?.expectedLift ?? 0) > 0 ? ch.nextAction.expectedLift : undefined;
       return { title: truncateWords(it.title, 12), body: capSentences(it.body, EXECUTIVE_CAPS.paragraphWords) || it.title, ...(dim ? { dim } : {}), ...(lift !== undefined ? { lift } : {}) };
     });
   for (const g of gapsFromChapters(chapters, locale, usedGap)) {
@@ -507,7 +507,7 @@ export function structureExecutive(
   const blockerSentence = phaseSentences.find((sn) => /blocker|blocks|gate|must improve|below/i.test(sn));
   const blocker = capSentences(gateBlocker ?? blockerSentence ?? L.noBlocker, 60) || L.noBlocker;
   const takesSentences = phaseSentences.filter((sn) => sn !== blockerSentence && !/currently in the/i.test(sn));
-  const topGapAction = (gaps[0]?.title ?? chapters[0]?.nextAction.title ?? "").replace(/[.…]+$/u, "");
+  const topGapAction = (gaps[0]?.title ?? chapters[0]?.nextAction?.title ?? "").replace(/[.…]+$/u, "");
   const whatItTakes = capSentences(takesSentences.join(" "), 60) || L.takesFallback(truncateWords(topGapAction, 20));
   const phaseNow = { phaseId: phase.currentPhase, label: truncateWords(phaseLabelFor(phase.currentPhase, locale), 12), blocker, whatItTakes };
 
@@ -617,7 +617,7 @@ export function finaliseExecutiveStructured(draft: Partial<ExecutiveStructured>,
       const dim = isDim(g?.dim) ? g.dim : inferDim(title, body, ctx.chapters);
       if (dim) usedGap.add(dim);
       const ch = dim ? ctx.chapters.find((c) => c.dim === dim) : undefined;
-      const liftRaw = typeof g?.lift === "number" && Number.isFinite(g.lift) && g.lift > 0 ? Math.round(g.lift) : ch && ch.nextAction.expectedLift > 0 ? ch.nextAction.expectedLift : undefined;
+      const liftRaw = typeof g?.lift === "number" && Number.isFinite(g.lift) && g.lift > 0 ? Math.round(g.lift) : ch && (ch.nextAction?.expectedLift ?? 0) > 0 ? ch.nextAction.expectedLift : undefined;
       return { title: title || truncateWords(body, 8), body: body || title, ...(dim ? { dim } : {}), ...(liftRaw !== undefined ? { lift: liftRaw } : {}) };
     })
     .filter((g): g is ExecutiveGap => Boolean(g))
