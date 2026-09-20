@@ -16,6 +16,12 @@ export const CF_GTM_SIGNATURES = ["google_tags_first_party", "developer_id.dYzg1
 export const CF_EMAIL_SIGNATURES = ["email-decode.min.js", "__cf_email__"];
 export const CF_EMAIL_SCRIPT_RE = /cloudflare-static\/email-decode\.min\.js/;
 export const REACT_418_RE = /Minified React error #418/;
+/**
+ * Google Identity Services (FedCM) on the sign-in pages logs these when the
+ * browser has no Google account — always true in a headless sweep, never a
+ * product error (G20-F2, seen on /auth/login and every /auth/login?next= bounce).
+ */
+export const FEDCM_NOISE_RE = /^(Provider's accounts list is empty|Not signed in with the identity provider)\.?$/;
 export const CSP_INLINE_SCRIPT_RE = /(Refused to execute inline script because it violates|Executing inline script violates) the following Content Security Policy directive/;
 export const NOISE_URL_RE = /google-analytics\.com|googletagmanager\.com|\/g\/collect|cloudflareinsights|stripe\.com\/b|r\.stripe\.com/;
 export const FAILED_RESOURCE_RE = /Failed to load resource: the server responded with a status of (\d+)/;
@@ -176,9 +182,12 @@ export function probeScript() {
   const gateMarkers = Array.from(document.querySelectorAll("[data-testid]"))
     .map((el) => el.getAttribute("data-testid") || "")
     .filter((id) => /gate|locked|paywall|not-offered|upgrade/.test(id));
-  const errorBoundary = !!document.querySelector('[data-testid="error-boundary"], [data-testid="app-error"], [data-error-boundary]');
+  // Every route error.tsx marks its rendered branch (src/app/error-boundaries.test.ts).
+  const errorBoundary = !!document.querySelector('[data-testid="error-boundary"], [data-error-boundary]');
   const bodyText = (document.body?.innerText || "").slice(0, 4000);
-  const errorText = /Something went wrong|Application error|This page could not be found|Internal Server Error|Unhandled Runtime Error/.test(bodyText);
+  // Next.js' built-in client-exception page (no app boundary mounted). Prose
+  // such as "Application errors (1 h)" on /status is legitimate copy.
+  const errorText = /Application error: a client-side exception has occurred|Unhandled Runtime Error/.test(bodyText);
   return {
     title: document.title,
     h1_count: h1s.length,
@@ -225,7 +234,7 @@ export function isNoiseRequest(url, failureText = "") {
 /** Same-origin ≥ 400 or network-failed requests, minus noise and RSC data fetches. */
 export function isReportableRequest(req, siteOrigin) {
   if (isNoiseRequest(req.url, req.failure ?? "")) return false;
-  if (req.url.includes("/_next/data/") || req.url.includes("?_rsc=")) return false;
+  if (req.url.includes("/_next/data/") || /[?&]_rsc=/.test(req.url)) return false;
   let origin;
   try {
     origin = new URL(req.url).origin;
@@ -254,6 +263,10 @@ export function filterConsole(entries, { htmlHasCfInjection = false, htmlHasCfEm
       continue;
     }
     if (htmlHasCfEmail && ((e.type === "console" && CF_EMAIL_SCRIPT_RE.test(e.text)) || (e.type === "pageerror" && REACT_418_RE.test(e.text)))) {
+      allowed.push(e);
+      continue;
+    }
+    if (e.type === "console" && FEDCM_NOISE_RE.test(e.text.trim())) {
       allowed.push(e);
       continue;
     }
@@ -291,7 +304,11 @@ export function judge(row, { exceptions = {} } = {}) {
     if (!(ex && ex.allow404)) defects.push("http_404");
   } else if (row.status === 402) {
     if (!row.gate_markers?.length && !row.has_main) defects.push("402_without_gate_card");
-  } else if (redirected) {
+  } else if (redirected && signedInRoute) {
+    // A public route that redirects to another public page is the legacy
+    // redirect table at work (/register → /signup, /svi → /startup-index) and
+    // is judged on what finally rendered; a signed-in route may only bounce
+    // to a shell landing / the pricing gate / login, or a documented target.
     const okRedirect = /^\/(pricing|workspace|dashboard|onboarding|auth\/login|login|reseller|admin|investor|accelerator)(\/|$)/.test(finalPath ?? "") || (ex && ex.redirectTo && finalPath === ex.redirectTo);
     if (!okRedirect) defects.push(`unexpected_redirect (${finalPath})`);
   }

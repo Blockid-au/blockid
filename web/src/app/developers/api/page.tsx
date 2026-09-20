@@ -103,16 +103,16 @@ export default function ApiIndexPage() {
               </p>
             </div>
 
-            <ul className="grid gap-4 sm:grid-cols-2">
+            <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {sorted.map((ep) => (
-                <li key={ep.slug}>
+                <li key={ep.slug} className="min-w-0">
                   <Link
                     href={`/developers/api/${ep.slug}`}
                     className="group block h-full rounded-2xl border border-surface-200 bg-white p-5 hover:border-brand-300 hover:shadow-sm transition-colors"
                   >
                     <div className="flex items-center gap-2.5 mb-2">
                       <MethodPill method={ep.method} />
-                      <code className="text-sm font-mono font-semibold text-ink-800 truncate">
+                      <code className="min-w-0 text-sm font-mono font-semibold text-ink-800 truncate">
                         {ep.path}
                       </code>
                     </div>

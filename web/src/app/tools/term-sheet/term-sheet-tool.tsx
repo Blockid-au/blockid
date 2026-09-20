@@ -280,10 +280,10 @@ export function TermSheetTool() {
       )}
 
       {/* TOP — input + analyze button */}
-      <div className="grid lg:grid-cols-12 gap-6 lg:gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
         <section
           aria-labelledby="ts-input"
-          className="lg:col-span-7 rounded-2xl border border-surface-200 bg-white p-6 md:p-8"
+          className="min-w-0 lg:col-span-7 rounded-2xl border border-surface-200 bg-white p-6 md:p-8"
         >
           <div className="flex items-center justify-between gap-3">
             <h2
@@ -451,7 +451,7 @@ export function TermSheetTool() {
         </section>
 
         {/* RIGHT — analyze CTA */}
-        <section className="lg:col-span-5 rounded-2xl border border-surface-200 bg-white p-6 md:p-8 flex flex-col">
+        <section className="min-w-0 lg:col-span-5 rounded-2xl border border-surface-200 bg-white p-6 md:p-8 flex flex-col">
           <h2 className="text-lg font-semibold text-ink-800 flex items-center gap-2">
             <FileSignature
               strokeWidth={1.75}
@@ -535,7 +535,7 @@ export function TermSheetTool() {
             className="mt-8 rounded-2xl border border-brand-500/30 bg-white p-6 md:p-8"
             noValidate
           >
-            <div className="grid lg:grid-cols-2 gap-8 items-center">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
               <div>
                 <p className="text-xs uppercase tracking-[0.2em] text-gold-600 font-medium">
                   Save this analysis

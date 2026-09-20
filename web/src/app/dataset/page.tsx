@@ -6,7 +6,6 @@
 // moat — the JSON/CSV API at /api/index/svi is the machine-readable half.
 
 import type { Metadata } from "next";
-import Link from "next/link";
 import { ArrowRight, Database, Download, Info, ShieldCheck } from "lucide-react";
 import { NavV2 } from "@/components/landing/nav-v2";
 import { Footer } from "@/components/marketing/footer";
@@ -142,13 +141,13 @@ function Hero({ overall }: { overall: OverallRow }) {
           <DownloadLink bucket="overall" label="Overall CSV" />
           <DownloadLink bucket="sector" label="By sector CSV" />
           <DownloadLink bucket="stage" label="By stage CSV" />
-          <Link
+          <a
             href="/api/index/svi?bucket=overall"
             className="inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-4 py-2 text-sm font-semibold text-ink-700 hover:bg-ink-50"
           >
             <ArrowRight className="h-4 w-4" />
             JSON API
-          </Link>
+          </a>
         </div>
       </div>
     </section>
@@ -399,12 +398,12 @@ function ApiRow({ href, label }: { href: string; label: string }) {
         <div className="text-xs font-semibold text-ink-700">{label}</div>
         <code className="block text-xs sm:text-sm text-ink-800 truncate">{href}</code>
       </div>
-      <Link
+      <a
         href={href}
         className="ml-3 inline-flex items-center gap-1 text-brand-700 hover:text-brand-800 text-xs font-semibold"
       >
         Open <ArrowRight className="h-3 w-3" />
-      </Link>
+      </a>
     </div>
   );
 }

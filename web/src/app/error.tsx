@@ -54,7 +54,7 @@ export default function GlobalError({ error, reset }: ErrorProps) {
   }
 
   return (
-    <div className="min-h-svh bg-surface-100 flex items-center justify-center px-6 py-12">
+    <div className="min-h-svh bg-surface-100 flex items-center justify-center px-6 py-12" data-testid="error-boundary" role="alert">
       <div className="max-w-md w-full">
         <div className="rounded-2xl border border-surface-300 bg-white p-8 shadow-sm text-center">
           <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-amber-100 flex items-center justify-center">

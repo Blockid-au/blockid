@@ -21,6 +21,7 @@ import {
   CF_GTM_SIGNATURES,
   CSP_INLINE_SCRIPT_RE,
   FAILED_RESOURCE_RE,
+  FEDCM_NOISE_RE,
   NOISE_URL_RE,
   PERSONAS,
   REACT_418_RE,
@@ -142,6 +143,14 @@ describe("allow-list parity with tests/live-qa/lib/console-guard.ts", () => {
     expect(ts).toContain(`CSP_INLINE_SCRIPT_RE = ${CSP_INLINE_SCRIPT_RE.toString()}`);
     expect(ts).toContain(NOISE_URL_RE.toString());
     expect(ts).toContain(FAILED_RESOURCE_RE.toString());
+    expect(ts).toContain(`FEDCM_NOISE_RE = ${FEDCM_NOISE_RE.toString()}`);
+    expect(ts).toContain("/[?&]_rsc=/.test(req.url())");
+  });
+  it("FedCM 'no Google account' console lines are allowed (headless browsers never have one)", () => {
+    const fedcm = { type: "console", text: "Not signed in with the identity provider." };
+    const fedcm2 = { type: "console", text: "Provider's accounts list is empty." };
+    const other = { type: "console", text: "Not signed in with the identity provider. Also something else" };
+    expect(filterConsole([fedcm, fedcm2, other]).errors).toEqual([other]);
   });
   it("filterConsole applies the guard rules (≤ 2 CSP refusals with the CF tag, #418 with email obfuscation, allowed-request echoes)", () => {
     const csp = { type: "console", text: "Executing inline script violates the following Content Security Policy directive 'script-src'" };
@@ -161,6 +170,7 @@ describe("allow-list parity with tests/live-qa/lib/console-guard.ts", () => {
     expect(isReportableRequest({ url: `${o}/api/credits`, status: null, failure: "net::ERR_FAILED" }, o)).toBe(true);
     expect(isReportableRequest({ url: `${o}/api/credits`, status: null, failure: "net::ERR_ABORTED" }, o)).toBe(false);
     expect(isReportableRequest({ url: `${o}/workspace?_rsc=abc`, status: 404 }, o)).toBe(false);
+    expect(isReportableRequest({ url: `${o}/api/index/svi?bucket=overall&_rsc=abc`, status: 400 }, o)).toBe(false);
     expect(isReportableRequest({ url: "https://www.google-analytics.com/g/collect", status: 500 }, o)).toBe(false);
     expect(isReportableRequest({ url: "https://cdn.example.com/x.js", status: 404 }, o)).toBe(false);
     expect(isReportableRequest({ url: `${o}/api/ok`, status: 200 }, o)).toBe(false);
@@ -188,6 +198,8 @@ describe("judge", () => {
     expect(judge({ ...base, status: 402, gate_markers: [], has_main: false })).toEqual(["402_without_gate_card"]);
     expect(judge({ ...base, final_url: "https://blockid.au/pricing?feature=x&from=/workspace/plan" })).toEqual([]);
     expect(judge({ ...base, final_url: "https://blockid.au/somewhere-else" })).toEqual(["unexpected_redirect (/somewhere-else)"]);
+    // A public route redirecting to another public page is the legacy-redirect table at work, judged on what rendered.
+    expect(judge({ ...base, route: "/register", path: "/register", persona: "public", persona_required: "public", final_url: "https://blockid.au/signup" })).toEqual([]);
     expect(judge({ ...base, final_url: "https://blockid.au/samples" }, { exceptions: { "/workspace/plan": { redirectTo: "/samples" } } })).toEqual([]);
     expect(judge({ ...base, h1_count: 2 }, { exceptions: { "/workspace/plan": { h1: 2, reason: "documented" } } })).toEqual([]);
     expect(judge({ ...base, status: 404 }, { exceptions: { "/workspace/plan": { allow404: true } } })).toEqual([]);

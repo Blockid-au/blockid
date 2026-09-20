@@ -431,7 +431,7 @@ export default function VersionPage() {
         </div>
       </header>
 
-      <div className="max-w-5xl mx-auto px-4 py-12 space-y-16">
+      <main className="max-w-5xl mx-auto px-4 py-12 space-y-16 [overflow-wrap:anywhere]">
         {/* Live deploy card */}
         <section aria-label="Current deploy">
           <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
@@ -502,12 +502,12 @@ export default function VersionPage() {
             {GROWTH_PHASES.map((phase) => (
               <div key={phase.phase} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
                 <div className={`bg-gradient-to-r ${phase.color} px-6 py-4 text-white`}>
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
                       <h3 className="text-lg font-bold">{phase.title}</h3>
                       <p className="text-sm opacity-80">{phase.description}</p>
                     </div>
-                    <span className="text-xs bg-white/20 px-3 py-1 rounded-full font-medium shrink-0 ml-4">
+                    <span className="text-xs bg-white/20 px-3 py-1 rounded-full font-medium shrink-0">
                       {phase.sviRange}
                     </span>
                   </div>
@@ -607,7 +607,7 @@ export default function VersionPage() {
             Get Your Free SVI Score
           </Link>
         </section>
-      </div>
+      </main>
 
       {/* Footer */}
       <footer className="border-t border-gray-200 py-8 text-center text-xs text-gray-500">
