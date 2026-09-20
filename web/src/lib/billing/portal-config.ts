@@ -33,8 +33,24 @@ import type Stripe from "stripe";
 /** Stripe's customer-facing headline in the portal. */
 export const PORTAL_HEADLINE = "BlockID — manage your subscription";
 
-export const PORTAL_CANCELLATION_REASONS: Stripe.BillingPortal.ConfigurationCreateParams.Features.SubscriptionCancel.CancellationReason.Option[] =
-  ["too_expensive", "missing_features", "switched_service", "unused", "other"];
+/** Stripe's fixed option set (Configuration.Features.SubscriptionCancel.CancellationReason.Option). */
+export type PortalCancellationReason =
+  | "customer_service"
+  | "low_quality"
+  | "missing_features"
+  | "other"
+  | "switched_service"
+  | "too_complex"
+  | "too_expensive"
+  | "unused";
+
+export const PORTAL_CANCELLATION_REASONS: PortalCancellationReason[] = [
+  "too_expensive",
+  "missing_features",
+  "switched_service",
+  "unused",
+  "other",
+];
 
 /** The exact create payload — exported so the test pins every feature flag. */
 export function portalConfigurationCreateParams(siteUrl: string): Stripe.BillingPortal.ConfigurationCreateParams {

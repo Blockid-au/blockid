@@ -26,6 +26,8 @@ import {
 import { CREDIT_PACKS } from "@/lib/credit-packs";
 import { useEntitlement } from "@/hooks/useEntitlement";
 import { ShareMgmtDrawer } from "@/components/billing/share-mgmt-drawer";
+import type { BillingSubscriptionView } from "@/lib/billing/subscription-state";
+import { CancelSubscriptionSection } from "./cancel-subscription-section";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -51,6 +53,14 @@ interface BillingClientProps {
     monthly: string | null;
     annual: string | null;
   };
+  /**
+   * G18-D: the live subscription (Stripe first, mirror fallback) the
+   * self-serve cancel / resume section renders. Undefined = not loaded
+   * (tests, previews) → the section stays hidden.
+   */
+  subscription?: BillingSubscriptionView;
+  /** Public plan name for the subscription (Scout / Starter / Cohort 25 …). */
+  subscriptionPlanLabel?: string | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -105,6 +115,8 @@ export function BillingClient({
   plans,
   grandfatheredPlans = [],
   shareMgmtAddonPriceIds,
+  subscription,
+  subscriptionPlanLabel = null,
 }: BillingClientProps) {
   const [loadingAction, setLoadingAction] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
@@ -210,7 +222,7 @@ export function BillingClient({
         window.location.href = json.url;
         return; // redirect happening
       }
-      setError(json.reason ?? "Failed to open billing portal.");
+      setError(json.message ?? json.reason ?? "Failed to open billing portal.");
     } catch {
       setError("Network error. Please try again.");
     } finally {
@@ -244,10 +256,39 @@ export function BillingClient({
     setShowDowngradeConfirm(planId);
   }
 
-  function confirmDowngrade() {
-    if (showDowngradeConfirm) {
-      // For downgrades, redirect to portal where the user can manage their sub
-      void handleManageBilling();
+  // G18-D: the portal's subscription_update is OFF (plan changes must go
+  // through /api/stripe/change-plan so entitlements follow), so a downgrade
+  // no longer bounces to the portal. Free = cancel (the section below);
+  // paid → paid = change-plan, then reload so the Current Plan card is true.
+  const downgradeTarget = showDowngradeConfirm ? plans.find((p) => p.id === showDowngradeConfirm) ?? null : null;
+  const downgradeIsCancel = downgradeTarget?.cadence === "free";
+
+  async function confirmDowngrade() {
+    const target = showDowngradeConfirm;
+    if (!target) return;
+    if (downgradeIsCancel) {
+      setShowDowngradeConfirm(null);
+      document.getElementById("cancel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
+    setLoadingAction("downgrade");
+    setError(null);
+    try {
+      const res = await fetch("/api/stripe/change-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ newPlanId: target }),
+      });
+      const json = await res.json();
+      if (json.ok) {
+        window.location.reload();
+        return;
+      }
+      setError(json.reason ?? "Could not change plan.");
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setLoadingAction(null);
       setShowDowngradeConfirm(null);
     }
   }
@@ -380,6 +421,12 @@ export function BillingClient({
           </div>
         </div>
       </section>
+
+      {/* ---- Cancel / resume (G18-D) — every plan family; reseller-managed
+          founders see the note in the Current Plan card instead. ---- */}
+      {subscription && !isWholesaleProvisioned && (
+        <CancelSubscriptionSection subscription={subscription} planLabel={subscriptionPlanLabel} />
+      )}
 
       {/* ---- Manage Add-ons ---- */}
       <section className="rounded-2xl border border-surface-200 bg-white dark:bg-surface-100 shadow-sm overflow-hidden">
@@ -566,9 +613,9 @@ export function BillingClient({
                   ) : (
                     // Same rung under a legacy id (e.g. grandfathered `growth`
                     // A$99 vs founder_growth A$69) — a price switch, not an
-                    // upgrade; the Billing Portal handles it.
+                    // upgrade; support moves it (portal plan changes are off).
                     <div className="h-9 flex items-center justify-center rounded-[10px] bg-surface-100 text-xs font-medium text-ink-600 text-center px-2">
-                      Same tier as your plan — switch price in Manage billing
+                      Same tier as your plan — e-mail support@blockid.au to switch price
                     </div>
                   )}
                 </div>
@@ -593,9 +640,9 @@ export function BillingClient({
               Confirm Downgrade
             </h3>
             <p className="text-sm text-ink-600">
-              Are you sure you want to downgrade your plan? You may lose access
-              to features available on your current plan. You will be redirected
-              to the billing portal to make changes.
+              {downgradeIsCancel
+                ? "Downgrading to Free means cancelling your subscription. You keep access until the end of the period you have paid for, then your account drops to Free."
+                : "Are you sure you want to downgrade your plan? You may lose access to features available on your current plan. The change applies now and the difference is prorated on your next invoice."}
             </p>
             <div className="flex items-center gap-3 justify-end">
               <button
@@ -607,20 +654,20 @@ export function BillingClient({
               </button>
               <button
                 type="button"
-                onClick={confirmDowngrade}
-                disabled={loadingAction === "portal"}
+                onClick={() => void confirmDowngrade()}
+                disabled={loadingAction === "downgrade"}
                 className={cn(
                   "h-9 px-4 rounded-[10px] bg-red-600 text-sm font-semibold text-white hover:bg-red-700 transition-colors cursor-pointer flex items-center gap-1.5",
-                  loadingAction === "portal" && "opacity-60 cursor-wait",
+                  loadingAction === "downgrade" && "opacity-60 cursor-wait",
                 )}
               >
-                {loadingAction === "portal" && (
+                {loadingAction === "downgrade" && (
                   <Loader2
                     strokeWidth={1.75}
                     className="h-4 w-4 animate-spin"
                   />
                 )}
-                Confirm Downgrade
+                {downgradeIsCancel ? "Go to cancel subscription" : "Confirm Downgrade"}
               </button>
             </div>
           </div>
