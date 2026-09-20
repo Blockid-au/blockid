@@ -1,8 +1,8 @@
 {
   "dumped_at": "2026-09-17",
-  "source": "pg_constraint (contype=f) on production supabase-db, confrelid = public.app_users; regenerate with `node scripts/db/app-users-fk-inventory.mjs --json --fixture`",
+  "source": "pg_constraint (contype=f) on production supabase-db, confrelid = public.app_users; 0417 claims/evidence_records/claim_versions FKs added by hand until applied; regenerate with `node scripts/db/app-users-fk-inventory.mjs --json --fixture`",
   "referenced": "public.app_users(id)",
-  "count": 134,
+  "count": 138,
   "fks": [
     {
       "constraint": "ab_assignments_user_id_fkey",
@@ -134,6 +134,20 @@
       "constraint": "churn_events_user_id_fkey",
       "table": "churn_events",
       "column": "user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "claim_versions_changed_by_fkey",
+      "table": "claim_versions",
+      "column": "changed_by",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "claims_created_by_fkey",
+      "table": "claims",
+      "column": "created_by",
       "on_delete": "SET NULL",
       "not_null": false
     },
@@ -341,6 +355,13 @@
       "not_null": true
     },
     {
+      "constraint": "evidence_items_user_id_fkey",
+      "table": "evidence_items",
+      "column": "user_id",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
       "constraint": "evidence_owner_user_id_fkey",
       "table": "evidence",
       "column": "owner_user_id",
@@ -348,9 +369,16 @@
       "not_null": true
     },
     {
-      "constraint": "evidence_items_user_id_fkey",
-      "table": "evidence_items",
-      "column": "user_id",
+      "constraint": "evidence_records_submitted_by_fkey",
+      "table": "evidence_records",
+      "column": "submitted_by",
+      "on_delete": "SET NULL",
+      "not_null": false
+    },
+    {
+      "constraint": "evidence_records_verified_by_fkey",
+      "table": "evidence_records",
+      "column": "verified_by",
       "on_delete": "SET NULL",
       "not_null": false
     },
