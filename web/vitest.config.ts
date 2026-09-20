@@ -28,6 +28,8 @@ const UNIT_INCLUDE = [
   "scripts/backtest/*.test.ts",
   // G14-S40: the external-signals ingest CLI + adapters (plain node, fixtures).
   "scripts/external-signals/*.test.mjs",
+  // G19-S47: restructure a stored report_v2 without an AI run (fake-db unit).
+  "scripts/report/*.test.mjs",
   "../scripts/**/*.test.mjs",
 ];
 

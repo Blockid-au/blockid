@@ -38,7 +38,9 @@ import { coverLedgerCells, isUnassessed, ledgerRowsFor, pendingDimsLine, pending
 import { chapterCtaRows, coverEvidenceLine, emptyEvidenceLine, evidenceRowsView, moneyEmptyState, nextActionLine, pendingCtasHeading, planEvidenceRows, type EvidenceRowView } from "@/lib/report-v2/evidence-view";
 import { getTbrS43Strings, getTbrStrings } from "@/lib/i18n/tbr-strings";
 import { defaultPreparedWith } from "@/lib/report-v2/prepared-with";
-import { DIM_ORDER, type DimensionChapter, type ReportV2 } from "@/lib/report-v2/schema";
+import { DIM_ORDER, type DimensionChapter, type ExecutiveStructured, type ReportV2 } from "@/lib/report-v2/schema";
+import { ensureExecutiveStructured } from "@/lib/report-v2/executive-structure";
+import { proseParagraphs } from "@/lib/report-v2/paragraphs";
 import { buildValuationView, CONNECTORS_HREF } from "@/lib/report-v2/valuation-view";
 import { AdviceDisclaimer, PDF_ENTITY_LINE } from "./advice-disclaimer";
 import { pdfPageCount } from "./page-count";
@@ -380,32 +382,168 @@ function ScoreLedger({ ch, locale, verificationLevel }: { ch: DimensionChapter; 
   );
 }
 
-function Executive({ report, locale }: { report: ReportV2; locale: "en" | "vi" }) {
-  const e = report.executive;
-  const p = e.phaseNow;
-  const blockers = topBlockers(p, 3);
+type PdfStyle = ReturnType<typeof makeStyles>[keyof ReturnType<typeof makeStyles>];
+
+/** G19-S47: body prose as ≤ 3-sentence paragraphs (markdown stripped) — the PDF twin of `<Prose>`. */
+function Paragraphs({ text, style, gap = 4 }: { text: string; style?: PdfStyle; gap?: number }) {
+  const paras = proseParagraphs(text);
+  if (!paras.length) return null;
+  return (
+    <View>
+      {paras.map((p, i) => (
+        <Text key={i} style={[s.body, ...(style ? [style] : []), { marginBottom: i === paras.length - 1 ? 0 : gap }]}>
+          {t(p)}
+        </Text>
+      ))}
+    </View>
+  );
+}
+
+const VERDICT_COLOUR: Record<ExecutiveStructured["verdict"]["label"], string> = { back: BAND_COLOUR.strong, back_with_conditions: BAND_COLOUR.developing, watch: BAND_COLOUR.early, not_yet: BAND_COLOUR.pending };
+
+/** One reason / gap card in a 2-column table cell (G19-S47 PDF twin). */
+function ExecCard({ title, body, dim, lift, index, colour, locale }: { title: string; body: string; dim?: string; lift?: number; index: number; colour: string; locale: "en" | "vi" }) {
+  const s47 = getTbrStrings(locale).v2.s47;
+  const dimLabel = dim ? (locale === "vi" ? DIMENSION_OWNERS[dim as keyof typeof DIMENSION_OWNERS].titleVi : DIMENSION_OWNERS[dim as keyof typeof DIMENSION_OWNERS].shortLabel) : null;
+  return (
+    <View style={[s.box, { flex: 1, marginRight: 6, borderLeftWidth: 3, borderLeftColor: colour }]} wrap={false}>
+      <Text style={[s.h3, { marginTop: 0 }]}>{t(`${String(index + 1).padStart(2, "0")}  ${title}`)}</Text>
+      <Text style={s.small}>{t(body)}</Text>
+      {(dimLabel || typeof lift === "number") && (
+        <View style={[s.row, { marginTop: 4 }]}>
+          {dimLabel ? <Pill>{`${dim!.toUpperCase()} · ${dimLabel}`}</Pill> : null}
+          {typeof lift === "number" ? <Text style={s.tiny}>{t(s47.lift(lift))}</Text> : null}
+        </View>
+      )}
+    </View>
+  );
+}
+
+/** Cards laid out as 2-column rows (the last odd card spans one column). */
+function ExecCardRows({ items, colour, locale }: { items: Array<{ title: string; body: string; dim?: string; lift?: number }>; colour: string; locale: "en" | "vi" }) {
+  const rows: Array<typeof items> = [];
+  for (let i = 0; i < items.length; i += 2) rows.push(items.slice(i, i + 2));
+  return (
+    <View>
+      {rows.map((row, ri) => (
+        <View key={ri} style={s.row}>
+          {row.map((it, ci) => (
+            <ExecCard key={ci} title={it.title} body={it.body} dim={it.dim} lift={it.lift} index={ri * 2 + ci} colour={colour} locale={locale} />
+          ))}
+          {row.length === 1 ? <View style={{ flex: 1, marginRight: 6 }} /> : null}
+        </View>
+      ))}
+    </View>
+  );
+}
+
+function Executive({ report, locale, compact = false }: { report: ReportV2; locale: "en" | "vi"; compact?: boolean }) {
+  // G19-S47: the structured sections (parsed on the fly for a pre-S47 row) — never the raw thesis.
+  // `compact` (free tier at trim level ≥ 3): reasons / gaps as one-line bullets instead of card tables.
+  const e = ensureExecutiveStructured(report).executive;
+  const x = e.structured!;
+  const s47 = getTbrStrings(locale).v2.s47;
+  const windowLabel = getTbrStrings(locale).v2.chapter.window;
+  const phase = GROWTH_PHASE_LABELS[x.phaseNow.phaseId]?.[locale] ?? x.phaseNow.label;
+  const confidencePct = Math.round(x.verdict.confidence * 100);
+  const verdictColour = VERDICT_COLOUR[x.verdict.label];
   return (
     <View break>
       <SectionHead no="1" title={TBR_PDF_SECTION_TITLES.executive} />
+      <Text style={[s.small, { marginBottom: 6 }]}>{t(s47.purpose.executive)}</Text>
       <View style={s.row}>
         <Pill>ceo</Pill>
-        <Text style={s.tiny}>{`confidence ${Math.round(e.confidence * 100)}%`}</Text>
+        <Text style={s.tiny}>{t(getTbrStrings(locale).v2.s44.evidenceConfidence(Math.round(e.confidence * 100)))}</Text>
       </View>
-      <Text style={[s.body, { marginVertical: 6 }]}>{t(e.thesis)}</Text>
-      <View style={s.row} wrap={false}>
-        <Bullets title="Top strengths" items={e.strengths} mark="+" />
-        <Bullets title="Top gaps" items={e.gaps} mark="^" />
-      </View>
-      <View style={[s.softBox, { marginTop: 8 }]}>
-        <Text style={s.body}>
-          {t(`Phase now: ${GROWTH_PHASE_LABELS[p.currentPhase][locale]} -> next gate: ${p.nextPhase ? GROWTH_PHASE_LABELS[p.nextPhase][locale] : "final phase"} · ${p.completionPct}% cleared`)}
+      <Text style={[s.h1, { fontSize: 16, marginTop: 6, marginBottom: 6 }]}>{t(x.headline)}</Text>
+      {x.summary.map((p, i) => (
+        <Text key={i} style={[s.body, { marginBottom: 5 }]}>
+          {t(p)}
         </Text>
-        {blockers.length > 0 ? blockers.map((b) => <Text key={`${b.code}-${b.subject}`} style={s.small}>{t(`^ ${b.detail}`)}</Text>) : <Text style={s.small}>No blockers on the current gate.</Text>}
-      </View>
-      <Text style={[s.body, s.bold]}>{t(`Verdict: ${e.verdict}`)}</Text>
-      {e.visuals.map((v) => (
-        <Figure key={v.id} spec={v} caption={null} />
       ))}
+      {x.keyInsight ? (
+        <View style={[s.softBox, { borderLeftWidth: 3, borderLeftColor: C.brand, marginTop: 4 }]} wrap={false}>
+          <Text style={s.th}>{t(s47.keyInsight)}</Text>
+          <Text style={s.body}>{t(x.keyInsight)}</Text>
+        </View>
+      ) : null}
+      {compact ? (
+        <View style={s.row} wrap={false}>
+          <Bullets title={s47.whyBack} items={x.reasonsToBack.map((r) => `${r.title} — ${r.body}`)} mark="+" />
+          <Bullets title={s47.whatMustChange} items={x.criticalGaps.map((g) => `${g.title} — ${g.body}`)} mark="^" />
+        </View>
+      ) : (
+        <>
+          {x.reasonsToBack.length > 0 && (
+            <View>
+              <Text style={[s.th, { marginTop: 6, marginBottom: 4, color: BAND_COLOUR.strong }]}>{t(s47.whyBack)}</Text>
+              <ExecCardRows items={x.reasonsToBack} colour={BAND_COLOUR.strong} locale={locale} />
+            </View>
+          )}
+          {x.criticalGaps.length > 0 && (
+            <View>
+              <Text style={[s.th, { marginTop: 4, marginBottom: 4, color: BAND_COLOUR.early }]}>{t(s47.whatMustChange)}</Text>
+              <ExecCardRows items={x.criticalGaps} colour={BAND_COLOUR.early} locale={locale} />
+            </View>
+          )}
+        </>
+      )}
+      {x.benchmarks.length > 0 && (
+        <View style={[s.row, { flexWrap: "wrap", marginTop: 2, marginBottom: 6 }]} wrap={false}>
+          <Text style={[s.th, { marginRight: 6 }]}>{t(s47.benchmarks)}</Text>
+          {x.benchmarks.map((b) => (
+            <Text key={b.dim} style={[s.tiny, { marginRight: 8, color: bandColour(b.band) }]}>
+              {t(`${b.dim.toUpperCase()} ${b.band === "pending" ? "—" : b.score} · ${bandLabel(b.band)}`)}
+            </Text>
+          ))}
+        </View>
+      )}
+      <View style={s.box} wrap={false}>
+        <View style={s.row}>
+          <Text style={[s.th, { marginRight: 6 }]}>{t(s47.whereYouAre)}</Text>
+          <Pill>{phase}</Pill>
+        </View>
+        <Text style={[s.small, { marginTop: 4 }]}>
+          <Text style={s.bold}>{t(`${s47.blocker}: `)}</Text>
+          {t(x.phaseNow.blocker)}
+        </Text>
+        <Text style={s.small}>
+          <Text style={s.bold}>{t(`${s47.whatItTakes}: `)}</Text>
+          {t(x.phaseNow.whatItTakes)}
+        </Text>
+        {e.visuals.map((v) => (
+          <Figure key={v.id} spec={v} caption={null} />
+        ))}
+      </View>
+      <View style={[s.box, { borderLeftWidth: 3, borderLeftColor: verdictColour }]} wrap={false}>
+        <View style={[s.row, { alignItems: "center" }]}>
+          <Text style={[s.th, { marginRight: 6 }]}>{t(s47.verdict)}</Text>
+          <Text style={[s.bold, { fontSize: 11, color: verdictColour, marginRight: 8 }]}>{t(s47.verdictLabel[x.verdict.label])}</Text>
+          <Text style={s.tiny}>{t(s47.confidence(confidencePct))}</Text>
+        </View>
+        <View style={{ height: 4, backgroundColor: C.grid, borderRadius: 2, marginTop: 4, marginBottom: 4 }}>
+          <View style={{ width: `${Math.max(2, Math.min(100, confidencePct))}%`, height: 4, backgroundColor: verdictColour, borderRadius: 2 }} />
+        </View>
+        <Text style={s.small}>
+          <Text style={s.bold}>{t(`${s47.condition}: `)}</Text>
+          {t(x.verdict.condition ?? s47.noCondition)}
+        </Text>
+      </View>
+      {x.actions.length > 0 && (
+        <View>
+          <Text style={[s.th, { marginBottom: 3 }]}>{t(s47.actions)}</Text>
+          {x.actions.map((a, i) => (
+            <View key={i} style={s.bullet} wrap={false}>
+              <Text style={[s.bulletMark, s.bold, { color: C.brand }]}>{String(i + 1)}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[s.bulletText, s.bold]}>{t(a.title)}</Text>
+                <Text style={s.small}>{t(a.detail)}</Text>
+                <Text style={s.tiny}>{t(`${windowLabel[a.window]}${a.dim ? ` · ${a.dim.toUpperCase()}` : ""}`)}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
       <AuditLine grounded={e.audit.grounded} uncited={e.audit.uncited} revised={e.audit.revised} />
     </View>
   );
@@ -455,7 +593,7 @@ function Chapter({ ch, index, locale, projection, verificationLevel }: { ch: Dim
         <ChapterHeader ch={ch} />
         <View style={s.row} wrap={false}>
           <View style={{ flex: 1, paddingRight: 8 }}>
-            <Text style={s.body}>{t(ch.verdict)}</Text>
+            <Paragraphs text={ch.verdict} />
             {ch.gaps[0] && <Text style={[s.small, { marginTop: 4 }]}>{t(`^ ${ch.gaps[0]}`)}</Text>}
             <Text style={[s.tiny, { marginTop: 6, color: C.brand }]}>{t(`Unlock the full ${ch.title} chapter — upgrade at blockid.au/pricing`)}</Text>
           </View>
@@ -477,7 +615,9 @@ function Chapter({ ch, index, locale, projection, verificationLevel }: { ch: Dim
       {/* G19-S41: the ledger follows the evidence-table trim rule on the free tier. */}
       {projection.show.evidenceTables && <ScoreLedger ch={ch} locale={locale} verificationLevel={verificationLevel} />}
       <Figure spec={ch.primaryVisual} widthPt={Math.min(482, 420)} caption={`${ch.primaryVisual.title} · ${stateLabel(ch.primaryVisual.dataState)}${ch.primaryVisual.subtitle ? ` — ${ch.primaryVisual.subtitle}` : ""}`} />
-      <Text style={[s.body, { marginBottom: 6 }]}>{t(ch.verdict)}</Text>
+      <View style={{ marginBottom: 6 }}>
+        <Paragraphs text={ch.verdict} />
+      </View>
 
       {projection.show.evidenceTables && (
         <View style={s.table}>
@@ -513,7 +653,7 @@ function Chapter({ ch, index, locale, projection, verificationLevel }: { ch: Dim
             <Text style={[s.bold, { fontSize: 9.5 }]}>{t(c.title)}</Text>
             <Text style={[s.bold, { color: bandColour(bandOf(c.score)) }]}>{String(c.score)}</Text>
           </View>
-          <Text style={s.small}>{t(c.verdict)}</Text>
+          <Paragraphs text={c.verdict} style={s.small} gap={2} />
           {showCriterionDetail && (c.strengths.length > 0 || c.gaps.length > 0) && (
             <View style={[s.row, { marginTop: 3 }]} wrap={false}>
               <Bullets title="Strengths" items={c.strengths.slice(0, 3)} mark="+" />
@@ -651,7 +791,11 @@ function Valuation({ report, locale, projection }: { report: ReportV2; locale: "
               ))}
             </View>
           )}
-          {v.narrative ? <Text style={[s.body, { marginTop: 6 }]}>{t(v.narrative)}</Text> : null}
+          {v.narrative ? (
+            <View style={{ marginTop: 6 }}>
+              <Paragraphs text={v.narrative} />
+            </View>
+          ) : null}
           {others.map((x) => (
             <Figure key={x.id} spec={x} widthPt={300} caption={`${x.title} · ${stateLabel(x.dataState)}`} />
           ))}
@@ -863,7 +1007,7 @@ export function TbrReportPdf({ report, level = 0, preparedWith, locale }: TbrPdf
   const prepared = preparedWith?.trim() || defaultPreparedWith(report);
   const body: ReactNode[] = [];
   body.push(<Cover key="cover" report={r} locale={loc} preparedWith={prepared} />);
-  body.push(<Executive key="exec" report={r} locale={loc} />);
+  body.push(<Executive key="exec" report={r} locale={loc} compact={projection.free && projection.level >= 3} />);
   r.dimensions.forEach((ch, i) => {
     body.push(
       <View key={ch.dim} break={!projection.free}>
