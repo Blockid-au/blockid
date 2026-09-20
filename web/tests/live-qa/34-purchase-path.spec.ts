@@ -78,7 +78,7 @@ test.describe("Purchase path — founder Starter (no spend)", () => {
       // The founder CTA lands on the wizard; signed-out that is the login /
       // register form carrying the plan in `next` (never a 500, never a 404).
       const r = await fetchWithSwapRetry(anon, "GET", href!);
-      const location = r.headers()["location"] ?? "";
+      const location = (r.headers()["location"] ?? "").replace(/^https?:\/\/[^/]+/, "");
       await evidence(testInfo, "Starter CTA", { href, status: r.status(), location, starter: aud(STARTER_CENTS) });
       expect([302, 307]).toContain(r.status());
       expect(location).toMatch(/^\/auth\/login\?next=/);

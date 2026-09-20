@@ -218,6 +218,8 @@ describe("4. Startup Package — CTA posts founder_package and every A$ on the p
     const route = src("src/app/api/stripe/checkout/route.ts");
     expect(route).toMatch(/founder_package/);
     expect(route).toContain("STRIPE_PRICE_MAP");
+    expect(route).toContain("price: STARTUP_PACKAGE_AMOUNT_CENTS");
+    expect(route).not.toMatch(/price: 14900/);
   });
 });
 
