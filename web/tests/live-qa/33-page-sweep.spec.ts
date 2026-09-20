@@ -154,8 +154,9 @@ async function personaContext(browser: Browser, storageState: string): Promise<B
 }
 
 test.describe("Page sweep — founder", () => {
-  test("every founder route renders clean on the run's plan (Free → gates; Growth when elevated)", async ({ browser, qa }, testInfo) => {
+  test("every founder route renders clean on the run's plan (Free → gates; Growth when elevated)", async ({ browser, qa, credits }, testInfo) => {
     test.setTimeout(PERSONA_BUDGET_MS + 60_000);
+    const before = await credits.snapshot();
     const fixtures = fixturesFromRunState();
     const { visits, skippedDynamic } = visitsFor("founder", fixtures);
     expect(visits.length, "founder routes enumerated").toBeGreaterThan(100);
@@ -172,6 +173,8 @@ test.describe("Page sweep — founder", () => {
         growthRows = await sweep(ctx, gated.map((r) => visits.find((v) => v.path === r.path)!).filter(Boolean), qa.baseURL, "founder (growth, re-visit of gated routes)");
         for (const r of growthRows) r.persona = "founder-growth";
       }
+      // Read-only by construction — nothing is clicked; the balance proves it.
+      await credits.assertUnchanged(before, "founder page sweep");
       await assertClean([...rows, ...growthRows], skippedDynamic, `founder (${readRunState().plan})`, testInfo);
     } finally {
       await ctx.close();
