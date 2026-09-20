@@ -1,0 +1,122 @@
+{
+  "generated_at": "2026-09-20T16:48:35.737Z",
+  "started_at": "2026-09-20T16:48:34.015Z",
+  "mode": "write",
+  "scope": {
+    "all": true,
+    "limit": null
+  },
+  "table_present": true,
+  "totals": {
+    "projects": 8,
+    "ok": 8,
+    "failed": 0,
+    "claims_created": 36,
+    "claims_updated": 0,
+    "records_created": 36,
+    "records_superseded": 0,
+    "records_skipped": 0,
+    "status_changes": 36,
+    "conflicting": 0,
+    "claims_total": 36
+  },
+  "failures": [],
+  "projects": [
+    {
+      "project_id": "2bf55234-e359-4390-8faa-06597824f77a",
+      "analysis_id": "WJM57gf49KKf",
+      "claims_created": 28,
+      "claims_updated": 0,
+      "records_created": 28,
+      "records_superseded": 0,
+      "records_skipped": 0,
+      "status_changes": 28,
+      "conflicting": 0,
+      "claims_total": 28
+    },
+    {
+      "project_id": "ce3f2929-d7d5-4e3b-a77b-6aa379228bab",
+      "analysis_id": "CtYGRXhQZRtW",
+      "claims_created": 1,
+      "claims_updated": 0,
+      "records_created": 1,
+      "records_superseded": 0,
+      "records_skipped": 0,
+      "status_changes": 1,
+      "conflicting": 0,
+      "claims_total": 1
+    },
+    {
+      "project_id": "f54facb1-575d-414b-808f-039e12310ac9",
+      "analysis_id": "Hde2rekqkuH4",
+      "claims_created": 0,
+      "claims_updated": 0,
+      "records_created": 0,
+      "records_superseded": 0,
+      "records_skipped": 0,
+      "status_changes": 0,
+      "conflicting": 0,
+      "claims_total": 0
+    },
+    {
+      "project_id": "4efc4ba0-3a36-4467-bda0-9c7881dd8523",
+      "analysis_id": "JgDcX5A7tWFV",
+      "claims_created": 2,
+      "claims_updated": 0,
+      "records_created": 2,
+      "records_superseded": 0,
+      "records_skipped": 0,
+      "status_changes": 2,
+      "conflicting": 0,
+      "claims_total": 2
+    },
+    {
+      "project_id": "1e5f8bf7-6cc6-4173-a38b-14d4142eb9a3",
+      "analysis_id": "45uPXtJzXhhi",
+      "claims_created": 0,
+      "claims_updated": 0,
+      "records_created": 0,
+      "records_superseded": 0,
+      "records_skipped": 0,
+      "status_changes": 0,
+      "conflicting": 0,
+      "claims_total": 0
+    },
+    {
+      "project_id": "c2135493-b3c4-4ea4-98b9-35aa27c6c54c",
+      "analysis_id": "6R3gpCNtNtgm",
+      "claims_created": 1,
+      "claims_updated": 0,
+      "records_created": 1,
+      "records_superseded": 0,
+      "records_skipped": 0,
+      "status_changes": 1,
+      "conflicting": 0,
+      "claims_total": 1
+    },
+    {
+      "project_id": "ab3e9953-8969-40a6-a5b6-94cd4cba1ba0",
+      "analysis_id": "KsmCavKdwQRc",
+      "claims_created": 1,
+      "claims_updated": 0,
+      "records_created": 1,
+      "records_superseded": 0,
+      "records_skipped": 0,
+      "status_changes": 1,
+      "conflicting": 0,
+      "claims_total": 1
+    },
+    {
+      "project_id": "03c1398b-0bab-4ee2-9b95-65366e31515d",
+      "analysis_id": "uBNGciSZ2vfK",
+      "claims_created": 3,
+      "claims_updated": 0,
+      "records_created": 3,
+      "records_superseded": 0,
+      "records_skipped": 0,
+      "status_changes": 3,
+      "conflicting": 0,
+      "claims_total": 3
+    }
+  ]
+}

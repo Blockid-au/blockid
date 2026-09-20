@@ -242,6 +242,7 @@ export const ERASURE_MAP: readonly ErasureEntry[] = Object.freeze([
   A("referral_events", "referrer_id", "Referral credit ledger — financial record."),
   A("referrals", "referrer_id", "Referral ledger — referrer's email pseudonymised; the referee's stays theirs.", { scrub: "referrer_email = {anon_email}" }),
   A("report_orders", "user_id", "Paid report orders (Stripe session / payment intent) — financial record."),
+  A("pilot_orders", "user_id", "Paid Cohort Validation Pilot orders (Stripe session / payment intent, 0416) — financial record, 7 y; buyer e-mail pseudonymised.", { scrub: "buyer_email = {anon_email}" }),
   A("reseller_admins", "user_id", "Reseller admin seat (RESTRICT) — revoked, kept for the reseller's audit trail.", {
     scrub: "status = 'revoked', revoked_at = coalesce(revoked_at, now())",
   }),

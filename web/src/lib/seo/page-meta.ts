@@ -22,8 +22,9 @@ export const TITLE_MAX = 60;
 export const DESCRIPTION_MIN = 140;
 export const DESCRIPTION_MAX = 160;
 
-/** The site OG card (`app/opengraph-image.tsx`). */
-export const OG_IMAGE = { url: "/opengraph-image", width: 1200, height: 630, alt: "BlockID.au" } as const;
+/** The site OG card (`app/opengraph-image.tsx`) — the alt mirrors the FI1 hero H1 (docs/design/messaging.md § 2). */
+export const OG_IMAGE_ALT = "Screen every startup on the same evidence-backed framework · BlockID.au";
+export const OG_IMAGE = { url: "/opengraph-image", width: 1200, height: 630, alt: OG_IMAGE_ALT } as const;
 
 const ELLIPSIS = "…";
 
