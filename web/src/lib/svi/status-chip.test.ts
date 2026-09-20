@@ -6,8 +6,8 @@ import { STATUS_CHIP_LABELS, STATUS_CHIP_ORDER, statusChip, statusOf } from "./s
 describe("statusOf", () => {
   it.each([
     ["self-declared, no review", { level: "self_declared" }, "claimed"],
-    ["public URL, no review", { level: "public_url" }, "claimed"],
-    ["L2 badge form", { level: "L2" }, "claimed"],
+    ["public URL, no review → evidence-backed (same rule as the claim register)", { level: "public_url" }, "evidence_backed"],
+    ["L2 badge form", { level: "L2" }, "evidence_backed"],
     ["document uploaded", { level: "document_uploaded" }, "evidence_backed"],
     ["connected source", { level: "L4" }, "evidence_backed"],
     ["transaction data", { level: "transaction_data" }, "evidence_backed"],

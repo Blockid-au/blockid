@@ -190,7 +190,7 @@ export default async function TbrSharePage({
         initialReportV2={initialReportV2}
         shareToken={token}
         pdfMode={pdfMode}
-        benchmarks={{ total: assessmentContext.benchmark }}
+        benchmarks={{ total: assessmentContext.benchmark, evidenceConfidence: assessmentContext.evidenceConfidence, unverifiedMaterialClaims: assessmentContext.unverifiedMaterialClaims }}
       />
       {/* Wave 26A — anonymous open-tracking beacon. Never runs in PDF export. */}
       {!pdfMode && <TbrViewBeacon token={token} />}

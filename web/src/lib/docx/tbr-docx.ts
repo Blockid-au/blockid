@@ -54,7 +54,7 @@ import { buildValuationView, CONNECTORS_HREF } from "@/lib/report-v2/valuation-v
 import { PDF_ENTITY_LINE, PDF_FINANCIAL_PROJECTION_DISCLAIMER, PDF_GENERAL_ADVICE_DISCLAIMER } from "@/lib/pdf/advice-disclaimer";
 import { defaultPreparedWith } from "@/lib/report-v2/prepared-with";
 import { ASSESSMENT_CARD_PDF_TITLE, assessmentCardLines } from "@/lib/pdf/assessment-card-pdf";
-import { assessmentCardFromReport, type AssessmentCardData } from "@/lib/svi/assessment-card";
+import { alignReportWithAssessmentCard, type AssessmentCardData, type AssessmentCardOptions } from "@/lib/svi/assessment-card";
 
 // ── Brand ───────────────────────────────────────────────────────────────────
 
@@ -619,6 +619,8 @@ export interface TbrDocxOptions {
   level?: TrimLevel;
   /** Pre-rasterised images (tests / a caller that already built them for the email). */
   images?: TbrDocxImages;
+  /** Assessment Card context from `loadAssessmentContext` (review P1: one number on every surface). */
+  assessment?: AssessmentCardOptions;
 }
 
 export interface TbrDocxResult {
@@ -629,7 +631,10 @@ export interface TbrDocxResult {
 }
 
 /** Build the DOCX; `generateTbrDocx` is the Buffer-only convenience the route uses. */
-export async function buildTbrDocx(report: ReportV2, opts: TbrDocxOptions = {}): Promise<TbrDocxResult> {
+export async function buildTbrDocx(rawReport: ReportV2, opts: TbrDocxOptions = {}): Promise<TbrDocxResult> {
+  // One evidence-confidence number across the card and the executive line (review P1).
+  const aligned = alignReportWithAssessmentCard(rawReport, opts.assessment ?? {});
+  const report = aligned.report;
   // G19-S45: the fixed-layout twins carry EN / VI fonts + strings; ES / JA documents render with the English labels.
   const raw = opts.locale ?? report.locale ?? "en";
   const locale: "en" | "vi" = raw === "vi" ? "vi" : "en";
@@ -641,7 +646,7 @@ export async function buildTbrDocx(report: ReportV2, opts: TbrDocxOptions = {}):
   const children: Block[] = [
     ...cover(r, images, locale, prepared),
     // G21-P1-B: the Assessment Card — additive, above the executive summary.
-    ...assessmentCard(assessmentCardFromReport(report)),
+    ...assessmentCard(aligned.card),
     ...executive(r, images, locale),
     ...r.dimensions.flatMap((ch, i) => chapter(ch, i + 2, images, locale, projection, r.cover.verification?.level ?? null)),
     ...valuation(r, images, locale, projection),

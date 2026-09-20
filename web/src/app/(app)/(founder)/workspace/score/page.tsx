@@ -14,7 +14,7 @@ import { SviScoreRing } from "@/components/svi/svi-score-ring";
 import { AssessmentCard } from "@/components/svi/AssessmentCard";
 import { assessmentCardFromAnalysis } from "@/lib/svi/assessment-card";
 import { loadAllDimensionEvidence } from "@/lib/evidence/dimension-evidence";
-import { loadAssessmentContext } from "@/lib/svi/assessment-context";
+import { loadAssessmentContext, assessmentCardOptionsFromContext } from "@/lib/svi/assessment-context";
 import { InvestorReadinessTile } from "@/components/dashboard/investor-readiness-tile";
 import { CohortRetentionTile } from "@/components/dashboard/cohort-retention-tile";
 import { DeepValuationCard } from "@/components/dashboard/deep-valuation-card";
@@ -393,7 +393,7 @@ export default async function SVIDashboardPage() {
   const assessmentCard = assessmentCardFromAnalysis(
     analysisWithDelta,
     { name: projectName ?? "Your startup", sector: scope?.project.industry ?? null, verificationLevel: scope?.project.verificationLevel ?? null, generatedAt: lastAnalysisDate ?? null },
-    { evidence: hubEvidence, unverifiedMaterialClaims: assessmentContext.unverifiedMaterialClaims, benchmark: assessmentContext.benchmark },
+    { evidence: hubEvidence, ...assessmentCardOptionsFromContext(assessmentContext) },
   );
 
   // ── Render the living dashboard ──────────────────────────────────────────

@@ -74,7 +74,9 @@ export function statusOf(item: StatusChipInput): EvidenceStatusKey {
   const signed = item.verified === true || Boolean(item.verifiedAt) || review === "approved";
   if (signed || level === "third_party_verified") return "verified";
   if (item.stale === true || review === "pending") return "unverified";
-  if (isConfidenceLevel(level) && confidenceRank(level) >= confidenceRank("document_uploaded")) return "evidence_backed";
+  // Same rule as the claim register (`deriveAssessmentStatus`): a public
+  // URL (L2) is already evidence-backed; only self-declared items are "claimed".
+  if (isConfidenceLevel(level) && confidenceRank(level) >= confidenceRank("public_url")) return "evidence_backed";
   return "claimed";
 }
 

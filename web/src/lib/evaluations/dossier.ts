@@ -56,7 +56,7 @@ import { CRITERIA, CRITERION_KEYS, type CriterionKey } from "@/lib/evaluation-cr
 import { bandFor } from "@/lib/report-visuals/palette";
 import { hubRowToDimensionEvidence, type DimensionEvidenceItem } from "@/lib/evidence/dimension-evidence";
 import { assessmentCardFromReport, type AssessmentCardData } from "@/lib/svi/assessment-card";
-import { loadAssessmentContext } from "@/lib/svi/assessment-context";
+import { loadAssessmentContext, assessmentCardOptionsFromContext } from "@/lib/svi/assessment-context";
 import { makeVisual } from "@/lib/report-visuals";
 import type { Band, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { computeCohortPercentile, type CohortPercentileSource } from "@/lib/agents/cohort-percentile";
@@ -830,7 +830,7 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
   // every other surface uses (the card never re-derives a score).
   const assessmentContext = report ? await loadAssessmentContext(evaluation.projectId, report.cover.stage ?? null) : null;
   const assessmentCard = report
-    ? assessmentCardFromReport(report, { evidence: dossierEvidenceByDim(evidenceRows), unverifiedMaterialClaims: assessmentContext?.unverifiedMaterialClaims ?? null, benchmark: assessmentContext?.benchmark ?? null })
+    ? assessmentCardFromReport(report, { evidence: dossierEvidenceByDim(evidenceRows), ...(assessmentContext ? assessmentCardOptionsFromContext(assessmentContext) : {}) })
     : null;
 
   return {

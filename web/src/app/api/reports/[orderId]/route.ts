@@ -313,15 +313,19 @@ async function renderExport(
     // G19-S45 (D4): a v2 order exports through the v2 twins — same chapter
     // order as the web page, visuals included, no page-budget trim (paid).
     if (reportV2) {
+      // G21 P1 (review): the same Assessment Card numbers as the web report.
+      const { loadAssessmentContext, assessmentCardOptionsFromContext } = await import("@/lib/svi/assessment-context");
+      const projectId = typeof reportRow.project_id === "string" ? reportRow.project_id : null;
+      const assessment = assessmentCardOptionsFromContext(await loadAssessmentContext(projectId, reportV2.cover.stage));
       const bytes =
         format === "docx"
           ? await (async () => {
               const { generateTbrDocx } = await import("@/lib/docx/tbr-docx");
-              return generateTbrDocx(reportV2);
+              return generateTbrDocx(reportV2, { assessment });
             })()
           : await (async () => {
               const { renderTbrPdf } = await import("@/lib/pdf/tbr-pdf");
-              return (await renderTbrPdf(reportV2)).buffer;
+              return (await renderTbrPdf(reportV2, { assessment })).buffer;
             })();
       return new NextResponse(new Uint8Array(bytes), {
         status: 200,

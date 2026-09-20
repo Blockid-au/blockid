@@ -26,6 +26,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { loadReportV2ByShareToken } from "@/lib/report-v2/load";
 import { renderTbrPdf } from "@/lib/pdf/tbr-pdf";
+import { loadAssessmentContext, assessmentCardOptionsFromContext } from "@/lib/svi/assessment-context";
 import { PDF_RETRY_AFTER_SECONDS, pdfCacheKey, tbrPdfCache, tbrPdfSemaphore, type CachedPdf } from "@/lib/pdf/render-gate";
 
 const PDF_CACHE_CONTROL = "private, max-age=300";
@@ -98,7 +99,9 @@ export async function GET(request: Request) {
       // Another request may have filled the cache while we waited for a slot.
       const raced = tbrPdfCache.get(key);
       if (raced) return pdfResponse(raced, "hit");
-      const { buffer, pages, level } = await renderTbrPdf(loaded.report);
+      // G21 P1 (review): the same Assessment Card numbers as the web report.
+      const assessment = assessmentCardOptionsFromContext(await loadAssessmentContext(loaded.projectId, loaded.report.cover.stage));
+      const { buffer, pages, level } = await renderTbrPdf(loaded.report, { assessment });
       const pdf: CachedPdf = { buffer, pages, level, source: loaded.path, filename: safeFilename(loaded.report.cover.startupName) };
       tbrPdfCache.set(key, pdf);
       return pdfResponse(pdf, "miss");

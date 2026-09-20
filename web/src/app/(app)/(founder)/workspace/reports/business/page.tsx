@@ -6,6 +6,7 @@ import { getCurrentProjectIsSandbox } from "@/lib/projects";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { asReportTierClient, emitReportView, resolveReportTier } from "@/lib/analytics/funnel";
 import { BusinessReportClient } from "./business-report-client";
+import { loadAssessmentContext, resolveProjectStage } from "@/lib/svi/assessment-context";
 import { orderParam } from "@/lib/paywall/report-delivery";
 
 export const metadata: Metadata = {
@@ -29,6 +30,11 @@ export default async function BusinessReportPage({
   const projectId = pid ?? "default";
   // G19-S45 (D4): `?order=<id>` — the post-purchase landing (reportOrderPath).
   const orderId = orderParam(order);
+  // G21 P1: the Assessment Card context (stored evidence confidence, claim
+  // count, stage benchmark under the n-rule) — the stage comes from the
+  // report the client resolves, so the benchmark is resolved by stage below.
+  const assessmentContext = projectId !== "default" ? await loadAssessmentContext(projectId, await resolveProjectStage(projectId)) : null;
+  const assessmentBenchmarks = assessmentContext ? { total: assessmentContext.benchmark, evidenceConfidence: assessmentContext.evidenceConfidence, unverifiedMaterialClaims: assessmentContext.unverifiedMaterialClaims } : undefined;
 
   // G16-A funnel: `report_view` — the founder opened their Trusted Business
   // Report. Server-side so it fires whether or not the client bundle hydrates
@@ -43,7 +49,7 @@ export default async function BusinessReportPage({
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
-      <BusinessReportClient projectId={projectId} orderId={orderId} />
+      <BusinessReportClient projectId={projectId} orderId={orderId} benchmarks={assessmentBenchmarks} />
     </WorkspaceLayout>
   );
 }

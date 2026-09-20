@@ -11,6 +11,7 @@ import type { ReportV2 } from "@/lib/report-v2/schema";
 import { TbrActionPlan } from "./action-plan";
 import { TbrAppendix } from "./appendix";
 import { TbrAssessmentCard, type TbrAssessmentBenchmarks } from "./assessment";
+import { alignReportWithAssessmentCard } from "@/lib/svi/assessment-card";
 import { TbrChapter } from "./chapter";
 import { TbrCover } from "./cover";
 import { TbrExecutive } from "./executive";
@@ -83,8 +84,16 @@ export interface TbrReportV2Props {
   benchmarks?: TbrAssessmentBenchmarks;
 }
 
-export function TbrReportV2({ report, strings, locale = "en", upgradeHref, afterChapters, afterExecutive, unlock, benchmarks }: TbrReportV2Props) {
+export function TbrReportV2({ report: rawReport, strings, locale = "en", upgradeHref, afterChapters, afterExecutive, unlock, benchmarks }: TbrReportV2Props) {
   const t = { ...EN, ...strings };
+  // One evidence-confidence number: the card is built once and the executive
+  // summary's line reads the same value (review P1, 2026-09-20).
+  const aligned = alignReportWithAssessmentCard(rawReport, {
+    benchmark: benchmarks?.total ?? null,
+    evidenceConfidence: benchmarks?.evidenceConfidence ?? null,
+    unverifiedMaterialClaims: benchmarks?.unverifiedMaterialClaims ?? null,
+  });
+  const report = aligned.report;
   const free = report.tier === "free";
   const lockCards = free && unlock?.mode === "buy";
   const forceFull = free && Boolean(unlock) && unlock?.mode !== "buy";
@@ -99,7 +108,7 @@ export function TbrReportV2({ report, strings, locale = "en", upgradeHref, after
     <div className={cn("space-y-12", TBR_SURFACE_CLASS)} data-tbr-version={report.schemaVersion} data-tbr-tier={report.tier} data-tbr-source={report.source} data-tbr-unlock={free && unlock ? unlock.mode : undefined}>
       <TbrCover report={report} title={t.secCover} locale={locale} benchmarks={benchmarks} />
       {/* G21-P1-B: the Assessment Card — additive, above the executive summary. */}
-      <TbrAssessmentCard report={report} locale={locale} benchmarks={benchmarks} />
+      <TbrAssessmentCard report={report} locale={locale} benchmarks={benchmarks} data={aligned.card} />
       <TbrExecutive report={report} title={t.secExecutive} locale={locale} />
       {afterExecutive}
       {report.dimensions.map((ch, i) => (

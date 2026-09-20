@@ -36,6 +36,7 @@ import type { AssembledReport, ReportSection } from "@/lib/report-pipeline/types
 import { findSVIAccountWithFallback, findLatestAnalysisWithFallback } from "@/lib/projects";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
 import { apiRoute } from "@/lib/audit/api-route";
+import { loadAssessmentContext, assessmentCardOptionsFromContext } from "@/lib/svi/assessment-context";
 
 export const dynamic = "force-dynamic";
 
@@ -101,6 +102,8 @@ async function POST_handler(request: Request) {
   let reportV2: ReportV2 | null = null;
   let tbrSource: "stored" | "adapter" | "legacy" = "legacy";
   let assembledRowId: string | null = null;
+  // G21 P1: the project behind the export (stored row → its project_id; live path → the scope).
+  let exportProjectId: string | null = null;
   let adapterCtx: { industry?: string | null; stageLabel?: string | null; stage?: number | null; sviTotal?: number | null } = {};
 
   // ── 3. Load report data ─────────────────────────────────────────────────
@@ -135,6 +138,7 @@ async function POST_handler(request: Request) {
     report = reconstructAssembledReport(reportRow);
     assembledRowId = String(reportRow.id ?? body.reportId);
     tbrSource = "adapter";
+    exportProjectId = typeof reportRow.project_id === "string" ? reportRow.project_id : null;
   } else {
     // Load from latest analysis + existing report sections.
     // S18-A — member-aware: an export is a READ of the shared startup
@@ -143,6 +147,7 @@ async function POST_handler(request: Request) {
     const { scope, denied } = await projectScopeOrDeny("viewer");
     if (denied) return denied;
     const projectId = scope?.projectId ?? null;
+    exportProjectId = projectId;
     const dataEmail = scope?.dataEmail ?? user.email;
     const reportOwnerIds = [...new Set([user.id, scope?.ownerUserId ?? user.id])];
 
@@ -260,7 +265,9 @@ async function POST_handler(request: Request) {
         });
       }
     }
-    const docxBuffer = reportV2 ? await generateTbrDocx(reportV2) : await generateSVIDocx(report);
+    const docxBuffer = reportV2
+      ? await generateTbrDocx(reportV2, { assessment: assessmentCardOptionsFromContext(await loadAssessmentContext(exportProjectId, reportV2.cover.stage)) })
+      : await generateSVIDocx(report);
 
     // Sanitise filename
     const safeName = startupName

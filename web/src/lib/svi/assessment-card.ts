@@ -102,14 +102,17 @@ const LOW_RUNGS = new Set<string>(["self_declared", "public_url"]);
  * Unverified material claims — today: evidence items that are neither verified
  * nor backed by a document / connector (L1–L2), plus, when no items exist for
  * a dimension, its positive self-declared / public-URL ledger signals.
- * TODO(P1-A): read `unverifiedMaterialClaims(projectId)` from lib/evidence/claims.ts after merge.
+ * Fallback only — the claim register (`unverifiedMaterialClaims` in
+ * lib/evidence/records.ts) wins when the caller passes its count. The rule
+ * mirrors `deriveAssessmentStatus`: a public URL (L2) already counts as
+ * evidence-backed, so only self-declared (L1) unsigned items are unverified.
  */
 export function countUnverifiedMaterialClaims(ledger: AssessmentLedgerInput, evidence: AssessmentEvidenceInput): number {
   let n = 0;
   for (const d of ledger.dimensions) {
     const items = evidence[d.dim] ?? [];
     if (items.length > 0) {
-      n += items.filter((i) => !i.verified && (i.level === "L1" || i.level === "L2")).length;
+      n += items.filter((i) => !i.verified && i.level === "L1").length;
       continue;
     }
     if (!d.assessed) continue;
@@ -185,6 +188,20 @@ export function buildAssessmentCard(project: AssessmentProjectInput, ledger: Ass
     methodologyVersion: (snapshot.methodologyVersion ?? "").trim() || SVI_VERSION,
     pendingDims,
   };
+}
+
+// ── One number on every surface ─────────────────────────────────────────────
+
+/**
+ * Review P1 (2026-09-20): the executive summary printed its own "evidence
+ * confidence" (an unweighted mean of chapter multipliers) two sections below
+ * the card's weighted number. Build the card once and let the executive line
+ * read the SAME value — every twin (web, PDF, DOCX) goes through here.
+ */
+export function alignReportWithAssessmentCard(report: ReportV2, opts: AssessmentCardOptions = {}): { report: ReportV2; card: AssessmentCardData } {
+  const card = assessmentCardFromReport(report, opts);
+  const confidence = Math.max(0, Math.min(1, card.evidenceConfidence / 100));
+  return { report: { ...report, executive: { ...report.executive, confidence } }, card };
 }
 
 // ── Adapters ────────────────────────────────────────────────────────────────

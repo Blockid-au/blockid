@@ -69,12 +69,12 @@ describe("buildAssessmentCard", () => {
     expect(card.stageLabel).toBe("Stage not set");
   });
 
-  it("evidence items: unverified L1–L2 items count as claims; a verified or documented item does not", () => {
+  it("evidence items: only unsigned self-declared (L1) items count as unverified — a public URL (L2) is evidence-backed, like the claim register (review P1)", () => {
     const evidence = { tre: [item({ level: "L1" }), item({ id: "y", level: "L2", verified: true }), item({ id: "z", level: "L3" })], lco: [item({ id: "w", level: "L2" })] };
-    // tre: 1 (the L1) · lco: 1 · ftv falls back to its 2 ledger claims → 4
-    expect(countUnverifiedMaterialClaims(ledger, evidence)).toBe(4);
+    // tre: 1 (the L1) · lco: 0 (L2 = evidence-backed) · ftv falls back to its 2 ledger claims → 3
+    expect(countUnverifiedMaterialClaims(ledger, evidence)).toBe(3);
     const card = buildAssessmentCard({ name: "Acme", verificationLevel: 0 }, ledger, evidence, { generatedAt: "2026-09-20T00:00:00Z" });
-    expect(card.unverifiedMaterialClaims).toBe(4);
+    expect(card.unverifiedMaterialClaims).toBe(3);
     expect(card.verification.label).toBe("Not yet BlockID Verified");
   });
 

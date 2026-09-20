@@ -63,7 +63,7 @@ export default async function ShowcaseBlockidReportPage() {
         ]}
       />
       <MarketingShell>
-        <ShowcaseBlockidReportView loaded={loaded} benchmarks={{ total: assessmentContext.benchmark }} />
+        <ShowcaseBlockidReportView loaded={loaded} benchmarks={{ total: assessmentContext.benchmark, evidenceConfidence: assessmentContext.evidenceConfidence, unverifiedMaterialClaims: assessmentContext.unverifiedMaterialClaims }} />
       </MarketingShell>
     </>
   );

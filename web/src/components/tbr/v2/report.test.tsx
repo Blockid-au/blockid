@@ -414,10 +414,12 @@ describe("<TbrReportV2> synthesis + layout (G19-S44)", () => {
     expect(cgh).not.toContain('data-tbr-card-mode="compact"');
   });
 
-  it("executive header: mean evidence confidence from the ledgers, no auditor / grounded-% jargon (the appendix keeps it); audit copy says 'no citation in this chapter'", () => {
+  it("executive header: the SAME evidence confidence as the Assessment Card (review P1 — one number per report), no auditor / grounded-% jargon (the appendix keeps it); audit copy says 'no citation in this chapter'", () => {
     const html = renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} />);
     const exec = html.slice(html.indexOf(`id="${TBR_V2_SECTION_IDS.executive}"`), html.indexOf(`id="${TBR_V2_SECTION_IDS.dim("tre")}"`));
-    expect(exec).toContain("evidence confidence 75%");
+    const cardConfidence = html.match(/data-assessment-confidence="(\d+)"/)?.[1];
+    expect(cardConfidence).toBeTruthy();
+    expect(exec).toContain(`evidence confidence ${cardConfidence}%`);
     expect(exec).not.toContain("Auditor:");
     expect(exec).not.toContain("grounded");
     expect(html).not.toContain("not yet audited");

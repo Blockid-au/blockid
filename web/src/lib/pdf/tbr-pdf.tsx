@@ -44,7 +44,7 @@ import { proseParagraphs } from "@/lib/report-v2/paragraphs";
 import { buildValuationView, CONNECTORS_HREF } from "@/lib/report-v2/valuation-view";
 import { AdviceDisclaimer, PDF_ENTITY_LINE } from "./advice-disclaimer";
 import { ASSESSMENT_CARD_PDF_TITLE, AssessmentCardPdf, assessmentCardSummaryLine } from "./assessment-card-pdf";
-import { assessmentCardFromReport } from "@/lib/svi/assessment-card";
+import { alignReportWithAssessmentCard, type AssessmentCardOptions } from "@/lib/svi/assessment-card";
 import { pdfPageCount } from "./page-count";
 
 // ── Palette / styles ─────────────────────────────────────────────────────────
@@ -997,9 +997,14 @@ export interface TbrPdfProps {
   /** "Prepared with <model via provider>" — kept verbatim when the caller has it. */
   preparedWith?: string | null;
   locale?: "en" | "vi";
+  /** Server-loaded Assessment Card context (stored evidence confidence, claim count, benchmark) — same numbers as the web card. */
+  assessment?: AssessmentCardOptions;
 }
 
-export function TbrReportPdf({ report, level = 0, preparedWith, locale }: TbrPdfProps) {
+export function TbrReportPdf({ report: rawReport, level = 0, preparedWith, locale, assessment }: TbrPdfProps) {
+  // One evidence-confidence number across the card and the executive line (review P1).
+  const aligned = alignReportWithAssessmentCard(rawReport, assessment ?? {});
+  const report = aligned.report;
   // G19-S45: EN / VI font sets + strings only; ES / JA documents render with the English labels.
   const rawLoc = locale ?? report.locale ?? "en";
   const loc: "en" | "vi" = rawLoc === "vi" ? "vi" : "en";
@@ -1010,7 +1015,7 @@ export function TbrReportPdf({ report, level = 0, preparedWith, locale }: TbrPdf
   const body: ReactNode[] = [];
   body.push(<Cover key="cover" report={r} locale={loc} preparedWith={prepared} />);
   // G21-P1-B: the compact Assessment Card twin — additive, above the executive summary (same builder as the web card).
-  const card = assessmentCardFromReport(report);
+  const card = aligned.card;
   if (projection.free && projection.level >= MAX_TRIM_LEVEL) {
     // The last trim step keeps the card as one plain line (the padded free fixture sits exactly on the 10-page budget).
     body.push(<Text key="assessment" style={s.tiny}>{t(`${ASSESSMENT_CARD_PDF_TITLE}: ${assessmentCardSummaryLine(card)}`)}</Text>);
@@ -1063,6 +1068,8 @@ export function TbrReportPdf({ report, level = 0, preparedWith, locale }: TbrPdf
 export interface RenderTbrPdfOptions {
   preparedWith?: string | null;
   locale?: "en" | "vi";
+  /** Assessment Card context from `loadAssessmentContext` (review P1: one number on every surface). */
+  assessment?: AssessmentCardOptions;
   /** Override the free budget (tests). */
   maxPages?: number;
 }
@@ -1106,11 +1113,11 @@ export async function renderTbrPdf(report: ReportV2, opts: RenderTbrPdfOptions =
   let buffer: Uint8Array;
   let pages: number;
   try {
-    buffer = await renderToBuffer(<TbrReportPdf report={report} level={level} preparedWith={opts.preparedWith} locale={opts.locale} />);
+    buffer = await renderToBuffer(<TbrReportPdf report={report} level={level} preparedWith={opts.preparedWith} locale={opts.locale} assessment={opts.assessment} />);
     pages = pdfPageCount(buffer);
     while (free && pages > maxPages && level < MAX_TRIM_LEVEL) {
       level = (level + 1) as TrimLevel;
-      buffer = await renderToBuffer(<TbrReportPdf report={report} level={level} preparedWith={opts.preparedWith} locale={opts.locale} />);
+      buffer = await renderToBuffer(<TbrReportPdf report={report} level={level} preparedWith={opts.preparedWith} locale={opts.locale} assessment={opts.assessment} />);
       pages = pdfPageCount(buffer);
     }
   } finally {
