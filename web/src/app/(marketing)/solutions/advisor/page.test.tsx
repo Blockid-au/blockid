@@ -117,11 +117,11 @@ describe("/solutions/advisor — approved wording rules", () => {
     expect(all).not.toMatch(/\btrain(ing|ed|s)?\b/i);
   });
 
-  it("uses the truthful counts — 11 C-Level agents, 8 dimensions, 13 criteria, 12 growth phases", () => {
-    expect(all).toMatch(/11 C-Level agents/);
-    expect(all).toMatch(/8 dimensions/);
-    expect(all).toMatch(/13 criteria/);
+  it("uses the public terms (G18-C messaging map): 8 SVI dimensions, 12 growth phases, no agent count, no '13 criteria'", () => {
+    expect(all).toMatch(/8 SVI dimensions/);
     expect(all).toMatch(/12 growth phases/);
+    expect(all).not.toMatch(/\b11 C-Level agents/);
+    expect(all).not.toMatch(/13 criteria|13-criteria/);
   });
 });
 

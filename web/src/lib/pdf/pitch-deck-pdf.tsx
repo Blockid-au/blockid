@@ -231,7 +231,7 @@ export function PitchDeckPDF() {
 
       {/* ═══ Slide 4: The Solution ═══ */}
       <Page size="A4" orientation="landscape" style={s.page}>
-        <Text style={s.headline}>BlockID.au — AI-Powered Startup Intelligence, Instantly</Text>
+        <Text style={s.headline}>BlockID.au — Startup Value Index: score any Australian startup in 60 seconds</Text>
         <View style={s.row}>
           <View style={s.col}>
             <View style={s.card}>
@@ -389,7 +389,7 @@ export function PitchDeckPDF() {
           </View>
           <View style={[s.cardDark, { flex: 1 }]}>
             <Text style={{ fontSize: 11, fontWeight: "bold", color: C.gold, marginBottom: 4 }}>Tech Stack</Text>
-            <Text style={s.bulletDark}>• 6 AI providers with auto-failover</Text>
+            <Text style={s.bulletDark}>• Multiple AI providers with auto-failover</Text>
             <Text style={s.bulletDark}>• 31+ SEO articles published</Text>
             <Text style={s.bulletDark}>• 37 custom analytics events</Text>
           </View>

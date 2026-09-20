@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     "SVI index dataset",
     "australian startup benchmarks CSV",
     "open startup data australia",
-    "startup index dataset download",
+    "startup value index dataset download",
   ],
   robots: { index: true, follow: true },
   alternates: {

@@ -67,7 +67,7 @@ export const ONE_CLICK_FAQ = {
     },
     {
       q: "Can I upgrade to a subscription?",
-      a: "Yes. After your one-click report, create a free BlockID account to save it, track your SVI over time, and unlock deeper analysis (comparables, evidence vault, per-investor share links). No upgrade pressure — the A$3 report is complete on its own.",
+      a: "Yes. After your Trusted Business Report, create a free BlockID account to save it, track your SVI over time, and unlock deeper analysis (comparables, evidence vault, per-investor share links). No upgrade pressure — the A$3 report is complete on its own.",
     },
   ],
 } as const;

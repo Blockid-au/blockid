@@ -30,7 +30,7 @@ export const HOW_IT_WORKS_STEPS: readonly HowItWorksStep[] = [
   {
     icon: "scan",
     title: "It reads the thing properly",
-    body: "Thirteen criteria across eight dimensions — team, market, product, traction, capital, risk, compliance and momentum — each scored against something specific in what you gave it.",
+    body: "Eight dimensions — team, market, product, traction, capital, risk, compliance and momentum — each scored against something specific in what you gave it.",
   },
   {
     icon: "gauge",

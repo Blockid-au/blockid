@@ -42,7 +42,7 @@ const VI = vi_ as unknown as Messages;
 
 const H1 = "BlockID vs ChatGPT vs a valuer — how to evaluate an Australian startup";
 const CHATGPT_PARAGRAPH =
-  "ChatGPT gives you an outside-in opinion on whatever you paste, and a different one tomorrow. BlockID runs an inside-out review from the startup's own evidence — the same 8-dimension, 13-criteria rubric for every company, a full C-suite of specialist agents with Australian law and market context, an auditor that flags unsupported claims, and a score that updates every week as the company changes. You don't write forty prompts and stitch the answers together; you add the startup and read the report. Then you watch it move.";
+  "ChatGPT gives you an outside-in opinion on whatever you paste, and a different one tomorrow. BlockID runs an inside-out review from the startup's own evidence — the same 8-dimension SVI rubric for every company, a full C-suite of specialist agents with Australian law and market context, an auditor that flags unsupported claims, and a score that updates every week as the company changes. You don't write forty prompts and stitch the answers together; you add the startup and read the report. Then you watch it move.";
 const DATA_PRINCIPLE =
   "Your data belongs to your startup. We store it so every report builds on your own evidence and the AI reasons on your case. Founder-consented access tiers control who sees what.";
 
@@ -184,11 +184,11 @@ describe("/compare — approved wording rules (EN and VI)", () => {
     expect(all).not.toMatch(/\btrain(ing|ed|s)?\b/i);
   });
 
-  it("uses the truthful counts", () => {
-    expect(all).toMatch(/11 C-Level agents/);
-    expect(all).toMatch(/8 dimensions/);
-    expect(all).toMatch(/13 criteria/);
+  it("uses the public terms (G18-C messaging map): 8 SVI dimensions, 12 growth phases, no agent count, no '13 criteria'", () => {
+    expect(all).toMatch(/8 SVI dimensions/);
     expect(all).toMatch(/12 growth phases/);
+    expect(all).not.toMatch(/\b11 C-Level agents/);
+    expect(all).not.toMatch(/13 criteria|13-criteria/);
   });
 });
 

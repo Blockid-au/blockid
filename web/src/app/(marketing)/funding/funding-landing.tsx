@@ -181,7 +181,7 @@ export async function FundingLanding({ messages = null }: FundingLandingProps) {
           </p>
           <p className="mt-2 text-secondary">
             Evaluate any Australian startup for A$3, or track a portfolio from A$79 a month —
-            one rubric across 8 dimensions and 13 criteria, backed by the startup&apos;s own
+            one rubric across 8 SVI dimensions, backed by the startup&apos;s own
             evidence. The Grant &amp; Program Finder is included in every evaluator plan.
           </p>
           <Link

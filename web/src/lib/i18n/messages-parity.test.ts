@@ -93,8 +93,12 @@ describe("compare.* catalogue parity (en ⇄ vi) — T0274 part 2", () => {
     expect(viText).not.toMatch(/PhD/);
     expect(enText).not.toContain("5.50");
     expect(enText).toContain("grounded in the founder's doctoral research (DBA) on startup valuation");
-    expect(enText).toMatch(/11 C-Level agents/);
-    expect(enText).toMatch(/13 criteria/);
+    // G18-C (docs/design/messaging.md § 4): the public term is "8 SVI
+    // dimensions"; "13 criteria" is rubric depth for /methodology only and
+    // the agent count is never stated.
+    expect(enText).toMatch(/8 SVI dimensions/);
+    expect(enText).not.toMatch(/13 criteria|13-criteria/);
+    expect(enText).not.toMatch(/\b11 C-Level agents/);
     expect(enText).toMatch(/12 growth phases/);
   });
 });
@@ -144,8 +148,12 @@ describe("solutions.* approved wording", () => {
   });
 
   it("names the truthful counts and never the stale ones", () => {
-    expect(enText).toMatch(/11 C-Level agents/);
-    expect(enText).toMatch(/13 criteria/);
+    // G18-C (docs/design/messaging.md § 4): the public term is "8 SVI
+    // dimensions"; "13 criteria" is rubric depth for /methodology only and
+    // the agent count is never stated.
+    expect(enText).toMatch(/8 SVI dimensions/);
+    expect(enText).not.toMatch(/13 criteria|13-criteria/);
+    expect(enText).not.toMatch(/\b11 C-Level agents/);
     expect(enText).toMatch(/12 growth phases/);
     expect(enText).not.toMatch(/17 (AI|C-Level)/);
     expect(enText).not.toMatch(/8 AI Agents/);

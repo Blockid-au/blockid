@@ -68,7 +68,7 @@ export function buildPilotWelcomeEmail(input: WelcomeInput): EmailBody {
       : p(`Create your intake link from <a href="${escapeHtml(inbox)}">${escapeHtml(inbox)}</a> and put it on your application page — every applicant lands scored in your inbox.`),
     h2("What is included"),
     ul([
-      `One live intake or cohort, up to ${PILOT_MAX_APPLICANTS} applicants, scored on the 8-dimension / 13-criteria rubric`,
+      `One live intake or cohort, up to ${PILOT_MAX_APPLICANTS} applicants, scored on the 8-dimension SVI rubric`,
       "Cohort table + CSV export, a sponsor / LP report sample, an Investor Dossier per startup",
       `${days} days from today`,
     ]),
@@ -91,7 +91,7 @@ export function buildPilotWelcomeEmail(input: WelcomeInput): EmailBody {
     `Inbox: ${inbox}`,
     "",
     "Included:",
-    `- One live intake or cohort, up to ${PILOT_MAX_APPLICANTS} applicants, 8-dimension / 13-criteria rubric`,
+    `- One live intake or cohort, up to ${PILOT_MAX_APPLICANTS} applicants, 8-dimension SVI rubric`,
     "- Cohort table + CSV, sponsor / LP report sample, Investor Dossier per startup",
     `- ${days} days from today`,
     "",

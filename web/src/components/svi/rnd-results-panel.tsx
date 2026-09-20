@@ -1257,12 +1257,12 @@ export function RndResultsPanel({
                       Track your progress over time
                     </p>
                     <span className="rounded-full bg-brand-100 border border-brand-200 px-2 py-0.5 text-[10px] font-medium text-brand-700 uppercase tracking-wider">
-                      100 spots only
+                      Free
                     </span>
                   </div>
                   <p className="text-xs text-ink-600 mt-1 leading-relaxed">
-                    Claim a Founding 100 account to build your SVI over time — cap table,
-                    Evidence Vault, export packs, and a 30-day growth plan.
+                    Create a free BlockID account to build your Startup Value Index over time — cap table,
+                    evidence vault, export packs, and a 30-day growth plan.
                   </p>
                 </div>
               </div>
@@ -1270,10 +1270,10 @@ export function RndResultsPanel({
 
             {/* Action Buttons */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-              <Link href="/founding-50" className="block">
+              <Link href="/auth/login" className="block">
                 <Button variant="primary" size="md" className="w-full gap-2">
                   <Rocket strokeWidth={1.75} className="h-4 w-4" />
-                  Get Founding 100
+                  Get your score free
                 </Button>
               </Link>
               <Link href="/workspace/score" className="block">

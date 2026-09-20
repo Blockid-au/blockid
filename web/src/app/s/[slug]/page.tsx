@@ -795,7 +795,7 @@ export default async function ShareScorePage({
           <section className="mt-6">
             <div className="rounded-xl border border-surface-200 bg-white p-4 flex flex-wrap items-center justify-between gap-3">
               <p className="text-xs text-ink-500 leading-relaxed">
-                Help other founders discover their SVI score — sharing this report adds a backlink and helps grow the Australian startup index.
+                Help other founders discover their SVI score — sharing this report adds a backlink and helps grow the Startup Value Index.
               </p>
               <ShareButtons
                 slug={slug}

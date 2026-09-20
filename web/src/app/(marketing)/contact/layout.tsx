@@ -17,9 +17,10 @@ const contactPageJsonLd = {
   mainEntity: {
     "@type": "Organization",
     name: "BlockID.au",
-    legalName: "Auschain Pty Ltd",
+    legalName: "Auschain PTY LTD",
+    taxID: "79 659 615 111",
     url: "https://blockid.au",
-    email: "admin@blockid.au",
+    email: "support@blockid.au",
     address: {
       "@type": "PostalAddress",
       addressLocality: "Sydney",
@@ -29,7 +30,7 @@ const contactPageJsonLd = {
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "customer support",
-      email: "admin@blockid.au",
+      email: "support@blockid.au",
       availableLanguage: "English",
       areaServed: "AU",
     },

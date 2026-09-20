@@ -26,7 +26,7 @@ import type { ReactNode } from "react";
  * in `@/components/seo/json-ld`). We add three marketing-only schemas here so
  * they only render for pages under `(marketing)`:
  *
- *   1. `Product` — the A$3 One-Click Report SKU (Task 8 hard requirement).
+ *   1. `Product` — the A$3 Trusted Business Report for guests (`/one-click-report`).
  *
  * S8-A (2026-09-11) removed the layout-scope `FAQPage` and the Home-only
  * `BreadcrumbList`: Google requires FAQPage content to be visible on the
@@ -40,7 +40,7 @@ const SITE_URL = "https://blockid.au";
 const marketingProductJsonLd = {
   "@context": "https://schema.org",
   "@type": "Product",
-  name: "BlockID SVI One-Click Report",
+  name: "Trusted Business Report — Startup Value Index by BlockID",
   // 2026-09-09: this described the A$3 guest report as an "Investor Trust
   // Report" containing a "cap-table snapshot". The Trusted Business Report is the
   // A$3 SKU (re-priced from A$5.50 on 2026-09-10) that has never taken a
@@ -49,7 +49,7 @@ const marketingProductJsonLd = {
   // Google reads, so a stale claim here outlives the page copy that carried
   // it. This now lists what the report actually contains.
   description:
-    "A full startup analysis for Australian founders, from a pitch deck or a website URL. Startup Value Index score across 8 dimensions, an AUD valuation range with the methods behind it, a prioritised action list and a 90-day plan — emailed as a PDF, no account required.",
+    "The full Trusted Business Report for Australian founders, from a pitch deck or a website URL. Startup Value Index score across 8 dimensions, an AUD valuation range with the methods behind it, a prioritised action list and a 90-day plan — emailed as a PDF, no account required.",
   brand: { "@type": "Brand", name: "BlockID.au" },
   url: `${SITE_URL}/one-click-report`,
   image: `${SITE_URL}/opengraph-image`,

@@ -91,8 +91,8 @@ export default function FeaturesPage() {
         title="The eight things you didn't know we ship"
         sub="BlockID quietly does more than the homepage lets on. Cohort percentile scoring, per-investor tracked share links, ATO-compliant tax invoicing, a franking-credit dividend engine and more."
         ctas={[
-          { href: "/pricing", label: "See prices", ctaId: "features_hero_pricing" },
-          { href: "/tbr/demo", label: "See a trust report" },
+          { href: "/pricing", label: "See pricing", ctaId: "features_hero_pricing" },
+          { href: "/tbr/demo", label: "See a sample dossier" },
         ]}
         align="start"
       />
@@ -134,9 +134,9 @@ export default function FeaturesPage() {
 
       <CtaBand
         title="Ready to see it working?"
-        sub="Open a real trust report end-to-end — no sign-up — or jump straight to pricing."
-        primary={{ href: "/pricing", label: "Prices", ctaId: "features_final_pricing" }}
-        secondary={{ href: "/tbr/demo", label: "See a trust report" }}
+        sub="Open a real Trusted Business Report end-to-end — no sign-up — or jump straight to pricing."
+        primary={{ href: "/pricing", label: "See pricing", ctaId: "features_final_pricing" }}
+        secondary={{ href: "/tbr/demo", label: "See a sample dossier" }}
       />
     </MarketingShell>
   );

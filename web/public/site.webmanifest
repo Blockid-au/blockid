@@ -1,7 +1,7 @@
 {
   "name": "BlockID.au — Startup Value Index",
   "short_name": "BlockID",
-  "description": "Startup Value Index — Valuation. Ownership. Growth.",
+  "description": "Score any Australian startup in 60 seconds — Startup Value Index by BlockID.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait-primary",

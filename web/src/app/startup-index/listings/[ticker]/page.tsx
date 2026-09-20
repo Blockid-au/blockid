@@ -303,7 +303,7 @@ export default async function TickerDetailPage({ params }: PageProps) {
           <h2 className="text-xl font-bold mb-2">Want your startup on this index?</h2>
           <p className="text-sm opacity-90 mb-4">A fresh SVI analysis updates your ticker in real time.</p>
           <Link href="/score" className="inline-block bg-white text-brand-700 px-5 py-2 rounded-xl font-bold text-sm hover:bg-amber-50 transition-colors">
-            Get my SVI score
+            Get your score free
           </Link>
         </section>
 

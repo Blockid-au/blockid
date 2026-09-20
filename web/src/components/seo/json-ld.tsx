@@ -1,3 +1,4 @@
+import { heroLine } from "@/lib/marketing/hero-variants";
 import {
   buildItemListJsonLd,
   buildWebPageJsonLd,
@@ -22,8 +23,10 @@ export async function OrganizationJsonLd() {
     taxID: "79 659 615 111",
     url: "https://blockid.au",
     logo: "https://blockid.au/images/logo-transparent.png",
-    description:
-      "Know your startup's SVI score in 60 seconds. BlockID.au scores Australian startups on 8 SVI dimensions, guides them through 12 growth phases, and produces a 9-chapter investor-ready pack.",
+    // G18-C: G1 from the speakable catalogue — the same sentence as the
+    // site og:description (docs/design/messaging.md § 1).
+    description: heroLine("G1").en,
+    alternateName: ["BlockID", "Startup Value Index"],
     email: "support@blockid.au",
     address: {
       "@type": "PostalAddress",
@@ -51,7 +54,8 @@ export async function WebSiteSearchJsonLd() {
   const data = {
     "@context": "https://schema.org",
     "@type": "WebSite",
-    name: "BlockID.au",
+    name: "BlockID.au — Startup Value Index",
+    alternateName: ["BlockID", "Startup Value Index"],
     url: "https://blockid.au",
     potentialAction: {
       "@type": "SearchAction",
@@ -79,12 +83,12 @@ export async function SoftwareApplicationJsonLd() {
     operatingSystem: "Web",
     url: "https://blockid.au",
     description:
-      "AI-powered startup valuation, ownership management, and investor readiness platform for Australian founders.",
+      "Startup Value Index by BlockID: one rubric for every deal — 8 SVI dimensions, an evidence-backed AUD valuation range and an Investor Dossier for any Australian startup.",
     offers: {
       "@type": "Offer",
       price: "0",
       priceCurrency: "AUD",
-      description: "First SVI analysis free",
+      description: "Founders get their first Startup Value Index score free",
     },
   };
   return (

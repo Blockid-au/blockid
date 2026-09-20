@@ -105,7 +105,7 @@ export default async function AgentProfilePage({
         title={detail.role}
         sub={shortTag}
         ctas={[
-          { href: "/team", label: "All 11 agents", variant: "secondary" },
+          { href: "/team", label: "All agents", variant: "secondary" },
         ]}
         align="start"
       />
@@ -190,7 +190,7 @@ export default async function AgentProfilePage({
                     href="/team"
                     className="text-action hover:underline"
                   >
-                    All 11 agents
+                    All agents
                   </Link>
                 </li>
                 <li>

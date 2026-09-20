@@ -134,9 +134,9 @@ export default async function InsightPage({
       </Section>
 
       <CtaBand
-        title="Get your free Startup Value Index"
-        sub="AI-powered valuation, investor-readiness scoring, and a comprehensive report in under 60 seconds."
-        primary={{ href: "/analyze", label: "Start free analysis", ctaId: "insight_final_score" }}
+        title="Get your Startup Value Index score free"
+        sub="Eight dimensions, an evidence-backed valuation range and a full report — in 60 seconds."
+        primary={{ href: "/analyze", label: "Get your score free", ctaId: "insight_final_score" }}
         secondary={{ href: "/insights", label: "Back to all insights" }}
         tone="dark"
       />

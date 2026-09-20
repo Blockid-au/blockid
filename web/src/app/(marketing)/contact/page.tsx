@@ -48,8 +48,8 @@ export default function ContactPage() {
                 </span>
                 <h2 className="font-display text-base font-semibold text-primary">Email</h2>
               </div>
-              <a href="mailto:admin@blockid.au" className={LINK}>
-                admin@blockid.au
+              <a href="mailto:support@blockid.au" className={LINK}>
+                support@blockid.au
               </a>
               <p className="mt-1 text-xs text-muted">We respond within one business day.</p>
             </div>
@@ -114,7 +114,7 @@ export default function ContactPage() {
       <Section
         id="support"
         title="Support"
-        lede="For technical support or account-related queries, email admin@blockid.au with a description of your issue and the account email so we can find your workspace."
+        lede="For technical support or account-related queries, email support@blockid.au with a description of your issue and the account email so we can find your workspace."
         tone="sunken"
         spacing="sm"
       />

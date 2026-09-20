@@ -444,7 +444,7 @@ export function FinancialProjectionsCalculator() {
             href="/score"
             className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-brand-700 hover:text-brand-800"
           >
-            Get my SVI score <ArrowRight className="w-4 h-4" />
+            Get your score free <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
       </section>

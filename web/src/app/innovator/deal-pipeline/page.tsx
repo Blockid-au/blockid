@@ -100,12 +100,12 @@ export default function InnovatorDealPipelinePage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wider text-brand-700 dark:text-brand-300">
-              Full pipeline coming soon
+              Deal flow lives in the evaluator workspace
             </p>
             <p className="mt-1 text-xs text-ink-600 dark:text-ink-400">
-              Drag-and-drop cards, team assignment, and automated stage
-              notifications are launching with the full Innovator Console.
-              Join Founding 50 to get first access.
+              Add the startups you are evaluating, score each one on the same
+              8 SVI dimensions and open its Investor Dossier from the evaluator
+              workspace.
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
@@ -117,10 +117,10 @@ export default function InnovatorDealPipelinePage() {
               <ArrowRight className="h-3 w-3" aria-hidden />
             </Link>
             <Link
-              href="/founding-50"
+              href="/workspace/evaluations"
               className="inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
             >
-              Join Founding 50
+              Open the evaluator workspace
               <ArrowRight className="h-3 w-3" aria-hidden />
             </Link>
           </div>

@@ -17,8 +17,8 @@
  * WHAT THE PAGES SAY (evaluator-traction-2026-09-10.md §4)
  *
  * Six benefit cards, one per differentiator, in the plan's order:
- *   1. one rubric — 8 dimensions × 13 criteria × 12 growth phases
- *   2. the whole C-suite — 11 C-Level agents, then an auditor
+ *   1. one rubric — 8 SVI dimensions × 12 growth phases
+ *   2. the whole C-suite — the C-Level agents, then an auditor
  *   3. the startup's own evidence, accumulating (+ the approved data principle)
  *   4. built for Australia — AUD methods, ESIC / R&DTI / s708, grants
  *   5. A$3, not A$3,000

@@ -85,15 +85,15 @@ export default function InnovatorHomePage() {
             </p>
           </div>
           <span className="shrink-0 rounded-full bg-brand-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand-700 dark:bg-brand-900/60 dark:text-brand-200">
-            Coming soon
+            Evaluator workspace
           </span>
         </div>
         <div className="mt-4 flex items-center gap-2">
           <Link
-            href="/founding-50"
+            href="/workspace/evaluations"
             className="inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
           >
-            Join Founding 50 for early access
+            Open the evaluator workspace
             <ArrowRight className="h-3 w-3" aria-hidden />
           </Link>
         </div>

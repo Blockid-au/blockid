@@ -332,7 +332,7 @@ export async function sendReportEmail(args: SendReportEmailArgs): Promise<SendRe
 
   const result = await sendEmail({
     to: email,
-    subject: `Your Business Report is ready — SVI ${totalSvi}/100 (${bnd.label})`,
+    subject: `Your Trusted Business Report is ready — SVI ${totalSvi}/100 (${bnd.label})`,
     html,
     attachments: allAttachments.length ? allAttachments : undefined,
     unsubscribeUrl,

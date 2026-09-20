@@ -733,7 +733,7 @@ export interface RenderedEmail {
   text: string;
 }
 
-const ONBOARDING_REASON = "Sent because you generated an SVI report on BlockID.au.";
+const ONBOARDING_REASON = "Sent because you generated a Startup Value Index report on BlockID.au.";
 const RADAR_REASON = "Sent because Founder Radar is watching this deadline for you.";
 
 /**
@@ -752,6 +752,9 @@ function footer(email: string, opts: { reason?: string; token?: string | null; c
   const unsub = unsubscribeUrl(email, opts.token, opts.category);
   return `
     <hr style="border:none;border-top:1px solid #E2E8F0;margin:32px 0 16px 0;">
+    <p style="margin:0 0 4px 0;color:#0F172A;font-size:12px;line-height:1.6;font-weight:600;">
+      BlockID &middot; Startup Value Index
+    </p>
     <p style="margin:0 0 4px 0;color:#64748B;font-size:12px;line-height:1.6;">
       Auschain PTY LTD &middot; ACN 659 615 111 &middot; ABN 79 659 615 111
     </p>
@@ -763,11 +766,11 @@ function footer(email: string, opts: { reason?: string; token?: string | null; c
 
 function footerText(email: string, opts: { reason?: string; token?: string | null; category?: EmailCategory } = {}): string {
   const unsub = unsubscribeUrl(email, opts.token, opts.category);
-  return `\n\n—\nAuschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111\n${opts.reason ?? ONBOARDING_REASON}\nUnsubscribe: ${unsub}`;
+  return `\n\n—\nBlockID · Startup Value Index\nAuschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111\n${opts.reason ?? ONBOARDING_REASON}\nUnsubscribe: ${unsub}`;
 }
 
 function shell(inner: string): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BlockID</title></head><body style="margin:0;padding:0;background:#F8FAFC;color:#0F172A;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;">
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BlockID · Startup Value Index</title></head><body style="margin:0;padding:0;background:#F8FAFC;color:#0F172A;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;padding:32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:32px;">
@@ -795,7 +798,7 @@ function d1Copy(email: string, p: DripPayload): RenderedEmail {
   // G16-B: D1 lands on the report itself, not the dashboard.
   const dashUrl = tbrReportUrl(p.project_id);
   const evidenceUrl = `${siteUrl()}/workspace/evidence`;
-  const subject = `Your SVI report is ready — three next steps for ${dim}`;
+  const subject = `Your Startup Value Index report is ready — three next steps for ${dim}`;
   const html = shell(`
     <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#2563EB;font-weight:600;">BlockID &middot; Day 1</p>
     <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0F172A;">Three next steps on your SVI</h1>
@@ -809,7 +812,7 @@ function d1Copy(email: string, p: DripPayload): RenderedEmail {
     ${ctaButton(dashUrl, "Open your report")}
     <p style="color:#64748B;font-size:13px;">Or jump straight to <a href="${evidenceUrl}" style="color:#2563EB;">Evidence Vault</a>.</p>
     ${footer(email)}`);
-  const text = `Your SVI report is ready.\n\nWeakest dimension: ${dim}${p.weakestScore != null ? ` (${p.weakestScore}/100)` : ""}.\n\nThree next steps:\n1. Read the ${dim} chapter in your report.\n2. Add one piece of evidence in the Evidence Vault.\n3. Re-score.\n\nReport: ${dashUrl}\nEvidence Vault: ${evidenceUrl}${footerText(email)}`;
+  const text = `Your Startup Value Index report is ready.\n\nWeakest dimension: ${dim}${p.weakestScore != null ? ` (${p.weakestScore}/100)` : ""}.\n\nThree next steps:\n1. Read the ${dim} chapter in your report.\n2. Add one piece of evidence in the Evidence Vault.\n3. Re-score.\n\nReport: ${dashUrl}\nEvidence Vault: ${evidenceUrl}${footerText(email)}`;
   return { subject, html, text };
 }
 

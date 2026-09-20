@@ -138,7 +138,7 @@ describe("sendReportEmail", () => {
     expect(mail.send).toHaveBeenCalledTimes(1);
     const call = mail.send.mock.calls[0][0] as { to: string; subject: string; html: string; unsubscribeUrl: string; attachments: Array<{ filename: string; cid?: string }> };
     expect(call.to).toBe("jo@acme.io");
-    expect(call.subject).toBe(`Your Business Report is ready — SVI ${Math.round(report.cover.svi.total)}/100 (${bandLabelForEmail(report.cover.svi.band).label})`);
+    expect(call.subject).toBe(`Your Trusted Business Report is ready — SVI ${Math.round(report.cover.svi.total)}/100 (${bandLabelForEmail(report.cover.svi.band).label})`);
     expect(call.unsubscribeUrl).toBe("https://blockid.au/u/abc");
     expect(call.html).toContain("Sample SME Compliance SaaS (demo)");
     expect(call.html).toContain("https://blockid.au/tbr/tok-abc");
@@ -154,7 +154,7 @@ describe("sendReportEmail", () => {
     expect(["adapter", "legacy"]).toContain(res.reportSource);
     const call = mail.send.mock.calls[0][0] as { html: string; subject: string };
     expect(call.html).toContain("Acme Robotics");
-    expect(call.subject).toMatch(/^Your Business Report is ready — SVI \d+\/100/);
+    expect(call.subject).toMatch(/^Your Trusted Business Report is ready — SVI \d+\/100/);
   }, 30_000);
 
   it("is idempotent on report_email_sent_at and honest without a recipient", async () => {
