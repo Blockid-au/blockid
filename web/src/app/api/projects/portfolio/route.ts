@@ -16,7 +16,7 @@
 
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getPortfolioRows } from "@/lib/portfolio";
+import { getPortfolioRows } from "@/lib/portfolio-rows";
 
 export const dynamic = "force-dynamic";
 

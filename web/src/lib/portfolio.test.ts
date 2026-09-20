@@ -4,6 +4,8 @@
 // route against the canonical 8-stage vocabulary and the single-project
 // dashboard's next-action ladder.
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, it, expect } from "vitest";
 import { deriveCanonicalStage, deriveNextAction, startOfMonthIso } from "./portfolio";
 import { CANONICAL_STAGES } from "./journey-vocabulary";
@@ -91,5 +93,25 @@ describe("portfolio — startOfMonthIso", () => {
   it("returns an ISO string parsable back to the same UTC instant", () => {
     const iso = startOfMonthIso(new Date(Date.UTC(2026, 11, 31)));
     expect(new Date(iso).toISOString()).toBe(iso);
+  });
+});
+
+// G20-sweep (2026-09-20): /workspace/projects/compare hit its error boundary
+// on every production render — `getPortfolioRows` used
+// `await import(/* webpackIgnore: true */ "./projects")`, which webpack left
+// as-is, so the standalone server chunk asked Node for a sibling module that
+// does not exist. The aggregator now lives in ./portfolio-rows with static
+// imports; neither file may grow a dynamic import() again.
+describe("portfolio modules — no dynamic import()", () => {
+  for (const file of ["portfolio.ts", "portfolio-rows.ts"]) {
+    it(`${file} has no import() expression`, () => {
+      const src = readFileSync(join(process.cwd(), "src", "lib", file), "utf8");
+      const code = src.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
+      expect(code).not.toMatch(/\bimport\s*\(/);
+    });
+  }
+  it("portfolio.ts is client-safe (no supabase / projects import)", () => {
+    const src = readFileSync(join(process.cwd(), "src", "lib", "portfolio.ts"), "utf8");
+    expect(src).not.toMatch(/from "\.\/(supabase|projects)"/);
   });
 });

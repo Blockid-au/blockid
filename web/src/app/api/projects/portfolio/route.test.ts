@@ -15,18 +15,14 @@ import type { PortfolioRow } from "@/lib/portfolio";
 vi.mock("@/lib/auth", () => ({
   getCurrentUser: vi.fn(),
 }));
-vi.mock("@/lib/portfolio", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/lib/portfolio")>();
-  return {
-    ...actual,
-    getPortfolioRows: vi.fn(),
-  };
-});
+vi.mock("@/lib/portfolio-rows", () => ({
+  getPortfolioRows: vi.fn(),
+}));
 
 // Imports must come AFTER vi.mock so the mocked bindings are hoisted first.
 import { GET } from "./route";
 import { getCurrentUser } from "@/lib/auth";
-import { getPortfolioRows } from "@/lib/portfolio";
+import { getPortfolioRows } from "@/lib/portfolio-rows";
 
 const getCurrentUserMock = vi.mocked(getCurrentUser);
 const getPortfolioRowsMock = vi.mocked(getPortfolioRows);
