@@ -110,6 +110,35 @@ export async function getBatchById(batchId: string): Promise<EvaluationBatch | n
   return mapBatchRow(data as unknown as Row);
 }
 
+/**
+ * G21 P2-A — what the CSV import dedupes against: every evaluation already in
+ * the cohort with its website, founder e-mail and the project's ABN (0410).
+ * Decorative on failure (an empty list only weakens dedupe, never blocks).
+ */
+export async function loadBatchDedupeSources(batchId: string): Promise<Array<{ website: string | null; founderEmail: string | null; abn: string | null }>> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return [];
+  try {
+    const { data, error } = await supabase
+      .from("evaluation_batch_items")
+      .select("evaluation_id, evaluations:evaluation_id (website, founder_email, projects:project_id (abn))")
+      .eq("batch_id", batchId)
+      .limit(1000);
+    if (error || !data) return [];
+    return (data as Array<Row & { evaluations?: Row | Row[] | null }>).map((r) => {
+      const ev = (Array.isArray(r.evaluations) ? r.evaluations[0] : r.evaluations) ?? {};
+      const p = ((Array.isArray(ev.projects) ? ev.projects[0] : ev.projects) ?? {}) as Row;
+      return {
+        website: ev.website == null ? null : String(ev.website),
+        founderEmail: ev.founder_email == null ? null : String(ev.founder_email),
+        abn: p.abn == null ? null : String(p.abn),
+      };
+    });
+  } catch {
+    return [];
+  }
+}
+
 /** How many items (any status) the batch holds — the applicants_cap check. */
 export async function countBatchItems(batchId: string): Promise<number> {
   const supabase = getSupabaseAdmin();
@@ -172,7 +201,7 @@ export interface EvaluationJoin {
   stage: number | null;
 }
 
-async function loadEvaluationJoins(evaluationIds: string[]): Promise<Map<string, EvaluationJoin>> {
+export async function loadEvaluationJoins(evaluationIds: string[]): Promise<Map<string, EvaluationJoin>> {
   const out = new Map<string, EvaluationJoin>();
   if (evaluationIds.length === 0) return out;
   const supabase = getSupabaseAdmin();

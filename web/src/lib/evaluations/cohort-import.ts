@@ -53,7 +53,10 @@ export type ImportSkipReason =
   | "invalid_stage"
   | "duplicate_in_file"
   | "duplicate_in_cohort"
-  | "too_many_rows";
+  | "too_many_rows"
+  // Route-level reasons (the row parsed but the create did not happen).
+  | "plan_limit"
+  | "create_failed";
 
 export interface ImportSkip {
   /** 1-based line in the file (the header is line 1). */
