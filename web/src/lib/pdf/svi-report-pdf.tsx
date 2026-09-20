@@ -1572,7 +1572,7 @@ export function SVIReportPDF({
             }}
           >
             <Text style={{ fontSize: 8, color: C.ink500, textAlign: "center" }}>
-              Powered by BlockID Startup Intelligence · 11 C-Level AI Agents · Auschain PTY LTD · ACN 659 615 111
+              BlockID · Startup Value Index · Auschain PTY LTD · ACN 659 615 111 · ABN 79 659 615 111
             </Text>
           </View>
         </View>
@@ -2459,7 +2459,7 @@ export function SVIReportPDF({
           <ActionItem num={1} text="Build your Data Room" detail="Organize cap table, legal docs, pitch deck — or auto-populate from a proven playbook" />
           <ActionItem num={2} text="Create your Pitch Deck" detail="BlockID templates guide you through investor storytelling" />
           <ActionItem num={3} text="Clean your Cap Table" detail="Get investor-ready equity structure and ESOP allocation" />
-          <ActionItem num={4} text="Grab AU Legal Templates" detail="Pty Ltd Constitution reviewed for AU jurisdiction (ESOP Scheme & AU SAFE coming soon)" />
+          <ActionItem num={4} text="Grab AU Legal Templates" detail="Pty Ltd Constitution reviewed for AU jurisdiction" />
         </View>
 
         {!isPaid && (

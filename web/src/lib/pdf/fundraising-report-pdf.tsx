@@ -697,7 +697,7 @@ function CoverPage({ data }: { data: FundraisingReportData }) {
         <View style={s.coverLogoSquare} />
         <View>
           <Text style={s.coverBrandText}>BlockID</Text>
-          <Text style={s.coverBrandSub}>AI-Powered Startup Intelligence · AU Data Residency</Text>
+          <Text style={s.coverBrandSub}>Startup Value Index · AU Data Residency</Text>
         </View>
       </View>
 

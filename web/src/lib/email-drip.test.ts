@@ -370,7 +370,7 @@ describe("renderDripBody — onboarding_d1", () => {
       weakestScore: 42,
     });
     expect(out.subject).toBe(
-      "Your SVI report is ready — three next steps for traction",
+      "Your Startup Value Index report is ready — three next steps for traction",
     );
   });
 
