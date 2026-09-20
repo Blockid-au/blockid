@@ -252,12 +252,16 @@ export function isReportableRequest(req, siteOrigin) {
  * the HTML carries email obfuscation; a "Failed to load resource" echo whose
  * request is itself allowed.
  */
-export function filterConsole(entries, { htmlHasCfInjection = false, htmlHasCfEmail = false, allowedRequestUrls = new Set() } = {}) {
+export function filterConsole(entries, { htmlHasCfInjection = false, htmlHasCfEmail = false, allowedRequestUrls = new Set(), streamedRedirect = false } = {}) {
   const errors = [];
   const allowed = [];
   let csp = 0;
   for (const e of entries) {
-    if (htmlHasCfInjection && e.type === "console" && CSP_INLINE_SCRIPT_RE.test(e.text) && csp < 2) {
+    // Streamed redirect (redirect() after loading.tsx flushed): Next's
+    // <meta http-equiv=refresh> works, but the two inline scripts it emits
+    // alongside are nonce-less and refused — a documented framework artefact
+    // (docs/ops/page-sweep.md § 6), not a page defect.
+    if ((htmlHasCfInjection || streamedRedirect) && e.type === "console" && CSP_INLINE_SCRIPT_RE.test(e.text) && csp < 2) {
       csp += 1;
       allowed.push(e);
       continue;
@@ -478,7 +482,7 @@ export async function sweepOne(context, { route, path: urlPath, persona, persona
   page.on("response", onResponse);
 
   const t0 = Date.now();
-  const row = { ts: new Date().toISOString(), route, path: urlPath, persona, persona_required: personaRequired, gate: gate ?? null, status: null, final_url: null, h1_count: 0, h1: [], console_errors: [], failed_requests: [], overflow_375: false, overflow_wide: [], missing_alt: [], has_main: false, gate_markers: [], error_boundary: false, title: null, ms: 0, defects: [] };
+  const row = { ts: new Date().toISOString(), route, path: urlPath, persona, persona_required: personaRequired, gate: gate ?? null, status: null, final_url: null, streamed_redirect: null, h1_count: 0, h1: [], console_errors: [], failed_requests: [], overflow_375: false, overflow_wide: [], missing_alt: [], has_main: false, gate_markers: [], error_boundary: false, title: null, ms: 0, defects: [] };
   try {
     let res = await page.goto(`${opts.base}${urlPath}`, { waitUntil: "domcontentloaded", timeout: opts.timeoutMs });
     if (res && (res.status() === 502 || res.status() === 503 || res.status() === 504)) {
@@ -488,8 +492,26 @@ export async function sweepOne(context, { route, path: urlPath, persona, persona
     }
     row.status = res ? res.status() : null;
     await page.waitForTimeout(opts.settleMs);
+    // A `redirect()` thrown after the route's loading.tsx shell streamed
+    // cannot be a 307 any more — Next inserts <meta id="__next-page-redirect"
+    // http-equiv="refresh" content="1;url=…"> (1 s for a temporary redirect).
+    // Follow it so the row records the destination, not the skeleton.
+    const streamedRedirect = await page.evaluate(() => document.querySelector("meta#__next-page-redirect")?.getAttribute("content") ?? null).catch(() => null);
+    if (streamedRedirect) {
+      row.streamed_redirect = streamedRedirect;
+      const before = page.url();
+      await page.waitForURL((u) => u.toString() !== before, { timeout: 6_000 }).catch(() => {});
+      await page.waitForTimeout(opts.settleMs);
+    }
     row.final_url = page.url();
-    const probe = await page.evaluate(probeScript).catch(() => null);
+    let probe = await page.evaluate(probeScript).catch(() => null);
+    // A client-side FeatureGate renders nothing (not even the page heading)
+    // until /api/entitlement/me answers — give it one more settle before
+    // calling the page heading-less.
+    if (probe && probe.h1_count === 0 && !probe.gate_markers.length && !probe.error_boundary) {
+      await page.waitForTimeout(Math.max(1_500, opts.settleMs * 2));
+      probe = (await page.evaluate(probeScript).catch(() => null)) ?? probe;
+    }
     if (probe) Object.assign(row, { title: probe.title, h1_count: probe.h1_count, h1: probe.h1, has_main: probe.has_main, missing_alt: probe.missing_alt, gate_markers: probe.gate_markers, error_boundary: probe.error_boundary });
     if (row.status !== null && row.status < 400) {
       await page.setViewportSize({ width: 375, height: 812 });
@@ -512,10 +534,14 @@ export async function sweepOne(context, { route, path: urlPath, persona, persona
   }
   const failedRequests = failed.filter((f) => isReportableRequest(f, siteOrigin) && !(htmlHasCfEmail && f.status === null && CF_EMAIL_SCRIPT_RE.test(f.url)));
   // The document's own 4xx (a 402 gate, a 404) is the status — not a failed request.
-  row.failed_requests = failedRequests.filter((f) => !(f.url === `${opts.base}${urlPath}` || f.url === row.final_url));
+  // `opts.allowRequests`: [{ pathRe, status? }] the caller expects to fail on
+  // this sweep (e.g. the lane's own rate — /api/svi/phase-progress 429 when one
+  // seat opens > 20 workspace pages a minute, the `svi` bucket).
+  const allowedByCaller = (f) => (opts.allowRequests ?? []).some((a) => a.pathRe.test(safePath(f.url) ?? "") && (a.status === undefined || a.status === f.status));
+  row.failed_requests = failedRequests.filter((f) => !(f.url === `${opts.base}${urlPath}` || f.url === row.final_url) && !allowedByCaller(f));
   const allowedRequestUrls = new Set(failed.filter((f) => !failedRequests.includes(f)).map((f) => f.url));
   for (const f of failedRequests) if (!row.failed_requests.includes(f)) allowedRequestUrls.add(f.url);
-  row.console_errors = filterConsole(consoleEntries, { htmlHasCfInjection, htmlHasCfEmail, allowedRequestUrls }).errors;
+  row.console_errors = filterConsole(consoleEntries, { htmlHasCfInjection, htmlHasCfEmail, allowedRequestUrls, streamedRedirect: !!row.streamed_redirect }).errors;
   row.defects = judge(row, { exceptions: opts.exceptions ?? {} });
   return row;
 }

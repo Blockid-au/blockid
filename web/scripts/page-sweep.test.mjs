@@ -170,6 +170,9 @@ describe("allow-list parity with tests/live-qa/lib/console-guard.ts", () => {
     const echo = { type: "console", text: "Failed to load resource: the server responded with a status of 402 ()", url: "https://blockid.au/api/x" };
     expect(filterConsole([csp, csp, csp, real], { htmlHasCfInjection: true }).errors).toEqual([csp, real]);
     expect(filterConsole([csp], { htmlHasCfInjection: false }).errors).toEqual([csp]);
+    // A streamed redirect (meta refresh after loading.tsx flushed) refuses ≤ 2 nonce-less inline scripts.
+    expect(filterConsole([csp, csp], { streamedRedirect: true }).errors).toEqual([]);
+    expect(filterConsole([csp, csp, csp], { streamedRedirect: true }).errors).toEqual([csp]);
     expect(filterConsole([r418], { htmlHasCfEmail: true }).errors).toEqual([]);
     expect(filterConsole([r418], { htmlHasCfEmail: false }).errors).toEqual([r418]);
     expect(filterConsole([echo], { allowedRequestUrls: new Set(["https://blockid.au/api/x"]) }).errors).toEqual([]);

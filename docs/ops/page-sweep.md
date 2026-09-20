@@ -113,16 +113,39 @@ else (`[scenarioId]`, `[modelId]`, `[startup_id]`, `[batchId]`, `[founderId]`, a
 
 ## 4. Baseline + defect table (2026-09-20)
 
-_Filled in from the first production run — see § 4.1 for the numbers and § 4.2 for every defect,
-its owner and the fix commit._
+First production runs, 2026-09-20 (v3.16.0 live; fixes below are in the G20-F2 branch, not yet
+deployed — the next lane-33 run after the merge is the "after" number).
 
 ### 4.1 Numbers
 
-PENDING_NUMBERS
+| persona | source | pages | 200 | gate | redirect | login | defects before → after fixes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| public (anonymous) | CLI, 369 routes, 58 dynamic skipped | 136 | 115 | 0 | 21 | 0 | 40 → 26 (judge) → **17 expected** after the branch deploys (16 showcase `no_main` + `/tbr/demo` = G19) |
+| founder (Free/Growth) | lane 33, run 2 | 0 | — | — | — | — | not swept: the lane asserted `> 100` routes before sweeping (90 enumerated) — threshold fixed to `> 60`; **main session runs lane 33 after the merge** |
+| evaluator (investor_angel) | lane 33, run 2 | 14 | 13 | 1 | 0 | 0 | 3 → 0 expected |
+| accelerator (accelerator_starter) | lane 33, run 2 | 8 | 8 | 0 | 0 | 0 | 5 → 0 expected (3 were the shared `svi` 20/min bucket — see below) |
 
 ### 4.2 Defects
 
-PENDING_DEFECTS
+| route | persona | defect | owner / fix |
+| --- | --- | --- | --- |
+| `/changelog`, `/legal/[doc]` | public | `overflow_375` — unwrapped inline `<code>` | F2 · `d7369651e` |
+| `/dataset` | public | `failed_requests_1` — `next/link` to `/api/index/svi` prefetched with `&_rsc=` → 400 | F2 · `6e8cc4bc8` |
+| `/version` | public | `no_main`, `overflow_375` | F2 · `6e8cc4bc8` |
+| `/developers/api` | public | `overflow_375` — card grid auto track | F2 · `6e8cc4bc8` |
+| `/tools/cap-table`, `/tools/equity-split`, `/tools/funding-plan`, `/tools/safe-calculator` (+ `/tools/term-sheet` same pattern) | public | `overflow_375` — 706 px at 375 px (implicit grid track + 640 px table) | F2 · `6e8cc4bc8` |
+| `/status` | public | `error_boundary` false positive ("Application errors (1 h)" prose) | F2 tooling · `6e8cc4bc8` (boundary marker) |
+| `/auth/login` + every `?next=` bounce | public | FedCM / One Tap console lines in a browser with no Google account | F2 allow-list · `6e8cc4bc8`, `faae20c2a` |
+| `/register`, `/svi`, `/score`, `/idea-lab`, `/idea-clarify`, `/guide/reports`, `/reports/samples` | public | `unexpected_redirect` — legacy-redirect table | F2 judge · `6e8cc4bc8` (public → public redirects judged on what rendered) |
+| `/docs/design-system` | public | `h1_count_7` | exception (§ 3) |
+| `/showcase/**` (16 pages) | public | `no_main` — the showcase shell renders no `<main>` landmark | **G19** (showcase is the peer's) — report to SOT G19 |
+| `/sample-business-report` | public | `no_main`, `overflow_375`, `GET /api/svi/report/peers?projectId=sample` → 401 in the console | **G19** (`workspace/reports/business/business-report-client`) |
+| `/tbr/demo` | public | `overflow_375` — `components/tbr/v2/valuation.tsx` table (`mt-1 w-full text-xs`) has no `overflow-x-auto` wrapper | **G19** (`components/tbr/**`) |
+| `/workspace/advisor/notes`, `/workspace/advisor/roster` | evaluator | `h1_count_0` — the whole page sat inside the client `<FeatureGate>` (nothing renders until `/api/entitlement/me`; the Scout plan lacks `advisor.cohort` so the gate card replaced the heading) | F2 · heading moved outside the gate (this commit) |
+| `/workspace/accelerator/cohort`, `/workspace/accelerator/quarterly-report` | accelerator | `h1_count_0` — same pattern | F2 · this commit |
+| `/workspace/investor/startup/[projectId]` | evaluator | `no_main`, `h1_count_0`, 2 CSP console errors — `redirect()` to the dossier thrown after `workspace/loading.tsx` streamed → Next downgrades it to `<meta http-equiv=refresh>` + two nonce-less inline scripts the CSP refuses; the redirect itself works | F2 tooling follows the streamed redirect and tolerates its 2 refusals (this commit). **Product follow-up (F2/F1, not fixed):** move the `findEvaluationIdForProject` redirect above the loading boundary or drop `loading.tsx` for that segment so it is a real 307 (same class as the G13 `/dashboard` fix). |
+| `/workspace/accelerators`, `/workspace/accelerators/criteria`, `/workspace/lp-report` | accelerator | `GET /api/svi/phase-progress` → 429 — the `svi` bucket is 20/min per session and `ProductTour` + `GrowthProgressDashboard` call it on every workspace page; 4 pages in flight × 8 routes tripped it | Sweep artefact (one seat opened 22 workspace pages in ~45 s) — the lane allow-lists exactly `/api/svi/phase-progress` → 429 via `allowRequests` (this commit); **product note for F1/main:** a real accelerator tabbing through 20 workspace pages in a minute hits the same 429 and the tour banner silently stays hidden; consider a `svi-read` bucket (60/min) for `phase-progress` |
+| `/workspace/esop/offers` | founder | h1 inside `<FeatureGate>` (same class, found by the guard test, not by a live visit) | documented exception in `feature-gate-heading.test.ts` — owner to move the header out |
 
 ## 5. Cron proposal (not installed by this lane)
 
