@@ -13,6 +13,10 @@
 //                      (§C.9 citation gate; §E.5 internal twin ≥ 0.85 median).
 //   comparables N      verified AU comparable raises (comparables-repo) and
 //                      how many carry a disclosed multiple; the copy line.
+//   clarity (G19-S45)  the one-question report-clarity survey (D6): median
+//                      score over the last 30 days, N, and the share of
+//                      answers ≥ 8. `nps_responses` rows whose `context`
+//                      starts with `tbr_clarity:`. KPI: median ≥ 8.5, N ≥ 30.
 //
 // `computeReportKpis` is pure (tests); `loadReportKpis` does the reads and
 // degrades to nulls — a missing column / file never breaks the dashboard.
@@ -22,6 +26,50 @@ import { comparablesCopyLine, comparablesCounts, primeComparables } from "@/lib/
 export const GROUNDED_GATE = 0.8;
 export const GROUNDED_TARGET_MEDIAN = 0.85;
 export const COGS_TARGET_AUD = 0.6;
+/** G19-S45 (D6): clarity-survey KPI — median ≥ 8.5 with N ≥ 30 in the 30-day window. */
+export const CLARITY_TARGET_MEDIAN = 8.5;
+export const CLARITY_TARGET_N = 30;
+export const CLARITY_WINDOW_DAYS = 30;
+export const CLARITY_HIGH_SCORE = 8;
+export const CLARITY_CONTEXT_PREFIX = "tbr_clarity:";
+
+export interface ClarityResponseRow {
+  created_at: string;
+  score: number | string | null;
+  context?: string | null;
+}
+
+export interface ClarityKpi {
+  windowDays: number;
+  n: number;
+  median: number | null;
+  /** Share of answers ≥ 8 (0–1), null when N = 0. */
+  shareAtLeast8: number | null;
+  targetMedian: number;
+  targetN: number;
+  /** true only when both the median and the N target are met. */
+  onTarget: boolean;
+}
+
+export function computeClarityKpi(rows: ClarityResponseRow[], now: Date = new Date(), windowDays = CLARITY_WINDOW_DAYS): ClarityKpi {
+  const since = now.getTime() - windowDays * 86_400_000;
+  const scores = rows
+    .filter((r) => (r.context === undefined || r.context === null || r.context.startsWith(CLARITY_CONTEXT_PREFIX)) && Date.parse(r.created_at) >= since)
+    // `Number(null)` is 0 — a stub row (D30 drip, unanswered) must not count as a zero.
+    .map((r) => (r.score === null || r.score === undefined || r.score === "" ? NaN : Number(r.score)))
+    .filter((s) => Number.isFinite(s) && s >= 0 && s <= 10);
+  const med = median(scores);
+  const n = scores.length;
+  return {
+    windowDays,
+    n,
+    median: med === null ? null : Math.round(med * 10) / 10,
+    shareAtLeast8: n ? Math.round((scores.filter((s) => s >= CLARITY_HIGH_SCORE).length / n) * 100) / 100 : null,
+    targetMedian: CLARITY_TARGET_MEDIAN,
+    targetN: CLARITY_TARGET_N,
+    onTarget: med !== null && med >= CLARITY_TARGET_MEDIAN && n >= CLARITY_TARGET_N,
+  };
+}
 
 export interface ReportKpiSnapshotRow {
   created_at: string;
@@ -50,6 +98,8 @@ export interface ReportKpis {
   comparablesWithMultiplesN: number;
   comparablesSource: "table" | "static";
   comparablesCopy: string;
+  /** G19-S45 (D6): report-clarity survey KPI. */
+  clarity: ClarityKpi;
 }
 
 export function median(values: number[]): number | null {
@@ -65,6 +115,8 @@ export function computeReportKpis(input: {
   snapshots: ReportKpiSnapshotRow[];
   spend: ReportKpiSpend | null;
   comparables: { n: number; withMultiplesN: number; source: "table" | "static"; copy: string };
+  /** `nps_responses` rows with a `tbr_clarity:` context (last 30 days). */
+  clarity?: ClarityResponseRow[];
   now?: Date;
   windowDays?: number;
 }): ReportKpis {
@@ -94,12 +146,21 @@ export function computeReportKpis(input: {
     comparablesWithMultiplesN: input.comparables.withMultiplesN,
     comparablesSource: input.comparables.source,
     comparablesCopy: input.comparables.copy,
+    clarity: computeClarityKpi(input.clarity ?? [], now),
   };
 }
 
+type KpiQueryResult = PromiseLike<{ data: unknown[] | null; error: { message: string } | null }>;
+
 export interface ReportKpiDb {
   from(table: string): {
-    select(cols: string): { gte(col: string, v: string): { not(col: string, op: string, v: null): { order(col: string, o: { ascending: boolean }): { limit(n: number): PromiseLike<{ data: unknown[] | null; error: { message: string } | null }> } } } };
+    select(cols: string): {
+      gte(col: string, v: string): {
+        not(col: string, op: string, v: null): { order(col: string, o: { ascending: boolean }): { limit(n: number): KpiQueryResult } };
+        /** G19-S45: the clarity read — `.gte(created_at).like(context, 'tbr_clarity:%').limit(n)`. */
+        like?(col: string, pattern: string): { limit(n: number): KpiQueryResult };
+      };
+    };
   };
 }
 
@@ -131,8 +192,22 @@ export async function loadReportKpis(db: ReportKpiDb | null, deps: LoadReportKpi
       snapshots = [];
     }
   }
+  // G19-S45 (D6): clarity-survey answers in the 30-day window.
+  let clarity: ClarityResponseRow[] = [];
+  if (db) {
+    try {
+      const since30 = new Date(now().getTime() - CLARITY_WINDOW_DAYS * 86_400_000).toISOString();
+      const q = db.from("nps_responses").select("created_at, score, context").gte("created_at", since30);
+      if (typeof q.like === "function") {
+        const { data, error } = await q.like("context", `${CLARITY_CONTEXT_PREFIX}%`).limit(5000);
+        if (!error && Array.isArray(data)) clarity = data as ClarityResponseRow[];
+      }
+    } catch {
+      clarity = [];
+    }
+  }
   const spend = deps.readSpend ? deps.readSpend() : await defaultReadSpend();
   await primeComparables().catch(() => undefined);
   const c = comparablesCounts();
-  return computeReportKpis({ snapshots, spend, comparables: { n: c.n, withMultiplesN: c.withMultiplesN, source: c.source, copy: comparablesCopyLine() }, now: now() });
+  return computeReportKpis({ snapshots, spend, comparables: { n: c.n, withMultiplesN: c.withMultiplesN, source: c.source, copy: comparablesCopyLine() }, clarity, now: now() });
 }
