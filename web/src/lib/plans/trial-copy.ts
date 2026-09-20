@@ -15,11 +15,21 @@
 // Business decision (founder, 2026-07-24):
 //   - No indefinite $0 tier for new signups.
 //   - Every new signup = 7-day trial with payment card required upfront.
-//   - Pre-charge email fires 48h before the trial converts.
+//   - Pre-charge email fires 72h (T-3 d, `trial-end-reminder`) before the
+//     trial converts.
 //   - Legacy free-tier users are grandfathered and untouched.
 
-/** Hours before trial end to send the pre-charge warning email. */
-export const TRIAL_WARNING_HOURS_BEFORE = 48;
+/**
+ * Hours before trial end at which the pre-charge reminder is actually sent.
+ *
+ * G18-A (2026-09-19): the installed cron is `trial-end-reminder`
+ * (crontab.production, hourly; window now+3d → now+3d+1h — "ends in 3 days"),
+ * backed by Stripe's `customer.subscription.trial_will_end` (also T-3 d).
+ * `trial-charge-warning` (48 h) exists but is NOT in the crontab, so the
+ * public promise said "48h before" while the e-mail arrived at 72 h. The
+ * copy now states the cadence that runs.
+ */
+export const TRIAL_WARNING_HOURS_BEFORE = 72;
 
 /** Trial length in days. Must match plans.csv `trial_days` column. */
 export const TRIAL_DAYS = 7;

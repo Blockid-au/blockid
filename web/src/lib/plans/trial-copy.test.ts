@@ -63,8 +63,8 @@ describe("TRIAL_DAYS + TRIAL_WARNING_HOURS_BEFORE constants", () => {
     expect(TRIAL_DAYS).toBe(7);
   });
 
-  it("pins the pre-charge warning window at 48h (drip email cadence)", () => {
-    expect(TRIAL_WARNING_HOURS_BEFORE).toBe(48);
+  it("pins the pre-charge warning window at 72h — the installed trial-end-reminder cron (T-3 d), G18-A", () => {
+    expect(TRIAL_WARNING_HOURS_BEFORE).toBe(72);
   });
 
   it("both constants are integers > 0", () => {
@@ -215,7 +215,7 @@ describe("TRIAL_COPY.card_disclosure", () => {
     expect(line).toContain("2026-08-15");
   });
 
-  it("cites the warning-hours constant (48h before)", () => {
+  it("cites the warning-hours constant (72h before)", () => {
     const line = TRIAL_COPY.card_disclosure("2026-08-15");
     expect(line).toContain(`${TRIAL_WARNING_HOURS_BEFORE}h before`);
   });

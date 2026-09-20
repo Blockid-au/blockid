@@ -17,6 +17,7 @@
  * focus-trap keyed off `Tab`/`Shift+Tab` on the dialog root.
  */
 
+import { pricingHrefForPlan } from "@/lib/entitlements/feature-requirement";
 import * as React from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
@@ -280,9 +281,8 @@ function PaywallDialog({ request, onClose }: PaywallDialogProps) {
 
   const featureLabel = request.featureLabel ?? request.feature;
   const segment = request.segment ?? "founder";
-  const upgradeHref = request.requiredPlan
-    ? `/pricing?tier=${encodeURIComponent(segment)}&highlight=${encodeURIComponent(request.requiredPlan)}`
-    : `/pricing?tier=${encodeURIComponent(segment)}`;
+  // G18-A: `#tier-<x>` is what /pricing scrolls to; `?highlight=` was never read.
+  const upgradeHref = pricingHrefForPlan(request.requiredPlan, segment);
 
   const handleUpgrade = () => {
     fireGa("paywall_upgrade_click", {
