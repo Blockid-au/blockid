@@ -14,22 +14,7 @@ parent: "web/content/pitch/pitch-deck-v3.md (12-slide master; this is the 180-se
 
 # Startup Value Index — the 3-minute pitch (2026-09-18)
 
-Eight slides, one hero each, 180 seconds. Every sentence in `speaker` and in the script is one breath (≤ 20 words), no internal jargon (the four forbidden tokens are pinned by `hero-variants.ts`), no user counts, no compliance-certification claims, no fake quotes, Australia-only. Timing in the `## 3-minute cut
-
-Eight slides, 180 seconds (10 + 20 + 25 + 25 + 30 + 30 + 20 + 20). Every sentence is one breath, never more than twenty words, and carries none of the four forbidden internal tokens (pinned by the colocated test).
-
-| # | Slide | Time | Seconds | Beat |
-|---|---|---|---|---|
-| 1 | Startup Value Index | 0:00–0:10 | 10 | Hook: the credit score for startups, for the people who back them |
-| 2 | Forty decks. One weekend. No rubric. | 0:10–0:30 | 20 | Problem with a real number and a real group |
-| 3 | Evaluators pay. Founders get the feedback. | 0:30–0:55 | 25 | The loop: who pays, who benefits |
-| 4 | Add a startup. Read the dossier. Send verdict. | 0:55–1:20 | 25 | Product: the real dossier |
-| 5 | Not a prompt. A rubric with receipts. | 1:20–1:50 | 30 | Proof: rubric, evidence, audit, calibration |
-| 6 | A$3 is a lead. Programs are the revenue. | 1:50–2:20 | 30 | Business model and ARR math |
-| 7 | Live product, real depth, first pilots | 2:20–2:40 | 20 | Traction + team |
-| 8 | A$500K pre-seed. Three things to remember. | 2:40–3:00 | 20 | Ask + three key messages |
-
-### Script
+Eight slides, one hero each, 180 seconds. Every sentence in `speaker` and in the script is one breath (≤ 20 words), no internal jargon (the four forbidden tokens are pinned by `hero-variants.ts`), no user counts, no compliance-certification claims, no fake quotes, Australia-only. The timing table (3-minute cut) sums to 180 s. Every number on a slide is listed in the Provenance table.
 
 ## Slide 1 — Startup Value Index
 
