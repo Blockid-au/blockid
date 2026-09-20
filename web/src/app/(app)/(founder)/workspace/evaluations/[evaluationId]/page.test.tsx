@@ -169,7 +169,7 @@ beforeEach(async () => {
   notFoundMock.mockClear();
   const { __resetDossierCaches } = await import("@/lib/evaluations/dossier");
   __resetDossierCaches();
-});
+}, 30_000); // the first dossier import is the heavy one — the 10 s hook default flaked under deploy-gate load
 
 describe("/workspace/evaluations/[evaluationId]", () => {
   it("redirects anonymous users to login with the dossier as next", async () => {
