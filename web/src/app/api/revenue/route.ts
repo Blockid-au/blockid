@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { insertSviSnapshot } from "@/lib/svi/snapshot-evidence-confidence";
 import { getStripe } from "@/lib/stripe";
 import { apiRoute } from "@/lib/audit/api-route";
 import { getProjectScope } from "@/lib/projects";
@@ -518,13 +519,11 @@ async function POST_handler(request: Request) {
           .eq("id", account.id);
 
         if (Math.abs(sviDelta) >= 2) {
-          await supabase.from("svi_snapshots").insert({
-            account_id: account.id,
-            svi_total: newSVI,
-            stage: newAnalysis.stage,
-            delta: sviDelta,
-            snapshot_date: new Date().toISOString().split("T")[0],
-          });
+          await insertSviSnapshot(
+            supabase,
+            { account_id: account.id, svi_total: newSVI, stage: newAnalysis.stage, delta: sviDelta, snapshot_date: new Date().toISOString().split("T")[0] },
+            { analysis: newAnalysis },
+          );
         }
       }
     } catch (err) {

@@ -94,6 +94,15 @@ export function TbrAppendix({ report, title, locale = "en" }: { report: ReportV2
           </div>
         )}
         <p className="max-w-prose border-t border-line-subtle pt-2 text-xs leading-relaxed">{a.disclaimer}</p>
+        {/* G21 P1-C — founder correction workflow: corrections are logged, never
+            silently overwritten (docs/product/score-governance.md § 10). */}
+        <p className="max-w-prose text-xs leading-relaxed text-muted">
+          {locale === "vi" ? "Thấy dữ liệu sai, cũ hoặc bằng chứng bị hiểu nhầm? " : "Incorrect, stale or misunderstood data in this report? "}
+          <a href="/workspace/evidence/corrections" data-testid="tbr-flag-correction" className="font-semibold text-action hover:underline">
+            {locale === "vi" ? "Báo lỗi để được chỉnh sửa" : "Flag a problem with this report"}
+          </a>
+          {locale === "vi" ? " — mọi chỉnh sửa đều được ghi lại, không bao giờ bị ghi đè âm thầm." : " — every correction is logged, never silently overwritten."}
+        </p>
       </div>
     </TbrSection>
   );

@@ -7,6 +7,7 @@ import { ConnectButtons } from "@/components/ui/connect-buttons";
 import { EvidenceWizard } from "./evidence-wizard";
 import { ConnectorStatus, EVIDENCE_READ_ONLY_HINT } from "./connector-status";
 import { AnalyzeTierModal } from "./analyze-tier-modal";
+import { EvidenceStatusChip } from "./EvidenceStatusChip";
 import { BankStatementImport } from "./bank-statement-import";
 
 interface EvidenceItem {
@@ -377,6 +378,8 @@ export function EvidenceVaultClient({ initialEvidence, evidenceGaps, currentSVI,
                       <span className={`text-xs font-medium ${conf.color}`}>
                         {conf.label}
                       </span>
+                      {/* G21-P1-B: Claimed · Evidence-backed · Verified · Unverified · Conflicting */}
+                      <EvidenceStatusChip item={{ level: item.confidence_level, verifiedAt: item.verified_at }} />
                       {item.value_or_url && item.evidence_type === "url" && (
                         <a
                           href={item.value_or_url}

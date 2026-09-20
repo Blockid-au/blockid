@@ -37,6 +37,7 @@ import { getTbrStrings, type TbrLocale } from "@/lib/i18n/tbr-strings";
 import { TbrInvestorViews } from "@/components/tbr/tbr-investor-views";
 import { TbrQaChat } from "@/components/tbr/tbr-qa-chat";
 import { ActionPlan } from "@/components/score/ActionPlan";
+import type { TbrAssessmentBenchmarks } from "@/components/tbr/v2/assessment";
 import { TbrReportV2, tbrV2Toc, type TbrUnlockOrderStatus, type TbrUnlockProps } from "@/components/tbr/v2/report";
 import { TbrClaritySurvey } from "@/components/tbr/tbr-clarity-survey";
 import { ReportPaywallGate, type ReportPaywallQuote } from "@/components/paywall/ReportPaywallGate";
@@ -227,13 +228,14 @@ interface PeerRow {
   similarityPct: number;
 }
 
-function PeerFiveSection({ projectId, shareToken, industry, stage }: { projectId: string; shareToken?: string; industry: string | null; stage: string | null | undefined }) {
+function PeerFiveSection({ projectId, shareToken, industry, stage, skipFetch = false }: { projectId: string; shareToken?: string; industry: string | null; stage: string | null | undefined; /** G21-P1-B (page sweep): a static sample (initialData, no token) has no peers endpoint to call — the anonymous 401 was the page's one failed request + console error. */ skipFetch?: boolean }) {
   const [peers, setPeers] = useState<PeerRow[] | null>(null);
   const [fallback, setFallback] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(!skipFetch);
+  const [error, setError] = useState<string | null>(skipFetch ? "static-sample" : null);
 
   useEffect(() => {
+    if (skipFetch) return;
     let cancelled = false;
     (async () => {
       try {
@@ -260,7 +262,7 @@ function PeerFiveSection({ projectId, shareToken, industry, stage }: { projectId
     return () => {
       cancelled = true;
     };
-  }, [projectId, shareToken]);
+  }, [projectId, shareToken, skipFetch]);
 
   if (loading) return <p className="text-sm text-muted">Loading peer-5 similarity matches…</p>;
 
@@ -354,9 +356,11 @@ export interface BusinessReportClientProps {
    * /api/reports/access reports for the project.
    */
   orderId?: string | null;
+  /** G21 P1: the Assessment Card's benchmark (server-loaded under the n-rule). */
+  benchmarks?: TbrAssessmentBenchmarks;
 }
 
-export function BusinessReportClient({ projectId, initialData, initialReportV2, shareToken, pdfMode, locale = "en", orderId = null }: BusinessReportClientProps) {
+export function BusinessReportClient({ projectId, initialData, initialReportV2, shareToken, pdfMode, locale = "en", orderId = null, benchmarks }: BusinessReportClientProps) {
   const t = getTbrStrings(locale);
   const router = useRouter();
   const [data, setData] = useState<PersistedState | null>(initialData ?? null);
@@ -866,6 +870,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
               locale={uiLocale}
               upgradeHref="/pricing"
               unlock={unlock}
+              benchmarks={benchmarks}
               afterExecutive={showSurvey && surveySnapshotId ? <TbrClaritySurvey snapshotId={surveySnapshotId} surface={surface} locale={locale} /> : null}
               afterChapters={
                 /* Wave 28C: Personalised 30-Day Action Plan (live widget). */
@@ -958,7 +963,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
 
           {/* ── Peer-5 Similarity Match (Wave 25C) ─────────────────────────── */}
           <ReportSection id="tbr-peers" title="Peer-5 Similarity Match">
-            <PeerFiveSection projectId={projectId} shareToken={shareToken} industry={industry} stage={stage} />
+            <PeerFiveSection projectId={projectId} shareToken={shareToken} industry={industry} stage={stage} skipFetch={Boolean(initialData) && !shareToken} />
           </ReportSection>
 
           {/* Footer */}

@@ -265,6 +265,17 @@ describe("loadDossier — evaluator", () => {
     expect(d!.assessment.mine).toEqual(MINE);
     expect(d!.assessment.history).toHaveLength(2);
     expect(getAssessmentMock).toHaveBeenCalledWith("e-1", { userId: "u-eval", role: "assessor" });
+
+    // G21-P1-B: the Assessment Card rides on the same report + Evidence Hub rows.
+    const card = d!.assessmentCard!;
+    expect(card).not.toBeNull();
+    expect(card.startupName).toBe("Acme Robotics");
+    expect(card.svi).toBe(62);
+    expect(card.verification).toMatchObject({ level: 2, label: "BlockID Verified L2" });
+    expect(card.evidenceConfidence).toBeGreaterThanOrEqual(0);
+    expect(card.evidenceConfidence).toBeLessThanOrEqual(100);
+    expect(card.benchmark).toBeUndefined();
+    expect(typeof card.unverifiedMaterialClaims).toBe("number");
   });
 
   it("G14-S37: a structured founder profile becomes the FTV founder-execution block (score, cap, breakdown); references_checked lifts the cap", async () => {
@@ -329,6 +340,8 @@ describe("loadDossier — evaluator", () => {
     expect(d!.report.criteria).toHaveLength(13);
     expect(d!.report.criteria[0].verdict).toBe("Not scored yet.");
     expect(percentileMock).not.toHaveBeenCalled();
+    // G21-P1-B: no report → no Assessment Card.
+    expect(d!.assessmentCard).toBeNull();
   });
 
   it("runs the post-access reads as one parallel round and caches the percentile for 10 minutes", async () => {
@@ -337,9 +350,10 @@ describe("loadDossier — evaluator", () => {
     expect(tables[0]).toBe("evaluations");
     // Round 1 (7 S-D1 reads + the previous-view audit row) then round 2
     // (mandate fit row · progress send · the assessed snapshot · S-D3 the
-    // viewer's audit trail; the consensus reader is mocked).
+    // viewer's audit trail; the consensus reader is mocked) + the G21 P1
+    // Assessment Card context (claim register + stage benchmark, fail-soft).
     expect(tables.slice(1, 7).sort()).toEqual(["audit_events", "connector_snapshots", "evaluation_reports", "svi_dimension_evidence", "svi_snapshots", "svi_snapshots"]);
-    expect(tables.slice(7).sort()).toEqual(["audit_events", "evaluator_progress_sends", "mandate_fit_scores", "svi_snapshots"]);
+    expect(tables.slice(7).sort()).toEqual(["audit_events", "claims", "evaluator_progress_sends", "mandate_fit_scores", "svi_analyses", "svi_snapshots"]);
     expect(readConsensusMock).toHaveBeenCalledTimes(1);
     expect(readConsensusMock).toHaveBeenCalledWith(expect.objectContaining({ evaluationId: "e-1", viewerUserId: "u-eval" }));
     expect(percentileMock).toHaveBeenCalledTimes(1);

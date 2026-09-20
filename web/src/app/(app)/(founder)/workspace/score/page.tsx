@@ -11,6 +11,10 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { EmptyDashboardState } from "@/components/dashboard/empty-dashboard-state";
 import { LivingSVIDashboard } from "@/components/dashboard/living-svi-dashboard";
 import { SviScoreRing } from "@/components/svi/svi-score-ring";
+import { AssessmentCard } from "@/components/svi/AssessmentCard";
+import { assessmentCardFromAnalysis } from "@/lib/svi/assessment-card";
+import { loadAllDimensionEvidence } from "@/lib/evidence/dimension-evidence";
+import { loadAssessmentContext } from "@/lib/svi/assessment-context";
 import { InvestorReadinessTile } from "@/components/dashboard/investor-readiness-tile";
 import { CohortRetentionTile } from "@/components/dashboard/cohort-retention-tile";
 import { DeepValuationCard } from "@/components/dashboard/deep-valuation-card";
@@ -379,6 +383,19 @@ export default async function SVIDashboardPage() {
   const aiSummary = (await getAllStartupSummaries(user.id).catch(() => []))[0] ?? null;
   const projectName = scope?.project.name ?? startupName ?? null;
 
+  // G21-P1-B: the Assessment Card — SVI beside Evidence Confidence, BlockID
+  // Verified level, top strength / gap, unverified claims. Evidence Hub rows
+  // feed the confidence share and the claim count (fail-soft: `{}`).
+  const hubEvidence = await loadAllDimensionEvidence(supabase, projectId);
+  // P1 merge: claims count from the claim register (P1-A) + the stage
+  // benchmark under the n-rule (P1-C); both fail-soft.
+  const assessmentContext = await loadAssessmentContext(projectId, analysisWithDelta.stage);
+  const assessmentCard = assessmentCardFromAnalysis(
+    analysisWithDelta,
+    { name: projectName ?? "Your startup", sector: scope?.project.industry ?? null, verificationLevel: scope?.project.verificationLevel ?? null, generatedAt: lastAnalysisDate ?? null },
+    { evidence: hubEvidence, unverifiedMaterialClaims: assessmentContext.unverifiedMaterialClaims, benchmark: assessmentContext.benchmark },
+  );
+
   // ── Render the living dashboard ──────────────────────────────────────────
   return (
     <WorkspaceLayout user={user} startupName={startupName} isSandbox={isSandbox} currentPhase={navPhase}>
@@ -386,6 +403,9 @@ export default async function SVIDashboardPage() {
         {isMember && !canEdit && (
           <ViewOnlyNote role={role} action="run analyses or unlock report sections" />
         )}
+        {/* G21-P1-B — the BlockID Assessment Card, first on the page. */}
+        <AssessmentCard data={assessmentCard} headingLevel={2} />
+
         {/* ── Headline SVI gauge — the "score at a glance" viz called out in
             the UI audit. Score comes off analysisWithDelta.totalSVI. ── */}
         <div className="flex justify-center">

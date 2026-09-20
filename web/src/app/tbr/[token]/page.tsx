@@ -13,6 +13,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/reports/business/business-report-client";
+import { loadAssessmentContext } from "@/lib/svi/assessment-context";
 import { TbrViewBeacon } from "@/components/tbr/tbr-view-beacon";
 import { TbrLeadModal } from "@/components/tbr/tbr-lead-modal";
 import { readSnapshotReportV2 } from "@/lib/report-v2/storage";
@@ -177,6 +178,8 @@ export default async function TbrSharePage({
   const result = await fetchByToken(token);
   if (!result) notFound();
   const initialReportV2 = await fetchStoredReportV2(result.row.id);
+  // G21 P1: benchmark for the Assessment Card, published only under the n-rule.
+  const assessmentContext = await loadAssessmentContext(result.row.project_id ?? null, initialReportV2?.cover.stage ?? null);
 
   const pdfMode = pdf === "1";
   return (
@@ -187,6 +190,7 @@ export default async function TbrSharePage({
         initialReportV2={initialReportV2}
         shareToken={token}
         pdfMode={pdfMode}
+        benchmarks={{ total: assessmentContext.benchmark }}
       />
       {/* Wave 26A — anonymous open-tracking beacon. Never runs in PDF export. */}
       {!pdfMode && <TbrViewBeacon token={token} />}

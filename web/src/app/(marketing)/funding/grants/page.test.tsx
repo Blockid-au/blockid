@@ -97,7 +97,7 @@ describe("/funding/grants — metadata and caching", () => {
     expect(String(md.description).length).toBeGreaterThanOrEqual(140);
     expect(String(md.description).length).toBeLessThanOrEqual(160);
     expect(md.alternates?.canonical).toBe("https://blockid.au/funding/grants");
-    expect((md.openGraph as { images?: unknown[] }).images).toEqual([{ url: "/opengraph-image", width: 1200, height: 630, alt: "BlockID.au" }]);
+    expect((md.openGraph as { images?: unknown[] }).images).toEqual([{ url: "/opengraph-image", width: 1200, height: 630, alt: "Screen every startup on the same evidence-backed framework · BlockID.au" }]);
     expect(md.robots).toEqual({ index: true, follow: true });
     expect(revalidate).toBe(3600);
   });

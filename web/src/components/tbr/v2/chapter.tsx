@@ -41,7 +41,7 @@ export function TbrEvidenceTable({ chapter, locale = "en" }: { chapter: Dimensio
   const rows = evidenceRowsView(chapter.evidence, locale);
   const empty = emptyEvidenceLine(locale);
   return (
-    <div className="rounded-lg border border-line-subtle">
+    <div className="overflow-x-auto rounded-lg border border-line-subtle">
       <table className={TABLE_CLASS}>
         <caption className="px-3 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted">{t.evidence}</caption>
         {rows.length > 0 ? (
@@ -93,7 +93,7 @@ export function TbrScoreLedger({ chapter, locale = "en", verificationLevel }: { 
   // G19-S43: a pending chapter links the same CTAs its evidence table shows.
   const pendingCtas = unassessed ? chapterCtaRows(ch, locale) : [];
   return (
-    <div data-tbr-ledger={ch.dim} data-tbr-ledger-state={unassessed ? "pending" : "assessed"} className="rounded-lg border border-line-subtle print:break-inside-avoid">
+    <div data-tbr-ledger={ch.dim} data-tbr-ledger-state={unassessed ? "pending" : "assessed"} className="overflow-x-auto rounded-lg border border-line-subtle print:break-inside-avoid">
       <table className={TABLE_CLASS}>
         <caption className="px-3 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted">{t.title}</caption>
         {pending ? (

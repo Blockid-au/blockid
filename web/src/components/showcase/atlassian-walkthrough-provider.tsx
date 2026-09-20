@@ -39,7 +39,7 @@ export function AtlassianWalkthroughProvider({
   // itself no-ops rather than throwing.
   const step = getStepByNumber(stepNumber);
   if (!step) {
-    return <>{children}</>;
+    return <main id="main-content">{children}</main>;
   }
   return (
     <DemoWalkthroughShell

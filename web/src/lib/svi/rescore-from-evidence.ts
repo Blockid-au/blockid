@@ -21,6 +21,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { extractSignals, computeSVI, SVI_VERSION, type SVISubScore } from "@/lib/svi-analysis";
 import { emitScoreRecalculated } from "@/lib/analytics/fi-events";
+import { insertSviSnapshot } from "@/lib/svi/snapshot-evidence-confidence";
 import { checkAndAwardBadges, type BadgeContext } from "@/lib/badges";
 import { loadConnectedRevenueSignals } from "@/lib/connected-revenue";
 import type { ConnectedRevenueSignal } from "@/lib/valuation-mrr-bridge";
@@ -287,13 +288,11 @@ export async function rescoreAccountFromEvidence(supabase: Db, args: RescoreArgs
   }
 
   if (Math.abs(delta) >= 2) {
-    await supabase.from("svi_snapshots").insert({
-      account_id: accountId,
-      svi_total: newAnalysis.totalSVI,
-      stage: newAnalysis.stage,
-      delta,
-      snapshot_date: now.toISOString().split("T")[0],
-    });
+    await insertSviSnapshot(
+      supabase,
+      { account_id: accountId, svi_total: newAnalysis.totalSVI, stage: newAnalysis.stage, delta, snapshot_date: now.toISOString().split("T")[0] },
+      { analysis: newAnalysis, verificationLevel },
+    );
   }
 
   // 7. Milestone badges.

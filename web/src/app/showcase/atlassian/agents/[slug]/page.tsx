@@ -180,19 +180,22 @@ function renderMarkdown(md: string): React.ReactNode {
             : "mt-5 text-lg font-semibold text-ink-100";
       const inline = renderInline(text, `h-${blockKey}`);
       const key = nextKey();
+      // The page already carries its one <h1>; a "# " heading inside the agent
+      // report body renders one level down (h2 / h3 / h4) so the landmark
+      // sweep sees a single h1 per page.
       blocks.push(
         level === 1 ? (
-          <h1 key={key} className={cls}>
-            {inline}
-          </h1>
-        ) : level === 2 ? (
           <h2 key={key} className={cls}>
             {inline}
           </h2>
-        ) : (
+        ) : level === 2 ? (
           <h3 key={key} className={cls}>
             {inline}
           </h3>
+        ) : (
+          <h4 key={key} className={cls}>
+            {inline}
+          </h4>
         ),
       );
       i++;

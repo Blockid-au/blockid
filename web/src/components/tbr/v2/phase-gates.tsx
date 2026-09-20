@@ -38,6 +38,7 @@ export function TbrPhaseGates({ report, title, locale = "en" }: { report: Report
           </span>
         ))}
       </p>
+      <div className="overflow-x-auto">
       <table className={TABLE_CLASS}>
         <caption className="py-1 text-left text-[11px] font-semibold uppercase tracking-wide text-muted">{t.requiredCriteria(phaseLabel(g.current, locale))}</caption>
         <tbody>
@@ -52,6 +53,7 @@ export function TbrPhaseGates({ report, title, locale = "en" }: { report: Report
           ))}
         </tbody>
       </table>
+      </div>
       {g.blockers.length > 0 && (
         <ul className="space-y-1 text-xs text-secondary">
           {g.blockers.slice(0, 6).map((b) => (

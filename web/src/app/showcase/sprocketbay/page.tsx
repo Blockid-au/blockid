@@ -147,7 +147,7 @@ export default async function SprocketbayWalkthroughPage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface-50">
+    <main id="main-content" className="min-h-screen bg-surface-50">
       <script
         type="application/ld+json"
         // The banner below is for humans; crawlers and AI agents read the
@@ -463,6 +463,6 @@ export default async function SprocketbayWalkthroughPage() {
           </div>
         </section>
       </div>
-    </div>
+    </main>
   );
 }

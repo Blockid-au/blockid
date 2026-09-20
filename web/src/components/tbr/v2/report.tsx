@@ -10,6 +10,7 @@ import type { TbrLocale, TbrStrings } from "@/lib/i18n/tbr-strings";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import { TbrActionPlan } from "./action-plan";
 import { TbrAppendix } from "./appendix";
+import { TbrAssessmentCard, type TbrAssessmentBenchmarks } from "./assessment";
 import { TbrChapter } from "./chapter";
 import { TbrCover } from "./cover";
 import { TbrExecutive } from "./executive";
@@ -22,7 +23,7 @@ import { TbrUnlockRail, type TbrUnlockMode, type TbrUnlockOrderStatus } from "./
 import { Fragment } from "react";
 
 export { TBR_V2_SECTION_IDS };
-export type { TbrUnlockMode, TbrUnlockOrderStatus, TbrUiLocale };
+export type { TbrUnlockMode, TbrUnlockOrderStatus, TbrUiLocale, TbrAssessmentBenchmarks };
 
 /**
  * G16-B — how the reader relates to the paid report. Given only by the
@@ -74,9 +75,15 @@ export interface TbrReportV2Props {
    * rail after the last chapter. Omitted → the pre-G16 render (cards + link).
    */
   unlock?: TbrUnlockProps | null;
+  /**
+   * G21-P1-B: benchmark lines for the Assessment Card (`total`) and the cover's
+   * dimension cards (`dims`) — always with `n` and P1-C's publication label.
+   * Omitted → no benchmark line is rendered (never computed here).
+   */
+  benchmarks?: TbrAssessmentBenchmarks;
 }
 
-export function TbrReportV2({ report, strings, locale = "en", upgradeHref, afterChapters, afterExecutive, unlock }: TbrReportV2Props) {
+export function TbrReportV2({ report, strings, locale = "en", upgradeHref, afterChapters, afterExecutive, unlock, benchmarks }: TbrReportV2Props) {
   const t = { ...EN, ...strings };
   const free = report.tier === "free";
   const lockCards = free && unlock?.mode === "buy";
@@ -90,7 +97,9 @@ export function TbrReportV2({ report, strings, locale = "en", upgradeHref, after
   const railAfterIdx = free && unlock ? (firstLockedIdx >= 0 ? firstLockedIdx : report.dimensions.length - 1) : -1;
   return (
     <div className={cn("space-y-12", TBR_SURFACE_CLASS)} data-tbr-version={report.schemaVersion} data-tbr-tier={report.tier} data-tbr-source={report.source} data-tbr-unlock={free && unlock ? unlock.mode : undefined}>
-      <TbrCover report={report} title={t.secCover} locale={locale} />
+      <TbrCover report={report} title={t.secCover} locale={locale} benchmarks={benchmarks} />
+      {/* G21-P1-B: the Assessment Card — additive, above the executive summary. */}
+      <TbrAssessmentCard report={report} locale={locale} benchmarks={benchmarks} />
       <TbrExecutive report={report} title={t.secExecutive} locale={locale} />
       {afterExecutive}
       {report.dimensions.map((ch, i) => (

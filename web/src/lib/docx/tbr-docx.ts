@@ -53,6 +53,8 @@ import { proseParagraphs } from "@/lib/report-v2/paragraphs";
 import { buildValuationView, CONNECTORS_HREF } from "@/lib/report-v2/valuation-view";
 import { PDF_ENTITY_LINE, PDF_FINANCIAL_PROJECTION_DISCLAIMER, PDF_GENERAL_ADVICE_DISCLAIMER } from "@/lib/pdf/advice-disclaimer";
 import { defaultPreparedWith } from "@/lib/report-v2/prepared-with";
+import { ASSESSMENT_CARD_PDF_TITLE, assessmentCardLines } from "@/lib/pdf/assessment-card-pdf";
+import { assessmentCardFromReport, type AssessmentCardData } from "@/lib/svi/assessment-card";
 
 // ── Brand ───────────────────────────────────────────────────────────────────
 
@@ -272,6 +274,22 @@ function coverLedger(report: ReportV2, locale: "en" | "vi"): Block[] {
   if (evidence) out.push(small(evidence, INK));
   if (pending) out.push(small(pending));
   return out;
+}
+
+/**
+ * G21-P1-B — the Assessment Card twin: kicker + the two headline numbers
+ * (SVI · Evidence Confidence) as one 2-column table, then the label · value
+ * rows the PDF block prints. Same `AssessmentCardData` as the web card.
+ */
+function assessmentCard(data: AssessmentCardData): Block[] {
+  const svi = data.svi === null ? "—" : `${data.svi} / 100`;
+  const band = data.sviBand === "pending" ? "Pending" : data.sviBand;
+  return [
+    kicker(ASSESSMENT_CARD_PDF_TITLE),
+    p(data.startupName, { size: 22, bold: true, after: 40 }),
+    table(["SVI", "Evidence Confidence"], [[`${svi} · ${band}`, `${data.evidenceConfidence} % · ${data.verification.label}`]], [50, 50]),
+    table(["Item", "Value"], assessmentCardLines(data).map((l) => [l.label, l.value]), [35, 65]),
+  ];
 }
 
 /** G19-S43 — a CTA row as document text: "<label> · <path> · +N SVI". */
@@ -622,6 +640,8 @@ export async function buildTbrDocx(report: ReportV2, opts: TbrDocxOptions = {}):
 
   const children: Block[] = [
     ...cover(r, images, locale, prepared),
+    // G21-P1-B: the Assessment Card — additive, above the executive summary.
+    ...assessmentCard(assessmentCardFromReport(report)),
     ...executive(r, images, locale),
     ...r.dimensions.flatMap((ch, i) => chapter(ch, i + 2, images, locale, projection, r.cover.verification?.level ?? null)),
     ...valuation(r, images, locale, projection),

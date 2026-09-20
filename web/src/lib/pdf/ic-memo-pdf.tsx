@@ -29,6 +29,7 @@ import { pdfSafeText as t } from "@/lib/report-visuals/pdf-text";
 import type { Band, VisualSpecV2 } from "@/lib/report-visuals/types";
 import type { IcReportKind, IcSections } from "@/lib/evaluations/ic-reports";
 import { AdviceDisclaimer, PDF_ENTITY_LINE } from "./advice-disclaimer";
+import { AssessmentCardPdf } from "./assessment-card-pdf";
 import { pdfPageCount } from "./page-count";
 
 export const IC_MEMO_FOOTER = `Prepared with BlockID.au · ${LEGAL_ENTITY.operator} · not financial advice`;
@@ -38,8 +39,12 @@ const C = { ink: INK.text, muted: INK.muted, faint: INK.faint, grid: INK.grid, s
 const MM = 72 / 25.4;
 const MARGIN = 16 * MM;
 
+/** The font set of the current render (G21-P1-B: the Assessment Card block takes it as a prop). */
+let memoFonts: PdfFontSet = HELVETICA;
+
 /** Swap the memo's font family in place for the current render (react-pdf renders synchronously inside renderToBuffer). */
 function applyMemoFonts(f: PdfFontSet) {
+  memoFonts = f;
   const regular = f.regular;
   const bold = f.bold;
   const boldWeight = f.boldWeight;
@@ -312,6 +317,8 @@ export function IcMemoPdf({ kind, sections, radar, rangeBars, weightsShown, gene
   const memo = kind === "memo";
   const body: ReactNode[] = [];
   body.push(<Header key="h" sections={sections} kind={kind} />);
+  // G21-P1-B: the compact Assessment Card on the memo (the one-pager keeps its single page; pre-P1-B stored sections carry no card).
+  if (memo && sections.assessmentCard) body.push(<AssessmentCardPdf key="assessment" data={sections.assessmentCard} font={memoFonts} unicode={memoFonts.unicode} />);
   body.push(
     <View key="p1" style={s.row}>
       {radar ? (

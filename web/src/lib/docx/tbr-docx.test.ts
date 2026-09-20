@@ -77,6 +77,8 @@ describe("buildTbrDocx", () => {
     const text = xmlText(doc);
     expect(text).toContain("Sample SME Compliance SaaS (demo)");
     assertOrdered(text, tbrV2Toc(report).map((e) => e.label));
+    // G21-P1-B: the Assessment Card twin between the cover and the executive summary.
+    assertOrdered(text, ["Cover", "BLOCKID ASSESSMENT CARD", "Evidence Confidence", "BlockID Verified L2", "Unverified material claims", "Executive Summary"]);
     expect(text).toContain("Revenue multiple");
     expect(text).toContain("Risk-factor summation");
     // G19-S42: inputs & assumptions, unit economics, cross-checks, no ask.

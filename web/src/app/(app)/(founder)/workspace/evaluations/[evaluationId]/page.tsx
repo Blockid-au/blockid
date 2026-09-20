@@ -46,6 +46,7 @@ import { ProgressBlock } from "./dossier/progress-block";
 import { AssessmentBlock } from "./dossier/assessment/assessment-block";
 import { ActionsBlock } from "./dossier/assessment/actions-block";
 import { DossierViewTracker } from "./dossier/dossier-view-tracker";
+import { AssessmentCard } from "@/components/svi/AssessmentCard";
 
 export const metadata: Metadata = {
   title: "Investor Dossier | BlockID",
@@ -94,6 +95,8 @@ export default async function InvestorDossierPage({ params }: PageProps) {
       <DossierViewTracker evaluationId={dossier.header.evaluationId} consentTier={dossier.header.consentTier} plan={user.plan ?? "free"} role={dossier.viewer.role} />
       <div className="mx-auto max-w-6xl space-y-6 p-6" data-testid="investor-dossier" data-viewer-role={dossier.viewer.role}>
         <DossierHeader header={dossier.header} role={dossier.viewer.role} icKind={clampIcKind(user.plan, undefined)} />
+        {/* G21-P1-B — the BlockID Assessment Card above the report summary. */}
+        {dossier.assessmentCard && <AssessmentCard data={dossier.assessmentCard} headingLevel={2} />}
         <ReportSummary report={dossier.report} />
         <ValuationBlock block={dossier.valuation} fullReportHref={dossier.report.links.fullReport} />
         <EvidenceBlock view={dossier} />

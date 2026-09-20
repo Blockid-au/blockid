@@ -146,6 +146,17 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.19.0",
+    date: "2026-09-20",
+    title: "Evidence & explainability (G21 P1 — advisor-feedback upgrade)",
+    changes: [
+      "[G21] Claim ≠ Evidence model: claims / evidence_records (L1–L6, expiry, hash, consent scope) / claim_versions synced on every analysis; versioned founder corrections via PATCH; daily evidence-expiry job; backfill for existing projects (0417)",
+      "[G21] BlockID Assessment Card — SVI and Evidence Confidence side by side, BlockID Verified level, benchmark with n, top strength / gap, unverified material claims — on the report, workspace score, dossier, /tbr, showcase, PDF and DOCX; per-dimension why · evidence · missing · benchmark · next action cards (0419)",
+      "[G21] Benchmark publication rules in one module (n < 10 none · 10–29 indicative · 30+ · 100+, always n) across cohort percentile, backtest, /startup-index, /api/benchmarks, dashboard",
+      "[G21] Founder correction workflow (/workspace/evidence/corrections + data-ethics panel, /admin/corrections, report footer link; 0418), evidence checklist, status chips; showcase <main> landmarks + 375 px report tables; pilot_orders in the erasure map (0421)",
+    ],
+  },
+  {
     version: "3.18.0",
     date: "2026-09-20",
     title: "Trust & positioning (G21 P0 — advisor-feedback upgrade)",

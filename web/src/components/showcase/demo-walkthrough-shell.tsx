@@ -100,7 +100,7 @@ export function DemoWalkthroughShell({
   if (!step) {
     // Out-of-range step — render children with no shell so the page still
     // works if someone deep-links a bad step number.
-    return <>{children}</>;
+    return <main id="main-content">{children}</main>;
   }
 
   const heading = formatStepHeading(step, totalSteps);
@@ -164,7 +164,8 @@ export function DemoWalkthroughShell({
           <p className="mt-1 text-xs text-ink-600">{step.guideText}</p>
         </div>
       </div>
-      {children}
+      {/* G21-P1-B (page sweep): every showcase page carries one <main> landmark. */}
+      <main id="main-content">{children}</main>
     </>
   );
 }

@@ -183,10 +183,12 @@ describe("<TbrReportV2>", () => {
       "vs last snapshot",
       "Phase: ",
       "demo data",
-      ">Dimension<",
-      ">Owner<",
-      ">Score<",
-      ">Pctl<",
+      // G21-P1-B: the cover's dimension table became compact explainability cards + the Assessment Card.
+      ">Why<",
+      ">Missing<",
+      ">Next action<",
+      "BlockID Assessment Card",
+      ">Evidence Confidence<",
       "Current phase:",
       "Required criteria for",
       "✓ met",
@@ -215,7 +217,7 @@ describe("<TbrReportV2>", () => {
     for (const en of OLD_EN_CHROME) expect(html, en).not.toContain(en);
     const vi = TBR_STRINGS.vi.v2;
     // G19-S47: the S44 "Top strengths / Top gaps" lists are gone — the executive cards carry the s47 labels.
-    for (const s of [vi.chapter.evidence, vi.chapter.strengths, vi.s47.whyBack, vi.s47.whatMustChange, vi.s47.verdict, vi.s47.actions, vi.appendix.method, vi.appendix.dataPrinciple, vi.phaseGates.met, vi.cover.thDimension, vi.audit.auditor, TBR_STRINGS.vi.secExecutive, TBR_STRINGS.vi.secAppendix.replace("&", "&amp;")]) {
+    for (const s of [vi.chapter.evidence, vi.chapter.strengths, vi.s47.whyBack, vi.s47.whatMustChange, vi.s47.verdict, vi.s47.actions, vi.appendix.method, vi.appendix.dataPrinciple, vi.phaseGates.met, "Còn thiếu", "Thẻ đánh giá BlockID", vi.audit.auditor, TBR_STRINGS.vi.secExecutive, TBR_STRINGS.vi.secAppendix.replace("&", "&amp;")]) {
       expect(html, s).toContain(s);
     }
     // Diacritics all over the chrome, not just the chapter titles.
@@ -339,9 +341,14 @@ describe("<TbrReportV2> synthesis + layout (G19-S44)", () => {
     expect(cover).toContain("Verified ABN");
     // The hero comes before the three questions and the dimension table.
     expect(cover.indexOf("data-tbr-hero")).toBeLessThan(cover.indexOf('data-visual-kind="three_questions_strip"'));
-    // The demo dims carry stage percentiles → the Pctl column renders with numbers, not "—".
-    expect(cover).toContain(">Pctl<");
-    expect(cover).not.toContain(">—</td>");
+    // G21-P1-B: the dimension table rows are compact explainability cards — every demo dim is assessed (no "—" score).
+    expect((cover.match(/data-testid="dimension-explain"/g) ?? []).length).toBe(8);
+    expect(cover).not.toContain('data-explain-state="pending"');
+    expect(cover).not.toContain('data-explain-score="pending"');
+    // The Assessment Card sits between the cover and the executive summary, once.
+    expect((html.match(/data-testid="assessment-card"/g) ?? []).length).toBe(1);
+    expect(html.indexOf('data-testid="assessment-card"')).toBeGreaterThan(html.indexOf(`id="${TBR_V2_SECTION_IDS.cover}"`));
+    expect(html.indexOf('data-testid="assessment-card"')).toBeLessThan(html.indexOf(`id="${TBR_V2_SECTION_IDS.executive}"`));
   });
 
   it("cover hero: 'Valuation pending' when confidence < 0.3 or nothing is scored; the Pctl column shows once a percentile exists", () => {
@@ -354,8 +361,9 @@ describe("<TbrReportV2> synthesis + layout (G19-S44)", () => {
     const empty = fromSnapshot({ ...demoSnapshotInput(), dimStates: {}, criterionStates: [], sviTotal: null, vc: null });
     const emptyHtml = renderToStaticMarkup(<TbrReportV2 report={empty} />);
     expect(emptyHtml).toContain('data-tbr-hero-value="pending"');
-    // Nothing scored → no dimension percentile → the Pctl column is not rendered at all (no "—" column).
-    expect(emptyHtml).not.toContain(">Pctl<");
+    // Nothing scored → every dimension card is pending (G21-P1-B keeps the G19 pending band) and the Assessment Card shows no SVI.
+    expect((emptyHtml.match(/data-explain-state="pending"/g) ?? []).length).toBe(8);
+    expect(emptyHtml).toContain('data-assessment-svi="pending"');
     const withPct = fromSnapshot({ ...demoSnapshotInput(), cohortPercentile: 66, cohort: { sector: "SaaS", sample_size: 40, dim_medians: { tre: 50 }, dim_top_quartile: { tre: 65 } } });
     const pctHtml = renderToStaticMarkup(<TbrReportV2 report={withPct} />);
     expect(pctHtml).toContain("data-tbr-hero-percentile");

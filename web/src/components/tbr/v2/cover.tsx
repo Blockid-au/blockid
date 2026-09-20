@@ -7,15 +7,15 @@
 // SVI stage label stays inside the benchmarks (`Stage p25 / p50 / p75`).
 
 import { getTbrStrings } from "@/lib/i18n/tbr-strings";
-import { DIMENSION_OWNERS } from "@/lib/report-pipeline/dimension-owners";
 import { VisualFigure } from "@/lib/report-visuals/react";
 import { coverHero } from "@/lib/report-v2/cover-hero";
 import { coverEvidenceLine } from "@/lib/report-v2/evidence-view";
 import { coverLedgerCells, pendingDimsLine } from "@/lib/report-v2/ledger-rows";
-import { DIM_ORDER, type ReportV2 } from "@/lib/report-v2/schema";
+import type { ReportV2 } from "@/lib/report-v2/schema";
 import { cn } from "@/lib/utils";
 import { AbnBadge } from "@/components/verification/abn-badge";
-import { AgentBadge, TBR_V2_SECTION_IDS, TbrSection, bandLabel, bandText, phaseLabel, v2Strings, type TbrUiLocale } from "./shared";
+import { TBR_V2_SECTION_IDS, TbrSection, bandLabel, bandText, phaseLabel, v2Strings, type TbrUiLocale } from "./shared";
+import { TbrDimensionExplainGrid, type TbrAssessmentBenchmarks } from "./assessment";
 
 /** G19-S41 — the cover ledger strip "base 100 → dims → stage → penalties → total" + "N of 8 dimensions pending". */
 export function TbrCoverLedger({ report, locale = "en" }: { report: ReportV2; locale?: TbrUiLocale }) {
@@ -57,7 +57,7 @@ export function TbrCoverLedger({ report, locale = "en" }: { report: ReportV2; lo
 
 export { COVER_VALUATION_MIN_CONFIDENCE, coverHasPercentiles, coverValuationPending } from "@/lib/report-v2/cover-hero";
 
-export function TbrCover({ report, title, locale = "en" }: { report: ReportV2; title: string; locale?: TbrUiLocale }) {
+export function TbrCover({ report, title, locale = "en", benchmarks }: { report: ReportV2; title: string; locale?: TbrUiLocale; benchmarks?: TbrAssessmentBenchmarks }) {
   const c = report.cover;
   const t = getTbrStrings(locale).v2.cover;
   const s = v2Strings(locale).s44;
@@ -66,7 +66,7 @@ export function TbrCover({ report, title, locale = "en" }: { report: ReportV2; t
   const strip = c.visuals.find((v) => v.kind === "three_questions_strip");
   const date = new Date(report.generatedAt).toLocaleDateString(locale === "vi" ? "vi-VN" : locale === "es" ? "es-ES" : locale === "ja" ? "ja-JP" : "en-AU", { day: "numeric", month: "long", year: "numeric" });
   const hero = coverHero(report, locale);
-  const { pending, showPctl } = hero;
+  const { pending } = hero;
   return (
     <TbrSection id={TBR_V2_SECTION_IDS.cover} kicker="0" title={title} purpose={v2Strings(locale).s47.purpose.cover} pageBreak>
       <div>
@@ -125,40 +125,9 @@ export function TbrCover({ report, title, locale = "en" }: { report: ReportV2; t
       <TbrCoverLedger report={report} locale={locale} />
       {strip && <VisualFigure spec={strip} caption={null} />}
 
+      {/* G21-P1-B: the plain dimension rows became compact explainability cards (score · confidence · why · evidence · missing · next action). */}
       <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_260px]">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="border-b border-line-subtle text-left text-[11px] uppercase tracking-wide text-muted">
-              <th className="py-1 pr-2">{t.thDimension}</th>
-              <th className="py-1 pr-2">{t.thOwner}</th>
-              <th className="py-1 pr-2 text-right">{t.thWeight}</th>
-              <th className="py-1 pr-2 text-right">{t.thScore}</th>
-              <th className={cn("py-1 text-right", showPctl && "pr-2")}>{t.thP50}</th>
-              {showPctl && <th className="py-1 text-right">{t.thPctl}</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {DIM_ORDER.map((d) => {
-              const row = c.dims[d];
-              return (
-                <tr key={d} className="border-b border-line-subtle">
-                  <td className="py-1 pr-2">
-                    <a href={`#${TBR_V2_SECTION_IDS.dim(d)}`} className="font-medium text-secondary hover:text-action">
-                      <span className="font-mono text-xs text-muted">{d.toUpperCase()}</span> {locale === "vi" ? DIMENSION_OWNERS[d].titleVi : DIMENSION_OWNERS[d].title}
-                    </a>
-                  </td>
-                  <td className="py-1 pr-2">
-                    <AgentBadge role={DIMENSION_OWNERS[d].primary} />
-                  </td>
-                  <td className="py-1 pr-2 text-right tabular-nums text-muted">{row.weight}</td>
-                  <td className={cn("py-1 pr-2 text-right font-bold tabular-nums", bandText(row.band))}>{row.band === "pending" ? "—" : row.score}</td>
-                  <td className={cn("py-1 text-right tabular-nums text-muted", showPctl && "pr-2")}>{row.p50}</td>
-                  {showPctl && <td className="py-1 text-right tabular-nums text-muted">{row.percentile ?? "—"}</td>}
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        <TbrDimensionExplainGrid report={report} locale={locale} benchmarks={benchmarks} />
         {radar && <VisualFigure spec={radar} caption={radar.subtitle ?? null} />}
       </div>
     </TbrSection>

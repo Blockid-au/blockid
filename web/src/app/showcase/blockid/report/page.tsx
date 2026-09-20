@@ -16,7 +16,8 @@ import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { PageTracker } from "@/components/analytics/page-tracker";
 import { WebPageJsonLd } from "@/components/seo/json-ld";
 import { ShowcaseBlockidReportView } from "@/components/showcase/blockid-report-view";
-import { loadBlockidShowcaseReport } from "@/lib/showcase/blockid-report";
+import { loadBlockidShowcaseReport, blockidShowcaseProjectId } from "@/lib/showcase/blockid-report";
+import { loadAssessmentContext } from "@/lib/svi/assessment-context";
 
 const SITE_URL = "https://blockid.au";
 const SHOWCASE = `${SITE_URL}/showcase/blockid`;
@@ -46,6 +47,8 @@ export const revalidate = 3600;
 
 export default async function ShowcaseBlockidReportPage() {
   const loaded = await loadBlockidShowcaseReport();
+  // G21 P1: claims count + stage benchmark for the Assessment Card (fail-soft).
+  const assessmentContext = await loadAssessmentContext(blockidShowcaseProjectId(), loaded?.report.cover.stage ?? null);
   return (
     <>
       <PageTracker page="showcase-blockid-report" />
@@ -60,7 +63,7 @@ export default async function ShowcaseBlockidReportPage() {
         ]}
       />
       <MarketingShell>
-        <ShowcaseBlockidReportView loaded={loaded} />
+        <ShowcaseBlockidReportView loaded={loaded} benchmarks={{ total: assessmentContext.benchmark }} />
       </MarketingShell>
     </>
   );

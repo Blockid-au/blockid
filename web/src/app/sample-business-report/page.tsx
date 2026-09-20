@@ -212,12 +212,15 @@ export default function SampleBusinessReportPage() {
           </Link>
         </div>
       </div>
-      <BusinessReportClient
-        projectId="sample"
-        initialData={SAMPLE_DATA}
-        shareToken={undefined}
-        pdfMode={false}
-      />
+      {/* G21-P1-B (page sweep): one <main> landmark; the wide report tables scroll inside it at 375 px. */}
+      <main id="main-content" className="overflow-x-hidden">
+        <BusinessReportClient
+          projectId="sample"
+          initialData={SAMPLE_DATA}
+          shareToken={undefined}
+          pdfMode={false}
+        />
+      </main>
     </div>
   );
 }

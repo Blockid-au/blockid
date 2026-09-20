@@ -61,6 +61,15 @@ describe("renderTbrPdf — standard tier", () => {
     const pdf = tbrPdfOutline(report).map((e) => e.label);
     expect(pdf).toEqual(web);
     assertOrdered(text, pdf);
+    // G21-P1-B: the Assessment Card twin sits between the cover and the executive summary.
+    // (letter-spaced kicker → compare on whitespace-stripped text)
+    const flat = text.replace(/\s/g, "");
+    const cardIdx = flat.indexOf("BLOCKIDASSESSMENTCARD");
+    expect(cardIdx).toBeGreaterThan(flat.indexOf("Cover—Where"));
+    expect(cardIdx).toBeLessThan(flat.indexOf("ExecutiveSummary"));
+    expect(flat).toContain("EVIDENCECONFIDENCE");
+    expect(text).toContain("BlockID Verified L2");
+    expect(flat).toContain("UNVERIFIEDMATERIALCLAIMS");
     // Paid detail present.
     expect(text).toContain("Revenue multiple");
     expect(text).toContain("Risk-factor summation");

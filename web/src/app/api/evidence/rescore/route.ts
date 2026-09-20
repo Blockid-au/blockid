@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
+import { insertSviSnapshot } from "@/lib/svi/snapshot-evidence-confidence";
 import { getProjectScope, findOrCreateSVIAccount } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
 import {
@@ -149,13 +150,11 @@ async function POST_handler() {
 
   // 9. Create snapshot with delta
   if (Math.abs(delta) >= 1) {
-    await supabase.from("svi_snapshots").insert({
-      account_id: account.id,
-      svi_total: newAnalysis.totalSVI,
-      stage: newAnalysis.stage,
-      delta,
-      snapshot_date: new Date().toISOString().split("T")[0],
-    });
+    await insertSviSnapshot(
+      supabase,
+      { account_id: account.id, svi_total: newAnalysis.totalSVI, stage: newAnalysis.stage, delta, snapshot_date: new Date().toISOString().split("T")[0] },
+      { analysis: newAnalysis },
+    );
   }
 
   return NextResponse.json({

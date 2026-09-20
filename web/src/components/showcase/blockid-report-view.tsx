@@ -11,6 +11,7 @@ import { MarketingHero } from "@/components/marketing/marketing-hero";
 import { MarketingSection } from "@/components/marketing/marketing-section";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { TbrReportV2 } from "@/components/tbr/v2/report";
+import type { TbrAssessmentBenchmarks } from "@/components/tbr/v2/assessment";
 import { DATA_PRINCIPLE_SENTENCE } from "@/lib/report-v2/schema";
 import type { BlockidShowcaseReport } from "@/lib/showcase/blockid-report";
 
@@ -25,7 +26,7 @@ function formatRunDate(iso: string): string {
   return d.toLocaleDateString("en-AU", { day: "2-digit", month: "short", year: "numeric", timeZone: "Australia/Sydney" });
 }
 
-export function ShowcaseBlockidReportView({ loaded }: { loaded: BlockidShowcaseReport | null }) {
+export function ShowcaseBlockidReportView({ loaded, benchmarks }: { loaded: BlockidShowcaseReport | null; benchmarks?: TbrAssessmentBenchmarks }) {
   return (
     <>
       <MarketingHero
@@ -67,7 +68,7 @@ export function ShowcaseBlockidReportView({ loaded }: { loaded: BlockidShowcaseR
       {loaded ? (
         <MarketingSection kicker="Trusted Business Report" title={loaded.report.cover.startupName}>
           <div className="rounded-2xl border border-line-subtle bg-surface p-4 text-primary md:p-8" data-testid={SHOWCASE_REPORT_TESTID} data-snapshot-id={loaded.snapshotId}>
-            <TbrReportV2 report={loaded.report} locale="en" />
+            <TbrReportV2 report={loaded.report} locale="en" benchmarks={benchmarks} />
           </div>
         </MarketingSection>
       ) : (
