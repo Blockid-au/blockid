@@ -50,7 +50,7 @@ export const INVESTOR_READINESS_CALLOUTS: Record<number, InvestorReadinessCallou
     phase_label_vi: PHASE_LABELS[2].vi,
     atlassian_moment:
       "2002 — Atlassian builds Jira as its own internal issue tracker; the founders are themselves the target user, which shortcuts the discovery loop.",
-    blockid_route: "/svi",
+    blockid_route: "/analyze", // /svi retired (G20-F1); the analyser lives at /analyze
     callout_copy_en:
       "Score your idea against the 8 SVI dimensions. Atlassian validated by being their own user — you validate by capturing 5 discovery interviews plus a landing-page waitlist before Chapter 3.",
     callout_copy_vi:

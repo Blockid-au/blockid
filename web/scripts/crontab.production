@@ -788,3 +788,6 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # on drift. Exits 1 on drift; like link-check it bypasses cron-runner.
 # Docs: docs/ops/pricing-truth.md · docs/ops/crontab-setup.md § G18-A.
 20 3 * * 1 cd /home/dovanlong/blockid.au/web && node scripts/stripe-price-audit.mjs >> /data/logs/blockid-stripe-price-audit.log 2>&1
+
+# G20-F2 (2026-09-20) — weekly public page sweep (docs/ops/page-sweep.md)
+30 4 * * 0 cd /home/dovanlong/blockid.au/web && node scripts/page-sweep.mjs --base https://blockid.au --persona public >> /data/logs/blockid-page-sweep.log 2>&1

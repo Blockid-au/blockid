@@ -229,10 +229,17 @@ function ancestorLayoutContents(startDir: string): string[] {
  * We deliberately avoid plain substring checks to prevent false positives
  * from comment lines (e.g. "// pages mount WorkspaceLayout themselves").
  */
+// G20-F1 (2026-09-20): hidden-feature pages render `HiddenWorkspacePage`,
+// which mounts WorkspaceLayout itself (components/workspace/hidden-feature-page.tsx).
+const SHELL_WRAPPERS: Record<string, string[]> = { WorkspaceLayout: ["HiddenWorkspacePage"] };
+
 function contentHasShell(content: string, shellToken: string): boolean {
-  const importRe = new RegExp(`import[^'"]*\\b${shellToken}\\b`);
-  const defRe = new RegExp(`(?:export\\s+(?:default\\s+)?)?function\\s+${shellToken}\\s*[(<]`);
-  return importRe.test(content) || defRe.test(content);
+  const tokens = [shellToken, ...(SHELL_WRAPPERS[shellToken] ?? [])];
+  return tokens.some((t) => {
+    const importRe = new RegExp(`import[^'"]*\\b${t}\\b`);
+    const defRe = new RegExp(`(?:export\\s+(?:default\\s+)?)?function\\s+${t}\\s*[(<]`);
+    return importRe.test(content) || defRe.test(content);
+  });
 }
 
 // ---------------------------------------------------------------------------
