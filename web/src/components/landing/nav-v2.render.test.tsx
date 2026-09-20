@@ -43,16 +43,24 @@ describe("NavV2 — one header, two skins", () => {
     expect(html).not.toMatch(/<header[^>]*class="[^"]*bg-brand-navy/);
     expect(html).toContain('aria-label="Primary"');
     // Same menu, same CTA — a skin never changes the IA.
-    for (const label of ["Product", "Solutions", "Samples", "Pricing", "Docs"]) expect(html).toContain(label);
+    for (const label of ["Product", "For Programs", "For Investors", "For Founders", "Methodology", "Startup Index", "Pricing"]) {
+      expect(html).toContain(label);
+    }
   });
 
-  it("signed out: Sign in + the Score a startup CTA; signed in: My workspace + the shared user-menu rows for the persona", () => {
+  it("signed out: Sign in + the Run a cohort pilot CTA (G21 P0-B); signed in: My workspace + the shared user-menu rows for the persona", () => {
     auth.user = null;
     const out = renderToStaticMarkup(<NavV2 />);
     expect(out).toContain('href="/auth/login"');
-    expect(out).toMatch(/<a[^>]*data-cta-id="score_startup"[^>]*href="\/analyze"|<a[^>]*href="\/analyze"[^>]*data-cta-id="score_startup"/);
-    expect(out).toContain("Score a startup");
+    expect(out).toMatch(
+      /<a[^>]*data-cta-id="run_cohort_pilot"[^>]*href="\/solutions\/accelerator#pilot"|<a[^>]*href="\/solutions\/accelerator#pilot"[^>]*data-cta-id="run_cohort_pilot"/,
+    );
+    expect(out).toContain("Run a cohort pilot");
+    expect(out).not.toContain("Score a startup");
     expect(out).not.toContain("Do you need money?");
+    // No dropdown trigger in the bar any more — seven plain links.
+    expect(out).not.toMatch(/aria-haspopup="menu"/);
+    expect(out).not.toContain(">Solutions<");
 
     auth.user = { id: "u1", email: "vc@fund.test", displayName: "Val", plan: "investor_vc", persona: "investor_vc" };
     const html = renderToStaticMarkup(<NavV2 />);

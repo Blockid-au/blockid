@@ -452,27 +452,30 @@ test.describe("Post-deploy hydrated smoke", () => {
     });
   });
 
-  // ── G17-P2B (2026-09-19) — homepage hydration + CTA navigation ────────
-  // Spec docs/plans/unicorn-homepage-2026-09-19.md § 2 D7 / § 4: the home is
-  // the one page every campaign lands on, and the curl gates only see its
-  // SSR shell. These assert what a visitor experiences after hydration:
-  // one evaluator H1, the animated search ring reacting to focus (the
-  // `.asf-wrap:focus-within` rule in globals.css), the primary CTA actually
-  // navigating, the three audience cards resolving, the five-entry nav, no
-  // price string on the home (D3), no console errors, and no sideways
-  // scroll at 375 px. Plus a minimal a11y pass (axe is not a dependency).
-  test.describe("G17 homepage", () => {
-    const AUDIENCE = ["/solutions/investor", "/solutions/accelerator", "/solutions/advisor"] as const;
-    const NAV_LABELS = ["Product", "Solutions", "Samples", "Pricing", "Docs"] as const;
+  // ── G17-P2B (2026-09-19) → G21 P0-B (2026-09-20) — homepage hydration +
+  // CTA navigation. The home is the one page every campaign lands on, and
+  // the curl gates only see its SSR shell. These assert what a visitor
+  // experiences after hydration: one FI1 H1 ("Screen every startup on the
+  // same evidence-backed framework."), the animated search ring reacting to
+  // focus (the `.asf-wrap:focus-within` rule in globals.css), the primary
+  // CTA actually navigating to the pilot block, the persona links resolving,
+  // the seven-entry nav, the seven sections in order, no price string on
+  // the home (D3), no console errors, and no sideways scroll at 375 px.
+  // Plus a minimal a11y pass (axe is not a dependency).
+  test.describe("G21 homepage", () => {
+    const PERSONA = ["/solutions/accelerator", "/solutions/investor", "/solutions/founder"] as const;
+    const NAV_LABELS = ["Product", "For Programs", "For Investors", "For Founders", "Methodology", "Startup Index", "Pricing"] as const;
+    const SECTION_IDS = ["problem", "sequence", "messages", "why-not-chatgpt", "built-for", "cta"] as const;
 
-    test("/ — one evaluator H1, hero search ring reacts to focus, nav = five labels, no A$ in main, no console errors", async ({ page }) => {
+    test("/ — one FI1 H1, hero search ring reacts to focus, nav = seven labels, sections in order, no A$ in main, no console errors", async ({ page }) => {
       test.setTimeout(30_000);
       const guard = new ConsoleGuard(page);
       await page.goto("/", { waitUntil: "domcontentloaded" });
 
       const h1 = page.locator("h1");
       await expect(h1).toHaveCount(1, { timeout: PAGE_TIMEOUT });
-      await expect(h1).toContainText(/Score any Australian startup/i);
+      await expect(h1).toContainText(/Screen every startup on the same evidence-backed framework/i);
+      await expect(page.getByTestId("hero-trust-line")).toContainText("Australian-built · Evidence-backed · Founder-controlled data");
 
       // Search frame: visible, and focusing its input lights the ring.
       const frame = page.getByTestId("hero-search");
@@ -490,21 +493,32 @@ test.describe("Post-deploy hydrated smoke", () => {
       expect(ring.focusWithin, "hero search wrapper :focus-within").toBe(true);
       expect(ring.boxShadow, "focus ring box-shadow applied").not.toBe("none");
 
-      // Nav: exactly the five G17 labels in order.
+      // Nav: exactly the seven G21 labels in order, no dropdown.
       const primary = page.locator('nav[aria-label="Primary"]').first();
       const labels = (await primary.locator(":scope > ul > li").allInnerTexts()).map((t) => t.trim());
       expect(labels).toEqual([...NAV_LABELS]);
+      await expect(primary.locator("button[aria-haspopup]")).toHaveCount(0);
 
-      // D3: no price string on the home.
+      // The seven sections, in order, plus the four G21 blocks by test id.
+      const ids = await page.locator("main section[id]").evaluateAll((els) => els.map((el) => el.id));
+      expect(ids).toEqual([...SECTION_IDS]);
+      for (const tid of ["problem-flow", "sequence-flow", "why-not-chatgpt", "built-for"]) {
+        await expect(page.getByTestId(tid), tid).toBeVisible();
+      }
+      await expect(page.locator("main")).toContainText("Why not ChatGPT?");
+
+      // D3 / G21 § 3.2: no price string, no agent count on the home.
       const mainText = await page.locator("main").innerText();
       expect(mainText, "A$ price string found in <main>").not.toMatch(/A\$\s?\d/);
+      expect(mainText, "agent count found in <main>").not.toMatch(/\b\d+ (AI )?agents\b/i);
 
-      // Audience cards link the three evaluator landings and they resolve.
-      for (const href of AUDIENCE) {
-        await expect(page.locator(`main a[href="${href}"]`).first(), href).toBeVisible();
+      // The persona links in the bar resolve; the sequence block links /product.
+      for (const href of PERSONA) {
+        await expect(primary.locator(`a[href="${href}"]`).first(), href).toBeVisible();
         const resp = await page.request.get(href);
         expect(resp.status(), `${href} status`).toBe(200);
       }
+      await expect(page.locator('main a[data-cta-id="home_sequence_product"]')).toHaveAttribute("href", "/product");
 
       await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => {});
       const report = guard.report("/");
@@ -512,19 +526,21 @@ test.describe("Post-deploy hydrated smoke", () => {
       expect(report.failedRequests, `failed requests on /: ${JSON.stringify(report.failedRequests)}`).toEqual([]);
     });
 
-    test("/ — primary CTA navigates to /analyze (200)", async ({ page }) => {
+    test("/ — primary CTA navigates to the pilot block (/solutions/accelerator#pilot, 200); secondary to /analyze (200)", async ({ page }) => {
       test.setTimeout(30_000);
       await page.goto("/", { waitUntil: "domcontentloaded" });
-      const cta = page.locator('[data-cta-id="score_startup"]').first();
+      const cta = page.locator('[data-cta-id="run_cohort_pilot"]').first();
       await expect(cta).toBeVisible({ timeout: PAGE_TIMEOUT });
-      expect(await cta.getAttribute("href")).toBe("/analyze");
+      expect(await cta.getAttribute("href")).toBe("/solutions/accelerator#pilot");
       // Hero primary carries its own id; both must point at the same target.
+      await expect(page.locator('[data-cta-id="hero_pilot"]').first()).toHaveAttribute("href", "/solutions/accelerator#pilot");
       await expect(page.locator('[data-cta-id="hero_score"]').first()).toHaveAttribute("href", "/analyze");
       await cta.click();
       // Next navigates client-side (RSC payload, no document response), so
       // the URL + a rendered H1 prove the navigation and a direct GET the status.
-      await page.waitForURL(/\/analyze(\?|$)/, { timeout: PAGE_TIMEOUT });
+      await page.waitForURL(/\/solutions\/accelerator#pilot$/, { timeout: PAGE_TIMEOUT });
       await expect(page.locator("h1").first()).toBeVisible({ timeout: PAGE_TIMEOUT });
+      expect((await page.request.get("/solutions/accelerator")).status(), "/solutions/accelerator status").toBe(200);
       expect((await page.request.get("/analyze")).status(), "/analyze status").toBe(200);
     });
 

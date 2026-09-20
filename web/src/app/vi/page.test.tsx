@@ -1,9 +1,11 @@
-// Colocated test for the /vi homepage mirror (G17 P2-A). Renders the real
-// page (NavV2's auth hook + next/navigation stubbed, like the English home
-// test) and pins: exactly one H1 = vi `hero.line.e1`, the E2 sub-line, the
-// search frame (`hero-search` + `smart-intake`), no `A$` strings, the three
-// audience links onto /vi/solutions/*, the founder notice, the CtaBand, the
-// one Footer, and the metadata pair (canonical /vi, hreflang en → /).
+// Colocated test for the /vi homepage mirror (G21 P0-B; was G17 P2-A).
+// Renders the real page (NavV2's auth hook + next/navigation stubbed, like
+// the English home test) and pins: exactly one H1 = vi `hero.line.fi1`, the
+// FI2 sub-line, the search frame (`hero-search` + `smart-intake`), the two
+// CTAs onto the same hrefs as the English home, the trust line, no `A$`
+// strings, the same section order as the English home (+ the founder
+// notice), every list key non-empty, the CtaBand, the one Footer, and the
+// metadata pair (canonical /vi, hreflang en → /).
 
 import { describe, expect, it, vi } from "vitest";
 import { renderToReadableStream } from "react-dom/server";
@@ -22,6 +24,7 @@ vi.mock("@/components/auth/LogoutButton", () => ({
 
 import viMessages from "@/lib/i18n/messages/vi.json";
 import { renderedTitle } from "@/lib/seo/page-meta";
+import { HOME_PRIMARY_CTA, HOME_SECONDARY_CTA, HOME_SECTION_IDS } from "../(marketing)/home-content";
 import ViHomePage, { generateMetadata, revalidate } from "./page";
 
 const VI = viMessages as Record<string, string>;
@@ -34,41 +37,72 @@ async function html(el: React.ReactElement): Promise<string> {
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/'/g, "&#x27;");
 
-describe("/vi homepage — template (G17 P2-A)", () => {
-  it("one h1 = hero.line.e1 (vi), the E2 sub-line, the search frame, no A$ strings", async () => {
-    const out = await html(await ViHomePage());
+const out = await html(await ViHomePage());
+
+describe("/vi homepage — template (G21 P0-B)", () => {
+  it("one h1 = hero.line.fi1 (vi), the FI2 sub-line, the search frame, the trust line, no A$ strings", () => {
     expect((out.match(/<h1\b/g) ?? []).length).toBe(1);
-    expect(out).toContain(esc(VI["hero.line.e1"]!));
-    expect(out).toContain(esc(VI["hero.line.e2"]!));
+    expect(out).toContain(esc(VI["hero.line.fi1"]!));
+    expect(out).toContain(esc(VI["hero.line.fi2"]!));
+    expect(out).not.toContain(esc(VI["hero.line.e1"]!));
     expect(out).toContain('data-testid="hero-search"');
     expect(out).toContain('data-testid="smart-intake"');
+    expect(out).toContain('data-testid="hero-trust-line"');
+    expect(out).toContain(esc(VI["vi.home.trustLine"]!));
     expect(out).toContain('lang="vi"');
     expect(out).toContain('id="main-content"');
     expect(out).not.toMatch(/A\$\d/);
   });
 
-  it("three audience cards onto /vi/solutions/*, the founder line, the notice, the closing band, the one footer", async () => {
-    const out = await html(await ViHomePage());
-    for (const p of ["investor", "accelerator", "advisor", "founder"]) {
-      expect(out).toContain(`href="/vi/solutions/${p}"`);
-    }
-    expect(out).toMatch(/<section[^>]*id="audiences"/);
-    expect(out).toMatch(/<section[^>]*id="notice"/);
-    expect(out).toContain(esc(VI["vi.hero.notice"]!));
-    expect(out).toMatch(/<section[^>]*id="cta"/);
-    expect(out).toContain('href="/analyze"');
+  it("the two CTAs go where the English home goes (cohort pilot / analyze), in the hero and in the closing band", () => {
+    expect(HOME_PRIMARY_CTA.href).toBe("/solutions/accelerator#pilot");
+    expect(HOME_SECONDARY_CTA.href).toBe("/analyze");
+    expect(out).toMatch(/data-cta-id="vi_hero_pilot"/);
+    expect(out).toMatch(/data-cta-id="vi_hero_score"/);
+    expect(out).toMatch(/data-cta-id="vi_home_final_pilot"/);
+    expect(out).toMatch(/data-cta-id="vi_home_final_score"/);
+    expect((out.match(/href="\/solutions\/accelerator#pilot"/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    expect((out.match(/href="\/analyze"/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    expect(out).toContain(esc(VI["vi.home.cta.primary"]!));
+    expect(out).toContain(esc(VI["vi.home.cta.secondary"]!));
+  });
+
+  it("the same section order as the English home (+ the founder notice before the close), the sequence linked to /product, the sample link, the one footer", () => {
+    const main = out.slice(out.indexOf("<main"), out.indexOf("</main>"));
+    const ids = [...main.matchAll(/<section[^>]*\bid="([^"]+)"/g)].map((m) => m[1]);
+    const expected = [...HOME_SECTION_IDS];
+    expected.splice(expected.indexOf("cta"), 0, "notice");
+    expect(ids).toEqual(expected);
+    expect(out).toContain('data-testid="problem-flow"');
+    expect(out).toContain('data-testid="sequence-flow"');
+    expect(out).toContain('data-testid="why-not-chatgpt"');
+    expect(out).toContain('data-testid="built-for"');
+    expect(out).toMatch(/data-cta-id="vi_home_sequence_product"[^>]*href="\/product"|href="\/product"[^>]*data-cta-id="vi_home_sequence_product"/);
     expect(out).toContain('href="/tbr/demo"');
-    expect(out).toContain("PPL Food PTY LTD");
+    expect(out).toContain(esc(VI["vi.hero.notice"]!));
+    expect(out).toContain(esc(VI["vi.home.whynot.line"]!));
+    expect(out).toContain(esc(VI["vi.home.problem.title"]!));
+    expect(out).toMatch(/<section[^>]*id="cta"[^>]*data-theme="dark"/);
     expect((out.match(/<footer\b/g) ?? []).length).toBe(1);
   });
 
-  it("every vi.home.* key the page reads exists and is non-empty", () => {
+  it("every vi.home.* key the page reads exists and is non-empty; list keys split into ≥ 3 items", () => {
     const keys = Object.keys(VI).filter((k) => k.startsWith("vi.home."));
-    expect(keys.length).toBeGreaterThanOrEqual(19);
+    expect(keys.length).toBeGreaterThanOrEqual(50);
     for (const k of keys) expect(VI[k]!.trim().length, k).toBeGreaterThan(0);
+    for (const k of ["vi.home.whynot.other.items", "vi.home.whynot.ours.items", "vi.home.builtFor.items", "vi.home.problem.inputs.examples"]) {
+      expect(VI[k]!.split("|").length, k).toBeGreaterThanOrEqual(3);
+    }
+    expect(VI["vi.home.whynot.other.items"]!.split("|")).toHaveLength(6);
+    expect(VI["vi.home.whynot.ours.items"]!.split("|")).toHaveLength(8);
+    expect(VI["vi.home.builtFor.items"]!.split("|")).toHaveLength(6);
+    // The G17 keys the page no longer reads are gone (no dead copy).
+    for (const gone of ["vi.home.audiences.title", "vi.home.founderLine", "vi.home.final.secondary"]) {
+      expect(VI[gone], gone).toBeUndefined();
+    }
   });
 
-  it("metadata: canonical /vi, hreflang en → /, x-default → /, vi_VN, rendered title ≤ 65, ISR 300", async () => {
+  it("metadata: canonical /vi, hreflang en → /, x-default → /, vi_VN, rendered title ≤ 65, description ≤ 165, ISR 300", async () => {
     const meta = await generateMetadata();
     expect(meta.alternates?.canonical).toBe("https://blockid.au/vi");
     expect(meta.alternates?.languages).toEqual({
@@ -79,6 +113,7 @@ describe("/vi homepage — template (G17 P2-A)", () => {
     expect((meta.openGraph as { locale?: string }).locale).toBe("vi_VN");
     expect(renderedTitle(meta.title).length).toBeLessThanOrEqual(65);
     expect(String(meta.description).length).toBeLessThanOrEqual(165);
+    expect(String(meta.description)).not.toMatch(/A\$/);
     expect(revalidate).toBe(300);
   });
 });

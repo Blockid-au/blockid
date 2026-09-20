@@ -34,19 +34,33 @@
  */
 
 export type EvaluatorLineId = "E1" | "E2";
+/** G21 P0-B — the evidence-backed assessment-infrastructure positioning (FI = the advisor-feedback lines). */
+export type InfrastructureLineId = "FI1" | "FI2";
 export type FounderLineId = "F1" | "F2" | "F3" | "F4";
 export type InvestorLineId = "I1" | "I2" | "I3";
 export type GeneralLineId = "G1" | "G2" | "G3";
-export type HeroLineId = EvaluatorLineId | FounderLineId | InvestorLineId | GeneralLineId;
+export type HeroLineId =
+  | EvaluatorLineId
+  | InfrastructureLineId
+  | FounderLineId
+  | InvestorLineId
+  | GeneralLineId;
 
 /**
- * The homepage H1 arms that `?hero=` can select. E1 (evaluator-first, G17
- * D1, 2026-09-19) is the SSR default; the founder arms F1–F3 stay selectable
- * so the T0250 A/B protocol can still be run against the new default.
+ * The homepage H1 arms that `?hero=` can select. FI1 (evidence-backed
+ * assessment infrastructure, G21 P0-B, 2026-09-20) is the SSR default; E1
+ * (evaluator-first, G17 D1) and the founder arms F1–F3 stay selectable so
+ * the T0250 A/B protocol can still be run against the new default.
+ *
+ * NAMING: the goal doc calls the new arm "F1", but `F1` has been the founder
+ * arm ("See your startup the way an investor will…") since T0250 and is
+ * pinned by en.json / vi.json `hero.line.f1`; renaming history would break
+ * the i18n parity test for nothing. The new lines are therefore `FI1` (H1)
+ * and `FI2` (sub-line) — FI for the advisor-feedback positioning.
  */
-export type HeroArm = "E1" | "F1" | "F2" | "F3";
-export const HERO_ARMS: readonly HeroArm[] = ["E1", "F1", "F2", "F3"];
-export const HERO_DEFAULT_ARM: HeroArm = "E1";
+export type HeroArm = "FI1" | "E1" | "F1" | "F2" | "F3";
+export const HERO_ARMS: readonly HeroArm[] = ["FI1", "E1", "F1", "F2", "F3"];
+export const HERO_DEFAULT_ARM: HeroArm = "FI1";
 
 /** Per-breath-unit word cap (EN), sentence cap, and the VI syllable cap. */
 export const MAX_WORDS_PER_UNIT = 20;
@@ -175,6 +189,30 @@ export const EVALUATOR_LINES: readonly HeroLine[] = [
   ),
 ];
 
+/**
+ * Evidence-backed assessment infrastructure — G21 P0-B (docs/plans/
+ * g21-fi-upgrade-2026-09-20.md § 0). The homepage speaks to accelerators,
+ * innovation programs and professional evaluators; founders own the data
+ * and are the second line. FI1 = homepage H1 default arm, FI2 = the
+ * sub-line under it. Three messages behind both: screen faster · trust the
+ * evidence · track improvement. No AI-superiority claim, no agent count, no
+ * price. FI2 is one sentence of 32 words but two breaths of 20 + 12.
+ */
+export const INFRASTRUCTURE_LINES: readonly HeroLine[] = [
+  line(
+    "FI1",
+    "homepage H1 (default arm, evidence-backed assessment infrastructure)",
+    "Screen every startup on the same evidence-backed framework.",
+    "Sàng lọc mọi startup trên cùng một khung đánh giá có bằng chứng.",
+  ),
+  line(
+    "FI2",
+    "homepage sub-line under the FI1 H1",
+    "BlockID turns startup applications, pitch decks and company evidence into a comparable Startup Value Index, evaluator dossier and improvement plan — so programs can screen faster and founders know exactly what to improve.",
+    "BlockID biến đơn ứng tuyển, pitch deck và bằng chứng công ty thành Startup Value Index so sánh được, hồ sơ đánh giá và kế hoạch cải thiện — để chương trình sàng lọc nhanh hơn và founder biết chính xác cần cải thiện gì.",
+  ),
+];
+
 /** Founder / customer view. F1 = founder H1 arm (`?hero=F1`), F3 = its sub-line. */
 export const FOUNDER_LINES: readonly HeroLine[] = [
   line(
@@ -249,6 +287,7 @@ export const GENERAL_LINES: readonly HeroLine[] = [
 
 export const ALL_HERO_LINES: readonly HeroLine[] = [
   ...EVALUATOR_LINES,
+  ...INFRASTRUCTURE_LINES,
   ...FOUNDER_LINES,
   ...INVESTOR_LINES,
   ...GENERAL_LINES,
@@ -292,17 +331,19 @@ export interface PickHeroVariantOptions {
 }
 
 /**
- * The sub-line that pairs with an H1 arm: E1 → E2; the founder arms keep
- * the T0250 pairing (F3 under F1/F2, and F1 under F3 so nothing repeats).
+ * The sub-line that pairs with an H1 arm: FI1 → FI2, E1 → E2; the founder
+ * arms keep the T0250 pairing (F3 under F1/F2, and F1 under F3 so nothing
+ * repeats).
  */
 export function heroSubLineFor(arm: HeroArm): HeroLine {
+  if (arm === "FI1") return heroLine("FI2");
   if (arm === "E1") return heroLine("E2");
   return heroLine(arm === "F3" ? "F1" : "F3");
 }
 
 /**
- * Choose the H1 arm. Override > seeded bucket > default E1. Same seed always
- * lands in the same bucket, and the four buckets are equal-width.
+ * Choose the H1 arm. Override > seeded bucket > default FI1. Same seed
+ * always lands in the same bucket, and the five buckets are equal-width.
  */
 export function pickHeroVariant(opts: PickHeroVariantOptions = {}): HeroArm {
   const forced = parseHeroArm(typeof opts.arm === "string" ? opts.arm : null);
