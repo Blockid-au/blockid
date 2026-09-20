@@ -252,7 +252,7 @@ Return ONLY a single JSON object. No prose outside it, no markdown fences.
   "section": {
     "area_id": "<same area_id>",
     "heading": "<section heading>",
-    "body_markdown": "<the full analysis in markdown, with ### sub-headings>",
+    "body_markdown": "<the analysis in markdown with ### sub-headings — see the HARD LIMIT on words below>",
     "citations": [{ "evidence_id": "<uuid from the EVIDENCE CATALOGUE>", "quote": "<verbatim excerpt>" }],
     "confidence": <number 0-1>,
     "hallucination_risk": "low|medium|high"
@@ -440,6 +440,39 @@ export function resetPromptVersionCache(): void {
   promptVersionCache.clear();
 }
 
+/**
+ * G19-S46 (measured 2026-09-20 on BlockID's own standard-tier run): the
+ * structured OUTPUT_CONTRACT (finding + `body_markdown` section + risks +
+ * citations) at the old "500-1500 words" target ran to 3,600+ tokens
+ * (JSON-escaped markdown ≈ 3.8 chars/token) while the standard tier handed the
+ * structured call `1500 × 0.85 = 1275` — every first answer was cut mid-JSON
+ * ("Unterminated string at position 4720"), the repair pass was cut the same
+ * way, and each criterion fell back to a third, prose-only call: 3× the
+ * calls, a halved confidence on every section, groundedShare 0.14–0.41 and
+ * the W4 chapters starved of budget → `ReportFullyDegradedError`. Two-sided
+ * fix: the prompt now carries a HARD per-section limit (agent-prompts
+ * TIER_WORDS, standard 400-700 words) and the structured call gets at least
+ * STRUCTURED_MIN_OUTPUT_TOKENS whatever the tier (headroom for 700 words of
+ * JSON-escaped markdown + finding + risks; cents at DeepInfra rates); the
+ * prose fallback keeps the tier's own size.
+ */
+export const STRUCTURED_MIN_OUTPUT_TOKENS = 2600;
+
+/** Per-section word cap quoted inside the JSON contract (mirrors agent-prompts TIER_WORDS upper bounds). */
+export const STRUCTURED_SECTION_WORD_CAP: Record<ReportTierV2, number> = { free: 350, standard: 700, premium: 1200, investor_memo: 1500 };
+
+/** The OUTPUT_SCHEMA slot for a structured W1–W3 call: the JSON contract with the tier's hard word cap. */
+export function structuredOutputSchema(tier: ReportTierV2 | ReportTier): string {
+  const cap = STRUCTURED_SECTION_WORD_CAP[tier as ReportTierV2] ?? STRUCTURED_SECTION_WORD_CAP.standard;
+  return `${OUTPUT_CONTRACT.trim()}\n\nHARD LIMIT: "body_markdown" is at most ${cap} words — stop and close the JSON before it. Return the JSON object only.`;
+}
+
+export function structuredMaxTokens(tier: ReportTier, budget: WaveTask["budget"]): number {
+  const tierConfig = REPORT_TIER_CONFIG[tier];
+  const tierTokens = budget === "large" ? tierConfig.maxTokensPerAgent : Math.round(tierConfig.maxTokensPerAgent * 0.85);
+  return Math.max(tierTokens, STRUCTURED_MIN_OUTPUT_TOKENS);
+}
+
 // ── Dispatch a Single Agent Analysis ────────────────────────────────────────
 
 async function dispatchAgent(
@@ -451,14 +484,21 @@ async function dispatchAgent(
 ): Promise<AgentAnalysisResult> {
   const startTime = Date.now();
   const tierConfig = REPORT_TIER_CONFIG[tier];
-  const maxTokens = task.budget === "large" ? tierConfig.maxTokensPerAgent : Math.round(tierConfig.maxTokensPerAgent * 0.85);
+  const maxTokens = structuredMaxTokens(tier, task.budget);
 
   const template = await (opts.resolvePromptTemplate ?? defaultPromptTemplate)(task.agentRole);
+  // G19-S46: the structured call's system prompt carries the JSON contract in
+  // its OUTPUT_SCHEMA slot (like W4). It used to carry the legacy markdown
+  // "## Output Format" while the user turn asked for JSON — DeepSeek-class
+  // models followed the system prompt, every first answer was markdown
+  // (`<!-- SCORE: XX -->`), the repair pass re-typed the essay as JSON and
+  // overran the budget, and each criterion cost three calls.
   const systemPrompt = buildAgentPrompt(task.agentRole, context, {
     criterion: task.criterion,
     phaseId: context.phaseGate?.currentPhase,
     tier: opts.tierV2 ?? tier,
     template,
+    ...(opts.structured === false ? {} : { outputSchema: structuredOutputSchema(opts.tierV2 ?? tier) }),
   });
   const userPrompt = buildUserPrompt(task.criterion, context);
 
