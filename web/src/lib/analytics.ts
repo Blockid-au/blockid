@@ -344,6 +344,19 @@ export interface AnalyticsEventMap {
   subscription_created: { plan: string; plan_label?: string; status: string; trialing: boolean; interval: string };
   tbr_share_created: { project_scope: "default" | "project" };
 
+  // ── G19-S45 — Trusted Business Report engagement + clarity (D6) ──────────
+  //   tbr_section_view      — a ReportV2 section scrolled into view (one per
+  //                           section per page view; IntersectionObserver in
+  //                           business-report-client.tsx). `section` = the
+  //                           tbr-* section id, `surface` = founder | share.
+  //   tbr_export            — PDF / DOCX link clicked (`format`), any surface.
+  //   tbr_clarity_answered  — the one-question clarity survey (0–10) answered;
+  //                           server twin emitted by POST /api/nps for the
+  //                           `tbr_clarity:<snapshotId>` context.
+  tbr_section_view: { section: string; surface: "founder" | "share" | "order_page" | "demo"; tier?: string };
+  tbr_export: { format: "pdf" | "docx"; surface: string };
+  tbr_clarity_answered: { score: number; surface: "founder" | "share"; has_comment: boolean; snapshot_id?: string };
+
   // ── Global error boundary + 404 ──────────────────────────────────────────
   //   Fired by src/app/error.tsx when the App Router error boundary catches
   //   an uncaught render/data error. `message` is truncated to 200 chars to

@@ -44,8 +44,16 @@
  *
  * §8.7 sells PDF + DOCX as part of the A$3 deliverable, so the export
  * formats hang off this same owner-scoped, status-gated route rather than
- * a second endpoint with its own auth to get wrong. Both reuse the
- * existing renderers (`@/lib/pdf/svi-report-pdf`, `@/lib/docx/svi-report-docx`).
+ * a second endpoint with its own auth to get wrong.
+ *
+ * G19-S45 (D4): the paid product is the ReportV2 document. When the
+ * assembled row carries `report_json` (migration 0395, written by the
+ * generator since G13-W1-R1) the JSON response includes it as
+ * `report.reportV2` and the exports render it through the v2 twins
+ * (`@/lib/pdf/tbr-pdf` react-pdf, `@/lib/docx/tbr-docx`) — the same
+ * chapters the web page shows. Orders generated before that keep the
+ * legacy renderers (`@/lib/pdf/svi-report-pdf`, `@/lib/docx/svi-report-docx`)
+ * so nothing a buyer already owns stops downloading.
  *
  * Note the deliberate difference from POST /api/svi/docx: that route
  * charges `docx_export` credits because it exports an arbitrary report.
@@ -74,6 +82,8 @@ import {
   toReportView,
   type ReportExportFormat,
 } from "@/lib/paywall/report-delivery";
+import { readAssembledReportJson } from "@/lib/report-v2/storage";
+import type { ReportV2 } from "@/lib/report-v2/schema";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 
 export const dynamic = "force-dynamic";
@@ -254,6 +264,10 @@ export async function GET(
   const reportRow = reportRaw as unknown as Row;
   const report = reconstructAssembledReport(reportRow);
 
+  // G19-S45: the ReportV2 document behind the order (null for pre-v2 rows
+  // or when migration 0395 is not applied — the storage helper degrades).
+  const reportV2 = await readAssembledReportJson(supabase, reportId).catch(() => null);
+
   // ── 5. Serve ─────────────────────────────────────────────────────────
   if (format === "json") {
     return json(
@@ -263,13 +277,13 @@ export async function GET(
         reason: disposition.reason,
         message: disposition.message,
         order,
-        report: toReportView(report, reportRow),
+        report: toReportView(report, reportRow, reportV2),
       },
       200,
     );
   }
 
-  return renderExport(format, report, reportRow, user, supabase);
+  return renderExport(format, report, reportRow, user, supabase, reportV2);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -291,10 +305,36 @@ async function renderExport(
   reportRow: Row,
   user: ExportUser,
   supabase: AdminClient,
+  reportV2: ReportV2 | null,
 ): Promise<NextResponse> {
   const filename = exportFilename(report.title, format);
 
   try {
+    // G19-S45 (D4): a v2 order exports through the v2 twins — same chapter
+    // order as the web page, visuals included, no page-budget trim (paid).
+    if (reportV2) {
+      const bytes =
+        format === "docx"
+          ? await (async () => {
+              const { generateTbrDocx } = await import("@/lib/docx/tbr-docx");
+              return generateTbrDocx(reportV2);
+            })()
+          : await (async () => {
+              const { renderTbrPdf } = await import("@/lib/pdf/tbr-pdf");
+              return (await renderTbrPdf(reportV2)).buffer;
+            })();
+      return new NextResponse(new Uint8Array(bytes), {
+        status: 200,
+        headers: {
+          ...PRIVATE_HEADERS,
+          "Content-Type": format === "docx" ? DOCX_MIME : PDF_MIME,
+          "Content-Disposition": `attachment; filename="${filename}"`,
+          "Content-Length": String(bytes.length),
+          "X-TBR-Source": "stored",
+        },
+      });
+    }
+
     if (format === "docx") {
       const { generateSVIDocx } = await import("@/lib/docx/svi-report-docx");
       const buffer = await generateSVIDocx(report);

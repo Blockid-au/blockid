@@ -26,21 +26,43 @@ const base: ReportAccessInfo = {
 
 describe("resolveTbrAccess (G16-B)", () => {
   it("free founder, lifted snapshot → free lift + buy rail", () => {
-    expect(resolveTbrAccess(null, base)).toEqual({ liftTier: "free", unlockMode: "buy" });
+    expect(resolveTbrAccess(null, base)).toEqual({ liftTier: "free", unlockMode: "buy", orderStatus: null, useOrderReport: false });
   });
 
   it("access lookup failed (null) → still the free cut, buy mode (the rail explains if no project)", () => {
-    expect(resolveTbrAccess(null, null)).toEqual({ liftTier: "free", unlockMode: "buy" });
+    expect(resolveTbrAccess(null, null)).toEqual({ liftTier: "free", unlockMode: "buy", orderStatus: null, useOrderReport: false });
   });
 
   it("plan includes the report → standard lift, no rail on a lifted snapshot; 'included' rail on a stored free document", () => {
-    expect(resolveTbrAccess(null, { ...base, included: true })).toEqual({ liftTier: "standard", unlockMode: null });
-    expect(resolveTbrAccess(freeFixtureReportV2(), { ...base, included: true })).toEqual({ liftTier: "standard", unlockMode: "included" });
+    expect(resolveTbrAccess(null, { ...base, included: true })).toMatchObject({ liftTier: "standard", unlockMode: null });
+    expect(resolveTbrAccess(freeFixtureReportV2(), { ...base, included: true })).toMatchObject({ liftTier: "standard", unlockMode: "included" });
   });
 
   it("paid order → standard lift; 'purchased' rail on a stored free document (paid wins over included)", () => {
-    expect(resolveTbrAccess(null, { ...base, paidOrderId: "o-1" })).toEqual({ liftTier: "standard", unlockMode: null });
-    expect(resolveTbrAccess(freeFixtureReportV2(), { ...base, paidOrderId: "o-1", included: true })).toEqual({ liftTier: "standard", unlockMode: "purchased" });
+    expect(resolveTbrAccess(null, { ...base, paidOrderId: "o-1" })).toMatchObject({ liftTier: "standard", unlockMode: null, orderStatus: "ready" });
+    expect(resolveTbrAccess(freeFixtureReportV2(), { ...base, paidOrderId: "o-1", included: true })).toMatchObject({ liftTier: "standard", unlockMode: "purchased", orderStatus: "ready" });
+  });
+
+  // G19-S45 (D4): the paid order's own ReportV2 wins; a pending / legacy order keeps the snapshot unlocked.
+  describe("paid order (G19-S45 D4)", () => {
+    it("a READY order carrying report_json → that document, every chapter unlocked, no rail — even over a stored free snapshot", () => {
+      const r = resolveTbrAccess(freeFixtureReportV2(), { ...base, paidOrderId: "o-1" }, { report: demoReportV2(), status: "ready" });
+      expect(r).toEqual({ liftTier: "standard", unlockMode: null, orderStatus: "ready", useOrderReport: true });
+    });
+
+    it("an order still being written → snapshot lifted at standard (no lock), 'purchased' rail in pending state on a stored free document", () => {
+      expect(resolveTbrAccess(null, { ...base, paidOrderId: "o-1" }, { report: null, status: "pending" })).toEqual({ liftTier: "standard", unlockMode: null, orderStatus: "pending", useOrderReport: false });
+      expect(resolveTbrAccess(freeFixtureReportV2(), { ...base, paidOrderId: "o-1" }, { report: null, status: "pending" })).toEqual({ liftTier: "standard", unlockMode: "purchased", orderStatus: "pending", useOrderReport: false });
+    });
+
+    it("a pre-v2 order (READY, no report_json) → snapshot unlocked, 'purchased' rail pointing at the legacy text version", () => {
+      expect(resolveTbrAccess(freeFixtureReportV2(), { ...base, paidOrderId: "o-1" }, { report: null, status: "legacy" })).toEqual({ liftTier: "standard", unlockMode: "purchased", orderStatus: "legacy", useOrderReport: false });
+    });
+
+    it("an explicit ?order= counts as ownership even when the access lookup failed", () => {
+      expect(resolveTbrAccess(null, null, { report: null, status: "pending" })).toMatchObject({ liftTier: "standard", unlockMode: null, orderStatus: "pending" });
+      expect(resolveTbrAccess(null, null, { report: demoReportV2(), status: "ready" })).toMatchObject({ useOrderReport: true, unlockMode: null });
+    });
   });
 
   it("a stored 'standard' document is trusted only with a paid order or an included plan (G16 review P1-2: the deck analyser stores every snapshot as standard)", () => {

@@ -8,6 +8,7 @@
 // Hook-free: renders in the server /tbr/demo page and the client TBR alike.
 
 import type { DimensionChapter } from "@/lib/report-v2/schema";
+import { v2Strings, type TbrUiLocale } from "./shared";
 
 /** First sentence of a narrative (≤ 220 chars), the preview's only real text. */
 export function firstSentence(text: string, max = 220): string {
@@ -21,8 +22,9 @@ export function firstSentence(text: string, max = 220): string {
 
 const SKELETON_BARS = [72, 48, 84, 36, 60] as const;
 
-export function TbrLockedChapterPreview({ chapter }: { chapter: DimensionChapter }) {
+export function TbrLockedChapterPreview({ chapter, locale = "en" }: { chapter: DimensionChapter; locale?: TbrUiLocale }) {
   const ch = chapter;
+  const t = v2Strings(locale).rail;
   const lead = firstSentence(ch.verdict);
   return (
     <div data-tbr-locked={ch.dim} className="relative overflow-hidden rounded-xl border border-ink-200 bg-white p-4 dark:border-ink-800 dark:bg-ink-950 print:break-inside-avoid">
@@ -41,7 +43,7 @@ export function TbrLockedChapterPreview({ chapter }: { chapter: DimensionChapter
       </div>
       <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white to-transparent dark:from-ink-950" />
       <p className="relative mt-2 text-[11px] font-medium text-ink-500 dark:text-ink-400">
-        Full analysis, evidence table and criterion cards are in the full Trusted Business Report.
+        {t.lockedNote}
       </p>
     </div>
   );

@@ -41,6 +41,7 @@ import type {
   ReportSection,
   VisualSpec,
 } from "@/lib/report-pipeline/types";
+import type { ReportV2 } from "@/lib/report-v2/schema";
 import type { ReportOrderState } from "./report-order-state";
 
 type Row = Record<string, unknown>;
@@ -278,6 +279,13 @@ export interface ReportView {
   createdAt: string | null;
   sections: ReportSectionView[];
   charts: unknown[];
+  /**
+   * G19-S45 (D4): the ReportV2 document the order was generated as
+   * (`assembled_reports.report_json`, migration 0395). The paid view renders
+   * this through `<TbrReportV2>`; `null` only for orders generated before
+   * G13-W1-R1, which keep the legacy markdown.
+   */
+  reportV2: ReportV2 | null;
 }
 
 /**
@@ -297,7 +305,7 @@ function numberOrNull(value: unknown): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-export function toReportView(report: AssembledReport, row: Row): ReportView {
+export function toReportView(report: AssembledReport, row: Row, reportV2: ReportV2 | null = null): ReportView {
   return {
     reportId: report.id,
     title: report.title,
@@ -319,6 +327,7 @@ export function toReportView(report: AssembledReport, row: Row): ReportView {
       content: section.content,
     })),
     charts: Array.isArray(report.charts) ? report.charts : [],
+    reportV2,
   };
 }
 
@@ -425,7 +434,43 @@ export function exportFilename(
   return `BlockID-Trust-Report-${stem}-${today.toISOString().slice(0, 10)}.${format}`;
 }
 
-/** Canonical in-app path where a buyer views a finished order. */
+/**
+ * Canonical in-app path where a buyer views a finished order.
+ *
+ * G19-S45 (D4): the paid product IS the ReportV2 page — after checkout /
+ * redeem the founder lands on `/workspace/reports/business?order=<id>`,
+ * where the page polls the order and renders the stored `report_json`
+ * through `<TbrReportV2>` with every chapter unlocked. The old
+ * `/workspace/reports/order` landing (Stripe success_url, e-mails) still
+ * resolves the order and redirects here.
+ */
 export function reportOrderPath(orderId: string): string {
-  return `/workspace/reports/order?order=${encodeURIComponent(orderId)}`;
+  return `/workspace/reports/business?order=${encodeURIComponent(orderId)}`;
+}
+
+/**
+ * The thin legacy wrapper (`<ReportOrderView>`): markdown + exports for
+ * orders generated before ReportV2 existed. `view=legacy` stops the order
+ * page from redirecting back to the ReportV2 page.
+ */
+export function legacyReportOrderPath(orderId: string): string {
+  return `/workspace/reports/order?order=${encodeURIComponent(orderId)}&view=legacy`;
+}
+
+const ORDER_UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** `?order=<uuid>` on the ReportV2 page — the post-purchase landing. Anything that is not a uuid is ignored. */
+export function orderParam(raw: string | string[] | undefined): string | null {
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  return typeof v === "string" && ORDER_UUID_RE.test(v.trim()) ? v.trim() : null;
+}
+
+/**
+ * Where `/workspace/reports/order` sends a resolved order: the ReportV2 page
+ * (D4) unless `view=legacy` asked for the thin markdown wrapper. `null` =
+ * stay (render `<ReportOrderView>`, or the not-found panel when no order).
+ */
+export function orderLandingRedirect(orderId: string, view: string | null | undefined): string | null {
+  if (!orderId) return null;
+  return view === "legacy" ? null : reportOrderPath(orderId);
 }

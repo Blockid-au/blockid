@@ -46,6 +46,16 @@ import {
   type ValuationChapter,
 } from "./schema";
 import { verificationBadgeLabel, verificationMeta } from "@/lib/verification/confidence-multiplier";
+import { getTbrStrings, type TbrV2Strings } from "@/lib/i18n/tbr-strings";
+
+/** G19-S45: the adapter's templated sentences (thesis, where/worth/next, phase lens, method, disclaimer) in the report locale. */
+type AdapterStrings = TbrV2Strings["adapter"];
+function adapterStrings(locale: ReportV2["locale"] | undefined): AdapterStrings {
+  return getTbrStrings(locale).v2.adapter;
+}
+function phaseLabelFor(id: GrowthPhaseId, locale: ReportV2["locale"] | undefined): string {
+  return GROWTH_PHASE_LABELS[id][locale === "vi" ? "vi" : "en"];
+}
 
 // ── Inputs ──────────────────────────────────────────────────────────────────
 
@@ -105,7 +115,8 @@ export interface SnapshotInput {
   /** G14-S36: projects.verification_level (0–5) when the caller has it; null/absent → L0 "ABN not verified". */
   verificationLevel?: number | null;
   tier?: ReportTierV2;
-  locale?: "en" | "vi";
+  /** G19-S45: report locale — the adapter's templated sentences follow it (VI with diacritics; ES / JA read EN). */
+  locale?: ReportV2["locale"];
   cohort?: CohortBenchmarkInput | null;
   /** Optional narrative overrides (e.g. the pipeline's executive summary). */
   executiveSummary?: string | null;
@@ -549,8 +560,9 @@ function chapterVisuals(c: ChapterCtx): { primary: VisualSpecV2; secondary: Visu
   }
 }
 
-function buildChapter(c: ChapterCtx, phase: PhaseGateResult, tier: ReportTierV2): DimensionChapter {
+function buildChapter(c: ChapterCtx, phase: PhaseGateResult, tier: ReportTierV2, L: AdapterStrings = adapterStrings("en"), locale: ReportV2["locale"] = "en"): DimensionChapter {
   const owner = DIMENSION_OWNERS[c.dim];
+  const phaseNow = phaseLabelFor(phase.currentPhase, locale);
   const { primary, secondary } = chapterVisuals(c);
   const insights = (c.state.insights ?? []).filter((s) => typeof s === "string" && s.trim());
   const cardStrengths = c.cards.flatMap((k) => k.strengths).filter(Boolean);
@@ -595,8 +607,8 @@ function buildChapter(c: ChapterCtx, phase: PhaseGateResult, tier: ReportTierV2)
       phaseId: phase.currentPhase,
       whatMattersNow:
         typeof floor === "number"
-          ? `${phase.currentPhaseLabel}: ${owner.shortLabel} floor ${floor} — ${c.score >= floor ? "met" : "not met"} at ${c.score}.`
-          : `${phase.currentPhaseLabel}: no ${owner.shortLabel} floor at this phase; next gate is ${phase.nextPhase ? GROWTH_PHASE_LABELS[phase.nextPhase].en : "the last phase"}.`,
+          ? L.phaseFloor(phaseNow, owner.shortLabel, floor, c.score >= floor, c.score)
+          : L.phaseNoFloor(phaseNow, owner.shortLabel, phase.nextPhase ? phaseLabelFor(phase.nextPhase, locale) : L.lastPhase),
       floor: typeof floor === "number" ? floor : undefined,
       floorMet: typeof floor === "number" ? c.score >= floor : undefined,
     },
@@ -781,7 +793,9 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
   const criteriaQuality = Array.from(cardsByKey.values()).map((c) => ({ criterion_key: c.key, quality_level: c.quality }));
   const phase = inferPhase(input.phaseId, criteriaQuality, dimScores);
 
-  const dimensions = ctxs.map((c) => buildChapter(c, phase, tier));
+  // G19-S45: templated sentences in the report locale.
+  const L = adapterStrings(input.locale);
+  const dimensions = ctxs.map((c) => buildChapter(c, phase, tier, L, input.locale ?? "en"));
 
   // Executive summary.
   const ranked = [...scoredDims].sort((a, b) => b.score - a.score);
@@ -795,17 +809,11 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
   const above70 = scoredDims.filter((c) => c.score >= 70).length;
   const thesis =
     input.executiveSummary?.trim() ||
-    (sviBand === "strong"
-      ? `SVI ${sviTotal} — investor-ready: ${above70} of 8 dimensions are in the strong band.`
-      : sviBand === "developing"
-        ? `SVI ${sviTotal} — developing: ${gapDims.length} dimensions need evidence before a raise.`
-        : sviBand === "early"
-          ? `SVI ${sviTotal} — early: build evidence on the highest-weight gaps first.`
-          : "No dimension has been scored yet — run the analysis to populate this report.");
+    (sviBand === "strong" ? L.thesisStrong(sviTotal, above70) : sviBand === "developing" ? L.thesisDeveloping(sviTotal, gapDims.length) : sviBand === "early" ? L.thesisEarly(sviTotal) : L.thesisPending);
   const valuation = buildValuation({ sviTotal: Math.min(100, sviTotal), sviIndex: sviTotal, stageLabel, stage, industry, treScore: dimScores.tre ?? null, vc: input.vc, ask: input.valuationAsk ?? null, revenueEvidenceIds: input.revenueEvidenceIds ?? [], at });
-  const worthLine = `Directional A$${fmtShort(valuation.consensus.lowAud)}–${fmtShort(valuation.consensus.highAud)} pre-money (${industry ?? "sector-neutral"}, ${stageLabel}); not a formal valuation.`;
-  const nextLine = roadmap[0] ? `${dimensions.find((d) => d.dim === roadmap[0].c.dim)?.nextAction.title ?? "Add evidence"} — +${Math.max(1, Math.round(roadmap[0].lift))} SVI on ${DIMENSION_OWNERS[roadmap[0].c.dim].shortLabel}.` : "Keep the evidence fresh: reconnect data sources before the next investor conversation.";
-  const whereLine = `${stageLabel} ${industry ?? "startup"} at SVI ${sviTotal} (${sviBand}); phase ${phase.currentPhaseLabel}, ${phase.completionPct}% of the gate cleared.`;
+  const worthLine = L.worthLine(fmtShort(valuation.consensus.lowAud), fmtShort(valuation.consensus.highAud), industry ?? L.sectorNeutral, stageLabel);
+  const nextLine = roadmap[0] ? L.nextLine(dimensions.find((d) => d.dim === roadmap[0].c.dim)?.nextAction.title ?? L.addEvidence, Math.max(1, Math.round(roadmap[0].lift)), DIMENSION_OWNERS[roadmap[0].c.dim].shortLabel) : L.nextFallback;
+  const whereLine = L.whereLine(stageLabel, industry ?? L.startup, sviTotal, getTbrStrings(input.locale).v2.band[sviBand].toLowerCase(), phaseLabelFor(phase.currentPhase, input.locale), phase.completionPct);
 
   const routeMap = (id: string, agentId: "ceo" | "coo") =>
     makeVisual({
@@ -949,10 +957,9 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
     moneyOnTable: { grants: [], programs: [], totalAud: 0, visuals: [moneyBars] },
     actionPlan: { horizonDays: 90, steps, visuals: [gantt] },
     appendix: {
-      method:
-        "Scores come from the BlockID Startup Value Index (8 weighted dimensions, 13 evaluation criteria). Benchmarks are stage p25/p50/p75 bands from AU startup research; a sector cohort replaces them when N ≥ 30. Visuals are deterministic renders of the numbers in this document. Chapters built by the read-time adapter carry no evidence register — connect Stripe, Xero, GA4, GitHub or upload documents to make them evidenced.",
+      method: L.method,
       dataPrinciple: DATA_PRINCIPLE_SENTENCE,
-      disclaimer: "General information only, not financial, legal or investment advice. The valuation range is directional and is not a formal valuation.",
+      disclaimer: L.disclaimer,
       evidenceRegister: [],
       auditLog: [],
       comparablesN: comparablesCounts().n,
@@ -1011,7 +1018,7 @@ export interface AssembledReportContext {
   sviAnalysis?: SviAnalysisLike | null;
   phaseId?: string | null;
   tier?: ReportTierV2;
-  locale?: "en" | "vi";
+  locale?: ReportV2["locale"];
   vc?: VcValuationLike | null;
   valuationAsk?: ValuationAskInput | null;
   revenueEvidenceIds?: string[] | null;

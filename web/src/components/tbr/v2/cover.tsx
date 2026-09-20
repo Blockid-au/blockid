@@ -1,7 +1,6 @@
 // Chapter 0 — Cover: startup, date, SVI ring, 8-dim radar vs stage p50, the
 // three questions strip and the dimension table (spec §A.1 row 0).
 
-import { GROWTH_PHASE_LABELS } from "@/lib/growth/phase-taxonomy";
 import { getTbrStrings } from "@/lib/i18n/tbr-strings";
 import { DIMENSION_OWNERS } from "@/lib/report-pipeline/dimension-owners";
 import { VisualFigure } from "@/lib/report-visuals/react";
@@ -9,12 +8,13 @@ import { coverLedgerCells, pendingDimsLine } from "@/lib/report-v2/ledger-rows";
 import { DIM_ORDER, type ReportV2 } from "@/lib/report-v2/schema";
 import { cn } from "@/lib/utils";
 import { AbnBadge } from "@/components/verification/abn-badge";
-import { AgentBadge, TBR_V2_SECTION_IDS, TbrSection, bandLabel, bandText } from "./shared";
+import { AgentBadge, TBR_V2_SECTION_IDS, TbrSection, bandLabel, bandText, phaseLabel, type TbrUiLocale } from "./shared";
 
 /** G19-S41 — the cover ledger strip "base 100 → dims → stage → penalties → total" + "N of 8 dimensions pending". */
-export function TbrCoverLedger({ report, locale = "en" }: { report: ReportV2; locale?: "en" | "vi" }) {
-  const cells = coverLedgerCells(report.cover, locale);
-  const pending = pendingDimsLine(report.cover, locale);
+export function TbrCoverLedger({ report, locale = "en" }: { report: ReportV2; locale?: TbrUiLocale }) {
+  const rowLocale: "en" | "vi" = locale === "vi" ? "vi" : "en";
+  const cells = coverLedgerCells(report.cover, rowLocale);
+  const pending = pendingDimsLine(report.cover, rowLocale);
   if (cells.length === 0 && !pending) return null;
   const t = getTbrStrings(locale).ledger;
   return (
@@ -41,24 +41,20 @@ export function TbrCoverLedger({ report, locale = "en" }: { report: ReportV2; lo
   );
 }
 
-export function TbrCover({ report, title, locale = "en" }: { report: ReportV2; title: string; locale?: "en" | "vi" }) {
+export function TbrCover({ report, title, locale = "en" }: { report: ReportV2; title: string; locale?: TbrUiLocale }) {
   const c = report.cover;
+  const t = getTbrStrings(locale).v2.cover;
   const ring = c.visuals.find((v) => v.kind === "score_ring");
   const radar = c.visuals.find((v) => v.kind === "radar");
   const strip = c.visuals.find((v) => v.kind === "three_questions_strip");
-  const date = new Date(report.generatedAt).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-AU", { day: "numeric", month: "long", year: "numeric" });
+  const date = new Date(report.generatedAt).toLocaleDateString(locale === "vi" ? "vi-VN" : locale === "es" ? "es-ES" : locale === "ja" ? "ja-JP" : "en-AU", { day: "numeric", month: "long", year: "numeric" });
   return (
     <TbrSection id={TBR_V2_SECTION_IDS.cover} kicker="0" title={title}>
       <div className="grid gap-6 md:grid-cols-[auto_1fr]">
         <div className="flex flex-col items-center gap-2">
           {ring && <VisualFigure spec={ring} caption={null} className="w-[140px]" />}
-          <p className={cn("text-sm font-semibold", bandText(c.svi.band))}>{bandLabel(c.svi.band)}</p>
-          {c.svi.deltaVsLast !== null && (
-            <p className="text-xs text-ink-500 dark:text-ink-400">
-              {c.svi.deltaVsLast >= 0 ? "+" : ""}
-              {c.svi.deltaVsLast} vs last snapshot
-            </p>
-          )}
+          <p className={cn("text-sm font-semibold", bandText(c.svi.band))}>{bandLabel(c.svi.band, locale)}</p>
+          {c.svi.deltaVsLast !== null && <p className="text-xs text-ink-500 dark:text-ink-400">{t.deltaVsLast(`${c.svi.deltaVsLast >= 0 ? "+" : ""}${c.svi.deltaVsLast}`)}</p>}
         </div>
         <div className="space-y-3">
           <div>
@@ -68,10 +64,10 @@ export function TbrCover({ report, title, locale = "en" }: { report: ReportV2; t
               {c.verification && <AbnBadge level={c.verification.level} />}
             </p>
             <p className="text-sm text-ink-600 dark:text-ink-400">
-              {c.sector} · {c.stageLabel} · Phase: {GROWTH_PHASE_LABELS[c.phaseId][locale]} · {date}
+              {c.sector} · {c.stageLabel} · {t.phase}: {phaseLabel(c.phaseId, locale)} · {date}
               {report.source !== "pipeline" && (
                 <span className="ml-2 rounded-full border border-ink-200 px-2 py-0.5 text-[10px] uppercase tracking-wide text-ink-500 dark:border-ink-700 dark:text-ink-400">
-                  {report.source === "fixture" ? "demo data" : "built from stored snapshot"}
+                  {report.source === "fixture" ? t.demoData : t.builtFromSnapshot}
                 </span>
               )}
             </p>
@@ -82,12 +78,12 @@ export function TbrCover({ report, title, locale = "en" }: { report: ReportV2; t
             <table className="w-full text-xs">
               <thead>
                 <tr className="border-b border-ink-200 text-left text-[10px] uppercase tracking-wide text-ink-500 dark:border-ink-700 dark:text-ink-400">
-                  <th className="py-1 pr-2">Dimension</th>
-                  <th className="py-1 pr-2">Owner</th>
-                  <th className="py-1 pr-2 text-right">W</th>
-                  <th className="py-1 pr-2 text-right">Score</th>
-                  <th className="py-1 pr-2 text-right">p50</th>
-                  <th className="py-1 text-right">Pctl</th>
+                  <th className="py-1 pr-2">{t.thDimension}</th>
+                  <th className="py-1 pr-2">{t.thOwner}</th>
+                  <th className="py-1 pr-2 text-right">{t.thWeight}</th>
+                  <th className="py-1 pr-2 text-right">{t.thScore}</th>
+                  <th className="py-1 pr-2 text-right">{t.thP50}</th>
+                  <th className="py-1 text-right">{t.thPctl}</th>
                 </tr>
               </thead>
               <tbody>
@@ -97,7 +93,7 @@ export function TbrCover({ report, title, locale = "en" }: { report: ReportV2; t
                     <tr key={d} className="border-b border-ink-100 dark:border-ink-800/60">
                       <td className="py-1 pr-2">
                         <a href={`#${TBR_V2_SECTION_IDS.dim(d)}`} className="font-medium text-ink-700 hover:text-brand-600 dark:text-ink-200">
-                          <span className="font-mono text-[10px] text-ink-400">{d.toUpperCase()}</span> {DIMENSION_OWNERS[d].title}
+                          <span className="font-mono text-[10px] text-ink-400">{d.toUpperCase()}</span> {locale === "vi" ? DIMENSION_OWNERS[d].titleVi : DIMENSION_OWNERS[d].title}
                         </a>
                       </td>
                       <td className="py-1 pr-2">

@@ -9,12 +9,23 @@
 //      from the /nps landing page. Updates the stub row that was
 //      pre-created when the D30 email was enqueued.
 //
+//   3. G19-S45 (D6) — the Trusted Business Report clarity survey
+//      (components/tbr/tbr-clarity-survey.tsx) POSTs { score, comment,
+//      context: "tbr_clarity:<snapshotId>", surface }. Same insert as (1);
+//      the route additionally emits the server-side `tbr_clarity_answered`
+//      analytics twin. The public share page has no session, so the row is
+//      stored as "anonymous" — the KPI reads the context prefix, not the user.
+//
 // GET returns recent rows for the CCSO admin dashboard.
 
 import { NextRequest, NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute } from "@/lib/audit/api-route";
+import { emitEventSafe } from "@/lib/analytics/server";
+import { qaFlag } from "@/lib/analytics/events";
+
+export const TBR_CLARITY_CONTEXT_PREFIX = "tbr_clarity:";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +34,8 @@ interface NpsPostBody {
   score?: unknown;
   comment?: unknown;
   context?: unknown;
+  /** G19-S45: where the clarity survey was answered (founder page or public share). */
+  surface?: unknown;
 }
 
 async function POST_handler(req: NextRequest) {
@@ -108,6 +121,22 @@ async function POST_handler(req: NextRequest) {
       });
     } else {
       // Supabase not configured — silently drop (no PII/comment to logs).
+    }
+    // G19-S45 (D6): server twin of the client `tbr_clarity_answered` event.
+    if (context.startsWith(TBR_CLARITY_CONTEXT_PREFIX)) {
+      const snapshotId = context.slice(TBR_CLARITY_CONTEXT_PREFIX.length).slice(0, 80);
+      emitEventSafe({
+        name: "tbr_clarity_answered",
+        params: {
+          score,
+          surface: body.surface === "share" ? "share" : "founder",
+          has_comment: Boolean(comment && comment.length > 0),
+          ...(snapshotId ? { snapshot_id: snapshotId } : {}),
+          ...qaFlag(user?.email),
+        },
+        userId: user?.id ?? null,
+        source: "server",
+      });
     }
     return NextResponse.json({ ok: true });
   } catch {

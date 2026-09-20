@@ -811,7 +811,9 @@ export interface TbrPdfProps {
 }
 
 export function TbrReportPdf({ report, level = 0, preparedWith, locale }: TbrPdfProps) {
-  const loc = locale ?? report.locale ?? "en";
+  // G19-S45: EN / VI font sets + strings only; ES / JA documents render with the English labels.
+  const rawLoc = locale ?? report.locale ?? "en";
+  const loc: "en" | "vi" = rawLoc === "vi" ? "vi" : "en";
   useFontSet(loc);
   const projection = projectForTier(report, level);
   const r = projection.report;

@@ -50,6 +50,8 @@ function ReportKpiTile({ k }: { k: ReportKpis }) {
     { label: "Reports / day", value: String(k.reportsPerDay), sub: `${k.reportsTotal} in ${k.windowDays} d · ${k.reportsToday} today` },
     { label: "COGS median", value: aud(k.cogsMedianAud), sub: k.cogsByTier.length ? k.cogsByTier.map((t) => `${t.tier} ${aud(t.avgAud)} ×${t.count}`).join(" · ") : "no report spend today" },
     { label: "Grounded share", value: pct(k.groundedMedian), sub: k.groundedSampled ? `${pct(k.groundedAtGateShare)} at the 80 % gate · n=${k.groundedSampled}` : "no v2 reports in window" },
+    // G19-S45 (D6): report-clarity survey — median 0–10, N and the share ≥ 8 over 30 days.
+    { label: "Report clarity (30 d)", value: k.clarity?.median === null || k.clarity?.median === undefined ? "—" : `${k.clarity.median.toFixed(1)} / 10`, sub: k.clarity?.n ? `n=${k.clarity.n} · ${pct(k.clarity.shareAtLeast8)} scored ≥ 8${k.clarity.onTarget ? " · on target" : ""}` : "no survey answers yet" },
     { label: "AU comparables", value: String(k.comparablesN), sub: `${k.comparablesWithMultiplesN} with multiples · ${k.comparablesSource === "table" ? "verified table" : "static fallback"}` },
   ];
   return (
@@ -69,7 +71,7 @@ function ReportKpiTile({ k }: { k: ReportKpis }) {
           </div>
         ))}
       </div>
-      <p className="mt-3 text-xs text-ink-600">{k.comparablesCopy}. Targets: COGS ≤ A$0.60 standard, grounded median ≥ 0.85.</p>
+      <p className="mt-3 text-xs text-ink-600">{k.comparablesCopy}. Targets: COGS ≤ A$0.60 standard, grounded median ≥ 0.85, clarity median ≥ 8.5 with N ≥ 30.</p>
     </div>
   );
 }

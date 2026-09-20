@@ -4,10 +4,11 @@
 import { aud } from "@/lib/report-visuals";
 import { VisualFigure } from "@/lib/report-visuals/react";
 import type { ReportV2 } from "@/lib/report-v2/schema";
-import { AgentBadge, TBR_V2_SECTION_IDS, TbrSection } from "./shared";
+import { AgentBadge, TBR_V2_SECTION_IDS, TbrSection, v2Strings, type TbrUiLocale } from "./shared";
 
-export function TbrMoney({ report, title }: { report: ReportV2; title: string }) {
+export function TbrMoney({ report, title, locale = "en" }: { report: ReportV2; title: string; locale?: TbrUiLocale }) {
   const m = report.moneyOnTable;
+  const t = v2Strings(locale).money;
   const limit = report.tier === "free" ? 3 : 50;
   const rows = [...m.grants.map((g) => ({ ...g, kind: "grant" })), ...m.programs.map((p) => ({ ...p, kind: "program" }))].sort((a, b) => b.fit - a.fit).slice(0, limit);
   return (
@@ -15,16 +16,14 @@ export function TbrMoney({ report, title }: { report: ReportV2; title: string })
       <div className="flex items-center gap-2 text-xs text-ink-600 dark:text-ink-300">
         <AgentBadge role="cfo" />
         <AgentBadge role="cmo" kind="support" />
-        <span>
-          {m.grants.length + m.programs.length} matched · total {aud(m.totalAud)}
-        </span>
+        <span>{t.matched(m.grants.length + m.programs.length, aud(m.totalAud))}</span>
       </div>
       {rows.length > 0 ? (
         <table className="w-full text-xs">
           <tbody>
             {rows.map((r) => (
               <tr key={`${r.kind}-${r.id}`} className="border-t border-ink-100 dark:border-ink-800/60">
-                <td className="py-1 pr-2 text-ink-500">{r.kind}</td>
+                <td className="py-1 pr-2 text-ink-500">{r.kind === "grant" ? t.grant : t.program}</td>
                 <td className="py-1 pr-2 font-medium text-ink-700 dark:text-ink-200">
                   {r.url ? (
                     <a href={r.url} className="hover:text-brand-600" rel="noopener noreferrer">
@@ -36,7 +35,7 @@ export function TbrMoney({ report, title }: { report: ReportV2; title: string })
                 </td>
                 <td className="py-1 pr-2 text-right tabular-nums">{r.amountAud !== null ? aud(r.amountAud) : "—"}</td>
                 <td className="py-1 pr-2 text-ink-500">{r.deadline ?? ""}</td>
-                <td className="py-1 text-right tabular-nums text-ink-500">fit {Math.round(r.fit)}</td>
+                <td className="py-1 text-right tabular-nums text-ink-500">{t.fit(Math.round(r.fit))}</td>
               </tr>
             ))}
           </tbody>

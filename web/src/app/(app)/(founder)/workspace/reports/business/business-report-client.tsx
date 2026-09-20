@@ -14,6 +14,20 @@
 // share / PDF / print / locale header, the sticky TOC, investor leads and
 // views (founder-only), Peer-5 similarity, the live Action Plan widget and
 // the Q&A chat.
+//
+// G19-S45 (D4): this page IS the paid view. With `?order=<id>` (the
+// post-purchase landing, `reportOrderPath`) or a paid `report_orders` row
+// from /api/reports/access, the page polls GET /api/reports/[orderId] and,
+// once the order carries `assembled_reports.report_json`, renders THAT
+// ReportV2 with every chapter unlocked (no rail) plus order-scoped v2
+// PDF / DOCX exports. While the order is still being written the current
+// snapshot renders under a "being written" strip; a pre-v2 order keeps the
+// snapshot unlocked and links to the thin markdown wrapper.
+//
+// G19-S45 (D6): the one-question clarity survey mounts after the Executive
+// summary on the paid founder view and the public share page (once per
+// snapshot); `tbr_section_view` (one per section per view) and `tbr_export`
+// (PDF / DOCX) engagement events fire from here.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -23,9 +37,14 @@ import { getTbrStrings, type TbrLocale } from "@/lib/i18n/tbr-strings";
 import { TbrInvestorViews } from "@/components/tbr/tbr-investor-views";
 import { TbrQaChat } from "@/components/tbr/tbr-qa-chat";
 import { ActionPlan } from "@/components/score/ActionPlan";
-import { TbrReportV2, tbrV2Toc, type TbrUnlockProps } from "@/components/tbr/v2/report";
+import { TbrReportV2, tbrV2Toc, type TbrUnlockOrderStatus, type TbrUnlockProps } from "@/components/tbr/v2/report";
+import { TbrClaritySurvey } from "@/components/tbr/tbr-clarity-survey";
 import { ReportPaywallGate, type ReportPaywallQuote } from "@/components/paywall/ReportPaywallGate";
+import { ReportOrderBlocked, reportOrderExportHref } from "@/components/paywall/ReportOrderView";
+import { useReportOrder } from "@/components/paywall/use-report-order";
+import { legacyReportOrderPath } from "@/lib/paywall/report-delivery";
 import { emitClientEvent } from "@/lib/analytics/client-emit";
+import { trackEvent } from "@/lib/analytics";
 import { fromSnapshot, type CohortBenchmarkInput, type SnapshotCriterionState, type SnapshotDimState } from "@/lib/report-v2/adapter";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import { FileText, ChevronRight } from "lucide-react";
@@ -44,17 +63,33 @@ export interface ReportAccessInfo {
   price: { sku: string; amount_cents: number; label: string };
 }
 
+/** G19-S45 (D4): what the page knows about the founder's paid order. */
+export interface PaidOrderState {
+  /** The paid ReportV2 (assembled_reports.report_json) once the order is READY and carries one. */
+  report: ReportV2 | null;
+  /** pending = PAID / GENERATING (still polling); legacy = READY without report_json; ready = READY with report_json. */
+  status: TbrUnlockOrderStatus | null;
+}
+
 /**
  * Pure: which tier the founder page lifts a v1 snapshot into and which
  * unlock mode the rail shows. A stored document keeps its own tier; only
  * the read-time lift used to say "standard" for everyone (the silent free
  * → full leak G16 closes).
+ *
+ * G19-S45 (D4): a paid order that already carries its ReportV2 wins
+ * outright — every chapter unlocked, no rail (`useOrderReport: true`). A
+ * paid order still being written, or a pre-v2 order, keeps the snapshot
+ * document fully unlocked (`purchased` rail with the order status) so the
+ * founder never lands on the markdown wall.
  */
 export function resolveTbrAccess(
   stored: ReportV2 | null,
   access: ReportAccessInfo | null,
-): { liftTier: "free" | "standard"; unlockMode: TbrUnlockProps["mode"] | null } {
-  const owns = Boolean(access?.paidOrderId);
+  paid: PaidOrderState | null = null,
+): { liftTier: "free" | "standard"; unlockMode: TbrUnlockProps["mode"] | null; orderStatus: TbrUnlockOrderStatus | null; useOrderReport: boolean } {
+  if (paid?.report) return { liftTier: "standard", unlockMode: null, orderStatus: "ready", useOrderReport: true };
+  const owns = Boolean(access?.paidOrderId) || Boolean(paid?.status);
   const included = Boolean(access?.included);
   const liftTier: "free" | "standard" = owns || included ? "standard" : "free";
   // G16 review P1-2: a stored `tier: "standard"` is only trusted when the
@@ -62,8 +97,9 @@ export function resolveTbrAccess(
   // analyser (`/api/pitchdeck/save-snapshot`) stores every snapshot as
   // standard without charging, which handed free founders the full document.
   const effectiveTier = stored ? (stored.tier === "free" || owns || included ? stored.tier : "free") : liftTier;
-  if (effectiveTier !== "free") return { liftTier, unlockMode: null };
-  return { liftTier, unlockMode: owns ? "purchased" : included ? "included" : "buy" };
+  const orderStatus: TbrUnlockOrderStatus | null = owns ? (paid?.status ?? "ready") : null;
+  if (effectiveTier !== "free") return { liftTier, unlockMode: null, orderStatus, useOrderReport: false };
+  return { liftTier, unlockMode: owns ? "purchased" : included ? "included" : "buy", orderStatus, useOrderReport: false };
 }
 
 // ── Persisted state (localStorage / API / DB row) ────────────────────────────
@@ -312,9 +348,15 @@ export interface BusinessReportClientProps {
    *  content is never translated. Wave 25B — powers /vi/workspace/business-
    *  report and /vi/tbr/[token]. Default "en". */
   locale?: TbrLocale;
+  /**
+   * G19-S45 (D4): the paid `report_orders` row to render (`?order=<id>` —
+   * the post-purchase landing). Falls back to the paid order
+   * /api/reports/access reports for the project.
+   */
+  orderId?: string | null;
 }
 
-export function BusinessReportClient({ projectId, initialData, initialReportV2, shareToken, pdfMode, locale = "en" }: BusinessReportClientProps) {
+export function BusinessReportClient({ projectId, initialData, initialReportV2, shareToken, pdfMode, locale = "en", orderId = null }: BusinessReportClientProps) {
   const t = getTbrStrings(locale);
   const router = useRouter();
   const [data, setData] = useState<PersistedState | null>(initialData ?? null);
@@ -355,6 +397,19 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
   const [gateOpen, setGateOpen] = useState(false);
   const [unlockNotice, setUnlockNotice] = useState<string | null>(null);
   const paywallViewSent = useRef(false);
+
+  // G19-S45 (D4): the paid order behind this page — explicit `?order=` first,
+  // else the paid row /api/reports/access found for the project. Polled by
+  // the shared hook (202 → retry at the server cadence).
+  const paidOrderId = founderMode ? (orderId ?? access?.paidOrderId ?? null) : null;
+  const orderState = useReportOrder(paidOrderId);
+  const paid = useMemo<PaidOrderState | null>(() => {
+    if (!paidOrderId) return null;
+    if (orderState.phase === "ready") return { report: orderState.report.reportV2 ?? null, status: orderState.report.reportV2 ? "ready" : "legacy" };
+    if (orderState.phase === "pending" || orderState.phase === "loading") return { report: null, status: "pending" };
+    return null;
+  }, [paidOrderId, orderState]);
+  const surface: "founder" | "share" = shareToken ? "share" : "founder";
 
   useEffect(() => {
     if (!founderMode) return;
@@ -407,12 +462,22 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
     };
   }, [projectId, initialData]);
 
-  // Intersection observer for active TOC item
+  // Intersection observer for active TOC item + G19-S45 `tbr_section_view`
+  // (one event per section per page view; never in the PDF render).
+  const sectionsSeen = useRef<Set<string>>(new Set());
   useEffect(() => {
     const obs = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
-          if (entry.isIntersecting) setActiveId(entry.target.id);
+          if (!entry.isIntersecting) continue;
+          setActiveId(entry.target.id);
+          if (pdfMode || sectionsSeen.current.has(entry.target.id)) continue;
+          sectionsSeen.current.add(entry.target.id);
+          try {
+            trackEvent("tbr_section_view", { section: entry.target.id, surface });
+          } catch {
+            /* analytics only */
+          }
         }
       },
       { rootMargin: "-15% 0px -70% 0px", threshold: 0 },
@@ -420,7 +485,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
     const els = document.querySelectorAll("section[id^='tbr-']");
     els.forEach((el) => obs.observe(el));
     return () => obs.disconnect();
-  }, [data, storedReport]);
+  }, [data, storedReport, paid, pdfMode, surface]);
 
   // Wave 27B — fetch sector benchmarks once we know the industry.
   const industryForFetch = data?.industry ?? null;
@@ -468,8 +533,13 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
   // G16-B: the lift tier follows the founder's access (free unless the plan
   // includes the report or a paid order exists); public/share renders keep
   // the pre-G16 "standard" lift.
-  const { liftTier, unlockMode } = useMemo(() => (founderMode ? resolveTbrAccess(storedReport, access ?? null) : { liftTier: "standard" as const, unlockMode: null }), [founderMode, storedReport, access]);
+  const { liftTier, unlockMode, orderStatus, useOrderReport } = useMemo(
+    () => (founderMode ? resolveTbrAccess(storedReport, access ?? null, paid) : { liftTier: "standard" as const, unlockMode: null, orderStatus: null, useOrderReport: false }),
+    [founderMode, storedReport, access, paid],
+  );
   const report = useMemo<ReportV2 | null>(() => {
+    // G19-S45 (D4): the paid ReportV2 wins over the snapshot document.
+    if (useOrderReport && paid?.report) return paid.report;
     if (storedReport) return storedReport;
     if (!data) return null;
     return fromSnapshot({
@@ -483,10 +553,10 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
       dimStates: data.dimStates,
       criterionStates: data.criterionStates ?? null,
       cohort: benchmark,
-      locale: locale === "vi" ? "vi" : "en",
+      locale,
       tier: liftTier,
     });
-  }, [storedReport, data, benchmark, projectId, snapshotId, locale, liftTier]);
+  }, [useOrderReport, paid, storedReport, data, benchmark, projectId, snapshotId, locale, liftTier]);
 
   // G16-B: the rail's one click → the confirm-before-charge modal (credits +
   // A$ shown, explicit confirm, then Stripe). No project → no businessId to
@@ -503,8 +573,8 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
 
   const unlock = useMemo<TbrUnlockProps | null>(() => {
     if (!unlockMode) return null;
-    return { mode: unlockMode, onUnlock: openUnlock, orderId: access?.paidOrderId ?? null };
-  }, [unlockMode, openUnlock, access]);
+    return { mode: unlockMode, onUnlock: openUnlock, orderId: paidOrderId ?? access?.paidOrderId ?? null, orderStatus: orderStatus ?? undefined };
+  }, [unlockMode, openUnlock, access, paidOrderId, orderStatus]);
 
   // paywall_view — once per render of the free cut (client emit; lane A's
   // ingest route stamps user_id / qa server-side).
@@ -515,6 +585,25 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
     paywallViewSent.current = true;
     void emitClientEvent("paywall_view", { surface: "tbr_free_cut", sku: access.price.sku, amount_cents: access.price.amount_cents, project_id: access.projectId });
   }, [founderMode, unlockMode, access, reportTierForEvent]);
+
+  // G19-S45 (D4): a paid order that is still being written, with no snapshot
+  // to show meanwhile → the order's own pending / blocked panel, never the
+  // "no analysis" state a buyer would read as "my purchase is lost".
+  if (!data && !report && paidOrderId && orderState.phase !== "idle" && orderState.phase !== "ready") {
+    return (
+      <div className="p-6 max-w-5xl mx-auto" data-testid="tbr-order-only">
+        {orderState.phase === "blocked" ? (
+          <ReportOrderBlocked refunded={orderState.refunded} message={orderState.message} failureReason={orderState.failureReason} locale={locale} />
+        ) : (
+          <div className="rounded-2xl border border-brand-200 bg-brand-50/60 p-6 dark:border-brand-800 dark:bg-brand-950/30" role="status" aria-live="polite" data-testid="tbr-order-pending">
+            <p className="text-sm font-semibold text-ink-900 dark:text-ink-50">{t.v2.order.pendingTitle}</p>
+            <p className="mt-1 text-xs text-ink-600 dark:text-ink-300">{orderState.phase === "pending" ? orderState.message : t.v2.order.loading}</p>
+            <p className="mt-2 text-[11px] text-ink-500 dark:text-ink-400">{t.v2.order.pendingLeave}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (!data && !report) {
     return (
@@ -549,7 +638,19 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
   const stage = data?.stage ?? report.cover.stageLabel;
   const totalMs = data?.totalMs ?? null;
   const done = data?.done ?? true;
-  const uiLocale: "en" | "vi" = locale === "vi" ? "vi" : "en";
+  const uiLocale: TbrLocale = locale;
+  // G19-S45: the paid order's own exports (v2 twins, owner-scoped, no second charge).
+  const paidExportsOrderId = useOrderReport && paidOrderId ? paidOrderId : null;
+  const pdfHref = paidExportsOrderId
+    ? reportOrderExportHref(paidExportsOrderId, "pdf")
+    : shareToken
+      ? `/api/svi/report/pdf?token=${encodeURIComponent(shareToken)}`
+      : shareUrl
+        ? `/api/svi/report/pdf?token=${encodeURIComponent(new URL(shareUrl).pathname.split("/").pop() ?? "")}`
+        : undefined;
+  // G19-S45 (D6): the clarity survey — paid founder view + public share, once per snapshot.
+  const surveySnapshotId = report.snapshotId || snapshotId || paidExportsOrderId || null;
+  const showSurvey = !pdfMode && Boolean(surveySnapshotId) && (shareToken ? true : founderMode && report.tier !== "free");
   const tocGroups = [
     { label: t.tocOverview, items: tbrV2Toc(report, t, uiLocale).slice(0, 2) },
     { label: t.tocDimensions, items: tbrV2Toc(report, t, uiLocale).slice(2, 10) },
@@ -654,26 +755,34 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
                   {shareBusy ? t.sharing : t.shareWithInvestor}
                 </button>
               )}
-              {/* Download PDF — server-generated via Playwright. Requires a
-                  share token (mint one first if we're on the authed page). */}
+              {/* Download PDF — react-pdf v2 (`/api/svi/report/pdf?token=`,
+                  needs a share token; mint one first on the authed page) or,
+                  for a paid order, the order-scoped v2 export. */}
               <a
-                href={
-                  shareToken
-                    ? `/api/svi/report/pdf?token=${encodeURIComponent(shareToken)}`
-                    : shareUrl
-                      ? `/api/svi/report/pdf?token=${encodeURIComponent(new URL(shareUrl).pathname.split("/").pop() ?? "")}`
-                      : undefined
-                }
+                href={pdfHref}
+                data-testid="tbr-download-pdf"
                 onClick={(e) => {
-                  if (!shareToken && !shareUrl) {
+                  if (!pdfHref) {
                     e.preventDefault();
                     setShareError(t.clickShareFirst);
+                    return;
                   }
+                  trackEvent("tbr_export", { format: "pdf", surface });
                 }}
                 className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-3 py-1.5 text-xs font-medium text-ink-600 dark:text-ink-400 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
               >
                 {t.downloadPdf}
               </a>
+              {paidExportsOrderId && (
+                <a
+                  href={reportOrderExportHref(paidExportsOrderId, "docx")}
+                  data-testid="tbr-download-docx"
+                  onClick={() => trackEvent("tbr_export", { format: "docx", surface })}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-3 py-1.5 text-xs font-medium text-ink-600 dark:text-ink-400 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
+                >
+                  {t.v2.order.downloadDocx}
+                </a>
+              )}
               <button
                 type="button"
                 onClick={() => typeof window !== "undefined" && window.print()}
@@ -723,6 +832,25 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
 
         {/* Report body — ReportV2 chapters */}
         <div className="flex-1 min-w-0 space-y-12">
+          {/* G19-S45 (D4): paid-order strip — being written / pre-v2 order. */}
+          {founderMode && paid?.status === "pending" && (
+            <p role="status" aria-live="polite" data-testid="tbr-order-strip" data-tbr-order-status="pending" className="rounded-xl border border-brand-200 bg-brand-50/70 px-3 py-2 text-xs text-brand-900 dark:border-brand-800 dark:bg-brand-950/30 dark:text-brand-100 print:hidden">
+              {t.v2.order.generatingStrip}
+            </p>
+          )}
+          {founderMode && paid?.status === "legacy" && paidOrderId && (
+            <p data-testid="tbr-order-strip" data-tbr-order-status="legacy" className="rounded-xl border border-ink-200 bg-ink-50/70 px-3 py-2 text-xs text-ink-700 dark:border-ink-700 dark:bg-ink-900/40 dark:text-ink-200 print:hidden">
+              {t.v2.order.legacyStrip}{" "}
+              <Link href={legacyReportOrderPath(paidOrderId)} className="font-semibold text-brand-700 underline underline-offset-2 dark:text-brand-300">
+                {t.v2.rail.openLegacy}
+              </Link>
+            </p>
+          )}
+          {founderMode && useOrderReport && (
+            <p data-testid="tbr-order-strip" data-tbr-order-status="ready" className="sr-only">
+              {t.v2.order.paidBadge}
+            </p>
+          )}
           {founderMode && access === undefined ? (
             <div data-testid="tbr-access-loading" className="animate-pulse space-y-4" aria-busy="true" aria-live="polite">
               <div className="h-6 w-2/3 rounded bg-ink-100 dark:bg-ink-800" />
@@ -736,6 +864,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
               locale={uiLocale}
               upgradeHref="/pricing"
               unlock={unlock}
+              afterExecutive={showSurvey && surveySnapshotId ? <TbrClaritySurvey snapshotId={surveySnapshotId} surface={surface} locale={locale} /> : null}
               afterChapters={
                 /* Wave 28C: Personalised 30-Day Action Plan (live widget). */
                 !pdfMode && snapshotId ? <ActionPlan sviRunId={snapshotId} /> : null

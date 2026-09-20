@@ -141,6 +141,8 @@ export interface TbrStrings {
   // the cover ledger strip and the pending-dimension line. Web, PDF and DOCX
   // all read these; nothing is hard-coded in the components.
   ledger: TbrLedgerStrings;
+  /** G19-S45 — every ReportV2 web label (chapters, rail, order page, adapter sentences, survey). */
+  v2: TbrV2Strings;
 }
 
 export interface TbrLedgerStrings {
@@ -331,6 +333,488 @@ const ledgerJa: TbrLedgerStrings = {
   pendingDims: (n, total) => `${total} 項目中 ${n} 項目が未評価`,
 };
 
+// ── G19-S45 — every ReportV2 web label (components/tbr/v2/*) ────────────────
+//
+// The chapter components, the unlock rail, the order page, the adapter's
+// templated sentences and the clarity survey all read this block; nothing
+// is hard-coded in the components. EN and VI (with diacritics) are real
+// translations; ES and JA reuse the English text until a translation lands
+// (key parity is enforced by tbr-strings.test.ts).
+
+export type TbrV2Band = "strong" | "developing" | "early" | "pending";
+export type TbrV2DataState = "real" | "partial" | "benchmark_only" | "target";
+export type TbrV2Window = "this_week" | "30d" | "90d";
+
+export interface TbrV2Strings {
+  band: Record<TbrV2Band, string>;
+  state: Record<TbrV2DataState, string>;
+  audit: {
+    auditor: string;
+    grounded: string;
+    notAudited: string;
+    uncited: (n: number) => string;
+    revised: string;
+    frameworks: string;
+  };
+  chapter: {
+    per100: string;
+    weight: (w: number) => string;
+    owner: string;
+    benchmarks: (p25: number, p50: number, p75: number) => string;
+    youPercentile: (p: number) => string;
+    evidence: string;
+    noEvidence: string;
+    strengths: string;
+    gaps: string;
+    next: string;
+    nextAction: (window: string) => string;
+    window: Record<TbrV2Window, string>;
+    expectedLift: (n: number) => string;
+    evidenceToAdd: (what: string) => string;
+    unlockChapter: (title: string) => string;
+    grounded: string;
+    uncited: string;
+  };
+  executive: {
+    confidence: (pct: number) => string;
+    topStrengths: string;
+    topGaps: string;
+    phaseLine: (now: string, next: string, pct: number) => string;
+    finalPhase: string;
+    noBlockers: string;
+  };
+  cover: {
+    deltaVsLast: (signed: string) => string;
+    phase: string;
+    demoData: string;
+    builtFromSnapshot: string;
+    thDimension: string;
+    thOwner: string;
+    thWeight: string;
+    thScore: string;
+    thP50: string;
+    thPctl: string;
+  };
+  phaseGates: {
+    currentPhase: (label: string) => string;
+    requiredCriteria: (label: string) => string;
+    met: string;
+    notMet: string;
+  };
+  money: {
+    matched: (n: number, total: string) => string;
+    grant: string;
+    program: string;
+    fit: (n: number) => string;
+  };
+  actionPlan: {
+    steps: (n: number, days: number) => string;
+    dayRange: (from: number, to: number) => string;
+    lift: (n: number) => string;
+    empty: string;
+  };
+  appendix: {
+    quality: (score: number, groundedPct: number) => string;
+    degraded: (list: string) => string;
+    method: string;
+    evidenceRegister: string;
+    noEvidence: string;
+    dataPrinciple: string;
+    sources: string;
+    comparables: (n: number, withMultiples: number) => string;
+    auditorLog: string;
+    grounded: string;
+    uncited: (n: number) => string;
+    revised: string;
+    skipped: (reason: string) => string;
+  };
+  rail: {
+    ariaLabel: string;
+    headlineBuy: (price: string) => string;
+    headlineIncluded: string;
+    headlinePurchased: string;
+    headlinePending: string;
+    perks: (chapterCount: number) => string[];
+    unlockFor: (price: string) => string;
+    confirmNote: string;
+    includedGenerate: string;
+    includedNote: string;
+    openFull: string;
+    openLegacy: string;
+    pendingNote: string;
+    /** Locked-chapter preview footer. */
+    lockedNote: string;
+  };
+  order: {
+    downloadDocx: string;
+    generated: (date: string) => string;
+    paid: (amount: string) => string;
+    redeemed: (credits: number) => string;
+    availableUntil: (date: string) => string;
+    openInWorkspace: string;
+    legacyText: (words: number) => string;
+    pendingTitle: string;
+    pendingAria: string;
+    pendingLeave: string;
+    blockedRefunded: string;
+    blockedUnavailable: string;
+    reference: (ref: string) => string;
+    backToDashboard: string;
+    loading: string;
+    /** Strip above the ReportV2 page while the paid order is still being written. */
+    generatingStrip: string;
+    /** Strip when the paid order is ready but only as legacy markdown (pre-v2 order). */
+    legacyStrip: string;
+    paidBadge: string;
+  };
+  adapter: {
+    thesisStrong: (svi: number, above70: number) => string;
+    thesisDeveloping: (svi: number, gaps: number) => string;
+    thesisEarly: (svi: number) => string;
+    thesisPending: string;
+    worthLine: (low: string, high: string, sector: string, stage: string) => string;
+    sectorNeutral: string;
+    startup: string;
+    nextLine: (action: string, lift: number, dim: string) => string;
+    addEvidence: string;
+    nextFallback: string;
+    whereLine: (stage: string, industry: string, svi: number, band: string, phase: string, pct: number) => string;
+    phaseFloor: (phase: string, dim: string, floor: number, met: boolean, score: number) => string;
+    phaseNoFloor: (phase: string, dim: string, nextGate: string) => string;
+    lastPhase: string;
+    method: string;
+    disclaimer: string;
+  };
+  survey: {
+    question: string;
+    hint: string;
+    low: string;
+    high: string;
+    commentPlaceholder: string;
+    submit: string;
+    dismiss: string;
+    thanks: string;
+    ariaScore: (n: number) => string;
+  };
+}
+
+const v2En: TbrV2Strings = {
+  band: { strong: "Strong", developing: "Developing", early: "Early", pending: "Pending" },
+  state: { real: "real data", partial: "partial data", benchmark_only: "benchmark only", target: "target, not actual" },
+  audit: {
+    auditor: "Auditor",
+    grounded: "grounded",
+    notAudited: "not yet audited",
+    uncited: (n) => `${n} uncited`,
+    revised: "revised",
+    frameworks: "Frameworks",
+  },
+  chapter: {
+    per100: "/100",
+    weight: (w) => `weight ${w}`,
+    owner: "owner",
+    benchmarks: (p25, p50, p75) => `Stage p25 ${p25} · p50 ${p50} · p75 ${p75}`,
+    youPercentile: (p) => `you: ${p}th percentile`,
+    evidence: "Evidence",
+    noEvidence: "No evidence rows in this snapshot — connect a data source or upload documents to make this chapter evidenced.",
+    strengths: "Strengths",
+    gaps: "Gaps",
+    next: "Next",
+    nextAction: (window) => `Next action (${window})`,
+    window: { this_week: "this week", "30d": "next 30 days", "90d": "next 90 days" },
+    expectedLift: (n) => `expected lift +${n} SVI`,
+    evidenceToAdd: (what) => `evidence: ${what}`,
+    unlockChapter: (title) => `Unlock the full ${title} chapter`,
+    grounded: "grounded",
+    uncited: "uncited",
+  },
+  executive: {
+    confidence: (pct) => `confidence ${pct}%`,
+    topStrengths: "Top strengths",
+    topGaps: "Top gaps",
+    phaseLine: (now, next, pct) => `Phase now: ${now} → next gate: ${next} · ${pct}% cleared`,
+    finalPhase: "final phase",
+    noBlockers: "No blockers on the current gate.",
+  },
+  cover: {
+    deltaVsLast: (signed) => `${signed} vs last snapshot`,
+    phase: "Phase",
+    demoData: "demo data",
+    builtFromSnapshot: "built from stored snapshot",
+    thDimension: "Dimension",
+    thOwner: "Owner",
+    thWeight: "W",
+    thScore: "Score",
+    thP50: "p50",
+    thPctl: "Pctl",
+  },
+  phaseGates: {
+    currentPhase: (label) => `Current phase: ${label}`,
+    requiredCriteria: (label) => `Required criteria for ${label}`,
+    met: "✓ met",
+    notMet: "✗ not met",
+  },
+  money: {
+    matched: (n, total) => `${n} matched · total ${total}`,
+    grant: "grant",
+    program: "program",
+    fit: (n) => `fit ${n}`,
+  },
+  actionPlan: {
+    steps: (n, days) => `${n} steps · ${days} days`,
+    dayRange: (from, to) => `Day ${from}–${to}`,
+    lift: (n) => `+${n} SVI`,
+    empty: "Every scored dimension is already in the strong band — keep the evidence fresh before the next raise.",
+  },
+  appendix: {
+    quality: (score, groundedPct) => `quality ${score}/100 · grounded ${groundedPct}%`,
+    degraded: (list) => `degraded: ${list}`,
+    method: "Method",
+    evidenceRegister: "Evidence register",
+    noEvidence: "No evidence rows are attached to this document. Connect Stripe, Xero, GA4 or GitHub, or upload documents, to populate the register.",
+    dataPrinciple: "Data principle",
+    sources: "Sources",
+    comparables: (n, withMultiples) => `AU comparables: ${n} raises tracked, ${withMultiples} with disclosed multiples.`,
+    auditorLog: "Auditor log",
+    grounded: "grounded",
+    uncited: (n) => `${n} uncited`,
+    revised: "revised",
+    skipped: (reason) => `skipped: ${reason}`,
+  },
+  rail: {
+    ariaLabel: "Unlock the full report",
+    headlineBuy: (price) => `Unlock the full Trusted Business Report — ${price} (one-off)`,
+    headlineIncluded: "The full Trusted Business Report is included in your plan",
+    headlinePurchased: "Your full Trusted Business Report is ready",
+    headlinePending: "Your full Trusted Business Report is being written",
+    perks: (n) => [
+      `All ${n} dimension chapters in full — evidence tables, criterion cards, next actions`,
+      "Valuation range with the three methods behind it",
+      "90-day action plan, phase gates and the grants you qualify for",
+      "PDF export + a live share link for investors",
+    ],
+    unlockFor: (price) => `Unlock for ${price}`,
+    confirmNote: "One-off inc. GST. You confirm the exact price and credit cost before anything is charged.",
+    includedGenerate: "Included in your plan — generate",
+    includedNote: "No charge — your plan carries the full report.",
+    openFull: "Open your full report",
+    openLegacy: "Open the text version",
+    pendingNote: "Usually about four minutes. This page updates itself — you can also leave and come back; the report is saved to your account.",
+    lockedNote: "Full analysis, evidence table and criterion cards are in the full Trusted Business Report.",
+  },
+  order: {
+    downloadDocx: "Download DOCX",
+    generated: (date) => `generated ${date}`,
+    paid: (amount) => `Paid ${amount}`,
+    redeemed: (credits) => `Redeemed ${credits} credits`,
+    availableUntil: (date) => `available until ${date}`,
+    openInWorkspace: "Open this report in your workspace (share link, TOC, Q&A) →",
+    legacyText: (words) => `Legacy text version (${words.toLocaleString("en-AU")} words)`,
+    pendingTitle: "Writing your Trust Business Report",
+    pendingAria: "Report generation in progress",
+    pendingLeave: "You can leave this page — the report is saved to your account and this link keeps working for 90 days.",
+    blockedRefunded: "This order was refunded",
+    blockedUnavailable: "This report is not available",
+    reference: (ref) => `Reference: ${ref}`,
+    backToDashboard: "Back to dashboard",
+    loading: "Loading your report…",
+    generatingStrip: "Your paid report is being written by the C-Level agent team — usually about four minutes. Below is your current snapshot; this page swaps in the full document automatically.",
+    legacyStrip: "This order was generated before the chapter format existed. Every chapter is unlocked here; the original text version is one click away.",
+    paidBadge: "Paid report",
+  },
+  adapter: {
+    thesisStrong: (svi, above70) => `SVI ${svi} — investor-ready: ${above70} of 8 dimensions are in the strong band.`,
+    thesisDeveloping: (svi, gaps) => `SVI ${svi} — developing: ${gaps} dimensions need evidence before a raise.`,
+    thesisEarly: (svi) => `SVI ${svi} — early: build evidence on the highest-weight gaps first.`,
+    thesisPending: "No dimension has been scored yet — run the analysis to populate this report.",
+    worthLine: (low, high, sector, stage) => `Directional A$${low}–${high} pre-money (${sector}, ${stage}); not a formal valuation.`,
+    sectorNeutral: "sector-neutral",
+    startup: "startup",
+    nextLine: (action, lift, dim) => `${action} — +${lift} SVI on ${dim}.`,
+    addEvidence: "Add evidence",
+    nextFallback: "Keep the evidence fresh: reconnect data sources before the next investor conversation.",
+    whereLine: (stage, industry, svi, band, phase, pct) => `${stage} ${industry} at SVI ${svi} (${band}); phase ${phase}, ${pct}% of the gate cleared.`,
+    phaseFloor: (phase, dim, floor, met, score) => `${phase}: ${dim} floor ${floor} — ${met ? "met" : "not met"} at ${score}.`,
+    phaseNoFloor: (phase, dim, nextGate) => `${phase}: no ${dim} floor at this phase; next gate is ${nextGate}.`,
+    lastPhase: "the last phase",
+    method:
+      "Scores come from the BlockID Startup Value Index (8 weighted dimensions, 13 evaluation criteria). Benchmarks are stage p25/p50/p75 bands from AU startup research; a sector cohort replaces them when N ≥ 30. Visuals are deterministic renders of the numbers in this document. Chapters built by the read-time adapter carry no evidence register — connect Stripe, Xero, GA4, GitHub or upload documents to make them evidenced.",
+    disclaimer: "General information only, not financial, legal or investment advice. The valuation range is directional and is not a formal valuation.",
+  },
+  survey: {
+    question: "Was this report clear and useful?",
+    hint: "One tap — it helps us make every report clearer.",
+    low: "Not at all",
+    high: "Extremely",
+    commentPlaceholder: "What would make it clearer? (optional)",
+    submit: "Send",
+    dismiss: "Not now",
+    thanks: "Thank you — your answer shapes the next version of this report.",
+    ariaScore: (n) => `Score ${n} of 10`,
+  },
+};
+
+const v2Vi: TbrV2Strings = {
+  band: { strong: "Mạnh", developing: "Đang phát triển", early: "Sớm", pending: "Chưa đánh giá" },
+  state: { real: "dữ liệu thực", partial: "dữ liệu một phần", benchmark_only: "chỉ chuẩn tham chiếu", target: "mục tiêu, chưa thực tế" },
+  audit: {
+    auditor: "Kiểm định",
+    grounded: "có căn cứ",
+    notAudited: "chưa kiểm định",
+    uncited: (n) => `${n} chưa trích dẫn`,
+    revised: "đã hiệu chỉnh",
+    frameworks: "Khung phân tích",
+  },
+  chapter: {
+    per100: "/100",
+    weight: (w) => `trọng số ${w}`,
+    owner: "phụ trách",
+    benchmarks: (p25, p50, p75) => `Giai đoạn p25 ${p25} · p50 ${p50} · p75 ${p75}`,
+    youPercentile: (p) => `bạn: phân vị ${p}`,
+    evidence: "Bằng chứng",
+    noEvidence: "Chưa có dòng bằng chứng nào trong bản chụp này — kết nối nguồn dữ liệu hoặc tải tài liệu lên để chương này có căn cứ.",
+    strengths: "Điểm mạnh",
+    gaps: "Khoảng trống",
+    next: "Tiếp theo",
+    nextAction: (window) => `Hành động tiếp theo (${window})`,
+    window: { this_week: "tuần này", "30d": "30 ngày tới", "90d": "90 ngày tới" },
+    expectedLift: (n) => `kỳ vọng tăng +${n} SVI`,
+    evidenceToAdd: (what) => `bằng chứng: ${what}`,
+    unlockChapter: (title) => `Mở khoá toàn bộ chương ${title}`,
+    grounded: "có căn cứ",
+    uncited: "chưa trích dẫn",
+  },
+  executive: {
+    confidence: (pct) => `độ tin cậy ${pct}%`,
+    topStrengths: "Điểm mạnh nổi bật",
+    topGaps: "Khoảng trống lớn nhất",
+    phaseLine: (now, next, pct) => `Giai đoạn hiện tại: ${now} → cổng tiếp theo: ${next} · đã qua ${pct}%`,
+    finalPhase: "giai đoạn cuối",
+    noBlockers: "Không có điểm nghẽn ở cổng hiện tại.",
+  },
+  cover: {
+    deltaVsLast: (signed) => `${signed} so với bản chụp trước`,
+    phase: "Giai đoạn",
+    demoData: "dữ liệu mẫu",
+    builtFromSnapshot: "dựng từ bản chụp đã lưu",
+    thDimension: "Khía cạnh",
+    thOwner: "Phụ trách",
+    thWeight: "TS",
+    thScore: "Điểm",
+    thP50: "p50",
+    thPctl: "Phân vị",
+  },
+  phaseGates: {
+    currentPhase: (label) => `Giai đoạn hiện tại: ${label}`,
+    requiredCriteria: (label) => `Tiêu chí bắt buộc cho ${label}`,
+    met: "✓ đạt",
+    notMet: "✗ chưa đạt",
+  },
+  money: {
+    matched: (n, total) => `${n} phù hợp · tổng ${total}`,
+    grant: "tài trợ",
+    program: "chương trình",
+    fit: (n) => `phù hợp ${n}`,
+  },
+  actionPlan: {
+    steps: (n, days) => `${n} bước · ${days} ngày`,
+    dayRange: (from, to) => `Ngày ${from}–${to}`,
+    lift: (n) => `+${n} SVI`,
+    empty: "Mọi khía cạnh đã chấm đều ở nhóm mạnh — hãy giữ bằng chứng luôn mới trước vòng gọi vốn tiếp theo.",
+  },
+  appendix: {
+    quality: (score, groundedPct) => `chất lượng ${score}/100 · có căn cứ ${groundedPct}%`,
+    degraded: (list) => `suy giảm: ${list}`,
+    method: "Phương pháp",
+    evidenceRegister: "Sổ bằng chứng",
+    noEvidence: "Chưa có dòng bằng chứng nào gắn với tài liệu này. Kết nối Stripe, Xero, GA4 hoặc GitHub, hoặc tải tài liệu lên để lấp sổ bằng chứng.",
+    dataPrinciple: "Nguyên tắc dữ liệu",
+    sources: "Nguồn",
+    comparables: (n, withMultiples) => `So sánh Úc: ${n} vòng gọi vốn được theo dõi, ${withMultiples} có công bố hệ số.`,
+    auditorLog: "Nhật ký kiểm định",
+    grounded: "có căn cứ",
+    uncited: (n) => `${n} chưa trích dẫn`,
+    revised: "đã hiệu chỉnh",
+    skipped: (reason) => `bỏ qua: ${reason}`,
+  },
+  rail: {
+    ariaLabel: "Mở khoá báo cáo đầy đủ",
+    headlineBuy: (price) => `Mở khoá Báo cáo Kinh doanh Tin cậy đầy đủ — ${price} (một lần)`,
+    headlineIncluded: "Báo cáo Kinh doanh Tin cậy đầy đủ đã có trong gói của bạn",
+    headlinePurchased: "Báo cáo Kinh doanh Tin cậy đầy đủ của bạn đã sẵn sàng",
+    headlinePending: "Báo cáo Kinh doanh Tin cậy đầy đủ của bạn đang được viết",
+    perks: (n) => [
+      `Toàn bộ ${n} chương khía cạnh — bảng bằng chứng, thẻ tiêu chí, hành động tiếp theo`,
+      "Khoảng định giá cùng ba phương pháp phía sau",
+      "Kế hoạch hành động 90 ngày, cổng giai đoạn và các khoản tài trợ bạn đủ điều kiện",
+      "Xuất PDF + đường dẫn chia sẻ trực tiếp cho nhà đầu tư",
+    ],
+    unlockFor: (price) => `Mở khoá với ${price}`,
+    confirmNote: "Thanh toán một lần, đã gồm GST. Bạn xác nhận giá và số credit chính xác trước khi bị tính phí.",
+    includedGenerate: "Đã có trong gói — tạo báo cáo",
+    includedNote: "Không tính phí — gói của bạn bao gồm báo cáo đầy đủ.",
+    openFull: "Mở báo cáo đầy đủ",
+    openLegacy: "Mở bản văn bản",
+    pendingNote: "Thường mất khoảng bốn phút. Trang này tự cập nhật — bạn có thể rời đi và quay lại; báo cáo được lưu vào tài khoản.",
+    lockedNote: "Phân tích đầy đủ, bảng bằng chứng và thẻ tiêu chí nằm trong Báo cáo Kinh doanh Tin cậy đầy đủ.",
+  },
+  order: {
+    downloadDocx: "Tải DOCX",
+    generated: (date) => `tạo ngày ${date}`,
+    paid: (amount) => `Đã thanh toán ${amount}`,
+    redeemed: (credits) => `Đã dùng ${credits} credit`,
+    availableUntil: (date) => `khả dụng đến ${date}`,
+    openInWorkspace: "Mở báo cáo này trong không gian làm việc (chia sẻ, mục lục, hỏi đáp) →",
+    legacyText: (words) => `Bản văn bản cũ (${words.toLocaleString("vi-VN")} từ)`,
+    pendingTitle: "Đang viết Báo cáo Kinh doanh Tin cậy của bạn",
+    pendingAria: "Đang tạo báo cáo",
+    pendingLeave: "Bạn có thể rời trang — báo cáo được lưu vào tài khoản và đường dẫn này còn hiệu lực 90 ngày.",
+    blockedRefunded: "Đơn hàng này đã được hoàn tiền",
+    blockedUnavailable: "Báo cáo này không khả dụng",
+    reference: (ref) => `Mã tham chiếu: ${ref}`,
+    backToDashboard: "Về bảng điều khiển",
+    loading: "Đang tải báo cáo của bạn…",
+    generatingStrip: "Báo cáo trả phí của bạn đang được đội ngũ agent C-Level viết — thường mất khoảng bốn phút. Bên dưới là bản chụp hiện tại; trang này sẽ tự thay bằng tài liệu đầy đủ.",
+    legacyStrip: "Đơn hàng này được tạo trước khi có định dạng theo chương. Mọi chương đều đã mở khoá ở đây; bản văn bản gốc chỉ cách một cú nhấp.",
+    paidBadge: "Báo cáo trả phí",
+  },
+  adapter: {
+    thesisStrong: (svi, above70) => `SVI ${svi} — sẵn sàng gọi vốn: ${above70} trên 8 khía cạnh thuộc nhóm mạnh.`,
+    thesisDeveloping: (svi, gaps) => `SVI ${svi} — đang phát triển: ${gaps} khía cạnh cần thêm bằng chứng trước khi gọi vốn.`,
+    thesisEarly: (svi) => `SVI ${svi} — giai đoạn sớm: hãy xây bằng chứng cho các khoảng trống có trọng số cao nhất trước.`,
+    thesisPending: "Chưa có khía cạnh nào được chấm — hãy chạy phân tích để lấp đầy báo cáo này.",
+    worthLine: (low, high, sector, stage) => `Định hướng A$${low}–${high} pre-money (${sector}, ${stage}); không phải định giá chính thức.`,
+    sectorNeutral: "không theo ngành",
+    startup: "startup",
+    nextLine: (action, lift, dim) => `${action} — +${lift} SVI cho ${dim}.`,
+    addEvidence: "Bổ sung bằng chứng",
+    nextFallback: "Giữ bằng chứng luôn mới: kết nối lại nguồn dữ liệu trước buổi gặp nhà đầu tư tiếp theo.",
+    whereLine: (stage, industry, svi, band, phase, pct) => `${industry} giai đoạn ${stage}, SVI ${svi} (${band}); giai đoạn ${phase}, đã qua ${pct}% cổng.`,
+    phaseFloor: (phase, dim, floor, met, score) => `${phase}: sàn ${dim} là ${floor} — ${met ? "đạt" : "chưa đạt"} ở mức ${score}.`,
+    phaseNoFloor: (phase, dim, nextGate) => `${phase}: không có sàn ${dim} ở giai đoạn này; cổng tiếp theo là ${nextGate}.`,
+    lastPhase: "giai đoạn cuối",
+    method:
+      "Điểm số đến từ BlockID Startup Value Index (8 khía cạnh có trọng số, 13 tiêu chí đánh giá). Chuẩn tham chiếu là dải p25/p50/p75 theo giai đoạn từ nghiên cứu startup Úc; nhóm ngành thay thế khi N ≥ 30. Hình ảnh là kết xuất xác định từ các con số trong tài liệu này. Các chương do bộ chuyển đổi lúc đọc dựng nên không có sổ bằng chứng — kết nối Stripe, Xero, GA4, GitHub hoặc tải tài liệu lên để có căn cứ.",
+    disclaimer: "Chỉ là thông tin chung, không phải tư vấn tài chính, pháp lý hay đầu tư. Khoảng định giá mang tính định hướng và không phải định giá chính thức.",
+  },
+  survey: {
+    question: "Báo cáo này có rõ ràng và hữu ích không?",
+    hint: "Một chạm — giúp chúng tôi làm mọi báo cáo rõ ràng hơn.",
+    low: "Không hề",
+    high: "Rất rõ",
+    commentPlaceholder: "Điều gì sẽ giúp báo cáo rõ hơn? (không bắt buộc)",
+    submit: "Gửi",
+    dismiss: "Để sau",
+    thanks: "Cảm ơn bạn — câu trả lời của bạn định hình phiên bản tiếp theo của báo cáo này.",
+    ariaScore: (n) => `Điểm ${n} trên 10`,
+  },
+};
+
+// ES / JA reuse the English ReportV2 labels until a translation lands (the
+// shell strings above are translated; key parity is what the test enforces).
+const v2Es: TbrV2Strings = v2En;
+const v2Ja: TbrV2Strings = v2En;
+
 const en: TbrStrings = {
   reportTitle: "Trusted Business Report",
   brandBadge: "BlockID SVI™",
@@ -458,135 +942,137 @@ const en: TbrStrings = {
 
   execHeroPer100: "/ 100",
   ledger: ledgerEn,
+  v2: v2En,
 };
 
 const vi: TbrStrings = {
-  reportTitle: "Bao cao Kinh doanh Tin cay",
+  reportTitle: "Báo cáo Kinh doanh Tin cậy",
   brandBadge: "BlockID SVI™",
-  progressXofY: (s, t) => `${s} tren ${t} khia canh`,
-  completedInSeconds: (sec) => `hoan thanh trong ${sec}s`,
-  partialAnalysis: "phan tich mot phan",
+  progressXofY: (s, t) => `${s} trên ${t} khía cạnh`,
+  completedInSeconds: (sec) => `hoàn thành trong ${sec}s`,
+  partialAnalysis: "phân tích một phần",
 
-  shareWithInvestor: "Chia se voi Nha dau tu",
-  sharing: "Dang chia se…",
-  downloadPdf: "Tai PDF",
+  shareWithInvestor: "Chia sẻ với Nhà đầu tư",
+  sharing: "Đang chia sẻ…",
+  downloadPdf: "Tải PDF",
   print: "In",
-  shareUrlLabel: "Duong dan chia se:",
-  copy: "Sao chep",
-  copied: "Da sao chep!",
-  clickShareFirst: "Nhan ‘Chia se voi Nha dau tu’ truoc de bat tai PDF.",
-  shareFailed: "Chia se that bai",
-  languageToggleAria: "Chuyen ngon ngu bao cao",
+  shareUrlLabel: "Đường dẫn chia sẻ:",
+  copy: "Sao chép",
+  copied: "Đã sao chép!",
+  clickShareFirst: "Nhấn ‘Chia sẻ với Nhà đầu tư’ trước để bật tải PDF.",
+  shareFailed: "Chia sẻ thất bại",
+  languageToggleAria: "Chuyển ngôn ngữ báo cáo",
   switchToVi: "VI",
   switchToEn: "EN",
   switchToEs: "ES",
   switchToJa: "JA",
 
-  bandStrong: "San sang cho Nha dau tu",
-  bandDeveloping: "Dang phat trien",
-  bandEarly: "Giai doan som",
+  bandStrong: "Sẵn sàng cho Nhà đầu tư",
+  bandDeveloping: "Đang phát triển",
+  bandEarly: "Giai đoạn sớm",
 
   verdictStrong: (svi, above70) =>
-    `Doanh nghiep dat ${svi}/100 tren BlockID Startup Value Index — thuoc nhom san sang goi von. Phan tich xac dinh ${above70} khia canh vuot nguong 70 diem voi bang chung vung chac.`,
+    `Doanh nghiệp đạt ${svi}/100 trên BlockID Startup Value Index — thuộc nhóm sẵn sàng gọi vốn. Phân tích xác định ${above70} khía cạnh vượt ngưỡng 70 điểm với bằng chứng vững chắc.`,
   verdictDeveloping: (svi, riskCount) =>
-    `Doanh nghiep dat ${svi}/100 tren BlockID Startup Value Index — dang phat trien, con nhieu khoang trong can lap truoc Series A hoac vong angel lon. ${riskCount} khia canh duoc danh dau la uu tien cao.`,
+    `Doanh nghiệp đạt ${svi}/100 trên BlockID Startup Value Index — đang phát triển, còn nhiều khoảng trống cần lấp trước Series A hoặc vòng angel lớn. ${riskCount} khía cạnh được đánh dấu là ưu tiên cao.`,
   verdictEarly: (svi) =>
-    `Doanh nghiep dat ${svi}/100 tren BlockID Startup Value Index — giai doan som, cho thay thieu bang chung dang ke lam han che kha nang goi von hien tai. Nen thu thap bang chung cu the truoc khi tiep can nha dau tu.`,
+    `Doanh nghiệp đạt ${svi}/100 trên BlockID Startup Value Index — giai đoạn sớm, cho thấy thiếu bằng chứng đáng kể làm hạn chế khả năng gọi vốn hiện tại. Nên thu thập bằng chứng cụ thể trước khi tiếp cận nhà đầu tư.`,
 
-  secExecutive: "Tom tat Dieu hanh",
-  secSvi: "SVI Doanh nghiep — Diem trong so chi tiet",
-  secValuation: "Dinh gia Pre-Money (Dinh huong)",
-  secCriteria: "Danh gia day du 13 tieu chi Chuyen gia",
-  secRisk: "So Rui ro",
-  secRoadmap: "Lo trinh Cai thien",
-  secCohort: "So sanh Nhom — Benchmark AU Seed",
-  secMethodology: "Phuong phap & Phu luc",
-  secCover: "Trang bia — O dau / Gia tri / Tiep theo",
-  secPhaseGates: "Cong giai doan — 13 tieu chi × 12 giai doan",
-  secMoney: "Tien tren ban — Tai tro & Chuong trinh",
-  secActionPlan: "Ke hoach hanh dong 90 ngay",
-  secAppendix: "Phu luc — Phuong phap, Bang chung & Nhat ky kiem toan",
+  secExecutive: "Tóm tắt Điều hành",
+  secSvi: "SVI Doanh nghiệp — Điểm trọng số chi tiết",
+  secValuation: "Định giá Pre-Money (Định hướng)",
+  secCriteria: "Đánh giá đầy đủ 13 tiêu chí Chuyên gia",
+  secRisk: "Sổ Rủi ro",
+  secRoadmap: "Lộ trình Cải thiện",
+  secCohort: "So sánh Nhóm — Benchmark AU Seed",
+  secMethodology: "Phương pháp & Phụ lục",
+  secCover: "Trang bìa — Ở đâu / Giá trị / Tiếp theo",
+  secPhaseGates: "Cổng giai đoạn — 13 tiêu chí × 12 giai đoạn",
+  secMoney: "Tiền trên bàn — Tài trợ & Chương trình",
+  secActionPlan: "Kế hoạch hành động 90 ngày",
+  secAppendix: "Phụ lục — Phương pháp, Bằng chứng & Nhật ký kiểm định",
 
-  tocOverview: "Tong quan",
-  tocDimensions: "8 Khia canh",
-  tocAnalysis: "Phan tich",
-  tocContents: "Muc luc",
+  tocOverview: "Tổng quan",
+  tocDimensions: "8 Khía cạnh",
+  tocAnalysis: "Phân tích",
+  tocContents: "Mục lục",
 
-  thDimension: "Khia canh",
-  thWeight: "Trong so",
-  thScore: "Diem",
-  thPriority: "Uu tien",
-  thContribution: "Dong gop",
-  thThisStartup: "Startup nay",
-  thAuSeedMedian: "AU Seed Trung vi",
-  thAuTopQuartile: "AU Nhom dau",
-  thVsMedian: "So voi Trung vi",
-  rowTotalSvi: "Tong SVI",
-  rowCompositeSvi: "SVI Tong hop",
+  thDimension: "Khía cạnh",
+  thWeight: "Trọng số",
+  thScore: "Điểm",
+  thPriority: "Ưu tiên",
+  thContribution: "Đóng góp",
+  thThisStartup: "Startup này",
+  thAuSeedMedian: "Trung vị AU Seed",
+  thAuTopQuartile: "Nhóm đầu AU",
+  thVsMedian: "So với Trung vị",
+  rowTotalSvi: "Tổng SVI",
+  rowCompositeSvi: "SVI Tổng hợp",
 
-  chipWeightOfSvi: (w) => `${w}% tren tong SVI`,
-  chipHighPriority: "uu tien cao",
-  chipMediumPriority: "uu tien trung binh",
-  chipLowPriority: "uu tien thap",
-  chipAuBenchmark: "Benchmark thi truong AU",
+  chipWeightOfSvi: (w) => `${w}% trên tổng SVI`,
+  chipHighPriority: "ưu tiên cao",
+  chipMediumPriority: "ưu tiên trung bình",
+  chipLowPriority: "ưu tiên thấp",
+  chipAuBenchmark: "Benchmark thị trường AU",
 
   criteriaIntro:
-    "Danh gia chi tiet tren 13 tieu chi cua nha dau tu — duoc suy ra tu 8 khia canh SVI o tren. Moi tieu chi anh xa vao mot khia canh SVI chinh va gop vao diem tong hop.",
-  criteriaStrengths: "Diem manh",
-  criteriaGaps: "Khoang trong",
-  criteriaNextAction: "Hanh dong tiep theo (tuan nay)",
-  criteriaMissingTitle: "Chua co tong hop tieu chi",
+    "Đánh giá chi tiết trên 13 tiêu chí của nhà đầu tư — được suy ra từ 8 khía cạnh SVI ở trên. Mỗi tiêu chí ánh xạ vào một khía cạnh SVI chính và góp vào điểm tổng hợp.",
+  criteriaStrengths: "Điểm mạnh",
+  criteriaGaps: "Khoảng trống",
+  criteriaNextAction: "Hành động tiếp theo (tuần này)",
+  criteriaMissingTitle: "Chưa có tổng hợp tiêu chí",
   criteriaMissingBody:
-    "Chay lai phan tich pitchdeck (Wave 24+) de sinh day du 13 tieu chi. Muc nay yeu cau phien ban phan tich moi nhat.",
-  criteriaReanalyse: "Phan tich lai ngay",
-  chipWeightAndDim: (w, dim) => `${w}% trong so · ${dim.toUpperCase()}`,
+    "Chạy lại phân tích pitchdeck (Wave 24+) để sinh đầy đủ 13 tiêu chí. Mục này yêu cầu phiên bản phân tích mới nhất.",
+  criteriaReanalyse: "Phân tích lại ngay",
+  chipWeightAndDim: (w, dim) => `${w}% trọng số · ${dim.toUpperCase()}`,
 
   riskIntro:
-    "Cac khia canh mang rui ro dau tu cao nhat — sap xep theo tac dong x khoang trong.",
-  riskDrag: (w, drag) => `${w}% trong so · uoc ${drag} diem keo giam SVI`,
+    "Các khía cạnh mang rủi ro đầu tư cao nhất — sắp xếp theo tác động × khoảng trống.",
+  riskDrag: (w, drag) => `${w}% trọng số · ước ${drag} điểm kéo giảm SVI`,
 
   roadmapIntro: (n) =>
-    `Top ${n} hanh dong sap xep theo diem SVI ky vong tang (trong so x khoang cach den nguong 70 diem).`,
-  roadmapLift: (pts) => `+${pts} diem tiem nang`,
+    `Top ${n} hành động sắp xếp theo điểm SVI kỳ vọng tăng (trọng số × khoảng cách đến ngưỡng 70 điểm).`,
+  roadmapLift: (pts) => `+${pts} điểm tiềm năng`,
   roadmapMeta: (score, weight) =>
-    `Hien tai: ${score}/100 · Muc tieu: 70+ · ${weight}% trong so`,
-  roadmapAddEvidence: (section) => `Bo sung bang chung cho ${section}`,
+    `Hiện tại: ${score}/100 · Mục tiêu: 70+ · ${weight}% trọng số`,
+  roadmapAddEvidence: (section) => `Bổ sung bằng chứng cho ${section}`,
 
   cohortIntro:
-    "So sanh startup voi nhom seed Uc theo band SVI, dua tren du lieu BlockID Index an danh (PitchBook AU 2024–2026 seed cohort).",
+    "So sánh startup với nhóm seed Úc theo band SVI, dựa trên dữ liệu BlockID Index ẩn danh (PitchBook AU 2024–2026 seed cohort).",
   cohortFootnote: (industry, stage) =>
-    `Benchmark tu du lieu BlockID an danh + PitchBook AU 2024–2026 (seed). Nganh: ${industry} · Giai doan: ${stage}. Day la so sanh dinh huong — moi startup co dac diem khac nhau.`,
+    `Benchmark từ dữ liệu BlockID ẩn danh + PitchBook AU 2024–2026 (seed). Ngành: ${industry} · Giai đoạn: ${stage}. Đây là so sánh định hướng — mỗi startup có đặc điểm khác nhau.`,
 
   methHeaderSvi: "BlockID Startup Value Index™ (SVI)",
   methBodySvi:
-    "SVI la diem tong hop 0–100 tren 8 khia canh co trong so. Day KHONG phai la dinh gia — day la chi so san sang, giup phat hien khoang trong bang chung. Diem tren 70 the hien bang chung san sang cho nha dau tu; 40–69 la dang phat trien voi buoc tiep theo ro rang; duoi 40 la giai doan som voi nhieu khoang trong can lap truoc khi goi von.",
-  methHeaderDims: "8 khia canh SVI (tong 100% trong so)",
-  methHeaderCriteria: "13 tieu chi danh gia cua nha dau tu",
+    "SVI là điểm tổng hợp 0–100 trên 8 khía cạnh có trọng số. Đây KHÔNG phải là định giá — đây là chỉ số sẵn sàng, giúp phát hiện khoảng trống bằng chứng. Điểm trên 70 thể hiện bằng chứng sẵn sàng cho nhà đầu tư; 40–69 là đang phát triển với bước tiếp theo rõ ràng; dưới 40 là giai đoạn sớm với nhiều khoảng trống cần lấp trước khi gọi vốn.",
+  methHeaderDims: "8 khía cạnh SVI (tổng 100% trọng số)",
+  methHeaderCriteria: "13 tiêu chí đánh giá của nhà đầu tư",
   methBodyCriteria:
-    "Moi tieu chi anh xa mot khia canh SVI chinh va tuy chon nhieu khia canh phu. 13 tieu chi bao gom: Y tuong & Doi moi, Co hoi thi truong, Ho so Sang lap, Ma nguon & Git, Website & Hien dien so, Doi ngu, Khach hang & Traction, Chien luoc GTM, Tai lieu, Data Room, Cau truc & Quan tri, Roadmap san pham, Doanh thu & Unit Economics.",
-  methHeaderValuation: "Phuong phap Dinh gia",
+    "Mỗi tiêu chí ánh xạ một khía cạnh SVI chính và tuỳ chọn nhiều khía cạnh phụ. 13 tiêu chí bao gồm: Ý tưởng & Đổi mới, Cơ hội thị trường, Hồ sơ Sáng lập, Mã nguồn & Git, Website & Hiện diện số, Đội ngũ, Khách hàng & Traction, Chiến lược GTM, Tài liệu, Data Room, Cấu trúc & Quản trị, Roadmap sản phẩm, Doanh thu & Unit Economics.",
+  methHeaderValuation: "Phương pháp Định giá",
   methBodyValuation:
-    "Dinh gia pre-money duoc tinh bang mot trong bon phuong phap, chon tu dong theo giai doan va traction: Berkus (chua doanh thu, cap A$2.5M), Scorecard (trung vi vong angel × he so SVI), So sanh giao dich (comps AU seed/Series A tu PitchBook 2024–2026), hoac DCF (dong tien tu do 10 nam voi gia tri cuoi ky). Ba kich ban (thap/trung/cao) ap dung dai ±20%. Day la uoc luong dinh huong, khong phai dinh gia chinh thuc.",
-  methHeaderAi: "Phan tich AI",
+    "Định giá pre-money được tính bằng một trong bốn phương pháp, chọn tự động theo giai đoạn và traction: Berkus (chưa doanh thu, cap A$2.5M), Scorecard (trung vị vòng angel × hệ số SVI), So sánh giao dịch (comps AU seed/Series A từ PitchBook 2024–2026), hoặc DCF (dòng tiền tự do 10 năm với giá trị cuối kỳ). Ba kịch bản (thấp/trung/cao) áp dụng dải ±20%. Đây là ước lượng định hướng, không phải định giá chính thức.",
+  methHeaderAi: "Phân tích AI",
   methBodyAi:
-    "Toan bo phan tich duoc sinh boi BlockID Analyst Desk — chuoi AI chuyen biet (Groq/SambaNova/Cerebras/Claude) dua tren van ban pitchdeck cua nha sang lap. Moi agent phai trich dan doan pitchdeck lam bang chung va noi ro khi thong tin thieu. Diem mac dinh 30–45 khi deck khong de cap. Bao cao co AI ho tro, khong phai audit due-diligence chinh thuc hay khuyen nghi dau tu.",
+    "Toàn bộ phân tích được sinh bởi BlockID Analyst Desk — chuỗi AI chuyên biệt (Groq/SambaNova/Cerebras/Claude) dựa trên văn bản pitchdeck của nhà sáng lập. Mỗi agent phải trích dẫn đoạn pitchdeck làm bằng chứng và nói rõ khi thông tin thiếu. Điểm mặc định 30–45 khi deck không đề cập. Báo cáo có AI hỗ trợ, không phải audit due-diligence chính thức hay khuyến nghị đầu tư.",
   methFooter: (dateStr) =>
-    `BlockID.au · Startup Value Index™ · Bao cao tao ngay ${dateStr} · Dung cho noi bo nha sang lap va chia se voi nha dau tu. Khong phat hanh cong khai neu chua co su dong y cua nha sang lap.`,
+    `BlockID.au · Startup Value Index™ · Báo cáo tạo ngày ${dateStr} · Dùng cho nội bộ nhà sáng lập và chia sẻ với nhà đầu tư. Không phát hành công khai nếu chưa có sự đồng ý của nhà sáng lập.`,
 
-  noAnalysisTitle: "Khong tim thay phan tich gan day",
+  noAnalysisTitle: "Không tìm thấy phân tích gần đây",
   noAnalysisBody:
-    "Hay chay phan tich day du 8 khia canh SVI truoc — ket qua luu 30 phut.",
-  noAnalysisCta: "Phan tich pitchdeck cua toi",
+    "Hãy chạy phân tích đầy đủ 8 khía cạnh SVI trước — kết quả lưu 30 phút.",
+  noAnalysisCta: "Phân tích pitchdeck của tôi",
   scoresMissingBody:
-    "Phan tich da luu cache nhung khong co diem. Hay chay lai phan tich khia canh.",
-  scoresMissingCta: "Toi trang Phan tich Pitchdeck →",
+    "Phân tích đã lưu cache nhưng không có điểm. Hãy chạy lại phân tích khía cạnh.",
+  scoresMissingCta: "Tới trang Phân tích Pitchdeck →",
 
   footerDisclaimer:
-    "BlockID Startup Value Index™ — Phan tich co AI ho tro. Khong phai dinh gia chinh thuc hay khuyen nghi dau tu.",
-  footerReanalyse: "Phan tich lai →",
+    "BlockID Startup Value Index™ — Phân tích có AI hỗ trợ. Không phải định giá chính thức hay khuyến nghị đầu tư.",
+  footerReanalyse: "Phân tích lại →",
 
   execHeroPer100: "/ 100",
   ledger: ledgerVi,
+  v2: v2Vi,
 };
 
 // ── Spanish (ES) ─────────────────────────────────────────────────────────────
@@ -721,6 +1207,7 @@ const es: TbrStrings = {
 
   execHeroPer100: "/ 100",
   ledger: ledgerEs,
+  v2: v2Es,
 };
 
 // ── Japanese (JA) ────────────────────────────────────────────────────────────
@@ -855,6 +1342,7 @@ const ja: TbrStrings = {
 
   execHeroPer100: "/ 100",
   ledger: ledgerJa,
+  v2: v2Ja,
 };
 
 export const TBR_STRINGS: Record<TbrLocale, TbrStrings> = { en, vi, es, ja };

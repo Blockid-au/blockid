@@ -1,281 +1,162 @@
 /**
- * ReportOrderView — what a buyer sees after paying for a Trust Business
- * Report.
+ * ReportOrderView — the thin order wrapper (`/workspace/reports/order`).
  *
- * Master Upgrade Plan §8.4. Both purchase paths now land here:
- *   * Path A (Stripe A$3) — the Checkout success_url returns to
- *     /workspace/reports/order?session_id=…, which the server page
- *     resolves to an order id before rendering this component.
- *   * Path B (credits) — ReportPaywallGate's onRedeemed default pushes
- *     straight to /workspace/reports/order?order=…
+ * G19-S45 (D4): the paid product is the ReportV2 page. After checkout /
+ * redeem the founder lands on `/workspace/reports/business?order=<id>`
+ * (`reportOrderPath`), where the same document renders with every chapter
+ * unlocked, the TOC, share link and the v2 PDF / DOCX exports. The order
+ * page now only exists for:
  *
- * The component is a thin state machine over GET /api/reports/[orderId]:
+ *   * the Stripe success_url (`?session_id=…`) and old e-mails — the page
+ *     resolves the order and redirects to the ReportV2 page;
+ *   * `?view=legacy` — orders generated before ReportV2 existed
+ *     (no `assembled_reports.report_json`), which keep the markdown here.
  *
- *   202 → keep polling at the server-supplied `retryInSeconds`
- *   200 → render the report and enable PDF/DOCX
- *   402 → the order was never paid; offer the way back
- *   410 → terminal (failed / refunded / expired); say plainly what
- *         happened to the money
- *   404 → not yours or does not exist (the API deliberately cannot
- *         tell the two apart)
- *
- * Polling stops on any non-202. There is no client-side timer fallback:
- * the retry cadence comes from the server so it can be tuned without a
- * redeploy of the bundle.
+ * The component is a thin state machine over GET /api/reports/[orderId]
+ * (`useReportOrder`): 202 → poll, 200 → render, 402/404/410 → say what
+ * happened. When the order carries a ReportV2 document it renders
+ * `<TbrReportV2>` (all chapters); otherwise the executive summary plus the
+ * legacy markdown collapsed under "Legacy text version".
  */
 
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
 import Markdown from "react-markdown";
 import { withGst } from "@/lib/plans-v2";
-
-interface OrderMeta {
-  orderId: string;
-  status: string;
-  paidAt: string | null;
-  generatedAt: string | null;
-  expiresAt: string | null;
-  amountAud: number;
-  creditsUsed: number;
-}
-
-interface ReportPayload {
-  reportId: string;
-  title: string;
-  tier: string;
-  executiveSummary: string;
-  markdown: string;
-  totalWords: number;
-  sectionsCount: number;
-  qualityScore: number | null;
-}
-
-interface ApiResponse {
-  ok: boolean;
-  status?: string;
-  reason?: string;
-  message?: string;
-  order?: OrderMeta;
-  report?: ReportPayload;
-  retryInSeconds?: number;
-  refunded?: boolean;
-  regenerable?: boolean;
-  failureReason?: string;
-}
-
-type ViewState =
-  | { phase: "loading" }
-  | { phase: "pending"; message: string; status: string }
-  | { phase: "ready"; order: OrderMeta; report: ReportPayload }
-  | {
-      phase: "blocked";
-      httpStatus: number;
-      message: string;
-      refunded: boolean;
-      regenerable: boolean;
-      failureReason?: string;
-    };
-
-const DEFAULT_RETRY_SECONDS = 15;
+import { getTbrStrings, type TbrLocale } from "@/lib/i18n/tbr-strings";
+import { TbrReportV2 } from "@/components/tbr/v2/report";
+import { reportOrderPath } from "@/lib/paywall/report-delivery";
+import { trackEvent } from "@/lib/analytics";
+import { useReportOrder, type OrderMeta, type ReportPayload } from "./use-report-order";
 
 export interface ReportOrderViewProps {
   orderId: string;
+  locale?: TbrLocale;
 }
 
-export function ReportOrderView({ orderId }: ReportOrderViewProps) {
-  const [state, setState] = useState<ViewState>({ phase: "loading" });
-  // Guards the poll loop against firing after unmount (React 18 strict
-  // mode double-invokes effects; a stray setState there is a warning).
-  const liveRef = useRef(true);
+/** Order-scoped export URL — owner-checked, status-gated, no second charge (v2 twins when report_json exists). */
+export function reportOrderExportHref(orderId: string, format: "pdf" | "docx"): string {
+  return `/api/reports/${encodeURIComponent(orderId)}?format=${format}`;
+}
 
-  const poll = useCallback(async (): Promise<number | null> => {
-    const res = await fetch(`/api/reports/${encodeURIComponent(orderId)}`, {
-      headers: { accept: "application/json" },
-      cache: "no-store",
-    });
-    const data = (await res.json()) as ApiResponse;
-    if (!liveRef.current) return null;
-
-    if (res.status === 200 && data.ok && data.report && data.order) {
-      setState({ phase: "ready", order: data.order, report: data.report });
-      return null;
-    }
-
-    if (res.status === 202) {
-      setState({
-        phase: "pending",
-        message: data.message ?? "Your report is being generated…",
-        status: data.status ?? "GENERATING",
-      });
-      return data.retryInSeconds ?? DEFAULT_RETRY_SECONDS;
-    }
-
-    setState({
-      phase: "blocked",
-      httpStatus: res.status,
-      message:
-        data.message ??
-        data.reason ??
-        `We could not load this report (${res.status}).`,
-      refunded: data.refunded === true,
-      regenerable: data.regenerable === true,
-      failureReason: data.failureReason,
-    });
-    return null;
-  }, [orderId]);
-
-  useEffect(() => {
-    liveRef.current = true;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-
-    const run = async () => {
-      try {
-        const retryIn = await poll();
-        if (retryIn !== null && liveRef.current) {
-          timer = setTimeout(run, Math.max(3, retryIn) * 1000);
-        }
-      } catch {
-        if (!liveRef.current) return;
-        setState({
-          phase: "blocked",
-          httpStatus: 0,
-          message:
-            "We lost the connection while loading your report. Refresh to try again — your purchase is safe.",
-          refunded: false,
-          regenerable: false,
-        });
-      }
-    };
-
-    void run();
-
-    return () => {
-      liveRef.current = false;
-      if (timer) clearTimeout(timer);
-    };
-  }, [poll]);
-
-  if (state.phase === "loading") {
-    return (
-      <p className="text-sm text-ink-600" role="status">
-        Loading your report…
-      </p>
-    );
-  }
-
-  if (state.phase === "pending") {
-    return (
-      <section
-        className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-3"
-        aria-live="polite"
-        data-testid="report-order-pending"
-      >
-        <h2 className="text-lg font-semibold text-ink-900">
-          Writing your Trusted Business Report
-        </h2>
-        <p className="text-sm text-ink-600 leading-relaxed">{state.message}</p>
-        <div
-          className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800"
-          role="progressbar"
-          aria-label="Report generation in progress"
-        >
-          <div className="h-full w-1/3 animate-pulse rounded-full bg-brand-500" />
-        </div>
-        <p className="text-xs text-ink-500">
-          You can leave this page — the report is saved to your account and
-          this link keeps working for 90 days.
-        </p>
-      </section>
-    );
-  }
-
-  if (state.phase === "blocked") {
-    return (
-      <section
-        className="rounded-2xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-6 space-y-3"
-        role="alert"
-        data-testid="report-order-blocked"
-      >
-        <h2 className="text-lg font-semibold text-ink-900">
-          {state.refunded
-            ? "This order was refunded"
-            : "This report is not available"}
-        </h2>
-        <p className="text-sm text-ink-700 leading-relaxed">{state.message}</p>
-        {state.failureReason ? (
-          <p className="text-xs font-mono text-ink-500">
-            Reference: {state.failureReason}
-          </p>
-        ) : null}
-        <a
-          href="/dashboard"
-          className="inline-flex h-10 items-center rounded-xl border border-slate-300 px-4 text-sm font-medium hover:border-brand-400"
-        >
-          Back to dashboard
-        </a>
-      </section>
-    );
-  }
-
-  const { order, report } = state;
-
+export function ReportOrderExportLinks({ orderId, locale = "en", surface = "order_page" }: { orderId: string; locale?: TbrLocale; surface?: string }) {
+  const t = getTbrStrings(locale);
   return (
-    <article className="space-y-6" data-testid="report-order-ready">
+    <div className="flex flex-wrap gap-2" data-testid="report-order-exports">
+      <a
+        href={reportOrderExportHref(orderId, "pdf")}
+        onClick={() => trackEvent("tbr_export", { format: "pdf", surface })}
+        className="inline-flex h-10 items-center rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+        data-testid="report-order-pdf"
+      >
+        {t.downloadPdf}
+      </a>
+      <a
+        href={reportOrderExportHref(orderId, "docx")}
+        onClick={() => trackEvent("tbr_export", { format: "docx", surface })}
+        className="inline-flex h-10 items-center rounded-xl border border-slate-300 px-4 text-sm font-medium hover:border-brand-400"
+        data-testid="report-order-docx"
+      >
+        {t.v2.order.downloadDocx}
+      </a>
+    </div>
+  );
+}
+
+/** Pure (hook-free) ready state — exported for the static-render test. */
+export function ReportOrderReady({ order, report, locale = "en" }: { order: OrderMeta; report: ReportPayload; locale?: TbrLocale }) {
+  const t = getTbrStrings(locale);
+  const v2 = report.reportV2 ?? null;
+  const dateLocale = locale === "vi" ? "vi-VN" : "en-AU";
+  return (
+    <article className="space-y-6" data-testid="report-order-ready" data-report-order-source={v2 ? "report_v2" : "legacy_markdown"}>
       <header className="space-y-2">
-        <h1 className="text-2xl font-bold tracking-tight text-ink-900">
-          {report.title}
-        </h1>
+        <h1 className="text-2xl font-bold tracking-tight text-ink-900">{v2 ? t.reportTitle : report.title}</h1>
         <p className="text-sm text-ink-600">
-          {report.totalWords.toLocaleString("en-AU")} words ·{" "}
-          {report.sectionsCount} sections · {report.tier} tier
-          {order.generatedAt
-            ? ` · generated ${new Date(order.generatedAt).toLocaleDateString("en-AU")}`
-            : null}
+          {v2 ? `${v2.cover.startupName} · ${v2.dimensions.length} ${t.tocDimensions.toLowerCase()}` : `${report.totalWords.toLocaleString("en-AU")} words · ${report.sectionsCount} sections`} · {report.tier}
+          {order.generatedAt ? ` · ${t.v2.order.generated(new Date(order.generatedAt).toLocaleDateString(dateLocale))}` : null}
         </p>
         <p className="text-xs text-ink-500">
-          {order.amountAud > 0
-            ? `Paid ${withGst(`A$${(order.amountAud / 100).toFixed(2)}`)}`
-            : `Redeemed ${order.creditsUsed} credits`}
-          {order.expiresAt
-            ? ` · available until ${new Date(order.expiresAt).toLocaleDateString("en-AU")}`
-            : null}
+          {order.amountAud > 0 ? t.v2.order.paid(withGst(`A$${(order.amountAud / 100).toFixed(2)}`)) : t.v2.order.redeemed(order.creditsUsed)}
+          {order.expiresAt ? ` · ${t.v2.order.availableUntil(new Date(order.expiresAt).toLocaleDateString(dateLocale))}` : null}
         </p>
       </header>
 
-      <div className="flex flex-wrap gap-2">
-        <a
-          href={`/api/reports/${encodeURIComponent(order.orderId)}?format=pdf`}
-          className="inline-flex h-10 items-center rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
-          data-testid="report-order-pdf"
-        >
-          Download PDF
-        </a>
-        <a
-          href={`/api/reports/${encodeURIComponent(order.orderId)}?format=docx`}
-          className="inline-flex h-10 items-center rounded-xl border border-slate-300 px-4 text-sm font-medium hover:border-brand-400"
-          data-testid="report-order-docx"
-        >
-          Download DOCX
-        </a>
-      </div>
+      <ReportOrderExportLinks orderId={order.orderId} locale={locale} />
 
-      {report.executiveSummary ? (
-        <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
-          <h2 className="mb-2 text-lg font-semibold text-ink-900">
-            Executive summary
-          </h2>
-          <div className="prose prose-sm dark:prose-invert max-w-none">
-            <Markdown>{report.executiveSummary}</Markdown>
-          </div>
-        </section>
-      ) : null}
-
-      <section className="prose prose-sm dark:prose-invert max-w-none rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
-        <Markdown>{report.markdown}</Markdown>
-      </section>
+      {v2 ? (
+        <>
+          <p className="text-xs text-ink-500">
+            <a href={reportOrderPath(order.orderId)} className="font-medium text-brand-700 underline underline-offset-2 dark:text-brand-300">
+              {t.v2.order.openInWorkspace}
+            </a>
+          </p>
+          <TbrReportV2 report={v2} strings={t} locale={locale} />
+        </>
+      ) : (
+        <>
+          {report.executiveSummary ? (
+            <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+              <h2 className="mb-2 text-lg font-semibold text-ink-900">{t.secExecutive}</h2>
+              <div className="prose prose-sm dark:prose-invert max-w-none">
+                <Markdown>{report.executiveSummary}</Markdown>
+              </div>
+            </section>
+          ) : null}
+          <details className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6" data-testid="report-order-legacy">
+            <summary className="cursor-pointer text-sm font-semibold text-ink-800 dark:text-ink-100">{t.v2.order.legacyText(report.totalWords)}</summary>
+            <div className="prose prose-sm dark:prose-invert mt-4 max-w-none">
+              <Markdown>{report.markdown}</Markdown>
+            </div>
+          </details>
+        </>
+      )}
     </article>
   );
+}
+
+export function ReportOrderPending({ message, locale = "en" }: { message: string; locale?: TbrLocale }) {
+  const t = getTbrStrings(locale).v2.order;
+  return (
+    <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-3" aria-live="polite" data-testid="report-order-pending">
+      <h2 className="text-lg font-semibold text-ink-900">{t.pendingTitle}</h2>
+      <p className="text-sm text-ink-600 leading-relaxed">{message}</p>
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-slate-800" role="progressbar" aria-label={t.pendingAria}>
+        <div className="h-full w-1/3 animate-pulse rounded-full bg-brand-500" />
+      </div>
+      <p className="text-xs text-ink-500">{t.pendingLeave}</p>
+    </section>
+  );
+}
+
+export function ReportOrderBlocked({ refunded, message, failureReason, locale = "en" }: { refunded: boolean; message: string; failureReason?: string; locale?: TbrLocale }) {
+  const t = getTbrStrings(locale).v2.order;
+  return (
+    <section className="rounded-2xl border border-amber-300 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30 p-6 space-y-3" role="alert" data-testid="report-order-blocked">
+      <h2 className="text-lg font-semibold text-ink-900">{refunded ? t.blockedRefunded : t.blockedUnavailable}</h2>
+      <p className="text-sm text-ink-700 leading-relaxed">{message}</p>
+      {failureReason ? <p className="text-xs font-mono text-ink-500">{t.reference(failureReason)}</p> : null}
+      <a href="/dashboard" className="inline-flex h-10 items-center rounded-xl border border-slate-300 px-4 text-sm font-medium hover:border-brand-400">
+        {t.backToDashboard}
+      </a>
+    </section>
+  );
+}
+
+export function ReportOrderView({ orderId, locale = "en" }: ReportOrderViewProps) {
+  const state = useReportOrder(orderId);
+  const t = getTbrStrings(locale).v2.order;
+
+  if (state.phase === "loading" || state.phase === "idle") {
+    return (
+      <p className="text-sm text-ink-600" role="status">
+        {t.loading}
+      </p>
+    );
+  }
+  if (state.phase === "pending") return <ReportOrderPending message={state.message} locale={locale} />;
+  if (state.phase === "blocked") return <ReportOrderBlocked refunded={state.refunded} message={state.message} failureReason={state.failureReason} locale={locale} />;
+  return <ReportOrderReady order={state.order} report={state.report} locale={locale} />;
 }
 
 export default ReportOrderView;

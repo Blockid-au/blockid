@@ -2,26 +2,27 @@
 // disclaimer, auditor log, comparables N, sources dated (CDO + auditor).
 
 import type { ReportV2 } from "@/lib/report-v2/schema";
-import { AgentBadge, TBR_V2_SECTION_IDS, TbrSection } from "./shared";
+import { AgentBadge, TBR_V2_SECTION_IDS, TbrSection, v2Strings, type TbrUiLocale } from "./shared";
 
-export function TbrAppendix({ report, title }: { report: ReportV2; title: string }) {
+export function TbrAppendix({ report, title, locale = "en" }: { report: ReportV2; title: string; locale?: TbrUiLocale }) {
   const a = report.appendix;
+  const t = v2Strings(locale).appendix;
   return (
     <TbrSection id={TBR_V2_SECTION_IDS.appendix} kicker="14" title={title}>
       <div className="flex items-center gap-2 text-xs text-ink-600 dark:text-ink-300">
         <AgentBadge role="cdo" />
         <span>
-          quality {report.quality.score}/100 · grounded {Math.round(report.quality.groundedShare * 100)}%
-          {report.quality.degradedSections.length > 0 ? ` · degraded: ${report.quality.degradedSections.join(", ")}` : ""}
+          {t.quality(report.quality.score, Math.round(report.quality.groundedShare * 100))}
+          {report.quality.degradedSections.length > 0 ? ` · ${t.degraded(report.quality.degradedSections.join(", "))}` : ""}
         </span>
       </div>
       <div className="space-y-3 text-xs text-ink-600 dark:text-ink-400">
         <div>
-          <p className="font-semibold text-ink-800 dark:text-ink-100">Method</p>
+          <p className="font-semibold text-ink-800 dark:text-ink-100">{t.method}</p>
           <p>{a.method}</p>
         </div>
         <div>
-          <p className="font-semibold text-ink-800 dark:text-ink-100">Evidence register</p>
+          <p className="font-semibold text-ink-800 dark:text-ink-100">{t.evidenceRegister}</p>
           {a.evidenceRegister.length > 0 ? (
             <table className="mt-1 w-full">
               <tbody>
@@ -37,35 +38,33 @@ export function TbrAppendix({ report, title }: { report: ReportV2; title: string
               </tbody>
             </table>
           ) : (
-            <p>No evidence rows are attached to this document. Connect Stripe, Xero, GA4 or GitHub, or upload documents, to populate the register.</p>
+            <p>{t.noEvidence}</p>
           )}
         </div>
         <div>
-          <p className="font-semibold text-ink-800 dark:text-ink-100">Data principle</p>
+          <p className="font-semibold text-ink-800 dark:text-ink-100">{t.dataPrinciple}</p>
           <p>{a.dataPrinciple}</p>
         </div>
         <div>
-          <p className="font-semibold text-ink-800 dark:text-ink-100">Sources</p>
+          <p className="font-semibold text-ink-800 dark:text-ink-100">{t.sources}</p>
           <ul className="list-disc pl-4">
             {a.sourcesDated.map((s) => (
               <li key={s.label}>
                 {s.label} — {s.date}
               </li>
             ))}
-            <li>
-              AU comparables: {a.comparablesN} raises tracked, {a.comparablesWithMultiplesN} with disclosed multiples.
-            </li>
+            <li>{t.comparables(a.comparablesN, a.comparablesWithMultiplesN)}</li>
           </ul>
         </div>
         {a.auditLog.length > 0 && (
           <div>
-            <p className="font-semibold text-ink-800 dark:text-ink-100">Auditor log</p>
+            <p className="font-semibold text-ink-800 dark:text-ink-100">{t.auditorLog}</p>
             <ul className="list-disc pl-4">
               {a.auditLog.map((l) => (
                 <li key={l.sectionId}>
-                  {l.sectionId}: {l.grounded ? "grounded" : `${l.uncitedClaims.length} uncited`}
-                  {l.revised ? ", revised" : ""}
-                  {l.skipped ? ` (skipped: ${l.skipped})` : ""}
+                  {l.sectionId}: {l.grounded ? t.grounded : t.uncited(l.uncitedClaims.length)}
+                  {l.revised ? `, ${t.revised}` : ""}
+                  {l.skipped ? ` (${t.skipped(l.skipped)})` : ""}
                 </li>
               ))}
             </ul>

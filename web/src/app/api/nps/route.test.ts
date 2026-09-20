@@ -37,6 +37,12 @@ vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => getSupabaseAdminMock(),
 }));
 
+// G19-S45 (D6): the clarity-survey server twin.
+const emitEventSafeMock = vi.fn();
+vi.mock("@/lib/analytics/server", () => ({
+  emitEventSafe: (...args: unknown[]) => emitEventSafeMock(...args),
+}));
+
 import { POST, GET, dynamic } from "./route";
 
 // ── Fake supabase — captures whichever chain the route walks ───────────────
@@ -203,6 +209,7 @@ beforeEach(() => {
   resetState();
   getCurrentUserMock.mockReset();
   getSupabaseAdminMock.mockReset();
+  emitEventSafeMock.mockReset();
   getCurrentUserMock.mockResolvedValue({ id: "u-1", email: "user@x.com" });
   getSupabaseAdminMock.mockReturnValue(makeFakeSupabase());
 });
@@ -370,6 +377,38 @@ describe("POST — token flow (D30 email pulse)", () => {
     await POST(jsonReq({ token: 12345, score: 8 }));
     expect(state.updatePayload).toBeNull();
     expect(state.insertPayload).not.toBeNull();
+  });
+});
+
+// ── G19-S45 (D6): report-clarity survey ───────────────────────────────────
+describe("POST — tbr_clarity:<snapshotId> context (G19-S45 D6)", () => {
+  it("stores the row like the widget flow AND emits the server-side tbr_clarity_answered twin (score, surface, has_comment, snapshot_id, user)", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u-9", email: "founder@x.com" });
+    const res = await POST(jsonReq({ score: 9, comment: "the ledger made it click", context: "tbr_clarity:snap-42", surface: "founder" }));
+    expect(res.status).toBe(200);
+    expect(state.insertPayload).toMatchObject({ score: 9, context: "tbr_clarity:snap-42", user_email: "founder@x.com" });
+    expect(emitEventSafeMock).toHaveBeenCalledTimes(1);
+    expect(emitEventSafeMock.mock.calls[0]![0]).toMatchObject({
+      name: "tbr_clarity_answered",
+      params: { score: 9, surface: "founder", has_comment: true, snapshot_id: "snap-42" },
+      userId: "u-9",
+    });
+  });
+
+  it("public share page: anonymous answer still stored + emitted with surface=share and no user", async () => {
+    getCurrentUserMock.mockResolvedValue(null);
+    await POST(jsonReq({ score: 6, comment: "", context: "tbr_clarity:snap-7", surface: "share" }));
+    expect(state.insertPayload).toMatchObject({ user_email: "anonymous", context: "tbr_clarity:snap-7" });
+    expect(emitEventSafeMock.mock.calls[0]![0]).toMatchObject({ name: "tbr_clarity_answered", params: { score: 6, surface: "share", has_comment: false, snapshot_id: "snap-7" }, userId: null });
+  });
+
+  it("stamps qa:true for a live-QA account and does not emit for other contexts", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u-qa", email: "qa-live-20260920-1200@blockid.au" });
+    await POST(jsonReq({ score: 10, context: "tbr_clarity:snap-1" }));
+    expect(emitEventSafeMock.mock.calls[0]![0]).toMatchObject({ params: { qa: true } });
+    emitEventSafeMock.mockReset();
+    await POST(jsonReq({ score: 10, context: "dashboard" }));
+    expect(emitEventSafeMock).not.toHaveBeenCalled();
   });
 });
 

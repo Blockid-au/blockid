@@ -152,6 +152,8 @@ export const GA4_AUDIT_EVENTS: readonly string[] = Object.freeze([
   "tbr_share_created",
   "dossier_view",
   "assessment_submitted",
+  // G19-S45 (D6) — report-clarity survey answered (KPI median ≥ 8.5, N ≥ 30 / month)
+  "tbr_clarity_answered",
 ]);
 
 // ── Operator steps when the Admin / Data API is blocked ─────────────────

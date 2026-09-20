@@ -12,9 +12,9 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "Bao cao Kinh doanh — BlockID Startup Value Index",
+  title: "Báo cáo Kinh doanh — BlockID Startup Value Index",
   description:
-    "Bao cao Kinh doanh Tin cay: 8 khia canh SVI, 13 tieu chi cua nha dau tu, dai dinh gia va lo trinh cai thien.",
+    "Báo cáo Kinh doanh Tin cậy: 8 khía cạnh SVI, 13 tiêu chí của nhà đầu tư, dải định giá và lộ trình cải thiện.",
   robots: { index: false, follow: false },
 };
 

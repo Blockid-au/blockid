@@ -11,7 +11,7 @@ import { VisualFigure } from "@/lib/report-visuals/react";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import { buildValuationView, CONNECTORS_HREF, type ValuationSourceChip } from "@/lib/report-v2/valuation-view";
 import { cn } from "@/lib/utils";
-import { AgentBadge, AuditStampLine, TBR_V2_SECTION_IDS, TbrSection, stateLabel } from "./shared";
+import { AgentBadge, AuditStampLine, TBR_V2_SECTION_IDS, TbrSection, stateLabel, valuationLocale, type TbrUiLocale } from "./shared";
 
 const CHIP_CLASS: Record<ValuationSourceChip, string> = {
   connector: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300",
@@ -35,10 +35,10 @@ function SubTitle({ children }: { children: React.ReactNode }) {
   return <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-500">{children}</p>;
 }
 
-export function TbrValuation({ report, title, locale = "en" }: { report: ReportV2; title: string; locale?: "en" | "vi" }) {
+export function TbrValuation({ report, title, locale = "en" }: { report: ReportV2; title: string; locale?: TbrUiLocale }) {
   const v = report.valuation;
   const free = report.tier === "free";
-  const view = buildValuationView(v, locale);
+  const view = buildValuationView(v, valuationLocale(locale));
   const s = view.strings;
   const rangeBars = v.visuals.find((x) => x.kind === "range_bars");
   const others = v.visuals.filter((x) => x !== rangeBars);
@@ -70,7 +70,7 @@ export function TbrValuation({ report, title, locale = "en" }: { report: ReportV
           </div>
         ))}
       </div>
-      {rangeBars && <VisualFigure spec={rangeBars} caption={`${rangeBars.title} · ${stateLabel(rangeBars.dataState)}`} className="rounded-xl border border-ink-200 p-3 dark:border-ink-800" />}
+      {rangeBars && <VisualFigure spec={rangeBars} caption={`${rangeBars.title} · ${stateLabel(rangeBars.dataState, locale)}`} className="rounded-xl border border-ink-200 p-3 dark:border-ink-800" />}
       {!free && (
         <>
           {view.inputRows.length > 0 && (
@@ -201,12 +201,12 @@ export function TbrValuation({ report, title, locale = "en" }: { report: ReportV
             </div>
           )}
           {others.map((x) => (
-            <VisualFigure key={x.id} spec={x} caption={`${x.title} · ${stateLabel(x.dataState)}`} className="rounded-xl border border-ink-200 p-3 dark:border-ink-800" />
+            <VisualFigure key={x.id} spec={x} caption={`${x.title} · ${stateLabel(x.dataState, locale)}`} className="rounded-xl border border-ink-200 p-3 dark:border-ink-800" />
           ))}
         </>
       )}
       <p className="text-xs leading-relaxed text-ink-600 dark:text-ink-400">{v.narrative}</p>
-      <AuditStampLine audit={v.audit} />
+      <AuditStampLine audit={v.audit} locale={locale} />
     </TbrSection>
   );
 }

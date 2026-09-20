@@ -9,13 +9,22 @@
 // Three modes:
 //   buy        free founder → "Unlock … — A$3 (one-off)" button → onUnlock()
 //   included   plan carries the report → "Included in your plan — generate"
-//   purchased  a paid report_orders row exists → "Open your full report"
+//   purchased  a paid report_orders row exists:
+//                orderStatus "pending" → "being written" (no link; the page polls)
+//                orderStatus "legacy"  → "Open the text version" (pre-v2 order)
+//                orderStatus "ready"   → "Open your full report" → reportOrderPath
+//              G19-S45 (D4): when the paid ReportV2 is ready the page renders
+//              it in place and no rail is shown at all.
+//
+// G19-S45: every label comes from lib/i18n/tbr-strings.ts (§v2.rail).
 
-import { Lock, Check, ArrowRight } from "lucide-react";
-import { reportOrderPath } from "@/lib/paywall/report-delivery";
+import { Lock, Check, ArrowRight, Loader2 } from "lucide-react";
+import { legacyReportOrderPath, reportOrderPath } from "@/lib/paywall/report-delivery";
 import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
+import { v2Strings, type TbrUiLocale } from "./shared";
 
 export type TbrUnlockMode = "buy" | "included" | "purchased";
+export type TbrUnlockOrderStatus = "pending" | "ready" | "legacy";
 
 export interface TbrUnlockRailProps {
   mode: TbrUnlockMode;
@@ -25,39 +34,50 @@ export interface TbrUnlockRailProps {
   onUnlock?: () => void;
   /** purchased: the paid order to open. */
   orderId?: string | null;
+  /** purchased: where the order stands (default "ready"). */
+  orderStatus?: TbrUnlockOrderStatus;
   /** included: where the plan-included report is generated (defaults to the deck analyser). */
   generateHref?: string;
+  locale?: TbrUiLocale;
 }
 
 export const TBR_UNLOCK_RAIL_TESTID = "tbr-unlock-rail";
 
-export function tbrUnlockHeadline(mode: TbrUnlockMode): string {
+export function tbrUnlockHeadline(mode: TbrUnlockMode, locale: TbrUiLocale = "en", orderStatus: TbrUnlockOrderStatus = "ready"): string {
+  const t = v2Strings(locale).rail;
   const price = trustReportPriceLabel();
-  if (mode === "included") return "The full Trusted Business Report is included in your plan";
-  if (mode === "purchased") return "Your full Trusted Business Report is ready";
-  return `Unlock the full Trusted Business Report — ${price} (one-off)`;
+  if (mode === "included") return t.headlineIncluded;
+  if (mode === "purchased") return orderStatus === "pending" ? t.headlinePending : t.headlinePurchased;
+  return t.headlineBuy(price);
 }
 
-export function TbrUnlockRail({ mode, chapterCount, onUnlock, orderId, generateHref = "/workspace/raise/deck" }: TbrUnlockRailProps) {
+/** purchased: where the CTA goes — the ReportV2 page for a ready order, the thin markdown wrapper for a pre-v2 one. */
+export function tbrUnlockOrderHref(orderId: string | null | undefined, orderStatus: TbrUnlockOrderStatus = "ready"): string {
+  if (!orderId) return "/workspace/reports/order";
+  return orderStatus === "legacy" ? legacyReportOrderPath(orderId) : reportOrderPath(orderId);
+}
+
+export function TbrUnlockRail({ mode, chapterCount, onUnlock, orderId, orderStatus = "ready", generateHref = "/workspace/raise/deck", locale = "en" }: TbrUnlockRailProps) {
+  const t = v2Strings(locale).rail;
   const price = trustReportPriceLabel();
-  const perks = [
-    `All ${chapterCount} dimension chapters in full — evidence tables, criterion cards, next actions`,
-    "Valuation range with the three methods behind it",
-    "90-day action plan, phase gates and the grants you qualify for",
-    "PDF export + a live share link for investors",
-  ];
+  const perks = t.perks(chapterCount);
   return (
     <aside
       data-testid={TBR_UNLOCK_RAIL_TESTID}
       data-tbr-unlock={mode}
-      aria-label="Unlock the full report"
+      data-tbr-order-status={mode === "purchased" ? orderStatus : undefined}
+      aria-label={t.ariaLabel}
       className="sticky top-16 z-10 rounded-2xl border border-brand-300 bg-brand-50/95 p-5 shadow-lg backdrop-blur dark:border-brand-700 dark:bg-brand-950/90 print:hidden"
     >
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0 flex-1 space-y-2">
           <p className="flex items-center gap-2 text-base font-bold text-ink-900 dark:text-ink-50">
-            <Lock className="h-4 w-4 shrink-0 text-brand-600 dark:text-brand-300" strokeWidth={2} aria-hidden="true" />
-            {tbrUnlockHeadline(mode)}
+            {mode === "purchased" && orderStatus === "pending" ? (
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin text-brand-600 dark:text-brand-300" strokeWidth={2} aria-hidden="true" />
+            ) : (
+              <Lock className="h-4 w-4 shrink-0 text-brand-600 dark:text-brand-300" strokeWidth={2} aria-hidden="true" />
+            )}
+            {tbrUnlockHeadline(mode, locale, orderStatus)}
           </p>
           <ul className="grid gap-1 text-xs text-ink-700 dark:text-ink-200 sm:grid-cols-2">
             {perks.map((p) => (
@@ -77,10 +97,10 @@ export function TbrUnlockRail({ mode, chapterCount, onUnlock, orderId, generateH
                 data-testid="tbr-unlock-cta"
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
               >
-                Unlock for {price}
+                {t.unlockFor(price)}
                 <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
               </button>
-              <p className="text-center text-[11px] text-ink-600 dark:text-ink-300">One-off inc. GST. You confirm the exact price and credit cost before anything is charged.</p>
+              <p className="text-center text-[11px] text-ink-600 dark:text-ink-300">{t.confirmNote}</p>
             </>
           ) : mode === "included" ? (
             <>
@@ -89,18 +109,22 @@ export function TbrUnlockRail({ mode, chapterCount, onUnlock, orderId, generateH
                 data-testid="tbr-unlock-cta"
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
               >
-                Included in your plan — generate
+                {t.includedGenerate}
                 <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
               </a>
-              <p className="text-center text-[11px] text-ink-600 dark:text-ink-300">No charge — your plan carries the full report.</p>
+              <p className="text-center text-[11px] text-ink-600 dark:text-ink-300">{t.includedNote}</p>
             </>
+          ) : orderStatus === "pending" ? (
+            <p data-testid="tbr-unlock-pending" role="status" aria-live="polite" className="rounded-xl border border-brand-200 bg-white/70 px-3 py-2 text-center text-[11px] text-ink-700 dark:border-brand-800 dark:bg-ink-950/40 dark:text-ink-200">
+              {t.pendingNote}
+            </p>
           ) : (
             <a
-              href={orderId ? reportOrderPath(orderId) : "/workspace/reports/order"}
+              href={tbrUnlockOrderHref(orderId, orderStatus)}
               data-testid="tbr-unlock-cta"
               className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
             >
-              Open your full report
+              {orderStatus === "legacy" ? t.openLegacy : t.openFull}
               <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
             </a>
           )}

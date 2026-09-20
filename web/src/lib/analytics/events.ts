@@ -85,6 +85,11 @@ export type AnalyticsEvent =
   | { name: "evaluator_trial_started"; params: { plan: string; trial_days: number; account_type: string; user_id: string } }
   | { name: "subscription_created"; params: { plan: string; plan_label?: string; status: string; trialing: boolean; interval: string; user_id?: string } }
   | { name: "tbr_share_created"; params: { project_scope: "default" | "project"; user_id: string } }
+  // ── G19-S45 (D6) report-clarity survey — server twin of the client event, emitted by POST /api/nps ──
+  | { name: "tbr_clarity_answered"; params: { score: number; surface: "founder" | "share"; has_comment: boolean; snapshot_id?: string; user_id?: string; qa?: boolean } }
+  // ── G19-S45 engagement twins (client-emitted today; typed here so the GA4 limits test covers both maps) ──
+  | { name: "tbr_section_view"; params: { section: string; surface: "founder" | "share" | "order_page" | "demo"; tier?: string; user_id?: string } }
+  | { name: "tbr_export"; params: { format: "pdf" | "docx"; surface: string; user_id?: string } }
   | { name: "dossier_view"; params: { evaluation_id: string; consent_tier: string; role: "assessor" | "founder"; surface: "page" | "api"; user_id: string } }
   // ── G13-S-D2 / G14 GA4 audit leftover — evaluator submitted their assessment ──
   | { name: "assessment_submitted"; params: { evaluation_id: string; decision: "pass" | "track" | "proceed" | "none"; version: number; user_id: string } }

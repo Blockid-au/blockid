@@ -489,7 +489,9 @@ export interface TbrDocxResult {
 
 /** Build the DOCX; `generateTbrDocx` is the Buffer-only convenience the route uses. */
 export async function buildTbrDocx(report: ReportV2, opts: TbrDocxOptions = {}): Promise<TbrDocxResult> {
-  const locale = opts.locale ?? report.locale ?? "en";
+  // G19-S45: the fixed-layout twins carry EN / VI fonts + strings; ES / JA documents render with the English labels.
+  const raw = opts.locale ?? report.locale ?? "en";
+  const locale: "en" | "vi" = raw === "vi" ? "vi" : "en";
   const projection = projectForTier(report, opts.level ?? 0);
   const r = projection.report;
   const images = opts.images ?? (await rasteriseReportVisuals(r));
