@@ -73,6 +73,15 @@ citation). `eval-runner.test.ts` runs a deterministic in-band runner over
 all 24 nightly-style (no LLM) so a fixture edit that cannot pass is caught
 in CI.
 
+G19 adds two W4-shaped fixtures pinned by `report-pipeline/tbr-fixtures.test.ts`:
+`TBR-ledger-v2.1.0.json` (S41 score ledger — TRE seed, FTV idea *unassessed*,
+CGH seed: the verdict must name ≥ 1 `scoreLedger.signals[].signal` it was
+given, `verdict_must_mention_any`, and never a signal outside the ledger) and
+`TBR-valuation-inputs-v2.1.0.json` (S42/S46 valuation truth — a pre-revenue
+case whose verdict must say "pre-revenue" / "Berkus" and where any `ARR A$` /
+`MRR A$` figure hard-fails, and a Stripe-connector case whose verdict must
+name the source and cite the row).
+
 ## Promotion rule
 
 `web/src/lib/ai/eval-runner.ts::shouldPromote(result)` returns `true`

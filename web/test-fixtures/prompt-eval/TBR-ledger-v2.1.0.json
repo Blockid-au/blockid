@@ -1,7 +1,7 @@
 {
   "agent": "TBR-ledger",
   "version": "2.1.0",
-  "purpose": "Trusted Business Report v2 — G19-S41 score ledger: the W4 owner explains the deterministic score WITH the scoreLedger rows it was given (verdict names ≥ 1 ledger signal, never a signal outside the ledger); seed TRE (CRO) and idea FTV (CHRO) cases, bands = ANCHORS p25-p75",
+  "purpose": "Trusted Business Report v2 — G19-S41 score ledger: the W4 owner explains the deterministic score WITH the scoreLedger rows it was given (verdict names ≥ 1 ledger signal, never a signal outside the ledger); seed TRE (CRO), idea FTV (CHRO, unassessed) and seed CGH (CFO) cases, bands = ANCHORS p25-p75",
   "cases": [
     {
       "id": "case_ledger_seed_tre",
@@ -51,9 +51,21 @@
         "scoreLedger": {
           "base": 30,
           "signals": [
-            { "signal": "Early revenue traction", "points": 20, "source": "transaction_data" },
-            { "signal": "Customer proof present", "points": 8, "source": "connected_source" },
-            { "signal": "Analytics connected", "points": 8, "source": "connected_source" }
+            {
+              "signal": "Early revenue traction",
+              "points": 20,
+              "source": "transaction_data"
+            },
+            {
+              "signal": "Customer proof present",
+              "points": 8,
+              "source": "connected_source"
+            },
+            {
+              "signal": "Analytics connected",
+              "points": 8,
+              "source": "connected_source"
+            }
           ],
           "confidenceMultiplier": 0.75,
           "adjustment": 2,
@@ -161,6 +173,124 @@
           "not assessed",
           "baseline",
           "no evidence"
+        ]
+      }
+    },
+    {
+      "id": "case_ledger_seed_cgh",
+      "name": "Seed — Capital & Governance chapter explains the score from the ledger (CFO owner): cap table + ESOP + vesting rows carry 40 → 60",
+      "input": {
+        "dim": "cgh",
+        "weight": 12,
+        "stage": 2,
+        "stageLabel": "Seed",
+        "phaseId": "legal_equity",
+        "benchmark": {
+          "p25": 46,
+          "p50": 58,
+          "p75": 70,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 60,
+        "criterionResults": [],
+        "evidenceRows": [
+          {
+            "id": "ev-captable-01",
+            "source": "upload",
+            "status": "evidenced",
+            "observedAt": "2026-09-02T00:00:00.000Z",
+            "label": "Cap table register",
+            "value": "10,000,000 shares on issue; founder 100 %; 12 % ESOP pool reserved"
+          },
+          {
+            "id": "ev-vesting-01",
+            "source": "upload",
+            "status": "evidenced",
+            "observedAt": "2026-09-02T00:00:00.000Z",
+            "label": "Vesting schedule",
+            "value": "4-year vesting, 1-year cliff on founder shares"
+          }
+        ],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "cgh",
+              "benchmarkStage": 2,
+              "p25": 46,
+              "p50": 58,
+              "p75": 70,
+              "deterministicScore": 60
+            }
+          },
+          {
+            "id": "svi/cap-table-input.ts:loadCapTableInput",
+            "output": {
+              "holders": 1,
+              "founderPct": 100,
+              "esopPoolPct": 12,
+              "vestingOnFounders": true
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": null,
+          "nextRequired": [
+            "shareholders agreement"
+          ],
+          "whatMattersNow": "A signed shareholders agreement and a second holder on the register make the governance row investable."
+        },
+        "scoreLedger": {
+          "base": 40,
+          "signals": [
+            {
+              "signal": "Cap table on file",
+              "points": 10,
+              "source": "document_uploaded"
+            },
+            {
+              "signal": "ESOP pool reserved",
+              "points": 6,
+              "source": "document_uploaded"
+            },
+            {
+              "signal": "Founder vesting in place",
+              "points": 4,
+              "source": "document_uploaded"
+            }
+          ],
+          "confidenceMultiplier": 0.5,
+          "adjustment": 1,
+          "assessed": true
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 46,
+          "max": 70
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "shareholders agreement"
+        ],
+        "must_not_hallucinate": [
+          "Board of directors",
+          "Independent director",
+          "Series A term sheet",
+          "Audited accounts"
+        ],
+        "must_cite": 1,
+        "primary_visual": {
+          "kind": "donut"
+        },
+        "verdict_must_mention_any": [
+          "Cap table on file",
+          "ESOP pool reserved",
+          "Founder vesting in place"
         ]
       }
     }
