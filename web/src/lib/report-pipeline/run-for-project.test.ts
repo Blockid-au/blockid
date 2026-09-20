@@ -203,8 +203,18 @@ describe("generateAndPersistReport", () => {
   });
 
   it("persists assembled_reports + agent_report_tasks on success", async () => {
+    orchestrateMock.mockImplementation(async (i: { callAI: (s: string, u: string, m: number, c?: string) => Promise<unknown> }) => {
+      await i.callAI("sys", "user", 900, "report");
+      return REPORT;
+    });
     const report = await generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 3 });
     expect(report.id).toBe("rpt-1");
+    // G19-S46: the pipeline's own fan-out must not sit behind ai-client's per-user fairness cap (2 in flight) — agentId keys the per-report semaphore instead.
+    expect(callAIMock).toHaveBeenCalledTimes(1);
+    const callOpts = callAIMock.mock.calls[0][0] as unknown as Record<string, unknown>;
+    expect(callOpts.agentId).toBe("svi:acc-1:p-1");
+    expect(callOpts).not.toHaveProperty("userId");
+    expect(callOpts.taskClass).toBe("report");
     expect(orchestrateMock).toHaveBeenCalledWith(expect.objectContaining({ accountId: "acc-1", userId: "u-1", projectId: "p-1", startupName: "Acme", tier: "standard", locale: "en" }));
     const inserted = state.calls.filter((c) => c.op === "insert").map((c) => c.table);
     expect(inserted).toEqual(["assembled_reports", "agent_report_tasks"]);

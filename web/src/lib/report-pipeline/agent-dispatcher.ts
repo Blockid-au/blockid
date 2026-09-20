@@ -710,6 +710,13 @@ export async function dispatchWave(
   const results = await Promise.all(
     tasks.map((task) => dispatchAgent(task, context, tier, callAI, opts)),
   );
+  // G19-S46: per-criterion outcome line for operators (REPORT_PIPELINE_DEBUG=1)
+  // — the SSE stream carries W4 chapters but never the W1–W3 results.
+  if (process.env.REPORT_PIPELINE_DEBUG) {
+    for (const r of results) {
+      console.warn(`[report-pipeline] ${r.agentRole}/${r.criterion}: ${r.schemaValidated ? "validated" : "unvalidated"}${r.degraded ? " degraded" : ""} score=${r.score} words=${r.wordCount} ms=${r.durationMs}${r.degradeReason ? ` reason=${r.degradeReason.slice(0, 220)}` : ""}`);
+    }
+  }
 
   // Store results in context for next wave — unless the report deadline
   // already expired: the orchestrator has moved on (synthesis / assemble /

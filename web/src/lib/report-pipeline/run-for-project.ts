@@ -436,6 +436,18 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
   const svAgentId = `svi:${ctx.account.id}${ctx.projectId ? `:${ctx.projectId}` : ""}`;
   // S-R3 (W2 review b): hand the REAL cost / provider back so the
   // orchestrator's `done` event and ai-spend-daily.json carry it.
+  //
+  // G19-S46: NO `userId` on these calls. ai-client's per-user fairness
+  // limiter (S31-A: 2 in flight per user, 6 queued for ≤ 45 s, then
+  // AICapacityError) exists for interactive fan-out — a founder with six
+  // tabs. A report run is ONE job that fans out 6 W1 + 8 W4 calls of ~30 s
+  // each under its own per-report call cap and per-agent semaphore
+  // (`svAgentId`, 8 slots); under the per-user cap calls 3–6 of every wave
+  // timed out in the queue ("AI capacity busy for this account"), the
+  // structured pass failed, the repair pass queued and failed again, and
+  // each criterion degraded to unvalidated prose (BlockID's own run,
+  // 2026-09-20: 4 of 6 W1 criteria). `userId` still lands on the
+  // assembled_reports / agent_report_tasks rows below.
   const aiCaller = async (
     systemPrompt: string,
     userPrompt: string,
@@ -448,7 +460,6 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
       maxTokens,
       timeoutMs: 120_000,
       agentId: svAgentId,
-      userId,
       taskClass,
     });
     return { text: result.text, costUsd: result.cost_usd, provider: result.via ?? result.provider, model: result.model };

@@ -126,6 +126,7 @@ if (REPORT_MODE) {
   // first answers fail the schema (measured: 30/30 used before W4). 48 calls
   // (the investor_memo cap) ≈ US$0.03 at DeepInfra rates.
   process.env.REPORT_CALL_MAX_STANDARD ??= "48";
+  process.env.REPORT_PIPELINE_DEBUG ??= "1";
   const { runSelfReport, makeSelfReportDb } = await import("./lib/self-report-core.mjs");
   const pipeline = await loadReportPipeline();
   const summary = await runSelfReport({
