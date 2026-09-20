@@ -75,7 +75,7 @@ describe("S17-A: accept lands on the shared project", () => {
     expect(res.status).toBe(200);
     const body = await res.json();
     expect(body.project).toEqual({ id: "proj-1", name: "Acme", slug: "acme", role: "viewer" });
-    expect(body.redirect).toBe("/workspace");
+    expect(body.redirect).toBe("/dashboard");
     const setCookie = res.headers.get("set-cookie") ?? "";
     expect(setCookie).toContain("blockid_project=proj-1");
     expect(setCookie.toLowerCase()).toContain("path=/");

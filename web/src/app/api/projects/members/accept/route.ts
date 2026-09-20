@@ -114,7 +114,8 @@ async function POST_handler(request: Request) {
       project: project
         ? { id: project.id, name: project.name, slug: project.slug, role: member.role }
         : null,
-      redirect: project ? "/workspace" : "/workspace/projects",
+      // /workspace is a real 307 to /dashboard since G20-sweep — send members straight there.
+      redirect: project ? "/dashboard" : "/workspace/projects",
     });
     if (project?.id) {
       // Shared projects are addressed by ID in the cookie (slugs are only

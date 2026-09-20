@@ -1,61 +1,43 @@
 {
-  "ts": "2026-09-20T08:33:38.048Z",
-  "startedAt": "2026-09-20T08:25:10Z",
+  "ts": "2026-09-20T10:00:14.689Z",
+  "startedAt": "2026-09-20T09:52:00Z",
   "baseURL": "https://blockid.au",
   "exitCode": 1,
-  "passed": 204,
-  "failed": 6,
-  "skipped": 13,
+  "passed": 208,
+  "failed": 3,
+  "skipped": 14,
   "flaky": 0,
   "expectedFailures": 0,
-  "durationMs": 506060.158,
+  "durationMs": 492660.914,
   "account": {
-    "email": "qa-live-20260920-0825@blockid.au",
-    "userId": "3b544135-48bf-4302-909f-68ae5f51ff9f",
-    "projectId": "ae7b704d-8d59-4938-899b-3c28e146e2b6",
+    "email": "qa-live-20260920-0952@blockid.au",
+    "userId": "a05085a5-3ee4-4b65-ad58-5062d621c2c0",
+    "projectId": "9b0b6475-2e8c-47cb-b25a-9fd5cf461912",
     "plan": "growth",
     "elevated": true
   },
   "erasure": {
     "ok": true,
-    "detail": "erased 3b544135-48bf-4302-909f-68ae5f51ff9f; verify dry-run exit 2 (no app_users row for the QA founder email)"
+    "detail": "erased a05085a5-3ee4-4b65-ad58-5062d621c2c0; verify dry-run exit 2 (no app_users row for the QA founder email)"
   },
   "findings": [
     {
       "spec": "02-revenue.spec.ts",
       "project": "live-qa",
-      "title": "page shows the source captions and the Data Sources panel",
-      "error": "Error: expect(locator).toContainText(expected) failed\n\nLocator: getByTestId('data-sources')\nExpected pattern: /Stripe/\nReceived string:  \"Data SourcesUpload a bank or accounting CSV under Expenses; your valuation and P&L update from it.CSV importExport your P&L or bank statement as CSV and upload it under Expenses to get the same figures in.Upload a CSV\"\nTimeout: 15000ms\n\nCall log:\n  - Expect \"toContainText\" with timeout 15000ms\n  - waiting for getByTestId('data-sources')\n    34 × locator resolved to <section data-testid=\"data-sources\" class=\"rounded-xl border border-surface-200 bg-white p-5 s"
-    },
-    {
-      "spec": "02-revenue.spec.ts",
-      "project": "live-qa",
       "title": "Xero: either a real OAuth redirect or the 'not available yet' label — never a JSON 503 page",
-      "error": "Error: one Xero affordance rendered\n\nexpect(received).toBe(expected) // Object.is equality\n\nExpected: true\nReceived: false"
+      "error": "Error: expect(locator).toHaveText(expected) failed\n\nLocator: getByTestId('data-sources').getByTestId('xero-unavailable')\nExpected pattern: /Xero — not available yet/\nTimeout: 15000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toHaveText\" with timeout 15000ms\n  - waiting for getByTestId('data-sources').getByTestId('xero-unavailable')\n"
     },
     {
-      "spec": "21-reports.spec.ts",
+      "spec": "26-member-lane.spec.ts",
       "project": "live-qa",
-      "title": "/tbr/demo renders ≥ 1 CTA row with an internal href and Money shows real rows or a linked CTA",
-      "error": "Error: expect(locator).toBeVisible() failed\n\nLocator: locator('[data-tbr-evidence-row=\"cta\"]').first()\nExpected: visible\nTimeout: 30000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeVisible\" with timeout 30000ms\n  - waiting for locator('[data-tbr-evidence-row=\"cta\"]').first()\n"
-    },
-    {
-      "spec": "33-page-sweep.spec.ts",
-      "project": "live-qa",
-      "title": "every founder route renders clean on the run's plan (Free → gates; Growth when elevated)",
-      "error": "Error: founder (growth): every page renders clean\n\nexpect(received).toEqual(expected) // deep equality\n\n- Expected  -  1\n+ Received  + 18\n\n- Array []\n+ Array [\n+   \"founder /dashboard → 200 h1_count_0\",\n+   \"founder /onboarding → 200 h1_count_0\",\n+   \"founder /workspace → 200 h1_count_0, console_errors_2 · Executing inline script violates the following Content Security Policy directive 'script-src 'self' 'nonce-0yB/fBeWchPcE\",\n+   \"founder /workspace/equity/setup → 200 console_errors_2 · Executing inline script violates the following Content Security Policy directive 'script-src 'self' 'nonce-"
-    },
-    {
-      "spec": "33-page-sweep.spec.ts",
-      "project": "live-qa",
-      "title": "every evaluator route renders clean for the investor_angel seat",
-      "error": "Error: evaluator: every page renders clean\n\nexpect(received).toEqual(expected) // deep equality\n\n- Expected  - 1\n+ Received  + 3\n\n- Array []\n+ Array [\n+   \"evaluator /workspace/investor/startup/9232d52d-5574-44af-9b2f-099a97ecf324 → 200 console_errors_2 · Executing inline script violates the following Content Security Policy directive 'script-src 'self' 'nonce-i3dPec253O7Io\",\n+ ]"
+      "title": "anonymous /invites/<token> shows the invite and asks to sign in; the member accepts and lands in the workspace",
+      "error": "TimeoutError: page.waitForURL: Timeout 30000ms exceeded.\n=========================== logs ===========================\nwaiting for navigation until \"load\"\n  navigated to \"https://blockid.au/dashboard\"\n  navigated to \"https://blockid.au/dashboard\"\n============================================================"
     },
     {
       "spec": "34-purchase-path.spec.ts",
       "project": "live-qa",
       "title": "(a) /signup?plan=founder_starter renders the 7-day trial terms, the Starter price and the Stripe card field",
-      "error": "Error: expect(received).toContain(expected) // indexOf\n\nExpected substring: \"After 7 days, you'll pay A$29/mo for Starter\"\nReceived string:    \"Card required to prevent abuse. Cancel anytime. Email reminder 72h before we charge. After 7 days, you'll pay A$29/mo for Founder Starter. Cancel anytime.\""
+      "error": "Error: expect(locator).toHaveCount(expected) failed\n\nLocator:  getByTestId('signup-card-field').locator('iframe')\nExpected: 1\nReceived: 2\nTimeout:  30000ms\n\nCall log:\n  - Expect \"toHaveCount\" with timeout 30000ms\n  - waiting for getByTestId('signup-card-field').locator('iframe')\n    63 × locator resolved to 2 elements\n       - unexpected value \"2\"\n"
     }
   ]
 }

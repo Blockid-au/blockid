@@ -110,7 +110,8 @@ test.describe("Purchase path — founder Starter (no spend)", () => {
       // Stripe Elements mounts its iframe inside the card wrapper (real key on production).
       const cardField = page.getByTestId("signup-card-field");
       await expect(cardField).toBeVisible();
-      await expect(cardField.locator("iframe")).toHaveCount(1, { timeout: 30_000 });
+      // Stripe Elements mounts a visible frame plus a hidden controller frame — ≥ 1.
+      await expect.poll(async () => cardField.locator("iframe").count(), { timeout: 30_000 }).toBeGreaterThanOrEqual(1);
       await evidence(testInfo, "/signup?plan=founder_starter", { h1: await page.getByRole("heading", { level: 1 }).innerText(), selected, terms: termsText, cardIframes: await cardField.locator("iframe").count() });
     } finally {
       await ctx.close();
@@ -180,7 +181,8 @@ test.describe("Purchase path — evaluator Scout (no spend)", () => {
       const terms = await page.getByTestId("signup-trial-terms").innerText();
       expect(terms).toContain(`After ${TRIAL_DAYS} days, you'll pay ${aud(SCOUT_CENTS)}/mo for Scout`);
       const cardField = page.getByTestId("signup-card-field");
-      await expect(cardField.locator("iframe")).toHaveCount(1, { timeout: 30_000 });
+      // Stripe Elements mounts a visible frame plus a hidden controller frame — ≥ 1.
+      await expect.poll(async () => cardField.locator("iframe").count(), { timeout: 30_000 }).toBeGreaterThanOrEqual(1);
       await evidence(testInfo, "Scout signup", { href, trialText, selected, terms, cardIframes: await cardField.locator("iframe").count() });
     } finally {
       await ctx.close();

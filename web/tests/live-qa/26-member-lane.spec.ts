@@ -133,7 +133,7 @@ test.describe("Member lane — provision + invite", () => {
       expect(res.status()).toBe(200);
       expect(body.project?.id).toBe(qa.projectId);
       expect(body.project?.role).toBe("editor");
-      await page.waitForURL(/\/workspace/, { timeout: 30_000 });
+      await page.waitForURL(/\/(workspace|dashboard)/, { timeout: 30_000 });
       const cookie = (await ctx.cookies()).find((c) => c.name === "blockid_project");
       expect(cookie?.value, "accept pins the shared project (by id) in the project cookie").toBe(qa.projectId);
       // Persist the accepted session (+ project cookie) for the later tests.
