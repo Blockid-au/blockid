@@ -27,22 +27,22 @@ export function TbrLockedChapterPreview({ chapter, locale = "en" }: { chapter: D
   const t = v2Strings(locale).rail;
   const lead = firstSentence(ch.verdict);
   return (
-    <div data-tbr-locked={ch.dim} className="relative overflow-hidden rounded-xl border border-ink-200 bg-white p-4 dark:border-ink-800 dark:bg-ink-950 print:break-inside-avoid">
-      {lead && <p className="text-sm leading-relaxed text-ink-800 dark:text-ink-200">{lead}</p>}
+    <div data-tbr-locked={ch.dim} className="relative overflow-hidden rounded-xl border border-line-subtle bg-surface p-4 print:break-inside-avoid">
+      {lead && <p className="text-sm leading-relaxed text-primary">{lead}</p>}
       <div aria-hidden="true" className="pointer-events-none mt-3 grid select-none gap-3 blur-[3px] md:grid-cols-[minmax(0,1fr)_240px]" data-tbr-skeleton="visual">
         <div className="space-y-2">
           {SKELETON_BARS.map((w, i) => (
-            <div key={i} className="h-3 rounded bg-ink-200/80 dark:bg-ink-800" style={{ width: `${w}%` }} />
+            <div key={i} className="h-3 rounded bg-surface-sunken" style={{ width: `${w}%` }} />
           ))}
         </div>
-        <div className="flex h-28 items-end gap-2 rounded-lg border border-ink-200 p-3 dark:border-ink-800">
+        <div className="flex h-28 items-end gap-2 rounded-lg border border-line-subtle p-3">
           {[40, 65, 30, 80, 55].map((h, i) => (
-            <div key={i} className="flex-1 rounded-t bg-brand-200/70 dark:bg-brand-900/60" style={{ height: `${h}%` }} />
+            <div key={i} className="flex-1 rounded-t bg-brand-200/70" style={{ height: `${h}%` }} />
           ))}
         </div>
       </div>
-      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-white to-transparent dark:from-ink-950" />
-      <p className="relative mt-2 text-[11px] font-medium text-ink-500 dark:text-ink-400">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-surface to-transparent" />
+      <p className="relative mt-2 text-xs font-medium text-muted">
         {t.lockedNote}
       </p>
     </div>

@@ -140,10 +140,10 @@ export function TbrClaritySurveyForm({ snapshotId, strings: t, score, comment, p
       data-tbr-clarity={snapshotId}
       data-tbr-clarity-phase={phase}
       aria-label={t.question}
-      className="rounded-2xl border border-brand-200 bg-brand-50/60 p-4 dark:border-brand-800 dark:bg-brand-950/30 print:hidden"
+      className="rounded-2xl border border-brand-300 dark:border-brand-800 bg-surface-sunken p-4 print:hidden"
     >
       {phase === "done" ? (
-        <p role="status" className="text-sm font-medium text-brand-800 dark:text-brand-200" data-testid="tbr-clarity-thanks">
+        <p role="status" className="text-sm font-medium text-action" data-testid="tbr-clarity-thanks">
           {t.thanks}
         </p>
       ) : (
@@ -155,8 +155,8 @@ export function TbrClaritySurveyForm({ snapshotId, strings: t, score, comment, p
           }}
         >
           <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <p className="text-sm font-semibold text-ink-900 dark:text-ink-50">{t.question}</p>
-            <p className="text-[11px] text-ink-500 dark:text-ink-400">{t.hint}</p>
+            <p className="text-sm font-semibold text-primary">{t.question}</p>
+            <p className="text-xs text-muted">{t.hint}</p>
           </div>
           <div role="radiogroup" aria-label={t.question} className="flex flex-wrap items-center gap-1.5">
             {TBR_CLARITY_SCORES.map((n) => (
@@ -172,13 +172,13 @@ export function TbrClaritySurveyForm({ snapshotId, strings: t, score, comment, p
                   "h-9 w-9 rounded-lg border text-sm font-semibold tabular-nums transition-colors",
                   score === n
                     ? "border-brand-600 bg-brand-600 text-white"
-                    : "border-ink-200 bg-white text-ink-700 hover:border-brand-400 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-200",
+                    : "border-line-subtle bg-surface text-secondary hover:border-line",
                 )}
               >
                 {n}
               </button>
             ))}
-            <span className="ml-1 text-[10px] uppercase tracking-wide text-ink-500 dark:text-ink-400">
+            <span className="ml-1 text-[11px] uppercase tracking-wide text-muted">
               0 = {t.low} · 10 = {t.high}
             </span>
           </div>
@@ -191,7 +191,7 @@ export function TbrClaritySurveyForm({ snapshotId, strings: t, score, comment, p
               placeholder={t.commentPlaceholder}
               aria-label={t.commentPlaceholder}
               data-testid="tbr-clarity-comment"
-              className="h-9 flex-1 rounded-lg border border-ink-200 bg-white px-3 text-sm text-ink-800 placeholder:text-ink-400 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-100"
+              className="h-9 flex-1 rounded-lg border border-line-subtle bg-surface px-3 text-sm text-primary placeholder:text-muted"
             />
             <div className="flex items-center gap-2">
               <button
@@ -202,7 +202,7 @@ export function TbrClaritySurveyForm({ snapshotId, strings: t, score, comment, p
               >
                 {t.submit}
               </button>
-              <button type="button" onClick={onDismiss} data-testid="tbr-clarity-dismiss" className="text-xs text-ink-500 underline-offset-2 hover:underline dark:text-ink-400">
+              <button type="button" onClick={onDismiss} data-testid="tbr-clarity-dismiss" className="text-xs text-muted underline-offset-2 hover:underline">
                 {t.dismiss}
               </button>
             </div>

@@ -25,25 +25,25 @@ export function TbrPhaseGates({ report, title, locale = "en" }: { report: Report
   const route = g.visuals.find((v) => v.kind === "route_map");
   return (
     <TbrSection id={TBR_V2_SECTION_IDS.phaseGates} kicker="11" title={title} purpose={v2Strings(locale).s47.purpose.phaseGates}>
-      <div className="flex items-center gap-2 text-xs text-ink-600 dark:text-ink-300">
+      <div className="flex items-center gap-2 text-xs text-secondary">
         <AgentBadge role="coo" />
         <span>{t.currentPhase(phaseLabel(g.current, locale))}</span>
       </div>
       {route && <VisualFigure spec={route} caption={null} />}
-      <p data-tbr-floors-row className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-ink-600 dark:text-ink-300">
-        <span className="font-semibold uppercase tracking-wide text-ink-500">{s.floorsRow(phaseLabel(g.current, locale))}:</span>
+      <p data-tbr-floors-row className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-secondary">
+        <span className="font-semibold uppercase tracking-wide text-muted">{s.floorsRow(phaseLabel(g.current, locale))}:</span>
         {floors.map((f) => (
-          <span key={f.dim} data-tbr-floor={f.dim} className={cn("rounded-md border px-1.5 py-0.5 tabular-nums", f.met === false ? "border-orange-200 text-orange-700 dark:border-orange-900 dark:text-orange-300" : "border-ink-200 dark:border-ink-700")}>
-            <span className="font-mono text-[10px] text-ink-400">{f.dim.toUpperCase()}</span> {f.label}
+          <span key={f.dim} data-tbr-floor={f.dim} className={cn("rounded-md border px-1.5 py-0.5 tabular-nums", f.met === false ? "border-orange-300 dark:border-orange-800 text-bear" : "border-line-subtle")}>
+            <span className="font-mono text-xs text-muted">{f.dim.toUpperCase()}</span> {f.label}
           </span>
         ))}
       </p>
       <table className={TABLE_CLASS}>
-        <caption className="py-1 text-left text-[10px] font-semibold uppercase tracking-wide text-ink-500">{t.requiredCriteria(phaseLabel(g.current, locale))}</caption>
+        <caption className="py-1 text-left text-[11px] font-semibold uppercase tracking-wide text-muted">{t.requiredCriteria(phaseLabel(g.current, locale))}</caption>
         <tbody>
           {currentRows.map((m, i) => (
             <tr key={m.criterion} className={zebraRow(i)} data-tbr-gate-row={m.criterion}>
-              <td className="py-1 pr-2 font-medium text-ink-700 dark:text-ink-200">{CRITERIA.find((c) => c.key === m.criterion)?.title ?? m.criterion}</td>
+              <td className="py-1 pr-2 font-medium text-secondary">{CRITERIA.find((c) => c.key === m.criterion)?.title ?? m.criterion}</td>
               <td className="py-1 pr-2">
                 <Chip kind="band">{(v2Strings(locale).s47.quality as Record<string, string>)[m.quality] ?? m.quality}</Chip>
               </td>
@@ -53,13 +53,13 @@ export function TbrPhaseGates({ report, title, locale = "en" }: { report: Report
         </tbody>
       </table>
       {g.blockers.length > 0 && (
-        <ul className="space-y-1 text-xs text-ink-700 dark:text-ink-300">
+        <ul className="space-y-1 text-xs text-secondary">
           {g.blockers.slice(0, 6).map((b) => (
             <li key={`${b.code}-${b.subject}`}>▲ {b.detail}</li>
           ))}
         </ul>
       )}
-      {!free && heat && <VisualFigure spec={heat} caption={heat.subtitle ?? heat.title} className="overflow-x-auto rounded-xl border border-ink-200 p-3 dark:border-ink-800" />}
+      {!free && heat && <VisualFigure spec={heat} caption={heat.subtitle ?? heat.title} className="overflow-x-auto rounded-xl border border-line-subtle p-3" />}
     </TbrSection>
   );
 }

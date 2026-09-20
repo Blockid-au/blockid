@@ -148,10 +148,10 @@ function scoreBand(score: number | null): "strong" | "developing" | "early" | "p
 }
 
 function bandColor(band: "strong" | "developing" | "early" | "pending"): string {
-  if (band === "strong") return "text-emerald-700 dark:text-emerald-300";
-  if (band === "developing") return "text-amber-700 dark:text-amber-300";
-  if (band === "early") return "text-red-700 dark:text-red-300";
-  return "text-ink-500 dark:text-ink-400";
+  if (band === "strong") return "text-bull";
+  if (band === "developing") return "text-warn";
+  if (band === "early") return "text-bear";
+  return "text-muted";
 }
 
 // ── TOC ──────────────────────────────────────────────────────────────────────
@@ -167,11 +167,11 @@ function TocNav({
 }) {
   return (
     <nav aria-label="Report sections" className="hidden xl:block sticky top-24 self-start w-56 shrink-0 print:hidden">
-      <p className="text-[10px] uppercase tracking-[0.16em] font-semibold text-ink-500 dark:text-ink-400 mb-3">{t.tocContents}</p>
+      <p className="text-[11px] uppercase tracking-[0.16em] font-semibold text-muted mb-3">{t.tocContents}</p>
       <div className="space-y-4">
         {items.map((group) => (
           <div key={group.label}>
-            <p className="text-[9px] uppercase tracking-[0.2em] font-bold text-muted dark:text-ink-600 px-2 mb-1">{group.label}</p>
+            <p className="text-[9px] uppercase tracking-[0.2em] font-bold text-muted px-2 mb-1">{group.label}</p>
             <ul className="space-y-0.5">
               {group.items.map((s) => (
                 <li key={s.id}>
@@ -180,8 +180,8 @@ function TocNav({
                     className={cn(
                       "flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12px] transition-all leading-snug",
                       activeId === s.id
-                        ? "bg-brand-100 dark:bg-brand-950/40 text-brand-700 dark:text-brand-300 font-semibold border-l-2 border-brand-500 dark:border-brand-400 pl-1.5"
-                        : "text-ink-600 dark:text-ink-400 hover:text-ink-900 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-800",
+                        ? "bg-surface-sunken text-action font-semibold border-l-2 border-brand-500 pl-1.5"
+                        : "text-secondary hover:text-primary hover:bg-surface-sunken",
                     )}
                   >
                     {s.label}
@@ -199,9 +199,9 @@ function TocNav({
 function ReportSection({ id, title, children, className }: { id: string; title: string; children: React.ReactNode; className?: string }) {
   return (
     <section id={id} className={cn("scroll-mt-24 space-y-4 print:break-inside-avoid print:pt-6", className)} aria-labelledby={`${id}-heading`}>
-      <div className="flex items-center gap-3 pb-3 border-b-2 border-ink-100 dark:border-ink-800 print:border-ink-300">
+      <div className="flex items-center gap-3 pb-3 border-b-2 border-line-subtle print:border-line">
         <div className="h-5 w-1 rounded-full bg-brand-500 shrink-0 print:bg-brand-600" aria-hidden="true" />
-        <h2 id={`${id}-heading`} className="text-lg font-bold text-ink-800 dark:text-ink-100 tracking-tight">
+        <h2 id={`${id}-heading`} className="text-lg font-bold text-primary tracking-tight">
           {title}
         </h2>
       </div>
@@ -262,11 +262,11 @@ function PeerFiveSection({ projectId, shareToken, industry, stage }: { projectId
     };
   }, [projectId, shareToken]);
 
-  if (loading) return <p className="text-sm text-ink-500 dark:text-ink-400">Loading peer-5 similarity matches…</p>;
+  if (loading) return <p className="text-sm text-muted">Loading peer-5 similarity matches…</p>;
 
   if (error || !peers || peers.length === 0) {
     return (
-      <p className="text-sm text-ink-500 dark:text-ink-400">
+      <p className="text-sm text-muted">
         Not enough AU peers in our dataset yet to compute a Peer-5 match. As more founders complete a BlockID SVI analysis, this section will populate with the 5 closest matches on the 8-dim vector.
       </p>
     );
@@ -274,51 +274,51 @@ function PeerFiveSection({ projectId, shareToken, industry, stage }: { projectId
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-ink-600 dark:text-ink-400">
+      <p className="text-sm text-secondary">
         5 anonymised startups from the BlockID cohort with the closest 8-dimension SVI profile to yours (cosine similarity). Names are withheld — only industry, stage, and aggregate scores are shown.
       </p>
       {fallback === "cross_sector" && (
-        <p className="text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-2">
+        <p className="text-xs text-warn bg-surface-sunken border border-amber-300 dark:border-amber-800 rounded-md px-3 py-2">
           Not enough AU {stage ?? "seed"}-stage {industry ?? "same-sector"} peers yet — showing top available cross-sector matches.
         </p>
       )}
       <div className="overflow-x-auto">
         <table className="w-full text-sm border-collapse">
           <thead>
-            <tr className="border-b border-ink-200 dark:border-ink-700">
-              <th className="text-left py-2 pr-3 text-xs font-semibold text-ink-500 uppercase tracking-wide">#</th>
-              <th className="text-left py-2 pr-3 text-xs font-semibold text-ink-500 uppercase tracking-wide">Peer</th>
-              <th className="text-left py-2 pr-3 text-xs font-semibold text-ink-500 uppercase tracking-wide">Industry</th>
-              <th className="text-left py-2 pr-3 text-xs font-semibold text-ink-500 uppercase tracking-wide">Stage</th>
-              <th className="text-center py-2 px-2 text-xs font-semibold text-ink-500 uppercase tracking-wide">SVI</th>
-              <th className="text-left py-2 pr-3 text-xs font-semibold text-ink-500 uppercase tracking-wide">Top Strength</th>
-              <th className="text-left py-2 pr-3 text-xs font-semibold text-ink-500 uppercase tracking-wide">Primary Gap</th>
-              <th className="text-right py-2 pl-3 text-xs font-semibold text-ink-500 uppercase tracking-wide">Similarity</th>
+            <tr className="border-b border-line-subtle">
+              <th className="text-left py-2 pr-3 text-xs font-semibold text-muted uppercase tracking-wide">#</th>
+              <th className="text-left py-2 pr-3 text-xs font-semibold text-muted uppercase tracking-wide">Peer</th>
+              <th className="text-left py-2 pr-3 text-xs font-semibold text-muted uppercase tracking-wide">Industry</th>
+              <th className="text-left py-2 pr-3 text-xs font-semibold text-muted uppercase tracking-wide">Stage</th>
+              <th className="text-center py-2 px-2 text-xs font-semibold text-muted uppercase tracking-wide">SVI</th>
+              <th className="text-left py-2 pr-3 text-xs font-semibold text-muted uppercase tracking-wide">Top Strength</th>
+              <th className="text-left py-2 pr-3 text-xs font-semibold text-muted uppercase tracking-wide">Primary Gap</th>
+              <th className="text-right py-2 pl-3 text-xs font-semibold text-muted uppercase tracking-wide">Similarity</th>
             </tr>
           </thead>
           <tbody>
             {peers.map((p) => (
-              <tr key={p.rank} className="border-b border-ink-100 dark:border-ink-800/60">
-                <td className="py-2 pr-3 text-ink-500 tabular-nums">{p.rank}</td>
-                <td className="py-2 pr-3 font-medium text-ink-700 dark:text-ink-200">{p.codename}</td>
-                <td className="py-2 pr-3 text-ink-600 dark:text-ink-400">{p.industry}</td>
-                <td className="py-2 pr-3 text-ink-600 dark:text-ink-400 capitalize">{p.stage}</td>
+              <tr key={p.rank} className="border-b border-line-subtle">
+                <td className="py-2 pr-3 text-muted tabular-nums">{p.rank}</td>
+                <td className="py-2 pr-3 font-medium text-secondary">{p.codename}</td>
+                <td className="py-2 pr-3 text-secondary">{p.industry}</td>
+                <td className="py-2 pr-3 text-secondary capitalize">{p.stage}</td>
                 <td className="text-center py-2 px-2">
                   <span className={cn("font-bold tabular-nums", bandColor(scoreBand(p.sviScore)))}>{p.sviScore}</span>
                 </td>
-                <td className="py-2 pr-3 text-emerald-700 dark:text-emerald-400 text-xs">
+                <td className="py-2 pr-3 text-bull text-xs">
                   {p.topStrengthLabel} <span className="tabular-nums">({p.topStrengthScore})</span>
                 </td>
-                <td className="py-2 pr-3 text-red-700 dark:text-red-400 text-xs">
+                <td className="py-2 pr-3 text-bear text-xs">
                   {p.primaryGapLabel} <span className="tabular-nums">({p.primaryGapScore})</span>
                 </td>
-                <td className="text-right py-2 pl-3 tabular-nums font-semibold text-brand-700 dark:text-brand-300">{p.similarityPct}%</td>
+                <td className="text-right py-2 pl-3 tabular-nums font-semibold text-action">{p.similarityPct}%</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p className="text-[11px] text-ink-500 dark:text-ink-500 leading-snug">
+      <p className="text-xs text-muted leading-snug">
         Peer identities are strictly anonymised — no startup names, founder details, ABN, or contact info are ever exposed. Similarity is cosine distance on the normalised 8-dim SVI vector, sorted best match first.
       </p>
     </div>
@@ -595,10 +595,10 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
         {orderState.phase === "blocked" ? (
           <ReportOrderBlocked refunded={orderState.refunded} message={orderState.message} failureReason={orderState.failureReason} locale={locale} />
         ) : (
-          <div className="rounded-2xl border border-brand-200 bg-brand-50/60 p-6 dark:border-brand-800 dark:bg-brand-950/30" role="status" aria-live="polite" data-testid="tbr-order-pending">
-            <p className="text-sm font-semibold text-ink-900 dark:text-ink-50">{t.v2.order.pendingTitle}</p>
-            <p className="mt-1 text-xs text-ink-600 dark:text-ink-300">{orderState.phase === "pending" ? orderState.message : t.v2.order.loading}</p>
-            <p className="mt-2 text-[11px] text-ink-500 dark:text-ink-400">{t.v2.order.pendingLeave}</p>
+          <div className="rounded-2xl border border-brand-300 dark:border-brand-800 bg-surface-sunken p-6" role="status" aria-live="polite" data-testid="tbr-order-pending">
+            <p className="text-sm font-semibold text-primary">{t.v2.order.pendingTitle}</p>
+            <p className="mt-1 text-xs text-secondary">{orderState.phase === "pending" ? orderState.message : t.v2.order.loading}</p>
+            <p className="mt-2 text-xs text-muted">{t.v2.order.pendingLeave}</p>
           </div>
         )}
       </div>
@@ -608,11 +608,11 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
   if (!data && !report) {
     return (
       <div className="p-6 max-w-5xl mx-auto">
-        <div className="rounded-xl border border-amber-200 bg-amber-50/60 dark:bg-amber-950/20 dark:border-amber-800 p-6 text-center space-y-3">
-          <FileText className="h-10 w-10 mx-auto text-amber-500 dark:text-amber-400" aria-hidden="true" />
+        <div className="rounded-xl border border-amber-300 dark:border-amber-800 bg-surface-sunken p-6 text-center space-y-3">
+          <FileText className="h-10 w-10 mx-auto text-amber-500" aria-hidden="true" />
           {/* G20-sweep: the empty state is the page — its title is the h1. */}
-          <h1 className="text-sm font-medium text-amber-800 dark:text-amber-200">{t.noAnalysisTitle}</h1>
-          <p className="text-xs text-amber-700 dark:text-amber-300">{t.noAnalysisBody}</p>
+          <h1 className="text-sm font-medium text-warn">{t.noAnalysisTitle}</h1>
+          <p className="text-xs text-warn">{t.noAnalysisBody}</p>
           <Link href="/workspace/raise/deck" className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 transition-colors">
             {t.noAnalysisCta} <ChevronRight className="h-4 w-4" />
           </Link>
@@ -625,10 +625,10 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
   if (!report || scoredCount === 0) {
     return (
       <div className="p-6 max-w-5xl mx-auto">
-        <div className="rounded-xl border border-ink-200 dark:border-ink-800 p-6 text-center space-y-3">
-          <h1 className="text-sm font-medium text-ink-900 dark:text-ink-100">{t.reportTitle}</h1>
-          <p className="text-sm text-ink-600 dark:text-ink-400">{t.scoresMissingBody}</p>
-          <Link href="/workspace/raise/deck" className="text-brand-600 hover:underline text-sm">
+        <div className="rounded-xl border border-line-subtle p-6 text-center space-y-3">
+          <h1 className="text-sm font-medium text-primary">{t.reportTitle}</h1>
+          <p className="text-sm text-secondary">{t.scoresMissingBody}</p>
+          <Link href="/workspace/raise/deck" className="text-action hover:underline text-sm">
             {t.scoresMissingCta}
           </Link>
         </div>
@@ -680,8 +680,8 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
       {/* Header */}
       <div className="mb-6 space-y-1 print:mb-8">
         <div className="flex items-center gap-3 flex-wrap">
-          <h1 className="text-2xl font-bold text-ink-900 dark:text-ink-100 print:text-3xl">{t.reportTitle}</h1>
-          <span className="inline-flex items-center rounded-full bg-brand-100 dark:bg-brand-900/40 border border-brand-200 dark:border-brand-800 px-2.5 py-0.5 text-xs font-semibold text-brand-700 dark:text-brand-300">
+          <h1 className="text-2xl font-bold text-primary print:text-3xl">{t.reportTitle}</h1>
+          <span className="inline-flex items-center rounded-full bg-surface-sunken border border-brand-300 dark:border-brand-800 px-2.5 py-0.5 text-xs font-semibold text-action">
             {t.brandBadge}
           </span>
           {!pdfMode && (
@@ -691,7 +691,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
             <div
               role="group"
               aria-label={t.languageToggleAria}
-              className="inline-flex items-center rounded-full border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 p-0.5 text-[10px] font-semibold text-ink-600 dark:text-ink-300 print:hidden"
+              className="inline-flex items-center rounded-full border border-line-subtle bg-surface p-0.5 text-xs font-semibold text-secondary print:hidden"
             >
               {(["en", "vi", "es", "ja"] as const).map((code) => {
                 const isActive = (locale ?? "en") === code;
@@ -711,7 +711,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
                     }}
                     className={cn(
                       "inline-flex items-center rounded-full px-2 py-0.5 transition-colors",
-                      isActive ? "bg-brand-100 dark:bg-brand-900/40 text-brand-700 dark:text-brand-200" : "hover:bg-ink-50 dark:hover:bg-ink-800",
+                      isActive ? "bg-surface-sunken text-action" : "hover:bg-surface-sunken",
                     )}
                   >
                     {label}
@@ -752,7 +752,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
                     }
                   }}
                   disabled={shareBusy}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-brand-300 dark:border-brand-700 bg-brand-50 dark:bg-brand-950/40 px-3 py-1.5 text-xs font-semibold text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-900/40 transition-colors disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-brand-300 dark:border-brand-800 bg-surface-sunken px-3 py-1.5 text-xs font-semibold text-action hover:bg-surface-sunken transition-colors disabled:opacity-60"
                 >
                   {shareBusy ? t.sharing : t.shareWithInvestor}
                 </button>
@@ -771,7 +771,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
                   }
                   trackEvent("tbr_export", { format: "pdf", surface });
                 }}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-3 py-1.5 text-xs font-medium text-ink-600 dark:text-ink-400 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-line-subtle bg-surface px-3 py-1.5 text-xs font-medium text-secondary hover:bg-surface-sunken transition-colors"
               >
                 {t.downloadPdf}
               </a>
@@ -780,7 +780,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
                   href={reportOrderExportHref(paidExportsOrderId, "docx")}
                   data-testid="tbr-download-docx"
                   onClick={() => trackEvent("tbr_export", { format: "docx", surface })}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-3 py-1.5 text-xs font-medium text-ink-600 dark:text-ink-400 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-line-subtle bg-surface px-3 py-1.5 text-xs font-medium text-secondary hover:bg-surface-sunken transition-colors"
                 >
                   {t.v2.order.downloadDocx}
                 </a>
@@ -788,7 +788,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
               <button
                 type="button"
                 onClick={() => typeof window !== "undefined" && window.print()}
-                className="inline-flex items-center gap-1.5 rounded-lg border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-3 py-1.5 text-xs font-medium text-ink-600 dark:text-ink-400 hover:bg-ink-50 dark:hover:bg-ink-800 transition-colors"
+                className="inline-flex items-center gap-1.5 rounded-lg border border-line-subtle bg-surface px-3 py-1.5 text-xs font-medium text-secondary hover:bg-surface-sunken transition-colors"
               >
                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -799,9 +799,9 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
           )}
           {/* Share URL feedback strip */}
           {!pdfMode && shareUrl && (
-            <div className="mt-2 flex items-center gap-2 rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-950/30 px-3 py-2 text-xs print:hidden">
-              <span className="font-semibold text-brand-700 dark:text-brand-300">{t.shareUrlLabel}</span>
-              <code className="flex-1 truncate text-ink-700 dark:text-ink-300">{shareUrl}</code>
+            <div className="mt-2 flex items-center gap-2 rounded-lg border border-brand-300 dark:border-brand-800 bg-surface-sunken px-3 py-2 text-xs print:hidden">
+              <span className="font-semibold text-action">{t.shareUrlLabel}</span>
+              <code className="flex-1 truncate text-secondary">{shareUrl}</code>
               <button
                 type="button"
                 onClick={async () => {
@@ -813,15 +813,15 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
                     /* clipboard blocked */
                   }
                 }}
-                className="rounded border border-brand-300 dark:border-brand-700 bg-white dark:bg-ink-900 px-2 py-0.5 font-semibold text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-900/40"
+                className="rounded border border-brand-300 dark:border-brand-800 bg-surface px-2 py-0.5 font-semibold text-action hover:bg-surface-sunken"
               >
                 {copied ? t.copied : t.copy}
               </button>
             </div>
           )}
-          {!pdfMode && shareError && <p className="mt-2 text-xs text-red-600 dark:text-red-400 print:hidden">{shareError}</p>}
+          {!pdfMode && shareError && <p className="mt-2 text-xs text-bear print:hidden">{shareError}</p>}
         </div>
-        <p className="text-sm text-ink-500 dark:text-ink-400">
+        <p className="text-sm text-muted">
           {t.progressXofY(scoredCount, 8)} · {done ? t.completedInSeconds(((totalMs ?? 0) / 1000).toFixed(1)) : t.partialAnalysis}
           {industry && ` · ${industry}`}
         </p>
@@ -836,14 +836,14 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
         <div className="flex-1 min-w-0 space-y-12">
           {/* G19-S45 (D4): paid-order strip — being written / pre-v2 order. */}
           {founderMode && paid?.status === "pending" && (
-            <p role="status" aria-live="polite" data-testid="tbr-order-strip" data-tbr-order-status="pending" className="rounded-xl border border-brand-200 bg-brand-50/70 px-3 py-2 text-xs text-brand-900 dark:border-brand-800 dark:bg-brand-950/30 dark:text-brand-100 print:hidden">
+            <p role="status" aria-live="polite" data-testid="tbr-order-strip" data-tbr-order-status="pending" className="rounded-xl border border-brand-300 dark:border-brand-800 bg-surface-sunken px-3 py-2 text-xs text-brand-900 print:hidden">
               {t.v2.order.generatingStrip}
             </p>
           )}
           {founderMode && paid?.status === "legacy" && paidOrderId && (
-            <p data-testid="tbr-order-strip" data-tbr-order-status="legacy" className="rounded-xl border border-ink-200 bg-ink-50/70 px-3 py-2 text-xs text-ink-700 dark:border-ink-700 dark:bg-ink-900/40 dark:text-ink-200 print:hidden">
+            <p data-testid="tbr-order-strip" data-tbr-order-status="legacy" className="rounded-xl border border-line-subtle bg-surface-sunken px-3 py-2 text-xs text-secondary print:hidden">
               {t.v2.order.legacyStrip}{" "}
-              <Link href={legacyReportOrderPath(paidOrderId)} className="font-semibold text-brand-700 underline underline-offset-2 dark:text-brand-300">
+              <Link href={legacyReportOrderPath(paidOrderId)} className="font-semibold text-action underline underline-offset-2">
                 {t.v2.rail.openLegacy}
               </Link>
             </p>
@@ -855,9 +855,9 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
           )}
           {founderMode && access === undefined ? (
             <div data-testid="tbr-access-loading" className="animate-pulse space-y-4" aria-busy="true" aria-live="polite">
-              <div className="h-6 w-2/3 rounded bg-ink-100 dark:bg-ink-800" />
-              <div className="h-40 rounded-xl bg-ink-100 dark:bg-ink-800" />
-              <div className="h-6 w-1/2 rounded bg-ink-100 dark:bg-ink-800" />
+              <div className="h-6 w-2/3 rounded bg-surface-sunken" />
+              <div className="h-40 rounded-xl bg-surface-sunken" />
+              <div className="h-6 w-1/2 rounded bg-surface-sunken" />
             </div>
           ) : (
             <TbrReportV2
@@ -874,7 +874,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
             />
           )}
           {unlockNotice && (
-            <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200">
+            <p role="status" className="rounded-lg border border-amber-300 dark:border-amber-800 bg-surface-sunken px-3 py-2 text-xs text-warn">
               {unlockNotice}{" "}
               <Link href="/workspace/projects" className="font-semibold underline">
                 Open projects
@@ -896,48 +896,48 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
               Founder-only, only when leads exist. */}
           {!pdfMode && !initialData && shareToken && leads && leads.length > 0 && (
             <ReportSection id="tbr-investor-leads" title="Investor Leads">
-              <div className="flex flex-wrap items-center gap-2 text-xs text-ink-600 dark:text-ink-400">
-                <span className="font-semibold text-ink-800 dark:text-ink-100">{leads.length} total</span>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-secondary">
+                <span className="font-semibold text-primary">{leads.length} total</span>
                 {leadsByInterest.ready_to_talk > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200 px-2 py-0.5 font-medium">{leadsByInterest.ready_to_talk} ready to talk</span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-surface-sunken text-bull px-2 py-0.5 font-medium">{leadsByInterest.ready_to_talk} ready to talk</span>
                 )}
                 {leadsByInterest.warm > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 dark:bg-amber-950/40 text-amber-800 dark:text-amber-200 px-2 py-0.5 font-medium">{leadsByInterest.warm} warm</span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-surface-sunken text-warn px-2 py-0.5 font-medium">{leadsByInterest.warm} warm</span>
                 )}
                 {leadsByInterest.exploring > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-sky-100 dark:bg-sky-950/40 text-sky-800 dark:text-sky-200 px-2 py-0.5 font-medium">{leadsByInterest.exploring} exploring</span>
+                  <span className="inline-flex items-center gap-1 rounded-full bg-surface-sunken text-action px-2 py-0.5 font-medium">{leadsByInterest.exploring} exploring</span>
                 )}
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 {leads.map((lead) => {
                   const badge =
                     lead.interest_level === "ready_to_talk"
-                      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200"
+                      ? "bg-surface-sunken text-bull"
                       : lead.interest_level === "warm"
-                        ? "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200"
-                        : "bg-sky-100 text-sky-800 dark:bg-sky-950/40 dark:text-sky-200";
+                        ? "bg-surface-sunken text-warn"
+                        : "bg-surface-sunken text-action";
                   const label = lead.interest_level === "ready_to_talk" ? "Ready to talk" : lead.interest_level === "warm" ? "Warm" : "Exploring";
                   const who = [lead.investor_name, lead.investor_firm].filter(Boolean).join(" · ") || "Anonymous investor";
                   const subline = [lead.investor_role, lead.viewer_country].filter(Boolean).join(" · ");
                   return (
-                    <div key={lead.id} className="rounded-xl border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 p-4 flex flex-col gap-2">
+                    <div key={lead.id} className="rounded-xl border border-line-subtle bg-surface p-4 flex flex-col gap-2">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0 flex-1">
-                          <p className="text-sm font-semibold text-ink-800 dark:text-ink-100 truncate">{who}</p>
-                          {subline && <p className="text-[11px] text-ink-500 dark:text-ink-400 truncate">{subline}</p>}
+                          <p className="text-sm font-semibold text-primary truncate">{who}</p>
+                          {subline && <p className="text-xs text-muted truncate">{subline}</p>}
                         </div>
-                        <span className={cn("shrink-0 text-[11px] font-semibold rounded-full px-2 py-0.5", badge)}>{label}</span>
+                        <span className={cn("shrink-0 text-xs font-semibold rounded-full px-2 py-0.5", badge)}>{label}</span>
                       </div>
                       {lead.message && (
-                        <p className="text-xs text-ink-600 dark:text-ink-300 leading-snug bg-ink-50 dark:bg-ink-900/80 border border-ink-100 dark:border-ink-800 rounded-md px-2.5 py-2">{lead.message}</p>
+                        <p className="text-xs text-secondary leading-snug bg-surface-sunken border border-line-subtle rounded-md px-2.5 py-2">{lead.message}</p>
                       )}
                       <div className="flex items-center justify-between gap-2 pt-1">
-                        <span className="text-[10px] text-muted dark:text-ink-500 tabular-nums">
+                        <span className="text-xs text-muted tabular-nums">
                           {new Date(lead.created_at).toLocaleDateString(locale === "vi" ? "vi-VN" : "en-AU", { day: "numeric", month: "short" })}
                         </span>
                         <a
                           href={`mailto:${lead.investor_email}?subject=${encodeURIComponent("Following up on your interest in our startup")}`}
-                          className="text-xs font-semibold text-brand-700 dark:text-brand-300 hover:underline"
+                          className="text-xs font-semibold text-action hover:underline"
                         >
                           Reply via email →
                         </a>
@@ -962,9 +962,9 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
           </ReportSection>
 
           {/* Footer */}
-          <div className="border-t border-ink-200 dark:border-ink-800 pt-4 pb-8 flex items-center justify-between gap-4 text-xs text-ink-500 dark:text-ink-500">
+          <div className="border-t border-line-subtle pt-4 pb-8 flex items-center justify-between gap-4 text-xs text-muted">
             <p>{t.footerDisclaimer}</p>
-            <Link href="/workspace/raise/deck" className="text-brand-600 dark:text-brand-400 hover:underline shrink-0">
+            <Link href="/workspace/raise/deck" className="text-action hover:underline shrink-0">
               {t.footerReanalyse}
             </Link>
           </div>

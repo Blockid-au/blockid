@@ -16,7 +16,8 @@ import { TbrExecutive } from "./executive";
 import { TbrMoney } from "./money";
 import { TbrPhaseGates } from "./phase-gates";
 import { TbrValuation } from "./valuation";
-import { TBR_V2_SECTION_IDS, type TbrUiLocale } from "./shared";
+import { TBR_SURFACE_CLASS, TBR_V2_SECTION_IDS, type TbrUiLocale } from "./shared";
+import { cn } from "@/lib/utils";
 import { TbrUnlockRail, type TbrUnlockMode, type TbrUnlockOrderStatus } from "./unlock-rail";
 import { Fragment } from "react";
 
@@ -88,7 +89,7 @@ export function TbrReportV2({ report, strings, locale = "en", upgradeHref, after
   const firstLockedIdx = lockCards ? report.dimensions.findIndex((ch) => ch.renderAs === "card") : -1;
   const railAfterIdx = free && unlock ? (firstLockedIdx >= 0 ? firstLockedIdx : report.dimensions.length - 1) : -1;
   return (
-    <div className="space-y-12" data-tbr-version={report.schemaVersion} data-tbr-tier={report.tier} data-tbr-source={report.source} data-tbr-unlock={free && unlock ? unlock.mode : undefined}>
+    <div className={cn("space-y-12", TBR_SURFACE_CLASS)} data-tbr-version={report.schemaVersion} data-tbr-tier={report.tier} data-tbr-source={report.source} data-tbr-unlock={free && unlock ? unlock.mode : undefined}>
       <TbrCover report={report} title={t.secCover} locale={locale} />
       <TbrExecutive report={report} title={t.secExecutive} locale={locale} />
       {afterExecutive}

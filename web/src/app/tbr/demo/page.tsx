@@ -61,12 +61,12 @@ export default function TbrDemoPage() {
       />
 
       <MarketingSection kicker="Sample report" title="Trusted Business Report — demo startup">
-        <div className="rounded-2xl border border-line-subtle bg-white p-4 md:p-8 text-ink-900">
+        <div className="rounded-2xl border border-line-subtle bg-surface p-4 text-primary md:p-8">
           <TbrReportV2 report={report} upgradeHref="/pricing" />
         </div>
         <p className="mt-4 text-xs text-tertiary">
           The interactive report adds investor views, Peer-5 similarity and a Q&amp;A chat on top of these chapters. Preview the founder journey in the{" "}
-          <Link className="text-brand-600 underline" href="/showcase/atlassian?step=1">
+          <Link className="text-action underline" href="/showcase/atlassian?step=1">
             Atlassian showcase
           </Link>
           .

@@ -18,22 +18,22 @@ export function TbrActionPlan({ report, title, locale = "en" }: { report: Report
   const s43 = getTbrS43Strings(locale);
   return (
     <TbrSection id={TBR_V2_SECTION_IDS.actionPlan} kicker="13" title={title} purpose={v2Strings(locale).s47.purpose.actionPlan}>
-      <div className="flex items-center gap-2 text-xs text-ink-600 dark:text-ink-300">
+      <div className="flex items-center gap-2 text-xs text-secondary">
         <AgentBadge role="coo" />
         <span>{t.steps(steps.length, p.horizonDays)}</span>
       </div>
       {steps.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-3">
           {cols.map((day) => (
-            <div key={day} className="rounded-xl border border-ink-200 p-3 dark:border-ink-800">
-              <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-500">{t.dayRange(day - 30, day)}</p>
+            <div key={day} className="rounded-xl border border-line-subtle p-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{t.dayRange(day - 30, day)}</p>
               <ul className="mt-2 space-y-2 text-xs">
                 {steps
                   .filter((s) => s.day === day)
                   .map((s, i) => (
                     <li key={`${s.dimension}-${i}`} className="space-y-0.5">
-                      <p className="font-medium text-ink-800 dark:text-ink-100">{s.title}</p>
-                      <p className="flex flex-wrap items-center gap-1 text-[10px] text-ink-500">
+                      <p className="font-medium text-primary">{s.title}</p>
+                      <p className="flex flex-wrap items-center gap-1 text-xs text-muted">
                         <AgentBadge role={s.ownerAgent} kind="support" />
                         <DimChip dim={s.dimension} locale={locale} />
                         <Chip kind="lift">{t.lift(s.expectedLift)}</Chip>
@@ -41,17 +41,17 @@ export function TbrActionPlan({ report, title, locale = "en" }: { report: Report
                       </p>
                     </li>
                   ))}
-                {steps.every((s) => s.day !== day) && <li className="text-ink-400">—</li>}
+                {steps.every((s) => s.day !== day) && <li className="text-muted">—</li>}
               </ul>
             </div>
           ))}
         </div>
       ) : (
-        <p className="text-xs text-ink-600 dark:text-ink-400">{t.empty}</p>
+        <p className="text-xs text-secondary">{t.empty}</p>
       )}
       {evidence.rows.length > 0 && (
-        <div data-tbr-plan-evidence className="rounded-xl border border-ink-200 p-3 dark:border-ink-800">
-          <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-500">{evidence.title}</p>
+        <div data-tbr-plan-evidence className="rounded-xl border border-line-subtle p-3">
+          <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{evidence.title}</p>
           <ul className="mt-2 space-y-1 text-xs">
             {evidence.rows.map((r) => (
               <li key={r.evidence_id}>
@@ -62,7 +62,7 @@ export function TbrActionPlan({ report, title, locale = "en" }: { report: Report
         </div>
       )}
       {p.visuals.map((v) => (
-        <VisualFigure key={v.id} spec={v} caption={v.title} className="rounded-xl border border-ink-200 p-3 dark:border-ink-800" />
+        <VisualFigure key={v.id} spec={v} caption={v.title} className="rounded-xl border border-line-subtle p-3" />
       ))}
     </TbrSection>
   );

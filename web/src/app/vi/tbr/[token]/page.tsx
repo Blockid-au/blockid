@@ -165,7 +165,7 @@ export default async function ViTbrSharePage({
 
   const pdfMode = pdf === "1";
   return (
-    <div className="min-h-screen bg-white dark:bg-ink-950">
+    <div className="min-h-screen bg-surface text-primary">
       <BusinessReportClient
         projectId={result.row.project_id ?? "shared"}
         initialData={result.persisted}

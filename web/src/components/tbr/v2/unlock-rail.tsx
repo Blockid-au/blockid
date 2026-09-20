@@ -67,22 +67,22 @@ export function TbrUnlockRail({ mode, chapterCount, onUnlock, orderId, orderStat
       data-tbr-unlock={mode}
       data-tbr-order-status={mode === "purchased" ? orderStatus : undefined}
       aria-label={t.ariaLabel}
-      className="sticky top-16 z-10 rounded-2xl border border-brand-300 bg-brand-50/95 p-5 shadow-lg backdrop-blur dark:border-brand-700 dark:bg-brand-950/90 print:hidden"
+      className="sticky top-16 z-10 rounded-2xl border border-brand-300 dark:border-brand-800 bg-surface-sunken p-5 shadow-lg backdrop-blur print:hidden"
     >
       <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div className="min-w-0 flex-1 space-y-2">
-          <p className="flex items-center gap-2 text-base font-bold text-ink-900 dark:text-ink-50">
+          <p className="flex items-center gap-2 text-base font-bold text-primary">
             {mode === "purchased" && orderStatus === "pending" ? (
-              <Loader2 className="h-4 w-4 shrink-0 animate-spin text-brand-600 dark:text-brand-300" strokeWidth={2} aria-hidden="true" />
+              <Loader2 className="h-4 w-4 shrink-0 animate-spin text-action" strokeWidth={2} aria-hidden="true" />
             ) : (
-              <Lock className="h-4 w-4 shrink-0 text-brand-600 dark:text-brand-300" strokeWidth={2} aria-hidden="true" />
+              <Lock className="h-4 w-4 shrink-0 text-action" strokeWidth={2} aria-hidden="true" />
             )}
             {tbrUnlockHeadline(mode, locale, orderStatus)}
           </p>
-          <ul className="grid gap-1 text-xs text-ink-700 dark:text-ink-200 sm:grid-cols-2">
+          <ul className="grid gap-1 text-xs text-secondary sm:grid-cols-2">
             {perks.map((p) => (
               <li key={p} className="flex items-start gap-1.5">
-                <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-600 dark:text-brand-300" strokeWidth={2.5} aria-hidden="true" />
+                <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-action" strokeWidth={2.5} aria-hidden="true" />
                 <span>{p}</span>
               </li>
             ))}
@@ -100,7 +100,7 @@ export function TbrUnlockRail({ mode, chapterCount, onUnlock, orderId, orderStat
                 {t.unlockFor(price)}
                 <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
               </button>
-              <p className="text-center text-[11px] text-ink-600 dark:text-ink-300">{t.confirmNote}</p>
+              <p className="text-center text-xs text-secondary">{t.confirmNote}</p>
             </>
           ) : mode === "included" ? (
             <>
@@ -112,10 +112,10 @@ export function TbrUnlockRail({ mode, chapterCount, onUnlock, orderId, orderStat
                 {t.includedGenerate}
                 <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
               </a>
-              <p className="text-center text-[11px] text-ink-600 dark:text-ink-300">{t.includedNote}</p>
+              <p className="text-center text-xs text-secondary">{t.includedNote}</p>
             </>
           ) : orderStatus === "pending" ? (
-            <p data-testid="tbr-unlock-pending" role="status" aria-live="polite" className="rounded-xl border border-brand-200 bg-white/70 px-3 py-2 text-center text-[11px] text-ink-700 dark:border-brand-800 dark:bg-ink-950/40 dark:text-ink-200">
+            <p data-testid="tbr-unlock-pending" role="status" aria-live="polite" className="rounded-xl border border-brand-300 dark:border-brand-800 bg-surface/70 px-3 py-2 text-center text-xs text-secondary">
               {t.pendingNote}
             </p>
           ) : (

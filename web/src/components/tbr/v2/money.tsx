@@ -16,7 +16,7 @@ export function TbrMoney({ report, title, locale = "en" }: { report: ReportV2; t
   const empty = moneyEmptyState(report, locale);
   return (
     <TbrSection id={TBR_V2_SECTION_IDS.money} kicker="12" title={title} purpose={v2Strings(locale).s47.purpose.money}>
-      <div className="flex items-center gap-2 text-xs text-ink-600 dark:text-ink-300">
+      <div className="flex items-center gap-2 text-xs text-secondary">
         <AgentBadge role="cfo" />
         <AgentBadge role="cmo" kind="support" />
         <span>{t.matched(m.grants.length + m.programs.length, aud(m.totalAud))}</span>
@@ -29,9 +29,9 @@ export function TbrMoney({ report, title, locale = "en" }: { report: ReportV2; t
                 <td className="py-1 pr-2">
                   <Chip kind="neutral">{r.kind === "grant" ? t.grant : t.program}</Chip>
                 </td>
-                <td className="py-1 pr-2 font-medium text-ink-700 dark:text-ink-200">
+                <td className="py-1 pr-2 font-medium text-secondary">
                   {r.url ? (
-                    <a href={r.url} className="hover:text-brand-600" rel="noopener noreferrer">
+                    <a href={r.url} className="hover:text-action" rel="noopener noreferrer">
                       {r.name}
                     </a>
                   ) : (
@@ -39,22 +39,22 @@ export function TbrMoney({ report, title, locale = "en" }: { report: ReportV2; t
                   )}
                 </td>
                 <td className="py-1 pr-2 text-right tabular-nums">{r.amountAud !== null ? aud(r.amountAud) : "—"}</td>
-                <td className="py-1 pr-2 text-ink-500">{r.deadline ?? ""}</td>
-                <td className="py-1 text-right tabular-nums text-ink-500">{t.fit(Math.round(r.fit))}</td>
+                <td className="py-1 pr-2 text-muted">{r.deadline ?? ""}</td>
+                <td className="py-1 text-right tabular-nums text-muted">{t.fit(Math.round(r.fit))}</td>
               </tr>
             ))}
           </tbody>
         </table>
       ) : empty ? (
-        <p data-tbr-money-empty className="text-xs text-ink-600 dark:text-ink-400">
+        <p data-tbr-money-empty className="text-xs text-secondary">
           {empty.text}{" "}
-          <a href={empty.href} className="font-semibold text-brand-700 hover:underline dark:text-brand-300">
+          <a href={empty.href} className="font-semibold text-action hover:underline">
             {empty.ctaLabel}
           </a>
         </p>
       ) : null}
       {m.visuals.map((v) => (
-        <VisualFigure key={v.id} spec={v} caption={v.subtitle ?? v.title} className="rounded-xl border border-ink-200 p-3 dark:border-ink-800" />
+        <VisualFigure key={v.id} spec={v} caption={v.subtitle ?? v.title} className="rounded-xl border border-line-subtle p-3" />
       ))}
     </TbrSection>
   );

@@ -37,7 +37,7 @@ export function ShowcaseBlockidReportView({ loaded }: { loaded: BlockidShowcaseR
       />
 
       <MarketingSection kicker="Same pipeline, our data" title="What you are reading">
-        <div className="rounded-2xl border border-line-subtle bg-white p-5 text-sm text-secondary" data-testid="showcase-blockid-report-banner">
+        <div className="rounded-2xl border border-line-subtle bg-surface p-5 text-sm text-secondary" data-testid="showcase-blockid-report-banner">
           <p>
             Every chapter below was written by the pipeline that produces a founder&apos;s standard-tier report: the deterministic score ledger, the
             valuation inputs table, the evidence register and the auditor log are all ours, unedited. Dimensions we have not evidenced yet render as
@@ -46,11 +46,11 @@ export function ShowcaseBlockidReportView({ loaded }: { loaded: BlockidShowcaseR
           <p className="mt-3 text-xs text-tertiary">{DATA_PRINCIPLE_SENTENCE}</p>
           <p className="mt-3 text-xs text-tertiary">
             Read the{" "}
-            <Link className="text-brand-600 underline" href="/methodology">
+            <Link className="text-action underline" href="/methodology">
               methodology
             </Link>{" "}
             or compare with the{" "}
-            <Link className="text-brand-600 underline" href="/tbr/demo">
+            <Link className="text-action underline" href="/tbr/demo">
               illustrative demo report
             </Link>
             {loaded ? (
@@ -66,16 +66,16 @@ export function ShowcaseBlockidReportView({ loaded }: { loaded: BlockidShowcaseR
 
       {loaded ? (
         <MarketingSection kicker="Trusted Business Report" title={loaded.report.cover.startupName}>
-          <div className="rounded-2xl border border-line-subtle bg-white p-4 md:p-8 text-ink-900" data-testid={SHOWCASE_REPORT_TESTID} data-snapshot-id={loaded.snapshotId}>
+          <div className="rounded-2xl border border-line-subtle bg-surface p-4 text-primary md:p-8" data-testid={SHOWCASE_REPORT_TESTID} data-snapshot-id={loaded.snapshotId}>
             <TbrReportV2 report={loaded.report} locale="en" />
           </div>
         </MarketingSection>
       ) : (
         <MarketingSection kicker="Trusted Business Report" title={SHOWCASE_REPORT_EMPTY_TITLE}>
-          <div className="rounded-2xl border border-dashed border-line-subtle bg-white p-6 text-sm text-secondary" data-testid={SHOWCASE_REPORT_EMPTY_TESTID}>
+          <div className="rounded-2xl border border-dashed border-line-subtle bg-surface p-6 text-sm text-secondary" data-testid={SHOWCASE_REPORT_EMPTY_TESTID}>
             <p>
               The weekly self-report has not been persisted for this build yet. The pipeline runs on our own project every Monday; until then the{" "}
-              <Link className="text-brand-600 underline" href="/tbr/demo">
+              <Link className="text-action underline" href="/tbr/demo">
                 demo report
               </Link>{" "}
               shows the exact chapter structure with illustrative numbers.

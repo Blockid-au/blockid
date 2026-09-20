@@ -29,16 +29,16 @@ function Card({ item, tone, locale, index }: { item: ExecutiveReason | Executive
       data-tbr-exec-card={tone === "good" ? "reason" : "gap"}
       className={cn(
         "flex flex-col gap-2 rounded-xl border p-4 shadow-1 print:break-inside-avoid",
-        tone === "good" ? "border-sky-200/70 bg-sky-50/40 dark:border-sky-900/60 dark:bg-sky-950/20" : "border-orange-200/70 bg-orange-50/40 dark:border-orange-900/60 dark:bg-orange-950/20",
+        tone === "good" ? "border-sky-300 dark:border-sky-800 bg-surface-sunken" : "border-orange-300 dark:border-orange-800 bg-surface-sunken",
       )}
     >
       <div className="flex items-start gap-2">
-        <span aria-hidden="true" className={cn("mt-0.5 font-mono text-[10px] tabular-nums", tone === "good" ? "text-sky-700 dark:text-sky-300" : "text-orange-700 dark:text-orange-300")}>
+        <span aria-hidden="true" className={cn("mt-0.5 font-mono text-xs tabular-nums", tone === "good" ? "text-action" : "text-bear")}>
           {String(index + 1).padStart(2, "0")}
         </span>
-        <h4 className="font-display text-sm font-semibold leading-snug text-ink-900 dark:text-ink-100">{item.title}</h4>
+        <h4 className="font-display text-sm font-semibold leading-snug text-primary">{item.title}</h4>
       </div>
-      <p className="text-xs leading-relaxed text-ink-700 dark:text-ink-300">{item.body}</p>
+      <p className="text-xs leading-relaxed text-secondary">{item.body}</p>
       {(item.dim || lift !== null) && (
         <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-1">
           {item.dim && <DimChip dim={item.dim} locale={locale} />}
@@ -53,7 +53,7 @@ function CardRow({ title, items, tone, locale, testId }: { title: string; items:
   if (!items.length) return null;
   return (
     <div data-testid={testId} className={TBR_SPACING.item}>
-      <h3 className={cn("text-[11px] font-semibold uppercase tracking-wide", tone === "good" ? "text-sky-800 dark:text-sky-300" : "text-orange-800 dark:text-orange-300")}>{title}</h3>
+      <h3 className={cn("text-[11px] font-semibold uppercase tracking-wide", tone === "good" ? "text-action" : "text-bear")}>{title}</h3>
       <div className="grid gap-3 sm:grid-cols-3">
         {items.map((it, i) => (
           <Card key={`${it.title}-${i}`} item={it} tone={tone} locale={locale} index={i} />
@@ -75,14 +75,14 @@ export function TbrExecutiveStructured({ structured, visuals, confidence, locale
       <header className={cn(TBR_SPACING.item, "print:break-inside-avoid")} data-tbr-exec-header>
         <div className="flex items-center gap-2">
           <Chip kind="agent">ceo</Chip>
-          <span data-tbr-exec-confidence className="text-[11px] text-ink-500">{t.s44.evidenceConfidence(Math.round(confidence * 100))}</span>
+          <span data-tbr-exec-confidence className="text-xs text-muted">{t.s44.evidenceConfidence(Math.round(confidence * 100))}</span>
         </div>
-        <h3 data-tbr-exec-headline className="max-w-[30ch] font-display text-2xl font-bold leading-tight tracking-tight text-ink-900 dark:text-ink-100 sm:text-3xl print:text-2xl">
+        <h3 data-tbr-exec-headline className="max-w-[30ch] font-display text-2xl font-bold leading-tight tracking-tight text-primary sm:text-3xl print:text-2xl">
           {s.headline}
         </h3>
         <div data-tbr-exec-summary className="max-w-prose space-y-3">
           {s.summary.map((p, i) => (
-            <p key={i} className="text-sm leading-relaxed text-ink-800 dark:text-ink-200">
+            <p key={i} className="text-sm leading-relaxed text-primary">
               {p}
             </p>
           ))}
@@ -90,9 +90,9 @@ export function TbrExecutiveStructured({ structured, visuals, confidence, locale
       </header>
 
       {s.keyInsight && (
-        <aside data-tbr-exec-insight className="max-w-prose rounded-r-xl border-l-4 border-accent-600 bg-accent-soft px-4 py-3 print:break-inside-avoid">
+        <aside data-tbr-exec-insight className="max-w-prose rounded-r-xl border-l-4 border-accent-600 bg-surface-sunken px-4 py-3 print:break-inside-avoid">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-accent">{s47.keyInsight}</p>
-          <p className="mt-1 text-sm leading-relaxed text-ink-800 dark:text-ink-200">{s.keyInsight}</p>
+          <p className="mt-1 text-sm leading-relaxed text-primary">{s.keyInsight}</p>
         </aside>
       )}
 
@@ -101,14 +101,14 @@ export function TbrExecutiveStructured({ structured, visuals, confidence, locale
 
       {s.benchmarks.length > 0 && (
         <div data-tbr-exec-benchmarks className={TBR_SPACING.item}>
-          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-ink-600 dark:text-ink-300">{s47.benchmarks}</h3>
+          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-secondary">{s47.benchmarks}</h3>
           <ul className="flex flex-wrap gap-2">
             {s.benchmarks.map((b) => (
               <li key={b.dim}>
                 <Chip kind="band" href={`#${TBR_V2_SECTION_IDS.dim(b.dim)}`} title={b.note ?? s47.openChapter(b.dim.toUpperCase())} className={cn("px-2.5 py-1", bandSurface(b.band))}>
-                  <span className="font-mono uppercase text-ink-700 dark:text-ink-200">{b.dim}</span>
+                  <span className="font-mono uppercase text-secondary">{b.dim}</span>
                   <span className={cn("tabular-nums font-semibold", bandText(b.band))}>{b.band === "pending" ? "—" : b.score}</span>
-                  <span className="text-ink-500 dark:text-ink-400">{bandLabel(b.band, locale)}</span>
+                  <span className="text-muted">{bandLabel(b.band, locale)}</span>
                 </Chip>
               </li>
             ))}
@@ -116,19 +116,19 @@ export function TbrExecutiveStructured({ structured, visuals, confidence, locale
         </div>
       )}
 
-      <div data-tbr-exec-phase className="rounded-xl border border-ink-200 p-4 dark:border-ink-800 print:break-inside-avoid">
+      <div data-tbr-exec-phase className="rounded-xl border border-line-subtle p-4 print:break-inside-avoid">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-ink-600 dark:text-ink-300">{s47.whereYouAre}</h3>
-          <span data-tbr-exec-phase-badge className="rounded-full border border-brand-200 bg-brand-50 px-2.5 py-0.5 text-xs font-semibold text-brand-700 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-300">{phaseLabel}</span>
+          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-secondary">{s47.whereYouAre}</h3>
+          <span data-tbr-exec-phase-badge className="rounded-full border border-brand-300 dark:border-brand-800 bg-surface-sunken px-2.5 py-0.5 text-xs font-semibold text-action">{phaseLabel}</span>
         </div>
         <dl className="mt-3 grid gap-3 sm:grid-cols-2">
           <div className="max-w-prose">
-            <dt className="text-[10px] font-semibold uppercase tracking-wide text-orange-700 dark:text-orange-300">{s47.blocker}</dt>
-            <dd className="mt-0.5 text-sm leading-relaxed text-ink-800 dark:text-ink-200">{s.phaseNow.blocker}</dd>
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-bear">{s47.blocker}</dt>
+            <dd className="mt-0.5 text-sm leading-relaxed text-primary">{s.phaseNow.blocker}</dd>
           </div>
           <div className="max-w-prose">
-            <dt className="text-[10px] font-semibold uppercase tracking-wide text-sky-700 dark:text-sky-300">{s47.whatItTakes}</dt>
-            <dd className="mt-0.5 text-sm leading-relaxed text-ink-800 dark:text-ink-200">{s.phaseNow.whatItTakes}</dd>
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-action">{s47.whatItTakes}</dt>
+            <dd className="mt-0.5 text-sm leading-relaxed text-primary">{s.phaseNow.whatItTakes}</dd>
           </div>
         </dl>
         {visuals.map((v) => (
@@ -138,32 +138,32 @@ export function TbrExecutiveStructured({ structured, visuals, confidence, locale
 
       <div data-tbr-exec-verdict={s.verdict.label} className={cn("rounded-xl border p-4 print:break-inside-avoid", bandSurface(verdictBand))}>
         <div className="flex flex-wrap items-center gap-3">
-          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-ink-600 dark:text-ink-300">{s47.verdict}</h3>
-          <span data-tbr-exec-verdict-pill className={cn("rounded-full border px-3 py-1 font-display text-sm font-bold", bandText(verdictBand), verdictBand === "pending" ? "border-ink-300 dark:border-ink-600" : "border-current")}>
+          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-secondary">{s47.verdict}</h3>
+          <span data-tbr-exec-verdict-pill className={cn("rounded-full border px-3 py-1 font-display text-sm font-bold", bandText(verdictBand), verdictBand === "pending" ? "border-line" : "border-current")}>
             {s47.verdictLabel[s.verdict.label]}
           </span>
           <div className="flex min-w-[160px] flex-1 items-center gap-2">
-            <div role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={confidencePct} aria-label={s47.confidence(confidencePct)} className="h-2 flex-1 overflow-hidden rounded-full bg-ink-200/70 dark:bg-ink-800">
-              <div data-tbr-exec-meter className={cn("h-full rounded-full", verdictBand === "strong" ? "bg-[#0072B2]" : verdictBand === "developing" ? "bg-[#B8770A]" : verdictBand === "early" ? "bg-[#A8420A]" : "bg-ink-400")} style={{ width: `${Math.max(2, Math.min(100, confidencePct))}%` }} />
+            <div role="meter" aria-valuemin={0} aria-valuemax={100} aria-valuenow={confidencePct} aria-label={s47.confidence(confidencePct)} className="h-2 flex-1 overflow-hidden rounded-full bg-line-subtle">
+              <div data-tbr-exec-meter className={cn("h-full rounded-full", verdictBand === "strong" ? "bg-action" : verdictBand === "developing" ? "bg-warn" : verdictBand === "early" ? "bg-bear" : "bg-line")} style={{ width: `${Math.max(2, Math.min(100, confidencePct))}%` }} />
             </div>
-            <span className="text-[11px] tabular-nums text-ink-600 dark:text-ink-300">{s47.confidence(confidencePct)}</span>
+            <span className="text-xs tabular-nums text-secondary">{s47.confidence(confidencePct)}</span>
           </div>
         </div>
-        <p className="mt-2 max-w-prose text-sm leading-relaxed text-ink-800 dark:text-ink-200">
+        <p className="mt-2 max-w-prose text-sm leading-relaxed text-primary">
           <span className="font-semibold">{s47.condition}:</span> {s.verdict.condition ?? s47.noCondition}
         </p>
       </div>
 
       {s.actions.length > 0 && (
         <div data-tbr-exec-actions className={TBR_SPACING.item}>
-          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-ink-600 dark:text-ink-300">{s47.actions}</h3>
+          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-secondary">{s47.actions}</h3>
           <ol className="space-y-2">
             {s.actions.map((a, i) => (
-              <li key={`${a.title}-${i}`} className="flex gap-3 rounded-lg border border-ink-200 p-3 dark:border-ink-800 print:break-inside-avoid">
-                <span aria-hidden="true" className="font-display text-lg font-bold leading-none tabular-nums text-brand-700 dark:text-brand-300">{i + 1}</span>
+              <li key={`${a.title}-${i}`} className="flex gap-3 rounded-lg border border-line-subtle p-3 print:break-inside-avoid">
+                <span aria-hidden="true" className="font-display text-lg font-bold leading-none tabular-nums text-action">{i + 1}</span>
                 <div className="min-w-0 flex-1 space-y-1">
-                  <p className="text-sm font-semibold leading-snug text-ink-900 dark:text-ink-100">{a.title}</p>
-                  <p className="max-w-prose text-xs leading-relaxed text-ink-600 dark:text-ink-300">{a.detail}</p>
+                  <p className="text-sm font-semibold leading-snug text-primary">{a.title}</p>
+                  <p className="max-w-prose text-xs leading-relaxed text-secondary">{a.detail}</p>
                   <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                     <WindowChip window={a.window} locale={locale} />
                     {a.dim && <DimChip dim={a.dim} locale={locale} />}

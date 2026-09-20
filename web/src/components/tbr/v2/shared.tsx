@@ -10,7 +10,7 @@ import type { Band, DataState } from "@/lib/report-visuals/types";
 import { proseParagraphs } from "@/lib/report-v2/paragraphs";
 import type { ActionWindow, AuditStamp } from "@/lib/report-v2/schema";
 
-// ── G19-S47 typography scale ────────────────────────────────────────────────
+// ── G19-S47 typography scale + theme contract ───────────────────────────────
 //
 //   section 48 px (report.tsx `space-y-12`) · block 24 px (`TbrSection`
 //   `space-y-6`) · item 12 px (`space-y-3`). Body prose is `max-w-prose
@@ -18,16 +18,33 @@ import type { ActionWindow, AuditStamp } from "@/lib/report-v2/schema";
 //   paragraphs (`lib/report-v2/paragraphs.ts`); tables share TABLE / THEAD /
 //   zebra rows; every chip (dim, agent, source, window, band, state) is
 //   `<Chip>` so the report reads as one system.
+//
+// THEME CONTRACT (founder review 2026-09-20 — text was invisible in dark
+// mode and 1.0–3.1:1 on translucent tints in light mode). The ink ramp
+// (`--color-ink-*`) INVERTS under both `.dark` and OS dark, while
+// `bg-white` / `bg-sky-50/50` never did, so `text-ink-900` on `bg-white`
+// vanished. Every surface and text colour in the report is therefore a
+// SEMANTIC token that retints together in both themes (globals.css
+// `--ds-*`, the unicorn template's own tokens):
+//   surfaces  bg-surface (white / #0b0f1a) · bg-surface-sunken (#f7f8fa / #050813)
+//   borders   border-line-subtle · border-line; tinted borders only (border-sky-300 dark:…)
+//   text      text-primary (19.6:1) · text-secondary (15.4:1) · text-muted (8.9:1)
+//   status    text-action (8.6:1 / 7:1) · text-warn (5.9 / 11) · text-bear (7.3 / 7) · text-bull (6.4 / 10) · text-accent (7.2 / 9.5)
+// No translucent ground under text, no `dark:text-*` (the tokens already
+// retint), content ≥ 12 px (`text-xs`), labels ≥ 11 px uppercase with
+// tracking. `tests/e2e/smoke/tbr-contrast.spec.ts` samples every text node on
+// /tbr/demo in both colour schemes and fails below 4.5:1 (3:1 at ≥ 24 px).
+export const TBR_SURFACE_CLASS = "bg-surface text-primary";
 
 export const TBR_SPACING = { section: "space-y-12", block: "space-y-6", item: "space-y-3" } as const;
-export const PROSE_CLASS = "max-w-prose text-sm leading-relaxed text-ink-800 dark:text-ink-200";
+export const PROSE_CLASS = "max-w-prose text-sm leading-relaxed text-primary";
 export const TABLE_CLASS = "w-full text-xs";
 /** Sticky header row (inside a scrolling wrapper) — background so rows never show through. */
-export const THEAD_CLASS = "sticky top-0 z-[1] bg-white text-left text-[10px] uppercase tracking-wide text-ink-500 dark:bg-ink-950 dark:text-ink-400";
-export const TABLE_WRAP_CLASS = "max-h-[70vh] overflow-auto rounded-lg border border-ink-200 dark:border-ink-800 print:max-h-none print:overflow-visible";
+export const THEAD_CLASS = "sticky top-0 z-[1] bg-surface text-left text-[11px] uppercase tracking-wide text-muted";
+export const TABLE_WRAP_CLASS = "max-h-[70vh] overflow-auto rounded-lg border border-line-subtle print:max-h-none print:overflow-visible";
 /** Zebra rows: every second body row on the sunken surface. */
 export function zebraRow(i: number, extra?: string): string {
-  return cn("border-t border-ink-100 dark:border-ink-800/60", i % 2 === 1 && "bg-ink-50/60 dark:bg-ink-900/30", extra);
+  return cn("border-t border-line-subtle", i % 2 === 1 && "bg-surface-sunken", extra);
 }
 
 /** G19-S45: every ReportV2 web chapter takes the UI locale the shell offers (EN / VI / ES / JA). */
@@ -60,17 +77,17 @@ export const TBR_V2_SECTION_IDS = {
 } as const;
 
 export function bandText(band: Band): string {
-  if (band === "strong") return "text-[#0072B2] dark:text-sky-300";
-  if (band === "developing") return "text-[#B8770A] dark:text-amber-300";
-  if (band === "early") return "text-[#A8420A] dark:text-orange-300";
-  return "text-ink-500 dark:text-ink-400";
+  if (band === "strong") return "text-action";
+  if (band === "developing") return "text-warn";
+  if (band === "early") return "text-bear";
+  return "text-muted";
 }
 
 export function bandSurface(band: Band): string {
-  if (band === "strong") return "border-sky-200 bg-sky-50/50 dark:border-sky-900 dark:bg-sky-950/20";
-  if (band === "developing") return "border-amber-200 bg-amber-50/50 dark:border-amber-900 dark:bg-amber-950/20";
-  if (band === "early") return "border-orange-200 bg-orange-50/50 dark:border-orange-900 dark:bg-orange-950/20";
-  return "border-ink-200 bg-ink-50/50 dark:border-ink-800 dark:bg-ink-900/30";
+  if (band === "strong") return "border-sky-300 dark:border-sky-800 bg-surface-sunken";
+  if (band === "developing") return "border-amber-300 dark:border-amber-800 bg-surface-sunken";
+  if (band === "early") return "border-orange-300 dark:border-orange-800 bg-surface-sunken";
+  return "border-line-subtle bg-surface-sunken";
 }
 
 export function bandLabel(band: Band, locale: TbrUiLocale = "en"): string {
@@ -88,15 +105,15 @@ export function stateLabel(state: DataState, locale: TbrUiLocale = "en"): string
 export function TbrSection({ id, title, kicker, purpose, children, className, pageBreak = false }: { id: string; title: string; kicker?: string; /** G19-S47: one-line purpose under the title (number · title · purpose). */ purpose?: string; children: React.ReactNode; className?: string; pageBreak?: boolean }) {
   return (
     <section id={id} className={cn("scroll-mt-24", TBR_SPACING.block, pageBreak ? "print:break-before-page" : "print:break-before-auto", className)} aria-labelledby={`${id}-h`}>
-      <div className="border-b border-ink-200 pb-3 dark:border-ink-800">
+      <div className="border-b border-line-subtle pb-3">
         <div className="flex items-baseline gap-3">
-          {kicker && <span className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-400 dark:text-ink-500">{kicker}</span>}
-          <h2 id={`${id}-h`} className="font-display text-lg font-bold tracking-tight text-ink-900 dark:text-ink-100 print:text-xl">
+          {kicker && <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">{kicker}</span>}
+          <h2 id={`${id}-h`} className="font-display text-lg font-bold tracking-tight text-primary print:text-xl">
             {title}
           </h2>
         </div>
         {purpose && (
-          <p data-tbr-section-purpose className="mt-1 max-w-prose text-xs leading-relaxed text-ink-500 dark:text-ink-400">
+          <p data-tbr-section-purpose className="mt-1 max-w-prose text-xs leading-relaxed text-muted">
             {purpose}
           </p>
         )}
@@ -111,20 +128,20 @@ export function TbrSection({ id, title, kicker, purpose, children, className, pa
 export type ChipKind = "dim" | "agent" | "support" | "source" | "window" | "band" | "state" | "lift" | "neutral";
 
 const CHIP_TONE: Record<ChipKind, string> = {
-  dim: "border-brand-200 bg-brand-50 text-brand-700 hover:bg-brand-100 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-300",
-  agent: "border-brand-200 bg-brand-50 font-mono uppercase text-brand-700 dark:border-brand-800 dark:bg-brand-950/40 dark:text-brand-300",
-  support: "border-ink-200 bg-white font-mono uppercase text-ink-500 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-400",
-  source: "border-ink-200 bg-white text-ink-600 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-300",
-  window: "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300",
-  band: "border-ink-200 bg-white text-ink-600 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-300",
-  state: "border-ink-200 bg-ink-50 text-ink-500 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-400",
-  lift: "border-ink-200 bg-white tabular-nums text-ink-500 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-400",
-  neutral: "border-ink-200 bg-white text-ink-600 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-300",
+  dim: "border-brand-300 dark:border-brand-800 bg-surface-sunken text-action hover:bg-surface-sunken",
+  agent: "border-brand-300 dark:border-brand-800 bg-surface-sunken font-mono uppercase text-action",
+  support: "border-line-subtle bg-surface font-mono uppercase text-muted",
+  source: "border-line-subtle bg-surface text-secondary",
+  window: "border-amber-300 dark:border-amber-800 bg-surface-sunken text-warn",
+  band: "border-line-subtle bg-surface text-secondary",
+  state: "border-line-subtle bg-surface-sunken text-muted",
+  lift: "border-line-subtle bg-surface tabular-nums text-muted",
+  neutral: "border-line-subtle bg-surface text-secondary",
 };
 
 /** The one chip: `href` renders an anchor (dim chips link to their chapter). */
 export function Chip({ kind, children, href, title, className, testId }: { kind: ChipKind; children: React.ReactNode; href?: string; title?: string; className?: string; testId?: string }) {
-  const cls = cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-medium tracking-wide", CHIP_TONE[kind], className);
+  const cls = cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium tracking-wide", CHIP_TONE[kind], className);
   if (href) {
     return (
       <a href={href} title={title} aria-label={title} data-tbr-chip={kind} data-testid={testId} className={cn(cls, "underline-offset-2 hover:underline")}>
@@ -170,7 +187,7 @@ export function Prose({ text, className, size = "sm", testId }: { text: string; 
   return (
     <div data-testid={testId} className={cn("max-w-prose", TBR_SPACING.item.replace("space-y-3", "space-y-2"), className)}>
       {paras.map((p, i) => (
-        <p key={i} className={cn("leading-relaxed", size === "sm" ? "text-sm text-ink-800 dark:text-ink-200" : "text-xs text-ink-600 dark:text-ink-300")}>
+        <p key={i} className={cn("leading-relaxed", size === "sm" ? "text-sm text-primary" : "text-xs text-secondary")}>
           {p}
         </p>
       ))}
@@ -185,7 +202,7 @@ export function AgentBadge({ role, kind = "owner" }: { role: string; kind?: "own
 export function AuditStampLine({ audit, frameworks, locale = "en" }: { audit: AuditStamp; frameworks?: string[]; locale?: TbrUiLocale }) {
   const t = v2Strings(locale).audit;
   return (
-    <p className="text-[11px] text-ink-500 dark:text-ink-500">
+    <p className="text-xs text-muted">
       {t.auditor}: {audit.grounded ? t.grounded : t.notAudited}
       {audit.uncited > 0 ? ` · ${t.uncited(audit.uncited)}` : ""}
       {audit.revised ? ` · ${t.revised}` : ""}
@@ -198,14 +215,14 @@ export function Bullets({ items, tone, title }: { items: string[]; tone: "good" 
   if (!items.length) return null;
   const cls =
     tone === "good"
-      ? "border-sky-200/70 bg-sky-50/50 dark:border-sky-900/60 dark:bg-sky-950/20"
+      ? "border-sky-300 dark:border-sky-800 bg-surface-sunken"
       : tone === "bad"
-        ? "border-orange-200/70 bg-orange-50/50 dark:border-orange-900/60 dark:bg-orange-950/20"
-        : "border-ink-200/70 bg-ink-50/50 dark:border-ink-800/60 dark:bg-ink-900/30";
+        ? "border-orange-300 dark:border-orange-800 bg-surface-sunken"
+        : "border-line-subtle bg-surface-sunken";
   return (
     <div className={cn("rounded-lg border p-3", cls)}>
-      <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-ink-600 dark:text-ink-300">{title}</p>
-      <ul className="space-y-1 text-xs text-ink-700 dark:text-ink-200">
+      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-secondary">{title}</p>
+      <ul className="space-y-1 text-xs text-secondary">
         {items.map((s, i) => (
           <li key={i} className="flex gap-1.5">
             <span aria-hidden="true">{tone === "good" ? "✓" : tone === "bad" ? "▲" : "•"}</span>
