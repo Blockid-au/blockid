@@ -57,6 +57,7 @@ import { bandFor } from "@/lib/report-visuals/palette";
 import { hubRowToDimensionEvidence, type DimensionEvidenceItem } from "@/lib/evidence/dimension-evidence";
 import { assessmentCardFromReport, type AssessmentCardData } from "@/lib/svi/assessment-card";
 import { loadAssessmentContext, assessmentCardOptionsFromContext } from "@/lib/svi/assessment-context";
+import { connectorFreshness, staleConnectorCount } from "@/lib/evidence/freshness";
 import { makeVisual } from "@/lib/report-visuals";
 import type { Band, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { computeCohortPercentile, type CohortPercentileSource } from "@/lib/agents/cohort-percentile";
@@ -840,8 +841,10 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
   // G21-P1-B: the Assessment Card from the same ReportV2 + Evidence Hub rows
   // every other surface uses (the card never re-derives a score).
   const assessmentContext = report ? await loadAssessmentContext(evaluation.projectId, report.cover.stage ?? null) : null;
+  // G21 P3-C: the "stale connector" hint — sources past the proof TTL (fail-soft, [] without a db).
+  const staleConnectors = report ? staleConnectorCount(await connectorFreshness(evaluation.projectId, { db: getSupabaseAdmin() })) : 0;
   const assessmentCard = report
-    ? assessmentCardFromReport(report, { evidence: dossierEvidenceByDim(evidenceRows), ...(assessmentContext ? assessmentCardOptionsFromContext(assessmentContext) : {}) })
+    ? assessmentCardFromReport(report, { evidence: dossierEvidenceByDim(evidenceRows), ...(assessmentContext ? assessmentCardOptionsFromContext(assessmentContext) : {}), staleConnectors })
     : null;
 
   return {

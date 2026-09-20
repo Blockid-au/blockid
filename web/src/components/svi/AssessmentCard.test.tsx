@@ -79,6 +79,14 @@ describe("<AssessmentCard>", () => {
     expect(html).not.toContain("Australian average");
   });
 
+  it("G21 P3-C: the stale-connector hint is one muted line, only when a source is past its proof TTL", () => {
+    expect(renderToStaticMarkup(<AssessmentCard data={fixture()} />)).not.toContain("data-assessment-stale-connectors");
+    const html = renderToStaticMarkup(<AssessmentCard data={fixture({ staleConnectors: 1 })} />);
+    expect(html).toContain("data-assessment-stale-connectors");
+    expect(html).toContain("1 connected source past the 90-day refresh window");
+    assertThemeContract(html);
+  });
+
   it("pending: no SVI number, pending band, no strength / gap, pending line", () => {
     const html = renderToStaticMarkup(<AssessmentCard data={fixture({ svi: null, sviBand: "pending", topStrength: null, topGap: null, pendingDims: 8, evidenceConfidence: 0 })} />);
     expect(html).toContain('data-assessment-svi="pending"');

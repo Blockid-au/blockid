@@ -151,6 +151,11 @@ export function AssessmentCard({ data, locale = "en", className, dimHref, headin
           {t.pendingDims(data.pendingDims, 8)}
         </p>
       )}
+      {(data.staleConnectors ?? 0) > 0 && (
+        <p data-assessment-stale-connectors className="mt-1 text-xs text-muted">
+          {t.staleConnectors(data.staleConnectors!)}
+        </p>
+      )}
     </section>
   );
 }

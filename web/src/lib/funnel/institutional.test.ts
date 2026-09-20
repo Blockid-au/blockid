@@ -180,8 +180,20 @@ describe("readInstitutionalFunnel (fail-soft)", () => {
       evaluation_batches: { data: [{ id: "b1", user_id: "org" }], error: null },
       app_users: { data: [{ id: "org", plan: "investor_fund" }], error: null },
       pilot_orders: new Error("relation does not exist"),
+      oauth_connections_v2: {
+        data: [
+          { project_id: "p1", provider: "stripe", status: "active", last_sync_at: "2026-05-01T00:00:00Z", updated_at: "2026-05-01T00:00:00Z" },
+          { project_id: "p1", provider: "github", status: "active", last_sync_at: "2026-09-18T00:00:00Z", updated_at: "2026-09-18T00:00:00Z" },
+          { project_id: "p2", provider: "ga4", status: "error", last_sync_at: null, updated_at: "2026-01-01T00:00:00Z" },
+        ],
+        error: null,
+      },
     });
     const out = await readInstitutionalFunnel(client, Date.UTC(2026, 8, 20), "/nonexistent");
+    // G21 P3-C — the Trust section's stale-connector count is live: two of three connections are past the 90-day proof TTL.
+    const stale = out.sections.find((s) => s.key === "trust")!.metrics.find((m) => m.key === "stale_connectors")!;
+    expect(stale).toMatchObject({ status: "live", value: 2, unit: "count" });
+    expect(stale.note).toContain("90 days");
     expect(out.window.days).toBe(28);
     const paid = out.sections.find((s) => s.key === "acquisition")!.metrics.find((m) => m.key === "paid_pilots")!;
     expect(paid.value).toBe(1);

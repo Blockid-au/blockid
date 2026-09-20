@@ -27,6 +27,8 @@
 // Grants / connections with a NULL project_id apply to all the founder's
 // projects and are kept. The page shows the panel to owner / admin only.
 
+import { STALE_AFTER_DAYS, computeConnectorFreshness, type FreshnessState } from "@/lib/evidence/freshness";
+
 export interface EvidenceCounts {
   total: number;
   verified: number;
@@ -52,7 +54,10 @@ export interface FreshnessEntry {
   label: string;
   /** ISO of the last successful refresh, or null when never. */
   at: string | null;
-  status: "fresh" | "stale" | "never" | "error";
+  /** G21 P3-C: the shared freshness states (lib/evidence/freshness.ts) plus `error` for a dead token. */
+  status: FreshnessState | "error";
+  /** Whole days since the last read (null when never). */
+  ageDays: number | null;
   note: string | null;
 }
 
@@ -67,8 +72,8 @@ export interface DataEthicsPanel {
   links: { scoreLogic: string; revokeAccess: string; revokeMentors: string; connectors: string };
 }
 
-/** A connector refresh older than this is "stale" (trust metric, P3-C aligns). */
-export const CONNECTOR_STALE_DAYS = 35;
+/** A connector past this is "stale" — its proof has expired (G21 P3-C: = lib/evidence/freshness STALE_AFTER_DAYS = DEFAULT_TTL_DAYS.connector). */
+export const CONNECTOR_STALE_DAYS = STALE_AFTER_DAYS;
 
 export interface DataEthicsInput {
   now?: Date;
@@ -132,8 +137,6 @@ function inProject(rowProjectId: string | null | undefined, projectId: string | 
   if (!projectId) return true;
   return rowProjectId == null || rowProjectId === projectId;
 }
-
-const PROVIDER_LABEL: Record<string, string> = { github: "GitHub", stripe: "Stripe", ga4: "Google Analytics", xero: "Xero" };
 
 function isActive(revokedAt: string | null, expiresAt: string | null, now: Date): boolean {
   if (revokedAt) return false;
@@ -200,24 +203,19 @@ export function buildDataEthicsPanel(input: DataEthicsInput): DataEthicsPanel {
   }
   shared.sort((a, b) => (b.lastViewedAt ?? "").localeCompare(a.lastViewedAt ?? ""));
 
-  const refreshed: FreshnessEntry[] = [];
-  const staleMs = CONNECTOR_STALE_DAYS * 24 * 60 * 60 * 1000;
-  const seen = new Set<string>();
-  for (const c of connections) {
-    if (c.status !== "active" || seen.has(c.provider)) continue;
-    seen.add(c.provider);
-    const snap = input.snapshots.filter((s) => s.provider === c.provider).sort((a, b) => b.taken_at.localeCompare(a.taken_at))[0];
-    const at = [c.lastSyncAt, snap?.taken_at ?? null].filter((v): v is string => Boolean(v)).sort().pop() ?? null;
-    const label = PROVIDER_LABEL[c.provider] ?? c.provider;
-    if (c.tokenUnreadable || c.lastSyncError) refreshed.push({ label, at, status: "error", note: c.tokenUnreadable ? "reconnect needed" : c.lastSyncError });
-    else if (!at) refreshed.push({ label, at: null, status: "never", note: "connected, not yet synced" });
-    else refreshed.push({ label, at, status: now.getTime() - new Date(at).getTime() > staleMs ? "stale" : "fresh", note: null });
-  }
-  for (const s of input.snapshots) {
-    if (seen.has(s.provider)) continue;
-    seen.add(s.provider);
-    refreshed.push({ label: PROVIDER_LABEL[s.provider] ?? s.provider, at: s.taken_at, status: now.getTime() - new Date(s.taken_at).getTime() > staleMs ? "stale" : "fresh", note: null });
-  }
+  // G21 P3-C — one freshness definition (lib/evidence/freshness.ts): fresh ≤
+  // 30 d · ageing 31–90 d · stale past the proof TTL · never; a dead token
+  // is `error` whatever its age.
+  const refreshed: FreshnessEntry[] = computeConnectorFreshness(
+    { connections: connections.filter((c) => c.status === "active"), snapshots: input.snapshots },
+    now,
+  ).map((f) => ({
+    label: f.label,
+    at: f.lastSyncAt,
+    status: f.error ? "error" : f.state,
+    ageDays: f.ageDays,
+    note: f.error ? f.error : f.state === "never" ? "connected, not yet synced" : null,
+  }));
 
   return {
     evidence: { total: input.evidenceRows.length, verified, pendingReview, byLevel },

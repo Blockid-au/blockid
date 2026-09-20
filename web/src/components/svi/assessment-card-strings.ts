@@ -22,6 +22,8 @@ export interface AssessmentCardStrings {
   methodology: string;
   pending: string;
   pendingDims: (n: number, of: number) => string;
+  /** G21 P3-C — the stale connector hint (only when > 0). */
+  staleConnectors: (n: number) => string;
   none: string;
   // dimension card
   score: string;
@@ -57,6 +59,7 @@ const EN: AssessmentCardStrings = {
   methodology: "Methodology",
   pending: "Pending",
   pendingDims: (n, of) => `${n} of ${of} dimensions pending`,
+  staleConnectors: (n) => `${n} connected source${n === 1 ? "" : "s"} past the 90-day refresh window — its proof has expired; resync to restore it`,
   none: "—",
   score: "Score",
   confidence: "Confidence",
@@ -91,6 +94,7 @@ const VI: AssessmentCardStrings = {
   methodology: "Phương pháp",
   pending: "Chưa đánh giá",
   pendingDims: (n, of) => `${n}/${of} chiều chưa đánh giá`,
+  staleConnectors: (n) => `${n} nguồn kết nối đã quá 90 ngày chưa làm mới — bằng chứng đã hết hạn; đồng bộ lại để khôi phục`,
   none: "—",
   score: "Điểm",
   confidence: "Độ tin cậy",

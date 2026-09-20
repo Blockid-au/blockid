@@ -59,7 +59,7 @@ describe("buildDataEthicsPanel", () => {
     expect(buildDataEthicsPanel({ ...EMPTY, dataRoomViews: { views: 4, lastViewedAt: daysAgo(2) } }).shared).toEqual([{ label: "Public score page / data room", views: 4, lastViewedAt: daysAgo(2) }]);
   });
 
-  it(`last refreshed: fresh under ${CONNECTOR_STALE_DAYS} days, stale over, never when unsynced, error when the token is unreadable; snapshots count too`, () => {
+  it(`last refreshed (G21 P3-C freshness): fresh ≤ 30 d, ageing 31–${CONNECTOR_STALE_DAYS} d, stale past the proof TTL, never when unsynced, error when the token is unreadable; snapshots count too`, () => {
     const p = buildDataEthicsPanel({
       ...EMPTY,
       connections: [
@@ -71,15 +71,18 @@ describe("buildDataEthicsPanel", () => {
       snapshots: [
         { provider: "stripe", taken_at: daysAgo(3) },
         { provider: "xero", taken_at: daysAgo(40) },
+        { provider: "linkedin", taken_at: daysAgo(120) },
       ],
       lastAnalysisAt: daysAgo(5),
     });
     expect(p.refreshed).toEqual([
-      { label: "GitHub", at: daysAgo(2), status: "fresh", note: null },
-      { label: "Stripe", at: daysAgo(3), status: "fresh", note: null }, // the newer snapshot wins over the old sync
-      { label: "Google Analytics", at: null, status: "never", note: "connected, not yet synced" },
-      { label: "Xero", at: daysAgo(40), status: "stale", note: null },
+      { label: "GitHub", at: daysAgo(2), status: "fresh", ageDays: 2, note: null },
+      { label: "Stripe", at: daysAgo(3), status: "fresh", ageDays: 3, note: null }, // the newer snapshot wins over the old sync
+      { label: "Google Analytics", at: null, status: "never", ageDays: null, note: "connected, not yet synced" },
+      { label: "Xero", at: daysAgo(40), status: "ageing", ageDays: 40, note: null },
+      { label: "LinkedIn", at: daysAgo(120), status: "stale", ageDays: 120, note: null },
     ]);
+    expect(CONNECTOR_STALE_DAYS).toBe(90);
     expect(p.lastAnalysisAt).toBe(daysAgo(5));
     const err = buildDataEthicsPanel({ ...EMPTY, connections: [{ provider: "stripe", status: "active", lastSyncAt: daysAgo(1), lastSyncError: null, tokenUnreadable: true }] });
     expect(err.refreshed[0]).toMatchObject({ label: "Stripe", status: "error", note: "reconnect needed" });
