@@ -964,7 +964,8 @@ export const DimensionChapterPayload = z.object({
   primary_visual: VisualProposal.optional(),
   secondary_visuals: z.array(VisualProposal).max(2).default([]),
   phase_lens: z
-    .object({ phase_id: z.string().optional(), what_matters_now: z.string().default(""), floor: z.number().optional(), floor_met: z.boolean().optional() })
+    // G19-S46: `.nullable()` — owners echo the input's `phaseLens.floor: null` (BlockID's own run: CGH failed the schema on it).
+    .object({ phase_id: z.string().optional(), what_matters_now: z.string().default(""), floor: z.number().nullable().optional(), floor_met: z.boolean().nullable().optional() })
     .optional(),
   frameworks_used: z.array(z.string()).max(8).default([]),
   confidence: z.number().min(0).max(1),
@@ -1360,10 +1361,11 @@ export function buildDimensionChapter(
 // chapter payload (verdict ≤ 80 words + strengths + gaps + criterion_cards
 // with citations + primary_visual series + frameworks) was cut mid-JSON at
 // 2,750–3,450 chars ("Unterminated string") and all 8 chapters degraded to
-// deterministic cards; the repair pass hit the same wall. 2,000 / 700 gives
-// the contract room to close (JSON-escaped prose ≈ 3.8 chars/token); a
-// shorter answer costs nothing extra.
-export const W4_MAX_TOKENS = { full: 2000, card: 700 } as const;
+// deterministic cards; the repair pass hit the same wall, and at 2,000 the
+// four dimensions with 3–4 mapped criteria (criterion_cards) still cut at
+// 6,400–7,150 chars. 3,200 / 700 gives the contract room to close
+// (JSON-escaped prose ≈ 3.8 chars/token); a shorter answer costs nothing extra.
+export const W4_MAX_TOKENS = { full: 3200, card: 700 } as const;
 
 function renderChapterUser(input: DimensionChapterInput): string {
   const rows = input.evidenceRows

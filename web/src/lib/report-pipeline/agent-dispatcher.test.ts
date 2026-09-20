@@ -414,7 +414,7 @@ describe("schema-validated dispatch", () => {
     expect(structuredMaxTokens("standard", "large")).toBe(2600);
     expect(structuredMaxTokens("investor_memo", "large")).toBe(4000);
     // W4 owner calls: 900 cut every full chapter payload mid-JSON on BlockID's own run.
-    expect(W4_MAX_TOKENS).toEqual({ full: 2000, card: 700 });
+    expect(W4_MAX_TOKENS).toEqual({ full: 3200, card: 700 });
   });
 
   it("structured:false keeps the legacy prose path untouched", async () => {
