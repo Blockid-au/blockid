@@ -14,8 +14,8 @@ import { WEBHOOK_VERIFY_EXPRESS_EXAMPLE, WEBHOOK_VERIFY_SNIPPET } from "@/lib/we
 export const revalidate = 3600;
 
 export const metadata: Metadata = pageMetadata({
-  title: "Platform docs — company, roadmap, team, SVI, pricing",
-  description: "Public entry point to BlockID.au documentation — company overview, product roadmap, the 11-role AI C-Level team, the 8-dimension SVI and the pricing ladder.",
+  title: "Platform docs — SVI, pricing, team, API, roadmap",
+  description: "BlockID.au documentation — the Startup Value Index, pricing for founders and evaluators, the 11 AI C-Level agents, the Evaluator API v1, webhooks and what shipped.",
   path: "/docs",
 });
 
@@ -32,32 +32,39 @@ type DocEntry = {
 
 const RECENTLY_UPDATED_DOCS: DocEntry[] = [
   {
-    slug: "docs/ARCHITECTURE.md",
-    title: "System Architecture (v3.3.2) — Stack + Architecture Diagrams",
-    updated: "2026-08-07",
+    slug: "docs/plans/SOURCE-OF-TRUTH.md",
+    title: "Source of truth — goals G1–G17, requirements register, human-blocked queue",
+    updated: "2026-09-19",
     summary:
-      "Mermaid diagrams for the full BlockID.au stack (Cloudflare → Nginx → Next.js 16 standalone → Supabase/Redis/Stripe → AI fallback chain) and the App Router request path. Includes the SVI enrichment pipeline and admin drill-down surfaces.",
+      "The one document every plan is merged into. §1 carries each goal's status (G11 Money Finder through G17 unicorn homepage all closed 2026-09-10 → 19), §5 the founder-only queue, Appendix A the deploy-by-deploy change log.",
   },
   {
-    slug: "docs/TEAM_STRUCTURE.md",
-    title: "Team Structure (v3.3.2) — C-Level AI Agent Org Chart",
-    updated: "2026-08-07",
+    slug: "docs/design/unicorn-template.md",
+    title: "Unicorn site template — the design contract for every marketing page",
+    updated: "2026-09-19",
     summary:
-      "Mermaid org chart of the 11-member C-Level AI agent roster (CTO/CFO/CPO/CMO/CRO/CLO/CHRO/CISO/CDO/COO + Customer Success), plus reporting cadence for Guardian, QA, and auto-deploy. Roster source of truth: web/content/team-roster.json.",
+      "Tokens, template primitives (PageHero / Section / CtaBand / Prose), the 5-entry nav, the evaluator-first hero and the rule that the home page carries no price tables. Every new marketing page and its /vi mirror must follow it.",
   },
   {
-    slug: "docs/plans/real-world-workflow-parity-audit-2026-07-23.md",
-    title: "Real-World Workflow Parity Audit (2026-07-23)",
-    updated: "2026-07-23",
+    slug: "docs/plans/first-dollar-2026-09-19.md",
+    title: "G16 First dollar — funnel truth, A$3 paywall, evaluator pilots",
+    updated: "2026-09-19",
     summary:
-      "Audits every surface, taxonomy, and data-room checklist against real Atlassian, Canva, Airwallex, Xero, and Culture Amp journeys — the seed for the canonical 8-stage journey vocabulary.",
+      "Why the first paid Trusted Business Report had been unreachable, the server-side funnel events that now exist, the quote-then-pay unlock rail and the 30-day evaluator pilot comp.",
   },
   {
-    slug: "docs/plans/plan-delta-2026-07-23.md",
-    title: "Reseller Module Plan Delta (2026-07-23)",
-    updated: "2026-07-23",
+    slug: "docs/plans/reliability-2026-09-18.md",
+    title: "G15 Reliability — ship safety, observability, data safety, AI resilience",
+    updated: "2026-09-18",
     summary:
-      "Consolidates 20 blocking findings from CTO, CFO, CISO, and CLO into concrete plan-file amendments; P1 migrations 0091+ stay blocked until every blocker returns allow.",
+      "Manifest truth and the live-bundle SHA gate, the append-mode production log, error digest and latency SLO, the weekly restore drill and the Telegram → e-mail alert fallback. Runbooks: docs/ops/deploy.md, docs/ops/slo.md, docs/runbooks/db-restore.md.",
+  },
+  {
+    slug: "docs/API-REFERENCE.md",
+    title: "API reference — session, cron, Evaluator API v1, partner and public endpoints",
+    updated: "2026-09-19",
+    summary:
+      "Prose companion to /developers/api and /api/openapi.json: auth methods, the bk_live_ key scopes, the api.access plan gate, outbound webhook destinations and the credit costs.",
   },
 ];
 
@@ -133,52 +140,57 @@ type RoadmapItem = { title: string; note: string };
 
 const SHIPPED_HIGHLIGHTS: RoadmapItem[] = [
   {
-    title: "Startup Package Ship 1 (Phase 3.0)",
+    title: "G17 — Unicorn homepage & one site template (2026-09-19)",
     note:
-      "Guided founder journey Idea → SVI → dataroom → reserved cap-table in a single Stripe SKU (A$149 + 25 seed credits). 8-step interview, per-step agent dispatch, live SVI recompute, auto-fill deliverables, public /startup/[slug] listing.",
+      "Evaluator-first hero, 5-entry nav, no prices on the home page, /product and /samples intro pages, template primitives on every marketing page and the /vi mirrors; a link checker runs inside deploy gate 8 and daily (production 525 pages · 1,638 links · 0 broken).",
   },
   {
-    title: "Reseller / wholesale module v1 (Phase 2.7)",
+    title: "G16 — First dollar (2026-09-19)",
     note:
-      "Full admin surface, weekly digest snapshot pipeline (delta, top-movers, streaks, contribution_margin_pct), account_type enum + impersonation trail, k-anon suppression on aggregate metrics.",
+      "Server-side funnel events and /admin/funnel on real data; the A$3 Trusted Business Report is reachable again through a locked-chapter preview and a quote-then-pay unlock; evaluator pilot comps (30 days, cap 5) with /pilot and an expiry cron.",
   },
   {
-    title: "Compliance forms (Phase 2.8)",
+    title: "G15 — Reliability (2026-09-18)",
     note:
-      "Founder-facing GST threshold, s708(1) small-scale personal-offer counter engine, ESIC/s708/GST/R&D deep-link pages, WGEA + Modern Slavery threshold detectors, Div 83A ESOP scheme-rules gate.",
+      "Deploy manifest truth and a live-bundle SHA gate, append-mode production log with rotation, error digest + latency SLO on /api/status v2 and /status, weekly restore drill, AI provider health snapshot, Telegram → e-mail alert fallback.",
   },
   {
-    title: "Exit-readiness tile (Phase 2.9)",
+    title: "G14 — Investor feedback loop (2026-09-16 → 17)",
     note:
-      "Per-phase InvestorReadinessTile on /workspace/score, weekly founder digest cron, AU comparable-exits data source wired into ch09 investor pack and CFO valuation.",
+      "Deck v3 (evaluator-first), pricing v4 (Fund / Intake link / Index API / Cohort 25 and 100), weekly founder feedback letter, program intake link /apply/[slug], verification integrity (confidence capped by evidence origin, L0–L5 ABN multiplier, /methodology), founder execution rubric, Evaluator API v1 with Slack / Affinity / Airtable destinations, backtest v0 (N = 49, ρ 0.76 round / 0.94 valuation), open AU signals (ABR, R&DTI).",
   },
   {
-    title: "Enhanced SVI + Multi-Agent Reports (Phase 2.5)",
+    title: "G13 — Investor clarity (2026-09-16)",
     note:
-      "8-dimension, 13-criteria SVI evaluation, 3-phase report generation (Gather → Analyze → Synthesize), 21 sections with agent ownership, DOCX/PDF export with brand styling, a fallback chain of AI inference providers (listed in the Privacy Policy).",
+      "Nav v4 with 10 personas and post-login landings, Trusted Business Report v2 (8 dimensions each owned by a C-Level agent, 17 deterministic SVG visuals, /tbr/demo), Investor Dossier + evaluator assessments, startup taxonomy (22 industries, 10 models, 8 canonical stages); 15 sprints and migrations 0390–0403 in one day.",
   },
   {
-    title: "Founding 100 retired (v3.3.2 — 2026-09-01)",
+    title: "G11 + G12 — Money Finder and the evaluator ladder (2026-09-10 → 11)",
     note:
-      "The A$5 lifetime promo closed on 2026-09-01: checkout 410, page redirect, webhook + reconcile guards; grandfathered buyers keep access on the legacy plan. The public ladder is now Free → A$3 Trusted Business Report → Starter A$29 → Growth A$69.",
+      "\"Do you need money?\" → free AU grant and program preview, ranked Money Finder report, Founder Radar in Starter; Scout / Firm / Program evaluator plans with a card-required trial, the A$3 Trusted Business Report on any startup, Program batch scoring and the LP report; post-launch hardening (atomic credit spend, SSRF guard, CSRF gate, ESLint 271 → 0, SEO sweep of 163 pages).",
+  },
+  {
+    title: "Earlier (2026-07 → 09-09)",
+    note:
+      "Startup Package (A$149 + 25 credits guided journey), reseller / wholesale module, AU compliance forms (GST, s708, ESIC, R&D), exit-readiness tile, context-aware /analyze intake (deck, website or idea), saved analyses, the investor data room, and the light-first design system. Full detail on /changelog.",
   },
 ];
 
 const UPCOMING: RoadmapItem[] = [
   {
-    title: "Startup Package Ship 2 (Phase 3.1)",
+    title: "Evaluator traction T1–T4 (founder-led)",
     note:
-      "On-chain token mint, Remotion pitch videos (1-min / 3-min), custom subdomain hosting [slug].blockid.au, ABN + trademark guide, accelerator apply drafter, HubSpot/Zapier CRM link, 90-day-revenue tracker tile, conference recommender.",
+      "Angel groups → accelerator pilots on batch scoring → advisory firms via the reseller module → comparison pages and case studies. Interviews, LOIs and pilot names are founder-led; the product side (pilot comp, intake link, API) is live.",
   },
   {
-    title: "Phase 4 — Scale (Aug–Oct 2026)",
+    title: "Deferred engineering backlog (tracked in the source of truth)",
     note:
-      "Investor heat scoring, multi-entity cap table, custom branding for Growth plan, public API access via developer portal, enterprise webhooks, onboarding automation.",
+      "Zapier app for the Evaluator API, per-address limiter on the pilot apply form, ledger mutex / fsync for pilots, first off-peak ABR ingest, insights page counts, the orphan tier-ladder component. None blocks a customer.",
   },
   {
-    title: "Phase 5 — Ecosystem (Q4 2026+)",
+    title: "Founder-only decisions",
     note:
-      "Investor marketplace (after 100 paying users), secondary liquidity tools, optional blockchain anchoring, community features, AI co-pilot for fundraising prep.",
+      "New Telegram bot token for ops alerts, Google Drive quota auth for off-site backups, a valid Anthropic API key, written consent for pilot / LOI names on the deck, GA4 hero_variant dimension, InfoVision reseller ABN + agreement. Listed in docs/plans/SOURCE-OF-TRUTH.md §5.",
   },
 ];
 
@@ -207,18 +219,25 @@ const ADVISORS: Advisor[] = [
 
 const WORKFLOW_DOCS: DocEntry[] = [
   {
-    slug: "docs/plans/reseller-module-plan.md",
-    title: "Reseller Module Plan",
-    updated: "in-flight",
+    slug: "docs/plans/SOURCE-OF-TRUTH.md",
+    title: "Source of truth",
+    updated: "living",
     summary:
-      "The active P10 reseller wire-shape and admin-surface programme; each tick lands one pin, mirrored across admin-resellers-list and admin-reseller-detail.",
+      "Every goal, requirement and founder-blocked item is merged here; new plans amend it rather than living beside it. §6 has the sync-back rules.",
   },
   {
-    slug: "docs/plans/reseller-module-goal.md",
-    title: "Reseller Module Goal",
-    updated: "in-flight",
+    slug: "ROADMAP.md",
+    title: "Roadmap (repo root)",
+    updated: "living",
     summary:
-      "Goal-state definition and acceptance gates for the reseller programme — used by the COO loop to decide when a phase is complete.",
+      "Goal tables G1–G17 with live / closed status and the §5 change-log header; the public /roadmap page is the condensed view.",
+  },
+  {
+    slug: "docs/README.md",
+    title: "Docs index",
+    updated: "2026-09-19",
+    summary:
+      "Every document under docs/ with a one-line purpose and last-verified date; retired material lives in docs/archive/ with a header note.",
   },
 ];
 
@@ -234,7 +253,6 @@ export default async function DocsPage() {
   // for a week after Growth became A$69 (2026-09-08).
   const starterMonthly = `A$${GENERATED_PLANS_BY_ID.founder_starter.price_aud_cents / 100}/mo`;
   const growthMonthly = `A$${GENERATED_PLANS_BY_ID.founder_growth.price_aud_cents / 100}/mo`;
-  const foundingSpots = cfg.founding_spots_total;
   const weights = cfg.svi_weights;
 
   return (
@@ -255,20 +273,20 @@ export default async function DocsPage() {
               for Australian founders
             </h1>
             <p className="mt-6 text-base md:text-lg leading-relaxed text-ink-600 max-w-2xl mx-auto">
-              Company overview, product roadmap, the AI C-Level team, the 8-dimension
-              Startup Value Index (SVI), and the current pricing ladder —
-              plus the plan deltas and canonical journey vocabulary that keep the
-              autonomous agent fleet on the same page.
+              What the Startup Value Index is, what founders and evaluators pay,
+              the AI C-Level team behind each dimension, the Evaluator API and
+              webhooks, and what has shipped — plus the source-of-truth plans
+              that keep the autonomous agent fleet on the same page.
             </p>
           </div>
 
           {/* Architecture — context-aware analysis pipeline (v3.10.0) */}
           <section className="mb-14">
             <h2 className="text-2xl font-bold text-ink-800 mb-2">
-              Architecture — context-aware analysis pipeline (v3.10.0)
+              Architecture — context-aware analysis pipeline (since v3.10.0)
             </h2>
             <p className="text-sm text-ink-600 mb-4">
-              As of v3.10.0 the platform accepts a founder&apos;s pitch deck
+              Since v3.10.0 (2026-09-08) the platform accepts a founder&apos;s pitch deck
               (PDF / DOCX / PPTX + OCR fallback), a live website URL, or a
               free-text idea from a single input at{" "}
               <Link href="/analyze" className="text-brand-600 underline">
@@ -287,7 +305,7 @@ export default async function DocsPage() {
                 through to vision OCR (+2 credits, quoted before commit).
               </li>
               <li>
-                <strong>Classify</strong> — Haiku 4.5 tags the input as{" "}
+                <strong>Classify</strong> — a small classifier model tags the input as{" "}
                 <code>pitch_deck</code>, <code>website</code>,{" "}
                 <code>idea_text</code>, or <code>existing_company_text</code>{" "}
                 with a confidence score.
@@ -301,8 +319,8 @@ export default async function DocsPage() {
               <li>
                 <strong>Plan agents</strong> — a stage-specific manifest picks
                 the right C-Level agents (idea stage runs the lean 4-agent
-                plan; scale stage runs the full 13) instead of blindly firing
-                every criterion.
+                plan; later stages run the full plan across the 13-criteria
+                rubric) instead of blindly firing every criterion.
               </li>
               <li>
                 <strong>Quote &amp; run</strong> — the credit cost of the
@@ -334,10 +352,26 @@ export default async function DocsPage() {
               . BlockID POSTs a JSON envelope{" "}
               <code>{"{ id, event, created_at, api_version, data }"}</code>{" "}
               for <code>svi.rescored</code>, <code>evidence.uploaded</code>,{" "}
-              <code>funding.report_ready</code> and{" "}
-              <code>evaluation.report_ready</code> (plus <code>ping</code> from
+              <code>funding.report_ready</code>, <code>evaluation.report_ready</code>{" "}
+              and <code>assessment.submitted</code> (plus <code>ping</code> from
               the test button). Payloads carry ids and a small summary only —
               never emails, share tokens or report bodies.
+            </p>
+            <p className="text-sm text-ink-600 mb-4">
+              Destination kinds (G14-S38): <code>generic</code> (HMAC-signed JSON
+              to any public HTTPS URL — the default), <code>slack</code> (Block
+              Kit to an incoming-webhook URL), <code>affinity</code> (notes and
+              list entries) and <code>airtable</code> (records). Non-generic
+              kinds are pinned to their vendor host and their credentials are
+              sealed at rest and never echoed back. Zapier: use a Catch Hook
+              URL as a generic destination. Management API:{" "}
+              <code>GET|POST /api/webhooks</code>,{" "}
+              <code>/api/webhooks/[id]</code>, <code>/test</code>,{" "}
+              <code>/deliveries</code> — see{" "}
+              <Link href="/developers/api" className="text-brand-600 underline">
+                /developers/api
+              </Link>
+              .
             </p>
             <ul className="list-disc list-inside space-y-1 text-sm text-ink-700 mb-4">
               <li>
@@ -374,20 +408,25 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
               What BlockID.au is
             </h2>
             <p className="text-sm text-ink-600 mb-4">
-              BlockID.au is a config-driven verification and readiness platform for
-              Australian startups. It runs a founder through a guided journey —
-              Idea → Validation → MVP / Early Revenue → Seed → Series A → Series B/C
-              → Late-stage → Public / Exit — and continuously scores their startup
-              on the proprietary <strong>Startup Value Index (SVI)</strong>. Every
-              output (dataroom, cap-table reservation, investor pack, compliance
-              form) is generated by a specialised AI C-Level agent and priced in
-              credits.
+              BlockID.au is the platform behind the <strong>Startup Value Index
+              (SVI)</strong> — an evidence-linked score for Australian startups
+              that investors, accelerators and advisors use to compare deals, and
+              that founders use to see where they stand. Evaluators pay for the
+              workspace, the reports and the API; founders score for free and
+              can unlock the full Trusted Business Report for A$3. The founder
+              journey — Idea → Validation → MVP / Early Revenue → Seed → Series A
+              → Series B/C → Late-stage → Public / Exit — is the same 8-stage
+              vocabulary every report, dashboard and data-room row uses. Every
+              output (report chapter, data room, cap-table reservation, investor
+              pack, compliance form) is generated by a specialised AI C-Level
+              agent and priced in credits.
             </p>
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="rounded-xl border border-surface-200 bg-surface-50 p-4">
                 <p className="text-sm font-semibold text-ink-800 mb-1">Mission</p>
                 <p className="text-xs text-ink-600 leading-relaxed">
-                  Give every Australian founder the verification, benchmarking and
+                  Give evaluators one comparable, evidence-linked score for every
+                  Australian startup — and give every founder the benchmarking and
                   compliance rigour that used to be reserved for VC-backed teams.
                 </p>
               </div>
@@ -397,9 +436,11 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
                 </p>
                 <p className="text-xs text-ink-600 leading-relaxed">
                   One human founder plus an autonomous fleet of AI C-Level agents.
-                  Cron loops research, build, ship, and self-report; the founder
-                  approves via Telegram and{" "}
-                  <code>/dashboard/admin</code>.
+                  Cron loops research, build, ship and self-report; every deploy
+                  runs the 12-gate <code>deploy-live.sh</code> pipeline on bare
+                  metal (no Docker, no hosted CI), and ops alerts go to Telegram
+                  with an e-mail fallback. Marketing entity PPL Food PTY LTD;
+                  billing and legal entity Auschain PTY LTD (ACN 659 615 111).
                 </p>
               </div>
               <div className="rounded-xl border border-surface-200 bg-surface-50 p-4">
@@ -407,9 +448,12 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
                   Positioning
                 </p>
                 <p className="text-xs text-ink-600 leading-relaxed">
-                  The <strong>BlockID Startup Value Index&trade;</strong> is our
-                  proprietary moat — an 8-dimension score used by founders,
-                  investors and accelerators to compare AU startups apples-to-apples.
+                  <strong>Startup Value Index … by BlockID</strong> — the lead brand.
+                  An 8-dimension score (scored on a 13-criteria internal rubric)
+                  used by investors, accelerators and advisors to compare AU
+                  startups apples-to-apples; calibrated against AU comparables
+                  (backtest v0: ρ 0.76 on round size, 0.94 on valuation, N = 49 —
+                  see <Link href="/methodology/calibration" className="text-brand-600 underline">/methodology/calibration</Link>).
                 </p>
               </div>
               <div className="rounded-xl border border-surface-200 bg-surface-50 p-4">
@@ -432,10 +476,14 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
             </h2>
             <p className="text-sm text-ink-600 mb-4">
               The SVI is BlockID&apos;s proprietary scoring framework. Every
-              startup profile is graded on 8 weighted dimensions; weights are
-              live-editable via <code>/admin/config</code> and default to the
-              values below. See <Link href="/svi" className="text-brand-600 underline">/svi</Link>{" "}
-              for the full explainer and{" "}
+              startup profile is graded on 8 weighted dimensions (each dimension
+              is scored from a 13-criteria internal rubric and owned by one
+              C-Level agent); weights are live-editable via{" "}
+              <code>/admin/config</code> and default to the values below. See{" "}
+              <Link href="/svi" className="text-brand-600 underline">/svi</Link>{" "}
+              for the full explainer,{" "}
+              <Link href="/methodology" className="text-brand-600 underline">/methodology</Link>{" "}
+              for how evidence confidence and ABN verification cap a score, and{" "}
               <Link href="/startup-index" className="text-brand-600 underline">/startup-index</Link>{" "}
               for the public AU startup index.
             </p>
@@ -503,20 +551,18 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
             </p>
           </section>
 
-          {/* Pricing ladder — 2026-09-10 (T0274). This section used to
-              document the Founding 100 lifetime deal (A$1 → A$3 → A$5) and
-              said the price "reverts to A$99/mo Growth" after cutover. The
-              promo closed 2026-09-01 and Growth has been A$69 since the
-              2026-09-08 rework, so the section now states the live ladder.
-              Founder prices come from the generated catalogue (plans.csv);
-              evaluator rungs are the G12 D2 decision (2026-09-10). */}
+          {/* Pricing ladder — founder prices come from the generated
+              catalogue (plans.csv); evaluator rungs are the G12 D2 decision
+              (2026-09-10) plus the G14 pricing v4 tiers (2026-09-16, Stripe
+              prices minted 2026-09-17). Figures are owned by
+              docs/ops/pricing-truth.md — change them there first. */}
           <section className="mb-14">
             <h2 className="text-2xl font-bold text-ink-800 mb-2">
               Pricing ladder
             </h2>
             <p className="text-sm text-ink-600 mb-4">
               One report price for everyone — <strong>A$3</strong> buys the full
-              Trusted Business Report (8 dimensions, 13 criteria, AUD valuation range,
+              Trusted Business Report (8 dimensions, AUD valuation range,
               C-suite review, auditor flags, next-step plan) on any startup,
               whether you are its founder or someone evaluating it.
               Subscriptions sell the workspace that keeps the score, not
@@ -539,15 +585,17 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
               <ul className="text-sm text-ink-600 space-y-1 list-disc list-inside">
                 <li>A$3 per Trusted Business Report on any startup you enter, pay as you go</li>
                 <li>Scout A$79/mo · Firm A$149/mo · Program A$349/mo — reports included, tracked startups, seats, white-label</li>
-                <li>7-day free trial on every rung, card required; nothing billed if cancelled before day 7</li>
-                <li>Multi-cohort accelerators, VC enterprise and reseller / wholesale: Contact Sales</li>
+                <li>Fund A$999/mo (investor firms, API access) · Intake link A$249/mo (program intake at /apply/[slug]) · Index API A$299/mo</li>
+                <li>Accelerator cohorts: Cohort 25 A$5K/yr · Cohort 100 A$15K/yr (batch scoring + LP report)</li>
+                <li>7-day free trial on Scout / Firm / Program, card required; nothing billed if cancelled before day 7</li>
+                <li>Evaluator pilots: a 30-day Program comp for up to 5 programs at a time — apply at <Link href="/pilot" className="text-brand-600 underline">/pilot</Link></li>
+                <li>Reseller / wholesale: Contact Sales (all payments run through the single BlockID Stripe account; prices are GST-inclusive)</li>
               </ul>
               <p className="text-xs text-ink-500 mt-3">
-                The Founding {foundingSpots} lifetime deal closed on 2026-09-01
-                (cutover hard-coded in <code>lib/founding-promo.ts</code>);
-                grandfathered buyers keep their access on the legacy plan.
                 See <Link href="/pricing" className="text-brand-600 underline">/pricing</Link> for
-                what each rung includes.
+                what each rung includes. Earlier promotions (the Founding 100
+                lifetime deal, closed 2026-09-01) are honoured for their buyers
+                on a legacy plan and are not sold.
               </p>
             </div>
           </section>
@@ -696,10 +744,12 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
           {/* In-flight workflow docs */}
           <section className="mb-14">
             <h2 className="text-2xl font-bold text-ink-800 mb-2">
-              Active workflow plans
+              Plans and indexes
             </h2>
             <p className="text-sm text-ink-600 mb-6">
-              The plan files the autonomous loop reads on every tick.
+              Where a change is recorded first. Goal loops were retired in
+              2026-08; work now runs as founder-led sessions plus the CEO
+              implementing-plan cron, both recorded in the source of truth.
             </p>
             <ul className="space-y-3">
               {WORKFLOW_DOCS.map((doc) => (
@@ -735,8 +785,8 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
               The 8-stage journey ratified in the parity audit — Idea,
               Validation, MVP / Early Revenue, Seed, Series A, Series B/C,
               Late-stage, Public / Exit. Every surface (roadmap, guide,
-              reports) is being migrated onto this vocabulary; four legacy
-              taxonomies are being retired.
+              reports, the G13 startup taxonomy) uses this vocabulary; the
+              12 growth phases of the workspace map onto it.
             </p>
             <div className="rounded-xl border border-surface-200 bg-surface-50 p-5">
               <p className="text-xs uppercase tracking-wider text-ink-500 mb-2">
@@ -825,6 +875,40 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
                 <p className="text-xs text-ink-600 leading-relaxed">
                   Public AU startup index — live SVI leaderboard and
                   cohort-percentile view.
+                </p>
+              </Link>
+              <Link
+                href="/developers/api"
+                className="rounded-xl border border-surface-200 bg-surface-50 p-4 hover:border-brand-500/40 transition-colors"
+              >
+                <p className="text-sm font-semibold text-ink-800 mb-1">
+                  /developers/api
+                </p>
+                <p className="text-xs text-ink-600 leading-relaxed">
+                  Public endpoints, the Evaluator API v1 (Bearer bk_live_ keys,
+                  scopes, the api.access plan gate) and openapi.json.
+                </p>
+              </Link>
+              <Link
+                href="/methodology"
+                className="rounded-xl border border-surface-200 bg-surface-50 p-4 hover:border-brand-500/40 transition-colors"
+              >
+                <p className="text-sm font-semibold text-ink-800 mb-1">
+                  /methodology
+                </p>
+                <p className="text-xs text-ink-600 leading-relaxed">
+                  Evidence confidence, the ABN verification ladder and the
+                  published backtest.
+                </p>
+              </Link>
+              <Link
+                href="/status"
+                className="rounded-xl border border-surface-200 bg-surface-50 p-4 hover:border-brand-500/40 transition-colors"
+              >
+                <p className="text-sm font-semibold text-ink-800 mb-1">/status</p>
+                <p className="text-xs text-ink-600 leading-relaxed">
+                  Live version, uptime, last deploy and gate count, error and
+                  latency sections.
                 </p>
               </Link>
               <Link
