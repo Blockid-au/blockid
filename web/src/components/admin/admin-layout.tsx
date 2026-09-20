@@ -36,6 +36,7 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { cn } from "@/lib/utils";
+import { isHiddenRoute } from "@/lib/features/hidden";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 
 interface AdminLayoutProps {
@@ -109,7 +110,9 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/drip-stats", label: "Drip Stats", icon: Mail },
     ],
   },
-];
+  // G20-F1 (2026-09-20): rows whose route is hidden (lib/features/hidden.ts,
+  // e.g. /admin/tokens) are dropped so the sidebar and the routes agree.
+].map((g) => ({ ...g, items: g.items.filter((i) => !isHiddenRoute(i.href)) }));
 
 export function AdminLayout({ children, user }: AdminLayoutProps) {
   const pathname = usePathname();

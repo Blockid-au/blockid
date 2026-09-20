@@ -15,6 +15,7 @@
 // not imported: each renderer maps `icon` to its own lucide component.
 
 import { PERSONAS, type PersonaKey, isEvaluatorPersona } from "./persona";
+import { isHiddenNavKey, isHiddenRoute } from "@/lib/features/hidden";
 
 export type UserMenuIcon = "new-analysis" | "score" | "reports" | "dashboard" | "billing" | "settings";
 
@@ -42,6 +43,11 @@ export function dashboardHrefFor(persona: PersonaKey | null | undefined): string
 
 /** The shared rows, in order. Sign out is rendered by the caller (it is a form, not a link). */
 export function userMenuItems(persona?: PersonaKey | null): UserMenuItem[] {
+  // G20-F1: a row whose target (or `menu:<key>`) is hidden is dropped.
+  return rawUserMenuItems(persona).filter((i) => !isHiddenRoute(i.href) && !isHiddenNavKey(`menu:${i.key}`));
+}
+
+function rawUserMenuItems(persona?: PersonaKey | null): UserMenuItem[] {
   if (isEvaluatorPersona(persona)) {
     // Evaluators have no score of their own — their rows are the evaluator
     // surfaces (W5 review: the founder-shaped menu sent investors to /analyze).

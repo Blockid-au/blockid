@@ -1,6 +1,6 @@
 "use client";
 
-// Segmented-control tab bar for the 5-tab Mentor console shell.
+// Segmented-control tab bar for the Mentor console shell (Overview + SVI & Reports since G20-F1).
 // Uses next/navigation for active-state; theme-aware; keyboard-navigable.
 
 import Link from "next/link";
@@ -13,18 +13,22 @@ import {
   CalendarClock,
   Target,
 } from "lucide-react";
+import { isHiddenRoute } from "@/lib/features/hidden";
 
 interface Props {
   founderId: string;
 }
 
-const TABS = [
+// G20-F1 (2026-09-20): tabs whose route is hidden (Notes, Check-ins, Goals —
+// read-only lists with no write path, lib/features/hidden.ts key
+// mentor_founder_tools) are dropped here so the tab bar and the routes agree.
+const TABS = ([
   { key: "overview", label: "Overview", icon: LayoutDashboard },
   { key: "reports", label: "SVI & Reports", icon: FileText },
   { key: "notes", label: "Notes", icon: NotebookPen },
   { key: "checkins", label: "Check-ins", icon: CalendarClock },
   { key: "goals", label: "Goals", icon: Target },
-] as const;
+] as const).filter((t) => !isHiddenRoute(`/reseller/mentor/x/${t.key}`));
 
 export function MentorTabs({ founderId }: Props) {
   const pathname = usePathname();

@@ -141,14 +141,18 @@ export const PERSONAS: Readonly<Record<PersonaKey, Persona>> = Object.freeze({
     onboardingFlow: "none",
     console: { href: "/reseller/mentor", label: "Mentor", badge: "Console" },
   },
+  // G20-F1 (2026-09-20): the Innovator console (/innovator/*) is hidden —
+  // four empty shells with no innovator_* tables (lib/features/hidden.ts key
+  // innovator_console). The persona keeps resolving (account_type stays in
+  // the enum) but lands on the founder dashboard with no console bridge and
+  // no auto-tour; the routes answer the "not offered" card.
   innovator: {
     key: "innovator",
     label: "Corporate innovator",
-    landingHref: "/innovator",
+    landingHref: "/dashboard",
     navGroups: ["home"],
-    tourSlug: "innovator-first-run",
+    tourSlug: null,
     onboardingFlow: "none",
-    console: { href: "/innovator", label: "Innovator", badge: "Console" },
   },
   journalist: {
     key: "journalist",

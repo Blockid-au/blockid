@@ -20,6 +20,7 @@
 // the docs matrix all import it.
 
 import type { PlanTier } from "@/lib/segments";
+import { isHiddenRoute } from "@/lib/features/hidden";
 
 /** EN + VI copy — same shape as `nav-groups.ts` (`LocalisedLabel`). */
 export interface HubLabel {
@@ -73,7 +74,13 @@ export interface HubDef {
   tabs: HubTab[];
 }
 
-const hub = (id: HubId, label: HubLabel, tabs: HubTab[]): HubDef => ({ id, root: `/workspace/${id}`, label, tabs });
+// G20-F1 (2026-09-20): a tab whose href is in `HIDDEN_FEATURES` is dropped
+// from the catalogue here, so the tablist, the docs matrix and every test
+// see the same list. Un-hiding = removing the row in lib/features/hidden.ts.
+const hub = (id: HubId, label: HubLabel, tabs: HubTab[]): HubDef => {
+  const root = `/workspace/${id}`;
+  return { id, root, label, tabs: tabs.filter((t) => !isHiddenRoute(t.href ?? (t.segment ? `${root}/${t.segment}` : root))) };
+};
 
 export const HUBS: Readonly<Record<HubId, HubDef>> = Object.freeze({
   score: hub("score", { en: "Score", vi: "Điểm SVI" }, [

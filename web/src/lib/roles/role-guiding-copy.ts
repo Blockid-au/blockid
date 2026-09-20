@@ -87,8 +87,10 @@ export const ROLE_GUIDING_COPY: Record<Role, RoleGuidingCopy> = {
       subtitle: { en: "Set a thesis, watch every sector's SVI leaderboard, run POCs, ship a co-branded board pack every quarter.", vi: "Đặt thesis, xem leaderboard SVI mỗi ngành, chạy POC, xuất board pack mỗi quý." },
     },
     next_step_recommender: {
-      phrase: { en: "Recommended next step — pin your 3 strategic sectors on the Industry Map to seed your watchlist.", vi: "Bước tiếp theo — ghim 3 ngành chiến lược trên Industry Map để khởi tạo watchlist." },
-      cta: { href: "/innovator/industry-map", label: { en: "Open Industry Map", vi: "Mở Industry Map" } },
+      // G20-F1: the Innovator console is hidden — the sector leaderboard the
+      // Industry Map wrapped lives on the public /dataset page.
+      phrase: { en: "Recommended next step — read the sector leaderboard to pick the 3 sectors your thesis covers.", vi: "Bước tiếp theo — xem bảng xếp hạng ngành để chọn 3 ngành thesis của bạn bao phủ." },
+      cta: { href: "/dataset", label: { en: "Open sector leaderboard", vi: "Mở bảng xếp hạng ngành" } },
     },
   },
   reseller: {
