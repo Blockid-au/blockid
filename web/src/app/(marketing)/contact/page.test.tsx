@@ -6,6 +6,7 @@
 // static HTML.
 
 import { describe, expect, it, vi } from "vitest";
+import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL } from "@/lib/site/legal-entity";
 import { renderToReadableStream } from "react-dom/server";
 
 vi.mock("@/components/marketing/marketing-shell", () => ({
@@ -31,7 +32,7 @@ describe("/contact — template (G17 P2-A)", () => {
     expect(out).toContain('name="company_website"');
     expect(out).toContain('id="contact-email"');
     expect(out).toContain('href="mailto:support@blockid.au"');
-    expect(out).toContain("Auschain Pty Ltd (ABN 79 659 615 111)");
+    expect(out).toContain(`${LEGAL_ENTITY.operator} (${LEGAL_ENTITY_ABN_LABEL})`);
     expect(out).toContain('href="/solutions/investor"');
     expect(out).toContain('href="/solutions/accelerator"');
     expect(out).not.toMatch(/#[0-9A-Fa-f]{6}\b/);

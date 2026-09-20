@@ -6,6 +6,7 @@
 // proof strip, and the one Footer with the marketing entity.
 
 import { describe, expect, it, vi } from "vitest";
+import { LEGAL_ENTITY, marketingLine } from "@/lib/site/legal-entity";
 import { renderToReadableStream } from "react-dom/server";
 
 vi.mock("@/hooks/useAuthUser", async (importOriginal) => {
@@ -143,12 +144,12 @@ describe("homepage v6 — acceptance (D1–D3)", () => {
     expect(out).toMatch(/data-cta-id="home_final_score"/);
   });
 
-  it("one header + one footer landmark; the footer is the shared one with the marketing entity, never the billing entity", () => {
+  it("one header + one footer landmark; the footer is the shared one and names both roles from the config (G21 P0-A)", () => {
     expect((out.match(/<header\b/g) ?? []).length).toBe(1);
     expect((out.match(/<footer\b/g) ?? []).length).toBe(1);
     expect(out).toContain('aria-labelledby="marketing-footer-heading"');
-    expect(text).toContain("PPL Food PTY LTD");
-    expect(text).not.toMatch(/Auschain/i);
+    expect(text).toContain(LEGAL_ENTITY.marketingOperator);
+    expect(text).toContain(marketingLine(new Date().getUTCFullYear()));
     for (const col of ["Product", "For", "Company", "Legal"]) expect(out).toContain(`>${col}<`);
   });
 });

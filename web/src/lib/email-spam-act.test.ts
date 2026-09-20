@@ -37,7 +37,9 @@ const IDENTITY_MARKERS = [
   "unsubFooter(",          // lib/email.ts — carries SENDER_IDENTITY_HTML
   "complianceFooter(",     // lib/email.ts helper for senders in other modules
   "footerHtml",            // rendered complianceFooter output threaded into a template
-  "Auschain PTY LTD",      // inline identity (email-drip footer, email-enhanced)
+  "LEGAL_ENTITY.operator", // inline identity from the config (email-drip footer, email-enhanced)
+  "tradingAsLine(",        // "<operator> trading as BlockID.au" (guest report / recovery / free summary)
+  "acnAbnLine(",           // "<operator> · ACN … · ABN …" (email-drip footer)
   "DIGEST_SENDER_IDENTITY",
   "footer(",               // email-drip.ts footer(email, …)
 ];
@@ -45,9 +47,9 @@ const UNSUB_MARKERS = ["unsubscribeUrl", "prepareUnsubscribe(", "complianceFoote
 
 const hasIdentity = (body: string): boolean =>
   IDENTITY_MARKERS.some((m) => body.includes(m)) ||
-  // Inline identity written by hand (guest report / recovery / free summary):
-  // "Auschain Pty Ltd trading as BlockID.au · ACN … · ABN 79 659 615 111".
-  (/auschain/i.test(body) && body.includes("659 615 111"));
+  // Inline identity built from the config (guest report / recovery / free
+  // summary): "${tradingAsLine()} · ${LEGAL_ENTITY_ACN_LABEL} · ${LEGAL_ENTITY_ABN_LABEL}".
+  (body.includes("tradingAsLine()") && body.includes("LEGAL_ENTITY_ABN_LABEL"));
 const hasUnsub = (body: string): boolean => UNSUB_MARKERS.some((m) => body.includes(m));
 
 /** The argument text of every `sendEmail(` call (balanced parentheses). */
@@ -96,7 +98,9 @@ describe("Spam Act s17/s18 — lib/email.ts senders", () => {
   it("unsubFooter() carries the sender identity line and the reason for receipt", () => {
     const footer = functionBlocks(src).find((b) => b.name === "unsubFooter")!.body;
     expect(footer).toContain("SENDER_IDENTITY_HTML");
-    expect(src).toContain('SENDER_IDENTITY_HTML =\n  "Auschain PTY LTD &middot; ABN 79 659 615 111 &middot; Sydney NSW"');
+    // G21 P0-A: the identity line derives from lib/site/legal-entity, never a literal.
+    expect(src).toContain("SENDER_IDENTITY_LINE: string = sellerOfRecordLine();");
+    expect(src).toContain('SENDER_IDENTITY_HTML: string = SENDER_IDENTITY_LINE.replace(/ · /g, " &middot; ");');
     expect(footer).toContain("You're receiving this because you have a BlockID account.");
     expect(footer).toContain("${unsubUrl}");
     expect(footer).toContain("${prefsUrl}");
@@ -128,9 +132,9 @@ describe("Spam Act s17/s18 — lib/email.ts senders", () => {
 });
 
 describe("Spam Act s17/s18 — email-enhanced.ts", () => {
-  it("sendEnhancedReport identifies Auschain and stamps List-Unsubscribe", () => {
+  it("sendEnhancedReport identifies the operator (from the config) and stamps List-Unsubscribe", () => {
     const src = read("lib/email-enhanced.ts");
-    expect(src).toContain("Auschain PTY LTD");
+    expect(src).toContain("BlockID.au is operated by ${LEGAL_ENTITY.operator} (${LEGAL_ENTITY_ACN_LABEL})");
     const block = functionBlocks(src).find((b) => b.name === "sendEnhancedReport")!.body;
     expect(block).toContain("sendEmail(");
     expect(sendEmailCalls(block).every((c) => c.includes("unsubscribeUrl"))).toBe(true);
@@ -147,7 +151,7 @@ describe("Spam Act s17/s18 — email-drip.ts rendered copy", () => {
 
   it("footer() carries the ABN identity line and an unsubscribe link", () => {
     const footer = functionBlocks(src).find((b) => b.name === "footer")!.body;
-    expect(footer).toContain("Auschain PTY LTD &middot; ACN 659 615 111 &middot; ABN 79 659 615 111");
+    expect(footer).toContain('${acnAbnLine().replace(/ · /g, " &middot; ")}');
     expect(footer).toContain("Unsubscribe");
     expect(footer).toContain("unsubscribeUrl(email");
   });
@@ -192,7 +196,7 @@ describe("Spam Act s17/s18 — senders outside lib/email.ts", () => {
 
   it("digest template renders the identity line and the unsubscribe / preferences links", () => {
     const src = read("lib/digest/email-template.ts");
-    expect(src).toContain('DIGEST_SENDER_IDENTITY = "Auschain PTY LTD · ABN 79 659 615 111 · Sydney NSW"');
+    expect(src).toContain("DIGEST_SENDER_IDENTITY: string = sellerOfRecordLine();");
     expect(src).toContain("renderComplianceFooterHtml(footer)");
     expect(src).toContain("Unsubscribe: ${footer.unsubscribeUrl}");
   });
