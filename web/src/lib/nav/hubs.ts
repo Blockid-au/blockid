@@ -98,6 +98,8 @@ export const HUBS: Readonly<Record<HubId, HubDef>> = Object.freeze({
     { segment: "metrics", label: { en: "Metrics", vi: "Chỉ số" } },
     // S-R5 §C.7: LinkedIn upload / URL → founder_signals (FTV chapter).
     { segment: "founder", label: { en: "Founder", vi: "Nhà sáng lập" } },
+    // G21 P1-C: founder correction workflow + "what BlockID holds" panel. Free.
+    { segment: "corrections", label: { en: "Corrections", vi: "Đính chính" } },
   ]),
   plan: hub("plan", { en: "Action plan", vi: "Kế hoạch hành động" }, [
     { segment: "", label: { en: "Action plan", vi: "Kế hoạch" } },
