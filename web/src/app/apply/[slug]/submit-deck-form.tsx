@@ -7,6 +7,7 @@
 
 import { useId, useRef, useState } from "react";
 import { AlertCircle, CheckCircle, Loader2 } from "lucide-react";
+import type { TemplateQuestion } from "@/lib/intake/templates-shared";
 
 export interface SubmitDeckCopy {
   startupName: string;
@@ -45,7 +46,16 @@ export function errorCopy(copy: SubmitDeckCopy, code: string | null | undefined,
   return copy.errors.generic;
 }
 
-export function SubmitDeckForm({ slug, copy }: { slug: string; copy: SubmitDeckCopy }) {
+export interface SubmitDeckFormProps {
+  slug: string;
+  copy: SubmitDeckCopy;
+  /** G21 P2-A — the linked intake template's questions (empty = the fixed form). */
+  questions?: TemplateQuestion[];
+  /** G21 P2-A — the program's own consent text, shown under the data-principle sentence. */
+  programConsentText?: string | null;
+}
+
+export function SubmitDeckForm({ slug, copy, questions = [], programConsentText = null }: SubmitDeckFormProps) {
   const uid = useId();
   const formRef = useRef<HTMLFormElement>(null);
   const [loading, setLoading] = useState(false);
@@ -146,6 +156,42 @@ export function SubmitDeckForm({ slug, copy }: { slug: string; copy: SubmitDeckC
         </p>
       </div>
 
+      {questions.length > 0 ? (
+        <fieldset className="space-y-4 rounded-xl border border-line p-4" data-testid="apply-template-questions">
+          <legend className="px-1 text-sm font-semibold text-primary">Program questions</legend>
+          {questions.map((q) => {
+            const id = `${uid}-q-${q.key}`;
+            const name = `answers[${q.key}]`;
+            return (
+              <div key={q.key}>
+                <label htmlFor={id} className={LABEL_CLASS}>
+                  {q.label} {q.required ? <span className="text-action">*</span> : null}
+                </label>
+                {q.type === "select" ? (
+                  <select id={id} name={name} required={q.required} className={FIELD_CLASS} defaultValue="">
+                    <option value="" disabled={q.required}>
+                      —
+                    </option>
+                    {(q.options ?? []).map((o) => (
+                      <option key={o} value={o}>
+                        {o}
+                      </option>
+                    ))}
+                  </select>
+                ) : q.type === "number" ? (
+                  <input id={id} name={name} type="number" inputMode="decimal" step="any" required={q.required} className={FIELD_CLASS} />
+                ) : q.type === "url" ? (
+                  <input id={id} name={name} type="url" inputMode="url" placeholder="https://" maxLength={2048} required={q.required} className={FIELD_CLASS} />
+                ) : (
+                  // `file` questions take a link for now — the deck upload above is the one file field.
+                  <input id={id} name={name} type="text" maxLength={2000} required={q.required} className={FIELD_CLASS} />
+                )}
+              </div>
+            );
+          })}
+        </fieldset>
+      ) : null}
+
       {/* Honeypot — humans never see or tab into it. */}
       <div className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden" aria-hidden="true">
         <label htmlFor={`${uid}-hp`}>Company website (confirm)</label>
@@ -156,6 +202,11 @@ export function SubmitDeckForm({ slug, copy }: { slug: string; copy: SubmitDeckC
         <p className="text-sm text-primary" data-testid="apply-data-principle">
           {copy.consentSentence}
         </p>
+        {programConsentText ? (
+          <p className="mt-2 text-sm text-secondary" data-testid="apply-program-consent">
+            {programConsentText}
+          </p>
+        ) : null}
         <label className="mt-3 flex items-start gap-3 text-sm text-secondary">
           <input
             type="checkbox"

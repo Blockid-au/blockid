@@ -157,7 +157,7 @@ describe("runIntakeSubmission — pipeline", () => {
     const r = await runIntakeSubmission(base(), { ...d, store });
     expect(r).toMatchObject({ ok: true, status: "received", evaluationId: "ev-1", projectId: "proj-1", sviTotal: null, warnings: [] });
 
-    expect(calls.createEvaluation).toHaveBeenCalledWith(OWNER, { name: "Alpha Pty Ltd", website: "https://alpha.io", founder_email: "ann@alpha.io", description: "deck text" });
+    expect(calls.createEvaluation).toHaveBeenCalledWith(OWNER, { name: "Alpha Pty Ltd", website: "https://alpha.io", founder_email: "ann@alpha.io", description: "deck text" }, { consentText: null });
     expect(calls.classify).toHaveBeenCalledWith({ filepath: `/tmp/intake-uploads/${intake.id}/x.pdf`, filename: "deck.pdf", userId: "owner-1", projectId: null });
     expect(calls.previewReportCharge).not.toHaveBeenCalled();
     expect(calls.runReport).not.toHaveBeenCalled();
@@ -242,5 +242,57 @@ describe("runIntakeSubmission — pipeline", () => {
     const row = store.submissions[0]!;
     expect(row.evaluationId).toBe("ev-9");
     expect(JSON.stringify(row)).not.toContain("203.0.113.9");
+  });
+});
+
+// G21 P2-A — intake templates: the linked template's questions are validated
+// before anything is stored, the answers land on the submission row and the
+// template's consent text rides on the founder invite.
+describe("runIntakeSubmission — template (G21 P2-A)", () => {
+  const TEMPLATE = {
+    id: "tpl-1",
+    ownerUserId: "owner-1",
+    name: "Round 1",
+    description: null,
+    questions: [
+      { key: "team_size", label: "Team size", type: "number" as const, required: true },
+      { key: "stage", label: "Stage", type: "select" as const, required: false, options: ["Seed", "Series A"] },
+    ],
+    rubricWeights: { ftv: 12.5, mpc: 12.5, ptd: 12.5, tre: 12.5, cgh: 12.5, iri: 12.5, lco: 12.5, svm: 12.5 },
+    consentText: "The Round 1 team reads your evidence.",
+    createdAt: "2026-09-20T00:00:00Z",
+    updatedAt: "2026-09-20T00:00:00Z",
+  };
+
+  async function seedWithTemplate() {
+    const store = memoryIntakeStore();
+    const c = await createIntake("owner-1", { name: "Templated", template_id: "11111111-2222-4333-8444-555555555555" }, { store, suffix: () => "tmpltmpl" });
+    if (!c.ok) throw new Error("seed");
+    return { store, intake: c.intake };
+  }
+
+  it("rejects a submission whose required template answer is missing (nothing stored)", async () => {
+    const { store } = await seedWithTemplate();
+    const { d } = deps({ getTemplate: async () => TEMPLATE });
+    const r = await runIntakeSubmission({ ...base("templated-tmpltmpl"), answers: { stage: "Seed" } }, { ...d, store });
+    expect(r).toMatchObject({ ok: false, error: "invalid_input", reason: "team_size" });
+    expect(store.submissions).toHaveLength(0);
+  });
+
+  it("stores the validated answers and passes the consent text to the invite", async () => {
+    const { store } = await seedWithTemplate();
+    const { calls, d } = deps({ getTemplate: async () => TEMPLATE });
+    const r = await runIntakeSubmission({ ...base("templated-tmpltmpl"), answers: { team_size: "4", stage: "Seed", junk: "x" } }, { ...d, store });
+    expect(r).toMatchObject({ ok: true, status: "received" });
+    expect(store.submissions[0]?.answers).toEqual({ team_size: 4, stage: "Seed" });
+    expect(calls.createEvaluation).toHaveBeenCalledWith(OWNER, expect.objectContaining({ name: "Alpha Pty Ltd" }), { consentText: "The Round 1 team reads your evidence." });
+  });
+
+  it("a template that cannot be loaded means the fixed form (no answers required)", async () => {
+    const { store } = await seedWithTemplate();
+    const { d } = deps({ getTemplate: async () => null });
+    const r = await runIntakeSubmission({ ...base("templated-tmpltmpl") }, { ...d, store });
+    expect(r).toMatchObject({ ok: true });
+    expect(store.submissions[0]?.answers).toEqual({});
   });
 });

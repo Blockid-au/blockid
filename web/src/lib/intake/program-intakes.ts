@@ -44,6 +44,8 @@ export interface ProgramIntake {
   maxSubmissions: number;
   autoReport: boolean;
   status: IntakeStatus;
+  /** G21 P2-A (0422): the intake_templates row the public form renders; null = the fixed form. */
+  templateId: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -63,6 +65,8 @@ export interface IntakeSubmission {
   sviTotal: number | null;
   coverage: Record<string, { level?: string; excerpt?: string }> | null;
   warnings: string[];
+  /** G21 P2-A (0422): template answers {question_key: value}; {} for the fixed form. */
+  answers: Record<string, string | number>;
   submittedAt: string;
 }
 
@@ -157,6 +161,8 @@ export interface CreateIntakeInput {
   closes_at?: unknown;
   max_submissions?: unknown;
   auto_report?: unknown;
+  /** G21 P2-A: intake_templates.id (uuid) or null / absent for the fixed form. */
+  template_id?: unknown;
 }
 
 export interface NormalisedIntakeInput {
@@ -166,7 +172,10 @@ export interface NormalisedIntakeInput {
   closesAt: string | null;
   maxSubmissions: number;
   autoReport: boolean;
+  templateId: string | null;
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function isoOrNull(v: unknown, field: string): { ok: true; value: string | null } | { ok: false; message: string } {
   if (v == null || v === "") return { ok: true, value: null };
@@ -198,7 +207,12 @@ export function normaliseIntakeInput(raw: CreateIntakeInput): { ok: true; value:
   }
   // F-4: auto_report defaults OFF — only an explicit boolean true turns it on.
   const autoReport = raw.auto_report === true;
-  return { ok: true, value: { name, blurb, opensAt: opens.value, closesAt: closes.value, maxSubmissions, autoReport } };
+  let templateId: string | null = null;
+  if (raw.template_id != null && raw.template_id !== "") {
+    if (typeof raw.template_id !== "string" || !UUID_RE.test(raw.template_id)) return { ok: false, message: "template_id must be a template id" };
+    templateId = raw.template_id;
+  }
+  return { ok: true, value: { name, blurb, opensAt: opens.value, closesAt: closes.value, maxSubmissions, autoReport, templateId } };
 }
 
 export function siteUrl(): string {
@@ -227,6 +241,29 @@ export const INTAKE_COLUMNS =
   "id, owner_user_id, org_id, slug, name, blurb, opens_at, closes_at, max_submissions, auto_report, status, created_at, updated_at";
 export const SUBMISSION_COLUMNS =
   "id, intake_id, evaluation_id, project_id, founder_email, founder_name, startup_name, website, deck_storage_path, pitchdeck_analysis_id, status, svi_total, coverage, warnings, submitted_at";
+/** G21 P2-A (0422) — readers try these first and fall back on 42703 until the migration is applied. */
+export const INTAKE_COLUMNS_V2 = `${INTAKE_COLUMNS}, template_id`;
+export const SUBMISSION_COLUMNS_V2 = `${SUBMISSION_COLUMNS}, answers`;
+
+function isMissingColumn(error: { code?: string } | null | undefined): boolean {
+  return error?.code === "42703";
+}
+
+/** Run a read with the 0422 columns, retrying with the 0405 shape when a column is missing. */
+async function withColumns<T extends { error: { code?: string } | null }>(v2: string, v1: string, run: (cols: string) => PromiseLike<T>): Promise<T> {
+  const res = await run(v2);
+  if (res.error && isMissingColumn(res.error)) return run(v1);
+  return res;
+}
+
+function mapAnswers(raw: unknown): Record<string, string | number> {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+  const out: Record<string, string | number> = {};
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (typeof v === "string" || (typeof v === "number" && Number.isFinite(v))) out[k] = v;
+  }
+  return out;
+}
 
 export function mapIntakeRow(row: Row): ProgramIntake {
   return {
@@ -241,6 +278,7 @@ export function mapIntakeRow(row: Row): ProgramIntake {
     maxSubmissions: num(row.max_submissions) ?? DEFAULT_MAX_SUBMISSIONS,
     autoReport: row.auto_report === true,
     status: row.status === "closed" ? "closed" : "open",
+    templateId: str(row.template_id),
     createdAt: String(row.created_at ?? ""),
     updatedAt: String(row.updated_at ?? row.created_at ?? ""),
   };
@@ -263,6 +301,7 @@ export function mapSubmissionRow(row: Row): IntakeSubmission {
     sviTotal: num(row.svi_total),
     coverage: row.coverage && typeof row.coverage === "object" ? (row.coverage as IntakeSubmission["coverage"]) : null,
     warnings: Array.isArray(row.warnings) ? row.warnings.map(String) : [],
+    answers: mapAnswers(row.answers),
     submittedAt: String(row.submitted_at ?? ""),
   };
 }
@@ -278,6 +317,7 @@ export interface IntakeInsert {
   closesAt: string | null;
   maxSubmissions: number;
   autoReport: boolean;
+  templateId?: string | null;
 }
 
 export interface SubmissionInsert {
@@ -288,6 +328,8 @@ export interface SubmissionInsert {
   website: string | null;
   deckStoragePath: string | null;
   ipHash: string | null;
+  /** G21 P2-A: template answers (dropped on the 0405-only shape). */
+  answers?: Record<string, string | number> | null;
 }
 
 export interface SubmissionPatch {
@@ -305,7 +347,7 @@ export interface IntakeStore {
   getIntakeBySlug(slug: string): Promise<ProgramIntake | null>;
   getIntakeForOwner(ownerUserId: string, intakeId: string): Promise<ProgramIntake | null>;
   listIntakesForOwner(ownerUserId: string): Promise<ProgramIntake[]>;
-  updateIntake(intakeId: string, patch: Partial<Pick<ProgramIntake, "status" | "autoReport" | "name" | "blurb" | "closesAt">>): Promise<void>;
+  updateIntake(intakeId: string, patch: Partial<Pick<ProgramIntake, "status" | "autoReport" | "name" | "blurb" | "closesAt" | "templateId">>): Promise<void>;
   countSubmissions(intakeIds: readonly string[]): Promise<Map<string, number>>;
   findSubmission(intakeId: string, founderEmail: string): Promise<IntakeSubmission | null>;
   insertSubmission(row: SubmissionInsert): Promise<IntakeSubmission>;
@@ -324,7 +366,7 @@ function toStoreError(error: { code?: string; message?: string } | null | undefi
   return new IntakeStoreError("db_error", error?.message ?? "db_error");
 }
 
-function intakeToRow(row: IntakeInsert): Row {
+function intakeToRow(row: IntakeInsert, withTemplate = true): Row {
   return {
     owner_user_id: row.ownerUserId,
     slug: row.slug,
@@ -335,6 +377,7 @@ function intakeToRow(row: IntakeInsert): Row {
     max_submissions: row.maxSubmissions,
     auto_report: row.autoReport,
     status: "open",
+    ...(withTemplate && row.templateId ? { template_id: row.templateId } : {}),
   };
 }
 
@@ -357,34 +400,30 @@ export async function supabaseIntakeStore(): Promise<IntakeStore | null> {
   if (!supabase) return null;
   return {
     async insertIntake(row) {
-      const { data, error } = await supabase.from("program_intakes").insert(intakeToRow(row)).select(INTAKE_COLUMNS).single();
+      let res = await supabase.from("program_intakes").insert(intakeToRow(row)).select(INTAKE_COLUMNS_V2).single();
+      if (res.error && isMissingColumn(res.error)) res = await supabase.from("program_intakes").insert(intakeToRow(row, false)).select(INTAKE_COLUMNS).single();
+      const { data, error } = res;
       if (error || !data) throw toStoreError(error);
-      return mapIntakeRow(data as Row);
+      return mapIntakeRow(data as unknown as Row);
     },
     async getIntakeBySlug(slug) {
-      const { data, error } = await supabase.from("program_intakes").select(INTAKE_COLUMNS).eq("slug", slug).maybeSingle();
+      const { data, error } = await withColumns(INTAKE_COLUMNS_V2, INTAKE_COLUMNS, (cols) => supabase.from("program_intakes").select(cols).eq("slug", slug).maybeSingle());
       if (error) throw toStoreError(error);
-      return data ? mapIntakeRow(data as Row) : null;
+      return data ? mapIntakeRow(data as unknown as Row) : null;
     },
     async getIntakeForOwner(ownerUserId, intakeId) {
-      const { data, error } = await supabase
-        .from("program_intakes")
-        .select(INTAKE_COLUMNS)
-        .eq("id", intakeId)
-        .eq("owner_user_id", ownerUserId)
-        .maybeSingle();
+      const { data, error } = await withColumns(INTAKE_COLUMNS_V2, INTAKE_COLUMNS, (cols) =>
+        supabase.from("program_intakes").select(cols).eq("id", intakeId).eq("owner_user_id", ownerUserId).maybeSingle(),
+      );
       if (error) throw toStoreError(error);
-      return data ? mapIntakeRow(data as Row) : null;
+      return data ? mapIntakeRow(data as unknown as Row) : null;
     },
     async listIntakesForOwner(ownerUserId) {
-      const { data, error } = await supabase
-        .from("program_intakes")
-        .select(INTAKE_COLUMNS)
-        .eq("owner_user_id", ownerUserId)
-        .order("created_at", { ascending: false })
-        .limit(200);
+      const { data, error } = await withColumns(INTAKE_COLUMNS_V2, INTAKE_COLUMNS, (cols) =>
+        supabase.from("program_intakes").select(cols).eq("owner_user_id", ownerUserId).order("created_at", { ascending: false }).limit(200),
+      );
       if (error) throw toStoreError(error);
-      return ((data ?? []) as Row[]).map(mapIntakeRow);
+      return ((data ?? []) as unknown as Row[]).map(mapIntakeRow);
     },
     async updateIntake(intakeId, patch) {
       const row: Row = { updated_at: new Date().toISOString() };
@@ -393,6 +432,7 @@ export async function supabaseIntakeStore(): Promise<IntakeStore | null> {
       if (patch.name != null) row.name = patch.name;
       if ("blurb" in patch) row.blurb = patch.blurb ?? null;
       if ("closesAt" in patch) row.closes_at = patch.closesAt ?? null;
+      if ("templateId" in patch) row.template_id = patch.templateId ?? null;
       const { error } = await supabase.from("program_intakes").update(row).eq("id", intakeId);
       if (error) throw toStoreError(error);
     },
@@ -408,32 +448,33 @@ export async function supabaseIntakeStore(): Promise<IntakeStore | null> {
       return out;
     },
     async findSubmission(intakeId, founderEmail) {
-      const { data, error } = await supabase
-        .from("intake_submissions")
-        .select(SUBMISSION_COLUMNS)
-        .eq("intake_id", intakeId)
-        .eq("founder_email", founderEmail)
-        .maybeSingle();
+      const { data, error } = await withColumns(SUBMISSION_COLUMNS_V2, SUBMISSION_COLUMNS, (cols) =>
+        supabase.from("intake_submissions").select(cols).eq("intake_id", intakeId).eq("founder_email", founderEmail).maybeSingle(),
+      );
       if (error) throw toStoreError(error);
-      return data ? mapSubmissionRow(data as Row) : null;
+      return data ? mapSubmissionRow(data as unknown as Row) : null;
     },
     async insertSubmission(row) {
-      const { data, error } = await supabase
+      const base: Row = {
+        intake_id: row.intakeId,
+        founder_email: row.founderEmail,
+        founder_name: row.founderName,
+        startup_name: row.startupName,
+        website: row.website,
+        deck_storage_path: row.deckStoragePath,
+        ip_hash: row.ipHash,
+        status: "received",
+      };
+      const withAnswers = row.answers && Object.keys(row.answers).length > 0;
+      let res = await supabase
         .from("intake_submissions")
-        .insert({
-          intake_id: row.intakeId,
-          founder_email: row.founderEmail,
-          founder_name: row.founderName,
-          startup_name: row.startupName,
-          website: row.website,
-          deck_storage_path: row.deckStoragePath,
-          ip_hash: row.ipHash,
-          status: "received",
-        })
-        .select(SUBMISSION_COLUMNS)
+        .insert(withAnswers ? { ...base, answers: row.answers } : base)
+        .select(withAnswers ? SUBMISSION_COLUMNS_V2 : SUBMISSION_COLUMNS)
         .single();
+      if (res.error && isMissingColumn(res.error)) res = await supabase.from("intake_submissions").insert(base).select(SUBMISSION_COLUMNS).single();
+      const { data, error } = res;
       if (error || !data) throw toStoreError(error);
-      return mapSubmissionRow(data as Row);
+      return mapSubmissionRow(data as unknown as Row);
     },
     async updateSubmission(submissionId, patch) {
       const { error } = await supabase.from("intake_submissions").update(patchToRow(patch)).eq("id", submissionId);
@@ -441,14 +482,11 @@ export async function supabaseIntakeStore(): Promise<IntakeStore | null> {
     },
     async listSubmissions(intakeIds) {
       if (!intakeIds.length) return [];
-      const { data, error } = await supabase
-        .from("intake_submissions")
-        .select(SUBMISSION_COLUMNS)
-        .in("intake_id", [...intakeIds])
-        .order("submitted_at", { ascending: false })
-        .limit(2_000);
+      const { data, error } = await withColumns(SUBMISSION_COLUMNS_V2, SUBMISSION_COLUMNS, (cols) =>
+        supabase.from("intake_submissions").select(cols).in("intake_id", [...intakeIds]).order("submitted_at", { ascending: false }).limit(2_000),
+      );
       if (error) throw toStoreError(error);
-      return ((data ?? []) as Row[]).map(mapSubmissionRow);
+      return ((data ?? []) as unknown as Row[]).map(mapSubmissionRow);
     },
     async latestSviByProject(projectIds) {
       const out = new Map<string, number>();
@@ -689,6 +727,7 @@ export function memoryIntakeStore(opts: { migrated?: boolean; snapshots?: Record
         maxSubmissions: row.maxSubmissions,
         autoReport: row.autoReport,
         status: "open",
+        templateId: row.templateId ?? null,
         createdAt: nowIso(),
         updatedAt: nowIso(),
       };
@@ -745,6 +784,7 @@ export function memoryIntakeStore(opts: { migrated?: boolean; snapshots?: Record
         sviTotal: null,
         coverage: null,
         warnings: [],
+        answers: row.answers ?? {},
         submittedAt: nowIso(),
       };
       state.submissions.push(s);
