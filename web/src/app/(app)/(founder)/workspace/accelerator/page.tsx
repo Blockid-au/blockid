@@ -3,7 +3,7 @@
 // loadEvaluatorHub() does auth → persona → onboarding gate → loaders, and
 // this page mounts the workspace shell around it.
 //
-// G21 P0-C: a paid Cohort Validation Pilot (`pilot_orders`, migration 0415)
+// G21 P0-C: a paid Cohort Validation Pilot (`pilot_orders`, migration 0416)
 // shows a one-line banner above the desk — "Cohort Validation Pilot active —
 // up to N applicants · until <date>" with the intake + cohort links; the
 // Stripe success return (`?pilot=paid`) shows it in its "payment received"

@@ -15,7 +15,7 @@ Code: `web/src/lib/pilots/*` (offer, ledger, service, e-mails, applications),
 |---|---|---|
 | Page | `/pilot/investor` (noindex, invitation-only; apply form → `POST /api/pilot/apply`) | `/pilot` (public), `/solutions/accelerator#pilot`, `/pricing?segment=programs` pilot rung |
 | Price | free — admin credit grant, cap 5 | A$1,500 (≤ 25 applicants) / A$2,500 (≤ 50) inc. GST, one-off Stripe checkout (`cohort_pilot_25` / `cohort_pilot_50`, `lib/pricing/pilot-skus.ts`) |
-| Start | admin `POST /api/admin/pilots` → `startPilot()` | Stripe webhook `checkout.session.completed` (`metadata.kind = cohort_pilot`) → `lib/pilots/paid-orders.ts fulfilPaidPilot()` → `pilot_orders` row (migration 0415) + `startPaidPilot()` (`source: "paid"`) |
+| Start | admin `POST /api/admin/pilots` → `startPilot()` | Stripe webhook `checkout.session.completed` (`metadata.kind = cohort_pilot`) → `lib/pilots/paid-orders.ts fulfilPaidPilot()` → `pilot_orders` row (migration 0416) + `startPaidPilot()` (`source: "paid"`) |
 | Tier | `investor_vc_small` (Program) for 30 d | `accelerator_starter` (25) / `accelerator_growth` (50) for 90 d; a buyer with a live Stripe subscription keeps their plan (warning in the ops alert — grant by hand) |
 | Ledger row | `source` absent / `comp` | `source: "paid"`, `order_id`, `applicants_cap`; never counts against the comp cap |
 | End | admin end / expiry cron reverts to `previous_plan` | same cron, same revert (the row carries the tier it granted) |

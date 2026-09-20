@@ -1627,7 +1627,7 @@ export async function POST(request: Request) {
   //
   // Fires from checkout.session.completed when metadata.kind === "cohort_pilot"
   // (set by the checkout route's PILOT_SKU branch). Fulfilment lives in
-  // lib/pilots/paid-orders.ts (`pilot_orders` row, migration 0415 + the
+  // lib/pilots/paid-orders.ts (`pilot_orders` row, migration 0416 + the
   // Cohort-tier grant through lib/pilots/service.ts `startPaidPilot`, source
   // "paid" — plan column, credits, intake link, ledger, confirmation e-mail,
   // audit). Idempotent: the outer claimWebhookEvent() row, the UNIQUE

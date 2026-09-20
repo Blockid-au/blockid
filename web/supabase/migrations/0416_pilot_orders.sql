@@ -1,4 +1,4 @@
--- 0415_pilot_orders.sql
+-- 0416_pilot_orders.sql (was 0415 — number taken by assembled_reports_analysis_id_text)
 -- ---------------------------------------------------------------------------
 -- G21 P0-C (2026-09-20, docs/plans/g21-fi-upgrade-2026-09-20.md § P0-C)
 -- The paid BlockID Cohort Validation Pilot — one-off Stripe checkout

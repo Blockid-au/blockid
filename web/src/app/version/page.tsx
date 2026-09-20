@@ -146,6 +146,17 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.18.0",
+    date: "2026-09-20",
+    title: "Trust & positioning (G21 P0 — advisor-feedback upgrade)",
+    changes: [
+      "[G21] Evidence-backed assessment positioning: hero \"Screen every startup on the same evidence-backed framework.\", Run a cohort pilot / Score my startup, 7-item nav, problem → product sequence → three messages → Why not ChatGPT → Built for → trust band",
+      "[G21] One legal identity: lib/site/legal-entity.ts feeds every page, PDF, e-mail, JSON-LD, legal document and Stripe invoice footer (guard test); TrustBand on the marketing pages",
+      "[G21] BlockID Cohort / Investor / Founder solution pages; paid Cohort Validation Pilot A$1,500 (≤ 25) / A$2,500 (≤ 50) one-off SKU with quote-before-pay, pilot_orders (0416) + 90-day entitlement, contact fallback until the prices are minted; pilot rung first on Programs pricing; A$3 demoted to a footnote",
+      "[G21] Score governance (/methodology/governance), public-claims policy + register + guard, pitch deck v4, FI analytics vocabulary + institutional funnel / North Star",
+    ],
+  },
+  {
     version: "3.17.0",
     date: "2026-09-20",
     title: "Ready for sale (G20) + report quality batches 1–2 (G19)",
