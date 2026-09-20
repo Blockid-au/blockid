@@ -217,13 +217,14 @@ describe("<HubTabs> — SSR markup", () => {
     expect(html).toContain('aria-label="Score tabs"');
     expect(html).toContain('role="tablist"');
     const rows = tabs(html);
+    // G20-F1: the "Public listing" tab is hidden (lib/features/hidden.ts).
     expect(rows.map((r) => r.href)).toEqual([
       "/workspace/score", "/workspace/score/history", "/workspace/score/trend",
-      "/workspace/score/benchmark", "/workspace/score/criteria", "/workspace/score/listing",
+      "/workspace/score/benchmark", "/workspace/score/criteria",
     ]);
-    expect(rows.map((r) => r["aria-selected"])).toEqual(["false", "true", "false", "false", "false", "false"]);
+    expect(rows.map((r) => r["aria-selected"])).toEqual(["false", "true", "false", "false", "false"]);
     expect(rows[1]["aria-current"]).toBe("page");
-    expect(rows.map((r) => r.tabindex)).toEqual(["-1", "0", "-1", "-1", "-1", "-1"]);
+    expect(rows.map((r) => r.tabindex)).toEqual(["-1", "0", "-1", "-1", "-1"]);
     expect(html).toContain(">History<");
   });
 

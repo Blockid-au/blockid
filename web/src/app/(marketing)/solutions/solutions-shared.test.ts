@@ -10,8 +10,8 @@ describe("primaryCtaHrefForSlug", () => {
   it("sends the two founder personas at the product, not a price", () => {
     // The first run is free and asks for nothing, so a first-time visitor
     // should meet the analysis before a plan card.
-    expect(primaryCtaHrefForSlug("founder")).toBe("/svi");
-    expect(primaryCtaHrefForSlug("vn-sme")).toBe("/svi");
+    expect(primaryCtaHrefForSlug("founder")).toBe("/analyze");
+    expect(primaryCtaHrefForSlug("vn-sme")).toBe("/analyze");
   });
 
   it("sends each evaluator persona to the evaluator signup with its rung pre-selected (G12 D2)", () => {

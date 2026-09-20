@@ -258,14 +258,7 @@
         "grant_finder",
         "money_radar"
       ],
-      "lockedRows": [
-        {
-          "group": "Reports",
-          "label": "Portfolio",
-          "reason": "upgrade",
-          "minPlan": "vc_small"
-        }
-      ]
+      "lockedRows": []
     },
     {
       "id": "investor_advisor",
@@ -307,6 +300,7 @@
         "api.access",
         "lp_export",
         "lp_report",
+        "accelerator.cohort",
         "grant_finder",
         "money_radar",
         "intake.manage"
@@ -666,9 +660,9 @@
         {
           "id": "reports",
           "label": "Reports",
-          "state": "visible",
-          "visibleItems": 2,
-          "upgradeItems": 1,
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
           "addOnItems": 0
         },
         {
@@ -724,8 +718,8 @@
         {
           "id": "reports",
           "label": "Reports",
-          "state": "visible",
-          "visibleItems": 1,
+          "state": "empty",
+          "visibleItems": 0,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -782,8 +776,8 @@
         {
           "id": "reports",
           "label": "Reports",
-          "state": "visible",
-          "visibleItems": 2,
+          "state": "empty",
+          "visibleItems": 0,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -1074,9 +1068,9 @@
         {
           "id": "reports",
           "label": "Reports",
-          "state": "visible",
-          "visibleItems": 2,
-          "upgradeItems": 1,
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
           "addOnItems": 0
         },
         {
@@ -1132,8 +1126,8 @@
         {
           "id": "reports",
           "label": "Reports",
-          "state": "visible",
-          "visibleItems": 1,
+          "state": "empty",
+          "visibleItems": 0,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -1190,8 +1184,8 @@
         {
           "id": "reports",
           "label": "Reports",
-          "state": "visible",
-          "visibleItems": 2,
+          "state": "empty",
+          "visibleItems": 0,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -1482,9 +1476,9 @@
         {
           "id": "reports",
           "label": "Reports",
-          "state": "visible",
-          "visibleItems": 2,
-          "upgradeItems": 1,
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
           "addOnItems": 0
         },
         {
@@ -1540,8 +1534,8 @@
         {
           "id": "reports",
           "label": "Reports",
-          "state": "visible",
-          "visibleItems": 1,
+          "state": "empty",
+          "visibleItems": 0,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -1598,8 +1592,8 @@
         {
           "id": "reports",
           "label": "Reports",
-          "state": "visible",
-          "visibleItems": 2,
+          "state": "empty",
+          "visibleItems": 0,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -1890,9 +1884,9 @@
         {
           "id": "reports",
           "label": "Reports",
-          "state": "visible",
-          "visibleItems": 2,
-          "upgradeItems": 1,
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
           "addOnItems": 0
         },
         {
@@ -1948,8 +1942,8 @@
         {
           "id": "reports",
           "label": "Reports",
-          "state": "visible",
-          "visibleItems": 1,
+          "state": "empty",
+          "visibleItems": 0,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -2006,8 +2000,8 @@
         {
           "id": "reports",
           "label": "Reports",
-          "state": "visible",
-          "visibleItems": 2,
+          "state": "empty",
+          "visibleItems": 0,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -2298,9 +2292,9 @@
         {
           "id": "reports",
           "label": "Reports",
-          "state": "visible",
-          "visibleItems": 2,
-          "upgradeItems": 1,
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
           "addOnItems": 0
         },
         {
@@ -2356,8 +2350,8 @@
         {
           "id": "reports",
           "label": "Reports",
-          "state": "visible",
-          "visibleItems": 1,
+          "state": "empty",
+          "visibleItems": 0,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -2414,8 +2408,8 @@
         {
           "id": "reports",
           "label": "Reports",
-          "state": "visible",
-          "visibleItems": 2,
+          "state": "empty",
+          "visibleItems": 0,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -2706,9 +2700,9 @@
         {
           "id": "reports",
           "label": "Reports",
-          "state": "visible",
-          "visibleItems": 2,
-          "upgradeItems": 1,
+          "state": "empty",
+          "visibleItems": 0,
+          "upgradeItems": 0,
           "addOnItems": 0
         },
         {
@@ -2764,8 +2758,8 @@
         {
           "id": "reports",
           "label": "Reports",
-          "state": "visible",
-          "visibleItems": 1,
+          "state": "empty",
+          "visibleItems": 0,
           "upgradeItems": 0,
           "addOnItems": 0
         },
@@ -2822,8 +2816,8 @@
         {
           "id": "reports",
           "label": "Reports",
-          "state": "visible",
-          "visibleItems": 2,
+          "state": "empty",
+          "visibleItems": 0,
           "upgradeItems": 0,
           "addOnItems": 0
         },

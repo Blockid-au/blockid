@@ -66,7 +66,9 @@ describe("PERSONAS — table shape", () => {
   it("console personas carry a topbar bridge back to their console", () => {
     expect(PERSONAS.reseller.console?.href).toBe("/reseller");
     expect(PERSONAS.mentor.console?.href).toBe("/reseller/mentor");
-    expect(PERSONAS.innovator.console?.href).toBe("/innovator");
+    // G20-F1: the Innovator console is hidden — no bridge, founder landing.
+    expect(PERSONAS.innovator.console).toBeUndefined();
+    expect(PERSONAS.innovator.landingHref).toBe("/dashboard");
     expect(PERSONAS.admin.console?.href).toBe("/admin");
     expect(PERSONAS.founder.console).toBeUndefined();
     expect(PERSONAS.admin.navGroups).toEqual(["home", "prove", "money", "company", "admin"]);

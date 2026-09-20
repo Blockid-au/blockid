@@ -30,7 +30,9 @@ const PUBLIC_TREES = [
   "src/app/layout.tsx",
   "src/app/opengraph-image.tsx",
   "src/app/search",
-  "src/app/svi",
+  // `src/app/svi` was a dead page behind the /svi → /startup-index 301 and
+  // was removed in G20-F1 (2026-09-20); /analyze is the analyser surface.
+  "src/app/analyze",
   "src/app/startup-index",
   "src/app/innovator",
   "src/app/s",

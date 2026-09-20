@@ -153,8 +153,13 @@ describe("unlock-matrix — visibility pipeline mirrors workspace-layout.tsx (na
     expect(state.company).toBe("hidden_segment");
     expect(state["evaluator-home"]).toBe("visible");
     expect(state.dealflow).toBe("visible");
-    expect(state.reports).toBe("visible");
+    // G20-F1 (2026-09-20): the investor Digest + Portfolio leaves are hidden
+    // (lib/features/hidden.ts), so the Reports group is empty for investors;
+    // accelerators keep Quarterly + LP report.
+    expect(state.reports).toBe("empty");
     expect(scout.slice(0, 3).map((c) => c.id)).toEqual(PERSONAS.investor_angel.navGroups);
+    const accel = renderSidebar({ planId: "accelerator_starter", segment: "accelerator", currentPhase: 5, features: new Set() });
+    expect(accel.find((c) => c.id === "reports")!.state).toBe("visible");
     // Advisor + accelerator share the groups but see their own leaves.
     const advisor = renderSidebar({ planId: "investor_advisor", segment: "advisor", currentPhase: 5, features: new Set() });
     expect(advisor.find((c) => c.id === "evaluator-home")!.visibleItems).toBe(3);
