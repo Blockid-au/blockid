@@ -1356,7 +1356,14 @@ export function buildDimensionChapter(
 
 // ── W4 dispatch ─────────────────────────────────────────────────────────────
 
-const W4_MAX_TOKENS = { full: 900, card: 350 } as const;
+// G19-S46 (BlockID's own run, 2026-09-20): at 900 output tokens every full
+// chapter payload (verdict ≤ 80 words + strengths + gaps + criterion_cards
+// with citations + primary_visual series + frameworks) was cut mid-JSON at
+// 2,750–3,450 chars ("Unterminated string") and all 8 chapters degraded to
+// deterministic cards; the repair pass hit the same wall. 2,000 / 700 gives
+// the contract room to close (JSON-escaped prose ≈ 3.8 chars/token); a
+// shorter answer costs nothing extra.
+export const W4_MAX_TOKENS = { full: 2000, card: 700 } as const;
 
 function renderChapterUser(input: DimensionChapterInput): string {
   const rows = input.evidenceRows
