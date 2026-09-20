@@ -29,7 +29,7 @@ export const SOLUTION_CARDS: readonly SolutionCard[] = [
     href: "/solutions/accelerator",
     eyebrow: "For accelerators and incubators",
     title: "Score the whole cohort on one rubric, then show sponsors the progress",
-    body: "Every startup in the program on the same 8-dimension, 13-criteria rubric, re-scored as it changes, so sponsors see movement rather than memory.",
+    body: "Every startup in the program on the same 8-dimension SVI rubric, re-scored as it changes, so sponsors see movement rather than memory.",
     icon: "users",
   },
   {

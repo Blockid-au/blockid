@@ -51,7 +51,7 @@ export default function PilotPage() {
       <PageHero
         eyebrow="Evaluator pilot · offer v2"
         title="Free cohort scoring for one intake"
-        sub={`Run one live intake — up to ${PILOT_MAX_APPLICANTS} applicants — through the 8-dimension / 13-criteria rubric for ${DEFAULT_PILOT_DAYS} days. Your committee ranks first; then you see ours. ${PILOT_CAP} pilots, then list price.`}
+        sub={`Run one live intake — up to ${PILOT_MAX_APPLICANTS} applicants — through the 8-dimension SVI rubric for ${DEFAULT_PILOT_DAYS} days. Your committee ranks first; then you see ours. ${PILOT_CAP} pilots, then list price.`}
         ctas={[
           { href: "#apply", label: "Apply for a pilot", ctaId: "pilot_hero_apply" },
           { href: "/solutions/accelerator", label: "How programs use BlockID" },

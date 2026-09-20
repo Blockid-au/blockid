@@ -77,7 +77,7 @@ function GitHubConnectStep() {
         </a>
       ) : (
         <span className="inline-flex h-10 items-center gap-2 rounded-xl bg-surface-200 px-5 text-sm font-semibold text-ink-600 cursor-not-allowed">
-          <GitBranch className="h-4 w-4" /> Coming soon
+          <GitBranch className="h-4 w-4" /> GitHub connector unavailable
         </span>
       )}
     </div>
@@ -222,7 +222,7 @@ function LinkedInConnectStep() {
         </a>
       ) : (
         <span className="inline-flex h-10 items-center gap-2 rounded-xl bg-surface-200 px-5 text-sm font-semibold text-ink-600 cursor-not-allowed">
-          <LinkedInIcon className="h-4 w-4" /> Coming soon
+          <LinkedInIcon className="h-4 w-4" /> LinkedIn connector unavailable
         </span>
       )}
     </div>

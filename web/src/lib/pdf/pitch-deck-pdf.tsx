@@ -389,7 +389,7 @@ export function PitchDeckPDF() {
           </View>
           <View style={[s.cardDark, { flex: 1 }]}>
             <Text style={{ fontSize: 11, fontWeight: "bold", color: C.gold, marginBottom: 4 }}>Tech Stack</Text>
-            <Text style={s.bulletDark}>• 6 AI providers with auto-failover</Text>
+            <Text style={s.bulletDark}>• Multiple AI providers with auto-failover</Text>
             <Text style={s.bulletDark}>• 31+ SEO articles published</Text>
             <Text style={s.bulletDark}>• 37 custom analytics events</Text>
           </View>
