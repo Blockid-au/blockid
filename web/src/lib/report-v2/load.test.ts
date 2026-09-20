@@ -7,7 +7,7 @@ import { demoReportV2 } from "./fixtures";
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => null }));
 
-import { dimStatesFromRow, loadLatestReportV2ForAccount, loadReportV2ByShareToken, loadReportV2BySnapshotId, reportV2FromSnapshotRow, snapshotInputFromRow } from "./load";
+import { dimStatesFromRow, loadLatestReportV2ForAccount, loadLatestReportV2ForProject, loadReportV2ByShareToken, loadReportV2BySnapshotId, reportV2FromSnapshotRow, snapshotInputFromRow } from "./load";
 
 const ROW = {
   id: "s-1",
@@ -105,5 +105,26 @@ describe("loaders", () => {
 
     expect(await loadReportV2ByShareToken("tok", {}, null)).toBeNull();
     expect(await loadReportV2ByShareToken("tok", {}, fakeSupabase({ svi_snapshots: [] }) as never)).toBeNull();
+  });
+
+  // G19-S46: the showcase reads the newest snapshot of the project that STORES a report_v2 — never an adapter projection.
+  it("loadLatestReportV2ForProject filters on project_id + report_v2 not null and returns only a stored document", async () => {
+    const stored = demoReportV2();
+    const sb = fakeSupabase({ svi_snapshots: [{ ...ROW, report_v2: stored }], svi_accounts: [{ id: "acct-1", startup_name: "Acme Robotics" }] });
+    const loaded = await loadLatestReportV2ForProject("p-1", {}, sb as never);
+    expect(loaded?.path).toBe("stored");
+    expect(loaded?.report.reportId).toBe(stored.reportId);
+    expect(loaded?.snapshotId).toBe("s-1");
+    expect(sb.hasEq("svi_snapshots", "project_id", "p-1")).toBe(true);
+    expect(sb.calls.some((c) => c.table === "svi_snapshots" && c.op === "not" && c.args[0] === "report_v2")).toBe(true);
+
+    // A row without a stored document (or none at all, or no DB) → null, never the adapter fallback.
+    expect(await loadLatestReportV2ForProject("p-1", {}, fakeSupabase({ svi_snapshots: [ROW] }) as never)).toBeNull();
+    expect(await loadLatestReportV2ForProject("p-1", {}, fakeSupabase({ svi_snapshots: [] }) as never)).toBeNull();
+    expect(await loadLatestReportV2ForProject("p-1", {}, null)).toBeNull();
+    expect(await loadLatestReportV2ForProject("", {}, sb as never)).toBeNull();
+    // 42P01-style error → null.
+    const broken = { from: () => { throw new Error('relation "svi_snapshots" does not exist'); } };
+    expect(await loadLatestReportV2ForProject("p-1", {}, broken as never)).toBeNull();
   });
 });

@@ -3,6 +3,10 @@
 //
 //   loadReportV2ByShareToken(token)   → public /tbr/[token] artefacts
 //   loadLatestReportV2ForAccount(...)  → founder exports (DOCX, email)
+//   loadLatestReportV2ForProject(...)  → the newest snapshot of a project that
+//                                         actually STORES a report_v2 (G19-S46
+//                                         BlockID showcase; weekly re-score
+//                                         snapshots without one are skipped)
 //   reportV2FromSnapshotRow(row, ctx)  → pure projection (stored column
 //                                         wins, adapter otherwise)
 //
@@ -188,6 +192,37 @@ export async function loadLatestReportV2ForAccount(
   const { data, error } = await q.maybeSingle();
   if (error || !data) return null;
   return finish(db, data as SnapshotRowLike, { ...ctx, accountId });
+}
+
+/**
+ * G19-S46: the newest snapshot for `projectId` that carries a stored
+ * `report_v2` (the showcase never renders an adapter projection of a bare
+ * weekly re-score). Null when the project has none, the column is absent
+ * (42P01 / 42703 → PostgREST error → null) or there is no DB.
+ */
+export async function loadLatestReportV2ForProject(
+  projectId: string,
+  ctx: SnapshotReportContext = {},
+  db: SupabaseClient | null = getSupabaseAdmin(),
+): Promise<LoadedReportV2 | null> {
+  if (!db || !projectId) return null;
+  try {
+    const { data, error } = await db
+      .from("svi_snapshots")
+      .select(SNAPSHOT_REPORT_COLUMNS)
+      .eq("project_id", projectId)
+      .not("report_v2", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error || !data) return null;
+    const row = data as SnapshotRowLike;
+    const startupName = ctx.startupName ?? (await accountName(db, row.account_id));
+    const loaded = await finish(db, row, { ...ctx, startupName });
+    return loaded.path === "stored" ? loaded : null;
+  } catch {
+    return null;
+  }
 }
 
 /** One snapshot by id (the evaluator TBR / email paths know the id). */
