@@ -357,7 +357,7 @@ describe("GET /api/stripe/trial-status — active trial", () => {
     expect(res.headers.get("Cache-Control")).toBe("no-store");
   });
 
-  it("response contract: exposes exactly the 8 fields the UI reads", async () => {
+  it("response contract: exposes exactly the 11 fields the UI reads (8 + G18-D trial-truth trio)", async () => {
     state.trialRow = activeTrialRow();
     const body = await json(await GET());
     expect(Object.keys(body).sort()).toEqual(
@@ -370,8 +370,27 @@ describe("GET /api/stripe/trial-status — active trial", () => {
         "requiresPayment",
         "status",
         "trialEnd",
+        "trialDays",
+        "firstChargeOn",
+        "currentPeriodEnd",
       ].sort(),
     );
+  });
+
+  // G18-D: trial truth — the span Stripe reports equals the plan's trial_days,
+  // and the first charge lands on trial_end unless a cancel is scheduled.
+  it("trialDays = whole days between trial_start and trial_end; firstChargeOn = trialEnd while trialing", async () => {
+    state.trialRow = { ...activeTrialRow(), trial_start: "2026-08-07T12:00:00.000Z", trial_end: "2026-08-14T12:00:00.000Z" };
+    const body = await json(await GET());
+    expect(body.trialDays).toBe(7);
+    expect(body.firstChargeOn).toBe("2026-08-14T12:00:00.000Z");
+  });
+
+  it("firstChargeOn is null once the cancel is scheduled (nothing will be charged)", async () => {
+    state.trialRow = { ...activeTrialRow(), cancel_at_period_end: true };
+    const body = await json(await GET());
+    expect(body.cancelAtPeriodEnd).toBe(true);
+    expect(body.firstChargeOn).toBeNull();
   });
 });
 

@@ -6,7 +6,7 @@
 // original wording. Pure-function test — no DOM needed.
 
 import { describe, expect, it } from "vitest";
-import { buildTrialBannerMessage } from "./trial-banner";
+import { buildTrialBannerMessage, trialBannerSuffix, trialBannerTone } from "./trial-banner";
 
 describe("buildTrialBannerMessage — evaluator plans", () => {
   it.each([
@@ -46,6 +46,34 @@ describe("buildTrialBannerMessage — founder plans (unchanged wording)", () => 
     const msg = buildTrialBannerMessage({ daysLeft: 5, planId: null, endDate: "the end of your trial" });
     expect(msg).toBe(
       "5 days left in your free trial. Your subscription will begin on the end of your trial.",
+    );
+  });
+});
+
+// G18-D (2026-09-19): tone thresholds were inverted (day 1 of 7 was red).
+describe("trialBannerTone — escalates as the trial END approaches", () => {
+  it("7-day trial: days 7-5 neutral, 4-3 amber, 2-1 red", () => {
+    expect(trialBannerTone(7)).toBe("neutral");
+    expect(trialBannerTone(5)).toBe("neutral");
+    expect(trialBannerTone(4)).toBe("amber");
+    expect(trialBannerTone(3)).toBe("amber");
+    expect(trialBannerTone(2)).toBe("red");
+    expect(trialBannerTone(1)).toBe("red");
+  });
+
+  it("14-day cohort trial starts neutral", () => {
+    expect(trialBannerTone(14)).toBe("neutral");
+  });
+});
+
+describe("trialBannerSuffix — trial truth", () => {
+  it("not cancelled → 'cancel any time before then — no charge'", () => {
+    expect(trialBannerSuffix({ endDate: "Fri, Sep 18" })).toBe(" Cancel any time before then — no charge.");
+  });
+
+  it("cancel scheduled → access until the end date, no charge", () => {
+    expect(trialBannerSuffix({ cancelAtPeriodEnd: true, endDate: "Fri, Sep 18" })).toBe(
+      " Cancellation scheduled — you keep access until Fri, Sep 18 and will not be charged.",
     );
   });
 });

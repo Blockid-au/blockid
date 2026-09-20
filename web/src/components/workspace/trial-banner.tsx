@@ -3,11 +3,19 @@
 // TrialBanner — persistent header banner for trialing users.
 //
 // Renders nothing when the caller is not in a trial (or when the trial has
-// already ended).  When active, colour and copy escalate as trial_end nears:
+// already ended).  When active, colour and copy escalate as trial_end nears
+// (`daysLeft` counts DOWN from plans.trial_days to 0):
 //
-//   day 1-2  →  neutral surface (no urgency)
-//   day 3-5  →  amber  (nudge)
-//   day 6-7  →  red    (last-mile — card will be charged soon)
+//   > 4 days left  →  neutral surface (no urgency)
+//   3-4 days left  →  amber  (nudge)
+//   ≤ 2 days left  →  red    (last-mile — card will be charged soon)
+//
+// G18-D (2026-09-19): the thresholds were inverted (`daysLeft >= 6` painted
+// day 1 of a 7-day trial red and the last day blue); the "Cancel Trial"
+// button POSTed /api/stripe/cancel, which listed only active subscriptions
+// and so silently 404'd for every trial. Cancelling now goes through the
+// one confirm flow on /workspace/billing#cancel (exit survey, trial ends
+// now, no charge).
 //
 // Dismiss button hides the banner for the rest of the calendar day via a
 // localStorage key (`dismissed_trial_banner_YYYY-MM-DD`) so it re-appears on
@@ -88,11 +96,27 @@ export function buildTrialBannerMessage(args: {
   return daysLabel + trialLabel + priceCopy;
 }
 
+/** Tone class for the countdown — exported for the colocated test. */
+export function trialBannerTone(daysLeft: number): "neutral" | "amber" | "red" {
+  if (daysLeft <= 2) return "red";
+  if (daysLeft <= 4) return "amber";
+  return "neutral";
+}
+
+/**
+ * The trial-truth suffix: card on file, first charge on the end date,
+ * cancel before then for no charge — or the scheduled-cancel state.
+ */
+export function trialBannerSuffix(args: { cancelAtPeriodEnd?: boolean; endDate: string }): string {
+  return args.cancelAtPeriodEnd
+    ? " Cancellation scheduled — you keep access until " + args.endDate + " and will not be charged."
+    : " Cancel any time before then — no charge.";
+}
+
 export function TrialBanner(): React.ReactElement | null {
   const [status, setStatus] = React.useState<TrialStatusResponse | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [dismissed, setDismissed] = React.useState(false);
-  const [cancelling, setCancelling] = React.useState(false);
 
   React.useEffect(() => {
     let cancelled = false;
@@ -141,13 +165,14 @@ export function TrialBanner(): React.ReactElement | null {
 
   const endDate = formatEndDate(status.trialEnd);
 
-  // Escalate the visual tone as trial-end approaches.
-  let toneClass = "bg-blue-50 border-blue-300 text-blue-900 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-100";
-  if (daysLeft >= 6) {
-    toneClass = "bg-red-100/70 border-red-500 text-red-900 dark:bg-red-900/40 dark:border-red-600 dark:text-red-100";
-  } else if (daysLeft >= 3) {
-    toneClass = "bg-amber-100/70 border-amber-400 text-amber-900 dark:bg-amber-900/40 dark:border-amber-600 dark:text-amber-100";
-  }
+  // Escalate the visual tone as trial-end approaches (daysLeft counts down).
+  const tone = trialBannerTone(daysLeft);
+  const toneClass =
+    tone === "red"
+      ? "bg-red-100/70 border-red-500 text-red-900 dark:bg-red-900/40 dark:border-red-600 dark:text-red-100"
+      : tone === "amber"
+        ? "bg-amber-100/70 border-amber-400 text-amber-900 dark:bg-amber-900/40 dark:border-amber-600 dark:text-amber-100"
+        : "bg-blue-50 border-blue-300 text-blue-900 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-100";
 
   const message = buildTrialBannerMessage({ daysLeft, planId: status.planId, endDate });
 
@@ -162,33 +187,6 @@ export function TrialBanner(): React.ReactElement | null {
     setDismissed(true);
   }
 
-  async function handleCancel(): Promise<void> {
-    if (cancelling) return;
-    const ok =
-      typeof window === "undefined"
-        ? true
-        : window.confirm(
-            "Cancel your free trial? You'll keep access until " + endDate + ", but your card won't be charged.",
-          );
-    if (!ok) return;
-    setCancelling(true);
-    try {
-      const res = await fetch("/api/stripe/cancel", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: "trial_banner_cancel" }),
-      });
-      if (res.ok) {
-        setStatus((prev) => (prev ? { ...prev, cancelAtPeriodEnd: true } : prev));
-      }
-    } catch {
-      // Non-fatal; user can retry via Billing page.
-    } finally {
-      setCancelling(false);
-    }
-  }
-
   return (
     <div
       role="status"
@@ -198,11 +196,9 @@ export function TrialBanner(): React.ReactElement | null {
         toneClass
       }
     >
-      <span className="text-sm font-medium flex-1">
+      <span className="text-sm font-medium flex-1" data-testid="trial-banner-message" data-tone={tone}>
         {message}
-        {status.cancelAtPeriodEnd
-          ? " Cancellation scheduled — you keep access until " + endDate + "."
-          : null}
+        {trialBannerSuffix({ cancelAtPeriodEnd: status.cancelAtPeriodEnd, endDate })}
       </span>
 
       <div className="flex items-center gap-2 shrink-0">
@@ -213,14 +209,13 @@ export function TrialBanner(): React.ReactElement | null {
           Choose Plan
         </Link>
         {!status.cancelAtPeriodEnd ? (
-          <button
-            type="button"
-            onClick={handleCancel}
-            disabled={cancelling}
-            className="text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-white/40 transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+          <Link
+            href="/workspace/billing#cancel"
+            data-testid="trial-banner-cancel"
+            className="text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-white/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
           >
-            {cancelling ? "Cancelling…" : "Cancel Trial"}
-          </button>
+            Cancel trial
+          </Link>
         ) : null}
         <button
           type="button"
