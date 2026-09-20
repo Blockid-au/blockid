@@ -13,13 +13,14 @@
 
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 
 export const PITCH_DECK_PATH = "web/content/pitch/pitch-deck-v1.md";
 export const ONE_PAGER_PATH = "web/content/pitch/reseller-channel-gtm-lever.md";
 
-/** Auschain remains sole seller-of-record on every invoice (plan §U.1 / H.13). */
-export const SELLER_OF_RECORD_ENTITY = "Auschain PTY LTD";
-export const SELLER_OF_RECORD_ABN = "79 659 615 111";
+/** The operator remains sole seller-of-record on every invoice (plan §U.1 / H.13). */
+export const SELLER_OF_RECORD_ENTITY: string = LEGAL_ENTITY.operator;
+export const SELLER_OF_RECORD_ABN: string = LEGAL_ENTITY.abn;
 
 /** BlockID gross-per-A$99-seat invariant across retail tiers 0/10/20/30/40. */
 export const RETAIL_BLOCKID_GROSS_INVARIANT_AUD = "59.40";

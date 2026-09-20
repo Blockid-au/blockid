@@ -3,6 +3,7 @@
 // Not a test file: importing a `.test.tsx` module would re-register its
 // suites inside the importer.
 
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import { buildEssAnnex, type CertificateEssFacts, type ValuationCertificateData } from "./types";
 
 export const SAMPLE_CERTIFICATE: ValuationCertificateData = {
@@ -10,7 +11,7 @@ export const SAMPLE_CERTIFICATE: ValuationCertificateData = {
   certificateNo: "VC-7K3MP-Q9X2A",
   issuedAt: "2026-09-12T03:00:00.000Z",
   startupName: "Acme Robotics Pty Ltd",
-  abn: "79 659 615 111",
+  abn: LEGAL_ENTITY.abn,
   stageLabel: "Seed",
   sviScore: 138,
   sviVersion: "v3.6.8",

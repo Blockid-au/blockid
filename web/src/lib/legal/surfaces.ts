@@ -16,6 +16,7 @@
 // new migration. Never mutate an existing entry's body_md in place.
 
 import { DISCLAIMER_VERSIONS, type DisclaimerKind } from "./versions";
+import { LEGAL_ENTITY, legalLine, producedByLine } from "@/lib/site/legal-entity";
 
 export type DisclaimerSurface = {
   kind: DisclaimerKind;
@@ -30,7 +31,7 @@ export const DISCLAIMER_SURFACES: Record<string, DisclaimerSurface> = {
     kind: "not_financial_advice",
     jurisdictions: ["*"],
     label: "SVI Report Footer",
-    body_md: `**Not financial advice.** The Startup Value Index (SVI) is an information service produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111, ABN 79 659 615 111). The SVI score is a heuristic composite of publicly available and user-supplied signals and is **not** a securities valuation, credit rating, or investment recommendation. Nothing in this report constitutes financial product advice under the Corporations Act 2001 (Cth). You should obtain independent professional advice from a licensed AFSL holder before making any investment decision. All figures shown in AUD unless otherwise noted; prices include GST where applicable.`,
+    body_md: `**Not financial advice.** The Startup Value Index (SVI) is an information service produced by ${producedByLine()}. The SVI score is a heuristic composite of publicly available and user-supplied signals and is **not** a securities valuation, credit rating, or investment recommendation. Nothing in this report constitutes financial product advice under the Corporations Act 2001 (Cth). You should obtain independent professional advice from a licensed AFSL holder before making any investment decision. All figures shown in AUD unless otherwise noted; prices include GST where applicable.`,
     body_md_vi: `[TODO-VI] **Không phải tư vấn tài chính.** Chỉ số Giá trị Startup (SVI) do BlockID.au cung cấp là công cụ thông tin, không phải định giá chứng khoán hay khuyến nghị đầu tư.`,
   },
 
@@ -70,7 +71,7 @@ export const DISCLAIMER_SURFACES: Record<string, DisclaimerSurface> = {
     kind: "not_financial_advice",
     jurisdictions: ["*"],
     label: "Evaluator Report Footer",
-    body_md: `**General information only — not financial, investment, or legal advice.** This report was produced by BlockID.au (Auschain PTY LTD, ACN 659 615 111, ABN 79 659 615 111) for the person or organisation who entered this startup, from the evidence that startup has supplied together with publicly available information. Scores, valuation ranges, and any statement of eligibility for a grant, program, tax incentive, or investor exemption (including ESIC, the R&D Tax Incentive, and s708 offers) are **indicative** — they are estimates on the evidence available at the time, not a determination by any authority and not a guarantee of an outcome. A match to a grant, program, or investor profile is **not** an approval, an offer, or a commitment of funds by anyone. Nothing here is financial product advice under the Corporations Act 2001 (Cth); BlockID.au does not hold an Australian Financial Services Licence (AFSL). Obtain independent professional advice from a licensed adviser, accountant, or lawyer before making any investment, funding, or eligibility decision. All figures in AUD unless otherwise noted.`,
+    body_md: `**General information only — not financial, investment, or legal advice.** This report was produced by ${producedByLine()} for the person or organisation who entered this startup, from the evidence that startup has supplied together with publicly available information. Scores, valuation ranges, and any statement of eligibility for a grant, program, tax incentive, or investor exemption (including ESIC, the R&D Tax Incentive, and s708 offers) are **indicative** — they are estimates on the evidence available at the time, not a determination by any authority and not a guarantee of an outcome. A match to a grant, program, or investor profile is **not** an approval, an offer, or a commitment of funds by anyone. Nothing here is financial product advice under the Corporations Act 2001 (Cth); BlockID.au does not hold an Australian Financial Services Licence (AFSL). Obtain independent professional advice from a licensed adviser, accountant, or lawyer before making any investment, funding, or eligibility decision. All figures in AUD unless otherwise noted.`,
     body_md_vi: `[TODO-VI] **Chỉ là thông tin chung — không phải tư vấn tài chính, đầu tư hay pháp lý.** Điểm số, khoảng định giá và mọi nhận định về điều kiện tài trợ, chương trình hay ưu đãi thuế chỉ mang tính tham khảo; một kết quả khớp không phải là phê duyệt hay đề nghị cấp vốn.`,
   },
 
@@ -86,7 +87,7 @@ export const DISCLAIMER_SURFACES: Record<string, DisclaimerSurface> = {
     kind: "not_financial_advice",
     jurisdictions: ["AU"],
     label: "Funding Directory Footer",
-    body_md: `**General information only — not financial, tax or legal advice.** This directory is published by BlockID.au (Auschain PTY LTD, ACN 659 615 111, ABN 79 659 615 111) from public government, university and program sources. Government grant information is free: the names, amounts and official links here cost nothing, and you should only ever apply through the official portal linked on each row. Grants and programs pause, close and change their rules without notice — verify every detail on the official site before you rely on it. Eligibility is decided solely by the agency or program; appearing here, or matching your profile, is not an approval and not a guarantee of funding. Tax measures such as the R&D Tax Incentive and ESIC are for a registered tax agent to confirm. Equity programs are listed for information and are not an offer or a recommendation; BlockID.au does not hold an Australian Financial Services Licence (AFSL). Grant income is generally assessable and GST may apply. Deadlines are shown as published by the source — check the source's time zone. What BlockID.au charges for is analysis against your own startup's evidence, never the list itself.`,
+    body_md: `**General information only — not financial, tax or legal advice.** This directory is published by ${producedByLine()} from public government, university and program sources. Government grant information is free: the names, amounts and official links here cost nothing, and you should only ever apply through the official portal linked on each row. Grants and programs pause, close and change their rules without notice — verify every detail on the official site before you rely on it. Eligibility is decided solely by the agency or program; appearing here, or matching your profile, is not an approval and not a guarantee of funding. Tax measures such as the R&D Tax Incentive and ESIC are for a registered tax agent to confirm. Equity programs are listed for information and are not an offer or a recommendation; BlockID.au does not hold an Australian Financial Services Licence (AFSL). Grant income is generally assessable and GST may apply. Deadlines are shown as published by the source — check the source's time zone. What BlockID.au charges for is analysis against your own startup's evidence, never the list itself.`,
     body_md_vi: `[TODO-VI] **Chỉ là thông tin chung — không phải tư vấn tài chính, thuế hay pháp lý.** Thông tin về tài trợ của chính phủ là miễn phí; hãy nộp hồ sơ qua cổng chính thức và kiểm tra lại mọi chi tiết trên trang chính thức. Xuất hiện trong danh mục này không phải là phê duyệt.`,
   },
 
@@ -94,8 +95,8 @@ export const DISCLAIMER_SURFACES: Record<string, DisclaimerSurface> = {
     kind: "not_financial_advice",
     jurisdictions: ["*"],
     label: "General Site Footer",
-    body_md: `BlockID.au is operated by Auschain PTY LTD (ACN 659 615 111, ABN 79 659 615 111), Sydney NSW. Content on this site is for general information only and does not constitute financial, legal, or tax advice. BlockID.au does not hold an Australian Financial Services Licence (AFSL) and does not provide personal financial product advice. Seek professional advice before acting on any information. See our Terms (${DISCLAIMER_VERSIONS.tos}) and Privacy Policy (${DISCLAIMER_VERSIONS.privacy}).`,
-    body_md_vi: `[TODO-VI] BlockID.au do Auschain PTY LTD vận hành. Nội dung chỉ mang tính thông tin chung, không phải tư vấn tài chính, pháp lý hay thuế.`,
+    body_md: `BlockID.au is operated by ${legalLine()}, ${LEGAL_ENTITY.city}. Content on this site is for general information only and does not constitute financial, legal, or tax advice. BlockID.au does not hold an Australian Financial Services Licence (AFSL) and does not provide personal financial product advice. Seek professional advice before acting on any information. See our Terms (${DISCLAIMER_VERSIONS.tos}) and Privacy Policy (${DISCLAIMER_VERSIONS.privacy}).`,
+    body_md_vi: `[TODO-VI] BlockID.au do ${LEGAL_ENTITY.operator} vận hành. Nội dung chỉ mang tính thông tin chung, không phải tư vấn tài chính, pháp lý hay thuế.`,
   },
 };
 

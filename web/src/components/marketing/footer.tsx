@@ -27,9 +27,10 @@
  * `ink-*` / `surface-*` numeric ramps here: those INVERT inside a dark
  * scope, so `bg-ink-950` would paint near-white.
  *
- * Entity lines (business-entity memory): marketing = PPL Food PTY LTD (this
- * footer); billing / legal / invoices / JSON-LD = Auschain PTY LTD. Do not
- * "fix" one into the other.
+ * Entity lines come from `@/lib/site/legal-entity` (G21 P0-A): the brand
+ * block names the marketing operator, the bottom row renders
+ * `marketingLine()` so both roles (marketing operator · seller of record with
+ * its ABN) are explicit on every page. Never hard-code either name here.
  */
 
 import Link from "next/link";
@@ -37,6 +38,7 @@ import { MapPin, ShieldCheck } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { PartnerFooterRow } from "@/components/marketing/partner-footer-row";
 import { FOOTER_COLUMNS } from "@/components/marketing/footer-columns";
+import { LEGAL_ENTITY, marketingLine } from "@/lib/site/legal-entity";
 import versionData from "../../../content/reports/version.json";
 
 function readVersionString(): string | null {
@@ -44,8 +46,8 @@ function readVersionString(): string | null {
   return typeof v === "string" && v.length > 0 ? v : null;
 }
 
-/** Marketing entity — see `docs`/memory: the legal entity on invoices is Auschain PTY LTD. */
-export const FOOTER_ENTITY = "PPL Food PTY LTD";
+/** Marketing entity (brand block) — the seller of record on invoices is `LEGAL_ENTITY.operator`. */
+export const FOOTER_ENTITY: string = LEGAL_ENTITY.marketingOperator;
 
 /** The one disclaimer line every public page closes with (moved from site/footer.tsx, unchanged). */
 export const FOOTER_DISCLAIMER =
@@ -154,7 +156,7 @@ export function Footer() {
       <div className="border-t border-line-subtle">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-6 text-xs sm:flex-row sm:items-center sm:justify-between">
           <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-secondary">
-            <span>&copy; {year} {FOOTER_ENTITY}</span>
+            <span data-testid="footer-entity-line">{marketingLine(year)}</span>
             <span aria-label="Language" role="group" className="inline-flex items-center gap-2">
               {FOOTER_LANGUAGES.map((l, i) => (
                 <span key={l.code} className="contents">
