@@ -19,6 +19,7 @@ import { getMultiplesBenchmark, mapSectorToAUIndustry, mapStageToAUStage } from 
 import { comparablesCounts, topComparables } from "@/lib/valuation/comparables-repo";
 import { PHASE_EXIT_RULES, type PhaseGateResult } from "@/lib/growth/phase-gate";
 import { inferPhase } from "@/lib/growth/infer-phase";
+import { derivedLift } from "@/lib/svi-lift";
 import { GROWTH_PHASE_IDS, GROWTH_PHASE_LABELS, type GrowthPhaseId } from "@/lib/growth/phase-taxonomy";
 import { DIMENSION_OWNERS, DIM_ORDER, criteriaForDimension, type DimKey } from "@/lib/report-pipeline/dimension-owners";
 import { buildValuationChapter, type ValuationAskInput, type VcValuationLike } from "@/lib/report-pipeline/valuation-chapter";
@@ -705,17 +706,6 @@ function buildChapter(c: ChapterCtx, phase: PhaseGateResult, tier: ReportTierV2,
 /** Score restatements never make the executive list ("FTV 83/100 (strong)", "5 below the strong band"). */
 const SCORE_RESTATEMENT = /\b\d{1,3}\s*\/\s*100\b|below the (strong |developing )?band|points below|\bscores? \d{1,3}\b/i;
 
-/**
- * The lift of closing a criterion gap on the one 1–10 scale (S43's
- * `derivedLift`: criterion weight × distance to the next band boundary,
- * 70 strong / 85 exceptional). Kept local so the adapter stays client-safe.
- */
-function gapLift(weight: number, score: number): number {
-  const target = score < 70 ? 70 : 85;
-  const gap = Math.max(0, target - score);
-  return Math.max(1, Math.min(10, Math.round((weight * gap) / 40)));
-}
-
 /** The evidence behind a card, as a short source word: cited row → top ledger signal → first evidenced row → "no citation". */
 function cardSourceLabel(chapter: DimensionChapter, card: Pick<CriterionCard, "citations"> | undefined, src: Record<string, string>): string {
   const cited = card?.citations[0]?.evidence_id;
@@ -768,7 +758,7 @@ export function executiveFromChapters(dimensions: readonly DimensionChapter[], l
       const s = card.strengths.map(tidyBullet).find((t) => t && !SCORE_RESTATEMENT.test(t));
       if (s) strengths.push({ text: s, rank: card.score * weight, source });
       const g = card.gaps.map(tidyBullet).find((t) => t && !SCORE_RESTATEMENT.test(t));
-      if (g) gaps.push({ text: g, rank: gapLift(weight, card.score) * 100 + (100 - card.score), source });
+      if (g) gaps.push({ text: g, rank: derivedLift(weight, card.score) * 100 + (100 - card.score), source });
     }
     // A chapter whose cards carry no bullets at all (adapter fallback card)
     // may still have chapter-level insights — they count once, ranked by the
@@ -778,7 +768,7 @@ export function executiveFromChapters(dimensions: readonly DimensionChapter[], l
       const s = ch.strengths.map(tidyBullet).find((t) => t && !SCORE_RESTATEMENT.test(t));
       if (s) strengths.push({ text: s, rank: ch.score * ch.weight, source });
       const g = ch.gaps.map(tidyBullet).find((t) => t && !SCORE_RESTATEMENT.test(t));
-      if (g) gaps.push({ text: g, rank: gapLift(ch.weight, ch.score) * 100 + (100 - ch.score), source });
+      if (g) gaps.push({ text: g, rank: derivedLift(ch.weight, ch.score) * 100 + (100 - ch.score), source });
     }
   }
   const top3 = (list: Candidate[]): string[] => {

@@ -11,6 +11,9 @@ import { getTbrS43Strings, getTbrStrings } from "@/lib/i18n/tbr-strings";
 import { VisualFigure } from "@/lib/report-visuals/react";
 import { chapterCtaRows, emptyEvidenceLine, evidenceRowsView, nextActionView, pendingCtasHeading, type EvidenceRowView } from "@/lib/report-v2/evidence-view";
 import { isUnassessed, ledgerRowsFor, pendingLine } from "@/lib/report-v2/ledger-rows";
+import { cardRenderModes } from "@/lib/report-v2/card-modes";
+import { CRITERIA } from "@/lib/evaluation-criteria";
+import { DIMENSION_OWNERS } from "@/lib/report-pipeline/dimension-owners";
 import type { DimensionChapter } from "@/lib/report-v2/schema";
 import { cn } from "@/lib/utils";
 import { AgentBadge, AuditStampLine, Bullets, TBR_V2_SECTION_IDS, TbrSection, bandLabel, bandSurface, bandText, phaseLabel, stateLabel, type TbrUiLocale } from "./shared";
@@ -183,6 +186,14 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
   const extraStrengths = ch.strengths.filter((x) => !cardText.has(normBullet(x)));
   const extraGaps = ch.gaps.filter((x) => !cardText.has(normBullet(x)));
   const floorChip = typeof ch.phaseLens.floor === "number" ? (ch.phaseLens.floorMet ? s.floorMet(ch.phaseLens.floor) : s.floorNotMet(ch.phaseLens.floor)) : s.noFloor;
+  // G19-S44: a card borrowed from another chapter renders compact here (one full copy per document).
+  const cardModes = cardRenderModes(ch);
+  const owningChapter = (key: string): { id: string; title: string } | null => {
+    const dim = CRITERIA.find((d) => d.key === key)?.primaryDimension;
+    if (!dim || dim === ch.dim || !(dim in DIMENSION_OWNERS)) return null;
+    const owner = DIMENSION_OWNERS[dim as keyof typeof DIMENSION_OWNERS];
+    return { id: TBR_V2_SECTION_IDS.dim(dim), title: locale === "vi" ? owner.titleVi : owner.title };
+  };
   // G14-S37: the FTV chapter carries the founder execution rubric as a module.
   const founderExecution = founderExecutionFromChapter(ch);
   const header = (
@@ -256,25 +267,36 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
 
       <div className="grid gap-3 md:grid-cols-2">
         {founderExecution && <FounderExecutionCard data={founderExecution} />}
-        {ch.criteria.map((c) => (
-          <div key={c.key} className="rounded-lg border border-ink-200 p-3 dark:border-ink-800 print:break-inside-avoid">
+        {ch.criteria.map((c) => {
+          const compact = cardModes.get(c.key) === "compact";
+          const owner = compact ? owningChapter(c.key) : null;
+          return (
+          <div key={c.key} data-tbr-card={c.key} data-tbr-card-mode={compact ? "compact" : "full"} className={cn("rounded-lg border p-3 print:break-inside-avoid", compact ? "border-dashed border-ink-200 dark:border-ink-800" : "border-ink-200 dark:border-ink-800")}>
             <div className="flex items-center justify-between gap-2">
               <p className="text-sm font-semibold text-ink-800 dark:text-ink-100">{c.title}</p>
               <span className={cn("text-sm font-bold tabular-nums", bandText(c.score >= 70 ? "strong" : c.score >= 40 ? "developing" : "early"))}>{c.score}</span>
             </div>
             <p className="mt-1 text-xs text-ink-600 dark:text-ink-300">{c.verdict}</p>
-            {(c.strengths.length > 0 || c.gaps.length > 0) && (
+            {compact && owner && (
+              <p className="mt-1 text-[11px]">
+                <a href={`#${owner.id}`} className="text-brand-700 underline-offset-2 hover:underline dark:text-brand-300">
+                  {s.fullCardIn(owner.title)}
+                </a>
+              </p>
+            )}
+            {!compact && (c.strengths.length > 0 || c.gaps.length > 0) && (
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
                 <Bullets title={t.strengths} tone="good" items={c.strengths.slice(0, 3)} />
                 <Bullets title={t.gaps} tone="bad" items={c.gaps.slice(0, 3)} />
               </div>
             )}
-            {c.nextAction && <p className="mt-2 text-[11px] text-brand-700 dark:text-brand-300">{t.next}: {c.nextAction}</p>}
+            {!compact && c.nextAction && <p className="mt-2 text-[11px] text-brand-700 dark:text-brand-300">{t.next}: {c.nextAction}</p>}
             <p className="mt-1 text-[10px] text-ink-400">
               {c.quality} · {c.agent.toUpperCase()} · {c.grounded ? t.grounded : t.uncited}
             </p>
           </div>
-        ))}
+          );
+        })}
       </div>
 
       {(extraStrengths.length > 0 || extraGaps.length > 0) && (

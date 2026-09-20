@@ -49,16 +49,9 @@ export interface ExecutiveSynthesisData {
   reportHref: string;
 }
 
-/**
- * S43 lands `actionPlan.evidenceToAdd: EvidenceRow[]` with `cta {label, href,
- * lift}` on `missing` rows. Read structurally so a document stored before
- * S43 (or a build where the field is not yet in the contract) degrades to
- * an empty list instead of a type error.
- */
-type EvidenceRowWithCta = EvidenceRow & { cta?: { label?: string; href?: string; lift?: number } };
-function evidenceToAddOf(report: ReportV2): EvidenceRowWithCta[] {
-  const plan = report.actionPlan as ReportV2["actionPlan"] & { evidenceToAdd?: unknown };
-  return Array.isArray(plan.evidenceToAdd) ? (plan.evidenceToAdd as EvidenceRowWithCta[]) : [];
+/** S43's `actionPlan.evidenceToAdd` (CTA rows); a document stored before S43 has none → empty. */
+function evidenceToAddOf(report: ReportV2): EvidenceRow[] {
+  return Array.isArray(report.actionPlan.evidenceToAdd) ? report.actionPlan.evidenceToAdd : [];
 }
 
 /** Top-N plan steps by expected lift (ties: earlier day first) — the same numbers chapter 13 prints. */

@@ -12,6 +12,7 @@ import { TBR_STRINGS, TBR_VALUATION_STRINGS } from "@/lib/i18n/tbr-strings";
 import { catalogueLift } from "@/lib/svi-lift";
 import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
 import { reportOrderPath } from "@/lib/paywall/report-delivery";
+import { cardRenderModes } from "@/lib/report-v2/card-modes";
 import { TBR_V2_SECTION_IDS, TbrReportV2, tbrV2Toc } from "./report";
 import { TBR_UNLOCK_RAIL_TESTID, tbrUnlockHeadline } from "./unlock-rail";
 
@@ -386,7 +387,20 @@ describe("<TbrReportV2> synthesis + layout (G19-S44)", () => {
     const tre = report.dimensions[0]!;
     const chapter = html.slice(html.indexOf(`id="${TBR_V2_SECTION_IDS.dim("tre")}"`), html.indexOf(`id="${TBR_V2_SECTION_IDS.dim("mpc")}"`));
     expect((chapter.match(/text-4xl font-black/g) ?? []).length).toBe(1);
-    for (const b of tre.criteria.flatMap((c) => c.strengths)) expect((chapter.match(new RegExp(b.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/&/g, "&amp;"), "g")) ?? []).length).toBe(1);
+    const esc = (b: string) => b.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/&/g, "&amp;");
+    const modes = cardRenderModes(tre);
+    for (const c of tre.criteria) {
+      const expected = modes.get(c.key) === "compact" ? 0 : 1;
+      for (const b of c.strengths) expect((chapter.match(new RegExp(esc(b), "g")) ?? []).length, `${c.key}: ${b}`).toBe(expected);
+    }
+    // Borrowed cards (market / website / gtm live in MPC / PTD) are compact here and link to their chapter; one full copy per document.
+    expect(chapter).toContain('data-tbr-card="market" data-tbr-card-mode="compact"');
+    expect(chapter).toContain(`href="#${TBR_V2_SECTION_IDS.dim("mpc")}"`);
+    expect(chapter).toContain("Full card in Market Pull &amp; Category →");
+    expect((html.match(/data-tbr-card="market" data-tbr-card-mode="full"/g) ?? []).length).toBe(1);
+    // A chapter with no card of its own (CGH) keeps every card in full.
+    const cgh = html.slice(html.indexOf(`id="${TBR_V2_SECTION_IDS.dim("cgh")}"`), html.indexOf(`id="${TBR_V2_SECTION_IDS.dim("iri")}"`));
+    expect(cgh).not.toContain('data-tbr-card-mode="compact"');
   });
 
   it("executive header: mean evidence confidence from the ledgers, no auditor / grounded-% jargon (the appendix keeps it); audit copy says 'no citation in this chapter'", () => {

@@ -461,7 +461,9 @@ describe("fromSnapshot — G19-S43 evidence rows, next actions, plan, money, cov
       for (const s of [...d.strengths, ...d.gaps]) expect(cardBullets.has(s)).toBe(false);
     }
     expect(r.executive.gaps.some((g) => / 0 below the strong band/.test(g))).toBe(false);
-    expect(r.executive.gaps).toEqual(["Strategic Vision & Moat 65/100 — 5 below the strong band."]);
+    // G19-S44: executive gaps are the top-3 criterion-card gaps by lift (with source), never a score restatement.
+    expect(r.executive.gaps.length).toBe(3);
+    expect(r.executive.gaps.some((g) => /\d+\/100/.test(g))).toBe(false);
     const strong = assertReportV2(fromSnapshot({ dimStates: { tre: { score: 80 }, mpc: { score: 75 }, ftv: { score: 90 } } }));
     expect(strong.executive.gaps).toEqual([]);
   });

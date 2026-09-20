@@ -514,6 +514,8 @@ export interface TbrV2Strings {
     floorNotMet: (floor: number) => string;
     noFloor: string;
     floorsRow: (phase: string) => string;
+    /** Compact (borrowed) criterion card → link to the chapter that carries it in full. */
+    fullCardIn: (chapter: string) => string;
     /** Dashboard block. */
     dashboard: {
       title: string;
@@ -719,6 +721,7 @@ const v2En: TbrV2Strings = {
     floorNotMet: (floor) => `floor ${floor} ✗`,
     noFloor: "no floor",
     floorsRow: (phase) => `Dimension floors at ${phase}`,
+    fullCardIn: (chapter) => `Full card in ${chapter} →`,
     dashboard: {
       title: "Executive synthesis",
       where: "Where",
@@ -923,6 +926,7 @@ const v2Vi: TbrV2Strings = {
     floorNotMet: (floor) => `sàn ${floor} ✗`,
     noFloor: "không có sàn",
     floorsRow: (phase) => `Sàn khía cạnh ở giai đoạn ${phase}`,
+    fullCardIn: (chapter) => `Thẻ đầy đủ ở chương ${chapter} →`,
     dashboard: {
       title: "Tổng hợp điều hành",
       where: "Đang ở đâu",

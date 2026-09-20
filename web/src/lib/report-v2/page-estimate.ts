@@ -7,6 +7,7 @@
 // ~420 body words per page; a full-width chart costs ~0.3 page, a card
 // chart ~0.15; every chapter header + table costs a fixed overhead.
 
+import { cardRenderModes } from "./card-modes";
 import type { DimensionChapter, ReportV2 } from "./schema";
 
 /** G19-S44: the standard demo fixture must stay within this many rendered words (≥ 60 % non-boilerplate). */
@@ -57,12 +58,13 @@ function chapterCost(ch: DimensionChapter, freeTier: boolean): { pages: number; 
   // (the web chapter hides duplicates), and the phase-lens sentence is no
   // longer rendered per chapter (one row in Phase Gates + a floor chip).
   const cardText = new Set(ch.criteria.flatMap((c) => [...c.strengths, ...c.gaps]).map(normBullet));
+  const modes = cardRenderModes(ch);
   const words = wc(
     ch.verdict,
     ch.strengths.filter((x) => !cardText.has(normBullet(x))),
     ch.gaps.filter((x) => !cardText.has(normBullet(x))),
     ch.nextAction.title,
-    ...ch.criteria.map((c) => [c.verdict, ...c.strengths, ...c.gaps, c.nextAction]),
+    ...ch.criteria.map((c) => (modes.get(c.key) === "compact" ? [c.verdict] : [c.verdict, ...c.strengths, ...c.gaps, c.nextAction])),
   );
   const visuals = 1 + (freeTier ? 0 : ch.secondaryVisuals.length);
   const bd = ch.scoreBreakdown;
@@ -90,7 +92,9 @@ export function estimatePages(report: ReportV2): PageEstimate {
     visuals += 1 + (free && ch.renderAs === "card" ? 0 : ch.secondaryVisuals.length);
   }
 
-  const valWords = free ? 0 : wc(report.valuation.narrative, ...report.valuation.methods.map((m) => m.rationale));
+  // G19-S42/S44: the chapter renders the APPLICABLE method rows only (derivation + rationale); non-applicable rows are one hidden line.
+  const applicable = report.valuation.methods.filter((m) => m.applicable);
+  const valWords = free ? 0 : wc(report.valuation.narrative, ...applicable.map((m) => m.rationale), ...applicable.map((m) => report.valuation.derivation?.[m.method] ?? ""));
   sections.push({ id: "valuation", pages: free ? 0.3 : 0.4 + report.valuation.visuals.length * FULL_VISUAL_PAGES + valWords / WORDS_PER_PAGE, words: valWords });
   visuals += free ? 1 : report.valuation.visuals.length;
 

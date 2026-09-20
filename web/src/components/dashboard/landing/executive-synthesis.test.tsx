@@ -55,8 +55,18 @@ describe("synthesisFromReport — same numbers as the TBR", () => {
     for (const f of d.followUps) expect(titles.has(f.title)).toBe(true);
     expect(d.followUps).toEqual(topFollowUps(report.actionPlan.steps, 3));
     expect(d.reportHref).toBe(EXECUTIVE_SYNTHESIS_REPORT_HREF);
+    // S43: the demo carries CTA rows in actionPlan.evidenceToAdd → linked "data to add" entries with the catalogue lift.
+    const rows = report.actionPlan.evidenceToAdd ?? [];
+    expect(d.dataToAdd.length).toBe(Math.min(3, rows.length));
+    for (const [i, row] of d.dataToAdd.entries()) {
+      expect(row.href.startsWith("/")).toBe(true);
+      expect(row.label).toBe(rows[i]!.cta?.label ?? rows[i]!.label);
+      expect(row.lift).toBe(rows[i]!.cta?.lift ?? null);
+    }
     // Pre-S43 document: no evidenceToAdd → empty, never a throw.
-    expect(d.dataToAdd).toEqual([]);
+    const legacy = demoReportV2();
+    delete legacy.actionPlan.evidenceToAdd;
+    expect(synthesisFromReport(legacy, "en").dataToAdd).toEqual([]);
   });
 
   it("nothing scored → worth is pending (the same rule as the cover hero)", () => {
