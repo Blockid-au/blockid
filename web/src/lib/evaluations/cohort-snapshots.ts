@@ -39,7 +39,7 @@ export interface SnapshotRow extends SnapshotRowLite {
   evaluation_id: string;
   item_id: number;
   svi: number | null;
-  /** TODO(P1-B): lib/svi/evidence-confidence.ts — fill from the project's claims once it lands. Null until then. */
+  /** The stored `svi_snapshots.evidence_confidence` (0419) at snapshot time; null before the project's first post-P1 snapshot. */
   evidence_confidence: number | null;
   verification_level: number;
   dims: Partial<Record<DimensionKey, number>>;
@@ -192,6 +192,31 @@ export function mapSnapshotRow(row: Row): CohortSnapshot {
 
 // ── Loaders (decorative on failure) ─────────────────────────────────────────
 
+/** Latest stored evidence confidence per project (0419); projects without one are simply absent. */
+async function loadStoredEvidenceConfidences(projectIds: string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const supabase = getSupabaseAdmin();
+  if (!supabase || projectIds.length === 0) return out;
+  try {
+    const { data, error } = await supabase
+      .from("svi_snapshots")
+      .select("project_id, evidence_confidence, created_at")
+      .in("project_id", projectIds)
+      .not("evidence_confidence", "is", null)
+      .order("created_at", { ascending: false })
+      .limit(projectIds.length * 5);
+    if (error || !data) return out;
+    for (const row of data as Array<{ project_id: string; evidence_confidence: number | string | null }>) {
+      if (out.has(row.project_id)) continue;
+      const v = Number(row.evidence_confidence);
+      if (Number.isFinite(v)) out.set(row.project_id, Math.max(0, Math.min(100, v)));
+    }
+  } catch {
+    /* fail-soft: the column is absent or the read failed → null confidence */
+  }
+  return out;
+}
+
 async function loadVerificationLevels(projectIds: string[]): Promise<Map<string, number>> {
   const out = new Map<string, number>();
   const supabase = getSupabaseAdmin();
@@ -246,8 +271,8 @@ export async function takeCohortSnapshot(
   const joins = await loadEvaluationJoins(items.map((i) => i.evaluationId));
   const projectIds = Array.from(new Set(Array.from(joins.values()).map((j) => j.projectId).filter(Boolean)));
   const [verification, gapRes] = await Promise.all([loadVerificationLevels(projectIds), loadGapCounts(projectIds)]);
-  // TODO(P1-B): const confidence = await loadEvidenceConfidence(projectIds) — lib/svi/evidence-confidence.ts.
-  const confidence = new Map<string, number>();
+  // P1 merge: the stored evidence confidence (svi_snapshots.evidence_confidence, 0419) — the same number the Assessment Card shows.
+  const confidence = await loadStoredEvidenceConfidences(projectIds);
   const rows = buildSnapshotRows(items, joins, { verification, gaps: gapRes.gaps, gapsAvailable: gapRes.available, confidence });
   const summary = summariseSnapshotRows(rows);
   const { data, error } = await supabase
