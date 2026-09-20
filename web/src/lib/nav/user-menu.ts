@@ -16,7 +16,7 @@
 
 import { PERSONAS, type PersonaKey, isEvaluatorPersona } from "./persona";
 
-export type UserMenuIcon = "new-analysis" | "score" | "reports" | "dashboard" | "settings";
+export type UserMenuIcon = "new-analysis" | "score" | "reports" | "dashboard" | "billing" | "settings";
 
 export interface UserMenuItem {
   /** Stable id — analytics `nav_click.item`, test selectors. */
@@ -51,6 +51,12 @@ export function userMenuItems(persona?: PersonaKey | null): UserMenuItem[] {
       { key: "score", href: "/workspace/evaluations", label: "My evaluations", icon: "score" },
       { key: "reports", href: "/workspace/investor/mandate", label: "My mandate", icon: "reports" },
       { key: "dashboard", href: dashboardHrefFor(persona), label: "Dashboard", icon: "dashboard" },
+      // G18-D (2026-09-19): evaluators do not see the founder Settings hub
+      // tabs (where Billing lives) and the marketing header's avatar menu has
+      // no "View billing" row, so Scout / Firm / Program / Cohort subscribers
+      // had no path to cancel. One explicit row — the founder list keeps its
+      // five (Billing is under Settings › Billing and "View billing" there).
+      { key: "billing", href: "/workspace/billing", label: "Billing", icon: "billing" },
       { key: "settings", href: "/workspace/settings", label: "Settings", icon: "settings" },
     ];
   }
