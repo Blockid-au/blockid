@@ -755,7 +755,7 @@
   "methodology.sources.attributionNote": "Attribution statements are printed exactly as each licence requires. Register data describes the legal entity, not the founder; the R&D register figure is shown as a band with the register’s own value, never re-estimated.",
   "methodology.sources.cohortNote": "Cohort percentiles use at least 20 peers. When fewer than 20 scored startups exist at a stage, the register cohort (ABR entity age, GST, grants, R&D registration) is used and labelled as such; below 20 there too, a static benchmark is shown and labelled an estimate.",
   "methodology.calibration.kicker": "Calibration",
-  "methodology.calibration.title": "How well the score predicts outcomes",
+  "methodology.calibration.title": "How well the score tracks outcomes",
   "methodology.calibration.body": "The score is only worth publishing if it is checked against what actually happened. The calibration page reports the backtest: index at first score versus raise, revenue and survival outcomes on the AU cohort.",
   "methodology.calibration.link": "Read the calibration →",
   "methodology.calibration.placeholder": "Published with the first backtest.",

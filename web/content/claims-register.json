@@ -1,0 +1,245 @@
+[
+  {
+    "id": "svi-eight-dimensions",
+    "claim": "The Startup Value Index scores every company on eight dimensions.",
+    "class": "proven",
+    "value": "8",
+    "source": "src/lib/report-pipeline/dimension-owners.ts (DIMENSION_OWNERS has 8 keys; DIM_ORDER)",
+    "surfaces": ["/", "/product", "/how-it-works", "/solutions/*", "/samples", "/about", "/one-click-report", "/funding", "/methodology"],
+    "reviewed": "2026-09-20",
+    "patterns": ["8 dimensions", "eight dimensions", "8 dimension", "eight dimension", "8 investor"],
+    "note": "\"8 investor dimensions\" (hero I1) is the same fact. Public term per docs/design/messaging.md § 4."
+  },
+  {
+    "id": "svi-thirteen-criteria",
+    "claim": "The rubric behind the eight dimensions has thirteen evaluation criteria (8 × 13).",
+    "class": "proven",
+    "value": "13",
+    "source": "src/lib/evaluation-criteria.ts (CRITERION_KEYS, 13 keys)",
+    "surfaces": ["/about/invest", "/docs/unlocks"],
+    "reviewed": "2026-09-20",
+    "patterns": ["13 criteria", "8 x"],
+    "note": "Rubric depth is only allowed on /methodology, /docs, /about and inside the product (messaging § 11)."
+  },
+  {
+    "id": "growth-twelve-phases",
+    "claim": "The startup journey is mapped in twelve growth phases; the founder guide has twelve chapters mirroring them.",
+    "class": "proven",
+    "value": "12",
+    "source": "src/lib/startup-growth-phases.ts (GROWTH_PHASES, 12 rows); src/lib/guide/startup-journey.ts (listChapters, chapters 1–12)",
+    "surfaces": ["/", "/product", "/samples", "/features", "/how-it-works", "/guide"],
+    "reviewed": "2026-09-20",
+    "patterns": ["twelve phases", "twelve phase", "twelve steps", "12 chapters", "12 chapter"]
+  },
+  {
+    "id": "free-score-sixty-seconds",
+    "claim": "A free first Startup Value Index score is shown on screen in about 60 seconds.",
+    "class": "observed",
+    "value": "60 seconds",
+    "source": "src/lib/marketing/hero-variants.ts (E1 / F1); docs/design/messaging.md § 5 (\"60 seconds = the on-screen free score\"); latency SLO published on /api/status v2 (G15)",
+    "surfaces": ["/", "/about", "/insights/*", "/solutions/founder"],
+    "reviewed": "2026-09-20",
+    "patterns": ["60 seconds", "in 60 seconds", "under 60 seconds"],
+    "note": "Observed on production runs; not a guarantee. The full C-level report follows asynchronously (see first-analysis-delivery)."
+  },
+  {
+    "id": "first-analysis-delivery",
+    "claim": "The e-mailed Trusted Business Report / one-click report arrives in roughly one to three minutes.",
+    "class": "observed",
+    "value": "1–3 minutes",
+    "source": "src/lib/analyses/first-analysis/job.ts (stage timeline + ETA, G19 status timeline); e-mail queue src/lib/svi/email-queue.ts",
+    "surfaces": ["/one-click-report", "/one-click-report/success"],
+    "reviewed": "2026-09-20",
+    "patterns": ["2 minutes", "in 2 minutes", "3 minutes", "in 1 to 3 minutes"],
+    "note": "Copy says \"~\" / \"1 to 3\" — an observed range, never a promise."
+  },
+  {
+    "id": "report-length-pages",
+    "claim": "The written Trusted Business Report runs to ten pages or more (about twelve pages as PDF).",
+    "class": "observed",
+    "value": "10–12 pages",
+    "source": "src/lib/pdf/* (TBR renderer); page counts observed on generated production PDFs",
+    "surfaces": ["/", "/one-click-report", "/solutions/founder"],
+    "reviewed": "2026-09-20",
+    "patterns": ["12 pages", "10+ pages", "ten pages"]
+  },
+  {
+    "id": "evaluator-trial-seven-days",
+    "claim": "Self-serve evaluator and founder plans start with a 7-day card-required trial.",
+    "class": "proven",
+    "value": "7 days",
+    "source": "src/config/pricing/plans.csv (trial_days = 7 on the self-serve rows); docs/ops/pricing-truth.md",
+    "surfaces": ["/pricing", "/solutions/investor", "/solutions/advisor", "/compare/*"],
+    "reviewed": "2026-09-20",
+    "patterns": ["in 7 days"],
+    "note": "The /pricing headline \"Get fundable in 7 days\" reuses the trial length as an outcome — P0-C should reword it; the number itself is the trial term."
+  },
+  {
+    "id": "refund-window",
+    "claim": "Annual plans are refunded pro-rata within 14 days; monthly plans carry a 7-day money-back guarantee on the first payment.",
+    "class": "proven",
+    "value": "14 days / 7 days",
+    "source": "content/legal/terms-v2.mdx #refunds; src/components/landing/faq-v2.tsx",
+    "surfaces": ["/pricing"],
+    "reviewed": "2026-09-20",
+    "patterns": ["within 14 days"]
+  },
+  {
+    "id": "gst-ten-percent",
+    "claim": "Every price is GST-inclusive (10 % GST); the enterprise equity-for-solution arrangement is typically 5–10 % of the subscription.",
+    "class": "proven",
+    "value": "10%",
+    "source": "ATO GST rate; src/lib/pricing/gst.ts; docs/ops/pricing-truth.md (GST rule, G18)",
+    "surfaces": ["/pricing"],
+    "reviewed": "2026-09-20",
+    "patterns": ["10%"],
+    "note": "The 5–10 % equity line is an offer term, not traction (compliance-gated, off-platform agreement)."
+  },
+  {
+    "id": "annual-saving",
+    "claim": "Annual billing saves about 17 % against twelve monthly payments.",
+    "class": "proven",
+    "value": "~17%",
+    "source": "src/config/pricing/plans.csv (annual_price_aud_cents vs 12 × price_aud_cents); src/components/landing/pricing-matrix.tsx",
+    "surfaces": ["/pricing"],
+    "reviewed": "2026-09-20",
+    "patterns": ["17%"]
+  },
+  {
+    "id": "plan-usage-limits",
+    "claim": "Plan limits: Intake link = 40 reports a month, 60 startups, 3 seats; Fund = 10 seats and 500 tracked startups.",
+    "class": "proven",
+    "value": "per plans.csv usage_limits",
+    "source": "src/config/pricing/plans.csv (usage_limits column); docs/ops/pricing-truth.md",
+    "surfaces": ["/pricing"],
+    "reviewed": "2026-09-20",
+    "patterns": ["10 seats", "3 seats", "5+ seats", "40 reports", "60 startups"],
+    "note": "\"5+ seats\" is the FAQ's enterprise threshold (contact sales)."
+  },
+  {
+    "id": "comped-pilot-terms",
+    "claim": "The G14 comped accelerator pilot scored up to 60 applicants free for 30 days with a 45-minute feedback session.",
+    "class": "proven",
+    "value": "60 applicants / 30 days",
+    "source": "src/lib/pilots/service.ts (comp grant: 30 days, Scout tier); src/lib/i18n/messages/en.json solutions.accelerator.pilot.body",
+    "surfaces": ["/solutions/accelerator", "/pricing"],
+    "reviewed": "2026-09-20",
+    "patterns": ["60 applicants", "45 minute"],
+    "note": "Offer terms, not traction. G21 P0-C replaces the comped pilot with the paid Cohort Validation Pilot (≤ 25 / ≤ 50 applicants); drop this row when that copy lands."
+  },
+  {
+    "id": "gross-margin-model",
+    "claim": "The financial model projects 88–99.9 % gross margins on the SaaS + credit mix.",
+    "class": "hypothesis",
+    "value": "88–99.9%",
+    "source": "src/app/(marketing)/about/invest/invest-content.ts (CFO model assumption); web/src/lib/agents/cfo-valuation.ts unit economics",
+    "surfaces": ["/about/invest"],
+    "reviewed": "2026-09-20",
+    "patterns": ["99.9%"],
+    "note": "Model output, not measured margin. Never presented as traction; the invest page labels it as the model."
+  },
+  {
+    "id": "cap-table-issues-series-a",
+    "claim": "About 70 % of startups have cap-table issues by Series A.",
+    "class": "hypothesis",
+    "value": "70%",
+    "source": "src/app/(marketing)/about/invest/invest-content.ts INVEST_MARKET_STATS — no citation on the page (UNSOURCED: cite an external study or remove)",
+    "surfaces": ["/about/invest"],
+    "reviewed": "2026-09-20",
+    "patterns": ["70%"],
+    "note": "Could not be sourced in the repo on 2026-09-20. Kept as hypothesis so the guard shows it; the invest page owner should cite or delete."
+  },
+  {
+    "id": "feedback-letter-floor",
+    "claim": "A founder feedback letter is produced only when at least 3 evaluators from at least 2 organisations have recorded a verdict; shares are rounded to the nearest 25 %; the letter lists the next 3 actions.",
+    "class": "proven",
+    "value": "k ≥ 3, orgs ≥ 2",
+    "source": "src/lib/evaluations/feedback-letter.ts (FEEDBACK_MIN_ASSESSORS = 3, FEEDBACK_MIN_ORGS = 2, 25 % step share)",
+    "surfaces": ["/solutions/founder", "feedback letter e-mail"],
+    "reviewed": "2026-09-20",
+    "patterns": ["3 evaluators", "2 organisations", "25 %", "3 actions"]
+  },
+  {
+    "id": "calibration-confidence-interval",
+    "claim": "Backtest correlations are reported with 95 % bootstrap confidence intervals.",
+    "class": "proven",
+    "value": "95% CI",
+    "source": "scripts/backtest/run.ts (bootstrap CI); content/reports/svi-backtest-latest.json",
+    "surfaces": ["/methodology/calibration"],
+    "reviewed": "2026-09-20",
+    "patterns": ["95 %"]
+  },
+  {
+    "id": "founder-radar-timers",
+    "claim": "Founder Radar deadline notices go out 30 days, 2 weeks and 72 hours before a program closes.",
+    "class": "proven",
+    "value": "T-30 / T-14 / T-3",
+    "source": "src/lib/notification-kinds.ts (deadline_t30 / t14 / t3); src/lib/funding/copy.ts",
+    "surfaces": ["/funding", "Founder Radar e-mails"],
+    "reviewed": "2026-09-20",
+    "patterns": ["in 30 days", "in 2 weeks", "72 hours"]
+  },
+  {
+    "id": "funding-wizard-questions",
+    "claim": "The Money Finder profile takes 3 questions; programs without a published question set get the six questions every accelerator form asks.",
+    "class": "proven",
+    "value": "3 / 6",
+    "source": "src/lib/funding/copy.ts; src/lib/funding/application-prompts.ts (generic six-question fallback)",
+    "surfaces": ["/funding", "/funding/programs/*"],
+    "reviewed": "2026-09-20",
+    "patterns": ["3 questions", "six questions"]
+  },
+  {
+    "id": "how-it-works-three-steps",
+    "claim": "The founder flow on /how-it-works is described in 3 steps.",
+    "class": "proven",
+    "value": "3",
+    "source": "src/app/(marketing)/how-it-works/page.tsx (the page's own step list)",
+    "surfaces": ["/how-it-works"],
+    "reviewed": "2026-09-20",
+    "patterns": ["3 steps", "3 step"]
+  },
+  {
+    "id": "funding-calendar-twelve-months",
+    "claim": "The funding calendar shows the next twelve months of intake dates.",
+    "class": "proven",
+    "value": "12 months",
+    "source": "src/app/(marketing)/funding/programs/[capital]/page.tsx (calendar window)",
+    "surfaces": ["/funding/programs/*"],
+    "reviewed": "2026-09-20",
+    "patterns": ["twelve months", "twelve month"]
+  },
+  {
+    "id": "sample-run-growth-rate",
+    "claim": "The homepage sample run shows an illustrative company at 14 % month-on-month growth.",
+    "class": "hypothesis",
+    "value": "14% (illustrative)",
+    "source": "src/components/marketing/homepage/sample-runs.ts (labelled sample data, not a customer)",
+    "surfaces": ["/"],
+    "reviewed": "2026-09-20",
+    "patterns": ["14%"],
+    "note": "Illustrative sample, labelled as a sample on the page. Not a BlockID result."
+  },
+  {
+    "id": "compare-vc-ai-usage",
+    "claim": "85 % of VCs use AI daily and 12 % with a governed workflow (third-party survey cited on the compare page).",
+    "class": "observed",
+    "value": "85% / 12%",
+    "source": "src/lib/i18n/messages/en.json compare.sources.1 — developmentcorporate.com (2026), cited on /compare/chatgpt",
+    "surfaces": ["/compare/chatgpt"],
+    "reviewed": "2026-09-20",
+    "patterns": ["85%", "12%"],
+    "note": "External statistic; observed by the cited source, not by BlockID. Stays only while the citation is on the page."
+  },
+  {
+    "id": "compare-time-and-seat-anchors",
+    "claim": "Screening with a general chatbot takes 30–60 minutes of prompting per company; ChatGPT Enterprise has a roughly 150-seat minimum (price anchors table).",
+    "class": "hypothesis",
+    "value": "30–60 min / 150 seats",
+    "source": "src/lib/i18n/messages/en.json compare.table.row.time.chatgpt, compare.sources.prices (vendor pages cited)",
+    "surfaces": ["/compare/chatgpt"],
+    "reviewed": "2026-09-20",
+    "patterns": ["60 minutes", "150 seat"],
+    "note": "Estimates and vendor terms — labelled as anchors, never as BlockID measurements. Paid pilots will measure the actual screening-time reduction."
+  }
+]

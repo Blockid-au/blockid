@@ -776,7 +776,7 @@
   "methodology.sources.attributionNote": "Câu ghi công được in đúng như từng giấy phép yêu cầu. Dữ liệu sổ đăng ký mô tả pháp nhân, không phải founder; con số R&D được hiển thị theo dải kèm giá trị gốc của sổ, không ước tính lại.",
   "methodology.sources.cohortNote": "Phần trăm cohort cần tối thiểu 20 đơn vị. Khi một giai đoạn có dưới 20 startup đã chấm, hệ thống dùng cohort sổ đăng ký (tuổi pháp nhân ABR, GST, tài trợ, đăng ký R&D) và ghi rõ nguồn; nếu vẫn dưới 20, hiển thị chuẩn tĩnh và ghi là ước tính.",
   "methodology.calibration.kicker": "Hiệu chuẩn",
-  "methodology.calibration.title": "Điểm số dự báo kết quả tốt đến đâu",
+  "methodology.calibration.title": "Điểm số bám sát kết quả thực tế đến đâu",
   "methodology.calibration.body": "Điểm số chỉ đáng công bố nếu được đối chiếu với những gì thực sự xảy ra. Trang hiệu chuẩn báo cáo kết quả backtest: chỉ số lúc chấm lần đầu so với kết quả gọi vốn, doanh thu và tồn tại trên cohort AU.",
   "methodology.calibration.link": "Đọc phần hiệu chuẩn →",
   "methodology.calibration.placeholder": "Công bố cùng backtest đầu tiên.",
