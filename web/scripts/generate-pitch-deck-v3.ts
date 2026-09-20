@@ -309,10 +309,10 @@ const FONT = "Arial";
 const HERO = { x: 0.5, y: 1.85, w: 7.7, h: 4.75 }; // hero region (left)
 const SIDE = { x: 8.55, y: 1.95, w: 4.3 };            // bullets column (right)
 
-function addFooter(slide: Slide, num: number, total: number, dark = false) {
+function addFooter(slide: Slide, num: number, total: number, dark = false, footerText: string = FOOTER_TEXT) {
   slide.addText(
     [
-      { text: FOOTER_TEXT, options: { fontSize: 7, color: dark ? BRAND.ink500 : BRAND.ink400 } },
+      { text: footerText, options: { fontSize: 7, color: dark ? BRAND.ink500 : BRAND.ink400 } },
       { text: `   ${num}/${total}`, options: { fontSize: 7, color: dark ? BRAND.ink500 : BRAND.ink400 } },
     ],
     { x: 0.5, y: 6.9, w: 12, h: 0.3, fontFace: FONT },
@@ -811,16 +811,21 @@ function isDarkSlide(s: DeckSlide, total: number): boolean {
 export interface RenderOptions {
   /** Override which slides render on the dark navy background (default: first + last). */
   isDark?: (s: DeckSlide, total: number) => boolean;
+  /** Footer line (default FOOTER_TEXT); deck v4 passes one built from lib/site/legal-entity.ts. */
+  footerText?: string;
+  /** pptx metadata author / title overrides (default: the v3 Startup Value Index strings). */
+  author?: string;
+  docTitle?: string;
 }
 
 export async function renderPptx(deck: Deck, outPath: string, cwd: string, opts: RenderOptions = {}): Promise<string> {
   const isDark = opts.isDark ?? isDarkSlide;
   const pptx = new PptxGenJS();
   pptx.layout = "LAYOUT_WIDE";
-  pptx.author = "Do Van Long — Startup Value Index by BlockID";
+  pptx.author = opts.author ?? "Do Van Long — Startup Value Index by BlockID";
   pptx.company = str(deck.front.entity, "Auschain PTY LTD");
   pptx.subject = `${str(deck.front.brand)} — ${str(deck.front.ask)} pitch deck v${str(deck.front.version)}`;
-  pptx.title = `${str(deck.front.brand)} ${str(deck.front.byline)} — pre-seed deck`;
+  pptx.title = opts.docTitle ?? `${str(deck.front.brand)} ${str(deck.front.byline)} — pre-seed deck`;
 
   const total = deck.slides.length;
   for (const s of deck.slides) {
@@ -832,7 +837,7 @@ export async function renderPptx(deck: Deck, outPath: string, cwd: string, opts:
     // the closing slide uses the full width for its three messages
     if (s.hero.type !== "messages" && s.hero.type !== "table") addBullets(slide, s, dark);
     slide.addNotes(`${s.speaker}\n\nAnswers: ${s.clusters.join(", ")}\nSources: ${s.sources.join(" | ")}`);
-    addFooter(slide, s.n, total, dark);
+    addFooter(slide, s.n, total, dark, opts.footerText);
   }
   fs.mkdirSync(path.dirname(outPath), { recursive: true });
   await pptx.writeFile({ fileName: outPath });
@@ -919,7 +924,7 @@ export function renderHtml(deck: Deck, opts: RenderHtmlOptions = {}): string {
       </div>
       <ul class="bullets">${s.bullets.map((b) => `<li>${esc(b)}</li>`).join("")}</ul>
     </div>
-    <footer>${esc(FOOTER_TEXT)}</footer>
+    <footer>${esc(opts.footerText ?? FOOTER_TEXT)}</footer>
   </div>
   <p class="speaker"><span>Speaker</span> ${esc(s.speaker)} <em>(${countWords(s.speaker)} words · ${s.clusters.join(", ")})</em></p>
 </section>`;
