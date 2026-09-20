@@ -278,7 +278,10 @@ export function PricingMatrix({ segment: overrideSegment, annualAvailable, purch
         ))}
       </div>
 
-      {isEvaluator && <PayAsYouGoNote />}
+      {/* G21 P0-C: the A$3 Trusted Business Report is a founder-tab footnote,
+          never a headline or a card of its own; the evaluator and programs
+          ladders carry no A$3 reference. */}
+      {!isEvaluator && !isPrograms && <ReportFootnote />}
 
       <p className="mt-10 text-center text-xs text-tertiary">
         {GST_POLICY_LINE}
@@ -293,26 +296,23 @@ export function PricingMatrix({ segment: overrideSegment, annualAvailable, purch
   );
 }
 
-// ─── Pay-as-you-go note (Evaluator tab) ──────────────────────────────────
+// ─── Trusted Business Report footnote (Founder tab) ──────────────────────
 
 /**
- * Evaluators do not need a subscription to read a report: every Trust
- * BizReport is A$3 per startup (G12 §3b "Pay-as-you-go"). Prices are read
- * off the SKU and the credit-pack ladder so this line can never drift from
- * what checkout books.
+ * G21 P0-C: the pay-as-you-go report is a footnote under the founder rungs —
+ * "A$3 per report — pay-as-you-go" — not a headline and not a card. The
+ * price is read off the SKU and the credit-pack ladder so the line can never
+ * drift from what checkout books. (Until 2026-09-20 this was a highlighted
+ * box on the Evaluator tab; the evaluator-first positioning leads with the
+ * paid cohort pilot, so the A$3 reference stays on the Founder tab only.)
  */
-function PayAsYouGoNote() {
+function ReportFootnote() {
   const reportPrice = `A$${(TRUST_REPORT_5AUD.unit_amount_incl_gst_cents ?? 300) / 100}`;
   const smallest = CREDIT_PACKS[0];
   const largest = CREDIT_PACKS[CREDIT_PACKS.length - 1];
   return (
-    <p
-      data-testid="evaluator-payg"
-      className="mx-auto mt-8 max-w-3xl rounded-lg border border-action/20 bg-action/5 px-4 py-3 text-center text-sm text-secondary"
-    >
-      No subscription? Every full Trusted Business Report is{" "}
-      <strong className="text-primary">{reportPrice} per startup</strong>,
-      pay-as-you-go — the same report founders buy. Credit packs run from{" "}
+    <p data-testid="founder-payg" className="mx-auto mt-6 max-w-3xl text-center text-xs text-tertiary">
+      Trusted Business Report — {reportPrice} per report, pay-as-you-go, no subscription needed. Credit packs from{" "}
       {smallest ? `A$${smallest.price} (${smallest.credits} credits)` : "A$5"} to{" "}
       {largest ? `A$${largest.price} (${largest.credits} credits)` : "A$60"}.
     </p>

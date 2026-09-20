@@ -496,13 +496,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         },
       },
     },
-    // G16-C (2026-09-19) — /pilot: evaluator pilot offer v2 (F-3 public +
-    // indexable), the accelerator page's next step.
+    // G21 P0-C (2026-09-20) — /pilot: the paid Cohort Validation Pilot
+    // landing (F-3 public + indexable), the accelerator page's next step.
+    // The comped evaluator pilot moved to /pilot/investor (noindex) and is
+    // deliberately NOT listed.
     {
       url: `${SITE_URL}/pilot`,
       lastModified,
       changeFrequency: "weekly",
-      priority: 0.7,
+      priority: 0.8,
     },
     // T0274 (2026-09-10) — /solutions/advisor is a real page now (Firm A$149);
     // /for/advisor 301s here.

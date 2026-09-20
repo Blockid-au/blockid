@@ -1,145 +1,135 @@
 /**
- * /pilot — "Free cohort scoring for one intake" (G16-C, F-3: public +
- * indexable).
+ * /pilot — the paid BlockID Cohort Validation Pilot landing (G21 P0-C,
+ * F-3: public + indexable). The commercial wedge: one real intake or an
+ * existing cohort, assessed end to end, priced before you pay.
  *
- * Offer v2 terms, the four things we ask in return, what is not included,
- * the 7 success criteria (t2-accelerator-pilots.md § 3), the data sentence
- * verbatim and the application form (→ POST /api/pilot/apply). Every figure
- * comes from lib/pilots/offer.ts, which reads plans-v2 / credits — no price
- * literals on this page.
+ * Same offer block as /solutions/accelerator#pilot (<PilotOffer />: two
+ * cards from PILOT_SKUS, the inclusions, the success metrics measured
+ * together, Cohort 25 / 100 after), plus "what happens next" and the data
+ * sentence verbatim. No price literal — every amount is `formatPilotPrice()`
+ * or a `fillPrices()` token. The comped evaluator pilot (G16-C) lives at
+ * /pilot/investor (noindex, invitation-only).
  *
- * G17 P2-A: rendered on the unicorn template (PageHero → Section × 4 →
- * CtaBand). Test contract kept verbatim: `pilot-terms`, `pilot-in-return`,
- * `pilot-not-included`, `pilot-criteria` (7 rows, `data-criterion`),
- * `pilot-data-principle`, `pilot-apply-form`, `#apply` (tests/live-qa/30-pilot,
- * ./page.test.tsx).
+ * Test contract: one H1, `pilot-offer` + two `pilot-offer-card`,
+ * `pilot-next-steps` (4 rows), `pilot-data-principle`, the buy buttons
+ * `pilot-buy-<sku>` (contact links until the founder mints the prices).
  */
 
 import type { Metadata } from "next";
 import Link from "next/link";
+import { CalendarCheck, ClipboardCheck, FileText, Users } from "lucide-react";
 import { pageMetadata } from "@/lib/seo/page-meta";
+import { getMessages } from "@/lib/i18n/t";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
-import { CtaBand, PageHero, Section } from "@/components/marketing/template";
+import { CtaBand, FeatureGrid, PageHero, Section, TrustBand } from "@/components/marketing/template";
+import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
-import {
-  DATA_PRINCIPLE_SENTENCE,
-  DEFAULT_PILOT_DAYS,
-  PILOT_CAP,
-  PILOT_IN_RETURN,
-  PILOT_LOI_PASS_MARK,
-  PILOT_MAX_APPLICANTS,
-  PILOT_NOT_INCLUDED,
-  PILOT_SUCCESS_CRITERIA,
-  pilotOfferTerms,
-} from "@/lib/pilots/offer";
-import { PilotApplyForm } from "./pilot-apply-form";
+import { PilotOffer } from "@/components/marketing/PilotOffer";
+import { PILOT_ENTITLEMENT_DAYS, PILOT_SKUS, formatPilotPrice } from "@/lib/pricing/pilot-skus";
+import { DATA_PRINCIPLE_SENTENCE } from "@/lib/pilots/offer";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
+import { acceleratorPilotCopy } from "../solutions/evaluator-page-props";
+import { pilotSkusConfigured } from "../solutions/pilot-configured";
+import { fillPrices } from "../solutions/solutions-pricing";
 
 const PILOT_PATH = "/pilot";
 
 export async function generateMetadata(): Promise<Metadata> {
   return pageMetadata({
-    title: "Evaluator pilot — free cohort scoring for one intake",
-    description: `Accelerators and programs: score one intake (up to ${PILOT_MAX_APPLICANTS} applicants) on the Startup Value Index for ${DEFAULT_PILOT_DAYS} days, free. Cohort table, LP sample, dossiers. ${PILOT_CAP} pilots only.`,
+    title: "Cohort Validation Pilot for startup programs",
+    description: `Run one real intake or your existing cohort through the Startup Value Index: evidence confidence, cohort comparison, evaluator table, final report. From ${formatPilotPrice("cohort_pilot_25")} inc. GST.`,
     path: PILOT_PATH,
   });
 }
 
-export default function PilotPage() {
-  const terms = pilotOfferTerms();
+const NEXT_STEPS = [
+  {
+    icon: CalendarCheck,
+    title: "Day 0–2 · setup call",
+    body: "Within two business days we set up your intake with you: the application link, deck upload, startup URL and founder consent on the form — or we import your existing cohort with you.",
+  },
+  {
+    icon: ClipboardCheck,
+    title: "Assessment as applicants arrive",
+    body: "Every startup is assessed on the Startup Value Index with an evidence confidence level; your evaluator table fills with decision and conviction per startup.",
+  },
+  {
+    icon: Users,
+    title: "Cohort comparison + top gaps",
+    body: "The sortable cohort table, the top gaps across the cohort and the private reviewer notes your committee works from.",
+  },
+  {
+    icon: FileText,
+    title: "Final report + feedback workshop",
+    body: `The final cohort report for the program and its sponsors, then a feedback workshop with your review team. Your Cohort-tier workspace stays open for ${PILOT_ENTITLEMENT_DAYS} days.`,
+  },
+] as const;
+
+export default async function PilotPage() {
+  const m = await getMessages("en");
+  const copy = acceleratorPilotCopy(m);
+  const configured = pilotSkusConfigured();
   return (
     <MarketingShell>
+      <BreadcrumbListJsonLd
+        items={[
+          { name: "Home", href: "/" },
+          { name: "Cohort Validation Pilot", href: PILOT_PATH },
+        ]}
+      />
       <PageHero
-        eyebrow="Evaluator pilot · offer v2"
-        title="Free cohort scoring for one intake"
-        sub={`Run one live intake — up to ${PILOT_MAX_APPLICANTS} applicants — through the 8-dimension SVI rubric for ${DEFAULT_PILOT_DAYS} days. Your committee ranks first; then you see ours. ${PILOT_CAP} pilots, then list price.`}
+        eyebrow="Paid pilot · programs"
+        title="Validate BlockID on one real cohort before you commit to a year."
+        sub={`One intake or your existing cohort — up to ${PILOT_SKUS.cohort_pilot_25.applicantsCap} or ${PILOT_SKUS.cohort_pilot_50.applicantsCap} applicants — assessed end to end on the Startup Value Index. Priced before you pay, inc. GST, ATO tax invoice.`}
         ctas={[
-          { href: "#apply", label: "Apply for a pilot", ctaId: "pilot_hero_apply" },
+          { href: "#pilot", label: "See the two pilot sizes", ctaId: "pilot_hero_offer" },
           { href: "/solutions/accelerator", label: "How programs use BlockID" },
         ]}
         align="start"
+        footnote={
+          <>
+            <span className="text-primary">BlockID structures the evidence and standardises the first-pass analysis.</span>{" "}
+            <span>Humans make the decision.</span>
+          </>
+        }
       />
 
-      <Section id="offer" eyebrow="The offer" title="What you get, for how long, at what price" tone="sunken">
-        <dl className="grid gap-4 sm:grid-cols-2" data-testid="pilot-terms">
-          {terms.map((t) => (
-            <div key={t.term} className="rounded-xl border border-line-subtle bg-surface p-6 shadow-1">
-              <dt className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">{t.term}</dt>
-              <dd className="mt-2 text-sm leading-relaxed text-primary">{t.value}</dd>
-            </div>
-          ))}
-        </dl>
-        <div className="mt-8 grid gap-6 md:grid-cols-2">
-          <div className="rounded-xl border border-line-subtle bg-surface p-6 shadow-1">
-            <h3 className="font-display text-lg font-semibold text-primary">In return — all four</h3>
-            <ol className="mt-3 list-decimal space-y-2 pl-5 text-sm leading-relaxed text-primary" data-testid="pilot-in-return">
-              {PILOT_IN_RETURN.map((s) => <li key={s}>{s}</li>)}
-            </ol>
-          </div>
-          <div className="rounded-xl border border-line-subtle bg-surface p-6 shadow-1">
-            <h3 className="font-display text-lg font-semibold text-primary">Not included</h3>
-            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-primary" data-testid="pilot-not-included">
-              {PILOT_NOT_INCLUDED.map((s) => <li key={s}>{s}</li>)}
-            </ul>
-          </div>
-        </div>
-      </Section>
+      <PilotOffer
+        id="pilot"
+        ctaPrefix="pilot_page"
+        configured={configured}
+        returnPath={`${PILOT_PATH}#pilot`}
+        copy={{
+          ...copy,
+          afterLede: copy.afterLede ? fillPrices(copy.afterLede) : undefined,
+          afterTiers: copy.afterTiers?.map((t) => ({ ...t, price: fillPrices(t.price), sub: fillPrices(t.sub) })),
+        }}
+      />
 
-      <Section
-        id="criteria"
-        eyebrow="Day 0 → day 14"
-        title={`Seven success criteria — the LOI triggers at ${PILOT_LOI_PASS_MARK} of 7`}
-        lede="Agreed on the first call, scored on day 14. A failing signal is a product finding we log, not a reason to discount."
-      >
-        <div className="overflow-x-auto rounded-xl border border-line-subtle bg-surface shadow-1">
-          <table className="w-full text-left text-sm" data-testid="pilot-criteria">
-            <thead className="bg-surface-sunken text-xs uppercase tracking-wide text-tertiary">
-              <tr>
-                <th scope="col" className="px-4 py-3">#</th>
-                <th scope="col" className="px-4 py-3">Criterion</th>
-                <th scope="col" className="px-4 py-3">Pass mark</th>
-                <th scope="col" className="px-4 py-3">Measured by</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-line-subtle">
-              {PILOT_SUCCESS_CRITERIA.map((c) => (
-                <tr key={c.n} data-criterion={c.n}>
-                  <td className="px-4 py-3 font-mono text-xs text-tertiary">{c.n}</td>
-                  <td className="px-4 py-3 font-medium text-primary">{c.criterion}</td>
-                  <td className="px-4 py-3 text-primary">{c.passMark}</td>
-                  <td className="px-4 py-3 text-tertiary">{c.measuredBy}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <Section id="next" eyebrow="What happens next" title="From checkout to final report" lede="Four steps, agreed on the setup call. Nothing here is a roadmap — every step ships today.">
+        <div data-testid="pilot-next-steps">
+          <FeatureGrid columns={4} numbered ariaLabel="What happens next" items={NEXT_STEPS.map((s) => ({ icon: s.icon, title: s.title, body: s.body }))} />
         </div>
       </Section>
 
       <Section id="data" eyebrow="Data" title="Whose data is it?" tone="sunken">
         <p className="max-w-3xl text-base leading-relaxed text-primary" data-testid="pilot-data-principle">{DATA_PRINCIPLE_SENTENCE}</p>
         <p className="mt-4 max-w-3xl text-sm leading-relaxed text-tertiary">
-          Your program tells applicants that BlockID is used in screening. Nothing about one startup is shown to another. Founders receive a claim link for their own score and nothing else. Method and evidence ladder: <Link href="/methodology" className="underline">/methodology</Link>. Policy: <Link href="/legal/privacy" className="underline">/legal/privacy</Link>.
+          Your program tells applicants that BlockID is used in screening. Nothing about one startup is shown to another. Founders receive a claim link for their own score and nothing else. Method and evidence ladder: <Link href="/methodology" className="underline">/methodology</Link>. Policy: <Link href="/legal/privacy" className="underline">/legal/privacy</Link>. Questions: <a href={`mailto:${LEGAL_ENTITY.supportEmail}`} className="underline">{LEGAL_ENTITY.supportEmail}</a>.
         </p>
-      </Section>
-
-      <Section
-        id="apply"
-        eyebrow="Apply"
-        title="Tell us about the intake"
-        lede="Six fields. We reply within two business days with a day-0 call proposal; the intake link and the Program-tier workspace are switched on by an admin grant when the pilot starts."
-      >
-        <div className="relative rounded-xl border border-line-subtle bg-surface p-6 shadow-1 sm:p-8">
-          <PilotApplyForm />
-        </div>
         <div className="mt-8">
           <NotFinancialAdvice kind="not_financial_advice" compact />
         </div>
       </Section>
 
+      {/* Who stands behind the pilot — entity, methodology version, controls (G21 P0-A). */}
+      <TrustBand />
+
       <CtaBand
         title="Not running an intake this quarter?"
-        sub="Score one deal on the same rubric, or read how programs use the cohort table."
+        sub="Score one startup on the same rubric, or read how programs use the cohort table."
         primary={{ href: "/analyze", label: "Score a startup", ctaId: "pilot_final_score" }}
-        secondary={{ href: "/solutions/accelerator", label: "For accelerators" }}
+        secondary={{ href: "/solutions/accelerator", label: "For programs" }}
       />
     </MarketingShell>
   );

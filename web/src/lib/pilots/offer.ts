@@ -53,6 +53,11 @@ export function defaultPilotCredits(): number {
   return Math.ceil(FEATURE_COSTS.trust_report * PILOT_MAX_APPLICANTS);
 }
 
+/** G21 P0-C — the paid pilot's credit grant: the report cost × the applicants it covers (25 → 75, 50 → 150). */
+export function paidPilotCredits(applicantsCap: number): number {
+  return Math.ceil(FEATURE_COSTS.trust_report * applicantsCap);
+}
+
 export interface PilotOfferTerm {
   term: string;
   value: string;

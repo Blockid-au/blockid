@@ -21,15 +21,15 @@ export const SOLUTION_CARDS: readonly SolutionCard[] = [
   {
     href: "/solutions/investor",
     eyebrow: "For investors",
-    title: "One score across 8 investor dimensions, backed by the startup's own evidence",
-    body: "Screen a deal in minutes on the same 8-dimension SVI rubric, reviewed by a C-suite of AI agents and an auditor — and watch it move every week.",
+    title: "Standardise the first-pass review before human investment judgement begins",
+    body: "Every deal on one comparable Startup Value Index, with the evidence gaps and risk flags named before the meeting. Supports due diligence; never replaces it.",
     icon: "search",
   },
   {
     href: "/solutions/accelerator",
-    eyebrow: "For accelerators and incubators",
-    title: "Score the whole cohort on one rubric, then show sponsors the progress",
-    body: "Every startup in the program on the same 8-dimension SVI rubric, re-scored as it changes, so sponsors see movement rather than memory.",
+    eyebrow: "For accelerators, incubators and innovation programs",
+    title: "Turn your next startup intake into a comparable, evidence-backed cohort",
+    body: "Score applicants consistently, identify who needs deeper review, target mentor support and show sponsors measurable progress. Start with a paid Cohort Validation Pilot.",
     icon: "users",
   },
   {
@@ -42,8 +42,8 @@ export const SOLUTION_CARDS: readonly SolutionCard[] = [
   {
     href: "/solutions/founder",
     eyebrow: "For founders",
-    title: "Score, plan and raise your Australian startup",
-    body: "Paste an idea, get a Startup Value Index score, and follow the guided roadmap from Day-0 to Seed round — with AU-specific tooling for ESIC, R&D and s708 baked in.",
+    title: "See what an evaluator can verify — not only what your pitch says",
+    body: "Add a URL or a deck, get a Startup Value Index preview, see which claims lack evidence and fix them before your next application or investor meeting.",
     icon: "rocket",
   },
   {

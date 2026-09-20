@@ -7,6 +7,13 @@ import { getPlan, LEGACY_PLAN_MAP, type LegacyPlan } from "@/lib/plans";
 import { isFoundingPromoActive } from "@/lib/founding-promo";
 import { PLANS_V2, formatAud } from "@/lib/plans-v2";
 import { STARTUP_PACKAGE_AMOUNT_CENTS } from "@/lib/startup-package/price";
+import {
+  PILOT_CANCEL_PATH,
+  PILOT_CONTACT_FALLBACK,
+  PILOT_SKUS,
+  PILOT_SUCCESS_PATH,
+  isPilotSkuId,
+} from "@/lib/pricing/pilot-skus";
 import { resolveIntervalPrice } from "@/lib/plans/billing-interval";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { normaliseResellerCode } from "@/lib/reseller/attribution";
@@ -208,6 +215,11 @@ async function POST_handler(request: Request) {
   // — NOT a 400 — so the CFO ops runbook can distinguish "bad user input"
   // from "we forgot to mint the Stripe price".
   const IS_STARTUP_PACKAGE = planId === "founder_package";
+  // G21 P0-C — the paid Cohort Validation Pilot (cohort_pilot_25 / _50):
+  // one-off, `mode:"payment"`, no plans row. Resolved before the DB lookup
+  // the same way the Startup Package is; an unset price id answers 409
+  // `sku_unconfigured` + the contact fallback (never a broken checkout).
+  const PILOT_SKU = isPilotSkuId(planId) ? PILOT_SKUS[planId] : null;
 
   let plan: LegacyPlan | null = null;
   let priceId: string | null | undefined;
@@ -228,6 +240,27 @@ async function POST_handler(request: Request) {
       features: ["startup_package", "pdf_branding"],
     };
     priceId = STRIPE_PRICE_MAP[planId];
+  } else if (PILOT_SKU) {
+    priceId = STRIPE_PRICE_MAP[PILOT_SKU.id];
+    if (!priceId) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "sku_unconfigured",
+          planId: PILOT_SKU.id,
+          fallback: PILOT_CONTACT_FALLBACK,
+          message: "This pilot is booked through our team for now — we reply within two business days.",
+        },
+        { status: 409 },
+      );
+    }
+    plan = {
+      id: PILOT_SKU.id,
+      name: PILOT_SKU.name,
+      price: PILOT_SKU.amountInclGstCents,
+      cadence: "once",
+      features: ["cohort_pilot"],
+    };
   } else {
     try {
       const { getPlanCached } = await import("@/lib/plans-db");
@@ -488,9 +521,28 @@ async function POST_handler(request: Request) {
               : {}),
           }
         : {}),
+      // G21 P0-C — the webhook branches on `kind === "cohort_pilot"` and
+      // reads the sku + cap back from here (never from the price id).
+      ...(PILOT_SKU
+        ? {
+            kind: "cohort_pilot",
+            sku: PILOT_SKU.id,
+            applicants_cap: String(PILOT_SKU.applicantsCap),
+            ...(bodyProjectId && typeof bodyProjectId === "string"
+              ? { project_id: bodyProjectId }
+              : {}),
+          }
+        : {}),
     },
     allow_promotion_codes: true,
   };
+
+  // G21 P0-C — the pilot returns to the accelerator desk (banner reads the
+  // paid row) and cancels back to the offer block, not to /pricing.
+  if (PILOT_SKU) {
+    sessionParams.success_url = `${siteUrl}${PILOT_SUCCESS_PATH}`;
+    sessionParams.cancel_url = `${siteUrl}${PILOT_CANCEL_PATH}`;
+  }
 
   // v2: force PM collection so the trial has a card on file. This applies to
   // both trial subscriptions and immediate-charge subscriptions.
@@ -622,6 +674,8 @@ async function POST_handler(request: Request) {
             "founder_package",
             priceId,
           ])
+        : PILOT_SKU
+          ? sessionIdempotencyKey("cohort-pilot", [user.id, PILOT_SKU.id, priceId])
         : sessionIdempotencyKey("checkout", [
             user.id,
             planId,

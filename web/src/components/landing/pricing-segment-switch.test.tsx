@@ -103,6 +103,12 @@ describe("<PricingSegmentSwitch /> — Founder tab", () => {
     expect(out).not.toContain('id="tier-scout"');
     expect(out).not.toContain('data-testid="evaluator-payg"');
   });
+
+  it("G21 P0-C: the A$3 Trusted Business Report is a footnote under the founder rungs — pay-as-you-go, not a headline", () => {
+    expect(out).toContain('data-testid="founder-payg"');
+    expect(out).toContain("A$3 per report, pay-as-you-go");
+    expect(out).not.toContain('data-testid="pricing-pilot-rung"');
+  });
 });
 
 describe("<PricingSegmentSwitch /> — Evaluator tab (deep link)", () => {
@@ -154,10 +160,11 @@ describe("<PricingSegmentSwitch /> — Evaluator tab (deep link)", () => {
     expect(out.match(/data-testid="evaluator-trial-included"/g)?.length).toBe(4);
   });
 
-  it("shows the A$3 pay-as-you-go Trusted Business Report line", () => {
-    expect(out).toContain('data-testid="evaluator-payg"');
-    expect(out).toContain("A$3 per startup");
-    expect(out).toContain("Trusted Business Report");
+  it("G21 P0-C: no A$3 reference on the Evaluator ladder (it is the founder footnote now), no pilot rung either", () => {
+    expect(out).not.toContain('data-testid="evaluator-payg"');
+    expect(out).not.toContain('data-testid="founder-payg"');
+    expect(out).not.toContain("A$3 per startup");
+    expect(out).not.toContain('data-testid="pricing-pilot-rung"');
   });
 
   it("does not carry the retired 'Beta pricing' badge", () => {

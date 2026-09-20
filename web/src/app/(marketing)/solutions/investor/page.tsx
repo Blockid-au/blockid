@@ -1,5 +1,6 @@
 /**
- * /solutions/investor — the investor and analyst persona page (Scout A$79 recommended)
+ * /solutions/investor — the investor and analyst persona page (G21 P0-C: standardise
+ * the first-pass review; supports, never replaces, due diligence)
  *
  * Every visible string resolves through `t()` against the shared catalogue
  * and the props come from `buildInvestorProps()` in `evaluator-page-props.ts`, so

@@ -1,6 +1,9 @@
 /**
- * /solutions/accelerator — the accelerator, incubator and programme persona page (Program
- * A$349 recommended; Contact Sales for multi-cohort programs)
+ * /solutions/accelerator — the BlockID Cohort page (G21 P0-C): the paid Cohort
+ * Validation Pilot at `#pilot`, the six-stage workflow, Cohort 25 / 100 after.
+ *
+ * `pilotSkusConfigured()` reads the two STRIPE_PRICE_COHORT_PILOT_* env vars
+ * by NAME on the server; an unset one renders the contact link.
  *
  * Every visible string resolves through `t()` against the shared catalogue
  * and the props come from `buildAcceleratorProps()` in `evaluator-page-props.ts`, so
@@ -16,6 +19,7 @@ import { getMessages, t } from "@/lib/i18n/t";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import { SolutionsPageShell } from "../solutions-shared";
 import { buildAcceleratorProps } from "../evaluator-page-props";
+import { pilotSkusConfigured } from "../pilot-configured";
 
 const PATH = "/solutions/accelerator";
 const VI_PATH = "/vi/solutions/accelerator";
@@ -34,5 +38,5 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function SolutionsAcceleratorPage() {
   const m = await getMessages("en");
-  return <SolutionsPageShell {...buildAcceleratorProps(m, "en")} />;
+  return <SolutionsPageShell {...buildAcceleratorProps(m, "en", pilotSkusConfigured())} />;
 }

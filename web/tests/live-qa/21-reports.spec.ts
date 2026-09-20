@@ -51,8 +51,9 @@ test.describe("Trust BizReport — price before checkout", () => {
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible({ timeout: 30_000 });
     const cta = page.getByRole("button", { name: /Get my A\$3 report/ }).first(); // the form renders the CTA twice (hero + "Ready to see your report?")
     await expect(cta).toBeVisible();
-    await visit("/pricing?segment=evaluator");
-    const payg = page.getByTestId("evaluator-payg");
+    // G21 P0-C: the A$3 line is a footnote under the Founder rungs now.
+    await visit("/pricing");
+    const payg = page.getByTestId("founder-payg");
     await expect(payg).toBeVisible({ timeout: 30_000 });
     await expect(payg).toContainText(/A\$3/);
     await evidence(testInfo, "A$3 surfaces", { oneClickCta: await cta.innerText().catch(() => null), payg: await payg.innerText() });

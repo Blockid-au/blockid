@@ -1,10 +1,11 @@
-// Colocated test for /pilot (G16-C). Pins: indexable metadata with the
-// canonical, the offer v2 terms (30 d · ≤ 60 · cap 5 · admin grant · no
-// card), the four "in return" items, "not included", the 7 success criteria
-// verbatim from lib/pilots/offer (t2 § 3), the data sentence verbatim, the
-// form with the honeypot + every field, the Program price from plans-v2 (no
-// literal), never "PhD". The marketing shell mounts NavV2 → useRouter(), so
-// it is mocked; the client form renders to static HTML.
+// Colocated test for /pilot (G21 P0-C): the paid Cohort Validation Pilot
+// landing. Pins: indexable metadata with the canonical and the SKU price in
+// the description (no literal), one H1, the offer block with two cards at
+// the PILOT_SKUS amounts inc. GST, the contact fallback while the prices
+// are unminted, four next steps, the data sentence verbatim, the Cohort 25 /
+// 100 rungs with catalogue figures, no unresolved token, no comped / free /
+// LOI copy, never "PhD". The marketing shell mounts NavV2 → useRouter(), so
+// it is mocked.
 
 import { describe, expect, it, vi } from "vitest";
 import { renderToReadableStream } from "react-dom/server";
@@ -13,11 +14,10 @@ vi.mock("@/components/marketing/marketing-shell", () => ({
   MarketingShell: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
-import { PLANS_V2, formatAud } from "@/lib/plans-v2";
-import { DATA_PRINCIPLE_SENTENCE, PILOT_CAP, PILOT_MAX_APPLICANTS, DEFAULT_PILOT_DAYS, PILOT_SUCCESS_CRITERIA, PILOT_IN_RETURN, PILOT_NOT_INCLUDED, programListPrice, defaultPilotCredits } from "@/lib/pilots/offer";
-import { HONEYPOT_FIELD } from "@/lib/pilots/applications";
+import { DATA_PRINCIPLE_SENTENCE } from "@/lib/pilots/offer";
+import { PILOT_SKUS, formatPilotPrice } from "@/lib/pricing/pilot-skus";
+import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
 import PilotPage, { generateMetadata } from "./page";
-import { defaultIntakeMonth } from "./pilot-apply-form";
 
 async function html(el: React.ReactElement): Promise<string> {
   const stream = await renderToReadableStream(el);
@@ -28,66 +28,51 @@ async function html(el: React.ReactElement): Promise<string> {
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;");
 
 describe("/pilot metadata (F-3: public + indexable)", () => {
-  it("indexable, canonical /pilot, title + description carry the offer figures", async () => {
+  it("indexable, canonical /pilot, description carries the SKU price", async () => {
     const m = await generateMetadata();
     expect(m.robots).toEqual({ index: true, follow: true });
     expect(m.alternates?.canonical).toBe("https://blockid.au/pilot");
-    expect(String(m.title)).toContain("free cohort scoring");
-    expect(String(m.description)).toContain(`${PILOT_MAX_APPLICANTS} applicants`);
-    expect(String(m.description)).toContain(`${DEFAULT_PILOT_DAYS} days`);
-    expect(String(m.description)).toContain(`${PILOT_CAP} pilots`);
+    expect(String(m.title)).toBe("Cohort Validation Pilot for startup programs");
+    expect(`${String(m.title)} | BlockID.au`.length).toBeLessThanOrEqual(60);
+    expect(String(m.description)).toContain(formatPilotPrice("cohort_pilot_25"));
   });
 });
 
 describe("/pilot page", () => {
-  it("renders the offer v2 terms, in-return, not-included, the 7 criteria and the data sentence verbatim", async () => {
-    const out = await html(<PilotPage />);
-    expect(out).toContain("<h1");
-    expect(out).toContain("Free cohort scoring for one intake");
-    expect(out).toContain('data-testid="pilot-terms"');
-    expect(out).toContain(`up to ${PILOT_MAX_APPLICANTS} applicants`);
-    expect(out).toContain(`${DEFAULT_PILOT_DAYS} days from the first batch run`);
-    expect(out).toContain(`${PILOT_CAP} pilots. The sixth pays list price.`);
-    expect(out).toContain("admin credit grant");
-    expect(out).toContain("no card required");
-    expect(out).toContain("No Stripe coupon");
-    for (const s of PILOT_IN_RETURN) expect(out).toContain(esc(s));
-    for (const s of PILOT_NOT_INCLUDED) expect(out).toContain(esc(s));
-    expect(out).toContain('data-testid="pilot-criteria"');
-    expect(PILOT_SUCCESS_CRITERIA).toHaveLength(7);
-    for (const c of PILOT_SUCCESS_CRITERIA) {
-      expect(out).toContain(`data-criterion="${c.n}"`);
-      expect(out).toContain(esc(c.criterion));
-      expect(out).toContain(esc(c.passMark));
-    }
-    expect(out).toContain(`data-testid="pilot-data-principle">${esc(DATA_PRINCIPLE_SENTENCE)}<`);
+  it("one H1, the offer block with both SKUs inc. GST, contact fallbacks, next steps, data sentence, Cohort rungs, no token, no comped copy", async () => {
+    const out = await html(await PilotPage());
+    expect(out.match(/<h1[\s>]/g)).toHaveLength(1);
+    expect(out).toContain("Validate BlockID on one real cohort before you commit to a year.");
+    expect(out).toMatch(/<section[^>]*id="pilot"/);
+    expect(out.match(/data-testid="pilot-offer-card"/g)).toHaveLength(2);
+    expect(out).toContain(formatPilotPrice("cohort_pilot_25"));
+    expect(out).toContain(formatPilotPrice("cohort_pilot_50"));
+    expect(out).toContain("inc. GST");
+    expect(out).toContain('data-testid="pilot-buy-cohort_pilot_25"');
+    expect(out).toContain('data-testid="pilot-buy-cohort_pilot_50"');
+    expect(out.match(/data-pilot-mode="contact"/g)).toHaveLength(2);
+    expect(out).toContain('href="/contact?topic=pilot"');
+    expect(out).toContain('data-testid="pilot-metrics"');
+    expect(out).toContain('data-testid="pilot-next-steps"');
+    expect(out.match(/Step <!-- -->\d|Step \d/g)).toHaveLength(4);
+    expect(out).toContain("Within two business days");
+    expect(out).toContain(esc(DATA_PRINCIPLE_SENTENCE));
+    expect(out).toContain("Humans make the decision.");
+    expect(out).toContain('data-testid="pilot-after"');
+    const cohort25 = GENERATED_PLANS_BY_ID.accelerator_starter!.annual_price_aud_cents / 100;
+    expect(out).toContain(`A$${cohort25.toLocaleString("en-AU")} a year`);
+    expect(out).not.toMatch(/\{[a-zA-Z0-9]+\}/);
+    expect(out).not.toMatch(/Free cohort scoring|comped|letter of intent|admin grant|no card required|5 pilots/i);
     expect(out).not.toMatch(/PhD/);
-  });
-
-  it("every A$ figure comes from plans-v2 (Program list price) — never a stale literal", async () => {
-    const out = await html(<PilotPage />);
-    const program = PLANS_V2.find((p) => p.id === "investor_vc_small")!;
-    expect(programListPrice()).toBe(formatAud(program.monthly_aud));
-    expect(out).toContain(esc(`${programListPrice()}/mo`));
-    expect(out).not.toContain("A$5.50");
-    expect(defaultPilotCredits()).toBe(180);
-  });
-
-  it("the application form renders with the honeypot and the six fields, posting nothing inline (CSP)", async () => {
-    const out = await html(<PilotPage />);
-    expect(out).toContain('data-testid="pilot-apply-form"');
-    expect(out).toContain(`name="${HONEYPOT_FIELD}"`);
-    expect(out).toContain('tabindex="-1"');
-    for (const name of ["program_name", "contact_name", "email", "cohort_size", "intake_month", "message"]) expect(out).toContain(`name="${name}"`);
-    expect(out).toContain('type="month"');
-    expect(out).not.toContain("<script");
-    expect(out).toContain('id="apply"');
-    expect(out).toContain('href="#apply"');
-  });
-
-  it("defaultIntakeMonth is two months out, YYYY-MM, year rollover safe", () => {
-    expect(defaultIntakeMonth(new Date("2026-09-19T00:00:00Z"))).toBe("2026-11");
-    expect(defaultIntakeMonth(new Date("2026-11-30T00:00:00Z"))).toBe("2027-01");
-    expect(defaultIntakeMonth(new Date("2026-12-01T00:00:00Z"))).toBe("2027-02");
+    expect(out).toContain("support@blockid.au");
+    // every A$ on the page is a SKU amount or a Cohort rung figure
+    const amounts = new Set([...out.matchAll(/A\$([\d,]+)/g)].map((a) => a[1]));
+    const allowed = new Set([
+      (PILOT_SKUS.cohort_pilot_25.amountInclGstCents / 100).toLocaleString("en-AU"),
+      (PILOT_SKUS.cohort_pilot_50.amountInclGstCents / 100).toLocaleString("en-AU"),
+      cohort25.toLocaleString("en-AU"),
+      (GENERATED_PLANS_BY_ID.accelerator_growth!.annual_price_aud_cents / 100).toLocaleString("en-AU"),
+    ]);
+    for (const a of amounts) expect(allowed.has(a), `unexpected amount A$${a}`).toBe(true);
   });
 });

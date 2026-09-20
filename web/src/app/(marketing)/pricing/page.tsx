@@ -16,6 +16,7 @@ import { LogoCloud } from "@/components/landing/logo-cloud";
 import { StickyCta } from "@/components/sales/sticky-cta";
 import { PricingFeatureNotice } from "@/components/landing/pricing-feature-notice";
 import { GST_POLICY_LINE } from "@/lib/plans-v2";
+import { pilotSkusConfigured } from "../solutions/pilot-configured";
 
 // S31-D: static + ISR (300 s, the edge TTL in
 // lib/security/public-cacheable-routes.ts). The catalogue is code
@@ -34,7 +35,8 @@ export const revalidate = 300;
 //   Evaluator  Scout A$79 / Firm A$149 / Program A$349 / Fund A$999
 //              (investor_angel / investor_advisor / investor_vc_small /
 //              investor_fund)
-//   Programs   Intake link A$249 / Cohort 25 A$500 / Cohort 100 A$1,500
+//   Programs   Cohort Validation Pilot (one-off, first — G21 P0-C) then
+//              Intake link A$249 / Cohort 25 A$500 / Cohort 100 A$1,500
 //              (accelerator_intake / accelerator_starter /
 //              accelerator_growth — annual-first, 14-day trial)
 //
@@ -174,7 +176,10 @@ export default async function PricingPage() {
           target for the hero's secondary text link; persona pages deep-link
           to a card via `#tier-growth` / `#tier-scout` fragments. */}
       <Section id="pricing-matrix" ariaLabel="Pricing matrix" spacing="sm" divider={false}>
-        <PricingSegmentSwitch annualAvailable={annualAvailable} purchasable={purchasable} />
+        {/* G21 P0-C: the Programs tab leads with the paid Cohort Validation
+            Pilot rung (one-off, from PILOT_SKUS); the env-var check runs here
+            on the server so an unminted price renders a contact link. */}
+        <PricingSegmentSwitch annualAvailable={annualAvailable} purchasable={purchasable} pilotConfigured={pilotSkusConfigured()} />
         {/* G11 §4g anchor line (T0249): prices the Money Finder scan against
             what a grants consultant charges. Sits under the ladder, outside
             <PricingMatrix /> so the matrix component stays untouched. */}

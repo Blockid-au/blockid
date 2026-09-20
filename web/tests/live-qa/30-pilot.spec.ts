@@ -1,7 +1,9 @@
 /**
  * 30 — Evaluator pilot lane (G16-C):
  *
- *   • ANONYMOUS /pilot renders 200, indexable (F-3), with the offer v2
+ *   • ANONYMOUS /pilot/investor (the comped evaluator pilot, moved from
+ *     /pilot in G21 P0-C and now noindex — /pilot is the paid Cohort
+ *     Validation Pilot, covered by lane 34) renders 200 with the offer v2
  *     terms, the 7 success criteria, the application form and the
  *     data-ownership sentence verbatim;
  *   • POST /api/pilot/apply with the honeypot filled → 204, so the lane
@@ -23,8 +25,8 @@ import { anonRequest, del, evidence, get, post } from "./lib/api";
 const DATA_SENTENCE = "Your data belongs to your startup. We store it so every report builds on your own evidence and the AI reasons on your case. Founder-consented access tiers control who sees what.";
 
 test.describe("Pilot lane — public offer page", () => {
-  test("/pilot → 200, indexable, offer terms + 7 criteria + form + data sentence verbatim", async ({ page, qa }, testInfo) => {
-    const res = await page.goto(`${qa.baseURL}/pilot`, { waitUntil: "domcontentloaded" });
+  test("/pilot/investor → 200, noindex, offer terms + 7 criteria + form + data sentence verbatim", async ({ page, qa }, testInfo) => {
+    const res = await page.goto(`${qa.baseURL}/pilot/investor`, { waitUntil: "domcontentloaded" });
     expect(res?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Free cohort scoring for one intake");
     await expect(page.getByTestId("pilot-terms")).toBeVisible();
@@ -41,10 +43,9 @@ test.describe("Pilot lane — public offer page", () => {
     }
     const robots = await page.locator('meta[name="robots"]').getAttribute("content");
     const canonical = await page.locator('link[rel="canonical"]').getAttribute("href");
-    await evidence(testInfo, "/pilot", { robots, canonical, title: await page.title() });
-    expect(robots ?? "").toMatch(/index/);
-    expect(robots ?? "").not.toMatch(/noindex/);
-    expect(canonical).toBe("https://blockid.au/pilot");
+    await evidence(testInfo, "/pilot/investor", { robots, canonical, title: await page.title() });
+    expect(robots ?? "").toMatch(/noindex/);
+    expect(canonical).toBe("https://blockid.au/pilot/investor");
   });
 
   test("POST /api/pilot/apply with the honeypot filled → 204 (nothing stored, nothing sent)", async ({ qa }, testInfo) => {
