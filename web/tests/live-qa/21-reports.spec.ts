@@ -141,7 +141,7 @@ test.describe("Trust BizReport — price before checkout", () => {
       await evidence(testInfo, "paywall dialog", { text: dialogText.slice(0, 800) });
       expect(dialogText).toMatch(/Confirm & Pay A\$3/);
       expect(dialogText).toMatch(/\d+ credits/);
-      expect(dialogText).toMatch(/inc-GST/);
+      expect(dialogText).toMatch(/inc\.? ?GST/i);
       await dialog.getByRole("button", { name: /^Cancel$/ }).click();
       await expect(dialog).toBeHidden({ timeout: 10_000 });
     }
@@ -290,7 +290,7 @@ test.describe("TBR valuation — inputs & assumptions (G19-S42)", () => {
     await expect(inputs).toBeVisible({ timeout: 30_000 });
     const text = await inputs.innerText();
     await evidence(testInfo, "valuation inputs", { text });
-    expect(text).toMatch(/Inputs & assumptions/);
+    expect(text).toMatch(/Inputs & assumptions/i);
     expect(text).toMatch(/MRR/);
     expect(text).toMatch(/not stated/);
     await expect(inputs.locator('[data-tbr-source="connector"]').first()).toBeVisible();

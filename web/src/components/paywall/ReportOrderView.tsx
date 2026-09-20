@@ -172,7 +172,7 @@ export function ReportOrderView({ orderId }: ReportOrderViewProps) {
         data-testid="report-order-pending"
       >
         <h2 className="text-lg font-semibold text-ink-900">
-          Writing your Trust Business Report
+          Writing your Trusted Business Report
         </h2>
         <p className="text-sm text-ink-600 leading-relaxed">{state.message}</p>
         <div

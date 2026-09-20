@@ -32,9 +32,9 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { ReportOrderView } from "@/components/paywall/ReportOrderView";
 
 export const metadata: Metadata = {
-  title: "Your Trust Business Report — BlockID",
+  title: "Your Trusted Business Report — BlockID",
   description:
-    "View, poll and export the Trust Business Report you purchased for your business.",
+    "View, poll and export the Trusted Business Report you purchased for your business.",
   robots: { index: false, follow: false },
 };
 
@@ -96,7 +96,7 @@ export default async function ReportOrderPage({ searchParams }: PageProps) {
           <Link href="/workspace/reports" className="hover:text-brand-600">
             Reports
           </Link>{" "}
-          / <span className="text-ink-700">Trust Business Report</span>
+          / <span className="text-ink-700">Trusted Business Report</span>
         </nav>
 
         {orderId.length > 0 ? (
@@ -112,7 +112,7 @@ export default async function ReportOrderPage({ searchParams }: PageProps) {
             <p className="text-sm leading-relaxed text-ink-600">
               {sessionId.length > 0
                 ? "Your payment may still be settling — Stripe can take a moment to confirm. Refresh this page in a minute. If it still does not appear, contact support with your receipt and we will sort it out."
-                : "This page needs a report order to show. Open it from your dashboard, or start a new Trust Business Report."}
+                : "This page needs a report order to show. Open it from your dashboard, or start a new Trusted Business Report."}
             </p>
             <Link
               href="/dashboard"

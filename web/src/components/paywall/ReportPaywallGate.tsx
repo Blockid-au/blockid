@@ -197,7 +197,7 @@ export function ReportPaywallGate({
           id="paywall-heading"
           className="font-display text-xl font-semibold tracking-tight"
         >
-          Generate this Trust Business Report
+          Generate this Trusted Business Report
         </h2>
         <p className="text-sm leading-relaxed text-[var(--fintech-ink-muted,#94a3b8)]">
           This report analyses <strong>8 SVI dimensions</strong>{" "}
