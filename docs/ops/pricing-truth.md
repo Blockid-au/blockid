@@ -149,3 +149,60 @@ Follow-ups (harmless, params the destination ignores): `/contact?plan=…&contac
 
 `tsc --noEmit` clean; eslint 0 errors on touched files; targeted vitest green:
 `src/lib/pricing` (stripe-map 16, gst-wording 2, svi-api-tiers 4, trust-report, v3-skus, report-credit-cost), `src/lib/plans-v2*`, `src/config/pricing` (plans, generated, gate-pairing), `src/lib/credits`, `src/lib/plans*`, `src/app/(marketing)/pricing`, `components/landing/pricing-matrix`, `lib/seo/site-meta`, `api/stripe/{checkout,change-plan,analysis,webhook}`, `api/lead`, `lib/stripe*`, `lib/email*`, `api/cron/onboarding-sequence`, `scripts/stripe-price-audit.test.mjs`; `node scripts/stripe-price-audit.mjs --dry-run` (39 rows; all 39 vars set on the production env).
+
+## 10. Plan features — bullet ↔ flag ↔ page parity (G20-F1, 2026-09-20)
+
+Appended by lane F1 of G20 (`docs/plans/g20-ready-for-sale-2026-09-20.md` § 3 F1.3). For every **public** plan card (`plans-v2.ts` `public: true`), each advertised bullet, the flag / `minPlan` that gates it, the page that delivers it, and the verdict after this lane. `csv` = `web/src/config/pricing/plans.csv` (→ `plans.generated.ts`, `LEGACY_FEATURE_FALLBACK`, tier ladder, DB `plans.feature_flags`). Hidden surfaces are in `web/src/lib/features/hidden.ts` and `docs/ops/feature-inventory.md`.
+
+**Fixed by this lane (copy):** Growth — `"Connect Stripe or Xero — … weekly"` → `"Investor Pack — one-click PDF pack for your raise, plus the secondary-offer simulator"` (both OAuth apps are unprovisioned on production: `STRIPE_CLIENT_ID` 0, `XERO_CLIENT_ID` 0; `investor_pack` + `secondary_market.view` were csv flags with no bullet). Scout — `"ICS calendar and share-link tracking"` → `"ICS calendar of every grant and program deadline"` (no evaluator share-link tracking exists). Firm — `"White-label PDF reports + client roster"` / `"Full mentor access to each client's workspace"` / `"R&DTI / ESIC / s708 checks per client"` → `"Client roster + engagement notes on every client"` / `"Intake link — score every applicant on one rubric"` / `"ESIC, R&DTI and s708 eligibility checkers"` (white-label hidden; mentor routes gate on `reseller.console`; no per-client compliance surface). Cohort 25 — `"… weekly re-score of every startup"` → `"Cohort dashboard with weekly progress deltas on every startup"` (no per-cohort re-score cron; Progress Radar supplies the deltas). Cohort 100 — `"Cohort management — mentors, check-ins and notes"` → `"LP report composer — anonymised cohort performance for your limited partners"` (mentor tooling is the reseller console).
+
+**Fixed by this lane (flags):** `accelerator.cohort` added to `investor_vc_small`, `investor_fund`, `investor_vc_ent` — the Program / Fund "Cohort dashboard + quarterly LP / sponsor report export" bullet 402-ed on `/workspace/accelerator/cohort` and `/quarterly-report` (both gate on that flag) while the export API (`lp_report`) worked. csv + generated + fallback + ladder carry it; **migration `0414_program_fund_accelerator_cohort.sql` written, NOT applied** (idempotent `feature_flags || '["accelerator.cohort"]'` where absent). `feature-gates.manifest.ts`: `api/data-room/engage` → `investor_links.premium` (was `share_management`, a Growth add-on flag on a Starter-sold feature; the route body never enforced the manifest).
+
+| Plan | Bullet | Flag / minPlan | Delivering page | Verdict |
+|---|---|---|---|---|
+| Free | Your SVI score across all eight dimensions | none (free path) | `/analyze` → `/workspace/score` | ✓ |
+| Free | 1 startup workspace | `lib/startups/startup-limit.ts` (csv `profiles: 0` is not the founder limit — documented in plans-v2) | `/workspace/projects` | ✓ (note) |
+| Free | Five-page summary, e-mailed as PDF | none | `lib/analyses/free-summary.ts` | ✓ |
+| Free | Valuation range with its low and high | none | inside the free report (the `/workspace/valuation` hub is Starter) | ✓ (note) |
+| Free | Money Finder preview | `grant_finder` absent = preview | `/workspace/funding` | ✓ |
+| Free | Trusted Business Report A$3 pay-as-you-go | credits | `/api/funding/report`, unlock rail | ✓ |
+| Starter | Everything in Free · 1 workspace · 20 credits · e-mail support | `profiles: 1`, `monthly_credits: 20` | — | ✓ |
+| Starter | Data room, filling in the order investors ask | `data_room.access` | `/workspace/documents/data-room` | ✓ |
+| Starter | Share a live link instead of a PDF | `investor_links.premium` | `POST /api/data-room/access` → `/s/dr/[token]` | ✓ |
+| Starter | NDA click-wrap + watermarked PDFs | `investor_links.premium` | `api/data-room/nda`, `share/[token]/pdf` | ✓ |
+| Starter | See which sections each investor read | `investor_links.premium` (manifest fixed) | `GET /api/data-room/engage` | ✓ (fixed) |
+| Starter | Founder Radar — deadline alerts, monthly re-match, weekly next step | `money_radar` | crons `money-radar-sweep`, `founder-weekly-digest`; `/workspace/funding`; prefs | ✓ |
+| Starter | (silent) full Money Finder report | `grant_finder` | `/workspace/funding` | flag-without-bullet, harmless |
+| Growth | Everything in Starter · 45 credits · priority support | `monthly_credits: 45` | — | ✓ |
+| Growth | Cap-table sync + data room | `cap_table.write`, `share_management` | `/workspace/equity/cap-table` | ✓ |
+| Growth | Term Sheet AI drafter | credit-metered (`term_sheet_ai` flag unread) | `/workspace/raise/term-sheet`, `/api/term-sheet` | ✓ (flag dead, feature live) |
+| Growth | + investor matching, unlimited application drafts, quarterly expert update | tier ≥ growth (`lib/funding/growth-extras.ts`) | `/api/funding/draft`, `lib/funding/investor-match.ts` | ✓ |
+| Growth | **Investor Pack + secondary-offer simulator** (new) | `investor_pack`, `secondary_market.view` | `/workspace/reports/investor-pack`, `/workspace/equity/secondary` | ✓ (fixed) |
+| Growth | Equity add-on A$59 — ESOP, vesting, on-chain sync | add-on grants `esop.manage`, `vesting.*`, `blockchain.sync` | `/workspace/esop`, `/api/blockchain/*` | ✓ |
+| Scout | 10 TBRs / month · 25 startups, 1 seat | `reports_per_month`, `profiles`, `seats` | report quota, `/workspace/investor/team` | ✓ |
+| Scout | Weekly Progress Radar | `money_radar` | cron `evaluator-progress-weekly` | ✓ |
+| Scout | Deal-flow feed + watchlist | `investor.dealflow`, `watchlist` | `/workspace/investor/dealflow`, `/watchlist` | ✓ |
+| Scout | **ICS calendar of every deadline** (fixed) | `money_radar` | `/api/funding/calendar.ics` | ✓ (fixed) |
+| Scout / Firm / Program / Fund / Programs | Money Finder & Progress Radar included | `grant_finder`, `money_radar` | as above | ✓ |
+| Firm | Everything in Scout · 30 TBRs · 50 startups, 3 seats | limits | — | ✓ |
+| Firm | **Client roster + engagement notes** (fixed) | `advisor.cohort` | `/workspace/advisor/roster`, `/notes` | ✓ (fixed) |
+| Firm | **Intake link** (fixed; was silent) | `intake.manage` | `/workspace/accelerator/applications`, `/apply/[slug]` | ✓ (fixed) |
+| Firm | **ESIC, R&DTI and s708 checkers** (fixed) | none (public tools) | `/tools/esic`, `/tools/rnd-tax`, `/compliance/s708` | ✓ (fixed) |
+| Program | Everything in Firm · 100 TBRs · 200 startups, 5 seats | limits | — | ✓ |
+| Program | Batch scoring — one rubric across a round | `lp_export` (or `accelerator.cohort`) | `POST /api/evaluations/batch` | ✓ |
+| Program | Cohort dashboard + quarterly LP / sponsor export | `accelerator.cohort` (**added, 0414**), `lp_report` | `/workspace/accelerator/cohort`, `/quarterly-report`, `/api/reports/quarterly` | ✓ (fixed) |
+| Program | Read-only API access | `api.access` | `/workspace/settings/enterprise#api-keys`, `/developers` | ✓ |
+| Fund | Everything in Program · unlimited TBRs · 500 startups, 10 seats | limits | — | ✓ |
+| Fund | Your own rubric weights on every batch and cohort table | none (any batch caller) | `api/evaluations/batch` `rubric_weights` | ✓ (not Fund-exclusive — copy only) |
+| Fund | Weekly Progress Radar across the portfolio | `money_radar` | cron | ✓ |
+| Fund | Quarterly LP / sponsor export | `lp_report` + `accelerator.cohort` (**added**) | as Program | ✓ (fixed) |
+| Fund | Read-only API access | `api.access` | as Program | ✓ |
+| Intake link | 40 TBRs · 60 startups, 3 seats · batch scoring · cohort table + CSV + quarterly report · deal flow + watchlist | `accelerator.cohort`, `lp_report`, `investor.dealflow`, `watchlist` | accelerator hub | ✓ (the SKU's own intake link is `intake.manage`, silent in the copy — harmless) |
+| Cohort 25 | Everything in Intake · 50 TBRs · 25 startups, 5 seats · 200 credits | limits | — | ✓ |
+| Cohort 25 | **Cohort dashboard with weekly progress deltas** (fixed) | `accelerator.cohort`, `money_radar` | `/workspace/accelerator/cohort` + Progress Radar | ✓ (fixed) |
+| Cohort 100 | Everything in Cohort 25 · 200 TBRs · 100 startups, 15 seats · 800 credits | limits | — | ✓ |
+| Cohort 100 | **LP report composer** (fixed) | `minPlan: accel_growth` (`cohort.manage` flag unread) | `/workspace/lp-report` (preview-only composer) | ✓ (fixed; partial page) |
+
+**Still dead flags (granted, nothing reads them — no customer impact, listed for a later csv prune):** `svi.public`, `profile.multi`, `svi.premium`, `term_sheet_ai`, `per_investor_share_links`, `svi.feed`, `advisory_equity`, `advisor_portal`, `diligence_pack`, `portfolio` (page uses `minPlan`), `custom_benchmark`, `multi_fund`, `weekly_delta`, `cohort.view`, `cohort.view.stats`, `cohort.manage`, `api` (only `api.access` is read), `white_label`, `sso`.
+
+**csv ↔ DB drift noticed (not fixed here):** migration `0316_grant_finder_flags.sql` omitted `founder_scale` (Pro, inactive) from the `grant_finder` / `money_radar` append, so the DB row lacks two flags the csv lists — inert (row inactive, fallback bundle has both). `founder_package` has no seeding migration for its `plans` row (checkout hard-codes the SKU by design, § 1).
