@@ -1438,7 +1438,7 @@ describe("orchestrateReport() — onEvent SSE vocabulary (§C.12)", () => {
 
 // ─── S-R3: wall-clock deadline, cost telemetry, partial re-run, valuation ──
 
-import { CostMeter, DEADLINE_GRACE_MS, TIER_DEADLINE_MS, deadlineMsForTier, estimateCalls, realCostAud } from "./orchestrator";
+import { CostMeter, DEADLINE_GRACE_MS, TIER_DEADLINE_MS, callMaxForTier, deadlineMsForTier, estimateCalls, realCostAud } from "./orchestrator";
 
 describe("orchestrateReport() — wall-clock deadline (W2 review a)", () => {
   afterEach(() => {
@@ -1454,6 +1454,20 @@ describe("orchestrateReport() — wall-clock deadline (W2 review a)", () => {
     expect(deadlineMsForTier("standard")).toBe(120_000);
     // Every tier finishes inside nginx's 300 s cap for /api/ with the grace budget.
     Object.values(TIER_DEADLINE_MS).forEach((ms) => expect(ms + DEADLINE_GRACE_MS).toBeLessThanOrEqual(300_000));
+  });
+
+  // G19-S46: the offline self-report widens the cap through the environment; the interactive default is untouched.
+  it("TIER_CALL_MAX pins free 16 / standard 30 / premium 40 / investor_memo 48; REPORT_CALL_MAX_<TIER> overrides (positive integers only)", () => {
+    expect(TIER_CALL_MAX).toEqual({ free: 16, standard: 30, premium: 40, investor_memo: 48 });
+    expect(callMaxForTier("standard")).toBe(30);
+    process.env.REPORT_CALL_MAX_STANDARD = "48";
+    expect(callMaxForTier("standard")).toBe(48);
+    expect(callMaxForTier("free")).toBe(16);
+    process.env.REPORT_CALL_MAX_STANDARD = "0";
+    expect(callMaxForTier("standard")).toBe(30);
+    process.env.REPORT_CALL_MAX_STANDARD = "garbage";
+    expect(callMaxForTier("standard")).toBe(30);
+    delete process.env.REPORT_CALL_MAX_STANDARD;
   });
 
   it("a hung provider mid-W4: the landed chapters stay, the rest degrade deterministically, the summary is deterministic (no LLM), the auditor LLM pass is off and `done` fires before deadline + grace", async () => {

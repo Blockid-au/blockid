@@ -20,7 +20,8 @@
 // `runTrustReportForProject({ tier: "standard", locale: "en" })` from
 // src/lib/report-pipeline/run-for-project.ts (tsx-loaded; the pipeline's own
 // cost guard applies — standard ≤ 30 calls, DeepInfra-first; the wall clock
-// is widened to 8 min for this offline run, REPORT_DEADLINE_MS_STANDARD) which persists
+// and call cap are widened to 8 min / 48 calls for this offline run via
+// REPORT_DEADLINE_MS_STANDARD / REPORT_CALL_MAX_STANDARD) which persists
 // `report_v2` on today's snapshot, and prints the snapshot id + the
 // tbr-quality.jsonl line. Weekly cron: Mon 04:00 UTC (scripts/crontab.production).
 
@@ -120,6 +121,11 @@ if (REPORT_MODE) {
   // calls at DeepSeek-V4-Flash long-output latency (10–30 s each, 2026-09-20
   // measurement); the call cap (standard ≤ 30) stays the cost guard.
   process.env.REPORT_DEADLINE_MS_STANDARD ??= String(8 * 60 * 1000);
+  // …and the call cap: W1–W3 keep ONE repair pass per criterion call, so the
+  // interactive standard cap (30) starves the 8 W4 chapters whenever a few
+  // first answers fail the schema (measured: 30/30 used before W4). 48 calls
+  // (the investor_memo cap) ≈ US$0.03 at DeepInfra rates.
+  process.env.REPORT_CALL_MAX_STANDARD ??= "48";
   const { runSelfReport, makeSelfReportDb } = await import("./lib/self-report-core.mjs");
   const pipeline = await loadReportPipeline();
   const summary = await runSelfReport({
