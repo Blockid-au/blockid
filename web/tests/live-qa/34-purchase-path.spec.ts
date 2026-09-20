@@ -105,7 +105,7 @@ test.describe("Purchase path — founder Starter (no spend)", () => {
       const terms = page.getByTestId("signup-trial-terms");
       await expect(terms).toBeVisible();
       const termsText = await terms.innerText();
-      expect(termsText).toContain(`After ${TRIAL_DAYS} days, you'll pay ${aud(STARTER_CENTS)}/mo for Starter`);
+      expect(termsText).toMatch(new RegExp(`After ${TRIAL_DAYS} days, you'll pay ${aud(STARTER_CENTS).replace(/[$.]/g, (c) => `\\${c}`)}/mo for (Founder )?Starter`));
       expect(termsText).toContain("Cancel anytime");
       // Stripe Elements mounts its iframe inside the card wrapper (real key on production).
       const cardField = page.getByTestId("signup-card-field");

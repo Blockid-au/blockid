@@ -1,37 +1,61 @@
 {
-  "ts": "2026-09-20T03:08:03.426Z",
-  "startedAt": "2026-09-20T03:01:24Z",
+  "ts": "2026-09-20T08:33:38.048Z",
+  "startedAt": "2026-09-20T08:25:10Z",
   "baseURL": "https://blockid.au",
   "exitCode": 1,
-  "passed": 195,
-  "failed": 2,
-  "skipped": 11,
+  "passed": 204,
+  "failed": 6,
+  "skipped": 13,
   "flaky": 0,
   "expectedFailures": 0,
-  "durationMs": 397206.792,
+  "durationMs": 506060.158,
   "account": {
-    "email": "qa-live-20260920-0301@blockid.au",
-    "userId": "424d3963-496f-4c53-84c3-a690b771b9d9",
-    "projectId": "e9d0084e-4b36-4a56-9f6b-9e403bc601c1",
+    "email": "qa-live-20260920-0825@blockid.au",
+    "userId": "3b544135-48bf-4302-909f-68ae5f51ff9f",
+    "projectId": "ae7b704d-8d59-4938-899b-3c28e146e2b6",
     "plan": "growth",
     "elevated": true
   },
   "erasure": {
     "ok": true,
-    "detail": "erased 424d3963-496f-4c53-84c3-a690b771b9d9; verify dry-run exit 2 (no app_users row for the QA founder email)"
+    "detail": "erased 3b544135-48bf-4302-909f-68ae5f51ff9f; verify dry-run exit 2 (no app_users row for the QA founder email)"
   },
   "findings": [
     {
-      "spec": "21-reports.spec.ts",
+      "spec": "02-revenue.spec.ts",
       "project": "live-qa",
-      "title": "/workspace/reports/business (seeded snapshot): the free cut shows locked chapters + ONE unlock rail quoting A$3; the confirm dialog opens with credits + A$ and is cancelled — no checkout request, no spend",
-      "error": "Error: expect(received).toMatch(expected)\n\nExpected pattern: /inc-GST/\nReceived string:  \"Generate this Trust Business Report·\nThis report analyses 8 SVI dimensions using 6 C-Level agents. Estimated 8,500 words · model Claude Sonnet 5 · generation time ~4 min.·\nONE-OFF\nA$3inc. GST\nOR CREDITS\n200 credits\nConfirm & Pay A$3\nConfirm & Use 200 credits·\nYour balance (3 credits) is below the required 200. Top up or use one-off.·\nCancel\""
+      "title": "page shows the source captions and the Data Sources panel",
+      "error": "Error: expect(locator).toContainText(expected) failed\n\nLocator: getByTestId('data-sources')\nExpected pattern: /Stripe/\nReceived string:  \"Data SourcesUpload a bank or accounting CSV under Expenses; your valuation and P&L update from it.CSV importExport your P&L or bank statement as CSV and upload it under Expenses to get the same figures in.Upload a CSV\"\nTimeout: 15000ms\n\nCall log:\n  - Expect \"toContainText\" with timeout 15000ms\n  - waiting for getByTestId('data-sources')\n    34 × locator resolved to <section data-testid=\"data-sources\" class=\"rounded-xl border border-surface-200 bg-white p-5 s"
+    },
+    {
+      "spec": "02-revenue.spec.ts",
+      "project": "live-qa",
+      "title": "Xero: either a real OAuth redirect or the 'not available yet' label — never a JSON 503 page",
+      "error": "Error: one Xero affordance rendered\n\nexpect(received).toBe(expected) // Object.is equality\n\nExpected: true\nReceived: false"
     },
     {
       "spec": "21-reports.spec.ts",
       "project": "live-qa",
-      "title": "/tbr/demo valuation shows the Inputs & assumptions table, applicable methods only, cross-checks, no ask",
-      "error": "Error: expect(received).toMatch(expected)\n\nExpected pattern: /Inputs & assumptions/\nReceived string:  \"INPUTS & ASSUMPTIONS·\nINPUT\tVALUE\tSOURCE\nMRR\tA$100k\tconnector\nARR\tA$1.2M\tconnector\nMonthly growth\t4.5% / month\tconnector\nESIC qualifies\tno\tnone\nR&D Tax Incentive refund (est.)\tA$87k\tfounder-stated\nBerkus pillars evidenced\t5/5 — sound idea, prototype, quality team, strategic relationships, product roll-out\tmodel\nStage\tseed (SVI 3)\tmodel\nSector\tsaas\tmodel\nSector ARR multiples (p25 / p50 / p75)\t6× / 6.75× / 7.5×\tbenchmark\nRaise\tnot stated — no ask modelled\tnone\""
+      "title": "/tbr/demo renders ≥ 1 CTA row with an internal href and Money shows real rows or a linked CTA",
+      "error": "Error: expect(locator).toBeVisible() failed\n\nLocator: locator('[data-tbr-evidence-row=\"cta\"]').first()\nExpected: visible\nTimeout: 30000ms\nError: element(s) not found\n\nCall log:\n  - Expect \"toBeVisible\" with timeout 30000ms\n  - waiting for locator('[data-tbr-evidence-row=\"cta\"]').first()\n"
+    },
+    {
+      "spec": "33-page-sweep.spec.ts",
+      "project": "live-qa",
+      "title": "every founder route renders clean on the run's plan (Free → gates; Growth when elevated)",
+      "error": "Error: founder (growth): every page renders clean\n\nexpect(received).toEqual(expected) // deep equality\n\n- Expected  -  1\n+ Received  + 18\n\n- Array []\n+ Array [\n+   \"founder /dashboard → 200 h1_count_0\",\n+   \"founder /onboarding → 200 h1_count_0\",\n+   \"founder /workspace → 200 h1_count_0, console_errors_2 · Executing inline script violates the following Content Security Policy directive 'script-src 'self' 'nonce-0yB/fBeWchPcE\",\n+   \"founder /workspace/equity/setup → 200 console_errors_2 · Executing inline script violates the following Content Security Policy directive 'script-src 'self' 'nonce-"
+    },
+    {
+      "spec": "33-page-sweep.spec.ts",
+      "project": "live-qa",
+      "title": "every evaluator route renders clean for the investor_angel seat",
+      "error": "Error: evaluator: every page renders clean\n\nexpect(received).toEqual(expected) // deep equality\n\n- Expected  - 1\n+ Received  + 3\n\n- Array []\n+ Array [\n+   \"evaluator /workspace/investor/startup/9232d52d-5574-44af-9b2f-099a97ecf324 → 200 console_errors_2 · Executing inline script violates the following Content Security Policy directive 'script-src 'self' 'nonce-i3dPec253O7Io\",\n+ ]"
+    },
+    {
+      "spec": "34-purchase-path.spec.ts",
+      "project": "live-qa",
+      "title": "(a) /signup?plan=founder_starter renders the 7-day trial terms, the Starter price and the Stripe card field",
+      "error": "Error: expect(received).toContain(expected) // indexOf\n\nExpected substring: \"After 7 days, you'll pay A$29/mo for Starter\"\nReceived string:    \"Card required to prevent abuse. Cancel anytime. Email reminder 72h before we charge. After 7 days, you'll pay A$29/mo for Founder Starter. Cancel anytime.\""
     }
   ]
 }
