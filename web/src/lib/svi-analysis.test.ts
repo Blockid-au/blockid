@@ -553,6 +553,131 @@ describe("computeSVI", () => {
 });
 
 // ===========================================================================
+// G19-S41 — score ledger ("why this score")
+// ===========================================================================
+describe("computeSVI — score ledger (G19-S41)", () => {
+  const strongSignals = (): Partial<SVIExtractedSignals> => ({
+    founderExperience: "serial",
+    hasCoFounder: true,
+    founderSectorFit: true,
+    marketSize: "large",
+    problemClarity: "validated",
+    hasProduct: true,
+    hasDemo: true,
+    hasWebsite: true,
+    hasRevenue: true,
+    revenueBand: "growing",
+    hasCustomers: true,
+    hasCapTable: true,
+    hasVesting: true,
+    hasPitchDeck: true,
+    hasABN: true,
+    hasMoat: true,
+    sector: "saas",
+    evidenceLevel: "document_uploaded",
+  });
+
+  const sumLedger = (r: ReturnType<typeof computeSVI>) => {
+    const l = r.ledger!;
+    const dims = Object.values(l.dimAdjustments).reduce((a, b) => a + b, 0);
+    return l.base + dims + l.stageBonus + l.riskPenalties + l.sectorAdj + l.metricsBonus + l.ciBoost + l.floorClamp;
+  };
+
+  it("the ledger fields sum exactly to totalSVI on three fixtures (empty, strong + sector, CI + metrics + verification)", () => {
+    const a = computeSVI(makeSignals());
+    const b = computeSVI(makeSignals(strongSignals()));
+    const c = computeSVI(
+      makeSignals({ ...strongSignals(), evidenceLevel: "connected_source" }),
+      undefined,
+      { ptdBoost: 6, svmBoost: -4, treBoost: 3, lcoBoost: 2 },
+      undefined,
+      12,
+      { sciScore: 80, blueOceanScore: 72, marketMaturity: "emerging", competitionLevel: "low", industry: "saas" },
+      { lco_pct: 30, overall_pct: 80 },
+      null,
+      2,
+    );
+    for (const r of [a, b, c]) {
+      expect(r.ledger).toBeDefined();
+      expect(sumLedger(r)).toBe(r.totalSVI);
+      expect(r.ledger!.total).toBe(r.totalSVI);
+      expect(r.ledger!.riskPenalties).toBe(-r.riskPenalties.reduce((s, p) => s + p.points, 0));
+      expect(r.ledger!.stageBonus).toBe(r.stageBonus);
+      expect(r.sectorAdj).toBe(r.ledger!.sectorAdj);
+      for (const sub of r.subs) expect(r.ledger!.dimAdjustments[sub.key as keyof typeof r.ledger.dimAdjustments]).toBe(sub.adjustment);
+    }
+    expect(b.ledger!.sectorAdj).toBe(4); // saas: hasRevenue +4 (no financial model)
+    expect(c.ledger!.metricsBonus).toBe(12);
+    expect(c.ledger!.ciBoost).toBe(10 + 8 + 6 + 5);
+    expect(c.ledger!.floorClamp).toBe(0);
+  });
+
+  it("every dimension's breakdown reconciles: clamp(base + Σ score-scale points) === value, and the formula plus adjustment-scale rows === adjustment", () => {
+    const r = computeSVI(
+      makeSignals(strongSignals()),
+      undefined,
+      { ptdBoost: -5, svmBoost: 4, treBoost: 3, lcoBoost: 2 },
+      { ptdBoost: 4, svmBoost: 3, ftvBoost: -2, treBoost: 2 },
+      undefined,
+      undefined,
+      { lco_pct: 30, overall_pct: 80 },
+    );
+    const weights: Record<string, number> = { ftv: 0.15, mpc: 0.18, ptd: 0.12, tre: 0.2, cgh: 0.12, iri: 0.1, lco: 0.08, svm: 0.05 };
+    for (const sub of r.subs) {
+      const score = sub.breakdown!.filter((x) => !x.scale).reduce((a, x) => a + x.points, sub.base!);
+      expect(Math.max(0, Math.min(100, score))).toBe(sub.value);
+      const post = sub.breakdown!.filter((x) => x.scale === "adjustment").reduce((a, x) => a + x.points, 0);
+      expect(Math.round((sub.value - 50) * weights[sub.key] * r.confidenceMultiplier) + post).toBe(sub.adjustment);
+    }
+    const lco = r.subs.find((s) => s.key === "lco")!;
+    expect(lco.breakdown!.filter((x) => x.scale === "adjustment").map((x) => x.points)).toEqual([-10, 5]);
+    expect(lco.breakdown!.find((x) => x.signal.startsWith("Tech audit"))!.source).toBe("audit");
+    expect(lco.breakdown!.find((x) => x.scale === "adjustment")!.source).toBe("document_uploaded");
+    const ftv = r.subs.find((s) => s.key === "ftv")!;
+    expect(ftv.breakdown!.find((x) => x.signal.startsWith("Code audit"))).toMatchObject({ points: -2, source: "audit" });
+  });
+
+  it("a dimension with no signal is a pure baseline: assessed:false, empty breakdown, base === value", () => {
+    const r = computeSVI(makeSignals());
+    for (const sub of r.subs) {
+      expect(sub.assessed).toBe(false);
+      expect(sub.breakdown).toEqual([]);
+      expect(sub.base).toBe(sub.value);
+    }
+    expect(r.subs.map((s) => s.base)).toEqual([50, 50, 50, 30, 40, 40, 40, 35]);
+    const one = computeSVI(makeSignals({ hasPitchDeck: true }));
+    expect(one.subs.find((s) => s.key === "iri")!.assessed).toBe(true);
+    expect(one.subs.filter((s) => s.assessed).map((s) => s.key)).toEqual(["iri"]);
+  });
+
+  it("a text-only signal carries source self_declared; a link earns public_url; a register row is connected_source", () => {
+    const text = computeSVI(makeSignals({ founderExperience: "serial", hasCoFounder: true }));
+    const ftv = text.subs.find((s) => s.key === "ftv")!;
+    expect(ftv.breakdown).toEqual([
+      { signal: "Serial founder with exits", points: 35, source: "self_declared" },
+      { signal: "Co-founder team", points: 15, source: "self_declared" },
+    ]);
+    expect(ftv.evidence).toEqual(["Serial founder with exits", "Co-founder team"]);
+    const url = computeSVI(makeSignals({ hasCoFounder: true, evidenceLevel: "public_url" }));
+    expect(url.subs.find((s) => s.key === "ftv")!.breakdown![0].source).toBe("public_url");
+    // A connector lifts the ladder but the co-founder flag still came from prose.
+    const connected = computeSVI(makeSignals({ hasCoFounder: true, evidenceLevel: "connected_source" }));
+    expect(connected.subs.find((s) => s.key === "ftv")!.breakdown![0].source).toBe("self_declared");
+    const register: CapTableInput = { founderPct: 70, esopPct: 12, investorPct: 18, vestingFlag: true, shaFlag: false, holders: 4 };
+    const reg = computeSVI(makeSignals(), undefined, undefined, undefined, undefined, undefined, undefined, register);
+    const cgh = reg.subs.find((s) => s.key === "cgh")!;
+    expect(cgh.assessed).toBe(true);
+    expect(cgh.breakdown!.map((x) => [x.points, x.source])).toEqual([
+      [20, "connected_source"],
+      [15, "connected_source"],
+      [10, "connected_source"],
+      [5, "connected_source"],
+      [5, "connected_source"],
+    ]);
+  });
+});
+
+// ===========================================================================
 // Constants
 // ===========================================================================
 describe("constants", () => {
