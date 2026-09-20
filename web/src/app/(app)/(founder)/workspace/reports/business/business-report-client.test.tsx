@@ -84,3 +84,16 @@ describe("<ReportPaywallGate> price copy", () => {
     expect(html).toContain(base.quote.estimatedWords.toLocaleString("en-AU"));
   });
 });
+
+// G20-sweep (2026-09-20): the founder sweep found /workspace/reports/business
+// with NO h1 — a fresh founder lands on the "no analysis" empty state, which
+// carried only a <p>. The empty state's title is now the page's h1 (a static
+// render, effects never run, so this is exactly the first paint).
+describe("<BusinessReportClient> first paint (no analysis)", () => {
+  it("renders one h1 on the empty state", async () => {
+    const { BusinessReportClient } = await import("./business-report-client");
+    const html = renderToStaticMarkup(<BusinessReportClient projectId="default" />);
+    expect((html.match(/<h1[\s>]/g) ?? []).length).toBe(1);
+    expect(html).toContain("No recent analysis found</h1>");
+  });
+});

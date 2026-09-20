@@ -241,15 +241,28 @@ describe("GET /api/svi/report/[projectId] — tenancy", () => {
     expect(findSVIAccountMock).not.toHaveBeenCalled();
   });
 
-  it("no svi_accounts row resolves → 404, never an unfiltered query", async () => {
+  it("no svi_accounts row resolves → 200 empty state (G20-sweep), never an unfiltered query", async () => {
     getProjectScopeMock.mockResolvedValue({ projectId: P_A, dataEmail: USER_A.email, role: "owner", isOwner: true });
     findSVIAccountMock.mockResolvedValue(null);
     recorded = { eq: [], is: [], or: [] };
 
     const res = await call("default");
-    expect(res.status).toBe(404);
-    expect((await res.json()).error).toBe("not_found");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ ok: true, persisted: null, snapshotId: null, reportV2: null, empty: "no_analysis" });
     expect(recorded.eq).toEqual([]);
+  });
+
+  it("an account with no snapshot yet → 200 empty state, still filtered on the account (G20-sweep)", async () => {
+    getProjectScopeMock.mockResolvedValue({ projectId: P_A, dataEmail: USER_A.email, role: "owner", isOwner: true });
+    findSVIAccountMock.mockResolvedValue({ id: "acct-fresh", project_id: P_A });
+
+    const res = await call("default");
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.persisted).toBeNull();
+    expect(body.empty).toBe("no_analysis");
+    expect(recorded.eq).toContainEqual(["account_id", "acct-fresh"]);
   });
 
   it("caller with no project at all reads only their own legacy (project_id IS NULL) record", async () => {

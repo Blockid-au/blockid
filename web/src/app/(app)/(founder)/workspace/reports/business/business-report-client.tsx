@@ -610,7 +610,8 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
       <div className="p-6 max-w-5xl mx-auto">
         <div className="rounded-xl border border-amber-200 bg-amber-50/60 dark:bg-amber-950/20 dark:border-amber-800 p-6 text-center space-y-3">
           <FileText className="h-10 w-10 mx-auto text-amber-500 dark:text-amber-400" aria-hidden="true" />
-          <p className="text-sm font-medium text-amber-800 dark:text-amber-200">{t.noAnalysisTitle}</p>
+          {/* G20-sweep: the empty state is the page — its title is the h1. */}
+          <h1 className="text-sm font-medium text-amber-800 dark:text-amber-200">{t.noAnalysisTitle}</h1>
           <p className="text-xs text-amber-700 dark:text-amber-300">{t.noAnalysisBody}</p>
           <Link href="/workspace/raise/deck" className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 transition-colors">
             {t.noAnalysisCta} <ChevronRight className="h-4 w-4" />
@@ -625,6 +626,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
     return (
       <div className="p-6 max-w-5xl mx-auto">
         <div className="rounded-xl border border-ink-200 dark:border-ink-800 p-6 text-center space-y-3">
+          <h1 className="text-sm font-medium text-ink-900 dark:text-ink-100">{t.reportTitle}</h1>
           <p className="text-sm text-ink-600 dark:text-ink-400">{t.scoresMissingBody}</p>
           <Link href="/workspace/raise/deck" className="text-brand-600 hover:underline text-sm">
             {t.scoresMissingCta}
