@@ -28,6 +28,8 @@ export interface InvestorLandingProps {
   user: { displayName?: string | null; email: string; plan?: string | null };
   /** Fixed clock for tests (trial days left). */
   now?: Date;
+  /** G21 P2-C: "h2" when the page above already owns the h1 (the BlockID Cohort journey on /workspace/accelerator). */
+  headingLevel?: "h1" | "h2";
 }
 
 const HERO: Record<InvestorLandingData["variant"], string> = {
@@ -47,7 +49,8 @@ export function emptyBlocksFor(data: InvestorLandingData, now: Date = new Date()
   return out.filter((b) => order.includes(b));
 }
 
-export function InvestorLanding({ data, user, now }: InvestorLandingProps) {
+export function InvestorLanding({ data, user, now, headingLevel = "h1" }: InvestorLandingProps) {
+  const Heading = headingLevel;
   const persona = PERSONAS[data.persona];
   const order = blockOrderFor(data.variant, data.mandate);
   const ctx: InvestorLandingContext = { persona: data.persona, plan: user.plan ?? "free" };
@@ -62,9 +65,9 @@ export function InvestorLanding({ data, user, now }: InvestorLandingProps) {
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-tertiary">{persona.label}</p>
-          <h1 className="text-2xl font-semibold text-primary">
+          <Heading className="text-2xl font-semibold text-primary">
             {HERO[data.variant]}, {name}
-          </h1>
+          </Heading>
         </div>
       </header>
 

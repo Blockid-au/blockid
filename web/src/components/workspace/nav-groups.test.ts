@@ -259,7 +259,7 @@ describe("NAV_GROUPS — §D.1 label rules", () => {
       "/workspace/advisor/roster": "Clients — roster is the data noun",
       "/workspace/investor/digest": "Digest — under the investor hub",
       "/workspace/weekly-digest": "Digest — advisor stub until the Reports hub (S-IA2)",
-      "/workspace/accelerator/quarterly-report": "Quarterly — report route",
+      "/workspace/accelerator/quarterly-report": "Cohort Report — URL kept from the Quarterly LP report (G21 P2-C), alias 'Quarterly'",
       "/workspace/lp-report": "LP report — route keeps the hyphen",
       "/workspace/accelerator/applications": "Intake — G14 S35 keeps the historic applications URL (bookmarks, alias 'Applications')",
     };

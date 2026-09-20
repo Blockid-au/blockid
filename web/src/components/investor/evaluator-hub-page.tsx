@@ -48,11 +48,13 @@ export interface EvaluatorHubSearchParams {
 export interface EvaluatorHub {
   user: AppUser;
   isSandbox: boolean;
+  /** True for an evaluator persona (G21 P2-C: the accelerator page renders the BlockID Cohort journey only for them). */
+  evaluator: boolean;
   /** Tracker + banner + landing — render inside the page's WorkspaceLayout. */
   content: ReactNode;
 }
 
-export async function loadEvaluatorHub({ route, searchParams }: { route: EvaluatorHubRoute; searchParams?: Promise<EvaluatorHubSearchParams> }): Promise<EvaluatorHub> {
+export async function loadEvaluatorHub({ route, searchParams, landingHeading = "h1" }: { route: EvaluatorHubRoute; searchParams?: Promise<EvaluatorHubSearchParams>; /** "h2" when the page renders its own h1 above the landing (G21 P2-C). */ landingHeading?: "h1" | "h2" }): Promise<EvaluatorHub> {
   const user = await getCurrentUser();
   if (!user) redirect(`/auth/login?next=/workspace/${route}`);
   const sp = (await searchParams) ?? {};
@@ -82,7 +84,7 @@ export async function loadEvaluatorHub({ route, searchParams }: { route: Evaluat
           </div>
         </div>
       ) : null}
-      <InvestorLanding data={data} user={user} />
+      <InvestorLanding data={data} user={user} headingLevel={landingHeading} />
     </>
   );
 
@@ -92,5 +94,5 @@ export async function loadEvaluatorHub({ route, searchParams }: { route: Evaluat
       {evaluator ? landing : <FeatureGate feature="investor.dealflow" label="Evaluator workspace">{landing}</FeatureGate>}
     </>
   );
-  return { user, isSandbox, content };
+  return { user, isSandbox, evaluator, content };
 }

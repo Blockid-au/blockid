@@ -1,8 +1,11 @@
-// /workspace/accelerator/quarterly-report — LP-ready quarterly summary.
+// /workspace/accelerator/quarterly-report — the Cohort Report page (G21
+// P2-C, 2026-09-20; URL kept, nav label "Cohort Report").
 //
-// Server component. Four hero tiles (cohort size, avg SVI, capital raised,
-// trailing 30-day activity), followed by the top-10 cohort founders table
-// and an "Export to PDF" CTA that links to /api/reports/quarterly.
+// Server component. Top: one row per scored cohort (evaluation batch) with
+// the BlockID Cohort Report in HTML / PDF / CSV (`/api/reports/cohort`) and
+// the demo-day pack. Below: the older LP summary tiles (cohort size, avg
+// SVI, capital raised, trailing 30-day activity) + the top-10 table for the
+// legacy accelerator_cohorts path and its /api/reports/quarterly export.
 // Degrades gracefully when cohort_members/analyses tables are missing.
 
 import type { Metadata } from "next";
@@ -16,9 +19,11 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
 import { requireTierForPage } from "@/lib/entitlements/require-tier-for-page";
+import { listBatches } from "@/lib/evaluations/batch";
+import { COHORT_REPORT_HREF, DEMO_DAY_PACK_HREF } from "@/components/accelerator/program-journey";
 
 export const metadata: Metadata = {
-  title: "Quarterly Report — Accelerator Workspace",
+  title: "Cohort Report — Accelerator Workspace",
   robots: { index: false, follow: false },
 };
 
@@ -186,7 +191,7 @@ export default async function AcceleratorQuarterlyReportPage() {
 
   const isSandbox = await getCurrentProjectIsSandbox();
 
-  const summary = await loadSummary(user.email);
+  const [summary, batches] = await Promise.all([loadSummary(user.email), listBatches(user.id, 25).catch(() => [])]);
 
   // No accelerator cohort for this manager → the batch-scored route is the
   // working export (review #14); /api/reports/quarterly alone would 400.
@@ -202,22 +207,63 @@ export default async function AcceleratorQuarterlyReportPage() {
           <header className="flex flex-wrap items-start justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-ink-900">
-                Quarterly LP Report
+                Cohort Report
               </h1>
               <p className="text-sm text-ink-500 mt-1">
-                Snapshot of your cohort&apos;s performance this quarter — ready to
-                share with limited partners.
+                The BlockID Cohort Report for your program and its sponsors — cohort movement, improvement per dimension, benchmark with n, evidence completion, outputs and a reviewer signature. Humans made every decision.
               </p>
             </div>
             <Link
               href={exportHref}
               className="inline-flex items-center gap-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
             >
-              {summary.cohortId ? "Export to PDF" : "Export from Batch score"}
+              {summary.cohortId ? "Export legacy LP summary" : "Batch score a cohort"}
             </Link>
           </header>
 
-          <FeatureGate feature={COHORT_FEATURE} label="Quarterly report">
+          <section aria-labelledby="cohort-report-list-h" className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6" data-testid="cohort-report-list">
+            <h2 id="cohort-report-list-h" className="text-lg font-semibold text-ink-900">
+              Cohort Reports by cohort
+            </h2>
+            {batches.length === 0 ? (
+              <p className="mt-3 text-sm text-ink-500">
+                No scored cohort yet —{" "}
+                <Link href="/workspace/evaluations" className="text-brand-600 hover:underline">
+                  batch score a cohort
+                </Link>{" "}
+                and its report assembles itself from the record.
+              </p>
+            ) : (
+              <ul className="mt-3 divide-y divide-slate-100 dark:divide-slate-800">
+                {batches.map((b) => (
+                  <li key={b.id} className="flex flex-wrap items-center justify-between gap-3 py-3" data-testid="cohort-report-row">
+                    <div>
+                      <p className="font-medium text-ink-900">{b.name}</p>
+                      <p className="text-xs text-ink-500">
+                        {b.status} · {b.doneCount} of {b.total} scored · {fmtDate(b.createdAt)}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <a href={COHORT_REPORT_HREF(b.id, "html")} target="_blank" rel="noopener" className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-3 text-sm font-semibold text-white hover:bg-brand-700">
+                        Open report
+                      </a>
+                      <a href={COHORT_REPORT_HREF(b.id, "pdf")} className="inline-flex min-h-11 items-center rounded-lg border border-slate-200 px-3 text-sm font-semibold text-ink-700 hover:bg-slate-50 dark:border-slate-700">
+                        PDF
+                      </a>
+                      <a href={COHORT_REPORT_HREF(b.id, "csv")} className="inline-flex min-h-11 items-center rounded-lg border border-slate-200 px-3 text-sm font-semibold text-ink-700 hover:bg-slate-50 dark:border-slate-700">
+                        CSV
+                      </a>
+                      <a href={DEMO_DAY_PACK_HREF(b.id)} className="inline-flex min-h-11 items-center rounded-lg border border-slate-200 px-3 text-sm font-semibold text-ink-700 hover:bg-slate-50 dark:border-slate-700">
+                        Demo-day pack
+                      </a>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <FeatureGate feature={COHORT_FEATURE} label="Cohort report">
           <section
             aria-label="Key metrics"
             className="grid grid-cols-2 md:grid-cols-4 gap-4"

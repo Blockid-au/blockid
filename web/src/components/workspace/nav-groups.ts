@@ -464,8 +464,9 @@ const REPORTS: NavGroup = {
     },
     {
       href: "/workspace/accelerator/quarterly-report",
-      label: { en: "Quarterly", vi: "Báo cáo quý" },
-      tooltip: { en: "Program report for your board and partners", vi: "Báo cáo chương trình cho hội đồng và đối tác" },
+      label: { en: "Cohort report", vi: "Báo cáo khóa ươm" },
+      tooltip: { en: "The Cohort Report for your program and its sponsors", vi: "Báo cáo khóa ươm cho chương trình và nhà tài trợ" },
+      aliases: ["Quarterly"],
       icon: FileBarChart,
       segments: ["accelerator"],
     },

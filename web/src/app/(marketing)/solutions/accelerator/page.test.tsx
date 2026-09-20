@@ -66,23 +66,33 @@ describe("/solutions/accelerator — props (G21 P0-C)", () => {
     expect(props.problem?.resolution).toBe("BlockID creates one consistent assessment layer.");
   });
 
-  it("six stages in order, two shipped bullets each, none of the P2 features (CSV import, overrides, filters, custom-weight scoring)", () => {
+  it("six stages in order, three shipped bullets each — the P2 state (CSV import, confidence / verification / change columns, filters, shortlist, overrides with reason codes, snapshots, Cohort Report PDF / CSV, demo-day pack, pilot metrics)", () => {
     expect(props.journey?.map((s) => s.headline)).toEqual(["Intake", "Assessment", "Selection", "Program", "Demo day", "Sponsor reporting"]);
     const bullets = props.journey!.flatMap((s) => s.bullets);
-    expect(bullets).toHaveLength(12);
+    expect(bullets).toHaveLength(18);
     const text = bullets.join("\n");
     expect(text).toMatch(/\/apply\/<slug>/);
     expect(text).toMatch(/deck upload/i);
     expect(text).toMatch(/consent/i);
+    expect(text).toMatch(/Import an existing cohort as CSV/);
     expect(text).toMatch(/confidence level/i);
-    expect(text).toMatch(/sortable cohort table/i);
-    expect(text).toMatch(/Decision and conviction/);
+    expect(text).toMatch(/verification/i);
+    expect(text).toMatch(/change since the last snapshot/i);
+    expect(text).toMatch(/Cohort snapshots/);
+    expect(text).toMatch(/filter by stage, sector/i);
+    expect(text).toMatch(/Shortlist, decision and conviction/);
+    expect(text).toMatch(/override a dimension score with a reason code/);
+    expect(text).toMatch(/Feedback letters to non-selected applicants/);
     expect(text).toMatch(/Progress radar/i);
-    expect(text).toMatch(/Investor Dossier/);
-    expect(text).toMatch(/quarterly sponsor report/i);
-    expect(text).toMatch(/CSV export/);
-    expect(text).not.toMatch(/CSV import|override|filter|custom[- ]weight/i);
-    expect(text).not.toMatch(/coming soon|roadmap|P2/);
+    expect(text).toMatch(/mentor-gap list/i);
+    expect(text).toMatch(/BlockID Dossier/);
+    expect(text).toMatch(/demo-day pack/i);
+    expect(text).toMatch(/Cohort Report assembled from the cohort record/);
+    expect(text).toMatch(/PDF and CSV export of the Cohort Report/);
+    expect(text).toMatch(/Pilot success metrics/);
+    // The retired names never come back; nothing is promised.
+    expect(text).not.toMatch(/quarterly sponsor report|Investor Dossier|custom[- ]weight/i);
+    expect(text).not.toMatch(/coming soon|roadmap|P2\b/);
   });
 
   it("'Humans make the decision' statement, verbatim", () => {
