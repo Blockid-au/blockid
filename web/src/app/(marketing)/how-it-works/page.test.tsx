@@ -59,7 +59,7 @@ describe("/how-it-works — template (G17 P2-A)", () => {
     expect(HOW_IT_WORKS_STEPS).toHaveLength(4);
     for (const s of HOW_IT_WORKS_STEPS) expect(out).toContain(esc(s.title));
     expect(out).toMatch(/Step (<!-- -->)?4/);
-    for (const href of ["/analyze", "/svi", "/guide/01-vision", "/samples"]) expect(out).toContain(`href="${href}"`);
+    for (const href of ["/analyze", "/guide/01-vision", "/samples"]) expect(out).toContain(`href="${href}"`);
     expect(metadata.alternates?.canonical).toBe("https://blockid.au/how-it-works");
     expect(renderedTitle(metadata.title).length).toBeLessThanOrEqual(65);
     expect(String(metadata.description).length).toBeLessThanOrEqual(165);

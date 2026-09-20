@@ -7,6 +7,7 @@ import { listGrants, listPrograms } from "@/lib/funding/data";
 import { AU_STATES, CAPITALS } from "@/lib/funding/seed-map";
 import { capitalSlug, latestVerifiedAt } from "@/lib/funding/directory";
 import { grantsStatePath } from "@/lib/funding/seo";
+import { isHiddenRoute } from "@/lib/features/hidden";
 
 export const dynamic = "force-dynamic";
 
@@ -841,6 +842,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ].reduce<MetadataRoute.Sitemap>((acc, entry) => {
     // Deduplicate by URL — manifest can produce the same slug twice
     const e = entry as MetadataRoute.Sitemap[number];
+    // G20-F1: a hidden feature's public URL is never advertised (its page
+    // answers the "not offered" card with noindex).
+    if (isHiddenRoute(e.url.slice(SITE_URL.length))) return acc;
     if (!acc.some((a) => a.url === e.url)) acc.push(e);
     return acc;
   }, []);

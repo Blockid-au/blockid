@@ -76,7 +76,7 @@ describe("synthesizeRecommendation", () => {
       "an idea for helping small businesses",
       {},
     );
-    expect(rec.primaryFeatureHref).toBe("/svi");
+    expect(rec.primaryFeatureHref).toBe("/analyze");
   });
 
   it("always returns at least 2 secondaryFeatures (fc4f27f regression)", () => {

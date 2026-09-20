@@ -306,18 +306,21 @@ describe("NAV_GROUPS — sidebar size per persona", () => {
   });
 
   it("evaluators: ≤ 3 groups, no Fundraise / Money / Company, Dashboard first", () => {
-    const cases: Array<[PersonaKey, Segment, number]> = [
-      // G14 S35: "Deal flow → Intake" leaf for every evaluator segment
-      // (moved out of the accelerator Home group, so accelerator stays 7).
-      ["investor_angel", "investor_angel", 9],
-      ["investor_vc", "investor_vc", 9],
-      ["advisor", "advisor", 7],
-      ["accelerator", "accelerator", 7],
+    // G20-F1 (2026-09-20): the investor Digest + Portfolio leaves and the
+    // advisor Digest leaf are hidden (lib/features/hidden.ts) — investors
+    // drop to 7 leaves, advisors to 6, and both lose the Reports group
+    // entirely (it had no other leaf for them). Accelerators keep Quarterly
+    // + LP report.
+    const cases: Array<[PersonaKey, Segment, number, string[]]> = [
+      ["investor_angel", "investor_angel", 7, ["Home", "Deal flow"]],
+      ["investor_vc", "investor_vc", 7, ["Home", "Deal flow"]],
+      ["advisor", "advisor", 6, ["Home", "Deal flow"]],
+      ["accelerator", "accelerator", 7, ["Home", "Deal flow", "Reports"]],
     ];
-    for (const [persona, segment, count] of cases) {
+    for (const [persona, segment, count, groups] of cases) {
       const rows = sidebarFor(persona, segment, 5);
       expect(rows.length, persona).toBeLessThanOrEqual(3);
-      expect(rows.map((r) => r.group.label.en), persona).toEqual(["Home", "Deal flow", "Reports"]);
+      expect(rows.map((r) => r.group.label.en), persona).toEqual(groups);
       expect(rows[0].leaves[0].label.en, persona).toBe("Dashboard");
       expect(rows.reduce((n, r) => n + r.leaves.length, 0), persona).toBe(count);
       const labels = rows.flatMap((r) => r.leaves.map((l) => l.label.en));

@@ -91,8 +91,9 @@ export default async function ApplyPage({ params }: Props) {
             <p className="mt-3 text-sm text-secondary">{t(m, `intake.closed.${acceptance.reason satisfies IntakeRejection}`)}</p>
             <p className="mt-6 text-xs text-secondary">
               {t(m, "intake.closed.hint")}{" "}
-              <Link href="/submit" className="font-semibold text-action underline-offset-2 hover:underline">
-                /submit
+              {/* G20-F1: /submit is hidden (no listing flow) — the free score is the open door. */}
+              <Link href="/analyze" className="font-semibold text-action underline-offset-2 hover:underline">
+                /analyze
               </Link>
             </p>
           </div>

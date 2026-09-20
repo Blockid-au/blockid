@@ -197,7 +197,10 @@ export function ConnectButtons({ evidence, onEvidenceAdded, onOpenWizard }: Conn
   return (
     <>
       <div className="flex flex-wrap items-center gap-2 mb-5">
-        {connectors.map((c) => {
+        {/* G20-F1 (2026-09-20): a connector whose OAuth app is not provisioned
+            (HEAD probe → configured:false) is not rendered at all — no
+            disabled "coming soon" button. Adding the env key un-hides it. */}
+        {connectors.filter((c) => !c.comingSoon).map((c) => {
           const Icon = c.icon;
           return (
             <button
@@ -219,7 +222,7 @@ export function ConnectButtons({ evidence, onEvidenceAdded, onOpenWizard }: Conn
               ) : (
                 <Icon strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
               )}
-              {c.connected ? c.connectedLabel : c.comingSoon ? `${c.label} (Coming soon)` : c.label}
+              {c.connected ? c.connectedLabel : c.label}
             </button>
           );
         })}

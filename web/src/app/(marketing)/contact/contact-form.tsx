@@ -21,11 +21,21 @@ export function topicFromSearch(raw: string | null | undefined): string {
   return TOPICS.some((t) => t.value === v) ? v : "general";
 }
 
+/** `?feature=` → a `[a-z0-9_-]{1,64}` slug or null (G20-F1 hidden-feature cards). */
+export function featureFromSearch(raw: string | null | undefined): string | null {
+  const v = (raw ?? "").trim().toLowerCase();
+  return /^[a-z0-9_-]{1,64}$/.test(v) ? v : null;
+}
+
 export function ContactForm() {
   // QA-3 P1-9: `/contact?topic=demo|legal|…` pre-selects the topic; it is
   // sent with the lead so the support alert subject and /admin/leads carry it.
   const searchParams = useSearchParams();
   const [topic, setTopic] = React.useState(() => topicFromSearch(searchParams?.get("topic")));
+  // G20-F1: `/contact?topic=sales&feature=<key>` from a hidden feature's
+  // "Talk to us" card — the key rides on the lead payload so the founder
+  // sees which not-offered surface was asked for. Anything but a slug is dropped.
+  const feature = featureFromSearch(searchParams?.get("feature"));
   // Honeypot — hidden from humans (and screen readers); bots that fill every
   // field trip it and the API drops the submission silently.
   const [companyWebsite, setCompanyWebsite] = React.useState("");
@@ -55,7 +65,7 @@ export function ContactForm() {
           source: "contact",
           email: email.trim(),
           company_website: companyWebsite,
-          payload: { name: name.trim(), message: message.trim(), topic },
+          payload: { name: name.trim(), message: message.trim(), topic, ...(feature ? { feature } : {}) },
         }),
       });
       const data = await res.json();

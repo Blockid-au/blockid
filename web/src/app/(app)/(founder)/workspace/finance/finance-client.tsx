@@ -54,6 +54,8 @@ interface RevenueData {
     burnRate: number;
   };
   hasStripe: boolean;
+  /** api/revenue: whether the Stripe Connect / Xero OAuth apps are provisioned on this deployment. */
+  available?: { xero: boolean; stripeConnect: boolean };
   manualEntryCount: number;
 }
 
@@ -406,7 +408,10 @@ export function FinanceDashboardClient({ userEmail, startupName }: Props) {
         </button>
       </div>
 
-      {!d.hasStripe && (
+      {/* G20-F1: the "Connect Stripe" nudge renders only when the Stripe
+          Connect OAuth app is provisioned (api/revenue `available`); otherwise
+          the honest path is the CSV import — no dead-end link. */}
+      {!d.hasStripe && d.available?.stripeConnect !== false && (
         <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 rounded-xl p-4">
           <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
           <div className="text-sm">
@@ -414,6 +419,17 @@ export function FinanceDashboardClient({ userEmail, startupName }: Props) {
             <p className="text-amber-700 dark:text-amber-500 text-xs mt-0.5">
               Connect Stripe for automatic revenue tracking. Until then, use manual entries below.
               <a href="/workspace/evidence/connectors" className="ml-1 underline">Connect now →</a>
+            </p>
+          </div>
+        </div>
+      )}
+      {!d.hasStripe && d.available?.stripeConnect === false && (
+        <div className="flex items-start gap-3 bg-surface-50 border border-surface-200 rounded-xl p-4" data-testid="revenue-csv-hint">
+          <div className="text-sm">
+            <p className="font-semibold text-ink-800">Bring your revenue in</p>
+            <p className="text-ink-600 text-xs mt-0.5">
+              Upload a Stripe payout or bank CSV under Expenses, or add manual entries below — the P&amp;L and valuation update from either.
+              <a href="/workspace/finance/expenses" className="ml-1 underline">Upload a CSV →</a>
             </p>
           </div>
         </div>

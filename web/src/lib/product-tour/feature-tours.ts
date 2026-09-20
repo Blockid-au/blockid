@@ -13,6 +13,7 @@
 // and Node-side tests alike.
 
 import type { Locale } from "@/lib/use-locale";
+import { isHiddenRoute } from "@/lib/features/hidden";
 
 export type FeatureTourSlug =
   | "onboarding"
@@ -528,15 +529,18 @@ const TOURS: FeatureTour[] = [
         anchor: "a[href^=\"/workspace/advisor/notes\"]",
         cta: { label: { en: "Open notes", vi: "Mở ghi chú" }, href: "/workspace/advisor/notes" },
       },
+      // G20-F1 (2026-09-20): the digest step points at Notifications — the
+      // advisor digest page is hidden (lib/features/hidden.ts) and the Monday
+      // digest is an e-mail preference.
       {
         id: "digest",
         title: { en: "Turn on the Monday digest", vi: "Bật bản tin thứ Hai" },
         body: {
-          en: "SVI deltas across your whole roster, delivered 8am AEST every Monday — zero data entry.",
-          vi: "Chênh lệch SVI toàn roster, gửi 8h sáng AEST mỗi thứ Hai — không cần nhập liệu.",
+          en: "Score deltas across your whole roster, delivered every Monday by e-mail — zero data entry.",
+          vi: "Chênh lệch điểm toàn roster, gửi qua e-mail mỗi thứ Hai — không cần nhập liệu.",
         },
-        anchor: "a[href=\"/workspace/weekly-digest\"]",
-        cta: { label: { en: "Open digest", vi: "Mở bản tin" }, href: "/workspace/weekly-digest" },
+        anchor: "a[href^=\"/workspace/settings/notifications\"]",
+        cta: { label: { en: "Open notifications", vi: "Mở thông báo" }, href: "/workspace/settings/notifications" },
       },
     ],
   },
@@ -923,18 +927,24 @@ TOURS.forEach((t) => {
 export const FEATURE_TOURS: readonly FeatureTour[] = TOURS;
 
 /** Return every registered feature tour, in registration order. */
+// G20-F1 (2026-09-20): a tour whose launch route is hidden
+// (lib/features/hidden.ts — the Innovator console today) is not listed on
+// /guides/features, gets no static page and never auto-launches; the
+// definition stays so un-hiding is one row removed.
+const OFFERED_TOURS: readonly FeatureTour[] = TOURS.filter((t) => !isHiddenRoute(t.route));
+
 export function listFeatureTours(): readonly FeatureTour[] {
-  return TOURS;
+  return OFFERED_TOURS;
 }
 
-/** Look up a tour by slug; returns undefined if not registered. */
+/** Look up a tour by slug; returns undefined if not registered (or hidden). */
 export function getFeatureTour(slug: string): FeatureTour | undefined {
-  return TOURS.find((t) => t.slug === slug);
+  return OFFERED_TOURS.find((t) => t.slug === slug);
 }
 
 /** Slugs — used by generateStaticParams for the /guides/features/[feature] page. */
 export function featureTourSlugs(): FeatureTourSlug[] {
-  return TOURS.map((t) => t.slug);
+  return OFFERED_TOURS.map((t) => t.slug);
 }
 
 /** Best-effort match: the first tour whose `route` prefixes the current pathname. */

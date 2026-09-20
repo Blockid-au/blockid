@@ -6,27 +6,30 @@ import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { BrandingClient } from "./branding-client";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
 import { ApiKeysSection } from "./api-keys-section";
-import { SsoSection } from "./sso-section";
-import { WhiteLabelSection } from "./white-label-section";
 import { SviApiSection } from "./svi-api-section";
 
 // S-IA2 (spec §A.1) — /workspace/settings/enterprise composes, in order:
 //   #branding     Custom Branding  (ex /workspace/branding, this file)
 //   #api-keys     API keys         (ex /workspace/api-keys → api-keys-section.tsx)
-//   #sso          Single Sign-On   (ex /workspace/sso → sso-section.tsx)
-//   #white-label  White-label      (ex /workspace/white-label → white-label-section.tsx)
 //   #svi-api      SVI Data API     (ex /workspace/svi-api → svi-api-section.tsx)
+//
+// G20-F1 (2026-09-20): the SSO (#sso) and White-label (#white-label)
+// sections are hidden — neither is built or sold (lib/features/hidden.ts
+// keys `sso`, `white_label`). The legacy /workspace/sso and
+// /workspace/white-label redirects still land here, on the three sections
+// that work. Un-hiding = removing the hidden rows and restoring the two
+// section files (sso-section.tsx, white-label-section.tsx) from history.
 //
 // The page authenticates once and passes `user` to each section. Every
 // section keeps its own plan gate inline (Branding → `pdf_branding`
-// entitlement, API keys → `canCreateApiKeys`, SSO / White-label → the honest
-// <NotAvailableYet> card) so a lower plan still sees that section's locked /
-// upgrade card instead of being redirected away from the whole page.
+// entitlement, API keys → `canCreateApiKeys`) so a lower plan still sees
+// that section's locked / upgrade card instead of being redirected away
+// from the whole page.
 
 export const metadata: Metadata = {
   title: "Enterprise settings | BlockID",
   description:
-    "Custom branding, API keys, SSO, white-label and the SVI Data API — every enterprise setting for your workspace in one place.",
+    "Custom branding, API keys and the SVI Data API — every enterprise setting for your workspace in one place.",
   robots: { index: false, follow: false },
 };
 
@@ -35,8 +38,6 @@ export const dynamic = "force-dynamic";
 const SECTIONS = [
   { id: "branding", label: "Branding" },
   { id: "api-keys", label: "API keys" },
-  { id: "sso", label: "SSO" },
-  { id: "white-label", label: "White-label" },
   { id: "svi-api", label: "SVI API" },
 ] as const;
 
@@ -87,12 +88,6 @@ export default async function EnterpriseSettingsPage() {
 
         {/* ── API keys (S-IA2, ex /workspace/api-keys) ─────────────────── */}
         <ApiKeysSection user={user} />
-
-        {/* ── SSO (S-IA2, ex /workspace/sso) ───────────────────────────── */}
-        <SsoSection user={user} />
-
-        {/* ── White-label (S-IA2, ex /workspace/white-label) ───────────── */}
-        <WhiteLabelSection user={user} />
 
         {/* ── SVI Data API (S-IA2, ex /workspace/svi-api) ──────────────── */}
         <SviApiSection />

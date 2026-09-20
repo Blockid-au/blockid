@@ -219,7 +219,7 @@ export function primaryCtaHrefForSlug(slug: SolutionSlug): string {
   switch (slug) {
     case "founder":
     case "vn-sme":
-      return "/svi";
+      return "/analyze";
     case "investor":
     case "advisor":
     case "accelerator":

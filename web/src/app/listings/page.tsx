@@ -258,7 +258,7 @@ export default async function ListingsDirectoryPage({ searchParams }: PageProps)
           </dl>
           <p className="mt-4 text-sm text-secondary">
             <Link
-              href="/svi"
+              href="/analyze"
               className="rounded font-medium text-action underline-offset-2 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
             >
               How the index is built

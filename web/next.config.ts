@@ -112,13 +112,9 @@ const nextConfig: NextConfig = {
       // so it is also the public URL now; `/index`, `/index/*` and `/svi`
       // 301 to it and the old rewrite is gone (redirects run first anyway).
       //
-      // NOTE: `/score` is intentionally NOT redirected here — it hosts the
-      // real Investor-Ready Score form (`app/score/page.tsx` +
-      // `score-form.tsx`) that founders reach from every "Get your real
-      // SVI" CTA on the estate. A prior version of this config redirected
-      // /score → /index which silently shadowed the form and dumped users
-      // on the marketing exchange page instead of the analyzer. Do not
-      // add the redirect back.
+      // NOTE (superseded, see the `/score` row below): `/score` 301s to
+      // `/analyze?tier=free` since Block 2 (2026-09-08); the old
+      // `app/score` form directory was removed in G20-F1 (2026-09-20).
       {
         source: "/svi",
         destination: "/startup-index",
@@ -188,12 +184,13 @@ const nextConfig: NextConfig = {
         permanent: false,
       },
       // /tools/svi-score — QA sweep Sep 2026: this path is referenced by
-      // marketing cards but was never a route. The SVI scoring tool lives
-      // at /score. 301 so search engines forget the old path.
+      // marketing cards but was never a route. G20-F1 (2026-09-20): lands on
+      // /analyze directly (was /score → a second 301 hop; the /score and
+      // /svi page directories were dead behind these redirects and are gone).
       // (Next.js requires exactly one of `permanent` or `statusCode`.)
       {
         source: "/tools/svi-score",
-        destination: "/score",
+        destination: "/analyze?tier=free",
         statusCode: 301,
       },
       // Block 2 (2026-09-08) — unified `/analyze` entry point supersedes the

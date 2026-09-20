@@ -152,6 +152,8 @@ export function ConnectorStatus({ readOnly = false }: { readOnly?: boolean } = {
   }
 
   const connectedCount = CONNECTORS.filter((c) => getConnectorEvidence(c.id)).length;
+  // G20-F1: the "n/total" chip counts only connectors that render.
+  const offeredCount = CONNECTORS.filter((c) => isAvailable(c) || Boolean(getConnectorEvidence(c.id))).length;
 
   async function handleConnect(connector: ConnectorDef) {
     if (connector.usePost) {
@@ -206,13 +208,15 @@ export function ConnectorStatus({ readOnly = false }: { readOnly?: boolean } = {
         {connectedCount > 0 && (
           <span className="inline-flex items-center gap-1 rounded-full bg-teal-50 border border-teal-200 px-2.5 py-0.5 text-xs font-medium text-teal-700">
             <CheckCircle2 strokeWidth={1.75} className="h-3 w-3" />
-            {connectedCount}/{CONNECTORS.length}
+            {connectedCount}/{offeredCount}
           </span>
         )}
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
-        {CONNECTORS.map((connector) => {
+        {/* G20-F1: a connector whose OAuth app is not provisioned is not
+            rendered (no "Not configured" tile); a connected one always is. */}
+        {CONNECTORS.filter((c) => isAvailable(c) || Boolean(getConnectorEvidence(c.id))).map((connector) => {
           const Icon = connector.icon;
           const ev = getConnectorEvidence(connector.id);
           const isConnected = !!ev;

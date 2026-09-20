@@ -325,7 +325,7 @@ function IdeaLabResults({ data }: { data: IdeaLabResponse }) {
                   </td>
                   <td className="py-3">
                     <Link
-                      href={`/svi?query=${encodeURIComponent(a.oneLiner)}`}
+                      href={`/analyze?q=${encodeURIComponent(a.oneLiner)}`}
                       className="inline-flex h-9 items-center gap-1 rounded-lg bg-brand-600 px-3 text-[11px] font-semibold text-white hover:bg-brand-700 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 focus-visible:ring-offset-2"
                     >
                       Score this idea
@@ -361,7 +361,7 @@ function IdeaLabResults({ data }: { data: IdeaLabResponse }) {
                 {n.hookForFounder}
               </p>
               <Link
-                href={`/svi?query=${encodeURIComponent(`${n.title} — ${n.hookForFounder}`)}`}
+                href={`/analyze?q=${encodeURIComponent(`${n.title} — ${n.hookForFounder}`)}`}
                 className="mt-3 inline-flex h-8 items-center gap-1 rounded-lg border border-brand-200 bg-white px-3 text-[11px] font-semibold text-brand-700 hover:border-brand-400 hover:bg-brand-50 transition-colors"
               >
                 Score this idea

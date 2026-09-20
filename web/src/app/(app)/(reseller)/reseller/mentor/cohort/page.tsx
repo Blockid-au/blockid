@@ -56,9 +56,6 @@ export default async function MentorCohortPage() {
           </li>
         ))}
       </ul>
-      <p className="rounded-lg border border-dashed border-surface-300 p-3 text-xs text-ink-500 dark:border-surface-600">
-        TODO: nightly-refreshed mentor_weekly_heat view feeds the founders x weeks heat-map here.
-      </p>
     </div>
   );
 }

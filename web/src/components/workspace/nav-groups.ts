@@ -45,6 +45,7 @@ import type { PlanTier, Segment } from "@/lib/segments";
 import type { NavPhase } from "@/lib/nav/founder-phase-shared";
 import type { NavGroupId } from "@/lib/nav/persona";
 import { STARTUP_PACKAGE_PRICE_LABEL } from "@/lib/startup-package/price";
+import { isHiddenRoute } from "@/lib/features/hidden";
 
 export type { NavGroupId } from "@/lib/nav/persona";
 
@@ -483,10 +484,20 @@ const REPORTS: NavGroup = {
 
 // ─── Catalogue ───────────────────────────────────────────────────────────────
 
-/** Founder + evaluator groups. Persona tables pick from these by id. */
-export const NAV_GROUPS: NavGroup[] = [HOME, PROVE, MONEY, COMPANY, EVALUATOR_HOME, DEALFLOW, REPORTS];
+/**
+ * G20-F1 (2026-09-20): leaves whose href is in `HIDDEN_FEATURES` never reach
+ * the sidebar, the command palette or the docs matrix — filtered once here
+ * so every consumer agrees. Un-hiding = removing the row in
+ * lib/features/hidden.ts.
+ */
+function withoutHidden(group: NavGroup): NavGroup {
+  return { ...group, items: group.items.filter((i) => !isHiddenRoute(i.href)) };
+}
 
-export const ADMIN_NAV_GROUP: NavGroup = {
+/** Founder + evaluator groups. Persona tables pick from these by id. */
+export const NAV_GROUPS: NavGroup[] = [HOME, PROVE, MONEY, COMPANY, EVALUATOR_HOME, DEALFLOW, REPORTS].map(withoutHidden);
+
+export const ADMIN_NAV_GROUP: NavGroup = withoutHidden({
   id: "admin",
   label: { en: "Admin", vi: "Quản trị" },
   items: [
@@ -497,9 +508,9 @@ export const ADMIN_NAV_GROUP: NavGroup = {
     { href: "/dashboard/admin/pricing-test", label: { en: "Pricing A/B", vi: "Thử nghiệm giá" }, tooltip: { en: "Pricing experiment arms and results", vi: "Các nhánh thử nghiệm giá và kết quả" }, icon: BarChart3 },
     { href: "/dashboard/admin/svi-exchange", label: { en: "SVI exchange", vi: "Sàn SVI" }, tooltip: { en: "Index snapshots and listing queue", vi: "Ảnh chụp chỉ số và hàng đợi niêm yết" }, icon: Rocket },
     { href: "/dashboard/admin/sector-multiples", label: { en: "Sector multiples", vi: "Bội số ngành" }, tooltip: { en: "Valuation multiples by sector", vi: "Bội số định giá theo ngành" }, icon: TrendingUp },
-    { href: "/admin/listings", label: { en: "Listings", vi: "Niêm yết" }, tooltip: { en: "Public listing approvals", vi: "Phê duyệt niêm yết công khai" }, icon: ExternalLink },
+    { href: "/admin/listings", label: { en: "Listings", vi: "Niêm yết" }, tooltip: { en: "External directory listings checklist", vi: "Danh sách thư mục bên ngoài" }, icon: ExternalLink },
   ],
-};
+});
 
 /**
  * Reseller + mentor console groups — rendered only by the reseller layout
@@ -510,7 +521,7 @@ export const ADMIN_NAV_GROUP: NavGroup = {
  * hrefs and labels are snapshot-tested per the release plan — do not
  * rename or re-key.
  */
-export const RESELLER_NAV_GROUPS: NavGroup[] = [
+export const RESELLER_NAV_GROUPS: NavGroup[] = ([
   {
     id: "reseller",
     label: { en: "Reseller", vi: "Đại lý" },
@@ -534,7 +545,7 @@ export const RESELLER_NAV_GROUPS: NavGroup[] = [
       { href: "/reseller/mentor/cohort", label: { en: "Cohort View", vi: "Xem khóa ươm" }, tooltip: { en: "Roll-up of your whole cohort", vi: "Tổng hợp toàn bộ khóa ươm" }, icon: LayoutGrid, feature: "reseller.console" },
     ],
   },
-];
+] as NavGroup[]).map(withoutHidden);
 
 /** Every catalogue group by id (founder + evaluator + admin + consoles). */
 export const NAV_GROUPS_BY_ID: Readonly<Record<NavGroupId, NavGroup>> = Object.freeze(

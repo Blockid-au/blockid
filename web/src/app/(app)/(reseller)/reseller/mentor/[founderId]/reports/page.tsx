@@ -36,23 +36,17 @@ export default async function MentorReportsTab({
     .sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 
   if (!canReveal) {
-    // TODO wire the CTA to POST /api/reseller/mentor/consent-request which
-    // writes a mentor.consent_request row via db.auditLog(). Skeleton for now.
+    // G20-F1 (2026-09-20): the "Request access" form posted to
+    // /api/reseller/mentor/[id]/consent-request, a route that never existed
+    // (404 on click). Consent is granted by the founder from their own
+    // settings, so the card states that and nothing else.
     return (
-      <div className="rounded-lg border border-dashed border-surface-300 p-4 text-sm dark:border-surface-600">
+      <div className="rounded-lg border border-dashed border-surface-300 p-4 text-sm dark:border-surface-600" data-testid="mentor-reports-locked">
         <p className="font-medium text-ink-800 dark:text-ink-100">Reports locked</p>
         <p className="mt-1 text-ink-600 dark:text-ink-300">
           This mentee has not granted &lsquo;reports&rsquo; tier consent. Ask them
-          to enable it from their privacy settings.
+          to enable it under Investors › Access (Mentor access) in their workspace.
         </p>
-        <form action={`/api/reseller/mentor/${founderId}/consent-request`} method="post" className="mt-3">
-          <button
-            type="submit"
-            className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700"
-          >
-            Request access
-          </button>
-        </form>
       </div>
     );
   }

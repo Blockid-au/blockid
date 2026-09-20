@@ -119,8 +119,14 @@ export const STARTUP_PACKAGE_MONEY_FINDER_LINE =
  * every Monday, the SVI prices MRR by magnitude/growth/churn and the P&L
  * page labels each figure with its source. Keep it ≤ 2 sentences.
  */
-export const CONNECTED_REVENUE_FEATURE_LINE =
-  "Connect Stripe or Xero — your valuation and P&L update weekly from live revenue";
+// G20-F1 (2026-09-20): the S25-A "Connect Stripe or Xero" bullet came out.
+// Neither OAuth app is provisioned on production (STRIPE_CLIENT_ID /
+// XERO_CLIENT_ID unset — docs/ops/feature-inventory.md § Connectors), so the
+// connector rows are hidden and the promise would be untrue. Growth's real
+// differentiators that had a flag but no bullet take its place: `investor_pack`
+// (api/investor-pack/generate) and `secondary_market.view` (/workspace/equity/secondary).
+export const INVESTOR_PACK_FEATURE_LINE =
+  "Investor Pack — one-click PDF pack for your raise, plus the secondary-offer simulator";
 
 // ─── Founder ──────────────────────────────────────────────────────────────
 const FOUNDER: Plan[] = [
@@ -225,12 +231,7 @@ const FOUNDER: Plan[] = [
       // application drafts, quarterly expert analysis refresh. Wording is
       // mirrored by FUNDING_COPY.pricing.growth (lib/funding/copy.ts).
       "+ investor matching, unlimited application drafts, quarterly expert update",
-      // S25-A (2026-09-13): true as of the weekly connector resync
-      // (api/cron/connector-resync, migration 0349) — Stripe Connect + Xero
-      // re-pull every Monday into connector_snapshots, feed the magnitude-based
-      // SVI contribution (lib/svi/connected-revenue-score.ts) and the P&L
-      // page (api/revenue). Both OAuth routes exist; QuickBooks does not.
-      CONNECTED_REVENUE_FEATURE_LINE,
+      INVESTOR_PACK_FEATURE_LINE,
       "Priority support (24h)",
       // The add-on grants exactly four flags — esop.manage, vesting.read,
       // vesting.write, blockchain.sync (see entitlements/user-grants.ts
@@ -328,7 +329,10 @@ const INVESTOR: Plan[] = [
       "25 tracked startups, 1 seat",
       "Weekly Progress Radar — score deltas, stage changes, new evidence",
       "Deal-flow feed + watchlist",
-      "ICS calendar and share-link tracking",
+      // G20-F1: "share-link tracking" had no evaluator-side surface (only the
+      // founder data-room engagement view exists) — the bullet keeps the part
+      // that ships (api/funding/calendar.ics behind money_radar).
+      "ICS calendar of every grant and program deadline",
       EVALUATOR_RADAR_LINE,
     ],
   },
@@ -346,9 +350,17 @@ const INVESTOR: Plan[] = [
       "Everything in Scout",
       "30 Trusted Business Reports a month included",
       "50 tracked startups, 3 seats",
-      "White-label PDF reports + client roster",
-      "Full mentor access to each client's workspace (founder-approved)",
-      "R&DTI / ESIC / s708 checks per client",
+      // G20-F1 (2026-09-20): the three Firm bullets below were rewritten to
+      // what ships. "White-label PDF reports" — white-label is hidden
+      // (lib/features/hidden.ts) and Firm holds no pdf_branding flag.
+      // "Full mentor access to each client's workspace" — the mentor routes
+      // are gated on reseller.console, which Firm does not carry; what exists
+      // is the roster (advisor.cohort) + engagement notes. "R&DTI / ESIC /
+      // s708 checks per client" — there is no per-client surface; the
+      // checkers are the public tools, linked from each client's row.
+      "Client roster + engagement notes on every client",
+      "Intake link — score every applicant on one rubric",
+      "ESIC, R&DTI and s708 eligibility checkers",
       EVALUATOR_RADAR_LINE,
     ],
   },
@@ -491,7 +503,9 @@ const ACCELERATOR: Plan[] = [
       "50 Trusted Business Reports a month included",
       "25 tracked startups, 5 seats",
       "200 AI credits / month for re-scores and drafts",
-      "Cohort dashboard + weekly re-score of every startup",
+      // G20-F1: no scheduled per-cohort re-score exists; the weekly movement
+      // comes from Progress Radar (api/cron/evaluator-progress-weekly).
+      "Cohort dashboard with weekly progress deltas on every startup",
       EVALUATOR_RADAR_LINE,
     ],
   },
@@ -512,7 +526,11 @@ const ACCELERATOR: Plan[] = [
       "200 Trusted Business Reports a month included",
       "100 tracked startups, 15 seats",
       "800 AI credits / month",
-      "Cohort management — mentors, check-ins and notes beside every score",
+      // G20-F1: mentor check-ins / notes are reseller-console tooling
+      // (feature reseller.console) — no accelerator row grants them. What
+      // Cohort 100 adds over Cohort 25 is the LP report composer
+      // (/workspace/lp-report, minPlan accel_growth).
+      "LP report composer — anonymised cohort performance for your limited partners",
       EVALUATOR_RADAR_LINE,
     ],
   },

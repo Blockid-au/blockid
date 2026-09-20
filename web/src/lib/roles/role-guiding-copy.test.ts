@@ -103,8 +103,8 @@ describe("role-guiding-copy — per-role CTA href anchors", () => {
   it("accelerator CTA points at the accelerator workspace", () => {
     expect(ROLE_GUIDING_COPY.accelerator.next_step_recommender.cta.href).toBe("/workspace/accelerator");
   });
-  it("innovator CTA points at the industry map", () => {
-    expect(ROLE_GUIDING_COPY.innovator.next_step_recommender.cta.href).toBe("/innovator/industry-map");
+  it("innovator CTA points at the public sector leaderboard (the console is hidden, G20-F1)", () => {
+    expect(ROLE_GUIDING_COPY.innovator.next_step_recommender.cta.href).toBe("/dataset");
   });
   it("reseller CTA points at the promo codes surface", () => {
     expect(ROLE_GUIDING_COPY.reseller.next_step_recommender.cta.href).toBe("/reseller/codes");

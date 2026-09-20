@@ -183,7 +183,7 @@ const DESTINATIONS: Destination[] = [
   {
     key: "svi",
     label: "Run full SVI Analysis",
-    href: "/svi",
+    href: "/analyze",
     rationaleTemplate: ({ sectorLabel }) =>
       sectorLabel
         ? `You've clarified the shape of a ${sectorLabel} startup — the SVI report will score all 8 SVI dimensions and benchmark you against peers.`

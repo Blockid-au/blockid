@@ -1,37 +1,27 @@
-// Wave 31D — Japanese Trusted Business Report (authenticated).
-// Mirror of /workspace/reports/business but with locale="ja" so shell copy
-// (headings, TOC, methodology, band names) render in Japanese. AI-generated
-// narrative stays in whatever language the model produced.
+// /ja/workspace/business-report — HIDDEN (G20-F1, 2026-09-20; F-3: only /vi
+// is a maintained mirror). Key: locale_ja. Was a Japanese shell over
+// <BusinessReportClient> whose login bounce pointed at a path that never
+// existed. The English report at /workspace/reports/business is the surface.
+import { Languages } from "lucide-react";
+import { HiddenWorkspacePage, hiddenPageMetadata } from "@/components/workspace/hidden-feature-page";
 
-import type { Metadata } from "next";
-import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
-import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
-import { getCurrentProjectIsSandbox } from "@/lib/projects";
-import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/reports/business/business-report-client";
-
-export const metadata: Metadata = {
-  title: "信頼できる事業レポート — BlockID",
-  description:
-    "SVI 8項目の完全レポート — スコア、根拠、AU 市場ベンチマーク、バリュエーション、改善ロードマップ。",
-  robots: { index: false, follow: false },
-};
-
+export const metadata = hiddenPageMetadata("ビジネスレポート");
 export const dynamic = "force-dynamic";
 
-export default async function JaBusinessReportPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ pid?: string }>;
-}) {
-  const user = await getCurrentUser();
-  if (!user) redirect("/auth/login?next=/ja/workspace/reports/business");
-  const isSandbox = await getCurrentProjectIsSandbox();
-  const { pid } = await searchParams;
-
+export default function JaBusinessReportPage() {
   return (
-    <WorkspaceLayout user={user} isSandbox={isSandbox}>
-      <BusinessReportClient projectId={pid ?? "default"} locale="ja" />
-    </WorkspaceLayout>
+    <HiddenWorkspacePage
+      feature="locale_ja"
+      path="/ja/workspace/business-report"
+      title="ビジネスレポート"
+      icon={Languages}
+      reason="The Japanese edition of your Trusted Business Report is not offered. Your report is available in English and Vietnamese."
+      alternatives={[
+        { href: "/workspace/reports/business", label: "Open my report in English" },
+        { href: "/vi/workspace/business-report", label: "Mở báo cáo bằng tiếng Việt" },
+      ]}
+      backHref="/workspace/reports"
+      backLabel="Back to Reports"
+    />
   );
 }

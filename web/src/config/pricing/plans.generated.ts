@@ -247,6 +247,7 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "api.access",
       "lp_export",
       "lp_report",
+      "accelerator.cohort",
       "grant_finder",
       "money_radar",
       "intake.manage"
@@ -283,6 +284,7 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "api.access",
       "lp_export",
       "lp_report",
+      "accelerator.cohort",
       "custom_benchmark",
       "multi_fund",
       "sso",
@@ -442,6 +444,7 @@ export const GENERATED_PLANS: readonly GeneratedPlan[] = [
       "api.access",
       "lp_export",
       "lp_report",
+      "accelerator.cohort",
       "grant_finder",
       "money_radar",
       "custom_benchmark",

@@ -72,7 +72,7 @@ export default function SolutionsIndexPage() {
       <CtaBand
         title="Not sure which fits? Start by scoring one idea."
         sub="The first run is free and needs no card."
-        primary={{ href: "/svi", label: "Analyse an idea", ctaId: "solutions_final_score" }}
+        primary={{ href: "/analyze", label: "Analyse an idea", ctaId: "solutions_final_score" }}
         secondary={{ href: "/pricing", label: "See pricing" }}
       />
     </MarketingShell>
