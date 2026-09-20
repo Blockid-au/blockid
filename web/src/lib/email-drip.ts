@@ -28,9 +28,12 @@ import {
 import { isExcludedAccountEmail } from "@/lib/traction/snapshot";
 import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
 import { PLANS_V2, formatAud } from "@/lib/plans-v2";
+import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
 
 /** G16-B copy truth: the D14 upsell prices the A$29 rung from plans-v2, never a literal. */
 const STARTER_PRICE_LINE = `${formatAud(PLANS_V2.find((p) => p.id === "founder_starter")?.monthly_aud ?? null)}/mo`;
+/** G18-A: the Starter monthly credit grant, from plans.csv (plans.generated) — never a literal. */
+const STARTER_MONTHLY_CREDITS = GENERATED_PLANS_BY_ID["founder_starter"]?.usage_limits?.monthly_credits ?? 0;
 
 /**
  * Campaign ids. The DB CHECK on `email_drips.campaign` must list exactly
@@ -891,14 +894,14 @@ function d14Copy(email: string): RenderedEmail {
     <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0F172A;">The full report unlocks the next 90 days</h1>
     <p>You have been on the free tier for two weeks. The Founder plan (${STARTER_PRICE_LINE}, GST included) unlocks:</p>
     <ul style="padding-left:20px;margin:0 0 16px 0;">
-      <li style="margin-bottom:6px;">Your score tracked over time, with 20 AI credits a month to re-run it.</li>
+      <li style="margin-bottom:6px;">Your score tracked over time, with ${STARTER_MONTHLY_CREDITS} AI credits a month to re-run it.</li>
       <li style="margin-bottom:6px;">A data room that fills up in the order investors ask.</li>
       <li style="margin-bottom:6px;">A live link you share with an investor instead of a PDF.</li>
     </ul>
     <p>No lock-in. Cancel from the billing page any time.</p>
     ${ctaButton(pricingUrl, "See plans")}
     ${footer(email)}`);
-  const text = `The Founder plan is ${STARTER_PRICE_LINE} (GST included): your score tracked over time with 20 AI credits a month, a data room, and a live investor link.\n\nSee plans: ${pricingUrl}${footerText(email)}`;
+  const text = `The Founder plan is ${STARTER_PRICE_LINE} (GST included): your score tracked over time with ${STARTER_MONTHLY_CREDITS} AI credits a month, a data room, and a live investor link.\n\nSee plans: ${pricingUrl}${footerText(email)}`;
   return { subject, html, text };
 }
 

@@ -3,6 +3,7 @@
 import * as React from "react";
 import { CheckCircle2, Clock, Gift, Loader2, Users } from "lucide-react";
 import { ReferralCard } from "@/components/workspace/referral-card";
+import { REFEREE_BONUS_CREDITS, REFERRER_CREDITS } from "@/lib/credits-public";
 
 interface Referral {
   id: string;
@@ -92,7 +93,7 @@ export function ReferralsClient() {
           {
             icon: CheckCircle2,
             label: "3. You both earn",
-            desc: "You get 5 credits. They get 3 bonus credits on signup.",
+            desc: `You get ${REFERRER_CREDITS} credits. They get ${REFEREE_BONUS_CREDITS} bonus credit${REFEREE_BONUS_CREDITS === 1 ? "" : "s"} on signup.`,
           },
         ].map(({ icon: Icon, label, desc }) => (
           <div
@@ -177,11 +178,10 @@ export function ReferralsClient() {
         )}
       </div>
 
-      {/* Promo note */}
+      {/* G18-A (2026-09-19): the softlaunch "5 credits per referral until 31
+          July 2026" note is gone — the promo ended 2026-08-01. */}
       <p className="text-xs text-muted text-center">
-        🎉 Softlaunch promo: earn{" "}
-        <span className="font-semibold text-brand-600">5 credits</span> per
-        referral until 31 July 2026 (normally 2).
+        Credits land on your account as soon as your referral signs up.
       </p>
     </div>
   );

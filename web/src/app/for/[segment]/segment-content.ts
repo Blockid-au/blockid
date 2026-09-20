@@ -32,13 +32,31 @@ export function anchorPrice(planId: string): string {
   return `A$${dollars.toLocaleString("en-AU")} / month`;
 }
 
+/**
+ * The plan's trial length from the catalogue (G18-A, 2026-09-19): the
+ * accelerator anchor is Cohort 100, a 14-day trial, and the page said
+ * "7-day free trial · cancel anytime before Day 8" for it.
+ */
+export function anchorTrialDays(planId: string): number {
+  const plan = GENERATED_PLANS_BY_ID[planId];
+  if (!plan) throw new Error(`segment planAnchor names unknown plan "${planId}"`);
+  return plan.trial_days;
+}
+
+/** The public plan name from the catalogue ("Growth", "Scout", "Cohort 100"). */
+export function anchorLabel(planId: string): string {
+  const plan = GENERATED_PLANS_BY_ID[planId];
+  if (!plan) throw new Error(`segment planAnchor names unknown plan "${planId}"`);
+  return plan.name;
+}
+
 export interface SegmentContent {
   slug: "founder" | "investor" | "accelerator";
   label: string;
   hero: { headline: string; subhead: string };
   features: string[];
   steps: string[];
-  planAnchor: { id: string; label: string; price: string };
+  planAnchor: { id: string; label: string; price: string; trialDays: number };
   faq: Array<{ q: string; a: string }>;
 }
 
@@ -84,8 +102,9 @@ export const SEGMENT_CONTENT: Record<SegmentSlug, SegmentContent> = {
     ],
     planAnchor: {
       id: "founder_growth",
-      label: "Founder Growth",
+      label: anchorLabel("founder_growth"),
       price: anchorPrice("founder_growth"),
+      trialDays: anchorTrialDays("founder_growth"),
     },
     faq: [
       {
@@ -125,8 +144,9 @@ export const SEGMENT_CONTENT: Record<SegmentSlug, SegmentContent> = {
     ],
     planAnchor: {
       id: "investor_angel",
-      label: "Investor Angel",
+      label: anchorLabel("investor_angel"),
       price: anchorPrice("investor_angel"),
+      trialDays: anchorTrialDays("investor_angel"),
     },
     faq: [
       {
@@ -173,8 +193,9 @@ export const SEGMENT_CONTENT: Record<SegmentSlug, SegmentContent> = {
     ],
     planAnchor: {
       id: "accelerator_growth",
-      label: "Accelerator Growth",
+      label: anchorLabel("accelerator_growth"),
       price: anchorPrice("accelerator_growth"),
+      trialDays: anchorTrialDays("accelerator_growth"),
     },
     faq: [
       {

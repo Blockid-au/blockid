@@ -837,10 +837,20 @@ describe("nurture legacy aliases delegate to the current impls", () => {
     expect(lastMail().subject).toContain("equity");
   });
 
-  it("sendNurtureFreeDay14 delegates to sendNurtureFreeDay7 (Founding 100 upsell)", async () => {
+  it("sendNurtureFreeDay14 delegates to sendNurtureFreeDay7 (Starter-plan upsell, priced from plans-v2)", async () => {
+    const { PLANS_V2, formatAud } = await import("./plans-v2");
+    const { GENERATED_PLANS_BY_ID } = await import("@/config/pricing/plans.generated");
+    const starter = PLANS_V2.find((p) => p.id === "founder_starter")!;
+    const credits = GENERATED_PLANS_BY_ID["founder_starter"].usage_limits.monthly_credits;
     const { sendNurtureFreeDay14 } = await import("./email");
     await sendNurtureFreeDay14({ to: "a@b.co" });
-    expect(lastMail().subject).toContain("50 credits");
+    const mail = lastMail();
+    expect(mail.subject).toContain(`${credits} credits a month for ${formatAud(starter.monthly_aud)}/mo`);
+    expect(mail.subject).toContain(`${starter.trial_days}-day free trial`);
+    expect(mail.html).toContain("/pricing#tier-starter");
+    // The Founding 100 A$5 lifetime promo closed 2026-09-01 — never advertised.
+    expect(mail.html).not.toMatch(/Founding|A\$5\b|lifetime|founding-50/);
+    expect(mail.subject).not.toMatch(/Founding|A\$5\b/);
   });
 
   it("sendNurturePaidDay14 delegates to sendNurturePaidDay7 (Week 1 progress)", async () => {
@@ -1391,5 +1401,103 @@ describe("withFromName (S26-A founder display name on the platform sender)", () 
     const { withFromName } = await import("./email");
     expect(withFromName('"BlockID" <info@blockid.au>', null)).toBe('"BlockID" <info@blockid.au>');
     expect(withFromName("info@blockid.au", "  \r\n ")).toBe("info@blockid.au");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// G18-A pricing truth (2026-09-20). A sweep found the nurture / credit e-mails
+// still quoting the closed Founding 100 A$5 lifetime promo, a "standard plan
+// A$49/mo", a 50-pack at A$15 and "10 credits for A$5". Every figure below is
+// read from the same constants the checkout books against, and the closed
+// promo must never appear in a subject or body again.
+// ---------------------------------------------------------------------------
+
+describe("G18-A pricing truth — nurture and credit e-mails quote the ladder", () => {
+  beforeEach(() => {
+    process.env.SMTP_USER = "u";
+    process.env.SMTP_PASS = "p";
+    process.env.NEXT_PUBLIC_SITE_URL = "https://blockid.au";
+  });
+
+  const CLOSED_PROMO = /Founding|A\$5\b|lifetime|founding-50|A\$49\b|A\$99\b|A\$499\b|A\$15\b|Save 70%/;
+
+  async function ladder() {
+    const { PLANS_V2, formatAud } = await import("./plans-v2");
+    const { GENERATED_PLANS_BY_ID } = await import("@/config/pricing/plans.generated");
+    const { CREDIT_PACKS } = await import("./credit-packs");
+    const { SVI_ANALYSIS_CREDITS, FREE_SIGNUP_CREDITS } = await import("./credits-public");
+    const starter = PLANS_V2.find((p) => p.id === "founder_starter")!;
+    const credits = GENERATED_PLANS_BY_ID["founder_starter"].usage_limits.monthly_credits;
+    const pack = (n: number) => CREDIT_PACKS.find((p) => p.credits === n)!;
+    return { starter, credits, formatAud, pack, SVI_ANALYSIS_CREDITS, FREE_SIGNUP_CREDITS };
+  }
+
+  it("sendD9LastCall (lead-nurture cron) sells Starter at its plans-v2 price + trial, never the closed promo", async () => {
+    const { starter, credits, formatAud } = await ladder();
+    const { sendD9LastCall } = await import("./email");
+    await sendD9LastCall({ to: "a@b.co", name: "Ana" });
+    const mail = lastMail();
+    const price = `${formatAud(starter.monthly_aud)}/mo`;
+    expect(mail.subject).toBe(`Last call: ${starter.name} plan, ${price}, ${starter.trial_days}-day free trial`);
+    expect(mail.html).toContain(`What ${price} gets you`);
+    expect(mail.html).toContain(`${credits} AI credits every month`);
+    expect(mail.html).toContain("https://blockid.au/pricing#tier-starter");
+    expect(mail.html).not.toMatch(CLOSED_PROMO);
+    expect(mail.subject).not.toMatch(CLOSED_PROMO);
+  });
+
+  it("sendCreditLowAlert (lib/credits.ts low-balance hook) prices the 10-pack from CREDIT_PACKS", async () => {
+    const { pack, formatAud, SVI_ANALYSIS_CREDITS } = await ladder();
+    const { sendCreditLowAlert } = await import("./email");
+    await sendCreditLowAlert({ to: "a@b.co", currentBalance: 0.5 });
+    const html = lastMail().html ?? "";
+    const ten = pack(10);
+    expect(html).toContain(`Buy ${ten.credits} credits for ${formatAud(ten.price)}`);
+    expect(html).toContain(`That's ${Math.floor(ten.credits / SVI_ANALYSIS_CREDITS)} standard SVI analyses`);
+    expect(html).toContain(`costs ${SVI_ANALYSIS_CREDITS.toFixed(2)} credits`);
+    expect(html).not.toMatch(CLOSED_PROMO);
+  });
+
+  it("sendLowCreditAlert lists the 10 / 25 / 50 packs with their real price and savings badge", async () => {
+    const { pack, formatAud } = await ladder();
+    const { sendLowCreditAlert } = await import("./email");
+    await sendLowCreditAlert({ to: "a@b.co", balance: 0.5 });
+    const html = lastMail().html ?? "";
+    for (const n of [10, 25, 50]) {
+      const p = pack(n);
+      expect(html).toContain(`${p.credits} Credits`);
+      expect(html).toContain(`${formatAud(p.price)} <span`);
+      expect(html).toContain(p.savings!);
+    }
+    expect(html).not.toMatch(CLOSED_PROMO);
+  });
+
+  it("sendUnlockDeeperAnalysis prices one analysis off the smallest pack and lists the 10 / 50 packs", async () => {
+    const { pack, formatAud, SVI_ANALYSIS_CREDITS } = await ladder();
+    const { CREDIT_PACKS } = await import("./credit-packs");
+    const { sendUnlockDeeperAnalysis } = await import("./email");
+    await sendUnlockDeeperAnalysis({ to: "a@b.co", name: "Ana", stageLabel: "Seed" });
+    const mail = lastMail();
+    const perCredit = CREDIT_PACKS[0].price / CREDIT_PACKS[0].credits;
+    const fromLabel = `A$${(perCredit * SVI_ANALYSIS_CREDITS).toFixed(2)}`;
+    expect(mail.html).toContain(`from ${fromLabel}`);
+    expect(mail.html).toContain(`${formatAud(pack(50).price)} <span`);
+    expect(mail.html).toContain(pack(50).savings!);
+    expect(mail.html).not.toMatch(CLOSED_PROMO);
+  });
+
+  it("sendD1Welcome quotes the real free grant and per-analysis cost", async () => {
+    const { SVI_ANALYSIS_CREDITS, FREE_SIGNUP_CREDITS } = await ladder();
+    const { sendD1Welcome } = await import("./email");
+    await sendD1Welcome({ to: "a@b.co" });
+    expect(lastMail().html).toContain(`uses ${SVI_ANALYSIS_CREDITS} of your ${FREE_SIGNUP_CREDITS} free credits`);
+  });
+
+  it("sendPaymentLink (unwired since the promo closed) no longer brands itself Founding 100", async () => {
+    const { sendPaymentLink } = await import("./email");
+    await sendPaymentLink({ to: "a@b.co", name: "Ana", checkoutUrl: "https://x", finalPrice: 29, features: ["a"] });
+    const mail = lastMail();
+    expect(mail.subject).toBe("Complete Your BlockID Payment");
+    expect(mail.html).not.toMatch(/Founding/);
   });
 });

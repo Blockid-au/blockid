@@ -140,8 +140,8 @@ export default async function ForSegmentPage({
             {content.planAnchor.label}
           </p>
           <p className="mt-1 text-sm text-secondary">
-            {content.planAnchor.price} · 7-day free trial · cancel anytime
-            before Day 8.
+            {content.planAnchor.price} · {content.planAnchor.trialDays}-day free trial · cancel anytime
+            before Day {content.planAnchor.trialDays + 1}.
           </p>
           <Link
             href={pricingFragmentFor(content.slug)}

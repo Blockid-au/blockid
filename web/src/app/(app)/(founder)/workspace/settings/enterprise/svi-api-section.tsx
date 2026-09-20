@@ -6,6 +6,12 @@
 
 import { useEffect, useState } from "react";
 import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
+import {
+  INDEX_API_DAILY_CALLS,
+  INDEX_API_MONTHLY_AUD,
+  INSTITUTIONAL_CONTACT_HREF,
+  sviApiTierPriceLabel,
+} from "@/lib/pricing/svi-api-tiers";
 
 interface SviKey {
   id: string;
@@ -20,7 +26,10 @@ interface SviKey {
 }
 
 const TIER_LABELS = { free: "Free", team: "Team", institutional: "Institutional" };
-const DAILY_LIMITS = { free: 10, team: 1000, institutional: "Unlimited" };
+const DAILY_LIMITS = { free: 10, team: INDEX_API_DAILY_CALLS, institutional: "Unlimited" };
+// G18-A (2026-09-19): prices come from the ladder (Team = Index API rung);
+// Institutional is contact-sales, never a typed amount.
+const TIER_PRICE_AUD = { free: 0, team: INDEX_API_MONTHLY_AUD, institutional: null } as const;
 
 export function SviApiSection() {
   const [keys, setKeys] = useState<SviKey[]>([]);
@@ -74,7 +83,7 @@ export function SviApiSection() {
     load();
   };
 
-  const upgrade = async (tier: "team" | "institutional") => {
+  const upgrade = async (tier: "team") => {
     setUpgrading(tier);
     setPageError(null);
     try {
@@ -116,8 +125,8 @@ export function SviApiSection() {
           <div key={tier} className="border border-slate-200 rounded-xl p-4 space-y-2">
             <p className="text-xs font-semibold text-sky-700 uppercase tracking-wide">{TIER_LABELS[tier]}</p>
             <p className="text-xl font-bold text-slate-900">
-              {tier === "free" ? "A$0" : tier === "team" ? "A$199" : "A$2,000"}
-              <span className="text-sm font-normal text-slate-500">/mo</span>
+              {sviApiTierPriceLabel(TIER_PRICE_AUD[tier])}
+              {TIER_PRICE_AUD[tier] !== null && <span className="text-sm font-normal text-slate-500">/mo</span>}
             </p>
             <p className="text-sm text-slate-600">{DAILY_LIMITS[tier]} calls/day</p>
             {tier === "free" && <p className="text-xs text-slate-400">Default tier. No payment needed.</p>}
@@ -131,13 +140,12 @@ export function SviApiSection() {
               </button>
             )}
             {tier === "institutional" && (
-              <button
-                onClick={() => upgrade("institutional")}
-                disabled={upgrading !== null}
-                className="w-full text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-3 py-1.5 font-medium disabled:opacity-50"
+              <a
+                href={INSTITUTIONAL_CONTACT_HREF}
+                className="block w-full text-center text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-3 py-1.5 font-medium"
               >
-                {upgrading === "institutional" ? "Redirecting…" : "Upgrade"}
-              </button>
+                Contact sales
+              </a>
             )}
           </div>
         ))}

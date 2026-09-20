@@ -234,6 +234,14 @@ export default async function DocsPage() {
   // for a week after Growth became A$69 (2026-09-08).
   const starterMonthly = `A$${GENERATED_PLANS_BY_ID.founder_starter.price_aud_cents / 100}/mo`;
   const growthMonthly = `A$${GENERATED_PLANS_BY_ID.founder_growth.price_aud_cents / 100}/mo`;
+  // G18-A (2026-09-19): the evaluator line was typed by hand and omitted Fund.
+  const evaluatorLadder = (["investor_angel", "investor_advisor", "investor_vc_small", "investor_fund"] as const)
+    .map((id) => {
+      const row = GENERATED_PLANS_BY_ID[id];
+      return `${row.name} A$${(row.price_aud_cents / 100).toLocaleString("en-AU")}/mo`;
+    })
+    .join(" · ");
+  const evaluatorTrialDays = GENERATED_PLANS_BY_ID.investor_angel.trial_days;
   const foundingSpots = cfg.founding_spots_total;
   const weights = cfg.svi_weights;
 
@@ -538,8 +546,8 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
               </p>
               <ul className="text-sm text-ink-600 space-y-1 list-disc list-inside">
                 <li>A$3 per Trusted Business Report on any startup you enter, pay as you go</li>
-                <li>Scout A$79/mo · Firm A$149/mo · Program A$349/mo — reports included, tracked startups, seats, white-label</li>
-                <li>7-day free trial on every rung, card required; nothing billed if cancelled before day 7</li>
+                <li>{evaluatorLadder} — reports included, tracked startups, seats, white-label</li>
+                <li>{evaluatorTrialDays}-day free trial on every evaluator rung, card required; nothing billed if cancelled before day {evaluatorTrialDays + 1}</li>
                 <li>Multi-cohort accelerators, VC enterprise and reseller / wholesale: Contact Sales</li>
               </ul>
               <p className="text-xs text-ink-500 mt-3">

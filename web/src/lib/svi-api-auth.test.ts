@@ -173,9 +173,10 @@ describe("SVI_API_TIERS", () => {
     expect(SVI_API_TIERS.free).toEqual({ dailyLimit: 10, priceAud: 0, label: "Free" });
     // Pricing v4: Team mirrors the index_api plans.csv row (A$299/mo).
     expect(SVI_API_TIERS.team).toEqual({ dailyLimit: 1000, priceAud: 299, label: "Team" });
+    // G18-A: Institutional is contact-sales (VC Enterprise, custom) — no amount.
     expect(SVI_API_TIERS.institutional).toEqual({
       dailyLimit: 9_999_999,
-      priceAud: 2000,
+      priceAud: null,
       label: "Institutional",
     });
   });
@@ -185,10 +186,10 @@ describe("SVI_API_TIERS", () => {
     expect(SVI_API_TIERS.team.dailyLimit).toBeLessThan(SVI_API_TIERS.institutional.dailyLimit);
   });
 
-  it("price ladder is strictly monotone free (0) < team < institutional", () => {
+  it("price ladder: free (0) < team (= Index API rung); institutional is custom", () => {
     expect(SVI_API_TIERS.free.priceAud).toBe(0);
     expect(SVI_API_TIERS.free.priceAud).toBeLessThan(SVI_API_TIERS.team.priceAud);
-    expect(SVI_API_TIERS.team.priceAud).toBeLessThan(SVI_API_TIERS.institutional.priceAud);
+    expect(SVI_API_TIERS.institutional.priceAud).toBeNull();
   });
 });
 

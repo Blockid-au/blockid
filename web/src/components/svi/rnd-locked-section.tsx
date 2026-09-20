@@ -4,6 +4,15 @@ import { Lock, Sparkles, ArrowRight, Share2, CreditCard } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { trackEvent } from "@/lib/analytics";
+import { RND_REPORT_CREDITS } from "@/lib/credits-public";
+import { CREDIT_PACKS } from "@/lib/credit-packs";
+import { formatAud } from "@/lib/plans-v2";
+
+// G18-A (2026-09-19): this rail said "From A$0.50 per section" (a full R&D
+// report is FEATURE_COSTS.rnd_report = 1 credit) and "Get unlimited reports
+// — A$1 lifetime" linking /founding-50 (promo closed 2026-09-01). Figures
+// now come from the credit ladder (credits-public mirror + CREDIT_PACKS).
+const SMALLEST_PACK = CREDIT_PACKS[0]!;
 
 interface RndLockedSectionProps {
   lockedPreview: string;
@@ -71,7 +80,7 @@ export function RndLockedSection({
         <div className="mb-5 rounded-lg bg-surface-50 border border-surface-200 px-4 py-3">
           <div className="flex items-center gap-2">
             <CreditCard className="h-4 w-4 text-brand-500" />
-            <span className="text-xs font-semibold text-ink-700">From A$0.50 per section</span>
+            <span className="text-xs font-semibold text-ink-700">{RND_REPORT_CREDITS} credit{RND_REPORT_CREDITS === 1 ? "" : "s"} for the full report</span>
             <span className="text-[10px] text-ink-500 ml-1">— A startup consultant charges A$300+ for equivalent analysis</span>
           </div>
         </div>
@@ -104,9 +113,9 @@ export function RndLockedSection({
           </button>
         </div>
         <p className="mt-3 text-[10px] text-muted">
-          <Link href="/founding-50" className="text-brand-600 hover:text-brand-700 font-medium">Get unlimited reports — A$1 lifetime</Link>
+          <Link href="/pricing#tier-starter" className="text-brand-600 hover:text-brand-700 font-medium">Monthly credits are included on Starter</Link>
           {" "}or{" "}
-          <Link href="/workspace/billing#credits" className="text-brand-600 hover:text-brand-700 font-medium">buy credit packs from A$5</Link>
+          <Link href="/workspace/billing#credits" className="text-brand-600 hover:text-brand-700 font-medium">buy credit packs from {formatAud(SMALLEST_PACK.price)}</Link>
         </p>
       </div>
     </div>

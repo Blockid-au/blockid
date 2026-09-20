@@ -202,6 +202,7 @@ describe("SEGMENT_CONTENT — planAnchor identity per segment", () => {
     const anchor = SEGMENT_CONTENT[slug].planAnchor;
     expect(anchor.id).toBe(id);
     expect(anchor.label).toBe(label);
+    expect(anchor.label).toBe(GENERATED_PLANS_BY_ID[id]?.name);
     const cents = GENERATED_PLANS_BY_ID[id]?.price_aud_cents;
     expect(typeof cents).toBe("number");
     expect(anchor.price).toBe(
@@ -210,11 +211,11 @@ describe("SEGMENT_CONTENT — planAnchor identity per segment", () => {
   };
 
   it("founder → founder_growth, priced from the catalogue", () => {
-    expectAnchor("founder", "founder_growth", "Founder Growth");
+    expectAnchor("founder", "founder_growth", "Growth");
   });
 
   it("investor → investor_angel, priced from the catalogue", () => {
-    expectAnchor("investor", "investor_angel", "Investor Angel");
+    expectAnchor("investor", "investor_angel", "Scout");
   });
 
   // The "does not recommend a hidden plan" assertion that lived here guarded
@@ -225,7 +226,17 @@ describe("SEGMENT_CONTENT — planAnchor identity per segment", () => {
   // T0268's to decide (plans-v2.ts), not this copy's.
 
   it("accelerator → accelerator_growth, priced from the catalogue", () => {
-    expectAnchor("accelerator", "accelerator_growth", "Accelerator Growth");
+    expectAnchor("accelerator", "accelerator_growth", "Cohort 100");
+  });
+
+  // G18-A: the trial line follows the plan row — Cohort 100 is a 14-day trial.
+  it("every planAnchor.trialDays equals the catalogue row's trial_days", () => {
+    for (const slug of SEGMENT_SLUGS) {
+      const anchor = SEGMENT_CONTENT[slug].planAnchor;
+      expect(anchor.trialDays).toBe(GENERATED_PLANS_BY_ID[anchor.id]?.trial_days);
+    }
+    expect(SEGMENT_CONTENT.accelerator.planAnchor.trialDays).toBe(14);
+    expect(SEGMENT_CONTENT.founder.planAnchor.trialDays).toBe(7);
   });
 
   it("every planAnchor.price uses the 'A$<amount> / month' shape", () => {

@@ -66,10 +66,10 @@ export default async function SearchPage({
             Browse Startup Index →
           </a>
           <a
-            href="/founding-50"
+            href="/pricing#tier-starter"
             className="rounded-full border border-white/15 px-4 py-2 text-[13px] font-semibold text-white/80 hover:text-white"
           >
-            Founding 100 · A$5
+            See plans →
           </a>
         </div>
       </section>

@@ -6,7 +6,8 @@
 // Sequence (triggered from user.created_at):
 //   D+1 : Welcome + how to run first SVI analysis
 //   D+3 : Evidence Vault explainer — connect GitHub/Stripe/GA4
-//   D+7 : Founding 50 upgrade CTA (scarcity-driven)
+//   D+7 : Starter / Growth upgrade CTA (7-day trial). The Founding 100 A$5
+//         pitch this step used to carry closed 2026-09-01 (G18-A, 2026-09-20).
 //
 // Max 3 emails per user ever. Sends max 20 users per run. Respects email preferences.
 
@@ -20,9 +21,28 @@ import {
   getPreferencesUrl,
 } from "@/lib/email-preferences";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
+import { PLANS_V2, formatAud, type Plan } from "@/lib/plans-v2";
+import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+// Pricing truth: every figure the D+7 step quotes comes from plans-v2 (price,
+// trial) and plans.csv via plans.generated (monthly credit grant) — never typed.
+function ladderPlan(id: string): Plan {
+  const plan = PLANS_V2.find((p) => p.id === id);
+  if (!plan) throw new Error(`plans-v2: unknown plan id "${id}"`);
+  return plan;
+}
+function monthlyCredits(id: string): number {
+  return GENERATED_PLANS_BY_ID[id]?.usage_limits?.monthly_credits ?? 0;
+}
+const STARTER = ladderPlan("founder_starter");
+const GROWTH = ladderPlan("founder_growth");
+const STARTER_PRICE = `${formatAud(STARTER.monthly_aud)}/mo`;
+const GROWTH_PRICE = `${formatAud(GROWTH.monthly_aud)}/mo`;
+const STARTER_CREDITS = monthlyCredits(STARTER.id);
+const GROWTH_CREDITS = monthlyCredits(GROWTH.id);
 
 interface OnboardingStep {
   type: string;
@@ -76,22 +96,28 @@ const STEPS: OnboardingStep[] = [
   {
     type: "onboarding_d7",
     daysAfter: 7,
-    subject: (name) => `${name}, only a few Founding 100 spots left at A$5`,
+    subject: (name) => `${name}, ${STARTER.name} is ${STARTER_PRICE} with a ${STARTER.trial_days}-day free trial`,
     body: (name, siteUrl, unsubUrl, prefsUrl) => `
       <h1 style="font-size:20px;margin:0 0 12px;">Hi ${name},</h1>
-      <p>We launched with <strong>100 founding accounts</strong> at a one-time price of <strong>A$5</strong>. Spots are filling up.</p>
-      <p>The Founding 100 account gives you:</p>
+      <p>You have had a week on the free tier. When you are ready for the next step, there are two paid rungs — both start with a <strong>${STARTER.trial_days}-day free trial</strong> and both include GST.</p>
+      <p><strong>${STARTER.name} — ${STARTER_PRICE}</strong></p>
       <ul style="line-height:2;">
-        <li>✅ <strong>50 credits</strong> (lifetime)</li>
-        <li>✅ <strong>Evidence Vault</strong> — connect all your data sources</li>
-        <li>✅ <strong>Cap Table tools</strong> — equity split, vesting, ESOP</li>
+        <li>✅ <strong>${STARTER_CREDITS} AI credits</strong> every month</li>
+        <li>✅ <strong>Data room</strong> — filling up in the order investors ask</li>
+        <li>✅ <strong>Live investor link</strong> — NDA click-wrap and watermarked PDFs</li>
+        <li>✅ <strong>Founder Radar</strong> — grant and program deadline alerts</li>
+      </ul>
+      <p><strong>${GROWTH.name} — ${GROWTH_PRICE}</strong></p>
+      <ul style="line-height:2;">
+        <li>✅ Everything in ${STARTER.name}, with <strong>${GROWTH_CREDITS} AI credits</strong> every month</li>
+        <li>✅ <strong>Cap table sync</strong> — equity split, vesting, ESOP</li>
         <li>✅ <strong>Term Sheet AI</strong> — analyse any investor term sheet</li>
-        <li>✅ <strong>Lifetime access</strong> — no recurring fees</li>
+        <li>✅ <strong>Investor matching</strong> and unlimited grant application drafts</li>
       </ul>
       <div style="text-align:center;margin:28px 0;">
-        <a href="${siteUrl}/founding-50" style="display:inline-block;background:#2563eb;color:white;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;">Claim Your Spot — A$5 →</a>
+        <a href="${siteUrl}/pricing" style="display:inline-block;background:#2563eb;color:white;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;">Compare plans →</a>
       </div>
-      <p style="color:#64748b;font-size:13px;">After the 100 spots are gone, this plan goes back to A$99/mo. No pressure — but the clock is ticking.</p>
+      <p style="color:#64748b;font-size:13px;">No lock-in — cancel from the billing page any time. Your free account stays as it is if you do nothing.</p>
       <p style="color:#94a3b8;font-size:11px;margin-top:24px;">
         <a href="${unsubUrl}" style="color:#94a3b8;">Unsubscribe</a> · <a href="${prefsUrl}" style="color:#94a3b8;">Email preferences</a>
       </p>`,

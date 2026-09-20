@@ -263,7 +263,9 @@ const PROMO_DEADLINE = new Date("2026-08-01T00:00:00+10:00");
 export const isPromoActive = () => new Date() < PROMO_DEADLINE;
 
 /** Signup credits — 5 during promo (normally 2). */
-export const SIGNUP_CREDITS = () => isPromoActive() ? 5 : 2;
+// G18-A (2026-09-19): post-promo figure is FREE_SIGNUP_CREDITS (3), the same
+// number PLAN_CREDITS.free grants and client copy quotes — this said 2.
+export const SIGNUP_CREDITS = () => isPromoActive() ? 5 : FREE_SIGNUP_CREDITS;
 
 // Grants are sized so that a subscriber who burns EVERY included credit on the
 // most expensive action still leaves ≥70% gross margin.

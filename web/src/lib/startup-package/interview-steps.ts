@@ -106,7 +106,7 @@ const RAW_INTERVIEW_STEPS: readonly Omit<InterviewStep, "id">[] = Object.freeze(
       vi: "Ai là khách hàng sớm lý tưởng của bạn, và bạn đã xác thực nỗi đau như thế nào?",
     },
     placeholder: {
-      en: "e.g. Bookkeepers at 5-50 employee AU professional-services firms. Interviewed 14; 11 said they'd pay A$99/mo. LOIs from 3 firms attached.",
+      en: "e.g. Bookkeepers at 5-50 employee AU professional-services firms. Interviewed 14; 11 said they would pay A$49/mo. LOIs from 3 firms attached.",
       vi: "Ví dụ: Kế toán tại các công ty dịch vụ chuyên nghiệp 5-50 nhân viên...",
     },
     helpText: {
@@ -127,8 +127,8 @@ const RAW_INTERVIEW_STEPS: readonly Omit<InterviewStep, "id">[] = Object.freeze(
       vi: "Bạn sẽ kiếm tiền bằng cách nào — và giả thuyết định giá là gì?",
     },
     placeholder: {
-      en: "e.g. SaaS subscription, A$99/mo Starter and A$299/mo Growth. Assume 3% conversion off free trial → A$30K MRR at 300 paid seats by month 12.",
-      vi: "Ví dụ: Đăng ký SaaS, A$99/tháng Starter và A$299/tháng Growth...",
+      en: "e.g. SaaS subscription, A$49/mo Basic and A$199/mo Team. Assume 3% conversion off free trial → A$30K MRR at 300 paid seats by month 12.",
+      vi: "Ví dụ: Đăng ký SaaS, A$49/tháng Basic và A$199/tháng Team...",
     },
     helpText: {
       en: "Model: subscription, transaction, marketplace, licensing. Include price points + 12-mo revenue target.",

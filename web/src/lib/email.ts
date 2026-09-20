@@ -29,8 +29,75 @@ import { resellerFooterHtml } from "./reseller/email-footer";
 import { resolveResellerDisplayNameByEmail } from "./reseller/email-attribution";
 import { buildWholesaleWelcomeEmail } from "./reseller/wholesale-welcome-email";
 import { renderFounderFeedbackLetterEmail, type FeedbackLetterEmailInput } from "./evaluations/feedback-letter-email";
+import { CREDIT_PACKS, type CreditPack } from "./credit-packs";
+import { FREE_SIGNUP_CREDITS, SVI_ANALYSIS_CREDITS } from "./credits-public";
+import { PLANS_V2, formatAud, type Plan } from "./plans-v2";
+import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
 
 const FROM_DEFAULT = "BlockID.au <info@blockid.au>";
+
+// ---------- Pricing truth (G18-A, 2026-09-20) --------------------------------
+// Every A$ / credit figure an e-mail quotes is read from the same constants
+// the checkout books against — never re-typed. lib/credits.ts imports this
+// module (sendCreditLowAlert), so the per-analysis cost comes from the
+// isomorphic mirror in credits-public.ts rather than FEATURE_COSTS (a cycle),
+// and the monthly grants from plans.generated.ts (plans.csv), which
+// PLAN_CREDITS mirrors.
+
+function planV2(id: string): Plan {
+  const plan = PLANS_V2.find((p) => p.id === id);
+  if (!plan) throw new Error(`plans-v2: unknown plan id "${id}"`);
+  return plan;
+}
+
+/** Monthly AI-credit grant for a plan id, from plans.csv (0 when unmetered). */
+function planMonthlyCredits(id: string): number {
+  const n = GENERATED_PLANS_BY_ID[id]?.usage_limits?.monthly_credits ?? 0;
+  return n > 0 ? n : 0;
+}
+
+/** "A$29/mo" for a ladder SKU. */
+function planMonthlyLabel(plan: Plan): string {
+  return `${formatAud(plan.monthly_aud)}/mo`;
+}
+
+/** The credit pack of exactly `credits` credits; throws if the ladder lost it. */
+function creditPack(credits: number): CreditPack {
+  const pack = CREDIT_PACKS.find((p) => p.credits === credits);
+  if (!pack) throw new Error(`credit-packs: no ${credits}-credit pack on the ladder`);
+  return pack;
+}
+
+/** "A$9" for a pack (whole-dollar ladder; formatAud keeps the en-AU grouping). */
+function packPriceLabel(pack: CreditPack): string {
+  return formatAud(pack.price);
+}
+
+/** How many standard SVI analyses a pack (or a monthly grant) covers. */
+function analysesFor(credits: number): number {
+  return Math.floor(credits / SVI_ANALYSIS_CREDITS);
+}
+
+/** "A$0.50" — one SVI analysis priced at the smallest pack's per-credit rate. */
+function sviAnalysisFromPriceLabel(): string {
+  const smallest = CREDIT_PACKS[0];
+  const perCredit = smallest.price / smallest.credits;
+  return `A$${(perCredit * SVI_ANALYSIS_CREDITS).toFixed(2)}`;
+}
+
+/** Dark-theme two-column rows for the credit-pack table in nurture e-mails. */
+function creditPackRowsHtml(packs: readonly CreditPack[]): string {
+  return packs
+    .map((pack, i) => {
+      const last = i === packs.length - 1;
+      const border = last ? "" : "border-bottom:1px solid #1F2A44;";
+      const savings = pack.savings
+        ? ` <span style="color:#4ADE80;font-size:12px;">${escapeHtml(pack.savings)}</span>`
+        : "";
+      return `<tr><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;${border}">${pack.credits} Credits</td><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;font-weight:600;text-align:right;${border}">${packPriceLabel(pack)}${savings}</td></tr>`;
+    })
+    .join("\n              ");
+}
 
 function fromAddress(): string {
   return process.env.SMTP_FROM_EMAIL || FROM_DEFAULT;
@@ -1470,7 +1537,11 @@ export async function sendPaymentConfirmation(args: { to: string; planName: stri
   return sendEmail({ to: args.to, subject: "Payment Confirmed \u2014 Your BlockID Account is Active", html, unsubscribeUrl });
 }
 
-// ---------- Founding 50 payment link ------------------------------------------
+// ---------- Reserved-price payment link ---------------------------------------
+// Historically the Founding 100 (A$5 lifetime) payment link. That promo closed
+// 2026-09-01 and api/lead no longer mints a checkout for it, so nothing calls
+// this today; the template is kept generic (price comes from the caller) so a
+// future one-off offer can reuse it without re-advertising a closed cohort.
 
 export async function sendPaymentLink(args: { to: string; name: string; checkoutUrl: string; finalPrice: number; features: string[] }): Promise<SendResult> {
   if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
@@ -1481,9 +1552,9 @@ export async function sendPaymentLink(args: { to: string; name: string; checkout
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Founding 100</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Complete Your Founding 100 Payment</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Hi ${escapeHtml(args.name)}, your spot is reserved for 24 hours. Click below to complete payment and lock in your Founding 100 membership.</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Payment link</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Complete Your BlockID Payment</h1>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Hi ${escapeHtml(args.name)}, your price is reserved for 24 hours. Click below to complete payment and activate your account.</p>
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
             <p style="margin:0 0 4px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Total due</p>
             <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:600;color:#3B7DD8;line-height:1;">$${args.finalPrice}</div>
@@ -1502,7 +1573,7 @@ export async function sendPaymentLink(args: { to: string; name: string; checkout
     </td></tr>
   </table>
   ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
-  return sendEmail({ to: args.to, subject: "Complete Your BlockID Founding 100 Payment", html, unsubscribeUrl });
+  return sendEmail({ to: args.to, subject: "Complete Your BlockID Payment", html, unsubscribeUrl });
 }
 
 // ---------- Payment failed -------------------------------------------------------
@@ -1869,31 +1940,34 @@ export async function sendNurtureFreeDay4(args: NurtureArgs): Promise<SendResult
 export async function sendNurtureFreeDay7(args: NurtureArgs): Promise<SendResult> {
   if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
-  const foundingUrl = `${siteUrl()}/founding-50`;
-  const greeting = args.name ? `${escapeHtml(args.name!)}, we` : "We";
+  const starter = planV2("founder_starter");
+  const starterPrice = planMonthlyLabel(starter);
+  const starterCredits = planMonthlyCredits(starter.id);
+  const starterUrl = `${siteUrl()}/pricing#tier-starter`;
+  const greeting = args.name ? `${escapeHtml(args.name!)}, you` : "You";
   const html = shell(nurtureCard({
-    tagline: "BlockID — Founding 100",
-    headline: "100 Credits for A$5 — lifetime access",
-    body: `${greeting} are reserving spots for our Founding 100 cohort — the first 100 Australian startups to lock in lifetime early-access pricing on BlockID.</p>
+    tagline: `BlockID — ${escapeHtml(starter.name)} plan`,
+    headline: `${starterCredits} credits a month for ${starterPrice} — ${starter.trial_days}-day free trial`,
+    body: `${greeting} have had a week on the free tier. The ${escapeHtml(starter.name)} plan is the rung most Australian founders move to next — it keeps everything you already have and adds the pieces investors ask for.</p>
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
-            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Founder Plan includes</p>
+            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${escapeHtml(starter.name)} plan includes</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">100 analysis credits included</td></tr>
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Full evidence vault with AI verification</td></tr>
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Investor-ready share links and PDF reports</td></tr>
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Priority support and feature requests</td></tr>
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Locked-in early-access pricing forever</td></tr>
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">${starterCredits} AI credits every month — about ${analysesFor(starterCredits)} standard SVI analyses</td></tr>
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Your data room, filling up in the order investors ask</td></tr>
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">A live investor link with NDA click-wrap and watermarked PDFs</td></tr>
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Founder Radar — grant and program deadline alerts</td></tr>
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">${starterPrice}, GST included — cancel any time from the billing page</td></tr>
             </table>
           </div>
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
             <p style="margin:0 0 8px 0;color:#F8FAFC;font-size:14px;font-weight:600;">Early-stage SaaS founder, Sydney</p>
             <p style="margin:0;color:#94A3B8;font-size:13px;line-height:1.6;font-style:italic;">&ldquo;Having a verifiable SVI score made investor conversations start differently. The evidence vault saved me hours of prep for each meeting.&rdquo;</p>
           </div>
-          <p style="margin:0 0 24px 0;color:#F87171;font-size:14px;font-weight:600;">Only 100 spots available. Once the cohort is full, pricing goes up.`,
-    ctaLabel: "Claim Your Founding 100 Spot",
-    ctaUrl: foundingUrl,
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">Start the ${starter.trial_days}-day trial \u2014 you are not charged until it ends, and your free account stays as it is if you cancel.`,
+    ctaLabel: `Start ${starter.trial_days}-day free trial`,
+    ctaUrl: starterUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "free_day7"));
-  return sendEmail({ to: args.to, subject: "50 credits for A$5 \u2014 here\u2019s what Founding 100 members get", html, unsubscribeUrl });
+  return sendEmail({ to: args.to, subject: `${starterCredits} credits a month for ${starterPrice} \u2014 the ${starter.name} plan, ${starter.trial_days}-day free trial`, html, unsubscribeUrl });
 }
 
 export async function sendNurtureFreeDay14(args: NurtureArgs): Promise<SendResult> {
@@ -2055,9 +2129,7 @@ export async function sendLowCreditAlert(args: { to: string; balance: number }):
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
             <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Best value credit packs</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              <tr><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;">10 Credits</td><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;font-weight:600;text-align:right;border-bottom:1px solid #1F2A44;">A$9 <span style="color:#4ADE80;font-size:12px;">Save 10%</span></td></tr>
-              <tr><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;">25 Credits</td><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;font-weight:600;text-align:right;border-bottom:1px solid #1F2A44;">A$20 <span style="color:#4ADE80;font-size:12px;">Save 20%</span></td></tr>
-              <tr><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">50 Credits</td><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;font-weight:600;text-align:right;">A$15 <span style="color:#4ADE80;font-size:12px;">Save 70%</span></td></tr>
+              ${creditPackRowsHtml([creditPack(10), creditPack(25), creditPack(50)])}
             </table>
           </div>
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">Free features like evidence upload, investor score, and dilution calculator still work without credits.`,
@@ -2333,13 +2405,12 @@ export async function sendUnlockDeeperAnalysis(args: {
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
             <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Credit packs</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              <tr><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;">1 Full Analysis</td><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;font-weight:600;text-align:right;border-bottom:1px solid #1F2A44;">from A$0.50</td></tr>
-              <tr><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;">10 Credits</td><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;font-weight:600;text-align:right;border-bottom:1px solid #1F2A44;">A$9 <span style="color:#4ADE80;font-size:12px;">Save 10%</span></td></tr>
-              <tr><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">50 Credits</td><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;font-weight:600;text-align:right;">A$15 <span style="color:#4ADE80;font-size:12px;">Save 70%</span></td></tr>
+              <tr><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;">1 Full Analysis (${SVI_ANALYSIS_CREDITS} credits)</td><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;font-weight:600;text-align:right;border-bottom:1px solid #1F2A44;">from ${sviAnalysisFromPriceLabel()}</td></tr>
+              ${creditPackRowsHtml([creditPack(10), creditPack(50)])}
             </table>
           </div>
           <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">Credits never expire. Use them for analyses, AI evidence reviews, and full reports.`,
-    ctaLabel: "Unlock Full Analysis \u2014 from A$0.50",
+    ctaLabel: `Unlock Full Analysis \u2014 from ${sviAnalysisFromPriceLabel()}`,
     ctaUrl: billingUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "unlock_deeper_7d"));
   return sendEmail({
@@ -2424,6 +2495,7 @@ export async function sendCreditLowAlert(args: {
   const balanceStr = args.currentBalance % 1 === 0
     ? String(args.currentBalance)
     : args.currentBalance.toFixed(2);
+  const topUp = creditPack(10);
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
     <tr><td align="center">
@@ -2431,15 +2503,15 @@ export async function sendCreditLowAlert(args: {
         <tr><td>
           <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Credits Running Low</p>
           <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your Credits Are Running Low</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">You have <strong style="color:#FBBF24;">${escapeHtml(balanceStr)} credits</strong> remaining. Your next SVI analysis costs 0.50 credits, so now is a great time to top up.</p>
+          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">You have <strong style="color:#FBBF24;">${escapeHtml(balanceStr)} credits</strong> remaining. Your next SVI analysis costs ${SVI_ANALYSIS_CREDITS.toFixed(2)} credits, so now is a great time to top up.</p>
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
             <p style="margin:0 0 4px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Current balance</p>
             <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:600;color:#FBBF24;line-height:1;">${escapeHtml(balanceStr)}</div>
             <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">credits remaining</p>
           </div>
           <div style="background:#1F2A44;border-radius:12px;padding:20px;text-align:center;margin:0 0 24px 0;">
-            <p style="margin:0 0 4px 0;color:#F8FAFC;font-size:16px;font-weight:600;">Buy 10 credits for A$5</p>
-            <p style="margin:0 0 16px 0;color:#94A3B8;font-size:13px;">That's 20 standard SVI analyses</p>
+            <p style="margin:0 0 4px 0;color:#F8FAFC;font-size:16px;font-weight:600;">Buy ${topUp.credits} credits for ${packPriceLabel(topUp)}</p>
+            <p style="margin:0 0 16px 0;color:#94A3B8;font-size:13px;">That's ${analysesFor(topUp.credits)} standard SVI analyses</p>
             <a href="${buyUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 32px;border-radius:10px;font-size:15px;">Buy Credits</a>
           </div>
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 24px 0;">
@@ -2631,7 +2703,8 @@ export async function sendActionReminder(args: {
 
 // ---------- Lead-nurture sequence: D1 / D4 / D9 (post-signup) ----------------
 // Three-touch sequence designed to not spam: warm intro, mid-point value reminder,
-// final Founding 100 last-call. Wired via the nurture cron (see svi-notify job).
+// final Starter-plan last-call (the Founding 100 A$5 promo it used to pitch
+// closed 2026-09-01). Wired via api/cron/lead-nurture.
 // Each step honours email-preferences (promotions opt-out skips silently).
 
 export async function sendD1Welcome(args: NurtureArgs): Promise<SendResult> {
@@ -2645,7 +2718,7 @@ export async function sendD1Welcome(args: NurtureArgs): Promise<SendResult> {
     body: `You just joined a network of Australian founders using the BlockID Startup Value Index™ to put a real number on their startup — and to make every investor conversation start on the front foot.</p>
           <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">3 things to do this week</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">
-            <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">1.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>Run your first SVI analysis</strong> — uses 1 of your 5 free credits, takes ~90 seconds.</td></tr>
+            <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">1.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>Run your first SVI analysis</strong> — uses ${SVI_ANALYSIS_CREDITS} of your ${FREE_SIGNUP_CREDITS} free credits, takes ~90 seconds.</td></tr>
             <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">2.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>Upload one piece of evidence</strong> (pitch deck, GitHub, or analytics screenshot) — typically +20–30 SVI points.</td></tr>
             <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">3.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>Share your verified score link</strong> with one investor — see what they say.</td></tr>
           </table>
@@ -2683,28 +2756,30 @@ export async function sendD4CheckIn(args: NurtureArgs): Promise<SendResult> {
 export async function sendD9LastCall(args: NurtureArgs): Promise<SendResult> {
   if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
-  const foundingUrl = `${siteUrl()}/founding-50`;
+  const starter = planV2("founder_starter");
+  const starterPrice = planMonthlyLabel(starter);
+  const starterCredits = planMonthlyCredits(starter.id);
+  const starterUrl = `${siteUrl()}/pricing#tier-starter`;
   const greeting = args.name ? `${escapeHtml(args.name!)}, this` : "Last call —";
   const html = shell(nurtureCard({
     tagline: "BlockID — Day 9",
-    headline: "Founding 100 — A$5 lifetime, almost gone",
-    body: `${greeting} is the last note you'll get from me on the Founding 100 cohort.</p>
+    headline: `${escapeHtml(starter.name)} plan — ${starterPrice}, ${starter.trial_days}-day free trial`,
+    body: `${greeting} is the last note you'll get from me about upgrading. After this I'll leave you to it.</p>
           <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
-            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">What A$5 (one-time) gets you</p>
+            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">What ${starterPrice} gets you</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">100 lifetime SVI analysis credits (vs 5 free)</td></tr>
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Full Evidence Vault + investor-ready PDF reports</td></tr>
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Cap table builder, ESOP calculator, term-sheet AI review</td></tr>
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Permanent Founding Member badge on your public profile</td></tr>
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Locked-in pricing — never goes back to A$5 again</td></tr>
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">${starterCredits} AI credits every month (vs ${FREE_SIGNUP_CREDITS} free, once) — about ${analysesFor(starterCredits)} SVI analyses</td></tr>
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Your data room, filling up in the order investors ask</td></tr>
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">A live investor link with NDA click-wrap and watermarked PDFs</td></tr>
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Founder Radar — grant and program deadline alerts</td></tr>
+              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">${starter.trial_days}-day free trial, GST included, cancel any time</td></tr>
             </table>
           </div>
-          <p style="margin:0 0 16px 0;color:#F87171;font-size:14px;font-weight:600;">Once the 100 spots are claimed, the standard plan is A$49/mo. I'd rather you skip the upsell than pay 10× more later.</p>
-          <p style="margin:0 0 16px 0;color:#94A3B8;font-size:14px;line-height:1.6;">If now isn't the right time, no pressure — you'll keep your free account and 5 credits. I'll stop pinging you about this.`,
-    ctaLabel: "Claim My Founding 100 Spot — A$5",
-    ctaUrl: foundingUrl,
+          <p style="margin:0 0 16px 0;color:#94A3B8;font-size:14px;line-height:1.6;">If now isn't the right time, no pressure — you'll keep your free account and whatever credits you have left. I'll stop pinging you about this.`,
+    ctaLabel: `Start my ${starter.trial_days}-day free trial — ${starterPrice}`,
+    ctaUrl: starterUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "d9_lastcall"));
-  return sendEmail({ to: args.to, subject: "Last call: A$5 lifetime, 100 spots only", html, unsubscribeUrl });
+  return sendEmail({ to: args.to, subject: `Last call: ${starter.name} plan, ${starterPrice}, ${starter.trial_days}-day free trial`, html, unsubscribeUrl });
 }
 
 // ── A$3 One-Click Guest Report (Phase 5) ──────────────────────────────────────

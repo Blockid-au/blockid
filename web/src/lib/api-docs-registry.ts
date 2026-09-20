@@ -167,7 +167,7 @@ const PRICING_TEST_ASSIGN: ApiEndpointDoc = {
   "experimentId": "8c1e0b3a-4d7c-4e88-9c33-2a1f0f0a11aa",
   "variantKey": "b",
   "payload": {
-    "headline": "From $19/mo",
+    "headline": "From A$29/mo",
     "ctaLabel": "Start free"
   }
 }`,

@@ -3,6 +3,35 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI } from "@/lib/ai-client";
 import { sendGrowthReport } from "@/lib/email";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
+import { PLANS_V2, formatAud, EQUITY_ADDON_MONTHLY_AUD } from "@/lib/plans-v2";
+import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
+import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
+import { CREDIT_PACKS } from "@/lib/credit-packs";
+import { FREE_SIGNUP_CREDITS } from "@/lib/credits-public";
+
+// Pricing context handed to the LLM (G18-A, 2026-09-20). It used to be typed
+// by hand — "Founding 100: AUD $1", "SVI Report: AUD $25", "Founder $99 /
+// Growth $499" — none of which we charge. Built from the ladder constants so
+// the recommendations reason about the prices the checkout actually books.
+function pricingContextLines(): string {
+  const rung = (id: string): string => {
+    const plan = PLANS_V2.find((p) => p.id === id);
+    if (!plan) return `- ${id}: (not in plans-v2)`;
+    const credits = GENERATED_PLANS_BY_ID[id]?.usage_limits?.monthly_credits ?? 0;
+    const trial = plan.trial_days > 0 ? `, ${plan.trial_days}-day trial` : "";
+    const grant = credits > 0 ? `, ${credits} AI credits/mo` : "";
+    return `- ${plan.name} plan: ${formatAud(plan.monthly_aud)}/mo GST-inclusive${trial}${grant}`;
+  };
+  const packs = CREDIT_PACKS.map((p) => `${p.credits} for ${formatAud(p.price)}`).join(", ");
+  return [
+    `- Free: SVI analysis + shareable link, ${FREE_SIGNUP_CREDITS} sign-up credits`,
+    `- Trusted Business Report: ${trustReportPriceLabel()} one-off (inc-GST)`,
+    rung("founder_starter"),
+    rung("founder_growth"),
+    `- Equity add-on: ${formatAud(EQUITY_ADDON_MONTHLY_AUD)}/mo on a paid founder plan`,
+    `- Credit packs: ${packs}`,
+  ].join("\n");
+}
 
 // `npm run qa:live` registers qa-live-<stamp>@blockid.au and the erasure path
 // tombstones rows as deleted+<hash>@erased.blockid.au — neither is a customer.
@@ -199,10 +228,7 @@ BlockID.au Growth Metrics (${today}):
 - Biggest funnel drop-off: ${biggestDropOff} (${dropOffRate}%)
 
 Platform context:
-- Free: SVI analysis + shareable link
-- Founding 100: AUD $1 one-time (lifetime SVI account + tools)
-- SVI Report: AUD $25 one-off AI report
-- Founder plan: $99/mo, Growth plan: $499/mo
+${pricingContextLines()}
 - Free tools: Idea Valuation, Equity Split, Funding Plan, Dilution Calculator, Cap Table, Term Sheet AI, Data Room Checklist, Co-founder Match
 - Target market: Australian startup founders (pre-seed to Series A)
 `;

@@ -179,7 +179,7 @@ const RECENTLY_LANDED: ShippedItem[] = [
     id: "v3-hero-paywall",
     title: "Phase 1 — HeroV3 + SSO-aware CTA + report paywall",
     detail:
-      "Locked v3 messaging ('One Business. One Trusted Identity.') behind NEXT_PUBLIC_UPGRADE_V3, SSO-aware CTA via cookie hint, and a 9-state report_orders lifecycle (0270) with A$5.50 inc-GST checkout (Path A) or 200-credit redemption (Path B) behind ReportPaywallGate.",
+      "Locked v3 messaging ('One Business. One Trusted Identity.') behind NEXT_PUBLIC_UPGRADE_V3, SSO-aware CTA via cookie hint, and a 9-state report_orders lifecycle (0270) with a one-off checkout (Path A, since re-priced to A$3 inc. GST) or credit redemption (Path B) behind ReportPaywallGate.",
     ticket: "Phase 1",
   },
   {

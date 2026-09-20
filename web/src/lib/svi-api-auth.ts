@@ -4,6 +4,7 @@
 // Key format: svi_live_<48 hex chars>
 
 import "server-only";
+import { INDEX_API_MONTHLY_AUD } from "@/lib/pricing/svi-api-tiers";
 import { createHash, randomBytes } from "crypto";
 import { getSupabaseAdmin } from "./supabase";
 
@@ -20,11 +21,15 @@ export function hashSviApiKey(raw: string): string {
 
 // Pricing v4 (2026-09-16): Team = the `index_api` plans.csv row (A$299/mo,
 // 1,000 calls/day, STRIPE_PRICE_INDEX_API); Institutional = VC Enterprise
-// (custom). Keep `priceAud` in step with plans.csv.
+// (custom — `plans.interval = 'custom'`, no Stripe price, invoiced offline).
+// G18-A (2026-09-19): `priceAud` reads the catalogue instead of a literal,
+// and Institutional is `null` (= "Custom") — it was typed as A$2,000 while
+// the settings page rendered A$199 for Team and the checkout 503'd on the
+// unprovisioned VC Enterprise price.
 export const SVI_API_TIERS = {
   free: { dailyLimit: 10, priceAud: 0, label: "Free" },
-  team: { dailyLimit: 1000, priceAud: 299, label: "Team" },
-  institutional: { dailyLimit: 9_999_999, priceAud: 2000, label: "Institutional" },
+  team: { dailyLimit: 1000, priceAud: INDEX_API_MONTHLY_AUD, label: "Team" },
+  institutional: { dailyLimit: 9_999_999, priceAud: null, label: "Institutional" },
 } as const;
 
 export type SviApiTier = keyof typeof SVI_API_TIERS;

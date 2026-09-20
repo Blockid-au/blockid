@@ -1,13 +1,19 @@
 import "server-only";
 import { getSupabaseAdmin } from "./supabase";
 import { grantCredits } from "./credits";
+import {
+  REFEREE_BONUS_CREDITS as PUBLIC_REFEREE_BONUS_CREDITS,
+  REFERRER_CREDITS as PUBLIC_REFERRER_CREDITS,
+} from "./credits-public";
 
 // ── Softlaunch promo: boosted referral rewards until July 31, 2026 ──
 const PROMO_DEADLINE = new Date("2026-08-01T00:00:00+10:00");
 const isPromo = () => new Date() < PROMO_DEADLINE;
 
-const REFERRER_CREDITS = isPromo() ? 5 : 2;   // 5 during promo (normally 2)
-const REFEREE_BONUS_CREDITS = isPromo() ? 3 : 1; // 3 during promo (normally 1)
+// Post-promo figures live in credits-public.ts so client copy quotes the
+// amount the server grants (G18-A).
+const REFERRER_CREDITS = isPromo() ? 5 : PUBLIC_REFERRER_CREDITS;   // 5 during promo (normally 2)
+const REFEREE_BONUS_CREDITS = isPromo() ? 3 : PUBLIC_REFEREE_BONUS_CREDITS; // 3 during promo (normally 1)
 
 // ---------------------------------------------------------------------------
 // Get user's referral code (auto-generated on signup via migration trigger,
