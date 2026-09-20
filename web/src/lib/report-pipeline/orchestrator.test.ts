@@ -253,7 +253,8 @@ vi.mock("@/lib/ai-client", () => ({
 }));
 
 // SUT
-import { orchestrateReport, assertReportUsable, PIPELINE_VERSION } from "./orchestrator";
+import { orchestrateReport, assertReportUsable, moneyOnTableFromGather, PIPELINE_VERSION } from "./orchestrator";
+import type { GatherDeps } from "./gather";
 
 // Convenience aliases into the hoisted state bag — kept out of the vi.mock
 // hoist zone so we don't recreate the TDZ problem.
@@ -1612,5 +1613,47 @@ describe("orchestrateReport() — per-dimension re-run (dims) + valuation event"
     // G19-S42: the stub CFO row carries no method rows, so the chapter says so instead of claiming five.
     expect(report.reportV2?.valuation.narrative).toMatch(/^Directional consensus \(no valuation method ran\)/);
     expect(report.reportV2?.valuation.crossChecks?.length).toBeGreaterThanOrEqual(1);
+  });
+});
+
+describe("orchestrateReport() — Money on the Table from GATHER (G19-S43)", () => {
+  it("gathered grants / programs land on report.reportV2.moneyOnTable (pipeline and adapter projections); no grant profile → empty with the profile CTA subtitle", async () => {
+    const demo = demoReportV2();
+    H.chapterFactory = (dim) => demo.dimensions.find((d) => d.dim === dim)!;
+    // Every loader is injected, so the db only has to be non-null (gather gates its sources on it).
+    const db = { from: () => ({ select: () => { throw new Error("no db in this test"); }, upsert: async () => ({ error: null }) }) } as unknown as NonNullable<GatherDeps["db"]>;
+    const withGrants = await orchestrateReport(
+      baseInput({
+        gatherDeps: {
+          db,
+          buildValuation: () => IN_BAND_VC,
+          githubToken: async () => "gh-token",
+          loadConnectorSignals: async () => [],
+          loadConnectedRevenue: async () => [],
+          loadCapTable: async () => null,
+          loadFounderSignals: async () => null,
+          loadFounderExecution: async () => null,
+          loadGa4Snapshot: async () => null,
+          loadExternalSignals: async () => ({ abn: null, rows: [] }),
+          loadDimensionEvidence: async () => [],
+          loadGrants: async () => ({ grants: [{ id: "rdti", name: "R&D Tax Incentive", amountAud: 87_000, fit: 84, url: "https://business.gov.au/rdti" }], programs: [{ id: "startmate", name: "Startmate", amountAud: 120_000, deadline: "2026-10-15", fit: 58 }], profileState: "NSW", rdSpendAud: 200_000 }),
+        },
+      }),
+    );
+    expect(withGrants.reportV2?.source).toBe("pipeline");
+    expect(withGrants.reportV2?.moneyOnTable.grants).toEqual([{ id: "rdti", name: "R&D Tax Incentive", amountAud: 87_000, fit: 84, url: "https://business.gov.au/rdti" }]);
+    expect(withGrants.reportV2?.moneyOnTable.programs[0]).toMatchObject({ id: "startmate", deadline: "2026-10-15" });
+    expect(withGrants.reportV2?.moneyOnTable.totalAud).toBe(207_000);
+    expect(withGrants.reportV2?.moneyOnTable.visuals[0].dataState).toBe("real");
+    // GATHER minted the partial grants row (the "grant profile" CTA never appears when matched); buildEvidenceRows is mocked here, so read the gather rows.
+    const ctx = assembleSpy.mock.calls[assembleSpy.mock.calls.length - 1][0] as ReportContext;
+    expect(ctx.gatherEvidenceRows?.some((r) => r.label.startsWith("Grants & programs match") && r.status === "partial")).toBe(true);
+    expect(ctx.gatherEvidenceRows?.some((r) => r.label === "Grant profile")).toBe(false);
+
+    const none = await orchestrateReport(baseInput());
+    expect(none.reportV2?.moneyOnTable.grants).toEqual([]);
+    expect(none.reportV2?.moneyOnTable.visuals[0].subtitle).toMatch(/No grant profile yet/);
+    expect(moneyOnTableFromGather({ gatherResults: {} })).toBeNull();
+    expect(moneyOnTableFromGather({ gatherResults: { grants: { grants: [{ id: "x", name: "X", amountAud: "n/a", fit: "7" }], programs: "nope" } } })).toEqual({ grants: [{ id: "x", name: "X", amountAud: null, fit: 0 }], programs: [] });
   });
 });

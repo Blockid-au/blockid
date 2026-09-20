@@ -44,7 +44,8 @@ import { visualToPng, type PngResult } from "@/lib/report-visuals/png";
 import type { Band, DataState, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { projectForTier, type FreeTierProjection, type TrimLevel } from "@/lib/report-v2/free-tier";
 import { coverLedgerCells, isUnassessed, ledgerRowsFor, pendingDimsLine, pendingLine } from "@/lib/report-v2/ledger-rows";
-import { getTbrStrings } from "@/lib/i18n/tbr-strings";
+import { chapterCtaRows, coverEvidenceLine, emptyEvidenceLine, evidenceRowsView, moneyEmptyState, nextActionLine, pendingCtasHeading, planEvidenceRows, type EvidenceRowView } from "@/lib/report-v2/evidence-view";
+import { getTbrS43Strings, getTbrStrings } from "@/lib/i18n/tbr-strings";
 import { DIM_ORDER, type DimensionChapter, type ReportV2 } from "@/lib/report-v2/schema";
 import { buildValuationView, CONNECTORS_HREF } from "@/lib/report-v2/valuation-view";
 import { PDF_ENTITY_LINE, PDF_FINANCIAL_PROJECTION_DISCLAIMER, PDF_GENERAL_ADVICE_DISCLAIMER } from "@/lib/pdf/advice-disclaimer";
@@ -255,8 +256,17 @@ function coverLedger(report: ReportV2, locale: "en" | "vi"): Block[] {
     out.push(kicker(getTbrStrings(locale).ledger.coverTitle));
     out.push(small(cells.map((c) => `${c.label} ${c.value}`).join("  →  "), INK));
   }
+  // G19-S43: "Evidence: mostly self-declared (×0.50)" beside the strip.
+  const evidence = coverEvidenceLine(report.cover, locale);
+  if (evidence) out.push(small(evidence, INK));
   if (pending) out.push(small(pending));
   return out;
+}
+
+/** G19-S43 — a CTA row as document text: "<label> · <path> · +N SVI". */
+function ctaText(row: EvidenceRowView): string {
+  if (!row.cta) return row.label;
+  return `${row.cta.label} · ${row.cta.href}${row.cta.liftLabel ? ` · ${row.cta.liftLabel}` : ""}`;
 }
 
 /** G19-S41 — "How this score was built" table (ledger-rows.ts), or the single pending line. */
@@ -266,7 +276,9 @@ function scoreLedger(ch: DimensionChapter, locale: "en" | "vi", verificationLeve
   const out: Block[] = [kicker(strings.title)];
   if (isUnassessed(ch)) {
     const line = pendingLine(ch, locale);
-    out.push(small(`${line.text}${line.add ? ` ${line.add}` : ""}`, INK));
+    // G19-S43: the pending line lists the chapter's CTA rows (label · path · +N SVI).
+    const ctas = chapterCtaRows(ch, locale);
+    out.push(small(`${line.text}${ctas.length ? ` ${pendingCtasHeading(locale)} ${ctas.map(ctaText).join("; ")}` : line.add ? ` ${line.add}` : ""}`, INK));
   } else {
     const rows = ledgerRowsFor(ch, locale, verificationLevel);
     out.push(
@@ -334,10 +346,13 @@ function chapter(ch: DimensionChapter, index: number, images: TbrDocxImages, loc
   out.push(p(ch.verdict));
   if (projection.show.evidenceTables) {
     out.push(kicker("Evidence"));
+    // G19-S43: real rows first, then every missing input as a CTA row.
+    const rows = evidenceRowsView(ch.evidence, locale);
+    const empty = emptyEvidenceLine(locale);
     out.push(
-      ch.evidence.length
-        ? table(["Id", "Label", "Source", "Status", "Observed"], ch.evidence.slice(0, 12).map((e) => [e.evidence_id, e.label, e.source, e.status, e.observedAt ?? ""]), [14, 44, 14, 14, 14])
-        : small("No evidence rows in this snapshot — connect a data source or upload documents to make this chapter evidenced."),
+      rows.length
+        ? table(["Id", "Label", "Source", "Status", "Observed"], rows.slice(0, 12).map((e) => [e.evidence_id, e.cta ? ctaText(e) : e.label, e.source, e.statusLabel, e.observedAt]), [14, 44, 14, 14, 14])
+        : small(`${empty.text} ${empty.ctaLabel} ${empty.href}`),
     );
   }
   for (const c of ch.criteria) {
@@ -350,7 +365,7 @@ function chapter(ch: DimensionChapter, index: number, images: TbrDocxImages, loc
     out.push(small(`${c.quality} · ${c.agent.toUpperCase()} · ${c.grounded ? "grounded" : "uncited"}`, FAINT));
   }
   out.push(...bullets("Strengths", ch.strengths, "+"), ...bullets("Gaps", ch.gaps, "^"));
-  out.push(kicker(`Next action (${WINDOW_LABEL[ch.nextAction.window]})`), p(`${ch.nextAction.title} — expected lift +${ch.nextAction.expectedLift} SVI${ch.nextAction.evidenceToAdd ? ` · evidence: ${ch.nextAction.evidenceToAdd}` : ""}`));
+  out.push(kicker(`Next action (${WINDOW_LABEL[ch.nextAction.window]})`), p(nextActionLine(ch, locale)));
   if (projection.show.phaseLens && ch.phaseLens.whatMattersNow) out.push(small(`${GROWTH_PHASE_LABELS[ch.phaseLens.phaseId][locale]}: ${ch.phaseLens.whatMattersNow}`));
   for (const v of ch.secondaryVisuals) out.push(...figure(v, images, 360, `${v.title} · ${stateLabel(v.dataState)}`));
   out.push(auditLine(ch.audit.grounded, ch.audit.uncited, ch.audit.revised, ch.frameworks));
@@ -427,38 +442,43 @@ function phaseGates(report: ReportV2, images: TbrDocxImages, locale: "en" | "vi"
   return out;
 }
 
-function money(report: ReportV2, images: TbrDocxImages, projection: FreeTierProjection): Block[] {
+function money(report: ReportV2, images: TbrDocxImages, projection: FreeTierProjection, locale: "en" | "vi"): Block[] {
   const m = report.moneyOnTable;
   const rows = [...m.grants.map((g) => ({ ...g, kind: "grant" })), ...m.programs.map((pr) => ({ ...pr, kind: "program" }))].sort((a, b) => b.fit - a.fit).slice(0, projection.moneyLimit);
   const out: Block[] = [...(projection.free ? [] : [pageBreak()]), h1("Money on the Table — Grants & Programs", "12"), small(`CFO + CMO · ${m.grants.length + m.programs.length} matched · total ${aud(m.totalAud)}`)];
-  out.push(
-    rows.length
-      ? table(["Grant / program", "Kind", "A$", "Deadline", "Fit"], rows.map((r) => [r.name, r.kind, r.amountAud === null ? "—" : aud(r.amountAud), r.deadline ?? "rolling", `${Math.round(r.fit)}%`]), [44, 12, 14, 18, 12])
-      : small("0 matched — the nearest-fit programs appear once the profile carries a sector and stage."),
-  );
+  // G19-S43: the empty state points at the grant profile (never "re-run").
+  const empty = moneyEmptyState(report, locale);
+  if (rows.length) out.push(table(["Grant / program", "Kind", "A$", "Deadline", "Fit"], rows.map((r) => [r.name, r.kind, r.amountAud === null ? "—" : aud(r.amountAud), r.deadline ?? "rolling", `${Math.round(r.fit)}%`]), [44, 12, 14, 18, 12]));
+  else if (empty) out.push(small(`${empty.text} ${empty.ctaLabel} ${empty.href}`));
   for (const v of m.visuals) out.push(...figure(v, images, CONTENT_PX, `${v.title} · ${stateLabel(v.dataState)}`));
   return out;
 }
 
-function actionPlan(report: ReportV2, images: TbrDocxImages, projection: FreeTierProjection): Block[] {
+function actionPlan(report: ReportV2, images: TbrDocxImages, projection: FreeTierProjection, locale: "en" | "vi"): Block[] {
   const a = report.actionPlan;
+  const s43 = getTbrS43Strings(locale);
   const out: Block[] = [...(projection.free ? [] : [pageBreak()]), h1("90-Day Action Plan", "13"), small(`COO · ${a.steps.length} steps · ${a.horizonDays} days`)];
   out.push(
     a.steps.length
-      ? table(["Day", "Step", "Owner", "Dimension", "Lift"], a.steps.map((st) => [String(st.day), st.title, st.ownerAgent.toUpperCase(), DIMENSION_OWNERS[st.dimension].shortLabel, `+${st.expectedLift} SVI${st.evidenceToAdd ? ` · ${st.evidenceToAdd}` : ""}`]), [8, 48, 10, 18, 16])
+      ? table(["Day", "Step", "Owner", "Dimension", "Lift"], a.steps.map((st) => [String(st.day), st.title, st.ownerAgent.toUpperCase(), DIMENSION_OWNERS[st.dimension].shortLabel, `+${st.expectedLift} SVI${st.evidenceToAdd ? ` · ${s43.source[st.evidenceToAdd] ?? st.evidenceToAdd}` : ""}`]), [8, 48, 10, 18, 16])
       : small("No steps yet — the plan is derived from the weakest chapters once they are scored."),
   );
+  // G19-S43: the engine's P0 / P1 evidence gaps as CTA lines.
+  const planEvidence = planEvidenceRows(report, locale);
+  if (planEvidence.rows.length) out.push(kicker(planEvidence.title), ...planEvidence.rows.map((r) => small(`• ${ctaText(r)}`, INK)));
   for (const v of a.visuals) out.push(...figure(v, images, CONTENT_PX, null));
   return out;
 }
 
-function appendix(report: ReportV2, projection: FreeTierProjection, preparedWith: string): Block[] {
+function appendix(report: ReportV2, projection: FreeTierProjection, preparedWith: string, locale: "en" | "vi"): Block[] {
   const a = report.appendix;
   const grounded = a.auditLog.filter((l) => l.grounded).length;
   const out: Block[] = [pageBreak(), h1("Appendix — Method, Evidence & Auditor Log", "14"), h2("Method"), small(a.method, INK), h2("Data principle"), small(a.dataPrinciple, INK), h2("Evidence register")];
+  // G19-S43: missing inputs are CTA rows (label · path · +N SVI).
+  const register = evidenceRowsView(a.evidenceRegister, locale);
   out.push(
-    a.evidenceRegister.length
-      ? table(["Id", "Label", "Source", "Status", "Dims"], a.evidenceRegister.map((e) => [e.evidence_id, e.label, e.source, e.status, e.dims.map((d) => d.toUpperCase()).join(" ")]), [14, 44, 14, 14, 14])
+    register.length
+      ? table(["Id", "Label", "Source", "Status", "Dims"], register.map((e) => [e.evidence_id, e.cta ? ctaText(e) : e.label, e.source, e.statusLabel, e.dims.join(" ")]), [14, 44, 14, 14, 14])
       : small(projection.free && projection.level >= 3 ? "The evidence register is included in the paid report." : "No evidence rows were attached to this snapshot."),
   );
   out.push(h2("Auditor log"), small(`${a.auditLog.length} sections audited · ${grounded} grounded · ${a.auditLog.filter((l) => l.revised).length} revised · report quality ${Math.round(report.quality.score)} · grounded share ${Math.round(report.quality.groundedShare * 100)}%`, INK));
@@ -503,9 +523,9 @@ export async function buildTbrDocx(report: ReportV2, opts: TbrDocxOptions = {}):
     ...r.dimensions.flatMap((ch, i) => chapter(ch, i + 2, images, locale, projection, r.cover.verification?.level ?? null)),
     ...valuation(r, images, locale, projection),
     ...phaseGates(r, images, locale, projection),
-    ...money(r, images, projection),
-    ...actionPlan(r, images, projection),
-    ...appendix(r, projection, prepared),
+    ...money(r, images, projection, locale),
+    ...actionPlan(r, images, projection, locale),
+    ...appendix(r, projection, prepared, locale),
   ];
 
   const doc = new Document({

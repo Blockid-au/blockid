@@ -5,14 +5,68 @@
 // score + band + one gap + upgrade CTA — with the primary visual kept
 // compact so every chapter still carries one `svg[role=img]`.
 
-import { getTbrStrings } from "@/lib/i18n/tbr-strings";
+import { getTbrS43Strings, getTbrStrings } from "@/lib/i18n/tbr-strings";
 import { VisualFigure } from "@/lib/report-visuals/react";
+import { chapterCtaRows, emptyEvidenceLine, evidenceRowsView, nextActionView, pendingCtasHeading, type EvidenceRowView } from "@/lib/report-v2/evidence-view";
 import { isUnassessed, ledgerRowsFor, pendingLine } from "@/lib/report-v2/ledger-rows";
 import type { DimensionChapter } from "@/lib/report-v2/schema";
 import { cn } from "@/lib/utils";
 import { AgentBadge, AuditStampLine, Bullets, TBR_V2_SECTION_IDS, TbrSection, bandLabel, bandSurface, bandText, phaseLabel, stateLabel, type TbrUiLocale } from "./shared";
 import { FounderExecutionCard, founderExecutionFromChapter } from "./founder-execution-card";
 import { TbrLockedChapterPreview } from "./locked-preview";
+
+/** G19-S43 — one CTA: "<label> · Add now → · +N SVI" linking the internal page where the input is added. */
+export function CtaLink({ row, locale = "en" }: { row: EvidenceRowView; locale?: TbrUiLocale }) {
+  const t = getTbrS43Strings(locale);
+  if (!row.cta) return null;
+  return (
+    <span data-tbr-cta className="inline-flex flex-wrap items-center gap-1.5">
+      <span className="text-ink-700 dark:text-ink-200">{row.cta.label}</span>
+      <a href={row.cta.href} className="rounded-md border border-brand-300 bg-brand-50 px-1.5 py-0.5 text-[10px] font-semibold text-brand-700 hover:bg-brand-100 dark:border-brand-700 dark:bg-brand-950/40 dark:text-brand-300">
+        {t.addNow}
+      </a>
+      {row.cta.liftLabel ? <span className="rounded-full border border-ink-200 px-1.5 py-0.5 text-[10px] tabular-nums text-ink-500 dark:border-ink-700 dark:text-ink-400">{row.cta.liftLabel}</span> : null}
+    </span>
+  );
+}
+
+/** G19-S43 — the chapter evidence table: real rows, then every missing input as a linked CTA row; never the bare "No evidence rows…" text when a CTA exists. */
+export function TbrEvidenceTable({ chapter, locale = "en" }: { chapter: DimensionChapter; locale?: TbrUiLocale }) {
+  const t = getTbrStrings(locale).v2.chapter;
+  const rows = evidenceRowsView(chapter.evidence, locale);
+  const empty = emptyEvidenceLine(locale);
+  return (
+    <div className="rounded-lg border border-ink-200 dark:border-ink-800">
+      <table className="w-full text-xs">
+        <caption className="px-3 py-1.5 text-left text-[10px] font-semibold uppercase tracking-wide text-ink-500">{t.evidence}</caption>
+        {rows.length > 0 ? (
+          <tbody>
+            {rows.map((e) => (
+              <tr key={e.evidence_id} data-tbr-evidence-row={e.cta ? "cta" : e.status} className="border-t border-ink-100 dark:border-ink-800/60">
+                <td className="px-3 py-1 font-mono text-[10px] text-ink-400">{e.evidence_id}</td>
+                <td className="px-3 py-1 text-ink-700 dark:text-ink-200">{e.cta ? <CtaLink row={e} locale={locale} /> : e.label}</td>
+                <td className="px-3 py-1 text-ink-500">{e.source}</td>
+                <td className="px-3 py-1 text-ink-500">{e.statusLabel}</td>
+                <td className="px-3 py-1 text-ink-500">{e.observedAt}</td>
+              </tr>
+            ))}
+          </tbody>
+        ) : (
+          <tbody>
+            <tr className="border-t border-ink-100 dark:border-ink-800/60">
+              <td className="px-3 py-2 text-ink-500 dark:text-ink-400">
+                {empty.text}{" "}
+                <a href={empty.href} className="font-semibold text-brand-700 hover:underline dark:text-brand-300">
+                  {empty.ctaLabel}
+                </a>
+              </td>
+            </tr>
+          </tbody>
+        )}
+      </table>
+    </div>
+  );
+}
 
 /**
  * G19-S41 — "How this score was built": base → each signal ± points (source
@@ -29,6 +83,8 @@ export function TbrScoreLedger({ chapter, locale = "en", verificationLevel }: { 
   const rows = ledgerRowsFor(ch, rowLocale, verificationLevel);
   const unassessed = isUnassessed(ch);
   const pending = unassessed ? pendingLine(ch, rowLocale) : null;
+  // G19-S43: a pending chapter links the same CTAs its evidence table shows.
+  const pendingCtas = unassessed ? chapterCtaRows(ch, locale) : [];
   return (
     <div data-tbr-ledger={ch.dim} data-tbr-ledger-state={unassessed ? "pending" : "assessed"} className="rounded-lg border border-ink-200 dark:border-ink-800 print:break-inside-avoid">
       <table className="w-full text-xs">
@@ -38,9 +94,23 @@ export function TbrScoreLedger({ chapter, locale = "en", verificationLevel }: { 
             <tr className="border-t border-ink-100 dark:border-ink-800/60">
               <td colSpan={3} className="px-3 py-2 text-ink-600 dark:text-ink-300">
                 {pending.text}
-                {pending.add ? <span className="ml-1 text-ink-500 dark:text-ink-400">{pending.add}</span> : null}
+                {pendingCtas.length === 0 && pending.add ? <span className="ml-1 text-ink-500 dark:text-ink-400">{pending.add}</span> : null}
               </td>
             </tr>
+            {pendingCtas.length > 0 && (
+              <tr className="border-t border-ink-100 dark:border-ink-800/60">
+                <td colSpan={3} className="px-3 py-2">
+                  <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-500">{pendingCtasHeading(locale)}</p>
+                  <ul data-tbr-pending-ctas={ch.dim} className="mt-1 space-y-1">
+                    {pendingCtas.map((r) => (
+                      <li key={r.evidence_id}>
+                        <CtaLink row={r} locale={locale} />
+                      </li>
+                    ))}
+                  </ul>
+                </td>
+              </tr>
+            )}
           </tbody>
         ) : (
           <>
@@ -164,30 +234,7 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
       </div>
       <p className="text-sm leading-relaxed text-ink-800 dark:text-ink-200">{ch.verdict}</p>
 
-      <div className="rounded-lg border border-ink-200 dark:border-ink-800">
-        <table className="w-full text-xs">
-          <caption className="px-3 py-1.5 text-left text-[10px] font-semibold uppercase tracking-wide text-ink-500">{t.evidence}</caption>
-          {ch.evidence.length > 0 ? (
-            <tbody>
-              {ch.evidence.map((e) => (
-                <tr key={e.evidence_id} className="border-t border-ink-100 dark:border-ink-800/60">
-                  <td className="px-3 py-1 font-mono text-[10px] text-ink-400">{e.evidence_id}</td>
-                  <td className="px-3 py-1 text-ink-700 dark:text-ink-200">{e.label}</td>
-                  <td className="px-3 py-1 text-ink-500">{e.source}</td>
-                  <td className="px-3 py-1 text-ink-500">{e.status}</td>
-                  <td className="px-3 py-1 text-ink-500">{e.observedAt ?? ""}</td>
-                </tr>
-              ))}
-            </tbody>
-          ) : (
-            <tbody>
-              <tr className="border-t border-ink-100 dark:border-ink-800/60">
-                <td className="px-3 py-2 text-ink-500 dark:text-ink-400">{t.noEvidence}</td>
-              </tr>
-            </tbody>
-          )}
-        </table>
-      </div>
+      <TbrEvidenceTable chapter={ch} locale={locale} />
 
       <div className="grid gap-3 md:grid-cols-2">
         {founderExecution && <FounderExecutionCard data={founderExecution} />}
@@ -218,10 +265,16 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
       </div>
       <div className="rounded-lg border border-brand-200/70 bg-brand-50/50 px-3 py-2 text-xs dark:border-brand-900/60 dark:bg-brand-950/20">
         <p className="text-[10px] font-semibold uppercase tracking-wide text-brand-700 dark:text-brand-300">{t.nextAction(t.window[ch.nextAction.window])}</p>
-        <p className="text-ink-800 dark:text-ink-100">
-          {ch.nextAction.title} — {t.expectedLift(ch.nextAction.expectedLift)}
-          {ch.nextAction.evidenceToAdd ? ` · ${t.evidenceToAdd(ch.nextAction.evidenceToAdd)}` : ""}
-        </p>
+        {(() => {
+          // G19-S43: the catalogue label ("Stripe (revenue)"), never the raw enum "stripe".
+          const v = nextActionView(ch, locale);
+          return (
+            <p data-tbr-next-action={ch.dim} className="text-ink-800 dark:text-ink-100">
+              {ch.nextAction.title} — {t.expectedLift(ch.nextAction.expectedLift)}
+              {v.evidence ? ` · ${t.evidenceToAdd(v.evidence)}` : ""}
+            </p>
+          );
+        })()}
       </div>
       <p className="text-xs text-ink-600 dark:text-ink-400">
         <span className="font-semibold">{phaseLabel(ch.phaseLens.phaseId, locale)}:</span> {ch.phaseLens.whatMattersNow}

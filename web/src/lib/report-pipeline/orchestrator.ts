@@ -88,7 +88,7 @@ import { primeComparables } from "@/lib/valuation/comparables-repo.server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { supabaseChapterCache, type ChapterCache, type ChapterCacheDb } from "./chapter-cache";
 import { applyConsistencyGates } from "./consistency-gates";
-import { fromAssembledReport, inferPhase } from "@/lib/report-v2/adapter";
+import { fromAssembledReport, inferPhase, type MoneyOnTableInput } from "@/lib/report-v2/adapter";
 import { isReportV2, type CriterionCard, type DimensionChapter, type ReportTierV2, type ReportV2 } from "@/lib/report-v2/schema";
 import { recordFullyDegraded, type DegradedEventWriter, type FullyDegradedReason } from "./pipeline-health";
 
@@ -411,6 +411,7 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
     criteriaData: ensureAllCriteria(input.criteriaData),
     stage: input.sviAnalysis.stage,
     locale: input.locale ?? "en",
+    verificationLevel: input.verificationLevel ?? input.sviAnalysis.meta?.verification?.level ?? null,
     gatherResults: {},
     criterionResults: new Map(),
     dimsFilter: partialDims ?? undefined,
@@ -1045,6 +1046,10 @@ export function buildReportV2(
       vc: valuation?.vc ?? null,
       valuationAsk: valuation?.ask ?? null,
       revenueEvidenceIds: valuation?.revenueEvidenceIds ?? null,
+      // G19-S43: GATHER + Evidence Hub rows reach the adapter fallback's chapter
+      // tables / register / CTA rows, and the grant matches fill Money on the Table.
+      evidenceRows: context.evidenceRows ?? null,
+      moneyOnTable: moneyOnTableFromGather(context),
     });
     // §C.5: the gated valuation chapter (consistency-gates may have annotated it).
     const withValuation: ReportV2 = context.valuationChapter ? { ...base, valuation: context.valuationChapter } : base;
@@ -1072,6 +1077,31 @@ export function buildReportV2(
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * G19-S43: `gatherResults.grants` (grant-advisor matches on the saved grant
+ * profile) → the Money on the Table input; null when GATHER found no profile
+ * (the chapter then renders the "complete your grant profile" CTA).
+ */
+export function moneyOnTableFromGather(context: Pick<ReportContext, "gatherResults">): MoneyOnTableInput | null {
+  const g = context.gatherResults?.grants;
+  if (!g || typeof g !== "object") return null;
+  const pick = (v: unknown): MoneyOnTableInput["grants"] =>
+    Array.isArray(v)
+      ? v
+          .filter((m): m is Record<string, unknown> => Boolean(m) && typeof m === "object")
+          .map((m) => ({
+            id: String(m.id ?? m.name ?? ""),
+            name: String(m.name ?? ""),
+            amountAud: typeof m.amountAud === "number" && Number.isFinite(m.amountAud) ? m.amountAud : null,
+            ...(typeof m.deadline === "string" && m.deadline ? { deadline: m.deadline } : {}),
+            fit: typeof m.fit === "number" && Number.isFinite(m.fit) ? m.fit : 0,
+            ...(typeof m.url === "string" && m.url ? { url: m.url } : {}),
+          }))
+          .filter((m) => m.id && m.name)
+      : [];
+  return { grants: pick(g.grants), programs: pick(g.programs) };
+}
 
 function qualityOf(data: CriterionData | undefined): QualityLevel {
   const q = data?.qualityLevel;

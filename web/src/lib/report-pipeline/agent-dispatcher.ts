@@ -36,9 +36,10 @@ import { PHASE_EXIT_RULES } from "@/lib/growth/phase-gate";
 import { GROWTH_PHASE_LABELS } from "@/lib/growth/phase-taxonomy";
 import type { CriterionCard, DimensionChapter, EvidenceRow, EvidenceStatus, ReportTierV2 } from "@/lib/report-v2/schema";
 import { percentileFor, qualityFromScore, scoreBreakdownFromSub } from "@/lib/report-v2/adapter";
+import { ctaForCriterion } from "@/lib/report-v2/evidence-cta";
+import { chooseNextAction, dedupeAgainstCards, reconcileLlmNextAction, type NextActionInput } from "@/lib/report-v2/next-action";
 import { bandFor } from "@/lib/report-visuals";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { DIMENSION_ACTIONS } from "@/lib/svi-actions";
 import { buildAgentPrompt, promptTemplateFromRow, resolvePhaseId } from "./agent-prompts";
 import { buildAuMarketAnchorBlock } from "./au-market-anchor";
 import { modelForAgent } from "./agent-model-tiers";
@@ -1068,6 +1069,12 @@ export function buildEvidenceRows(context: ReportContext): EvidenceRow[] {
     if (data?.textInput?.trim()) add(key, "criterion_text", `Founder evidence: ${key}`, data.textInput.slice(0, 160), "partial");
     (data?.files ?? []).forEach((f) => add(key, "file", `Uploaded file: ${f.name}`, `${f.name} (${f.type}, ${f.size} bytes)`, "evidenced"));
     (data?.links ?? []).forEach((l) => add(key, "link", `Link: ${l.label}`, l.url, "evidenced"));
+    // G19-S43: an empty criterion is a `missing` row with a linked CTA (the
+    // intake page) instead of silence under a confident number.
+    if (!data?.textInput?.trim() && !(data?.files ?? []).length && !(data?.links ?? []).length) {
+      const id = evidenceIdFor(`${key}|criterion_missing|${def.title}`);
+      if (!rows.has(id)) rows.set(id, { evidence_id: id, source: "self_declared", label: `Criterion input: ${def.title}`, status: "missing", observedAt: at, value: `No text, file or link for "${def.title}" yet`, dims: dimsForCriterion(key), cta: ctaForCriterion(key) });
+    }
     const gr = context.gatherResults;
     if (key === "code_git" && gr.repoAudit) add(key, "repo_audit", "GitHub repository audit", JSON.stringify(gr.repoAudit).slice(0, 160), "evidenced");
     if (key === "website" && gr.techAudit) add(key, "tech_audit", "Technical audit", JSON.stringify(gr.techAudit).slice(0, 160), "evidenced");
@@ -1210,11 +1217,12 @@ export function buildDimensionChapter(
 
   const full = payload && "criterion_cards" in payload ? (payload as DimensionChapterPayload) : null;
   const criteria = criterionCardsFor(context, dim, full?.criterion_cards, allowedIds, score);
-  const cardStrengths = criteria.flatMap((c) => c.strengths).filter(Boolean);
   const cardGaps = criteria.flatMap((c) => c.gaps).filter(Boolean);
-  const strengths = ensureCitationSuffix((payload?.strengths?.length ? payload.strengths : cardStrengths).slice(0, 4), allowedIds);
+  // G19-S43: chapter bullets never repeat the criterion cards' own bullets;
+  // the "N below the strong band" line only stands in when nothing names a gap.
+  const strengths = ensureCitationSuffix(dedupeAgainstCards(payload?.strengths ?? [], criteria).slice(0, 4), allowedIds);
   const gaps = ensureCitationSuffix(
-    (payload?.gaps?.length ? payload.gaps : cardGaps.length ? cardGaps : score < 70 ? [`${owner.title} is ${Math.max(0, 70 - score)} points below the strong band (70).`] : []).slice(0, 4),
+    dedupeAgainstCards(payload?.gaps?.length ? payload.gaps : !cardGaps.length && scored && assessed && score < 70 ? [`${owner.title} is ${70 - score} points below the strong band (70).`] : [], criteria).slice(0, 4),
     allowedIds,
   );
 
@@ -1227,11 +1235,18 @@ export function buildDimensionChapter(
     (owner.phaseBehaviour[phaseId] ? `${phaseLabel}: ${owner.phaseBehaviour[phaseId]}` : "") ||
     (typeof floor === "number" ? `${phaseLabel}: ${owner.shortLabel} floor ${floor} — ${score >= floor ? "met" : "not met"} at ${score}.` : `${phaseLabel}: no ${owner.shortLabel} floor at this phase.`);
 
-  const action = DIMENSION_ACTIONS[dim]?.[0];
-  const lift = Math.max(1, Math.round((owner.weight * Math.max(0, 70 - score)) / 100));
-  const nextAction = payload
-    ? { title: payload.next_action.title, window: payload.next_action.window, expectedLift: Math.round(payload.next_action.expected_lift), evidenceToAdd: payload.next_action.evidence_to_add }
-    : { title: action?.label ?? `Add evidence for ${owner.shortLabel}`, window: "30d" as const, expectedLift: lift, evidenceToAdd: owner.connectors[0] };
+  // G19-S43: the next action fits the founder (never "Register ABN" on a
+  // verified company, never "Connect X" when X is present) and quotes the one
+  // lift model — an owner-proposed lift is clamped to the catalogue (D2).
+  const nextActionInput: NextActionInput = {
+    dim,
+    score,
+    assessed,
+    cards: criteria,
+    evidence,
+    facts: { abnVerified: (context.verificationLevel ?? context.sviAnalysis.meta?.verification?.level ?? 0) >= 2, coFounders: context.sviAnalysis.signals?.hasCoFounder === true ? 2 : context.sviAnalysis.signals?.hasCoFounder === false ? 1 : null },
+  };
+  const nextAction = payload ? reconcileLlmNextAction(payload.next_action, nextActionInput) : chooseNextAction(nextActionInput);
 
   const charts = generateChartsV2({
     dim,

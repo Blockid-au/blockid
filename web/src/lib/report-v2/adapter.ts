@@ -27,17 +27,22 @@ import { bandFor, makeVisual, type Band, type VisualSpecV2 } from "@/lib/report-
 import { computeThreeCaseValuation } from "@/lib/svi/three-case-valuation";
 import { inferTractionFromTreScore, selectValuationMethod } from "@/lib/svi/valuation-method-selector";
 import { DIMENSION_BENCHMARKS_BY_STAGE } from "@/lib/svi-dimension-benchmarks";
-import { DIMENSION_ACTIONS } from "@/lib/svi-actions";
 import {
   DATA_PRINCIPLE_SENTENCE,
+  EVIDENCE_CONFIDENCE_LEVELS,
   FREE_PAGE_BUDGET,
   REPORT_V2_SCHEMA_VERSION,
   VALUATION_METHOD_KEYS,
   type ActionStep,
   type AuditStamp,
+  type CoverEvidenceLevel,
   type CoverVerification,
   type CriterionCard,
   type DimensionChapter,
+  type EvidenceConfidence,
+  type EvidenceRow,
+  type MatchedGrant,
+  type MatchedProgram,
   type ReportTierV2,
   type ReportV2,
   type ScoreBreakdown,
@@ -45,6 +50,8 @@ import {
   type SviLedger,
   type ValuationChapter,
 } from "./schema";
+import { evidenceGapRows, type EvidenceGapLike } from "./evidence-cta";
+import { chooseNextAction, dedupeAgainstCards, type NextActionFacts } from "./next-action";
 import { verificationBadgeLabel, verificationMeta } from "@/lib/verification/confidence-multiplier";
 import { getTbrStrings, type TbrV2Strings } from "@/lib/i18n/tbr-strings";
 
@@ -130,8 +137,54 @@ export interface SnapshotInput {
   revenueEvidenceIds?: string[] | null;
   /** G19-S41: the engine's report-level ledger (`SVIAnalysis.ledger`) — the cover strip "base 100 → dims → stage → penalties → total". */
   sviLedger?: SviLedger | null;
+  /**
+   * G19-S43: the evidence rows the chapters filter by dimension (GATHER rows,
+   * Evidence Hub rows, `missing` rows with a `cta`). Absent on a bare snapshot.
+   */
+  evidenceRows?: EvidenceRow[] | null;
+  /** G19-S43: the engine's evidence gaps (`SVIAnalysis.evidenceGaps`) — P0 / P1 become `actionPlan.evidenceToAdd`. */
+  evidenceGaps?: EvidenceGapLike[] | null;
+  /** G19-S43: known co-founder count (null = unknown) — "Find a co-founder" is never offered at ≥ 2. */
+  coFounders?: number | null;
+  /** G19-S43: the cover's "Evidence: mostly self-declared (×0.50)" line. */
+  evidenceLevel?: CoverEvidenceLevel | null;
+  /** G19-S43: grant / program matches (GATHER `results.grants`) — Money on the Table. */
+  moneyOnTable?: MoneyOnTableInput | null;
   source?: ReportV2["source"];
   generatedAt?: string;
+}
+
+/** Structural subset of `gather.ts:GrantsMatch` / `GatherResults.grants`. */
+export interface MoneyOnTableInput {
+  grants: MatchedGrant[];
+  programs: MatchedProgram[];
+}
+
+/**
+ * G19-S43: the Money on the Table chapter from the matches GATHER found.
+ * `null` = no grant profile → honest empty state whose visual subtitle is
+ * the CTA (the web / PDF / DOCX empty copy links `/workspace/funding`).
+ */
+export function buildMoneyOnTable(matches: MoneyOnTableInput | null): ReportV2["moneyOnTable"] {
+  const grants = (matches?.grants ?? []).map((g) => ({ ...g })).sort((a, b) => b.fit - a.fit);
+  const programs = (matches?.programs ?? []).map((p) => ({ ...p })).sort((a, b) => b.fit - a.fit);
+  const rows = [...grants, ...programs];
+  const totalAud = rows.reduce((s, r) => s + (typeof r.amountAud === "number" && Number.isFinite(r.amountAud) ? r.amountAud : 0), 0);
+  const bars = makeVisual({
+    id: "money-bars",
+    kind: "bar",
+    agentId: "cfo",
+    title: "Matched grants & programs (A$)",
+    subtitle: rows.length
+      ? `${rows.length} matched on the saved grant profile · A$${fmtShort(totalAud)} where an amount is published`
+      : matches
+        ? "No open match on the saved grant profile right now — matching re-runs on every report"
+        : "No grant profile yet — complete it at /workspace/funding to match grants and programs",
+    dataState: rows.length ? "real" : "partial",
+    data: { bars: rows.slice(0, 8).map((r) => ({ label: r.name, value: typeof r.amountAud === "number" ? r.amountAud : 0 })), unit: "A$" },
+    a11y: { tableFallback: rows.slice(0, 8).map((r) => ({ name: r.name, aud: typeof r.amountAud === "number" ? r.amountAud : "n/a", fit: Math.round(r.fit) })) },
+  });
+  return { grants, programs, totalAud, visuals: [bars] };
 }
 
 // ── G19-S41: score ledger helpers ───────────────────────────────────────────
@@ -152,6 +205,33 @@ export interface SviAnalysisLike {
   confidenceMultiplier?: number;
   ledger?: SviLedger | null;
   meta?: { verification?: { ladderConfidence: number; effectiveConfidence: number } | null } | null;
+  /** G19-S43: the extracted signals the next-action rules and the cover evidence line read. */
+  signals?: { hasCoFounder?: boolean; evidenceLevel?: string } | null;
+  /** G19-S43: the engine's evidence gaps (P0 / P1 → `actionPlan.evidenceToAdd`). */
+  evidenceGaps?: EvidenceGapLike[] | null;
+}
+
+/**
+ * G19-S43: the cover's evidence line from the analysis — the confidence the
+ * formula ran at and the ladder rung it corresponds to. Undefined when the
+ * analysis carries neither (pre-S43 stored rows keep no line).
+ */
+export function coverEvidenceLevelFrom(analysis: SviAnalysisLike | null | undefined): CoverEvidenceLevel | undefined {
+  if (!analysis) return undefined;
+  const raw = typeof analysis.confidenceMultiplier === "number" ? analysis.confidenceMultiplier : analysis.meta?.verification?.effectiveConfidence;
+  if (typeof raw !== "number" || !Number.isFinite(raw)) return undefined;
+  const confidenceMultiplier = Math.max(0, Math.min(1, Math.round(raw * 100) / 100));
+  const declared = analysis.signals?.evidenceLevel;
+  const level: EvidenceConfidence = (EVIDENCE_CONFIDENCE_LEVELS as readonly string[]).includes(declared ?? "") ? (declared as EvidenceConfidence) : levelForMultiplier(confidenceMultiplier);
+  return { level, confidenceMultiplier };
+}
+
+/** The ladder rung whose confidence is nearest the multiplier (EVIDENCE_CONFIDENCE in svi-analysis.ts). */
+export function levelForMultiplier(m: number): EvidenceConfidence {
+  const ladder: Array<[EvidenceConfidence, number]> = [["self_declared", 0.2], ["public_url", 0.35], ["document_uploaded", 0.5], ["connected_source", 0.75], ["transaction_data", 0.9], ["third_party_verified", 1]];
+  let best = ladder[0];
+  for (const rung of ladder) if (Math.abs(rung[1] - m) < Math.abs(best[1] - m)) best = rung;
+  return best[0];
 }
 
 /**
@@ -317,6 +397,10 @@ interface ChapterCtx {
   breakdown?: ScoreBreakdown;
   /** G19-S41: false only when a ledger says no real input moved the dimension. */
   assessed: boolean;
+  /** G19-S43: the evidence rows on this dimension (missing rows carry `cta`). */
+  evidence: EvidenceRow[];
+  /** G19-S43: what the next-action rules already know is satisfied. */
+  facts: NextActionFacts;
 }
 
 function chapterVisuals(c: ChapterCtx): { primary: VisualSpecV2; secondary: VisualSpecV2[] } {
@@ -565,7 +649,6 @@ function buildChapter(c: ChapterCtx, phase: PhaseGateResult, tier: ReportTierV2,
   const phaseNow = phaseLabelFor(phase.currentPhase, locale);
   const { primary, secondary } = chapterVisuals(c);
   const insights = (c.state.insights ?? []).filter((s) => typeof s === "string" && s.trim());
-  const cardStrengths = c.cards.flatMap((k) => k.strengths).filter(Boolean);
   const cardGaps = c.cards.flatMap((k) => k.gaps).filter(Boolean);
   const verdictSrc = insights[0] ?? firstParagraph(c.state.markdown) ?? "";
   // G19-S41: an unassessed dimension is a baseline, not a score — never
@@ -576,10 +659,15 @@ function buildChapter(c: ChapterCtx, phase: PhaseGateResult, tier: ReportTierV2,
       ? words(`${owner.title} is not assessed yet — no evidence reached this dimension, so the ${c.score} in the ledger is the stage baseline, not a score.${verdictSrc ? ` Start with: ${verdictSrc}` : ""}`, 80)
       : words(verdictSrc || `${owner.title} scores ${c.score}/100 (${c.band}) against a ${c.stageLabel} median of ${c.p50}.`, 80);
   const floor = PHASE_EXIT_RULES[phase.currentPhase].dimensionFloors[c.dim as keyof typeof PHASE_EXIT_RULES.vision.dimensionFloors];
-  const lift = Math.max(1, Math.round((owner.weight * Math.max(0, 70 - c.score)) / 100));
-  const action = DIMENSION_ACTIONS[c.dim]?.[0];
-  const strengths = (cardStrengths.length ? cardStrengths : insights.slice(1)).slice(0, 4);
-  const gaps = (cardGaps.length ? cardGaps : c.score < 70 ? [`${owner.title} is ${Math.max(0, 70 - c.score)} points below the strong band (70).`] : []).slice(0, 4);
+  // G19-S43: chapter-level bullets never repeat the criterion cards' own
+  // bullets (the cards render them) — the dimension narrative (insights) is
+  // the chapter's voice; the "N below the strong band" line only stands in
+  // when no card names a gap.
+  const strengths = dedupeAgainstCards(insights.slice(1), c.cards).slice(0, 4);
+  const gaps = dedupeAgainstCards(c.scored && c.assessed && c.score < 70 && !cardGaps.length ? [`${owner.title} is ${70 - c.score} points below the strong band (70).`] : [], c.cards).slice(0, 4);
+  // G19-S43: the next action fits the founder (lowest criterion / first linked
+  // gap / never an already-satisfied generic) and quotes the one lift model.
+  const nextAction = chooseNextAction({ dim: c.dim, score: c.score, assessed: c.assessed, cards: c.cards, evidence: c.evidence, facts: c.facts });
   return {
     dim: c.dim,
     title: owner.title,
@@ -593,16 +681,11 @@ function buildChapter(c: ChapterCtx, phase: PhaseGateResult, tier: ReportTierV2,
     verdict,
     primaryVisual: primary,
     secondaryVisuals: secondary,
-    evidence: [],
+    evidence: c.evidence,
     criteria: c.cards,
     strengths,
     gaps,
-    nextAction: {
-      title: action?.label ?? `Add evidence for ${owner.shortLabel}`,
-      window: "30d",
-      expectedLift: lift,
-      evidenceToAdd: owner.connectors[0],
-    },
+    nextAction,
     phaseLens: {
       phaseId: phase.currentPhase,
       whatMattersNow:
@@ -736,6 +819,11 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
   }
   const criterionScore = (key: CriterionKey): number | null => cardsByKey.get(key)?.score ?? null;
 
+  // G19-S43: evidence rows per dimension + the facts the next-action rules check.
+  const allEvidence: EvidenceRow[] = (input.evidenceRows ?? []).map((r) => ({ ...r, dims: [...r.dims] }));
+  const verification = coverVerificationFor(input.verificationLevel);
+  const facts: NextActionFacts = { abnVerified: verification.abnVerified, coFounders: typeof input.coFounders === "number" ? input.coFounders : null };
+
   // Dimension scores + benchmarks.
   const dimScores: Partial<Record<DimKey, number>> = {};
   const coverDims = {} as ReportV2["cover"]["dims"];
@@ -780,7 +868,7 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
       ];
     }
     coverDims[dim] = { score, weight: DIMENSION_OWNERS[dim].weight, band, p25, p50, p75, percentile };
-    ctxs.push({ dim, score, scored, band, p25, p50, p75, percentile, stage, stageLabel, cards, criterionScore, state, at, breakdown, assessed });
+    ctxs.push({ dim, score, scored, band, p25, p50, p75, percentile, stage, stageLabel, cards, criterionScore, state, at, breakdown, assessed, evidence: allEvidence.filter((r) => r.dims.includes(dim)), facts });
   }
 
   const scoredDims = ctxs.filter((c) => c.scored);
@@ -800,19 +888,33 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
   // Executive summary.
   const ranked = [...scoredDims].sort((a, b) => b.score - a.score);
   const strengthsDims = ranked.slice(0, 3);
-  const gapDims = [...ranked].reverse().slice(0, 3);
-  const roadmap = [...scoredDims]
-    .filter((c) => c.score < 70)
-    .map((c) => ({ c, lift: (DIMENSION_OWNERS[c.dim].weight * (70 - c.score)) / 100 }))
-    .sort((a, b) => b.lift - a.lift)
-    .slice(0, 5);
+  // G19-S43: a dimension already in the strong band is not a gap ("0 below the strong band" is gone).
+  const gapDims = [...ranked].reverse().filter((c) => c.score < 70 || !c.assessed).slice(0, 3);
+  // G19-S43: the plan ranks the chapters' own next actions by the one lift
+  // model — a chapter contributes when it is below the strong band, pending,
+  // or has a linked missing input.
+  const byLift = (a: { c: ChapterCtx; lift: number }, b: { c: ChapterCtx; lift: number }) => b.lift - a.lift || DIMENSION_OWNERS[b.c.dim].weight - DIMENSION_OWNERS[a.c.dim].weight;
+  const qualifies = (c: ChapterCtx) => c.score < 70 || !c.assessed || c.evidence.some((r) => r.status === "missing" && r.cta);
+  const candidates = [...ctxs.filter((c) => c.scored && qualifies(c)).map((c) => ({ c, lift: dimensions.find((d) => d.dim === c.dim)?.nextAction.expectedLift ?? 1 })).sort(byLift), ...ctxs.filter((c) => c.scored && !qualifies(c)).map((c) => ({ c, lift: dimensions.find((d) => d.dim === c.dim)?.nextAction.expectedLift ?? 1 })).sort(byLift)];
+  // Two chapters that share a criterion (or a missing row) never list the
+  // same step twice; the plan carries every qualifying chapter (≤ 5) and tops
+  // up to 3 steps from the strongest chapters' own next steps.
+  const seenTitles = new Set<string>();
+  const roadmap: Array<{ c: ChapterCtx; lift: number }> = [];
+  for (const item of candidates) {
+    const title = dimensions.find((d) => d.dim === item.c.dim)?.nextAction.title.trim().toLowerCase() ?? "";
+    if (!title || seenTitles.has(title)) continue;
+    if (roadmap.length >= 5 || (!qualifies(item.c) && roadmap.length >= 3)) break;
+    seenTitles.add(title);
+    roadmap.push(item);
+  }
   const above70 = scoredDims.filter((c) => c.score >= 70).length;
   const thesis =
     input.executiveSummary?.trim() ||
     (sviBand === "strong" ? L.thesisStrong(sviTotal, above70) : sviBand === "developing" ? L.thesisDeveloping(sviTotal, gapDims.length) : sviBand === "early" ? L.thesisEarly(sviTotal) : L.thesisPending);
   const valuation = buildValuation({ sviTotal: Math.min(100, sviTotal), sviIndex: sviTotal, stageLabel, stage, industry, treScore: dimScores.tre ?? null, vc: input.vc, ask: input.valuationAsk ?? null, revenueEvidenceIds: input.revenueEvidenceIds ?? [], at });
   const worthLine = L.worthLine(fmtShort(valuation.consensus.lowAud), fmtShort(valuation.consensus.highAud), industry ?? L.sectorNeutral, stageLabel);
-  const nextLine = roadmap[0] ? L.nextLine(dimensions.find((d) => d.dim === roadmap[0].c.dim)?.nextAction.title ?? L.addEvidence, Math.max(1, Math.round(roadmap[0].lift)), DIMENSION_OWNERS[roadmap[0].c.dim].shortLabel) : L.nextFallback;
+  const nextLine = roadmap[0] ? L.nextLine(dimensions.find((d) => d.dim === roadmap[0].c.dim)?.nextAction.title ?? L.addEvidence, roadmap[0].lift, DIMENSION_OWNERS[roadmap[0].c.dim].shortLabel) : L.nextFallback;
   const whereLine = L.whereLine(stageLabel, industry ?? L.startup, sviTotal, getTbrStrings(input.locale).v2.band[sviBand].toLowerCase(), phaseLabelFor(phase.currentPhase, input.locale), phase.completionPct);
 
   const routeMap = (id: string, agentId: "ceo" | "coo") =>
@@ -852,15 +954,17 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
       }),
       makeVisual({ id: "cover-three-questions", kind: "three_questions_strip", agentId: "ceo", title: "Where / Worth / Next", dataState: "real", data: { where: words(whereLine, 30), worth: words(worthLine, 30), next: words(nextLine, 30) } }),
     ],
-    verification: coverVerificationFor(input.verificationLevel),
+    verification,
   };
   const sviLedger = sviLedgerFrom(input.sviLedger);
   if (sviLedger) cover.sviLedger = sviLedger;
+  // G19-S43: "Evidence: mostly self-declared (×0.50)" beside the ledger strip.
+  if (input.evidenceLevel) cover.evidenceLevel = { level: input.evidenceLevel.level, confidenceMultiplier: input.evidenceLevel.confidenceMultiplier };
 
   const executive: ReportV2["executive"] = {
     thesis,
     strengths: strengthsDims.map((c) => `${DIMENSION_OWNERS[c.dim].title} ${c.score}/100 (${c.band}).`),
-    gaps: gapDims.map((c) => `${DIMENSION_OWNERS[c.dim].title} ${c.score}/100 — ${Math.max(0, 70 - c.score)} below the strong band.`),
+    gaps: gapDims.map((c) => (c.assessed ? `${DIMENSION_OWNERS[c.dim].title} ${c.score}/100 — ${70 - c.score} below the strong band.` : `${DIMENSION_OWNERS[c.dim].title} — not assessed yet; add evidence to score it.`)),
     verdict: thesis,
     confidence: scoredDims.length ? 0.5 : 0.1,
     phaseNow: phase,
@@ -903,30 +1007,30 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
     a11y: { tableFallback: matrix.filter((m) => m.required).map((m) => ({ criterion: m.criterion, phase: m.phase, met: m.met ? "yes" : "no" })) },
   });
 
-  // Money on the table — no grant matcher in the adapter (S-R3 wires grant-advisor).
-  const moneyBars = makeVisual({
-    id: "money-bars",
-    kind: "bar",
-    agentId: "cfo",
-    title: "Matched grants & programs (A$)",
-    subtitle: "0 matched — grant / program matching runs in the report pipeline (S-R3)",
-    dataState: "partial",
-    data: { bars: [], unit: "A$" },
-  });
+  // Money on the table — G19-S43: the matches GATHER found (grant-advisor on
+  // the saved grant profile) when the caller passes them; otherwise an honest
+  // empty state that points at the grant profile, never "re-run the analysis".
+  const money = buildMoneyOnTable(input.moneyOnTable ?? null);
 
-  // 90-day plan from the roadmap.
+  // 90-day plan from the roadmap — G19-S43: ≤ 5 steps spread across the three
+  // columns by lift rank (1st → day 30, 2nd → 60, 3rd → 90, 4th → 30 …) so a
+  // plan with ≥ 3 steps always fills every column; each step is its chapter's
+  // next action with the same lift and evidence source. The engine's P0 / P1
+  // evidence gaps ride along as linked CTA rows.
   const steps: ActionStep[] = roadmap.map(({ c, lift }, i) => {
     const chapter = dimensions.find((d) => d.dim === c.dim)!;
+    const cardKey = chapter.criteria.find((k) => k.nextAction.trim() === chapter.nextAction.title)?.key;
     return {
-      day: (i < 2 ? 30 : i < 4 ? 60 : 90) as 30 | 60 | 90,
+      day: [30, 60, 90][i % 3] as 30 | 60 | 90,
       title: chapter.nextAction.title,
       ownerAgent: DIMENSION_OWNERS[c.dim].primary,
       dimension: c.dim,
-      criterion: DIMENSION_OWNERS[c.dim].primaryCriteria[0],
-      expectedLift: Math.max(1, Math.round(lift)),
-      evidenceToAdd: DIMENSION_OWNERS[c.dim].connectors[0],
+      criterion: cardKey ?? DIMENSION_OWNERS[c.dim].primaryCriteria[0],
+      expectedLift: lift,
+      ...(chapter.nextAction.evidenceToAdd ? { evidenceToAdd: chapter.nextAction.evidenceToAdd } : {}),
     };
   });
+  const planEvidenceToAdd = evidenceGapRows(input.evidenceGaps ?? [], at);
   const gantt = makeVisual({
     id: "action-plan-gantt",
     kind: "gantt",
@@ -954,13 +1058,13 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
     dimensions,
     valuation,
     phaseGates: { current: phase.currentPhase, matrix, blockers: [...phase.blockers], visuals: [gateHeat, routeMap("phase-gates-route", "coo")] },
-    moneyOnTable: { grants: [], programs: [], totalAud: 0, visuals: [moneyBars] },
-    actionPlan: { horizonDays: 90, steps, visuals: [gantt] },
+    moneyOnTable: money,
+    actionPlan: { horizonDays: 90, steps, visuals: [gantt], ...(planEvidenceToAdd.length ? { evidenceToAdd: planEvidenceToAdd } : {}) },
     appendix: {
       method: L.method,
       dataPrinciple: DATA_PRINCIPLE_SENTENCE,
       disclaimer: L.disclaimer,
-      evidenceRegister: [],
+      evidenceRegister: allEvidence,
       auditLog: [],
       comparablesN: comparablesCounts().n,
       comparablesWithMultiplesN: comparablesCounts().withMultiplesN,
@@ -1022,6 +1126,10 @@ export interface AssembledReportContext {
   vc?: VcValuationLike | null;
   valuationAsk?: ValuationAskInput | null;
   revenueEvidenceIds?: string[] | null;
+  /** G19-S43: GATHER + Evidence Hub rows (`context.evidenceRows`) — chapter evidence tables + register + CTA rows. */
+  evidenceRows?: EvidenceRow[] | null;
+  /** G19-S43: GATHER `results.grants` → Money on the Table. */
+  moneyOnTable?: MoneyOnTableInput | null;
 }
 
 /**
@@ -1090,6 +1198,12 @@ export function fromAssembledReport(report: Pick<AssembledReport, "id" | "tier" 
     vc: ctx.vc,
     valuationAsk: ctx.valuationAsk ?? null,
     revenueEvidenceIds: ctx.revenueEvidenceIds ?? null,
+    // G19-S43
+    evidenceRows: ctx.evidenceRows ?? null,
+    evidenceGaps: ctx.sviAnalysis?.evidenceGaps ?? null,
+    coFounders: ctx.sviAnalysis?.signals?.hasCoFounder === true ? 2 : ctx.sviAnalysis?.signals?.hasCoFounder === false ? 1 : null,
+    evidenceLevel: coverEvidenceLevelFrom(ctx.sviAnalysis) ?? null,
+    moneyOnTable: ctx.moneyOnTable ?? null,
     source: "adapter",
   });
 }

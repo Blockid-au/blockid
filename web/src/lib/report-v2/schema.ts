@@ -42,6 +42,21 @@ export const FREE_PAGE_BUDGET = 10 as const;
 export type ReportTierV2 = "free" | "standard" | "premium" | "investor_memo";
 export type EvidenceStatus = "evidenced" | "partial" | "missing" | "stale";
 
+/** G19-S43: the six evidence-ladder rungs an Evidence Hub row carries (lib/evidence/confidence-cap.ts). */
+export const EVIDENCE_CONFIDENCE_LEVELS = ["self_declared", "public_url", "document_uploaded", "connected_source", "transaction_data", "third_party_verified"] as const;
+export type EvidenceConfidence = (typeof EVIDENCE_CONFIDENCE_LEVELS)[number];
+
+/**
+ * G19-S43: a `missing` row's call to action — where the founder adds the
+ * input (an internal href) and what it is worth (`lift`, from the one lift
+ * model `lib/svi-lift.ts`). Rendered as a CTA row on web / PDF / DOCX.
+ */
+export interface EvidenceCta {
+  label: string;
+  href: string;
+  lift?: number;
+}
+
 export interface EvidenceRow {
   evidence_id: string;
   source: EvidenceSource;
@@ -50,6 +65,10 @@ export interface EvidenceRow {
   observedAt?: string;
   value?: string;
   dims: DimKey[];
+  /** G19-S43: the origin-capped confidence rung (Evidence Hub / svi_evidence rows). */
+  confidence?: EvidenceConfidence;
+  /** G19-S43: present on `missing` rows only. */
+  cta?: EvidenceCta;
 }
 
 export interface AuditStamp {
@@ -323,6 +342,13 @@ export interface ReportV2 {
     verification?: CoverVerification;
     /** G19-S41: base 100 → dims → stage → penalties → total; absent on pre-S41 documents. */
     sviLedger?: SviLedger;
+    /**
+     * G19-S43 cover honesty: the evidence confidence the SVI formula ran at
+     * (`SVIAnalysis.confidenceMultiplier`, 0.2–1.0) and the ladder rung it
+     * corresponds to ("Evidence: mostly self-declared (×0.50)"). Absent on
+     * pre-S43 documents.
+     */
+    evidenceLevel?: CoverEvidenceLevel;
   };
   executive: {
     thesis: string;
@@ -344,7 +370,13 @@ export interface ReportV2 {
     visuals: VisualSpecV2[];
   };
   moneyOnTable: { grants: MatchedGrant[]; programs: MatchedProgram[]; totalAud: number; visuals: VisualSpecV2[] };
-  actionPlan: { horizonDays: 90; steps: ActionStep[]; visuals: VisualSpecV2[] };
+  actionPlan: {
+    horizonDays: 90;
+    steps: ActionStep[];
+    visuals: VisualSpecV2[];
+    /** G19-S43: the engine's P0 / P1 evidence gaps as CTA rows (linked, with the catalogue lift). */
+    evidenceToAdd?: EvidenceRow[];
+  };
   appendix: {
     method: string;
     dataPrinciple: string;
@@ -397,6 +429,8 @@ const renderableVisual = visualSpec.refine(
   { message: "primaryVisual.svg must be a rendered, accessible SVG (role=\"img\" + <title>)" },
 );
 
+const evidenceConfidence = z.enum(EVIDENCE_CONFIDENCE_LEVELS);
+const evidenceCta = z.object({ label: z.string().min(1), href: z.string().min(1), lift: z.number().optional() });
 const evidenceRow = z.object({
   evidence_id: z.string().min(1),
   source: evidenceSource,
@@ -405,7 +439,13 @@ const evidenceRow = z.object({
   observedAt: z.string().optional(),
   value: z.string().optional(),
   dims: z.array(dimKey),
+  confidence: evidenceConfidence.optional(),
+  cta: evidenceCta.optional(),
 });
+
+/** G19-S43: cover "Evidence: mostly self-declared (×0.50)". */
+const coverEvidenceLevel = z.object({ level: evidenceConfidence, confidenceMultiplier: z.number().min(0).max(1) });
+export type CoverEvidenceLevel = z.infer<typeof coverEvidenceLevel>;
 
 /** G14-S36: cover badge — `label` is the exact badge text the TBR cover, dossier header and index card render. */
 export const COVER_VERIFICATION_LABELS = ["Verified ABN", "ABN not verified"] as const;
@@ -648,6 +688,7 @@ export const reportV2Schema = z.object({
     visuals: z.array(visualSpec),
     verification: coverVerification.optional(),
     sviLedger: sviLedgerSchema.optional(),
+    evidenceLevel: coverEvidenceLevel.optional(),
   }),
   executive: z.object({
     thesis: z.string(),
@@ -685,6 +726,7 @@ export const reportV2Schema = z.object({
       }),
     ),
     visuals: z.array(visualSpec),
+    evidenceToAdd: z.array(evidenceRow).optional(),
   }),
   appendix: z.object({
     method: z.string(),

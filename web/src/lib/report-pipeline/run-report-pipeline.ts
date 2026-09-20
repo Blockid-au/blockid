@@ -120,7 +120,11 @@ const clip = (s: string, words: number) => {
 };
 
 export function chapterToLegacy(chapter: DimensionChapter): LegacyDimResult {
-  const insights = [chapter.strengths[0], chapter.gaps[0]].filter((s): s is string => Boolean(s)).map((s) => clip(s.replace(/\s*\[(?:ev:[^\]]*|unevidenced)\]/g, ""), 15));
+  // G19-S43: chapter bullets no longer repeat the criterion cards', so the
+  // Wave-24 card's two insights fall back to the first card's own bullets.
+  const cardStrength = chapter.criteria.flatMap((c) => c.strengths).find(Boolean);
+  const cardGap = chapter.criteria.flatMap((c) => c.gaps).find(Boolean);
+  const insights = [chapter.strengths[0] ?? cardStrength, chapter.gaps[0] ?? cardGap].filter((s): s is string => Boolean(s)).map((s) => clip(s.replace(/\s*\[(?:ev:[^\]]*|unevidenced)\]/g, ""), 15));
   const b = chapter.benchmark;
   return {
     dimension: chapter.dim,

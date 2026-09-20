@@ -3,6 +3,7 @@
 
 import { aud } from "@/lib/report-visuals";
 import { VisualFigure } from "@/lib/report-visuals/react";
+import { moneyEmptyState } from "@/lib/report-v2/evidence-view";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import { AgentBadge, TBR_V2_SECTION_IDS, TbrSection, v2Strings, type TbrUiLocale } from "./shared";
 
@@ -11,6 +12,8 @@ export function TbrMoney({ report, title, locale = "en" }: { report: ReportV2; t
   const t = v2Strings(locale).money;
   const limit = report.tier === "free" ? 3 : 50;
   const rows = [...m.grants.map((g) => ({ ...g, kind: "grant" })), ...m.programs.map((p) => ({ ...p, kind: "program" }))].sort((a, b) => b.fit - a.fit).slice(0, limit);
+  // G19-S43: the empty state points at the grant profile — never "re-run the analysis".
+  const empty = moneyEmptyState(report, locale);
   return (
     <TbrSection id={TBR_V2_SECTION_IDS.money} kicker="12" title={title}>
       <div className="flex items-center gap-2 text-xs text-ink-600 dark:text-ink-300">
@@ -40,9 +43,14 @@ export function TbrMoney({ report, title, locale = "en" }: { report: ReportV2; t
             ))}
           </tbody>
         </table>
-      ) : (
-        <p className="text-xs text-ink-600 dark:text-ink-400">0 matched in this snapshot — grant and program matching runs inside the report pipeline; re-run the analysis to populate this chapter.</p>
-      )}
+      ) : empty ? (
+        <p data-tbr-money-empty className="text-xs text-ink-600 dark:text-ink-400">
+          {empty.text}{" "}
+          <a href={empty.href} className="font-semibold text-brand-700 hover:underline dark:text-brand-300">
+            {empty.ctaLabel}
+          </a>
+        </p>
+      ) : null}
       {m.visuals.map((v) => (
         <VisualFigure key={v.id} spec={v} caption={v.subtitle ?? v.title} className="rounded-xl border border-ink-200 p-3 dark:border-ink-800" />
       ))}

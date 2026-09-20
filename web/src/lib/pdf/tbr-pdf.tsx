@@ -34,7 +34,8 @@ import { HELVETICA, pdfFontsForLocale, vietnameseHyphenation, type PdfFontSet } 
 import type { Band, DataState, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { levelForEstimate, MAX_TRIM_LEVEL, projectForTier, type FreeTierProjection, type TrimLevel } from "@/lib/report-v2/free-tier";
 import { coverLedgerCells, isUnassessed, ledgerRowsFor, pendingDimsLine, pendingLine } from "@/lib/report-v2/ledger-rows";
-import { getTbrStrings } from "@/lib/i18n/tbr-strings";
+import { chapterCtaRows, coverEvidenceLine, emptyEvidenceLine, evidenceRowsView, moneyEmptyState, nextActionLine, pendingCtasHeading, planEvidenceRows, type EvidenceRowView } from "@/lib/report-v2/evidence-view";
+import { getTbrS43Strings, getTbrStrings } from "@/lib/i18n/tbr-strings";
 import { defaultPreparedWith } from "@/lib/report-v2/prepared-with";
 import { DIM_ORDER, type DimensionChapter, type ReportV2 } from "@/lib/report-v2/schema";
 import { buildValuationView, CONNECTORS_HREF } from "@/lib/report-v2/valuation-view";
@@ -128,6 +129,12 @@ const stateLabel = (d: DataState): string => (d === "real" ? "real data" : d ===
 const bandColour = (b: Band): string => BAND_COLOUR[b];
 const bandOf = (score: number): Band => (score >= 70 ? "strong" : score >= 40 ? "developing" : "early");
 const WINDOW_LABEL = { this_week: "this week", "30d": "next 30 days", "90d": "next 90 days" } as const;
+
+/** G19-S43 — a CTA row as print text: "<label> · <path> · +N SVI" (no live link needed on paper). */
+function ctaText(row: EvidenceRowView): string {
+  if (!row.cta) return row.label;
+  return `${row.cta.label} · ${row.cta.href}${row.cta.liftLabel ? ` · ${row.cta.liftLabel}` : ""}`;
+}
 
 function fmtDate(iso: string, locale: "en" | "vi"): string {
   const d = new Date(iso);
@@ -305,12 +312,19 @@ function Cover({ report, locale, preparedWith }: { report: ReportV2; locale: "en
 function CoverLedger({ report, locale }: { report: ReportV2; locale: "en" | "vi" }) {
   const cells = coverLedgerCells(report.cover, locale);
   const pending = pendingDimsLine(report.cover, locale);
-  if (cells.length === 0 && !pending) return null;
+  // G19-S43: "Evidence: mostly self-declared (×0.50)" beside the strip.
+  const evidence = coverEvidenceLine(report.cover, locale);
+  if (cells.length === 0 && !pending && !evidence) return null;
   const strings = getTbrStrings(locale).ledger;
+  // No ledger strip (adapter / fixture documents): the evidence line alone is
+  // one plain line, not a boxed block — a box here pushed the free-tier cover
+  // onto a second page.
+  if (cells.length === 0 && !pending && evidence) return <Text style={[s.small, { marginTop: 2 }]}>{t(evidence)}</Text>;
   return (
     <View style={[s.softBox, { marginTop: 4 }]} wrap={false}>
       {cells.length > 0 && <Text style={s.th}>{t(strings.coverTitle)}</Text>}
       {cells.length > 0 && <Text style={s.small}>{t(cells.map((c) => `${c.label} ${c.value}`).join("  →  "))}</Text>}
+      {evidence && <Text style={s.small}>{t(evidence)}</Text>}
       {pending && <Text style={s.small}>{t(pending)}</Text>}
     </View>
   );
@@ -325,6 +339,7 @@ function ScoreLedger({ ch, locale, verificationLevel }: { ch: DimensionChapter; 
   const strings = getTbrStrings(locale).ledger;
   const rows = ledgerRowsFor(ch, locale, verificationLevel);
   const pending = isUnassessed(ch) ? pendingLine(ch, locale) : null;
+  const pendingCtas = pending ? chapterCtaRows(ch, locale) : [];
   return (
     <View style={s.table} wrap={false}>
       <View style={s.tr}>
@@ -334,7 +349,8 @@ function ScoreLedger({ ch, locale, verificationLevel }: { ch: DimensionChapter; 
       </View>
       {pending ? (
         <View style={s.tr}>
-          <Text style={[s.td, s.small]}>{t(`${pending.text}${pending.add ? ` ${pending.add}` : ""}`)}</Text>
+          {/* G19-S43: the pending line links the chapter's CTA rows (label · path · +N SVI). */}
+          <Text style={[s.td, s.small]}>{t(`${pending.text}${pendingCtas.length ? ` ${pendingCtasHeading(locale)} ${pendingCtas.map(ctaText).join("; ")}` : pending.add ? ` ${pending.add}` : ""}`)}</Text>
         </View>
       ) : (
         rows.map((r, i) => (
@@ -442,6 +458,8 @@ function Chapter({ ch, index, locale, projection, verificationLevel }: { ch: Dim
     );
   }
   const showCriterionDetail = projection.show.criterionDetail;
+  const evidenceRows = evidenceRowsView(ch.evidence, locale);
+  const emptyEvidence = emptyEvidenceLine(locale);
   return (
     <View>
       <SectionHead no={String(index)} title={title} />
@@ -460,19 +478,20 @@ function Chapter({ ch, index, locale, projection, verificationLevel }: { ch: Dim
             <Text style={[s.th, s.cell1]}>Status</Text>
             <Text style={[s.th, s.cell1]}>Observed</Text>
           </View>
-          {ch.evidence.length > 0 ? (
-            ch.evidence.slice(0, 12).map((e) => (
+          {evidenceRows.length > 0 ? (
+            // G19-S43: real rows first, then every missing input as a CTA row (label · path · +N SVI).
+            evidenceRows.slice(0, 12).map((e) => (
               <View key={e.evidence_id} style={s.tr}>
                 <Text style={[s.td, s.cell1, s.tiny]}>{t(e.evidence_id)}</Text>
-                <Text style={[s.td, s.cell3]}>{t(e.label)}</Text>
+                <Text style={[s.td, s.cell3, ...(e.cta ? [{ color: C.brand }] : [])]}>{t(e.cta ? ctaText(e) : e.label)}</Text>
                 <Text style={[s.td, s.cell1]}>{t(e.source)}</Text>
-                <Text style={[s.td, s.cell1]}>{t(e.status)}</Text>
-                <Text style={[s.td, s.cell1]}>{t(e.observedAt ?? "")}</Text>
+                <Text style={[s.td, s.cell1]}>{t(e.statusLabel)}</Text>
+                <Text style={[s.td, s.cell1]}>{t(e.observedAt)}</Text>
               </View>
             ))
           ) : (
             <View style={s.tr}>
-              <Text style={[s.td, s.small]}>No evidence rows in this snapshot — connect a data source or upload documents to make this chapter evidenced.</Text>
+              <Text style={[s.td, s.small]}>{t(`${emptyEvidence.text} ${emptyEvidence.ctaLabel} ${emptyEvidence.href}`)}</Text>
             </View>
           )}
         </View>
@@ -502,7 +521,7 @@ function Chapter({ ch, index, locale, projection, verificationLevel }: { ch: Dim
       </View>
       <View style={[s.softBox, { borderLeftWidth: 2, borderLeftColor: C.brand }]} wrap={false}>
         <Text style={s.th}>{`Next action (${WINDOW_LABEL[ch.nextAction.window]})`}</Text>
-        <Text style={s.body}>{t(`${ch.nextAction.title} — expected lift +${ch.nextAction.expectedLift} SVI${ch.nextAction.evidenceToAdd ? ` · evidence: ${ch.nextAction.evidenceToAdd}` : ""}`)}</Text>
+        <Text style={s.body}>{t(nextActionLine(ch, locale))}</Text>
       </View>
       {projection.show.phaseLens && ch.phaseLens.whatMattersNow ? <Text style={s.small}>{t(`${GROWTH_PHASE_LABELS[ch.phaseLens.phaseId][locale]}: ${ch.phaseLens.whatMattersNow}`)}</Text> : null}
       {ch.secondaryVisuals.length > 0 && (
@@ -676,9 +695,11 @@ function PhaseGates({ report, locale, projection }: { report: ReportV2; locale: 
   );
 }
 
-function Money({ report, projection }: { report: ReportV2; projection: FreeTierProjection }) {
+function Money({ report, projection, locale }: { report: ReportV2; projection: FreeTierProjection; locale: "en" | "vi" }) {
   const m = report.moneyOnTable;
   const rows = [...m.grants.map((g) => ({ ...g, kind: "grant" })), ...m.programs.map((p) => ({ ...p, kind: "program" }))].sort((a, b) => b.fit - a.fit).slice(0, projection.moneyLimit);
+  // G19-S43: the empty state points at the grant profile (never "re-run").
+  const empty = moneyEmptyState(report, locale);
   return (
     <View>
       <SectionHead no="12" title={TBR_PDF_SECTION_TITLES.money} />
@@ -706,9 +727,9 @@ function Money({ report, projection }: { report: ReportV2; projection: FreeTierP
             </View>
           ))}
         </View>
-      ) : (
-        <Text style={s.small}>0 matched — the nearest-fit programs appear once the profile carries a sector and stage.</Text>
-      )}
+      ) : empty ? (
+        <Text style={s.small}>{t(`${empty.text} ${empty.ctaLabel} ${empty.href}`)}</Text>
+      ) : null}
       {m.visuals.map((v) => (
         <Figure key={v.id} spec={v} widthPt={420} caption={`${v.title} · ${stateLabel(v.dataState)}`} />
       ))}
@@ -716,9 +737,12 @@ function Money({ report, projection }: { report: ReportV2; projection: FreeTierP
   );
 }
 
-function ActionPlan({ report }: { report: ReportV2 }) {
+function ActionPlan({ report, locale }: { report: ReportV2; locale: "en" | "vi" }) {
   const p = report.actionPlan;
   const cols: Array<30 | 60 | 90> = [30, 60, 90];
+  // G19-S43: the engine's P0 / P1 evidence gaps as CTA lines + catalogue source labels.
+  const planEvidence = planEvidenceRows(report, locale);
+  const s43 = getTbrS43Strings(locale);
   return (
     <View>
       <SectionHead no="13" title={TBR_PDF_SECTION_TITLES.actionPlan} />
@@ -736,7 +760,7 @@ function ActionPlan({ report }: { report: ReportV2 }) {
                 .map((st, i) => (
                   <View key={i} style={{ marginBottom: 4 }}>
                     <Text style={[s.td, s.bold]}>{t(st.title)}</Text>
-                    <Text style={s.tiny}>{t(`${st.ownerAgent.toUpperCase()} · ${DIMENSION_OWNERS[st.dimension].shortLabel} · +${st.expectedLift} SVI${st.evidenceToAdd ? ` · ${st.evidenceToAdd}` : ""}`)}</Text>
+                    <Text style={s.tiny}>{t(`${st.ownerAgent.toUpperCase()} · ${DIMENSION_OWNERS[st.dimension].shortLabel} · +${st.expectedLift} SVI${st.evidenceToAdd ? ` · ${s43.source[st.evidenceToAdd] ?? st.evidenceToAdd}` : ""}`)}</Text>
                   </View>
                 ))}
             </View>
@@ -745,6 +769,14 @@ function ActionPlan({ report }: { report: ReportV2 }) {
       ) : (
         <Text style={s.small}>No steps yet — the plan is derived from the weakest chapters once they are scored.</Text>
       )}
+      {planEvidence.rows.length > 0 && (
+        <View style={s.softBox} wrap={false}>
+          <Text style={s.th}>{t(planEvidence.title)}</Text>
+          {planEvidence.rows.map((r) => (
+            <Text key={r.evidence_id} style={s.small}>{t(`• ${ctaText(r)}`)}</Text>
+          ))}
+        </View>
+      )}
       {p.visuals.map((v) => (
         <Figure key={v.id} spec={v} widthPt={440} caption={null} />
       ))}
@@ -752,7 +784,7 @@ function ActionPlan({ report }: { report: ReportV2 }) {
   );
 }
 
-function Appendix({ report, projection, preparedWith }: { report: ReportV2; projection: FreeTierProjection; preparedWith: string }) {
+function Appendix({ report, projection, preparedWith, locale }: { report: ReportV2; projection: FreeTierProjection; preparedWith: string; locale: "en" | "vi" }) {
   const a = report.appendix;
   const grounded = a.auditLog.filter((l) => l.grounded).length;
   return (
@@ -772,13 +804,14 @@ function Appendix({ report, projection, preparedWith }: { report: ReportV2; proj
             <Text style={[s.th, s.cell1]}>Status</Text>
             <Text style={[s.th, s.cell1]}>Dims</Text>
           </View>
-          {a.evidenceRegister.map((e) => (
+          {/* G19-S43: missing inputs are CTA rows (label · path · +N SVI). */}
+          {evidenceRowsView(a.evidenceRegister, locale).map((e) => (
             <View key={e.evidence_id} style={s.tr}>
               <Text style={[s.td, s.cell1, s.tiny]}>{t(e.evidence_id)}</Text>
-              <Text style={[s.td, s.cell3]}>{t(e.label)}</Text>
+              <Text style={[s.td, s.cell3, ...(e.cta ? [{ color: C.brand }] : [])]}>{t(e.cta ? ctaText(e) : e.label)}</Text>
               <Text style={[s.td, s.cell1]}>{t(e.source)}</Text>
-              <Text style={[s.td, s.cell1]}>{t(e.status)}</Text>
-              <Text style={[s.td, s.cell1]}>{e.dims.map((d) => d.toUpperCase()).join(" ")}</Text>
+              <Text style={[s.td, s.cell1]}>{t(e.statusLabel)}</Text>
+              <Text style={[s.td, s.cell1]}>{e.dims.join(" ")}</Text>
             </View>
           ))}
         </View>
@@ -840,17 +873,17 @@ export function TbrReportPdf({ report, level = 0, preparedWith, locale }: TbrPdf
   );
   body.push(
     <View key="money" break={!projection.free}>
-      <Money report={r} projection={projection} />
+      <Money report={r} projection={projection} locale={loc} />
     </View>,
   );
   body.push(
     <View key="plan" break={!projection.free}>
-      <ActionPlan report={r} />
+      <ActionPlan report={r} locale={loc} />
     </View>,
   );
   body.push(
     <View key="appx" break>
-      <Appendix report={r} projection={projection} preparedWith={prepared} />
+      <Appendix report={r} projection={projection} preparedWith={prepared} locale={loc} />
     </View>,
   );
   return (

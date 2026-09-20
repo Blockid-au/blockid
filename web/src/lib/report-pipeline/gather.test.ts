@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CriterionKey } from "@/lib/evaluation-criteria";
 import { CRITERION_KEYS } from "@/lib/evaluation-criteria";
 import type { CriterionData, ReportContext } from "./types";
-import { GATHER_RESEARCH_CALLS, GatherTimeoutError, gatherData, gatherEvidenceId, parseGitHubRepo, resetGatherCache, withTimeout, type GatherDb, type GatherDeps, type GatherQuery } from "./gather";
+import { GATHER_RESEARCH_CALLS, GatherTimeoutError, gatherData, gatherEvidenceId, loadDimensionEvidenceRows, parseGitHubRepo, resetGatherCache, withTimeout, type GatherDb, type GatherDeps, type GatherQuery } from "./gather";
 import { signalsForAbn } from "@/lib/signals/external-signals";
 
 type Row = Record<string, unknown>;
@@ -394,7 +394,10 @@ describe("gatherData — sources", () => {
     const none = await gatherData(ctx(), callAI, { projectId: "proj-1", deps: deps({ db: fakeDb({}), loadConnectedRevenue: async () => [], loadCapTable: async () => null, loadGrants: async () => null, loadFounderSignals: async () => null, loadGa4Snapshot: async () => null }) });
     expect(none.results.diagnostics?.externalSignals).toMatchObject({ status: "skipped", note: "no verified ABN" });
     expect(none.results.externalSignals).toBeUndefined();
-    expect(none.evidenceRows.filter((r) => r.source === "external")).toHaveLength(0);
+    // G19-S43: the skip is no longer silent — one `missing` row with the "verify your ABN" CTA (project settings) on LCO / IRI / TRE.
+    const abnRows = none.evidenceRows.filter((r) => r.source === "external");
+    expect(abnRows).toHaveLength(1);
+    expect(abnRows[0]).toMatchObject({ status: "missing", dims: ["lco", "iri", "tre"], cta: { label: "Verify your ABN", href: "/workspace/settings/project", lift: 8 } });
   });
 
   it("an expired deadline skips every source deterministically", async () => {
@@ -414,5 +417,51 @@ describe("gatherData — sources", () => {
     const out = await gatherData(ctx(), callAI, { deps: d });
     expect(out.results.diagnostics?.research).toMatchObject({ status: "error", note: "provider down" });
     expect(out.results.competitiveResearch).toBeUndefined();
+  });
+});
+
+describe("gatherData — G19-S43 CTAs + Evidence Hub", () => {
+  const quiet = (extra: Partial<GatherDeps> = {}) => deps({ db: fakeDb({}), loadConnectedRevenue: async () => [], loadCapTable: async () => null, loadGrants: async () => null, loadFounderSignals: async () => null, loadFounderExecution: async () => null, loadGa4Snapshot: async () => null, loadExternalSignals: async () => ({ abn: null, rows: [] }), loadDimensionEvidence: async () => [], ...extra });
+
+  it("every `missing` row carries a linked CTA (GitHub / cap table / founder signals / founder profile / grant profile / ABN) with the catalogue lift", async () => {
+    const c = ctx({ criteriaData: criteria({ code_git: { links: [{ url: "https://github.com/acme/widgets", label: "repo" }] } }) });
+    const out = await gatherData(c, callAI, { deps: quiet({ githubToken: async () => null }) });
+    const missing = out.evidenceRows.filter((r) => r.status === "missing");
+    expect(missing.length).toBe(6);
+    for (const r of missing) expect(r.cta?.href).toMatch(/^\/workspace\//);
+    const byLabel = Object.fromEntries(missing.map((r) => [r.label, r.cta]));
+    expect(byLabel["GitHub repository acme/widgets"]).toEqual({ label: "Connect GitHub to audit the repository", href: "/workspace/evidence/connectors", lift: 6 });
+    expect(byLabel["Cap-table register"]).toEqual({ label: "Add shareholders to the cap table", href: "/workspace/equity", lift: 8 });
+    expect(byLabel["Founder profile (LinkedIn export / URL)"]).toEqual({ label: "Upload your LinkedIn export", href: "/workspace/settings/founder", lift: 5 });
+    expect(byLabel["Founder execution profile"]).toEqual({ label: "Complete your founder profile", href: "/workspace/settings/founder", lift: 3 });
+    expect(byLabel["Grant profile"]).toEqual({ label: "Complete your grant profile", href: "/workspace/funding" });
+    expect(byLabel["ABN verification (ABR / GrantConnect / R&DTI registers)"]).toEqual({ label: "Verify your ABN", href: "/workspace/settings/project", lift: 8 });
+    // Evidenced rows never carry a cta.
+    expect(out.evidenceRows.filter((r) => r.status !== "missing").every((r) => !r.cta)).toBe(true);
+  });
+
+  it("Evidence Hub rows (svi_dimension_evidence) become per-dimension rows with the origin-capped confidence: a TRE hub upload changes the TRE evidence; rejected rows are dropped; a missing table reads as no rows", async () => {
+    const hub = [
+      { dimension: "tre", evidence_type: "revenue_proof", evidence_label: "Bank statements Q2", evidence_value_or_url: "q2.pdf", confidence_level: "third_party_verified", is_verified: false, review_status: "pending", created_at: "2026-09-01T00:00:00.000Z" },
+      { dimension: "lco", evidence_type: "ip_assignment", evidence_label: "IP deed", confidence_level: "third_party_verified", is_verified: true, verified_at: "2026-09-05T00:00:00.000Z", review_status: "approved" },
+      { dimension: "cgh", evidence_type: "board_minutes", evidence_label: "Minutes", confidence_level: "document_uploaded", review_status: "rejected" },
+    ];
+    const out = await gatherData(ctx(), callAI, { deps: quiet({ loadDimensionEvidence: async () => hub }) });
+    expect(out.results.diagnostics?.evidenceHub?.status).toBe("ok");
+    expect(out.results.evidenceHub).toMatchObject({ count: 2, byDim: { tre: 1, lco: 1 }, verified: 1 });
+    const tre = out.evidenceRows.filter((r) => r.dims.includes("tre") && r.label.includes("Evidence Hub"));
+    expect(tre).toHaveLength(1);
+    expect(tre[0]).toMatchObject({ source: "upload", status: "evidenced", confidence: "document_uploaded", label: "Bank statements Q2 — Evidence Hub, review pending", value: "q2.pdf", observedAt: "2026-09-01T00:00:00.000Z" });
+    const lco = out.evidenceRows.find((r) => r.label.startsWith("IP deed"))!;
+    expect(lco).toMatchObject({ dims: ["lco"], confidence: "third_party_verified", status: "evidenced", observedAt: "2026-09-05T00:00:00.000Z" });
+    expect(out.evidenceRows.some((r) => r.label.startsWith("Minutes"))).toBe(false);
+
+    // Default loader over a db without the table → error diagnostics, no rows, never a thrown gather.
+    const none = await gatherData(ctx(), callAI, { deps: quiet({ loadDimensionEvidence: undefined, db: fakeDb({}, { failTables: ["svi_dimension_evidence"] }) }) });
+    expect(none.results.diagnostics?.evidenceHub?.status).toBe("error");
+    expect(none.evidenceRows.some((r) => r.label.includes("Evidence Hub"))).toBe(false);
+    // Default loader over a db with rows → read project-scoped.
+    const rows = await loadDimensionEvidenceRows(fakeDb({ svi_dimension_evidence: [{ project_id: "proj-1", dimension: "ftv", evidence_type: "founder_linkedin", evidence_label: "LinkedIn", confidence_level: "public_url", is_verified: false }, { project_id: "other", dimension: "ftv", evidence_type: "founder_bio" }] }), "proj-1");
+    expect(rows).toEqual([{ dimension: "ftv", evidence_type: "founder_linkedin", evidence_label: "LinkedIn", evidence_value_or_url: null, confidence_level: "public_url", is_verified: false, verified_at: null, review_status: null, created_at: null, updated_at: null }]);
   });
 });

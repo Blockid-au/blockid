@@ -8,6 +8,7 @@ import type { GitHubRepoAudit } from "./github-repo-audit";
 import type { WebsiteCompetitiveIntelligence, MarketEbitdaMetrics } from "./competitive-intelligence";
 import { parseFinancialFigures } from "./intake/financial-figures";
 import { cappedLevel, textHasUrl } from "./evidence/confidence-cap";
+import { ENGINE_GAP_CODES, engineGapLift, type EngineGapKey } from "./svi-lift";
 import { verificationMeta, boundedVerificationConfidence, type VerificationMeta } from "./verification/confidence-multiplier";
 import type { FounderExecutionSummary } from "./founder/execution";
 
@@ -320,8 +321,11 @@ export interface SVIEvidenceGap {
   priority: "P0" | "P1" | "P2";
   label: string;
   action: string;
-  impact: number; // SVI points potential gain
+  /** SVI points potential gain — G19-S43: always the one lift model (`EVIDENCE_CATALOG.estimatedSviImpact` via svi-lift.ts). */
+  impact: number;
   evidenceType: string;
+  /** G19-S43: the catalogue code the gap resolves to (absent for the ladder step "Upgrade evidence level"). */
+  code?: string;
 }
 
 // ─── CI Boosts: derived from competitive intelligence when website is analyzed ──
@@ -515,6 +519,80 @@ export interface EvidenceItem {
   confidence_level: string;
   dimension: string;
   label: string;
+  /**
+   * G19-S43: who produced the row (S36 / D4 cap). Evidence Hub rows carry
+   * `founder_upload` (≤ document_uploaded) or `reviewer` (signed, may reach
+   * third_party_verified); absent on legacy svi_evidence rows, whose level is
+   * only trusted at the connector rungs (below).
+   */
+  origin?: "founder_text" | "founder_upload" | "connector" | "reviewer" | "admin";
+}
+
+/**
+ * G19-S43: Evidence Hub catalogue codes (`EVIDENCE_CATALOG` in
+ * svi-completeness.ts) → the signal flags they evidence. The hub used to be
+ * invisible to the engine; a row per code now moves the same flags a
+ * document / URL / connector row does.
+ */
+const HUB_CODE_SIGNALS: Record<string, Array<keyof SVIExtractedSignals>> = {
+  founder_linkedin: [],
+  founder_bio: [],
+  asic_founder_history: [],
+  advisor_bios: ["hasAdvisors"],
+  founder_press: ["hasSocialProof"],
+  previous_exits: [],
+  team_org_chart: ["hasCoFounder"],
+  customer_interviews: ["hasCustomerInterviews"],
+  market_research: [],
+  customer_loi: ["hasCustomers"],
+  problem_statement: [],
+  competitor_analysis: [],
+  market_benchmarks: [],
+  github_repo: ["hasSourceCode", "hasProduct"],
+  tech_architecture: ["hasProduct"],
+  product_demo_video: ["hasDemo", "hasProduct"],
+  website: ["hasWebsite", "hasProduct"],
+  code_commits: ["hasSourceCode"],
+  test_coverage: ["hasSourceCode"],
+  mobile_app: ["hasApp", "hasProduct"],
+  revenue_proof: ["hasRevenue", "hasCustomers"],
+  customer_list: ["hasCustomers"],
+  mrr_dashboard: ["hasRevenue", "hasAnalytics"],
+  user_growth_chart: ["hasAnalytics"],
+  nps_survey: ["hasSocialProof"],
+  logo_customers: ["hasCustomers", "hasSocialProof"],
+  churn_rate: ["hasAnalytics"],
+  cap_table_spreadsheet: ["hasCapTable"],
+  vesting_schedule: ["hasVesting"],
+  shareholder_agreement: ["hasShareholdersAgreement"],
+  board_minutes: ["hasBoardCadence"],
+  esop_pool: ["esopAllocated"],
+  founder_agreements: ["hasContracts"],
+  pitch_deck: ["hasPitchDeck"],
+  financial_model: ["hasFinancialModel"],
+  data_room: ["hasDataRoom"],
+  exec_summary: [],
+  use_of_proceeds: [],
+  investor_1pager: [],
+  abn_registration: ["hasABN"],
+  ip_assignment: ["hasIPProtection"],
+  terms_of_service: ["hasContracts"],
+  contracts_template: ["hasContracts"],
+  ip_searches: ["hasIPProtection"],
+  legal_opinion: ["hasLegalDocs"],
+  compliance_checklist: ["hasLegalDocs"],
+  vision_statement: [],
+  moat_analysis: ["hasMoat"],
+  patent_applications: ["hasIPProtection", "hasMoat"],
+  data_advantage: ["hasDataAdvantage"],
+  network_effect: ["hasNetworkEffect"],
+  brand_assets: [],
+  whitepaper: [],
+};
+
+/** True when the code is an Evidence Hub catalogue code (a hub row, not a legacy svi_evidence type). */
+export function isHubEvidenceCode(code: string): boolean {
+  return Object.prototype.hasOwnProperty.call(HUB_CODE_SIGNALS, code);
 }
 
 // ─── Text parser: extract signals from raw input ──────────────────────────────
@@ -812,6 +890,14 @@ export function extractSignals(
             signals.revenueBand = "early";
           }
           break;
+        default: {
+          // G19-S43: an Evidence Hub row (catalogue code) moves the flags it evidences.
+          const flags = HUB_CODE_SIGNALS[ev.evidence_type];
+          if (flags) {
+            for (const flag of flags) (signals as unknown as Record<string, unknown>)[flag] = true;
+            if ((ev.evidence_type === "revenue_proof" || ev.evidence_type === "mrr_dashboard") && (!signals.revenueBand || signals.revenueBand === "pre-revenue")) signals.revenueBand = "early";
+          }
+        }
       }
       // Boost confidence from a connector row. The stored level is re-capped
       // as connector origin (S36) so a row can never carry the whole analysis
@@ -819,6 +905,12 @@ export function extractSignals(
       // lives on the row's is_verified flag, not here. Never lowers.
       if (ev.confidence_level === "connected_source" || ev.confidence_level === "transaction_data") {
         const lvl = cappedLevel({ requested: ev.confidence_level, origin: "connector" });
+        if (EVIDENCE_CONFIDENCE[lvl] > EVIDENCE_CONFIDENCE[signals.evidenceLevel]) signals.evidenceLevel = lvl;
+      } else if (ev.origin) {
+        // G19-S43: a row that names its origin (Evidence Hub) is capped by that
+        // origin — founder uploads reach document_uploaded, a reviewer-signed
+        // row may reach third_party_verified. Never lowers.
+        const lvl = cappedLevel({ requested: ev.confidence_level, origin: ev.origin });
         if (EVIDENCE_CONFIDENCE[lvl] > EVIDENCE_CONFIDENCE[signals.evidenceLevel]) signals.evidenceLevel = lvl;
       }
     }
@@ -1730,51 +1822,64 @@ export function computeSVI(
   ];
 
   // ── Evidence gaps (priority-ordered) ───────────────────────────────────────
+  // G19-S43 / D2: every `impact` is the one lift model (lib/svi-lift.ts over
+  // EVIDENCE_CATALOG) so the dashboard, the report and this list quote the
+  // same "+N"; `code` names the catalogue item the gap resolves to.
   const evidenceGaps: SVIEvidenceGap[] = [];
+  const gap = (priority: SVIEvidenceGap["priority"], key: EngineGapKey | "evidence_ladder", label: string, action: string, evidenceType: string): SVIEvidenceGap => ({
+    priority,
+    label,
+    action,
+    impact: engineGapLift(key),
+    evidenceType,
+    ...(key === "evidence_ladder" ? {} : { code: ENGINE_GAP_CODES[key] }),
+  });
 
   if (!signals.hasRevenue) {
-    evidenceGaps.push({ priority: "P0", label: "Add first revenue proof", action: "Connect Stripe, upload invoice, or add customer contract", impact: 18, evidenceType: "transaction_data" });
+    evidenceGaps.push(gap("P0", "revenue_proof", "Add first revenue proof", "Connect Stripe, upload invoice, or add customer contract", "transaction_data"));
   }
   if (signals.evidenceLevel === "self_declared") {
-    evidenceGaps.push({ priority: "P0", label: "Upgrade evidence level", action: "Add public URL, upload documents, or connect source (GitHub, analytics, Stripe)", impact: 15, evidenceType: "public_url" });
+    evidenceGaps.push(gap("P0", "evidence_ladder", "Upgrade evidence level", "Add public URL, upload documents, or connect source (GitHub, analytics, Stripe)", "public_url"));
   }
   if (!signals.hasCapTable) {
-    evidenceGaps.push({ priority: "P0", label: "Create cap table", action: "Build a cap table with founder shares, vesting, and ESOP pool", impact: 12, evidenceType: "document_uploaded" });
+    evidenceGaps.push(gap("P0", "cap_table", "Create cap table", "Build a cap table with founder shares, vesting, and ESOP pool", "document_uploaded"));
   }
   if (!signals.hasABN) {
-    evidenceGaps.push({ priority: "P0", label: "Register ABN/ASIC", action: "Register your company with ASIC and obtain an Australian Business Number", impact: 10, evidenceType: "document_uploaded" });
+    evidenceGaps.push(gap("P0", "abn", "Register ABN/ASIC", "Register your company with ASIC and obtain an Australian Business Number", "document_uploaded"));
   }
   if (!signals.hasSourceCode) {
-    evidenceGaps.push({ priority: "P1", label: "Link source code repository", action: "Connect GitHub or GitLab to verify product progress", impact: 10, evidenceType: "connected_source" });
+    evidenceGaps.push(gap("P1", "source_code", "Link source code repository", "Connect GitHub or GitLab to verify product progress", "connected_source"));
   }
   if (!signals.hasWebsite) {
-    evidenceGaps.push({ priority: "P1", label: "Create public website", action: "Build a landing page to prove market presence and collect leads", impact: 8, evidenceType: "public_url" });
+    evidenceGaps.push(gap("P1", "website", "Create public website", "Build a landing page to prove market presence and collect leads", "public_url"));
   }
   if (!signals.hasPitchDeck) {
-    evidenceGaps.push({ priority: "P1", label: "Upload pitch deck", action: "Upload a pitch deck to the Evidence Vault", impact: 8, evidenceType: "document_uploaded" });
+    evidenceGaps.push(gap("P1", "pitch_deck", "Upload pitch deck", "Upload a pitch deck to the Evidence Vault", "document_uploaded"));
   }
   if (!signals.hasIPProtection) {
-    evidenceGaps.push({ priority: "P1", label: "Secure IP protection", action: "File a provisional patent or trademark to protect your core innovation", impact: 7, evidenceType: "document_uploaded" });
+    evidenceGaps.push(gap("P1", "ip", "Secure IP protection", "File a provisional patent or trademark to protect your core innovation", "document_uploaded"));
   }
   if (!signals.hasFinancialModel) {
-    evidenceGaps.push({ priority: "P2", label: "Upload financial model", action: "Add a financial model (even a basic P&L forecast) to the Evidence Vault", impact: 6, evidenceType: "document_uploaded" });
+    evidenceGaps.push(gap("P2", "financial_model", "Upload financial model", "Add a financial model (even a basic P&L forecast) to the Evidence Vault", "document_uploaded"));
   }
   if (!signals.hasAnalytics) {
-    evidenceGaps.push({ priority: "P2", label: "Connect analytics", action: "Connect Google Analytics or Search Console to verify traffic/traction", impact: 8, evidenceType: "connected_source" });
+    evidenceGaps.push(gap("P2", "analytics", "Connect analytics", "Connect Google Analytics or Search Console to verify traffic/traction", "connected_source"));
   }
   if (!signals.hasAdvisors) {
-    evidenceGaps.push({ priority: "P2", label: "Add named advisors", action: "Engage 1–2 industry advisors with relevant domain expertise and list them in your materials", impact: 5, evidenceType: "self_declared" });
+    evidenceGaps.push(gap("P2", "advisors", "Add named advisors", "Engage 1–2 industry advisors with relevant domain expertise and list them in your materials", "self_declared"));
   }
 
   // ── Next actions ────────────────────────────────────────────────────────────
+  // Same lift model as the gaps above (D2): "+N SVI points" reads the catalogue.
   const nextActions: SVIAnalysis["nextActions"] = [];
+  const pts = (key: EngineGapKey | "evidence_ladder") => `+${engineGapLift(key)} SVI points`;
 
   if (signals.isAIWrapper && !signals.hasMoat) {
     nextActions.push({
       priority: "P0",
       title: "Define your AI moat",
       detail: "Identify proprietary data, workflow, or network effect that makes your AI wrapper defensible. Without this, SVI penalises the AI wrapper risk heavily.",
-      impact: "+15 SVI points",
+      impact: pts("ai_moat"),
     });
   }
   if (!signals.hasCapTable) {
@@ -1782,7 +1887,7 @@ export function computeSVI(
       priority: "P0",
       title: "Build your cap table now",
       detail: "Bad equity splits early are the #1 cause of startup failure. Use BlockID's cap table starter to model founder splits, vesting, ESOP, and dilution scenarios.",
-      impact: "+12 SVI points",
+      impact: pts("cap_table"),
     });
   }
   if (signals.evidenceLevel === "self_declared") {
@@ -1790,7 +1895,7 @@ export function computeSVI(
       priority: "P0",
       title: "Add verifiable evidence",
       detail: "Upload documents, link your GitHub, or connect analytics to raise evidence confidence from 20% to 50%+.",
-      impact: "+15 SVI points",
+      impact: pts("evidence_ladder"),
     });
   }
   if (!signals.hasRevenue) {
@@ -1798,7 +1903,7 @@ export function computeSVI(
       priority: "P1",
       title: "Get your first paying customer",
       detail: "Even $1 of revenue lifts your Traction & Revenue score significantly and signals product-market fit direction.",
-      impact: "+18 SVI points",
+      impact: pts("first_customer"),
     });
   }
   if (signals.marketSize === "unknown") {
@@ -1806,7 +1911,7 @@ export function computeSVI(
       priority: "P1",
       title: "Define your TAM/SAM/SOM",
       detail: "Research and document your total addressable market. Include market size references in your pitch deck.",
-      impact: "+10 SVI points",
+      impact: pts("market_size"),
     });
   }
   if (!signals.hasDemo) {
@@ -1814,7 +1919,7 @@ export function computeSVI(
       priority: "P1",
       title: "Create a live demo or prototype",
       detail: "A working demo is the most powerful evidence you can show investors and customers.",
-      impact: "+8 SVI points",
+      impact: pts("demo"),
     });
   }
   if (!signals.hasABN) {
@@ -1822,7 +1927,7 @@ export function computeSVI(
       priority: "P1",
       title: "Register your company with ASIC",
       detail: "Obtain an ABN and register as a Pty Ltd to unlock legal protections, investor trust, and government grants.",
-      impact: "+10 SVI points",
+      impact: pts("abn"),
     });
   }
   if (!signals.hasPitchDeck && stage >= 2) {
@@ -1830,7 +1935,7 @@ export function computeSVI(
       priority: "P2",
       title: "Upload your pitch deck",
       detail: "A structured pitch deck demonstrates investor readiness and clarifies your value proposition.",
-      impact: "+8 SVI points",
+      impact: pts("pitch_deck"),
     });
   }
 
