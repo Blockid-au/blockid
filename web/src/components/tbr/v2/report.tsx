@@ -81,9 +81,16 @@ export interface TbrReportV2Props {
    * Omitted → no benchmark line is rendered (never computed here).
    */
   benchmarks?: TbrAssessmentBenchmarks;
+  /**
+   * G21 P1 post-ship review: whether the viewer can file a correction (the
+   * appendix's "Flag a problem with this report" link to the founder-only
+   * corrections page). True on the founder workspace; false (default) under
+   * a share token, the demo, the sample and the showcase.
+   */
+  canCorrect?: boolean;
 }
 
-export function TbrReportV2({ report, strings, locale = "en", upgradeHref, afterChapters, afterExecutive, unlock, benchmarks }: TbrReportV2Props) {
+export function TbrReportV2({ report, strings, locale = "en", upgradeHref, afterChapters, afterExecutive, unlock, benchmarks, canCorrect = false }: TbrReportV2Props) {
   const t = { ...EN, ...strings };
   const free = report.tier === "free";
   const lockCards = free && unlock?.mode === "buy";
@@ -113,7 +120,7 @@ export function TbrReportV2({ report, strings, locale = "en", upgradeHref, after
       <TbrPhaseGates report={report} title={t.secPhaseGates} locale={locale} />
       <TbrMoney report={report} title={t.secMoney} locale={locale} />
       <TbrActionPlan report={report} title={t.secActionPlan} locale={locale} />
-      <TbrAppendix report={report} title={t.secAppendix} locale={locale} />
+      <TbrAppendix report={report} title={t.secAppendix} locale={locale} canCorrect={canCorrect} />
     </div>
   );
 }

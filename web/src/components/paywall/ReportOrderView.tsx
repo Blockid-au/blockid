@@ -91,7 +91,7 @@ export function ReportOrderReady({ order, report, locale = "en" }: { order: Orde
               {t.v2.order.openInWorkspace}
             </a>
           </p>
-          <TbrReportV2 report={v2} strings={t} locale={locale} />
+          <TbrReportV2 report={v2} strings={t} locale={locale} canCorrect />
         </>
       ) : (
         <>

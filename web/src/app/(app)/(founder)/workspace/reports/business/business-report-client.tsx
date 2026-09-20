@@ -871,6 +871,8 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
               upgradeHref="/pricing"
               unlock={unlock}
               benchmarks={benchmarks}
+              // G21 P1 review: the corrections link is founder-workspace only, never under a share token or on the static sample.
+              canCorrect={!shareToken && !initialData}
               afterExecutive={showSurvey && surveySnapshotId ? <TbrClaritySurvey snapshotId={surveySnapshotId} surface={surface} locale={locale} /> : null}
               afterChapters={
                 /* Wave 28C: Personalised 30-Day Action Plan (live widget). */
