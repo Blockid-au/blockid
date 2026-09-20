@@ -16,6 +16,7 @@
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import {
   CtaBand,
+  TrustBand,
   CtaLink,
   PageHero,
   Section,
@@ -144,6 +145,9 @@ export default function ProductPage() {
       {/* 5. What you unlock after login (G11 §3c, T0238) — its own section
           markup, kept as-is; `#unlock` was a homepage anchor. */}
       <UnlockPreview tone="base" />
+
+      {/* G21 P0-A — who stands behind the score, above the close. */}
+      <TrustBand />
 
       <CtaBand
         title="Score your first startup."

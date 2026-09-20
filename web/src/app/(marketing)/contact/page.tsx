@@ -63,7 +63,7 @@ export default function ContactPage() {
                 <h2 className="font-display text-base font-semibold text-primary">Location</h2>
               </div>
               <p className="text-sm text-primary">Sydney, NSW, Australia</p>
-              <p className="mt-1 text-xs text-muted">{LEGAL_ENTITY.operator} ({LEGAL_ENTITY_ABN_LABEL})</p>
+              <p className="mt-1 text-xs text-muted">{`${LEGAL_ENTITY.operator} (${LEGAL_ENTITY_ABN_LABEL})`}</p>
             </div>
 
             <div className={CARD}>

@@ -46,6 +46,7 @@ import {
   CTA_CLASS,
   CtaBand,
   Faq,
+  TrustBand,
   FeatureGrid,
   FOCUS_RING,
   MOTION,
@@ -119,6 +120,13 @@ export const EVALUATOR_SIGNUP_HREF = {
   accelerator: "/signup?segment=evaluator&plan=accelerator_intake&trial=1",
 } as const;
 
+/** Personas whose page mounts the G21 `TrustBand` above the close by default. */
+export const TRUST_BAND_DEFAULT_SLUGS: ReadonlySet<SolutionSlug> = new Set<SolutionSlug>([
+  "investor",
+  "founder",
+  "advisor",
+]);
+
 /** The pricing page's evaluator view, for the evaluator pages' secondary CTA. */
 export const EVALUATOR_PRICING_HREF = "/pricing?segment=evaluator";
 
@@ -186,6 +194,12 @@ export interface SolutionPageProps {
    */
   closingTitle?: string;
   closingSub?: string;
+  /**
+   * G21 P0-A — the `TrustBand` above the closing band. Defaults to on for
+   * the investor / founder / advisor personas; the accelerator page mounts
+   * its own from lane P0-C and opts out until then.
+   */
+  showTrustBand?: boolean;
 }
 
 /**
@@ -310,6 +324,7 @@ export function SolutionsPageShell(props: SolutionPageProps) {
     pilotCta,
     closingTitle,
     closingSub,
+    showTrustBand = TRUST_BAND_DEFAULT_SLUGS.has(slug),
   } = props;
 
   // S8-A: the visible FAQ below is the page's FAQPage (one per page — the
@@ -475,6 +490,10 @@ export function SolutionsPageShell(props: SolutionPageProps) {
         <Section id="faq" title={fillPrices(faqTitle)}>
           <Faq items={faqItems} className="max-w-3xl" />
         </Section>
+
+        {/* G21 P0-A — who stands behind the score, above the close. The
+            accelerator page mounts its own (lane P0-C), so it opts out here. */}
+        {showTrustBand ? <TrustBand /> : null}
 
         <CtaBand
           title={closingTitle ?? closing.title}

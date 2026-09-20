@@ -75,7 +75,7 @@ function WorkflowDiagram() {
           className="mx-auto block h-auto w-full max-w-3xl"
         >
           <title id="tokenize-workflow-title">
-            Off-chain-first workflow: {LEGAL_ENTITY_SHORT_NAME} issues legally, tokens mirror on-chain
+            {`Off-chain-first workflow: ${LEGAL_ENTITY_SHORT_NAME} issues legally, tokens mirror on-chain`}
           </title>
           {/* Off-chain lane */}
           <g>

@@ -11,7 +11,7 @@ import { annualAvailablePlanIds, purchasablePlanIds } from "@/lib/plans/annual-a
 import { FAQJsonLd } from "@/components/seo/json-ld";
 import { BreadcrumbListJsonLd } from "@/components/seo/breadcrumb-json-ld";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
-import { CtaBand, FeatureGrid, PageHero, Section } from "@/components/marketing/template";
+import { CtaBand, FeatureGrid, PageHero, Section, TrustBand } from "@/components/marketing/template";
 import { LogoCloud } from "@/components/landing/logo-cloud";
 import { StickyCta } from "@/components/sales/sticky-cta";
 import { PricingFeatureNotice } from "@/components/landing/pricing-feature-notice";
@@ -219,6 +219,9 @@ export default async function PricingPage() {
         {/* Narrow curator-controlled integration strip. Renders NOTHING when the config is empty. */}
         <LogoCloud group="integrated" density="compact" />
       </Section>
+
+      {/* G21 P0-A — who stands behind the score, above the close. */}
+      <TrustBand />
 
       <CtaBand
         title="Talk to sales for a bespoke fit."
