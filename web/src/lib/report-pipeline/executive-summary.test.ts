@@ -12,7 +12,7 @@ import { DIM_ORDER } from "./dimension-owners";
 import type { AgentAnalysisResult, ReportContext } from "./types";
 
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => null }));
-vi.mock("@/lib/ai/prompt-registry", () => ({ readCurrentPrompt: vi.fn(async () => null) }));
+vi.mock("@/lib/ai/prompt-registry", () => ({ readCurrentPrompt: vi.fn(async () => null), readOrRegisterPrompt: vi.fn(async () => null) }));
 
 function makeContext(): ReportContext {
   const demo = demoReportV2();

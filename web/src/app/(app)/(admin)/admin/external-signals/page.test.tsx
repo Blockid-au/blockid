@@ -88,7 +88,7 @@ describe("ExternalSignalsAdminView", () => {
     const out = await html(<ExternalSignalsAdminView data={data({ fromDb: false, sourcesError: "table missing (apply 0410)", counts: {}, totalRows: 0 })} />);
     expect(out).toContain('data-testid="external-signals-table-missing"');
     expect(out).toContain("0410_external_signals.sql");
-    expect((out.match(/data-source-id="/g) ?? []).length).toBe(6);
+    expect((out.match(/data-source-id="/g) ?? []).length).toBe(7);
   });
 });
 
@@ -134,14 +134,14 @@ describe("loadExternalSignalsAdmin / readIngestSummary", () => {
     };
     const d = await loadExternalSignalsAdmin(live, root);
     expect(d.fromDb).toBe(true);
-    expect(d.counts).toEqual({ "abr-bulk": {}, "business-gov-grants": { grant_award: 1200 }, "rdti-transparency": { rdti_registration: 13128 } });
+    expect(d.counts).toEqual({ "abr-bulk": {}, "business-gov-grants": { grant_award: 1200 }, "rdti-transparency": { rdti_registration: 13128 }, "funding-announcements": {} });
     expect(d.totalRows).toBe(14328);
     expect(calls.some((c) => c.startsWith("cut-through-venture"))).toBe(false);
     const missing = { from: () => { const chain = { select: () => chain, order: () => chain, then: (res: (v: unknown) => unknown) => Promise.resolve({ data: null, error: { code: "42P01", message: "x" } }).then(res) }; return chain; } };
     const m = await loadExternalSignalsAdmin(missing, root);
     expect(m.fromDb).toBe(false);
     expect(m.sourcesError).toBe("table missing (apply 0410)");
-    expect(m.sources).toHaveLength(6);
+    expect(m.sources).toHaveLength(7); // 0410's six + the G24-B funding-announcements feed (0435)
     expect(m.totalRows).toBe(0);
   });
 });

@@ -41,9 +41,14 @@ vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => fakeSupabase(),
 }));
 
-// prompt_versions lookup (only the TTL test reaches it — every other case injects resolvePromptVersionId).
+// prompt_versions lookup (only the TTL + G24-B tests reach it — every other case injects resolvePromptVersionId).
+const registerCalls: Array<{ agent: string; defaults: { version: string; model: string; purpose: string } }> = [];
 vi.mock("@/lib/ai/prompt-registry", () => ({
   readCurrentPrompt: async (agent: string) => ({ id: `pv-${agent}`, variables: {} }),
+  readOrRegisterPrompt: async (agent: string, defaults: { version: string; model: string; purpose: string }) => {
+    registerCalls.push({ agent, defaults });
+    return { id: `pv-${agent}`, variables: {} };
+  },
 }));
 
 import {
@@ -456,6 +461,23 @@ describe("W4 helpers", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+
+  // G24-B: the default resolver registers the code-default prompt (agent
+  // report-<role>, CODE_PROMPT_VERSION) so ai_runs never carries the NIL id.
+  it("the default prompt resolver goes through readOrRegisterPrompt with the pipeline defaults (G24-B)", async () => {
+    resetPromptVersionCache();
+    registerCalls.length = 0;
+    const dispatcher = await import("./agent-dispatcher");
+    const { CODE_PROMPT_VERSION } = await import("./version");
+    const budget = { max: 40, used: 0, tryAcquire: () => true };
+    const modelCaller = async () => ({ ok: false as const, status: "model_error" as const, reason: "n/a" });
+    await dispatcher.dispatchDimensionChapters(makeContext(), "standard", async () => "", { modelCaller, callBudget: budget, knowledgeDb: null, dims: ["tre"] });
+    expect(registerCalls.length).toBeGreaterThanOrEqual(1);
+    expect(registerCalls[0]).toEqual({ agent: "report-cro", defaults: { version: CODE_PROMPT_VERSION, model: expect.any(String), purpose: "customer_report" } });
+    expect(peekPromptVersionCache("cro")?.id).toBe("pv-report-cro");
+    expect(peekPromptVersionCache("cro")?.id).not.toBe(NIL_PROMPT_VERSION_ID);
+    expect(dispatcher.pipelinePromptDefaults("cfo")).toMatchObject({ version: CODE_PROMPT_VERSION, purpose: "customer_report" });
   });
 
   it("w4OutputContract names the allowed visual kinds and the chapter template for the dim", () => {

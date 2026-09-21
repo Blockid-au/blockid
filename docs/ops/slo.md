@@ -51,6 +51,15 @@ figure on `/api/status.slo.uptime_pct_24h` is the cron-fleet proxy that predates
   (b) ≥ 5× its 24 h hourly median and ≥ 10 lines, (c) any `fully_degraded` /
   `AIBudgetExhaustedError` / `permission denied` line. The first run seeds the
   7-day memory silently (no "new" storm), critical lines still alert.
+- **Report quality (G24-B):** the same digest run reads the local
+  `/api/status` (`STATUS_BASE_URL`, default `http://127.0.0.1:4001`) and,
+  when `tbr_quality.status` has been ≠ `ok` (`watch` / `missing`) for more
+  than 24 h, sends ONE line — `[tbr_quality] status=watch for 25 h — grounded
+  median 0.41 vs KPI 0.85, degraded 0.30, runs 4 (24 h)` — then at most one a
+  day while it holds; the episode start lives in
+  `error-digest-state.json` (`tbr_quality`). Same send path as every alert, so
+  the e-mail fallback (`ADMIN_EMAIL` / `ALERT_EMAIL`) carries it while the
+  Telegram token is dead. App unreachable → no-op, never a false alarm.
 - **Where it surfaces:** `/api/status` (`errors_1h`, `ai`, `queues`,
   `backups_detail`, `slo.latency_p95_ms`, `crons_failed_24h`) and the public
   `/status` page (redacted: no paths, hosts, secrets).

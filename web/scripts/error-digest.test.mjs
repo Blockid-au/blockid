@@ -9,7 +9,7 @@
 //     read again;
 //   - the 30-min debounce or the 7-day memory disappearing.
 
-import { mkdtempSync, writeFileSync, appendFileSync } from "node:fs";
+import { mkdtempSync, writeFileSync, appendFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -18,14 +18,19 @@ import {
   computeReadStart,
   digestLines,
   emptyState,
+  emptyTbrQualityState,
   evaluate,
+  evaluateTbrQuality,
   formatAlert,
+  formatTbrQualityAlert,
   hourlyMedian24h,
   normaliseMessage,
+  pickTbrQuality,
   splitComplete,
   toReportRow,
+  TBR_QUALITY_NOT_OK_HOURS,
 } from "./lib/error-digest-core.mjs";
-import { readWindow, parseArgs } from "./error-digest.mjs";
+import { main, readTbrQuality, readWindow, parseArgs } from "./error-digest.mjs";
 
 const FIXTURE = [
   "▲ Next.js 16.3.5",
@@ -189,5 +194,115 @@ describe("evaluate — alert rules", () => {
     const text = formatAlert(r.alerts, d(1));
     expect(text).toContain("[new] [svi] ×1 — boom <n>");
     expect(text).not.toContain("SECRET");
+  });
+});
+
+// ---------- G24-B: tbr_quality ≠ ok for > 24 h → one digest line ----------
+
+describe("tbr_quality watch (G24-B)", () => {
+  const H = 3_600_000;
+  const base = Date.parse("2026-09-21T00:00:00.000Z");
+  const watch = { status: "watch", runs: 4, grounded_share_median: 0.41, degraded_share: 0.3, grounded_share_kpi: 0.85 };
+  const ok = { status: "ok", runs: 3, grounded_share_median: 0.9, degraded_share: 0, grounded_share_kpi: 0.85 };
+
+  it("pickTbrQuality reads the /api/status section and rejects non-status bodies", () => {
+    expect(pickTbrQuality({ tbr_quality: { status: "watch", last24h: { runs: 4, groundedShareMedian: 0.41, degradedShare: 0.3 }, grounded_share_kpi: 0.85 } })).toEqual(watch);
+    expect(pickTbrQuality({ tbr_quality: { status: "missing", last24h: { runs: 0, groundedShareMedian: null, degradedShare: null }, grounded_share_kpi: 0.85 } })).toEqual({ status: "missing", runs: 0, grounded_share_median: null, degraded_share: null, grounded_share_kpi: 0.85 });
+    expect(pickTbrQuality({})).toBeNull();
+    expect(pickTbrQuality(null)).toBeNull();
+    expect(pickTbrQuality({ tbr_quality: "watch" })).toBeNull();
+  });
+
+  it("no line while the verdict is younger than 24 h; ONE line once it is older; then at most one per day; ok clears the episode", () => {
+    expect(TBR_QUALITY_NOT_OK_HOURS).toBe(24);
+    const r1 = evaluateTbrQuality(emptyTbrQualityState(), watch, base);
+    expect(r1.alert).toBeNull();
+    expect(r1.next).toEqual({ status: "watch", not_ok_since: new Date(base).toISOString(), last_alert_at: null });
+    const r2 = evaluateTbrQuality(r1.next, watch, base + 23 * H);
+    expect(r2.alert).toBeNull();
+    expect(r2.next.not_ok_since).toBe(r1.next.not_ok_since); // the episode start is kept
+    const r3 = evaluateTbrQuality(r2.next, watch, base + 25 * H);
+    expect(r3.alert).toBe("[tbr_quality] status=watch for 25 h — grounded median 0.41 vs KPI 0.85, degraded 0.30, runs 4 (24 h) — see /api/status tbr_quality");
+    expect(r3.next.last_alert_at).toBe(new Date(base + 25 * H).toISOString());
+    // Every 10-minute tick for the next day is silent.
+    const r4 = evaluateTbrQuality(r3.next, watch, base + 25 * H + 10 * 60_000);
+    expect(r4.alert).toBeNull();
+    const r5 = evaluateTbrQuality(r4.next, watch, base + 48 * H);
+    expect(r5.alert).toBeNull();
+    const r6 = evaluateTbrQuality(r5.next, watch, base + 49 * H + 1);
+    expect(r6.alert).toMatch(/^\[tbr_quality\] status=watch for 49 h/);
+    // Recovery clears everything; a fresh episode restarts its own 24 h clock.
+    const r7 = evaluateTbrQuality(r6.next, ok, base + 50 * H);
+    expect(r7).toEqual({ next: { status: "ok", not_ok_since: null, last_alert_at: null }, alert: null });
+    const r8 = evaluateTbrQuality(r7.next, { ...watch, status: "missing" }, base + 60 * H);
+    expect(r8.alert).toBeNull();
+    expect(r8.next.not_ok_since).toBe(new Date(base + 60 * H).toISOString());
+    expect(evaluateTbrQuality(r8.next, { ...watch, status: "missing" }, base + 85 * H).alert).toMatch(/status=missing for 25 h/);
+  });
+
+  it("an unreadable status (app down) changes nothing and never alerts; prev is not mutated", () => {
+    const prev = { status: "watch", not_ok_since: new Date(base).toISOString(), last_alert_at: null };
+    const r = evaluateTbrQuality(prev, null, base + 30 * H);
+    expect(r).toEqual({ next: prev, alert: null });
+    expect(prev.last_alert_at).toBeNull();
+    expect(evaluateTbrQuality(undefined, null, base)).toEqual({ next: emptyTbrQualityState(), alert: null });
+  });
+
+  it("formatTbrQualityAlert carries numbers only (no path / project / snapshot) and tolerates a missing median", () => {
+    expect(formatTbrQualityAlert({ status: "missing", runs: 0, grounded_share_median: null, degraded_share: null, grounded_share_kpi: 0.85 }, 26 * H)).toBe("[tbr_quality] status=missing for 26 h — runs 0 (24 h) — see /api/status tbr_quality");
+    expect(formatTbrQualityAlert(watch, 25 * H)).not.toMatch(/\/home|[0-9a-f]{8}-[0-9a-f]{4}/);
+  });
+
+  it("readTbrQuality: 200 → the picked section; non-200 / network error / timeout → null (never throws)", async () => {
+    const okFetch = async () => ({ ok: true, json: async () => ({ tbr_quality: { status: "watch", last24h: { runs: 4, groundedShareMedian: 0.41, degradedShare: 0.3 }, grounded_share_kpi: 0.85 } }) });
+    expect(await readTbrQuality({ env: { STATUS_BASE_URL: "http://127.0.0.1:1/" }, fetchImpl: okFetch })).toEqual(watch);
+    expect(await readTbrQuality({ env: {}, fetchImpl: async () => ({ ok: false, status: 503, json: async () => ({}) }) })).toBeNull();
+    expect(await readTbrQuality({ env: {}, fetchImpl: async () => { throw new Error("ECONNREFUSED"); } })).toBeNull();
+    let url = "";
+    await readTbrQuality({ env: { STATUS_BASE_URL: "http://127.0.0.1:1" }, fetchImpl: async (u) => { url = u; throw new Error("x"); } });
+    expect(url).toBe("http://127.0.0.1:1/api/status");
+  });
+
+  it("main(): the episode is persisted in the state file next to the class memory; > 24 h non-ok sends ONE message through the shared Telegram → e-mail path; app down is a no-op", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "digest-tbr-"));
+    const log = join(dir, "prod.log");
+    const stateFile = join(dir, "state.json");
+    const reportFile = join(dir, "digest.jsonl");
+    writeFileSync(log, "");
+    const sent = [];
+    const sendTelegram = async (text, opts) => { sent.push({ text, opts }); return { sent: true, via: "email" }; };
+    const readTbrQuality = async () => watch;
+    const args = ["--json", "--log", log, "--offset-file", join(dir, "off")];
+    const lockFile = join(dir, "lock");
+    // Run 1: episode starts — persisted, no alert.
+    const s1 = await main(args, { now: base, log: () => {}, sendTelegram, readTbrQuality, stateFile, reportFile, lockFile });
+    expect(s1.tbr_quality).toEqual({ status: "watch", not_ok_since: new Date(base).toISOString(), alert: null, telegram: null });
+    expect(JSON.parse(readFileSync(stateFile, "utf8")).tbr_quality).toEqual({ status: "watch", not_ok_since: new Date(base).toISOString(), last_alert_at: null });
+    expect(sent).toHaveLength(0);
+    // Run 2 (25 h later, still watch): one message, the class memory + the episode both survive.
+    const s2 = await main(args, { now: base + 25 * H, log: () => {}, sendTelegram, readTbrQuality, stateFile, reportFile, lockFile });
+    expect(s2.tbr_quality.alert).toMatch(/^\[tbr_quality\] status=watch for 25 h/);
+    expect(s2.tbr_quality.telegram).toEqual({ sent: true, via: "email" });
+    expect(sent).toHaveLength(1);
+    expect(sent[0].text).toBe(`BlockID report quality\n${s2.tbr_quality.alert}`);
+    expect(sent[0].opts).toEqual({ dryRun: false });
+    const persisted = JSON.parse(readFileSync(stateFile, "utf8"));
+    expect(persisted.classes).toEqual({});
+    expect(persisted.tbr_quality.last_alert_at).toBe(new Date(base + 25 * H).toISOString());
+    // Run 3 (10 min later): debounced — nothing sent.
+    const s3 = await main(args, { now: base + 25 * H + 600_000, log: () => {}, sendTelegram, readTbrQuality, stateFile, reportFile, lockFile });
+    expect(s3.tbr_quality.alert).toBeNull();
+    expect(sent).toHaveLength(1);
+    // Run 4: app unreachable → verdict null, episode untouched, nothing sent.
+    const s4 = await main(args, { now: base + 26 * H, log: () => {}, sendTelegram, readTbrQuality: async () => null, stateFile, reportFile, lockFile });
+    expect(s4.tbr_quality).toEqual({ status: null, not_ok_since: new Date(base).toISOString(), alert: null, telegram: null });
+    expect(sent).toHaveLength(1);
+    // Run 5: recovered → cleared.
+    const s5 = await main(args, { now: base + 27 * H, log: () => {}, sendTelegram, readTbrQuality: async () => ok, stateFile, reportFile, lockFile });
+    expect(s5.tbr_quality).toEqual({ status: "ok", not_ok_since: null, alert: null, telegram: null });
+    // Dry run: evaluated + reported, nothing written, nothing sent for real.
+    const s6 = await main(["--dry-run", ...args], { now: base, log: () => {}, sendTelegram, readTbrQuality, stateFile, reportFile, lockFile });
+    expect(s6.tbr_quality.alert).toBeNull();
+    expect(JSON.parse(readFileSync(stateFile, "utf8")).tbr_quality.status).toBe("ok");
   });
 });

@@ -13,12 +13,15 @@
  * Pure: no I/O.
  */
 
+import { BRAND_SITE, LEGAL_ENTITY } from "@/lib/site/legal-entity";
+
 export type ExternalSourceStatus = "active" | "cite_only" | "disabled";
 
 export type ExternalSourceId =
   | "abr-bulk"
   | "business-gov-grants"
   | "rdti-transparency"
+  | "funding-announcements"
   | "cut-through-venture"
   | "startup-muster"
   | "acs-digital-pulse";
@@ -36,7 +39,7 @@ export interface ExternalSourceRow {
 }
 
 /** Ids the ingest may ever write rows for. */
-export const INGESTABLE_SOURCE_IDS: readonly ExternalSourceId[] = ["abr-bulk", "business-gov-grants", "rdti-transparency"];
+export const INGESTABLE_SOURCE_IDS: readonly ExternalSourceId[] = ["abr-bulk", "business-gov-grants", "rdti-transparency", "funding-announcements"];
 
 /** Ids that are reference-only: reports may cite a figure with a link, never store rows. */
 export const CITE_ONLY_SOURCE_IDS: readonly ExternalSourceId[] = ["cut-through-venture", "startup-muster", "acs-digital-pulse"];
@@ -74,6 +77,21 @@ export const EXTERNAL_SOURCE_CATALOG: readonly ExternalSourceRow[] = [
     attribution_text:
       "Research and Development Tax Incentive entity data © Commonwealth of Australia (Australian Taxation Office, via data.gov.au), licensed under Creative Commons Attribution 2.5 Australia.",
     cadence: "annual",
+    last_fetched_at: null,
+    row_count: 0,
+    status: "active",
+  },
+  {
+    // G24-B: the feed for `funding_round` signals → funding_raised outcome
+    // proposals. A BlockID-curated sheet of PUBLIC announcements (press
+    // releases / media), every row linking its source; seeded by 0435.
+    id: "funding-announcements",
+    name: "Australian startup funding announcements (BlockID-curated from public press releases)",
+    url: "https://blockid.au/methodology#data-sources",
+    licence: "CC BY 4.0",
+    attribution_text:
+      `Funding announcement data compiled by ${BRAND_SITE} (© ${LEGAL_ENTITY.copyrightHolder}) from public company press releases and media reports; every row links to its published source. Compilation licensed under Creative Commons Attribution 4.0 International.`,
+    cadence: "weekly",
     last_fetched_at: null,
     row_count: 0,
     status: "active",

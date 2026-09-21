@@ -24,6 +24,8 @@ interface Row {
 
 let table: Row[] = [];
 let updateError: string | null = null;
+let insertError: { code?: string; message: string } | null = null;
+let insertCount = 0;
 
 function makeRow(overrides: Partial<Row>): Row {
   return {
@@ -63,18 +65,20 @@ interface Filter {
 
 function builder() {
   const filters: Filter[] = [];
-  let mode: "select" | "update" = "select";
+  let mode: "select" | "update" | "insert" = "select";
   let updatePatch: Partial<Row> = {};
+  let insertRow: Partial<Row> = {};
 
   const api: {
     select(_: string): typeof api;
     update(patch: Partial<Row>): typeof api;
+    insert(row: Partial<Row>): typeof api;
     eq(col: string, val: unknown): typeof api;
-    maybeSingle(): Promise<{ data: Row | null; error: { message: string } | null }>;
+    maybeSingle(): Promise<{ data: Row | null; error: { code?: string; message: string } | null }>;
     then?: unknown;
   } = {
     select() {
-      mode = "select";
+      if (mode !== "insert") mode = "select";
       return api;
     },
     update(patch: Partial<Row>) {
@@ -82,11 +86,29 @@ function builder() {
       updatePatch = patch;
       return api;
     },
+    insert(row: Partial<Row>) {
+      mode = "insert";
+      insertRow = row;
+      return api;
+    },
     eq(col: string, val: unknown) {
       filters.push({ col, val });
       return api;
     },
     async maybeSingle() {
+      if (mode === "insert") {
+        insertCount += 1;
+        if (insertError) return { data: null, error: insertError };
+        // The (agent, version) UNIQUE + the (agent) WHERE prod partial index.
+        const dupVersion = table.some((r) => r.agent === insertRow.agent && r.version === insertRow.version);
+        const dupProd = insertRow.status === "prod" && table.some((r) => r.agent === insertRow.agent && r.status === "prod");
+        if (dupVersion || dupProd) {
+          return { data: null, error: { code: "23505", message: "duplicate key value violates unique constraint" } };
+        }
+        const row = makeRow({ ...insertRow, id: `${String(insertCount).padStart(8, "0")}-0000-4000-8000-00000000cafe` });
+        table.push(row);
+        return { data: row, error: null };
+      }
       const match = table.find(r =>
         filters.every(f => (r as unknown as Record<string, unknown>)[f.col] === f.val),
       );
@@ -139,11 +161,60 @@ import {
   demoteCanary,
   promoteCanaryToProd,
   readCurrentPrompt,
+  readOrRegisterPrompt,
+  registerPromptVersion,
 } from "./prompt-registry";
 
 beforeEach(() => {
   table = [];
   updateError = null;
+  insertError = null;
+  insertCount = 0;
+});
+
+// ── G24-B: register-on-first-use ─────────────────────────────────────
+
+describe("readOrRegisterPrompt / registerPromptVersion (G24-B)", () => {
+  const DEFAULTS = { version: "2.3.0", model: "free-chain", purpose: "customer_report" };
+
+  it("returns the prod row untouched when one exists (no insert)", async () => {
+    table = [makeRow({ id: "aaaaaaaa-0000-4000-8000-000000000001", agent: "report-cfo", status: "prod", version: "9.9.9" })];
+    const row = await readOrRegisterPrompt("report-cfo", DEFAULTS);
+    expect(row?.id).toBe("aaaaaaaa-0000-4000-8000-000000000001");
+    expect(row?.version).toBe("9.9.9");
+    expect(insertCount).toBe(0);
+  });
+
+  it("registers the code default as prod on first use; the next read finds it without a second insert", async () => {
+    const first = await readOrRegisterPrompt("report-cfo", DEFAULTS);
+    expect(first).not.toBeNull();
+    expect(first).toMatchObject({ agent: "report-cfo", version: "2.3.0", model: "free-chain", purpose: "customer_report", status: "prod" });
+    expect(typeof first!.released_at).toBe("string");
+    expect(table).toHaveLength(1);
+    expect(insertCount).toBe(1);
+
+    const second = await readOrRegisterPrompt("report-cfo", DEFAULTS);
+    expect(second?.id).toBe(first!.id);
+    expect(insertCount).toBe(1);
+    expect(await readCurrentPrompt("report-cfo")).toMatchObject({ id: first!.id, status: "prod" });
+  });
+
+  it("a lost race / an existing (agent, version) row of any status resolves to that row, never a duplicate", async () => {
+    table = [makeRow({ id: "bbbbbbbb-0000-4000-8000-000000000002", agent: "report-cto", version: "2.3.0", status: "rolled_back" })];
+    const row = await registerPromptVersion("report-cto", DEFAULTS);
+    expect(row?.id).toBe("bbbbbbbb-0000-4000-8000-000000000002");
+    expect(table).toHaveLength(1);
+  });
+
+  it("a DB error on insert returns null (the caller writes NULL on ai_runs) and logs no secret", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    insertError = { code: "42501", message: "permission denied for table prompt_versions" };
+    expect(await readOrRegisterPrompt("report-cmo", DEFAULTS)).toBeNull();
+    expect(table).toHaveLength(0);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0][0])).toContain("register report-cmo@2.3.0 failed");
+    warn.mockRestore();
+  });
 });
 
 describe("readCurrentPrompt", () => {

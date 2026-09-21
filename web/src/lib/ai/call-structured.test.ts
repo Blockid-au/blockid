@@ -5,6 +5,9 @@ import { z } from "zod";
 type InsertedRow = Record<string, unknown>;
 let inserted: InsertedRow[] = [];
 let insertCounter = 0;
+/** G24-B: prompt ids the fake FK "knows"; null = every non-null id is accepted. */
+let registeredPromptIds: Set<string> | null = null;
+let attempted: InsertedRow[] = [];
 
 function fakeSupabase() {
   return {
@@ -20,6 +23,11 @@ function fakeSupabase() {
           return api;
         },
         async single() {
+          attempted.push({ ...payload });
+          const pv = payload.prompt_version_id;
+          if (registeredPromptIds && typeof pv === "string" && !registeredPromptIds.has(pv)) {
+            return { data: null, error: { code: "23503", message: 'insert or update on table "ai_runs" violates foreign key constraint "ai_runs_prompt_version_id_fkey"' } };
+          }
           insertCounter += 1;
           const id = `run-${insertCounter}`;
           inserted.push({ id, ...payload });
@@ -36,7 +44,7 @@ vi.mock("@/lib/supabase", () => ({
 }));
 
 // Import AFTER vi.mock so the module picks up the mock.
-import { callStructured } from "./call-structured";
+import { callStructured, NIL_PROMPT_VERSION_ID, promptVersionIdForRow } from "./call-structured";
 
 const InputSchema = z.object({ q: z.string().min(1) });
 const OutputSchema = z.object({ answer: z.string().min(1), score: z.number().min(0).max(100) });
@@ -72,7 +80,9 @@ function errorResponse(status: number, body = "") {
 
 beforeEach(() => {
   inserted = [];
+  attempted = [];
   insertCounter = 0;
+  registeredPromptIds = null;
 });
 
 const baseArgs = {
@@ -364,5 +374,70 @@ describe("callStructured — truncated output salvage (G23-A)", () => {
   it("a clean first answer carries overrun: false", async () => {
     const res = await callStructured({ ...baseArgs, modelCaller: async () => ({ ok: true, text: JSON.stringify({ answer: "42", score: 72 }) }) });
     expect(res.ok && res.overrun).toBe(false);
+  });
+});
+
+// ── G24-B: the ai_runs row always lands (prompt_version_id NULL when unregistered) ──
+
+describe("callStructured — prompt_version_id integrity (G24-B)", () => {
+  const okFetch = () => vi.fn(async () => anthropicResponse(JSON.stringify({ answer: "42", score: 72 }))) as unknown as typeof fetch;
+
+  it("promptVersionIdForRow: a real uuid passes through; NIL, empty and non-uuid become NULL", () => {
+    expect(promptVersionIdForRow("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa")).toBe("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+    expect(promptVersionIdForRow(NIL_PROMPT_VERSION_ID)).toBeNull();
+    expect(promptVersionIdForRow("")).toBeNull();
+    expect(promptVersionIdForRow("local-123")).toBeNull();
+    expect(promptVersionIdForRow(undefined)).toBeNull();
+  });
+
+  it("a registered id is written as-is (the register-on-first-use path)", async () => {
+    registeredPromptIds = new Set(["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"]);
+    const res = await callStructured({ ...baseArgs, fetchImpl: okFetch() });
+    expect(res.ok).toBe(true);
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]!.prompt_version_id).toBe("aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
+    expect(attempted).toHaveLength(1);
+  });
+
+  it("the NIL placeholder is written as NULL in ONE insert — the row is never dropped", async () => {
+    registeredPromptIds = new Set();
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const res = await callStructured({ ...baseArgs, promptVersionId: NIL_PROMPT_VERSION_ID, fetchImpl: okFetch() });
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error("unreachable");
+    expect(res.runId).toBe("run-1");
+    expect(attempted).toHaveLength(1);
+    expect(inserted[0]!.prompt_version_id).toBeNull();
+    expect(inserted[0]!.status).toBe("ok");
+    expect(warn).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
+  it("an unregistered (stale) uuid rejected by the FK is retried once with NULL and still yields a real runId", async () => {
+    registeredPromptIds = new Set(["11111111-1111-4111-8111-111111111111"]);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const res = await callStructured({ ...baseArgs, promptVersionId: "22222222-2222-4222-8222-222222222222", fetchImpl: okFetch() });
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error("unreachable");
+    expect(res.runId).toBe("run-1");
+    expect(attempted).toHaveLength(2);
+    expect(attempted[0]!.prompt_version_id).toBe("22222222-2222-4222-8222-222222222222");
+    expect(attempted[1]!.prompt_version_id).toBeNull();
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]!.prompt_version_id).toBeNull();
+    expect(inserted[0]!.tokens_in).toBe(100);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0][0])).toMatch(/not registered — writing NULL/);
+    warn.mockRestore();
+  });
+
+  it("a failed call (model_error) also lands with NULL — every terminal status keeps its row", async () => {
+    registeredPromptIds = new Set();
+    const fetchImpl = vi.fn(async () => errorResponse(500, "boom")) as unknown as typeof fetch;
+    const res = await callStructured({ ...baseArgs, promptVersionId: NIL_PROMPT_VERSION_ID, fetchImpl });
+    expect(res.ok).toBe(false);
+    expect(inserted).toHaveLength(1);
+    expect(inserted[0]!.prompt_version_id).toBeNull();
+    expect(inserted[0]!.status).toBe("model_error");
   });
 });

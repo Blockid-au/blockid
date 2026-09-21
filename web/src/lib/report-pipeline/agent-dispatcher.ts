@@ -62,7 +62,8 @@ import {
   RiskFinding,
   type Area,
 } from "@/lib/ai/schemas";
-import { readCurrentPrompt } from "@/lib/ai/prompt-registry";
+import { readOrRegisterPrompt } from "@/lib/ai/prompt-registry";
+import { CODE_PROMPT_VERSION } from "./version";
 
 /** S31-A task class hint — CEO/CFO chapters pass "report" when F4 is on (see MODEL_AGENT_*). */
 export type AITaskClassHint = "classify" | "report" | "synthesis";
@@ -74,7 +75,12 @@ type AICaller = (
   taskClass?: AITaskClassHint,
 ) => Promise<string>;
 
-/** Placeholder used when no prod prompt_versions row exists for an agent. */
+/**
+ * Placeholder when no prompt_versions row could be resolved OR registered
+ * (Supabase unavailable). callStructured() writes NULL on `ai_runs` for it
+ * (0435) — it is never sent to the FK. G24-B: the default resolver registers
+ * the code-default prompt on first use, so a live run never carries this.
+ */
 export const NIL_PROMPT_VERSION_ID = "00000000-0000-0000-0000-000000000000";
 
 // ── Wave Definitions ────────────────────────────────────────────────────────
@@ -461,12 +467,23 @@ export function callAIToModelCaller(
 export const PROMPT_VERSION_CACHE_TTL_MS = 10 * 60_000;
 const promptVersionCache = new Map<string, { id: string; template: string | null; at: number }>();
 
+/** What the pipeline registers for `report-<role>` when no prod row exists (G24-B). */
+export function pipelinePromptDefaults(agentRole: AgentRole): { version: string; model: string; purpose: string } {
+  return { version: CODE_PROMPT_VERSION, model: modelForAgent(agentRole), purpose: "customer_report" };
+}
+
 async function defaultPromptRow(agentRole: AgentRole, now: number = Date.now()): Promise<{ id: string; template: string | null }> {
   const cached = promptVersionCache.get(agentRole);
   if (cached && now - cached.at < PROMPT_VERSION_CACHE_TTL_MS) return { id: cached.id, template: cached.template };
   try {
-    const row = await readCurrentPrompt(`report-${agentRole}`);
-    const entry = { id: row?.id ?? NIL_PROMPT_VERSION_ID, template: promptTemplateFromRow(row) };
+    // G24-B: prod row, else the code default is registered (one row per
+    // (agent, version)) so every ai_runs row points at a real prompt version.
+    const row = await readOrRegisterPrompt(`report-${agentRole}`, pipelinePromptDefaults(agentRole));
+    if (!row) {
+      // Supabase unavailable / registration refused — not cached, retried next call.
+      return cached ? { id: cached.id, template: cached.template } : { id: NIL_PROMPT_VERSION_ID, template: null };
+    }
+    const entry = { id: row.id, template: promptTemplateFromRow(row) };
     promptVersionCache.set(agentRole, { ...entry, at: now });
     return entry;
   } catch {
