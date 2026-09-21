@@ -135,6 +135,13 @@ export function BillingClient({
   const addonPriceIds = shareMgmtAddonPriceIds ?? { monthly: null, annual: null };
   const addonAvailable = Boolean(addonPriceIds.monthly || addonPriceIds.annual);
 
+  const activePlan = resolveActivePlan(currentPlanId, plans, grandfatheredPlans);
+  const effectivePlanId = normaliseBillingPlanId(currentPlanId);
+
+  // Ordered tiers for upgrade/downgrade logic — covers v2 and legacy ids.
+  const tierRank = BILLING_TIER_RANK;
+  const currentRank = tierRank[effectivePlanId] ?? 0;
+
   // Deep-link support: /workspace/billing?openAddon=share_management opens the
   // drawer once on mount. A ref guards against re-firing after the user closes.
   const deepLinkFired = React.useRef(false);
@@ -206,12 +213,6 @@ export function BillingClient({
     }
   }
 
-  const activePlan = resolveActivePlan(currentPlanId, plans, grandfatheredPlans);
-  const effectivePlanId = normaliseBillingPlanId(currentPlanId);
-
-  // Ordered tiers for upgrade/downgrade logic — covers v2 and legacy ids.
-  const tierRank = BILLING_TIER_RANK;
-  const currentRank = tierRank[effectivePlanId] ?? 0;
 
   // -----------------------------------------------------------------------
   // Actions
