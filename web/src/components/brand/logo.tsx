@@ -50,7 +50,9 @@ export function Logo({
 
   // Colors
   const textColor = isDark ? "text-white" : "text-ink-900";
-  const dotColor = isDark ? "text-brand-300" : "text-brand-500";
+  // `.au` dot: the ONE secondary accent (unicorn-template v2 § 2) — brand-500 (#3B82F6)
+  // was 3.46:1 on the sunken footer ground, below AA for 18 px text.
+  const dotColor = isDark ? "text-brand-300" : "text-action-secondary";
   const tagColor = isDark ? "text-slate-400" : "text-ink-500";
 
   return (

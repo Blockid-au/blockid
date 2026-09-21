@@ -31,7 +31,7 @@ export function PartnerFooterRow({
       aria-label={resolved.label ?? "Partner logos"}
     >
       {resolved.label ? (
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] opacity-70">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] opacity-70">
           {resolved.label}
         </p>
       ) : null}

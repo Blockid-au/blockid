@@ -134,12 +134,12 @@ export function Footer() {
           <p className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <a
               href="mailto:support@blockid.au"
-              className="rounded-md text-action underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+              className="inline-flex min-h-11 items-center rounded-md text-action underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             >
               support@blockid.au
             </a>
             <span>Mon&ndash;Fri 9:00&ndash;18:00 AEST</span>
-            <span className="inline-flex items-center rounded-full border border-line-subtle px-2 py-0.5 uppercase tracking-[0.14em] text-[10px] text-secondary">
+            <span className="inline-flex items-center rounded-full border border-line-subtle px-2 py-0.5 text-xs uppercase tracking-[0.14em] text-secondary">
               AU-based support
             </span>
           </p>
@@ -160,7 +160,7 @@ export function Footer() {
                     href={l.href}
                     hrefLang={l.code}
                     lang={l.code}
-                    className="rounded-md text-secondary transition-colors duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                    className="inline-flex min-h-11 items-center rounded-md px-1 text-secondary transition-colors duration-200 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
                   >
                     {l.label}
                   </Link>
@@ -170,10 +170,10 @@ export function Footer() {
             {version ? (
               <Link
                 href="/changelog"
-                className="rounded-full border border-line-subtle px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-action hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                className="inline-flex min-h-11 items-center rounded-full font-mono text-xs uppercase tracking-[0.14em] text-action hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
                 aria-label={`View changelog for release ${version}`}
               >
-                {version}
+                <span className="rounded-full border border-line-subtle px-2 py-0.5">{version}</span>
               </Link>
             ) : null}
           </p>

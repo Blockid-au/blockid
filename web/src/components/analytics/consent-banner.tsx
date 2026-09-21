@@ -55,7 +55,7 @@ export function ConsentBanner() {
         type="button"
         onClick={() => setVisible(true)}
         aria-label="Open cookie preferences"
-        className="fixed bottom-3 left-3 z-[70] rounded-full border border-brand-900/15 bg-white/90 px-3 py-1.5 text-[11px] font-medium text-brand-900/80 shadow-md backdrop-blur hover:bg-white dark:border-white/10 dark:bg-brand-900/90 dark:text-ink-200 dark:hover:bg-brand-900"
+        className="fixed bottom-3 left-3 z-[70] inline-flex min-h-11 items-center rounded-full border border-line bg-surface/90 px-3 text-xs font-medium text-primary shadow-md backdrop-blur hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy"
       >
         Cookie prefs
       </button>
@@ -75,7 +75,7 @@ export function ConsentBanner() {
             <p className="font-semibold">We use analytics to improve BlockID.</p>
             <p className="mt-1 text-brand-900/75 dark:text-ink-200">
               AU users can opt in below — nothing is tracked until you agree.{" "}
-              <Link href="/privacy" className="underline underline-offset-2 hover:text-brand-gold">
+              <Link href="/privacy" className="underline underline-offset-2 hover:text-action">
                 Learn more
               </Link>
               .
@@ -92,21 +92,21 @@ export function ConsentBanner() {
             <button
               type="button"
               onClick={() => setShowPrefs((v) => !v)}
-              className="rounded-lg border border-brand-900/15 px-3 py-2 text-xs font-medium text-brand-900/80 hover:bg-brand-900/5 dark:border-white/10 dark:text-ink-200 dark:hover:bg-white/5"
+              className="inline-flex min-h-11 items-center rounded-lg border border-line bg-surface px-3 text-xs font-medium text-primary hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy"
             >
               {showPrefs ? "Hide details" : "Customize"}
             </button>
             <button
               type="button"
               onClick={reject}
-              className="rounded-lg border border-brand-900/15 px-3 py-2 text-xs font-medium text-brand-900/80 hover:bg-brand-900/5 dark:border-white/10 dark:text-ink-200 dark:hover:bg-white/5"
+              className="inline-flex min-h-11 items-center rounded-lg border border-line bg-surface px-3 text-xs font-medium text-primary hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy"
             >
               Reject
             </button>
             <button
               type="button"
               onClick={accept}
-              className="rounded-lg bg-brand-gold px-4 py-2 text-xs font-semibold text-brand-900 shadow-sm transition hover:bg-brand-gold/90"
+              className="inline-flex min-h-11 items-center rounded-lg bg-action px-4 text-xs font-semibold text-on-action shadow-sm transition hover:bg-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
             >
               Accept
             </button>
