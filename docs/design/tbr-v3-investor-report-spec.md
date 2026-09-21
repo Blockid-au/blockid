@@ -130,3 +130,34 @@ Order and caps (web = PDF = DOCX; caps applied by the projection, never by the r
 **Fixes folded in:** executive EC "0 %" vs cover 64 % (one number after alignment); valuation table overflow at 375; evidence UUIDs out of chapters.
 
 **Migration:** none (optional fields; stored `report_v2` JSON stays valid). **Size:** ~2,200 LOC across 12 files; one worktree lane, ~1.5 days + review; PDF/DOCX twins ~0.5 day in parallel. **Deploy gate:** full unit suite, pdf suite, `qa:live` after the G26-R merge, serialised behind any peer deploy.
+
+## Implemented (build lane, 2026-09-21)
+
+Pure derivation as planned in § 7 — no pipeline change, no migration. Runbook: `docs/ops/reports.md`.
+
+| File | Section(s) / role |
+|---|---|
+| `web/src/lib/report-v2/schema.ts` | Optional `investmentView?: InvestmentView` (+ Zod `investmentViewSchema`), `DimensionChapter.investorTakeaway?`, `INVESTMENT_BANDS` |
+| `web/src/lib/report-v2/investment-view.ts` | § 4 rubric (`verdictBand`, first match wins), conviction, conditions in the fixed order, band-D evidence CTAs, 3 + 3 reasons / risks (§ 4.1), 5 key points (§ 4.2), per-dimension takeaways (§ 4.3, LLM line only past the claim gate), risk matrix + `riskGrid` (§ 4.4), lift ÷ effort plan (§ 4.5), "what moves it", analyst synthesis; `ensureInvestmentView` / `investmentViewFor` |
+| `web/src/lib/report-v2/dashboard-view.ts` | § 5 dashboard tiles ①–④, the `dim_bars` chart spec + caption (band only when every dim publishes n ≥ 10) + table twin, footer line |
+| `web/src/lib/report-visuals/dim-bars.ts` (+ `types.ts`, `index.ts`, `kind-fixtures.ts`) | The `dim_bars` visual kind: navy bars, p25–p75 sunken band, 2 px p50 tick, direct labels, ticks 0 / 50 / 100 — web / PDF / PNG twins share the geometry |
+| `web/src/lib/i18n/tbr-v3-strings.ts` (re-exported from `tbr-strings.ts`) | Every v3 label EN + VI incl. the verbatim sub-line; parity + diacritics pinned in `tbr-strings.test.ts` |
+| `web/src/lib/report-v2/fixtures.ts` | `investmentBandFixture("A"–"D")` |
+| `web/src/lib/report-v2/adapter.ts` | `resolveReportV2` → `ensureInvestmentView` at read; fallback verdict wording "rubric anchor" (no median without n) |
+| `web/src/components/tbr/v2/report.tsx` | The 16-section sequence, `tbrV2Toc` / `tbrV2TocGroups`, locked-preview + one unlock rail, `data-tbr-layout="v3"` / `data-tbr-band` |
+| `web/src/components/tbr/v2/dashboard.tsx` | § 1 Dashboard (replaces `cover.tsx`, absorbs the Assessment Card) |
+| `web/src/components/tbr/v2/investment-view.tsx` | § 2 Investment view + § 3 Key points (replaces `executive.tsx`) |
+| `web/src/components/tbr/v2/valuation.tsx` | § 4 Valuation: range tiles + ask line, methods table with applicable column and bold consensus row, "what moves it", 375 px scroll wrapper + sticky first column; free = names + weights |
+| `web/src/components/tbr/v2/chapter.tsx` | §§ 5–12 the identical 10-slot anatomy (header · verdict · evidence used without ids · strengths · risks/gaps with the unverified chip · criteria mini-table (+ full cards paid) · what to improve · investor takeaway callout · ledger in `<details>` · audit line); pending card; compact free card; locked preview |
+| `web/src/components/tbr/v2/risk-matrix.tsx` | § 13 Risk matrix (3×3 grid + table) and § 14 90-day improvement plan (replaces `action-plan.tsx`) |
+| `web/src/components/tbr/v2/money.tsx` | § 15 |
+| `web/src/components/tbr/v2/appendix.tsx` + `phase-gates.tsx` | § 16 Appendix: method · phase-gate matrix block · 8 score ledgers · register · audit log · disclaimers (counts only on free) |
+| `web/src/components/tbr/v2/evidence-cited.tsx` | Evidence cited (footnotes) closes the document |
+| `web/src/components/tbr/v2/shared-v3.tsx` | `StatTile`, `BandChip`, `VerdictBandBadge`, `Callout` (takeaway / risk / improve / note), `LevelChip`, `DimBarChart`, sticky-column table classes |
+| `web/src/app/(app)/(founder)/workspace/reports/business/business-report-client.tsx` | Founder shell TOC reads `tbrV2TocGroups` (overview · dimensions · closing) |
+| `web/src/lib/pdf/tbr-pdf.tsx` (+ `free-tier.ts`, `page-estimate.ts`) | PDF twin — same 16 sections, § 5 pagination |
+| `web/src/lib/docx/tbr-docx.ts` | DOCX twin — same 16 sections, Heading 1/2/3, header-row repeat |
+| `web/src/lib/svi/email-report.ts` | E-mail = the 1-page investment view (tiles, verdict + conditions, 5 key points, top 3 improvements) + PDF attached + link |
+| Tests | `investment-view.test.ts` (rubric table + boundaries, conditions order, band D CTAs, no cumulative lift, composite ignores pending, never-say EN/VI), `report.test.tsx` (order, TOC, tiles, anatomy, free caps, citations, no raw marker), `investment-view.test.tsx`, `tbr-strings.test.ts` (v3 parity), `tbr-pdf.test.tsx`, `tbr-docx.test.ts`, `email-report.test.ts`, `tests/e2e/smoke/tbr-contrast.spec.ts` (light + 375 px), `tests/live-qa/31-marketing.spec.ts` (v3 landmarks, fail-soft) |
+
+**Spec deviations / not done in this lane:** `/tbr/demo?band=` is not wired (the page is `force-static`; the band fixtures drive the tests instead); the sticky TOC select at 375 px is the founder shell's TOC (not part of `<TbrReportV2>`); `@page` print rules live in `globals.css` (out of this lane's scope) — sections carry `print:break-before-page` and blocks `print:break-inside-avoid`; the § 4.4 blocker rows use likelihood `high` (a blocker is present, not probable); the § 4.5 criteria next-actions use the one lift model's `derivedLift` (no catalogue value exists for them) and are printed as such.
