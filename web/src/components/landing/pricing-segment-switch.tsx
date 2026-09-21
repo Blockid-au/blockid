@@ -83,6 +83,8 @@ export interface PricingSegmentSwitchProps {
   pilotConfigured?: Readonly<Record<PilotSkuId, boolean>>;
   pilotStrings?: PilotUiStrings;
   pilotCopy?: { title: string; sub: string };
+  /** G25-D: `vi` → the card CTAs link to `/vi/checkout/review`. */
+  locale?: "en" | "vi";
 }
 
 const DEFAULT_PILOT_COPY = {
@@ -129,6 +131,7 @@ export function PricingSegmentSwitch({
   pilotConfigured,
   pilotStrings,
   pilotCopy,
+  locale = "en",
 }: PricingSegmentSwitchProps) {
   // The URL is an external store: "no tab" while hydrating (matches the
   // server document), the deep-linked tab on the first client render. A
@@ -258,7 +261,7 @@ export function PricingSegmentSwitch({
             sub={(pilotCopy ?? DEFAULT_PILOT_COPY).sub}
           />
         ) : null}
-        <PricingMatrix segment={TAB_TO_SEGMENT[tab]} annualAvailable={annualAvailable} purchasable={purchasable} />
+        <PricingMatrix segment={TAB_TO_SEGMENT[tab]} annualAvailable={annualAvailable} purchasable={purchasable} locale={locale} />
       </div>
     </div>
   );

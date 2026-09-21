@@ -105,7 +105,7 @@ describe("OnboardingWizard — 3 steps × 2 flows (S-IA4 §B.3)", () => {
   it("pricing-card hand-off: ?plan=&interval=annual survives to step 3 — primary is the trial → Billing with interval=annual", () => {
     const out = render({ step: "3", segment: "investor_angel", plan: "investor_angel", interval: "annual", trial: "1" });
     expect(out).toContain('data-wizard-interval="annual"');
-    expect(out).toContain('data-testid="wizard-continue" data-href="/workspace/billing?plan=investor_angel&amp;interval=annual"');
+    expect(out).toContain('data-testid="wizard-continue" data-href="/checkout/review?plan=investor_angel&amp;trial=1&amp;entry=onboarding&amp;interval=annual"');
     expect(out).toContain("Start your Scout trial");
     expect(out).toContain("Annual billing after the trial");
     expect(out).toContain('data-testid="wizard-secondary" data-href="/workspace/evaluations?add=1"');
@@ -114,7 +114,7 @@ describe("OnboardingWizard — 3 steps × 2 flows (S-IA4 §B.3)", () => {
   it("monthly hand-off has no interval param", () => {
     const out = render({ step: "3", segment: "founder", plan: "founder_growth" });
     expect(out).toContain('data-wizard-interval="monthly"');
-    expect(out).toContain('data-href="/workspace/billing?plan=founder_growth"');
+    expect(out).toContain('data-href="/checkout/review?plan=founder_growth&amp;trial=1&amp;entry=onboarding"');
     expect(out).toContain("Monthly billing after the trial");
   });
 

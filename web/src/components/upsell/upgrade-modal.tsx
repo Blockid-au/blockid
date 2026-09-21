@@ -1,14 +1,17 @@
 // <UpgradeModal> — trigger-driven upgrade CTA (T-0412).
 //
 // Consumes the useUpgradePrompt() hook. Shows a focus-trapped dialog
-// with primary + secondary CTAs; primary POSTs to /api/stripe/checkout
-// with the suggested plan and redirects to Stripe.
+// with primary + secondary CTAs; the primary is a LINK to the review step
+// (`/checkout/review?plan=…&entry=upgrade_modal`) — G25-D: the user reads
+// the order there and presses Pay; nothing here posts to a checkout route.
 
 "use client";
 
-import { pricingHrefForPlan } from "@/lib/entitlements/feature-requirement";
 import * as React from "react";
+import Link from "next/link";
 import { X } from "lucide-react";
+
+import { checkoutReviewHref } from "@/lib/billing/checkout-review";
 
 import { useUpgradePrompt } from "@/hooks/useUpgradePrompt";
 import { UPGRADE_COPY } from "./upgrade-copy";
@@ -17,7 +20,6 @@ import { formatGstInclusiveAud } from "@/lib/gst";
 
 export function UpgradeModal() {
   const { trigger, accept, dismiss } = useUpgradePrompt();
-  const [busy, setBusy] = React.useState(false);
   const dialogRef = React.useRef<HTMLDivElement | null>(null);
 
   React.useEffect(() => {
@@ -64,30 +66,9 @@ export function UpgradeModal() {
   if (!trigger) return null;
   const copy = UPGRADE_COPY[trigger];
 
-  const onPrimary = async () => {
-    setBusy(true);
-    try {
-      const res = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: copy.suggestedPlan }),
-      });
-      if (res.status === 401) {
-        // G18-A: encode the nested URL (the `?plan=` used to attach to /auth/login) and
-        // land on the suggested card's fragment — /pricing never read `plan`.
-        window.location.href = `/auth/login?next=${encodeURIComponent(pricingHrefForPlan(copy.suggestedPlan))}`;
-        return;
-      }
-      const data = await res.json();
-      accept(copy.suggestedPlan);
-      if (data?.url) window.location.href = data.url;
-    } catch {
-      // fall back to pricing page
-      window.location.href = "/pricing";
-    } finally {
-      setBusy(false);
-    }
-  };
+  // The review step handles signed-out visitors itself (sign-up / sign-in
+  // with `next=` back to the review), so the link is the same for everyone.
+  const reviewHref = checkoutReviewHref({ plan: copy.suggestedPlan, trial: true, entry: "upgrade_modal" });
 
   return (
     <div
@@ -145,14 +126,14 @@ export function UpgradeModal() {
               {copy.secondaryCta}
             </button>
           ) : null}
-          <button
-            type="button"
-            onClick={onPrimary}
-            disabled={busy}
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+          <Link
+            href={reviewHref}
+            onClick={() => accept(copy.suggestedPlan)}
+            data-testid="upgrade-modal-primary"
+            className="inline-flex items-center justify-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
           >
-            {busy ? "Loading…" : copy.primaryCta}
-          </button>
+            {copy.primaryCta}
+          </Link>
         </div>
       </div>
     </div>

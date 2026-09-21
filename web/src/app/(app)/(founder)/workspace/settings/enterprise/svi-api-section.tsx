@@ -5,6 +5,8 @@
 // quick-start. Client component: fetches /api/svi-api/keys on mount.
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
+import { checkoutReviewHref } from "@/lib/billing/checkout-review";
 import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 import {
   INDEX_API_DAILY_CALLS,
@@ -37,7 +39,6 @@ export function SviApiSection() {
   const [newKey, setNewKey] = useState<string | null>(null);
   const [keyName, setKeyName] = useState("");
   const [creating, setCreating] = useState(false);
-  const [upgrading, setUpgrading] = useState<string | null>(null);
   const [pageError, setPageError] = useState<string | null>(null);
 
   const load = async () => {
@@ -83,27 +84,9 @@ export function SviApiSection() {
     load();
   };
 
-  const upgrade = async (tier: "team") => {
-    setUpgrading(tier);
-    setPageError(null);
-    try {
-      const res = await fetch("/api/svi-api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tier }),
-      });
-      const d = await res.json();
-      if (d.ok && d.url) {
-        window.location.href = d.url;
-        return;
-      }
-      setPageError(userErrorMessage(ApiError.fromBody(res.status, d), "Checkout is unavailable right now. Please try again."));
-    } catch (err) {
-      console.error("[svi-api] checkout", err);
-      setPageError(userErrorMessage(err, "Checkout is unavailable right now. Please try again."));
-    }
-    setUpgrading(null);
-  };
+  // G25-D: "Upgrade to Team" is a link to the review step (price inc. GST,
+  // monthly, no trial) — the Pay button there posts to /api/svi-api/checkout.
+  const upgradeHref = checkoutReviewHref({ sku: "svi_api_team", entry: "svi_api" });
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -131,13 +114,13 @@ export function SviApiSection() {
             <p className="text-sm text-slate-600">{DAILY_LIMITS[tier]} calls/day</p>
             {tier === "free" && <p className="text-xs text-slate-400">Default tier. No payment needed.</p>}
             {tier === "team" && (
-              <button
-                onClick={() => upgrade("team")}
-                disabled={upgrading !== null}
-                className="w-full text-sm bg-sky-600 hover:bg-sky-700 text-primary rounded-lg px-3 py-1.5 font-medium disabled:opacity-50"
+              <Link
+                href={upgradeHref}
+                data-testid="svi-api-upgrade-team"
+                className="block w-full text-center text-sm bg-sky-600 hover:bg-sky-700 text-primary rounded-lg px-3 py-1.5 font-medium"
               >
-                {upgrading === "team" ? "Redirecting…" : "Upgrade to Team"}
-              </button>
+                Upgrade to Team
+              </Link>
             )}
             {tier === "institutional" && (
               <a

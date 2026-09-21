@@ -108,12 +108,12 @@ describe("step 3 exits — firstValueTargets", () => {
     expect(firstValueTargets({ persona: "accelerator" }).exit).toBe("/workspace/accelerator?onboarding=complete");
   });
 
-  it("a pricing-card plan turns the primary into Billing checkout WITH the annual interval; first value becomes secondary", () => {
+  it("a pricing-card plan turns the primary into the review step WITH the annual interval (G25-D, never an auto-checkout); first value becomes secondary", () => {
     const t = firstValueTargets({ persona: "investor_angel", planId: "investor_angel", interval: "annual" });
-    expect(t.primary).toEqual({ href: "/workspace/billing?plan=investor_angel&interval=annual", kind: "trial" });
+    expect(t.primary).toEqual({ href: "/checkout/review?plan=investor_angel&trial=1&entry=onboarding&interval=annual", kind: "trial" });
     expect(t.secondary).toEqual({ href: "/workspace/evaluations?add=1", label: "first_value" });
     const m = firstValueTargets({ persona: "founder", planId: "founder_growth", interval: "monthly" });
-    expect(m.primary.href).toBe("/workspace/billing?plan=founder_growth");
+    expect(m.primary.href).toBe("/checkout/review?plan=founder_growth&trial=1&entry=onboarding");
   });
 
   it("an unknown / free plan id still goes to Billing (never a marketing page)", () => {

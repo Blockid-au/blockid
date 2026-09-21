@@ -11,7 +11,7 @@ import {
   resolvePricingTab,
   tabFromLocation,
 } from "./pricing-segment-switch";
-import { evaluatorSignupHref } from "./pricing-matrix";
+import { planReviewHref } from "./pricing-matrix";
 
 function html(el: React.ReactElement): string {
   return renderToStaticMarkup(el);
@@ -142,10 +142,12 @@ describe("<PricingSegmentSwitch /> — Evaluator tab (deep link)", () => {
     expect(out).not.toContain('aria-label="VC Small plan"');
   });
 
-  it("routes every rung to /signup?segment=evaluator&plan=<id>&trial=1 as a 7-day card-required trial", () => {
+  // G25-D (founder 2026-09-21): every rung lands on the review step first —
+  // never on a card form or Stripe from the card click.
+  it("routes every rung to /checkout/review?plan=<id>&trial=1&entry=pricing_card as a 7-day card-required trial", () => {
     for (const id of ["investor_angel", "investor_advisor", "investor_vc_small", "investor_fund"]) {
-      expect(evaluatorSignupHref(id)).toBe(`/signup?segment=evaluator&plan=${id}&trial=1`);
-      expect(out).toContain(evaluatorSignupHref(id).replace(/&/g, "&amp;"));
+      expect(planReviewHref(id)).toBe(`/checkout/review?plan=${id}&trial=1&entry=pricing_card`);
+      expect(out).toContain(planReviewHref(id).replace(/&/g, "&amp;"));
     }
     expect(out).toContain("Start 7-day free trial");
     expect(out).toContain("card required · cancel anytime");

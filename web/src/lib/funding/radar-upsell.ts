@@ -122,5 +122,5 @@ export function founderRadarSignupHref(from: string): string {
   return `/signup?plan=founder_starter&trial=1&from=${encodeURIComponent(from)}`;
 }
 
-/** Same target `evaluatorSignupHref("investor_angel")` builds on /pricing. */
+/** The card-required Scout sign-up (its card form sits under a review block — G25-D). */
 export const SCOUT_SIGNUP_HREF = "/signup?segment=evaluator&plan=investor_angel&trial=1";

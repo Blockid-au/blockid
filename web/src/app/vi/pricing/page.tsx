@@ -136,6 +136,7 @@ export default async function ViPricingPage({ searchParams }: ViPricingPageProps
       <Section id="pricing-matrix" ariaLabel="Bảng giá theo phân khúc" spacing="sm" divider={false}>
         <PricingSegmentSwitch
           initialSegment={initialTab}
+          locale="vi"
           annualAvailable={annualAvailable}
           purchasable={purchasable}
           pilotConfigured={pilotSkusConfigured()}
