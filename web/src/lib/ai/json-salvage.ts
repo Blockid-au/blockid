@@ -15,6 +15,9 @@
 const CLOSER: Record<string, string> = { "{": "}", "[": "]" };
 
 /** True when a JSON.parse error message describes an output cut short (not a syntax slip). */
+/** A cut string with no sentence end is kept (to its last word) only when it is prose this long. */
+export const SALVAGE_MIN_PROSE_WORDS = 40;
+
 export function looksTruncated(message: string): boolean {
   return /Unterminated string|Unexpected end of JSON|Unexpected end of input|Expected .*after|Expected double-quoted property name|Expected property name/i.test(message);
 }
@@ -119,7 +122,11 @@ export function salvageTruncatedJson(raw: string): string | null {
     // Cut inside a prose value: keep whole sentences (else whole words), close the string.
     const body = s.slice(strStart + 1).replace(/\\$/, "");
     const cut = lastSentenceEnd(body);
-    const kept = (cut > 0 ? body.slice(0, cut) : body.slice(0, Math.max(0, body.lastIndexOf(" ")))).replace(/\\+$/, "").trimEnd();
+    // Without a sentence end only long prose keeps its words (a cut
+    // highlight / title such as "Revenue is not" would invert meaning —
+    // review G23 P2); short strings fall back to the last complete value.
+    const words = body.trim().split(/\s+/).filter(Boolean).length;
+    const kept = (cut > 0 ? body.slice(0, cut) : words >= SALVAGE_MIN_PROSE_WORDS ? body.slice(0, Math.max(0, body.lastIndexOf(" "))) : "").replace(/\\+$/, "").trimEnd();
     if (kept.length > 0) {
       let out = `${s.slice(0, strStart + 1)}${kept}"`;
       for (let d = stack.length - 1; d >= 0; d--) out += CLOSER[stack[d]!];

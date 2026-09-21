@@ -426,6 +426,10 @@ async function POST_handler(request: Request) {
       return NextResponse.json({ ok: false, error: "coupon_unconfigured", planId, fallback: PILOT_CONVERSION_CONTACT, message: "The pilot credit is applied by our team for now — we reply within two business days." }, { status: 409 });
     }
     pilotConversion = { orderId: order.id, coupon, sku: offer.sku };
+    // The program already paid for the pilot: the annual starts immediately
+    // (review G23 P1 — a 14-day trial cancelled in-trial would have burned the
+    // one-time credit and left the order `already_converted`).
+    trialDays = 0;
   }
 
   // Per CISO D3-CISO-07: hash raw user UUIDs before writing to Stripe metadata

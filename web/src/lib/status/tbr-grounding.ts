@@ -28,7 +28,7 @@ export interface TbrGrounding {
   grounded_share_kpi: number;
 }
 
-type RowLike = { ts?: unknown; groundedShare?: unknown };
+type RowLike = { ts?: unknown; groundedShare?: unknown; words?: unknown; degradedSections?: unknown };
 
 const r2 = (x: number) => Math.round(x * 100) / 100;
 
@@ -46,6 +46,10 @@ export function latestGroundedShare(rows: readonly RowLike[]): number | null {
     if (!row || typeof row !== "object") continue;
     const share = row.groundedShare;
     if (typeof share !== "number" || !Number.isFinite(share)) continue;
+    // A run that produced no report (words 0, every chapter degraded) has no
+    // grounding to publish — the same rule as the quality window (review G23 P1:
+    // the status tile read 0 from an outage row while the window said 0.41).
+    if (row.words === 0 && typeof row.degradedSections === "number" && row.degradedSections >= 8) continue;
     const ts = typeof row.ts === "string" ? Date.parse(row.ts) : NaN;
     const t = Number.isFinite(ts) ? ts : -Infinity;
     // Later rows win ties (the file is append-only, so position is the run order).

@@ -91,6 +91,9 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
       "x-robots-tag": "noindex, nofollow",
       "x-proposal-pages": String(pages),
       "x-proposal-sku": proposal.meta.sku,
+      // The stamped row's timestamps so the client's next PATCH carries the
+      // current `If-Match` (review G23 P2: the edit after a download 409'd).
+      ...(stamped.ok ? { "x-proposal-generated-at": stamped.value.proposal_generated_at ?? now.toISOString(), "x-entry-updated-at": stamped.value.updated_at } : {}),
     },
   });
 }

@@ -250,7 +250,10 @@ const AgentAnalysisPayloadShape = z.object({
  * `section.body_markdown`, so the section is missing its own `citations` /
  * `confidence` / `hallucination_risk`. Those are copied from the same
  * answer’s `finding` (already validated with ≥ 1 citation) — never invented —
- * so the salvaged text validates instead of costing a repair pass.
+ * so the salvaged text validates instead of costing a repair pass. It runs
+ * as a preprocess on EVERY answer (not only salvaged ones): a complete answer
+ * whose section left `citations` empty inherits the finding's the same way,
+ * which is the intended reading of the contract (one evidence set per agent).
  */
 export function fillSectionFromFinding(raw: unknown): unknown {
   if (!raw || typeof raw !== "object") return raw;
