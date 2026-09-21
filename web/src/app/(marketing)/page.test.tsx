@@ -242,9 +242,9 @@ describe("homepage v7 — sections in order", () => {
     expect(band).not.toMatch(/<img\b/);
   });
 
-  it("g. one dark CtaBand with the two CTAs", () => {
-    expect(out).toMatch(/<section[^>]*id="cta"[^>]*data-theme="dark"/);
-    expect((out.match(/<section[^>]*data-theme="dark"/g) ?? []).length).toBe(1);
+  it("g. one light (sunken) CtaBand with the two CTAs — G26: no dark band anywhere on the page", () => {
+    expect(out).toMatch(/<section[^>]*id="cta"[^>]*data-tone="sunken"/);
+    expect(out).not.toMatch(/<section[^>]*data-theme="dark"/);
     const band = out.slice(out.indexOf('id="cta"'));
     expect(band).toContain("Run a cohort pilot");
     expect(band).toContain("Score my startup");

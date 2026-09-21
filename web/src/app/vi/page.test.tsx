@@ -84,7 +84,8 @@ describe("/vi homepage — template (G21 P0-B)", () => {
     expect(out).toContain(esc(VI["vi.hero.notice"]!));
     expect(out).toContain(esc(VI["vi.home.whynot.line"]!));
     expect(out).toContain(esc(VI["vi.home.problem.title"]!));
-    expect(out).toMatch(/<section[^>]*id="cta"[^>]*data-theme="dark"/);
+    expect(out).toMatch(/<section[^>]*id="cta"[^>]*data-tone="sunken"/); // G26: light CtaBand, no dark scope
+    expect(out).not.toMatch(/<section[^>]*data-theme="dark"/);
     expect((out.match(/<footer\b/g) ?? []).length).toBe(1);
   });
 

@@ -50,7 +50,8 @@ describe("/product — the intro page", () => {
     expect(out).toContain("The room an investor asks to see.");
     expect(out).toContain('data-testid="unlock-preview"');
     expect(out).toMatch(/<svg/); // the radar / ranges are inline SVG
-    expect(out).toMatch(/data-theme="dark"/); // the journey band is the one dark punctuation
+    expect(out).not.toMatch(/data-theme="dark"/); // G26: no dark punctuation — the journey band is sunken
+    expect(out).toMatch(/<section[^>]*id="journey"[^>]*data-tone="sunken"/);
   });
 
   it("links: /analyze, /samples, /one-click-report, /guide/scn, the growth-phases walkthrough, /pricing", async () => {
