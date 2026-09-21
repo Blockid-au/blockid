@@ -77,7 +77,9 @@ select id, sequence_no, source, delivery_status, delivered_at, analysis_id
 delete from public.free_report_grants where email = lower('founder@example.com') and delivery_status <> 'sent' and sequence_no = 2;
 ```
 
-The next submission then reserves `sequence_no = 2` again. (There is deliberately no admin endpoint: a comp is a founder decision, and the ledger row is the audit trail — the deleted row's report stays on `analyses`.) A stuck reservation (`analysis_id IS NULL`, `delivery_status = queued`, older than an hour) means a run that failed after reserving and could not release — delete it the same way.
+The next submission then reserves `sequence_no = 2` again. (There is deliberately no admin endpoint: a comp is a founder decision, and the ledger row is the audit trail — the deleted row's report stays on `analyses`.) A stuck reservation (`analysis_id IS NULL`, `delivery_status = queued`, older than an hour) means a run that failed after reserving and could not release — the `first-analysis-report` cron gives those back every 5 minutes (`releaseStaleReservations`, `staleReleased` in its summary); nothing to do by hand.
+
+**`?tier=paid` is not a bypass** (review 2026-09-21): a guest arriving on the paid tier still gives the address and is counted like any other run; the A$3 guest checkout is a separate purchase. Before G25-C the signup gate let a "paid guest" through and the S32 job ran the whole report for free.
 
 ## 7. Erasure
 
