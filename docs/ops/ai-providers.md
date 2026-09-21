@@ -29,8 +29,10 @@ Within a tier the dispatcher picks the provider with the most **remaining
 capacity** (Anthropic: the `anthropic-ratelimit-requests-remaining` /
 `-tokens-remaining` headers of the last response; others: a per-minute RPM
 window). A provider whose last probe says `invalid_key`, `quota_exceeded`
-or `low_credit` is **never dialled** while that verdict is fresh (15 min); an
-Anthropic 401 latches the key invalid for 1 h and logs once.
+or `low_credit` is **never dialled** while that verdict is fresh (15 min); a
+401 / invalid-key answer from ANY provider marks it `unconfigured` for the
+rest of the process (G24-B: one log line naming the env var, never a key
+value, no retries — rotate the key and restart / redeploy to clear it).
 
 **Report-grade models (`MIN_REPORT_MODEL`).** For `report` / `synthesis` the
 free-tier model lists (curated defaults and the daily
@@ -105,7 +107,8 @@ Never paste a key into a log, doc or chat — code only ever prints key
    `OPENROUTER_MIN_CREDIT_USD` so the free-model overflow is not skipped.
 
 Rotate: replace the value, restart, re-run the probe. A revoked key is
-detected within one request (401 → latched 1 h) and shows as `invalid_key`.
+detected within one request (401 → `unconfigured` for the process) and shows
+as `invalid_key` in the probe summary / `blocked · unconfigured` in `ai.providers`.
 
 ## 4. Expected Anthropic limits by usage tier
 
@@ -242,7 +245,8 @@ FROM analyses WHERE id = …`, or the `[ai-client]` log lines for
   At the cap every paid provider is skipped, free tiers + OAuth continue, the
   founder gets ONE `ai_capacity` notification (feed + bell + Telegram) per day.
 - **OpenRouter floor** — `OPENROUTER_MIN_CREDIT_USD`.
-- **Invalid key latch** — 1 h, logged once, never retried on the hot path.
+- **Invalid key latch** — process lifetime (G24-B), logged once per provider,
+  never retried on the hot path; cleared by a restart after the key is rotated.
 - **Backpressure** — bounded two-lane queue (users before crons, 25 %
   reserve), max 2 in-flight per user; overflow is a **503 + `Retry-After`**
   with `{ code: "ai_capacity_busy", retry_after_sec }` on every user-facing
@@ -280,8 +284,8 @@ only surfaced in the log. Two small readers now feed `/api/status.ai` (R2):
 
 * The snapshot is a **pure reader** over the same state the dispatcher routes
   on: `providerCooldown` (→ `cooldown` + `cooldown_until`), `providerBlockReason`
-  (→ `blocked` + `reason` ∈ `invalid_key` / `quota_exceeded` / `low_credit` /
-  `daily_cap` / `unreachable`), and `orderForInteractive(getAvailableProviders("report"))`
+  (→ `blocked` + `reason` ∈ `unconfigured` / `invalid_key` / `quota_exceeded` /
+  `low_credit` / `daily_cap` / `unreachable`), and `orderForInteractive(getAvailableProviders("report"))`
   (→ `interactive_order`). Only configured providers appear — a provider with
   no key is absent, not blocked. `budget_exhausted_1h` is a one-hour ring
   buffer incremented where `callAI()` throws `AIBudgetExhaustedError`; process-

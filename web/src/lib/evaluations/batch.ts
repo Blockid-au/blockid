@@ -54,6 +54,8 @@ const BATCH_COLUMNS =
 const BATCH_COLUMNS_V2 = `${BATCH_COLUMNS}, program_name, intake_id, template_id, weights_version, applicants_cap, pilot_order_id`;
 /** G22-B (0433) — + `org_id` (the organisation the creator acted for); readers fall back to V2, then V1, on 42703. */
 const BATCH_COLUMNS_V3 = `${BATCH_COLUMNS_V2}, org_id`;
+/** G24-C (0436) — + `is_demo` (the fictional demo cohort flag); readers fall back to V3 → V2 → V1 on 42703. */
+const BATCH_COLUMNS_V4 = `${BATCH_COLUMNS_V3}, is_demo`;
 const ITEM_COLUMNS =
   "id, batch_id, evaluation_id, status, report_id, snapshot_id, share_token, svi_total, dimension_scores, error, scored_at";
 
@@ -71,13 +73,15 @@ function isMissingColumn(error: unknown): boolean {
 }
 
 /**
- * Run a batch read with the 0433 columns, retrying on the 0422 shape and
- * then the 0322-only shape (42703 = column missing). `listBatches`,
+ * Run a batch read with the 0436 columns, retrying on the 0433, then the
+ * 0422 shape and then the 0322-only shape (42703 = column missing). `listBatches`,
  * `getBatchForUser`, `getBatchById`, `addEvaluationsToBatch` and
  * `finaliseBatch` all go through here, so `org_id` reaches every mapped row
  * once 0433 is applied and is simply null before.
  */
 async function withBatchColumns<T extends { error: unknown }>(run: (cols: string) => PromiseLike<T>): Promise<T> {
+  const v4 = await run(BATCH_COLUMNS_V4);
+  if (!(v4.error && isMissingColumn(v4.error))) return v4;
   const res = await run(BATCH_COLUMNS_V3);
   if (!(res.error && isMissingColumn(res.error))) return res;
   const v2 = await run(BATCH_COLUMNS_V2);

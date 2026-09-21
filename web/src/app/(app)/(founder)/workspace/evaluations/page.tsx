@@ -38,6 +38,7 @@ import { canBatchScore } from "@/lib/evaluations/batch-shared";
 import { getInvestorPreferences, getInvestorVisibility } from "@/lib/investor-portal";
 import { TRIAL_REMINDER_FROM, type ActivationInputs } from "@/lib/evaluations/activation-checklist";
 import { EvaluationsClient } from "./evaluations-client";
+import { loadDemoCohortLabels } from "@/lib/evaluations/demo-cohort-labels";
 
 export const metadata: Metadata = {
   title: "Startups I'm evaluating | BlockID",
@@ -64,9 +65,10 @@ export default async function EvaluationsPage({ searchParams }: PageProps) {
   const batchParam = first(params?.batch);
   const preselectBatchId = batchParam && /^[A-Za-z0-9_-]{1,64}$/.test(batchParam) ? batchParam : null;
 
-  const [isSandbox, isEvaluator] = await Promise.all([
+  const [isSandbox, isEvaluator, demoLabels] = await Promise.all([
     getCurrentProjectIsSandbox(),
     isEvaluatorUser(user),
+    loadDemoCohortLabels(),
   ]);
 
   const [evaluations, quota, lastReports, reportQuota, progress, flags, batches, prefs, visibility] = isEvaluator
@@ -113,6 +115,7 @@ export default async function EvaluationsPage({ searchParams }: PageProps) {
         autoOpenReport={fromTrialReminder}
         autoOpenAdd={autoOpenAdd}
         preselectBatchId={preselectBatchId}
+        demoLabels={demoLabels}
       />
     </WorkspaceLayout>
   );

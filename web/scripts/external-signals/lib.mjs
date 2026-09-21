@@ -13,7 +13,7 @@ export const EXIT_USAGE = 2;
 /** Licence gate refused (unknown / cite_only / disabled source). */
 export const EXIT_REFUSED = 3;
 
-export const SIGNAL_TYPES = ["abr_entity", "grant_award", "rdti_registration"];
+export const SIGNAL_TYPES = ["abr_entity", "grant_award", "rdti_registration", "funding_round"];
 
 // ── ABN ─────────────────────────────────────────────────────────────────────
 
@@ -271,11 +271,11 @@ export async function readAll(input) {
 
 // ── CLI args / env ──────────────────────────────────────────────────────────
 
-export const SOURCE_IDS = ["abr-bulk", "business-gov-grants", "rdti-transparency"];
+export const SOURCE_IDS = ["abr-bulk", "business-gov-grants", "rdti-transparency", "funding-announcements"];
 
 export const USAGE = [
   "usage: node scripts/external-signals/ingest.mjs [--source <id>]... [--file <path>] [--abn-file <path>] [--limit N] [--dry] [--fetch] [--json] [--data-dir <dir>] [--dotenv <path>]",
-  "  --source <id>     one of abr-bulk | business-gov-grants | rdti-transparency (repeatable; default: all three)",
+  "  --source <id>     one of abr-bulk | business-gov-grants | rdti-transparency | funding-announcements (repeatable; default: all)",
   "  --file <path>     input file for the (single) --source; default: newest file under <data-dir>/<source>/",
   "  --abn-file <path> extra ABNs (one per line) added to the ABR allow-set",
   "  --limit N         stop after N parsed rows per source (smoke runs)",

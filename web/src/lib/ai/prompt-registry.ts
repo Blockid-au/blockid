@@ -8,6 +8,17 @@
  *     unique per the partial index. Returns null if the agent has no
  *     prod row yet (first-time bootstrap).
  *
+ *   readOrRegisterPrompt(agent, defaults)        (G24-B)
+ *     The pipeline's resolver: the prod row when one exists, otherwise the
+ *     code-default prompt is REGISTERED on first use — one row per
+ *     (agent, version) inserted as prod — and that row is returned. Every
+ *     `ai_runs` row the pipeline writes therefore points at a real
+ *     prompt_versions row (0231's FK) instead of the NIL uuid that made
+ *     every insert fail with ai_runs_prompt_version_id_fkey. A race with
+ *     another worker (or a rolled-back row of the same version) resolves
+ *     to the existing row; a DB error returns null so the caller falls
+ *     back to writing NULL on the run row (0435), never dropping it.
+ *
  *   promoteCanaryToProd(agent, canaryVersionId, rolloutBy)
  *     Atomically swaps prod. If a prior prod row exists it is flipped
  *     to rolled_back and its id is stored on the new prod row's
@@ -91,6 +102,92 @@ export async function readCurrentPrompt(
   if (!data) return null;
 
   return PromptVersion.parse(data);
+}
+
+/** What the pipeline registers when an agent has no prompt_versions row yet. */
+export interface PromptRegistrationDefaults {
+  /** Semver of the code-default prompt (bumped with the prompt builder). */
+  version: string;
+  /** Model label the run will carry (free text — the chain marker is fine). */
+  model: string;
+  purpose: string;
+  /** Extra `variables` (e.g. a slotted template) — never a secret. */
+  variables?: Record<string, unknown>;
+}
+
+function isUniqueViolation(err: { code?: string; message?: string } | null | undefined): boolean {
+  if (!err) return false;
+  if (err.code === "23505") return true;
+  return /duplicate key|unique constraint|already exists/i.test(err.message ?? "");
+}
+
+/**
+ * Register the code-default prompt for `agent` (upsert by (agent, version))
+ * and return the row that now stands for it, or null when the DB is
+ * unavailable / refuses the write. Inserted as `prod` so the next
+ * readCurrentPrompt() finds it; a concurrent registration or an existing
+ * (agent, version) row of any status wins the race and is returned instead.
+ */
+export async function registerPromptVersion(agent: string, defaults: PromptRegistrationDefaults): Promise<PromptVersion | null> {
+  const parsedAgent = z.string().min(1).parse(agent);
+  const sb = getSupabaseAdmin();
+  if (!sb) return null;
+
+  const attempt = await sb
+    .from("prompt_versions")
+    .insert({
+      agent: parsedAgent,
+      version: defaults.version,
+      purpose: defaults.purpose,
+      model: defaults.model,
+      variables: defaults.variables ?? {},
+      status: "prod",
+      released_at: new Date().toISOString(),
+    })
+    .select("*")
+    .maybeSingle();
+  if (!attempt.error && attempt.data) {
+    const parsed = PromptVersion.safeParse(attempt.data);
+    if (parsed.success) return parsed.data;
+  }
+  if (attempt.error && !isUniqueViolation(attempt.error)) {
+    console.warn(`[prompt_versions] register ${parsedAgent}@${defaults.version} failed: ${attempt.error.message}`);
+    return null;
+  }
+
+  // Lost the race (agent, version) or (agent) WHERE prod — read what won.
+  const byVersion = await sb
+    .from("prompt_versions")
+    .select("*")
+    .eq("agent", parsedAgent)
+    .eq("version", defaults.version)
+    .maybeSingle();
+  if (byVersion.data) {
+    const parsed = PromptVersion.safeParse(byVersion.data);
+    if (parsed.success) return parsed.data;
+  }
+  try {
+    return await readCurrentPrompt(parsedAgent);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * The pipeline's prompt resolver (G24-B): prod row, else register the code
+ * default and return it. Null only when Supabase is unavailable or the
+ * registration failed — the caller then writes NULL on `ai_runs` (0435).
+ */
+export async function readOrRegisterPrompt(agent: string, defaults: PromptRegistrationDefaults): Promise<PromptVersion | null> {
+  let current: PromptVersion | null = null;
+  try {
+    current = await readCurrentPrompt(agent);
+  } catch (err) {
+    console.warn(`[prompt_versions] read ${agent} failed: ${err instanceof Error ? err.message : String(err)}`);
+    return null;
+  }
+  if (current) return current;
+  return registerPromptVersion(agent, defaults);
 }
 
 /**

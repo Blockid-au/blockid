@@ -227,3 +227,75 @@ export function toReportRow(digest, tsIso, windowMin = WINDOW_MIN) {
     classes: digest.classes.slice(0, MAX_CLASSES_PER_WINDOW).map(({ tag, msg, count, first_seen, critical }) => ({ tag, msg, count, first_seen, ...(critical ? { critical: true } : {}) })),
   };
 }
+
+// ---------- G24-B: report-quality watch (tbr_quality ≠ ok for > 24 h) ----------
+//
+// /api/status.tbr_quality.status is `ok` | `watch` (24 h grounded median below
+// the KPI or too many degraded chapters) | `missing` (no run in 24 h). A
+// transient `watch` is normal after a provider outage; the same verdict held
+// for more than a day is a report-quality incident nobody would otherwise see
+// (the status page is not watched). The digest raises ONE line for it, once
+// per day while it persists, through the same Telegram → e-mail fallback path
+// as every other alert. The state lives next to the class memory in
+// error-digest-state.json; an unreadable status (app down) changes nothing.
+
+export const TBR_QUALITY_NOT_OK_HOURS = 24;
+export const TBR_QUALITY_ALERT_DEBOUNCE_HOURS = 24;
+
+export function emptyTbrQualityState() {
+  return { status: null, not_ok_since: null, last_alert_at: null };
+}
+
+/** The bit of /api/status the rule needs, or null when the body is not a status document. */
+export function pickTbrQuality(statusBody) {
+  const q = statusBody && typeof statusBody === "object" ? statusBody.tbr_quality : null;
+  if (!q || typeof q !== "object" || typeof q.status !== "string") return null;
+  const w = q.last24h && typeof q.last24h === "object" ? q.last24h : {};
+  const num = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  return {
+    status: q.status,
+    runs: num(w.runs) ?? 0,
+    grounded_share_median: num(w.groundedShareMedian),
+    degraded_share: num(w.degradedShare),
+    grounded_share_kpi: num(q.grounded_share_kpi),
+  };
+}
+
+/**
+ * Apply one verdict to the tbr_quality state and decide the alert.
+ *   verdict null      → app unreachable / not a status body: state unchanged, no alert
+ *   status "ok"       → episode over: cleared (the next episode alerts after its own 24 h)
+ *   status ≠ "ok"     → not_ok_since starts at the first non-ok sighting; once it is
+ *                       older than TBR_QUALITY_NOT_OK_HOURS one line fires, then at
+ *                       most one per TBR_QUALITY_ALERT_DEBOUNCE_HOURS while it holds.
+ * Pure: returns { next, alert } and never mutates `prev`.
+ */
+export function evaluateTbrQuality(prev, verdict, nowMs = Date.now(), opts = {}) {
+  const notOkMs = (opts.notOkHours ?? TBR_QUALITY_NOT_OK_HOURS) * 3_600_000;
+  const debounceMs = (opts.debounceHours ?? TBR_QUALITY_ALERT_DEBOUNCE_HOURS) * 3_600_000;
+  const base = { ...emptyTbrQualityState(), ...(prev && typeof prev === "object" ? prev : {}) };
+  if (!verdict) return { next: base, alert: null };
+  const nowIso = new Date(nowMs).toISOString();
+  if (verdict.status === "ok") return { next: { status: "ok", not_ok_since: null, last_alert_at: null }, alert: null };
+
+  const sinceMs = Date.parse(base.not_ok_since ?? "");
+  const since = Number.isFinite(sinceMs) && sinceMs <= nowMs ? sinceMs : nowMs;
+  const next = { status: verdict.status, not_ok_since: new Date(since).toISOString(), last_alert_at: base.last_alert_at ?? null };
+  if (nowMs - since <= notOkMs) return { next, alert: null };
+  const lastAlert = Date.parse(base.last_alert_at ?? "");
+  if (Number.isFinite(lastAlert) && nowMs - lastAlert < debounceMs) return { next, alert: null };
+  next.last_alert_at = nowIso;
+  return { next, alert: formatTbrQualityAlert(verdict, nowMs - since) };
+}
+
+/** One line — numbers only, no path / project / snapshot id. */
+export function formatTbrQualityAlert(verdict, heldMs) {
+  const hours = Math.floor(heldMs / 3_600_000);
+  const parts = [];
+  if (verdict.grounded_share_median !== null && verdict.grounded_share_median !== undefined) {
+    parts.push(`grounded median ${verdict.grounded_share_median.toFixed(2)}${verdict.grounded_share_kpi != null ? ` vs KPI ${verdict.grounded_share_kpi.toFixed(2)}` : ""}`);
+  }
+  if (verdict.degraded_share !== null && verdict.degraded_share !== undefined) parts.push(`degraded ${verdict.degraded_share.toFixed(2)}`);
+  parts.push(`runs ${verdict.runs ?? 0} (24 h)`);
+  return `[tbr_quality] status=${verdict.status} for ${hours} h — ${parts.join(", ")} — see /api/status tbr_quality`;
+}

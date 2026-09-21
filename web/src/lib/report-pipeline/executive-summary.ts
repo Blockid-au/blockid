@@ -19,11 +19,12 @@
 
 import { z } from "zod";
 import { callStructured, type StructuredModelCaller } from "@/lib/ai/call-structured";
-import { readCurrentPrompt } from "@/lib/ai/prompt-registry";
+import { readOrRegisterPrompt } from "@/lib/ai/prompt-registry";
 import { GROWTH_PHASE_LABELS } from "@/lib/growth/phase-taxonomy";
 import { EXECUTIVE_CAPS, type ExecutiveStructured } from "@/lib/report-v2/schema";
 import { executiveThesisFromStructured, finaliseExecutiveStructured } from "@/lib/report-v2/executive-structure";
 import { modelForAgent } from "./agent-model-tiers";
+import { CODE_PROMPT_VERSION } from "./version";
 import { DIM_ORDER, type DimKey } from "./dimension-owners";
 import type { ReportContext } from "./types";
 
@@ -217,9 +218,10 @@ export interface ExecutiveDispatchResult {
   calls: number;
 }
 
+/** G24-B: prod row, else the code default is registered on first use (see agent-dispatcher). */
 async function defaultCeoPromptVersionId(): Promise<string> {
   try {
-    const row = await readCurrentPrompt("report-ceo");
+    const row = await readOrRegisterPrompt("report-ceo", { version: CODE_PROMPT_VERSION, model: modelForAgent("ceo"), purpose: "customer_report" });
     return row?.id ?? NIL_PROMPT_VERSION_ID;
   } catch {
     return NIL_PROMPT_VERSION_ID;

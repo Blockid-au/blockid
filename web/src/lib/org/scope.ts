@@ -104,7 +104,29 @@ export async function loadOrgScope(db: Db, orgId: string, ownerUserId?: string |
     for (const id of ownerIntakes.ids) intakeIds.add(id);
   }
 
+  // G24-C: the fictional demo cohort is never part of an organisation's
+  // artefacts — not exported, not retained as data. Fail-soft: before 0436
+  // the `is_demo` read answers 42703 and the set is left as it was.
+  for (const id of await demoBatchIds(db, [...batchIds])) batchIds.delete(id);
+
   out.batchIds = [...batchIds];
   out.intakeIds = [...intakeIds];
   return out;
+}
+
+/** The slice of the builder the demo read uses. */
+interface DemoIdQuery {
+  in(col: string, vals: string[]): { eq(col: string, v: boolean): PromiseLike<{ data: unknown; error: unknown }> };
+}
+
+/** The subset of `ids` flagged `is_demo` (0436); [] before the migration or on any error. */
+export async function demoBatchIds(db: Db, ids: string[]): Promise<string[]> {
+  if (ids.length === 0) return [];
+  try {
+    const res = await (db.from("evaluation_batches").select("id") as unknown as DemoIdQuery).in("id", ids.slice(0, SCOPE_LIMIT)).eq("is_demo", true);
+    if (res.error) return [];
+    return ((res.data ?? []) as Row[]).map((r) => String(r.id));
+  } catch {
+    return [];
+  }
 }

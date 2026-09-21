@@ -20,6 +20,12 @@
  *                             register is ever derived.
  *   abr_entity         → LCO  ABN status, entity type, GST registration,
  *                             entity age from ABNStatusFromDate.
+ *   funding_round      → IRI  "Funding round — <round>, A$<amount>" from a
+ *                             PUBLIC announcement (G24-B feed
+ *                             `funding-announcements`); the announcement's
+ *                             own figure + link, never a valuation. Also
+ *                             the feed for `funding_raised` outcome
+ *                             proposals (lib/outcomes/proposals.ts).
  *
  * Every reader is 42P01-guarded: a missing table (0410 pending), a mocked
  * client without `from`, or a DB error reads as "no signals" — the report
@@ -38,9 +44,9 @@ import type { EvidenceRow, EvidenceStatus } from "@/lib/report-v2/schema";
 
 // ── Row shapes ──────────────────────────────────────────────────────────────
 
-export type ExternalSignalType = "abr_entity" | "grant_award" | "rdti_registration";
+export type ExternalSignalType = "abr_entity" | "grant_award" | "rdti_registration" | "funding_round";
 
-export const EXTERNAL_SIGNAL_TYPES: readonly ExternalSignalType[] = ["abr_entity", "grant_award", "rdti_registration"];
+export const EXTERNAL_SIGNAL_TYPES: readonly ExternalSignalType[] = ["abr_entity", "grant_award", "rdti_registration", "funding_round"];
 
 export interface ExternalSignalRow {
   id?: string;
@@ -192,6 +198,18 @@ export function mapSignalsToEvidence(rows: readonly ExternalSignalRow[], opts: {
       const gaId = str(v.ga_id);
       const value = [amount != null ? formatAud(amount) : "amount not disclosed", `approved ${date}`, gaId ? `ref ${gaId}` : null].filter(Boolean).join(" · ");
       out.push(base(s, `Grant award — ${program}${agency ? ` (${agency})` : ""}`, "evidenced", ["iri", "cgh"], value));
+      continue;
+    }
+    if (s.signal_type === "funding_round") {
+      // G24-B: a public announcement's own figure — the amount is required by
+      // the adapter, so a row without one is a malformed import and is dropped.
+      const amount = num(v.amount_aud);
+      if (amount == null) continue;
+      const round = str(v.round) ?? "funding round";
+      const investors = str(v.investors);
+      const by = str(v.announced_by);
+      const value = [formatAud(amount), `announced ${s.as_of}`, investors ? `investors: ${investors}` : null, by ? `via ${by}` : null].filter(Boolean).join(" · ");
+      out.push(base(s, `Funding round — ${round}`, "evidenced", ["iri"], value));
       continue;
     }
     if (s.signal_type === "rdti_registration") {

@@ -16,12 +16,13 @@ import { VisualFigure } from "@/lib/report-visuals/react";
 import { ensureExecutiveStructured } from "@/lib/report-v2/executive-structure";
 import type { Band, ExecutiveGap, ExecutiveReason, ExecutiveStructured, ExecutiveVerdictLabel, ReportV2 } from "@/lib/report-v2/schema";
 import { cn } from "@/lib/utils";
-import { Chip, DimChip, TBR_SPACING, TBR_V2_SECTION_IDS, TbrSection, WindowChip, bandLabel, bandSurface, bandText, v2Strings, type TbrUiLocale } from "./shared";
+import { Chip, CitedText, DimChip, TBR_SPACING, TBR_V2_SECTION_IDS, TbrSection, WindowChip, bandLabel, bandSurface, bandText, v2Strings, type TbrUiLocale } from "./shared";
+import type { CitationIndex } from "@/lib/report-v2/citations";
 
 /** Verdict → the band colour scale (back = strong blue … not yet = pending grey). */
 export const VERDICT_BAND: Record<ExecutiveVerdictLabel, Band> = { back: "strong", back_with_conditions: "developing", watch: "early", not_yet: "pending" };
 
-function Card({ item, tone, locale, index }: { item: ExecutiveReason | ExecutiveGap; tone: "good" | "bad"; locale: TbrUiLocale; index: number }) {
+function Card({ item, tone, locale, index, citations }: { item: ExecutiveReason | ExecutiveGap; tone: "good" | "bad"; locale: TbrUiLocale; index: number; citations?: CitationIndex }) {
   const s47 = v2Strings(locale).s47;
   const lift = "lift" in item && typeof item.lift === "number" && item.lift > 0 ? item.lift : null;
   return (
@@ -36,9 +37,13 @@ function Card({ item, tone, locale, index }: { item: ExecutiveReason | Executive
         <span aria-hidden="true" className={cn("mt-0.5 font-mono text-xs tabular-nums", tone === "good" ? "text-action" : "text-bear")}>
           {String(index + 1).padStart(2, "0")}
         </span>
-        <h4 className="font-display text-sm font-semibold leading-snug text-primary">{item.title}</h4>
+        <h4 className="font-display text-sm font-semibold leading-snug text-primary">
+          <CitedText text={item.title} citations={citations} locale={locale} />
+        </h4>
       </div>
-      <p className="text-xs leading-relaxed text-secondary">{item.body}</p>
+      <p className="text-xs leading-relaxed text-secondary">
+        <CitedText text={item.body} citations={citations} locale={locale} />
+      </p>
       {(item.dim || lift !== null) && (
         <div className="mt-auto flex flex-wrap items-center gap-1.5 pt-1">
           {item.dim && <DimChip dim={item.dim} locale={locale} />}
@@ -49,21 +54,21 @@ function Card({ item, tone, locale, index }: { item: ExecutiveReason | Executive
   );
 }
 
-function CardRow({ title, items, tone, locale, testId }: { title: string; items: Array<ExecutiveReason | ExecutiveGap>; tone: "good" | "bad"; locale: TbrUiLocale; testId: string }) {
+function CardRow({ title, items, tone, locale, testId, citations }: { title: string; items: Array<ExecutiveReason | ExecutiveGap>; tone: "good" | "bad"; locale: TbrUiLocale; testId: string; citations?: CitationIndex }) {
   if (!items.length) return null;
   return (
     <div data-testid={testId} className={TBR_SPACING.item}>
       <h3 className={cn("text-[11px] font-semibold uppercase tracking-wide", tone === "good" ? "text-action" : "text-bear")}>{title}</h3>
       <div className="grid gap-3 sm:grid-cols-3">
         {items.map((it, i) => (
-          <Card key={`${it.title}-${i}`} item={it} tone={tone} locale={locale} index={i} />
+          <Card key={`${it.title}-${i}`} item={it} tone={tone} locale={locale} index={i} citations={citations} />
         ))}
       </div>
     </div>
   );
 }
 
-export function TbrExecutiveStructured({ structured, visuals, confidence, locale = "en" }: { structured: ExecutiveStructured; visuals: ReportV2["executive"]["visuals"]; confidence: number; locale?: TbrUiLocale }) {
+export function TbrExecutiveStructured({ structured, visuals, confidence, locale = "en", citations }: { structured: ExecutiveStructured; visuals: ReportV2["executive"]["visuals"]; confidence: number; locale?: TbrUiLocale; /** G24-A: footnote numbering (report.tsx); absent → markers stripped. */ citations?: CitationIndex }) {
   const s = structured;
   const t = v2Strings(locale);
   const s47 = t.s47;
@@ -78,12 +83,12 @@ export function TbrExecutiveStructured({ structured, visuals, confidence, locale
           <span data-tbr-exec-confidence className="text-xs text-muted">{t.s44.evidenceConfidence(Math.round(confidence * 100))}</span>
         </div>
         <h3 data-tbr-exec-headline className="max-w-[30ch] font-display text-2xl font-bold leading-tight tracking-tight text-primary sm:text-3xl print:text-2xl">
-          {s.headline}
+          <CitedText text={s.headline} citations={citations} locale={locale} />
         </h3>
         <div data-tbr-exec-summary className="max-w-prose space-y-3">
           {s.summary.map((p, i) => (
             <p key={i} className="text-sm leading-relaxed text-primary">
-              {p}
+              <CitedText text={p} citations={citations} locale={locale} />
             </p>
           ))}
         </div>
@@ -92,12 +97,14 @@ export function TbrExecutiveStructured({ structured, visuals, confidence, locale
       {s.keyInsight && (
         <aside data-tbr-exec-insight className="max-w-prose rounded-r-xl border-l-4 border-accent-600 bg-surface-sunken px-4 py-3 print:break-inside-avoid">
           <p className="text-[11px] font-semibold uppercase tracking-wide text-accent">{s47.keyInsight}</p>
-          <p className="mt-1 text-sm leading-relaxed text-primary">{s.keyInsight}</p>
+          <p className="mt-1 text-sm leading-relaxed text-primary">
+            <CitedText text={s.keyInsight} citations={citations} locale={locale} />
+          </p>
         </aside>
       )}
 
-      <CardRow title={s47.whyBack} items={s.reasonsToBack} tone="good" locale={locale} testId="tbr-exec-reasons" />
-      <CardRow title={s47.whatMustChange} items={s.criticalGaps} tone="bad" locale={locale} testId="tbr-exec-gaps" />
+      <CardRow title={s47.whyBack} items={s.reasonsToBack} tone="good" locale={locale} testId="tbr-exec-reasons" citations={citations} />
+      <CardRow title={s47.whatMustChange} items={s.criticalGaps} tone="bad" locale={locale} testId="tbr-exec-gaps" citations={citations} />
 
       {s.benchmarks.length > 0 && (
         <div data-tbr-exec-benchmarks className={TBR_SPACING.item}>
@@ -124,11 +131,15 @@ export function TbrExecutiveStructured({ structured, visuals, confidence, locale
         <dl className="mt-3 grid gap-3 sm:grid-cols-2">
           <div className="max-w-prose">
             <dt className="text-[11px] font-semibold uppercase tracking-wide text-bear">{s47.blocker}</dt>
-            <dd className="mt-0.5 text-sm leading-relaxed text-primary">{s.phaseNow.blocker}</dd>
+            <dd className="mt-0.5 text-sm leading-relaxed text-primary">
+              <CitedText text={s.phaseNow.blocker} citations={citations} locale={locale} />
+            </dd>
           </div>
           <div className="max-w-prose">
             <dt className="text-[11px] font-semibold uppercase tracking-wide text-action">{s47.whatItTakes}</dt>
-            <dd className="mt-0.5 text-sm leading-relaxed text-primary">{s.phaseNow.whatItTakes}</dd>
+            <dd className="mt-0.5 text-sm leading-relaxed text-primary">
+              <CitedText text={s.phaseNow.whatItTakes} citations={citations} locale={locale} />
+            </dd>
           </div>
         </dl>
         {visuals.map((v) => (
@@ -150,7 +161,7 @@ export function TbrExecutiveStructured({ structured, visuals, confidence, locale
           </div>
         </div>
         <p className="mt-2 max-w-prose text-sm leading-relaxed text-primary">
-          <span className="font-semibold">{s47.condition}:</span> {s.verdict.condition ?? s47.noCondition}
+          <span className="font-semibold">{s47.condition}:</span> <CitedText text={s.verdict.condition ?? s47.noCondition} citations={citations} locale={locale} />
         </p>
       </div>
 
@@ -162,8 +173,12 @@ export function TbrExecutiveStructured({ structured, visuals, confidence, locale
               <li key={`${a.title}-${i}`} className="flex gap-3 rounded-lg border border-line-subtle p-3 print:break-inside-avoid">
                 <span aria-hidden="true" className="font-display text-lg font-bold leading-none tabular-nums text-action">{i + 1}</span>
                 <div className="min-w-0 flex-1 space-y-1">
-                  <p className="text-sm font-semibold leading-snug text-primary">{a.title}</p>
-                  <p className="max-w-prose text-xs leading-relaxed text-secondary">{a.detail}</p>
+                  <p className="text-sm font-semibold leading-snug text-primary">
+                    <CitedText text={a.title} citations={citations} locale={locale} />
+                  </p>
+                  <p className="max-w-prose text-xs leading-relaxed text-secondary">
+                    <CitedText text={a.detail} citations={citations} locale={locale} />
+                  </p>
                   <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
                     <WindowChip window={a.window} locale={locale} />
                     {a.dim && <DimChip dim={a.dim} locale={locale} />}
@@ -178,13 +193,13 @@ export function TbrExecutiveStructured({ structured, visuals, confidence, locale
   );
 }
 
-export function TbrExecutive({ report, title, locale = "en" }: { report: ReportV2; title: string; locale?: TbrUiLocale }) {
+export function TbrExecutive({ report, title, locale = "en", citations }: { report: ReportV2; title: string; locale?: TbrUiLocale; citations?: CitationIndex }) {
   const ensured = ensureExecutiveStructured(report);
   const e = ensured.executive;
   const structured = e.structured!;
   return (
     <TbrSection id={TBR_V2_SECTION_IDS.executive} kicker="1" title={title} purpose={v2Strings(locale).s47.purpose.executive} pageBreak>
-      <TbrExecutiveStructured structured={structured} visuals={e.visuals} confidence={e.confidence} locale={locale} />
+      <TbrExecutiveStructured structured={structured} visuals={e.visuals} confidence={e.confidence} locale={locale} citations={citations} />
     </TbrSection>
   );
 }

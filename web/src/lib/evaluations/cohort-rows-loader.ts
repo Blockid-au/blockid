@@ -29,6 +29,7 @@ import { loadCohortDecisions } from "./cohort-decisions";
 import { listBatchOverrides } from "./overrides";
 import { latestSnapshots } from "./cohort-snapshots";
 import { deltaByProject } from "./cohort-delta";
+import { demoAnalysisForRows } from "./demo-cohort";
 import { assessmentCardFromAnalysis } from "@/lib/svi/assessment-card";
 import { evidenceConfidenceFromAnalysis } from "@/lib/svi/evidence-confidence";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
@@ -249,7 +250,12 @@ export async function loadBlockIdCohortRows(batch: EvaluationBatch, viewerId: st
       reviewerName: e?.reviewerId ? reviewerNames.get(e.reviewerId) ?? null : null,
     };
   });
-  const analyses = await loadAnalyses(supabase, items.map((i) => ({ projectId: i.projectId, snapshotId: i.snapshotId }))).catch(() => ({}));
+  // G24-C: the demo cohort has no svi_snapshots / claims rows by design —
+  // its confidence, verification level and the one conflicting claim come
+  // from the fixture (lib/evaluations/demo-cohort.ts).
+  const analyses = batch.isDemo
+    ? demoAnalysisForRows(items.map((i) => ({ projectId: i.projectId, projectSlug: i.projectSlug })))
+    : await loadAnalyses(supabase, items.map((i) => ({ projectId: i.projectId, snapshotId: i.snapshotId }))).catch(() => ({}));
   const assessments: Record<string, CohortRowDecision> = {};
   for (const [id, d] of decisions) assessments[id] = d;
   return { rows: buildCohortRows(items, analyses, assessments, overrides.rows, batch.rubricWeights, deltas, log), baseRows, overridesAvailable: overrides.available };

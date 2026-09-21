@@ -23,6 +23,7 @@ import {
   signalsForAbn,
   type ExternalSignalRow,
   type RegisterEntity,
+  EXTERNAL_SIGNAL_TYPES,
 } from "./external-signals";
 
 const NOW = Date.parse("2026-09-17T00:00:00Z");
@@ -86,6 +87,31 @@ describe("mapSignalsToEvidence", () => {
       expect(r.evidence_id).toMatch(/^[A-Za-z0-9_-]+$/);
     }
     expect(new Set(rows.map((r) => r.evidence_id)).size).toBe(3);
+  });
+
+  it("funding_round (G24-B feed) → IRI evidenced with the announcement's own amount, date, investors and link; a row without an amount is dropped", () => {
+    const fundingRow = {
+      source_id: "funding-announcements",
+      entity_abn: "95608464535",
+      entity_name: "HARBOUR ANALYTICS PTY LTD",
+      signal_type: "funding_round",
+      as_of: "2025-06-12",
+      source_url: "https://example.com/press/harbour-analytics-seed",
+      match_confidence: "high" as const,
+      value: { round: "Seed", amount_aud: 1_500_000, investors: "Blackbird Ventures, Aussie Angels", announced_by: "Company press release" },
+    };
+    const [iri] = mapSignalsToEvidence([fundingRow], { now: NOW });
+    expect(iri.dims).toEqual(["iri"]);
+    expect(iri.status).toBe("evidenced");
+    expect(iri.label).toBe("Funding round — Seed");
+    expect(iri.value).toContain("$1,500,000");
+    expect(iri.value).toContain("announced 2025-06-12");
+    expect(iri.value).toContain("investors: Blackbird Ventures, Aussie Angels");
+    expect(iri.value).toContain("via Company press release");
+    expect(iri.source_url).toBe("https://example.com/press/harbour-analytics-seed");
+    expect(iri.confidence).toBe("connected_source");
+    expect(mapSignalsToEvidence([{ ...fundingRow, value: { round: "Seed" } }], { now: NOW })).toEqual([]);
+    expect(EXTERNAL_SIGNAL_TYPES).toContain("funding_round");
   });
 
   it("the S36 cap holds: a register row can never claim above connected_source, and matches capConfidence(connector)", () => {

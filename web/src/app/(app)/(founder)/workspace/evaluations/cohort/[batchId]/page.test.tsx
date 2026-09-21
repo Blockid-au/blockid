@@ -16,7 +16,7 @@
 
 import type React from "react";
 import { renderToReadableStream } from "react-dom/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@/components/workspace/workspace-layout", () => ({
   WorkspaceLayout: ({ children }: { children: React.ReactNode }) => <div data-shell>{children}</div>,
@@ -54,6 +54,12 @@ const loadBlockIdCohortRowsMock = vi.fn();
 vi.mock("@/lib/evaluations/cohort-rows-loader", () => ({
   loadBlockIdCohortRows: (batch: unknown, viewerId: string) => loadBlockIdCohortRowsMock(batch, viewerId),
 }));
+// G24-C: the catalogue read (cookie + both JSON catalogues) is mocked to the EN
+// labels so the first test's import budget stays where it was.
+vi.mock("@/lib/evaluations/demo-cohort-labels", async () => {
+  const shared = await import("@/lib/evaluations/demo-cohort-shared");
+  return { loadDemoCohortLabels: async () => shared.DEMO_COHORT_LABELS_EN };
+});
 
 // ── table-level fake for the page's OWN loadCohortMeta() Supabase reads ────
 const supabaseMock = vi.hoisted(() => ({
@@ -150,6 +156,12 @@ async function html(batchId = "b-1", sp: Record<string, string | string[] | unde
   await stream.allReady;
   return (await new Response(stream).text()).replace(/<!-- -->/g, "");
 }
+
+// The page's module graph is the cost of the FIRST test (it was timing out at
+// 5 s under a loaded box); warm it once under the 10 s hook budget instead.
+beforeAll(async () => {
+  await import("./page");
+});
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -263,5 +275,32 @@ describe("/workspace/evaluations/cohort/[batchId]", () => {
     expect((out.match(/data-testid="cohort-row"/g) ?? []).length).toBe(1);
     expect(out).toContain(">Acme<");
     expect(out).not.toContain(">Beta<");
+  });
+
+  it("a real cohort carries no demo markup", async () => {
+    const out = await html();
+    expect(out).not.toContain('data-testid="demo-cohort-banner"');
+    expect(out).not.toContain('data-testid="demo-chip"');
+    expect(out).toContain('data-testid="cohort-import-section"');
+  });
+
+  it("G24-C demo cohort: the banner + 'Remove demo cohort' for the owner, a chip on the h1 and on EVERY row, and no CSV import into the demo", async () => {
+    assertBatchRoleMock.mockResolvedValue({ ok: true, batch: { ...BATCH, name: "Demo cohort", isDemo: true }, role: "owner", isCreator: true });
+    const out = await html();
+    expect(out).toContain('data-testid="demo-cohort-banner"');
+    expect(out).toContain('data-testid="remove-demo-cohort"');
+    expect(out).toContain("Demo data — fictional");
+    expect(out).not.toContain('data-testid="cohort-import-section"');
+    // h1 chip + banner chip + one per row (2 rows) + the compare drawer renders closed (no cards).
+    const rows = (out.match(/data-testid="cohort-row"/g) ?? []).length;
+    expect(rows).toBe(2);
+    expect((out.match(/data-testid="demo-chip"/g) ?? []).length).toBe(2 + rows);
+  });
+
+  it("G24-C demo cohort: a reviewer sees the banner but no remove control", async () => {
+    assertBatchRoleMock.mockResolvedValue({ ok: true, batch: { ...BATCH, userId: "u-9", name: "Demo cohort", isDemo: true }, role: "reviewer", isCreator: false });
+    const out = await html();
+    expect(out).toContain('data-testid="demo-cohort-banner"');
+    expect(out).not.toContain('data-testid="remove-demo-cohort"');
   });
 });

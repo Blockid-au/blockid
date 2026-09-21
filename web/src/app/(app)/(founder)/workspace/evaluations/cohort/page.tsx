@@ -21,6 +21,7 @@ import { listTemplates } from "@/lib/intake/templates";
 import { findActivePilotOrder } from "@/lib/pilots/paid-orders";
 import { CohortIndex } from "@/components/evaluations/CohortIndex";
 import { EvaluatorReportDisclaimer } from "@/components/legal/evaluator-report-disclaimer";
+import { loadDemoCohortLabels } from "@/lib/evaluations/demo-cohort-labels";
 
 export const metadata: Metadata = {
   title: "Cohorts | BlockID",
@@ -30,17 +31,20 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function CohortIndexPage() {
+export default async function CohortIndexPage({ searchParams }: { searchParams?: Promise<Record<string, string | string[] | undefined>> } = {}) {
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/evaluations/cohort");
 
-  const [isSandbox, batches, flags, templates, pilot] = await Promise.all([
+  const [isSandbox, batches, flags, templates, pilot, demoLabels, sp] = await Promise.all([
     getCurrentProjectIsSandbox(),
     listBatches(user.id),
     getEntitlements(user.plan ?? "", user.id).catch(() => [] as string[]),
     listTemplates(user.id),
     findActivePilotOrder(user.id).catch(() => null),
+    loadDemoCohortLabels(),
+    searchParams ?? Promise.resolve({} as Record<string, string | string[] | undefined>),
   ]);
+  const demoRemoved = (Array.isArray(sp.demo) ? sp.demo[0] : sp.demo) === "removed";
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
@@ -59,7 +63,7 @@ export default async function CohortIndexPage() {
           </p>
         </header>
 
-        <CohortIndex batches={batches} templates={templates.map((t) => ({ id: t.id, name: t.name }))} canCreate={canBatchScore(flags)} pilotCap={pilot?.applicants_cap ?? null} />
+        <CohortIndex batches={batches} templates={templates.map((t) => ({ id: t.id, name: t.name }))} canCreate={canBatchScore(flags)} pilotCap={pilot?.applicants_cap ?? null} demoLabels={demoLabels} demoRemoved={demoRemoved} />
 
         <EvaluatorReportDisclaimer variant="compact" />
       </div>

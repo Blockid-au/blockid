@@ -28,7 +28,14 @@
  *   • G22-A — PATCH …/weights bumps `weights_version` and the header /
  *     caption read the new version (the original rubric is restored at the
  *     end); the row's Dossier link resolves 200 for the owner; the item
- *     trajectory route + the snapshots route answer the owner seat.
+ *     trajectory route + the snapshots route answer the owner seat;
+ *   • (k) G24-C — the fictional demo cohort: POST /api/evaluations/batch/demo
+ *     (201, then 200 idempotent) → the cohort page shows five rows, each with
+ *     the "Demo data — fictional" chip, the banner and "Remove demo cohort"
+ *     → GET /api/reports/cohort?batch=…&format=html is 200 → a minted
+ *     institutional key does NOT list it → DELETE (200) → the batch is 404
+ *     and a second DELETE is 404. 503 migration_pending (0436 not applied)
+ *     annotates and skips the lane.
  *
  * The seat is ALWAYS re-typed back to `investor_angel` at the end (mirrors
  * 33-page-sweep's accelerator restore) so 33 and any lane after this one
@@ -44,7 +51,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { request, type APIRequestContext, type BrowserContext, type Page } from "@playwright/test";
 import { test, expect } from "./fixtures";
-import { evidence, get, patch, post } from "./lib/api";
+import { del, evidence, get, patch, post } from "./lib/api";
 import { env } from "./lib/env";
 import { dbAllowed, elevatePlan, setAccountType } from "./lib/db";
 import { getScratch, readRunState, setScratch } from "./lib/run-state";
@@ -451,6 +458,139 @@ test.describe("BlockID Cohort — G22-A membership completeness", () => {
       const report = g.report(`cohort/${batchId}/dossier-link`);
       expect(report.errors, "unexpected console errors").toEqual([]);
     } finally {
+      await ctx.close();
+    }
+  });
+});
+
+// ─── (k) G24-C — the fictional demo cohort ──────────────────────────────────
+
+interface DemoBatchResponse {
+  ok: boolean;
+  created?: boolean;
+  batch_id?: string;
+  items?: number;
+  batch?: { id: string; isDemo?: boolean; status?: string; total?: number; doneCount?: number };
+  error?: string;
+  message?: string;
+}
+
+interface KeyCreate {
+  ok: boolean;
+  id?: string;
+  key?: string;
+  reason?: string;
+}
+
+test.describe("BlockID Cohort — demo cohort (G24-C, lane k)", () => {
+  test("create (201 → 200 idempotent) → 5 rows with the chip + banner → cohort report 200 → not listed by the institutional API → remove (200) → 404", async ({ browser, qa, guard }, testInfo) => {
+    // The seat is still Program from the provision step (restored by the describe below).
+    requireEvaluatorSeat();
+    const { ctx, page } = await evaluatorBrowser(browser);
+    const evaluator = await evaluatorRequest(qa.baseURL);
+    let demoBatchId: string | undefined;
+    let keyId: string | undefined;
+    try {
+      // 1. Create.
+      const created = await post<DemoBatchResponse>(evaluator, "/api/evaluations/batch/demo", {});
+      await evidence(testInfo, "POST /api/evaluations/batch/demo", { status: created.status, created: created.body.created, batchId: created.body.batch_id, items: created.body.items, error: created.body.error, message: created.body.message });
+      if (created.status === 503 && created.body.error === "migration_pending") {
+        testInfo.annotations.push({ type: "pending-migration", description: "evaluation_batches.is_demo (0436) not applied on this environment — demo cohort lane skipped" });
+        test.skip(true, "0436 pending");
+      }
+      if (created.status === 402 || created.status === 403) {
+        test.skip(true, `demo cohort not available for this seat: ${created.status} ${created.body.error ?? ""}`);
+      }
+      expect([200, 201]).toContain(created.status);
+      expect(created.body.ok).toBe(true);
+      expect(created.body.batch_id).toBeTruthy();
+      demoBatchId = created.body.batch_id!;
+      expect(created.body.items).toBe(5);
+      expect(created.body.batch).toMatchObject({ isDemo: true, status: "done", total: 5, doneCount: 5 });
+
+      // Idempotent: the repeat returns the same batch, 200, created:false.
+      const again = await post<DemoBatchResponse>(evaluator, "/api/evaluations/batch/demo", {});
+      await evidence(testInfo, "POST …/demo (repeat)", { status: again.status, created: again.body.created, batchId: again.body.batch_id });
+      expect(again.status).toBe(200);
+      expect(again.body.created).toBe(false);
+      expect(again.body.batch_id).toBe(demoBatchId);
+
+      // 2. The cohort page: five rows, each with the chip; the banner; the owner's remove control; no CSV import into the demo.
+      const g = guard(page);
+      await page.goto(`${qa.baseURL}/workspace/evaluations/cohort/${encodeURIComponent(demoBatchId)}`, { waitUntil: "domcontentloaded" });
+      await expect(page.getByTestId("cohort-h1")).toContainText("Demo cohort");
+      await expect(page.getByTestId("demo-cohort-banner")).toBeVisible();
+      await expect(page.getByTestId("remove-demo-cohort")).toBeVisible();
+      await expect(page.getByTestId("cohort-import-section")).toHaveCount(0);
+      const rows = page.getByTestId("cohort-row");
+      await expect(rows).toHaveCount(5);
+      for (let i = 0; i < 5; i++) {
+        await expect(rows.nth(i).getByTestId("demo-chip")).toBeVisible();
+        await expect(rows.nth(i).getByTestId("demo-chip")).toContainText("Demo data — fictional");
+        await expect(rows.nth(i).getByTestId("svi-cell")).not.toHaveText("—");
+      }
+      const names = await rows.locator("a[aria-label^='Open the BlockID Dossier for']").allInnerTexts();
+      await evidence(testInfo, "demo rows", { names });
+      expect(names.every((n) => /\(demo\)$/.test(n.trim()))).toBe(true);
+      // The one conflicting claim surfaces as a risk flag on exactly one row.
+      await expect(page.getByTestId("risk-flags").filter({ hasText: "Conflicting claims" })).toHaveCount(1);
+
+      // The Cohorts index lists it with the chip.
+      await page.goto(`${qa.baseURL}/workspace/evaluations/cohort`, { waitUntil: "domcontentloaded" });
+      await expect(page.getByTestId("cohort-list").getByTestId("demo-chip").first()).toBeVisible();
+
+      const report = g.report(`cohort/${demoBatchId}/demo`);
+      await evidence(testInfo, "console/network guard", { errors: report.errors, failedRequests: report.failedRequests });
+      expect(report.errors, "unexpected console errors").toEqual([]);
+      expect(report.failedRequests, "unexpected failed requests (≥400)").toEqual([]);
+
+      // 3. The Cohort Report renders from the demo rows.
+      const cohortReport = await evaluator.get(`/api/reports/cohort?batch=${encodeURIComponent(demoBatchId)}&format=html`);
+      await evidence(testInfo, "GET /api/reports/cohort?format=html", { status: cohortReport.status(), type: cohortReport.headers()["content-type"] });
+      expect(cohortReport.status()).toBe(200);
+      const html = await cohortReport.text();
+      expect(html).toContain("(demo)");
+
+      // 4. The institutional API never lists it (needs api.access on the Program seat + a minted key).
+      const minted = await post<KeyCreate>(evaluator, "/api/keys", { name: "QA Live demo-cohort exclusion", scopes: ["evaluations:read"] });
+      await evidence(testInfo, "POST /api/keys", { status: minted.status, ok: minted.body.ok, reason: minted.body.reason });
+      if (minted.status === 200 && minted.body.ok && minted.body.key) {
+        keyId = minted.body.id;
+        const keyed = await request.newContext({ baseURL: qa.baseURL, extraHTTPHeaders: { Authorization: `Bearer ${minted.body.key}` } });
+        try {
+          const cohorts = await keyed.get("/api/v1/institutional/cohorts");
+          const cBody = (await cohorts.json()) as { ok: boolean; data?: Array<{ id: string }> };
+          await evidence(testInfo, "GET /api/v1/institutional/cohorts", { status: cohorts.status(), ids: (cBody.data ?? []).map((c) => c.id) });
+          expect(cohorts.status()).toBe(200);
+          expect((cBody.data ?? []).some((c) => c.id === demoBatchId), "the demo cohort must not be listed by the institutional API").toBe(false);
+          const direct = await keyed.get(`/api/v1/institutional/cohorts/${encodeURIComponent(demoBatchId)}`);
+          await evidence(testInfo, "GET /api/v1/institutional/cohorts/{demo}", { status: direct.status() });
+          expect(direct.status()).toBe(404);
+        } finally {
+          await keyed.dispose();
+        }
+      } else {
+        testInfo.annotations.push({ type: "note", description: `institutional key not issuable for this seat (${minted.status} ${minted.body.reason ?? ""}) — the API exclusion is pinned by the unit suite` });
+      }
+
+      // 5. Remove (owner) → the batch is gone → a second DELETE is 404.
+      const removed = await del<{ ok: boolean; removed?: boolean; removed_projects?: number; error?: string }>(evaluator, "/api/evaluations/batch/demo");
+      await evidence(testInfo, "DELETE /api/evaluations/batch/demo", { status: removed.status, body: removed.body });
+      expect(removed.status).toBe(200);
+      expect(removed.body).toMatchObject({ ok: true, removed: true, removed_projects: 5 });
+      demoBatchId = undefined;
+
+      const gone = await get<{ ok: boolean; error?: string }>(evaluator, `/api/evaluations/batch/${encodeURIComponent(created.body.batch_id!)}/members`);
+      await evidence(testInfo, "GET …/members after removal", { status: gone.status, error: gone.body.error });
+      expect(gone.status).toBe(404);
+      const twice = await del<{ ok: boolean; error?: string }>(evaluator, "/api/evaluations/batch/demo");
+      expect(twice.status).toBe(404);
+      const pageGone = await page.request.get(`/workspace/evaluations/cohort/${encodeURIComponent(created.body.batch_id!)}`);
+      expect(pageGone.status()).toBe(404);
+    } finally {
+      if (keyId) await del(evaluator, `/api/keys/${encodeURIComponent(keyId)}`).catch(() => undefined);
+      if (demoBatchId) await del(evaluator, "/api/evaluations/batch/demo").catch(() => undefined);
+      await evaluator.dispose();
       await ctx.close();
     }
   });

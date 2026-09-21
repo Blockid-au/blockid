@@ -12,17 +12,21 @@ import { SEED_SOURCES } from "../../../scripts/external-signals/ingest.mjs";
 import { CITE_ONLY_SOURCE_IDS, EXTERNAL_SOURCE_CATALOG, INGESTABLE_SOURCE_IDS, catalogSource, licenceGate, loadExternalSources } from "./external-sources";
 
 const MIGRATION = resolve(__dirname, "../../../supabase/migrations/0410_external_signals.sql");
+/** G24-B: the funding-announcements row is seeded by 0435 (same block shape). */
+const MIGRATION_0435 = resolve(__dirname, "../../../supabase/migrations/0435_ai_runs_prompt_version_nullable.sql");
 
 /** Pull the (id, name, url, licence, attribution_text, cadence, status) tuples out of the seed INSERT. */
 function seededRows(sql: string) {
-  const block = sql.slice(sql.indexOf("insert into public.external_sources"), sql.indexOf("on conflict (id) do update"));
+  const block = sql.slice(sql.indexOf("insert into public.external_sources"), sql.indexOf("on conflict (id) do "));
   const tuples = [...block.matchAll(/\(\s*'((?:[^']|'')*)',\s*'((?:[^']|'')*)',\s*'((?:[^']|'')*)',\s*'((?:[^']|'')*)',\s*'((?:[^']|'')*)',\s*'((?:[^']|'')*)',\s*'((?:[^']|'')*)'\s*\)/g)];
   const un = (s: string) => s.replace(/''/g, "'");
   return tuples.map((m) => ({ id: un(m[1]), name: un(m[2]), url: un(m[3]), licence: un(m[4]), attribution_text: un(m[5]), cadence: un(m[6]), status: un(m[7]) }));
 }
 
 describe("EXTERNAL_SOURCE_CATALOG", () => {
-  it("has exactly the 3 allow-listed registers (active) and the 3 cite-only reports, with real licences, URLs and attribution text", () => {
+  it("has exactly the 4 allow-listed sources (active: 3 registers + the G24-B funding feed) and the 3 cite-only reports, with real licences, URLs and attribution text", () => {
+    expect(INGESTABLE_SOURCE_IDS).toEqual(["abr-bulk", "business-gov-grants", "rdti-transparency", "funding-announcements"]);
+    expect(CITE_ONLY_SOURCE_IDS).toHaveLength(3);
     expect(EXTERNAL_SOURCE_CATALOG.map((s) => s.id)).toEqual([...INGESTABLE_SOURCE_IDS, ...CITE_ONLY_SOURCE_IDS]);
     for (const s of EXTERNAL_SOURCE_CATALOG) {
       expect(s.url).toMatch(/^https:\/\//);
@@ -37,10 +41,11 @@ describe("EXTERNAL_SOURCE_CATALOG", () => {
     expect(catalogSource("nope")).toBeNull();
   });
 
-  it("migration 0410 seeds exactly the catalogue rows (id / name / url / licence / attribution / cadence / status)", () => {
+  it("migrations 0410 + 0435 seed exactly the catalogue rows (id / name / url / licence / attribution / cadence / status)", () => {
     const sql = readFileSync(MIGRATION, "utf8");
-    const rows = seededRows(sql);
+    const rows = [...seededRows(sql), ...seededRows(readFileSync(MIGRATION_0435, "utf8"))];
     expect(rows).toHaveLength(EXTERNAL_SOURCE_CATALOG.length);
+    expect(rows.filter((r) => r.id === "funding-announcements")).toHaveLength(1);
     // Later migrations may re-point a citation URL (0412: ACS Digital Pulse
     // moved, link-check 2026-09-19) — apply those `update … set url` rows on
     // top of the 0410 seed before comparing.
@@ -92,7 +97,7 @@ describe("loadExternalSources", () => {
     expect(await loadExternalSources(null)).toMatchObject({ fromDb: false, error: "no db" });
     const missing = await loadExternalSources(db({ error: { code: "42P01", message: "x" } }));
     expect(missing).toMatchObject({ fromDb: false, error: "table missing (apply 0410)" });
-    expect(missing.rows).toHaveLength(6);
+    expect(missing.rows).toHaveLength(7);
     expect(await loadExternalSources(db({ data: [] }))).toMatchObject({ fromDb: false, error: "table empty" });
     const live = await loadExternalSources(db({ data: [{ ...catalogSource("startup-muster"), row_count: 0 }, { ...catalogSource("abr-bulk"), row_count: 1200, last_fetched_at: "2026-09-13T03:00:00Z" }] }));
     expect(live.fromDb).toBe(true);

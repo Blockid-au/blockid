@@ -9,8 +9,11 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Layers, Loader2, Plus } from "lucide-react";
+import { Layers, Loader2, Plus, Upload } from "lucide-react";
 import { BATCH_ROLE_LABELS, batchProgressPct, type BatchRole, type EvaluationBatch } from "@/lib/evaluations/batch-shared";
+import { DEMO_COHORT_LABELS_EN, type DemoCohortLabels } from "@/lib/evaluations/demo-cohort-shared";
+import { DemoCohortChip } from "./DemoCohortChip";
+import { LoadDemoCohortButton } from "./DemoCohortActions";
 
 export interface CohortIndexTemplate {
   id: string;
@@ -24,6 +27,10 @@ export interface CohortIndexProps {
   canCreate: boolean;
   /** Live paid pilot cap, shown on the form. */
   pilotCap: number | null;
+  /** G24-C: catalogue copy for the demo chip / CTA (EN default). */
+  demoLabels?: DemoCohortLabels;
+  /** G24-C: `?demo=removed` after the owner removed the demo cohort — a one-line status. */
+  demoRemoved?: boolean;
 }
 
 const STATUS_CHIP: Record<EvaluationBatch["status"], { label: string; className: string }> = {
@@ -45,9 +52,10 @@ function fmt(iso: string): string {
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
 }
 
-export function CohortIndex({ batches, templates, canCreate, pilotCap }: CohortIndexProps) {
+export function CohortIndex({ batches, templates, canCreate, pilotCap, demoLabels = DEMO_COHORT_LABELS_EN, demoRemoved = false }: CohortIndexProps) {
   const router = useRouter();
   const [open, setOpen] = React.useState(batches.length === 0 && canCreate);
+  const hasDemo = batches.some((b) => b.isDemo);
   const [name, setName] = React.useState("");
   const [program, setProgram] = React.useState("");
   const [templateId, setTemplateId] = React.useState("");
@@ -80,13 +88,21 @@ export function CohortIndex({ batches, templates, canCreate, pilotCap }: CohortI
 
   return (
     <div className="space-y-6" data-testid="cohort-index">
+      {demoRemoved ? (
+        <p role="status" className="rounded-xl border border-line-subtle bg-surface px-4 py-2 text-sm text-secondary" data-testid="demo-removed-status">
+          {demoLabels.removed}
+        </p>
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-ink-600">One rubric across every startup in a round: import a CSV or share an intake link, score off-peak, compare, decide, track the deltas.</p>
         {canCreate ? (
-          <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700" data-testid="cohort-new">
-            <Plus className="h-4 w-4" aria-hidden="true" />
-            New cohort
-          </button>
+          <span className="flex flex-wrap items-center gap-2">
+            {!hasDemo && batches.length > 0 ? <LoadDemoCohortButton labels={demoLabels} /> : null}
+            <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700" data-testid="cohort-new">
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              New cohort
+            </button>
+          </span>
         ) : (
           <Link href="/pricing?segment=evaluator" className="inline-flex min-h-11 items-center rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm font-medium text-ink-600 hover:bg-surface-50">
             Cohorts — Program plan
@@ -147,6 +163,16 @@ export function CohortIndex({ batches, templates, canCreate, pilotCap }: CohortI
             Startups I&apos;m evaluating
           </Link>{" "}
           and choose Batch score.
+          {canCreate ? (
+            <div className="mt-5 flex flex-wrap items-start justify-center gap-2" data-testid="cohort-empty-actions">
+              <button type="button" onClick={() => setOpen(true)} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700" data-testid="cohort-empty-import">
+                <Upload className="h-4 w-4" aria-hidden="true" />
+                {demoLabels.importCsv}
+              </button>
+              <LoadDemoCohortButton labels={demoLabels} />
+            </div>
+          ) : null}
+          {canCreate ? <p className="mt-3 text-xs text-ink-500">{demoLabels.emptyHint}</p> : null}
         </div>
       ) : (
         <ul className="divide-y divide-surface-100 rounded-2xl border border-surface-200 bg-white" data-testid="cohort-list">
@@ -161,6 +187,7 @@ export function CohortIndex({ batches, templates, canCreate, pilotCap }: CohortI
                       {b.name}
                     </Link>
                     {b.programName ? <span className="text-xs text-ink-500">{b.programName}</span> : null}
+                    {b.isDemo ? <DemoCohortChip label={demoLabels.chip} title={demoLabels.chipTitle} /> : null}
                     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${chip.className}`}>{chip.label}</span>
                     {b.role ? (
                       <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${ROLE_CHIP[b.role]}`} data-testid="cohort-role-chip" data-role={b.role}>

@@ -4,6 +4,8 @@
  *   • ANONYMOUS `/`, `/product`, `/samples`, `/solutions/investor`, `/pricing`,
  *     `/vi/pilot`, `/docs/api/institutional` (G22-C)
  *     answer 200 with exactly one <h1> each (the template contract, D5);
+ *   • `/showcase/blockid/report` body carries no raw `[ev:` / `[unevidenced]`
+ *     citation marker (G24-A; footnote presence asserted fail-soft);
  *   • `/sitemap.xml` parses and a random 10-URL sample answers 200 on the
  *     first hop (the sitemap must never list a redirect or a 404);
  *   • the link-check core (scripts/lib/link-check-core.mjs) run over the
@@ -137,6 +139,36 @@ test.describe("Marketing lane — link-check core on the home HTML", () => {
       expect(broken, "broken internal links on /").toEqual([]);
     } finally {
       await anon.dispose();
+    }
+  });
+});
+
+// G24-A: the public showcase report renders evidence citations as footnotes.
+// The raw markers must never reach the page body; the footnote links and the
+// "Evidence cited" section are asserted fail-soft (the persisted showcase
+// report may predate the citation pipeline and carry no marker at all).
+test.describe("Marketing lane — showcase report citations (G24-A)", () => {
+  test("/showcase/blockid/report body carries no raw [ev:] / [unevidenced] marker", async ({ browser, qa }, testInfo) => {
+    const ctx = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    try {
+      const page = await ctx.newPage();
+      const res = await page.goto(`${qa.baseURL}/showcase/blockid/report`, { waitUntil: "domcontentloaded" });
+      const status = res?.status();
+      const body = (await page.locator("body").innerText()).replace(/\s+/g, " ");
+      const footnoteLinks = await page.locator('sup a[href^="#ev-"]').count();
+      const evidenceCited = await page.locator("#tbr-evidence-cited").count();
+      const published = await page.locator("[data-tbr-version]").count();
+      await evidence(testInfo, "/showcase/blockid/report citations", { status, published, footnoteLinks, evidenceCited, rawEv: (body.match(/\[ev:/g) ?? []).length, rawUnevidenced: (body.match(/\[unevidenced\]/gi) ?? []).length });
+      expect(status).toBe(200);
+      expect(body, "no raw [ev:<id>] marker in the showcase body").not.toContain("[ev:");
+      expect(body, "no raw [unevidenced] marker in the showcase body").not.toMatch(/\[unevidenced\]/i);
+      // Fail-soft: footnotes only exist when the stored report cites something.
+      if (published > 0 && footnoteLinks > 0) {
+        expect(evidenceCited, "footnote links imply the Evidence cited section").toBe(1);
+        expect(await page.locator("#ev-1").count()).toBe(1);
+      }
+    } finally {
+      await ctx.close();
     }
   });
 });

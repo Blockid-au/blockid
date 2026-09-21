@@ -32,6 +32,15 @@ const CATALOG: Readonly<Record<Locale, Messages>> = {
  * imported statically.
  */
 export async function getMessages(locale: Locale): Promise<Messages> {
+  return getMessagesSync(locale);
+}
+
+/**
+ * Sync twin for hook-free render helpers (G24-A: ReportV2 citation strings
+ * are read inside pure functions that the web, PDF and DOCX twins share).
+ * Same catalogue, same fallback to the default locale.
+ */
+export function getMessagesSync(locale: Locale | string): Messages {
   const code: Locale = isLocale(locale) ? locale : DEFAULT_LOCALE;
   return CATALOG[code];
 }

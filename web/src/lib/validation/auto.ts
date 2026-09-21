@@ -42,6 +42,20 @@ const ORDER_COLS = "id, user_id, buyer_email, sku, amount_cents, currency, statu
 const ORDER_COLS_V2 = `${ORDER_COLS}, converted_at, converted_plan`;
 const BATCH_COLS = "id, user_id, name, status, total, done_count, finished_at, created_at";
 const BATCH_COLS_V2 = `${BATCH_COLS}, program_name`;
+/** G24-C (migration 0436): the demo flag — a demo cohort is a "workflow demo run" row, never "Cohort scored". */
+const BATCH_COLS_V3 = `${BATCH_COLS_V2}, is_demo`;
+
+/**
+ * The operator account (mirrors lib/auth ADMIN_EMAIL without importing the
+ * auth module into this read-only reader): a demo cohort loaded by an admin
+ * seat is not buyer evidence.
+ */
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL ?? "admin@blockid.au").toLowerCase();
+export function isAdminOwner(owner: { email?: string | null; role?: string | null } | null | undefined): boolean {
+  if (!owner) return false;
+  if ((owner.role ?? "") === "admin") return true;
+  return (owner.email ?? "").trim().toLowerCase() === ADMIN_EMAIL;
+}
 
 /** Collect the inputs `deriveAutoRows` needs. Never throws. */
 export async function readAutoInputs(client: InstitutionalClient | null, root: string): Promise<{ inputs: AutoInputs; warnings: string[] }> {
@@ -70,17 +84,27 @@ export async function readAutoInputs(client: InstitutionalClient | null, root: s
   const letters = rowsOf<LetterRow>(warnings, "founder_feedback_letters", await safe(warnings, "founder_feedback_letters", async () => await run(q("founder_feedback_letters", "id, project_id, status, sent_at, org_count, k").in("status", ["sent", "opened"]).order("sent_at", { ascending: false }).limit(AUTO_ROW_LIMIT))));
   if (letters) inputs.feedbackLetters = letters;
 
-  // Cohorts: the 0422 columns first, then the 0322 shape (42703 = column missing).
-  let batchRes = await safe(warnings, "evaluation_batches", async () => await run(q("evaluation_batches", BATCH_COLS_V2).order("created_at", { ascending: false }).limit(AUTO_ROW_LIMIT)));
-  if (batchRes?.error && /program_name|42703/i.test(batchRes.error.message ?? "")) {
-    batchRes = await safe(warnings, "evaluation_batches", async () => await run(q("evaluation_batches", BATCH_COLS).order("created_at", { ascending: false }).limit(AUTO_ROW_LIMIT)));
+  // Cohorts: the 0436 columns first, then the 0422 shape, then the 0322
+  // shape (42703 = column missing; the message names the column, so a
+  // pre-0422 server goes straight to the 0322 read).
+  const readBatches = (cols: string) => safe(warnings, "evaluation_batches", async () => await run(q("evaluation_batches", cols).order("created_at", { ascending: false }).limit(AUTO_ROW_LIMIT)));
+  let batchRes = await readBatches(BATCH_COLS_V3);
+  const msg = () => batchRes?.error?.message ?? "";
+  if (batchRes?.error && /program_name/i.test(msg())) {
+    batchRes = await readBatches(BATCH_COLS);
+  } else if (batchRes?.error && /is_demo|42703/i.test(msg())) {
+    batchRes = await readBatches(BATCH_COLS_V2);
+    if (batchRes?.error && /program_name|42703/i.test(msg())) batchRes = await readBatches(BATCH_COLS);
   }
   const batches = rowsOf<BatchRow & { user_id: string }>(warnings, "evaluation_batches", batchRes);
   if (batches && batches.length > 0) {
     const userIds = [...new Set(batches.map((b) => b.user_id).filter(Boolean))];
-    const owners = rowsOf<{ id: string; email: string | null }>([], "app_users", await safe([], "app_users", async () => await run(q("app_users", "id, email").in("id", userIds).limit(AUTO_ROW_LIMIT))));
-    const emailById = new Map((owners ?? []).map((o) => [o.id, o.email] as const));
-    inputs.batches = batches.map((b) => ({ ...b, owner_email: emailById.get(b.user_id) ?? null }));
+    const owners = rowsOf<{ id: string; email: string | null; role?: string | null }>([], "app_users", await safe([], "app_users", async () => await run(q("app_users", "id, email, role").in("id", userIds).limit(AUTO_ROW_LIMIT))));
+    const ownerById = new Map((owners ?? []).map((o) => [o.id, o] as const));
+    inputs.batches = batches.map((b) => {
+      const owner = ownerById.get(b.user_id) ?? null;
+      return { ...b, is_demo: b.is_demo === true, owner_email: owner?.email ?? null, owner_is_admin: isAdminOwner(owner) };
+    });
   }
 
   return { inputs, warnings };

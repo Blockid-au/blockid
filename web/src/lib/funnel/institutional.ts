@@ -261,6 +261,8 @@ export interface BatchItemRow {
 export interface BatchRow {
   id: string;
   user_id: string;
+  /** G24-C (0436): the fictional demo cohort — never an assessed startup. */
+  is_demo?: boolean | null;
 }
 export interface OwnerRow {
   id: string;
@@ -309,6 +311,7 @@ export function computeNorthStar(
   const isQa = opts.isQaOwner ?? ((o) => /^qa-live-/i.test(o.email ?? ""));
   const ownerById = new Map(owners.map((o) => [o.id, o] as const));
   const batchOwner = new Map(batches.map((b) => [b.id, ownerById.get(b.user_id)] as const));
+  const demoBatches = new Set(batches.filter((b) => b.is_demo === true).map((b) => b.id));
   let assessed = 0;
   let assessedAll = 0;
   const payingBatches = new Set<string>();
@@ -316,6 +319,8 @@ export function computeNorthStar(
   for (const it of items) {
     if (!it.scored_at || it.scored_at.slice(0, 7) !== month) continue;
     if (it.status && it.status !== "done") continue;
+    // G24-C: the demo cohort's five fictional startups are never "assessed".
+    if (demoBatches.has(it.batch_id)) continue;
     const owner = batchOwner.get(it.batch_id);
     if (owner && isQa(owner)) continue;
     assessedAll += 1;
@@ -468,7 +473,11 @@ export async function readInstitutionalFunnel(client: InstitutionalClient | null
     let owners: OwnerRow[] = [];
     let partial: string | null = null;
     if (batchIds.length > 0) {
-      const b = await safe(warnings, "evaluation_batches", async () => client.from("evaluation_batches").select("id, user_id").in("id", batchIds).limit(FI_ROW_LIMIT));
+      // G24-C: `is_demo` (0436) first; a 42703 before the migration falls back to the two-column read.
+      let b = await safe(warnings, "evaluation_batches", async () => client.from("evaluation_batches").select("id, user_id, is_demo").in("id", batchIds).limit(FI_ROW_LIMIT));
+      if (b?.error && /is_demo|42703/i.test(b.error.message ?? "")) {
+        b = await safe(warnings, "evaluation_batches", async () => client.from("evaluation_batches").select("id, user_id").in("id", batchIds).limit(FI_ROW_LIMIT));
+      }
       if (b?.error || !b?.data) partial = "evaluation_batches unavailable — owner plans unknown";
       else batches = b.data as BatchRow[];
       const userIds = [...new Set(batches.map((x) => x.user_id))];

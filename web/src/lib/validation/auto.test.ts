@@ -10,7 +10,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { InstitutionalClient, InstitutionalResult } from "@/lib/funnel/institutional";
 import { APPLICATIONS_FILE } from "@/lib/pilots/applications";
-import { readAutoInputs, readValidationDashboard } from "./auto";
+import { isAdminOwner, readAutoInputs, readValidationDashboard } from "./auto";
 import { writeValidationLedger } from "./ledger";
 import { newEntry } from "./model";
 
@@ -71,6 +71,60 @@ describe("readAutoInputs", () => {
     expect(r.inputs.feedbackLetters).toEqual([]);
     expect(r.warnings.some((w) => w.startsWith("founder_feedback_letters:"))).toBe(true);
     expect(calls.some((c) => c.startsWith("evaluation_batches:") && c.includes("program_name"))).toBe(true);
+  });
+
+  it("G24-C: reads is_demo + the owner's role; a demo cohort by a non-admin seat is flagged is_demo / owner_is_admin=false, by the operator owner_is_admin=true", async () => {
+    const calls: string[] = [];
+    const client = fakeClient(
+      {
+        evaluation_batches: {
+          data: [
+            { id: "b-demo", user_id: "u-ext", name: "Demo cohort", program_name: "Workflow demo (fictional data)", status: "done", total: 5, done_count: 5, finished_at: "2026-09-21T00:00:00.000Z", created_at: "2026-09-21T00:00:00.000Z", is_demo: true },
+            { id: "b-admin-demo", user_id: "u-admin", name: "Demo cohort", status: "done", total: 5, done_count: 5, finished_at: "2026-09-21T00:00:00.000Z", created_at: "2026-09-21T00:00:00.000Z", is_demo: true },
+            { id: "b-real", user_id: "u-ext", name: "Spring", status: "done", total: 5, done_count: 5, finished_at: "2026-09-16T00:00:00.000Z", created_at: "2026-09-15T00:00:00.000Z", is_demo: false },
+          ],
+          error: null,
+        },
+        app_users: { data: [{ id: "u-ext", email: "pm@program.org", role: "user" }, { id: "u-admin", email: "ops@blockid.au", role: "admin" }], error: null },
+      },
+      calls,
+    );
+    const r = await readAutoInputs(client, root);
+    expect(calls.some((c) => c.startsWith("evaluation_batches:") && c.includes("is_demo"))).toBe(true);
+    expect(calls.some((c) => c.startsWith("app_users:") && c.includes("role"))).toBe(true);
+    expect(r.inputs.batches.map((b) => [b.id, b.is_demo, b.owner_is_admin])).toEqual([
+      ["b-demo", true, false],
+      ["b-admin-demo", true, true],
+      ["b-real", false, false],
+    ]);
+    expect(isAdminOwner({ email: "admin@blockid.au", role: null })).toBe(true);
+    expect(isAdminOwner({ email: "someone@blockid.au", role: null })).toBe(false);
+    expect(isAdminOwner(null)).toBe(false);
+  });
+
+  it("falls back to the 0422 batch columns when only is_demo is missing (42703), then the 0322 shape when program_name is missing too", async () => {
+    const calls: string[] = [];
+    const base = fakeClient({ evaluation_batches: { data: [{ id: "b-1", user_id: "u-9", name: "Spring", program_name: "Spring 2026", status: "done", total: 1, done_count: 1, finished_at: null, created_at: "2026-09-15T00:00:00.000Z" }], error: null } }, calls);
+    let first = true;
+    const client: InstitutionalClient = {
+      from: (table) => ({
+        select: (cols) => {
+          if (table === "evaluation_batches" && first) {
+            first = false;
+            calls.push(`${table}:${cols}`);
+            return fakeClient({ evaluation_batches: { data: null, error: { message: "column evaluation_batches.is_demo does not exist (42703)" } } }).from(table).select(cols);
+          }
+          return base.from(table).select(cols);
+        },
+      }),
+    };
+    const r = await readAutoInputs(client, root);
+    expect(r.inputs.batches.map((b) => [b.name, b.is_demo])).toEqual([["Spring", false]]);
+    const batchCalls = calls.filter((c) => c.startsWith("evaluation_batches:"));
+    expect(batchCalls).toHaveLength(2);
+    expect(batchCalls[1]).toContain("program_name");
+    expect(batchCalls[1]).not.toContain("is_demo");
+    expect(r.warnings.filter((w) => w.startsWith("evaluation_batches:"))).toHaveLength(0);
   });
 
   it("falls back to the pre-0422 batch columns when program_name is missing (42703)", async () => {

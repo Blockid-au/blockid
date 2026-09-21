@@ -337,3 +337,27 @@ export function preRevenueFixtureReportV2(tier: ReportTierV2 = "standard"): Repo
     valuationAsk: null,
   });
 }
+
+/**
+ * G24-A — the demo report with the pipeline's citation markers written into
+ * its stored prose, exactly as `auto-cite` / the owner contracts leave them:
+ * `[ev:<register id>]` on cited claims, `[unevidenced]` on an admitted
+ * one, plus one id that is not in the register (must render nothing). The
+ * render tests pin that no raw marker reaches the DOM / PDF / DOCX text and
+ * that every surface numbers the footnotes identically.
+ */
+export function citedDemoReportV2(): ReportV2 {
+  const r = demoReportV2();
+  const x = r.executive.structured!;
+  x.summary[0] = `${x.summary[0]} [ev:ev-connected-revenue-stripe]`;
+  x.criticalGaps[0] = { ...x.criticalGaps[0]!, body: `${x.criticalGaps[0]!.body} [unevidenced]` };
+  const tre = r.dimensions.find((d) => d.dim === "tre")!;
+  tre.verdict = `${tre.verdict} [ev:ev-connected-xero-pnl] [ev:ev-connected-revenue-stripe]`;
+  tre.criteria[0]!.strengths = [`${tre.criteria[0]!.strengths[0] ?? "NRR 104 %"} [ev:ev-connected-revenue-stripe]`, ...tre.criteria[0]!.strengths.slice(1)];
+  tre.criteria[0]!.gaps = [`${tre.criteria[0]!.gaps[0] ?? "Top-customer share undisclosed"} [ev:not-a-register-id]`, ...tre.criteria[0]!.gaps.slice(1)];
+  const mpc = r.dimensions.find((d) => d.dim === "mpc")!;
+  mpc.verdict = `${mpc.verdict} [ev:ev-market-anchor-abs]`;
+  mpc.gaps = ["Category spend is founder-estimated [unevidenced].", ...mpc.gaps];
+  r.valuation.narrative = `${r.valuation.narrative} [ev:ev-connected-revenue-stripe]`;
+  return r;
+}

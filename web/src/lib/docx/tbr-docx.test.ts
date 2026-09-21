@@ -12,7 +12,7 @@
 import JSZip from "jszip";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { tbrV2Toc } from "@/components/tbr/v2/report";
-import { demoReportV2, freeFixtureReportV2, preRevenueFixtureReportV2 } from "@/lib/report-v2/fixtures";
+import { citedDemoReportV2, demoReportV2, freeFixtureReportV2, preRevenueFixtureReportV2 } from "@/lib/report-v2/fixtures";
 import { fromSnapshot } from "@/lib/report-v2/adapter";
 import { __resetPngCache, __resetSharpLoader } from "@/lib/report-visuals/png";
 
@@ -226,4 +226,32 @@ describe("buildTbrDocx — evidence & data CTAs (G19-S43)", () => {
     expect(emptyText).not.toMatch(/0 matched (—|-) the nearest-fit/);
     expect(emptyText).not.toMatch(/0 matched in this snapshot/);
   }, 90_000);
+});
+
+// ── G24-A: evidence citations as footnotes (DOCX twin) ───────────────────────
+describe("buildTbrDocx — citations (G24-A)", () => {
+  it("no raw [ev:] / [unevidenced] marker reaches document.xml; footnotes are superscript runs numbered like the web and the Evidence cited table closes the document", async () => {
+    const report = citedDemoReportV2();
+    const { buffer } = await buildTbrDocx(report, { images: await rasteriseReportVisuals(report) });
+    const { doc } = await unzip(buffer);
+    const text = xmlText(doc);
+    expect(text).not.toContain("[ev:");
+    expect(text).not.toMatch(/\[unevidenced\]/i);
+    expect(text).not.toContain("not-a-register-id");
+    // Superscript runs carry the footnote numbers (docx: <w:vertAlign w:val="superscript"/>).
+    const sups = doc.match(/<w:vertAlign w:val="superscript"\/>/g) ?? [];
+    expect(sups.length).toBeGreaterThanOrEqual(5);
+    expect(doc).toMatch(/superscript"\/><\/w:rPr><w:t[^>]*>1<\/w:t>/);
+    expect(doc).toMatch(/superscript"\/><\/w:rPr><w:t[^>]*>2,1<\/w:t>/);
+    expect(text).toContain("(unverified)");
+    // The appendix table: 1 Stripe · 2 Xero · 3 ABS with level · source · date, after the appendix.
+    const idx = text.indexOf("Evidence cited");
+    expect(idx).toBeGreaterThan(text.indexOf("Appendix — Method, Evidence & Auditor Log"));
+    assertOrdered(text.slice(idx), ["1", "Stripe revenue (last sync)", "transaction data", "Stripe (revenue)", "2026-09-10", "2", "Xero P&L (last sync)", "3", "AU market anchor (ABS / IBISWorld)", "public URLs"]);
+    // Rendering never rewrites the stored text; a document without citations has no footnote section.
+    expect(report.dimensions.find((d) => d.dim === "tre")!.verdict).toContain("[ev:ev-connected-xero-pnl]");
+    const plain = demoReportV2();
+    const plainText = xmlText((await unzip((await buildTbrDocx(plain, { images: await rasteriseReportVisuals(plain) })).buffer)).doc);
+    expect(plainText).not.toContain("Evidence cited");
+  }, 120_000);
 });

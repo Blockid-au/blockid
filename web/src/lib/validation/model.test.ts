@@ -193,6 +193,27 @@ describe("deriveAutoRows", () => {
   });
 });
 
+describe("deriveAutoRows — G24-C demo cohorts", () => {
+  it("a demo cohort is never 'Cohort scored'; loaded by an external seat it is a Level-2 'workflow demo run' signal; loaded by an admin it is nothing", () => {
+    const rows = deriveAutoRows({
+      pilotOrders: [],
+      applications: [],
+      feedbackLetters: [],
+      batches: [
+        { id: "b-demo-ext", name: "Demo cohort", program_name: "Workflow demo (fictional data)", status: "done", total: 5, done_count: 5, finished_at: "2026-09-21T00:00:00.000Z", created_at: "2026-09-21T00:00:00.000Z", owner_email: "pm@program.org", is_demo: true, owner_is_admin: false },
+        { id: "b-demo-admin", name: "Demo cohort", status: "done", total: 5, done_count: 5, finished_at: "2026-09-21T00:00:00.000Z", created_at: "2026-09-21T00:00:00.000Z", owner_email: "admin@blockid.au", is_demo: true, owner_is_admin: true },
+        { id: "b-demo-qa", name: "Demo cohort", status: "done", total: 5, done_count: 5, finished_at: "2026-09-21T00:00:00.000Z", created_at: "2026-09-21T00:00:00.000Z", owner_email: "qa-live-20260921-0900@blockid.au", is_demo: true, owner_is_admin: false },
+        { id: "b-real", name: "Spring", status: "done", total: 12, done_count: 12, finished_at: "2026-09-16T00:00:00.000Z", created_at: "2026-09-15T00:00:00.000Z", owner_email: "pm@program.org" },
+      ],
+    });
+    expect(rows.map((r) => r.id)).toEqual(["evaluation_batches:b-demo-ext:demo", "evaluation_batches:b-real"]);
+    expect(rows[0]).toMatchObject({ level: 2, counts: false, organisation: "program.org", date: "2026-09-21" });
+    expect(rows[0].detail).toMatch(/^Workflow demo run/);
+    expect(rows[0].detail).not.toMatch(/Cohort scored/);
+    expect(rows.some((r) => r.id === "evaluation_batches:b-demo-ext")).toBe(false);
+  });
+});
+
 describe("ladder + objections + dashboard", () => {
   it("actual = manual done + counted auto rows; booked / declined counted separately; progress capped at 1", () => {
     const entries = [

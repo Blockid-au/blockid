@@ -28,6 +28,12 @@ function fakeDb(tables: Record<string, Row[]>, missing: string[] = []) {
           filters.push((r) => (v === null ? r[col] == null : r[col] === v));
           return q;
         },
+        in: (col: string, vals: unknown[]) => {
+          filters.push((r) => vals.includes(r[col]));
+          return q;
+        },
+        // G24-C: the demo read ends on `.eq("is_demo", true)` and is awaited directly.
+        then: (ok: (v: unknown) => unknown, ko?: (e: unknown) => unknown) => q.limit().then(ok, ko),
         limit: async () => (err ? { data: null, error: err } : { data: (tables[table] ?? []).filter((r) => filters.every((f) => f(r))), error: null }),
         maybeSingle: async () => ({ data: (tables[table] ?? []).filter((r) => filters.every((f) => f(r)))[0] ?? null, error: null }),
       };
@@ -55,6 +61,23 @@ function seed(): Record<string, Row[]> {
     ],
   };
 }
+
+describe("loadOrgScope — G24-C demo exclusion", () => {
+  it("a demo cohort (is_demo = true) is out of the org scope — neither exported nor retained — even when it carries the org id", async () => {
+    const tables = seed();
+    tables.evaluation_batches.push({ id: "b-demo", user_id: "owner-1", org_id: "org-1", is_demo: true });
+    const scope = await loadOrgScope(fakeDb(tables) as never, "org-1");
+    expect(scope.batchIds).not.toContain("b-demo");
+    expect([...scope.batchIds].sort()).toEqual(["b-org", "b-owner-legacy", "b-seat-org"]);
+  });
+
+  it("before 0436 (42703 on is_demo) the scope is unchanged — fail-soft, nothing dropped", async () => {
+    const tables = seed();
+    tables.evaluation_batches.push({ id: "b-demo", user_id: "owner-1", org_id: "org-1", is_demo: true });
+    const scope = await loadOrgScope(fakeDb(tables, ["evaluation_batches.is_demo"]) as never, "org-1");
+    expect(scope.batchIds).toContain("b-demo");
+  });
+});
 
 describe("loadOrgScope", () => {
   it("with 0433: org_id rows ∪ the owner's rows without an org id; the owner's other-org rows and a seat's own rows are out", async () => {

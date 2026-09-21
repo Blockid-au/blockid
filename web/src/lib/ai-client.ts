@@ -59,6 +59,7 @@ import {
   callAnthropicTier,
   anthropicRequestsRemaining,
   isAnthropicKeyInvalid,
+  markAnthropicKeyInvalid,
   inferTaskClass,
   modelForTaskClass,
   type AITaskClass,
@@ -1633,6 +1634,67 @@ async function callViaGateway(opts: AICallOptions): Promise<AICallResult | null>
 // Track recently failed providers — skip them for 2 minutes to avoid wasting time
 const providerCooldown = new Map<string, number>();
 
+// ── G24-B: process-lifetime "unconfigured" latch ─────────────────────────
+// A 401 / invalid-key answer means the credential is wrong, not that the
+// provider is busy — a cooldown that expires (the old 1 h) just re-dials the
+// bad key every hour and floods the log. The provider is now marked
+// UNCONFIGURED for the rest of the process: never picked (not even by the
+// "everything is cooling, retry the coolest" fallback), one log line that
+// names the env var to rotate and never a key value, and /api/status
+// `ai_providers` shows `blocked / unconfigured`. Rotate the key and restart
+// (a deploy restarts) to clear it. Anthropic's own latch lives in
+// anthropic-tier.ts; the dispatcher delegates to it so the line is logged once.
+const unconfiguredProviders = new Map<Provider, string>();
+
+/** True for a 401 / invalid-key / unauthorised provider error (never a 429 / 5xx). */
+export function isInvalidKeyError(err: Error | { message?: string; status?: number; kind?: string }): boolean {
+  const kind = (err as { kind?: string }).kind;
+  if (kind === "invalid_key") return true;
+  const status = (err as { status?: number }).status;
+  if (status === 401) return true;
+  const msg = String((err as { message?: string }).message ?? "").toLowerCase();
+  return /\b401\b|authentication_error|invalid.?(api.?)?key|unauthori[sz]ed/.test(msg);
+}
+
+/** Env var the founder rotates for a provider — the log names it, never its value. */
+export function providerKeyEnvName(p: Provider): string {
+  switch (p) {
+    case "claude-apikey": return "ANTHROPIC_API_KEY";
+    case "claude-oauth": return "CLAUDE_CODE_OAUTH_TOKEN";
+    case "claude-haiku-direct": return "ANTHROPIC_HAIKU_API_KEY";
+    case "claude-proxy": return "ANTHROPIC_PROXY_API_KEY";
+    case "gemini": return "GOOGLE_GEMINI_API_KEY";
+    case "groq": return "GROQ_API_KEY";
+    case "openrouter": return "OPENROUTER_API_KEY";
+    case "cerebras": return "CEREBRAS_API_KEY";
+    case "sambanova": return "SAMBANOVA_API_KEY";
+    case "deepinfra": return "DEEPINFRA_API_KEY";
+    case "openai-apikey": return "OPENAI_API_KEY";
+    case "ollama": return "OLLAMA_HOST";
+    default: return "AI provider key";
+  }
+}
+
+/** Mark `p` unconfigured for the rest of the process; logs once per provider. */
+export function markProviderUnconfigured(p: Provider, reason = "401"): void {
+  if (p === "claude-apikey") {
+    // The tier module owns the Anthropic latch + its single log line.
+    markAnthropicKeyInvalid(Date.now(), reason);
+    if (!unconfiguredProviders.has(p)) unconfiguredProviders.set(p, reason);
+    return;
+  }
+  if (unconfiguredProviders.has(p)) return;
+  unconfiguredProviders.set(p, reason);
+  console.warn(
+    `[ai-client] ${p} rejected the key (${reason.slice(0, 80)}) — provider marked unconfigured for the rest of this process; ` +
+    `no retries. Rotate ${providerKeyEnvName(p)} and restart.`,
+  );
+}
+
+export function isProviderUnconfigured(p: Provider): boolean {
+  return unconfiguredProviders.has(p) || (p === "claude-apikey" && isAnthropicKeyInvalid());
+}
+
 // ═════════════════════════════════════════════════════════════════════════
 // PARALLEL-SERVING DISPATCHER (Sep 2026)
 // ═════════════════════════════════════════════════════════════════════════
@@ -1755,8 +1817,9 @@ function probeIdFor(p: Provider): ProbeProvider | null {
  *  the last probe verdict (invalid key / quota spent / low credit, honoured
  *  while the probe is fresh). */
 export function providerBlockReason(p: Provider, now: number = Date.now()): string | null {
+  // G24-B: a rejected key outranks every other state — never re-dialled this process.
+  if (isProviderUnconfigured(p)) return "unconfigured";
   if ((providerCooldown.get(p) ?? 0) > now) return "cooldown";
-  if (p === "claude-apikey" && isAnthropicKeyInvalid(now)) return "invalid_key";
   if (isPaidProvider(p) && isDailyCapReached(now)) return "daily_cap";
   const id = probeIdFor(p);
   if (id) {
@@ -2073,7 +2136,7 @@ export interface ProviderHealthEntry {
   state: "ok" | "cooldown" | "blocked";
   /** ISO timestamp when the cooldown lifts; null unless `state === "cooldown"`. */
   cooldown_until: string | null;
-  /** Block reason from `providerBlockReason` (invalid_key / quota_exceeded / low_credit / daily_cap / unreachable). */
+  /** Block reason from `providerBlockReason` (unconfigured / invalid_key / quota_exceeded / low_credit / daily_cap / unreachable). */
   reason?: string;
 }
 
@@ -2123,6 +2186,7 @@ export function _resetDispatcherForTests(): void {
   inFlightByProvider.clear();
   rpmWindow.clear();
   providerCooldown.clear();
+  unconfiguredProviders.clear();
   agentRunning.clear();
   agentQueues.clear();
   userRunning.clear();
@@ -2158,9 +2222,11 @@ function maybeKickProviderProbe(): void {
 // ═════════════════════════════════════════════════════════════════════════
 
 /** Cooldown length for a failed provider — three tiers plus the S31-A
- *  Anthropic specifics (the 401 latch is 1 h in the tier module; a 429
- *  honours `retry-after` when the provider gave one). */
-function cooldownForError(provider: Provider, err: Error): number {
+ *  Anthropic specifics (a 429 honours `retry-after` when the provider gave
+ *  one). A 401 never reaches here from callAI: G24-B marks the provider
+ *  unconfigured for the process instead (markProviderUnconfigured); the 1 h
+ *  branch stays for a caller that classifies without the latch. */
+export function cooldownForError(provider: Provider, err: Error): number {
   const msg = err.message.toLowerCase();
   const retryAfter = (err as { retryAfterMs?: number }).retryAfterMs;
   if (provider === "claude-apikey" && typeof retryAfter === "number" && retryAfter > 0) {
@@ -2269,6 +2335,11 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
         return { ...result, cost_usd: cost, via: provider, taskClass };
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
+        if (isInvalidKeyError(lastError)) {
+          // G24-B: wrong credential → unconfigured for the process, one line, no cooldown re-dial.
+          markProviderUnconfigured(provider, `${(lastError as { status?: number }).status ?? 401} invalid key`);
+          continue;
+        }
         const cooldownMs = cooldownForError(provider, lastError);
         providerCooldown.set(provider, Date.now() + cooldownMs);
         const cooldownLabel = cooldownMs >= 60 * 60_000

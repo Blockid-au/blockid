@@ -23,6 +23,9 @@ import {
 import { Sparkline } from "./sparkline";
 import { RescoreButton } from "./rescore-button";
 import { FeedbackLettersPanel } from "./feedback-letters-panel";
+import { DEMO_COHORT_LABELS_EN, type DemoCohortLabels } from "@/lib/evaluations/demo-cohort-shared";
+import { DemoCohortChip } from "@/components/evaluations/DemoCohortChip";
+import { LoadDemoCohortButton, RemoveDemoCohortButton } from "@/components/evaluations/DemoCohortActions";
 
 export const COHORT_TABLE_PATH = (batchId: string) => `/workspace/evaluations/cohort/${encodeURIComponent(batchId)}`;
 export const COHORT_IMPORT_PATH = (batchId: string | null) => (batchId ? `${COHORT_TABLE_PATH(batchId)}?import=csv` : "/workspace/evaluations?import=csv");
@@ -113,13 +116,27 @@ export interface ProgramJourneyProps {
   stage: ProgramStage;
   /** Owner / reviewer may send letters and re-score; viewers read. */
   canAct: boolean;
+  /** G24-C: the creator of the selected cohort (may remove a demo cohort). */
+  isOwner?: boolean;
+  /** G24-C: catalogue copy for the demo chip / CTAs (EN default). */
+  demoLabels?: DemoCohortLabels;
 }
 
-export function ProgramJourney({ view, stage, canAct }: ProgramJourneyProps) {
+export function ProgramJourney({ view, stage, canAct, isOwner = false, demoLabels = DEMO_COHORT_LABELS_EN }: ProgramJourneyProps) {
   const batchId = view.batch?.id ?? null;
   const meta = PROGRAM_STAGE_META[stage];
+  const isDemo = view.batch?.isDemo === true;
   return (
-    <section className="space-y-6" data-testid="program-journey" data-stage={stage}>
+    <section className="space-y-6" data-testid="program-journey" data-stage={stage} data-demo={isDemo ? "1" : undefined}>
+      {isDemo ? (
+        <div className="flex flex-col gap-3 rounded-2xl border border-warn/40 bg-warn/5 px-4 py-4 md:flex-row md:items-start md:justify-between" data-testid="journey-demo-banner">
+          <div className="min-w-0">
+            <DemoCohortChip label={demoLabels.chip} title={demoLabels.chipTitle} size="md" />
+            <p className="mt-2 max-w-3xl text-sm text-secondary">{demoLabels.bannerBody}</p>
+          </div>
+          {isOwner ? <RemoveDemoCohortButton labels={demoLabels} afterHref="/workspace/accelerator" /> : null}
+        </div>
+      ) : null}
       <Tabs chips={view.stages} active={stage} batchId={batchId} />
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -134,8 +151,8 @@ export function ProgramJourney({ view, stage, canAct }: ProgramJourneyProps) {
           </Link>
         </div>
       </header>
-      {stage === "intake" ? <IntakePanel view={view} batchId={batchId} /> : null}
-      {stage === "assessment" ? <AssessmentPanel view={view} batchId={batchId} /> : null}
+      {stage === "intake" ? <IntakePanel view={view} batchId={batchId} demoLabels={demoLabels} /> : null}
+      {stage === "assessment" ? <AssessmentPanel view={view} batchId={batchId} demoLabels={demoLabels} /> : null}
       {stage === "selection" ? <SelectionPanel view={view} batchId={batchId} canAct={canAct} /> : null}
       {stage === "program" ? <ProgramPanel view={view} batchId={batchId} canAct={canAct} /> : null}
       {stage === "demo-day" ? <DemoDayPanel view={view} batchId={batchId} /> : null}
@@ -160,8 +177,9 @@ function BatchPicker({ view, stage }: { view: ProgramJourneyView; stage: Program
   );
 }
 
-function IntakePanel({ view, batchId }: { view: ProgramJourneyView; batchId: string | null }) {
+function IntakePanel({ view, batchId, demoLabels }: { view: ProgramJourneyView; batchId: string | null; demoLabels: DemoCohortLabels }) {
   const it = view.intake;
+  const noCohort = !batchId || view.assessment.total === 0;
   return (
     <div className="space-y-4" data-testid="panel-intake">
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -186,6 +204,7 @@ function IntakePanel({ view, batchId }: { view: ProgramJourneyView; batchId: str
           <Upload className="h-4 w-4" aria-hidden="true" />
           Import applicants from CSV
         </Link>
+        {noCohort && !view.batch?.isDemo ? <LoadDemoCohortButton labels={demoLabels} hrefFor={(id) => `/workspace/accelerator?stage=assessment&batch=${encodeURIComponent(id)}`} /> : null}
       </div>
       {it.links === 0 && view.assessment.total === 0 ? (
         <Empty title="No applications yet" body="Publish an intake link from the inbox, or import an existing cohort as CSV — company, URL, contact e-mail, stage, sector, deck link." cta={{ href: "/workspace/accelerator/applications", label: "Create an intake link" }} />
@@ -194,7 +213,7 @@ function IntakePanel({ view, batchId }: { view: ProgramJourneyView; batchId: str
   );
 }
 
-function AssessmentPanel({ view, batchId }: { view: ProgramJourneyView; batchId: string | null }) {
+function AssessmentPanel({ view, batchId, demoLabels }: { view: ProgramJourneyView; batchId: string | null; demoLabels: DemoCohortLabels }) {
   const a = view.assessment;
   return (
     <div className="space-y-4" data-testid="panel-assessment">
@@ -214,7 +233,16 @@ function AssessmentPanel({ view, batchId }: { view: ProgramJourneyView; batchId:
           </Link>
         </div>
       ) : (
-        <Empty title="No cohort scored yet" body="Tick the startups in your evaluations workspace and choose Batch score — every applicant lands on the same rubric with an evidence confidence level." cta={{ href: "/workspace/evaluations", label: "Startups I'm evaluating" }} />
+        <>
+          <Empty title="No cohort scored yet" body="Tick the startups in your evaluations workspace and choose Batch score — every applicant lands on the same rubric with an evidence confidence level." cta={{ href: "/workspace/evaluations", label: "Startups I'm evaluating" }} />
+          <div className="flex flex-wrap items-start justify-center gap-2" data-testid="assessment-empty-actions">
+            <Link href="/workspace/evaluations/cohort" className={btn}>
+              <Upload className="h-4 w-4" aria-hidden="true" />
+              {demoLabels.importCsv}
+            </Link>
+            <LoadDemoCohortButton labels={demoLabels} hrefFor={(id) => `/workspace/accelerator?stage=assessment&batch=${encodeURIComponent(id)}`} />
+          </div>
+        </>
       )}
     </div>
   );
@@ -271,6 +299,11 @@ function ProgramPanel({ view, batchId, canAct }: { view: ProgramJourneyView; bat
                   <Link href={s.dossierUrl} className="truncate text-base font-semibold text-primary hover:underline">
                     {s.name}
                   </Link>
+                  {s.isDemo ? (
+                    <div className="mt-1">
+                      <DemoCohortChip />
+                    </div>
+                  ) : null}
                   <p className="mt-0.5 text-xs text-tertiary">
                     SVI {s.svi == null ? "—" : Math.round(s.svi)} · confidence {s.confidence == null ? "—" : `${s.confidence} %`} · {stageName(s.stage)}
                     {s.decision ? ` · ${COHORT_DECISION_LABELS[s.decision]}` : ""}
@@ -351,7 +384,14 @@ function DemoDayPanel({ view, batchId }: { view: ProgramJourneyView; batchId: st
             <tbody>
               {rows.map(({ startup: s, verificationLabel, readiness }) => (
                 <tr key={s.itemId} className="border-b border-line-subtle last:border-0" data-testid="demo-day-row">
-                  <td className="px-4 py-3 font-medium text-primary">{s.name}</td>
+                  <td className="px-4 py-3 font-medium text-primary">
+                    {s.name}
+                    {s.isDemo ? (
+                      <div className="mt-1">
+                        <DemoCohortChip />
+                      </div>
+                    ) : null}
+                  </td>
                   <td className="px-4 py-3 text-right tabular-nums text-primary">{s.svi == null ? "—" : Math.round(s.svi)}</td>
                   <td className="px-4 py-3 text-right tabular-nums text-primary">{s.confidence == null ? "—" : `${s.confidence} %`}</td>
                   <td className="px-4 py-3 text-secondary">{verificationLabel}</td>
