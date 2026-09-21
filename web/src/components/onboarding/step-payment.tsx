@@ -1,261 +1,95 @@
 "use client";
 
-// Card-capture step for the onboarding wizard.
+// Review-and-pay step of the LEGACY onboarding wizard (`ONBOARDING_V4=off`
+// rollback path; the v4 wizard exits to /checkout/review directly).
 //
-// The only Stripe package actually installed in this project is
-// `@stripe/stripe-js` (see package.json) — `@stripe/react-stripe-js` is NOT
-// present and adding it would violate the "no new npm deps" constraint on
-// this task. So instead of `<Elements>` + `<CardElement>` from the React
-// wrapper, this mounts a vanilla Stripe.js Elements `card` element directly
-// via a ref, using the existing `getStripeClient()` helper
-// (`@/lib/stripe-client`). Functionally equivalent for this flow.
-//
-// POST /api/stripe/checkout (unchanged, not owned by this task) always
-// creates a Stripe Checkout Session today and returns `{ ok, url }` — it
-// never returns a SetupIntent client_secret. The `client_secret` branch
-// below is kept so this component degrades gracefully if/when that route
-// grows a setup-intent mode, but in production the `url` branch is what
-// actually fires: we redirect to Stripe-hosted Checkout, which already
-// collects the card + starts the trial (trial_period_days is set server
-// side). See web/src/app/api/stripe/checkout/route.ts.
+// G25-D (founder 2026-09-21): this step used to POST /api/stripe/checkout on
+// mount and redirect to Stripe before the founder had read anything — the
+// exact auto-redirect the founder forbade. It is now a review block (plan,
+// price inc. GST with the GST share, trial terms, renewal) and ONE explicit
+// button, "Add card & start N-day trial", that links to the review step
+// (`/checkout/review?plan=…&origin=onboarding`) where the Pay click posts to
+// the checkout route. Nothing here fetches a checkout route; the
+// `origin=onboarding` flag keeps the Stripe success_url steering back to
+// Step 6 ("Create your first startup").
 
 import * as React from "react";
 import type { Dispatch } from "react";
-import { Loader2, Lock, ShieldCheck } from "lucide-react";
-import type {
-  Stripe,
-  StripeCardElement,
-  StripeElements,
-} from "@stripe/stripe-js";
-import { getStripeClient } from "@/lib/stripe-client";
+import Link from "next/link";
+import { Lock, ShieldCheck } from "lucide-react";
+import { checkoutReviewHref } from "@/lib/billing/checkout-review";
 import { PLANS_V2, formatAud } from "@/lib/plans-v2";
 import { formatGstInclusiveAud } from "@/lib/gst";
+import { TRIAL_COPY, TRIAL_WARNING_HOURS_BEFORE } from "@/lib/plans/trial-copy";
 import type { WizardAction, WizardState } from "./wizard-types";
-
-type Mode = "loading" | "redirecting" | "card" | "error";
 
 export function StepPayment({
   state,
-  dispatch,
 }: {
   state: WizardState;
   dispatch: Dispatch<WizardAction>;
 }) {
-  const cardRef = React.useRef<HTMLDivElement | null>(null);
-  const stripeRef = React.useRef<Stripe | null>(null);
-  const elementsRef = React.useRef<StripeElements | null>(null);
-  const cardElementRef = React.useRef<StripeCardElement | null>(null);
-
-  const [mode, setMode] = React.useState<Mode>("loading");
-  const [clientSecret, setClientSecret] = React.useState<string | null>(null);
-  const [cardReady, setCardReady] = React.useState(false);
-  const [submitting, setSubmitting] = React.useState(false);
-  const [localError, setLocalError] = React.useState<string | null>(null);
-
   const plan = PLANS_V2.find((p) => p.id === state.planId);
   const isAnnual =
     state.interval === "annual" && typeof plan?.annual_aud === "number" && plan.annual_aud > 0;
   const chargeAud = plan ? (isAnnual ? plan.annual_aud : plan.monthly_aud) : null;
-
-  // Kick off checkout / setup-intent creation once on mount.
-  React.useEffect(() => {
-    let cancelled = false;
-
-    async function start() {
-      if (!state.planId) {
-        setLocalError("No plan selected.");
-        setMode("error");
-        return;
-      }
-      try {
-        const res = await fetch("/api/stripe/checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          // `origin: "onboarding"` tells the route to stamp `&onboarding=1`
-          // on the Stripe success_url so /checkout/success bounces the user
-          // back into the wizard at Step 6 ("Create your first startup").
-          // Without this flag, Stripe-hosted return lands on the marketing
-          // thank-you page and Step 6 is unreachable in production.
-          body: JSON.stringify({
-            plan: state.planId,
-            mode: "setup_intent",
-            origin: "onboarding",
-            ...(state.interval === "annual" ? { interval: "annual" } : {}),
-          }),
-        });
-        const data = await res.json().catch(() => ({ ok: false }));
-        if (cancelled) return;
-
-        if (data.url) {
-          setMode("redirecting");
-          window.location.href = data.url;
-          return;
-        }
-        if (data.client_secret) {
-          setClientSecret(data.client_secret);
-          setMode("card");
-          return;
-        }
-        setLocalError(data.reason || "Could not start checkout. Please try again.");
-        setMode("error");
-      } catch {
-        if (!cancelled) {
-          setLocalError("Network error — please try again.");
-          setMode("error");
-        }
-      }
-    }
-
-    start();
-    return () => {
-      cancelled = true;
-    };
-  }, [state.planId, state.interval]);
-
-  // Mount the vanilla Stripe.js card element once a client_secret is ready.
-  React.useEffect(() => {
-    if (mode !== "card" || !cardRef.current) return;
-    let mounted = true;
-
-    getStripeClient().then((stripe) => {
-      if (!mounted || !stripe || !cardRef.current) return;
-      stripeRef.current = stripe;
-      const elements = stripe.elements();
-      elementsRef.current = elements;
-      const card = elements.create("card", {
-        style: {
-          base: {
-            color: "#F8FAFC",
-            fontSize: "15px",
-            "::placeholder": { color: "#CBD5E1" },
-          },
-          invalid: { color: "#F87171" },
-        },
-      });
-      card.mount(cardRef.current);
-      card.on("ready", () => setCardReady(true));
-      card.on("change", (event) => {
-        setLocalError(event.error ? event.error.message : null);
-      });
-      cardElementRef.current = card;
-    });
-
-    return () => {
-      mounted = false;
-      cardElementRef.current?.unmount();
-      cardElementRef.current = null;
-    };
-  }, [mode]);
-
-  async function handleSubmit(ev: React.FormEvent) {
-    ev.preventDefault();
-    const stripe = stripeRef.current;
-    const card = cardElementRef.current;
-    if (!stripe || !card || !clientSecret || submitting) return;
-
-    setSubmitting(true);
-    setLocalError(null);
-    dispatch({ type: "SET_LOADING", loading: true });
-
-    try {
-      const result = await stripe.confirmCardSetup(clientSecret, {
-        payment_method: { card },
-      });
-      if (result.error) {
-        setLocalError(result.error.message || "Card could not be verified.");
-        setSubmitting(false);
-        dispatch({ type: "SET_LOADING", loading: false });
-        return;
-      }
-
-      const pm = result.setupIntent?.payment_method;
-      const pmId = typeof pm === "string" ? pm : pm?.id;
-      if (pmId) dispatch({ type: "SET_PAYMENT_METHOD", pmId });
-
-      await fetch("/api/onboarding/save-progress", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          step: 5,
-          state: { ...state, paymentMethodId: pmId, planId: state.planId },
-        }),
-      });
-
-      // Advance to Step 6 ("Create your first startup") — the activation
-      // moment added by real-world audit #8. If the flow was reopened at
-      // step=6 directly (Stripe-hosted checkout return), the wizard shell
-      // handles that via URL params; from here we NEXT into it.
-      dispatch({ type: "SET_LOADING", loading: false });
-      dispatch({ type: "NEXT" });
-    } catch {
-      setLocalError("Something went wrong confirming your card. Please try again.");
-      setSubmitting(false);
-      dispatch({ type: "SET_LOADING", loading: false });
-    }
-  }
+  const trialDays = plan?.trial_days ?? 0;
+  const reviewHref = state.planId
+    ? checkoutReviewHref({ plan: state.planId, interval: isAnnual ? "annual" : "monthly", trial: true, entry: "onboarding", origin: "onboarding" })
+    : null;
 
   return (
     <div>
       <h1 className="text-2xl font-bold text-brand-ink sm:text-3xl">
-        Add your card to start
+        Review your order
       </h1>
       <p className="mt-2 text-brand-ink-muted">
-        {plan ? `${plan.name} · ${formatAud(chargeAud)}/${isAnnual ? "yr" : "mo"}` : "Your plan"}{" "}
-        — 7-day free trial starts now.
+        {plan ? `${plan.name} · ${formatAud(chargeAud)}/${isAnnual ? "yr" : "mo"}` : "Your plan"}
+        {trialDays > 0 ? ` — ${trialDays}-day free trial, card required.` : ""}
       </p>
+
       {plan && typeof chargeAud === "number" && chargeAud > 0 ? (
-        // QA-3 P2: the amount Stripe will charge when the trial ends, GST
-        // shown, before the redirect — matches the invoice tax line.
-        <p className="mt-1 text-sm text-brand-ink-muted" data-testid="gst-line">
-          After the trial: {formatGstInclusiveAud(Math.round(chargeAud * 100))} per{" "}
-          {isAnnual ? "year" : "month"}, charged in AUD. Cancel any time before the trial ends
-          and nothing is charged.
-        </p>
-      ) : null}
-
-      {(mode === "loading" || mode === "redirecting") && (
-        <div className="mt-10 flex items-center gap-3 text-brand-ink-muted">
-          <Loader2 aria-hidden="true" className="h-5 w-5 animate-spin text-brand-cyan" />
-          {mode === "redirecting"
-            ? "Redirecting to secure checkout..."
-            : "Preparing secure payment..."}
-        </div>
-      )}
-
-      {mode === "error" && (
-        <div role="alert" className="mt-10 rounded-2xl border border-red-400/30 bg-red-500/10 p-5 text-sm text-red-300">
-          {localError || "Something went wrong."}
-        </div>
-      )}
-
-      {mode === "card" && (
-        <form onSubmit={handleSubmit} className="mt-10 space-y-6">
-          <div className="rounded-2xl border border-brand-cyan/15 bg-brand-navy-elev-1 p-5">
-            <div ref={cardRef} className="min-h-[24px]" />
-          </div>
-          {localError && (
-            <p role="alert" className="text-sm text-red-400">
-              {localError}
+        <section
+          aria-label="Order summary"
+          data-testid="onboarding-review"
+          data-plan-id={plan.id}
+          className="mt-8 space-y-2 rounded-2xl border border-brand-cyan/15 bg-brand-navy-elev-1 p-5 text-sm text-brand-ink-muted"
+        >
+          {/* QA-3 P2: the amount Stripe will charge when the trial ends, GST
+              shown, before any hand-off — matches the invoice tax line. */}
+          <p data-testid="gst-line">
+            {trialDays > 0 ? "After the trial: " : "Charged now: "}
+            {formatGstInclusiveAud(Math.round(chargeAud * 100))} per {isAnnual ? "year" : "month"}, charged in AUD.
+          </p>
+          {trialDays > 0 ? (
+            <p>
+              {trialDays}-day free trial · card required · cancel before day {trialDays} and nothing is charged · then {formatAud(chargeAud)} per {isAnnual ? "year" : "month"}.
             </p>
-          )}
-          <button
-            type="submit"
-            disabled={!cardReady || submitting}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-cyan px-6 py-3 text-sm font-semibold text-brand-navy transition-colors hover:bg-brand-blue-bright disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy sm:w-auto"
-          >
-            {submitting ? (
-              <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
-            ) : (
-              <Lock aria-hidden="true" className="h-4 w-4" />
-            )}
-            Start my 7-day trial
-          </button>
-        </form>
+          ) : null}
+          <p>
+            Renews automatically each {isAnnual ? "year" : "month"} until you cancel — self-serve from Billing or the Stripe Billing Portal. E-mail reminder {TRIAL_WARNING_HOURS_BEFORE}h before a trial converts.
+          </p>
+        </section>
+      ) : (
+        <div role="alert" className="mt-10 rounded-2xl border border-red-400/30 bg-red-500/10 p-5 text-sm text-red-300">
+          No plan selected.
+        </div>
       )}
+
+      {reviewHref && plan ? (
+        <Link
+          href={reviewHref}
+          data-testid="onboarding-review-continue"
+          className="mt-8 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-cyan px-6 py-3 text-sm font-semibold text-brand-navy transition-colors hover:bg-brand-blue-bright focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy sm:w-auto"
+        >
+          <Lock aria-hidden="true" className="h-4 w-4" />
+          {trialDays > 0 ? TRIAL_COPY.cta_card(trialDays) : `Review and pay ${formatAud(chargeAud)}`}
+        </Link>
+      ) : null}
 
       <p className="mt-8 flex items-center gap-2 text-xs text-brand-ink-muted">
         <ShieldCheck aria-hidden="true" className="h-4 w-4 text-brand-cyan" />
-        Cancel anytime — no charge until Day 8.
+        Nothing is charged on this step. You read the order once more and press Pay yourself before Stripe opens.
       </p>
     </div>
   );

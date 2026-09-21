@@ -46,6 +46,7 @@ import { usePricingExperiment } from "@/lib/hooks/use-pricing-experiment";
 import { PLANS_V2, formatAud } from "@/lib/plans-v2";
 import { CREDIT_PACKS } from "@/lib/credit-packs";
 import { ONE_CLICK_REPORT_3AUD } from "@/lib/pricing/v3-skus";
+import { checkoutReviewHref } from "@/lib/billing/checkout-review";
 import { FREE_SIGNUP_CREDITS, SVI_ANALYSIS_CREDITS, freeSignupAnalyses } from "@/lib/credits-public";
 
 import Image from "next/image";
@@ -1852,36 +1853,17 @@ function SVIPaywall({
   const [checkoutLoading, setCheckoutLoading] = React.useState<string | null>(null);
   const [errorMsg, setErrorMsg] = React.useState("");
 
-  /** Purchase a credit pack via /api/credits (requires auth). */
-  const handleCreditPack = async (amount: number, trackLabel: string) => {
+  /**
+   * G25-D: a credit-pack click opens the review step for the pack
+   * (`/checkout/review?pack=…&entry=gate`) — price inc. GST, one-off,
+   * non-refundable line — and only the Pay button there posts to
+   * /api/credits. A signed-out visitor is sent to sign-in from the review.
+   */
+  const handleCreditPack = (amount: number, trackLabel: string) => {
     setCheckoutLoading(trackLabel);
     setErrorMsg("");
     trackEvent("svi_paywall_credit_pack_click", { pack: trackLabel, credits: amount });
-    try {
-      const res = await fetch("/api/credits", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount }),
-      });
-      if (res.status === 401) {
-        // Not authenticated — redirect to login first.
-        window.location.href = `/auth/login?redirect=${encodeURIComponent("/?analysis_paid=true")}`;
-        return;
-      }
-      const data = await res.json();
-      if (data.ok && data.url) {
-        window.location.href = data.url;
-      } else if (data.ok && data.method === "direct") {
-        // Dev fallback — credits granted directly; close the paywall.
-        onClose();
-      } else {
-        setErrorMsg(data.reason || "Could not start checkout. Please try again.");
-      }
-    } catch {
-      setErrorMsg("Network error. Please try again.");
-    } finally {
-      setCheckoutLoading(null);
-    }
+    window.location.assign(checkoutReviewHref({ pack: amount, entry: "gate" }));
   };
 
   /** Checkout for a single analysis via /api/stripe/analysis (no auth required). */
