@@ -277,14 +277,16 @@ describe("schema-validated dispatch", () => {
     expect(inserted[0].tokens_in).toBe(200); // both calls accounted for
   });
 
-  it("degrades gracefully when both attempts fail schema — report survives", async () => {
+  it("degrades gracefully when both attempts fail schema — report survives; G24-D: the prose is still auto-cited against the catalogue", async () => {
     const context = makeContext();
+    context.criteriaData.code_git.textInput = "Monorepo, 240 unit tests, 71 % coverage, CI runs on every push.";
     const { caller } = scriptedCaller(["not json at all", "still not json"]);
     let proseCalls = 0;
     const callAI = async () => {
       proseCalls += 1;
       return [
         "Code Quality",
+        "The monorepo carries 240 unit tests with 71 % coverage. Revenue is A$1.2M ARR.",
         "### Risks",
         "- Single maintainer",
         "### Recommended Actions",
@@ -309,6 +311,10 @@ describe("schema-validated dispatch", () => {
     expect(result.risks[0]).toMatch(/Unvalidated analysis/);
     expect(result.degradeReason).toMatch(/schema_fail/);
     expect(result.confidence).toBeLessThan(0.5);
+    const founder = buildEvidenceCatalogue("code_git", context).find((e) => e.label === "Founder evidence: code_git")!;
+    expect(result.content).toContain(`The monorepo carries 240 unit tests with 71 % coverage [ev:${founder.evidence_id}].`);
+    expect(result.content).toContain("Revenue is A$1.2M ARR.");
+    expect(context.qualityCounters?.autoCited).toBe(1);
 
     // The failure is on the audit trail, not swallowed.
     expect(inserted).toHaveLength(1);
@@ -494,10 +500,11 @@ describe("G23-A — auto-cite, per-role budgets, salvage fill, citable ids", () 
     expect(user).not.toContain("every MATERIAL claim (money, percentage, count");
   });
 
-  it("(b) per-role output budgets: CMO / CFO / CPO get 3,400 tokens, every other role keeps the 2,600 floor; the tier maximum still wins when larger", () => {
-    expect(STRUCTURED_OUTPUT_TOKENS_BY_ROLE).toEqual({ cmo: 3400, cfo: 3400, cpo: 3400 });
-    expect(structuredMaxTokens("standard", undefined, "cmo")).toBe(3400);
-    expect(structuredMaxTokens("standard", "large", "cfo")).toBe(3400);
+  it("(b) per-role output budgets: CMO / CFO / CPO get 4,000 tokens (G24-D), CRO 3,400, every other role keeps the 2,600 floor; the tier maximum still wins when larger", () => {
+    expect(STRUCTURED_OUTPUT_TOKENS_BY_ROLE).toEqual({ cmo: 4000, cfo: 4000, cpo: 4000, cro: 3400 });
+    expect(structuredMaxTokens("standard", undefined, "cmo")).toBe(4000);
+    expect(structuredMaxTokens("standard", "large", "cfo")).toBe(4000);
+    expect(structuredMaxTokens("standard", undefined, "cro")).toBe(3400);
     expect(structuredMaxTokens("standard", undefined, "cto")).toBe(2600);
     expect(structuredMaxTokens("investor_memo", "large", "cmo")).toBe(4000);
   });

@@ -7,7 +7,7 @@ import { describe, expect, it } from "vitest";
 import type { ModelCaller } from "@/lib/adk";
 import { auditSections, auditText, CRITIC_INSTRUCTION_TEXT, filterCriticFindings, findUncitedClaims, quotedClaimOf } from "./llm-auditor";
 import { declaredTableRows, expandShortCitations, hasCitationOrMarker, isPrescriptiveClaim, UNEVIDENCED_MARKERS } from "./claim-gate";
-import { autoCite } from "./auto-cite";
+import { autoCite, itemsFromModuleOutputs } from "./auto-cite";
 
 function mockModel(handlers: { critic: (user: string) => string; reviser: (user: string) => string }): ModelCaller {
   return async (system, user) => {
@@ -89,6 +89,25 @@ describe("G24-D (run 1 follow-ups) — short ids, declared-estimate tables, pre-
     expect(findUncitedClaims("| Bear | MRR -30% | A$150K ARR at 12 months |", [])).toEqual([]);
     expect(findUncitedClaims("This implies a healthy LTV/CAC ratio of 2.5-3x.", [])).toEqual([]);
     expect(findUncitedClaims("The LTV/CAC ratio is 2.5-3x.", [])).toHaveLength(1);
+  });
+
+  it("module outputs are citable by their module id (the LCO owner cited [ev:agents/clo-compliance.ts:calculateComplianceScore])", () => {
+    const modules = [{ id: "agents/clo-compliance.ts:calculateComplianceScore", output: { score: 75, completed: 12, total: 16, gaps: ["director ID"] } }];
+    const items = itemsFromModuleOutputs(modules);
+    expect(items[0]).toEqual({ id: "agents/clo-compliance.ts:calculateComplianceScore", label: "Module: agents/clo-compliance.ts:calculateComplianceScore", text: "score = 75 (75 %); completed = 12 (12 %); total = 16; gaps[0] = director ID" });
+    const claim = "The compliance checklist is 75% complete (12 of 16 items) [ev:agents/clo-compliance.ts:calculateComplianceScore].";
+    expect(findUncitedClaims(claim, items.map((i) => i.id))).toEqual([]);
+    const f = filterCriticFindings([`"The compliance checklist is 75% complete (12 of 16 items)" — no such checklist in the EVIDENCE.`], claim, { allowedEvidenceIds: items.map((i) => i.id), citable: items });
+    expect(f.kept).toEqual([]);
+  });
+
+  it("a critic finding on an analyst rating ('Network effects: 3/5') is dropped; a rating line that also states money is kept", () => {
+    const f = filterCriticFindings(
+      [`"Network effects: 3/5" — no rating in the EVIDENCE.`, `"Brand: 2/5 — worth A$4M of goodwill" — fabricated.`],
+      "Network effects: 3/5 — the dataset compounds. Brand: 2/5 — worth A$4M of goodwill.",
+    );
+    expect(f.dropped).toHaveLength(1);
+    expect(f.kept).toEqual([`"Brand: 2/5 — worth A$4M of goodwill" — fabricated.`]);
   });
 
   it("'A$0 ARR' / 'A$0 MRR' is backed by a pre-revenue row; 'A$0' against a row with real revenue is not", () => {

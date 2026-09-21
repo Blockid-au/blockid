@@ -79,7 +79,7 @@ import type { IntakeContext } from "@/lib/intake/detect-context";
 import { assembleReport } from "./section-assembler";
 import { buildAgentPrompt } from "./agent-prompts";
 import { AUDITOR_CAP_BY_TIER, auditSections, type AuditableSection } from "./llm-auditor";
-import { autoCite, itemsFromCatalogue, itemsFromEvidenceRows, type CitableItem } from "./auto-cite";
+import { autoCite, itemsFromCatalogue, itemsFromEvidenceRows, itemsFromModuleOutputs, type CitableItem } from "./auto-cite";
 import { bumpQualityCounter } from "./types";
 import { getAIBudgetStatus } from "@/lib/ai-client";
 import { DIM_ORDER, DIMENSION_OWNERS, criteriaForDimension, type DimKey } from "./dimension-owners";
@@ -955,14 +955,17 @@ async function auditAllSections(
     sections.push({ id: "executive", title: "Executive Summary", content: draft, allowedEvidenceIds: registerIds, citable: reportCitable });
   }
   context.dimensionChapters?.forEach((chapter, dim) => {
-    const ids = chapter.evidence.map((e) => e.evidence_id);
+    // The chapter's evidence rows + its deterministic module outputs (the owner
+    // prompt lists both by id; buildDimensionChapter accepts both).
+    const modules = itemsFromModuleOutputs(chapter.modules ?? []);
+    const ids = [...chapter.evidence.map((e) => e.evidence_id), ...modules.map((m) => m.id)];
     const idSet = new Set(ids);
     sections.push({
       id: `dim:${dim}`,
       title: chapter.title,
       content: [chapter.verdict, ...chapter.strengths.map((s) => `- ${s}`), ...chapter.gaps.map((g) => `- ${g}`)].join("\n"),
       allowedEvidenceIds: ids,
-      citable: reportCitable.filter((i) => idSet.has(i.id)),
+      citable: [...reportCitable.filter((i) => idSet.has(i.id)), ...modules],
     });
   });
   context.criterionResults.forEach((result, key) => {
@@ -1082,7 +1085,7 @@ export function citableItemsForReport(context: ReportContext): CitableItem[] {
 }
 
 /** Chars of the critic's evidence block — keeps the critic prompt inside the free-model context. */
-export const CRITIC_EVIDENCE_MAX_CHARS = 28_000;
+export const CRITIC_EVIDENCE_MAX_CHARS = 36_000;
 
 /**
  * The critic's EVIDENCE: the founder's whole submission (description + every
@@ -1103,6 +1106,11 @@ export function criticEvidenceFor(context: ReportContext): string {
     .filter((r) => r.value && r.value.trim() && !/^Founder evidence:|^Startup description$/.test(r.label))
     .map((r) => `- ${r.label}: ${r.value!.trim()}`);
   const criterionScores = [...context.criterionResults.entries()].map(([key, r]) => `- ${key}: ${Math.round(r.score)}/100`);
+  // The deterministic module outputs the chapter owners quote (score ledger,
+  // compliance checklist, funnel, cap table …) — flattened, capped per module.
+  const modules = Object.entries(context.moduleOutputs ?? {}).flatMap(([dim, list]) =>
+    itemsFromModuleOutputs(list ?? []).map((m) => `- [${dim}] ${m.id}: ${m.text.slice(0, 500)}`),
+  );
   const ids = rows.map((r) => `- ${r.evidence_id} — ${r.label}`);
   const blocks = [
     `Startup: ${context.startupName}`,
@@ -1112,7 +1120,8 @@ export function criticEvidenceFor(context: ReportContext): string {
     criteriaText.length ? `## Founder evidence per criterion (founder-submitted)\n${criteriaText.join("\n\n")}` : "",
     gathered.length ? `## Gathered and computed rows (platform)\n${gathered.join("\n")}` : "",
     criterionScores.length ? `## Per-criterion scores (platform)\n${criterionScores.join("\n")}` : "",
-    ids.length ? `## CITABLE IDS (an [ev:<id>] marker on a sentence points at one of these)\n${ids.join("\n")}` : "",
+    modules.length ? `## Deterministic module outputs (platform — the chapter owners cite these by id)\n${modules.join("\n").slice(0, 8000)}` : "",
+    ids.length ? `## CITABLE IDS (an [ev:<id>] marker on a sentence points at one of these, or at a module id above)\n${ids.join("\n")}` : "",
   ].filter(Boolean);
   const text = blocks.join("\n\n");
   return text.length > CRITIC_EVIDENCE_MAX_CHARS ? `${text.slice(0, CRITIC_EVIDENCE_MAX_CHARS)}\n…(evidence truncated)` : text;

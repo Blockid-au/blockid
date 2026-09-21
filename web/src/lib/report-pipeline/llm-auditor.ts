@@ -47,6 +47,7 @@ NEVER flag:
 - a sentence that already discloses its status: "(unevidenced)", "[unevidenced]", "(estimate)", "assuming …", "we estimate …", "base / bull / bear scenario" — it has told the reader; do not repeat it as a finding;
 - a sentence carrying an [ev:<id>] marker whose id is in the CITABLE IDS list, unless the number or name it states is absent from that catalogue item;
 - recommendations, next steps, hiring plans, targets, timelines, methods to use, or "should / could / would" advice — these are the analyst's plan, not claims about the world;
+- an analyst rating or assessment ("Network effects: 3/5", "moat rated 4/5", a 1–5 score the analyst assigns) — it is a judgement, not a measured fact;
 - reasonable qualitative interpretation, inference from stated facts, or standard practitioner advice.
 
 Only a specific — a number, date, name, benchmark or a stated fact about the startup — that the EVIDENCE does not hold and the DRAFT does not mark is a finding. When you are not sure, do not flag it.
@@ -465,6 +466,7 @@ export function quotedClaimOf(finding: string): string {
 const NON_FINDING_RE = /\b(?:no findings? here|not a finding|this is (?:accurate|supported|fine|correct)|(?:is|are) (?:a )?reasonable inference|(?<!no such )(?<!not a )(?:claim|statement|figure) (?:that )?is (?:accurate|supported)|no finding\.?$)/i;
 
 const ADVICE_RE = /\b(?:should|could|would|recommend(?:ed|s|ation)?|consider|essential|needs? to|must|ought to|advis(?:e|able)|prioriti[sz]e)\b/i;
+const RATING_RE = /\b[1-5](?:\.\d)?\s?\/\s?5\b|\brat(?:ed|ing)\b/i;
 
 export function filterCriticFindings(findings: string[], draft: string, options: AuditTextOptions = {}): { kept: string[]; dropped: string[] } {
   const kept: string[] = [];
@@ -485,6 +487,9 @@ export function filterCriticFindings(findings: string[], draft: string, options:
     // not a claim — a "should" sentence that states money / % / a multiple is
     // still checked.
     if (ADVICE_RE.test(inDraft) && !numericTokens(inDraft.replace(EV_MARKER_RE, "")).some((t) => t.strong)) { dropped.push(finding); continue; }
+    // An analyst rating ("Network effects: 3/5") is a judgement the template
+    // asks for, not a measured fact — unless the line also states money / % / a multiple.
+    if (RATING_RE.test(quoted) && !numericTokens(inDraft.replace(EV_MARKER_RE, "")).some((t) => t.strong)) { dropped.push(finding); continue; }
     const cited = Array.from(inDraft.matchAll(EV_MARKER_RE), (m) => m[1]!.trim().toLowerCase()).filter((id) => allowed.has(id));
     if (cited.length) {
       const tokens = numericTokens(inDraft.replace(EV_MARKER_RE, ""));

@@ -209,7 +209,9 @@ Fill with sector-appropriate estimates; every figure in this table is an estimat
 
 ### Competitive Moat Assessment
 Rate 1-5 on: switching costs, network effects, data moat, brand, regulatory barriers.
-Justify each rating. Compare vs sector average.
+Justify each rating. Compare vs sector average. Open the block with the line
+"Analyst ratings (assessment, unevidenced): 1 = weakest, 5 = strongest." — the
+ratings are your judgement, never a measured fact.
 
 ### Category Creation vs Category Entry
 Is this startup creating a new category or entering an existing one?

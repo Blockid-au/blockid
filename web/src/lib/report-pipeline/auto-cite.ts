@@ -236,3 +236,24 @@ function withTopic(item: CitableItem): CitableItem {
 export function itemsFromCatalogue(entries: Array<{ evidence_id: string; label: string; content: string }>): CitableItem[] {
   return entries.map((e) => withTopic({ id: e.evidence_id, label: e.label, text: `${e.label} — ${e.content}` }));
 }
+
+/**
+ * G24-D: deterministic module outputs (module-precompute.ts) as citable items —
+ * the id is the module id the owner prompt lists ("agents/clo-compliance.ts:calculateComplianceScore"),
+ * the text its output flattened to "key = value" pairs so the number matcher sees plain digits.
+ */
+export function itemsFromModuleOutputs(modules: Array<{ id: string; output: Record<string, unknown> }>): CitableItem[] {
+  // A 0–100 number under a pct / rate / score / share key is also spelled as a
+  // percentage so "75% complete" matches `score = 75`.
+  const pctKey = /(?:pct|percent|rate|share|margin|growth|score|complete)/i;
+  const flat = (v: unknown, prefix = ""): string[] => {
+    if (v === null || v === undefined) return [];
+    if (typeof v !== "object") {
+      const pct = typeof v === "number" && v >= 0 && v <= 100 && pctKey.test(prefix) ? ` (${v} %)` : "";
+      return [`${prefix} = ${String(v)}${pct}`];
+    }
+    if (Array.isArray(v)) return v.flatMap((x, i) => flat(x, `${prefix}[${i}]`));
+    return Object.entries(v as Record<string, unknown>).flatMap(([k, x]) => flat(x, prefix ? `${prefix}.${k}` : k));
+  };
+  return modules.map((m) => ({ id: m.id, label: `Module: ${m.id}`, text: flat(m.output).join("; ").slice(0, 4000) }));
+}

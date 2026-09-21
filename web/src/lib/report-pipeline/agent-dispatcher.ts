@@ -49,7 +49,7 @@ import { loadAgentKnowledgeRows, type AgentKnowledgeRow, type KnowledgeDb } from
 import { evidenceHashFor } from "./chapter-cache";
 import { precomputeModulesForDim, type ModuleOutput } from "./module-precompute";
 import { bumpQualityCounter, REPORT_TIER_CONFIG } from "./types";
-import { autoCite, itemsFromCatalogue, itemsFromEvidenceRows, type CitableItem } from "./auto-cite";
+import { autoCite, itemsFromCatalogue, itemsFromEvidenceRows, itemsFromModuleOutputs, type CitableItem } from "./auto-cite";
 import { computedFactRows, computedFacts } from "./computed-facts";
 import { trimVerdict } from "./verdict-trim";
 import {
@@ -548,7 +548,10 @@ export function structuredOutputSchema(tier: ReportTierV2 | ReportTier): string 
  * tokens, with headroom — so the first answer closes; the salvage in
  * call-structured covers the rest. Cents at DeepInfra rates.
  */
-export const STRUCTURED_OUTPUT_TOKENS_BY_ROLE: Partial<Record<AgentRole, number>> = { cmo: 3400, cfo: 3400, cpo: 3400 };
+// G24-D: 3,400 → 4,000 for the long-form roles and a 3,400 floor for CRO (run 2
+// cut a 924-word CRO answer and a 12k-char CMO answer past salvage; the
+// "(unevidenced)" markers and captions the contract now asks for cost tokens).
+export const STRUCTURED_OUTPUT_TOKENS_BY_ROLE: Partial<Record<AgentRole, number>> = { cmo: 4000, cfo: 4000, cpo: 4000, cro: 3400 };
 
 export function structuredMaxTokens(tier: ReportTier, budget: WaveTask["budget"], role?: AgentRole): number {
   const tierConfig = REPORT_TIER_CONFIG[tier];
@@ -743,7 +746,13 @@ async function legacyProseDispatch(
   const userPrompt = buildUserPrompt(task.criterion, context);
 
   try {
-    const response = await callAI(systemPrompt, userPrompt, tierConfig.maxTokensPerAgent);
+    const raw = await callAI(systemPrompt, userPrompt, tierConfig.maxTokensPerAgent);
+    // G24-D: the degraded prose path skipped the auto-citer, so a schema-failed
+    // criterion (run 2: customer_size, website) lost every register number it
+    // quoted — "182 startups and 3,302 weekly snapshots" read as uncited.
+    const cited = autoCite(raw, itemsFromCatalogue(buildEvidenceCatalogue(task.criterion, context)));
+    bumpQualityCounter(context, "autoCited", cited.added);
+    const response = cited.text;
     const risks = extractRisks(response);
     if (flags.degraded) {
       risks.unshift(
@@ -1359,8 +1368,11 @@ export function buildDimensionChapter(
   const bench = benchmarkFor(dim, stage);
   const det = dimScoreOf(context, dim);
   const evidence = evidenceRowsForDim(context, dim);
-  const allowedIds = new Set(evidence.map((e) => e.evidence_id));
   const modules = context.moduleOutputs?.[dim] ?? precomputeModulesForDim(context, dim);
+  // G24-D: the deterministic module outputs the owner prompt lists by id are
+  // citable too — the LCO owner wrote "[ev:agents/clo-compliance.ts:calculateComplianceScore]"
+  // for the checklist figures and the gate read it as uncited.
+  const allowedIds = new Set([...evidence.map((e) => e.evidence_id), ...modules.map((m) => m.id)]);
   const at = new Date().toISOString();
 
   // Score: owner proposal clamped to ±10 of the deterministic score (§C.11).
@@ -1388,7 +1400,7 @@ export function buildDimensionChapter(
   // G23-A fix (a): bullets and verdicts whose numbers are in this chapter’s
   // evidence rows (or in a citation the owner attached) get the id the owner
   // omitted — before the [unevidenced] suffix rule and the citation gate.
-  const citable = itemsFromEvidenceRows(evidence);
+  const citable = [...itemsFromEvidenceRows(evidence), ...itemsFromModuleOutputs(modules)];
   const ownerCitations = payload && "criterion_cards" in payload ? (payload as DimensionChapterPayload).criterion_cards.flatMap((c) => c.citations).filter((c) => allowedIds.has(c.evidence_id)) : [];
   const cite = (text: string): string => {
     const r = autoCite(text, citable, ownerCitations);
