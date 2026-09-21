@@ -51,7 +51,7 @@ export default function GuideIndexPage() {
   const chapters = listChapters();
 
   return (
-    <div className="min-h-svh bg-white text-slate-900 dark:bg-slate-950 dark:text-slate-100">
+    <div className="min-h-svh bg-white text-primary">
       <NavV2 />
 
       <main className="mx-auto max-w-5xl px-6 pt-8 pb-16">
@@ -62,7 +62,7 @@ export default function GuideIndexPage() {
           <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl">
             The 12-Chapter Startup Journey
           </h1>
-          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-slate-600 dark:text-slate-400">
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-secondary">
             A step-by-step playbook for Australian founders — from Day-0 vision
             through fundraise to exit. Every chapter maps to a BlockID workspace
             action, a report template, and the AU-specific tooling founders
@@ -71,13 +71,13 @@ export default function GuideIndexPage() {
           <div className="mt-6 flex justify-center gap-3 text-sm">
             <Link
               href="/sample"
-              className="rounded-full border border-slate-300 px-4 py-2 hover:border-brand-500 dark:border-slate-700"
+              className="rounded-full border border-line px-4 py-2 hover:border-brand-500"
             >
               Report library
             </Link>
             <Link
               href="/guide/scn"
-              className="rounded-full border border-slate-300 px-4 py-2 hover:border-brand-500 dark:border-slate-700"
+              className="rounded-full border border-line px-4 py-2 hover:border-brand-500"
             >
               Startup Content Network
             </Link>
@@ -89,20 +89,20 @@ export default function GuideIndexPage() {
             <li key={c.slug}>
               <Link
                 href={`/guide/${c.slug}`}
-                className="block h-full rounded-2xl border border-slate-200 bg-white p-6 transition-colors hover:border-brand-500 dark:border-slate-800 dark:bg-slate-900"
+                className="block h-full rounded-2xl border border-line-subtle bg-white p-6 transition-colors hover:border-brand-500"
               >
                 <div className="mb-2 flex items-baseline gap-3">
                   <span className="font-mono text-xs font-semibold uppercase tracking-[0.2em] text-brand-700">
                     Ch {String(i + 1).padStart(2, "0")}
                   </span>
-                  <span className="text-[11px] uppercase tracking-wider text-slate-500">
+                  <span className="text-[11px] uppercase tracking-wider text-muted">
                     {c.phaseLabel.en}
                   </span>
                 </div>
-                <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+                <h2 className="text-base font-semibold text-primary">
                   {c.title.en}
                 </h2>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-400">
+                <p className="mt-2 text-sm leading-relaxed text-secondary">
                   {c.summary.en}
                 </p>
               </Link>
@@ -110,20 +110,20 @@ export default function GuideIndexPage() {
           ))}
         </ol>
 
-        <div className="mt-10 rounded-2xl border border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-800 dark:bg-slate-900">
-          <p className="text-sm text-slate-600 dark:text-slate-400">
+        <div className="mt-10 rounded-2xl border border-line-subtle bg-surface-sunken p-6 text-center">
+          <p className="text-sm text-secondary">
             Ready to move from reading to shipping?
           </p>
           <div className="mt-4 flex justify-center gap-3 text-sm">
             <Link
               href="/analyze"
-              className="rounded-full bg-brand-600 px-5 py-2 font-semibold text-white hover:bg-brand-700"
+              className="rounded-full bg-action px-5 py-2 font-semibold text-on-action hover:bg-action-hover"
             >
               Analyse an idea
             </Link>
             <Link
               href="/pricing"
-              className="rounded-full border border-slate-300 px-5 py-2 hover:border-brand-500 dark:border-slate-700"
+              className="rounded-full border border-line px-5 py-2 hover:border-brand-500"
             >
               See pricing
             </Link>

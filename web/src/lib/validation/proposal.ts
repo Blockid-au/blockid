@@ -1,18 +1,20 @@
-// validation/proposal — the written pilot proposal (G23-B, 2026-09-21).
+// validation/proposal — the written Cohort proposal (G23-B as the pilot
+// proposal; re-based by G25 on 2026-09-21 when the paid pilot and its
+// conversion coupon were retired).
 //
-// The advisor plan's validation Level 3 is "two written pilot proposals with
+// The advisor plan's validation Level 3 is "two written proposals with
 // scope, price and dates sent to a named organisation". This module turns a
 // validation-tracker entry (organisation, contact role, the objection in
 // their words, the note) into the document model the react-pdf template
-// (lib/pdf/pilot-proposal-pdf.tsx) renders on demand from
+// (lib/pdf/cohort-proposal-pdf.tsx) renders on demand from
 // GET /api/admin/validation/[id]/proposal. Nothing is stored except the
 // `proposal_generated_at` stamp on the entry.
 //
 // Rules that bind this file:
-//   • every number is a constant — the pilot amounts / caps / access days
-//     from lib/pricing/pilot-skus.ts, the annual Cohort prices from
-//     lib/plans-v2.ts, the credit window from lib/pilots/conversion.ts, the
-//     retention line from the privacy policy § 4;
+//   • every number is a constant — the annual / monthly Cohort prices, the
+//     trial length and the plan limits from plans-v2 + plans.generated, the
+//     retention line from the privacy policy § 4; no pilot tier, no credit
+//     rule, no coupon;
 //   • the entity is `LEGAL_ENTITY` (lib/site/legal-entity), the data sentence
 //     is `DATA_PRINCIPLE_SENTENCE`, the applicant consent paragraph is
 //     `APPLICANT_CONSENT_TEXT`, the disclaimer is the PDF general-advice
@@ -25,15 +27,15 @@
 
 import en from "@/lib/i18n/messages/en.json";
 import { t, type Messages } from "@/lib/i18n/t";
-import { formatAud, withGst } from "@/lib/plans-v2";
-import { PILOT_CONVERSION_WINDOW_DAYS, PILOT_CREDIT_RULE, conversionPlan, type ConversionPlanId } from "@/lib/pilots/conversion";
-import { APPLICANT_CONSENT_LABEL, APPLICANT_CONSENT_TEXT, DATA_PRINCIPLE_SENTENCE } from "@/lib/pilots/consent";
+import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
+import { PLANS_V2, formatAud, withGst, type Plan } from "@/lib/plans-v2";
+import { COHORT_INCLUDES, COHORT_SUCCESS_METRICS } from "@/lib/accelerator/cohort-offer";
+import { APPLICANT_CONSENT_LABEL, APPLICANT_CONSENT_TEXT, DATA_PRINCIPLE_SENTENCE } from "@/lib/accelerator/applicant-consent";
 import { PDF_GENERAL_ADVICE_DISCLAIMER } from "@/lib/pdf/advice-disclaimer";
-import { PILOT_ENTITLEMENT_DAYS, PILOT_INCLUDES, PILOT_SKUS, PILOT_SUCCESS_METRICS, formatPilotPrice, formatPilotPriceLong, type PilotSkuId } from "@/lib/pricing/pilot-skus";
 import { BRAND_SITE, LEGAL_ENTITY, legalLine, statutoryLine } from "@/lib/site/legal-entity";
 import type { ValidationEntry } from "./model";
 
-export const PROPOSAL_TITLE = "Cohort Validation Pilot — proposal";
+export const PROPOSAL_TITLE = "Cohort proposal";
 
 /** The retention line, verbatim from the privacy policy § 4 (content/legal/privacy-v2.mdx). */
 export const PROPOSAL_RETENTION_LINE =
@@ -45,13 +47,25 @@ export const PROPOSAL_VALID_DAYS = 30;
 /** The entry note is founder shorthand; the proposal quotes at most this many characters of it (page 1 must hold). */
 export const PROPOSAL_NOTE_MAX_CHARS = 600;
 
-/** Default cohort size when the entry does not say — the smaller pilot. */
-export const PROPOSAL_DEFAULT_APPLICANTS = PILOT_SKUS.cohort_pilot_25.applicantsCap;
+/** The two Cohort rungs a proposal can name — the sold ladder (plans-v2), never a pilot tier. */
+export type CohortPlanId = "accelerator_starter" | "accelerator_growth";
+export const PROPOSAL_PLAN_IDS: readonly CohortPlanId[] = Object.freeze(["accelerator_starter", "accelerator_growth"]);
 
-export interface PilotProposalOptions {
+/** The tracked-startup limit of a Cohort rung (plans.generated usage_limits.profiles — 25 / 100). */
+export function cohortPlanCap(id: CohortPlanId): number {
+  const row = GENERATED_PLANS_BY_ID[id];
+  const cap = row ? (row.usage_limits as Record<string, unknown>).profiles : undefined;
+  if (typeof cap !== "number" || cap <= 0) throw new Error(`proposal: plan "${id}" has no profiles limit`);
+  return cap;
+}
+
+/** Default cohort size when the entry does not say — the smaller rung's cap. */
+export const PROPOSAL_DEFAULT_APPLICANTS = cohortPlanCap("accelerator_starter");
+
+export interface CohortProposalOptions {
   /** Generation time; every date derives from it. Defaults to now. */
   now?: Date;
-  /** Applicants the pilot must cover; when absent the entry text is scanned, then the default applies. */
+  /** Startups the plan must cover; when absent the entry text is scanned, then the default applies. */
   applicants?: number | null;
   /** The EN catalogue by default; the VI mirror is not offered for proposals (they are signed documents). */
   messages?: Messages;
@@ -67,22 +81,23 @@ export interface ProposalStage {
 }
 
 export interface ProposalTier {
-  id: ConversionPlanId;
+  id: CohortPlanId;
   name: string;
   tagline: string;
   annualLabel: string;
   annualLongLabel: string;
   monthlyLabel: string;
   trialDays: number;
+  cap: number;
 }
 
-export interface PilotProposal {
+export interface CohortProposal {
   meta: {
     entryId: string;
     reference: string;
     generatedAt: string;
     filename: string;
-    sku: PilotSkuId;
+    planId: CohortPlanId;
   };
   cover: {
     title: string;
@@ -102,12 +117,19 @@ export interface PilotProposal {
   };
   scope: {
     heading: string;
+    /** "Cohort 25 — annual plan" */
     name: string;
     applicantsCap: number;
     applicantsLine: string;
+    /** "A$5,000" — the annual price. */
     priceLabel: string;
+    /** "A$5,000 inc. GST" */
     priceLongLabel: string;
-    accessDays: number;
+    /** "A$500" — the monthly alternative. */
+    monthlyLabel: string;
+    trialDays: number;
+    seats: number;
+    reportsPerMonth: number;
     lines: string[];
     includes: string[];
   };
@@ -115,7 +137,7 @@ export interface PilotProposal {
   metrics: { heading: string; lede: string; items: string[] };
   timeline: { heading: string; steps: Array<{ label: string; detail: string }>; accessLine: string };
   data: { heading: string; principle: string; consent: string; consentLabel: string; retention: string };
-  after: { heading: string; lede: string; tiers: ProposalTier[]; creditRule: string; windowDays: number };
+  plans: { heading: string; lede: string; tiers: ProposalTier[] };
   acceptance: { heading: string; text: string; fields: string[] };
   footer: { entity: string; statutory: string; disclaimer: string };
 }
@@ -137,9 +159,9 @@ export function inferApplicants(entry: Pick<ValidationEntry, "note" | "objection
   return null;
 }
 
-/** ≤ 25 → the 25 pilot, otherwise the 50 pilot (larger intakes are scoped on the setup call). */
-export function skuForApplicants(applicants: number): PilotSkuId {
-  return applicants <= PILOT_SKUS.cohort_pilot_25.applicantsCap ? "cohort_pilot_25" : "cohort_pilot_50";
+/** ≤ the Cohort 25 cap → Cohort 25, otherwise Cohort 100 (larger intakes are scoped on the setup call). */
+export function planForApplicants(applicants: number): CohortPlanId {
+  return applicants <= cohortPlanCap("accelerator_starter") ? "accelerator_starter" : "accelerator_growth";
 }
 
 function fmtDay(d: Date): string {
@@ -157,7 +179,7 @@ function slug(s: string): string {
 }
 
 export function proposalFilename(organisation: string, now: Date): string {
-  return `blockid-pilot-proposal-${slug(organisation)}-${now.toISOString().slice(0, 10)}.pdf`;
+  return `blockid-cohort-proposal-${slug(organisation)}-${now.toISOString().slice(0, 10)}.pdf`;
 }
 
 /** The six-stage workflow from the catalogue — what the accelerator page says ships, never more than the page's promise. */
@@ -170,8 +192,20 @@ export function proposalStages(messages: Messages = en as Messages): ProposalSta
   }));
 }
 
-function tier(id: ConversionPlanId): ProposalTier {
-  const row = conversionPlan(id);
+function planRow(id: CohortPlanId): Plan {
+  const row = PLANS_V2.find((p) => p.id === id);
+  if (!row) throw new Error(`proposal: unknown plan "${id}"`);
+  return row;
+}
+
+function planLimit(id: CohortPlanId, key: "seats" | "reports_per_month"): number {
+  const row = GENERATED_PLANS_BY_ID[id];
+  const v = row ? (row.usage_limits as Record<string, unknown>)[key] : undefined;
+  return typeof v === "number" && v > 0 ? v : 0;
+}
+
+function tier(id: CohortPlanId): ProposalTier {
+  const row = planRow(id);
   const annual = row.annual_aud ?? 0;
   return {
     id,
@@ -181,38 +215,40 @@ function tier(id: ConversionPlanId): ProposalTier {
     annualLongLabel: withGst(formatAud(annual)),
     monthlyLabel: formatAud(row.monthly_aud ?? 0),
     trialDays: row.trial_days,
+    cap: cohortPlanCap(id),
   };
 }
 
 /**
  * Build the proposal document model for a tracker entry. Pure: the same
- * entry + `now` always yields the same model. The price and cap follow the
- * cohort size the entry implies (`opts.applicants` → the entry text →
- * the 25 default); ≤ 25 applicants books the 25 pilot, anything larger the
- * 50 pilot.
+ * entry + `now` always yields the same model. The rung follows the cohort
+ * size the entry implies (`opts.applicants` → the entry text → the Cohort 25
+ * cap): ≤ 25 startups proposes Cohort 25, anything larger Cohort 100.
  */
-export function buildPilotProposal(entry: ValidationEntry, opts: PilotProposalOptions = {}): PilotProposal {
+export function buildCohortProposal(entry: ValidationEntry, opts: CohortProposalOptions = {}): CohortProposal {
   const now = opts.now ?? new Date();
   const messages = opts.messages ?? (en as Messages);
   const applicants = opts.applicants && opts.applicants > 0 ? Math.floor(opts.applicants) : (inferApplicants(entry) ?? PROPOSAL_DEFAULT_APPLICANTS);
-  const skuId = skuForApplicants(applicants);
-  const sku = PILOT_SKUS[skuId];
+  const planId = planForApplicants(applicants);
+  const plan = tier(planId);
   const validUntil = addDays(now, PROPOSAL_VALID_DAYS);
-  const accessEnds = addDays(now, PILOT_ENTITLEMENT_DAYS);
+  const trialEnds = addDays(now, plan.trialDays);
   const organisation = entry.organisation.trim();
   const contactRole = entry.contact_role.trim();
   const objection = entry.objection.trim();
   const rawNote = entry.note.trim();
   const note = rawNote.length > PROPOSAL_NOTE_MAX_CHARS ? `${rawNote.slice(0, PROPOSAL_NOTE_MAX_CHARS - 1).trimEnd()}…` : rawNote;
   const preparedByRole = opts.preparedByRole ?? "Founder";
+  const seats = planLimit(planId, "seats");
+  const reportsPerMonth = planLimit(planId, "reports_per_month");
 
   return {
     meta: {
       entryId: entry.id,
-      reference: `PP-${now.toISOString().slice(0, 10).replace(/-/g, "")}-${entry.id.replace(/-/g, "").slice(0, 8).toUpperCase()}`,
+      reference: `CP-${now.toISOString().slice(0, 10).replace(/-/g, "")}-${entry.id.replace(/-/g, "").slice(0, 8).toUpperCase()}`,
       generatedAt: now.toISOString(),
       filename: proposalFilename(organisation, now),
-      sku: skuId,
+      planId,
     },
     cover: {
       title: PROPOSAL_TITLE,
@@ -230,22 +266,25 @@ export function buildPilotProposal(entry: ValidationEntry, opts: PilotProposalOp
       quote: objection || null,
       note: note || null,
     },
-    // scope — the pilot's size, price and what it includes (constants only)
+    // scope — the rung's size, price and what it includes (constants only)
     scope: {
       heading: "Scope and price",
-      name: sku.name,
-      applicantsCap: sku.applicantsCap,
-      applicantsLine: t(messages, "solutions.accelerator.pilot.applicants").replace("{n}", String(sku.applicantsCap)),
-      priceLabel: formatPilotPrice(skuId),
-      priceLongLabel: formatPilotPriceLong(skuId),
-      accessDays: sku.entitlementDays,
+      name: `${plan.name} — annual plan`,
+      applicantsCap: plan.cap,
+      applicantsLine: `Up to ${plan.cap} tracked startups`,
+      priceLabel: plan.annualLabel,
+      priceLongLabel: plan.annualLongLabel,
+      monthlyLabel: plan.monthlyLabel,
+      trialDays: plan.trialDays,
+      seats,
+      reportsPerMonth,
       lines: [
-        t(messages, "solutions.accelerator.pilot.lede"),
-        t(messages, "solutions.accelerator.pilot.scope"),
-        `One-off ${formatPilotPriceLong(skuId)} — quoted here, charged once, with an ATO tax invoice issued by ${LEGAL_ENTITY.operator}. No subscription starts unless you choose a Cohort plan afterwards.`,
-        applicants > sku.applicantsCap ? `Your intake of about ${applicants} is larger than this pilot covers; the setup call scopes the remainder before anything is charged.` : `Sized for an intake of about ${applicants}.`,
+        t(messages, "solutions.accelerator.cohort.lede"),
+        `${plan.annualLongLabel} a year, billed annually — or ${plan.monthlyLabel} a month. Starts with a ${plan.trialDays}-day free trial, card required; cancel in the billing portal before day ${plan.trialDays + 1} and nothing is charged. ATO tax invoice issued by ${LEGAL_ENTITY.operator}.`,
+        `${seats} evaluator seats and ${reportsPerMonth} Trusted Business Reports a month included.`,
+        applicants > plan.cap ? `Your intake of about ${applicants} is larger than this rung tracks; the setup call scopes the remainder (Cohort Enterprise) before anything is charged.` : `Sized for an intake of about ${applicants}.`,
       ],
-      includes: [...PILOT_INCLUDES],
+      includes: [...COHORT_INCLUDES],
     },
     delivered: {
       heading: t(messages, "solutions.accelerator.journey.title"),
@@ -253,21 +292,22 @@ export function buildPilotProposal(entry: ValidationEntry, opts: PilotProposalOp
       stages: proposalStages(messages),
     },
     metrics: {
-      heading: t(messages, "solutions.accelerator.pilot.metricsTitle"),
-      lede: t(messages, "solutions.accelerator.pilot.metricsLede"),
-      items: [...PILOT_SUCCESS_METRICS],
+      heading: t(messages, "solutions.accelerator.cohort.metricsTitle"),
+      lede: t(messages, "solutions.accelerator.cohort.metricsLede"),
+      items: [...COHORT_SUCCESS_METRICS],
     },
     timeline: {
       heading: "Timeline",
       steps: [
-        { label: "Acceptance", detail: `Signed acceptance returned and the pilot paid — this proposal is valid until ${fmtDay(validUntil)}.` },
+        { label: "Acceptance", detail: `Signed acceptance returned — this proposal is valid until ${fmtDay(validUntil)}.` },
+        { label: "Trial", detail: `Sign-up starts the ${plan.trialDays}-day free trial (card required, nothing billed until it ends); the Cohort onboarding kit opens in the workspace.` },
         { label: "Setup", detail: "Setup call with your review team: success metrics agreed, intake link published or the existing cohort imported as CSV." },
         { label: "Intake", detail: "Applications arrive through your intake link; each founder gives consent on submission." },
         { label: "Assessment", detail: "Every applicant assessed on one rubric with evidence confidence; the cohort table and top gaps are live for the committee." },
         { label: "Workshop", detail: "Feedback workshop with your review team; consistency and satisfaction captured." },
-        { label: "Report", detail: "Final cohort report for the program and its sponsors; the metrics are read together and the Cohort plan decision is yours." },
+        { label: "Report", detail: "Cohort Report for the program and its sponsors; the metrics are read together and the renewal decision is yours." },
       ],
-      accessLine: `Workspace access runs ${PILOT_ENTITLEMENT_DAYS} days from payment (to ${fmtDay(accessEnds)} if paid today).`,
+      accessLine: `The plan runs 12 months from the first invoice; a trial started today ends on ${fmtDay(trialEnds)}.`,
     },
     data: {
       heading: "Data and consent",
@@ -276,16 +316,14 @@ export function buildPilotProposal(entry: ValidationEntry, opts: PilotProposalOp
       consentLabel: APPLICANT_CONSENT_LABEL,
       retention: PROPOSAL_RETENTION_LINE,
     },
-    after: {
-      heading: t(messages, "solutions.accelerator.after.title"),
-      lede: t(messages, "solutions.accelerator.after.lede"),
-      tiers: [tier("accelerator_starter"), tier("accelerator_growth")],
-      creditRule: PILOT_CREDIT_RULE,
-      windowDays: PILOT_CONVERSION_WINDOW_DAYS,
+    plans: {
+      heading: t(messages, "solutions.accelerator.plans.title"),
+      lede: t(messages, "solutions.accelerator.plans.lede"),
+      tiers: PROPOSAL_PLAN_IDS.map(tier),
     },
     acceptance: {
       heading: "Acceptance",
-      text: `${organisation} accepts the ${sku.name} at ${formatPilotPriceLong(skuId)} on the scope, metrics and data terms above. ${LEGAL_ENTITY.operator} (${BRAND_SITE}) delivers the pilot as described. Payment is by the secure checkout link we send on acceptance, or by invoice on request.`,
+      text: `${organisation} accepts ${plan.name} (annual) at ${plan.annualLongLabel} a year on the scope, metrics and data terms above. ${LEGAL_ENTITY.operator} (${BRAND_SITE}) delivers the plan as described. The trial starts from the sign-up link we send on acceptance; the first annual invoice is raised by Stripe when the trial ends, or by invoice on request.`,
       fields: ["Name", "Role", "Organisation", "Date", "Signature"],
     },
     footer: {
@@ -301,14 +339,12 @@ export const PROPOSAL_CATALOGUE_KEYS: readonly string[] = Object.freeze([
   "solutions.accelerator.journey.title",
   "solutions.accelerator.journey.lede",
   ...[1, 2, 3, 4, 5, 6].flatMap((n) => [`solutions.accelerator.journey.window${n}`, `solutions.accelerator.journey.step${n}.head`, `solutions.accelerator.journey.step${n}.b1`, `solutions.accelerator.journey.step${n}.b2`, `solutions.accelerator.journey.step${n}.b3`]),
-  "solutions.accelerator.pilot.applicants",
-  "solutions.accelerator.pilot.lede",
-  "solutions.accelerator.pilot.scope",
-  "solutions.accelerator.pilot.metricsTitle",
-  "solutions.accelerator.pilot.metricsLede",
-  "solutions.accelerator.after.title",
-  "solutions.accelerator.after.lede",
+  "solutions.accelerator.cohort.lede",
+  "solutions.accelerator.cohort.metricsTitle",
+  "solutions.accelerator.cohort.metricsLede",
+  "solutions.accelerator.plans.title",
+  "solutions.accelerator.plans.lede",
 ]);
 
-/** The two Cohort rungs the after-pilot table lists — pinned by the test against plans-v2. */
-export const PROPOSAL_TIER_IDS: readonly ConversionPlanId[] = Object.freeze(["accelerator_starter", "accelerator_growth"]);
+/** The two Cohort rungs the plans table lists — pinned by the test against plans-v2. */
+export const PROPOSAL_TIER_IDS: readonly CohortPlanId[] = PROPOSAL_PLAN_IDS;

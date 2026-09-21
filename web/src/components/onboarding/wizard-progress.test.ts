@@ -150,95 +150,95 @@ describe("WizardProgress — completed-step aria labelling", () => {
 });
 
 describe("WizardProgress — dot colour classes track state", () => {
-  it("uses the active brand-cyan ring on the current step exactly once (step=2)", () => {
+  it("uses the active action ring on the current step exactly once (step=2)", () => {
     const html = render(2);
     // The ring pattern is unique to the active dot.
-    expect(occurrences(html, "bg-brand-cyan ring-brand-cyan/20")).toBe(1);
+    expect(occurrences(html, "bg-action ring-action/20")).toBe(1);
   });
 
   it("uses the muted done colour for every step below the active one (step=4 → 3 done dots)", () => {
     const html = render(4);
-    // Done dot class: "bg-brand-cyan/60 ring-transparent" appears once per
+    // Done dot class: "bg-action/60 ring-transparent" appears once per
     // done step. Three prior steps are done.
-    expect(occurrences(html, "bg-brand-cyan/60 ring-transparent")).toBe(3);
+    expect(occurrences(html, "bg-action/60 ring-transparent")).toBe(3);
   });
 
   it("uses the pending colour for every step above the active one (step=2 → 4 pending dots)", () => {
     const html = render(2);
-    expect(occurrences(html, "bg-brand-ink-muted/30 ring-transparent")).toBe(4);
+    expect(occurrences(html, "bg-line-strong ring-transparent")).toBe(4);
   });
 
   it("emits no done or pending dot classes on step 1 for the sole active dot", () => {
     const html = render(1);
-    expect(occurrences(html, "bg-brand-cyan ring-brand-cyan/20")).toBe(1);
+    expect(occurrences(html, "bg-action ring-action/20")).toBe(1);
     // Step 1 → 5 pending, 0 done.
-    expect(occurrences(html, "bg-brand-ink-muted/30 ring-transparent")).toBe(5);
-    expect(occurrences(html, "bg-brand-cyan/60 ring-transparent")).toBe(0);
+    expect(occurrences(html, "bg-line-strong ring-transparent")).toBe(5);
+    expect(occurrences(html, "bg-action/60 ring-transparent")).toBe(0);
   });
 
   it("emits no pending dots on step 6 (all prior done, current active)", () => {
     const html = render(6);
-    expect(occurrences(html, "bg-brand-cyan ring-brand-cyan/20")).toBe(1);
-    expect(occurrences(html, "bg-brand-cyan/60 ring-transparent")).toBe(5);
-    expect(occurrences(html, "bg-brand-ink-muted/30 ring-transparent")).toBe(0);
+    expect(occurrences(html, "bg-action ring-action/20")).toBe(1);
+    expect(occurrences(html, "bg-action/60 ring-transparent")).toBe(5);
+    expect(occurrences(html, "bg-line-strong ring-transparent")).toBe(0);
   });
 });
 
 describe("WizardProgress — connector colour tracks progress", () => {
-  it("colours every connector left of the active dot with the brand-cyan variant (step=5 → 4 lit)", () => {
+  it("colours every connector left of the active dot with the action variant (step=5 → 4 lit)", () => {
     const html = render(5);
-    // Connector lit variant is "bg-brand-cyan/60"; the done-dot class
-    // "bg-brand-cyan/60 ring-transparent" also contains that substring, so
+    // Connector lit variant is "bg-action/60"; the done-dot class
+    // "bg-action/60 ring-transparent" also contains that substring, so
     // subtract the done-dot occurrences to count connectors only.
-    const lit = occurrences(html, "bg-brand-cyan/60");
-    const doneDots = occurrences(html, "bg-brand-cyan/60 ring-transparent");
+    const lit = occurrences(html, "bg-action/60");
+    const doneDots = occurrences(html, "bg-action/60 ring-transparent");
     expect(lit - doneDots).toBe(4);
   });
 
   it("colours every connector right of the active dot with the muted variant (step=2 → 4 muted connectors)", () => {
     const html = render(2);
-    // Muted connector class: "bg-brand-ink-muted/20" is unique to connectors.
-    expect(occurrences(html, "bg-brand-ink-muted/20")).toBe(4);
+    // Muted connector class: `bg-line"` (closing quote included so `bg-line-strong` on pending dots does not match) is unique to connectors.
+    expect(occurrences(html, 'bg-line"')).toBe(4);
   });
 
   it("lights all 5 connectors when the founder reaches the final step (step=6)", () => {
     const html = render(6);
-    const lit = occurrences(html, "bg-brand-cyan/60");
-    const doneDots = occurrences(html, "bg-brand-cyan/60 ring-transparent");
+    const lit = occurrences(html, "bg-action/60");
+    const doneDots = occurrences(html, "bg-action/60 ring-transparent");
     expect(lit - doneDots).toBe(5);
-    expect(occurrences(html, "bg-brand-ink-muted/20")).toBe(0);
+    expect(occurrences(html, 'bg-line"')).toBe(0);
   });
 
   it("lights zero connectors when the founder is on the first step (step=1)", () => {
     const html = render(1);
-    const lit = occurrences(html, "bg-brand-cyan/60");
-    const doneDots = occurrences(html, "bg-brand-cyan/60 ring-transparent");
+    const lit = occurrences(html, "bg-action/60");
+    const doneDots = occurrences(html, "bg-action/60 ring-transparent");
     expect(lit - doneDots).toBe(0);
-    expect(occurrences(html, "bg-brand-ink-muted/20")).toBe(5);
+    expect(occurrences(html, 'bg-line"')).toBe(5);
   });
 });
 
 describe("WizardProgress — label colour tracks state", () => {
-  it("colours the active label with text-brand-cyan exactly once (step=3)", () => {
+  it("colours the active label with text-action exactly once (step=3)", () => {
     const html = render(3);
-    // "text-brand-cyan" as a class token also appears as a substring of
-    // other cyan classes ("bg-brand-cyan", "bg-brand-cyan/20", etc.). Match
+    // "text-action" as a class token also appears as a substring of
+    // other cyan classes ("bg-action", "bg-action/20", etc.). Match
     // on the exact quoted attribute value the active label carries.
-    expect(occurrences(html, 'class="text-brand-cyan"')).toBe(1);
+    expect(occurrences(html, 'class="text-action"')).toBe(1);
   });
 
-  it("colours done labels with text-brand-ink-muted and pending labels with the /50 variant (step=3)", () => {
+  it("colours done labels with text-muted and pending labels with the /50 variant (step=3)", () => {
     const html = render(3);
     // Step 3: 2 done labels + 3 pending labels + 1 active label.
-    expect(occurrences(html, 'class="text-brand-ink-muted"')).toBe(2);
-    expect(occurrences(html, 'class="text-brand-ink-muted/50"')).toBe(3);
+    expect(occurrences(html, 'class="text-muted"')).toBe(2);
+    expect(occurrences(html, 'class="text-tertiary"')).toBe(3);
   });
 
   it("colours every label as done except the active one on the final step (step=6)", () => {
     const html = render(6);
-    expect(occurrences(html, 'class="text-brand-ink-muted"')).toBe(5);
-    expect(occurrences(html, 'class="text-brand-brand-cyan"')).toBe(0);
-    expect(occurrences(html, 'class="text-brand-ink-muted/50"')).toBe(0);
-    expect(occurrences(html, 'class="text-brand-cyan"')).toBe(1);
+    expect(occurrences(html, 'class="text-muted"')).toBe(5);
+    expect(occurrences(html, 'class="text-brand-action"')).toBe(0);
+    expect(occurrences(html, 'class="text-tertiary"')).toBe(0);
+    expect(occurrences(html, 'class="text-action"')).toBe(1);
   });
 });

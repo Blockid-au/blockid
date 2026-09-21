@@ -108,11 +108,11 @@ describe("helpers", () => {
   });
 
   it("step / conversion tables are in funnel order and the DB filter carries every step event", () => {
-    expect(FUNNEL_STEPS.map((s) => s.key)).toEqual(["signups", "analyses", "report_views", "paywall_views", "checkouts", "paid"]);
-    expect(CONVERSIONS.map((c) => c.key)).toEqual(["signup_to_analysis", "analysis_to_report", "report_to_paywall", "paywall_to_checkout", "checkout_to_paid"]);
+    expect(FUNNEL_STEPS.map((s) => s.key)).toEqual(["signups", "analyses", "report_views", "paywall_views", "checkouts", "paid", "review_views", "pay_clicks"]);
+    expect(CONVERSIONS.map((c) => c.key)).toEqual(["signup_to_analysis", "analysis_to_report", "report_to_paywall", "paywall_to_checkout", "checkout_to_paid", "review_to_pay"]);
     for (const s of FUNNEL_STEPS) expect(FUNNEL_EVENT_NAMES).toContain(s.event);
     expect(FUNNEL_EVENT_NAMES).toContain("feature_gate_hit");
-    expect(emptyCounts().conv).toEqual({ signup_to_analysis: null, analysis_to_report: null, report_to_paywall: null, paywall_to_checkout: null, checkout_to_paid: null });
+    expect(emptyCounts().conv).toEqual({ signup_to_analysis: null, analysis_to_report: null, report_to_paywall: null, paywall_to_checkout: null, checkout_to_paid: null, review_to_pay: null });
   });
 });
 
@@ -135,6 +135,7 @@ describe("reduceFunnel", () => {
       report_to_paywall: 2,
       paywall_to_checkout: 0.5,
       checkout_to_paid: 1,
+      review_to_pay: null,
     });
   });
 

@@ -190,6 +190,16 @@ describe("CohortTable — layout", () => {
   it("wraps the table in an overflow-x-auto scroll container", () => {
     const out = renderToStaticMarkup(<CohortTable rows={[acmeRow()]} batchId="b-1" role="owner" />);
     expect(out).toMatch(/class="[^"]*overflow-x-auto[^"]*"[^>]*data-testid="cohort-scroll"/);
+    // The scroll container must be positioned: the sr-only spans inside the sort buttons are
+    // absolute, and an un-positioned wrapper let them widen the document (G24 UI lane).
+    expect(out).toMatch(/class="relative overflow-x-auto[^"]*"[^>]*data-testid="cohort-scroll"/);
+    // Sort buttons keep a 44 px hit box (24 px visual + 10 px each side) and a focus ring.
+    const sortButtons = out.match(/<button[^>]*data-testid="sort-[a-z_]+"/g) ?? [];
+    expect(sortButtons.length).toBeGreaterThan(3);
+    for (const b of sortButtons) {
+      expect(b).toContain("before:-inset-y-2.5");
+      expect(b).toContain("focus-visible:ring-2");
+    }
   });
 
   it("data-testid=cohort-row appears once per visible row", () => {

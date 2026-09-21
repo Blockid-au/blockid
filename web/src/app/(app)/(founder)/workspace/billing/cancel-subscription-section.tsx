@@ -149,7 +149,7 @@ export function CancelSubscriptionSection({ subscription: initial, planLabel }: 
       data-testid="cancel-subscription-section"
       data-phase={view.phase}
       className={cn(
-        "rounded-2xl border bg-white dark:bg-surface-100 shadow-sm overflow-hidden",
+        "rounded-2xl border bg-white shadow-sm overflow-hidden",
         scheduled ? "border-amber-300" : "border-surface-200",
       )}
     >
@@ -180,12 +180,12 @@ export function CancelSubscriptionSection({ subscription: initial, planLabel }: 
 
       <div className="px-6 py-5 space-y-4">
         {notice && (
-          <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800 dark:bg-emerald-950/30 dark:border-emerald-800 dark:text-emerald-200">
+          <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
             {notice}
           </p>
         )}
         {error && (
-          <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-950/30 dark:border-red-800 dark:text-red-300">
+          <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </p>
         )}
@@ -216,7 +216,7 @@ export function CancelSubscriptionSection({ subscription: initial, planLabel }: 
               disabled={busy === "resume"}
               data-testid="resume-subscription"
               className={cn(
-                "inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors",
+                "inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors",
                 busy === "resume" && "opacity-60 cursor-wait",
               )}
             >
@@ -231,7 +231,7 @@ export function CancelSubscriptionSection({ subscription: initial, planLabel }: 
                 setOpen(true);
               }}
               data-testid="cancel-subscription"
-              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border border-red-200 bg-white px-5 text-sm font-medium text-red-700 hover:bg-red-50 transition-colors dark:bg-transparent dark:hover:bg-red-950/30"
+              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] border border-red-200 bg-white px-5 text-sm font-medium text-red-700 hover:bg-red-50 transition-colors"
             >
               <XCircle strokeWidth={1.75} className="h-4 w-4" />
               {view.phase === "trialing" ? "Cancel trial" : "Cancel subscription"}
@@ -242,8 +242,8 @@ export function CancelSubscriptionSection({ subscription: initial, planLabel }: 
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="cancel-dialog-heading">
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => (busy ? null : setOpen(false))} />
-          <div className="relative bg-white dark:bg-surface-100 rounded-2xl border border-surface-200 shadow-xl max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+          <div className="absolute inset-0 bg-strong/50 backdrop-blur-sm" onClick={() => (busy ? null : setOpen(false))} />
+          <div className="relative bg-white rounded-2xl border border-surface-200 shadow-xl max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start gap-3">
               <AlertTriangle strokeWidth={1.75} className="h-5 w-5 shrink-0 text-amber-500 mt-0.5" />
               <div>

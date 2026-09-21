@@ -24,6 +24,7 @@ vi.mock("@/components/auth/LogoutButton", () => ({
 
 import viMessages from "@/lib/i18n/messages/vi.json";
 import { renderedTitle } from "@/lib/seo/page-meta";
+import { expectLightSurfaces, mainOf } from "@/test/light-surface";
 import { HOME_PRIMARY_CTA, HOME_SECONDARY_CTA, HOME_SECTION_IDS } from "../(marketing)/home-content";
 import ViHomePage, { generateMetadata, revalidate } from "./page";
 
@@ -54,15 +55,16 @@ describe("/vi homepage — template (G21 P0-B)", () => {
     expect(out).not.toMatch(/A\$\d/);
   });
 
-  it("the two CTAs go to the VI cohort-pilot page and /analyze, in the hero and in the closing band", () => {
-    expect(HOME_PRIMARY_CTA.href).toBe("/solutions/accelerator#pilot");
+  it("the two CTAs go to the VI programs page rungs (G25 — never a pilot) and /analyze, in the hero and in the closing band", () => {
+    expect(HOME_PRIMARY_CTA.href).toBe("/signup?segment=evaluator&plan=accelerator_starter&trial=1&interval=annual");
     expect(HOME_SECONDARY_CTA.href).toBe("/analyze");
-    expect(out).toMatch(/data-cta-id="vi_hero_pilot"/);
+    expect(out).toMatch(/data-cta-id="vi_hero_start_cohort"/);
     expect(out).toMatch(/data-cta-id="vi_hero_score"/);
-    expect(out).toMatch(/data-cta-id="vi_home_final_pilot"/);
+    expect(out).toMatch(/data-cta-id="vi_home_final_start_cohort"/);
     expect(out).toMatch(/data-cta-id="vi_home_final_score"/);
     // Review P1 (2026-09-20): a Vietnamese visitor stays on the /vi mirror.
-    expect((out.match(/href="\/vi\/solutions\/accelerator#pilot"/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    expect((out.match(/href="\/vi\/solutions\/accelerator#plans"/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    expect(out).not.toMatch(/#pilot|thí điểm/i);
     expect((out.match(/href="\/analyze"/g) ?? []).length).toBeGreaterThanOrEqual(2);
     expect(out).toContain(esc(VI["vi.home.cta.primary"]!));
     expect(out).toContain(esc(VI["vi.home.cta.secondary"]!));
@@ -84,7 +86,10 @@ describe("/vi homepage — template (G21 P0-B)", () => {
     expect(out).toContain(esc(VI["vi.hero.notice"]!));
     expect(out).toContain(esc(VI["vi.home.whynot.line"]!));
     expect(out).toContain(esc(VI["vi.home.problem.title"]!));
-    expect(out).toMatch(/<section[^>]*id="cta"[^>]*data-theme="dark"/);
+    expect(out).toMatch(/<section[^>]*id="cta"[^>]*class="[^"]*bg-surface-sunken/);
+    expect(mainOf(out)).not.toMatch(/data-theme="dark"/);
+    expect(out).toMatch(/<section[^>]*id="cta"[^>]*data-tone="sunken"/);
+    expectLightSurfaces(out, "/vi");
     expect((out.match(/<footer\b/g) ?? []).length).toBe(1);
   });
 

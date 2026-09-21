@@ -87,7 +87,7 @@ export default function AtlassianShowcasePage() {
           <Link
             href="/showcase/atlassian/dashboard?step=2"
             data-testid="start-walkthrough-cta"
-            className="rounded-md border border-brand-500 bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
+            className="rounded-md border border-action bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-500"
           >
             Start walkthrough →
           </Link>

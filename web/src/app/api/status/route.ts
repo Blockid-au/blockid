@@ -27,6 +27,8 @@ import { readTractionStatus, type TractionStatus } from "@/lib/traction/status";
 import { readSviBacktestStatus, type SviBacktestStatus } from "@/lib/backtest/latest";
 import { readCalibrationStatus, type CalibrationStatus } from "@/lib/calibration/latest";
 import { dataMoatForStatus, emptyDataMoat, readDataMoat, type DataMoatMetrics } from "@/lib/outcomes/data-moat";
+import { readFreeReportMetricsCached } from "@/lib/reports/free-grants";
+import { emptyFreeReportMetrics, freeReportsDailyCap, type FreeReportMetrics } from "@/lib/reports/free-grants-rules";
 import { emptyTbrQualityStatus, readTbrQualityStatus, type TbrQualityStatus } from "@/lib/report-pipeline/quality-log";
 import { emptyTbrGrounding, readTbrGrounding, type TbrGrounding } from "@/lib/status/tbr-grounding";
 import { getAIQueueDepth } from "@/lib/ai-client";
@@ -225,6 +227,13 @@ type StatusResponse = {
    * fake zero. Trusted callers only.
    */
   data_moat: Omit<DataMoatMetrics, "warnings">;
+  /**
+   * G25-C — the free allowance (lib/reports/free-grants, cached 60 s):
+   * submitted / delivered / unique_emails (all time, bounded), today (UTC),
+   * cap (FREE_REPORTS_DAILY_CAP), converted_to_paid (addresses that later
+   * bought a report), last_7_days sparkline. Trusted callers only.
+   */
+  free_reports: FreeReportMetrics;
   /** G19-S46 (+ G23-C grounded_share / grounded_share_kpi) — see PublicStatusResponse.tbr_quality. */
   tbr_quality: TbrQualityStatus & TbrGrounding;
   /**
@@ -548,7 +557,7 @@ function safeQueueDepth(): ReturnType<typeof getAIQueueDepth> {
 // ---------- Handler ----------
 
 export async function GET(): Promise<Response> {
-  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens, ga4Events, backups, schemaMigrations, aiProviders, aiLastReport, traction, sviBacktest, extras, tbrQualityWindow, outcomeCalibration, dataMoat, tbrGrounding] = await Promise.all([
+  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens, ga4Events, backups, schemaMigrations, aiProviders, aiLastReport, traction, sviBacktest, extras, tbrQualityWindow, outcomeCalibration, dataMoat, tbrGrounding, freeReports] = await Promise.all([
     fetchHealthz(2000),
     summariseCrons().catch(() => [] as CronRow[]),
     readGitShaFallback(),
@@ -572,6 +581,8 @@ export async function GET(): Promise<Response> {
     readDataMoat().catch(() => emptyDataMoat()),
     // G23-C: latest-run groundedShare + the KPI (same live-checkout jsonl; fail-soft).
     readTbrGrounding().catch(() => emptyTbrGrounding()),
+    // G25-C: the free-allowance ledger counts (fail-soft: the empty block with the configured cap).
+    readFreeReportMetricsCached().catch(() => emptyFreeReportMetrics(freeReportsDailyCap())),
   ]);
   const tbrQuality: TbrQualityStatus & TbrGrounding = { ...tbrQualityWindow, ...tbrGrounding };
   const publicExtras = extras ? publicStatusExtras(extras) : null;
@@ -650,6 +661,7 @@ export async function GET(): Promise<Response> {
     svi_backtest: sviBacktest,
     outcome_calibration: outcomeCalibration,
     data_moat: dataMoatForStatus(dataMoat),
+    free_reports: freeReports,
     tbr_quality: tbrQuality,
     errors_1h: extras?.errors_1h ?? null,
     ai: extras?.ai ?? null,

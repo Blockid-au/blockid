@@ -126,20 +126,20 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
 
   if (result) {
     return (
-      <section className="rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-slate-900 p-6">
+      <section className="rounded-2xl border border-emerald-200 bg-white p-6">
         <div className="text-3xl">✓</div>
-        <h2 className="mt-3 text-xl font-semibold text-slate-900 dark:text-slate-100">
+        <h2 className="mt-3 text-xl font-semibold text-slate-900">
           Draft intent {result.action}
         </h2>
-        <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+        <p className="mt-2 text-sm text-slate-600">
           Your secondary offer is saved as{" "}
-          <code className="rounded bg-slate-100 dark:bg-slate-800 px-1 py-0.5 text-[11px]">
+          <code className="rounded bg-slate-100 px-1 py-0.5 text-[11px]">
             draft
           </code>{" "}
           (id <span className="font-mono text-xs">{result.id}</span>).
           Nothing is public. Our legal + CS team will review within 3
           business days before promoting to{" "}
-          <code className="rounded bg-slate-100 dark:bg-slate-800 px-1 py-0.5 text-[11px]">
+          <code className="rounded bg-slate-100 px-1 py-0.5 text-[11px]">
             live
           </code>
           .
@@ -150,7 +150,7 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
             setResult(null);
             setForm(INITIAL_STATE);
           }}
-          className="mt-4 rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+          className="mt-4 rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
         >
           Submit another
         </button>
@@ -161,13 +161,13 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
   return (
     <form
       onSubmit={onSubmit}
-      className="space-y-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6"
+      className="space-y-6 rounded-2xl border border-slate-200 bg-white p-6"
     >
       <div>
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+        <h2 className="text-lg font-semibold text-slate-900">
           Submit intent
         </h2>
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+        <p className="mt-1 text-xs text-slate-500">
           One draft per (ticker, status) tuple. Re-submitting updates the
           existing draft; you can revise until admin promotes it to{" "}
           <code>live</code>.
@@ -178,7 +178,7 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
         <div>
           <label
             htmlFor="ticker"
-            className="block text-sm font-medium text-slate-900 dark:text-slate-100"
+            className="block text-sm font-medium text-slate-900"
           >
             Ticker
           </label>
@@ -191,10 +191,10 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
             onChange={(e) =>
               setForm((p) => ({ ...p, ticker: e.target.value.toUpperCase() }))
             }
-            className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
           />
           {form.ticker && !tickerValid && (
-            <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">
+            <p className="mt-1 text-xs text-rose-600">
               Must match <code>COUNTRY-COMPANY</code> (e.g. <code>AU-ACME</code>).
             </p>
           )}
@@ -203,7 +203,7 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
         <div>
           <label
             htmlFor="slug"
-            className="block text-sm font-medium text-slate-900 dark:text-slate-100"
+            className="block text-sm font-medium text-slate-900"
           >
             Slug (optional)
           </label>
@@ -215,14 +215,14 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
             onChange={(e) =>
               setForm((p) => ({ ...p, slug: e.target.value.toLowerCase() }))
             }
-            className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
           />
         </div>
 
         <div>
           <label
             htmlFor="shares"
-            className="block text-sm font-medium text-slate-900 dark:text-slate-100"
+            className="block text-sm font-medium text-slate-900"
           >
             Shares for sale
           </label>
@@ -236,14 +236,14 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
             onChange={(e) =>
               setForm((p) => ({ ...p, sharesForSale: e.target.value }))
             }
-            className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
           />
         </div>
 
         <div>
           <label
             htmlFor="lockup"
-            className="block text-sm font-medium text-slate-900 dark:text-slate-100"
+            className="block text-sm font-medium text-slate-900"
           >
             Lock-up months
           </label>
@@ -256,14 +256,14 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
             onChange={(e) =>
               setForm((p) => ({ ...p, lockUpMonths: e.target.value }))
             }
-            className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
           />
         </div>
 
         <div>
           <label
             htmlFor="low"
-            className="block text-sm font-medium text-slate-900 dark:text-slate-100"
+            className="block text-sm font-medium text-slate-900"
           >
             Price band low (AUD)
           </label>
@@ -277,14 +277,14 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
             onChange={(e) =>
               setForm((p) => ({ ...p, priceLowAud: e.target.value }))
             }
-            className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
           />
         </div>
 
         <div>
           <label
             htmlFor="high"
-            className="block text-sm font-medium text-slate-900 dark:text-slate-100"
+            className="block text-sm font-medium text-slate-900"
           >
             Price band high (AUD)
           </label>
@@ -298,10 +298,10 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
             onChange={(e) =>
               setForm((p) => ({ ...p, priceHighAud: e.target.value }))
             }
-            className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
+            className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
           />
           {!priceBandOrdered && (
-            <p className="mt-1 text-xs text-rose-600 dark:text-rose-400">
+            <p className="mt-1 text-xs text-rose-600">
               High must be ≥ low.
             </p>
           )}
@@ -309,9 +309,9 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
       </div>
 
       {totalRaise !== null && (
-        <p className="text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-xs text-slate-500">
           Indicative max raise (shares × high):{" "}
-          <span className="font-semibold text-slate-800 dark:text-slate-200">
+          <span className="font-semibold text-slate-800">
             A${totalRaise.toLocaleString("en-AU", { maximumFractionDigits: 2 })}
           </span>
         </p>
@@ -320,7 +320,7 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
       <div>
         <label
           htmlFor="buyer"
-          className="block text-sm font-medium text-slate-900 dark:text-slate-100"
+          className="block text-sm font-medium text-slate-900"
         >
           Ideal buyer profile
         </label>
@@ -335,9 +335,9 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
           onChange={(e) =>
             setForm((p) => ({ ...p, buyerProfile: e.target.value }))
           }
-          className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
+          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
         />
-        <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+        <p className="mt-1 text-xs text-slate-500">
           {form.buyerProfile.length} / 2000 · min 20 characters
         </p>
       </div>
@@ -345,7 +345,7 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
       <div>
         <label
           htmlFor="notes"
-          className="block text-sm font-medium text-slate-900 dark:text-slate-100"
+          className="block text-sm font-medium text-slate-900"
         >
           Internal notes (optional)
         </label>
@@ -355,12 +355,12 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
           rows={2}
           value={form.notes}
           onChange={(e) => setForm((p) => ({ ...p, notes: e.target.value }))}
-          className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100"
+          className="mt-1 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900"
         />
       </div>
 
-      <div className="space-y-2 border-t border-slate-200 dark:border-slate-800 pt-4">
-        <label className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+      <div className="space-y-2 border-t border-slate-200 pt-4">
+        <label className="flex items-start gap-2 text-sm text-slate-700">
           <input
             type="checkbox"
             checked={form.ackDisclaimer}
@@ -375,7 +375,7 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
             securities.
           </span>
         </label>
-        <label className="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300">
+        <label className="flex items-start gap-2 text-sm text-slate-700">
           <input
             type="checkbox"
             checked={form.ackSophisticated}
@@ -395,7 +395,7 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
       {error && (
         <div
           role="alert"
-          className="rounded-lg border border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-950/40 px-3 py-2 text-sm text-rose-800 dark:text-rose-200"
+          className="rounded-lg border border-rose-300 bg-rose-50 px-3 py-2 text-sm text-rose-800"
         >
           {error}
         </div>
@@ -404,7 +404,7 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
       <button
         type="submit"
         disabled={!canSubmit}
-        className="inline-flex items-center gap-2 rounded-lg bg-brand-600 hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50 text-white px-4 py-2 text-sm font-semibold transition-colors"
+        className="inline-flex items-center gap-2 rounded-lg bg-action hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50 text-on-action px-4 py-2 text-sm font-semibold transition-colors"
       >
         {submitting ? "Submitting…" : "Submit draft intent"}
       </button>

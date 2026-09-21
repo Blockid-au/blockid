@@ -201,7 +201,7 @@ function ReportSection({ id, title, children, className }: { id: string; title: 
   return (
     <section id={id} className={cn("scroll-mt-24 space-y-4 print:break-inside-avoid print:pt-6", className)} aria-labelledby={`${id}-heading`}>
       <div className="flex items-center gap-3 pb-3 border-b-2 border-line-subtle print:border-line">
-        <div className="h-5 w-1 rounded-full bg-brand-500 shrink-0 print:bg-brand-600" aria-hidden="true" />
+        <div className="h-5 w-1 rounded-full bg-brand-500 shrink-0 print:bg-action" aria-hidden="true" />
         <h2 id={`${id}-heading`} className="text-lg font-bold text-primary tracking-tight">
           {title}
         </h2>
@@ -280,13 +280,13 @@ function PeerFiveSection({ projectId, shareToken, industry, stage, skipFetch = f
         5 anonymised startups from the BlockID cohort with the closest 8-dimension SVI profile to yours (cosine similarity). Names are withheld — only industry, stage, and aggregate scores are shown.
       </p>
       {fallback === "cross_sector" && (
-        <p className="text-xs text-warn bg-surface-sunken border border-amber-300 dark:border-amber-800 rounded-md px-3 py-2">
+        <p className="text-xs text-warn bg-surface-sunken border border-amber-300 rounded-md px-3 py-2">
           Not enough AU {stage ?? "seed"}-stage {industry ?? "same-sector"} peers yet — showing top available cross-sector matches.
         </p>
       )}
       <div className="overflow-x-auto">
         <table className="w-full text-sm border-collapse">
-          <thead>
+          <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
             <tr className="border-b border-line-subtle">
               <th className="text-left py-2 pr-3 text-xs font-semibold text-muted uppercase tracking-wide">#</th>
               <th className="text-left py-2 pr-3 text-xs font-semibold text-muted uppercase tracking-wide">Peer</th>
@@ -298,7 +298,7 @@ function PeerFiveSection({ projectId, shareToken, industry, stage, skipFetch = f
               <th className="text-right py-2 pl-3 text-xs font-semibold text-muted uppercase tracking-wide">Similarity</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-line-subtle [&>tr:nth-child(even)]:bg-surface-sunken">
             {peers.map((p) => (
               <tr key={p.rank} className="border-b border-line-subtle">
                 <td className="py-2 pr-3 text-muted tabular-nums">{p.rank}</td>
@@ -599,7 +599,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
         {orderState.phase === "blocked" ? (
           <ReportOrderBlocked refunded={orderState.refunded} message={orderState.message} failureReason={orderState.failureReason} locale={locale} />
         ) : (
-          <div className="rounded-2xl border border-brand-300 dark:border-brand-800 bg-surface-sunken p-6" role="status" aria-live="polite" data-testid="tbr-order-pending">
+          <div className="rounded-2xl border border-brand-300 bg-surface-sunken p-6" role="status" aria-live="polite" data-testid="tbr-order-pending">
             <p className="text-sm font-semibold text-primary">{t.v2.order.pendingTitle}</p>
             <p className="mt-1 text-xs text-secondary">{orderState.phase === "pending" ? orderState.message : t.v2.order.loading}</p>
             <p className="mt-2 text-xs text-muted">{t.v2.order.pendingLeave}</p>
@@ -612,12 +612,12 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
   if (!data && !report) {
     return (
       <div className="p-6 max-w-5xl mx-auto">
-        <div className="rounded-xl border border-amber-300 dark:border-amber-800 bg-surface-sunken p-6 text-center space-y-3">
+        <div className="rounded-xl border border-amber-300 bg-surface-sunken p-6 text-center space-y-3">
           <FileText className="h-10 w-10 mx-auto text-amber-500" aria-hidden="true" />
           {/* G20-sweep: the empty state is the page — its title is the h1. */}
           <h1 className="text-sm font-medium text-warn">{t.noAnalysisTitle}</h1>
           <p className="text-xs text-warn">{t.noAnalysisBody}</p>
-          <Link href="/workspace/raise/deck" className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 transition-colors">
+          <Link href="/workspace/raise/deck" className="inline-flex items-center gap-1.5 rounded-lg bg-action hover:bg-action-hover text-on-action text-sm font-semibold px-4 py-2 transition-colors">
             {t.noAnalysisCta} <ChevronRight className="h-4 w-4" />
           </Link>
         </div>
@@ -687,7 +687,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
       <div className="mb-6 space-y-1 print:mb-8">
         <div className="flex items-center gap-3 flex-wrap">
           <h1 className="text-2xl font-bold text-primary print:text-3xl">{t.reportTitle}</h1>
-          <span className="inline-flex items-center rounded-full bg-surface-sunken border border-brand-300 dark:border-brand-800 px-2.5 py-0.5 text-xs font-semibold text-action">
+          <span className="inline-flex items-center rounded-full bg-surface-sunken border border-brand-300 px-2.5 py-0.5 text-xs font-semibold text-action">
             {t.brandBadge}
           </span>
           {!pdfMode && (
@@ -758,7 +758,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
                     }
                   }}
                   disabled={shareBusy}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-brand-300 dark:border-brand-800 bg-surface-sunken px-3 py-1.5 text-xs font-semibold text-action hover:bg-surface-sunken transition-colors disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-brand-300 bg-surface-sunken px-3 py-1.5 text-xs font-semibold text-action hover:bg-surface-sunken transition-colors disabled:opacity-60"
                 >
                   {shareBusy ? t.sharing : t.shareWithInvestor}
                 </button>
@@ -805,7 +805,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
           )}
           {/* Share URL feedback strip */}
           {!pdfMode && shareUrl && (
-            <div className="mt-2 flex items-center gap-2 rounded-lg border border-brand-300 dark:border-brand-800 bg-surface-sunken px-3 py-2 text-xs print:hidden">
+            <div className="mt-2 flex items-center gap-2 rounded-lg border border-brand-300 bg-surface-sunken px-3 py-2 text-xs print:hidden">
               <span className="font-semibold text-action">{t.shareUrlLabel}</span>
               <code className="flex-1 truncate text-secondary">{shareUrl}</code>
               <button
@@ -819,7 +819,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
                     /* clipboard blocked */
                   }
                 }}
-                className="rounded border border-brand-300 dark:border-brand-800 bg-surface px-2 py-0.5 font-semibold text-action hover:bg-surface-sunken"
+                className="rounded border border-brand-300 bg-surface px-2 py-0.5 font-semibold text-action hover:bg-surface-sunken"
               >
                 {copied ? t.copied : t.copy}
               </button>
@@ -842,7 +842,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
         <div className="flex-1 min-w-0 space-y-12">
           {/* G19-S45 (D4): paid-order strip — being written / pre-v2 order. */}
           {founderMode && paid?.status === "pending" && (
-            <p role="status" aria-live="polite" data-testid="tbr-order-strip" data-tbr-order-status="pending" className="rounded-xl border border-brand-300 dark:border-brand-800 bg-surface-sunken px-3 py-2 text-xs text-brand-900 print:hidden">
+            <p role="status" aria-live="polite" data-testid="tbr-order-strip" data-tbr-order-status="pending" className="rounded-xl border border-brand-300 bg-surface-sunken px-3 py-2 text-xs text-brand-900 print:hidden">
               {t.v2.order.generatingStrip}
             </p>
           )}
@@ -883,7 +883,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
             />
           )}
           {unlockNotice && (
-            <p role="status" className="rounded-lg border border-amber-300 dark:border-amber-800 bg-surface-sunken px-3 py-2 text-xs text-warn">
+            <p role="status" className="rounded-lg border border-amber-300 bg-surface-sunken px-3 py-2 text-xs text-warn">
               {unlockNotice}{" "}
               <Link href="/workspace/projects" className="font-semibold underline">
                 Open projects

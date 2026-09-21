@@ -73,11 +73,11 @@ export default async function EquityOfferPage() {
             card when the plan lacks the flag — the page had no h1 either way. */}
         <header className="space-y-2">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
               Pay in Equity: Enterprise Solution + 5–10% Equity
             </h1>
           </div>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
+          <p className="text-sm text-slate-600">
             A request-a-call intake for founders who want BlockID Enterprise
             delivered against an equity component rather than pure cash.
           </p>
@@ -90,25 +90,25 @@ export default async function EquityOfferPage() {
           {/* Big, unmissable disclaimer block at the top */}
           <section
             aria-label="Legal disclaimer"
-            className="rounded-2xl border-2 border-amber-300 dark:border-amber-700 bg-amber-50/70 dark:bg-amber-900/20 p-5"
+            className="rounded-2xl border-2 border-amber-300 bg-amber-50/70 p-5"
           >
-            <div className="text-xs font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-200">
+            <div className="text-xs font-semibold uppercase tracking-wider text-amber-800">
               Read this first
             </div>
-            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-amber-900 dark:text-amber-100">
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-amber-900">
               {disclaimerBody}
             </p>
-            <p className="mt-3 text-xs font-medium text-amber-900/80 dark:text-amber-100/80">
+            <p className="mt-3 text-xs font-medium text-amber-900/80">
               Not financial advice. Seek independent counsel. This is not an
               offer of securities.
             </p>
           </section>
 
-          <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
+            <h2 className="text-lg font-semibold text-slate-900">
               What BlockID Enterprise delivers
             </h2>
-            <ul className="mt-3 space-y-2 text-sm text-slate-700 dark:text-slate-300 list-disc list-inside">
+            <ul className="mt-3 space-y-2 text-sm text-slate-700 list-disc list-inside">
               <li>
                 Full Scale-tier stack: SVI, valuation, cap-table, ESOP,
                 investor portal, data room, unlimited AI reports.
@@ -128,45 +128,45 @@ export default async function EquityOfferPage() {
             </ul>
           </section>
 
-          <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5">
+          <section className="rounded-xl border border-slate-200 bg-white p-5">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              <h2 className="text-lg font-semibold text-slate-900">
                 Indicative terms
               </h2>
-              <span className="inline-flex items-center rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+              <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider text-slate-700">
                 Indicative
               </span>
             </div>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            <p className="mt-1 text-xs text-slate-500">
               For discussion only. Actual terms depend on counsel review,
               company stage, valuation, and jurisdiction.
             </p>
             <div className="mt-4 overflow-x-auto">
               <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
+                  <tr className="text-left text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200">
                     <th className="py-2 pr-4">Stage</th>
                     <th className="py-2 pr-4">Equity band</th>
                     <th className="py-2 pr-4">Vesting</th>
                     <th className="py-2 pr-4">Instrument</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-line-subtle [&>tr:nth-child(even)]:bg-surface-sunken">
                   {INDICATIVE_TERMS.map((row) => (
                     <tr
                       key={row.stage}
-                      className="border-b border-slate-100 dark:border-slate-900 last:border-0"
+                      className="border-b border-slate-100 last:border-0"
                     >
-                      <td className="py-2 pr-4 font-medium text-slate-800 dark:text-slate-200">
+                      <td className="py-2 pr-4 font-medium text-slate-800">
                         {row.stage}
                       </td>
-                      <td className="py-2 pr-4 text-slate-700 dark:text-slate-300">
+                      <td className="py-2 pr-4 text-slate-700">
                         {row.band}
                       </td>
-                      <td className="py-2 pr-4 text-slate-700 dark:text-slate-300">
+                      <td className="py-2 pr-4 text-slate-700">
                         {row.vesting}
                       </td>
-                      <td className="py-2 pr-4 text-slate-700 dark:text-slate-300">
+                      <td className="py-2 pr-4 text-slate-700">
                         {row.instrument}
                       </td>
                     </tr>
@@ -176,18 +176,18 @@ export default async function EquityOfferPage() {
             </div>
           </section>
 
-          <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-brand-50 to-white dark:from-brand-950/30 dark:to-slate-950 p-5">
-            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+          <section className="rounded-xl border border-slate-200 bg-gradient-to-br from-brand-50 to-white p-5">
+            <h2 className="text-lg font-semibold text-slate-900">
               Ready to talk?
             </h2>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            <p className="mt-1 text-sm text-slate-600">
               Submit an intake and our legal + CS team will contact you within
               3 business days. No obligation. No securities issued at intake.
             </p>
             <div className="mt-4">
               <Link
                 href="/workspace/esop/offers/request"
-                className="inline-flex items-center gap-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-semibold transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg bg-action hover:bg-action-hover text-on-action px-4 py-2 text-sm font-semibold transition-colors"
               >
                 Request a Call
               </Link>

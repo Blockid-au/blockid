@@ -115,8 +115,8 @@ export default async function EvidencePage() {
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
       <PageTracker page="evidence" />
       <div className="p-6 max-w-3xl mx-auto space-y-8">
-        <div className="rounded-md border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 px-4 py-3 flex items-center gap-3 flex-wrap">
-          <span className="text-xs font-medium text-ink-600 dark:text-ink-400 uppercase tracking-wide">
+        <div className="rounded-md border border-ink-200 bg-white px-4 py-3 flex items-center gap-3 flex-wrap">
+          <span className="text-xs font-medium text-ink-600 uppercase tracking-wide">
             Connected integrations
           </span>
           {providers.map((p) => {
@@ -129,7 +129,7 @@ export default async function EvidencePage() {
               return (
                 <span
                   key={p}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                  className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-emerald-100 text-emerald-800"
                 >
                   {label} linked
                 </span>
@@ -138,7 +138,7 @@ export default async function EvidencePage() {
             return (
               <span
                 key={p}
-                className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-ink-100 text-ink-600 dark:bg-ink-800 dark:text-ink-400"
+                className="inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded-full bg-ink-100 text-ink-600"
               >
                 {label}
                 {!configured ? " (unavailable)" : ""}
@@ -147,7 +147,7 @@ export default async function EvidencePage() {
           })}
           <Link
             href="/workspace/evidence/connectors"
-            className="ml-auto text-xs text-brand-700 dark:text-brand-400 hover:underline"
+            className="ml-auto text-xs text-brand-700 hover:underline"
           >
             Manage
           </Link>

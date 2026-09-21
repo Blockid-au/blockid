@@ -298,7 +298,7 @@ export function AnnualTaxStatementsPanel({ initial }: { initial?: TaxStatementsP
         <>
           <div className="mt-4 overflow-x-auto">
             <table className="w-full text-xs" data-testid="tax-fy-summary">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                 <tr className="text-left text-[11px] uppercase tracking-wide text-ink-400">
                   <th className="py-1.5 pr-3">Shareholder</th>
                   <th className="py-1.5 pr-3 text-right">Distributions</th>
@@ -310,7 +310,7 @@ export function AnnualTaxStatementsPanel({ initial }: { initial?: TaxStatementsP
                   <th className="py-1.5 text-right">Assessable</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-100">
+              <tbody className="divide-y divide-line-subtle [&>tr:nth-child(even)]:bg-surface-sunken">
                 {state.shareholders.map((s) => (
                   <tr key={s.key} data-testid="tax-fy-row" data-shareholder={s.name}>
                     <td className="py-1.5 pr-3 font-medium text-ink-800">
@@ -341,7 +341,7 @@ export function AnnualTaxStatementsPanel({ initial }: { initial?: TaxStatementsP
                 onClick={() => void startGenerate(false)}
                 disabled={busy !== null || preview !== null}
                 data-testid="generate-tax-statements"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover disabled:opacity-60"
               >
                 {busy === "preview" ? <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" /> : <FileText strokeWidth={1.75} className="h-3.5 w-3.5" />}
                 Generate statements ({costLabel})
@@ -402,7 +402,7 @@ export function AnnualTaxStatementsPanel({ initial }: { initial?: TaxStatementsP
                   onClick={() => void confirmGenerate()}
                   disabled={busy !== null}
                   data-testid="confirm-generate-tax-statements"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover disabled:opacity-60"
                 >
                   {busy === "generate" ? <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5" />}
                   {preview.included || preview.cost === 0 ? "Generate (included)" : `Generate for ${preview.cost} credits`}

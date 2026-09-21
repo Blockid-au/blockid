@@ -97,7 +97,7 @@ export function EsopDashboardClient() {
       )}
 
       {showCreatePool && !pool && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-strong/50">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
             <h3 className="font-semibold text-ink-900 mb-2">Create ESOP Pool</h3>
             <p className="text-sm text-ink-600 mb-4">
@@ -114,7 +114,7 @@ export function EsopDashboardClient() {
               <button
                 onClick={handleCreatePool}
                 disabled={creatingPool}
-                className="flex-1 rounded-lg bg-brand-600 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+                className="flex-1 rounded-lg bg-action py-2 text-sm font-medium text-on-action hover:bg-action-hover disabled:opacity-60"
               >
                 {creatingPool ? "Creating..." : "Create Pool"}
               </button>

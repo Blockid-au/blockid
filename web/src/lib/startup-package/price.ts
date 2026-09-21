@@ -11,7 +11,7 @@
 // Pure and isomorphic (no I/O), safe in "use client" modules.
 
 import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
-import { formatAud, withGst } from "@/lib/plans-v2";
+import { STARTUP_PACKAGE_MONEY_FINDER_LINE, formatAud, withGst } from "@/lib/plans-v2";
 
 /** The plan id the CTA posts to `/api/stripe/checkout` and the webhook recognises. */
 export const STARTUP_PACKAGE_PLAN_ID = "founder_package" as const;
@@ -34,3 +34,18 @@ export const STARTUP_PACKAGE_PRICE_LABEL: string = formatAud(STARTUP_PACKAGE_PRI
 export function startupPackagePriceLabelLong(): string {
   return withGst(STARTUP_PACKAGE_PRICE_LABEL);
 }
+
+/**
+ * What the one-off package includes — the bullets the review step
+ * (`/checkout/review?sku=founder_package`) lists above the Pay button. The
+ * credit figure reads the csv row; the Money Finder / Radar line is the one
+ * plans-v2 renders on the Growth rung and the landing page.
+ */
+export const STARTUP_PACKAGE_INCLUDED: readonly string[] = [
+  "Guided interview — 8 questions, answers feed the analysis",
+  "C-Level AI analysis across every business dimension",
+  "Real-time Startup Value Index as you answer",
+  "Day-0 dataroom — pitch deck, one-pager, founder pack, valuation memo",
+  `${STARTUP_PACKAGE_CREDITS} credits included`,
+  STARTUP_PACKAGE_MONEY_FINDER_LINE,
+];

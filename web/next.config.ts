@@ -163,6 +163,16 @@ const nextConfig: NextConfig = {
         destination: "/startup-index",
         statusCode: 301,
       },
+      // G25 (2026-09-21) — the paid Cohort Validation Pilot, its comped
+      // investor pilot and the pilot delivery kit were retired ("bỏ luôn
+      // coupon và pilot"). Evaluators go straight to the sold ladder; the
+      // old public URLs 301 to the persona pages (indexed inbound links),
+      // the workspace kit to the Cohort onboarding kit. Sitemap / hreflang
+      // rows are gone; live-qa 41 asserts each hop.
+      { source: "/pilot/investor", destination: "/solutions/investor", statusCode: 301 },
+      { source: "/pilot", destination: "/solutions/accelerator", statusCode: 301 },
+      { source: "/vi/pilot", destination: "/vi/solutions/accelerator", statusCode: 301 },
+      { source: "/workspace/accelerator/pilot", destination: "/workspace/accelerator/onboarding", statusCode: 301 },
       // Release QA-1 #12 — duplicate article (identical <title> + topic).
       // `optimising-…` was removed from the manifest / topic queue; the
       // surviving `optimise-…` article keeps the ranking signal.

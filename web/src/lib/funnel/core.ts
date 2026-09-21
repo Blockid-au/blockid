@@ -18,7 +18,7 @@ export interface FunnelEventRow {
   source?: string | null;
 }
 
-export const CONVERSION_KEYS = ["signup_to_analysis", "analysis_to_report", "report_to_paywall", "paywall_to_checkout", "checkout_to_paid"] as const;
+export const CONVERSION_KEYS = ["signup_to_analysis", "analysis_to_report", "report_to_paywall", "paywall_to_checkout", "checkout_to_paid", "review_to_pay"] as const;
 export type ConversionKey = (typeof CONVERSION_KEYS)[number];
 
 const nInt = z.number().int().nonnegative();
@@ -31,6 +31,9 @@ export const funnelCountsSchema = z.object({
   paywall_views: nInt,
   checkouts: nInt,
   paid: nInt,
+  // G25-D review-before-pay edge; older report files lack the two counts.
+  review_views: nInt.default(0),
+  pay_clicks: nInt.default(0),
   gate_hits: z.record(z.string(), nInt),
   conv: z.object({
     signup_to_analysis: z.number().nullable(),
@@ -38,6 +41,7 @@ export const funnelCountsSchema = z.object({
     report_to_paywall: z.number().nullable(),
     paywall_to_checkout: z.number().nullable(),
     checkout_to_paid: z.number().nullable(),
+    review_to_pay: z.number().nullable().default(null),
   }),
   events: nInt,
   qa_excluded: nInt,
@@ -74,7 +78,7 @@ export type FunnelLatest = z.infer<typeof funnelLatestSchema>;
 
 /** Event names the funnel reads — the DB filter for the live "today" count. */
 export const FUNNEL_EVENT_NAMES: readonly string[] = core.FUNNEL_EVENT_NAMES;
-export const FUNNEL_STEPS: ReadonlyArray<{ key: keyof Pick<FunnelCounts, "signups" | "analyses" | "report_views" | "paywall_views" | "checkouts" | "paid">; event: string }> =
+export const FUNNEL_STEPS: ReadonlyArray<{ key: keyof Pick<FunnelCounts, "signups" | "analyses" | "report_views" | "paywall_views" | "checkouts" | "paid" | "review_views" | "pay_clicks">; event: string }> =
   core.FUNNEL_STEPS as never;
 
 export const reduceFunnel = core.reduceFunnel as (rows: readonly FunnelEventRow[]) => FunnelCounts;

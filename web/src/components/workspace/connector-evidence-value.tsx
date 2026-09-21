@@ -21,9 +21,9 @@ import { freshnessLine, type ConnectorFreshness } from "@/lib/evidence/freshness
 import { NOT_OFFERED_LABEL, contactHrefForFeature } from "@/components/workspace/not-offered-card";
 
 const BADGE: Record<ConnectorFreshness["state"], { className: string; icon: typeof CheckCircle2 }> = {
-  fresh: { className: "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200", icon: CheckCircle2 },
-  ageing: { className: "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200", icon: Clock3 },
-  stale: { className: "border-rose-300 bg-rose-50 text-rose-800 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-200", icon: AlertTriangle },
+  fresh: { className: "border-emerald-300 bg-emerald-50 text-emerald-800", icon: CheckCircle2 },
+  ageing: { className: "border-amber-300 bg-amber-50 text-amber-800", icon: Clock3 },
+  stale: { className: "border-rose-300 bg-rose-50 text-rose-800", icon: AlertTriangle },
   never: { className: "border-line-subtle bg-surface-sunken text-secondary", icon: CircleDashed },
 };
 

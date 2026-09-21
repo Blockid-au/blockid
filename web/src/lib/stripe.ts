@@ -52,13 +52,6 @@ export const STRIPE_PRICE_MAP: Record<string, string | undefined> = {
   // Startup Package — one-off A$149 SKU. Provisions the guided founder flow
   // per web/supabase/migrations/0118_startup_package.sql.
   founder_package: process.env.STRIPE_PRICE_STARTUP_PACKAGE,
-  // G21 P0-C — BlockID Cohort Validation Pilot, one-off A$1,500 (≤ 25
-  // applicants) / A$2,500 (≤ 50), GST-inclusive. Amounts + caps live in
-  // lib/pricing/pilot-skus.ts; the founder mints the two prices and sets
-  // these env vars — until then the buy buttons fall back to
-  // /contact?topic=pilot (checkout answers 409 sku_unconfigured).
-  cohort_pilot_25: process.env.STRIPE_PRICE_COHORT_PILOT_25,
-  cohort_pilot_50: process.env.STRIPE_PRICE_COHORT_PILOT_50,
   // One-Click Investor Analysis — A$3.00 inc. GST guest paywall
   // (sku_one_click_report_3aud). Populated by scripts/stripe/sync-plans.mjs;
   // consumed by the guest checkout route (Phase 2).

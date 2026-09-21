@@ -98,7 +98,7 @@ export function ExitReadinessTile({ section, projectSector }: ExitReadinessTileP
 
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="min-w-full text-sm">
-          <thead className="bg-surface-50 text-left text-xs uppercase tracking-wide text-ink-500">
+          <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs uppercase tracking-wide text-ink-500">
             <tr>
               <th className="px-3 py-2">Company</th>
               <th className="px-3 py-2">Buyer</th>
@@ -109,7 +109,7 @@ export function ExitReadinessTile({ section, projectSector }: ExitReadinessTileP
               <th className="px-3 py-2">Source</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="divide-y divide-line-subtle">
             {topExits.map((row) => (
               <tr key={`${row.company}-${row.year}`} className="hover:bg-surface-50">
                 <td className="px-3 py-2 font-medium text-ink-800">{row.company}</td>

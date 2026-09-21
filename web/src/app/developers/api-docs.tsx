@@ -269,11 +269,11 @@ function CopyButton({ text }: { text: string }) {
     <button
       type="button"
       onClick={handleCopy}
-      className="absolute top-3 right-3 h-7 w-7 flex items-center justify-center rounded-md bg-white/10 hover:bg-white/20 text-slate-400 hover:text-white transition-colors cursor-pointer"
+      className="absolute top-3 right-3 h-7 w-7 flex items-center justify-center rounded-md border border-line bg-surface text-muted hover:bg-surface-hover hover:text-primary transition-colors cursor-pointer"
       aria-label="Copy to clipboard"
     >
       {copied ? (
-        <Check strokeWidth={1.75} className="h-3.5 w-3.5 text-green-400" />
+        <Check strokeWidth={1.75} className="h-3.5 w-3.5 text-bull" />
       ) : (
         <Copy strokeWidth={1.75} className="h-3.5 w-3.5" />
       )}
@@ -290,14 +290,14 @@ function CodeBlock({
   language: string;
 }) {
   return (
-    <div className="relative rounded-xl bg-ink-900 border border-ink-700 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-ink-700">
-        <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
+    <div className="relative rounded-xl bg-surface-sunken border border-line overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-line">
+        <span className="text-[10px] uppercase tracking-wider font-semibold text-muted">
           {language}
         </span>
       </div>
       <CopyButton text={code} />
-      <pre className="p-4 overflow-x-auto text-sm text-slate-300 leading-relaxed">
+      <pre className="p-4 overflow-x-auto text-sm text-primary leading-relaxed">
         <code>{code}</code>
       </pre>
     </div>
@@ -464,9 +464,9 @@ export function ApiDocs() {
                   <p className="text-xs font-semibold text-ink-500 uppercase tracking-wider mb-2">
                     Request Body
                   </p>
-                  <div className="relative rounded-xl bg-ink-900 border border-ink-700 overflow-hidden">
+                  <div className="relative rounded-xl bg-surface-sunken border border-line overflow-hidden">
                     <CopyButton text={ep.body} />
-                    <pre className="p-4 overflow-x-auto text-sm text-slate-300 leading-relaxed">
+                    <pre className="p-4 overflow-x-auto text-sm text-primary leading-relaxed">
                       <code>{ep.body}</code>
                     </pre>
                   </div>
@@ -478,7 +478,7 @@ export function ApiDocs() {
                 <p className="text-xs font-semibold text-ink-500 uppercase tracking-wider mb-2">
                   Response
                 </p>
-                <div className="relative rounded-xl bg-ink-900 border border-ink-700 overflow-hidden">
+                <div className="relative rounded-xl bg-surface-sunken border border-line overflow-hidden">
                   <CopyButton text={ep.response} />
                   <pre className="p-4 overflow-x-auto text-sm text-emerald-300 leading-relaxed">
                     <code>{ep.response}</code>
@@ -510,7 +510,7 @@ export function ApiDocs() {
               className={cn(
                 "px-4 py-2 rounded-lg text-sm font-semibold transition-colors cursor-pointer",
                 activeTab === tab
-                  ? "bg-ink-900 text-white"
+                  ? "bg-action text-on-action"
                   : "bg-surface-100 text-ink-600 hover:bg-surface-200"
               )}
             >
@@ -654,7 +654,7 @@ export function ApiDocs() {
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Link
               href="/pricing?segment=evaluator"
-              className="inline-flex h-12 items-center gap-2.5 rounded-2xl bg-brand-600 px-8 text-base font-semibold text-white hover:bg-brand-700 transition-colors cta-glow"
+              className="inline-flex h-12 items-center gap-2.5 rounded-2xl bg-action px-8 text-base font-semibold text-on-action hover:bg-action-hover transition-colors cta-glow"
             >
               Get API Access{" "}
               <ArrowRight strokeWidth={2} className="h-5 w-5" />

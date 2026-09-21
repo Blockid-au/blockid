@@ -179,13 +179,13 @@ export default async function ShowcaseBlockidPage() {
       <NavV2 />
       <main className="mx-auto max-w-6xl px-4 py-12 md:py-16">
         <header className="mb-10">
-          <p className="text-sm font-medium uppercase tracking-wide text-emerald-600">
+          <p className="text-sm font-medium uppercase tracking-wide text-bull">
             Track B — Public Showcase Mirror
           </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl dark:text-slate-100">
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-primary md:text-4xl">
             BlockID.au — Live from the Founder Journey
           </h1>
-          <p className="mt-4 max-w-3xl text-base text-slate-600 dark:text-slate-400">
+          <p className="mt-4 max-w-3xl text-base text-secondary">
             BlockID.au is a real, operating startup building itself in public.
             This page mirrors what our own workspace looks like right now —
             current phase, milestones reported, C-Level agents shipping — so
@@ -193,7 +193,7 @@ export default async function ShowcaseBlockidPage() {
             produces. Every artefact you count here was written by the same
             agents you get inside your own workspace.
           </p>
-          <p className="mt-2 max-w-3xl text-xs text-slate-500 dark:text-slate-500">
+          <p className="mt-2 max-w-3xl text-xs text-muted">
             Metadata only. Report bodies, investor identities, and any
             individual founder&apos;s data stay private — this page follows
             the same redaction rules resellers get on their portfolio lens.
@@ -204,14 +204,14 @@ export default async function ShowcaseBlockidPage() {
         <section aria-labelledby="showcase-own-report" className="mb-10">
           <Link
             href="/showcase/blockid/report"
-            className="group block rounded-lg border border-emerald-300 bg-emerald-50 p-5 transition hover:border-emerald-500 dark:border-emerald-800/60 dark:bg-emerald-950/30"
+            className="group block rounded-lg border border-brand-300 bg-brand-50 p-5 transition hover:border-brand-500"
             data-testid="showcase-own-report-card"
           >
-            <p className="text-xs font-medium uppercase tracking-wide text-emerald-700 dark:text-emerald-300">BlockID scoring BlockID</p>
-            <h2 id="showcase-own-report" className="mt-1 text-xl font-semibold text-slate-900 dark:text-slate-100">
+            <p className="text-xs font-medium uppercase tracking-wide text-brand-700">BlockID scoring BlockID</p>
+            <h2 id="showcase-own-report" className="mt-1 text-xl font-semibold text-primary">
               Read our own Trusted Business Report →
             </h2>
-            <p className="mt-2 max-w-3xl text-sm text-slate-600 dark:text-slate-400">
+            <p className="mt-2 max-w-3xl text-sm text-secondary">
               The full report the same pipeline writes for every founder — score ledger, honest valuation, real evidence rows, and
               pending where we have no evidence yet. Live numbers, our data, unedited.
             </p>
@@ -223,27 +223,27 @@ export default async function ShowcaseBlockidPage() {
             Showcase KPIs
           </h2>
           <dl className="grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
-            <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-              <dt className="text-slate-500 dark:text-slate-400">Current phase</dt>
-              <dd className="mt-1 text-2xl font-semibold text-emerald-600">
+            <div className="rounded-lg border border-line-subtle bg-white p-4">
+              <dt className="text-muted">Current phase</dt>
+              <dd className="mt-1 text-2xl font-semibold text-bull">
                 {currentPhase !== null ? `Phase ${currentPhase} / 12` : "—"}
               </dd>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-              <dt className="text-slate-500 dark:text-slate-400">Reports on file</dt>
-              <dd className="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">
+            <div className="rounded-lg border border-line-subtle bg-white p-4">
+              <dt className="text-muted">Reports on file</dt>
+              <dd className="mt-1 text-2xl font-semibold text-primary">
                 {summary.total_reports}
               </dd>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-              <dt className="text-slate-500 dark:text-slate-400">Agents shipping</dt>
-              <dd className="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">
+            <div className="rounded-lg border border-line-subtle bg-white p-4">
+              <dt className="text-muted">Agents shipping</dt>
+              <dd className="mt-1 text-2xl font-semibold text-primary">
                 {summary.agents_covered}
               </dd>
             </div>
-            <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-              <dt className="text-slate-500 dark:text-slate-400">Latest activity</dt>
-              <dd className="mt-1 text-2xl font-semibold text-slate-900 dark:text-slate-100">
+            <div className="rounded-lg border border-line-subtle bg-white p-4">
+              <dt className="text-muted">Latest activity</dt>
+              <dd className="mt-1 text-2xl font-semibold text-primary">
                 {formatDate(summary.latest_generated_at)}
               </dd>
             </div>
@@ -254,11 +254,11 @@ export default async function ShowcaseBlockidPage() {
           <div className="mb-4 flex items-baseline justify-between">
             <h2
               id="phase-progress"
-              className="text-xl font-semibold text-slate-900 dark:text-slate-100"
+              className="text-xl font-semibold text-primary"
             >
               Phase progress — 12-phase founder journey
             </h2>
-            <span className="text-xs text-slate-500 dark:text-slate-400">
+            <span className="text-xs text-muted">
               {crossCutting > 0
                 ? `+ ${crossCutting} cross-cutting artefact${crossCutting === 1 ? "" : "s"}`
                 : ""}
@@ -274,19 +274,19 @@ export default async function ShowcaseBlockidPage() {
                   className={
                     "rounded-md border p-2 text-center text-xs " +
                     (isCurrent
-                      ? "border-emerald-500 bg-emerald-50 dark:border-emerald-400 dark:bg-emerald-950/40"
+                      ? "border-brand-500 bg-brand-50"
                       : isActive
-                        ? "border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900"
-                        : "border-slate-200 bg-slate-50 text-slate-400 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-600")
+                        ? "border-line bg-white"
+                        : "border-line-subtle bg-surface-sunken text-muted")
                   }
                 >
-                  <div className="text-[10px] font-mono uppercase tracking-wide text-slate-500">
+                  <div className="text-[10px] font-mono uppercase tracking-wide text-muted">
                     Phase {entry.phase}
                   </div>
-                  <div className="mt-1 truncate font-semibold text-slate-900 dark:text-slate-100">
+                  <div className="mt-1 truncate font-semibold text-primary">
                     {entry.label}
                   </div>
-                  <div className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+                  <div className="mt-1 text-[11px] text-muted">
                     {entry.count} artefact{entry.count === 1 ? "" : "s"}
                   </div>
                 </li>
@@ -298,12 +298,12 @@ export default async function ShowcaseBlockidPage() {
         <section aria-labelledby="agent-activity" className="mb-12">
           <h2
             id="agent-activity"
-            className="mb-4 text-xl font-semibold text-slate-900 dark:text-slate-100"
+            className="mb-4 text-xl font-semibold text-primary"
           >
             C-Level agent activity
           </h2>
           {agentActivity.length === 0 ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-muted">
               No agent artefacts yet. Check back shortly.
             </p>
           ) : (
@@ -311,17 +311,17 @@ export default async function ShowcaseBlockidPage() {
               {agentActivity.map((entry) => (
                 <li
                   key={entry.agent}
-                  className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+                  className="rounded-lg border border-line-subtle bg-white p-4"
                 >
                   <div className="flex items-baseline justify-between">
-                    <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                    <span className="text-sm font-semibold text-primary">
                       {entry.label}
                     </span>
-                    <span className="rounded bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+                    <span className="rounded bg-brand-100 px-2 py-0.5 text-xs font-medium text-brand-800">
                       {entry.count}
                     </span>
                   </div>
-                  <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                  <p className="mt-2 text-xs text-muted">
                     Latest: {formatDate(entry.latest_at)}
                   </p>
                 </li>
@@ -334,18 +334,18 @@ export default async function ShowcaseBlockidPage() {
           <div className="mb-4 flex items-baseline justify-between">
             <h2
               id="milestone-timeline"
-              className="text-xl font-semibold text-slate-900 dark:text-slate-100"
+              className="text-xl font-semibold text-primary"
             >
               Milestone timeline
             </h2>
             {milestoneState.lastRun && (
-              <span className="text-xs text-slate-500 dark:text-slate-400">
+              <span className="text-xs text-muted">
                 State updated {formatDate(milestoneState.lastRun)}
               </span>
             )}
           </div>
           {timeline.length === 0 ? (
-            <p className="text-sm text-slate-500 dark:text-slate-400">
+            <p className="text-sm text-muted">
               No milestones reported yet.
             </p>
           ) : (
@@ -353,12 +353,12 @@ export default async function ShowcaseBlockidPage() {
               {timeline.map((entry) => (
                 <li
                   key={entry.id}
-                  className="flex items-center gap-3 rounded-md border border-slate-200 bg-white px-3 py-2 dark:border-slate-800 dark:bg-slate-900"
+                  className="flex items-center gap-3 rounded-md border border-line-subtle bg-white px-3 py-2"
                 >
-                  <span className="rounded bg-slate-100 px-2 py-0.5 font-mono text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                  <span className="rounded bg-surface-sunken px-2 py-0.5 font-mono text-xs text-secondary">
                     #{entry.order}
                   </span>
-                  <span className="text-sm font-medium text-slate-900 dark:text-slate-100">
+                  <span className="text-sm font-medium text-primary">
                     {entry.id}
                   </span>
                 </li>
@@ -367,11 +367,11 @@ export default async function ShowcaseBlockidPage() {
           )}
         </section>
 
-        <aside className="mt-16 rounded-lg border border-emerald-200 bg-emerald-50 p-6 dark:border-emerald-800/40 dark:bg-emerald-950/30">
-          <h2 className="text-base font-semibold text-emerald-900 dark:text-emerald-200">
+        <aside className="mt-16 rounded-lg border border-brand-200 bg-brand-50 p-6">
+          <h2 className="text-base font-semibold text-brand-900">
             See what your own showcase would look like
           </h2>
-          <p className="mt-2 text-sm text-emerald-800 dark:text-emerald-300">
+          <p className="mt-2 text-sm text-brand-800">
             The same 12-phase journey, milestone tracker, and C-Level agent
             panel is available inside every BlockID workspace. Score your
             idea, invite your team, and start publishing your own progress.
@@ -379,13 +379,13 @@ export default async function ShowcaseBlockidPage() {
           <div className="mt-4 flex flex-wrap gap-3">
             <Link
               href="/svi"
-              className="rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+              className="rounded-md bg-action px-4 py-2 text-sm font-semibold text-on-action transition hover:bg-action-hover"
             >
               Score my startup
             </Link>
             <Link
               href="/sample"
-              className="rounded-md border border-emerald-600 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:text-emerald-300"
+              className="rounded-md border border-brand-600 px-4 py-2 text-sm font-semibold text-brand-700 transition hover:bg-brand-100"
             >
               Browse report templates
             </Link>

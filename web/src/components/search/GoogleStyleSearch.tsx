@@ -59,10 +59,10 @@ export function GoogleStyleSearch({
           <label htmlFor="gss-input" className="sr-only">
             Search
           </label>
-          <div className="relative flex items-center rounded-full bg-[#0F1526] px-5 py-3.5">
+          <div className="relative flex min-h-12 items-center rounded-full border border-line bg-surface px-5 py-3.5 shadow-1">
             <Search
               aria-hidden="true"
-              className="h-5 w-5 shrink-0 text-white/60"
+              className="h-5 w-5 shrink-0 text-muted"
             />
             <input
               id="gss-input"
@@ -77,11 +77,11 @@ export function GoogleStyleSearch({
               onFocus={() => setFocused(true)}
               onBlur={() => setFocused(false)}
               placeholder={placeholder}
-              className="mx-3 min-w-0 flex-1 bg-transparent text-[15px] text-white placeholder:text-white/40 focus:outline-none"
+              className="mx-3 min-w-0 flex-1 bg-transparent text-[15px] text-primary placeholder:text-muted focus:outline-none"
             />
             <span
               aria-hidden="true"
-              className="hidden select-none rounded-md border border-white/10 px-2 py-1 text-[11px] font-medium text-white/50 sm:inline-block"
+              className="hidden select-none rounded-md border border-line px-2 py-1 text-[11px] font-medium text-muted sm:inline-block"
             >
               Enter to search
             </span>

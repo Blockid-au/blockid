@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { GoogleStyleSearch } from "@/components/search/GoogleStyleSearch";
-import { ProShell } from "@/components/layout/ProShell";
+import { MarketingShell } from "@/components/marketing/marketing-shell";
+import { CtaRow, PageHero } from "@/components/marketing/template";
 
 export const metadata: Metadata = {
   title: "Search",
@@ -30,49 +31,30 @@ export default async function SearchPage({
   }
 
   return (
-    <ProShell variant="app">
-      <section className="mx-auto max-w-3xl px-6 py-16">
-        <p className="text-[11px] tracking-[0.2em] uppercase text-white/50">
-          BlockID Search
-        </p>
-        <h1 className="mt-3 text-3xl font-semibold text-white">
-          Search the Startup Value Index
-        </h1>
-        <p className="mt-3 max-w-xl text-[15px] text-white/70">
-          Type a startup name to score it on the Startup Value Index — eight
-          dimensions, an AUD valuation range and an Investor Dossier — or
-          browse the live index by sector and stage.
-        </p>
-
-        {q ? (
-          <p className="mt-6 rounded-lg border border-white/10 bg-white/[0.03] px-4 py-3 text-[13px] text-white/70">
-            You searched for{" "}
-            <span className="font-medium text-white">
-              &ldquo;{q}&rdquo;
-            </span>
-            . Score it now, or browse the live index.
-          </p>
-        ) : null}
-
-        <div className="mt-10">
-          <GoogleStyleSearch autoFocus placeholder="Try another search…" />
-        </div>
-
-        <div className="mt-10 flex flex-wrap gap-3">
-          <a
-            href="/startup-index"
-            className="rounded-full bg-white px-4 py-2 text-[13px] font-semibold text-[#0A0F1E] hover:bg-white/90"
-          >
-            Browse the Startup Value Index →
-          </a>
-          <a
-            href={q ? `/score?q=${encodeURIComponent(q)}` : "/score"}
-            className="rounded-full border border-white/15 px-4 py-2 text-[13px] font-semibold text-white/80 hover:text-white"
-          >
-            Score a startup
-          </a>
-        </div>
-      </section>
-    </ProShell>
+    <MarketingShell>
+      <PageHero
+        eyebrow="BlockID Search"
+        title="Search the Startup Value Index"
+        sub="Type a startup name to score it on the Startup Value Index — eight dimensions, an AUD valuation range and an Investor Dossier — or browse the live index by sector and stage."
+        align="start"
+        visual={
+          <div className="mt-2 max-w-3xl">
+            {q ? (
+              <p className="mb-6 rounded-lg border border-line-subtle bg-surface-sunken px-4 py-3 text-[13px] text-secondary">
+                You searched for <span className="font-medium text-primary">&ldquo;{q}&rdquo;</span>. Score it now, or browse the live index.
+              </p>
+            ) : null}
+            <GoogleStyleSearch autoFocus placeholder="Try another search…" />
+            <CtaRow
+              className="mt-8"
+              ctas={[
+                { href: "/startup-index", label: "Browse the Startup Value Index", ctaId: "search_browse_index" },
+                { href: q ? `/score?q=${encodeURIComponent(q)}` : "/score", label: "Score a startup", variant: "secondary", ctaId: "search_score" },
+              ]}
+            />
+          </div>
+        }
+      />
+    </MarketingShell>
   );
 }

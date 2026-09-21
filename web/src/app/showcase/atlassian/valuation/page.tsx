@@ -118,9 +118,9 @@ export default function AtlassianValuationPage() {
 
           <section
             aria-label="Valuation grouped bar chart"
-            className="mb-6 rounded-lg border border-white/10 bg-black/40 p-5"
+            className="mb-6 rounded-lg border border-line-subtle bg-surface shadow-1 p-5"
           >
-            <div className="mb-3 flex flex-wrap items-center gap-4 text-xs text-ink-200">
+            <div className="mb-3 flex flex-wrap items-center gap-4 text-xs text-secondary">
               {METHODS.map((m) => (
                 <span key={m} className="inline-flex items-center gap-1.5">
                   <span
@@ -266,15 +266,15 @@ export default function AtlassianValuationPage() {
 
           <section
             aria-label="Valuation snapshots table"
-            className="mb-8 rounded-lg border border-white/10 bg-black/40 p-5"
+            className="mb-8 rounded-lg border border-line-subtle bg-surface shadow-1 p-5"
           >
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-100">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-primary">
               All 16 snapshots
             </h2>
             <div className="overflow-x-auto">
               <table className="w-full min-w-[640px] border-collapse text-left text-sm">
                 <thead>
-                  <tr className="border-b border-white/20 text-xs uppercase tracking-wide text-ink-300">
+                  <tr className="border-b border-line text-xs uppercase tracking-wide text-muted">
                     <th className="px-3 py-2 font-semibold">Timestamp</th>
                     <th className="px-3 py-2 font-semibold">Method</th>
                     <th className="px-3 py-2 text-right font-semibold">
@@ -287,13 +287,13 @@ export default function AtlassianValuationPage() {
                 </thead>
                 <tbody>
                   {valuations.map((v, i) => (
-                    <tr key={i} className="border-b border-white/5 align-top">
-                      <td className="px-3 py-2 font-mono text-xs text-ink-100">
+                    <tr key={i} className="border-b border-line-subtle align-top">
+                      <td className="px-3 py-2 font-mono text-xs text-primary">
                         {v.timestamp}
                       </td>
                       <td className="px-3 py-2">
                         <span
-                          className="inline-flex items-center gap-1.5 text-ink-100"
+                          className="inline-flex items-center gap-1.5 text-primary"
                         >
                           <span
                             aria-hidden
@@ -303,19 +303,19 @@ export default function AtlassianValuationPage() {
                           {v.method}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-right font-mono text-ink-50">
+                      <td className="px-3 py-2 text-right font-mono text-primary">
                         {formatAUD(v.valueAUD)}
                       </td>
-                      <td className="px-3 py-2 text-right font-mono text-ink-200">
+                      <td className="px-3 py-2 text-right font-mono text-secondary">
                         {v.fxRate.toFixed(2)}
                       </td>
-                      <td className="px-3 py-2 text-ink-200">{v.narrative}</td>
+                      <td className="px-3 py-2 text-secondary">{v.narrative}</td>
                       <td className="px-3 py-2">
                         <a
                           href={v.sourceUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-xs text-brand-300 hover:text-brand-200 hover:underline"
+                          className="text-xs text-action hover:text-action-hover hover:underline"
                         >
                           source →
                         </a>

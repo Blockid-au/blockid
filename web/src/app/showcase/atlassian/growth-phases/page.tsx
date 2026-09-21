@@ -86,7 +86,7 @@ function SviDonut({ value }: { value: number }) {
         r={R}
         fill="none"
         strokeWidth={STROKE}
-        className="stroke-surface-200 dark:stroke-slate-700"
+        className="stroke-surface-200"
       />
       <circle
         cx={SIZE / 2}
@@ -107,7 +107,7 @@ function SviDonut({ value }: { value: number }) {
         fontSize={12}
         fontWeight={700}
         fill="currentColor"
-        className="fill-ink-800 dark:fill-slate-100"
+        className="fill-ink-800"
       >
         {pct}
       </text>
@@ -138,7 +138,7 @@ function MilestoneTimeline({ milestones }: { milestones: AtlassianMilestone[] })
         x2={WIDTH - PAD}
         y2={HEIGHT / 2}
         strokeWidth={2}
-        className="stroke-surface-300 dark:stroke-slate-700"
+        className="stroke-surface-300"
       />
       {milestones.map((m, idx) => {
         const x =
@@ -151,7 +151,7 @@ function MilestoneTimeline({ milestones }: { milestones: AtlassianMilestone[] })
               cx={x}
               cy={HEIGHT / 2}
               r={4.5}
-              className="fill-brand-600 dark:fill-emerald-400"
+              className="fill-brand-600"
             >
               <title>{`${m.year} — ${m.title}`}</title>
             </circle>
@@ -163,7 +163,7 @@ function MilestoneTimeline({ milestones }: { milestones: AtlassianMilestone[] })
         y={HEIGHT - 2}
         fontSize={9}
         fill="currentColor"
-        className="fill-ink-500 dark:fill-slate-500"
+        className="fill-ink-500"
       >
         {minY}
       </text>
@@ -173,7 +173,7 @@ function MilestoneTimeline({ milestones }: { milestones: AtlassianMilestone[] })
         textAnchor="end"
         fontSize={9}
         fill="currentColor"
-        className="fill-ink-500 dark:fill-slate-500"
+        className="fill-ink-500"
       >
         {maxY}
       </text>
@@ -186,7 +186,7 @@ export default function AtlassianGrowthPhasesMirrorPage() {
 
   return (
     <AtlassianWalkthroughProvider stepNumber={4}>
-      <div className="min-h-screen bg-surface-50 dark:bg-slate-950">
+      <div className="min-h-screen bg-surface-50">
         <div className="container mx-auto max-w-6xl px-4 py-8">
           <nav className="mb-4 text-sm">
             <Link
@@ -198,13 +198,13 @@ export default function AtlassianGrowthPhasesMirrorPage() {
           </nav>
 
           <header className="mb-8">
-            <p className="text-sm font-medium uppercase tracking-wide text-brand-700 dark:text-emerald-400">
+            <p className="text-sm font-medium uppercase tracking-wide text-brand-700">
               Step 4 — 12-phase growth map
             </p>
-            <h1 className="mt-2 text-3xl font-semibold text-ink-900 dark:text-slate-100">
+            <h1 className="mt-2 text-3xl font-semibold text-ink-900">
               Twelve phases, one Australian founder journey
             </h1>
-            <p className="mt-3 max-w-3xl text-base text-ink-700 dark:text-slate-300">
+            <p className="mt-3 max-w-3xl text-base text-ink-700">
               The BlockID.au founder journey maps every startup onto the same
               twelve phases — Vision at 1, Exit at 12. Below each column shows
               what Atlassian did in that phase, the canonical VC-stage
@@ -230,17 +230,17 @@ export default function AtlassianGrowthPhasesMirrorPage() {
                   <article
                     key={col.phase}
                     id={`phase-${col.phase}`}
-                    className="flex flex-col rounded-lg border border-surface-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900"
+                    className="flex flex-col rounded-lg border border-surface-200 bg-white p-3"
                   >
                     <div className="flex items-center justify-between gap-2">
-                      <div className="text-[10px] font-mono uppercase tracking-wide text-ink-500 dark:text-slate-400">
+                      <div className="text-[10px] font-mono uppercase tracking-wide text-ink-500">
                         Phase {col.phase}
                       </div>
                       {col.snapshot?.sviAtThisPoint != null ? (
                         <SviDonut value={col.snapshot.sviAtThisPoint} />
                       ) : null}
                     </div>
-                    <h3 className="mt-1 text-sm font-semibold text-ink-900 dark:text-slate-100">
+                    <h3 className="mt-1 text-sm font-semibold text-ink-900">
                       {col.label}
                     </h3>
                     <div className="mt-2">
@@ -249,21 +249,21 @@ export default function AtlassianGrowthPhasesMirrorPage() {
 
                     {col.snapshot ? (
                       <>
-                        <p className="mt-3 text-[11px] font-medium leading-snug text-brand-800 dark:text-emerald-300">
+                        <p className="mt-3 text-[11px] font-medium leading-snug text-brand-800">
                           {col.snapshot.headline}
                         </p>
-                        <p className="mt-2 text-[11px] leading-snug text-ink-700 dark:text-slate-300">
+                        <p className="mt-2 text-[11px] leading-snug text-ink-700">
                           {col.snapshot.atlassianMoment}
                         </p>
                       </>
                     ) : (
-                      <p className="mt-3 text-[11px] italic text-ink-500 dark:text-slate-400">
+                      <p className="mt-3 text-[11px] italic text-ink-500">
                         No snapshot on file for this phase.
                       </p>
                     )}
 
-                    <div className="mt-3 border-t border-surface-100 pt-2 dark:border-slate-800">
-                      <div className="text-[10px] font-mono uppercase tracking-wide text-ink-500 dark:text-slate-400">
+                    <div className="mt-3 border-t border-surface-100 pt-2">
+                      <div className="text-[10px] font-mono uppercase tracking-wide text-ink-500">
                         Milestones ({col.milestones.length})
                       </div>
                       <MilestoneTimeline milestones={col.milestones} />
@@ -272,10 +272,10 @@ export default function AtlassianGrowthPhasesMirrorPage() {
                           {col.milestones.map((m, idx) => (
                             <li
                               key={`${m.year}-${idx}`}
-                              className="truncate text-[10px] text-ink-600 dark:text-slate-400"
+                              className="truncate text-[10px] text-ink-600"
                               title={`${m.year} — ${m.title}`}
                             >
-                              <span className="font-mono text-ink-500 dark:text-slate-500">
+                              <span className="font-mono text-ink-500">
                                 {m.year}
                               </span>{" "}
                               {m.title}
@@ -313,22 +313,22 @@ export default function AtlassianGrowthPhasesMirrorPage() {
 
           <section
             aria-labelledby="compare-cta"
-            className="rounded-lg border border-brand-200 bg-brand-50 p-6 dark:border-emerald-900 dark:bg-emerald-950/30"
+            className="rounded-lg border border-brand-200 bg-brand-50 p-6"
           >
             <h2
               id="compare-cta"
-              className="text-lg font-semibold text-brand-900 dark:text-emerald-100"
+              className="text-lg font-semibold text-brand-900"
             >
               Compare your own startup
             </h2>
-            <p className="mt-2 text-sm text-brand-900 dark:text-emerald-100">
+            <p className="mt-2 text-sm text-brand-900">
               You&apos;re currently in phase N of 12 — click your current phase
               above to see what Atlassian did here. Then open your own
               dashboard to see the equivalent tiles for your workspace.
             </p>
             <a
               href="/dashboard"
-              className="mt-4 inline-block rounded bg-brand-700 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-800 dark:bg-emerald-500 dark:text-slate-950 dark:hover:bg-emerald-400"
+              className="mt-4 inline-block rounded bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover"
             >
               Open my dashboard →
             </a>

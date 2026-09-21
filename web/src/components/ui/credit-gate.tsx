@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Coins, Sparkles, Tag, TrendingUp, X, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CREDIT_PACKS, type CreditPack } from "@/lib/credit-packs";
+import { checkoutReviewHref } from "@/lib/billing/checkout-review";
 import { PLANS_V2, formatAud } from "@/lib/plans-v2";
 
 // ---------------------------------------------------------------------------
@@ -160,30 +161,15 @@ export function CreditGate({
     }
   }, [isOpen]);
 
-  /** Buy a credit pack via /api/credits (authenticated checkout). */
-  const handleBuyPack = async (amount: number) => {
+  /**
+   * G25-D: a pack click opens the review step for that pack
+   * (`/checkout/review?pack=…&entry=gate`); only the Pay button there posts
+   * to /api/credits. Nothing is fetched from the gate.
+   */
+  const handleBuyPack = (amount: number) => {
     setBuyLoading(String(amount));
     setErrorMsg("");
-    try {
-      const res = await fetch("/api/credits", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount }),
-      });
-      const data = await res.json();
-      if (data.ok && data.url) {
-        window.location.assign(data.url);
-      } else if (data.ok && data.method === "direct") {
-        // Dev fallback — credits granted directly; close the gate.
-        onClose();
-      } else {
-        setErrorMsg(data.reason || "Could not start checkout. Please try again.");
-      }
-    } catch {
-      setErrorMsg("Network error. Please try again.");
-    } finally {
-      setBuyLoading(false);
-    }
+    window.location.assign(checkoutReviewHref({ pack: amount, entry: "gate" }));
   };
 
   /** Validate coupon code. */
@@ -221,7 +207,7 @@ export function CreditGate({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto py-8">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-strong/50 backdrop-blur-sm animate-fade-in overflow-y-auto py-8">
       <div className="relative mx-4 w-full max-w-md rounded-2xl border border-surface-200 bg-white shadow-2xl">
         {/* Close button */}
         <button

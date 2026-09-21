@@ -231,14 +231,14 @@ export function FundraisingReadinessClient() {
       </div>
 
       {/* CTA */}
-      <div data-theme="dark" className="rounded-2xl bg-surface text-primary p-6 flex items-center justify-between gap-4 flex-wrap">
+      <div className="rounded-2xl border border-line-subtle bg-surface-sunken text-primary p-6 flex items-center justify-between gap-4 flex-wrap">
         <div>
           <p className="font-semibold">Improve your SVI score to unlock better valuations</p>
-          <p className="text-sm text-slate-400 mt-1">Complete your startup profile to auto-fill more checklist items</p>
+          <p className="text-sm text-muted mt-1">Complete your startup profile to auto-fill more checklist items</p>
         </div>
         <a
           href="/score"
-          className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold hover:bg-brand-700 transition-colors"
+          className="shrink-0 inline-flex items-center gap-2 rounded-xl bg-action text-on-action px-5 py-2.5 min-h-11 text-sm font-semibold hover:bg-action-hover transition-colors"
         >
           Update SVI Score <ChevronRight className="h-4 w-4" />
         </a>

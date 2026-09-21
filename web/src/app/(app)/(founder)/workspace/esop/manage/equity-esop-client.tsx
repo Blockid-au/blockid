@@ -437,7 +437,7 @@ export function EquityEsopClient() {
             <button
               type="button"
               onClick={() => setAddOpen(true)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-3 text-sm font-semibold text-white hover:bg-brand-700"
+              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-3 text-sm font-semibold text-on-action hover:bg-action-hover"
             >
               <Plus className="size-4" /> Add Member
             </button>
@@ -457,7 +457,7 @@ export function EquityEsopClient() {
         ) : (
           <div className="overflow-x-auto rounded-xl border border-surface-200 bg-white">
             <table className="w-full text-sm">
-              <thead className="bg-surface-50 text-ink-600">
+              <thead className="sticky top-0 z-10 bg-surface-sunken text-ink-600">
                 <tr>
                   <Th>Name</Th>
                   <Th>Role</Th>
@@ -470,7 +470,7 @@ export function EquityEsopClient() {
                   <Th />
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-line-subtle">
                 {capTable.map((r, i) => (
                   <tr key={i} className="border-t border-surface-100">
                     <Td className="font-medium text-ink-900">{r.name}</Td>
@@ -869,7 +869,7 @@ function AddMemberModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-strong/50 p-4"
       onClick={onClose}
     >
       <form
@@ -981,7 +981,7 @@ function AddMemberModal({
           </button>
           <button
             type="submit"
-            className="h-9 rounded-[10px] bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+            className="h-9 rounded-[10px] bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover"
           >
             Add
           </button>
@@ -1071,7 +1071,7 @@ function Td({
 
 const LINE_COLORS = ["#2563eb", "#16a34a", "#dc2626", "#9333ea", "#ea580c", "#0d9488"];
 const inputCls =
-  "block w-full h-9 rounded-[10px] border border-surface-300 bg-white px-3 text-sm text-ink-900 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-200";
+  "block w-full h-9 rounded-[10px] border border-surface-300 bg-white px-3 text-sm text-ink-900 focus:border-action focus:outline-none focus:ring-2 focus:ring-action/25";
 
 function emptyPlan(): Plan {
   return {
@@ -1162,7 +1162,7 @@ function GrantRegisterSection({
             type="button"
             onClick={onAddGrant}
             disabled={!planId}
-            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-3 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-3 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50"
             title={!planId ? "Save plan first to enable grants" : undefined}
           >
             <Plus className="size-4" /> Add Grant
@@ -1248,7 +1248,7 @@ function GrantRegisterSection({
         {!loading && grants.length > 0 && (
           <div className="overflow-x-auto rounded-xl border border-surface-200 bg-white">
             <table className="w-full text-sm">
-              <thead className="bg-surface-50 text-ink-600">
+              <thead className="sticky top-0 z-10 bg-surface-sunken text-ink-600">
                 <tr>
                   <Th>Grantee</Th>
                   <Th>Role</Th>
@@ -1261,7 +1261,7 @@ function GrantRegisterSection({
                   <Th />
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-line-subtle">
                 {grants.map((g) => (
                   <tr
                     key={g.memberId}
@@ -1402,7 +1402,7 @@ function AddGrantModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-strong/50 p-4"
       onClick={onClose}
     >
       <form
@@ -1511,7 +1511,7 @@ function AddGrantModal({
           <button
             type="submit"
             disabled={adding}
-            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50"
           >
             {adding ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
             {adding ? "Creating..." : "Create Grant"}

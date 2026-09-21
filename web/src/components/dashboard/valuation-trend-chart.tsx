@@ -156,7 +156,7 @@ export function describeValuationTrend(data: ValuationTrendData, startupName?: s
 export const VALUATION_EMPTY_COPY =
   "Valuation appears after your first scored analysis — run a new score and the A$ range will chart here.";
 
-/* ─── Theme (validated dataviz slots, light + dark) ─────────────────────────── */
+/* ─── Theme (validated dataviz slots — light only, G26) ─────────────────────── */
 
 interface VizTheme {
   svi: string;
@@ -182,46 +182,13 @@ const LIGHT: VizTheme = {
   tooltipMuted: "#4b5563",
 };
 
-const DARK: VizTheme = {
-  svi: "#3987e5",
-  valuation: "#199e70",
-  grid: "rgba(148, 163, 184, 0.16)",
-  axis: "rgba(148, 163, 184, 0.28)",
-  tick: "#c3c2b7",
-  tooltipBg: "#111827",
-  tooltipBorder: "rgba(148, 163, 184, 0.28)",
-  tooltipInk: "#ffffff",
-  tooltipMuted: "#c3c2b7",
-};
-
 /**
- * Mirrors globals.css: dark when `[data-theme="dark"]` / `.dark` is stamped,
- * or the OS prefers dark and no explicit light stamp overrides it.
+ * G26: light is the only default — the OS `prefers-color-scheme: dark` no
+ * longer flips the page, so the chart must not flip either (a dark tooltip
+ * over a white card was the failure mode). One theme, readable on white.
  */
-function readIsDark(): boolean {
-  if (typeof document === "undefined") return false;
-  const root = document.documentElement;
-  const stamp = root.getAttribute("data-theme");
-  if (stamp === "light") return false;
-  if (stamp === "dark" || stamp === "lux" || root.classList.contains("dark")) return true;
-  return typeof window !== "undefined" && !!window.matchMedia?.("(prefers-color-scheme: dark)").matches;
-}
-
 function useVizTheme(): VizTheme {
-  const [dark, setDark] = React.useState(false);
-  React.useEffect(() => {
-    const update = () => setDark(readIsDark());
-    update();
-    const mq = window.matchMedia?.("(prefers-color-scheme: dark)");
-    mq?.addEventListener?.("change", update);
-    const obs = new MutationObserver(update);
-    obs.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class"] });
-    return () => {
-      mq?.removeEventListener?.("change", update);
-      obs.disconnect();
-    };
-  }, []);
-  return dark ? DARK : LIGHT;
+  return LIGHT;
 }
 
 /* ─── Tooltip ───────────────────────────────────────────────────────────────── */
@@ -469,7 +436,7 @@ export function ValuationTrendChart({
         <div className="overflow-x-auto mt-2">
           <table id={tableId} className="w-full text-xs border-collapse">
             <caption className="sr-only">SVI score and AUD valuation range per analysis</caption>
-            <thead>
+            <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
               <tr className="border-b border-line-subtle text-left text-[10px] uppercase tracking-wider text-muted">
                 <th scope="col" className="py-1.5 pr-3 font-semibold">Date</th>
                 <th scope="col" className="py-1.5 pr-3 font-semibold text-right">SVI</th>
@@ -484,7 +451,7 @@ export function ValuationTrendChart({
                 <th scope="col" className="py-1.5 font-semibold">Method</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-line-subtle [&>tr:nth-child(even)]:bg-surface-sunken">
               {[...data.points].reverse().map((p) => (
                 <tr key={p.id} className="border-b border-line-subtle/60">
                   <td className="py-1.5 pr-3 text-primary whitespace-nowrap">{p.labelLong}</td>

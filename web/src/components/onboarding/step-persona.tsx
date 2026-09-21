@@ -84,8 +84,8 @@ export function StepPersona({ value, onChange, onContinue, options = WIZARD_PERS
 
   return (
     <form onSubmit={submit} data-wizard-step="persona" data-persona-locked={locked ? "1" : "0"}>
-      <h1 className="text-2xl font-bold text-brand-ink sm:text-3xl">{copy.title}</h1>
-      <p className="mt-2 text-brand-ink-muted">{locked ? copy.lockedSubtitle : copy.subtitle}</p>
+      <h1 className="text-2xl font-bold text-primary sm:text-3xl">{copy.title}</h1>
+      <p className="mt-2 text-muted">{locked ? copy.lockedSubtitle : copy.subtitle}</p>
 
       <fieldset className="mt-8">
         <legend className="sr-only">{copy.title}</legend>
@@ -102,15 +102,15 @@ export function StepPersona({ value, onChange, onContinue, options = WIZARD_PERS
                 htmlFor={inputId}
                 data-persona-option={id}
                 data-on={on ? "1" : "0"}
-                className={`group flex cursor-pointer flex-col items-start gap-3 rounded-2xl border p-6 text-left transition-all focus-within:ring-2 focus-within:ring-brand-cyan ${on ? "border-brand-cyan bg-brand-navy-elev-2" : "border-brand-cyan/15 bg-brand-navy-elev-1 hover:border-brand-cyan/40 hover:bg-brand-navy-elev-2"}`}
+                className={`group flex cursor-pointer flex-col items-start gap-3 rounded-2xl border p-6 text-left transition-all focus-within:ring-2 focus-within:ring-action ${on ? "border-action bg-surface" : "border-line-subtle bg-surface hover:border-line-strong hover:bg-surface-hover"}`}
               >
                 <input id={inputId} type="radio" name="persona" value={id} checked={on} onChange={() => onChange(id)} className="sr-only" aria-label={card.label[locale]} />
-                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-cyan/10 text-brand-cyan transition-colors group-hover:bg-brand-cyan/20">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-action/10 text-action transition-colors group-hover:bg-action/15">
                   <Icon aria-hidden="true" className="h-5 w-5" />
                 </div>
                 <div>
-                  <p className="font-semibold text-brand-ink">{card.label[locale]}</p>
-                  <p className="mt-1 text-sm text-brand-ink-muted">{card.tagline[locale]}</p>
+                  <p className="font-semibold text-primary">{card.label[locale]}</p>
+                  <p className="mt-1 text-sm text-muted">{card.tagline[locale]}</p>
                 </div>
               </label>
             );
@@ -128,7 +128,7 @@ export function StepPersona({ value, onChange, onContinue, options = WIZARD_PERS
         <button
           type="submit"
           data-testid="wizard-continue"
-          className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-cyan px-6 py-3 text-sm font-semibold text-brand-navy transition-colors hover:bg-brand-blue-bright focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-action px-6 py-3 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
         >
           {copy.continue}
           <ArrowRight aria-hidden="true" className="h-4 w-4" />

@@ -11,7 +11,7 @@
 // here on purpose: `paywall_view` / `checkout` are defined in
 // `lib/analytics/events.ts` by lane A; the merge reconciles the union.
 
-export type FunnelClientEventName = "paywall_view" | "checkout";
+export type FunnelClientEventName = "paywall_view" | "checkout" | "checkout_review_viewed" | "checkout_started";
 
 export interface PaywallViewParams {
   surface: string;
@@ -26,7 +26,45 @@ export interface CheckoutClientParams {
   project_id?: string | null;
 }
 
+/**
+ * G25-D — the review step (`/checkout/review`) and its Pay click. `plan` is
+ * the order id (plan id / `credits_<n>` / sku), `entry` the surface that
+ * linked to the review (pricing_card, upgrade_modal, billing, …).
+ */
+export interface CheckoutReviewParams {
+  plan: string;
+  kind: "plan" | "pack" | "sku";
+  interval: "monthly" | "annual" | "once";
+  trial: boolean;
+  entry: string;
+  amount_cents: number;
+}
+
 export const CLIENT_EVENT_INGEST_PATH = "/api/analytics/event";
+
+const ANON_SESSION_KEY = "blockid_review_sid";
+
+/**
+ * A per-browser session id for the anonymous `checkout_review_viewed` beacon
+ * (the ingest route needs one when no account cookie is present). Kept in
+ * sessionStorage so one tab = one actor; every storage failure → a fresh id.
+ */
+export function anonSessionId(storage: Pick<Storage, "getItem" | "setItem"> | null = typeof sessionStorage === "undefined" ? null : sessionStorage): string {
+  const fresh = () =>
+    typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+  if (!storage) return fresh();
+  try {
+    const existing = storage.getItem(ANON_SESSION_KEY);
+    if (existing && existing.length >= 8) return existing;
+    const id = fresh();
+    storage.setItem(ANON_SESSION_KEY, id);
+    return id;
+  } catch {
+    return fresh();
+  }
+}
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<unknown>;
 
@@ -46,10 +84,14 @@ function compact(params: Record<string, unknown>): Record<string, string | numbe
  */
 export function emitClientEvent(
   name: FunnelClientEventName,
-  params: PaywallViewParams | CheckoutClientParams,
-  deps: { fetch?: FetchLike; dataLayer?: unknown[] | null } = {},
+  params: PaywallViewParams | CheckoutClientParams | CheckoutReviewParams,
+  deps: { fetch?: FetchLike; dataLayer?: unknown[] | null; sessionId?: string | null } = {},
 ): Promise<void> {
-  const body = JSON.stringify({ name, params: compact(params as unknown as Record<string, unknown>) });
+  const body = JSON.stringify({
+    name,
+    params: compact(params as unknown as Record<string, unknown>),
+    ...(deps.sessionId ? { session_id: deps.sessionId } : {}),
+  });
   const dl = deps.dataLayer === undefined ? (typeof window !== "undefined" ? ((window as unknown as { dataLayer?: unknown[] }).dataLayer ??= []) : null) : deps.dataLayer;
   try {
     dl?.push({ event: name, ...compact(params as unknown as Record<string, unknown>) });

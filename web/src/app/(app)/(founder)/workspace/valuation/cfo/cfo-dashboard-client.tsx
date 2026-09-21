@@ -49,22 +49,22 @@ function scoreBand(score: number): ScoreBand {
   if (s < 40) return {
     color: "#EF4444",
     label: "Critical",
-    pillClasses: "bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-200 ring-1 ring-red-300/60 dark:ring-red-400/30",
+    pillClasses: "bg-red-100 text-red-700 ring-1 ring-red-300/60",
   };
   if (s < 65) return {
     color: "#F59E0B",
     label: "At Risk",
-    pillClasses: "bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-200 ring-1 ring-amber-300/60 dark:ring-amber-400/30",
+    pillClasses: "bg-amber-100 text-amber-700 ring-1 ring-amber-300/60",
   };
   if (s < 80) return {
     color: "#3B82F6",
     label: "Fair",
-    pillClasses: "bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-200 ring-1 ring-blue-300/60 dark:ring-blue-400/30",
+    pillClasses: "bg-blue-100 text-blue-700 ring-1 ring-blue-300/60",
   };
   return {
     color: "#10B981",
     label: "Healthy",
-    pillClasses: "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200 ring-1 ring-emerald-300/60 dark:ring-emerald-400/30",
+    pillClasses: "bg-emerald-100 text-emerald-700 ring-1 ring-emerald-300/60",
   };
 }
 
@@ -96,7 +96,7 @@ function HealthGauge({ score, color }: { score: number; color: string }) {
       <path
         d={trackPath}
         fill="none"
-        className="stroke-surface-200 dark:stroke-white/10"
+        className="stroke-surface-200"
         strokeWidth="10"
         strokeLinecap="round"
       />
@@ -148,10 +148,10 @@ function Widget({ title, icon: Icon, children, className }: {
   className?: string;
 }) {
   return (
-    <div className={cn("rounded-2xl border border-surface-200 dark:border-white/10 bg-white dark:bg-black/40 p-6 min-w-0", className)}>
+    <div className={cn("rounded-2xl border border-surface-200 bg-white p-6 min-w-0", className)}>
       <div className="flex items-center gap-2 mb-4">
         <Icon className="h-4 w-4 text-brand-500 shrink-0" />
-        <h2 className="text-sm font-bold text-ink-800 dark:text-ink-100 uppercase tracking-wider">{title}</h2>
+        <h2 className="text-sm font-bold text-ink-800 uppercase tracking-wider">{title}</h2>
       </div>
       {children}
     </div>
@@ -311,13 +311,13 @@ export function CFODashboardClient({
         <Widget title="Financial Health Score" icon={BarChart3}>
           {noInputsYet ? (
             <div className="flex flex-col items-center justify-center text-center py-6 space-y-2">
-              <div className="h-14 w-14 rounded-full border-2 border-dashed border-surface-300 dark:border-white/15 flex items-center justify-center">
-                <BarChart3 className="h-6 w-6 text-muted dark:text-ink-500" aria-hidden />
+              <div className="h-14 w-14 rounded-full border-2 border-dashed border-surface-300 flex items-center justify-center">
+                <BarChart3 className="h-6 w-6 text-muted" aria-hidden />
               </div>
-              <p className="text-sm font-medium text-ink-700 dark:text-ink-200">
+              <p className="text-sm font-medium text-ink-700">
                 Enter your numbers to see your score
               </p>
-              <p className="text-xs text-ink-500 dark:text-ink-400 leading-relaxed max-w-[220px]">
+              <p className="text-xs text-ink-500 leading-relaxed max-w-[220px]">
                 Add your MRR, burn rate, and cash balance below to compute your live financial health score.
               </p>
             </div>
@@ -325,18 +325,18 @@ export function CFODashboardClient({
             <div className="space-y-4 py-2" aria-busy="true" aria-live="polite">
               <div className="flex items-baseline justify-between gap-4 flex-wrap">
                 <div className="space-y-2">
-                  <div className="h-3 w-32 rounded bg-surface-200 dark:bg-white/10 animate-pulse" />
-                  <div className="h-10 w-24 rounded bg-surface-200 dark:bg-white/10 animate-pulse" />
+                  <div className="h-3 w-32 rounded bg-surface-200 animate-pulse" />
+                  <div className="h-10 w-24 rounded bg-surface-200 animate-pulse" />
                 </div>
-                <div className="h-6 w-16 rounded-full bg-surface-200 dark:bg-white/10 animate-pulse" />
+                <div className="h-6 w-16 rounded-full bg-surface-200 animate-pulse" />
               </div>
-              <div className="h-16 rounded bg-surface-100 dark:bg-white/5 animate-pulse" />
+              <div className="h-16 rounded bg-surface-100 animate-pulse" />
             </div>
           ) : (
             <div className="space-y-4">
               <div className="flex items-baseline justify-between gap-4 flex-wrap">
                 <div className="min-w-0">
-                  <p className="text-[11px] uppercase tracking-widest text-ink-500 dark:text-ink-400">
+                  <p className="text-[11px] uppercase tracking-widest text-ink-500">
                     Current Score
                   </p>
                   <div className="flex items-baseline gap-2 mt-1">
@@ -346,7 +346,7 @@ export function CFODashboardClient({
                     >
                       {Math.round(displayScore)}
                     </span>
-                    <span className="text-lg text-ink-500 dark:text-ink-400 leading-none">/ 100</span>
+                    <span className="text-lg text-ink-500 leading-none">/ 100</span>
                   </div>
                 </div>
                 <span
@@ -361,9 +361,9 @@ export function CFODashboardClient({
               <div className="flex items-center justify-center pt-1">
                 <HealthGauge score={displayScore} color={band.color} />
               </div>
-              <p className="text-xs text-ink-500 dark:text-ink-400 leading-relaxed">
+              <p className="text-xs text-ink-500 leading-relaxed">
                 Score updates live as you enter your numbers. Click{" "}
-                <span className="font-medium text-ink-700 dark:text-ink-200">
+                <span className="font-medium text-ink-700">
                   &ldquo;Generate AI Commentary&rdquo;
                 </span>{" "}
                 for the full analysis.
@@ -467,7 +467,7 @@ export function CFODashboardClient({
             <select
               value={input.stage}
               onChange={(e) => setInput((s) => ({ ...s, stage: e.target.value }))}
-              className="w-full rounded-xl border border-surface-200 bg-surface-50 px-3 py-2 text-sm font-medium text-ink-800 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
+              className="w-full rounded-xl border border-surface-200 bg-surface-50 px-3 py-2 text-sm font-medium text-ink-800 outline-none focus:border-action focus:ring-2 focus:ring-action/25 transition-all"
             >
               {STAGE_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -487,7 +487,7 @@ export function CFODashboardClient({
           type="button"
           onClick={generateCommentary}
           disabled={loading}
-          className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-2 rounded-xl bg-action px-6 py-3 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin" />

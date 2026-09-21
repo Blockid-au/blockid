@@ -182,6 +182,8 @@ export interface SaveAnalysisInput {
   filename?: string | null;
   mimeType?: string | null;
   bytes?: number | null;
+  /** G25-C: guest-supplied destination for the full report PDF (see payload.ts). */
+  fullReportEmail?: string | null;
 }
 
 /**

@@ -9,8 +9,6 @@ import { FAQJsonLd } from "@/components/seo/json-ld";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { CtaBand, PageHero, Section } from "@/components/marketing/template";
 import { getMessages, t } from "@/lib/i18n/t";
-import { pilotSkusConfigured } from "../../(marketing)/solutions/pilot-configured";
-import { pilotUiStrings } from "@/lib/pricing/pilot-strings";
 
 export const dynamic = "force-dynamic";
 
@@ -136,14 +134,9 @@ export default async function ViPricingPage({ searchParams }: ViPricingPageProps
       <Section id="pricing-matrix" ariaLabel="Bảng giá theo phân khúc" spacing="sm" divider={false}>
         <PricingSegmentSwitch
           initialSegment={initialTab}
+          locale="vi"
           annualAvailable={annualAvailable}
           purchasable={purchasable}
-          pilotConfigured={pilotSkusConfigured()}
-          pilotStrings={pilotUiStrings(m, "vi")}
-          pilotCopy={{
-            title: "Thí điểm xác thực Cohort — một đợt tuyển sinh thật, báo giá trước khi trả",
-            sub: "Bắt đầu với một thí điểm trả phí một lần trên đợt tuyển sinh tiếp theo hoặc khoá hiện có: Startup Value Index cho mỗi hồ sơ, mức tin cậy bằng chứng, bảng khoá, các khoảng trống lớn nhất và báo cáo khoá cuối. Chương trình tiếp tục chuyển sang Cohort 25 hoặc Cohort 100 bên dưới.",
-          }}
           labels={{
             founder: { label: "Nhà sáng lập", sub: "Xây dựng, định giá, gọi vốn" },
             evaluator: { label: "Nhà đánh giá", sub: "Angel · công ty tư vấn · quỹ VC" },

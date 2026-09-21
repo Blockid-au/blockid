@@ -71,7 +71,7 @@ export function CompetitorsClient({ initial, disabled }: Props) {
   const [techComparison, setTechComparison] = useState<TechComparisonMeta | null>(null);
 
   const input =
-    "w-full rounded-xl border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40 disabled:opacity-50";
+    "w-full rounded-xl border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:border-action focus:outline-none focus:ring-2 focus:ring-action/40 disabled:opacity-50";
   const label = "text-xs font-semibold text-ink-700 uppercase tracking-wider";
 
   async function aiSuggest() {
@@ -441,7 +441,7 @@ export function CompetitorsClient({ initial, disabled }: Props) {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-surface-50 border-b border-surface-200">
+              <thead className="sticky top-0 z-10 bg-surface-sunken border-b border-surface-200">
                 <tr>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-ink-600">Name</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-ink-600">Category</th>
@@ -452,7 +452,7 @@ export function CompetitorsClient({ initial, disabled }: Props) {
                   <th className="px-3 py-2 text-left text-xs font-semibold text-ink-600" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-100">
+              <tbody className="divide-y divide-line-subtle">
                 {items.map((c) => {
                   const isEd = editingId === c.id;
                   return (

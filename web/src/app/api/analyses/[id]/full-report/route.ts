@@ -28,12 +28,17 @@ import { getAnalysisForViewer } from "@/lib/analyses/store";
 import { enqueueFullReport, loadFullReportRow } from "@/lib/analyses/first-analysis/store";
 import { startFirstAnalysisJob } from "@/lib/analyses/first-analysis/job";
 import { buildFullReportView } from "@/lib/analyses/first-analysis/view";
+import { isNeverStarted } from "@/lib/analyses/first-analysis/store";
+import { freeReportsCapReached, grantForAnalysis } from "@/lib/reports/free-grants";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** G25-C: poll cadence while a run is held for today's free cap (the cron starts it, not the poll). */
+export const HELD_POLL_SEC = 60;
 
 function notFound() {
   return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
@@ -61,6 +66,7 @@ export async function GET(
 
   let row = await loadFullReportRow(id);
   if (!row) return notFound();
+  let heldForCap = false;
 
   // Pre-0390 row, or a save that raced the enqueue: start it now.
   if (row.full_report_status === null) {
@@ -71,13 +77,26 @@ export async function GET(
     }
   } else if (row.full_report_status === "queued") {
     // A queued row whose runner died with the process — kick it again; the
-    // claim makes a duplicate start harmless.
-    startFirstAnalysisJob(id, { userId: row.user_id });
+    // claim makes a duplicate start harmless. G25-C: a never-started row
+    // while today's free cap is reached is the intake route's deferral
+    // ("we e-mail you when it is ready") — the cron starts it tomorrow, the
+    // poll must not start it now. Only a FREE row (one with a grant) is
+    // ever held — an entitled member's row is kicked regardless.
+    if (isNeverStarted(row)) {
+      try {
+        heldForCap = (await freeReportsCapReached()) && Boolean(await grantForAnalysis(id));
+      } catch {
+        heldForCap = false;
+      }
+    }
+    if (!heldForCap) startFirstAnalysisJob(id, { userId: row.user_id });
   }
 
   const view = buildFullReportView(row);
   return NextResponse.json(
-    { ok: true, ...view },
+    // `heldForCap` — the page prints "queued, we e-mail you when it is
+    // ready" instead of the writing timeline; the poll slows to the cron's cadence.
+    { ok: true, ...view, heldForCap, ...(heldForCap ? { pollAfterSec: HELD_POLL_SEC } : {}) },
     { headers: { "cache-control": "no-store" } },
   );
 }

@@ -19,6 +19,13 @@
  *   WhyNotChatGPT  the two-column comparison + the one institutional line
  *   BuiltFor       text chips naming the organisations a page is for
  *   TrustBand      (lane P0-A) the legal-identity / methodology band
+ *
+ * G26 light-template primitives (docs/design/unicorn-template.md v2 § 3):
+ *   PageHeader  eyebrow · h1 · lede for in-app pages (workspace / admin)
+ *   Card        white, 1 px line, shadow-1 (interactive → shadow-2)
+ *   Table       sticky sunken head, zebra rows, 44 px rows (+ TableWrap/Th/Td)
+ *   Field       label + 44 px control + hint / error
+ *   Button      native <button> with the primary / secondary / ghost skins
  */
 
 export { PageHero, type PageHeroProps } from "./page-hero";
@@ -36,14 +43,43 @@ export { SequenceFlow, type SequenceFlowProps, type SequenceStep } from "./Seque
 export { WhyNotChatGPT, type WhyNotChatGPTProps, type ComparisonColumn } from "./WhyNotChatGPT";
 export { BuiltFor, type BuiltForProps, type BuiltForItem } from "./BuiltFor";
 export {
+  PageHeader,
+  Card,
+  Table,
+  TableWrap,
+  Th,
+  Td,
+  Field,
+  Button,
+  type PageHeaderProps,
+  type CardProps,
+  type TableProps,
+  type TableColumn,
+  type ButtonProps,
+} from "./ui";
+export {
+  BUTTON_CLASS,
+  CARD_CLASS,
+  CARD_INTERACTIVE_CLASS,
   CONTAINER,
   CTA_CLASS,
   EYEBROW,
+  FIELD_ERROR_CLASS,
+  FIELD_HINT_CLASS,
+  FIELD_INPUT_CLASS,
+  FIELD_LABEL_CLASS,
   FOCUS_RING,
   MOTION,
   RHYTHM,
+  TABLE_CLASS,
+  TABLE_HEAD_CLASS,
+  TABLE_ROW_CLASS,
+  TABLE_TD_CLASS,
+  TABLE_TH_CLASS,
   TONE_CLASS,
   headingId,
+  resolveTone,
+  type ButtonVariant,
   type Cta,
   type CtaVariant,
   type Rhythm,

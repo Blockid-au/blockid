@@ -91,6 +91,13 @@ describe("TRIAL_COPY static strings", () => {
     expect(TRIAL_COPY.subheadline).toContain("7 days");
   });
 
+  // G25-D: the sign-up submit names the card step; the Programs rungs run 14 days.
+  it("cta_card names the card step and reads the plan's trial length", () => {
+    expect(TRIAL_COPY.cta_card()).toBe("Add card & start 7-day trial");
+    expect(TRIAL_COPY.cta_card(14)).toBe("Add card & start 14-day trial");
+    expect(TRIAL_COPY.cta_card(0)).toBe("Add card & start 7-day trial");
+  });
+
   it("cta + cta_short both mention 'trial'", () => {
     expect(TRIAL_COPY.cta).toBe("Start 7-day trial");
     expect(TRIAL_COPY.cta_short).toBe("Start trial");
@@ -336,6 +343,7 @@ describe("TRIAL_COPY is `as const` (immutable at the type level)", () => {
       "subheadline",
       "cta",
       "cta_short",
+      "cta_card",
       "fine_print",
       "card_required_reason",
       "no_free_forever",

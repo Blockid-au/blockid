@@ -23,7 +23,7 @@ Ten slides plus an appendix (`pitch-deck-v4-appendix.md`). One fenced `yaml` blo
 
 **Institutional line.** BlockID structures the evidence and standardises the first-pass analysis. Humans make the decision.
 
-**Business model — the answer when asked.** Organisations with repeated intake volume pay. The wedge is a paid Cohort Validation Pilot (A$1,500 for up to 25 applicants, A$2,500 for up to 50) that converts into an annual program subscription (Cohort 25 at A$5,000 a year, Cohort 100 at A$15,000 a year) and, later, institutional expansion — funds, universities and networks with an API and a sponsor report. Founders remain the data owner, the participant and a secondary paying customer (Free, Starter A$29 a month, Growth A$69 a month). We validate with real payment, not with sign-ups: the next milestone is one organisation paying to assess a live cohort.
+**Business model — the answer when asked.** Organisations with repeated intake volume pay. The wedge is the annual program subscription itself — Cohort 25 at A$5,000 a year for up to 25 startups, Cohort 100 at A$15,000 a year for up to 100 — started on a 14-day card-required trial on the program's next real intake, and, later, institutional expansion — funds, universities and networks with an API and a sponsor report. Founders remain the data owner, the participant and a secondary paying customer (Free, Starter A$29 a month, Growth A$69 a month). We validate with real payment, not with sign-ups: the next milestone is one organisation paying to assess a live cohort.
 
 ## Slide 1 — Startup screening is inconsistent. BlockID makes every company comparable.
 
@@ -164,34 +164,30 @@ sources:
   - docs/design/messaging.md § 4b (buyer order)
 ```
 
-## Slide 6 — Paid pilot → annual program → institutional
+## Slide 6 — Annual program → institutional
 
 ```yaml
-title: Paid pilot → annual program → institutional
+title: Annual program → institutional
 sub: Validation with real payment — the founder ladder stays free-first
 hero:
   type: ladder
-  description: Bar ladder — Cohort Validation Pilot A$1,500 (≤ 25 applicants) → A$2,500 (≤ 50) → Cohort 25 A$5K a year → Cohort 100 A$15K a year → institutional (API, sponsor report, custom); callout carries the founder tiers
+  description: Bar ladder — Cohort 25 A$5K a year (≤ 25 startups) → Cohort 100 A$15K a year (≤ 100) → institutional (API, sponsor report, custom); callout carries the founder tiers
   data:
-    unit: A$ (pilot one-off; programs per year)
+    unit: A$ (programs per year)
     bars:
-      - label: Pilot ≤ 25 applicants (one-off)
-        value: 1500
-      - label: Pilot ≤ 50 applicants (one-off)
-        value: 2500
       - label: Cohort 25 (per year)
         value: 5000
       - label: Cohort 100 (per year)
         value: 15000
     callout: "Founders: Free · Starter A$29 a month · Growth A$69 a month — the participant, not the anchor"
 bullets:
-  - "Wedge: Cohort Validation Pilot — A$1,500 (≤ 25 applicants) or A$2,500 (≤ 50)."
-  - "Then: Cohort 25 at A$5K a year, Cohort 100 at A$15K a year; institutional expansion after."
+  - "Wedge: Cohort 25 at A$5K a year (≤ 25 startups) or Cohort 100 at A$15K a year (≤ 100), on the next intake."
+  - "Then: institutional expansion — funds, universities and networks with an API and a sponsor report."
   - "Founders: Free, Starter A$29, Growth A$69 a month — secondary revenue."
-speaker: A program pays fifteen hundred dollars to assess one live cohort. When the pilot proves itself, it converts to an annual subscription.
+speaker: A program starts an annual subscription on its next live cohort — a fourteen-day trial with a card on file, then five thousand dollars a year. The first cohort proves it; the renewal validates it.
 clusters: [C2, C3]
 sources:
-  - docs/plans/g21-fi-upgrade-2026-09-20.md § P0-C (pilot SKUs A$1,500 / A$2,500 inc. GST, one-off) and § 5 F-3 (ladder unchanged)
+  - docs/plans/g21-fi-upgrade-2026-09-20.md § 5 F-3 (ladder unchanged); founder decision 2026-09-21 (G25 — the paid pilot and its coupon retired, evaluators start on the sold ladder)
   - web/src/config/pricing/plans.csv (accelerator_starter 500000 / accelerator_growth 1500000 annual cents; founder_starter 2900; founder_growth 6900)
   - docs/ops/pricing-truth.md (sold ladder G18)
 ```
@@ -225,14 +221,14 @@ sources:
   - docs/product/score-governance.md (versioning, benchmark rules, human review, corrections)
 ```
 
-## Slide 8 — What is proven, what is observed, what pilots will measure
+## Slide 8 — What is proven, what is observed, what first cohorts will measure
 
 ```yaml
-title: What is proven, what is observed, what pilots will measure
+title: What is proven, what is observed, what first cohorts will measure
 sub: Every number here is classified in the public claims register
 hero:
   type: tile
-  description: Four tiles — Proven (production facts) · Observed (production runs) · Programs (credentials) · To be measured (paid pilots)
+  description: Four tiles — Proven (production facts) · Observed (production runs) · Programs (credentials) · To be measured (first paying cohorts)
   data:
     tiles:
       - head: Proven
@@ -241,13 +237,13 @@ hero:
         body: A first score on screen in about 60 seconds; the written report delivered in 1 to 3 minutes on production runs.
       - head: Programs
         body: Founder Institute · Spacecubed AI Fellowship · NVIDIA Inception.
-      - head: Paid pilots will measure
+      - head: First cohorts will measure
         body: Reduction in first-pass screening time, agreement between evaluators on the same cohort, and founder improvement between assessments.
 bullets:
   - "Proven: live product, billing, eight dimensions, audit trail, published methodology."
   - "Observed: first score in about 60 seconds; report in 1 to 3 minutes."
-  - "Paid pilots will measure screening time, evaluator agreement and founder improvement."
-speaker: What is proven is the product and the method; what the paid pilots will measure is the time saved and the agreement gained.
+  - "First paying cohorts will measure screening time, evaluator agreement and founder improvement."
+speaker: What is proven is the product and the method; what the first paying cohorts will measure is the time saved and the agreement gained.
 clusters: [C9, C6]
 sources:
   - web/content/claims-register.json (svi-eight-dimensions, free-score-sixty-seconds, first-analysis-delivery — proven / observed rows only)
@@ -295,20 +291,20 @@ hero:
   data:
     value: "1"
     caption: organisation paying to assess a live cohort — the milestone that validates the wedge
-    secondary: "25–50"
-    secondaryCaption: applicants in a Cohort Validation Pilot (A$1,500 / A$2,500)
+    secondary: "25–100"
+    secondaryCaption: startups tracked on Cohort 25 / Cohort 100 (A$5K / A$15K a year)
     logos:
       - Screen faster
       - Trust the evidence
       - Track improvement
 bullets:
   - "Ask: an introduction to one program running an intake this quarter."
-  - "Offer: a paid Cohort Validation Pilot — up to 25 or 50 applicants, assessed on one framework, with a cohort report."
-  - "Then we publish what the pilot measured — screening time, agreement, improvement."
-speaker: Introduce us to one program with an intake this quarter; we will assess the cohort, and publish what the pilot measured.
+  - "Offer: a Cohort plan on the next intake — up to 25 or 100 startups on one framework, with a cohort report."
+  - "Then we publish what the first cohort measured — screening time, agreement, improvement."
+speaker: Introduce us to one program with an intake this quarter; we will assess the cohort on a Cohort plan, and publish what the first cohort measured.
 clusters: [C2, C9]
 sources:
-  - docs/plans/g21-fi-upgrade-2026-09-20.md § 0 (validation = real payment; wedge = one paid cohort pilot) and § P0-C (pilot caps 25 / 50)
+  - docs/plans/g21-fi-upgrade-2026-09-20.md § 0 (validation = real payment); G25 (2026-09-21): the wedge is the Cohort plan itself (caps 25 / 100 from plans.csv)
   - docs/design/messaging.md § 4b (three messages)
 ```
 
@@ -321,7 +317,7 @@ Six slides, under 420 words. Every sentence is one breath or two, never more tha
 | 1 | S2 — Screening was not designed to scale | 0:00–0:25 | 25 | The problem |
 | 2 | S3 — Application → evidence → index → dossier → cohort | 0:25–1:05 | 40 | The product |
 | 3 | S7 — Why BlockID: evidence, audit, benchmark, history | 1:05–1:35 | 30 | Why not a chatbot |
-| 4 | S6 — Paid pilot → annual program → institutional | 1:35–2:10 | 35 | Business model |
+| 4 | S6 — Annual program → institutional | 1:35–2:10 | 35 | Business model |
 | 5 | S8 → S9 — Proven, observed, to be measured (+ founder) | 2:10–2:35 | 25 | Validation and founder |
 | 6 | S10 — The next milestone: one paying cohort | 2:35–3:00 | 25 | Ask and close |
 
@@ -333,11 +329,11 @@ Here is what BlockID does. A founder submits an application, a deck, a website o
 
 Why is this not a chatbot? A chatbot analyses what you paste and remembers nothing. We keep a structured, evidence-backed record of the company. Then we apply one method across every company and every point in time. Every score is a ledger. Every claim carries its verification level. The methodology version is public, the audit trail is hash-chained, and human overrides are logged. More programs mean more companies assessed, more structured evidence, better benchmarks, and higher trust.
 
-How we make money. Programs with repeated intake pay first. The wedge is a paid pilot: fifteen hundred dollars to assess up to twenty-five applicants, or twenty-five hundred for fifty. A pilot converts to an annual subscription: five thousand a year for twenty-five companies, fifteen thousand for a hundred. Founders stay free first, with paid plans as a secondary line. We validate with payment, not with sign-ups.
+How we make money. Programs with repeated intake pay first. The wedge is the annual subscription itself, started on the next real intake. Five thousand a year for twenty-five companies, fifteen thousand for a hundred. A two-week trial, card on file. The first cohort proves it; the renewal validates it. Founders stay free first, with paid plans as a secondary line. We validate with payment, not with sign-ups.
 
-What is proven today is the product and the method: live on production with billing, eight dimensions checked against the evidence, an audit trail, and a published methodology. What is observed is speed: a first score in about a minute. What the paid pilots will measure is screening time saved, agreement between evaluators, and founder improvement. I built the method in my doctoral research and the product with my own hands. The next seat is a commercial co-founder who sells to programs, and that search is active.
+What is proven today is the product and the method: live on production with billing, eight dimensions checked against the evidence, an audit trail, and a published methodology. What is observed is speed: a first score in about a minute. What the first paying cohorts will measure is screening time saved, agreement between evaluators, and founder improvement. I built the method in my doctoral research and the product with my own hands. The next seat is a commercial co-founder who sells to programs, and that search is active.
 
-The ask is simple. Introduce us to one program running an intake this quarter. We will assess the cohort on one framework and publish what the pilot measured. Screen faster. Trust the evidence. Track improvement.
+The ask is simple. Introduce us to one program running an intake this quarter. We will assess the cohort on one framework and publish what the first cohort measured. Screen faster. Trust the evidence. Track improvement.
 
 ## Provenance
 
@@ -345,11 +341,8 @@ Every number that appears in a slide title, sub-line, bullet or hero data is lis
 
 | Number | Slide | Source file / URL | Note |
 |---|---|---|---|
-| 1,500 / 1500 (pilot ≤ 25 applicants, A$ one-off inc. GST) | 6, 10 | `docs/plans/g21-fi-upgrade-2026-09-20.md` § P0-C (`cohort_pilot_25` 150000 cents) | founder mints the Stripe price (F-2); contact fallback until then |
-| 2,500 / 2500 (pilot ≤ 50 applicants) | 6, 10 | `docs/plans/g21-fi-upgrade-2026-09-20.md` § P0-C (`cohort_pilot_50` 250000 cents) | as above |
-| 25 / 50 (pilot applicant caps) · 25–50 | 6, 10 | `docs/plans/g21-fi-upgrade-2026-09-20.md` § P0-C | |
-| 5K / 5000 (Cohort 25 per year) · 15K / 15000 (Cohort 100 per year) | 6 | `web/src/config/pricing/plans.csv` `accelerator_starter` 500000 / `accelerator_growth` 1500000 annual cents; `docs/ops/pricing-truth.md` | live |
-| 25 / 100 (Cohort sizes) | 6 | `web/src/config/pricing/plans.csv` (`profiles` 25 / 100) | |
+| 5K / 5000 (Cohort 25 per year) · 15K / 15000 (Cohort 100 per year) | 6, 10 | `web/src/config/pricing/plans.csv` `accelerator_starter` 500000 / `accelerator_growth` 1500000 annual cents; `docs/ops/pricing-truth.md` | live; G25 (2026-09-21) retired the paid pilot — the Cohort plan is the wedge |
+| 25 / 100 (Cohort sizes) · 25–100 | 6, 10 | `web/src/config/pricing/plans.csv` (`profiles` 25 / 100) | |
 | 29 (Starter per month) · 69 (Growth per month) | 6 | `web/src/config/pricing/plans.csv` `founder_starter` 2900 / `founder_growth` 6900 cents | live |
 | 60 (seconds to a first score) | 8 | `web/content/claims-register.json` `free-score-sixty-seconds` (observed) | observed on production runs |
 | 1 to 3 (minutes to the written report) · 1 · 3 | 8 | `web/content/claims-register.json` `first-analysis-delivery` (observed) | observed range |

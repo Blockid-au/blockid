@@ -47,7 +47,7 @@ export function AssessmentCard({ data, locale = "en", className, dimHref, headin
   const t = assessmentStrings(locale);
   const H = headingLevel === 2 ? "h2" : "h3";
   const svi = data.svi;
-  const verifiedTone = data.verification.verified ? "border-brand-300 dark:border-brand-800 text-action" : "border-line-subtle text-secondary";
+  const verifiedTone = data.verification.verified ? "border-brand-300 text-action" : "border-line-subtle text-secondary";
   return (
     <section
       data-testid="assessment-card"

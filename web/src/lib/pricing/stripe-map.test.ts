@@ -53,9 +53,6 @@ describe("stripe-map — every sold SKU resolves to a catalogue price at the adv
     expect(monthly("STRIPE_PRICE_ACCEL_GROWTH")).toBe(150000);
     expect(monthly("STRIPE_PRICE_INDEX_API")).toBe(29900);
     expect(monthly("STRIPE_PRICE_STARTUP_PACKAGE")).toBe(14900);
-    // G21 P0-C — Cohort Validation Pilot 1,500 / 2,500 one-off.
-    expect(monthly("STRIPE_PRICE_COHORT_PILOT_25")).toBe(150000);
-    expect(monthly("STRIPE_PRICE_COHORT_PILOT_50")).toBe(250000);
     expect(monthly("STRIPE_PRICE_ADDON_SHARE_MGMT_MONTHLY")).toBe(5900);
   });
 
@@ -113,17 +110,9 @@ describe("stripe-map — every sold SKU resolves to a catalogue price at the adv
     expect(TRUST_REPORT_AMOUNT_CENTS).toBe(300);
   });
 
-  it("G21 P0-C: the two pilot SKUs are one-off, inclusive, founder-minted rows sourced from pilot-skus", () => {
-    const pilots = ROWS.filter((r) => r.source === "pilot-skus");
-    expect(pilots.map((r) => [r.plan_id, r.env_var, r.expected_cents, r.interval])).toEqual([
-      ["cohort_pilot_25", "STRIPE_PRICE_COHORT_PILOT_25", 150000, "one_off"],
-      ["cohort_pilot_50", "STRIPE_PRICE_COHORT_PILOT_50", 250000, "one_off"],
-    ]);
-    for (const r of pilots) {
-      const c = STRIPE_PRICE_CATALOGUE[r.env_var]!;
-      expect(c.tax_behavior).toBe("inclusive");
-      expect(c.founder_mints).toBe(true);
-    }
+  it("G25: the Cohort Validation Pilot SKUs are retired — no pilot row in the catalogue or the map (founder decision 2026-09-21)", () => {
+    expect(Object.keys(STRIPE_PRICE_CATALOGUE).filter((k) => /PILOT/.test(k))).toEqual(["STRIPE_PRICE_PILOT"]);
+    expect(ROWS.filter((r) => /pilot/i.test(r.plan_id) || /PILOT/.test(r.env_var))).toEqual([]);
   });
 
   it("Cohort Enterprise is contact-sales: custom interval in plans.csv, no Stripe price, never a checkout row (migration 0413)", () => {

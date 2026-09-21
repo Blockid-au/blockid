@@ -32,16 +32,16 @@ export default async function NewListingPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-500">
             AU Startup Index
           </p>
-          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">
+          <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">
             List your startup
           </h1>
         </header>
 
-        <section className="mt-6 space-y-4 text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+        <section className="mt-6 space-y-4 text-sm leading-relaxed text-slate-700">
           <p>
             A public listing turns your BlockID.au workspace profile into a
             crawlable, shareable startup page at{" "}
-            <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs dark:bg-slate-800">
+            <code className="rounded bg-slate-100 px-1.5 py-0.5 text-xs">
               blockid.au/listings/&lt;TICKER&gt;
             </code>
             . Every listing publishes the fields you opt in — company name,

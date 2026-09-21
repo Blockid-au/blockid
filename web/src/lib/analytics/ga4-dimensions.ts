@@ -81,7 +81,7 @@ export const GA4_CUSTOM_DIMENSIONS: readonly Ga4DimensionSpec[] = Object.freeze(
     displayName: "Plan",
     scope: "EVENT",
     description: "Plan code on pricing CTA / checkout events and the server subscribe, trial and cancel events.",
-    events: ["plan_cta_clicked", "checkout_started", "checkout_completed", "reseller_create_startup_started", "reseller_create_startup_completed"],
+    events: ["plan_cta_clicked", "checkout_started", "checkout_review_viewed", "checkout_completed", "reseller_create_startup_started", "reseller_create_startup_completed"],
   },
   {
     parameterName: "segment",
@@ -154,6 +154,9 @@ export const GA4_AUDIT_EVENTS: readonly string[] = Object.freeze([
   "assessment_submitted",
   // G19-S45 (D6) — report-clarity survey answered (KPI median ≥ 8.5, N ≥ 30 / month)
   "tbr_clarity_answered",
+  // G25-C — the free allowance: a free report reserved for an address / its PDF e-mail accepted
+  "free_report_submitted",
+  "free_report_delivered",
 ]);
 
 // ── Operator steps when the Admin / Data API is blocked ─────────────────

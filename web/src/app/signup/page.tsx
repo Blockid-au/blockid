@@ -36,6 +36,10 @@ import {
   resolveTrialDays,
   trialPlanIdsForSegment,
 } from "@/lib/plans/signup-plans";
+import { checkoutReviewStrings } from "@/lib/billing/checkout-review-strings";
+import { getMessages } from "@/lib/i18n/t";
+import { safeNextPath } from "@/lib/security/safe-redirect";
+import { LEGAL_ENTITY_ABN_LABEL, LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import { SignupForm, type SignupPlanChoice } from "./signup-form";
 
 export const dynamic = "force-dynamic";
@@ -60,7 +64,12 @@ export default async function SignupPage({
   // They already have the account — send them to Billing with the plan they
   // chose so the click starts a checkout instead of a dead end.
   const existing = await getCurrentUser();
-  if (existing) redirect(signedInSignupRedirect(sp.plan, sp.interval));
+  // G25-D: a signed-in user lands on the review step for the plan (or back
+  // on the review that sent them here) — never on a checkout.
+  // `?next=` (the review that sent the visitor here) is open-redirect guarded.
+  const nextRaw = Array.isArray(sp.next) ? sp.next[0] : sp.next;
+  const next = nextRaw ? safeNextPath(nextRaw, "") || null : null;
+  if (existing) redirect(next ?? signedInSignupRedirect(sp.plan, sp.interval));
 
   // `?interval=annual` from a pricing card's Annual toggle (2026-09-16 audit).
   // Honoured per plan below: a rung without an annual Stripe Price is shown
@@ -95,66 +104,38 @@ export default async function SignupPage({
   const stripePublishableKey =
     process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? null;
 
+  // G25-D: the card form sits under a Review block; its strings come from
+  // the same catalogue keys as /checkout/review.
+  const review = checkoutReviewStrings(await getMessages("en"), "en");
+  const sellerLine = `${LEGAL_ENTITY.operator} (${LEGAL_ENTITY_ABN_LABEL})`;
+
   const headline = isEvaluator ? EVALUATOR_TRIAL_COPY.headline : TRIAL_COPY.headline;
   const subheadline = isEvaluator ? EVALUATOR_TRIAL_COPY.subheadline : TRIAL_COPY.subheadline;
 
   return (
-    <main
-      style={{
-        minHeight: "100svh",
-        display: "flex",
-        alignItems: "flex-start",
-        justifyContent: "center",
-        padding: "48px 20px",
-        background: "#0B1220",
-        color: "#F8FAFC",
-      }}
-    >
-      <div style={{ width: "100%", maxWidth: 520 }}>
-        <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <p
-            style={{
-              margin: 0,
-              fontSize: 11,
-              letterSpacing: "0.2em",
-              textTransform: "uppercase",
-              color: "#3B7DD8",
-              fontWeight: 600,
-            }}
-          >
+    <main className="flex min-h-svh items-start justify-center bg-surface-sunken px-5 py-12 text-primary">
+      <div className="w-full max-w-[520px]">
+        <div className="mb-6 text-center">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">
             BlockID
           </p>
-          <h1
-            style={{
-              margin: "8px 0 4px 0",
-              fontSize: 26,
-              fontWeight: 600,
-              letterSpacing: "-0.01em",
-            }}
-          >
+          <h1 className="mb-1 mt-2 text-[26px] font-semibold tracking-tight text-primary">
             {headline}
           </h1>
-          <p style={{ margin: 0, color: "#94A3B8", fontSize: 14 }}>
+          <p className="text-sm text-secondary">
             {subheadline}
           </p>
           {isEvaluator ? (
             <p
               data-testid="evaluator-trial-line"
-              style={{ margin: "10px 0 0 0", color: "#CBD5E1", fontSize: 13, fontWeight: 500 }}
+              className="mt-2.5 text-[13px] font-medium text-secondary"
             >
               {evaluatorTrialLine(trialPlans.find((p) => p.id === preferredPlan)?.trialDays)}
             </p>
           ) : null}
         </div>
 
-        <div
-          style={{
-            background: "#0F172A",
-            border: "1px solid #1F2A44",
-            borderRadius: 16,
-            padding: 24,
-          }}
-        >
+        <div className="rounded-2xl border border-line-subtle bg-surface p-6 shadow-1">
           <SignupForm
             segment={segment}
             trialPlans={trialPlans}
@@ -162,21 +143,25 @@ export default async function SignupPage({
             interval={interval}
             accountTypeOptions={accountTypeOptionsForSegment(segment)}
             stripePublishableKey={stripePublishableKey}
+            review={{
+              title: review.signupBlockTitle,
+              hint: review.signupBlockHint,
+              gstLine: review.gstLine,
+              trialLine: review.trialLine,
+              renewalLine: review.renewalLine,
+              cadenceMonth: review.cadenceMonth,
+              cadenceYear: review.cadenceYear,
+              dataPrinciple: review.dataPrinciple,
+              sellerLine,
+            }}
           />
         </div>
 
-        <p
-          style={{
-            marginTop: 16,
-            textAlign: "center",
-            fontSize: 13,
-            color: "#94A3B8",
-          }}
-        >
+        <p className="mt-4 text-center text-[13px] text-secondary">
           Already have an account?{" "}
           <Link
-            href="/auth/login"
-            style={{ color: "#3B7DD8", textDecoration: "none", fontWeight: 500 }}
+            href={next ? `/auth/login?next=${encodeURIComponent(next)}` : "/auth/login"}
+            className="font-medium text-action hover:underline"
           >
             Sign in
           </Link>

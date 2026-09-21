@@ -147,13 +147,13 @@ export function StepMandateBasics({ persona, existing, onSaved, onSkip, onContin
     }
   }
 
-  const chipOn = "cursor-pointer rounded-full border border-brand-cyan bg-brand-cyan/15 px-3 py-1 text-xs font-medium text-brand-ink";
-  const chipOff = "cursor-pointer rounded-full border border-brand-cyan/15 bg-brand-navy-elev-1 px-3 py-1 text-xs font-medium text-brand-ink-muted hover:border-brand-cyan/40";
-  const input = "mt-1 w-full rounded-xl border border-brand-cyan/15 bg-brand-navy-elev-1 px-3 py-2 text-sm text-brand-ink focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/30";
+  const chipOn = "cursor-pointer rounded-full border border-action bg-action/10 px-3 py-1 text-xs font-medium text-primary";
+  const chipOff = "cursor-pointer rounded-full border border-line-subtle bg-surface px-3 py-1 text-xs font-medium text-muted hover:border-line-strong";
+  const input = "mt-1 w-full rounded-xl border border-line-subtle bg-surface px-3 py-2 text-sm text-primary focus:border-action focus:outline-none focus:ring-2 focus:ring-action/30";
 
   const chips = (k: "sectors" | "stages" | "geographies", values: readonly string[], label: (v: string) => string, legend: string) => (
     <fieldset>
-      <legend className="text-sm font-medium text-brand-ink">{legend}</legend>
+      <legend className="text-sm font-medium text-primary">{legend}</legend>
       <div className="mt-2 flex flex-wrap gap-2" data-chips={k}>
         {values.map((v) => {
           const id = `${uid}-${k}-${v}`;
@@ -174,10 +174,10 @@ export function StepMandateBasics({ persona, existing, onSaved, onSkip, onContin
   if (existing?.mandateId) {
     return (
       <div data-wizard-step="mandate" data-mandate-saved={existing.mandateId}>
-        <h1 className="text-2xl font-bold text-brand-ink sm:text-3xl">{t.title}</h1>
-        <p className="mt-2 text-brand-ink-muted">{t.savedTitle}</p>
+        <h1 className="text-2xl font-bold text-primary sm:text-3xl">{t.title}</h1>
+        <p className="mt-2 text-muted">{t.savedTitle}</p>
         <div className="mt-8 flex justify-end">
-          <button type="button" onClick={onContinue} data-testid="wizard-continue" className="inline-flex items-center gap-2 rounded-xl bg-brand-cyan px-6 py-3 text-sm font-semibold text-brand-navy hover:bg-brand-blue-bright">
+          <button type="button" onClick={onContinue} data-testid="wizard-continue" className="inline-flex items-center gap-2 rounded-xl bg-action px-6 py-3 text-sm font-semibold text-on-action hover:bg-action-hover">
             {t.continue}
             <ArrowRight aria-hidden="true" className="h-4 w-4" />
           </button>
@@ -188,44 +188,44 @@ export function StepMandateBasics({ persona, existing, onSaved, onSkip, onContin
 
   return (
     <div data-wizard-step="mandate">
-      <h1 className="text-2xl font-bold text-brand-ink sm:text-3xl">{t.title}</h1>
-      <p className="mt-2 text-brand-ink-muted">{t.subtitle}</p>
+      <h1 className="text-2xl font-bold text-primary sm:text-3xl">{t.title}</h1>
+      <p className="mt-2 text-muted">{t.subtitle}</p>
       <form onSubmit={submit} className="mt-8 space-y-6">
         {chips("sectors", MANDATE_INDUSTRIES, (v) => industryLabel(v as Industry, locale), t.sectors)}
         {chips("stages", CANONICAL_STAGES, (v) => CANONICAL_STAGE_LABELS[v as keyof typeof CANONICAL_STAGE_LABELS]?.[locale === "vi" ? "label_vi" : "label_en"] ?? v, t.stages)}
         {chips("geographies", MANDATE_GEOGRAPHIES, (v) => GEO_LABEL[v] ?? v, t.geos)}
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           <div>
-            <label htmlFor={`${uid}-min`} className="block text-sm font-medium text-brand-ink">{t.cheque} · {t.chequeMin}</label>
+            <label htmlFor={`${uid}-min`} className="block text-sm font-medium text-primary">{t.cheque} · {t.chequeMin}</label>
             <input id={`${uid}-min`} inputMode="numeric" value={b.cheque_min_aud ?? ""} onChange={(e) => setB((p) => ({ ...p, cheque_min_aud: num(e.target.value) }))} placeholder="25000" className={input} />
           </div>
           <div>
-            <label htmlFor={`${uid}-max`} className="block text-sm font-medium text-brand-ink">{t.cheque} · {t.chequeMax}</label>
+            <label htmlFor={`${uid}-max`} className="block text-sm font-medium text-primary">{t.cheque} · {t.chequeMax}</label>
             <input id={`${uid}-max`} inputMode="numeric" value={b.cheque_max_aud ?? ""} onChange={(e) => setB((p) => ({ ...p, cheque_max_aud: num(e.target.value) }))} placeholder="250000" className={input} />
           </div>
           <div>
-            <label htmlFor={`${uid}-svi`} className="block text-sm font-medium text-brand-ink">{t.minSvi}</label>
+            <label htmlFor={`${uid}-svi`} className="block text-sm font-medium text-primary">{t.minSvi}</label>
             <input id={`${uid}-svi`} inputMode="numeric" value={b.min_svi ?? ""} onChange={(e) => setB((p) => ({ ...p, min_svi: num(e.target.value) === null ? null : Math.min(100, Math.max(0, Math.round(num(e.target.value) as number))) }))} placeholder="50" className={input} />
           </div>
         </div>
 
         {status === "invalid" ? <p role="alert" className="text-sm text-red-400">{t.pickOne}</p> : null}
         {status === "failed" ? <p role="alert" className="text-sm text-red-400">{t.failed}</p> : null}
-        {status === "parked" ? <p role="status" className="text-sm text-brand-ink-muted" data-mandate-parked>{t.parked}</p> : null}
-        {status === "not_migrated" ? <p role="status" className="text-sm text-brand-ink-muted" data-mandate-parked>{t.notMigrated}</p> : null}
+        {status === "parked" ? <p role="status" className="text-sm text-muted" data-mandate-parked>{t.parked}</p> : null}
+        {status === "not_migrated" ? <p role="status" className="text-sm text-muted" data-mandate-parked>{t.notMigrated}</p> : null}
 
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <button type="button" onClick={onSkip} disabled={status === "saving"} data-testid="wizard-skip" className="inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-brand-ink-muted underline decoration-brand-ink-muted/40 underline-offset-4 hover:text-brand-cyan disabled:opacity-40">
+          <button type="button" onClick={onSkip} disabled={status === "saving"} data-testid="wizard-skip" className="inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-muted underline decoration-line-strong underline-offset-4 hover:text-action disabled:opacity-40">
             <SkipForward aria-hidden="true" className="h-4 w-4" />
             {t.skip}
           </button>
           {status === "parked" || status === "not_migrated" ? (
-            <button type="button" onClick={onContinue} data-testid="wizard-continue" className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-cyan px-6 py-3 text-sm font-semibold text-brand-navy hover:bg-brand-blue-bright">
+            <button type="button" onClick={onContinue} data-testid="wizard-continue" className="inline-flex items-center justify-center gap-2 rounded-xl bg-action px-6 py-3 text-sm font-semibold text-on-action hover:bg-action-hover">
               {t.continue}
               <ArrowRight aria-hidden="true" className="h-4 w-4" />
             </button>
           ) : (
-            <button type="submit" disabled={status === "saving"} data-testid="wizard-continue" className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-cyan px-6 py-3 text-sm font-semibold text-brand-navy hover:bg-brand-blue-bright disabled:opacity-40">
+            <button type="submit" disabled={status === "saving"} data-testid="wizard-continue" className="inline-flex items-center justify-center gap-2 rounded-xl bg-action px-6 py-3 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-40">
               {status === "saving" ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <SlidersHorizontal aria-hidden="true" className="h-4 w-4" />}
               {status === "saving" ? t.saving : t.save}
             </button>

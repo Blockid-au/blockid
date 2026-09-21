@@ -153,23 +153,23 @@ function clearPersisted(projectId: string): void {
 // ── Score colour helpers ──────────────────────────────────────────────────────
 
 function scoreColor(score: number | null): string {
-  if (score === null) return "bg-ink-100 border-ink-200 dark:bg-ink-800 dark:border-ink-700";
-  if (score >= 70) return "bg-emerald-50 border-emerald-200 dark:bg-emerald-950 dark:border-emerald-800";
-  if (score >= 40) return "bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800";
-  return "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800";
+  if (score === null) return "bg-ink-100 border-ink-200";
+  if (score >= 70) return "bg-emerald-50 border-emerald-200";
+  if (score >= 40) return "bg-amber-50 border-amber-200";
+  return "bg-red-50 border-red-200";
 }
 
 function scoreBadgeColor(score: number | null): string {
-  if (score === null) return "bg-ink-200 text-ink-700 dark:bg-ink-700 dark:text-ink-300";
-  if (score >= 70) return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200";
-  if (score >= 40) return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200";
-  return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+  if (score === null) return "bg-ink-200 text-ink-700";
+  if (score >= 70) return "bg-emerald-100 text-emerald-800";
+  if (score >= 40) return "bg-amber-100 text-amber-800";
+  return "bg-red-100 text-red-800";
 }
 
 function priorityBadge(priority: string | null): string {
-  if (priority === "high") return "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300";
-  if (priority === "medium") return "bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300";
-  return "bg-ink-100 text-ink-600 dark:bg-ink-800 dark:text-ink-400";
+  if (priority === "high") return "bg-red-100 text-red-700";
+  if (priority === "medium") return "bg-amber-100 text-amber-700";
+  return "bg-ink-100 text-ink-600";
 }
 
 // ── Analyst persona banner ────────────────────────────────────────────────────
@@ -225,7 +225,7 @@ function AnalystPersonaBanner({
 
   return (
     <div
-      className="relative overflow-hidden flex items-center gap-4 rounded-xl border border-brand-300 dark:border-brand-700 bg-gradient-to-r from-brand-50 to-white dark:from-brand-950/50 dark:to-ink-900 px-5 py-4 shadow-sm motion-safe:animate-in motion-safe:fade-in duration-300"
+      className="relative overflow-hidden flex items-center gap-4 rounded-xl border border-brand-300 bg-gradient-to-r from-brand-50 to-white px-5 py-4 shadow-sm motion-safe:animate-in motion-safe:fade-in duration-300"
       role="status"
       aria-live="polite"
     >
@@ -233,33 +233,33 @@ function AnalystPersonaBanner({
       <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-400 via-brand-600 to-brand-400 animate-pulse" aria-hidden="true" />
       {/* Analyst badge */}
       <div className="relative flex-none">
-        <div className="h-11 w-11 rounded-full bg-brand-600 dark:bg-brand-700 flex items-center justify-center shadow-md ring-4 ring-brand-200 dark:ring-brand-800">
+        <div className="h-11 w-11 rounded-full bg-action flex items-center justify-center shadow-md ring-4 ring-brand-200">
           <Bot className="h-5 w-5 text-white" aria-hidden="true" />
         </div>
         {/* Pulsing outer ring */}
-        <div className="absolute -inset-1 rounded-full border-2 border-brand-400/60 dark:border-brand-500/40 animate-pulse" aria-hidden="true" />
+        <div className="absolute -inset-1 rounded-full border-2 border-brand-400/60 animate-pulse" aria-hidden="true" />
       </div>
       {/* Badge content */}
       <div className="flex-1 min-w-0 space-y-0.5">
         <div className="flex items-center gap-2 flex-wrap">
-          <p className="text-[11px] uppercase tracking-[0.16em] font-bold text-brand-700 dark:text-brand-300">
+          <p className="text-[11px] uppercase tracking-[0.16em] font-bold text-brand-700">
             BlockID Analyst Desk
           </p>
-          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-700 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 dark:text-emerald-400">
+          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 border border-emerald-300 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" aria-hidden="true" />
             Live
           </span>
         </div>
-        <p className="text-sm text-brand-800 dark:text-brand-200 truncate font-medium">
+        <p className="text-sm text-brand-800 truncate font-medium">
           {currentDim ? `Reviewing ${DIMS[currentDim]?.label ?? currentDim}…` : ANALYST_CAPTIONS[captionIdx]}
         </p>
       </div>
       {/* Time counter */}
       <div className="flex-none text-right space-y-0.5">
-        <p className="text-sm tabular-nums font-bold text-brand-700 dark:text-brand-300">
+        <p className="text-sm tabular-nums font-bold text-brand-700">
           {completed}/{total}
         </p>
-        <p className="text-[10px] text-ink-500 dark:text-ink-400 tabular-nums">
+        <p className="text-[10px] text-ink-500 tabular-nums">
           {estRemaining !== null ? `~${estRemaining}s left` : `${elapsed}s elapsed`}
         </p>
       </div>
@@ -295,15 +295,15 @@ function DecisionLog({ entries }: { entries: LogEntry[] }) {
           <div key={e.ts} className="flex items-baseline gap-2 text-[11px] motion-safe:animate-in motion-safe:fade-in">
             <span className={cn(
               "tabular-nums font-bold shrink-0 w-7 text-right",
-              band === "strong" && "text-emerald-600 dark:text-emerald-400",
-              band === "developing" && "text-amber-600 dark:text-amber-400",
-              band === "early" && "text-red-600 dark:text-red-400",
+              band === "strong" && "text-emerald-600",
+              band === "developing" && "text-amber-600",
+              band === "early" && "text-red-600",
             )}>
               {e.score}
             </span>
-            <span className="shrink-0 text-muted dark:text-ink-600">·</span>
-            <span className="font-medium text-ink-700 dark:text-ink-300 shrink-0">{meta?.label ?? e.dimKey}</span>
-            <span className="text-ink-500 dark:text-ink-500 truncate">— {e.insight}</span>
+            <span className="shrink-0 text-muted">·</span>
+            <span className="font-medium text-ink-700 shrink-0">{meta?.label ?? e.dimKey}</span>
+            <span className="text-ink-500 truncate">— {e.insight}</span>
           </div>
         );
       })}
@@ -353,9 +353,9 @@ function SimpleMarkdown({ text }: { text: string }) {
           const rest = block.slice(headingMatch[0].length).replace(/^:\s*/, "");
           return (
             <div key={i}>
-              <p className="text-xs font-semibold text-ink-700 dark:text-ink-200">{heading}</p>
+              <p className="text-xs font-semibold text-ink-700">{heading}</p>
               {rest && (
-                <p className="text-xs text-ink-600 dark:text-ink-400 mt-0.5 leading-relaxed">
+                <p className="text-xs text-ink-600 mt-0.5 leading-relaxed">
                   {rest}
                 </p>
               )}
@@ -368,7 +368,7 @@ function SimpleMarkdown({ text }: { text: string }) {
           return (
             <ul key={i} className="space-y-0.5">
               {items.map((item, j) => (
-                <li key={j} className="flex items-start gap-1.5 text-xs text-ink-600 dark:text-ink-400">
+                <li key={j} className="flex items-start gap-1.5 text-xs text-ink-600">
                   <span className="mt-1 h-1 w-1 rounded-full bg-ink-400 shrink-0" />
                   {item.slice(2)}
                 </li>
@@ -377,7 +377,7 @@ function SimpleMarkdown({ text }: { text: string }) {
           );
         }
         return (
-          <p key={i} className="text-xs text-ink-600 dark:text-ink-400 leading-relaxed">
+          <p key={i} className="text-xs text-ink-600 leading-relaxed">
             {block}
           </p>
         );
@@ -409,42 +409,42 @@ function DimCard({
         "rounded-xl border transition-all duration-300",
         // Scope pulse to a subtle background so the label + spinner stay
         // readable, and skip motion entirely for users with reduced-motion.
-        state.status === "loading" && "motion-safe:animate-pulse border-brand-200 bg-brand-50/50 dark:bg-brand-950/20",
-        state.status === "idle" && "border-ink-200 bg-white dark:bg-ink-900 dark:border-ink-800",
+        state.status === "loading" && "motion-safe:animate-pulse border-brand-200 bg-brand-50/50",
+        state.status === "idle" && "border-ink-200 bg-white",
         // Error uses red + dashed so it never gets mistaken for the amber
         // "medium score" complete state.
-        state.status === "error" && "border-red-300 border-dashed bg-red-50 dark:bg-red-950/20 dark:border-red-800",
+        state.status === "error" && "border-red-300 border-dashed bg-red-50",
         state.status === "complete" && scoreColor(state.score),
       )}
     >
       {/* Card header */}
       <div className="flex items-center gap-3 px-4 py-3">
         <meta.Icon
-          className="h-5 w-5 shrink-0 text-brand-600 dark:text-brand-400"
+          className="h-5 w-5 shrink-0 text-brand-600"
           aria-hidden="true"
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold text-ink-800 dark:text-ink-100 truncate">
+            <span className="text-sm font-semibold text-ink-800 truncate">
               {meta.label}
             </span>
-            <span className="text-[10px] text-muted dark:text-ink-500 tabular-nums">
+            <span className="text-[10px] text-muted tabular-nums">
               {meta.weight}% weight
             </span>
           </div>
 
           {/* Status line */}
           {state.status === "idle" && (
-            <p className="text-xs text-muted dark:text-ink-500 mt-0.5">Waiting…</p>
+            <p className="text-xs text-muted mt-0.5">Waiting…</p>
           )}
           {state.status === "loading" && (
             <div className="flex items-center gap-1.5 mt-0.5">
               <Spinner />
-              <span className="text-xs text-brand-600 dark:text-brand-400">Analysing…</span>
+              <span className="text-xs text-brand-600">Analysing…</span>
             </div>
           )}
           {state.status === "error" && (
-            <p className="text-xs text-red-700 dark:text-red-300 mt-0.5">
+            <p className="text-xs text-red-700 mt-0.5">
               {state.errorMsg ?? "Skipped (rate limited)"}
             </p>
           )}
@@ -484,7 +484,7 @@ function DimCard({
               onClick={() => onToggle(dimKey)}
               aria-expanded={state.expanded}
               aria-label={state.expanded ? `Collapse ${meta.label} details` : `View full ${meta.label} details`}
-              className="shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md px-3 text-xs font-medium text-ink-500 hover:text-ink-700 dark:text-ink-400 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900 transition-colors"
+              className="shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md px-3 text-xs font-medium text-ink-500 hover:text-ink-700 hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors"
             >
               {state.expanded ? "Collapse" : "View full"}
             </button>
@@ -497,7 +497,7 @@ function DimCard({
             type="button"
             onClick={() => onRetry(dimKey)}
             aria-label={`Retry ${meta.label} analysis`}
-            className="shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md px-3 text-xs font-semibold text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900 transition-colors"
+            className="shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md px-3 text-xs font-semibold text-red-700 hover:bg-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors"
           >
             Retry
           </button>
@@ -510,7 +510,7 @@ function DimCard({
           {state.insights.slice(0, 2).map((insight, i) => (
             <div key={i} className="flex items-start gap-2">
               <span className="mt-1 h-1.5 w-1.5 rounded-full bg-brand-400 shrink-0" />
-              <p className="text-xs text-ink-600 dark:text-ink-400 leading-snug">{insight}</p>
+              <p className="text-xs text-ink-600 leading-snug">{insight}</p>
             </div>
           ))}
         </div>
@@ -519,16 +519,16 @@ function DimCard({
       {/* Market benchmark — AU peer context (Phase C) */}
       {state.status === "complete" && state.marketBenchmark && (
         <div className="px-4 pb-2">
-          <p className="flex items-start gap-1.5 text-[11px] text-ink-500 dark:text-ink-500 leading-snug">
+          <p className="flex items-start gap-1.5 text-[11px] text-ink-500 leading-snug">
             <span className="mt-0.5 shrink-0 text-brand-400">◈</span>
-            <span><strong className="font-medium text-ink-600 dark:text-ink-400">AU benchmark:</strong> {state.marketBenchmark}</span>
+            <span><strong className="font-medium text-ink-600">AU benchmark:</strong> {state.marketBenchmark}</span>
           </p>
         </div>
       )}
 
       {/* Full markdown (expandable) */}
       {state.status === "complete" && state.expanded && state.markdown && (
-        <div className="border-t border-ink-100 dark:border-ink-800 px-4 py-3 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2 duration-200">
+        <div className="border-t border-ink-100 px-4 py-3 motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-top-2 duration-200">
           <SimpleMarkdown text={state.markdown} />
         </div>
       )}
@@ -642,7 +642,7 @@ function SectorCohortWidget({ userTotal, industry }: { userTotal: number; indust
 
   if (row.count < 5) {
     return (
-      <p className="text-xs text-ink-500 dark:text-ink-500 border-t border-brand-200/50 dark:border-brand-800/50 pt-3">
+      <p className="text-xs text-ink-500 border-t border-brand-200/50 pt-3">
         {sectorLabel} sample too small to compare (n={row.count}).
       </p>
     );
@@ -650,17 +650,17 @@ function SectorCohortWidget({ userTotal, industry }: { userTotal: number; indust
 
   const topPct = computeTopPercent(userTotal, row);
   return (
-    <div className="border-t border-brand-200/50 dark:border-brand-800/50 pt-3 space-y-1 text-xs text-brand-700 dark:text-brand-300">
+    <div className="border-t border-brand-200/50 pt-3 space-y-1 text-xs text-brand-700">
       <p className="flex items-baseline gap-2 flex-wrap">
         <span>Your SVI</span>
         <strong className="font-semibold tabular-nums text-sm">{userTotal}</strong>
-        <span className="text-ink-500 dark:text-ink-400">·</span>
+        <span className="text-ink-500">·</span>
         <span>{sectorLabel} median</span>
         <strong className="font-semibold tabular-nums text-sm">{Math.round(median)}</strong>
       </p>
-      <p className="text-ink-600 dark:text-ink-400">
+      <p className="text-ink-600">
         {topPct !== null ? (
-          <>Top <strong className="font-semibold tabular-nums text-brand-700 dark:text-brand-300">{topPct}%</strong> of {row.count} peers.</>
+          <>Top <strong className="font-semibold tabular-nums text-brand-700">{topPct}%</strong> of {row.count} peers.</>
         ) : (
           <>Compared against {row.count} peers.</>
         )}
@@ -676,7 +676,7 @@ function SectorCohortWidget({ userTotal, industry }: { userTotal: number; indust
 function MethodBadge({ meta }: { meta: MethodMeta }) {
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-full border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-950/30 px-2 py-0.5 text-[10px] font-semibold text-brand-700 dark:text-brand-300"
+      className="inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50/60 px-2 py-0.5 text-[10px] font-semibold text-brand-700"
       title={meta.description}
     >
       {meta.shortLabel}
@@ -724,39 +724,39 @@ function ThreeCaseValuationCards({
       key: "worst",
       label: "Worst case",
       range: v.worst,
-      tone: "border-red-200 dark:border-red-800 bg-red-50/40 dark:bg-red-950/20",
-      swatch: "text-red-700 dark:text-red-300",
+      tone: "border-red-200 bg-red-50/40",
+      swatch: "text-red-700",
     },
     {
       key: "average",
       label: "Average case",
       range: v.average,
-      tone: "border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-950/30",
-      swatch: "text-brand-700 dark:text-brand-300",
+      tone: "border-brand-200 bg-brand-50/60",
+      swatch: "text-brand-700",
     },
     {
       key: "best",
       label: "Best case",
       range: v.best,
-      tone: "border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20",
-      swatch: "text-emerald-700 dark:text-emerald-300",
+      tone: "border-emerald-200 bg-emerald-50/50",
+      swatch: "text-emerald-700",
     },
   ];
   return (
-    <div className="border-t border-brand-200/50 dark:border-brand-800/50 pt-3 space-y-2">
+    <div className="border-t border-brand-200/50 pt-3 space-y-2">
       <div className="flex items-start justify-between gap-2 flex-wrap">
         <div className="space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-xs uppercase tracking-[0.14em] text-ink-600 dark:text-ink-400 font-semibold">
+            <p className="text-xs uppercase tracking-[0.14em] text-ink-600 font-semibold">
               Directional pre-money valuation
             </p>
             <MethodBadge meta={methodSel.meta} />
           </div>
-          <p className="text-[10px] text-ink-500 dark:text-ink-500">
+          <p className="text-[10px] text-ink-500">
             {v.stage.replace("_", " ")} · {v.sector} · {methodSel.rationale}
           </p>
         </div>
-        <span className="text-[10px] text-ink-500 dark:text-ink-500 shrink-0">
+        <span className="text-[10px] text-ink-500 shrink-0">
           {v.currency} · rounded
         </span>
       </div>
@@ -769,19 +769,19 @@ function ThreeCaseValuationCards({
               c.tone,
             )}
           >
-            <p className="text-[11px] uppercase tracking-wider font-semibold text-ink-600 dark:text-ink-400">
+            <p className="text-[11px] uppercase tracking-wider font-semibold text-ink-600">
               {c.label}
             </p>
             <p className={cn("mt-1 text-lg font-bold tabular-nums leading-tight", c.swatch)}>
               {formatAud(c.range.mid)}
             </p>
-            <p className="text-[11px] text-ink-500 dark:text-ink-400 tabular-nums">
+            <p className="text-[11px] text-ink-500 tabular-nums">
               {formatAud(c.range.low)} – {formatAud(c.range.high)}
             </p>
           </div>
         ))}
       </div>
-      <p className="text-[10px] text-ink-500 dark:text-ink-500 leading-snug">
+      <p className="text-[10px] text-ink-500 leading-snug">
         {v.disclaimer}
       </p>
     </div>
@@ -847,14 +847,14 @@ function EmailReportPanel({
     }
   };
   return (
-    <div className="border-t border-brand-200/50 dark:border-brand-800/50 pt-3 space-y-2">
+    <div className="border-t border-brand-200/50 pt-3 space-y-2">
       <div className="flex items-center justify-between gap-2 flex-wrap">
-        <p className="text-xs uppercase tracking-[0.14em] text-ink-600 dark:text-ink-400 font-semibold">
+        <p className="text-xs uppercase tracking-[0.14em] text-ink-600 font-semibold">
           Take this with you
         </p>
         <a
           href="/workspace/evidence/gaps"
-          className="text-xs font-medium text-brand-700 dark:text-brand-300 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
+          className="text-xs font-medium text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action rounded"
         >
           Detailed breakdown by 13 investor criteria →
         </a>
@@ -868,7 +868,7 @@ function EmailReportPanel({
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@company.com"
           disabled={status === "sending" || status === "sent"}
-          className="flex-1 min-w-[200px] min-h-[44px] rounded-md border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-950 px-3 py-2 text-sm text-ink-800 dark:text-ink-100 placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          className="flex-1 min-w-[200px] min-h-[44px] rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
         />
         <button
           type="button"
@@ -876,24 +876,24 @@ function EmailReportPanel({
           disabled={status === "sending" || status === "sent"}
           className={cn(
             "inline-flex items-center justify-center min-h-[44px] rounded-md px-4 text-sm font-semibold text-white transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white",
             status === "sent"
               ? "bg-emerald-600 cursor-default"
               : status === "sending"
                 ? "bg-surface-hover !text-tertiary cursor-not-allowed"
-                : "bg-brand-600 hover:bg-brand-700",
+                : "bg-action hover:bg-action-hover",
           )}
         >
           {status === "sent" ? "Sent ✓" : status === "sending" ? "Sending…" : "Email me the report"}
         </button>
       </div>
       {errorMsg && (
-        <p className="text-[11px] text-red-700 dark:text-red-400" role="alert">
+        <p className="text-[11px] text-red-700" role="alert">
           {errorMsg}
         </p>
       )}
       {status === "sent" && (
-        <p className="text-[11px] text-emerald-700 dark:text-emerald-400">
+        <p className="text-[11px] text-emerald-700">
           Sent — check your inbox in a minute (spam folder if it doesn&rsquo;t land).
         </p>
       )}
@@ -967,24 +967,24 @@ function StepRow({
   const done = !!completedSteps[step];
   return (
     <li className={cn(
-      "flex items-start gap-3 py-2.5 border-b border-brand-200/50 dark:border-brand-800/40 last:border-b-0",
+      "flex items-start gap-3 py-2.5 border-b border-brand-200/50 last:border-b-0",
       disabled && "opacity-60",
     )}>
       <span
         className={cn(
           "mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-bold",
           done
-            ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300"
-            : "bg-brand-100 text-brand-700 dark:bg-brand-900/50 dark:text-brand-300",
+            ? "bg-emerald-100 text-emerald-700"
+            : "bg-brand-100 text-brand-700",
         )}
         aria-hidden="true"
       >
         {done ? <CheckCircle2 className="h-4 w-4" /> : step}
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-ink-800 dark:text-ink-100">{title}</p>
+        <p className="text-sm font-medium text-ink-800">{title}</p>
         {hint && (
-          <p className="text-[11px] text-ink-500 dark:text-ink-400 mt-0.5">{hint}</p>
+          <p className="text-[11px] text-ink-500 mt-0.5">{hint}</p>
         )}
       </div>
       <div className="shrink-0">{action}</div>
@@ -1085,20 +1085,20 @@ function TbrOnboardingSteps({
     : null;
 
   return (
-    <div className="rounded-xl border-2 border-brand-300 dark:border-brand-700 bg-white dark:bg-ink-950 shadow-sm p-4 space-y-3">
+    <div className="rounded-xl border-2 border-brand-300 bg-white shadow-sm p-4 space-y-3">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs uppercase tracking-[0.14em] text-brand-700 dark:text-brand-300 font-semibold">
+          <p className="text-xs uppercase tracking-[0.14em] text-brand-700 font-semibold">
             Next steps
           </p>
-          <h3 className="text-base font-bold text-ink-900 dark:text-ink-100 mt-0.5">
+          <h3 className="text-base font-bold text-ink-900 mt-0.5">
             You&apos;ve got a 10-page investor-ready report — here&apos;s what to do
           </h3>
         </div>
         <button
           type="button"
           onClick={dismiss}
-          className="text-[11px] text-ink-500 hover:text-ink-700 dark:text-ink-400 dark:hover:text-ink-200 shrink-0"
+          className="text-[11px] text-ink-500 hover:text-ink-700 shrink-0"
           aria-label="Dismiss onboarding tour"
         >
           Hide
@@ -1116,7 +1116,7 @@ function TbrOnboardingSteps({
               onClick={() => markStep(1)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-md bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3 py-1.5"
+              className="inline-flex items-center gap-1 rounded-md bg-action hover:bg-action-hover text-on-action text-xs font-semibold px-3 py-1.5"
             >
               Open TBR
             </a>
@@ -1136,14 +1136,14 @@ function TbrOnboardingSteps({
               type="button"
               onClick={() => void mintShareToken()}
               disabled={shareBusy || !!shareToken}
-              className="inline-flex items-center gap-1 rounded-md border border-brand-600 text-brand-700 dark:text-brand-300 dark:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/40 text-xs font-semibold px-3 py-1.5 disabled:opacity-60"
+              className="inline-flex items-center gap-1 rounded-md border border-brand-600 text-brand-700 hover:bg-brand-50 text-xs font-semibold px-3 py-1.5 disabled:opacity-60"
             >
               {shareBusy ? "Minting…" : shareToken ? "Link ready" : "Get share link"}
             </button>
           }
         />
         {shareError && (
-          <li className="text-[11px] text-red-600 dark:text-red-400 py-1">
+          <li className="text-[11px] text-red-600 py-1">
             Couldn&apos;t create share link ({shareError}). Try again from the TBR page.
           </li>
         )}
@@ -1164,7 +1164,7 @@ function TbrOnboardingSteps({
                 onClick={() => markStep(3)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 rounded-md border border-brand-600 text-brand-700 dark:text-brand-300 dark:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/40 text-xs font-semibold px-3 py-1.5"
+                className="inline-flex items-center gap-1 rounded-md border border-brand-600 text-brand-700 hover:bg-brand-50 text-xs font-semibold px-3 py-1.5"
               >
                 Download PDF
               </a>
@@ -1183,7 +1183,7 @@ function TbrOnboardingSteps({
               <button
                 type="button"
                 onClick={() => markStep(4)}
-                className="inline-flex items-center gap-1 rounded-md border border-brand-600 text-brand-700 dark:text-brand-300 dark:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/40 text-xs font-semibold px-3 py-1.5"
+                className="inline-flex items-center gap-1 rounded-md border border-brand-600 text-brand-700 hover:bg-brand-50 text-xs font-semibold px-3 py-1.5"
               >
                 Got it
               </button>
@@ -1199,14 +1199,14 @@ function TbrOnboardingSteps({
             <a
               href="/workspace/score"
               onClick={() => markStep(5)}
-              className="inline-flex items-center gap-1 rounded-md border border-brand-600 text-brand-700 dark:text-brand-300 dark:border-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/40 text-xs font-semibold px-3 py-1.5"
+              className="inline-flex items-center gap-1 rounded-md border border-brand-600 text-brand-700 hover:bg-brand-50 text-xs font-semibold px-3 py-1.5"
             >
               View trend
             </a>
           }
         />
       </ul>
-      <p className="text-[10px] text-ink-500 dark:text-ink-400">
+      <p className="text-[10px] text-ink-500">
         {Object.keys(completedSteps).length}/{TBR_ONBOARD_STEPS} steps completed
       </p>
     </div>
@@ -1686,7 +1686,7 @@ export function SviStreamAnalysis({
         <div aria-live="polite" aria-atomic="true" className="space-y-1">
           {!running && !done && (
             <>
-              <p className="text-sm text-ink-600 dark:text-ink-400">
+              <p className="text-sm text-ink-600">
                 Sequential AI analysis across {initialDims?.length ?? total} SVI dimensions. Estimated total{" "}
                 <strong className="tabular-nums">
                   ~{Math.max(15, (initialDims?.length ?? total) * 8 + 8)}s
@@ -1694,7 +1694,7 @@ export function SviStreamAnalysis({
                 (~8s per dimension).
               </p>
               {typeof window !== "undefined" && "Notification" in window && (
-                <label className="inline-flex items-center gap-2 text-[11px] text-ink-600 dark:text-ink-400 cursor-pointer select-none">
+                <label className="inline-flex items-center gap-2 text-[11px] text-ink-600 cursor-pointer select-none">
                   <input
                     type="checkbox"
                     checked={notifyOnDone}
@@ -1705,7 +1705,7 @@ export function SviStreamAnalysis({
                         try { await Notification.requestPermission(); } catch { /* silent */ }
                       }
                     }}
-                    className="h-3.5 w-3.5 rounded border-ink-300 dark:border-ink-700 text-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500"
+                    className="h-3.5 w-3.5 rounded border-ink-300 text-brand-600 focus-visible:ring-2 focus-visible:ring-action"
                   />
                   Notify me when done (browser)
                 </label>
@@ -1714,11 +1714,11 @@ export function SviStreamAnalysis({
           )}
           {running && (
             <>
-              <p className="text-sm text-brand-700 dark:text-brand-400">
+              <p className="text-sm text-brand-700">
                 Analysing {completed} of {total} dimensions…
               </p>
               {startedAt !== null && completed > 0 && completed < total && (
-                <p className="text-[11px] text-ink-500 dark:text-ink-400">
+                <p className="text-[11px] text-ink-500">
                   {/* eslint-disable-next-line react-hooks/purity -- wall-clock read for the live ETA label; each SSE event re-renders with a fresher timestamp on purpose */}
                   <span className="tabular-nums">~{Math.max(3, Math.round(((Date.now() - startedAt) / completed) * (total - completed) / 1000))}s</span>{" "}
                   {/* eslint-disable-next-line react-hooks/purity -- wall-clock read for the live elapsed label; each SSE event re-renders with a fresher timestamp on purpose */}
@@ -1726,19 +1726,19 @@ export function SviStreamAnalysis({
                 </p>
               )}
               {startedAt !== null && completed === 0 && (
-                <p className="text-[11px] text-ink-500 dark:text-ink-400">
+                <p className="text-[11px] text-ink-500">
                   Warming up the first dimension…
                 </p>
               )}
             </>
           )}
           {criterionSynthesising && (
-            <p className="text-sm text-brand-700 dark:text-brand-400 animate-pulse">
+            <p className="text-sm text-brand-700 animate-pulse">
               Synthesising 8-dimension analyst report…
             </p>
           )}
           {done && totalMs !== null && (
-            <p className="text-sm text-emerald-700 dark:text-emerald-400">
+            <p className="text-sm text-emerald-700">
               All {total} SVI dimensions analysed in {(totalMs / 1000).toFixed(1)}s
             </p>
           )}
@@ -1749,7 +1749,7 @@ export function SviStreamAnalysis({
             <button
               type="button"
               onClick={stopAnalysis}
-              className="inline-flex items-center justify-center min-h-[44px] rounded-lg border border-ink-200 dark:border-ink-700 px-4 text-sm text-ink-600 dark:text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900 transition-colors"
+              className="inline-flex items-center justify-center min-h-[44px] rounded-lg border border-ink-200 px-4 text-sm text-ink-600 hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors"
             >
               Stop
             </button>
@@ -1759,10 +1759,10 @@ export function SviStreamAnalysis({
             onClick={running ? undefined : done ? () => { reset(); void startAnalysis(); } : () => void startAnalysis()}
             disabled={running}
             className={cn(
-              "inline-flex items-center justify-center min-h-[44px] rounded-lg px-4 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900",
+              "inline-flex items-center justify-center min-h-[44px] rounded-lg px-4 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white",
               running
                 ? "bg-surface-hover text-tertiary cursor-not-allowed"
-                : "bg-brand-600 hover:bg-brand-700 text-white shadow-sm hover:shadow-md active:scale-95",
+                : "bg-action hover:bg-action-hover text-on-action shadow-sm hover:shadow-md active:scale-95",
             )}
           >
             {running ? (
@@ -1781,7 +1781,7 @@ export function SviStreamAnalysis({
 
       {/* Fatal error */}
       {fatalError && (
-        <div className="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-400">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           <strong>Error:</strong> {fatalError}
         </div>
       )}
@@ -1790,19 +1790,19 @@ export function SviStreamAnalysis({
           we haven't just displayed the done-state (which has its own delta).
           Nudges the founder to run analysis + shows progress-over-time. */}
       {previousSvi !== null && !done && !running && (
-        <div className="rounded-lg border border-ink-200 dark:border-ink-800 bg-ink-50/60 dark:bg-ink-950/40 px-4 py-2.5 flex items-center justify-between gap-3 text-xs">
-          <span className="text-ink-700 dark:text-ink-300">
-            Last SVI: <strong className="font-semibold tabular-nums text-ink-900 dark:text-ink-100">{previousSvi}/100</strong>
+        <div className="rounded-lg border border-ink-200 bg-ink-50/60 px-4 py-2.5 flex items-center justify-between gap-3 text-xs">
+          <span className="text-ink-700">
+            Last SVI: <strong className="font-semibold tabular-nums text-ink-900">{previousSvi}/100</strong>
             {weekDelta !== null && weekDelta !== 0 && (
               <span className={cn(
                 "ml-1.5 tabular-nums",
-                weekDelta > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-red-700 dark:text-red-400",
+                weekDelta > 0 ? "text-emerald-700" : "text-red-700",
               )}>
                 ({weekDelta > 0 ? "+" : ""}{weekDelta} last week)
               </span>
             )}
           </span>
-          <span className="text-ink-500 dark:text-ink-400 hidden sm:inline">
+          <span className="text-ink-500 hidden sm:inline">
             Re-run to see the delta ↓
           </span>
         </div>
@@ -1814,16 +1814,16 @@ export function SviStreamAnalysis({
         <div
           role="status"
           aria-live="polite"
-          className="rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50/40 dark:bg-brand-950/20 px-4 py-2.5 flex items-center justify-between gap-3 text-xs motion-safe:animate-in motion-safe:fade-in duration-300"
+          className="rounded-lg border border-brand-200 bg-brand-50/40 px-4 py-2.5 flex items-center justify-between gap-3 text-xs motion-safe:animate-in motion-safe:fade-in duration-300"
         >
-          <span className="text-brand-700 dark:text-brand-300">
+          <span className="text-brand-700">
             Showing your most recent analysis. Re-analyse to refresh.
           </span>
           <button
             type="button"
             onClick={() => { reset(); }}
             aria-label="Discard cached analysis and start fresh"
-            className="inline-flex items-center justify-center min-h-[44px] rounded-md px-4 text-xs font-medium text-brand-700 dark:text-brand-300 hover:bg-brand-100 dark:hover:bg-brand-900/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900 transition-colors"
+            className="inline-flex items-center justify-center min-h-[44px] rounded-md px-4 text-xs font-medium text-brand-700 hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors"
           >
             Discard
           </button>
@@ -1843,8 +1843,8 @@ export function SviStreamAnalysis({
 
       {/* Decision log — shows as dims complete; hidden once done (summary replaces it) */}
       {running && logEntries.length > 0 && (
-        <div className="rounded-lg border border-ink-200 dark:border-ink-800 bg-ink-50/40 dark:bg-ink-900/20 px-4 py-3 space-y-2">
-          <p className="text-[10px] uppercase tracking-[0.14em] font-semibold text-ink-500 dark:text-ink-400">
+        <div className="rounded-lg border border-ink-200 bg-ink-50/40 px-4 py-3 space-y-2">
+          <p className="text-[10px] uppercase tracking-[0.14em] font-semibold text-ink-500">
             Analyst Notes
           </p>
           <DecisionLog entries={logEntries} />
@@ -1854,12 +1854,12 @@ export function SviStreamAnalysis({
       {/* Progress bar (visible once started) */}
       {(running || done) && !fatalError && (
         <div className="space-y-2 motion-safe:animate-in motion-safe:fade-in duration-300">
-          <div className="flex justify-between items-center text-xs text-ink-500 dark:text-ink-400">
-            <span className="font-medium text-ink-700 dark:text-ink-300">
+          <div className="flex justify-between items-center text-xs text-ink-500">
+            <span className="font-medium text-ink-700">
               {completed}/{total} dimensions
-              {done && <span className="ml-1.5 text-emerald-600 dark:text-emerald-400 font-semibold">Complete</span>}
+              {done && <span className="ml-1.5 text-emerald-600 font-semibold">Complete</span>}
             </span>
-            <span className="tabular-nums font-bold text-brand-700 dark:text-brand-400">{progressPct}%</span>
+            <span className="tabular-nums font-bold text-brand-700">{progressPct}%</span>
           </div>
           <div
             role="progressbar"
@@ -1867,7 +1867,7 @@ export function SviStreamAnalysis({
             aria-valuemin={0}
             aria-valuemax={100}
             aria-label={`SVI analysis progress: ${completed} of ${total} dimensions`}
-            className="h-3 rounded-full bg-ink-100 dark:bg-ink-800 overflow-hidden shadow-inner"
+            className="h-3 rounded-full bg-ink-100 overflow-hidden shadow-inner"
           >
             <div
               className={cn(
@@ -1890,7 +1890,7 @@ export function SviStreamAnalysis({
                     ? done ? "bg-emerald-400" : "bg-brand-400"
                     : i === completed && running
                     ? "bg-brand-300 animate-pulse"
-                    : "bg-ink-200 dark:bg-ink-700",
+                    : "bg-ink-200",
                 )}
               />
             ))}
@@ -1959,24 +1959,24 @@ export function SviStreamAnalysis({
           .sort((a, b) => (a.score - b.score) || (b.weight - a.weight))
           .slice(0, 2);
         return (
-          <div className="rounded-xl border border-brand-200 bg-brand-50 dark:bg-brand-950/30 dark:border-brand-800 px-5 py-4 space-y-3 motion-safe:animate-in motion-safe:fade-in duration-300">
+          <div className="rounded-xl border border-brand-200 bg-brand-50 px-5 py-4 space-y-3 motion-safe:animate-in motion-safe:fade-in duration-300">
             <div className="flex items-baseline gap-3 flex-wrap">
-              <span className="text-xs uppercase tracking-[0.14em] text-brand-700 dark:text-brand-300 font-semibold">
+              <span className="text-xs uppercase tracking-[0.14em] text-brand-700 font-semibold">
                 Current SVI
               </span>
               <span
                 className={cn(
                   "text-3xl font-bold tabular-nums",
-                  totalBand === "strong" && "text-emerald-700 dark:text-emerald-300",
-                  totalBand === "developing" && "text-amber-700 dark:text-amber-300",
-                  totalBand === "early" && "text-red-700 dark:text-red-300",
+                  totalBand === "strong" && "text-emerald-700",
+                  totalBand === "developing" && "text-amber-700",
+                  totalBand === "early" && "text-red-700",
                 )}
                 aria-label={`Weighted SVI total ${totalSvi} out of 100`}
               >
                 {totalSvi}
-                <span className="text-lg text-ink-500 dark:text-ink-400 font-normal">/100</span>
+                <span className="text-lg text-ink-500 font-normal">/100</span>
               </span>
-              <span className="text-xs text-ink-500 dark:text-ink-400">
+              <span className="text-xs text-ink-500">
                 weighted from {scored.length} of {DIM_KEYS.length} dimensions
               </span>
             </div>
@@ -1986,31 +1986,31 @@ export function SviStreamAnalysis({
               <span className={cn(
                 "inline-flex items-center rounded-full px-2 py-0.5 border transition-all",
                 totalBand === "early"
-                  ? "bg-red-100 border-red-400 text-red-800 dark:bg-red-900/40 dark:border-red-500 dark:text-red-200 font-semibold"
-                  : "bg-ink-50 border-ink-200 text-ink-500 dark:bg-ink-900 dark:border-ink-800 dark:text-ink-500",
+                  ? "bg-red-100 border-red-400 text-red-800 font-semibold"
+                  : "bg-ink-50 border-ink-200 text-ink-500",
               )}>
                 0–39 · Early
               </span>
               <span className={cn(
                 "inline-flex items-center rounded-full px-2 py-0.5 border transition-all",
                 totalBand === "developing"
-                  ? "bg-amber-100 border-amber-400 text-amber-800 dark:bg-amber-900/40 dark:border-amber-500 dark:text-amber-200 font-semibold"
-                  : "bg-ink-50 border-ink-200 text-ink-500 dark:bg-ink-900 dark:border-ink-800 dark:text-ink-500",
+                  ? "bg-amber-100 border-amber-400 text-amber-800 font-semibold"
+                  : "bg-ink-50 border-ink-200 text-ink-500",
               )}>
                 40–69 · Developing
               </span>
               <span className={cn(
                 "inline-flex items-center rounded-full px-2 py-0.5 border transition-all",
                 totalBand === "strong"
-                  ? "bg-emerald-100 border-emerald-400 text-emerald-800 dark:bg-emerald-900/40 dark:border-emerald-500 dark:text-emerald-200 font-semibold"
-                  : "bg-ink-50 border-ink-200 text-ink-500 dark:bg-ink-900 dark:border-ink-800 dark:text-ink-500",
+                  ? "bg-emerald-100 border-emerald-400 text-emerald-800 font-semibold"
+                  : "bg-ink-50 border-ink-200 text-ink-500",
               )}>
                 70–100 · Investor-ready
               </span>
             </div>
             {weakest.length > 0 && (
               <div className="space-y-1.5">
-                <p className="text-xs uppercase tracking-[0.14em] text-ink-600 dark:text-ink-400 font-semibold">
+                <p className="text-xs uppercase tracking-[0.14em] text-ink-600 font-semibold">
                   Fastest way to lift your score
                 </p>
                 <ul className="space-y-1">
@@ -2019,15 +2019,15 @@ export function SviStreamAnalysis({
                       key={w.key}
                       className="flex items-center justify-between gap-3 text-sm"
                     >
-                      <span className="text-ink-700 dark:text-ink-300">
+                      <span className="text-ink-700">
                         <span className="font-medium">{w.label}</span>{" "}
-                        <span className="text-ink-500 dark:text-ink-400 tabular-nums">
+                        <span className="text-ink-500 tabular-nums">
                           ({w.score}/100 · {w.weight}% weight)
                         </span>
                       </span>
                       <a
                         href={`/workspace/evidence/gaps?dim=${w.key}`}
-                        className="inline-flex items-center justify-center min-h-[36px] rounded-md bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-50 dark:focus-visible:ring-offset-brand-950 transition-colors"
+                        className="inline-flex items-center justify-center min-h-[36px] rounded-md bg-action hover:bg-action-hover text-on-action text-xs font-semibold px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-brand-50 transition-colors"
                       >
                         Add evidence
                       </a>
@@ -2062,13 +2062,13 @@ export function SviStreamAnalysis({
             />
             {/* Wave 25C — cache-hit + late addendum notices. Non-blocking. */}
             {cacheHitAgeMs !== null && (
-              <p className="text-[11px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-md px-3 py-1.5">
+              <p className="text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-md px-3 py-1.5">
                 Restored from same-deck 24h cache (age {Math.round(cacheHitAgeMs / 60000)}m).
                 No AI credits spent.
               </p>
             )}
             {criterionAddendum.length > 0 && (
-              <div className="text-[11px] text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-md px-3 py-1.5 space-y-0.5">
+              <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-md px-3 py-1.5 space-y-0.5">
                 <p className="font-semibold">Late-signal addendum</p>
                 {criterionAddendum.map((a) => (
                   <p key={a.dimension}>{a.note}</p>
@@ -2087,10 +2087,10 @@ export function SviStreamAnalysis({
             {/* Full Business Report CTA — links to the TBR page which reads
                 the localStorage-cached dim results and renders a comprehensive
                 analyst-style document with TOC + risk register + roadmap. */}
-            <div className="border-t border-brand-200/50 dark:border-brand-800/50 pt-3">
+            <div className="border-t border-brand-200/50 pt-3">
               <a
                 href={`/workspace/reports/business?pid=${encodeURIComponent(projectId ?? "default")}`}
-                className="inline-flex items-center gap-2 w-full justify-center rounded-lg border-2 border-brand-600 dark:border-brand-400 text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-950/30 text-sm font-semibold px-4 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                className="inline-flex items-center gap-2 w-full justify-center rounded-lg border-2 border-brand-600 text-brand-700 hover:bg-brand-50 text-sm font-semibold px-4 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -2104,11 +2104,11 @@ export function SviStreamAnalysis({
             {/* Score-delta versus the last stored snapshot — validates
                 improvement over time and gives founders something to beat. */}
             {previousSvi !== null && previousSvi !== totalSvi && (
-              <p className="border-t border-brand-200/50 dark:border-brand-800/50 pt-3 text-xs text-brand-700 dark:text-brand-300">
+              <p className="border-t border-brand-200/50 pt-3 text-xs text-brand-700">
                 {totalSvi > previousSvi ? (
                   <>
                     Up{" "}
-                    <strong className="font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">
+                    <strong className="font-semibold tabular-nums text-emerald-700">
                       +{totalSvi - previousSvi}
                     </strong>
                     {" "}from your last stored SVI of{" "}
@@ -2117,7 +2117,7 @@ export function SviStreamAnalysis({
                 ) : (
                   <>
                     Down{" "}
-                    <strong className="font-semibold tabular-nums text-red-700 dark:text-red-400">
+                    <strong className="font-semibold tabular-nums text-red-700">
                       {totalSvi - previousSvi}
                     </strong>
                     {" "}from your last stored SVI of{" "}

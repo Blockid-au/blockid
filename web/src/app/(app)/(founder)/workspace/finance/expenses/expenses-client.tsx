@@ -318,7 +318,7 @@ export function CategoriseButton({
         type="button"
         onClick={openPreview}
         disabled={!canWrite || busy !== null || preview !== null}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover disabled:opacity-60"
       >
         {busy === "preview" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
         {categoriseCostLabel(queue, cost, included)}
@@ -439,7 +439,7 @@ export function ReviewTable({
   return (
     <div className="overflow-x-auto" data-testid="review-table">
       <table className="w-full text-xs">
-        <thead>
+        <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
           <tr className="text-left text-[11px] uppercase tracking-wide text-ink-500">
             <th className="py-2 pr-3 font-medium">Date</th>
             <th className="py-2 pr-3 font-medium">Description</th>
@@ -448,7 +448,7 @@ export function ReviewTable({
             <th className="py-2 font-medium">Set by</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-line-subtle">
           {rows.map((r) => (
             <tr key={r.id} className={`border-t border-surface-100 ${r.needsReview ? "bg-amber-50/60" : ""}`} data-testid={r.needsReview ? "review-row-needs" : "review-row"}>
               <td className="py-1.5 pr-3 whitespace-nowrap text-ink-600">{dayLabel(r.occurredOn)}</td>

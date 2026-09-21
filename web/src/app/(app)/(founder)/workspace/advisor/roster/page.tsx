@@ -92,14 +92,14 @@ export default async function AdvisorRosterPage() {
             </div>
             <Link
               href="/workspace/evaluations?add=1"
-              className="inline-flex items-center gap-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+              className="inline-flex items-center gap-2 rounded-lg bg-action hover:bg-action-hover text-on-action px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2"
             >
               Add a startup
             </Link>
           </header>
 
           <FeatureGate feature={ADVISOR_COHORT_FEATURE} label="Advisor client roster">
-          <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+          <section className="rounded-2xl border border-slate-200 bg-white p-6">
             {roster.length === 0 ? (
               <div className="py-8 text-center">
                 <p className="text-ink-700 font-semibold">
@@ -113,13 +113,13 @@ export default async function AdvisorRosterPage() {
                 <div className="mt-4 flex justify-center gap-3">
                   <Link
                     href="/workspace/evaluations?add=1"
-                    className="inline-flex items-center gap-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-semibold transition-colors"
+                    className="inline-flex items-center gap-2 rounded-lg bg-action hover:bg-action-hover text-on-action px-4 py-2 text-sm font-semibold transition-colors"
                   >
                     Add a startup
                   </Link>
                   <Link
                     href="/workspace/settings/notifications"
-                    className="inline-flex items-center gap-2 rounded-lg border border-slate-300 dark:border-slate-700 text-ink-700 px-4 py-2 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                    className="inline-flex items-center gap-2 rounded-lg border border-slate-300 text-ink-700 px-4 py-2 text-sm font-semibold hover:bg-slate-50 transition-colors"
                   >
                     Settings
                   </Link>
@@ -128,8 +128,8 @@ export default async function AdvisorRosterPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-xs uppercase tracking-wide text-slate-500 border-b border-slate-200 dark:border-slate-800">
+                  <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
+                    <tr className="text-left text-xs uppercase tracking-wide text-slate-500 border-b border-slate-200">
                       <th className="py-2 pr-4">Client name</th>
                       <th className="py-2 pr-4">Startup ticker</th>
                       <th className="py-2 pr-4">Latest SVI</th>
@@ -137,11 +137,11 @@ export default async function AdvisorRosterPage() {
                       <th className="py-2 pr-4">Next check-in</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-line-subtle">
                     {roster.map((row) => (
                       <tr
                         key={row.id}
-                        className="border-b border-slate-100 dark:border-slate-800 last:border-0 hover:bg-slate-50/60 dark:hover:bg-slate-800/40"
+                        className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60"
                       >
                         <td className="py-2 pr-4 text-ink-900">
                           <Link

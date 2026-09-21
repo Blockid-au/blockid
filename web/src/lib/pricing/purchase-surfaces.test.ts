@@ -8,7 +8,7 @@
 //
 // Surfaces covered (docs/plans/g20-ready-for-sale-2026-09-20.md § 3 F3):
 //   1. /pricing matrix CTAs (founder / evaluator / programs ladders)
-//   2. /signup?plan= allow-list + the signed-in redirect to Billing
+//   2. /signup?plan= allow-list + the signed-in redirect to the review step (G25-D)
 //   3. /workspace/billing credit packs → POST /api/credits {amount}
 //   4. Startup Package CTA → POST /api/stripe/checkout {plan:"founder_package"}
 //   5. ReportPaywallGate → /api/reports/checkout (Trusted Business Report)
@@ -31,6 +31,7 @@ import { FOUNDER_RADAR_MONTHLY_AUD, FUNDING_REPORT_AUD, SCOUT_MONTHLY_AUD } from
 import { PLANS_V2, formatAud, publicPlansForSegment, withGst } from "@/lib/plans-v2";
 import { TIER_ANCHORS, pricingHrefForPlan } from "@/lib/entitlements/feature-requirement";
 import { signedInSignupRedirect } from "@/lib/plans/signed-in-upgrade";
+import { checkoutReviewHref, resolveCheckoutOrder } from "@/lib/billing/checkout-review";
 import {
   EVALUATOR_TRIAL_PLAN_IDS,
   FOUNDER_TRIAL_PLAN_IDS,
@@ -92,15 +93,14 @@ describe("1. /pricing matrix — every CTA names a plan whose catalogue amount i
           expect(href).toBe(`/contact?plan=${id}`);
           return;
         }
-        // Founder rungs go through /onboarding (Free included — it is the
-        // sign-up), evaluator + programs rungs through the card-required signup.
+        // G25-D: every priced rung lands on the review step first (the Free
+        // rung is a sign-up, not an order — it keeps the wizard hand-off).
         const cadence = annual ? "&interval=annual" : "";
-        if (plan.segment === "founder") {
-          expect(href).toBe(`/onboarding?trial=1&plan=${id}${cadence}`);
-        } else {
-          expect(href).toBe(`/signup?segment=evaluator&plan=${id}&trial=1${cadence}`);
+        if (plan.monthly_aud === 0) {
+          expect(href).toBe(`/onboarding?trial=1&plan=${id}`);
+          return; // Free: no Stripe row by design
         }
-        if (plan.monthly_aud === 0) return; // Free: no Stripe row by design
+        expect(href).toBe(`/checkout/review?plan=${id}&trial=1&entry=pricing_card${cadence}`);
         const shown = annual ? plan.annual_aud! : plan.monthly_aud;
         const row = rowFor(id, annual ? "year" : "month");
         expect(row, `${id} has no stripe-map row for the shown cadence`).toBeDefined();
@@ -122,7 +122,7 @@ describe("1. /pricing matrix — every CTA names a plan whose catalogue amount i
   });
 });
 
-describe("2. /signup?plan= — every allow-listed plan is a catalogue row (or contact-sales) and a signed-in click lands on Billing with the plan", () => {
+describe("2. /signup?plan= — every allow-listed plan is a catalogue row (or contact-sales) and a signed-in click lands on the review step with the plan", () => {
   it("the allow-list is exactly the founder + evaluator trial ids", () => {
     expect([...SIGNUP_ALLOWED_PLAN_IDS].sort()).toEqual(
       [...FOUNDER_TRIAL_PLAN_IDS, ...EVALUATOR_TRIAL_PLAN_IDS, "growth", "growth_annual"].sort(),
@@ -144,23 +144,30 @@ describe("2. /signup?plan= — every allow-listed plan is a catalogue row (or co
       const row = rowFor(id);
       expect(row, `${id} has no stripe-map row`).toBeDefined();
       expect(STRIPE_PRICE_CATALOGUE[row!.env_var]!.amount_cents).toBe(g!.price_aud_cents);
-      expect(signedInSignupRedirect(id)).toBe(`/workspace/billing?plan=${id}`);
-      // Annual rides along only as a query param; checkout answers
-      // `interval_unavailable` when the rung has no annual price.
-      expect(signedInSignupRedirect(id, "annual")).toBe(`/workspace/billing?plan=${id}&interval=annual`);
+      // G25-D: the signed-in bounce lands on the review step, never an auto-checkout.
+      expect(signedInSignupRedirect(id)).toBe(`/checkout/review?plan=${id}&trial=1&entry=signup`);
+      // Annual rides along only as a query param; the review (and checkout)
+      // fall back to monthly when the rung has no annual price.
+      expect(signedInSignupRedirect(id, "annual")).toBe(`/checkout/review?plan=${id}&trial=1&entry=signup&interval=annual`);
     });
   }
 });
 
-describe("3. /workspace/billing credit packs — Buy posts {amount: credits} and shows the catalogue amount", () => {
+describe("3. /workspace/billing credit packs — Buy links to the review step for the pack (G25-D) and shows the catalogue amount", () => {
   const client = src("src/app/(app)/(founder)/workspace/billing/billing-client.tsx");
 
-  it("the grid iterates CREDIT_PACKS and posts pack.credits to POST /api/credits", () => {
+  it("the grid iterates CREDIT_PACKS and links each Buy to /checkout/review?pack=<credits>; only the review's Pay button posts to /api/credits", () => {
     expect(client).toContain("CREDIT_PACKS.map((pack)");
-    expect(client).toContain('await fetch("/api/credits", {');
-    expect(client).toContain("body: JSON.stringify({ amount }),");
-    expect(client).toContain("onClick={() => handlePurchase(pack.credits)}");
+    expect(client).not.toContain('fetch("/api/credits", {');
+    expect(client).toContain('href={checkoutReviewHref({ pack: pack.credits, entry: "credits" })}');
     expect(client).toContain('data-testid="credit-pack-buy"');
+    for (const pack of CREDIT_PACKS) {
+      expect(checkoutReviewHref({ pack: pack.credits, entry: "credits" })).toBe(`/checkout/review?pack=${pack.credits}&entry=credits`);
+      const order = resolveCheckoutOrder({ kind: "pack", credits: pack.credits, entry: "credits" });
+      expect(order?.postPath).toBe("/api/credits");
+      expect(order?.postBody).toEqual({ amount: pack.credits });
+      expect(order?.amountCents).toBe(pack.priceAudCents);
+    }
     // The label is derived, never typed: withGst(formatAud(pack.price)).
     expect(client).toContain("withGst(formatAud(pack.price))");
     expect(client).not.toMatch(/A\$\$\{priceDollars\}/);
@@ -187,7 +194,7 @@ describe("3. /workspace/billing credit packs — Buy posts {amount: credits} and
   });
 });
 
-describe("4. Startup Package — CTA posts founder_package and every A$ on the page is the plans.csv figure", () => {
+describe("4. Startup Package — CTA links to the review step for founder_package (G25-D) and every A$ on the page is the plans.csv figure", () => {
   it("founder_package → STRIPE_PRICE_STARTUP_PACKAGE, one-off, 14900 cents, 25 credits", () => {
     const row = rowFor(STARTUP_PACKAGE_PLAN_ID, "one_off");
     expect(row).toBeDefined();
@@ -206,9 +213,13 @@ describe("4. Startup Package — CTA posts founder_package and every A$ on the p
     expect(page).toContain("quote={`${startupPackagePriceLabelLong()}");
     expect(page).not.toMatch(/A\$149/);
     const button = src("src/app/startup-package/checkout-button.tsx");
-    expect(button).toContain('await fetch("/api/stripe/checkout", {');
-    expect(button).toContain("body: JSON.stringify({ plan: planId }),");
+    expect(button).not.toContain("/api/stripe/checkout");
+    expect(button).toContain('checkoutReviewHref({ sku: planId, entry: "startup_package" })');
     expect(button).toContain('data-testid="startup-package-checkout"');
+    const order = resolveCheckoutOrder({ kind: "sku", sku: STARTUP_PACKAGE_PLAN_ID, entry: "startup_package" });
+    expect(order?.postPath).toBe("/api/stripe/checkout");
+    expect(order?.postBody).toEqual({ plan: STARTUP_PACKAGE_PLAN_ID });
+    expect(order?.amountCents).toBe(STARTUP_PACKAGE_AMOUNT_CENTS);
     const nav = src("src/components/workspace/nav-groups.ts");
     expect(nav).toContain("${STARTUP_PACKAGE_PRICE_LABEL}");
     expect(nav).not.toMatch(/A\$149/);

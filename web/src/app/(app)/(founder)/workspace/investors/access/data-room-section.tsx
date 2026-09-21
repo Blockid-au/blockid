@@ -115,14 +115,14 @@ export async function DataRoomSection({ userEmail }: { userEmail: string }) {
 
                 {link.accesses.length > 0 ? (
                   <table className="w-full text-sm">
-                    <thead>
+                    <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                       <tr className="border-b border-surface-100">
                         <th className="px-4 py-2 text-left text-xs font-semibold text-ink-500">Accessed</th>
                         <th className="px-4 py-2 text-left text-xs font-semibold text-ink-500">IP Hash</th>
                         <th className="px-4 py-2 text-left text-xs font-semibold text-ink-500 hidden sm:table-cell">User Agent</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-surface-100">
+                    <tbody className="divide-y divide-line-subtle">
                       {link.accesses.map((a) => (
                         <tr key={a.id} className="hover:bg-surface-50">
                           <td className="px-4 py-2.5 text-xs text-ink-600 font-mono whitespace-nowrap">

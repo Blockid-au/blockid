@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-21T09:53:07.348Z",
+  "generated_at": "2026-09-21T14:39:33.854Z",
   "ledger_present": true,
-  "total_files": 315,
+  "total_files": 319,
   "files": [
     "0001_init.sql",
     "0002_score_v2.sql",
@@ -289,6 +289,10 @@
     "0434_pilot_orders_conversion.sql",
     "0435_ai_runs_prompt_version_nullable.sql",
     "0436_evaluation_batches_is_demo.sql",
+    "0437_pilot_orders_retired.sql",
+    "0438_org_settings_onboarding_metrics.sql",
+    "0439_free_report_grants.sql",
+    "0440_erasure_map_free_report_grants.sql",
     "20260814_tech_analyses.sql",
     "20260815120000_analyzer_runs.sql",
     "20260816_clevel_reports_v2.sql",

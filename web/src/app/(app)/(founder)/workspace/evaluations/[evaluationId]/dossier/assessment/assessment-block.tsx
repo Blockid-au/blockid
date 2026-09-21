@@ -32,7 +32,7 @@ export async function AssessmentBlock({ view }: { view: DossierView }) {
     body = (
       <p data-testid="assessment-read-only">
         You opened this dossier as a cohort reviewer. The evaluator&apos;s assessment stays with their seat; record your overrides and decision on the{" "}
-        <Link href={view.viewer.viaBatchId ? `/workspace/evaluations/cohort/${encodeURIComponent(view.viewer.viaBatchId)}` : "/workspace/evaluations/cohort"} className="font-medium text-brand-700 hover:underline">
+        <Link href={view.viewer.viaBatchId ? `/workspace/evaluations/cohort/${encodeURIComponent(view.viewer.viaBatchId)}` : "/workspace/evaluations/cohort"} className="font-medium text-action hover:underline">
           cohort table
         </Link>
         .
@@ -62,7 +62,7 @@ export async function AssessmentBlock({ view }: { view: DossierView }) {
     );
   }
   return (
-    <section aria-labelledby="dossier-block-4" className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6" data-testid="dossier-block-4">
+    <section aria-labelledby="dossier-block-4" className="rounded-2xl border border-surface-200 bg-surface p-5 sm:p-6" data-testid="dossier-block-4">
       <h2 id="dossier-block-4" className="text-lg font-semibold text-ink-900">
         4 · Evaluator assessment
       </h2>

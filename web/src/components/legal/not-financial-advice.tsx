@@ -72,10 +72,10 @@ export function NotFinancialAdvice({
     return (
       <div
         aria-label="Legal notice"
-        className="mt-4 border-t border-slate-200 dark:border-slate-800 pt-3 text-xs leading-relaxed text-slate-500 dark:text-slate-400"
+        className="mt-4 border-t border-line-subtle pt-3 text-xs leading-relaxed text-muted"
       >
         <p>
-          <span className="font-semibold text-slate-600 dark:text-slate-300">
+          <span className="font-semibold text-secondary">
             Not financial advice.
           </span>{" "}
           {surface?.label ?? "General information only."} Seek independent
@@ -83,7 +83,7 @@ export function NotFinancialAdvice({
           {flagHref ? (
             <>
               {" "}
-              <Link href={flagHref} className="font-medium text-brand-700 hover:text-brand-800 dark:text-brand-300" data-testid="report-flag-problem">
+              <Link href={flagHref} className="font-medium text-brand-700 hover:text-brand-800" data-testid="report-flag-problem">
                 Flag a problem with this report
               </Link>
             </>
@@ -97,22 +97,22 @@ export function NotFinancialAdvice({
   return (
     <aside
       aria-label="Legal disclaimer"
-      className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/40 p-4"
+      className="rounded-xl border border-line-subtle bg-surface-sunken/70 p-4"
     >
-      <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+      <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
         {body}
       </p>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
         <Link
           href={learnMoreHref}
-          className="rounded-sm text-xs font-medium text-brand-700 hover:text-brand-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-brand-300 dark:hover:text-brand-200"
+          className="rounded-sm text-xs font-medium text-brand-700 hover:text-brand-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
         >
           Learn more →
         </Link>
         {flagHref ? (
           <Link
             href={flagHref}
-            className="rounded-sm text-xs font-medium text-brand-700 hover:text-brand-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 dark:text-brand-300 dark:hover:text-brand-200"
+            className="rounded-sm text-xs font-medium text-brand-700 hover:text-brand-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
             data-testid="report-flag-problem"
           >
             Flag a problem with this report

@@ -11,6 +11,7 @@ vi.mock("@/components/marketing/marketing-shell", () => ({
 }));
 
 import { renderedTitle } from "@/lib/seo/page-meta";
+import { expectLightSurfaces, mainOf } from "@/test/light-surface";
 import { PRODUCT_SECTION_IDS, productAnchor } from "./product-content";
 import ProductPage, { metadata } from "./page";
 
@@ -50,7 +51,8 @@ describe("/product — the intro page", () => {
     expect(out).toContain("The room an investor asks to see.");
     expect(out).toContain('data-testid="unlock-preview"');
     expect(out).toMatch(/<svg/); // the radar / ranges are inline SVG
-    expect(out).toMatch(/data-theme="dark"/); // the journey band is the one dark punctuation
+    expect(mainOf(out)).not.toMatch(/data-theme="dark"/); // G26: the journey band is a white band between two sunken ones
+    expectLightSurfaces(out, "/product");
   });
 
   it("links: /analyze, /samples, /one-click-report, /guide/scn, the growth-phases walkthrough, /pricing", async () => {

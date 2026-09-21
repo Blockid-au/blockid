@@ -121,7 +121,7 @@ export default async function InvestorAccessPage({ searchParams }: PageProps) {
             {/* G20 review: the create flow is the client modal below (data-testid="investor-links-create"); the /new page is hidden. */}
             <a
               href="#investor-links"
-              className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors shrink-0"
+              className="inline-flex items-center gap-2 rounded-xl bg-action px-4 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors shrink-0"
             >
               New link ↓
             </a>

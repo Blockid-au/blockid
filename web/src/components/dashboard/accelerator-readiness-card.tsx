@@ -68,7 +68,7 @@ function SourceRow({ s }: { s: Source }) {
       </button>
       {open && (
         <div className="px-4 pb-4 pt-2 border-t border-border bg-muted/10 space-y-2">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-blue-700 dark:text-blue-400">Top leverage to lift this source</p>
+          <p className="text-[11px] font-bold uppercase tracking-wide text-blue-700">Top leverage to lift this source</p>
           {s.topCriteria.length === 0 ? (
             <p className="text-xs text-muted-foreground italic">All criteria met — nothing to lift!</p>
           ) : (
@@ -89,7 +89,7 @@ function SourceRow({ s }: { s: Source }) {
                 <p className="text-[10px] text-muted-foreground italic">Why: {c.reasoning}</p>
                 {c.entry.tactic.length > 0 && (
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-blue-700 dark:text-blue-400 mt-1.5 mb-0.5">How to lift</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-blue-700 mt-1.5 mb-0.5">How to lift</p>
                     <ul className="space-y-0.5">
                       {c.entry.tactic.map((t, j) => <li key={j} className="text-[11px] text-foreground">→ {t}</li>)}
                     </ul>
@@ -143,33 +143,33 @@ export function AcceleratorReadinessCard({ analysis }: { analysis: SVIAnalysis }
 
       {/* Summary stats */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="rounded-lg border border-emerald-200 dark:border-emerald-800/40 bg-emerald-50/50 dark:bg-emerald-950/15 p-3 text-center">
-          <div className="flex items-center justify-center gap-1 text-emerald-700 dark:text-emerald-400">
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3 text-center">
+          <div className="flex items-center justify-center gap-1 text-emerald-700">
             <CheckCircle2 className="h-3.5 w-3.5" />
             <span className="text-[10px] font-bold uppercase tracking-wide">Met</span>
           </div>
-          <p className="text-xl font-bold text-emerald-700 dark:text-emerald-400 mt-1">{r.totalMet}</p>
+          <p className="text-xl font-bold text-emerald-700 mt-1">{r.totalMet}</p>
         </div>
-        <div className="rounded-lg border border-amber-200 dark:border-amber-700/50 bg-amber-50/50 dark:bg-amber-950/15 p-3 text-center">
-          <div className="flex items-center justify-center gap-1 text-amber-700 dark:text-amber-400">
+        <div className="rounded-lg border border-amber-200 bg-amber-50/50 p-3 text-center">
+          <div className="flex items-center justify-center gap-1 text-amber-700">
             <Target className="h-3.5 w-3.5" />
             <span className="text-[10px] font-bold uppercase tracking-wide">Partial</span>
           </div>
-          <p className="text-xl font-bold text-amber-700 dark:text-amber-400 mt-1">{r.totalPartial}</p>
+          <p className="text-xl font-bold text-amber-700 mt-1">{r.totalPartial}</p>
         </div>
-        <div className="rounded-lg border border-rose-200 dark:border-rose-800/40 bg-rose-50/50 dark:bg-rose-950/15 p-3 text-center">
-          <div className="flex items-center justify-center gap-1 text-rose-700 dark:text-rose-400">
+        <div className="rounded-lg border border-rose-200 bg-rose-50/50 p-3 text-center">
+          <div className="flex items-center justify-center gap-1 text-rose-700">
             <Circle className="h-3.5 w-3.5" />
             <span className="text-[10px] font-bold uppercase tracking-wide">Gap</span>
           </div>
-          <p className="text-xl font-bold text-rose-700 dark:text-rose-400 mt-1">{r.totalCriteria - r.totalMet - r.totalPartial}</p>
+          <p className="text-xl font-bold text-rose-700 mt-1">{r.totalCriteria - r.totalMet - r.totalPartial}</p>
         </div>
       </div>
 
       {/* High leverage gaps banner */}
       {r.highLeverageGaps.length > 0 && (
-        <div className="rounded-xl border border-blue-200 dark:border-blue-800/40 bg-blue-50/50 dark:bg-blue-950/15 p-4">
-          <p className="text-[11px] font-bold uppercase tracking-wide text-blue-700 dark:text-blue-400 mb-2 flex items-center gap-1.5">
+        <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wide text-blue-700 mb-2 flex items-center gap-1.5">
             <Award className="h-3 w-3" /> Top valuation-lift moves (across all sources)
           </p>
           <ul className="space-y-1.5">

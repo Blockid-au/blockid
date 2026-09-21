@@ -24,7 +24,7 @@ export function InsightBody({ content, title }: { content: string; title?: strin
         prose-blockquote:border-l-brand-500 prose-blockquote:bg-brand-50/60 prose-blockquote:py-3 prose-blockquote:px-5 prose-blockquote:rounded-r-xl prose-blockquote:not-italic
         prose-img:rounded-xl prose-img:shadow-md prose-img:border prose-img:border-surface-200
         prose-code:text-brand-700 prose-code:bg-brand-50 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded-md prose-code:text-sm prose-code:before:content-none prose-code:after:content-none
-        prose-pre:bg-ink-900 prose-pre:rounded-xl prose-pre:shadow-sm
+        prose-pre:bg-surface-sunken prose-pre:text-ink-800 prose-pre:border prose-pre:border-surface-200 prose-pre:rounded-xl prose-pre:shadow-sm
         prose-table:border-collapse prose-table:rounded-xl prose-table:overflow-hidden
         prose-th:border prose-th:border-surface-300 prose-th:px-4 prose-th:py-2.5 prose-th:bg-surface-100 prose-th:text-xs prose-th:font-semibold prose-th:text-ink-700
         prose-td:border prose-td:border-surface-200 prose-td:px-4 prose-td:py-2.5 prose-td:text-sm

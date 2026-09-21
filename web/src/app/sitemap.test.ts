@@ -82,9 +82,11 @@ describe("sitemap — funding surfaces", () => {
 
   it("carries the other S8-A audited static pages", async () => {
     const urls = (await entries()).map((e) => e.url);
-    for (const path of ["/docs/unlocks", "/compare", "/compare/chatgpt", "/compare/valuers", "/solutions/advisor", "/solutions/investor", "/solutions/accelerator", "/pilot"]) {
+    for (const path of ["/docs/unlocks", "/compare", "/compare/chatgpt", "/compare/valuers", "/solutions/advisor", "/solutions/investor", "/solutions/accelerator"]) {
       expect(urls, path).toContain(`${SITE}${path}`);
     }
+    // G25: the retired pilot pages are 301s, never sitemap rows.
+    for (const gone of ["/pilot", "/vi/pilot", "/pilot/investor"]) expect(urls, gone).not.toContain(`${SITE}${gone}`);
   });
 
   it("lists /product and /samples — the G17 intro page and sample gallery", async () => {

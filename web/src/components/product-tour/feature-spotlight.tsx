@@ -167,7 +167,7 @@ export function FeatureSpotlight({
             <TourIcon icon={tour.icon} className="h-5 w-5" />
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] uppercase tracking-wider text-ink-500">
+            <p className="text-[11px] uppercase tracking-wider text-muted">
               {copy.step} {stepIndex + 1} {copy.of} {tour.steps.length}
             </p>
             <h2

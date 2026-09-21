@@ -43,7 +43,7 @@ export function ScnDirectionNavigator({ stageLabel, weakestLayer, steps }: Props
 
       {/* You are here */}
       <div className="flex items-start gap-3 rounded-xl bg-surface-50 px-4 py-3">
-        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brand-600 text-white">
+        <div className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-action text-on-action">
           <MapPin className="h-3.5 w-3.5" />
         </div>
         <div className="min-w-0">
@@ -84,7 +84,7 @@ export function ScnDirectionNavigator({ stageLabel, weakestLayer, steps }: Props
                 <p className="mt-1 text-sm text-ink-600">{next.detail}</p>
                 <Link
                   href={next.url}
-                  className="mt-3 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+                  className="mt-3 inline-flex items-center gap-2 rounded-xl bg-action px-4 py-2 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover"
                 >
                   Start this step
                   <ArrowRight className="h-4 w-4" />

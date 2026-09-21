@@ -78,7 +78,7 @@ describe("<PricingMatrix segment='investor' /> — Evaluator cards (T0247)", () 
     expect(out).toContain('id="tier-fund"');
     expect(out).toContain('aria-label="Fund plan"');
     expect(out).toContain("A$999");
-    expect(out).toContain("/signup?segment=evaluator&amp;plan=investor_fund&amp;trial=1");
+    expect(out).toContain("/checkout/review?plan=investor_fund&amp;trial=1&amp;entry=pricing_card");
     expect(out).not.toMatch(/affinity|slack|airtable/i);
   });
 
@@ -106,10 +106,12 @@ describe("effectiveCardInterval — Annual toggle honesty gate", () => {
 });
 
 describe("<PricingMatrix /> CTA hrefs under the default (monthly) toggle", () => {
-  it("never carry interval=annual, and evaluator CTAs keep the T0269 shape", () => {
+  it("never carry interval=annual, and every CTA lands on the review step (G25-D)", () => {
     const out = renderToStaticMarkup(<PricingMatrix segment="investor" annualAvailable={[]} />);
     expect(out).not.toContain("interval=annual");
-    expect(out).toContain("/signup?segment=evaluator&amp;plan=investor_angel&amp;trial=1");
+    expect(out).toContain("/checkout/review?plan=investor_angel&amp;trial=1&amp;entry=pricing_card");
+    expect(out).not.toContain("/signup?");
+    expect(out).not.toContain("stripe.com");
   });
 });
 
@@ -138,8 +140,8 @@ describe("defaultIntervalForSegment + <PricingMatrix segment='accelerator' /> �
     expect(out).toContain("A$5,000");
     expect(out).toContain("A$15,000");
     expect(out).toContain("Billed annually");
-    expect(out).toContain("/signup?segment=evaluator&amp;plan=accelerator_intake&amp;trial=1&amp;interval=annual");
-    expect(out).toContain("/signup?segment=evaluator&amp;plan=accelerator_starter&amp;trial=1&amp;interval=annual");
+    expect(out).toContain("/checkout/review?plan=accelerator_intake&amp;trial=1&amp;entry=pricing_card&amp;interval=annual");
+    expect(out).toContain("/checkout/review?plan=accelerator_starter&amp;trial=1&amp;entry=pricing_card&amp;interval=annual");
     expect(out).toContain("Start 14-day free trial");
     expect(out).not.toContain("/contact?plan=accelerator_");
     // Old copy must not resurface.

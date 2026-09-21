@@ -14,6 +14,7 @@ import { ADMIN_EMAIL, getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { asInstitutionalClient, readInstitutionalFunnel } from "@/lib/funnel/institutional";
 import { asFunnelLiveClient, liveTodayFunnel, readFunnelDaily, readFunnelLatest } from "@/lib/funnel/read";
+import { readFreeReportMetrics } from "@/lib/reports/free-grants";
 import { FunnelAdminView } from "./funnel-view";
 
 export const dynamic = "force-dynamic";
@@ -31,13 +32,15 @@ export default async function FunnelAdminPage() {
   if (!isAdmin) redirect("/admin");
 
   const admin = getSupabaseAdmin();
-  const [{ latest, status, error }, daily, today, institutional] = await Promise.all([
+  const [{ latest, status, error }, daily, today, institutional, freeReports] = await Promise.all([
     readFunnelLatest(),
     readFunnelDaily(),
     liveTodayFunnel(asFunnelLiveClient(admin)),
     // G21 P0-D — institutional funnel + North Star, live (28-day window).
     readInstitutionalFunnel(asInstitutionalClient(admin)),
+    // G25-C — the free allowance ledger, live (never throws; empty block on failure).
+    readFreeReportMetrics().catch(() => null),
   ]);
 
-  return <FunnelAdminView data={{ latest, status, fileError: error, daily, today, institutional }} />;
+  return <FunnelAdminView data={{ latest, status, fileError: error, daily, today, institutional, freeReports }} />;
 }

@@ -32,7 +32,7 @@ import {
 } from "@/lib/plans-v2";
 import { TRIAL_COPY, evaluatorTrialIncludedLine } from "@/lib/plans/trial-copy";
 import { CREDIT_PACKS } from "@/lib/credit-packs";
-import { withInterval } from "@/lib/plans/billing-interval";
+import { checkoutReviewHref, type CheckoutLocale } from "@/lib/billing/checkout-review";
 import { TRUST_REPORT_5AUD } from "@/lib/pricing/v3-skus";
 
 // pricing-anchor-2026-07 (T0121/T0123). Anchor-tier + pricing_anchor_order
@@ -74,19 +74,19 @@ const SEGMENT_INTRO: Record<Segment, { headline: string; sub: string; roleFit: s
     headline: "Pricing for programs",
     sub: "Intake link A$2,490 · Cohort 25 A$5,000 · Cohort 100 A$15,000 a year, billed annually. 14-day free trial · card required · cancel anytime.",
     roleFit: "How this fits your role: score an application round or a whole cohort on one rubric, batch-score it overnight, and export the sponsor / LP report — as an accelerator, incubator or university program.",
-    note: "Start with the Cohort Validation Pilot: one real intake or an existing cohort, scored on the Startup Value Index with a cohort table and final report — the pilot rung above books it.",
+    note: "Start a cohort on the rung that fits your intake: one real intake or an existing cohort, scored on the Startup Value Index with a cohort table, the Cohort Report and an onboarding kit — 14-day trial, card required.",
   },
 };
 
 /**
- * Founder plans keep the /onboarding trial flow (Stripe env vars wired for
- * the Founder Stripe products). Since G12 (2026-09-10, T0268) the investor
- * / advisor catalogue is the self-serve Evaluator ladder and routes to
- * `/signup?segment=evaluator&plan=<id>` (7-day Stripe trial, card required —
- * the route itself ships under T0269). Pricing v4 (2026-09-16) sells the
- * Programs ladder (accelerator_intake / starter / growth) through the same
- * evaluator signup with a 14-day trial; only Cohort Enterprise stays
- * contact-sales, via `cta_kind: "contact"` on its catalogue row.
+ * G25-D (founder 2026-09-21, review before pay): EVERY card CTA links to the
+ * review step — `/checkout/review?plan=<id>&trial=1[&interval=annual]
+ * &entry=pricing_card` (`/vi/checkout/review` on the VI page). There the
+ * visitor reads plan / price inc. GST / trial / renewal and presses Pay or
+ * Add card; a signed-out visitor is sent on to the card-required sign-up for
+ * the plan's ladder (founder → `/signup?plan=…`, evaluator + programs →
+ * `/signup?segment=evaluator&plan=…`), never to Stripe. Only Cohort
+ * Enterprise stays contact-sales, via `cta_kind: "contact"` on its row.
  */
 const CONTACT_SALES_SEGMENTS: readonly Segment[] = [];
 
@@ -116,8 +116,12 @@ export function effectiveCardInterval(
   return annualAvailable.includes(planId) ? "annual" : "monthly";
 }
 
-export function evaluatorSignupHref(planId: string): string {
-  return `/signup?segment=evaluator&plan=${encodeURIComponent(planId)}&trial=1`;
+/**
+ * The card CTA for any self-serve rung: the review step (G25-D). Kept as a
+ * named helper so the purchase-surface test pins the exact URL shape.
+ */
+export function planReviewHref(planId: string, interval: Interval = "monthly", locale: CheckoutLocale = "en"): string {
+  return checkoutReviewHref({ plan: planId, interval, trial: true, entry: "pricing_card", locale });
 }
 
 export interface PricingMatrixProps {
@@ -134,6 +138,8 @@ export interface PricingMatrixProps {
   annualAvailable?: readonly string[];
   /** Plan ids with a monthly Stripe price (server-computed); others render Contact sales. `undefined` = trust the catalogue. */
   purchasable?: readonly string[];
+  /** `vi` → CTAs link to `/vi/checkout/review` (the VI page); default `en`. */
+  locale?: CheckoutLocale;
 }
 
 
@@ -148,7 +154,7 @@ export function defaultIntervalForSegment(segment: Segment): Interval {
   return plans.every((p) => p.billing_default === "annual") ? "annual" : "monthly";
 }
 
-export function PricingMatrix({ segment: overrideSegment, annualAvailable, purchasable }: PricingMatrixProps = {}) {
+export function PricingMatrix({ segment: overrideSegment, annualAvailable, purchasable, locale = "en" }: PricingMatrixProps = {}) {
   const ctx = useSegmentSafe();
   const segment: Segment = overrideSegment ?? ctx?.segment ?? "founder";
   const [chosenInterval, setInterval] = useState<{ segment: Segment; interval: Interval } | null>(null);
@@ -274,6 +280,7 @@ export function PricingMatrix({ segment: overrideSegment, annualAvailable, purch
             interval={effectiveCardInterval(interval, plan.id, annualAvailable)}
             forceContactSales={CONTACT_SALES_SEGMENTS.includes(plan.segment) || (purchasable !== undefined && plan.cta_kind === "trial" && !purchasable.includes(plan.id))}
             onSelect={recordAnchorConversion}
+            locale={locale}
           />
         ))}
       </div>
@@ -304,7 +311,7 @@ export function PricingMatrix({ segment: overrideSegment, annualAvailable, purch
  * price is read off the SKU and the credit-pack ladder so the line can never
  * drift from what checkout books. (Until 2026-09-20 this was a highlighted
  * box on the Evaluator tab; the evaluator-first positioning leads with the
- * paid cohort pilot, so the A$3 reference stays on the Founder tab only.)
+ * Cohort plans, so the A$3 reference stays on the Founder tab only.)
  */
 function ReportFootnote() {
   const reportPrice = `A$${(TRUST_REPORT_5AUD.unit_amount_incl_gst_cents ?? 300) / 100}`;
@@ -417,12 +424,14 @@ function PlanCard({
   interval,
   forceContactSales = false,
   onSelect,
+  locale = "en",
 }: {
   plan: Plan;
   interval: Interval;
   /** When true, override CTA to contact-sales regardless of `plan.cta_kind`. */
   forceContactSales?: boolean;
   onSelect?: (valueAud?: number) => void;
+  locale?: CheckoutLocale;
 }) {
   const price = interval === "annual" ? plan.annual_aud : plan.monthly_aud;
   const priceLabel = formatAud(price);
@@ -431,14 +440,15 @@ function PlanCard({
   const isContact = forceContactSales || plan.cta_kind === "contact" || isCustom;
 
   const isEvaluatorPlan = EVALUATOR_SEGMENTS.includes(plan.segment);
-  // The card's cadence rides the CTA (`&interval=annual`) so signup /
-  // onboarding / Billing bill what this card showed.
+  // The card's cadence rides the CTA (`&interval=annual`) so the review step
+  // (and the checkout behind its Pay button) bills what this card showed.
+  // A A$0 rung is a sign-up, not an order — it keeps the wizard hand-off.
+  const isFree = !isCustom && price === 0;
   const ctaHref = isContact
     ? `/contact?plan=${plan.id}`
-    : withInterval(
-        isEvaluatorPlan ? evaluatorSignupHref(plan.id) : `/onboarding?trial=1&plan=${plan.id}`,
-        interval,
-      );
+    : isFree
+      ? `/onboarding?trial=1&plan=${plan.id}`
+      : planReviewHref(plan.id, interval, locale);
   const ctaLabel = isContact
     ? "Contact sales"
     : isEvaluatorPlan

@@ -155,7 +155,7 @@ export function ProductTour(): React.ReactElement | null {
       role="status"
       aria-live="polite"
       data-testid="product-tour-banner"
-      className="border-b border-brand-300 bg-brand-50 text-brand-900 dark:bg-brand-900/30 dark:border-brand-700 dark:text-brand-100 px-4 py-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4"
+      className="border-b border-brand-300 bg-brand-50 text-brand-900 px-4 py-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4"
     >
       <span className="text-sm font-medium flex-1 flex items-center gap-2">
         <MapPin strokeWidth={1.75} className="h-4 w-4 shrink-0" aria-hidden />
@@ -164,7 +164,7 @@ export function ProductTour(): React.ReactElement | null {
       <div className="flex items-center gap-2 shrink-0">
         <Link
           href={"/workspace/plan/guide/" + state.chapterSlug}
-          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/70 hover:bg-white ring-1 ring-current/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/70 hover:bg-white ring-1 ring-current/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
         >
           {copy.read}
         </Link>
@@ -172,7 +172,7 @@ export function ProductTour(): React.ReactElement | null {
           type="button"
           onClick={handleDismiss}
           aria-label={copy.dismiss}
-          className="text-xs font-medium px-2 py-1.5 rounded-lg hover:bg-white/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+          className="text-xs font-medium px-2 py-1.5 rounded-lg hover:bg-white/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
         >
           <X className="h-3.5 w-3.5" aria-hidden />
         </button>

@@ -272,6 +272,18 @@ export interface PendingSweep {
   runnable: FullReportRow[];
   /** Done or partial, not yet emailed for that state, with a destination resolvable. */
   emailable: FullReportRow[];
+  /**
+   * G25-C: never-started FREE rows (queued, attempts 0, with a
+   * free_report_grants row) held back because today's platform cap is
+   * reached (`holdNeverStartedFree`). Filtered BEFORE the `limit` slice so a
+   * capped day never starves failed / stuck / partial rows of their retries.
+   */
+  heldForCap: FullReportRow[];
+}
+
+/** A row the intake route deferred (or one that never got its inline start): queued and never attempted. */
+export function isNeverStarted(row: Pick<FullReportRow, "full_report_status" | "full_report_attempts">): boolean {
+  return row.full_report_status === "queued" && (row.full_report_attempts ?? 0) === 0;
 }
 
 /**
@@ -279,10 +291,19 @@ export interface PendingSweep {
  * backlog never starves the founder who just pressed the button.
  */
 export async function sweepPendingFullReports(
-  opts: { limit?: number; now?: Date; maxAttempts?: number; stuckMs?: number } = {},
+  opts: {
+    limit?: number;
+    now?: Date;
+    maxAttempts?: number;
+    stuckMs?: number;
+    /** G25-C: today's free cap is reached — hold never-started rows that have a free grant. */
+    holdNeverStartedFree?: boolean;
+    /** Injectable for the suite: which analysis ids carry a free grant. */
+    grantedIds?: (ids: readonly string[]) => Promise<Set<string>>;
+  } = {},
 ): Promise<PendingSweep> {
   const supabase = getSupabaseAdmin();
-  if (!supabase) return { runnable: [], emailable: [] };
+  if (!supabase) return { runnable: [], emailable: [], heldForCap: [] };
   const limit = opts.limit ?? 10;
   const now = opts.now ?? new Date();
   const maxAttempts = opts.maxAttempts ?? FULL_REPORT_MAX_ATTEMPTS;
@@ -306,7 +327,7 @@ export async function sweepPendingFullReports(
     .order("created_at", { ascending: false })
     .limit(limit * 3);
   if (e3) console.error("[first-analysis:sweep] partial query failed —", e3.message);
-  const runnable = [
+  let candidates = [
     ...((pending as unknown as FullReportRow[] | null) ?? []).filter((r) =>
       r.full_report_status !== "running" ||
       !r.full_report_started_at ||
@@ -317,7 +338,33 @@ export async function sweepPendingFullReports(
       Boolean(r.full_report_finished_at) ||
       r.full_report_started_at < stuckBefore,
     ),
-  ].slice(0, limit);
+  ];
+  // G25-C: over the free cap, never-started rows WITH a free grant wait for
+  // tomorrow; an entitled member's row (no grant) and every retry keep going.
+  const heldForCap: FullReportRow[] = [];
+  if (opts.holdNeverStartedFree) {
+    const never = candidates.filter(isNeverStarted);
+    if (never.length > 0) {
+      let granted = new Set<string>();
+      try {
+        const lookup = opts.grantedIds ?? (async (ids: readonly string[]) => {
+          const { grantedAnalysisIds } = await import("@/lib/reports/free-grants");
+          return grantedAnalysisIds(ids);
+        });
+        granted = await lookup(never.map((r) => r.id));
+      } catch (err) {
+        console.warn("[first-analysis:sweep] grant lookup failed — holding nothing", err instanceof Error ? err.message : String(err));
+      }
+      candidates = candidates.filter((r) => {
+        if (isNeverStarted(r) && granted.has(r.id)) {
+          heldForCap.push(r);
+          return false;
+        }
+        return true;
+      });
+    }
+  }
+  const runnable = candidates.slice(0, limit);
 
   const { data: done, error: e2 } = await supabase
     .from(ANALYSES_TABLE)
@@ -331,5 +378,5 @@ export async function sweepPendingFullReports(
     .filter((r) => Boolean(r.full_report_email) || Boolean(r.user_id))
     .slice(0, limit);
 
-  return { runnable, emailable };
+  return { runnable, emailable, heldForCap };
 }

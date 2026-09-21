@@ -17,15 +17,10 @@
  * or malformed, the version string simply drops away — the rest of the
  * footer keeps rendering. No client JS, no external deps.
  *
- * The footer is an intentional DARK punctuation band that closes every
- * public page — the same footer edge the light-first homepage uses. It
- * self-scopes with `data-theme="dark"` (the ProShell pattern) so the
- * semantic tokens inside resolve against the dark `--ds-*` ramp without
- * leaking that palette into the light page above it.
- *
- * Only semantic tokens are used inside the scope. Never reach for the
- * `ink-*` / `surface-*` numeric ramps here: those INVERT inside a dark
- * scope, so `bg-ink-950` would paint near-white.
+ * G26 (2026-09-21): the footer is LIGHT — the sunken ground (`#f7f8fa`)
+ * under a 1 px line, dark ink text, navy column headings. The former dark
+ * `data-theme="dark"` punctuation band is gone; the page closes on the
+ * same light template it opened on. Semantic tokens only.
  *
  * Entity lines come from `@/lib/site/legal-entity` (G21 P0-A): the brand
  * block names the marketing operator, the bottom row renders
@@ -73,8 +68,8 @@ export function Footer() {
   const year = new Date().getUTCFullYear();
   return (
     <footer
-      data-theme="dark"
-      className="mt-24 border-t border-line-subtle bg-surface text-secondary"
+      data-tone="sunken"
+      className="mt-24 border-t border-line-subtle bg-surface-sunken text-secondary"
       aria-labelledby="marketing-footer-heading"
     >
       <h2 id="marketing-footer-heading" className="sr-only">
@@ -83,7 +78,7 @@ export function Footer() {
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-16 sm:grid-cols-2 lg:grid-cols-6">
         {/* Brand block (from site/footer.tsx) — logo, one-line pitch, entity + residency. */}
         <div className="sm:col-span-2 lg:col-span-2">
-          <Logo variant="dark" />
+          <Logo variant="light" />
           <p className="mt-4 max-w-xs text-sm leading-relaxed text-secondary">
             The Startup Value Index — one evidence-backed score for every
             Australian startup, for the people who evaluate them and the
@@ -127,8 +122,8 @@ export function Footer() {
           partners config is empty. Inherits footer ink via currentColor. */}
       <div className="border-t border-line-subtle text-secondary">
         <div className="mx-auto max-w-6xl px-6">
-          {/* The partner SVGs paint with currentColor, which an <img> cannot inherit → they rendered black on the dark footer (G17 screenshots). */}
-          <PartnerFooterRow group="accepted" className="[&_img]:invert [&_img]:opacity-90" />
+          {/* Partner SVGs are dark marks — on the light footer they render as drawn (G26 dropped the invert). */}
+          <PartnerFooterRow group="accepted" className="[&_img]:opacity-90" />
         </div>
       </div>
       {/* AU support surface — P1 audit 2026-08-23 asked for a visible

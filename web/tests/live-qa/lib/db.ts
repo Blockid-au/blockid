@@ -111,3 +111,46 @@ export function countAppUsersByEmail(email: string): number {
   assertQaEmail(email);
   return Number(firstLine(psql(`select count(*) from public.app_users where email = ${q(email)};`)) || "0");
 }
+
+// ── G25-C — the free-allowance ledger (free_report_grants, migration 0439) ──
+
+/** Is the ledger table in the database (0439 applied)? */
+export function freeReportGrantsTableExists(): boolean {
+  return firstLine(psql("select to_regclass('public.free_report_grants') is not null;")) === "t";
+}
+
+/**
+ * Seed the two free reports for the QA founder address so the NEXT run is
+ * the third one — the pay path — without spending a single model call.
+ * `emailHash` is the app's own sha256 over the normalised address (the
+ * spec computes it the same way lib/reports/free-grants.ts does).
+ */
+export function seedFreeReportGrants(email: string, emailHash: string): number {
+  assertQaEmail(email);
+  if (!/^[0-9a-f]{64}$/.test(emailHash)) throw new Error("bad email hash");
+  // One statement: the outer count sees the rows from before the CTE, the
+  // CTE's RETURNING adds what was inserted now — together, the total.
+  const out = firstLine(psql(
+    `with i as (
+       insert into public.free_report_grants (email_hash, email, sequence_no, source, delivery_status, delivered_at, submitted_at)
+       values (${q(emailHash)}, ${q(email)}, 1, 'guest', 'sent', now() - interval '2 hours', now() - interval '2 hours'),
+              (${q(emailHash)}, ${q(email)}, 2, 'account', 'queued', null, now() - interval '1 hour')
+       on conflict (email_hash, sequence_no) do nothing
+       returning 1
+     )
+     select (select count(*) from i) + (select count(*) from public.free_report_grants where email = ${q(email)});`,
+  ));
+  return Number(out || "0");
+}
+
+/** Rows in the ledger for the QA address (0 after erasure). */
+export function countFreeReportGrants(email: string): number {
+  assertQaEmail(email);
+  return Number(firstLine(psql(`select count(*) from public.free_report_grants where email = ${q(email)};`)) || "0");
+}
+
+/** Remove the seeded rows (a lane's own cleanup when the erasure RPC does not yet cover the table). */
+export function deleteFreeReportGrants(email: string): number {
+  assertQaEmail(email);
+  return Number(firstLine(psql(`with d as (delete from public.free_report_grants where email = ${q(email)} returning 1) select count(*) from d;`)) || "0");
+}

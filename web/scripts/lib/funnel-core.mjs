@@ -30,6 +30,9 @@ export const FUNNEL_EVENT_NAMES = Object.freeze([
   "checkout",
   "trust_report_purchased",
   "feature_gate_hit",
+  // G25-D review-before-pay: the review step rendered / the Pay button pressed.
+  "checkout_review_viewed",
+  "checkout_started",
 ]);
 
 /** Ordered funnel steps → the event that marks them. */
@@ -40,6 +43,9 @@ export const FUNNEL_STEPS = Object.freeze([
   { key: "paywall_views", event: "paywall_view" },
   { key: "checkouts", event: "checkout" },
   { key: "paid", event: "trust_report_purchased" },
+  // G25-D: a second, parallel edge (plans / packs / SKUs) — review → pay click.
+  { key: "review_views", event: "checkout_review_viewed" },
+  { key: "pay_clicks", event: "checkout_started" },
 ]);
 
 /** Conversion edges (numerator step / denominator step). */
@@ -49,6 +55,7 @@ export const CONVERSIONS = Object.freeze([
   { key: "report_to_paywall", from: "report_views", to: "paywall_views" },
   { key: "paywall_to_checkout", from: "paywall_views", to: "checkouts" },
   { key: "checkout_to_paid", from: "checkouts", to: "paid" },
+  { key: "review_to_pay", from: "review_views", to: "pay_clicks" },
 ]);
 
 /**
@@ -71,6 +78,8 @@ export const CONVERSIONS = Object.freeze([
  * @property {number} paywall_views
  * @property {number} checkouts
  * @property {number} paid
+ * @property {number} review_views
+ * @property {number} pay_clicks
  * @property {Record<string, number>} gate_hits
  * @property {Record<string, number | null>} conv
  * @property {number} events
@@ -121,6 +130,8 @@ export function emptyCounts() {
     paywall_views: 0,
     checkouts: 0,
     paid: 0,
+    review_views: 0,
+    pay_clicks: 0,
     gate_hits: {},
     conv: Object.fromEntries(CONVERSIONS.map((c) => [c.key, null])),
     events: 0,
@@ -212,7 +223,9 @@ export function rowsInWindow(rows, { days, now = Date.now(), includeToday = fals
  * @param {readonly EventRow[]} rows
  */
 export function lastSignups(rows, n = 20) {
-  const steps = FUNNEL_STEPS.map((s) => s.event);
+  // The A$3 ladder only — the G25-D review / pay edge is a parallel path,
+  // not a "further" step than paid.
+  const steps = FUNNEL_STEPS.filter((s) => s.key !== "review_views" && s.key !== "pay_clicks").map((s) => s.event);
   const furthest = new Map();
   const signups = [];
   for (const row of rows ?? []) {

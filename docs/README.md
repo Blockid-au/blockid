@@ -52,7 +52,7 @@
 | [`ops/crontab-setup.md`](./ops/crontab-setup.md) | Catalogue of host crons (three families) with dry-run commands per job | verified 2026-09-19 |
 | [`ops/db-migrations.md`](./ops/db-migrations.md) | `scripts/db/apply-migration.sh`, ledger, `migration-status.mjs`, deferred list | verified 2026-09-19 |
 | [`ops/ai-providers.md`](./ops/ai-providers.md) | Provider tiering, keys, limits, cost; DeepInfra-first routing | verified 2026-09-15 |
-| [`ops/pilots.md`](./ops/pilots.md) | Evaluator pilot comps (G16-C): start / end / expiry, `/admin/pilots`, the apply form | verified 2026-09-19 |
+| [`ops/pilots.md`](./ops/pilots.md) | **Retired 2026-09-21 (G25)** — historical runbook for the evaluator pilot comps; `/admin/pilots` is a read-only ledger, no new pilots | retired 2026-09-21 |
 | [`ops/google-sign-in.md`](./ops/google-sign-in.md) | Two Google flows, console settings, error codes | verified 2026-09-15 |
 | [`ops/public-page-caching.md`](./ops/public-page-caching.md) | Hash-mode CSP + edge cache for public pages | verified 2026-09-14 |
 | [`ops/analytics.md`](./ops/analytics.md) | GTM / GA4 under the strict CSP; server-side money events | verified 2026-09-16 |

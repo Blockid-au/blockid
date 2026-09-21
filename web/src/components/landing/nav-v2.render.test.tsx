@@ -25,21 +25,22 @@ beforeEach(() => {
   auth.user = undefined;
 });
 
-describe("NavV2 — one header, two skins", () => {
-  it("default = dark island: one <header data-theme=dark> + nav[aria-label=Primary], skeleton while auth resolves", () => {
+describe("NavV2 — one header, one light skin (G26)", () => {
+  it("default = light island: one <header data-theme=light> + nav[aria-label=Primary], skeleton while auth resolves", () => {
     const html = renderToStaticMarkup(<NavV2 />);
     expect((html.match(/<header\b/g) ?? []).length).toBe(1);
-    expect(html).toMatch(/<header[^>]*data-theme="dark"[^>]*data-nav-variant="dark"/);
+    expect(html).toMatch(/<header[^>]*data-theme="light"[^>]*data-nav-variant="light"/);
     expect(html).toContain('aria-label="Primary"');
     expect(html).toContain('data-testid="nav-v2-auth-skeleton"');
-    expect(html).toMatch(/<header[^>]*class="[^"]*bg-brand-navy\/85/);
+    expect(html).toMatch(/<header[^>]*class="[^"]*bg-surface\/95/);
+    expect(html).not.toMatch(/bg-brand-navy|text-white|text-brand-ink/);
   });
 
-  it("variant=light: same landmarks, light scope, semantic tokens on the bar", () => {
-    const html = renderToStaticMarkup(<NavV2 variant="light" />);
+  it("the deprecated variant=dark still renders the light skin (no navy island anywhere)", () => {
+    const html = renderToStaticMarkup(<NavV2 variant="dark" />);
     expect((html.match(/<header\b/g) ?? []).length).toBe(1);
     expect(html).toMatch(/<header[^>]*data-theme="light"[^>]*data-nav-variant="light"/);
-    expect(html).toMatch(/<header[^>]*class="[^"]*bg-surface\/90/);
+    expect(html).toMatch(/<header[^>]*class="[^"]*bg-surface\/95/);
     expect(html).not.toMatch(/<header[^>]*class="[^"]*bg-brand-navy/);
     expect(html).toContain('aria-label="Primary"');
     // Same menu, same CTA — a skin never changes the IA.
@@ -48,14 +49,15 @@ describe("NavV2 — one header, two skins", () => {
     }
   });
 
-  it("signed out: Sign in + the Run a cohort pilot CTA (G21 P0-B); signed in: My workspace + the shared user-menu rows for the persona", () => {
+  it("signed out: Sign in + the Start a cohort CTA (G25); signed in: My workspace + the shared user-menu rows for the persona", () => {
     auth.user = null;
     const out = renderToStaticMarkup(<NavV2 />);
     expect(out).toContain('href="/auth/login"');
     expect(out).toMatch(
-      /<a[^>]*data-cta-id="run_cohort_pilot"[^>]*href="\/solutions\/accelerator#pilot"|<a[^>]*href="\/solutions\/accelerator#pilot"[^>]*data-cta-id="run_cohort_pilot"/,
+      /<a[^>]*data-cta-id="start_cohort"[^>]*href="\/signup\?segment=evaluator&amp;plan=accelerator_starter&amp;trial=1&amp;interval=annual"|<a[^>]*href="\/signup\?segment=evaluator&amp;plan=accelerator_starter&amp;trial=1&amp;interval=annual"[^>]*data-cta-id="start_cohort"/,
     );
-    expect(out).toContain("Run a cohort pilot");
+    expect(out).toContain("Start a cohort");
+    expect(out).not.toMatch(/pilot/i);
     expect(out).not.toContain("Score a startup");
     expect(out).not.toContain("Do you need money?");
     // No dropdown trigger in the bar any more — seven plain links.

@@ -143,37 +143,37 @@ function panelClasses(variant: PanelVariant): string {
   if (variant === "workspace") {
     return "rounded-lg border border-surface-200 bg-white p-4";
   }
-  return "mt-10 rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900";
+  return "mt-10 rounded-lg border border-line-subtle bg-white p-6";
 }
 
 function headingClasses(variant: PanelVariant): string {
   return variant === "workspace"
     ? "text-lg font-semibold text-ink-800"
-    : "text-xl font-semibold text-slate-900 dark:text-slate-100";
+    : "text-xl font-semibold text-primary";
 }
 
 function subheadingClasses(variant: PanelVariant): string {
   return variant === "workspace"
     ? "mt-1 text-xs text-ink-500"
-    : "mt-2 text-sm text-slate-600 dark:text-slate-400";
+    : "mt-2 text-sm text-secondary";
 }
 
 function labelClasses(variant: PanelVariant): string {
   return variant === "workspace"
     ? "text-sm font-semibold text-ink-800"
-    : "text-sm font-semibold text-slate-900 dark:text-slate-100";
+    : "text-sm font-semibold text-primary";
 }
 
 function inputClasses(variant: PanelVariant): string {
   return variant === "workspace"
     ? "mt-2 w-full rounded-md border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
-    : "mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100";
+    : "mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500";
 }
 
 function submitClasses(variant: PanelVariant): string {
   return variant === "workspace"
-    ? "inline-flex items-center rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-surface-300"
-    : "inline-flex items-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700";
+    ? "inline-flex items-center rounded-md bg-action px-4 py-2 text-sm font-semibold text-on-action transition hover:bg-action-hover disabled:cursor-not-allowed disabled:bg-surface-300"
+    : "inline-flex items-center rounded-md bg-action px-4 py-2 text-sm font-semibold text-on-action transition hover:bg-action-hover disabled:cursor-not-allowed disabled:bg-surface-300";
 }
 
 export function LandingPagePreviewPanel({
@@ -252,11 +252,11 @@ export function LandingPagePreviewPanel({
   const hintTextClass =
     variant === "workspace"
       ? "mt-0.5 text-xs text-ink-500"
-      : "mt-1 text-xs text-slate-500 dark:text-slate-400";
+      : "mt-1 text-xs text-muted";
   const bodyTextClass =
     variant === "workspace"
       ? "text-sm text-ink-700"
-      : "text-sm text-slate-700 dark:text-slate-300";
+      : "text-sm text-slate-700";
 
   return (
     <section
@@ -271,7 +271,7 @@ export function LandingPagePreviewPanel({
         <button
           type="button"
           onClick={() => setCmoDraftOpen((v) => !v)}
-          className="text-xs font-semibold uppercase tracking-wide text-emerald-700 hover:text-emerald-800 dark:text-emerald-400"
+          className="text-xs font-semibold uppercase tracking-wide text-emerald-700 hover:text-emerald-800"
           data-testid="landing-page-preview-cmo-toggle"
           aria-expanded={cmoDraftOpen}
         >
@@ -279,7 +279,7 @@ export function LandingPagePreviewPanel({
         </button>
         {cmoDraftOpen ? (
           <div
-            className="mt-3 rounded-md border border-emerald-200 bg-emerald-50/50 p-4 dark:border-emerald-900/40 dark:bg-emerald-950/20"
+            className="mt-3 rounded-md border border-emerald-200 bg-emerald-50/50 p-4"
             data-testid="landing-page-preview-cmo-panel"
           >
             <p className={`${hintTextClass}`}>{copy.autoDraftHint}</p>
@@ -515,7 +515,7 @@ export function LandingPagePreviewPanel({
 
       {fetchState.status === "error" ? (
         <div
-          className="mt-6 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200"
+          className="mt-6 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
           data-testid="landing-page-preview-error"
           role="alert"
         >
@@ -539,7 +539,7 @@ export function LandingPagePreviewPanel({
             <p className={`text-xs font-semibold uppercase tracking-wide ${hintTextClass}`}>
               {copy.resultHeading}
             </p>
-            <div className="mt-2 overflow-hidden rounded-md border border-slate-200 dark:border-slate-800">
+            <div className="mt-2 overflow-hidden rounded-md border border-line-subtle">
               <iframe
                 srcDoc={fetchState.body.html}
                 title="Landing page preview"
@@ -557,14 +557,14 @@ export function LandingPagePreviewPanel({
               <button
                 type="button"
                 onClick={copyMarkdown}
-                className="rounded-md border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-emerald-500 hover:text-emerald-700 dark:border-slate-700 dark:text-slate-300"
+                className="rounded-md border border-line px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-emerald-500 hover:text-emerald-700"
                 data-testid="landing-page-preview-copy-md"
               >
                 {copied ? copy.copyMarkdownDone : copy.copyMarkdown}
               </button>
             </div>
             <pre
-              className={`mt-2 overflow-x-auto rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-800 dark:border-slate-800 dark:bg-slate-950 dark:text-slate-200`}
+              className={`mt-2 overflow-x-auto rounded-md border border-line-subtle bg-surface-sunken p-3 text-xs text-slate-800`}
               data-testid="landing-page-preview-markdown"
             >
               {fetchState.body.markdown}
@@ -589,7 +589,7 @@ function ValidationBlock(props: {
   if (valid) {
     return (
       <div
-        className="rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900 dark:border-emerald-900/40 dark:bg-emerald-950/30 dark:text-emerald-200"
+        className="rounded-md border border-emerald-300 bg-emerald-50 p-3 text-sm text-emerald-900"
         data-testid="landing-page-preview-validation"
         data-valid="true"
       >
@@ -599,7 +599,7 @@ function ValidationBlock(props: {
   }
   return (
     <div
-      className="rounded-md border border-amber-300 bg-amber-50 p-3 dark:border-amber-900/40 dark:bg-amber-950/30"
+      className="rounded-md border border-amber-300 bg-amber-50 p-3"
       data-testid="landing-page-preview-validation"
       data-valid="false"
     >

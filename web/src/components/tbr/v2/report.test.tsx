@@ -547,7 +547,9 @@ describe("<TbrReportV2> citations (G24-A)", () => {
     expect(links.length).toBeGreaterThanOrEqual(5);
     for (const a of links) {
       expect(a).toContain("focus-visible:ring-2");
-      expect(a).toContain("before:-inset-y-4");
+      expect(a).toContain("before:h-11 before:w-11");
+      expect(a).toContain("before:-translate-x-1/2 before:-translate-y-1/2");
+      expect(a).toContain('title="Evidence ');
     }
     expect(html).toContain(`id="${TBR_V2_SECTION_IDS.evidenceCited}"`);
     const rows = html.match(/data-tbr-footnote="(\d+)"/g) ?? [];
@@ -559,6 +561,16 @@ describe("<TbrReportV2> citations (G24-A)", () => {
     // TRE's evidence-used row for Stripe carries footnote 1.
     const tre = between(html, "tbr-dim-tre", "tbr-dim-mpc");
     expect(tre.slice(tre.indexOf('data-tbr-evidence-used="tre"'))).toMatch(/Stripe revenue \(last sync\)<\/span><sup[^>]*>1</);
+    expect(appendix).toContain("Stripe (revenue)");
+    expect(appendix).toContain("2026-09-10");
+    expect(appendix).toContain("AU market anchor (ABS / IBISWorld)");
+    expect(appendix).toContain("public URLs");
+    expect(tbrV2Toc(citedDemoReportV2()).at(-1)).toEqual({ id: TBR_V2_SECTION_IDS.evidenceCited, label: "Evidence cited" });
+    // G24 UI lane: at < sm the level · source · date columns collapse into a stacked
+    // meta line under the label (no sideways scroll at 375 px); print keeps the columns.
+    expect(appendix.match(/hidden sm:table-cell print:table-cell/g)?.length ?? 0).toBeGreaterThanOrEqual(6);
+    expect((appendix.match(/data-tbr-footnote-meta/g) ?? []).length).toBe(3);
+    expect(appendix).toContain("sm:hidden");
   });
 
   it("[unevidenced] becomes the muted unverified chip (EN / VI), and the VI appendix reads Vietnamese", () => {

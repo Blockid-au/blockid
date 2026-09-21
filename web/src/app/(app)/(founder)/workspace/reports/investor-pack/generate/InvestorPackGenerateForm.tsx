@@ -62,7 +62,7 @@ export function InvestorPackGenerateForm({ initialDownloadUrl, previewHref, read
           type="button"
           onClick={handleGenerate}
           disabled={loading}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 hover:bg-brand-700 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 px-4 py-2 text-sm font-medium text-white transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg bg-action hover:bg-action-hover disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-action px-4 py-2 text-sm font-medium text-on-action transition-colors"
           aria-busy={loading}
         >
           {loading ? (
@@ -100,7 +100,7 @@ export function InvestorPackGenerateForm({ initialDownloadUrl, previewHref, read
           href={previewHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-2 text-sm font-medium text-ink-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 transition-colors"
+          className="inline-flex items-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
         >
           Preview
         </a>
@@ -108,7 +108,7 @@ export function InvestorPackGenerateForm({ initialDownloadUrl, previewHref, read
         {downloadUrl && !result && (
           <a
             href={downloadUrl}
-            className="inline-flex items-center rounded-lg border border-brand-300 dark:border-brand-700 px-4 py-2 text-sm font-medium text-brand-700 dark:text-brand-300 hover:bg-brand-50 dark:hover:bg-brand-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 transition-colors"
+            className="inline-flex items-center rounded-lg border border-brand-300 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
             download
           >
             Download last pack
@@ -118,7 +118,7 @@ export function InvestorPackGenerateForm({ initialDownloadUrl, previewHref, read
 
       {/* Progress hint */}
       {loading && (
-        <p className="text-xs text-slate-500 dark:text-slate-400">
+        <p className="text-xs text-slate-500">
           Building your investor pack — this usually takes 3–5 seconds.
         </p>
       )}
@@ -127,31 +127,31 @@ export function InvestorPackGenerateForm({ initialDownloadUrl, previewHref, read
       {result?.ok && result.downloadUrl && (
         <div
           role="status"
-          className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-950/40 p-4"
+          className="rounded-lg border border-emerald-200 bg-emerald-50 p-4"
         >
-          <p className="text-sm font-medium text-emerald-800 dark:text-emerald-300 mb-2">
+          <p className="text-sm font-medium text-emerald-800 mb-2">
             Investor pack ready!
           </p>
-          <p className="text-xs text-emerald-700 dark:text-emerald-400 mb-3">
+          <p className="text-xs text-emerald-700 mb-3">
             Share this link with investors. It expires in 30 days and allows
             direct PDF download — no login required.
           </p>
           <div className="flex items-center gap-2 flex-wrap">
-            <code className="flex-1 rounded bg-emerald-100 dark:bg-emerald-900/50 px-3 py-1.5 text-xs text-emerald-900 dark:text-emerald-200 break-all min-w-0">
+            <code className="flex-1 rounded bg-emerald-100 px-3 py-1.5 text-xs text-emerald-900 break-all min-w-0">
               {typeof window !== "undefined"
                 ? `${window.location.origin}${result.downloadUrl}`
                 : result.downloadUrl}
             </code>
             <a
               href={result.downloadUrl}
-              className="shrink-0 inline-flex items-center rounded-lg bg-bull hover:bg-emerald-800 px-3 py-1.5 text-xs font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 transition-colors"
+              className="shrink-0 inline-flex items-center rounded-lg bg-bull hover:bg-emerald-800 px-3 py-1.5 text-xs font-medium text-on-action focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 transition-colors"
               download
             >
               Download PDF
             </a>
             <button
               type="button"
-              className="shrink-0 inline-flex items-center rounded-lg border border-emerald-300 dark:border-emerald-700 px-3 py-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 transition-colors"
+              className="shrink-0 inline-flex items-center rounded-lg border border-emerald-300 px-3 py-1.5 text-xs font-medium text-emerald-700 hover:bg-emerald-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 transition-colors"
               onClick={() => {
                 const url =
                   typeof window !== "undefined"
@@ -171,12 +171,12 @@ export function InvestorPackGenerateForm({ initialDownloadUrl, previewHref, read
       {result && !result.ok && result.upgradeUrl && (
         <div
           role="alert"
-          className="rounded-lg border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/40 p-4"
+          className="rounded-lg border border-amber-200 bg-amber-50 p-4"
         >
-          <p className="text-sm font-medium text-amber-800 dark:text-amber-300 mb-1">
+          <p className="text-sm font-medium text-amber-800 mb-1">
             Growth plan required
           </p>
-          <p className="text-xs text-amber-700 dark:text-amber-400 mb-3">
+          <p className="text-xs text-amber-700 mb-3">
             The investor pack is included from the Growth plan. Upgrade to
             unlock one-click pack generation with share links.
           </p>
@@ -193,18 +193,18 @@ export function InvestorPackGenerateForm({ initialDownloadUrl, previewHref, read
       {result && !result.ok && !result.upgradeUrl && (
         <div
           role="alert"
-          className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/40 p-4"
+          className="rounded-lg border border-red-200 bg-red-50 p-4"
         >
-          <p className="text-sm font-medium text-red-800 dark:text-red-300 mb-1">
+          <p className="text-sm font-medium text-red-800 mb-1">
             Generation failed
           </p>
-          <p className="text-xs text-red-700 dark:text-red-400 mb-3">
+          <p className="text-xs text-red-700 mb-3">
             {result.error ?? "An unexpected error occurred. Please try again."}
           </p>
           <button
             type="button"
             onClick={handleGenerate}
-            className="inline-flex items-center rounded-lg border border-red-300 dark:border-red-700 px-3 py-1.5 text-xs font-medium text-red-700 dark:text-red-300 hover:bg-red-100 dark:hover:bg-red-900/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600 transition-colors"
+            className="inline-flex items-center rounded-lg border border-red-300 px-3 py-1.5 text-xs font-medium text-red-700 hover:bg-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600 transition-colors"
           >
             Retry
           </button>

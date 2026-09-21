@@ -19,14 +19,14 @@ interface Props {
 }
 
 const STATUS_META: Record<PlanAuditRow["status"], { label: string; color: string; bg: string; icon: typeof CheckCircle2 }> = {
-  match: { label: "Match", color: "text-emerald-700 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/20", icon: CheckCircle2 },
-  drift: { label: "DRIFT", color: "text-red-700 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950/20", icon: AlertTriangle },
+  match: { label: "Match", color: "text-emerald-700", bg: "bg-emerald-50", icon: CheckCircle2 },
+  drift: { label: "DRIFT", color: "text-red-700", bg: "bg-red-50", icon: AlertTriangle },
   // QA-3 P1-5: amount matches but one-off vs recurring (or the interval) does not — checkout mode will not match the Price.
-  cadence_drift: { label: "CADENCE DRIFT", color: "text-red-700 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950/20", icon: AlertTriangle },
-  archived: { label: "Archived", color: "text-amber-700 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/20", icon: Archive },
-  missing_price_id: { label: "Missing ID", color: "text-amber-700 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/20", icon: AlertTriangle },
+  cadence_drift: { label: "CADENCE DRIFT", color: "text-red-700", bg: "bg-red-50", icon: AlertTriangle },
+  archived: { label: "Archived", color: "text-amber-700", bg: "bg-amber-50", icon: Archive },
+  missing_price_id: { label: "Missing ID", color: "text-amber-700", bg: "bg-amber-50", icon: AlertTriangle },
   stripe_not_configured: { label: "Stripe off", color: "text-muted-foreground", bg: "bg-muted/30", icon: XCircle },
-  stripe_lookup_failed: { label: "Lookup fail", color: "text-red-700 dark:text-red-400", bg: "bg-red-50 dark:bg-red-950/20", icon: XCircle },
+  stripe_lookup_failed: { label: "Lookup fail", color: "text-red-700", bg: "bg-red-50", icon: XCircle },
 };
 
 function fmtAud(cents: number | null): string {
@@ -84,10 +84,10 @@ export function StripeSyncClient({ initialAudit }: Props) {
       <div className={cn(
         "rounded-xl border p-4 flex items-start gap-3",
         audit.hasDrift
-          ? "border-red-200 dark:border-red-800/40 bg-red-50/50 dark:bg-red-950/15"
+          ? "border-red-200 bg-red-50/50"
           : audit.hasMissingIds
-            ? "border-amber-200 dark:border-amber-700/40 bg-amber-50/50 dark:bg-amber-950/15"
-            : "border-emerald-200 dark:border-emerald-800/40 bg-emerald-50/50 dark:bg-emerald-950/15"
+            ? "border-amber-200 bg-amber-50/50"
+            : "border-emerald-200 bg-emerald-50/50"
       )}>
         {audit.hasDrift ? <AlertTriangle className="h-5 w-5 text-red-600 mt-0.5 shrink-0" />
           : audit.hasMissingIds ? <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
@@ -165,7 +165,7 @@ export function StripeSyncClient({ initialAudit }: Props) {
                           Create new Price
                         </button>
                       ) : row.status === "missing_price_id" ? (
-                        <span className="text-[11px] text-amber-700 dark:text-amber-400">Set env var</span>
+                        <span className="text-[11px] text-amber-700">Set env var</span>
                       ) : null}
                     </td>
                   </tr>
@@ -174,10 +174,10 @@ export function StripeSyncClient({ initialAudit }: Props) {
                     <td colSpan={6} className="px-4 pb-3 text-[11px] text-muted-foreground leading-relaxed">
                       {row.remediation}
                       {result?.ok && result.newPriceId && (
-                        <div className="mt-2 p-2 rounded bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/40 text-emerald-900 dark:text-emerald-300">
+                        <div className="mt-2 p-2 rounded bg-emerald-50 border border-emerald-200 text-emerald-900">
                           <p className="font-bold mb-1">New Price created ✓</p>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <code className="text-[10px] bg-white dark:bg-black/20 px-1.5 py-0.5 rounded">{result.envVarName}={result.newPriceId}</code>
+                            <code className="text-[10px] bg-white px-1.5 py-0.5 rounded">{result.envVarName}={result.newPriceId}</code>
                             <button
                               onClick={() => navigator.clipboard.writeText(`${result.envVarName}=${result.newPriceId}`)}
                               className="text-[10px] text-blue-600 hover:underline flex items-center gap-0.5"
@@ -189,7 +189,7 @@ export function StripeSyncClient({ initialAudit }: Props) {
                         </div>
                       )}
                       {result && !result.ok && (
-                        <div className="mt-2 p-2 rounded bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/40 text-red-700 dark:text-red-300 text-[11px]">
+                        <div className="mt-2 p-2 rounded bg-red-50 border border-red-200 text-red-700 text-[11px]">
                           ✗ {result.error}
                         </div>
                       )}

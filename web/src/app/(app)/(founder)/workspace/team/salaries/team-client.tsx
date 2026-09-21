@@ -201,9 +201,9 @@ export function TeamClient() {
       </div>
 
       {/* Notice */}
-      <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-700 rounded-xl p-4">
+      <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
         <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-        <p className="text-sm text-amber-800 dark:text-amber-400">
+        <p className="text-sm text-amber-800">
           Salary ranges reflect AU startup market 2026. Sydney/Melbourne commands 10–15% premium. Figures include 11.5% superannuation. Always cross-reference with current Seek/LinkedIn job listings.
         </p>
       </div>
@@ -216,7 +216,7 @@ export function TeamClient() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
               <tr className="bg-muted/50 text-left">
                 <th className="text-xs font-semibold text-muted-foreground py-3 px-4">Role</th>
                 <th className="text-xs font-semibold text-muted-foreground py-3 pr-4">Level</th>
@@ -225,7 +225,7 @@ export function TeamClient() {
                 <th className="text-xs font-semibold text-muted-foreground py-3 pr-4">P75</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-line-subtle">
               {AU_ROLES.map((roleGroup) =>
                 roleGroup.levels.map((level, i) => (
                   <SalaryRow
@@ -254,7 +254,7 @@ export function TeamClient() {
         <div className="px-5 py-4 border-b border-border flex items-center gap-2">
           <FileText className="h-4 w-4 text-muted-foreground" />
           <h2 className="font-semibold text-sm">Division 83A — Australian ESS Tax Guide</h2>
-          <span className="ml-auto text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 px-2 py-0.5 rounded font-medium">
+          <span className="ml-auto text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded font-medium">
             General guidance only
           </span>
         </div>
@@ -299,7 +299,7 @@ export function TeamClient() {
             href={link.href}
             target={link.href.startsWith("http") ? "_blank" : undefined}
             rel={link.href.startsWith("http") ? "noopener noreferrer" : undefined}
-            className="rounded-xl border border-border bg-card p-4 hover:border-blue-300 dark:hover:border-blue-700 transition-colors group"
+            className="rounded-xl border border-border bg-card p-4 hover:border-blue-300 transition-colors group"
           >
             <p className="text-sm font-semibold group-hover:text-blue-600 transition-colors">{link.label}</p>
             <p className="text-xs text-muted-foreground mt-1">{link.desc}</p>

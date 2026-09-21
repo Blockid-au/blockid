@@ -72,7 +72,7 @@ export function IndexWaitlistForm() {
         <button
           type="submit"
           disabled={loading}
-          className="px-6 py-3 rounded-lg bg-brand-600 text-white font-semibold hover:bg-brand-700 disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+          className="px-6 py-3 rounded-lg bg-action text-on-action font-semibold hover:bg-action-hover disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
         >
           {loading ? (
             <>

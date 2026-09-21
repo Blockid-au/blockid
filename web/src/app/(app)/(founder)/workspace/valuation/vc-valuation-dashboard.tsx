@@ -122,7 +122,7 @@ export function ValuationEmptyState() {
       </p>
       <Link
         href="/analyze"
-        className="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+        className="mt-5 inline-flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
       >
         Run my first score <ArrowRight strokeWidth={2} className="h-4 w-4" />
       </Link>
@@ -218,7 +218,7 @@ export function VcValuationDashboard() {
         </p>
         <Link
           href="/score"
-          className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+          className="inline-flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
         >
           Get your SVI Score <ArrowRight strokeWidth={2} className="h-4 w-4" />
         </Link>
@@ -229,43 +229,42 @@ export function VcValuationDashboard() {
   return (
     <div className="space-y-6">
       {/* Blended valuation hero */}
-      {/* Intentionally dark valuation hero. data-theme="dark" scopes the
-          dark token map to this subtree (the ProShell pattern) so the
-          white-alpha chips inside resolve to real surface tokens. */}
-      <div data-theme="dark" className="rounded-2xl bg-gradient-to-br from-brand-700 to-surface text-primary p-6 md:p-8">
+      {/* G26: light hero — white card, 1 px line, sm shadow, navy figures on
+          white (the dark gradient band is gone; light is the only default). */}
+      <div className="rounded-2xl border border-line-subtle bg-surface text-primary p-6 md:p-8 shadow-1" data-testid="valuation-hero">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-xs uppercase tracking-[0.2em] text-brand-300 font-semibold">
+            <p className="text-xs uppercase tracking-[0.2em] text-accent font-semibold">
               VC-Grade Valuation · {report.stage} · {report.sector}
             </p>
-            <p className="mt-2 text-4xl md:text-5xl font-bold tabular-nums">
+            <p className="mt-2 text-4xl md:text-5xl font-bold tabular-nums text-strong">
               {fmtAud(report.blended.midAud)}
             </p>
-            <p className="mt-1 text-sm text-brand-200">
+            <p className="mt-1 text-sm text-muted">
               {fmtAud(report.blended.lowAud)} – {fmtAud(report.blended.highAud)} range
             </p>
             {connectedRevenue && (
-              <p className="mt-1 text-xs text-brand-200" data-testid="connected-revenue-line">
+              <p className="mt-1 text-xs text-muted" data-testid="connected-revenue-line">
                 {connectedRevenue.label} · {connectedRevenue.multipleLow}–{connectedRevenue.multipleHigh}× ARR ({connectedRevenue.multipleSource})
               </p>
             )}
             {methodNote && (
-              <p className="mt-1 text-xs text-amber-200" data-testid="valuation-method-note">
+              <p className="mt-1 text-xs text-warn" data-testid="valuation-method-note">
                 {methodNote}
               </p>
             )}
           </div>
           <div className="text-right flex flex-col items-end gap-2">
             <div>
-              <p className="text-xs text-brand-300">Confidence</p>
+              <p className="text-xs text-muted">Confidence</p>
               <p className="text-3xl font-bold tabular-nums">{report.blended.confidence}%</p>
-              {svi && <p className="text-xs text-brand-300 mt-0.5">SVI {svi}</p>}
+              {svi && <p className="text-xs text-muted mt-0.5">SVI {svi}</p>}
             </div>
             <div className="flex gap-2">
               <button
                 type="button"
                 onClick={() => exportCsv(report)}
-                className="flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-medium text-primary transition-colors"
+                className="flex items-center gap-1.5 rounded-lg border border-line bg-surface hover:bg-surface-hover px-3 py-1.5 min-h-11 text-xs font-medium text-primary transition-colors"
               >
                 <Download strokeWidth={1.75} className="h-3 w-3" />
                 Export CSV
@@ -274,7 +273,7 @@ export function VcValuationDashboard() {
                 type="button"
                 onClick={() => void handlePdfExport()}
                 disabled={pdfLoading}
-                className="flex items-center gap-1.5 rounded-lg bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-medium text-primary transition-colors disabled:opacity-60"
+                className="flex items-center gap-1.5 rounded-lg border border-line bg-surface hover:bg-surface-hover px-3 py-1.5 min-h-11 text-xs font-medium text-primary transition-colors disabled:opacity-60"
               >
                 <Download strokeWidth={1.75} className="h-3 w-3" />
                 {pdfLoading ? "Generating..." : "Export PDF"}
@@ -284,12 +283,12 @@ export function VcValuationDashboard() {
         </div>
         <div className="mt-6 grid grid-cols-3 gap-3">
           {[
-            { label: "Bear Case", value: fmtAud(report.scenarios.bear), color: "bg-red-500/20" },
-            { label: "Base Case", value: fmtAud(report.scenarios.base), color: "bg-white/10" },
-            { label: "Bull Case", value: fmtAud(report.scenarios.bull), color: "bg-emerald-500/20" },
+            { label: "Bear Case", value: fmtAud(report.scenarios.bear), color: "bg-bear/10 border-bear/20" },
+            { label: "Base Case", value: fmtAud(report.scenarios.base), color: "bg-surface-sunken border-line-subtle" },
+            { label: "Bull Case", value: fmtAud(report.scenarios.bull), color: "bg-bull/10 border-bull/20" },
           ].map((s) => (
-            <div key={s.label} className={cn("rounded-xl p-3 text-center", s.color)}>
-              <p className="text-xs text-brand-200">{s.label}</p>
+            <div key={s.label} className={cn("rounded-xl border p-3 text-center", s.color)}>
+              <p className="text-xs text-muted">{s.label}</p>
               <p className="text-base font-bold tabular-nums mt-0.5">{s.value}</p>
             </div>
           ))}
@@ -387,7 +386,7 @@ function SummaryTab({ report }: { report: VcValuationReport }) {
 function MarketTab({ report }: { report: VcValuationReport }) {
   const m = report.market;
   const bars = [
-    { label: "TAM", value: m.tamAud, color: "bg-brand-600" },
+    { label: "TAM", value: m.tamAud, color: "bg-action" },
     { label: "SAM", value: m.samAud, color: "bg-brand-400" },
     { label: "SOM", value: m.somAud, color: "bg-emerald-500" },
   ];
@@ -467,14 +466,14 @@ function ProjectionsTab({ report }: { report: VcValuationReport }) {
     <div className="space-y-4">
       <div className="overflow-x-auto rounded-xl border border-surface-200">
         <table className="w-full text-xs">
-          <thead className="bg-surface-50 border-b border-surface-200">
+          <thead className="sticky top-0 z-10 bg-surface-sunken border-b border-surface-200">
             <tr>
               {["Month", "MRR", "Revenue", "EBITDA", "OPEX", "Cash Balance"].map((h) => (
                 <th key={h} className="px-3 py-2.5 text-left font-semibold text-ink-600">{h}</th>
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-line-subtle">
             {rows.map((r) => (
               <tr key={r.month} className="border-b border-surface-100 hover:bg-surface-50">
                 <td className="px-3 py-2 font-semibold text-ink-700">M{r.month}</td>

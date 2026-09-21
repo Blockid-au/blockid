@@ -1,7 +1,9 @@
 /**
- * Section — the template's band (G17 D5). Eyebrow + H2 + lede over a
- * `max-w-6xl` container on one of three grounds, with the 48 / 64 / 96 px
- * rhythm. Every marketing section on the site is one of these; page-local
+ * Section — the template's band (G17 D5, light-only since G26). Eyebrow +
+ * H2 + lede over a `max-w-6xl` container on one of TWO grounds (`base`
+ * white / `sunken` soft grey — alternate them; `tone="dark"` is a deprecated
+ * alias of `sunken` and no longer scopes a dark ramp), with the 48 / 64 /
+ * 96 px rhythm. Every marketing section on the site is one of these; page-local
  * `<section>` markup with its own padding is the thing D5 retires.
  *
  * `id` is required: the heading is `${id}-heading` (`headingId()`), which
@@ -21,6 +23,7 @@ import {
   RHYTHM,
   TONE_CLASS,
   headingId,
+  resolveTone,
   type Cta,
   type Rhythm,
   type Tone,
@@ -66,10 +69,10 @@ export function Section({
       id={id}
       aria-labelledby={title ? hid : undefined}
       aria-label={!title ? ariaLabel : undefined}
-      data-theme={tone === "dark" ? "dark" : undefined}
+      data-tone={resolveTone(tone)}
       className={cn(
         "scroll-mt-20",
-        TONE_CLASS[tone],
+        TONE_CLASS[resolveTone(tone)],
         RHYTHM[spacing],
         divider && "border-t border-line-subtle",
         className,

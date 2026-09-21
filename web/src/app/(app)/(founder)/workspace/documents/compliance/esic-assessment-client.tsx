@@ -70,7 +70,7 @@ function Toggle(props: {
         onClick={() => props.onChange(!props.checked)}
         className={cn(
           "relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0 mt-0.5",
-          props.checked ? "bg-brand-600" : "bg-surface-300",
+          props.checked ? "bg-action" : "bg-surface-300",
         )}
       >
         <span
@@ -109,7 +109,7 @@ function TextField(props: {
           step={props.step ?? 1}
           value={props.value}
           onChange={(e) => props.onChange(e.target.value)}
-          className="flex-1 rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="flex-1 rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action"
         />
         {props.suffix ? (
           <span className="text-xs text-ink-500">{props.suffix}</span>
@@ -360,7 +360,7 @@ export function EsicAssessmentClient(props: Props) {
           <button
             type="submit"
             disabled={submitting}
-            className="h-11 px-6 rounded-2xl bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
+            className="h-11 px-6 rounded-2xl bg-action text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
           >
             {submitting ? (
               <>
