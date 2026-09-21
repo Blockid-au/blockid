@@ -36,7 +36,10 @@
 
 import "server-only";
 
+import { createRunStrikeLedger } from "@/lib/ai/run-strikes";
+import { backgroundRunBudget, pipelineCallTimeouts } from "@/lib/report-pipeline/pipeline-timeouts";
 import { callAI } from "@/lib/ai-client";
+import { releaseGrantForFailedAnalysis } from "@/lib/reports/free-grants";
 import { writeLastReportProvider, type LastReportProvider } from "@/lib/ai/last-report";
 import { assertReportUsable, orchestrateReport, type AICallerResult, type PipelineEvent } from "@/lib/report-pipeline/orchestrator";
 import { buildCriteriaData } from "@/lib/report-pipeline/run-for-project";
@@ -88,6 +91,8 @@ export interface ReportV2JobDeps {
   deliver: (row: FullReportRow, envelope: FullReportV2Envelope, opts?: { force?: boolean }) => Promise<DeliveryOutcome>;
   /** Quality telemetry (tbr-quality.jsonl) — optional, never throws. */
   qualityWriter?: TbrQualityWriter;
+  /** Review v3.27.0 P1: give the address its free allowance back after a terminal failure (rows released). */
+  releaseGrant: (analysisId: string) => Promise<number>;
   /** S32-C — "which model wrote the last report" for /api/status. Optional, never throws. */
   recordLastReport?: (rec: LastReportProvider) => void;
   /** How often the progress envelope is written (ms). */
@@ -101,17 +106,23 @@ export interface ReportV2JobDeps {
  * null for a guest (ai_runs.user_id is nullable). No per-user fairness cap
  * on a report run, for the reason documented in run-for-project.
  */
-export function makeReportCaller(analysisId: string, userId: string | null): ReportV2JobDeps["callAI"] {
-  return async (system, user, maxTokens, taskClass): Promise<AICallerResult> => {
+export function makeReportCaller(analysisId: string, _userId: string | null): ReportV2JobDeps["callAI"] {
+  // Review v3.27.0 P1: the same discipline as the paid drain — G28-B stage
+  // timeouts (never one 120 s attempt that outlives the run), ONE run-scoped
+  // strike ledger, and no per-user fairness cap (`userId` would queue a
+  // report run behind the S31 interactive cap and degrade W1 — see
+  // run-for-project.ts). The row's user still lands on `ai_runs` through the
+  // orchestrator's dispatch options.
+  const runStrikes = createRunStrikeLedger();
+  return async (system, user, maxTokens, taskClass, hint): Promise<AICallerResult> => {
     const r = await callAI({
       system,
       user,
       maxTokens,
-      timeoutMs: 120_000,
+      ...pipelineCallTimeouts(hint),
       agentId: `svi:analysis:${analysisId}`,
       taskClass,
-      priority: "user",
-      userId: userId ?? undefined,
+      runStrikes,
     });
     return { text: r.text, costUsd: r.cost_usd, provider: r.via ?? r.provider, model: r.model };
   };
@@ -154,18 +165,26 @@ export function progressFromEvent(prev: ReportV2Progress, ev: PipelineEvent, now
 }
 
 /** Provider / model tally over the run's calls (the document itself carries no model names). */
-export type CallTally = Map<string, { provider: string; model: string; n: number }>;
+export type CallTally = Map<string, { provider: string; model: string; n: number; costUsd: number }>;
+
+/** Total US$ across the tally (review v3.27.0 P3: degraded runs must record real spend). */
+export function tallyCost(tally: CallTally): number {
+  let total = 0;
+  for (const t of tally.values()) total += t.costUsd;
+  return Math.round(total * 10_000) / 10_000;
+}
 
 /** Wrap the dispatcher call so every answered call is counted by provider + model. */
 export function tallyingCaller(inner: ReportV2JobDeps["callAI"], tally: CallTally): ReportV2JobDeps["callAI"] {
-  return async (system, user, maxTokens, taskClass) => {
-    const r = await inner(system, user, maxTokens, taskClass);
+  return async (system, user, maxTokens, taskClass, hint) => {
+    const r = await inner(system, user, maxTokens, taskClass, hint);
     if (typeof r !== "string") {
       const provider = r.provider ?? "";
       const model = r.model ?? "";
       const key = `${provider}|${model}`;
-      const cur = tally.get(key) ?? { provider, model, n: 0 };
+      const cur = tally.get(key) ?? { provider, model, n: 0, costUsd: 0 };
       cur.n += 1;
+      cur.costUsd += typeof r.costUsd === "number" && Number.isFinite(r.costUsd) ? r.costUsd : 0;
       tally.set(key, cur);
     }
     return r;
@@ -253,6 +272,9 @@ export async function runReportV2Job(id: string, deps: ReportV2JobDeps = default
       tier: "standard",
       tierV2: "standard",
       locale: "en",
+      // Review v3.27.0 P1: the background budget (420 s / 48 calls) — the
+      // interactive default (120 s / 30) degraded every free run to cards.
+      ...backgroundRunBudget(),
       callAI: tallyingCaller(deps.callAI, tally),
       onEvent,
     });
@@ -272,7 +294,9 @@ export async function runReportV2Job(id: string, deps: ReportV2JobDeps = default
           tier: "standard",
           report: null,
           calls: degradedErr.calls,
-          costUsd: 0,
+          // Real spend of the degraded run (review v3.27.0 P3) — the tally
+          // carries every answered call's cost.
+          costUsd: tallyCost(tally),
           durationMs: deps.now().getTime() - t0,
           degradedSections: degradedErr.degradedSections,
           sviVersion: built.analysis.version,
@@ -286,6 +310,12 @@ export async function runReportV2Job(id: string, deps: ReportV2JobDeps = default
     await deps.finish(id, { status: "failed", report: envelope, error: message });
     // The cron re-claims a `failed` row while attempts < FULL_REPORT_MAX_ATTEMPTS.
     const retryable = (row.full_report_attempts ?? 0) < FULL_REPORT_MAX_ATTEMPTS;
+    if (!retryable) {
+      // Review v3.27.0 P1: attempts exhausted → the address gets its free
+      // allowance back (nothing was delivered), and the panel says so.
+      const released = await deps.releaseGrant(id).catch(() => 0);
+      if (released) console.warn("[report-v2-job] free grant released after terminal failure", { analysisId: id, released });
+    }
     return { outcome: "failed", error: message, retryable };
   }
 
@@ -467,6 +497,7 @@ export function defaultReportV2Deps(): ReportV2JobDeps {
     load: loadFullReportRow,
     saveProgress: (id, envelope) => saveFullReportProgress(id, envelope),
     finish: (id, outcome) => finishFullReport(id, outcome),
+    releaseGrant: releaseGrantForFailedAnalysis,
     orchestrate: (input) => orchestrateReport(input),
     // Bound to the row at start — see `startReportV2Job`.
     callAI: makeReportCaller("unbound", null),

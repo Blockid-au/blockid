@@ -38,7 +38,7 @@ import type { AnalysisLike } from "@/lib/svi/evidence-confidence";
 import { callAI } from "@/lib/ai-client";
 import { newSlug } from "@/lib/slug";
 import { assertReportUsable, orchestrateReport, type AICallerResult, type PipelineEvent, type PipelineEventHandler } from "@/lib/report-pipeline/orchestrator";
-import { pipelineCallTimeouts, type PipelineCallHint } from "@/lib/report-pipeline/pipeline-timeouts";
+import { backgroundRunBudget, pipelineCallTimeouts, type PipelineCallHint } from "@/lib/report-pipeline/pipeline-timeouts";
 import { createRunStrikeLedger } from "@/lib/ai/run-strikes";
 import type { ReportTierV2, ReportV2 } from "@/lib/report-v2/schema";
 import type { AssembledReport, ReportTier, CriterionData, ReportSection } from "@/lib/report-pipeline/types";
@@ -495,6 +495,9 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
       tier,
       tierV2,
       locale,
+      // Review v3.27.0 P1: background budget (420 s / 48 calls), not the
+      // interactive 120 s default — with the W4 reserve that left W1 30 s.
+      ...backgroundRunBudget(),
       callAI: aiCaller,
       onEvent,
     });

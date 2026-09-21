@@ -84,7 +84,11 @@ describe("G28-C: the v3 document on the analyze page", () => {
     const report = demoReportV2();
     expect(progressLineV2({ status: "done", progressV2: null, error: null, reportV2: { ...report, dimensions: report.dimensions.map((d) => ({ ...d, degraded: false })) } })).toMatch(/^Complete — the full Trusted Business Report/);
     expect(progressLineV2({ status: "done", progressV2: null, error: null, reportV2: { ...report, dimensions: report.dimensions.map((d, i) => ({ ...d, degraded: i < 2 })) } })).toBe("Complete — 6 of 8 chapters written by the agents; 2 fell back to the deterministic card.");
-    expect(progressLineV2({ status: "failed", progressV2: null, error: "engine_overloaded", reportV2: null })).toMatch(/could not be written.*engine_overloaded.*retried automatically/);
+    // Review v3.27.0 P3: the raw pipeline error never reaches the visitor; the terminal attempt says the allowance was returned.
+    const failedLine = progressLineV2({ status: "failed", progressV2: null, error: "engine_overloaded", reportV2: null });
+    expect(failedLine).toMatch(/could not be written.*retried automatically/);
+    expect(failedLine).not.toContain("engine_overloaded");
+    expect(progressLineV2({ status: "failed", progressV2: null, error: "engine_overloaded", reportV2: null, attempts: 3 })).toMatch(/after three attempts.*did not count against your free reports/);
   });
 
   it("reportApiPath forwards the signed e-mail token to the poll and PDF routes only when present", () => {

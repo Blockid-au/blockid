@@ -78,6 +78,24 @@ export function pipelineCallTimeouts(hint?: PipelineCallHint | null): { timeoutM
   return { timeoutMs: Math.min(timeoutMs, attemptCap), budgetMs };
 }
 
+// ── Background run budget ───────────────────────────────
+//
+// Review v3.27.0 P1: every non-interactive run (paid order drain, workspace
+// re-score, the free-grant job) needs the SAME wall clock the showcase script
+// uses — the orchestrator's interactive default (120 s / 30 calls) degrades
+// every chapter to cards. One helper, env overrides for ops.
+
+export const BACKGROUND_CALL_MAX_DEFAULT = 48;
+export const BACKGROUND_DEADLINE_MS_DEFAULT = 420_000;
+export function backgroundRunBudget(env: NodeJS.ProcessEnv = process.env): { maxCalls: number; deadlineMs: number } {
+  const calls = Number(env.REPORT_ORDER_CALL_MAX ?? "");
+  const ms = Number(env.REPORT_ORDER_DEADLINE_MS ?? "");
+  return {
+    maxCalls: Number.isFinite(calls) && calls > 0 ? Math.floor(calls) : BACKGROUND_CALL_MAX_DEFAULT,
+    deadlineMs: Number.isFinite(ms) && ms > 0 ? Math.floor(ms) : BACKGROUND_DEADLINE_MS_DEFAULT,
+  };
+}
+
 // ── W4 reserve ──────────────────────────────────────────────────────────────
 
 export const W4_RESERVE_MS_DEFAULT = 120_000;

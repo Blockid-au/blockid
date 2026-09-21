@@ -202,6 +202,29 @@ export async function attachAnalysis(grantId: string, analysisId: string, projec
   return true;
 }
 
+/**
+ * Review v3.27.0 P1: a run that failed TERMINALLY (attempts exhausted, no
+ * document) gives the address its allowance back — the grant row is deleted
+ * so the next submission takes the same sequence number again. Returns the
+ * number of rows released (0 when the analysis already has a document or no
+ * grant).
+ */
+export async function releaseGrantForFailedAnalysis(analysisId: string): Promise<number> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return 0;
+  const { data, error } = await supabase
+    .from(FREE_REPORT_GRANTS_TABLE)
+    .delete()
+    .eq("analysis_id", analysisId)
+    .neq("delivery_status", "sent")
+    .select("id");
+  if (error) {
+    console.error("[free-grants:release-failed] delete failed —", error.message);
+    return 0;
+  }
+  return (data as Array<{ id: string }> | null)?.length ?? 0;
+}
+
 /** Give a reservation back (the run never produced a saved analysis). */
 export async function releaseGrant(grantId: string): Promise<void> {
   const supabase = getSupabaseAdmin();

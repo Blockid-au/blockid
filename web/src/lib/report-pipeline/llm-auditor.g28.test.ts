@@ -230,3 +230,19 @@ describe("G28-A — the contracts and the critic carry the rule (EN + VI)", () =
     expect(groundedShareOf(fx, { verdict: "Early [ev:x]", strengths: ["We estimate CAC at A$200 (unevidenced)", "Chúng tôi ước tính SAM khoảng 1.400 tổ chức."], gaps: ["SAM is roughly 1,400 entities."] })).toBe(0.75);
   });
 });
+
+describe("isTargetSentence — facts embedded in advice stay claims (review v3.27.0 P2)", () => {
+  it("a stated fact inside an advice sentence is never a target, whatever cues sit by its numbers", () => {
+    for (const t of [
+      "We recommend the team, which currently serves 1,200–1,500 paying customers, prioritise churn.",
+      "The company needs a bridge: MRR was A$40–60K through 2025.",
+      "Revenue reached A$1.2M+ last year, so the team should target 3x.",
+    ]) expect(isTargetSentence(t), t).toBe(false);
+  });
+  it("a plan with range / plus cues and no fact verb is still a target", () => {
+    for (const t of [
+      "The site needs a content strategy: 3–5 articles a month, each 2,000+ words.",
+      "**Action**: Founder should post 3x/week on LinkedIn about valuation insights, share sample reports, and engage in Australian founder groups.",
+    ]) expect(isTargetSentence(t), t).toBe(true);
+  });
+});

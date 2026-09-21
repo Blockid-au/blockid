@@ -107,12 +107,15 @@ describe("computed facts — content", () => {
 });
 
 describe("computed facts — rows + the auto-citer + the gate", () => {
-  it("rows carry every dimension, connector_other / partial, and the full content as the value", () => {
+  it("rows carry every dimension, the platform's own maths as connector_other and public knowledge rows as external (review v3.27.0 P2), partial, full content as the value", () => {
     const rows = computedFactRows(input(), "2026-09-21T09:00:00.000Z");
     expect(rows).toHaveLength(6);
+    const bySource = new Map(rows.map((r) => [r.evidence_id, r.source]));
+    expect(bySource.get(COMPUTED_FACT_IDS["svi-scores"])).toBe("connector_other");
+    expect(bySource.get(COMPUTED_FACT_IDS["benchmarks"])).toBe("connector_other");
+    for (const k of ["au-context", "saas-benchmarks", "au-legal"] as const) expect(bySource.get(COMPUTED_FACT_IDS[k]), k).toBe("external");
     for (const r of rows) {
       expect(r.dims).toEqual([...DIM_ORDER]);
-      expect(r.source).toBe("connector_other");
       expect(r.status).toBe("partial");
       expect(r.observedAt).toBe("2026-09-21T09:00:00.000Z");
       expect(r.value!.length).toBeGreaterThan(40);

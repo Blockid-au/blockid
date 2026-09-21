@@ -255,11 +255,18 @@ export function computedFacts(input: ComputedFactsInput): ComputedFact[] {
   return out;
 }
 
+/** Kinds that are public references rather than platform computations. */
+const KNOWLEDGE_KINDS: ReadonlySet<ComputedFactKind> = new Set(["au-context", "saas-benchmarks", "au-legal", "sector-entities"]);
+
 /** The same facts as appendix / chapter evidence rows (every dimension may cite them). */
 export function computedFactRows(input: ComputedFactsInput, at = new Date().toISOString()): EvidenceRow[] {
   return computedFacts(input).map((f) => ({
     evidence_id: f.evidence_id,
-    source: "connector_other",
+    // Review v3.27.0 P2: knowledge rows (AU context, SaaS bands, AU legal
+    // fees, sector entity counts) are public references, not the founder's
+    // connected data — the appendix must not print "Data connector" for them.
+    // The two computed rows (scores, benchmarks) are the platform's own maths.
+    source: KNOWLEDGE_KINDS.has(f.kind) ? "external" : "connector_other",
     label: f.label,
     status: "partial",
     observedAt: at,

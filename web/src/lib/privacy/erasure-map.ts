@@ -363,6 +363,8 @@ export const NON_FK_EXTRAS: readonly ExtraEntry[] = Object.freeze([
   // /admin/funnel are telemetry we can afford to lose for one person.
   { table: "free_report_grants", column: "email", by: "email", mode: "delete", note: "Free-report grants keyed by the address (email, email_hash, ip_hash) — removed." },
   { table: "free_report_grants", column: "email_hash", by: "email_hash", mode: "delete", note: "Free-report grants whose typed address differs from the account address (plus tags, gmail dots) — the normalised hash catches them (review v3.26.0 P3)." },
+  { table: "analyses", column: "full_report_email", by: "email", mode: "delete", note: "Guest analyses (user_id null) — intake text, summary/full-report e-mail and the v3 document keyed by the delivery address (review v3.27.0 P2)." },
+  { table: "analyses", column: "summary_email", by: "email", mode: "delete", note: "Guest analyses keyed by the free-summary address (same rows as above when both were set)." },
 ]);
 
 /**

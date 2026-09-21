@@ -141,6 +141,7 @@ function harness(r: FullReportRow | null, orchestrate: ReturnType<typeof vi.fn> 
     callAI: vi.fn().mockResolvedValue({ text: "{}", provider: "deepinfra", model: "m-1" }),
     deliver,
     qualityWriter: async () => undefined,
+    releaseGrant: vi.fn(async () => 1),
     progressEveryMs: 0,
   };
   return { deps, saves, finishes, deliver, orchestrate };
@@ -235,6 +236,9 @@ describe("runReportV2Job", () => {
     expect(h.deliver).not.toHaveBeenCalled();
     const last = harness(row({ full_report_attempts: 3 }), vi.fn().mockRejectedValue(new Error("engine_overloaded")));
     expect(await runReportV2Job(SAMPLE_ANALYSIS_ID, last.deps)).toEqual({ outcome: "failed", error: "engine_overloaded", retryable: false });
+    // Review v3.27.0 P1: the terminal failure gives the address its free allowance back; a retryable one does not.
+    expect(last.deps.releaseGrant).toHaveBeenCalledWith(SAMPLE_ANALYSIS_ID);
+    expect(h.deps.releaseGrant).not.toHaveBeenCalled();
   });
 
   it("a usable run with no ReportV2 projection is a failure, not a silent S32 fallback", async () => {
@@ -269,7 +273,7 @@ describe("pure helpers", () => {
       .mockResolvedValueOnce("plain string");
     const caller = tallyingCaller(inner, tally);
     for (let i = 0; i < 4; i += 1) await caller("s", "u", 100);
-    expect([...tally.values()]).toEqual(expect.arrayContaining([{ provider: "deepinfra", model: "m-1", n: 2 }, { provider: "groq", model: "m-2", n: 1 }]));
+    expect([...tally.values()]).toEqual(expect.arrayContaining([{ provider: "deepinfra", model: "m-1", n: 2, costUsd: 0 }, { provider: "groq", model: "m-2", n: 1, costUsd: 0 }]));
     const report = demoReportV2();
     const rec = lastReportRecordV2("a-1", report, tally, NOW);
     expect(rec).toMatchObject({ analysis_id: "a-1", provider: "deepinfra", model: "m-1", models: ["m-1 via deepinfra", "m-2 via groq"] });

@@ -124,9 +124,18 @@ const TARGET_CUE_AFTER_RE = /^\s?(?:\+(?!\d)|[–-]\s?\d)/;
 const TARGET_CUE_BEFORE_RE = /\d\s?[–-]\s?$/;
 const NUMBER_RE = /(?:A?\$|AUD\s?|USD\s?)?\d[\d,.]*\s?(?:k|m|bn?|x|%|million|billion|thousand|-day|-month|-week)?/gi;
 
+/**
+ * Review v3.27.0 P2: a fact embedded in advice ("We recommend the team, which
+ * currently serves 1,200–1,500 paying customers, …", "needs a bridge: MRR was
+ * A$40–60K") must stay a claim — a sentence that STATES what is / was is never
+ * a target, whatever cues sit next to its numbers.
+ */
+const FACT_INDICATOR_RE = /\b(?:was|were|has been|have been|had|currently|serves?|serving|recorded|reached|generated|grew|declined|stands? at|sits? at|totals? (?:of|to)|amounts? to)\b/i;
+
 export function isTargetSentence(claim: string): boolean {
   const bare = claim.replace(EV_MARKER_RE, " ").replace(UUID_RE, " ");
   if (!ADVICE_LEAD_RE.test(bare) && !ADVICE_MODAL_RE.test(bare)) return false;
+  if (FACT_INDICATOR_RE.test(bare)) return false;
   let sawNumber = false;
   for (const m of bare.matchAll(NUMBER_RE)) {
     if (!/\d/.test(m[0])) continue;
