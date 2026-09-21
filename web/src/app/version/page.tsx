@@ -146,6 +146,16 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.26.1",
+    date: "2026-09-21",
+    title: "Review + UI/UX fixes for v3.26.0",
+    changes: [
+      "[review] Admitted [unevidenced] claims keep an '(unverified)' suffix on every marker-free surface; report e-mail transactional; cap 0 refuses; trusted client IP; daily IP hash; erasure by e-mail hash (0441); checkout guard over all session routes; Quick Report review block; explicit Pay labels",
+      "[ui/ux] TBR chapters no longer clipped at 375 px; dashboard bars + visuals legible on phones; 12 px minimum labels; footer/consent/pricing/analyze/tour 44 px targets; footer .au contrast; showcase ** bold; dossier + /admin/validation phone layouts; plan chip sold names; Lucide icons on /startup-index",
+      "[qa] live-qa lanes 21/37/38/41/43/mobile re-pinned on the v3 report + light template; page sweep visits /checkout/review with an order",
+    ],
+  },
+  {
     version: "3.26.0",
     date: "2026-09-21",
     title: "Light template complete + Trusted Business Report v3 (G26, G27)",
