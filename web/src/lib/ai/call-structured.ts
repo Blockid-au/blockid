@@ -17,6 +17,13 @@
  *   5. Insert an `ai_runs` row for the audit trail. Every terminal
  *      status (`ok`, `schema_fail`, `model_error`, `rate_limited`,
  *      `rejected`) writes a row so the caller always gets a `runId`.
+ *      G24-B: `prompt_version_id` is written as NULL when the caller's id
+ *      is the NIL placeholder / not a uuid, and an FK rejection
+ *      (`ai_runs_prompt_version_id_fkey`) is retried once with NULL —
+ *      the row is never dropped for a stale or unregistered prompt id.
+ *      The pipeline registers its prompt versions on first use
+ *      (lib/ai/prompt-registry readOrRegisterPrompt), so NULL is the
+ *      exception path, not the norm. See docs/ops/ai-runs.md.
  *   6. Return `{ ok: true, data, runId }` on success, `{ ok: false,
  *      reason, runId }` on final failure. Never throws for model /
  *      schema / rate-limit failures — callers gate on `ok`.
@@ -474,6 +481,25 @@ interface InsertRunArgs {
   purpose: string;
 }
 
+/** The placeholder the pipeline used before G24-B; never sent to the FK. */
+export const NIL_PROMPT_VERSION_ID = "00000000-0000-0000-0000-000000000000";
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * The `prompt_version_id` to write: the caller's id when it is a real
+ * (non-NIL) uuid, otherwise NULL (0435 made the column nullable). Exported
+ * for tests.
+ */
+export function promptVersionIdForRow(id: string | null | undefined): string | null {
+  if (!id || id === NIL_PROMPT_VERSION_ID) return null;
+  return UUID_RE.test(id) ? id : null;
+}
+
+function isPromptVersionFkError(err: { code?: string; message?: string } | null | undefined): boolean {
+  if (!err) return false;
+  return err.code === "23503" || /ai_runs_prompt_version_id_fkey/.test(err.message ?? "");
+}
+
 async function insertRun(args: InsertRunArgs): Promise<string> {
   const sb = getSupabaseAdmin();
   if (!sb) {
@@ -481,25 +507,28 @@ async function insertRun(args: InsertRunArgs): Promise<string> {
     // caller still has a stable handle for logs.
     return `local-${Date.now()}`;
   }
-  const { data, error } = await sb
-    .from("ai_runs")
-    .insert({
-      prompt_version_id: args.promptVersionId,
-      business_id: args.businessId,
-      user_id: args.userId,
-      model: args.model,
-      input_hash: args.inputHash,
-      output_hash: args.outputHash,
-      tokens_in: args.tokensIn,
-      tokens_out: args.tokensOut,
-      cost_usd: args.costUsd,
-      latency_ms: args.latencyMs,
-      status: args.status,
-      evidence_ids: args.evidenceIds,
-      purpose: args.purpose,
-    })
-    .select("id")
-    .single();
+  const row = {
+    prompt_version_id: promptVersionIdForRow(args.promptVersionId),
+    business_id: args.businessId,
+    user_id: args.userId,
+    model: args.model,
+    input_hash: args.inputHash,
+    output_hash: args.outputHash,
+    tokens_in: args.tokensIn,
+    tokens_out: args.tokensOut,
+    cost_usd: args.costUsd,
+    latency_ms: args.latencyMs,
+    status: args.status,
+    evidence_ids: args.evidenceIds,
+    purpose: args.purpose,
+  };
+  let { data, error } = await sb.from("ai_runs").insert(row).select("id").single();
+  if (error && row.prompt_version_id !== null && isPromptVersionFkError(error)) {
+    // G24-B: a stale / unregistered prompt id must never cost the ledger a
+    // row — keep the run, write NULL for the reference (a uuid, never a secret).
+    console.warn(`[ai_runs] prompt_version_id ${row.prompt_version_id} is not registered — writing NULL`);
+    ({ data, error } = await sb.from("ai_runs").insert({ ...row, prompt_version_id: null }).select("id").single());
+  }
   if (error || !data) {
     // Never let audit-log failure mask the real result — return a
     // synthetic id and log so ops can grep for it.
