@@ -77,14 +77,21 @@ export const V2_PHASE_LABELS: Record<string, string> = {
 };
 
 /** The one-line progress statement for a v2 (Trusted Business Report) run. Exported for the test. */
-export function progressLineV2(view: Pick<FullReportView, "status" | "progressV2" | "error" | "heldForCap" | "reportV2"> | null): string {
+/** Review v3.27.0 P3: raw pipeline error strings never reach the visitor. */
+const FREE_REPORT_TERMINAL_ATTEMPTS = 3;
+export function progressLineV2(view: Pick<FullReportView, "status" | "progressV2" | "error" | "heldForCap" | "reportV2"> & { attempts?: number } | null): string {
   if (!view || view.status === null) return "Preparing your Trusted Business Report…";
   if (view.status === "queued" && view.heldForCap) {
     return "Queued — today's free reports are all taken, so yours is in the queue. We e-mail it the moment it is written; you can close this page.";
   }
   if (view.status === "queued") return "Queued — the report pipeline starts in a moment.";
   if (view.status === "failed") {
-    return `The report could not be written in this run${view.error ? ` (${view.error})` : ""}. It is retried automatically and e-mailed when it lands.`;
+    // After the last attempt nothing more happens: say so, and that the free
+    // allowance was given back (report-v2-job releases the grant).
+    if ((view.attempts ?? 0) >= FREE_REPORT_TERMINAL_ATTEMPTS) {
+      return "The report could not be written after three attempts — the AI providers did not return usable sections. This run did not count against your free reports; please submit again later.";
+    }
+    return "The report could not be written in this run. It is retried automatically and e-mailed when it lands.";
   }
   if (view.status === "done" && view.reportV2) {
     // Chapters the owner agent could not write fell back to the deterministic card (`degraded`).
@@ -126,7 +133,9 @@ export function progressLine(view: Pick<FullReportView, "status" | "report" | "e
   }
   if (view.status === "queued") return "Queued — the seven C-level voices start in a moment.";
   if (view.status === "failed") {
-    return `We could not finish every section${view.error ? ` (${view.error})` : ""}. It is retried automatically; what was written is below.`;
+    // The S32 error is a curated "N section(s) not written: …" line — anything else is a raw pipeline string and stays private.
+    const curated = view.error && /section\(s\) not written/i.test(view.error) ? ` (${view.error})` : "";
+    return `We could not finish every section${curated}. It is retried automatically; what was written is below.`;
   }
   if (view.status === "done_partial") {
     const p = view.report?.progress;

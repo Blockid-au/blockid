@@ -146,6 +146,16 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.27.1",
+    date: "2026-09-21",
+    title: "Review fixes for v3.27.0",
+    changes: [
+      "[P1] Free-grant + workspace report runs use the background budget (420 s / 48 calls), stage timeouts and run-scoped strikes — every free run had degraded under the 120 s interactive default",
+      "[P1] A terminal failure releases the free grant; honest panel copy, no raw pipeline errors; degraded runs record real spend",
+      "[P2] Guest analyses erased by e-mail (0442); knowledge rows print as external references; facts inside advice stay claims",
+    ],
+  },
+  {
     version: "3.27.0",
     date: "2026-09-21",
     title: "Grounding rules, provider resilience, free reports on v3, print + band demo, Index light (G28)",
