@@ -23,7 +23,7 @@ vi.mock("@/lib/validation/ledger", () => ({ resolveValidationRoot: async () => "
 vi.mock("server-only", () => ({}));
 
 import { buildDashboard, deriveAutoRows, newEntry, type ValidationDashboard, type ValidationEntry } from "@/lib/validation/model";
-import { AutoRowsTable, EntriesTable, ScriptCard, ValidationClient, ValidationLadder } from "./validation-client";
+import { AutoRowsTable, EntriesTable, ScriptCard, ValidationClient, ValidationLadder, proposalFilenameFrom } from "./validation-client";
 import AdminValidationPage from "./page";
 
 async function html(el: React.ReactElement): Promise<string> {
@@ -78,6 +78,21 @@ describe("<EntriesTable> + <AutoRowsTable> + <ScriptCard>", () => {
     expect(out.match(/data-testid="validation-entry-edit"/g)).toHaveLength(2);
     expect(out.match(/data-testid="validation-entry-delete"/g)).toHaveLength(2);
     expect(await html(<EntriesTable entries={[]} />)).toContain('data-testid="validation-entries-empty"');
+  });
+
+  // G23-B — the "Generate proposal" row action + the proposal_generated_at stamp.
+  it("proposal: one Proposal button per row when onProposal is wired (none otherwise); a stamped entry shows the date; filename helper", async () => {
+    const stamped: ValidationEntry = { ...DONE, id: "e-stamped", proposal_generated_at: "2026-09-21T10:00:00.000Z" };
+    const out = await html(<EntriesTable entries={[BOOKED, stamped]} onEdit={() => {}} onDelete={() => {}} onProposal={() => {}} />);
+    expect(out.match(/data-testid="validation-entry-proposal"/g)).toHaveLength(2);
+    expect(out).toContain('aria-label="Generate proposal for Demo Accelerator"');
+    expect(out.match(/data-testid="validation-entry-proposal-at"/g)).toHaveLength(1);
+    expect(out.replace(/<!-- -->/g, "")).toContain("Proposal generated 2026-09-21");
+    const without = await html(<EntriesTable entries={[BOOKED]} onEdit={() => {}} onDelete={() => {}} />);
+    expect(without).not.toContain('data-testid="validation-entry-proposal"');
+    expect(proposalFilenameFrom('attachment; filename="blockid-pilot-proposal-demo-2026-09-21.pdf"', "e-1")).toBe("blockid-pilot-proposal-demo-2026-09-21.pdf");
+    expect(proposalFilenameFrom(null, "abcdefgh-1234")).toBe("blockid-pilot-proposal-abcdefgh.pdf");
+    expect(proposalFilenameFrom("inline", "abcdefgh-1234")).toBe("blockid-pilot-proposal-abcdefgh.pdf");
   });
 
   it("auto rows are source-labelled, counted vs signal, never show a full e-mail; empty state", async () => {
