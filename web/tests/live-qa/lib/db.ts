@@ -149,6 +149,15 @@ export function countFreeReportGrants(email: string): number {
   return Number(firstLine(psql(`select count(*) from public.free_report_grants where email = ${q(email)};`)) || "0");
 }
 
+/** G28-C: the ledger's delivery stamp for one grant (null when the row is missing). */
+export function freeReportGrantDelivery(email: string, sequenceNo: 1 | 2): { status: string; analysisId: string | null } | null {
+  assertQaEmail(email);
+  const line = firstLine(psql(`select delivery_status || '|' || coalesce(analysis_id::text, '') from public.free_report_grants where email = ${q(email)} and sequence_no = ${sequenceNo};`));
+  if (!line) return null;
+  const [status, analysisId] = line.split("|");
+  return { status, analysisId: analysisId || null };
+}
+
 /** Remove the seeded rows (a lane's own cleanup when the erasure RPC does not yet cover the table). */
 export function deleteFreeReportGrants(email: string): number {
   assertQaEmail(email);

@@ -77,9 +77,10 @@ vi.mock("@/lib/analyses/first-analysis/store", () => ({
   setFullReportEmail: (id: string, email: string) => setFullReportEmailMock(id, email),
   loadFullReportRow: (id: string) => loadFullReportRowMock(id),
 }));
+// G28-C: the route delivers through the dispatcher (v3 envelope or S32 report by shape).
 const deliverFullReportMock = vi.fn<(row: Record<string, unknown>, report: unknown) => Promise<string>>();
-vi.mock("@/lib/analyses/first-analysis/job", () => ({
-  deliverFullReport: (row: Record<string, unknown>, report: unknown) => deliverFullReportMock(row, report),
+vi.mock("@/lib/analyses/first-analysis/dispatch", () => ({
+  deliverAnalysisReport: (row: Record<string, unknown>) => deliverFullReportMock(row, row.full_report_json),
 }));
 
 const renderMock = vi.fn<() => Promise<Buffer>>();

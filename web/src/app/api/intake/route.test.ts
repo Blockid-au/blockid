@@ -68,9 +68,11 @@ vi.mock("@/lib/analyses/payload", () => ({
   deriveCompactSvi: () => deriveMock(),
 }));
 
+// G28-C: the route starts the report through the dispatcher (a fresh row →
+// the ReportV2 pipeline); the S32 runner is never imported here any more.
 const startJobMock = vi.fn<(id: string, opts: { userId: string | null }) => void>();
-vi.mock("@/lib/analyses/first-analysis/job", () => ({
-  startFirstAnalysisJob: (id: string, opts: { userId: string | null }) => startJobMock(id, opts),
+vi.mock("@/lib/analyses/first-analysis/dispatch", () => ({
+  startAnalysisReportJob: (id: string, opts: { userId: string | null }) => startJobMock(id, opts),
 }));
 
 // G25-C — the free-allowance gate (its own rules are pinned in

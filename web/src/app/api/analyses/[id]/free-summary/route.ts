@@ -56,7 +56,7 @@ import { extractProjectName } from "@/lib/project-name-extractor";
 import { savedAnalysisUrl } from "@/lib/analyses/summary";
 import { apiRoute } from "@/lib/audit/api-route";
 import { loadFullReportRow, setFullReportEmail } from "@/lib/analyses/first-analysis/store";
-import { deliverFullReport } from "@/lib/analyses/first-analysis/job";
+import { deliverAnalysisReport } from "@/lib/analyses/first-analysis/dispatch";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -232,7 +232,8 @@ async function recordFullReportDestination(id: string, email: string): Promise<v
     await setFullReportEmail(id, email);
     const row = await loadFullReportRow(id);
     if (row && (row.full_report_status === "done" || row.full_report_status === "done_partial") && row.full_report_json && !row.full_report_emailed_at) {
-      await deliverFullReport({ ...row, full_report_email: email }, row.full_report_json);
+      // G28-C: the row's own document (v3 envelope or S32 report) — dispatch.ts.
+      await deliverAnalysisReport({ ...row, full_report_email: email });
     }
   } catch (err) {
     console.error("[free-summary] could not record the full-report destination —", err, { analysisId: id });

@@ -13,17 +13,22 @@
 
 import "server-only";
 
-import { deliverFullReport, makeAgentCaller, defaultDeps, runFirstAnalysisJob, type DeliveryOutcome, type JobOutcome } from "./job";
+import { deliverAnalysisReport, runAnalysisReportJob } from "./dispatch";
+import type { DeliveryOutcome, JobOutcome } from "./job";
+import type { ReportV2JobOutcome } from "./report-v2-job";
 import { isNeverStarted, sweepPendingFullReports, type FullReportRow } from "./store";
 
 export { isNeverStarted };
+
+/** G28-C: a swept row runs the v2 pipeline (new rows) or the S32 job (pre-G28 rows) — dispatch.ts decides by shape. */
+export type SweepRunOutcome = JobOutcome["outcome"] | ReportV2JobOutcome["outcome"];
 
 export interface SweepSummary {
   ok: boolean;
   dryRun: boolean;
   runnable: { id: string; status: string | null; attempts: number }[];
   emailable: { id: string; hasEmail: boolean; hasUser: boolean }[];
-  ran: { id: string; outcome: JobOutcome["outcome"] }[];
+  ran: { id: string; outcome: SweepRunOutcome }[];
   emailed: { id: string; outcome: DeliveryOutcome }[];
   /** G25-C: never-started free rows held back because today's free cap is reached (filtered in the store, before the limit). */
   heldForCap: string[];
@@ -34,7 +39,7 @@ export interface SweepSummary {
 
 export interface SweepDeps {
   sweep: (opts: { limit: number; holdNeverStartedFree?: boolean }) => Promise<{ runnable: FullReportRow[]; emailable: FullReportRow[]; heldForCap?: FullReportRow[] }>;
-  run: (row: FullReportRow) => Promise<JobOutcome>;
+  run: (row: FullReportRow) => Promise<{ outcome: SweepRunOutcome }>;
   deliver: (row: FullReportRow) => Promise<DeliveryOutcome>;
   /** True when today's free submissions are at the platform cap (lib/reports/free-grants freeReportsCapReached). */
   capReached?: () => Promise<boolean>;
@@ -45,12 +50,8 @@ export interface SweepDeps {
 export function defaultSweepDeps(): SweepDeps {
   return {
     sweep: (opts) => sweepPendingFullReports(opts),
-    run: (row) => {
-      const deps = defaultDeps();
-      deps.callAgent = makeAgentCaller(row.user_id);
-      return runFirstAnalysisJob(row.id, deps);
-    },
-    deliver: (row) => (row.full_report_json ? deliverFullReport(row, row.full_report_json) : Promise.resolve("skipped")),
+    run: (row) => runAnalysisReportJob(row),
+    deliver: (row) => deliverAnalysisReport(row),
     capReached: async () => {
       const { freeReportsCapReached } = await import("@/lib/reports/free-grants");
       return freeReportsCapReached();

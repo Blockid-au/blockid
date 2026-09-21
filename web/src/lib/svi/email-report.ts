@@ -150,6 +150,8 @@ export interface RenderReportEmailInput {
   assessment?: AssessmentCardOptions;
   /** Origin for relative CTA hrefs; defaults to the dashboard URL's origin. */
   baseUrl?: string;
+  /** G28-C: a signed PDF download link (the free-grant e-mail's download-token path). */
+  pdfUrl?: string | null;
 }
 
 function escapeHtml(s: string): string {
@@ -206,7 +208,7 @@ function tileCell(tile: DashboardView["tiles"][number]): string {
 
 /** Pure: the email body for a ReportV2 (tested without SMTP). */
 export function renderReportEmailHtml(input: RenderReportEmailInput): string {
-  const { dashboardUrl, shareUrl, images = {}, footerHtml, pdfAttached = true } = input;
+  const { dashboardUrl, shareUrl, images = {}, footerHtml, pdfAttached = true, pdfUrl = null } = input;
   const base = input.baseUrl ?? originOf(dashboardUrl);
   const { report, view, dash, t, locale } = reportEmailContext(input.report, input.assessment);
   const c = report.cover;
@@ -284,6 +286,7 @@ export function renderReportEmailHtml(input: RenderReportEmailInput): string {
     ${improvementsBlock}
     <p style="margin:26px 0 0 0;"><a href="${escapeHtml(dashboardUrl)}" style="display:inline-block;padding:11px 20px;background:${NAVY};color:#ffffff;text-decoration:none;border-radius:8px;font-size:14px;font-weight:600;">${escapeHtml(t.emailOpenFull)}</a></p>
     ${shareUrl ? `<p style="margin:14px 0 0 0;font-size:13px;line-height:1.5;color:${INK};">${escapeHtml(s.shareUrlLabel)} <a href="${escapeHtml(shareUrl)}" style="color:${CYAN};text-decoration:underline;">${escapeHtml(shareUrl)}</a></p>` : ""}
+    ${pdfUrl ? `<p style="margin:10px 0 0 0;font-size:13px;line-height:1.5;color:${INK};" data-tbr-pdf-link>${escapeHtml(t.emailPdfLink)} <a href="${escapeHtml(pdfUrl)}" style="color:${CYAN};text-decoration:underline;">${escapeHtml(pdfUrl)}</a></p>` : ""}
     <p style="margin:20px 0 0 0;padding-top:16px;border-top:1px solid ${LINE};font-size:11px;line-height:1.5;color:${MUTED};">${pdfAttached ? "The PDF is attached to this email. " : ""}${escapeHtml(s.v2.adapter.disclaimer)}</p>
   </div>
   ${footerHtml ?? ""}
@@ -297,6 +300,8 @@ export interface ReportEmailSummaryInput {
   shareUrl?: string | null;
   assessment?: AssessmentCardOptions;
   baseUrl?: string;
+  /** G28-C: the signed PDF download link. */
+  pdfUrl?: string | null;
 }
 
 /**
@@ -329,6 +334,7 @@ export function reportEmailSummary(reportIn: ReportV2, localeIn?: string, input:
   }
   if (input.dashboardUrl) lines.push("", `${t.emailOpenFull} ${input.dashboardUrl}`);
   if (input.shareUrl) lines.push(input.shareUrl);
+  if (input.pdfUrl) lines.push(`${t.emailPdfLink} ${input.pdfUrl}`);
   return lines.join("\n");
 }
 
@@ -516,6 +522,75 @@ export async function sendReportEmail(args: SendReportEmailArgs): Promise<SendRe
     shareToken: shareToken ?? undefined,
     pdfAttached,
     reportSource: source,
+    inlineImages: attachments.length,
+  };
+}
+
+// ── G28-C: the free-grant / intake run — same document, an explicit address ─
+
+export interface SendReportEmailToAddressArgs {
+  /** The destination — the guest's given address, or the account address (resolved by the caller). */
+  to: string;
+  /** The v3 document the pipeline produced for the analyses row. */
+  report: ReportV2;
+  /** Where the visitor opens the on-page v3 report (`/analyze/<id>`, token-signed for a mail client). */
+  pageUrl: string;
+  /** The signed PDF download link (`/api/analyses/<id>/report.pdf?token=…`) — null when no link secret is configured. */
+  pdfUrl: string | null;
+  /** The PDF rendered by the caller (attached when it fits the attachment ceiling). */
+  pdf: Buffer | null;
+  baseUrl?: string;
+  assessment?: AssessmentCardOptions;
+}
+
+/** Attachment ceiling for the free-grant e-mail (mirrors FIRST_ANALYSIS_ATTACHMENT_MAX_BYTES in lib/email). */
+export const REPORT_EMAIL_ATTACHMENT_MAX_BYTES = 8 * 1024 * 1024;
+
+/**
+ * The paid e-mail's body (`renderReportEmailHtml` + `reportEmailSummary`)
+ * sent to an explicit address: the investment view in the body, the PDF
+ * attached when it fits, and — always — the signed page + PDF links so a
+ * mail client with no cookie still reaches the document. The report the
+ * visitor asked for is transactional (review v3.26.0 P2): a promotions
+ * opt-out never withholds it and burns the grant, so the `payment_receipts`
+ * category (always on) is the one checked. No snapshot row is touched.
+ */
+export async function sendReportEmailToAddress(args: SendReportEmailToAddressArgs): Promise<SendReportEmailResult> {
+  const to = args.to.trim();
+  if (!to.includes("@")) return { ok: false, reason: "no_email" };
+  const { canSendEmail } = await import("@/lib/email-preferences");
+  if (!(await canSendEmail(to, "payment_receipts"))) return { ok: false, reason: "unsubscribed" };
+
+  const base = baseUrl(args.baseUrl);
+  const report = args.report;
+  const totalSvi = Math.round(report.cover.svi.total);
+  const bnd = bandLabelForEmail(report.cover.svi.band);
+  const ctx = reportEmailContext(report, args.assessment);
+  const { images, attachments } = await inlineVisuals(report, ctx.dash.chart);
+  const pdfAttached = Boolean(args.pdf && args.pdf.byteLength <= REPORT_EMAIL_ATTACHMENT_MAX_BYTES);
+  const allAttachments = [
+    ...attachments,
+    ...(pdfAttached && args.pdf ? [{ filename: "BlockID-Business-Report.pdf", content: args.pdf, contentType: "application/pdf" }] : []),
+  ];
+
+  const { unsubscribeUrl, footerHtml } = await complianceFooter(to);
+  const html = renderReportEmailHtml({ report, dashboardUrl: args.pageUrl, shareUrl: null, images, footerHtml, pdfAttached, assessment: args.assessment, baseUrl: base, pdfUrl: args.pdfUrl });
+  const text = reportEmailSummary(report, report.locale, { dashboardUrl: args.pageUrl, shareUrl: null, assessment: args.assessment, baseUrl: base, pdfUrl: args.pdfUrl });
+
+  const result = await sendEmail({
+    to,
+    subject: `Your Trusted Business Report is ready — SVI ${totalSvi}/100 (${bnd.label})`,
+    html,
+    text,
+    attachments: allAttachments.length ? allAttachments : undefined,
+    unsubscribeUrl,
+  });
+  return {
+    ok: result.ok,
+    reason: result.ok ? undefined : (("reason" in result ? result.reason : "send_failed") as string),
+    sentTo: to,
+    pdfAttached,
+    reportSource: "pipeline",
     inlineImages: attachments.length,
   };
 }

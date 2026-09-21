@@ -15,9 +15,11 @@ const getForViewerMock = vi.fn();
 vi.mock("@/lib/analyses/store", () => ({ getAnalysisForViewer: (id: string, v: unknown) => getForViewerMock(id, v) }));
 const loadRowMock = vi.fn();
 vi.mock("@/lib/analyses/first-analysis/store", () => ({ loadFullReportRow: (id: string) => loadRowMock(id) }));
+// G28-C: the button resends whatever document the row holds (dispatch.ts);
+// the mock keeps the (row, report, opts) positions the assertions read.
 const deliverMock = vi.fn();
-vi.mock("@/lib/analyses/first-analysis/job", () => ({
-  deliverFullReport: (row: unknown, report: unknown, opts: unknown) => deliverMock(row, report, opts),
+vi.mock("@/lib/analyses/first-analysis/dispatch", () => ({
+  deliverAnalysisReport: (row: { full_report_json: unknown }, opts: unknown) => deliverMock(row, row.full_report_json, opts),
 }));
 const rateMock = vi.fn();
 vi.mock("@/lib/rate-limit", () => ({ checkRateLimit: (...a: unknown[]) => rateMock(...a) }));

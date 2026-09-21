@@ -26,15 +26,19 @@ export default async function SavedAnalysisPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ claimed?: string }>;
+  searchParams?: Promise<{ claimed?: string; t?: string }>;
 }) {
   const { id } = await params;
   const sp = (await searchParams) ?? {};
   const claimed = parseClaimedParam(sp.claimed);
+  // G28-C: `?t=` is the signed link token from the report e-mail (the same
+  // HMAC as the PDF link) — it lets a mail client with no cookie open the
+  // v3 report for this one run until it expires. Forwarded, never stored.
+  const token = typeof sp.t === "string" && sp.t.length > 0 && sp.t.length <= 200 ? sp.t : null;
 
   return (
     <main className="min-h-screen bg-surface pb-16">
-      <SavedAnalysisView id={id} claimed={claimed} />
+      <SavedAnalysisView id={id} claimed={claimed} token={token} />
     </main>
   );
 }

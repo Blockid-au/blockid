@@ -26,7 +26,8 @@ import { getCurrentUser } from "@/lib/auth";
 import { readAnonKey } from "@/lib/analyses/anon-key";
 import { getAnalysisForViewer } from "@/lib/analyses/store";
 import { enqueueFullReport, loadFullReportRow } from "@/lib/analyses/first-analysis/store";
-import { startFirstAnalysisJob } from "@/lib/analyses/first-analysis/job";
+import { startAnalysisReportJob } from "@/lib/analyses/first-analysis/dispatch";
+import { verifyDownloadToken } from "@/lib/analyses/first-analysis/download-token";
 import { buildFullReportView } from "@/lib/analyses/first-analysis/view";
 import { isNeverStarted } from "@/lib/analyses/first-analysis/store";
 import { freeReportsCapReached, grantForAnalysis } from "@/lib/reports/free-grants";
@@ -45,12 +46,22 @@ function notFound() {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
   if (!id || !UUID_RE.test(id)) return notFound();
 
+  // G28-C: the e-mail's page link (`/analyze/<id>?t=…`) carries the same
+  // signed token as the PDF link (download-token.ts) so a mail client with
+  // no cookie reaches the v3 document. Same scope as the PDF route: this
+  // one analysis, until the token expires; anything else falls to tenancy.
+  let token: string | null = null;
+  try {
+    token = new URL(request.url).searchParams.get("token");
+  } catch {
+    token = null;
+  }
   let userId: string | null = null;
   try {
     userId = (await getCurrentUser())?.id ?? null;
@@ -61,7 +72,7 @@ export async function GET(
 
   // Tenancy first. `getAnalysisForViewer` answers null for "missing" AND
   // "not yours" — indistinguishable on purpose.
-  const owned = await getAnalysisForViewer(id, { userId, anonKey });
+  const owned = (token && verifyDownloadToken(id, token) === "ok") || Boolean(await getAnalysisForViewer(id, { userId, anonKey }));
   if (!owned) return notFound();
 
   let row = await loadFullReportRow(id);
@@ -72,7 +83,8 @@ export async function GET(
   if (row.full_report_status === null) {
     const queued = await enqueueFullReport(id);
     if (queued) {
-      startFirstAnalysisJob(id, { userId: row.user_id });
+      // A never-started row runs the ReportV2 pipeline (G28-C).
+      startAnalysisReportJob(id, { userId: row.user_id, json: row.full_report_json });
       row = (await loadFullReportRow(id)) ?? row;
     }
   } else if (row.full_report_status === "queued") {
@@ -89,7 +101,7 @@ export async function GET(
         heldForCap = false;
       }
     }
-    if (!heldForCap) startFirstAnalysisJob(id, { userId: row.user_id });
+    if (!heldForCap) startAnalysisReportJob(id, { userId: row.user_id, json: row.full_report_json });
   }
 
   const view = buildFullReportView(row);

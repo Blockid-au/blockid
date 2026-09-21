@@ -11,7 +11,10 @@ import { maskSummaryEmail } from "@/lib/analyses/free-summary";
 import type { FullReportRow } from "./store";
 import {
   firstParagraph,
+  isFirstAnalysisReport,
+  isReportV2Envelope,
   normaliseAgentSections,
+  reportPathFor,
   type FirstAnalysisPreview,
   type FirstAnalysisReport,
   type FirstAnalysisReportView,
@@ -25,15 +28,24 @@ export function isFullReportLocked(row: Pick<FullReportRow, "user_id" | "full_re
   return !row.user_id && !row.full_report_email;
 }
 
+/** G28-C: poll cadence while the ReportV2 pipeline runs (one document lands at the end, ~2–8 min). */
+export const V2_RUNNING_POLL_SEC = 5;
+
 export function pollAfterSecFor(row: Pick<FullReportRow, "full_report_status" | "full_report_json">): number {
   const status = row.full_report_status;
   if (status === "done" || status === "failed" || status === null) return 0;
-  const queued = row.full_report_json?.progress?.queuedForSec;
+  const json = row.full_report_json;
+  if (isReportV2Envelope(json) || !json) {
+    // A v2 run (or a never-started row, which becomes one): no per-section
+    // streaming, so a steady cadence until the document lands.
+    return status === "running" ? V2_RUNNING_POLL_SEC : 4;
+  }
+  const queued = json.progress?.queuedForSec;
   if (typeof queued === "number" && queued > 0) return Math.min(15, Math.max(3, queued));
   if (status === "done_partial") {
     // In flight (a backfill is writing) → the streaming cadence; otherwise
     // the cron cadence, so the sections appear without a reload.
-    return row.full_report_json?.progress?.current ? 3 : PARTIAL_POLL_SEC;
+    return json.progress?.current ? 3 : PARTIAL_POLL_SEC;
   }
   return status === "running" ? 3 : 4;
 }
@@ -45,7 +57,7 @@ export function toReportView(report: FirstAnalysisReport | null): FirstAnalysisR
 }
 
 export function buildPreview(row: Pick<FullReportRow, "full_report_json">): FirstAnalysisPreview | null {
-  const r = row.full_report_json;
+  const r = isFirstAnalysisReport(row.full_report_json) ? row.full_report_json : null;
   if (!r) return null;
   return {
     company: r.company,
@@ -59,10 +71,19 @@ export function buildPreview(row: Pick<FullReportRow, "full_report_json">): Firs
 export function buildFullReportView(row: FullReportRow): FullReportView {
   const locked = isFullReportLocked(row);
   const emailTo = row.full_report_email ? maskSummaryEmail(row.full_report_email) : null;
+  const json = row.full_report_json;
+  const kind = reportPathFor(json);
+  const envelope = isReportV2Envelope(json) ? json : null;
   return {
     status: row.full_report_status,
     locked,
-    report: locked ? null : toReportView(row.full_report_json),
+    kind,
+    // The v3 document is never a preview: a v2 row always has a destination
+    // (G25-C requires the address before the run) or an owner, so `locked`
+    // is false for it in practice; the gate still applies by construction.
+    reportV2: locked ? null : (envelope?.report ?? null),
+    progressV2: envelope?.progress ?? null,
+    report: locked || !isFirstAnalysisReport(json) ? null : toReportView(json),
     preview: buildPreview(row),
     emailedAt: row.full_report_emailed_at,
     emailTo,

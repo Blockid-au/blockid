@@ -5,11 +5,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("./job", () => ({
-  deliverFullReport: vi.fn(),
-  makeAgentCaller: vi.fn(),
-  defaultDeps: vi.fn(),
-  runFirstAnalysisJob: vi.fn(),
+// G28-C: the sweep runs / delivers through the dispatcher (v2 or S32 by shape).
+vi.mock("./dispatch", () => ({
+  runAnalysisReportJob: vi.fn(),
+  deliverAnalysisReport: vi.fn(),
 }));
 vi.mock("./store", () => ({
   sweepPendingFullReports: vi.fn(),

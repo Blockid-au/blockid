@@ -170,6 +170,8 @@ export interface TbrV3Strings {
   emailIntro: (name: string) => string;
   emailOpenFull: string;
   emailImprovements: string;
+  /** G28-C: label before the signed PDF download link (free-grant e-mail). */
+  emailPdfLink: string;
 }
 
 const en: TbrV3Strings = {
@@ -318,6 +320,7 @@ const en: TbrV3Strings = {
   emailIntro: (name) => `The investment view for ${name} — the full report is attached and linked below.`,
   emailOpenFull: "Open the full report →",
   emailImprovements: "Top 3 improvements",
+  emailPdfLink: "Download the PDF:",
 };
 
 const vi: TbrV3Strings = {
@@ -466,6 +469,7 @@ const vi: TbrV3Strings = {
   emailIntro: (name) => `Góc nhìn đầu tư cho ${name} — báo cáo đầy đủ được đính kèm và liên kết bên dưới.`,
   emailOpenFull: "Mở báo cáo đầy đủ →",
   emailImprovements: "3 cải thiện hàng đầu",
+  emailPdfLink: "Tải PDF:",
 };
 
 export const TBR_V3_STRINGS: Record<TbrV3Locale, TbrV3Strings> = { en, vi };

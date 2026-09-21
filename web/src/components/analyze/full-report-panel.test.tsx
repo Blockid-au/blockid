@@ -9,8 +9,9 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { AgentCard, FullReportPanel, parseView, progressLine, stillBeingWritten } from "./full-report-panel";
+import { AgentCard, FullReportPanel, parseView, progressLine, progressLineV2, reportApiPath, stillBeingWritten, V2_PHASE_LABELS } from "./full-report-panel";
 import { sampleIntake, sampleReport } from "@/lib/analyses/first-analysis/fixtures";
+import { demoReportV2 } from "@/lib/report-v2/fixtures";
 import type { FullReportView } from "@/lib/analyses/first-analysis/types";
 import type { IntakeResult } from "@/lib/intake/analyze-input";
 
@@ -41,18 +42,54 @@ describe("FullReportPanel — first paint", () => {
     expect(renderToStaticMarkup(<FullReportPanel analysisId={null} />)).toBe("");
   });
 
-  it("shows the echo from the intake, the free line and the preparing status before any poll", () => {
+  // G28-C: a fresh row is a Trusted Business Report run — the first paint
+  // says so (the seven-voice cards belong to pre-G28 rows only, after a poll).
+  it("shows the echo from the intake, the free line and the v3 'preparing' status + what is being written, before any poll", () => {
     const intake = sampleIntake() as unknown as IntakeResult;
     const html = renderToStaticMarkup(<FullReportPanel analysisId="0d4f7c1e-9b2a-4c3d-8e5f-6a7b8c9d0e1f" intake={intake} />);
     expect(html).toContain("What we read");
     expect(html).toContain("A$18,500");
     expect(html).toContain("Free · 0 credits");
-    expect(html).toContain("Preparing your first analysis");
-    for (const role of ["CEO", "CFO", "CMO", "CTO", "CPO", "CLO", "CHRO"]) {
-      expect(html).toContain(`>${role}<`);
+    expect(html).toContain("Preparing your Trusted Business Report");
+    expect(html).toContain('data-kind="v2"');
+    expect(html).toContain("analyze-report-v2-pending");
+    expect(html).toContain("Eight dimension chapters");
+    for (const role of ["CFO", "CMO", "CTO", "CPO", "CLO", "CHRO"]) {
+      expect(html).not.toContain(`>${role}<`);
     }
     // No download / resend until the job is done.
     expect(html).not.toContain("analyze-full-report-download");
+  });
+});
+
+describe("G28-C: the v3 document on the analyze page", () => {
+  it("parseView reads kind / reportV2 / progressV2, and infers S32 for an older body that carries a v1 report", () => {
+    const v2 = parseView({ ok: true, status: "done", kind: "v2", reportV2: demoReportV2(), progressV2: null })!;
+    expect(v2.kind).toBe("v2");
+    expect(v2.reportV2?.dimensions).toHaveLength(8);
+    expect(v2.report).toBeNull();
+    const running = parseView({ ok: true, status: "running", kind: "v2", reportV2: null, progressV2: { phase: "analyze", pct: 35, at: "x", chaptersDone: 2 } })!;
+    expect(running.progressV2).toEqual({ phase: "analyze", pct: 35, at: "x", chaptersDone: 2 });
+    const legacy = parseView({ ok: true, status: "done", report: sampleReport() })!;
+    expect(legacy.kind).toBe("s32");
+    expect(parseView({ ok: true, status: "queued" })!.kind).toBe("v2");
+  });
+
+  it("progressLineV2 is honest about every state: queued, held, running with phase + chapters, done, degraded, failed", () => {
+    expect(progressLineV2(null)).toMatch(/Preparing your Trusted Business Report/);
+    expect(progressLineV2({ status: "queued", progressV2: null, error: null, reportV2: null })).toMatch(/^Queued — the report pipeline/);
+    expect(progressLineV2({ status: "queued", heldForCap: true, progressV2: null, error: null, reportV2: null })).toMatch(/free reports are all taken/);
+    expect(progressLineV2({ status: "running", progressV2: { phase: "analyze", pct: 35, at: "x", chaptersDone: 2 }, error: null, reportV2: null })).toBe(`${V2_PHASE_LABELS.analyze} 2 of 8 chapters in. 35 %`);
+    expect(progressLineV2({ status: "running", progressV2: null, error: null, reportV2: null })).toBe(V2_PHASE_LABELS.starting);
+    const report = demoReportV2();
+    expect(progressLineV2({ status: "done", progressV2: null, error: null, reportV2: { ...report, quality: { ...report.quality, degradedSections: [] } } })).toMatch(/^Complete — the full Trusted Business Report/);
+    expect(progressLineV2({ status: "done", progressV2: null, error: null, reportV2: { ...report, quality: { ...report.quality, degradedSections: ["tre", "mpc"] } } })).toBe("Complete — 6 of 8 chapters written by the agents; 2 fell back to the deterministic card.");
+    expect(progressLineV2({ status: "failed", progressV2: null, error: "engine_overloaded", reportV2: null })).toMatch(/could not be written.*engine_overloaded.*retried automatically/);
+  });
+
+  it("reportApiPath forwards the signed e-mail token to the poll and PDF routes only when present", () => {
+    expect(reportApiPath("abc", "full-report")).toBe("/api/analyses/abc/full-report");
+    expect(reportApiPath("abc", "report.pdf", "12.a/b")).toBe("/api/analyses/abc/report.pdf?token=12.a%2Fb");
   });
 });
 

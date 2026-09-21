@@ -12,7 +12,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { readAnonKey } from "@/lib/analyses/anon-key";
-import { getAnalysisForViewer } from "@/lib/analyses/store";
+import { getAnalysisBySignedToken, getAnalysisForViewer } from "@/lib/analyses/store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -21,7 +21,7 @@ const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
@@ -31,6 +31,15 @@ export async function GET(
     return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
   }
 
+  // G28-C: the report e-mail's page link (`/analyze/<id>?t=…`) carries the
+  // signed download token so a mail client with no cookie opens the v3
+  // report; a bad token falls through to tenancy and reads as a miss.
+  let token: string | null = null;
+  try {
+    token = new URL(request.url).searchParams.get("token");
+  } catch {
+    token = null;
+  }
   let userId: string | null = null;
   try {
     userId = (await getCurrentUser())?.id ?? null;
@@ -39,7 +48,7 @@ export async function GET(
   }
   const anonKey = await readAnonKey();
 
-  const analysis = await getAnalysisForViewer(id, { userId, anonKey });
+  const analysis = (await getAnalysisBySignedToken(id, token)) ?? (await getAnalysisForViewer(id, { userId, anonKey }));
   if (!analysis) {
     return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 });
   }

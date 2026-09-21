@@ -38,7 +38,7 @@ vi.mock("@/lib/pdf/tbr-pdf", () => ({
   renderTbrPdf: async () => ({ buffer: Buffer.from("%PDF-1.7 fake"), pages: 10, level: 0, overBudget: false }),
 }));
 
-import { absoluteHref, bandLabelForEmail, inlineVisuals, renderReportEmailHtml, reportEmailContext, reportEmailSummary, reportFromLegacyArgs, sendReportEmail, weakestChapter } from "./email-report";
+import { absoluteHref, bandLabelForEmail, inlineVisuals, renderReportEmailHtml, reportEmailContext, reportEmailSummary, reportFromLegacyArgs, sendReportEmail, sendReportEmailToAddress, REPORT_EMAIL_ATTACHMENT_MAX_BYTES, weakestChapter } from "./email-report";
 
 const DASHBOARD = "https://blockid.au/workspace/reports/business?pid=p-1";
 const SHARE = "https://blockid.au/tbr/tok-abc";
@@ -339,4 +339,59 @@ describe("sendReportEmail", () => {
     db.sb = null;
     expect(await sendReportEmail(legacyArgs)).toMatchObject({ ok: false, reason: "supabase_unavailable" });
   });
+});
+
+// G28-C — the free-grant / intake run: the same body to an explicit address,
+// the signed page + PDF links instead of the workspace / share links.
+describe("sendReportEmailToAddress (G28-C free-grant path)", () => {
+  const PAGE = "https://blockid.au/analyze/0d4f7c1e-9b2a-4c3d-8e5f-6a7b8c9d0e1f?t=123.sig";
+  const PDF = "https://blockid.au/api/analyses/0d4f7c1e-9b2a-4c3d-8e5f-6a7b8c9d0e1f/report.pdf?token=123.sig";
+
+  it("renderReportEmailHtml / reportEmailSummary print the PDF link line (EN + VI label) only when given", () => {
+    const report = demoReportV2();
+    const html = renderReportEmailHtml({ report, dashboardUrl: PAGE, shareUrl: null, pdfUrl: PDF });
+    expect(html).toContain("data-tbr-pdf-link");
+    expect(textOf(html)).toContain(`${EN.emailPdfLink} ${PDF}`);
+    expect(hrefs(html)).toContain(esc(PDF));
+    expect(hrefs(html)).toContain(esc(PAGE));
+    expect(renderReportEmailHtml({ report, dashboardUrl: PAGE, shareUrl: null })).not.toContain("data-tbr-pdf-link");
+    const text = reportEmailSummary(report, "en", { dashboardUrl: PAGE, pdfUrl: PDF });
+    expect(text).toContain(`${EN.emailOpenFull} ${PAGE}`);
+    expect(text).toContain(`${EN.emailPdfLink} ${PDF}`);
+    expect(reportEmailSummary(report, "vi", { dashboardUrl: PAGE, pdfUrl: PDF })).toContain(`${VI.emailPdfLink} ${PDF}`);
+    expect(VI.emailPdfLink).not.toBe(EN.emailPdfLink);
+  });
+
+  it("sends to the given address with the paid subject, the investment view, the page + PDF links, the PDF attached, never touching a snapshot", async () => {
+    const report = demoReportV2();
+    const res = await sendReportEmailToAddress({ to: "guest@example.com", report, pageUrl: PAGE, pdfUrl: PDF, pdf: Buffer.from("%PDF-1.7 fake"), baseUrl: "https://blockid.au" });
+    expect(res).toMatchObject({ ok: true, sentTo: "guest@example.com", pdfAttached: true, reportSource: "pipeline", inlineImages: 2 });
+    expect(mail.send).toHaveBeenCalledTimes(1);
+    const call = mail.send.mock.calls[0][0] as { to: string; subject: string; html: string; text: string; unsubscribeUrl: string; attachments: Array<{ filename: string; cid?: string }> };
+    expect(call.to).toBe("guest@example.com");
+    expect(call.subject).toBe(`Your Trusted Business Report is ready — SVI ${Math.round(report.cover.svi.total)}/100 (${bandLabelForEmail(report.cover.svi.band).label})`);
+    expect(call.unsubscribeUrl).toBe("https://blockid.au/u/abc");
+    expect(call.html).toContain(EN.subline);
+    expect(hrefs(call.html)).toContain(esc(PAGE));
+    expect(hrefs(call.html)).toContain(esc(PDF));
+    expect(call.html).not.toContain("/workspace/reports/business");
+    expect(call.html).not.toContain("/tbr/");
+    expect(call.text).toContain(PDF);
+    expect(call.attachments.map((a) => a.filename).sort()).toEqual(["BlockID-Business-Report.pdf", "chart.png", "weakest.png"]);
+    expect(textOf(call.html)).not.toMatch(NEVER_SAY);
+    expect(db.sb!.find("svi_snapshots", "update")).toHaveLength(0);
+  }, 30_000);
+
+  it("attaches nothing over the ceiling (links still carry the PDF), refuses a malformed address, and reports a failed send honestly", async () => {
+    const report = demoReportV2();
+    const big = Buffer.alloc(REPORT_EMAIL_ATTACHMENT_MAX_BYTES + 1);
+    const res = await sendReportEmailToAddress({ to: "guest@example.com", report, pageUrl: PAGE, pdfUrl: PDF, pdf: big });
+    expect(res.pdfAttached).toBe(false);
+    const call = mail.send.mock.calls[0][0] as { html: string; attachments: Array<{ filename: string }> };
+    expect(call.attachments.map((a) => a.filename)).not.toContain("BlockID-Business-Report.pdf");
+    expect(hrefs(call.html)).toContain(esc(PDF));
+    expect(await sendReportEmailToAddress({ to: "not-an-address", report, pageUrl: PAGE, pdfUrl: null, pdf: null })).toMatchObject({ ok: false, reason: "no_email" });
+    mail.send.mockResolvedValueOnce({ ok: false, reason: "smtp_down" });
+    expect(await sendReportEmailToAddress({ to: "guest@example.com", report, pageUrl: PAGE, pdfUrl: null, pdf: null })).toMatchObject({ ok: false, reason: "smtp_down", pdfAttached: false });
+  }, 30_000);
 });

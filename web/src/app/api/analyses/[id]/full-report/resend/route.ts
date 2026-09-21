@@ -17,7 +17,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { readAnonKey } from "@/lib/analyses/anon-key";
 import { getAnalysisForViewer } from "@/lib/analyses/store";
 import { loadFullReportRow } from "@/lib/analyses/first-analysis/store";
-import { deliverFullReport } from "@/lib/analyses/first-analysis/job";
+import { deliverAnalysisReport } from "@/lib/analyses/first-analysis/dispatch";
 import { isFullReportReadable } from "@/lib/analyses/first-analysis/types";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { apiRoute } from "@/lib/audit/api-route";
@@ -74,7 +74,8 @@ async function POST_handler(
     return reply("rate_limited", { retryAfterSec: Math.ceil(limit.resetIn / 1000) });
   }
 
-  const outcome = await deliverFullReport(row, row.full_report_json, { force: true });
+  // G28-C: the row's own document — the v3 report (v2 envelope) or the S32 report.
+  const outcome = await deliverAnalysisReport(row, { force: true });
   if (outcome === "sent") return reply("sent", { remaining: limit.remaining });
   if (outcome === "unsubscribed") return reply("unsubscribed");
   if (outcome === "no_destination") return reply("no_email");

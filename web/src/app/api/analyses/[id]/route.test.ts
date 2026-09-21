@@ -27,8 +27,11 @@ const getMock = vi.fn<
     Record<string, unknown> | null
   >
 >();
+// G28-C: a signed `?token=` (the report e-mail's page link) resolves before tenancy.
+const getByTokenMock = vi.fn<(id: string, token: string | null) => Promise<Record<string, unknown> | null>>();
 vi.mock("@/lib/analyses/store", () => ({
   getAnalysisForViewer: (id: string, v: Parameters<typeof getMock>[1]) => getMock(id, v),
+  getAnalysisBySignedToken: (id: string, token: string | null) => getByTokenMock(id, token),
 }));
 
 import { GET, dynamic, runtime } from "./route";
@@ -47,6 +50,21 @@ beforeEach(() => {
   getCurrentUserMock.mockReset().mockResolvedValue(null);
   readAnonKeyMock.mockReset().mockResolvedValue(null);
   getMock.mockReset().mockResolvedValue(null);
+  getByTokenMock.mockReset().mockResolvedValue(null);
+});
+
+describe("GET /api/analyses/[id] — signed link (G28-C)", () => {
+  it("a valid ?token= answers the row with no cookie and no session; without one tenancy decides", async () => {
+    getByTokenMock.mockResolvedValue({ id: ID, owned: false });
+    const res = await GET(new Request(`http://x/api/analyses/${ID}?token=123.abc`), ctx(ID));
+    expect(res.status).toBe(200);
+    expect(getByTokenMock).toHaveBeenCalledWith(ID, "123.abc");
+    expect(getMock).not.toHaveBeenCalled();
+    getByTokenMock.mockResolvedValue(null);
+    const miss = await GET(new Request(`http://x/api/analyses/${ID}?token=bad`), ctx(ID));
+    expect(miss.status).toBe(404);
+    expect(getMock).toHaveBeenCalledWith(ID, { userId: null, anonKey: null });
+  });
 });
 
 describe("GET /api/analyses/[id] — module invariants", () => {
