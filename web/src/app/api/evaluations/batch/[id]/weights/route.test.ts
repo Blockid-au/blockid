@@ -57,7 +57,7 @@ describe("weightsPatchSchema", () => {
   it("accepts the 8 dimensions 0..100; rejects a missing key, an out-of-range value, an unknown key and an all-zero set", () => {
     expect(weightsPatchSchema.safeParse({ rubric_weights: EQUAL }).success).toBe(true);
     expect(weightsPatchSchema.safeParse({ rubric_weights: { ...EQUAL, tre: 100 } }).success).toBe(true);
-    const { svm: _svm, ...missing } = EQUAL;
+    const missing = Object.fromEntries(Object.entries(EQUAL).filter(([k]) => k !== "svm"));
     expect(weightsPatchSchema.safeParse({ rubric_weights: missing }).success).toBe(false);
     expect(weightsPatchSchema.safeParse({ rubric_weights: { ...EQUAL, tre: 101 } }).success).toBe(false);
     expect(weightsPatchSchema.safeParse({ rubric_weights: { ...EQUAL, tre: -1 } }).success).toBe(false);

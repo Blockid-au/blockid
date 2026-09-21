@@ -109,10 +109,10 @@ vi.mock("@/lib/investor/organisations", () => ({
 // G14-S37: the founder execution loader (founder_profiles + assessments +
 // founder_signals + svi_signals) is mocked so the round shape stays
 // observable; the rubric itself is real (lib/founder/execution.ts).
-const founderExecutionCtxMock = vi.fn(async (_args: unknown) => ({ profile: null as unknown, evaluatorFlags: null, linkedin: null, github: null }));
+const founderExecutionCtxMock = vi.fn<(args: unknown) => Promise<{ profile: unknown; evaluatorFlags: null; linkedin: null; github: null }>>(async () => ({ profile: null as unknown, evaluatorFlags: null, linkedin: null, github: null }));
 // G22-A: the cohort-seat lookup behind `viaBatch` access (batch-members.ts)
 // is mocked — its own colocated test pins the reads.
-const batchSeatMock = vi.fn(async (_userId: string, _evaluationId: string): Promise<{ batchId: string; role: "owner" | "reviewer" | "viewer" } | null> => null);
+const batchSeatMock = vi.fn<(userId: string, evaluationId: string) => Promise<{ batchId: string; role: "owner" | "reviewer" | "viewer" } | null>>(async () => null);
 vi.mock("@/lib/evaluations/batch-members", () => ({
   batchSeatForEvaluation: (u: string, e: string) => batchSeatMock(u, e),
 }));

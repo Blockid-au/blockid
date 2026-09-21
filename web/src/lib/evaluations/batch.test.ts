@@ -140,7 +140,6 @@ import {
   listBatches,
   nextQueuedItems,
   sweepExpiredLeases,
-  listBatches,
   updateBatchWeights,
 } from "./batch";
 
