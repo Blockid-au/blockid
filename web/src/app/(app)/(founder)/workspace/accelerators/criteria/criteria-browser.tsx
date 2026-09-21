@@ -32,12 +32,12 @@ const TOPIC_LABEL: Record<string, string> = {
 };
 
 const TOPIC_COLOR: Record<string, string> = {
-  team: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
-  progress: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  invention: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
-  vision: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  product_10x: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400",
-  governance: "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300",
+  team: "bg-blue-100 text-blue-700",
+  progress: "bg-emerald-100 text-emerald-700",
+  invention: "bg-purple-100 text-purple-700",
+  vision: "bg-amber-100 text-amber-700",
+  product_10x: "bg-rose-100 text-rose-700",
+  governance: "bg-slate-100 text-slate-700",
 };
 
 export function CriteriaBrowser({ rows }: { rows: KnowledgeRow[] }) {
@@ -164,7 +164,7 @@ export function CriteriaBrowser({ rows }: { rows: KnowledgeRow[] }) {
 
                   {r.evidence_required.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-bold uppercase tracking-wide text-blue-700 dark:text-blue-400 mb-1">Evidence required</p>
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-blue-700 mb-1">Evidence required</p>
                       <ul className="space-y-0.5">
                         {r.evidence_required.map((e, i) => <li key={i} className="text-xs">○ {e}</li>)}
                       </ul>
@@ -173,7 +173,7 @@ export function CriteriaBrowser({ rows }: { rows: KnowledgeRow[] }) {
 
                   {r.tactic.length > 0 && (
                     <div>
-                      <p className="text-[11px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 mb-1">How to lift</p>
+                      <p className="text-[11px] font-bold uppercase tracking-wide text-emerald-700 mb-1">How to lift</p>
                       <ul className="space-y-0.5">
                         {r.tactic.map((t, i) => <li key={i} className="text-xs">→ {t}</li>)}
                       </ul>

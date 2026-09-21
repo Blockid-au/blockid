@@ -170,7 +170,7 @@ export function MetricsInput({ onSubmitted }: MetricsInputProps) {
           type="month"
           value={month}
           onChange={(e) => setMonth(e.target.value)}
-          className="w-full sm:w-48 px-3 py-2 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400"
+          className="w-full sm:w-48 px-3 py-2 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-action/30 focus:border-action"
         />
       </div>
 
@@ -316,7 +316,7 @@ export function MetricsInput({ onSubmitted }: MetricsInputProps) {
           onChange={(e) => setField("notes", e.target.value)}
           placeholder="Any context for this month's metrics (product launches, pivots, etc.)..."
           rows={2}
-          className="w-full px-3 py-2 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 resize-y"
+          className="w-full px-3 py-2 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-action/30 focus:border-action resize-y"
         />
       </div>
 
@@ -337,7 +337,7 @@ export function MetricsInput({ onSubmitted }: MetricsInputProps) {
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-action text-on-action text-sm font-medium hover:bg-action-hover disabled:opacity-50 transition-colors cursor-pointer"
         >
           {submitting ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -390,7 +390,7 @@ function NumericField({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           className={cn(
-            "w-full py-2 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400",
+            "w-full py-2 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-action/30 focus:border-action",
             prefix ? "pl-7 pr-3" : suffix ? "pl-3 pr-7" : "px-3",
           )}
         />

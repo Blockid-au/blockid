@@ -188,7 +188,7 @@ export default async function SviExchangePage() {
 
         {/* Escalations */}
         {escalations.length > 0 && (
-          <div className="rounded-xl border border-rose-200 dark:border-rose-700/50 bg-rose-50/30 dark:bg-rose-950/15 p-5">
+          <div className="rounded-xl border border-rose-200 bg-rose-50/30 p-5">
             <h3 className="text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2 text-rose-700">
               <AlertTriangle className="h-3.5 w-3.5" /> Escalations
             </h3>

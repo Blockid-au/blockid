@@ -122,7 +122,7 @@ export function PriorityTasks({ tasks, className }: Props) {
         </div>
         <div className="flex items-center gap-2">
           <div className="w-20 h-1.5 rounded-full bg-surface-200 overflow-hidden">
-            <div className="h-full rounded-full bg-brand-600 transition-all duration-500" style={{ width: `${progress}%` }} />
+            <div className="h-full rounded-full bg-action transition-all duration-500" style={{ width: `${progress}%` }} />
           </div>
           <span className="text-xs text-ink-500">{completed.size}/{tasks.length}</span>
         </div>

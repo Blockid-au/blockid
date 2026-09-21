@@ -68,14 +68,14 @@ export function RevokeButton(props: RevokeButtonProps) {
   if (state === "confirm") {
     return (
       <div className="flex flex-col items-stretch gap-2 sm:items-end">
-        <p className="text-xs text-ink-600 dark:text-ink-300">
+        <p className="text-xs text-ink-600">
           Revoke {props.mentorName}&rsquo;s access?
         </p>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={() => setState("idle")}
-            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3 text-xs font-medium text-ink-700 hover:bg-surface-50 dark:border-white/10 dark:bg-transparent dark:text-ink-200"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3 text-xs font-medium text-ink-700 hover:bg-surface-50"
           >
             <Undo2 aria-hidden="true" className="h-3.5 w-3.5" />
             Cancel
@@ -103,7 +103,7 @@ export function RevokeButton(props: RevokeButtonProps) {
       type="button"
       onClick={() => setState("confirm")}
       disabled={state === "sending"}
-      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 text-xs font-medium text-red-700 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-60 dark:border-red-800/40 dark:bg-transparent dark:text-red-400 dark:hover:bg-red-900/20"
+      className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-red-200 bg-white px-3 text-xs font-medium text-red-700 transition-colors hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-60"
     >
       {state === "sending" ? (
         <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />

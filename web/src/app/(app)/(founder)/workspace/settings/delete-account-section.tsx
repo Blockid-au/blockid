@@ -151,7 +151,7 @@ export function DeleteAccountSection({
     }
   }
 
-  const input = "w-full rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm text-ink-800 placeholder:text-muted focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none transition-all";
+  const input = "w-full rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm text-ink-800 placeholder:text-muted focus:border-action focus:ring-1 focus:ring-action/25 outline-none transition-all";
 
   return (
     <section className="bg-white border border-red-200 shadow-sm rounded-2xl p-6" aria-labelledby="delete-account-heading">

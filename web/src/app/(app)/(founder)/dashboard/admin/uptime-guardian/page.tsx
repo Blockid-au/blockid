@@ -171,12 +171,12 @@ export default async function UptimeGuardianPage() {
           <Tile label="Memory used" value={memPct == null ? "n/a" : `${memPct.toFixed(0)}%`} tone={memPct == null ? "muted" : memPct < 70 ? "ok" : memPct < 90 ? "warn" : "bad"} />
         </section>
 
-        <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-ink-900">Recent incidents (last 20)</h2>
           {incidents.length === 0 ? (
             <p className="mt-4 text-sm text-ink-500 italic">No incidents recorded.</p>
           ) : (
-            <ul className="mt-4 divide-y divide-slate-100 dark:divide-slate-800">
+            <ul className="mt-4 divide-y divide-slate-100">
               {incidents.map((inc) => (
                 <li key={inc.id} className="py-3 flex items-start gap-3">
                   <SeverityDot severity={inc.severity} />
@@ -197,7 +197,7 @@ export default async function UptimeGuardianPage() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+        <section className="rounded-2xl border border-slate-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-ink-900">Uptime probe log</h2>
           <p className="text-xs text-ink-500 mt-1">
             Tail of <span className="font-mono">/tmp/blockid-uptime.log</span>
@@ -257,7 +257,7 @@ function Tile({
       ? "text-rose-600"
       : "text-slate-400";
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5">
       <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
       <p className={`mt-2 text-2xl font-semibold ${color}`}>{value}</p>
     </div>

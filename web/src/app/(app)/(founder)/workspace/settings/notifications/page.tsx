@@ -30,14 +30,14 @@ export default async function NotificationsFeedPage() {
       <div className="p-6 max-w-3xl mx-auto">
         <div className="mb-6 flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-xl font-bold text-ink-800 dark:text-ink-100">Notifications</h1>
-            <p className="text-sm text-ink-700 dark:text-ink-300 mt-1">
+            <h1 className="text-xl font-bold text-ink-800">Notifications</h1>
+            <p className="text-sm text-ink-700 mt-1">
               Investor views, questions, leads, and analysis events from across your BlockID reports.
             </p>
           </div>
           <a
             href="/workspace/settings/notifications/preferences"
-            className="text-xs text-brand-700 dark:text-brand-300 hover:underline shrink-0"
+            className="text-xs text-brand-700 hover:underline shrink-0"
           >
             Email preferences →
           </a>

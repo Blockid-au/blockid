@@ -43,7 +43,7 @@ const PHASES: {
     id: "now",
     label: "Now",
     timeframe: "Weeks 1–2",
-    dotColor: "bg-brand-600",
+    dotColor: "bg-action",
     lineColor: "bg-brand-200",
     cardBorder: "border-brand-200 bg-brand-50/40",
     pillBg: "bg-brand-100",

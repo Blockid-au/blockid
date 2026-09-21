@@ -179,7 +179,7 @@ export default async function CorrectionsPage() {
             {panel ? (
               <DataEthicsPanelView panel={panel} />
             ) : (
-              <p className="text-xs text-ink-500 dark:text-ink-400" data-testid="data-ethics-owner-only">
+              <p className="text-xs text-ink-500" data-testid="data-ethics-owner-only">
                 The list of who can see this startup and what was shared is visible to the owner and admins of this project.
               </p>
             )}

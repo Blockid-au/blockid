@@ -28,10 +28,10 @@ const ICON: Record<Signal["key"], typeof Users> = {
 };
 
 const STRENGTH_COLOR: Record<Signal["strength"], string> = {
-  exceptional: "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40",
-  strong: "text-blue-700 bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800/40",
-  developing: "text-amber-700 bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800/40",
-  weak: "text-rose-700 bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-800/40",
+  exceptional: "text-emerald-700 bg-emerald-50 border-emerald-200",
+  strong: "text-blue-700 bg-blue-50 border-blue-200",
+  developing: "text-amber-700 bg-amber-50 border-amber-200",
+  weak: "text-rose-700 bg-rose-50 border-rose-200",
 };
 
 const STRENGTH_BAR: Record<Signal["strength"], string> = {
@@ -76,7 +76,7 @@ function SignalRow({ s }: { s: Signal }) {
         <div className="px-4 pb-4 pt-2 border-t border-border bg-muted/10 space-y-3">
           {s.whatWeSee.length > 0 && (
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 mb-1">What we see</p>
+              <p className="text-[11px] font-bold uppercase tracking-wide text-emerald-700 mb-1">What we see</p>
               <ul className="space-y-0.5">
                 {s.whatWeSee.map((w, i) => <li key={i} className="text-xs text-foreground">✓ {w}</li>)}
               </ul>
@@ -84,14 +84,14 @@ function SignalRow({ s }: { s: Signal }) {
           )}
           {s.gaps.length > 0 && (
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400 mb-1">Gaps</p>
+              <p className="text-[11px] font-bold uppercase tracking-wide text-amber-700 mb-1">Gaps</p>
               <ul className="space-y-0.5">
                 {s.gaps.map((g, i) => <li key={i} className="text-xs text-foreground">○ {g}</li>)}
               </ul>
             </div>
           )}
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wide text-blue-700 dark:text-blue-400 mb-1">How to lift</p>
+            <p className="text-[11px] font-bold uppercase tracking-wide text-blue-700 mb-1">How to lift</p>
             <ul className="space-y-0.5">
               {s.howToLift.map((h, i) => <li key={i} className="text-xs text-foreground">→ {h}</li>)}
             </ul>
@@ -132,23 +132,23 @@ export function AntlerSignalsCard({ analysis }: { analysis: SVIAnalysis }) {
       </div>
 
       {/* One-line read */}
-      <div className="rounded-xl bg-gradient-to-br from-purple-50 via-blue-50 to-emerald-50 dark:from-purple-950/20 dark:via-blue-950/20 dark:to-emerald-950/20 border border-purple-200 dark:border-purple-800/40 p-4">
+      <div className="rounded-xl bg-gradient-to-br from-purple-50 via-blue-50 to-emerald-50 border border-purple-200 p-4">
         <p className="text-sm font-medium leading-relaxed">{oneLine}</p>
       </div>
 
       {/* Standout + weakest link */}
       <div className="grid sm:grid-cols-2 gap-3">
         {standout && (
-          <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/40 bg-emerald-50/50 dark:bg-emerald-950/15 p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 dark:text-emerald-400 flex items-center gap-1.5">
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-3">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 flex items-center gap-1.5">
               <Award className="h-3 w-3" /> Investors will see this first
             </p>
             <p className="text-sm font-bold mt-1">{standout.label} <span className="text-emerald-600 ml-1">({standout.score})</span></p>
           </div>
         )}
         {weakestLink && (
-          <div className="rounded-xl border border-amber-200 dark:border-amber-700/50 bg-amber-50/50 dark:bg-amber-950/15 p-3">
-            <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700 dark:text-amber-400 flex items-center gap-1.5">
+          <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-3">
+            <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700 flex items-center gap-1.5">
               <Sparkles className="h-3 w-3" /> What to fix next
             </p>
             <p className="text-sm font-bold mt-1">{weakestLink.label} <span className="text-amber-600 ml-1">({weakestLink.score})</span></p>

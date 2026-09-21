@@ -105,17 +105,17 @@ export function StepFirstValue({ persona, planId, interval, onFinish, finishing 
   const trialDaysN = PLANS_V2.find((p) => p.id === planId)?.trial_days ?? 0;
   const trialDays = String(trialDaysN);
 
-  const primary = "inline-flex items-center justify-center gap-2 rounded-xl bg-brand-cyan px-6 py-3 text-sm font-semibold text-brand-navy transition-colors hover:bg-brand-blue-bright disabled:opacity-40";
-  const link = "inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-brand-ink-muted underline decoration-brand-ink-muted/40 underline-offset-4 hover:text-brand-cyan disabled:opacity-40";
+  const primary = "inline-flex items-center justify-center gap-2 rounded-xl bg-action px-6 py-3 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover disabled:opacity-40";
+  const link = "inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-muted underline decoration-line-strong underline-offset-4 hover:text-action disabled:opacity-40";
 
   return (
     <div data-wizard-step="first-value" data-wizard-flow={flow} data-wizard-interval={interval ?? ""}>
-      <h1 className="text-2xl font-bold text-brand-ink sm:text-3xl">{evaluator ? t.evaluatorTitle : t.founderTitle}</h1>
-      <p className="mt-2 text-brand-ink-muted">{evaluator ? t.evaluatorSub : t.founderSub}</p>
+      <h1 className="text-2xl font-bold text-primary sm:text-3xl">{evaluator ? t.evaluatorTitle : t.founderTitle}</h1>
+      <p className="mt-2 text-muted">{evaluator ? t.evaluatorSub : t.founderSub}</p>
 
       {/* G20 review: custom / free rungs carry trial_days 0 — never render "0 days free". */}
       {targets.primary.kind === "trial" && label && trialDaysN > 0 ? (
-        <p className="mt-4 text-sm text-brand-ink-muted" data-wizard-trial-line>
+        <p className="mt-4 text-sm text-muted" data-wizard-trial-line>
           {t.trialLine.replace("{cadence}", cadence).replace("{days}", trialDays)}
         </p>
       ) : null}

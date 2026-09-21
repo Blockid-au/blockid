@@ -38,11 +38,11 @@ function fmtAud(v: number): string {
 }
 
 const LAYER_META: Record<Layer["code"], { icon: typeof Compass; color: string; bg: string }> = {
-  validation: { icon: Sparkles, color: "text-purple-600", bg: "bg-purple-50 dark:bg-purple-950/20" },
-  position: { icon: Compass, color: "text-blue-600", bg: "bg-blue-50 dark:bg-blue-950/20" },
-  value: { icon: Target, color: "text-emerald-600", bg: "bg-emerald-50 dark:bg-emerald-950/20" },
-  direction: { icon: Navigation, color: "text-amber-600", bg: "bg-amber-50 dark:bg-amber-950/20" },
-  capital: { icon: Rocket, color: "text-red-600", bg: "bg-red-50 dark:bg-red-950/20" },
+  validation: { icon: Sparkles, color: "text-purple-600", bg: "bg-purple-50" },
+  position: { icon: Compass, color: "text-blue-600", bg: "bg-blue-50" },
+  value: { icon: Target, color: "text-emerald-600", bg: "bg-emerald-50" },
+  direction: { icon: Navigation, color: "text-amber-600", bg: "bg-amber-50" },
+  capital: { icon: Rocket, color: "text-red-600", bg: "bg-red-50" },
 };
 
 const STATUS_META = {
@@ -52,15 +52,15 @@ const STATUS_META = {
 } as const;
 
 const PRIORITY_BADGE = {
-  P0: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
-  P1: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  P2: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+  P0: "bg-red-100 text-red-700",
+  P1: "bg-amber-100 text-amber-700",
+  P2: "bg-blue-100 text-blue-700",
 } as const;
 
 const EFFORT_BADGE = {
-  low: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
-  medium: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
-  high: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400",
+  low: "bg-emerald-100 text-emerald-700",
+  medium: "bg-amber-100 text-amber-700",
+  high: "bg-red-100 text-red-700",
 } as const;
 
 /* ─── Your Number hero ─────────────────────────────────────────────────── */
@@ -70,18 +70,18 @@ function YourNumberHero({ yn, maturity }: {
   maturity?: SVIAnalysis["maturitySignal"];
 }) {
   return (
-    <div className="rounded-2xl border border-blue-200 dark:border-blue-800/40 bg-gradient-to-br from-blue-50 via-emerald-50 to-amber-50 dark:from-blue-950/30 dark:via-emerald-950/20 dark:to-amber-950/20 p-6 sm:p-8 shadow-sm">
-      <div className="flex items-center gap-2 text-[11px] font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-[0.18em] mb-3">
+    <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 via-emerald-50 to-amber-50 p-6 sm:p-8 shadow-sm">
+      <div className="flex items-center gap-2 text-[11px] font-semibold text-blue-700 uppercase tracking-[0.18em] mb-3">
         <Sparkles className="h-3.5 w-3.5" />
         Your Number · Startup Compass
       </div>
 
       {maturity?.isEstablished && (
-        <div className="mb-4 rounded-lg border border-amber-300 dark:border-amber-700/50 bg-amber-50/70 dark:bg-amber-950/20 px-4 py-3">
-          <p className="text-xs font-bold uppercase text-amber-700 dark:text-amber-400 tracking-wide mb-1">
+        <div className="mb-4 rounded-lg border border-amber-300 bg-amber-50/70 px-4 py-3">
+          <p className="text-xs font-bold uppercase text-amber-700 tracking-wide mb-1">
             Established / scale-up signals detected ({maturity.confidence} confidence)
           </p>
-          <p className="text-xs text-amber-900 dark:text-amber-300">
+          <p className="text-xs text-amber-900">
             The number below is anchored to public-page signals only. For accurate
             pricing, connect Stripe/Xero or upload current financials.
           </p>
@@ -97,16 +97,16 @@ function YourNumberHero({ yn, maturity }: {
             {yn.sviLabel} &middot; {yn.sviPercentileLabel}
           </p>
         </div>
-        <div className="md:text-right md:border-l md:border-blue-200 dark:md:border-blue-800/40 md:pl-6">
+        <div className="md:text-right md:border-l md:border-blue-200 md:pl-6">
           <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Blended Valuation</p>
-          <p className="text-4xl font-bold mt-1 text-blue-700 dark:text-blue-300">{fmtAud(yn.valuationMidAud)}</p>
+          <p className="text-4xl font-bold mt-1 text-blue-700">{fmtAud(yn.valuationMidAud)}</p>
           <p className="text-sm text-muted-foreground mt-1">
             Range: {fmtAud(yn.valuationLowAud)}–{fmtAud(yn.valuationHighAud)} &middot; <span className="font-medium capitalize">{yn.valuationConfidence}</span> confidence
           </p>
         </div>
       </div>
 
-      <div className="mt-6 pt-5 border-t border-blue-200/60 dark:border-blue-800/40">
+      <div className="mt-6 pt-5 border-t border-blue-200/60">
         <p className="text-sm font-medium text-foreground leading-relaxed">{yn.plainEnglish}</p>
       </div>
     </div>
@@ -117,13 +117,13 @@ function YourNumberHero({ yn, maturity }: {
 
 function ThisWeekHero({ action }: { action: Action }) {
   return (
-    <div className="rounded-2xl border-2 border-amber-300 dark:border-amber-700/50 bg-amber-50/70 dark:bg-amber-950/15 p-5 sm:p-6">
+    <div className="rounded-2xl border-2 border-amber-300 bg-amber-50/70 p-5 sm:p-6">
       <div className="flex items-start gap-3">
-        <div className="shrink-0 rounded-full bg-amber-500 dark:bg-amber-600 p-2.5">
+        <div className="shrink-0 rounded-full bg-amber-500 p-2.5">
           <Flame className="h-5 w-5 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-amber-700 dark:text-amber-400 mb-1">
+          <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-amber-700 mb-1">
             This week · Single most important move
           </p>
           <h3 className="text-lg font-bold text-foreground">{action.title}</h3>
@@ -132,11 +132,11 @@ function ThisWeekHero({ action }: { action: Action }) {
           <div className="flex items-center gap-2 mt-3 flex-wrap">
             <span className={cn("text-[10px] font-bold px-1.5 py-0.5 rounded", PRIORITY_BADGE[action.priority])}>{action.priority}</span>
             <span className={cn("text-[10px] font-semibold px-1.5 py-0.5 rounded", EFFORT_BADGE[action.effort])}>{action.effort} effort</span>
-            <span className="text-[10px] font-semibold text-emerald-700 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded">{action.impact}</span>
+            <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded">{action.impact}</span>
           </div>
 
-          <div className="mt-4 rounded-lg bg-white/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/40 p-3">
-            <p className="text-[11px] font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide mb-1">HOW TO DO IT</p>
+          <div className="mt-4 rounded-lg bg-white/70 border border-amber-200 p-3">
+            <p className="text-[11px] font-semibold text-amber-700 uppercase tracking-wide mb-1">HOW TO DO IT</p>
             <p className="text-xs text-foreground leading-relaxed">{action.tactic}</p>
           </div>
 

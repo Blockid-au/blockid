@@ -347,7 +347,7 @@ export function RoundClient({ roundId }: { roundId: string }) {
                 type="button"
                 onClick={() => void activate()}
                 disabled={busy !== null}
-                className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-60"
                 data-testid="round-activate"
               >
                 {busy === "activate" && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
@@ -456,7 +456,7 @@ export function RoundClient({ roundId }: { roundId: string }) {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm" data-testid="commitments-table">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                 <tr className="bg-surface-50 text-ink-600">
                   <th className="px-4 py-2.5 text-left font-medium">Investor</th>
                   <th className="px-4 py-2.5 text-right font-medium">Amount</th>
@@ -466,7 +466,7 @@ export function RoundClient({ roundId }: { roundId: string }) {
                   {canEdit && <th className="px-4 py-2.5" />}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-line-subtle">
                 {commitments.map((c) => (
                   <tr key={c.id} className="border-t border-surface-100">
                     <td className="px-4 py-2.5">
@@ -574,7 +574,7 @@ export function RoundClient({ roundId }: { roundId: string }) {
             <button
               type="submit"
               disabled={busy !== null}
-              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-60"
             >
               {busy === "add" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
               Add commitment

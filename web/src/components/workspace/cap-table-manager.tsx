@@ -443,7 +443,7 @@ export function CapTableManager() {
               setEditingShareholder(null);
             }}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-[10px] bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors disabled:opacity-50 cursor-pointer"
           >
             <Plus className="h-4 w-4" /> Add Shareholder
           </button>
@@ -452,7 +452,7 @@ export function CapTableManager() {
         {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
               <tr className="border-b border-surface-200 bg-surface-50 text-left">
                 <th className="px-5 py-3 font-medium text-ink-500">Name</th>
                 <th className="px-5 py-3 font-medium text-ink-500">Role</th>
@@ -463,7 +463,7 @@ export function CapTableManager() {
                 <th className="px-5 py-3 font-medium text-ink-500 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-line-subtle">
               {shareholders.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-5 py-12 text-center text-ink-500">
@@ -768,7 +768,7 @@ export function CapTableManager() {
                   type="button"
                   onClick={() => setShowSetupEsop(true)}
                   disabled={busy}
-                  className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-50 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-[10px] bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   Setup ESOP
                 </button>
@@ -975,7 +975,7 @@ function ShareholderForm({
               notes: notes.trim() || null,
             })
           }
-          className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-50 cursor-pointer"
+          className="inline-flex items-center gap-1.5 rounded-[10px] bg-action px-5 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors disabled:opacity-50 cursor-pointer"
         >
           {busy && <Loader2 className="h-4 w-4 animate-spin" />}
           {editing ? "Save Changes" : "Add Shareholder"}
@@ -1120,7 +1120,7 @@ function ClassForm({
               liquidationPreference: liquidationPreference ? Number(liquidationPreference) : null,
             })
           }
-          className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-50 cursor-pointer"
+          className="inline-flex items-center gap-1.5 rounded-[10px] bg-action px-5 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors disabled:opacity-50 cursor-pointer"
         >
           {busy && <Loader2 className="h-4 w-4 animate-spin" />}
           Add Class
@@ -1204,7 +1204,7 @@ function EsopForm({
               poolPct: Number(poolPct) || 10,
             })
           }
-          className="inline-flex items-center gap-1.5 rounded-[10px] bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-50 cursor-pointer"
+          className="inline-flex items-center gap-1.5 rounded-[10px] bg-action px-5 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors disabled:opacity-50 cursor-pointer"
         >
           {busy && <Loader2 className="h-4 w-4 animate-spin" />}
           Setup ESOP
@@ -1226,7 +1226,7 @@ function EsopForm({
 // ---------------------------------------------------------------------------
 
 const INPUT_CLS =
-  "w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors";
+  "w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors";
 
 function Field({
   label,

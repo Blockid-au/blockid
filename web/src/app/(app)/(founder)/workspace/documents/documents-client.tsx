@@ -440,7 +440,7 @@ export function DocumentsClient() {
                 id="folder-dimension"
                 value={addDimension}
                 onChange={(e) => setAddDimension(e.target.value)}
-                className="mt-1 h-12 w-full rounded-2xl border border-surface-300 bg-white px-4 text-sm text-ink-800 transition-all duration-200 focus:border-brand-500 focus:outline-none focus:ring-[3px] focus:ring-brand-100"
+                className="mt-1 h-12 w-full rounded-2xl border border-surface-300 bg-white px-4 text-sm text-ink-800 transition-all duration-200 focus:border-action focus:outline-none focus:ring-[3px] focus:ring-action/25"
               >
                 {SVI_DIMENSIONS.map((d) => (
                   <option key={d.value} value={d.value}>{d.label}</option>
@@ -574,7 +574,7 @@ export function DocumentsClient() {
                   id="clone-source"
                   value={cloneSourceId}
                   onChange={(e) => setCloneSourceId(e.target.value)}
-                  className="mt-1 h-12 w-full rounded-2xl border border-surface-300 bg-white px-4 text-sm text-ink-800 transition-all duration-200 focus:border-brand-500 focus:outline-none focus:ring-[3px] focus:ring-brand-100"
+                  className="mt-1 h-12 w-full rounded-2xl border border-surface-300 bg-white px-4 text-sm text-ink-800 transition-all duration-200 focus:border-action focus:outline-none focus:ring-[3px] focus:ring-action/25"
                 >
                   <option value="">Select a folder...</option>
                   {folders.filter((f) => f.is_active).map((f) => (

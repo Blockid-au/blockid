@@ -233,7 +233,7 @@ export function ShareMgmtDrawer({
         type="button"
         aria-label={t.close}
         onClick={onClose}
-        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-strong/50 backdrop-blur-[2px]"
       />
       <div
         ref={panelRef}
@@ -356,10 +356,10 @@ export function ShareMgmtDrawer({
             onClick={commit}
             disabled={disabled}
             className={
-              "w-full rounded-xl bg-brand-600 py-2.5 text-sm font-semibold text-white shadow transition " +
+              "w-full rounded-xl bg-action py-2.5 text-sm font-semibold text-on-action shadow transition " +
               (disabled
                 ? "opacity-60 cursor-not-allowed"
-                : "hover:bg-brand-700")
+                : "hover:bg-action-hover")
             }
           >
             {submitting ? (

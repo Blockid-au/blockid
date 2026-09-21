@@ -351,7 +351,7 @@ function MemberModal({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div
-        className="fixed inset-0 bg-black/30 backdrop-blur-sm"
+        className="fixed inset-0 bg-strong/50 backdrop-blur-sm"
         onClick={onClose}
       />
       <div className="relative bg-white rounded-2xl border border-surface-200 shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
@@ -382,7 +382,7 @@ function MemberModal({
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="e.g. Alice Chen"
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
             />
           </div>
 
@@ -396,7 +396,7 @@ function MemberModal({
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               placeholder="alice@example.com"
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
             />
           </div>
 
@@ -408,7 +408,7 @@ function MemberModal({
             <select
               value={form.role}
               onChange={(e) => setForm({ ...form, role: e.target.value })}
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors cursor-pointer"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors cursor-pointer"
             >
               {ROLES.map((r) => (
                 <option key={r.value} value={r.value}>
@@ -437,7 +437,7 @@ function MemberModal({
                   "w-full h-10 rounded-xl border px-3 pr-8 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 transition-colors",
                   overLimit
                     ? "border-rose-300 focus:ring-rose-200 focus:border-rose-400"
-                    : "border-surface-200 focus:ring-brand-200 focus:border-brand-400",
+                    : "border-surface-200 focus:ring-action/25 focus:border-action",
                 )}
               />
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted">
@@ -463,7 +463,7 @@ function MemberModal({
                 onChange={(e) =>
                   setForm({ ...form, hasVesting: e.target.checked })
                 }
-                className="h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-200 cursor-pointer"
+                className="h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-action/25 cursor-pointer"
               />
               <span className="text-sm font-medium text-ink-700">
                 Enable vesting schedule
@@ -488,7 +488,7 @@ function MemberModal({
                     onChange={(e) =>
                       setForm({ ...form, vestingMonths: e.target.value })
                     }
-                    className="w-full h-9 rounded-lg border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                    className="w-full h-9 rounded-lg border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
                   />
                 </div>
 
@@ -505,7 +505,7 @@ function MemberModal({
                     onChange={(e) =>
                       setForm({ ...form, cliffMonths: e.target.value })
                     }
-                    className="w-full h-9 rounded-lg border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                    className="w-full h-9 rounded-lg border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
                   />
                 </div>
               </div>
@@ -521,7 +521,7 @@ function MemberModal({
                   onChange={(e) =>
                     setForm({ ...form, vestingStartDate: e.target.value })
                   }
-                  className="w-full h-9 rounded-lg border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                  className="w-full h-9 rounded-lg border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
                 />
               </div>
             </div>
@@ -539,7 +539,7 @@ function MemberModal({
             <button
               type="submit"
               disabled={loading || overLimit || !form.name.trim() || !form.equityPct}
-              className="flex-1 h-10 rounded-xl bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center gap-2"
+              className="flex-1 h-10 rounded-xl bg-action text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center gap-2"
             >
               {loading ? (
                 <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" />
@@ -713,7 +713,7 @@ export function EquityClient({
             setFormError(null);
             setModalOpen(true);
           }}
-          className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer"
+          className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer"
         >
           <Plus strokeWidth={1.75} className="h-4 w-4" />
           Add Member
@@ -826,7 +826,7 @@ export function EquityClient({
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                 <tr className="border-b border-surface-100 bg-surface-50">
                   <th className="text-left px-6 py-3 text-xs font-medium text-ink-500 uppercase tracking-wider">
                     Name
@@ -851,7 +851,7 @@ export function EquityClient({
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-line-subtle">
                 {members.map((m) => {
                   const cliffStatus = !m.vestingMonths
                     ? "\u2014"

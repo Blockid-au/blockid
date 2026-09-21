@@ -96,16 +96,16 @@ function StatCard({
   icon?: React.ElementType;
 }) {
   const colorMap = {
-    green: "border-emerald-200 dark:border-emerald-800/50 bg-emerald-50 dark:bg-emerald-950/20",
-    red: "border-red-200 dark:border-red-800/50 bg-red-50 dark:bg-red-950/20",
-    amber: "border-amber-200 dark:border-amber-800/50 bg-amber-50 dark:bg-amber-950/20",
-    blue: "border-blue-200 dark:border-blue-800/50 bg-blue-50 dark:bg-blue-950/20",
+    green: "border-emerald-200 bg-emerald-50",
+    red: "border-red-200 bg-red-50",
+    amber: "border-amber-200 bg-amber-50",
+    blue: "border-blue-200 bg-blue-50",
   };
   const valueColor = {
-    green: "text-emerald-700 dark:text-emerald-400",
-    red: "text-red-700 dark:text-red-400",
-    amber: "text-amber-700 dark:text-amber-400",
-    blue: "text-blue-700 dark:text-blue-400",
+    green: "text-emerald-700",
+    red: "text-red-700",
+    amber: "text-amber-700",
+    blue: "text-blue-700",
   };
 
   return (
@@ -163,7 +163,7 @@ function RevenueChart({ monthly }: { monthly: Array<{ month: string; revenue: nu
                   {m.revenue > 0 ? aud(m.revenue) : "–"}
                 </span>
                 <div
-                  className="w-full rounded-t bg-blue-500 dark:bg-blue-400 transition-all"
+                  className="w-full rounded-t bg-blue-500 transition-all"
                   style={{ height: `${h}%` }}
                 />
                 <span className="text-[10px] text-muted-foreground">
@@ -265,7 +265,7 @@ function AddRevenueForm({ onAdded }: { onAdded: () => void }) {
             <button
               type="submit"
               disabled={loading || !amount}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1.5 bg-action hover:bg-action-hover text-on-action text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50 transition-colors"
             >
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
               Save & Update SVI
@@ -298,7 +298,7 @@ function PnLTable({ data }: { data: RevenueData }) {
     <div className="rounded-xl border border-border bg-card p-5">
       <h3 className="text-sm font-semibold mb-4">P&L Summary (trailing 12 months)</h3>
       <table className="w-full text-sm">
-        <tbody className="divide-y divide-border">
+        <tbody className="divide-y divide-line-subtle [&>tr:nth-child(even)]:bg-surface-sunken">
           {rows.map((r) => (
             <tr key={r.label}>
               <td className={cn("py-2", r.indent && "pl-4 text-muted-foreground text-xs")}>
@@ -412,11 +412,11 @@ export function FinanceDashboardClient({ userEmail, startupName }: Props) {
           Connect OAuth app is provisioned (api/revenue `available`); otherwise
           the honest path is the CSV import — no dead-end link. */}
       {!d.hasStripe && d.available?.stripeConnect !== false && (
-        <div className="flex items-start gap-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800/50 rounded-xl p-4">
+        <div className="flex items-start gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
           <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
           <div className="text-sm">
-            <p className="font-semibold text-amber-800 dark:text-amber-400">Stripe not connected</p>
-            <p className="text-amber-700 dark:text-amber-500 text-xs mt-0.5">
+            <p className="font-semibold text-amber-800">Stripe not connected</p>
+            <p className="text-amber-700 text-xs mt-0.5">
               Connect Stripe for automatic revenue tracking. Until then, use manual entries below.
               <a href="/workspace/evidence/connectors" className="ml-1 underline">Connect now →</a>
             </p>

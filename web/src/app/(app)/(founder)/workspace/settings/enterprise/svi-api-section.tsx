@@ -125,7 +125,7 @@ export function SviApiSection() {
             {tier === "institutional" && (
               <a
                 href={INSTITUTIONAL_CONTACT_HREF}
-                className="block w-full text-center text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-3 py-1.5 font-medium"
+                className="block w-full text-center text-sm bg-action hover:bg-action-hover text-on-action rounded-lg px-3 py-1.5 font-medium"
               >
                 Contact sales
               </a>
@@ -154,7 +154,7 @@ export function SviApiSection() {
         <button
           onClick={createKey}
           disabled={creating}
-          className="bg-slate-900 hover:bg-slate-700 text-white text-sm px-4 py-2 rounded-lg font-medium disabled:opacity-50"
+          className="bg-action hover:bg-action-hover text-on-action text-sm px-4 py-2 min-h-11 rounded-lg font-medium disabled:opacity-50"
         >
           {creating ? "Creating…" : "Create Free Key"}
         </button>

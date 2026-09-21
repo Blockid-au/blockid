@@ -153,15 +153,15 @@ export function InvestorReadinessTile() {
       <div
         data-testid="investor-readiness-tile"
         data-state="loading"
-        className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
+        className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
       >
-        <div className="mb-3 h-4 w-40 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
-        <div className="mb-4 h-8 w-24 animate-pulse rounded bg-slate-200 dark:bg-slate-800" />
+        <div className="mb-3 h-4 w-40 animate-pulse rounded bg-slate-200" />
+        <div className="mb-4 h-8 w-24 animate-pulse rounded bg-slate-200" />
         <div className="space-y-2">
           {ALL_PHASE_SLUGS.map((k) => (
             <div
               key={k}
-              className="h-3 w-full animate-pulse rounded bg-slate-100 dark:bg-slate-900"
+              className="h-3 w-full animate-pulse rounded bg-slate-100"
             />
           ))}
         </div>
@@ -174,16 +174,16 @@ export function InvestorReadinessTile() {
       <div
         data-testid="investor-readiness-tile"
         data-state="error"
-        className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm dark:border-rose-900 dark:bg-rose-950/40"
+        className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm"
       >
-        <p className="mb-2 font-medium text-rose-800 dark:text-rose-200">
+        <p className="mb-2 font-medium text-rose-800">
           Readiness unavailable
         </p>
-        <p className="mb-3 text-rose-700 dark:text-rose-300">{state.error}</p>
+        <p className="mb-3 text-rose-700">{state.error}</p>
         <button
           type="button"
           onClick={load}
-          className="rounded border border-rose-300 bg-white px-3 py-1 text-xs font-medium text-rose-800 hover:bg-rose-100 dark:border-rose-800 dark:bg-rose-950 dark:text-rose-200"
+          className="rounded border border-rose-300 bg-white px-3 py-1 text-xs font-medium text-rose-800 hover:bg-rose-100"
         >
           Retry
         </button>
@@ -200,7 +200,7 @@ export function InvestorReadinessTile() {
       data-testid="investor-readiness-tile"
       data-state="ready"
       data-view={phaseEntry ? "per-phase" : "blended"}
-      className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-950"
+      className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm"
     >
       {phaseEntry ? (
         <PerPhaseView
@@ -217,7 +217,7 @@ export function InvestorReadinessTile() {
       )}
 
       {disclaimer && (
-        <p className="text-[10px] leading-relaxed text-slate-400 dark:text-slate-500">
+        <p className="text-[10px] leading-relaxed text-slate-400">
           {disclaimer}
         </p>
       )}
@@ -250,11 +250,11 @@ function PerPhaseView({
     <>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Investor readiness
           </p>
           {(phaseLabel || currentPhaseSlug) && (
-            <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+            <p className="mt-0.5 text-[11px] text-slate-500">
               {phaseLabel
                 ? `Phase ${currentPhaseSlug ?? ""} · ${phaseLabel}`.trim()
                 : `Phase ${currentPhaseSlug}`}
@@ -272,11 +272,11 @@ function PerPhaseView({
       <div className="flex items-baseline gap-2">
         <span
           data-testid="investor-readiness-overall"
-          className="text-4xl font-bold text-slate-900 dark:text-slate-100"
+          className="text-4xl font-bold text-slate-900"
         >
           {score}
         </span>
-        <span className="text-sm text-slate-500 dark:text-slate-400">
+        <span className="text-sm text-slate-500">
           / 100
         </span>
       </div>
@@ -291,7 +291,7 @@ function PerPhaseView({
 function PhaseSeriesChart({ series }: { series: PhaseSeriesPoint[] }) {
   return (
     <div>
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
         Readiness across phases
       </p>
       <div
@@ -348,8 +348,8 @@ function PhaseSeriesChart({ series }: { series: PhaseSeriesPoint[] }) {
             <span
               className={`text-[10px] tabular-nums ${
                 pt.isCurrent
-                  ? "font-semibold text-indigo-600 dark:text-indigo-300"
-                  : "text-slate-500 dark:text-slate-400"
+                  ? "font-semibold text-indigo-600"
+                  : "text-slate-500"
               }`}
             >
               {pt.slug}
@@ -370,10 +370,10 @@ function MissingList({
 }) {
   if (!missing || missing.length === 0) {
     return (
-      <div className="border-t border-slate-200 pt-3 dark:border-slate-800">
+      <div className="border-t border-slate-200 pt-3">
         <p
           data-testid="investor-readiness-missing-empty"
-          className="text-sm text-slate-600 dark:text-slate-400"
+          className="text-sm text-slate-600"
         >
           Nothing missing at this phase — keep the evidence fresh and step
           into the next phase when ready.
@@ -383,8 +383,8 @@ function MissingList({
   }
 
   return (
-    <div className="border-t border-slate-200 pt-3 dark:border-slate-800">
-      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+    <div className="border-t border-slate-200 pt-3">
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
         Top {missing.length} missing{phaseSlug ? ` for Phase ${phaseSlug}` : ""}
       </p>
       <ul
@@ -399,24 +399,24 @@ function MissingList({
             className="flex items-start justify-between gap-3 text-sm"
           >
             <div className="min-w-0">
-              <p className="flex items-center gap-2 text-slate-800 dark:text-slate-200">
+              <p className="flex items-center gap-2 text-slate-800">
                 {item.raise_blocker && (
                   <span
                     aria-label="raise blocker"
-                    className="inline-flex items-center rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-800 dark:bg-rose-900/40 dark:text-rose-200"
+                    className="inline-flex items-center rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-800"
                   >
                     Blocker
                   </span>
                 )}
                 <span className="truncate font-medium">{item.title}</span>
               </p>
-              <p className="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
+              <p className="mt-0.5 truncate text-xs text-slate-500">
                 {item.category}
               </p>
             </div>
             <Link
               href={item.cta_url}
-              className="shrink-0 rounded border border-indigo-300 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-800 hover:bg-indigo-100 dark:border-indigo-800 dark:bg-indigo-950 dark:text-indigo-200"
+              className="shrink-0 rounded border border-indigo-300 bg-indigo-50 px-2 py-1 text-xs font-medium text-indigo-800 hover:bg-indigo-100"
             >
               Open
             </Link>
@@ -447,11 +447,11 @@ function BlendedView({
     <>
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
             Investor readiness
           </p>
           {phaseLabel && (
-            <p className="mt-0.5 text-[11px] text-slate-500 dark:text-slate-400">
+            <p className="mt-0.5 text-[11px] text-slate-500">
               {phaseLabel}
             </p>
           )}
@@ -467,17 +467,17 @@ function BlendedView({
       <div className="flex items-baseline gap-2">
         <span
           data-testid="investor-readiness-overall"
-          className="text-4xl font-bold text-slate-900 dark:text-slate-100"
+          className="text-4xl font-bold text-slate-900"
         >
           {overall}
         </span>
-        <span className="text-sm text-slate-500 dark:text-slate-400">
+        <span className="text-sm text-slate-500">
           / 100
         </span>
       </div>
 
       <div>
-        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
           Sub-scores
         </p>
         <div
@@ -495,7 +495,7 @@ function BlendedView({
                 data-value={v}
                 className="flex items-center gap-3"
               >
-                <span className="w-20 text-xs font-medium text-slate-600 dark:text-slate-400">
+                <span className="w-20 text-xs font-medium text-slate-600">
                   {SUB_SCORE_LABELS[key]}
                 </span>
                 <svg
@@ -522,7 +522,7 @@ function BlendedView({
                     rx={1}
                   />
                 </svg>
-                <span className="w-8 text-right text-xs tabular-nums text-slate-700 dark:text-slate-300">
+                <span className="w-8 text-right text-xs tabular-nums text-slate-700">
                   {v}
                 </span>
               </div>
@@ -531,13 +531,13 @@ function BlendedView({
         </div>
       </div>
 
-      <div className="border-t border-slate-200 pt-3 dark:border-slate-800">
-        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+      <div className="border-t border-slate-200 pt-3">
+        <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
           How to improve
         </p>
         <p
           data-testid="investor-readiness-hint"
-          className="text-sm text-slate-700 dark:text-slate-300"
+          className="text-sm text-slate-700"
         >
           Weakest dimension:{" "}
           <span className="font-semibold">{SUB_SCORE_LABELS[weakest]}</span> —{" "}

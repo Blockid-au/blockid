@@ -123,7 +123,7 @@ export default async function CLevelReportDetailPage({ params }: PageProps) {
             <Link
               href={`/workspace/reports/investor-pack/generate?from=c-level-${typedRole}`}
               data-testid="clevel-investor-pack-link"
-              className="rounded bg-bull px-4 py-2 text-sm font-medium text-white hover:bg-bull"
+              className="rounded bg-bull px-4 py-2 text-sm font-medium text-on-action hover:bg-bull"
             >
               Include in investor pack
             </Link>
@@ -173,7 +173,7 @@ export default async function CLevelReportDetailPage({ params }: PageProps) {
           <section className="mt-10">
             <h2 className="text-xl font-semibold text-primary mb-3">DCF Valuation Summary</h2>
             <table className="w-full text-sm">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                 <tr className="text-muted text-left">
                   <th className="py-2">Scenario</th>
                   <th className="py-2">Enterprise Value (AUD)</th>

@@ -44,7 +44,6 @@ const { Stub, PassThrough } = vi.hoisted(() => ({
 vi.mock("@/components/ui/credit-balance", () => ({ CreditBalance: Stub }));
 vi.mock("@/components/workspace/credit-badge", () => ({ CreditBadge: Stub }));
 vi.mock("@/components/ui/project-switcher", () => ({ ProjectSwitcher: Stub }));
-vi.mock("@/components/ui/theme-toggle", () => ({ ThemeToggle: Stub }));
 vi.mock("@/components/wallet/connect-wallet-button", () => ({ ConnectWalletButton: Stub }));
 vi.mock("@/components/ui/feedback-widget", () => ({ FeedbackWidget: Stub }));
 vi.mock("@/components/ui/upgrade-prompt", () => ({ UpgradePrompt: Stub }));

@@ -72,7 +72,7 @@ export function UpgradeModal() {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-strong/50 px-4"
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) dismiss();
@@ -84,25 +84,25 @@ export function UpgradeModal() {
         aria-modal="true"
         aria-labelledby="upgrade-modal-title"
         tabIndex={-1}
-        className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl outline-none dark:bg-neutral-900"
+        className="relative w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl outline-none"
       >
         <button
           type="button"
           onClick={dismiss}
           aria-label="Close"
-          className="absolute right-3 top-3 rounded-full p-1 text-neutral-500 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          className="absolute right-3 top-3 rounded-full p-1 text-neutral-500 hover:bg-neutral-100"
         >
           <X className="h-4 w-4" strokeWidth={1.75} />
         </button>
         {copy.urgency ? (
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-600 dark:text-amber-400">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-amber-600">
             {copy.urgency}
           </p>
         ) : null}
-        <h2 id="upgrade-modal-title" className="text-lg font-semibold text-neutral-900 dark:text-neutral-50">
+        <h2 id="upgrade-modal-title" className="text-lg font-semibold text-neutral-900">
           {copy.headline}
         </h2>
-        <p className="mt-2 text-sm leading-relaxed text-neutral-600 dark:text-neutral-300">
+        <p className="mt-2 text-sm leading-relaxed text-neutral-600">
           {copy.body}
         </p>
         {(() => {
@@ -111,7 +111,7 @@ export function UpgradeModal() {
           const monthly = plan?.monthly_aud;
           if (typeof monthly !== "number" || monthly <= 0) return null;
           return (
-            <p className="mt-2 text-xs text-neutral-500 dark:text-neutral-400" data-testid="gst-line">
+            <p className="mt-2 text-xs text-neutral-500" data-testid="gst-line">
               {plan?.name}: {formatGstInclusiveAud(Math.round(monthly * 100))} per month, 7-day free trial, cancel any time.
             </p>
           );
@@ -121,7 +121,7 @@ export function UpgradeModal() {
             <button
               type="button"
               onClick={dismiss}
-              className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
+              className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50"
             >
               {copy.secondaryCta}
             </button>
@@ -130,7 +130,7 @@ export function UpgradeModal() {
             href={reviewHref}
             onClick={() => accept(copy.suggestedPlan)}
             data-testid="upgrade-modal-primary"
-            className="inline-flex items-center justify-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700"
+            className="inline-flex items-center justify-center rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover"
           >
             {copy.primaryCta}
           </Link>

@@ -19,10 +19,10 @@ const DIMENSION_LABELS: Record<string, string> = {
 };
 
 const URGENCY_COLORS: Record<string, string> = {
-  critical: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
-  high: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300",
-  medium: "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300",
-  low: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
+  critical: "bg-red-100 text-red-800",
+  high: "bg-orange-100 text-orange-800",
+  medium: "bg-yellow-100 text-yellow-800",
+  low: "bg-gray-100 text-gray-700",
 };
 
 interface RoadmapData {
@@ -165,17 +165,17 @@ export function SviFixRoadmap({ projectId, className }: SviFixRoadmapProps) {
     <div className={cn("space-y-4", className)}>
       {/* Forecast banner */}
       {forecast && (
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-brand-200 bg-brand-50 dark:border-brand-800 dark:bg-brand-950/60 px-4 py-3">
-          <TrendingUp className="h-5 w-5 shrink-0 text-brand-600 dark:text-brand-400" />
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-brand-200 bg-brand-50 px-4 py-3">
+          <TrendingUp className="h-5 w-5 shrink-0 text-brand-600" />
           <div className="flex flex-wrap gap-4 text-sm">
-            <span className="text-ink-700 dark:text-ink-300">
-              Current SVI: <strong className="text-ink-900 dark:text-ink-100">{currentSvi}</strong>
+            <span className="text-ink-700">
+              Current SVI: <strong className="text-ink-900">{currentSvi}</strong>
             </span>
-            <span className="text-ink-700 dark:text-ink-300">
-              Projected: <strong className="text-green-700 dark:text-green-400">{forecast.projectedSvi}</strong>
+            <span className="text-ink-700">
+              Projected: <strong className="text-green-700">{forecast.projectedSvi}</strong>
             </span>
-            <span className="text-ink-700 dark:text-ink-300">
-              Week 1 uplift: <strong className="text-brand-700 dark:text-brand-400">+{forecast.week1Impact}</strong>
+            <span className="text-ink-700">
+              Week 1 uplift: <strong className="text-brand-700">+{forecast.week1Impact}</strong>
             </span>
           </div>
         </div>
@@ -187,11 +187,11 @@ export function SviFixRoadmap({ projectId, className }: SviFixRoadmapProps) {
         return (
           <div
             key={week}
-            className="rounded-lg border border-ink-200 dark:border-ink-700 overflow-hidden"
+            className="rounded-lg border border-ink-200 overflow-hidden"
           >
             <button
               type="button"
-              className="w-full flex items-center justify-between px-4 py-3 bg-ink-50 dark:bg-ink-900 hover:bg-ink-100 dark:hover:bg-ink-800 transition-colors text-left"
+              className="w-full flex items-center justify-between px-4 py-3 bg-ink-50 hover:bg-ink-100 transition-colors text-left"
               onClick={() => toggleWeek(week)}
             >
               <div className="flex items-center gap-3">
@@ -200,20 +200,20 @@ export function SviFixRoadmap({ projectId, className }: SviFixRoadmapProps) {
                 ) : (
                   <ChevronRight className="h-4 w-4 text-muted" />
                 )}
-                <span className="text-sm font-semibold text-ink-800 dark:text-ink-100">
+                <span className="text-sm font-semibold text-ink-800">
                   Week {week}
                 </span>
                 <Badge variant="default" className="text-xs">
                   {weekItems.length} items
                 </Badge>
               </div>
-              <span className="text-xs font-medium text-green-700 dark:text-green-400 tabular-nums">
+              <span className="text-xs font-medium text-green-700 tabular-nums">
                 +{weeklyImpact} SVI
               </span>
             </button>
 
             {isOpen && (
-              <ul className="divide-y divide-ink-100 dark:divide-ink-800 bg-white dark:bg-ink-950">
+              <ul className="divide-y divide-ink-100 bg-white">
                 {weekItems.map((item) => {
                   const key = `${item.dimension}:${item.evidenceType}`;
                   const isChecked = checked.has(key);
@@ -226,7 +226,7 @@ export function SviFixRoadmap({ projectId, className }: SviFixRoadmapProps) {
                         checked={isChecked}
                         disabled={isPending}
                         onChange={() => void handleCheck(item)}
-                        className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500 shrink-0 cursor-pointer"
+                        className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-action shrink-0 cursor-pointer"
                         aria-label={item.actionTitle}
                       />
                       <div className="flex-1 min-w-0">
@@ -234,8 +234,8 @@ export function SviFixRoadmap({ projectId, className }: SviFixRoadmapProps) {
                           className={cn(
                             "text-xs font-medium leading-snug",
                             isChecked
-                              ? "line-through text-muted dark:text-ink-500"
-                              : "text-ink-800 dark:text-ink-100"
+                              ? "line-through text-muted"
+                              : "text-ink-800"
                           )}
                         >
                           {item.actionTitle}

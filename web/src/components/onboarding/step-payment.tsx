@@ -40,10 +40,10 @@ export function StepPayment({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-brand-ink sm:text-3xl">
+      <h1 className="text-2xl font-bold text-ink sm:text-3xl">
         Review your order
       </h1>
-      <p className="mt-2 text-brand-ink-muted">
+      <p className="mt-2 text-ink-muted">
         {plan ? `${plan.name} · ${formatAud(chargeAud)}/${isAnnual ? "yr" : "mo"}` : "Your plan"}
         {trialDays > 0 ? ` — ${trialDays}-day free trial, card required.` : ""}
       </p>
@@ -53,7 +53,7 @@ export function StepPayment({
           aria-label="Order summary"
           data-testid="onboarding-review"
           data-plan-id={plan.id}
-          className="mt-8 space-y-2 rounded-2xl border border-brand-cyan/15 bg-brand-navy-elev-1 p-5 text-sm text-brand-ink-muted"
+          className="mt-8 space-y-2 rounded-2xl border border-brand-cyan/15 bg-brand-navy-elev-1 p-5 text-sm text-ink-muted"
         >
           {/* QA-3 P2: the amount Stripe will charge when the trial ends, GST
               shown, before any hand-off — matches the invoice tax line. */}
@@ -87,7 +87,7 @@ export function StepPayment({
         </Link>
       ) : null}
 
-      <p className="mt-8 flex items-center gap-2 text-xs text-brand-ink-muted">
+      <p className="mt-8 flex items-center gap-2 text-xs text-ink-muted">
         <ShieldCheck aria-hidden="true" className="h-4 w-4 text-brand-cyan" />
         Nothing is charged on this step. You read the order once more and press Pay yourself before Stripe opens.
       </p>

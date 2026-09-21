@@ -294,13 +294,13 @@ export function BillingClient({
     <div className="space-y-8">
       {/* Error banner */}
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+        <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
 
       {/* ---- Current Plan Card ---- */}
-      <section className="rounded-2xl border border-surface-200 bg-white dark:bg-surface-100 shadow-sm overflow-hidden">
+      <section className="rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-surface-200 flex items-center gap-3">
           <div className="h-9 w-9 rounded-xl bg-brand-50 flex items-center justify-center">
             <Crown strokeWidth={1.75} className="h-4.5 w-4.5 text-brand-600" />
@@ -364,7 +364,7 @@ export function BillingClient({
             {effectivePlanId === "free" ? (
               <Link
                 href="#plans"
-                className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+                className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
               >
                 <Sparkles strokeWidth={1.75} className="h-4 w-4" />
                 Upgrade
@@ -422,7 +422,7 @@ export function BillingClient({
       )}
 
       {/* ---- Manage Add-ons ---- */}
-      <section className="rounded-2xl border border-surface-200 bg-white dark:bg-surface-100 shadow-sm overflow-hidden">
+      <section className="rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden">
         <div className="px-6 py-5 border-b border-surface-200 flex items-center gap-3">
           <div className="h-9 w-9 rounded-xl bg-brand-50 flex items-center justify-center">
             <Layers strokeWidth={1.75} className="h-4.5 w-4.5 text-brand-600" />
@@ -473,7 +473,7 @@ export function BillingClient({
                   onClick={() => setDrawerOpen(true)}
                   disabled={!addonAvailable}
                   className={cn(
-                    "inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 transition-colors",
+                    "inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors",
                     !addonAvailable && "opacity-60 cursor-not-allowed",
                   )}
                   title={
@@ -517,7 +517,7 @@ export function BillingClient({
               <div
                 key={plan.id}
                 className={cn(
-                  "rounded-2xl border bg-white dark:bg-surface-100 shadow-sm flex flex-col overflow-hidden transition-shadow",
+                  "rounded-2xl border bg-white shadow-sm flex flex-col overflow-hidden transition-shadow",
                   isCurrent
                     ? "border-brand-300 ring-2 ring-brand-100"
                     : "border-surface-200 hover:shadow-md",
@@ -580,7 +580,7 @@ export function BillingClient({
                       href={upgradeHref(plan.id)}
                       data-testid="billing-upgrade"
                       data-plan-id={plan.id}
-                      className="w-full h-9 rounded-[10px] bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                      className="w-full h-9 rounded-[10px] bg-action text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                     >
                       <CreditCard strokeWidth={1.75} className="h-4 w-4" />
                       Upgrade
@@ -615,10 +615,10 @@ export function BillingClient({
       {showDowngradeConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            className="absolute inset-0 bg-strong/50 backdrop-blur-sm"
             onClick={() => setShowDowngradeConfirm(null)}
           />
-          <div className="relative bg-white dark:bg-surface-100 rounded-2xl border border-surface-200 shadow-xl max-w-sm w-full p-6 space-y-4">
+          <div className="relative bg-white rounded-2xl border border-surface-200 shadow-xl max-w-sm w-full p-6 space-y-4">
             <h3 className="text-base font-semibold text-ink-800">
               Confirm Downgrade
             </h3>
@@ -704,7 +704,7 @@ function CreditsPurchaseSection() {
   // non-refundable line) — the Pay button there posts to /api/credits.
 
   return (
-    <section id="credits" className="rounded-2xl border border-surface-200 bg-white dark:bg-surface-100 shadow-sm overflow-hidden">
+    <section id="credits" className="rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden">
       <div className="px-6 py-5 border-b border-surface-200 flex items-center gap-3">
         <div className="h-9 w-9 rounded-xl bg-amber-50 flex items-center justify-center">
           <Coins strokeWidth={1.75} className="h-4.5 w-4.5 text-amber-600" />
@@ -768,7 +768,7 @@ function CreditsPurchaseSection() {
                 data-testid="credit-pack-buy"
                 data-pack={pack.credits}
                 aria-label={`Buy ${pack.label} — ${priceLabel}`}
-                className="w-full h-9 rounded-lg bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
+                className="w-full h-9 rounded-lg bg-action text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <CreditCard strokeWidth={1.75} className="h-4 w-4" />
                 Buy

@@ -44,7 +44,7 @@ export function StageJourney({ currentStage }: Props) {
                   className={cn(
                     "h-6 w-6 rounded-full border-2 flex items-center justify-center relative z-10 transition-all",
                     isCurrent
-                      ? "border-brand-600 bg-brand-600 ring-4 ring-brand-100"
+                      ? "border-brand-600 bg-action ring-4 ring-brand-100"
                       : isPast
                         ? "border-brand-500 bg-brand-500"
                         : isNext

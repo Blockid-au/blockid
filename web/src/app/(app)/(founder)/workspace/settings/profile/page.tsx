@@ -47,7 +47,7 @@ export default async function ProfilePage() {
             {user.avatarUrl ? (
               <img src={user.avatarUrl} alt="" className="h-14 w-14 rounded-full" />
             ) : (
-              <div className="h-14 w-14 rounded-full bg-brand-700 flex items-center justify-center text-xl font-bold text-white">
+              <div className="h-14 w-14 rounded-full bg-action-hover flex items-center justify-center text-xl font-bold text-on-action">
                 {(user.displayName ?? user.email)[0].toUpperCase()}
               </div>
             )}
