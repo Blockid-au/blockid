@@ -17,7 +17,7 @@
 //     never rolls back a granted comp (it is logged and reported).
 
 import { createIntake, listMyIntakes, publicUrlForSlug, type IntakeWithCounts } from "@/lib/intake/program-intakes";
-import { buildPaidPilotWelcomeEmail, buildPilotEndedEmail, buildPilotReminderEmail, buildPilotWelcomeEmail, type EmailBody } from "./emails";
+import { buildPilotEndedEmail, buildPilotReminderEmail, buildPilotWelcomeEmail, type EmailBody } from "./emails";
 import {
   daysLeft,
   findActiveByEmail,
@@ -33,8 +33,7 @@ import {
   type PilotEndReason,
   type PilotRow,
 } from "./ledger";
-import { DEFAULT_PILOT_DAYS, PILOT_CAP, PILOT_MAX_APPLICANTS, PILOT_MAX_CREDITS, PILOT_MAX_DAYS, PILOT_TIER, defaultPilotCredits, paidPilotCredits } from "./offer";
-import { PILOT_SKUS, type PilotSkuId } from "@/lib/pricing/pilot-skus";
+import { DEFAULT_PILOT_DAYS, PILOT_CAP, PILOT_MAX_APPLICANTS, PILOT_MAX_CREDITS, PILOT_MAX_DAYS, PILOT_TIER, defaultPilotCredits } from "./offer";
 
 // ── Dependencies ────────────────────────────────────────────────────────────
 
@@ -298,134 +297,6 @@ export async function startPilot(input: StartPilotInput, actor: { email: string;
   return { ok: true, existing: false, pilot: saved, intake_url: intakeUrl, warnings };
 }
 
-// ── Start (paid — G21 P0-C) ─────────────────────────────────────────────────
-
-export interface StartPaidPilotInput {
-  /** The buyer's app_users id (from the Stripe session metadata). */
-  user_id: string;
-  email: string;
-  sku: PilotSkuId;
-  /** `pilot_orders.id` the webhook inserted. */
-  order_id: string;
-  program_name?: string | null;
-  /** Optional override of `PILOT_SKUS[sku].entitlementDays`. */
-  days?: number;
-  /** What Stripe charged (`session.amount_total`), for the confirmation e-mail. */
-  amount_cents?: number | null;
-}
-
-export type StartPaidPilotResult =
-  | { ok: true; existing: boolean; pilot: PilotRow; intake_url: string | null; plan_set: boolean; warnings: string[] }
-  | { ok: false; status: 404 | 503; error: "user_not_found" | "db_unavailable"; message: string };
-
-/**
- * Grant the paid Cohort Validation Pilot — the same plan + credits + intake
- * + ledger + e-mail + audit path the comp uses, with `source: "paid"`:
- *
- *   * never capped (the cap is for comps) and never refused for an existing
- *     Stripe subscription — the program paid; if a subscription exists the
- *     plan column is LEFT ALONE (never overwrite what a payer subscribed to)
- *     and the warning is surfaced for ops to reconcile by hand;
- *   * tier = `PILOT_SKUS[sku].planTier` (Cohort 25 for 25 applicants,
- *     Cohort 100 for 50) for `entitlementDays` (90);
- *   * credits = the report cost × the applicant cap;
- *   * idempotent on `order_id`: a webhook retry finds the existing ledger row.
- */
-export async function startPaidPilot(input: StartPaidPilotInput, deps: PilotDeps = {}): Promise<StartPaidPilotResult> {
-  const d = await resolveDeps(deps);
-  const warnings: string[] = [];
-  const now = d.now();
-  const sku = PILOT_SKUS[input.sku];
-  const days = input.days ?? sku.entitlementDays;
-  const email = normalisePilotEmail(input.email);
-  const programName = (input.program_name ?? "").trim() || `Cohort Validation Pilot (${email})`;
-
-  const ledger = await readLedger(d.root);
-  const existing = ledger.pilots.find((p) => p.order_id === input.order_id);
-  if (existing) {
-    return { ok: true, existing: true, pilot: existing, intake_url: existing.intake_slug ? publicUrlForSlug(existing.intake_slug) : null, plan_set: false, warnings };
-  }
-  if (!d.db) return { ok: false, status: 503, error: "db_unavailable", message: "Database not configured" };
-
-  const previousPlan = await d.db.getPlan(input.user_id);
-  if (previousPlan === null && !(await d.db.findUserByEmail(email))) {
-    return { ok: false, status: 404, error: "user_not_found", message: "No BlockID account for the buyer — the checkout requires a signed-in user, so this is a metadata mismatch" };
-  }
-
-  // 1. Plan — the Cohort tier for the pilot window; a payer's subscription is never overwritten.
-  let planSet = false;
-  if (await d.db.hasStripeSubscription(input.user_id)) {
-    warnings.push(`plan kept: ${previousPlan ?? "null"} — buyer has an active Stripe subscription; grant ${sku.planTier} by hand if needed`);
-  } else {
-    await d.db.setPlan(input.user_id, sku.planTier, now.toISOString());
-    planSet = true;
-  }
-
-  // 2. Credits — the report cost × the cap (never a Stripe coupon).
-  const credits = paidPilotCredits(sku.applicantsCap);
-  if (credits > 0) {
-    const g = await bestEffort("credit grant", () => d.grantCredits(input.user_id, credits, `paid pilot: ${sku.id}`, { order_id: input.order_id, sku: sku.id, pilot: true, paid: true }), warnings);
-    if (g && !g.ok) warnings.push("credit grant: refused");
-  }
-
-  // 3. Intake link, capped at the applicants the pilot covers.
-  let intake: IntakeWithCounts | null = null;
-  const created = await bestEffort(
-    "intake create",
-    () => d.createIntake(input.user_id, { name: programName, max_submissions: sku.applicantsCap, blurb: `Cohort Validation Pilot intake — up to ${sku.applicantsCap} applicants` }),
-    warnings,
-  );
-  if (created?.ok) intake = created.intake;
-  else if (created) warnings.push(`intake create: ${created.message}`);
-
-  // 4. Ledger (source paid — the comp cap and the comp guards ignore it; expiry reverts the tier).
-  const row = newPilotRow(
-    {
-      user_id: input.user_id,
-      email,
-      program_name: programName,
-      previous_plan: previousPlan,
-      credits_granted: credits,
-      intake_id: intake?.id ?? null,
-      intake_slug: intake?.slug ?? null,
-      days,
-      started_by: "stripe",
-      tier: sku.planTier,
-      source: "paid",
-      order_id: input.order_id,
-      applicants_cap: sku.applicantsCap,
-    },
-    now,
-    deps.id?.(),
-  );
-  const saved = await upsertPilot(d.root, row, "start", now);
-  const intakeUrl = saved.intake_slug ? publicUrlForSlug(saved.intake_slug) : null;
-
-  // 5. Confirmation e-mail (what happens next), audit, ops alert — best-effort.
-  const mail = buildPaidPilotWelcomeEmail({ sku: sku.id, intakeUrl, expiresAt: saved.expires_at, applicantsCap: sku.applicantsCap, amountCents: input.amount_cents ?? null, planSet });
-  await bestEffort("welcome e-mail", () => d.sendEmail({ to: saved.email, ...mail }), warnings);
-  await bestEffort(
-    "audit",
-    () =>
-      d.audit({
-        user_id: input.user_id,
-        actor: "stripe",
-        action: "pilot.started",
-        resource_type: "pilot",
-        resource_id: saved.id,
-        detail: { source: "paid", order_id: input.order_id, sku: sku.id, applicants_cap: sku.applicantsCap, tier: sku.planTier, previous_plan: previousPlan, plan_set: planSet, days, credits, intake_id: saved.intake_id },
-      }),
-    warnings,
-  );
-  await bestEffort(
-    "ops alert",
-    () => d.alert(`💳 *Paid pilot started* — ${sku.id} (≤ ${sku.applicantsCap} applicants)\n${maskEmail(saved.email)} · ${sku.planTier} for ${days} d · ${credits} credits${intakeUrl ? `\nIntake: ${intakeUrl}` : ""}${warnings.length ? `\n⚠️ ${warnings.join("; ")}` : ""}`),
-    warnings,
-  );
-
-  return { ok: true, existing: false, pilot: saved, intake_url: intakeUrl, plan_set: planSet, warnings };
-}
-
 // ── End / expire ────────────────────────────────────────────────────────────
 
 export type EndPilotResult =
@@ -450,8 +321,8 @@ export async function endPilot(id: string, reason: PilotEndReason, actor: { emai
     why = "Stripe subscription exists — plan kept";
   } else {
     const current = await d.db.getPlan(row.user_id);
-    // G21 P0-C: a paid pilot row carries the Cohort tier it granted; a comp
-    // row carries PILOT_TIER (rows written before P0-C always do).
+    // A ledger row carries the tier it granted (a retired G21 paid row = its
+    // Cohort tier; a comp row = PILOT_TIER — rows written before G21 always do).
     const grantedTier = row.tier ?? PILOT_TIER;
     if (current !== grantedTier) {
       why = `plan is now ${current ?? "null"} (not the pilot tier) — left as is`;

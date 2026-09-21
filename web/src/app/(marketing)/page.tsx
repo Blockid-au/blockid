@@ -55,7 +55,7 @@ import {
 // SEVEN BLOCKS, each on the template primitives (docs/design/unicorn-template.md):
 //
 //   1. Hero + search       HeroSection (client island: FI1/FI2 copy, the
-//                          Run a cohort pilot / Score my startup CTAs, the
+//                          Start a cohort / Score my startup CTAs, the
 //                          omnibox in its colour-changing ring, trust line)
 //   a. Problem             ProblemFlow — three linked steps, SVG arrows
 //   b. Product sequence    SequenceFlow — six steps, whole block → /product
@@ -196,7 +196,7 @@ export default function HomePage() {
         <CtaBand
           title={HOME_FINAL.title}
           sub={HOME_FINAL.sub}
-          primary={{ ...HOME_PRIMARY_CTA, ctaId: "home_final_pilot" }}
+          primary={{ ...HOME_PRIMARY_CTA, ctaId: "home_final_start_cohort" }}
           secondary={{ ...HOME_SECONDARY_CTA, ctaId: "home_final_score" }}
           tone="dark"
         />

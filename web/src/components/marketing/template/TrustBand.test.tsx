@@ -167,7 +167,8 @@ describe("<TrustBand locale=\"vi\" />", () => {
     expect(shell).toContain("<TrustBand locale={lang} />");
     const methodology = readFileSync(resolve(app, "(marketing)/methodology/methodology-page.tsx"), "utf8");
     expect(methodology).toContain("<TrustBand locale={p.locale} />");
-    const viPilot = readFileSync(resolve(app, "(marketing)/pilot/pilot-page-body.tsx"), "utf8");
-    expect(viPilot).toContain('lang === "vi" ? <TrustBand locale="vi" /> : <TrustBand />');
+    // G25: the /pilot + /vi/pilot pages are gone (301 → /solutions/accelerator); nothing else mounts the band per locale.
+    expect(existsSync(resolve(app, "(marketing)/pilot"))).toBe(false);
+    expect(existsSync(resolve(app, "vi/pilot"))).toBe(false);
   });
 });

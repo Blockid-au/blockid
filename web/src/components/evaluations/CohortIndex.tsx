@@ -25,8 +25,6 @@ export interface CohortIndexProps {
   batches: Array<EvaluationBatch & { role?: BatchRole }>;
   templates: CohortIndexTemplate[];
   canCreate: boolean;
-  /** Live paid pilot cap, shown on the form. */
-  pilotCap: number | null;
   /** G24-C: catalogue copy for the demo chip / CTA (EN default). */
   demoLabels?: DemoCohortLabels;
   /** G24-C: `?demo=removed` after the owner removed the demo cohort — a one-line status. */
@@ -52,7 +50,7 @@ function fmt(iso: string): string {
   return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
 }
 
-export function CohortIndex({ batches, templates, canCreate, pilotCap, demoLabels = DEMO_COHORT_LABELS_EN, demoRemoved = false }: CohortIndexProps) {
+export function CohortIndex({ batches, templates, canCreate, demoLabels = DEMO_COHORT_LABELS_EN, demoRemoved = false }: CohortIndexProps) {
   const router = useRouter();
   const [open, setOpen] = React.useState(batches.length === 0 && canCreate);
   const hasDemo = batches.some((b) => b.isDemo);
@@ -137,7 +135,6 @@ export function CohortIndex({ batches, templates, canCreate, pilotCap, demoLabel
               </Link>
             </p>
           </div>
-          {pilotCap != null ? <p className="text-xs text-ink-500 sm:col-span-2">Your pilot covers up to {pilotCap} startups per cohort.</p> : null}
           {error ? (
             <p role="alert" className="text-sm font-medium text-red-600 sm:col-span-2">
               {error}

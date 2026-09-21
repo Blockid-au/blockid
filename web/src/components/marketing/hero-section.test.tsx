@@ -34,7 +34,7 @@ function textOf(html: string): string {
 }
 
 function anchorTag(html: string, href: string): string {
-  const m = html.match(new RegExp(`<a\\b[^>]*href="${href.replace(/\//g, "\\/")}"[^>]*>`));
+  const m = html.match(new RegExp(`<a\\b[^>]*href="${href.replace(/[.*+?^${}()|[\]\\/]/g, "\\$&")}"[^>]*>`));
   if (!m) throw new Error(`no <a href="${href}">`);
   return m[0];
 }
@@ -63,13 +63,14 @@ describe("<HeroSection /> SSR", () => {
     expect(text).not.toContain("Founder? Get your own score free.");
   });
 
-  it("CTAs: 'Run a cohort pilot' → /solutions/accelerator#pilot (primary), 'Score my startup' → /analyze (secondary)", () => {
-    expect(HERO_PRIMARY_CTA).toEqual({ href: "/solutions/accelerator#pilot", label: "Run a cohort pilot", ctaId: "hero_pilot" });
+  it("CTAs: 'Start a cohort' → the Cohort 25 annual trial sign-up (primary, G25), 'Score my startup' → /analyze (secondary)", () => {
+    expect(HERO_PRIMARY_CTA).toEqual({ href: "/signup?segment=evaluator&plan=accelerator_starter&trial=1&interval=annual", label: "Start a cohort", ctaId: "hero_start_cohort" });
     expect(HERO_SECONDARY_CTA).toEqual({ href: "/analyze", label: "Score my startup", ctaId: "hero_score" });
-    expect(anchorTag(html, "/solutions/accelerator#pilot")).toContain('data-cta-id="hero_pilot"');
-    expect(anchorTag(html, "/solutions/accelerator#pilot")).toContain("bg-action");
+    expect(anchorTag(html, "/signup?segment=evaluator&amp;plan=accelerator_starter&amp;trial=1&amp;interval=annual")).toContain('data-cta-id="hero_start_cohort"');
+    expect(anchorTag(html, "/signup?segment=evaluator&amp;plan=accelerator_starter&amp;trial=1&amp;interval=annual")).toContain("bg-action");
     expect(anchorTag(html, "/analyze")).toContain('data-cta-id="hero_score"');
-    expect(text).toContain("Run a cohort pilot");
+    expect(text).toContain("Start a cohort");
+    expect(text).not.toMatch(/pilot/i);
     expect(text).toContain("Score my startup");
     expect(text).not.toContain("Score a startup");
   });

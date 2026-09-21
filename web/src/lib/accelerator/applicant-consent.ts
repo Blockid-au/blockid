@@ -1,7 +1,8 @@
-// pilots/consent — the founder-side consent screen text an applicant sees
-// when a program reviews them on BlockID (G21 P2-C, 2026-09-20). Exposed as
-// one constant so P2-A's intake templates can use it as the default consent
-// text and the /apply/[slug] form, the pilot kit and the tests print the same
+// accelerator/applicant-consent — the founder-side consent screen text an
+// applicant sees when a program reviews them on BlockID (G21 P2-C,
+// 2026-09-20; moved from lib/pilots/consent by G25). Exposed as one constant
+// so intake templates can use it as the default consent text and the
+// /apply/[slug] form, the Cohort onboarding kit and the tests print the same
 // sentence. The data sentence is the approved `DATA_PRINCIPLE_SENTENCE`
 // (founder-approved 2026-09-10) — never paraphrased.
 //

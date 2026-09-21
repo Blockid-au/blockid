@@ -29,7 +29,7 @@ export const SOLUTION_CARDS: readonly SolutionCard[] = [
     href: "/solutions/accelerator",
     eyebrow: "For accelerators, incubators and innovation programs",
     title: "Turn your next startup intake into a comparable, evidence-backed cohort",
-    body: "Score applicants consistently, identify who needs deeper review, target mentor support and show sponsors measurable progress. Start with a paid Cohort Validation Pilot.",
+    body: "Score applicants consistently, identify who needs deeper review, target mentor support and show sponsors measurable progress. Start a Cohort plan on your next intake — 14-day trial, card required.",
     icon: "users",
   },
   {

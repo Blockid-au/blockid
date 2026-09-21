@@ -1,10 +1,11 @@
 // Colocated test for /solutions/accelerator and its /vi mirror — the BlockID
-// Cohort page (G21 P0-C): the H1, the opening lines, the six-stage workflow
-// with only shipped bullets, "Humans make the decision", the paid Cohort
-// Validation Pilot block at `#pilot` (two offer cards from PILOT_SKUS, the
-// contact fallback when the price is not minted, the checkout button when it
-// is), the Cohort 25 / Cohort 100 rungs after it, no free / comped pilot
-// copy, and the SEO contract (S8-A).
+// Cohort page (G21 P0-C; G25 retired the paid pilot): the H1, the opening
+// lines, the six-stage workflow with only shipped bullets, "Humans make the
+// decision", the Cohort offer block at `#cohort` (eight inclusions, six
+// metrics, no amount), the Cohort 25 / Cohort 100 rungs at `#plans` (the
+// sold ladder's card-required trial links), NO pilot of any kind — no
+// `#pilot`, no A$1,500 / A$2,500, no contact fallback, no coupon — and the
+// SEO contract (S8-A).
 //
 // The marketing shell mounts NavV2 → useRouter(), which throws outside an
 // app-router context, so it is mocked to a pass-through.
@@ -19,10 +20,9 @@ vi.mock("@/components/marketing/marketing-shell", () => ({
 import en from "@/lib/i18n/messages/en.json";
 import vi_ from "@/lib/i18n/messages/vi.json";
 import type { Messages } from "@/lib/i18n/t";
-import { PILOT_SKUS, formatPilotPrice } from "@/lib/pricing/pilot-skus";
 import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
 import {
-  ACCELERATOR_PILOT_ANCHOR,
+  ACCELERATOR_START_COHORT_HREF,
   SAMPLE_COHORT_HREF,
   buildAcceleratorProps,
   buildAdvisorProps,
@@ -46,13 +46,14 @@ async function html(el: React.ReactElement): Promise<string> {
 describe("/solutions/accelerator — props (G21 P0-C)", () => {
   const props = buildAcceleratorProps(EN, "en");
 
-  it("hero: the FI H1 + sub, primary → #pilot, secondary → the sample cohort", () => {
+  it("hero: the FI H1 + sub, primary 'Start a cohort' → the Cohort 25 annual trial sign-up, secondary → the sample cohort", () => {
     expect(props.headline).toBe(H1_EN);
     expect(props.personaLine).toBe(
       "Score applicants consistently, identify the companies that need deeper review, target mentor support and show sponsors measurable progress from intake to demo day.",
     );
-    expect(props.primaryCtaLabel).toBe("Book a paid pilot");
-    expect(props.primaryCtaHref).toBe(ACCELERATOR_PILOT_ANCHOR);
+    expect(props.primaryCtaLabel).toBe("Start a cohort");
+    expect(props.primaryCtaHref).toBe(ACCELERATOR_START_COHORT_HREF);
+    expect(ACCELERATOR_START_COHORT_HREF).toBe("/signup?segment=evaluator&plan=accelerator_starter&trial=1&interval=annual");
     expect(props.secondaryCtaLabel).toBe("View sample cohort");
     expect(props.secondaryCtaHref).toBe(SAMPLE_COHORT_HREF);
   });
@@ -66,7 +67,7 @@ describe("/solutions/accelerator — props (G21 P0-C)", () => {
     expect(props.problem?.resolution).toBe("BlockID creates one consistent assessment layer.");
   });
 
-  it("six stages in order, three shipped bullets each — the P2 state (CSV import, confidence / verification / change columns, filters, shortlist, overrides with reason codes, snapshots, Cohort Report PDF / CSV, demo-day pack, pilot metrics)", () => {
+  it("six stages in order, three shipped bullets each — the P2 state (CSV import, confidence / verification / change columns, filters, shortlist, overrides with reason codes, snapshots, Cohort Report PDF / CSV, demo-day pack, onboarding metrics)", () => {
     expect(props.journey?.map((s) => s.headline)).toEqual(["Intake", "Assessment", "Selection", "Program", "Demo day", "Sponsor reporting"]);
     const bullets = props.journey!.flatMap((s) => s.bullets);
     expect(bullets).toHaveLength(18);
@@ -89,7 +90,8 @@ describe("/solutions/accelerator — props (G21 P0-C)", () => {
     expect(text).toMatch(/demo-day pack/i);
     expect(text).toMatch(/Cohort Report assembled from the cohort record/);
     expect(text).toMatch(/PDF and CSV export of the Cohort Report/);
-    expect(text).toMatch(/Pilot success metrics/);
+    expect(text).toMatch(/Onboarding success metrics/);
+    expect(text).not.toMatch(/pilot/i);
     // The retired names never come back; nothing is promised.
     expect(text).not.toMatch(/quarterly sponsor report|Investor Dossier|custom[- ]weight/i);
     expect(text).not.toMatch(/coming soon|roadmap|P2\b/);
@@ -100,73 +102,73 @@ describe("/solutions/accelerator — props (G21 P0-C)", () => {
     expect(props.statement?.body).toBe("BlockID structures the evidence and standardises the first-pass analysis. Humans make the decision.");
   });
 
-  it("the paid pilot block: copy from the catalogue, eight inclusions, six metrics, Cohort 25 / 100 after, unconfigured by default", () => {
-    const pilot = props.pilotOffer!;
-    expect(pilot.copy.title).toBe("BlockID Cohort Validation Pilot");
-    expect(pilot.copy.includes).toHaveLength(8);
-    expect(pilot.copy.metrics).toHaveLength(6);
-    expect(pilot.copy.metrics.join("\n")).toMatch(/Review time per startup/);
-    expect(pilot.copy.metrics.join("\n")).toMatch(/renewal intent/i);
-    expect(pilot.configured).toEqual({ cohort_pilot_25: false, cohort_pilot_50: false });
-    expect(pilot.returnPath).toBe("/solutions/accelerator#pilot");
-    expect(pilot.copy.afterTiers?.map((t) => t.name)).toEqual(["Cohort 25", "Cohort 100"]);
-    expect(pilot.copy.afterTiers?.[0]?.price).toBe("{cohortAnnualPrice} a year");
-    expect(pilot.copy.afterTiers?.[1]?.price).toBe("{cohort100AnnualPrice} a year");
-    expect(pilot.copy.afterTiers?.[0]?.href).toContain("plan=accelerator_starter");
-    expect(pilot.copy.afterTiers?.[1]?.href).toContain("plan=accelerator_growth");
+  it("the Cohort offer block (G25): copy from the catalogue, eight inclusions, six metrics, no amount; the two rungs with token prices and the trial sign-up links", () => {
+    const offer = props.cohortOffer!;
+    expect(offer.title).toBe("What a Cohort plan delivers");
+    expect(offer.includes).toHaveLength(8);
+    expect(offer.metrics).toHaveLength(6);
+    expect(offer.metrics.join("\n")).toMatch(/Review time per startup/);
+    expect(offer.metrics.join("\n")).toMatch(/renewal intent/i);
+    expect(JSON.stringify(offer)).not.toMatch(/pilot|A\$\s?\d/i);
+    const tiers = props.tiers!;
+    expect(tiers.items.map((t) => t.name)).toEqual(["Cohort 25", "Cohort 100"]);
+    expect(tiers.items[0]?.price).toBe("{cohortAnnualPrice} a year");
+    expect(tiers.items[1]?.price).toBe("{cohort100AnnualPrice} a year");
+    expect(tiers.items[0]?.href).toBe(ACCELERATOR_START_COHORT_HREF);
+    expect(tiers.items[1]?.href).toContain("plan=accelerator_growth");
+    expect(tiers.items[1]?.href).toContain("trial=1");
+    expect(props.pilotOffer).toBeUndefined();
   });
 
-  it("no free / comped pilot copy, no PhD, no literal price outside tokens, no old journey", () => {
+  it("no pilot of any kind, no coupon, no PhD, no literal price outside tokens, no old journey", () => {
     const p = buildAcceleratorProps(EN, "en");
     const text = JSON.stringify([
       p.headline, p.personaLine, p.emotionalLine, p.outcomeLine, p.primaryCtaLabel, p.secondaryCtaLabel,
-      p.problem, p.benefits, p.journey, p.statement, p.pilotOffer?.copy, p.faqs.map((f) => [f.q, f.a]),
+      p.problem, p.benefits, p.journey, p.statement, p.cohortOffer, p.tiers, p.faqs.map((f) => [f.q, f.a]),
     ]);
-    expect(text).not.toMatch(/free pilot|comped|letter of intent|LOI|Five pilots|60 applicants|admin grant|no card required/i);
+    expect(text).not.toMatch(/pilot|coupon|credit(ed)? against|free pilot|comped|letter of intent|LOI|Five pilots|60 applicants|admin grant|no card required/i);
     expect(text).not.toMatch(/PhD/);
     expect(text.replace(/\{[a-zA-Z0-9]+\}/g, "")).not.toMatch(/A\$\s?\d/);
     expect(text).not.toMatch(/Day 0-30|Day 31-60/);
   });
 
-  it("the Vietnamese twin carries the same structure (six stages, eight inclusions, six metrics, two rungs)", () => {
+  it("the Vietnamese twin carries the same structure (six stages, eight inclusions, six metrics, two rungs) and no 'thí điểm'", () => {
     const p = buildAcceleratorProps(VI, "vi");
     expect(p.headline).toBe("Biến đợt tuyển sinh startup tiếp theo thành một khoá có thể so sánh, dựa trên bằng chứng.");
-    expect(p.primaryCtaHref).toBe(ACCELERATOR_PILOT_ANCHOR);
+    expect(p.primaryCtaLabel).toBe("Bắt đầu một khoá");
+    expect(p.primaryCtaHref).toBe(ACCELERATOR_START_COHORT_HREF);
     expect(p.journey).toHaveLength(6);
-    expect(p.pilotOffer?.copy.includes).toHaveLength(8);
-    expect(p.pilotOffer?.copy.metrics).toHaveLength(6);
-    expect(p.pilotOffer?.copy.afterTiers).toHaveLength(2);
-    expect(p.pilotOffer?.returnPath).toBe("/vi/solutions/accelerator#pilot");
+    expect(p.cohortOffer?.includes).toHaveLength(8);
+    expect(p.cohortOffer?.metrics).toHaveLength(6);
+    expect(p.tiers?.items).toHaveLength(2);
     expect(p.problem?.lines).toHaveLength(3);
+    expect(JSON.stringify([p.cohortOffer, p.tiers, p.journey, p.faqs])).not.toMatch(/thí điểm|pilot/i);
   });
 
-  it("investor and advisor personas do not carry the pilot block", () => {
-    expect(buildInvestorProps(EN).pilotOffer).toBeUndefined();
-    expect(buildAdvisorProps(EN).pilotOffer).toBeUndefined();
+  it("investor and advisor personas do not carry the Cohort offer block", () => {
+    expect(buildInvestorProps(EN).cohortOffer).toBeUndefined();
+    expect(buildAdvisorProps(EN).cohortOffer).toBeUndefined();
   });
 });
 
 describe("/solutions/accelerator — rendered (EN)", () => {
-  it("H1, #pilot section, two offer cards with the SKU prices inc. GST, contact fallback links, metrics, Cohort 25 / 100 with catalogue prices, no token left", async () => {
+  it("H1, #cohort offer (8 inclusions, 6 metrics), #plans with Cohort 25 / 100 catalogue prices and trial links, no #pilot / pilot price / contact fallback, no token left", async () => {
     const out = await html(await SolutionsAcceleratorPage());
     expect(out.match(/<h1[\s>]/g)).toHaveLength(1);
     expect(out).toContain(H1_EN);
-    expect(out).toMatch(/<section[^>]*id="pilot"/);
-    expect(out).toContain('data-testid="pilot-offer"');
-    expect(out.match(/data-testid="pilot-offer-card"/g)).toHaveLength(2);
-    expect(out).toContain('data-sku="cohort_pilot_25"');
-    expect(out).toContain('data-sku="cohort_pilot_50"');
-    expect(out).toContain(formatPilotPrice("cohort_pilot_25"));
-    expect(out).toContain(formatPilotPrice("cohort_pilot_50"));
-    expect(out).toContain("inc. GST");
-    expect(out).toContain("quote before you pay");
-    // price env vars are unset in the unit run → both buttons are contact links
-    expect(out).toContain('data-testid="pilot-buy-cohort_pilot_25"');
-    expect(out).toContain('data-testid="pilot-buy-cohort_pilot_50"');
-    expect(out.match(/data-pilot-mode="contact"/g)).toHaveLength(2);
-    expect(out).toContain('href="/contact?topic=pilot"');
-    expect(out).toContain('data-testid="pilot-metrics"');
-    expect(out).toContain('data-testid="pilot-after"');
+    expect(out).toMatch(/<section[^>]*id="cohort"/);
+    expect(out).toContain('data-testid="cohort-offer"');
+    expect(out).toContain('data-testid="cohort-offer-includes"');
+    expect(out).toContain('data-testid="cohort-offer-metrics"');
+    expect(out).toMatch(/<section[^>]*id="plans"/);
+    expect(out).toContain('data-testid="solutions-tiers"');
+    expect(out).toContain(`href="${ACCELERATOR_START_COHORT_HREF.replace(/&/g, "&amp;")}"`);
+    expect(out).toContain("Start a cohort");
+    expect(out).not.toMatch(/id="pilot"/);
+    expect(out).not.toMatch(/pilot/i);
+    expect(out).not.toContain("/contact?topic=pilot");
+    expect(out).not.toContain("A$1,500");
+    expect(out).not.toContain("A$2,500");
     const cohort25 = GENERATED_PLANS_BY_ID.accelerator_starter!.annual_price_aud_cents / 100;
     const cohort100 = GENERATED_PLANS_BY_ID.accelerator_growth!.annual_price_aud_cents / 100;
     expect(out).toContain(`A$${cohort25.toLocaleString("en-AU")} a year`);
@@ -179,24 +181,18 @@ describe("/solutions/accelerator — rendered (EN)", () => {
     expect(out).not.toMatch(/free pilot|Free cohort scoring/i);
     // the six stages carry only shipped bullets
     expect(out).not.toMatch(/CSV import/);
-    // the two pilot amounts and the two Cohort figures are the only A$ on the page
+    // the two Cohort figures are the only A$ on the page (the sold ladder, unchanged)
     const amounts = new Set([...out.matchAll(/A\$([\d,]+)/g)].map((m) => m[1]));
-    expect([...amounts].sort()).toEqual(
-      [
-        String(PILOT_SKUS.cohort_pilot_25.amountInclGstCents / 100).replace(/\B(?=(\d{3})+(?!\d))/g, ","),
-        String(PILOT_SKUS.cohort_pilot_50.amountInclGstCents / 100).replace(/\B(?=(\d{3})+(?!\d))/g, ","),
-        cohort25.toLocaleString("en-AU"),
-        cohort100.toLocaleString("en-AU"),
-      ].sort(),
-    );
+    expect([...amounts].sort()).toEqual([cohort25.toLocaleString("en-AU"), cohort100.toLocaleString("en-AU")].sort());
   });
 
-  it("renders the Vietnamese mirror with the same #pilot block", async () => {
+  it("renders the Vietnamese mirror with the same #cohort + #plans blocks and no 'thí điểm'", async () => {
     const out = await html(await ViSolutionsAcceleratorPage());
-    expect(out).toMatch(/<section[^>]*id="pilot"/);
-    expect(out.match(/data-testid="pilot-offer-card"/g)).toHaveLength(2);
-    expect(out).toContain(formatPilotPrice("cohort_pilot_25"));
-    expect(out).toContain('href="/contact?topic=pilot"');
+    expect(out).toMatch(/<section[^>]*id="cohort"/);
+    expect(out).toMatch(/<section[^>]*id="plans"/);
+    expect(out).toContain(`href="${ACCELERATOR_START_COHORT_HREF.replace(/&/g, "&amp;")}"`);
+    expect(out).not.toMatch(/id="pilot"|thí điểm|pilot/i);
+    expect(out).not.toContain("/contact?topic=pilot");
     expect(out).not.toMatch(/\{[a-zA-Z0-9]+\}/);
   });
 });

@@ -109,7 +109,7 @@ export async function findDemoBatch(userId: string, orgId: string | null = null)
   return { ok: true, batch: row ? mapBatchRow(row) : null };
 }
 
-/** True when the caller currently holds a demo batch (the pilot-kit "Ran the demo cohort" tick). Fail-soft false. */
+/** True when the caller currently holds a demo batch (the onboarding-kit "Ran the demo cohort" tick). Fail-soft false. */
 export async function hasDemoBatch(userId: string, orgId: string | null = null): Promise<boolean> {
   try {
     const r = await findDemoBatch(userId, orgId);

@@ -18,7 +18,6 @@ import { GENERATED_PLANS } from "@/config/pricing/plans.generated";
 import { CREDIT_PACKS } from "@/lib/credit-packs";
 import { REPORT_SKUS } from "@/lib/pricing/v3-skus";
 import { EQUITY_ADDON_MONTHLY_AUD } from "@/lib/plans-v2";
-import { PILOT_SKU_IDS, PILOT_SKUS } from "@/lib/pricing/pilot-skus";
 
 export type CatalogueInterval = "month" | "year" | "one_off";
 export type TaxBehavior = "inclusive" | "exclusive" | "unspecified";
@@ -47,7 +46,7 @@ export interface StripeMapRow {
   /** A$ the site advertises, in cents, GST-inclusive. */
   expected_cents: number;
   /** Where the row's expectation comes from. */
-  source: "plans.csv" | "credit-packs" | "v3-skus" | "plans-v2" | "pilot-skus";
+  source: "plans.csv" | "credit-packs" | "v3-skus" | "plans-v2";
 }
 
 /**
@@ -124,18 +123,6 @@ export function stripeMapRows(): StripeMapRow[] {
       source: "plans-v2",
     },
   );
-
-  // G21 P0-C — the paid Cohort Validation Pilot (one-off, inclusive).
-  for (const id of PILOT_SKU_IDS) {
-    const sku = PILOT_SKUS[id];
-    rows.push({
-      plan_id: sku.id,
-      env_var: sku.envVar,
-      interval: "one_off",
-      expected_cents: sku.amountInclGstCents,
-      source: "pilot-skus",
-    });
-  }
 
   return rows;
 }

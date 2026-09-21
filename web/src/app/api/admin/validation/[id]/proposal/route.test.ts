@@ -2,11 +2,11 @@
 // the admin gate (401 anon / 403 non-admin — never a render, never a stamp),
 // 400 on a malformed id or applicants, 404 on an unknown entry, and the 200
 // application/pdf path: Content-Disposition slugged from the organisation,
-// ?applicants steering the SKU header, the entry's proposal_generated_at
+// ?applicants steering the plan header, the entry's proposal_generated_at
 // stamp landing in the ledger, and the audit row. Supabase is absent (the
 // audit helper is mocked); the react-pdf render is mocked to a tiny PDF so
 // the file stays in the unit project — the real template is pinned by
-// lib/pdf/pilot-proposal-pdf.test.tsx on the pdf project.
+// lib/pdf/cohort-proposal-pdf.test.tsx on the pdf project.
 
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -19,13 +19,13 @@ vi.mock("@/lib/auth", () => ({ getCurrentUser: () => mocks.getCurrentUser(), ADM
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => null }));
 vi.mock("@/lib/audit/log", () => ({ logUserAction: (i: unknown) => mocks.logUserAction(i as never), extractIp: () => "1.1.1.1", extractUserAgent: () => "test" }));
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/pdf/pilot-proposal-pdf", () => ({
-  renderPilotProposalPdf: async (proposal: { meta: { sku: string } }) => ({ buffer: Buffer.from(`%PDF-1.4 fake ${proposal.meta.sku}`), pages: 4 }),
+vi.mock("@/lib/pdf/cohort-proposal-pdf", () => ({
+  renderCohortProposalPdf: async (proposal: { meta: { planId: string } }) => ({ buffer: Buffer.from(`%PDF-1.4 fake ${proposal.meta.planId}`), pages: 4 }),
 }));
 
 import { GET, PROPOSALS_PER_HOUR } from "./route";
 import { createEntry, readValidationLedger } from "@/lib/validation/ledger";
-import { PILOT_SKUS } from "@/lib/pricing/pilot-skus";
+import { cohortPlanCap } from "@/lib/validation/proposal";
 
 const ADMIN = { id: "admin-1", email: "admin@blockid.au", role: "admin", plan: null };
 const FOUNDER = { id: "u-9", email: "founder@x.io", role: "user", plan: "free" };
@@ -69,13 +69,14 @@ describe("GET /api/admin/validation/[id]/proposal", () => {
     expect((await call("00000000-0000-4000-8000-000000000000")).status).toBe(404);
   });
 
-  it("200 application/pdf: filename from the organisation, SKU from the entry text (40 → the 50 pilot), stamp + audit", async () => {
+  it("200 application/pdf: filename from the organisation, plan from the entry text (40 → Cohort 100), stamp + audit", async () => {
     const res = await call(entryId);
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toBe("application/pdf");
-    expect(res.headers.get("content-disposition")).toMatch(/^attachment; filename="blockid-pilot-proposal-harbour-accelerator-\d{4}-\d{2}-\d{2}\.pdf"$/);
+    expect(res.headers.get("content-disposition")).toMatch(/^attachment; filename="blockid-cohort-proposal-harbour-accelerator-\d{4}-\d{2}-\d{2}\.pdf"$/);
     expect(res.headers.get("cache-control")).toBe("private, no-store");
-    expect(res.headers.get("x-proposal-sku")).toBe("cohort_pilot_50");
+    expect(res.headers.get("x-proposal-plan")).toBe("accelerator_growth");
+    expect(res.headers.get("x-proposal-sku")).toBeNull();
     expect(Number(res.headers.get("x-proposal-pages"))).toBeLessThanOrEqual(4);
     const body = Buffer.from(await res.arrayBuffer());
     expect(body.subarray(0, 4).toString("latin1")).toBe("%PDF");
@@ -85,13 +86,13 @@ describe("GET /api/admin/validation/[id]/proposal", () => {
     const entry = ledger.entries.find((e) => e.id === entryId)!;
     expect(entry.proposal_generated_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(entry).toMatchObject({ level: 3, outcome: "booked", organisation: "Harbour Accelerator" });
-    expect(mocks.logUserAction).toHaveBeenCalledWith(expect.objectContaining({ action: "validation.proposal_generated", userId: "admin-1", subjectId: entryId, fields: expect.objectContaining({ sku: "cohort_pilot_50", applicants: PILOT_SKUS.cohort_pilot_50.applicantsCap }) }));
+    expect(mocks.logUserAction).toHaveBeenCalledWith(expect.objectContaining({ action: "validation.proposal_generated", userId: "admin-1", subjectId: entryId, fields: expect.objectContaining({ plan: "accelerator_growth", applicants: cohortPlanCap("accelerator_growth") }) }));
   });
 
-  it("?applicants=12 books the 25 pilot", async () => {
+  it("?applicants=12 proposes Cohort 25", async () => {
     const res = await call(entryId, "?applicants=12");
     expect(res.status).toBe(200);
-    expect(res.headers.get("x-proposal-sku")).toBe("cohort_pilot_25");
+    expect(res.headers.get("x-proposal-plan")).toBe("accelerator_starter");
   });
 
   it("429 after PROPOSALS_PER_HOUR renders by the same admin", async () => {

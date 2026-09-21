@@ -1,6 +1,7 @@
-// Cohort Validation Pilot proposal PDF (G23-B, 2026-09-21) — the advisor plan's
-// Level 3 artefact ("a written pilot proposal with scope, price and dates sent
-// to a named organisation"), rendered on demand from the validation tracker
+// Cohort proposal PDF (G23-B, 2026-09-21; re-based by G25 when the paid pilot
+// was retired) — the advisor plan's Level 3 artefact ("a written proposal
+// with scope, price and dates sent to a named organisation"), rendered on
+// demand from the validation tracker
 // (GET /api/admin/validation/[id]/proposal) on the cohort-report-pdf.tsx
 // pattern: built-in Helvetica, A4, footer with the operator + "not financial
 // advice" + page x/y, page count read back from the bytes.
@@ -8,25 +9,25 @@
 // Page 1  cover · the problem in their words · scope and price · includes
 // Page 2  what is delivered — the six stages that ship today
 // Page 3  success metrics · timeline · data and consent
-// Page 4  after the pilot (Cohort 25 / Cohort 100 annual, the credit rule) ·
+// Page 4  the two Cohort rungs (Cohort 25 / Cohort 100 annual, trial) ·
 //         acceptance + signature block · entity / ABN footer · disclaimer
 //
-// Every string comes from `buildPilotProposal()` (lib/validation/proposal.ts);
+// Every string comes from `buildCohortProposal()` (lib/validation/proposal.ts);
 // nothing here carries an amount, a cap or an entity literal. The suite pins
-// ≤ PILOT_PROPOSAL_MAX_PAGES pages and ≤ PILOT_PROPOSAL_MAX_BYTES bytes.
+// ≤ COHORT_PROPOSAL_MAX_PAGES pages and ≤ COHORT_PROPOSAL_MAX_BYTES bytes.
 
 import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import { INK } from "@/lib/report-visuals";
 import { pdfSafeText as t } from "@/lib/report-visuals/pdf-text";
-import type { PilotProposal } from "@/lib/validation/proposal";
+import type { CohortProposal } from "@/lib/validation/proposal";
 import { AdviceDisclaimer } from "./advice-disclaimer";
 import { pdfPageCount } from "./page-count";
 
-export const PILOT_PROPOSAL_FOOTER = `Prepared with BlockID.au · ${LEGAL_ENTITY.operator} · not financial advice`;
-export const PILOT_PROPOSAL_MAX_PAGES = 4;
+export const COHORT_PROPOSAL_FOOTER = `Prepared with BlockID.au · ${LEGAL_ENTITY.operator} · not financial advice`;
+export const COHORT_PROPOSAL_MAX_PAGES = 4;
 /** Text-only document on the built-in font — well under this. */
-export const PILOT_PROPOSAL_MAX_BYTES = 120 * 1024;
+export const COHORT_PROPOSAL_MAX_BYTES = 120 * 1024;
 
 const C = { ink: INK.text, muted: INK.muted, faint: INK.faint, grid: INK.grid, surface: INK.surfaceAlt, brand: "#0072B2" };
 const MM = 72 / 25.4;
@@ -72,7 +73,7 @@ const s = StyleSheet.create({
 function Footer({ reference }: { reference: string }) {
   return (
     <View style={s.footer} fixed>
-      <Text>{t(`${PILOT_PROPOSAL_FOOTER} · ${reference}`)}</Text>
+      <Text>{t(`${COHORT_PROPOSAL_FOOTER} · ${reference}`)}</Text>
       <Text render={({ pageNumber, totalPages }) => `page ${pageNumber}/${totalPages}`} />
     </View>
   );
@@ -100,7 +101,7 @@ function Bullets({ items }: { items: readonly string[] }) {
 }
 
 // Page 1 — the cover, the buyer's own words, scope and price.
-function CoverPage({ p }: { p: PilotProposal }) {
+function CoverPage({ p }: { p: CohortProposal }) {
   const half = Math.ceil(p.scope.includes.length / 2);
   return (
     <Page size="A4" style={s.page}>
@@ -144,16 +145,16 @@ function CoverPage({ p }: { p: PilotProposal }) {
       <Text style={s.h2}>{t(p.scope.heading)}</Text>
       <Text style={[s.body, s.bold]}>{t(p.scope.name)}</Text>
       <View style={s.tiles}>
-        <Tile v={p.scope.priceLabel} l="One-off, inc. GST" />
-        <Tile v={String(p.scope.applicantsCap)} l="Applicants covered" />
-        <Tile v={`${p.scope.accessDays} days`} l="Workspace access from payment" />
+        <Tile v={p.scope.priceLabel} l="A year, inc. GST" />
+        <Tile v={String(p.scope.applicantsCap)} l="Tracked startups" />
+        <Tile v={`${p.scope.trialDays} days`} l="Free trial, card required" />
       </View>
       {p.scope.lines.map((line) => (
         <Text key={line} style={[s.body, { marginBottom: 2 }]}>
           {t(line)}
         </Text>
       ))}
-      <Text style={s.h3}>What the pilot includes</Text>
+      <Text style={s.h3}>What the plan includes</Text>
       <View style={s.cols}>
         <View style={s.col}>
           <Bullets items={p.scope.includes.slice(0, half)} />
@@ -168,7 +169,7 @@ function CoverPage({ p }: { p: PilotProposal }) {
 }
 
 // Page 2 — what is delivered: the six stages that ship today.
-function DeliveredPage({ p }: { p: PilotProposal }) {
+function DeliveredPage({ p }: { p: CohortProposal }) {
   return (
     <Page size="A4" style={s.page}>
       <Text style={s.kicker}>What is delivered</Text>
@@ -189,10 +190,10 @@ function DeliveredPage({ p }: { p: PilotProposal }) {
 }
 
 // Page 3 — success metrics, timeline, data and consent (the program's applicants keep their data).
-function MetricsPage({ p }: { p: PilotProposal }) {
+function MetricsPage({ p }: { p: CohortProposal }) {
   return (
     <Page size="A4" style={s.page}>
-      <Text style={s.kicker}>How we measure the pilot</Text>
+      <Text style={s.kicker}>How we measure the first cohort</Text>
       <Text style={[s.h2, { marginTop: 4 }]}>{t(p.metrics.heading)}</Text>
       <Text style={s.small}>{t(p.metrics.lede)}</Text>
       <View style={{ marginTop: 4 }}>
@@ -226,29 +227,28 @@ function MetricsPage({ p }: { p: PilotProposal }) {
   );
 }
 
-// Page 4 — after the pilot, acceptance + signature, entity footer, disclaimer.
-function AcceptancePage({ p }: { p: PilotProposal }) {
+// Page 4 — the two Cohort rungs, acceptance + signature, entity footer, disclaimer.
+function AcceptancePage({ p }: { p: CohortProposal }) {
   return (
     <Page size="A4" style={s.page}>
-      <Text style={s.kicker}>{t(p.after.heading)}</Text>
-      <Text style={[s.h2, { marginTop: 4 }]}>{t(p.after.heading)}</Text>
-      <Text style={s.body}>{t(p.after.lede)}</Text>
+      <Text style={s.kicker}>{t(p.plans.heading)}</Text>
+      <Text style={[s.h2, { marginTop: 4 }]}>{t(p.plans.heading)}</Text>
+      <Text style={s.body}>{t(p.plans.lede)}</Text>
       <View style={[s.table, { marginTop: 6 }]}>
         <View style={[s.tr, s.head]}>
-          <Text style={[s.cell, s.bold, { width: "28%" }]}>Plan</Text>
-          <Text style={[s.cell, s.bold, { width: "44%" }]}>For</Text>
-          <Text style={[s.cell, s.bold, { width: "28%", textAlign: "right" }]}>Annual, inc. GST</Text>
+          <Text style={[s.cell, s.bold, { width: "22%" }]}>Plan</Text>
+          <Text style={[s.cell, s.bold, { width: "38%" }]}>For</Text>
+          <Text style={[s.cell, s.bold, { width: "14%", textAlign: "right" }]}>Startups</Text>
+          <Text style={[s.cell, s.bold, { width: "26%", textAlign: "right" }]}>Annual, inc. GST</Text>
         </View>
-        {p.after.tiers.map((tier) => (
+        {p.plans.tiers.map((tier) => (
           <View key={tier.id} style={s.tr} wrap={false}>
-            <Text style={[s.cell, { width: "28%" }]}>{t(tier.name)}</Text>
-            <Text style={[s.cell, { width: "44%" }]}>{t(tier.tagline)}</Text>
-            <Text style={[s.cell, { width: "28%", textAlign: "right" }]}>{t(`${tier.annualLabel} a year`)}</Text>
+            <Text style={[s.cell, { width: "22%" }]}>{t(tier.name)}</Text>
+            <Text style={[s.cell, { width: "38%" }]}>{t(tier.tagline)}</Text>
+            <Text style={[s.cell, { width: "14%", textAlign: "right" }]}>{t(String(tier.cap))}</Text>
+            <Text style={[s.cell, { width: "26%", textAlign: "right" }]}>{t(`${tier.annualLabel} a year · ${tier.monthlyLabel} a month · ${tier.trialDays}-day trial`)}</Text>
           </View>
         ))}
-      </View>
-      <View style={s.softBox}>
-        <Text style={[s.body, s.bold]}>{t(p.after.creditRule)}</Text>
       </View>
 
       <Text style={s.h2}>{t(p.acceptance.heading)}</Text>
@@ -274,9 +274,9 @@ function AcceptancePage({ p }: { p: PilotProposal }) {
   );
 }
 
-export function PilotProposalPdf({ proposal }: { proposal: PilotProposal }) {
+export function CohortProposalPdf({ proposal }: { proposal: CohortProposal }) {
   return (
-    <Document title={`${proposal.cover.title} — ${proposal.cover.organisation}`} author="BlockID.au" subject="Cohort Validation Pilot proposal" creator="BlockID.au">
+    <Document title={`${proposal.cover.title} — ${proposal.cover.organisation}`} author="BlockID.au" subject="Cohort proposal" creator="BlockID.au">
       <CoverPage p={proposal} />
       <DeliveredPage p={proposal} />
       <MetricsPage p={proposal} />
@@ -285,12 +285,12 @@ export function PilotProposalPdf({ proposal }: { proposal: PilotProposal }) {
   );
 }
 
-export interface RenderPilotProposalResult {
+export interface RenderCohortProposalResult {
   buffer: Buffer;
   pages: number;
 }
 
-export async function renderPilotProposalPdf(proposal: PilotProposal): Promise<RenderPilotProposalResult> {
-  const buffer = await renderToBuffer(<PilotProposalPdf proposal={proposal} />);
+export async function renderCohortProposalPdf(proposal: CohortProposal): Promise<RenderCohortProposalResult> {
+  const buffer = await renderToBuffer(<CohortProposalPdf proposal={proposal} />);
   return { buffer: Buffer.from(buffer), pages: pdfPageCount(buffer) };
 }

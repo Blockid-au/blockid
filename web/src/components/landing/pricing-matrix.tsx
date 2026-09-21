@@ -74,7 +74,7 @@ const SEGMENT_INTRO: Record<Segment, { headline: string; sub: string; roleFit: s
     headline: "Pricing for programs",
     sub: "Intake link A$2,490 · Cohort 25 A$5,000 · Cohort 100 A$15,000 a year, billed annually. 14-day free trial · card required · cancel anytime.",
     roleFit: "How this fits your role: score an application round or a whole cohort on one rubric, batch-score it overnight, and export the sponsor / LP report — as an accelerator, incubator or university program.",
-    note: "Start with the Cohort Validation Pilot: one real intake or an existing cohort, scored on the Startup Value Index with a cohort table and final report — the pilot rung above books it.",
+    note: "Start a cohort on the rung that fits your intake: one real intake or an existing cohort, scored on the Startup Value Index with a cohort table, the Cohort Report and an onboarding kit — 14-day trial, card required.",
   },
 };
 
@@ -304,7 +304,7 @@ export function PricingMatrix({ segment: overrideSegment, annualAvailable, purch
  * price is read off the SKU and the credit-pack ladder so the line can never
  * drift from what checkout books. (Until 2026-09-20 this was a highlighted
  * box on the Evaluator tab; the evaluator-first positioning leads with the
- * paid cohort pilot, so the A$3 reference stays on the Founder tab only.)
+ * Cohort plans, so the A$3 reference stays on the Founder tab only.)
  */
 function ReportFootnote() {
   const reportPrice = `A$${(TRUST_REPORT_5AUD.unit_amount_incl_gst_cents ?? 300) / 100}`;

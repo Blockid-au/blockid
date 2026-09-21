@@ -60,14 +60,15 @@ describe("FOOTER_COLUMNS — four columns (G17 D5)", () => {
     for (const e of MENU) if (e.kind === "link") expect(everywhere, e.href).toContain(e.href);
   });
 
-  it("For carries the four persona landings (the bar names three; the advisor page lives only here), keeps the pilot (G16-C) and hosts the case studies", () => {
+  it("For carries the four persona landings (the bar names three; the advisor page lives only here), no pilot link (G25) and hosts the case studies", () => {
     const forHrefs = column("For").items.map((i) => i.href);
     for (const href of ["/solutions/investor", "/solutions/accelerator", "/solutions/advisor", "/solutions/founder"]) {
       expect(forHrefs, href).toContain(href);
     }
     expect(forHrefs).toEqual(
-      expect.arrayContaining(["/pilot", "/showcase/atlassian?step=1", "/showcase", "/compare"]),
+      expect.arrayContaining(["/showcase/atlassian?step=1", "/showcase", "/compare"]),
     );
+    expect(forHrefs).not.toContain("/pilot");
     expect(column("For").items.find((i) => i.href === "/showcase/atlassian?step=1")?.label).toMatch(/atlassian/i);
   });
 

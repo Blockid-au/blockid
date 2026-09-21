@@ -97,19 +97,21 @@ describe("homepage v7 — hero (G21 P0-B)", () => {
     expect(out).toMatch(/<main[^>]*id="main-content"/);
   });
 
-  it("CTA 1 Run a cohort pilot → /solutions/accelerator#pilot, CTA 2 Score my startup → /analyze; the hero, the nav and the closing band agree", () => {
+  it("CTA 1 Start a cohort → the Cohort 25 annual trial sign-up (G25), CTA 2 Score my startup → /analyze; the hero, the nav and the closing band agree", () => {
+    expect(HOME_PRIMARY_CTA).toEqual({ href: "/signup?segment=evaluator&plan=accelerator_starter&trial=1&interval=annual", label: "Start a cohort" });
     expect(HERO_PRIMARY_CTA.href).toBe(HOME_PRIMARY_CTA.href);
     expect(HERO_PRIMARY_CTA.label).toBe(HOME_PRIMARY_CTA.label);
     expect(HERO_SECONDARY_CTA.href).toBe(HOME_SECONDARY_CTA.href);
     expect(HERO_SECONDARY_CTA.label).toBe(HOME_SECONDARY_CTA.label);
     expect(PRIMARY_CTA.href).toBe(HOME_PRIMARY_CTA.href);
     expect(PRIMARY_CTA.label).toBe(HOME_PRIMARY_CTA.label);
-    expect(out).toMatch(/data-cta-id="hero_pilot"/);
+    expect(out).toMatch(/data-cta-id="hero_start_cohort"/);
     expect(out).toMatch(/data-cta-id="hero_score"/);
-    expect(out).toMatch(/data-cta-id="run_cohort_pilot"/);
-    expect(out).toMatch(/data-cta-id="home_final_pilot"/);
+    expect(out).toMatch(/data-cta-id="start_cohort"/);
+    expect(out).toMatch(/data-cta-id="home_final_start_cohort"/);
     expect(out).toMatch(/data-cta-id="home_final_score"/);
-    expect((out.match(/href="\/solutions\/accelerator#pilot"/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    expect((out.match(/href="\/signup\?segment=evaluator&amp;plan=accelerator_starter&amp;trial=1&amp;interval=annual"/g) ?? []).length).toBeGreaterThanOrEqual(3);
+    expect(out).not.toMatch(/#pilot|cohort pilot/i);
   });
 
   it("the trust line sits under the search box", () => {
@@ -246,13 +248,13 @@ describe("homepage v7 — sections in order", () => {
     expect(out).toMatch(/<section[^>]*id="cta"[^>]*data-theme="dark"/);
     expect((out.match(/<section[^>]*data-theme="dark"/g) ?? []).length).toBe(1);
     const band = out.slice(out.indexOf('id="cta"'));
-    expect(band).toContain("Run a cohort pilot");
+    expect(band).toContain("Start a cohort");
     expect(band).toContain("Score my startup");
   });
 });
 
 describe("homepage v7 — chrome", () => {
-  it("the seven nav labels are present and the nav CTA is Run a cohort pilot", () => {
+  it("the seven nav labels are present and the nav CTA is Start a cohort", () => {
     const labels = ["Product", "For Programs", "For Investors", "For Founders", "Methodology", "Startup Index", "Pricing"];
     for (const label of labels) expect(text).toContain(label);
     expect(MENU.map((e) => e.label)).toEqual(labels);

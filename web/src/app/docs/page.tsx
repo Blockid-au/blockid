@@ -597,7 +597,7 @@ ${WEBHOOK_VERIFY_EXPRESS_EXAMPLE}`}
                 <li>Fund A$999/mo (investor firms, API access) · Intake link A$249/mo (program intake at /apply/[slug]) · Index API A$299/mo</li>
                 <li>Accelerator cohorts: Cohort 25 A$5K/yr · Cohort 100 A$15K/yr (batch scoring + LP report)</li>
                 <li>{evaluatorTrialDays}-day free trial on Scout / Firm / Program / Fund, card required; nothing billed if cancelled before day {evaluatorTrialDays + 1}</li>
-                <li>Evaluator pilots: a 30-day Program comp for up to 5 programs at a time — apply at <Link href="/pilot" className="text-brand-600 underline">/pilot</Link></li>
+                <li>Programs start a Cohort plan directly — 14-day trial, card required — at <Link href="/solutions/accelerator" className="text-brand-600 underline">/solutions/accelerator</Link> (the G16 / G21 pilots were retired 2026-09-21, G25)</li>
                 <li>Reseller / wholesale: Contact Sales (all payments run through the single BlockID Stripe account; prices are GST-inclusive)</li>
               </ul>
               <p className="text-xs text-ink-500 mt-3">

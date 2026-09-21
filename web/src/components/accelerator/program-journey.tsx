@@ -146,8 +146,8 @@ export function ProgramJourney({ view, stage, canAct, isOwner = false, demoLabel
         <div className="flex flex-wrap items-center gap-3">
           {view.stages.find((c) => c.key === stage) ? <StateChip state={(view.stages.find((c) => c.key === stage) as StageChip).state} /> : null}
           {view.batches.length > 1 ? <BatchPicker view={view} stage={stage} /> : null}
-          <Link href="/workspace/accelerator/pilot" className="inline-flex min-h-11 items-center text-sm font-semibold text-action hover:underline" data-testid="pilot-kit-link">
-            Pilot delivery kit
+          <Link href="/workspace/accelerator/onboarding" className="inline-flex min-h-11 items-center text-sm font-semibold text-action hover:underline" data-testid="onboarding-kit-link">
+            Cohort onboarding kit
           </Link>
         </div>
       </header>

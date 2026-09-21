@@ -1,29 +1,31 @@
 "use client";
 
-// PilotMetricsForm — the success-metric capture form of the pilot delivery
-// kit (G21 P2-C). One field per `PILOT_METRIC_FIELDS` row, grouped by the
-// offer's metric line; saves through PATCH /api/pilots/[orderId]/metrics
-// (only the keys the program filled; clearing a field sends null). Visible
-// labels, helper text under every input, errors beside the field, one
-// primary action, aria-live status.
+// OnboardingMetricsForm — the success-metric capture form of the Cohort
+// onboarding kit (G21 P2-C as the pilot kit; re-based by G25). One field per
+// `ONBOARDING_METRIC_FIELDS` row, grouped by the offer's metric line; saves
+// through PATCH /api/accelerator/onboarding/metrics for the caller's
+// organisation (only the keys the program filled; clearing a field sends
+// null). Visible labels, helper text under every input, errors beside the
+// field, one primary action, aria-live status.
 
 import { useState, type FormEvent } from "react";
 import { Save } from "lucide-react";
-import { PILOT_METRIC_FIELDS, WTP_BANDS, WTP_BAND_LABELS, reviewTimeSaving, type PilotMetrics, type PilotMetricKey } from "@/lib/pilots/metrics";
+import { ONBOARDING_METRIC_FIELDS, WTP_BANDS, WTP_BAND_LABELS, reviewTimeSaving, type OnboardingMetrics, type OnboardingMetricKey } from "@/lib/accelerator/onboarding-metrics";
 import { userErrorMessage } from "@/lib/ui/user-error";
 
-export interface PilotMetricsFormProps {
-  orderId: string;
-  initial: PilotMetrics;
-  /** False for an admin previewing another program's kit — the form renders read-only. */
+export interface OnboardingMetricsFormProps {
+  initial: OnboardingMetrics;
+  /** False for an invited seat, an admin preview or before migration 0438 — the form renders read-only. */
   editable?: boolean;
+  /** Why the form is read-only (shown in the status line). */
+  readOnlyNote?: string;
 }
 
-type Draft = Partial<Record<PilotMetricKey, string | boolean>>;
+type Draft = Partial<Record<OnboardingMetricKey, string | boolean>>;
 
-function toDraft(m: PilotMetrics): Draft {
+function toDraft(m: OnboardingMetrics): Draft {
   const d: Draft = {};
-  for (const f of PILOT_METRIC_FIELDS) {
+  for (const f of ONBOARDING_METRIC_FIELDS) {
     const v = m[f.key];
     if (v === undefined || v === null) continue;
     if (f.kind === "consent") d[f.key] = Boolean(v);
@@ -35,7 +37,7 @@ function toDraft(m: PilotMetrics): Draft {
 
 function toPatch(d: Draft): Record<string, unknown> {
   const out: Record<string, unknown> = {};
-  for (const f of PILOT_METRIC_FIELDS) {
+  for (const f of ONBOARDING_METRIC_FIELDS) {
     const v = d[f.key];
     if (f.kind === "consent") {
       out[f.key] = Boolean(v);
@@ -54,13 +56,13 @@ function toPatch(d: Draft): Record<string, unknown> {
 
 const input = "mt-1 block w-full min-h-11 rounded-lg border border-line-subtle bg-surface px-3 text-sm text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-action disabled:opacity-60";
 
-export function PilotMetricsForm({ orderId, initial, editable = true }: PilotMetricsFormProps) {
+export function OnboardingMetricsForm({ initial, editable = true, readOnlyNote }: OnboardingMetricsFormProps) {
   const [draft, setDraft] = useState<Draft>(() => toDraft(initial));
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const set = (k: PilotMetricKey, v: string | boolean) => setDraft((d) => ({ ...d, [k]: v }));
+  const set = (k: OnboardingMetricKey, v: string | boolean) => setDraft((d) => ({ ...d, [k]: v }));
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -69,7 +71,7 @@ export function PilotMetricsForm({ orderId, initial, editable = true }: PilotMet
     setStatus(null);
     setFieldErrors({});
     try {
-      const res = await fetch(`/api/pilots/${encodeURIComponent(orderId)}/metrics`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(toPatch(draft)) });
+      const res = await fetch("/api/accelerator/onboarding/metrics", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify(toPatch(draft)) });
       const body = (await res.json().catch(() => ({}))) as { ok?: boolean; message?: string; error?: string; issues?: Array<{ path: string; message: string }> };
       if (!res.ok || !body.ok) {
         const errs: Record<string, string> = {};
@@ -78,32 +80,32 @@ export function PilotMetricsForm({ orderId, initial, editable = true }: PilotMet
         setStatus({ kind: "error", text: body.message ?? body.error ?? `Save failed (${res.status}).` });
         return;
       }
-      setStatus({ kind: "ok", text: "Saved. These figures feed the pilot's final report." });
+      setStatus({ kind: "ok", text: "Saved. These figures feed your first Cohort Report." });
     } catch (err) {
-      setStatus({ kind: "error", text: userErrorMessage(err, "We could not save the pilot metrics. Please try again.") });
+      setStatus({ kind: "error", text: userErrorMessage(err, "We could not save the onboarding metrics. Please try again.") });
     } finally {
       setBusy(false);
     }
   }
 
   const saving = reviewTimeSaving({ review_minutes_before: Number(draft.review_minutes_before) || undefined, review_minutes_after: draft.review_minutes_after === "" || draft.review_minutes_after === undefined ? undefined : Number(draft.review_minutes_after) });
-  const groups = Array.from(new Set(PILOT_METRIC_FIELDS.map((f) => f.group)));
+  const groups = Array.from(new Set(ONBOARDING_METRIC_FIELDS.map((f) => f.group)));
 
   return (
-    <form onSubmit={onSubmit} className="space-y-6" data-testid="pilot-metrics-form" aria-describedby="pilot-metrics-status">
+    <form onSubmit={onSubmit} className="space-y-6" data-testid="onboarding-metrics-form" aria-describedby="onboarding-metrics-status">
       {groups.map((g) => (
         <fieldset key={g} className="rounded-2xl border border-line-subtle bg-surface p-4">
           <legend className="px-1 text-sm font-semibold text-primary">{g}</legend>
           <div className="grid gap-4 md:grid-cols-2">
-            {PILOT_METRIC_FIELDS.filter((f) => f.group === g).map((f) => {
-              const id = `pm-${f.key}`;
+            {ONBOARDING_METRIC_FIELDS.filter((f) => f.group === g).map((f) => {
+              const id = `om-${f.key}`;
               const err = fieldErrors[f.key];
               const v = draft[f.key];
               return (
                 <div key={f.key} className={f.kind === "text" ? "md:col-span-2" : ""}>
                   {f.kind === "consent" ? (
                     <label htmlFor={id} className="flex min-h-11 items-start gap-3 text-sm text-primary">
-                      <input id={id} name={f.key} type="checkbox" checked={Boolean(v)} disabled={!editable} onChange={(e) => set(f.key, e.target.checked)} className="mt-1 h-5 w-5 rounded border-line-subtle" data-testid="pilot-case-study-consent" />
+                      <input id={id} name={f.key} type="checkbox" checked={Boolean(v)} disabled={!editable} onChange={(e) => set(f.key, e.target.checked)} className="mt-1 h-5 w-5 rounded border-line-subtle" data-testid="onboarding-case-study-consent" />
                       <span>
                         <span className="font-medium">{f.label}</span>
                         <span className="mt-0.5 block text-xs text-secondary">{f.help}</span>
@@ -163,7 +165,7 @@ export function PilotMetricsForm({ orderId, initial, editable = true }: PilotMet
             })}
           </div>
           {g === "Review time per startup" && saving ? (
-            <p className="mt-3 text-sm text-secondary" data-testid="pilot-review-saving">
+            <p className="mt-3 text-sm text-secondary" data-testid="onboarding-review-saving">
               {saving.before} min → {saving.after} min ({saving.pct >= 0 ? "−" : "+"}
               {Math.abs(saving.pct)} %)
             </p>
@@ -171,12 +173,12 @@ export function PilotMetricsForm({ orderId, initial, editable = true }: PilotMet
         </fieldset>
       ))}
       <div className="flex flex-wrap items-center gap-3">
-        <button type="submit" disabled={busy || !editable} aria-busy={busy} data-testid="pilot-metrics-save" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50">
+        <button type="submit" disabled={busy || !editable} aria-busy={busy} data-testid="onboarding-metrics-save" className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50">
           <Save className="h-4 w-4" aria-hidden="true" />
           {busy ? "Saving…" : "Save metrics"}
         </button>
-        <p id="pilot-metrics-status" aria-live="polite" className={`text-sm ${status?.kind === "error" ? "text-bear" : "text-secondary"}`}>
-          {status?.text ?? (editable ? "Only what you fill in is saved; blanks stay blank." : "Read-only preview.")}
+        <p id="onboarding-metrics-status" aria-live="polite" className={`text-sm ${status?.kind === "error" ? "text-bear" : "text-secondary"}`}>
+          {status?.text ?? (editable ? "Only what you fill in is saved; blanks stay blank." : (readOnlyNote ?? "Read-only preview."))}
         </p>
       </div>
     </form>

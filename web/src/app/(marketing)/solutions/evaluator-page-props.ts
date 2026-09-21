@@ -20,8 +20,9 @@
  *                different judgement / different feedback → one assessment
  *                layer), three capability cards, the six-stage workflow
  *                listing only what ships today, "Humans make the decision",
- *                the paid Cohort Validation Pilot (#pilot) and the Cohort 25
- *                / Cohort 100 rungs after it. No free / comped pilot copy.
+ *                the Cohort offer (#cohort — what a plan delivers + the
+ *                metrics measured together) and the Cohort 25 / Cohort 100
+ *                rungs (#plans). No pilot of any kind (G25, 2026-09-21).
  *   investor     "Standardise the first-pass review before human investment
  *                judgement begins." — six functions that ship (intake,
  *                comparable assessment, evidence gaps, risk flags, data
@@ -33,22 +34,22 @@
  *                "{reportPrice} per report, pay-as-you-go", never a headline.
  *
  * Every amount is a `{token}` resolved by `fillPrices()` from plans.csv /
- * plans-v2 / pilot-skus; `{principle}` is the approved data sentence in the
+ * plans-v2; `{principle}` is the approved data sentence in the
  * page's language.
  */
 
 import { t, type Messages } from "@/lib/i18n/t";
 import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL } from "@/lib/site/legal-entity";
-import { type PilotSkuId } from "@/lib/pricing/pilot-skus";
-import { pilotUiStrings } from "@/lib/pricing/pilot-strings";
-import { type PilotOfferCopy, type PilotOfferTier } from "@/components/marketing/PilotOffer";
+import { START_COHORT_HREF } from "@/lib/marketing/start-cohort";
 import {
   EVALUATOR_PRICING_HREF,
   EVALUATOR_SIGNUP_HREF,
   type SolutionBenefit,
+  type SolutionCohortOffer,
   type SolutionFaq,
   type SolutionJourneyStep,
   type SolutionPageProps,
+  type SolutionTier,
   type SolutionTrustBadge,
 } from "./solutions-shared";
 
@@ -57,8 +58,14 @@ type Lang = "en" | "vi";
 /** The alias route of `/compare` that the ChatGPT FAQ links through to. */
 export const COMPARE_CHATGPT_HREF = "/compare/chatgpt";
 
-/** The accelerator hero's primary CTA — the paid pilot block on the same page. */
-export const ACCELERATOR_PILOT_ANCHOR = "#pilot";
+/**
+ * The accelerator hero's primary CTA ("Start a cohort", G25) — the existing
+ * Cohort 25 annual trial path: sign-up with the rung pre-selected, card
+ * required, 14 days. The Cohort 100 rung sits in the `#plans` block below.
+ */
+export const ACCELERATOR_START_COHORT_HREF = START_COHORT_HREF;
+/** The Cohort offer block on the accelerator page (what a plan delivers + the metrics measured together). */
+export const ACCELERATOR_COHORT_ANCHOR = "#cohort";
 /** The accelerator hero's secondary CTA — the demo batch / sample cohort. */
 export const SAMPLE_COHORT_HREF = "/showcase/atlassian?step=1";
 
@@ -71,7 +78,7 @@ export const TIER_SIGNUP_HREF = {
   investor_advisor: EVALUATOR_SIGNUP_HREF.advisor,
   investor_vc_small: "/signup?segment=evaluator&plan=investor_vc_small&trial=1",
   investor_fund: "/signup?segment=evaluator&plan=investor_fund&trial=1",
-  accelerator_starter: "/signup?segment=evaluator&plan=accelerator_starter&trial=1&interval=annual",
+  accelerator_starter: ACCELERATOR_START_COHORT_HREF,
   accelerator_growth: "/signup?segment=evaluator&plan=accelerator_growth&trial=1&interval=annual",
 } as const;
 
@@ -126,7 +133,7 @@ function faqs(m: Messages, persona: string, count: number, chatgpt = true): Solu
   return out;
 }
 
-function tier(m: Messages, prefix: string, href: string, ctaId: string): PilotOfferTier {
+function tier(m: Messages, prefix: string, href: string, ctaId: string): SolutionTier {
   return {
     name: t(m, `${prefix}.name`),
     price: t(m, `${prefix}.price`),
@@ -166,7 +173,7 @@ function hero(
     outcomeLine: t(m, `solutions.${persona}.support`),
     primaryCtaLabel: t(m, `solutions.${persona}.cta`),
     primaryCtaHref:
-      persona === "accelerator" ? ACCELERATOR_PILOT_ANCHOR : persona === "founder" ? "/analyze" : EVALUATOR_SIGNUP_HREF[persona],
+      persona === "accelerator" ? ACCELERATOR_START_COHORT_HREF : persona === "founder" ? "/analyze" : EVALUATOR_SIGNUP_HREF[persona],
     benefitsTitle: t(m, `solutions.${persona}.benefits.title`),
     faqTitle: t(m, `solutions.${persona}.faq.title`),
     disclaimer: t(m, `solutions.${persona}.disclaimer`),
@@ -213,7 +220,7 @@ export function buildAdvisorProps(m: Messages, lang: Lang = "en"): SolutionPageP
   };
 }
 
-/** The six-stage workflow (Intake → Assessment → Selection → Program → Demo day → Sponsor reporting): three shipped bullets per stage (G21 P2: import, snapshots, filters, overrides, feedback letters, demo-day pack, Cohort Report, pilot metrics). */
+/** The six-stage workflow (Intake → Assessment → Selection → Program → Demo day → Sponsor reporting): three shipped bullets per stage (G21 P2: import, snapshots, filters, overrides, feedback letters, demo-day pack, Cohort Report, onboarding metrics). */
 function acceleratorJourney(m: Messages): SolutionJourneyStep[] {
   const step = (n: 1 | 2 | 3 | 4 | 5 | 6): SolutionJourneyStep => ({
     window: t(m, `solutions.accelerator.journey.window${n}`),
@@ -223,42 +230,40 @@ function acceleratorJourney(m: Messages): SolutionJourneyStep[] {
   return [step(1), step(2), step(3), step(4), step(5), step(6)];
 }
 
-/** The paid pilot block's copy from the catalogue (amounts come from `PILOT_SKUS` inside the component). */
-export function acceleratorPilotCopy(m: Messages): PilotOfferCopy {
+/** The Cohort offer block's copy from the catalogue — inclusions + the metrics measured together (no amounts; the rungs carry the prices via tokens). */
+export function acceleratorCohortOffer(m: Messages): SolutionCohortOffer {
   const list = (prefix: string, n: number) => Array.from({ length: n }, (_, i) => t(m, `${prefix}${i + 1}`));
   return {
-    eyebrow: t(m, "solutions.accelerator.pilot.eyebrow"),
-    title: t(m, "solutions.accelerator.pilot.title"),
-    lede: t(m, "solutions.accelerator.pilot.lede"),
-    applicantsLine: t(m, "solutions.accelerator.pilot.applicants"),
-    scopeLine: t(m, "solutions.accelerator.pilot.scope"),
-    includesTitle: t(m, "solutions.accelerator.pilot.includesTitle"),
-    includes: list("solutions.accelerator.pilot.include", 8),
-    buyLabel: t(m, "solutions.accelerator.pilot.buy"),
-    metricsTitle: t(m, "solutions.accelerator.pilot.metricsTitle"),
-    metricsLede: t(m, "solutions.accelerator.pilot.metricsLede"),
-    metrics: list("solutions.accelerator.pilot.metric", 6),
-    afterTitle: t(m, "solutions.accelerator.after.title"),
-    afterLede: t(m, "solutions.accelerator.after.lede"),
-    afterTiers: [
-      tier(m, "solutions.accelerator.after.cohort25", TIER_SIGNUP_HREF.accelerator_starter, "solutions_accelerator_after_cohort25"),
-      tier(m, "solutions.accelerator.after.cohort100", TIER_SIGNUP_HREF.accelerator_growth, "solutions_accelerator_after_cohort100"),
+    eyebrow: t(m, "solutions.accelerator.cohort.eyebrow"),
+    title: t(m, "solutions.accelerator.cohort.title"),
+    lede: t(m, "solutions.accelerator.cohort.lede"),
+    includesTitle: t(m, "solutions.accelerator.cohort.includesTitle"),
+    includes: list("solutions.accelerator.cohort.include", 8),
+    metricsTitle: t(m, "solutions.accelerator.cohort.metricsTitle"),
+    metricsLede: t(m, "solutions.accelerator.cohort.metricsLede"),
+    metrics: list("solutions.accelerator.cohort.metric", 6),
+  };
+}
+
+/** The two Cohort rungs (Cohort 25 / Cohort 100 annual, card-required trial) — the sold ladder, prices via tokens. */
+export function acceleratorTiers(m: Messages): NonNullable<SolutionPageProps["tiers"]> {
+  return {
+    title: t(m, "solutions.accelerator.plans.title"),
+    lede: t(m, "solutions.accelerator.plans.lede"),
+    items: [
+      tier(m, "solutions.accelerator.plans.cohort25", TIER_SIGNUP_HREF.accelerator_starter, "solutions_accelerator_plan_cohort25"),
+      tier(m, "solutions.accelerator.plans.cohort100", TIER_SIGNUP_HREF.accelerator_growth, "solutions_accelerator_plan_cohort100"),
     ],
   };
 }
 
 /**
- * `/solutions/accelerator` — the BlockID Cohort page. `configured` says,
- * per SKU, whether the founder has set the Stripe price env var (server
- * pages compute it with `isPilotSkuConfigured`); an unconfigured SKU's
- * button is a contact link, never a dead checkout.
+ * `/solutions/accelerator` — the BlockID Cohort page: problem, benefits,
+ * the six-stage workflow, the statement, the Cohort offer (#cohort), the
+ * two rungs (#plans), FAQ. Nothing reads an env var — the rungs are the
+ * sold ladder's trial links.
  */
-export function buildAcceleratorProps(
-  m: Messages,
-  lang: Lang = "en",
-  configured: Readonly<Record<PilotSkuId, boolean>> = { cohort_pilot_25: false, cohort_pilot_50: false },
-): SolutionPageProps {
-  const path = `${lang === "vi" ? "/vi" : ""}/solutions/accelerator${ACCELERATOR_PILOT_ANCHOR}`;
+export function buildAcceleratorProps(m: Messages, lang: Lang = "en"): SolutionPageProps {
   return {
     ...hero(m, "accelerator", lang),
     secondaryCtaLabel: t(m, "solutions.cta.secondary.sampleCohort"),
@@ -279,12 +284,8 @@ export function buildAcceleratorProps(
       title: t(m, "solutions.accelerator.statement.title"),
       body: t(m, "solutions.accelerator.statement.body"),
     },
-    pilotOffer: {
-      copy: acceleratorPilotCopy(m),
-      configured,
-      returnPath: path,
-      strings: pilotUiStrings(m, lang),
-    },
+    cohortOffer: acceleratorCohortOffer(m),
+    tiers: acceleratorTiers(m),
     faqs: faqs(m, "accelerator", 3),
     trustBadges: TRUST_BADGES,
   };

@@ -7,8 +7,8 @@
 //        G21 P2-A: `allow_empty: true` creates an empty BlockID Cohort (status
 //        done, nothing to score) that the CSV import / intake link fills;
 //        program_name / template_id / intake_id are the 0422 cohort columns;
-//        applicants_cap + pilot_order_id are stamped from the caller's live
-//        paid Cohort Validation Pilot (pilot_orders) when there is one;
+//        applicants_cap / pilot_order_id are no longer stamped (G25 retired
+//        the paid pilot — the plan quota is the only cap);
 //        org_id (G22-B, 0433) = resolveActingOrg(user) — never from the body.
 //   GET  → 200 { ok:true, batches:[…] }   (the Cohorts list, newest first)
 //
@@ -29,12 +29,11 @@ import { PRIVATE_JSON_HEADERS, readJsonBody } from "@/lib/security/request-guard
 import { getCurrentUser } from "@/lib/auth";
 import { getEntitlements, recordGateHit } from "@/lib/entitlements";
 import { getReportQuota } from "@/lib/evaluations/report-quota";
-import { countItemsForPilotOrder, countPendingBatchItems, createBatch, listBatches, ownedEvaluationIds } from "@/lib/evaluations/batch";
+import { countPendingBatchItems, createBatch, listBatches, ownedEvaluationIds } from "@/lib/evaluations/batch";
 import { getTemplate } from "@/lib/intake/templates";
 import { supabaseIntakeStore } from "@/lib/intake/program-intakes";
 import { BATCH_MAX_ITEMS, canBatchScore, normaliseWeights } from "@/lib/evaluations/batch-shared";
 import { isUuid } from "@/lib/security/request-guards";
-import { findActivePilotOrder } from "@/lib/pilots/paid-orders";
 import { resolveActingOrg } from "@/lib/investor/organisations";
 import { apiRoute } from "@/lib/audit/api-route";
 
@@ -183,19 +182,8 @@ async function POST_handler(request: Request) {
     if (!intake) return NextResponse.json({ ok: false, error: "not_found", message: "Intake link not found" }, { status: 404 });
   }
 
-  // A live paid pilot caps the cohort (applicants_cap) and is recorded on it.
-  // Review P2: the cap counts every cohort under the same pilot order, and
-  // applies to selection-created batches too, not only the CSV import.
-  const pilot = await findActivePilotOrder(user.id).catch(() => null);
-  if (pilot?.applicants_cap != null && pilot.applicants_cap > 0) {
-    const usedAcross = await countItemsForPilotOrder(pilot.id).catch(() => 0);
-    if (usedAcross + ids.length > pilot.applicants_cap) {
-      return NextResponse.json(
-        { ok: false, error: "cap_reached", message: `Your Cohort Validation Pilot covers up to ${pilot.applicants_cap} applicants; ${usedAcross} are already in your cohorts and this batch adds ${ids.length}.`, cap: { used: usedAcross, max: pilot.applicants_cap, remaining: Math.max(0, pilot.applicants_cap - usedAcross) }, needed: ids.length },
-        { status: 409 },
-      );
-    }
-  }
+  // G25 (2026-09-21): the paid pilot's applicants_cap / pilot_order_id are
+  // gone — a Cohort plan is capped by its plan quota only (quota check above).
   // G22-B (0433): the cohort belongs to the organisation the creator acts
   // for (an invited seat → the firm; else their own org, personal included).
   // Null when the org tables are absent; dropped by createBatch before 0433.
@@ -208,8 +196,8 @@ async function POST_handler(request: Request) {
     programName,
     templateId,
     intakeId,
-    applicantsCap: pilot?.applicants_cap ?? null,
-    pilotOrderId: pilot?.id ?? null,
+    applicantsCap: null,
+    pilotOrderId: null,
     orgId: actingOrg?.id ?? null,
     plan: user.plan ?? null,
     email: user.email,
