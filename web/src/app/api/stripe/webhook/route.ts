@@ -26,7 +26,8 @@ import {
 } from "@/lib/stripe/addon-entitlements";
 import { extendTimedGrant, invalidateTimedGrants } from "@/lib/entitlements/timed-grants";
 import { STARTUP_PACKAGE_RADAR_DAYS } from "@/lib/plans-v2";
-import { onInvoicePaid } from "@/lib/analytics/fi-events";
+import { emitFiEvent, onInvoicePaid } from "@/lib/analytics/fi-events";
+import { recordPilotConversion, supabasePilotConversionDb } from "@/lib/pilots/conversion";
 
 // POST /api/stripe/webhook
 // Stripe sends webhook events here. Verifies the signature, then processes
@@ -677,6 +678,51 @@ export async function POST(request: Request) {
       source: "webhook:stripe",
       consentGranted: true,
     });
+
+    // G23-B — pilot → annual Cohort plan. The checkout route stamps
+    // `pilot_order_id` on subscription_data.metadata when the founder
+    // converted from a paid Cohort Validation Pilot; record it on the order
+    // (pilot_orders.converted_at / converted_plan, migration 0434 — idempotent
+    // on `converted_at IS NULL`), audit it, and emit `subscription_started`
+    // with channel "pilot_conversion" for the FI funnel. Never throws.
+    if (nonEmpty(meta.pilot_order_id)) {
+      try {
+        const conv = await recordPilotConversion({ metadata: meta, subscriptionId: sub.id ?? null, planId: nonEmpty(meta.plan_id) ?? nonEmpty(meta.blockid_plan) ?? null }, supabasePilotConversionDb(supabase));
+        if (!conv.ok) {
+          console.warn("[blockid:stripe] pilot conversion skipped", conv.skipped, conv.message);
+        } else {
+          const actor = userId ?? conv.user_id;
+          if (!conv.already) {
+            try {
+              const { logUserAction } = await import("@/lib/audit/log");
+              await logUserAction({
+                userId: actor ?? "system",
+                action: "pilot.converted",
+                subjectType: "pilot_order",
+                subjectId: conv.order_id,
+                fields: { plan: conv.plan, sku: conv.sku ?? nonEmpty(meta.pilot_sku) ?? null, subscription_id: sub.id, stripe_event_id: e.id, interval },
+                route: "/api/stripe/webhook",
+              });
+            } catch (err) {
+              console.warn("[blockid:stripe] audit log for pilot.converted failed", err instanceof Error ? err.message : String(err));
+            }
+            emitFiEvent("subscription_started", {
+              channel: "pilot_conversion",
+              plan: conv.plan,
+              organisation: actor,
+              userId: actor,
+              source: "webhook:stripe",
+              pilot_id: conv.order_id,
+              sku: conv.sku ?? nonEmpty(meta.pilot_sku) ?? null,
+              subscription_id: sub.id,
+              interval,
+            });
+          }
+        }
+      } catch (err) {
+        console.warn("[blockid:stripe] pilot conversion write failed", err instanceof Error ? err.message : String(err));
+      }
+    }
   }
 
   function nonEmpty(v: string | undefined): string | null {

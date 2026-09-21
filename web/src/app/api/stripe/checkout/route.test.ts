@@ -156,6 +156,13 @@ vi.mock("@/lib/rate-limit", () => ({
   ) => enforceRateLimitMock(route, identity, req, max, windowMs),
 }));
 
+// G23-B — the conversion branch reads the pilot order through a dynamic
+// import of lib/pilots/paid-orders; mocked so no Supabase client is needed.
+const findPilotOrderByIdMock = vi.hoisted(() => vi.fn<(id: string) => Promise<Record<string, unknown> | null>>());
+vi.mock("@/lib/pilots/paid-orders", () => ({
+  findPilotOrderById: (id: string) => findPilotOrderByIdMock(id),
+}));
+
 import { POST, dynamic } from "./route";
 
 const USER: AppUser = {
@@ -641,6 +648,122 @@ describe("stripe/checkout — Cohort Validation Pilot one-off (G21 P0-C)", () =>
 // -----------------------------------------------------------------------------
 // Promo code (unknown / expired) — 400
 // -----------------------------------------------------------------------------
+
+// -----------------------------------------------------------------------------
+// G23-B — pilot → annual Cohort plan (convert_from_pilot)
+// -----------------------------------------------------------------------------
+
+describe("stripe/checkout — pilot conversion (G23-B)", () => {
+  const ORDER_ID = "22222222-2222-4222-8222-222222222222";
+  const cohort25 = {
+    id: "accelerator_starter",
+    name: "Cohort 25",
+    interval: "monthly",
+    price_aud_cents: 50000,
+    annual_price_aud_cents: 500000,
+    stripe_price_id: "price_c25_m",
+    stripe_price_id_annual: "price_c25_y",
+    trial_days: 14,
+    segment: "accelerator",
+    feature_flags: [],
+  };
+  const order = (over: Record<string, unknown> = {}) => ({
+    id: ORDER_ID,
+    user_id: USER.id,
+    project_id: null,
+    buyer_email: USER.email,
+    sku: "cohort_pilot_25",
+    applicants_cap: 25,
+    amount_cents: 150000,
+    currency: "aud",
+    stripe_session_id: "cs_pilot",
+    stripe_payment_intent: null,
+    status: "paid",
+    entitlement_until: new Date(Date.now() + 30 * 86_400_000).toISOString(),
+    metrics: {},
+    created_at: "2026-09-01T00:00:00Z",
+    updated_at: "2026-09-01T00:00:00Z",
+    ...over,
+  });
+  const body = (over: Record<string, unknown> = {}) => ({ plan: "accelerator_starter", interval: "annual", convert_from_pilot: ORDER_ID, ...over });
+
+  beforeEach(() => {
+    mocks.getPlanCachedMock.mockResolvedValue(cohort25);
+    findPilotOrderByIdMock.mockReset().mockResolvedValue(order());
+    process.env.STRIPE_COUPON_PILOT_CREDIT_25 = "coupon_pilot25_TEST";
+  });
+  afterEach(() => {
+    delete process.env.STRIPE_COUPON_PILOT_CREDIT_25;
+  });
+
+  it("applies the founder-minted coupon (read by env NAME), stamps pilot_order_id on the subscription + session metadata, bills the annual Price", async () => {
+    const res = await POST(req(body()));
+    expect(res.status).toBe(200);
+    const call = mocks.stripeCreateMock.mock.calls[0]?.[0];
+    expect(call?.mode).toBe("subscription");
+    expect((call?.line_items as Array<{ price: string }>)[0]?.price).toBe("price_c25_y");
+    expect(call?.discounts).toEqual([{ coupon: "coupon_pilot25_TEST" }]);
+    expect(call?.allow_promotion_codes).toBeUndefined();
+    expect((call?.subscription_data as { metadata?: Record<string, string> })?.metadata).toMatchObject({ pilot_order_id: ORDER_ID, pilot_sku: "cohort_pilot_25", plan_id: "accelerator_starter", interval: "annual" });
+    expect(call?.metadata).toMatchObject({ pilot_order_id: ORDER_ID, kind: "pilot_conversion" });
+    expect(String(call?.success_url)).toContain("/workspace/accelerator/pilot?converted=1");
+    expect(mocks.sessionIdempotencyKeyMock).toHaveBeenCalledWith("pilot-conversion", [USER.id, "accelerator_starter", "price_c25_y", ORDER_ID]);
+    expect(mocks.logUserActionMock).toHaveBeenCalledWith(expect.objectContaining({ fields: expect.objectContaining({ pilot_order_id: ORDER_ID, pilot_conversion: true }) }));
+    // The coupon value never reaches the client.
+    expect(JSON.stringify(await json(res))).not.toContain("coupon_pilot25_TEST");
+  });
+
+  it("409 coupon_unconfigured + the contact fallback when the env NAME is unset — Stripe never called", async () => {
+    delete process.env.STRIPE_COUPON_PILOT_CREDIT_25;
+    const res = await POST(req(body()));
+    expect(res.status).toBe(409);
+    const j = await json(res);
+    expect(j.error).toBe("coupon_unconfigured");
+    expect(j.fallback).toBe("/contact?topic=pilot");
+    expect(mocks.stripeCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("403 when the caller is not the order owner; 404 unknown order; 400 malformed id", async () => {
+    findPilotOrderByIdMock.mockResolvedValue(order({ user_id: "someone-else" }));
+    expect((await POST(req(body()))).status).toBe(403);
+    findPilotOrderByIdMock.mockResolvedValue(null);
+    expect((await POST(req(body()))).status).toBe(404);
+    expect((await POST(req(body({ convert_from_pilot: "nope" })))).status).toBe(400);
+    expect(mocks.stripeCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("409 conversion_window_closed outside 60 days of entitlement_until; 409 already_converted; 409 when the rung does not match the SKU; 400 when not annual", async () => {
+    findPilotOrderByIdMock.mockResolvedValue(order({ entitlement_until: new Date(Date.now() - 61 * 86_400_000).toISOString() }));
+    let res = await POST(req(body()));
+    expect(res.status).toBe(409);
+    expect((await json(res)).error).toBe("conversion_window_closed");
+
+    findPilotOrderByIdMock.mockResolvedValue(order({ converted_at: "2026-09-10T00:00:00Z" }));
+    res = await POST(req(body()));
+    expect(res.status).toBe(409);
+    expect((await json(res)).error).toBe("already_converted");
+
+    // A 25 pilot converts to Cohort 25, never Cohort 100.
+    mocks.getPlanCachedMock.mockResolvedValue({ ...cohort25, id: "accelerator_growth", name: "Cohort 100", stripe_price_id_annual: "price_c100_y" });
+    res = await POST(req(body({ plan: "accelerator_growth" })));
+    expect(res.status).toBe(409);
+    expect((await json(res)).error).toBe("conversion_plan_mismatch");
+
+    mocks.getPlanCachedMock.mockResolvedValue(cohort25);
+    res = await POST(req(body({ interval: "monthly" })));
+    expect(res.status).toBe(400);
+    expect((await json(res)).error).toBe("conversion_plan_mismatch");
+    expect(mocks.stripeCreateMock).not.toHaveBeenCalled();
+  });
+
+  it("a plain Cohort 25 annual checkout without convert_from_pilot never reads the order and never applies the coupon", async () => {
+    await POST(req({ plan: "accelerator_starter", interval: "annual" }));
+    expect(findPilotOrderByIdMock).not.toHaveBeenCalled();
+    const call = mocks.stripeCreateMock.mock.calls[0]?.[0];
+    expect(call?.discounts).toBeUndefined();
+    expect(call?.allow_promotion_codes).toBe(true);
+  });
+});
 
 describe("stripe/checkout — promo code", () => {
   it("returns 400 for an unknown/expired promoCode", async () => {
