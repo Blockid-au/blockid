@@ -80,18 +80,20 @@ import { PDF_ENTITY_LINE, PDF_FINANCIAL_PROJECTION_DISCLAIMER, PDF_GENERAL_ADVIC
 import { defaultPreparedWith } from "@/lib/report-v2/prepared-with";
 import { alignReportWithAssessmentCard, type AssessmentCardData, type AssessmentCardOptions } from "@/lib/svi/assessment-card";
 import { tbrDocxLocale, tbrDocxOutline, type TbrDocxLocale } from "./tbr-docx-outline";
+import { DOCX_THEME } from "./theme";
 
 export { tbrDocxOutline, TBR_DOCX_SECTION_IDS, type TbrDocxOutlineEntry } from "./tbr-docx-outline";
 
 // ── Light palette (docs/design/unicorn-template.md · spec § 5) ─────────────
 
-const INK = "1F2937";
-const NAVY = "1B2A5E";
-const CYAN = "0891B2";
-const MUTED = "6B7280";
-const FAINT = "9CA3AF";
-const GRID = "E5E7EB";
-const SUNKEN = "F7F8FA";
+// G26 lane R: every colour from the one DOCX theme (light paper, navy headings, ink body).
+const INK = DOCX_THEME.inkMuted;
+const NAVY = DOCX_THEME.navy;
+const CYAN = DOCX_THEME.cyan;
+const MUTED = DOCX_THEME.inkSubtle;
+const FAINT = DOCX_THEME.inkFaint;
+const GRID = DOCX_THEME.border;
+const SUNKEN = DOCX_THEME.sunken;
 const FONT = "Calibri";
 const MONO = "Consolas";
 

@@ -104,78 +104,78 @@ export function renderEvaluatorProgressEmail(payload: EvaluatorProgressEmailPayl
   const moversHtml =
     p.movers.length > 0
       ? `<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;font-size:14px;">
-  <thead><tr style="text-align:left;color:#64748B;font-size:11px;text-transform:uppercase;letter-spacing:.06em;">
-    <th style="padding:6px 8px;border-bottom:1px solid #E2E8F0;">Startup</th>
-    <th style="padding:6px 8px;border-bottom:1px solid #E2E8F0;">SVI now</th>
-    <th style="padding:6px 8px;border-bottom:1px solid #E2E8F0;">Δ this week</th>
-    <th style="padding:6px 8px;border-bottom:1px solid #E2E8F0;">Stage</th>
+  <thead><tr style="text-align:left;color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.06em;">
+    <th style="padding:6px 8px;border-bottom:1px solid #e5e7eb;">Startup</th>
+    <th style="padding:6px 8px;border-bottom:1px solid #e5e7eb;">SVI now</th>
+    <th style="padding:6px 8px;border-bottom:1px solid #e5e7eb;">Δ this week</th>
+    <th style="padding:6px 8px;border-bottom:1px solid #e5e7eb;">Stage</th>
   </tr></thead>
   <tbody>
 ${p.movers
   .map((i) => {
     const up = (i.delta ?? 0) > 0;
     return `    <tr>
-      <td style="padding:8px;border-bottom:1px solid #F1F5F9;font-weight:600;color:#0F172A;">${escapeHtml(i.name)}${i.newEvidence > 0 ? `<div style="font-weight:400;font-size:12px;color:#64748B;">${i.newEvidence} new evidence item${i.newEvidence === 1 ? "" : "s"}</div>` : ""}</td>
-      <td style="padding:8px;border-bottom:1px solid #F1F5F9;color:#0F172A;">${sviText(i)}</td>
-      <td style="padding:8px;border-bottom:1px solid #F1F5F9;font-weight:600;color:${up ? "#047857" : "#B91C1C"};">${escapeHtml(formatDelta(i.delta))}</td>
-      <td style="padding:8px;border-bottom:1px solid #F1F5F9;color:#334155;">${escapeHtml(stageText(i))}</td>
+      <td style="padding:8px;border-bottom:1px solid #eef0f5;font-weight:600;color:#0b0f1a;">${escapeHtml(i.name)}${i.newEvidence > 0 ? `<div style="font-weight:400;font-size:12px;color:#6b7280;">${i.newEvidence} new evidence item${i.newEvidence === 1 ? "" : "s"}</div>` : ""}</td>
+      <td style="padding:8px;border-bottom:1px solid #eef0f5;color:#0b0f1a;">${sviText(i)}</td>
+      <td style="padding:8px;border-bottom:1px solid #eef0f5;font-weight:600;color:${up ? "#047857" : "#B91C1C"};">${escapeHtml(formatDelta(i.delta))}</td>
+      <td style="padding:8px;border-bottom:1px solid #eef0f5;color:#1f2937;">${escapeHtml(stageText(i))}</td>
     </tr>`;
   })
   .join("\n")}
   </tbody></table>`
-      : `<p style="margin:0;font-size:14px;color:#475569;">No SVI movement across your ${m} tracked startup${m === 1 ? "" : "s"} this week.${
+      : `<p style="margin:0;font-size:14px;color:#4b5563;">No SVI movement across your ${m} tracked startup${m === 1 ? "" : "s"} this week.${
           p.newEvidence > 0 ? ` ${p.newEvidence} new evidence item${p.newEvidence === 1 ? "" : "s"} landed — a re-score will pick them up.` : ""
         }</p>`;
 
   // ── Deadlines ──
   const deadlinesHtml =
     p.deadlines.length > 0
-      ? `<ul style="margin:0;padding-left:18px;font-size:14px;color:#0F172A;line-height:1.7;">
+      ? `<ul style="margin:0;padding-left:18px;font-size:14px;color:#0b0f1a;line-height:1.7;">
 ${p.deadlines
   .map(
     (d) =>
       `  <li><strong>${escapeHtml(d.name)}</strong> — ${escapeHtml(d.startup)} · ${d.refKind === "grant" ? "closes" : "applications close"} ${daysPhrase(d.daysLeft)} (${escapeHtml(fmtDay(d.closesAt))})${
-        d.url ? ` · <a href="${escapeHtml(d.url)}" style="color:#4F46E5;">official page</a>` : ""
+        d.url ? ` · <a href="${escapeHtml(d.url)}" style="color:#1B2A5E;">official page</a>` : ""
       }</li>`,
   )
   .join("\n")}
 </ul>`
-      : `<p style="margin:0;font-size:14px;color:#475569;">No dated grant or program deadlines ahead for the startups you track.</p>`;
+      : `<p style="margin:0;font-size:14px;color:#4b5563;">No dated grant or program deadlines ahead for the startups you track.</p>`;
 
   // ── New matches ──
   const matchesHtml =
     p.newMatches > 0
-      ? `<p style="margin:0;font-size:14px;color:#0F172A;"><strong>${p.newMatches}</strong> new grant / program match${p.newMatches === 1 ? "" : "es"} this week across ${escapeHtml(
+      ? `<p style="margin:0;font-size:14px;color:#0b0f1a;"><strong>${p.newMatches}</strong> new grant / program match${p.newMatches === 1 ? "" : "es"} this week across ${escapeHtml(
           p.items
             .filter((i) => i.money.newMatches > 0)
             .map((i) => `${i.name} (${i.money.newMatches})`)
             .join(", "),
         )}.</p>`
-      : `<p style="margin:0;font-size:14px;color:#475569;">No new grant or program matches this week.</p>`;
+      : `<p style="margin:0;font-size:14px;color:#4b5563;">No new grant or program matches this week.</p>`;
 
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(subject)}</title></head><body style="margin:0;padding:24px;background:#F1F5F9;color:#0F172A;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;"><div style="max-width:600px;margin:0 auto;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:32px;">
-  <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#64748B;">BlockID.au · Progress Radar</p>
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(subject)}</title></head><body style="margin:0;padding:24px;background:#eef0f5;color:#0b0f1a;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;"><div style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;padding:32px;">
+  <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;">BlockID.au · Progress Radar</p>
   <h1 style="margin:0 0 6px 0;font-size:20px;line-height:1.3;">${escapeHtml(subject.replace(/^Your weekly progress radar — /, "This week: "))}</h1>
-  <p style="margin:0 0 20px 0;font-size:14px;color:#475569;">Hi ${escapeHtml(name)} — the same 8-dimension rubric across the ${m} startup${m === 1 ? "" : "s"} you evaluate, and what changed since last week.</p>
+  <p style="margin:0 0 20px 0;font-size:14px;color:#4b5563;">Hi ${escapeHtml(name)} — the same 8-dimension rubric across the ${m} startup${m === 1 ? "" : "s"} you evaluate, and what changed since last week.</p>
 
-  <h2 style="margin:0 0 8px 0;font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:#64748B;">Movers</h2>
+  <h2 style="margin:0 0 8px 0;font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;">Movers</h2>
   ${moversHtml}
 
-  <h2 style="margin:24px 0 8px 0;font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:#64748B;">Deadlines &amp; intakes across your startups</h2>
+  <h2 style="margin:24px 0 8px 0;font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;">Deadlines &amp; intakes across your startups</h2>
   ${deadlinesHtml}
 
-  <h2 style="margin:24px 0 8px 0;font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:#64748B;">New matches</h2>
+  <h2 style="margin:24px 0 8px 0;font-size:14px;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;">New matches</h2>
   ${matchesHtml}
 
   <p style="margin:28px 0 8px 0;">
-    <a href="${escapeHtml(workspace)}" style="display:inline-block;background:#4F46E5;color:#FFFFFF;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px;">Run a re-score (A$1)</a>
-    <a href="${escapeHtml(workspace)}" style="display:inline-block;margin-left:8px;border:1px solid #C7D2FE;color:#4338CA;text-decoration:none;font-weight:600;padding:11px 20px;border-radius:10px;">Run Trusted Business Report</a>
+    <a href="${escapeHtml(workspace)}" style="display:inline-block;background:#1B2A5E;color:#ffffff;text-decoration:none;font-weight:600;padding:12px 20px;border-radius:10px;">Run a re-score (A$1)</a>
+    <a href="${escapeHtml(workspace)}" style="display:inline-block;margin-left:8px;border:1px solid #eceef7;color:#1B2A5E;text-decoration:none;font-weight:600;padding:11px 20px;border-radius:10px;">Run Trusted Business Report</a>
   </p>
-  <p style="margin:0 0 24px 0;font-size:12px;color:#64748B;">A re-score refreshes the SVI over the evidence the startup has now (A$1). A full Trusted Business Report is A$3 or one of your included reports.</p>
+  <p style="margin:0 0 24px 0;font-size:12px;color:#6b7280;">A re-score refreshes the SVI over the evidence the startup has now (A$1). A full Trusted Business Report is A$3 or one of your included reports.</p>
 
-  <p style="margin:0 0 12px 0;font-size:11px;line-height:1.6;color:#64748B;border-top:1px solid #E2E8F0;padding-top:12px;">${escapeHtml(disclaimer)}</p>
-  <p style="margin:0;font-size:11px;color:#94A3B8;">You receive this because Progress Radar is part of your evaluator plan.${
-    unsub ? ` <a href="${escapeHtml(unsub)}" style="color:#64748B;">Unsubscribe from Progress Radar emails</a>` : ""
+  <p style="margin:0 0 12px 0;font-size:11px;line-height:1.6;color:#6b7280;border-top:1px solid #e5e7eb;padding-top:12px;">${escapeHtml(disclaimer)}</p>
+  <p style="margin:0;font-size:11px;color:#4b5563;">You receive this because Progress Radar is part of your evaluator plan.${
+    unsub ? ` <a href="${escapeHtml(unsub)}" style="color:#6b7280;">Unsubscribe from Progress Radar emails</a>` : ""
   }</p>
 </div></body></html>`;
 

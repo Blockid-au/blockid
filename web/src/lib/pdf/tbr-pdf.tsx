@@ -64,17 +64,21 @@ import { derivedLift } from "@/lib/svi-lift";
 import { alignReportWithAssessmentCard, type AssessmentCardData, type AssessmentCardOptions } from "@/lib/svi/assessment-card";
 import { AdviceDisclaimer, PDF_ENTITY_LINE } from "./advice-disclaimer";
 import { pdfPageCount } from "./page-count";
+import { PDF_THEME } from "./theme";
 
 // ── Palette / styles (light template, spec § 5) ─────────────────────────────
 
+// G26: every colour from the one PDF theme (light paper, navy headings, ink body).
 const C = {
-  ink: "#1F2937",
+  // G26 lane R: every colour from the one PDF theme (light paper, navy headings, ink body).
+  ink: PDF_THEME.inkMuted,
   muted: INK.muted,
   faint: INK.faint,
   grid: INK.grid,
-  sunken: "#F7F8FA",
-  navy: "#1B2A5E",
-  cyan: "#0891B2",
+  sunken: PDF_THEME.sunken,
+  navy: PDF_THEME.navy,
+  navySoft: PDF_THEME.navySoft,
+  cyan: PDF_THEME.cyan,
 };
 
 const MM = 72 / 25.4;

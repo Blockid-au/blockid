@@ -7,6 +7,7 @@
 import "server-only";
 import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 import { sendEmail } from "./email";
+import { EMAIL_THEME } from "@/lib/email/theme";
 import {
   ensureEmailPreferences,
   canSendEmail,
@@ -39,10 +40,10 @@ function siteUrl(): string {
 
 /** Return badge color based on SVI score tier. */
 function scoreColor(score: number): string {
-  if (score >= 80) return "#10b981"; // green — strong
-  if (score >= 60) return "#6c5ce7"; // purple — promising
-  if (score >= 40) return "#f59e0b"; // amber — developing
-  return "#ef4444";                  // red — early
+  if (score >= 80) return EMAIL_THEME.success; // green — strong
+  if (score >= 60) return EMAIL_THEME.navy; // purple — promising
+  if (score >= 40) return EMAIL_THEME.warn; // amber — developing
+  return EMAIL_THEME.danger;                  // red — early
 }
 
 /** Return tier label based on SVI score. */
@@ -130,12 +131,12 @@ function buildEmailHtml(
   const attachmentsSection =
     attachmentsList.length > 0
       ? `
-    <div style="background:#f0f0f5;padding:16px;border-radius:8px;margin:20px 0;">
-      <h3 style="font-size:14px;color:#495057;margin:0 0 8px;">${t.attachmentsLabel}</h3>
+    <div style="background:#eef0f5;padding:16px;border-radius:8px;margin:20px 0;">
+      <h3 style="font-size:14px;color:#4b5563;margin:0 0 8px;">${t.attachmentsLabel}</h3>
       ${attachmentsList
         .map(
           (name) =>
-            `<div style="font-size:13px;color:#6c5ce7;padding:4px 0;">📎 ${name}</div>`,
+            `<div style="font-size:13px;color:#1B2A5E;padding:4px 0;">📎 ${name}</div>`,
         )
         .join("")}
     </div>`
@@ -148,13 +149,13 @@ function buildEmailHtml(
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>${t.heading}</title>
 </head>
-<body style="margin:0;padding:0;background:#f4f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#1a1a2e;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f8;">
+<body style="margin:0;padding:0;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:#0b0f1a;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;">
     <tr><td align="center" style="padding:24px 16px;">
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(0,0,0,0.08);">
 
         <!-- Header -->
-        <tr><td style="background:linear-gradient(135deg,#6c5ce7,#a29bfe);padding:32px 24px;text-align:center;">
+        <tr><td style="background:linear-gradient(135deg,#1B2A5E,#eceef7);padding:32px 24px;text-align:center;">
           <div style="font-size:28px;font-weight:700;color:#fff;letter-spacing:-0.5px;">BlockID.au</div>
           <div style="font-size:15px;color:rgba(255,255,255,0.85);margin-top:6px;">${t.heading}</div>
         </td></tr>
@@ -172,7 +173,7 @@ function buildEmailHtml(
 
         <!-- Startup Name & Stage -->
         <tr><td style="padding:0 24px 24px;text-align:center;">
-          <h2 style="font-size:22px;color:#1a1a2e;margin:0 0 6px;">${opts.startupName}</h2>
+          <h2 style="font-size:22px;color:#0b0f1a;margin:0 0 6px;">${opts.startupName}</h2>
           <div style="font-size:14px;color:#666;">${t.stageLabel}: <strong>${opts.stageLabel}</strong></div>
         </td></tr>
 
@@ -181,7 +182,7 @@ function buildEmailHtml(
 
         <!-- Executive Summary -->
         <tr><td style="padding:24px;">
-          <h3 style="font-size:16px;color:#6c5ce7;margin:0 0 12px;">${t.executiveSummary}</h3>
+          <h3 style="font-size:16px;color:#1B2A5E;margin:0 0 12px;">${t.executiveSummary}</h3>
           <p style="font-size:14px;line-height:1.7;color:#333;margin:0;">${summary}${opts.reportSummary.length > 500 ? "..." : ""}</p>
         </td></tr>
 
@@ -190,11 +191,11 @@ function buildEmailHtml(
 
         <!-- CTA Button -->
         <tr><td style="padding:24px;text-align:center;">
-          <a href="${opts.reportUrl}" style="display:inline-block;background:#6c5ce7;color:#fff;text-decoration:none;padding:14px 36px;border-radius:8px;font-size:15px;font-weight:600;letter-spacing:0.3px;">${t.viewFullReport}</a>
+          <a href="${opts.reportUrl}" style="display:inline-block;background:#1B2A5E;color:#fff;text-decoration:none;padding:14px 36px;border-radius:8px;font-size:15px;font-weight:600;letter-spacing:0.3px;">${t.viewFullReport}</a>
         </td></tr>
 
         <!-- Footer -->
-        <tr><td style="background:#1a1a2e;padding:24px;text-align:center;">
+        <tr><td style="background:#f7f8fa;padding:24px;text-align:center;">
           <p style="font-size:11px;color:rgba(255,255,255,0.5);margin:0 0 8px;line-height:1.6;">${t.disclaimer}</p>
           <p style="font-size:11px;color:rgba(255,255,255,0.4);margin:0 0 12px;">${t.poweredBy}</p>
           <p style="font-size:11px;margin:0;">

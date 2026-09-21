@@ -145,7 +145,7 @@ describe("renderFounderDigestEmail — Spam Act footer", () => {
       unsubscribeUrl: "https://blockid.au/unsubscribe?token=t1",
       preferencesUrl: "https://blockid.au/unsubscribe?token=t1&manage=1",
     });
-    expect(html).toContain('<a href="https://blockid.au/unsubscribe?token=t1" style="color:#64748b;text-decoration:underline">Unsubscribe</a>');
+    expect(html).toContain('<a href="https://blockid.au/unsubscribe?token=t1" style="color:#6b7280;text-decoration:underline">Unsubscribe</a>');
     expect(html).toContain("Manage email preferences</a>");
     expect(text).toContain("Unsubscribe: https://blockid.au/unsubscribe?token=t1");
     expect(text).toContain("Manage email preferences: https://blockid.au/unsubscribe?token=t1&manage=1");

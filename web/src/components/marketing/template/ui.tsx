@@ -189,20 +189,20 @@ export function TableWrap({ className, children }: { className?: string; childre
   return <div className={cn("w-full overflow-x-auto", className)}>{children}</div>;
 }
 
-export function Th({ align = "start", className, ...rest }: ThHTMLAttributes<HTMLTableCellElement> & { align?: "start" | "num" }) {
+export function Th({ numeric = false, className, ...rest }: Omit<ThHTMLAttributes<HTMLTableCellElement>, "align"> & { numeric?: boolean }) {
   return (
     <th
       scope="col"
-      className={cn(TABLE_TH_CLASS, align === "num" && "text-right tabular-nums", className)}
+      className={cn(TABLE_TH_CLASS, numeric && "text-right tabular-nums", className)}
       {...rest}
     />
   );
 }
 
-export function Td({ align = "start", className, ...rest }: TdHTMLAttributes<HTMLTableCellElement> & { align?: "start" | "num" }) {
+export function Td({ numeric = false, className, ...rest }: Omit<TdHTMLAttributes<HTMLTableCellElement>, "align"> & { numeric?: boolean }) {
   return (
     <td
-      className={cn(TABLE_TD_CLASS, align === "num" && "text-right font-mono tabular-nums", className)}
+      className={cn(TABLE_TD_CLASS, numeric && "text-right font-mono tabular-nums", className)}
       {...rest}
     />
   );
@@ -217,7 +217,7 @@ export function Table({ columns, rows, rowKey, caption, empty = "Nothing here ye
         <thead className={TABLE_HEAD_CLASS}>
           <tr>
             {columns.map((c) => (
-              <Th key={c.key} align={c.align} className={c.className}>
+              <Th key={c.key} numeric={c.align === "num"} className={c.className}>
                 {c.header}
               </Th>
             ))}
@@ -234,7 +234,7 @@ export function Table({ columns, rows, rowKey, caption, empty = "Nothing here ye
             rows.map((row, i) => (
               <tr key={String(row[keyField] ?? i)} className={TABLE_ROW_CLASS}>
                 {columns.map((c) => (
-                  <Td key={c.key} align={c.align} className={c.className}>
+                  <Td key={c.key} numeric={c.align === "num"} className={c.className}>
                     {row[c.key]}
                   </Td>
                 ))}

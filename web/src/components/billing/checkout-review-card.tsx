@@ -31,7 +31,7 @@ export interface CheckoutReviewCardProps {
   backLabel: string;
   /** Contact-sales fallback for custom-priced rungs. */
   contactHref: string;
-  /** "Sold by Auschain … (ABN …)" — resolved on the server from LEGAL_ENTITY. */
+  /** The "Sold by …" seller line — resolved on the server from LEGAL_ENTITY (never a literal here). */
   sellerLine: string;
 }
 

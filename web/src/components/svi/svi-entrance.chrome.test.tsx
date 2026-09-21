@@ -50,7 +50,8 @@ async function render(chrome: boolean): Promise<string> {
   return (await new Response(stream).text()).replace(/<!-- -->/g, "");
 }
 
-describe("svi-entrance — render", () => {
+// The render imports the whole analyser page graph — slow on first import under deploy-gate load (5 s default timed out repeatedly on 2026-09-21).
+describe("svi-entrance — render", { timeout: 60_000 }, () => {
   it("chrome={false} (inside the workspace shell): the analyser only — no h1, no iframe, no nav/footer", async () => {
     const out = await render(false);
     expect(out).toContain('id="svi"');

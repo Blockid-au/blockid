@@ -375,11 +375,14 @@ describe("renderLifecycleEmail — shell invariants (visual regression harness)"
     }
   });
 
-  it("uses the BlockID brand navy (#0B0F2A) as the primary CTA button color", () => {
-    // Intentional design upgrade (2026-08-15): indigo #4f46e5 → brand navy #0B0F2A
-    // for consistency with the BlockID dark-mode brand palette.
+  it("uses the BlockID brand navy (#1B2A5E) as the primary CTA button color with white text", () => {
+    // G26 (2026-09-21): light template — the button is the brand navy token
+    // (EMAIL_THEME.navy) with white text; the old dark #0B0F2A canvas is gone.
     // Any further theme change requires an explicit update to this pin.
-    expect(render({ step: "day0" }).html).toContain("background:#0B0F2A");
+    const html = render({ step: "day0" }).html;
+    expect(html).toContain("background:#1B2A5E");
+    expect(html).toMatch(/background:#1B2A5E;color:#ffffff/);
+    expect(html).not.toContain("#0B0F2A");
   });
 
   it("carries the 580px max-width envelope for gmail/outlook compatibility", () => {
@@ -388,7 +391,9 @@ describe("renderLifecycleEmail — shell invariants (visual regression harness)"
     expect(render({ step: "day0" }).html).toContain("max-width:580px");
   });
 
-  it("renders a brand header with dark navy background", () => {
-    expect(render({ step: "day0" }).html).toContain(`background:#0B0F2A`);
+  it("renders a light brand header (white, 1 px line) — no dark band", () => {
+    const html = render({ step: "day0" }).html;
+    expect(html).toContain("background:#ffffff;border-bottom:1px solid #e5e7eb;border-radius:16px 16px 0 0");
+    expect(html).not.toMatch(/background:#0[0-9a-f]{5}/i);
   });
 });

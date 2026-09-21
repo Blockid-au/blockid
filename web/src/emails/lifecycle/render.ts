@@ -6,6 +6,7 @@
 
 import type { LifecycleStep } from "@/lib/conversion/lifecycle";
 import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
+import { EMAIL_THEME } from "@/lib/email/theme";
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://blockid.au";
 
@@ -51,21 +52,23 @@ function subjectFor(step: LifecycleStep, variant?: string | null, firstName?: st
 
 // ─── Shared design tokens ─────────────────────────────────────────────────────
 
+// G26: light template — every value is an EMAIL_THEME token (the names are kept
+// for the primitives below; "navyDeep" is now the navy accent, not a surface).
 const T = {
-  navyDeep:  "#0B0F2A",
-  navyMid:   "#131938",
-  navyLight: "#1A2247",
-  cyan:      "#22D3EE",
-  cyanDim:   "#0891B2",
-  blue:      "#3B82F6",
-  white:     "#ffffff",
-  textPrimary:   "#0f172a",
-  textSecondary: "#475569",
-  textMuted:     "#94a3b8",
-  emerald:       "#059669",
-  amber:         "#d97706",
-  cardBg:        "#f8fafc",
-  border:        "#e2e8f0",
+  navyDeep:  EMAIL_THEME.navy,
+  navyMid:   EMAIL_THEME.navyDeep,
+  navyLight: EMAIL_THEME.navySoft,
+  cyan:      EMAIL_THEME.cyan,
+  cyanDim:   EMAIL_THEME.cyan,
+  blue:      EMAIL_THEME.action,
+  white:     EMAIL_THEME.onNavy,
+  textPrimary:   EMAIL_THEME.ink,
+  textSecondary: EMAIL_THEME.inkSubtle,
+  textMuted:     EMAIL_THEME.inkTertiary,
+  emerald:       EMAIL_THEME.success,
+  amber:         EMAIL_THEME.warn,
+  cardBg:        EMAIL_THEME.sunken,
+  border:        EMAIL_THEME.border,
 };
 
 // ─── Layout primitives ────────────────────────────────────────────────────────
@@ -73,7 +76,7 @@ const T = {
 /** Brand header — dark navy with logo. */
 function brandHeader(): string {
   return `
-    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${T.navyDeep};border-radius:16px 16px 0 0">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background:${EMAIL_THEME.surface};border-bottom:1px solid ${T.border};border-radius:16px 16px 0 0">
       <tr>
         <td style="padding:24px 32px">
           <table width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -83,7 +86,7 @@ function brandHeader(): string {
                      style="display:block;height:auto" />
               </td>
               <td align="right" style="vertical-align:middle">
-                <span style="font-size:11px;color:${T.cyan};letter-spacing:0.08em;text-transform:uppercase;font-weight:600">
+                <span style="font-size:11px;color:${T.navyDeep};letter-spacing:0.08em;text-transform:uppercase;font-weight:600">
                   Startup Intelligence Platform
                 </span>
               </td>
@@ -119,7 +122,7 @@ function stepList(steps: string[]): string {
   const rows = steps.map((s, i) => `
     <tr>
       <td width="28" valign="top" style="padding-top:2px">
-        <div style="width:22px;height:22px;border-radius:50%;background:${T.navyDeep};color:${T.cyan};font-size:11px;font-weight:700;text-align:center;line-height:22px">${i + 1}</div>
+        <div style="width:22px;height:22px;border-radius:50%;background:${T.navyDeep};color:${T.white};font-size:11px;font-weight:700;text-align:center;line-height:22px">${i + 1}</div>
       </td>
       <td style="padding:0 0 10px 8px;font-size:14px;color:${T.textPrimary};line-height:1.5">${s}</td>
     </tr>`).join("");
@@ -132,7 +135,7 @@ function stepList(steps: string[]): string {
 /** CTA button. */
 function ctaButton(label: string, href: string, primary = true): string {
   const bg = primary ? T.navyDeep : T.cardBg;
-  const color = primary ? T.cyan : T.textPrimary;
+  const color = primary ? T.white : T.textPrimary;
   const border = primary ? "none" : `1px solid ${T.border}`;
   return `
     <table cellpadding="0" cellspacing="0" border="0" style="margin:28px 0 0">
@@ -150,9 +153,9 @@ function ctaButton(label: string, href: string, primary = true): string {
 /** Highlight box (value callout). */
 function highlightBox(text: string, emoji = "💡"): string {
   return `
-    <div style="background:${T.navyDeep};border-radius:10px;padding:16px 20px;margin:20px 0;border-left:3px solid ${T.cyan}">
+    <div style="background:${T.navyLight};border-radius:10px;padding:16px 20px;margin:20px 0;border-left:3px solid ${T.navyDeep}">
       <span style="font-size:16px">${emoji}</span>
-      <span style="font-size:14px;color:${T.white};line-height:1.6;margin-left:8px">${text}</span>
+      <span style="font-size:14px;color:${T.textPrimary};line-height:1.6;margin-left:8px">${text}</span>
     </div>`;
 }
 
@@ -187,7 +190,7 @@ function shell(
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>BlockID</title>
 </head>
-<body style="margin:0;padding:0;background:#f0f4f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:${T.textPrimary}">
+<body style="margin:0;padding:0;background:#f7f8fa;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;color:${T.textPrimary}">
   <div style="max-width:580px;margin:0 auto;padding:32px 16px">
     ${brandHeader()}
     ${accentStrip()}

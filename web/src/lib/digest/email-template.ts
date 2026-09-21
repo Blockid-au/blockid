@@ -8,6 +8,7 @@ import type { DigestPayload } from "@/lib/digest/weekly";
 import { sellerOfRecordLine } from "@/lib/site/legal-entity";
 import { MONEY_DIGEST_TEASER, moneyDigestHeader } from "@/lib/funding/digest-money";
 import { describeMove, pipelineDigestHeader } from "@/lib/investors/digest";
+import { EMAIL_THEME } from "@/lib/email/theme";
 
 export interface RenderedFounderDigest {
   subject: string;
@@ -25,7 +26,7 @@ const INTEREST_LABEL: Record<string, string> = {
 };
 
 const INTEREST_COLOUR: Record<string, string> = {
-  exploring: "#64748b",
+  exploring: EMAIL_THEME.inkTertiary,
   warm: "#b45309",
   ready_to_talk: "#047857",
 };
@@ -56,10 +57,10 @@ export function renderFounderDigestEmail(
 
 function renderComplianceFooterHtml(f: DigestFooterOptions): string {
   const links = [
-    f.unsubscribeUrl ? `<a href="${escapeAttr(f.unsubscribeUrl)}" style="color:#64748b;text-decoration:underline">Unsubscribe</a>` : "",
-    f.preferencesUrl ? `<a href="${escapeAttr(f.preferencesUrl)}" style="color:#64748b;text-decoration:underline">Manage email preferences</a>` : "",
+    f.unsubscribeUrl ? `<a href="${escapeAttr(f.unsubscribeUrl)}" style="color:#6b7280;text-decoration:underline">Unsubscribe</a>` : "",
+    f.preferencesUrl ? `<a href="${escapeAttr(f.preferencesUrl)}" style="color:#6b7280;text-decoration:underline">Manage email preferences</a>` : "",
   ].filter(Boolean).join(" &middot; ");
-  return `<div style="padding:12px 24px 20px;border-top:1px solid #e2e8f0;background:#f8fafc;font-size:11px;color:#64748b;line-height:1.6">
+  return `<div style="padding:12px 24px 20px;border-top:1px solid #e5e7eb;background:#f7f8fa;font-size:11px;color:#6b7280;line-height:1.6">
       ${escapeHtml(DIGEST_SENDER_IDENTITY)}<br>${escapeHtml(DIGEST_REASON)}${links ? ` ${links}` : ""}
     </div>`;
 }
@@ -73,16 +74,16 @@ function renderHtml(p: DigestPayload, footer: DigestFooterOptions): string {
   const moneyBlock = renderMoneyBlock(p);
   const pipelineBlock = renderPipelineBlock(p);
   const shareBlock = p.shareUrl
-    ? `<div style="padding:16px 24px;border-top:1px solid #e2e8f0"><p style="margin:0;font-size:13px;color:#475569">Your current share link:</p><p style="margin:6px 0 0"><a href="${escapeAttr(p.shareUrl)}" style="color:#0f766e;font-weight:600;text-decoration:none;word-break:break-all">${escapeHtml(p.shareUrl)}</a></p></div>`
+    ? `<div style="padding:16px 24px;border-top:1px solid #e5e7eb"><p style="margin:0;font-size:13px;color:#4b5563">Your current share link:</p><p style="margin:6px 0 0"><a href="${escapeAttr(p.shareUrl)}" style="color:#047857;font-weight:600;text-decoration:none;word-break:break-all">${escapeHtml(p.shareUrl)}</a></p></div>`
     : "";
 
   return `<!doctype html>
-<html><body style="font-family:-apple-system,Helvetica,sans-serif;color:#0f172a;background:#f8fafc;padding:24px">
-  <div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
-    <div style="padding:24px;border-bottom:1px solid #e2e8f0">
-      <p style="margin:0;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Founder · Weekly digest</p>
+<html><body style="font-family:-apple-system,Helvetica,sans-serif;color:#0b0f1a;background:#f7f8fa;padding:24px">
+  <div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
+    <div style="padding:24px;border-bottom:1px solid #e5e7eb">
+      <p style="margin:0;font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.16em">Founder · Weekly digest</p>
       <h1 style="margin:8px 0 0;font-size:22px">Hi ${escapeHtml(p.founderName)},</h1>
-      <p style="margin:8px 0 0;color:#475569;font-size:14px">Here's what happened on your BlockID report between ${escapeHtml(formatDate(p.periodStart))} and ${escapeHtml(formatDate(p.periodEnd))}.</p>
+      <p style="margin:8px 0 0;color:#4b5563;font-size:14px">Here's what happened on your BlockID report between ${escapeHtml(formatDate(p.periodStart))} and ${escapeHtml(formatDate(p.periodEnd))}.</p>
     </div>
     ${viewsBlock}
     ${leadsBlock}
@@ -92,10 +93,10 @@ function renderHtml(p: DigestPayload, footer: DigestFooterOptions): string {
     ${moneyBlock}
     ${pipelineBlock}
     ${shareBlock}
-    <div style="padding:16px 24px;border-top:1px solid #e2e8f0">
-      <a href="${escapeAttr(p.notificationsUrl)}" style="color:#0f766e;font-weight:600;text-decoration:none">Open your notifications inbox →</a>
+    <div style="padding:16px 24px;border-top:1px solid #e5e7eb">
+      <a href="${escapeAttr(p.notificationsUrl)}" style="color:#1d4ed8;font-weight:600;text-decoration:none">Open your notifications inbox →</a>
     </div>
-    <div style="padding:16px 24px 20px;border-top:1px solid #e2e8f0;background:#f8fafc;font-size:11px;color:#64748b">
+    <div style="padding:16px 24px 20px;border-top:1px solid #e5e7eb;background:#f7f8fa;font-size:11px;color:#6b7280">
       ${escapeHtml(AFSL_DISCLAIMER)}
     </div>
     ${renderComplianceFooterHtml(footer)}
@@ -105,39 +106,39 @@ function renderHtml(p: DigestPayload, footer: DigestFooterOptions): string {
 
 function renderViewsBlock(p: DigestPayload): string {
   if (p.views.count === 0) {
-    return `<div style="padding:16px 24px;border-top:1px solid #e2e8f0">
-      <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Report views</p>
-      <p style="margin:0;font-size:14px;color:#475569">No investor views this week — share your link to get eyes on your report.</p>
+    return `<div style="padding:16px 24px;border-top:1px solid #e5e7eb">
+      <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.16em">Report views</p>
+      <p style="margin:0;font-size:14px;color:#4b5563">No investor views this week — share your link to get eyes on your report.</p>
     </div>`;
   }
-  return `<div style="padding:16px 24px;border-top:1px solid #e2e8f0">
-    <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Report views</p>
-    <p style="margin:0;font-size:28px;font-weight:700;color:#0f172a">${p.views.count}<span style="font-size:14px;color:#64748b;font-weight:400"> view${p.views.count === 1 ? "" : "s"}</span></p>
-    <p style="margin:4px 0 0;color:#475569;font-size:13px">${p.views.uniqueCountries} countr${p.views.uniqueCountries === 1 ? "y" : "ies"}${p.views.topCountry ? ` · Top country: <strong>${escapeHtml(p.views.topCountry)}</strong>` : ""}</p>
+  return `<div style="padding:16px 24px;border-top:1px solid #e5e7eb">
+    <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.16em">Report views</p>
+    <p style="margin:0;font-size:28px;font-weight:700;color:#0b0f1a">${p.views.count}<span style="font-size:14px;color:#6b7280;font-weight:400"> view${p.views.count === 1 ? "" : "s"}</span></p>
+    <p style="margin:4px 0 0;color:#4b5563;font-size:13px">${p.views.uniqueCountries} countr${p.views.uniqueCountries === 1 ? "y" : "ies"}${p.views.topCountry ? ` · Top country: <strong>${escapeHtml(p.views.topCountry)}</strong>` : ""}</p>
   </div>`;
 }
 
 function renderLeadsBlock(p: DigestPayload): string {
   if (p.leads.count === 0) {
-    return `<div style="padding:16px 24px;border-top:1px solid #e2e8f0">
-      <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">New investor leads</p>
-      <p style="margin:0;font-size:14px;color:#475569">No new leads this week.</p>
+    return `<div style="padding:16px 24px;border-top:1px solid #e5e7eb">
+      <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.16em">New investor leads</p>
+      <p style="margin:0;font-size:14px;color:#4b5563">No new leads this week.</p>
     </div>`;
   }
   const rows = p.leads.items
     .map((l) => {
       const label = INTEREST_LABEL[l.interestLevel] ?? l.interestLevel;
-      const colour = INTEREST_COLOUR[l.interestLevel] ?? "#64748b";
-      return `<li style="margin:6px 0;font-size:13px;color:#0f172a">
+      const colour = INTEREST_COLOUR[l.interestLevel] ?? EMAIL_THEME.inkTertiary;
+      return `<li style="margin:6px 0;font-size:13px;color:#0b0f1a">
         <strong>${escapeHtml(l.firm || "Anonymous")}</strong>
-        <span style="display:inline-block;margin-left:6px;padding:1px 6px;background:#f1f5f9;color:${colour};border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">${escapeHtml(label)}</span>
-        ${l.country ? `<span style="color:#64748b;margin-left:6px;font-size:11px">${escapeHtml(l.country)}</span>` : ""}
+        <span style="display:inline-block;margin-left:6px;padding:1px 6px;background:#eef0f5;color:${colour};border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">${escapeHtml(label)}</span>
+        ${l.country ? `<span style="color:#6b7280;margin-left:6px;font-size:11px">${escapeHtml(l.country)}</span>` : ""}
       </li>`;
     })
     .join("");
-  return `<div style="padding:16px 24px;border-top:1px solid #e2e8f0">
-    <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">New investor leads</p>
-    <p style="margin:0 0 8px;font-size:28px;font-weight:700;color:#0f172a">${p.leads.count}<span style="font-size:14px;color:#64748b;font-weight:400"> new lead${p.leads.count === 1 ? "" : "s"}</span></p>
+  return `<div style="padding:16px 24px;border-top:1px solid #e5e7eb">
+    <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.16em">New investor leads</p>
+    <p style="margin:0 0 8px;font-size:28px;font-weight:700;color:#0b0f1a">${p.leads.count}<span style="font-size:14px;color:#6b7280;font-weight:400"> new lead${p.leads.count === 1 ? "" : "s"}</span></p>
     <ul style="margin:0;padding-left:20px">${rows}</ul>
   </div>`;
 }
@@ -146,27 +147,27 @@ function renderSviBlock(p: DigestPayload): string {
   if (!p.svi) return "";
   const { current, previous, delta, newSnapshot } = p.svi;
   let summary: string;
-  let colour = "#64748b";
+  let colour: string = EMAIL_THEME.inkTertiary;
   let arrow = "—";
   if (delta === null) {
     summary = newSnapshot ? "First snapshot on record" : "No prior snapshot to compare";
   } else if (delta > 0) {
     summary = `+${delta} pts vs the start of the week`;
-    colour = "#047857";
+    colour = EMAIL_THEME.success;
     arrow = "▲";
   } else if (delta < 0) {
     summary = `${delta} pts vs the start of the week`;
-    colour = "#be123c";
+    colour = EMAIL_THEME.danger;
     arrow = "▼";
   } else {
     summary = "No change this week";
   }
   const whyMoved = p.svi.whyMoved;
-  return `<div style="padding:16px 24px;border-top:1px solid #e2e8f0">
-    <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Startup Value Index</p>
-    <p style="margin:0;font-size:28px;font-weight:700;color:${colour}">${current}<span style="font-size:14px;color:#64748b;font-weight:400"> /100</span></p>
+  return `<div style="padding:16px 24px;border-top:1px solid #e5e7eb">
+    <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.16em">Startup Value Index</p>
+    <p style="margin:0;font-size:28px;font-weight:700;color:${colour}">${current}<span style="font-size:14px;color:#6b7280;font-weight:400"> /100</span></p>
     <p style="margin:4px 0 0;color:${colour};font-size:13px;font-weight:600">${arrow} ${escapeHtml(summary)}${previous !== null ? ` (was ${previous})` : ""}</p>
-    ${whyMoved ? `<p style="margin:8px 0 0;font-size:12px;color:#475569;">${escapeHtml(whyMoved)}</p>` : ""}
+    ${whyMoved ? `<p style="margin:8px 0 0;font-size:12px;color:#4b5563;">${escapeHtml(whyMoved)}</p>` : ""}
   </div>`;
 }
 
@@ -183,13 +184,13 @@ function renderAiSummaryBlock(p: DigestPayload): string {
       ? ' (flat this week)'
       : ` (${delta7 > 0 ? "+" : ""}${delta7} this week)`;
   const topRecs = s.topRecommendations.slice(0, 3);
-  return `<div style="padding:16px 24px;border-top:1px solid #e2e8f0;background:#f8fafc">
-    <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#4338ca;text-transform:uppercase;letter-spacing:0.16em">AI evaluation snapshot</p>
-    <p style="margin:0 0 4px;font-size:12px;color:#475569">${s.totalScoreRuns} scoring run${s.totalScoreRuns === 1 ? "" : "s"} · ${s.totalDeepDives} deep dive${s.totalDeepDives === 1 ? "" : "s"} · ${s.agentsRun.length} agent${s.agentsRun.length === 1 ? "" : "s"} run</p>
-    <p style="margin:6px 0 0;font-size:14px;color:#0f172a"><strong>Latest SVI ${s.latestTotalScore ?? "—"}</strong>${escapeHtml(deltaCopy)} · Valuation ${escapeHtml(val)}</p>
+  return `<div style="padding:16px 24px;border-top:1px solid #e5e7eb;background:#f7f8fa">
+    <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#1B2A5E;text-transform:uppercase;letter-spacing:0.16em">AI evaluation snapshot</p>
+    <p style="margin:0 0 4px;font-size:12px;color:#4b5563">${s.totalScoreRuns} scoring run${s.totalScoreRuns === 1 ? "" : "s"} · ${s.totalDeepDives} deep dive${s.totalDeepDives === 1 ? "" : "s"} · ${s.agentsRun.length} agent${s.agentsRun.length === 1 ? "" : "s"} run</p>
+    <p style="margin:6px 0 0;font-size:14px;color:#0b0f1a"><strong>Latest SVI ${s.latestTotalScore ?? "—"}</strong>${escapeHtml(deltaCopy)} · Valuation ${escapeHtml(val)}</p>
     ${topRecs.length > 0 ? `
-    <p style="margin:12px 0 6px;font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:0.14em">Top AI recommendations across your analyses</p>
-    <ol style="margin:0;padding-left:20px;color:#334155;font-size:13px;line-height:1.55">
+    <p style="margin:12px 0 6px;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.14em">Top AI recommendations across your analyses</p>
+    <ol style="margin:0;padding-left:20px;color:#1f2937;font-size:13px;line-height:1.55">
       ${topRecs.map((r) => `<li style="margin:0 0 4px">${escapeHtml(r)}</li>`).join("")}
     </ol>` : ""}
   </div>`;
@@ -198,12 +199,12 @@ function renderAiSummaryBlock(p: DigestPayload): string {
 function renderActionBlock(p: DigestPayload): string {
   if (!p.topAction) return "";
   const a = p.topAction;
-  return `<div style="padding:16px 24px;border-top:1px solid #e2e8f0;background:#f0fdfa">
-    <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#0f766e;text-transform:uppercase;letter-spacing:0.16em">How to improve your SVI</p>
-    <p style="margin:0 0 4px;font-size:12px;color:#475569">Weakest dimension this week: <strong>${escapeHtml(a.label)}</strong> (${a.score}/100)</p>
-    <h2 style="margin:6px 0 4px;font-size:16px;color:#0f172a">${escapeHtml(a.headline)}</h2>
-    <p style="margin:0 0 12px;color:#475569;font-size:13px">${escapeHtml(a.reason)}</p>
-    <a href="${escapeAttr(a.ctaUrl)}" style="display:inline-block;padding:10px 16px;background:#0f766e;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Improve this dimension →</a>
+  return `<div style="padding:16px 24px;border-top:1px solid #e5e7eb;background:#ecfdf5">
+    <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#047857;text-transform:uppercase;letter-spacing:0.16em">How to improve your SVI</p>
+    <p style="margin:0 0 4px;font-size:12px;color:#4b5563">Weakest dimension this week: <strong>${escapeHtml(a.label)}</strong> (${a.score}/100)</p>
+    <h2 style="margin:6px 0 4px;font-size:16px;color:#0b0f1a">${escapeHtml(a.headline)}</h2>
+    <p style="margin:0 0 12px;color:#4b5563;font-size:13px">${escapeHtml(a.reason)}</p>
+    <a href="${escapeAttr(a.ctaUrl)}" style="display:inline-block;padding:10px 16px;background:#1B2A5E;color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Improve this dimension →</a>
   </div>`;
 }
 
@@ -216,22 +217,22 @@ function renderMoneyBlock(p: DigestPayload): string {
   const m = p.money;
   if (!m) return "";
   if (!m.radar) {
-    return `<div style="padding:16px 24px;border-top:1px solid #e2e8f0">
+    return `<div style="padding:16px 24px;border-top:1px solid #e5e7eb">
     <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:0.16em">Money</p>
-    <p style="margin:0;font-size:14px;color:#475569"><a href="${escapeAttr(m.href)}" style="color:#0f766e;font-weight:600;text-decoration:none">${escapeHtml(MONEY_DIGEST_TEASER)} →</a></p>
+    <p style="margin:0;font-size:14px;color:#4b5563"><a href="${escapeAttr(m.href)}" style="color:#1d4ed8;font-weight:600;text-decoration:none">${escapeHtml(MONEY_DIGEST_TEASER)} →</a></p>
   </div>`;
   }
   const header = moneyDigestHeader(m);
   const deadline = m.next_deadline;
   const deadlineLine = deadline
-    ? `<p style="margin:0 0 4px;font-size:13px;color:#0f172a"><strong>${escapeHtml(deadline.name)}</strong> closes ${escapeHtml(deadline.closes_at)}${deadline.days <= 0 ? " (today)" : ` (${deadline.days} day${deadline.days === 1 ? "" : "s"})`}${deadline.official_url ? ` · <a href="${escapeAttr(deadline.official_url)}" style="color:#0f766e">official page</a>` : ""}</p>`
-    : `<p style="margin:0 0 4px;font-size:13px;color:#475569">No deadline in the next 30 days.</p>`;
+    ? `<p style="margin:0 0 4px;font-size:13px;color:#0b0f1a"><strong>${escapeHtml(deadline.name)}</strong> closes ${escapeHtml(deadline.closes_at)}${deadline.days <= 0 ? " (today)" : ` (${deadline.days} day${deadline.days === 1 ? "" : "s"})`}${deadline.official_url ? ` · <a href="${escapeAttr(deadline.official_url)}" style="color:#047857">official page</a>` : ""}</p>`
+    : `<p style="margin:0 0 4px;font-size:13px;color:#4b5563">No deadline in the next 30 days.</p>`;
   const stepLine = m.suggested_action
-    ? `<p style="margin:0 0 12px;font-size:13px;color:#475569">This week's step: ${escapeHtml(m.suggested_action)}</p>`
+    ? `<p style="margin:0 0 12px;font-size:13px;color:#4b5563">This week's step: ${escapeHtml(m.suggested_action)}</p>`
     : "";
-  return `<div style="padding:16px 24px;border-top:1px solid #e2e8f0;background:#fffbeb">
+  return `<div style="padding:16px 24px;border-top:1px solid #e5e7eb;background:#fffbeb">
     <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:0.16em">Money this week</p>
-    <h2 style="margin:0 0 8px;font-size:15px;color:#0f172a">${escapeHtml(header)}</h2>
+    <h2 style="margin:0 0 8px;font-size:15px;color:#0b0f1a">${escapeHtml(header)}</h2>
     ${deadlineLine}
     ${stepLine}
     <a href="${escapeAttr(m.href)}" style="display:inline-block;padding:10px 16px;background:#b45309;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Open Money Radar →</a>
@@ -247,19 +248,19 @@ function renderPipelineBlock(p: DigestPayload): string {
   const s = p.pipeline;
   if (!s) return "";
   const moves = s.stage_moves.length
-    ? `<ul style="margin:0 0 8px;padding-left:18px;font-size:13px;color:#0f172a">${s.stage_moves.map((m) => `<li>${escapeHtml(describeMove(m))}</li>`).join("")}</ul>`
-    : `<p style="margin:0 0 8px;font-size:13px;color:#475569">No stage moves this week.</p>`;
+    ? `<ul style="margin:0 0 8px;padding-left:18px;font-size:13px;color:#0b0f1a">${s.stage_moves.map((m) => `<li>${escapeHtml(describeMove(m))}</li>`).join("")}</ul>`
+    : `<p style="margin:0 0 8px;font-size:13px;color:#4b5563">No stage moves this week.</p>`;
   const overdue = s.overdue.length
-    ? `<p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#b91c1c">Overdue next steps</p><ul style="margin:0 0 12px;padding-left:18px;font-size:13px;color:#0f172a">${s.overdue
+    ? `<p style="margin:0 0 4px;font-size:12px;font-weight:700;color:#b91c1c">Overdue next steps</p><ul style="margin:0 0 12px;padding-left:18px;font-size:13px;color:#0b0f1a">${s.overdue
         .map((o) => `<li><strong>${escapeHtml(o.name)}</strong>${o.org ? ` · ${escapeHtml(o.org)}` : ""}${o.next_step ? ` — ${escapeHtml(o.next_step)}` : ""} <span style="color:#b91c1c">(${o.days} day${o.days === 1 ? "" : "s"} late)</span></li>`)
         .join("")}</ul>`
     : "";
-  return `<div style="padding:16px 24px;border-top:1px solid #e2e8f0">
-    <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Pipeline this week</p>
-    <h2 style="margin:0 0 8px;font-size:15px;color:#0f172a">${escapeHtml(pipelineDigestHeader(s))}</h2>
+  return `<div style="padding:16px 24px;border-top:1px solid #e5e7eb">
+    <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.16em">Pipeline this week</p>
+    <h2 style="margin:0 0 8px;font-size:15px;color:#0b0f1a">${escapeHtml(pipelineDigestHeader(s))}</h2>
     ${moves}
     ${overdue}
-    <a href="${escapeAttr(s.href)}" style="display:inline-block;padding:10px 16px;background:#0f766e;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Open the investor CRM →</a>
+    <a href="${escapeAttr(s.href)}" style="display:inline-block;padding:10px 16px;background:#1B2A5E;color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Open the investor CRM →</a>
   </div>`;
 }
 

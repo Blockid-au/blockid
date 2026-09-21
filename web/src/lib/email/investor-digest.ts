@@ -1,3 +1,4 @@
+import { EMAIL_THEME } from "@/lib/email/theme";
 // InvestorWeeklyDigest — pure email helpers.
 //
 // Consumed by the /api/cron/investor-weekly-digest endpoint (P7,
@@ -45,11 +46,11 @@ const AFSL_DISCLAIMER =
 
 function fmtDelta(d: number | null): { arrow: string; label: string; colour: string } {
   if (d === null) {
-    return { arrow: "•", label: "new", colour: "#0369a1" };
+    return { arrow: "•", label: "new", colour: EMAIL_THEME.action };
   }
   if (d > 0) return { arrow: "▲", label: `+${d.toFixed(1)}`, colour: "#047857" };
-  if (d < 0) return { arrow: "▼", label: d.toFixed(1), colour: "#be123c" };
-  return { arrow: "—", label: "0.0", colour: "#475569" };
+  if (d < 0) return { arrow: "▼", label: d.toFixed(1), colour: EMAIL_THEME.danger };
+  return { arrow: "—", label: "0.0", colour: EMAIL_THEME.inkSubtle };
 }
 
 /**
@@ -78,19 +79,19 @@ export function buildInvestorDigest(
 
 function renderEmptyHtml(name: string, browseUrl: string, unsub?: string): string {
   return `<!doctype html>
-<html><body style="font-family:-apple-system,Helvetica,sans-serif;color:#0f172a;background:#f8fafc;padding:24px">
-  <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
-    <div style="padding:24px;border-bottom:1px solid #e2e8f0">
-      <p style="margin:0;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Investor · Weekly digest</p>
+<html><body style="font-family:-apple-system,Helvetica,sans-serif;color:#0b0f1a;background:#f7f8fa;padding:24px">
+  <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
+    <div style="padding:24px;border-bottom:1px solid #e5e7eb">
+      <p style="margin:0;font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.16em">Investor · Weekly digest</p>
       <h1 style="margin:8px 0 0;font-size:22px">Hi ${escapeHtml(name)},</h1>
-      <p style="margin:8px 0 0;color:#475569;font-size:14px">You haven't tracked any startups yet — add a ticker to your watchlist and this digest will show its SVI movement each week.</p>
+      <p style="margin:8px 0 0;color:#4b5563;font-size:14px">You haven't tracked any startups yet — add a ticker to your watchlist and this digest will show its SVI movement each week.</p>
     </div>
     <div style="padding:20px 24px">
-      <a href="${browseUrl}" style="display:inline-block;padding:10px 16px;background:#0f766e;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Browse the catalog</a>
+      <a href="${browseUrl}" style="display:inline-block;padding:10px 16px;background:#1B2A5E;color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Browse the catalog</a>
     </div>
-    <div style="padding:16px 24px 20px;border-top:1px solid #e2e8f0;background:#f8fafc;font-size:11px;color:#64748b">
+    <div style="padding:16px 24px 20px;border-top:1px solid #e5e7eb;background:#f7f8fa;font-size:11px;color:#6b7280">
       ${escapeHtml(AFSL_DISCLAIMER)}
-      ${unsub ? `<br/><a href="${unsub}" style="color:#64748b">Unsubscribe</a>` : ""}
+      ${unsub ? `<br/><a href="${unsub}" style="color:#6b7280">Unsubscribe</a>` : ""}
     </div>
   </div>
 </body></html>`;
@@ -116,10 +117,10 @@ function renderRowsHtml(
     .map((r) => {
       const d = fmtDelta(r.deltaSinceLastDigest);
       const phase = r.latestPhaseLabel
-        ? `<div style="font-size:11px;color:#64748b;margin-top:2px">${escapeHtml(r.latestPhaseLabel)}</div>`
+        ? `<div style="font-size:11px;color:#6b7280;margin-top:2px">${escapeHtml(r.latestPhaseLabel)}</div>`
         : "";
       const sector = r.sectorLabel
-        ? `<span style="font-size:11px;color:#64748b;margin-left:6px">${escapeHtml(r.sectorLabel)}</span>`
+        ? `<span style="font-size:11px;color:#6b7280;margin-left:6px">${escapeHtml(r.sectorLabel)}</span>`
         : "";
       const href = r.slug
         ? `https://blockid.au/listings/${encodeURIComponent(r.ticker)}`
@@ -133,23 +134,23 @@ function renderRowsHtml(
         <td style="padding:10px 12px;text-align:right;font-weight:700;vertical-align:top">${r.svi.toFixed(1)}</td>
         <td style="padding:10px 12px;text-align:right;color:${d.colour};vertical-align:top">${d.arrow} ${escapeHtml(d.label)}</td>
         <td style="padding:10px 12px;text-align:right;vertical-align:top">
-          <a href="${href}" style="color:#0f766e;font-weight:600;text-decoration:none">Open</a>
+          <a href="${href}" style="color:#1d4ed8;font-weight:600;text-decoration:none">Open</a>
         </td>
       </tr>`;
     })
     .join("");
 
   return `<!doctype html>
-<html><body style="font-family:-apple-system,Helvetica,sans-serif;color:#0f172a;background:#f8fafc;padding:24px">
-  <div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
-    <div style="padding:24px;border-bottom:1px solid #e2e8f0">
-      <p style="margin:0;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Investor · Weekly digest</p>
+<html><body style="font-family:-apple-system,Helvetica,sans-serif;color:#0b0f1a;background:#f7f8fa;padding:24px">
+  <div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
+    <div style="padding:24px;border-bottom:1px solid #e5e7eb">
+      <p style="margin:0;font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.16em">Investor · Weekly digest</p>
       <h1 style="margin:8px 0 0;font-size:22px">Hi ${escapeHtml(name)},</h1>
-      <p style="margin:8px 0 0;color:#475569;font-size:14px">Top ${rows.length} tracked startup${rows.length === 1 ? "" : "s"} on your watchlist — SVI change since last digest + latest phase moment.</p>
+      <p style="margin:8px 0 0;color:#4b5563;font-size:14px">Top ${rows.length} tracked startup${rows.length === 1 ? "" : "s"} on your watchlist — SVI change since last digest + latest phase moment.</p>
     </div>
     <table style="width:100%;border-collapse:collapse;font-size:14px">
       <thead>
-        <tr style="background:#f8fafc;color:#475569;font-size:11px;text-transform:uppercase;letter-spacing:0.08em">
+        <tr style="background:#f7f8fa;color:#4b5563;font-size:11px;text-transform:uppercase;letter-spacing:0.08em">
           <th align="left" style="padding:10px 12px">Ticker · phase</th>
           <th align="right" style="padding:10px 12px">SVI</th>
           <th align="right" style="padding:10px 12px">Δ since last</th>
@@ -158,12 +159,12 @@ function renderRowsHtml(
       </thead>
       <tbody>${tableRows}</tbody>
     </table>
-    <div style="padding:16px 24px;border-top:1px solid #e2e8f0">
-      <a href="${watchlistUrl}" style="color:#0f766e;font-weight:600;text-decoration:none">Manage your watchlist →</a>
+    <div style="padding:16px 24px;border-top:1px solid #e5e7eb">
+      <a href="${watchlistUrl}" style="color:#1d4ed8;font-weight:600;text-decoration:none">Manage your watchlist →</a>
     </div>
-    <div style="padding:16px 24px 20px;border-top:1px solid #e2e8f0;background:#f8fafc;font-size:11px;color:#64748b">
+    <div style="padding:16px 24px 20px;border-top:1px solid #e5e7eb;background:#f7f8fa;font-size:11px;color:#6b7280">
       ${escapeHtml(AFSL_DISCLAIMER)}
-      ${unsub ? `<br/><a href="${unsub}" style="color:#64748b">Unsubscribe</a>` : ""}
+      ${unsub ? `<br/><a href="${unsub}" style="color:#6b7280">Unsubscribe</a>` : ""}
     </div>
   </div>
 </body></html>`;

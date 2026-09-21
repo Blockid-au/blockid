@@ -93,7 +93,7 @@ export function TbrQaChat({ projectId, token, className }: Props) {
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="inline-flex items-center gap-2 rounded-full bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2.5 shadow-lg transition-colors"
+          className="inline-flex items-center gap-2 rounded-full bg-action hover:bg-action-hover text-on-action text-sm font-semibold px-4 py-2.5 shadow-lg transition-colors"
           aria-label="Ask about this report"
         >
           <MessageCircle className="h-4 w-4" aria-hidden="true" />
@@ -105,17 +105,17 @@ export function TbrQaChat({ projectId, token, className }: Props) {
         <div
           role="dialog"
           aria-label="Report Q&A"
-          className="w-[min(24rem,calc(100vw-2rem))] h-[min(32rem,calc(100vh-6rem))] flex flex-col rounded-xl border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 shadow-2xl overflow-hidden"
+          className="w-[min(24rem,calc(100vw-2rem))] h-[min(32rem,calc(100vh-6rem))] flex flex-col rounded-xl border border-line-subtle bg-surface shadow-2xl overflow-hidden"
         >
           {/* Header */}
-          <div className="flex items-center justify-between gap-2 px-3 py-2.5 border-b border-ink-100 dark:border-ink-800 bg-brand-50/60 dark:bg-brand-950/30">
+          <div className="flex items-center justify-between gap-2 px-3 py-2.5 border-b border-line-subtle bg-surface-sunken">
             <div className="flex items-center gap-2 min-w-0">
-              <Sparkles className="h-4 w-4 text-brand-600 dark:text-brand-300 shrink-0" aria-hidden="true" />
+              <Sparkles className="h-4 w-4 text-action shrink-0" aria-hidden="true" />
               <div className="min-w-0">
-                <p className="text-xs font-bold text-ink-800 dark:text-ink-100 truncate">
+                <p className="text-xs font-bold text-primary truncate">
                   Ask the BlockID analyst
                 </p>
-                <p className="text-[10px] text-ink-500 dark:text-ink-400 truncate">
+                <p className="text-[10px] text-muted truncate">
                   Grounded on this report — no invented facts
                 </p>
               </div>
@@ -123,7 +123,7 @@ export function TbrQaChat({ projectId, token, className }: Props) {
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="p-1 rounded hover:bg-ink-100 dark:hover:bg-ink-800 text-ink-500 dark:text-ink-400 shrink-0"
+              className="p-1 rounded hover:bg-surface-hover text-muted shrink-0"
               aria-label="Close chat"
             >
               <X className="h-4 w-4" />
@@ -136,7 +136,7 @@ export function TbrQaChat({ projectId, token, className }: Props) {
             className="flex-1 overflow-y-auto px-3 py-3 space-y-3 text-sm"
           >
             {messages.length === 0 && (
-              <p className="text-xs text-ink-500 dark:text-ink-400">
+              <p className="text-xs text-muted">
                 Ask a question about this Trusted Business Report. The analyst answers only from the
                 report data (dim scores, criteria, valuation).
               </p>
@@ -154,8 +154,8 @@ export function TbrQaChat({ projectId, token, className }: Props) {
                   className={cn(
                     "max-w-[85%] rounded-lg px-3 py-2 whitespace-pre-wrap leading-relaxed",
                     m.role === "user"
-                      ? "bg-brand-600 text-white"
-                      : "bg-ink-100 dark:bg-ink-800 text-ink-800 dark:text-ink-100",
+                      ? "bg-action text-on-action"
+                      : "bg-surface-sunken text-primary",
                   )}
                 >
                   {m.content}
@@ -165,21 +165,21 @@ export function TbrQaChat({ projectId, token, className }: Props) {
 
             {sending && (
               <div className="flex justify-start">
-                <div className="rounded-lg px-3 py-2 bg-ink-100 dark:bg-ink-800 text-ink-500 dark:text-ink-400 text-xs">
+                <div className="rounded-lg px-3 py-2 bg-surface-sunken text-muted text-xs">
                   Thinking…
                 </div>
               </div>
             )}
 
             {error && (
-              <p className="text-xs text-red-600 dark:text-red-400 border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 rounded p-2">
+              <p className="text-xs text-bear border border-line-subtle bg-surface-sunken rounded p-2">
                 {error}
               </p>
             )}
 
             {showSuggestions && (
               <div className="pt-2 space-y-2">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-ink-400 dark:text-ink-500">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
                   Try one of these
                 </p>
                 <div className="flex flex-col gap-1.5">
@@ -188,7 +188,7 @@ export function TbrQaChat({ projectId, token, className }: Props) {
                       key={s}
                       type="button"
                       onClick={() => void ask(s)}
-                      className="text-left text-xs rounded-md border border-ink-200 dark:border-ink-700 hover:border-brand-400 dark:hover:border-brand-600 hover:bg-brand-50 dark:hover:bg-brand-950/30 text-ink-700 dark:text-ink-200 px-2.5 py-1.5 transition-colors"
+                      className="text-left text-xs rounded-md border border-line-subtle hover:border-line hover:bg-surface-hover text-secondary px-2.5 py-1.5 transition-colors"
                     >
                       {s}
                     </button>
@@ -204,7 +204,7 @@ export function TbrQaChat({ projectId, token, className }: Props) {
               e.preventDefault();
               void ask(input);
             }}
-            className="flex items-end gap-2 p-2 border-t border-ink-100 dark:border-ink-800 bg-white dark:bg-ink-900"
+            className="flex items-end gap-2 p-2 border-t border-line-subtle bg-surface"
           >
             <textarea
               value={input}
@@ -218,13 +218,13 @@ export function TbrQaChat({ projectId, token, className }: Props) {
               rows={2}
               maxLength={1000}
               placeholder="Ask about this report…"
-              className="flex-1 resize-none rounded-md border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-950 px-2 py-1.5 text-sm text-ink-800 dark:text-ink-100 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              className="flex-1 resize-none rounded-md border border-line-subtle bg-surface px-2 py-1.5 text-sm text-primary placeholder:text-muted focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
               disabled={sending}
             />
             <button
               type="submit"
               disabled={sending || input.trim().length === 0}
-              className="inline-flex items-center justify-center rounded-md bg-brand-600 hover:bg-brand-700 disabled:bg-ink-300 dark:disabled:bg-ink-700 text-white h-8 w-8 shrink-0 transition-colors"
+              className="inline-flex items-center justify-center rounded-md bg-action hover:bg-action-hover disabled:bg-line text-on-action h-8 w-8 shrink-0 transition-colors"
               aria-label="Send question"
             >
               <Send className="h-3.5 w-3.5" />

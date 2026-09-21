@@ -38,6 +38,7 @@
 // `criterionResults` the caller still passes.
 
 import { nanoid } from "nanoid";
+import { EMAIL_THEME } from "@/lib/email/theme";
 import { sendEmail, complianceFooter } from "@/lib/email";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { stripCitationMarkers } from "@/lib/report-v2/citations";
@@ -91,7 +92,7 @@ export function bandLabelForEmail(band: Band): { label: string; color: string } 
   if (band === "strong") return { label: "Investor-Ready", color: "#047857" };
   if (band === "developing") return { label: "Developing", color: "#b45309" };
   if (band === "early") return { label: "Early-Stage", color: "#b91c1c" };
-  return { label: "Not scored yet", color: "#64748b" };
+  return { label: "Not scored yet", color: EMAIL_THEME.inkTertiary };
 }
 
 /** The lowest-scoring scored chapter (ties → heavier weight first, i.e. DIM_ORDER). */
@@ -156,12 +157,13 @@ function escapeHtml(s: string): string {
 }
 
 /** Light palette (spec § 5) — inline only, e-mail clients ignore stylesheets. */
-const INK = "#1F2937";
-const NAVY = "#1B2A5E";
-const CYAN = "#0891B2";
-const SUNKEN = "#F7F8FA";
-const MUTED = "#4B5563";
-const LINE = "#E5E7EB";
+// G26 lane R: every colour from the one e-mail theme (light card, navy headings, ink body).
+const INK = EMAIL_THEME.inkMuted;
+const NAVY = EMAIL_THEME.navy;
+const CYAN = EMAIL_THEME.action; // links: cyan is 3.7:1 (decorative only), the action blue is the text-safe accent
+const SUNKEN = EMAIL_THEME.sunken;
+const MUTED = EMAIL_THEME.inkSubtle;
+const LINE = EMAIL_THEME.border;
 const MONO = "ui-monospace,SFMono-Regular,Menlo,Consolas,monospace";
 const NUM = `font-family:${MONO};font-variant-numeric:tabular-nums;`;
 

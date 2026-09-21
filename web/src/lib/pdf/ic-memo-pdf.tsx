@@ -33,11 +33,12 @@ import { AdviceDisclaimer, PDF_ENTITY_LINE } from "./advice-disclaimer";
 import { AssessmentCardPdf } from "./assessment-card-pdf";
 import { pdfPageCount } from "./page-count";
 import { benchmarkNLabel, noBenchmarkYetLine } from "@/lib/benchmarks/publication-rules";
+import { PDF_THEME } from "./theme";
 
 export const IC_MEMO_FOOTER = `Prepared with BlockID.au · ${LEGAL_ENTITY.operator} · not financial advice`;
 export const IC_MEMO_MAX_PAGES = 4;
 
-const C = { ink: INK.text, muted: INK.muted, faint: INK.faint, grid: INK.grid, surface: INK.surfaceAlt, brand: "#0072B2", brandSoft: "#EAF3FA" };
+const C = { ink: INK.text, muted: INK.muted, faint: INK.faint, grid: INK.grid, surface: INK.surfaceAlt, brand: PDF_THEME.navy, brandSoft: PDF_THEME.navySoft };
 const MM = 72 / 25.4;
 const MARGIN = 16 * MM;
 
@@ -98,7 +99,7 @@ const s = StyleSheet.create({
   decision: { fontSize: 16, fontFamily: "Helvetica-Bold", textTransform: "uppercase" },
 });
 
-const DECISION_COLOUR: Record<string, string> = { pass: "#B42318", track: "#B54708", proceed: "#067647" };
+const DECISION_COLOUR: Record<string, string> = { pass: PDF_THEME.danger, track: PDF_THEME.warn, proceed: PDF_THEME.success };
 const bandColour = (b: string): string => BAND_COLOUR[(b as Band) in BAND_COLOUR ? (b as Band) : "pending"];
 const stars = (n: number | null): string => (n == null ? "—" : `${"*".repeat(n)}${".".repeat(Math.max(0, 5 - n))} ${n}/5`);
 

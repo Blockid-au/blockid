@@ -104,12 +104,12 @@ export function TbrInvestorViews({ projectId }: Props) {
 
   if (loading) {
     return (
-      <p className="text-sm text-ink-500 dark:text-ink-400">Loading investor view analytics…</p>
+      <p className="text-sm text-muted">Loading investor view analytics…</p>
     );
   }
   if (error) {
     return (
-      <p className="text-sm text-ink-500 dark:text-ink-400">
+      <p className="text-sm text-muted">
         Couldn&apos;t load view analytics right now.
       </p>
     );
@@ -120,7 +120,7 @@ export function TbrInvestorViews({ projectId }: Props) {
   }
   if (!totals) {
     return (
-      <p className="text-sm text-ink-500 dark:text-ink-400">
+      <p className="text-sm text-muted">
         No investor views yet. Share your <code className="text-xs">/tbr/&lt;token&gt;</code> link
         to start tracking.
       </p>
@@ -131,7 +131,7 @@ export function TbrInvestorViews({ projectId }: Props) {
 
   return (
     <div className="space-y-4">
-      <p className="text-sm text-ink-600 dark:text-ink-400">
+      <p className="text-sm text-muted">
         Anonymised open events on your shared /tbr link. Country and device class only — no PII
         leaves the server.
       </p>
@@ -158,8 +158,8 @@ export function TbrInvestorViews({ projectId }: Props) {
 
       {/* Recent list */}
       {recent.length > 0 && (
-        <div className="rounded-lg border border-ink-200 dark:border-ink-800 overflow-hidden">
-          <div className="grid grid-cols-[auto_1fr_auto_auto] gap-3 px-3 py-2 bg-ink-50 dark:bg-ink-900/60 text-[10px] uppercase tracking-wide font-semibold text-ink-500 dark:text-ink-400">
+        <div className="rounded-lg border border-line-subtle overflow-hidden">
+          <div className="grid grid-cols-[auto_1fr_auto_auto] gap-3 px-3 py-2 bg-surface-sunken text-[10px] uppercase tracking-wide font-semibold text-muted">
             <span>When</span>
             <span>From</span>
             <span>Device</span>
@@ -170,20 +170,20 @@ export function TbrInvestorViews({ projectId }: Props) {
               <li
                 key={`${v.viewedAt}-${i}`}
                 className={cn(
-                  "grid grid-cols-[auto_1fr_auto_auto] gap-3 px-3 py-2 text-xs items-center border-t border-ink-100 dark:border-ink-800/60",
+                  "grid grid-cols-[auto_1fr_auto_auto] gap-3 px-3 py-2 text-xs items-center border-t border-line-subtle",
                 )}
               >
-                <span className="text-ink-500 dark:text-ink-400 tabular-nums">
+                <span className="text-muted tabular-nums">
                   {relTime(v.viewedAt)}
                 </span>
-                <span className="flex items-center gap-2 text-ink-700 dark:text-ink-200">
+                <span className="flex items-center gap-2 text-secondary">
                   <span className="text-base leading-none" aria-hidden="true">
                     {countryFlag(v.country)}
                   </span>
                   <span>{v.country ?? "Unknown"}</span>
                 </span>
-                <span className="text-ink-500 dark:text-ink-400 capitalize">{v.device}</span>
-                <span className="text-right tabular-nums text-ink-700 dark:text-ink-200 font-medium">
+                <span className="text-muted capitalize">{v.device}</span>
+                <span className="text-right tabular-nums text-secondary font-medium">
                   {fmtDuration(v.readSeconds)}
                 </span>
               </li>
@@ -205,12 +205,12 @@ function StatCard({
   value: string;
 }) {
   return (
-    <div className="rounded-lg border border-ink-200 dark:border-ink-800 bg-ink-50/40 dark:bg-ink-900/40 p-3">
-      <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide font-semibold text-ink-500 dark:text-ink-400">
+    <div className="rounded-lg border border-line-subtle bg-surface-sunken p-3">
+      <div className="flex items-center gap-2 text-[10px] uppercase tracking-wide font-semibold text-muted">
         <Icon className="h-3 w-3" aria-hidden={true} />
         <span>{label}</span>
       </div>
-      <p className="mt-1 text-lg font-bold text-ink-800 dark:text-ink-100 tabular-nums">{value}</p>
+      <p className="mt-1 text-lg font-bold text-primary tabular-nums">{value}</p>
     </div>
   );
 }

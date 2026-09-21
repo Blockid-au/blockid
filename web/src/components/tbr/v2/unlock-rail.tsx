@@ -95,7 +95,7 @@ export function TbrUnlockRail({ mode, chapterCount, onUnlock, orderId, orderStat
                 type="button"
                 onClick={onUnlock}
                 data-testid="tbr-unlock-cta"
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-action px-4 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
               >
                 {t.unlockFor(price)}
                 <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
@@ -107,7 +107,7 @@ export function TbrUnlockRail({ mode, chapterCount, onUnlock, orderId, orderStat
               <a
                 href={generateHref}
                 data-testid="tbr-unlock-cta"
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-action px-4 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover"
               >
                 {t.includedGenerate}
                 <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
@@ -122,7 +122,7 @@ export function TbrUnlockRail({ mode, chapterCount, onUnlock, orderId, orderStat
             <a
               href={tbrUnlockOrderHref(orderId, orderStatus)}
               data-testid="tbr-unlock-cta"
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-action px-4 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover"
             >
               {orderStatus === "legacy" ? t.openLegacy : t.openFull}
               <ArrowRight className="h-4 w-4" strokeWidth={2} aria-hidden="true" />
