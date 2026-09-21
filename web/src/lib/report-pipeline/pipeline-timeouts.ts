@@ -13,7 +13,7 @@
 // deadline with the rest of the run — caps the call's total wall clock at
 // what is left of the run (`budgetMs`, so no attempt outlives the deadline).
 //
-//   criterion (W1–W3)   45 s   REPORT_PIPELINE_TIMEOUT_MS_CRITERION
+//   criterion (W1–W3)   60 s   REPORT_PIPELINE_TIMEOUT_MS_CRITERION
 //   chapter   (W4)     120 s   REPORT_PIPELINE_TIMEOUT_MS_CHAPTER
 //   synthesis (CEO,
 //     auditor, CDO)    120 s   REPORT_PIPELINE_TIMEOUT_MS_SYNTHESIS
@@ -35,7 +35,7 @@ export interface PipelineCallHint {
 }
 
 export const PIPELINE_TIMEOUT_MS: Readonly<Record<PipelineCallStage, number>> = {
-  criterion: 45_000,
+  criterion: 60_000, // healthy DeepInfra W1 calls take 56–91 s end-to-end (run 5) — 45 s struck the primary on slow-but-healthy days
   chapter: 120_000,
   synthesis: 120_000,
 };

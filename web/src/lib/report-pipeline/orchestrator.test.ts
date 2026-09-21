@@ -1774,7 +1774,7 @@ describe("orchestrateReport() — G28-B provider resilience (fake clock, dead pr
     vi.useRealTimers();
   });
 
-  it("dead primary: ≥ 7 prose chapters land inside a 480 s budget, the primary is dialled exactly twice (run-scoped strike) and every W1–W3 call ran on the 45 s criterion timeout", async () => {
+  it("dead primary: ≥ 7 prose chapters land inside a 480 s budget, the primary is dialled exactly twice (run-scoped strike) and every W1–W3 call ran on the 60 s criterion timeout", async () => {
     vi.useFakeTimers();
     H.waveUseCallAI = true;
     H.w4UseCallAI = true;
@@ -1806,8 +1806,8 @@ describe("orchestrateReport() — G28-B provider resilience (fake clock, dead pr
     // Criterion calls carry the SOFT remaining clock (deadline − W4 reserve), chapters the hard one.
     expect(chain.hints[0].remainingMs).toBeLessThanOrEqual(480_000 - 120_000);
     expect(chain.hints.find((h) => h.stage === "chapter")!.remainingMs).toBeGreaterThan(480_000 - 120_000 - 100_000);
-    // Criterion attempts cap at 45 s; chapter / synthesis keep 120 s while the remaining clock is wide.
-    expect(chain.hints.every((h) => pipelineCallTimeouts(h).timeoutMs === (h.stage === "criterion" ? 45_000 : 120_000))).toBe(true);
+    // Criterion attempts cap at 60 s; chapter / synthesis keep 120 s while the remaining clock is wide.
+    expect(chain.hints.every((h) => pipelineCallTimeouts(h).timeoutMs === (h.stage === "criterion" ? 60_000 : 120_000))).toBe(true);
   });
 
   it("strikes reset per run: a fresh ledger dials the primary again", async () => {

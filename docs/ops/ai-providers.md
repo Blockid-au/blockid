@@ -365,7 +365,7 @@ and the Money Finder narrative are untouched):
 
    | Stage | Calls | Per-attempt timeout | Env |
    | --- | --- | --- | --- |
-   | `criterion` | W1–W3 (13 max) | **45 s** | `REPORT_PIPELINE_TIMEOUT_MS_CRITERION` |
+   | `criterion` | W1–W3 (13 max) | **60 s** | `REPORT_PIPELINE_TIMEOUT_MS_CRITERION` |
    | `chapter` | W4 (8 owners) | 120 s | `REPORT_PIPELINE_TIMEOUT_MS_CHAPTER` |
    | `synthesis` | CEO summary, CDO cross-validate, auditor | 120 s | `REPORT_PIPELINE_TIMEOUT_MS_SYNTHESIS` |
    | (no hint) | legacy / tests | 120 s | – |
