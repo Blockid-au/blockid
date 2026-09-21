@@ -11,6 +11,7 @@
 
 import type { AgentRole } from "@/lib/report-pipeline/types";
 import { renderBars, renderLine } from "./bars";
+import { renderDimBars } from "./dim-bars";
 import { renderChecklist } from "./checklist";
 import { renderDonut } from "./donut";
 import { renderFunnel } from "./funnel";
@@ -42,6 +43,7 @@ export { aud, esc, fin, num } from "./svg";
 export type { RenderOpts } from "./render-opts";
 export {
   renderBars,
+  renderDimBars,
   renderChecklist,
   renderDonut,
   renderFunnel,
@@ -113,6 +115,8 @@ export function renderVisual(spec: VisualSpecV2, override: Partial<RenderOpts> =
       return renderScatter(data as VisualDataByKind["scatter"], opts);
     case "bar":
       return renderBars(data as VisualDataByKind["bar"], opts);
+    case "dim_bars":
+      return renderDimBars(data as VisualDataByKind["dim_bars"], opts);
     case "line":
       return renderLine(data as VisualDataByKind["line"], opts);
     case "three_questions_strip":

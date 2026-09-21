@@ -37,6 +37,7 @@ export const KIND_FIXTURES: Record<ChartTypeV2, Record<string, unknown>> = {
   route_map: { phases: [{ id: "vision", label: "Vision", status: "done" }, { id: "customer_dev", label: "Customers", status: "current" }, { id: "revenue_model", label: "Revenue", status: "upcoming" }] },
   positioning_2x2: { xLabel: "Price", yLabel: "Differentiation", points: [{ label: "You", x: 40, y: 75, self: true }, { label: "Rival", x: 70, y: 40 }], quadrants: ["Niche", "Premium", "Commodity", "Value"] },
   scatter: { xLabel: "ARR", yLabel: "Valuation", points: [{ label: "Comp A", x: 1, y: 8 }, { label: "You", x: 2, y: 10, self: true }] },
+  dim_bars: { rows: [{ label: "Traction & Revenue", value: 46, p25: 50, p50: 65, p75: 80 }, { label: "Market Pull", value: 87, p25: 50, p50: 65, p75: 80 }, { label: "Legal & Compliance", value: 0, pending: true }] },
   bar: { bars: [{ label: "Commits / 90d", value: 63, reference: 62 }, { label: "Tests", value: 40, reference: 62 }], max: 100, referenceLabel: "stage p50" },
   line: { series: [{ label: "Founders", points: [90, 72, 58] }], xLabels: ["Now", "Seed", "Series A"], unit: "%" },
   three_questions_strip: { where: "Seed-stage AU SaaS at SVI 61.", worth: "A$1.4–2.6M consensus.", next: "Connect Stripe and reserve an ESOP pool." },

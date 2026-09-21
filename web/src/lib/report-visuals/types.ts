@@ -22,6 +22,8 @@ export const VISUAL_KINDS_V2 = [
   "route_map",
   "gantt",
   "positioning_2x2",
+  /** G27: the dashboard's 8-dimension bars against the stage median band. */
+  "dim_bars",
 ] as const;
 
 export type ChartTypeV2 = ChartType | (typeof VISUAL_KINDS_V2)[number];
@@ -173,8 +175,17 @@ export type ProgressData = { value: number; max?: number; label?: string };
 export type GanttRow = { label: string; start: number; end: number; owner?: string };
 export type GanttData = { rows: GanttRow[]; horizon: number; unit?: string };
 
+/** G27 — dashboard bars: one row per dimension, band + median optional (omitted below the publication floor). */
+export type DimBarRow = { label: string; value: number; p25?: number | null; p50?: number | null; p75?: number | null; pending?: boolean; pendingLabel?: string };
+export type DimBarsData = {
+  rows: DimBarRow[];
+  /** False = draw no band / tick even when the rows carry anchors (cohort below n = 10). */
+  showBand?: boolean;
+};
+
 export type VisualDataByKind = {
   score_ring: ScoreRingData;
+  dim_bars: DimBarsData;
   radar: RadarData;
   funnel: FunnelData;
   heat_map: HeatMapData;
@@ -227,6 +238,7 @@ export function legacyChartType(kind: ChartTypeV2): ChartType {
     case "donut":
       return "pie";
     case "range_bars":
+    case "dim_bars":
       return "bar";
     case "gantt":
       return "timeline";
