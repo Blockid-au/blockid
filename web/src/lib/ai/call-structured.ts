@@ -499,7 +499,9 @@ export function promptVersionIdForRow(id: string | null | undefined): string | n
 
 function isPromptVersionFkError(err: { code?: string; message?: string } | null | undefined): boolean {
   if (!err) return false;
-  return err.code === "23503" || /ai_runs_prompt_version_id_fkey/.test(err.message ?? "");
+  // Only the prompt-version constraint (review G24 P3): another FK failure
+  // (user / business) must surface as itself, not be retried with NULL.
+  return /ai_runs_prompt_version_id_fkey/.test(err.message ?? "") || (err.code === "23503" && /prompt_version/.test(err.message ?? ""));
 }
 
 async function insertRun(args: InsertRunArgs): Promise<string> {

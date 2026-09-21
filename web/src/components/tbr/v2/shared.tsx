@@ -197,7 +197,7 @@ export function WindowChip({ window, locale }: { window: ActionWindow; locale?: 
 
 /** Focus ring + a 44 px hit area drawn by the ::before pseudo-element (the glyph stays superscript-sized). */
 const CITE_LINK_CLASS =
-  "relative inline-block rounded px-0.5 font-semibold tabular-nums text-action no-underline underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 before:absolute before:-inset-x-4 before:-inset-y-3 before:content-['']";
+  "relative inline-block rounded px-0.5 font-semibold tabular-nums text-action no-underline underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 before:absolute before:-inset-x-5 before:-inset-y-4 before:content-['']";
 
 /** One footnote reference: `<sup><a href="#ev-n">n</a></sup>`; consecutive references share one <sup> ("1, 2"). */
 export function CiteSup({ cites, locale }: { cites: Array<Extract<CitationSegment, { kind: "cite" }>>; locale?: TbrUiLocale }) {

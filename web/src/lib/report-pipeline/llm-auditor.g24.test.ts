@@ -89,6 +89,10 @@ describe("G24-D (run 1 follow-ups) — short ids, declared-estimate tables, pre-
     expect(findUncitedClaims("| Bear | MRR -30% | A$150K ARR at 12 months |", [])).toEqual([]);
     expect(findUncitedClaims("This implies a healthy LTV/CAC ratio of 2.5-3x.", [])).toEqual([]);
     expect(findUncitedClaims("The LTV/CAC ratio is 2.5-3x.", [])).toHaveLength(1);
+    // Review G24 P2: a fact with an inference attached is still a fact; bare "scenario" / "illustrative" no longer exempt.
+    expect(findUncitedClaims("MRR is A$50K, which suggests early PMF.", [])).toHaveLength(1);
+    expect(findUncitedClaims("In this scenario revenue reached A$2M.", [])).toHaveLength(1);
+    expect(findUncitedClaims("An illustrative ARR of A$1.2M was recorded.", [])).toHaveLength(1);
   });
 
   it("module outputs are citable by their module id (the LCO owner cited [ev:agents/clo-compliance.ts:calculateComplianceScore])", () => {
@@ -332,5 +336,23 @@ describe("isTargetSentence (G24 merge — targets are plans, not claims)", () =>
       "The site is technically strong — A-grade performance, 182ms TTFB, 525 pages with zero broken links.",
       "Consider that 182 startups have been analysed.",
     ]) expect(isTargetSentence(t), t).toBe(false);
+  });
+});
+
+describe("filterCriticFindings precision (review G24 P2)", () => {
+  const ID = "e48e1491-1076-43f4-8f23-0fc57926068c";
+  const items = [{ id: ID, label: "Stripe revenue (last sync)", text: "mrr_aud = 0; active_subscriptions = 0; one_off_charges = 5" }];
+  it("keeps a fabricated customer name on a cited sentence with no numbers; drops it when the name is in the cited row", () => {
+    const draft = `Early adopters such as Meridian Capital and Bluegum Ventures already pay for reports [ev:${ID}].`;
+    const f = filterCriticFindings([`"Early adopters such as Meridian Capital and Bluegum Ventures already pay for reports" — no such customers in the EVIDENCE.`], draft, { allowedEvidenceIds: [ID], citable: items });
+    expect(f.kept).toHaveLength(1);
+    const rowWithName = [{ id: ID, label: "Customers", text: "Meridian Capital (paid), Bluegum Ventures (paid)" }];
+    const g = filterCriticFindings([`"Early adopters such as Meridian Capital and Bluegum Ventures already pay for reports" — unsupported.`], draft, { allowedEvidenceIds: [ID], citable: rowWithName });
+    expect(g.kept).toEqual([]);
+  });
+  it("the unevidenced marker must sit in the draft sentence, not in the critic's own wording", () => {
+    const draft = "MRR reached A$50K in August.";
+    const f = filterCriticFindings([`"MRR reached A$50K in August" — this is an estimate, assuming growth; the evidence says mrr_aud = 0.`], draft, { allowedEvidenceIds: [ID], citable: items });
+    expect(f.kept).toHaveLength(1);
   });
 });

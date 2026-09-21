@@ -14,6 +14,7 @@ import { reportRowToDimensionEvidence, signalsToDimensionEvidence, mergeDimensio
 import { DIMENSION_OWNERS, type DimKey } from "@/lib/report-pipeline/dimension-owners";
 import type { Band } from "@/lib/report-visuals/types";
 import { bandFor } from "@/lib/report-visuals/palette";
+import { stripCitationMarkers } from "@/lib/report-v2/citations";
 import { ctaForCode, hrefForCode } from "@/lib/report-v2/evidence-cta";
 import { splitSentences, stripMarkdown } from "@/lib/report-v2/paragraphs";
 import type { ActionWindow, DimensionChapter } from "@/lib/report-v2/schema";
@@ -60,7 +61,8 @@ export interface DimensionExplainData {
 /** ≤ n sentences of plain prose (markdown stripped). */
 export function whySentences(text: string | null | undefined, max = EXPLAIN_MAX_WHY): string[] {
   if (!text) return [];
-  return splitSentences(stripMarkdown(text)).slice(0, max);
+  // Citation markers are footnotes on the report surfaces; the card has no appendix (review G24 P2).
+  return splitSentences(stripMarkdown(stripCitationMarkers(text))).slice(0, max);
 }
 
 /** Catalogue items for `dim` not yet present (by code), strongest lift first. */

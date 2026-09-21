@@ -43,6 +43,7 @@
 
 import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { stripCitationMarkers } from "@/lib/report-v2/citations";
 import { AU_STATES, EVALUATION_OWNER_KINDS, mapEvaluationRow, type AuState, type Evaluation } from "@/lib/evaluations";
 import { MENTOR_ACCESS_TIERS, TIER_RANK, type MentorAccessTier } from "@/lib/mentor/access-tiers";
 import { getTaxonomy } from "@/lib/taxonomy/store";
@@ -447,7 +448,8 @@ export function buildCriterionRows(report: ReportV2 | null, evidenceCounts: Reco
   if (report) {
     for (const ch of report.dimensions) {
       for (const card of ch.criteria) {
-        if (!cards.has(card.key)) cards.set(card.key, { score: card.score, verdict: card.verdict, citations: card.citations.length, agent: card.agent });
+        // Footnote markers are report-surface only — the dossier has no appendix (review G24 P2).
+        if (!cards.has(card.key)) cards.set(card.key, { score: card.score, verdict: stripCitationMarkers(card.verdict), citations: card.citations.length, agent: card.agent });
       }
     }
   }
