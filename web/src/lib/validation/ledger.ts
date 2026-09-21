@@ -4,7 +4,9 @@
 //
 // Same shape and rules as lib/pilots/ledger.ts: reads and writes go to the
 // LIVE checkout (`BLOCKID_WEB_DIR` → /home/dovanlong/blockid.au/web → cwd),
-// tests pass an explicit `root`; writes are atomic (temp file + rename). It
+// tests pass an explicit `root`; writes are atomic (temp file + rename) and,
+// since G23-C, serialised per root through one promise chain (`serialise`)
+// with an optional `If-Match` on `updated_at` for PATCH (409 `stale`). It
 // lives under content/reports/ so deploy-live.sh's DEPLOY_DIRTY_IGNORE
 // leaves an uncommitted edit alone, and the ops runbook
 // (docs/ops/validation-tracker.md) commits it with the reports.
@@ -56,31 +58,70 @@ export async function writeValidationLedger(root: string, ledger: ValidationLedg
   await fs.rename(tmp, target);
 }
 
-export type LedgerMutation<T> = { ok: true; value: T; ledger: ValidationLedger } | { ok: false; error: "not_found" | "ledger_full"; message: string };
+export type LedgerMutation<T> =
+  | { ok: true; value: T; ledger: ValidationLedger }
+  | { ok: false; error: "not_found" | "ledger_full"; message: string }
+  /** G23-C: `ifMatch` (the entry's `updated_at` the caller read) no longer matches — the API answers 409. */
+  | { ok: false; error: "stale"; message: string; current: T };
 
-export async function createEntry(root: string, input: ValidationEntryInput, now: Date = new Date(), id: string = randomUUID()): Promise<LedgerMutation<ValidationEntry>> {
-  const ledger = await readValidationLedger(root);
-  if (ledger.entries.length >= LEDGER_MAX_ENTRIES) return { ok: false, error: "ledger_full", message: `The tracker holds at most ${LEDGER_MAX_ENTRIES} entries — archive old rows first.` };
-  const entry = newEntry(input, id, now);
-  const next = upsertEntry(ledger, entry);
-  await writeValidationLedger(root, next, now);
-  return { ok: true, value: entry, ledger: next };
+// ── Write serialisation (G23-C) ────────────────────────────────────────
+// Every mutation is a read-modify-write of one file. The temp + rename
+// write is atomic on its own, but two overlapping mutations (the founder
+// saving twice, or lane B's row action racing an edit) would each read the
+// same ledger and the second rename would silently drop the first's row.
+// All mutations therefore queue on ONE module-level promise chain, keyed
+// per root so a test's temp root never waits on production's file. A
+// rejected step never poisons the chain (the tail swallows the error; the
+// caller still gets its rejection).
+const chains = new Map<string, Promise<unknown>>();
+
+function serialise<T>(root: string, step: () => Promise<T>): Promise<T> {
+  const key = path.resolve(root);
+  const prev = chains.get(key) ?? Promise.resolve();
+  const next = prev.then(step, step);
+  chains.set(key, next.catch(() => undefined));
+  return next;
 }
 
-export async function patchEntry(root: string, id: string, patch: ValidationEntryPatch, now: Date = new Date()): Promise<LedgerMutation<ValidationEntry>> {
-  const ledger = await readValidationLedger(root);
-  const have = ledger.entries.find((e) => e.id === id);
-  if (!have) return { ok: false, error: "not_found", message: "No entry with that id." };
-  const entry = applyPatch(have, patch, now);
-  const next = upsertEntry(ledger, entry);
-  await writeValidationLedger(root, next, now);
-  return { ok: true, value: entry, ledger: next };
+export async function createEntry(root: string, input: ValidationEntryInput, now: Date = new Date(), id: string = randomUUID()): Promise<LedgerMutation<ValidationEntry>> {
+  return serialise(root, async () => {
+    const ledger = await readValidationLedger(root);
+    if (ledger.entries.length >= LEDGER_MAX_ENTRIES) return { ok: false, error: "ledger_full", message: `The tracker holds at most ${LEDGER_MAX_ENTRIES} entries — archive old rows first.` };
+    const entry = newEntry(input, id, now);
+    const next = upsertEntry(ledger, entry);
+    await writeValidationLedger(root, next, now);
+    return { ok: true, value: entry, ledger: next };
+  });
+}
+
+/**
+ * Patch one entry. `ifMatch` is the `updated_at` the caller rendered
+ * (the `If-Match` header on PATCH): when the stored row has moved on the
+ * mutation is refused with `error: "stale"` and the current row, so the
+ * client can re-read instead of overwriting someone else's edit. Omitted
+ * = unconditional (the pre-G23 behaviour).
+ */
+export async function patchEntry(root: string, id: string, patch: ValidationEntryPatch, now: Date = new Date(), ifMatch?: string): Promise<LedgerMutation<ValidationEntry>> {
+  return serialise(root, async () => {
+    const ledger = await readValidationLedger(root);
+    const have = ledger.entries.find((e) => e.id === id);
+    if (!have) return { ok: false, error: "not_found", message: "No entry with that id." };
+    if (typeof ifMatch === "string" && ifMatch !== have.updated_at) {
+      return { ok: false, error: "stale", message: "This entry changed since you opened it. It has been reloaded — please re-apply your edit.", current: have };
+    }
+    const entry = applyPatch(have, patch, now);
+    const next = upsertEntry(ledger, entry);
+    await writeValidationLedger(root, next, now);
+    return { ok: true, value: entry, ledger: next };
+  });
 }
 
 export async function deleteEntry(root: string, id: string, now: Date = new Date()): Promise<LedgerMutation<ValidationEntry>> {
-  const ledger = await readValidationLedger(root);
-  const { ledger: next, removed } = removeEntry(ledger, id);
-  if (!removed) return { ok: false, error: "not_found", message: "No entry with that id." };
-  await writeValidationLedger(root, next, now);
-  return { ok: true, value: removed, ledger: next };
+  return serialise(root, async () => {
+    const ledger = await readValidationLedger(root);
+    const { ledger: next, removed } = removeEntry(ledger, id);
+    if (!removed) return { ok: false, error: "not_found", message: "No entry with that id." };
+    await writeValidationLedger(root, next, now);
+    return { ok: true, value: removed, ledger: next };
+  });
 }

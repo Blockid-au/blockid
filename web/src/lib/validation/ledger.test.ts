@@ -1,6 +1,7 @@
 // G22-D — ledger file round-trip on a temp root: missing file → empty,
 // create / patch / delete write atomically (no .tmp left behind), corrupt
-// rows dropped on read, not-found + ledger-full surfaced as results.
+// rows dropped on read, not-found + ledger-full surfaced as results. G23-C:
+// overlapping writes serialise (no lost update) and PATCH honours If-Match.
 
 import { existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -75,5 +76,59 @@ describe("validation ledger IO", () => {
     await writeValidationLedger(root, { version: 1, updated_at: null, entries }, NOW);
     const r = await createEntry(root, INPUT, NOW, "one-more");
     expect(r).toMatchObject({ ok: false, error: "ledger_full" });
+  });
+});
+
+// G23-C — write serialisation + If-Match.
+describe("validation ledger — serialised writes + If-Match (G23-C)", () => {
+  it("N overlapping creates all land (no lost update): the promise chain serialises read-modify-write", async () => {
+    const N = 12;
+    const results = await Promise.all(Array.from({ length: N }, (_, i) => createEntry(root, { ...INPUT, organisation: `Org ${i}` }, NOW, `e-${i}`)));
+    expect(results.every((r) => r.ok)).toBe(true);
+    const l = await readValidationLedger(root);
+    expect(l.entries.map((e) => e.id).sort()).toEqual(Array.from({ length: N }, (_, i) => `e-${i}`).sort());
+    expect(readdirSync(path.dirname(path.join(root, VALIDATION_LEDGER_FILE))).filter((n) => n.endsWith(".tmp"))).toEqual([]);
+  });
+
+  it("overlapping patch + delete on different rows both apply; a rejected step does not poison the chain", async () => {
+    await createEntry(root, INPUT, NOW, "a");
+    await createEntry(root, INPUT, NOW, "b");
+    const later = new Date("2026-09-22T00:00:00.000Z");
+    const [p, d, missing] = await Promise.all([patchEntry(root, "a", { note: "edited" }, later), deleteEntry(root, "b", later), patchEntry(root, "zzz", { note: "x" }, later)]);
+    expect(p.ok).toBe(true);
+    expect(d.ok).toBe(true);
+    expect(missing).toMatchObject({ ok: false, error: "not_found" });
+    const l = await readValidationLedger(root);
+    expect(l.entries.map((e) => [e.id, e.note])).toEqual([["a", "edited"]]);
+    // The chain keeps working after the not_found step.
+    expect((await createEntry(root, INPUT, later, "c")).ok).toBe(true);
+  });
+
+  it("ifMatch: matching updated_at applies; a stale one is refused with the current row and writes nothing; omitted = unconditional", async () => {
+    const created = await createEntry(root, INPUT, NOW, "e-1");
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    const t1 = new Date("2026-09-22T00:00:00.000Z");
+    const first = await patchEntry(root, "e-1", { note: "first" }, t1, created.value.updated_at);
+    expect(first.ok).toBe(true);
+    if (!first.ok) return;
+    expect(first.value.updated_at).toBe(t1.toISOString());
+
+    // A second tab still holding the ORIGINAL updated_at must not overwrite the first edit.
+    const t2 = new Date("2026-09-23T00:00:00.000Z");
+    const stale = await patchEntry(root, "e-1", { note: "second" }, t2, created.value.updated_at);
+    expect(stale.ok).toBe(false);
+    if (stale.ok) return;
+    expect(stale.error).toBe("stale");
+    expect(stale.current).toMatchObject({ id: "e-1", note: "first", updated_at: t1.toISOString() });
+    expect(stale.message).toMatch(/changed since you opened it/);
+    expect((await readValidationLedger(root)).entries[0]).toMatchObject({ note: "first", updated_at: t1.toISOString() });
+
+    // Re-read → retry with the fresh updated_at succeeds; no ifMatch = unconditional.
+    const retry = await patchEntry(root, "e-1", { note: "second" }, t2, stale.current.updated_at);
+    expect(retry.ok).toBe(true);
+    const unconditional = await patchEntry(root, "e-1", { note: "third" }, new Date("2026-09-24T00:00:00.000Z"));
+    expect(unconditional.ok).toBe(true);
+    expect((await readValidationLedger(root)).entries[0]?.note).toBe("third");
   });
 });

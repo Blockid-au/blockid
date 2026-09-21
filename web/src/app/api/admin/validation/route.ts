@@ -3,10 +3,12 @@
 //   GET                       → { ok, ...ValidationDashboard } (ledger, ladder,
 //                               objections, auto rows, North Star, window, warnings)
 //   POST   { entry fields }   → 201 { ok, entry }
-//   PATCH  { id, ...fields }  → 200 { ok, entry }
+//   PATCH  { id, ...fields }  → 200 { ok, entry }; optional `If-Match: UPDATED_AT`
+//                               (the row the client rendered) → 409 { error: "stale", entry }
+//                               when the stored row moved on (G23-C; the client re-reads)
 //   DELETE { id }             → 200 { ok, entry }
 //   400 invalid (zod, strict) · 401 anon · 403 non-admin · 404 unknown id ·
-//   409 ledger full · 429 (60 writes / h per admin)
+//   409 ledger full / stale If-Match · 429 (60 writes / h per admin)
 //
 // The ledger is `content/reports/validation-tracker.json` on the live
 // checkout (lib/validation/ledger.ts). Every mutation is audited twice: the
@@ -52,6 +54,12 @@ async function gateWrite(): Promise<{ response: NextResponse } | { response: nul
   return { response: null, root: await resolveValidationRoot(), userId: g.user.id };
 }
 
+/** G23-C: the `If-Match` header = the entry's `updated_at` the client rendered (ISO timestamp; anything else is ignored = unconditional). */
+function readIfMatch(request: Request): string | undefined {
+  const raw = request.headers.get("if-match")?.trim().replace(/^W\//, "").replace(/^"(.*)"$/, "$1");
+  return raw && /^\d{4}-\d{2}-\d{2}T[0-9:.]+Z$/.test(raw) ? raw : undefined;
+}
+
 function idOf(body: unknown): string | null {
   const id = (body as { id?: unknown } | null)?.id;
   return typeof id === "string" && /^[0-9a-f-]{8,64}$/i.test(id) ? id : null;
@@ -82,8 +90,12 @@ async function PATCH_handler(request: Request) {
   void _id;
   const patch = parseEntryPatch(rest);
   if (!patch.ok) return json({ ok: false, error: "invalid_input", message: patch.message, issues: patch.issues }, 400);
-  const r = await patchEntry(g.root, id, patch.value);
-  if (!r.ok) return json({ ok: false, error: r.error, message: r.message }, 404);
+  const ifMatch = readIfMatch(request);
+  const r = await patchEntry(g.root, id, patch.value, new Date(), ifMatch);
+  if (!r.ok) {
+    if (r.error === "stale") return json({ ok: false, error: "stale", message: r.message, entry: r.current }, 409);
+    return json({ ok: false, error: r.error, message: r.message }, 404);
+  }
   auditAction("validation.entry_updated");
   auditNote(r.value.id, { level: r.value.level, outcome: r.value.outcome, fields: Object.keys(patch.value) });
   return json({ ok: true, entry: r.value });
