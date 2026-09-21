@@ -156,7 +156,17 @@ addresses (`setMemberRole` in `lib/db.ts`, needs `ALLOW_DB`).
 * Per-test evidence (API bodies, UI copy, credit balances before/after, guard reports) is
   attached as JSON in the HTML report (`playwright-report-live-qa/`); traces are kept for
   failures under `test-results/live-qa/artifacts/`.
-* `content/reports/live-qa-history.jsonl` keeps one line per run for trend checks.
+* `content/reports/live-qa-history.jsonl` keeps one line per run for trend checks. Every row
+  carries `partial: false` (full suite) or `partial: true, specs: [...]` (a subset run);
+  a trend of the suite filters `partial !== true`.
+
+**Partial runs (G23-C, 2026-09-21).** `bash scripts/qa-live.sh -- <spec…>` writes its summary to
+`content/reports/live-qa-latest-partial.json` (same shape, plus `partial: true` and the normalised
+`specs` list) and appends a `partial: true` history row. `live-qa-latest.json` is written **only** by
+a full run, so its readers — `scripts/investor-update.mjs` (release quality in the investor update);
+nothing under `lib/status` reads it — never mistake the Sunday lane-41 canary for the suite.
+The summary step is `scripts/lib/live-qa-summary.mjs` (unit-tested in
+`scripts/live-qa-summary.test.mjs`).
 
 A failing test is either a **product bug** (report it — the suite never fixes product code)
 or a **suite bug** (selector / contract drift — fix the spec). A 502/503/504 during a deploy
@@ -218,13 +228,24 @@ still on (CSP-refused
 ```
 # Weekly Sunday 07:00 UTC — live QA against production (after the 03:00–05:00 UTC Sunday
 # jobs and the money-radar sweep). Installed in web/scripts/crontab.production since 2026-09-15.
-0 7 * * 0 cd /home/dovanlong/blockid.au/web && LIVE_QA_ALLOW_DB=1 LIVE_QA_ELEVATE=1 bash scripts/qa-live.sh >> /tmp/blockid-live-qa.log 2>&1
+0 7 * * 0 cd /home/dovanlong/blockid.au/web && mkdir -p content/reports/logs && LIVE_QA_ALLOW_DB=1 LIVE_QA_ELEVATE=1 bash scripts/qa-live.sh >> content/reports/logs/live-qa-$(date +\%G-W\%V).log 2>&1
+```
+
+**Logs (G23-C, 2026-09-21).** The live-QA rows and the Sunday 04:10 calibration row no longer
+append to a single `/tmp/blockid-*.log` forever; each writes one file per ISO week under
+`web/content/reports/logs/` — `live-qa-<YYYY>-W<ww>.log` (full suite), `live-qa-canary-<YYYY>-W<ww>.log`
+(lane 41), `calibration-<YYYY>-W<ww>.log`. The directory is gitignored (only `.gitkeep` is committed) and
+already inside `DEPLOY_DIRTY_IGNORE` (`content/reports/`), so a log never blocks a deploy. A weekly row
+(Sunday 07:50 UTC) prunes `*.log` files older than 56 days:
+
+```
+50 7 * * 0 find /home/dovanlong/blockid.au/web/content/reports/logs -maxdepth 1 -name '*.log' -type f -mtime +56 -delete 2>/dev/null
 ```
 
 G22-D (2026-09-21) adds a second, lighter row — the **G21 regression canary** — that runs only
 `tests/live-qa/41-g21-regression.spec.ts` through the same runner (`qa-live.sh --wait -- <spec>`),
-so it provisions and erases its own account and appends to `live-qa-history.jsonl` like the full
-suite: Sunday 05:10 UTC, before the 07:00 run. One assertion per G21 acceptance line (hero H1 + nav,
+so it provisions and erases its own account and appends a `partial: true` row to `live-qa-history.jsonl`
+(summary in `live-qa-latest-partial.json`, never `live-qa-latest.json`): Sunday 05:10 UTC, before the 07:00 run. One assertion per G21 acceptance line (hero H1 + nav,
 trust band on 8 pages, methodology governance / versions / calibration, `/tbr/demo` Assessment Card,
 `/pilot` offer cards, institutional API 401, corrections + outcomes pages, `/workspace/score`
 trajectory, cohort index, trusted `/api/status` `data_moat`). Its only write is the lane-01 plan

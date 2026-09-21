@@ -74,3 +74,6 @@ content/reports/page-sweep-latest.json
 content/reports/stripe-price-audit-latest.json
 # G19-S46 report-quality telemetry (runtime, appended per pipeline run)
 content/reports/tbr-quality.jsonl
+# G23-C cron logs (live-qa / calibration, one file per ISO week; pruned after 8 weeks by crontab.production)
+content/reports/logs/*
+!content/reports/logs/.gitkeep

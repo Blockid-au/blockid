@@ -194,7 +194,8 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # `outcome_calibration: ok|stale|missing` (stale > 8 days). Never an accuracy
 # claim — association, observed rate, interval. Same shape as the backtest: a
 # tsx script, run directly. Sun 04:10 UTC = 14:10 AEST (after the backtest).
-10 4 * * 0 cd /home/dovanlong/blockid.au/web && npx tsx scripts/calibration/run.ts >> /tmp/blockid-calibration.log 2>&1
+# G23-C: log to content/reports/logs/calibration-YYYY-Www.log (gitignored; pruned after 8 weeks by the row under the live-QA rows).
+10 4 * * 0 cd /home/dovanlong/blockid.au/web && mkdir -p content/reports/logs && npx tsx scripts/calibration/run.ts >> content/reports/logs/calibration-$(date +\%G-W\%V).log 2>&1
 
 # G14-S40 (2026-09-17) — open AU external signals ingest. Licence-gated
 # (external_sources, migration 0410): ABN Bulk Extract (CC BY 3.0 AU, stream-
@@ -757,7 +758,8 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # production with a self-provisioned qa-live-<stamp>@blockid.au account,
 # erased in teardown. Summary → content/reports/live-qa-latest.json.
 # Sunday 07:00 UTC, after the Sunday data jobs. Remove this line to stop.
-0 7 * * 0 cd /home/dovanlong/blockid.au/web && LIVE_QA_ALLOW_DB=1 LIVE_QA_ELEVATE=1 bash scripts/qa-live.sh >> /tmp/blockid-live-qa.log 2>&1
+# G23-C: one ISO-week log file per job under content/reports/logs/ (gitignored, DEPLOY_DIRTY_IGNORE covers it), pruned after 8 weeks.
+0 7 * * 0 cd /home/dovanlong/blockid.au/web && mkdir -p content/reports/logs && LIVE_QA_ALLOW_DB=1 LIVE_QA_ELEVATE=1 bash scripts/qa-live.sh >> content/reports/logs/live-qa-$(date +\%G-W\%V).log 2>&1
 
 # G22-D (2026-09-21) — weekly G21 regression canary: ONLY lane 41
 # (tests/live-qa/41-g21-regression.spec.ts — hero / nav / trust band /
@@ -767,7 +769,14 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # content/reports/live-qa-history.jsonl like the full suite. Sunday 05:10 UTC,
 # before the 07:00 full run; `--wait` queues behind any run still holding the
 # lock. Remove this line to stop.
-10 5 * * 0 cd /home/dovanlong/blockid.au/web && LIVE_QA_ALLOW_DB=1 LIVE_QA_ELEVATE=1 bash scripts/qa-live.sh --wait -- tests/live-qa/41-g21-regression.spec.ts >> /tmp/blockid-live-qa.log 2>&1
+# G23-C: a `-- SPEC` run writes live-qa-latest-partial.json (never live-qa-latest.json) and a `partial: true` history row.
+10 5 * * 0 cd /home/dovanlong/blockid.au/web && mkdir -p content/reports/logs && LIVE_QA_ALLOW_DB=1 LIVE_QA_ELEVATE=1 bash scripts/qa-live.sh --wait -- tests/live-qa/41-g21-regression.spec.ts >> content/reports/logs/live-qa-canary-$(date +\%G-W\%V).log 2>&1
+
+# G23-C (2026-09-21) — prune the per-week cron logs above after 8 weeks
+# (56 days; at most ~9 files per job). Only *.log directly under
+# content/reports/logs/ — never the JSONL reports beside it. Sunday 07:50
+# UTC, after the full live-QA run has opened this week's file.
+50 7 * * 0 find /home/dovanlong/blockid.au/web/content/reports/logs -maxdepth 1 -name '*.log' -type f -mtime +56 -delete 2>/dev/null
 
 # G15-R2 (2026-09-18) — observability crons. Plain node (no cron-runner, own
 # pid locks in /tmp/blockid-{error-digest,latency-sample}.lock). Both exit 0
