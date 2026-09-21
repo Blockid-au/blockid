@@ -156,6 +156,14 @@ describe("CohortTable — caption + header sort state", () => {
   it("the caption names the weight-set version and says the canonical SVI is unchanged", () => {
     const out = renderToStaticMarkup(<CohortTable rows={[acmeRow()]} batchId="b-1" role="owner" weightsVersion={2} />);
     expect(out).toMatch(/<caption[^>]*>[^<]*weights v2[^<]*canonical SVI unchanged/);
+    expect(out).not.toContain('data-testid="cohort-weights-changed"');
+  });
+
+  it("G22-A: says 'weights changed' (v1 → v2) in the caption when the two snapshots behind the Δ column differ in weight set", () => {
+    const out = renderToStaticMarkup(<CohortTable rows={[acmeRow()]} batchId="b-1" role="owner" weightsVersion={2} deltaWeightsChanged={{ from: 1, to: 2 }} />);
+    expect(out).toContain('data-testid="cohort-weights-changed"');
+    expect(out).toMatch(/Weights changed between the last two snapshots \(v1 → v2\)/);
+    expect(out).toContain("canonical SVI, which is unaffected");
   });
 
   it("exactly one column (Program score) is aria-sort=descending by default; every other sortable header is aria-sort=none", () => {

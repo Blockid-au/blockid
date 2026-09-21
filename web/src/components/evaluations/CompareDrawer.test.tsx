@@ -9,7 +9,7 @@
 import * as React from "react";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { CompareDrawer } from "./CompareDrawer";
+import { CompareDrawer, trajectoryStateFromResponse } from "./CompareDrawer";
 import { toggleCompare, MAX_COMPARE } from "./cohort-view-state";
 import { buildCohortRows, type CohortAnalysisInput, type CohortItemInput, type CohortRow } from "@/lib/evaluations/cohort-rows";
 import { equalWeights, DIMENSION_LABELS, type CohortRow as BatchCohortRow } from "@/lib/evaluations/batch-shared";
@@ -128,6 +128,29 @@ describe("CompareDrawer — open with rows", () => {
     const undecided = row({ legacy: { itemId: 1, evaluationId: "e-1", projectId: "p-1", startup: "Acme" } });
     const out = renderToStaticMarkup(<CompareDrawer open rows={[undecided]} onClose={() => {}} />);
     expect(out).toContain("<span class=\"text-muted\">—</span>");
+  });
+});
+
+describe("CompareDrawer — trajectories (G22-A A.5)", () => {
+  it("with a batchId, one trajectory card per shown row renders the loading skeleton on the server (fetch runs client-side); without a batchId the section is absent", () => {
+    const rows = makeRows(2);
+    const out = renderToStaticMarkup(<CompareDrawer open rows={rows} onClose={() => {}} batchId="b-1" />);
+    expect(out).toContain('data-testid="compare-trajectories"');
+    expect(out.match(/data-testid="compare-trajectory"/g)?.length).toBe(2);
+    expect(out).toContain('data-item-id="1"');
+    expect(out).toContain('data-state="idle"');
+    expect(out).toContain("Loading the trajectory for Startup 1");
+    const none = renderToStaticMarkup(<CompareDrawer open rows={rows} onClose={() => {}} />);
+    expect(none).not.toContain('data-testid="compare-trajectories"');
+  });
+
+  it("trajectoryStateFromResponse: 200 + ok + trajectory → ready (values_withheld echoed); anything else → error", () => {
+    const trajectory = { state: "empty" as const, day0: null, spanDays: 0, points: [], markers: [], milestones: [], latest: null, verificationLevel: null, outcomesAfterLatest: 0 };
+    expect(trajectoryStateFromResponse(200, { ok: true, trajectory, values_withheld: true })).toEqual({ status: "ready", trajectory, valuesWithheld: true });
+    expect(trajectoryStateFromResponse(200, { ok: true, trajectory })).toEqual({ status: "ready", trajectory, valuesWithheld: false });
+    expect(trajectoryStateFromResponse(404, { ok: false })).toEqual({ status: "error" });
+    expect(trajectoryStateFromResponse(200, { ok: true })).toEqual({ status: "error" });
+    expect(trajectoryStateFromResponse(200, null)).toEqual({ status: "error" });
   });
 });
 

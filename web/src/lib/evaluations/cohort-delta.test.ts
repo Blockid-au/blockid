@@ -1,7 +1,7 @@
 // Colocated vitest for lib/evaluations/cohort-delta.ts (G21 P2-A).
 
 import { describe, expect, it } from "vitest";
-import { deltaByProject, deltaForRows, formatDelta, summariseDeltas, type SnapshotLite } from "./cohort-delta";
+import { cohortDeltaWeightsChanged, deltaByProject, deltaForRows, formatDelta, summariseDeltas, type SnapshotLite } from "./cohort-delta";
 
 const prev: SnapshotLite = {
   taken_at: "2026-09-01T00:00:00Z",
@@ -83,5 +83,17 @@ describe("summariseDeltas / formatDelta", () => {
     expect(formatDelta(0)).toBe("0.0");
     expect(formatDelta(null)).toBe("—");
     expect(formatDelta(2, 0)).toBe("+2");
+  });
+});
+
+describe("cohortDeltaWeightsChanged (G22-A A.3)", () => {
+  it("null with fewer than two snapshots or equal versions; { from, to } when they differ (camelCase or snake_case)", () => {
+    expect(cohortDeltaWeightsChanged(null, null)).toBeNull();
+    expect(cohortDeltaWeightsChanged({ weightsVersion: 2 }, null)).toBeNull();
+    expect(cohortDeltaWeightsChanged({ weightsVersion: 2 }, { weightsVersion: 2 })).toBeNull();
+    expect(cohortDeltaWeightsChanged({ weightsVersion: 2 }, { weightsVersion: 1 })).toEqual({ from: 1, to: 2 });
+    expect(cohortDeltaWeightsChanged({ weights_version: 3 }, { weights_version: 2 })).toEqual({ from: 2, to: 3 });
+    // A snapshot without a version (pre-0422 row) cannot claim a change.
+    expect(cohortDeltaWeightsChanged({}, { weightsVersion: 1 })).toBeNull();
   });
 });
