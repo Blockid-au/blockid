@@ -164,7 +164,7 @@ function CreateIntakeDialog({ onClose, onCreated, templates = [] }: { onClose: (
 
   return (
     <div ref={ref} className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="intake-create-title" data-testid="intake-create-dialog">
-      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-2xl">
+      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-line-subtle bg-white shadow-2">
         <div className="flex items-center justify-between border-b border-surface-200 px-6 py-4">
           <h2 id="intake-create-title" className="text-lg font-bold text-ink-900">
             {created ? "Your intake link is live" : "Create intake link"}

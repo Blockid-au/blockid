@@ -131,7 +131,7 @@ function OverrideForm({ batchId, row, onClose, onSaved, initialDimension }: Omit
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="override-dialog-title" aria-describedby="override-dialog-desc" className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4" data-testid="override-dialog">
       <div className="absolute inset-0 bg-ink-900/40" onClick={onClose} aria-hidden="true" />
-      <form onSubmit={submit} noValidate className="relative w-full max-w-lg rounded-t-2xl border border-line-subtle bg-surface p-5 text-primary shadow-2xl sm:rounded-2xl">
+      <form onSubmit={submit} noValidate className="relative w-full max-w-lg rounded-t-2xl border border-line-subtle bg-surface p-5 text-primary shadow-2 sm:rounded-2xl">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 id="override-dialog-title" className="text-base font-semibold">
