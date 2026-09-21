@@ -54,6 +54,7 @@ import { userErrorMessage } from "@/lib/ui/user-error";
 import { CohortFilters } from "./CohortFilters";
 import { CompareDrawer } from "./CompareDrawer";
 import { DemoCohortChip } from "./DemoCohortChip";
+import { DEMO_COHORT_LABELS_EN } from "@/lib/evaluations/demo-cohort-shared";
 import { OverrideDialog } from "./OverrideDialog";
 import {
   COHORT_COLUMNS,
@@ -593,7 +594,7 @@ export function CohortTable({ rows, batchId, role, weightsVersion = 1, deltaWeig
         </table>
       </div>
 
-      <CompareDrawer open={compareOpen} rows={compareRows} onClose={closeCompare} onRemove={(id) => setCompare((c) => c.filter((x) => x !== id))} batchId={batchId} />
+      <CompareDrawer open={compareOpen} rows={compareRows} onClose={closeCompare} onRemove={(id) => setCompare((c) => c.filter((x) => x !== id))} batchId={batchId} demoChip={isDemo ? { label: demoChip?.label ?? DEMO_COHORT_LABELS_EN.chip, title: demoChip?.title ?? DEMO_COHORT_LABELS_EN.chipTitle } : null} />
       <OverrideDialog open={!!overrideRow} batchId={batchId} row={overrideRow} onClose={closeOverride} onSaved={() => router.refresh()} />
     </div>
   );

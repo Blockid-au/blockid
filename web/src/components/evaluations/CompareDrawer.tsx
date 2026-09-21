@@ -17,6 +17,7 @@
 // consent tier, so a reviewer never sees wider than the evaluator does).
 // Each fetch is fail-soft: an item whose read fails shows a one-line note.
 
+import { DemoCohortChip } from "./DemoCohortChip";
 import * as React from "react";
 import Link from "next/link";
 import { ExternalLink, X } from "lucide-react";
@@ -35,6 +36,8 @@ export interface CompareDrawerProps {
   onRemove?: (itemId: number) => void;
   /** G22-A: when set, each selected row loads its trajectory from the batch items route. */
   batchId?: string;
+  /** G24-C: the fictional demo cohort — every compared company card carries the chip. */
+  demoChip?: { label: string; title: string } | null;
 }
 
 export type TrajectoryState = { status: "loading" } | { status: "ready"; trajectory: Trajectory; valuesWithheld: boolean } | { status: "error" };
@@ -58,7 +61,7 @@ function tone(v: number | null | undefined): string {
   return "bg-warn";
 }
 
-export function CompareDrawer({ open, rows, onClose, onRemove, batchId }: CompareDrawerProps) {
+export function CompareDrawer({ open, rows, onClose, onRemove, batchId, demoChip = null }: CompareDrawerProps) {
   const closeRef = React.useRef<HTMLButtonElement>(null);
   // G22-A A.4: focus returns to the "Compare" button on close (captured at open time).
   useReturnFocus(open);
@@ -155,6 +158,11 @@ export function CompareDrawer({ open, rows, onClose, onRemove, batchId }: Compar
                   {shown.map((r) => (
                     <th key={r.itemId} scope="col" className="min-w-[9rem] pb-2 pr-3 text-left align-top">
                       <div className="font-semibold text-primary">{r.company}</div>
+                      {demoChip ? (
+                        <div className="mt-1">
+                          <DemoCohortChip label={demoChip.label} title={demoChip.title} />
+                        </div>
+                      ) : null}
                       <div className="mt-0.5 text-xs font-normal text-secondary">
                         {r.stageLabel}
                         {r.sector ? ` · ${r.sector}` : ""}
