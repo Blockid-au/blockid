@@ -47,8 +47,9 @@ export async function GET(request: Request) {
   const limited = enforceRateLimit("org-audit-export", user.id, request, 5, 60 * 1000);
   if (limited) return limited;
   // Review P1: only organisation rows leave — org action families + rows on
-  // the org's own cohorts / intake links (owned by the org owner).
-  const scope = await loadOrgAuditScope(admin.org.owner_user_id ?? user.id);
+  // the org's own cohorts / intake links (G22-B: org_id = org ∪ owner-owned
+  // rows that still have no org_id).
+  const scope = await loadOrgAuditScope(orgId, admin.org.owner_user_id ?? user.id);
   const stream = streamOrgAuditCsv(seats, window.window, { scope, onDone: (rows) => recordAuditExport({ id: user.id }, orgId, window.window, rows, seats.length) });
   const stamp = window.window.to.slice(0, 10);
   return new NextResponse(stream, {

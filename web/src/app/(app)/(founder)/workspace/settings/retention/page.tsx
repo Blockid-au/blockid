@@ -52,7 +52,7 @@ export default async function RetentionSettingsPage() {
         <div className="mb-6">
           <h1 className="text-xl font-bold text-ink-800">Data retention</h1>
           <p className="text-sm text-ink-700 mt-1">
-            <span className="font-medium">{admin.org.name}</span> · {admin.seats.length} seat{admin.seats.length === 1 ? "" : "s"}. Choose how long the organisation keeps the cohort snapshots, overrides and intake submissions created under the organisation owner&apos;s account (a seat holder&apos;s own cohorts are never touched). Applied every Sunday; each run is recorded on the audit log.
+            <span className="font-medium">{admin.org.name}</span> · {admin.seats.length} seat{admin.seats.length === 1 ? "" : "s"}. Choose how long the organisation keeps the cohort snapshots, overrides and intake submissions on cohorts and intake links created for this organisation (a seat holder&apos;s own cohorts, and anything created for another organisation, are never touched). Applied every Sunday; each run is recorded on the audit log.
           </p>
         </div>
 
