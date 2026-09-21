@@ -14,6 +14,7 @@ import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { AUDIT_CSV_COLUMNS, csvCellGuarded, type AuditEventRow } from "@/lib/audit/events";
 import { appendAudit } from "@/lib/audit";
+import { loadOrgScope } from "@/lib/org/scope";
 
 export const EXPORT_DEFAULT_DAYS = 90;
 export const EXPORT_MAX_DAYS = 366;
@@ -111,23 +112,21 @@ export interface OrgAuditScope {
   intakeIds: ReadonlySet<string>;
 }
 
-/** The org's own cohorts + intake links (owned by the org owner) — the resource scope of the export. */
-export async function loadOrgAuditScope(ownerUserId: string): Promise<OrgAuditScope> {
-  const batchIds = new Set<string>();
-  const intakeIds = new Set<string>();
+/**
+ * The org's own cohorts + intake links — the resource scope of the export.
+ * G22-B (0433): `org_id = orgId` ∪ rows the owner account created that still
+ * have no `org_id` (lib/org/scope.ts); owner-only before 0433. Fail-soft: an
+ * empty scope exports only the org action families.
+ */
+export async function loadOrgAuditScope(orgId: string, ownerUserId: string | null): Promise<OrgAuditScope> {
   const admin = getSupabaseAdmin();
-  if (!admin) return { batchIds, intakeIds };
+  if (!admin) return { batchIds: new Set(), intakeIds: new Set() };
   try {
-    const [b, i] = await Promise.all([
-      admin.from("evaluation_batches").select("id").eq("user_id", ownerUserId).limit(2000),
-      admin.from("program_intakes").select("id").eq("owner_user_id", ownerUserId).limit(2000),
-    ]);
-    for (const r of (b.data ?? []) as Array<{ id: string }>) batchIds.add(String(r.id));
-    for (const r of (i.data ?? []) as Array<{ id: string }>) intakeIds.add(String(r.id));
+    const scope = await loadOrgScope(admin, orgId, ownerUserId);
+    return { batchIds: new Set(scope.batchIds), intakeIds: new Set(scope.intakeIds) };
   } catch {
-    /* fail-soft: an empty scope exports only the org action families */
+    return { batchIds: new Set(), intakeIds: new Set() };
   }
-  return { batchIds, intakeIds };
 }
 
 export function streamOrgAuditCsv(seats: string[], window: ExportWindow, opts: { page?: PageReader; onDone?: (rows: number) => void | Promise<void>; pageSize?: number; scope?: OrgAuditScope } = {}): ReadableStream<Uint8Array> {

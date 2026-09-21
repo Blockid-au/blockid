@@ -59,12 +59,16 @@ vi.mock("@/lib/evaluations/cohort-rows-loader", () => ({
 const supabaseMock = vi.hoisted(() => ({
   weightsRow: { data: { weights_version: 1 } as unknown, error: null as unknown },
   snapshotRows: { data: [] as unknown[], error: null as unknown },
+  orgRow: { data: { name: "Acme Ventures" } as unknown, error: null as unknown },
 }));
 vi.mock("@/lib/supabase", () => ({
   getSupabaseAdmin: () => ({
     from: (table: string) => {
       if (table === "evaluation_batches") {
         return { select: () => ({ eq: () => ({ maybeSingle: async () => supabaseMock.weightsRow }) }) };
+      }
+      if (table === "investor_organisations") {
+        return { select: () => ({ eq: () => ({ maybeSingle: async () => supabaseMock.orgRow }) }) };
       }
       if (table === "cohort_snapshots") {
         return { select: () => ({ eq: () => ({ order: () => ({ limit: async () => supabaseMock.snapshotRows }) }) }) };
@@ -156,6 +160,7 @@ beforeEach(() => {
   loadBlockIdCohortRowsMock.mockResolvedValue({ rows: ROWS, baseRows: [], overridesAvailable: true });
   supabaseMock.weightsRow = { data: { weights_version: 1 }, error: null };
   supabaseMock.snapshotRows = { data: [], error: null };
+  supabaseMock.orgRow = { data: { name: "Acme Ventures" }, error: null };
 });
 
 describe("/workspace/evaluations/cohort/[batchId]", () => {
@@ -180,6 +185,19 @@ describe("/workspace/evaluations/cohort/[batchId]", () => {
     expect(h1Idx).toBeLessThan(tableIdx);
     expect(out).toContain("BlockID Cohort — Cohort 4 intake");
     expect(out).toMatch(/data-testid="cohort-role"[^>]*>owner</);
+  });
+
+  // G22-B (0433): the Organisation chip — only when the batch carries org_id; name from investor_organisations, "—" when the org row is gone.
+  it("renders the Organisation chip with the org name when org_id is set, '—' when the org row is missing, and no chip without org_id", async () => {
+    expect(await html()).not.toContain('data-testid="cohort-org-chip"');
+    assertBatchRoleMock.mockResolvedValue({ ok: true, batch: { ...BATCH, orgId: "org-1" }, role: "owner", isCreator: true });
+    const out = await html();
+    expect(out).toContain('data-testid="cohort-org-chip"');
+    expect(out).toMatch(/cohort-org-chip[\s\S]*?Acme Ventures/);
+    supabaseMock.orgRow = { data: null, error: null };
+    const gone = await html();
+    expect(gone).toContain('data-testid="cohort-org-chip"');
+    expect(gone).not.toContain("Acme Ventures");
   });
 
   it("header stats: n, median SVI, median confidence, shortlisted, and 'no snapshot yet' when cohort_snapshots errors", async () => {

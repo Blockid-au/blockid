@@ -2,6 +2,10 @@
 // artefacts (via its batches / intakes) older than the cutoff are touched,
 // ≤ limit per table, dry-run deletes nothing and writes no audit row, one
 // `org.retention.applied` row per org on a real run, 0428 missing → error.
+// G22-B (0433): the scope is `org_id = org` ∪ owner-owned rows with no
+// org_id (lib/org/scope.ts) — a seat's cohort stamped for this org is in, a
+// seat's own cohort and the owner's cohort for another org are out; before
+// 0433 (42703) the scope is owner-only, as before.
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
@@ -22,16 +26,21 @@ interface FakeDb {
   from: (table: string) => unknown;
 }
 
+/** `missing` takes table names (42P01) and `table.column` names (42703 — G22-B: pre-0433 `org_id`). */
 function fakeDb(tables: Record<string, Row[]>, missing: string[] = []): FakeDb {
   const db: FakeDb = { tables, deleted: [], missing: new Set(missing), from: () => null };
   db.from = (table: string) => {
     const rows = () => db.tables[table] ?? [];
-    const err = db.missing.has(table) ? { code: "42P01", message: `relation "${table}" does not exist` } : null;
+    let err: { code: string; message: string } | null = db.missing.has(table) ? { code: "42P01", message: `relation "${table}" does not exist` } : null;
+    const touch = (col: string) => {
+      if (db.missing.has(`${table}.${col}`)) err = { code: "42703", message: `column ${table}.${col} does not exist` };
+    };
     const build = (filters: Array<(r: Row) => boolean>, opts: { order?: string; limit?: number }) => {
       const q = {
         select: () => q,
         in: (col: string, vals: string[]) => (filters.push((r) => vals.includes(String(r[col]))), q),
-        eq: (col: string, v: unknown) => (filters.push((r) => r[col] === v), q),
+        eq: (col: string, v: unknown) => (touch(col), filters.push((r) => r[col] === v), q),
+        is: (col: string, v: unknown) => (touch(col), filters.push((r) => (v === null ? r[col] == null : r[col] === v)), q),
         not: (col: string, _op: string, v: unknown) => (filters.push((r) => r[col] !== v), q),
         lt: (col: string, v: string) => (filters.push((r) => String(r[col]) < v), q),
         order: (col: string) => ((opts.order = col), q),
@@ -69,15 +78,26 @@ function seed(): Record<string, Row[]> {
   return {
     org_settings: [{ org_id: "org-1", retention_days: 365 }, { org_id: "org-2", retention_days: null }],
     investor_organisations: [{ id: "org-1", owner_user_id: "owner-1" }],
+    // G22-B: in scope = org_id = org-1 (b-org, b-seat-org) ∪ owner rows with no org_id (b-owner-legacy);
+    // out = a seat's own cohort (b-seat), the owner's cohort for another org (b-owner-other), a stranger's (b-other).
     evaluation_batches: [
-      { id: "b-org", user_id: "owner-1" },
-      { id: "b-seat", user_id: "seat-1" },
-      { id: "b-other", user_id: "someone-else" },
+      { id: "b-org", user_id: "owner-1", org_id: "org-1" },
+      { id: "b-owner-legacy", user_id: "owner-1", org_id: null },
+      { id: "b-owner-other", user_id: "owner-1", org_id: "org-9" },
+      { id: "b-seat-org", user_id: "seat-1", org_id: "org-1" },
+      { id: "b-seat", user_id: "seat-1", org_id: null },
+      { id: "b-other", user_id: "someone-else", org_id: null },
     ],
-    // Review P1: only the OWNER account's artefacts are in scope — a seat's batch (b-seat) and a seat-owned intake (i-seat) are never touched.
-    program_intakes: [{ id: "i-org", owner_user_id: "owner-1" }, { id: "i-seat", owner_user_id: "seat-1" }, { id: "i-other", owner_user_id: "someone-else" }],
+    program_intakes: [
+      { id: "i-org", owner_user_id: "owner-1", org_id: "org-1" },
+      { id: "i-seat", owner_user_id: "seat-1", org_id: null },
+      { id: "i-other", owner_user_id: "someone-else", org_id: null },
+    ],
     cohort_snapshots: [
       { id: "s-old", batch_id: "b-org", taken_at: OLD },
+      { id: "s-old-legacy", batch_id: "b-owner-legacy", taken_at: OLD },
+      { id: "s-old-owner-other", batch_id: "b-owner-other", taken_at: OLD },
+      { id: "s-old-seat-org", batch_id: "b-seat-org", taken_at: OLD },
       { id: "s-old-seat", batch_id: "b-seat", taken_at: OLD },
       { id: "s-new", batch_id: "b-org", taken_at: RECENT },
       { id: "s-other-old", batch_id: "b-other", taken_at: OLD },
@@ -108,8 +128,8 @@ describe("runOrgRetention", () => {
     expect(s.ok).toBe(true);
     expect(s.dry_run).toBe(true);
     expect(s.orgs).toHaveLength(1);
-    expect(s.orgs[0]).toMatchObject({ org_id: "org-1", retention_days: 365, seats: 1, batches: 1, intakes: 1, deleted: { cohort_snapshots: 1, assessment_overrides: 1, intake_submissions: 1 }, more: false, dry_run: true });
-    expect(s.deleted_total).toBe(3);
+    expect(s.orgs[0]).toMatchObject({ org_id: "org-1", retention_days: 365, seats: 1, batches: 3, intakes: 1, deleted: { cohort_snapshots: 3, assessment_overrides: 1, intake_submissions: 1 }, more: false, dry_run: true });
+    expect(s.deleted_total).toBe(5);
     expect(db.deleted).toEqual([]);
     expect(auditMock).not.toHaveBeenCalled();
   });
@@ -118,14 +138,35 @@ describe("runOrgRetention", () => {
     const db = fakeDb(seed());
     const s = await runOrgRetention({ db: db as never, now: () => NOW });
     expect(s.ok).toBe(true);
-    expect(s.deleted_total).toBe(3);
+    expect(s.deleted_total).toBe(5);
     const deletedIds = db.deleted.flatMap((d) => d.ids).sort();
-    expect(deletedIds).toEqual(["o-old", "s-old", "sub-old"]); // s-old-seat (a seat's batch) survives
-    expect(db.tables.cohort_snapshots!.map((r) => r.id)).toEqual(["s-old-seat", "s-new", "s-other-old"]);
+    // s-old-seat (a seat's own batch) and s-old-owner-other (the owner's cohort for org-9) survive.
+    expect(deletedIds).toEqual(["o-old", "s-old", "s-old-legacy", "s-old-seat-org", "sub-old"]);
+    expect(db.tables.cohort_snapshots!.map((r) => r.id)).toEqual(["s-old-owner-other", "s-old-seat", "s-new", "s-other-old"]);
     expect(db.tables.intake_submissions!.map((r) => r.id)).toEqual(["sub-other-old"]); // i-seat had no rows; sub-old (owner intake) deleted
     expect(db.tables.projects).toHaveLength(1);
     expect(auditMock).toHaveBeenCalledTimes(1);
-    expect(auditMock.mock.calls[0]![0]).toMatchObject({ actor: "cron", action: "org.retention.applied", resource_id: "org-1", detail: { retention_days: 365, deleted: { cohort_snapshots: 1, assessment_overrides: 1, intake_submissions: 1 } } });
+    expect(auditMock.mock.calls[0]![0]).toMatchObject({ actor: "cron", action: "org.retention.applied", resource_id: "org-1", detail: { retention_days: 365, batches: 3, deleted: { cohort_snapshots: 3, assessment_overrides: 1, intake_submissions: 1 } } });
+  });
+
+  it("before 0433 (42703 on evaluation_batches.org_id): the scope is owner-only — every owner-owned cohort, no seat cohort", async () => {
+    const db = fakeDb(seed(), ["evaluation_batches.org_id"]);
+    const s = await runOrgRetention({ db: db as never, now: () => NOW });
+    expect(s.ok).toBe(true);
+    expect(s.orgs[0]).toMatchObject({ batches: 3, intakes: 1, deleted: { cohort_snapshots: 3 } });
+    const deletedIds = db.deleted.flatMap((d) => d.ids).sort();
+    expect(deletedIds).toEqual(["o-old", "s-old", "s-old-legacy", "s-old-owner-other", "sub-old"]); // owner rows regardless of org; s-old-seat-org is out
+  });
+
+  it("an org with no artefacts in scope is reported with zero counts and no delete", async () => {
+    const tables = seed();
+    tables.investor_organisations = [{ id: "org-1", owner_user_id: "nobody" }];
+    tables.evaluation_batches = tables.evaluation_batches!.filter((b) => b.org_id !== "org-1");
+    tables.program_intakes = tables.program_intakes!.filter((i) => i.org_id !== "org-1");
+    const db = fakeDb(tables);
+    const s = await runOrgRetention({ db: db as never, now: () => NOW });
+    expect(s.orgs[0]).toMatchObject({ seats: 1, batches: 0, intakes: 0, deleted: { cohort_snapshots: 0, assessment_overrides: 0, intake_submissions: 0 } });
+    expect(db.deleted).toEqual([]);
   });
 
   it("honours the per-table limit and flags `more`", async () => {

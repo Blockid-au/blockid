@@ -89,6 +89,15 @@ describe("normaliseIntakeInput", () => {
 });
 
 describe("CRUD against the memory store", () => {
+  it("G22-B: createIntake stamps deps.orgId (the caller-resolved acting org) on the row; absent → null, and a body org_id is never read", async () => {
+    const store = memoryIntakeStore();
+    const stamped = await createIntake("owner-1", { name: "Org Program" }, { store, suffix: () => "aaaaaaaa", orgId: "org-1" });
+    expect(stamped.ok && stamped.intake.orgId).toBe("org-1");
+    const bare = await createIntake("owner-1", { name: "Solo Program", org_id: "org-evil" } as never, { store, suffix: () => "bbbbbbbb" });
+    expect(bare.ok && bare.intake.orgId).toBeNull();
+    expect(store.intakes.map((i) => i.orgId)).toEqual(["org-1", null]);
+  });
+
   it("create → list with counts + public URL; close / reopen", async () => {
     const store = memoryIntakeStore();
     const created = await createIntake("owner-1", { name: "Demo Program" }, { store, suffix: () => "abcdefgh" });

@@ -52,6 +52,8 @@ const BATCH_COLUMNS =
   "id, user_id, name, rubric_weights, status, total, done_count, failed_count, created_at, started_at, finished_at";
 /** G21 P2-A (0422) — the BlockID Cohort columns; readers fall back to BATCH_COLUMNS on 42703 until 0422 is applied. */
 const BATCH_COLUMNS_V2 = `${BATCH_COLUMNS}, program_name, intake_id, template_id, weights_version, applicants_cap, pilot_order_id`;
+/** G22-B (0433) — + `org_id` (the organisation the creator acted for); readers fall back to V2, then V1, on 42703. */
+const BATCH_COLUMNS_V3 = `${BATCH_COLUMNS_V2}, org_id`;
 const ITEM_COLUMNS =
   "id, batch_id, evaluation_id, status, report_id, snapshot_id, share_token, svi_total, dimension_scores, error, scored_at";
 
@@ -68,11 +70,19 @@ function isMissingColumn(error: unknown): boolean {
   return (error as { code?: string } | null)?.code === "42703";
 }
 
-/** Run a batch read with the 0422 columns, retrying on the 0322-only shape (42703 = column missing). */
+/**
+ * Run a batch read with the 0433 columns, retrying on the 0422 shape and
+ * then the 0322-only shape (42703 = column missing). `listBatches`,
+ * `getBatchForUser`, `getBatchById`, `addEvaluationsToBatch` and
+ * `finaliseBatch` all go through here, so `org_id` reaches every mapped row
+ * once 0433 is applied and is simply null before.
+ */
 async function withBatchColumns<T extends { error: unknown }>(run: (cols: string) => PromiseLike<T>): Promise<T> {
-  const res = await run(BATCH_COLUMNS_V2);
-  if (res.error && isMissingColumn(res.error)) return run(BATCH_COLUMNS);
-  return res;
+  const res = await run(BATCH_COLUMNS_V3);
+  if (!(res.error && isMissingColumn(res.error))) return res;
+  const v2 = await run(BATCH_COLUMNS_V2);
+  if (v2.error && isMissingColumn(v2.error)) return run(BATCH_COLUMNS);
+  return v2;
 }
 
 // ---------------------------------------------------------------------------
@@ -416,6 +426,13 @@ export interface CreateBatchInput {
   templateId?: string | null;
   applicantsCap?: number | null;
   pilotOrderId?: string | null;
+  /**
+   * G22-B (0433) — the investor_organisations row the creator acts for
+   * (the route resolves it with `resolveActingOrg(user.id)`; the personal
+   * org counts — it is a real row and matches `evaluation_assessments.org_id`).
+   * Dropped, not failed, before 0433 is applied.
+   */
+  orgId?: string | null;
   /** FI analytics envelope for `cohort_created` (plan of the acting account, channel). */
   plan?: string | null;
   channel?: string | null;
@@ -440,8 +457,13 @@ export async function createBatch(input: CreateBatchInput): Promise<CreateBatchR
   if (input.templateId != null) extra.template_id = input.templateId;
   if (input.applicantsCap != null && input.applicantsCap > 0) extra.applicants_cap = Math.round(input.applicantsCap);
   if (input.pilotOrderId != null) extra.pilot_order_id = input.pilotOrderId;
+  const org: Row = input.orgId ? { org_id: input.orgId } : {};
 
-  let res = await supabase.from("evaluation_batches").insert({ ...base, ...extra }).select(BATCH_COLUMNS_V2).single();
+  let res = await supabase.from("evaluation_batches").insert({ ...base, ...extra, ...org }).select(BATCH_COLUMNS_V3).single();
+  if (res.error && isMissingColumn(res.error)) {
+    // 0433 not applied: insert the 0422 shape (org_id is dropped, not failed).
+    res = await supabase.from("evaluation_batches").insert({ ...base, ...extra }).select(BATCH_COLUMNS_V2).single();
+  }
   if (res.error && isMissingColumn(res.error)) {
     // 0422 not applied: insert the 0322 shape (the cohort metadata is dropped, not failed).
     res = await supabase.from("evaluation_batches").insert(base).select(BATCH_COLUMNS).single();

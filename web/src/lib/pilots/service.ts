@@ -132,7 +132,15 @@ async function resolveDeps(deps: PilotDeps): Promise<Required<Pick<PilotDeps, "r
     root,
     db,
     now: deps.now ?? (() => new Date()),
-    createIntake: deps.createIntake ?? createIntake,
+    // G22-B (0433): a pilot-created intake link is stamped with the evaluator's acting org (fail-soft: null).
+    createIntake:
+      deps.createIntake ??
+      (async (ownerUserId, raw, intakeDeps = {}) => {
+        const org = await import("@/lib/investor/organisations")
+          .then((m) => m.resolveActingOrg(ownerUserId))
+          .catch(() => null);
+        return createIntake(ownerUserId, raw, { orgId: org?.id ?? null, ...intakeDeps });
+      }),
     listMyIntakes: deps.listMyIntakes ?? listMyIntakes,
     grantCredits: deps.grantCredits ?? (async (userId, amount, reason, metadata) => (await import("@/lib/credits")).grantCredits(userId, amount, reason, metadata)),
     sendEmail: deps.sendEmail ?? (async (args) => (await import("@/lib/email")).sendEmail(args)),

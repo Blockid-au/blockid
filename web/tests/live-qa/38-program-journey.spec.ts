@@ -12,7 +12,9 @@
  *     a seat that holds lp_report: with a batch of its own the HTML answers
  *     200 (movement + human-review sections), otherwise the documented
  *     empty states — 400 without ?batch, 404 for a batch that is not the
- *     seat's; a non-elevated Scout documents 403 feature_locked;
+ *     seat's; a non-elevated Scout documents 403 feature_locked; the
+ *     Cohorts list (GET /api/evaluations/batch) answers 200 with `orgId`
+ *     null or a uuid on every row (G22-B / 0433 fail-soft before apply);
  *   • the anonymous caller gets 401 on the report, the pack and the
  *     feedback-letter preview;
  *   • /workspace/accelerator/pilot on a non-pilot account shows the "Book a
@@ -128,9 +130,14 @@ test.describe("Cohort Report route — gates and the documented states", () => {
         expect(bad.status).toBe(400);
 
         // The seat's own batches, if 22-evaluator queued one: the HTML must answer 200 with the report sections.
-        const batches = await get<{ ok: boolean; batches?: Array<{ id: string }> }>(page.request, "/api/evaluations/batch");
+        // G22-B (0433): the Cohorts list reads the org_id column through the V3 → V2 → V1 fallback, so it
+        // answers 200 whether or not 0433 is applied, and `orgId` is null or a uuid — never undefined / a
+        // non-string (fail-soft before apply; a stamped org after the backfill).
+        const batches = await get<{ ok: boolean; batches?: Array<{ id: string; orgId?: unknown }> }>(page.request, "/api/evaluations/batch");
         const own = batches.status === 200 ? (batches.body.batches ?? [])[0]?.id : undefined;
-        await evidence(testInfo, "own batches", { status: batches.status, first: own ?? null });
+        await evidence(testInfo, "own batches", { status: batches.status, first: own ?? null, org_id: (batches.body.batches ?? [])[0]?.orgId ?? null });
+        expect(batches.status).toBe(200);
+        for (const b of batches.body.batches ?? []) expect(b.orgId === null || (typeof b.orgId === "string" && /^[0-9a-f-]{36}$/i.test(b.orgId))).toBe(true);
         if (own) {
           const res = await page.request.get(`${qa.baseURL}/api/reports/cohort?batch=${encodeURIComponent(own)}&format=html`);
           const html = await res.text();

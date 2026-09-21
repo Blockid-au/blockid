@@ -27,6 +27,10 @@ const db = {
 
 type Filter = (r: Row) => boolean;
 
+/** G22-B: columns the fake schema does NOT have — a select / insert naming one answers 42703 like PostgREST (and inserts nothing). */
+const missingColumns = new Set<string>();
+const MISSING_COLUMN = (col: string) => ({ code: "42703", message: `column evaluation_batches.${col} does not exist` });
+
 /** Enough of PostgREST's builder to run batch.ts: select/update/eq/in/or/order/limit/maybeSingle/single + count head. */
 function builder(table: keyof typeof db) {
   const filters: Filter[] = [];
@@ -36,6 +40,8 @@ function builder(table: keyof typeof db) {
   let ordering: { col: string; asc: boolean } | null = null;
   let lim: number | null = null;
   let wantSingle: "single" | "maybe" | null = null;
+  let selected: string[] = [];
+  let pendingInsert: Row[] | null = null;
 
   const rowsMatching = () => {
     let rows = db[table].filter((r) => filters.every((f) => f(r)));
@@ -48,6 +54,18 @@ function builder(table: keyof typeof db) {
   };
 
   const run = async () => {
+    const missing = selected.find((c) => missingColumns.has(c)) ?? (pendingInsert ?? []).flatMap((r) => Object.keys(r)).find((c) => missingColumns.has(c));
+    if (missing) return { data: null, error: MISSING_COLUMN(missing), count: null };
+    if (op === "insert" && pendingInsert) {
+      const inserted = pendingInsert.map((r) => {
+        const row = { id: `${table}-${db[table].length + 1}`, ...r };
+        db[table].push(row);
+        return { ...row };
+      });
+      pendingInsert = null;
+      if (wantSingle) return { data: inserted[0] ?? null, error: null, count: null };
+      return { data: inserted, error: null, count: null };
+    }
     if (op === "update") {
       const rows = rowsMatching();
       for (const r of rows) Object.assign(r, patch);
@@ -70,15 +88,15 @@ function builder(table: keyof typeof db) {
 
   const b: Record<string, unknown> = {};
   Object.assign(b, {
-    select(_cols?: string, opts?: { count?: string; head?: boolean }) {
+    select(cols?: string, opts?: { count?: string; head?: boolean }) {
       if (opts?.head) countMode = true;
+      selected = typeof cols === "string" ? cols.split(",").map((c) => c.trim()) : [];
       return b;
     },
     update(p: Row) { op = "update"; patch = p; return b; },
     insert(p: Row | Row[]) {
       op = "insert";
-      const rows = Array.isArray(p) ? p : [p];
-      for (const r of rows) db[table].push({ id: db[table].length + 1, ...r });
+      pendingInsert = Array.isArray(p) ? p : [p];
       return b;
     },
     delete() { op = "delete"; return b; },
@@ -117,6 +135,9 @@ import {
   ITEM_MAX_ATTEMPTS,
   claimNextBatch,
   countPendingBatchItems,
+  createBatch,
+  getBatchById,
+  listBatches,
   nextQueuedItems,
   sweepExpiredLeases,
   listBatches,
@@ -145,7 +166,51 @@ function seed() {
 
 beforeEach(() => {
   vi.restoreAllMocks();
+  missingColumns.clear();
   seed();
+});
+
+// G22-B (0433): org_id is stamped at creation from the caller-resolved acting
+// org and read back through the V3 → V2 → V1 column fallback.
+describe("G22-B org_id on evaluation_batches", () => {
+  const input = { userId: "u-1", name: "Round 1", rubricWeights: {}, evaluationIds: ["e-1"], programName: "Fellowship", orgId: "org-1" };
+
+  it("with 0433 applied: the insert carries org_id and every reader maps it", async () => {
+    const created = await createBatch(input);
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    expect(created.batch.orgId).toBe("org-1");
+    expect(created.batch.programName).toBe("Fellowship");
+    const stored = db.evaluation_batches.find((r) => r.id === created.batch.id);
+    expect(stored?.org_id).toBe("org-1");
+    expect((await getBatchById(created.batch.id))?.orgId).toBe("org-1");
+    expect((await listBatches("u-1")).map((b) => b.orgId)).toContain("org-1");
+    // No acting org (tables absent) → the column is simply not written.
+    const bare = await createBatch({ ...input, orgId: null });
+    expect(bare.ok && bare.batch.orgId).toBeNull();
+  });
+
+  it("before 0433 (42703 on org_id): the cohort is still created on the 0422 shape — metadata kept, org_id dropped — and reads fall back to null", async () => {
+    missingColumns.add("org_id");
+    const created = await createBatch(input);
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    expect(created.batch.orgId).toBeNull();
+    expect(created.batch.programName).toBe("Fellowship"); // the 0422 columns survive the fallback
+    expect(db.evaluation_batches.find((r) => r.id === created.batch.id)?.org_id).toBeUndefined();
+    expect((await getBatchById(created.batch.id))?.orgId).toBeNull();
+    expect((await listBatches("u-1")).every((b) => b.orgId === null)).toBe(true);
+  });
+
+  it("before 0422 (42703 on both): the 0322 shape is inserted and read", async () => {
+    missingColumns.add("org_id").add("program_name");
+    const created = await createBatch(input);
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+    expect(created.batch.orgId).toBeNull();
+    expect(created.batch.programName).toBeNull();
+    expect((await getBatchById(created.batch.id))?.orgId).toBeNull();
+  });
 });
 
 describe("#6 atomic item claim", () => {

@@ -32,6 +32,8 @@ const UNIT_INCLUDE = [
   "scripts/external-signals/*.test.mjs",
   // G19-S47: restructure a stored report_v2 without an AI run (fake-db unit).
   "scripts/report/*.test.mjs",
+  // G22-B: the org_id backfill (0433) over a fake client.
+  "scripts/org/*.test.mjs",
   "../scripts/**/*.test.mjs",
 ];
 

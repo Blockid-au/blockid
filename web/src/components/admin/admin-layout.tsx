@@ -8,6 +8,7 @@ import {
   Bot,
   Calendar,
   ChevronLeft,
+  ClipboardList,
   ChevronRight,
   Coins,
   DollarSign,
@@ -81,6 +82,7 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/pilots", label: "Pilots", icon: FlaskConical },
       { href: "/admin/corrections", label: "Corrections", icon: MessageSquare },
       { href: "/admin/outcomes", label: "Outcomes", icon: TrendingUp },
+      { href: "/admin/validation", label: "Validation tracker", icon: ClipboardList },
     ],
   },
   {
