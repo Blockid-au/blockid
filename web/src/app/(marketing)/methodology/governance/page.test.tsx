@@ -27,6 +27,7 @@ import { BENCHMARK_N_RULES } from "@/lib/svi/benchmark-rules";
 import { buildMethodologyProps } from "../methodology-content";
 import MethodologyRoute from "../page";
 import { HUMAN_IN_THE_LOOP, SVI_VERSION_HISTORY, buildGovernanceProps, buildGovernanceSections } from "./governance-content";
+import { GOVERNANCE_CHROME } from "./governance-body";
 import GovernanceRoute, { generateMetadata } from "./page";
 import ViGovernanceRoute from "../../../vi/methodology/governance/page";
 
@@ -119,6 +120,46 @@ describe("/methodology/governance — rendered", () => {
     expect(out).toContain(esc(HUMAN_IN_THE_LOOP));
     expect(out).toContain('href="/vi/methodology"');
     expect((out.match(/href="#s\d+"/g) ?? []).length).toBe(buildGovernanceSections().length);
+  });
+
+  // G22-C — the VI mirror's chrome is Vietnamese: one VI h1, VI eyebrows and
+  // section labels, VI version line and closing band; the institutional
+  // sections stay English inside a `lang="en"` wrapper with the note.
+  it("/vi/methodology/governance: VI h1 + eyebrows + labels + closing band; English document marked lang=en", async () => {
+    const out = await html(ViGovernanceRoute());
+    const c = GOVERNANCE_CHROME.vi;
+    expect(out.match(/<h1[\s>]/g)).toHaveLength(1);
+    expect(out).toContain(c.heroTitle);
+    expect(out).not.toContain("Startup Value Index — score governance");
+    expect(out).toContain(c.heroEyebrow);
+    expect(out).toContain(c.principleEyebrow);
+    expect(out).toContain(c.principleTitle);
+    expect(out).toContain(`Phiên bản phương pháp v${SVI_VERSION}`);
+    expect(out).toContain(c.backToMethodology);
+    expect(out).toContain(c.contentsEyebrow);
+    expect(out).toContain(c.contentsTitle);
+    expect(out).toContain(esc(c.sectionEyebrow(1)));
+    expect(out).toContain(c.ctaTitle);
+    expect(out).toContain(c.ctaPrimary);
+    expect(out).toContain(c.ctaSecondary);
+    expect(out).toContain(c.englishSectionNote);
+    for (const en of ["Human in the loop", "The one rule every section follows", "back to the methodology", ">Contents<", ">Sections<", "See the methodology the rules govern", "Read the methodology", "See a real report"]) {
+      expect(out, en).not.toContain(en);
+    }
+    expect(out).toMatch(/<div lang="vi">/);
+    expect(out).toMatch(/<div lang="en" data-testid="governance-sections">/);
+    expect(out).toMatch(/<blockquote lang="en"/);
+  });
+
+  it("/methodology/governance (EN) keeps its English chrome — no VI string leaks into the English page", async () => {
+    const out = await html(GovernanceRoute());
+    const c = GOVERNANCE_CHROME.en;
+    expect(out).toContain(c.principleEyebrow);
+    expect(out).toContain(c.contentsTitle);
+    expect(out).toContain(c.ctaTitle);
+    expect(out).not.toContain(GOVERNANCE_CHROME.vi.principleEyebrow);
+    expect(out).not.toContain("tiếng Anh");
+    expect(out).toMatch(/<div lang="en">/);
   });
 });
 
