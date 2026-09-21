@@ -63,15 +63,19 @@ export type PilotCheckoutNext =
   | { kind: "fallback"; href: string }
   | { kind: "error"; message: string };
 
-/** The English fallback for a checkout failure with no message (the strings object overrides it). */
-export const PILOT_CHECKOUT_ERROR_FALLBACK = "Could not start checkout — please try again.";
+/**
+ * The catalogue key behind `genericMessage` (`PilotUiStrings.errorGeneric`,
+ * EN + VI). G23-C: no English literal lives in this file — the server
+ * resolves the key and the caller passes the string in.
+ */
+export const PILOT_CHECKOUT_ERROR_KEY = "pilot.buy.error.generic";
 
-/** Pure: what the button does with a checkout response. */
+/** Pure: what the button does with a checkout response. `genericMessage` = `strings.errorGeneric` (the `pilot.buy.error.generic` line). */
 export function resolvePilotCheckoutResponse(
   status: number,
   body: { ok?: boolean; url?: string; error?: string; fallback?: string; reason?: string; message?: string } | null,
   returnPath: string,
-  genericMessage: string = PILOT_CHECKOUT_ERROR_FALLBACK,
+  genericMessage: string,
 ): PilotCheckoutNext {
   if (status === 401) return { kind: "login", href: `/auth/login?next=${encodeURIComponent(returnPath)}` };
   if (status === 409 || body?.error === "sku_unconfigured") {

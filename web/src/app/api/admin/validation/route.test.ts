@@ -3,7 +3,8 @@
 // date, level 6, empty patch), the ledger round-trip on a temp root
 // (POST 201 → PATCH 200 → DELETE 200 → 404 again), the GET dashboard shape
 // and the per-admin write rate limit. Supabase is absent (null client) so
-// the GET reads the ledger + JSONL only and reports the warning.
+// the GET reads the ledger + JSONL only and reports the warning. G23-C: PATCH
+// If-Match → 409 `stale` with the current row.
 
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -17,6 +18,7 @@ vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => null }));
 vi.mock("server-only", () => ({}));
 
 import { DELETE, GET, PATCH, POST, VALIDATION_WRITES_PER_HOUR } from "./route";
+import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 import { readValidationLedger } from "@/lib/validation/ledger";
 
 const ADMIN = { id: "admin-1", email: "admin@blockid.au", role: "admin", plan: null };
@@ -117,5 +119,39 @@ describe("ledger round-trip", () => {
     expect(last?.status).toBe(429);
     expect(last?.headers.get("retry-after")).toMatch(/^\d+$/);
     expect((await readValidationLedger(root)).entries).toHaveLength(VALIDATION_WRITES_PER_HOUR);
+  });
+});
+
+// G23-C — PATCH honours If-Match (the entry's updated_at the client rendered).
+describe("PATCH If-Match (G23-C)", () => {
+  const reqIf = (body: unknown, ifMatch: string) =>
+    new Request("http://localhost/api/admin/validation", { method: "PATCH", headers: { "content-type": "application/json", "if-match": ifMatch }, body: JSON.stringify(body) });
+
+  it("matching → 200; stale → 409 { error: stale, entry: current row } with user-safe copy and no write; quoted / weak forms accepted; garbage = unconditional", async () => {
+    mocks.getCurrentUser.mockResolvedValue({ ...ADMIN, id: "admin-ifmatch" });
+    const created = await POST(req("POST", { ...ENTRY, organisation: "If-Match Org" }));
+    expect(created.status).toBe(201);
+    const c = (await created.json()) as { entry: { id: string; updated_at: string } };
+    const id = c.entry.id;
+
+    const ok = await PATCH(reqIf({ id, note: "first" }, c.entry.updated_at));
+    expect(ok.status).toBe(200);
+    const first = (await ok.json()) as { entry: { updated_at: string; note: string } };
+    expect(first.entry.note).toBe("first");
+
+    // The original updated_at is now stale → 409 carrying the current row; nothing written.
+    const stale = await PATCH(reqIf({ id, note: "second" }, c.entry.updated_at));
+    expect(stale.status).toBe(409);
+    const body = (await stale.json()) as { ok: boolean; error: string; message: string; entry: { id: string; note: string; updated_at: string } };
+    expect(body).toMatchObject({ ok: false, error: "stale", entry: { id, note: "first", updated_at: first.entry.updated_at } });
+    expect(userErrorMessage(ApiError.fromBody(409, body), "fallback")).toBe(body.message);
+    expect(body.message).toMatch(/changed since you opened it/);
+    expect((await readValidationLedger(root)).entries.find((e) => e.id === id)?.note).toBe("first");
+
+    // Re-read → retry with the fresh value; quoted and weak (W/) forms are normalised.
+    expect((await PATCH(reqIf({ id, note: "second" }, `W/"${body.entry.updated_at}"`))).status).toBe(200);
+    // Not a timestamp → ignored (unconditional), never a 400.
+    expect((await PATCH(reqIf({ id, note: "third" }, "etag-abc"))).status).toBe(200);
+    expect((await readValidationLedger(root)).entries.find((e) => e.id === id)?.note).toBe("third");
   });
 });

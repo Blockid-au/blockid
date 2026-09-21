@@ -17,7 +17,7 @@ import enMessages from "@/lib/i18n/messages/en.json";
 import viMessages from "@/lib/i18n/messages/vi.json";
 import { PILOT_CONTACT_FALLBACK, formatPilotPrice } from "@/lib/pricing/pilot-skus";
 import { PILOT_UI_KEYS, fillPilotString, pilotUiStrings } from "@/lib/pricing/pilot-strings";
-import { PILOT_CHECKOUT_ERROR_FALLBACK, PilotBuyButton, resolvePilotCheckoutResponse } from "./PilotBuyButton";
+import { PILOT_CHECKOUT_ERROR_KEY, PilotBuyButton, resolvePilotCheckoutResponse } from "./PilotBuyButton";
 
 const EN = enMessages as Record<string, string>;
 const VI = viMessages as Record<string, string>;
@@ -93,23 +93,24 @@ describe("<PilotBuyButton strings={vi} /> — the Vietnamese control (G22-C)", (
 
 describe("resolvePilotCheckoutResponse — the fallback contract", () => {
   it("401 → sign in and come back", () => {
-    expect(resolvePilotCheckoutResponse(401, { ok: false }, "/solutions/accelerator#pilot")).toEqual({
+    expect(resolvePilotCheckoutResponse(401, { ok: false }, "/solutions/accelerator#pilot", en.errorGeneric)).toEqual({
       kind: "login",
       href: "/auth/login?next=%2Fsolutions%2Faccelerator%23pilot",
     });
   });
 
   it("409 sku_unconfigured → the server's fallback, or the contact page when the body carries none", () => {
-    expect(resolvePilotCheckoutResponse(409, { ok: false, error: "sku_unconfigured", fallback: "/contact?topic=pilot" }, "/pilot")).toEqual({ kind: "fallback", href: "/contact?topic=pilot" });
-    expect(resolvePilotCheckoutResponse(409, null, "/pilot")).toEqual({ kind: "fallback", href: PILOT_CONTACT_FALLBACK });
-    expect(resolvePilotCheckoutResponse(200, { ok: false, error: "sku_unconfigured" }, "/pilot")).toEqual({ kind: "fallback", href: PILOT_CONTACT_FALLBACK });
+    expect(resolvePilotCheckoutResponse(409, { ok: false, error: "sku_unconfigured", fallback: "/contact?topic=pilot" }, "/pilot", en.errorGeneric)).toEqual({ kind: "fallback", href: "/contact?topic=pilot" });
+    expect(resolvePilotCheckoutResponse(409, null, "/pilot", en.errorGeneric)).toEqual({ kind: "fallback", href: PILOT_CONTACT_FALLBACK });
+    expect(resolvePilotCheckoutResponse(200, { ok: false, error: "sku_unconfigured" }, "/pilot", en.errorGeneric)).toEqual({ kind: "fallback", href: PILOT_CONTACT_FALLBACK });
   });
 
   it("a checkout URL → navigate; anything else → an inline error, never a silent no-op", () => {
-    expect(resolvePilotCheckoutResponse(200, { ok: true, url: "https://checkout.stripe.com/c/pay/cs_1" }, "/pilot")).toEqual({ kind: "navigate", href: "https://checkout.stripe.com/c/pay/cs_1" });
-    expect(resolvePilotCheckoutResponse(503, { ok: false, reason: "Payments not configured" }, "/pilot")).toEqual({ kind: "error", message: "Payments not configured" });
-    expect(resolvePilotCheckoutResponse(500, null, "/pilot")).toEqual({ kind: "error", message: PILOT_CHECKOUT_ERROR_FALLBACK });
-    // G22-C: the localised generic message wins over the English fallback.
-    expect(resolvePilotCheckoutResponse(500, null, "/vi/pilot", vi.errorGeneric)).toEqual({ kind: "error", message: VI["pilot.buy.error.generic"] });
+    expect(resolvePilotCheckoutResponse(200, { ok: true, url: "https://checkout.stripe.com/c/pay/cs_1" }, "/pilot", en.errorGeneric)).toEqual({ kind: "navigate", href: "https://checkout.stripe.com/c/pay/cs_1" });
+    expect(resolvePilotCheckoutResponse(503, { ok: false, reason: "Payments not configured" }, "/pilot", en.errorGeneric)).toEqual({ kind: "error", message: "Payments not configured" });
+    // G23-C: the generic message is the catalogue line (EN / VI), never a literal in the component.
+    expect(PILOT_CHECKOUT_ERROR_KEY).toBe("pilot.buy.error.generic");
+    expect(resolvePilotCheckoutResponse(500, null, "/pilot", en.errorGeneric)).toEqual({ kind: "error", message: EN[PILOT_CHECKOUT_ERROR_KEY] });
+    expect(resolvePilotCheckoutResponse(500, null, "/vi/pilot", vi.errorGeneric)).toEqual({ kind: "error", message: VI[PILOT_CHECKOUT_ERROR_KEY] });
   });
 });

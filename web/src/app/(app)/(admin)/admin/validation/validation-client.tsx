@@ -450,8 +450,13 @@ export function ValidationClient({ user, initial }: ValidationClientProps) {
   const ladder = React.useMemo(() => computeLadder(entries, initial.auto), [entries, initial.auto]);
   const objections = React.useMemo(() => openObjections(entries), [entries]);
 
-  async function send(method: "POST" | "PATCH" | "DELETE", body: Record<string, unknown>): Promise<ValidationEntry> {
-    const res = await fetch("/api/admin/validation", { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  // G23-C: a PATCH carries `If-Match: <updated_at of the row being edited>`; a 409
+  // `stale` answer means someone saved that row meanwhile — re-read it, swap the
+  // form onto the fresh row and let the founder re-apply the edit (never overwrite).
+  async function send(method: "POST" | "PATCH" | "DELETE", body: Record<string, unknown>, ifMatch?: string): Promise<ValidationEntry> {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (method === "PATCH" && ifMatch) headers["If-Match"] = ifMatch;
+    const res = await fetch("/api/admin/validation", { method, headers, body: JSON.stringify(body) });
     if (!res.ok) throw await readErrorBody(res);
     const data = (await res.json().catch(() => null)) as { ok?: boolean; entry?: ValidationEntry } | null;
     if (!data?.ok || !data.entry) throw ApiError.fromBody(res.status, data ?? {});
@@ -464,7 +469,7 @@ export function ValidationClient({ user, initial }: ValidationClientProps) {
     setFeedback(null);
     try {
       if (editing) {
-        const saved = await send("PATCH", { id: editing.id, ...v });
+        const saved = await send("PATCH", { id: editing.id, ...v }, editing.updated_at);
         setEntries((p) => p.map((e) => (e.id === saved.id ? saved : e)));
         setEditing(null);
         setFeedback({ type: "success", message: "Entry updated." });
@@ -474,9 +479,32 @@ export function ValidationClient({ user, initial }: ValidationClientProps) {
         setFeedback({ type: "success", message: `Added ${saved.organisation} at L${saved.level}.` });
       }
     } catch (err) {
+      const stale = editing && err instanceof ApiError && err.status === 409 ? (entryFromConflict(err, editing.id) ?? (await reloadEntry(editing.id))) : null;
+      if (stale) {
+        setEntries((p) => p.map((e) => (e.id === stale.id ? stale : e)));
+        setEditing(stale);
+      }
       setFormError(userErrorMessage(err, "Could not save the entry. Please try again."));
     } finally {
       setBusy(false);
+    }
+  }
+
+  /** G23-C: the 409 body carries the current row (`entry`); null when it does not. */
+  function entryFromConflict(err: ApiError, id: string): ValidationEntry | null {
+    const entry = (err.body as { entry?: ValidationEntry }).entry;
+    return entry && typeof entry === "object" && entry.id === id && typeof entry.updated_at === "string" ? entry : null;
+  }
+
+  /** G23-C: re-read one row after a 409 whose body had no row (the GET fallback). Null when it is gone. */
+  async function reloadEntry(id: string): Promise<ValidationEntry | null> {
+    try {
+      const res = await fetch("/api/admin/validation", { method: "GET", headers: { Accept: "application/json" } });
+      if (!res.ok) return null;
+      const data = (await res.json().catch(() => null)) as { ok?: boolean; ledger?: { entries?: ValidationEntry[] } } | null;
+      return data?.ledger?.entries?.find((e) => e.id === id) ?? null;
+    } catch {
+      return null;
     }
   }
 

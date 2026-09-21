@@ -70,6 +70,7 @@ export function loadInputs(root = REPO_ROOT) {
     snapshot: readJsonSafe(join(reports, "traction-snapshot.json")),
     history: readTextSafe(join(reports, "traction-history.jsonl")),
     aiSpend: readJsonSafe(join(reports, "ai-spend-daily.json")),
+    // G23-C: written only by a FULL suite run — a `-- <spec>` subset goes to live-qa-latest-partial.json instead.
     liveQa: readJsonSafe(join(reports, "live-qa-latest.json")),
     changelog: readTextSafe(join(root, "web", "CHANGELOG.md")),
   };

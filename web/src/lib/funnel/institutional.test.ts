@@ -1,4 +1,7 @@
 // G21 P0-D — institutional funnel: pure reducers + the fail-soft reader.
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { FunnelEventRow } from "./core";
 import {
@@ -50,6 +53,16 @@ describe("reduceInstitutional (pure)", () => {
     expect(metric(sections, "proposals_pending").status).toBe("live");
     expect(metric(sections, "claim_evidence_records").status).toBe("live");
     expect(metric(sections, "comparison_sessions").status).toBe("p2");
+  });
+
+  it("G23-C: Trust carries 'Report grounding / KPI <y>' as a live ratio — null (n/a) without a run, the KPI in the label when known", () => {
+    const none = metric(reduceInstitutional([]), "report_grounding");
+    expect(none).toMatchObject({ status: "live", unit: "ratio", value: null });
+    expect(none.label).toBe("Report grounding / KPI n/a");
+    const trust = reduceInstitutional([], { ...emptyDbCounts(), report_grounding: 0.41, report_grounding_kpi: 0.85 }).find((s) => s.key === "trust")!;
+    const m = trust.metrics.find((x) => x.key === "report_grounding")!;
+    expect(m).toMatchObject({ status: "live", unit: "ratio", value: 0.41, label: "Report grounding / KPI 85%" });
+    expect(m.note).toContain("grounded_share");
   });
 
   it("counts imports, first assessments, evidence, paid pilots + pilot revenue, renewals; QA rows excluded; db counts pass through", () => {
@@ -179,6 +192,10 @@ describe("readInstitutionalFunnel (fail-soft)", () => {
     expect(none.warnings).toContain("supabase not configured");
     expect(none.northStar).toBeNull();
     expect(none.sections).toHaveLength(6);
+    // G23-C: no tbr-quality.jsonl under the root → grounding n/a with a warning, KPI still shown; never throws.
+    const grounding = none.sections.find((s) => s.key === "trust")!.metrics.find((m) => m.key === "report_grounding")!;
+    expect(grounding).toMatchObject({ status: "live", value: null, label: "Report grounding / KPI 85%" });
+    expect(none.warnings.some((w) => w.startsWith("tbr-quality.jsonl"))).toBe(true);
 
     const client = fakeClient({
       analytics_events: { data: [row("pilot_started", { amount_cents: 250000, pilot_source: "paid" }, { user_id: "o", ts: "2026-09-19T00:00:00.000Z" })], error: null },
@@ -211,5 +228,20 @@ describe("readInstitutionalFunnel (fail-soft)", () => {
     expect(out.warnings.some((w) => w.startsWith("traction-snapshot.json"))).toBe(true);
     expect(out.northStar).toMatchObject({ month: "2026-09", assessed: 1, assessed_all: 1, paying_batches: 1, paying_orgs: 1 });
     expect(asInstitutionalClient(null)).toBeNull();
+  });
+
+  it("G23-C: with a tbr-quality.jsonl under the root the Trust row shows the latest run's groundedShare beside the KPI", async () => {
+    const root = mkdtempSync(path.join(tmpdir(), "fi-grounding-"));
+    try {
+      const file = path.join(root, "content", "reports", "tbr-quality.jsonl");
+      mkdirSync(path.dirname(file), { recursive: true });
+      writeFileSync(file, [{ ts: "2026-09-20T00:00:00Z", groundedShare: 0.9 }, { ts: "2026-09-21T00:00:00Z", groundedShare: 0.41 }].map((r) => JSON.stringify(r)).join("\n") + "\n");
+      const out = await readInstitutionalFunnel(null, Date.UTC(2026, 8, 21), root);
+      const m = out.sections.find((s) => s.key === "trust")!.metrics.find((x) => x.key === "report_grounding")!;
+      expect(m).toMatchObject({ status: "live", unit: "ratio", value: 0.41, label: "Report grounding / KPI 85%" });
+      expect(out.warnings.some((w) => w.startsWith("tbr-quality.jsonl"))).toBe(false);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

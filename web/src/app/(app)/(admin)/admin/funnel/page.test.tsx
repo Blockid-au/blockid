@@ -124,7 +124,7 @@ describe("FunnelAdminView — institutional section (G21 P0-D)", () => {
     const data = await dataFromFixture();
     const sections = reduceInstitutional(
       [{ event_id: "p", event_name: "pilot_started", user_id: "org", params: { amount_cents: 150000, pilot_source: "paid" }, ts: "2026-09-18T09:00:00.000Z" }],
-      { ...emptyDbCounts(), companies: 200, mrr_cents: 69800, paying_orgs: 2 },
+      { ...emptyDbCounts(), companies: 200, mrr_cents: 69800, paying_orgs: 2, report_grounding: 0.41, report_grounding_kpi: 0.85 },
     );
     const out = await html(
       <FunnelAdminView
@@ -155,6 +155,16 @@ describe("FunnelAdminView — institutional section (G21 P0-D)", () => {
     expect(out).toContain("svi_snapshots:longitudinal: boom");
     // unavailable table counts are n/a, not 0
     expect(out).toMatch(/data-fi-metric="snapshots" data-fi-status="live"[\s\S]*?n\/a</);
+    // G23-C: Trust shows "Report grounding <x> / KPI <y>" — the latest run's share as a percentage beside the KPI.
+    expect(out).toMatch(/data-fi-metric="report_grounding" data-fi-status="live"[\s\S]*?Report grounding \/ KPI 85%[\s\S]*?41%</);
+  });
+
+  it("G23-C: without a logged pipeline run the grounding row prints n/a (never a fake 0) and the KPI stays in the label", async () => {
+    const data = await dataFromFixture();
+    const sections = reduceInstitutional([], { ...emptyDbCounts(), report_grounding_kpi: 0.85 });
+    const out = await html(<FunnelAdminView data={{ ...data, institutional: { window: { days: 28, from: "2026-08-22", to: "2026-09-19" }, sections, northStar: null, warnings: ["tbr-quality.jsonl: no pipeline run logged — report grounding unavailable"] } }} />);
+    expect(out).toMatch(/data-fi-metric="report_grounding" data-fi-status="live"[\s\S]*?Report grounding \/ KPI 85%[\s\S]*?n\/a</);
+    expect(out).toContain("report grounding unavailable");
   });
 });
 
