@@ -129,7 +129,7 @@ export default async function DripStatsPage() {
 
       <main className="max-w-6xl mx-auto p-6 space-y-6">
         {stats.error && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="rounded-xl border border-line-subtle border-l-4 border-l-warn bg-surface-sunken px-4 py-3 text-sm text-amber-900">
             Could not read stats: {stats.error}. Showing zeros.
           </div>
         )}

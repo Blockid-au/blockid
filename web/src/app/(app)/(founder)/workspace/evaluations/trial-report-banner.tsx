@@ -110,7 +110,7 @@ export function TrialReportBanner({ trial, used = null, now }: TrialReportBanner
     <div
       role="status"
       data-testid="trial-report-banner"
-      className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-900 flex flex-wrap items-center justify-between gap-2"
+      className="rounded-xl border border-line-subtle border-l-4 border-l-brand-navy bg-surface-sunken px-4 py-3 text-sm text-brand-900 flex flex-wrap items-center justify-between gap-2"
     >
       <span>
         <strong>{copy.segments[0]}</strong>

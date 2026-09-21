@@ -143,7 +143,7 @@ export default async function CohortPage({ params, searchParams }: PageProps) {
 
         {/* G24-C: the fictional demo cohort — labelled before anything else, removable by its owner. */}
         {isDemo ? (
-          <section className="rounded-2xl border border-warn/40 bg-warn/5 px-4 py-4 sm:px-5" data-testid="demo-cohort-banner" aria-labelledby="demo-cohort-banner-h">
+          <section className="rounded-2xl border border-line-subtle border-l-4 border-l-warn bg-surface-sunken px-4 py-4 sm:px-5" data-testid="demo-cohort-banner" aria-labelledby="demo-cohort-banner-h">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div className="min-w-0">
                 <h2 id="demo-cohort-banner-h" className="flex flex-wrap items-center gap-2 text-base font-semibold text-primary">

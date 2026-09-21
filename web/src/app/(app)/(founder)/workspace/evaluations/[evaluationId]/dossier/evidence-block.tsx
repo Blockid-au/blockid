@@ -142,7 +142,7 @@ export function EvidenceBlock({ view }: { view: DossierView }) {
       </details>
 
       {!founder && unlock.next ? (
-        <div className="mt-4 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3" data-testid="evidence-upgrade-cta">
+        <div className="mt-4 rounded-xl border border-line-subtle border-l-4 border-l-brand-navy bg-surface-sunken px-4 py-3" data-testid="evidence-upgrade-cta">
           <p className="text-sm font-medium text-ink-900">
             {unlock.next === "reports_shared" ? "Invite the founder to share reports" : "Request data-room access"}
           </p>

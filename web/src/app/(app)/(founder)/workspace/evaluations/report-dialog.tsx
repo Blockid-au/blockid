@@ -332,7 +332,7 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
           </div>
 
           {result ? (
-            <div role="status" data-testid="report-result" className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-emerald-900 space-y-2">
+            <div role="status" data-testid="report-result" className="rounded-xl border border-line-subtle border-l-4 border-l-bull bg-surface-sunken px-4 py-3 text-emerald-900 space-y-2">
               <p>
                 Done — SVI <strong>{Math.round(result.svi)}</strong>. {describeResult(result)}
               </p>

@@ -129,7 +129,7 @@ export function ProgramJourney({ view, stage, canAct, isOwner = false, demoLabel
   return (
     <section className="space-y-6" data-testid="program-journey" data-stage={stage} data-demo={isDemo ? "1" : undefined}>
       {isDemo ? (
-        <div className="flex flex-col gap-3 rounded-2xl border border-warn/40 bg-warn/5 px-4 py-4 md:flex-row md:items-start md:justify-between" data-testid="journey-demo-banner">
+        <div className="flex flex-col gap-3 rounded-2xl border border-line-subtle border-l-4 border-l-warn bg-surface-sunken px-4 py-4 md:flex-row md:items-start md:justify-between" data-testid="journey-demo-banner">
           <div className="min-w-0">
             <DemoCohortChip label={demoLabels.chip} title={demoLabels.chipTitle} size="md" />
             <p className="mt-2 max-w-3xl text-sm text-secondary">{demoLabels.bannerBody}</p>

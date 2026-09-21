@@ -394,7 +394,7 @@ export function MandateForm({ draft, draftSource, canEditWeights, limit, mandate
   return (
     <form onSubmit={save} className="space-y-6" data-mandate-form data-mandate-id={f.id ?? ""} data-draft-source={draftSource} noValidate>
       {!migrated ? (
-        <p role="status" className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900" data-not-migrated>
+        <p role="status" className="rounded-xl border border-line-subtle border-l-4 border-l-warn bg-surface-sunken px-4 py-3 text-sm text-amber-900" data-not-migrated>
           {t(MANDATE_COPY.notMigrated)}
         </p>
       ) : null}

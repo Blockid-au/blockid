@@ -202,7 +202,7 @@ export function NewAffiliateForm({ resellers }: Props) {
         <SuccessCard result={result} onReset={resetForm} />
       ) : null}
       {errorText ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-lg border border-line-subtle border-l-4 border-l-bear bg-surface-sunken p-4 text-sm text-red-800">
           <p className="font-medium">Provisioning failed</p>
           <p className="mt-1 font-mono text-xs">{errorText}</p>
         </div>
@@ -558,7 +558,7 @@ function SuccessCard({
   const idempotent = result.idempotent;
 
   return (
-    <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+    <div className="rounded-lg border border-line-subtle border-l-4 border-l-bull bg-surface-sunken p-4">
       <p className="text-sm font-medium text-emerald-900">
         {idempotent ? "Account already provisioned — no changes made." : "Account provisioned."}
       </p>

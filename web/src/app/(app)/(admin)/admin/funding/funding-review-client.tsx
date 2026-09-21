@@ -154,7 +154,7 @@ export function FundingReviewClient({ user, grants, programs, queue = [] }: Prop
         </div>
 
         {rows.length === 0 && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <div className="rounded-2xl border border-line-subtle border-l-4 border-l-warn bg-surface-sunken p-4 text-sm text-amber-800">
             No rows. Apply migration <code>0311_au_funding.sql</code> then run <code>node scripts/seed-au-funding.mjs</code> from <code>web/</code>.
           </div>
         )}

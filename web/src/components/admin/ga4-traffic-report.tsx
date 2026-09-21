@@ -105,7 +105,7 @@ export function Ga4TrafficReport() {
       {/* Body */}
       <div className="px-6 py-4">
         {error && (
-          <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <div className="flex items-start gap-3 rounded-xl border border-line-subtle border-l-4 border-l-warn bg-surface-sunken px-4 py-3 text-sm text-amber-800">
             <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" aria-hidden="true" />
             <span>{error}</span>
           </div>

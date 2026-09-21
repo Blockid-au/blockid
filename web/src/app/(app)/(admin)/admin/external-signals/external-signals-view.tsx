@@ -48,7 +48,7 @@ export function ExternalSignalsAdminView({ data }: { data: ExternalSignalsAdminD
         </header>
 
         {!fromDb ? (
-          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900" data-testid="external-signals-table-missing">
+          <div className="rounded-2xl border border-line-subtle border-l-4 border-l-warn bg-surface-sunken p-4 text-sm text-amber-900" data-testid="external-signals-table-missing">
             <p className="font-medium">external_sources not readable — {sourcesError ?? "unknown"}. Showing the code catalogue.</p>
             <p className="mt-1">
               Apply <code>web/supabase/migrations/0410_external_signals.sql</code> (<code>scripts/db/apply-migration.sh</code>), then run the first ingest (docs/ops/data-sources.md).

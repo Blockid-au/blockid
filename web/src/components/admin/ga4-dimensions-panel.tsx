@@ -158,7 +158,7 @@ export function Ga4DimensionsPanelView({ result, loading, applying, error, onRel
       )}
 
       {blocked && (
-        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4" role="status" data-testid="ga4-dimensions-blocked">
+        <div className="mt-4 rounded-lg border border-line-subtle border-l-4 border-l-warn bg-surface-sunken p-4" role="status" data-testid="ga4-dimensions-blocked">
           <p className="flex items-start gap-2 text-sm font-medium text-amber-800">
             <AlertTriangle strokeWidth={1.75} className="mt-0.5 h-4 w-4 shrink-0" />
             Blocked — {REASON_LABEL[blocked.reason] ?? blocked.reason}

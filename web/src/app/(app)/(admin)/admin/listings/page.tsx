@@ -89,7 +89,7 @@ export default async function ListingsPage() {
           ))}
 
           {/* Quick setup guides */}
-          <div className="mt-12 rounded-2xl border border-brand-200 bg-brand-50 p-6">
+          <div className="mt-12 rounded-2xl border border-line-subtle border-l-4 border-l-brand-navy bg-surface-sunken p-6">
             <h2 className="text-lg font-bold text-ink-900 mb-4">Quick Setup Guides</h2>
             <div className="grid md:grid-cols-2 gap-4">
               {[

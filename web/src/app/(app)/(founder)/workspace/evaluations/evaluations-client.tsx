@@ -209,7 +209,7 @@ export function ProgressRadarPanel({ progress, hasMoneyRadar }: { progress: Eval
     return (
       <div
         data-testid="progress-radar-teaser"
-        className="rounded-2xl border border-dashed border-brand-300 bg-brand-50/40 px-5 py-4 text-sm text-ink-700 flex flex-wrap items-center justify-between gap-3"
+        className="rounded-2xl border border-dashed border-line-subtle border-l-4 border-l-brand-navy bg-surface-sunken/40 px-5 py-4 text-sm text-ink-700 flex flex-wrap items-center justify-between gap-3"
       >
         <div className="flex items-start gap-3">
           <Radar strokeWidth={1.75} className="mt-0.5 h-5 w-5 text-brand-600" />
@@ -710,13 +710,13 @@ export function EvaluationsClient({
         </div>
       )}
       {claimState.status === "claimed" && (
-        <div role="status" className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <div role="status" className="rounded-xl border border-line-subtle border-l-4 border-l-bull bg-surface-sunken px-4 py-3 text-sm text-emerald-800">
           {claimState.already ? "You already claimed" : "You claimed"} <strong>{claimState.projectName}</strong>. Reports the evaluator runs on it are now shared with you.{" "}
           <Link href="/dashboard" className="underline font-medium">Go to your dashboard</Link>
         </div>
       )}
       {claimState.status === "error" && (
-        <div role="alert" className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div role="alert" className="rounded-xl border border-line-subtle border-l-4 border-l-bear bg-surface-sunken px-4 py-3 text-sm text-red-700">
           {claimState.message}
         </div>
       )}
@@ -792,7 +792,7 @@ export function EvaluationsClient({
       )}
 
       {notice && (
-        <div role="status" className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800 flex items-start justify-between gap-3">
+        <div role="status" className="rounded-xl border border-line-subtle border-l-4 border-l-brand-navy bg-surface-sunken px-4 py-3 text-sm text-brand-800 flex items-start justify-between gap-3">
           <span>{notice}</span>
           <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss" className="-m-1 shrink-0 rounded-md p-1 text-brand-700 hover:text-brand-900">
             <X strokeWidth={1.75} className="h-4 w-4" aria-hidden="true" />

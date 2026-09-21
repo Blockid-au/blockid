@@ -219,7 +219,7 @@ export function EntryForm({ initial, onSubmit, onCancel, busy, error }: { initia
           </div>
         </div>
       </div>
-      {error ? <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800" data-testid="validation-form-error">{error}</p> : null}
+      {error ? <p role="alert" className="rounded-lg border border-line-subtle border-l-4 border-l-bear bg-surface-sunken px-3 py-2 text-sm text-rose-800" data-testid="validation-form-error">{error}</p> : null}
       <div className="flex flex-wrap gap-2">
         <button type="submit" disabled={busy} className={BTN_PRIMARY} data-testid="validation-entry-submit">
           {editing ? <Pencil className="h-4 w-4" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />} {busy ? "Saving…" : editing ? "Save changes" : "Add entry"}

@@ -69,7 +69,7 @@ export default async function ComparablesAdminPage() {
         </header>
 
         {queue.error ? (
-          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+          <div className="rounded-2xl border border-line-subtle border-l-4 border-l-warn bg-surface-sunken p-4 text-sm text-amber-900">
             <p className="font-medium">Comparables table not readable — {queue.error}</p>
             <p className="mt-1">
               Apply <code>web/supabase/migrations/0402_comparables_connectors.sql</code> (<code>scripts/db/apply-migration.sh</code>). Until then every report cites the static code-table rows.

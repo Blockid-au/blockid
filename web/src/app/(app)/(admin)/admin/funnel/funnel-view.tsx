@@ -275,7 +275,7 @@ export function FunnelAdminView({ data }: { data: FunnelViewData }) {
         </header>
 
         {!latest ? (
-          <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900" data-testid="funnel-missing">
+          <section className="rounded-2xl border border-line-subtle border-l-4 border-l-warn bg-surface-sunken p-5 text-sm text-amber-900" data-testid="funnel-missing">
             <p className="font-medium">No funnel report yet.</p>
             <p className="mt-1">
               {fileError ?? "The daily cron has not written content/reports/funnel-latest.json on this host."} Run it now:{" "}

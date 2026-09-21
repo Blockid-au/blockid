@@ -112,7 +112,7 @@ export function FeedbackLettersPanel({ batchId, candidates, canSend }: { batchId
       </div>
 
       {error ? (
-        <p role="alert" className="mt-3 rounded-lg border border-bear/30 bg-bear/5 px-3 py-2 text-sm text-bear">
+        <p role="alert" className="mt-3 rounded-lg border border-line-subtle border-l-4 border-l-bear bg-surface-sunken px-3 py-2 text-sm text-bear">
           {error}
         </p>
       ) : null}

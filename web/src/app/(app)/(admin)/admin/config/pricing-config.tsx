@@ -95,7 +95,7 @@ export function PricingConfig({ initial, defaults }: Props) {
   return (
     <div className="space-y-6">
       {/* DB setup notice */}
-      <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 flex gap-2 text-xs text-amber-800">
+      <div className="rounded-lg border-line-subtle border-l-4 border-l-warn bg-surface-sunken p-3 flex gap-2 text-xs text-amber-800">
         <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-warn" />
         <span>
           Requires a <code className="font-mono bg-amber-100 px-1 rounded">platform_config</code> table in Supabase.

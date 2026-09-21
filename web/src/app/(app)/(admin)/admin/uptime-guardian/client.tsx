@@ -70,7 +70,7 @@ export default function UptimeGuardianClient() {
 
   if (error) {
     return (
-      <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+      <div className="rounded-lg border border-line-subtle border-l-4 border-l-bear bg-surface-sunken p-4 text-sm text-red-800">
         Fetch failed: {error}
       </div>
     );

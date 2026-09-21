@@ -241,7 +241,7 @@ export function TemplatesEditor({ initialTemplates, dataPrincipleSentence }: Tem
           </div>
 
           {error ? (
-            <p role="alert" className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+            <p role="alert" className="rounded-lg border border-line-subtle border-l-4 border-l-bear bg-surface-sunken px-3 py-2 text-sm text-red-800">
               {error}
             </p>
           ) : null}
