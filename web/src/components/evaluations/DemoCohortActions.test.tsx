@@ -47,3 +47,5 @@ describe("DemoCohortActions (G24-C)", () => {
     const btn = html.match(/<button[^>]*data-testid="load-demo-cohort"[^>]*>/)?.[0] ?? "";
     expect(btn).toContain("min-h-11");
     expect(btn).toContain("focus-visible:ring-2");
+  });
+});
