@@ -93,8 +93,9 @@ describe("GA4_CUSTOM_DIMENSIONS — declarative list", () => {
 
   it("GA4_AUDIT_EVENTS are all typed client events", () => {
     for (const ev of GA4_AUDIT_EVENTS) expect(clientMap.events.has(ev), ev).toBe(true);
-    // 8 (S23-B) + 5 server-emitted money events (G14-S33) + assessment_submitted (G13-S-D2 leftover) + tbr_clarity_answered (G19-S45)
-    expect(GA4_AUDIT_EVENTS).toHaveLength(15);
+    // 8 (S23-B) + 5 server-emitted money events (G14-S33) + assessment_submitted (G13-S-D2 leftover) + tbr_clarity_answered (G19-S45) + 2 free-allowance events (G25-C)
+    expect(GA4_AUDIT_EVENTS).toHaveLength(17);
+    for (const ev of ["free_report_submitted", "free_report_delivered"]) expect(GA4_AUDIT_EVENTS, ev).toContain(ev);
     for (const ev of ["trust_report_purchased", "evaluator_trial_started", "subscription_created", "tbr_share_created", "dossier_view", "funding_report_paid", "assessment_submitted", "tbr_clarity_answered"]) {
       expect(GA4_AUDIT_EVENTS, ev).toContain(ev);
     }

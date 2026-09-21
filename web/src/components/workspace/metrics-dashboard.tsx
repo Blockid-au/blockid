@@ -245,7 +245,7 @@ function MetricsHistory({ metrics }: { metrics: MetricRow[] }) {
       </div>
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead>
+          <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
             <tr className="border-b border-surface-200 bg-surface-50">
               <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-500">Month</th>
               <th className="px-4 py-2.5 text-right text-[10px] font-semibold uppercase tracking-wider text-ink-500">MRR</th>
@@ -258,7 +258,7 @@ function MetricsHistory({ metrics }: { metrics: MetricRow[] }) {
               <th className="px-4 py-2.5 text-left text-[10px] font-semibold uppercase tracking-wider text-ink-500">Notes</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-line-subtle">
             {sorted.map((row) => {
               const dateObj = new Date(row.metric_date);
               const monthLabel = dateObj.toLocaleDateString("en-AU", {
@@ -428,7 +428,7 @@ export function MetricsDashboard({
           id="chart-metric"
           value={selectedMetric}
           onChange={(e) => setSelectedMetric(e.target.value as ChartableField)}
-          className="rounded-lg border border-surface-200 bg-surface-50 px-2.5 py-1.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-300"
+          className="rounded-lg border border-surface-200 bg-surface-50 px-2.5 py-1.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action/25"
         >
           {Object.entries(chartableLabels).map(([key, label]) => (
             <option key={key} value={key}>

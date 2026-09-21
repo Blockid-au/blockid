@@ -70,6 +70,11 @@ export type AnalyticsEvent =
   | { name: "report_view"; params: { tier: ReportViewTier; pages_est?: number; project_id: string; qa?: boolean } }
   | { name: "paywall_view"; params: { surface: PaywallSurface | string; sku: string; amount_cents: number; project_id?: string; qa?: boolean } }
   | { name: "checkout"; params: { sku: string; amount_cents: number; project_id?: string; order_id?: string; qa?: boolean } }
+  // ── G25-D review-before-pay (client via /api/analytics/event; anonymous allowed on the first) ──
+  //   checkout_review_viewed — /checkout/review rendered (plan / pack / sku, interval, trial, entry surface)
+  //   checkout_started       — the explicit Pay / Add-card button was pressed (the ONLY Stripe hand-off)
+  | { name: "checkout_review_viewed"; params: { plan: string; kind: "plan" | "pack" | "sku"; interval: "monthly" | "annual" | "once"; trial: boolean; entry: string; amount_cents: number; qa?: boolean } }
+  | { name: "checkout_started"; params: { plan: string; kind: "plan" | "pack" | "sku"; interval: "monthly" | "annual" | "once"; trial: boolean; entry: string; amount_cents: number; qa?: boolean } }
   | { name: "agent_invoke"; params: { agent: string; credits_spent: number; duration_ms?: number } }
   | { name: "cohort_action"; params: { cohort: string; action: string; detail?: Record<string, string | number | boolean> } }
   | { name: "investor_view_deal"; params: { deal_id: string; segment: UserSegment; source?: string } }
@@ -90,6 +95,11 @@ export type AnalyticsEvent =
   // ── G19-S45 engagement twins (client-emitted today; typed here so the GA4 limits test covers both maps) ──
   | { name: "tbr_section_view"; params: { section: string; surface: "founder" | "share" | "order_page" | "demo"; tier?: string; user_id?: string } }
   | { name: "tbr_export"; params: { format: "pdf" | "docx"; surface: string; user_id?: string } }
+  // ── G25-C free allowance (server-side; lib/analytics/funnel.ts emitFreeReport*) ──
+  //   free_report_submitted — a free report was reserved for an address (sequence_no 1 | 2, source guest | account)
+  //   free_report_delivered — the PDF e-mail for that report was accepted by the provider
+  | { name: "free_report_submitted"; params: { grant_id: string; sequence_no: 1 | 2; source: "guest" | "account"; queued: boolean; analysis_id?: string; qa?: boolean } }
+  | { name: "free_report_delivered"; params: { grant_id: string; sequence_no: 1 | 2; source: "guest" | "account"; analysis_id?: string; qa?: boolean } }
   | { name: "dossier_view"; params: { evaluation_id: string; consent_tier: string; role: "assessor" | "founder"; surface: "page" | "api"; user_id: string } }
   // ── G13-S-D2 / G14 GA4 audit leftover — evaluator submitted their assessment ──
   | { name: "assessment_submitted"; params: { evaluation_id: string; decision: "pass" | "track" | "proceed" | "none"; version: number; user_id: string } }
@@ -232,6 +242,8 @@ export function qaFlag(email: string | null | undefined): { qa?: true } {
 export const CLIENT_EMITTABLE_EVENTS = Object.freeze([
   "paywall_view",
   "checkout",
+  "checkout_review_viewed",
+  "checkout_started",
   "report_view",
   "dashboard_view",
   "share_link_open",
@@ -244,7 +256,7 @@ export function isClientEmittableEvent(name: string): name is ClientEmittableEve
 }
 
 /** Events an anonymous browser (no session cookie) may still send — the public /tbr/* paywall. */
-export const ANON_EMITTABLE_EVENTS: readonly ClientEmittableEvent[] = Object.freeze(["paywall_view", "share_link_open"]);
+export const ANON_EMITTABLE_EVENTS: readonly ClientEmittableEvent[] = Object.freeze(["paywall_view", "share_link_open", "checkout_review_viewed"]);
 
 // ── PII guard ──────────────────────────────────────────────────────────
 //

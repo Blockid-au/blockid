@@ -235,17 +235,17 @@ function InviteContent({ req }: { req: GrantRequestSummary }) {
       </header>
 
       {/* Identity card */}
-      <section className="rounded-3xl border border-surface-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-surface-100">
+      <section className="rounded-3xl border border-surface-200 bg-white p-6 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.12em] text-ink-500">
               Requesting
             </p>
-            <p className="mt-1 text-lg font-semibold text-ink-900 dark:text-ink-100">
+            <p className="mt-1 text-lg font-semibold text-ink-900">
               {req.mentorLabel}
             </p>
             {req.mentorEmail ? (
-              <p className="text-sm text-ink-600 dark:text-ink-300">
+              <p className="text-sm text-ink-600">
                 {req.mentorEmail}
               </p>
             ) : null}
@@ -263,7 +263,7 @@ function InviteContent({ req }: { req: GrantRequestSummary }) {
       </section>
 
       {/* Tier diff */}
-      <section className="mt-6 rounded-3xl border border-surface-200 bg-white p-6 shadow-sm dark:border-white/10 dark:bg-surface-100">
+      <section className="mt-6 rounded-3xl border border-surface-200 bg-white p-6 shadow-sm">
         <h4 className="text-sm font-semibold uppercase tracking-[0.12em] text-ink-500">
           What changes if you approve
         </h4>
@@ -276,8 +276,8 @@ function InviteContent({ req }: { req: GrantRequestSummary }) {
                 key={t}
                 className={`flex items-start gap-3 rounded-2xl border p-3 ${
                   isRequested
-                    ? "border-brand-300 bg-brand-50/60 dark:border-brand-800/40 dark:bg-brand-900/20"
-                    : "border-surface-200 bg-white dark:border-white/10 dark:bg-surface-100"
+                    ? "border-brand-300 bg-brand-50/60"
+                    : "border-surface-200 bg-white"
                 }`}
               >
                 <div className="mt-0.5">
@@ -299,7 +299,7 @@ function InviteContent({ req }: { req: GrantRequestSummary }) {
                   )}
                 </div>
                 <div className="min-w-0">
-                  <p className="text-sm font-semibold text-ink-800 dark:text-ink-100">
+                  <p className="text-sm font-semibold text-ink-800">
                     {tierLabel(t)}
                     {isCurrent ? (
                       <span className="ml-2 text-xs font-normal text-ink-500">
@@ -312,7 +312,7 @@ function InviteContent({ req }: { req: GrantRequestSummary }) {
                       </span>
                     ) : null}
                   </p>
-                  <p className="mt-0.5 text-xs leading-relaxed text-ink-600 dark:text-ink-300">
+                  <p className="mt-0.5 text-xs leading-relaxed text-ink-600">
                     {tierDisclosure(t)}
                   </p>
                 </div>

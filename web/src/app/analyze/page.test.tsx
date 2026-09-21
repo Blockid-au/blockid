@@ -33,6 +33,8 @@ vi.mock("@/components/analyze/analyze-root", () => ({
 vi.mock("@/lib/auth", () => ({
   getCurrentUser: vi.fn(async () => null),
 }));
+// G25-C: the page resolves the locale from the cookie jar (no request scope here).
+vi.mock("@/lib/i18n", () => ({ getLocale: vi.fn(async () => "en") }));
 
 import AnalyzePage, { metadata } from "./page";
 import { getCurrentUser } from "@/lib/auth";
@@ -88,6 +90,15 @@ describe("/analyze — marketing shell (F4)", () => {
       resumedFromSignup: true,
       claimed: 2,
     });
+    // G25-C: the free-allowance copy rides in, resolved server-side, with the
+    // approved data-principle sentence verbatim and the price from the SKU.
+    expect(props.freeReportCopy.email.principle).toBe(
+      "Your data belongs to your startup. We store it so every report builds on your own evidence and the AI reasons on your case. Founder-consented access tiers control who sees what.",
+    );
+    expect(props.freeReportCopy.email.consent).toMatch(/unsubscribe any time/i);
+    expect(props.freeReportCopy.email.consent).toMatch(/Auschain/);
+    expect(props.freeReportCopy.pay.body).toContain("A$3 inc. GST");
+    expect(props.freeReportCopy.email.body).toContain("first 2 business reports");
   });
 
   it("keeps the pageMetadata contract", () => {

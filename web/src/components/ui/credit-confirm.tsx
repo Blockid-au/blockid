@@ -18,7 +18,7 @@ export function CreditConfirm({ action, cost, balance, onConfirm, onCancel, isOp
   const remaining = balance - cost;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-strong/50">
       <div className="mx-4 w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl">
         <div className="flex items-center gap-3 mb-4">
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100">

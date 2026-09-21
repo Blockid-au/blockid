@@ -1,11 +1,13 @@
 // G22-D — the validation tracker model: levels + targets as the advisor plan
 // wrote them, the strict entry schema, merge / patch / remove, the ladder
 // counts (manual done + counted auto rows), open-objection grouping, the
-// auto-row derivation (L4 first paid order, L5 renewal / second buyer,
+// auto-row derivation (L4 first paid program invoice, L5 renewal / second organisation — G25: from revenue_events,
 // signals never counted, QA rows dropped) and the 14-question script.
 
 import { describe, expect, it } from "vitest";
 import {
+  PROGRAM_PLAN_IDS,
+  PROGRAM_PLAN_LABELS,
   VALIDATION_LEVELS,
   VALIDATION_SCRIPT,
   applyPatch,
@@ -48,14 +50,14 @@ describe("levels + script", () => {
       [4, 1],
       [5, 1],
     ]);
-    expect(VALIDATION_LEVELS[3]!.label).toContain("A$1,500");
+    expect(VALIDATION_LEVELS[3]!.label).toContain("Cohort 25");
   });
 
   it("14 questions (the advisor plan's 13 + the one that matters), numbered 1..14, opening on intake and closing on the payment ask", () => {
     expect(VALIDATION_SCRIPT).toHaveLength(14);
     expect(VALIDATION_SCRIPT.map((q) => q.n)).toEqual(Array.from({ length: 14 }, (_, i) => i + 1));
     expect(VALIDATION_SCRIPT[0]!.text).toMatch(/^Walk me through your current intake/);
-    expect(VALIDATION_SCRIPT[11]!.text).toBe("Would you pay A$1,500 to use it on the next cohort?");
+    expect(VALIDATION_SCRIPT[11]!.text).toBe("Would you pay A$5,000 a year to use it on the next cohort?");
     expect(VALIDATION_SCRIPT[13]!.text).toBe("Will you pay for the next cohort now?");
     for (const q of VALIDATION_SCRIPT) expect(q.listen_for.length).toBeGreaterThan(5);
   });
@@ -130,50 +132,57 @@ describe("merge helpers", () => {
   });
 });
 
-const ORDER: AutoInputs["pilotOrders"][number] = { id: "o-1", user_id: "u-1", buyer_email: "ops@program.org", sku: "cohort_pilot_25", amount_cents: 150_000, currency: "aud", status: "paid", created_at: "2026-09-10T00:00:00.000Z", metrics: null };
+const INVOICE: AutoInputs["revenueEvents"][number] = { id: 1, user_id: "u-1", plan_id: "accelerator_starter", kind: "subscribe", gross_aud_cents: 500_000, currency: "AUD", ts: "2026-09-10T00:00:00.000Z", payer_email: "ops@program.org" };
 
 describe("deriveAutoRows", () => {
-  it("first paid order ≥ A$1,500 → L4 counted; a second order by the same buyer → L5 renewal; a second buyer → L5 second organisation", () => {
+  it("first paid program invoice → L4 counted; a later invoice by the same organisation → L5 renewal; a second organisation → L5 second organisation", () => {
     const rows = deriveAutoRows({
-      pilotOrders: [ORDER, { ...ORDER, id: "o-2", created_at: "2026-09-12T00:00:00.000Z" }, { ...ORDER, id: "o-3", user_id: "u-2", buyer_email: "desk@fund.vc", created_at: "2026-09-14T00:00:00.000Z" }],
-      applications: [],
-      feedbackLetters: [],
-      batches: [],
-    });
-    const byId = new Map(rows.map((r) => [r.id, r]));
-    expect(byId.get("pilot_orders:o-1")).toMatchObject({ level: 4, counts: true, organisation: "program.org", source: "pilot_orders" });
-    expect(byId.get("pilot_orders:o-1")!.detail).toContain("A$1,500");
-    expect(byId.get("pilot_orders:o-2:l5")).toMatchObject({ level: 5, counts: true });
-    expect(byId.get("pilot_orders:o-2:l5")!.detail).toMatch(/Renewal/);
-    expect(byId.get("pilot_orders:o-3:l5")).toMatchObject({ level: 5, counts: true, organisation: "fund.vc" });
-    expect(byId.get("pilot_orders:o-3:l5")!.detail).toMatch(/Second organisation/);
-    for (const r of rows) expect(r.organisation).not.toContain("@");
-  });
-
-  it("an order under A$1,500, a refunded order and a qa-live buyer never count; metrics captured is a signal", () => {
-    const rows = deriveAutoRows({
-      pilotOrders: [
-        { ...ORDER, amount_cents: 99_900, metrics: { time_to_shortlist_before_min: 240, updated_at: "2026-09-11T00:00:00.000Z", case_study_consent: true } },
-        { ...ORDER, id: "o-r", status: "refunded" },
-        { ...ORDER, id: "o-qa", buyer_email: "qa-live-20260921-0900@blockid.au" },
+      revenueEvents: [
+        INVOICE,
+        { ...INVOICE, id: 2, kind: "renewal", ts: "2026-09-12T00:00:00.000Z" },
+        { ...INVOICE, id: 3, user_id: "u-2", plan_id: "investor_vc_small", gross_aud_cents: 34_900, ts: "2026-09-14T00:00:00.000Z", payer_email: "desk@fund.vc" },
       ],
       applications: [],
       feedbackLetters: [],
       batches: [],
     });
-    expect(rows.map((r) => r.id).sort()).toEqual(["pilot_orders.metrics:o-1", "pilot_orders:o-1"]);
-    const l4 = rows.find((r) => r.id === "pilot_orders:o-1")!;
-    expect(l4.counts).toBe(false);
-    expect(l4.detail).toContain("not counted");
-    const m = rows.find((r) => r.source === "pilot_orders.metrics")!;
-    expect(m).toMatchObject({ level: 4, counts: false, date: "2026-09-11" });
-    expect(m.detail).toContain("2 fields");
-    expect(m.detail).toContain("case-study consent");
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    expect(byId.get("revenue_events:1")).toMatchObject({ level: 4, counts: true, organisation: "program.org", source: "revenue_events" });
+    expect(byId.get("revenue_events:1")!.detail).toContain("Cohort 25");
+    expect(byId.get("revenue_events:1")!.detail).toContain("A$5,000");
+    expect(byId.get("revenue_events:2:l5")).toMatchObject({ level: 5, counts: true });
+    expect(byId.get("revenue_events:2:l5")!.detail).toMatch(/Renewal/);
+    expect(byId.get("revenue_events:3:l5")).toMatchObject({ level: 5, counts: true, organisation: "fund.vc" });
+    expect(byId.get("revenue_events:3:l5")!.detail).toMatch(/Second organisation/);
+    expect(byId.get("revenue_events:3:l5")!.detail).toContain("Program");
+    for (const r of rows) expect(r.organisation).not.toContain("@");
+  });
+
+  it("a zero-amount trial row, a non-program plan, a refund and a qa-live payer never produce a row; nothing reads pilot_orders", () => {
+    const rows = deriveAutoRows({
+      revenueEvents: [
+        { ...INVOICE, id: 10, kind: "trial_start", gross_aud_cents: 0 },
+        { ...INVOICE, id: 11, plan_id: "founder_growth" },
+        { ...INVOICE, id: 12, kind: "refund" },
+        { ...INVOICE, id: 13, payer_email: "qa-live-20260921-0900@blockid.au" },
+        { ...INVOICE, id: 14, plan_id: null },
+      ],
+      applications: [],
+      feedbackLetters: [],
+      batches: [],
+    });
+    expect(rows).toEqual([]);
+    expect(PROGRAM_PLAN_IDS).toEqual(["accelerator_starter", "accelerator_growth", "investor_vc_small"]);
+    expect(PROGRAM_PLAN_LABELS).toBe("Cohort 25 / Cohort 100 annual, or Program A$349/mo");
+    expect(VALIDATION_LEVELS[3]!.label).toContain("First paying program");
+    expect(VALIDATION_LEVELS[2]!.label).toBe("Written proposals");
+    expect(VALIDATION_LEVELS[4]!.label).toBe("Renewal or second paying organisation");
+    expect(JSON.stringify(VALIDATION_LEVELS)).not.toMatch(/pilot/i);
   });
 
   it("applications → L1 signal; sent / opened letters → L2 signal (drafts skipped); cohorts with done items → L2 signal (QA owners skipped)", () => {
     const rows = deriveAutoRows({
-      pilotOrders: [],
+      revenueEvents: [],
       applications: [{ id: "a-1", program_name: "Uni Program", cohort_size: 40, intake_month: "2026-11", received_at: "2026-09-18T00:00:00.000Z" }],
       feedbackLetters: [
         { id: "l-1", project_id: "11111111-2222-4333-8444-555555555555", status: "sent", sent_at: "2026-09-17T00:00:00.000Z", org_count: 2, k: 3 },
@@ -196,7 +205,7 @@ describe("deriveAutoRows", () => {
 describe("deriveAutoRows — G24-C demo cohorts", () => {
   it("a demo cohort is never 'Cohort scored'; loaded by an external seat it is a Level-2 'workflow demo run' signal; loaded by an admin it is nothing", () => {
     const rows = deriveAutoRows({
-      pilotOrders: [],
+      revenueEvents: [],
       applications: [],
       feedbackLetters: [],
       batches: [
@@ -223,7 +232,7 @@ describe("ladder + objections + dashboard", () => {
       entry({ id: "4", level: 1, outcome: "declined" }),
       entry({ id: "5", level: 4, outcome: "done" }),
     ];
-    const auto = deriveAutoRows({ pilotOrders: [ORDER], applications: [], feedbackLetters: [], batches: [] });
+    const auto = deriveAutoRows({ revenueEvents: [INVOICE], applications: [], feedbackLetters: [], batches: [] });
     const ladder = computeLadder(entries, auto);
     expect(ladder[0]).toMatchObject({ level: 1, target: 5, actual: 2, manual_done: 2, auto_counted: 0, booked: 1, declined: 1, progress: 0.4 });
     expect(ladder[3]).toMatchObject({ level: 4, target: 1, actual: 2, manual_done: 1, auto_counted: 1, progress: 1 });

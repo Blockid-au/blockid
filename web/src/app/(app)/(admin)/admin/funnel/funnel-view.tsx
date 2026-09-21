@@ -8,6 +8,7 @@ import Link from "next/link";
 import type { FunnelCounts, FunnelDailyRow, FunnelLatest } from "@/lib/funnel/core";
 import type { FiMetric, InstitutionalFunnel } from "@/lib/funnel/institutional";
 import type { FunnelFileStatus } from "@/lib/funnel/read";
+import type { FreeReportMetrics } from "@/lib/reports/free-grants-rules";
 
 export interface FunnelViewData {
   latest: FunnelLatest | null;
@@ -17,6 +18,8 @@ export interface FunnelViewData {
   today: { counts: FunnelCounts | null; date: string; warning: string | null };
   /** G21 P0-D — institutional funnel + North Star (null when the page is rendered without it). */
   institutional?: InstitutionalFunnel | null;
+  /** G25-C — the free allowance ledger (null when the page is rendered without it). */
+  freeReports?: FreeReportMetrics | null;
 }
 
 const STEP_LABELS: ReadonlyArray<{ key: keyof FunnelCounts; label: string; note: string }> = [
@@ -26,6 +29,9 @@ const STEP_LABELS: ReadonlyArray<{ key: keyof FunnelCounts; label: string; note:
   { key: "paywall_views", label: "Paywall views", note: "paywall_view — free-tier cut rendered" },
   { key: "checkouts", label: "Checkouts", note: "checkout — A$3 Stripe session created" },
   { key: "paid", label: "Paid", note: "trust_report_purchased — Stripe webhook" },
+  // G25-D — plans / packs / SKUs go through the review step; these two rows are that edge.
+  { key: "review_views", label: "Review views", note: "checkout_review_viewed — /checkout/review rendered (plans, packs, SKUs)" },
+  { key: "pay_clicks", label: "Pay clicks", note: "checkout_started — the explicit Pay / Add-card button (the only Stripe hand-off)" },
 ];
 
 const CONV_LABELS: ReadonlyArray<{ key: keyof FunnelCounts["conv"]; label: string }> = [
@@ -34,6 +40,7 @@ const CONV_LABELS: ReadonlyArray<{ key: keyof FunnelCounts["conv"]; label: strin
   { key: "report_to_paywall", label: "report → paywall" },
   { key: "paywall_to_checkout", label: "paywall → checkout" },
   { key: "checkout_to_paid", label: "checkout → paid" },
+  { key: "review_to_pay", label: "review → pay (G25-D)" },
 ];
 
 function n(v: number | null | undefined): string {
@@ -209,7 +216,7 @@ function InstitutionalSection({ fi }: { fi: InstitutionalFunnel }) {
         <p className="text-sm text-indigo-900">startups assessed through paying institutional workflows this month</p>
         <p className="mt-1 text-xs text-indigo-800">
           {ns
-            ? `${n(ns.assessed_all)} batch items scored in total · ${n(ns.paying_batches)} paying batches · ${n(ns.paying_orgs)} paying organisations (Program / Fund / Cohort / Intake / paid pilot)`
+            ? `${n(ns.assessed_all)} batch items scored in total · ${n(ns.paying_batches)} paying batches · ${n(ns.paying_orgs)} paying organisations (Program / Fund / Cohort / Intake)`
             : "evaluation_batch_items unavailable"}
           {ns?.partial ? ` · partial: ${ns.partial}` : ""}
         </p>
@@ -245,8 +252,79 @@ function InstitutionalSection({ fi }: { fi: InstitutionalFunnel }) {
   );
 }
 
+/** Inline SVG sparkline — submitted (line) vs delivered (dots), last 7 UTC days. */
+function FreeReportSparkline({ points }: { points: FreeReportMetrics["last_7_days"] }) {
+  const w = 160;
+  const h = 40;
+  const max = Math.max(1, ...points.map((p) => Math.max(p.submitted, p.delivered)));
+  const x = (i: number) => (points.length <= 1 ? 0 : (i / (points.length - 1)) * (w - 4) + 2);
+  const y = (v: number) => h - 2 - (v / max) * (h - 6);
+  const line = points.map((p, i) => `${x(i).toFixed(1)},${y(p.submitted).toFixed(1)}`).join(" ");
+  return (
+    <svg viewBox={`0 0 ${w} ${h}`} width={w} height={h} role="img" aria-label="Free reports — submitted vs delivered, last 7 days" data-testid="funnel-free-reports-sparkline">
+      <polyline points={line} fill="none" stroke="#4f46e5" strokeWidth="1.5" />
+      {points.map((p, i) => (
+        <circle key={p.day} cx={x(i)} cy={y(p.delivered)} r="2" fill="#059669" />
+      ))}
+    </svg>
+  );
+}
+
+/**
+ * G25-C — the free allowance: how many people submitted, how many received
+ * the report (founder decision 2026-09-21), today against the cap, and the
+ * addresses that later paid. Live from `free_report_grants`.
+ */
+function FreeReportsSection({ fr }: { fr: FreeReportMetrics }) {
+  const deliveredPct = fr.submitted > 0 ? `${Math.round((fr.delivered / fr.submitted) * 100)}% delivered` : "no submissions yet";
+  const capLine = fr.cap === 0 ? "cap 0 — free reports paused today" : `${n(fr.today)} of ${n(fr.cap)} today${fr.today >= fr.cap ? " — cap reached, new runs queued for tomorrow" : ""}`;
+  return (
+    <section className="space-y-3" data-testid="funnel-free-reports">
+      <div>
+        <p className="text-sm font-medium text-neutral-800">Free reports</p>
+        <p className="mt-1 text-xs text-neutral-500">
+          Two free business reports per e-mail address, address required before the run (<code>free_report_grants</code>, migration 0439).
+          Submitted = grants reserved · delivered = PDF e-mail accepted · people = distinct normalised addresses.
+        </p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <Tile label="Submitted" value={n(fr.submitted)} sub={deliveredPct} testId="funnel-free-reports-submitted" />
+        <Tile label="Delivered" value={n(fr.delivered)} sub={`${n(fr.submitted - fr.delivered)} queued or failed`} testId="funnel-free-reports-delivered" />
+        <Tile label="People" value={n(fr.unique_emails)} sub="distinct e-mail addresses" testId="funnel-free-reports-people" />
+        <Tile label="Today vs cap" value={`${n(fr.today)} / ${n(fr.cap)}`} sub={capLine} testId="funnel-free-reports-today" />
+        <Tile label="Converted to paid" value={n(fr.converted_to_paid)} sub="addresses that later bought a report" testId="funnel-free-reports-converted" />
+      </div>
+      <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+        <FreeReportSparkline points={fr.last_7_days} />
+        <table className="text-xs text-neutral-600" data-testid="funnel-free-reports-7d">
+          <thead>
+            <tr className="text-neutral-500">
+              {fr.last_7_days.map((p) => (
+                <th key={p.day} className="px-1.5 py-0.5 text-right font-medium">{p.day.slice(5)}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              {fr.last_7_days.map((p) => (
+                <td key={p.day} className="px-1.5 py-0.5 text-right tabular-nums" title="submitted">{p.submitted}</td>
+              ))}
+            </tr>
+            <tr className="text-emerald-700">
+              {fr.last_7_days.map((p) => (
+                <td key={p.day} className="px-1.5 py-0.5 text-right tabular-nums" title="delivered">{p.delivered}</td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+        <p className="text-xs text-neutral-500">line = submitted · dots = delivered · UTC days, oldest first</p>
+      </div>
+    </section>
+  );
+}
+
 export function FunnelAdminView({ data }: { data: FunnelViewData }) {
-  const { latest, status, fileError, daily, today, institutional } = data;
+  const { latest, status, fileError, daily, today, institutional, freeReports } = data;
   const recent = daily.slice(-14).reverse();
   return (
     <div className="min-h-svh bg-neutral-50 px-4 py-8">
@@ -313,6 +391,8 @@ export function FunnelAdminView({ data }: { data: FunnelViewData }) {
             </div>
           </>
         ) : null}
+
+        {freeReports ? <FreeReportsSection fr={freeReports} /> : null}
 
         {institutional ? <InstitutionalSection fi={institutional} /> : null}
 

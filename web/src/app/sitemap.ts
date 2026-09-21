@@ -496,37 +496,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         },
       },
     },
-    // G21 P0-C (2026-09-20) — /pilot: the paid Cohort Validation Pilot
-    // landing (F-3 public + indexable), the accelerator page's next step.
-    // The comped evaluator pilot moved to /pilot/investor (noindex) and is
-    // deliberately NOT listed.
-    // G22-C (2026-09-21) — /vi/pilot mirrors it; hreflang pair on both.
-    {
-      url: `${SITE_URL}/pilot`,
-      lastModified,
-      changeFrequency: "weekly",
-      priority: 0.8,
-      alternates: {
-        languages: {
-          en: `${SITE_URL}/pilot`,
-          vi: `${SITE_URL}/vi/pilot`,
-          "x-default": `${SITE_URL}/pilot`,
-        },
-      },
-    },
-    {
-      url: `${SITE_URL}/vi/pilot`,
-      lastModified,
-      changeFrequency: "weekly",
-      priority: 0.7,
-      alternates: {
-        languages: {
-          en: `${SITE_URL}/pilot`,
-          vi: `${SITE_URL}/vi/pilot`,
-          "x-default": `${SITE_URL}/pilot`,
-        },
-      },
-    },
+    // G25 (2026-09-21) — /pilot + /vi/pilot are gone (301 → the programs
+    // page); no sitemap / hreflang row for either.
     // T0274 (2026-09-10) — /solutions/advisor is a real page now (Firm A$149);
     // /for/advisor 301s here.
     {

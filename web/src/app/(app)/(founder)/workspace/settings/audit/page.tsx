@@ -167,7 +167,7 @@ export default async function AuditLogPage({ searchParams }: AuditLogPageProps) 
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
-                  <thead className="bg-surface-sunken text-ink-700">
+                  <thead className="sticky top-0 z-10 bg-surface-sunken text-ink-700">
                     <tr>
                       <th className="text-left px-4 py-3 font-medium">When</th>
                       <th className="text-left px-4 py-3 font-medium">Action</th>
@@ -175,7 +175,7 @@ export default async function AuditLogPage({ searchParams }: AuditLogPageProps) 
                       <th className="text-left px-4 py-3 font-medium">Route</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-surface-100">
+                  <tbody className="divide-y divide-line-subtle">
                     {rows.map((row) => (
                       <tr key={row.id} className="hover:bg-surface-hover">
                         <td className="px-4 py-3 text-ink-700 font-mono text-xs whitespace-nowrap">
@@ -304,7 +304,7 @@ export default async function AuditLogPage({ searchParams }: AuditLogPageProps) 
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm" data-testid="audit-table">
-                <thead className="bg-surface-sunken text-ink-700">
+                <thead className="sticky top-0 z-10 bg-surface-sunken text-ink-700">
                   <tr>
                     <th className="text-left px-4 py-3 font-medium">When</th>
                     <th className="text-left px-4 py-3 font-medium">Actor</th>
@@ -314,7 +314,7 @@ export default async function AuditLogPage({ searchParams }: AuditLogPageProps) 
                     <th className="text-left px-4 py-3 font-medium">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-surface-100">
+                <tbody className="divide-y divide-line-subtle">
                   {rows.map((row: AuditEventRow) => {
                     const d = (row.detail ?? {}) as Record<string, unknown>;
                     return (

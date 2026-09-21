@@ -58,7 +58,7 @@ export function PricingTiersClient({ initial, disabled }: Props) {
   const [aiNote, setAiNote] = useState<string | null>(null);
 
   const input =
-    "w-full rounded-xl border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40 disabled:opacity-50";
+    "w-full rounded-xl border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:border-action focus:outline-none focus:ring-2 focus:ring-action/40 disabled:opacity-50";
   const label = "text-xs font-semibold text-ink-700 uppercase tracking-wider";
 
   async function add() {
@@ -169,7 +169,7 @@ export function PricingTiersClient({ initial, disabled }: Props) {
                   className={`rounded-2xl border p-5 relative ${isMiddle ? "border-brand-500 bg-brand-50/40 shadow-md" : "border-surface-200 bg-white"}`}
                 >
                   {isMiddle && (
-                    <span className="absolute -top-2 right-4 rounded-full bg-brand-600 px-2 py-0.5 text-[10px] font-semibold uppercase text-white">
+                    <span className="absolute -top-2 right-4 rounded-full bg-action px-2 py-0.5 text-[10px] font-semibold uppercase text-on-action">
                       Most popular
                     </span>
                   )}
@@ -204,7 +204,7 @@ export function PricingTiersClient({ initial, disabled }: Props) {
                   </ul>
                   <button
                     type="button"
-                    className={`mt-5 w-full rounded-xl px-3 py-2 text-sm font-semibold ${isMiddle ? "bg-brand-600 text-white" : "border border-surface-300 text-ink-700 bg-white"}`}
+                    className={`mt-5 w-full rounded-xl px-3 py-2 text-sm font-semibold ${isMiddle ? "bg-action text-on-action" : "border border-surface-300 text-ink-700 bg-white"}`}
                   >
                     {t.cta_label ?? "Get started"}
                   </button>

@@ -85,8 +85,8 @@ export const BLOCKID_CRITERIA = {
     links: [{ url: `${BLOCKID_SITE}/showcase/blockid`, label: "Public showcase" }],
   },
   gtm_strategy: {
-    text: "Evaluator-first: A$3 report is the lead, programs are the revenue. Ladder: Free → A$3 Trusted Business Report → Scout A$79/mo → Firm A$149/mo → Program A$349/mo → Fund A$999/mo; Cohort 25 A$5,000/yr, Cohort 100 A$15,000/yr. 90-day plan: 10/12/15 evaluator interviews, 2/6/8 LOIs, 2/4/5 accelerator pilots (cap 5, comped 30 days, never a Stripe payer), 120/300/500 evaluator sign-ups at day 30/60/90. Channels: accelerator intake links, angel groups, accounting firms (ESIC / R&D), the public index.",
-    links: [{ url: `${BLOCKID_SITE}/pricing`, label: "Pricing" }, { url: `${BLOCKID_SITE}/pilot`, label: "Pilot programme" }],
+    text: "Evaluator-first: A$3 report is the lead, programs are the revenue. Ladder: Free → A$3 Trusted Business Report → Scout A$79/mo → Firm A$149/mo → Program A$349/mo → Fund A$999/mo; Cohort 25 A$5,000/yr, Cohort 100 A$15,000/yr. 90-day plan: 10/12/15 evaluator interviews, 2/6/8 LOIs, 2/4/5 first paying programs on Cohort 25 / Cohort 100 (14-day trial, card required — the comped pilot was retired 2026-09-21), 120/300/500 evaluator sign-ups at day 30/60/90. Channels: accelerator intake links, angel groups, accounting firms (ESIC / R&D), the public index.",
+    links: [{ url: `${BLOCKID_SITE}/pricing`, label: "Pricing" }, { url: `${BLOCKID_SITE}/solutions/accelerator`, label: "Programs" }],
   },
   documents: {
     text: "Pitch deck v3 (12 slides, evaluator-first, 3-minute cut) with a provenance table for every number; financial model with unit economics (base case month 12 is a projection, not a fact); PRD, architecture and API reference documents; investor feedback file (19 judge comments clustered C1–C10).",

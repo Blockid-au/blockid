@@ -4,11 +4,19 @@
 // (a guest who gave an email after the job landed; a claim that attached
 // the row to an account). `dryRun` lists the candidates and touches
 // nothing. Dependencies injected for the colocated suite.
+//
+// G25-C: the daily platform cap (FREE_REPORTS_DAILY_CAP). While today's free
+// submissions are at the cap, rows that have NEVER started (`queued`,
+// attempts 0 — the ones the intake route deferred with "we e-mail you when
+// it is ready") wait for tomorrow; in-flight, failed and partial rows are
+// already paid for and keep going. E-mails are never held back.
 
 import "server-only";
 
 import { deliverFullReport, makeAgentCaller, defaultDeps, runFirstAnalysisJob, type DeliveryOutcome, type JobOutcome } from "./job";
-import { sweepPendingFullReports, type FullReportRow } from "./store";
+import { isNeverStarted, sweepPendingFullReports, type FullReportRow } from "./store";
+
+export { isNeverStarted };
 
 export interface SweepSummary {
   ok: boolean;
@@ -17,13 +25,21 @@ export interface SweepSummary {
   emailable: { id: string; hasEmail: boolean; hasUser: boolean }[];
   ran: { id: string; outcome: JobOutcome["outcome"] }[];
   emailed: { id: string; outcome: DeliveryOutcome }[];
+  /** G25-C: never-started free rows held back because today's free cap is reached (filtered in the store, before the limit). */
+  heldForCap: string[];
+  /** G25-C: abandoned reservations (no analysis after an hour) given back this sweep. */
+  staleReleased: number;
   error?: string;
 }
 
 export interface SweepDeps {
-  sweep: (opts: { limit: number }) => Promise<{ runnable: FullReportRow[]; emailable: FullReportRow[] }>;
+  sweep: (opts: { limit: number; holdNeverStartedFree?: boolean }) => Promise<{ runnable: FullReportRow[]; emailable: FullReportRow[]; heldForCap?: FullReportRow[] }>;
   run: (row: FullReportRow) => Promise<JobOutcome>;
   deliver: (row: FullReportRow) => Promise<DeliveryOutcome>;
+  /** True when today's free submissions are at the platform cap (lib/reports/free-grants freeReportsCapReached). */
+  capReached?: () => Promise<boolean>;
+  /** Give back reservations whose run never saved (lib/reports/free-grants releaseStaleReservations). */
+  releaseStale?: () => Promise<number>;
 }
 
 export function defaultSweepDeps(): SweepDeps {
@@ -35,6 +51,14 @@ export function defaultSweepDeps(): SweepDeps {
       return runFirstAnalysisJob(row.id, deps);
     },
     deliver: (row) => (row.full_report_json ? deliverFullReport(row, row.full_report_json) : Promise.resolve("skipped")),
+    capReached: async () => {
+      const { freeReportsCapReached } = await import("@/lib/reports/free-grants");
+      return freeReportsCapReached();
+    },
+    releaseStale: async () => {
+      const { releaseStaleReservations } = await import("@/lib/reports/free-grants");
+      return releaseStaleReservations();
+    },
   };
 }
 
@@ -44,12 +68,37 @@ export async function sweepFirstAnalysisReports(
 ): Promise<SweepSummary> {
   const dryRun = Boolean(opts.dryRun);
   const limit = opts.limit ?? 5;
-  const summary: SweepSummary = { ok: true, dryRun, runnable: [], emailable: [], ran: [], emailed: [] };
+  const summary: SweepSummary = { ok: true, dryRun, runnable: [], emailable: [], ran: [], emailed: [], heldForCap: [], staleReleased: 0 };
   try {
-    const pending = await deps.sweep({ limit });
-    summary.runnable = pending.runnable.map((r) => ({ id: r.id, status: r.full_report_status, attempts: r.full_report_attempts ?? 0 }));
+    // One cheap count: is today's free cap reached? The store then holds
+    // never-started FREE rows before it slices to `limit`, so retries are
+    // never starved by a queue of deferred free runs. A failed read holds
+    // nothing (fail open).
+    let capReached = false;
+    if (deps.capReached) {
+      try {
+        capReached = await deps.capReached();
+      } catch (err) {
+        console.warn("[first-analysis:sweep] cap read failed — running", err instanceof Error ? err.message : String(err));
+        capReached = false;
+      }
+    }
+    const pending = await deps.sweep({ limit, holdNeverStartedFree: capReached });
+    summary.heldForCap = (pending.heldForCap ?? []).map((r) => r.id);
+    const runnable = pending.runnable;
+    summary.runnable = runnable.map((r) => ({ id: r.id, status: r.full_report_status, attempts: r.full_report_attempts ?? 0 }));
     summary.emailable = pending.emailable.map((r) => ({ id: r.id, hasEmail: Boolean(r.full_report_email), hasUser: Boolean(r.user_id) }));
     if (dryRun) return summary;
+
+    // Abandoned reservations (a run that reserved a free report and never
+    // saved) are given back so the address is not out of pocket. Best effort.
+    if (deps.releaseStale) {
+      try {
+        summary.staleReleased = await deps.releaseStale();
+      } catch (err) {
+        console.warn("[first-analysis:sweep] stale release failed", err instanceof Error ? err.message : String(err));
+      }
+    }
 
     // Emails first: they are cheap and the founder is waiting on them.
     for (const row of pending.emailable) {
@@ -60,7 +109,7 @@ export async function sweepFirstAnalysisReports(
         summary.emailed.push({ id: row.id, outcome: "send_failed" });
       }
     }
-    for (const row of pending.runnable) {
+    for (const row of runnable) {
       try {
         const out = await deps.run(row);
         summary.ran.push({ id: row.id, outcome: out.outcome });

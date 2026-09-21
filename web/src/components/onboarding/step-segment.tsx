@@ -54,10 +54,10 @@ export function StepSegment({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-brand-ink sm:text-3xl">
+      <h1 className="text-2xl font-bold text-primary sm:text-3xl">
         Who are you?
       </h1>
-      <p className="mt-2 text-brand-ink-muted">
+      <p className="mt-2 text-muted">
         We&apos;ll tailor your setup, goals and plan to match.
       </p>
 
@@ -67,14 +67,14 @@ export function StepSegment({
             key={id}
             type="button"
             onClick={() => choose(id)}
-            className="group flex flex-col items-start gap-3 rounded-2xl border border-brand-cyan/15 bg-brand-navy-elev-1 p-6 text-left transition-all hover:border-brand-cyan/40 hover:bg-brand-navy-elev-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
+            className="group flex flex-col items-start gap-3 rounded-2xl border border-line-subtle bg-surface p-6 text-left transition-all hover:border-line-strong hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-brand-cyan/10 text-brand-cyan transition-colors group-hover:bg-brand-cyan/20">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-action/10 text-action transition-colors group-hover:bg-action/15">
               <Icon aria-hidden="true" className="h-5 w-5" />
             </div>
             <div>
-              <p className="font-semibold text-brand-ink">{label}</p>
-              <p className="mt-1 text-sm text-brand-ink-muted">{tagline}</p>
+              <p className="font-semibold text-primary">{label}</p>
+              <p className="mt-1 text-sm text-muted">{tagline}</p>
             </div>
           </button>
         ))}

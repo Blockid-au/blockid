@@ -227,7 +227,7 @@ export function TrajectoryTimeline({ data, variant = "full", headingLevel = 2, c
               <div className="sr-only">
                 <table className="sr-only">
                   <caption>Trajectory data: one row per snapshot, then one per confirmed outcome</caption>
-                  <thead>
+                  <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                     <tr>
                       {cols.map((c) => (
                         <th key={c} scope="col">
@@ -236,7 +236,7 @@ export function TrajectoryTimeline({ data, variant = "full", headingLevel = 2, c
                       ))}
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-line-subtle [&>tr:nth-child(even)]:bg-surface-sunken">
                     {rows.map((r, i) => (
                       <tr key={i}>
                         {cols.map((c) => (

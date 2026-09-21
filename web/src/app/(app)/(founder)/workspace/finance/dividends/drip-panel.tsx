@@ -239,7 +239,7 @@ export function DripPanel({ initial }: { initial?: DripPanelState }) {
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-semibold text-ink-800">Elections</p>
         {allowed && electable.length > 0 && !adding && (
-          <button type="button" onClick={() => setAdding(true)} disabled={busy !== null} data-testid="drip-add" className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60">
+          <button type="button" onClick={() => setAdding(true)} disabled={busy !== null} data-testid="drip-add" className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover disabled:opacity-60">
             <PlusCircle strokeWidth={1.75} className="h-3.5 w-3.5" /> Add election
           </button>
         )}
@@ -286,7 +286,7 @@ export function DripPanel({ initial }: { initial?: DripPanelState }) {
             <input type="number" min={0} step={0.000001} value={draft.manualPriceAud} onChange={(e) => setDraft({ ...draft, manualPriceAud: e.target.value })} disabled={draft.priceBasis !== "manual"} required={draft.priceBasis === "manual"} data-testid="drip-manual-price" className="mt-1 w-full rounded-lg border border-surface-200 bg-white px-2 py-1.5 text-xs text-ink-800 disabled:opacity-50" />
           </label>
           <div className="flex gap-2 sm:col-span-2 lg:col-span-4">
-            <button type="submit" disabled={busy !== null || !draftValid} data-testid="drip-save" className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60">
+            <button type="submit" disabled={busy !== null || !draftValid} data-testid="drip-save" className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover disabled:opacity-60">
               {busy === "add" ? <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" /> : <PlusCircle strokeWidth={1.75} className="h-3.5 w-3.5" />}
               Save election
             </button>
@@ -331,7 +331,7 @@ export function DripPanel({ initial }: { initial?: DripPanelState }) {
           <p className="text-xs text-ink-500">Estimated when the statements for this dividend are issued ({formatAudCents(state.preview.totalDividendAud)} declared). Nothing is allotted until then.</p>
           <div className="mt-2 overflow-x-auto">
             <table className="w-full text-xs">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                 <tr className="text-left text-[11px] uppercase tracking-wide text-ink-400">
                   <th className="py-1.5 pr-3">Shareholder</th>
                   <th className="py-1.5 pr-3 text-right">Net cash</th>
@@ -342,7 +342,7 @@ export function DripPanel({ initial }: { initial?: DripPanelState }) {
                   <th className="py-1.5 text-right">Cash paid</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-100">
+              <tbody className="divide-y divide-line-subtle [&>tr:nth-child(even)]:bg-surface-sunken">
                 {state.preview.rows.map((r) => (
                   <tr key={r.electionId} data-testid="drip-preview-row">
                     <td className="py-1.5 pr-3 font-medium text-ink-800">{r.shareholderName}</td>

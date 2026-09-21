@@ -96,37 +96,37 @@ function panelClasses(variant: PanelVariant): string {
   if (variant === "workspace") {
     return "rounded-lg border border-surface-200 bg-white p-4";
   }
-  return "mt-10 rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900";
+  return "mt-10 rounded-lg border border-line-subtle bg-white p-6";
 }
 
 function headingClasses(variant: PanelVariant): string {
   return variant === "workspace"
     ? "text-lg font-semibold text-ink-800"
-    : "text-xl font-semibold text-slate-900 dark:text-slate-100";
+    : "text-xl font-semibold text-primary";
 }
 
 function subheadingClasses(variant: PanelVariant): string {
   return variant === "workspace"
     ? "mt-1 text-xs text-ink-500"
-    : "mt-2 text-sm text-slate-600 dark:text-slate-400";
+    : "mt-2 text-sm text-secondary";
 }
 
 function labelClasses(variant: PanelVariant): string {
   return variant === "workspace"
     ? "text-sm font-semibold text-ink-800"
-    : "text-sm font-semibold text-slate-900 dark:text-slate-100";
+    : "text-sm font-semibold text-primary";
 }
 
 function inputClasses(variant: PanelVariant): string {
   return variant === "workspace"
     ? "mt-2 w-full rounded-md border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
-    : "mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100";
+    : "mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500";
 }
 
 function submitClasses(variant: PanelVariant): string {
   return variant === "workspace"
-    ? "mt-4 inline-flex items-center rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-surface-300"
-    : "mt-4 inline-flex items-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700";
+    ? "mt-4 inline-flex items-center rounded-md bg-action px-4 py-2 text-sm font-semibold text-on-action transition hover:bg-action-hover disabled:cursor-not-allowed disabled:bg-surface-300"
+    : "mt-4 inline-flex items-center rounded-md bg-action px-4 py-2 text-sm font-semibold text-on-action transition hover:bg-action-hover disabled:cursor-not-allowed disabled:bg-surface-300";
 }
 
 export function AbsLookupPanel({
@@ -185,11 +185,11 @@ export function AbsLookupPanel({
   const bodyTextClass =
     variant === "workspace"
       ? "text-sm text-ink-700"
-      : "text-sm text-slate-700 dark:text-slate-300";
+      : "text-sm text-slate-700";
   const hintTextClass =
     variant === "workspace"
       ? "mt-0.5 text-xs text-ink-500"
-      : "mt-1 text-xs text-slate-500 dark:text-slate-400";
+      : "mt-1 text-xs text-muted";
 
   return (
     <section
@@ -270,7 +270,7 @@ export function AbsLookupPanel({
 
       {fetchState.status === "error" ? (
         <div
-          className="mt-6 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200"
+          className="mt-6 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
           data-testid="abs-lookup-error"
           role="alert"
         >
@@ -309,7 +309,7 @@ function ResultBlock(props: {
   const tileClass =
     variant === "workspace"
       ? "rounded-md border border-surface-200 bg-surface-50 p-3"
-      : "rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950";
+      : "rounded-md border border-line-subtle bg-surface-sunken p-3";
   return (
     <div className="mt-6 space-y-5" data-testid="abs-lookup-result">
       <header>
@@ -320,7 +320,7 @@ function ResultBlock(props: {
           className={
             variant === "workspace"
               ? "mt-0.5 text-base font-semibold text-ink-800"
-              : "mt-0.5 text-base font-semibold text-slate-900 dark:text-slate-100"
+              : "mt-0.5 text-base font-semibold text-primary"
           }
           data-testid="abs-lookup-label"
         >
@@ -391,7 +391,7 @@ function ResultBlock(props: {
                   href={s.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-emerald-700 underline hover:text-emerald-900 dark:text-emerald-300"
+                  className="text-emerald-700 underline hover:text-emerald-900"
                 >
                   {s.publisher} — {s.title} ({s.publishedYear})
                 </a>
@@ -413,7 +413,7 @@ function ResultBlock(props: {
                 <button
                   type="button"
                   onClick={() => onPivot(s.anzsic_code)}
-                  className="rounded-full border border-slate-300 px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-emerald-500 hover:text-emerald-700 dark:border-slate-700 dark:text-slate-300"
+                  className="rounded-full border border-line px-3 py-1 text-xs font-semibold text-slate-700 transition hover:border-emerald-500 hover:text-emerald-700"
                 >
                   {s.label} · {s.anzsic_code} · {formatAudCompact(s.tam_aud)}
                 </button>

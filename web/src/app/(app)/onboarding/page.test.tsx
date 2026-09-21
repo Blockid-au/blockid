@@ -63,7 +63,7 @@ describe("/onboarding page", () => {
   it("onboarded founder without a plan → /dashboard; with a plan → Billing checkout carrying the interval (S31-B + annual)", async () => {
     sb.rows.app_users = [{ account_type: "founder", segment: "founder", onboarding_completed: true }];
     await expect(html()).rejects.toThrow("REDIRECT:/dashboard");
-    await expect(html({ plan: "investor_angel", interval: "annual", trial: "1" })).rejects.toThrow("REDIRECT:/workspace/billing?plan=investor_angel&interval=annual");
+    await expect(html({ plan: "investor_angel", interval: "annual", trial: "1" })).rejects.toThrow("REDIRECT:/checkout/review?plan=investor_angel&trial=1&entry=signup&interval=annual");
   });
 
   it("onboarded evaluator without a plan → the persona landing", async () => {
@@ -118,7 +118,7 @@ describe("/onboarding page", () => {
   it("onboardedRedirect — pure", () => {
     expect(onboardedRedirect({}, "/workspace/investor")).toBe("/workspace/investor");
     expect(onboardedRedirect({ step: "2" }, "/dashboard")).toBeNull();
-    expect(onboardedRedirect({ plan: "investor_advisor", interval: "annual" }, "/dashboard")).toBe("/workspace/billing?plan=investor_advisor&interval=annual");
+    expect(onboardedRedirect({ plan: "investor_advisor", interval: "annual" }, "/dashboard")).toBe("/checkout/review?plan=investor_advisor&trial=1&entry=signup&interval=annual");
     expect(onboardedRedirect({ plan: "founder_free" }, "/dashboard")).toBe("/workspace/billing");
   });
 });

@@ -59,7 +59,7 @@ export function GitHubConnectForm({ oauthEnabled, initialRepo }: Props) {
       {oauthEnabled && (
         <div className="rounded-2xl border border-surface-200 bg-white p-6">
           <div className="flex items-start gap-3">
-            <div data-theme="dark" className="h-10 w-10 rounded-xl bg-surface flex items-center justify-center shrink-0">
+            <div className="h-10 w-10 rounded-xl bg-surface-sunken ring-1 ring-line-subtle flex items-center justify-center shrink-0">
               <GitBranch strokeWidth={1.75} className="h-5 w-5 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
@@ -72,7 +72,7 @@ export function GitHubConnectForm({ oauthEnabled, initialRepo }: Props) {
               </p>
               <a
                 href="/api/integrations/github/start"
-                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-ink-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-ink-800 transition-colors"
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 min-h-11 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
               >
                 <GitBranch strokeWidth={1.75} className="h-4 w-4" />
                 Connect GitHub account
@@ -102,12 +102,12 @@ export function GitHubConnectForm({ oauthEnabled, initialRepo }: Props) {
                 value={repo}
                 onChange={(e) => setRepo(e.target.value)}
                 placeholder="https://github.com/owner/repo or owner/repo"
-                className="flex-1 rounded-xl border border-surface-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="flex-1 rounded-xl border border-surface-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-action"
               />
               <button
                 type="submit"
                 disabled={submitting || !repo.trim()}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 transition-colors"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50 transition-colors"
               >
                 {submitting ? (
                   <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" />

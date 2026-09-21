@@ -2,22 +2,16 @@
 //
 //   GET   → { ok, pilots: [{…row, days_left, submissions, reports_run,
 //            assessments, email_masked, intake_url}], active, cap }
-//   POST  { email, program_name, days?=30, credits?=trust_report×60,
-//           intake_slug?, intake_name? }
-//         → 201 { ok, pilot, intake_url, existing:false, warnings }
-//         → 200 { ok, pilot, existing:true } when the e-mail already has
-//           an active pilot (idempotent)
-//         → 400 invalid · 401 anon · 403 non-admin · 404 unknown evaluator
-//           (never creates accounts) · 409 cap (5 active) · 503 no db
+//   POST  → 410 pilots_retired (G25, 2026-09-21 — no new pilots are
+//           offered; the ledger of past comps stays readable)
+//         → 401 anon · 403 non-admin
 //
-// The comp is an admin plan + credit grant (never a Stripe coupon); every
-// POST is audited by apiRoute AND by `appendAudit` inside the service
-// (`pilot.started`). End early: DELETE /api/admin/pilots/[id].
+// End a comp still running early: DELETE /api/admin/pilots/[id].
 
 import { NextResponse } from "next/server";
 import { apiRoute } from "@/lib/audit/api-route";
 import { gateAdmin } from "@/lib/pilots/admin-gate";
-import { listPilots, startPilot } from "@/lib/pilots/service";
+import { listPilots } from "@/lib/pilots/service";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -29,15 +23,15 @@ export async function GET() {
   return NextResponse.json({ ok: true, ...out });
 }
 
-async function POST_handler(request: Request) {
+// G25 (2026-09-21, "bỏ luôn coupon và pilot"): no new pilots. The ledger of
+// past comps stays readable (GET) and a running comp can still be ended
+// (DELETE /api/admin/pilots/[id]); starting one answers 410 so an old admin
+// tab or script cannot grant a comp by accident. `startPilot` stays in
+// lib/pilots/service for its tests and the ledger shape only.
+async function POST_handler() {
   const g = await gateAdmin();
   if (g.response) return g.response;
-  const body = await request.json().catch(() => null);
-  if (!body || typeof body !== "object") return NextResponse.json({ ok: false, error: "invalid_input", message: "JSON body required" }, { status: 400 });
-
-  const r = await startPilot(body as Parameters<typeof startPilot>[0], { email: g.user.email, id: g.user.id });
-  if (!r.ok) return NextResponse.json({ ok: false, error: r.error, message: r.message, ...(r.active !== undefined ? { active: r.active } : {}) }, { status: r.status });
-  return NextResponse.json({ ok: true, existing: r.existing, pilot: r.pilot, intake_url: r.intake_url, warnings: r.warnings }, { status: r.existing ? 200 : 201 });
+  return NextResponse.json({ ok: false, error: "pilots_retired", message: "New pilots are no longer offered (G25, 2026-09-21). Evaluators go straight to the Cohort / Scout / Firm / Program plans." }, { status: 410 });
 }
 
 // S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.

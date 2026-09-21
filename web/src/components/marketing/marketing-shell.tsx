@@ -5,11 +5,11 @@
  *
  * Anatomy:
  *   - Skip link to `#main-content` (visible on focus, keyboard-accessible).
- *   - Persistent `NavV2` header (client component, self-scoped dark).
- *   - `<main id="main-content">` on the light-first `bg-surface` ground
- *     with `text-primary` as the base ink colour.
- *   - `Footer` — the one public footer (S-IA5), an intentional dark
- *     punctuation band scoped with `data-theme="dark"`.
+ *   - Persistent `NavV2` header (client component; light chrome — G26).
+ *   - `<main id="main-content">` on the light `bg-surface` ground
+ *     with `text-primary` as the base ink colour. G26 (2026-09-21): light is
+ *     the only default — bands alternate `base` / `sunken`, never dark.
+ *   - `Footer` — the one public footer (S-IA5), light sunken (G26).
  *
  * 2026-09-08 (rev.4 rollout): the wrapper used to carry `data-theme="lux"`,
  * which pulled the whole `--ds-*` ramp to the deep-navy dark palette. That

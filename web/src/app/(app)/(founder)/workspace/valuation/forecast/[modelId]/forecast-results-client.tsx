@@ -213,7 +213,7 @@ export function ForecastResultsClient({ modelId }: ForecastResultsClientProps) {
           <Card className="overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="bg-gray-100">
+                <thead className="sticky top-0 z-10 bg-surface-sunken">
                   <tr>
                     <th className="px-4 py-3 text-left font-semibold">Month</th>
                     <th className="px-4 py-3 text-right font-semibold">Revenue</th>
@@ -224,7 +224,7 @@ export function ForecastResultsClient({ modelId }: ForecastResultsClientProps) {
                     <th className="px-4 py-3 text-right font-semibold">Cumulative Cash</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-line-subtle">
                   {projectionData.months.map((month, idx) => (
                     <tr key={idx} className="border-t hover:bg-gray-50">
                       <td className="px-4 py-3 font-medium">{month.month}</td>
@@ -257,7 +257,7 @@ export function ForecastResultsClient({ modelId }: ForecastResultsClientProps) {
         <TabsContent value="yearly" className="space-y-4">
           <Card className="overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-gray-100">
+              <thead className="sticky top-0 z-10 bg-surface-sunken">
                 <tr>
                   <th className="px-4 py-3 text-left font-semibold">Year</th>
                   <th className="px-4 py-3 text-right font-semibold">Total Revenue</th>
@@ -265,7 +265,7 @@ export function ForecastResultsClient({ modelId }: ForecastResultsClientProps) {
                   <th className="px-4 py-3 text-right font-semibold">Total EBITDA</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-line-subtle">
                 {[1, 2, 3].map((year) => {
                   const yearStart = (year - 1) * 12;
                   const yearEnd = year * 12;

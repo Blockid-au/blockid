@@ -19,7 +19,9 @@ import {
 } from "@stripe/react-stripe-js";
 import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import type { BillingInterval } from "@/lib/plans/billing-interval";
-import { EVALUATOR_TRIAL_COPY, TRIAL_COPY, TRIAL_DAYS, evaluatorTrialIncludedLine, evaluatorTrialLine } from "@/lib/plans/trial-copy";
+import { fillCheckoutString } from "@/lib/billing/checkout-review-strings";
+import { calculateGst } from "@/lib/gst";
+import { EVALUATOR_TRIAL_COPY, TRIAL_COPY, TRIAL_DAYS, TRIAL_WARNING_HOURS_BEFORE, evaluatorTrialIncludedLine, evaluatorTrialLine } from "@/lib/plans/trial-copy";
 import {
   FOUNDER_ACCOUNT_TYPE_OPTIONS,
   type AccountTypeOption,
@@ -39,6 +41,24 @@ export interface SignupPlanChoice {
   hasAnnualPrice?: boolean;
 }
 
+/**
+ * G25-D: the Review block the card form sits under — the same catalogue
+ * strings `/checkout/review` renders, resolved on the server (page.tsx).
+ * `{price}` / `{n}` / `{cadence}` / `{gst}` / `{hours}` are filled here per
+ * selected plan.
+ */
+export interface SignupReviewStrings {
+  title: string;
+  hint: string;
+  gstLine: string;
+  trialLine: string;
+  renewalLine: string;
+  cadenceMonth: string;
+  cadenceYear: string;
+  dataPrinciple: string;
+  sellerLine: string;
+}
+
 export interface SignupFormProps {
   /** Which ladder the picker shows; drives copy + account-type options. */
   segment?: SignupSegment;
@@ -49,6 +69,8 @@ export interface SignupFormProps {
   /** Account-type choices; defaults to the founder trio. */
   accountTypeOptions?: readonly AccountTypeOption[];
   stripePublishableKey: string | null;
+  /** G25-D review block strings; omitted → the block is not rendered (tests). */
+  review?: SignupReviewStrings;
 }
 
 // Stripe instance is memoised at module scope so re-renders don't
@@ -63,15 +85,17 @@ function getStripe(pk: string): Promise<Stripe | null> {
 /** Accessible name for Stripe frames that arrive without one (Link button). */
 export const STRIPE_FRAME_TITLE = "Secure card payment input (Stripe)";
 
+// Stripe Elements renders inside an iframe, so it cannot read our CSS tokens —
+// these literals mirror --ds-ink / --ds-ink-tertiary / --ds-danger (G26 light).
 const CARD_STYLE = {
   style: {
     base: {
-      color: "#F8FAFC",
+      color: "#0b0f1a",
       fontFamily: 'system-ui, -apple-system, "Segoe UI", Roboto, sans-serif',
       fontSize: "15px",
-      "::placeholder": { color: "#64748B" },
+      "::placeholder": { color: "#6b7280" },
     },
-    invalid: { color: "#F87171" },
+    invalid: { color: "#b91c1c" },
   },
 };
 
@@ -87,7 +111,7 @@ export function SignupForm(props: SignupFormProps) {
     return (
       <div
         role="alert"
-        className="text-red-400 text-sm p-4 border border-red-900 rounded-xl bg-red-950"
+        className="text-bear text-sm p-4 border border-red-200 rounded-xl bg-red-50"
       >
         Stripe is not configured on this environment (missing
         NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY). Signup is temporarily disabled —
@@ -104,14 +128,14 @@ export function SignupForm(props: SignupFormProps) {
 
 function fieldLabel(children: React.ReactNode): React.ReactElement {
   return (
-    <span className="block text-xs text-slate-400 mb-1.5 font-medium">
+    <span className="block text-xs text-muted mb-1.5 font-medium">
       {children}
     </span>
   );
 }
 
 const inputClass =
-  "w-full bg-[#0B1220] border border-[#1F2A44] rounded-xl px-3 py-2.5 text-slate-50 text-[15px] outline-none focus:border-blue-500 transition-colors";
+  "w-full min-h-11 bg-surface border border-line rounded-xl px-3 py-2.5 text-primary text-[15px] outline-none focus:border-action focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-1 transition-colors";
 
 interface PromoValidation {
   code: string;
@@ -329,6 +353,20 @@ function InnerForm(props: SignupFormProps) {
     }
   }
 
+  // G25-D: the Review block above the card field.
+  const reviewCents = selectedPlan
+    ? effectiveInterval === "annual"
+      ? (selectedPlan.annualPriceCents ?? selectedPlan.priceCents)
+      : selectedPlan.priceCents
+    : 0;
+  const reviewPrice =
+    selectedPlan && effectiveInterval === "annual"
+      ? (selectedPlan.annualPriceDisplay ?? selectedPlan.priceDisplay)
+      : (selectedPlan?.priceDisplay ?? "");
+  const reviewCadence = effectiveInterval === "annual" ? (props.review?.cadenceYear ?? "year") : (props.review?.cadenceMonth ?? "month");
+  const reviewGst = calculateGst(reviewCents, true, "AU").gst_cents;
+  const reviewGstLabel = `A$${(reviewGst / 100).toFixed(reviewGst % 100 === 0 ? 0 : 2)}`;
+
   const priceLine = selectedPlan
     ? TRIAL_COPY.after_trial({
         planName: selectedPlan.name,
@@ -430,26 +468,64 @@ function InnerForm(props: SignupFormProps) {
           className={inputClass}
         />
         {promoValidating ? (
-          <p className="mt-1.5 text-xs text-slate-400">Checking…</p>
+          <p className="mt-1.5 text-xs text-muted">Checking…</p>
         ) : promoValidation ? (
-          <p className="mt-1.5 text-xs text-green-400">
+          <p className="mt-1.5 text-xs text-bull">
             {promoValidation.code} — {promoValidation.discountPct}% off
             {promoValidation.resellerDisplayName
               ? ` from ${promoValidation.resellerDisplayName}`
               : ""}
           </p>
         ) : promoError ? (
-          <p className="mt-1.5 text-xs text-red-400">{promoError}</p>
+          <p className="mt-1.5 text-xs text-bear">{promoError}</p>
         ) : null}
       </label>
+      {props.review && selectedPlan ? (
+        /* G25-D (founder 2026-09-21): the card form sits under an explicit
+           Review block — what is bought, the price inc. GST with the GST
+           share, the trial terms, renewal / cancellation, the seller of
+           record and the data principle — and the submit button names the
+           card step. No auto-submit, nothing posted before the click. */
+        <section
+          aria-labelledby="signup-review-title"
+          data-testid="signup-review"
+          data-plan-id={selectedPlan.id}
+          data-interval={effectiveInterval}
+          data-trial-days={selectedPlan.trialDays}
+          className="mb-3.5 rounded-xl border border-[#1F2A44] bg-[#0B1220] px-4 py-3.5"
+        >
+          <p id="signup-review-title" className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+            {props.review.title}
+          </p>
+          <p className="mt-1.5 flex items-baseline justify-between gap-3 text-slate-50">
+            <span className="text-[15px] font-semibold" data-testid="signup-review-name">{selectedPlan.name}</span>
+            <span className="text-[15px] font-semibold tabular-nums" data-testid="signup-review-price">
+              {reviewPrice}/{effectiveInterval === "annual" ? "yr" : "mo"} inc. GST
+            </span>
+          </p>
+          <p className="mt-0.5 text-[11px] text-slate-500" data-testid="gst-line">
+            {fillCheckoutString(props.review.gstLine, { gst: reviewGstLabel })}
+          </p>
+          <p className="mt-2 text-xs text-slate-300" data-testid="signup-review-trial">
+            {fillCheckoutString(props.review.trialLine, { n: selectedPlan.trialDays, price: reviewPrice, cadence: reviewCadence })}
+          </p>
+          <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500" data-testid="signup-review-renewal">
+            {fillCheckoutString(props.review.renewalLine, { cadence: reviewCadence, hours: TRIAL_WARNING_HOURS_BEFORE })}
+          </p>
+          <p className="mt-1.5 text-[11px] text-slate-500" data-testid="signup-review-seller">{props.review.sellerLine}</p>
+          <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500" data-testid="signup-review-data-principle">{props.review.dataPrinciple}</p>
+          <p className="mt-2 text-[11px] text-slate-400">{props.review.hint}</p>
+        </section>
+      ) : null}
+
       <label className="block mb-3.5">
         {fieldLabel("Card details")}
-        <div ref={cardWrapRef} className="bg-[#0B1220] border border-[#1F2A44] rounded-xl px-3 py-3" data-testid="signup-card-field">
+        <div ref={cardWrapRef} className="bg-surface border border-line rounded-xl px-3 py-3" data-testid="signup-card-field">
           <CardElement options={CARD_STYLE} />
         </div>
       </label>
 
-      <label className="flex items-start gap-2.5 text-xs text-slate-400 mb-4">
+      <label className="flex items-start gap-2.5 text-xs text-muted mb-4">
         <input
           type="checkbox"
           checked={terms}
@@ -459,16 +535,16 @@ function InnerForm(props: SignupFormProps) {
         />
         <span>
           I accept the{" "}
-          <Link href="/legal/terms" className="text-blue-400 hover:underline">terms of service</Link>
+          <Link href="/legal/terms" className="text-action hover:underline">terms of service</Link>
           {" "}and{" "}
-          <Link href="/legal/privacy" className="text-blue-400 hover:underline">privacy policy</Link>.
+          <Link href="/legal/privacy" className="text-action hover:underline">privacy policy</Link>.
         </span>
       </label>
 
       {error ? (
         <div
           role="alert"
-          className="text-red-400 text-[13px] p-3 border border-red-900 rounded-xl mb-3.5 bg-red-950"
+          className="text-bear text-[13px] p-3 border border-red-200 rounded-xl mb-3.5 bg-red-50"
         >
           {error}
         </div>
@@ -480,34 +556,31 @@ function InnerForm(props: SignupFormProps) {
         className={[
           "w-full font-semibold px-4 py-3 rounded-xl border-0 text-[15px] transition-colors",
           submitting
-            ? "bg-[#1F2A44] text-slate-400 cursor-wait"
-            : "bg-blue-600 text-[#0B1220] hover:bg-blue-500 cursor-pointer",
+            ? "bg-surface-hover text-muted cursor-wait"
+            : "bg-action text-on-action hover:bg-action-hover cursor-pointer",
         ].join(" ")}
       >
-        {submitting
-          ? "Starting trial…"
-          : isEvaluator
-            ? EVALUATOR_TRIAL_COPY.cta(selectedPlan?.trialDays)
-            : TRIAL_COPY.cta}
+        {/* G25-D: the button names the card step — "Add card & start N-day trial". */}
+        {submitting ? "Starting trial…" : TRIAL_COPY.cta_card(selectedPlan?.trialDays)}
       </button>
 
-      <p className="mt-3 text-xs text-slate-500 leading-relaxed" data-testid="signup-trial-terms">
+      <p className="mt-3 text-xs text-muted leading-relaxed" data-testid="signup-trial-terms">
         {isEvaluator ? evaluatorTrialLine(selectedPlan?.trialDays) + " " : ""}
         {TRIAL_COPY.fine_print}
         {selectedPlan ? " " + priceLine : ""}
       </p>
       {annualFallback ? (
-        <p className="mt-1.5 text-xs text-amber-300/90 leading-relaxed" data-testid="annual-fallback-note">
+        <p className="mt-1.5 text-xs text-warn leading-relaxed" data-testid="annual-fallback-note">
           Annual billing is not available for {selectedPlan?.name ?? "this plan"} yet — you will be billed monthly at {selectedPlan?.priceDisplay}/mo.
         </p>
       ) : null}
       {isEvaluator && selectedPlan ? (
         /* Release QA-2 F10 / S7-C — what the trial actually includes. */
-        <p className="mt-1.5 text-xs text-slate-400 leading-relaxed" data-testid="evaluator-trial-included">
+        <p className="mt-1.5 text-xs text-muted leading-relaxed" data-testid="evaluator-trial-included">
           {evaluatorTrialIncludedLine(selectedPlan.id, selectedPlan.name)}
         </p>
       ) : null}
-      <p className="mt-1.5 text-[11px] text-slate-600 leading-relaxed">
+      <p className="mt-1.5 text-[11px] text-muted leading-relaxed">
         Paid plans start with a {selectedPlan?.trialDays ?? TRIAL_DAYS}-day trial. Prefer no card? A free account (no expiry) is available from the sign-in page.
       </p>
     </form>

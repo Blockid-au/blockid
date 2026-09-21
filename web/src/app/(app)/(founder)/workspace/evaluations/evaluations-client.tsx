@@ -116,7 +116,7 @@ const CONSENT_CHIP: Record<EvaluationConsentTier, { label: string; className: st
   },
   full_mentor: {
     label: "Full mentor",
-    className: "border-brand-300 bg-brand-50 text-brand-700",
+    className: "border-brand-300 bg-surface-sunken text-action",
   },
 };
 
@@ -163,7 +163,7 @@ export function Sparkline({ values, width = 64, height = 18 }: { values: number[
       className="inline-block align-middle"
     >
       <title>{`SVI trend ${values[0]} to ${values[values.length - 1]}`}</title>
-      <polyline fill="none" stroke={up ? "#047857" : "#B91C1C"} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" points={pts.join(" ")} />
+      <polyline fill="none" stroke={up ? "var(--ds-success)" : "var(--ds-danger)"} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" points={pts.join(" ")} />
     </svg>
   );
 }
@@ -179,7 +179,7 @@ function DeltaCell({ item }: { item: EvaluatorProgressItem | null }) {
         <Sparkline values={item.scoreHistory} />
       </div>
       {item.stageChanged ? (
-        <div className="text-[11px] text-brand-700">Stage {item.stagePrev} → {item.stageNow}</div>
+        <div className="text-[11px] text-action">Stage {item.stagePrev} → {item.stageNow}</div>
       ) : null}
       {item.newEvidence > 0 ? (
         <div className="text-[11px] text-ink-500">{item.newEvidence} new evidence item{item.newEvidence === 1 ? "" : "s"}</div>
@@ -209,7 +209,7 @@ export function ProgressRadarPanel({ progress, hasMoneyRadar }: { progress: Eval
     return (
       <div
         data-testid="progress-radar-teaser"
-        className="rounded-2xl border border-dashed border-brand-300 bg-brand-50/40 px-5 py-4 text-sm text-ink-700 flex flex-wrap items-center justify-between gap-3"
+        className="rounded-2xl border border-dashed border-brand-300 bg-info-soft px-5 py-4 text-sm text-ink-700 flex flex-wrap items-center justify-between gap-3"
       >
         <div className="flex items-start gap-3">
           <Radar strokeWidth={1.75} className="mt-0.5 h-5 w-5 text-brand-600" />
@@ -233,7 +233,7 @@ export function ProgressRadarPanel({ progress, hasMoneyRadar }: { progress: Eval
   const deadlines: ProgressDeadline[] = progress?.deadlines ?? [];
   const total = progress?.items.length ?? 0;
   return (
-    <section data-testid="progress-radar-panel" aria-label="Progress Radar" className="rounded-2xl border border-surface-200 bg-white px-5 py-4">
+    <section data-testid="progress-radar-panel" aria-label="Progress Radar" className="rounded-2xl border border-surface-200 bg-surface px-5 py-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-900">
           <Radar strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
@@ -295,13 +295,13 @@ export function ProgressRadarPanel({ progress, hasMoneyRadar }: { progress: Eval
 
 const BATCH_STATUS_CHIP: Record<EvaluationBatch["status"], { label: string; className: string }> = {
   queued: { label: "Queued · off-peak", className: "border-surface-300 bg-surface-100 text-ink-600" },
-  running: { label: "Scoring…", className: "border-brand-300 bg-brand-50 text-brand-700" },
+  running: { label: "Scoring…", className: "border-brand-300 bg-surface-sunken text-action" },
   done: { label: "Scored", className: "border-emerald-300 bg-emerald-50 text-emerald-700" },
   failed: { label: "Failed", className: "border-red-300 bg-red-50 text-red-700" },
 };
 
 const BATCH_ROLE_CHIP: Record<BatchRole, string> = {
-  owner: "border-brand-300 bg-brand-50 text-brand-700",
+  owner: "border-brand-300 bg-surface-sunken text-action",
   reviewer: "border-surface-300 bg-surface-100 text-ink-700",
   viewer: "border-surface-300 bg-surface-50 text-ink-500",
 };
@@ -309,7 +309,7 @@ const BATCH_ROLE_CHIP: Record<BatchRole, string> = {
 export function CohortsSection({ batches, canBatch, demoLabels = DEMO_COHORT_LABELS_EN }: { batches: CohortListBatch[]; canBatch: boolean; demoLabels?: DemoCohortLabels }) {
   if (!canBatch && batches.length === 0) return null;
   return (
-    <section data-testid="cohorts-section" aria-label="Cohorts" className="rounded-2xl border border-surface-200 bg-white px-5 py-4">
+    <section data-testid="cohorts-section" aria-label="Cohorts" className="rounded-2xl border border-surface-200 bg-surface px-5 py-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="flex items-center gap-2 text-sm font-semibold text-ink-900">
           <Layers strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
@@ -364,9 +364,9 @@ export function CohortsSection({ batches, canBatch, demoLabels = DEMO_COHORT_LAB
                   </div>
                 </div>
                 <div className="flex items-center gap-1 whitespace-nowrap text-xs">
-                  <Link href={`/workspace/evaluations/cohort/${encodeURIComponent(b.id)}`} className="rounded-lg px-2.5 py-1.5 font-medium text-brand-700 hover:bg-brand-50">Cohort table</Link>
-                  <a href={`/api/evaluations/batch/${encodeURIComponent(b.id)}/export.csv`} className="rounded-lg px-2.5 py-1.5 font-medium text-brand-700 hover:bg-brand-50">CSV</a>
-                  <a href={`/api/reports/quarterly?batch=${encodeURIComponent(b.id)}`} target="_blank" rel="noopener noreferrer" className="rounded-lg px-2.5 py-1.5 font-medium text-brand-700 hover:bg-brand-50">
+                  <Link href={`/workspace/evaluations/cohort/${encodeURIComponent(b.id)}`} className="rounded-lg px-2.5 py-1.5 font-medium text-action hover:bg-surface-hover">Cohort table</Link>
+                  <a href={`/api/evaluations/batch/${encodeURIComponent(b.id)}/export.csv`} className="rounded-lg px-2.5 py-1.5 font-medium text-action hover:bg-surface-hover">CSV</a>
+                  <a href={`/api/reports/quarterly?batch=${encodeURIComponent(b.id)}`} target="_blank" rel="noopener noreferrer" className="rounded-lg px-2.5 py-1.5 font-medium text-action hover:bg-surface-hover">
                     LP report<span className="sr-only"> (opens in a new tab)</span>
                   </a>
                 </div>
@@ -677,7 +677,7 @@ export function EvaluationsClient({
             onClick={() => setShowBatch(true)}
             disabled={selectedRows.length === 0}
             data-testid="batch-score-button"
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-300 bg-white px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-300 bg-surface px-4 py-2.5 text-sm font-semibold text-action hover:bg-surface-hover transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Layers strokeWidth={1.75} className="h-4 w-4" />
             Batch score{selectedRows.length > 0 ? ` (${selectedRows.length})` : ""}
@@ -695,7 +695,7 @@ export function EvaluationsClient({
         ) : isEvaluator ? (
           <Link
             href="/pricing?segment=evaluator"
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-300 bg-white px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50 transition-colors"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-300 bg-surface px-4 py-2.5 text-sm font-semibold text-action hover:bg-surface-hover transition-colors"
           >
             Upgrade to track more
           </Link>
@@ -705,7 +705,7 @@ export function EvaluationsClient({
 
       {/* Founder claim outcome */}
       {claimState.status === "claiming" && (
-        <div role="status" className="rounded-xl border border-surface-200 bg-white px-4 py-3 text-sm text-ink-600 flex items-center gap-2">
+        <div role="status" className="rounded-xl border border-surface-200 bg-surface px-4 py-3 text-sm text-ink-600 flex items-center gap-2">
           <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" /> Claiming your startup…
         </div>
       )}
@@ -742,7 +742,7 @@ export function EvaluationsClient({
           className={
             atLimit
               ? "rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 flex flex-wrap items-center justify-between gap-2"
-              : "rounded-xl border border-surface-200 bg-white px-4 py-3 text-sm text-ink-600 flex flex-wrap items-center justify-between gap-2"
+              : "rounded-xl border border-surface-200 bg-surface px-4 py-3 text-sm text-ink-600 flex flex-wrap items-center justify-between gap-2"
           }
         >
           <span>
@@ -782,19 +782,19 @@ export function EvaluationsClient({
       {isEvaluator ? <CohortsSection batches={batches} canBatch={canBatch} demoLabels={demoLabels} /> : null}
 
       {!isEvaluator && claimState.status === "idle" && (
-        <div className="rounded-xl border border-surface-200 bg-white px-5 py-6 text-sm text-ink-600">
+        <div className="rounded-xl border border-surface-200 bg-surface px-5 py-6 text-sm text-ink-600">
           <p className="font-medium text-ink-900">This workspace is for evaluators.</p>
           <p className="mt-1">
             Investors, accelerators, incubators, advisors and service providers add the startups they assess here and score each on the same rubric.{" "}
-            <Link href="/pricing?segment=evaluator" className="text-brand-700 underline">See evaluator plans</Link>
+            <Link href="/pricing?segment=evaluator" className="text-action underline">See evaluator plans</Link>
           </p>
         </div>
       )}
 
       {notice && (
-        <div role="status" className="rounded-xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800 flex items-start justify-between gap-3">
+        <div role="status" className="rounded-xl border border-brand-300 bg-info-soft px-4 py-3 text-sm text-primary flex items-start justify-between gap-3">
           <span>{notice}</span>
-          <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss" className="-m-1 shrink-0 rounded-md p-1 text-brand-700 hover:text-brand-900">
+          <button type="button" onClick={() => setNotice(null)} aria-label="Dismiss" className="-m-1 shrink-0 rounded-md p-1 text-action hover:text-primary">
             <X strokeWidth={1.75} className="h-4 w-4" aria-hidden="true" />
           </button>
         </div>
@@ -802,7 +802,7 @@ export function EvaluationsClient({
 
       {/* Table / empty state */}
       {isEvaluator && rows.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-surface-300 bg-white px-6 py-14 text-center">
+        <div className="rounded-2xl border border-dashed border-surface-300 bg-surface px-6 py-14 text-center">
           <ClipboardList strokeWidth={1.5} className="mx-auto h-10 w-10 text-brand-500" />
           <p className="mt-4 text-base font-medium text-ink-900">{EMPTY_STATE_COPY}</p>
           <p className="mt-1 text-sm text-ink-500">
@@ -820,7 +820,7 @@ export function EvaluationsClient({
           )}
         </div>
       ) : isEvaluator ? (
-        <div className="overflow-x-auto rounded-2xl border border-surface-200 bg-white">
+        <div className="overflow-x-auto rounded-2xl border border-surface-200 bg-surface">
           <table className="min-w-full text-sm">
             <caption className="sr-only">Startups you evaluate — stage, SVI, progress, consent and actions</caption>
             <thead className="bg-surface-50 text-left text-xs uppercase tracking-wider text-ink-500">
@@ -832,7 +832,7 @@ export function EvaluationsClient({
                       aria-label="Select all startups"
                       checked={allSelected}
                       onChange={toggleAll}
-                      className="h-4 w-4 rounded border-surface-300 accent-brand-600"
+                      className="h-5 w-5 cursor-pointer rounded border-line accent-brand-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
                     />
                   </th>
                 ) : null}
@@ -857,7 +857,7 @@ export function EvaluationsClient({
                           aria-label={`Select ${row.projectName} for batch scoring`}
                           checked={selectedIds.has(row.id)}
                           onChange={() => toggleSelected(row.id)}
-                          className="h-4 w-4 rounded border-surface-300 accent-brand-600"
+                          className="h-5 w-5 cursor-pointer rounded border-line accent-brand-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
                         />
                       </td>
                     ) : null}
@@ -915,13 +915,13 @@ export function EvaluationsClient({
                           {lastReports[row.id].reportUrl ? (
                             <>
                               {" "}
-                              <a href={lastReports[row.id].reportUrl as string} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">
+                              <a href={lastReports[row.id].reportUrl as string} target="_blank" rel="noopener noreferrer" className="text-action hover:underline">
                                 Open
                               </a>
                               {lastReports[row.id].pdfUrl ? (
                                 <>
                                   {" · "}
-                                  <a href={lastReports[row.id].pdfUrl as string} className="inline-flex items-center gap-0.5 text-brand-700 hover:underline">
+                                  <a href={lastReports[row.id].pdfUrl as string} className="inline-flex items-center gap-0.5 text-action hover:underline">
                                     <FileDown className="h-3 w-3" /> PDF
                                   </a>
                                 </>
@@ -964,7 +964,7 @@ export function EvaluationsClient({
                             type="button"
                             onClick={() => setReportDialog({ row, kind: "rescore" })}
                             aria-label={`Re-score ${row.projectName}`}
-                            className="inline-flex items-center gap-1 rounded-lg border border-brand-300 bg-white px-2.5 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50 cursor-pointer"
+                            className="inline-flex items-center gap-1 rounded-lg border border-brand-300 bg-surface px-2.5 py-1.5 text-xs font-medium text-action hover:bg-surface-hover cursor-pointer"
                           >
                             <RefreshCw strokeWidth={1.75} className="h-3.5 w-3.5" aria-hidden="true" />
                             Re-score
@@ -973,7 +973,7 @@ export function EvaluationsClient({
                         {row.latestSvi != null ? (
                           <Link
                             href={`/workspace/evaluations/${encodeURIComponent(row.id)}`}
-                            className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
+                            className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-action hover:bg-surface-hover"
                             aria-label={`Open the Investor Dossier for ${row.projectName}`}
                           >
                             Dossier
@@ -981,7 +981,7 @@ export function EvaluationsClient({
                         ) : (
                           <Link
                             href={`/workspace/projects/${encodeURIComponent(row.projectSlug)}/analyze`}
-                            className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-brand-700 hover:bg-brand-50"
+                            className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-action hover:bg-surface-hover"
                           >
                             Score
                           </Link>
@@ -1043,7 +1043,7 @@ export function EvaluationsClient({
       {/* Add dialog */}
       {showAdd && (
         <div ref={addDialogRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="add-startup-title">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-surface-200 overflow-hidden">
+          <div className="w-full max-w-md rounded-2xl bg-surface shadow-2xl border border-surface-200 overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-surface-200">
               <h2 id="add-startup-title" className="text-lg font-bold text-ink-900">Add a startup</h2>
               <button

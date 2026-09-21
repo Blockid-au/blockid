@@ -1,9 +1,7 @@
 /**
- * /solutions/accelerator — the BlockID Cohort page (G21 P0-C): the paid Cohort
- * Validation Pilot at `#pilot`, the six-stage workflow, Cohort 25 / 100 after.
- *
- * `pilotSkusConfigured()` reads the two STRIPE_PRICE_COHORT_PILOT_* env vars
- * by NAME on the server; an unset one renders the contact link.
+ * /solutions/accelerator — the BlockID Cohort page (G21 P0-C; G25 removed
+ * the paid pilot): the six-stage workflow, the Cohort offer at `#cohort`,
+ * the Cohort 25 / Cohort 100 rungs at `#plans` (card-required trial).
  *
  * Every visible string resolves through `t()` against the shared catalogue
  * and the props come from `buildAcceleratorProps()` in `evaluator-page-props.ts`, so
@@ -19,7 +17,6 @@ import { getMessages, t } from "@/lib/i18n/t";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import { SolutionsPageShell } from "../solutions-shared";
 import { buildAcceleratorProps } from "../evaluator-page-props";
-import { pilotSkusConfigured } from "../pilot-configured";
 
 const PATH = "/solutions/accelerator";
 const VI_PATH = "/vi/solutions/accelerator";
@@ -36,11 +33,10 @@ export async function generateMetadata(): Promise<Metadata> {
   });
 }
 
-// Re-rendered every 5 min so minting STRIPE_PRICE_COHORT_PILOT_* flips the
-// buy buttons from the contact fallback without a rebuild (review P1).
-export const revalidate = 300;
+// Static copy from the catalogue — nothing on the page reads an env var.
+export const revalidate = 3600;
 
 export default async function SolutionsAcceleratorPage() {
   const m = await getMessages("en");
-  return <SolutionsPageShell {...buildAcceleratorProps(m, "en", pilotSkusConfigured())} />;
+  return <SolutionsPageShell {...buildAcceleratorProps(m, "en")} />;
 }

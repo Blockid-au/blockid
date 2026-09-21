@@ -44,7 +44,7 @@ export function RubricWeightsSliders({ weights, onChange, labelledBy, id = "batc
       ))}
       <div className="flex items-center justify-between text-xs text-ink-500">
         <span>Sliders sum to {Math.round(rawSum * 10) / 10}; the split is normalised to 100% and only changes the displayed weighted score — the SVI stays unweighted.</span>
-        <button type="button" onClick={() => onChange(equalWeights())} className="inline-flex min-h-6 shrink-0 items-center font-medium text-brand-700 hover:underline cursor-pointer">Equal weights</button>
+        <button type="button" onClick={() => onChange(equalWeights())} className="inline-flex min-h-6 shrink-0 items-center font-medium text-action hover:underline cursor-pointer">Equal weights</button>
       </div>
     </div>
   );

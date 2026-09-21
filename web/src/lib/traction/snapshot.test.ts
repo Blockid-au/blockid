@@ -265,7 +265,7 @@ describe("buildTractionSnapshot", () => {
     expect(snap.funnel_7d).toEqual({ hero_variant_shown: 2, sign_up: 2, svi_analyze: 2, feature_gate_hit: 1, funding_report_paid: 1 });
     // G16-A: the step funnel — distinct actors, qa:true row dropped, gate per feature
     expect(snap.funnel_7d_v2).toMatchObject({ signups: 1, analyses: 1, first_analyses: 1, report_views: 0, paywall_views: 0, checkouts: 0, paid: 0, qa_excluded: 1, gate_hits: { "cap_table.write": 1 } });
-    expect(snap.funnel_7d_v2.conv).toEqual({ signup_to_analysis: 1, analysis_to_report: 0, report_to_paywall: null, paywall_to_checkout: null, checkout_to_paid: null });
+    expect(snap.funnel_7d_v2.conv).toEqual({ signup_to_analysis: 1, analysis_to_report: 0, report_to_paywall: null, paywall_to_checkout: null, checkout_to_paid: null, review_to_pay: null });
     expect(snap.warnings).toEqual([]);
     expect(tractionSnapshotSchema.parse(JSON.parse(JSON.stringify(snap)))).toEqual(snap);
 

@@ -413,7 +413,7 @@ export function FundraiseClient() {
                 className={cn(
                   "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
                   active && "bg-brand-50 text-brand-700 border border-brand-200",
-                  done && "bg-brand-600 text-white cursor-pointer",
+                  done && "bg-action text-on-action cursor-pointer",
                   !active && !done && "text-muted bg-surface-50",
                 )}
               >
@@ -518,7 +518,7 @@ export function FundraiseClient() {
                   id="fr-round-name"
                   value={roundName}
                   onChange={(e) => setRoundName(e.target.value)}
-                  className="w-full rounded-xl border border-surface-200 bg-surface-50 px-4 py-2.5 text-sm text-ink-800 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 outline-none"
+                  className="w-full rounded-xl border border-surface-200 bg-surface-50 px-4 py-2.5 text-sm text-ink-800 focus:border-action focus:ring-2 focus:ring-action/25 outline-none"
                 >
                   <option>Pre-Seed</option>
                   <option>Seed</option>
@@ -536,7 +536,7 @@ export function FundraiseClient() {
                   id="fr-instrument"
                   value={instrumentType}
                   onChange={(e) => setInstrumentType(e.target.value as InstrumentType)}
-                  className="w-full rounded-xl border border-surface-200 bg-surface-50 px-4 py-2.5 text-sm text-ink-800 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 outline-none"
+                  className="w-full rounded-xl border border-surface-200 bg-surface-50 px-4 py-2.5 text-sm text-ink-800 focus:border-action focus:ring-2 focus:ring-action/25 outline-none"
                 >
                   {INSTRUMENT_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -568,7 +568,7 @@ export function FundraiseClient() {
                     step={10000}
                     value={targetAmount}
                     onChange={(e) => setTargetAmount(Number(e.target.value))}
-                    className="w-full rounded-xl border border-surface-200 bg-surface-50 pl-9 pr-4 py-2.5 text-sm text-ink-800 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 outline-none"
+                    className="w-full rounded-xl border border-surface-200 bg-surface-50 pl-9 pr-4 py-2.5 text-sm text-ink-800 focus:border-action focus:ring-2 focus:ring-action/25 outline-none"
                   />
                 </div>
               </div>
@@ -586,7 +586,7 @@ export function FundraiseClient() {
                     step={100000}
                     value={preMoneyValuation}
                     onChange={(e) => setPreMoneyValuation(Number(e.target.value))}
-                    className="w-full rounded-xl border border-surface-200 bg-surface-50 pl-9 pr-4 py-2.5 text-sm text-ink-800 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 outline-none"
+                    className="w-full rounded-xl border border-surface-200 bg-surface-50 pl-9 pr-4 py-2.5 text-sm text-ink-800 focus:border-action focus:ring-2 focus:ring-action/25 outline-none"
                   />
                 </div>
               </div>
@@ -608,7 +608,7 @@ export function FundraiseClient() {
                       step={100000}
                       value={safeCap}
                       onChange={(e) => setSafeCap(Number(e.target.value))}
-                      className="w-full rounded-xl border border-surface-200 bg-surface-50 pl-9 pr-4 py-2.5 text-sm text-ink-800 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 outline-none"
+                      className="w-full rounded-xl border border-surface-200 bg-surface-50 pl-9 pr-4 py-2.5 text-sm text-ink-800 focus:border-action focus:ring-2 focus:ring-action/25 outline-none"
                     />
                   </div>
                 </div>
@@ -626,7 +626,7 @@ export function FundraiseClient() {
                       step={5}
                       value={safeDiscount}
                       onChange={(e) => setSafeDiscount(Number(e.target.value))}
-                      className="w-full rounded-xl border border-surface-200 bg-surface-50 pl-9 pr-4 py-2.5 text-sm text-ink-800 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 outline-none"
+                      className="w-full rounded-xl border border-surface-200 bg-surface-50 pl-9 pr-4 py-2.5 text-sm text-ink-800 focus:border-action focus:ring-2 focus:ring-action/25 outline-none"
                     />
                   </div>
                 </div>
@@ -732,7 +732,7 @@ export function FundraiseClient() {
               type="button"
               onClick={handleNext}
               disabled={loading}
-              className="flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-medium text-on-action hover:bg-action-hover transition-colors cursor-pointer disabled:opacity-50"
             >
               {loading ? (
                 <>
@@ -816,7 +816,7 @@ export function FundraiseClient() {
               </p>
               <div className="overflow-x-auto rounded-xl border border-surface-200">
                 <table className="w-full text-sm">
-                  <thead>
+                  <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                     <tr className="bg-surface-50 text-ink-600">
                       <th className="text-left px-4 py-2.5 font-medium">Shareholder</th>
                       <th className="text-left px-4 py-2.5 font-medium">Role</th>
@@ -825,7 +825,7 @@ export function FundraiseClient() {
                       <th className="text-right px-4 py-2.5 font-medium">Change</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-line-subtle">
                     {dilutionTable.map((row, i) => (
                       <tr key={i} className="border-t border-surface-100 hover:bg-surface-50/50">
                         <td className="px-4 py-2.5 font-medium text-ink-800">{row.name}</td>
@@ -874,7 +874,7 @@ export function FundraiseClient() {
             <button
               type="button"
               onClick={handleNext}
-              className="flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-700 transition-colors cursor-pointer"
+              className="flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-medium text-on-action hover:bg-action-hover transition-colors cursor-pointer"
             >
               Allocate Investors <ArrowRight className="h-4 w-4" />
             </button>
@@ -935,7 +935,7 @@ export function FundraiseClient() {
                           placeholder="e.g. Jane Smith"
                           value={inv.name}
                           onChange={(e) => updateInvestor(inv.id, "name", e.target.value)}
-                          className="w-full rounded-lg border border-surface-200 bg-white px-3 py-2 text-sm text-ink-800 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 outline-none"
+                          className="w-full rounded-lg border border-surface-200 bg-white px-3 py-2 text-sm text-ink-800 focus:border-action focus:ring-2 focus:ring-action/25 outline-none"
                         />
                       </div>
                       <div>
@@ -949,7 +949,7 @@ export function FundraiseClient() {
                           step={10000}
                           value={inv.amount || ""}
                           onChange={(e) => updateInvestor(inv.id, "amount", Number(e.target.value))}
-                          className="w-full rounded-lg border border-surface-200 bg-white px-3 py-2 text-sm text-ink-800 focus:border-brand-400 focus:ring-2 focus:ring-brand-100 outline-none"
+                          className="w-full rounded-lg border border-surface-200 bg-white px-3 py-2 text-sm text-ink-800 focus:border-action focus:ring-2 focus:ring-action/25 outline-none"
                         />
                       </div>
                       <div>
@@ -1028,7 +1028,7 @@ export function FundraiseClient() {
             <button
               type="button"
               onClick={handleNext}
-              className="flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-700 transition-colors cursor-pointer"
+              className="flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-medium text-on-action hover:bg-action-hover transition-colors cursor-pointer"
             >
               Review & Generate <ArrowRight className="h-4 w-4" />
             </button>
@@ -1163,7 +1163,7 @@ export function FundraiseClient() {
             <button
               type="button"
               onClick={resetWizard}
-              className="rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-medium text-white hover:bg-brand-700 transition-colors cursor-pointer"
+              className="rounded-xl bg-action px-5 py-2.5 text-sm font-medium text-on-action hover:bg-action-hover transition-colors cursor-pointer"
             >
               Model Another Round
             </button>
@@ -1299,7 +1299,7 @@ export function FundraiseClient() {
               </div>
               <div className="overflow-x-auto rounded-xl border border-surface-200">
                 <table className="w-full text-sm">
-                  <thead>
+                  <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                     <tr className="bg-surface-50 text-ink-600">
                       <th className="text-left px-4 py-2.5 font-medium">Company</th>
                       <th className="text-left px-4 py-2.5 font-medium">Sector</th>
@@ -1309,7 +1309,7 @@ export function FundraiseClient() {
                       <th className="text-right px-4 py-2.5 font-medium">Year</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-line-subtle">
                     {readiness.comparablesV2.map((r) => (
                       <tr
                         key={`${r.company}-${r.year}`}
@@ -1357,7 +1357,7 @@ export function FundraiseClient() {
           <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                   <tr className="bg-surface-50 text-ink-600">
                     <th className="text-left px-4 py-3 font-medium">Round</th>
                     <th className="text-right px-4 py-3 font-medium">Target</th>
@@ -1369,7 +1369,7 @@ export function FundraiseClient() {
                     <th className="text-left px-4 py-3 font-medium">Date</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-line-subtle">
                   {pastRounds.map((r) => (
                     <tr key={r.id} className="border-t border-surface-100 hover:bg-surface-50/50">
                       <td className="px-4 py-3 font-medium text-ink-800">

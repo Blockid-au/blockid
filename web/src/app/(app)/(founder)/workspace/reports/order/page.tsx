@@ -118,7 +118,7 @@ export default async function ReportOrderPage({ searchParams }: PageProps) {
           <ReportOrderView orderId={orderId} />
         ) : (
           <section
-            className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900"
+            className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6"
             role="status"
           >
             <h1 className="text-xl font-semibold text-ink-900">

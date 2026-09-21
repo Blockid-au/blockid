@@ -588,7 +588,7 @@ function FullReportViewer({ report }: { report: string }) {
   };
 
   return (
-    <div className="rounded-2xl border border-brand-200 bg-surface-50 dark:bg-surface-100 shadow-sm overflow-hidden">
+    <div className="rounded-2xl border border-brand-200 bg-surface-50 shadow-sm overflow-hidden">
       {/* Header */}
       <div className="border-b border-brand-100 bg-gradient-to-r from-brand-50 to-surface-50 px-5 py-4">
         <div className="flex items-center justify-between">
@@ -630,7 +630,7 @@ function FullReportViewer({ report }: { report: string }) {
                 className={cn(
                   "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium transition-colors cursor-pointer",
                   activeSection === s.id
-                    ? "bg-brand-600 text-white"
+                    ? "bg-action text-on-action"
                     : "bg-surface-100 text-ink-600 hover:bg-brand-50 hover:text-brand-700",
                 )}
               >
@@ -650,7 +650,7 @@ function FullReportViewer({ report }: { report: string }) {
             <button
               type="button"
               onClick={() => toggleSection(section.id)}
-              className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-surface-50 dark:hover:bg-surface-200 transition-colors cursor-pointer"
+              className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-surface-50 transition-colors cursor-pointer"
             >
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-brand-100 text-[11px] font-bold text-brand-700">
                 {i + 1}
@@ -933,7 +933,7 @@ function ProgressiveReport() {
   const summaryCount = INCLUDED_SECTIONS.filter(s => sections[s.id]?.summary && !sections[s.id]?.full).length;
 
   return (
-    <div className="rounded-2xl border border-brand-200 bg-surface-50 dark:bg-surface-100 shadow-sm overflow-hidden">
+    <div className="rounded-2xl border border-brand-200 bg-surface-50 shadow-sm overflow-hidden">
       {/* Header */}
       <div className="border-b border-brand-100 bg-gradient-to-r from-brand-50 to-surface-50 px-5 py-4">
         <div className="flex items-center justify-between">
@@ -973,7 +973,7 @@ function ProgressiveReport() {
                 className={cn(
                   "inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-medium transition-colors cursor-pointer",
                   activeSection === def.id
-                    ? "bg-brand-600 text-white"
+                    ? "bg-action text-on-action"
                     : state?.full
                       ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
                       : hasContent
@@ -1039,7 +1039,7 @@ function ProgressiveReport() {
                           <button
                             type="button"
                             onClick={() => { setConfirmUnlock(null); void genFull(def.id); }}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-action px-4 py-2 text-xs font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer"
                           >
                             <Unlock strokeWidth={1.75} className="h-3.5 w-3.5" />
                             Confirm Unlock
@@ -1146,7 +1146,7 @@ function ProgressiveReport() {
                             <button
                               type="button"
                               onClick={() => { setConfirmUnlock(null); void genFull(def.id); }}
-                              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer"
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-action px-4 py-2 text-xs font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer"
                             >
                               <Unlock strokeWidth={1.75} className="h-3.5 w-3.5" />
                               Confirm Unlock
@@ -1217,7 +1217,7 @@ function ProgressiveReport() {
                   type="button"
                   disabled={unlockAllLoading}
                   onClick={() => void unlockAll()}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-action px-5 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {unlockAllLoading ? (
                     <><SpinnerIcon strokeWidth={1.75} className="h-4 w-4 animate-spin" /> Unlocking...</>
@@ -1250,7 +1250,7 @@ function ProgressiveReport() {
                     <span className="text-emerald-600 font-medium">(Save {Math.round(BUNDLE_DISCOUNT * 100)}%)</span>
                   </p>
                 </div>
-                <div className="shrink-0 ml-4 inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white">
+                <div className="shrink-0 ml-4 inline-flex items-center gap-1.5 rounded-xl bg-action px-4 py-2 text-xs font-semibold text-on-action">
                   <Unlock strokeWidth={1.75} className="h-3.5 w-3.5" />
                   Unlock All
                 </div>
@@ -1429,7 +1429,7 @@ function StageJourney({ currentStage }: { currentStage: number }) {
               className={cn(
                 "flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold shrink-0",
                 isCurrent
-                  ? "bg-brand-600 text-white"
+                  ? "bg-action text-on-action"
                   : isPast
                     ? "bg-emerald-100 text-emerald-700 border border-emerald-300"
                     : "bg-surface-100 text-ink-600 border border-surface-300",
@@ -1504,7 +1504,7 @@ function SignupNudgeBanner() {
             onClick={() => {
               trackEvent("cta_clicked", { cta_id: "signup_nudge_banner", location: "svi_results_top" });
             }}
-            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
           >
             Create Free Account
             <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
@@ -1554,7 +1554,7 @@ function EvidenceUploadPrompt() {
             onClick={() => {
               trackEvent("cta_clicked", { cta_id: "evidence_upload_prompt", location: "svi_results_evidence_gaps" });
             }}
-            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-bull px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800 transition-colors"
+            className="mt-3 inline-flex items-center gap-2 rounded-lg bg-bull px-4 py-2 text-sm font-semibold text-on-action hover:bg-emerald-800 transition-colors"
           >
             Upload Evidence
             <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
@@ -1598,7 +1598,7 @@ function DesktopTOC({
                 <span
                   className={cn(
                     "flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold font-mono shrink-0",
-                    isActive ? "bg-brand-600 text-white" : "bg-surface-200 text-ink-600",
+                    isActive ? "bg-action text-on-action" : "bg-surface-200 text-ink-600",
                   )}
                 >
                   {page.num}
@@ -1629,7 +1629,7 @@ function MobileProgressDots({ activeId }: { activeId: string }) {
               className={cn(
                 "h-2 rounded-full transition-all cursor-pointer",
                 idx === activeIdx
-                  ? "w-6 bg-brand-600"
+                  ? "w-6 bg-action"
                   : idx < activeIdx
                     ? "w-2 bg-brand-300"
                     : "w-2 bg-surface-300",
@@ -2545,14 +2545,14 @@ export function SVIResultsPanel({
             )}
 
             {/* ── Quick Actions (icon buttons) ── */}
-            <div className="rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 p-4 sm:p-5 mb-6">
+            <div className="rounded-2xl border border-surface-200 bg-surface-50 p-4 sm:p-5 mb-6">
               <p className="text-xs uppercase tracking-[0.15em] text-ink-500 font-medium mb-3">Actions</p>
               <div className="flex flex-wrap items-center gap-2">
                 {/* Primary CTA */}
                 <a
                   href="/auth/login"
                   onClick={() => { if (email) void trackAction(email, { label: "Get your score free", type: "guide", href: "/auth/login" }); }}
-                  className="inline-flex h-9 items-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cta-glow"
+                  className="inline-flex h-9 items-center gap-2 rounded-xl bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cta-glow"
                 >
                   <Rocket strokeWidth={1.75} className="h-4 w-4" />
                   <span className="hidden sm:inline">Save your score</span>
@@ -2563,7 +2563,7 @@ export function SVIResultsPanel({
                   href="/workspace/score"
                   onClick={() => { if (email) void trackAction(email, { label: "View on Dashboard", type: "guide", href: "/workspace/score" }); }}
                   title="View on Dashboard"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-300 bg-surface-50 dark:bg-surface-200 text-ink-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-300 bg-surface-50 text-ink-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
                 >
                   <LayoutDashboard strokeWidth={1.75} className="h-4 w-4" />
                 </a>
@@ -2572,7 +2572,7 @@ export function SVIResultsPanel({
                 <Link
                   href="/workspace/reports"
                   title="Analysis History"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-300 bg-surface-50 dark:bg-surface-200 text-ink-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-300 bg-surface-50 text-ink-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
                 >
                   <History strokeWidth={1.75} className="h-4 w-4" />
                 </Link>
@@ -2597,7 +2597,7 @@ export function SVIResultsPanel({
                     } catch {} finally { setPitchDeckLoading(false); }
                   }}
                   disabled={pitchDeckLoading}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-300 bg-surface-50 dark:bg-surface-200 text-ink-600 hover:border-brand-400 hover:text-brand-600 transition-colors disabled:opacity-50"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-300 bg-surface-50 text-ink-600 hover:border-brand-400 hover:text-brand-600 transition-colors disabled:opacity-50"
                 >
                   {pitchDeckLoading
                     ? <span className="h-4 w-4 rounded-full border-2 border-ink-300 border-t-ink-600 animate-spin" />
@@ -2612,7 +2612,7 @@ export function SVIResultsPanel({
                   type="button"
                   title="Share via Email"
                   onClick={handleCopy}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-300 bg-surface-50 dark:bg-surface-200 text-ink-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-300 bg-surface-50 text-ink-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
                 >
                   <Mail strokeWidth={1.75} className="h-4 w-4" />
                 </button>
@@ -2626,7 +2626,7 @@ export function SVIResultsPanel({
                     "inline-flex h-9 w-9 items-center justify-center rounded-xl border transition-colors",
                     copied
                       ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                      : "border-surface-300 bg-surface-50 dark:bg-surface-200 text-ink-600 hover:border-brand-400 hover:text-brand-600",
+                      : "border-surface-300 bg-surface-50 text-ink-600 hover:border-brand-400 hover:text-brand-600",
                   )}
                 >
                   {copied ? <CheckCircle2 strokeWidth={1.75} className="h-4 w-4" /> : <Link2 strokeWidth={1.75} className="h-4 w-4" />}
@@ -2638,7 +2638,7 @@ export function SVIResultsPanel({
                   target="_blank"
                   rel="noopener noreferrer"
                   title="Share on LinkedIn"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#0A66C2] text-white hover:bg-[#004182] transition-colors"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-action text-on-action hover:bg-action-hover transition-colors"
                 >
                   <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
                 </a>
@@ -2649,14 +2649,14 @@ export function SVIResultsPanel({
                   target="_blank"
                   rel="noopener noreferrer"
                   title="Share on X"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-ink-800 text-white hover:bg-ink-700 transition-colors"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-surface text-primary hover:bg-surface-hover transition-colors"
                 >
                   <Share2 strokeWidth={1.75} className="h-4 w-4" />
                 </a>
               </div>
 
               {/* Share URL bar */}
-              <div className="mt-3 flex items-center rounded-lg border border-surface-200 bg-surface-50 dark:bg-surface-200 px-3 py-2 min-w-0">
+              <div className="mt-3 flex items-center rounded-lg border border-surface-200 bg-surface-50 px-3 py-2 min-w-0">
                 <span className="text-[11px] text-ink-500 truncate font-mono flex-1 min-w-0">{shareUrl}</span>
                 <button
                   type="button"
@@ -2683,7 +2683,7 @@ export function SVIResultsPanel({
                 </div>
                 <a
                   href="/founding-50"
-                  className="shrink-0 inline-flex h-8 items-center rounded-lg bg-brand-600 px-3 text-xs font-semibold text-white hover:bg-brand-700 transition-colors"
+                  className="shrink-0 inline-flex h-8 items-center rounded-lg bg-action px-3 text-xs font-semibold text-on-action hover:bg-action-hover transition-colors"
                 >
                   Get it
                 </a>
@@ -2696,9 +2696,9 @@ export function SVIResultsPanel({
                 <h3 className="text-lg font-bold text-ink-900 mb-4">Your Pitch Deck Outline</h3>
                 <div className="space-y-4">
                   {pitchDeckSlides.map((slide) => (
-                    <div key={slide.slide} className="rounded-xl bg-surface-50 dark:bg-surface-100 border border-surface-200 p-4">
+                    <div key={slide.slide} className="rounded-xl bg-surface-50 border border-surface-200 p-4">
                       <div className="flex items-center gap-2 mb-2">
-                        <span className="h-7 w-7 rounded-lg bg-brand-600 text-white text-xs font-bold flex items-center justify-center">{slide.slide}</span>
+                        <span className="h-7 w-7 rounded-lg bg-action text-on-action text-xs font-bold flex items-center justify-center">{slide.slide}</span>
                         <h4 className="text-sm font-bold text-ink-900">{slide.title}</h4>
                       </div>
                       <p className="text-xs text-brand-600 font-medium mb-2">{slide.keyMessage}</p>

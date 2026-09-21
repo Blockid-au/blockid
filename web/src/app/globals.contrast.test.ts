@@ -30,12 +30,6 @@ function darkBlock(): string {
   return CSS.slice(start, end);
 }
 
-/** The `@media (prefers-color-scheme: dark)` scope. */
-function osDarkBlock(): string {
-  const start = CSS.indexOf("@media (prefers-color-scheme: dark) {");
-  const end = CSS.indexOf("\n}\n", start);
-  return CSS.slice(start, end);
-}
 
 const light = cssHexTokens(themeBlock());
 const WHITE = "#ffffff";
@@ -89,15 +83,38 @@ describe("globals.css light tokens meet WCAG AA on white (release QA-1 #7)", () 
     const textUses = login.match(/(?<!placeholder:)text-surface-400/g) ?? [];
     expect(textUses, "text-surface-400 on visible login text").toEqual([]);
     expect(login).toContain("or continue with email");
-    const band = readFileSync(join(__dirname, "../components/marketing/logo-band.tsx"), "utf8");
-    expect(band).not.toMatch(/className="[^"]*\btext-line\b/);
+    // G26-M: the old dark `logo-band.tsx` (the home '·' row) was an orphan and is gone;
+    // the light TrustBand / ProofBand primitives never use `text-line` on visible text.
+    for (const file of ["../components/marketing/template/TrustBand.tsx", "../components/marketing/template/proof-band.tsx"]) {
+      const band = readFileSync(join(__dirname, file), "utf8");
+      expect(band, file).not.toMatch(/className="[^"]*\btext-line\b/);
+    }
   });
 });
 
-describe("globals.css dark scopes keep the same tokens AA on the dark ground", () => {
+describe("globals.css: light is the only default (G26) — no OS auto-dark", () => {
+  it("has no `@media (prefers-color-scheme: dark)` token scope; the dark ramp is an explicit [data-theme=dark] / .dark opt-in", () => {
+    expect(CSS).not.toMatch(/@media\s*\(prefers-color-scheme:\s*dark\)/);
+    expect(CSS).toContain(':root[data-theme="dark"],');
+  });
+});
+
+// G24 UI lane (2026-09-21): `text-ink-500` is the workspace's default muted
+// text (2 200+ uses) and sits on the sunken / hover grounds as often as on
+// white — it must clear AA on all three, not only on #ffffff.
+describe("globals.css ink-500 is AA on every light ground", () => {
+  it("light: ink-500 >= 4.5:1 on surface, surface-sunken and surface-hover", () => {
+    const ink = light.get("color-ink-500")!;
+    expect(ink).toMatch(/^#[0-9a-f]{6}$/);
+    for (const ground of ["#ffffff", "#f7f8fa", "#eef0f5"]) {
+      expect(contrastRatio(ink, ground), `ink-500 ${ink} on ${ground}`).toBeGreaterThanOrEqual(AA_TEXT);
+    }
+  });
+});
+
+describe("globals.css dark scope keeps the same tokens AA on the dark ground", () => {
   for (const [label, block] of [
     ["[data-theme=dark]", darkBlock()],
-    ["prefers-color-scheme: dark", osDarkBlock()],
   ] as const) {
     it(`${label}: ink-400 and gold-600 are ≥ 4.5:1 on --color-surface-50`, () => {
       const dark = cssHexTokens(block);
@@ -135,7 +152,7 @@ describe("globals.css G17 accent tokens (violet) are AA where they carry text", 
     expect(contrastRatio(root.get("ds-highlight")!, WHITE)).toBeGreaterThanOrEqual(AA_TEXT);
     expect(contrastRatio(root.get("ds-highlight")!, OFF_WHITE)).toBeGreaterThanOrEqual(AA_TEXT);
     expect(contrastRatio(light.get("color-accent-600")!, WHITE), "accent-600 (ring / focus) on white").toBeGreaterThanOrEqual(AA_TEXT);
-    for (const [label, block] of [["[data-theme=dark]", darkBlock()], ["prefers-color-scheme: dark", osDarkBlock()]] as const) {
+    for (const [label, block] of [["[data-theme=dark]", darkBlock()]] as const) {
       const dark = cssHexTokens(block);
       expect(dark.get("ds-highlight"), `${label} ds-highlight declared`).toBeTruthy();
       expect(contrastRatio(dark.get("ds-highlight")!, dark.get("color-surface-50")!), `${label} ds-highlight`).toBeGreaterThanOrEqual(AA_TEXT);

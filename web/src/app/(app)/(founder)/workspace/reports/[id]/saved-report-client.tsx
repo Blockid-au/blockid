@@ -244,7 +244,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
       </Link>
 
       {/* Analysis header */}
-      <div className="rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-50 via-surface-50 to-surface-50 dark:from-surface-100 dark:via-surface-100 dark:to-surface-100 px-6 py-6 mb-6 shadow-sm">
+      <div className="rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-50 via-surface-50 to-surface-50 px-6 py-6 mb-6 shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-xl font-bold text-ink-900">SVI Analysis Report</h1>
@@ -284,7 +284,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
       </div>
 
       {/* Growth Journey Visual */}
-      <div className="rounded-2xl border border-surface-200 bg-white dark:bg-surface-100 px-4 py-4 mb-6 shadow-sm overflow-hidden">
+      <div className="rounded-2xl border border-surface-200 bg-white px-4 py-4 mb-6 shadow-sm overflow-hidden">
         <h2 className="text-sm font-bold text-ink-800 mb-3 flex items-center gap-2">
           <Sparkles strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
           Your Growth Journey
@@ -334,7 +334,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
       )}
 
       {/* Section cards */}
-      <div className="rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 shadow-sm overflow-hidden">
+      <div className="rounded-2xl border border-surface-200 bg-surface-50 shadow-sm overflow-hidden">
         {/* Section navigation pills */}
         <div className="border-b border-surface-200 bg-gradient-to-r from-brand-50/50 to-surface-50 px-5 py-4">
           <div className="flex items-center gap-2 mb-3">
@@ -472,7 +472,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
                     {hasSummary && !isFull && (
                       <div className="mt-4">
                         {confirmUnlock === def.id ? (
-                          <div className="rounded-xl border border-brand-200 bg-white dark:bg-surface-100 p-4">
+                          <div className="rounded-xl border border-brand-200 bg-white p-4">
                             <p className="text-xs text-ink-700 mb-3">
                               This will use{" "}
                               <span className="font-mono font-semibold text-brand-600">
@@ -484,7 +484,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
                               <button
                                 type="button"
                                 onClick={() => void handleUnlock(def.id)}
-                                className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer"
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-action px-4 py-2 text-xs font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer"
                               >
                                 <Unlock strokeWidth={1.75} className="h-3.5 w-3.5" />
                                 Confirm Unlock
@@ -502,7 +502,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
                           <button
                             type="button"
                             onClick={() => setConfirmUnlock(def.id)}
-                            className="w-full rounded-xl border border-brand-200 bg-white dark:bg-surface-100 hover:bg-brand-50 dark:hover:bg-surface-50 px-4 py-3 text-left transition-colors cursor-pointer"
+                            className="w-full rounded-xl border border-brand-200 bg-white hover:bg-brand-50 px-4 py-3 text-left transition-colors cursor-pointer"
                           >
                             <div className="flex items-center gap-2 mb-1">
                               <Unlock strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-600" />
@@ -527,7 +527,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
                 {!hasContent && !isLoading && (
                   <div className="px-5 pb-5">
                     {confirmUnlock === def.id ? (
-                      <div className="rounded-xl border border-brand-200 bg-white dark:bg-surface-100 p-4">
+                      <div className="rounded-xl border border-brand-200 bg-white p-4">
                         <p className="text-xs text-ink-700 mb-3">
                           This will use{" "}
                           <span className="font-mono font-semibold text-brand-600">
@@ -539,7 +539,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
                           <button
                             type="button"
                             onClick={() => void handleUnlock(def.id)}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-action px-4 py-2 text-xs font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer"
                           >
                             <Unlock strokeWidth={1.75} className="h-3.5 w-3.5" />
                             Confirm Unlock
@@ -557,7 +557,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
                       <button
                         type="button"
                         onClick={() => setConfirmUnlock(def.id)}
-                        className="w-full rounded-xl border border-brand-200 bg-white dark:bg-surface-100 hover:bg-brand-50 dark:hover:bg-surface-50 px-4 py-3 text-left transition-colors cursor-pointer"
+                        className="w-full rounded-xl border border-brand-200 bg-white hover:bg-brand-50 px-4 py-3 text-left transition-colors cursor-pointer"
                       >
                         <div className="flex items-center gap-2 mb-1">
                           <Unlock strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-600" />
@@ -584,7 +584,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
         {remainingSections.length > 0 && (
           <div className="border-t border-brand-200 bg-gradient-to-r from-brand-50 to-surface-50 px-5 py-5">
             {confirmUnlockAll ? (
-              <div className="rounded-xl border border-brand-200 bg-white dark:bg-surface-100 p-5">
+              <div className="rounded-xl border border-brand-200 bg-white p-5">
                 <p className="text-sm font-semibold text-ink-800 mb-2">
                   Unlock All Remaining Sections
                 </p>
@@ -604,7 +604,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
                     type="button"
                     disabled={unlockAllLoading}
                     onClick={() => void handleUnlockAll()}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-action px-5 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer disabled:opacity-50"
                   >
                     {unlockAllLoading ? (
                       <>
@@ -632,7 +632,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
               <button
                 type="button"
                 onClick={() => setConfirmUnlockAll(true)}
-                className="w-full rounded-xl border border-brand-200 bg-white dark:bg-surface-100 hover:bg-brand-50 dark:hover:bg-surface-50 px-5 py-4 text-left transition-colors cursor-pointer"
+                className="w-full rounded-xl border border-brand-200 bg-white hover:bg-brand-50 px-5 py-4 text-left transition-colors cursor-pointer"
               >
                 <div className="flex items-center justify-between">
                   <div>
@@ -650,7 +650,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
                       </span>
                     </p>
                   </div>
-                  <div className="shrink-0 ml-4 inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-xs font-semibold text-white">
+                  <div className="shrink-0 ml-4 inline-flex items-center gap-1.5 rounded-xl bg-action px-4 py-2 text-xs font-semibold text-on-action">
                     <Unlock strokeWidth={1.75} className="h-3.5 w-3.5" />
                     Unlock All
                   </div>

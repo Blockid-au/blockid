@@ -28,7 +28,7 @@ export function SeatsConsensus({ consensus, evaluationId }: { consensus: Dossier
     return (
       <div className="mt-6 rounded-xl border border-dashed border-surface-300 px-4 py-3 text-xs text-ink-600" data-testid="seats-single">
         <strong className="text-ink-800">Seats.</strong> You are the only seat on this dossier. Firm (3 seats) and Program (5 seats) let colleagues record their own view and show the consensus here —{" "}
-        <Link href="/workspace/investor/team" className="text-brand-700 hover:underline">
+        <Link href="/workspace/investor/team" className="text-action hover:underline">
           manage seats
         </Link>
         .
@@ -75,7 +75,7 @@ export function SeatsConsensus({ consensus, evaluationId }: { consensus: Dossier
             {consensus.seats.map((s) => {
               const a = s.assessment;
               return (
-                <tr key={s.userId} data-testid="seat-row" data-me={s.isMe ? "1" : "0"} className={s.isMe ? "bg-brand-50/40" : ""}>
+                <tr key={s.userId} data-testid="seat-row" data-me={s.isMe ? "1" : "0"} className={s.isMe ? "bg-info-soft/40" : ""}>
                   <td className="px-3 py-2 text-ink-800">
                     {s.displayName}
                     <span className="ml-1 text-ink-400">{a ? (a.status === "submitted" ? `v${a.version} submitted` : `v${a.version} draft`) : "not started"}</span>

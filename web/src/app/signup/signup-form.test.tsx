@@ -45,7 +45,8 @@ describe("SignupForm — evaluator trial step copy", () => {
     expect(out).toContain('data-testid="evaluator-trial-included"');
     expect(out).toContain("1 full Trusted Business Report included during the trial, then 10/month on Scout");
     expect(out).toContain("7-day free trial · card required · cancel anytime · charged on day 8");
-    expect(out).toContain("Start 7-day evaluator trial");
+    // G25-D: the submit names the card step.
+    expect(out).toContain("Add card &amp; start 7-day trial");
   });
 
   // W4 review P3-b: the CTA follows the plan's trial length (Cohort 25/100 = 14 days).
@@ -54,10 +55,47 @@ describe("SignupForm — evaluator trial step copy", () => {
     const out = renderToStaticMarkup(
       <SignupForm segment="evaluator" trialPlans={[COHORT]} defaultPlanId="accelerator_starter" stripePublishableKey="pk_test_x" />,
     );
-    expect(out).toContain("Start 14-day evaluator trial");
+    expect(out).toContain("Add card &amp; start 14-day trial");
     expect(out).toContain("14-day free trial · card required · cancel anytime · charged on day 15");
-    expect(out).not.toContain("Start 7-day evaluator trial");
+    expect(out).not.toContain("start 7-day trial");
     expect(out).not.toContain("7-day free trial");
+  });
+
+  // G25-D (founder 2026-09-21): the card form sits under an explicit Review
+  // block — plan, price inc. GST + the GST share, trial line, renewal,
+  // seller, data principle — rendered from the same catalogue strings as
+  // /checkout/review; without `review` strings the block is absent.
+  it("renders the review block above the card field when review strings are given, with the plan's price, GST share and trial line", () => {
+    const review = {
+      title: "Review your order",
+      hint: "Your card is saved with Stripe now and charged only when the trial ends.",
+      gstLine: "includes {gst} GST · ATO tax invoice e-mailed after every charge",
+      trialLine: "{n}-day free trial · card required · you can cancel before day {n} and pay nothing · then {price} per {cadence}",
+      renewalLine: "Renews automatically each {cadence} at the same price until you cancel. Stripe Billing Portal. {hours} hours.",
+      cadenceMonth: "month",
+      cadenceYear: "year",
+      dataPrinciple: "Your data belongs to your startup.",
+      sellerLine: "Auschain PTY LTD (ABN 79 659 615 111)",
+    };
+    const out = renderToStaticMarkup(
+      <SignupForm segment="evaluator" trialPlans={[SCOUT]} defaultPlanId="investor_angel" stripePublishableKey="pk_test_x" review={review} />,
+    );
+    expect(out).toContain('data-testid="signup-review"');
+    expect(out).toContain('data-plan-id="investor_angel"');
+    expect(out).toContain('data-trial-days="7"');
+    expect(out).toContain("A$79/mo inc. GST");
+    // 7900 / 11 = 718.18 → A$7.18
+    expect(out).toContain("includes A$7.18 GST");
+    expect(out).toContain("7-day free trial · card required · you can cancel before day 7 and pay nothing · then A$79 per month");
+    expect(out).toContain("Renews automatically each month");
+    expect(out).toContain("72 hours");
+    expect(out).toContain("Auschain PTY LTD (ABN 79 659 615 111)");
+    expect(out).toContain("Your data belongs to your startup.");
+    expect(out.indexOf('data-testid="signup-review"')).toBeLessThan(out.indexOf('data-testid="signup-card-field"'));
+    const without = renderToStaticMarkup(
+      <SignupForm segment="evaluator" trialPlans={[SCOUT]} defaultPlanId="investor_angel" stripePublishableKey="pk_test_x" />,
+    );
+    expect(without).not.toContain('data-testid="signup-review"');
   });
 
   it("founder: no evaluator allowance line", () => {

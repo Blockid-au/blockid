@@ -86,7 +86,7 @@ function EmptyState() {
       </p>
       <Link
         href="/workspace/projects?new=1"
-        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
       >
         <PlusCircle className="h-4 w-4" strokeWidth={1.75} />
         Get started
@@ -158,7 +158,7 @@ export default async function PortfolioPage() {
             {/* ── Desktop table ────────────────────────────────────────────── */}
             <div className="hidden md:block rounded-2xl border border-surface-200 bg-white overflow-hidden">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                   <tr className="border-b border-surface-200 bg-surface-50 text-left">
                     <th className="px-4 py-3 font-semibold text-ink-700">Project</th>
                     <th className="px-4 py-3 font-semibold text-ink-700">SVI</th>
@@ -168,7 +168,7 @@ export default async function PortfolioPage() {
                     <th className="px-4 py-3 font-semibold text-ink-700">Next action</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-line-subtle">
                   {sortedRows.map((row) => (
                     <tr key={row.id} className="border-b border-surface-100 last:border-0 hover:bg-surface-50/50 transition-colors">
                       <td className="px-4 py-4">

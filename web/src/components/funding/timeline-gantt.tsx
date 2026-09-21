@@ -10,14 +10,16 @@
  *     order validated with the dataviz palette script in both modes;
  *   • a "today" marker; `<title>` hover on every bar with the lead time;
  *   • responsive via `viewBox` + `width="100%"`; ink / grid / surface colours
- *     come from the semantic `--color-*` tokens so light and dark both work,
- *     and the five series colours are re-stepped for dark in a scoped
- *     `<style>` (media query + `data-theme` scope, toggle wins both ways).
+ *     come from the semantic `--color-*` tokens; the five series colours are
+ *     the validated LIGHT steps, set as CSS variables on the figure (G26:
+ *     light is the only default — no `prefers-color-scheme` flip, no
+ *     `<style>` element).
  *
  * The row label + legend carry identity in text (never colour-alone), and
  * `<TimelineTable>` is the table view for screen readers / print.
  */
 
+import type React from "react";
 import type { TimelineItem } from "@/lib/agents/grant-advisor";
 import { formatDateAu } from "@/lib/funding/deadline-status";
 import { monthShort } from "@/lib/funding/directory";
@@ -59,9 +61,7 @@ export function TimelineGantt({ items, today, state, className, maxRows = 24 }: 
   const todayX = LABEL_W + monthOffset(start, t.getTime()) * COL_W;
   const kindsPresent = new Set(bars.map((b) => b.item.kind));
 
-  const lightVars = GANTT_KINDS.map((k) => `--gantt-${k.kind}:${k.light};`).join("");
-  const darkVars = GANTT_KINDS.map((k) => `--gantt-${k.kind}:${k.dark};`).join("");
-  const css = `.fg-gantt{${lightVars}}@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .fg-gantt{${darkVars}}}:root[data-theme="dark"] .fg-gantt,.dark .fg-gantt{${darkVars}}`;
+  const seriesVars = Object.fromEntries(GANTT_KINDS.map((k) => [`--gantt-${k.kind}`, k.light])) as React.CSSProperties;
 
   if (bars.length === 0) {
     return (
@@ -72,8 +72,7 @@ export function TimelineGantt({ items, today, state, className, maxRows = 24 }: 
   }
 
   return (
-    <figure className={`fg-gantt ${className ?? ""}`} data-timeline-gantt data-bars={bars.length}>
-      <style dangerouslySetInnerHTML={{ __html: css }} />
+    <figure className={`fg-gantt ${className ?? ""}`} style={seriesVars} data-timeline-gantt data-bars={bars.length}>
       <div className="overflow-x-auto">
         <svg
           viewBox={`0 0 ${width} ${height}`}

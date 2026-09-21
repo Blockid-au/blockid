@@ -79,7 +79,7 @@ export function AutoRenewNotice({
       role="status"
       aria-live="polite"
       aria-label="Auto-renew notice"
-      className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
+      className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-amber-900"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
@@ -93,7 +93,7 @@ export function AutoRenewNotice({
             <span className="font-semibold">{planLabel}</span> plan. You can
             cancel or change plan any time before then.
           </p>
-          <p className="mt-2 text-xs text-amber-800/80 dark:text-amber-200/80">
+          <p className="mt-2 text-xs text-amber-800/80">
             {statutoryLine()}
           </p>
         </div>
@@ -101,7 +101,7 @@ export function AutoRenewNotice({
           <button
             type="button"
             onClick={handleManage}
-            className="inline-flex items-center justify-center rounded-lg border border-amber-400 bg-white px-3 py-2 text-sm font-semibold text-amber-900 shadow-sm transition-colors hover:bg-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 dark:border-amber-600 dark:bg-amber-900/40 dark:text-amber-100 dark:hover:bg-amber-900/60"
+            className="inline-flex items-center justify-center rounded-lg border border-amber-400 bg-white px-3 py-2 text-sm font-semibold text-amber-900 shadow-sm transition-colors hover:bg-amber-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
           >
             Manage plan
           </button>

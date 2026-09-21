@@ -38,19 +38,19 @@ export function ChapterProgressRibbon({ phase, locale, variant }: Props) {
 
   const containerClass =
     variant === "marketing"
-      ? "mb-8 rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+      ? "mb-8 rounded-lg border border-line-subtle bg-white p-4"
       : "mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-3";
   const captionClass =
     variant === "marketing"
-      ? "flex items-baseline justify-between text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400"
+      ? "flex items-baseline justify-between text-xs uppercase tracking-wide text-muted"
       : "flex items-baseline justify-between text-xs uppercase tracking-wide text-emerald-800";
   const trackFilledClass =
     variant === "marketing"
-      ? "bg-emerald-600 dark:bg-emerald-400"
+      ? "bg-emerald-600"
       : "bg-emerald-600";
   const trackEmptyClass =
     variant === "marketing"
-      ? "bg-slate-200 dark:bg-slate-800"
+      ? "bg-slate-200"
       : "bg-emerald-100";
 
   return (

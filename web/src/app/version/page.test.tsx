@@ -6,6 +6,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
+import { expectLightSurfaces } from "@/test/light-surface";
 import VersionPage from "./page";
 
 describe("/version", () => {
@@ -17,5 +18,9 @@ describe("/version", () => {
     expect(main![1]).toContain("[overflow-wrap:anywhere]");
     // The phase header badge wraps under the title on narrow screens instead of forcing width.
     expect(html).toContain("flex flex-wrap items-center justify-between gap-2");
+    // G26: the hero, the phase headers and the CTA are light — no gradient fills, no white text.
+    expect(html).not.toMatch(/bg-gradient-to-/);
+    expect(html).not.toMatch(/class="[^"]*\btext-white\b/);
+    expectLightSurfaces(html, "/version", { whole: true });
   });
 });

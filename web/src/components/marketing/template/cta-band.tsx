@@ -1,8 +1,8 @@
 /**
  * CtaBand — the close of every marketing page (G17 D5): one title, one
  * line, one primary button and at most one secondary. Sits directly above
- * the footer. `tone="dark"` self-scopes the token ramp so the band reads as
- * the page's one dark punctuation before the dark footer edge.
+ * the footer on the sunken ground (G26: light only — `tone="dark"` is a
+ * deprecated alias of `sunken`; the navy primary button is the punctuation).
  *
  * Server component.
  */
@@ -10,7 +10,7 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { CtaRow } from "./cta-link";
-import { CONTAINER, RHYTHM, TONE_CLASS, type Cta, type Tone } from "./primitives";
+import { CONTAINER, RHYTHM, TONE_CLASS, resolveTone, type Cta, type Tone } from "./primitives";
 
 export interface CtaBandProps {
   id?: string;
@@ -39,8 +39,8 @@ export function CtaBand({
     <section
       id={id}
       aria-labelledby={`${id}-heading`}
-      data-theme={tone === "dark" ? "dark" : undefined}
-      className={cn("border-t border-line-subtle", TONE_CLASS[tone], RHYTHM.lg, className)}
+      data-tone={resolveTone(tone)}
+      className={cn("border-t border-line-subtle", TONE_CLASS[resolveTone(tone)], RHYTHM.lg, className)}
     >
       <div className={cn(CONTAINER, "flex flex-col items-center text-center")}>
         <h2

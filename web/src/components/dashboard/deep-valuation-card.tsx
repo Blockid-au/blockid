@@ -76,9 +76,9 @@ function ProjectIntro({ summary }: { summary: InputSummary }) {
 
 function PerspectiveRow({ p }: { p: DeepValuation["perspectives"][number] }) {
   const Icon = PERSPECTIVE_ICONS[p.code] ?? BarChart3;
-  const confColor = p.confidence === "high" ? "text-emerald-700 bg-emerald-50 dark:bg-emerald-950/20"
-    : p.confidence === "medium" ? "text-blue-600 bg-blue-50 dark:bg-blue-950/20"
-    : "text-amber-600 bg-amber-50 dark:bg-amber-950/20";
+  const confColor = p.confidence === "high" ? "text-emerald-700 bg-emerald-50"
+    : p.confidence === "medium" ? "text-blue-600 bg-blue-50"
+    : "text-amber-600 bg-amber-50";
 
   const [open, setOpen] = React.useState(false);
 
@@ -142,8 +142,8 @@ export function DeepValuationCard({ analysis }: Props) {
           </div>
 
           {/* Blended hero */}
-          <div className="rounded-lg bg-gradient-to-br from-blue-500/10 to-emerald-500/10 dark:from-blue-500/15 dark:to-emerald-500/15 border border-blue-200 dark:border-blue-800/40 p-4">
-            <p className="text-[11px] font-semibold text-blue-700 dark:text-blue-400 uppercase tracking-wide">Blended Valuation Estimate</p>
+          <div className="rounded-lg bg-gradient-to-br from-blue-500/10 to-emerald-500/10 border border-blue-200 p-4">
+            <p className="text-[11px] font-semibold text-blue-700 uppercase tracking-wide">Blended Valuation Estimate</p>
             <p className="text-3xl font-bold text-foreground mt-1">{fmtAud(dv.blendedValuation.midAud)}</p>
             <p className="text-sm text-muted-foreground mt-1">
               Range: {fmtAud(dv.blendedValuation.lowAud)} – {fmtAud(dv.blendedValuation.highAud)} &middot; <span className="font-medium capitalize">{dv.blendedValuation.confidence}</span> confidence
@@ -214,7 +214,7 @@ export function DeepValuationCard({ analysis }: Props) {
             {dv.revenueScenarios.map((scn) => (
               <div key={scn.scenario} className={cn(
                 "rounded-lg p-3",
-                scn.scenario === "base" ? "bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800/40" : "bg-muted/30"
+                scn.scenario === "base" ? "bg-blue-50 border border-blue-200" : "bg-muted/30"
               )}>
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">{scn.scenario}</p>
                 <p className="text-xs text-muted-foreground mt-1">Year-3 ARR</p>
@@ -229,14 +229,14 @@ export function DeepValuationCard({ analysis }: Props) {
 
       {/* Risk flags */}
       {dv && dv.riskFlags.length > 0 && (
-        <div className="rounded-xl border border-amber-200 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/10 p-4">
-          <h4 className="text-sm font-bold mb-2 flex items-center gap-2 text-amber-800 dark:text-amber-400">
+        <div className="rounded-xl border border-amber-200 bg-amber-50/50 p-4">
+          <h4 className="text-sm font-bold mb-2 flex items-center gap-2 text-amber-800">
             <AlertTriangle className="h-3.5 w-3.5" />
             Valuation Risk Flags
           </h4>
           <ul className="space-y-1">
             {dv.riskFlags.map((flag, i) => (
-              <li key={i} className="text-xs text-amber-900 dark:text-amber-300 leading-relaxed">&bull; {flag}</li>
+              <li key={i} className="text-xs text-amber-900 leading-relaxed">&bull; {flag}</li>
             ))}
           </ul>
         </div>

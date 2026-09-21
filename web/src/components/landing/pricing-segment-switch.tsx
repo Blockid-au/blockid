@@ -41,9 +41,6 @@ import {
 } from "react";
 import { trackEvent } from "@/lib/analytics";
 import { PricingMatrix } from "@/components/landing/pricing-matrix";
-import { PilotRung } from "@/components/marketing/PilotOffer";
-import type { PilotSkuId } from "@/lib/pricing/pilot-skus";
-import type { PilotUiStrings } from "@/lib/pricing/pilot-strings";
 import {
   PRICING_TABS,
   TAB_TO_SEGMENT,
@@ -70,25 +67,12 @@ export interface PricingSegmentSwitchProps {
   /** Plan ids with an annual Stripe Price — forwarded to <PricingMatrix>. */
   annualAvailable?: readonly string[];
   purchasable?: readonly string[];
-  /**
-   * G21 P0-C — the paid Cohort Validation Pilot rung shown FIRST on the
-   * Programs tab (ahead of Intake link / Cohort 25 / Cohort 100). The
-   * server page passes `isPilotSkuConfigured()` per SKU; omitted → the rung
-   * is not rendered (the /vi page passes its own copy).
-   *
-   * G22-C: `pilotStrings` (`pilotUiStrings(m, locale)` on the server) carries
-   * the rung's control strings in the page's language; without it the rung
-   * is not rendered either — no English control on a Vietnamese page.
-   */
-  pilotConfigured?: Readonly<Record<PilotSkuId, boolean>>;
-  pilotStrings?: PilotUiStrings;
-  pilotCopy?: { title: string; sub: string };
+  // G25 (2026-09-21): the paid Cohort Validation Pilot rung that led the
+  // Programs tab (G21 P0-C / G22-C) is gone — the tab is the sold ladder
+  // only: Intake link / Cohort 25 / Cohort 100 with the card-required trial.
+  /** G25-D: `vi` → the card CTAs link to `/vi/checkout/review`. */
+  locale?: "en" | "vi";
 }
-
-const DEFAULT_PILOT_COPY = {
-  title: "Cohort Validation Pilot — one real intake, priced before you pay",
-  sub: "Start with a one-off paid pilot on your next intake or your existing cohort: Startup Value Index per applicant, evidence confidence, the cohort table, the top gaps and a final cohort report. Programs that continue move to Cohort 25 or Cohort 100 below.",
-};
 
 const DEFAULT_LABELS: Record<PricingTab, { label: string; sub: string }> = {
   founder: { label: "Founder", sub: "Build, value and raise" },
@@ -126,9 +110,7 @@ export function PricingSegmentSwitch({
   onChange,
   annualAvailable,
   purchasable,
-  pilotConfigured,
-  pilotStrings,
-  pilotCopy,
+  locale = "en",
 }: PricingSegmentSwitchProps) {
   // The URL is an external store: "no tab" while hydrating (matches the
   // server document), the deep-linked tab on the first client render. A
@@ -249,16 +231,7 @@ export function PricingSegmentSwitch({
         id={`pricing-panel-${tab}`}
         aria-labelledby={`pricing-tab-${tab}`}
       >
-        {tab === "programs" && pilotConfigured && pilotStrings ? (
-          <PilotRung
-            configured={pilotConfigured}
-            strings={pilotStrings}
-            returnPath={pilotStrings.locale === "vi" ? "/vi/pricing?segment=programs" : "/pricing?segment=programs"}
-            title={(pilotCopy ?? DEFAULT_PILOT_COPY).title}
-            sub={(pilotCopy ?? DEFAULT_PILOT_COPY).sub}
-          />
-        ) : null}
-        <PricingMatrix segment={TAB_TO_SEGMENT[tab]} annualAvailable={annualAvailable} purchasable={purchasable} />
+        <PricingMatrix segment={TAB_TO_SEGMENT[tab]} annualAvailable={annualAvailable} purchasable={purchasable} locale={locale} />
       </div>
     </div>
   );

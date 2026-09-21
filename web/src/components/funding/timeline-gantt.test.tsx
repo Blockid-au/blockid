@@ -58,17 +58,18 @@ describe("TimelineGantt (SVG)", () => {
     expect(html).toContain(">Sep 26<");
   });
 
-  it("colours bars by kind through CSS variables with light + dark definitions, and labels the legend in text", () => {
+  it("colours bars by kind through CSS variables (light steps only — G26), and labels the legend in text", () => {
     expect(html).toContain('fill="var(--gantt-grant)"');
     expect(html).toContain('fill="var(--gantt-tax)"');
     expect(html).toContain('fill="var(--gantt-program)"');
     expect(html).toContain('fill="var(--gantt-event)"');
     for (const k of GANTT_KINDS) {
       expect(html).toContain(`--gantt-${k.kind}:${k.light}`);
-      expect(html).toContain(`--gantt-${k.kind}:${k.dark}`);
+      expect(html).not.toContain(`--gantt-${k.kind}:${k.dark}`);
     }
-    expect(html).toContain('prefers-color-scheme:dark');
-    expect(html).toContain('[data-theme="dark"]');
+    expect(html).not.toContain("prefers-color-scheme");
+    expect(html).not.toContain('[data-theme="dark"]');
+    expect(html).not.toContain("<style");
     expect(html).toContain('data-legend="grant"');
     expect(html).toContain('data-legend="event"');
     expect(html).not.toContain('data-legend="milestone"');

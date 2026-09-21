@@ -27,7 +27,7 @@ export interface CohortImportResult {
 
 export interface CohortImportProps {
   batchId: string;
-  /** From the paid pilot; null = uncapped. Shown next to the control. */
+  /** Legacy per-cohort cap (a G21 pilot-era batch); null = uncapped. Shown next to the control. */
   applicantsCap?: number | null;
   /** Items already in the cohort (header count). */
   used?: number;
@@ -92,7 +92,7 @@ export function CohortImport({ batchId, applicantsCap = null, used = 0, onImport
       <div className="flex flex-wrap items-center gap-2">
         <label
           htmlFor={inputId}
-          className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-brand-300 bg-surface px-4 py-2.5 text-sm font-semibold text-brand-700 transition-colors hover:bg-surface-hover dark:border-brand-700 ${busy ? "pointer-events-none opacity-60" : ""}`}
+          className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-brand-300 bg-surface px-4 py-2.5 text-sm font-semibold text-action transition-colors hover:bg-surface-hover dark:border-brand-700 ${busy ? "pointer-events-none opacity-60" : ""}`}
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Upload className="h-4 w-4" aria-hidden="true" />}
           {busy ? "Importing…" : "Import CSV"}
@@ -110,13 +110,13 @@ export function CohortImport({ batchId, applicantsCap = null, used = 0, onImport
             if (f) void upload(f);
           }}
         />
-        <a href={SAMPLE_CSV_HREF} download className="inline-flex min-h-11 items-center gap-1.5 px-2 text-xs font-medium text-ink-600 hover:text-brand-700" data-testid="cohort-import-sample">
+        <a href={SAMPLE_CSV_HREF} download className="inline-flex min-h-11 items-center gap-1.5 px-2 text-xs font-medium text-ink-600 hover:text-action-hover" data-testid="cohort-import-sample">
           <Download className="h-3.5 w-3.5" aria-hidden="true" />
           Sample CSV
         </a>
         {applicantsCap != null ? (
           <span className="text-xs text-ink-500" data-testid="cohort-import-cap">
-            {used} of {applicantsCap} pilot places used{remaining === 0 ? " — cap reached" : ""}
+            {used} of {applicantsCap} cohort places used{remaining === 0 ? " — cap reached" : ""}
           </span>
         ) : null}
       </div>

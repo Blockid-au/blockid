@@ -99,7 +99,7 @@ export function EvidenceBlock({ view }: { view: DossierView }) {
                         <span className="text-ink-400">{it.type}</span>
                         <span className="ml-auto text-ink-500">{freshnessLabel(it.createdAt)}</span>
                         {it.url ? (
-                          <a href={it.url} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">
+                          <a href={it.url} target="_blank" rel="noopener noreferrer" className="text-action hover:underline">
                             open
                           </a>
                         ) : null}
@@ -120,7 +120,7 @@ export function EvidenceBlock({ view }: { view: DossierView }) {
 
       {e.dataroomAvailable ? (
         <p className="mt-3 text-xs" data-testid="evidence-dataroom">
-          <Link href={`/workspace/documents/data-room?project=${encodeURIComponent(view.header.projectSlug)}`} className="text-brand-700 hover:underline">
+          <Link href={`/workspace/documents/data-room?project=${encodeURIComponent(view.header.projectSlug)}`} className="text-action hover:underline">
             Open the data-room index
           </Link>{" "}
           <span className="text-ink-500">· cap-table summary and exit-readiness are in the full report.</span>
@@ -142,7 +142,7 @@ export function EvidenceBlock({ view }: { view: DossierView }) {
       </details>
 
       {!founder && unlock.next ? (
-        <div className="mt-4 rounded-xl border border-brand-200 bg-brand-50 px-4 py-3" data-testid="evidence-upgrade-cta">
+        <div className="mt-4 rounded-xl border border-brand-200 bg-info-soft px-4 py-3" data-testid="evidence-upgrade-cta">
           <p className="text-sm font-medium text-ink-900">
             {unlock.next === "reports_shared" ? "Invite the founder to share reports" : "Request data-room access"}
           </p>
@@ -155,7 +155,7 @@ export function EvidenceBlock({ view }: { view: DossierView }) {
       {founder ? (
         <p className="mt-4 text-xs text-ink-600">
           Change what this evaluator can see on{" "}
-          <Link href="/workspace/investors/access" className="text-brand-700 hover:underline">
+          <Link href="/workspace/investors/access" className="text-action hover:underline">
             Investor access
           </Link>
           .

@@ -66,8 +66,11 @@ export function stillBeingWritten(report: FirstAnalysisReportView | null): First
 }
 
 /** The one-line progress statement. Exported for the test. */
-export function progressLine(view: Pick<FullReportView, "status" | "report" | "error"> | null): string {
+export function progressLine(view: Pick<FullReportView, "status" | "report" | "error" | "heldForCap"> | null): string {
   if (!view || view.status === null) return "Preparing your first analysis…";
+  if (view.status === "queued" && view.heldForCap) {
+    return "Queued — today's free reports are all taken, so yours is in the queue. We e-mail it the moment it is written; you can close this page.";
+  }
   if (view.status === "queued") return "Queued — the seven C-level voices start in a moment.";
   if (view.status === "failed") {
     return `We could not finish every section${view.error ? ` (${view.error})` : ""}. It is retried automatically; what was written is below.`;
@@ -116,6 +119,7 @@ export function parseView(body: unknown): FullReportView | null {
     attempts: typeof b.attempts === "number" ? b.attempts : 0,
     error: b.error ?? null,
     pollAfterSec: typeof b.pollAfterSec === "number" ? b.pollAfterSec : 0,
+    heldForCap: Boolean(b.heldForCap),
   };
 }
 
@@ -228,7 +232,7 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
               <span>{failedToLoad && !view ? "Could not reach the report just now — retrying." : progressLine(view)}</span>
             </p>
             <p className="mt-1 text-[11px] text-muted">
-              Free · 0 credits — the first analysis of an input never costs anything.
+              Free · 0 credits — your first two business reports never cost anything.
             </p>
           </div>
           {done && !locked && (

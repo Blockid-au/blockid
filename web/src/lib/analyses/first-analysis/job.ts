@@ -426,6 +426,13 @@ export interface DeliverDeps {
     pages: number;
     part: DeliveryPart;
   }) => Promise<{ ok: boolean; reason?: string }>;
+  /**
+   * G25-C — stamp the free-allowance ledger (`free_report_grants`) when the
+   * e-mail was accepted (`sent`) or provably was not (`failed`), and emit
+   * `free_report_delivered`. A no-op for a row with no grant (an entitled
+   * run). Optional so older test doubles keep working; never throws.
+   */
+  recordDelivery?: (row: FullReportRow, status: "sent" | "failed", part: DeliveryPart) => Promise<void>;
 }
 
 /** Which email this delivery is, from the row's state and the report's stamps. */
@@ -469,16 +476,53 @@ export async function deliverFullReport(
     });
     if (!result.ok) {
       if (!opts.force) await deps.releaseSend(row.id, result.reason ?? "send_failed");
+      await recordDeliverySafely(deps, row, "failed", part);
       return result.reason === "unsubscribed" ? "unsubscribed" : "send_failed";
     }
     console.info("[first-analysis] report emailed", { analysisId: row.id, pages: pdf.pages, variant, part, forced: Boolean(opts.force) });
+    await recordDeliverySafely(deps, row, "sent", part);
     return "sent";
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error("[first-analysis] delivery failed —", message, { analysisId: row.id });
     if (!opts.force) await deps.releaseSend(row.id, message);
+    await recordDeliverySafely(deps, row, "failed", part);
     return "send_failed";
   }
+}
+
+async function recordDeliverySafely(deps: DeliverDeps, row: FullReportRow, status: "sent" | "failed", part: DeliveryPart): Promise<void> {
+  if (!deps.recordDelivery) return;
+  try {
+    await deps.recordDelivery(row, status, part);
+  } catch (err) {
+    console.error("[first-analysis] free-report ledger stamp failed —", err instanceof Error ? err.message : String(err), { analysisId: row.id });
+  }
+}
+
+/**
+ * G25-C — the default ledger stamp. `sent` on the FIRST accepted e-mail for
+ * the analysis (a partial "(part 1)" counts: the founder has the report in
+ * hand); `failed` only while nothing was ever delivered, so a failed
+ * "(complete)" follow-up never un-delivers a report.
+ */
+export async function recordFreeReportDelivery(row: FullReportRow, status: "sent" | "failed"): Promise<void> {
+  const { grantForAnalysis, markDelivered } = await import("@/lib/reports/free-grants");
+  const grant = await grantForAnalysis(row.id);
+  if (!grant) return;
+  if (status === "sent" && grant.delivery_status === "sent") return;
+  if (status === "failed" && grant.delivery_status === "sent") return;
+  const stamped = await markDelivered(row.id, status);
+  if (!stamped || status !== "sent") return;
+  const { emitFreeReportDelivered } = await import("@/lib/analytics/funnel");
+  emitFreeReportDelivered({
+    grantId: stamped.id,
+    sequenceNo: stamped.sequence_no,
+    source: stamped.source,
+    analysisId: row.id,
+    userId: row.user_id,
+    email: stamped.email,
+  });
 }
 
 export async function resolveDestinationEmail(row: FullReportRow): Promise<string | null> {
@@ -514,6 +558,7 @@ export function defaultDeliverDeps(): DeliverDeps {
       const { sendFirstAnalysisReportEmail } = await import("@/lib/email");
       return sendFirstAnalysisReportEmail(args);
     },
+    recordDelivery: recordFreeReportDelivery,
   };
 }
 

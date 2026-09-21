@@ -11,6 +11,14 @@ import { Chip, TABLE_CLASS, TABLE_WRAP_CLASS, TBR_V2_SECTION_IDS, THEAD_CLASS, T
 
 export const TBR_EVIDENCE_CITED_TESTID = "tbr-evidence-cited";
 
+/** Level · source · date are table columns from `sm` up and a stacked meta line under the label below it (375 px stays readable without a sideways scroll; print keeps the columns). */
+export const STACKED_COL = "hidden sm:table-cell print:table-cell";
+
+/** The register id is an audit key, not reading matter: a uuid shows its first block (the full id sits in the title); any other id prints whole. */
+export function shortId(id: string): string {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id.slice(0, 8) : id;
+}
+
 export function TbrEvidenceCited({ citations, locale = "en", kicker = "15" }: { citations: CitationIndex; locale?: TbrUiLocale; kicker?: string }) {
   const rows = citationEntries(citations);
   if (rows.length === 0) return null;
@@ -23,24 +31,34 @@ export function TbrEvidenceCited({ citations, locale = "en", kicker = "15" }: { 
             <tr>
               <th scope="col" className="px-2 py-1 font-medium">{t.th.n}</th>
               <th scope="col" className="px-2 py-1 font-medium">{t.th.label}</th>
-              <th scope="col" className="px-2 py-1 font-medium">{t.th.level}</th>
-              <th scope="col" className="px-2 py-1 font-medium">{t.th.source}</th>
-              <th scope="col" className="px-2 py-1 font-medium">{t.th.date}</th>
+              <th scope="col" className={cn("px-2 py-1 font-medium", STACKED_COL)}>{t.th.level}</th>
+              <th scope="col" className={cn("px-2 py-1 font-medium", STACKED_COL)}>{t.th.source}</th>
+              <th scope="col" className={cn("px-2 py-1 font-medium", STACKED_COL)}>{t.th.date}</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((e, i) => (
               <tr key={e.id} id={citationAnchorId(e.n)} data-tbr-footnote={e.n} className={cn(zebraRow(i), "scroll-mt-24 target:bg-surface-sunken")}>
-                <td className="px-2 py-1 font-semibold tabular-nums text-action">{e.n}</td>
-                <td className="px-2 py-1 text-primary">
+                <td className="px-2 py-1 align-top font-semibold tabular-nums text-action">{e.n}</td>
+                <td className="px-2 py-1 align-top text-primary">
                   {e.label}
-                  <span className="ml-1 font-mono text-[11px] text-muted">{e.id}</span>
+                  <span className="ml-1 hidden font-mono text-[11px] text-muted sm:inline" title={e.id}>
+                    {shortId(e.id)}
+                  </span>
+                  {/* < sm: the three hidden columns stack under the label so the row reads without a sideways scroll. */}
+                  <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-muted sm:hidden" data-tbr-footnote-meta>
+                    <span>{t.level(e)}</span>
+                    <span aria-hidden="true">·</span>
+                    <Chip kind="source">{t.source(e)}</Chip>
+                    <span aria-hidden="true">·</span>
+                    <span className="tabular-nums">{t.date(e)}</span>
+                  </span>
                 </td>
-                <td className="px-2 py-1 text-secondary">{t.level(e)}</td>
-                <td className="px-2 py-1">
+                <td className={cn("px-2 py-1 align-top text-secondary", STACKED_COL)}>{t.level(e)}</td>
+                <td className={cn("px-2 py-1 align-top", STACKED_COL)}>
                   <Chip kind="source">{t.source(e)}</Chip>
                 </td>
-                <td className="px-2 py-1 tabular-nums text-muted">{t.date(e)}</td>
+                <td className={cn("px-2 py-1 align-top tabular-nums text-muted", STACKED_COL)}>{t.date(e)}</td>
               </tr>
             ))}
           </tbody>

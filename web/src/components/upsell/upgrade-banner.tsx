@@ -22,17 +22,17 @@ export function UpgradeBanner() {
     <div
       role="status"
       aria-live="polite"
-      className="flex items-center gap-3 border-b border-brand-500/40 bg-gradient-to-r from-brand-700 to-violet-700 px-4 py-2.5 text-white"
+      className="flex items-center gap-3 border-b border-line-subtle bg-accent-soft px-4 py-2.5 text-primary"
     >
-      <Sparkles className="h-4 w-4 shrink-0" strokeWidth={1.75} />
+      <Sparkles className="h-4 w-4 shrink-0 text-accent" strokeWidth={1.75} />
       <p className="flex-1 text-xs leading-snug sm:text-sm">
         <span className="font-semibold">{copy.headline}.</span>{" "}
-        <span className="opacity-90">{copy.body}</span>
+        <span className="text-muted">{copy.body}</span>
       </p>
       <Link
         href={`/pricing?plan=${copy.suggestedPlan}`}
         onClick={() => accept(copy.suggestedPlan)}
-        className="shrink-0 rounded-lg bg-white/20 px-3 py-1.5 text-xs font-semibold text-white hover:bg-white/30"
+        className="shrink-0 rounded-lg bg-action px-3 py-1.5 min-h-9 text-xs font-semibold text-on-action hover:bg-action-hover"
       >
         {copy.primaryCta}
       </Link>
@@ -40,7 +40,7 @@ export function UpgradeBanner() {
         type="button"
         onClick={dismiss}
         aria-label="Dismiss"
-        className="shrink-0 rounded-full p-1 text-white/70 hover:bg-white/20 hover:text-white"
+        className="shrink-0 rounded-full p-2 text-muted hover:bg-surface-hover hover:text-primary"
       >
         <X className="h-3.5 w-3.5" strokeWidth={1.75} />
       </button>

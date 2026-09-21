@@ -3,9 +3,6 @@
 // carries the data sentence verbatim and the seller-of-record sender identity.
 
 import { SENDER_IDENTITY_HTML, SENDER_IDENTITY_LINE } from "@/lib/email";
-import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
-import { PILOT_INCLUDES, formatPilotPriceLong, type PilotSkuId } from "@/lib/pricing/pilot-skus";
-import { formatAud } from "@/lib/plans-v2";
 import {
   DATA_PRINCIPLE_SENTENCE,
   DEFAULT_PILOT_DAYS,
@@ -157,78 +154,5 @@ export function buildPilotApplyAutoReply(input: { contactName: string; programNa
     WRAP_CLOSE,
   ].join("");
   const text = `Thanks, ${input.contactName} — we have your application for ${input.programName}.\n\nWe reply within two business days. If it is a fit we propose a day-0 call, agree the 7 success criteria and send the intake link.\n\nOffer: ${DEFAULT_PILOT_DAYS} days, up to ${PILOT_MAX_APPLICANTS} applicants, free (admin grant, no card). In return: LOI if >= ${PILOT_LOI_PASS_MARK} of 7 criteria pass, a named case study, your top-10 before ours, one 45-minute interview.\n\n${DATA_PRINCIPLE_SENTENCE}\n\n${SENDER_IDENTITY_LINE}`;
-  return { subject, html, text };
-}
-
-// ── G21 P0-C — paid Cohort Validation Pilot ─────────────────────────────────
-
-export interface PaidWelcomeInput {
-  sku: PilotSkuId;
-  intakeUrl: string | null;
-  expiresAt: string;
-  applicantsCap: number;
-  /** What Stripe actually charged (promo codes apply); falls back to the list price. */
-  amountCents?: number | null;
-  /** False when the buyer's own subscription was kept (no Cohort-tier grant). */
-  planSet?: boolean;
-}
-
-/**
- * Confirmation after a paid pilot checkout: what happens next (we set the
- * intake up within 2 business days), what is included, the support address
- * from the canonical entity config, the data sentence verbatim. The Stripe
- * receipt / ATO tax invoice is sent by Stripe separately.
- */
-export function buildPaidPilotWelcomeEmail(input: PaidWelcomeInput): EmailBody {
-  const site = siteUrl();
-  const inbox = `${site}/workspace/accelerator/applications`;
-  const cohort = `${site}/workspace/evaluations/cohort`;
-  const price = typeof input.amountCents === "number" && input.amountCents > 0 ? `${formatAud(input.amountCents / 100)} inc. GST` : formatPilotPriceLong(input.sku);
-  const tierLine = input.planSet === false ? "Your existing plan stays as it is; the pilot runs on it" : `Your workspace has the Cohort tier until <strong>${fmtDate(input.expiresAt)}</strong>`;
-  const tierText = input.planSet === false ? "Your existing plan stays as it is; the pilot runs on it" : `Cohort tier until ${fmtDate(input.expiresAt)}`;
-  const subject = `Your BlockID Cohort Validation Pilot is confirmed — up to ${input.applicantsCap} applicants`;
-  const nextSteps = [
-    "Within 2 business days we set up your intake with you: application link, deck upload, startup URL and founder consent on the form.",
-    "Every applicant is assessed on the Startup Value Index with an evidence confidence level; your evaluator table fills as they arrive.",
-    "You get the cohort comparison, the top gaps and the final cohort report, then a feedback workshop with your review team.",
-    "We measure the success metrics together: review time per startup, evaluator consistency, startups processed, evidence completion, satisfaction, renewal intent.",
-  ];
-  const html = [
-    WRAP_OPEN,
-    `<h1 style="margin:0 0 16px 0;font-size:20px;line-height:1.3;">Your Cohort Validation Pilot is confirmed</h1>`,
-    p(`Thank you — <strong>${escapeHtml(price)}</strong> for one real intake or existing cohort of up to <strong>${input.applicantsCap} applicants</strong>. ${tierLine}; the tax invoice arrives from Stripe separately.`),
-    h2("What happens next"),
-    ul(nextSteps),
-    input.intakeUrl
-      ? p(`Your intake link is ready now: <a href="${escapeHtml(input.intakeUrl)}">${escapeHtml(input.intakeUrl)}</a><br>Applicants land scored in your inbox at <a href="${escapeHtml(inbox)}">${escapeHtml(inbox)}</a>; the cohort table is at <a href="${escapeHtml(cohort)}">${escapeHtml(cohort)}</a>.`)
-      : p(`We create the intake link with you on the setup call; your inbox is <a href="${escapeHtml(inbox)}">${escapeHtml(inbox)}</a> and the cohort table is <a href="${escapeHtml(cohort)}">${escapeHtml(cohort)}</a>.`),
-    h2("What is included"),
-    ul(PILOT_INCLUDES),
-    h2("Data"),
-    p(`<em data-testid="pilot-data-sentence">${escapeHtml(DATA_PRINCIPLE_SENTENCE)}</em>`),
-    p(`Questions or a date for the setup call: reply to this e-mail or write to <a href="mailto:${escapeHtml(LEGAL_ENTITY.supportEmail)}">${escapeHtml(LEGAL_ENTITY.supportEmail)}</a>. BlockID structures the evidence and standardises the first-pass analysis; your committee makes the decision.`),
-    WRAP_CLOSE,
-  ].join("");
-  const text = [
-    "Your Cohort Validation Pilot is confirmed",
-    "",
-    `${price} for one real intake or existing cohort of up to ${input.applicantsCap} applicants. ${tierText}; the tax invoice arrives from Stripe separately.`,
-    "",
-    "What happens next:",
-    ...nextSteps.map((s) => `- ${s}`),
-    "",
-    input.intakeUrl ? `Intake link: ${input.intakeUrl}` : "We create the intake link with you on the setup call.",
-    `Inbox: ${inbox}`,
-    `Cohort table: ${cohort}`,
-    "",
-    "Included:",
-    ...PILOT_INCLUDES.map((s) => `- ${s}`),
-    "",
-    DATA_PRINCIPLE_SENTENCE,
-    "",
-    `Questions: ${LEGAL_ENTITY.supportEmail}. BlockID structures the evidence and standardises the first-pass analysis; your committee makes the decision.`,
-    "",
-    SENDER_IDENTITY_LINE,
-  ].join("\n");
   return { subject, html, text };
 }

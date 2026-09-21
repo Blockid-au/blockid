@@ -18,8 +18,6 @@ vi.mock("@/components/sales/sticky-cta", () => ({ StickyCta: () => null }));
 
 import { extractJsonLd } from "@/lib/seo/structured-data";
 import { renderedTitle } from "@/lib/seo/page-meta";
-import enMessages from "@/lib/i18n/messages/en.json";
-import { pilotUiStrings } from "@/lib/pricing/pilot-strings";
 import PricingPage, { metadata } from "./page";
 
 async function html(el: React.ReactElement): Promise<string> {
@@ -45,26 +43,21 @@ describe("/pricing — template around the ladder (G17 P2-A)", () => {
     expect(out).toContain("Auschain PTY LTD");
   });
 
-  it("G21 P0-C: the default (founder) document carries the A$3 footnote, not the pilot rung; the Programs deep link renders the pilot rung FIRST with both SKUs", async () => {
+  it("G25: the default (founder) document carries the A$3 footnote; the Programs tab is the sold ladder only — no pilot rung, no A$1,500 / A$2,500, no contact fallback", async () => {
     const out = await html(await PricingPage());
     expect(out).toContain('data-testid="founder-payg"');
     expect(out).toMatch(/A\$3(<!-- -->)? per report, pay-as-you-go/);
     expect(out).not.toContain('data-testid="pricing-pilot-rung"');
-    // The switch renders the Programs ladder when told the tab; the pilot
-    // rung sits above the Intake / Cohort cards and both SKUs are priced
-    // from PILOT_SKUS with the contact fallback (env vars unset here).
+    expect(out).not.toMatch(/pilot/i);
     const { PricingSegmentSwitch } = await import("@/components/landing/pricing-segment-switch");
     const { renderToStaticMarkup } = await import("react-dom/server");
-    const programs = renderToStaticMarkup(
-      <PricingSegmentSwitch initialSegment="programs" readTabFromUrl={false} pilotConfigured={{ cohort_pilot_25: false, cohort_pilot_50: false }} pilotStrings={pilotUiStrings(enMessages as Record<string, string>, "en")} />,
-    );
-    expect(programs).toContain('data-testid="pricing-pilot-rung"');
-    expect(programs.indexOf('data-testid="pricing-pilot-rung"')).toBeLessThan(programs.indexOf('data-testid="programs-ladder"'));
-    expect(programs.match(/data-testid="pricing-pilot-card"/g)).toHaveLength(2);
-    expect(programs).toContain("A$1,500");
-    expect(programs).toContain("A$2,500");
-    expect(programs).toContain("inc. GST");
-    expect(programs).toContain('href="/contact?topic=pilot"');
+    const programs = renderToStaticMarkup(<PricingSegmentSwitch initialSegment="programs" readTabFromUrl={false} />);
+    expect(programs).toContain('data-testid="programs-ladder"');
+    expect(programs).not.toContain('data-testid="pricing-pilot-rung"');
+    expect(programs).not.toMatch(/pilot/i);
+    expect(programs).not.toContain("A$1,500");
+    expect(programs).not.toContain("A$2,500");
+    expect(programs).not.toContain("/contact?topic=pilot");
     expect(programs).not.toContain('data-testid="founder-payg"');
     expect(programs).not.toMatch(/A\$3\b/);
   });

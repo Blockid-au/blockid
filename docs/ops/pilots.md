@@ -1,4 +1,21 @@
-# Evaluator pilots — ops runbook (G16-C)
+# Evaluator pilots — ops runbook (G16-C) — **RETIRED 2026-09-21 (G25)**
+
+> **Status:** retired by founder decision on 2026-09-21 ("bỏ luôn coupon và pilot"). Neither kind of pilot below is offered any more:
+> the paid Cohort Validation Pilot (G21 P0-C) and its pilot → annual credit coupons (G23-B) are gone from the code, and the
+> comped evaluator pilot (G16-C) can no longer be started (`POST /api/admin/pilots` → `410 pilots_retired`; `/pilot/investor`
+> and `/api/pilot/apply` are gone). Evaluators go straight to the sold ladder — Cohort 25 / Cohort 100 annual with the
+> card-required trial ("Start a cohort"), or Scout / Firm / Program. What survives, read-only:
+>
+> - `/admin/pilots` — the ledger of past comps (`content/pilots.json`); a comp still running can be **ended early**
+>   (`DELETE /api/admin/pilots/[id]`) and the expiry cron keeps reverting expired comps to `previous_plan`.
+> - `pilot_orders` (migrations 0416 / 0434) — a 7-year financial record, anonymised by `erase_account()`; 0437 re-comments
+>   it "retired 2026-09-21 (G25) — read-only ledger". No code writes it.
+> - The success-metric form moved to the **Cohort onboarding kit** (`/workspace/accelerator/onboarding`,
+>   `org_settings.onboarding_metrics`, migration 0438); the written proposal became the **Cohort proposal**
+>   (`docs/ops/validation-tracker.md` § 6).
+>
+> Everything below this line is the historical runbook, kept for the ledger's shape and the expiry cron.
+
 
 Owner: founder / admin session. Spec: `docs/plans/first-dollar-2026-09-19.md` § 3 C.
 Offer terms: `docs/plans/g14-investor-feedback-2026-09-16/01-gtm-evaluators-90d.md` § 3;

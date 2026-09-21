@@ -37,7 +37,7 @@ function StringArray({ label, hint, values, onChange, max = 10 }: {
       <p className="text-[11px] text-muted-foreground mb-2">{hint}</p>
       <div className="flex flex-wrap gap-1.5 mb-2">
         {values.map((v, i) => (
-          <span key={i} className="inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 text-xs px-2 py-1 rounded-full border border-blue-200 dark:border-blue-800/40">
+          <span key={i} className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full border border-blue-200">
             {v}
             <button
               onClick={() => onChange(values.filter((_, j) => j !== i))}
@@ -239,7 +239,7 @@ export function FounderProfileClient({ initialProfile, executionLabels = {} }: P
           type="button"
           onClick={() => void save()}
           disabled={saving}
-          className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg"
+          className="inline-flex items-center gap-1.5 bg-action hover:bg-action-hover disabled:opacity-50 text-on-action text-sm font-semibold px-4 py-2 rounded-lg"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           Save
@@ -405,7 +405,7 @@ export function FounderProfileClient({ initialProfile, executionLabels = {} }: P
           type="button"
           onClick={() => void save()}
           disabled={saving}
-          className="inline-flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg"
+          className="inline-flex items-center gap-1.5 bg-action hover:bg-action-hover disabled:opacity-50 text-on-action text-sm font-semibold px-4 py-2 rounded-lg"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Award className="h-4 w-4" />}
           Save profile

@@ -164,7 +164,7 @@ export function ArchivedProjectsClient({ rows: initialRows }: Props) {
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-surface-200 bg-white">
           <table className="w-full text-sm">
-            <thead className="bg-surface-50 text-left">
+            <thead className="sticky top-0 z-10 bg-surface-sunken text-left">
               <tr className="text-[11px] font-semibold uppercase tracking-wider text-ink-500">
                 <th scope="col" className="px-4 py-3">
                   Name
@@ -180,7 +180,7 @@ export function ArchivedProjectsClient({ rows: initialRows }: Props) {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-200">
+            <tbody className="divide-y divide-line-subtle">
               {rows.map((row) => {
                 const days = daysUntilPurge(row.archivedAt, nowMs);
                 const warning = days < WARNING_THRESHOLD_DAYS;
@@ -218,7 +218,7 @@ export function ArchivedProjectsClient({ rows: initialRows }: Props) {
                         type="button"
                         onClick={() => handleRestore(row.id)}
                         disabled={restoring}
-                        className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 focus-visible:ring-offset-2"
+                        className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action/60 focus-visible:ring-offset-2"
                       >
                         {restoring ? (
                           <Loader2

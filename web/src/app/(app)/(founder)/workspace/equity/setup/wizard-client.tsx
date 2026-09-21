@@ -96,7 +96,7 @@ const ACCELERATION_LABELS: Record<AccelerationType, string> = {
 };
 
 const INPUT_CLS =
-  "w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors";
+  "w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors";
 
 // ---------------------------------------------------------------------------
 // Utility: generate stable IDs
@@ -522,7 +522,7 @@ export function EquityWizard({
             className={cn(
               "h-2 flex-1 rounded-full transition-colors duration-300",
               s < step
-                ? "bg-brand-600"
+                ? "bg-action"
                 : s === step
                   ? "bg-brand-500"
                   : "bg-surface-200",
@@ -1276,7 +1276,7 @@ function Step4ESOP({
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
               <tr className="border-b border-surface-100 bg-surface-50/50">
                 <th className="text-left px-4 py-2 text-xs font-medium text-ink-500 uppercase tracking-wider">
                   Stakeholder
@@ -1292,7 +1292,7 @@ function Step4ESOP({
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-line-subtle">
               {stakeholders.map((s) => {
                 const after = s.equityPct * esopDilutionFactor;
                 const change = after - s.equityPct;
@@ -1590,7 +1590,7 @@ function Step6Review({
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
               <tr className="border-b border-surface-100 bg-surface-50/50">
                 <th className="text-left px-4 py-2 text-xs font-medium text-ink-500 uppercase tracking-wider">
                   Stakeholder
@@ -1612,7 +1612,7 @@ function Step6Review({
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-line-subtle">
               {stakeholders.map((s) => {
                 const shares = Math.round(
                   (s.dilutedPct / 100) * authorizedShares,

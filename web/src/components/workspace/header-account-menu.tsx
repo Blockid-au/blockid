@@ -26,9 +26,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { BarChart3, ChevronDown, CreditCard, FileText, LayoutDashboard, LogOut, Moon, Settings2, TrendingUp } from "lucide-react";
+import { BarChart3, ChevronDown, CreditCard, FileText, LayoutDashboard, LogOut, Settings2, TrendingUp } from "lucide-react";
 import { CreditBalance } from "@/components/ui/credit-balance";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import type { PersonaKey } from "@/lib/nav/persona";
@@ -140,14 +139,7 @@ export function HeaderAccountMenu({ user, persona, initialOpen = false, onNaviga
               <ConnectWalletButton />
             </div>
 
-            {/* Theme */}
-            <div className="flex items-center justify-between px-2 py-1.5 text-sm text-primary" role="none">
-              <span className="flex items-center gap-2">
-                <Moon strokeWidth={1.75} className="h-4 w-4 text-muted" />
-                Theme
-              </span>
-              <ThemeToggle />
-            </div>
+            {/* G26: no theme row — the workspace is light-only. */}
             <div className="my-1 border-t border-line-subtle" role="none" />
           </div>
 

@@ -2,7 +2,7 @@
  * 31 — Marketing surface lane (G17-P2B, 2026-09-19):
  *
  *   • ANONYMOUS `/`, `/product`, `/samples`, `/solutions/investor`, `/pricing`,
- *     `/vi/pilot`, `/docs/api/institutional` (G22-C)
+ *     `/vi/solutions/accelerator` (G25 — was `/vi/pilot`), `/docs/api/institutional` (G22-C)
  *     answer 200 with exactly one <h1> each (the template contract, D5);
  *   • `/showcase/blockid/report` body carries no raw `[ev:` / `[unevidenced]`
  *     citation marker (G24-A; footnote presence asserted fail-soft);
@@ -31,8 +31,8 @@ import {
   toSiteUrl,
 } from "../../scripts/lib/link-check-core.mjs";
 
-// G22-C: the VI pilot mirror + the in-app Institutional API contract join the sweep.
-const PAGES = ["/", "/product", "/samples", "/solutions/investor", "/pricing", "/vi/pilot", "/docs/api/institutional"] as const;
+// G22-C: the VI programs mirror (G25: /vi/pilot is a 301 now) + the in-app Institutional API contract join the sweep.
+const PAGES = ["/", "/product", "/samples", "/solutions/investor", "/pricing", "/vi/solutions/accelerator", "/docs/api/institutional"] as const;
 const SAMPLE = 10;
 const FIRST_N_LINKS = 50;
 

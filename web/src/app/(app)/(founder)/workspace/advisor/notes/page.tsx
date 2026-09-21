@@ -135,7 +135,7 @@ export default async function AdvisorNotesPage({ searchParams }: PageProps) {
           <FeatureGate feature={ADVISOR_COHORT_FEATURE} label="Engagement notes">
           {clientId ? (
             <>
-              <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+              <section className="rounded-2xl border border-slate-200 bg-white p-6">
                 <h2 className="text-lg font-semibold text-ink-900">Add note</h2>
                 <p className="text-sm text-ink-500 mt-1">
                   Notes stay private to you. Markdown-lite: use blank lines for
@@ -146,7 +146,7 @@ export default async function AdvisorNotesPage({ searchParams }: PageProps) {
                 <AddNoteForm clientId={clientId} />
               </section>
 
-              <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+              <section className="rounded-2xl border border-slate-200 bg-white p-6">
                 <h2 className="text-lg font-semibold text-ink-900">Timeline</h2>
                 {notes.length === 0 ? (
                   <p className="mt-4 text-sm text-ink-500 italic">
@@ -158,7 +158,7 @@ export default async function AdvisorNotesPage({ searchParams }: PageProps) {
                     {notes.map((n) => (
                       <li
                         key={n.id}
-                        className="border-l-2 border-brand-200 dark:border-brand-800 pl-4"
+                        className="border-l-2 border-brand-200 pl-4"
                       >
                         <div className="flex flex-wrap items-baseline gap-2 text-xs text-ink-500">
                           <span className="font-semibold text-ink-700">
@@ -179,7 +179,7 @@ export default async function AdvisorNotesPage({ searchParams }: PageProps) {
               </section>
             </>
           ) : (
-            <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+            <section className="rounded-2xl border border-slate-200 bg-white p-6">
               <p className="text-sm text-ink-500">
                 No client selected. Go to the{" "}
                 <Link

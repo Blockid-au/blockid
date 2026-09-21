@@ -205,7 +205,7 @@ export function ProjectMembersClient({ projectId, initialMembers }: Props) {
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-md bg-ink-800 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-900 disabled:opacity-50 sm:w-auto"
+                className="w-full rounded-md bg-action px-4 py-2 min-h-11 text-sm font-semibold text-on-action shadow-sm hover:bg-action-hover disabled:opacity-50 sm:w-auto"
               >
                 {submitting ? "Sending…" : "Create invite"}
               </button>

@@ -37,6 +37,8 @@ export interface GuestPaidCheckoutProps {
   url?: string;
   /** Price copy, inc. GST. */
   priceLabel?: string;
+  /** Pre-filled address (the one given for the free report). */
+  initialEmail?: string;
 }
 
 interface UploadResponse {
@@ -111,8 +113,11 @@ export function GuestPaidCheckout({
   file,
   url,
   priceLabel = "A$3",
+  initialEmail,
 }: GuestPaidCheckoutProps) {
-  const [email, setEmail] = React.useState("");
+  // G25-C: the address the visitor already gave for the free report is
+  // pre-filled — they are never asked for the same thing twice.
+  const [email, setEmail] = React.useState(initialEmail ?? "");
   const [consent, setConsent] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);

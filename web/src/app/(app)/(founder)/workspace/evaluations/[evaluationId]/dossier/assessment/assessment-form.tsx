@@ -86,7 +86,7 @@ function seedFromPrefill(p: AssessmentPrefill, snapshotId: string | null): Asses
   return v;
 }
 
-const inputCls = "rounded-lg border border-surface-300 bg-white px-2 py-1 text-sm text-ink-800 focus:border-brand-500 focus:outline-none";
+const inputCls = "rounded-lg border border-surface-300 bg-surface px-2 py-1 text-sm text-ink-800 focus:border-brand-500 focus:outline-none";
 const btnCls = "rounded-lg border px-3 py-1.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50";
 
 export function AssessmentForm({ evaluationId, initial, history, prefill, snapshotId, aiDims, criteria, founderClaimed, feedbackOptOut = null }: AssessmentFormProps) {
@@ -220,7 +220,7 @@ export function AssessmentForm({ evaluationId, initial, history, prefill, snapsh
       </div>
 
       {!current && prefill?.seeded ? (
-        <p className="rounded-lg bg-brand-50 px-3 py-2 text-xs text-brand-900" data-testid="assessment-prefill-hint">
+        <p className="rounded-lg bg-info-soft px-3 py-2 text-xs text-primary" data-testid="assessment-prefill-hint">
           Prefilled from {prefill.mandateName ? `your mandate “${prefill.mandateName}”` : "the latest snapshot"}
           {prefill.thesisFitPct != null ? ` — thesis fit ${prefill.thesisFitPct}%` : ""}. Every AI-suggested item is marked; edit or delete anything before you submit.
         </p>
@@ -491,7 +491,7 @@ export function AssessmentForm({ evaluationId, initial, history, prefill, snapsh
       </section>
 
       {/* ── Sticky footer ── */}
-      <div className="sticky bottom-0 -mx-5 border-t border-surface-200 bg-white/95 px-5 py-3 backdrop-blur sm:-mx-6 sm:px-6" data-testid="assessment-footer">
+      <div className="sticky bottom-0 -mx-5 border-t border-surface-200 bg-surface/95 px-5 py-3 backdrop-blur sm:-mx-6 sm:px-6" data-testid="assessment-footer">
         <div className="flex flex-wrap items-end gap-4">
           <fieldset>
             <legend className="text-xs font-medium text-ink-700">Conviction</legend>
@@ -511,7 +511,7 @@ export function AssessmentForm({ evaluationId, initial, history, prefill, snapsh
             <legend className="text-xs font-medium text-ink-700">Decision</legend>
             <div className="mt-1 inline-flex overflow-hidden rounded-lg border border-surface-300" role="radiogroup" aria-label="Decision">
               {(Object.keys(DECISION_LABELS) as AssessmentDecision[]).map((d) => (
-                <button key={d} type="button" role="radio" aria-checked={values.decision === d} className={`px-3 py-1.5 text-sm ${values.decision === d ? "bg-ink-900 text-white" : "bg-white text-ink-700"}`} onClick={() => update({ decision: d })} data-testid={`decision-${d}`}>
+                <button key={d} type="button" role="radio" aria-checked={values.decision === d} className={`px-3 py-1.5 text-sm ${values.decision === d ? "bg-ink-900 text-white" : "bg-surface text-ink-700"}`} onClick={() => update({ decision: d })} data-testid={`decision-${d}`}>
                   {DECISION_LABELS[d]}
                 </button>
               ))}

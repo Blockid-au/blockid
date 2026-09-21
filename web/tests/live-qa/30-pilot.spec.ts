@@ -1,82 +1,71 @@
 /**
- * 30 — Evaluator pilot lane (G16-C):
+ * 30 — Pilot lane, retired state (G16-C → G25, 2026-09-21 "bỏ luôn coupon
+ * và pilot"):
  *
- *   • ANONYMOUS /pilot/investor (the comped evaluator pilot, moved from
- *     /pilot in G21 P0-C and now noindex — /pilot is the paid Cohort
- *     Validation Pilot, covered by lane 34) renders 200 with the offer v2
- *     terms, the 7 success criteria, the application form and the
- *     data-ownership sentence verbatim;
- *   • POST /api/pilot/apply with the honeypot filled → 204, so the lane
- *     never stores an application on production (the happy path is pinned
- *     by the colocated route test against a temp root — a real submission
- *     here would page ops and mail a fake applicant every Sunday);
- *   • the admin routes answer 401 to an anonymous caller and 403 to the QA
- *     founder account, and the pilot-expiry cron 401s without CRON_SECRET;
+ *   • the public pilot URLs are gone: /pilot/investor 301s to
+ *     /solutions/investor, /pilot to /solutions/accelerator, /vi/pilot to
+ *     /vi/solutions/accelerator, and the old workspace kit
+ *     /workspace/accelerator/pilot to /workspace/accelerator/onboarding;
+ *   • POST /api/pilot/apply no longer exists (404 — the retired form's
+ *     route is deleted, nothing can be stored);
+ *   • the admin ledger routes still answer 401 to an anonymous caller and
+ *     403 to the QA founder; POST /api/admin/pilots answers 410
+ *     `pilots_retired` to an admin (asserted by the colocated route test —
+ *     the lane has no admin session) and the pilot-expiry cron 401s
+ *     without CRON_SECRET;
  *   • /admin/pilots redirects the QA founder away (never renders the
  *     ledger to a non-admin).
  *
- * Nothing in this lane starts a pilot: that is the main session's manual
- * post-deploy step (docs/ops/pilots.md § Throw-away pilot), because it
- * changes a real account's plan and grants credits.
+ * Nothing in this lane can start a pilot any more — the start path is gone.
  */
 import { test, expect } from "./fixtures";
 import { anonRequest, del, evidence, get, post } from "./lib/api";
 
-const DATA_SENTENCE = "Your data belongs to your startup. We store it so every report builds on your own evidence and the AI reasons on your case. Founder-consented access tiers control who sees what.";
+const REDIRECTS: ReadonlyArray<[string, string]> = [
+  ["/pilot/investor", "/solutions/investor"],
+  ["/pilot", "/solutions/accelerator"],
+  ["/vi/pilot", "/vi/solutions/accelerator"],
+  ["/workspace/accelerator/pilot", "/workspace/accelerator/onboarding"],
+];
 
-test.describe("Pilot lane — public offer page", () => {
-  test("/pilot/investor → 200, noindex, offer terms + 7 criteria + form + data sentence verbatim", async ({ page, qa }, testInfo) => {
-    const res = await page.goto(`${qa.baseURL}/pilot/investor`, { waitUntil: "domcontentloaded" });
-    expect(res?.status()).toBe(200);
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Free cohort scoring for one intake");
-    await expect(page.getByTestId("pilot-terms")).toBeVisible();
-    await expect(page.getByTestId("pilot-terms")).toContainText("up to 60 applicants");
-    await expect(page.getByTestId("pilot-terms")).toContainText("30 days");
-    await expect(page.getByTestId("pilot-terms")).toContainText("5 pilots");
-    await expect(page.getByTestId("pilot-terms")).toContainText("no card required");
-    await expect(page.getByTestId("pilot-criteria").locator("tbody tr")).toHaveCount(7);
-    await expect(page.getByTestId("pilot-in-return").locator("li")).toHaveCount(4);
-    await expect(page.getByTestId("pilot-data-principle")).toHaveText(DATA_SENTENCE);
-    await expect(page.getByTestId("pilot-apply-form")).toBeVisible();
-    for (const name of ["program_name", "contact_name", "email", "cohort_size", "intake_month", "message"]) {
-      await expect(page.locator(`[data-testid="pilot-apply-form"] [name="${name}"]`)).toHaveCount(1);
+test.describe("Pilot lane — retired public surfaces", () => {
+  test("every retired pilot URL answers 301 to its persona / onboarding page; the destinations render", async ({ qa }, testInfo) => {
+    const anon = await anonRequest(qa.baseURL);
+    try {
+      const hops: Record<string, { status: number; location: string | undefined }> = {};
+      for (const [from, to] of REDIRECTS) {
+        const res = await anon.get(from, { maxRedirects: 0 });
+        hops[from] = { status: res.status(), location: res.headers()["location"] };
+        expect(res.status(), from).toBe(301);
+        expect(res.headers()["location"] ?? "", from).toMatch(new RegExp(`${to.replace(/\//g, "\\/")}$`));
+      }
+      await evidence(testInfo, "retired pilot redirects", hops);
+      for (const to of ["/solutions/investor", "/solutions/accelerator", "/vi/solutions/accelerator"]) {
+        const res = await anon.get(to);
+        expect(res.status(), to).toBe(200);
+        const html = await res.text();
+        expect(html, to).not.toMatch(/Cohort Validation Pilot|paid pilot|thí điểm/i);
+      }
+    } finally {
+      await anon.dispose();
     }
-    const robots = await page.locator('meta[name="robots"]').getAttribute("content");
-    const canonical = await page.locator('link[rel="canonical"]').getAttribute("href");
-    await evidence(testInfo, "/pilot/investor", { robots, canonical, title: await page.title() });
-    expect(robots ?? "").toMatch(/noindex/);
-    expect(canonical).toBe("https://blockid.au/pilot/investor");
   });
 
-  test("POST /api/pilot/apply with the honeypot filled → 204 (nothing stored, nothing sent)", async ({ qa }, testInfo) => {
+  test("POST /api/pilot/apply is gone (404) — the retired form cannot store anything", async ({ qa }, testInfo) => {
     const anon = await anonRequest(qa.baseURL);
     try {
       const res = await anon.post("/api/pilot/apply", {
-        data: {
-          program_name: "QA Live Pilot (honeypot)",
-          contact_name: "QA Live",
-          email: qa.email,
-          cohort_size: 12,
-          intake_month: "2027-01",
-          message: "live-qa lane 30 — must never be stored",
-          company_website: "http://spam.example",
-        },
+        data: { program_name: "QA Live Pilot (retired)", contact_name: "QA Live", email: qa.email, cohort_size: 12, intake_month: "2027-01", message: "live-qa lane 30 — must never be stored" },
       });
-      await evidence(testInfo, "POST /api/pilot/apply (honeypot)", { status: res.status() });
-      expect(res.status()).toBe(204);
-
-      const bad = await anon.post("/api/pilot/apply", { data: { program_name: "x", contact_name: "", email: "nope", cohort_size: 0, intake_month: "Jan" } });
-      const body = (await bad.json().catch(() => ({}))) as { ok?: boolean; error?: string };
-      await evidence(testInfo, "POST /api/pilot/apply (invalid)", { status: bad.status(), body });
-      expect(bad.status()).toBe(400);
-      expect(body.error).toBe("invalid_input");
+      await evidence(testInfo, "POST /api/pilot/apply (retired)", { status: res.status() });
+      expect(res.status()).toBe(404);
     } finally {
       await anon.dispose();
     }
   });
 });
 
-test.describe("Pilot lane — admin surfaces are closed", () => {
+test.describe("Pilot lane — admin ledger surfaces are closed", () => {
   test("anonymous → 401 on GET/POST /api/admin/pilots, DELETE /api/admin/pilots/[id] and the pilot-expiry cron", async ({ qa }, testInfo) => {
     const anon = await anonRequest(qa.baseURL);
     try {

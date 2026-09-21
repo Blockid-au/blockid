@@ -93,7 +93,7 @@ export function GrowthPhaseStrip({
                     aria-hidden="true"
                     className={
                       "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold tabular-nums " +
-                      (isActive ? "text-white" : "bg-surface-hover text-secondary")
+                      (isActive ? "text-on-action" : "bg-surface-hover text-secondary")
                     }
                     style={isActive ? { backgroundColor: phase.color } : undefined}
                   >
@@ -132,7 +132,7 @@ export function GrowthPhaseStrip({
                     className={
                       "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors " +
                       (isActive
-                        ? "border-transparent text-white shadow-sm"
+                        ? "border-transparent text-on-action shadow-sm"
                         : isPast
                           ? "border-bull/30 bg-bull/10 text-bull"
                           : "border-line-subtle bg-surface-hover text-secondary")

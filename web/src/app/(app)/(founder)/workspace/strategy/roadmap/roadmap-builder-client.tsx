@@ -82,7 +82,7 @@ export function RoadmapBuilderClient({ initial, quarters, disabled }: Props) {
   }, [items, allQuarters]);
 
   const input =
-    "w-full rounded-xl border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/40 disabled:opacity-50";
+    "w-full rounded-xl border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:border-action focus:outline-none focus:ring-2 focus:ring-action/40 disabled:opacity-50";
   const label = "text-xs font-semibold text-ink-700 uppercase tracking-wider";
 
   async function add() {

@@ -108,7 +108,7 @@ export default async function PricingTestPage() {
                 const result = report?.variants.find((r) => r.variantId === v.id);
                 const isLeader = leader?.variantId === v.id && (leader?.exposures ?? 0) > 0;
                 return (
-                  <tr key={v.id} className={isLeader ? "bg-emerald-50/40 dark:bg-emerald-950/15" : "hover:bg-muted/20"}>
+                  <tr key={v.id} className={isLeader ? "bg-emerald-50/40" : "hover:bg-muted/20"}>
                     <td className="px-4 py-2">
                       <div className="flex items-center gap-2">
                         {isLeader && <Award className="h-3.5 w-3.5 text-emerald-600" />}
