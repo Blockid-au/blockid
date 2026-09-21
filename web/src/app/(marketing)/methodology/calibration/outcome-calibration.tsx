@@ -133,7 +133,7 @@ export function OutcomeCalibration({ locale, report, messages: m }: OutcomeCalib
                     </td>
                     <td className="px-4 py-3">
                       <BandList cells={c.by_confidence_band} m={m} prefix="confidence" />
-                      {c.companies_with_confidence < c.companies ? <p className="mt-1 text-[11px] text-tertiary">n = {c.companies_with_confidence}</p> : null}
+                      {c.companies_with_confidence < c.companies ? <p className="mt-1 text-xs text-tertiary">n = {c.companies_with_confidence}</p> : null}
                     </td>
                   </tr>
                 ))}

@@ -16,7 +16,7 @@ function GovTable({ table }: { table: NonNullable<GovernanceSection["table"]> })
     <div className="mt-4 overflow-x-auto rounded-xl border border-line-subtle bg-surface">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b border-line-subtle text-left text-[11px] uppercase tracking-wide text-tertiary">
+          <tr className="border-b border-line-subtle text-left text-xs uppercase tracking-wide text-tertiary">
             {table.columns.map((c) => (
               <th key={c} scope="col" className="px-3 py-2">{c}</th>
             ))}

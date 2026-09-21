@@ -239,7 +239,7 @@ export async function CalibrationBody({ locale, report: injected, messages, outc
                 {report.buckets.some((b) => b.median_round_aud !== null) ? (
                   <figure className="mt-6 rounded-2xl border border-line-subtle bg-surface p-4" data-testid="calibration-range-bars">
                     <div className="w-full [&>svg]:h-auto [&>svg]:w-full [&>svg]:max-w-full" dangerouslySetInnerHTML={{ __html: bucketRangeBarsSvg(report, m) }} />
-                    <figcaption className="mt-1 text-[11px] text-tertiary">{t(m, "calibration.buckets.chartDescription")}</figcaption>
+                    <figcaption className="mt-1 text-xs text-tertiary">{t(m, "calibration.buckets.chartDescription")}</figcaption>
                   </figure>
                 ) : (
                   <p className="mt-6 rounded-2xl border border-dashed border-line-subtle bg-surface p-4 text-sm text-secondary" data-testid="calibration-range-bars" data-publication-band="none">

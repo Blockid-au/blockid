@@ -293,7 +293,7 @@ export function CohortTable({ rows, batchId, role, weightsVersion = 1, loading =
       {/* toolbar */}
       <div className="flex flex-wrap items-center gap-2 text-xs" data-testid="cohort-toolbar">
         <div className="relative">
-          <button type="button" onClick={() => setChooserOpen((o) => !o)} aria-expanded={chooserOpen} aria-controls="cohort-column-chooser" className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-line bg-surface px-3 font-medium text-secondary hover:bg-surface-hover" data-testid="column-chooser-toggle">
+          <button type="button" onClick={() => setChooserOpen((o) => !o)} aria-expanded={chooserOpen} aria-controls="cohort-column-chooser" className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-line bg-surface px-3 font-medium text-secondary hover:bg-surface-hover" data-testid="column-chooser-toggle">
             <Columns3 className="h-4 w-4" aria-hidden="true" /> Columns ({columns.length})
           </button>
           {chooserOpen ? (
@@ -309,7 +309,7 @@ export function CohortTable({ rows, batchId, role, weightsVersion = 1, loading =
           ) : null}
         </div>
         <div className="relative">
-          <button type="button" onClick={() => setViewsOpen((o) => !o)} aria-expanded={viewsOpen} aria-controls="cohort-saved-views" className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-line bg-surface px-3 font-medium text-secondary hover:bg-surface-hover" data-testid="saved-views-toggle">
+          <button type="button" onClick={() => setViewsOpen((o) => !o)} aria-expanded={viewsOpen} aria-controls="cohort-saved-views" className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-line bg-surface px-3 font-medium text-secondary hover:bg-surface-hover" data-testid="saved-views-toggle">
             <Bookmark className="h-4 w-4" aria-hidden="true" /> Views ({views.length})
           </button>
           {viewsOpen ? (
@@ -332,10 +332,10 @@ export function CohortTable({ rows, batchId, role, weightsVersion = 1, loading =
             </div>
           ) : null}
         </div>
-        <button type="button" onClick={() => setDensityPersist(density === "compact" ? "comfortable" : "compact")} aria-pressed={density === "compact"} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-line bg-surface px-3 font-medium text-secondary hover:bg-surface-hover" data-testid="density-toggle">
+        <button type="button" onClick={() => setDensityPersist(density === "compact" ? "comfortable" : "compact")} aria-pressed={density === "compact"} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-line bg-surface px-3 font-medium text-secondary hover:bg-surface-hover" data-testid="density-toggle">
           <Rows3 className="h-4 w-4" aria-hidden="true" /> {density === "compact" ? "Compact" : "Comfortable"}
         </button>
-        <button type="button" onClick={() => setCompareOpen(true)} disabled={compare.length === 0} className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-brand-300 bg-surface px-3 font-semibold text-action hover:bg-surface-hover disabled:opacity-50 dark:border-brand-700" data-testid="compare-open">
+        <button type="button" onClick={() => setCompareOpen(true)} disabled={compare.length === 0} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-brand-300 bg-surface px-3 font-semibold text-action hover:bg-surface-hover disabled:opacity-50 dark:border-brand-700" data-testid="compare-open">
           <Scale className="h-4 w-4" aria-hidden="true" /> Compare ({compare.length}/{MAX_COMPARE})
         </button>
         {compareFull ? (
@@ -348,7 +348,7 @@ export function CohortTable({ rows, batchId, role, weightsVersion = 1, loading =
             {rowError}
           </span>
         ) : null}
-        <a href={`/api/evaluations/batch/${encodeURIComponent(batchId)}/export.csv`} className="ml-auto inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-line bg-surface px-3 font-medium text-secondary hover:bg-surface-hover" data-testid="export-csv">
+        <a href={`/api/evaluations/batch/${encodeURIComponent(batchId)}/export.csv`} className="ml-auto inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-line bg-surface px-3 font-medium text-secondary hover:bg-surface-hover" data-testid="export-csv">
           <FileDown className="h-4 w-4" aria-hidden="true" /> Export CSV
         </a>
       </div>

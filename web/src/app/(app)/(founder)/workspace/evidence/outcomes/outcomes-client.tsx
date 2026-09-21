@@ -118,10 +118,10 @@ export function OutcomesList({ rows, canResolve, onResolve, busyId }: { rows: Ou
             ) : null}
             {resolvable && onResolve ? (
               <div className="mt-3 flex flex-wrap gap-2">
-                <button type="button" disabled={busyId === r.id} onClick={() => onResolve(r.id, "confirm")} className="inline-flex min-h-10 items-center gap-1 rounded-lg bg-action px-3 text-xs font-semibold text-on-action hover:bg-action-hover disabled:opacity-50" data-testid="outcome-confirm">
+                <button type="button" disabled={busyId === r.id} onClick={() => onResolve(r.id, "confirm")} className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-action px-3 text-xs font-semibold text-on-action hover:bg-action-hover disabled:opacity-50" data-testid="outcome-confirm">
                   <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> Confirm
                 </button>
-                <button type="button" disabled={busyId === r.id} onClick={() => onResolve(r.id, "reject")} className="inline-flex min-h-10 items-center gap-1 rounded-lg border border-line px-3 text-xs font-semibold text-secondary hover:bg-surface-hover disabled:opacity-50" data-testid="outcome-reject">
+                <button type="button" disabled={busyId === r.id} onClick={() => onResolve(r.id, "reject")} className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-line px-3 text-xs font-semibold text-secondary hover:bg-surface-hover disabled:opacity-50" data-testid="outcome-reject">
                   <XCircle className="h-3.5 w-3.5" aria-hidden="true" /> Reject
                 </button>
               </div>

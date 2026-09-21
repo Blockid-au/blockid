@@ -62,9 +62,9 @@ function short(id: string | null | undefined): string {
 function statusTone(status: unknown): string {
   const n = typeof status === "number" ? status : Number(status);
   if (!Number.isFinite(n)) return "text-ink-600";
-  if (n >= 500) return "text-red-700";
-  if (n >= 400) return "text-amber-700";
-  return "text-emerald-700";
+  if (n >= 500) return "text-bear";
+  if (n >= 400) return "text-warn";
+  return "text-bull";
 }
 
 /** Build the query string for pagination / export preserving the filters. */
@@ -93,8 +93,8 @@ function Pager({
   filters: Record<string, string | null | undefined>;
   rowsShown: number;
 }) {
-  const btn = "px-3 py-1.5 rounded border border-surface-200 text-ink-700 hover:bg-surface-50";
-  const off = "px-3 py-1.5 rounded border border-surface-100 text-muted cursor-not-allowed";
+  const btn = "inline-flex min-h-11 items-center rounded-lg border border-surface-200 px-3 text-ink-700 hover:bg-surface-hover";
+  const off = "inline-flex min-h-11 items-center rounded-lg border border-surface-100 px-3 text-muted cursor-not-allowed";
   return (
     <div className="mt-4 flex items-center justify-between text-sm">
       <div className="text-ink-600">
@@ -161,13 +161,13 @@ export default async function AuditLogPage({ searchParams }: AuditLogPageProps) 
               .
             </p>
           </div>
-          <div className="bg-white border border-surface-200 shadow-sm rounded-2xl overflow-hidden">
+          <div className="bg-surface border border-surface-200 shadow-sm rounded-2xl overflow-hidden">
             {rows.length === 0 ? (
               <div className="p-8 text-center text-sm text-ink-600">No audit rows yet on page {page}.</div>
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
-                  <thead className="bg-surface-50 text-ink-700">
+                  <thead className="bg-surface-sunken text-ink-700">
                     <tr>
                       <th className="text-left px-4 py-3 font-medium">When</th>
                       <th className="text-left px-4 py-3 font-medium">Action</th>
@@ -177,7 +177,7 @@ export default async function AuditLogPage({ searchParams }: AuditLogPageProps) 
                   </thead>
                   <tbody className="divide-y divide-surface-100">
                     {rows.map((row) => (
-                      <tr key={row.id} className="hover:bg-surface-50">
+                      <tr key={row.id} className="hover:bg-surface-hover">
                         <td className="px-4 py-3 text-ink-700 font-mono text-xs whitespace-nowrap">
                           {formatWhen(row.created_at)}
                         </td>
@@ -248,7 +248,7 @@ export default async function AuditLogPage({ searchParams }: AuditLogPageProps) 
           {viewer.canExport ? (
             <a
               href={exportHref}
-              className="px-3 py-1.5 rounded border border-surface-200 text-ink-700 hover:bg-surface-50 text-sm"
+              className="inline-flex min-h-11 items-center rounded-lg border border-surface-200 px-3 text-sm text-ink-700 hover:bg-surface-hover"
               data-testid="audit-export"
             >
               Export CSV
@@ -262,7 +262,7 @@ export default async function AuditLogPage({ searchParams }: AuditLogPageProps) 
           ) : null}
           <label className="flex flex-col gap-1">
             <span className="text-xs text-ink-600">Action family</span>
-            <select name="action" defaultValue={filters.action ?? ""} className="border border-surface-200 rounded px-2 py-1.5 bg-white">
+            <select name="action" defaultValue={filters.action ?? ""} className="min-h-11 rounded-lg border border-surface-200 bg-surface px-2 text-primary">
               <option value="">All</option>
               {families.map((f) => (
                 <option key={f} value={f}>
@@ -274,7 +274,7 @@ export default async function AuditLogPage({ searchParams }: AuditLogPageProps) 
           {viewer.mode === "project" ? (
             <label className="flex flex-col gap-1">
               <span className="text-xs text-ink-600">Actor</span>
-              <select name="actor" defaultValue={filters.actor ?? ""} className="border border-surface-200 rounded px-2 py-1.5 bg-white">
+              <select name="actor" defaultValue={filters.actor ?? ""} className="min-h-11 rounded-lg border border-surface-200 bg-surface px-2 text-primary">
                 <option value="">Everyone</option>
                 {actorOptions.map((o) => (
                   <option key={o.id} value={o.id}>
@@ -288,23 +288,23 @@ export default async function AuditLogPage({ searchParams }: AuditLogPageProps) 
               Showing your own actions only
             </span>
           )}
-          <button type="submit" className="px-3 py-1.5 rounded bg-ink-800 text-white">
+          <button type="submit" className="inline-flex min-h-11 items-center rounded-lg bg-action px-4 font-medium text-on-action hover:bg-action-hover">
             Filter
           </button>
           {filters.action || filters.actor ? (
-            <Link href="/workspace/settings/audit" className="underline text-ink-600">
+            <Link href="/workspace/settings/audit" className="inline-flex min-h-11 items-center text-ink-600 underline">
               Clear
             </Link>
           ) : null}
         </form>
 
-        <div className="bg-white border border-surface-200 shadow-sm rounded-2xl overflow-hidden">
+        <div className="bg-surface border border-surface-200 shadow-sm rounded-2xl overflow-hidden">
           {rows.length === 0 ? (
             <div className="p-8 text-center text-sm text-ink-600">No audit rows match on page {page}.</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-sm" data-testid="audit-table">
-                <thead className="bg-surface-50 text-ink-700">
+                <thead className="bg-surface-sunken text-ink-700">
                   <tr>
                     <th className="text-left px-4 py-3 font-medium">When</th>
                     <th className="text-left px-4 py-3 font-medium">Actor</th>
@@ -318,7 +318,7 @@ export default async function AuditLogPage({ searchParams }: AuditLogPageProps) 
                   {rows.map((row: AuditEventRow) => {
                     const d = (row.detail ?? {}) as Record<string, unknown>;
                     return (
-                      <tr key={row.id} className="hover:bg-surface-50">
+                      <tr key={row.id} className="hover:bg-surface-hover">
                         <td className="px-4 py-3 text-ink-700 font-mono text-xs whitespace-nowrap">{formatWhen(row.ts)}</td>
                         <td className="px-4 py-3 text-ink-700 font-mono text-xs whitespace-nowrap">
                           {row.user_id === user.id ? "you" : short(row.user_id)}

@@ -24,7 +24,7 @@ export function OrgAuditExportSection({ admin, now = new Date() }: { admin: OrgA
   const to = isoDay(now);
   const from = isoDay(new Date(now.getTime() - EXPORT_DEFAULT_DAYS * 24 * 60 * 60 * 1000));
   return (
-    <section className="mt-8 rounded-2xl border border-surface-200 bg-white p-6 shadow-sm" aria-labelledby="org-audit-export" data-testid="org-audit-export">
+    <section className="mt-8 rounded-2xl border border-surface-200 bg-surface p-6 shadow-sm" aria-labelledby="org-audit-export" data-testid="org-audit-export">
       <h2 id="org-audit-export" className="text-lg font-bold text-ink-800">
         Organisation audit export
       </h2>
@@ -34,16 +34,16 @@ export function OrgAuditExportSection({ admin, now = new Date() }: { admin: OrgA
       <form method="get" action="/api/org/audit-export.csv" className="mt-4 flex flex-wrap items-end gap-3 text-sm">
         <label className="flex flex-col gap-1">
           <span className="text-xs text-ink-600">From</span>
-          <input type="date" name="from" defaultValue={from} max={to} className="rounded border border-surface-200 bg-white px-2 py-1.5" />
+          <input type="date" name="from" defaultValue={from} max={to} className="min-h-11 rounded-lg border border-surface-200 bg-surface px-2 text-primary" />
         </label>
         <label className="flex flex-col gap-1">
           <span className="text-xs text-ink-600">To</span>
-          <input type="date" name="to" defaultValue={to} max={to} className="rounded border border-surface-200 bg-white px-2 py-1.5" />
+          <input type="date" name="to" defaultValue={to} max={to} className="min-h-11 rounded-lg border border-surface-200 bg-surface px-2 text-primary" />
         </label>
-        <button type="submit" className="rounded bg-ink-800 px-3 py-1.5 text-white" data-testid="org-audit-export-submit">
+        <button type="submit" className="inline-flex min-h-11 items-center rounded-lg bg-action px-4 font-medium text-on-action hover:bg-action-hover" data-testid="org-audit-export-submit">
           Download CSV
         </button>
-        <a href="/workspace/settings/retention" className="text-ink-600 underline">
+        <a href="/workspace/settings/retention" className="inline-flex min-h-11 items-center text-ink-600 underline">
           Retention settings
         </a>
       </form>
