@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getAIBudgetStatus } from "@/lib/ai-client";
+import { ANTHROPIC_NOT_CONFIGURED_DETAIL, isAnthropicApiKeyConfigured } from "@/lib/ai/anthropic-tier";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +19,9 @@ export async function GET() {
   const providers: Array<{
     id: string;
     name: string;
-    status: "active" | "configured" | "missing";
+    /** `not_configured` (G25-B) = intentionally absent, not a fault — the
+     *  Anthropic API key is optional; the Claude CLI subscription is the path. */
+    status: "active" | "configured" | "missing" | "not_configured";
     detail: string;
   }> = [];
 
@@ -50,13 +53,15 @@ export async function GET() {
     providers.push({ id: "claude-oauth", name: "Claude CLI OAuth", status: "missing", detail: "Cannot read credentials" });
   }
 
-  // 2. Anthropic API Key
-  const anthropicKey = process.env.ANTHROPIC_API_KEY;
+  // 2. Anthropic API Key — OPTIONAL (G25-B). Absent or a placeholder is the
+  // normal `not_configured` state: the Claude CLI subscription (row 1) is the
+  // Anthropic path. Never a "missing" warning, never the value.
+  const anthropicConfigured = isAnthropicApiKeyConfigured();
   providers.push({
     id: "claude-apikey",
     name: "Anthropic API Key",
-    status: anthropicKey ? "configured" : "missing",
-    detail: anthropicKey ? "Configured" : "ANTHROPIC_API_KEY not set",
+    status: anthropicConfigured ? "configured" : "not_configured",
+    detail: anthropicConfigured ? "Configured (optional quality tier)" : `${ANTHROPIC_NOT_CONFIGURED_DETAIL} — ANTHROPIC_API_KEY optional`,
   });
 
   // 3. Proxy (TapHoaAPI)
@@ -93,7 +98,7 @@ export async function GET() {
   });
 
   const activeCount = providers.filter((p) => p.status === "active").length;
-  const configuredCount = providers.filter((p) => p.status !== "missing").length;
+  const configuredCount = providers.filter((p) => p.status === "active" || p.status === "configured").length;
   const budget = getAIBudgetStatus();
 
   return NextResponse.json({

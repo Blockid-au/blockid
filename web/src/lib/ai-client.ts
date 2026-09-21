@@ -12,7 +12,10 @@
  *
  *     1. claude-apikey   QUALITY — Anthropic API (Sonnet 5 / Opus 5), only
  *                        while ANTHROPIC_API_KEY is valid and the daily cap
- *                        (AI_DAILY_SPEND_CAP_AUD) has headroom.
+ *                        (AI_DAILY_SPEND_CAP_AUD) has headroom. OPTIONAL
+ *                        (G25-B, founder 2026-09-21): with no key on the box
+ *                        the tier is absent — filtered out before any call,
+ *                        no probe, no log line, no health warning.
  *     2. deepinfra       QUALITY-COST — DeepSeek-V4-Flash ($0.09/$0.18 per 1M)
  *                        → DeepSeek-V3.2 → Qwen3-235B (→ Kimi-K2.6 for synthesis).
  *     3. gemini          QUALITY-COST — gemini-3-flash-preview → 2.5-flash
@@ -21,6 +24,8 @@
  *                        PERSONAL credential, not a product tier: it is never
  *                        primary, capped at AI_RPM_CLAUDE_OAUTH (20) and only
  *                        picked when neither deepinfra nor gemini has headroom.
+ *                        Since G25-B this IS the Anthropic path (no API key);
+ *                        it keeps its own probe + health entry (`claude-oauth`).
  *     5. groq → sambanova → cerebras → openrouter   FREE — report-grade
  *                        models only (MIN_REPORT_MODEL allow-list: ≥ ~27B,
  *                        no tts / whisper / embed / allam / vision-only).
@@ -59,6 +64,7 @@ import {
   callAnthropicTier,
   anthropicRequestsRemaining,
   isAnthropicKeyInvalid,
+  isAnthropicApiKeyConfigured,
   markAnthropicKeyInvalid,
   inferTaskClass,
   modelForTaskClass,
@@ -894,7 +900,8 @@ const ALL_PROVIDER_IDS: readonly Provider[] = [
 /** Is this provider configured (env key, DB key, OAuth file, local host)? */
 function providerConfigured(p: Provider): boolean {
   switch (p) {
-    case "claude-apikey": return Boolean(process.env.ANTHROPIC_API_KEY || getDBKey("anthropic"));
+    // G25-B: the key is optional — absent / placeholder = the tier does not exist for this process.
+    case "claude-apikey": return isAnthropicApiKeyConfigured() || isAnthropicApiKeyConfigured(getDBKey("anthropic")?.api_key);
     case "claude-oauth": return readCliOAuthToken() !== null;
     case "claude-haiku-direct": return Boolean(process.env.ANTHROPIC_HAIKU_API_KEY || getDBKey("anthropic_haiku"));
     case "claude-proxy":
@@ -1009,8 +1016,10 @@ async function callClaudeOAuth(apiKey: string, opts: AICallOptions, cls: AITaskC
 
 /** Anthropic API key — the quality tier via the official SDK (lib/ai/anthropic-tier.ts). */
 async function callClaudeApiKey(opts: AICallOptions): Promise<AICallResult> {
-  const apiKey = process.env.ANTHROPIC_API_KEY ?? getDBKey("anthropic")?.api_key ?? "";
-  if (!apiKey) throw new Error("Anthropic API key not configured");
+  // Env first (trimmed — the predicate trims, the SDK must see the same value), DB key second.
+  const envKey = (process.env.ANTHROPIC_API_KEY ?? "").trim();
+  const apiKey = isAnthropicApiKeyConfigured(envKey) ? envKey : (getDBKey("anthropic")?.api_key ?? "").trim();
+  if (!isAnthropicApiKeyConfigured(apiKey)) throw new Error("Anthropic API key not configured — Claude CLI subscription is the fallback");
   const r = await callAnthropicTier(opts, { apiKey });
   return { text: r.text, provider: "claude", model: r.model, usage: r.usage, cost_usd: r.cost_usd };
 }
@@ -2375,15 +2384,16 @@ export function getAnthropicClient() {
   if (oauthToken) {
     return new Anthropic({ authToken: oauthToken, maxRetries: 2, timeout: 120_000 });
   }
-  if (process.env.ANTHROPIC_API_KEY) {
-    return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2, timeout: 120_000 });
+  if (isAnthropicApiKeyConfigured()) {
+    return new Anthropic({ apiKey: (process.env.ANTHROPIC_API_KEY ?? "").trim(), maxRetries: 2, timeout: 120_000 });
   }
-  throw new Error("No Anthropic credentials for term-sheet analysis");
+  throw new Error("No Anthropic credentials for term-sheet analysis (Claude CLI token or ANTHROPIC_API_KEY)");
 }
 
+/** Claude CLI subscription token first (the Anthropic path since G25-B), API key second. */
 export function isAnthropicConfigured(): boolean {
   if (readCliOAuthToken()) return true;
-  if (process.env.ANTHROPIC_API_KEY) return true;
+  if (isAnthropicApiKeyConfigured()) return true;
   return false;
 }
 

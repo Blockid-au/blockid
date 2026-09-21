@@ -45,4 +45,4 @@ Live-qa: `37-cohort` (k): demo batch create → 5 items visible with the chip �
 0435 (if any) + 0436 applied + ledger; full unit + pdf green; deploy 12/12; elevated live-qa green incl. lanes 37 (k) + 42; showcase report shows footnotes and no raw markers; link-check 0 internal broken; sweep 0; read-only review → fixes; `version.json` v3.24.0; SOT § G24 closed; memory updated.
 
 ## 4. Founder-only
-Rotate / set a valid `ANTHROPIC_API_KEY` (or leave unset — the chain now marks it unconfigured once); approve the demo company names before a public demo (defaults ship).
+~~Rotate / set a valid `ANTHROPIC_API_KEY` (or leave unset — the chain now marks it unconfigured once); approve the demo company names before a public demo (defaults ship).~~ **Resolved G25-B 2026-09-21:** the key is optional (Claude CLI subscription = the Anthropic path, silent `not_configured`), and the demo names passed a delegated register check (two renamed) — `docs/ops/founder-items.md`.

@@ -1226,7 +1226,7 @@ describe("ai_providers + ai_queue_depth (S31-A)", () => {
     aiState.throwErr = false;
     expect(status).toBe(200);
     const b = body as unknown as Body;
-    expect(b.ai_providers).toEqual({ updated_at: "", providers: {}, usable: 0, quality_tier_ready: false });
+    expect(b.ai_providers).toEqual({ updated_at: "", providers: {}, usable: 0, quality_tier_ready: false, anthropic_path: "none" });
   });
 
   it("is ABSENT from the public payload (operator posture is trusted-only)", async () => {

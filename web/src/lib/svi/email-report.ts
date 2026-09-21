@@ -27,6 +27,7 @@
 import { nanoid } from "nanoid";
 import { sendEmail, complianceFooter } from "@/lib/email";
 import { getSupabaseAdmin } from "@/lib/supabase";
+import { stripCitationMarkers } from "@/lib/report-v2/citations";
 import type { CriterionResult } from "@/lib/report-pipeline/run-report-pipeline";
 import { fromSnapshot, type SnapshotCriterionState, type SnapshotDimState } from "@/lib/report-v2/adapter";
 import { loadLatestReportV2ForAccount, loadReportV2BySnapshotId } from "@/lib/report-v2/load";
@@ -131,9 +132,9 @@ export function renderReportEmailHtml(input: RenderReportEmailInput): string {
          <tr>
            <td style="padding:12px;vertical-align:top;">
              <p style="margin:0;font-size:28px;font-weight:800;color:${bandLabelForEmail(weakest.band).color};line-height:1;">${weakest.score}<span style="font-size:12px;color:#64748b;font-weight:400;">/100 · ${escapeHtml(bandLabelForEmail(weakest.band).label)} · weight ${weakest.weight}</span></p>
-             <p style="margin:8px 0 0 0;font-size:13px;line-height:1.5;color:#334155;">${escapeHtml(weakest.verdict)}</p>
-             ${weakest.gaps[0] ? `<p style="margin:8px 0 0 0;font-size:12px;color:#b91c1c;">Gap: ${escapeHtml(weakest.gaps[0])}</p>` : ""}
-             <p style="margin:8px 0 0 0;font-size:12px;color:#0f172a;"><strong>Next action:</strong> ${escapeHtml(weakest.nextAction.title)} — expected lift +${weakest.nextAction.expectedLift} SVI</p>
+             <p style="margin:8px 0 0 0;font-size:13px;line-height:1.5;color:#334155;">${escapeHtml(stripCitationMarkers(weakest.verdict))}</p>
+             ${weakest.gaps[0] ? `<p style="margin:8px 0 0 0;font-size:12px;color:#b91c1c;">Gap: ${escapeHtml(stripCitationMarkers(weakest.gaps[0]))}</p>` : ""}
+             <p style="margin:8px 0 0 0;font-size:12px;color:#0f172a;"><strong>Next action:</strong> ${escapeHtml(stripCitationMarkers(weakest.nextAction.title))} — expected lift +${weakest.nextAction.expectedLift} SVI</p>
              ${img(images.weakest, weakest.primaryVisual.a11y.title, 480)}
            </td>
          </tr>

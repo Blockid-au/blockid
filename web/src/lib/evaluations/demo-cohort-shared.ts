@@ -31,6 +31,8 @@ export type DemoStaleConnector = "xero" | "stripe" | "ga4" | "github";
 export interface DemoStartupFixture {
   /** Stable key (slug suffix). */
   key: string;
+  /** Former keys still found on demo projects created before a rename (G25-B name check). */
+  legacyKeys?: readonly string[];
   /** Display name — always ends in "(demo)". */
   name: string;
   /** projects.industry (free text, the same values the CSV import writes). */
@@ -53,14 +55,22 @@ export interface DemoStartupFixture {
 }
 
 /**
- * The five fictional startups. Coinages only ("Wattlebyte", "Coralwind",
- * "Pelicanpay", "Brolgafield", "Emberquay") — none is a registered AU
+ * The five fictional startups. Coinages only ("Banksiabyte", "Coralwind",
+ * "Numbatpay", "Brolgafield", "Emberquay") — none is a registered AU
  * business name at the time of writing and none carries an ABN.
+ *
+ * Name check 2026-09-21 (G25-B, docs/ops/demo-cohort.md § "Name check"):
+ * ABN Lookup + ASIC company / business-name datasets + IP Australia quick
+ * search + web. "Wattlebyte" collided with WATTLE BYTE PTY LTD (ACT, ABN
+ * registered Jul 2026) and "Pelicanpay" with PelicanPay (a live UK
+ * payments brand) — both replaced by cleared coinages. Re-run the check
+ * before renaming; keep the `key` values stable (they are project slugs).
  */
 export const DEMO_STARTUPS: readonly DemoStartupFixture[] = Object.freeze([
   {
-    key: "wattlebyte",
-    name: "Wattlebyte Compliance (demo)",
+    key: "banksiabyte",
+    legacyKeys: ["wattlebyte"],
+    name: "Banksiabyte Compliance (demo)",
     industry: "SaaS",
     state: "NSW",
     stage: 4,
@@ -85,8 +95,9 @@ export const DEMO_STARTUPS: readonly DemoStartupFixture[] = Object.freeze([
     description: "Fictional allied-health scheduling platform; the Xero connector last synced 97 days ago, so its P&L proof has expired.",
   },
   {
-    key: "pelicanpay",
-    name: "Pelicanpay Ledger (demo)",
+    key: "numbatpay",
+    legacyKeys: ["pelicanpay"],
+    name: "Numbatpay Ledger (demo)",
     industry: "Fintech",
     state: "VIC",
     stage: 4,
@@ -145,7 +156,9 @@ export function demoStartupForSlug(slug: string | null | undefined): DemoStartup
   if (!slug || !slug.startsWith(DEMO_PROJECT_SLUG_PREFIX)) return null;
   const rest = slug.slice(DEMO_PROJECT_SLUG_PREFIX.length);
   for (const s of DEMO_STARTUPS) {
-    if (rest === s.key || rest.startsWith(`${s.key}-`)) return s;
+    for (const key of [s.key, ...(s.legacyKeys ?? [])]) {
+      if (rest === key || rest.startsWith(`${key}-`)) return s;
+    }
   }
   return null;
 }

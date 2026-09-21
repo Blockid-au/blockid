@@ -60,8 +60,10 @@ export async function GET(req: Request) {
       stdio: "ignore",
       env: {
         ...process.env,
-        // Ensure the script can find the API key even when Next.js masks it.
-        ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY ?? "",
+        // G25-B: the key is OPTIONAL — the script uses the Claude CLI
+        // subscription token (~/.claude/.credentials.json via HOME) first and
+        // falls back to stub mode; pass the key through only when present.
+        ...(process.env.ANTHROPIC_API_KEY ? { ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY } : {}),
         TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN ?? "",
         TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID ?? "",
       },

@@ -627,7 +627,7 @@ for key in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY \
   NEXT_PUBLIC_GOOGLE_CLIENT_ID \
   LINKEDIN_CLIENT_ID LINKEDIN_CLIENT_SECRET \
   STRIPE_SECRET_KEY STRIPE_WEBHOOK_SECRET \
-  ANTHROPIC_API_KEY CRON_SECRET IP_HASH_SALT \
+  CRON_SECRET IP_HASH_SALT \
   SMTP_USER SMTP_PASS \
   GOOGLE_DRIVE_PRIVATE_KEY GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL; do
   val=$(grep "^${key}=" .env | cut -d= -f2- | head -c 5)
@@ -640,7 +640,7 @@ done
 if [ -n "$MISSING_KEYS" ]; then
   fail "Missing keys:$MISSING_KEYS"
 fi
-pass "All 16 critical keys present"
+pass "All 15 critical keys present (ANTHROPIC_API_KEY optional since G25-B — Claude CLI subscription is the Anthropic path)"
 
 # ══════════════════════════════════════════════════════════════════════
 # GATE 2: Supabase + Redis Connectivity

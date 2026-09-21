@@ -1,4 +1,19 @@
-# AI providers — tiering, keys, limits, cost (S31-A 2026-09-13, S32-C 2026-09-15)
+# AI providers — tiering, keys, limits, cost (S31-A 2026-09-13, S32-C 2026-09-15, G25-B 2026-09-21)
+
+> **G25-B (founder decision 2026-09-21): there is NO Anthropic API key.**
+> `ANTHROPIC_API_KEY` is **optional**. Founder-only AI items (nightly C-level
+> review, prompt eval, term-sheet analysis, the CEO loop) run on the **Claude
+> CLI subscription** (`claude-oauth`, the token in `~/.claude/.credentials.json`
+> kept fresh by `scripts/ai-token-guardian.sh`), which is the **last fallback
+> after the DeepInfra-first chain** — never the first hop. With the key absent
+> (or a placeholder) the Anthropic API tier is *silently skipped*: no probe,
+> no log line per run, no health warning, no deploy-gate failure. Every status
+> surface (`/api/status.ai_providers.anthropic`, `/admin/ai-keys`,
+> `scripts/ai/probe-providers.ts`) shows `not_configured` with the detail
+> **"Anthropic via Claude CLI subscription (fallback)"**, and
+> `ai_providers.anthropic_path` says which Anthropic path serves
+> (`claude_cli` on the box today). Setting a real key later re-enables the
+> quality tier with no code change (§3).
 
 Every AI call on blockid.au goes through `web/src/lib/ai-client.ts`
 (`callAI()`), which dispatches across providers by **task class**, **tier**,
@@ -15,15 +30,17 @@ pass `taskClass`). A founder's first analysis (10+ page report + email) is
 
 | Tier | Providers | `report` / `synthesis` | `classify` |
 | --- | --- | --- | --- |
-| **quality** | `claude-apikey` — Anthropic API via `@anthropic-ai/sdk` (`web/src/lib/ai/anthropic-tier.ts`) | 1st — only while `ANTHROPIC_API_KEY` is valid and the daily cap has headroom | 1st (Haiku 4.5) |
+| **quality** (optional) | `claude-apikey` — Anthropic API via `@anthropic-ai/sdk` (`web/src/lib/ai/anthropic-tier.ts`) | 1st — only while `ANTHROPIC_API_KEY` is set to a real key, valid, and the daily cap has headroom; **absent on the box since G25-B → tier does not exist, skipped with zero calls** | 1st (Haiku 4.5) when present |
 | **quality-cost** | `deepinfra` (DeepSeek-V4-Flash → V3.2 → Qwen3-235B; Kimi-K2.6 for synthesis), `gemini` (3-flash-preview → 2.5-flash; 3.1-pro-preview → 2.5-pro for synthesis) | 2nd — paid but cheap, strong models; tracked against the daily cap | 3rd — gemini-2.5-flash-lite, then deepinfra gpt-oss-120b |
-| **subscription** | `claude-oauth` (Claude Max CLI token, `~/.claude/.credentials.json`), `claude-proxy` | 3rd — **fallback only**: the CLI token is a personal credential, not a product tier. Capped at `AI_RPM_CLAUDE_OAUTH` (20) and never picked while deepinfra or gemini has headroom | 4th |
+| **subscription** | `claude-oauth` (Claude CLI subscription token, `~/.claude/.credentials.json`), `claude-proxy` | 3rd — **fallback only**: the CLI token is a personal credential, not a product tier. Capped at `AI_RPM_CLAUDE_OAUTH` (20) and never picked while deepinfra or gemini has headroom. **Since G25-B this is the Anthropic path** (no API key); it keeps its own probe + health entry | 4th |
 | **free** | Groq → SambaNova → Cerebras → OpenRouter free models, Ollama | 4th — **report-grade models only** (see below) | 2nd — cheap-first, every model |
 | **paid (last resort)** | `ANTHROPIC_HAIKU_API_KEY`, OpenAI | 5th | 5th |
 
-Full `report` / `synthesis` chain, as verified on the box 2026-09-15:
-`claude-apikey` (invalid — skipped) → `deepinfra` → `gemini` → `claude-oauth`
-→ `groq` → `sambanova` → `cerebras` → `openrouter`.
+Full `report` / `synthesis` chain, as verified on the box 2026-09-15 and
+re-pinned 2026-09-21 (G25-B, `ai-client.test.ts` "Anthropic key optional"):
+`deepinfra` → `gemini` → `claude-oauth` → `groq` → `sambanova` → `cerebras`
+→ `openrouter` (`claude-apikey` absent — not "blocked", simply not a
+candidate; with a real key it goes first).
 
 Within a tier the dispatcher picks the provider with the most **remaining
 capacity** (Anthropic: the `anthropic-ratelimit-requests-remaining` /
@@ -69,7 +86,7 @@ no prefill, no `temperature` on Sonnet 5 / Opus 5.
 
 | Var | Default | Meaning |
 | --- | --- | --- |
-| `ANTHROPIC_API_KEY` | – | **Unlocks the quality tier.** Console → API keys. Restart the app (`scripts/deploy-live.sh` or `pm2 restart`) — the key is read at call time, the probe within 15 min. |
+| `ANTHROPIC_API_KEY` | – (**optional**, unset since G25-B) | Unlocks the quality tier when set to a real key. Absent, blank or a placeholder (`sk-ant-xxxx`, `changeme`, `<your-key>` …) = `not_configured`: silently skipped, never probed, never warned about, not a deploy-gate key (`deploy-live.sh` gate 1 lists 15 keys). Restart after setting — the key is read at call time, the probe within 15 min. |
 | `AI_DAILY_SPEND_CAP_AUD` | `50` | Paid tiers (Anthropic, DeepInfra, Haiku-direct…) are skipped once today's estimated paid spend reaches this. Free tiers + OAuth keep serving. `0` disables. Resets 00:00 UTC. |
 | `OPENROUTER_MIN_CREDIT_USD` | `2` | OpenRouter is skipped when `GET /api/v1/credits` reports fewer remaining credits. |
 | `AI_USD_AUD_RATE` | `1.55` | FX used for the AUD cap. |
@@ -89,7 +106,12 @@ no prefill, no `temperature` on Sonnet 5 / Opus 5.
 Never paste a key into a log, doc or chat — code only ever prints key
 **length** and the first three characters.
 
-## 3. Adding the Anthropic key (founder steps)
+## 3. Adding the Anthropic key (OPTIONAL — only for a paid trial wave)
+
+Nothing needs this today: the Claude CLI subscription serves every
+Anthropic-model call as the fallback after the DeepInfra-first chain, and
+`docs/ops/founder-items.md` lists what still needs a human. If the founder
+later wants the quality tier for a trial wave (§6):
 
 1. Create a key at console.anthropic.com → API keys, fund the org (Billing →
    add credit; prepay ≥ A$150 for a 1,000-founder trial wave, see §6).
@@ -106,9 +128,12 @@ Never paste a key into a log, doc or chat — code only ever prints key
 5. Optional: top up OpenRouter (openrouter.ai/credits) above
    `OPENROUTER_MIN_CREDIT_USD` so the free-model overflow is not skipped.
 
-Rotate: replace the value, restart, re-run the probe. A revoked key is
-detected within one request (401 → `unconfigured` for the process) and shows
-as `invalid_key` in the probe summary / `blocked · unconfigured` in `ai.providers`.
+Rotate **or remove**: replace / delete the value, restart, re-run the probe.
+A revoked key is detected within one request (401 → `unconfigured` for the
+process, one log line) and shows as `invalid_key` in the probe summary /
+`blocked · unconfigured` in `ai.providers` — deleting the line from
+`web/.env` + `.env.runtime` and restarting returns it to the silent
+`not_configured` state, which is the expected state since G25-B.
 
 ## 4. Expected Anthropic limits by usage tier
 
@@ -187,7 +212,7 @@ payload only — never on the public payload):
 "ai_providers": {
   "updated_at": "2026-09-13T23:52:41.806Z",
   "providers": {
-    "anthropic":    { "status": "invalid_key", "checked_at": "…", "detail": "API key is invalid." },
+    "anthropic":    { "status": "not_configured", "checked_at": "…", "detail": "Anthropic via Claude CLI subscription (fallback)" },
     "claude-oauth": { "status": "valid", "checked_at": "…", "detail": "subscription (personal CLI credential — not a product licence)" },
     "claude-proxy": { "status": "invalid_key", "checked_at": "…", "detail": "Invalid API key" },
     "openrouter":   { "status": "low_credit", "checked_at": "…", "headroom": { "credits_remaining_usd": 1.55 } },
@@ -195,7 +220,8 @@ payload only — never on the public payload):
     "cerebras":     { "status": "not_configured", "checked_at": "…" }
   },
   "usable": 2,
-  "quality_tier_ready": false
+  "quality_tier_ready": false,
+  "anthropic_path": "claude_cli"
 },
 "ai_queue_depth": { "queued": 0, "queued_user": 0, "queued_background": 0, "running": 0, "max_concurrent": 120 }
 ```
@@ -207,12 +233,15 @@ payload only — never on the public payload):
 | `quota_exceeded` | 402 / 429 / daily cap on the provider side | wait or fund; skipped |
 | `low_credit` | OpenRouter credits < `OPENROUTER_MIN_CREDIT_USD` | top up |
 | `unreachable` | timeout / DNS / 5xx | provider or proxy down |
-| `not_configured` | no key | set the env var if wanted |
+| `not_configured` | no key | set the env var if wanted. For `anthropic` this is the **normal** state (G25-B): detail "Anthropic via Claude CLI subscription (fallback)", nothing to do |
 
-`quality_tier_ready` is the single boolean the founder needs: **true** = the
-Anthropic key is present and valid. `ai_queue_depth.queued > 0` sustained
-means the wave is bigger than `AI_MAX_CONCURRENT`; `queued_user` growing is
-the signal to raise the Anthropic usage tier.
+`quality_tier_ready` = the Anthropic **API key** is present and valid —
+**false is expected** since G25-B, not a warning. `anthropic_path` says which
+Anthropic path serves: `api_key` (funded key, valid), `claude_cli` (the CLI
+subscription token — the box today) or `none` (no Anthropic model at all;
+the DeepInfra / Gemini / free chain still serves). `ai_queue_depth.queued > 0`
+sustained means the wave is bigger than `AI_MAX_CONCURRENT`; `queued_user`
+growing is the signal to fund the quality tier (§3).
 
 `/api/health` is an alias of `/api/status` and carries the same fields.
 
@@ -246,7 +275,13 @@ FROM analyses WHERE id = …`, or the `[ai-client]` log lines for
   founder gets ONE `ai_capacity` notification (feed + bell + Telegram) per day.
 - **OpenRouter floor** — `OPENROUTER_MIN_CREDIT_USD`.
 - **Invalid key latch** — process lifetime (G24-B), logged once per provider,
-  never retried on the hot path; cleared by a restart after the key is rotated.
+  never retried on the hot path; cleared by a restart after the key is rotated
+  or removed. An **absent** key never latches and never logs (G25-B).
+- **Crons never require the key** — `nightly-clevel-review.mjs` uses the CLI
+  token first (API key second, stub mode otherwise, exit 0);
+  `prompt-eval-nightly` runs on the dispatcher chain via `modelCaller`; the
+  term-sheet tool uses the CLI token and degrades to demo mode.
+  `scripts/error-digest.mjs` has no Anthropic-key rule to page on.
 - **Backpressure** — bounded two-lane queue (users before crons, 25 %
   reserve), max 2 in-flight per user; overflow is a **503 + `Retry-After`**
   with `{ code: "ai_capacity_busy", retry_after_sec }` on every user-facing

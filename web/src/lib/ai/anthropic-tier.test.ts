@@ -301,3 +301,32 @@ describe("rate-limit headers → headroom", () => {
     delete process.env.ANTHROPIC_API_KEY;
   });
 });
+
+// ── G25-B: the API key is OPTIONAL — absent / placeholder = tier does not exist ──
+describe("G25-B isAnthropicApiKeyConfigured + no-key guard", () => {
+  it("false for absent, blank and placeholder values; true for a real-looking key", async () => {
+    const { isAnthropicApiKeyConfigured } = await import("./anthropic-tier");
+    for (const v of [undefined, "", "  ", "sk-ant-xxxxxxxx", "xxxxxxxx", "...", "changeme", "change-me", "placeholder", "your-api-key", "your_api_key_here", "<your-key>", "TODO", "none", "unset", "disabled", "optional"]) {
+      expect(isAnthropicApiKeyConfigured(v)).toBe(false);
+    }
+    expect(isAnthropicApiKeyConfigured("sk-ant-api03-abcdef0123456789")).toBe(true);
+    expect(isAnthropicApiKeyConfigured("  sk-ant-api03-abc  ")).toBe(true);
+    delete process.env.ANTHROPIC_API_KEY;
+    expect(isAnthropicApiKeyConfigured()).toBe(false);
+    process.env.ANTHROPIC_API_KEY = "sk-ant-api03-abc";
+    expect(isAnthropicApiKeyConfigured()).toBe(true);
+    delete process.env.ANTHROPIC_API_KEY;
+  });
+
+  it("callAnthropicTier without a key never constructs a client or dials — invalid_key, no latch, no log line", async () => {
+    const { isAnthropicApiKeyConfigured, ANTHROPIC_NOT_CONFIGURED_DETAIL } = await import("./anthropic-tier");
+    delete process.env.ANTHROPIC_API_KEY;
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    await expect(callAnthropicTier({ system: "s", user: "u" })).rejects.toMatchObject({ kind: "invalid_key" });
+    await expect(callAnthropicTier({ system: "s", user: "u" }, { apiKey: "sk-ant-xxxxxxxx" })).rejects.toMatchObject({ kind: "invalid_key" });
+    expect(isAnthropicKeyInvalid()).toBe(false); // absent ≠ rejected: nothing latched
+    expect(warn).not.toHaveBeenCalled();
+    expect(isAnthropicApiKeyConfigured()).toBe(false);
+    expect(ANTHROPIC_NOT_CONFIGURED_DETAIL).toBe("Anthropic via Claude CLI subscription (fallback)");
+  });
+});

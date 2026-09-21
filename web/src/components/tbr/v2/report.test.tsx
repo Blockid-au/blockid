@@ -758,7 +758,7 @@ describe("<TbrReportV2> citations (G24-A)", () => {
     expect(links.length).toBeGreaterThanOrEqual(5);
     for (const a of links) {
       expect(a).toContain("focus-visible:ring-2");
-      expect(a).toContain("before:-inset-y-3");
+      expect(a).toContain("before:-inset-y-4");
       expect(a).toContain('title="Evidence ');
     }
     // The appendix: one row per cited register row, in order, with level · source · date.

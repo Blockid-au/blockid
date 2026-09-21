@@ -330,3 +330,84 @@ describe("CLI main()", () => {
     expect(io2.err.join("\n")).toMatch(/0410_external_signals/);
   });
 });
+
+// ── G25-B: curated sheets committed in the repo are read first, then the home dir ──
+describe("G25-B — in-repo curated inputs (web/content/external-signals/<source>-*.csv)", () => {
+  const quiet = () => {
+    const out = [];
+    const err = [];
+    return { out, err, stdout: (s) => out.push(s), stderr: (s) => err.push(s) };
+  };
+  const TWO_ROWS = [
+    "Company,ABN,Round,Amount (AUD),Currency,Announced,Investors,Headline,Announced By,Source URL,State,Sector",
+    "HARBOUR ANALYTICS PTY LTD,95 608 464 535,Seed,1500000,AUD,2025-06-12,Blackbird,Harbour Analytics raises $1.5M seed,Company press release,https://example.com/press/harbour-analytics-seed,NSW,Maritime software",
+    "REEF ROBOTICS PTY LTD,53666147271,Series A,8000000,AUD,2026-02-04,Main Sequence,Reef Robotics closes $8M Series A,Startup Daily,https://example.com/news/reef-robotics-series-a,QLD,Robotics",
+    "",
+  ].join("\n");
+
+  async function scratch() {
+    const { mkdtempSync, mkdirSync, writeFileSync } = await import("node:fs");
+    const { tmpdir } = await import("node:os");
+    const root = mkdtempSync(join(tmpdir(), "ext-signals-repo-"));
+    const contentDir = join(root, "content", "external-signals");
+    const dataDir = join(root, "home-data");
+    mkdirSync(contentDir, { recursive: true });
+    mkdirSync(join(dataDir, "funding-announcements"), { recursive: true });
+    writeFileSync(join(contentDir, "funding-announcements-2026-09.csv"), TWO_ROWS);
+    return { root, contentDir, dataDir, writeFileSync };
+  }
+
+  it("repo file only (2-row fixture): parsed 2, kept 2, inserted 2, `file` names the repo path — no founder step under ~", async () => {
+    const { contentDir, dataDir } = await scratch();
+    const io = quiet();
+    const code = await main(["--dry", "--json", "--source", "funding-announcements", "--data-dir", dataDir], { db: null, env: {}, contentDir, ...io });
+    expect(code).toBe(EXIT_OK);
+    const src = JSON.parse(io.out.join("\n")).sources[0];
+    expect(src).toMatchObject({ id: "funding-announcements", status: "ok", parsed: 2, kept: 2, duplicates: 0, inserted: 2, skipped: {} });
+    expect(src.file).toBe(join(contentDir, "funding-announcements-2026-09.csv"));
+    expect(src.sample.map((r) => r.entity_abn)).toEqual(["95608464535", "53666147271"]);
+  });
+
+  it("repo file FIRST, then the newest home-dir file: both parsed, duplicates across them collapse by content_hash", async () => {
+    const { contentDir, dataDir, writeFileSync } = await scratch();
+    // Home file repeats one repo row and adds one new row.
+    writeFileSync(join(dataDir, "funding-announcements", "funding-2026-09-20.csv"), [
+      "Company,ABN,Round,Amount (AUD),Currency,Announced,Investors,Headline,Announced By,Source URL,State,Sector",
+      "REEF ROBOTICS PTY LTD,53666147271,Series A,8000000,AUD,2026-02-04,Main Sequence,Reef Robotics closes $8M Series A,Startup Daily,https://example.com/news/reef-robotics-series-a,QLD,Robotics",
+      "HARBOUR ANALYTICS PTY LTD,95 608 464 535,Series A,9000000,AUD,2026-03-03,Square Peg,Harbour Analytics raises $9M Series A,Media,https://example.com/press/harbour-series-a,NSW,Maritime software",
+      "",
+    ].join("\n"));
+    const io = quiet();
+    expect(await main(["--dry", "--json", "--source", "funding-announcements", "--data-dir", dataDir], { db: null, env: {}, contentDir, ...io })).toBe(EXIT_OK);
+    const src = JSON.parse(io.out.join("\n")).sources[0];
+    expect(src).toMatchObject({ status: "ok", parsed: 4, kept: 4, duplicates: 1, inserted: 3 });
+    expect(src.file.split(",")).toEqual([join(contentDir, "funding-announcements-2026-09.csv"), join(dataDir, "funding-announcements", "funding-2026-09-20.csv")]);
+  });
+
+  it("--file still wins over both; an empty content dir + empty home dir is `skipped` and names the repo path to commit", async () => {
+    const { contentDir, dataDir } = await scratch();
+    const io = quiet();
+    expect(await main(["--dry", "--json", "--source", "funding-announcements", "--data-dir", dataDir, "--file", FIX("funding-sample.csv")], { db: null, env: {}, contentDir, ...io })).toBe(EXIT_OK);
+    expect(JSON.parse(io.out.join("\n")).sources[0]).toMatchObject({ parsed: 7, kept: 3, file: FIX("funding-sample.csv") });
+    const io2 = quiet();
+    expect(await main(["--dry", "--json", "--source", "funding-announcements", "--data-dir", "/nonexistent"], { db: null, env: {}, contentDir: "/nonexistent-content", ...io2 })).toBe(EXIT_OK);
+    const skipped = JSON.parse(io2.out.join("\n")).sources[0];
+    expect(skipped.status).toBe("skipped");
+    expect(skipped.error).toMatch(/funding-announcements-YYYY-MM\.csv/);
+  });
+
+  it("the committed sheet (web/content/external-signals/funding-announcements-2026-09.csv) has ≥ 15 rows, every ABN checksum-valid, every row kept, unique hashes, dates within the last 12 months", async () => {
+    const committed = join(HERE, "..", "..", "content", "external-signals", "funding-announcements-2026-09.csv");
+    const res = await funding.parse(readFileSync(committed));
+    expect(res.parsed).toBeGreaterThanOrEqual(15);
+    expect(res.rows).toHaveLength(res.parsed);
+    expect(res.skipped).toEqual({});
+    for (const r of res.rows) {
+      expect(validateAbnChecksum(r.entity_abn)).toBe(true);
+      expect(r.source_url).toMatch(/^https:\/\//);
+      expect(r.value.amount_aud).toBeGreaterThan(0);
+      expect(r.as_of >= "2025-09-21" && r.as_of <= "2026-09-21").toBe(true);
+    }
+    expect(new Set(res.rows.map((r) => r.content_hash)).size).toBe(res.rows.length);
+  });
+});

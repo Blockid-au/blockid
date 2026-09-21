@@ -614,7 +614,7 @@ function ModePill({ mode }: { mode: "live" | "demo" }) {
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full border border-surface-200 bg-surface-100 px-3 py-1 text-xs font-medium text-ink-400">
       <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-slate-500" />
-      Demo mode (set ANTHROPIC_API_KEY)
+      Demo mode (no AI credential)
     </span>
   );
 }

@@ -190,6 +190,14 @@ export async function createDemoBatch(input: CreateDemoBatchInput): Promise<Crea
   const taken = new Set(((owned ?? []) as Row[]).map((r) => String(r.slug)));
   const projects = await insertProjects(supabase, input.userId, taken);
   if (!projects.ok) {
+    // Two concurrent "Load a demo cohort" clicks: the second racer trips the
+    // per-owner slug uniqueness — answer with the batch the first one made
+    // (review G24 P3) instead of a 500.
+    const pe = (projects.error ?? {}) as { code?: string; message?: string };
+    if (/23505|duplicate key/i.test(`${pe.code ?? ""} ${pe.message ?? ""}`)) {
+      const again = await findDemoBatch(input.userId, orgId);
+      if (again.ok && again.batch) return { ok: true, created: false, batch: again.batch, items: again.batch.total };
+    }
     console.error("[blockid:demo-cohort] projects insert failed", projects.error);
     return { ok: false, error: "create_failed", message: "Could not create the demo startups" };
   }

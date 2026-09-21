@@ -15,19 +15,30 @@ import { DEMO_COHORT_LABELS_EN, type DemoCohortLabels } from "@/lib/evaluations/
 type DemoResponse = { ok?: boolean; batch_id?: string; created?: boolean; error?: string; message?: string; upgrade_url?: string };
 
 export const DEMO_COHORT_ENDPOINT = "/api/evaluations/batch/demo";
-export const COHORT_PATH = (batchId: string) => `/workspace/evaluations/cohort/${encodeURIComponent(batchId)}`;
+export const COHORT_PATH_TEMPLATE = "/workspace/evaluations/cohort/{batchId}";
+export const COHORT_PATH = (batchId: string) => demoCohortHref(COHORT_PATH_TEMPLATE, batchId);
 
 const SECONDARY = "inline-flex min-h-11 items-center gap-2 rounded-lg border border-line-subtle bg-surface px-4 text-sm font-semibold text-primary hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action disabled:cursor-not-allowed disabled:opacity-50";
 const DANGER = "inline-flex min-h-11 items-center gap-2 rounded-lg border border-bear/40 bg-surface px-4 text-sm font-semibold text-bear hover:bg-bear/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bear disabled:cursor-not-allowed disabled:opacity-50";
 
 export interface LoadDemoCohortButtonProps {
   labels?: Pick<DemoCohortLabels, "load" | "loading" | "error">;
-  /** Where to go once the batch exists; default = the cohort page. */
-  hrefFor?: (batchId: string) => string;
+  /**
+   * Where to go once the batch exists — a template with `{batchId}`, default
+   * the cohort page. A string, not a function: the callers are Server
+   * Components and a function prop cannot cross the RSC boundary (live-qa 33
+   * on v3.24.0: /workspace/accelerator hit the error boundary, React #441).
+   */
+  hrefTemplate?: string;
   className?: string;
 }
 
-export function LoadDemoCohortButton({ labels = DEMO_COHORT_LABELS_EN, hrefFor = COHORT_PATH, className = "" }: LoadDemoCohortButtonProps) {
+/** Fill the `{batchId}` slot (encoded); a template without the slot navigates to the template as-is. */
+export function demoCohortHref(template: string, batchId: string): string {
+  return template.includes("{batchId}") ? template.replace("{batchId}", encodeURIComponent(batchId)) : `${template}/${encodeURIComponent(batchId)}`;
+}
+
+export function LoadDemoCohortButton({ labels = DEMO_COHORT_LABELS_EN, hrefTemplate = COHORT_PATH_TEMPLATE, className = "" }: LoadDemoCohortButtonProps) {
   const router = useRouter();
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -43,7 +54,7 @@ export function LoadDemoCohortButton({ labels = DEMO_COHORT_LABELS_EN, hrefFor =
         setError(body.message ?? labels.error);
         return;
       }
-      router.push(hrefFor(body.batch_id));
+      router.push(demoCohortHref(hrefTemplate, body.batch_id));
       router.refresh();
     } catch {
       setError(labels.error);

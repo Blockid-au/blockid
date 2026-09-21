@@ -468,6 +468,17 @@ const NON_FINDING_RE = /\b(?:no findings? here|not a finding|this is (?:accurate
 const ADVICE_RE = /\b(?:should|could|would|recommend(?:ed|s|ation)?|consider|essential|needs? to|must|ought to|advis(?:e|able)|prioriti[sz]e)\b/i;
 const RATING_RE = /\b[1-5](?:\.\d)?\s?\/\s?5\b|\brat(?:ed|ing)\b/i;
 
+/** Capitalised words (≥ 4 letters, not sentence-initial) the critic quoted — customer / investor / product names. */
+function properNounsIn(text: string): string[] {
+  const words = text.replace(/[“”"']/g, " ").split(/\s+/);
+  const out: string[] = [];
+  for (let i = 1; i < words.length; i += 1) {
+    const w = words[i]!.replace(/[^A-Za-z0-9.&-]/g, "");
+    if (/^[A-Z][A-Za-z0-9.&-]{3,}$/.test(w) && !/^(?:The|This|That|These|Those|With|From|Over|Under|After|Before|Which|While|When|Where|What|Their|There|Australia|Australian)$/.test(w)) out.push(w.toLowerCase());
+  }
+  return out;
+}
+
 export function filterCriticFindings(findings: string[], draft: string, options: AuditTextOptions = {}): { kept: string[]; dropped: string[] } {
   const kept: string[] = [];
   const dropped: string[] = [];
@@ -480,7 +491,9 @@ export function filterCriticFindings(findings: string[], draft: string, options:
     const probe = quoted.replace(/\s*\[ev:[^\]]*\]/gi, "").slice(0, 60).trim();
     const inDraft = (probe.length >= 8 && draftLines.find((l) => l.includes(probe))) || quoted;
     if (NON_FINDING_RE.test(finding)) { dropped.push(finding); continue; }
-    if (UNEVIDENCED_MARKERS.test(inDraft) || UNEVIDENCED_MARKERS.test(quoted)) { dropped.push(finding); continue; }
+    // The marker must sit in the DRAFT sentence — the critic's own wording
+    // ("this is an estimate…") is not the draft's admission (review G24 P2).
+    if (UNEVIDENCED_MARKERS.test(inDraft)) { dropped.push(finding); continue; }
     if (isPrescriptiveClaim(inDraft)) { dropped.push(finding); continue; }
     // Advice without a strong specific ("the next roles should be filled in
     // this order…", "an advisory board would de-risk…") is the analyst's plan,
@@ -495,9 +508,12 @@ export function filterCriticFindings(findings: string[], draft: string, options:
       const tokens = numericTokens(inDraft.replace(EV_MARKER_RE, ""));
       const rows = cited.map((id) => items.get(id)).filter((i): i is CitableItem => Boolean(i));
       const everyNumberInRows = tokens.every((tok) => rows.some((r) => itemHasNumber(r.text, tok)));
-      // A cited sentence with no numbers is a qualitative reading of its row;
-      // a cited sentence whose numbers are all in the row is supported.
-      if (!tokens.length || (rows.length > 0 && everyNumberInRows)) { dropped.push(finding); continue; }
+      // A cited sentence whose numbers are all in the row is supported. A
+      // cited sentence with NO numbers is dropped only when the proper nouns
+      // the critic quotes appear in the cited rows — a fabricated customer or
+      // investor name next to a real id stays a finding (review G24 P2).
+      if (rows.length > 0 && tokens.length && everyNumberInRows) { dropped.push(finding); continue; }
+      if (!tokens.length && rows.length > 0 && properNounsIn(quoted).every((n) => rows.some((r) => r.text.toLowerCase().includes(n)))) { dropped.push(finding); continue; }
     }
     kept.push(finding);
   }
