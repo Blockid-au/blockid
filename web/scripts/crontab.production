@@ -802,7 +802,7 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # ?dry=1 by hand to inspect. Docs: docs/ops/pilots.md. G25 (2026-09-21):
 # pilots are retired — keep this row only until every ledger row is
 # ended / expired (`listPilots().active === 0`), then remove it.
-20 4 * * * bash $RUN pilot-expiry --timeout 120
+# G25 (2026-09-21): paid pilots retired — pilot-expiry row removed (content/pilots.json has 0 active rows).
 
 # G21 P1-A (2026-09-20) — daily evidence expiry: evidence_records past
 # expires_at → `expired` + the claims they backed re-graded (claim.status_changed
