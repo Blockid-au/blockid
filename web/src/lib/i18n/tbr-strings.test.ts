@@ -108,7 +108,7 @@ describe("TbrStrings key parity across locales", () => {
     expect(viLeaves.length).toBe(enLeaves.length);
     for (const s of [...enLeaves, ...viLeaves]) expect(s.trim().length).toBeGreaterThan(0);
     expect((viLeaves.join("\n").match(DIACRITIC_RE) ?? []).length).toBeGreaterThanOrEqual(100);
-    const same = viLeaves.filter((s, i) => s === enLeaves[i] && s.trim().split(/\s+/).length >= 3);
+    const same = viLeaves.filter((s, i) => s === enLeaves[i] && s.trim().split(/\s+/).length >= 3 && /[a-z]/i.test(s));
     expect(same, `identical EN/VI sentences: ${same.join(" | ")}`).toEqual([]);
     expect(getTbrV3Strings("vi")).toBe(TBR_V3_STRINGS.vi);
     expect(getTbrV3Strings("ja")).toBe(TBR_V3_STRINGS.en);

@@ -361,3 +361,44 @@ export function citedDemoReportV2(): ReportV2 {
   r.valuation.narrative = `${r.valuation.narrative} [ev:ev-connected-revenue-stripe]`;
   return r;
 }
+
+// ── G27 — one fixture per investment-view band (spec § 7) ───────────────────
+//
+// Pure mutations of the demo / pre-revenue samples so the rubric's four
+// bands are each pinned by a stored-shape document: A (every gate clear, EC
+// 80), B (the demo as-is: EC 59, two unverified claims), C (pre-revenue with
+// two floor misses) and D (three pending dimensions). `assessment` carries the
+// server-side card context the surfaces pass through (`AssessmentCardOptions`).
+
+export type InvestmentBandFixture = "A" | "B" | "C" | "D";
+
+export interface BandFixture {
+  report: ReportV2;
+  assessment: { evidenceConfidence?: number | null; unverifiedMaterialClaims?: number | null };
+}
+
+export function investmentBandFixture(band: InvestmentBandFixture): BandFixture {
+  if (band === "A") {
+    const report = demoReportV2();
+    report.phaseGates.blockers = [];
+    return { report, assessment: { evidenceConfidence: 80, unverifiedMaterialClaims: 0 } };
+  }
+  if (band === "B") return { report: demoReportV2(), assessment: {} };
+  if (band === "C") {
+    const report = preRevenueFixtureReportV2();
+    for (const dim of ["tre", "iri"] as const) {
+      const ch = report.dimensions.find((d) => d.dim === dim)!;
+      ch.phaseLens = { ...ch.phaseLens, floor: 55, floorMet: false };
+    }
+    return { report, assessment: { evidenceConfidence: 55, unverifiedMaterialClaims: 1 } };
+  }
+  const report = preRevenueFixtureReportV2();
+  for (const dim of ["lco", "svm", "cgh"] as const) {
+    const ch = report.dimensions.find((d) => d.dim === dim)!;
+    ch.band = "pending";
+    ch.score = 0;
+    ch.scoreBreakdown = { base: ch.scoreBreakdown?.base ?? 40, signals: [], confidenceMultiplier: 0.2, adjustment: 0, assessed: false };
+    report.cover.dims[dim] = { ...report.cover.dims[dim], score: 0, band: "pending" };
+  }
+  return { report, assessment: { evidenceConfidence: 42, unverifiedMaterialClaims: 3 } };
+}
