@@ -1,0 +1,16 @@
+# G27 — Trusted Business Report v3: an investor-grade startup valuation + investment report (PRIORITY)
+
+**Opened:** 2026-09-21 — founder (verbatim): "thiết kế trusted biz report page thật rõ ràng, mạch lạc các nhận xét, đánh giá, các hạng mục trong 8 criterias và bố cục hài hoà, hợp lý như bảng báo cáo đầy đủ về giá trị startup và báo cáo đầu tư, có giá trị đầu tư cao hay không và cần cải thiện gì, làm rõ những điểm chính và tạo thành report có giá trị cho nhà đầu tư ⇒ nghiên cứu các loại report tiêu chuẩn tốt nhất về biz và thiết kế report chất lượng về nội dung và hài hoà về bố cục, design, ui/ux pro ⇒ spawn agent và skill pro phù hợp, đồng bộ với plan đang thực thi và ưu tiên việc này".
+**Owner:** Claude session loop. **Priority:** above G26 page lanes; sequenced after G26-R's class-level light restyle of `components/tbr/**` (told to stay class/theme-level so v3 rebases cleanly).
+**Tracked in:** `docs/plans/SOURCE-OF-TRUTH.md` § G27 · `ROADMAP.md` row G27.
+**Status:** OPEN — phase 1 (research + spec) running; phase 2 (build) spawns from the spec.
+
+## Phase 1 — Research + spec (skills: investor-relations, cfo-advisor, svi-scoring, pitch-deck-builder, ui-ux-pro-max, dataviz)
+Deliverable `docs/design/tbr-v3-investor-report-spec.md`: reader + the three page-1 answers (worth investing? · worth how much? · what must improve?), section order v3 mapped to ReportV2 fields (new derived blocks marked), one identical anatomy for the 8 dimension chapters (score · band · benchmark n · verdict · evidence footnotes · strengths · risks/gaps · improve + lift · investor takeaway), a deterministic **investment-view rubric** (Investable now / with conditions / not yet — build evidence; conviction; reasons; risks; conditions; EN + VI; never-say safe), risk matrix, 90-day improvement plan by lift ÷ effort, visual/UX spec on the light template (dashboard tiles, radar/bars with benchmark n, tables, callout rules, 375 px, print pagination, DOCX parity), free vs paid vs e-mailed PDF (G19 + G25-C), implementation plan for phase 2 (pure derivation preferred over pipeline changes; optional schema fields only).
+Sources: VC IC memos, DD report TOCs, CFA equity research structure, 409A / independent valuation reports, AU norms (AVCAL / Cut Through Venture, ASIC general-advice wording), scorecard presentation, report design practice.
+
+## Phase 2 — Build (spawned from the spec; skills: react-expert, ui-ux-pro-max, dataviz, svi-scoring, code-reviewer; PDF/DOCX: pdf skill)
+`lib/report-v2/investment-view.ts` (pure rubric + key points + risk matrix + prioritised plan), optional schema fields (stored reports keep rendering), `lib/report-v2/adapter*` wiring, `components/tbr/v2/*` restructured to the v3 order with the identical chapter anatomy, PDF + DOCX twins, e-mail summary (G25-C delivery), free/locked preview rules unchanged, VI parity, tests (rubric table, section order, never-say guard over rendered text, contrast smoke, DOM has no raw markers), live-qa 31 (showcase/demo structure), showcase re-run to render v3.
+
+## Acceptance
+Spec approved by review (read-only agent) → build lane → full unit + pdf → deploy → live-qa + link-check + sweep + ui-ux-pro-max check of `/tbr/demo`, `/showcase/blockid/report`, a paid view, the PDF → read-only review → fixes → SOT § G27 closed; `version.json` bump.
