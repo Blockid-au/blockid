@@ -122,7 +122,7 @@ test.describe("39 — outcomes (G21 P3-A)", () => {
     expect((await get(api, "/api/projects/00000000-0000-4000-8000-00000000c0de/outcomes")).status).toBe(404);
   });
 
-  test("the owner confirms a founder proposal recorded this run (PATCH → confirmed; second PATCH → 409); a stranger's id → 404", async ({ api, qa }, testInfo) => {
+  test("the owner CANNOT confirm their own founder-recorded proposal (403 — P3 review: self-declared outcomes never feed calibration); bad decision → 400; a stranger's id → 404", async ({ api, qa }, testInfo) => {
     test.skip(!qa.projectId, "no QA project id in the run state");
     const id = getScratch("outcomeId");
     test.skip(!id, "no outcome recorded by the previous test");
@@ -134,14 +134,13 @@ test.describe("39 — outcomes (G21 P3-A)", () => {
       await evidence(testInfo, "PATCH skipped — row reused from an earlier run", { id });
       return;
     }
-    const ok = await patch<{ ok: boolean; outcome?: OutcomeRow; error?: string }>(api, `/api/outcomes/${id}`, { decision: "confirm", note: `${QA_MARK} confirmed by the suite` });
-    await evidence(testInfo, "PATCH /api/outcomes/[id]", { status: ok.status, body: ok.body });
-    expect(ok.status).toBe(200);
-    expect(ok.body.outcome?.status).toBe("confirmed");
-    const again = await patch<{ ok: boolean; error?: string }>(api, `/api/outcomes/${id}`, { decision: "reject", note: "x" });
-    expect(again.status).toBe(409);
+    const own = await patch<{ ok: boolean; outcome?: OutcomeRow; error?: string; message?: string }>(api, `/api/outcomes/${id}`, { decision: "confirm", note: `${QA_MARK} confirmed by the suite` });
+    await evidence(testInfo, "PATCH /api/outcomes/[id] (own founder row)", { status: own.status, body: own.body });
+    expect(own.status).toBe(403);
+    expect(own.body.error).toBe("forbidden");
+    // The row stays a proposal — BlockID or an evaluator confirms it.
     const list = await get<ListBody>(api, `/api/projects/${qa.projectId}/outcomes`);
-    expect(list.body.outcomes.find((o) => o.id === id)?.status).toBe("confirmed");
+    expect(list.body.outcomes.find((o) => o.id === id)?.status).toBe("proposed");
   });
 
   test("/methodology/calibration renders the score → outcome section: empty state or a table with n =", async ({ page, visit }, testInfo) => {

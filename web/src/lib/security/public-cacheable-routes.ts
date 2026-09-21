@@ -103,7 +103,13 @@ export const PUBLIC_CACHEABLE_ROUTES: readonly PublicCacheableRoute[] = [
   },
   {
     label: "showcase",
-    match: /^\/showcase(?:\/[A-Za-z0-9_\-~]+)*$/,
+    // `/showcase/blockid/report` is excluded (negative lookahead): its Assessment
+    // Card context changes on the server between deploys (nightly benchmark
+    // segments, claims), so the ISR document regenerates with a new flight chunk
+    // while the hash-mode header still lists the previous document's hashes —
+    // the CSP inline-script block seen 2026-09-21. It renders per request in
+    // nonce mode; its data is cached 1 h by lib/showcase/blockid-report.ts.
+    match: /^\/showcase(?!\/blockid\/report$)(?:\/[A-Za-z0-9_\-~]+)*$/,
     sMaxAge: ONE_HOUR,
     staleWhileRevalidate: ONE_HOUR,
     pages: [
@@ -120,7 +126,6 @@ export const PUBLIC_CACHEABLE_ROUTES: readonly PublicCacheableRoute[] = [
       "showcase/atlassian/svi-report/page.tsx",
       "showcase/atlassian/valuation/page.tsx",
       "showcase/blockid/page.tsx",
-      "showcase/blockid/report/page.tsx",
       "showcase/canva/page.tsx",
       "showcase/culture-amp/page.tsx",
       "showcase/safetyculture/page.tsx",

@@ -41,9 +41,13 @@ export const metadata: Metadata = {
   robots: { index: true, follow: true },
 };
 
-// ISR 1 h — matches the data-cache TTL in lib/showcase/blockid-report.ts
-// (lib/security/public-cacheable-routes.ts lists the showcase tree).
-export const revalidate = 3600;
+// Rendered per request (nonce-mode CSP). The report data itself is data-cached
+// 1 h in lib/showcase/blockid-report.ts, but the Assessment Card context
+// (benchmark segments, claim counts) changes on the server between deploys —
+// as an ISR document the regenerated flight chunk no longer matched the
+// hash-mode CSP header (blocked inline script + React #412, 2026-09-21), so
+// this route is excluded from lib/security/public-cacheable-routes.ts.
+export const dynamic = "force-dynamic";
 
 export default async function ShowcaseBlockidReportPage() {
   const loaded = await loadBlockidShowcaseReport();
