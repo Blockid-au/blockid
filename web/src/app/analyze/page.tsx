@@ -22,6 +22,9 @@ import { AnalyzeRoot } from "@/components/analyze/analyze-root";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { getCurrentUser } from "@/lib/auth";
 import { parseClaimedParam } from "@/lib/analyses/summary";
+import { getLocale } from "@/lib/i18n";
+import { getMessages } from "@/lib/i18n/t";
+import { freeReportCopy } from "@/lib/reports/free-report-copy";
 
 export const metadata: Metadata = pageMetadata({
   title: "Analyze your startup — SVI score and valuation",
@@ -63,6 +66,10 @@ export default async function AnalyzePage({
   // Real claim count from the auth endpoint, carried through the redirect.
   const claimed = parseClaimedParam(params.claimed);
   const user = await getCurrentUser();
+  // G25-C — the free-allowance copy (EN / VI), resolved once here so the
+  // client tree never carries the catalogues.
+  const locale = await getLocale();
+  const copy = freeReportCopy(await getMessages(locale), locale);
   return (
     <MarketingShell>
       <section
@@ -86,6 +93,7 @@ export default async function AnalyzePage({
           </p>
           <AnalyzeRoot
             tier={tier as "free" | "paid"}
+            freeReportCopy={copy}
             authenticated={Boolean(user)}
             initialQuery={initialQuery}
             initialKind={initialKind}

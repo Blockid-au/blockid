@@ -172,6 +172,57 @@ export function emitCheckout(input: CheckoutInput): void {
   );
 }
 
+// ── G25-C free allowance ───────────────────────────────────────────────
+
+export interface FreeReportEventInput {
+  grantId: string;
+  sequenceNo: 1 | 2;
+  source: "guest" | "account";
+  analysisId?: string | null;
+  userId?: string | null;
+  email?: string | null;
+  sessionId?: string | null;
+}
+
+/** `free_report_submitted` — once per grant (event_id = hash of the grant id). `queued` = the platform cap deferred the run to the cron. */
+export function emitFreeReportSubmitted(input: FreeReportEventInput & { queued: boolean }): void {
+  void trackEvent(
+    "free_report_submitted",
+    {
+      grant_id: input.grantId,
+      sequence_no: input.sequenceNo,
+      source: input.source,
+      queued: input.queued,
+      ...(input.analysisId ? { analysis_id: input.analysisId } : {}),
+      ...qaFlag(input.email),
+    },
+    {
+      userId: input.userId ?? null,
+      sessionId: input.sessionId ?? null,
+      eventId: funnelEventId("free_report_submitted", input.grantId),
+    },
+  );
+}
+
+/** `free_report_delivered` — once per grant, when the PDF e-mail was accepted by the provider. */
+export function emitFreeReportDelivered(input: FreeReportEventInput): void {
+  void trackEvent(
+    "free_report_delivered",
+    {
+      grant_id: input.grantId,
+      sequence_no: input.sequenceNo,
+      source: input.source,
+      ...(input.analysisId ? { analysis_id: input.analysisId } : {}),
+      ...qaFlag(input.email),
+    },
+    {
+      userId: input.userId ?? null,
+      sessionId: input.sessionId ?? null,
+      eventId: funnelEventId("free_report_delivered", input.grantId),
+    },
+  );
+}
+
 // ── report tier resolution ─────────────────────────────────────────────
 
 /** Minimal query surface so the page test can stub Supabase. */

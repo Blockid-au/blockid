@@ -351,3 +351,36 @@ describe("G25 — no pilot catalogue keys; Cohort offer / plans parity (en ⇄ v
     expect(VI["solutions.accelerator.cta"]).toBe("Bắt đầu một khoá");
   });
 });
+
+// G25-C — the free-allowance copy (/analyze e-mail panel, status lines, the
+// A$3 quote). Numbers ride in as tokens ({count}, {price}, {limit}) so the
+// catalogue never carries a figure that could drift from the constants.
+describe("free_report.* catalogue parity (en ⇄ vi) — G25-C /analyze", () => {
+  const viKeysFor = (prefix: string) => Object.keys(VI).filter((k) => k.startsWith(prefix));
+
+  it("every free_report.* key in either catalogue exists in the other, none empty, tokens match", () => {
+    expect(enKeys("free_report.").filter((k) => !(k in VI)), "missing in vi.json").toEqual([]);
+    expect(viKeysFor("free_report.").filter((k) => !(k in EN)), "missing in en.json").toEqual([]);
+    expect(enKeys("free_report.").length).toBeGreaterThanOrEqual(20);
+    const tokens = (s: string) => (s.match(/\{[a-zA-Z0-9]+\}/g) ?? []).sort();
+    for (const k of enKeys("free_report.")) {
+      expect(EN[k]!.trim().length, `en ${k}`).toBeGreaterThan(0);
+      expect(VI[k]!.trim().length, `vi ${k}`).toBeGreaterThan(0);
+      expect(tokens(VI[k]!), k).toEqual(tokens(EN[k]!));
+    }
+  });
+
+  it("the e-mail panel carries the approved data principle verbatim, names the sender and promises the unsubscribe; no price literal, no PhD", () => {
+    expect(EN["free_report.email.principle"]).toBe(EN["solutions.principle.data"]);
+    expect(VI["free_report.email.principle"]).toBe(VI["solutions.principle.data"]);
+    expect(EN["free_report.email.consent"]).toContain("{entityOperator}");
+    expect(EN["free_report.email.consent"]).toMatch(/unsubscribe any time/i);
+    expect(VI["free_report.email.consent"]).toMatch(/hủy đăng ký/i);
+    const all = enKeys("free_report.").map((k) => `${EN[k]}\n${VI[k]}`).join("\n");
+    expect(all).not.toMatch(/A\$\d/);
+    expect(all).not.toMatch(/PhD/);
+    expect(EN["free_report.pay.body"]).toContain("{price}");
+    expect(EN["free_report.email.cta"]).toBe("Get your score free");
+    expect(EN["free_report.pay.cta"]).toBe("Get the Trusted Business Report");
+  });
+});

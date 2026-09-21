@@ -360,6 +360,12 @@ export interface AnalyticsEventMap {
   tbr_export: { format: "pdf" | "docx"; surface: string };
   tbr_clarity_answered: { score: number; surface: "founder" | "share"; has_comment: boolean; snapshot_id?: string };
 
+  // ── G25-C free allowance (server-emitted; typed here so the GA4 audit + limits tests cover both maps) ──
+  //   free_report_submitted — a free business report reserved for an address (1 | 2 of 2)
+  //   free_report_delivered — its PDF e-mail accepted by the provider
+  free_report_submitted: { grant_id: string; sequence_no: 1 | 2; source: "guest" | "account"; queued: boolean; analysis_id?: string };
+  free_report_delivered: { grant_id: string; sequence_no: 1 | 2; source: "guest" | "account"; analysis_id?: string };
+
   // ── Global error boundary + 404 ──────────────────────────────────────────
   //   Fired by src/app/error.tsx when the App Router error boundary catches
   //   an uncaught render/data error. `message` is truncated to 200 chars to

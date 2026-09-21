@@ -95,6 +95,11 @@ export type AnalyticsEvent =
   // ── G19-S45 engagement twins (client-emitted today; typed here so the GA4 limits test covers both maps) ──
   | { name: "tbr_section_view"; params: { section: string; surface: "founder" | "share" | "order_page" | "demo"; tier?: string; user_id?: string } }
   | { name: "tbr_export"; params: { format: "pdf" | "docx"; surface: string; user_id?: string } }
+  // ── G25-C free allowance (server-side; lib/analytics/funnel.ts emitFreeReport*) ──
+  //   free_report_submitted — a free report was reserved for an address (sequence_no 1 | 2, source guest | account)
+  //   free_report_delivered — the PDF e-mail for that report was accepted by the provider
+  | { name: "free_report_submitted"; params: { grant_id: string; sequence_no: 1 | 2; source: "guest" | "account"; queued: boolean; analysis_id?: string; qa?: boolean } }
+  | { name: "free_report_delivered"; params: { grant_id: string; sequence_no: 1 | 2; source: "guest" | "account"; analysis_id?: string; qa?: boolean } }
   | { name: "dossier_view"; params: { evaluation_id: string; consent_tier: string; role: "assessor" | "founder"; surface: "page" | "api"; user_id: string } }
   // ── G13-S-D2 / G14 GA4 audit leftover — evaluator submitted their assessment ──
   | { name: "assessment_submitted"; params: { evaluation_id: string; decision: "pass" | "track" | "proceed" | "none"; version: number; user_id: string } }
