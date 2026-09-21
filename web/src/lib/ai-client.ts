@@ -71,6 +71,7 @@ import {
   type AITaskClass,
 } from "@/lib/ai/anthropic-tier";
 import { AICapacityError } from "@/lib/ai/capacity";
+import { type RunStrikeSink, RunStruckError } from "@/lib/ai/run-strikes";
 import { isDailyCapReached, notifyCapReached, recordPaidSpend } from "@/lib/ai/spend-guard";
 import { cachedProviderStatus, probeProviders, readProviderStatusFile, PROBE_TTL_MS, type ProbeProvider } from "@/lib/ai/provider-status";
 
@@ -795,6 +796,30 @@ export interface AICallOptions {
   budgetMs?: number;
   /** @internal absolute deadline derived from `budgetMs` (epoch ms). */
   deadlineAt?: number;
+  /** G28-B — run-scoped provider strikes (lib/ai/run-strikes.ts). One ledger
+   *  per report-pipeline run: a provider that answered ≥ 2 worker timeouts /
+   *  `engine_overloaded` / 429 during the run is skipped for the rest of it —
+   *  inside its model ladder (no third model) and in every later call's
+   *  provider loop — on top of the process-wide cooldown, which only fires
+   *  after the whole ladder failed. Omitted → no run scoping (crons, chat). */
+  runStrikes?: RunStrikeSink;
+}
+
+/** True when the run ledger says `provider` is struck out for this run. */
+export function runStruck(opts: Pick<AICallOptions, "runStrikes">, provider: Provider): boolean {
+  return Boolean(opts.runStrikes?.struck(provider));
+}
+
+/** Count a ladder / provider failure against the run ledger (idempotent per error object). */
+export function noteRunStrike(opts: Pick<AICallOptions, "runStrikes">, provider: Provider, err: unknown): void {
+  const kind = opts.runStrikes?.note(provider, err) ?? null;
+  if (kind && opts.runStrikes?.struck(provider)) {
+    console.warn(`[ai-client:run-strike] ${provider} struck out for this run (${opts.runStrikes.strikes(provider)} × ${kind === "timeout" ? "worker timeout" : "overloaded / 429"}) — skipped until the run ends`);
+  }
+}
+
+function runStruckError(opts: Pick<AICallOptions, "runStrikes">, provider: Provider): RunStruckError {
+  return new RunStruckError(provider, opts.runStrikes?.strikes(provider) ?? 0);
 }
 
 /** Total budget for an `interactive` call — under Cloudflare's 100 s wall
@@ -1080,6 +1105,7 @@ async function callGemini(opts: AICallOptions, cls: AITaskClass = "report"): Pro
   let lastErr: Error | null = null;
   for (const model of readyPaidModels("gemini", GEMINI_MODELS_BY_CLASS[cls])) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
+    if (runStruck(opts, "gemini")) { lastErr = lastErr ?? runStruckError(opts, "gemini"); break; }
     const key = paidKey("gemini", model);
     try {
       // workerFetch bypasses Next.js fetch patches (same as Claude/Groq)
@@ -1122,6 +1148,7 @@ async function callGemini(opts: AICallOptions, cls: AITaskClass = "report"): Pro
       // RESOURCE_EXHAUSTED is Google's 429 — the shared regex reads "quota".
       const msg = /resource_exhausted/i.test(lastErr.message) ? `429 quota ${lastErr.message}` : lastErr.message;
       coolDownModel(key, msg);
+      noteRunStrike(opts, "gemini", lastErr);
       console.warn(`[ai-client] Gemini ${model} failed: ${lastErr.message.slice(0, 200)}`);
     }
   }
@@ -1148,6 +1175,7 @@ async function callGroq(opts: AICallOptions, cls: AITaskClass = "classify"): Pro
   let lastErr: Error | null = null;
   for (const model of readyModels(GROQ_MODELS, cls)) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
+    if (runStruck(opts, "groq")) { lastErr = lastErr ?? runStruckError(opts, "groq"); break; }
     try {
       const raw = await workerFetch("https://api.groq.com/openai/v1/chat/completions", {
         "Authorization": `Bearer ${apiKey}`,
@@ -1171,6 +1199,7 @@ async function callGroq(opts: AICallOptions, cls: AITaskClass = "classify"): Pro
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
       coolDownModel(model, lastErr.message);
+      noteRunStrike(opts, "groq", lastErr);
       console.warn(`[ai-client] Groq ${model} failed: ${lastErr.message}`);
     }
   }
@@ -1201,6 +1230,7 @@ async function callCerebras(opts: AICallOptions, cls: AITaskClass = "classify"):
   let lastErr: Error | null = null;
   for (const model of readyModels(CEREBRAS_MODELS, cls)) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
+    if (runStruck(opts, "cerebras")) { lastErr = lastErr ?? runStruckError(opts, "cerebras"); break; }
     try {
       const raw = await workerFetch("https://api.cerebras.ai/v1/chat/completions", {
         "Authorization": `Bearer ${apiKey}`,
@@ -1224,6 +1254,7 @@ async function callCerebras(opts: AICallOptions, cls: AITaskClass = "classify"):
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
       coolDownModel(model, lastErr.message);
+      noteRunStrike(opts, "cerebras", lastErr);
       console.warn(`[ai-client] Cerebras ${model} failed: ${lastErr.message}`);
     }
   }
@@ -1257,6 +1288,7 @@ async function callSambaNova(opts: AICallOptions, cls: AITaskClass = "classify")
   let lastErr: Error | null = null;
   for (const model of readyModels(SAMBANOVA_MODELS, cls)) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
+    if (runStruck(opts, "sambanova")) { lastErr = lastErr ?? runStruckError(opts, "sambanova"); break; }
     try {
       const raw = await workerFetch("https://api.sambanova.ai/v1/chat/completions", {
         "Authorization": `Bearer ${apiKey}`,
@@ -1280,6 +1312,7 @@ async function callSambaNova(opts: AICallOptions, cls: AITaskClass = "classify")
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
       coolDownModel(model, lastErr.message);
+      noteRunStrike(opts, "sambanova", lastErr);
       console.warn(`[ai-client] SambaNova ${model} failed: ${lastErr.message}`);
     }
   }
@@ -1320,6 +1353,7 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
   let lastErr: Error | null = null;
   for (const model of readyPaidModels("deepinfra", DEEPINFRA_MODELS_BY_CLASS[cls])) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
+    if (runStruck(opts, "deepinfra")) { lastErr = lastErr ?? runStruckError(opts, "deepinfra"); break; }
     const key = paidKey("deepinfra", model);
     try {
       const raw = await workerFetch("https://api.deepinfra.com/v1/openai/chat/completions", {
@@ -1353,6 +1387,7 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
       coolDownModel(key, lastErr.message);
+      noteRunStrike(opts, "deepinfra", lastErr);
       console.warn(`[ai-client] DeepInfra ${model} failed: ${lastErr.message.slice(0, 200)}`);
     }
   }
@@ -1429,6 +1464,7 @@ async function callOpenRouter(opts: AICallOptions, cls: AITaskClass = "classify"
   let lastErr: Error | null = null;
   for (const model of readyModels(FREE_MODELS, cls)) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
+    if (runStruck(opts, "openrouter")) { lastErr = lastErr ?? runStruckError(opts, "openrouter"); break; }
     try {
       const raw = await workerFetch("https://openrouter.ai/api/v1/chat/completions", {
         "Authorization": `Bearer ${apiKey}`,
@@ -1453,6 +1489,7 @@ async function callOpenRouter(opts: AICallOptions, cls: AITaskClass = "classify"
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
       coolDownModel(model, lastErr.message);
+      noteRunStrike(opts, "openrouter", lastErr);
       console.warn(`[ai-client] OpenRouter ${model} failed: ${lastErr.message}`);
     }
   }
@@ -2319,7 +2356,8 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
   try {
     while (tried.size < allProviders.length) {
       if (aiBudgetExpired(opts)) { lastError = new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
-      const remaining = allProviders.filter((p) => !tried.has(p));
+      // G28-B: a provider struck out earlier in this run is not re-dialled.
+      const remaining = allProviders.filter((p) => !tried.has(p) && !runStruck(opts, p));
       // S32-F: an interactive caller takes the FIRST usable provider in the
       // throughput order — the tier ranking in pickBestProvider would put the
       // quality-cost tier (DeepInfra / Gemini) ahead of Groq and time out.
@@ -2349,6 +2387,8 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
           markProviderUnconfigured(provider, `${(lastError as { status?: number }).status ?? 401} invalid key`);
           continue;
         }
+        if (lastError instanceof RunStruckError) continue; // struck by a parallel call of this run — no process-wide cooldown from it
+        noteRunStrike(opts, provider, lastError);
         const cooldownMs = cooldownForError(provider, lastError);
         providerCooldown.set(provider, Date.now() + cooldownMs);
         const cooldownLabel = cooldownMs >= 60 * 60_000
@@ -2366,7 +2406,10 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
   }
 
   if (!lastError && tried.size === 0) {
-    lastError = new Error("All AI providers are blocked (invalid key / quota / daily cap) — see /api/status ai_providers");
+    const struck = allProviders.filter((p) => runStruck(opts, p));
+    lastError = struck.length === allProviders.length && struck.length > 0
+      ? new RunStruckError(struck.join(","), struck.reduce((n, p) => n + (opts.runStrikes?.strikes(p) ?? 0), 0))
+      : new Error("All AI providers are blocked (invalid key / quota / daily cap) — see /api/status ai_providers");
   }
   // G15-R3.3: count budget exhaustion (whether the loop broke on the deadline
   // or a provider ladder surfaced it) for getProviderHealthSnapshot().

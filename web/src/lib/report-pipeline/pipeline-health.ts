@@ -25,7 +25,16 @@ export interface DegradedEvent {
   llm_calls: number;
 }
 
-export type FullyDegradedReason = "deadline_hit" | "no_llm_calls" | "placeholder_summary";
+/** `mostly_degraded` (G28-B): ≥ FULLY_DEGRADED_MIN_CHAPTERS chapters on deterministic cards — not persisted, not charged. */
+export type FullyDegradedReason = "deadline_hit" | "no_llm_calls" | "placeholder_summary" | "mostly_degraded";
+
+/**
+ * G28-B: a run with this many (of 8) degraded chapters is treated as no
+ * report — the orchestrator flags it `fullyDegraded`, the persisting callers
+ * refund / retry, ONE digest line is written here, and the tbr-quality
+ * window excludes the row from the grounding median (quality-log.ts).
+ */
+export const FULLY_DEGRADED_MIN_CHAPTERS = 7;
 
 export type DegradedEventWriter = (event: DegradedEvent) => void | Promise<void>;
 

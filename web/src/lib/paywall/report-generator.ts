@@ -49,6 +49,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { orchestrateReport } from "@/lib/report-pipeline/orchestrator";
+import { pipelineCallTimeouts, type PipelineCallHint } from "@/lib/report-pipeline/pipeline-timeouts";
+import { createRunStrikeLedger } from "@/lib/ai/run-strikes";
 import type { ReportTier, CriterionData } from "@/lib/report-pipeline/types";
 import { CRITERION_KEYS } from "@/lib/evaluation-criteria";
 import type { CriterionKey } from "@/lib/evaluation-criteria";
@@ -340,19 +342,23 @@ export async function generateTrustReportForOrder(
   // per-agent semaphore, so many buyers can generate reports in parallel
   // instead of queueing behind a shared "paywall-report" bucket.
   const paywallAgentId = `paywall:${order.id ?? accountId}`;
+  // G28-B: per-stage timeouts + one run-scoped strike ledger (see run-for-project.ts).
+  const runStrikes = createRunStrikeLedger();
   const aiCaller = async (
     systemPrompt: string,
     userPrompt: string,
     maxTokens: number,
     taskClass?: "classify" | "report" | "synthesis",
+    hint?: PipelineCallHint,
   ) => {
     const result = await callAI({
       system: systemPrompt,
       user: userPrompt,
       maxTokens,
-      timeoutMs: 120_000,
+      ...pipelineCallTimeouts(hint),
       agentId: paywallAgentId,
       taskClass,
+      runStrikes,
     });
     // S-R3 (W2 review b): real cost / provider flow into the `done` telemetry.
     return { text: result.text, costUsd: result.cost_usd, provider: result.via ?? result.provider, model: result.model };

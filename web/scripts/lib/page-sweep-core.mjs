@@ -387,7 +387,9 @@ export function judge(row, { exceptions = {}, light = true } = {}) {
   const defects = [];
   const ex = exceptions[row.route] ?? null;
   const finalPath = safePath(row.final_url);
-  const redirected = finalPath !== null && finalPath !== row.path;
+  // A `visit` override carries a query string; compare pathnames only.
+  const visitedPath = String(row.path ?? "").split("?")[0].replace(/\/+$/, "") || "/";
+  const redirected = finalPath !== null && finalPath !== visitedPath;
   const signedInRoute = row.persona_required !== "public";
 
   if (row.status === null) defects.push("no_response");
