@@ -1,12 +1,17 @@
-// Chapter 14 — Appendix: method, evidence register, data principle,
-// disclaimer, auditor log, comparables N, sources dated (CDO + auditor).
+// Section 16 — Appendix (G27 order: limiting conditions last, 409A style):
+// method → phase-gate matrix → score ledger per chapter → evidence register
+// → data principle → sources → auditor log → disclaimer → correction link.
+// The free tier prints counts for the register / audit log instead of the
+// tables (spec § 6); "Evidence cited" (footnotes) follows as its own section.
 
 import { getTbrS43Strings } from "@/lib/i18n/tbr-strings";
 import { evidenceRowsView } from "@/lib/report-v2/evidence-view";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import { cn } from "@/lib/utils";
-import { CtaLink } from "./chapter";
+import { CtaLink, TbrScoreLedger } from "./chapter";
+import { TbrPhaseGateMatrix } from "./phase-gates";
 import { AgentBadge, Chip, TABLE_CLASS, TABLE_WRAP_CLASS, TBR_V2_SECTION_IDS, THEAD_CLASS, TbrSection, v2Strings, zebraRow, type TbrUiLocale } from "./shared";
+import { v3Strings } from "./shared-v3";
 
 export function TbrAppendix({
   report,
@@ -31,8 +36,10 @@ export function TbrAppendix({
   const register = evidenceRowsView(a.evidenceRegister, locale);
   const s43 = getTbrS43Strings(locale);
   const s47 = v2Strings(locale).s47;
+  const t3 = v3Strings(locale);
+  const free = report.tier === "free";
   return (
-    <TbrSection id={TBR_V2_SECTION_IDS.appendix} kicker="14" title={title} purpose={s47.purpose.appendix} pageBreak>
+    <TbrSection id={TBR_V2_SECTION_IDS.appendix} kicker="16" title={title} purpose={s47.purpose.appendix} pageBreak>
       <div className="flex items-center gap-2 text-xs text-secondary">
         <AgentBadge role="cdo" />
         <span>
@@ -45,9 +52,28 @@ export function TbrAppendix({
           <p className="font-semibold text-primary">{t.method}</p>
           <p className="max-w-prose leading-relaxed">{a.method}</p>
         </div>
+        <TbrPhaseGateMatrix report={report} locale={locale} />
+        {!free && (
+          <div data-tbr-appendix-ledgers className="space-y-2">
+            <p className="font-semibold text-primary">{t3.scoreLedger}</p>
+            <div className="grid gap-3 md:grid-cols-2">
+              {report.dimensions.map((ch) => (
+                <div key={ch.dim} className="space-y-1">
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{locale === "vi" ? ch.titleVi : ch.title}</p>
+                  <TbrScoreLedger chapter={ch} locale={locale} verificationLevel={report.cover.verification?.level ?? null} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {free ? (
+          <p data-tbr-appendix-counts className="text-secondary">
+            {t3.countsOnly(a.evidenceRegister.length, a.auditLog.length)}
+          </p>
+        ) : null}
         <div>
           <p className="font-semibold text-primary">{t.evidenceRegister}</p>
-          {register.length > 0 ? (
+          {free ? null : register.length > 0 ? (
             <div className={cn("mt-1", TABLE_WRAP_CLASS)} data-tbr-register>
               <table className={TABLE_CLASS}>
                 <thead className={THEAD_CLASS}>
@@ -95,7 +121,7 @@ export function TbrAppendix({
             <li>{t.comparables(a.comparablesN, a.comparablesWithMultiplesN)}</li>
           </ul>
         </div>
-        {a.auditLog.length > 0 && (
+        {!free && a.auditLog.length > 0 && (
           <div>
             <p className="font-semibold text-primary">{t.auditorLog}</p>
             <ul className="list-disc pl-4">

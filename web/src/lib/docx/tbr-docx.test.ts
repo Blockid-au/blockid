@@ -1,24 +1,29 @@
-// Trusted Business Report v2 DOCX (S-R4) — colocated suite.
+// Trusted Business Report v3 DOCX (G27) — colocated suite.
 //
 //   - the demo report packs to a valid DOCX with one PNG per visual
-//     (word/media/*.png count = distinct visuals) when sharp is present;
-//   - every section heading appears in document.xml in the web's chapter
-//     order (same parity check as the PDF);
-//   - the free tier embeds the a11y table for card chapters, the upgrade
-//     line and no valuation method table;
-//   - a rasteriser outage falls back to SVG embeds (word/media/*.svg) and
-//     the document still opens.
+//     (+ the dashboard `dim_bars` chart) when sharp is present;
+//   - the Heading 1 sequence is the v3 16-section order (`tbrDocxOutline`),
+//     the same ids the web TOC / PDF outline use;
+//   - the four band fixtures build; the verbatim sub-line is present; no
+//     raw `[ev:` / `[unevidenced]` marker and no register id inside a
+//     chapter; the never-say regex over the whole text;
+//   - VI builds with diacritics and no English v3 chrome;
+//   - the free tier renders chapters 5–8 as compact cards, the valuation
+//     with method names / weights only, ≤ 5 risk rows and ≤ 5 plan steps;
+//   - a rasteriser outage falls back to SVG embeds and the document opens.
 
 import JSZip from "jszip";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { tbrV2Toc } from "@/components/tbr/v2/report";
-import { citedDemoReportV2, demoReportV2, freeFixtureReportV2, preRevenueFixtureReportV2 } from "@/lib/report-v2/fixtures";
+import { getTbrV3Strings } from "@/lib/i18n/tbr-v3-strings";
+import { citedDemoReportV2, demoReportV2, freeFixtureReportV2, investmentBandFixture, preRevenueFixtureReportV2 } from "@/lib/report-v2/fixtures";
 import { fromSnapshot } from "@/lib/report-v2/adapter";
+import { buildInvestmentView, PLAN_STEPS_FREE, RISK_ROWS_FREE } from "@/lib/report-v2/investment-view";
+import { alignReportWithAssessmentCard } from "@/lib/svi/assessment-card";
 import { __resetPngCache, __resetSharpLoader } from "@/lib/report-visuals/png";
 
 vi.mock("server-only", () => ({}));
 
-import { buildTbrDocx, generateTbrDocx, rasteriseReportVisuals } from "./tbr-docx";
+import { buildTbrDocx, generateTbrDocx, rasteriseReportVisuals, TBR_DOCX_SECTION_IDS, tbrDocxOutline } from "./tbr-docx";
 
 async function unzip(buffer: Buffer): Promise<{ doc: string; media: string[]; header: string; footer: string }> {
   const zip = await JSZip.loadAsync(buffer);
@@ -29,7 +34,34 @@ async function unzip(buffer: Buffer): Promise<{ doc: string; media: string[]; he
   return { doc, media, header, footer };
 }
 
-const xmlText = (xml: string) => xml.replace(/<[^>]+>/g, "").replace(/&amp;/g, "&").replace(/\s+/g, " ");
+const decode = (s: string) => s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
+const xmlText = (xml: string) => decode(xml.replace(/<[^>]+>/g, "")).replace(/\s+/g, " ");
+
+/** Every paragraph of `document.xml` as plain text, with its heading style (Heading1 / Heading2 / … or null). */
+function paragraphs(xml: string): Array<{ style: string | null; text: string }> {
+  const out: Array<{ style: string | null; text: string }> = [];
+  for (const m of xml.matchAll(/<w:p\b[^>]*>([\s\S]*?)<\/w:p>/g)) {
+    const body = m[1]!;
+    const style = body.match(/<w:pStyle w:val="([^"]+)"/)?.[1] ?? null;
+    const text = decode((body.match(/<w:t\b[^>]*>([^<]*)<\/w:t>/g) ?? []).map((t) => t.replace(/<[^>]+>/g, "")).join("")).replace(/\s+/g, " ").trim();
+    out.push({ style, text });
+  }
+  return out;
+}
+
+const headings1 = (xml: string) => paragraphs(xml).filter((p) => p.style === "Heading1").map((p) => p.text);
+
+/** The document text between two Heading 1 titles (the chapter body). */
+function sectionText(xml: string, title: string, nextTitle: string | null): string {
+  const paras = paragraphs(xml);
+  const start = paras.findIndex((p) => p.style === "Heading1" && p.text.endsWith(title));
+  expect(start, `heading "${title}" missing`).toBeGreaterThanOrEqual(0);
+  const end = nextTitle === null ? paras.length : paras.findIndex((p, i) => i > start && p.style === "Heading1" && p.text.endsWith(nextTitle));
+  return paras
+    .slice(start + 1, end === -1 ? paras.length : end)
+    .map((p) => p.text)
+    .join(" ");
+}
 
 function assertOrdered(text: string, labels: string[]): void {
   let last = -1;
@@ -40,6 +72,9 @@ function assertOrdered(text: string, labels: string[]): void {
   }
 }
 
+/** Never-say list (docs/design/messaging.md § 11 + spec § 4): "AI decides", "predicts", "Australian average", a median figure without its n. */
+const NEVER_SAY = /AI decides|predicts|Australian average|median \d+(?![^.]*n = )/;
+
 beforeEach(() => {
   __resetPngCache();
   __resetSharpLoader();
@@ -49,11 +84,40 @@ afterEach(() => {
   __resetSharpLoader();
 });
 
-describe("buildTbrDocx", () => {
-  it("standard demo: one PNG per distinct visual, sections in the web order, paid detail present", async () => {
+describe("tbrDocxOutline", () => {
+  it("lists the 16 v3 sections in order with the web TOC ids; Evidence cited only when something is cited", () => {
+    const outline = tbrDocxOutline(demoReportV2(), "en");
+    expect(outline.map((e) => e.id)).toEqual([
+      TBR_DOCX_SECTION_IDS.dashboard,
+      TBR_DOCX_SECTION_IDS.investmentView,
+      TBR_DOCX_SECTION_IDS.keyPoints,
+      TBR_DOCX_SECTION_IDS.valuation,
+      "tbr-dim-tre",
+      "tbr-dim-mpc",
+      "tbr-dim-ftv",
+      "tbr-dim-ptd",
+      "tbr-dim-cgh",
+      "tbr-dim-iri",
+      "tbr-dim-lco",
+      "tbr-dim-svm",
+      TBR_DOCX_SECTION_IDS.riskMatrix,
+      TBR_DOCX_SECTION_IDS.plan90d,
+      TBR_DOCX_SECTION_IDS.money,
+      TBR_DOCX_SECTION_IDS.appendix,
+    ]);
+    expect(outline.map((e) => e.no)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+    expect(outline[0]!.title).toBe("Dashboard");
+    expect(outline[1]!.title).toBe("Investment view");
+    const cited = tbrDocxOutline(citedDemoReportV2(), "en");
+    expect(cited.at(-1)).toMatchObject({ id: TBR_DOCX_SECTION_IDS.evidenceCited, no: null });
+    expect(tbrDocxOutline(demoReportV2(), "vi")[0]!.title).toBe("Bảng tổng quan");
+  });
+});
+
+describe("buildTbrDocx — v3 structure", () => {
+  it("standard demo: Heading 1 sequence = the v3 outline, one PNG per distinct visual + the dashboard chart, verbatim sub-line, tiles, methods table with a consensus row", async () => {
     const report = demoReportV2();
-    const rasterised = await rasteriseReportVisuals(report);
-    const { buffer, images } = await buildTbrDocx(report, { images: rasterised });
+    const { buffer, images, outline, sections } = await buildTbrDocx(report);
     expect(buffer.subarray(0, 2).toString("latin1")).toBe("PK");
     const { doc, media, header, footer } = await unzip(buffer);
     const distinct = new Set([
@@ -65,99 +129,245 @@ describe("buildTbrDocx", () => {
       ...report.moneyOnTable.visuals,
       ...report.actionPlan.visuals,
     ].map((v) => v.id)).size;
-    expect(images.png).toBe(distinct);
+    // + 1: the dashboard `dim_bars` chart is built at render time.
+    expect(images.png).toBe(distinct + 1);
     expect(images.svg).toBe(0);
-    // docx de-duplicates byte-identical media (two route maps drawn from the
-    // same phase data), so count unique PNG payloads rather than specs.
-    const uniquePng = new Set([...rasterised.byId.values()].map((r) => r.png!.toString("base64"))).size;
-    expect(media.filter((m) => m.endsWith(".png"))).toHaveLength(uniquePng);
-    expect(uniquePng).toBeGreaterThanOrEqual(distinct - 2);
-    expect(distinct).toBeGreaterThanOrEqual(15);
+    expect(media.filter((m) => m.endsWith(".png")).length).toBeGreaterThanOrEqual(1);
+    expect(sections).toBe(outline.length);
+
+    // Heading 1 sequence in v3 order (the numbers are a faint prefix run: "1  Dashboard").
+    const h1s = headings1(doc);
+    expect(h1s.map((h) => h.replace(/^\d+\s+/, ""))).toEqual(outline.map((e) => e.title));
+    expect(h1s.slice(0, 4)).toEqual(["1 Dashboard", "2 Investment view", "3 Key points", "4 Valuation"]);
+    expect(h1s[4]).toBe(`5 ${report.dimensions[0]!.title}`);
+    expect(h1s[12]).toBe("13 Risk matrix");
+    expect(h1s[13]).toBe("14 90-day improvement plan");
+    expect(h1s[15]).toBe("16 Appendix — method, phase gates, ledger, evidence & disclaimers");
 
     const text = xmlText(doc);
+    const t = getTbrV3Strings("en");
+    const view = (() => {
+      const aligned = alignReportWithAssessmentCard(report, {});
+      return buildInvestmentView(aligned.report, aligned.card, "en");
+    })();
     expect(text).toContain("Sample SME Compliance SaaS (demo)");
-    assertOrdered(text, tbrV2Toc(report).map((e) => e.label));
-    // G21-P1-B: the Assessment Card twin between the cover and the executive summary.
-    assertOrdered(text, ["Cover", "BLOCKID ASSESSMENT CARD", "Evidence Confidence", "BlockID Verified L2", "Unverified material claims", "Executive Summary"]);
+    // The verbatim sub-line (spec § 4) sits under the verdict.
+    expect(text).toContain(t.subline);
+    // Dashboard tiles + chart caption + footer line.
+    assertOrdered(text, ["SVI INDEX", "EVIDENCE CONFIDENCE", "VERDICT", "VALUATION (A$, PRE-MONEY)", t.chartTitle.toUpperCase(), "Top strength:", "Top gap:", "Unverified material claims:", "Last updated", "Methodology"]);
+    // Investment view: band + label + conviction line, conditions, why back / what weighs against, where you are.
+    expect(text).toContain(`${view.band} · ${view.bandLabel.toUpperCase()}`);
+    expect(text).toContain(view.convictionLine);
+    assertOrdered(text, ["2 Investment view", "Conditions", "Why back", "What weighs against", "Where you are"]);
+    for (const c of view.conditions) expect(text).toContain(c.text);
+    // Key points: the five lines.
+    for (const kp of view.keyPoints) expect(text).toContain(kp);
+    // Valuation: range line, methods table with Applicable + Consensus row, what moves it, cross-checks with n.
+    assertOrdered(text, ["4 Valuation", "RANGE", "low A$", "mid A$", "high A$", "Applicable", "Consensus", "What moves it", "Cross-checks", "N=10"]);
     expect(text).toContain("Revenue multiple");
     expect(text).toContain("Risk-factor summation");
-    // G19-S42: inputs & assumptions, unit economics, cross-checks, no ask.
-    expect(text).toContain("Inputs & assumptions");
-    expect(text).toContain("Unit economics");
-    expect(text).toContain("Cross-checks");
-    expect(text).toContain("SVI backtest Q1 (lowest SVI)");
-    expect(text).toContain("(N=10)");
-    expect(text).not.toContain("Ask: ");
-    expect(text).not.toContain("Unlock the full");
-    expect(header).toContain("BlockID.au");
-    expect(xmlText(footer)).toContain("Trusted Business Report · Sample SME Compliance SaaS (demo)");
+    // Chapter anatomy: kicker, score tile, benchmark line with n, evidence used, criteria, what to improve, investor takeaway.
+    const tre = report.dimensions[0]!;
+    const chapterText = sectionText(doc, tre.title, report.dimensions[1]!.title);
+    expect(chapterText).toContain(`DIMENSION 1/8 · WEIGHT ${tre.weight} %`);
+    expect(chapterText).toContain(`${tre.score} / 100`);
+    assertOrdered(chapterText, ["Verdict", "Evidence used", "Strengths", "Criteria", "One-line verdict", "What to improve", "INVESTOR TAKEAWAY", view.takeaways.tre]);
+    expect(chapterText).not.toContain("HOW THIS SCORE WAS BUILT");
+    // Risk matrix: the 3×3 grid + the rows; the plan note.
+    assertOrdered(text, ["13 Risk matrix", "Likelihood \\ Impact", "Risk", "Mitigation", "14 90-day improvement plan", t.planNote]);
+    // Appendix: ledger tables per chapter, register (ids allowed here), phase-gate matrix.
+    const appendixText = sectionText(doc, "Appendix — method, phase gates, ledger, evidence & disclaimers", null);
+    assertOrdered(appendixText, ["Method", "Phase-gate matrix", "Score ledger", "Evidence register", "Auditor log", "Sources", "Data principle"]);
+    expect(appendixText).toContain("Base 50");
     expect(text).toContain("Auschain PTY LTD");
-  }, 60_000);
+    expect(header).toContain("BlockID.au");
+    expect(xmlText(footer)).toContain("Startup Value Index · Sample SME Compliance SaaS (demo)");
+    expect(xmlText(footer)).toContain("not financial product advice");
+    expect(text).not.toMatch(NEVER_SAY);
+  }, 90_000);
 
-  // G19-S44 — cover "current value" hero twin + one phase vocabulary + audit copy.
-  it("cover: A$ range hero with confidence, SVI + band, phase label without the SVI stage label; pending below 30 % confidence; audit copy says 'no citation'", async () => {
-    const report = demoReportV2();
-    // G23-A: the demo chapters ground on the citation gate; force one ungrounded chapter to pin the "no citation" copy.
-    report.dimensions[0]!.audit = { ...report.dimensions[0]!.audit, grounded: false, uncited: 0 };
-    const { buffer } = await buildTbrDocx(report);
-    const text = xmlText((await unzip(buffer)).doc);
-    expect(text).toContain("CURRENT VALUE");
-    expect(text).toContain("A$6M – A$9.8M");
-    expect(text).toContain("pre-money, directional · confidence 85%");
-    expect(text).toContain("SVI 74 · Strong");
-    expect(text).toContain("SaaS · Phase: Investor Progress Review");
-    expect(text).not.toContain("SaaS · Seed ·");
-    expect(text).not.toContain("not yet audited");
-    expect(text).toContain("no citation in this chapter");
-    const low = demoReportV2();
-    low.valuation.consensus.confidence = 0.2;
-    const lowText = xmlText((await unzip((await buildTbrDocx(low)).buffer)).doc);
-    expect(lowText).toContain("Valuation pending — add revenue or team evidence");
-    expect(lowText).not.toContain("A$6M – A$9.8M");
-  }, 60_000);
+  it("the four band fixtures build; band D prints the evidence CTAs instead of conditions; band A prints no conditions", async () => {
+    for (const band of ["A", "B", "C", "D"] as const) {
+      const { report, assessment } = investmentBandFixture(band);
+      const { buffer } = await buildTbrDocx(report, { assessment });
+      const { doc } = await unzip(buffer);
+      const text = xmlText(doc);
+      const aligned = alignReportWithAssessmentCard(report, assessment);
+      const view = buildInvestmentView(aligned.report, aligned.card, "en");
+      expect(view.band).toBe(band);
+      expect(headings1(doc)).toHaveLength(tbrDocxOutline(report, "en").length);
+      expect(text).toContain(`${band} · ${view.bandLabel.toUpperCase()}`);
+      expect(text).toContain(view.bandWording);
+      expect(text).toContain(view.subline);
+      expect(text).not.toContain("[ev:");
+      expect(text).not.toMatch(/\[unevidenced\]/i);
+      expect(text).not.toMatch(NEVER_SAY);
+      if (band === "D") {
+        expect(text).toContain("Evidence to add before a view can form");
+        for (const c of view.evidenceCtas) expect(text).toContain(c.label);
+        // Three pending chapters render the one pending card + the pending takeaway.
+        expect((text.match(/Pending — not assessed\./g) ?? []).length).toBe(3);
+        expect(text).toContain("No view on ");
+        expect(text).toContain("— / 100");
+      }
+      if (band === "A") expect(text).toContain("No conditions attach.");
+      if (band === "C") expect(text).toContain("to the ");
+    }
+  }, 240_000);
 
-  // G19-S41 — the ledger table is the same rows as the web chapter and the PDF.
-  it("renders 'How this score was built' per chapter (signal rows, confidence factor, adjustment), the pending line and the cover ledger strip", async () => {
-    const report = demoReportV2();
-    const svm = report.dimensions.find((d) => d.dim === "svm")!;
-    svm.scoreBreakdown = { base: 35, signals: [], confidenceMultiplier: 0.2, adjustment: -1, assessed: false };
-    svm.band = "pending";
-    svm.scoreNote = "Owner proposed 48; reconciled to 45 (±10 of the deterministic 35).";
-    report.cover.dims.svm.band = "pending";
-    report.cover.sviLedger = { base: 100, dimAdjustments: { tre: 4, mpc: 3, ftv: 4, ptd: 3, cgh: 2, iri: 2, lco: 2, svm: 1 }, stageBonus: 8, riskPenalties: -6, sectorAdj: 4, metricsBonus: 0, ciBoost: 0, floorClamp: 0, total: 127 };
+  it("no register id inside a chapter section; ids print in the appendix register only; footnotes stay superscript", async () => {
+    const report = citedDemoReportV2();
     const { buffer } = await buildTbrDocx(report);
     const { doc } = await unzip(buffer);
     const text = xmlText(doc);
-    expect((text.match(/HOW THIS SCORE WAS BUILT/g) ?? []).length).toBe(8);
-    const ftv = report.dimensions.find((d) => d.dim === "ftv")!;
-    for (const s of ftv.scoreBreakdown!.signals) expect(text).toContain(s.signal);
-    expect(text).toContain("Base 50");
-    expect(text).toContain(`= score ${ftv.score}/100`);
-    expect(text).toContain("× weight 15 % × evidence confidence 0.75");
-    expect(text).toContain("× verification L2 1.00");
-    expect(text).toContain(`= adjustment +${ftv.scoreBreakdown!.adjustment} on the SVI base of 100`);
-    expect(text).toContain("Not assessed yet");
-    expect(text).toContain("Add: upload, url");
-    expect(text).toContain("Score note: Owner proposed 48");
-    expect(text).toContain("1 of 8 dimensions pending");
-    expect(text).toContain("SVI LEDGER");
-    expect(text).toContain("Total 127");
-  }, 60_000);
+    expect(text).not.toContain("[ev:");
+    expect(text).not.toMatch(/\[unevidenced\]/i);
+    expect(text).not.toContain("not-a-register-id");
+    const ids = report.appendix.evidenceRegister.map((e) => e.evidence_id);
+    expect(ids.length).toBeGreaterThan(0);
+    for (let i = 0; i < report.dimensions.length; i++) {
+      const ch = report.dimensions[i]!;
+      const next = report.dimensions[i + 1]?.title ?? "Risk matrix";
+      const body = sectionText(doc, ch.title, next);
+      for (const id of ids) expect(body, `${id} printed in chapter ${ch.dim}`).not.toContain(id);
+      expect(body).not.toMatch(/\bev-[a-z0-9-]{6,}/);
+    }
+    const appendixText = sectionText(doc, "Appendix — method, phase gates, ledger, evidence & disclaimers", "Evidence cited");
+    expect(appendixText).toContain(ids[0]!);
+    // Superscript runs carry the footnote numbers (docx: <w:vertAlign w:val="superscript"/>).
+    const sups = doc.match(/<w:vertAlign w:val="superscript"\/>/g) ?? [];
+    expect(sups.length).toBeGreaterThanOrEqual(5);
+    expect(doc).toMatch(/superscript"\/><\/w:rPr><w:t[^>]*>1<\/w:t>/);
+    expect(text).toContain("(unverified)");
+    // "Evidence cited" closes the document, after the appendix.
+    const h1s = headings1(doc);
+    expect(h1s.at(-1)).toBe("Evidence cited");
+    assertOrdered(text.slice(text.lastIndexOf("Evidence cited")), ["1", "Stripe revenue (last sync)", "transaction data", "Stripe (revenue)", "2026-09-10", "2", "Xero P&L (last sync)"]);
+    // Rendering never rewrites the stored text; a document without citations has no footnote section.
+    expect(report.dimensions.find((d) => d.dim === "tre")!.verdict).toContain("[ev:ev-connected-xero-pnl]");
+    const plain = demoReportV2();
+    const plainDoc = (await unzip((await buildTbrDocx(plain)).buffer)).doc;
+    expect(headings1(plainDoc).at(-1)).toMatch(/Appendix/);
+  }, 120_000);
 
-  it("free fixture: card chapters carry the a11y table + upgrade line, no valuation method table, same order", async () => {
+  it("VI: diacritics throughout, v3 section titles + chapter chrome in Vietnamese, no English v3 chrome", async () => {
+    const report = demoReportV2();
+    const { buffer } = await buildTbrDocx(report, { locale: "vi" });
+    const { doc, footer } = await unzip(buffer);
+    const text = xmlText(doc);
+    const t = getTbrV3Strings("vi");
+    const h1s = headings1(doc).map((h) => h.replace(/^\d+\s+/, ""));
+    expect(h1s).toEqual(tbrDocxOutline(report, "vi").map((e) => e.title));
+    expect(h1s[0]).toBe("Bảng tổng quan");
+    expect(h1s[1]).toBe("Góc nhìn đầu tư");
+    expect(h1s[4]).toBe(report.dimensions[0]!.titleVi);
+    expect(text).toContain(t.subline);
+    expect(text).toContain(t.takeawayTitle.toUpperCase());
+    expect(text).toContain(t.evidenceUsed);
+    expect(text).toContain(t.whatToImprove);
+    expect(text).toContain(t.conditions);
+    expect(text).toContain(t.planNote);
+    expect(text).toMatch(/[ăâđêôơưàáảãạ]/u);
+    for (const en of ["Investment view", "Key points", "Risk matrix", "Investor takeaway", "Evidence used", "What to improve", "Why back", "What weighs against", "Where you are", "Ranked by lift"]) {
+      expect(text, `English chrome "${en}" in the VI document`).not.toContain(en);
+    }
+    expect(xmlText(footer)).toContain("không phải lời khuyên về sản phẩm tài chính");
+  }, 90_000);
+
+  it("free fixture: chapters 1–4 full, 5–8 compact cards with the takeaway + locked line, valuation names / weights only, ≤ 5 risk rows and plan steps, appendix counts only", async () => {
     const report = freeFixtureReportV2();
     const { buffer, images } = await buildTbrDocx(report);
     const { doc, media } = await unzip(buffer);
     const text = xmlText(doc);
-    assertOrdered(text, tbrV2Toc(report).map((e) => e.label));
-    for (const c of report.dimensions.filter((d) => d.renderAs === "card")) expect(text).toContain(`Unlock the full ${c.title} chapter`);
-    expect(text).not.toContain("Risk-factor summation");
+    const t = getTbrV3Strings("en");
+    expect(headings1(doc).map((h) => h.replace(/^\d+\s+/, ""))).toEqual(tbrDocxOutline(report, "en").map((e) => e.title));
+    const cards = report.dimensions.filter((d) => d.renderAs === "card");
+    expect(cards.length).toBeGreaterThanOrEqual(4);
+    expect((text.match(new RegExp(t.lockedCard.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")) ?? []).length).toBe(cards.length);
+    for (const ch of cards) {
+      const idx = report.dimensions.indexOf(ch);
+      const body = sectionText(doc, ch.title, report.dimensions[idx + 1]?.title ?? "Risk matrix");
+      expect(body).toContain("INVESTOR TAKEAWAY");
+      expect(body).not.toContain("Evidence used");
+      expect(body).not.toContain("What to improve");
+    }
+    const full = report.dimensions.filter((d) => d.renderAs !== "card");
+    for (const ch of full) {
+      const idx = report.dimensions.indexOf(ch);
+      const body = sectionText(doc, ch.title, report.dimensions[idx + 1]!.title);
+      expect(body).toContain("Verdict");
+      expect(body).toContain("INVESTOR TAKEAWAY");
+    }
+    // Valuation: method names + weights, no A$ per-method columns, no derivation / inputs.
+    const valuationText = sectionText(doc, "Valuation", report.dimensions[0]!.title);
+    expect(valuationText).toContain("Applicable");
+    expect(valuationText).toContain("Consensus");
+    expect(valuationText).not.toContain("Inputs & assumptions");
+    expect(valuationText).not.toContain("What moves it");
+    // Risk rows ≤ 5, plan steps ≤ 5.
+    const aligned = alignReportWithAssessmentCard(report, {});
+    const view = buildInvestmentView(aligned.report, aligned.card, "en");
+    const riskText = sectionText(doc, "Risk matrix", "90-day improvement plan");
+    for (const row of view.riskMatrix.slice(0, RISK_ROWS_FREE)) expect(riskText).toContain(row.text);
+    for (const row of view.riskMatrix.slice(RISK_ROWS_FREE)) expect(riskText).not.toContain(row.text);
+    const planText = sectionText(doc, "90-day improvement plan", "Money on the table — grants & programs");
+    for (const st of view.improvementPlan.slice(0, PLAN_STEPS_FREE)) expect(planText).toContain(st.title);
+    for (const st of view.improvementPlan.slice(PLAN_STEPS_FREE)) expect(planText).not.toContain(st.title);
+    // Appendix counts only + the omitted list.
+    expect(text).toContain("Evidence register: ");
+    expect(text).toContain("full tables in the paid view");
+    expect(text).not.toContain("Score ledger");
     expect(text).toContain("Free tier (10-page budget) omits");
-    // No secondary visuals on the free tier → fewer images than the standard export.
     expect(images.png).toBeGreaterThanOrEqual(media.length);
-    expect(media.length).toBeGreaterThanOrEqual(12);
-    expect(images.png).toBeLessThan(25);
+    expect(media.length).toBeGreaterThanOrEqual(10);
+    expect(text).not.toMatch(NEVER_SAY);
+  }, 90_000);
+
+  it("pending chapter (paid): '— / 100', the one pending card with its CTA rows, the pending takeaway, the pending ledger line in the appendix", async () => {
+    const report = demoReportV2();
+    const ftv = report.dimensions.find((d) => d.dim === "ftv")!;
+    ftv.scoreBreakdown = { base: 50, signals: [], confidenceMultiplier: 0.2, adjustment: 0, assessed: false };
+    ftv.band = "pending";
+    const { buffer } = await buildTbrDocx(report);
+    const { doc } = await unzip(buffer);
+    const text = xmlText(doc);
+    const idx = report.dimensions.indexOf(ftv);
+    const body = sectionText(doc, ftv.title, report.dimensions[idx + 1]!.title);
+    expect(body).toContain("— / 100");
+    expect(body).toContain("Pending — not assessed.");
+    expect(body).toContain("Connect GitHub to audit the repository · /workspace/evidence/connectors · +6 SVI");
+    expect(body).toContain("Upload your LinkedIn export · /workspace/settings/founder · +5 SVI");
+    expect(body).toContain("No view on Founder & Team until evidence is supplied.");
+    expect(body).not.toContain("Evidence used");
+    expect(body).not.toContain("Criteria");
+    // Other chapters still carry the full anatomy and the dashboard footer counts the pending dim.
+    expect(text).toContain("Not assessed yet");
+    expect((text.match(/INVESTOR TAKEAWAY/g) ?? []).length).toBe(8);
+  }, 90_000);
+
+  it("pre-revenue valuation: Berkus / scorecard / stage baseline applicable, revenue methods marked not applicable, needs-revenue line, no ask", async () => {
+    const { buffer } = await buildTbrDocx(preRevenueFixtureReportV2());
+    const { doc } = await unzip(buffer);
+    const text = xmlText(doc);
+    const valuationText = sectionText(doc, "Valuation", preRevenueFixtureReportV2().dimensions[0]!.title);
+    expect(valuationText).toContain("AU stage baseline");
+    expect(valuationText).toContain("Scorecard (Bill Payne)");
+    expect(valuationText).toContain("Risk-factor summation");
+    expect(valuationText).toContain("4 methods need revenue");
+    expect(valuationText).toContain("Inputs & assumptions");
+    expect(text).not.toContain("Ask: ");
   }, 60_000);
+
+  it("empty adapter document: the grant-profile CTA, the evidence-hub CTA, every section still present", async () => {
+    const report = fromSnapshot({ dimStates: { tre: { score: 40 } } });
+    const { buffer } = await buildTbrDocx(report);
+    const { doc } = await unzip(buffer);
+    const text = xmlText(doc);
+    expect(headings1(doc)).toHaveLength(tbrDocxOutline(report, "en").length);
+    expect(text).toMatch(/Complete your grant profile (→|->) \/workspace\/funding/);
+    expect(text).not.toMatch(/0 matched (—|-) the nearest-fit/);
+    expect(text).not.toMatch(NEVER_SAY);
+  }, 90_000);
 
   it("falls back to SVG embeds (with PNG fallback) when sharp cannot load", async () => {
     vi.doMock("sharp", () => {
@@ -170,88 +380,18 @@ describe("buildTbrDocx", () => {
     expect(images.svg).toBeGreaterThan(10);
     const { media, doc } = await unzip(buffer);
     expect(media.some((m) => m.endsWith(".svg"))).toBe(true);
-    expect(doc).toContain("Cover");
+    expect(headings1(doc)[0]).toBe("1 Dashboard");
   }, 60_000);
 
-  it("accepts pre-rasterised images and a verbatim prepared-with line; generateTbrDocx returns the buffer", async () => {
+  it("accepts pre-rasterised images (adds the dashboard chart when missing) and a verbatim prepared-with line; generateTbrDocx returns the buffer", async () => {
     const report = demoReportV2();
     const images = await rasteriseReportVisuals(report, 400);
-    const { buffer } = await buildTbrDocx(report, { images, preparedWith: "Prepared with DeepSeek-V4-Flash via DeepInfra." });
+    const { buffer, images: counts } = await buildTbrDocx(report, { images, preparedWith: "Prepared with DeepSeek-V4-Flash via DeepInfra." });
+    expect(counts.png).toBe(images.pngCount + 1);
+    expect(images.byId.has(`${report.reportId}-dim-bars`)).toBe(false);
     const { doc } = await unzip(buffer);
     expect(xmlText(doc)).toContain("Prepared with DeepSeek-V4-Flash via DeepInfra.");
     const plain = await generateTbrDocx(report, { images });
     expect(plain.subarray(0, 2).toString("latin1")).toBe("PK");
   }, 60_000);
-});
-
-describe("buildTbrDocx — valuation chapter variants (G19-S42)", () => {
-  it("pre-revenue: Berkus / scorecard / stage baseline rows only, needs-revenue line with the connectors path, no ask", async () => {
-    const { buffer } = await buildTbrDocx(preRevenueFixtureReportV2());
-    const { doc } = await unzip(buffer);
-    const text = xmlText(doc);
-    expect(text).toContain("Inputs & assumptions");
-    expect(text).toContain("AU stage baseline");
-    expect(text).toContain("Scorecard (Bill Payne)");
-    expect(text).toContain("4 methods need revenue");
-    expect(text).toContain("/workspace/evidence/connectors");
-    expect(text).not.toContain("Risk-factor summation");
-    expect(text).not.toContain("Ask: ");
-  }, 60_000);
-});
-
-describe("buildTbrDocx — evidence & data CTAs (G19-S43)", () => {
-  it("CTA rows print as 'label · path · +N SVI' in the chapter table and the register, the next action uses the catalogue label, money lists the matches, the cover carries the evidence line; an empty adapter document prints the grant-profile CTA and a pending chapter its CTAs", async () => {
-    const report = demoReportV2();
-    const ftv = report.dimensions.find((d) => d.dim === "ftv")!;
-    ftv.scoreBreakdown = { base: 50, signals: [], confidenceMultiplier: 0.2, adjustment: 0, assessed: false };
-    ftv.band = "pending";
-    const { buffer } = await buildTbrDocx(report);
-    const text = xmlText((await unzip(buffer)).doc);
-    expect(text).toContain("Connect GitHub to audit the repository · /workspace/evidence/connectors · +6 SVI");
-    expect(text).toContain("Upload your LinkedIn export · /workspace/settings/founder · +5 SVI");
-    expect(text).toContain("Evidence to add: GitHub repository");
-    expect(text).not.toMatch(/evidence: github/);
-    expect(text).toContain("Evidence: connected sources (×0.75)");
-    expect(text).toContain("NSW MVP Ventures");
-    expect(text).toMatch(/Evidence to add \(P0 \/ P1\)/i);
-    expect(text).toContain("Add data to score this dimension:");
-    expect(text).not.toContain("Add: linkedin, github, upload");
-    expect(text).not.toContain("No evidence rows in this snapshot");
-
-    const empty = await buildTbrDocx(fromSnapshot({ dimStates: { tre: { score: 40 } } }));
-    const emptyText = xmlText((await unzip(empty.buffer)).doc);
-    // (Helvetica maps "→" to "->" on the PDF surface.)
-    expect(emptyText).toMatch(/Complete your grant profile (→|->) \/workspace\/funding/);
-    expect(emptyText).toMatch(/Add evidence in the Evidence Hub (→|->) \/workspace\/evidence/);
-    expect(emptyText).not.toMatch(/0 matched (—|-) the nearest-fit/);
-    expect(emptyText).not.toMatch(/0 matched in this snapshot/);
-  }, 90_000);
-});
-
-// ── G24-A: evidence citations as footnotes (DOCX twin) ───────────────────────
-describe("buildTbrDocx — citations (G24-A)", () => {
-  it("no raw [ev:] / [unevidenced] marker reaches document.xml; footnotes are superscript runs numbered like the web and the Evidence cited table closes the document", async () => {
-    const report = citedDemoReportV2();
-    const { buffer } = await buildTbrDocx(report, { images: await rasteriseReportVisuals(report) });
-    const { doc } = await unzip(buffer);
-    const text = xmlText(doc);
-    expect(text).not.toContain("[ev:");
-    expect(text).not.toMatch(/\[unevidenced\]/i);
-    expect(text).not.toContain("not-a-register-id");
-    // Superscript runs carry the footnote numbers (docx: <w:vertAlign w:val="superscript"/>).
-    const sups = doc.match(/<w:vertAlign w:val="superscript"\/>/g) ?? [];
-    expect(sups.length).toBeGreaterThanOrEqual(5);
-    expect(doc).toMatch(/superscript"\/><\/w:rPr><w:t[^>]*>1<\/w:t>/);
-    expect(doc).toMatch(/superscript"\/><\/w:rPr><w:t[^>]*>2,1<\/w:t>/);
-    expect(text).toContain("(unverified)");
-    // The appendix table: 1 Stripe · 2 Xero · 3 ABS with level · source · date, after the appendix.
-    const idx = text.indexOf("Evidence cited");
-    expect(idx).toBeGreaterThan(text.indexOf("Appendix — Method, Evidence & Auditor Log"));
-    assertOrdered(text.slice(idx), ["1", "Stripe revenue (last sync)", "transaction data", "Stripe (revenue)", "2026-09-10", "2", "Xero P&L (last sync)", "3", "AU market anchor (ABS / IBISWorld)", "public URLs"]);
-    // Rendering never rewrites the stored text; a document without citations has no footnote section.
-    expect(report.dimensions.find((d) => d.dim === "tre")!.verdict).toContain("[ev:ev-connected-xero-pnl]");
-    const plain = demoReportV2();
-    const plainText = xmlText((await unzip((await buildTbrDocx(plain, { images: await rasteriseReportVisuals(plain) })).buffer)).doc);
-    expect(plainText).not.toContain("Evidence cited");
-  }, 120_000);
 });

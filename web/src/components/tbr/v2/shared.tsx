@@ -67,15 +67,31 @@ export function valuationLocale(locale: TbrUiLocale | undefined): "en" | "vi" {
   return locale === "vi" ? "vi" : "en";
 }
 
+/**
+ * Section anchors — G27 v3 order: dashboard → investment view → key points →
+ * valuation → 8 chapters → risk matrix → 90-day plan → money → appendix →
+ * evidence cited. `cover` / `executive` / `phaseGates` / `actionPlan` stay as
+ * aliases (the founder shell's TOC groups and older deep links resolve to the
+ * v3 section that absorbed them).
+ */
 export const TBR_V2_SECTION_IDS = {
-  cover: "tbr-cover",
-  executive: "tbr-executive",
+  dashboard: "tbr-dashboard",
+  investmentView: "tbr-investment-view",
+  keyPoints: "tbr-key-points",
+  /** Alias: the cover became the dashboard. */
+  cover: "tbr-dashboard",
+  /** Alias: the executive summary became the investment view. */
+  executive: "tbr-investment-view",
   dim: (dim: string) => `tbr-dim-${dim}`,
   valuation: "tbr-valuation",
-  phaseGates: "tbr-phase-gates",
+  riskMatrix: "tbr-risk-matrix",
+  plan90d: "tbr-plan-90d",
+  /** Alias: the 90-day action plan became the ranked improvement plan. */
+  actionPlan: "tbr-plan-90d",
   money: "tbr-money",
-  actionPlan: "tbr-action-plan",
   appendix: "tbr-appendix",
+  /** Alias: the phase-gate matrix lives inside the appendix. */
+  phaseGates: "tbr-appendix",
   /** G24-A: the footnote list (rendered only when something is cited). */
   evidenceCited: "tbr-evidence-cited",
 } as const;
