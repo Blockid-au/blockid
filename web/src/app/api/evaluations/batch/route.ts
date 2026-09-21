@@ -69,7 +69,14 @@ export async function GET() {
   const { user, response } = await gate();
   if (!user) return response;
   const batches = await listBatches(user.id);
-  return NextResponse.json({ ok: true, batches }, { headers: PRIVATE_JSON_HEADERS });
+  // G22 review P3: a member seat's row is projected — the creator's id, the
+  // pilot order, intake / template / org ids belong to the owner.
+  const projected = batches.map((b) =>
+    b.role === "owner"
+      ? b
+      : { id: b.id, name: b.name, programName: b.programName, status: b.status, total: b.total, doneCount: b.doneCount, failedCount: b.failedCount, weightsVersion: b.weightsVersion, createdAt: b.createdAt, startedAt: b.startedAt, finishedAt: b.finishedAt, role: b.role },
+  );
+  return NextResponse.json({ ok: true, batches: projected }, { headers: PRIVATE_JSON_HEADERS });
 }
 
 async function POST_handler(request: Request) {

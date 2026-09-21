@@ -256,6 +256,29 @@ export async function loadBlockIdCohortRows(batch: EvaluationBatch, viewerId: st
 }
 
 /** One item of a batch with what the routes need (id, project, model score for `from_value`). */
+/**
+ * G22 review P2: the trajectory route only needs the item's evaluation +
+ * project ids — one row read scoped to the batch, not a full cohort load
+ * (the compare drawer fires this up to four times per open).
+ */
+export async function findBatchItemIds(batch: EvaluationBatch, itemId: number): Promise<{ id: number; evaluationId: string; projectId: string } | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+  const { data, error } = await supabase
+    .from("evaluation_batch_items")
+    .select("id, evaluation_id, evaluations:evaluation_id (project_id)")
+    .eq("id", itemId)
+    .eq("batch_id", batch.id)
+    .maybeSingle();
+  if (error || !data) return null;
+  const row = data as Row & { evaluations?: Row | Row[] | null };
+  const ev = (Array.isArray(row.evaluations) ? row.evaluations[0] : row.evaluations) ?? null;
+  const projectId = ev && typeof ev.project_id === "string" ? ev.project_id : null;
+  const evaluationId = typeof row.evaluation_id === "string" ? row.evaluation_id : null;
+  if (!projectId || !evaluationId) return null;
+  return { id: Number(row.id), evaluationId, projectId };
+}
+
 export async function findBatchItem(batch: EvaluationBatch, itemId: number): Promise<{ id: number; evaluationId: string; projectId: string; snapshotId: string | null; sviTotal: number | null; dimensionScores: Partial<Record<string, number>> | null } | null> {
   const rows = await loadCohortRows(batch);
   const r = rows.find((x) => x.itemId === itemId);

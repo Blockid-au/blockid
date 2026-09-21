@@ -51,7 +51,8 @@ export function slugify(text: string): string {
 
 function safeHref(raw: string): string | null {
   const href = raw.trim();
-  if (/^(https?:\/\/|mailto:|\/|#)/i.test(href)) return href;
+  // No protocol-relative `//host` links (review P3): only absolute http(s), mailto, same-site paths and anchors.
+  if (/^(https?:\/\/|mailto:|\/(?!\/)|#)/i.test(href)) return href;
   return null;
 }
 

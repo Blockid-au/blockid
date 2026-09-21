@@ -20,7 +20,7 @@ vi.mock("@/lib/evaluations/batch-members", () => ({
 
 const findBatchItemMock = vi.fn();
 vi.mock("@/lib/evaluations/cohort-rows-loader", () => ({
-  findBatchItem: (batch: unknown, itemId: number) => findBatchItemMock(batch, itemId),
+  findBatchItemIds: (batch: unknown, itemId: number) => findBatchItemMock(batch, itemId),
 }));
 
 const loadTrajectoryMock = vi.fn();

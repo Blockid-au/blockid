@@ -362,10 +362,20 @@ describe("updateBatchWeights (G22-A weights editor)", () => {
     expect(db.evaluation_batches[0].weights_version).toBe(4);
   });
 
-  it("not_found when the batch row is gone", async () => {
+  it("conflict when the row is gone OR its weights_version moved since the caller read it (review P2: optimistic concurrency)", async () => {
     const batch = (await listBatches("u-1"))[0]!;
     db.evaluation_batches = [];
     const r = await updateBatchWeights(batch, { ...equal, tre: 40 });
-    expect(r).toMatchObject({ ok: false, error: "not_found" });
+    expect(r).toMatchObject({ ok: false, error: "conflict" });
+  });
+
+  it("an identical set re-normalised (2 dp drift) is still a no-op — live-qa 37 saw a 0.01 drift read as a change", async () => {
+    db.evaluation_batches[0].weights_version = 1;
+    const batch = (await listBatches("u-1"))[0]!;
+    const first = await updateBatchWeights(batch, { ...equal, tre: 40 });
+    expect(first).toMatchObject({ ok: true, changed: true });
+    const stored = (first as { ok: true; batch: typeof batch }).batch;
+    const again = await updateBatchWeights(stored, { ...equal, tre: 40 });
+    expect(again).toMatchObject({ ok: true, changed: false, previousVersion: stored.weightsVersion });
   });
 });

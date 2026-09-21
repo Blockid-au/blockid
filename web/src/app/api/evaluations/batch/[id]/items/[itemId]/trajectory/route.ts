@@ -19,10 +19,11 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { assertBatchRole } from "@/lib/evaluations/batch-members";
-import { findBatchItem } from "@/lib/evaluations/cohort-rows-loader";
+import { findBatchItemIds } from "@/lib/evaluations/cohort-rows-loader";
 import { MENTOR_ACCESS_TIERS, TIER_RANK, type MentorAccessTier } from "@/lib/mentor/access-tiers";
 import { loadTrajectory } from "@/lib/svi/trajectory-load";
 import { PRIVATE_JSON_HEADERS, isUuid } from "@/lib/security/request-guards";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -40,7 +41,7 @@ function tierOf(v: unknown): MentorAccessTier {
   return typeof v === "string" && (MENTOR_ACCESS_TIERS as readonly string[]).includes(v) ? (v as MentorAccessTier) : "attributed_only";
 }
 
-export async function GET(_request: Request, { params }: Ctx) {
+export async function GET(request: Request, { params }: Ctx) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   const { id, itemId: rawItem } = await params;
@@ -52,7 +53,10 @@ export async function GET(_request: Request, { params }: Ctx) {
     if (access.error === "unavailable") return json({ ok: false, error: "unavailable" }, 503);
     return json({ ok: false, error: "not_found" }, 404);
   }
-  const item = await findBatchItem(access.batch, itemId);
+  // G22 review P2: read-route throttle (the drawer fetches one per selected row).
+  const limited = enforceRateLimit("batch-trajectory", user.id, request, 120, 60 * 1000);
+  if (limited) return limited;
+  const item = await findBatchItemIds(access.batch, itemId);
   if (!item) return json({ ok: false, error: "not_found" }, 404);
 
   const sb = getSupabaseAdmin();

@@ -75,7 +75,7 @@ beforeEach(() => {
   countPendingMock.mockResolvedValue(0);
   ownedMock.mockImplementation(async (_id: string, ids: string[]) => new Set(ids));
   createBatchMock.mockResolvedValue({ ok: true, batch: BATCH });
-  listBatchesMock.mockResolvedValue([BATCH]);
+  listBatchesMock.mockResolvedValue([{ ...BATCH, role: "owner" }]);
 });
 
 describe("/api/evaluations/batch — S8-C guards", () => {
@@ -275,7 +275,14 @@ describe("/api/evaluations/batch", () => {
   it("GET lists the caller's batches", async () => {
     const res = await GET();
     expect(res.status).toBe(200);
-    expect((await res.json()).batches).toEqual([BATCH]);
+    // Owner rows pass through whole; member rows are projected (review P3).
+    expect((await res.json()).batches).toEqual([{ ...BATCH, role: "owner" }]);
+    listBatchesMock.mockResolvedValueOnce([{ ...BATCH, id: "b-2", userId: "someone-else", pilotOrderId: "po-9", orgId: "org-9", role: "viewer" }]);
+    const member = await (await GET()).json();
+    expect(member.batches[0]).toMatchObject({ id: "b-2", role: "viewer", name: "Cohort 4" });
+    expect(member.batches[0]).not.toHaveProperty("userId");
+    expect(member.batches[0]).not.toHaveProperty("pilotOrderId");
+    expect(member.batches[0]).not.toHaveProperty("orgId");
     expect(listBatchesMock).toHaveBeenCalledWith("u-1");
   });
 });

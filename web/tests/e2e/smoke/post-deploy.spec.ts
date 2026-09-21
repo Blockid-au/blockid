@@ -620,3 +620,36 @@ test.describe("Post-deploy hydrated smoke", () => {
     expect(resp.headers()["location"] ?? "").toMatch(/\/pricing\?tab=evaluator/);
   });
 });
+
+// G22 review P2 (2026-09-21): the hash-mode CSP is computed from the document
+// on disk; an ISR page that regenerated with a different inline flight chunk
+// than the header was computed from is blocked by the browser and never
+// hydrates (React #412 — seen on /showcase/blockid/report). The live-qa lane
+// 42 covers every route family; the gate checks the ones that change on the
+// server between deploys.
+test.describe("Post-deploy hydrated smoke › hash-mode CSP", () => {
+  for (const path of ["/", "/pricing", "/startup-index", "/showcase/blockid", "/solutions/accelerator", "/docs/api/institutional"]) {
+    test(`${path} — no CSP violation, no React #4xx (cookieless)`, async ({ browser, baseURL }) => {
+      const ctx = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+      const page = await ctx.newPage();
+      const errors: string[] = [];
+      page.on("console", (m) => {
+        if (m.type() === "error") errors.push(m.text());
+      });
+      await page.addInitScript(() => {
+        (window as unknown as { __csp: string[] }).__csp = [];
+        document.addEventListener("securitypolicyviolation", (e) => (window as unknown as { __csp: string[] }).__csp.push(`${e.violatedDirective} ${e.blockedURI || "inline"}`));
+      });
+      try {
+        const res = await page.goto(`${baseURL ?? ""}${path}`, { waitUntil: "load" });
+        expect(res?.status()).toBe(200);
+        await page.waitForTimeout(500);
+        const violations = await page.evaluate(() => (window as unknown as { __csp: string[] }).__csp);
+        expect(violations, `CSP violations on ${path}`).toEqual([]);
+        expect(errors.filter((t) => /Minified React error #4\d\d|Content Security Policy/.test(t)), `hydration / CSP errors on ${path}`).toEqual([]);
+      } finally {
+        await ctx.close();
+      }
+    });
+  }
+});

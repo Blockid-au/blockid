@@ -69,7 +69,7 @@ async function patchHandler(request: Request, { params }: Ctx) {
 
   const r = await updateBatchWeights(access.batch, parsed.data.rubric_weights);
   if (!r.ok) {
-    const status = r.error === "unavailable" ? 503 : r.error === "not_found" ? 404 : 500;
+    const status = r.error === "unavailable" ? 503 : r.error === "not_found" ? 404 : r.error === "conflict" ? 409 : 500;
     return json({ ok: false, error: r.error, message: r.message }, status);
   }
   if (r.changed) {

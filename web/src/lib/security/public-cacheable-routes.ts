@@ -152,7 +152,7 @@ export const PUBLIC_CACHEABLE_ROUTES: readonly PublicCacheableRoute[] = [
     match: /^\/docs(?:\/[A-Za-z0-9_\-~]+)*$/,
     sMaxAge: ONE_HOUR,
     staleWhileRevalidate: ONE_HOUR,
-    pages: ["docs/page.tsx", "docs/design-system/page.tsx", "docs/startup-package/page.tsx", "(marketing)/docs/unlocks/page.tsx"],
+    pages: ["docs/page.tsx", "docs/design-system/page.tsx", "docs/startup-package/page.tsx", "(marketing)/docs/unlocks/page.tsx", "(marketing)/docs/api/institutional/page.tsx"],
   },
   {
     label: "legal",

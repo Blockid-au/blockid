@@ -193,3 +193,12 @@ describe("static guard — every allow-listed page renders without request acces
     expect(src.indexOf("publicHashModeEnabled()")).toBeLessThan(src.indexOf("await headers()"));
   });
 });
+
+describe("G22 review pins", () => {
+  it("/showcase/blockid/report is excluded from hash mode (its Assessment Card context changes on the server between deploys)", async () => {
+    const { publicCacheableRoute } = await import("./public-cacheable-routes");
+    expect(publicCacheableRoute("/showcase/blockid/report")).toBeNull();
+    expect(publicCacheableRoute("/showcase/blockid")?.label).toBe("showcase");
+    expect(publicCacheableRoute("/showcase/canva")?.label).toBe("showcase");
+  });
+});

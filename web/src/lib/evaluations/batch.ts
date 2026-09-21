@@ -537,7 +537,7 @@ export async function addEvaluationsToBatch(batch: EvaluationBatch, evaluationId
 
 export type UpdateBatchWeightsResult =
   | { ok: true; batch: EvaluationBatch; previousVersion: number; changed: boolean }
-  | { ok: false; error: "unavailable" | "not_found" | "write_failed"; message: string };
+  | { ok: false; error: "unavailable" | "not_found" | "write_failed" | "conflict"; message: string };
 
 /**
  * G22-A — the weights editor write: `rubric_weights` ← the normalised set and
@@ -553,10 +553,18 @@ export async function updateBatchWeights(batch: EvaluationBatch, rawWeights: unk
   if (!supabase) return { ok: false, error: "unavailable", message: "Cohorts are not available right now" };
   const next = normaliseWeights(rawWeights);
   const current = normaliseWeights(batch.rubricWeights);
-  const changed = (Object.keys(next) as Array<keyof RubricWeights>).some((k) => Math.abs(next[k] - current[k]) >= 0.01);
+  // `normaliseWeights` rounds to 2 dp, so re-normalising a stored set can
+  // drift by 0.01 (live-qa 37 saw an identical PATCH read as a change) —
+  // anything under a twentieth of a point is the same rubric.
+  const changed = (Object.keys(next) as Array<keyof RubricWeights>).some((k) => Math.abs(next[k] - current[k]) >= 0.05);
   if (!changed) return { ok: true, batch, previousVersion: batch.weightsVersion, changed: false };
   const nextVersion = Math.max(1, batch.weightsVersion) + 1;
-  let res = await withBatchColumns((cols) => supabase.from("evaluation_batches").update({ rubric_weights: next, weights_version: nextVersion }).eq("id", batch.id).select(cols).maybeSingle());
+  // G22 review P2: conditioned on the version the caller read, so two owners
+  // saving at once cannot both write v(n+1) with different sets — the loser
+  // gets `conflict` and re-reads.
+  let res = await withBatchColumns((cols) =>
+    supabase.from("evaluation_batches").update({ rubric_weights: next, weights_version: nextVersion }).eq("id", batch.id).eq("weights_version", Math.max(1, batch.weightsVersion)).select(cols).maybeSingle(),
+  );
   if (res.error && isMissingColumn(res.error)) {
     res = await withBatchColumns((cols) => supabase.from("evaluation_batches").update({ rubric_weights: next }).eq("id", batch.id).select(cols).maybeSingle());
   }
@@ -564,7 +572,7 @@ export async function updateBatchWeights(batch: EvaluationBatch, rawWeights: unk
     console.error("[blockid:evaluations:batch] weights update failed", res.error);
     return { ok: false, error: "write_failed", message: "Could not save the program weights. Please try again." };
   }
-  if (!res.data) return { ok: false, error: "not_found", message: "Cohort not found" };
+  if (!res.data) return { ok: false, error: "conflict", message: "The program weights changed while you were editing — reload the cohort and try again." };
   return { ok: true, batch: mapBatchRow(res.data as unknown as Row), previousVersion: batch.weightsVersion, changed: true };
 }
 
