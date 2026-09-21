@@ -120,7 +120,7 @@ describe("FunnelAdminView", () => {
 });
 
 describe("FunnelAdminView — institutional section (G21 P0-D)", () => {
-  it("renders the North Star, the six FI sections, live values, '— P1/P2/P3' for metrics without a data path, and the warnings", async () => {
+  it("renders the North Star, the six FI sections, live values, '— P1/P2' for metrics without a data path, and the warnings", async () => {
     const data = await dataFromFixture();
     const sections = reduceInstitutional(
       [{ event_id: "p", event_name: "pilot_started", user_id: "org", params: { amount_cents: 150000, pilot_source: "paid" }, ts: "2026-09-18T09:00:00.000Z" }],
@@ -148,7 +148,10 @@ describe("FunnelAdminView — institutional section (G21 P0-D)", () => {
     expect(out).toContain("A$698");
     expect(out).toContain("A$8,376");
     expect(out).toContain("— P1");
-    expect(out).toContain("— P3");
+    // G21 P3-A: the outcome ledger is live — no "— P3" placeholder remains on the Data moat section.
+    expect(out).not.toContain("— P3");
+    expect(out).toContain('data-fi-metric="known_outcomes" data-fi-status="live"');
+    expect(out).toContain('data-fi-metric="proposals_pending" data-fi-status="live"');
     expect(out).toContain("svi_snapshots:longitudinal: boom");
     // unavailable table counts are n/a, not 0
     expect(out).toMatch(/data-fi-metric="snapshots" data-fi-status="live"[\s\S]*?n\/a</);
