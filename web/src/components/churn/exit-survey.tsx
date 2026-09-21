@@ -46,7 +46,7 @@ export function ExitSurvey({ onSubmit, onCancel, submitting }: ExitSurveyProps) 
       }}
     >
       <fieldset className="space-y-2">
-        <legend className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+        <legend className="text-sm font-semibold text-primary">
           Before you go — what&apos;s the main reason?
         </legend>
         <div className="grid gap-2">
@@ -55,8 +55,8 @@ export function ExitSurvey({ onSubmit, onCancel, submitting }: ExitSurveyProps) 
               key={r.id}
               className={`flex cursor-pointer items-center gap-2 rounded-lg border p-3 text-sm transition-colors ${
                 reason === r.id
-                  ? "border-brand-500 bg-brand-50 text-brand-900 dark:border-brand-400 dark:bg-brand-950/40 dark:text-brand-100"
-                  : "border-neutral-200 text-neutral-700 hover:border-neutral-300 dark:border-neutral-800 dark:text-neutral-300 dark:hover:border-neutral-700"
+                  ? "border-action bg-action/10 text-action"
+                  : "border-line-subtle text-secondary hover:border-line"
               }`}
             >
               <input
@@ -65,7 +65,7 @@ export function ExitSurvey({ onSubmit, onCancel, submitting }: ExitSurveyProps) 
                 value={r.id}
                 checked={reason === r.id}
                 onChange={() => setReason(r.id)}
-                className="accent-brand-600"
+                className="accent-action"
               />
               {r.label}
             </label>
@@ -74,7 +74,7 @@ export function ExitSurvey({ onSubmit, onCancel, submitting }: ExitSurveyProps) 
       </fieldset>
 
       <label className="block space-y-1 text-sm">
-        <span className="font-medium text-neutral-700 dark:text-neutral-300">
+        <span className="font-medium text-secondary">
           Anything you&apos;d like us to know? (optional)
         </span>
         <textarea
@@ -82,7 +82,7 @@ export function ExitSurvey({ onSubmit, onCancel, submitting }: ExitSurveyProps) 
           onChange={(e) => setFeedback(e.target.value)}
           rows={3}
           maxLength={500}
-          className="w-full rounded-lg border border-neutral-300 bg-white p-2 text-sm text-neutral-900 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-100"
+          className="w-full rounded-lg border border-line bg-surface p-2 text-sm text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
         />
       </label>
 
@@ -90,14 +90,14 @@ export function ExitSurvey({ onSubmit, onCancel, submitting }: ExitSurveyProps) 
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800"
+          className="min-h-11 rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium text-primary hover:bg-surface-hover"
         >
           Never mind — keep my plan
         </button>
         <button
           type="submit"
           disabled={!reason || submitting}
-          className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+          className="min-h-11 rounded-lg bg-bear px-4 py-2 text-sm font-semibold text-on-action hover:opacity-90 disabled:opacity-60"
         >
           {submitting ? "Cancelling…" : "Cancel my plan"}
         </button>

@@ -326,7 +326,7 @@ export function InterviewWizard({ initialProjectId }: InterviewWizardProps) {
   return (
     <div className="mx-auto grid max-w-5xl gap-6 px-4 py-10 lg:grid-cols-[1fr_320px]">
       {/* ── Left: current step ─────────────────────────────────────── */}
-      <section className="rounded-3xl border border-slate-800 bg-slate-950/60 p-6 sm:p-8">
+      <section className="rounded-xl border border-line-subtle bg-surface-raised p-6 shadow-1 sm:p-8">
         <ProgressRow
           currentIndex={state.stepIndex}
           onJump={(i) => dispatch({ type: "GO_TO", index: i })}
@@ -336,22 +336,22 @@ export function InterviewWizard({ initialProjectId }: InterviewWizardProps) {
         />
 
         <div className="mt-6">
-          <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-slate-500">
+          <div className="flex items-center gap-2 text-xs uppercase tracking-wide text-muted">
             <span>
               Step {state.stepIndex + 1} of {INTERVIEW_TOTAL_STEPS}
             </span>
             <span aria-hidden="true">•</span>
-            <span className="rounded-full bg-slate-800 px-2 py-0.5 text-slate-300">
+            <span className="rounded-full bg-surface-sunken px-2 py-0.5 text-secondary">
               {currentStep.leadAgent.toUpperCase()}
             </span>
-            <span className="ml-auto text-slate-500">
+            <span className="ml-auto text-muted">
               ~{currentStep.creditCost} cr / analysis
             </span>
           </div>
-          <h2 className="mt-2 text-2xl font-semibold text-slate-100">
+          <h2 className="mt-2 font-display text-2xl font-semibold text-primary">
             {currentStep.prompt.en}
           </h2>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-secondary">
             {currentStep.helpText.en}
           </p>
         </div>
@@ -370,22 +370,22 @@ export function InterviewWizard({ initialProjectId }: InterviewWizardProps) {
             placeholder={currentStep.placeholder.en}
             rows={10}
             maxLength={20000}
-            className="w-full resize-y rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-sm text-slate-100 placeholder:text-slate-600 focus:border-cyan-500 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+            className="w-full resize-y rounded-lg border border-line bg-surface p-4 text-base text-primary placeholder:text-tertiary focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
           />
         </label>
 
-        <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+        <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-muted">
           <span>
             {charCount} / {currentStep.minChars} chars min
           </span>
           <span>·</span>
           <span>target ~{currentStep.targetWords} words</span>
           {state.savingKey === currentStep.key && (
-            <span className="text-cyan-400">Saving…</span>
+            <span className="text-action-secondary">Saving…</span>
           )}
           {state.lastSavedKey === currentStep.key &&
             state.savingKey !== currentStep.key && (
-              <span className="inline-flex items-center gap-1 text-emerald-400">
+              <span className="inline-flex items-center gap-1 text-bull">
                 <Check aria-hidden="true" className="h-3 w-3" /> saved
               </span>
             )}
@@ -394,7 +394,7 @@ export function InterviewWizard({ initialProjectId }: InterviewWizardProps) {
         {state.error && (
           <div
             role="alert"
-            className="mt-4 rounded-xl border border-rose-800 bg-rose-950/40 p-3 text-sm text-rose-200"
+            className="mt-4 rounded-lg border border-bear/30 bg-bear-soft p-3 text-sm text-bear"
           >
             {state.error}
             <button
@@ -408,16 +408,16 @@ export function InterviewWizard({ initialProjectId }: InterviewWizardProps) {
         )}
 
         {state.lastReport && (
-          <div className="mt-4 rounded-2xl border border-cyan-800/50 bg-cyan-950/30 p-4 text-sm text-cyan-100">
-            <div className="mb-1 flex items-center gap-2 text-xs uppercase tracking-wide text-cyan-300">
+          <div className="mt-4 rounded-lg border border-line-subtle bg-info-soft p-4 text-sm text-primary">
+            <div className="mb-1 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-action-secondary">
               <Sparkles aria-hidden="true" className="h-3.5 w-3.5" />
               {currentStep.leadAgent.toUpperCase()} analysis
             </div>
-            <p className="whitespace-pre-wrap text-slate-100">
+            <p className="whitespace-pre-wrap text-primary">
               {state.lastReport.summary}
             </p>
             {state.lastReport.remaining !== null && (
-              <p className="mt-2 text-xs text-cyan-300">
+              <p className="mt-2 text-xs text-action-secondary">
                 Credits remaining: {state.lastReport.remaining.toFixed(2)}
               </p>
             )}
@@ -429,7 +429,7 @@ export function InterviewWizard({ initialProjectId }: InterviewWizardProps) {
             type="button"
             onClick={() => dispatch({ type: "BACK" })}
             disabled={state.stepIndex === 0}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium text-primary hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             <ArrowLeft aria-hidden="true" className="h-4 w-4" /> Back
           </button>
@@ -438,7 +438,7 @@ export function InterviewWizard({ initialProjectId }: InterviewWizardProps) {
             type="button"
             onClick={analyzeCurrent}
             disabled={!canAdvance || state.analyzing}
-            className="inline-flex items-center gap-2 rounded-xl border border-cyan-600/70 bg-cyan-600/20 px-4 py-2 text-sm font-medium text-cyan-100 hover:bg-cyan-600/30 disabled:cursor-not-allowed disabled:opacity-40"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line bg-surface px-4 py-2 text-sm font-medium text-action hover:bg-surface-hover disabled:cursor-not-allowed disabled:opacity-50"
           >
             <Sparkles aria-hidden="true" className="h-4 w-4" />
             {state.analyzing ? "Analysing…" : `Analyse (${currentStep.creditCost} cr)`}
@@ -449,14 +449,14 @@ export function InterviewWizard({ initialProjectId }: InterviewWizardProps) {
               type="button"
               onClick={() => dispatch({ type: "NEXT" })}
               disabled={!canAdvance}
-              className="ml-auto inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-40"
+              className="ml-auto inline-flex min-h-11 items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
               Next <ArrowRight aria-hidden="true" className="h-4 w-4" />
             </button>
           ) : (
             <Link
               href="/dashboard"
-              className="ml-auto inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400"
+              className="ml-auto inline-flex min-h-11 items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover"
             >
               Finish · View dashboard
             </Link>
@@ -467,8 +467,8 @@ export function InterviewWizard({ initialProjectId }: InterviewWizardProps) {
       {/* ── Right: live SVI + progress ─────────────────────────────── */}
       <aside className="space-y-4">
         <SviLiveMeter projectId={state.projectId ?? undefined} isActive />
-        <div className="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 text-xs text-slate-400">
-          <p className="mb-1 font-medium text-slate-200">How this works</p>
+        <div className="rounded-xl border border-line-subtle bg-surface-sunken p-4 text-xs text-secondary">
+          <p className="mb-1 font-medium text-primary">How this works</p>
           <ul className="list-disc space-y-1 pl-4">
             <li>Answers autosave every ~1s (localStorage + server).</li>
             <li>SVI recomputes after every save + agent pass.</li>
@@ -503,12 +503,12 @@ function ProgressRow({
               onClick={() => onJump(i)}
               aria-current={isCurrent ? "step" : undefined}
               className={[
-                "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium",
+                "inline-flex min-h-8 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium",
                 isCurrent
-                  ? "bg-cyan-500 text-slate-950"
+                  ? "bg-action text-on-action"
                   : isDone
-                  ? "bg-emerald-900/40 text-emerald-200"
-                  : "bg-slate-800 text-slate-400 hover:bg-slate-700",
+                  ? "bg-bull-soft text-bull"
+                  : "bg-surface-sunken text-secondary hover:bg-surface-hover",
               ].join(" ")}
             >
               {isDone && !isCurrent && (

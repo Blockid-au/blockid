@@ -25,27 +25,27 @@ const QUALITY_CONFIG: Record<
 > = {
   exceptional: {
     label: "Exceptional",
-    color: "text-emerald-600 dark:text-emerald-400",
+    color: "text-emerald-600",
     bgColor: "bg-emerald-500",
   },
   strong: {
     label: "Strong",
-    color: "text-brand-600 dark:text-brand-400",
+    color: "text-brand-600",
     bgColor: "bg-brand-500",
   },
   good: {
     label: "Good",
-    color: "text-blue-600 dark:text-blue-400",
+    color: "text-blue-600",
     bgColor: "bg-blue-500",
   },
   basic: {
     label: "Basic",
-    color: "text-amber-600 dark:text-amber-400",
+    color: "text-amber-600",
     bgColor: "bg-amber-500",
   },
   incomplete: {
     label: "Incomplete",
-    color: "text-ink-400 dark:text-ink-500",
+    color: "text-ink-400",
     bgColor: "bg-ink-300",
   },
 };
@@ -74,7 +74,7 @@ export function EvaluationProgress({
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
   return (
-    <div className="bg-white dark:bg-ink-900 rounded-2xl border border-ink-200 dark:border-ink-700 p-6">
+    <div className="bg-surface-raised rounded-xl border border-line-subtle p-6 shadow-1">
       <div className="flex flex-col sm:flex-row items-center gap-6">
         {/* Circular progress */}
         <div className="relative shrink-0">
@@ -86,7 +86,7 @@ export function EvaluationProgress({
               fill="none"
               stroke="currentColor"
               strokeWidth="10"
-              className="text-ink-100 dark:text-ink-800"
+              className="text-ink-100"
             />
             <circle
               cx="66"
@@ -101,10 +101,10 @@ export function EvaluationProgress({
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-2xl font-bold text-ink-900 dark:text-ink-100">
+            <span className="text-2xl font-bold text-ink-900">
               {progress}%
             </span>
-            <span className="text-[11px] text-ink-500 dark:text-ink-400">
+            <span className="text-[11px] text-ink-500">
               readiness
             </span>
           </div>
@@ -113,14 +113,14 @@ export function EvaluationProgress({
         {/* Stats and breakdown */}
         <div className="flex-1 min-w-0 w-full">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-lg font-semibold text-ink-900 dark:text-ink-100">
+            <h3 className="text-lg font-semibold text-ink-900">
               Evaluation Progress
             </h3>
             {completedCount === totalCriteria && (
               <CheckCircle2 className="h-5 w-5 text-emerald-500" />
             )}
           </div>
-          <p className="text-sm text-ink-500 dark:text-ink-400 mb-4">
+          <p className="text-sm text-ink-500 mb-4">
             {completedCount} of {totalCriteria} criteria have evidence
           </p>
 
@@ -150,7 +150,7 @@ export function EvaluationProgress({
                   >
                     {config.label}
                   </span>
-                  <div className="flex-1 h-1.5 bg-ink-100 dark:bg-ink-800 rounded-full overflow-hidden">
+                  <div className="flex-1 h-1.5 bg-ink-100 rounded-full overflow-hidden">
                     <div
                       className={cn(
                         "h-full rounded-full transition-all duration-500",
@@ -161,7 +161,7 @@ export function EvaluationProgress({
                       }}
                     />
                   </div>
-                  <span className="text-xs text-ink-500 dark:text-ink-400 w-5 text-right tabular-nums">
+                  <span className="text-xs text-ink-500 w-5 text-right tabular-nums">
                     {count}
                   </span>
                 </div>
@@ -174,13 +174,13 @@ export function EvaluationProgress({
             <button
               type="button"
               onClick={onGenerateReport}
-              className="mt-4 inline-flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white rounded-xl px-4 py-2 text-sm font-medium transition-colors"
+              className="mt-4 inline-flex items-center gap-2 bg-action hover:bg-action-hover text-on-action rounded-lg px-4 py-2 text-sm font-medium transition-colors"
             >
               <Sparkles className="h-4 w-4" />
               Generate Enhanced Report
             </button>
           ) : (
-            <div className="mt-4 flex items-center gap-2 text-xs text-ink-400 dark:text-ink-500">
+            <div className="mt-4 flex items-center gap-2 text-xs text-ink-400">
               <AlertCircle className="h-3.5 w-3.5" />
               Complete at least 50% to unlock AI-enhanced reports
             </div>

@@ -36,7 +36,10 @@ route enumeration, persona classifier, allow-list, judge, summary), `web/scripts
    `overflow-x` scroller, or a document wider than the viewport), `missing_alt[]`, `has_main`,
    `gate_markers[]` (`data-testid` containing gate/locked/paywall/upgrade), `error_boundary`
    (every route `error.tsx` marks its rendered branch `data-testid="error-boundary"` —
-   `web/src/app/error-boundaries.test.ts` pins that), `ms`.
+   `web/src/app/error-boundaries.test.ts` pins that), `content_type`, `light` (G26: the computed
+   background of `<body>` and of the first `main > section` — or `<main>` — and the body text
+   colour, each normalised through a 1×1 canvas so `color-mix()` / `oklch()` values read as sRGB
+   and composited over the ancestor chain down to the white canvas), `ms`.
 4. **Judges** each visit (`judge()` in the core):
    - `public` on a signed-in route → must land on `/auth/login` (`anon_not_bounced_to_login`);
    - 5xx / no response / 404 (unless `allow404`) → defect;
@@ -45,7 +48,12 @@ route enumeration, persona classifier, allow-list, judge, summary), `web/scripts
      → `unexpected_redirect` (a public → public redirect is the legacy-redirect table at work and
      is judged on what rendered);
    - on a rendered page: `error_boundary`, `no_main`, `h1_count_N` (≠ 1 unless excepted),
-     `missing_alt_N`, `overflow_375`, `console_errors_N`, `failed_requests_N`.
+     `missing_alt_N`, `overflow_375`, `console_errors_N`, `failed_requests_N`;
+   - G26 light template (on a rendered, non-redirected HTML page; `--no-light` disables it):
+     `light_body_bg (L)` / `light_section_bg (L)` when a ground's WCAG relative luminance is
+     ≤ 0.85 (`LIGHT_MIN_BG` — white 1.00, `--ds-surface-sunken` 0.94, brand navy 0.03),
+     `light_text (L)` when the body text is ≥ 0.35 (`LIGHT_MAX_TEXT` — `--ds-ink` 0.00,
+     `--ds-ink-subtle` 0.09, white 1.00).
 5. **Writes** `web/content/reports/page-sweep-latest.json` (every row) and appends one line per run
    to `page-sweep.jsonl` (`{ts, base, label?, routes, pages, defects, by_persona, skipped_dynamic,
    defect_rows}`); both are gitignored runtime outputs like `link-check-*`. Exit 1 on any defect
@@ -206,6 +214,12 @@ backtest, model discovery) and before the 04:45 migration audit:
   implicit `auto` track grows to a wide table's min-content even inside `overflow-x-auto`); an
   unwrapped inline `<code>` / long identifier (`[overflow-wrap:anywhere]`); a `shrink-0` badge next
   to a title (`flex-wrap`).
+- `light_body_bg` / `light_section_bg` / `light_text` — a dark ground or light text on the page
+  (the value in brackets is the measured luminance). The row's `light.section` names the element
+  measured; `light.bg_image` names an element with a `background-image` the composite ignores
+  (gradients are not sampled). Fix with the template tokens (`bg-surface`, `bg-surface-sunken`,
+  `text-primary`), never a `data-theme="dark"` / `"lux"` wrapper — the unit guard
+  `src/design/light-template.guard.test.ts` catches the class names before the sweep sees them.
 - `failed_requests_N` — a client fetch answering ≥ 400 on load: a `next/link` to an `/api` route
   (prefetch → `?…&_rsc=` → 400; use `<a>`), a page calling an authed API anonymously, or a missing
   fixture.

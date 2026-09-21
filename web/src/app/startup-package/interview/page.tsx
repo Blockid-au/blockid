@@ -34,30 +34,27 @@ export default async function StartupPackageInterviewPage() {
   const projectId = activeProject?.id ?? null;
 
   return (
-    <div
-      data-theme="lux"
-      className="min-h-svh bg-slate-950 text-slate-100"
-    >
+    <div className="min-h-svh bg-surface text-primary">
       <a
         href="#interview-main"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-cyan-500 focus:px-4 focus:py-2 focus:text-slate-950"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-action focus:px-4 focus:py-2 focus:text-on-action"
       >
         Skip to interview
       </a>
 
-      <header className="border-b border-slate-800/70 bg-slate-950/80 backdrop-blur">
+      <header className="border-b border-line-subtle bg-surface/95 backdrop-blur">
         <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
           <div>
-            <p className="text-[11px] uppercase tracking-widest text-slate-500">
+            <p className="text-[11px] font-semibold uppercase tracking-widest text-accent">
               Startup Package
             </p>
-            <h1 className="text-lg font-semibold text-slate-100">
+            <h1 className="font-display text-lg font-semibold text-primary">
               Guided founder interview
             </h1>
           </div>
           <a
             href="/dashboard"
-            className="text-xs text-slate-400 underline hover:text-slate-200"
+            className="inline-flex min-h-11 items-center text-sm text-secondary underline underline-offset-4 hover:text-primary"
           >
             Save & exit
           </a>

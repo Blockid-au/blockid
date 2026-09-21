@@ -1,5 +1,5 @@
 {
-  "$comment": "G26 light-template guard allow-list (docs/design/unicorn-template.md v2 § 6). Each entry: file = path relative to src/ (exact, a prefix ending in '/', or '*' for any file); rule = which guard rule it excuses (omit for all); pattern = RegExp source tested against the offending LINE; reason = why this dark/white/raw colour is legitimate. Keep ≤ 30 entries; every entry must still match at least one hit or the guard fails (stale entries are removed, not kept).",
+  "$comment": "G26 light-template guard allow-list (docs/design/unicorn-template.md v2 § 6). Each entry: file = path relative to src/ (exact, a prefix ending in '/', or '*' for any file); rule = which guard rule it excuses (omit for all); pattern = RegExp source tested against the offending LINE; reason = why this dark/white/raw colour is legitimate. Keep ≤ 30 entries; every entry must still match at least one hit or the guard fails (stale entries are removed, not kept). The guard has enforced by default since G26-X (2026-09-21): a hit outside this list fails CI.",
   "entries": [
     {
       "file": "*",

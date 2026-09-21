@@ -84,17 +84,17 @@ export function SviLiveMeter({
   const DeltaIcon = delta && delta > 0 ? TrendingUp : delta && delta < 0 ? TrendingDown : Minus;
   const deltaTone =
     delta && delta > 0
-      ? "text-emerald-400"
+      ? "text-bull"
       : delta && delta < 0
-      ? "text-rose-400"
-      : "text-slate-400";
+      ? "text-bear"
+      : "text-muted";
 
   return (
     <div
-      className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 shadow-inner"
+      className="rounded-xl border border-line-subtle bg-surface-raised p-4 shadow-1"
       aria-live="polite"
     >
-      <div className="flex items-center justify-between text-xs uppercase tracking-wide text-slate-400">
+      <div className="flex items-center justify-between text-xs uppercase tracking-wide text-muted">
         <span>SVI (live)</span>
         <span className={`inline-flex items-center gap-1 ${deltaTone}`}>
           <DeltaIcon aria-hidden="true" className="h-3.5 w-3.5" />
@@ -103,22 +103,22 @@ export function SviLiveMeter({
       </div>
 
       <div className="mt-2 flex items-baseline gap-2">
-        <span className="text-3xl font-semibold text-slate-100 tabular-nums">
+        <span className="font-mono text-3xl font-semibold text-primary tabular-nums">
           {svi === null ? "—" : Math.round(displaySvi)}
         </span>
-        <span className="text-xs text-slate-500">
+        <span className="text-xs text-muted">
           {stage === null ? "no stage yet" : `stage ${stage}`}
         </span>
         {loading && (
           <span
             aria-hidden="true"
-            className="ml-auto inline-block h-2 w-2 animate-pulse rounded-full bg-cyan-400"
+            className="ml-auto inline-block h-2 w-2 animate-pulse rounded-full bg-action-secondary"
           />
         )}
       </div>
 
       <div
-        className="mt-3 h-2 w-full overflow-hidden rounded-full bg-slate-800"
+        className="mt-3 h-2 w-full overflow-hidden rounded-full bg-surface-sunken"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={200}
@@ -126,12 +126,12 @@ export function SviLiveMeter({
         aria-label="Startup Value Index"
       >
         <div
-          className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-sky-400 to-violet-400 transition-[width] duration-700 ease-out"
+          className="h-full rounded-full bg-gradient-to-r from-action-secondary to-action transition-[width] duration-700 ease-out"
           style={{ width: `${pct}%` }}
         />
       </div>
 
-      <p className="mt-2 text-[11px] text-slate-500">
+      <p className="mt-2 text-[11px] text-muted">
         Each interview answer + agent pass updates this score. The bar caps at
         200 for readability; totals above are unbounded.
       </p>

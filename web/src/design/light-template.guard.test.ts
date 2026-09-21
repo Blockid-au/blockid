@@ -7,12 +7,13 @@
 // per legitimate exception). Everything left is a defect for the page lanes.
 //
 // MODES
-//   • Default while the page lanes land: REPORT ONLY — prints the per-rule /
-//     per-area summary and the per-file list, never fails. Flip
-//     `ENFORCE_DEFAULT` to `true` in the merge session once the four page
-//     lanes are in; from then on any hit outside the allow-list fails CI.
-//   • `LIGHT_GUARD_ENFORCE=1`  — enforce now (a lane checks its own area).
-//   • `LIGHT_GUARD_REPORT_ONLY=1` — report only, whatever the default.
+//   • Default since G26-X (2026-09-21, the page lanes have landed): ENFORCING —
+//     any hit outside the allow-list fails CI. The per-rule / per-area
+//     summary and the per-file list are still printed as the briefing.
+//   • `LIGHT_GUARD_ENFORCE=1`  — enforce (kept for parity with the docs).
+//   • `LIGHT_GUARD_REPORT_ONLY=1` — report only (a lane surveying its area).
+//   `scripts/light-guard-report.ts` (`FLAT=1` for one line per hit) prints
+//   the same scan outside vitest.
 //
 // Always enforced, regardless of mode: the FOUNDATION files (template
 // primitives, nav, footer, locale switcher, theme toggle, marketing shell)
@@ -33,8 +34,8 @@ import {
   type RuleId,
 } from "./light-template-guard";
 
-/** The merge session flips this to `true` after the page lanes land. */
-const ENFORCE_DEFAULT = false;
+/** Flipped to `true` by G26-X once the page lanes landed (2026-09-21). */
+const ENFORCE_DEFAULT = true;
 
 const enforce =
   process.env.LIGHT_GUARD_REPORT_ONLY === "1"

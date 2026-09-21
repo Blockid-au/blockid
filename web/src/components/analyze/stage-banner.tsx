@@ -85,11 +85,10 @@ export function StageBanner({
     >
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-3 px-4 py-2 text-sm">
         <span
-          className="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold text-white shadow-sm"
-          style={{ backgroundColor: color }}
+          className="inline-flex items-center gap-2 rounded-full border border-line bg-surface px-3 py-1 text-xs font-semibold text-primary shadow-sm"
           data-testid="stage-banner-chip"
         >
-          <span aria-hidden>●</span>
+          <span aria-hidden style={{ color }}>●</span>
           <span>{labels.label_en}</span>
         </span>
         {confidencePct !== null && (
