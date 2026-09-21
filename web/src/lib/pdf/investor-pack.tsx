@@ -44,6 +44,7 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 import type { CLevelChapter } from "@/lib/investor-pack/c-level-chapter";
+import { PDF_THEME } from "./theme";
 
 /* ─── Report version — read at module scope from content/reports/version.json.
  *     `require` is used so the JSON is inlined at build time (Node runtime). */
@@ -206,29 +207,30 @@ export interface InvestorPackData {
 }
 
 /* ─── Brand palette (mirrors svi-report-pdf.tsx) ────────────────────────── */
+// G26: every colour from the one PDF theme (light paper, navy headings, ink body).
 const C = {
-  brand700: "#1d4ed8",
-  brand600: "#2563eb",
-  brand500: "#3b82f6",
-  brand100: "#dbeafe",
-  brand50: "#eff6ff",
-  ink900: "#0f172a",
-  ink800: "#1e293b",
-  ink700: "#334155",
-  ink600: "#475569",
-  ink500: "#64748b",
-  ink400: "#94a3b8",
-  ink300: "#cbd5e1",
-  surface200: "#e2e8f0",
-  surface100: "#f1f5f9",
-  surface50: "#f8fafc",
-  emerald600: "#059669",
+  brand700: PDF_THEME.navyDeep,
+  brand600: PDF_THEME.navy,
+  brand500: PDF_THEME.navyElev,
+  brand100: "#dfe3ef",
+  brand50: PDF_THEME.navySoft,
+  ink900: PDF_THEME.ink,
+  ink800: PDF_THEME.inkMuted,
+  ink700: "#374151",
+  ink600: PDF_THEME.inkSubtle,
+  ink500: PDF_THEME.inkTertiary,
+  ink400: PDF_THEME.inkFaint,
+  ink300: PDF_THEME.borderStrong,
+  surface200: PDF_THEME.border,
+  surface100: PDF_THEME.hover,
+  surface50: PDF_THEME.sunken,
+  emerald600: PDF_THEME.success,
   emerald100: "#d1fae5",
-  amber700: "#b45309",
+  amber700: PDF_THEME.warn,
   amber100: "#fef3c7",
-  red600: "#dc2626",
+  red600: PDF_THEME.danger,
   red100: "#fee2e2",
-  white: "#ffffff",
+  white: PDF_THEME.white,
 } as const;
 
 const ENTITY_LINE = statutoryLine();

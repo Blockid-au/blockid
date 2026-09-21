@@ -36,6 +36,7 @@ import { visualToPng } from "@/lib/report-visuals/png";
 import type { Band, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { GROWTH_PHASE_LABELS } from "@/lib/growth/phase-taxonomy";
 import { coverPercentileLine } from "@/lib/report-v2/cover-hero";
+import { EMAIL_THEME } from "@/lib/email/theme";
 
 interface DimEmailInput {
   score: number;
@@ -72,7 +73,7 @@ export function bandLabelForEmail(band: Band): { label: string; color: string } 
   if (band === "strong") return { label: "Investor-Ready", color: "#047857" };
   if (band === "developing") return { label: "Developing", color: "#b45309" };
   if (band === "early") return { label: "Early-Stage", color: "#b91c1c" };
-  return { label: "Not scored yet", color: "#64748b" };
+  return { label: "Not scored yet", color: EMAIL_THEME.inkTertiary };
 }
 
 /** The lowest-scoring scored chapter (ties → heavier weight first, i.e. DIM_ORDER). */
@@ -121,9 +122,9 @@ export function renderReportEmailHtml(input: RenderReportEmailInput): string {
   const meta = [c.sector, c.stageLabel, `Phase: ${phase}`].filter(Boolean).join(" · ");
 
   const q = (label: string, text: string, color: string) =>
-    `<td style="vertical-align:top;padding:10px;border-left:3px solid ${color};background:#f8fafc;border-radius:6px;" width="33%">
-      <p style="margin:0 0 4px 0;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#64748b;font-weight:700;">${label}</p>
-      <p style="margin:0;font-size:12px;line-height:1.45;color:#0f172a;">${escapeHtml(text)}</p>
+    `<td style="vertical-align:top;padding:10px;border-left:3px solid ${color};background:#f7f8fa;border-radius:6px;" width="33%">
+      <p style="margin:0 0 4px 0;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#6b7280;font-weight:700;">${label}</p>
+      <p style="margin:0;font-size:12px;line-height:1.45;color:#0b0f1a;">${escapeHtml(text)}</p>
     </td>`;
 
   const weakestBlock = weakest
@@ -131,10 +132,10 @@ export function renderReportEmailHtml(input: RenderReportEmailInput): string {
        <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border:1px solid #e5e7eb;border-radius:8px;">
          <tr>
            <td style="padding:12px;vertical-align:top;">
-             <p style="margin:0;font-size:28px;font-weight:800;color:${bandLabelForEmail(weakest.band).color};line-height:1;">${weakest.score}<span style="font-size:12px;color:#64748b;font-weight:400;">/100 · ${escapeHtml(bandLabelForEmail(weakest.band).label)} · weight ${weakest.weight}</span></p>
-             <p style="margin:8px 0 0 0;font-size:13px;line-height:1.5;color:#334155;">${escapeHtml(stripCitationMarkers(weakest.verdict))}</p>
+             <p style="margin:0;font-size:28px;font-weight:800;color:${bandLabelForEmail(weakest.band).color};line-height:1;">${weakest.score}<span style="font-size:12px;color:#6b7280;font-weight:400;">/100 · ${escapeHtml(bandLabelForEmail(weakest.band).label)} · weight ${weakest.weight}</span></p>
+             <p style="margin:8px 0 0 0;font-size:13px;line-height:1.5;color:#1f2937;">${escapeHtml(stripCitationMarkers(weakest.verdict))}</p>
              ${weakest.gaps[0] ? `<p style="margin:8px 0 0 0;font-size:12px;color:#b91c1c;">Gap: ${escapeHtml(stripCitationMarkers(weakest.gaps[0]))}</p>` : ""}
-             <p style="margin:8px 0 0 0;font-size:12px;color:#0f172a;"><strong>Next action:</strong> ${escapeHtml(stripCitationMarkers(weakest.nextAction.title))} — expected lift +${weakest.nextAction.expectedLift} SVI</p>
+             <p style="margin:8px 0 0 0;font-size:12px;color:#0b0f1a;"><strong>Next action:</strong> ${escapeHtml(stripCitationMarkers(weakest.nextAction.title))} — expected lift +${weakest.nextAction.expectedLift} SVI</p>
              ${img(images.weakest, weakest.primaryVisual.a11y.title, 480)}
            </td>
          </tr>
@@ -142,35 +143,35 @@ export function renderReportEmailHtml(input: RenderReportEmailInput): string {
     : "";
 
   return `<!doctype html>
-<html><body style="margin:0;padding:20px;background:#f8fafc;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;">
+<html><body style="margin:0;padding:20px;background:#f7f8fa;font-family:ui-sans-serif,system-ui,-apple-system,sans-serif;">
   <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;padding:24px;">
-    <p style="margin:0 0 8px 0;font-size:11px;color:#64748b;letter-spacing:.14em;text-transform:uppercase;font-weight:600;">Your Trusted Business Report is ready</p>
-    <h1 style="margin:0 0 4px 0;font-size:16px;color:#0f172a;font-weight:700;">${escapeHtml(c.startupName)}</h1>
-    <p style="margin:0 0 12px 0;font-size:12px;color:#64748b;">${escapeHtml(meta)}</p>
+    <p style="margin:0 0 8px 0;font-size:11px;color:#6b7280;letter-spacing:.14em;text-transform:uppercase;font-weight:600;">Your Trusted Business Report is ready</p>
+    <h1 style="margin:0 0 4px 0;font-size:16px;color:#0b0f1a;font-weight:700;">${escapeHtml(c.startupName)}</h1>
+    <p style="margin:0 0 12px 0;font-size:12px;color:#6b7280;">${escapeHtml(meta)}</p>
     <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:16px 0 20px 0;">
       <tr>
         <td style="vertical-align:middle;width:130px;">${img(images.ring, `SVI ${c.svi.total}`, 120)}</td>
         <td style="vertical-align:middle;padding-left:12px;">
-          <div style="font-size:44px;font-weight:800;line-height:1;color:${band.color};font-variant-numeric:tabular-nums;">${Math.round(c.svi.total)}<span style="font-size:18px;color:#64748b;font-weight:400;">/100</span></div>
+          <div style="font-size:44px;font-weight:800;line-height:1;color:${band.color};font-variant-numeric:tabular-nums;">${Math.round(c.svi.total)}<span style="font-size:18px;color:#6b7280;font-weight:400;">/100</span></div>
           <div style="margin-top:6px;font-size:13px;color:${band.color};font-weight:700;">${escapeHtml(band.label)}</div>
-          ${delta ? `<div style="margin-top:4px;font-size:12px;color:#64748b;">${escapeHtml(delta)}</div>` : ""}
-          ${pct ? `<div style="margin-top:2px;font-size:12px;color:#64748b;">${escapeHtml(pct)}</div>` : ""}
+          ${delta ? `<div style="margin-top:4px;font-size:12px;color:#6b7280;">${escapeHtml(delta)}</div>` : ""}
+          ${pct ? `<div style="margin-top:2px;font-size:12px;color:#6b7280;">${escapeHtml(pct)}</div>` : ""}
         </td>
         <td style="vertical-align:middle;width:170px;text-align:right;">${img(images.radar, "8 dimensions vs stage median", 160)}</td>
       </tr>
     </table>
     <table role="presentation" cellpadding="0" cellspacing="6" style="width:100%;border-collapse:separate;">
       <tr>
-        ${q("Where are we?", c.threeQuestions.where, "#0072B2")}
-        ${q("What are we worth?", c.threeQuestions.worth, "#E69F00")}
-        ${q("What next?", c.threeQuestions.next, "#009E73")}
+        ${q("Where are we?", c.threeQuestions.where, EMAIL_THEME.navy)}
+        ${q("What are we worth?", c.threeQuestions.worth, EMAIL_THEME.warn)}
+        ${q("What next?", c.threeQuestions.next, EMAIL_THEME.success)}
       </tr>
     </table>
     ${weakestBlock}
-    <p style="margin:24px 0 4px 0;font-size:13px;color:#334155;">Open the full interactive report in your workspace — 8 chapters, valuation range, phase gates and the 90-day plan:</p>
-    <p style="margin:0 0 20px 0;"><a href="${dashboardUrl}" style="display:inline-block;padding:10px 18px;background:#0284c7;color:#ffffff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">Open Business Report</a></p>
-    ${shareUrl ? `<p style="margin:12px 0 4px 0;font-size:13px;color:#334155;">Public share link (send this to an investor — no login required):</p><p style="margin:0 0 20px 0;"><a href="${shareUrl}" style="color:#0284c7;font-size:13px;">${shareUrl}</a></p>` : ""}
-    <p style="margin:20px 0 0 0;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#94a3b8;">${pdfAttached ? "The PDF is attached to this email. " : ""}Directional analysis only — not a formal valuation.</p>
+    <p style="margin:24px 0 4px 0;font-size:13px;color:#1f2937;">Open the full interactive report in your workspace — 8 chapters, valuation range, phase gates and the 90-day plan:</p>
+    <p style="margin:0 0 20px 0;"><a href="${dashboardUrl}" style="display:inline-block;padding:10px 18px;background:#1B2A5E;color:#ffffff;text-decoration:none;border-radius:8px;font-size:13px;font-weight:600;">Open Business Report</a></p>
+    ${shareUrl ? `<p style="margin:12px 0 4px 0;font-size:13px;color:#1f2937;">Public share link (send this to an investor — no login required):</p><p style="margin:0 0 20px 0;"><a href="${shareUrl}" style="color:#1d4ed8;font-size:13px;">${shareUrl}</a></p>` : ""}
+    <p style="margin:20px 0 0 0;padding-top:16px;border-top:1px solid #e5e7eb;font-size:11px;color:#4b5563;">${pdfAttached ? "The PDF is attached to this email. " : ""}Directional analysis only — not a formal valuation.</p>
   </div>
   ${footerHtml ?? ""}
 </body></html>`;

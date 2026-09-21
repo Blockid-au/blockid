@@ -21,20 +21,22 @@ import { INTAKE_STAGES, NOT_INCORPORATED, STATE_OPTIONS } from "@/lib/funding/in
 import { formatAudCompact, formatAudRange, programTypeLabel } from "@/lib/funding/directory";
 import { DEADLINE_LABELS, deadlineStatus, formatDateAu, formatDateTimeAu, type DeadlineStatus } from "@/lib/funding/deadline-status";
 import { GANTT_KINDS, ganttWindow, layoutBars } from "@/lib/funding/gantt-layout";
+import { PDF_THEME } from "./theme";
 
+// G26: every colour from the one PDF theme (light paper, navy headings, ink body).
 const C = {
-  ink900: "#0F172A",
-  ink700: "#334155",
-  ink500: "#64748B",
-  ink400: "#94A3B8",
-  surface200: "#E2E8F0",
-  surface100: "#F1F5F9",
-  brand600: "#2563EB",
-  brand50: "#EFF6FF",
-  white: "#FFFFFF",
-  bull: "#047857",
-  warn: "#B45309",
-  bear: "#B91C1C",
+  ink900: PDF_THEME.ink,
+  ink700: "#374151",
+  ink500: PDF_THEME.inkTertiary,
+  ink400: PDF_THEME.inkFaint,
+  surface200: PDF_THEME.border,
+  surface100: PDF_THEME.hover,
+  brand600: PDF_THEME.navy,
+  brand50: PDF_THEME.navySoft,
+  white: PDF_THEME.white,
+  bull: PDF_THEME.success,
+  warn: PDF_THEME.warn,
+  bear: PDF_THEME.danger,
 };
 
 const RUNG_COLOR: Record<DeadlineStatus, string> = {

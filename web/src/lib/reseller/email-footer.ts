@@ -37,10 +37,10 @@ export function resellerFooterHtml(
 
   return [
     `<div style="margin:16px 0 0 0;padding:12px 16px;`,
-    `background:#F1F5F9;border-radius:8px;`,
-    `font-size:12px;color:#475569;text-align:center;">`,
+    `background:#eef0f5;border-radius:8px;`,
+    `font-size:12px;color:#4b5563;text-align:center;">`,
     `${escapeHtml(label)} `,
-    `<strong style="color:#0F172A;">${escapeHtml(clean)}</strong>`,
+    `<strong style="color:#0b0f1a;">${escapeHtml(clean)}</strong>`,
     `</div>`,
   ].join("");
 }

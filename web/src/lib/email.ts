@@ -5,6 +5,7 @@
 // Graceful degradation: if neither is configured, log + return
 // { ok: false, reason: 'not_configured' }.
 
+import { EMAIL_THEME } from "@/lib/email/theme";
 import "server-only";
 import {
   LEGAL_ENTITY,
@@ -97,11 +98,11 @@ function creditPackRowsHtml(packs: readonly CreditPack[]): string {
   return packs
     .map((pack, i) => {
       const last = i === packs.length - 1;
-      const border = last ? "" : "border-bottom:1px solid #1F2A44;";
+      const border = last ? "" : "border-bottom:1px solid #e5e7eb;";
       const savings = pack.savings
-        ? ` <span style="color:#4ADE80;font-size:12px;">${escapeHtml(pack.savings)}</span>`
+        ? ` <span style="color:#047857;font-size:12px;">${escapeHtml(pack.savings)}</span>`
         : "";
-      return `<tr><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;${border}">${pack.credits} Credits</td><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;font-weight:600;text-align:right;${border}">${packPriceLabel(pack)}${savings}</td></tr>`;
+      return `<tr><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;${border}">${pack.credits} Credits</td><td style="padding:6px 8px;color:#1B2A5E;font-size:14px;font-weight:600;text-align:right;${border}">${packPriceLabel(pack)}${savings}</td></tr>`;
     })
     .join("\n              ");
 }
@@ -348,8 +349,10 @@ export function unsubFooter(
     : "You're receiving this because you have a BlockID account.";
   const unsubText = isVi ? "Huy dang ky" : "Unsubscribe";
   const prefsText = isVi ? "Quan ly tuy chon email" : "Manage email preferences";
-  const bg = theme === "dark" ? "#0B1220" : "transparent";
-  const fg = theme === "dark" ? "#475569" : "#64748B";
+  // G26: light template only — `theme` is kept for callers but both values render the same light footer.
+  void theme;
+  const bg = "transparent";
+  const fg = EMAIL_THEME.inkTertiary;
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${bg};padding:0 16px 32px 16px;">
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;">
@@ -484,28 +487,28 @@ export async function sendScoreReady(args: {
 
   // ---- HTML fragments (all optional, degrade gracefully) ----------------
   const benchmarkHtml = args.benchmark
-    ? `<p style="margin:0 0 16px 0;color:#94A3B8;font-size:13px;line-height:1.5;text-align:center;">
-        <strong style="color:#F8FAFC;">${escapeHtml(args.benchmark.label)}</strong> &middot;
+    ? `<p style="margin:0 0 16px 0;color:#4b5563;font-size:13px;line-height:1.5;text-align:center;">
+        <strong style="color:#0b0f1a;">${escapeHtml(args.benchmark.label)}</strong> &middot;
         ${escapeHtml(args.benchmark.band)} &middot; median ${args.benchmark.medianScore}
        </p>`
     : "";
 
   const topSubs = (breakdownSubs ?? []).slice(0, 5);
   const subsTableHtml = topSubs.length > 0
-    ? `<p style="margin:24px 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:600;">Sub-scores</p>
-       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;border:1px solid #1F2A44;border-radius:10px;padding:12px 16px;margin:0 0 20px 0;">
+    ? `<p style="margin:24px 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:600;">Sub-scores</p>
+       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:10px;padding:12px 16px;margin:0 0 20px 0;">
          ${topSubs.map((s) => {
            const pct = Math.max(0, Math.min(100, Math.round(s.value)));
-           const barColor = pct >= 75 ? "#4ADE80" : pct >= 55 ? "#3B7DD8" : pct >= 35 ? "#FBBF24" : "#F87171";
+           const barColor = pct >= 75 ? EMAIL_THEME.success : pct >= 55 ? EMAIL_THEME.navy : pct >= 35 ? EMAIL_THEME.warn : EMAIL_THEME.danger;
            return `<tr>
-             <td style="padding:4px 0;color:#CBD5E1;font-size:13px;width:45%;">${escapeHtml(s.label)}</td>
+             <td style="padding:4px 0;color:#1f2937;font-size:13px;width:45%;">${escapeHtml(s.label)}</td>
              <td style="padding:4px 6px;">
                <table width="100%" cellpadding="0" cellspacing="0"><tr>
                  <td style="background:${barColor};height:6px;width:${Math.max(pct, 3)}%;border-radius:3px 0 0 3px;font-size:0;">&nbsp;</td>
-                 <td style="background:#1F2A44;height:6px;border-radius:0 3px 3px 0;font-size:0;">&nbsp;</td>
+                 <td style="background:#eef0f5;height:6px;border-radius:0 3px 3px 0;font-size:0;">&nbsp;</td>
                </tr></table>
              </td>
-             <td style="padding:4px 0;color:#F8FAFC;font-size:13px;text-align:right;width:40px;font-weight:600;">${pct}</td>
+             <td style="padding:4px 0;color:#0b0f1a;font-size:13px;text-align:right;width:40px;font-weight:600;">${pct}</td>
            </tr>`;
          }).join("")}
        </table>`
@@ -513,76 +516,76 @@ export async function sendScoreReady(args: {
 
   const topActions = (args.actionPlan ?? args.breakdown?.actionPlan ?? []).slice(0, 3);
   const actionsHtml = topActions.length > 0
-    ? `<p style="margin:20px 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:600;">Top actions</p>
+    ? `<p style="margin:20px 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:600;">Top actions</p>
        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0;">
          ${topActions.map((a, i) => `<tr>
-           <td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:24px;font-weight:700;">${i + 1}.</td>
+           <td style="padding:6px 8px;color:#b45309;font-size:14px;vertical-align:top;width:24px;font-weight:700;">${i + 1}.</td>
            <td style="padding:6px 8px;">
-             <div style="color:#F8FAFC;font-size:13px;font-weight:600;">${escapeHtml(a.title)} <span style="color:#64748B;font-weight:400;text-transform:uppercase;font-size:10px;letter-spacing:0.1em;">&middot; ${escapeHtml(a.impact)}</span></div>
-             <div style="color:#94A3B8;font-size:12px;line-height:1.5;margin-top:2px;">${escapeHtml(a.detail)}</div>
+             <div style="color:#0b0f1a;font-size:13px;font-weight:600;">${escapeHtml(a.title)} <span style="color:#6b7280;font-weight:400;text-transform:uppercase;font-size:10px;letter-spacing:0.1em;">&middot; ${escapeHtml(a.impact)}</span></div>
+             <div style="color:#4b5563;font-size:12px;line-height:1.5;margin-top:2px;">${escapeHtml(a.detail)}</div>
            </td>
          </tr>`).join("")}
        </table>`
     : "";
 
   const valuationHtml = args.valuation
-    ? `<p style="margin:20px 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:600;">Valuation range</p>
+    ? `<p style="margin:20px 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:600;">Valuation range</p>
        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0;">
          <tr>
            <td width="33%" style="padding:4px;text-align:center;">
-             <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:10px;padding:12px 6px;">
-               <div style="font-size:16px;font-weight:700;color:#94A3B8;">${fmtAudMillions(args.valuation.lowAud)}</div>
-               <div style="font-size:10px;color:#64748B;margin-top:2px;text-transform:uppercase;letter-spacing:0.1em;">Low</div>
+             <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:10px;padding:12px 6px;">
+               <div style="font-size:16px;font-weight:700;color:#4b5563;">${fmtAudMillions(args.valuation.lowAud)}</div>
+               <div style="font-size:10px;color:#6b7280;margin-top:2px;text-transform:uppercase;letter-spacing:0.1em;">Low</div>
              </div>
            </td>
            <td width="34%" style="padding:4px;text-align:center;">
-             <div style="background:#0B1220;border:1px solid #3B7DD8;border-radius:10px;padding:12px 6px;">
-               <div style="font-size:20px;font-weight:700;color:#3B7DD8;">${fmtAudMillions(args.valuation.midAud)}</div>
-               <div style="font-size:10px;color:#64748B;margin-top:2px;text-transform:uppercase;letter-spacing:0.1em;">Mid</div>
+             <div style="background:#f7f8fa;border:1px solid #1B2A5E;border-radius:10px;padding:12px 6px;">
+               <div style="font-size:20px;font-weight:700;color:#1B2A5E;">${fmtAudMillions(args.valuation.midAud)}</div>
+               <div style="font-size:10px;color:#6b7280;margin-top:2px;text-transform:uppercase;letter-spacing:0.1em;">Mid</div>
              </div>
            </td>
            <td width="33%" style="padding:4px;text-align:center;">
-             <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:10px;padding:12px 6px;">
-               <div style="font-size:16px;font-weight:700;color:#4ADE80;">${fmtAudMillions(args.valuation.highAud)}</div>
-               <div style="font-size:10px;color:#64748B;margin-top:2px;text-transform:uppercase;letter-spacing:0.1em;">High</div>
+             <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:10px;padding:12px 6px;">
+               <div style="font-size:16px;font-weight:700;color:#047857;">${fmtAudMillions(args.valuation.highAud)}</div>
+               <div style="font-size:10px;color:#6b7280;margin-top:2px;text-transform:uppercase;letter-spacing:0.1em;">High</div>
              </div>
            </td>
          </tr>
        </table>
-       <p style="margin:0 0 20px 0;color:#64748B;font-size:11px;text-align:center;">VC scorecard blend. Not a fairness opinion or financial advice.</p>`
+       <p style="margin:0 0 20px 0;color:#6b7280;font-size:11px;text-align:center;">VC scorecard blend. Not a fairness opinion or financial advice.</p>`
     : "";
 
   const chip = (label: string, pass: boolean) => `
-    <span style="display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:0.05em;color:${pass ? "#0B1220" : "#F8FAFC"};background:${pass ? "#4ADE80" : "#1F2A44"};border:1px solid ${pass ? "#4ADE80" : "#334155"};">${escapeHtml(label)} ${pass ? "&#10003;" : "&#8211;"}</span>`;
+    <span style="display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:600;letter-spacing:0.05em;color:${pass ? EMAIL_THEME.onNavy : EMAIL_THEME.ink};background:${pass ? EMAIL_THEME.success : EMAIL_THEME.hover};border:1px solid ${pass ? EMAIL_THEME.success : EMAIL_THEME.borderStrong};">${escapeHtml(label)} ${pass ? "&#10003;" : "&#8211;"}</span>`;
   const fundingHtml = args.fundingReadiness
-    ? `<p style="margin:20px 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:600;">Funding readiness</p>
+    ? `<p style="margin:20px 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:600;">Funding readiness</p>
        <div style="margin:0 0 20px 0;">
          <div style="margin-bottom:6px;">${chip(`Seed ${args.fundingReadiness.seed.pass ? "ready" : "not ready"}`, args.fundingReadiness.seed.pass)} ${chip(`Series A ${args.fundingReadiness.seriesA.pass ? "ready" : "not ready"}`, args.fundingReadiness.seriesA.pass)}</div>
-         ${args.fundingReadiness.seed.missing.length > 0 ? `<p style="margin:8px 0 4px 0;color:#94A3B8;font-size:12px;font-weight:600;">Seed gaps</p><p style="margin:0;color:#CBD5E1;font-size:12px;line-height:1.5;">${args.fundingReadiness.seed.missing.slice(0, 4).map(escapeHtml).join(" &middot; ")}</p>` : ""}
+         ${args.fundingReadiness.seed.missing.length > 0 ? `<p style="margin:8px 0 4px 0;color:#4b5563;font-size:12px;font-weight:600;">Seed gaps</p><p style="margin:0;color:#1f2937;font-size:12px;line-height:1.5;">${args.fundingReadiness.seed.missing.slice(0, 4).map(escapeHtml).join(" &middot; ")}</p>` : ""}
        </div>`
     : "";
 
   const gaps = (args.evidenceGaps ?? []).slice(0, 3);
   const gapsHtml = gaps.length > 0
-    ? `<p style="margin:20px 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:600;">Top evidence gaps</p>
+    ? `<p style="margin:20px 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:600;">Top evidence gaps</p>
        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 20px 0;">
          ${gaps.map((g) => `<tr>
-           <td style="padding:4px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:24px;">&#9888;</td>
-           <td style="padding:4px 8px;color:#CBD5E1;font-size:13px;line-height:1.5;">${escapeHtml(g)}</td>
+           <td style="padding:4px 8px;color:#b45309;font-size:14px;vertical-align:top;width:24px;">&#9888;</td>
+           <td style="padding:4px 8px;color:#1f2937;font-size:13px;line-height:1.5;">${escapeHtml(g)}</td>
          </tr>`).join("")}
        </table>`
     : "";
 
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Investor-Ready Score</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(co)}</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your Investor-Ready Score has been generated${pdfAttachment ? " and the full PDF report is attached to this email" : ""}. Share the link below with investors — they can open it without signing up.</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
-            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:#3B7DD8;line-height:1;">${args.totalScore}<span style="color:#64748B;font-size:24px;">/100</span></div>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — Investor-Ready Score</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">${escapeHtml(co)}</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Your Investor-Ready Score has been generated${pdfAttachment ? " and the full PDF report is attached to this email" : ""}. Share the link below with investors — they can open it without signing up.</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:#1B2A5E;line-height:1;">${args.totalScore}<span style="color:#6b7280;font-size:24px;">/100</span></div>
           </div>
           ${benchmarkHtml}
           ${subsTableHtml}
@@ -590,13 +593,13 @@ export async function sendScoreReady(args: {
           ${fundingHtml}
           ${gapsHtml}
           ${actionsHtml}
-          <p style="margin:24px 0 8px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Share link</p>
-          <p style="margin:0 0 16px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:#F8FAFC;word-break:break-all;">${url}</p>
+          <p style="margin:24px 0 8px 0;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Share link</p>
+          <p style="margin:0 0 16px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:13px;color:#0b0f1a;word-break:break-all;">${url}</p>
           <p style="margin:0;text-align:center;">
-            <a href="${url}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View full report</a>
+            <a href="${url}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View full report</a>
           </p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:32px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">BlockID &mdash; Persistent Identity &amp; Trust Infrastructure for Private Capital Markets. AU data residency. Not financial advice.</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:32px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">BlockID &mdash; Persistent Identity &amp; Trust Infrastructure for Private Capital Markets. AU data residency. Not financial advice.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -655,20 +658,20 @@ export async function sendMagicLink(args: {
     : (isVi ? "Dang nhap BlockID" : "Sign in to BlockID");
 
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(headline)}</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${escapeHtml(sub)}</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">${escapeHtml(headline)}</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">${escapeHtml(sub)}</p>
           <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${url}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${escapeHtml(cta)}</a>
+            <a href="${url}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${escapeHtml(cta)}</a>
           </p>
-          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">${isVi ? "Hoac dan lien ket nay" : "Or paste this URL"}</p>
-          <p style="margin:0 0 24px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#94A3B8;word-break:break-all;">${url}</p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">${isVi ? "Neu ban khong yeu cau email nay, ban co the bo qua — khong co tai khoan nao duoc tao." : "If you didn't request this email, you can safely ignore it — no account will be created."}</p>
+          <p style="margin:0 0 8px 0;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">${isVi ? "Hoac dan lien ket nay" : "Or paste this URL"}</p>
+          <p style="margin:0 0 24px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#4b5563;word-break:break-all;">${url}</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">${isVi ? "Neu ban khong yeu cau email nay, ban co the bo qua — khong co tai khoan nao duoc tao." : "If you didn't request this email, you can safely ignore it — no account will be created."}</p>
         </td></tr>
       </table>
     </td></tr>
@@ -699,22 +702,22 @@ export async function sendExistingAccountNotice(args: {
     : "Someone (probably you) just tried to create a BlockID account with this email. You already have one — sign in, or reset your password if you have forgotten it.";
 
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(headline)}</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${escapeHtml(sub)}</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">${escapeHtml(headline)}</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">${escapeHtml(sub)}</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
             <tr>
-              <td width="48%" style="text-align:center;padding:4px;"><a href="${loginUrl}" style="display:inline-block;width:100%;background:#2563EB;color:#FFFFFF;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${isVi ? "Dang Nhap" : "Sign In"}</a></td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${loginUrl}" style="display:inline-block;width:100%;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${isVi ? "Dang Nhap" : "Sign In"}</a></td>
               <td width="4%"></td>
-              <td width="48%" style="text-align:center;padding:4px;"><a href="${resetUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${isVi ? "Dat Lai Mat Khau" : "Reset Password"}</a></td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${resetUrl}" style="display:inline-block;width:100%;background:#eef0f5;color:#0b0f1a;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${isVi ? "Dat Lai Mat Khau" : "Reset Password"}</a></td>
             </tr>
           </table>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:0 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">${isVi
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">${isVi
     ? `Neu ban khong thuc hien viec nay, ban co the bo qua email — tai khoan cua ban khong thay doi. Thac mac: ${ADMIN_EMAIL}.`
     : `If this wasn't you, you can safely ignore this email — nothing about your account has changed. Questions: ${ADMIN_EMAIL}.`
   }</p>
@@ -742,18 +745,18 @@ export async function sendScoreViewed(args: {
   const co = args.companyName || "Your score";
   const when = new Date().toUTCString();
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Activity</p>
-          <h1 style="margin:0 0 8px 0;font-size:22px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(co)} was just viewed</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your Investor-Ready Score share link was opened ${escapeHtml(who)} at ${escapeHtml(when)}.</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — Activity</p>
+          <h1 style="margin:0 0 8px 0;font-size:22px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">${escapeHtml(co)} was just viewed</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Your Investor-Ready Score share link was opened ${escapeHtml(who)} at ${escapeHtml(when)}.</p>
           <p style="margin:0;text-align:center;">
-            <a href="${url}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">See activity</a>
+            <a href="${url}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">See activity</a>
           </p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:32px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">You're receiving this because you generated a BlockID Investor-Ready Score share link.</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:32px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">You're receiving this because you generated a BlockID Investor-Ready Score share link.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -797,18 +800,18 @@ export async function sendInvestorViewedEmail(args: {
           .join(" · ") + ". A good moment to follow up while it is fresh.";
   const subject = args.trigger === "first_view" ? `${args.investorLabel} opened your data room` : `${args.investorLabel} is reading your data room closely`;
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Data room activity</p>
-          <h1 style="margin:0 0 8px 0;font-size:22px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(headline)}</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${escapeHtml(detail)}</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — Data room activity</p>
+          <h1 style="margin:0 0 8px 0;font-size:22px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">${escapeHtml(headline)}</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">${escapeHtml(detail)}</p>
           <p style="margin:0;text-align:center;">
-            <a href="${url}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">See who read what</a>
+            <a href="${url}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">See who read what</a>
           </p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:32px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">You're receiving this because you shared a BlockID data room link. Turn these alerts off under email preferences.</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:32px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">You're receiving this because you shared a BlockID data room link. Turn these alerts off under email preferences.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -820,7 +823,7 @@ export async function sendInvestorViewedEmail(args: {
 // ---------- HTML shell --------------------------------------------------------
 
 function shell(body: string): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BlockID</title></head><body style="margin:0;padding:0;background:#0B1220;color:#F8FAFC;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;">${body}</body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BlockID</title></head><body style="margin:0;padding:0;background:#f7f8fa;color:#0b0f1a;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;">${body}</body></html>`;
 }
 
 // ---------- SVI welcome email ------------------------------------------------
@@ -849,23 +852,23 @@ export async function sendSVIWelcome(args: {
   const ctaText = isVi ? "Xem bang dieu khien" : "View your dashboard";
   const subject = isVi ? "Chao Mung Den Voi BlockID — Chi So SVI Co Ban Da San Sang" : "Welcome to BlockID — Your SVI Baseline is Ready";
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — ${isVi ? "Chao Mung" : "Welcome"}</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;">${headlineText}</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${bodyText}</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
-            <div style="font-family:'IBM Plex Mono',monospace;font-size:56px;font-weight:600;color:#3B7DD8;line-height:1;">${args.svi}</div>
-            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">${isVi ? "Diem SVI" : "SVI Score"} — ${escapeHtml(stageLabel)} Stage</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — ${isVi ? "Chao Mung" : "Welcome"}</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;">${headlineText}</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">${bodyText}</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:56px;font-weight:600;color:#1B2A5E;line-height:1;">${args.svi}</div>
+            <p style="margin:8px 0 0 0;color:#4b5563;font-size:13px;">${isVi ? "Diem SVI" : "SVI Score"} — ${escapeHtml(stageLabel)} Stage</p>
           </div>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">${evidenceText}</p>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:14px;line-height:1.6;">${evidenceText}</p>
           <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${ctaText}</a>
+            <a href="${dashUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${ctaText}</a>
           </p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -893,23 +896,23 @@ export async function sendSVIWeeklyReport(args: {
   const evidenceUrl = `${siteUrl()}/workspace/evidence`;
   const reportsUrl = `${siteUrl()}/workspace/reports`;
   const deltaStr = args.delta != null ? (args.delta >= 0 ? `+${args.delta}` : `${args.delta}`) : (isVi ? "Khong doi" : "No change");
-  const deltaColor = args.delta != null && args.delta >= 0 ? "#4ADE80" : "#F87171";
+  const deltaColor = args.delta != null && args.delta >= 0 ? EMAIL_THEME.success : EMAIL_THEME.danger;
   const deltaArrow = args.delta != null ? (args.delta >= 0 ? "&#9650;" : "&#9660;") : "";
 
   // AI summary section
   const aiSummaryHtml = args.aiSummary
-    ? `<div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 16px 0;">
-        <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${isVi ? "Nhan Dinh Tuan" : "Weekly Insight"}</p>
-        <p style="margin:0;color:#CBD5E1;font-size:13px;line-height:1.6;">${escapeHtml(args.aiSummary)}</p>
+    ? `<div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:0 0 16px 0;">
+        <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">${isVi ? "Nhan Dinh Tuan" : "Weekly Insight"}</p>
+        <p style="margin:0;color:#1f2937;font-size:13px;line-height:1.6;">${escapeHtml(args.aiSummary)}</p>
       </div>`
     : "";
 
   // Top gaps section (next actions)
   const gapsHtml = args.topGaps && args.topGaps.length > 0
     ? `<div style="margin:0 0 16px 0;">
-        <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${isVi ? "Hanh Dong Uu Tien Tuan Toi" : "Top Actions for Next Week"}</p>
+        <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">${isVi ? "Hanh Dong Uu Tien Tuan Toi" : "Top Actions for Next Week"}</p>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-          ${args.topGaps.slice(0, 3).map((g, i) => `<tr><td style="padding:4px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">${i + 1}.</td><td style="padding:4px 8px;color:#F8FAFC;font-size:13px;">${escapeHtml(g)}</td></tr>`).join("")}
+          ${args.topGaps.slice(0, 3).map((g, i) => `<tr><td style="padding:4px 8px;color:#b45309;font-size:14px;vertical-align:top;width:20px;">${i + 1}.</td><td style="padding:4px 8px;color:#0b0f1a;font-size:13px;">${escapeHtml(g)}</td></tr>`).join("")}
         </table>
       </div>`
     : "";
@@ -921,37 +924,37 @@ export async function sendSVIWeeklyReport(args: {
       : (isVi ? "Diem cua ban on dinh. Them bang chung moi de day diem len cao hon." : "Your score held steady. Add new evidence to push it higher.");
 
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — ${isVi ? `Bao Cao Tuan ${args.weekNum}` : `Week ${args.weekNum} Report`}</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;">${isVi ? "Cap Nhat SVI Hang Tuan" : "Your Weekly SVI Update"}</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${isVi ? `Day la cach Chi So Gia Tri Startup cua ban thay doi tuan nay${args.name ? `, ${escapeHtml(args.name)}` : ""}.` : `Here's how your Startup Value Index changed this week${args.name ? `, ${escapeHtml(args.name)}` : ""}.`}</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
-            <div style="font-family:'IBM Plex Mono',monospace;font-size:48px;font-weight:600;color:#3B7DD8;line-height:1;">${args.svi}</div>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — ${isVi ? `Bao Cao Tuan ${args.weekNum}` : `Week ${args.weekNum} Report`}</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;">${isVi ? "Cap Nhat SVI Hang Tuan" : "Your Weekly SVI Update"}</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">${isVi ? `Day la cach Chi So Gia Tri Startup cua ban thay doi tuan nay${args.name ? `, ${escapeHtml(args.name)}` : ""}.` : `Here's how your Startup Value Index changed this week${args.name ? `, ${escapeHtml(args.name)}` : ""}.`}</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:48px;font-weight:600;color:#1B2A5E;line-height:1;">${args.svi}</div>
             <p style="margin:8px 0 0 0;font-family:'IBM Plex Mono',monospace;font-size:20px;font-weight:600;color:${deltaColor};">${deltaArrow} ${escapeHtml(deltaStr)} ${isVi ? "tuan nay" : "this week"}</p>
           </div>
           ${aiSummaryHtml}
           ${gapsHtml}
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">${progressText}</p>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:14px;line-height:1.6;">${progressText}</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
             <tr>
               <td width="31%" style="text-align:center;padding:4px;">
-                <a href="${dashUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:13px;">${isVi ? "Bang Dieu Khien" : "Dashboard"}</a>
+                <a href="${dashUrl}" style="display:inline-block;width:100%;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:13px;">${isVi ? "Bang Dieu Khien" : "Dashboard"}</a>
               </td>
               <td width="3%"></td>
               <td width="31%" style="text-align:center;padding:4px;">
-                <a href="${evidenceUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:13px;">${isVi ? "Them Bang Chung" : "Add Evidence"}</a>
+                <a href="${evidenceUrl}" style="display:inline-block;width:100%;background:#eef0f5;color:#0b0f1a;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:13px;">${isVi ? "Them Bang Chung" : "Add Evidence"}</a>
               </td>
               <td width="3%"></td>
               <td width="31%" style="text-align:center;padding:4px;">
-                <a href="${reportsUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:13px;">${isVi ? "Bao Cao Day Du" : "Full Report"}</a>
+                <a href="${reportsUrl}" style="display:inline-block;width:100%;background:#eef0f5;color:#0b0f1a;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:13px;">${isVi ? "Bao Cao Day Du" : "Full Report"}</a>
               </td>
             </tr>
           </table>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -981,29 +984,29 @@ export async function sendSVIReport(args: {
   const ideaSummary = args.rawInput ? escapeHtml(args.rawInput.replace(/^File:.*\n/, "").trim().slice(0, 300)) + (args.rawInput.length > 300 ? "..." : "") : null;
   const strengths = args.analysis.subs.filter((s) => s.value >= 60).sort((a, b) => b.value - a.value).slice(0, 3);
   const gaps = args.analysis.evidenceGaps.slice(0, 3);
-  const strengthRows = strengths.map((s) => `<tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(s.label)} <span style="color:#64748B;">(${s.value}/100)</span></td></tr>`).join("");
-  const gapRows = gaps.map((g) => `<tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(g.label)}: <span style="color:#94A3B8;">${escapeHtml(g.action)}</span></td></tr>`).join("");
+  const strengthRows = strengths.map((s) => `<tr><td style="padding:6px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">${escapeHtml(s.label)} <span style="color:#6b7280;">(${s.value}/100)</span></td></tr>`).join("");
+  const gapRows = gaps.map((g) => `<tr><td style="padding:6px 8px;color:#b45309;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">${escapeHtml(g.label)}: <span style="color:#4b5563;">${escapeHtml(g.action)}</span></td></tr>`).join("");
 
   // Visual dimension bar chart — email-safe (table cells + inline bg)
   const dimRows = args.analysis.subs.slice(0, 8).map((s) => {
     const pct = Math.min(Math.round(s.value), 100);
-    const barColor = pct >= 80 ? "#06b6d4" : pct >= 60 ? "#10b981" : pct >= 40 ? "#f59e0b" : "#ef4444";
+    const barColor = pct >= 80 ? EMAIL_THEME.navy : pct >= 60 ? EMAIL_THEME.success : pct >= 40 ? EMAIL_THEME.warn : EMAIL_THEME.danger;
     const barWidth = Math.max(pct, 4);
     return `
       <tr>
-        <td style="padding:4px 0;vertical-align:middle;width:160px;font-size:11px;color:#94A3B8;">${escapeHtml(s.label)}</td>
+        <td style="padding:4px 0;vertical-align:middle;width:160px;font-size:11px;color:#4b5563;">${escapeHtml(s.label)}</td>
         <td style="padding:4px 6px;vertical-align:middle;">
           <table width="100%" cellpadding="0" cellspacing="0"><tr>
             <td style="background:${barColor};height:8px;width:${barWidth}%;border-radius:4px 0 0 4px;font-size:0">&nbsp;</td>
-            <td style="background:#1F2A44;height:8px;border-radius:0 4px 4px 0;font-size:0">&nbsp;</td>
+            <td style="background:#eef0f5;height:8px;border-radius:0 4px 4px 0;font-size:0">&nbsp;</td>
           </tr></table>
         </td>
-        <td style="padding:4px 0;vertical-align:middle;width:32px;font-size:11px;color:#F8FAFC;text-align:right;font-weight:600">${s.value}</td>
+        <td style="padding:4px 0;vertical-align:middle;width:32px;font-size:11px;color:#0b0f1a;text-align:right;font-weight:600">${s.value}</td>
       </tr>`;
   }).join("");
   const dimensionChartHtml = args.analysis.subs.length > 0
     ? `<div style="margin:16px 0">
-        <p style="margin:0 0 10px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:600">${isVi ? "Phan Tich 8 Chieu" : "8-Dimension Breakdown"}</p>
+        <p style="margin:0 0 10px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:600">${isVi ? "Phan Tich 8 Chieu" : "8-Dimension Breakdown"}</p>
         <table width="100%" cellpadding="0" cellspacing="0">${dimRows}</table>
        </div>`
     : "";
@@ -1019,28 +1022,28 @@ export async function sendSVIReport(args: {
     <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0">
       <tr>
         <td width="33%" style="padding:4px">
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:10px;padding:12px 8px;text-align:center">
-            <div style="font-size:22px;font-weight:700;color:#22D3EE">${sviVal}</div>
-            <div style="font-size:10px;color:#64748B;margin-top:2px;text-transform:uppercase;letter-spacing:0.08em">SVI Score</div>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:10px;padding:12px 8px;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:#1B2A5E">${sviVal}</div>
+            <div style="font-size:10px;color:#6b7280;margin-top:2px;text-transform:uppercase;letter-spacing:0.08em">SVI Score</div>
           </div>
         </td>
         <td width="33%" style="padding:4px">
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:10px;padding:12px 8px;text-align:center">
-            <div style="font-size:22px;font-weight:700;color:#10B981">${estVal}</div>
-            <div style="font-size:10px;color:#64748B;margin-top:2px;text-transform:uppercase;letter-spacing:0.08em">${isVi ? "Dinh Gia" : "Est. Value"}</div>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:10px;padding:12px 8px;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:#047857">${estVal}</div>
+            <div style="font-size:10px;color:#6b7280;margin-top:2px;text-transform:uppercase;letter-spacing:0.08em">${isVi ? "Dinh Gia" : "Est. Value"}</div>
           </div>
         </td>
         <td width="33%" style="padding:4px">
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:10px;padding:12px 8px;text-align:center">
-            <div style="font-size:22px;font-weight:700;color:#3B82F6">${escapeHtml(args.analysis.stageLabel)}</div>
-            <div style="font-size:10px;color:#64748B;margin-top:2px;text-transform:uppercase;letter-spacing:0.08em">${isVi ? "Giai Doan" : "Stage"}</div>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:10px;padding:12px 8px;text-align:center">
+            <div style="font-size:22px;font-weight:700;color:#1d4ed8">${escapeHtml(args.analysis.stageLabel)}</div>
+            <div style="font-size:10px;color:#6b7280;margin-top:2px;text-transform:uppercase;letter-spacing:0.08em">${isVi ? "Giai Doan" : "Stage"}</div>
           </div>
         </td>
       </tr>
     </table>`;
 
   const ideaLabel = isVi ? "Y Tuong Cua Ban" : "Your Idea";
-  const ideaSummaryHtml = ideaSummary ? `<div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 16px 0;"><p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${ideaLabel}</p><p style="margin:0;color:#CBD5E1;font-size:13px;line-height:1.6;font-style:italic;">&ldquo;${ideaSummary}&rdquo;</p></div>` : "";
+  const ideaSummaryHtml = ideaSummary ? `<div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:0 0 16px 0;"><p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">${ideaLabel}</p><p style="margin:0;color:#1f2937;font-size:13px;line-height:1.6;font-style:italic;">&ldquo;${ideaSummary}&rdquo;</p></div>` : "";
 
   // Generate PDF attachment
   let pdfAttachment: { filename: string; content: Buffer; contentType: string } | undefined;
@@ -1071,40 +1074,40 @@ export async function sendSVIReport(args: {
     : "Your BlockID Startup Value Report is Ready";
 
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#22D3EE;font-weight:600;">${tagline}</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:700;color:#F8FAFC;letter-spacing:-0.01em;">${headline}</h1>
-          <p style="margin:0 0 20px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${bodyIntro}</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:600;">${tagline}</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:700;color:#0b0f1a;letter-spacing:-0.01em;">${headline}</h1>
+          <p style="margin:0 0 20px 0;color:#4b5563;font-size:15px;line-height:1.6;">${bodyIntro}</p>
           ${ideaSummaryHtml}
           ${statGridHtml}
           ${dimensionChartHtml}
-          ${strengths.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${strengthsLabel}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${strengthRows}</table>` : ""}
-          ${gaps.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${gapsLabel}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${gapRows}</table>` : ""}
+          ${strengths.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">${strengthsLabel}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${strengthRows}</table>` : ""}
+          ${gaps.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">${gapsLabel}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${gapRows}</table>` : ""}
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0 0;">
             <tr>
-              <td width="48%" style="text-align:center;padding:4px;"><a href="${reportUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${viewReportCta}</a></td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${reportUrl}" style="display:inline-block;width:100%;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${viewReportCta}</a></td>
               <td width="4%"></td>
-              <td width="48%" style="text-align:center;padding:4px;"><a href="${loginUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${signInCta}</a></td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${loginUrl}" style="display:inline-block;width:100%;background:#eef0f5;color:#0b0f1a;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${signInCta}</a></td>
             </tr>
           </table>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:16px 0 0 0;">
-            <p style="margin:0 0 8px 0;font-size:13px;font-weight:600;color:#4ADE80;">${isVi ? "Buoc Tiep Theo Cua Ban" : "Your Next Steps"}</p>
-            <p style="margin:0 0 6px 0;color:#CBD5E1;font-size:12px;line-height:1.5;">1. ${isVi ? "Xem bao cao va xac dinh 3 uu tien hang dau" : "Review your report and identify your top 3 priorities"}</p>
-            <p style="margin:0 0 6px 0;color:#CBD5E1;font-size:12px;line-height:1.5;">2. ${isVi ? "Tai len bang chung len Evidence Vault de tang diem" : "Upload evidence to your Evidence Vault to boost your score"}</p>
-            <p style="margin:0 0 6px 0;color:#CBD5E1;font-size:12px;line-height:1.5;">3. ${isVi ? "Thuc hien hanh dong khac phuc dau tien trong 7 ngay" : "Take your first gap-closing action within 7 days"}</p>
-            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:11px;font-style:italic;">${isVi ? "Moi hanh buoc nho deu nang gia tri startup cua ban." : "Every small step raises your startup's value. We're with you."}</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:16px 0 0 0;">
+            <p style="margin:0 0 8px 0;font-size:13px;font-weight:600;color:#047857;">${isVi ? "Buoc Tiep Theo Cua Ban" : "Your Next Steps"}</p>
+            <p style="margin:0 0 6px 0;color:#1f2937;font-size:12px;line-height:1.5;">1. ${isVi ? "Xem bao cao va xac dinh 3 uu tien hang dau" : "Review your report and identify your top 3 priorities"}</p>
+            <p style="margin:0 0 6px 0;color:#1f2937;font-size:12px;line-height:1.5;">2. ${isVi ? "Tai len bang chung len Evidence Vault de tang diem" : "Upload evidence to your Evidence Vault to boost your score"}</p>
+            <p style="margin:0 0 6px 0;color:#1f2937;font-size:12px;line-height:1.5;">3. ${isVi ? "Thuc hien hanh dong khac phuc dau tien trong 7 ngay" : "Take your first gap-closing action within 7 days"}</p>
+            <p style="margin:8px 0 0 0;color:#4b5563;font-size:11px;font-style:italic;">${isVi ? "Moi hanh buoc nho deu nang gia tri startup cua ban." : "Every small step raises your startup's value. We're with you."}</p>
           </div>
-          <div style="background:#1F2A44;border-radius:10px;padding:14px;margin:12px 0 0 0;text-align:center;">
-            <p style="margin:0 0 4px 0;font-size:12px;font-weight:600;color:#FBBF24;">${isVi ? "Theo Doi Diem So Cua Ban" : "Track Your Score Over Time"}</p>
-            <p style="margin:0;font-size:11px;color:#94A3B8;line-height:1.5;">${isVi ? "Dang nhap vao workspace de theo doi diem so theo thoi gian, tai len bang chung va chay lai phan tich." : "Sign in to your workspace to track this score over time, upload evidence against each dimension, and re-run the analysis as things change."}</p>
+          <div style="background:#eef0f5;border-radius:10px;padding:14px;margin:12px 0 0 0;text-align:center;">
+            <p style="margin:0 0 4px 0;font-size:12px;font-weight:600;color:#b45309;">${isVi ? "Theo Doi Diem So Cua Ban" : "Track Your Score Over Time"}</p>
+            <p style="margin:0;font-size:11px;color:#4b5563;line-height:1.5;">${isVi ? "Dang nhap vao workspace de theo doi diem so theo thoi gian, tai len bang chung va chay lai phan tich." : "Sign in to your workspace to track this score over time, upload evidence against each dimension, and re-run the analysis as things change."}</p>
           </div>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
-          <p style="margin:0 0 8px 0;color:#64748B;font-size:11px;line-height:1.5;">${signInHelp}</p>
-          <p style="margin:0;color:#475569;font-size:10px;line-height:1.4;">This analysis is produced by BlockID.au (${LEGAL_ENTITY.operator}, ${LEGAL_ENTITY_ACN_LABEL}). The SVI is NOT a financial valuation or investment recommendation. BlockID does not hold an AFSL. Seek independent professional advice. Prices in AUD inc. GST.</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0 0 8px 0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0 0 8px 0;color:#6b7280;font-size:11px;line-height:1.5;">${signInHelp}</p>
+          <p style="margin:0;color:#4b5563;font-size:10px;line-height:1.4;">This analysis is produced by BlockID.au (${LEGAL_ENTITY.operator}, ${LEGAL_ENTITY_ACN_LABEL}). The SVI is NOT a financial valuation or investment recommendation. BlockID does not hold an AFSL. Seek independent professional advice. Prices in AUD inc. GST.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -1146,8 +1149,8 @@ export async function sendWelcomeWithReport(args: {
   const ideaSummary = args.rawInput ? escapeHtml(args.rawInput.replace(/^File:.*\n/, "").trim().slice(0, 300)) + (args.rawInput.length > 300 ? "..." : "") : null;
   const strengths = args.analysis.subs.filter((s) => s.value >= 60).sort((a, b) => b.value - a.value).slice(0, 3);
   const gaps = args.analysis.evidenceGaps.slice(0, 3);
-  const strengthRows = strengths.map((s) => `<tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(s.label)} <span style="color:#64748B;">(${s.value}/100)</span></td></tr>`).join("");
-  const gapRows = gaps.map((g) => `<tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(g.label)}: <span style="color:#94A3B8;">${escapeHtml(g.action)}</span></td></tr>`).join("");
+  const strengthRows = strengths.map((s) => `<tr><td style="padding:6px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">${escapeHtml(s.label)} <span style="color:#6b7280;">(${s.value}/100)</span></td></tr>`).join("");
+  const gapRows = gaps.map((g) => `<tr><td style="padding:6px 8px;color:#b45309;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">${escapeHtml(g.label)}: <span style="color:#4b5563;">${escapeHtml(g.action)}</span></td></tr>`).join("");
 
   // Generate PDF attachment
   let pdfAttachment: { filename: string; content: Buffer; contentType: string } | undefined;
@@ -1161,38 +1164,38 @@ export async function sendWelcomeWithReport(args: {
     console.error("[blockid:email] PDF generation failed for welcome email", pdfErr);
   }
 
-  const ideaSummaryHtml = ideaSummary ? `<div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 16px 0;"><p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${isVi ? "Y Tuong Cua Ban" : "Your Idea"}</p><p style="margin:0;color:#CBD5E1;font-size:13px;line-height:1.6;font-style:italic;">&ldquo;${ideaSummary}&rdquo;</p></div>` : "";
+  const ideaSummaryHtml = ideaSummary ? `<div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:0 0 16px 0;"><p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">${isVi ? "Y Tuong Cua Ban" : "Your Idea"}</p><p style="margin:0;color:#1f2937;font-size:13px;line-height:1.6;font-style:italic;">&ldquo;${ideaSummary}&rdquo;</p></div>` : "";
 
   const subject = isVi
     ? "Chao mung den BlockID — Bao Cao Dau Tien & Tai Khoan Cua Ban"
     : "Welcome to BlockID — Your First Report & Account Details";
 
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${isVi ? "Chao Mung Den BlockID!" : "Welcome to BlockID!"}</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${isVi
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">${isVi ? "Chao Mung Den BlockID!" : "Welcome to BlockID!"}</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">${isVi
     ? "Tai khoan cua ban da duoc tao tu dong. Bao cao phan tich dau tien cua ban da san sang ben duoi."
     : "Your account has been automatically created. Your first analysis report is ready below."
   }${pdfAttachment ? (isVi ? " Bao cao PDF day du duoc dinh kem." : " The full PDF report is attached.") : ""}</p>
 
           <!-- Account credentials box -->
-          <div style="background:linear-gradient(135deg,#1a2744 0%,#0f1d35 100%);border:1px solid #2563EB;border-radius:12px;padding:20px;margin:0 0 24px 0;">
-            <p style="margin:0 0 12px 0;font-size:13px;font-weight:600;color:#60A5FA;">${isVi ? "Thong Tin Tai Khoan Cua Ban" : "Your Account Details"}</p>
+          <div style="background:linear-gradient(135deg,#f7f8fa 0%,#f7f8fa 100%);border:1px solid #1B2A5E;border-radius:12px;padding:20px;margin:0 0 24px 0;">
+            <p style="margin:0 0 12px 0;font-size:13px;font-weight:600;color:#1d4ed8;">${isVi ? "Thong Tin Tai Khoan Cua Ban" : "Your Account Details"}</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
               <tr>
-                <td style="padding:4px 0;color:#94A3B8;font-size:13px;width:120px;">${isVi ? "Email:" : "Email:"}</td>
-                <td style="padding:4px 0;color:#F8FAFC;font-size:13px;font-weight:500;">${escapeHtml(args.to)}</td>
+                <td style="padding:4px 0;color:#4b5563;font-size:13px;width:120px;">${isVi ? "Email:" : "Email:"}</td>
+                <td style="padding:4px 0;color:#0b0f1a;font-size:13px;font-weight:500;">${escapeHtml(args.to)}</td>
               </tr>
               <tr>
-                <td style="padding:4px 0;color:#94A3B8;font-size:13px;">${isVi ? "Mat khau tam:" : "Temp password:"}</td>
-                <td style="padding:4px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:15px;font-weight:600;color:#4ADE80;letter-spacing:0.05em;">${escapeHtml(args.tempPassword)}</td>
+                <td style="padding:4px 0;color:#4b5563;font-size:13px;">${isVi ? "Mat khau tam:" : "Temp password:"}</td>
+                <td style="padding:4px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:15px;font-weight:600;color:#047857;letter-spacing:0.05em;">${escapeHtml(args.tempPassword)}</td>
               </tr>
             </table>
-            <p style="margin:12px 0 0 0;color:#FBBF24;font-size:11px;line-height:1.5;">${isVi
+            <p style="margin:12px 0 0 0;color:#b45309;font-size:11px;line-height:1.5;">${isVi
     ? "Hay doi mat khau nay thanh mat khau rieng cua ban sau khi dang nhap."
     : "Please change this to your own password after signing in."
   }</p>
@@ -1200,41 +1203,41 @@ export async function sendWelcomeWithReport(args: {
 
           <!-- Login button -->
           <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${loginUrl}" style="display:inline-block;background:#2563EB;color:#FFFFFF;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:15px;">${isVi ? "Dang Nhap Ngay" : "Sign In Now"}</a>
+            <a href="${loginUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:15px;">${isVi ? "Dang Nhap Ngay" : "Sign In Now"}</a>
           </p>
 
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:0 0 24px 0;">
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 24px 0;">
 
           <!-- SVI Report summary -->
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">${isVi ? "Bao Cao Gia Tri Startup" : "Startup Value Report"}</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">${isVi ? "Bao Cao Gia Tri Startup" : "Startup Value Report"}</p>
           ${ideaSummaryHtml}
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
-            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:#3B7DD8;line-height:1;">${args.analysis.totalSVI}</div>
-            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">${isVi ? "Diem SVI" : "SVI Score"} — ${escapeHtml(args.analysis.stageLabel)} Stage</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:#1B2A5E;line-height:1;">${args.analysis.totalSVI}</div>
+            <p style="margin:8px 0 0 0;color:#4b5563;font-size:13px;">${isVi ? "Diem SVI" : "SVI Score"} — ${escapeHtml(args.analysis.stageLabel)} Stage</p>
           </div>
-          ${strengths.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${isVi ? "Diem Manh" : "Strengths"}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${strengthRows}</table>` : ""}
-          ${gaps.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${isVi ? "Thieu Bang Chung" : "Evidence Gaps"}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${gapRows}</table>` : ""}
+          ${strengths.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">${isVi ? "Diem Manh" : "Strengths"}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${strengthRows}</table>` : ""}
+          ${gaps.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">${isVi ? "Thieu Bang Chung" : "Evidence Gaps"}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${gapRows}</table>` : ""}
           <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${reportUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:14px;">${isVi ? "Xem Bao Cao Day Du" : "View Full Report"}</a>
+            <a href="${reportUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:14px;">${isVi ? "Xem Bao Cao Day Du" : "View Full Report"}</a>
           </p>
 
           <!-- Next steps -->
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 16px 0;">
-            <p style="margin:0 0 8px 0;font-size:13px;font-weight:600;color:#4ADE80;">${isVi ? "Buoc Tiep Theo" : "Your Next Steps"}</p>
-            <p style="margin:0 0 6px 0;color:#CBD5E1;font-size:12px;line-height:1.5;">1. ${isVi ? "Dang nhap voi mat khau tam o tren" : "Sign in with the temp password above"}</p>
-            <p style="margin:0 0 6px 0;color:#CBD5E1;font-size:12px;line-height:1.5;">2. ${isVi ? "Doi mat khau rieng tai" : "Set your own password at"} <a href="${profileUrl}" style="color:#60A5FA;text-decoration:underline;">${isVi ? "Ho So" : "Profile"}</a></p>
-            <p style="margin:0 0 6px 0;color:#CBD5E1;font-size:12px;line-height:1.5;">3. ${isVi ? "Xem bao cao va xac dinh uu tien" : "Review your report and identify priorities"}</p>
-            <p style="margin:0 0 6px 0;color:#CBD5E1;font-size:12px;line-height:1.5;">4. ${isVi ? "Tao them y tuong moi va theo doi tien trinh" : "Create more ideas and track your progress"}</p>
-            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:11px;font-style:italic;">${isVi ? "Moi buoc nho deu nang gia tri startup cua ban." : "Every small step raises your startup's value. We're with you."}</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:0 0 16px 0;">
+            <p style="margin:0 0 8px 0;font-size:13px;font-weight:600;color:#047857;">${isVi ? "Buoc Tiep Theo" : "Your Next Steps"}</p>
+            <p style="margin:0 0 6px 0;color:#1f2937;font-size:12px;line-height:1.5;">1. ${isVi ? "Dang nhap voi mat khau tam o tren" : "Sign in with the temp password above"}</p>
+            <p style="margin:0 0 6px 0;color:#1f2937;font-size:12px;line-height:1.5;">2. ${isVi ? "Doi mat khau rieng tai" : "Set your own password at"} <a href="${profileUrl}" style="color:#1d4ed8;text-decoration:underline;">${isVi ? "Ho So" : "Profile"}</a></p>
+            <p style="margin:0 0 6px 0;color:#1f2937;font-size:12px;line-height:1.5;">3. ${isVi ? "Xem bao cao va xac dinh uu tien" : "Review your report and identify priorities"}</p>
+            <p style="margin:0 0 6px 0;color:#1f2937;font-size:12px;line-height:1.5;">4. ${isVi ? "Tao them y tuong moi va theo doi tien trinh" : "Create more ideas and track your progress"}</p>
+            <p style="margin:8px 0 0 0;color:#4b5563;font-size:11px;font-style:italic;">${isVi ? "Moi buoc nho deu nang gia tri startup cua ban." : "Every small step raises your startup's value. We're with you."}</p>
           </div>
 
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
-          <p style="margin:0 0 8px 0;color:#64748B;font-size:11px;line-height:1.5;">${isVi
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0 0 8px 0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0 0 8px 0;color:#6b7280;font-size:11px;line-height:1.5;">${isVi
     ? "Quen mat khau? Vao trang dang nhap, nhan 'Forgot your password?' de nhan mat khau moi qua email."
     : "Forgot your password? Visit the login page and click 'Forgot your password?' to receive a new one via email."
   }</p>
-          <p style="margin:0;color:#475569;font-size:10px;line-height:1.4;">This analysis is produced by BlockID.au (${LEGAL_ENTITY.operator}, ${LEGAL_ENTITY_ACN_LABEL}). The SVI is NOT a financial valuation or investment recommendation. BlockID does not hold an AFSL. Seek independent professional advice. Prices in AUD inc. GST.</p>
+          <p style="margin:0;color:#4b5563;font-size:10px;line-height:1.4;">This analysis is produced by BlockID.au (${LEGAL_ENTITY.operator}, ${LEGAL_ENTITY_ACN_LABEL}). The SVI is NOT a financial valuation or investment recommendation. BlockID does not hold an AFSL. Seek independent professional advice. Prices in AUD inc. GST.</p>
           ${resellerFooter}
         </td></tr>
       </table>
@@ -1283,7 +1286,7 @@ export async function sendWholesaleWelcome(args: {
   });
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const lang = args.locale === "vi" ? "vi" : "en";
-  const html = `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(subject)}</title></head><body style="margin:0;padding:24px;background:#F1F5F9;color:#0F172A;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;"><div style="max-width:560px;margin:0 auto;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:32px;">${body}</div>${unsubFooter(unsubscribeUrl, preferencesUrl, args.locale)}</body></html>`;
+  const html = `<!doctype html><html lang="${lang}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(subject)}</title></head><body style="margin:0;padding:24px;background:#eef0f5;color:#0b0f1a;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;"><div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;padding:32px;">${body}</div>${unsubFooter(unsubscribeUrl, preferencesUrl, args.locale)}</body></html>`;
   return sendEmail({ to: args.to, subject, html, unsubscribeUrl });
 }
 
@@ -1309,24 +1312,24 @@ export async function sendPasswordReset(args: {
     : "BlockID — Reset Your Password";
 
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${isVi ? "Dat Lai Mat Khau" : "Password Reset"}</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${isVi
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">${isVi ? "Dat Lai Mat Khau" : "Password Reset"}</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">${isVi
     ? `Nhan nut ben duoi de chon mat khau moi cho ${escapeHtml(args.to)}. Lien ket chi su dung mot lan va het han trong ${ttl} phut. Mat khau hien tai cua ban van hoat dong cho den khi ban doi.`
     : `Click the button below to choose a new password for ${escapeHtml(args.to)}. The link is single-use and expires in ${ttl} minutes. Your current password keeps working until you change it.`
   }</p>
           <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${resetUrl}" style="display:inline-block;background:#2563EB;color:#FFFFFF;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${isVi ? "Chon Mat Khau Moi" : "Choose a new password"}</a>
+            <a href="${resetUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${isVi ? "Chon Mat Khau Moi" : "Choose a new password"}</a>
           </p>
-          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">${isVi ? "Hoac dan lien ket nay" : "Or paste this URL"}</p>
-          <p style="margin:0 0 24px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#94A3B8;word-break:break-all;">${resetUrl}</p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:0 0 16px 0;">
-          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
-          <p style="margin:0;color:#64748B;font-size:11px;line-height:1.5;">${isVi
+          <p style="margin:0 0 8px 0;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">${isVi ? "Hoac dan lien ket nay" : "Or paste this URL"}</p>
+          <p style="margin:0 0 24px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#4b5563;word-break:break-all;">${resetUrl}</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:0 0 16px 0;">
+          <p style="margin:0 0 8px 0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0;color:#6b7280;font-size:11px;line-height:1.5;">${isVi
     ? `Neu ban khong yeu cau dat lai mat khau, hay bo qua email nay — khong co gi thay doi. Thac mac: ${ADMIN_EMAIL}.`
     : `If you didn't request this password reset, ignore this email — nothing has changed. Questions: ${ADMIN_EMAIL}.`
   }</p>
@@ -1355,36 +1358,36 @@ export async function sendFarewellEmail(args: {
     : "Goodbye from BlockID — We'll always be here";
 
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${isVi ? "Cam on ban da dong hanh" : "Thank you for being with us"}</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${isVi
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">${isVi ? "Cam on ban da dong hanh" : "Thank you for being with us"}</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">${isVi
     ? "Ban da huy dang ky nhan email tu BlockID. Chung toi ton trong quyet dinh cua ban."
     : "You've unsubscribed from BlockID emails. We respect your decision and hope we added value to your startup journey."
   }</p>
 
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 24px 0;">
-            <p style="margin:0 0 12px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;font-weight:500;">${isVi ? "Nhung dieu ban nen biet" : "A few things to know"}</p>
-            <p style="margin:0 0 8px 0;color:#CBD5E1;font-size:13px;line-height:1.6;">${isVi ? "&#10003; Tai khoan va du lieu cua ban van duoc bao toan" : "&#10003; Your account and all data remain safely stored"}</p>
-            <p style="margin:0 0 8px 0;color:#CBD5E1;font-size:13px;line-height:1.6;">${isVi ? "&#10003; Ban van co the dang nhap va su dung BlockID bat cu luc nao" : "&#10003; You can sign in and use BlockID anytime"}</p>
-            <p style="margin:0 0 0 0;color:#CBD5E1;font-size:13px;line-height:1.6;">${isVi ? "&#10003; Ban chi nhan email giao dich (hoa don)" : "&#10003; You'll only receive transactional emails (receipts)"}</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 24px 0;">
+            <p style="margin:0 0 12px 0;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;font-weight:500;">${isVi ? "Nhung dieu ban nen biet" : "A few things to know"}</p>
+            <p style="margin:0 0 8px 0;color:#1f2937;font-size:13px;line-height:1.6;">${isVi ? "&#10003; Tai khoan va du lieu cua ban van duoc bao toan" : "&#10003; Your account and all data remain safely stored"}</p>
+            <p style="margin:0 0 8px 0;color:#1f2937;font-size:13px;line-height:1.6;">${isVi ? "&#10003; Ban van co the dang nhap va su dung BlockID bat cu luc nao" : "&#10003; You can sign in and use BlockID anytime"}</p>
+            <p style="margin:0 0 0 0;color:#1f2937;font-size:13px;line-height:1.6;">${isVi ? "&#10003; Ban chi nhan email giao dich (hoa don)" : "&#10003; You'll only receive transactional emails (receipts)"}</p>
           </div>
 
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">${isVi
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:14px;line-height:1.6;">${isVi
     ? "Neu ban doi y, ban co the dang ky lai bat cu luc nao:"
     : "If you change your mind, you can resubscribe anytime:"
   }</p>
 
           <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${homeUrl}/auth/login" style="display:inline-block;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:14px;">${isVi ? "Quay lai BlockID" : "Return to BlockID"}</a>
+            <a href="${homeUrl}/auth/login" style="display:inline-block;background:#eef0f5;color:#0b0f1a;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:14px;">${isVi ? "Quay lai BlockID" : "Return to BlockID"}</a>
           </p>
 
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
-          <p style="margin:0;color:#475569;font-size:10px;line-height:1.4;">${isVi
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0 0 8px 0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0;color:#4b5563;font-size:10px;line-height:1.4;">${isVi
     ? "Day la email cuoi cung ban se nhan tu BlockID. Chuc ban thanh cong."
     : "This is the last email you'll receive from us. We wish you every success with your startup."
   }</p>
@@ -1405,20 +1408,20 @@ export async function sendSVIShare(args: { to: string; senderName?: string | nul
   const reportUrl = `${siteUrl()}/s/${args.slug}`;
   const sender = args.senderName || "A founder";
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Shared Report</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(sender)} shared a Startup Value Report with you</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">You have been invited to view a BlockID Startup Value Index report. Click below to see the full analysis.</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
-            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:#3B7DD8;line-height:1;">${args.svi}</div>
-            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">SVI Score</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — Shared Report</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">${escapeHtml(sender)} shared a Startup Value Report with you</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">You have been invited to view a BlockID Startup Value Index report. Click below to see the full analysis.</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:#1B2A5E;line-height:1;">${args.svi}</div>
+            <p style="margin:8px 0 0 0;color:#4b5563;font-size:13px;">SVI Score</p>
           </div>
-          <p style="margin:0 0 24px 0;text-align:center;"><a href="${reportUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Full Report</a></p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${reportUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Full Report</a></p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -1433,16 +1436,16 @@ export async function sendAnalysisPurchaseConfirmation(args: { to: string }): Pr
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const homeUrl = siteUrl();
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Purchase Confirmed</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your SVI Analysis Credit Has Been Added</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Thank you for your purchase. Your analysis credit is ready to use. Return to BlockID to run your analysis.</p>
-          <p style="margin:0 0 24px 0;text-align:center;"><a href="${homeUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:16px;">Run Your Analysis</a></p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — Purchase Confirmed</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">Your SVI Analysis Credit Has Been Added</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Thank you for your purchase. Your analysis credit is ready to use. Return to BlockID to run your analysis.</p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${homeUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:16px;">Run Your Analysis</a></p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -1457,20 +1460,20 @@ export async function sendCreditPurchaseConfirmation(args: { to: string; credits
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const billingUrl = `${siteUrl()}/workspace/billing#credits`;
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Credits Added</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your Credits Have Been Added</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Thank you for your purchase. Your credit pack has been applied to your account.</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
-            <p style="margin:0 0 4px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Credits added</p>
-            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:600;color:#3B7DD8;line-height:1;">+${args.credits}</div>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — Credits Added</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">Your Credits Have Been Added</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Thank you for your purchase. Your credit pack has been applied to your account.</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
+            <p style="margin:0 0 4px 0;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Credits added</p>
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:600;color:#1B2A5E;line-height:1;">+${args.credits}</div>
           </div>
-          <p style="margin:0 0 24px 0;text-align:center;"><a href="${billingUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Your Credits</a></p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${billingUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Your Credits</a></p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -1485,21 +1488,21 @@ export async function sendSubscriptionCancelled(args: { to: string }): Promise<S
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const pricingUrl = `${siteUrl()}/#pricing`;
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your Subscription Has Ended</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your subscription has been cancelled and your account has been downgraded to the free plan. You can resubscribe at any time to regain access to all features.</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
-            <p style="margin:0 0 8px 0;color:#94A3B8;font-size:14px;">Use code</p>
-            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:32px;font-weight:600;color:#3B7DD8;line-height:1;letter-spacing:0.05em;">COMEBACK30</div>
-            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:14px;">for 30% off your next subscription</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">Your Subscription Has Ended</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Your subscription has been cancelled and your account has been downgraded to the free plan. You can resubscribe at any time to regain access to all features.</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
+            <p style="margin:0 0 8px 0;color:#4b5563;font-size:14px;">Use code</p>
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:32px;font-weight:600;color:#1B2A5E;line-height:1;letter-spacing:0.05em;">COMEBACK30</div>
+            <p style="margin:8px 0 0 0;color:#4b5563;font-size:14px;">for 30% off your next subscription</p>
           </div>
-          <p style="margin:0 0 24px 0;text-align:center;"><a href="${pricingUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Resubscribe with 30% Off</a></p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${pricingUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Resubscribe with 30% Off</a></p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -1515,26 +1518,26 @@ export async function sendPaymentConfirmation(args: { to: string; planName: stri
   const dashUrl = `${siteUrl()}/workspace/score`;
   const sviUrl = `${siteUrl()}/#svi`;
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Payment Confirmed</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your Account is Active</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your <strong style="color:#F8FAFC;">${escapeHtml(args.planName)}</strong> plan is now active. You have full access to your BlockID dashboard, SVI scoring, and all included features.</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
-            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:600;color:#3B7DD8;line-height:1;">SVI</div>
-            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">Run your first Startup Value Index analysis</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — Payment Confirmed</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">Your Account is Active</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Your <strong style="color:#0b0f1a;">${escapeHtml(args.planName)}</strong> plan is now active. You have full access to your BlockID dashboard, SVI scoring, and all included features.</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:600;color:#1B2A5E;line-height:1;">SVI</div>
+            <p style="margin:8px 0 0 0;color:#4b5563;font-size:13px;">Run your first Startup Value Index analysis</p>
           </div>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
             <tr>
-              <td width="48%" style="text-align:center;padding:4px;"><a href="${dashUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">Open Dashboard</a></td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${dashUrl}" style="display:inline-block;width:100%;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">Open Dashboard</a></td>
               <td width="4%"></td>
-              <td width="48%" style="text-align:center;padding:4px;"><a href="${sviUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">Get SVI Score</a></td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${sviUrl}" style="display:inline-block;width:100%;background:#eef0f5;color:#0b0f1a;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">Get SVI Score</a></td>
             </tr>
           </table>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -1552,28 +1555,28 @@ export async function sendPaymentConfirmation(args: { to: string; planName: stri
 export async function sendPaymentLink(args: { to: string; name: string; checkoutUrl: string; finalPrice: number; features: string[] }): Promise<SendResult> {
   if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
-  const featuresHtml = args.features.map((f) => `<tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(f)}</td></tr>`).join("");
+  const featuresHtml = args.features.map((f) => `<tr><td style="padding:4px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#0b0f1a;font-size:14px;">${escapeHtml(f)}</td></tr>`).join("");
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Payment link</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Complete Your BlockID Payment</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Hi ${escapeHtml(args.name)}, your price is reserved for 24 hours. Click below to complete payment and activate your account.</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
-            <p style="margin:0 0 4px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Total due</p>
-            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:600;color:#3B7DD8;line-height:1;">$${args.finalPrice}</div>
-            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">AUD — one-time payment</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — Payment link</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">Complete Your BlockID Payment</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Hi ${escapeHtml(args.name)}, your price is reserved for 24 hours. Click below to complete payment and activate your account.</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
+            <p style="margin:0 0 4px 0;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Total due</p>
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:600;color:#1B2A5E;line-height:1;">$${args.finalPrice}</div>
+            <p style="margin:8px 0 0 0;color:#4b5563;font-size:13px;">AUD — one-time payment</p>
           </div>
-          <p style="margin:0 0 24px 0;text-align:center;"><a href="${args.checkoutUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:16px;">Complete Payment</a></p>
-          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">What you get</p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${args.checkoutUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:14px 32px;border-radius:10px;font-size:16px;">Complete Payment</a></p>
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">What you get</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">${featuresHtml}</table>
-          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Or paste this URL</p>
-          <p style="margin:0 0 24px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#94A3B8;word-break:break-all;">${args.checkoutUrl}</p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;line-height:1.6;">This link expires in 24 hours. If you have questions, reply to this email.</p>
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0 0 8px 0;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Or paste this URL</p>
+          <p style="margin:0 0 24px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#4b5563;word-break:break-all;">${args.checkoutUrl}</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0 0 8px 0;color:#6b7280;font-size:12px;line-height:1.6;">This link expires in 24 hours. If you have questions, reply to this email.</p>
+          <p style="margin:0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -1588,17 +1591,17 @@ export async function sendPaymentFailed(args: { to: string }): Promise<SendResul
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const billingUrl = `${siteUrl()}/dashboard`;
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Action Required</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Payment Failed</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">We were unable to process your latest payment. Please update your payment method to keep your plan active.</p>
-          <p style="margin:0 0 24px 0;text-align:center;"><a href="${billingUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Update Payment Method</a></p>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">If you believe this is an error, please reply to this email and we will investigate.</p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — Action Required</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">Payment Failed</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">We were unable to process your latest payment. Please update your payment method to keep your plan active.</p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${billingUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Update Payment Method</a></p>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:14px;line-height:1.6;">If you believe this is an error, please reply to this email and we will investigate.</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -1632,18 +1635,18 @@ export async function sendTrialChargeWarning(args: {
   const hoursText = `${Math.max(1, Math.round(args.hoursUntilCharge))}`;
   const subject = `Your BlockID trial ends in ${hoursText} hours — you'll be charged ${args.priceDisplay} on ${dateFormatted}`;
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Trial Ending Soon</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your ${escapeHtml(args.planName)} trial ends in ~${hoursText} hours</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">On <strong>${escapeHtml(dateFormatted)}</strong> we will charge <strong>${escapeHtml(args.priceDisplay)}</strong> to the card you added at signup. You'll continue with full access to <strong>${escapeHtml(args.planName)}</strong>.</p>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Not ready? You can cancel anytime — no questions asked — from your billing settings before the charge.</p>
-          <p style="margin:0 0 24px 0;text-align:center;"><a href="${billingUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Manage or Cancel Trial</a></p>
-          <p style="margin:0 0 16px 0;color:#64748B;font-size:12px;line-height:1.6;">This email is not tax, legal or financial advice. All prices are in AUD and inclusive of GST where applicable.</p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — Trial Ending Soon</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">Your ${escapeHtml(args.planName)} trial ends in ~${hoursText} hours</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">On <strong>${escapeHtml(dateFormatted)}</strong> we will charge <strong>${escapeHtml(args.priceDisplay)}</strong> to the card you added at signup. You'll continue with full access to <strong>${escapeHtml(args.planName)}</strong>.</p>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Not ready? You can cancel anytime — no questions asked — from your billing settings before the charge.</p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${billingUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Manage or Cancel Trial</a></p>
+          <p style="margin:0 0 16px 0;color:#6b7280;font-size:12px;line-height:1.6;">This email is not tax, legal or financial advice. All prices are in AUD and inclusive of GST where applicable.</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -1662,20 +1665,20 @@ export async function sendPaymentReceipt(args: { to: string; amountCents: number
   const resellerName = await resolveResellerDisplayNameByEmail(args.to, getSupabaseAdmin());
   const resellerFooter = resellerFooterHtml(resellerName, "en");
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Payment Receipt</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Payment Received</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Thank you for your payment. Here is your receipt.</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
-            <p style="margin:0 0 4px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Amount paid</p>
-            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:36px;font-weight:600;color:#3B7DD8;line-height:1;">${escapeHtml(amountFormatted)}</div>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — Payment Receipt</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">Payment Received</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Thank you for your payment. Here is your receipt.</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
+            <p style="margin:0 0 4px 0;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Amount paid</p>
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:36px;font-weight:600;color:#1B2A5E;line-height:1;">${escapeHtml(amountFormatted)}</div>
           </div>
-          <p style="margin:0 0 24px 0;text-align:center;"><a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Go to Dashboard</a></p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${dashUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Go to Dashboard</a></p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
           ${resellerFooter}
         </td></tr>
       </table>
@@ -1692,22 +1695,22 @@ export async function sendCancellationEmail(args: { to: string; activeUntil: str
   const pricingUrl = `${siteUrl()}/#pricing`;
   const formattedDate = new Date(args.activeUntil).toLocaleDateString("en-AU", { year: "numeric", month: "long", day: "numeric" });
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">We're Sorry to See You Go</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your subscription has been scheduled for cancellation. Your plan will remain active until <strong style="color:#F8FAFC;">${escapeHtml(formattedDate)}</strong>.</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
-            <p style="margin:0 0 8px 0;color:#94A3B8;font-size:14px;">If you change your mind, use code</p>
-            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:32px;font-weight:600;color:#3B7DD8;line-height:1;letter-spacing:0.05em;">COMEBACK30</div>
-            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:14px;">for 30% off your next subscription</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">We're Sorry to See You Go</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Your subscription has been scheduled for cancellation. Your plan will remain active until <strong style="color:#0b0f1a;">${escapeHtml(formattedDate)}</strong>.</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
+            <p style="margin:0 0 8px 0;color:#4b5563;font-size:14px;">If you change your mind, use code</p>
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:32px;font-weight:600;color:#1B2A5E;line-height:1;letter-spacing:0.05em;">COMEBACK30</div>
+            <p style="margin:8px 0 0 0;color:#4b5563;font-size:14px;">for 30% off your next subscription</p>
           </div>
-          <p style="margin:0 0 24px 0;text-align:center;"><a href="${pricingUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Resubscribe with 30% Off</a></p>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">You will continue to have full access until your plan expires. After that, your account will be downgraded to the free tier.</p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${pricingUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Resubscribe with 30% Off</a></p>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:14px;line-height:1.6;">You will continue to have full access until your plan expires. After that, your account will be downgraded to the free tier.</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -1727,34 +1730,34 @@ export async function sendGrowthReport(args: {
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const dashUrl = `${siteUrl()}/admin/growth`;
   const m = args.metrics;
-  const priorityColor: Record<string, string> = { critical: "#F87171", high: "#FBBF24", medium: "#94A3B8" };
+  const priorityColor: Record<string, string> = { critical: EMAIL_THEME.danger, high: EMAIL_THEME.warn, medium: EMAIL_THEME.inkTertiary };
   const metricRows = [
     { label: "Total Users", value: String(m.totalUsers), sub: `+${m.newUsersWeek} this week` },
     { label: "SVI Analyses", value: String(m.sviWeek), sub: `${m.sviToday} today` },
     { label: "Leads Captured", value: String(m.leadsWeek), sub: `${m.leadsToday} today` },
     { label: "Paying Users", value: String(m.payingUsers), sub: `of ${m.totalAccounts} accounts` },
     { label: "Avg SVI Score", value: String(m.avgSVI), sub: `${m.avgDelta >= 0 ? "+" : ""}${m.avgDelta} avg delta` },
-  ].map((r) => `<tr><td style="padding:8px 12px;color:#94A3B8;font-size:13px;border-bottom:1px solid #1F2A44;">${escapeHtml(r.label)}</td><td style="padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:#F8FAFC;text-align:right;border-bottom:1px solid #1F2A44;">${escapeHtml(r.value)}</td><td style="padding:8px 12px;color:#64748B;font-size:12px;text-align:right;border-bottom:1px solid #1F2A44;">${escapeHtml(r.sub)}</td></tr>`).join("");
-  const conversionRows = [{ label: "Signup Rate", value: `${m.signupRate}%` }, { label: "Payment Rate", value: `${m.paymentRate}%` }].map((r) => `<tr><td style="padding:6px 12px;color:#94A3B8;font-size:13px;">${escapeHtml(r.label)}</td><td style="padding:6px 12px;font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#3B7DD8;text-align:right;">${escapeHtml(r.value)}</td></tr>`).join("");
-  const dropOffHtml = m.biggestDropOff ? `<p style="margin:16px 0 0 0;color:#F87171;font-size:13px;">Biggest drop-off: <strong style="color:#F8FAFC;">${escapeHtml(m.biggestDropOff)}</strong> (${m.dropOffRate}%)</p>` : "";
-  const recRows = args.recommendations.map((r) => `<tr><td style="padding:8px 12px;vertical-align:top;width:70px;border-bottom:1px solid #1F2A44;"><span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#0B1220;background:${priorityColor[r.priority] ?? "#94A3B8"};">${escapeHtml(r.priority)}</span></td><td style="padding:8px 12px;border-bottom:1px solid #1F2A44;"><p style="margin:0 0 4px 0;color:#F8FAFC;font-size:14px;font-weight:600;">${escapeHtml(r.title)}</p><p style="margin:0 0 4px 0;color:#94A3B8;font-size:13px;line-height:1.5;">${escapeHtml(r.detail)}</p><p style="margin:0;color:#4ADE80;font-size:12px;">Impact: ${escapeHtml(r.impact)}</p></td></tr>`).join("");
+  ].map((r) => `<tr><td style="padding:8px 12px;color:#4b5563;font-size:13px;border-bottom:1px solid #e5e7eb;">${escapeHtml(r.label)}</td><td style="padding:8px 12px;font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;color:#0b0f1a;text-align:right;border-bottom:1px solid #e5e7eb;">${escapeHtml(r.value)}</td><td style="padding:8px 12px;color:#6b7280;font-size:12px;text-align:right;border-bottom:1px solid #e5e7eb;">${escapeHtml(r.sub)}</td></tr>`).join("");
+  const conversionRows = [{ label: "Signup Rate", value: `${m.signupRate}%` }, { label: "Payment Rate", value: `${m.paymentRate}%` }].map((r) => `<tr><td style="padding:6px 12px;color:#4b5563;font-size:13px;">${escapeHtml(r.label)}</td><td style="padding:6px 12px;font-family:'IBM Plex Mono',monospace;font-size:15px;font-weight:600;color:#1B2A5E;text-align:right;">${escapeHtml(r.value)}</td></tr>`).join("");
+  const dropOffHtml = m.biggestDropOff ? `<p style="margin:16px 0 0 0;color:#b91c1c;font-size:13px;">Biggest drop-off: <strong style="color:#0b0f1a;">${escapeHtml(m.biggestDropOff)}</strong> (${m.dropOffRate}%)</p>` : "";
+  const recRows = args.recommendations.map((r) => `<tr><td style="padding:8px 12px;vertical-align:top;width:70px;border-bottom:1px solid #e5e7eb;"><span style="display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:#ffffff;background:${priorityColor[r.priority] ?? EMAIL_THEME.inkTertiary};">${escapeHtml(r.priority)}</span></td><td style="padding:8px 12px;border-bottom:1px solid #e5e7eb;"><p style="margin:0 0 4px 0;color:#0b0f1a;font-size:14px;font-weight:600;">${escapeHtml(r.title)}</p><p style="margin:0 0 4px 0;color:#4b5563;font-size:13px;line-height:1.5;">${escapeHtml(r.detail)}</p><p style="margin:0;color:#047857;font-size:12px;">Impact: ${escapeHtml(r.impact)}</p></td></tr>`).join("");
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Growth Report</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Daily Growth Summary</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${escapeHtml(args.date)}</p>
-          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Key Metrics</p>
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;margin:0 0 24px 0;">${metricRows}</table>
-          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Conversion Rates</p>
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;margin:0 0 8px 0;">${conversionRows}</table>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — Growth Report</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">Daily Growth Summary</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">${escapeHtml(args.date)}</p>
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Key Metrics</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;margin:0 0 24px 0;">${metricRows}</table>
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Conversion Rates</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;margin:0 0 8px 0;">${conversionRows}</table>
           ${dropOffHtml}
-          ${args.recommendations.length > 0 ? `<p style="margin:24px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">AI Recommendations</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;margin:0 0 24px 0;">${recRows}</table>` : ""}
-          <p style="margin:24px 0 0 0;text-align:center;"><a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Growth Dashboard</a></p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          ${args.recommendations.length > 0 ? `<p style="margin:24px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">AI Recommendations</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;margin:0 0 24px 0;">${recRows}</table>` : ""}
+          <p style="margin:24px 0 0 0;text-align:center;"><a href="${dashUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Growth Dashboard</a></p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -1775,43 +1778,43 @@ export async function sendSVIReview(args: {
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const dashUrl = `${siteUrl()}/workspace/score`;
   const evidenceUrl = `${siteUrl()}/workspace/evidence`;
-  const scoreColor = args.svi >= 140 ? "#4ADE80" : args.svi >= 100 ? "#3B7DD8" : "#FBBF24";
+  const scoreColor = args.svi >= 140 ? EMAIL_THEME.success : args.svi >= 100 ? EMAIL_THEME.navy : EMAIL_THEME.warn;
   const stageLabels = ["Concept", "Validated Idea", "MVP", "Early Traction", "Revenue", "Growth", "Scale", "Corporation"];
   const nextStageLabel = stageLabels[Math.min(args.stage + 1, 7)] ?? "Corporation";
-  const winRows = args.wins.map((w) => `<tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(w)}</td></tr>`).join("");
-  const gapRows = args.gaps.map((g) => `<tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(g.label)}<br><span style="color:#94A3B8;font-size:13px;">${escapeHtml(g.action)}</span> <span style="color:#4ADE80;font-size:12px;font-weight:600;">+${g.impact} SVI</span></td></tr>`).join("");
+  const winRows = args.wins.map((w) => `<tr><td style="padding:6px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">${escapeHtml(w)}</td></tr>`).join("");
+  const gapRows = args.gaps.map((g) => `<tr><td style="padding:6px 8px;color:#b45309;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">${escapeHtml(g.label)}<br><span style="color:#4b5563;font-size:13px;">${escapeHtml(g.action)}</span> <span style="color:#047857;font-size:12px;font-weight:600;">+${g.impact} SVI</span></td></tr>`).join("");
   const projectedLabel = isVi ? "Diem Du Kien" : "Projected Score";
   const projectedBody = isVi
-    ? `SVI cua ban co the dat <strong style="color:#4ADE80;">${args.projectedSvi}</strong> khi hoan thanh cac hanh dong tren.`
-    : `Your SVI could reach <strong style="color:#4ADE80;">${args.projectedSvi}</strong> by completing the actions above.`;
+    ? `SVI cua ban co the dat <strong style="color:#047857;">${args.projectedSvi}</strong> khi hoan thanh cac hanh dong tren.`
+    : `Your SVI could reach <strong style="color:#047857;">${args.projectedSvi}</strong> by completing the actions above.`;
   const currentLabel = isVi ? "Hien tai" : "Current";
   const targetLabel = isVi ? "Muc tieu" : "Target";
-  const projectedHtml = args.projectedSvi > args.svi ? `<div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 24px 0;"><p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${projectedLabel}</p><p style="margin:0 0 12px 0;color:#F8FAFC;font-size:15px;">${projectedBody}</p><div style="background:#1F2A44;border-radius:6px;height:8px;overflow:hidden;"><div style="background:linear-gradient(90deg,#3B7DD8,#4ADE80);height:100%;width:${Math.min(100, Math.round((args.svi / Math.max(args.projectedSvi, 1)) * 100))}%;border-radius:6px;"></div></div><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 0 0;"><tr><td style="color:#94A3B8;font-size:11px;">${currentLabel}: ${args.svi}</td><td style="color:#4ADE80;font-size:11px;text-align:right;">${targetLabel}: ${args.projectedSvi} (+${args.projectedSvi - args.svi})</td></tr></table></div>` : "";
+  const projectedHtml = args.projectedSvi > args.svi ? `<div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:0 0 24px 0;"><p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">${projectedLabel}</p><p style="margin:0 0 12px 0;color:#0b0f1a;font-size:15px;">${projectedBody}</p><div style="background:#eef0f5;border-radius:6px;height:8px;overflow:hidden;"><div style="background:linear-gradient(90deg,#1B2A5E,#047857);height:100%;width:${Math.min(100, Math.round((args.svi / Math.max(args.projectedSvi, 1)) * 100))}%;border-radius:6px;"></div></div><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 0 0;"><tr><td style="color:#4b5563;font-size:11px;">${currentLabel}: ${args.svi}</td><td style="color:#047857;font-size:11px;text-align:right;">${targetLabel}: ${args.projectedSvi} (+${args.projectedSvi - args.svi})</td></tr></table></div>` : "";
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — ${isVi ? `Danh Gia Tuan ${args.weekNum}` : `Week ${args.weekNum} Review`}</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${isVi ? `Danh Gia SVI Hang Tuan${args.name ? `, ${escapeHtml(args.name)}` : ""}` : `Your Weekly SVI Review${args.name ? `, ${escapeHtml(args.name)}` : ""}`}</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${isVi ? "Day la ban danh gia Chi So Gia Tri Startup ca nhan cua ban voi cac hanh dong cu the de tang diem." : "Here is your personalised Startup Value Index review with specific actions to grow your score."}</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — ${isVi ? `Danh Gia Tuan ${args.weekNum}` : `Week ${args.weekNum} Review`}</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">${isVi ? `Danh Gia SVI Hang Tuan${args.name ? `, ${escapeHtml(args.name)}` : ""}` : `Your Weekly SVI Review${args.name ? `, ${escapeHtml(args.name)}` : ""}`}</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">${isVi ? "Day la ban danh gia Chi So Gia Tri Startup ca nhan cua ban voi cac hanh dong cu the de tang diem." : "Here is your personalised Startup Value Index review with specific actions to grow your score."}</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
             <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:${scoreColor};line-height:1;">${args.svi}</div>
-            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">${isVi ? "Diem SVI" : "SVI Score"} — ${escapeHtml(args.stageLabel)} Stage</p>
-            <p style="margin:4px 0 0 0;color:#64748B;font-size:12px;">${isVi ? "Giai doan tiep theo" : "Next stage"}: ${escapeHtml(nextStageLabel)}</p>
+            <p style="margin:8px 0 0 0;color:#4b5563;font-size:13px;">${isVi ? "Diem SVI" : "SVI Score"} — ${escapeHtml(args.stageLabel)} Stage</p>
+            <p style="margin:4px 0 0 0;color:#6b7280;font-size:12px;">${isVi ? "Giai doan tiep theo" : "Next stage"}: ${escapeHtml(nextStageLabel)}</p>
           </div>
-          ${args.wins.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${isVi ? "Diem Manh Hang Dau" : "Top Strengths"}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${winRows}</table>` : ""}
-          ${args.gaps.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${isVi ? "Hanh Dong Uu Tien" : "Priority Actions"}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${gapRows}</table>` : ""}
+          ${args.wins.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">${isVi ? "Diem Manh Hang Dau" : "Top Strengths"}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${winRows}</table>` : ""}
+          ${args.gaps.length > 0 ? `<p style="margin:16px 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">${isVi ? "Hanh Dong Uu Tien" : "Priority Actions"}</p><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">${gapRows}</table>` : ""}
           ${projectedHtml}
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0 0 0;">
             <tr>
-              <td width="48%" style="text-align:center;padding:4px;"><a href="${evidenceUrl}" style="display:inline-block;width:100%;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${isVi ? "Tai Len Bang Chung" : "Upload Evidence"}</a></td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${evidenceUrl}" style="display:inline-block;width:100%;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${isVi ? "Tai Len Bang Chung" : "Upload Evidence"}</a></td>
               <td width="4%"></td>
-              <td width="48%" style="text-align:center;padding:4px;"><a href="${dashUrl}" style="display:inline-block;width:100%;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${isVi ? "Xem Bang Dieu Khien" : "View Dashboard"}</a></td>
+              <td width="48%" style="text-align:center;padding:4px;"><a href="${dashUrl}" style="display:inline-block;width:100%;background:#eef0f5;color:#0b0f1a;font-weight:600;text-decoration:none;padding:12px 0;border-radius:10px;font-size:14px;">${isVi ? "Xem Bang Dieu Khien" : "View Dashboard"}</a></td>
             </tr>
           </table>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -1830,21 +1833,21 @@ export async function sendMilestoneEmail(args: { to: string; name?: string | nul
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const dashUrl = `${siteUrl()}/workspace/score`;
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Milestone</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(args.badgeLabel)}</h1>
-          ${args.name ? `<p style="margin:0 0 16px 0;color:#94A3B8;font-size:15px;">Congratulations, ${escapeHtml(args.name)}.</p>` : ""}
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:32px;text-align:center;margin:0 0 24px 0;">
-            <div style="display:inline-block;width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#3B7DD8,#4ADE80);line-height:80px;margin:0 0 16px 0;"><span style="font-size:36px;color:#0B1220;font-weight:700;">&#9733;</span></div>
-            <p style="margin:0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:16px;font-weight:600;color:#4ADE80;text-transform:uppercase;letter-spacing:0.1em;">${escapeHtml(args.badge.replace(/_/g, " "))}</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — Milestone</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">${escapeHtml(args.badgeLabel)}</h1>
+          ${args.name ? `<p style="margin:0 0 16px 0;color:#4b5563;font-size:15px;">Congratulations, ${escapeHtml(args.name)}.</p>` : ""}
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:32px;text-align:center;margin:0 0 24px 0;">
+            <div style="display:inline-block;width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,#1B2A5E,#047857);line-height:80px;margin:0 0 16px 0;"><span style="font-size:36px;color:#ffffff;font-weight:700;">&#9733;</span></div>
+            <p style="margin:0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:16px;font-weight:600;color:#047857;text-transform:uppercase;letter-spacing:0.1em;">${escapeHtml(args.badge.replace(/_/g, " "))}</p>
           </div>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${escapeHtml(args.message)}</p>
-          <p style="margin:0 0 24px 0;text-align:center;"><a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Your Dashboard</a></p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">${escapeHtml(args.message)}</p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${dashUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Your Dashboard</a></p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -1867,19 +1870,19 @@ function nurturePx(to: string, type: string): string {
 
 function nurtureCard(args: { tagline: string; headline: string; body: string; ctaLabel: string; ctaUrl: string; footer?: string; extra?: string }): string {
   return `
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">${escapeHtml(args.tagline)}</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${escapeHtml(args.headline)}</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${args.body}</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">${escapeHtml(args.tagline)}</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">${escapeHtml(args.headline)}</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">${args.body}</p>
           ${args.extra ?? ""}
           <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${args.ctaUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${escapeHtml(args.ctaLabel)}</a>
+            <a href="${args.ctaUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${escapeHtml(args.ctaLabel)}</a>
           </p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">${args.footer ?? "BlockID.au — Valuation. Ownership. Growth."}</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;">${args.footer ?? "BlockID.au — Valuation. Ownership. Growth."}</p>
         </td></tr>
       </table>
     </td></tr>
@@ -1903,13 +1906,13 @@ export async function sendNurtureFreeDay2(args: NurtureArgs): Promise<SendResult
     tagline: "BlockID — Boost Your Score",
     headline: "3 Quick Wins to Boost Your Score",
     body: `${greeting} SVI score reflects what we can verify about your startup. The fastest way to lift it by 30+ points? Upload evidence.</p>
-          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Top 3 evidence items to upload</p>
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Top 3 evidence items to upload</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
-            <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>Pitch deck</strong> — validates your narrative, market sizing, and team (+5-10 SVI)</td></tr>
-            <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>GitHub repo</strong> — proves technical execution and commit velocity (+5-10 SVI)</td></tr>
-            <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>Analytics screenshot</strong> — GA4, Mixpanel, or Stripe dashboard showing traction (+10-15 SVI)</td></tr>
+            <tr><td style="padding:6px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;"><strong>Pitch deck</strong> — validates your narrative, market sizing, and team (+5-10 SVI)</td></tr>
+            <tr><td style="padding:6px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;"><strong>GitHub repo</strong> — proves technical execution and commit velocity (+5-10 SVI)</td></tr>
+            <tr><td style="padding:6px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;"><strong>Analytics screenshot</strong> — GA4, Mixpanel, or Stripe dashboard showing traction (+10-15 SVI)</td></tr>
           </table>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Upload your first piece of evidence and watch your score climb.`,
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Upload your first piece of evidence and watch your score climb.`,
     ctaLabel: "Upload Evidence",
     ctaUrl: evidenceUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "free_day2"));
@@ -1930,13 +1933,13 @@ export async function sendNurtureFreeDay4(args: NurtureArgs): Promise<SendResult
     tagline: "BlockID — Equity Checklist",
     headline: "Are You Splitting Equity Fairly?",
     body: `${greeting} equity wrong is the #1 reason co-founder relationships break down. Use our free tools to get it right from day one.</p>
-          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Free equity tools</p>
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Free equity tools</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
-            <tr><td style="padding:8px 12px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#9654;</td><td style="padding:8px 12px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;"><strong>Equity Split Tool</strong> — Model fair splits based on contribution, risk, and commitment.</td></tr>
-            <tr><td style="padding:8px 12px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#9654;</td><td style="padding:8px 12px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;"><strong>Cap Table Builder</strong> — Visualise ownership across founders, advisors, and ESOP.</td></tr>
-            <tr><td style="padding:8px 12px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#9654;</td><td style="padding:8px 12px;color:#F8FAFC;font-size:14px;"><strong>Dilution Calculator</strong> — See how future funding rounds impact your ownership.</td></tr>
+            <tr><td style="padding:8px 12px;color:#1B2A5E;font-size:14px;vertical-align:top;width:20px;">&#9654;</td><td style="padding:8px 12px;color:#0b0f1a;font-size:14px;border-bottom:1px solid #e5e7eb;"><strong>Equity Split Tool</strong> — Model fair splits based on contribution, risk, and commitment.</td></tr>
+            <tr><td style="padding:8px 12px;color:#1B2A5E;font-size:14px;vertical-align:top;width:20px;">&#9654;</td><td style="padding:8px 12px;color:#0b0f1a;font-size:14px;border-bottom:1px solid #e5e7eb;"><strong>Cap Table Builder</strong> — Visualise ownership across founders, advisors, and ESOP.</td></tr>
+            <tr><td style="padding:8px 12px;color:#1B2A5E;font-size:14px;vertical-align:top;width:20px;">&#9654;</td><td style="padding:8px 12px;color:#0b0f1a;font-size:14px;"><strong>Dilution Calculator</strong> — See how future funding rounds impact your ownership.</td></tr>
           </table>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">All three are completely free. No sign-up required.`,
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">All three are completely free. No sign-up required.`,
     ctaLabel: "Split Equity Free",
     ctaUrl: equityUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "free_day4"));
@@ -1955,21 +1958,21 @@ export async function sendNurtureFreeDay7(args: NurtureArgs): Promise<SendResult
     tagline: `BlockID — ${escapeHtml(starter.name)} plan`,
     headline: `${starterCredits} credits a month for ${starterPrice} — ${starter.trial_days}-day free trial`,
     body: `${greeting} have had a week on the free tier. The ${escapeHtml(starter.name)} plan is the rung most Australian founders move to next — it keeps everything you already have and adds the pieces investors ask for.</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
-            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">${escapeHtml(starter.name)} plan includes</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">${escapeHtml(starter.name)} plan includes</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">${starterCredits} AI credits every month — about ${analysesFor(starterCredits)} standard SVI analyses</td></tr>
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Your data room, filling up in the order investors ask</td></tr>
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">A live investor link with NDA click-wrap and watermarked PDFs</td></tr>
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Founder Radar — grant and program deadline alerts</td></tr>
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">${starterPrice} inc. GST — cancel any time from the billing page</td></tr>
+              <tr><td style="padding:4px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#0b0f1a;font-size:14px;">${starterCredits} AI credits every month — about ${analysesFor(starterCredits)} standard SVI analyses</td></tr>
+              <tr><td style="padding:4px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#0b0f1a;font-size:14px;">Your data room, filling up in the order investors ask</td></tr>
+              <tr><td style="padding:4px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#0b0f1a;font-size:14px;">A live investor link with NDA click-wrap and watermarked PDFs</td></tr>
+              <tr><td style="padding:4px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#0b0f1a;font-size:14px;">Founder Radar — grant and program deadline alerts</td></tr>
+              <tr><td style="padding:4px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#0b0f1a;font-size:14px;">${starterPrice} inc. GST — cancel any time from the billing page</td></tr>
             </table>
           </div>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
-            <p style="margin:0 0 8px 0;color:#F8FAFC;font-size:14px;font-weight:600;">Early-stage SaaS founder, Sydney</p>
-            <p style="margin:0;color:#94A3B8;font-size:13px;line-height:1.6;font-style:italic;">&ldquo;Having a verifiable SVI score made investor conversations start differently. The evidence vault saved me hours of prep for each meeting.&rdquo;</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 8px 0;color:#0b0f1a;font-size:14px;font-weight:600;">Early-stage SaaS founder, Sydney</p>
+            <p style="margin:0;color:#4b5563;font-size:13px;line-height:1.6;font-style:italic;">&ldquo;Having a verifiable SVI score made investor conversations start differently. The evidence vault saved me hours of prep for each meeting.&rdquo;</p>
           </div>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">Start the ${starter.trial_days}-day trial \u2014 you are not charged until it ends, and your free account stays as it is if you cancel.`,
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:14px;line-height:1.6;">Start the ${starter.trial_days}-day trial \u2014 you are not charged until it ends, and your free account stays as it is if you cancel.`,
     ctaLabel: `Start ${starter.trial_days}-day free trial`,
     ctaUrl: starterUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "free_day7"));
@@ -1994,17 +1997,17 @@ export async function sendNurturePaidDay1(args: NurtureArgs): Promise<SendResult
     tagline: "BlockID — Day 1",
     headline: "Your 30-Day Growth Plan Starts Now",
     body: `Welcome aboard${greeting}. Today is Day 1 of your growth plan. Let us start with the single most impactful action: uploading your first piece of evidence.</p>
-          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Step-by-step guide</p>
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Step-by-step guide</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">
-            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:24px;font-weight:600;">1.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Go to <strong>Workspace &rarr; Evidence</strong></td></tr>
-            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:24px;font-weight:600;">2.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Click <strong>Upload</strong> and select a file (pitch deck, financials, or analytics screenshot)</td></tr>
-            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:24px;font-weight:600;">3.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Our AI verifies and scores it automatically</td></tr>
+            <tr><td style="padding:6px 8px;color:#1B2A5E;font-size:14px;vertical-align:top;width:24px;font-weight:600;">1.</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">Go to <strong>Workspace &rarr; Evidence</strong></td></tr>
+            <tr><td style="padding:6px 8px;color:#1B2A5E;font-size:14px;vertical-align:top;width:24px;font-weight:600;">2.</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">Click <strong>Upload</strong> and select a file (pitch deck, financials, or analytics screenshot)</td></tr>
+            <tr><td style="padding:6px 8px;color:#1B2A5E;font-size:14px;vertical-align:top;width:24px;font-weight:600;">3.</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">Our AI verifies and scores it automatically</td></tr>
           </table>
-          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Connect GitHub (optional)</p>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">If you have a GitHub repo, connect it from the Evidence page to automatically verify your technical execution and commit velocity.`,
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Connect GitHub (optional)</p>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:14px;line-height:1.6;">If you have a GitHub repo, connect it from the Evidence page to automatically verify your technical execution and commit velocity.`,
     ctaLabel: "Start Your Growth Plan",
     ctaUrl: roadmapUrl,
-    extra: `<p style="margin:0 0 16px 0;text-align:center;"><a href="${evidenceUrl}" style="color:#3B7DD8;font-size:13px;text-decoration:underline;">Or go straight to Evidence Upload</a></p>`,
+    extra: `<p style="margin:0 0 16px 0;text-align:center;"><a href="${evidenceUrl}" style="color:#1B2A5E;font-size:13px;text-decoration:underline;">Or go straight to Evidence Upload</a></p>`,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "paid_day1"));
   return sendEmail({ to: args.to, subject: "Day 1: Upload your first piece of evidence", html, unsubscribeUrl });
 }
@@ -2018,16 +2021,16 @@ export async function sendNurturePaidDay3(args: NurtureArgs): Promise<SendResult
     tagline: "BlockID — Equity Setup",
     headline: "Build Your Cap Table in 5 Minutes",
     body: `${greeting} equity structure is one of the first things investors check. The Equity Setup Wizard walks you through it in 6 simple steps.</p>
-          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">6-step Equity Setup Wizard</p>
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">6-step Equity Setup Wizard</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
-            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:24px;font-weight:600;">1.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Add founders and their contribution type</td></tr>
-            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:24px;font-weight:600;">2.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Set initial equity splits</td></tr>
-            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:24px;font-weight:600;">3.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Configure vesting schedules</td></tr>
-            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:24px;font-weight:600;">4.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Allocate advisor and ESOP pools</td></tr>
-            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:24px;font-weight:600;">5.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Preview dilution from future funding rounds</td></tr>
-            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:24px;font-weight:600;">6.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Export your cap table as PDF</td></tr>
+            <tr><td style="padding:6px 8px;color:#1B2A5E;font-size:14px;vertical-align:top;width:24px;font-weight:600;">1.</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">Add founders and their contribution type</td></tr>
+            <tr><td style="padding:6px 8px;color:#1B2A5E;font-size:14px;vertical-align:top;width:24px;font-weight:600;">2.</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">Set initial equity splits</td></tr>
+            <tr><td style="padding:6px 8px;color:#1B2A5E;font-size:14px;vertical-align:top;width:24px;font-weight:600;">3.</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">Configure vesting schedules</td></tr>
+            <tr><td style="padding:6px 8px;color:#1B2A5E;font-size:14px;vertical-align:top;width:24px;font-weight:600;">4.</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">Allocate advisor and ESOP pools</td></tr>
+            <tr><td style="padding:6px 8px;color:#1B2A5E;font-size:14px;vertical-align:top;width:24px;font-weight:600;">5.</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">Preview dilution from future funding rounds</td></tr>
+            <tr><td style="padding:6px 8px;color:#1B2A5E;font-size:14px;vertical-align:top;width:24px;font-weight:600;">6.</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">Export your cap table as PDF</td></tr>
           </table>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">A well-structured cap table lifts your SVI and makes due diligence faster for investors.`,
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">A well-structured cap table lifts your SVI and makes due diligence faster for investors.`,
     ctaLabel: "Set Up Equity",
     ctaUrl: equityUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "paid_day3"));
@@ -2040,9 +2043,9 @@ export async function sendNurturePaidDay7(args: NurtureArgs): Promise<SendResult
   const dashUrl = `${siteUrl()}/workspace/score`;
   const greeting = args.name ? `, ${escapeHtml(args.name!)}` : "";
   const sviBlock = args.svi ? `
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
-            <p style="margin:0 0 4px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Current SVI</p>
-            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:56px;font-weight:600;color:#3B7DD8;line-height:1;">${args.svi}</div>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
+            <p style="margin:0 0 4px 0;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Current SVI</p>
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:56px;font-weight:600;color:#1B2A5E;line-height:1;">${args.svi}</div>
           </div>` : "";
   const html = shell(nurtureCard({
     tagline: "BlockID — Week 1 Progress",
@@ -2051,13 +2054,13 @@ export async function sendNurturePaidDay7(args: NurtureArgs): Promise<SendResult
     ctaLabel: "View Dashboard",
     ctaUrl: dashUrl,
     extra: sviBlock + `
-          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">What to focus on next</p>
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">What to focus on next</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
-            <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Review evidence gaps flagged in your SVI report</td></tr>
-            <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Upload fresh evidence to close the top-priority gap</td></tr>
-            <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Share your SVI link with an investor or advisor</td></tr>
+            <tr><td style="padding:6px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">Review evidence gaps flagged in your SVI report</td></tr>
+            <tr><td style="padding:6px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">Upload fresh evidence to close the top-priority gap</td></tr>
+            <tr><td style="padding:6px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">Share your SVI link with an investor or advisor</td></tr>
           </table>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">Your full weekly SVI report will arrive every 7 days. Each report tracks your score delta, evidence added, and badges earned.`,
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:14px;line-height:1.6;">Your full weekly SVI report will arrive every 7 days. Each report tracks your score delta, evidence added, and badges earned.`,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "paid_day7"));
   return sendEmail({ to: args.to, subject: `Week 1 Progress: SVI ${args.svi ?? ""} \u2014 here\u2019s what changed`.trim(), html, unsubscribeUrl });
 }
@@ -2083,13 +2086,13 @@ export async function sendNurtureReengageDay14(args: NurtureArgs): Promise<SendR
     tagline: "BlockID — We Miss You",
     headline: "Need Help Getting Started?",
     body: `${greeting} noticed you have not been active on BlockID recently. No worries — we are here to help.</p>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">If you are unsure what to do next, try one of these:</p>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">If you are unsure what to do next, try one of these:</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
-            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#8226;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Upload a pitch deck or financial document to improve your SVI</td></tr>
-            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#8226;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Run a fresh SVI analysis to check your current score</td></tr>
-            <tr><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#8226;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Reply to this email with any questions — we read every response</td></tr>
+            <tr><td style="padding:6px 8px;color:#1B2A5E;font-size:14px;vertical-align:top;width:20px;">&#8226;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">Upload a pitch deck or financial document to improve your SVI</td></tr>
+            <tr><td style="padding:6px 8px;color:#1B2A5E;font-size:14px;vertical-align:top;width:20px;">&#8226;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">Run a fresh SVI analysis to check your current score</td></tr>
+            <tr><td style="padding:6px 8px;color:#1B2A5E;font-size:14px;vertical-align:top;width:20px;">&#8226;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">Reply to this email with any questions — we read every response</td></tr>
           </table>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your dashboard is always one click away.`,
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Your dashboard is always one click away.`,
     ctaLabel: "Return to Dashboard",
     ctaUrl: dashUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "reengage_day14"));
@@ -2105,7 +2108,7 @@ export async function sendNurtureReengageDay30(args: NurtureArgs): Promise<SendR
     tagline: "BlockID — Score Update",
     headline: "Your SVI May Have Changed",
     body: `${greeting} market, competitors, and fundraising landscape have shifted since your last visit. Your SVI score may no longer reflect your current position.</p>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Run a fresh analysis to see where you stand today. It only takes a minute.`,
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Run a fresh analysis to see where you stand today. It only takes a minute.`,
     ctaLabel: "Check Your Score",
     ctaUrl: sviUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "reengage_day30"));
@@ -2122,23 +2125,23 @@ export async function sendLowCreditAlert(args: { to: string; balance: number }):
   const html = shell(nurtureCard({
     tagline: "BlockID — Credit Alert",
     headline: "Your Credits Are Running Low",
-    body: `Your BlockID credit balance is <strong style="color:#FBBF24;">${escapeHtml(balanceStr)}</strong> credits. Some features require credits to use, including SVI analyses, AI evidence reviews, full reports, and equity recommendations.</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
-            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Features you will lose access to</p>
+    body: `Your BlockID credit balance is <strong style="color:#b45309;">${escapeHtml(balanceStr)}</strong> credits. Some features require credits to use, including SVI analyses, AI evidence reviews, full reports, and equity recommendations.</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Features you will lose access to</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              <tr><td style="padding:4px 8px;color:#F87171;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">SVI Analysis (0.50 credits)</td></tr>
-              <tr><td style="padding:4px 8px;color:#F87171;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">AI Evidence Review (0.10 - 1.50 credits)</td></tr>
-              <tr><td style="padding:4px 8px;color:#F87171;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Full Reports (2.00 - 5.00 credits)</td></tr>
-              <tr><td style="padding:4px 8px;color:#F87171;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">AI Equity Recommendations (0.50 - 1.50 credits)</td></tr>
+              <tr><td style="padding:4px 8px;color:#b91c1c;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:4px 8px;color:#0b0f1a;font-size:14px;">SVI Analysis (0.50 credits)</td></tr>
+              <tr><td style="padding:4px 8px;color:#b91c1c;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:4px 8px;color:#0b0f1a;font-size:14px;">AI Evidence Review (0.10 - 1.50 credits)</td></tr>
+              <tr><td style="padding:4px 8px;color:#b91c1c;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:4px 8px;color:#0b0f1a;font-size:14px;">Full Reports (2.00 - 5.00 credits)</td></tr>
+              <tr><td style="padding:4px 8px;color:#b91c1c;font-size:14px;vertical-align:top;width:20px;">&#9888;</td><td style="padding:4px 8px;color:#0b0f1a;font-size:14px;">AI Equity Recommendations (0.50 - 1.50 credits)</td></tr>
             </table>
           </div>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
-            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Best value credit packs</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Best value credit packs</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
               ${creditPackRowsHtml([creditPack(10), creditPack(25), creditPack(50)])}
             </table>
           </div>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">Free features like evidence upload, investor score, and dilution calculator still work without credits.`,
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:14px;line-height:1.6;">Free features like evidence upload, investor score, and dilution calculator still work without credits.`,
     ctaLabel: "Buy Credits",
     ctaUrl: billingUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "low_credit"));
@@ -2178,34 +2181,34 @@ export async function sendReportDelivery(args: {
   }
 
   const nextActionHtml = nextAction
-    ? `<div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 24px 0;">
-        <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Next Step</p>
-        <p style="margin:0 0 16px 0;color:#94A3B8;font-size:14px;line-height:1.6;">${escapeHtml(nextAction)}</p>
-        <p style="margin:0;text-align:center;"><a href="${nextCtaUrl}" style="display:inline-block;background:#1F2A44;color:#F8FAFC;font-weight:600;text-decoration:none;padding:10px 20px;border-radius:10px;font-size:13px;">${escapeHtml(nextCtaLabel)}</a></p>
+    ? `<div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 24px 0;">
+        <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Next Step</p>
+        <p style="margin:0 0 16px 0;color:#4b5563;font-size:14px;line-height:1.6;">${escapeHtml(nextAction)}</p>
+        <p style="margin:0;text-align:center;"><a href="${nextCtaUrl}" style="display:inline-block;background:#eef0f5;color:#0b0f1a;font-weight:600;text-decoration:none;padding:10px 20px;border-radius:10px;font-size:13px;">${escapeHtml(nextCtaLabel)}</a></p>
       </div>`
     : "";
 
-  const scoreColor = args.sviScore >= 140 ? "#4ADE80" : args.sviScore >= 100 ? "#3B7DD8" : "#FBBF24";
+  const scoreColor = args.sviScore >= 140 ? EMAIL_THEME.success : args.sviScore >= 100 ? EMAIL_THEME.navy : EMAIL_THEME.warn;
   const tierLabel = args.tier === "deep_dive" ? "Deep Dive" : args.tier === "standard" ? "Standard" : args.tier === "preview" ? "Preview" : args.tier.charAt(0).toUpperCase() + args.tier.slice(1);
 
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — ${escapeHtml(tierLabel)} Report</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your SVI Report is Ready</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Your ${escapeHtml(tierLabel)} analysis is complete. Here is your headline score.</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — ${escapeHtml(tierLabel)} Report</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">Your SVI Report is Ready</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Your ${escapeHtml(tierLabel)} analysis is complete. Here is your headline score.</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
             <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:64px;font-weight:600;color:${scoreColor};line-height:1;">${args.sviScore}</div>
-            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">SVI Score — ${escapeHtml(tierLabel)} Report</p>
+            <p style="margin:8px 0 0 0;color:#4b5563;font-size:13px;">SVI Score — ${escapeHtml(tierLabel)} Report</p>
           </div>
           ${nextActionHtml}
           <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${reportUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Report</a>
+            <a href="${reportUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Report</a>
           </p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -2254,25 +2257,25 @@ export async function sendVestingMilestone(args: {
     vesting_complete: `Congratulations, ${escapeHtml(args.shareholderName)}! All ${args.totalShares.toLocaleString()} shares have fully vested. Your equity is now 100% yours.`,
   };
 
-  const scoreColor = args.milestoneType === "vesting_complete" ? "#10B981" : "#3B7DD8";
+  const scoreColor = args.milestoneType === "vesting_complete" ? EMAIL_THEME.success : EMAIL_THEME.navy;
 
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Vesting</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">${headlineMap[args.milestoneType]}</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${bodyMap[args.milestoneType]}</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
-            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:600;color:${scoreColor};line-height:1;">${pct}<span style="color:#64748B;font-size:20px;">%</span></div>
-            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">${Math.round(args.sharesVested).toLocaleString()} / ${args.totalShares.toLocaleString()} shares vested</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — Vesting</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">${headlineMap[args.milestoneType]}</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">${bodyMap[args.milestoneType]}</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:600;color:${scoreColor};line-height:1;">${pct}<span style="color:#6b7280;font-size:20px;">%</span></div>
+            <p style="margin:8px 0 0 0;color:#4b5563;font-size:13px;">${Math.round(args.sharesVested).toLocaleString()} / ${args.totalShares.toLocaleString()} shares vested</p>
           </div>
           <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${dashUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Your Vesting</a>
+            <a href="${dashUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Your Vesting</a>
           </p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">BlockID — Persistent Identity & Trust Infrastructure for Private Capital Markets.</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">BlockID — Persistent Identity & Trust Infrastructure for Private Capital Markets.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -2307,9 +2310,9 @@ export async function sendNurtureFirstReport24h(args: {
   const topGaps = args.evidenceGaps.slice(0, 3);
   const gapRows = topGaps.map((g, i) => `
     <tr>
-      <td style="padding:8px 12px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;font-weight:700;">${i + 1}.</td>
-      <td style="padding:8px 12px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;">
-        <strong>${escapeHtml(g.label)}</strong> — <span style="color:#4ADE80;font-weight:600;">+${g.impact} points</span>
+      <td style="padding:8px 12px;color:#1B2A5E;font-size:14px;vertical-align:top;width:20px;font-weight:700;">${i + 1}.</td>
+      <td style="padding:8px 12px;color:#0b0f1a;font-size:14px;border-bottom:1px solid #e5e7eb;">
+        <strong>${escapeHtml(g.label)}</strong> — <span style="color:#047857;font-weight:600;">+${g.impact} points</span>
       </td>
     </tr>`).join("");
 
@@ -2317,20 +2320,20 @@ export async function sendNurtureFirstReport24h(args: {
     tagline: "BlockID — Your First Report",
     headline: `Your startup scored ${args.svi} — here's how to improve`,
     body: `${greeting} 24 hours ago, you got your first BlockID analysis.</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
-            <p style="margin:0 0 4px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Your SVI Score</p>
-            <p style="margin:0 0 4px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:700;color:#4ADE80;">${args.svi}</p>
-            <p style="margin:0;font-size:14px;color:#94A3B8;">${escapeHtml(args.stageLabel)} Stage</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
+            <p style="margin:0 0 4px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Your SVI Score</p>
+            <p style="margin:0 0 4px 0;font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:700;color:#047857;">${args.svi}</p>
+            <p style="margin:0;font-size:14px;color:#4b5563;">${escapeHtml(args.stageLabel)} Stage</p>
           </div>
-          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Top ${topGaps.length} ways to boost your score</p>
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Top ${topGaps.length} ways to boost your score</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
             ${gapRows}
           </table>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Upload evidence to verify these items and watch your score climb.`,
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Upload evidence to verify these items and watch your score climb.`,
     ctaLabel: "Upload Evidence Now",
     ctaUrl: evidenceUrl,
     extra: `<p style="margin:0 0 24px 0;text-align:center;">
-              <a href="${reportUrl}" style="display:inline-block;background:transparent;color:#3B7DD8;font-weight:600;text-decoration:underline;padding:8px 16px;font-size:14px;">View Your Full Report &rarr;</a>
+              <a href="${reportUrl}" style="display:inline-block;background:transparent;color:#1B2A5E;font-weight:600;text-decoration:underline;padding:8px 16px;font-size:14px;">View Your Full Report &rarr;</a>
             </p>`,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "first_report_24h"));
   return sendEmail({
@@ -2358,22 +2361,22 @@ export async function sendEvidenceScoreBoost(args: {
   const totalPoints = topGaps.reduce((sum, g) => sum + g.impact, 0);
   const gapRows = topGaps.map((g, i) => `
     <tr>
-      <td style="padding:8px 12px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;font-weight:700;">${i + 1}.</td>
-      <td style="padding:8px 12px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;">
-        <strong>${escapeHtml(g.label)}</strong> — <span style="color:#4ADE80;font-weight:600;">+${g.impact} points</span>
+      <td style="padding:8px 12px;color:#1B2A5E;font-size:14px;vertical-align:top;width:20px;font-weight:700;">${i + 1}.</td>
+      <td style="padding:8px 12px;color:#0b0f1a;font-size:14px;border-bottom:1px solid #e5e7eb;">
+        <strong>${escapeHtml(g.label)}</strong> — <span style="color:#047857;font-weight:600;">+${g.impact} points</span>
       </td>
     </tr>`).join("");
 
   const html = shell(nurtureCard({
     tagline: "BlockID — Evidence Boost",
     headline: `Your SVI score could be ${totalPoints}% higher`,
-    body: `${greeting} your startup scored <strong style="color:#4ADE80;">${args.svi}</strong> on the Startup Value Index. But you have not uploaded any evidence yet.</p>
-          <p style="margin:0 0 8px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Evidence is how BlockID verifies your claims. Without it, your score only reflects what we could find publicly. Here are your top gaps:</p>
-          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Top ${topGaps.length} evidence gaps</p>
+    body: `${greeting} your startup scored <strong style="color:#047857;">${args.svi}</strong> on the Startup Value Index. But you have not uploaded any evidence yet.</p>
+          <p style="margin:0 0 8px 0;color:#4b5563;font-size:15px;line-height:1.6;">Evidence is how BlockID verifies your claims. Without it, your score only reflects what we could find publicly. Here are your top gaps:</p>
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Top ${topGaps.length} evidence gaps</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
             ${gapRows}
           </table>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Upload just one document and your score will update automatically.`,
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Upload just one document and your score will update automatically.`,
     ctaLabel: `Upload Evidence Now \u2192 +${totalPoints} points`,
     ctaUrl: evidenceUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "evidence_boost_3d"));
@@ -2401,21 +2404,21 @@ export async function sendUnlockDeeperAnalysis(args: {
     tagline: "BlockID — Full Analysis",
     headline: `What investors will see in your ${escapeHtml(args.stageLabel)} startup`,
     body: `${greeting} free SVI analysis gave you a snapshot. But investors dig deeper. A full analysis unlocks the sections that matter most to them.</p>
-          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Locked in your free report</p>
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Locked in your free report</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
-            <tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;"><strong>Competitor Profiles</strong> — How you compare to similar startups in your market</td></tr>
-            <tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;"><strong>Financial Projections</strong> — Revenue runway, burn rate, and growth trajectory</td></tr>
-            <tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;"><strong>Risk Assessment</strong> — Key risks with severity scoring and mitigation actions</td></tr>
-            <tr><td style="padding:6px 8px;color:#FBBF24;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>Investor Readiness</strong> — What you need before approaching investors</td></tr>
+            <tr><td style="padding:6px 8px;color:#b45309;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;border-bottom:1px solid #e5e7eb;"><strong>Competitor Profiles</strong> — How you compare to similar startups in your market</td></tr>
+            <tr><td style="padding:6px 8px;color:#b45309;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;border-bottom:1px solid #e5e7eb;"><strong>Financial Projections</strong> — Revenue runway, burn rate, and growth trajectory</td></tr>
+            <tr><td style="padding:6px 8px;color:#b45309;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;border-bottom:1px solid #e5e7eb;"><strong>Risk Assessment</strong> — Key risks with severity scoring and mitigation actions</td></tr>
+            <tr><td style="padding:6px 8px;color:#b45309;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;"><strong>Investor Readiness</strong> — What you need before approaching investors</td></tr>
           </table>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
-            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Credit packs</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Credit packs</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              <tr><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;border-bottom:1px solid #1F2A44;">1 Full Analysis (${SVI_ANALYSIS_CREDITS} credits)</td><td style="padding:6px 8px;color:#3B7DD8;font-size:14px;font-weight:600;text-align:right;border-bottom:1px solid #1F2A44;">from ${sviAnalysisFromPriceLabel()}</td></tr>
+              <tr><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;border-bottom:1px solid #e5e7eb;">1 Full Analysis (${SVI_ANALYSIS_CREDITS} credits)</td><td style="padding:6px 8px;color:#1B2A5E;font-size:14px;font-weight:600;text-align:right;border-bottom:1px solid #e5e7eb;">from ${sviAnalysisFromPriceLabel()}</td></tr>
               ${creditPackRowsHtml([creditPack(10), creditPack(50)])}
             </table>
           </div>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">Credits never expire. Use them for analyses, AI evidence reviews, and full reports.`,
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:14px;line-height:1.6;">Credits never expire. Use them for analyses, AI evidence reviews, and full reports.`,
     ctaLabel: `Unlock Full Analysis \u2014 from ${sviAnalysisFromPriceLabel()}`,
     ctaUrl: billingUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "unlock_deeper_7d"));
@@ -2444,14 +2447,14 @@ export async function sendWeeklySVISummary(args: {
   const greeting = args.name ? `Hi ${escapeHtml(args.name!)},` : "Hi,";
 
   const deltaStr = args.delta > 0 ? `+${args.delta}` : args.delta === 0 ? "no change" : `${args.delta}`;
-  const deltaColor = args.delta > 0 ? "#4ADE80" : args.delta === 0 ? "#94A3B8" : "#F87171";
+  const deltaColor = args.delta > 0 ? EMAIL_THEME.success : args.delta === 0 ? EMAIL_THEME.inkTertiary : EMAIL_THEME.danger;
 
   // Build recommended next actions from evidence gaps
   const topGaps = args.evidenceGaps.slice(0, 3);
   const actionRows = topGaps.map((g) => `
     <tr>
-      <td style="padding:6px 8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#8226;</td>
-      <td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">${escapeHtml(g.label)} <span style="color:#4ADE80;font-size:12px;font-weight:600;">(+${g.impact} pts)</span></td>
+      <td style="padding:6px 8px;color:#1B2A5E;font-size:14px;vertical-align:top;width:20px;">&#8226;</td>
+      <td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">${escapeHtml(g.label)} <span style="color:#047857;font-size:12px;font-weight:600;">(+${g.impact} pts)</span></td>
     </tr>`).join("");
 
   const html = shell(nurtureCard({
@@ -2461,24 +2464,24 @@ export async function sendWeeklySVISummary(args: {
     ctaLabel: "View Dashboard",
     ctaUrl: dashUrl,
     extra: `
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
-            <p style="margin:0 0 4px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Current SVI</p>
-            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:56px;font-weight:600;color:#3B7DD8;line-height:1;">${args.svi}</div>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
+            <p style="margin:0 0 4px 0;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Current SVI</p>
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:56px;font-weight:600;color:#1B2A5E;line-height:1;">${args.svi}</div>
             <p style="margin:4px 0 0 0;font-size:14px;color:${deltaColor};font-weight:600;">${deltaStr} this week</p>
           </div>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
-            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">This week</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">This week</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              <tr><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Evidence items uploaded</td><td style="padding:4px 8px;color:#3B7DD8;font-size:14px;font-weight:600;text-align:right;">${args.evidenceCount}</td></tr>
+              <tr><td style="padding:4px 8px;color:#0b0f1a;font-size:14px;">Evidence items uploaded</td><td style="padding:4px 8px;color:#1B2A5E;font-size:14px;font-weight:600;text-align:right;">${args.evidenceCount}</td></tr>
             </table>
           </div>
           ${topGaps.length > 0 ? `
-          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Recommended next actions</p>
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Recommended next actions</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">
             ${actionRows}
           </table>` : ""}
           <p style="margin:0 0 24px 0;text-align:center;">
-            <a href="${evidenceUrl}" style="display:inline-block;background:transparent;color:#3B7DD8;font-weight:600;text-decoration:underline;padding:8px 16px;font-size:14px;">Upload More Evidence</a>
+            <a href="${evidenceUrl}" style="display:inline-block;background:transparent;color:#1B2A5E;font-weight:600;text-decoration:underline;padding:8px 16px;font-size:14px;">Upload More Evidence</a>
           </p>`,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "weekly_summary"));
   return sendEmail({
@@ -2503,33 +2506,33 @@ export async function sendCreditLowAlert(args: {
     : args.currentBalance.toFixed(2);
   const topUp = creditPack(10);
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Credits Running Low</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;letter-spacing:-0.01em;">Your Credits Are Running Low</h1>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">You have <strong style="color:#FBBF24;">${escapeHtml(balanceStr)} credits</strong> remaining. Your next SVI analysis costs ${SVI_ANALYSIS_CREDITS.toFixed(2)} credits, so now is a great time to top up.</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
-            <p style="margin:0 0 4px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Current balance</p>
-            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:600;color:#FBBF24;line-height:1;">${escapeHtml(balanceStr)}</div>
-            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">credits remaining</p>
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — Credits Running Low</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">Your Credits Are Running Low</h1>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">You have <strong style="color:#b45309;">${escapeHtml(balanceStr)} credits</strong> remaining. Your next SVI analysis costs ${SVI_ANALYSIS_CREDITS.toFixed(2)} credits, so now is a great time to top up.</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
+            <p style="margin:0 0 4px 0;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Current balance</p>
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:600;color:#b45309;line-height:1;">${escapeHtml(balanceStr)}</div>
+            <p style="margin:8px 0 0 0;color:#4b5563;font-size:13px;">credits remaining</p>
           </div>
-          <div style="background:#1F2A44;border-radius:12px;padding:20px;text-align:center;margin:0 0 24px 0;">
-            <p style="margin:0 0 4px 0;color:#F8FAFC;font-size:16px;font-weight:600;">Buy ${topUp.credits} credits for ${packPriceLabel(topUp)}</p>
-            <p style="margin:0 0 16px 0;color:#94A3B8;font-size:13px;">That's ${analysesFor(topUp.credits)} standard SVI analyses</p>
-            <a href="${buyUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 32px;border-radius:10px;font-size:15px;">Buy Credits</a>
+          <div style="background:#eef0f5;border-radius:12px;padding:20px;text-align:center;margin:0 0 24px 0;">
+            <p style="margin:0 0 4px 0;color:#0b0f1a;font-size:16px;font-weight:600;">Buy ${topUp.credits} credits for ${packPriceLabel(topUp)}</p>
+            <p style="margin:0 0 16px 0;color:#4b5563;font-size:13px;">That's ${analysesFor(topUp.credits)} standard SVI analyses</p>
+            <a href="${buyUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 32px;border-radius:10px;font-size:15px;">Buy Credits</a>
           </div>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 24px 0;">
-            <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Credit costs</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:0 0 24px 0;">
+            <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Credit costs</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              <tr><td style="padding:4px 8px;color:#94A3B8;font-size:13px;">SVI Analysis</td><td style="padding:4px 8px;color:#F8FAFC;font-size:13px;text-align:right;font-family:'IBM Plex Mono',monospace;">0.50</td></tr>
-              <tr><td style="padding:4px 8px;color:#94A3B8;font-size:13px;">R&amp;D Report</td><td style="padding:4px 8px;color:#F8FAFC;font-size:13px;text-align:right;font-family:'IBM Plex Mono',monospace;">1.00</td></tr>
-              <tr><td style="padding:4px 8px;color:#94A3B8;font-size:13px;">Deep Dive</td><td style="padding:4px 8px;color:#F8FAFC;font-size:13px;text-align:right;font-family:'IBM Plex Mono',monospace;">1.50</td></tr>
+              <tr><td style="padding:4px 8px;color:#4b5563;font-size:13px;">SVI Analysis</td><td style="padding:4px 8px;color:#0b0f1a;font-size:13px;text-align:right;font-family:'IBM Plex Mono',monospace;">0.50</td></tr>
+              <tr><td style="padding:4px 8px;color:#4b5563;font-size:13px;">R&amp;D Report</td><td style="padding:4px 8px;color:#0b0f1a;font-size:13px;text-align:right;font-family:'IBM Plex Mono',monospace;">1.00</td></tr>
+              <tr><td style="padding:4px 8px;color:#4b5563;font-size:13px;">Deep Dive</td><td style="padding:4px 8px;color:#0b0f1a;font-size:13px;text-align:right;font-family:'IBM Plex Mono',monospace;">1.50</td></tr>
             </table>
           </div>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
       </table>
     </td></tr>
@@ -2551,17 +2554,17 @@ export async function sendReengagement30d(args: {
   const greeting = args.name ? `Hi ${escapeHtml(args.name!)},` : "Hi,";
 
   const sviBlock = args.svi != null ? `
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
-            <p style="margin:0 0 4px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Your last SVI score</p>
-            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:56px;font-weight:600;color:#3B7DD8;line-height:1;">${args.svi}</div>
-            <p style="margin:8px 0 0 0;color:#94A3B8;font-size:13px;">Has your startup changed in 30 days?</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 16px 0;">
+            <p style="margin:0 0 4px 0;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Your last SVI score</p>
+            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:56px;font-weight:600;color:#1B2A5E;line-height:1;">${args.svi}</div>
+            <p style="margin:8px 0 0 0;color:#4b5563;font-size:13px;">Has your startup changed in 30 days?</p>
           </div>` : "";
 
   const html = shell(nurtureCard({
     tagline: "BlockID — We Miss You",
     headline: "Your Startup Score Might Have Changed",
     body: `${greeting} a lot can change in 30 days — new traction, updated financials, fresh evidence. Your SVI score may no longer reflect where you really are.</p>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Re-analyze your startup for free and see your updated position.`,
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Re-analyze your startup for free and see your updated position.`,
     ctaLabel: "Check Your Score Now",
     ctaUrl: sviUrl,
     extra: sviBlock,
@@ -2583,19 +2586,19 @@ export async function sendReengagement60d(args: {
     body: `${greeting} we have been busy building tools to help your startup grow. Here is what is new since your last visit:</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 24px 0;">
             <tr>
-              <td style="padding:8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#10003;</td>
-              <td style="padding:8px;color:#F8FAFC;font-size:14px;"><strong>Evidence Vault</strong> — securely upload pitch decks, financials, and traction data to boost your score</td>
+              <td style="padding:8px;color:#1B2A5E;font-size:14px;vertical-align:top;width:20px;">&#10003;</td>
+              <td style="padding:8px;color:#0b0f1a;font-size:14px;"><strong>Evidence Vault</strong> — securely upload pitch decks, financials, and traction data to boost your score</td>
             </tr>
             <tr>
-              <td style="padding:8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#10003;</td>
-              <td style="padding:8px;color:#F8FAFC;font-size:14px;"><strong>Cap Table Manager</strong> — model equity splits, dilution, and ESOP allocations in seconds</td>
+              <td style="padding:8px;color:#1B2A5E;font-size:14px;vertical-align:top;width:20px;">&#10003;</td>
+              <td style="padding:8px;color:#0b0f1a;font-size:14px;"><strong>Cap Table Manager</strong> — model equity splits, dilution, and ESOP allocations in seconds</td>
             </tr>
             <tr>
-              <td style="padding:8px;color:#3B7DD8;font-size:14px;vertical-align:top;width:20px;">&#10003;</td>
-              <td style="padding:8px;color:#F8FAFC;font-size:14px;"><strong>Competitive Research</strong> — AI-powered landscape analysis to see how you stack up</td>
+              <td style="padding:8px;color:#1B2A5E;font-size:14px;vertical-align:top;width:20px;">&#10003;</td>
+              <td style="padding:8px;color:#0b0f1a;font-size:14px;"><strong>Competitive Research</strong> — AI-powered landscape analysis to see how you stack up</td>
             </tr>
           </table>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">Come back and explore what has changed.`,
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Come back and explore what has changed.`,
     ctaLabel: "See What's New",
     ctaUrl: dashUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "reengagement_60d"));
@@ -2614,15 +2617,15 @@ export async function sendReengagement90d(args: {
     tagline: "BlockID — Welcome Back",
     headline: "Your Data Is Safe — Come Back Anytime",
     body: `${greeting} it has been a while since we last saw you. We wanted to reassure you that all your data — SVI analyses, evidence, equity models — is safe and waiting for you.</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
-            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Your data is secure</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Your data is secure</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">All analyses and documents are encrypted and stored securely</td></tr>
-              <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Your equity models and cap tables are preserved exactly as you left them</td></tr>
-              <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;">Evidence uploads and SVI history are always available</td></tr>
+              <tr><td style="padding:6px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">All analyses and documents are encrypted and stored securely</td></tr>
+              <tr><td style="padding:6px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">Your equity models and cap tables are preserved exactly as you left them</td></tr>
+              <tr><td style="padding:6px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#128274;</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;">Evidence uploads and SVI history are always available</td></tr>
             </table>
           </div>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:15px;line-height:1.6;">As a welcome back gift, re-analyze your startup for free and see how things have changed in the market.`,
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">As a welcome back gift, re-analyze your startup for free and see how things have changed in the market.`,
     ctaLabel: "Welcome Back",
     ctaUrl: sviUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "reengagement_90d"));
@@ -2643,9 +2646,9 @@ export async function sendInsightDigest(args: {
 
   const insightRows = args.insights.slice(0, 3).map((ins) => `
     <tr>
-      <td style="padding:12px 0;border-bottom:1px solid #1F2A44;">
-        <p style="margin:0 0 4px 0;color:#F8FAFC;font-size:15px;font-weight:600;">${escapeHtml(ins.title)}</p>
-        <p style="margin:0;color:#94A3B8;font-size:13px;line-height:1.5;">${escapeHtml(ins.summary)}</p>
+      <td style="padding:12px 0;border-bottom:1px solid #e5e7eb;">
+        <p style="margin:0 0 4px 0;color:#0b0f1a;font-size:15px;font-weight:600;">${escapeHtml(ins.title)}</p>
+        <p style="margin:0;color:#4b5563;font-size:13px;line-height:1.5;">${escapeHtml(ins.summary)}</p>
       </td>
     </tr>`).join("");
 
@@ -2653,13 +2656,13 @@ export async function sendInsightDigest(args: {
     tagline: "BlockID — Weekly Insights",
     headline: `${args.insights.length} New Insight${args.insights.length === 1 ? "" : "s"} for You`,
     body: `${greeting} you have new insights waiting on your dashboard. Here is a quick look at the top highlights from the past week.</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
-            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Your insights</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Your insights</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
               ${insightRows}
             </table>
           </div>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">View all your insights on the dashboard for personalised recommendations.`,
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:14px;line-height:1.6;">View all your insights on the dashboard for personalised recommendations.`,
     ctaLabel: "View All Insights on Dashboard",
     ctaUrl: dashUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "insight_digest"));
@@ -2689,13 +2692,13 @@ export async function sendActionReminder(args: {
     tagline: "BlockID — Action Plan",
     headline: escapeHtml(args.actionTitle),
     body: `${greeting} you have an uncompleted action that could meaningfully improve your startup score.</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
-            <p style="margin:0 0 4px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">Next action</p>
-            <p style="margin:0 0 8px 0;color:#F8FAFC;font-size:16px;font-weight:600;">${escapeHtml(args.actionTitle)}</p>
-            <p style="margin:0 0 12px 0;color:#94A3B8;font-size:14px;line-height:1.6;">${escapeHtml(args.actionDetail)}</p>
-            <p style="margin:0;color:#4ADE80;font-size:14px;font-weight:600;">Estimated impact: ${escapeHtml(args.actionImpact)}</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 4px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Next action</p>
+            <p style="margin:0 0 8px 0;color:#0b0f1a;font-size:16px;font-weight:600;">${escapeHtml(args.actionTitle)}</p>
+            <p style="margin:0 0 12px 0;color:#4b5563;font-size:14px;line-height:1.6;">${escapeHtml(args.actionDetail)}</p>
+            <p style="margin:0;color:#047857;font-size:14px;font-weight:600;">Estimated impact: ${escapeHtml(args.actionImpact)}</p>
           </div>
-          <p style="margin:0 0 24px 0;color:#94A3B8;font-size:14px;line-height:1.6;">Complete this action on your dashboard to see your score improve.`,
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:14px;line-height:1.6;">Complete this action on your dashboard to see your score improve.`,
     ctaLabel: "Complete This Action",
     ctaUrl: dashUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "action_reminder"));
@@ -2722,13 +2725,13 @@ export async function sendD1Welcome(args: NurtureArgs): Promise<SendResult> {
     tagline: "BlockID — Day 1",
     headline: `${greeting} 👋`,
     body: `You just joined a network of Australian founders using the BlockID Startup Value Index™ to put a real number on their startup — and to make every investor conversation start on the front foot.</p>
-          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">3 things to do this week</p>
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">3 things to do this week</p>
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px 0;">
-            <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">1.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>Run your first SVI analysis</strong> — uses ${SVI_ANALYSIS_CREDITS} of your ${FREE_SIGNUP_CREDITS} free credits, takes ~90 seconds.</td></tr>
-            <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">2.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>Upload one piece of evidence</strong> (pitch deck, GitHub, or analytics screenshot) — typically +20–30 SVI points.</td></tr>
-            <tr><td style="padding:6px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">3.</td><td style="padding:6px 8px;color:#F8FAFC;font-size:14px;"><strong>Share your verified score link</strong> with one investor — see what they say.</td></tr>
+            <tr><td style="padding:6px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">1.</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;"><strong>Run your first SVI analysis</strong> — uses ${SVI_ANALYSIS_CREDITS} of your ${FREE_SIGNUP_CREDITS} free credits, takes ~90 seconds.</td></tr>
+            <tr><td style="padding:6px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">2.</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;"><strong>Upload one piece of evidence</strong> (pitch deck, GitHub, or analytics screenshot) — typically +20–30 SVI points.</td></tr>
+            <tr><td style="padding:6px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">3.</td><td style="padding:6px 8px;color:#0b0f1a;font-size:14px;"><strong>Share your verified score link</strong> with one investor — see what they say.</td></tr>
           </table>
-          <p style="margin:0 0 16px 0;color:#94A3B8;font-size:14px;line-height:1.6;">Reply to this email if anything is unclear. A real person (me, the founder) reads every reply.`,
+          <p style="margin:0 0 16px 0;color:#4b5563;font-size:14px;line-height:1.6;">Reply to this email if anything is unclear. A real person (me, the founder) reads every reply.`,
     ctaLabel: "Open Your Dashboard",
     ctaUrl: dashUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "d1_welcome"));
@@ -2741,18 +2744,18 @@ export async function sendD4CheckIn(args: NurtureArgs): Promise<SendResult> {
   const evidenceUrl = `${siteUrl()}/workspace/evidence`;
   const greeting = args.name ? `Hey ${escapeHtml(args.name!)}` : "Quick check-in";
   const sviLine = args.svi != null
-    ? `Your current SVI is <strong style="color:#F8FAFC;">${args.svi}</strong>. Most founders see +20–40 points within their first week — the difference is almost always evidence.`
-    : `Founders who upload at least one evidence item in week 1 finish month 1 with an average SVI lift of <strong style="color:#F8FAFC;">+34 points</strong> versus founders who don't.`;
+    ? `Your current SVI is <strong style="color:#0b0f1a;">${args.svi}</strong>. Most founders see +20–40 points within their first week — the difference is almost always evidence.`
+    : `Founders who upload at least one evidence item in week 1 finish month 1 with an average SVI lift of <strong style="color:#0b0f1a;">+34 points</strong> versus founders who don't.`;
   const html = shell(nurtureCard({
     tagline: "BlockID — Day 4",
     headline: "How's your score coming along?",
     body: `${greeting} — quick mid-week nudge. ${sviLine}</p>
-          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">If you only do one thing this week</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:16px;margin:0 0 16px 0;">
-            <p style="margin:0 0 6px 0;color:#F8FAFC;font-size:15px;font-weight:600;">Upload your latest pitch deck.</p>
-            <p style="margin:0;color:#94A3B8;font-size:13px;line-height:1.6;">It takes 30 seconds, and it's the single highest-leverage evidence item — narrative + market + team all in one document.</p>
+          <p style="margin:0 0 8px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">If you only do one thing this week</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:16px;margin:0 0 16px 0;">
+            <p style="margin:0 0 6px 0;color:#0b0f1a;font-size:15px;font-weight:600;">Upload your latest pitch deck.</p>
+            <p style="margin:0;color:#4b5563;font-size:13px;line-height:1.6;">It takes 30 seconds, and it's the single highest-leverage evidence item — narrative + market + team all in one document.</p>
           </div>
-          <p style="margin:0 0 16px 0;color:#94A3B8;font-size:14px;line-height:1.6;">Stuck? Reply with what's blocking you and I'll help personally.`,
+          <p style="margin:0 0 16px 0;color:#4b5563;font-size:14px;line-height:1.6;">Stuck? Reply with what's blocking you and I'll help personally.`,
     ctaLabel: "Upload Evidence",
     ctaUrl: evidenceUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "d4_checkin"));
@@ -2771,17 +2774,17 @@ export async function sendD9LastCall(args: NurtureArgs): Promise<SendResult> {
     tagline: "BlockID — Day 9",
     headline: `${escapeHtml(starter.name)} plan — ${starterPrice}, ${starter.trial_days}-day free trial`,
     body: `${greeting} is the last note you'll get from me about upgrading. After this I'll leave you to it.</p>
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px 0;">
-            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">What ${starterPrice} gets you</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 16px 0;">
+            <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">What ${starterPrice} gets you</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">${starterCredits} AI credits every month (vs ${FREE_SIGNUP_CREDITS} free, once) — about ${analysesFor(starterCredits)} SVI analyses</td></tr>
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Your data room, filling up in the order investors ask</td></tr>
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">A live investor link with NDA click-wrap and watermarked PDFs</td></tr>
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">Founder Radar — grant and program deadline alerts</td></tr>
-              <tr><td style="padding:4px 8px;color:#4ADE80;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#F8FAFC;font-size:14px;">${starter.trial_days}-day free trial inc. GST, cancel any time</td></tr>
+              <tr><td style="padding:4px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#0b0f1a;font-size:14px;">${starterCredits} AI credits every month (vs ${FREE_SIGNUP_CREDITS} free, once) — about ${analysesFor(starterCredits)} SVI analyses</td></tr>
+              <tr><td style="padding:4px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#0b0f1a;font-size:14px;">Your data room, filling up in the order investors ask</td></tr>
+              <tr><td style="padding:4px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#0b0f1a;font-size:14px;">A live investor link with NDA click-wrap and watermarked PDFs</td></tr>
+              <tr><td style="padding:4px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#0b0f1a;font-size:14px;">Founder Radar — grant and program deadline alerts</td></tr>
+              <tr><td style="padding:4px 8px;color:#047857;font-size:14px;vertical-align:top;width:20px;">&#10003;</td><td style="padding:4px 8px;color:#0b0f1a;font-size:14px;">${starter.trial_days}-day free trial inc. GST, cancel any time</td></tr>
             </table>
           </div>
-          <p style="margin:0 0 16px 0;color:#94A3B8;font-size:14px;line-height:1.6;">If now isn't the right time, no pressure — you'll keep your free account and whatever credits you have left. I'll stop pinging you about this.`,
+          <p style="margin:0 0 16px 0;color:#4b5563;font-size:14px;line-height:1.6;">If now isn't the right time, no pressure — you'll keep your free account and whatever credits you have left. I'll stop pinging you about this.`,
     ctaLabel: `Start my ${starter.trial_days}-day free trial — ${starterPrice}`,
     ctaUrl: starterUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "d9_lastcall"));
@@ -2801,8 +2804,8 @@ function fmtAud(v: number | undefined | null): string {
 
 function scoreBar(score: number): string {
   const pct = Math.max(0, Math.min(100, Math.round(score)));
-  const color = pct >= 70 ? "#4ADE80" : pct >= 40 ? "#FACC15" : "#F87171";
-  return `<div style="background:#1F2A44;border-radius:4px;height:8px;width:100%;margin:4px 0 0;">
+  const color = pct >= 70 ? EMAIL_THEME.success : pct >= 40 ? EMAIL_THEME.warn : EMAIL_THEME.danger;
+  return `<div style="background:#eef0f5;border-radius:4px;height:8px;width:100%;margin:4px 0 0;">
     <div style="background:${color};border-radius:4px;height:8px;width:${pct}%;"></div>
   </div>`;
 }
@@ -2837,9 +2840,9 @@ export async function sendGuestReport(params: {
       const label = dimLabels[key] ?? key;
       const pct = Math.round(val);
       return `<tr>
-        <td style="padding:4px 0;color:#94A3B8;font-size:13px;width:110px;">${escapeHtml(label)}</td>
+        <td style="padding:4px 0;color:#4b5563;font-size:13px;width:110px;">${escapeHtml(label)}</td>
         <td style="padding:4px 0 4px 8px;">${scoreBar(pct)}</td>
-        <td style="padding:4px 0 4px 8px;color:#F8FAFC;font-size:13px;width:36px;text-align:right;">${pct}</td>
+        <td style="padding:4px 0 4px 8px;color:#0b0f1a;font-size:13px;width:36px;text-align:right;">${pct}</td>
       </tr>`;
     })
     .join("");
@@ -2852,10 +2855,10 @@ export async function sendGuestReport(params: {
   const actionRows = topActions
     .map(
       (a, i) => `<tr>
-        <td style="padding:8px 0;color:#4ADE80;font-size:14px;vertical-align:top;width:24px;">${i + 1}.</td>
+        <td style="padding:8px 0;color:#047857;font-size:14px;vertical-align:top;width:24px;">${i + 1}.</td>
         <td style="padding:8px 0 8px 8px;">
-          <p style="margin:0 0 2px;color:#F8FAFC;font-size:14px;font-weight:600;">${escapeHtml(a.title)}</p>
-          ${a.detail ? `<p style="margin:0;color:#94A3B8;font-size:13px;line-height:1.5;">${escapeHtml(a.detail)}</p>` : ""}
+          <p style="margin:0 0 2px;color:#0b0f1a;font-size:14px;font-weight:600;">${escapeHtml(a.title)}</p>
+          ${a.detail ? `<p style="margin:0;color:#4b5563;font-size:13px;line-height:1.5;">${escapeHtml(a.detail)}</p>` : ""}
         </td>
       </tr>`,
     )
@@ -2863,7 +2866,7 @@ export async function sendGuestReport(params: {
 
   const pdfButton = pdfUrl
     ? `<p style="margin:20px 0 0;text-align:center;">
-        <a href="${pdfUrl}" style="display:inline-block;background:#2563EB;color:#fff;font-size:14px;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;">Download Full PDF Report</a>
+        <a href="${pdfUrl}" style="display:inline-block;background:#1B2A5E;color:#fff;font-size:14px;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;">Download Full PDF Report</a>
       </p>`
     : "";
 
@@ -2880,48 +2883,48 @@ export async function sendGuestReport(params: {
 
   const html = shell(`
     <div style="padding:32px 0 0;">
-      <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;font-weight:500;">One-Click Investor Snapshot</p>
-      <h1 style="margin:0 0 8px;color:#F8FAFC;font-size:28px;font-weight:700;">Your Startup Analysis</h1>
-      ${totalScore !== null ? `<p style="margin:0 0 24px;color:#94A3B8;font-size:15px;">How professional investors see your startup right now.</p>` : ""}
+      <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">One-Click Investor Snapshot</p>
+      <h1 style="margin:0 0 8px;color:#0b0f1a;font-size:28px;font-weight:700;">Your Startup Analysis</h1>
+      ${totalScore !== null ? `<p style="margin:0 0 24px;color:#4b5563;font-size:15px;">How professional investors see your startup right now.</p>` : ""}
 
       ${totalScore !== null ? `
-      <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:24px;margin:0 0 20px;text-align:center;">
-        <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">Startup Value Index</p>
-        <p style="margin:0;font-size:56px;font-weight:800;color:#4ADE80;line-height:1;">${Math.round(totalScore)}</p>
-        ${stageLabel ? `<p style="margin:8px 0 0;color:#94A3B8;font-size:14px;">${escapeHtml(stageLabel)}</p>` : ""}
+      <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;margin:0 0 20px;text-align:center;">
+        <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;">Startup Value Index</p>
+        <p style="margin:0;font-size:56px;font-weight:800;color:#047857;line-height:1;">${Math.round(totalScore)}</p>
+        ${stageLabel ? `<p style="margin:8px 0 0;color:#4b5563;font-size:14px;">${escapeHtml(stageLabel)}</p>` : ""}
       </div>` : ""}
 
       ${valBand ? `
-      <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 20px;">
-        <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">Estimated Valuation Band</p>
-        <p style="margin:0;color:#F8FAFC;font-size:22px;font-weight:700;">${escapeHtml(valBand)}</p>
-        ${valuation?.method ? `<p style="margin:4px 0 0;color:#64748B;font-size:12px;">${escapeHtml(valuation.method)}</p>` : ""}
+      <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 20px;">
+        <p style="margin:0 0 4px;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;">Estimated Valuation Band</p>
+        <p style="margin:0;color:#0b0f1a;font-size:22px;font-weight:700;">${escapeHtml(valBand)}</p>
+        ${valuation?.method ? `<p style="margin:4px 0 0;color:#6b7280;font-size:12px;">${escapeHtml(valuation.method)}</p>` : ""}
       </div>` : ""}
 
       ${dimRows ? `
-      <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 20px;">
-        <p style="margin:0 0 12px;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">8-Dimension Breakdown</p>
+      <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 20px;">
+        <p style="margin:0 0 12px;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;">8-Dimension Breakdown</p>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${dimRows}</table>
       </div>` : ""}
 
       ${actionRows ? `
-      <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 20px;">
-        <p style="margin:0 0 12px;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">Top 3 Investor-Ready Actions</p>
+      <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 20px;">
+        <p style="margin:0 0 12px;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;">Top 3 Investor-Ready Actions</p>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${actionRows}</table>
       </div>` : ""}
 
       ${pdfButton}
 
-      <div style="background:#0B1220;border:1px solid #2563EB;border-radius:12px;padding:20px;margin:24px 0 0;text-align:center;">
-        <p style="margin:0 0 8px;color:#F8FAFC;font-size:15px;font-weight:600;">Want to track your score over time?</p>
-        <p style="margin:0 0 16px;color:#94A3B8;font-size:14px;">Create a free BlockID account to keep your score history, upload evidence to your vault, and re-run the analysis as things change.</p>
-        <a href="${signupUrl}" style="display:inline-block;background:#2563EB;color:#fff;font-size:14px;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;">Create Free Account</a>
+      <div style="background:#f7f8fa;border:1px solid #1B2A5E;border-radius:12px;padding:20px;margin:24px 0 0;text-align:center;">
+        <p style="margin:0 0 8px;color:#0b0f1a;font-size:15px;font-weight:600;">Want to track your score over time?</p>
+        <p style="margin:0 0 16px;color:#4b5563;font-size:14px;">Create a free BlockID account to keep your score history, upload evidence to your vault, and re-run the analysis as things change.</p>
+        <a href="${signupUrl}" style="display:inline-block;background:#1B2A5E;color:#fff;font-size:14px;font-weight:600;padding:12px 28px;border-radius:8px;text-decoration:none;">Create Free Account</a>
       </div>
 
-      <p style="margin:24px 0 0;color:#475569;font-size:12px;text-align:center;">
+      <p style="margin:24px 0 0;color:#4b5563;font-size:12px;text-align:center;">
         This report was generated for ${escapeHtml(to)} · Order ID: ${escapeHtml(guestAnalysisId.slice(0, 8))}
       </p>
-      <p style="margin:4px 0 0;color:#475569;font-size:12px;text-align:center;">
+      <p style="margin:4px 0 0;color:#4b5563;font-size:12px;text-align:center;">
         Tax invoice · ${tradingAsLine()} · ${LEGAL_ENTITY_ABN_LABEL} · A$3.00 inc. GST
       </p>
     </div>
@@ -3002,8 +3005,8 @@ export async function sendGuestCheckoutRecovery(params: {
 
   const whatTheyGave =
     inputType === "website_url"
-      ? `the website you entered, <strong style="color:#F8FAFC;">${escapeHtml(inputLabel)}</strong>`
-      : `the pitch deck you uploaded, <strong style="color:#F8FAFC;">${escapeHtml(inputLabel)}</strong>`;
+      ? `the website you entered, <strong style="color:#0b0f1a;">${escapeHtml(inputLabel)}</strong>`
+      : `the pitch deck you uploaded, <strong style="color:#0b0f1a;">${escapeHtml(inputLabel)}</strong>`;
 
   const subject =
     inputType === "website_url"
@@ -3011,53 +3014,53 @@ export async function sendGuestCheckoutRecovery(params: {
       : `Your startup analysis for ${inputLabel} is ready to run`;
 
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — One-Click Investor Analysis</p>
-          <h1 style="margin:0 0 12px;font-size:24px;font-weight:600;color:#F8FAFC;">You started an analysis but didn't finish checkout</h1>
-          <p style="margin:0 0 20px;color:#94A3B8;font-size:15px;line-height:1.6;">
+          <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — One-Click Investor Analysis</p>
+          <h1 style="margin:0 0 12px;font-size:24px;font-weight:600;color:#0b0f1a;">You started an analysis but didn't finish checkout</h1>
+          <p style="margin:0 0 20px;color:#4b5563;font-size:15px;line-height:1.6;">
             You began a One-Click Investor Analysis using ${whatTheyGave}, and the payment step wasn't completed. Nothing was charged.
           </p>
-          <p style="margin:0 0 24px;color:#94A3B8;font-size:15px;line-height:1.6;">
+          <p style="margin:0 0 24px;color:#4b5563;font-size:15px;line-height:1.6;">
             If you'd still like the report, the link below picks up exactly where you left off — same input, nothing to retype.
           </p>
 
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 24px;">
-            <p style="margin:0 0 6px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">What you'll get</p>
-            <p style="margin:0;color:#94A3B8;font-size:14px;line-height:1.7;">
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 24px;">
+            <p style="margin:0 0 6px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;">What you'll get</p>
+            <p style="margin:0;color:#4b5563;font-size:14px;line-height:1.7;">
               An 8-dimension Startup Value Index scorecard, a comparable-based valuation range in AUD, and a prioritised action list — delivered by email as a PDF.
             </p>
-            <p style="margin:14px 0 0;color:#F8FAFC;font-size:14px;font-weight:600;">A$3.00 inc. GST — one payment, no subscription.</p>
+            <p style="margin:14px 0 0;color:#0b0f1a;font-size:14px;font-weight:600;">A$3.00 inc. GST — one payment, no subscription.</p>
           </div>
 
           <p style="margin:0 0 24px;text-align:center;">
-            <a href="${resumeUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:13px 28px;border-radius:10px;font-size:15px;">Finish my analysis</a>
+            <a href="${resumeUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:13px 28px;border-radius:10px;font-size:15px;">Finish my analysis</a>
           </p>
 
-          <p style="margin:0 0 4px;color:#64748B;font-size:12px;line-height:1.6;">
+          <p style="margin:0 0 4px;color:#6b7280;font-size:12px;line-height:1.6;">
             This is the only email we'll send about this checkout. Reference: ${escapeHtml(guestAnalysisId.slice(0, 8))}.
           </p>
         </td></tr>
       </table>
     </td></tr>
   </table>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:0 16px 32px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:0 16px 32px;">
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;">
         <tr><td style="padding:0 8px;">
-          <p style="margin:0 0 6px;color:#64748B;font-size:12px;line-height:1.6;">
+          <p style="margin:0 0 6px;color:#6b7280;font-size:12px;line-height:1.6;">
             You're receiving this because you entered ${escapeHtml(to)} on blockid.au to order a One-Click Investor Analysis.
           </p>
-          <p style="margin:0 0 6px;color:#64748B;font-size:12px;line-height:1.6;">
-            <a href="${unsubscribeUrl}" style="color:#94A3B8;text-decoration:underline;">Unsubscribe</a>
+          <p style="margin:0 0 6px;color:#6b7280;font-size:12px;line-height:1.6;">
+            <a href="${unsubscribeUrl}" style="color:#4b5563;text-decoration:underline;">Unsubscribe</a>
             &nbsp;·&nbsp;
-            <a href="${preferencesUrl}" style="color:#94A3B8;text-decoration:underline;">Manage email preferences</a>
+            <a href="${preferencesUrl}" style="color:#4b5563;text-decoration:underline;">Manage email preferences</a>
           </p>
-          <p style="margin:0;color:#475569;font-size:12px;line-height:1.6;">
+          <p style="margin:0;color:#4b5563;font-size:12px;line-height:1.6;">
             ${tradingAsLine()} · ${LEGAL_ENTITY_ACN_LABEL} · ${LEGAL_ENTITY_ABN_LABEL}<br>
-            Sydney NSW, Australia · <a href="mailto:info@blockid.au" style="color:#64748B;text-decoration:underline;">info@blockid.au</a>
+            Sydney NSW, Australia · <a href="mailto:info@blockid.au" style="color:#6b7280;text-decoration:underline;">info@blockid.au</a>
           </p>
         </td></tr>
       </table>
@@ -3142,89 +3145,89 @@ export async function sendFreeSummary(params: {
 
   const pageRows = FREE_SUMMARY_PAGES.map(
     (page, i) => `<tr>
-        <td style="padding:5px 0;color:#64748B;font-size:13px;vertical-align:top;width:22px;">${i + 1}</td>
+        <td style="padding:5px 0;color:#6b7280;font-size:13px;vertical-align:top;width:22px;">${i + 1}</td>
         <td style="padding:5px 0 5px 6px;">
-          <p style="margin:0;color:#F8FAFC;font-size:13px;font-weight:600;">${escapeHtml(page.title)}</p>
-          <p style="margin:1px 0 0;color:#94A3B8;font-size:12px;line-height:1.5;">${escapeHtml(page.blurb)}</p>
+          <p style="margin:0;color:#0b0f1a;font-size:13px;font-weight:600;">${escapeHtml(page.title)}</p>
+          <p style="margin:1px 0 0;color:#4b5563;font-size:12px;line-height:1.5;">${escapeHtml(page.blurb)}</p>
         </td>
       </tr>`,
   ).join("");
 
   const addsRows = PAID_REPORT_ADDITIONS.map(
     (line) =>
-      `<li style="margin:0 0 5px;color:#94A3B8;font-size:13px;line-height:1.55;">${escapeHtml(line)}</li>`,
+      `<li style="margin:0 0 5px;color:#4b5563;font-size:13px;line-height:1.55;">${escapeHtml(line)}</li>`,
   ).join("");
 
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — Free summary</p>
-          <h1 style="margin:0 0 12px;font-size:24px;font-weight:600;color:#F8FAFC;">Your ${pageCount}-page summary is attached</h1>
-          <p style="margin:0 0 20px;color:#94A3B8;font-size:15px;line-height:1.6;">
+          <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — Free summary</p>
+          <h1 style="margin:0 0 12px;font-size:24px;font-weight:600;color:#0b0f1a;">Your ${pageCount}-page summary is attached</h1>
+          <p style="margin:0 0 20px;color:#4b5563;font-size:15px;line-height:1.6;">
             This is the written version of the run you just did for ${escapeHtml(subjectName)}. Nothing here is behind a wall — it is yours to forward.
           </p>
 
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 20px;">
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 20px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td style="vertical-align:top;">
-                  <p style="margin:0 0 2px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">Startup Value Index</p>
-                  <p style="margin:0;font-size:40px;font-weight:800;color:#4ADE80;line-height:1;">${score}</p>
-                  <p style="margin:6px 0 0;color:#94A3B8;font-size:13px;">${escapeHtml(stageLabel)} stage</p>
+                  <p style="margin:0 0 2px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;">Startup Value Index</p>
+                  <p style="margin:0;font-size:40px;font-weight:800;color:#047857;line-height:1;">${score}</p>
+                  <p style="margin:6px 0 0;color:#4b5563;font-size:13px;">${escapeHtml(stageLabel)} stage</p>
                 </td>
                 <td style="vertical-align:top;text-align:right;">
-                  <p style="margin:0 0 2px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">Valuation range</p>
-                  <p style="margin:0;color:#F8FAFC;font-size:17px;font-weight:700;">${escapeHtml(range)}</p>
-                  <p style="margin:6px 0 0;color:#64748B;font-size:12px;">Indicative, not a formal valuation</p>
+                  <p style="margin:0 0 2px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;">Valuation range</p>
+                  <p style="margin:0;color:#0b0f1a;font-size:17px;font-weight:700;">${escapeHtml(range)}</p>
+                  <p style="margin:6px 0 0;color:#6b7280;font-size:12px;">Indicative, not a formal valuation</p>
                 </td>
               </tr>
             </table>
           </div>
 
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 20px;">
-            <p style="margin:0 0 12px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">What is in the ${pageCount} pages</p>
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 20px;">
+            <p style="margin:0 0 12px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;">What is in the ${pageCount} pages</p>
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${pageRows}</table>
           </div>
 
           <p style="margin:0 0 24px;text-align:center;">
-            <a href="${analysisUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:13px 28px;border-radius:10px;font-size:15px;">Open the run on screen</a>
+            <a href="${analysisUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:13px 28px;border-radius:10px;font-size:15px;">Open the run on screen</a>
           </p>
 
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 16px;">
-            <p style="margin:0 0 6px;color:#F8FAFC;font-size:15px;font-weight:600;">If you want the working behind it — A$3</p>
-            <p style="margin:0 0 10px;color:#94A3B8;font-size:13px;line-height:1.6;">
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 16px;">
+            <p style="margin:0 0 6px;color:#0b0f1a;font-size:15px;font-weight:600;">If you want the working behind it — A$3</p>
+            <p style="margin:0 0 10px;color:#4b5563;font-size:13px;line-height:1.6;">
               The full written report is ten pages or more and adds:
             </p>
             <ul style="margin:0 0 12px;padding-left:18px;">${addsRows}</ul>
-            <a href="${siteUrl()}/one-click-report" style="color:#3B7DD8;font-size:13px;font-weight:600;text-decoration:underline;">Get the full report — A$3.00 inc. GST, one payment</a>
+            <a href="${siteUrl()}/one-click-report" style="color:#1B2A5E;font-size:13px;font-weight:600;text-decoration:underline;">Get the full report — A$3.00 inc. GST, one payment</a>
           </div>
 
-          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">
+          <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">
             This is the only email we send about this run. Reference: ${escapeHtml(analysisId.slice(0, 8))}.
           </p>
         </td></tr>
       </table>
     </td></tr>
   </table>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:0 16px 32px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:0 16px 32px;">
     <tr><td align="center">
       <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;">
         <tr><td style="padding:0 8px;">
-          <p style="margin:0 0 6px;color:#64748B;font-size:12px;line-height:1.6;">
+          <p style="margin:0 0 6px;color:#6b7280;font-size:12px;line-height:1.6;">
             You're receiving this because you entered ${escapeHtml(to)} on blockid.au and asked us to send you this summary.
           </p>
-          <p style="margin:0 0 6px;color:#64748B;font-size:12px;line-height:1.6;">
-            <a href="${unsubscribeUrl}" style="color:#94A3B8;text-decoration:underline;">Unsubscribe</a>
+          <p style="margin:0 0 6px;color:#6b7280;font-size:12px;line-height:1.6;">
+            <a href="${unsubscribeUrl}" style="color:#4b5563;text-decoration:underline;">Unsubscribe</a>
             &nbsp;·&nbsp;
-            <a href="${preferencesUrl}" style="color:#94A3B8;text-decoration:underline;">Manage email preferences</a>
+            <a href="${preferencesUrl}" style="color:#4b5563;text-decoration:underline;">Manage email preferences</a>
           </p>
-          <p style="margin:0 0 6px;color:#475569;font-size:12px;line-height:1.6;">
+          <p style="margin:0 0 6px;color:#4b5563;font-size:12px;line-height:1.6;">
             ${tradingAsLine()} · ${LEGAL_ENTITY_ACN_LABEL} · ${LEGAL_ENTITY_ABN_LABEL}<br>
-            Sydney NSW, Australia · <a href="mailto:info@blockid.au" style="color:#64748B;text-decoration:underline;">info@blockid.au</a>
+            Sydney NSW, Australia · <a href="mailto:info@blockid.au" style="color:#6b7280;text-decoration:underline;">info@blockid.au</a>
           </p>
-          <p style="margin:0;color:#475569;font-size:11px;line-height:1.5;">
+          <p style="margin:0;color:#4b5563;font-size:11px;line-height:1.5;">
             The Startup Value Index is a directional analysis, not a financial valuation or an investment recommendation. BlockID does not hold an AFSL. Seek independent professional advice. Prices in AUD inclusive of GST.
           </p>
         </td></tr>
@@ -3312,13 +3315,13 @@ export async function sendFirstAnalysisReportEmail(params: {
   const firstStep = report.actionPlan.thisWeek?.title ?? report.actionPlan.steps[1]?.title ?? null;
 
   const html = shell(`
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID — First analysis</p>
-          <h1 style="margin:0 0 12px;font-size:24px;font-weight:600;color:#F8FAFC;">Your first analysis of ${escapeHtml(name)} — ${pages} pages${part === "partial" ? " (part 1)" : part === "complete" ? " (complete)" : ""}</h1>
-          <p style="margin:0 0 20px;color:#94A3B8;font-size:15px;line-height:1.6;">
+          <p style="margin:0 0 8px;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID — First analysis</p>
+          <h1 style="margin:0 0 12px;font-size:24px;font-weight:600;color:#0b0f1a;">Your first analysis of ${escapeHtml(name)} — ${pages} pages${part === "partial" ? " (part 1)" : part === "complete" ? " (complete)" : ""}</h1>
+          <p style="margin:0 0 20px;color:#4b5563;font-size:15px;line-height:1.6;">
             ${part === "partial"
               ? `This is part 1: what BlockID read, scored and had ${written.length} of the seven C-level voices comment on. ${pending.length} section${pending.length === 1 ? " is" : "s are"} still being written (${escapeHtml(pendingNames)}) — we will email the complete report when ${pending.length === 1 ? "it finishes" : "they finish"}. Start with page 3 — "What we read" — because anything marked <em>not provided</em> is the cheapest score improvement you have.`
               : part === "complete"
@@ -3326,36 +3329,36 @@ export async function sendFirstAnalysisReportEmail(params: {
                 : `This is the written version of what BlockID read, scored and had seven C-level voices comment on. Start with page 3 — "What we read" — because anything marked <em>not provided</em> is the cheapest score improvement you have.`}
           </p>
 
-          <div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 20px;">
+          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 20px;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
               <tr>
                 <td style="vertical-align:top;">
-                  <p style="margin:0 0 2px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">Startup Value Index</p>
-                  <p style="margin:0;font-size:40px;font-weight:800;color:#4ADE80;line-height:1;">${score}</p>
-                  <p style="margin:6px 0 0;color:#94A3B8;font-size:13px;">${escapeHtml(report.svi.stageLabel)} stage</p>
+                  <p style="margin:0 0 2px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;">Startup Value Index</p>
+                  <p style="margin:0;font-size:40px;font-weight:800;color:#047857;line-height:1;">${score}</p>
+                  <p style="margin:6px 0 0;color:#4b5563;font-size:13px;">${escapeHtml(report.svi.stageLabel)} stage</p>
                 </td>
                 <td style="vertical-align:top;text-align:right;">
-                  <p style="margin:0 0 2px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">Indicative valuation</p>
-                  <p style="margin:0;color:#F8FAFC;font-size:17px;font-weight:700;">${escapeHtml(range)}</p>
-                  <p style="margin:6px 0 0;color:#64748B;font-size:12px;">${report.valuation.basis === "revenue" ? "Anchored on the revenue figure you gave" : "SVI-based — no revenue figure was provided"}</p>
+                  <p style="margin:0 0 2px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;">Indicative valuation</p>
+                  <p style="margin:0;color:#0b0f1a;font-size:17px;font-weight:700;">${escapeHtml(range)}</p>
+                  <p style="margin:6px 0 0;color:#6b7280;font-size:12px;">${report.valuation.basis === "revenue" ? "Anchored on the revenue figure you gave" : "SVI-based — no revenue figure was provided"}</p>
                 </td>
               </tr>
             </table>
           </div>
 
-          ${ceoLine ? `<div style="background:#0B1220;border:1px solid #1F2A44;border-radius:12px;padding:20px;margin:0 0 20px;">
-            <p style="margin:0 0 6px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#64748B;">From the CEO section</p>
-            <p style="margin:0;color:#CBD5E1;font-size:14px;line-height:1.6;">${escapeHtml(ceoLine.length > 480 ? `${ceoLine.slice(0, 479)}…` : ceoLine)}</p>
+          ${ceoLine ? `<div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 20px;">
+            <p style="margin:0 0 6px;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;">From the CEO section</p>
+            <p style="margin:0;color:#1f2937;font-size:14px;line-height:1.6;">${escapeHtml(ceoLine.length > 480 ? `${ceoLine.slice(0, 479)}…` : ceoLine)}</p>
           </div>` : ""}
 
-          ${firstStep ? `<p style="margin:0 0 20px;color:#94A3B8;font-size:14px;line-height:1.6;"><strong style="color:#F8FAFC;">This week:</strong> ${escapeHtml(firstStep)}</p>` : ""}
+          ${firstStep ? `<p style="margin:0 0 20px;color:#4b5563;font-size:14px;line-height:1.6;"><strong style="color:#0b0f1a;">This week:</strong> ${escapeHtml(firstStep)}</p>` : ""}
 
           <p style="margin:0 0 12px;text-align:center;">
-            <a href="${analysisUrl}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:13px 28px;border-radius:10px;font-size:15px;">Open the analysis on screen</a>
+            <a href="${analysisUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:13px 28px;border-radius:10px;font-size:15px;">Open the analysis on screen</a>
           </p>
-          ${downloadUrl ? `<p style="margin:0 0 24px;text-align:center;"><a href="${downloadUrl}" style="color:#3B7DD8;font-size:13px;font-weight:600;text-decoration:underline;">Download the PDF (${pages} pages)</a>${attach ? " — also attached" : ""}</p>` : `<p style="margin:0 0 24px;text-align:center;color:#64748B;font-size:13px;">The ${pages}-page PDF is attached.</p>`}
+          ${downloadUrl ? `<p style="margin:0 0 24px;text-align:center;"><a href="${downloadUrl}" style="color:#1B2A5E;font-size:13px;font-weight:600;text-decoration:underline;">Download the PDF (${pages} pages)</a>${attach ? " — also attached" : ""}</p>` : `<p style="margin:0 0 24px;text-align:center;color:#6b7280;font-size:13px;">The ${pages}-page PDF is attached.</p>`}
 
-          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">
+          <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">
             Read it as a senior advisor's first pass, not a verdict: the index moves only on evidence, and page 15 sets out the first 30 days step by step. Reference: ${escapeHtml(analysisId.slice(0, 8))}.
           </p>
         </td></tr>

@@ -181,20 +181,20 @@ function CoverPage({ report, variant, part }: { report: FirstAnalysisReport; var
         ? `${written.length} of 7 written · ${unavailable.length} unavailable`
         : "7 C-level voices";
   return (
-    <Page size="A4" style={[s.page, { backgroundColor: C.ink900 }]} wrap={false}>
+    <Page size="A4" style={[s.page, { backgroundColor: C.white }]} wrap={false}>
       <View style={{ flex: 1, justifyContent: "space-between" }}>
         <View>
-          <Text style={{ fontSize: 8, color: C.brand200, letterSpacing: 2, textTransform: "uppercase" }}>
+          <Text style={{ fontSize: 8, color: C.brand600, letterSpacing: 2, textTransform: "uppercase" }}>
             BlockID · Startup Value Index
           </Text>
-          <Text style={{ fontSize: 30, fontFamily: "Helvetica-Bold", color: C.white, marginTop: 40, lineHeight: 1.15 }}>
+          <Text style={{ fontSize: 30, fontFamily: "Helvetica-Bold", color: C.brand600, marginTop: 40, lineHeight: 1.15 }}>
             {report.company}
           </Text>
-          <Text style={{ fontSize: 14, color: C.brand200, marginTop: 8 }}>
+          <Text style={{ fontSize: 14, color: C.ink700, marginTop: 8 }}>
             {`${variant === "unlimited" ? "First analysis — full report" : "First analysis — free report"}${part === "partial" ? " (part 1)" : ""}`}
           </Text>
           {part === "partial" && pending.length > 0 && (
-            <Text style={{ fontSize: 9, color: C.ink300, marginTop: 8 }}>
+            <Text style={{ fontSize: 9, color: C.ink600, marginTop: 8 }}>
               {`${pending.length} section${pending.length === 1 ? " is" : "s are"} still being written (${pending.map((r) => AGENT_META[r].role).join(", ")}) — the complete report will be emailed when ${pending.length === 1 ? "it finishes" : "they finish"}.`}
             </Text>
           )}
@@ -202,20 +202,20 @@ function CoverPage({ report, variant, part }: { report: FirstAnalysisReport; var
         </View>
 
         <View style={{ flexDirection: "row", gap: 10 }}>
-          <View style={{ flex: 1, backgroundColor: C.ink800, borderRadius: 8, padding: 14 }}>
+          <View style={{ flex: 1, backgroundColor: C.surface50, borderWidth: 0.5, borderColor: C.surface200, borderRadius: 8, padding: 14 }}>
             <Text style={{ fontSize: 7, color: C.ink400, textTransform: "uppercase", letterSpacing: 1 }}>Startup Value Index</Text>
-            <Text style={{ fontSize: 28, fontFamily: "Helvetica-Bold", color: C.emerald400, marginTop: 4 }}>{Math.round(report.svi.total)}</Text>
-            <Text style={{ fontSize: 8, color: C.ink300, marginTop: 2 }}>{`${report.svi.stageLabel} · ${sviLabel(report.svi.total)}`}</Text>
+            <Text style={{ fontSize: 28, fontFamily: "Helvetica-Bold", color: C.brand600, marginTop: 4 }}>{Math.round(report.svi.total)}</Text>
+            <Text style={{ fontSize: 8, color: C.ink600, marginTop: 2 }}>{`${report.svi.stageLabel} · ${sviLabel(report.svi.total)}`}</Text>
           </View>
-          <View style={{ flex: 1, backgroundColor: C.ink800, borderRadius: 8, padding: 14 }}>
+          <View style={{ flex: 1, backgroundColor: C.surface50, borderWidth: 0.5, borderColor: C.surface200, borderRadius: 8, padding: 14 }}>
             <Text style={{ fontSize: 7, color: C.ink400, textTransform: "uppercase", letterSpacing: 1 }}>Indicative valuation</Text>
-            <Text style={{ fontSize: 16, fontFamily: "Helvetica-Bold", color: C.white, marginTop: 6 }}>{`${formatAud(v.lowAud)} – ${formatAud(v.highAud)}`}</Text>
-            <Text style={{ fontSize: 8, color: C.ink300, marginTop: 2 }}>{v.basis === "revenue" ? "Revenue-anchored" : "SVI-based, no revenue provided"}</Text>
+            <Text style={{ fontSize: 16, fontFamily: "Helvetica-Bold", color: C.ink900, marginTop: 6 }}>{`${formatAud(v.lowAud)} – ${formatAud(v.highAud)}`}</Text>
+            <Text style={{ fontSize: 8, color: C.ink600, marginTop: 2 }}>{v.basis === "revenue" ? "Revenue-anchored" : "SVI-based, no revenue provided"}</Text>
           </View>
-          <View style={{ flex: 1, backgroundColor: C.ink800, borderRadius: 8, padding: 14 }}>
+          <View style={{ flex: 1, backgroundColor: C.surface50, borderWidth: 0.5, borderColor: C.surface200, borderRadius: 8, padding: 14 }}>
             <Text style={{ fontSize: 7, color: C.ink400, textTransform: "uppercase", letterSpacing: 1 }}>Written by</Text>
-            <Text style={{ fontSize: 12, fontFamily: "Helvetica-Bold", color: C.white, marginTop: 6 }}>{voicesLine}</Text>
-            <Text style={{ fontSize: 8, color: C.ink300, marginTop: 2 }}>CEO · CFO · CMO · CTO · CPO · CLO · CHRO</Text>
+            <Text style={{ fontSize: 12, fontFamily: "Helvetica-Bold", color: C.ink900, marginTop: 6 }}>{voicesLine}</Text>
+            <Text style={{ fontSize: 8, color: C.ink600, marginTop: 2 }}>CEO · CFO · CMO · CTO · CPO · CLO · CHRO</Text>
           </View>
         </View>
 

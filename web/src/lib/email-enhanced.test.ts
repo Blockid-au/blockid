@@ -188,28 +188,28 @@ describe("sendEnhancedReport — score → colour + tier ladder", () => {
   it("renders green + Strong for score >= 80", async () => {
     await sendEnhancedReport(baseOpts({ sviScore: 85 }));
     const html = lastSend().html;
-    expect(html).toContain("#10b981");
+    expect(html).toContain("#047857");
     expect(html).toContain(">Strong<");
   });
 
   it("renders purple + Promising for 60..79", async () => {
     await sendEnhancedReport(baseOpts({ sviScore: 60 }));
     const html = lastSend().html;
-    expect(html).toContain("#6c5ce7");
+    expect(html).toContain("#1B2A5E");
     expect(html).toContain(">Promising<");
   });
 
   it("renders amber + Developing for 40..59", async () => {
     await sendEnhancedReport(baseOpts({ sviScore: 42 }));
     const html = lastSend().html;
-    expect(html).toContain("#f59e0b");
+    expect(html).toContain("#b45309");
     expect(html).toContain(">Developing<");
   });
 
   it("renders red + Early Stage for score < 40", async () => {
     await sendEnhancedReport(baseOpts({ sviScore: 12 }));
     const html = lastSend().html;
-    expect(html).toContain("#ef4444");
+    expect(html).toContain("#b91c1c");
     expect(html).toContain(">Early Stage<");
   });
 

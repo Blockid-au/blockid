@@ -1,6 +1,7 @@
 import { Document, Page, Text, View, Image, StyleSheet } from "@react-pdf/renderer";
 import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 import { AdviceDisclaimer } from "./advice-disclaimer";
+import { PDF_THEME } from "./theme";
 import * as path from "path";
 import * as fs from "fs";
 import { PLANS_V2 } from "@/lib/plans-v2";
@@ -12,28 +13,31 @@ const LOGO_SRC = fs.existsSync(LOGO_PATH)
   : null;
 
 /* ─── Brand Colors ─────────────────────────────────────────────────────── */
+// G26: every colour from the one PDF theme. Slides that used to be dark
+// ("darkPage", "cardDark", "headlineDark") now sit on the sunken surface with
+// navy headings and ink body — no dark slide, no dark cover.
 const C = {
-  brand: "#2563eb",
-  brandDark: "#1e40af",
-  brandLight: "#dbeafe",
-  ink950: "#0B1220",
-  ink900: "#0F172A",
-  ink800: "#1e293b",
-  ink700: "#334155",
-  ink500: "#64748b",
-  ink400: "#94a3b8",
-  ink300: "#cbd5e1",
-  surface50: "#f8fafc",
-  surface100: "#f1f5f9",
-  surface200: "#e2e8f0",
-  white: "#ffffff",
-  emerald: "#059669",
-  emeraldLight: "#d1fae5",
-  amber: "#d97706",
+  brand: PDF_THEME.navy,
+  brandDark: PDF_THEME.navyDeep,
+  brandLight: PDF_THEME.navySoft,
+  ink950: PDF_THEME.ink,
+  ink900: PDF_THEME.ink,
+  ink800: PDF_THEME.inkMuted,
+  ink700: "#374151",
+  ink500: PDF_THEME.inkSubtle,
+  ink400: PDF_THEME.inkTertiary,
+  ink300: PDF_THEME.borderStrong,
+  surface50: PDF_THEME.sunken,
+  surface100: PDF_THEME.hover,
+  surface200: PDF_THEME.border,
+  white: PDF_THEME.white,
+  emerald: PDF_THEME.success,
+  emeraldLight: PDF_THEME.bgSuccess,
+  amber: PDF_THEME.warn,
   amberLight: "#fef3c7",
-  red: "#dc2626",
+  red: PDF_THEME.danger,
   redLight: "#fee2e2",
-  gold: "#FBBF24",
+  gold: PDF_THEME.warn,
 };
 
 /* ─── Styles ──────────────────────────────────────────────────────────── */
@@ -75,8 +79,8 @@ const s = StyleSheet.create({
     paddingHorizontal: 50,
     fontFamily: "Helvetica",
     fontSize: 11,
-    color: C.surface50,
-    backgroundColor: C.ink900,
+    color: C.ink900,
+    backgroundColor: C.surface50,
   },
   footer: {
     position: "absolute",
@@ -91,15 +95,15 @@ const s = StyleSheet.create({
   footerBrand: { fontSize: 7, color: C.brand, fontWeight: "bold" },
   slideNum: { fontSize: 7, color: C.ink400 },
   headline: { fontSize: 24, fontWeight: "bold", color: C.ink900, marginBottom: 8 },
-  headlineDark: { fontSize: 24, fontWeight: "bold", color: C.white, marginBottom: 8 },
+  headlineDark: { fontSize: 24, fontWeight: "bold", color: C.brand, marginBottom: 8 },
   subheadline: { fontSize: 13, color: C.ink500, marginBottom: 20 },
-  subheadlineDark: { fontSize: 13, color: C.ink400, marginBottom: 20 },
+  subheadlineDark: { fontSize: 13, color: C.ink500, marginBottom: 20 },
   bullet: { fontSize: 11, color: C.ink700, marginBottom: 6, lineHeight: 1.5 },
-  bulletDark: { fontSize: 11, color: C.ink300, marginBottom: 6, lineHeight: 1.5 },
+  bulletDark: { fontSize: 11, color: C.ink700, marginBottom: 6, lineHeight: 1.5 },
   stat: { fontSize: 36, fontWeight: "bold", color: C.brand, textAlign: "center" },
   statLabel: { fontSize: 10, color: C.ink500, textAlign: "center", marginTop: 2 },
   card: { backgroundColor: C.surface50, borderRadius: 8, padding: 14, marginBottom: 8, borderWidth: 0.5, borderColor: C.surface200 },
-  cardDark: { backgroundColor: C.ink950, borderRadius: 8, padding: 14, marginBottom: 8, borderWidth: 0.5, borderColor: C.ink700 },
+  cardDark: { backgroundColor: C.white, borderRadius: 8, padding: 14, marginBottom: 8, borderWidth: 0.5, borderColor: C.surface200 },
   tag: { fontSize: 8, fontWeight: "bold", color: C.brand, backgroundColor: C.brandLight, paddingHorizontal: 8, paddingVertical: 3, borderRadius: 4 },
   row: { flexDirection: "row", gap: 12 },
   col: { flex: 1 },
@@ -107,16 +111,16 @@ const s = StyleSheet.create({
 });
 
 /* ─── Footer Component ────────────────────────────────────────────────── */
-function Footer({ num, dark }: { num: number; dark?: boolean }) {
+function Footer({ num }: { num: number; dark?: boolean }) {
   return (
     <View style={s.footer}>
-      <Text style={dark ? { ...s.footerText, color: C.ink500 } : s.footerText}>
+      <Text style={s.footerText}>
         BlockID.au — {LEGAL_ENTITY.operator} | {LEGAL_ENTITY_ACN_LABEL} | Confidential
       </Text>
-      <Text style={dark ? { ...s.footerBrand, color: C.brand } : s.footerBrand}>
+      <Text style={s.footerBrand}>
         blockid.au
       </Text>
-      <Text style={dark ? { ...s.slideNum, color: C.ink500 } : s.slideNum}>
+      <Text style={s.slideNum}>
         {num} / 12
       </Text>
     </View>
@@ -147,7 +151,7 @@ export function PitchDeckPDF() {
           {/* eslint-disable-next-line jsx-a11y/alt-text */}
           {LOGO_SRC && <Image src={LOGO_SRC} style={{ width: 240, height: 54, marginBottom: 12 }} />}
           {!LOGO_SRC && <Text style={{ fontSize: 32, fontWeight: "bold", color: C.brand }}>BlockID<Text style={{ color: C.ink500 }}>.au</Text></Text>}
-          <Text style={{ fontSize: 28, fontWeight: "bold", color: C.white, marginTop: 8, textAlign: "center" }}>
+          <Text style={{ fontSize: 28, fontWeight: "bold", color: C.brand, marginTop: 8, textAlign: "center" }}>
             From Idea to Exit. One Platform.
           </Text>
           <Text style={{ fontSize: 14, color: C.ink400, marginTop: 8, textAlign: "center" }}>
@@ -367,7 +371,7 @@ export function PitchDeckPDF() {
             { value: "50+", label: "Australian founders", color: C.brand },
             { value: "200+", label: "SVI analyses completed", color: C.emerald },
             { value: "$2M+", label: "Valuations tracked", color: C.gold },
-            { value: "10", label: "Free tools live", color: C.white },
+            { value: "10", label: "Free tools live", color: C.ink900 },
           ].map((m) => (
             <View key={m.label} style={[s.cardDark, { flex: 1, alignItems: "center", paddingVertical: 16 }]}>
               <Text style={{ fontSize: 32, fontWeight: "bold", color: m.color }}>{m.value}</Text>
@@ -403,8 +407,8 @@ export function PitchDeckPDF() {
         <Text style={s.headline}>No One Covers the Full Lifecycle</Text>
         <View style={{ borderWidth: 0.5, borderColor: C.surface200, borderRadius: 8, overflow: "hidden" }}>
           {/* Header */}
-          <View style={{ flexDirection: "row", backgroundColor: C.ink900, padding: 10 }}>
-            <Text style={{ flex: 2, fontSize: 9, fontWeight: "bold", color: C.white }}>Feature</Text>
+          <View style={{ flexDirection: "row", backgroundColor: C.surface100, padding: 10 }}>
+            <Text style={{ flex: 2, fontSize: 9, fontWeight: "bold", color: C.ink900 }}>Feature</Text>
             <Text style={{ flex: 1, fontSize: 9, fontWeight: "bold", color: C.brand, textAlign: "center" }}>BlockID</Text>
             <Text style={{ flex: 1, fontSize: 9, fontWeight: "bold", color: C.ink400, textAlign: "center" }}>Carta</Text>
             <Text style={{ flex: 1, fontSize: 9, fontWeight: "bold", color: C.ink400, textAlign: "center" }}>Pulley</Text>
@@ -456,7 +460,7 @@ export function PitchDeckPDF() {
               <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: p.color, alignItems: "center", justifyContent: "center" }}>
                 <Text style={{ fontSize: 12, fontWeight: "bold", color: C.white }}>{p.phase}</Text>
               </View>
-              <Text style={{ fontSize: 12, fontWeight: "bold", color: C.white, width: 200 }}>{p.name}</Text>
+              <Text style={{ fontSize: 12, fontWeight: "bold", color: C.ink900, width: 200 }}>{p.name}</Text>
               <Text style={{ fontSize: 10, color: p.color, width: 120 }}>{p.status}</Text>
               <Text style={{ fontSize: 10, color: C.ink400 }}>{p.time}</Text>
             </View>
@@ -501,7 +505,7 @@ export function PitchDeckPDF() {
       <Page size="A4" orientation="landscape" style={[s.darkPage, { paddingTop: 0, paddingBottom: 0 }]}>
         <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
           <Text style={{ fontSize: 14, color: C.brand, fontWeight: "bold", letterSpacing: 2, marginBottom: 8 }}>PRE-SEED ROUND</Text>
-          <Text style={{ fontSize: 42, fontWeight: "bold", color: C.white }}>A$500,000</Text>
+          <Text style={{ fontSize: 42, fontWeight: "bold", color: C.brand }}>A$500,000</Text>
           <Text style={{ fontSize: 14, color: C.ink400, marginTop: 8 }}>12-month runway to A$250K ARR and 500 active users</Text>
 
           <View style={{ flexDirection: "row", gap: 16, marginTop: 28 }}>
@@ -520,7 +524,7 @@ export function PitchDeckPDF() {
           </View>
 
           <View style={{ marginTop: 28, alignItems: "center" }}>
-            <Text style={{ fontSize: 16, fontWeight: "bold", color: C.white }}>
+            <Text style={{ fontSize: 16, fontWeight: "bold", color: C.ink900 }}>
               Every great company started exactly where we are. Let&apos;s build this together.
             </Text>
           </View>
@@ -531,7 +535,7 @@ export function PitchDeckPDF() {
             <Text style={{ fontSize: 9, color: C.ink500, marginTop: 4 }}>{LEGAL_ENTITY.operator} | {LEGAL_ENTITY_ACN_LABEL} | {LEGAL_ENTITY_ABN_LABEL} | Sydney, NSW</Text>
           </View>
           {/* QA-3 P1-7: not an offer of securities / forward-looking + general-advice disclaimer */}
-          <AdviceDisclaimer variant="pitch" dark style={{ marginTop: 18, marginHorizontal: 48 }} />
+          <AdviceDisclaimer variant="pitch" style={{ marginTop: 18, marginHorizontal: 48 }} />
         </View>
         <Footer num={12} dark />
       </Page>

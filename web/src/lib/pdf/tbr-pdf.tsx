@@ -48,17 +48,19 @@ import { AdviceDisclaimer, PDF_ENTITY_LINE } from "./advice-disclaimer";
 import { ASSESSMENT_CARD_PDF_TITLE, AssessmentCardPdf, assessmentCardSummaryLine } from "./assessment-card-pdf";
 import { alignReportWithAssessmentCard, type AssessmentCardOptions } from "@/lib/svi/assessment-card";
 import { pdfPageCount } from "./page-count";
+import { PDF_THEME } from "./theme";
 
 // ── Palette / styles ─────────────────────────────────────────────────────────
 
+// G26: every colour from the one PDF theme (light paper, navy headings, ink body).
 const C = {
-  ink: INK.text,
+  ink: PDF_THEME.ink,
   muted: INK.muted,
   faint: INK.faint,
   grid: INK.grid,
   surface: INK.surfaceAlt,
-  brand: "#0072B2",
-  brandSoft: "#EAF3FA",
+  brand: PDF_THEME.navy,
+  brandSoft: PDF_THEME.navySoft,
 };
 
 const MM = 72 / 25.4;

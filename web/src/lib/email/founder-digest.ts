@@ -14,6 +14,7 @@ import type {
 } from "@/lib/nudge/readiness-by-phase";
 import type { BandDirection } from "@/lib/nudge/readiness-snapshots";
 import { GROWTH_PHASE_IDS, growthPhaseOrder } from "@/lib/growth/phase-taxonomy";
+import { EMAIL_THEME } from "@/lib/email/theme";
 
 export interface BuildFounderDigestInput {
   name: string;
@@ -113,7 +114,7 @@ const BAND_LABEL: Record<ReadinessBand, string> = {
 };
 
 const BAND_COLOUR: Record<ReadinessBand, string> = {
-  "not-ready": "#be123c",
+  "not-ready": EMAIL_THEME.danger,
   "warming-up": "#b45309",
   "investor-ready": "#047857",
 };
@@ -121,7 +122,7 @@ const BAND_COLOUR: Record<ReadinessBand, string> = {
 const CLIMB_BAND_FILL: Record<ReadinessBand, string> = {
   "not-ready": "#fecaca",
   "warming-up": "#fde68a",
-  "investor-ready": "#bbf7d0",
+  "investor-ready": EMAIL_THEME.successTint,
 };
 
 // G8-P0: readiness_by_phase is keyed by the canonical growth-phase taxonomy
@@ -292,10 +293,10 @@ export function buildPackageProgressBlock(
     sviDelta === null || sviDelta === 0 ? "—" : sviDelta > 0 ? "▲" : "▼";
   const sviColour =
     sviDelta === null || sviDelta === 0
-      ? "#64748b"
+      ? EMAIL_THEME.inkTertiary
       : sviDelta > 0
         ? "#047857"
-        : "#be123c";
+        : EMAIL_THEME.danger;
   const sviDeltaLabel =
     sviDelta === null
       ? "first snapshot"
@@ -304,29 +305,29 @@ export function buildPackageProgressBlock(
         : `${sviDelta > 0 ? "+" : ""}${sviDelta} pts vs last week`;
 
   const nextActionBlock = input.nextAction
-    ? `<p style="margin:8px 0 0;font-size:13px;color:#0f172a"><strong>Next paid action:</strong> ${escapeHtml(input.nextAction.label)} <span style="color:#0369a1;font-weight:600">· ${input.nextAction.creditCost} credits</span></p>
-       <p style="margin:6px 0 0"><a href="${escapeAttr(input.nextAction.href)}" style="color:#0f766e;font-weight:600;text-decoration:none">Run this action →</a></p>`
-    : `<p style="margin:8px 0 0;font-size:13px;color:#475569"><em>Caught up for this phase — no paid actions queued.</em></p>`;
+    ? `<p style="margin:8px 0 0;font-size:13px;color:#0b0f1a"><strong>Next paid action:</strong> ${escapeHtml(input.nextAction.label)} <span style="color:#1d4ed8;font-weight:600">· ${input.nextAction.creditCost} credits</span></p>
+       <p style="margin:6px 0 0"><a href="${escapeAttr(input.nextAction.href)}" style="color:#047857;font-weight:600;text-decoration:none">Run this action →</a></p>`
+    : `<p style="margin:8px 0 0;font-size:13px;color:#4b5563"><em>Caught up for this phase — no paid actions queued.</em></p>`;
 
   const unfinishedBadge =
     input.unfinishedInterviewSteps > 0
-      ? `<span style="display:inline-block;margin-left:6px;padding:1px 6px;background:#fef3c7;color:#92400e;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">${input.unfinishedInterviewSteps} interview step${input.unfinishedInterviewSteps === 1 ? "" : "s"} left</span>`
-      : `<span style="display:inline-block;margin-left:6px;padding:1px 6px;background:#dcfce7;color:#166534;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Interview complete</span>`;
+      ? `<span style="display:inline-block;margin-left:6px;padding:1px 6px;background:#fffbeb;color:${EMAIL_THEME.warn};border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">${input.unfinishedInterviewSteps} interview step${input.unfinishedInterviewSteps === 1 ? "" : "s"} left</span>`
+      : `<span style="display:inline-block;margin-left:6px;padding:1px 6px;background:#ecfdf5;color:${EMAIL_THEME.success};border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Interview complete</span>`;
 
   const html = `
-      <div style="padding:16px 24px;border-top:1px solid #e2e8f0;background:#f0f9ff">
-        <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Startup Package · Progress this week</p>
-        <h2 style="margin:2px 0 6px;font-size:16px;color:#0f172a">
+      <div style="padding:16px 24px;border-top:1px solid #e5e7eb;background:#eff6ff">
+        <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.16em">Startup Package · Progress this week</p>
+        <h2 style="margin:2px 0 6px;font-size:16px;color:#0b0f1a">
           Phase ${escapeHtml(input.currentPhaseSlug)} of 12 · ${escapeHtml(input.currentPhaseTitle)}
           ${unfinishedBadge}
         </h2>
-        <div style="height:8px;width:100%;background:#e0f2fe;border-radius:999px;overflow:hidden">
-          <div style="height:100%;width:${pct}%;background:#0f766e"></div>
+        <div style="height:8px;width:100%;background:#eff6ff;border-radius:999px;overflow:hidden">
+          <div style="height:100%;width:${pct}%;background:#047857"></div>
         </div>
-        <p style="margin:6px 0 0;font-size:12px;color:#475569">${pct}% of this phase's deliverables complete.</p>
-        <p style="margin:10px 0 0;font-size:13px;color:#0f172a"><strong>SVI:</strong> ${input.sviCurrent} <span style="color:${sviColour};font-weight:600">${sviArrow} ${escapeHtml(sviDeltaLabel)}</span></p>
+        <p style="margin:6px 0 0;font-size:12px;color:#4b5563">${pct}% of this phase's deliverables complete.</p>
+        <p style="margin:10px 0 0;font-size:13px;color:#0b0f1a"><strong>SVI:</strong> ${input.sviCurrent} <span style="color:${sviColour};font-weight:600">${sviArrow} ${escapeHtml(sviDeltaLabel)}</span></p>
         ${nextActionBlock}
-        <p style="margin:12px 0 0"><a href="${escapeAttr(input.packageDashboardUrl)}" style="color:#0f766e;font-weight:600;text-decoration:none">Open Package dashboard →</a></p>
+        <p style="margin:12px 0 0"><a href="${escapeAttr(input.packageDashboardUrl)}" style="color:#047857;font-weight:600;text-decoration:none">Open Package dashboard →</a></p>
       </div>`;
 
   const textLines: string[] = [];
@@ -402,24 +403,24 @@ function renderHtml(input: BuildFounderDigestInput, score: number): string {
     ? (() => {
         const copy = formatMoverCallout(biggestMover);
         return `
-      <div style="padding:16px 24px;border-top:1px solid #e2e8f0">
-        <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Biggest mover this week</p>
+      <div style="padding:16px 24px;border-top:1px solid #e5e7eb">
+        <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.16em">Biggest mover this week</p>
         <p style="margin:0;font-size:14px;color:${copy.colour};font-weight:600">${copy.icon} ${escapeHtml(copy.headline)}</p>
-        <p style="margin:4px 0 0;color:#64748b;font-size:12px">${escapeHtml(copy.hint)}</p>
+        <p style="margin:4px 0 0;color:#6b7280;font-size:12px">${escapeHtml(copy.hint)}</p>
       </div>`;
       })()
     : "";
   const climbDeltaBlock =
     climbDeltaMoved && climbDeltaCells
       ? `
-      <div style="padding:16px 24px;border-top:1px solid #e2e8f0">
-        <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Week-over-week climb</p>
+      <div style="padding:16px 24px;border-top:1px solid #e5e7eb">
+        <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.16em">Week-over-week climb</p>
         <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;width:100%">
           <tr>
-            <th align="left" style="font-size:11px;color:#64748b;padding:4px 6px;font-weight:600">Phase</th>
-            <th align="right" style="font-size:11px;color:#64748b;padding:4px 6px;font-weight:600">Last week</th>
-            <th align="right" style="font-size:11px;color:#64748b;padding:4px 6px;font-weight:600">This week</th>
-            <th align="right" style="font-size:11px;color:#64748b;padding:4px 6px;font-weight:600">Delta</th>
+            <th align="left" style="font-size:11px;color:#6b7280;padding:4px 6px;font-weight:600">Phase</th>
+            <th align="right" style="font-size:11px;color:#6b7280;padding:4px 6px;font-weight:600">Last week</th>
+            <th align="right" style="font-size:11px;color:#6b7280;padding:4px 6px;font-weight:600">This week</th>
+            <th align="right" style="font-size:11px;color:#6b7280;padding:4px 6px;font-weight:600">Delta</th>
           </tr>
           ${climbDeltaCells
             .map((c) => {
@@ -435,10 +436,10 @@ function renderHtml(input: BuildFounderDigestInput, score: number): string {
                 c.direction === "up"
                   ? "#047857"
                   : c.direction === "down"
-                    ? "#be123c"
+                    ? EMAIL_THEME.danger
                     : c.direction === "new"
-                      ? "#0369a1"
-                      : "#64748b";
+                      ? EMAIL_THEME.action
+                      : EMAIL_THEME.inkTertiary;
               const signed =
                 c.direction === "new"
                   ? "new"
@@ -448,68 +449,68 @@ function renderHtml(input: BuildFounderDigestInput, score: number): string {
                       ? `${c.delta}`
                       : "0";
               const rowStyle = c.isCurrent
-                ? "background:#ecfeff;font-weight:600"
+                ? "background:#eff6ff;font-weight:600"
                 : "";
               return `
           <tr style="${rowStyle}">
-            <td style="font-size:12px;color:#0f172a;padding:4px 6px">Phase ${growthPhaseOrder(c.phase)}${c.isCurrent ? " · you are here" : ""}</td>
-            <td align="right" style="font-size:12px;color:#475569;padding:4px 6px">${c.prevScore}/100</td>
-            <td align="right" style="font-size:12px;color:#0f172a;padding:4px 6px">${c.currScore}/100</td>
+            <td style="font-size:12px;color:#0b0f1a;padding:4px 6px">Phase ${growthPhaseOrder(c.phase)}${c.isCurrent ? " · you are here" : ""}</td>
+            <td align="right" style="font-size:12px;color:#4b5563;padding:4px 6px">${c.prevScore}/100</td>
+            <td align="right" style="font-size:12px;color:#0b0f1a;padding:4px 6px">${c.currScore}/100</td>
             <td align="right" style="font-size:12px;color:${deltaColour};padding:4px 6px">${arrow} ${signed}</td>
           </tr>`;
             })
             .join("")}
         </table>
-        <p style="margin:8px 0 0;font-size:11px;color:#64748b">Compared to your last digest snapshot. ★ = a phase that entered the map this week; — = held steady.</p>
+        <p style="margin:8px 0 0;font-size:11px;color:#6b7280">Compared to your last digest snapshot. ★ = a phase that entered the map this week; — = held steady.</p>
       </div>`
       : "";
   const climbBlock = climbCells
     ? `
-      <div style="padding:16px 24px;border-top:1px solid #e2e8f0">
-        <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Readiness across all 12 phases</p>
+      <div style="padding:16px 24px;border-top:1px solid #e5e7eb">
+        <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.16em">Readiness across all 12 phases</p>
         <table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse">
           <tr>
             ${climbCells
               .map(
                 (c) => `
             <td style="padding:0 3px;vertical-align:bottom" title="Phase ${growthPhaseOrder(c.phase)} — ${c.score}/100 (${escapeAttr(BAND_LABEL[c.band])})">
-              <div style="width:24px;height:${Math.max(4, Math.round((c.score / 100) * 48))}px;background:${CLIMB_BAND_FILL[c.band]};border:${c.isCurrent ? "2px solid #0f766e" : "1px solid #e2e8f0"};border-radius:3px"></div>
-              <div style="font-size:10px;color:${c.isCurrent ? "#0f766e" : "#64748b"};text-align:center;margin-top:2px;font-weight:${c.isCurrent ? "700" : "400"}">${growthPhaseOrder(c.phase)}</div>
+              <div style="width:24px;height:${Math.max(4, Math.round((c.score / 100) * 48))}px;background:${CLIMB_BAND_FILL[c.band]};border:${c.isCurrent ? `2px solid ${EMAIL_THEME.success}` : `1px solid ${EMAIL_THEME.border}`};border-radius:3px"></div>
+              <div style="font-size:10px;color:${c.isCurrent ? EMAIL_THEME.success : EMAIL_THEME.inkTertiary};text-align:center;margin-top:2px;font-weight:${c.isCurrent ? "700" : "400"}">${growthPhaseOrder(c.phase)}</div>
             </td>`,
               )
               .join("")}
           </tr>
         </table>
-        <p style="margin:8px 0 0;font-size:11px;color:#64748b">Your Phase ${growthPhaseOrder(input.phaseSlug)} column is outlined in teal. Bars use band colours: red = not-ready, amber = warming-up, green = investor-ready.</p>
+        <p style="margin:8px 0 0;font-size:11px;color:#6b7280">Your Phase ${growthPhaseOrder(input.phaseSlug)} column is outlined in teal. Bars use band colours: red = not-ready, amber = warming-up, green = investor-ready.</p>
       </div>`
     : "";
 
   const nextActionBlock = input.nextAction
     ? `
-      <div style="padding:16px 24px;border-top:1px solid #e2e8f0">
-        <p style="margin:0;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Do this next</p>
+      <div style="padding:16px 24px;border-top:1px solid #e5e7eb">
+        <p style="margin:0;font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.16em">Do this next</p>
         <h2 style="margin:6px 0 4px;font-size:16px">${escapeHtml(input.nextAction.title)}</h2>
-        <p style="margin:0 0 12px;color:#475569;font-size:13px">${escapeHtml(input.nextAction.reason)}</p>
-        <a href="${escapeAttr(input.nextAction.cta_url)}" style="display:inline-block;padding:10px 16px;background:#0f766e;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">${escapeHtml(input.nextAction.cta_label)}</a>
+        <p style="margin:0 0 12px;color:#4b5563;font-size:13px">${escapeHtml(input.nextAction.reason)}</p>
+        <a href="${escapeAttr(input.nextAction.cta_url)}" style="display:inline-block;padding:10px 16px;background:#047857;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">${escapeHtml(input.nextAction.cta_label)}</a>
       </div>`
     : `
-      <div style="padding:16px 24px;border-top:1px solid #e2e8f0">
-        <p style="margin:0;color:#475569;font-size:13px">Your data room is caught up for this phase — kick off the next one from your dashboard.</p>
+      <div style="padding:16px 24px;border-top:1px solid #e5e7eb">
+        <p style="margin:0;color:#4b5563;font-size:13px">Your data room is caught up for this phase — kick off the next one from your dashboard.</p>
       </div>`;
 
   const missingBlock =
     input.missingTop3.length > 0
       ? `
-      <div style="padding:16px 24px;border-top:1px solid #e2e8f0">
-        <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Top 3 gaps</p>
-        <ol style="margin:0;padding-left:20px;color:#0f172a;font-size:13px">
+      <div style="padding:16px 24px;border-top:1px solid #e5e7eb">
+        <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.16em">Top 3 gaps</p>
+        <ol style="margin:0;padding-left:20px;color:#0b0f1a;font-size:13px">
           ${input.missingTop3
             .map(
               (m) => `
           <li style="margin:6px 0">
-            <a href="${escapeAttr(m.cta_url)}" style="color:#0f766e;font-weight:600;text-decoration:none">${escapeHtml(m.title)}</a>
-            ${m.raise_blocker ? `<span style="display:inline-block;margin-left:6px;padding:1px 6px;background:#fecaca;color:#991b1b;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Blocker</span>` : ""}
-            <div style="color:#64748b;font-size:12px;margin-top:2px">${escapeHtml(m.why_it_matters)}</div>
+            <a href="${escapeAttr(m.cta_url)}" style="color:#047857;font-weight:600;text-decoration:none">${escapeHtml(m.title)}</a>
+            ${m.raise_blocker ? `<span style="display:inline-block;margin-left:6px;padding:1px 6px;background:#fecaca;color:${EMAIL_THEME.danger};border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Blocker</span>` : ""}
+            <div style="color:#6b7280;font-size:12px;margin-top:2px">${escapeHtml(m.why_it_matters)}</div>
           </li>`,
             )
             .join("")}
@@ -518,18 +519,18 @@ function renderHtml(input: BuildFounderDigestInput, score: number): string {
       : "";
 
   return `<!doctype html>
-<html><body style="font-family:-apple-system,Helvetica,sans-serif;color:#0f172a;background:#f8fafc;padding:24px">
-  <div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
-    <div style="padding:24px;border-bottom:1px solid #e2e8f0">
-      <p style="margin:0;font-size:11px;font-weight:700;color:#0369a1;text-transform:uppercase;letter-spacing:0.16em">Founder · Weekly readiness digest</p>
+<html><body style="font-family:-apple-system,Helvetica,sans-serif;color:#0b0f1a;background:#f7f8fa;padding:24px">
+  <div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
+    <div style="padding:24px;border-bottom:1px solid #e5e7eb">
+      <p style="margin:0;font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.16em">Founder · Weekly readiness digest</p>
       <h1 style="margin:8px 0 0;font-size:22px">Hi ${escapeHtml(input.name)},</h1>
-      <p style="margin:8px 0 0;color:#475569;font-size:14px">You're in <strong>Phase ${escapeHtml(input.phaseSlug)} — ${escapeHtml(input.phaseLabel)}</strong>.</p>
+      <p style="margin:8px 0 0;color:#4b5563;font-size:14px">You're in <strong>Phase ${escapeHtml(input.phaseSlug)} — ${escapeHtml(input.phaseLabel)}</strong>.</p>
     </div>
     <div style="padding:20px 24px;display:flex;gap:16px;align-items:baseline;flex-wrap:wrap">
-      <div style="font-size:32px;font-weight:700;color:${bandColour}">${score}<span style="font-size:14px;color:#64748b;font-weight:400"> /100</span></div>
+      <div style="font-size:32px;font-weight:700;color:${bandColour}">${score}<span style="font-size:14px;color:#6b7280;font-weight:400"> /100</span></div>
       <div>
         <div style="font-size:14px;font-weight:600;color:${bandColour}">${escapeHtml(bandLabel)}</div>
-        <div style="font-size:12px;color:#475569;margin-top:2px">${arrow} ${escapeHtml(input.deltaSummary)}</div>
+        <div style="font-size:12px;color:#4b5563;margin-top:2px">${arrow} ${escapeHtml(input.deltaSummary)}</div>
       </div>
     </div>
     ${packageBlock}
@@ -538,12 +539,12 @@ function renderHtml(input: BuildFounderDigestInput, score: number): string {
     ${climbDeltaBlock}
     ${nextActionBlock}
     ${missingBlock}
-    <div style="padding:16px 24px;border-top:1px solid #e2e8f0">
-      <a href="${escapeAttr(input.dashboardUrl)}" style="color:#0f766e;font-weight:600;text-decoration:none">Open your dashboard →</a>
+    <div style="padding:16px 24px;border-top:1px solid #e5e7eb">
+      <a href="${escapeAttr(input.dashboardUrl)}" style="color:#047857;font-weight:600;text-decoration:none">Open your dashboard →</a>
     </div>
-    <div style="padding:16px 24px 20px;border-top:1px solid #e2e8f0;background:#f8fafc;font-size:11px;color:#64748b">
+    <div style="padding:16px 24px 20px;border-top:1px solid #e5e7eb;background:#f7f8fa;font-size:11px;color:#6b7280">
       ${escapeHtml(AFSL_DISCLAIMER)}
-      ${input.unsubscribeUrl ? `<br/><a href="${escapeAttr(input.unsubscribeUrl)}" style="color:#64748b">Unsubscribe</a>` : ""}
+      ${input.unsubscribeUrl ? `<br/><a href="${escapeAttr(input.unsubscribeUrl)}" style="color:#6b7280">Unsubscribe</a>` : ""}
     </div>
   </div>
 </body></html>`;
@@ -654,7 +655,7 @@ export function formatMoverCallout(cell: ClimbDeltaCell): MoverCallout {
       headline: `${phaseLabel}${hereChip} entered your readiness map at ${cell.currScore}/100`,
       hint: "This phase wasn't scored in last week's digest — a fresh signal to steer the next tick.",
       icon: "★",
-      colour: "#0369a1",
+      colour: EMAIL_THEME.action,
     };
   }
   if (cell.direction === "up") {
@@ -669,7 +670,7 @@ export function formatMoverCallout(cell: ClimbDeltaCell): MoverCallout {
     headline: `${phaseLabel}${hereChip} slipped ${cell.delta} pts to ${cell.currScore}/100`,
     hint: "Your biggest week-over-week drop — check what changed in your data room since the last digest.",
     icon: "▼",
-    colour: "#be123c",
+    colour: EMAIL_THEME.danger,
   };
 }
 

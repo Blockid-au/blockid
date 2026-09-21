@@ -57,15 +57,17 @@ import { PDF_ENTITY_LINE, PDF_FINANCIAL_PROJECTION_DISCLAIMER, PDF_GENERAL_ADVIC
 import { defaultPreparedWith } from "@/lib/report-v2/prepared-with";
 import { ASSESSMENT_CARD_PDF_TITLE, assessmentCardLines } from "@/lib/pdf/assessment-card-pdf";
 import { alignReportWithAssessmentCard, type AssessmentCardData, type AssessmentCardOptions } from "@/lib/svi/assessment-card";
+import { DOCX_THEME, docxHex } from "./theme";
 
 // ── Brand ───────────────────────────────────────────────────────────────────
 
-const BRAND = "0072B2";
-const INK = "1F2937";
-const MUTED = "6B7280";
-const FAINT = "9CA3AF";
-const GRID = "E5E7EB";
-const SURFACE = "F8FAFC";
+// G26: every colour from the one DOCX theme (light paper, navy headings, ink body).
+const BRAND = DOCX_THEME.navy;
+const INK = DOCX_THEME.inkMuted;
+const MUTED = DOCX_THEME.inkSubtle;
+const FAINT = DOCX_THEME.inkFaint;
+const GRID = DOCX_THEME.border;
+const SURFACE = DOCX_THEME.sunken;
 const FONT = "Calibri";
 
 /** Usable width at A4 with 1-inch margins ≈ 6.27 in ≈ 602 px (docx uses px at 96 dpi). */
@@ -76,7 +78,7 @@ const BLANK_PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC
 
 const bandLabel = (b: Band): string => (b === "strong" ? "Strong" : b === "developing" ? "Developing" : b === "early" ? "Early" : "Pending");
 const stateLabel = (d: DataState): string => (d === "real" ? "real data" : d === "partial" ? "partial data" : d === "benchmark_only" ? "benchmark only" : "target, not actual");
-const bandHex = (b: Band): string => BAND_COLOUR[b].replace("#", "");
+const bandHex = (b: Band): string => docxHex(BAND_COLOUR[b]);
 const bandOf = (score: number): Band => (score >= 70 ? "strong" : score >= 40 ? "developing" : "early");
 const WINDOW_LABEL = { this_week: "this week", "30d": "next 30 days", "90d": "next 90 days" } as const;
 

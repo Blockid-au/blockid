@@ -68,7 +68,7 @@ const GROWTH_PHASES = [
       { name: "Market Size Analysis", desc: "TAM/SAM/SOM estimation and competitive landscape mapping" },
       { name: "Problem Clarity Assessment", desc: "Evaluate problem-solution fit with evidence-based scoring" },
     ],
-    color: "from-gray-500 to-gray-600",
+    accent: "border-l-line-strong",
   },
   {
     phase: 1,
@@ -82,7 +82,7 @@ const GROWTH_PHASES = [
       { name: "Competitive Analysis", desc: "AI-powered competitor mapping across AU startup ecosystem" },
       { name: "SVI Trend Tracking", desc: "Weekly snapshots show your growth trajectory over time" },
     ],
-    color: "from-blue-500 to-blue-600",
+    accent: "border-l-action",
   },
   {
     phase: 2,
@@ -96,7 +96,7 @@ const GROWTH_PHASES = [
       { name: "Team Assessment", desc: "CHRO agent evaluates team composition, roles, and hiring gaps" },
       { name: "Code & Tech Audit", desc: "CTO agent reviews GitHub repos — architecture, security, code quality" },
     ],
-    color: "from-indigo-500 to-indigo-600",
+    accent: "border-l-brand-navy",
   },
   {
     phase: 3,
@@ -110,7 +110,7 @@ const GROWTH_PHASES = [
       { name: "Pitch Deck Review", desc: "AI-powered analysis of your pitch deck with improvement suggestions" },
       { name: "Investor Readiness Score", desc: "Detailed checklist of what investors look for at each stage" },
     ],
-    color: "from-purple-500 to-purple-600",
+    accent: "border-l-accent",
   },
   {
     phase: 4,
@@ -124,7 +124,7 @@ const GROWTH_PHASES = [
       { name: "Market Capture Projections", desc: "Monthly TAM penetration forecasts with growth scenarios" },
       { name: "SVI Market Index", desc: "Unbounded index (Nikkei-style) that grows as you add more data" },
     ],
-    color: "from-emerald-500 to-emerald-600",
+    accent: "border-l-bull",
   },
   {
     phase: 5,
@@ -138,7 +138,7 @@ const GROWTH_PHASES = [
       { name: "Multi-Agent Reports", desc: "11 C-Level AI agents produce comprehensive business intelligence" },
       { name: "Board Memo Generator", desc: "Professional board reports with financials, metrics, and strategy" },
     ],
-    color: "from-amber-500 to-amber-600",
+    accent: "border-l-warn",
   },
 ];
 
@@ -506,15 +506,16 @@ export default function VersionPage() {
   const manifest = readDeployManifest();
   const sha7 = manifest?.git_sha ? manifest.git_sha.slice(0, 7) : null;
   return (
-    <div className="min-h-svh bg-surface-100">
-      {/* Header */}
-      <header className="bg-gradient-to-r from-brand-600 to-brand-700 text-white py-16">
+    <div className="min-h-svh bg-surface text-primary">
+      {/* Header — G26: light page header (eyebrow · h1 · lede), no dark or gradient band */}
+      <header className="border-b border-line-subtle bg-surface-sunken py-16">
         <div className="max-w-5xl mx-auto px-4 text-center">
-          <h1 className="text-4xl font-bold mb-3">BlockID.au — Features & Updates</h1>
-          <p className="text-lg opacity-90 max-w-2xl mx-auto">
-            Everything you need to answer: <strong>Where am I now? What am I worth? What should I do next?</strong>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-accent">Changelog</p>
+          <h1 className="font-display text-4xl font-bold tracking-tight text-primary mb-3">BlockID.au — Features &amp; Updates</h1>
+          <p className="text-lg text-secondary max-w-2xl mx-auto">
+            Everything you need to answer: <strong className="text-primary">Where am I now? What am I worth? What should I do next?</strong>
           </p>
-          <p className="text-sm opacity-70 mt-2">
+          <p className="text-sm text-muted mt-2">
             Organized by your startup&apos;s growth path — from Day 0 to scale
           </p>
         </div>
@@ -523,28 +524,28 @@ export default function VersionPage() {
       <main className="max-w-5xl mx-auto px-4 py-12 space-y-16 [overflow-wrap:anywhere]">
         {/* Live deploy card */}
         <section aria-label="Current deploy">
-          <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+          <div className="rounded-2xl border border-line-subtle bg-surface p-6 shadow-sm">
             <div className="mb-3 flex items-baseline justify-between">
-              <h2 className="text-lg font-bold text-gray-900">Live deploy</h2>
-              <span className="rounded-full bg-emerald-50 px-3 py-0.5 text-xs font-mono font-bold text-emerald-700">
+              <h2 className="text-lg font-bold text-primary">Live deploy</h2>
+              <span className="rounded-full bg-surface-sunken border border-line-subtle px-3 py-0.5 text-xs font-mono font-bold text-bull">
                 {manifest?.version ?? "unknown"}
               </span>
             </div>
             {manifest ? (
               <dl className="grid grid-cols-1 gap-4 sm:grid-cols-4">
                 <div>
-                  <dt className="text-xs uppercase tracking-wider text-gray-500">Version</dt>
-                  <dd className="mt-1 font-mono text-sm text-gray-900">{manifest.version ?? "—"}</dd>
+                  <dt className="text-xs uppercase tracking-wider text-muted">Version</dt>
+                  <dd className="mt-1 font-mono text-sm text-primary">{manifest.version ?? "—"}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs uppercase tracking-wider text-gray-500">Git SHA</dt>
+                  <dt className="text-xs uppercase tracking-wider text-muted">Git SHA</dt>
                   <dd className="mt-1 font-mono text-sm">
                     {sha7 ? (
                       <a
                         href={`https://github.com/Blockid-au/blockid.au/commit/${manifest.git_sha}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-brand-700 hover:underline"
+                        className="text-action hover:underline"
                       >
                         {sha7}
                       </a>
@@ -554,25 +555,25 @@ export default function VersionPage() {
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs uppercase tracking-wider text-gray-500">Deployed</dt>
-                  <dd className="mt-1 font-mono text-sm text-gray-900">
+                  <dt className="text-xs uppercase tracking-wider text-muted">Deployed</dt>
+                  <dd className="mt-1 font-mono text-sm text-primary">
                     {relativeAge(manifest.deployed_at)}
                   </dd>
                   {manifest.deployed_at ? (
-                    <dd className="font-mono text-[10px] text-gray-500">
+                    <dd className="font-mono text-[10px] text-muted">
                       {manifest.deployed_at}
                     </dd>
                   ) : null}
                 </div>
                 <div>
-                  <dt className="text-xs uppercase tracking-wider text-gray-500">Task ID</dt>
-                  <dd className="mt-1 font-mono text-sm text-gray-900">
+                  <dt className="text-xs uppercase tracking-wider text-muted">Task ID</dt>
+                  <dd className="mt-1 font-mono text-sm text-primary">
                     {manifest.task_id ?? "—"}
                   </dd>
                 </div>
               </dl>
             ) : (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-muted">
                 Deploy manifest not yet published for this environment.
               </p>
             )}
@@ -581,22 +582,22 @@ export default function VersionPage() {
 
         {/* Growth Path Features */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Your Growth Path</h2>
-          <p className="text-gray-600 mb-8">
+          <h2 className="text-2xl font-bold text-primary mb-2">Your Growth Path</h2>
+          <p className="text-secondary mb-8">
             BlockID guides you step-by-step through every stage of your startup journey.
             Each phase unlocks features designed for where you are right now.
           </p>
 
           <div className="space-y-8">
             {GROWTH_PHASES.map((phase) => (
-              <div key={phase.phase} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className={`bg-gradient-to-r ${phase.color} px-6 py-4 text-white`}>
+              <div key={phase.phase} className="bg-surface rounded-2xl border border-line-subtle shadow-sm overflow-hidden">
+                <div className={`border-b border-line-subtle border-l-4 bg-surface-sunken px-6 py-4 ${phase.accent}`}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <h3 className="text-lg font-bold">{phase.title}</h3>
-                      <p className="text-sm opacity-80">{phase.description}</p>
+                      <h3 className="text-lg font-bold text-primary">{phase.title}</h3>
+                      <p className="text-sm text-secondary">{phase.description}</p>
                     </div>
-                    <span className="text-xs bg-white/20 px-3 py-1 rounded-full font-medium shrink-0">
+                    <span className="text-xs border border-line-subtle bg-surface text-secondary px-3 py-1 rounded-full font-medium shrink-0">
                       {phase.sviRange}
                     </span>
                   </div>
@@ -605,16 +606,16 @@ export default function VersionPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {phase.features.map((feature) => (
                       <div key={feature.name} className="flex gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-brand-500 mt-2 shrink-0" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-action mt-2 shrink-0" />
                         <div>
                           {feature.link ? (
-                            <Link href={feature.link} className="text-sm font-semibold text-brand-700 hover:underline">
+                            <Link href={feature.link} className="text-sm font-semibold text-action hover:underline">
                               {feature.name}
                             </Link>
                           ) : (
-                            <p className="text-sm font-semibold text-gray-900">{feature.name}</p>
+                            <p className="text-sm font-semibold text-primary">{feature.name}</p>
                           )}
-                          <p className="text-xs text-gray-600">{feature.desc}</p>
+                          <p className="text-xs text-secondary">{feature.desc}</p>
                         </div>
                       </div>
                     ))}
@@ -627,8 +628,8 @@ export default function VersionPage() {
 
         {/* AI Agent Ecosystem */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">11 C-Level AI Agents</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className="text-2xl font-bold text-primary mb-2">11 C-Level AI Agents</h2>
+          <p className="text-secondary mb-6">
             Your virtual board of directors. Each agent specializes in a domain and works daily to improve both the platform and your startup reports.
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
@@ -645,9 +646,9 @@ export default function VersionPage() {
               { role: "CDO", focus: "Data & AI" },
               { role: "COO", focus: "Operations & QA" },
             ].map((agent) => (
-              <div key={agent.role} className="bg-white rounded-xl border border-gray-200 p-3 text-center shadow-sm">
-                <p className="text-sm font-bold text-brand-700">{agent.role}</p>
-                <p className="text-[10px] text-gray-500">{agent.focus}</p>
+              <div key={agent.role} className="bg-surface rounded-xl border border-line-subtle p-3 text-center shadow-sm">
+                <p className="text-sm font-bold text-action">{agent.role}</p>
+                <p className="text-[10px] text-muted">{agent.focus}</p>
               </div>
             ))}
           </div>
@@ -655,25 +656,25 @@ export default function VersionPage() {
 
         {/* Version History */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Version History</h2>
-          <p className="text-gray-600 mb-6">
+          <h2 className="text-2xl font-bold text-primary mb-2">Version History</h2>
+          <p className="text-secondary mb-6">
             Every update, new feature, and improvement — tracked over time.
           </p>
 
           <div className="space-y-6">
             {VERSION_HISTORY.map((release) => (
-              <div key={release.version} className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+              <div key={release.version} className="bg-surface rounded-xl border border-line-subtle shadow-sm p-5">
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="text-xs bg-brand-100 text-brand-700 px-2 py-0.5 rounded-full font-mono font-bold">
+                  <span className="text-xs bg-accent-soft text-action px-2 py-0.5 rounded-full font-mono font-bold">
                     v{release.version}
                   </span>
-                  <span className="text-xs text-gray-500">{release.date}</span>
-                  <h3 className="text-sm font-semibold text-gray-900">{release.title}</h3>
+                  <span className="text-xs text-muted">{release.date}</span>
+                  <h3 className="text-sm font-semibold text-primary">{release.title}</h3>
                 </div>
                 <ul className="space-y-1">
                   {release.changes.map((change, i) => (
-                    <li key={i} className="flex gap-2 text-xs text-gray-700">
-                      <span className="text-brand-500 mt-0.5">+</span>
+                    <li key={i} className="flex gap-2 text-xs text-secondary">
+                      <span className="text-action mt-0.5">+</span>
                       <span>{change}</span>
                     </li>
                   ))}
@@ -684,14 +685,14 @@ export default function VersionPage() {
         </section>
 
         {/* CTA */}
-        <section className="text-center bg-gradient-to-r from-brand-50 to-purple-50 rounded-2xl p-8 border border-brand-100">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Ready to start?</h2>
-          <p className="text-gray-600 mb-6">
+        <section className="text-center bg-surface-sunken rounded-2xl p-8 border border-line-subtle">
+          <h2 className="text-2xl font-bold text-primary mb-2">Ready to start?</h2>
+          <p className="text-secondary mb-6">
             Get your free SVI analysis and discover where your startup stands today.
           </p>
           <Link
             href="/score"
-            className="inline-block bg-brand-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-brand-700 transition-colors"
+            className="inline-block bg-action text-on-action px-6 py-3 rounded-xl font-semibold hover:bg-action-hover transition-colors"
           >
             Get Your Free SVI Score
           </Link>
@@ -699,7 +700,7 @@ export default function VersionPage() {
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 py-8 text-center text-xs text-gray-500">
+      <footer className="border-t border-line-subtle py-8 text-center text-xs text-muted">
         <p>&copy; {new Date().getUTCFullYear()} {LEGAL_ENTITY.copyrightHolder} ({LEGAL_ENTITY_ACN_LABEL}) — BlockID.au</p>
       </footer>
     </div>

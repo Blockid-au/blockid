@@ -755,16 +755,16 @@ function unsubscribeUrl(email: string, token?: string | null, category?: EmailCa
 function footer(email: string, opts: { reason?: string; token?: string | null; category?: EmailCategory } = {}): string {
   const unsub = unsubscribeUrl(email, opts.token, opts.category);
   return `
-    <hr style="border:none;border-top:1px solid #E2E8F0;margin:32px 0 16px 0;">
-    <p style="margin:0 0 4px 0;color:#0F172A;font-size:12px;line-height:1.6;font-weight:600;">
+    <hr style="border:none;border-top:1px solid #e5e7eb;margin:32px 0 16px 0;">
+    <p style="margin:0 0 4px 0;color:#0b0f1a;font-size:12px;line-height:1.6;font-weight:600;">
       BlockID &middot; Startup Value Index
     </p>
-    <p style="margin:0 0 4px 0;color:#64748B;font-size:12px;line-height:1.6;">
+    <p style="margin:0 0 4px 0;color:#6b7280;font-size:12px;line-height:1.6;">
       ${acnAbnLine().replace(/ · /g, " &middot; ")}
     </p>
-    <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">
+    <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">
       ${escapeHtml(opts.reason ?? ONBOARDING_REASON)}
-      <a href="${escapeHtml(unsub)}" style="color:#64748B;text-decoration:underline;">Unsubscribe</a>.
+      <a href="${escapeHtml(unsub)}" style="color:#6b7280;text-decoration:underline;">Unsubscribe</a>.
     </p>`;
 }
 
@@ -774,11 +774,11 @@ function footerText(email: string, opts: { reason?: string; token?: string | nul
 }
 
 function shell(inner: string): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BlockID · Startup Value Index</title></head><body style="margin:0;padding:0;background:#F8FAFC;color:#0F172A;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8FAFC;padding:32px 16px;">
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BlockID · Startup Value Index</title></head><body style="margin:0;padding:0;background:#f7f8fa;color:#0b0f1a;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:32px;">
-        <tr><td style="font-size:15px;color:#0F172A;line-height:1.6;">${inner}</td></tr>
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;padding:32px;">
+        <tr><td style="font-size:15px;color:#0b0f1a;line-height:1.6;">${inner}</td></tr>
       </table>
     </td></tr>
   </table>
@@ -787,7 +787,7 @@ function shell(inner: string): string {
 
 function ctaButton(href: string, label: string): string {
   return `<p style="margin:24px 0;text-align:left;">
-    <a href="${href}" style="display:inline-block;background:#2563EB;color:#FFFFFF;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:14px;">${escapeHtml(label)}</a>
+    <a href="${href}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:8px;font-size:14px;">${escapeHtml(label)}</a>
   </p>`;
 }
 
@@ -804,8 +804,8 @@ function d1Copy(email: string, p: DripPayload): RenderedEmail {
   const evidenceUrl = `${siteUrl()}/workspace/evidence`;
   const subject = `Your Startup Value Index report is ready — three next steps for ${dim}`;
   const html = shell(`
-    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#2563EB;font-weight:600;">BlockID &middot; Day 1</p>
-    <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0F172A;">Three next steps on your SVI</h1>
+    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#1B2A5E;font-weight:600;">BlockID &middot; Day 1</p>
+    <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0b0f1a;">Three next steps on your SVI</h1>
     <p>Your first Startup Value Index report is generated. The lowest scoring dimension right now is <strong>${escapeHtml(dim)}</strong>${p.weakestScore != null ? ` at ${p.weakestScore}/100` : ""}, so that is where a small amount of work will move the SVI the most.</p>
     <p style="margin:16px 0 8px 0;font-weight:600;">Do these three things today:</p>
     <ol style="padding-left:20px;margin:0 0 16px 0;">
@@ -814,7 +814,7 @@ function d1Copy(email: string, p: DripPayload): RenderedEmail {
       <li style="margin-bottom:6px;">Re-score. Investors want to see movement, not perfection.</li>
     </ol>
     ${ctaButton(dashUrl, "Open your report")}
-    <p style="color:#64748B;font-size:13px;">Or jump straight to <a href="${evidenceUrl}" style="color:#2563EB;">Evidence Vault</a>.</p>
+    <p style="color:#6b7280;font-size:13px;">Or jump straight to <a href="${evidenceUrl}" style="color:#1B2A5E;">Evidence Vault</a>.</p>
     ${footer(email)}`);
   const text = `Your Startup Value Index report is ready.\n\nWeakest dimension: ${dim}${p.weakestScore != null ? ` (${p.weakestScore}/100)` : ""}.\n\nThree next steps:\n1. Read the ${dim} chapter in your report.\n2. Add one piece of evidence in the Evidence Vault.\n3. Re-score.\n\nReport: ${dashUrl}\nEvidence Vault: ${evidenceUrl}${footerText(email)}`;
   return { subject, html, text };
@@ -825,12 +825,12 @@ function d3Copy(email: string, p: DripPayload): RenderedEmail {
   const teamUrl = `${siteUrl()}/workspace/team`;
   const subject = `Add your team to lift your SVI Team score by ~${lift} points`;
   const html = shell(`
-    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#2563EB;font-weight:600;">BlockID &middot; Day 3</p>
-    <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0F172A;">Bring your team into the workspace</h1>
+    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#1B2A5E;font-weight:600;">BlockID &middot; Day 3</p>
+    <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0b0f1a;">Bring your team into the workspace</h1>
     <p>Your SVI weights the Founder and Team dimension heavily. Adding co-founders, advisors and early hires with LinkedIn URLs typically lifts the Team component by <strong>${lift} points</strong> and the total SVI along with it.</p>
     <p>It also unlocks role-based dashboards so each person sees the report slice that matters to them.</p>
     ${ctaButton(teamUrl, "Invite team")}
-    <p style="color:#64748B;font-size:13px;">Invites are free. Team members do not consume your credit balance.</p>
+    <p style="color:#6b7280;font-size:13px;">Invites are free. Team members do not consume your credit balance.</p>
     ${footer(email)}`);
   const text = `Adding your team lifts the SVI Team component by roughly ${lift} points and pulls the headline number up.\n\nInvite team: ${teamUrl}${footerText(email)}`;
   return { subject, html, text };
@@ -842,8 +842,8 @@ function d7Copy(email: string, p: DripPayload): RenderedEmail {
   const insightsUrl = `${siteUrl()}/insights`;
   const subject = `How founders in ${sectorLabel} are unblocking ${dim}`;
   const html = shell(`
-    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#2563EB;font-weight:600;">BlockID &middot; Day 7</p>
-    <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0F172A;">A pattern we see in ${escapeHtml(sectorLabel)}</h1>
+    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#1B2A5E;font-weight:600;">BlockID &middot; Day 7</p>
+    <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0b0f1a;">A pattern we see in ${escapeHtml(sectorLabel)}</h1>
     <p>Across recent BlockID scores, the founders in ${escapeHtml(sectorLabel)} who lifted <strong>${escapeHtml(dim)}</strong> fastest did three things in the first month.</p>
     <ol style="padding-left:20px;margin:0 0 16px 0;">
       <li style="margin-bottom:6px;">Wrote a one-page problem statement and posted it publicly to invite critique.</li>
@@ -873,8 +873,8 @@ function tbrUnlockCopy(email: string, p: DripPayload): RenderedEmail {
   const dim = p.weakestDim ? escapeHtml(p.weakestDim) : null;
   const subject = tbrUnlockSubject();
   const html = shell(`
-    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#2563EB;font-weight:600;">BlockID &middot; Trusted Business Report</p>
-    <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0F172A;">Your Trusted Business Report is ready to unlock</h1>
+    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#1B2A5E;font-weight:600;">BlockID &middot; Trusted Business Report</p>
+    <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0b0f1a;">Your Trusted Business Report is ready to unlock</h1>
     <p>Your free report already shows your Startup Value Index, the headline chapters and where you sit against your stage cohort${dim ? ` — with <strong>${dim}</strong> as the dimension to work on first` : ""}.</p>
     <p>The full report unlocks, for <strong>${price}</strong> one-off (inc. GST):</p>
     <ul style="padding-left:20px;margin:0 0 16px 0;">
@@ -884,7 +884,7 @@ function tbrUnlockCopy(email: string, p: DripPayload): RenderedEmail {
       <li style="margin-bottom:6px;">PDF export and a live share link for investors.</li>
     </ul>
     ${ctaButton(reportUrl, "Open your report")}
-    <p style="color:#64748B;font-size:13px;">You will see the exact price and credit cost on screen and confirm before anything is charged.</p>
+    <p style="color:#6b7280;font-size:13px;">You will see the exact price and credit cost on screen and confirm before anything is charged.</p>
     ${footer(email)}`);
   const text = `Your Trusted Business Report is ready to unlock.\n\nThe full report (${price} one-off inc. GST) unlocks all 8 dimension chapters in full, your valuation range with methods, a 90-day action plan and a PDF + share link.\n\nOpen your report: ${reportUrl}\n\nYou confirm the exact price and credit cost on screen before anything is charged.${footerText(email)}`;
   return { subject, html, text };
@@ -894,8 +894,8 @@ function d14Copy(email: string): RenderedEmail {
   const pricingUrl = `${siteUrl()}/pricing`;
   const subject = `Ready for the full report? Founder plan is ${STARTER_PRICE_LINE}`;
   const html = shell(`
-    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#2563EB;font-weight:600;">BlockID &middot; Day 14</p>
-    <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0F172A;">The full report unlocks the next 90 days</h1>
+    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#1B2A5E;font-weight:600;">BlockID &middot; Day 14</p>
+    <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0b0f1a;">The full report unlocks the next 90 days</h1>
     <p>You have been on the free tier for two weeks. The Founder plan (${STARTER_PRICE_LINE} inc. GST) unlocks:</p>
     <ul style="padding-left:20px;margin:0 0 16px 0;">
       <li style="margin-bottom:6px;">Your score tracked over time, with ${STARTER_MONTHLY_CREDITS} AI credits a month to re-run it.</li>
@@ -914,8 +914,8 @@ function npsCopy(email: string, p: DripPayload): RenderedEmail {
   const npsUrl = `${siteUrl()}/nps?token=${encodeURIComponent(token)}`;
   const subject = "How likely are you to recommend BlockID?";
   const html = shell(`
-    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#2563EB;font-weight:600;">BlockID &middot; 30-day check-in</p>
-    <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0F172A;">One question</h1>
+    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#1B2A5E;font-weight:600;">BlockID &middot; 30-day check-in</p>
+    <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0b0f1a;">One question</h1>
     <p>On a scale of 0 to 10, how likely are you to recommend BlockID to another founder?</p>
     <p>One click, no login. If the number is low, we would rather hear about it now than guess later.</p>
     ${ctaButton(npsUrl, "Give a score")}
@@ -968,21 +968,21 @@ function radarCopy(email: string, p: DripPayload, bits: RadarCopyBits): Rendered
     ? `<ol style="padding-left:20px;margin:0 0 16px 0;">${bits.steps.map((s) => `<li style="margin-bottom:6px;">${escapeHtml(s)}</li>`).join("")}</ol>`
     : "";
   const links = [
-    official ? `<a href="${escapeHtml(official)}" style="color:#2563EB;">Official page</a>` : null,
-    reportUrl ? `<a href="${escapeHtml(reportUrl)}" style="color:#2563EB;">Your Money Finder report</a>` : null,
+    official ? `<a href="${escapeHtml(official)}" style="color:#1B2A5E;">Official page</a>` : null,
+    reportUrl ? `<a href="${escapeHtml(reportUrl)}" style="color:#1B2A5E;">Your Money Finder report</a>` : null,
   ]
     .filter(Boolean)
     .join(" &middot; ");
 
   const html = shell(`
-    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#2563EB;font-weight:600;">BlockID &middot; ${escapeHtml(bits.kicker)}</p>
-    <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0F172A;">${escapeHtml(bits.heading)}</h1>
+    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#1B2A5E;font-weight:600;">BlockID &middot; ${escapeHtml(bits.kicker)}</p>
+    <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0b0f1a;">${escapeHtml(bits.heading)}</h1>
     ${whatIs}
     <p>${escapeHtml(bits.lead)}</p>
     ${stepsHtml}
     ${ctaButton(draftUrl, "Draft application")}
-    ${links ? `<p style="color:#64748B;font-size:13px;">${links}</p>` : ""}
-    <p style="color:#64748B;font-size:12px;">Dates come from the official source and are re-checked weekly. Confirm on the official page before you rely on one.</p>
+    ${links ? `<p style="color:#6b7280;font-size:13px;">${links}</p>` : ""}
+    <p style="color:#6b7280;font-size:12px;">Dates come from the official source and are re-checked weekly. Confirm on the official page before you rely on one.</p>
     ${footer(email, footerOpts)}`);
 
   const text = [
@@ -1061,16 +1061,16 @@ function radarStatusChangedCopy(email: string, p: DripPayload): RenderedEmail {
         .map((a) => {
           const range = audRange(a.amount_max_aud);
           const url = a.official_url?.trim() || null;
-          const title = url ? `<a href="${escapeHtml(url)}" style="color:#2563EB;">${escapeHtml(a.name)}</a>` : `<strong>${escapeHtml(a.name)}</strong>`;
+          const title = url ? `<a href="${escapeHtml(url)}" style="color:#1B2A5E;">${escapeHtml(a.name)}</a>` : `<strong>${escapeHtml(a.name)}</strong>`;
           return `<li style="margin-bottom:6px;">${title}${range ? ` — ${escapeHtml(range)}` : ""}${a.closes_at ? ` · closes ${escapeHtml(a.closes_at)}` : ""}</li>`;
         })
         .join("")}</ol>`
     : `<p>No other match is open this week. We re-check the catalogue every Sunday and will tell you when one opens.</p>`;
 
   const html = shell(`
-    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#2563EB;font-weight:600;">BlockID &middot; Founder Radar</p>
-    <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0F172A;">${escapeHtml(name)} is now ${status}</h1>
-    <p>The official page for <strong>${escapeHtml(name)}</strong> now shows it as ${status}${p.official_url ? ` (<a href="${escapeHtml(p.official_url)}" style="color:#2563EB;">check it</a>)` : ""}. If you had started an application, keep the draft — rounds often reopen.</p>
+    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#1B2A5E;font-weight:600;">BlockID &middot; Founder Radar</p>
+    <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0b0f1a;">${escapeHtml(name)} is now ${status}</h1>
+    <p>The official page for <strong>${escapeHtml(name)}</strong> now shows it as ${status}${p.official_url ? ` (<a href="${escapeHtml(p.official_url)}" style="color:#1B2A5E;">check it</a>)` : ""}. If you had started an application, keep the draft — rounds often reopen.</p>
     <p style="margin:16px 0 8px 0;font-weight:600;">Two alternatives from your match list, by score:</p>
     ${altHtml}
     ${ctaButton(draftUrl, "Draft application")}
@@ -1122,8 +1122,8 @@ function radarSetupShell(email: string, p: DripPayload, bits: { kicker: string; 
   const ctaUrl = radarSetupCtaUrl();
   const footerOpts = { reason: RADAR_SETUP_REASON, token: p.unsubscribe_token ?? null, category: "money_radar" as const };
   const html = shell(`
-    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#2563EB;font-weight:600;">BlockID &middot; ${escapeHtml(bits.kicker)}</p>
-    <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0F172A;">${escapeHtml(bits.heading)}</h1>
+    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#1B2A5E;font-weight:600;">BlockID &middot; ${escapeHtml(bits.kicker)}</p>
+    <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0b0f1a;">${escapeHtml(bits.heading)}</h1>
     ${bits.paragraphs.map((t) => `<p>${escapeHtml(t)}</p>`).join("\n    ")}
     ${ctaButton(ctaUrl, bits.cta)}
     ${footer(email, footerOpts)}`);
