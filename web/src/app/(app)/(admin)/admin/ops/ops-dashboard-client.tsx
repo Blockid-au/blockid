@@ -122,8 +122,8 @@ function Sparkline({
   values,
   width = 180,
   height = 36,
-  stroke = "#0ea5e9",
-  fill = "rgba(14,165,233,0.12)",
+  stroke = "var(--color-brand-navy)",
+  fill = "color-mix(in srgb, var(--color-brand-navy) 12%, transparent)",
 }: {
   values: number[];
   width?: number;
@@ -163,7 +163,7 @@ function Bars({
   values,
   labels,
   height = 44,
-  color = "#8b5cf6",
+  color = "var(--color-brand-cyan-muted)",
 }: {
   values: number[];
   labels: string[];
@@ -373,7 +373,7 @@ export function OpsDashboardClient({
                   <Bars
                     values={growth.signupsDaily.map((d) => d.count)}
                     labels={growth.signupsDaily.map((d) => d.day)}
-                    color="#2563eb"
+                    color="var(--color-brand-navy)"
                   />
                 </div>
                 <div>
@@ -386,7 +386,7 @@ export function OpsDashboardClient({
                   <Bars
                     values={growth.analysesDaily.map((d) => d.count)}
                     labels={growth.analysesDaily.map((d) => d.day)}
-                    color="#059669"
+                    color="var(--color-bull)"
                   />
                 </div>
                 <div className="flex justify-between text-[10px] text-muted font-mono">

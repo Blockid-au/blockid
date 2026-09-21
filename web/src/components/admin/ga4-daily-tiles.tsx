@@ -50,7 +50,7 @@ function pct(n: number): string {
 }
 
 // Tiny inline SVG sparkline (no external deps).
-function Sparkline({ points, color = "#0284c7" }: { points: number[]; color?: string }) {
+function Sparkline({ points, color = "var(--color-brand-navy)" }: { points: number[]; color?: string }) {
   if (points.length < 2) return null;
   const w = 100;
   const h = 28;
@@ -139,7 +139,7 @@ export async function GA4DailyTiles() {
             <Activity strokeWidth={1.75} className="h-3.5 w-3.5 text-brand-500" />
           </div>
           <p className="text-2xl font-bold font-mono text-ink-800">{fmt(snap.totals.sessions)}</p>
-          <Sparkline points={sessionsSeries} color="#0284c7" />
+          <Sparkline points={sessionsSeries} />
           <p className="text-[10px] text-ink-600 mt-1">7-day trend</p>
         </div>
 

@@ -63,12 +63,12 @@ function ScoreRing({ score }: { score: number | null }) {
   const r = 14;
   const c = 2 * Math.PI * r;
   const pct = score == null ? 0 : Math.max(0, Math.min(100, score)) / 100;
-  const tone = score == null ? "#94a3b8" : score >= 70 ? "#059669" : score >= 45 ? "#d97706" : "#dc2626";
+  const tone = score == null ? "var(--color-tertiary)" : score >= 70 ? "var(--color-bull)" : score >= 45 ? "var(--color-warn)" : "var(--color-bear)";
   return (
     <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true" className="shrink-0">
-      <circle cx="18" cy="18" r={r} fill="none" stroke="#e2e8f0" strokeWidth="4" />
+      <circle cx="18" cy="18" r={r} fill="none" stroke="var(--color-line-subtle)" strokeWidth="4" />
       <circle cx="18" cy="18" r={r} fill="none" stroke={tone} strokeWidth="4" strokeDasharray={`${c * pct} ${c}`} strokeLinecap="round" transform="rotate(-90 18 18)" />
-      <text x="18" y="21" textAnchor="middle" fontSize="10" fontWeight="600" fill="#0f172a">
+      <text x="18" y="21" textAnchor="middle" fontSize="10" fontWeight="600" fill="var(--color-primary)">
         {score == null ? "–" : score}
       </text>
     </svg>

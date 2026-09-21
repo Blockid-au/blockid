@@ -163,7 +163,7 @@ export function Sparkline({ values, width = 64, height = 18 }: { values: number[
       className="inline-block align-middle"
     >
       <title>{`SVI trend ${values[0]} to ${values[values.length - 1]}`}</title>
-      <polyline fill="none" stroke={up ? "#047857" : "#B91C1C"} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" points={pts.join(" ")} />
+      <polyline fill="none" stroke={up ? "var(--color-bull)" : "var(--color-bear)"} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" points={pts.join(" ")} />
     </svg>
   );
 }
