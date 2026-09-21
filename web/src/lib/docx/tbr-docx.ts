@@ -660,7 +660,7 @@ function evidenceUsed(ctx: Ctx, ch: DimensionChapter): Block[] {
   const real = ch.evidence.filter((e) => e.status !== "missing");
   if (!real.length) return [];
   const rows = real.slice(0, 5).map((e) => [e.label, e.confidence ? s43.evidenceLevel[e.confidence] : cs.levelUnrated, cs.status({ status: e.status }), cites.peek(e.evidence_id) ? String(cites.peek(e.evidence_id)!.n) : "—"]);
-  const out: Block[] = [h3(t.evidenceUsed), table([cs.th.label, cs.th.level, cs.th.source, cs.th.n], rows, { widths: [50, 22, 16, 12], numeric: [3] })];
+  const out: Block[] = [h3(t.evidenceUsed), table([cs.th.label, cs.th.level, getTbrStrings(locale).v2.s47.th.status, cs.th.n], rows, { widths: [50, 22, 16, 12], numeric: [3] })];
   if (real.length > 5) out.push(small(t.moreInRegister(real.length - 5)));
   return out;
 }

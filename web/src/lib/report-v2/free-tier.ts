@@ -129,7 +129,7 @@ export function projectForTier(report: ReportV2, level: TrimLevel = 0): FreeTier
   const free = report.tier === "free";
   const showAll = { evidenceTables: true, phaseLens: true, criterionDetail: true, riskTable: true, appendixLedger: true };
   if (!free) return { report, free, level: 0, dropped: [], moneyLimit: 50, actionSteps: report.actionPlan.steps.length, show: showAll };
-  const dropped: string[] = ["secondary visuals", "chapters 5–8 as locked cards", "valuation method detail", "phase-gate heat map", "grants beyond the top 3", "action steps beyond 5", `risk rows beyond the top ${RISK_ROWS_FREE}`, `plan steps beyond ${PLAN_STEPS_FREE}`];
+  const dropped: string[] = ["chapter and money charts", "chapters 5–8 as locked cards", "valuation method detail", "phase-gate heat map", "grants beyond the top 3", "action steps beyond 5", `risk rows beyond the top ${RISK_ROWS_FREE}`, `plan steps beyond ${PLAN_STEPS_FREE}`];
   const registerCap = level >= 3 ? 0 : 12;
   const projected: ReportV2 = {
     ...report,

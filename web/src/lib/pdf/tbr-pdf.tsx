@@ -46,6 +46,7 @@ import { pdfSafeText } from "@/lib/report-visuals/pdf-text";
 import { HELVETICA, pdfFontsForLocale, vietnameseHyphenation, type PdfFontSet } from "@/lib/pdf/fonts";
 import type { Band, DataState, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { levelForEstimate, MAX_TRIM_LEVEL, projectForTier, type FreeTierProjection, type TrimLevel } from "@/lib/report-v2/free-tier";
+import { coverPercentileLine } from "@/lib/report-v2/cover-hero";
 import { coverLedgerCells, isUnassessed, ledgerRowsFor, pendingDimsLine, pendingLine } from "@/lib/report-v2/ledger-rows";
 import { chapterCtaRows, coverEvidenceLine, emptyEvidenceLine, evidenceRowsView, moneyEmptyState, pendingCtasHeading, type EvidenceRowView } from "@/lib/report-v2/evidence-view";
 import { getTbrS43Strings, getTbrStrings } from "@/lib/i18n/tbr-strings";
@@ -96,13 +97,43 @@ function makeStyles(f: PdfFontSet) {
     // No page-level lineHeight: react-pdf inherits it into SVG <Text> and the
     // twins then translate by a garbage offset ("unsupported number") — line
     // height lives on the text styles below instead.
-    page: { paddingTop: MARGIN_Y, paddingBottom: MARGIN_Y + 14, paddingHorizontal: MARGIN_X, fontFamily: f.regular, fontSize: 9.5, color: C.ink },
-    footer: { position: "absolute", left: MARGIN_X, right: MARGIN_X, bottom: 22, flexDirection: "row", justifyContent: "space-between", fontSize: 7.5, color: C.faint },
-    kicker: { fontSize: 7.5, letterSpacing: 1.2, textTransform: "uppercase", color: C.navy, ...bold },
+    page: {
+      paddingTop: MARGIN_Y,
+      paddingBottom: MARGIN_Y + 14,
+      paddingHorizontal: MARGIN_X,
+      fontFamily: f.regular,
+      fontSize: 9.5,
+      color: C.ink,
+    },
+    footer: {
+      position: "absolute",
+      left: MARGIN_X,
+      right: MARGIN_X,
+      bottom: 22,
+      flexDirection: "row",
+      justifyContent: "space-between",
+      fontSize: 7.5,
+      color: C.faint,
+    },
+    kicker: {
+      fontSize: 7.5,
+      letterSpacing: 1.2,
+      textTransform: "uppercase",
+      color: C.navy,
+      ...bold,
+    },
     h1: { fontSize: 20, ...bold, color: C.ink, marginTop: 2 },
     h2: { fontSize: 14, ...bold, color: C.ink },
     h3: { fontSize: 10, ...bold, color: C.ink, marginTop: 8, marginBottom: 3 },
-    sectionHead: { flexDirection: "row", alignItems: "baseline", borderBottomWidth: 1, borderBottomColor: C.navy, paddingBottom: 4, marginBottom: 6, marginTop: 2 },
+    sectionHead: {
+      flexDirection: "row",
+      alignItems: "baseline",
+      borderBottomWidth: 1,
+      borderBottomColor: C.navy,
+      paddingBottom: 4,
+      marginBottom: 6,
+      marginTop: 2,
+    },
     sectionNo: { fontSize: 8, color: C.navy, ...bold, width: 22 },
     purpose: { fontSize: 8, color: C.muted, lineHeight: 1.4, marginBottom: 6 },
     body: { fontSize: 9.5, lineHeight: 1.45 },
@@ -111,15 +142,57 @@ function makeStyles(f: PdfFontSet) {
     tiny: { fontSize: 7.5, color: C.faint },
     bold: { ...bold },
     row: { flexDirection: "row" },
-    box: { borderWidth: 1, borderColor: C.grid, borderRadius: 4, padding: 8, marginBottom: 8 },
-    softBox: { backgroundColor: C.sunken, borderRadius: 4, padding: 8, marginBottom: 8 },
-    callout: { backgroundColor: C.sunken, borderLeftWidth: 3, borderLeftColor: C.navy, borderRadius: 2, paddingVertical: 6, paddingHorizontal: 8, marginTop: 4, marginBottom: 8 },
+    box: {
+      borderWidth: 1,
+      borderColor: C.grid,
+      borderRadius: 4,
+      padding: 8,
+      marginBottom: 8,
+    },
+    softBox: {
+      backgroundColor: C.sunken,
+      borderRadius: 4,
+      padding: 8,
+      marginBottom: 8,
+    },
+    callout: {
+      backgroundColor: C.sunken,
+      borderLeftWidth: 3,
+      borderLeftColor: C.navy,
+      borderRadius: 2,
+      paddingVertical: 6,
+      paddingHorizontal: 8,
+      marginTop: 4,
+      marginBottom: 8,
+    },
     figure: { alignItems: "center", marginVertical: 6 },
-    caption: { fontSize: 7.5, color: C.muted, marginTop: 2, textAlign: "center" },
-    table: { borderWidth: 1, borderColor: C.grid, borderRadius: 3, marginBottom: 8 },
-    tr: { flexDirection: "row", borderBottomWidth: 0.5, borderBottomColor: C.grid, paddingVertical: 2.5, paddingHorizontal: 5 },
+    caption: {
+      fontSize: 7.5,
+      color: C.muted,
+      marginTop: 2,
+      textAlign: "center",
+    },
+    table: {
+      borderWidth: 1,
+      borderColor: C.grid,
+      borderRadius: 3,
+      marginBottom: 8,
+    },
+    tr: {
+      flexDirection: "row",
+      borderBottomWidth: 0.5,
+      borderBottomColor: C.grid,
+      paddingVertical: 2.5,
+      paddingHorizontal: 5,
+    },
     trHead: { backgroundColor: C.sunken },
-    th: { fontSize: 7, color: C.muted, textTransform: "uppercase", letterSpacing: 0.6, ...bold },
+    th: {
+      fontSize: 7,
+      color: C.muted,
+      textTransform: "uppercase",
+      letterSpacing: 0.6,
+      ...bold,
+    },
     td: { fontSize: 8.5, lineHeight: 1.3 },
     cell1: { flex: 1 },
     cell2: { flex: 2 },
@@ -128,19 +201,48 @@ function makeStyles(f: PdfFontSet) {
     bullet: { flexDirection: "row", marginBottom: 1.5 },
     bulletMark: { width: 10, fontSize: 8.5 },
     bulletText: { flex: 1, fontSize: 8.5, lineHeight: 1.4 },
-    chip: { flexDirection: "row", alignItems: "center", borderWidth: 0.5, borderColor: C.grid, borderRadius: 3, paddingHorizontal: 4, paddingVertical: 1.5, marginRight: 4 },
+    /** Same face as `bulletText` without `flex: 1` — for a Text stacked in a column (flex:1 there collapses to zero height). */
+    bulletBody: { fontSize: 8.5, lineHeight: 1.4 },
+    chip: {
+      flexDirection: "row",
+      alignItems: "center",
+      borderWidth: 0.5,
+      borderColor: C.grid,
+      borderRadius: 3,
+      paddingHorizontal: 4,
+      paddingVertical: 1.5,
+      marginRight: 4,
+    },
     chipText: { fontSize: 7, color: C.ink, ...bold },
     dot: { width: 5, height: 5, borderRadius: 2.5, marginRight: 3 },
     score: { fontSize: 24, ...bold, color: C.ink },
-    tile: { flex: 1, backgroundColor: C.sunken, borderWidth: 0.5, borderColor: C.grid, borderRadius: 4, padding: 8, marginRight: 6, marginBottom: 6 },
-    tileLabel: { fontSize: 6.5, color: C.muted, textTransform: "uppercase", letterSpacing: 0.6, ...bold },
+    tile: {
+      flex: 1,
+      backgroundColor: C.sunken,
+      borderWidth: 0.5,
+      borderColor: C.grid,
+      borderRadius: 4,
+      padding: 8,
+      marginRight: 6,
+      marginBottom: 6,
+    },
+    tileLabel: {
+      fontSize: 6.5,
+      color: C.muted,
+      textTransform: "uppercase",
+      letterSpacing: 0.6,
+      ...bold,
+    },
     tileValue: { fontSize: 20, color: C.ink, ...bold, marginTop: 2 },
     tileSub: { fontSize: 8, color: C.ink, marginTop: 1 },
     tileNote: { fontSize: 7.5, color: C.muted },
   });
 }
 
-const STYLES = { en: makeStyles(HELVETICA), vi: null as ReturnType<typeof makeStyles> | null };
+const STYLES = {
+  en: makeStyles(HELVETICA),
+  vi: null as ReturnType<typeof makeStyles> | null,
+};
 let s = STYLES.en;
 let tUnicode = false;
 const t = (value: unknown): string => pdfSafeText(value, { unicode: tUnicode });
@@ -210,8 +312,18 @@ function useFontSet(locale: "en" | "vi"): PdfFontSet {
 type Loc = "en" | "vi";
 
 const BAND_WORD: Record<Loc, Record<Band, string>> = {
-  en: { strong: "Strong", developing: "Developing", early: "Early", pending: "Pending" },
-  vi: { strong: "Mạnh", developing: "Đang phát triển", early: "Sớm", pending: "Chưa đánh giá" },
+  en: {
+    strong: "Strong",
+    developing: "Developing",
+    early: "Early",
+    pending: "Pending",
+  },
+  vi: {
+    strong: "Mạnh",
+    developing: "Đang phát triển",
+    early: "Sớm",
+    pending: "Chưa đánh giá",
+  },
 };
 const bandLabel = (b: Band, locale: Loc): string => BAND_WORD[locale][b];
 const stateLabel = (d: DataState): string => (d === "real" ? "real data" : d === "partial" ? "partial data" : d === "benchmark_only" ? "benchmark only" : "target, not actual");
@@ -227,11 +339,18 @@ function ctaText(row: EvidenceRowView): string {
 function fmtDate(iso: string, locale: Loc): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleDateString(locale === "vi" ? "vi-VN" : "en-AU", { day: "numeric", month: "long", year: "numeric" });
+  return d.toLocaleDateString(locale === "vi" ? "vi-VN" : "en-AU", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 }
 
 function normTitle(text: string): string {
-  return stripCitationMarkers(text).trim().toLowerCase().replace(/[.;:,\s]+$/u, "");
+  return stripCitationMarkers(text)
+    .trim()
+    .toLowerCase()
+    .replace(/[.;:,\s]+$/u, "");
 }
 
 /**
@@ -338,13 +457,23 @@ export function tbrPdfOutline(report: ReportV2, locale: Loc = "en"): Array<{ id:
     { id: TBR_PDF_SECTION_IDS.investmentView, label: sec.investmentView },
     { id: TBR_PDF_SECTION_IDS.keyPoints, label: sec.keyPoints },
     { id: TBR_PDF_SECTION_IDS.valuation, label: sec.valuation },
-    ...report.dimensions.map((d) => ({ id: TBR_PDF_SECTION_IDS.dim(d.dim), label: locale === "vi" ? d.titleVi : d.title })),
+    ...report.dimensions.map((d) => ({
+      id: TBR_PDF_SECTION_IDS.dim(d.dim),
+      label: locale === "vi" ? d.titleVi : d.title,
+    })),
     { id: TBR_PDF_SECTION_IDS.riskMatrix, label: sec.riskMatrix },
     { id: TBR_PDF_SECTION_IDS.plan, label: sec.improvementPlan },
     { id: TBR_PDF_SECTION_IDS.money, label: sec.money },
     { id: TBR_PDF_SECTION_IDS.appendix, label: sec.appendix },
     // G24-A: the footnote list is a section only when the document cites something.
-    ...(buildCitationIndex(report).size > 0 ? [{ id: TBR_PDF_SECTION_IDS.evidenceCited, label: citationStrings(locale).appendixTitle }] : []),
+    ...(buildCitationIndex(report).size > 0
+      ? [
+          {
+            id: TBR_PDF_SECTION_IDS.evidenceCited,
+            label: citationStrings(locale).appendixTitle,
+          },
+        ]
+      : []),
   ];
 }
 
@@ -352,9 +481,11 @@ export { defaultPreparedWith };
 
 // ── Small components ────────────────────────────────────────────────────────
 
-function SectionHead({ no, title, purpose }: { no: string; title: string; purpose?: string }) {
+/** `presence`: points that must follow on the same page (a chapter heading keeps its header box + first lines with it). */
+function SectionHead({ no, title, purpose, presence = 140 }: { no: string; title: string; purpose?: string; presence?: number }) {
+  // NB react-pdf applies minPresenceAhead only to a child with previous siblings — a section root carries its own.
   return (
-    <View minPresenceAhead={90}>
+    <View minPresenceAhead={presence}>
       <View style={s.sectionHead}>
         <Text style={s.sectionNo}>{no}</Text>
         <Text style={s.h2}>{t(title)}</Text>
@@ -365,18 +496,19 @@ function SectionHead({ no, title, purpose }: { no: string; title: string; purpos
 }
 
 /** An h3 that never ends a page (spec § 5 `h3 { break-after: avoid }`). */
-function H3({ children }: { children: string }) {
+function H3({ children, presence = 70 }: { children: string; presence?: number }) {
   return (
-    <View minPresenceAhead={40}>
+    <View minPresenceAhead={presence}>
       <Text style={s.h3}>{t(children)}</Text>
     </View>
   );
 }
 
-function Bullets({ title, items, mark }: { title: string; items: string[]; mark: string }) {
+/** `column`: the list sits in a column (no `flex: 1` — in a column container flex:1 collapses the block to zero height). */
+function Bullets({ title, items, mark, column = false }: { title: string; items: string[]; mark: string; column?: boolean }) {
   if (!items.length) return null;
   return (
-    <View style={{ flex: 1, marginRight: 6 }}>
+    <View style={column ? { marginRight: 6 } : { flex: 1, marginRight: 6 }}>
       <Text style={s.th}>{t(title)}</Text>
       {items.map((it, i) => (
         <View key={i} style={s.bullet}>
@@ -395,6 +527,28 @@ function Figure({ spec, widthPt, caption }: { spec: VisualSpecV2; widthPt?: numb
     <View style={s.figure} wrap={false}>
       <VisualPdf spec={spec} widthPt={widthPt} />
       {caption !== null && <Text style={s.caption}>{t(caption ?? `${spec.title} · ${stateLabel(spec.dataState)}`)}</Text>}
+    </View>
+  );
+}
+
+/**
+ * A bordered table whose header row never ends a page alone. react-pdf
+ * honours `minPresenceAhead` only on a child that has a previous sibling, so
+ * a zero-height spacer leads the table and the caption / header rows carry
+ * the presence rule (a `wrap={false}` group at a page boundary mis-measures).
+ */
+function Table({ caption, header, rows, children, style }: { caption?: string; header: ReactNode; rows: ReactNode[]; children?: ReactNode; style?: Record<string, unknown> }) {
+  return (
+    <View style={[s.table, ...(style ? [style as never] : [])]}>
+      <View style={{ height: 0 }} />
+      {caption ? (
+        <View style={[s.tr, s.trHead, { paddingVertical: 3 }]} minPresenceAhead={56}>
+          <Text style={[s.th, { color: C.navy }]}>{t(caption)}</Text>
+        </View>
+      ) : null}
+      <View minPresenceAhead={40}>{header}</View>
+      {rows}
+      {children}
     </View>
   );
 }
@@ -432,7 +586,9 @@ function Footer({ startup, date }: { startup: string; date: string }) {
 function AuditLine({ owner, grounded, uncited, revised, frameworks }: { owner?: string; grounded: boolean; uncited: number; revised: boolean; frameworks?: string[] }) {
   return (
     <Text style={[s.tiny, { marginTop: 4 }]}>
-      {t(`${owner ? `${owner.toUpperCase()} · ` : ""}Auditor: ${grounded ? "grounded" : "no citation in this chapter"}${uncited > 0 ? ` · ${uncited} uncited` : ""}${revised ? " · revised" : ""} · llm-auditor${frameworks && frameworks.length ? ` · Frameworks: ${frameworks.slice(0, 4).join("; ")}` : ""}`)}
+      {t(
+        `${owner ? `${owner.toUpperCase()} · ` : ""}Auditor: ${grounded ? "grounded" : "no citation in this chapter"}${uncited > 0 ? ` · ${uncited} uncited` : ""}${revised ? " · revised" : ""} · llm-auditor${frameworks && frameworks.length ? ` · Frameworks: ${frameworks.slice(0, 4).join("; ")}` : ""}`,
+      )}
     </Text>
   );
 }
@@ -486,7 +642,17 @@ function Dashboard({ report, card, dash, view, locale, preparedWith }: { report:
         <Text style={s.tiny}>{t(`${dashboardDate(report.generatedAt, locale)} · ${dash.footer.methodology}`)}</Text>
       </View>
       <Text style={s.h1}>{t(c.startupName)}</Text>
-      <View style={[s.row, { alignItems: "center", marginTop: 4, marginBottom: 2, flexWrap: "wrap" }]}>
+      <View
+        style={[
+          s.row,
+          {
+            alignItems: "center",
+            marginTop: 4,
+            marginBottom: 2,
+            flexWrap: "wrap",
+          },
+        ]}
+      >
         <Chip label={verification} colour={c.verification?.abnVerified ? BAND_COLOUR.strong : C.grid} />
         <Chip label={c.stageLabel} />
         <Chip label={c.sector} />
@@ -517,7 +683,8 @@ function Dashboard({ report, card, dash, view, locale, preparedWith }: { report:
           {dash.footer.topGap ? <Text style={s.bold}>{t(`${t3.topGap}  `)}</Text> : null}
           {dash.footer.topGap ? t(dash.footer.topGap) : null}
         </Text>
-        <Text style={s.small}>{t([dash.footer.unverified, dash.footer.lastUpdated, dash.footer.methodology, evidence, pending].filter(Boolean).join(" · "))}</Text>
+        {/* G21 P1 review: the cohort rank prints only with its n (`coverPercentileLine` is null otherwise). */}
+        <Text style={s.small}>{t([dash.footer.unverified, dash.footer.lastUpdated, dash.footer.methodology, evidence, pending, coverPercentileLine(c.svi)].filter(Boolean).join(" · "))}</Text>
         <Text style={[s.tiny, { marginTop: 3 }]}>{t(view.subline)}</Text>
       </View>
       <Text style={s.tiny}>{t(preparedWith)}</Text>
@@ -529,18 +696,20 @@ function Dashboard({ report, card, dash, view, locale, preparedWith }: { report:
 
 function PointList({ title, items, mark, locale }: { title: string; items: InvestmentView["reasons"]; mark: string; locale: Loc }) {
   const t3 = getTbrV3Strings(locale);
-  // Every item is ONE <Text> (nested runs + "\n"): a per-item View inside a flex:1 column inside a row
-  // loses its measured height in react-pdf and the lines print on top of each other.
+  // Every item is ONE <Text> (nested runs + "\n") in a column box — never `bulletText` (flex: 1) here:
+  // in a column container flex:1 collapses the line to zero height and the items print on top of each other.
   return (
     <View style={[s.box, { flex: 1, marginRight: 6 }]} wrap={false}>
       <Text style={s.th}>{t(title)}</Text>
       {items.length === 0 ? <Text style={s.small}>—</Text> : null}
       {items.map((it, i) => {
-        const meta = [it.dim ? `${it.dim.toUpperCase()} · ${dimName(it.dim, locale)}${typeof it.score === "number" ? ` ${it.score}/100` : ""}` : null, typeof it.lift === "number" ? t3.lift(it.lift) : null].filter(Boolean).join(" · ");
+        const meta = [it.dim ? `${it.dim.toUpperCase()} · ${dimName(it.dim, locale)}${typeof it.score === "number" ? ` ${it.score}/100` : ""}` : null, typeof it.lift === "number" ? t3.lift(it.lift) : null]
+          .filter(Boolean)
+          .join(" · ");
         return (
-          <Text key={i} style={[s.bulletText, { marginTop: 3 }]}>
+          <Text key={i} style={[s.bulletBody, { marginTop: 3 }]}>
             <Text style={[s.bold, { color: C.navy }]}>{`${mark} ${String(i + 1).padStart(2, "0")}  `}</Text>
-            {t(it.text)}
+            <Cited text={it.text} />
             {meta ? <Text style={s.tiny}>{t(`\n${meta}`)}</Text> : null}
           </Text>
         );
@@ -594,12 +763,15 @@ function InvestmentViewSection({ report, view, locale }: { report: ReportV2; vie
           {view.conditions.map((cnd, i) => (
             <View key={i} style={s.bullet}>
               <Text style={[s.bulletMark, s.bold, { color: C.navy }]}>{String(i + 1)}</Text>
-              <Text style={s.bulletText}>{t(cnd.text)}</Text>
+              <Text style={s.bulletText}>
+                <Cited text={cnd.text} />
+              </Text>
             </View>
           ))}
         </View>
       )}
-      <View style={[s.row, { marginTop: 6 }]} wrap={false}>
+      {/* No wrap={false} on the ROW: react-pdf then mis-measures the flex:1 boxes inside it (the boxes carry it). */}
+      <View style={[s.row, { marginTop: 6 }]}>
         <PointList title={t3.whyBack} items={view.reasons} mark="+" locale={locale} />
         <PointList title={t3.whatWeighsAgainst} items={view.risks} mark="^" locale={locale} />
       </View>
@@ -620,7 +792,9 @@ function InvestmentViewSection({ report, view, locale }: { report: ReportV2; vie
       {view.analystSynthesis ? (
         <View style={[s.softBox, { borderLeftWidth: 2, borderLeftColor: C.muted }]} wrap={false}>
           <Text style={s.th}>{t(`${t3.analystSynthesis} · ${s47.verdictLabel[view.analystSynthesis.label]}`)}</Text>
-          <Text style={s.smallInk}>{t(view.analystSynthesis.text)}</Text>
+          <Text style={s.smallInk}>
+            <Cited text={view.analystSynthesis.text} />
+          </Text>
         </View>
       ) : null}
       <AuditLine owner="ceo" grounded={e.audit.grounded} uncited={e.audit.uncited} revised={e.audit.revised} />
@@ -639,7 +813,9 @@ function KeyPoints({ view, locale }: { view: InvestmentView; locale: Loc }) {
         {view.keyPoints.map((p, i) => (
           <View key={i} style={[s.bullet, { marginBottom: 3 }]}>
             <Text style={[s.bulletMark, s.bold, { color: C.navy, width: 14 }]}>{`${i + 1}.`}</Text>
-            <Text style={[s.bulletText, { fontSize: 9.5 }]}>{t(p)}</Text>
+            <Text style={[s.bulletText, { fontSize: 9.5 }]}>
+              <Cited text={p} />
+            </Text>
           </View>
         ))}
       </View>
@@ -667,7 +843,7 @@ function ValuationSection({ report, view, locale, projection }: { report: Report
   const ask = v.ask ? `${t3.rangeAsk} ${aud(v.ask.preMoneyAud)} · ${t3.askChip[v.ask.verdict]}` : null;
   const weightSum = Math.round(v.methods.filter((m) => m.applicable).reduce((a, m) => a + m.weight, 0) * 100);
   return (
-    <View>
+    <View minPresenceAhead={160}>
       <SectionHead no="4" title={t3.sec.valuation} />
       <View style={[s.row, { marginBottom: 4, alignItems: "center" }]}>
         <Chip label="cfo" />
@@ -685,23 +861,25 @@ function ValuationSection({ report, view, locale, projection }: { report: Report
         </View>
         {ask ? <Text style={s.small}>{t(ask)}</Text> : null}
       </View>
-      {rangeBars && <Figure spec={rangeBars} widthPt={420} caption={`${rangeBars.title} · ${stateLabel(rangeBars.dataState)}`} />}
+      {rangeBars && !projection.free && <Figure spec={rangeBars} widthPt={420} caption={`${rangeBars.title} · ${stateLabel(rangeBars.dataState)}`} />}
       {vv.noneApplicable ? (
         <Text style={s.small}>{t(`${vs.noneApplicable} ${vs.connectorsCta}: ${CONNECTORS_HREF}`)}</Text>
       ) : (
-        <View>
+        <>
           <H3>{vs.methodsTitle}</H3>
-          <View style={s.table}>
-            <View style={[s.tr, s.trHead]}>
-              <Text style={[s.th, s.cell2]}>{t(vs.thMethod)}</Text>
-              <Text style={[s.th, { width: 54 }]}>{t(t3.thApplicable)}</Text>
-              <Text style={[s.th, { width: 40 }, s.right]}>{t(vs.thWeight)}</Text>
-              {!projection.free && <Text style={[s.th, s.cell1, s.right]}>{t(t3.rangeLow)}</Text>}
-              {!projection.free && <Text style={[s.th, s.cell1, s.right]}>{t(t3.rangeMid)}</Text>}
-              {!projection.free && <Text style={[s.th, s.cell1, s.right]}>{t(t3.rangeHigh)}</Text>}
-              {!projection.free && <Text style={[s.th, s.cell3, { paddingLeft: 6 }]}>{t(vs.thDerivation)}</Text>}
-            </View>
-            {v.methods.map((m) => (
+          <Table
+            header={
+              <View style={[s.tr, s.trHead]}>
+                <Text style={[s.th, s.cell2]}>{t(vs.thMethod)}</Text>
+                <Text style={[s.th, { width: 54 }]}>{t(t3.thApplicable)}</Text>
+                <Text style={[s.th, { width: 40 }, s.right]}>{t(vs.thWeight)}</Text>
+                {!projection.free && <Text style={[s.th, s.cell1, s.right]}>{t(t3.rangeLow)}</Text>}
+                {!projection.free && <Text style={[s.th, s.cell1, s.right]}>{t(t3.rangeMid)}</Text>}
+                {!projection.free && <Text style={[s.th, s.cell1, s.right]}>{t(t3.rangeHigh)}</Text>}
+                {!projection.free && <Text style={[s.th, s.cell3, { paddingLeft: 6 }]}>{t(vs.thDerivation)}</Text>}
+              </View>
+            }
+            rows={v.methods.map((m) => (
               <View key={m.method} style={s.tr} wrap={false}>
                 <Text style={[s.td, s.cell2]}>{t(vs.method[m.method])}</Text>
                 <Text style={[s.td, { width: 54 }]}>{t(m.applicable ? t3.yes : t3.no)}</Text>
@@ -712,9 +890,10 @@ function ValuationSection({ report, view, locale, projection }: { report: Report
                 {!projection.free && <Text style={[s.td, s.cell3, s.tiny, { paddingLeft: 6 }]}>{t(m.applicable && v.derivation?.[m.method] ? `${v.derivation[m.method]} — ${m.rationale}` : m.rationale)}</Text>}
               </View>
             ))}
+          >
             <View style={[s.tr, s.trHead]} wrap={false}>
               <Text style={[s.td, s.bold, s.cell2]}>{t(t3.consensusRow)}</Text>
-              <Text style={[s.td, { width: 54 }]}>{" "}</Text>
+              <Text style={[s.td, { width: 54 }]}> </Text>
               <Text style={[s.td, s.bold, { width: 40 }, s.right]}>{`${weightSum} %`}</Text>
               {!projection.free && <Text style={[s.td, s.bold, s.cell1, s.right]}>{aud(v.consensus.lowAud)}</Text>}
               {!projection.free && <Text style={[s.td, s.bold, s.cell1, s.right]}>{aud(v.consensus.midAud)}</Text>}
@@ -722,9 +901,9 @@ function ValuationSection({ report, view, locale, projection }: { report: Report
               {!projection.free && <Text style={[s.td, s.cell3, s.tiny, { paddingLeft: 6 }]}>{t(vs.confidence(vv.confidencePct))}</Text>}
               {projection.free && <Text style={[s.td, s.bold, s.cell3, { paddingLeft: 6 }]}>{`${aud(v.consensus.lowAud)} – ${aud(v.consensus.highAud)}`}</Text>}
             </View>
-          </View>
+          </Table>
           {vv.needRevenueLine && <Text style={s.small}>{t(`${vv.needRevenueLine} ${vs.connectorsCta}: ${CONNECTORS_HREF}`)}</Text>}
-        </View>
+        </>
       )}
       {view.whatMovesIt.length > 0 && (
         <View wrap={false}>
@@ -740,23 +919,25 @@ function ValuationSection({ report, view, locale, projection }: { report: Report
       {!projection.free && (
         <View>
           {vv.inputRows.length > 0 && (
-            <View>
+            <>
               <H3>{vs.inputsTitle}</H3>
-              <View style={s.table}>
-                <View style={[s.tr, s.trHead]}>
-                  <Text style={[s.th, s.cell2]}>{t(vs.thInput)}</Text>
-                  <Text style={[s.th, s.cell3]}>{t(vs.thValue)}</Text>
-                  <Text style={[s.th, s.cell1]}>{t(vs.thSource)}</Text>
-                </View>
-                {vv.inputRows.map((r) => (
+              <Table
+                header={
+                  <View style={[s.tr, s.trHead]}>
+                    <Text style={[s.th, s.cell2]}>{t(vs.thInput)}</Text>
+                    <Text style={[s.th, s.cell3]}>{t(vs.thValue)}</Text>
+                    <Text style={[s.th, s.cell1]}>{t(vs.thSource)}</Text>
+                  </View>
+                }
+                rows={vv.inputRows.map((r) => (
                   <View key={r.key} style={s.tr}>
                     <Text style={[s.td, s.cell2]}>{t(r.label)}</Text>
                     <Text style={[s.td, s.cell3]}>{t(r.value)}</Text>
                     <Text style={[s.td, s.cell1, s.tiny]}>{t(vs.source[r.source])}</Text>
                   </View>
                 ))}
-              </View>
-            </View>
+              />
+            </>
           )}
           {vv.unitEconomics.length > 0 && (
             <View wrap={false}>
@@ -772,7 +953,9 @@ function ValuationSection({ report, view, locale, projection }: { report: Report
             <View wrap={false}>
               <H3>{vs.crossChecksTitle}</H3>
               {vv.crossChecks.map((c, i) => (
-                <Text key={i} style={s.small}>{t(`${c.label}: ${c.range}${c.n !== null ? ` (${vs.nLabel(c.n)})` : ""} — ${c.source} · ${vs.asOf(c.asOf)}`)}</Text>
+                <Text key={i} style={s.small}>
+                  {t(`${c.label}: ${c.range}${c.n !== null ? ` (${vs.nLabel(c.n)})` : ""} — ${c.source} · ${vs.asOf(c.asOf)}`)}
+                </Text>
               ))}
             </View>
           )}
@@ -780,7 +963,9 @@ function ValuationSection({ report, view, locale, projection }: { report: Report
             <View wrap={false}>
               <H3>{vs.consistencyTitle}</H3>
               {vv.consistency.map((n, i) => (
-                <Text key={i} style={s.small}>{t(n)}</Text>
+                <Text key={i} style={s.small}>
+                  {t(n)}
+                </Text>
               ))}
             </View>
           )}
@@ -808,7 +993,7 @@ function ChapterHeader({ ch, index, locale }: { ch: DimensionChapter; index: num
   const phase = GROWTH_PHASE_LABELS[ch.phaseLens.phaseId]?.[locale] ?? ch.phaseLens.phaseId;
   const floor = typeof ch.phaseLens.floor === "number" ? t3.floorChip(phase, ch.phaseLens.floor, ch.phaseLens.floorMet !== false) : t3.noFloor(phase);
   return (
-    <View style={[s.box, s.row, { alignItems: "center" }]} wrap={false} minPresenceAhead={120}>
+    <View style={[s.box, s.row, { alignItems: "center" }]} wrap={false}>
       <View style={{ width: 84 }}>
         <Text style={s.score}>{pending ? "—" : String(ch.score)}</Text>
         <Text style={s.tiny}>/ 100</Text>
@@ -872,14 +1057,18 @@ function PendingCard({ ch, locale, view }: { ch: DimensionChapter; locale: Loc; 
         <Text style={s.body}>{t(t3.pendingCard)}</Text>
         {ctas.length > 0 ? (
           <View style={{ marginTop: 4 }}>
-            <Text style={[s.smallInk, s.bold]}>{t(`${t3.pendingAdd} ${pendingCtasHeading(locale)}`)}</Text>
+            <Text style={[s.smallInk, s.bold]}>{t(t3.pendingAdd)}</Text>
             {ctas.map((r, i) => (
-              <Text key={i} style={s.smallInk}>{t(`• ${ctaText(r)}`)}</Text>
+              <Text key={i} style={s.smallInk}>
+                {t(`• ${ctaText(r)}`)}
+              </Text>
             ))}
           </View>
         ) : null}
       </View>
-      <Callout title={t3.takeawayTitle}>{t(view.takeaways[ch.dim])}</Callout>
+      <Callout title={t3.takeawayTitle}>
+        <Cited text={view.takeaways[ch.dim]} />
+      </Callout>
     </View>
   );
 }
@@ -894,7 +1083,7 @@ function Chapter({ ch, index, locale, projection, view }: { ch: DimensionChapter
   if (projection.free && ch.renderAs === "card") {
     return (
       <View>
-        <SectionHead no={no} title={title} />
+        <SectionHead no={no} title={title} presence={220} />
         <ChapterHeader ch={ch} index={index} locale={locale} />
         {pending ? (
           <PendingCard ch={ch} locale={locale} view={view} />
@@ -903,7 +1092,9 @@ function Chapter({ ch, index, locale, projection, view }: { ch: DimensionChapter
             <Text style={s.body}>
               <Cited text={capWords(ch.verdict, 40)} />
             </Text>
-            <Callout title={t3.takeawayTitle}>{t(view.takeaways[ch.dim])}</Callout>
+            <Callout title={t3.takeawayTitle}>
+              <Cited text={view.takeaways[ch.dim]} />
+            </Callout>
           </View>
         )}
         <Text style={s.tiny}>{t(t3.lockedCard)}</Text>
@@ -915,7 +1106,7 @@ function Chapter({ ch, index, locale, projection, view }: { ch: DimensionChapter
   if (pending) {
     return (
       <View>
-        <SectionHead no={no} title={title} />
+        <SectionHead no={no} title={title} presence={220} />
         <ChapterHeader ch={ch} index={index} locale={locale} />
         <PendingCard ch={ch} locale={locale} view={view} />
         <AuditLine owner={ch.ownerAgent} grounded={ch.audit.grounded} uncited={ch.audit.uncited} revised={ch.audit.revised} />
@@ -924,12 +1115,19 @@ function Chapter({ ch, index, locale, projection, view }: { ch: DimensionChapter
   }
 
   const ids = ch.evidence.map((e) => e.evidence_id);
-  const strengths = mergedBullets(ch.strengths, ch.criteria.flatMap((c) => c.strengths), 3, 25);
-  const gaps = chapterGaps(ch).slice(0, 3).map((g) => capWords(g, 25));
+  const strengths = mergedBullets(
+    ch.strengths,
+    ch.criteria.flatMap((c) => c.strengths),
+    3,
+    25,
+  );
+  const gaps = chapterGaps(ch)
+    .slice(0, 3)
+    .map((g) => capWords(g, 25));
   const showCards = projection.show.criterionDetail && !projection.free;
   return (
     <View>
-      <SectionHead no={no} title={title} />
+      <SectionHead no={no} title={title} presence={220} />
       <ChapterHeader ch={ch} index={index} locale={locale} />
       <View style={s.row}>
         <View style={{ flex: 1 }}>
@@ -937,7 +1135,7 @@ function Chapter({ ch, index, locale, projection, view }: { ch: DimensionChapter
           <Paragraphs text={ch.verdict} />
           {strengths.length > 0 && (
             <View style={{ marginTop: 6 }} wrap={false}>
-              <Bullets title={t3.strengths} items={strengths} mark="+" />
+              <Bullets title={t3.strengths} items={strengths} mark="+" column />
             </View>
           )}
           {gaps.length > 0 && (
@@ -957,21 +1155,35 @@ function Chapter({ ch, index, locale, projection, view }: { ch: DimensionChapter
         </View>
         <ChapterRail ch={ch} locale={locale} />
       </View>
-      <Figure spec={ch.primaryVisual} widthPt={320} caption={`${ch.primaryVisual.title} · ${stateLabel(ch.primaryVisual.dataState)}${ch.primaryVisual.subtitle ? ` — ${ch.primaryVisual.subtitle}` : ""}`} />
+      {/* The primary visual is the one optional slot (spec § 3): paid tiers keep it; the free 10-page budget carries the dashboard chart instead. */}
+      {!projection.free && (
+        <Figure spec={ch.primaryVisual} widthPt={320} caption={`${ch.primaryVisual.title} · ${stateLabel(ch.primaryVisual.dataState)}${ch.primaryVisual.subtitle ? ` — ${ch.primaryVisual.subtitle}` : ""}`} />
+      )}
       {ch.criteria.length > 0 && (
         <View>
-          <Text style={[s.th, { marginBottom: 3 }]}>{t(t3.criteria)}</Text>
-          <View style={s.table}>
-            <View style={[s.tr, s.trHead]}>
-              <Text style={[s.th, s.cell2]}>{t(t3.thCriterion)}</Text>
-              <Text style={[s.th, { width: 36 }, s.right]}>{t(t3.thScore)}</Text>
-              <Text style={[s.th, { width: 56, paddingLeft: 6 }]}>{t(t3.thQuality)}</Text>
-              <Text style={[s.th, s.cell3, { paddingLeft: 6 }]}>{t(t3.thVerdict)}</Text>
-            </View>
-            {ch.criteria.map((c) => (
+          <Table
+            caption={t3.criteria}
+            header={
+              <View style={[s.tr, s.trHead]}>
+                <Text style={[s.th, s.cell2]}>{t(t3.thCriterion)}</Text>
+                <Text style={[s.th, { width: 36 }, s.right]}>{t(t3.thScore)}</Text>
+                <Text style={[s.th, { width: 56, paddingLeft: 6 }]}>{t(t3.thQuality)}</Text>
+                <Text style={[s.th, s.cell3, { paddingLeft: 6 }]}>{t(t3.thVerdict)}</Text>
+              </View>
+            }
+            rows={ch.criteria.map((c) => (
               <View key={c.key} style={s.tr} wrap={false}>
                 <Text style={[s.td, s.cell2]}>{t(c.title)}</Text>
-                <View style={[s.row, { width: 36, justifyContent: "flex-end", alignItems: "center" }]}>
+                <View
+                  style={[
+                    s.row,
+                    {
+                      width: 36,
+                      justifyContent: "flex-end",
+                      alignItems: "center",
+                    },
+                  ]}
+                >
                   <View style={[s.dot, { backgroundColor: bandColour(bandOf(c.score)) }]} />
                   <Text style={[s.td, s.bold]}>{String(c.score)}</Text>
                 </View>
@@ -981,7 +1193,7 @@ function Chapter({ ch, index, locale, projection, view }: { ch: DimensionChapter
                 </Text>
               </View>
             ))}
-          </View>
+          />
           {showCards ? (
             ch.criteria.map((c) =>
               c.strengths.length > 0 || c.gaps.length > 0 || c.nextAction ? (
@@ -1007,7 +1219,9 @@ function Chapter({ ch, index, locale, projection, view }: { ch: DimensionChapter
           )}
         </View>
       )}
-      <Callout title={t3.takeawayTitle}>{t(view.takeaways[ch.dim])}</Callout>
+      <Callout title={t3.takeawayTitle}>
+        <Cited text={view.takeaways[ch.dim]} />
+      </Callout>
       <Text style={s.tiny}>{t(`${t3.howBuilt}: ${t3.scoreLedger} — ${t3.sec.appendix.split(" — ")[0]}`)}</Text>
       <AuditLine owner={ch.ownerAgent} grounded={ch.audit.grounded} uncited={ch.audit.uncited} revised={ch.audit.revised} frameworks={ch.frameworks} />
     </View>
@@ -1021,7 +1235,7 @@ function RiskMatrix({ view, locale, projection }: { view: InvestmentView; locale
   const grid = riskGrid(view.riskMatrix);
   const cell = (lk: RiskLevel, im: RiskLevel) => grid[lk][im];
   return (
-    <View break={!projection.free}>
+    <View break={!projection.free} minPresenceAhead={160}>
       <SectionHead no="13" title={t3.sec.riskMatrix} purpose={t3.purpose.riskMatrix} />
       <View style={[s.row, { alignItems: "flex-start" }]} wrap={false}>
         <View style={[s.table, { width: 250, marginRight: 10 }]}>
@@ -1049,22 +1263,27 @@ function RiskMatrix({ view, locale, projection }: { view: InvestmentView; locale
       {view.riskMatrix.length === 0 ? (
         <Text style={s.small}>{t(t3.noRisks)}</Text>
       ) : projection.show.riskTable ? (
-        <View style={s.table}>
-          <View style={[s.tr, s.trHead]}>
-            <Text style={[s.th, s.cell3]}>{t(t3.thRisk)}</Text>
-            <Text style={[s.th, s.cell1]}>{t(t3.likelihood)}</Text>
-            <Text style={[s.th, s.cell1]}>{t(t3.impact)}</Text>
-            <Text style={[s.th, s.cell2]}>{t(t3.thMitigation)}</Text>
-          </View>
-          {view.riskMatrix.map((r) => (
+        <Table
+          header={
+            <View style={[s.tr, s.trHead]}>
+              <Text style={[s.th, s.cell3]}>{t(t3.thRisk)}</Text>
+              <Text style={[s.th, s.cell1]}>{t(t3.likelihood)}</Text>
+              <Text style={[s.th, s.cell1]}>{t(t3.impact)}</Text>
+              <Text style={[s.th, s.cell2]}>{t(t3.thMitigation)}</Text>
+            </View>
+          }
+          rows={view.riskMatrix.map((r) => (
             <View key={r.id} style={s.tr} wrap={false}>
-              <Text style={[s.td, s.cell3, ...(r.likelihood === "high" && r.impact === "high" ? [s.bold] : [])]}>{t(`${r.dim ? `${dimName(r.dim, locale)} · ` : ""}${r.text}`)}</Text>
+              <Text style={[s.td, s.cell3, { paddingRight: 6 }, ...(r.likelihood === "high" && r.impact === "high" ? [s.bold] : [])]}>
+                {t(r.dim ? `${dimName(r.dim, locale)} · ` : "")}
+                <Cited text={r.text} />
+              </Text>
               <Text style={[s.td, s.cell1]}>{t(t3.level[r.likelihood])}</Text>
               <Text style={[s.td, s.cell1]}>{t(t3.level[r.impact])}</Text>
               <Text style={[s.td, s.cell2, s.small]}>{t(r.mitigation)}</Text>
             </View>
           ))}
-        </View>
+        />
       ) : (
         <Text style={s.tiny}>{t(t3.lockedCard)}</Text>
       )}
@@ -1077,31 +1296,35 @@ function RiskMatrix({ view, locale, projection }: { view: InvestmentView; locale
 function ImprovementPlan({ view, locale, projection }: { view: InvestmentView; locale: Loc; projection: FreeTierProjection }) {
   const t3 = getTbrV3Strings(locale);
   return (
-    <View break={!projection.free}>
+    <View break={!projection.free} minPresenceAhead={160}>
       <SectionHead no="14" title={t3.sec.improvementPlan} purpose={t3.purpose.improvementPlan} />
       {view.improvementPlan.length === 0 ? (
         <Text style={s.small}>{t(t3.planEmpty)}</Text>
       ) : (
-        <View style={s.table}>
-          <View style={[s.tr, s.trHead]}>
-            <Text style={[s.th, { width: 16 }]}>#</Text>
-            <Text style={[s.th, s.cell3]}>{t(t3.thAction)}</Text>
-            <Text style={[s.th, { width: 44 }, s.right]}>{t(t3.thLift)}</Text>
-            <Text style={[s.th, { width: 52, paddingLeft: 6 }]}>{t(t3.thWindow)}</Text>
-            <Text style={[s.th, s.cell1, { paddingLeft: 6 }]}>{t(t3.thDim)}</Text>
-            <Text style={[s.th, s.cell2, { paddingLeft: 6 }]}>{t(t3.thEvidence)}</Text>
-          </View>
-          {view.improvementPlan.map((st) => (
+        <Table
+          header={
+            <View style={[s.tr, s.trHead]}>
+              <Text style={[s.th, { width: 16 }]}>#</Text>
+              <Text style={[s.th, s.cell3]}>{t(t3.thAction)}</Text>
+              <Text style={[s.th, { width: 44 }, s.right]}>{t(t3.thLift)}</Text>
+              <Text style={[s.th, { width: 52, paddingLeft: 6 }]}>{t(t3.thWindow)}</Text>
+              <Text style={[s.th, { width: 96, paddingLeft: 6 }]}>{t(t3.thDim)}</Text>
+              <Text style={[s.th, s.cell2, { paddingLeft: 6 }]}>{t(t3.thEvidence)}</Text>
+            </View>
+          }
+          rows={view.improvementPlan.map((st) => (
             <View key={st.rank} style={s.tr} wrap={false}>
               <Text style={[s.td, s.bold, { width: 16, color: C.navy }]}>{String(st.rank)}</Text>
-              <Text style={[s.td, s.cell3]}>{t(st.title)}</Text>
+              <Text style={[s.td, s.cell3]}>
+                <Cited text={st.title} />
+              </Text>
               <Text style={[s.td, { width: 44 }, s.right]}>{t(t3.lift(st.expectedLift))}</Text>
               <Text style={[s.td, { width: 52, paddingLeft: 6 }]}>{t(t3.window[st.window])}</Text>
-              <Text style={[s.td, s.cell1, { paddingLeft: 6 }]}>{t(dimName(st.dim, locale))}</Text>
+              <Text style={[s.td, { width: 96, paddingLeft: 6 }]}>{t(dimName(st.dim, locale))}</Text>
               <Text style={[s.td, s.cell2, s.small, { paddingLeft: 6 }]}>{t(st.evidenceToAdd ?? (st.href ? st.href : "—"))}</Text>
             </View>
           ))}
-        </View>
+        />
       )}
       <Text style={s.small}>{t(t3.planNote)}</Text>
     </View>
@@ -1117,7 +1340,7 @@ function Money({ report, projection, locale }: { report: ReportV2; projection: F
   // G19-S43: the empty state points at the grant profile (never "re-run").
   const empty = moneyEmptyState(report, locale);
   return (
-    <View break={!projection.free}>
+    <View break={!projection.free} minPresenceAhead={140}>
       <SectionHead no="15" title={t3.sec.money} />
       <View style={[s.row, { marginBottom: 4, alignItems: "center" }]}>
         <Chip label="cfo" />
@@ -1125,15 +1348,17 @@ function Money({ report, projection, locale }: { report: ReportV2; projection: F
         <Text style={s.small}>{t(`${m.grants.length + m.programs.length} matched · total ${aud(m.totalAud)}`)}</Text>
       </View>
       {rows.length > 0 ? (
-        <View style={s.table}>
-          <View style={[s.tr, s.trHead]}>
-            <Text style={[s.th, s.cell3]}>Grant / program</Text>
-            <Text style={[s.th, s.cell1]}>Kind</Text>
-            <Text style={[s.th, s.cell1, s.right]}>A$</Text>
-            <Text style={[s.th, s.cell1, { paddingLeft: 6 }]}>Deadline</Text>
-            <Text style={[s.th, s.cell1, s.right]}>Fit</Text>
-          </View>
-          {rows.map((r) => (
+        <Table
+          header={
+            <View style={[s.tr, s.trHead]}>
+              <Text style={[s.th, s.cell3]}>Grant / program</Text>
+              <Text style={[s.th, s.cell1]}>Kind</Text>
+              <Text style={[s.th, s.cell1, s.right]}>A$</Text>
+              <Text style={[s.th, s.cell1, { paddingLeft: 6 }]}>Deadline</Text>
+              <Text style={[s.th, s.cell1, s.right]}>Fit</Text>
+            </View>
+          }
+          rows={rows.map((r) => (
             <View key={`${r.kind}-${r.id}`} style={s.tr} wrap={false}>
               <Text style={[s.td, s.cell3]}>{t(r.name)}</Text>
               <Text style={[s.td, s.cell1]}>{r.kind}</Text>
@@ -1142,13 +1367,15 @@ function Money({ report, projection, locale }: { report: ReportV2; projection: F
               <Text style={[s.td, s.cell1, s.right]}>{`${Math.round(r.fit)}%`}</Text>
             </View>
           ))}
-        </View>
+        />
       ) : empty ? (
         <Text style={s.small}>{t(`${empty.text} ${empty.ctaLabel} ${empty.href}`)}</Text>
       ) : null}
-      {m.visuals.map((v) => (
-        <Figure key={v.id} spec={v} widthPt={420} caption={`${v.title} · ${stateLabel(v.dataState)}`} />
-      ))}
+      {/* The money chart is paid content on the PDF (the free 10-page budget carries the dashboard chart). */}
+      {!projection.free &&
+        m.visuals.map((v) => (
+          <Figure key={v.id} spec={v} widthPt={420} caption={`${v.title} · ${stateLabel(v.dataState)}`} />
+        ))}
     </View>
   );
 }
@@ -1218,14 +1445,12 @@ function Appendix({ report, projection, preparedWith, locale, verificationLevel 
   const g = report.phaseGates;
   const currentRows = g.matrix.filter((m) => m.phase === g.current && m.required);
   const heat = g.visuals.find((v) => v.kind === "heat_map");
-  const floors = report.dimensions
-    .filter((ch) => typeof ch.phaseLens.floor === "number")
-    .map((ch) => `${ch.dim.toUpperCase()} ${ch.phaseLens.floor} ${ch.phaseLens.floorMet === false ? "✗" : "✓"}`);
+  const floors = report.dimensions.filter((ch) => typeof ch.phaseLens.floor === "number").map((ch) => `${ch.dim.toUpperCase()} ${ch.phaseLens.floor} ${ch.phaseLens.floorMet === false ? "✗" : "✓"}`);
   const grounded = a.auditLog.filter((l) => l.grounded).length;
   const showLedger = projection.show.appendixLedger;
   const countsOnly = projection.free && projection.level >= 3;
   return (
-    <View break={!projection.free}>
+    <View break={!projection.free} minPresenceAhead={140}>
       <SectionHead no="16" title={t3.sec.appendix} />
       <H3>Method</H3>
       <Text style={s.small}>{t(a.method)}</Text>
@@ -1264,46 +1489,58 @@ function Appendix({ report, projection, preparedWith, locale, verificationLevel 
       {!projection.free && heat && <Figure spec={heat} widthPt={CHART_WIDTH} caption={heat.subtitle ?? heat.title} />}
 
       {showLedger && (
-        <View>
-          <H3>{t3.scoreLedger}</H3>
+        <>
+          <H3 presence={130}>{t3.scoreLedger}</H3>
           <CoverLedger report={report} locale={locale} />
-          {report.dimensions.map((ch) => (
-            <ScoreLedger key={ch.dim} ch={ch} locale={locale} verificationLevel={verificationLevel} />
-          ))}
-        </View>
+          {report.dimensions
+            .filter((ch) => !(projection.free && ch.renderAs === "card"))
+            .map((ch) => (
+              <ScoreLedger key={ch.dim} ch={ch} locale={locale} verificationLevel={verificationLevel} />
+            ))}
+        </>
       )}
 
       <H3>Evidence register</H3>
       {countsOnly ? (
         <Text style={s.small}>{t(t3.countsOnly(a.evidenceRegister.length, a.auditLog.length))}</Text>
       ) : a.evidenceRegister.length > 0 ? (
-        <View style={s.table}>
-          <View style={[s.tr, s.trHead]}>
-            <Text style={[s.th, s.cell1]}>Id</Text>
-            <Text style={[s.th, s.cell3]}>Label</Text>
-            <Text style={[s.th, s.cell1]}>Source</Text>
-            <Text style={[s.th, s.cell1]}>Status</Text>
-            <Text style={[s.th, s.cell1]}>Dims</Text>
-          </View>
-          {/* G19-S43: missing inputs are CTA rows (label · path · +N SVI). */}
-          {evidenceRowsView(a.evidenceRegister, locale).map((e) => (
-            <View key={e.evidence_id} style={s.tr} wrap={false}>
-              <Text style={[s.td, s.cell1, s.tiny]}>{t(e.evidence_id)}</Text>
-              <Text style={[s.td, s.cell3, ...(e.cta ? [{ color: C.cyan }] : [])]}>{t(e.cta ? ctaText(e) : e.label)}</Text>
-              <Text style={[s.td, s.cell1]}>{t(e.source)}</Text>
-              <Text style={[s.td, s.cell1]}>{t(e.statusLabel)}</Text>
-              <Text style={[s.td, s.cell1]}>{e.dims.join(" ")}</Text>
+        <Table
+          header={
+            <View style={[s.tr, s.trHead]}>
+              <Text style={[s.th, s.cell1]}>Id</Text>
+              <Text style={[s.th, s.cell3]}>Label</Text>
+              <Text style={[s.th, s.cell1]}>Source</Text>
+              <Text style={[s.th, s.cell1]}>Status</Text>
+              <Text style={[s.th, s.cell1]}>Dims</Text>
             </View>
-          ))}
-        </View>
+          }
+          rows={
+            /* G19-S43: missing inputs are CTA rows (label · path · +N SVI). */
+            evidenceRowsView(a.evidenceRegister, locale).map((e) => (
+              <View key={e.evidence_id} style={s.tr} wrap={false}>
+                <Text style={[s.td, s.cell1, s.tiny]}>{t(e.evidence_id)}</Text>
+                <Text style={[s.td, s.cell3, ...(e.cta ? [{ color: C.cyan }] : [])]}>{t(e.cta ? ctaText(e) : e.label)}</Text>
+                <Text style={[s.td, s.cell1]}>{t(e.source)}</Text>
+                <Text style={[s.td, s.cell1]}>{t(e.statusLabel)}</Text>
+                <Text style={[s.td, s.cell1]}>{e.dims.join(" ")}</Text>
+              </View>
+            ))
+          }
+        />
       ) : (
         <Text style={s.small}>No evidence rows were attached to this snapshot.</Text>
       )}
       <H3>Auditor log</H3>
-      <Text style={s.small}>{t(`${a.auditLog.length} sections audited · ${grounded} grounded · ${a.auditLog.filter((l) => l.revised).length} revised · report quality ${Math.round(report.quality.score)} · grounded share ${Math.round(report.quality.groundedShare * 100)}%`)}</Text>
+      <Text style={s.small}>
+        {t(
+          `${a.auditLog.length} sections audited · ${grounded} grounded · ${a.auditLog.filter((l) => l.revised).length} revised · report quality ${Math.round(report.quality.score)} · grounded share ${Math.round(report.quality.groundedShare * 100)}%`,
+        )}
+      </Text>
       {report.quality.degradedSections.length > 0 && <Text style={s.small}>{t(`Degraded sections: ${report.quality.degradedSections.join(", ")}`)}</Text>}
       <H3>Sources</H3>
-      <Text style={s.small}>{t(`AU comparables: ${a.comparablesN} raises, ${a.comparablesWithMultiplesN} with multiples.${a.sourcesDated.length ? " " + a.sourcesDated.map((x) => `${x.label} (${x.date})`).join(" · ") : ""}`)}</Text>
+      <Text style={s.small}>
+        {t(`AU comparables: ${a.comparablesN} raises, ${a.comparablesWithMultiplesN} with multiples.${a.sourcesDated.length ? " " + a.sourcesDated.map((x) => `${x.label} (${x.date})`).join(" · ") : ""}`)}
+      </Text>
       {projection.free && <Text style={[s.small, { marginTop: 4 }]}>{t(`Free tier (${report.pageBudget.free}-page budget) omits: ${projection.dropped.join(", ")}.`)}</Text>}
       <H3>Data principle</H3>
       <Text style={s.small}>{t(a.dataPrinciple)}</Text>
@@ -1324,15 +1561,17 @@ function EvidenceCited({ locale }: { locale: Loc }) {
     <View>
       <SectionHead no="" title={cs.appendixTitle} />
       <Text style={[s.small, { marginBottom: 6 }]}>{t(cs.appendixPurpose)}</Text>
-      <View style={s.table}>
-        <View style={[s.tr, s.trHead]}>
-          <Text style={[s.th, { width: 18 }]}>{t(cs.th.n)}</Text>
-          <Text style={[s.th, s.cell3]}>{t(cs.th.label)}</Text>
-          <Text style={[s.th, s.cell1]}>{t(cs.th.level)}</Text>
-          <Text style={[s.th, s.cell1]}>{t(cs.th.source)}</Text>
-          <Text style={[s.th, s.cell1]}>{t(cs.th.date)}</Text>
-        </View>
-        {rows.map((e) => (
+      <Table
+        header={
+          <View style={[s.tr, s.trHead]}>
+            <Text style={[s.th, { width: 18 }]}>{t(cs.th.n)}</Text>
+            <Text style={[s.th, s.cell3]}>{t(cs.th.label)}</Text>
+            <Text style={[s.th, s.cell1]}>{t(cs.th.level)}</Text>
+            <Text style={[s.th, s.cell1]}>{t(cs.th.source)}</Text>
+            <Text style={[s.th, s.cell1]}>{t(cs.th.date)}</Text>
+          </View>
+        }
+        rows={rows.map((e) => (
           <View key={e.id} style={s.tr} wrap={false}>
             <Text style={[s.td, s.bold, { width: 18, color: C.cyan }]}>{String(e.n)}</Text>
             <Text style={[s.td, s.cell3]}>{t(`${e.label}  ${e.id}`)}</Text>
@@ -1341,7 +1580,7 @@ function EvidenceCited({ locale }: { locale: Loc }) {
             <Text style={[s.td, s.cell1]}>{t(cs.date(e))}</Text>
           </View>
         ))}
-      </View>
+      />
     </View>
   );
 }
@@ -1386,7 +1625,7 @@ export function TbrReportPdf({ report: rawReport, level = 0, preparedWith, local
   body.push(<ValuationSection key="val" report={r} view={pv} locale={loc} projection={projection} />);
   r.dimensions.forEach((ch, i) => {
     body.push(
-      <View key={ch.dim} break={!projection.free}>
+      <View key={ch.dim} break={!projection.free} minPresenceAhead={projection.free ? 110 : 220}>
         <Chapter ch={ch} index={i + 1} locale={loc} projection={projection} view={pv} />
       </View>,
     );
@@ -1397,7 +1636,7 @@ export function TbrReportPdf({ report: rawReport, level = 0, preparedWith, local
   body.push(<Appendix key="appx" report={r} projection={projection} preparedWith={prepared} locale={loc} verificationLevel={verificationLevel} />);
   if (citations.size > 0) {
     body.push(
-      <View key="cited" break={!projection.free}>
+      <View key="cited" break={!projection.free} minPresenceAhead={120}>
         <EvidenceCited locale={loc} />
       </View>,
     );
@@ -1435,7 +1674,9 @@ function defaultHyphenation(word: string): string[] {
   if (!defaultHyphenationImpl) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const hyphen = require("hyphen/en") as { hyphenateSync: (w: string, o?: { hyphenChar?: string }) => string };
+      const hyphen = require("hyphen/en") as {
+        hyphenateSync: (w: string, o?: { hyphenChar?: string }) => string;
+      };
       defaultHyphenationImpl = (w: string) => hyphen.hyphenateSync(w, { hyphenChar: "­" }).split("­");
     } catch {
       defaultHyphenationImpl = (w: string) => [w];
