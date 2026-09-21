@@ -254,9 +254,11 @@ describe("G16-A isQaEmail / qaFlag", () => {
 });
 
 describe("G16-A CLIENT_EMITTABLE_EVENTS", () => {
-  it("is exactly the five browser-emittable funnel events; anon may only send paywall_view / share_link_open", () => {
-    expect([...CLIENT_EMITTABLE_EVENTS]).toEqual(["paywall_view", "checkout", "report_view", "dashboard_view", "share_link_open"]);
-    expect([...ANON_EMITTABLE_EVENTS]).toEqual(["paywall_view", "share_link_open"]);
+  it("is exactly the seven browser-emittable funnel events (G25-D adds the review pair); anon may only send paywall_view / share_link_open / checkout_review_viewed", () => {
+    expect([...CLIENT_EMITTABLE_EVENTS]).toEqual(["paywall_view", "checkout", "checkout_review_viewed", "checkout_started", "report_view", "dashboard_view", "share_link_open"]);
+    expect([...ANON_EMITTABLE_EVENTS]).toEqual(["paywall_view", "share_link_open", "checkout_review_viewed"]);
+    // The Pay click is never anonymous — the checkout routes are auth-gated.
+    expect(ANON_EMITTABLE_EVENTS).not.toContain("checkout_started");
     expect(isClientEmittableEvent("paywall_view")).toBe(true);
     expect(isClientEmittableEvent("sign_up")).toBe(false);
     expect(isClientEmittableEvent("trust_report_purchased")).toBe(false);

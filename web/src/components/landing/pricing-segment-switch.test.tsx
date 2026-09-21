@@ -98,7 +98,9 @@ describe("<PricingSegmentSwitch /> — Founder tab", () => {
     expect(out).toContain('id="tier-free"');
     expect(out).toContain('id="tier-starter"');
     expect(out).toContain('id="tier-growth"');
-    expect(out).toContain("/onboarding?trial=1&amp;plan=founder_growth");
+    // G25-D: paid rungs land on the review step; the Free rung stays a sign-up.
+    expect(out).toContain("/checkout/review?plan=founder_growth&amp;trial=1&amp;entry=pricing_card");
+    expect(out).toContain("/onboarding?trial=1&amp;plan=founder_free");
     expect(out).not.toContain("segment=evaluator");
     expect(out).not.toContain('id="tier-scout"');
     expect(out).not.toContain('data-testid="evaluator-payg"');
@@ -188,7 +190,7 @@ describe("<PricingSegmentSwitch /> — Programs tab (deep link)", () => {
     expect(out).toContain("A$2,490");
     expect(out).toContain("A$15,000");
     expect(out).toContain("Start 14-day free trial");
-    expect(out).toContain("/signup?segment=evaluator&amp;plan=accelerator_starter&amp;trial=1&amp;interval=annual");
+    expect(out).toContain("/checkout/review?plan=accelerator_starter&amp;trial=1&amp;entry=pricing_card&amp;interval=annual");
     expect(out).not.toContain('id="tier-scout"');
     expect(out).not.toContain('id="tier-free"');
     expect(out).not.toContain('aria-label="Cohort Enterprise plan"');
