@@ -183,6 +183,35 @@ function luminance(rgb: string): number {
 
 /** Runs inside the page: the page canvas + first <main> section must be light and body text dark (G26 acceptance). */
 function auditLightShell(): { bodyBg: string; mainBg: string; bodyColor: string; darkBands: string[] } {
+  // Any colour syntax Chromium reports (rgb, rgba, color(), oklab, oklch) is normalised by painting it on a 1×1 canvas.
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  const toRgba = (css: string): [number, number, number, number] | null => {
+    if (!ctx || !css) return null;
+    if (css === "transparent") return [0, 0, 0, 0];
+    ctx.clearRect(0, 0, 1, 1);
+    ctx.fillStyle = "#000";
+    ctx.fillStyle = css;
+    if (typeof ctx.fillStyle !== "string") return null;
+    ctx.fillRect(0, 0, 1, 1);
+    const d = ctx.getImageData(0, 0, 1, 1).data;
+    return [d[0], d[1], d[2], d[3] / 255];
+  };
+  const asRgb = (css: string): string => {
+    const c = toRgba(css);
+    return c ? `rgb(${c.slice(0, 3).map(Math.round).join(",")})` : css;
+  };
+  const lum = (css: string) => {
+    const c = toRgba(css);
+    if (!c || c[3] < 0.5) return 1; // translucent tints are judged by the contrast audit, not as bands
+    const f = (v: number) => {
+      const s = v / 255;
+      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+  };
   const cs = (el: Element | null) => (el ? getComputedStyle(el) : null);
   const body = cs(document.body)!;
   const main = document.querySelector("main");
@@ -190,26 +219,21 @@ function auditLightShell(): { bodyBg: string; mainBg: string; bodyColor: string;
   const mainCs = cs(first);
   // Any block inside <main> wider than 60 % of the viewport painted dark counts as a dark band.
   const darkBands: string[] = [];
-  const lum = (c: string) => {
-    const m = c.match(/\d+(\.\d+)?/g);
-    if (!m || m.length < 3) return 1;
-    const a = m.length > 3 ? Number(m[3]) : 1;
-    if (a < 0.5) return 1;
-    const f = (v: number) => {
-      const s = v / 255;
-      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
-    };
-    return 0.2126 * f(Number(m[0])) + 0.7152 * f(Number(m[1])) + 0.0722 * f(Number(m[2]));
-  };
   if (main) {
     for (const el of Array.from(main.querySelectorAll("section, div, header, footer, article, aside"))) {
       const rect = el.getBoundingClientRect();
       if (rect.width < window.innerWidth * 0.6 || rect.height < 40) continue;
       const bg = getComputedStyle(el).backgroundColor;
-      if (lum(bg) < 0.2) darkBands.push(`<${el.tagName.toLowerCase()} class="${(el.getAttribute("class") ?? "").slice(0, 80)}"> ${bg}`);
+      if (lum(bg) < 0.2) darkBands.push(`<${el.tagName.toLowerCase()} class="${(el.getAttribute("class") ?? "").slice(0, 80)}"> ${asRgb(bg)}`);
     }
   }
-  return { bodyBg: body.backgroundColor, mainBg: mainCs?.backgroundColor ?? "", bodyColor: body.color, darkBands };
+  const bodyBg = toRgba(body.backgroundColor);
+  return {
+    bodyBg: bodyBg && bodyBg[3] > 0 ? asRgb(body.backgroundColor) : "rgb(255,255,255)",
+    mainBg: mainCs ? asRgb(mainCs.backgroundColor) : "",
+    bodyColor: asRgb(body.color),
+    darkBands,
+  };
 }
 
 async function expectLightReport(page: Page, mode: string): Promise<void> {
@@ -218,7 +242,7 @@ async function expectLightReport(page: Page, mode: string): Promise<void> {
   expect(result.htmlDark, `${mode}: html.dark must not be set`).toBe(false);
   expect(luminance(result.rootBg), `${mode}: report root background ${result.rootBg} must be light`).toBeGreaterThan(0.85);
   const shell = await page.evaluate(auditLightShell);
-  expect(luminance(shell.bodyBg === "rgba(0, 0, 0, 0)" ? "rgb(255,255,255)" : shell.bodyBg), `${mode}: body background ${shell.bodyBg}`).toBeGreaterThan(0.85);
+  expect(luminance(shell.bodyBg), `${mode}: body background ${shell.bodyBg}`).toBeGreaterThan(0.85);
   expect(luminance(shell.bodyColor), `${mode}: body text colour ${shell.bodyColor} must be dark ink`).toBeLessThan(0.35);
   expect(shell.darkBands, `${mode}: dark bands inside <main>:\n  ${shell.darkBands.join("\n  ")}`).toEqual([]);
   expect(result.sampled, "sampled text nodes").toBeGreaterThan(300);
