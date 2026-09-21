@@ -37,6 +37,9 @@ type OrderRow = AutoInputs["pilotOrders"][number];
 type LetterRow = AutoInputs["feedbackLetters"][number];
 type BatchRow = AutoInputs["batches"][number];
 
+const ORDER_COLS = "id, user_id, buyer_email, sku, amount_cents, currency, status, created_at, metrics";
+/** G23-B (migration 0434): a converted pilot is an L5 row. */
+const ORDER_COLS_V2 = `${ORDER_COLS}, converted_at, converted_plan`;
 const BATCH_COLS = "id, user_id, name, status, total, done_count, finished_at, created_at";
 const BATCH_COLS_V2 = `${BATCH_COLS}, program_name`;
 
@@ -56,7 +59,12 @@ export async function readAutoInputs(client: InstitutionalClient | null, root: s
   const q = (table: string, cols: string) => client.from(table).select(cols);
   const run = (query: InstitutionalQuery) => query;
 
-  const orders = rowsOf<OrderRow>(warnings, "pilot_orders", await safe(warnings, "pilot_orders", async () => await run(q("pilot_orders", "id, user_id, buyer_email, sku, amount_cents, currency, status, created_at, metrics").order("created_at", { ascending: true }).limit(AUTO_ROW_LIMIT))));
+  // Pilot orders: the 0434 conversion columns first, then the 0416 shape (42703 = column missing, migration not applied yet).
+  let ordersRes = await safe(warnings, "pilot_orders", async () => await run(q("pilot_orders", ORDER_COLS_V2).order("created_at", { ascending: true }).limit(AUTO_ROW_LIMIT)));
+  if (ordersRes?.error && /converted_at|converted_plan|42703/i.test(ordersRes.error.message ?? "")) {
+    ordersRes = await safe(warnings, "pilot_orders", async () => await run(q("pilot_orders", ORDER_COLS).order("created_at", { ascending: true }).limit(AUTO_ROW_LIMIT)));
+  }
+  const orders = rowsOf<OrderRow>(warnings, "pilot_orders", ordersRes);
   if (orders) inputs.pilotOrders = orders.map((o) => ({ ...o, metrics: o.metrics && typeof o.metrics === "object" ? o.metrics : null }));
 
   const letters = rowsOf<LetterRow>(warnings, "founder_feedback_letters", await safe(warnings, "founder_feedback_letters", async () => await run(q("founder_feedback_letters", "id, project_id, status, sent_at, org_count, k").in("status", ["sent", "opened"]).order("sent_at", { ascending: false }).limit(AUTO_ROW_LIMIT))));
