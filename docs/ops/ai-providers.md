@@ -374,8 +374,8 @@ and the Money Finder narrative are untouched):
    — soft clock for criterion calls, hard clock otherwise), so ai-client's
    `budgetedTimeoutMs()` clamps every attempt and no call outlives the
    deadline. Inside a budget the attempt is
-   `min(stage timeout, max(budget / 2, budget − 45 s))`: a 120 s W4 reserve
-   gives a dead primary 75 s and the fallback 45 s; a 50 s window allows two
+   `min(stage timeout, max(budget / 2, budget − 60 s))`: a 120 s W4 reserve
+   gives a dead primary 60 s and the fallback 60 s; a 50 s window allows two
    25 s attempts.
 
 2. **Run-scoped provider strikes** (`lib/ai/run-strikes.ts`). One
@@ -396,7 +396,7 @@ and the Money Finder narrative are untouched):
    Log line: `[ai-client:run-strike] deepinfra struck out for this run (2 × worker timeout) — skipped until the run ends`.
 
    Worked example (six parallel W1 calls, DeepInfra dead): every call's
-   first attempt times out at 45 s → six strikes at once → each ladder
+   first attempt times out at 60 s → six strikes at once → each ladder
    breaks before its second model → Gemini answers at ≈ 50 s. Before G28-B
    the same wave cost 360 s.
 
