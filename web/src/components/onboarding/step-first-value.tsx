@@ -70,7 +70,8 @@ export function firstValueTargets(state: { persona?: WizardPersona; planId?: str
   const exit = onboardingExitHref(state.persona);
   if (state.planId) {
     return {
-      primary: { href: signedInSignupRedirect(state.planId, state.interval), kind: "trial" },
+      // G25-D: the review step, never an auto-checkout.
+      primary: { href: signedInSignupRedirect(state.planId, state.interval, "onboarding"), kind: "trial" },
       secondary: { href: firstValue, label: "first_value" },
       exit,
     };

@@ -36,6 +36,10 @@ import {
   resolveTrialDays,
   trialPlanIdsForSegment,
 } from "@/lib/plans/signup-plans";
+import { checkoutReviewStrings } from "@/lib/billing/checkout-review-strings";
+import { getMessages } from "@/lib/i18n/t";
+import { safeNextPath } from "@/lib/security/safe-redirect";
+import { LEGAL_ENTITY_ABN_LABEL, LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import { SignupForm, type SignupPlanChoice } from "./signup-form";
 
 export const dynamic = "force-dynamic";
@@ -60,7 +64,12 @@ export default async function SignupPage({
   // They already have the account — send them to Billing with the plan they
   // chose so the click starts a checkout instead of a dead end.
   const existing = await getCurrentUser();
-  if (existing) redirect(signedInSignupRedirect(sp.plan, sp.interval));
+  // G25-D: a signed-in user lands on the review step for the plan (or back
+  // on the review that sent them here) — never on a checkout.
+  // `?next=` (the review that sent the visitor here) is open-redirect guarded.
+  const nextRaw = Array.isArray(sp.next) ? sp.next[0] : sp.next;
+  const next = nextRaw ? safeNextPath(nextRaw, "") || null : null;
+  if (existing) redirect(next ?? signedInSignupRedirect(sp.plan, sp.interval));
 
   // `?interval=annual` from a pricing card's Annual toggle (2026-09-16 audit).
   // Honoured per plan below: a rung without an annual Stripe Price is shown
@@ -94,6 +103,11 @@ export default async function SignupPage({
 
   const stripePublishableKey =
     process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY ?? null;
+
+  // G25-D: the card form sits under a Review block; its strings come from
+  // the same catalogue keys as /checkout/review.
+  const review = checkoutReviewStrings(await getMessages("en"), "en");
+  const sellerLine = `${LEGAL_ENTITY.operator} (${LEGAL_ENTITY_ABN_LABEL})`;
 
   const headline = isEvaluator ? EVALUATOR_TRIAL_COPY.headline : TRIAL_COPY.headline;
   const subheadline = isEvaluator ? EVALUATOR_TRIAL_COPY.subheadline : TRIAL_COPY.subheadline;
@@ -162,6 +176,17 @@ export default async function SignupPage({
             interval={interval}
             accountTypeOptions={accountTypeOptionsForSegment(segment)}
             stripePublishableKey={stripePublishableKey}
+            review={{
+              title: review.signupBlockTitle,
+              hint: review.signupBlockHint,
+              gstLine: review.gstLine,
+              trialLine: review.trialLine,
+              renewalLine: review.renewalLine,
+              cadenceMonth: review.cadenceMonth,
+              cadenceYear: review.cadenceYear,
+              dataPrinciple: review.dataPrinciple,
+              sellerLine,
+            }}
           />
         </div>
 
@@ -175,7 +200,7 @@ export default async function SignupPage({
         >
           Already have an account?{" "}
           <Link
-            href="/auth/login"
+            href={next ? `/auth/login?next=${encodeURIComponent(next)}` : "/auth/login"}
             style={{ color: "#3B7DD8", textDecoration: "none", fontWeight: 500 }}
           >
             Sign in

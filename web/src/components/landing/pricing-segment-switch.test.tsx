@@ -11,7 +11,7 @@ import {
   resolvePricingTab,
   tabFromLocation,
 } from "./pricing-segment-switch";
-import { evaluatorSignupHref } from "./pricing-matrix";
+import { planReviewHref } from "./pricing-matrix";
 
 function html(el: React.ReactElement): string {
   return renderToStaticMarkup(el);
@@ -98,7 +98,9 @@ describe("<PricingSegmentSwitch /> — Founder tab", () => {
     expect(out).toContain('id="tier-free"');
     expect(out).toContain('id="tier-starter"');
     expect(out).toContain('id="tier-growth"');
-    expect(out).toContain("/onboarding?trial=1&amp;plan=founder_growth");
+    // G25-D: paid rungs land on the review step; the Free rung stays a sign-up.
+    expect(out).toContain("/checkout/review?plan=founder_growth&amp;trial=1&amp;entry=pricing_card");
+    expect(out).toContain("/onboarding?trial=1&amp;plan=founder_free");
     expect(out).not.toContain("segment=evaluator");
     expect(out).not.toContain('id="tier-scout"');
     expect(out).not.toContain('data-testid="evaluator-payg"');
@@ -142,10 +144,12 @@ describe("<PricingSegmentSwitch /> — Evaluator tab (deep link)", () => {
     expect(out).not.toContain('aria-label="VC Small plan"');
   });
 
-  it("routes every rung to /signup?segment=evaluator&plan=<id>&trial=1 as a 7-day card-required trial", () => {
+  // G25-D (founder 2026-09-21): every rung lands on the review step first —
+  // never on a card form or Stripe from the card click.
+  it("routes every rung to /checkout/review?plan=<id>&trial=1&entry=pricing_card as a 7-day card-required trial", () => {
     for (const id of ["investor_angel", "investor_advisor", "investor_vc_small", "investor_fund"]) {
-      expect(evaluatorSignupHref(id)).toBe(`/signup?segment=evaluator&plan=${id}&trial=1`);
-      expect(out).toContain(evaluatorSignupHref(id).replace(/&/g, "&amp;"));
+      expect(planReviewHref(id)).toBe(`/checkout/review?plan=${id}&trial=1&entry=pricing_card`);
+      expect(out).toContain(planReviewHref(id).replace(/&/g, "&amp;"));
     }
     expect(out).toContain("Start 7-day free trial");
     expect(out).toContain("card required · cancel anytime");
@@ -186,7 +190,7 @@ describe("<PricingSegmentSwitch /> — Programs tab (deep link)", () => {
     expect(out).toContain("A$2,490");
     expect(out).toContain("A$15,000");
     expect(out).toContain("Start 14-day free trial");
-    expect(out).toContain("/signup?segment=evaluator&amp;plan=accelerator_starter&amp;trial=1&amp;interval=annual");
+    expect(out).toContain("/checkout/review?plan=accelerator_starter&amp;trial=1&amp;entry=pricing_card&amp;interval=annual");
     expect(out).not.toContain('id="tier-scout"');
     expect(out).not.toContain('id="tier-free"');
     expect(out).not.toContain('aria-label="Cohort Enterprise plan"');

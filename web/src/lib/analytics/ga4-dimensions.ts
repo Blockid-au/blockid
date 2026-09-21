@@ -81,7 +81,7 @@ export const GA4_CUSTOM_DIMENSIONS: readonly Ga4DimensionSpec[] = Object.freeze(
     displayName: "Plan",
     scope: "EVENT",
     description: "Plan code on pricing CTA / checkout events and the server subscribe, trial and cancel events.",
-    events: ["plan_cta_clicked", "checkout_started", "checkout_completed", "reseller_create_startup_started", "reseller_create_startup_completed"],
+    events: ["plan_cta_clicked", "checkout_started", "checkout_review_viewed", "checkout_completed", "reseller_create_startup_started", "reseller_create_startup_completed"],
   },
   {
     parameterName: "segment",

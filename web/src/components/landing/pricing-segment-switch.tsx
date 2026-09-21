@@ -70,6 +70,8 @@ export interface PricingSegmentSwitchProps {
   // G25 (2026-09-21): the paid Cohort Validation Pilot rung that led the
   // Programs tab (G21 P0-C / G22-C) is gone — the tab is the sold ladder
   // only: Intake link / Cohort 25 / Cohort 100 with the card-required trial.
+  /** G25-D: `vi` → the card CTAs link to `/vi/checkout/review`. */
+  locale?: "en" | "vi";
 }
 
 const DEFAULT_LABELS: Record<PricingTab, { label: string; sub: string }> = {
@@ -108,6 +110,7 @@ export function PricingSegmentSwitch({
   onChange,
   annualAvailable,
   purchasable,
+  locale = "en",
 }: PricingSegmentSwitchProps) {
   // The URL is an external store: "no tab" while hydrating (matches the
   // server document), the deep-linked tab on the first client render. A
@@ -228,7 +231,7 @@ export function PricingSegmentSwitch({
         id={`pricing-panel-${tab}`}
         aria-labelledby={`pricing-tab-${tab}`}
       >
-        <PricingMatrix segment={TAB_TO_SEGMENT[tab]} annualAvailable={annualAvailable} purchasable={purchasable} />
+        <PricingMatrix segment={TAB_TO_SEGMENT[tab]} annualAvailable={annualAvailable} purchasable={purchasable} locale={locale} />
       </div>
     </div>
   );

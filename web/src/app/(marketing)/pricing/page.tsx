@@ -16,6 +16,7 @@ import { LogoCloud } from "@/components/landing/logo-cloud";
 import { StickyCta } from "@/components/sales/sticky-cta";
 import { PricingFeatureNotice } from "@/components/landing/pricing-feature-notice";
 import { GST_POLICY_LINE } from "@/lib/plans-v2";
+import { checkoutReviewHref } from "@/lib/billing/checkout-review";
 
 // S31-D: static + ISR (300 s, the edge TTL in
 // lib/security/public-cacheable-routes.ts). The catalogue is code
@@ -139,7 +140,8 @@ export default async function PricingPage() {
         title="One methodology. Choose the plan for your side of the table."
         sub="Free trial on every self-serve plan — Founder (Starter, Growth), Evaluator (Scout, Firm, Program, Fund) or Programs (Intake link, Cohort 25, Cohort 100). Card required at signup, charged only when the trial ends (7 days; 14 days on Programs). Cancel anytime before with no charge. Enterprise on request."
         ctas={[
-          { href: "/signup?plan=founder_growth&trial=1", label: "Start 7-day free trial", ctaId: "pricing_hero_trial" },
+          // G25-D: the hero trial CTA lands on the review step, never on a card form or Stripe.
+          { href: checkoutReviewHref({ plan: "founder_growth", trial: true, entry: "pricing_hero" }), label: "Start 7-day free trial", ctaId: "pricing_hero_trial" },
           { href: "#pricing-matrix", label: "See the plans below", variant: "link" },
         ]}
         align="start"

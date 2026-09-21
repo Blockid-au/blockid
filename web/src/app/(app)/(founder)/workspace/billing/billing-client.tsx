@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   Check,
   ChevronDown,
@@ -17,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { LegacyPlan as Plan } from "@/lib/plans";
 import { parseBillingInterval, type BillingInterval } from "@/lib/plans/billing-interval";
+import { checkoutReviewHref } from "@/lib/billing/checkout-review";
 import {
   BILLING_TIER_RANK,
   isCrossLadderRequest,
@@ -127,11 +128,19 @@ export function BillingClient({
   const [drawerOpen, setDrawerOpen] = React.useState(false);
   const [removingAddon, setRemovingAddon] = React.useState(false);
   const searchParams = useSearchParams();
+  const router = useRouter();
   const entitlement = useEntitlement();
 
   const hasShareMgmt = entitlement.can("share_management");
   const addonPriceIds = shareMgmtAddonPriceIds ?? { monthly: null, annual: null };
   const addonAvailable = Boolean(addonPriceIds.monthly || addonPriceIds.annual);
+
+  const activePlan = resolveActivePlan(currentPlanId, plans, grandfatheredPlans);
+  const effectivePlanId = normaliseBillingPlanId(currentPlanId);
+
+  // Ordered tiers for upgrade/downgrade logic — covers v2 and legacy ids.
+  const tierRank = BILLING_TIER_RANK;
+  const currentRank = tierRank[effectivePlanId] ?? 0;
 
   // Deep-link support: /workspace/billing?openAddon=share_management opens the
   // drawer once on mount. A ref guards against re-firing after the user closes.
@@ -145,10 +154,12 @@ export function BillingClient({
       setDrawerOpen(true);
       return;
     }
-    // S31-B: /workspace/billing?plan=<id> — where /pricing and /onboarding
-    // send an already-onboarded user who clicked "Start trial". Start the
-    // Stripe checkout for that plan straight away (it is the button they
-    // pressed); an unknown or non-upgrade id just lands on the grid.
+    // S31-B: /workspace/billing?plan=<id> — an older link where /pricing and
+    // /onboarding used to send an already-onboarded user. G25-D (founder
+    // 2026-09-21): this page NEVER starts a Stripe checkout on mount any
+    // more — the legacy deep link is forwarded to the review step, where the
+    // user reads the order and presses Pay. An unknown or non-upgrade id
+    // just lands on the grid.
     const wanted = searchParams.get("plan");
     // `?interval=annual` rides along from the pricing card's Annual toggle.
     const wantedInterval = parseBillingInterval(searchParams.get("interval"));
@@ -165,10 +176,10 @@ export function BillingClient({
         (crossLadder || rank > currentRank) &&
         wanted !== effectivePlanId
       ) {
-        void handleCheckout(wanted, wantedInterval);
+        router.replace(checkoutReviewHref({ plan: wanted, interval: wantedInterval, trial: true, entry: "billing_deeplink" }));
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot on mount; handleCheckout is stable for the page's life
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot on mount
   }, [searchParams]);
 
   async function handleRemoveShareMgmt() {
@@ -202,12 +213,6 @@ export function BillingClient({
     }
   }
 
-  const activePlan = resolveActivePlan(currentPlanId, plans, grandfatheredPlans);
-  const effectivePlanId = normaliseBillingPlanId(currentPlanId);
-
-  // Ordered tiers for upgrade/downgrade logic — covers v2 and legacy ids.
-  const tierRank = BILLING_TIER_RANK;
-  const currentRank = tierRank[effectivePlanId] ?? 0;
 
   // -----------------------------------------------------------------------
   // Actions
@@ -231,26 +236,13 @@ export function BillingClient({
     }
   }
 
-  async function handleCheckout(planId: string, interval: BillingInterval = "monthly") {
-    setLoadingAction(planId);
-    setError(null);
-    try {
-      const res = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(interval === "annual" ? { plan: planId, interval } : { plan: planId }),
-      });
-      const json = await res.json();
-      if (json.ok && json.url) {
-        window.location.assign(json.url);
-        return;
-      }
-      setError(json.reason ?? "Failed to start checkout.");
-    } catch {
-      setError("Network error. Please try again.");
-    } finally {
-      setLoadingAction(null);
-    }
+  /**
+   * G25-D: an Upgrade click opens the review step for that rung — the user
+   * reads price inc. GST, trial and renewal terms there and presses Pay.
+   * Nothing on this page posts to /api/stripe/checkout.
+   */
+  function upgradeHref(planId: string, interval: BillingInterval = "monthly"): string {
+    return checkoutReviewHref({ plan: planId, interval, trial: true, entry: "billing" });
   }
 
   function handleDowngrade(planId: string) {
@@ -584,25 +576,15 @@ export function BillingClient({
                       </button>
                     ) : null
                   ) : isUpgrade ? (
-                    <button
-                      type="button"
-                      onClick={() => handleCheckout(plan.id)}
-                      disabled={loadingAction === plan.id}
-                      className={cn(
-                        "w-full h-9 rounded-[10px] bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5",
-                        loadingAction === plan.id && "opacity-60 cursor-wait",
-                      )}
+                    <Link
+                      href={upgradeHref(plan.id)}
+                      data-testid="billing-upgrade"
+                      data-plan-id={plan.id}
+                      className="w-full h-9 rounded-[10px] bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
                     >
-                      {loadingAction === plan.id ? (
-                        <Loader2
-                          strokeWidth={1.75}
-                          className="h-4 w-4 animate-spin"
-                        />
-                      ) : (
-                        <CreditCard strokeWidth={1.75} className="h-4 w-4" />
-                      )}
+                      <CreditCard strokeWidth={1.75} className="h-4 w-4" />
                       Upgrade
-                    </button>
+                    </Link>
                   ) : isDowngrade ? (
                     <button
                       type="button"
@@ -696,8 +678,6 @@ const FEATURE_COST_LIST = [
 
 function CreditsPurchaseSection() {
   const [balance, setBalance] = React.useState<number | null>(null);
-  const [loadingPack, setLoadingPack] = React.useState<number | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
   const [showCosts, setShowCosts] = React.useState(false);
 
   // Fetch balance on mount.
@@ -720,34 +700,8 @@ function CreditsPurchaseSection() {
     };
   }, []);
 
-  async function handlePurchase(amount: number) {
-    setLoadingPack(amount);
-    setError(null);
-    try {
-      const res = await fetch("/api/credits", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount }),
-      });
-      const json = await res.json();
-      if (json.ok && json.url) {
-        // Stripe checkout — redirect.
-        window.location.assign(json.url);
-        return;
-      }
-      if (json.ok && json.method === "direct") {
-        // Dev fallback — credits granted directly.
-        setBalance(json.balance);
-        setError(null);
-        return;
-      }
-      setError(json.reason ?? "Failed to start purchase.");
-    } catch {
-      setError("Network error. Please try again.");
-    } finally {
-      setLoadingPack(null);
-    }
-  }
+  // G25-D: Buy opens the review step for the pack (price inc. GST, one-off,
+  // non-refundable line) — the Pay button there posts to /api/credits.
 
   return (
     <section id="credits" className="rounded-2xl border border-surface-200 bg-white dark:bg-surface-100 shadow-sm overflow-hidden">
@@ -780,13 +734,6 @@ function CreditsPurchaseSection() {
           </div>
         </div>
 
-        {/* Error */}
-        {error && (
-          <div className="rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-800 px-4 py-3 text-sm text-red-700 dark:text-red-300">
-            {error}
-          </div>
-        )}
-
         {/* Pack grid */}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {CREDIT_PACKS.map((pack) => {
@@ -816,28 +763,16 @@ function CreditsPurchaseSection() {
                 </span>
               )}
               {!pack.savings && <div className="mb-3" />}
-              <button
-                type="button"
-                onClick={() => handlePurchase(pack.credits)}
-                disabled={loadingPack !== null}
+              <Link
+                href={checkoutReviewHref({ pack: pack.credits, entry: "credits" })}
                 data-testid="credit-pack-buy"
                 data-pack={pack.credits}
                 aria-label={`Buy ${pack.label} — ${priceLabel}`}
-                className={cn(
-                  "w-full h-9 rounded-lg bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5",
-                  loadingPack === pack.credits && "opacity-60 cursor-wait",
-                )}
+                className="w-full h-9 rounded-lg bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5"
               >
-                {loadingPack === pack.credits ? (
-                  <Loader2
-                    strokeWidth={1.75}
-                    className="h-4 w-4 animate-spin"
-                  />
-                ) : (
-                  <CreditCard strokeWidth={1.75} className="h-4 w-4" />
-                )}
+                <CreditCard strokeWidth={1.75} className="h-4 w-4" />
                 Buy
-              </button>
+              </Link>
             </div>
             );
           })}

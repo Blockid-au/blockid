@@ -71,7 +71,8 @@ export function StepTier({
       </h1>
       <p className="mt-2 text-brand-ink-muted">
         Every monthly plan includes a 7-day free trial. Cancel anytime before
-        Day 8 — no charge.
+        Day 8 — no charge. Picking a plan only moves you to the review step —
+        you read the order and add your card yourself.
       </p>
 
       <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">

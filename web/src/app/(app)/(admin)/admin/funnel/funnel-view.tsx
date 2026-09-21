@@ -26,6 +26,9 @@ const STEP_LABELS: ReadonlyArray<{ key: keyof FunnelCounts; label: string; note:
   { key: "paywall_views", label: "Paywall views", note: "paywall_view — free-tier cut rendered" },
   { key: "checkouts", label: "Checkouts", note: "checkout — A$3 Stripe session created" },
   { key: "paid", label: "Paid", note: "trust_report_purchased — Stripe webhook" },
+  // G25-D — plans / packs / SKUs go through the review step; these two rows are that edge.
+  { key: "review_views", label: "Review views", note: "checkout_review_viewed — /checkout/review rendered (plans, packs, SKUs)" },
+  { key: "pay_clicks", label: "Pay clicks", note: "checkout_started — the explicit Pay / Add-card button (the only Stripe hand-off)" },
 ];
 
 const CONV_LABELS: ReadonlyArray<{ key: keyof FunnelCounts["conv"]; label: string }> = [
@@ -34,6 +37,7 @@ const CONV_LABELS: ReadonlyArray<{ key: keyof FunnelCounts["conv"]; label: strin
   { key: "report_to_paywall", label: "report → paywall" },
   { key: "paywall_to_checkout", label: "paywall → checkout" },
   { key: "checkout_to_paid", label: "checkout → paid" },
+  { key: "review_to_pay", label: "review → pay (G25-D)" },
 ];
 
 function n(v: number | null | undefined): string {
