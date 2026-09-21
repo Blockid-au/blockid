@@ -104,6 +104,23 @@ export function deltaByProject(latest: SnapshotLite | null | undefined, previous
   return out;
 }
 
+/**
+ * G22-A A.3 — did the weight set change between the two snapshots behind
+ * the Δ column? `{ from, to }` (their `weights_version`s, oldest first) when
+ * they differ, null otherwise or with fewer than two snapshots. Accepts the
+ * camelCase `CohortSnapshot` (cohort-snapshots.ts) as well as the lite row.
+ */
+export function cohortDeltaWeightsChanged(
+  latest: { weightsVersion?: number; weights_version?: number } | null | undefined,
+  previous: { weightsVersion?: number; weights_version?: number } | null | undefined,
+): { from: number; to: number } | null {
+  if (!latest || !previous) return null;
+  const to = num(latest.weightsVersion ?? latest.weights_version);
+  const from = num(previous.weightsVersion ?? previous.weights_version);
+  if (to == null || from == null || to === from) return null;
+  return { from, to };
+}
+
 /** Cohort-level movement: median of the per-project SVI deltas + how many moved up / down / flat. */
 export function summariseDeltas(deltas: Iterable<ProjectDelta>): { n: number; up: number; down: number; flat: number; medianSvi: number | null } {
   const xs: number[] = [];

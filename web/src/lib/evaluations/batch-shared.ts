@@ -87,6 +87,25 @@ export interface EvaluationBatch {
   orgId: string | null;
 }
 
+// G22-A — reviewer roles on a cohort (0423 evaluation_batch_members); the
+// server-side membership gate lives in ./batch-members.ts. Client-safe here so
+// the Cohorts lists can render a role chip without importing server code.
+export const BATCH_ROLES = ["owner", "reviewer", "viewer"] as const;
+export type BatchRole = (typeof BATCH_ROLES)[number];
+
+export const BATCH_ROLE_LABELS: Record<BatchRole, string> = { owner: "Owner", reviewer: "Reviewer", viewer: "Viewer" };
+
+/** Pure: a persisted role string → BatchRole (anything unknown reads as the least seat). */
+export function batchRoleOf(v: unknown): BatchRole {
+  return typeof v === "string" && (BATCH_ROLES as readonly string[]).includes(v) ? (v as BatchRole) : "viewer";
+}
+
+/** G22-A — `listBatches` shape: every readable cohort with the caller's seat on it. */
+export interface EvaluationBatchWithRole extends EvaluationBatch {
+  /** owner = the creator (or an explicit owner seat); reviewer / viewer = invited seat. */
+  role: BatchRole;
+}
+
 export interface EvaluationBatchItem {
   id: number;
   batchId: string;

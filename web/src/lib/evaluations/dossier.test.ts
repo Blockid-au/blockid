@@ -31,6 +31,8 @@ const state = {
   tables: {} as Record<string, Row[] | { error: { code?: string; message?: string } }>,
   admin: true,
   failOnce: {} as Record<string, { code?: string; message?: string }>,
+  /** G22-A round-3 pin: reads on these tables wait for `gate.promise` (null = no gate). */
+  gate: null as { tables: Set<string>; promise: Promise<void> } | null,
 };
 
 function fakeBuilder(table: string) {
@@ -39,6 +41,7 @@ function fakeBuilder(table: string) {
   let single = false;
   let limit: number | null = null;
   const run = async () => {
+    if (state.gate && state.gate.tables.has(table)) await state.gate.promise;
     const once = state.failOnce[table];
     if (once) {
       delete state.failOnce[table];
@@ -106,7 +109,14 @@ vi.mock("@/lib/investor/organisations", () => ({
 // G14-S37: the founder execution loader (founder_profiles + assessments +
 // founder_signals + svi_signals) is mocked so the round shape stays
 // observable; the rubric itself is real (lib/founder/execution.ts).
-const founderExecutionCtxMock = vi.fn(async (_args: unknown) => ({ profile: null as unknown, evaluatorFlags: null, linkedin: null, github: null }));
+const founderExecutionCtxMock = vi.fn<(args: unknown) => Promise<{ profile: unknown; evaluatorFlags: null; linkedin: null; github: null }>>(async () => ({ profile: null as unknown, evaluatorFlags: null, linkedin: null, github: null }));
+// G22-A: the cohort-seat lookup behind `viaBatch` access (batch-members.ts)
+// is mocked — its own colocated test pins the reads.
+const batchSeatMock = vi.fn<(userId: string, evaluationId: string) => Promise<{ batchId: string; role: "owner" | "reviewer" | "viewer" } | null>>(async () => null);
+vi.mock("@/lib/evaluations/batch-members", () => ({
+  batchSeatForEvaluation: (u: string, e: string) => batchSeatMock(u, e),
+}));
+
 vi.mock("@/lib/founder/execution-load", () => ({
   loadFounderExecutionContext: (args: unknown) => founderExecutionCtxMock(args),
 }));
@@ -175,6 +185,8 @@ beforeEach(() => {
   percentileMock.mockResolvedValue({ percentile: 61.4, source: "real_cohort", cohortSize: 120, stageMatched: 3, band: "segmented", label: "segmented benchmark (n = 120)", published: { percentile: 61, n: 120, band: "segmented", label: "segmented benchmark (n = 120)", segment: "AU stage-3 cohort" } });
   readConsensusMock.mockReset().mockResolvedValue(EMPTY_CONSENSUS);
   shareOrgMock.mockReset().mockResolvedValue(null);
+  batchSeatMock.mockReset().mockResolvedValue(null);
+  state.gate = null;
   __resetDossierCaches();
 });
 
@@ -211,6 +223,90 @@ describe("resolveDossierAccess", () => {
   });
 });
 
+describe("resolveDossierAccess — G22-A viaBatch (a cohort seat opens the dossier read-only)", () => {
+  it("a stranger is checked against the cohort seats last; no seat → null", async () => {
+    expect(await resolveDossierAccess("e-1", "u-stranger")).toBeNull();
+    expect(shareOrgMock).toHaveBeenCalledWith("u-stranger", "u-eval");
+    expect(batchSeatMock).toHaveBeenCalledWith("u-stranger", "e-1");
+  });
+
+  it("a viewer seat on a batch holding the evaluation → assessor, viaBatchId set, readOnly, invite token + private notes stripped", async () => {
+    state.tables.evaluations = [{ ...EVAL, notes: "private deck notes" }];
+    batchSeatMock.mockImplementation(async (u, e) => (u === "u-reviewer" && e === "e-1" ? { batchId: "b-1", role: "viewer" } : null));
+    const a = await resolveDossierAccess("e-1", "u-reviewer");
+    expect(a).toMatchObject({ role: "assessor", viaOrgId: null, viaBatchId: "b-1", readOnly: true });
+    expect(a!.evaluation.inviteToken).toBeNull();
+    expect(a!.evaluation.notes).toBeNull();
+    // The evaluator's own access is untouched (no seat lookup needed).
+    const direct = await resolveDossierAccess("e-1", "u-eval");
+    expect(direct).toMatchObject({ viaBatchId: null, readOnly: false });
+    expect(direct!.evaluation.notes).toBe("private deck notes");
+  });
+
+  it("an org seat wins over a cohort seat (full assessor); the seat lookup is never called", async () => {
+    shareOrgMock.mockImplementation(async (a: string, b: string) => (a === "u-seat" && b === "u-eval" ? "org-1" : null));
+    batchSeatMock.mockResolvedValue({ batchId: "b-1", role: "owner" });
+    const seat = await resolveDossierAccess("e-1", "u-seat");
+    expect(seat).toMatchObject({ role: "assessor", viaOrgId: "org-1", viaBatchId: null, readOnly: false });
+    expect(batchSeatMock).not.toHaveBeenCalled();
+  });
+
+  it("a throwing seat lookup reads as no seat (null), never a thrown page", async () => {
+    batchSeatMock.mockRejectedValue(new Error("boom"));
+    expect(await resolveDossierAccess("e-1", "u-reviewer")).toBeNull();
+  });
+
+  it("loadDossier for a cohort seat: viewer.viaBatchId + readOnly, header.viaBatchSeat, the evaluation's own consent tier (never wider), no consensus read, no label", async () => {
+    state.tables.evaluations = [{ ...EVAL, consent_tier: "attributed_only" }];
+    batchSeatMock.mockResolvedValue({ batchId: "b-1", role: "reviewer" });
+    const d = await loadDossier("e-1", "u-reviewer");
+    expect(d).not.toBeNull();
+    expect(d!.viewer).toEqual({ role: "assessor", userId: "u-reviewer", viaBatchId: "b-1", readOnly: true });
+    expect(d!.header.viaBatchSeat).toBe(true);
+    expect(d!.header.viaOrgSeat).toBe(false);
+    expect(d!.header.consentTier).toBe("attributed_only");
+    // attributed_only → evidence counts only, no items (the same projection the evaluator gets).
+    expect(d!.evidence.items).toBeNull();
+    expect(readConsensusMock).not.toHaveBeenCalled();
+    expect(d!.consensus).toEqual(EMPTY_CONSENSUS);
+    expect(d!.assessment.mine).toEqual(MINE); // getAssessment is mocked per role; the page hides the form via viewer.readOnly
+  });
+});
+
+describe("loadDossier — round 3 (G22-A: the P3 loaders start in ONE Promise.all)", () => {
+  it("assessment context, connector freshness and the signature all issue their first read before any of them resolves", async () => {
+    let release: () => void = () => {};
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    // The first table each loader touches: context → claims / benchmark_segments,
+    // freshness → oauth_connections_v2, signature → app_users.
+    const gated = new Set(["claims", "benchmark_segments", "oauth_connections_v2", "app_users"]);
+    state.gate = { tables: gated, promise: gate };
+    const pending = loadDossier("e-1", "u-eval");
+    // Let every microtask + timer-free continuation settle while the gated reads hang.
+    for (let i = 0; i < 5; i += 1) await new Promise((r) => setTimeout(r, 0));
+    const issued = new Set(state.calls.map((c) => c.table).filter((t) => gated.has(t)));
+    expect(issued.has("oauth_connections_v2"), "freshness started").toBe(true);
+    expect(issued.has("app_users"), "signature started").toBe(true);
+    expect(issued.has("claims") || issued.has("benchmark_segments"), "assessment context started").toBe(true);
+    release();
+    const d = await pending;
+    expect(d!.signature).not.toBeNull();
+    expect(d!.assessmentCard).not.toBeNull();
+  });
+
+  it("each round-3 loader is fail-soft on its own: a failing freshness read still yields the card and the signature", async () => {
+    state.tables.oauth_connections_v2 = { error: { code: "XX000", message: "boom" } };
+    state.tables.app_users = { error: { code: "XX000", message: "boom" } };
+    const d = await loadDossier("e-1", "u-eval");
+    expect(d).not.toBeNull();
+    expect(d!.assessmentCard).not.toBeNull();
+    // The signature loader degrades to its defaults rather than dropping the block.
+    expect(d!.signature).not.toBeNull();
+  });
+});
+
 describe("loadDossier — signature (G21 P3-C)", () => {
   it("an assessor gets the block (fail-soft reads: empty tables → no role / org, overrides 0), the founder none", async () => {
     const d = await loadDossier("e-1", "u-eval");
@@ -224,7 +320,7 @@ describe("loadDossier — evaluator", () => {
   it("returns header + block 1 from persisted rows with weights, Δ30d, percentile and the cover radar", async () => {
     const d = await loadDossier("e-1", "u-eval");
     expect(d).not.toBeNull();
-    expect(d!.viewer).toEqual({ role: "assessor", userId: "u-eval" });
+    expect(d!.viewer).toEqual({ role: "assessor", userId: "u-eval", viaBatchId: null, readOnly: false });
     const h = d!.header;
     expect(h.name).toBe("Acme Robotics");
     expect(h.website).toBe("https://acme.io");

@@ -25,17 +25,18 @@ type Db = {
   evaluation_batches: Row[];
   evaluation_batch_members: Row[];
   app_users: Row[];
+  evaluation_batch_items: Row[];
 };
 
 const state: { db: Db; errors: Partial<Record<keyof Db, { code?: string; message?: string }>>; configured: boolean; nextId: number } = {
-  db: { evaluation_batches: [], evaluation_batch_members: [], app_users: [] },
+  db: { evaluation_batches: [], evaluation_batch_members: [], app_users: [], evaluation_batch_items: [] },
   errors: {},
   configured: true,
   nextId: 1,
 };
 
 function resetDb(): void {
-  state.db = { evaluation_batches: [], evaluation_batch_members: [], app_users: [] };
+  state.db = { evaluation_batches: [], evaluation_batch_members: [], app_users: [], evaluation_batch_items: [] };
   state.errors = {};
   state.configured = true;
   state.nextId = 1;
@@ -177,6 +178,7 @@ import {
   addBatchMember,
   assertBatchRole,
   batchRoleAtLeast,
+  batchSeatForEvaluation,
   buildCohortInviteEmail,
   getBatchById,
   listBatchMembers,
@@ -261,6 +263,44 @@ describe("assertBatchRole", () => {
     state.db.evaluation_batches.push(batchRow());
     state.errors.evaluation_batch_members = { code: "42P01", message: "relation does not exist" };
     expect(await assertBatchRole("b-1", "u-stranger")).toEqual({ ok: false, error: "not_found" });
+  });
+});
+
+describe("batchSeatForEvaluation (G22-A viaBatch)", () => {
+  it("null without a client, an empty id, or when the evaluation is in no batch", async () => {
+    expect(await batchSeatForEvaluation("u-x", "")).toBeNull();
+    expect(await batchSeatForEvaluation("", "e-1")).toBeNull();
+    expect(await batchSeatForEvaluation("u-x", "e-1")).toBeNull();
+    state.configured = false;
+    expect(await batchSeatForEvaluation("u-x", "e-1")).toBeNull();
+  });
+
+  it("the creator of a batch that holds the evaluation is its owner (no member row needed)", async () => {
+    state.db.evaluation_batches.push(batchRow());
+    state.db.evaluation_batch_items.push({ id: 1, batch_id: "b-1", evaluation_id: "e-1" });
+    expect(await batchSeatForEvaluation("u-owner", "e-1")).toEqual({ batchId: "b-1", role: "owner" });
+    // A different evaluation in no batch → null even for the owner.
+    expect(await batchSeatForEvaluation("u-owner", "e-9")).toBeNull();
+  });
+
+  it("a member row on a batch that holds the evaluation gives that role; the highest seat wins across batches; strangers get null", async () => {
+    state.db.evaluation_batches.push(batchRow(), batchRow({ id: "b-2", user_id: "u-other" }));
+    state.db.evaluation_batch_items.push({ id: 1, batch_id: "b-1", evaluation_id: "e-1" }, { id: 2, batch_id: "b-2", evaluation_id: "e-1" });
+    state.db.evaluation_batch_members.push({ batch_id: "b-1", user_id: "u-seat", role: "viewer" }, { batch_id: "b-2", user_id: "u-seat", role: "reviewer" });
+    expect(await batchSeatForEvaluation("u-seat", "e-1")).toEqual({ batchId: "b-2", role: "reviewer" });
+    expect(await batchSeatForEvaluation("u-stranger", "e-1")).toBeNull();
+    // A member row on an unrelated batch does not open this evaluation.
+    state.db.evaluation_batch_members.push({ batch_id: "b-3", user_id: "u-elsewhere", role: "owner" });
+    expect(await batchSeatForEvaluation("u-elsewhere", "e-1")).toBeNull();
+  });
+
+  it("fail-soft: a missing members table (pre-0423) or a failing items read → null", async () => {
+    state.db.evaluation_batches.push(batchRow({ id: "b-1", user_id: "u-other" }));
+    state.db.evaluation_batch_items.push({ id: 1, batch_id: "b-1", evaluation_id: "e-1" });
+    state.errors.evaluation_batch_members = { code: "42P01", message: "relation does not exist" };
+    expect(await batchSeatForEvaluation("u-seat", "e-1")).toBeNull();
+    state.errors = { evaluation_batch_items: { code: "42P01", message: "relation does not exist" } };
+    expect(await batchSeatForEvaluation("u-other", "e-1")).toBeNull();
   });
 });
 

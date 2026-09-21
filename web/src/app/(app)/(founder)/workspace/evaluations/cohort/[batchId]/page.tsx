@@ -34,6 +34,8 @@ import { CohortImport } from "@/components/evaluations/CohortImport";
 import { CohortSnapshotActions } from "@/components/evaluations/CohortSnapshotActions";
 import { latestSnapshots } from "@/lib/evaluations/cohort-snapshots";
 import { CohortTable } from "@/components/evaluations/CohortTable";
+import { ProgramWeightsDialog } from "@/components/evaluations/ProgramWeightsDialog";
+import { cohortDeltaWeightsChanged } from "@/lib/evaluations/cohort-delta";
 
 export const metadata: Metadata = {
   title: "BlockID Cohort | BlockID",
@@ -118,6 +120,10 @@ export default async function CohortPage({ params, searchParams }: PageProps) {
   const lpReport = canExportLpReport(flags);
   const pct = batchProgressPct(batch);
   const initialFilters = parseCohortFilters(sp);
+  // G22-A A.3: the header version is the batch row's (bumped by the weights
+  // editor); meta's read is the fallback for the pre-0422 shape.
+  const weightsVersion = Math.max(batch.weightsVersion ?? 1, meta.weightsVersion);
+  const deltaWeightsChanged = cohortDeltaWeightsChanged(snapshots.latest, snapshots.previous);
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
@@ -206,9 +212,17 @@ export default async function CohortPage({ params, searchParams }: PageProps) {
         </header>
 
         <section data-testid="rubric-weights" className="rounded-xl border border-line-subtle bg-surface px-4 py-3 text-sm text-secondary">
-          <span className="font-medium text-primary">Program weights v{meta.weightsVersion}:</span>{" "}
+          <span className="font-medium text-primary" data-testid="cohort-weights-version">
+            Program weights v{weightsVersion}:
+          </span>{" "}
           {isEqualWeights(batch.rubricWeights) ? <span>equal across the 8 dimensions (default).</span> : <span>{DIMENSION_KEYS.map((k) => `${DIMENSION_LABELS[k]} ${batch.rubricWeights[k]}%`).join(" · ")}</span>}
           <span className="ml-1 text-xs text-muted">The Program score ranks this cohort by your rubric over each startup&apos;s 8 dimension scores; the canonical SVI is unchanged and always shown beside it.</span>
+          {/* G22-A A.3: the weights editor (owner only; the route enforces it again). */}
+          {role === "owner" ? (
+            <div className="mt-2">
+              <ProgramWeightsDialog batchId={batch.id} weights={batch.rubricWeights} weightsVersion={weightsVersion} />
+            </div>
+          ) : null}
         </section>
 
         {/* P2-A: CSV import (owner + reviewer; respects the pilot applicants cap). */}
@@ -222,7 +236,7 @@ export default async function CohortPage({ params, searchParams }: PageProps) {
 
         {/* No Suspense: nothing here suspends, and the fallback table rendered a
             second column-chooser toggle beside the real one (live-qa 37). */}
-        <CohortTable rows={rows} batchId={batch.id} role={role} weightsVersion={meta.weightsVersion} initialFilters={initialFilters} />
+        <CohortTable rows={rows} batchId={batch.id} role={role} weightsVersion={weightsVersion} deltaWeightsChanged={deltaWeightsChanged} initialFilters={initialFilters} />
 
         <p className="text-sm text-secondary" data-testid="humans-decide">
           <span className="font-medium text-primary">Humans make the decision.</span> BlockID structures the evidence and standardises the first-pass analysis; every shortlist, override and decision above is recorded with who made it and why.

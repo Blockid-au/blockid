@@ -24,7 +24,10 @@ import type { ActivationInputs } from "@/lib/evaluations/activation-checklist";
 import { formatDelta, type EvaluatorProgress, type EvaluatorProgressItem, type ProgressDeadline } from "@/lib/evaluations/progress-shared";
 import { ReportDialog, type ReportKind, type ReportRunResult } from "./report-dialog";
 import { BatchDialog, type BatchQueuedResult } from "./batch-dialog";
-import { batchProgressPct, type EvaluationBatch } from "@/lib/evaluations/batch-shared";
+import { BATCH_ROLE_LABELS, batchProgressPct, type BatchRole, type EvaluationBatch } from "@/lib/evaluations/batch-shared";
+
+/** G22-A: a Cohorts-list row — `role` is the caller's seat (owner = created it; reviewer / viewer = invited). */
+type CohortListBatch = EvaluationBatch & { role?: BatchRole };
 import { useModalDialog } from "@/hooks/useModalDialog";
 import { formatAud } from "@/lib/plans-v2";
 import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
@@ -70,7 +73,7 @@ export interface EvaluationsClientProps {
   /** T0272 — plan has lp_export / accelerator.cohort (Program) → multi-select + Batch score. */
   canBatch?: boolean;
   /** T0272 — batches this user queued, newest first (Cohorts section). */
-  batches?: EvaluationBatch[];
+  batches?: CohortListBatch[];
 }
 
 const AU_STATE_OPTIONS: Array<{ value: string; label: string }> = [
@@ -292,7 +295,13 @@ const BATCH_STATUS_CHIP: Record<EvaluationBatch["status"], { label: string; clas
   failed: { label: "Failed", className: "border-red-300 bg-red-50 text-red-700" },
 };
 
-export function CohortsSection({ batches, canBatch }: { batches: EvaluationBatch[]; canBatch: boolean }) {
+const BATCH_ROLE_CHIP: Record<BatchRole, string> = {
+  owner: "border-brand-300 bg-brand-50 text-brand-700",
+  reviewer: "border-surface-300 bg-surface-100 text-ink-700",
+  viewer: "border-surface-300 bg-surface-50 text-ink-500",
+};
+
+export function CohortsSection({ batches, canBatch }: { batches: CohortListBatch[]; canBatch: boolean }) {
   if (!canBatch && batches.length === 0) return null;
   return (
     <section data-testid="cohorts-section" aria-label="Cohorts" className="rounded-2xl border border-surface-200 bg-white px-5 py-4">
@@ -317,6 +326,11 @@ export function CohortsSection({ batches, canBatch }: { batches: EvaluationBatch
                   <div className="flex items-center gap-2">
                     <Link href={`/workspace/evaluations/cohort/${encodeURIComponent(b.id)}`} className="truncate font-medium text-ink-900 hover:underline">{b.name}</Link>
                     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${chip.className}`}>{chip.label}</span>
+                    {b.role ? (
+                      <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${BATCH_ROLE_CHIP[b.role]}`} data-testid="cohort-role-chip" data-role={b.role}>
+                        {BATCH_ROLE_LABELS[b.role]}
+                      </span>
+                    ) : null}
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-xs text-ink-500">
                     <span
@@ -409,7 +423,7 @@ export function EvaluationsClient({
   }
 
   // --- Batch score (T0272) ---
-  const [batches, setBatches] = React.useState<EvaluationBatch[]>(initialBatches);
+  const [batches, setBatches] = React.useState<CohortListBatch[]>(initialBatches);
   // S-D3: arriving from a dossier's "Add to batch" preselects that row and opens the dialog.
   const preselect = preselectBatchId && canBatch && initialEvaluations.some((e) => e.id === preselectBatchId) ? preselectBatchId : null;
   const [selectedIds, setSelectedIds] = React.useState<Set<string>>(() => new Set(preselect ? [preselect] : []));
@@ -429,7 +443,7 @@ export function EvaluationsClient({
     setSelectedIds(allSelected ? new Set() : new Set(rows.map((r) => r.id)));
   }
   function handleBatchQueued(result: BatchQueuedResult) {
-    setBatches((prev) => [result.batch, ...prev]);
+    setBatches((prev) => [{ ...result.batch, role: "owner" }, ...prev]);
     setSelectedIds(new Set());
     setShowBatch(false);
     if (Number.isFinite(result.quota_left) && result.quota_left < Number.MAX_SAFE_INTEGER) setQuotaRemaining(result.quota_left);

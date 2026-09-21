@@ -35,8 +35,9 @@ export async function GET(_request: Request, { params }: Ctx) {
   const [dossier, isEvaluator] = await Promise.all([loadDossier(id, user.id), isEvaluatorUser(user)]);
   if (!dossier) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
   // Same gate as the page: an evaluator seat whose entitlement lapsed gets
-  // 404, the claimed founder needs none for the read-only preview.
-  if (dossier.viewer.role === "assessor" && !isEvaluator) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+  // 404, the claimed founder needs none for the read-only preview, and a
+  // BlockID Cohort seat (G22-A viaBatch) is admitted by its membership alone.
+  if (dossier.viewer.role === "assessor" && !isEvaluator && !dossier.viewer.viaBatchId) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
 
   auditDossierView({
     userId: user.id,
@@ -47,6 +48,7 @@ export async function GET(_request: Request, { params }: Ctx) {
     surface: "api",
     sviTotal: dossier.header.svi,
     snapshotId: dossier.header.snapshotId,
+    viaBatchId: dossier.viewer.viaBatchId,
   });
 
   return NextResponse.json(

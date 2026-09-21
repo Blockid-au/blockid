@@ -24,7 +24,11 @@
  *     reload (migration 0423; a 503 is recorded and the step annotated, not
  *     failed);
  *   • members API — GET (creator is `is_creator`+`owner`), POST an unknown
- *     e-mail (404), GET export.csv (CSV header row).
+ *     e-mail (404), GET export.csv (CSV header row);
+ *   • G22-A — PATCH …/weights bumps `weights_version` and the header /
+ *     caption read the new version (the original rubric is restored at the
+ *     end); the row's Dossier link resolves 200 for the owner; the item
+ *     trajectory route + the snapshots route answer the owner seat.
  *
  * The seat is ALWAYS re-typed back to `investor_angel` at the end (mirrors
  * 33-page-sweep's accelerator restore) so 33 and any lane after this one
@@ -40,7 +44,7 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 import { request, type APIRequestContext, type BrowserContext, type Page } from "@playwright/test";
 import { test, expect } from "./fixtures";
-import { evidence, get, post } from "./lib/api";
+import { evidence, get, patch, post } from "./lib/api";
 import { env } from "./lib/env";
 import { dbAllowed, elevatePlan, setAccountType } from "./lib/db";
 import { getScratch, readRunState, setScratch } from "./lib/run-state";
@@ -90,6 +94,25 @@ interface MembersPostResponse {
 interface ItemPatchResponse {
   ok: boolean;
   item?: { id: number; shortlisted: boolean; review_status: string; reviewer_id: string | null };
+  error?: string;
+  message?: string;
+}
+
+/** G22-A: the 8-dimension rubric (equal split — what a batch created without weights stores). */
+type RubricWeightsBody = Record<"ftv" | "mpc" | "ptd" | "tre" | "cgh" | "iri" | "lco" | "svm", number>;
+const EQUAL_WEIGHTS: RubricWeightsBody = { ftv: 12.5, mpc: 12.5, ptd: 12.5, tre: 12.5, cgh: 12.5, iri: 12.5, lco: 12.5, svm: 12.5 };
+
+/** GET /api/evaluations/batch → listBatches (camelCase EvaluationBatch + G22-A `role`). */
+interface BatchGetResponse {
+  ok: boolean;
+  batches?: Array<{ id: string; role?: "owner" | "reviewer" | "viewer"; weightsVersion?: number; rubricWeights?: RubricWeightsBody }>;
+}
+
+interface WeightsPatchResponse {
+  ok: boolean;
+  weights_version?: number;
+  previous_version?: number;
+  changed?: boolean;
   error?: string;
   message?: string;
 }
@@ -343,6 +366,90 @@ test.describe("BlockID Cohort — view", () => {
       const headerRow = text.split(/\r\n/)[0] ?? "";
       await evidence(testInfo, "GET …/export.csv", { status: csv.status(), contentType: csv.headers()["content-type"], headerRow });
       expect(headerRow.startsWith("Company,Stage,Sector,SVI,Program score")).toBe(true);
+    } finally {
+      await ctx.close();
+    }
+  });
+});
+
+test.describe("BlockID Cohort — G22-A membership completeness", () => {
+  test("weights PATCH bumps weights_version and the cohort header shows v2; the original weights are restored at the end", async ({ browser, qa }, testInfo) => {
+    const { batchId } = requireBatch();
+    const { ctx, page } = await evaluatorBrowser(browser);
+    try {
+      // The stored rubric (the batch was created without weights → equal split, v1).
+      const before = await get<BatchGetResponse>(page.request, "/api/evaluations/batch");
+      const mine = before.body.batches?.find((b) => b.id === batchId);
+      await evidence(testInfo, "GET /api/evaluations/batch (before)", { status: before.status, weightsVersion: mine?.weightsVersion, role: mine?.role, weights: mine?.rubricWeights });
+      expect(before.status).toBe(200);
+      expect(mine?.role, "the creator's row carries role owner (G22-A listBatches)").toBe("owner");
+      const original = mine?.rubricWeights ?? EQUAL_WEIGHTS;
+      const originalVersion = mine?.weightsVersion ?? 1;
+
+      // A real change: Traction & Revenue up, the rest equal.
+      const changed = await patch<WeightsPatchResponse>(page.request, `/api/evaluations/batch/${encodeURIComponent(batchId)}/weights`, { rubric_weights: { ...EQUAL_WEIGHTS, tre: 40 } });
+      await evidence(testInfo, "PATCH …/weights", { status: changed.status, body: changed.body });
+      if (changed.status === 503) {
+        testInfo.annotations.push({ type: "pending-migration", description: "evaluation_batches.weights_version (0422) not applied on this environment — PATCH weights answered 503" });
+        return;
+      }
+      expect(changed.status).toBe(200);
+      expect(changed.body).toMatchObject({ ok: true, changed: true, previous_version: originalVersion, weights_version: originalVersion + 1 });
+
+      await page.goto(`${qa.baseURL}/workspace/evaluations/cohort/${encodeURIComponent(batchId)}`, { waitUntil: "domcontentloaded" });
+      await expect(page.getByTestId("cohort-weights-version")).toContainText(`v${originalVersion + 1}`);
+      await expect(page.getByTestId("cohort-caption")).toContainText(`weights v${originalVersion + 1}`);
+      // The owner sees the editor trigger; nothing is opened here (the dialog is covered by unit + the API by this step).
+      await expect(page.getByTestId("program-weights-edit")).toBeVisible();
+
+      // An unchanged PATCH is a no-op (no bump).
+      const noop = await patch<WeightsPatchResponse>(page.request, `/api/evaluations/batch/${encodeURIComponent(batchId)}/weights`, { rubric_weights: { ...EQUAL_WEIGHTS, tre: 40 } });
+      expect(noop.status).toBe(200);
+      expect(noop.body).toMatchObject({ ok: true, changed: false, weights_version: originalVersion + 1 });
+
+      // Restore the original rubric (bumps the version once more — the batch is a QA fixture, erased with the seat).
+      const restored = await patch<WeightsPatchResponse>(page.request, `/api/evaluations/batch/${encodeURIComponent(batchId)}/weights`, { rubric_weights: original });
+      await evidence(testInfo, "PATCH …/weights (restore)", { status: restored.status, weightsVersion: restored.body.weights_version, changed: restored.body.changed });
+      expect(restored.status).toBe(200);
+      expect(restored.body.ok).toBe(true);
+    } finally {
+      await ctx.close();
+    }
+  });
+
+  test("the Dossier link on a cohort row resolves 200 for the owner; the snapshots and trajectory routes answer the owner seat", async ({ browser, qa, guard }, testInfo) => {
+    const { batchId } = requireBatch();
+    const { ctx, page } = await evaluatorBrowser(browser);
+    try {
+      const g = guard(page);
+      await page.goto(`${qa.baseURL}/workspace/evaluations/cohort/${encodeURIComponent(batchId)}`, { waitUntil: "domcontentloaded" });
+      const row = page.getByTestId("cohort-row").first();
+      const dossierLink = row.getByRole("link", { name: /Open the BlockID Dossier for/ });
+      const href = await dossierLink.getAttribute("href");
+      await evidence(testInfo, "row dossier link", { href });
+      expect(href, "the row links to /workspace/evaluations/<evaluationId>").toMatch(/^\/workspace\/evaluations\/[A-Za-z0-9_-]+$/);
+
+      const res = await page.request.get(href!);
+      await evidence(testInfo, "GET dossier (owner)", { status: res.status() });
+      expect(res.status()).toBe(200);
+      const html = await res.text();
+      expect(html).toContain('data-testid="investor-dossier"');
+      // The creator opens it as the evaluator, not through the cohort seat (no read-only chip).
+      expect(html).not.toContain('data-testid="dossier-via-batch"');
+
+      const itemId = await row.getAttribute("data-item-id");
+      const trajectory = await get<{ ok?: boolean; item_id?: number; values_withheld?: boolean; trajectory?: { state?: string } }>(page.request, `/api/evaluations/batch/${encodeURIComponent(batchId)}/items/${itemId}/trajectory`);
+      await evidence(testInfo, "GET …/items/[itemId]/trajectory", { status: trajectory.status, itemId, state: trajectory.body.trajectory?.state, valuesWithheld: trajectory.body.values_withheld });
+      expect(trajectory.status).toBe(200);
+      expect(trajectory.body.ok).toBe(true);
+      expect(String(trajectory.body.item_id)).toBe(String(itemId));
+
+      const snapshots = await get<{ ok?: boolean; snapshots?: unknown[] }>(page.request, `/api/evaluations/batch/${encodeURIComponent(batchId)}/snapshots`);
+      await evidence(testInfo, "GET …/snapshots (viewer+ since G22-A)", { status: snapshots.status, count: snapshots.body.snapshots?.length });
+      expect([200, 503]).toContain(snapshots.status);
+
+      const report = g.report(`cohort/${batchId}/dossier-link`);
+      expect(report.errors, "unexpected console errors").toEqual([]);
     } finally {
       await ctx.close();
     }

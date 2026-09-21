@@ -78,8 +78,9 @@ export default async function InvestorDossierPage({ params }: PageProps) {
   ]);
   if (!dossier) notFound();
   // The evaluator seat must still be an evaluator; the claimed founder needs
-  // no evaluator entitlement for the read-only preview.
-  if (dossier.viewer.role === "assessor" && !isEvaluator) notFound();
+  // no evaluator entitlement for the read-only preview; a BlockID Cohort seat
+  // (G22-A viaBatch, read-only) is admitted by its membership alone.
+  if (dossier.viewer.role === "assessor" && !isEvaluator && !dossier.viewer.viaBatchId) notFound();
 
   auditDossierView({
     userId: user.id,
@@ -90,6 +91,7 @@ export default async function InvestorDossierPage({ params }: PageProps) {
     surface: "page",
     sviTotal: dossier.header.svi,
     snapshotId: dossier.header.snapshotId,
+    viaBatchId: dossier.viewer.viaBatchId,
   });
 
   return (
@@ -105,7 +107,7 @@ export default async function InvestorDossierPage({ params }: PageProps) {
         <AssessmentBlock view={dossier} />
         <ProgressBlock block={dossier.progress} role={dossier.viewer.role} />
         {/* G21-P3-A — block 7: outcome ledger + Day 0 / 60 / 180 trajectory (consent-tier projected; assessor may record). */}
-        <OutcomesBlock projectId={dossier.header.projectId} role={dossier.viewer.role} consentTier={dossier.header.consentTier} verificationLevel={dossier.header.verification.level} />
+        <OutcomesBlock projectId={dossier.header.projectId} role={dossier.viewer.role} consentTier={dossier.header.consentTier} verificationLevel={dossier.header.verification.level} canRecord={dossier.viewer.role === "assessor" && !dossier.viewer.readOnly} />
         <ActionsBlock view={dossier} plan={user.plan} batchAllowed={canBatchScore(flags)} />
         {/* G21 P3-C — reviewer signature (assessor only). */}
         <SignatureBlock signature={dossier.signature} />

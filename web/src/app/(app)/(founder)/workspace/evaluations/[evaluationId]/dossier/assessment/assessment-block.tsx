@@ -12,6 +12,7 @@
 //
 // Supersedes the S-D1 placeholder `AssessmentBlock` in placeholder-blocks.tsx.
 
+import Link from "next/link";
 import type { DossierView } from "@/lib/evaluations/dossier";
 import { prefillFromFit } from "@/lib/evaluations/assessment-prefill";
 import { readFeedbackOptOut } from "@/lib/evaluations/feedback-letter-store";
@@ -25,6 +26,18 @@ export async function AssessmentBlock({ view }: { view: DossierView }) {
   let body: React.ReactNode;
   if (founder) {
     body = <FounderPreview shared={a.sharedWithFounder} />;
+  } else if (view.viewer.readOnly) {
+    // G22-A: a BlockID Cohort seat reads the dossier; assessments stay with
+    // the evaluator seat. Reviewer overrides and decisions live on the cohort.
+    body = (
+      <p data-testid="assessment-read-only">
+        You opened this dossier as a cohort reviewer. The evaluator&apos;s assessment stays with their seat; record your overrides and decision on the{" "}
+        <Link href={view.viewer.viaBatchId ? `/workspace/evaluations/cohort/${encodeURIComponent(view.viewer.viaBatchId)}` : "/workspace/evaluations/cohort"} className="font-medium text-brand-700 hover:underline">
+          cohort table
+        </Link>
+        .
+      </p>
+    );
   } else if (!a.available) {
     body = <p data-testid="assessment-unavailable">Assessment pending — the assessments table (migration 0392) has not been applied on this environment.</p>;
   } else {
@@ -54,7 +67,7 @@ export async function AssessmentBlock({ view }: { view: DossierView }) {
         4 · Evaluator assessment
       </h2>
       <div className="mt-3 text-sm text-ink-600">{body}</div>
-      {!founder && a.available && view.consensus ? <SeatsConsensus consensus={view.consensus} evaluationId={view.header.evaluationId} /> : null}
+      {!founder && !view.viewer.readOnly && a.available && view.consensus ? <SeatsConsensus consensus={view.consensus} evaluationId={view.header.evaluationId} /> : null}
     </section>
   );
 }

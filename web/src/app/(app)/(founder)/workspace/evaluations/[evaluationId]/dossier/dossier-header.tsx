@@ -217,6 +217,11 @@ export function DossierHeader({ header, role, icKind }: { header: HeaderModel; r
       {role === "assessor" ? (
         <div className="mt-4 flex flex-wrap items-center gap-2" data-testid="header-actions">
           {header.viaOrgSeat ? <span className="rounded-full border border-surface-200 bg-surface-50 px-2.5 py-0.5 text-xs text-ink-600">Opened as a seat of your organisation</span> : null}
+          {header.viaBatchSeat ? (
+            <span className="rounded-full border border-surface-200 bg-surface-50 px-2.5 py-0.5 text-xs text-ink-600" data-testid="dossier-via-batch">
+              Opened as a cohort reviewer — read only
+            </span>
+          ) : null}
           <ExportIcButton evaluationId={header.evaluationId} kind={icKind ?? "one_page"} />
           <a href="#dossier-block-6" className="text-xs text-brand-700 hover:underline">
             More actions ↓

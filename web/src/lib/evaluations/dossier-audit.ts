@@ -27,6 +27,8 @@ export interface DossierViewAudit {
   role: "assessor" | "founder";
   consentTier: string;
   surface: "page" | "api";
+  /** G22-A: the BlockID Cohort the viewer reached the dossier through (audit detail `via_batch_id`). */
+  viaBatchId?: string | null;
   /** S-R4: SVI + snapshot on screen at this view (for the next view's Δ). */
   sviTotal?: number | null;
   snapshotId?: string | null;
@@ -59,6 +61,7 @@ export function auditDossierView(input: DossierViewAudit): void {
       surface: input.surface,
       ...(typeof input.sviTotal === "number" ? { svi_total: input.sviTotal } : {}),
       ...(input.snapshotId ? { snapshot_id: input.snapshotId } : {}),
+      ...(input.viaBatchId ? { via_batch_id: input.viaBatchId } : {}),
     },
   }).catch((err: unknown) => {
     if (process.env.NODE_ENV !== "test") console.warn("[blockid:dossier] audit write skipped:", err instanceof Error ? err.message : err);

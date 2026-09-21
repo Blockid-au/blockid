@@ -23,12 +23,14 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { appendAudit } from "@/lib/audit";
 import { complianceFooter, sendEmail } from "@/lib/email";
 import { isMissingRelation } from "@/lib/investors/mandates";
-import { mapBatchRow, type EvaluationBatch } from "./batch-shared";
+import { BATCH_ROLES, batchRoleOf, type BatchRole, type EvaluationBatch } from "./batch-shared";
 
 type Row = Record<string, unknown>;
 
-export const BATCH_ROLES = ["owner", "reviewer", "viewer"] as const;
-export type BatchRole = (typeof BATCH_ROLES)[number];
+// The role constants are client-safe in ./batch-shared (G22-A: the Cohorts
+// lists render a role chip); re-exported here so every server caller keeps
+// its import path.
+export { BATCH_ROLES, type BatchRole };
 
 const ROLE_RANK: Record<BatchRole, number> = { viewer: 1, reviewer: 2, owner: 3 };
 
@@ -91,6 +93,48 @@ export async function assertBatchRole(batchId: string, userId: string, minRole: 
   if (!resolved) return { ok: false, error: "not_found" };
   if (!batchRoleAtLeast(resolved.role, minRole)) return { ok: false, error: "forbidden" };
   return { ok: true, batch, role: resolved.role, isCreator: resolved.isCreator };
+}
+
+export interface BatchSeatForEvaluation {
+  batchId: string;
+  role: BatchRole;
+}
+
+/**
+ * G22-A — the caller's best seat on ANY cohort that contains `evaluationId`
+ * (dossier `viaBatch` access): owner when they created such a batch, else
+ * the highest member row. Null when the evaluation is in no batch of theirs,
+ * before 0322 / 0423, or without a DB. One item lookup, then two reads in
+ * parallel; every failure reads as "no seat".
+ */
+export async function batchSeatForEvaluation(userId: string, evaluationId: string): Promise<BatchSeatForEvaluation | null> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase || !userId || !evaluationId) return null;
+  try {
+    const { data: items, error } = await supabase.from("evaluation_batch_items").select("batch_id").eq("evaluation_id", evaluationId).limit(50);
+    if (error || !items || items.length === 0) return null;
+    const batchIds = [...new Set((items as Row[]).map((r) => (r.batch_id == null ? "" : String(r.batch_id))).filter(Boolean))];
+    if (batchIds.length === 0) return null;
+    const [own, member] = await Promise.all([
+      supabase.from("evaluation_batches").select("id").eq("user_id", userId).in("id", batchIds).limit(1),
+      supabase.from("evaluation_batch_members").select("batch_id, role").eq("user_id", userId).in("batch_id", batchIds).limit(50),
+    ]);
+    const ownRow = own.error ? undefined : ((own.data ?? []) as Row[])[0];
+    if (ownRow?.id) return { batchId: String(ownRow.id), role: "owner" };
+    if (member.error) {
+      if (!isMissingRelation(member.error)) console.error("[blockid:batch-members] seat lookup failed", member.error);
+      return null;
+    }
+    let best: BatchSeatForEvaluation | null = null;
+    for (const r of (member.data ?? []) as Row[]) {
+      const role = batchRoleOf(r.role);
+      if (!best || ROLE_RANK[role] > ROLE_RANK[best.role]) best = { batchId: String(r.batch_id), role };
+    }
+    return best;
+  } catch (err) {
+    console.error("[blockid:batch-members] seat lookup threw", err instanceof Error ? err.message : String(err));
+    return null;
+  }
 }
 
 /** Every seat on the batch — the creator first, then the member rows (with e-mail / name). */

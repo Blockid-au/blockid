@@ -81,6 +81,13 @@ export interface CohortTableProps {
   role: CohortViewerRole;
   /** rubric_weights version (P2-A `weights_version`; default 1). */
   weightsVersion?: number;
+  /**
+   * G22-A A.3: the two snapshots behind the Δ column were ranked with
+   * different weight sets (`{ from, to }` = their `weights_version`s). The
+   * caption says so — the Δ is on the canonical SVI (unweighted) and stays
+   * comparable; the Program score between those snapshots is not.
+   */
+  deltaWeightsChanged?: { from: number; to: number } | null;
   /** True → skeleton instead of rows. */
   loading?: boolean;
   /** Server-parsed filters from the URL (the client re-parses on navigation). */
@@ -109,7 +116,7 @@ function fmtDelta(d: number | null, svi: number | null): { text: string; tone: s
 
 type BulkState = { kind: "idle" } | { kind: "busy" } | { kind: "ok"; n: number; skipped: number } | { kind: "error"; message: string };
 
-export function CohortTable({ rows, batchId, role, weightsVersion = 1, loading = false, initialFilters, className }: CohortTableProps) {
+export function CohortTable({ rows, batchId, role, weightsVersion = 1, deltaWeightsChanged = null, loading = false, initialFilters, className }: CohortTableProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -404,6 +411,11 @@ export function CohortTable({ rows, batchId, role, weightsVersion = 1, loading =
         <table className={cn("min-w-full border-separate border-spacing-0 text-sm text-primary", density === "compact" ? "text-[13px]" : "")} data-testid="cohort-table" data-density={density}>
           <caption className="px-3 py-2 text-left text-xs text-secondary" data-testid="cohort-caption">
             BlockID Cohort — one row per startup. Ranked by Program score (weights v{weightsVersion}) · canonical SVI unchanged · human overrides shown beside the model score.
+            {deltaWeightsChanged ? (
+              <span className="ml-1 text-warn" data-testid="cohort-weights-changed">
+                Weights changed between the last two snapshots (v{deltaWeightsChanged.from} → v{deltaWeightsChanged.to}): the Δ column compares the canonical SVI, which is unaffected; Program scores across those snapshots are not comparable.
+              </span>
+            ) : null}
           </caption>
           <thead className="bg-surface-sunken text-left text-[11px] uppercase tracking-wider text-muted">
             <tr>
@@ -571,7 +583,7 @@ export function CohortTable({ rows, batchId, role, weightsVersion = 1, loading =
         </table>
       </div>
 
-      <CompareDrawer open={compareOpen} rows={compareRows} onClose={closeCompare} onRemove={(id) => setCompare((c) => c.filter((x) => x !== id))} />
+      <CompareDrawer open={compareOpen} rows={compareRows} onClose={closeCompare} onRemove={(id) => setCompare((c) => c.filter((x) => x !== id))} batchId={batchId} />
       <OverrideDialog open={!!overrideRow} batchId={batchId} row={overrideRow} onClose={closeOverride} onSaved={() => router.refresh()} />
     </div>
   );

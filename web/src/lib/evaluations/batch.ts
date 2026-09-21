@@ -26,16 +26,19 @@ import { pdfUrlForToken, reportUrlForToken } from "@/lib/evaluations/report-quot
 export { countPendingBatchItems } from "@/lib/evaluations/report-quota";
 import {
   EMPTY_DECISION,
+  batchRoleOf,
   mapBatchItemRow,
   mapBatchRow,
   normaliseWeights,
   strengthAndGap,
   weightedScore,
+  type BatchRole,
   type BatchStatus,
   type CohortRow,
   type CohortRowDecision,
   type EvaluationBatch,
   type EvaluationBatchItem,
+  type EvaluationBatchWithRole,
   type RubricWeights,
 } from "./batch-shared";
 import { loadCohortDecisions } from "./cohort-decisions";
@@ -86,18 +89,58 @@ async function withBatchColumns<T extends { error: unknown }>(run: (cols: string
 // Reads
 // ---------------------------------------------------------------------------
 
-/** Batches the user queued, newest first. Empty when 0322 is not applied. */
-export async function listBatches(userId: string, limit = 50): Promise<EvaluationBatch[]> {
+/**
+ * Every cohort the user can open, newest first, each with the caller's seat
+ * (G22-A): the batches they created (`role: "owner"`) plus the batches they
+ * hold a member row on (0423 `evaluation_batch_members` — reviewer / viewer /
+ * explicit owner). Empty when 0322 is not applied; member seats read
+ * fail-soft before 0423 (the created list still returns).
+ */
+export async function listBatches(userId: string, limit = 50): Promise<EvaluationBatchWithRole[]> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return [];
-  const { data, error } = await withBatchColumns((cols) =>
-    supabase.from("evaluation_batches").select(cols).eq("user_id", userId).order("created_at", { ascending: false }).limit(limit),
-  );
-  if (error) {
-    if (!isMissingTable(error)) console.error("[blockid:evaluations:batch] list failed", error);
+  const [own, seats] = await Promise.all([
+    withBatchColumns((cols) => supabase.from("evaluation_batches").select(cols).eq("user_id", userId).order("created_at", { ascending: false }).limit(limit)),
+    readMemberSeats(supabase, userId, limit),
+  ]);
+  if (own.error) {
+    if (!isMissingTable(own.error)) console.error("[blockid:evaluations:batch] list failed", own.error);
     return [];
   }
-  return ((data ?? []) as unknown as Row[]).map(mapBatchRow);
+  const out: EvaluationBatchWithRole[] = ((own.data ?? []) as unknown as Row[]).map((r) => ({ ...mapBatchRow(r), role: "owner" as const }));
+  const seen = new Set(out.map((b) => b.id));
+  const memberIds = [...seats.keys()].filter((id) => !seen.has(id));
+  if (memberIds.length > 0) {
+    const { data, error } = await withBatchColumns((cols) => supabase.from("evaluation_batches").select(cols).in("id", memberIds).order("created_at", { ascending: false }).limit(limit));
+    if (error) {
+      if (!isMissingTable(error)) console.error("[blockid:evaluations:batch] member list failed", error);
+    } else {
+      for (const r of (data ?? []) as unknown as Row[]) {
+        const b = mapBatchRow(r);
+        if (seen.has(b.id)) continue;
+        seen.add(b.id);
+        // A member row on a batch the caller created is still the creator's seat.
+        out.push({ ...b, role: b.userId === userId ? "owner" : (seats.get(b.id) ?? "viewer") });
+      }
+    }
+  }
+  return out.sort((a, b) => (a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0)).slice(0, limit);
+}
+
+/** The caller's member rows (batch id → role); {} before 0423 / on any error. */
+async function readMemberSeats(supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>, userId: string, limit: number): Promise<Map<string, BatchRole>> {
+  const out = new Map<string, BatchRole>();
+  try {
+    const { data, error } = await supabase.from("evaluation_batch_members").select("batch_id, role").eq("user_id", userId).limit(Math.max(limit, 50));
+    if (error) {
+      if (!isMissingTable(error)) console.error("[blockid:evaluations:batch] member seats read failed", error);
+      return out;
+    }
+    for (const r of (data ?? []) as Row[]) if (r.batch_id != null) out.set(String(r.batch_id), batchRoleOf(r.role));
+  } catch {
+    /* fail-soft */
+  }
+  return out;
 }
 
 /** One batch, only if `userId` queued it. */
@@ -490,6 +533,39 @@ export async function addEvaluationsToBatch(batch: EvaluationBatch, evaluationId
   const { data, error: upErr } = await withBatchColumns((cols) => supabase.from("evaluation_batches").update(patch).eq("id", batch.id).select(cols).single());
   const refreshed = !upErr && data ? mapBatchRow(data as unknown as Row) : { ...batch, total: batch.total + fresh.length, status: (patch.status as BatchStatus | undefined) ?? batch.status };
   return { ok: true, added: fresh, alreadyPresent: ids.filter((id) => present.has(id)), batch: refreshed };
+}
+
+export type UpdateBatchWeightsResult =
+  | { ok: true; batch: EvaluationBatch; previousVersion: number; changed: boolean }
+  | { ok: false; error: "unavailable" | "not_found" | "write_failed"; message: string };
+
+/**
+ * G22-A — the weights editor write: `rubric_weights` ← the normalised set and
+ * `weights_version` ← current + 1 (0422; stamped on every cohort snapshot
+ * taken afterwards, so the delta view can say "weights changed"). The
+ * caller has already passed the owner gate (assertBatchRole "owner"). An
+ * identical set is a no-op (no version bump — a snapshot would otherwise
+ * claim a change that never happened). Before 0422 the column is missing:
+ * the weights still save and the version stays 1 (fail-soft retry).
+ */
+export async function updateBatchWeights(batch: EvaluationBatch, rawWeights: unknown): Promise<UpdateBatchWeightsResult> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return { ok: false, error: "unavailable", message: "Cohorts are not available right now" };
+  const next = normaliseWeights(rawWeights);
+  const current = normaliseWeights(batch.rubricWeights);
+  const changed = (Object.keys(next) as Array<keyof RubricWeights>).some((k) => Math.abs(next[k] - current[k]) >= 0.01);
+  if (!changed) return { ok: true, batch, previousVersion: batch.weightsVersion, changed: false };
+  const nextVersion = Math.max(1, batch.weightsVersion) + 1;
+  let res = await withBatchColumns((cols) => supabase.from("evaluation_batches").update({ rubric_weights: next, weights_version: nextVersion }).eq("id", batch.id).select(cols).maybeSingle());
+  if (res.error && isMissingColumn(res.error)) {
+    res = await withBatchColumns((cols) => supabase.from("evaluation_batches").update({ rubric_weights: next }).eq("id", batch.id).select(cols).maybeSingle());
+  }
+  if (res.error) {
+    console.error("[blockid:evaluations:batch] weights update failed", res.error);
+    return { ok: false, error: "write_failed", message: "Could not save the program weights. Please try again." };
+  }
+  if (!res.data) return { ok: false, error: "not_found", message: "Cohort not found" };
+  return { ok: true, batch: mapBatchRow(res.data as unknown as Row), previousVersion: batch.weightsVersion, changed: true };
 }
 
 // ---------------------------------------------------------------------------

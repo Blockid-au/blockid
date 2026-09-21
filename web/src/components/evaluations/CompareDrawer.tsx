@@ -6,7 +6,16 @@
 // it), SVI · Program score · Evidence Confidence · BlockID Verified · gaps ·
 // decision, and an "Open dossier" link per column. Slides in from the right
 // (transform only, 200 ms, reduced-motion respected), Escape closes, focus
-// lands on the close button, the page behind is inert to the pointer.
+// lands on the close button and RETURNS to whatever opened the drawer when
+// it closes (G22-A A.4), the page behind is inert to the pointer.
+//
+// G22-A A.5: under the table, one compact TrajectoryTimeline per selected
+// row (Day 0 / 60 / 180 — SVI, Evidence Confidence, evidence level,
+// confirmed outcomes), fetched while the drawer is open from
+// GET /api/evaluations/batch/[id]/items/[itemId]/trajectory (viewer+; the
+// route withholds outcome VALUES below the evaluation's `reports_shared`
+// consent tier, so a reviewer never sees wider than the evaluator does).
+// Each fetch is fail-soft: an item whose read fails shows a one-line note.
 
 import * as React from "react";
 import Link from "next/link";
@@ -14,13 +23,32 @@ import { ExternalLink, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DIMENSION_KEYS, DIMENSION_LABELS, COHORT_DECISION_LABELS } from "@/lib/evaluations/batch-shared";
 import type { CohortRow } from "@/lib/evaluations/cohort-rows";
+import type { Trajectory } from "@/lib/svi/trajectory";
+import { TrajectoryTimeline } from "@/components/svi/TrajectoryTimeline";
 import { MAX_COMPARE } from "./cohort-view-state";
+import { useReturnFocus } from "./use-return-focus";
 
 export interface CompareDrawerProps {
   open: boolean;
   rows: readonly CohortRow[];
   onClose: () => void;
   onRemove?: (itemId: number) => void;
+  /** G22-A: when set, each selected row loads its trajectory from the batch items route. */
+  batchId?: string;
+}
+
+export type TrajectoryState = { status: "loading" } | { status: "ready"; trajectory: Trajectory; valuesWithheld: boolean } | { status: "error" };
+
+export interface TrajectoryResponse {
+  ok?: boolean;
+  trajectory?: Trajectory;
+  values_withheld?: boolean;
+}
+
+/** Pure: the route response → the per-row state (anything malformed reads as an error, never a throw). */
+export function trajectoryStateFromResponse(status: number, body: TrajectoryResponse | null | undefined): TrajectoryState {
+  if (status !== 200 || !body || body.ok !== true || !body.trajectory || typeof body.trajectory !== "object") return { status: "error" };
+  return { status: "ready", trajectory: body.trajectory, valuesWithheld: body.values_withheld === true };
 }
 
 function tone(v: number | null | undefined): string {
@@ -30,8 +58,10 @@ function tone(v: number | null | undefined): string {
   return "bg-warn";
 }
 
-export function CompareDrawer({ open, rows, onClose, onRemove }: CompareDrawerProps) {
+export function CompareDrawer({ open, rows, onClose, onRemove, batchId }: CompareDrawerProps) {
   const closeRef = React.useRef<HTMLButtonElement>(null);
+  // G22-A A.4: focus returns to the "Compare" button on close (captured at open time).
+  useReturnFocus(open);
   React.useEffect(() => {
     if (!open) return;
     closeRef.current?.focus();
@@ -43,6 +73,48 @@ export function CompareDrawer({ open, rows, onClose, onRemove }: CompareDrawerPr
   }, [open, onClose]);
 
   const shown = rows.slice(0, MAX_COMPARE);
+
+  // G22-A A.5: one trajectory per shown row, loaded while open; cached by
+  // item id for the drawer's lifetime. A row with no entry yet renders the
+  // skeleton (no "loading" state is written from the effect); `inflight`
+  // stops a second fetch for the same item while the first is running, and
+  // an aborted fetch (rows changed / drawer closed mid-flight) leaves no
+  // entry so the next open fetches it again.
+  const [trajectories, setTrajectories] = React.useState<Record<number, TrajectoryState>>({});
+  const inflight = React.useRef<Set<number>>(new Set());
+  const shownIds = shown.map((r) => r.itemId).join(",");
+  React.useEffect(() => {
+    if (!open || !batchId || !shownIds) return;
+    const ids = shownIds.split(",").map(Number).filter((n) => Number.isInteger(n) && n > 0);
+    const controller = new AbortController();
+    const pending = inflight.current;
+    for (const id of ids) {
+      if (trajectories[id] || pending.has(id)) continue;
+      pending.add(id);
+      void (async () => {
+        let state: TrajectoryState | null = null;
+        try {
+          const res = await fetch(`/api/evaluations/batch/${encodeURIComponent(batchId)}/items/${id}/trajectory`, { signal: controller.signal, headers: { Accept: "application/json" } });
+          const body = (await res.json().catch(() => null)) as TrajectoryResponse | null;
+          state = trajectoryStateFromResponse(res.status, body);
+        } catch (err) {
+          if (!controller.signal.aborted) {
+            console.error("[compare-drawer] trajectory", err);
+            state = { status: "error" };
+          }
+        } finally {
+          pending.delete(id);
+        }
+        if (state && !controller.signal.aborted) {
+          const next = state;
+          setTrajectories((prev) => ({ ...prev, [id]: next }));
+        }
+      })();
+    }
+    return () => controller.abort();
+    // `trajectories` is read for the "already loaded" check only; re-running on its change would refetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, batchId, shownIds]);
 
   return (
     <div className={cn("fixed inset-0 z-[90]", open ? "" : "pointer-events-none invisible")} aria-hidden={!open} data-testid="compare-drawer-root" data-open={open ? "true" : "false"}>
@@ -143,6 +215,43 @@ export function CompareDrawer({ open, rows, onClose, onRemove }: CompareDrawerPr
                 ))}
               </tbody>
             </table>
+
+            {batchId ? (
+              <section aria-labelledby="compare-trajectories-title" className="mt-6 border-t border-line-subtle pt-4" data-testid="compare-trajectories">
+                <h3 id="compare-trajectories-title" className="text-sm font-semibold text-primary">
+                  Trajectory since Day 0
+                </h3>
+                <p className="mt-0.5 text-xs text-secondary">SVI and Evidence Confidence over every snapshot, confirmed outcomes as markers. Same methodology on every point — movement is evidence, not a rule change.</p>
+                <div className="mt-3 grid gap-4 md:grid-cols-2">
+                  {shown.map((r) => {
+                    const t = trajectories[r.itemId];
+                    return (
+                      <div key={r.itemId} className="min-w-0 rounded-xl border border-line-subtle bg-surface p-3" data-testid="compare-trajectory" data-item-id={r.itemId} data-state={t?.status ?? "idle"}>
+                        {!t || t.status === "loading" ? (
+                          <div role="status" aria-live="polite" className="space-y-2" aria-label={`Loading the trajectory for ${r.company}`}>
+                            <p className="text-xs font-semibold text-primary">{r.company}</p>
+                            <div className="h-24 animate-pulse rounded-lg bg-surface-sunken motion-reduce:animate-none" aria-hidden="true" />
+                          </div>
+                        ) : t.status === "error" ? (
+                          <p className="text-xs text-secondary">
+                            <span className="font-semibold text-primary">{r.company}</span> — the trajectory could not be loaded right now; the dossier still shows it.
+                          </p>
+                        ) : (
+                          <>
+                            <TrajectoryTimeline data={t.trajectory} variant="compact" headingLevel={3} title={r.company} id={`compare-trajectory-${r.itemId}`} />
+                            {t.valuesWithheld ? (
+                              <p className="mt-1 text-[11px] text-muted" data-testid="compare-trajectory-withheld">
+                                Outcome amounts are withheld at this startup&apos;s consent tier; the kinds still show as markers.
+                              </p>
+                            ) : null}
+                          </>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            ) : null}
           </div>
         )}
       </aside>
