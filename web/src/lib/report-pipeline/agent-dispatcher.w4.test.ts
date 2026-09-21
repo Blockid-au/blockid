@@ -383,12 +383,12 @@ describe("dispatchDimensionChapters — visuals from module outputs, never from 
 });
 
 describe("W4 helpers", () => {
-  it("DimensionChapterPayload enforces the §C.11 constraints (verdict ≤ 80 words, 1–4 strengths / gaps, window enum)", () => {
+  it("DimensionChapterPayload enforces the §C.11 constraints (1–4 strengths / gaps, window enum); a > 80-word verdict now parses and is trimmed by the chapter builder (G23-A)", () => {
     const context = makeContext();
     const ok = DimensionChapterPayload.safeParse(JSON.parse(validChapter("tre", context)));
     expect(ok.success).toBe(true);
     const longVerdict = JSON.parse(validChapter("tre", context, { verdict: Array.from({ length: 90 }, () => "word").join(" ") }));
-    expect(DimensionChapterPayload.safeParse(longVerdict).success).toBe(false);
+    expect(DimensionChapterPayload.safeParse(longVerdict).success).toBe(true);
     const noGaps = JSON.parse(validChapter("tre", context, { gaps: [] }));
     expect(DimensionChapterPayload.safeParse(noGaps).success).toBe(false);
     const badWindow = JSON.parse(validChapter("tre", context, { next_action: { title: "x", window: "someday", expected_lift: 1 } }));
@@ -473,5 +473,53 @@ describe("W4 helpers", () => {
     expect(taskClassForChapter("cro", "standard")).toBeUndefined();
     process.env.MODEL_AGENT_CFO = "claude-sonnet-5";
     expect(taskClassForChapter("cfo", "premium")).toBe("report");
+  });
+});
+
+// ── G23-A: grounding fixes on the W4 path ────────────────────────────────────
+describe("dispatchDimensionChapters — G23-A grounding (trim, auto-cite, salvage)", () => {
+  it("(c) a 95-word verdict is trimmed to the last full sentence ≤ 80 words — chapter NOT degraded, one call, verdictTrimmed counted, ReportV2 refine satisfied", async () => {
+    const context = makeContext();
+    const long = `${Array.from({ length: 40 }, (_, i) => `Word${i}`).join(" ")}. ${Array.from({ length: 30 }, (_, i) => `Next${i}`).join(" ")}. ${Array.from({ length: 25 }, (_, i) => `Tail${i}`).join(" ")}.`;
+    const s = scripted((dim) => validChapter(dim, context, dim === "tre" ? { verdict: long } : {}));
+    const chapters = await dispatchDimensionChapters(context, "standard", async () => "unused", { ...baseOpts, modelCaller: s.caller });
+    const tre = chapters.get("tre")!;
+    expect(s.byDim.get("tre")).toBe(1);
+    expect(tre.degraded).toBeUndefined();
+    expect(tre.verdict.split(/\s+/).length).toBeLessThanOrEqual(80);
+    expect(tre.verdict.startsWith("Word0 Word1")).toBe(true);
+    expect(tre.verdict.endsWith("Next29.")).toBe(true);
+    expect(context.qualityCounters?.verdictTrimmed).toBe(1);
+    expect(reportV2Schema.shape.dimensions.element.safeParse(tre).success).toBe(true);
+  });
+
+  it("(a) a strength / verdict whose number is in the chapter evidence rows gets that row id instead of [unevidenced]; an unmatched number stays [unevidenced]; autoCited counted", async () => {
+    const context = makeContext();
+    const revenueRow = evidenceRowsForDim(context, "tre").find((r) => r.label === "Founder evidence: revenue")!;
+    expect(revenueRow.value).toContain("A$12,000");
+    const s = scripted((dim) =>
+      validChapter(dim, context, dim === "tre" ? { verdict: "Revenue evidence shows MRR of A$12,000 from 9 paying customers. Growth is steady.", strengths: ["MRR A$12,000 from 9 paying customers", "Pipeline worth A$500,000 claimed"], gaps: ["No cohort data yet"] } : {}),
+    );
+    const chapters = await dispatchDimensionChapters(context, "standard", async () => "unused", { ...baseOpts, modelCaller: s.caller });
+    const tre = chapters.get("tre")!;
+    expect(tre.verdict).toBe(`Revenue evidence shows MRR of A$12,000 from 9 paying customers [ev:${revenueRow.evidence_id}]. Growth is steady.`);
+    expect(tre.strengths[0]).toBe(`MRR A$12,000 from 9 paying customers [ev:${revenueRow.evidence_id}]`);
+    expect(tre.strengths[1]).toBe("Pipeline worth A$500,000 claimed [unevidenced]");
+    expect(tre.audit.grounded).toBe(true);
+    expect(context.qualityCounters?.autoCited).toBe(2);
+  });
+
+  it("(b) an owner answer cut mid-JSON by its budget is salvaged: chapter built from the complete part, ONE call, budgetOverruns counted, not degraded", async () => {
+    const context = makeContext();
+    const s = scripted((dim) => {
+      const full = validChapter(dim, context, { frameworks_used: ["AARRR (Acquisition → Referral)", "cohort retention (M1 / M3 / M6)"] });
+      return dim === "mpc" ? full.slice(0, full.lastIndexOf(`"frameworks_used"`) + 30) : full;
+    });
+    const chapters = await dispatchDimensionChapters(context, "standard", async () => "unused", { ...baseOpts, modelCaller: s.caller });
+    const mpc = chapters.get("mpc")!;
+    expect(s.byDim.get("mpc")).toBe(1);
+    expect(mpc.degraded).toBeUndefined();
+    expect(mpc.verdict).toContain("Market Pull & Category is developing");
+    expect(context.qualityCounters?.budgetOverruns).toBe(1);
   });
 });

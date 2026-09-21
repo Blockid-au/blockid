@@ -11,6 +11,7 @@ import { demoReportV2 } from "@/lib/report-v2/fixtures";
 import {
   TBR_QUALITY_DEGRADED_WATCH,
   TBR_QUALITY_FILE,
+  TBR_GROUNDED_SHARE_KPI,
   TBR_QUALITY_GROUNDED_WATCH,
   appendTbrQualityRow,
   buildTbrQualityRow,
@@ -76,7 +77,7 @@ describe("buildTbrQualityRow", () => {
     expect(JSON.stringify(r)).not.toContain("2bf55234");
     expect(r).toMatchObject({ snapshotId: "snap-9", tier: "standard", calls: 22, costUsd: 0.0123, groundedShare: 0.8765, degradedSections: 1, consistencyIssues: 2, pendingDims: 1, words: 1310, durationMs: 91_234, sviVersion: "2.2.0", pipelineVersion: report.pipelineVersion });
     expect(r.pages).toBeGreaterThan(0);
-    expect(Object.keys(r).sort()).toEqual(["calls", "consistencyIssues", "costUsd", "degradedSections", "durationMs", "groundedShare", "pages", "pendingDims", "pipelineVersion", "projectId", "snapshotId", "sviVersion", "tier", "ts", "words"]);
+    expect(Object.keys(r).sort()).toEqual(["autoCited", "budgetOverruns", "calls", "consistencyIssues", "costUsd", "degradedSections", "durationMs", "groundedShare", "pages", "pendingDims", "pipelineVersion", "projectId", "snapshotId", "sviVersion", "tier", "ts", "verdictTrimmed", "words"]);
   });
 
   it("degrades to zeros without a ReportV2 (never throws), clamps negatives, and 'anonymous' without a project", () => {
@@ -132,7 +133,7 @@ describe("summariseTbrQuality (24 h window)", () => {
   const ago = (h: number) => new Date(now - h * 3_600_000).toISOString();
 
   it("missing when no run falls inside the window (old rows and junk are ignored)", () => {
-    expect(summariseTbrQuality([], now)).toEqual({ last24h: { runs: 0, groundedShareMedian: null, costUsdMedian: null, degradedShare: null }, status: "missing" });
+    expect(summariseTbrQuality([], now)).toEqual({ last24h: { runs: 0, groundedShareMedian: null, groundedShareLatest: null, costUsdMedian: null, degradedShare: null, budgetOverruns: 0, verdictTrimmed: 0 }, status: "missing", grounded_share_kpi: 0.85 });
     expect(summariseTbrQuality([row({ ts: ago(30) }), { ts: "nope" }, null as never, "x" as never], now).status).toBe("missing");
   });
 
@@ -148,7 +149,7 @@ describe("summariseTbrQuality (24 h window)", () => {
       ],
       now,
     );
-    expect(s).toEqual({ last24h: { runs: 5, groundedShareMedian: 0.9, costUsdMedian: 0.03, degradedShare: 0.2 }, status: "ok" });
+    expect(s).toEqual({ last24h: { runs: 5, groundedShareMedian: 0.9, groundedShareLatest: 0.9, costUsdMedian: 0.03, degradedShare: 0.2, budgetOverruns: 0, verdictTrimmed: 0 }, status: "ok", grounded_share_kpi: 0.85 });
   });
 
   it("watch when the grounded median drops under 0.85 or more than 20 % of runs degraded", () => {
@@ -157,7 +158,7 @@ describe("summariseTbrQuality (24 h window)", () => {
     expect(summariseTbrQuality([row({ ts: ago(1), groundedShare: 0.7 }), row({ ts: ago(2), groundedShare: 0.84 })], now)).toMatchObject({ last24h: { runs: 2, groundedShareMedian: 0.77 }, status: "watch" });
     expect(summariseTbrQuality([row({ ts: ago(1), degradedSections: 2 }), row({ ts: ago(2) }), row({ ts: ago(3) })], now)).toMatchObject({ last24h: { degradedShare: 0.33 }, status: "watch" });
     // A row without a grounded figure still counts as a run but not toward the median.
-    expect(summariseTbrQuality([row({ ts: ago(1), groundedShare: undefined as never })], now)).toEqual({ last24h: { runs: 1, groundedShareMedian: null, costUsdMedian: 0.01, degradedShare: 0 }, status: "ok" });
+    expect(summariseTbrQuality([row({ ts: ago(1), groundedShare: undefined as never })], now)).toEqual({ last24h: { runs: 1, groundedShareMedian: null, groundedShareLatest: null, costUsdMedian: 0.01, degradedShare: 0, budgetOverruns: 0, verdictTrimmed: 0 }, status: "ok", grounded_share_kpi: 0.85 });
   });
 
   it("readTbrQualityStatus reads content/reports/tbr-quality.jsonl under the root, skips bad lines, and is missing without the file", async () => {
@@ -165,6 +166,36 @@ describe("summariseTbrQuality (24 h window)", () => {
     expect(await readTbrQualityStatus(root, now)).toMatchObject({ status: "missing" });
     await fs.mkdir(path.join(root, "content", "reports"), { recursive: true });
     await fs.writeFile(path.join(root, "content", "reports", TBR_QUALITY_FILE), [JSON.stringify(row({ ts: ago(1), groundedShare: 0.91 })), "{broken", JSON.stringify(row({ ts: ago(2), groundedShare: 0.93 }))].join("\n") + "\n");
-    expect(await readTbrQualityStatus(root, now)).toEqual({ last24h: { runs: 2, groundedShareMedian: 0.92, costUsdMedian: 0.01, degradedShare: 0 }, status: "ok" });
+    expect(await readTbrQualityStatus(root, now)).toEqual({ last24h: { runs: 2, groundedShareMedian: 0.92, groundedShareLatest: 0.91, costUsdMedian: 0.01, degradedShare: 0, budgetOverruns: 0, verdictTrimmed: 0 }, status: "ok", grounded_share_kpi: 0.85 });
+  });
+
+  // ── G23-A: KPI export, counters, and the no-report exclusion ──────────────
+  it("exports the KPI (0.85) the verdict is judged against and echoes it as grounded_share_kpi", () => {
+    expect(TBR_GROUNDED_SHARE_KPI).toBe(0.85);
+    expect(TBR_QUALITY_GROUNDED_WATCH).toBe(TBR_GROUNDED_SHARE_KPI);
+    expect(summariseTbrQuality([row({ ts: ago(1), groundedShare: 0.86 })], now)).toMatchObject({ status: "ok", grounded_share_kpi: 0.85, last24h: { groundedShareLatest: 0.86 } });
+    expect(summariseTbrQuality([row({ ts: ago(1), groundedShare: 0.849 })], now)).toMatchObject({ status: "watch" });
+  });
+
+  it("a fully degraded run (no prose, 8 deterministic chapters) counts toward degradedShare but not the grounding median; counters are summed", () => {
+    const s = summariseTbrQuality(
+      [
+        row({ ts: ago(1), groundedShare: 0.9, budgetOverruns: 2, verdictTrimmed: 1 }),
+        row({ ts: ago(2), groundedShare: 0, words: 0, degradedSections: 8, budgetOverruns: 1 }),
+        row({ ts: ago(3), groundedShare: 0.88, verdictTrimmed: 1 }),
+      ],
+      now,
+    );
+    expect(s.last24h).toMatchObject({ runs: 3, groundedShareMedian: 0.89, groundedShareLatest: 0.9, degradedShare: 0.33, budgetOverruns: 3, verdictTrimmed: 2 });
+    expect(s.status).toBe("watch"); // one outage in three runs is still a watch
+    // A run WITH prose and a low share is never excluded.
+    expect(summariseTbrQuality([row({ ts: ago(1), groundedShare: 0.2, words: 500, degradedSections: 8 })], now).last24h.groundedShareMedian).toBe(0.2);
+  });
+
+  it("buildTbrQualityRow carries the G23-A counters (0 when absent) and the log line prints them", () => {
+    const r = buildTbrQualityRow({ projectId: "p", snapshotId: null, tier: "standard", report: demoReportV2(), calls: 1, costUsd: 0, durationMs: 1, sviVersion: "2.2.0", budgetOverruns: 2, verdictTrimmed: 1, autoCited: 7 });
+    expect(r).toMatchObject({ budgetOverruns: 2, verdictTrimmed: 1, autoCited: 7 });
+    expect(formatTbrQualityLine(r)).toContain("budget_overruns=2 verdict_trimmed=1 auto_cited=7");
+    expect(buildTbrQualityRow({ projectId: "p", snapshotId: null, tier: "standard", report: null, calls: 1, costUsd: 0, durationMs: 1, sviVersion: "2.2.0" })).toMatchObject({ budgetOverruns: 0, verdictTrimmed: 0, autoCited: 0 });
   });
 });

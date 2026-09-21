@@ -229,6 +229,25 @@ export interface ReportContext {
   dimensionChapters?: Map<DimKey, DimensionChapter>;
   /** LLM calls consumed so far (per-report call counter). */
   callsUsed?: number;
+  /** G23-A: per-run grounding counters (budget overruns salvaged / repaired, verdicts trimmed, claims auto-cited). */
+  qualityCounters?: QualityCounters;
+}
+
+/** G23-A quality counters — written to the tbr-quality.jsonl row beside groundedShare. */
+export interface QualityCounters {
+  /** Structured calls whose raw output was cut by its token budget (salvaged or repaired). */
+  budgetOverruns: number;
+  /** W4 verdicts (chapter, card, criterion card) trimmed to their word cap instead of failing. */
+  verdictTrimmed: number;
+  /** Material claims that received an evidence id from the auto-citer. */
+  autoCited: number;
+}
+
+/** Increment one counter on the context (creating the block on first use). */
+export function bumpQualityCounter(context: Pick<ReportContext, "qualityCounters">, key: keyof QualityCounters, by = 1): void {
+  if (!by) return;
+  context.qualityCounters ??= { budgetOverruns: 0, verdictTrimmed: 0, autoCited: 0 };
+  context.qualityCounters[key] += by;
 }
 
 export interface CriterionData {
@@ -282,6 +301,10 @@ export interface PipelineRunStats {
   durationMs: number;
   degradedSections: string[];
   deadlineHit: boolean;
+  /** G23-A counters (absent on a pre-G23 stats object). */
+  budgetOverruns?: number;
+  verdictTrimmed?: number;
+  autoCited?: number;
 }
 
 export interface ReportSection {

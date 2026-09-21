@@ -239,7 +239,7 @@ describe("generateAndPersistReport", () => {
     });
     const writer = vi.fn();
     const report = await generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 3, qualityWriter: writer });
-    expect(report.pipelineStats).toEqual({ calls: 19, costUsd: 0.0123, costAud: 0.02, durationMs: 4321, degradedSections: ["tre"], deadlineHit: false });
+    expect(report.pipelineStats).toEqual({ calls: 19, costUsd: 0.0123, costAud: 0.02, durationMs: 4321, degradedSections: ["tre"], deadlineHit: false, budgetOverruns: 0, verdictTrimmed: 0, autoCited: 0 });
     expect(writer).toHaveBeenCalledTimes(1);
     const row = writer.mock.calls[0][0] as Record<string, unknown>;
     expect(row).toMatchObject({ snapshotId: null, tier: "standard", calls: 19, costUsd: 0.0123, consistencyIssues: 1, words: 2600, durationMs: 4321, sviVersion: "2.3.0" });

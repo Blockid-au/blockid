@@ -48,7 +48,9 @@ import { benchmarkFor, benchmarkStageForSvi, criteriaForDimension, DIM_ORDER, DI
 import { loadAgentKnowledgeRows, type AgentKnowledgeRow, type KnowledgeDb } from "./knowledge-loader";
 import { evidenceHashFor } from "./chapter-cache";
 import { precomputeModulesForDim, type ModuleOutput } from "./module-precompute";
-import { REPORT_TIER_CONFIG } from "./types";
+import { bumpQualityCounter, REPORT_TIER_CONFIG } from "./types";
+import { autoCite, itemsFromCatalogue, itemsFromEvidenceRows, type CitableItem } from "./auto-cite";
+import { trimVerdict } from "./verdict-trim";
 import {
   callStructured,
   type StructuredModelCaller,
@@ -149,6 +151,20 @@ export function areaForCriterion(criterion: CriterionKey): Area {
 // without importing the dispatcher; re-exported here for existing callers.
 export { evidenceIdFor };
 
+export const MARKET_ANCHOR_LABEL = "AU market anchor (ABS / IBISWorld)";
+
+/** The AU market anchor block (au-market-anchor.ts) as plain text, or null when no industry matched. */
+export function auMarketAnchorText(context: Pick<ReportContext, "rawText" | "criteriaData">): string | null {
+  const block = buildAuMarketAnchorBlock({ rawText: `${context.rawText}\n${context.criteriaData.market?.textInput ?? ""}` });
+  if (!block) return null;
+  return block
+    .split("\n")
+    .filter((l) => !/^#|^>/.test(l.trim()))
+    .map((l) => l.replace(/\*\*/g, "").replace(/^\s*-\s*/, "").trim())
+    .filter(Boolean)
+    .join("; ");
+}
+
 export function buildEvidenceCatalogue(
   criterion: CriterionKey,
   context: ReportContext,
@@ -185,6 +201,13 @@ export function buildEvidenceCatalogue(
   if (criterion === "market" && gr.competitiveResearch) {
     push("competitive", "Competitive research", JSON.stringify(gr.competitiveResearch));
   }
+  // G23-A: the ABS / IBISWorld anchor the CMO is told to ground TAM/SAM/SOM in
+  // was in the user turn but not in the catalogue — every anchored number
+  // was an uncited claim. Same seed as buildEvidenceRows → one id.
+  if (criterion === "market") {
+    const anchor = auMarketAnchorText(context);
+    if (anchor) push("market_anchor", MARKET_ANCHOR_LABEL, anchor);
+  }
   if (gr.scrapedData && (criterion === "website" || criterion === "idea")) {
     push("scraped", "Scraped website data", JSON.stringify(gr.scrapedData));
   }
@@ -208,14 +231,38 @@ export function buildEvidenceCatalogue(
 // separately tested), the dispatcher composes the canonical pieces into a
 // boundary payload and adapts the result on the way out.
 
-export const AgentAnalysisPayload = z.object({
+const AgentAnalysisPayloadShape = z.object({
   finding: AssessmentFinding,
   section: ReportSectionSchema,
   risks: z.array(RiskFinding).max(5).default([]),
   highlights: z.array(z.string().min(1)).max(5).default([]),
   data_points: z.record(z.string(), z.string()).default({}),
 });
-export type AgentAnalysisPayload = z.infer<typeof AgentAnalysisPayload>;
+
+/**
+ * G23-A fix (b): a salvaged (budget-cut) answer usually ends inside
+ * `section.body_markdown`, so the section is missing its own `citations` /
+ * `confidence` / `hallucination_risk`. Those are copied from the same
+ * answer’s `finding` (already validated with ≥ 1 citation) — never invented —
+ * so the salvaged text validates instead of costing a repair pass.
+ */
+export function fillSectionFromFinding(raw: unknown): unknown {
+  if (!raw || typeof raw !== "object") return raw;
+  const o = raw as Record<string, unknown>;
+  const finding = o.finding as Record<string, unknown> | undefined;
+  const section = o.section as Record<string, unknown> | undefined;
+  if (!finding || typeof finding !== "object" || !section || typeof section !== "object") return raw;
+  const filled: Record<string, unknown> = { ...section };
+  if (!Array.isArray(filled.citations) || filled.citations.length === 0) filled.citations = finding.citations;
+  if (typeof filled.confidence !== "number") filled.confidence = finding.confidence;
+  if (typeof filled.hallucination_risk !== "string") filled.hallucination_risk = finding.hallucination_risk;
+  if (typeof filled.area_id !== "string") filled.area_id = finding.area_id;
+  if (typeof filled.heading !== "string" || !filled.heading) filled.heading = finding.title;
+  return { ...o, section: filled };
+}
+
+export const AgentAnalysisPayload = z.preprocess(fillSectionFromFinding, AgentAnalysisPayloadShape);
+export type AgentAnalysisPayload = z.infer<typeof AgentAnalysisPayloadShape>;
 
 /** Zod shape for the dispatcher's own input — validated by callStructured. */
 const DispatchInput = z.object({
@@ -263,22 +310,26 @@ Return ONLY a single JSON object. No prose outside it, no markdown fences.
 }
 
 RULES:
-- Every evidence_id MUST be copied verbatim from the EVIDENCE CATALOGUE below. Never invent one.
+- Every evidence_id MUST be copied verbatim from the CITABLE IDS list below. Never invent one.
 - Every quote MUST appear verbatim in the cited evidence item.
 - If the evidence does not support a specific number, do not state one.
-- Inside "body_markdown", every MATERIAL claim (money, percentage, count, growth
-  rate, multiple, ARR/MRR/TAM-style metric) must be followed by an inline marker
-  [ev:<evidence_id>] copied from the catalogue — or, if nothing supports it,
-  be written with an explicit "(unevidenced)" marker. The grounding auditor
-  rejects material claims that carry neither.
+- CITATIONS (checked by the grounding auditor): inside "body_markdown" and
+  "detail", EVERY sentence that states a number, a money amount, a percentage,
+  a date, a name or a metric ends with at least one inline marker
+  [ev:<evidence_id>] placed before its full stop — the id of the catalogue item
+  that holds that fact. A sentence nothing in the catalogue supports ends with
+  "(unevidenced)" instead. Sentences carrying neither lower the section
+  confidence and are flagged "no citation" in the report.
 `.trim();
 
 function renderStructuredUser(input: DispatchInput): string {
   const catalogue = input.evidence
     .map(e => `### evidence_id: ${e.evidence_id}\n**${e.label}**\n${e.content}`)
     .join("\n\n");
+  const ids = input.evidence.map(e => `- ${e.evidence_id} — ${e.label}`).join("\n");
   return [
     input.prompt,
+    `## CITABLE IDS (copy verbatim — nothing else is citable)\n${ids || "(none — every sentence with a number ends with (unevidenced))"}`,
     `## EVIDENCE CATALOGUE (the only citable sources)\n${catalogue}`,
     OUTPUT_CONTRACT,
     `The area_id for this analysis is "${input.area_id}".`,
@@ -467,10 +518,23 @@ export function structuredOutputSchema(tier: ReportTierV2 | ReportTier): string 
   return `${OUTPUT_CONTRACT.trim()}\n\nHARD LIMIT: "body_markdown" is at most ${cap} words — stop and close the JSON before it. Return the JSON object only.`;
 }
 
-export function structuredMaxTokens(tier: ReportTier, budget: WaveTask["budget"]): number {
+/**
+ * G23-A fix (b), measured on the 2026-09-21 showcase run: the CMO (market /
+ * website / gtm_strategy), CFO (revenue) and CPO (idea) answers ran past the
+ * 2,600-token floor ("Unterminated string at position 9,396–9,569" ≈ 2,500
+ * tokens of JSON-escaped markdown) while every other owner closed its JSON
+ * under it. These roles get a contract-sized budget — 700 words of body
+ * (≈ 4,800 chars escaped) + finding + up to 5 risks + highlights ≈ 3,000
+ * tokens, with headroom — so the first answer closes; the salvage in
+ * call-structured covers the rest. Cents at DeepInfra rates.
+ */
+export const STRUCTURED_OUTPUT_TOKENS_BY_ROLE: Partial<Record<AgentRole, number>> = { cmo: 3400, cfo: 3400, cpo: 3400 };
+
+export function structuredMaxTokens(tier: ReportTier, budget: WaveTask["budget"], role?: AgentRole): number {
   const tierConfig = REPORT_TIER_CONFIG[tier];
   const tierTokens = budget === "large" ? tierConfig.maxTokensPerAgent : Math.round(tierConfig.maxTokensPerAgent * 0.85);
-  return Math.max(tierTokens, STRUCTURED_MIN_OUTPUT_TOKENS);
+  const floor = (role && STRUCTURED_OUTPUT_TOKENS_BY_ROLE[role]) || STRUCTURED_MIN_OUTPUT_TOKENS;
+  return Math.max(tierTokens, floor);
 }
 
 // ── Dispatch a Single Agent Analysis ────────────────────────────────────────
@@ -484,7 +548,7 @@ async function dispatchAgent(
 ): Promise<AgentAnalysisResult> {
   const startTime = Date.now();
   const tierConfig = REPORT_TIER_CONFIG[tier];
-  const maxTokens = structuredMaxTokens(tier, task.budget);
+  const maxTokens = structuredMaxTokens(tier, task.budget, task.agentRole);
 
   const template = await (opts.resolvePromptTemplate ?? defaultPromptTemplate)(task.agentRole);
   // G19-S46: the structured call's system prompt carries the JSON contract in
@@ -537,10 +601,12 @@ async function dispatchAgent(
       opts.modelCaller ?? callAIToModelCaller(callAI, maxTokens),
   });
 
+  if (structured.overrun) bumpQualityCounter(context, "budgetOverruns");
   if (structured.ok) {
     return adaptPayload(task, context, structured.data, allowedIds, {
       runId: structured.runId,
       durationMs: Date.now() - startTime,
+      citable: itemsFromCatalogue(evidence),
     });
   }
 
@@ -560,13 +626,22 @@ function adaptPayload(
   context: ReportContext,
   payload: AgentAnalysisPayload,
   allowedIds: Set<string>,
-  meta: { runId: string; durationMs: number },
+  meta: { runId: string; durationMs: number; citable?: CitableItem[] },
 ): AgentAnalysisResult {
   const cited = [...payload.finding.citations, ...payload.section.citations];
   const validCitations = cited.filter(c => allowedIds.has(c.evidence_id));
   const grounded = validCitations.length > 0;
 
-  const content = renderContent(payload);
+  // G23-A fix (a): sentences whose numbers are in the catalogue (or in a
+  // quote the model cited) get the id the model omitted — before the
+  // auditor’s citation gate reads the section. Unmatched numbers stay uncited.
+  const citable = meta.citable ?? [];
+  const body = autoCite(payload.section.body_markdown, citable, validCitations);
+  const detail = autoCite(payload.finding.detail, citable, validCitations);
+  bumpQualityCounter(context, "autoCited", body.added + detail.added);
+  const citedPayload: AgentAnalysisPayload = { ...payload, finding: { ...payload.finding, detail: detail.text }, section: { ...payload.section, body_markdown: body.text } };
+
+  const content = renderContent(citedPayload);
   const evidenceConfidence = computeConfidence(context.criteriaData[task.criterion]);
   let confidence = Math.min(evidenceConfidence, payload.section.confidence);
   if (!grounded) confidence *= 0.6;
@@ -923,6 +998,9 @@ const dimKeyEnum = z.enum(["tre", "mpc", "ftv", "ptd", "cgh", "iri", "lco", "svm
 const evidenceSourceEnum = z.enum(["stripe", "ga4", "github", "xero", "linkedin", "upload", "url", "self_declared", "founder_profile", "connector_other", "external"]);
 const wordCount = (t: string) => t.trim().split(/\s+/).filter(Boolean).length;
 
+/** G23-A fix (c): the §C.11 word caps, applied as a trim (last full sentence that fits) instead of a schema failure. */
+export const VERDICT_WORD_CAPS = { chapter: 80, card: 60, criterionCard: 80 } as const;
+
 const VisualProposal = z.object({
   kind: z.string().min(1),
   data_state: z.string().optional(),
@@ -936,7 +1014,8 @@ const VisualProposal = z.object({
 const CriterionCardPayload = z.object({
   key: z.enum(CRITERIA.map((c) => c.key) as [CriterionKey, ...CriterionKey[]]),
   lens: dimKeyEnum.optional(),
-  verdict: z.string().min(1).refine((t) => wordCount(t) <= 80, "criterion verdict must be ≤ 80 words"),
+  // G23-A fix (c): no word-cap refine — buildDimensionChapter trims to the cap (VERDICT_WORD_CAPS) instead of failing the chapter.
+  verdict: z.string().min(1),
   strengths: z.array(z.string().min(1)).max(4).default([]),
   gaps: z.array(z.string().min(1)).max(4).default([]),
   next_action: z.string().default(""),
@@ -946,7 +1025,7 @@ const CriterionCardPayload = z.object({
 /** §C.11 owner payload — the full chapter (standard+). */
 export const DimensionChapterPayload = z.object({
   dim: dimKeyEnum,
-  verdict: z.string().min(1).refine((t) => wordCount(t) <= 80, "verdict must be ≤ 80 words"),
+  verdict: z.string().min(1),
   score_adjustment: z.object({
     proposed: z.number().min(0).max(100),
     deterministic: z.number().min(0).max(100).optional(),
@@ -968,7 +1047,8 @@ export const DimensionChapterPayload = z.object({
     .object({ phase_id: z.string().optional(), what_matters_now: z.string().default(""), floor: z.number().nullable().optional(), floor_met: z.boolean().nullable().optional() })
     .optional(),
   frameworks_used: z.array(z.string()).max(8).default([]),
-  confidence: z.number().min(0).max(1),
+  // G23-A: defaults so a budget-cut answer salvaged before its tail still validates (conservative middle, never a claim).
+  confidence: z.number().min(0).max(1).default(0.5),
   hallucination_risk: z.enum(["low", "medium", "high"]).default("medium"),
 });
 export type DimensionChapterPayload = z.infer<typeof DimensionChapterPayload>;
@@ -976,7 +1056,7 @@ export type DimensionChapterPayload = z.infer<typeof DimensionChapterPayload>;
 /** Free-tier card payload for chapters 6–9 (≤ 60 words, no cards / visuals). */
 export const DimensionCardPayload = z.object({
   dim: dimKeyEnum,
-  verdict: z.string().min(1).refine((t) => wordCount(t) <= 60, "card verdict must be ≤ 60 words"),
+  verdict: z.string().min(1),
   score_adjustment: z.object({ proposed: z.number().min(0).max(100), deterministic: z.number().optional(), reason: z.string().default("") }),
   strengths: z.array(z.string().min(1)).min(1).max(2),
   gaps: z.array(z.string().min(1)).min(1).max(2),
@@ -1055,18 +1135,18 @@ Return ONLY one JSON object, no prose outside it, no markdown fences. Angle-quot
   "strengths": ["«2-4 items, at most 20 words, each ending with [ev:«id»] or [unevidenced]»"],
   "gaps": ["«2-4 items, same rule»"],
   "next_action": { "title": "«one action»", "window": "this_week or 30d or 90d", "expected_lift": «SVI points», "evidence_to_add": "one of stripe, ga4, github, xero, linkedin, upload, url" },
+  "confidence": «0 to 1»,
+  "hallucination_risk": "one of low, medium, high",
   "criterion_cards": [{ "key": "«mapped criterion key»", "lens": "${dim}", "verdict": "«at most 60 words»", "strengths": ["…"], "gaps": ["…"], "next_action": "…", "citations": [{ "evidence_id": "«id from evidenceRows»", "quote": "«verbatim»" }] }],
   "primary_visual": { "kind": "${owner.primaryVisual}", "data_state": "one of real, partial, benchmark_only, target", "title": "«title»", "series": [{ "label": "«label»", "value": «number» }] },
   "secondary_visuals": [],
   "phase_lens": { "phase_id": "«phase»", "what_matters_now": "«one sentence»", "floor": «number or omit», "floor_met": «boolean or omit» },
-  "frameworks_used": ["«from the Frameworks list»"],
-  "confidence": «0 to 1»,
-  "hallucination_risk": "one of low, medium, high"
+  "frameworks_used": ["«from the Frameworks list»"]
 }
 RULES:
 - "proposed" must stay within ±10 of the deterministic score; explain any move in "reason".
 - primary_visual.kind must be one of: ${owner.allowedVisuals.join(", ")}. Every number in "series" MUST appear in moduleOutputs or evidenceRows (± rounding) — otherwise omit primary_visual and the deterministic chart is used.
-- Never invent evidence ids; cite only ids from evidenceRows. Unsupported claims end with [unevidenced].
+- CITATIONS: every sentence that states a number, a money amount, a percentage, a date or a name carries [ev:«id»] before its full stop, with an id copied verbatim from evidenceRows — never invented. A sentence nothing in evidenceRows supports ends with [unevidenced]. Uncited sentences are flagged "no citation" in the report.
 - Explain the score using scoreLedger (base → each signal ± points → × confidence → adjustment): name at least one ledger signal in the verdict, quote its points as given, and NEVER invent a signal, a point value or a source that is not in scoreLedger. When scoreLedger.assessed is false say plainly that the dimension is not assessed yet and what input would assess it.
 - Follow the chapter template: ${owner.outputTemplate}`;
 }
@@ -1263,14 +1343,31 @@ export function buildDimensionChapter(
   const assessed = scoreBreakdown ? scoreBreakdown.assessed : true;
   const band = scored && assessed ? bandFor(score) : "pending";
 
-  const full = payload && "criterion_cards" in payload ? (payload as DimensionChapterPayload) : null;
+  // G23-A fix (a): bullets and verdicts whose numbers are in this chapter’s
+  // evidence rows (or in a citation the owner attached) get the id the owner
+  // omitted — before the [unevidenced] suffix rule and the citation gate.
+  const citable = itemsFromEvidenceRows(evidence);
+  const ownerCitations = payload && "criterion_cards" in payload ? (payload as DimensionChapterPayload).criterion_cards.flatMap((c) => c.citations).filter((c) => allowedIds.has(c.evidence_id)) : [];
+  const cite = (text: string): string => {
+    const r = autoCite(text, citable, ownerCitations);
+    bumpQualityCounter(context, "autoCited", r.added);
+    return r.text;
+  };
+  // G23-A fix (c): verdicts over the §C.11 cap are trimmed to the last full sentence that fits, never failed.
+  const trim = (text: string, cap: number): string => {
+    const r = trimVerdict(text, cap);
+    if (r.trimmed) bumpQualityCounter(context, "verdictTrimmed");
+    return r.text;
+  };
+  const fullRaw = payload && "criterion_cards" in payload ? (payload as DimensionChapterPayload) : null;
+  const full = fullRaw ? { ...fullRaw, criterion_cards: fullRaw.criterion_cards.map((c) => ({ ...c, verdict: cite(trim(c.verdict, VERDICT_WORD_CAPS.criterionCard)) })) } : null;
   const criteria = criterionCardsFor(context, dim, full?.criterion_cards, allowedIds, score);
   const cardGaps = criteria.flatMap((c) => c.gaps).filter(Boolean);
   // G19-S43: chapter bullets never repeat the criterion cards' own bullets;
   // the "N below the strong band" line only stands in when nothing names a gap.
-  const strengths = ensureCitationSuffix(dedupeAgainstCards(payload?.strengths ?? [], criteria).slice(0, 4), allowedIds);
+  const strengths = ensureCitationSuffix(dedupeAgainstCards((payload?.strengths ?? []).map(cite), criteria).slice(0, 4), allowedIds);
   const gaps = ensureCitationSuffix(
-    dedupeAgainstCards(payload?.gaps?.length ? payload.gaps : !cardGaps.length && scored && assessed && score < 70 ? [`${owner.title} is ${70 - score} points below the strong band (70).`] : [], criteria).slice(0, 4),
+    dedupeAgainstCards(payload?.gaps?.length ? payload.gaps.map(cite) : !cardGaps.length && scored && assessed && score < 70 ? [`${owner.title} is ${70 - score} points below the strong band (70).`] : [], criteria).slice(0, 4),
     allowedIds,
   );
 
@@ -1311,7 +1408,7 @@ export function buildDimensionChapter(
     proposedPrimary: (full?.primary_visual as LlmVisualProposal | undefined) ?? null,
   });
 
-  const verdictSrc = payload?.verdict?.trim();
+  const verdictSrc = payload?.verdict?.trim() ? cite(trim(payload.verdict, fullRaw ? VERDICT_WORD_CAPS.chapter : VERDICT_WORD_CAPS.card)) : "";
   const verdict =
     verdictSrc ||
     (!scored
@@ -1376,7 +1473,7 @@ function renderChapterUser(input: DimensionChapterInput): string {
   return [
     `## Chapter inputs (JSON — the ONLY facts you may use)`,
     JSON.stringify(rest, null, 1),
-    `## evidenceRows (the only citable ids)`,
+    `## evidenceRows (the only citable ids — copy each id verbatim into [ev:«id»])`,
     rows || "(no evidence rows — every claim must end with [unevidenced])",
     `Write the "${input.dim}" chapter as ${input.renderAs === "card" ? "a card" : "a full chapter"} for the ${input.tier} tier, following the output contract in your instructions.`,
   ].join("\n\n");
@@ -1549,6 +1646,7 @@ async function dispatchChapter(
   });
 
   const runIds = structured.runId ? [structured.runId] : [];
+  if (structured.overrun) bumpQualityCounter(context, "budgetOverruns");
   if (structured.ok) {
     const chapter = buildDimensionChapter(context, dim, shared.tierV2, structured.data as DimensionChapterPayload | DimensionCardPayload, { runIds, degraded: false });
     chapter.modules = [...chapter.modules, { id: "report-pipeline/agent-dispatcher.ts:dispatchChapter", output: { durationMs: Date.now() - started, renderAs, taskClass: taskClass ?? "free-chain" } }];

@@ -332,3 +332,37 @@ describe("callStructured — injected modelCaller", () => {
     expect(inserted[0]!.status).toBe("model_error");
   });
 });
+
+// G23-A fix (b): an output cut short by its token budget is rewound to its
+// last complete value before the parse — one call, `overrun: true`, no
+// repair pass; a cut answer the salvage cannot validate still goes to the
+// repair pass and the final result carries the overrun flag either way.
+describe("callStructured — truncated output salvage (G23-A)", () => {
+  const Prose = z.object({ answer: z.string().min(1), score: z.number().min(0).max(100), body: z.string().min(1).optional() });
+
+  it("salvages a response cut inside a prose value: ok on the first call, overrun flagged, no repair turn", async () => {
+    let calls = 0;
+    const full = JSON.stringify({ answer: "42", score: 72, body: "Sentence one. Sentence two. Sentence thr" });
+    const res = await callStructured({ ...baseArgs, outputSchema: Prose, modelCaller: async () => { calls += 1; return { ok: true, text: full.slice(0, full.length - 2) }; } });
+    expect(calls).toBe(1);
+    expect(res.ok).toBe(true);
+    if (res.ok) {
+      expect(res.overrun).toBe(true);
+      expect(res.data.body).toBe("Sentence one. Sentence two.");
+    }
+    expect(inserted[0]!.status).toBe("ok");
+  });
+
+  it("a cut the salvage cannot validate still runs the repair pass; the repaired result keeps overrun: true", async () => {
+    let calls = 0;
+    const res = await callStructured({ ...baseArgs, outputSchema: Prose, modelCaller: async () => { calls += 1; return { ok: true, text: calls === 1 ? `{"answer": "fo` : JSON.stringify({ answer: "42", score: 10 }) }; } });
+    expect(calls).toBe(2);
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.overrun).toBe(true);
+  });
+
+  it("a clean first answer carries overrun: false", async () => {
+    const res = await callStructured({ ...baseArgs, modelCaller: async () => ({ ok: true, text: JSON.stringify({ answer: "42", score: 72 }) }) });
+    expect(res.ok && res.overrun).toBe(false);
+  });
+});

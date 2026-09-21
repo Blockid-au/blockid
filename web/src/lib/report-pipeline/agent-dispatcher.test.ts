@@ -55,6 +55,9 @@ import {
   STRUCTURED_SECTION_WORD_CAP,
   W4_MAX_TOKENS,
   structuredMaxTokens,
+  STRUCTURED_OUTPUT_TOKENS_BY_ROLE,
+  MARKET_ANCHOR_LABEL,
+  fillSectionFromFinding,
   structuredOutputSchema,
 } from "./agent-dispatcher";
 import type { CriterionData, ReportContext } from "./types";
@@ -456,5 +459,85 @@ describe("AgentAnalysisPayload boundary schema", () => {
       expect(res.data.risks).toEqual([]);
       expect(res.data.data_points).toEqual({});
     }
+  });
+});
+
+// ── G23-A: grounding fixes on the W1–W3 path ─────────────────────────────────
+describe("G23-A — auto-cite, per-role budgets, salvage fill, citable ids", () => {
+  it("(a) body sentences whose numbers are in the catalogue (or in a cited quote) get the id before the full stop; unmatched numbers stay uncited; autoCited counted", async () => {
+    const context = makeContext();
+    context.criteriaData.code_git.textInput = "Monorepo, 240 unit tests, 71 % coverage, CI runs on every push.";
+    const catalogue = buildEvidenceCatalogue("code_git", context);
+    const founder = catalogue.find((e) => e.label === "Founder evidence: code_git")!;
+    const raw = JSON.parse(validPayload("code_git", context)) as { section: { body_markdown: string }; finding: { detail: string } };
+    raw.section.body_markdown = "### Engineering\nThe monorepo carries 240 unit tests with 71 % coverage and CI on every push. Revenue is A$1.2M ARR. Paying pilots exist.";
+    raw.finding.detail = "Coverage of 71 % backs the score.";
+    const { caller } = scriptedCaller([JSON.stringify(raw)]);
+    const [result] = await dispatchWave([{ agentRole: "cto", criterion: "code_git" }], context, "standard", async () => "unused", { modelCaller: caller, resolvePromptVersionId });
+    expect(result.schemaValidated).toBe(true);
+    expect(result.content).toContain(`The monorepo carries 240 unit tests with 71 % coverage and CI on every push [ev:${founder.evidence_id}].`);
+    expect(result.content).toContain("Revenue is A$1.2M ARR.");
+    expect(result.content).toContain(`Coverage of 71 % backs the score [ev:${founder.evidence_id}].`);
+    expect(context.qualityCounters?.autoCited).toBe(2);
+  });
+
+  it("the user turn lists the CITABLE IDS (id — label) before the catalogue, and the contract asks for one citation per factual sentence", async () => {
+    const context = makeContext();
+    const { caller, calls } = scriptedCaller([validPayload("code_git", context)]);
+    await dispatchWave([{ agentRole: "cto", criterion: "code_git" }], context, "standard", async () => "unused", { modelCaller: caller, resolvePromptVersionId });
+    const user = calls[0]!;
+    const ids = buildEvidenceCatalogue("code_git", context).map((e) => e.evidence_id);
+    expect(user).toContain("## CITABLE IDS (copy verbatim");
+    for (const id of ids) expect(user).toContain(`- ${id} — `);
+    expect(user.indexOf("## CITABLE IDS")).toBeLessThan(user.indexOf("## EVIDENCE CATALOGUE"));
+    expect(user).toContain("EVERY sentence that states a number");
+    expect(user).not.toContain("every MATERIAL claim (money, percentage, count");
+  });
+
+  it("(b) per-role output budgets: CMO / CFO / CPO get 3,400 tokens, every other role keeps the 2,600 floor; the tier maximum still wins when larger", () => {
+    expect(STRUCTURED_OUTPUT_TOKENS_BY_ROLE).toEqual({ cmo: 3400, cfo: 3400, cpo: 3400 });
+    expect(structuredMaxTokens("standard", undefined, "cmo")).toBe(3400);
+    expect(structuredMaxTokens("standard", "large", "cfo")).toBe(3400);
+    expect(structuredMaxTokens("standard", undefined, "cto")).toBe(2600);
+    expect(structuredMaxTokens("investor_memo", "large", "cmo")).toBe(4000);
+  });
+
+  it("(b) a first answer cut inside body_markdown is salvaged and validated (section citations / confidence filled from the finding): ONE call, ok row, budgetOverruns counted, not degraded", async () => {
+    const context = makeContext();
+    const raw = JSON.parse(validPayload("code_git", context)) as { section: { body_markdown: string } };
+    raw.section.body_markdown = "### Engineering\nThe team runs CI on every push. Coverage is tracked weekly. The last sentence never fin";
+    const full = JSON.stringify(raw);
+    const cut = full.slice(0, full.indexOf("never fin") + 6);
+    const { caller, calls } = scriptedCaller([cut, validPayload("code_git", context)]);
+    const [result] = await dispatchWave([{ agentRole: "cto", criterion: "code_git" }], context, "standard", async () => "unused", { modelCaller: caller, resolvePromptVersionId });
+    expect(calls).toHaveLength(1);
+    expect(result.schemaValidated).toBe(true);
+    expect(result.degraded).toBe(false);
+    expect(result.grounded).toBe(true);
+    expect(result.content).toContain("Coverage is tracked weekly.");
+    expect(result.content).not.toContain("never fin");
+    expect(inserted[0]!.status).toBe("ok");
+    expect(context.qualityCounters?.budgetOverruns).toBe(1);
+  });
+
+  it("fillSectionFromFinding copies citations / confidence / hallucination_risk / area_id / heading from the finding only when the section lacks them", () => {
+    const context = makeContext();
+    const raw = JSON.parse(validPayload("code_git", context)) as { finding: Record<string, unknown>; section: Record<string, unknown> };
+    const bare = { ...raw, section: { body_markdown: "Cut here." } };
+    const filled = fillSectionFromFinding(bare) as { section: Record<string, unknown> };
+    expect(filled.section).toEqual({ body_markdown: "Cut here.", citations: raw.finding.citations, confidence: 0.8, hallucination_risk: "low", area_id: raw.finding.area_id, heading: "Solid engineering foundations" });
+    expect(AgentAnalysisPayload.safeParse(bare).success).toBe(true);
+    expect(fillSectionFromFinding(raw)).toEqual(raw);
+    expect(fillSectionFromFinding("nope")).toBe("nope");
+  });
+
+  it("the market catalogue carries the AU market anchor (ABS / IBISWorld) so TAM / SAM / SOM figures are citable, with the same id in buildEvidenceRows", () => {
+    const context = makeContext();
+    context.rawText = `${RAW_TEXT} We sell software to the Australian rail freight transport industry.`;
+    const entry = buildEvidenceCatalogue("market", context).find((e) => e.label === MARKET_ANCHOR_LABEL);
+    expect(entry, "anchor entry").toBeDefined();
+    expect(entry!.content).toMatch(/ANZSIC/);
+    expect(entry!.content).not.toContain("**");
+    expect(buildEvidenceCatalogue("code_git", context).find((e) => e.label === MARKET_ANCHOR_LABEL)).toBeUndefined();
   });
 });
