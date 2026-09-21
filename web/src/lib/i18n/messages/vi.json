@@ -1055,5 +1055,22 @@
   "execution.amount_band.1m-5m": "A$1M–5M",
   "execution.amount_band.5m-20m": "A$5M–20M",
   "execution.amount_band.20m+": "A$20M+",
-  "digest.why_moved.sentence": "Vì sao điểm thay đổi: độ tin cậy bằng chứng giờ đây bị giới hạn theo nguồn gốc của nó (tự khai báo ≤ tài liệu, kết nối, người đánh giá) và mức xác minh ABN của bạn (L{level}) hiện được tính vào trọng số điểm."
+  "digest.why_moved.sentence": "Vì sao điểm thay đổi: độ tin cậy bằng chứng giờ đây bị giới hạn theo nguồn gốc của nó (tự khai báo ≤ tài liệu, kết nối, người đánh giá) và mức xác minh ABN của bạn (L{level}) hiện được tính vào trọng số điểm.",
+  "tbr.citations.appendixTitle": "Bằng chứng được trích dẫn",
+  "tbr.citations.appendixPurpose": "Mọi chú thích đánh số trong báo cáo này — dòng bằng chứng phía sau, mức bằng chứng, nguồn và ngày.",
+  "tbr.citations.th.n": "#",
+  "tbr.citations.th.label": "Bằng chứng",
+  "tbr.citations.th.level": "Mức bằng chứng",
+  "tbr.citations.th.source": "Nguồn",
+  "tbr.citations.th.date": "Ngày",
+  "tbr.citations.levelUnrated": "chưa xếp mức",
+  "tbr.citations.noDate": "—",
+  "tbr.citations.citeTitle": "Bằng chứng {n}: {label}",
+  "tbr.citations.citeAria": "Chú thích {n}, {label}",
+  "tbr.citations.unverified": "chưa xác minh",
+  "tbr.citations.unverifiedTitle": "Không có dòng bằng chứng nào hỗ trợ nhận định này — kiểm định viên đánh dấu là chưa xác minh.",
+  "tbr.citations.status.evidenced": "có bằng chứng",
+  "tbr.citations.status.partial": "một phần",
+  "tbr.citations.status.missing": "thiếu",
+  "tbr.citations.status.stale": "đã cũ"
 }

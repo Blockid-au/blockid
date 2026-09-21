@@ -6,9 +6,10 @@ import { VisualFigure } from "@/lib/report-visuals/react";
 import { planEvidenceRows } from "@/lib/report-v2/evidence-view";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import { CtaLink } from "./chapter";
-import { AgentBadge, Chip, DimChip, TBR_V2_SECTION_IDS, TbrSection, v2Strings, type TbrUiLocale } from "./shared";
+import { AgentBadge, Chip, CitedText, DimChip, TBR_V2_SECTION_IDS, TbrSection, v2Strings, type TbrUiLocale } from "./shared";
+import type { CitationIndex } from "@/lib/report-v2/citations";
 
-export function TbrActionPlan({ report, title, locale = "en" }: { report: ReportV2; title: string; locale?: TbrUiLocale }) {
+export function TbrActionPlan({ report, title, locale = "en", citations }: { report: ReportV2; title: string; locale?: TbrUiLocale; /** G24-A: footnote numbering (report.tsx). */ citations?: CitationIndex }) {
   const p = report.actionPlan;
   const t = v2Strings(locale).actionPlan;
   const steps = report.tier === "free" ? p.steps.slice(0, 5) : p.steps;
@@ -32,7 +33,9 @@ export function TbrActionPlan({ report, title, locale = "en" }: { report: Report
                   .filter((s) => s.day === day)
                   .map((s, i) => (
                     <li key={`${s.dimension}-${i}`} className="space-y-0.5">
-                      <p className="font-medium text-primary">{s.title}</p>
+                      <p className="font-medium text-primary">
+                        <CitedText text={s.title} citations={citations} locale={locale} />
+                      </p>
                       <p className="flex flex-wrap items-center gap-1 text-xs text-muted">
                         <AgentBadge role={s.ownerAgent} kind="support" />
                         <DimChip dim={s.dimension} locale={locale} />

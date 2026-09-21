@@ -8,6 +8,8 @@ import { getTbrStrings, type TbrLocale } from "@/lib/i18n/tbr-strings";
 import { DIMENSION_OWNERS, type DimKey } from "@/lib/report-pipeline/dimension-owners";
 import type { Band, DataState } from "@/lib/report-visuals/types";
 import { proseParagraphs } from "@/lib/report-v2/paragraphs";
+import { citationAnchorId, parseCitations, type CitationIndex, type CitationSegment } from "@/lib/report-v2/citations";
+import { citationStrings } from "@/lib/report-v2/citation-strings";
 import type { ActionWindow, AuditStamp } from "@/lib/report-v2/schema";
 
 // ── G19-S47 typography scale + theme contract ───────────────────────────────
@@ -74,6 +76,8 @@ export const TBR_V2_SECTION_IDS = {
   money: "tbr-money",
   actionPlan: "tbr-action-plan",
   appendix: "tbr-appendix",
+  /** G24-A: the footnote list (rendered only when something is cited). */
+  evidenceCited: "tbr-evidence-cited",
 } as const;
 
 export function bandText(band: Band): string {
@@ -180,15 +184,83 @@ export function WindowChip({ window, locale }: { window: ActionWindow; locale?: 
   return <Chip kind="window">{v2Strings(locale).chapter.window[window]}</Chip>;
 }
 
-/** G19-S47: body prose as ≤ 3-sentence paragraphs on the prose measure (markdown stripped). */
-export function Prose({ text, className, size = "sm", testId }: { text: string; className?: string; size?: "sm" | "xs"; testId?: string }) {
+// ── G24-A: evidence citations as footnotes ──────────────────────────────────
+//
+// The stored prose keeps its `[ev:<id>]` / `[unevidenced]` markers (the
+// grounding audit reads them); every renderer below goes through
+// `parseCitations` so a reader sees a numbered superscript linking to the
+// "Evidence cited" appendix (`#ev-n`) or a muted "unverified" chip — never
+// the raw marker. The index is built once per document (`report.tsx`) and
+// passed down as a prop (hook-free: server components have no context);
+// a consumer without an index still strips every marker (unknown ids
+// render nothing).
+
+/** Focus ring + a 44 px hit area drawn by the ::before pseudo-element (the glyph stays superscript-sized). */
+const CITE_LINK_CLASS =
+  "relative inline-block rounded px-0.5 font-semibold tabular-nums text-action no-underline underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 before:absolute before:-inset-x-4 before:-inset-y-3 before:content-['']";
+
+/** One footnote reference: `<sup><a href="#ev-n">n</a></sup>`; consecutive references share one <sup> ("1, 2"). */
+export function CiteSup({ cites, locale }: { cites: Array<Extract<CitationSegment, { kind: "cite" }>>; locale?: TbrUiLocale }) {
+  const t = citationStrings(locale);
+  return (
+    <sup className="ml-px text-[0.7em] leading-none">
+      {cites.map((c, i) => (
+        <span key={c.id}>
+          {i > 0 ? <span aria-hidden="true">, </span> : null}
+          <a href={`#${citationAnchorId(c.n)}`} data-tbr-cite={c.n} title={t.citeTitle(c.n, c.label)} aria-label={t.citeAria(c.n, c.label)} className={CITE_LINK_CLASS}>
+            {c.n}
+          </a>
+        </span>
+      ))}
+    </sup>
+  );
+}
+
+/** The "unverified" admission: a small muted chip with the reason in its title. */
+export function UnverifiedChip({ locale }: { locale?: TbrUiLocale }) {
+  const t = citationStrings(locale);
+  return (
+    <span data-tbr-unverified title={t.unverifiedTitle} className="mx-0.5 inline-flex items-center rounded-full border border-line-subtle bg-surface-sunken px-1.5 py-px align-baseline text-[11px] font-medium leading-tight tracking-wide text-muted">
+      {t.unverified}
+    </span>
+  );
+}
+
+/**
+ * Inline text with its citations rendered: text runs, footnote superscripts,
+ * unverified chips. Use it wherever agent prose is printed as-is (a bullet,
+ * a card body, a one-line next action).
+ */
+export function CitedText({ text, citations, locale }: { text: string; citations?: CitationIndex; locale?: TbrUiLocale }) {
+  const segments = parseCitations(text, citations);
+  const out: React.ReactNode[] = [];
+  for (let i = 0; i < segments.length; i++) {
+    const seg = segments[i]!;
+    if (seg.kind === "text") {
+      out.push(seg.text);
+      continue;
+    }
+    if (seg.kind === "unevidenced") {
+      out.push(<UnverifiedChip key={`u${i}`} locale={locale} />);
+      continue;
+    }
+    // Group consecutive citations into one <sup>.
+    const group: Array<Extract<CitationSegment, { kind: "cite" }>> = [seg];
+    while (i + 1 < segments.length && segments[i + 1]!.kind === "cite") group.push(segments[++i] as Extract<CitationSegment, { kind: "cite" }>);
+    out.push(<CiteSup key={`c${i}`} cites={group} locale={locale} />);
+  }
+  return <>{out}</>;
+}
+
+/** G19-S47: body prose as ≤ 3-sentence paragraphs on the prose measure (markdown stripped); G24-A: citations as footnotes. */
+export function Prose({ text, className, size = "sm", testId, citations, locale }: { text: string; className?: string; size?: "sm" | "xs"; testId?: string; citations?: CitationIndex; locale?: TbrUiLocale }) {
   const paras = proseParagraphs(text);
   if (!paras.length) return null;
   return (
     <div data-testid={testId} className={cn("max-w-prose", TBR_SPACING.item.replace("space-y-3", "space-y-2"), className)}>
       {paras.map((p, i) => (
         <p key={i} className={cn("leading-relaxed", size === "sm" ? "text-sm text-primary" : "text-xs text-secondary")}>
-          {p}
+          <CitedText text={p} citations={citations} locale={locale} />
         </p>
       ))}
     </div>
@@ -211,7 +283,7 @@ export function AuditStampLine({ audit, frameworks, locale = "en" }: { audit: Au
   );
 }
 
-export function Bullets({ items, tone, title }: { items: string[]; tone: "good" | "bad" | "neutral"; title: string }) {
+export function Bullets({ items, tone, title, citations, locale }: { items: string[]; tone: "good" | "bad" | "neutral"; title: string; citations?: CitationIndex; locale?: TbrUiLocale }) {
   if (!items.length) return null;
   const cls =
     tone === "good"
@@ -226,7 +298,9 @@ export function Bullets({ items, tone, title }: { items: string[]; tone: "good" 
         {items.map((s, i) => (
           <li key={i} className="flex gap-1.5">
             <span aria-hidden="true">{tone === "good" ? "✓" : tone === "bad" ? "▲" : "•"}</span>
-            <span>{s}</span>
+            <span>
+              <CitedText text={s} citations={citations} locale={locale} />
+            </span>
           </li>
         ))}
       </ul>

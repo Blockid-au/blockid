@@ -17,7 +17,8 @@ import { DIMENSION_OWNERS } from "@/lib/report-pipeline/dimension-owners";
 import type { DimensionChapter } from "@/lib/report-v2/schema";
 import { mayShowPercentile } from "@/lib/benchmarks/publication-rules";
 import { cn } from "@/lib/utils";
-import { AgentBadge, AuditStampLine, Bullets, Chip, Prose, TABLE_CLASS, TBR_V2_SECTION_IDS, THEAD_CLASS, TbrSection, WindowChip, bandLabel, bandSurface, bandText, phaseLabel, stateLabel, v2Strings, zebraRow, type TbrUiLocale } from "./shared";
+import { AgentBadge, AuditStampLine, Bullets, Chip, CitedText, Prose, TABLE_CLASS, TBR_V2_SECTION_IDS, THEAD_CLASS, TbrSection, WindowChip, bandLabel, bandSurface, bandText, phaseLabel, stateLabel, v2Strings, zebraRow, type TbrUiLocale } from "./shared";
+import type { CitationIndex } from "@/lib/report-v2/citations";
 import { FounderExecutionCard, founderExecutionFromChapter } from "./founder-execution-card";
 import { TbrLockedChapterPreview } from "./locked-preview";
 
@@ -82,7 +83,7 @@ export function TbrEvidenceTable({ chapter, locale = "en" }: { chapter: Dimensio
  * An unassessed chapter shows one honest pending line instead; `scoreNote`
  * (owner reconciliation / chart provenance) is shown whenever present.
  */
-export function TbrScoreLedger({ chapter, locale = "en", verificationLevel }: { chapter: DimensionChapter; locale?: TbrUiLocale; verificationLevel?: number | null }) {
+export function TbrScoreLedger({ chapter, locale = "en", verificationLevel, citations }: { chapter: DimensionChapter; locale?: TbrUiLocale; verificationLevel?: number | null; citations?: CitationIndex }) {
   const t = getTbrStrings(locale).ledger;
   const ch = chapter;
   if (!ch.scoreBreakdown) return null;
@@ -146,7 +147,7 @@ export function TbrScoreLedger({ chapter, locale = "en", verificationLevel }: { 
       </table>
       {ch.scoreNote ? (
         <p data-tbr-score-note={ch.dim} className="border-t border-line-subtle px-3 py-1.5 text-xs text-muted">
-          <span className="font-semibold">{t.scoreNote}:</span> {ch.scoreNote}
+          <span className="font-semibold">{t.scoreNote}:</span> <CitedText text={ch.scoreNote} citations={citations} locale={locale} />
         </p>
       ) : null}
     </div>
@@ -179,9 +180,11 @@ export interface TbrChapterProps {
   locked?: boolean;
   /** G16-B: plan-included / purchased readers see a free document's card chapters in full. */
   forceFull?: boolean;
+  /** G24-A: the document's footnote numbering (built once in report.tsx); absent → markers are stripped. */
+  citations?: CitationIndex;
 }
 
-export function TbrChapter({ chapter, index, locale = "en", verificationLevel, upgradeHref = "/pricing", locked = false, forceFull = false }: TbrChapterProps) {
+export function TbrChapter({ chapter, index, locale = "en", verificationLevel, upgradeHref = "/pricing", locked = false, forceFull = false, citations }: TbrChapterProps) {
   const ch = chapter;
   const id = TBR_V2_SECTION_IDS.dim(ch.dim);
   const t = getTbrStrings(locale).v2.chapter;
@@ -246,11 +249,15 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
     return (
       <TbrSection id={id} kicker={String(index)} title={title} purpose={purpose}>
         {header}
-        <TbrScoreLedger chapter={ch} locale={locale} verificationLevel={verificationLevel} />
+        <TbrScoreLedger chapter={ch} locale={locale} verificationLevel={verificationLevel} citations={citations} />
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_280px]">
           <div className="space-y-2">
-            <Prose text={ch.verdict} testId={`tbr-verdict-${ch.dim}`} />
-            {ch.gaps[0] && <p className="text-xs text-secondary">▲ {ch.gaps[0]}</p>}
+            <Prose text={ch.verdict} testId={`tbr-verdict-${ch.dim}`} citations={citations} locale={locale} />
+            {ch.gaps[0] && (
+              <p className="text-xs text-secondary">
+                ▲ <CitedText text={ch.gaps[0]} citations={citations} locale={locale} />
+              </p>
+            )}
             <a href={upgradeHref} className="inline-flex items-center rounded-lg border border-brand-300 dark:border-brand-800 bg-surface-sunken px-3 py-1.5 text-xs font-semibold text-action hover:bg-surface-sunken">
               {t.unlockChapter(title)}
             </a>
@@ -266,11 +273,11 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
   return (
     <TbrSection id={id} kicker={String(index)} title={title} purpose={purpose}>
       {header}
-      <TbrScoreLedger chapter={ch} locale={locale} verificationLevel={verificationLevel} />
+      <TbrScoreLedger chapter={ch} locale={locale} verificationLevel={verificationLevel} citations={citations} />
       <div data-tbr-primary={ch.dim} className="rounded-xl border border-line-subtle p-3 print:break-inside-avoid">
         <VisualFigure spec={ch.primaryVisual} caption={`${ch.primaryVisual.title} · ${stateLabel(ch.primaryVisual.dataState, locale)}${ch.primaryVisual.subtitle ? ` — ${ch.primaryVisual.subtitle}` : ""}`} />
       </div>
-      <Prose text={ch.verdict} testId={`tbr-verdict-${ch.dim}`} />
+      <Prose text={ch.verdict} testId={`tbr-verdict-${ch.dim}`} citations={citations} locale={locale} />
 
       <TbrEvidenceTable chapter={ch} locale={locale} />
 
@@ -285,7 +292,7 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
               <p className="text-sm font-semibold text-primary">{c.title}</p>
               <span className={cn("text-sm font-bold tabular-nums", bandText(c.score >= 70 ? "strong" : c.score >= 40 ? "developing" : "early"))}>{c.score}</span>
             </div>
-            <Prose text={c.verdict} size="xs" className="mt-1" />
+            <Prose text={c.verdict} size="xs" className="mt-1" citations={citations} locale={locale} />
             {compact && owner && (
               <p className="mt-1 text-xs">
                 <a href={`#${owner.id}`} className="text-action underline-offset-2 hover:underline">
@@ -295,11 +302,15 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
             )}
             {!compact && (c.strengths.length > 0 || c.gaps.length > 0) && (
               <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                <Bullets title={t.strengths} tone="good" items={c.strengths.slice(0, 3)} />
-                <Bullets title={t.gaps} tone="bad" items={c.gaps.slice(0, 3)} />
+                <Bullets title={t.strengths} tone="good" items={c.strengths.slice(0, 3)} citations={citations} locale={locale} />
+                <Bullets title={t.gaps} tone="bad" items={c.gaps.slice(0, 3)} citations={citations} locale={locale} />
               </div>
             )}
-            {!compact && c.nextAction && <p className="mt-2 text-xs text-action">{t.next}: {c.nextAction}</p>}
+            {!compact && c.nextAction && (
+              <p className="mt-2 text-xs text-action">
+                {t.next}: <CitedText text={c.nextAction} citations={citations} locale={locale} />
+              </p>
+            )}
             <p className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-muted">
               <Chip kind="band">{qualityLabel(c.quality, locale)}</Chip>
               <Chip kind="support">{c.agent}</Chip>
@@ -312,8 +323,8 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
 
       {(extraStrengths.length > 0 || extraGaps.length > 0) && (
         <div className="grid gap-3 sm:grid-cols-2">
-          <Bullets title={t.strengths} tone="good" items={extraStrengths} />
-          <Bullets title={t.gaps} tone="bad" items={extraGaps} />
+          <Bullets title={t.strengths} tone="good" items={extraStrengths} citations={citations} locale={locale} />
+          <Bullets title={t.gaps} tone="bad" items={extraGaps} citations={citations} locale={locale} />
         </div>
       )}
       <div className="rounded-lg border border-brand-300 dark:border-brand-800 bg-surface-sunken px-3 py-2 text-xs">
@@ -326,7 +337,7 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
           const v = nextActionView(ch, locale);
           return (
             <p data-tbr-next-action={ch.dim} className="text-primary">
-              {ch.nextAction.title} — {t.expectedLift(ch.nextAction.expectedLift)}
+              <CitedText text={ch.nextAction.title} citations={citations} locale={locale} /> — {t.expectedLift(ch.nextAction.expectedLift)}
               {v.evidence ? ` · ${t.evidenceToAdd(v.evidence)}` : ""}
             </p>
           );
