@@ -56,14 +56,14 @@ describe("pipelineCallTimeouts — the callAI options for a hint", () => {
     expect(pipelineCallTimeouts({ stage: "chapter", remainingMs: 384_000 })).toEqual({ timeoutMs: 120_000, budgetMs: 384_000 });
   });
 
-  it("inside a tight window an attempt leaves headroom for one fallback: min(stage, max(budget/2, budget − 45 s))", () => {
-    expect(FALLBACK_HEADROOM_MS).toBe(45_000);
-    // The 120 s W4 reserve: 75 s first attempt, 45 s left for the fallback.
-    expect(pipelineCallTimeouts({ stage: "chapter", remainingMs: 120_000 })).toEqual({ timeoutMs: 75_000, budgetMs: 120_000 });
+  it("inside a tight window an attempt leaves headroom for one fallback: min(stage, max(budget/2, budget − 60 s))", () => {
+    expect(FALLBACK_HEADROOM_MS).toBe(60_000); // = the criterion timeout: room for exactly one fallback attempt
+    // The 120 s W4 reserve: max(60, 120 − 60) = 60 s first attempt, 60 s left for the fallback.
+    expect(pipelineCallTimeouts({ stage: "chapter", remainingMs: 120_000 })).toEqual({ timeoutMs: 60_000, budgetMs: 120_000 });
     // 50 s left: two 25 s attempts beat one 50 s attempt.
     expect(pipelineCallTimeouts({ stage: "chapter", remainingMs: 50_000 })).toEqual({ timeoutMs: 25_000, budgetMs: 50_000 });
-    // Criterion never exceeds 60 s even with a wide window; inside 100 s it leaves the 45 s headroom (100 − 45 = 55).
-    expect(pipelineCallTimeouts({ stage: "criterion", remainingMs: 100_000 })).toEqual({ timeoutMs: 55_000, budgetMs: 100_000 });
+    // Criterion never exceeds 60 s even with a wide window; inside 100 s it leaves the 60 s headroom (max(50, 40) = 50).
+    expect(pipelineCallTimeouts({ stage: "criterion", remainingMs: 100_000 })).toEqual({ timeoutMs: 50_000, budgetMs: 100_000 });
     expect(pipelineCallTimeouts({ stage: "criterion", remainingMs: 200_000 })).toEqual({ timeoutMs: 60_000, budgetMs: 200_000 });
     // Nearly spent: the 5 s floor and a 1 s budget floor — fails fast instead of hanging.
     expect(pipelineCallTimeouts({ stage: "synthesis", remainingMs: 800 })).toEqual({ timeoutMs: 5_000, budgetMs: 1_000 });
