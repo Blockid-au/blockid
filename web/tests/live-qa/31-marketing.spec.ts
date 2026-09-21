@@ -147,8 +147,17 @@ test.describe("Marketing lane — link-check core on the home HTML", () => {
 // The raw markers must never reach the page body; the footnote links and the
 // "Evidence cited" section are asserted fail-soft (the persisted showcase
 // report may predate the citation pipeline and carry no marker at all).
-test.describe("Marketing lane — showcase report citations (G24-A)", () => {
-  test("/showcase/blockid/report body carries no raw [ev:] / [unevidenced] marker", async ({ browser, qa }, testInfo) => {
+//
+// G27: the showcase is the v3 investor-grade document — the four page-1
+// landmarks (`#tbr-dashboard`, `#tbr-investment-view`, `#tbr-risk-matrix`,
+// `#tbr-plan-90d`) must be present. FAIL-SOFT on structure until the merge
+// session re-renders the showcase on v3: when `#tbr-investment-view` is
+// absent the landmark asserts are skipped with an annotation; the no-raw-
+// marker + citation assertions stay hard either way.
+const V3_LANDMARKS = ["#tbr-dashboard", "#tbr-investment-view", "#tbr-risk-matrix", "#tbr-plan-90d"] as const;
+
+test.describe("Marketing lane — showcase report citations (G24-A) + v3 landmarks (G27)", () => {
+  test("/showcase/blockid/report body carries no raw [ev:] / [unevidenced] marker; v3 landmarks present (fail-soft)", async ({ browser, qa }, testInfo) => {
     const ctx = await browser.newContext({ storageState: { cookies: [], origins: [] } });
     try {
       const page = await ctx.newPage();
@@ -158,14 +167,33 @@ test.describe("Marketing lane — showcase report citations (G24-A)", () => {
       const footnoteLinks = await page.locator('sup a[href^="#ev-"]').count();
       const evidenceCited = await page.locator("#tbr-evidence-cited").count();
       const published = await page.locator("[data-tbr-version]").count();
-      await evidence(testInfo, "/showcase/blockid/report citations", { status, published, footnoteLinks, evidenceCited, rawEv: (body.match(/\[ev:/g) ?? []).length, rawUnevidenced: (body.match(/\[unevidenced\]/gi) ?? []).length });
+      const landmarks: Record<string, number> = {};
+      for (const id of V3_LANDMARKS) landmarks[id] = await page.locator(id).count();
+      const onV3 = landmarks["#tbr-investment-view"] > 0;
+      await evidence(testInfo, "/showcase/blockid/report citations", {
+        status,
+        published,
+        footnoteLinks,
+        evidenceCited,
+        landmarks,
+        onV3,
+        rawEv: (body.match(/\[ev:/g) ?? []).length,
+        rawUnevidenced: (body.match(/\[unevidenced\]/gi) ?? []).length,
+      });
       expect(status).toBe(200);
+      // Hard: no raw marker, whatever the render version.
       expect(body, "no raw [ev:<id>] marker in the showcase body").not.toContain("[ev:");
       expect(body, "no raw [unevidenced] marker in the showcase body").not.toMatch(/\[unevidenced\]/i);
       // Fail-soft: footnotes only exist when the stored report cites something.
       if (published > 0 && footnoteLinks > 0) {
         expect(evidenceCited, "footnote links imply the Evidence cited section").toBe(1);
         expect(await page.locator("#ev-1").count()).toBe(1);
+      }
+      // G27 landmarks: hard once the showcase renders on v3; annotated + skipped until then.
+      if (onV3) {
+        for (const id of V3_LANDMARKS) expect(landmarks[id], `${id} present exactly once on the v3 showcase`).toBe(1);
+      } else {
+        testInfo.annotations.push({ type: "fail-soft", description: "showcase not yet re-rendered on v3 (#tbr-investment-view absent) — landmark asserts skipped" });
       }
     } finally {
       await ctx.close();

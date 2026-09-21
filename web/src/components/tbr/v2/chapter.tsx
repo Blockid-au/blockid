@@ -39,7 +39,7 @@ import type { DimensionChapter } from "@/lib/report-v2/schema";
 import { benchmarkLabel, mayShowPercentile } from "@/lib/benchmarks/publication-rules";
 import { derivedLift } from "@/lib/svi-lift";
 import { cn } from "@/lib/utils";
-import { AgentBadge, AuditStampLine, Bullets, Chip, CitedText, Prose, TABLE_CLASS, TBR_V2_SECTION_IDS, THEAD_CLASS, TbrSection, UnverifiedChip, WindowChip, phaseLabel, stateLabel, v2Strings, zebraRow, type TbrUiLocale } from "./shared";
+import { AgentBadge, AuditStampLine, Bullets, Chip, CitedText, Prose, TABLE_CLASS, TBR_V2_SECTION_IDS, THEAD_CLASS, TbrSection, UnverifiedChip, WindowChip, phaseLabel, stateLabel, zebraRow, type TbrUiLocale } from "./shared";
 import { BandChip, Callout, FIGURE_CLASS, STICKY_COL_CLASS, TABLE_SCROLL_CLASS, TD_CLASS, TH_CLASS, v3Strings } from "./shared-v3";
 import { FounderExecutionCard, founderExecutionFromChapter } from "./founder-execution-card";
 import { TbrLockedChapterPreview } from "./locked-preview";
