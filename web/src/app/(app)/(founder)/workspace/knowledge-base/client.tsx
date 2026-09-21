@@ -194,7 +194,7 @@ export function KnowledgeBaseClient({
       {/* Slide-over drawer */}
       {openArticle && (
         <div className="fixed inset-0 z-50 flex" onClick={() => setOpenArticle(null)}>
-          <div className="flex-1 bg-black/30 backdrop-blur-sm" />
+          <div className="flex-1 bg-strong/50 backdrop-blur-sm" />
           <div
             className="w-full max-w-2xl bg-white h-full overflow-y-auto shadow-xl"
             onClick={(e) => e.stopPropagation()}

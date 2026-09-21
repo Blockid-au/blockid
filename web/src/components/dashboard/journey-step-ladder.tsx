@@ -312,7 +312,7 @@ function PhaseNode({ ordinal, isCompleted, isCurrent, isFuture, currentOrdinal }
       {tooltip && (
         <div
           role="tooltip"
-          className="absolute -top-11 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap rounded-lg bg-ink-900 px-2.5 py-1.5 text-[11px] font-medium text-white shadow-lg pointer-events-none"
+          className="absolute -top-11 left-1/2 -translate-x-1/2 z-20 whitespace-nowrap rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[11px] font-medium text-primary shadow-2 pointer-events-none"
         >
           {isFuture
             ? `Unlocks after phase ${currentOrdinal}`

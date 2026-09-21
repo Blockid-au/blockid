@@ -633,7 +633,7 @@ export function BillingClient({
       {showDowngradeConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            className="absolute inset-0 bg-strong/50 backdrop-blur-sm"
             onClick={() => setShowDowngradeConfirm(null)}
           />
           <div className="relative bg-white rounded-2xl border border-surface-200 shadow-xl max-w-sm w-full p-6 space-y-4">

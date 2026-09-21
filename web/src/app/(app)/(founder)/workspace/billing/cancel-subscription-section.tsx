@@ -242,7 +242,7 @@ export function CancelSubscriptionSection({ subscription: initial, planLabel }: 
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="cancel-dialog-heading">
-          <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={() => (busy ? null : setOpen(false))} />
+          <div className="absolute inset-0 bg-strong/50 backdrop-blur-sm" onClick={() => (busy ? null : setOpen(false))} />
           <div className="relative bg-white rounded-2xl border border-surface-200 shadow-xl max-w-md w-full p-6 space-y-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-start gap-3">
               <AlertTriangle strokeWidth={1.75} className="h-5 w-5 shrink-0 text-amber-500 mt-0.5" />

@@ -197,7 +197,7 @@ export function SviCompletenessHeatmap({ projectId, className }: SviCompleteness
           role="dialog"
           aria-modal="true"
           aria-labelledby="svi-heatmap-modal-title"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-strong/50 backdrop-blur-sm p-4"
           onClick={() => setSelectedDim(null)}
         >
           <div

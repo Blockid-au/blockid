@@ -112,7 +112,7 @@ export function SectionPicker({ onConfirm, onClose, credits, loading }: SectionP
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-strong/50 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal — full-height sheet on mobile, centered card on desktop */}
       <div className="relative w-full sm:max-w-2xl h-full sm:h-auto sm:max-h-[85vh] flex flex-col bg-white sm:rounded-2xl sm:border sm:border-surface-200 sm:shadow-2xl overflow-hidden">

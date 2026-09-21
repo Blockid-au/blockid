@@ -365,7 +365,7 @@ export function GrantsClient({ initialGrants, disclaimer, readOnly = false }: Gr
 
       {/* Create modal */}
       {createOpen ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-strong/50 p-4">
           <div className="w-full max-w-lg rounded-2xl bg-white shadow-xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-surface-200">
               <h2 className="text-sm font-bold text-ink-800">Create ESOP grant</h2>
@@ -488,7 +488,7 @@ export function GrantsClient({ initialGrants, disclaimer, readOnly = false }: Gr
 
       {/* Div 83A checker panel */}
       {checkGrant ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-strong/50 p-4">
           <div className="w-full max-w-2xl rounded-2xl bg-white shadow-xl overflow-hidden">
             <div className="flex items-center justify-between px-5 py-3.5 border-b border-surface-200">
               <div>

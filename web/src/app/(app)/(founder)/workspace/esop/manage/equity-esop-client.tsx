@@ -869,7 +869,7 @@ function AddMemberModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-strong/50 p-4"
       onClick={onClose}
     >
       <form
@@ -1402,7 +1402,7 @@ function AddGrantModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-strong/50 p-4"
       onClick={onClose}
     >
       <form

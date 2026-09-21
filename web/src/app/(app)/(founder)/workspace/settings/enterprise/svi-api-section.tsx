@@ -171,7 +171,7 @@ export function SviApiSection() {
         <button
           onClick={createKey}
           disabled={creating}
-          className="bg-slate-900 hover:bg-slate-700 text-white text-sm px-4 py-2 rounded-lg font-medium disabled:opacity-50"
+          className="bg-action hover:bg-action-hover text-on-action text-sm px-4 py-2 min-h-11 rounded-lg font-medium disabled:opacity-50"
         >
           {creating ? "Creating…" : "Create Free Key"}
         </button>

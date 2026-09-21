@@ -97,7 +97,7 @@ export function EsopDashboardClient() {
       )}
 
       {showCreatePool && !pool && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-strong/50">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
             <h3 className="font-semibold text-ink-900 mb-2">Create ESOP Pool</h3>
             <p className="text-sm text-ink-600 mb-4">

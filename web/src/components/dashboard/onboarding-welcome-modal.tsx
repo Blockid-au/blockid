@@ -50,7 +50,7 @@ export function OnboardingWelcomeModal() {
     >
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/40"
+        className="absolute inset-0 bg-strong/50"
         onClick={dismiss}
         aria-hidden="true"
       />

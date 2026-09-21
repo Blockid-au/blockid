@@ -12,7 +12,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/components/ui/credit-balance", () => ({ CreditBalance: () => <span data-stub="credit-balance" /> }));
-vi.mock("@/components/ui/theme-toggle", () => ({ ThemeToggle: () => <button data-stub="theme-toggle" aria-label="Switch to dark mode" /> }));
 vi.mock("@/components/wallet/connect-wallet-button", () => ({ ConnectWalletButton: () => <span data-stub="wallet" /> }));
 vi.mock("@/components/auth/LogoutButton", () => ({
   LogoutButton: ({ children, className }: { children?: React.ReactNode; className?: string }) => (
@@ -36,7 +35,7 @@ describe("HeaderAccountMenu (lane-1 F4)", () => {
     // Closed: none of the widgets are mounted (no duplicate fetches at rest).
     expect(html).not.toContain('data-testid="header-account-menu-panel"');
     expect(html).not.toContain('data-stub="credit-balance"');
-    expect(html).not.toContain('data-stub="theme-toggle"');
+    expect(html).not.toContain("theme-toggle");
     expect(html).not.toContain('data-stub="logout"');
   });
 
@@ -47,11 +46,11 @@ describe("HeaderAccountMenu (lane-1 F4)", () => {
     expect(html).toContain('role="menu"');
     expect(html).toContain("Founder");
     expect(html).toContain("founder@example.com");
-    // Credits / wallet / theme live in the menu only below sm (inline from sm up).
+    // Credits / wallet live in the menu only below sm (inline from sm up). G26: no theme toggle — light only.
     expect(html).toMatch(/class="sm:hidden"[^>]*data-testid="header-account-menu-mobile-widgets"|data-testid="header-account-menu-mobile-widgets"[^>]*class="sm:hidden"/);
     expect(html).toContain('data-stub="credit-balance"');
     expect(html).toContain('data-stub="wallet"');
-    expect(html).toContain('data-stub="theme-toggle"');
+    expect(html).not.toContain("Theme");
     expect(html).toContain('data-stub="logout"');
     expect(html).toContain("Sign out");
     // S-IA5 — the shared list: New analysis · My score · My reports · Dashboard · Settings.

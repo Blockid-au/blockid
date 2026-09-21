@@ -1942,7 +1942,7 @@ function SVIPaywall({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto py-8">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-strong/50 backdrop-blur-sm animate-fade-in overflow-y-auto py-8">
       <div className="relative mx-4 w-full max-w-md rounded-3xl border border-surface-200 bg-white p-6 sm:p-8 shadow-2xl">
         {/* Close button */}
         <button
@@ -2211,13 +2211,10 @@ function TopBar() {
 // ═══════════════════════════════════════════════════════════════════════════════
 function BottomFooter() {
   return (
-    // Intentionally dark footer. Scoped with data-theme="dark" (the
-    // ProShell / uptime-guardian pattern) so its descendants resolve the
-    // dark token map instead of hard-coded slate: `text-slate-600` on
-    // `bg-ink-900` was 2.4:1 and the copyright line was unreadable.
+    // G26: light footer (sunken) — the dark `data-theme="dark"` scope is gone;
+    // light is the only default and every link is `text-muted` ≥ 4.5:1 on it.
     <footer
-      data-theme="dark"
-      className="bg-surface text-sm text-muted border-t border-line-subtle"
+      className="bg-surface-sunken text-sm text-muted border-t border-line-subtle"
     >
       <div className="mx-auto max-w-7xl px-6 py-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">

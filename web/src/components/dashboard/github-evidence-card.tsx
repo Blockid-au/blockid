@@ -19,7 +19,7 @@ export function GitHubEvidenceCard({
   return (
     <div className="rounded-2xl border border-surface-200 bg-white p-5">
       <div className="flex items-start gap-3">
-        <div data-theme="dark" className="h-9 w-9 rounded-xl bg-surface flex items-center justify-center shrink-0">
+        <div className="h-9 w-9 rounded-xl bg-surface-sunken ring-1 ring-line-subtle flex items-center justify-center shrink-0">
           <GitBranch strokeWidth={1.75} className="h-4 w-4 text-primary" />
         </div>
         <div className="flex-1 min-w-0">

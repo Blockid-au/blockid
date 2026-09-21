@@ -233,7 +233,7 @@ export function ShareMgmtDrawer({
         type="button"
         aria-label={t.close}
         onClick={onClose}
-        className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
+        className="absolute inset-0 bg-strong/50 backdrop-blur-[2px]"
       />
       <div
         ref={panelRef}

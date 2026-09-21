@@ -136,7 +136,7 @@ function AddShareholderModal({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div
-        className="fixed inset-0 bg-black/30 backdrop-blur-sm"
+        className="fixed inset-0 bg-strong/50 backdrop-blur-sm"
         onClick={onClose}
       />
       <div className="relative bg-white rounded-2xl border border-surface-200 shadow-xl w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
@@ -302,7 +302,7 @@ function TransferModal({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div
-        className="fixed inset-0 bg-black/30 backdrop-blur-sm"
+        className="fixed inset-0 bg-strong/50 backdrop-blur-sm"
         onClick={onClose}
       />
       <div className="relative bg-white rounded-2xl border border-surface-200 shadow-xl w-full max-w-md mx-4">
@@ -405,17 +405,17 @@ function ShareCertificate({
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center">
       <div
-        className="fixed inset-0 bg-black/30 backdrop-blur-sm"
+        className="fixed inset-0 bg-strong/50 backdrop-blur-sm"
         onClick={onClose}
       />
       <div className="relative bg-white rounded-2xl border border-surface-200 shadow-xl w-full max-w-lg mx-4 overflow-hidden">
         {/* Certificate header */}
-        <div className="bg-gradient-to-br from-brand-600 to-brand-800 px-8 py-6 text-white text-center">
-          <Award strokeWidth={1.25} className="h-10 w-10 mx-auto mb-2 opacity-80" />
+        <div className="border-b border-line-subtle bg-surface-sunken px-8 py-6 text-primary text-center">
+          <Award strokeWidth={1.25} className="h-10 w-10 mx-auto mb-2 text-action" />
           <h2 className="text-xl font-bold tracking-wide">
             Share Certificate
           </h2>
-          <p className="text-brand-100 text-sm mt-1">
+          <p className="text-muted text-sm mt-1">
             {LEGAL_ENTITY.operator} ({LEGAL_ENTITY_ACN_LABEL})
           </p>
         </div>

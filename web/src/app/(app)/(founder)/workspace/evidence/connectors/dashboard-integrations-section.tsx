@@ -148,7 +148,7 @@ export async function DashboardIntegrationsSection({
           ) : isGoogleAnalyticsOAuthConfigured() ? (
             <a
               href="/api/integrations/google-analytics/start"
-              className="inline-flex items-center gap-2 rounded-lg bg-ink-900 px-4 py-2 text-sm font-medium text-white hover:bg-ink-800"
+              className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 min-h-11 text-sm font-medium text-on-action hover:bg-action-hover"
             >
               <LineChart strokeWidth={1.75} className="h-4 w-4" />
               {existingGaSummary ? "Reconnect Google Analytics" : "Connect Google Analytics"}

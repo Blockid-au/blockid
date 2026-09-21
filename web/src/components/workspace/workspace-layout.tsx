@@ -13,7 +13,6 @@ import { Logo } from "@/components/brand/logo";
 import { CreditBalance } from "@/components/ui/credit-balance";
 import { CreditBadge } from "@/components/workspace/credit-badge";
 import { ProjectSwitcher } from "@/components/ui/project-switcher";
-import { ThemeToggle } from "@/components/ui/theme-toggle";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
 import { FeedbackWidget } from "@/components/ui/feedback-widget";
 import { UpgradePrompt } from "@/components/ui/upgrade-prompt";
@@ -363,7 +362,7 @@ export function WorkspaceLayout({ children, user, currentPhase: currentPhaseProp
     <div className="min-h-svh bg-surface-sunken text-primary flex">
       {/* Mobile overlay */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} />
+        <div className="fixed inset-0 z-40 bg-strong/50 backdrop-blur-sm lg:hidden" onClick={() => setMobileOpen(false)} />
       )}
 
       {/* Sidebar */}
@@ -561,11 +560,11 @@ export function WorkspaceLayout({ children, user, currentPhase: currentPhaseProp
             {/* Reseller co-branding pill (renders null when no attribution) */}
             <ResellerPill />
 
-            {/* sm+ only: wallet · credits · theme (below sm they sit in the account menu) */}
+            {/* sm+ only: wallet · credits (below sm they sit in the account menu).
+                G26: no theme toggle — the workspace is light-only. */}
             <div className="hidden sm:flex items-center gap-2" data-testid="header-actions-desktop">
               <ConnectWalletButton compact />
               <CreditBalance />
-              <ThemeToggle />
             </div>
 
             {/* Notifications — every width */}
