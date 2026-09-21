@@ -93,7 +93,7 @@ function oauthToken(env: NodeJS.ProcessEnv): string | null {
 export function configuredProviders(env: NodeJS.ProcessEnv = process.env): Partial<Record<ProbeProvider, string>> {
   const out: Partial<Record<ProbeProvider, string>> = {};
   // G25-B: absent OR placeholder = not configured (no probe, no warning).
-  if (isAnthropicApiKeyConfigured(env.ANTHROPIC_API_KEY)) out.anthropic = env.ANTHROPIC_API_KEY;
+  if (isAnthropicApiKeyConfigured(env.ANTHROPIC_API_KEY)) out.anthropic = (env.ANTHROPIC_API_KEY ?? "").trim();
   const oat = oauthToken(env);
   if (oat) out["claude-oauth"] = oat;
   if (env.ANTHROPIC_PROXY_API_KEY && env.ANTHROPIC_PROXY_BASE_URL) out["claude-proxy"] = env.ANTHROPIC_PROXY_API_KEY.split(",")[0].trim();

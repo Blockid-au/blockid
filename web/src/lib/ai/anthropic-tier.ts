@@ -345,7 +345,7 @@ export async function callAnthropicTier(
   if (isAnthropicKeyInvalid(now())) {
     throw new AnthropicTierError("invalid_key", "Anthropic API key marked invalid (401) — unconfigured for this process");
   }
-  const apiKey = deps.apiKey ?? process.env.ANTHROPIC_API_KEY ?? "";
+  const apiKey = (deps.apiKey ?? process.env.ANTHROPIC_API_KEY ?? "").trim();
   if (!deps.client && !isAnthropicApiKeyConfigured(apiKey)) {
     // Never dial the API without a real key — the dispatcher filters this
     // provider out earlier; this is the belt for direct callers.

@@ -1016,7 +1016,9 @@ async function callClaudeOAuth(apiKey: string, opts: AICallOptions, cls: AITaskC
 
 /** Anthropic API key — the quality tier via the official SDK (lib/ai/anthropic-tier.ts). */
 async function callClaudeApiKey(opts: AICallOptions): Promise<AICallResult> {
-  const apiKey = isAnthropicApiKeyConfigured() ? process.env.ANTHROPIC_API_KEY! : getDBKey("anthropic")?.api_key ?? "";
+  // Env first (trimmed — the predicate trims, the SDK must see the same value), DB key second.
+  const envKey = (process.env.ANTHROPIC_API_KEY ?? "").trim();
+  const apiKey = isAnthropicApiKeyConfigured(envKey) ? envKey : (getDBKey("anthropic")?.api_key ?? "").trim();
   if (!isAnthropicApiKeyConfigured(apiKey)) throw new Error("Anthropic API key not configured — Claude CLI subscription is the fallback");
   const r = await callAnthropicTier(opts, { apiKey });
   return { text: r.text, provider: "claude", model: r.model, usage: r.usage, cost_usd: r.cost_usd };
@@ -2383,7 +2385,7 @@ export function getAnthropicClient() {
     return new Anthropic({ authToken: oauthToken, maxRetries: 2, timeout: 120_000 });
   }
   if (isAnthropicApiKeyConfigured()) {
-    return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 2, timeout: 120_000 });
+    return new Anthropic({ apiKey: (process.env.ANTHROPIC_API_KEY ?? "").trim(), maxRetries: 2, timeout: 120_000 });
   }
   throw new Error("No Anthropic credentials for term-sheet analysis (Claude CLI token or ANTHROPIC_API_KEY)");
 }
