@@ -16,6 +16,7 @@
 //   lapsed seat or an unknown report id (never 403) · 400 invalid body ·
 //   503 while migration 0403 is not applied.
 
+import { loadReviewerSignature } from "@/lib/evaluations/signature-load";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { resolveAssessmentAccess } from "@/lib/evaluations/assessment-access";
@@ -110,6 +111,7 @@ export async function GET(request: Request, { params }: Ctx) {
     weightsShown: report.weightsShown,
     generatedAt: report.createdAt,
     generatedBy,
+    signature: await loadReviewerSignature({ userId: user.id, projectId: access.evaluation.projectId, generatedAt: report.createdAt, known: { displayName: user.displayName, email: user.email } }),
     locale: /[\u00C0-\u1EF9]/.test(`${view.header.name} ${report.sections.summary?.startupName ?? ""}`) ? "vi" : "en",
     }));
   } finally {
@@ -164,6 +166,7 @@ async function POST_handler(request: Request, { params }: Ctx) {
       weightsShown,
       generatedAt: created.report.createdAt,
       generatedBy: user.displayName?.trim() || user.email,
+      signature: await loadReviewerSignature({ userId: user.id, projectId: access.evaluation.projectId, generatedAt: created.report.createdAt, known: { displayName: user.displayName, email: user.email } }),
     });
     pages = rendered.pages;
     void setIcReportPages(created.report.id, pages).catch(() => {});

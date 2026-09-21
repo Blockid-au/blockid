@@ -15,6 +15,7 @@ import { AssessmentCard } from "@/components/svi/AssessmentCard";
 import { assessmentCardFromAnalysis } from "@/lib/svi/assessment-card";
 import { loadAllDimensionEvidence } from "@/lib/evidence/dimension-evidence";
 import { loadAssessmentContext, assessmentCardOptionsFromContext } from "@/lib/svi/assessment-context";
+import { connectorFreshness, staleConnectorCount } from "@/lib/evidence/freshness";
 import { InvestorReadinessTile } from "@/components/dashboard/investor-readiness-tile";
 import { CohortRetentionTile } from "@/components/dashboard/cohort-retention-tile";
 import { DeepValuationCard } from "@/components/dashboard/deep-valuation-card";
@@ -390,10 +391,12 @@ export default async function SVIDashboardPage() {
   // P1 merge: claims count from the claim register (P1-A) + the stage
   // benchmark under the n-rule (P1-C); both fail-soft.
   const assessmentContext = await loadAssessmentContext(projectId, analysisWithDelta.stage);
+  // G21 P3-C: the "stale connector" hint — connected sources past the proof TTL (fail-soft).
+  const staleConnectors = projectId ? staleConnectorCount(await connectorFreshness(projectId, { db: supabase })) : 0;
   const assessmentCard = assessmentCardFromAnalysis(
     analysisWithDelta,
     { name: projectName ?? "Your startup", sector: scope?.project.industry ?? null, verificationLevel: scope?.project.verificationLevel ?? null, generatedAt: lastAnalysisDate ?? null },
-    { evidence: hubEvidence, ...assessmentCardOptionsFromContext(assessmentContext) },
+    { evidence: hubEvidence, ...assessmentCardOptionsFromContext(assessmentContext), staleConnectors },
   );
 
   // ── Render the living dashboard ──────────────────────────────────────────

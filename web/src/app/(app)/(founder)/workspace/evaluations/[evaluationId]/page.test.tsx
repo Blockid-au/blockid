@@ -265,6 +265,12 @@ describe("/workspace/evaluations/[evaluationId]", () => {
     expect(out).toContain('data-testid="seats-single"');
     expect(appendAuditMock).toHaveBeenCalledTimes(1);
     expect(appendAuditMock.mock.calls[0][0]).toMatchObject({ action: "dossier.viewed", resource_id: "e-1", user_id: "u-eval", detail: { role: "assessor", surface: "page", svi_total: 62, snapshot_id: "s-2" } });
+    // G21 P3-C: the reviewer signature block (assessor only) — reviewer · role · date · methodology · overrides · humans line
+    expect(out).toContain('data-testid="dossier-signature"');
+    expect(out).toContain("Reviewer signature");
+    expect(out).toContain("Startup Value Index v");
+    expect(out).toContain("data-signature-overrides");
+    expect(out).toContain("Humans make the decision.");
   });
 
   it("S-R4: block 2 valuation from ReportV2, block 5 progress radar, header mandate fit + since last view (assessor)", async () => {
@@ -307,6 +313,7 @@ describe("/workspace/evaluations/[evaluationId]", () => {
     expect(out).not.toContain('data-testid="dossier-actions"');
     expect(out).not.toContain('data-testid="export-ic"');
     expect(out).not.toContain('data-testid="evidence-upgrade-cta"');
+    expect(out).not.toContain('data-testid="dossier-signature"'); // G21 P3-C: no reviewer identity on the founder preview
     expect(out).toContain("this is what your evaluator sees at the tier you granted");
     const block1 = out.slice(out.indexOf('data-testid="dossier-block-1"'), out.indexOf('data-testid="dossier-block-2"'));
     expect((block1.match(/<svg[^>]*role="img"/g) ?? []).length).toBe(1);

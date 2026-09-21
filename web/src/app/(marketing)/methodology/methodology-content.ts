@@ -11,6 +11,7 @@
  * say something the code does not do.
  */
 
+import { VERSIONS_PATH, VERSIONS_VI_PATH } from "@/lib/svi/version-history";
 import { CRITERIA } from "@/lib/evaluation-criteria";
 import { CAP_RULES_PLAIN, CONFIDENCE_LEVELS, type ConfidenceLevel, type EvidenceOrigin } from "@/lib/evidence/confidence-cap";
 import { t, type Messages } from "@/lib/i18n/t";
@@ -33,6 +34,7 @@ export type MethodologyLocale = "en" | "vi";
 export const METHODOLOGY_PATH = "/methodology";
 export const CALIBRATION_PATH = "/methodology/calibration";
 export const GOVERNANCE_PATH = "/methodology/governance";
+export { VERSIONS_PATH, VERSIONS_VI_PATH } from "@/lib/svi/version-history";
 
 export interface MethodologyDimension {
   key: DimKey;
@@ -110,7 +112,7 @@ export interface MethodologyProps {
   };
   calibration: { kicker: string; title: string; body: string; link: string; href: string };
   /** G21 P0-D: governance row (+ the visible "Methodology version vX.Y.Z" line) and the human-in-the-loop paragraph. */
-  governance: { kicker: string; title: string; body: string; link: string; href: string; versionLine: string };
+  governance: { kicker: string; title: string; body: string; link: string; href: string; versionLine: string; versionsLink: string; versionsHref: string };
   hitl: { kicker: string; title: string; body: string; detail: string };
   cta: { title: string; primary: { href: string; label: string }; secondary: { href: string; label: string } };
 }
@@ -287,6 +289,9 @@ export function buildMethodologyProps(m: Messages, locale: MethodologyLocale = "
       link: T("methodology.governance.link"),
       href: locale === "vi" ? `/vi${GOVERNANCE_PATH}` : GOVERNANCE_PATH,
       versionLine: fill(T("methodology.governance.version"), { version: SVI_VERSION }),
+      // G21 P3-C: the version history page.
+      versionsLink: T("methodology.governance.versionsLink"),
+      versionsHref: locale === "vi" ? VERSIONS_VI_PATH : VERSIONS_PATH,
     },
     hitl: {
       kicker: T("methodology.hitl.kicker"),

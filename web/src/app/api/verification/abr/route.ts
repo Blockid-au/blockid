@@ -35,6 +35,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { lookupAbn } from "@/lib/verification/abr-adapter";
+import { emitAbrEvidence } from "@/lib/connectors/connector-evidence";
 import {
   computeVerificationLevel,
   type VerificationLevel,
@@ -234,6 +235,19 @@ async function POST_handler(request: Request): Promise<NextResponse> {
     route: "/api/verification/abr",
     ip: extractIp(request.headers),
     ua: extractUserAgent(request.headers),
+  });
+
+  // G21 P3-C — the register read as EvidenceRecords on the claim register
+  // (lco.registered / legal.has_abn at L4 connected_source — an
+  // authoritative register, still machine-read; L6 needs a reviewer) and the
+  // `evidence_verified` analytics event for an active ABN. Fail-soft.
+  await emitAbrEvidence({
+    projectId: businessId,
+    ownerUserId: project.user_id as string,
+    actorUserId: user.id,
+    email: user.email,
+    plan: user.plan,
+    abr: { abn: rawAbn, entityName: abrResult.entityName, status: abrResult.status, entityType: abrResult.entityType, gstRegistered: abrResult.gstRegistered },
   });
 
   return NextResponse.json({

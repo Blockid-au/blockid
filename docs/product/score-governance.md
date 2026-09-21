@@ -62,6 +62,8 @@ Business verification (L0 unverified → L5 continuous monitoring, `web/src/lib/
 | 2.1.0 | 2026-08-16 | Funding-readiness gates; enhanced finance, strategy and data analysis prompts | minor — criteria / narrative |
 | 2.2.0 | 2026-09-16 | Confidence cap by evidence origin; business-verification multiplier | minor — evidence rules |
 
+The same table, with each version's effect on comparability with earlier snapshots, is published at `https://blockid.au/methodology/versions` (`web/src/lib/svi/version-history.ts` drives both pages; a version bump without a history row fails the test suite).
+
 ## 6. Change policy (semantic versioning)
 
 | Change | Version step | Notice |
@@ -127,6 +129,10 @@ Implementation (G21 P1-C): the founder files from `/workspace/evidence/correctio
 ## 12. Model provenance
 
 The deterministic score never touches a language model. Narrative chapters do, and every run records the model that produced each chapter plus an auditor stamp: whether the text is grounded in the evidence rows, how many statements went uncited, and whether the auditor revised it. Models are routed by availability and cost and can change between runs; the record of which one ran does not. BlockID makes no claim that any vendor's model is better than another's.
+
+**Connector evidence (G21 P3-C).** Every connected source is justified by the claim it makes more trustworthy, and every sync writes that claim's proof onto the evidence record — never only into a report. The registry (`web/src/lib/connectors/evidence-value.ts`) states, per connector, the dimensions and claim keys it backs and the ladder level it reaches; the emitter (`web/src/lib/connectors/connector-evidence.ts`) runs on the weekly resync, the founder's "Sync now", the OAuth callback's first pull and an ABR lookup, and records one `EvidenceRecord` per claim key with `source_type` = the connector, `observed_at` = the snapshot time, `expires_at` = observed + 90 days (the connector TTL; `api/cron/evidence-expiry` retires it), a hash over the canonical payload and evaluator visibility. Levels: Stripe and Xero revenue → `transaction_data` (L5); Xero cash at bank and the derived runway, GitHub commit cadence (`ftv.shipping_cadence`) and repository, GA4 sessions and conversions → `connected_source` (L4); the Australian Business Register lookup → `lco.registered` at `connected_source` (L4) — an authoritative register, still machine-read, so it does not reach `third_party_verified`, which remains a named reviewer's check against the source (§ 4, § 13). A connector figure that disagrees with the founder's stated value makes the claim **conflicting** (§ 8); a newer snapshot from the same connector supersedes its older proof, and a connector observation never rewrites a stated claim. Freshness is one rule everywhere (`web/src/lib/evidence/freshness.ts`): **fresh** ≤ 30 days, **ageing** 31–90 days, **stale** past the 90-day TTL (the proof has expired); the connector cards, the Assessment Card ("stale connector" hint), the corrections panel's "last refreshed" and the admin trust metrics read it.
+
+**Reviewer signature.** A dossier, an IC memo and a Cohort Report carry a signature block — reviewer name, seat role and organisation, date, the methodology version (`SVI_VERSION`) and the count of recorded overrides for that startup (§ 9) — under the line "BlockID structures the evidence and standardises the first-pass analysis. Humans make the decision." The version history behind that line, with each version's effect on comparability, is published at `/methodology/versions`.
 
 ## 13. Data limitations
 

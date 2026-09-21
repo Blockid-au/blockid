@@ -285,6 +285,14 @@ describe("resyncConnection — Stripe Connect (v2 vault)", () => {
       expect.objectContaining({ userIds: ["owner-1"] }),
     );
 
+    // G21 P3-C — the pull lands on the claim register too: connector-minted
+    // claims + L5 EvidenceRecords (source_type stripe, +90 d expiry).
+    const claimInserts = ops.filter((o) => o.table === "claims" && o.op === "insert").map((o) => o.args[0] as Row);
+    expect(claimInserts.map((r) => r.claim_key)).toEqual(["traction.has_revenue", "traction.mrr_aud", "traction.arr_aud", "traction.paying_customers", "market.has_customers", "traction.churn_90d_pct"]);
+    const recInserts = ops.filter((o) => o.table === "evidence_records" && o.op === "insert").map((o) => o.args[0] as Row);
+    expect(recInserts).toHaveLength(6);
+    expect(recInserts[1]).toMatchObject({ project_id: "proj-1", evidence_type: "L5_transaction_data", source_type: "stripe", source_name: "Stripe (stripe:traction.mrr_aud)", observed_at: NOW.toISOString(), expires_at: "2026-12-13T05:00:00.000Z", status: "active", observed_value: { kind: "number", value: 8200, unit: "AUD" } });
+
     // Lease released + sync stamped.
     const release = ops.filter((o) => o.table === "oauth_connections_v2" && o.op === "update").at(-1);
     expect(release?.args[0]).toMatchObject({ resync_leased_until: null, resync_last_at: NOW.toISOString(), last_sync_error: null, status: "active" });

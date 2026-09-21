@@ -1,5 +1,6 @@
 /**
- * 24 — Outbound webhooks (release-qa2 row 21, qa4 SSRF posture):
+ * 24 — Outbound webhooks (release-qa2 row 21, qa4 SSRF posture) + G21 P3-C
+ * integrations-by-evidence-value / freshness / methodology versions (end of file):
  * `/workspace/evidence/connectors` #webhooks — plan gate on Free (402
  * plan_required + gate copy), the SSRF guard rejects `http://169.254.169.254`
  * and `http://localhost` (and the https metadata host), an endpoint is
@@ -231,5 +232,82 @@ test.describe("Webhooks", () => {
     expect(list.body.endpoints.some((e) => e.id === id)).toBe(false);
     expect(again.status()).toBe(404);
     setScratch("webhooks.endpointId", null);
+  });
+});
+
+
+/**
+ * G21 P3-C — integrations by evidence value + connector freshness + the
+ * methodology version history page. Every connector card on
+ * /workspace/evidence/connectors states which claim it strengthens (the
+ * `data-evidence-sentence` strip with dimension chips + evidence level); a
+ * connected source carries a freshness badge (`data-freshness`); hidden and
+ * Priority-2/3 integrations are one "Not offered" row each; and
+ * /methodology/versions answers 200 with the live SVI_VERSION marked current.
+ */
+test.describe("Integrations by evidence value (G21 P3-C)", () => {
+  test("every connector card carries the evidence-value strip; connected ones a freshness badge; the not-offered list names the claim each would strengthen", async ({ page, visit }, testInfo) => {
+    await visit("/workspace/evidence/connectors", { waitUntil: "networkidle" });
+    const cards = page.locator("[data-connector-card]");
+    const n = await cards.count();
+    expect(n).toBeGreaterThan(0);
+    const summary: Array<{ card: string; sentence: string; level: string | null; freshness: string | null }> = [];
+    for (let i = 0; i < n; i++) {
+      const card = cards.nth(i);
+      const id = (await card.getAttribute("data-connector-card")) ?? "";
+      const sentence = (await card.locator("[data-evidence-sentence]").first().textContent())?.trim() ?? "";
+      expect(sentence.length, `${id}: evidence-value sentence`).toBeGreaterThan(30);
+      const levelEl = card.locator("[data-evidence-level]");
+      const level = (await levelEl.count()) > 0 ? await levelEl.first().getAttribute("data-evidence-level") : null;
+      const badge = card.locator("[data-freshness]");
+      const freshness = (await badge.count()) > 0 ? await badge.first().getAttribute("data-freshness") : null;
+      if (freshness) {
+        expect(["fresh", "ageing", "stale", "never"]).toContain(freshness);
+        await expect(badge.first()).not.toHaveText(""); // text, never colour alone
+      }
+      // an OAuth connector that is connected (Sync / Disconnect buttons) must carry the badge
+      const connected = (await card.getByRole("button", { name: /Sync now|Disconnect/ }).count()) > 0;
+      if (connected) expect(freshness, `${id}: connected card has a freshness badge`).not.toBeNull();
+      summary.push({ card: id, sentence: sentence.slice(0, 80), level, freshness });
+    }
+    const notOffered = page.getByTestId("not-offered-connectors");
+    await expect(notOffered).toBeVisible();
+    const rows = notOffered.locator("[data-not-offered]");
+    const rowCount = await rows.count();
+    expect(rowCount).toBeGreaterThanOrEqual(6); // hidden Stripe Connect / Xero / QuickBooks + Priority-2/3
+    for (let i = 0; i < rowCount; i++) {
+      const r = rows.nth(i);
+      await expect(r.locator("[data-evidence-sentence]")).not.toHaveText("");
+      await expect(r.getByRole("link", { name: "Talk to us" })).toHaveAttribute("href", /\/contact\?topic=sales&feature=/);
+    }
+    await expect(notOffered).toContainText("Not offered yet");
+    await evidence(testInfo, "connector cards + not-offered rows", { cards: summary, notOffered: rowCount });
+  });
+
+  test("/methodology/versions → 200, the live SVI_VERSION row marked current, links to governance + methodology; the VI mirror too", async ({ browser, qa }, testInfo) => {
+    const ctx = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    try {
+      const page = await ctx.newPage();
+      const res = await page.goto(`${qa.baseURL}/methodology/versions`, { waitUntil: "domcontentloaded" });
+      expect(res?.status()).toBe(200);
+      expect(await page.locator("h1").count()).toBe(1);
+      const current = page.locator("[data-testid='versions-current']");
+      await expect(current).toBeVisible();
+      const version = await current.getAttribute("data-version");
+      expect(version).toMatch(/^\d+\.\d+\.\d+$/);
+      await expect(page.locator(`[data-version-row='${version}'][data-current='true']`)).toHaveCount(1);
+      expect(await page.locator("[data-version-row]").count()).toBeGreaterThanOrEqual(4);
+      await expect(page.getByTestId("versions-governance-link")).toHaveAttribute("href", "/methodology/governance");
+      await expect(page.getByTestId("versions-methodology-link")).toHaveAttribute("href", "/methodology");
+      // /methodology links here
+      await page.goto(`${qa.baseURL}/methodology`, { waitUntil: "domcontentloaded" });
+      await expect(page.getByTestId("methodology-versions-link")).toHaveAttribute("href", "/methodology/versions");
+      const vi = await page.goto(`${qa.baseURL}/vi/methodology/versions`, { waitUntil: "domcontentloaded" });
+      expect(vi?.status()).toBe(200);
+      await expect(page.locator(`[data-version-row='${version}'][data-current='true']`)).toHaveCount(1);
+      await evidence(testInfo, "/methodology/versions", { version, status: res?.status() });
+    } finally {
+      await ctx.close();
+    }
   });
 });

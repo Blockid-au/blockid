@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { projectScopeOrRedirect } from "@/lib/project-members/http";
 import { saveConnection, writeSignals, markSynced } from "@/lib/oauth-connectors";
+import { emitConnectorEvidence } from "@/lib/connectors/connector-evidence";
 import { fetchGa4RichSignals, fetchGa4Signals, ga4SnapshotRow, listGa4Properties, writeGa4Snapshot, type Ga4SnapshotDb } from "@/lib/oauth-ga4-signals";
 import { getSupabaseAdmin } from "@/lib/supabase";
 
@@ -130,6 +131,8 @@ export async function GET(request: Request) {
             numeric: signals.averageSessionDurationSec,
           },
         ]);
+        // G21 P3-C — the pull as EvidenceRecords on the claim register (fail-soft).
+        await emitConnectorEvidence({ projectId, input: { provider: "ga4", metrics: signals }, actorUserId: user.id });
         if (conn) await markSynced(conn.id);
         // S-R5: first 90-day snapshot for the AARRR funnel (best-effort).
         try {

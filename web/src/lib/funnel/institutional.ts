@@ -16,6 +16,7 @@
 // + app_users for the North Star, the traction snapshot JSON for MRR and
 // counts).
 
+import { STALE_AFTER_DAYS, countStaleConnectors } from "@/lib/evidence/freshness";
 import { getStatusRoot, readJsonFile, REPORTS_DIR } from "@/lib/status/jsonl";
 import { dayString, isQaRow, rowsInWindow, type FunnelEventRow } from "./core";
 
@@ -83,6 +84,8 @@ export interface InstitutionalDbCounts {
   longitudinal_companies: number | null;
   verified_claims: number | null;
   evidence_level_distribution: Record<string, number> | null;
+  /** G21 P3-C: (project, provider) connections past the connector proof TTL (lib/evidence/freshness.ts). */
+  stale_connectors: number | null;
   mrr_cents: number | null;
   paying_orgs: number | null;
 }
@@ -97,6 +100,7 @@ export function emptyDbCounts(): InstitutionalDbCounts {
     longitudinal_companies: null,
     verified_claims: null,
     evidence_level_distribution: null,
+    stale_connectors: null,
     mrr_cents: null,
     paying_orgs: null,
   };
@@ -206,7 +210,7 @@ export function reduceInstitutional(rowsIn: readonly FunnelEventRow[], db: Insti
         live("verified_claims", "Verified claims", db.verified_claims, "svi_dimension_evidence rows with confidence_level = third_party_verified"),
         live("evidence_verified_events", "Evidence verified (window)", count(rows, "evidence_verified"), "evidence_verified events (reviewer approvals emit from P1)"),
         later("evidence_level_distribution", "Evidence level distribution", "p1", "per-level share across live evidence rows — the Assessment Card (P1) publishes it"),
-        later("stale_connectors", "Stale connectors", "p1", "connectors past their resync window — connector health lands with P1"),
+        live("stale_connectors", "Stale connectors", db.stale_connectors, `active connections (project × provider) whose last read is older than ${STALE_AFTER_DAYS} days — their EvidenceRecords have expired`),
       ],
     },
     {
@@ -401,6 +405,15 @@ export async function readInstitutionalFunnel(client: InstitutionalClient | null
   db.snapshots = await countRows(client, warnings, "svi_snapshots:count");
   db.evidence_records = await countRows(client, warnings, "svi_dimension_evidence:count");
   db.verified_claims = await countRows(client, warnings, "svi_dimension_evidence:verified", (q) => q.eq("confidence_level", "third_party_verified"));
+
+  // G21 P3-C — stale connectors: bounded scan of the v2 vault, folded per
+  // (project, provider) against the proof TTL by the shared freshness rule.
+  const conns = await safe(warnings, "oauth_connections_v2:stale", async () => client.from("oauth_connections_v2").select("project_id, provider, status, last_sync_at, updated_at").in("status", ["active", "error"]).limit(FI_ROW_LIMIT));
+  if (conns?.error) warnings.push(`oauth_connections_v2:stale: ${conns.error.message ?? "query failed"}`);
+  else if (conns?.data) {
+    db.stale_connectors = countStaleConnectors(conns.data as Array<{ project_id: string | null; provider: string; status: string; last_sync_at: string | null; updated_at: string | null }>, now);
+    if (conns.data.length >= FI_ROW_LIMIT) warnings.push(`oauth_connections_v2:stale: capped at ${FI_ROW_LIMIT} rows`);
+  }
 
   // Longitudinal companies: bounded scan of snapshot project ids.
   const snaps = await safe(warnings, "svi_snapshots:longitudinal", async () => client.from("svi_snapshots").select("project_id").order("project_id", { ascending: true }).limit(FI_ROW_LIMIT));

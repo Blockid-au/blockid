@@ -911,6 +911,7 @@
   "methodology.governance.body": "Định nghĩa các chiều, chính sách trọng số, lịch sử phiên bản và chính sách thay đổi, quy tắc công bố phân vị (không có phân vị dưới n = 10, luôn kèm n), cách xử lý tuyên bố mâu thuẫn, cách ghi nhận xét duyệt và ghi đè của con người, và cách chỉnh sửa, khiếu nại, chấm lại — viết cho quản lý chương trình, hội đồng đầu tư và kiểm toán viên của họ.",
   "methodology.governance.link": "Đọc phần quản trị điểm số →",
   "methodology.governance.version": "Phiên bản phương pháp v{version}",
+  "methodology.governance.versionsLink": "Lịch sử phiên bản — thay đổi của từng phiên bản và ảnh hưởng đến khả năng so sánh →",
   "methodology.hitl.kicker": "Con người trong vòng lặp",
   "methodology.hitl.title": "Ai quyết định",
   "methodology.hitl.body": "BlockID cấu trúc bằng chứng và chuẩn hoá phân tích vòng đầu. Con người ra quyết định.",

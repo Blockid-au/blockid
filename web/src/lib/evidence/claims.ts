@@ -32,6 +32,7 @@ import { defaultClaimsDb, isMissingTableError, type ClaimsDb, type HubRowForSync
 import { hubRowConfidence, isUsableHubRow } from "./hub-rows";
 import { evidenceRecordHash, recordsConfidence } from "./records";
 import {
+  confidenceFromEvidenceLevel,
   evidenceLevelFromConfidence,
   evidenceLevelRank,
   isSviDimension,
@@ -39,6 +40,7 @@ import {
   type Claim,
   type ClaimDraft,
   type ClaimValueSource,
+  type ConnectorEvidenceRow,
   type ContradictionStatus,
   type EvidenceLevel,
   type EvidenceRecord,
@@ -51,11 +53,16 @@ import {
 
 type SignalKey = keyof SVIExtractedSignals;
 
-interface ClaimDef {
+export interface ClaimDef {
   key: string;
   dim: SviDimension;
   category: string;
-  signal: SignalKey;
+  /**
+   * The engine signal that mints this claim from founder text. Absent on a
+   * connector-only claim (G21 P3-C): those keys are minted solely by a
+   * connected source through `connectorRows` and never by the analysis.
+   */
+  signal?: SignalKey;
   kind: "number" | "boolean" | "enum";
   unit?: string;
   /** enum: values that are the engine's "nothing found" default → no claim. */
@@ -114,11 +121,20 @@ export const CLAIM_REGISTRY: readonly ClaimDef[] = [
   { key: "moat.network_effect", dim: "svm", category: "moat", signal: "hasNetworkEffect", kind: "boolean", statement: () => "The product has network effects" },
   { key: "moat.data_advantage", dim: "svm", category: "moat", signal: "hasDataAdvantage", kind: "boolean", statement: () => "The company holds a proprietary data advantage" },
   { key: "moat.switching_costs", dim: "svm", category: "moat", signal: "hasSwitchingCosts", kind: "boolean", statement: () => "Customers face switching costs" },
+  // ── connector-only keys (G21 P3-C) — no founder signal; minted by lib/connectors/connector-evidence.ts ──
+  { key: "traction.paying_customers", dim: "tre", category: "traction", kind: "number", statement: (v) => `${Math.round(Number(v)).toLocaleString("en-AU")} paying customers` },
+  { key: "traction.churn_90d_pct", dim: "tre", category: "traction", kind: "number", unit: "%", statement: (v) => `90-day subscription churn of ${Number(v).toFixed(1)}%` },
+  { key: "traction.monthly_sessions", dim: "tre", category: "traction", kind: "number", statement: (v) => `${Math.round(Number(v)).toLocaleString("en-AU")} website sessions in the last 30 days` },
+  { key: "traction.monthly_conversions", dim: "tre", category: "traction", kind: "number", statement: (v) => `${Math.round(Number(v)).toLocaleString("en-AU")} tracked conversions in the last 30 days` },
+  { key: "capital.bank_balance_aud", dim: "cgh", category: "capital", kind: "number", unit: "AUD", statement: (v) => `Cash at bank of ${aud(v)}` },
+  { key: "capital.runway_months", dim: "cgh", category: "capital", kind: "number", statement: (v) => `Runway of about ${Number(v).toFixed(1)} months at the current burn` },
+  { key: "ftv.shipping_cadence", dim: "ftv", category: "execution", kind: "number", statement: (v) => `${Math.round(Number(v)).toLocaleString("en-AU")} commits shipped in the last 30 days` },
+  { key: "lco.registered", dim: "lco", category: "legal", kind: "boolean", statement: () => "The business is registered and active on the Australian Business Register" },
 ];
 
 const DEF_BY_KEY = new Map(CLAIM_REGISTRY.map((d) => [d.key, d]));
 const DEFS_BY_SIGNAL = new Map<SignalKey, ClaimDef[]>();
-for (const d of CLAIM_REGISTRY) DEFS_BY_SIGNAL.set(d.signal, [...(DEFS_BY_SIGNAL.get(d.signal) ?? []), d]);
+for (const d of CLAIM_REGISTRY) if (d.signal) DEFS_BY_SIGNAL.set(d.signal, [...(DEFS_BY_SIGNAL.get(d.signal) ?? []), d]);
 
 export function claimDefinition(key: string): ClaimDef | undefined {
   return DEF_BY_KEY.get(key);
@@ -253,18 +269,28 @@ export const DEFAULT_TTL_DAYS: Record<"founder_text" | "evidence_hub" | "connect
 
 export interface DeriveClaimsInput {
   projectId: string;
-  /** The analysis (svi_analyses.analysis_json) — `signals` is what the registry reads. */
-  analysis: Pick<SVIAnalysis, "signals"> & Partial<Pick<SVIAnalysis, "version">>;
+  /** The analysis (svi_analyses.analysis_json) — `signals` is what the registry reads; `{}` when only connector rows are synced. */
+  analysis: ClaimsAnalysisInput;
   /** The founder's text the analysis ran on (URL detection for the founder_text rung). */
   rawText?: string | null;
   /** svi_dimension_evidence rows (project-scoped Evidence Hub). */
   hubRows?: readonly HubRowForSync[];
   /** ReportV2 evidence rows minted by GATHER (connectors, open registers). */
   evidenceRows?: readonly EvidenceRow[];
+  /**
+   * G21 P3-C — connector observations from a sync / snapshot
+   * (lib/connectors/connector-evidence.ts): one row per claim key the
+   * connector can speak for, carrying the ladder level the registry in
+   * lib/connectors/evidence-value.ts assigns (L4 / L5) and the value read.
+   */
+  connectorRows?: readonly ConnectorEvidenceRow[];
   sourceReportId?: string | null;
   submittedBy?: string | null;
   now?: Date;
 }
+
+/** The analysis the sync reads; `signals` may be absent when only connector rows are synced (G21 P3-C). */
+export type ClaimsAnalysisInput = (Pick<SVIAnalysis, "signals"> & Partial<Pick<SVIAnalysis, "version">>) | { signals?: null | undefined; version?: string | null };
 
 export interface DerivedClaims {
   claims: ClaimDraft[];
@@ -290,6 +316,7 @@ export function deriveClaims(input: DeriveClaimsInput): DerivedClaims {
   const founderRung = capConfidence({ requested: signals?.evidenceLevel, origin: "founder_text", hasUrl: textHasUrl(input.rawText) }).level;
   const founderLevel = levelFromRung(founderRung);
   for (const def of CLAIM_REGISTRY) {
+    if (!def.signal) continue; // connector-only key — see step 4
     const raw = signals ? (signals as unknown as Record<string, unknown>)[def.signal] : undefined;
     if (raw == null) continue;
     if (def.kind === "boolean" && raw !== true) continue;
@@ -427,6 +454,59 @@ export function deriveClaims(input: DeriveClaimsInput): DerivedClaims {
     });
   }
 
+  // 4. G21 P3-C — connector observations (sync / snapshot) → one record per
+  //    claim key. The claim is minted by the connector when no analysis or
+  //    hub row stated it (source "connector"); when it exists, the record's
+  //    observed_value is what detectContradictions compares against the
+  //    founder's figure. source_name carries `(provider:claim_key)` so a
+  //    newer snapshot from the same connector supersedes the older proof
+  //    (supersedeKey) while another connector on the same claim is
+  //    additional proof. A connector never exceeds L5 (confidence-cap).
+  for (const row of input.connectorRows ?? []) {
+    const def = DEF_BY_KEY.get(row.claim_key);
+    if (!def) continue;
+    const rung = capConfidence({ requested: confidenceFromEvidenceLevel(row.evidence_type), origin: "connector", hasUrl: true }).level;
+    const value = row.value ?? (def.kind === "boolean" ? { kind: "boolean" as const, value: true } : null);
+    const raw = value ? value.value : null;
+    if (!claims.has(row.claim_key) && raw != null) {
+      claims.set(row.claim_key, {
+        project_id: input.projectId,
+        svi_dimension: def.dim,
+        category: def.category,
+        claim_key: row.claim_key,
+        statement: row.statement ?? def.statement(raw),
+        // extracted_value is the ANALYSIS observation (claimObservations); a
+        // connector-minted claim has none — its figure is the record's
+        // observed_value, so a later snapshot is compared with the founder /
+        // analysis, never with the connector's own earlier reading.
+        extracted_value: null,
+        normalized_value: value,
+        source_report_id: input.sourceReportId ?? null,
+        source: "connector",
+      });
+    }
+    const observed = row.observed_at ?? nowIso;
+    records.push({
+      project_id: input.projectId,
+      claim_key: row.claim_key,
+      svi_dimension: def.dim,
+      evidence_type: levelFromRung(rung),
+      source_type: row.provider,
+      source_uri: row.source_uri ?? null,
+      source_name: `${row.source_name} (${row.provider}:${row.claim_key})`.slice(0, 300),
+      submitted_by: input.submittedBy ?? null,
+      observed_at: observed,
+      confidence: null,
+      verification_level: null,
+      verified_by: null,
+      verified_at: null,
+      expires_at: addDays(new Date(Date.parse(observed) || now.getTime()), DEFAULT_TTL_DAYS.connector),
+      visibility: "evaluators",
+      consent_scope: {},
+      observed_value: value,
+    });
+  }
+
   return { claims: [...claims.values()], records };
 }
 
@@ -440,6 +520,8 @@ export interface SyncClaimsOptions {
   rawText?: string | null;
   hubRows?: readonly HubRowForSync[];
   evidenceRows?: readonly EvidenceRow[];
+  /** G21 P3-C — connector observations (see DeriveClaimsInput.connectorRows). */
+  connectorRows?: readonly ConnectorEvidenceRow[];
   sourceReportId?: string | null;
   /** The user who triggered the analysis — `claims.created_by` / `evidence_records.submitted_by`. */
   actorUserId?: string | null;
@@ -549,7 +631,7 @@ export async function regradeClaims(args: {
  * Never deletes; a proof already recorded (same hash) is skipped; a newer
  * proof from the same source for the same claim supersedes the older row.
  */
-export async function syncClaimsForProject(projectId: string, analysis: DeriveClaimsInput["analysis"], opts: SyncClaimsOptions = {}): Promise<SyncClaimsSummary> {
+export async function syncClaimsForProject(projectId: string, analysis: ClaimsAnalysisInput, opts: SyncClaimsOptions = {}): Promise<SyncClaimsSummary> {
   const db = opts.db === undefined ? await defaultClaimsDb() : opts.db;
   if (!db) throw new Error("claims sync: database unavailable");
   const audit = opts.audit === undefined ? defaultAudit : opts.audit;
@@ -561,6 +643,7 @@ export async function syncClaimsForProject(projectId: string, analysis: DeriveCl
     rawText: opts.rawText,
     hubRows,
     evidenceRows: opts.evidenceRows,
+    connectorRows: opts.connectorRows,
     sourceReportId: opts.sourceReportId,
     submittedBy: opts.actorUserId ?? null,
     now,
@@ -601,6 +684,10 @@ export async function syncClaimsForProject(projectId: string, analysis: DeriveCl
       }
       continue;
     }
+    // G21 P3-C: a connector observation never rewrites an existing claim's
+    // statement — the claim is what was asserted; the connector's figure
+    // lives on its record (observed_value) and grades / contradicts it.
+    if (draft.source === "connector") continue;
     if (cur.statement !== draft.statement || !sameJson(cur.extracted_value, draft.extracted_value) || !sameJson(cur.normalized_value, draft.normalized_value) || (draft.source_report_id && cur.source_report_id !== draft.source_report_id)) {
       const updated = await db.updateClaim(cur.id, {
         statement: draft.statement,

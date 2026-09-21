@@ -57,6 +57,12 @@ export interface AssessmentCardData {
   methodologyVersion: string;
   /** Dimensions still pending (0–8). */
   pendingDims: number;
+  /**
+   * G21 P3-C — connected sources past the connector proof TTL
+   * (lib/evidence/freshness.ts `stale`). Additive: absent / 0 renders
+   * nothing; > 0 renders one muted "stale connector" line on every twin.
+   */
+  staleConnectors?: number;
 }
 
 export interface AssessmentProjectInput {
@@ -92,6 +98,8 @@ export interface AssessmentSnapshotInput {
   benchmark?: AssessmentBenchmark | null;
   /** P1-A: the unverified material claim count, when the claims table has it. */
   unverifiedMaterialClaims?: number | null;
+  /** G21 P3-C: stale connector count from `connectorFreshness(projectId)`. */
+  staleConnectors?: number | null;
 }
 
 export type AssessmentEvidenceInput = Readonly<Partial<Record<DimKey | string, readonly DimensionEvidenceItem[]>>>;
@@ -187,6 +195,7 @@ export function buildAssessmentCard(project: AssessmentProjectInput, ledger: Ass
     lastUpdated: snapshot.generatedAt,
     methodologyVersion: (snapshot.methodologyVersion ?? "").trim() || SVI_VERSION,
     pendingDims,
+    ...(typeof snapshot.staleConnectors === "number" && snapshot.staleConnectors > 0 ? { staleConnectors: Math.round(snapshot.staleConnectors) } : {}),
   };
 }
 
@@ -212,6 +221,8 @@ export interface AssessmentCardOptions {
   evidenceConfidence?: number | null;
   unverifiedMaterialClaims?: number | null;
   evidence?: AssessmentEvidenceInput;
+  /** G21 P3-C: stale connector count (see AssessmentSnapshotInput). */
+  staleConnectors?: number | null;
 }
 
 /** ReportV2 → card (cover + chapters carry everything; hub items are optional extras). */
@@ -229,7 +240,7 @@ export function assessmentCardFromReport(report: ReportV2, opts: AssessmentCardO
     { total: report.cover.svi.band === "pending" ? null : report.cover.svi.total, dimensions },
     opts.evidence ?? {},
     // The methodology is the SVI version, not the pipeline id ("adapter-v1-snapshot").
-    { generatedAt: report.generatedAt, evidenceConfidence: opts.evidenceConfidence, methodologyVersion: SVI_VERSION, benchmark: opts.benchmark, unverifiedMaterialClaims: opts.unverifiedMaterialClaims },
+    { generatedAt: report.generatedAt, evidenceConfidence: opts.evidenceConfidence, methodologyVersion: SVI_VERSION, benchmark: opts.benchmark, unverifiedMaterialClaims: opts.unverifiedMaterialClaims, staleConnectors: opts.staleConnectors },
   );
 }
 
@@ -270,6 +281,6 @@ export function assessmentCardFromAnalysis(analysis: SVIAnalysis, project: Analy
     },
     { total: analysis.totalSVI, dimensions },
     opts.evidence ?? {},
-    { generatedAt: project.generatedAt ?? new Date(0).toISOString(), evidenceConfidence: opts.evidenceConfidence, methodologyVersion: analysis.version, benchmark: opts.benchmark, unverifiedMaterialClaims: opts.unverifiedMaterialClaims },
+    { generatedAt: project.generatedAt ?? new Date(0).toISOString(), evidenceConfidence: opts.evidenceConfidence, methodologyVersion: analysis.version, benchmark: opts.benchmark, unverifiedMaterialClaims: opts.unverifiedMaterialClaims, staleConnectors: opts.staleConnectors },
   );
 }

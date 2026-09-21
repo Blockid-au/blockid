@@ -11,6 +11,11 @@ import type { PdfFontSet } from "@/lib/pdf/fonts";
 
 const BRAND = "#0072B2";
 
+/** One muted line, shared by the web card and both twins (G21 P3-C). */
+export function staleConnectorsLine(n: number): string {
+  return `${n} connected source${n === 1 ? "" : "s"} past the 90-day refresh window — its proof has expired; resync to restore it`;
+}
+
 /** Plain-text lines for the DOCX twin and the PDF block alike (label · value). */
 export function assessmentCardLines(data: AssessmentCardData): Array<{ label: string; value: string }> {
   const lines: Array<{ label: string; value: string }> = [
@@ -25,6 +30,8 @@ export function assessmentCardLines(data: AssessmentCardData): Array<{ label: st
   lines.push({ label: "Last updated", value: formatIsoDate(data.lastUpdated) });
   lines.push({ label: "Methodology", value: `SVI v${data.methodologyVersion}` });
   if (data.pendingDims > 0) lines.push({ label: "Pending", value: `${data.pendingDims} of 8 dimensions pending` });
+  // G21 P3-C — additive: only when a connected source is past its proof TTL.
+  if (data.staleConnectors && data.staleConnectors > 0) lines.push({ label: "Stale connectors", value: staleConnectorsLine(data.staleConnectors) });
   return lines;
 }
 

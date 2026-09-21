@@ -21,6 +21,16 @@ import {
   DashboardIntegrationsSection,
   SECTION_CONNECTED_VALUES,
 } from "./dashboard-integrations-section";
+import { getSupabaseAdmin } from "@/lib/supabase";
+import { connectorFreshness, type ConnectorFreshness } from "@/lib/evidence/freshness";
+import { CATALOGUE_PROVIDER_TO_EVIDENCE, connectorEvidenceValue, notOfferedConnectors } from "@/lib/connectors/evidence-value";
+import { hiddenFeature } from "@/lib/features/hidden";
+import {
+  ConnectorEvidenceStrip,
+  FreshnessBadge,
+  NotOfferedConnectorsList,
+  type NotOfferedConnectorItem,
+} from "@/components/workspace/connector-evidence-value";
 
 export const metadata: Metadata = {
   title: "Integrations",
@@ -73,12 +83,46 @@ export default async function IntegrationsPage({
   // listed at all instead of showing a disabled "not available yet" button.
   // Setting the env key un-hides the row (lib/features/hidden.ts documents
   // the hidden connectors).
-  const rows = buildIntegrationsCatalogue({
+  const allRows = buildIntegrationsCatalogue({
     oauthConnections,
     blockchainConfig,
     providerConfigured: isProviderConfigured,
-  }).filter((row) => row.status !== "not_configured");
+  });
+  const rows = allRows.filter((row) => row.status !== "not_configured");
   const summary = summariseCatalogue(rows);
+
+  // G21 P3-C — which claim each source makes more trustworthy + freshness.
+  // Freshness is project-scoped (oauth_connections_v2 + connector_snapshots);
+  // a missing project or db yields no badge rather than a wrong one.
+  let projectIdForEvidence: string | null = null;
+  try {
+    projectIdForEvidence = (await getProjectScope())?.projectId ?? null;
+  } catch {
+    projectIdForEvidence = null;
+  }
+  const freshness = projectIdForEvidence ? await connectorFreshness(projectIdForEvidence, { db: getSupabaseAdmin() }) : [];
+  const freshnessFor = (provider: string): ConnectorFreshness | null => freshness.find((f) => f.provider === provider) ?? null;
+  const xeroConfigured = Boolean(process.env.XERO_CLIENT_ID);
+  const xeroFreshness = freshnessFor("xero");
+  // The G20 hidden connectors (unprovisioned OAuth apps) keep their
+  // "Not offered yet" card — as a list row here, with the sentence — and
+  // the Priority-2/3 integrations get one row each.
+  const notOffered: NotOfferedConnectorItem[] = [];
+  for (const row of allRows) {
+    if (row.status !== "not_configured") continue;
+    const value = connectorEvidenceValue(CATALOGUE_PROVIDER_TO_EVIDENCE[row.provider] ?? row.provider);
+    if (!value) continue;
+    const key = value.hiddenKey ?? `connector_${value.id}`;
+    notOffered.push({ value, featureKey: key, reason: hiddenFeature(key)?.reason ?? value.sentence });
+  }
+  if (!xeroConfigured) {
+    const value = connectorEvidenceValue("xero")!;
+    notOffered.push({ value, featureKey: "connector_xero", reason: hiddenFeature("connector_xero")?.reason ?? value.sentence });
+  }
+  for (const value of notOfferedConnectors()) {
+    const key = value.hiddenKey ?? `connector_${value.id}`;
+    notOffered.push({ value, featureKey: key, reason: hiddenFeature(key)?.reason ?? value.sentence });
+  }
 
   // S20-B — Webhooks: the caller's own endpoints plus the active project's
   // (admin+ manages project-level ones; an editor / viewer sees view-only).
@@ -135,9 +179,45 @@ export default async function IntegrationsPage({
 
         <div className="space-y-4">
           {rows.map((row) => (
-            <IntegrationRowCard key={row.provider} row={row} />
+            <div key={row.provider} data-connector-card={row.provider}>
+              <IntegrationRowCard row={row} />
+              {row.kind === "oauth" ? (
+                <ConnectorEvidenceStrip
+                  id={CATALOGUE_PROVIDER_TO_EVIDENCE[row.provider] ?? row.provider}
+                  freshness={row.status === "connected" || row.status === "error" ? freshnessFor(row.provider) : null}
+                />
+              ) : (
+                <p className="mt-2 px-1 text-xs text-muted" data-evidence-sentence>
+                  Strengthens no claim on its own: a transparency mirror of cap-table events already recorded off-chain, which stays the source of truth.
+                </p>
+              )}
+            </div>
           ))}
+          {xeroConfigured ? (
+            <div data-connector-card="xero">
+              <div className="border border-ink-200 dark:border-ink-800 rounded-lg p-5 bg-white dark:bg-ink-900">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-base font-semibold text-ink-900 dark:text-ink-100">Xero</h3>
+                      {xeroFreshness ? <FreshnessBadge freshness={xeroFreshness} /> : null}
+                    </div>
+                    <p className="text-sm text-ink-600 dark:text-ink-400 mt-1">
+                      Read-only OAuth. Pulls the 3-month profit and loss and the bank balance from your accounting file (AUD).
+                    </p>
+                    {xeroFreshness?.error ? <p className="text-xs text-red-600 dark:text-red-400 mt-1">{xeroFreshness.error}</p> : null}
+                  </div>
+                  <a href="/api/oauth/xero" className="px-3 py-1.5 text-sm rounded-md bg-brand-600 hover:bg-brand-700 text-white shrink-0">
+                    {xeroFreshness ? "Reconnect" : "Connect"}
+                  </a>
+                </div>
+              </div>
+              <ConnectorEvidenceStrip id="xero" freshness={xeroFreshness} />
+            </div>
+          ) : null}
         </div>
+
+        <NotOfferedConnectorsList items={notOffered} />
 
         {/* ── Evidence sources (S-IA2, ex /dashboard/integrations) ──── */}
         <DashboardIntegrationsSection user={user} connected={sp.connected} />

@@ -19,6 +19,7 @@ import { findOrCreateSVIAccount } from "@/lib/projects";
 import { projectScopeOrRedirect } from "@/lib/project-members/http";
 import { oauthSessionOrRedirect } from "@/lib/project-members/oauth-session";
 import { insertConnectorSnapshot } from "@/lib/connectors/snapshots";
+import { emitConnectorEvidence } from "@/lib/connectors/connector-evidence";
 
 export const dynamic = "force-dynamic";
 
@@ -220,21 +221,24 @@ export async function GET(request: Request) {
 
     // S25-A — first dated snapshot (growth baseline for the weekly resync;
     // churn is unknown at link time and stays null until the first resync).
+    const snapshotMetrics = {
+      mrrAud: mrr,
+      arrAud: Math.round(mrr * 12 * 100) / 100,
+      activeSubscriptions: subscriptions.data.length,
+      activeCustomers: customerCount,
+      churnedSubscriptions90d: 0,
+      churnRate90dPct: null,
+      currency,
+    };
     await insertConnectorSnapshot(supabase, {
       userId: ownerUserId,
       projectId,
       provider: "stripe",
-      metrics: {
-        mrrAud: mrr,
-        arrAud: Math.round(mrr * 12 * 100) / 100,
-        activeSubscriptions: subscriptions.data.length,
-        activeCustomers: customerCount,
-        churnedSubscriptions90d: 0,
-        churnRate90dPct: null,
-        currency,
-      },
+      metrics: snapshotMetrics,
       source: "callback",
     });
+    // G21 P3-C — the pull as EvidenceRecords on the claim register (fail-soft).
+    await emitConnectorEvidence({ projectId, input: { provider: "stripe", metrics: snapshotMetrics }, actorUserId: user.id });
 
     // Upsert traction evidence (TRE)
     const { data: existingTre } = await supabase

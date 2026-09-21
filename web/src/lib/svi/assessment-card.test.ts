@@ -107,6 +107,14 @@ describe("adapters", () => {
     expect(assessmentCardFromReport(demoReportV2())).toEqual(card);
   });
 
+  it("G21 P3-C: staleConnectors is additive — absent / 0 leaves the card untouched, > 0 rides along to every twin", () => {
+    const base = assessmentCardFromReport(demoReportV2());
+    expect("staleConnectors" in base).toBe(false);
+    expect(assessmentCardFromReport(demoReportV2(), { staleConnectors: 0 })).toEqual(base);
+    expect(assessmentCardFromReport(demoReportV2(), { staleConnectors: null })).toEqual(base);
+    expect(assessmentCardFromReport(demoReportV2(), { staleConnectors: 2 })).toEqual({ ...base, staleConnectors: 2 });
+  });
+
   it("assessmentCardFromReport marks a chapter with assessed:false as pending", () => {
     const report = demoReportV2();
     report.dimensions[7].scoreBreakdown = { ...report.dimensions[7].scoreBreakdown!, assessed: false, signals: [] };

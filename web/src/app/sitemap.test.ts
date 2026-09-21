@@ -109,6 +109,9 @@ describe("sitemap — funding surfaces", () => {
     expect(urls).toContain(`${SITE}/methodology`);
     expect(urls).toContain(`${SITE}/vi/methodology`);
     expect(urls).toContain(`${SITE}/methodology/calibration`);
+    // G21 P3-C — the version history page + its VI mirror
+    expect(urls).toContain(`${SITE}/methodology/versions`);
+    expect(urls).toContain(`${SITE}/vi/methodology/versions`);
     const en = all.find((e) => e.url === `${SITE}/methodology`);
     expect(en?.alternates?.languages).toEqual({ en: `${SITE}/methodology`, vi: `${SITE}/vi/methodology`, "x-default": `${SITE}/methodology` });
   });

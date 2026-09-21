@@ -75,6 +75,7 @@ Adopted from the advisor feedback (`docs/plans/g21-fi-upgrade-2026-09-20.md` § 
 | What the engine does | `Specialised analysis across eight business dimensions, checked against the underlying evidence.` |
 | Why not a chatbot | `ChatGPT analyses what you paste; BlockID maintains a structured, evidence-backed company record and applies one methodology across every company and every point in time.` |
 | Founder credential | `grounded in the founder's doctoral research on startup valuation` (never "PhD") |
+| Integrations by evidence value (G21 P3-C) | `Every connected source tells you which claim it strengthens.` — each connector card states the dimensions and claim keys it backs and the evidence level it reaches (L4 connected source, L5 transaction data); a source past its 90-day refresh window is labelled **stale** and its proof expires; nothing is promised for a connector we do not offer |
 
 **Naming architecture** (sub-products — copy only, no URL changes, F-6):
 

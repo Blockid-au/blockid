@@ -25,7 +25,8 @@ function fmt(iso: string | null): string {
 
 const STATUS_CLASS: Record<string, string> = {
   fresh: "bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200",
-  stale: "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200",
+  ageing: "bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-200",
+  stale: "bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200",
   never: "bg-ink-100 dark:bg-ink-800 text-ink-600 dark:text-ink-400",
   error: "bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-200",
 };
