@@ -271,12 +271,12 @@ export default async function DocsPage() {
         <div className="mx-auto max-w-4xl px-6">
           {/* Hero */}
           <div className="text-center mb-14">
-            <p className="text-sm uppercase tracking-[0.15em] text-brand-600 font-medium mb-3">
+            <p className="text-sm uppercase tracking-[0.15em] text-accent font-semibold mb-3">
               Platform docs
             </p>
             <h1 className="text-3xl md:text-5xl font-extrabold tracking-tight text-ink-900 leading-tight">
               BlockID.au —{" "}
-              <span className="bg-gradient-to-r from-brand-600 to-brand-500 bg-clip-text text-transparent">
+              <span className="text-action">
                 Startup Verification Intelligence
               </span>{" "}
               for Australian founders

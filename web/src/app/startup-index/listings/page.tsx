@@ -35,7 +35,7 @@ function fmtAud(v: number): string {
 }
 
 function MiniSparkline({ data }: { data: number[] }) {
-  if (data.length < 2) return <span className="text-ink-300 text-xs">—</span>;
+  if (data.length < 2) return <span className="text-muted text-xs">—</span>;
   const min = Math.min(...data) - 1;
   const max = Math.max(...data) + 1;
   const range = max - min || 1;
@@ -168,7 +168,7 @@ export default async function ListingsPage({ searchParams }: PageProps) {
               <Link
                 key={s}
                 href={urlWith({ sector: s, page: 1 })}
-                className={`text-[11px] px-2 py-0.5 rounded-full border ${filter.sector === s ? "bg-brand-600 text-white border-brand-600" : "bg-white text-ink-600 border-ink-200 hover:border-brand-300"}`}
+                className={`text-[11px] px-2 py-0.5 rounded-full border ${filter.sector === s ? "bg-action text-on-action border-action" : "bg-white text-ink-600 border-ink-200 hover:border-brand-300"}`}
               >
                 {s === "all" ? "All" : s}
               </Link>
@@ -181,7 +181,7 @@ export default async function ListingsPage({ searchParams }: PageProps) {
               <Link
                 key={s}
                 href={urlWith({ stage: s, page: 1 })}
-                className={`text-[11px] px-2 py-0.5 rounded-full border ${String(filter.stage) === s ? "bg-brand-600 text-white border-brand-600" : "bg-white text-ink-600 border-ink-200 hover:border-brand-300"}`}
+                className={`text-[11px] px-2 py-0.5 rounded-full border ${String(filter.stage) === s ? "bg-action text-on-action border-action" : "bg-white text-ink-600 border-ink-200 hover:border-brand-300"}`}
               >
                 {s === "all" ? "All" : `S${s}`}
               </Link>
@@ -191,13 +191,13 @@ export default async function ListingsPage({ searchParams }: PageProps) {
           <div className="flex gap-1.5 ml-2">
             <Link
               href={urlWith({ public_only: filter.publicOnly ? undefined : "true", page: 1 })}
-              className={`text-[11px] px-2 py-0.5 rounded-full border ${filter.publicOnly ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-ink-600 border-ink-200 hover:border-emerald-300"}`}
+              className={`text-[11px] px-2 py-0.5 rounded-full border ${filter.publicOnly ? "bg-action text-on-action border-action" : "bg-white text-ink-600 border-ink-200 hover:border-emerald-300"}`}
             >
               Public only
             </Link>
             <Link
               href={urlWith({ revenue_only: filter.revenueOnly ? undefined : "true", page: 1 })}
-              className={`text-[11px] px-2 py-0.5 rounded-full border ${filter.revenueOnly ? "bg-emerald-600 text-white border-emerald-600" : "bg-white text-ink-600 border-ink-200 hover:border-emerald-300"}`}
+              className={`text-[11px] px-2 py-0.5 rounded-full border ${filter.revenueOnly ? "bg-action text-on-action border-action" : "bg-white text-ink-600 border-ink-200 hover:border-emerald-300"}`}
             >
               Revenue only
             </Link>

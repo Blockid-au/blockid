@@ -374,7 +374,7 @@ export default async function StatusPage() {
         <div aria-labelledby="status-services" className="mt-8">
           <h3
             id="status-services"
-            className="text-xs font-semibold uppercase tracking-[0.22em] text-action"
+            className="text-xs font-semibold uppercase tracking-[0.22em] text-accent"
           >
             Services
           </h3>
@@ -404,7 +404,7 @@ export default async function StatusPage() {
         <div aria-labelledby="status-slo" className="mt-10">
           <h3
             id="status-slo"
-            className="text-xs font-semibold uppercase tracking-[0.22em] text-action"
+            className="text-xs font-semibold uppercase tracking-[0.22em] text-accent"
           >
             Service level objectives
           </h3>
@@ -449,7 +449,7 @@ export default async function StatusPage() {
         <div aria-labelledby="status-deploys" className="mt-10">
           <h3
             id="status-deploys"
-            className="text-xs font-semibold uppercase tracking-[0.22em] text-action"
+            className="text-xs font-semibold uppercase tracking-[0.22em] text-accent"
           >
             Recent deploys
           </h3>
@@ -515,7 +515,7 @@ export default async function StatusPage() {
         <div aria-labelledby="status-uptime-guardian" className="mt-10">
           <h3
             id="status-uptime-guardian"
-            className="text-xs font-semibold uppercase tracking-[0.22em] text-action"
+            className="text-xs font-semibold uppercase tracking-[0.22em] text-accent"
           >
             Uptime guardian
           </h3>
@@ -543,7 +543,7 @@ export default async function StatusPage() {
         <div aria-labelledby="status-latency" className="mt-10">
           <h3
             id="status-latency"
-            className="text-xs font-semibold uppercase tracking-[0.22em] text-action"
+            className="text-xs font-semibold uppercase tracking-[0.22em] text-accent"
           >
             Latency by route class (p95, last 10 min)
           </h3>
@@ -570,7 +570,7 @@ export default async function StatusPage() {
         <div aria-labelledby="status-ops" className="mt-10">
           <h3
             id="status-ops"
-            className="text-xs font-semibold uppercase tracking-[0.22em] text-action"
+            className="text-xs font-semibold uppercase tracking-[0.22em] text-accent"
           >
             Operations
           </h3>
@@ -645,7 +645,7 @@ export default async function StatusPage() {
         <div aria-labelledby="status-crons" className="mt-10">
           <h3
             id="status-crons"
-            className="text-xs font-semibold uppercase tracking-[0.22em] text-action"
+            className="text-xs font-semibold uppercase tracking-[0.22em] text-accent"
           >
             Scheduled jobs (24h)
           </h3>

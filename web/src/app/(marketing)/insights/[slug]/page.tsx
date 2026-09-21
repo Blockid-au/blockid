@@ -138,7 +138,7 @@ export default async function InsightPage({
         sub="Eight dimensions, an evidence-backed valuation range and a full report — in 60 seconds."
         primary={{ href: "/analyze", label: "Get your score free", ctaId: "insight_final_score" }}
         secondary={{ href: "/insights", label: "Back to all insights" }}
-        tone="dark"
+        tone="sunken"
       />
 
       {/* Related articles */}

@@ -47,8 +47,8 @@ export function InsightsCategoryFilter({ categories, categoryLabels, articles }:
             onClick={() => setActive(cat.key)}
             className={`rounded-full px-4 py-2 text-sm font-medium transition-all cursor-pointer ${
               active === cat.key
-                ? "bg-action text-on-action shadow-md shadow-[rgba(0,212,255,0.25)]"
-                : "border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] text-secondary hover:bg-[rgba(255,255,255,0.08)] hover:text-primary"
+                ? "bg-action text-on-action shadow-1"
+                : "border border-line bg-surface text-secondary hover:bg-surface-hover hover:text-primary"
             }`}
           >
             {cat.label}
@@ -60,11 +60,11 @@ export function InsightsCategoryFilter({ categories, categoryLabels, articles }:
       {featured && (
         <Link
           href={`/insights/${featured.slug}`}
-          className="group block rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] backdrop-blur-sm hover:border-[rgba(0,212,255,0.3)] hover:scale-[1.01] transition-all duration-300 mb-10 overflow-hidden"
+          className="group block rounded-2xl border border-line-subtle bg-surface shadow-1 hover:border-line hover:shadow-2 transition-shadow duration-200 mb-10 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2"
         >
           <div className="p-8 md:p-10">
             <div className="flex items-center gap-3 mb-4">
-              <span className="text-xs uppercase tracking-[0.15em] font-semibold text-action bg-[rgba(0,212,255,0.1)] px-2.5 py-1 rounded-full">
+              <span className="text-xs uppercase tracking-[0.15em] font-semibold text-accent bg-accent-soft px-2.5 py-1 rounded-full">
                 Featured
               </span>
               <CategoryBadge category={featured.category} labels={categoryLabels} />
@@ -103,7 +103,7 @@ export function InsightsCategoryFilter({ categories, categoryLabels, articles }:
               <Link
                 key={article.slug}
                 href={`/insights/${article.slug}`}
-                className="group flex flex-col rounded-2xl border border-[rgba(255,255,255,0.08)] bg-[rgba(255,255,255,0.04)] backdrop-blur-sm hover:border-[rgba(0,212,255,0.3)] hover:scale-[1.02] transition-all duration-300 overflow-hidden"
+                className="group flex flex-col rounded-2xl border border-line-subtle bg-surface shadow-1 hover:border-line hover:shadow-2 transition-shadow duration-200 overflow-hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2"
               >
                 <div className="flex flex-1 flex-col p-6">
                   <div className="flex items-center gap-2 mb-3">
@@ -150,7 +150,7 @@ function CategoryBadge({
 }) {
   const cat = labels[category] ?? { label: category, color: "" };
   return (
-    <span className="text-[11px] font-semibold rounded-full px-2.5 py-0.5 bg-[rgba(0,212,255,0.1)] text-action">
+    <span className="text-[11px] font-semibold rounded-full px-2.5 py-0.5 bg-accent-soft text-accent">
       {cat.label}
     </span>
   );

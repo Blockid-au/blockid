@@ -49,14 +49,14 @@ export function PricingFeatureNotice(props: { feature?: string | string[]; from?
         {req.contactSales ? (
           <Link
             href={`/contact?plan=enterprise&feature=${encodeURIComponent(req.feature)}`}
-            className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+            className="inline-flex items-center gap-1 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover"
           >
             Contact sales
           </Link>
         ) : req.anchor ? (
           <a
             href={req.anchor}
-            className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700"
+            className="inline-flex items-center gap-1 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover"
           >
             See the {req.plan?.name} plan
             <ArrowDown className="h-3 w-3" strokeWidth={2} aria-hidden="true" />

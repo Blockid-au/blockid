@@ -83,8 +83,12 @@ describe("globals.css light tokens meet WCAG AA on white (release QA-1 #7)", () 
     const textUses = login.match(/(?<!placeholder:)text-surface-400/g) ?? [];
     expect(textUses, "text-surface-400 on visible login text").toEqual([]);
     expect(login).toContain("or continue with email");
-    const band = readFileSync(join(__dirname, "../components/marketing/logo-band.tsx"), "utf8");
-    expect(band).not.toMatch(/className="[^"]*\btext-line\b/);
+    // G26-M: the old dark `logo-band.tsx` (the home '·' row) was an orphan and is gone;
+    // the light TrustBand / ProofBand primitives never use `text-line` on visible text.
+    for (const file of ["../components/marketing/template/TrustBand.tsx", "../components/marketing/template/proof-band.tsx"]) {
+      const band = readFileSync(join(__dirname, file), "utf8");
+      expect(band, file).not.toMatch(/className="[^"]*\btext-line\b/);
+    }
   });
 });
 

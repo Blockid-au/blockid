@@ -111,13 +111,14 @@ export default function ProductPage() {
         </div>
       </Section>
 
-      {/* 3. The page's ONE dark punctuation band: the twelve-phase journey. */}
+      {/* 3. The twelve-phase journey — a white band between two sunken ones (G26: light only). */}
       <Section
         id="journey"
         eyebrow="And where on the path"
         title="Twelve phases. A run tells you which one you are in."
         lede="Building a company is the same twelve pieces of work in roughly the same order. Knowing which one you are actually in is what stops a quarter going into the wrong thing."
-        tone="dark"
+        tone="base"
+        divider
         actions={[
           {
             href: "/showcase/atlassian/growth-phases",

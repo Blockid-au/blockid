@@ -110,37 +110,37 @@ function panelClasses(variant: PanelVariant): string {
   if (variant === "workspace") {
     return "rounded-lg border border-surface-200 bg-white p-4";
   }
-  return "mt-10 rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900";
+  return "mt-10 rounded-lg border border-line-subtle bg-white p-6";
 }
 
 function headingClasses(variant: PanelVariant): string {
   return variant === "workspace"
     ? "text-lg font-semibold text-ink-800"
-    : "text-xl font-semibold text-slate-900 dark:text-slate-100";
+    : "text-xl font-semibold text-primary";
 }
 
 function subheadingClasses(variant: PanelVariant): string {
   return variant === "workspace"
     ? "mt-1 text-xs text-ink-500"
-    : "mt-2 text-sm text-slate-600 dark:text-slate-400";
+    : "mt-2 text-sm text-secondary";
 }
 
 function labelClasses(variant: PanelVariant): string {
   return variant === "workspace"
     ? "text-sm font-semibold text-ink-800"
-    : "text-sm font-semibold text-slate-900 dark:text-slate-100";
+    : "text-sm font-semibold text-primary";
 }
 
 function inputClasses(variant: PanelVariant): string {
   return variant === "workspace"
     ? "mt-2 w-full rounded-md border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
-    : "mt-2 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100";
+    : "mt-2 w-full rounded-md border border-line bg-white px-3 py-2 text-sm text-primary focus:outline-none focus:ring-2 focus:ring-emerald-500";
 }
 
 function submitClasses(variant: PanelVariant): string {
   return variant === "workspace"
-    ? "mt-4 inline-flex items-center rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:cursor-not-allowed disabled:bg-surface-300"
-    : "mt-4 inline-flex items-center rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 dark:disabled:bg-slate-700";
+    ? "mt-4 inline-flex items-center rounded-md bg-action px-4 py-2 text-sm font-semibold text-on-action transition hover:bg-action-hover disabled:cursor-not-allowed disabled:bg-surface-300"
+    : "mt-4 inline-flex items-center rounded-md bg-action px-4 py-2 text-sm font-semibold text-on-action transition hover:bg-action-hover disabled:cursor-not-allowed disabled:bg-surface-300";
 }
 
 const BAND_STYLES: Record<
@@ -148,20 +148,20 @@ const BAND_STYLES: Record<
   { chip: string; container: string }
 > = {
   red: {
-    chip: "bg-red-100 text-red-800 dark:bg-red-950/40 dark:text-red-200",
+    chip: "bg-red-100 text-red-800",
     container:
-      "border-red-300 bg-red-50 dark:border-red-900/40 dark:bg-red-950/30",
+      "border-red-300 bg-red-50",
   },
   amber: {
-    chip: "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-200",
+    chip: "bg-amber-100 text-amber-800",
     container:
-      "border-amber-300 bg-amber-50 dark:border-amber-900/40 dark:bg-amber-950/30",
+      "border-amber-300 bg-amber-50",
   },
   emerald: {
     chip:
-      "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200",
+      "bg-emerald-100 text-emerald-800",
     container:
-      "border-emerald-300 bg-emerald-50 dark:border-emerald-900/40 dark:bg-emerald-950/30",
+      "border-emerald-300 bg-emerald-50",
   },
 };
 
@@ -212,7 +212,7 @@ export function AbnLookupPanel({
   const hintTextClass =
     variant === "workspace"
       ? "mt-0.5 text-xs text-ink-500"
-      : "mt-1 text-xs text-slate-500 dark:text-slate-400";
+      : "mt-1 text-xs text-muted";
 
   return (
     <section
@@ -258,7 +258,7 @@ export function AbnLookupPanel({
 
       {fetchState.status === "error" ? (
         <div
-          className="mt-6 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-amber-200"
+          className="mt-6 rounded-md border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900"
           data-testid="abn-lookup-error"
           role="alert"
         >
@@ -295,15 +295,15 @@ function ResultBlock(props: {
   const tileClass =
     variant === "workspace"
       ? "rounded-md border border-surface-200 bg-surface-50 p-3"
-      : "rounded-md border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-950";
+      : "rounded-md border border-line-subtle bg-surface-sunken p-3";
   const kvKey =
     variant === "workspace"
       ? "text-xs uppercase tracking-wide text-ink-500"
-      : "text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400";
+      : "text-xs uppercase tracking-wide text-muted";
   const kvVal =
     variant === "workspace"
       ? "mt-1 text-sm font-semibold text-ink-800"
-      : "mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100";
+      : "mt-1 text-sm font-semibold text-primary";
 
   const live = body.live;
 

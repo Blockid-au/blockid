@@ -10,6 +10,7 @@
 
 import { describe, expect, it, vi } from "vitest";
 import { LEGAL_ENTITY, marketingLine } from "@/lib/site/legal-entity";
+import { expectLightSurfaces, mainOf } from "@/test/light-surface";
 import { renderToReadableStream } from "react-dom/server";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
@@ -244,9 +245,11 @@ describe("homepage v7 — sections in order", () => {
     expect(band).not.toMatch(/<img\b/);
   });
 
-  it("g. one light (sunken) CtaBand with the two CTAs — G26: no dark band anywhere on the page", () => {
+  it("g. one sunken CtaBand with the two CTAs — no dark band anywhere on the light template (G26)", () => {
+    expect(out).toMatch(/<section[^>]*id="cta"[^>]*class="[^"]*bg-surface-sunken/);
+    expect(mainOf(out)).not.toMatch(/data-theme="dark"/);
     expect(out).toMatch(/<section[^>]*id="cta"[^>]*data-tone="sunken"/);
-    expect(out).not.toMatch(/<section[^>]*data-theme="dark"/);
+    expectLightSurfaces(out, "home");
     const band = out.slice(out.indexOf('id="cta"'));
     expect(band).toContain("Start a cohort");
     expect(band).toContain("Score my startup");
