@@ -92,6 +92,11 @@ regexTarget = "match"
 regexes = [
   '''not-the-real-secret-0+''',
   '''deliberately-invalid''',
+  # G21 P3-B: the API docs' self-describing example key (`FAKE_BEARER` in
+  # src/lib/api-docs-registry.ts) — the shape `bk_live_example<hex>` is never
+  # issued by the key mint (real keys are `bk_live_` + 40 random chars with no
+  # "example" prefix).
+  '''bk_live_example[0-9a-f]+''',
 ]
 
 # ---------------------------------------------------------------------------

@@ -102,12 +102,12 @@ error.
 
 ```sh
 curl "https://blockid.au/api/v1/institutional/cohorts" \
-  -H "Authorization: Bearer bk_live_example1234567890abcdef1234567890abcdef"
+  -H "Authorization: Bearer $BLOCKID_API_KEY"
 ```
 
 ```ts
 const res = await fetch("https://blockid.au/api/v1/institutional/benchmarks?stage=4", {
-  headers: { Authorization: "Bearer bk_live_example1234567890abcdef1234567890abcdef" },
+  headers: { Authorization: `Bearer ${process.env.BLOCKID_API_KEY}` },
 });
 const { ok, data, error, message } = await res.json();
 if (!ok) throw new Error(`${error}: ${message}`);

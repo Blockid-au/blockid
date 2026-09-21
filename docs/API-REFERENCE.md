@@ -2035,7 +2035,7 @@ every 200; `If-None-Match` → 304. Malformed, unknown and not-yours ids all ans
 
 ```bash
 curl "https://blockid.au/api/v1/institutional/benchmarks?stage=4&sector=saas" \
-  -H "Authorization: Bearer bk_live_example1234567890abcdef1234567890abcdef"
+  -H "Authorization: Bearer $BLOCKID_API_KEY"
 ```
 
 **Institutional admin** (organisation owners, session auth — not part of the keyed API):
