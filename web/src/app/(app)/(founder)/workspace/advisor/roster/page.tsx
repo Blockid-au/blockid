@@ -128,7 +128,7 @@ export default async function AdvisorRosterPage() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="min-w-full text-sm">
-                  <thead>
+                  <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                     <tr className="text-left text-xs uppercase tracking-wide text-slate-500 border-b border-slate-200">
                       <th className="py-2 pr-4">Client name</th>
                       <th className="py-2 pr-4">Startup ticker</th>
@@ -137,7 +137,7 @@ export default async function AdvisorRosterPage() {
                       <th className="py-2 pr-4">Next check-in</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-line-subtle">
                     {roster.map((row) => (
                       <tr
                         key={row.id}

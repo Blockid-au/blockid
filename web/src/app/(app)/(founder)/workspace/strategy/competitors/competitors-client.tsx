@@ -441,7 +441,7 @@ export function CompetitorsClient({ initial, disabled }: Props) {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead className="bg-surface-50 border-b border-surface-200">
+              <thead className="sticky top-0 z-10 bg-surface-sunken border-b border-surface-200">
                 <tr>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-ink-600">Name</th>
                   <th className="px-3 py-2 text-left text-xs font-semibold text-ink-600">Category</th>
@@ -452,7 +452,7 @@ export function CompetitorsClient({ initial, disabled }: Props) {
                   <th className="px-3 py-2 text-left text-xs font-semibold text-ink-600" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-100">
+              <tbody className="divide-y divide-line-subtle">
                 {items.map((c) => {
                   const isEd = editingId === c.id;
                   return (

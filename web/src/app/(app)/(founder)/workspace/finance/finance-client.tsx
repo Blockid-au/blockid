@@ -298,7 +298,7 @@ function PnLTable({ data }: { data: RevenueData }) {
     <div className="rounded-xl border border-border bg-card p-5">
       <h3 className="text-sm font-semibold mb-4">P&L Summary (trailing 12 months)</h3>
       <table className="w-full text-sm">
-        <tbody className="divide-y divide-border">
+        <tbody className="divide-y divide-line-subtle [&>tr:nth-child(even)]:bg-surface-sunken">
           {rows.map((r) => (
             <tr key={r.label}>
               <td className={cn("py-2", r.indent && "pl-4 text-muted-foreground text-xs")}>

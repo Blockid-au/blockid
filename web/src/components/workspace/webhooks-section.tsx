@@ -564,7 +564,7 @@ export function WebhooksSection({ initialEndpoints, events, access, projectId, r
                     <p className="text-xs text-muted">No deliveries yet.</p>
                   ) : (
                     <table className="w-full text-xs">
-                      <thead>
+                      <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                         <tr className="text-left text-muted">
                           <th className="py-1 pr-2">Event</th>
                           <th className="py-1 pr-2">Status</th>
@@ -575,7 +575,7 @@ export function WebhooksSection({ initialEndpoints, events, access, projectId, r
                           <th className="py-1">Error</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="divide-y divide-line-subtle [&>tr:nth-child(even)]:bg-surface-sunken">
                         {(deliveries[ep.id] ?? []).map((d) => (
                           <tr key={d.id} className="border-t border-line-subtle text-primary">
                             <td className="py-1 pr-2 font-mono">{d.event}</td>

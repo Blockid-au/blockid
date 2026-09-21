@@ -331,7 +331,7 @@ export function DripPanel({ initial }: { initial?: DripPanelState }) {
           <p className="text-xs text-ink-500">Estimated when the statements for this dividend are issued ({formatAudCents(state.preview.totalDividendAud)} declared). Nothing is allotted until then.</p>
           <div className="mt-2 overflow-x-auto">
             <table className="w-full text-xs">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                 <tr className="text-left text-[11px] uppercase tracking-wide text-ink-400">
                   <th className="py-1.5 pr-3">Shareholder</th>
                   <th className="py-1.5 pr-3 text-right">Net cash</th>
@@ -342,7 +342,7 @@ export function DripPanel({ initial }: { initial?: DripPanelState }) {
                   <th className="py-1.5 text-right">Cash paid</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-100">
+              <tbody className="divide-y divide-line-subtle [&>tr:nth-child(even)]:bg-surface-sunken">
                 {state.preview.rows.map((r) => (
                   <tr key={r.electionId} data-testid="drip-preview-row">
                     <td className="py-1.5 pr-3 font-medium text-ink-800">{r.shareholderName}</td>

@@ -436,7 +436,7 @@ export function ValuationTrendChart({
         <div className="overflow-x-auto mt-2">
           <table id={tableId} className="w-full text-xs border-collapse">
             <caption className="sr-only">SVI score and AUD valuation range per analysis</caption>
-            <thead>
+            <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
               <tr className="border-b border-line-subtle text-left text-[10px] uppercase tracking-wider text-muted">
                 <th scope="col" className="py-1.5 pr-3 font-semibold">Date</th>
                 <th scope="col" className="py-1.5 pr-3 font-semibold text-right">SVI</th>
@@ -451,7 +451,7 @@ export function ValuationTrendChart({
                 <th scope="col" className="py-1.5 font-semibold">Method</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-line-subtle [&>tr:nth-child(even)]:bg-surface-sunken">
               {[...data.points].reverse().map((p) => (
                 <tr key={p.id} className="border-b border-line-subtle/60">
                   <td className="py-1.5 pr-3 text-primary whitespace-nowrap">{p.labelLong}</td>

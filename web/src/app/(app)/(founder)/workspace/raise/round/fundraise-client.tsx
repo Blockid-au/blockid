@@ -816,7 +816,7 @@ export function FundraiseClient() {
               </p>
               <div className="overflow-x-auto rounded-xl border border-surface-200">
                 <table className="w-full text-sm">
-                  <thead>
+                  <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                     <tr className="bg-surface-50 text-ink-600">
                       <th className="text-left px-4 py-2.5 font-medium">Shareholder</th>
                       <th className="text-left px-4 py-2.5 font-medium">Role</th>
@@ -825,7 +825,7 @@ export function FundraiseClient() {
                       <th className="text-right px-4 py-2.5 font-medium">Change</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-line-subtle">
                     {dilutionTable.map((row, i) => (
                       <tr key={i} className="border-t border-surface-100 hover:bg-surface-50/50">
                         <td className="px-4 py-2.5 font-medium text-ink-800">{row.name}</td>
@@ -1299,7 +1299,7 @@ export function FundraiseClient() {
               </div>
               <div className="overflow-x-auto rounded-xl border border-surface-200">
                 <table className="w-full text-sm">
-                  <thead>
+                  <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                     <tr className="bg-surface-50 text-ink-600">
                       <th className="text-left px-4 py-2.5 font-medium">Company</th>
                       <th className="text-left px-4 py-2.5 font-medium">Sector</th>
@@ -1309,7 +1309,7 @@ export function FundraiseClient() {
                       <th className="text-right px-4 py-2.5 font-medium">Year</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-line-subtle">
                     {readiness.comparablesV2.map((r) => (
                       <tr
                         key={`${r.company}-${r.year}`}
@@ -1357,7 +1357,7 @@ export function FundraiseClient() {
           <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                   <tr className="bg-surface-50 text-ink-600">
                     <th className="text-left px-4 py-3 font-medium">Round</th>
                     <th className="text-right px-4 py-3 font-medium">Target</th>
@@ -1369,7 +1369,7 @@ export function FundraiseClient() {
                     <th className="text-left px-4 py-3 font-medium">Date</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-line-subtle">
                   {pastRounds.map((r) => (
                     <tr key={r.id} className="border-t border-surface-100 hover:bg-surface-50/50">
                       <td className="px-4 py-3 font-medium text-ink-800">

@@ -207,7 +207,7 @@ export function ComparisonTable({ comparison }: { comparison: TermSheetCompariso
 
       <div className="mt-4 overflow-x-auto rounded-xl border border-surface-200">
         <table className="w-full min-w-[640px] text-sm print:text-xs">
-          <thead>
+          <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
             <tr className="bg-surface-50 text-left text-[11px] uppercase tracking-[0.12em] text-ink-600">
               <th className="px-3 py-2 font-medium">Term</th>
               {comparison.sheets.map((s) => (
@@ -219,7 +219,7 @@ export function ComparisonTable({ comparison }: { comparison: TermSheetCompariso
               <th className="px-3 py-2 font-medium text-right">Weight</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-surface-200/70">
+          <tbody className="divide-y divide-line-subtle">
             {comparison.rows.map((r) => (
               <tr key={r.key} data-testid="compare-row" data-key={r.key} className={cn(!r.comparable && "text-ink-400")}>
                 <th scope="row" className="px-3 py-2 text-left font-medium text-ink-700">

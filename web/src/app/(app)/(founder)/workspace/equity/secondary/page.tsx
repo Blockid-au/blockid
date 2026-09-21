@@ -120,14 +120,14 @@ export default async function SecondaryOfferPage() {
           </p>
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full text-sm">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                 <tr className="text-left text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200">
                   <th className="py-2 pr-4">Gate</th>
                   <th className="py-2 pr-4">Requirement</th>
                   <th className="py-2 pr-4">Why</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-line-subtle [&>tr:nth-child(even)]:bg-surface-sunken">
                 {ELIGIBILITY_GATES.map((row) => (
                   <tr
                     key={row.label}

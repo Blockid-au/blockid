@@ -457,7 +457,7 @@ export function EquityEsopClient() {
         ) : (
           <div className="overflow-x-auto rounded-xl border border-surface-200 bg-white">
             <table className="w-full text-sm">
-              <thead className="bg-surface-50 text-ink-600">
+              <thead className="sticky top-0 z-10 bg-surface-sunken text-ink-600">
                 <tr>
                   <Th>Name</Th>
                   <Th>Role</Th>
@@ -470,7 +470,7 @@ export function EquityEsopClient() {
                   <Th />
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-line-subtle">
                 {capTable.map((r, i) => (
                   <tr key={i} className="border-t border-surface-100">
                     <Td className="font-medium text-ink-900">{r.name}</Td>
@@ -1248,7 +1248,7 @@ function GrantRegisterSection({
         {!loading && grants.length > 0 && (
           <div className="overflow-x-auto rounded-xl border border-surface-200 bg-white">
             <table className="w-full text-sm">
-              <thead className="bg-surface-50 text-ink-600">
+              <thead className="sticky top-0 z-10 bg-surface-sunken text-ink-600">
                 <tr>
                   <Th>Grantee</Th>
                   <Th>Role</Th>
@@ -1261,7 +1261,7 @@ function GrantRegisterSection({
                   <Th />
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-line-subtle">
                 {grants.map((g) => (
                   <tr
                     key={g.memberId}

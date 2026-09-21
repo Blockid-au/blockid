@@ -196,7 +196,7 @@ export function ChainReconcilePanel({ initial }: { initial?: ReconcileState | nu
         {drift.length + missing.length + unknown.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="min-w-full text-xs" data-testid="chain-drift-table">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                 <tr className="text-left uppercase tracking-wider text-ink-500 border-b border-surface-200">
                   <th className="py-2 pr-4">Holder</th>
                   <th className="py-2 pr-4">Wallet</th>
@@ -206,7 +206,7 @@ export function ChainReconcilePanel({ initial }: { initial?: ReconcileState | nu
                   <th className="py-2 pr-4">Note</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-line-subtle [&>tr:nth-child(even)]:bg-surface-sunken">
                 {drift.map((d) => (
                   <tr key={`d-${d.address}`} className="border-b border-surface-100 last:border-0">
                     <td className="py-2 pr-4 font-medium text-ink-800">{d.shareholder}</td>

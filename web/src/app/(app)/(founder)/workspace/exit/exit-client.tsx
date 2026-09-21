@@ -514,7 +514,7 @@ function ExitResultCard({
       {/* Payout table */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead>
+          <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
             <tr className="text-left text-[10px] text-muted uppercase tracking-wider border-b border-surface-100">
               <th className="px-5 py-2 font-medium">Shareholder</th>
               <th className="px-3 py-2 font-medium">Role</th>
@@ -525,7 +525,7 @@ function ExitResultCard({
               <th className="px-3 py-2 font-medium text-right">Net Payout</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-line-subtle">
             {shareholderPayouts.map((p, i) => (
               <tr
                 key={i}

@@ -361,7 +361,7 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
           </h2>
           <div className="overflow-x-auto rounded-md border border-ink-200">
             <table className="w-full text-sm">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                 <tr className="bg-ink-50 text-left text-xs text-ink-500 uppercase tracking-wide">
                   <th className="px-4 py-2 font-medium">Dimension</th>
                   <th className="px-4 py-2 font-medium">Action</th>
@@ -371,7 +371,7 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
                   <th className="px-4 py-2 font-medium">Urgency</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-100">
+              <tbody className="divide-y divide-line-subtle">
                 {topRoadmap.map((item, i) => (
                   <tr key={i} className="bg-white hover:bg-ink-50 transition-colors">
                     <td className="px-4 py-2 font-medium text-ink-700 uppercase text-xs">

@@ -150,7 +150,7 @@ function InvestorPacksSection({
   return (
     <div className="rounded-xl border border-surface-200 bg-white overflow-hidden">
       <table className="w-full text-sm">
-        <thead>
+        <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
           <tr className="border-b border-surface-200 bg-surface-50">
             <th className="text-left px-4 py-2.5 text-[10px] uppercase tracking-[0.14em] text-ink-700 font-medium">
               Generated
@@ -166,7 +166,7 @@ function InvestorPacksSection({
             </th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-line-subtle">
           {packs.map((pack) => (
             <tr
               key={pack.id}
@@ -224,7 +224,7 @@ function AssembledReportsSection({
   return (
     <div className="rounded-xl border border-surface-200 bg-white overflow-hidden">
       <table className="w-full text-sm">
-        <thead>
+        <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
           <tr className="border-b border-surface-200 bg-surface-50">
             <th className="text-left px-4 py-2.5 text-[10px] uppercase tracking-[0.14em] text-ink-700 font-medium">
               Startup
@@ -243,7 +243,7 @@ function AssembledReportsSection({
             </th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-line-subtle">
           {reports.map((report) => (
             <tr
               key={report.id}

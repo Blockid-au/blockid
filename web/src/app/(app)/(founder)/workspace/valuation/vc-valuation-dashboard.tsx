@@ -466,14 +466,14 @@ function ProjectionsTab({ report }: { report: VcValuationReport }) {
     <div className="space-y-4">
       <div className="overflow-x-auto rounded-xl border border-surface-200">
         <table className="w-full text-xs">
-          <thead className="bg-surface-50 border-b border-surface-200">
+          <thead className="sticky top-0 z-10 bg-surface-sunken border-b border-surface-200">
             <tr>
               {["Month", "MRR", "Revenue", "EBITDA", "OPEX", "Cash Balance"].map((h) => (
                 <th key={h} className="px-3 py-2.5 text-left font-semibold text-ink-600">{h}</th>
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-line-subtle">
             {rows.map((r) => (
               <tr key={r.month} className="border-b border-surface-100 hover:bg-surface-50">
                 <td className="px-3 py-2 font-semibold text-ink-700">M{r.month}</td>

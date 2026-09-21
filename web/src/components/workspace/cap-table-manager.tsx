@@ -452,7 +452,7 @@ export function CapTableManager() {
         {/* Table */}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
               <tr className="border-b border-surface-200 bg-surface-50 text-left">
                 <th className="px-5 py-3 font-medium text-ink-500">Name</th>
                 <th className="px-5 py-3 font-medium text-ink-500">Role</th>
@@ -463,7 +463,7 @@ export function CapTableManager() {
                 <th className="px-5 py-3 font-medium text-ink-500 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-line-subtle">
               {shareholders.length === 0 && (
                 <tr>
                   <td colSpan={7} className="px-5 py-12 text-center text-ink-500">

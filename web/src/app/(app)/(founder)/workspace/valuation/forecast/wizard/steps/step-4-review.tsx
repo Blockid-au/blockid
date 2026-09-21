@@ -82,7 +82,7 @@ export function Step4Review({ data, preview, loading }: Step4Props) {
 
           <div className="border rounded-lg overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-gray-100">
+              <thead className="sticky top-0 z-10 bg-surface-sunken">
                 <tr>
                   <th className="px-4 py-2 text-left">Month</th>
                   <th className="px-4 py-2 text-right">Revenue</th>
@@ -90,7 +90,7 @@ export function Step4Review({ data, preview, loading }: Step4Props) {
                   <th className="px-4 py-2 text-right">Cumulative Cash</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-line-subtle">
                 {preview.months.slice(0, 12).map((month, idx) => (
                   <tr key={idx} className="border-t hover:bg-gray-50">
                     <td className="px-4 py-2">{month.month}</td>

@@ -121,7 +121,7 @@ function VestingSchedulePreview({
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm">
-        <thead>
+        <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
           <tr className="border-b border-surface-100 bg-surface-50">
             <th className="text-left px-4 py-2 text-xs font-medium text-ink-500 uppercase">
               Month
@@ -140,7 +140,7 @@ function VestingSchedulePreview({
             </th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-line-subtle">
           {keyMonths.map((r) => (
             <tr
               key={r.month}
@@ -988,7 +988,7 @@ export function EsopClient() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                   <tr className="border-b border-surface-100 bg-surface-50">
                     <th className="text-left px-6 py-3 text-xs font-medium text-ink-500 uppercase tracking-wider">
                       Employee
@@ -1010,7 +1010,7 @@ export function EsopClient() {
                     </th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-line-subtle">
                   {activeGrants.map((grant) => {
                     const pctVested =
                       grant.vesting.totalAmount > 0n
@@ -1108,7 +1108,7 @@ export function EsopClient() {
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                 <tr className="border-b border-surface-100 bg-surface-50">
                   <th className="text-left px-6 py-3 text-xs font-medium text-ink-500 uppercase tracking-wider">
                     Name
@@ -1127,7 +1127,7 @@ export function EsopClient() {
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-line-subtle">
                 {esopShareholders.map((sh) => (
                   <tr
                     key={sh.id}

@@ -272,7 +272,7 @@ export function GrantsClient({ initialGrants, disclaimer, readOnly = false }: Gr
       <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
               <tr className="border-b border-surface-100 bg-surface-50">
                 <th className="text-left px-4 py-3 text-xs font-medium text-ink-500 uppercase">Grantee</th>
                 <th className="text-left px-4 py-3 text-xs font-medium text-ink-500 uppercase">Grant date</th>
@@ -284,7 +284,7 @@ export function GrantsClient({ initialGrants, disclaimer, readOnly = false }: Gr
                 <th className="text-right px-4 py-3 text-xs font-medium text-ink-500 uppercase">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-line-subtle">
               {grants.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="px-4 py-12 text-center text-sm text-ink-500">

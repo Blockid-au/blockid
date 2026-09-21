@@ -295,7 +295,7 @@ export function SviTrendClient({ projectId }: Props) {
         <h2 className="text-sm font-bold text-ink-800 mb-3">Snapshot history</h2>
         <div className="overflow-x-auto">
           <table className="w-full text-xs border-collapse">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
               <tr className="border-b border-ink-200">
                 <th className="text-left py-2 px-2 font-semibold text-ink-500 uppercase tracking-wide">Date</th>
                 {DIM_KEYS.map((k) => (
@@ -306,7 +306,7 @@ export function SviTrendClient({ projectId }: Props) {
                 <th className="text-center py-2 px-2 font-semibold text-ink-500 uppercase tracking-wide">Overall</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-line-subtle">
               {[...snapshots].reverse().map((s, idx, arr) => {
                 const prior = arr[idx + 1] ?? null;
                 return (

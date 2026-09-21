@@ -164,7 +164,7 @@ export function ArchivedProjectsClient({ rows: initialRows }: Props) {
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-surface-200 bg-white">
           <table className="w-full text-sm">
-            <thead className="bg-surface-50 text-left">
+            <thead className="sticky top-0 z-10 bg-surface-sunken text-left">
               <tr className="text-[11px] font-semibold uppercase tracking-wider text-ink-500">
                 <th scope="col" className="px-4 py-3">
                   Name
@@ -180,7 +180,7 @@ export function ArchivedProjectsClient({ rows: initialRows }: Props) {
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-200">
+            <tbody className="divide-y divide-line-subtle">
               {rows.map((row) => {
                 const days = daysUntilPurge(row.archivedAt, nowMs);
                 const warning = days < WARNING_THRESHOLD_DAYS;

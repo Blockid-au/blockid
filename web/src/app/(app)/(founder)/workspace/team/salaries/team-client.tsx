@@ -216,7 +216,7 @@ export function TeamClient() {
         </div>
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
               <tr className="bg-muted/50 text-left">
                 <th className="text-xs font-semibold text-muted-foreground py-3 px-4">Role</th>
                 <th className="text-xs font-semibold text-muted-foreground py-3 pr-4">Level</th>
@@ -225,7 +225,7 @@ export function TeamClient() {
                 <th className="text-xs font-semibold text-muted-foreground py-3 pr-4">P75</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-border">
+            <tbody className="divide-y divide-line-subtle">
               {AU_ROLES.map((roleGroup) =>
                 roleGroup.levels.map((level, i) => (
                   <SalaryRow

@@ -364,7 +364,7 @@ function CompetitorMatrix({ projectId: _projectId }: { projectId: string | null 
 
       <div className="overflow-x-auto rounded-lg border border-line-subtle">
         <table className="w-full text-sm">
-          <thead>
+          <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
             <tr className="border-b border-line-subtle bg-surface-sunken">
               <th className="text-left px-3 py-2 text-muted font-medium">Feature</th>
               <th className="text-left px-3 py-2 text-muted font-medium">Competitor</th>
@@ -372,7 +372,7 @@ function CompetitorMatrix({ projectId: _projectId }: { projectId: string | null 
               <th className="text-center px-3 py-2 text-muted font-medium">You Have It?</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-line-subtle">
             {featureRows.map((row) => (
               <tr
                 key={row.feature.id}

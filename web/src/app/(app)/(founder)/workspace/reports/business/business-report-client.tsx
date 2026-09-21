@@ -286,7 +286,7 @@ function PeerFiveSection({ projectId, shareToken, industry, stage, skipFetch = f
       )}
       <div className="overflow-x-auto">
         <table className="w-full text-sm border-collapse">
-          <thead>
+          <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
             <tr className="border-b border-line-subtle">
               <th className="text-left py-2 pr-3 text-xs font-semibold text-muted uppercase tracking-wide">#</th>
               <th className="text-left py-2 pr-3 text-xs font-semibold text-muted uppercase tracking-wide">Peer</th>
@@ -298,7 +298,7 @@ function PeerFiveSection({ projectId, shareToken, industry, stage, skipFetch = f
               <th className="text-right py-2 pl-3 text-xs font-semibold text-muted uppercase tracking-wide">Similarity</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-line-subtle [&>tr:nth-child(even)]:bg-surface-sunken">
             {peers.map((p) => (
               <tr key={p.rank} className="border-b border-line-subtle">
                 <td className="py-2 pr-3 text-muted tabular-nums">{p.rank}</td>

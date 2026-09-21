@@ -104,7 +104,7 @@ export function ReportsClient({
         </h2>
         <div className="rounded-xl border border-surface-200 bg-white overflow-hidden">
           <table className="w-full text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
               <tr className="border-b border-surface-200">
                 <th className="text-left px-4 py-2.5 text-[10px] uppercase tracking-[0.14em] text-ink-700 font-medium">
                   Date
@@ -120,7 +120,7 @@ export function ReportsClient({
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-line-subtle">
               {snapshots.map((s) => (
                 <tr
                   key={s.id}

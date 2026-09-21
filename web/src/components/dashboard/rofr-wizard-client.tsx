@@ -386,7 +386,7 @@ export function RofrWizardClient() {
                   data-testid="rofr-wizard-entitlement-table"
                   className="w-full text-sm"
                 >
-                  <thead className="bg-surface-50 text-xs uppercase text-ink-500">
+                  <thead className="sticky top-0 z-10 bg-surface-sunken text-xs uppercase text-ink-500">
                     <tr>
                       <th className="px-3 py-2 text-left font-medium">
                         Holder
@@ -402,7 +402,7 @@ export function RofrWizardClient() {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-surface-200">
+                  <tbody className="divide-y divide-line-subtle [&>tr:nth-child(even)]:bg-surface-sunken">
                     {result.eligible_holders.map((h) => (
                       <tr key={h.holder_id} className="text-ink-700">
                         <td className="px-3 py-2">

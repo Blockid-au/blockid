@@ -1276,7 +1276,7 @@ function Step4ESOP({
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
               <tr className="border-b border-surface-100 bg-surface-50/50">
                 <th className="text-left px-4 py-2 text-xs font-medium text-ink-500 uppercase tracking-wider">
                   Stakeholder
@@ -1292,7 +1292,7 @@ function Step4ESOP({
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-line-subtle">
               {stakeholders.map((s) => {
                 const after = s.equityPct * esopDilutionFactor;
                 const change = after - s.equityPct;
@@ -1590,7 +1590,7 @@ function Step6Review({
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
               <tr className="border-b border-surface-100 bg-surface-50/50">
                 <th className="text-left px-4 py-2 text-xs font-medium text-ink-500 uppercase tracking-wider">
                   Stakeholder
@@ -1612,7 +1612,7 @@ function Step6Review({
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-line-subtle">
               {stakeholders.map((s) => {
                 const shares = Math.round(
                   (s.dilutedPct / 100) * authorizedShares,

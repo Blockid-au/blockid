@@ -320,7 +320,7 @@ export function AdvisorClient() {
       ) : (
         <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden">
           <table className="w-full text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
               <tr className="border-b border-surface-100 bg-surface-50">
                 <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-muted">
                   Founder
@@ -337,7 +337,7 @@ export function AdvisorClient() {
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-50">
+            <tbody className="divide-y divide-line-subtle">
               {filtered.map((c) => (
                 <tr
                   key={c.id}

@@ -436,7 +436,7 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
         {/* Desktop table */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
               <tr className="bg-surface-50 text-left">
                 <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-muted">
                   Investor
@@ -462,7 +462,7 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
                 <th className="px-6 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-100">
+            <tbody className="divide-y divide-line-subtle">
               {links.map((link) => (
                 <tr key={link.token} className="hover:bg-surface-50/50 transition-colors">
                   <td className="px-6 py-4">

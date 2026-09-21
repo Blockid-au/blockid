@@ -456,7 +456,7 @@ export function RoundClient({ roundId }: { roundId: string }) {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm" data-testid="commitments-table">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                 <tr className="bg-surface-50 text-ink-600">
                   <th className="px-4 py-2.5 text-left font-medium">Investor</th>
                   <th className="px-4 py-2.5 text-right font-medium">Amount</th>
@@ -466,7 +466,7 @@ export function RoundClient({ roundId }: { roundId: string }) {
                   {canEdit && <th className="px-4 py-2.5" />}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-line-subtle">
                 {commitments.map((c) => (
                   <tr key={c.id} className="border-t border-surface-100">
                     <td className="px-4 py-2.5">
