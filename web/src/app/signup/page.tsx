@@ -38,15 +38,9 @@ import {
 } from "@/lib/plans/signup-plans";
 import { checkoutReviewStrings } from "@/lib/billing/checkout-review-strings";
 import { getMessages } from "@/lib/i18n/t";
+import { safeNextPath } from "@/lib/security/safe-redirect";
 import { LEGAL_ENTITY_ABN_LABEL, LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import { SignupForm, type SignupPlanChoice } from "./signup-form";
-
-/** `?next=` may only be a same-site path (never `//host` or a scheme). */
-export function safeNext(v: string | string[] | undefined): string | null {
-  const raw = Array.isArray(v) ? v[0] : v;
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.includes("\\")) return null;
-  return raw.length <= 2048 ? raw : null;
-}
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -72,7 +66,9 @@ export default async function SignupPage({
   const existing = await getCurrentUser();
   // G25-D: a signed-in user lands on the review step for the plan (or back
   // on the review that sent them here) — never on a checkout.
-  const next = safeNext(sp.next);
+  // `?next=` (the review that sent the visitor here) is open-redirect guarded.
+  const nextRaw = Array.isArray(sp.next) ? sp.next[0] : sp.next;
+  const next = nextRaw ? safeNextPath(nextRaw, "") || null : null;
   if (existing) redirect(next ?? signedInSignupRedirect(sp.plan, sp.interval));
 
   // `?interval=annual` from a pricing card's Annual toggle (2026-09-16 audit).

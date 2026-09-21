@@ -17,7 +17,6 @@ import * as React from "react";
 import Link from "next/link";
 import { CheckCircle2, Loader2, Lock, ShieldCheck } from "lucide-react";
 import { anonSessionId, emitClientEvent } from "@/lib/analytics/client-emit";
-import { trackEvent } from "@/lib/analytics";
 import type { CheckoutOrder } from "@/lib/billing/checkout-review";
 import { fillCheckoutString, type CheckoutReviewStrings } from "@/lib/billing/checkout-review-strings";
 import { TRIAL_WARNING_HOURS_BEFORE } from "@/lib/plans/trial-copy";
@@ -85,9 +84,9 @@ export function CheckoutReviewCard({ order, strings, userId, signedOutHref, back
     [order.id, order.kind, order.interval, order.trialDays, order.entry, order.amountCents],
   );
 
-  // Once per mount: the review rendered.
+  // Once per mount: the review rendered. emitClientEvent pushes the GA4
+  // dataLayer twin itself, so no separate trackEvent (one event, not two).
   React.useEffect(() => {
-    trackEvent("checkout_review_viewed", eventParams);
     void emitClientEvent("checkout_review_viewed", eventParams, { sessionId: signedIn ? null : anonSessionId() });
   }, [eventParams, signedIn]);
 
@@ -107,8 +106,8 @@ export function CheckoutReviewCard({ order, strings, userId, signedOutHref, back
     setFallbackHref(null);
     // The Pay click is the ONLY Stripe hand-off — record it before the POST
     // (keepalive survives the navigation away).
-    trackEvent("checkout_started", eventParams);
     void emitClientEvent("checkout_started", eventParams);
+    let handedOff = false;
     try {
       const res = await fetch(order.postPath, {
         method: "POST",
@@ -116,16 +115,19 @@ export function CheckoutReviewCard({ order, strings, userId, signedOutHref, back
         body: JSON.stringify(order.postBody),
       });
       if (res.status === 401) {
+        handedOff = true;
         window.location.assign(signedOutHref);
         return;
       }
       const body = (await res.json().catch(() => null)) as CheckoutResponse | null;
       if (res.ok && body?.ok && typeof body.url === "string" && body.url.startsWith("https://")) {
+        handedOff = true;
         window.location.assign(body.url);
         return;
       }
       if (res.ok && body?.ok && body.method === "direct") {
         // Dev fallback on /api/credits (no Stripe): credits granted in place.
+        handedOff = true;
         window.location.assign(backHref);
         return;
       }
@@ -135,8 +137,12 @@ export function CheckoutReviewCard({ order, strings, userId, signedOutHref, back
     } catch {
       setError(strings.errorGeneric);
     } finally {
-      postedRef.current = false;
-      setBusy(false);
+      // Stay busy while the browser leaves for Stripe — a second click must
+      // never mint a second session. Only an error re-enables the button.
+      if (!handedOff) {
+        postedRef.current = false;
+        setBusy(false);
+      }
     }
   }
 

@@ -280,7 +280,9 @@ export function resolveCheckoutOrder(req: CheckoutReviewRequest, opts: ResolveCh
   const amountAud = custom ? 0 : effective === "annual" ? (plan.annual_aud as number) : (plan.monthly_aud as number);
   if (!custom && (!Number.isFinite(amountAud) || amountAud <= 0)) return null; // free rungs are not an order
   const amountCents = Math.round(amountAud * 100);
-  const trialDays = req.trial && plan.trial_days > 0 ? plan.trial_days : plan.trial_days > 0 ? plan.trial_days : 0;
+  // The checkout route applies `plans.trial_days` whenever it is > 0, with or
+  // without `trial=1` on the URL — the review must promise exactly that.
+  const trialDays = plan.trial_days > 0 ? plan.trial_days : 0;
   return {
     kind: "plan",
     id: plan.id,
