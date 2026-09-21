@@ -289,7 +289,7 @@ function NextCta({
       className={
         "block rounded-lg border p-4 transition " +
         (emphasis
-          ? "border-brand-500 bg-brand-600 text-white hover:bg-brand-700"
+          ? "border-action bg-action text-on-action hover:bg-action-hover"
           : "border-surface-200 bg-white text-ink-900 hover:border-brand-300 hover:bg-brand-50/40")
       }
     >
@@ -304,7 +304,7 @@ function NextCta({
       <p
         className={
           "mt-2 text-xs font-semibold " +
-          (emphasis ? "text-white" : "text-brand-700")
+          (emphasis ? "text-on-action" : "text-brand-700")
         }
       >
         {cta}

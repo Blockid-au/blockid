@@ -53,10 +53,10 @@ function deltaBg(delta: number): string {
 }
 
 function deltaHeatBg(delta: number): string {
-  if (delta > 5) return "bg-bull text-white";
+  if (delta > 5) return "bg-bull text-on-action";
   if (delta > 2) return "bg-emerald-100 text-emerald-900";
   if (delta > 0) return "bg-emerald-200 text-emerald-900";
-  if (delta < -5) return "bg-bear text-white";
+  if (delta < -5) return "bg-bear text-on-action";
   if (delta < -2) return "bg-rose-100 text-rose-900";
   if (delta < 0) return "bg-rose-200 text-rose-900";
   return "bg-ink-100 text-ink-700";

@@ -463,7 +463,7 @@ export default async function ScoreActivityPage({
           {/* ---- Hero stat cards ---- */}
           <section className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
             <div className="rounded-2xl border border-surface-200 bg-white p-6 text-center shadow-sm">
-              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-ink-900/5">
+              <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-surface-hover">
                 <Eye strokeWidth={1.75} className="h-5 w-5 text-ink-700" />
               </div>
               <p className="mt-3 text-3xl font-bold text-ink-900">{totalViews}</p>

@@ -164,7 +164,7 @@ function StageCard({ b }: { b: StageBenchmark }) {
       className="rounded-lg border border-surface-200 bg-white p-4"
     >
       <header className="flex flex-wrap items-baseline gap-2">
-        <span className="rounded bg-brand-700 px-2 py-0.5 text-xs font-mono font-semibold text-white">
+        <span className="rounded bg-action px-2 py-0.5 text-xs font-mono font-semibold text-on-action">
           {b.stage}
         </span>
         <h3 className="text-base font-semibold text-ink-900">{b.label}</h3>
