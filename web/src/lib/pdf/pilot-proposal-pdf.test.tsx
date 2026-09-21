@@ -84,6 +84,12 @@ describe("renderPilotProposalPdf", () => {
     expect(text).toContain("PP-20260921-3F2A9C1E");
   });
 
+  it("maximum-length objection + note (ENTRY_LIMITS) still fit in 4 pages", async () => {
+    const proposal = buildPilotProposal(entry({ objection: "x".repeat(500), note: "y".repeat(2000), organisation: "O".repeat(160), contact_role: "R".repeat(120) }), { now: NOW });
+    const { pages } = await renderPilotProposalPdf(proposal);
+    expect(pages).toBeLessThanOrEqual(PILOT_PROPOSAL_MAX_PAGES);
+  });
+
   it("the 25 pilot renders its own amount and never the 50 figure; an entry without an objection still renders", async () => {
     const proposal = buildPilotProposal(entry({ objection: "", note: "", next_step: "" }), { now: NOW });
     const { buffer, pages } = await renderPilotProposalPdf(proposal);

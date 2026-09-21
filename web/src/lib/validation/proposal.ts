@@ -42,6 +42,9 @@ export const PROPOSAL_RETENTION_LINE =
 /** How long the quoted price holds — the acceptance line prints the date. */
 export const PROPOSAL_VALID_DAYS = 30;
 
+/** The entry note is founder shorthand; the proposal quotes at most this many characters of it (page 1 must hold). */
+export const PROPOSAL_NOTE_MAX_CHARS = 600;
+
 /** Default cohort size when the entry does not say — the smaller pilot. */
 export const PROPOSAL_DEFAULT_APPLICANTS = PILOT_SKUS.cohort_pilot_25.applicantsCap;
 
@@ -195,7 +198,8 @@ export function buildPilotProposal(entry: ValidationEntry, opts: PilotProposalOp
   const organisation = entry.organisation.trim();
   const contactRole = entry.contact_role.trim();
   const objection = entry.objection.trim();
-  const note = entry.note.trim();
+  const rawNote = entry.note.trim();
+  const note = rawNote.length > PROPOSAL_NOTE_MAX_CHARS ? `${rawNote.slice(0, PROPOSAL_NOTE_MAX_CHARS - 1).trimEnd()}…` : rawNote;
   const preparedByRole = opts.preparedByRole ?? "Founder";
 
   return {

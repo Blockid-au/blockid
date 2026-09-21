@@ -15,7 +15,7 @@ import { PDF_GENERAL_ADVICE_DISCLAIMER } from "@/lib/pdf/advice-disclaimer";
 import { PILOT_ENTITLEMENT_DAYS, PILOT_INCLUDES, PILOT_SKUS, PILOT_SUCCESS_METRICS, formatPilotPriceLong } from "@/lib/pricing/pilot-skus";
 import { LEGAL_ENTITY, legalLine } from "@/lib/site/legal-entity";
 import type { ValidationEntry } from "./model";
-import { PROPOSAL_CATALOGUE_KEYS, PROPOSAL_DEFAULT_APPLICANTS, PROPOSAL_VALID_DAYS, buildPilotProposal, inferApplicants, proposalFilename, skuForApplicants } from "./proposal";
+import { PROPOSAL_CATALOGUE_KEYS, PROPOSAL_DEFAULT_APPLICANTS, PROPOSAL_NOTE_MAX_CHARS, PROPOSAL_VALID_DAYS, buildPilotProposal, inferApplicants, proposalFilename, skuForApplicants } from "./proposal";
 
 const NOW = new Date("2026-09-21T03:00:00.000Z");
 
@@ -85,6 +85,9 @@ describe("buildPilotProposal", () => {
     expect(p.cover.organisation).toBe("Harbour Accelerator");
     expect(p.cover.contactRole).toBe("Program manager");
     expect(buildPilotProposal(entry({ objection: "" }), { now: NOW }).problem.quote).toBeNull();
+    const long = buildPilotProposal(entry({ note: "z".repeat(2000) }), { now: NOW });
+    expect(long.problem.note!.length).toBe(PROPOSAL_NOTE_MAX_CHARS);
+    expect(long.problem.note!.endsWith("…")).toBe(true);
   });
 
   it("the six stages are the catalogue's accelerator journey — three bullets each, never a bare key", () => {
