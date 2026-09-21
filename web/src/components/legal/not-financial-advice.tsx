@@ -37,6 +37,17 @@ export interface NotFinancialAdviceProps {
   flagHref?: string;
 }
 
+/** `**Lead.** rest` → <strong>Lead.</strong> rest — the surfaces are markdown-lite; the asterisks were printing raw. */
+function renderLeadBold(text: string): React.ReactNode {
+  const m = /^\*\*(.+?)\*\*\s*/.exec(text);
+  if (!m) return text.replace(/\*\*/g, "");
+  return (
+    <>
+      <strong className="font-semibold text-ink">{m[1]}</strong> {text.slice(m[0].length).replace(/\*\*/g, "")}
+    </>
+  );
+}
+
 const FALLBACK_COMPACT =
   "Not financial advice. Seek independent counsel. This is not an offer of securities.";
 
@@ -99,8 +110,8 @@ export function NotFinancialAdvice({
       aria-label="Legal disclaimer"
       className="rounded-xl border border-line-subtle bg-surface-sunken/70 p-4"
     >
-      <p className="whitespace-pre-wrap text-sm leading-relaxed text-slate-700">
-        {body}
+      <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink-muted">
+        {renderLeadBold(body)}
       </p>
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
         <Link
