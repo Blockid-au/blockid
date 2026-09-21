@@ -751,4 +751,14 @@ describe("public-page caching (S31-D) — CSP_PUBLIC_HASH_MODE", () => {
       expect(res.headers.get("x-blockid-csp")).toBe("nonce");
     });
   });
+
+  describe("/tbr/demo?band= rewrite (G28-D: the four verdict-band demos stay static)", () => {
+    it("?band=a → the static per-band route (case-insensitive); the bare demo and junk bands are not rewritten", async () => {
+      const res = await proxy(pageReq("/tbr/demo?band=a"));
+      expect(res.headers.get("x-middleware-rewrite")).toBe("https://blockid.au/tbr/demo/band/A?band=a");
+      expect((await proxy(pageReq("/tbr/demo"))).headers.get("x-middleware-rewrite")).toBeNull();
+      expect((await proxy(pageReq("/tbr/demo?band=E"))).headers.get("x-middleware-rewrite")).toBeNull();
+      expect((await proxy(pageReq("/tbr/demo/band/D?band=A"))).headers.get("x-middleware-rewrite")).toBeNull();
+    });
+  });
 });

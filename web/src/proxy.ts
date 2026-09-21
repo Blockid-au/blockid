@@ -9,6 +9,7 @@ import {
   type Locale,
 } from "@/lib/i18n/locales";
 import { grantsRewriteTarget } from "@/lib/funding/grants-route";
+import { demoBandRewriteTarget } from "@/lib/report-v2/demo-band-route";
 import { checkRateLimit, type RateLimitBucket } from "@/lib/rate-limit";
 import { securityHeaders } from "@/lib/security-headers";
 import { firstPartyInlineScriptHashes } from "@/lib/security/inline-script-hashes";
@@ -621,7 +622,7 @@ export function hasVisitorIdentityCookie(request: NextRequest): boolean {
 
 function planPageResponse(request: NextRequest, nonce: string, nonceCsp: string): PageResponsePlan {
   const { pathname, searchParams } = request.nextUrl;
-  const rewriteTarget = grantsRewriteTarget(pathname, searchParams);
+  const rewriteTarget = grantsRewriteTarget(pathname, searchParams) ?? demoBandRewriteTarget(pathname, searchParams);
   let rewriteUrl: URL | null = null;
   if (rewriteTarget) {
     rewriteUrl = request.nextUrl.clone();

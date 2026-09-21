@@ -38,6 +38,8 @@ import type { CriterionCard, DimensionChapter, ReportTierV2, ReportV2 } from "@/
 import { writeSnapshotReportV2 } from "@/lib/report-v2/storage";
 import { DIM_LEGACY_ORDER, DIM_ORDER, legacyStreamDimMeta, type DimKey } from "./dimension-owners";
 import { PIPELINE_VERSION, assertReportUsable, orchestrateReport, type AICallerInput, type PipelineEvent } from "./orchestrator";
+import { pipelineCallTimeouts } from "./pipeline-timeouts";
+import { createRunStrikeLedger } from "@/lib/ai/run-strikes";
 import { buildCriteriaData, loadProjectReportContext, upsertSnapshotWithToken, type LoadContextResult, type ProjectReportContext } from "./run-for-project";
 import { computeSVI, extractSignals } from "@/lib/svi-analysis";
 import type { AssembledReport, ReportTier } from "./types";
@@ -351,8 +353,10 @@ function tierForOrchestrator(tier: ReportTierV2): ReportTier {
 
 async function defaultCallAI(agentId: string, userId: string): Promise<AICallerInput> {
   const { callAI } = await import("@/lib/ai-client");
-  return async (system, user, maxTokens, taskClass) => {
-    const r = await callAI({ system, user, maxTokens, timeoutMs: 120_000, agentId, userId, taskClass });
+  // G28-B: one strike ledger per run + per-stage timeouts (pipeline-timeouts.ts).
+  const runStrikes = createRunStrikeLedger();
+  return async (system, user, maxTokens, taskClass, hint) => {
+    const r = await callAI({ system, user, maxTokens, ...pipelineCallTimeouts(hint), agentId, userId, taskClass, runStrikes });
     return { text: r.text, costUsd: r.cost_usd, provider: r.via ?? r.provider, model: r.model };
   };
 }

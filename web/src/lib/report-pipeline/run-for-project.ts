@@ -38,6 +38,8 @@ import type { AnalysisLike } from "@/lib/svi/evidence-confidence";
 import { callAI } from "@/lib/ai-client";
 import { newSlug } from "@/lib/slug";
 import { assertReportUsable, orchestrateReport, type AICallerResult, type PipelineEvent, type PipelineEventHandler } from "@/lib/report-pipeline/orchestrator";
+import { pipelineCallTimeouts, type PipelineCallHint } from "@/lib/report-pipeline/pipeline-timeouts";
+import { createRunStrikeLedger } from "@/lib/ai/run-strikes";
 import type { ReportTierV2, ReportV2 } from "@/lib/report-v2/schema";
 import type { AssembledReport, ReportTier, CriterionData, ReportSection } from "@/lib/report-pipeline/types";
 import { CRITERIA, CRITERION_KEYS, type CriterionKey } from "@/lib/evaluation-criteria";
@@ -453,19 +455,27 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
   // each criterion degraded to unvalidated prose (BlockID's own run,
   // 2026-09-20: 4 of 6 W1 criteria). `userId` still lands on the
   // assembled_reports / agent_report_tasks rows below.
+  //
+  // G28-B: per-stage model timeouts (criterion 45 s / chapter + synthesis
+  // 120 s, capped at the run's remaining wall clock) and ONE run-scoped strike
+  // ledger — a provider that timed out / answered 429 twice in this run is
+  // skipped for the rest of it (pipeline-timeouts.ts, lib/ai/run-strikes.ts).
+  const runStrikes = createRunStrikeLedger();
   const aiCaller = async (
     systemPrompt: string,
     userPrompt: string,
     maxTokens: number,
     taskClass?: "classify" | "report" | "synthesis",
+    hint?: PipelineCallHint,
   ): Promise<AICallerResult> => {
     const result = await callAI({
       system: systemPrompt,
       user: userPrompt,
       maxTokens,
-      timeoutMs: 120_000,
+      ...pipelineCallTimeouts(hint),
       agentId: svAgentId,
       taskClass,
+      runStrikes,
     });
     return { text: result.text, costUsd: result.cost_usd, provider: result.via ?? result.provider, model: result.model };
   };

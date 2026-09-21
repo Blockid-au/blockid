@@ -15,7 +15,7 @@ export function TbrMoney({ report, title, locale = "en" }: { report: ReportV2; t
   // G19-S43: the empty state points at the grant profile — never "re-run the analysis".
   const empty = moneyEmptyState(report, locale);
   return (
-    <TbrSection id={TBR_V2_SECTION_IDS.money} kicker="15" title={title} purpose={v2Strings(locale).s47.purpose.money}>
+    <TbrSection id={TBR_V2_SECTION_IDS.money} kicker="15" title={title} purpose={v2Strings(locale).s47.purpose.money} pageBreak>
       <div className="flex items-center gap-2 text-xs text-secondary">
         <AgentBadge role="cfo" />
         <AgentBadge role="cmo" kind="support" />

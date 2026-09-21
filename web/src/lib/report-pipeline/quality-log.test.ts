@@ -190,6 +190,11 @@ describe("summariseTbrQuality (24 h window)", () => {
     expect(s.status).toBe("watch"); // one outage in three runs is still a watch
     // A run WITH prose and a low share is never excluded.
     expect(summariseTbrQuality([row({ ts: ago(1), groundedShare: 0.2, words: 500, degradedSections: 8 })], now).last24h.groundedShareMedian).toBe(0.2);
+    // G28-B: ≥ 7 degraded chapters with no prose is "no report" too (the orchestrator refuses to persist it) — excluded from the median, counted in degradedShare.
+    const seven = summariseTbrQuality([row({ ts: ago(1), groundedShare: 0.9 }), row({ ts: ago(2), groundedShare: 0, words: 0, degradedSections: 7 })], now);
+    expect(seven.last24h).toMatchObject({ runs: 2, groundedShareMedian: 0.9, degradedShare: 0.5 });
+    // 6 degraded chapters is a (poor) report — its share stays in the median.
+    expect(summariseTbrQuality([row({ ts: ago(1), groundedShare: 0.9 }), row({ ts: ago(2), groundedShare: 0, words: 0, degradedSections: 6 })], now).last24h.groundedShareMedian).toBe(0.45);
   });
 
   it("buildTbrQualityRow carries the G23-A counters (0 when absent) and the log line prints them", () => {
