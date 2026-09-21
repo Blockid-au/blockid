@@ -50,7 +50,7 @@ export default async function OutcomesPage() {
   let outcomes: OutcomeItem[] = [];
   let ledgerUnavailable = false;
   const sb = getSupabaseAdmin();
-  const trajectory = projectId ? await loadTrajectory(sb, projectId, { verificationLevel: scope?.project?.verificationLevel != null ? String(scope.project.verificationLevel) : null }) : null;
+  const trajectory = projectId ? await loadTrajectory(sb, projectId, { verificationLevel: scope?.project?.verificationLevel != null ? `L${scope.project.verificationLevel}` : null }) : null;
   if (sb && projectId) {
     try {
       outcomes = projectOutcomesByTier(await listProjectOutcomes(sb, projectId), null);

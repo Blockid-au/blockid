@@ -80,6 +80,7 @@ const ADMIN_NAV_GROUPS: AdminNavGroup[] = [
       { href: "/admin/accelerator", label: "Accelerator", icon: GraduationCap },
       { href: "/admin/pilots", label: "Pilots", icon: FlaskConical },
       { href: "/admin/corrections", label: "Corrections", icon: MessageSquare },
+      { href: "/admin/outcomes", label: "Outcomes", icon: TrendingUp },
     ],
   },
   {

@@ -12,6 +12,8 @@ import { EmptyDashboardState } from "@/components/dashboard/empty-dashboard-stat
 import { LivingSVIDashboard } from "@/components/dashboard/living-svi-dashboard";
 import { SviScoreRing } from "@/components/svi/svi-score-ring";
 import { AssessmentCard } from "@/components/svi/AssessmentCard";
+import { TrajectoryTimeline } from "@/components/svi/TrajectoryTimeline";
+import { loadTrajectory } from "@/lib/svi/trajectory-load";
 import { assessmentCardFromAnalysis } from "@/lib/svi/assessment-card";
 import { loadAllDimensionEvidence } from "@/lib/evidence/dimension-evidence";
 import { loadAssessmentContext, assessmentCardOptionsFromContext } from "@/lib/svi/assessment-context";
@@ -396,6 +398,9 @@ export default async function SVIDashboardPage() {
     { evidence: hubEvidence, ...assessmentCardOptionsFromContext(assessmentContext) },
   );
 
+  // G21-P3-A — the longitudinal trajectory (Day 0 / 60 / 180) under the Assessment Card.
+  const trajectory = projectId ? await loadTrajectory(supabase, projectId, { verificationLevel: scope?.project?.verificationLevel != null ? `L${scope.project.verificationLevel}` : null }) : null;
+
   // ── Render the living dashboard ──────────────────────────────────────────
   return (
     <WorkspaceLayout user={user} startupName={startupName} isSandbox={isSandbox} currentPhase={navPhase}>
@@ -405,6 +410,8 @@ export default async function SVIDashboardPage() {
         )}
         {/* G21-P1-B — the BlockID Assessment Card, first on the page. */}
         <AssessmentCard data={assessmentCard} headingLevel={2} />
+        {/* G21-P3-A — Day 0 / 60 / 180 trajectory: SVI, Evidence Confidence, evidence level, confirmed outcomes. */}
+        {trajectory ? <TrajectoryTimeline data={trajectory} headingLevel={2} outcomesHref="/workspace/evidence/outcomes" /> : null}
 
         {/* ── Headline SVI gauge — the "score at a glance" viz called out in
             the UI audit. Score comes off analysisWithDelta.totalSVI. ── */}

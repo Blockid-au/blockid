@@ -47,6 +47,7 @@ import { AssessmentBlock } from "./dossier/assessment/assessment-block";
 import { ActionsBlock } from "./dossier/assessment/actions-block";
 import { DossierViewTracker } from "./dossier/dossier-view-tracker";
 import { AssessmentCard } from "@/components/svi/AssessmentCard";
+import { OutcomesBlock } from "./dossier/outcomes-block";
 
 export const metadata: Metadata = {
   title: "Investor Dossier | BlockID",
@@ -102,6 +103,8 @@ export default async function InvestorDossierPage({ params }: PageProps) {
         <EvidenceBlock view={dossier} />
         <AssessmentBlock view={dossier} />
         <ProgressBlock block={dossier.progress} role={dossier.viewer.role} />
+        {/* G21-P3-A — block 7: outcome ledger + Day 0 / 60 / 180 trajectory (consent-tier projected; assessor may record). */}
+        <OutcomesBlock projectId={dossier.header.projectId} role={dossier.viewer.role} consentTier={dossier.header.consentTier} verificationLevel={dossier.header.verification.level} />
         <ActionsBlock view={dossier} plan={user.plan} batchAllowed={canBatchScore(flags)} />
         <EvaluatorReportDisclaimer variant="compact" />
       </div>
