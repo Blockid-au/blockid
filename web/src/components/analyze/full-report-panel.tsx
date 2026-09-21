@@ -69,7 +69,7 @@ export interface FullReportPanelProps {
 export const V2_PHASE_LABELS: Record<string, string> = {
   starting: "Starting the report pipeline…",
   gather: "Gathering evidence — the register, benchmarks and computed facts…",
-  analyze: "The C-level agents are writing the 13 criteria…",
+  analyze: "The C-level agents are assessing the eight dimensions…",
   synthesis: "The CEO is writing the investment view…",
   audit: "The auditor is checking every claim against the evidence…",
   done: "Complete — your Trusted Business Report.",
