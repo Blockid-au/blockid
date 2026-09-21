@@ -1,6 +1,6 @@
 # BlockID.au — SOURCE OF TRUTH
 
-> **Version:** 2026-09-21 (rev.328) · **Owner:** CEO (Do Van Long) · **Consumer:** founders, human team, autonomous loop agents.
+> **Version:** 2026-09-21 (rev.329) · **Owner:** CEO (Do Van Long) · **Consumer:** founders, human team, autonomous loop agents.
 > **State 2026-09-19:** goals G1–G17 closed or founder-blocked; live v3.17.0 (`c6a00850b`); positioning = Startup Value Index by BlockID, evaluator-first; pricing v4 (Free / Starter A$29 / Growth A$69 · Scout A$79 / Firm A$149 / Program A$349 · Fund A$999 / Intake link A$249 / Index API A$299 · Cohort 25 A$5K / Cohort 100 A$15K per year · Trusted Business Report A$3); G18 truth sweep, G19 report quality (peer) and G20 ready-for-sale shipped 2026-09-20; **G21 advisor-feedback upgrade closed 2026-09-21 — v3.21.0** (evidence-backed assessment infrastructure: trust & positioning → evidence & explainability → cohort intelligence → longitudinal moat; four live deploys in 24 h).
 > **Rule:** Consult this file BEFORE any specialised plan doc. Every specialised plan carries a top-of-file back-link to this one.
 > **Entity:** one config `web/src/lib/site/legal-entity.ts` (G21 P0-A). Marketing brand block = PPL Food PTY LTD (founder decision 2026-09-10); billing / legal / invoices / JSON-LD / TrustBand = Auschain PTY LTD ACN 659 615 111 / ABN 79 659 615 111; the footer bottom row names both roles on every page (G21 F-1 default — say the word to unify on Auschain).
@@ -368,6 +368,13 @@
 - **Next action:** none — G22 closed.
 - **Blocker:** none.
 
+### G23 — Report grounding to KPI · pilot proposals + conversion · ops hygiene
+- **Source:** [`docs/plans/g23-grounding-proposals-2026-09-21.md`](./g23-grounding-proposals-2026-09-21.md) — G19's open P1 (`groundedShare` 0.41 vs 0.85), the advisor plan's Level-3 proposals + pilot → annual funnel, the G22 follow-ups.
+- **Lanes:** A report grounding (owner citations, CMO budgets, W4 verdict trim; showcase re-run ≥ 0.85; `tbr_quality` watch → ok) · B pilot proposal PDF from `/admin/validation` + pilot → Cohort annual conversion with a founder-minted credit coupon (contact fallback) · C ops hygiene (partial live-qa marker, log rotation, ledger write lock, `pilot.*` literals, grounded share on `/api/status`).
+- **Status:** **OPEN 2026-09-21** — lanes launching.
+- **Next action:** merge → full suite → deploy v3.23.0 → live-qa → review → close.
+- **Blocker:** founder mints `STRIPE_COUPON_PILOT_CREDIT_25/50` for the conversion credit (code falls back to contact).
+
 ## 2. Requirements Register
 
 | ID | Source | Category | Status | Owner (skill) | Ship commit |
@@ -666,6 +673,7 @@ the sentinels is overwritten._
 
 | When | Who | What |
 |---|---|---|
+| 2026-09-21 | Claude (G23 open) | G23 opened: report grounding to KPI, pilot proposals + conversion, ops hygiene — goal doc, 3 lanes. rev.329. |
 | 2026-09-21 | Claude (G22 close) | v3.22.0 live: cohort membership completeness (0432), org_id (0433), VI parity + in-app API docs + UX pass, /admin/validation + regression lane; QA found + fixed the showcase ISR/CSP hash race; review P2/P3s fixed (weights race, trajectory load, CSP lane in gate 12). rev.328. |
 | 2026-09-21 | Claude (G22 open) | G22 upgrade hardening opened from the G21 follow-ups: goal doc, 4 lanes (cohort membership, org model, localisation + docs route + UX pass, validation tracker + regression lane). rev.327. |
 | 2026-09-21 | Claude (G21 close) | v3.21.0 live: outcome ledger 0427, calibration, trajectory, benchmark segments 0428 (+0431 index-scale fix), institutional API, org audit/retention, connectors as evidence, freshness, reviewer signature, /methodology/versions; review 4 P1 + 6 P2 fixed (self-confirmed outcomes out of calibration, tier-gated trajectory, owner-scoped retention/export, 0430); G21 closed, follow-ups listed. rev.326. |
