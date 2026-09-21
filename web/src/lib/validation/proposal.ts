@@ -120,6 +120,9 @@ export interface PilotProposal {
   footer: { entity: string; statutory: string; disclaimer: string };
 }
 
+/** Smaller counts in free text are people, not an intake; the `?applicants=` override still accepts any size. */
+export const MIN_INFERRED_APPLICANTS = 5;
+
 const SIZE_RE = /(\d{1,4})\s*(?:applicants?|startups?|companies|founders|teams|ventures|places)\b|cohorts?\s*(?:of|size)?\s*(\d{1,4})\b|intake\s*(?:of)?\s*(\d{1,4})\b/i;
 
 /** The cohort size the entry text implies (note, objection, next step), or null. Pure. */
@@ -128,7 +131,8 @@ export function inferApplicants(entry: Pick<ValidationEntry, "note" | "objection
     const m = SIZE_RE.exec(text ?? "");
     if (!m) continue;
     const n = Number(m[1] ?? m[2] ?? m[3]);
-    if (Number.isInteger(n) && n > 0) return n;
+    // "2 founders" / "3 teams" in a note is not an intake size (review G23 P3).
+    if (Number.isInteger(n) && n >= MIN_INFERRED_APPLICANTS) return n;
   }
   return null;
 }

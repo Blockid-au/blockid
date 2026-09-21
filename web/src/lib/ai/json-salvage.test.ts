@@ -34,10 +34,17 @@ describe("salvageTruncatedJson", () => {
     expect(JSON.parse(salvageTruncatedJson(afterColon)!)).toEqual({ a: { x: 1, y: "two" } });
   });
 
-  it("cut inside an array string element keeps the whole words written and closes the array", () => {
-    const base = JSON.stringify({ highlights: ["one", "two words here"] });
-    const cut = base.slice(0, base.indexOf("here") + 2);
-    expect(JSON.parse(salvageTruncatedJson(cut)!)).toEqual({ highlights: ["one", "two words"] });
+  it("a short string element cut mid-sentence is dropped, not kept as a fragment (review G23 P2: 'Revenue is not' would invert meaning)", () => {
+    const base = JSON.stringify({ highlights: ["one", "Revenue is not yet recurring"] });
+    const cut = base.slice(0, base.indexOf("yet") + 2);
+    expect(JSON.parse(salvageTruncatedJson(cut)!)).toEqual({ highlights: ["one"] });
+  });
+
+  it("long prose cut mid-sentence keeps its whole words (≥ SALVAGE_MIN_PROSE_WORDS)", () => {
+    const prose = Array.from({ length: 45 }, (_, i) => `word${i}`).join(" ");
+    const base = JSON.stringify({ body: prose });
+    const cut = base.slice(0, base.indexOf("word44") + 3);
+    expect(JSON.parse(salvageTruncatedJson(cut)!)).toEqual({ body: prose.slice(0, prose.indexOf("word44")).trimEnd() });
   });
 
   it("never cuts inside an escape sequence or a decimal", () => {
