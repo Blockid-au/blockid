@@ -30,12 +30,6 @@ function darkBlock(): string {
   return CSS.slice(start, end);
 }
 
-/** The `@media (prefers-color-scheme: dark)` scope. */
-function osDarkBlock(): string {
-  const start = CSS.indexOf("@media (prefers-color-scheme: dark) {");
-  const end = CSS.indexOf("\n}\n", start);
-  return CSS.slice(start, end);
-}
 
 const light = cssHexTokens(themeBlock());
 const WHITE = "#ffffff";
@@ -94,10 +88,16 @@ describe("globals.css light tokens meet WCAG AA on white (release QA-1 #7)", () 
   });
 });
 
-describe("globals.css dark scopes keep the same tokens AA on the dark ground", () => {
+describe("globals.css: light is the only default (G26) — no OS auto-dark", () => {
+  it("has no `@media (prefers-color-scheme: dark)` token scope; the dark ramp is an explicit [data-theme=dark] / .dark opt-in", () => {
+    expect(CSS).not.toMatch(/@media\s*\(prefers-color-scheme:\s*dark\)/);
+    expect(CSS).toContain(':root[data-theme="dark"],');
+  });
+});
+
+describe("globals.css dark scope keeps the same tokens AA on the dark ground", () => {
   for (const [label, block] of [
     ["[data-theme=dark]", darkBlock()],
-    ["prefers-color-scheme: dark", osDarkBlock()],
   ] as const) {
     it(`${label}: ink-400 and gold-600 are ≥ 4.5:1 on --color-surface-50`, () => {
       const dark = cssHexTokens(block);
@@ -135,7 +135,7 @@ describe("globals.css G17 accent tokens (violet) are AA where they carry text", 
     expect(contrastRatio(root.get("ds-highlight")!, WHITE)).toBeGreaterThanOrEqual(AA_TEXT);
     expect(contrastRatio(root.get("ds-highlight")!, OFF_WHITE)).toBeGreaterThanOrEqual(AA_TEXT);
     expect(contrastRatio(light.get("color-accent-600")!, WHITE), "accent-600 (ring / focus) on white").toBeGreaterThanOrEqual(AA_TEXT);
-    for (const [label, block] of [["[data-theme=dark]", darkBlock()], ["prefers-color-scheme: dark", osDarkBlock()]] as const) {
+    for (const [label, block] of [["[data-theme=dark]", darkBlock()]] as const) {
       const dark = cssHexTokens(block);
       expect(dark.get("ds-highlight"), `${label} ds-highlight declared`).toBeTruthy();
       expect(contrastRatio(dark.get("ds-highlight")!, dark.get("color-surface-50")!), `${label} ds-highlight`).toBeGreaterThanOrEqual(AA_TEXT);

@@ -21,10 +21,13 @@
  *    → "My workspace" + the account menu; a neutral skeleton while resolving.
  *  - The ONLY public header (G13-W5-IA5, spec §E S-IA5). `site/navbar.tsx`
  *    — the floating glass bar ~50 app / docs / tools / auth pages mounted —
- *    is deleted; those pages mount this component instead. `variant="light"`
- *    re-skins the bar with the semantic light tokens for pages whose own
- *    ground is light and quiet (login, reset, error); the default `"dark"`
- *    is the navy island every marketing page already carries.
+ *    is deleted; those pages mount this component instead.
+ *  - G26 (2026-09-21): the bar is LIGHT everywhere — a white island with a
+ *    1 px `--ds-border` line, dark ink links and the navy primary CTA
+ *    (`bg-action`). The old navy `variant="dark"` skin is gone; the prop is
+ *    still accepted (deprecated) and renders the light skin so existing
+ *    callers compile until the page lanes drop it. The header always scopes
+ *    `data-theme="light"` so it stays light even inside a legacy dark wrapper.
  *  - The signed-in menu is `lib/nav/user-menu.ts` — the same rows as the
  *    workspace avatar menu, so a founder never meets two account menus.
  */
@@ -68,13 +71,12 @@ import { LocaleSwitcher } from "./locale-switcher";
 // Variant (G13-W5-IA5) — one component, two skins
 // ---------------------------------------------------------------------------
 
+/** `"light"` is the only skin (G26). `"dark"` is a deprecated alias kept so callers compile. */
 export type NavVariant = "dark" | "light";
 
 /**
- * Every colour class the bar uses, per skin. `dark` is the pre-S-IA5 navy
- * island verbatim (legacy `brand-*` utilities — fixed colours, not theme
- * tokens); `light` uses only semantic tokens so it resolves against the
- * light `--ds-*` ramp inside its own `data-theme="light"` scope.
+ * Every colour class the bar uses. Semantic tokens only, so the bar resolves
+ * against the light `--ds-*` ramp inside its own `data-theme="light"` scope.
  */
 interface NavTheme {
   header: string;
@@ -102,60 +104,39 @@ interface NavTheme {
   accentLink: string;
 }
 
-const NAV_THEMES: Readonly<Record<NavVariant, NavTheme>> = {
-  dark: {
-    header: "border-b border-white/5 bg-brand-navy/85 backdrop-blur",
-    brandWord: "text-brand-ink",
-    brandDot: "text-brand-cyan",
-    ring: "focus-visible:ring-brand-cyan",
-    ringOffset: "focus-visible:ring-offset-brand-navy",
-    navLink: "text-brand-ink-muted hover:text-brand-ink",
-    panel: "border border-brand-navy/40 bg-brand-navy shadow-2xl",
-    divider: "border-white/5",
-    sectionHeading: "text-brand-cyan/80",
-    item: "text-brand-ink hover:bg-brand-cyan/10 focus:bg-brand-cyan/10",
-    mobileTrigger: "text-brand-ink-muted hover:bg-white/5 hover:text-brand-ink",
-    mobilePanel: "border-t border-white/5 bg-brand-navy",
-    mobileToggle: "text-brand-ink",
-    skeleton: "bg-white/5",
-    workspaceBtn: "border border-brand-cyan/40 text-brand-cyan hover:border-brand-cyan hover:bg-brand-cyan/10",
-    signIn: "text-brand-ink-muted hover:text-brand-ink",
-    cta: "bg-brand-cyan text-brand-navy hover:bg-brand-blue-bright",
-    avatar: "bg-brand-cyan text-brand-navy",
-    avatarBtn: "hover:bg-white/5",
-    text: "text-brand-ink",
-    muted: "text-brand-ink-muted",
-    planBadge: "bg-brand-cyan/15 text-brand-cyan",
-    accentLink: "text-brand-cyan",
-  },
-  light: {
-    header: "border-b border-line-subtle bg-surface/90 backdrop-blur",
+const LIGHT_NAV_THEME: NavTheme = {
+    header: "border-b border-line-subtle bg-surface/95 backdrop-blur",
     brandWord: "text-primary",
-    brandDot: "text-action",
-    ring: "focus-visible:ring-action",
+    brandDot: "text-action-secondary",
+    ring: "focus-visible:ring-brand-navy",
     ringOffset: "focus-visible:ring-offset-surface",
     navLink: "text-secondary hover:text-primary",
-    panel: "border border-line-subtle bg-surface-raised shadow-xl",
+    panel: "border border-line-subtle bg-surface-raised shadow-2",
     divider: "border-line-subtle",
-    sectionHeading: "text-action",
+    sectionHeading: "text-action-secondary",
     item: "text-primary hover:bg-surface-hover focus:bg-surface-hover",
     mobileTrigger: "text-secondary hover:bg-surface-hover hover:text-primary",
     mobilePanel: "border-t border-line-subtle bg-surface",
     mobileToggle: "text-primary",
     skeleton: "bg-surface-hover",
-    workspaceBtn: "border border-action/40 text-action hover:border-action hover:bg-action/10",
+    workspaceBtn: "border border-line bg-surface text-primary hover:bg-surface-hover",
     signIn: "text-secondary hover:text-primary",
     cta: "bg-action text-on-action hover:bg-action-hover",
     avatar: "bg-action text-on-action",
     avatarBtn: "hover:bg-surface-hover",
     text: "text-primary",
     muted: "text-secondary",
-    planBadge: "bg-action/10 text-action",
+    planBadge: "bg-surface-sunken text-secondary border border-line-subtle",
     accentLink: "text-action",
-  },
 };
 
-const NavThemeContext = createContext<NavTheme>(NAV_THEMES.dark);
+const NAV_THEMES: Readonly<Record<NavVariant, NavTheme>> = {
+  /** @deprecated G26 — renders the light skin. */
+  dark: LIGHT_NAV_THEME,
+  light: LIGHT_NAV_THEME,
+};
+
+const NavThemeContext = createContext<NavTheme>(NAV_THEMES.light);
 
 function useNavTheme(): NavTheme {
   return useContext(NavThemeContext);
@@ -662,12 +643,13 @@ function trackPrimaryCta(location: "nav" | "nav_mobile") {
 }
 
 export interface NavV2Props {
-  /** `"dark"` (default) = the navy island; `"light"` = semantic light tokens for quiet pages (auth). */
+  /** @deprecated G26 — the bar is light everywhere; the prop is ignored. */
   variant?: NavVariant;
 }
 
-export function NavV2({ variant = "dark" }: NavV2Props = {}) {
-  const t = NAV_THEMES[variant];
+export function NavV2(props: NavV2Props = {}) {
+  void props.variant; // deprecated since G26 — the bar is light everywhere
+  const t = NAV_THEMES.light;
   const [mobileOpen, setMobileOpen] = useState(false);
   // undefined = resolving (skeleton), null = signed out, object = signed in.
   const user = useAuthUser();
@@ -769,12 +751,11 @@ export function NavV2({ variant = "dark" }: NavV2Props = {}) {
     <NavThemeContext.Provider value={t}>
     <header
       ref={navRef}
-      // Self-scoped island: `dark` renders the deep-navy lux bar even inside
-      // a light page (its legacy `brand-*` utilities are fixed colours);
-      // `light` scopes the semantic tokens to the light ramp even when the
-      // page around it is a dark island of its own.
-      data-theme={variant}
-      data-nav-variant={variant}
+      // G26: always the light island. Scoping `data-theme="light"` pins the
+      // semantic tokens to the light ramp even when a legacy dark wrapper
+      // still surrounds the page.
+      data-theme="light"
+      data-nav-variant="light"
       className={`sticky top-0 z-50 ${t.header}`}
     >
       <nav

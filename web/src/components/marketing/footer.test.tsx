@@ -19,9 +19,11 @@ import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL, marketingLine } from "@/lib/site/
 const html = renderToStaticMarkup(<Footer />);
 
 describe("Footer — the one public footer", () => {
-  it("renders exactly one <footer> landmark, self-scoped dark, with the sr-only heading", () => {
+  it("renders exactly one <footer> landmark on the LIGHT sunken ground (G26 — no dark scope), with the sr-only heading", () => {
     expect((html.match(/<footer\b/g) ?? []).length).toBe(1);
-    expect(html).toMatch(/<footer[^>]*data-theme="dark"/);
+    expect(html).not.toMatch(/<footer[^>]*data-theme=/);
+    expect(html).toMatch(/<footer[^>]*data-tone="sunken"[^>]*class="[^"]*bg-surface-sunken/);
+    expect(html).not.toMatch(/\[&_img\]:invert/);
     expect(html).toContain('aria-labelledby="marketing-footer-heading"');
     expect(html).toContain("Site footer");
   });

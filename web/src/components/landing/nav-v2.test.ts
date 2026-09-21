@@ -127,23 +127,27 @@ describe("G7 Q2 → G17 — Demo placement", () => {
   });
 });
 
-// G13-W5-IA5 — one header. `variant="light"` is a second SKIN of the same
-// component (auth pages), never a second component; the legacy bar is gone.
-describe("S-IA5 — one header, two skins", () => {
+// G13-W5-IA5 — one header; G26 — ONE skin. The bar is light everywhere:
+// white island, 1 px line, dark ink links, navy primary CTA. The deprecated
+// `dark` key is an alias of the light table so old callers compile.
+describe("S-IA5 / G26 — one header, one light skin", () => {
   it("site/navbar.tsx no longer exists and nothing imports it", () => {
     expect(existsSync(resolve(__dirname, "../site/navbar.tsx"))).toBe(false);
   });
 
-  it("dark and light skins define the same class slots; light uses semantic tokens only, dark keeps the navy island", () => {
-    const dark = NAV_VARIANT_CLASSES.dark;
+  it("the light skin uses semantic tokens only — no navy island, no white/… alphas, no numeric ramps; `dark` is the same table", () => {
     const light = NAV_VARIANT_CLASSES.light;
-    expect(Object.keys(light).sort()).toEqual(Object.keys(dark).sort());
+    expect(NAV_VARIANT_CLASSES.dark).toBe(light);
     for (const [slot, classes] of Object.entries(light)) {
-      expect(classes, `light.${slot}`).not.toMatch(/brand-(navy|ink|cyan)|white\//);
+      expect(classes, `light.${slot}`).not.toMatch(/brand-(ink|cyan)\b|bg-brand-navy|white\/|text-white/);
       expect(classes, `light.${slot}`).not.toMatch(/\b(ink|surface)-\d{2,3}\b/);
+      expect(classes, `light.${slot}`).not.toMatch(/#[0-9a-f]{3,6}\b/i);
     }
-    expect(dark.header).toContain("bg-brand-navy/85");
-    expect(light.header).toContain("bg-surface/90");
+    expect(light.header).toContain("bg-surface/95");
+    expect(light.header).toContain("border-line-subtle");
     expect(light.cta).toContain("bg-action");
+    expect(light.cta).toContain("text-on-action");
+    expect(light.ring).toBe("focus-visible:ring-brand-navy");
+    expect(light.mobilePanel).toContain("bg-surface");
   });
 });

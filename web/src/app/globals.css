@@ -80,13 +80,16 @@
   --color-brand-navy-elev-1: #22326B;
   --color-brand-navy-elev-2: #2A3B7A;
   --color-brand-navy-deep: #0F1B47;
-  --color-brand-cyan: #22D3EE;         /* logo star + .au dot */
-  --color-brand-cyan-muted: #0891B2;
+  --color-brand-cyan: #22D3EE;         /* logo star + .au dot — GRAPHIC ONLY on light (1.6:1) */
+  --color-brand-cyan-muted: #0E7490;   /* G26: the one cyan allowed as text on light — 5.36:1 on white */
   --color-brand-blue: #3B82F6;
   --color-brand-blue-bright: #38BDF8;
   /* Legacy alias — old refs to text-brand-gold now render as accent blue */
   --color-brand-gold: #38BDF8;
   --color-brand-gold-muted: #0EA5E9;
+  /* G26: brand-ink / brand-ink-muted are LEGACY ON-NAVY-FILL text tokens
+     (near-white). On the light template they are graphic-only — never
+     page text; the light-template guard flags them outside the allow-list. */
   --color-brand-ink: #F8FAFC;
   --color-brand-ink-muted: #CBD5E1;
   --color-brand-ink-dark: #1B2A5E;
@@ -224,6 +227,13 @@
   --color-on-action: var(--ds-accent-contrast);
   --color-action: var(--ds-accent);
   --color-action-hover: var(--ds-accent-hover);
+  --color-action-secondary: var(--ds-accent-secondary);
+  /* G26 aliases — the page lanes' migration vocabulary (text-ink /
+     text-ink-muted / text-ink-subtle) is the same pair set as
+     text-primary / text-secondary / text-muted. */
+  --color-ink: var(--ds-ink);
+  --color-ink-muted: var(--ds-ink-muted);
+  --color-ink-subtle: var(--ds-ink-subtle);
   --color-accent: var(--ds-highlight);
   --color-accent-soft: var(--ds-highlight-soft);
   --color-bull: var(--ds-success);
@@ -233,10 +243,10 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════
-   LIGHT-FIRST TOKEN LAYER (docs/design-system.md rev.2)
-   Default surfaces render white/off-white with near-black text.
-   Dark palette activates only via prefers-color-scheme OR an
-   explicit :root[data-theme="dark"] scope.
+   LIGHT-ONLY TOKEN LAYER (docs/design/unicorn-template.md v2, G26)
+   Every page renders white / #f7f8fa surfaces with near-black ink.
+   The dark ramp exists only for an explicit :root[data-theme="dark"]
+   (or .dark) opt-in scope — never from the OS preference.
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
@@ -258,16 +268,17 @@
   --ds-ink-subtle: #4b5563;           /* text.muted — 8.94:1 AAA body */
   --ds-ink-tertiary: #6b7280;         /* text.tertiary — 5.74:1 AA */
   --ds-ink-faint: #9ca3af;            /* text.faint — DECORATIVE ONLY */
-  --ds-accent: #1d4ed8;               /* action / info — 8.59:1 on white */
-  --ds-accent-hover: #1e40af;
+  --ds-accent: #1b2a5e;               /* action = brand navy — 13.6:1 on white; white label 13.6:1 (G26) */
+  --ds-accent-hover: #22326b;         /* navy elev-1 */
   --ds-accent-contrast: #ffffff;
   --ds-brand: #ff9f0a;                /* svi.500 — brand only (graphic) */
   --ds-brand-ink: #0b0f1a;            /* text.on-brand — 8.42:1 on #FF9F0A */
   --ds-success: #047857;              /* bull — 6.36:1 */
   --ds-warn: #b45309;                 /* warn — 5.93:1 */
   --ds-danger: #b91c1c;               /* bear — 7.29:1 */
-  --ds-info: #1d4ed8;
-  --ds-focus-ring: #1d4ed8;
+  --ds-info: #1d4ed8;                 /* informational blue (info pills) */
+  --ds-accent-secondary: #0e7490;     /* cyan-muted secondary accent — 5.36:1 on white (#0891b2 was 3.68:1, darkened) */
+  --ds-focus-ring: #1b2a5e;           /* ring-brand-navy on light */
   --ds-highlight: #6d28d9;            /* accent-700 — 7.2:1 on white (G17) */
   --ds-highlight-soft: #f5f3ff;       /* accent-50 ground for eyebrow pills */
   --ds-ring-start: #2563eb;           /* search ring: brand-600 → accent-600 */
@@ -281,99 +292,13 @@
   --ds-bg-brand: #fff7ed;
 }
 
-/* ── DARK PALETTE — opt-in ─────────────────────────────────────
-   Activates when either:
-     (a) OS is in dark mode AND user hasn't forced :root[data-theme="light"], OR
-     (b) an explicit :root[data-theme="dark"] scope requests it.
-   Legacy `.dark` and `[data-theme="lux"]` selectors kept so existing
-   opt-in wrappers continue to work. */
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-
-    --ds-surface: #0b0f1a;
-    --ds-surface-elevated: #111827;
-    --ds-surface-sunken: #050813;
-    --ds-surface-hover: #1f2937;
-    --ds-border: rgba(148, 163, 184, 0.16);
-    --ds-border-strong: rgba(148, 163, 184, 0.28);
-    --ds-border-emphasis: #cbd5e1;
-    --ds-ink: #f9fafb;
-    --ds-ink-strong: #ffffff;
-    --ds-ink-muted: #e5e7eb;
-    --ds-ink-subtle: #cbd5e1;
-    --ds-ink-tertiary: #9ca3af;
-    --ds-ink-faint: #6b7280;
-    --ds-accent: #60a5fa;
-    --ds-accent-hover: #93c5fd;
-    --ds-accent-contrast: #0b0f1a;
-    --ds-brand: #fbbf24;
-    --ds-brand-ink: #0b0f1a;
-    --ds-success: #34d399;
-    --ds-warn: #fbbf24;
-    --ds-danger: #f87171;
-    --ds-info: #60a5fa;
-    --ds-focus-ring: #93c5fd;
-    --ds-highlight: #c4b5fd;            /* accent-300 — 9.5:1 on #0b0f1a (G17) */
-    --ds-highlight-soft: rgba(139, 92, 246, 0.16);
-    --ds-ring-start: #60a5fa;
-    --ds-ring-end: #a78bfa;
-
-    --ds-bg-success: rgba(52, 211, 153, 0.12);
-    --ds-bg-warn: rgba(251, 191, 36, 0.14);
-    --ds-bg-danger: rgba(248, 113, 113, 0.14);
-    --ds-bg-info: rgba(96, 165, 250, 0.14);
-    --ds-bg-brand: rgba(251, 191, 36, 0.14);
-
-    --color-surface-50: #0b0f1a;
-    --color-surface-100: #111827;
-    --color-surface-200: #1f2937;
-    --color-surface-300: #374151;
-    --color-surface-400: #4b5563;
-
-    --color-ink-950: #f9fafb;
-    --color-ink-900: #f3f4f6;
-    --color-ink-800: #e5e7eb;
-    --color-ink-700: #d1d5db;
-    --color-ink-600: #9ca3af;
-    --color-ink-500: #9ca3af;
-    --color-ink-400: #e5e7eb;
-    --color-gold-600: #f59e0b; /* release QA-1 #7 — see the [data-theme="dark"] note */
-    --color-ink-300: #d1d5db;
-    --color-ink-200: #9ca3af;
-    --color-ink-100: #9ca3af;
-
-    --color-paper-50: #111827;
-
-    /* rev.4 — re-substitute the semantic generators (see the note in the
-       [data-theme="dark"] block) so OS-dark also repoints text-primary,
-       bg-surface, border-line-subtle etc. instead of inheriting the
-       light values already substituted on :root by @theme. */
-    --color-surface: var(--ds-surface);
-    --color-surface-raised: var(--ds-surface-elevated);
-    --color-surface-sunken: var(--ds-surface-sunken);
-    --color-surface-hover: var(--ds-surface-hover);
-    --color-line: var(--ds-border-strong);
-    --color-line-subtle: var(--ds-border);
-    --color-line-strong: var(--ds-border-emphasis);
-    --color-primary: var(--ds-ink);
-    --color-strong: var(--ds-ink-strong);
-    --color-secondary: var(--ds-ink-muted);
-    --color-muted: var(--ds-ink-subtle);
-    --color-tertiary: var(--ds-ink-tertiary);
-    --color-faint: var(--ds-ink-faint);
-    --color-on-brand: var(--ds-brand-ink);
-    --color-on-action: var(--ds-accent-contrast);
-    --color-action: var(--ds-accent);
-    --color-action-hover: var(--ds-accent-hover);
-    --color-accent: var(--ds-highlight);
-    --color-accent-soft: var(--ds-highlight-soft);
-    --color-bull: var(--ds-success);
-    --color-bear: var(--ds-danger);
-    --color-warn: var(--ds-warn);
-    --color-svi-500: var(--ds-brand);
-  }
-}
+/* ── DARK PALETTE — explicit opt-in ONLY (G26, 2026-09-21) ────────
+   Light is the only default. The former OS-preference media query
+   auto-flip is gone: an OS in dark mode no longer re-skins the
+   site. The dark ramp below activates only under an explicit
+   `[data-theme="dark"]` / `.dark` scope — the report/PDF theme contract,
+   the workspace toggle (user-chosen) and the legacy `[data-theme="lux"]`
+   wrappers the page lanes are retiring. */
 
 :root[data-theme="dark"],
 [data-theme="dark"],
@@ -403,6 +328,7 @@
   --ds-warn: #fbbf24;
   --ds-danger: #f87171;
   --ds-info: #60a5fa;
+  --ds-accent-secondary: #67e8f9;     /* cyan on the dark ground (opt-in scope only) */
   --ds-focus-ring: #93c5fd;
   --ds-highlight: #c4b5fd;            /* accent-300 — 9.5:1 on #0b0f1a (G17) */
   --ds-highlight-soft: rgba(139, 92, 246, 0.16);
@@ -468,6 +394,13 @@
   --color-on-action: var(--ds-accent-contrast);
   --color-action: var(--ds-accent);
   --color-action-hover: var(--ds-accent-hover);
+  --color-action-secondary: var(--ds-accent-secondary);
+  /* G26 aliases — the page lanes' migration vocabulary (text-ink /
+     text-ink-muted / text-ink-subtle) is the same pair set as
+     text-primary / text-secondary / text-muted. */
+  --color-ink: var(--ds-ink);
+  --color-ink-muted: var(--ds-ink-muted);
+  --color-ink-subtle: var(--ds-ink-subtle);
   --color-accent: var(--ds-highlight);
   --color-accent-soft: var(--ds-highlight-soft);
   --color-bull: var(--ds-success);
@@ -496,16 +429,17 @@
   --ds-ink-subtle: #4b5563;
   --ds-ink-tertiary: #6b7280;
   --ds-ink-faint: #9ca3af;
-  --ds-accent: #1d4ed8;
-  --ds-accent-hover: #1e40af;
+  --ds-accent: #1b2a5e;
+  --ds-accent-hover: #22326b;         /* navy elev-1 */
   --ds-accent-contrast: #ffffff;
   --ds-brand: #ff9f0a;
   --ds-brand-ink: #0b0f1a;
   --ds-success: #047857;
   --ds-warn: #b45309;
   --ds-danger: #b91c1c;
-  --ds-info: #1d4ed8;
-  --ds-focus-ring: #1d4ed8;
+  --ds-info: #1d4ed8;                 /* informational blue (info pills) */
+  --ds-accent-secondary: #0e7490;     /* cyan-muted secondary accent — 5.36:1 on white (#0891b2 was 3.68:1, darkened) */
+  --ds-focus-ring: #1b2a5e;           /* ring-brand-navy on light */
   --ds-highlight: #6d28d9;            /* accent-700 — 7.2:1 on white (G17) */
   --ds-highlight-soft: #f5f3ff;       /* accent-50 ground for eyebrow pills */
   --ds-ring-start: #2563eb;           /* search ring: brand-600 → accent-600 */
@@ -537,6 +471,13 @@
   --color-on-action: var(--ds-accent-contrast);
   --color-action: var(--ds-accent);
   --color-action-hover: var(--ds-accent-hover);
+  --color-action-secondary: var(--ds-accent-secondary);
+  /* G26 aliases — the page lanes' migration vocabulary (text-ink /
+     text-ink-muted / text-ink-subtle) is the same pair set as
+     text-primary / text-secondary / text-muted. */
+  --color-ink: var(--ds-ink);
+  --color-ink-muted: var(--ds-ink-muted);
+  --color-ink-subtle: var(--ds-ink-subtle);
   --color-accent: var(--ds-highlight);
   --color-accent-soft: var(--ds-highlight-soft);
   --color-bull: var(--ds-success);

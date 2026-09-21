@@ -25,21 +25,22 @@ beforeEach(() => {
   auth.user = undefined;
 });
 
-describe("NavV2 — one header, two skins", () => {
-  it("default = dark island: one <header data-theme=dark> + nav[aria-label=Primary], skeleton while auth resolves", () => {
+describe("NavV2 — one header, one light skin (G26)", () => {
+  it("default = light island: one <header data-theme=light> + nav[aria-label=Primary], skeleton while auth resolves", () => {
     const html = renderToStaticMarkup(<NavV2 />);
     expect((html.match(/<header\b/g) ?? []).length).toBe(1);
-    expect(html).toMatch(/<header[^>]*data-theme="dark"[^>]*data-nav-variant="dark"/);
+    expect(html).toMatch(/<header[^>]*data-theme="light"[^>]*data-nav-variant="light"/);
     expect(html).toContain('aria-label="Primary"');
     expect(html).toContain('data-testid="nav-v2-auth-skeleton"');
-    expect(html).toMatch(/<header[^>]*class="[^"]*bg-brand-navy\/85/);
+    expect(html).toMatch(/<header[^>]*class="[^"]*bg-surface\/95/);
+    expect(html).not.toMatch(/bg-brand-navy|text-white|text-brand-ink/);
   });
 
-  it("variant=light: same landmarks, light scope, semantic tokens on the bar", () => {
-    const html = renderToStaticMarkup(<NavV2 variant="light" />);
+  it("the deprecated variant=dark still renders the light skin (no navy island anywhere)", () => {
+    const html = renderToStaticMarkup(<NavV2 variant="dark" />);
     expect((html.match(/<header\b/g) ?? []).length).toBe(1);
     expect(html).toMatch(/<header[^>]*data-theme="light"[^>]*data-nav-variant="light"/);
-    expect(html).toMatch(/<header[^>]*class="[^"]*bg-surface\/90/);
+    expect(html).toMatch(/<header[^>]*class="[^"]*bg-surface\/95/);
     expect(html).not.toMatch(/<header[^>]*class="[^"]*bg-brand-navy/);
     expect(html).toContain('aria-label="Primary"');
     // Same menu, same CTA — a skin never changes the IA.
