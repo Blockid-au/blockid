@@ -295,6 +295,17 @@ export async function POST(request: Request) {
       return;
     }
 
+    // ── Retired: paid Cohort Validation Pilot (G21 P0-C → G25) ──────
+    // The SKU, its prices and the fulfilment are gone (founder decision
+    // 2026-09-21). No such session can exist (the prices were never
+    // minted), but a replayed or hand-made one must never fall through to
+    // the generic plan write below and set app_users.plan to a plan id
+    // that no longer exists. Acknowledge, log, do nothing.
+    if (session.metadata?.kind === "cohort_pilot") {
+      console.warn("[blockid:stripe] cohort_pilot session ignored — the paid pilot was retired 2026-09-21 (G25)", { session_id: session.id, sku: session.metadata?.sku ?? null });
+      return;
+    }
+
     // ── Credit pack purchase ────────────────────────────────────────
     if (session.metadata?.type === "credit_purchase") {
       const creditUserId = session.metadata.blockid_user_id;

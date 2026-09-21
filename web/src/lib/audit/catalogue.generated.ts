@@ -11,6 +11,7 @@ export interface AuditCatalogueRow {
 
 export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze([
   { route: "api/accelerator/cohort/route.ts", family: "accelerator.cohort", methods: ["POST"] },
+  { route: "api/accelerator/onboarding/metrics/route.ts", family: "accelerator.onboarding.metrics", methods: ["PATCH"] },
   { route: "api/account/delete/route.ts", family: "account.delete", methods: ["POST"] },
   { route: "api/account/notify-prefs/route.ts", family: "account.notify-prefs", methods: ["POST"] },
   { route: "api/actions/route.ts", family: "actions", methods: ["POST"] },
@@ -278,8 +279,6 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/onboarding/save-progress/route.ts", family: "onboarding.save-progress", methods: ["POST"] },
   { route: "api/org/settings/route.ts", family: "org.settings", methods: ["PATCH"] },
   { route: "api/outcomes/[id]/route.ts", family: "outcomes", methods: ["PATCH"] },
-  { route: "api/pilot/apply/route.ts", family: "pilot.apply", methods: ["POST"] },
-  { route: "api/pilots/[orderId]/metrics/route.ts", family: "pilots.metrics", methods: ["PATCH"] },
   { route: "api/pitchdeck/analyze/route.ts", family: "pitchdeck.analyze", methods: ["POST"] },
   { route: "api/pitchdeck/classify/route.ts", family: "pitchdeck.classify", methods: ["POST"] },
   { route: "api/pitchdeck/email-report/route.ts", family: "pitchdeck.email-report", methods: ["POST"] },

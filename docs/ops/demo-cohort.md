@@ -39,7 +39,7 @@ Both are audited (`apiRoute`) and write `cohort.demo_created` / `cohort.demo_rem
 - `/workspace/evaluations/cohort` — empty state: **Import CSV** beside **Load a demo cohort**; with cohorts present, a "Load a demo cohort" button beside "New cohort" until one exists.
 - `/workspace/evaluations` — Cohorts section empty state: the same pair.
 - `/workspace/accelerator` — Intake panel (beside "Import applicants from CSV") and the Assessment empty state; the journey banner carries **Remove demo cohort** for the owner.
-- `/workspace/accelerator/pilot` — "Book a pilot" card (evaluator seats) and the delivery checklist, whose first step is now **Demo run** ("Ran the demo cohort").
+- `/workspace/accelerator/onboarding` (G25 — was `/workspace/accelerator/pilot`, now a 301) — the "Start a cohort" card (no Cohort seat) and the onboarding checklist, whose first step is **Demo run** ("Ran the demo cohort").
 - The cohort page banner carries **Remove demo cohort** (owner). The CSV import is hidden on a demo cohort — real applicants get a real cohort.
 
 Copy is catalogued (`demoCohort.*` in `lib/i18n/messages/{en,vi}.json`) and reaches the client components as props (`loadDemoCohortLabels()` reads the `blockid_lang` cookie).

@@ -205,13 +205,6 @@ vi.mock("@/lib/funding/reports", () => ({
     handleFundingReportCompletedMock(session, eventId),
 }));
 
-// G21 P0-C — paid Cohort Validation Pilot fulfilment lives in
-// lib/pilots/paid-orders.ts (unit-tested there); here we pin the routing,
-// the revenue row and the money event.
-const fulfilPaidPilotMock = vi.fn<(session: unknown) => Promise<Record<string, unknown>>>();
-vi.mock("@/lib/pilots/paid-orders", () => ({
-  fulfilPaidPilot: (session: unknown) => fulfilPaidPilotMock(session),
-}));
 
 // Telegram is only used by the founding50 post-cutover guard's alert path
 // (dynamic import). Provide a stub so the cutover test can pin that the alert
@@ -301,8 +294,6 @@ beforeEach(() => {
   sendTelegramMock.mockResolvedValue(undefined);
   handleFundingReportCompletedMock.mockReset();
   handleFundingReportCompletedMock.mockResolvedValue({ ok: true, reportId: "fr-1" });
-  fulfilPaidPilotMock.mockReset();
-  fulfilPaidPilotMock.mockResolvedValue({ ok: true, duplicate: false, order_id: "order-1", sku: "cohort_pilot_25", user_id: "user-1", entitlement_until: "2026-12-19T00:00:00.000Z", pilot: { ok: true, warnings: [] } });
   for (const fn of Object.values(emailMock)) fn.mockReset();
 });
 
@@ -630,62 +621,35 @@ describe("POST /api/stripe/webhook — checkout.session.completed routing", () =
 });
 
 // ---------------------------------------------------------------------------
-// G21 P0-C — paid Cohort Validation Pilot (metadata.kind === "cohort_pilot")
+// G25 (2026-09-21) — the paid Cohort Validation Pilot is retired. A session
+// still carrying metadata.kind === "cohort_pilot" (none can exist — the
+// prices were never minted) is acknowledged and ignored: no plan write, no
+// credits, no revenue row, no money event, no fulfilment module.
 // ---------------------------------------------------------------------------
 
-describe("POST /api/stripe/webhook — cohort_pilot one-off (G21 P0-C)", () => {
-  const pilotEvent = (id = "evt_pilot_1") =>
-    buildCheckoutEvent({
-      id,
-      metadata: { kind: "cohort_pilot", sku: "cohort_pilot_25", applicants_cap: "25", blockid_user_id: "user-1", blockid_plan: "cohort_pilot_25" },
-      customerEmail: "program@uni.edu.au",
-      amountTotal: 150000,
-    });
-
-  it("routes to fulfilPaidPilot with the session, records revenue kind=cohort_pilot and emits checkout_completed {sku}; never the generic plan path", async () => {
-    verifyWebhookSignature.mockReturnValue(pilotEvent());
+describe("POST /api/stripe/webhook — cohort_pilot sessions are ignored (G25)", () => {
+  it("a cohort_pilot session → 200 with no app_users write, no credits, no revenue_events row, no checkout_completed; lib/pilots/paid-orders is gone", async () => {
+    verifyWebhookSignature.mockReturnValue(
+      buildCheckoutEvent({
+        id: "evt_pilot_retired_1",
+        metadata: { kind: "cohort_pilot", sku: "cohort_pilot_25", applicants_cap: "25", blockid_user_id: "user-1", blockid_plan: "cohort_pilot_25" },
+        customerEmail: "program@uni.edu.au",
+        amountTotal: 150000,
+      }),
+    );
     const res = await invoke();
     expect(res.status).toBe(200);
-    expect(fulfilPaidPilotMock).toHaveBeenCalledTimes(1);
-    expect((fulfilPaidPilotMock.mock.calls[0]![0] as { id: string }).id).toBe("cs_test_evt_pilot_1");
-    // no app_users.plan write from the generic subscription path
     expect(updateCalls.find((c) => c.table === "app_users")).toBeUndefined();
     expect(grantCreditsMock).not.toHaveBeenCalled();
-    const rev = insertCalls.find((c) => c.table === "revenue_events" && (c.row as Row).kind === "cohort_pilot");
-    expect(rev).toBeTruthy();
-    expect((rev!.row as Row).plan_id).toBe("cohort_pilot_25");
-    expect((rev!.row as Row).gross_aud_cents).toBe(150000);
-    expect((rev!.row as Row).stripe_event_id).toBe("evt_pilot_1");
-    const money = emitCalls.find((c) => c.name === "checkout_completed");
-    expect(money).toBeTruthy();
-    expect(money!.params.sku).toBe("cohort_pilot_25");
-    expect(money!.params.gross_aud_cents).toBe(150000);
-    expect(emailMock.sendPaymentConfirmation).not.toHaveBeenCalled();
-  });
-
-  it("a replayed session (duplicate order) records nothing twice", async () => {
-    fulfilPaidPilotMock.mockResolvedValue({ ok: true, duplicate: true, order_id: "order-1" });
-    verifyWebhookSignature.mockReturnValue(pilotEvent("evt_pilot_2"));
-    const res = await invoke();
-    expect(res.status).toBe(200);
     expect(insertCalls.find((c) => c.table === "revenue_events")).toBeUndefined();
+    expect(insertCalls.find((c) => c.table === "pilot_orders")).toBeUndefined();
     expect(emitCalls.find((c) => c.name === "checkout_completed")).toBeUndefined();
-  });
-
-  it("a skipped fulfilment (bad metadata) is logged, not retried, and books no revenue", async () => {
-    fulfilPaidPilotMock.mockResolvedValue({ ok: false, skipped: "bad_metadata", message: "missing sku" });
-    verifyWebhookSignature.mockReturnValue(pilotEvent("evt_pilot_3"));
-    const res = await invoke();
-    expect(res.status).toBe(200);
-    expect(insertCalls.find((c) => c.table === "revenue_events")).toBeUndefined();
-  });
-
-  it("a thrown fulfilment surfaces as a handler error so Stripe retries", async () => {
-    fulfilPaidPilotMock.mockRejectedValue(new Error("db down"));
-    verifyWebhookSignature.mockReturnValue(pilotEvent("evt_pilot_4"));
-    const res = await invoke();
-    expect(res.status).toBe(500);
-    expect(markWebhookEventProcessed).toHaveBeenCalledWith("evt_pilot_4", expect.stringMatching(/db down/));
+    expect(emailMock.sendPaymentConfirmation).not.toHaveBeenCalled();
+    expect(markWebhookEventProcessed).toHaveBeenCalledWith("evt_pilot_retired_1", undefined);
+    const fs = await import("node:fs");
+    const path = await import("node:path");
+    expect(fs.existsSync(path.resolve(__dirname, "../../../../lib/pilots/paid-orders.ts"))).toBe(false);
+    expect(fs.existsSync(path.resolve(__dirname, "../../../../lib/pilots/conversion.ts"))).toBe(false);
   });
 });
 
@@ -773,17 +737,16 @@ describe("POST /api/stripe/webhook — customer.subscription.created (G14-S33)",
 });
 
 // ---------------------------------------------------------------------------
-// G23-B — customer.subscription.created with metadata.pilot_order_id →
-// pilot_orders.converted_at / converted_plan + subscription_started
-// (channel pilot_conversion)
+// G25 — the pilot → annual coupon conversion is retired: a subscription that
+// still carries pilot_order_id metadata never touches pilot_orders and the
+// subscription_created event carries no pilot channel.
 // ---------------------------------------------------------------------------
 
-describe("POST /api/stripe/webhook — pilot conversion (G23-B)", () => {
-  // A realistic uuid — an all-digit id trips the analytics PII (card-number) guard.
+describe("POST /api/stripe/webhook — pilot conversion retired (G25)", () => {
   const ORDER_ID = "3f2a9c1e-5b7d-4e8f-9a0b-1c2d3e4f5a6b";
-  function buildConversionEvent(overrides: Record<string, unknown> = {}): Stripe.Event {
-    return {
-      id: "evt_sub_conv_1",
+  it("customer.subscription.created with stray pilot_order_id metadata → 200, no pilot_orders read / write, plain subscription_created", async () => {
+    verifyWebhookSignature.mockReturnValue({
+      id: "evt_sub_conv_retired",
       type: "customer.subscription.created",
       data: {
         object: {
@@ -794,47 +757,20 @@ describe("POST /api/stripe/webhook — pilot conversion (G23-B)", () => {
           cancel_at_period_end: false,
           metadata: { plan_id: "accelerator_starter", user_id: "user-prog", interval: "annual", pilot_order_id: ORDER_ID, pilot_sku: "cohort_pilot_25" },
           items: { data: [{ price: { id: "price_c25_y", recurring: { interval: "year" } } }] },
-          ...overrides,
         },
       },
-    } as unknown as Stripe.Event;
-  }
-
-  it("stamps converted_at + converted_plan on the order (guarded by converted_at IS NULL) and the ONE subscription_created carries channel pilot_conversion (review G23 P2: no second FI event)", async () => {
-    selectResponses.set("pilot_orders:update", { data: { id: ORDER_ID, user_id: "user-prog", sku: "cohort_pilot_25" }, error: null });
-    verifyWebhookSignature.mockReturnValue(buildConversionEvent());
+    } as unknown as Stripe.Event);
     const res = await invoke();
     expect(res.status).toBe(200);
-    const write = updateCalls.find((c) => c.table === "pilot_orders");
-    expect(write).toBeTruthy();
-    expect(write!.row).toMatchObject({ converted_plan: "accelerator_starter", converted_subscription_id: "sub_conv_1" });
-    expect(String(write!.row.converted_at)).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(fromCalls).not.toContain("pilot_orders");
+    expect(updateCalls.find((c) => c.table === "pilot_orders")).toBeUndefined();
     await new Promise((r) => setTimeout(r, 20));
     const created = emitCalls.filter((c) => c.name === "subscription_created");
     expect(created).toHaveLength(1);
-    expect(created[0]!.params).toMatchObject({ channel: "pilot_conversion", plan: "accelerator_starter", pilot_id: ORDER_ID });
-    expect(emitCalls.find((c) => c.params.fi_event === "subscription_started")).toBeUndefined();
-    expect(markWebhookEventProcessed).toHaveBeenCalledWith("evt_sub_conv_1", undefined);
-  });
-
-  it("a redelivery (row already converted → update matches nothing) writes nothing new and emits no subscription_started", async () => {
-    verifyWebhookSignature.mockReturnValue(buildConversionEvent());
-    const res = await invoke();
-    expect(res.status).toBe(200);
-    expect(updateCalls.filter((c) => c.table === "pilot_orders")).toHaveLength(1);
-    await new Promise((r) => setTimeout(r, 20));
-    expect(emitCalls.find((c) => c.params.fi_event === "subscription_started")).toBeUndefined();
-  });
-
-  it("a subscription without pilot_order_id never touches pilot_orders; a non-Cohort plan with one is skipped", async () => {
-    verifyWebhookSignature.mockReturnValue(buildConversionEvent({ metadata: { plan_id: "accelerator_starter", user_id: "user-prog" } }));
-    await invoke();
-    expect(fromCalls).not.toContain("pilot_orders");
-    verifyWebhookSignature.mockReturnValue(buildConversionEvent({ metadata: { plan_id: "investor_angel", user_id: "user-prog", pilot_order_id: ORDER_ID } }));
-    await invoke();
-    expect(fromCalls).not.toContain("pilot_orders");
-    await new Promise((r) => setTimeout(r, 20));
-    expect(emitCalls.find((c) => c.params.fi_event === "subscription_started")).toBeUndefined();
+    expect(created[0]!.params).toMatchObject({ plan: "accelerator_starter", interval: "year" });
+    expect(created[0]!.params.channel).toBeUndefined();
+    expect(created[0]!.params.pilot_id).toBeUndefined();
+    expect(markWebhookEventProcessed).toHaveBeenCalledWith("evt_sub_conv_retired", undefined);
   });
 });
 

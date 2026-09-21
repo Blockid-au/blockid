@@ -1984,13 +1984,27 @@ anonymous). Reply `{ ok: true }` / `{ ok: false, error }`. Event names emitted s
 `sign_up`, `svi_analyze`, `svi_score_computed`, `report_view`, `checkout`, `trust_report_purchased`,
 `feature_gate_hit`.
 
-### POST /api/pilot/apply — evaluator pilot application (G16-C)
+### ~~POST /api/pilot/apply~~ — removed (G25, 2026-09-21)
 
-Public (no account). Honeypot `company_website` → `204` and nothing stored; per-IP limit 5 / 10 min → `429` +
-`Retry-After`; `PilotApplySchema` (zod) → `400 { error: "invalid_input", issues }`; success `200 { ok: true, id }`
-after appending to `content/reports/pilot-applications.jsonl` (gitignored, live checkout), an ops alert (Telegram →
-e-mail fallback) and an auto-reply. Audited by `apiRoute` with an anonymous actor. Pilots themselves (Program comp,
-30 days, cap 5, never a Stripe payer) are started from `/admin/pilots` and expired by the `pilot-expiry` cron.
+The evaluator pilot application route (G16-C) is gone with the pilot programme ("bỏ luôn coupon và pilot"): the
+route answers `404`. `POST /api/admin/pilots` answers `410 { error: "pilots_retired" }` to an admin; `GET` (the
+ledger of past comps) and `DELETE /api/admin/pilots/[id]` (end a running comp early) stay, as does the
+`pilot-expiry` cron. The paid-pilot routes never had a public contract: `POST /api/stripe/checkout` with
+`plan: cohort_pilot_25 | cohort_pilot_50` answers `400 Invalid or free plan`, and `convert_from_pilot` is no
+longer a body field.
+
+### PATCH | GET /api/accelerator/onboarding/metrics — Cohort onboarding metrics (G25)
+
+Signed in. The success metrics a program and BlockID measure together in its first cohort
+(`lib/accelerator/onboarding-metrics.ts` schema — review minutes before / after, evaluator consistency 1–5,
+startups processed, evidence completion %, satisfaction 1–5, repeat / renewal intent, willingness-to-pay band,
+`case_study_consent`, notes ≤ 2000), stored per ORGANISATION on `org_settings.onboarding_metrics`
+(migration 0438). `GET` → `200 { ok, org_id, available, can_edit, metrics, updated_at }` for any seat of the
+acting organisation; `PATCH` (org owner only — `resolveOrgAdmin().isOwner`) merges only the sent keys, `null`
+clears one, unknown keys → `400 bad_body` with `issues[]`; `401` anonymous · `404` no organisation ·
+`403 not_org_owner` · `503 unavailable` before 0438 · 30 writes / h. Audit row
+`accelerator.onboarding_metrics_updated` carries the changed keys, never the notes. Replaces
+`PATCH /api/pilots/[orderId]/metrics` (removed with `pilot_orders` writes).
 
 ### Public index — `/api/index/*`
 
