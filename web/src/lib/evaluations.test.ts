@@ -334,6 +334,38 @@ describe("listEvaluations", () => {
     expect(rows[1]).toMatchObject({ id: "e-2", projectName: "Beta", latestSvi: null });
   });
 
+  it("G26-W2: an evaluation with no svi_snapshot takes its score from a demo batch item (the program desk had said 'Not scored · 5 unscored' while the cohort table showed 76 / 66 / 59)", async () => {
+    state.queue.push({
+      table: "evaluations",
+      data: [
+        { ...evalRow({ id: "e-real", project_id: "p-1" }), projects: { name: "Acme", slug: "acme" } },
+        { ...evalRow({ id: "e-demo", project_id: "p-demo" }), projects: { name: "Wattlebyte Compliance (demo)", slug: "demo-wattlebyte" } },
+        { ...evalRow({ id: "e-none", project_id: "p-none" }), projects: { name: "Nothing yet", slug: "nothing" } },
+      ],
+    });
+    state.queue.push({ table: "svi_snapshots", data: [{ project_id: "p-1", svi_total: 72, created_at: "2026-09-09T00:00:00Z" }] });
+    state.queue.push({
+      table: "evaluation_batch_items",
+      data: [{ evaluation_id: "e-demo", svi_total: 76, scored_at: "2026-09-21T00:00:00Z", evaluation_batches: { is_demo: true } }],
+    });
+
+    const rows = await listEvaluations("u-eval");
+    // Only the still-unscored evaluations are looked up, and only against demo batches.
+    const items = calls("evaluation_batch_items")[0];
+    expect(items.ins).toEqual([{ col: "evaluation_id", vals: ["e-demo", "e-none"] }]);
+    expect(items.eqs).toEqual([{ col: "evaluation_batches.is_demo", val: true }]);
+    expect(items.selectCols).toContain("evaluation_batches!inner(is_demo)");
+    expect(rows.map((r) => [r.id, r.latestSvi])).toEqual([["e-real", 72], ["e-demo", 76], ["e-none", null]]);
+    expect(rows[1].latestSviAt).toBe("2026-09-21T00:00:00Z");
+  });
+
+  it("skips the demo item read entirely when every evaluation already has a snapshot score", async () => {
+    state.queue.push({ table: "evaluations", data: [{ ...evalRow({ id: "e-1", project_id: "p-1" }), projects: { name: "Acme", slug: "acme" } }] });
+    state.queue.push({ table: "svi_snapshots", data: [{ project_id: "p-1", svi_total: 72, created_at: "2026-09-09T00:00:00Z" }] });
+    await listEvaluations("u-eval");
+    expect(calls("evaluation_batch_items")).toHaveLength(0);
+  });
+
   it("degrades to [] when the table is missing (42P01) or the client is absent", async () => {
     state.queue.push({ table: "evaluations", error: { code: "42P01", message: "relation evaluations does not exist" } });
     expect(await listEvaluations("u-eval")).toEqual([]);

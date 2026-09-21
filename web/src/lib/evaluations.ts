@@ -480,10 +480,56 @@ export async function listEvaluations(userId: string): Promise<EvaluationListRow
   });
 
   const svi = await latestSviByProject(base.map((b) => b.projectId));
-  return base.map((b) => {
+  const decorated = base.map((b) => {
     const hit = svi.get(b.projectId);
     return hit ? { ...b, latestSvi: hit.svi, latestSviAt: hit.at } : b;
   });
+  // G24-C / G26-W2: the demo cohort never writes svi_snapshots — its five
+  // startups are scored on the batch items only. Without this the program
+  // desk and the landing said "Not scored · 5 unscored" while the cohort
+  // table showed 76 / 66 / 59. Only evaluations still unscored are looked up.
+  const unscored = decorated.filter((b) => b.latestSvi == null).map((b) => b.id);
+  if (unscored.length === 0) return decorated;
+  const demo = await demoItemSviByEvaluation(unscored);
+  if (demo.size === 0) return decorated;
+  return decorated.map((b) => {
+    const hit = demo.get(b.id);
+    return hit ? { ...b, latestSvi: hit.svi, latestSviAt: hit.at } : b;
+  });
+}
+
+/**
+ * `evaluation_batch_items.svi_total` for the given evaluations when the item
+ * belongs to a demo batch (`evaluation_batches.is_demo`). Decorative like the
+ * snapshot read — never blocks the list; empty before migration 0436.
+ */
+export async function demoItemSviByEvaluation(
+  evaluationIds: string[],
+): Promise<Map<string, { svi: number; at: string }>> {
+  const out = new Map<string, { svi: number; at: string }>();
+  if (evaluationIds.length === 0) return out;
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return out;
+  try {
+    const { data, error } = await supabase
+      .from("evaluation_batch_items")
+      .select("evaluation_id, svi_total, scored_at, evaluation_batches!inner(is_demo)")
+      .in("evaluation_id", evaluationIds)
+      .eq("evaluation_batches.is_demo", true)
+      .order("scored_at", { ascending: false })
+      .limit(evaluationIds.length * 2);
+    if (error || !data) return out;
+    for (const r of data as Array<Row>) {
+      const eid = str(r.evaluation_id);
+      if (!eid || out.has(eid)) continue;
+      const svi = Number(r.svi_total);
+      if (!Number.isFinite(svi)) continue;
+      out.set(eid, { svi, at: String(r.scored_at ?? "") });
+    }
+  } catch {
+    /* demo item read is decorative — never block the list */
+  }
+  return out;
 }
 
 /** One evaluation, only if `userId` is its evaluator. */

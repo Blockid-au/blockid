@@ -66,5 +66,15 @@ describe("CohortIndex — role chips (G22-A)", () => {
     expect(empty).toContain('data-testid="cohort-empty"');
     expect(empty).toContain("Cohorts — Program plan");
     expect(empty).not.toContain('data-testid="cohort-new"');
+    // G26-W2 P3: one primary per view — the empty-state "Import CSV" and the
+    // header "New cohort" are outline buttons; only the form's "Create cohort"
+    // submit carries the navy fill.
+    const creatable = renderToStaticMarkup(<CohortIndex batches={[]} templates={[]} canCreate pilotCap={null} />);
+    expect(creatable).toMatch(/data-testid="cohort-empty-import/);
+    expect(creatable).not.toMatch(/class="[^"]*bg-brand-navy[^"]*"[^>]*data-testid="cohort-empty-import/);
+    expect(creatable).not.toMatch(/class="[^"]*bg-brand-navy[^"]*"[^>]*data-testid="cohort-new/);
+    // The form opens by default on the empty state, so exactly one navy fill is on screen: its "Create cohort" submit.
+    expect((creatable.match(/(?<![-\w:])bg-brand-navy(?![-\w])/g) ?? []).length).toBe(1);
+    expect(creatable).toMatch(/class="[^"]*bg-brand-navy[^"]*"[^>]*data-testid="cohort-create"/);
   });
 });
