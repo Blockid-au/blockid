@@ -10,6 +10,7 @@ import { MarketingShell } from "@/components/marketing/marketing-shell";
 import { CtaBand, PageHero, Section } from "@/components/marketing/template";
 import { getMessages, t } from "@/lib/i18n/t";
 import { pilotSkusConfigured } from "../../(marketing)/solutions/pilot-configured";
+import { pilotUiStrings } from "@/lib/pricing/pilot-strings";
 
 export const dynamic = "force-dynamic";
 
@@ -138,6 +139,7 @@ export default async function ViPricingPage({ searchParams }: ViPricingPageProps
           annualAvailable={annualAvailable}
           purchasable={purchasable}
           pilotConfigured={pilotSkusConfigured()}
+          pilotStrings={pilotUiStrings(m, "vi")}
           pilotCopy={{
             title: "Thí điểm xác thực Cohort — một đợt tuyển sinh thật, báo giá trước khi trả",
             sub: "Bắt đầu với một thí điểm trả phí một lần trên đợt tuyển sinh tiếp theo hoặc khoá hiện có: Startup Value Index cho mỗi hồ sơ, mức tin cậy bằng chứng, bảng khoá, các khoảng trống lớn nhất và báo cáo khoá cuối. Chương trình tiếp tục chuyển sang Cohort 25 hoặc Cohort 100 bên dưới.",

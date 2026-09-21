@@ -27,6 +27,7 @@ import {
   formatPilotPriceLong,
   type PilotSkuId,
 } from "@/lib/pricing/pilot-skus";
+import { fillPilotString, type PilotUiStrings } from "@/lib/pricing/pilot-strings";
 import { PilotBuyButton } from "./PilotBuyButton";
 
 export interface PilotOfferTier {
@@ -63,6 +64,8 @@ export interface PilotOfferProps {
   configured: Readonly<Record<PilotSkuId, boolean>>;
   /** The page the buttons sit on (sign-in return + cancel target). */
   returnPath: string;
+  /** The localised control strings (`pilotUiStrings(m, locale)`) for the buy buttons + the "after" eyebrow. */
+  strings: PilotUiStrings;
   /** Section id; the accelerator page uses `pilot` so `#pilot` deep links land here. */
   id?: string;
   ctaPrefix?: string;
@@ -70,7 +73,7 @@ export interface PilotOfferProps {
 
 const TIER_ICONS: readonly LucideIcon[] = [Users, Landmark];
 
-export function PilotOffer({ copy, configured, returnPath, id = "pilot", ctaPrefix = "pilot" }: PilotOfferProps) {
+export function PilotOffer({ copy, configured, returnPath, strings, id = "pilot", ctaPrefix = "pilot" }: PilotOfferProps) {
   return (
     <>
       <Section id={id} eyebrow={copy.eyebrow} title={copy.title} lede={copy.lede} tone="sunken">
@@ -106,6 +109,7 @@ export function PilotOffer({ copy, configured, returnPath, id = "pilot", ctaPref
                     sku={sku}
                     configured={configured[sku]}
                     returnPath={returnPath}
+                    strings={strings}
                     label={copy.buyLabel.replace("{price}", formatPilotPrice(sku))}
                     ctaId={`${ctaPrefix}_buy_${sku}`}
                   />
@@ -132,7 +136,7 @@ export function PilotOffer({ copy, configured, returnPath, id = "pilot", ctaPref
       </Section>
 
       {copy.afterTiers && copy.afterTiers.length > 0 ? (
-        <Section id={`${id}-after`} eyebrow="Next step" title={copy.afterTitle} lede={copy.afterLede}>
+        <Section id={`${id}-after`} eyebrow={strings.afterEyebrow} title={copy.afterTitle} lede={copy.afterLede}>
           <div data-testid="pilot-after">
             <FeatureGrid
               columns={2}
@@ -158,16 +162,19 @@ export function PilotOffer({ copy, configured, returnPath, id = "pilot", ctaPref
 /**
  * PilotRung — the compact pilot card the /pricing Programs tab shows FIRST,
  * ahead of Cohort 25 / Cohort 100. Isomorphic (no hooks) so the client
- * segment switch can render it.
+ * segment switch can render it; every string comes from `strings`
+ * (`pilotUiStrings()` on the server) + the two page-level lines.
  */
 export function PilotRung({
   configured,
   returnPath,
+  strings,
   title,
   sub,
 }: {
   configured: Readonly<Record<PilotSkuId, boolean>>;
   returnPath: string;
+  strings: PilotUiStrings;
   title: string;
   sub: string;
 }) {
@@ -175,19 +182,28 @@ export function PilotRung({
     <section
       aria-label={title}
       data-testid="pricing-pilot-rung"
+      data-locale={strings.locale}
       className="mx-auto mt-8 max-w-5xl rounded-xl border border-action/25 bg-action/5 p-6 sm:p-8"
     >
-      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Start here</p>
+      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">{strings.rungEyebrow}</p>
       <h3 className="mt-2 font-display text-2xl font-bold tracking-tight text-primary">{title}</h3>
       <p className="mt-2 max-w-3xl text-sm leading-relaxed text-secondary">{sub}</p>
       <div className="mt-6 grid gap-6 sm:grid-cols-2">
         {PILOT_SKU_IDS.map((sku) => (
-          <div key={sku} className="rounded-lg border border-line-subtle bg-surface p-5" data-testid="pricing-pilot-card" data-sku={sku}>
+          <div key={sku} className="min-w-0 rounded-lg border border-line-subtle bg-surface p-5" data-testid="pricing-pilot-card" data-sku={sku}>
             <p className="text-sm font-semibold text-primary">
-              {formatPilotPrice(sku)} <span className="font-normal text-muted">one-off · up to {PILOT_SKUS[sku].applicantsCap} applicants</span>
+              {formatPilotPrice(sku)} <span className="font-normal text-muted">{fillPilotString(strings.rungCard, { n: PILOT_SKUS[sku].applicantsCap })}</span>
             </p>
             <div className="mt-4">
-              <PilotBuyButton sku={sku} configured={configured[sku]} returnPath={returnPath} label={`Book the ${formatPilotPrice(sku)} pilot`} variant="secondary" ctaId={`pricing_pilot_${sku}`} />
+              <PilotBuyButton
+                sku={sku}
+                configured={configured[sku]}
+                returnPath={returnPath}
+                strings={strings}
+                label={fillPilotString(strings.buyLabel, { price: formatPilotPrice(sku) })}
+                variant="secondary"
+                ctaId={`pricing_pilot_${sku}`}
+              />
             </div>
           </div>
         ))}

@@ -590,7 +590,7 @@ export function SolutionsPageShell(props: SolutionPageProps) {
 
         {/* G21 P0-A — who stands behind the score, above the close (every
             persona page, incl. the accelerator / BlockID Cohort page). */}
-        {showTrustBand ? <TrustBand /> : null}
+        {showTrustBand ? <TrustBand locale={lang} /> : null}
 
         <CtaBand
           title={closingTitle ?? closing.title}

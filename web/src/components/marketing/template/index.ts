@@ -27,7 +27,7 @@ export { FeatureGrid, type FeatureGridProps, type FeatureItem } from "./feature-
 export { StatStrip, type StatStripProps, type Stat } from "./stat-strip";
 export { ProofBand, type ProofBandProps, type ProofItem } from "./proof-band";
 export { CtaBand, type CtaBandProps } from "./cta-band";
-export { TrustBand, TRUST_BAND_ID, scoreDisclaimerText, trustBullets, type TrustBandProps, type TrustBullet } from "./TrustBand";
+export { TrustBand, TRUST_BAND_ID, TRUST_BAND_COPY, DATA_PRINCIPLE_SENTENCE_VI, scoreDisclaimerText, trustBullets, type TrustBandLocale, type TrustBandProps, type TrustBullet } from "./TrustBand";
 export { Prose, type ProseProps } from "./prose";
 export { Faq, type FaqProps, type FaqItem } from "./faq";
 export { CtaLink, CtaRow, type CtaLinkProps } from "./cta-link";

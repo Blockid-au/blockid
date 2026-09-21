@@ -18,6 +18,8 @@ vi.mock("@/components/sales/sticky-cta", () => ({ StickyCta: () => null }));
 
 import { extractJsonLd } from "@/lib/seo/structured-data";
 import { renderedTitle } from "@/lib/seo/page-meta";
+import enMessages from "@/lib/i18n/messages/en.json";
+import { pilotUiStrings } from "@/lib/pricing/pilot-strings";
 import PricingPage, { metadata } from "./page";
 
 async function html(el: React.ReactElement): Promise<string> {
@@ -54,7 +56,7 @@ describe("/pricing — template around the ladder (G17 P2-A)", () => {
     const { PricingSegmentSwitch } = await import("@/components/landing/pricing-segment-switch");
     const { renderToStaticMarkup } = await import("react-dom/server");
     const programs = renderToStaticMarkup(
-      <PricingSegmentSwitch initialSegment="programs" readTabFromUrl={false} pilotConfigured={{ cohort_pilot_25: false, cohort_pilot_50: false }} />,
+      <PricingSegmentSwitch initialSegment="programs" readTabFromUrl={false} pilotConfigured={{ cohort_pilot_25: false, cohort_pilot_50: false }} pilotStrings={pilotUiStrings(enMessages as Record<string, string>, "en")} />,
     );
     expect(programs).toContain('data-testid="pricing-pilot-rung"');
     expect(programs.indexOf('data-testid="pricing-pilot-rung"')).toBeLessThan(programs.indexOf('data-testid="programs-ladder"'));
