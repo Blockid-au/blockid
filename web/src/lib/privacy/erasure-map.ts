@@ -356,7 +356,7 @@ export const NON_FK_EXTRAS: readonly ExtraEntry[] = Object.freeze([
   { table: "intake_submissions", column: "founder_email", by: "email", mode: "anonymise", scrub: "founder_email = {anon_email}, founder_name = NULL", note: "Program-intake applications keyed by the founder's email — pseudonymised, the evaluator keeps the scored row." },
   { table: "user_actions", column: "email", by: "email", mode: "anonymise", scrub: "email = {anon_email}", note: "Legacy action log keyed by email — pseudonymised." },
   { table: "svi_accounts", column: "email", by: "email", mode: "anonymise", scrub: "email = {anon_email}", note: "Legacy SVI account keyed by email — pseudonymised (svi_* children key on its id)." },
-  // G25-C (0438): the free-allowance ledger is keyed by the address, no FK.
+  // G25-C (0439): the free-allowance ledger is keyed by the address, no FK.
   // Removed outright — the row is the person's own record (which free
   // reports they took, where they went); the aggregate counts on
   // /admin/funnel are telemetry we can afford to lose for one person.

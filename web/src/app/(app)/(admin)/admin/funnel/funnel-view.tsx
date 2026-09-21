@@ -279,7 +279,7 @@ function FreeReportsSection({ fr }: { fr: FreeReportMetrics }) {
       <div>
         <p className="text-sm font-medium text-neutral-800">Free reports</p>
         <p className="mt-1 text-xs text-neutral-500">
-          Two free business reports per e-mail address, address required before the run (<code>free_report_grants</code>, migration 0438).
+          Two free business reports per e-mail address, address required before the run (<code>free_report_grants</code>, migration 0439).
           Submitted = grants reserved · delivered = PDF e-mail accepted · people = distinct normalised addresses.
         </p>
       </div>

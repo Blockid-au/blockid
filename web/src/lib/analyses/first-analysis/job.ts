@@ -506,7 +506,7 @@ async function recordDeliverySafely(deps: DeliverDeps, row: FullReportRow, statu
  * hand); `failed` only while nothing was ever delivered, so a failed
  * "(complete)" follow-up never un-delivers a report.
  */
-export async function recordFreeReportDelivery(row: FullReportRow, status: "sent" | "failed", _part: DeliveryPart): Promise<void> {
+export async function recordFreeReportDelivery(row: FullReportRow, status: "sent" | "failed"): Promise<void> {
   const { grantForAnalysis, markDelivered } = await import("@/lib/reports/free-grants");
   const grant = await grantForAnalysis(row.id);
   if (!grant) return;

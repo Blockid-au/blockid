@@ -228,3 +228,21 @@ The advisor plan funnel ends "offer paid pilot → run cohort → convert to ann
 
 **Transparent pricing:** the card quotes the annual price inc. GST, the pilot fee credited and the first-year figure (annual − fee, from the constants) before anything is posted; Stripe lists the same lines before payment. The trial follows `plans.trial_days` for the rung (14 days, card required).
 
+
+## 12. Free allowance — two free business reports per e-mail (G25-C, 2026-09-21)
+
+Founder decision 2026-09-21 (verbatim): "cho phép phân tích 2 lần đầu miễn phí, nhưng cần ghi nhận email để gởi report về và ghi nhận vào hệ thống số lượng người submit và nhận report biz". Runbook: `docs/ops/free-reports.md`.
+
+| Rule | Value | Where |
+|---|---|---|
+| Free full business reports per e-mail address | **2** (`FREE_REPORTS_PER_EMAIL`) — the same S32 first-analysis pipeline and PDF the paid path produces | `lib/reports/free-grants-rules.ts`, gate `lib/reports/free-report-gate.ts`, ledger `free_report_grants` (migration `0439`) |
+| Address required before the run | guest: `email` in the `POST /api/intake` body (400 `email_required` / `email_invalid` / `email_disposable` otherwise); signed-in: the account address, never a body field | `api/intake/route.ts`, `/analyze` e-mail panel (`components/analyze/free-report-email-panel.tsx`) |
+| Identity | normalised address: lower-case, `+tag` dropped everywhere, dots dropped on gmail-style domains; sha256 → `email_hash`; UNIQUE `(email_hash, sequence_no)` | `normaliseReportEmail`, `hashReportEmail` |
+| Third and later | `200 { ok: false, reason: "free_allowance_used", price: {sku, amount_cents: 300, label: "A$3 inc. GST"}, next: "pay", payHref }` — nothing runs; the existing A$3 quote-then-pay path takes over (guest deck/URL → `GuestPaidCheckout`; typed idea → create a free account → workspace unlock rail → `ReportPaywallGate`; signed-in → `/workspace/reports/business`) | `freeReportPayQuote()` reads `TRUST_REPORT_5AUD` — no literal price anywhere |
+| Paid entitlement | `report.basic` / `report.premium` bypass the allowance (never counted, never reserved) | `runFreeReportGate` |
+| Abuse guard | honeypot `company_website` → 400; disposable-domain list → 400; ≤ **3** free reports per IP hash per UTC day (`hashIp`, daily-rotating salt) → 429 `free_ip_limit` | `free-grants-rules.ts` |
+| Platform cap | env NAME **`FREE_REPORTS_DAILY_CAP`** (default **50**, `0` pauses) — over it the submission is accepted and recorded, the run is **queued** (the first-analysis cron starts it when the cap allows) and the page says "we e-mail you when it is ready"; never a 500, never a refusal | `freeReportsDailyCap`, `sweep.ts` `heldForCap`, `/full-report` `heldForCap` |
+| Metrics | `/api/status` (trusted) `free_reports: { submitted, delivered, unique_emails, today, cap, converted_to_paid, last_7_days }`; `/admin/funnel` "Free reports" block; funnel events `free_report_submitted` / `free_report_delivered` (GA4 audit list) | `readFreeReportMetrics`, `lib/analytics/funnel.ts` |
+| Erasure | `free_report_grants` keyed by e-mail → `NON_FK_EXTRAS` delete (migration `0440` re-emits `erase_account()`) | `lib/privacy/erasure-map.ts` |
+
+No Stripe change: the A$3 SKU, its Stripe price and the checkout routes are untouched — the allowance only decides *whether* the quote is shown.

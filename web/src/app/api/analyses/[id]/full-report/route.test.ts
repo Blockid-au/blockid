@@ -32,8 +32,15 @@ const startMock = vi.fn();
 vi.mock("@/lib/analyses/first-analysis/job", () => ({
   startFirstAnalysisJob: (id: string, o: unknown) => startMock(id, o),
 }));
+// G25-C — the daily free cap: a never-started row is held while it is reached.
+const capMock = vi.fn<() => Promise<boolean>>();
+vi.mock("@/lib/reports/free-grants", () => ({ freeReportsCapReached: () => capMock() }));
+vi.mock("@/lib/analyses/first-analysis/sweep", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/analyses/first-analysis/sweep")>("@/lib/analyses/first-analysis/sweep");
+  return { isNeverStarted: actual.isNeverStarted };
+});
 
-import { GET, dynamic } from "./route";
+import { GET, HELD_POLL_SEC, dynamic } from "./route";
 import { sampleReport, SAMPLE_ANALYSIS_ID } from "@/lib/analyses/first-analysis/fixtures";
 
 const ID = SAMPLE_ANALYSIS_ID;
@@ -67,6 +74,37 @@ describe("GET /api/analyses/[id]/full-report", () => {
     getForViewerMock.mockResolvedValue({ id: ID });
     loadRowMock.mockResolvedValue(row());
     enqueueMock.mockResolvedValue(true);
+    capMock.mockResolvedValue(false);
+  });
+
+  // G25-C — FREE_REPORTS_DAILY_CAP: the poll must not start a run the intake route deferred.
+  it("a never-started queued row is kicked when the cap allows, held (heldForCap, slow poll) when it does not", async () => {
+    loadRowMock.mockResolvedValue(row({ full_report_status: "queued", full_report_attempts: 0, full_report_json: null, full_report_email: "founder@example.com" }));
+    let body = await (await req()).json();
+    expect(startMock).toHaveBeenCalledWith(ID, { userId: null });
+    expect(body.heldForCap).toBe(false);
+    expect(body.pollAfterSec).toBe(4);
+    startMock.mockClear();
+    capMock.mockResolvedValue(true);
+    body = await (await req()).json();
+    expect(startMock).not.toHaveBeenCalled();
+    expect(body.heldForCap).toBe(true);
+    expect(body.pollAfterSec).toBe(HELD_POLL_SEC);
+    expect(body.status).toBe("queued");
+  });
+
+  it("the cap never holds a row that already ran (queued with attempts) and a cap read that throws never holds", async () => {
+    capMock.mockResolvedValue(true);
+    loadRowMock.mockResolvedValue(row({ full_report_status: "queued", full_report_attempts: 1, full_report_json: null }));
+    let body = await (await req()).json();
+    expect(startMock).toHaveBeenCalledTimes(1);
+    expect(body.heldForCap).toBe(false);
+    startMock.mockClear();
+    capMock.mockRejectedValue(new Error("db"));
+    loadRowMock.mockResolvedValue(row({ full_report_status: "queued", full_report_attempts: 0, full_report_json: null }));
+    body = await (await req()).json();
+    expect(startMock).toHaveBeenCalledTimes(1);
+    expect(body.heldForCap).toBe(false);
   });
 
   it("is force-dynamic", () => {

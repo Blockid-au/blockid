@@ -1,4 +1,4 @@
--- 0438_free_report_grants.sql — the free-allowance ledger (two free reports per e-mail)
+-- 0439_free_report_grants.sql — the free-allowance ledger (two free reports per e-mail)
 -- ---------------------------------------------------------------------------
 -- G25-C (2026-09-21, docs/plans/g25-remove-pilot-claude-cli-2026-09-21.md
 -- lane C). Founder decision 2026-09-21 (verbatim): "cho phép phân tích 2 lần

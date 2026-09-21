@@ -1,4 +1,4 @@
-// The free allowance — the ledger (G25-C, 2026-09-21, migration 0438).
+// The free allowance — the ledger (G25-C, 2026-09-21, migration 0439).
 //
 // One `free_report_grants` row per free business report. The row is
 // RESERVED before the analysis runs (`recordSubmission`, delivery_status

@@ -58,7 +58,10 @@ const scoreComputedMock = vi.fn<(i: Record<string, unknown>) => void>();
 vi.mock("@/lib/analytics/funnel", () => ({
   emitSviAnalyze: (i: Record<string, unknown>) => sviAnalyzeMock(i),
   emitScoreComputed: (i: Record<string, unknown>) => scoreComputedMock(i),
+  emitFreeReportSubmitted: (i: Record<string, unknown>) => freeSubmittedMock(i),
 }));
+vi.mock("server-only", () => ({}));
+vi.mock("@/lib/entitlements", () => ({ getEntitlements: vi.fn(async () => []) }));
 
 const deriveMock = vi.fn<() => unknown>();
 vi.mock("@/lib/analyses/payload", () => ({
@@ -69,6 +72,25 @@ const startJobMock = vi.fn<(id: string, opts: { userId: string | null }) => void
 vi.mock("@/lib/analyses/first-analysis/job", () => ({
   startFirstAnalysisJob: (id: string, opts: { userId: string | null }) => startJobMock(id, opts),
 }));
+
+// G25-C — the free-allowance gate (its own rules are pinned in
+// lib/reports/free-report-gate.test.ts); here it is a controllable double so
+// the suite checks what the ROUTE does with each verdict.
+type GateResult = import("@/lib/reports/free-report-gate").FreeReportGateResult;
+const GRANT = { id: "grant-1", email_hash: "h", email: "founder@example.com", project_id: null, analysis_id: null, ip_hash: null, submitted_at: "2026-09-21T00:00:00.000Z", delivered_at: null, delivery_status: "queued" as const, sequence_no: 1 as const, source: "guest" as const };
+const gateState: { result: GateResult } = { result: { allow: true, path: "free", email: "founder@example.com", source: "guest", grant: GRANT, queued: false, remaining: 1 } };
+const gateMock = vi.fn<(ctx: Record<string, unknown>) => Promise<GateResult>>();
+vi.mock("@/lib/reports/free-report-gate", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/reports/free-report-gate")>("@/lib/reports/free-report-gate");
+  return { ...actual, runFreeReportGate: (ctx: Record<string, unknown>) => gateMock(ctx) };
+});
+const attachMock = vi.fn<(g: string, a: string) => Promise<boolean>>();
+const releaseMock = vi.fn<(g: string) => Promise<void>>();
+vi.mock("@/lib/reports/free-grants", () => ({
+  attachAnalysis: (g: string, a: string) => attachMock(g, a),
+  releaseGrant: (g: string) => releaseMock(g),
+}));
+const freeSubmittedMock = vi.fn<(i: Record<string, unknown>) => void>();
 
 import { POST, dynamic, runtime } from "./route";
 
@@ -84,10 +106,12 @@ const RESULT = {
 function req(body: unknown, opts?: { ip?: string; badJson?: boolean }): Request {
   const headers: Record<string, string> = { "content-type": "application/json" };
   if (opts?.ip) headers["x-forwarded-for"] = opts.ip;
+  // G25-C: a guest always sends the address the report goes to.
+  const withEmail = body && typeof body === "object" ? { email: "founder@example.com", ...(body as Record<string, unknown>) } : body;
   return new Request("http://x/api/intake", {
     method: "POST",
     headers,
-    body: opts?.badJson ? "{bad" : JSON.stringify(body),
+    body: opts?.badJson ? "{bad" : JSON.stringify(withEmail),
   });
 }
 
@@ -110,6 +134,11 @@ beforeEach(() => {
   countUserRunsMock.mockReset().mockResolvedValue(1);
   sviAnalyzeMock.mockReset();
   scoreComputedMock.mockReset();
+  freeSubmittedMock.mockReset();
+  attachMock.mockReset().mockResolvedValue(true);
+  releaseMock.mockReset().mockResolvedValue(undefined);
+  gateState.result = { allow: true, path: "free", email: "founder@example.com", source: "guest", grant: GRANT, queued: false, remaining: 1 };
+  gateMock.mockReset().mockImplementation(async () => gateState.result);
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
 });
@@ -176,8 +205,9 @@ describe("POST /api/intake — funnel events (G16-A)", () => {
   });
 
   it("nothing is emitted when the gate declines or the pipeline fails", async () => {
-    countAnonRunsMock.mockResolvedValue(5);
+    gateState.result = { allow: false, status: 200, reason: "free_allowance_used", used: 2 };
     await POST(req({ text: "an idea" }));
+    gateState.result = { allow: true, path: "free", email: "founder@example.com", source: "guest", grant: GRANT, queued: false, remaining: 1 };
     analyzeInputMock.mockRejectedValue(new Error("model down"));
     countAnonRunsMock.mockResolvedValue(0);
     await POST(req({ text: "an idea" }));
@@ -378,78 +408,134 @@ describe("POST /api/intake — failure paths", () => {
 //
 // The other half is the wall's shape: run 1 unwalled, the A$3 guest path
 // untouched, and a signed-in caller never gated at all.
+//
+// G25-C (2026-09-21): the signup gate is replaced by the free-allowance gate
+// — the address is required before every guest run, two reports per
+// address are free, the third answers the A$3 quote. See the suite below.
 
-describe("POST /api/intake — signup gate: run 1 is unwalled", () => {
-  it("runs the first anonymous analysis with no wall", async () => {
-    countAnonRunsMock.mockResolvedValue(0);
-    const res = await POST(req({ text: "an idea" }));
+describe("POST /api/intake — free-allowance gate (G25-C): what the route does with each verdict", () => {
+  it("free path: runs, stamps the guest address on the row, attaches the grant, starts the job, answers freeReport", async () => {
+    const res = await POST(req({ text: "an idea" }, { ip: "9.9.9.9" }));
     const body = await json(res);
     expect(body.ok).toBe(true);
+    expect(body.freeReport).toEqual({ sequenceNo: 1, remaining: 1, queued: false, emailTo: "f******@example.com" });
     expect(analyzeInputMock).toHaveBeenCalledTimes(1);
+    expect(saveAnalysisMock.mock.calls[0][0]).toMatchObject({ fullReportEmail: "founder@example.com", userId: null });
+    expect(attachMock).toHaveBeenCalledWith("grant-1", "row-1");
+    expect(releaseMock).not.toHaveBeenCalled();
+    expect(startJobMock).toHaveBeenCalledWith("row-1", { userId: null });
+    expect(freeSubmittedMock.mock.calls[0][0]).toMatchObject({ grantId: "grant-1", sequenceNo: 1, source: "guest", queued: false, analysisId: "row-1", email: "founder@example.com" });
   });
 
-  it("counts prior runs against the anon key", async () => {
+  it("hands the gate the body address, the honeypot, the client IP and the paid-guest flag", async () => {
+    await POST(req({ url: "https://example.com", tier: "paid", company_website: "" }, { ip: "9.9.9.9" }));
+    expect(gateMock.mock.calls[0][0]).toMatchObject({ user: null, bodyEmail: "founder@example.com", honeypot: "", paidGuest: true, clientIp: "9.9.9.9" });
+    gateMock.mockClear();
+    await POST(req({ text: "an idea", tier: "paid" }));
+    expect(gateMock.mock.calls[0][0]).toMatchObject({ paidGuest: false });
+  });
+
+  it("a signed-in caller is handed to the gate with id, address and plan (the account's allowance)", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1", email: "member@example.com", plan: "founder_free" } as never);
+    gateState.result = { allow: true, path: "free", email: "member@example.com", source: "account", grant: { ...GRANT, source: "account" }, queued: false, remaining: 1 };
     await POST(req({ text: "an idea" }));
-    expect(countAnonRunsMock).toHaveBeenCalledWith("anon-key-000000000000000");
+    expect(gateMock.mock.calls[0][0]).toMatchObject({ user: { id: "u1", email: "member@example.com", plan: "founder_free" } });
+    // the account address is resolved at delivery — nothing stamped on the row
+    expect(saveAnalysisMock.mock.calls[0][0]).toMatchObject({ fullReportEmail: null, userId: "u1" });
   });
-});
 
-describe("POST /api/intake — signup gate: run 2 costs us nothing", () => {
-  beforeEach(() => countAnonRunsMock.mockResolvedValue(1));
-
-  it("declines WITHOUT invoking the pipeline", async () => {
+  it("no address → 400 email_required, nothing analysed, nothing saved", async () => {
+    gateState.result = { allow: false, status: 400, reason: "email_required" };
     const res = await POST(req({ text: "an idea" }));
+    expect(res.status).toBe(400);
+    expect(await json(res)).toMatchObject({ ok: false, reason: "email_required", analysisId: null });
     expect(analyzeInputMock).not.toHaveBeenCalled();
     expect(saveAnalysisMock).not.toHaveBeenCalled();
-    expect(res.status).toBe(200);
   });
 
-  it("answers 200 with a machine-readable reason, not an error status", async () => {
+  it("disposable → 400 email_disposable; honeypot → 400 with the generic email_invalid (a bot learns nothing)", async () => {
+    gateState.result = { allow: false, status: 400, reason: "email_disposable" };
+    expect(await json(await POST(req({ text: "an idea" })))).toMatchObject({ reason: "email_disposable" });
+    gateState.result = { allow: false, status: 400, reason: "honeypot" };
     const res = await POST(req({ text: "an idea" }));
-    const body = await json(res);
+    expect(res.status).toBe(400);
+    expect(await json(res)).toMatchObject({ reason: "email_invalid" });
+  });
+
+  it("third run → 200 free_allowance_used with the A$3 quote and the pay href; nothing runs", async () => {
+    gateState.result = { allow: false, status: 200, reason: "free_allowance_used", used: 2 };
+    const res = await POST(req({ text: "an idea" }));
     expect(res.status).toBe(200);
-    expect(body.ok).toBe(false);
-    expect(body.reason).toBe("signup_required");
-    expect(body.analysisId).toBeNull();
-  });
-
-  it("reports the real counts so the prompt never invents copy", async () => {
-    countAnonRunsMock.mockResolvedValue(3);
-    const body = await json(await POST(req({ text: "an idea" })));
-    expect(body.priorRuns).toBe(3);
-    expect(body.windowDays).toBe(30);
-  });
-});
-
-describe("POST /api/intake — signup gate: who is never walled", () => {
-  it("never gates a signed-in caller, however many runs they have", async () => {
-    getCurrentUserMock.mockResolvedValue({ id: "u1" });
-    countAnonRunsMock.mockResolvedValue(99);
-    const body = await json(await POST(req({ text: "an idea" })));
-    expect(body.ok).toBe(true);
-    expect(analyzeInputMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("skips the count query entirely for a signed-in caller", async () => {
-    getCurrentUserMock.mockResolvedValue({ id: "u1" });
-    await POST(req({ text: "an idea" }));
-    expect(countAnonRunsMock).not.toHaveBeenCalled();
-  });
-
-  it("never gates the A$3 guest path (tier=paid with a site URL)", async () => {
-    countAnonRunsMock.mockResolvedValue(5);
-    const body = await json(
-      await POST(req({ url: "https://example.com", tier: "paid" })),
-    );
-    expect(body.ok).toBe(true);
-    expect(analyzeInputMock).toHaveBeenCalledTimes(1);
-  });
-
-  it("still gates tier=paid on a typed idea — there is no A$3 SKU for it", async () => {
-    countAnonRunsMock.mockResolvedValue(5);
-    const body = await json(await POST(req({ text: "an idea", tier: "paid" })));
-    expect(body.ok).toBe(false);
+    expect(await json(res)).toEqual({
+      ok: false,
+      reason: "free_allowance_used",
+      used: 2,
+      price: { sku: "sku_trust_report_5aud", amount_cents: 300, label: "A$3 inc. GST" },
+      next: "pay",
+      payHref: "/workspace/reports/business",
+      analysisId: null,
+    });
     expect(analyzeInputMock).not.toHaveBeenCalled();
+    expect(saveAnalysisMock).not.toHaveBeenCalled();
+    expect(sviAnalyzeMock).not.toHaveBeenCalled();
+  });
+
+  it("IP guard → 429 free_ip_limit, nothing runs", async () => {
+    gateState.result = { allow: false, status: 429, reason: "free_ip_limit" };
+    const res = await POST(req({ text: "an idea" }));
+    expect(res.status).toBe(429);
+    expect(await json(res)).toMatchObject({ ok: false, reason: "free_ip_limit" });
+    expect(analyzeInputMock).not.toHaveBeenCalled();
+  });
+
+  it("platform cap (queued) → the run is saved and recorded but NOT started; the response says queued", async () => {
+    gateState.result = { allow: true, path: "free", email: "founder@example.com", source: "guest", grant: GRANT, queued: true, remaining: 1 };
+    const body = await json(await POST(req({ text: "an idea" })));
+    expect(body.ok).toBe(true);
+    expect(body.freeReport).toMatchObject({ queued: true });
+    expect(saveAnalysisMock).toHaveBeenCalledTimes(1);
+    expect(attachMock).toHaveBeenCalledWith("grant-1", "row-1");
+    expect(startJobMock).not.toHaveBeenCalled();
+    expect(freeSubmittedMock.mock.calls[0][0]).toMatchObject({ queued: true });
+  });
+
+  it("a paid guest (tier=paid + site URL) is classified but never started as a free job", async () => {
+    gateState.result = { allow: true, path: "paid_guest", email: "founder@example.com", source: "guest", grant: null, queued: false, remaining: 0 };
+    const body = await json(await POST(req({ url: "https://example.com", tier: "paid" })));
+    expect(body.ok).toBe(true);
+    expect(body.freeReport).toBeNull();
+    expect(analyzeInputMock).toHaveBeenCalledTimes(1);
+    expect(startJobMock).not.toHaveBeenCalled();
+    expect(attachMock).not.toHaveBeenCalled();
+  });
+
+  it("an entitled member runs as before, no grant, no freeReport block", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1", email: "member@example.com", plan: "founder_starter" } as never);
+    gateState.result = { allow: true, path: "entitled", email: "member@example.com", source: "account", grant: null, queued: false, remaining: 2 };
+    const body = await json(await POST(req({ text: "an idea" })));
+    expect(body.ok).toBe(true);
+    expect(body.freeReport).toBeNull();
+    expect(startJobMock).toHaveBeenCalledWith("row-1", { userId: "u1" });
+    expect(freeSubmittedMock).not.toHaveBeenCalled();
+  });
+
+  it("a run that never saved gives its reservation back; a failed pipeline too", async () => {
+    saveAnalysisMock.mockResolvedValue(null);
+    await POST(req({ text: "an idea" }));
+    expect(releaseMock).toHaveBeenCalledWith("grant-1");
+    expect(attachMock).not.toHaveBeenCalled();
+    releaseMock.mockClear();
+    analyzeInputMock.mockRejectedValue(new Error("model down"));
+    const res = await POST(req({ text: "an idea" }));
+    expect(res.status).toBe(500);
+    expect(releaseMock).toHaveBeenCalledWith("grant-1");
+  });
+
+  it("a ledger write that throws never breaks a good analysis", async () => {
+    attachMock.mockRejectedValue(new Error("db"));
+    const res = await POST(req({ text: "an idea" }));
+    expect(res.status).toBe(200);
+    expect((await json(res)).ok).toBe(true);
   });
 });
 
