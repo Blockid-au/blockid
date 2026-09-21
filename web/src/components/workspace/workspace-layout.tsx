@@ -245,13 +245,13 @@ function renderNavGroup(args: {
                 className={cn(
                   "flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm transition-all duration-150 mx-1",
                   active
-                    ? "bg-action/10 text-action font-semibold border-l-2 border-action shadow-sm"
+                    ? "bg-brand-navy/10 text-brand-navy font-semibold border-l-2 border-brand-navy shadow-sm"
                     : locked || leafFuture
                       ? "text-tertiary hover:text-muted hover:bg-surface-hover"
                       : "text-muted hover:text-primary hover:bg-surface-hover",
                 )}
               >
-                <Icon strokeWidth={1.75} className={cn("h-4 w-4 shrink-0", active ? "text-action" : (locked || leafFuture) ? "text-tertiary" : "")} />
+                <Icon strokeWidth={1.75} className={cn("h-4 w-4 shrink-0", active ? "text-brand-navy" : (locked || leafFuture) ? "text-tertiary" : "")} />
                 {sidebarOpen && (
                   <>
                     <span className="truncate flex-1">{label}</span>
@@ -471,7 +471,7 @@ export function WorkspaceLayout({ children, user, currentPhase: currentPhaseProp
             className={cn(
               "flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm transition-colors",
               pathname.startsWith("/workspace/knowledge-base")
-                ? "bg-action/10 text-action font-semibold"
+                ? "bg-brand-navy/10 text-brand-navy font-semibold"
                 : "text-muted hover:text-primary hover:bg-surface-hover",
             )}
           >
@@ -485,7 +485,7 @@ export function WorkspaceLayout({ children, user, currentPhase: currentPhaseProp
             className={cn(
               "flex items-center gap-3 px-2.5 py-2 rounded-xl text-sm transition-colors",
               pathname.startsWith("/workspace/settings")
-                ? "bg-action/10 text-action font-semibold"
+                ? "bg-brand-navy/10 text-brand-navy font-semibold"
                 : "text-muted hover:text-primary hover:bg-surface-hover",
             )}
           >

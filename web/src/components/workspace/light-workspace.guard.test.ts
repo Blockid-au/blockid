@@ -46,7 +46,8 @@ const ALLOW: Record<string, string> = {};
 const FORBIDDEN: Array<{ name: string; re: RegExp }> = [
   { name: "dark: variant", re: /(?<![\w\-:/])dark:[a-z]/ },
   { name: 'data-theme="dark" wrapper', re: /data-theme="dark"/ },
-  { name: "bg-brand-navy* surface", re: /\bbg-brand-navy(?![a-z-])/ },
+  // A solid navy fill (`bg-brand-navy`, `bg-brand-navy-elev-1`, `bg-brand-navy-deep`); a translucent wash (`bg-brand-navy/10`) is the active-item tint, not a surface.
+  { name: "bg-brand-navy* surface", re: /\bbg-brand-navy(?:-elev-\d|-deep)?(?![\w\-/])/ },
   { name: "bg-slate-8xx/9xx surface", re: /\bbg-slate-[89]\d\d\b/ },
   { name: "bg-ink-8xx/9xx surface", re: /\bbg-ink-[89]\d\d\b/ },
   { name: "bg-gray/zinc/neutral-8xx/9xx surface", re: /\bbg-(gray|zinc|neutral)-[89]\d\d\b/ },
