@@ -163,9 +163,9 @@ export default function AtlassianDataRoomPage() {
 
           <section
             aria-label="Status legend"
-            className="mb-8 rounded-lg border border-white/10 bg-black/40 p-5"
+            className="mb-8 rounded-lg border border-line-subtle bg-surface shadow-1 p-5"
           >
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-100">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-primary">
               Status legend
             </h2>
             <ul className="grid gap-3 text-sm sm:grid-cols-3">
@@ -173,7 +173,7 @@ export default function AtlassianDataRoomPage() {
                 (s) => (
                   <li key={s} className="flex items-start gap-3">
                     <span className="shrink-0">{statusPill(s)}</span>
-                    <span className="text-ink-200">
+                    <span className="text-secondary">
                       {STATUS_COPY[s].description}
                     </span>
                   </li>
@@ -186,14 +186,14 @@ export default function AtlassianDataRoomPage() {
             {grouped.map(({ category, rows: bucket }) => (
               <div
                 key={category}
-                className="rounded-lg border border-white/10 bg-black/40 p-5"
+                className="rounded-lg border border-line-subtle bg-surface shadow-1 p-5"
                 data-category={category}
               >
                 <header className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-                  <h3 className="text-base font-semibold text-ink-50">
+                  <h3 className="text-base font-semibold text-primary">
                     {category}
                   </h3>
-                  <span className="text-xs text-ink-300">
+                  <span className="text-xs text-muted">
                     {bucket.length} item{bucket.length === 1 ? "" : "s"}
                   </span>
                 </header>
@@ -215,14 +215,14 @@ export default function AtlassianDataRoomPage() {
                           className="flex flex-col gap-2 py-3 sm:flex-row sm:items-start sm:justify-between"
                         >
                           <div className="min-w-0 flex-1">
-                            <p className="text-sm text-ink-100">{row.title}</p>
-                            <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-ink-300">
+                            <p className="text-sm text-primary">{row.title}</p>
+                            <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted">
                               {statusPill(row.status)}
-                              <span className="inline-flex items-center rounded bg-white/10 px-2 py-0.5 text-ink-100">
+                              <span className="inline-flex items-center rounded bg-surface-sunken px-2 py-0.5 text-primary">
                                 {phaseLabel}
                               </span>
                               {row.version && (
-                                <span className="inline-flex items-center rounded bg-white/5 px-2 py-0.5 font-mono text-ink-200">
+                                <span className="inline-flex items-center rounded bg-surface-sunken px-2 py-0.5 font-mono text-secondary">
                                   v {row.version}
                                 </span>
                               )}
@@ -233,7 +233,7 @@ export default function AtlassianDataRoomPage() {
                               href={row.sourceUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="shrink-0 text-xs text-brand-300 hover:text-brand-200 hover:underline"
+                              className="shrink-0 text-xs text-action hover:text-action-hover hover:underline"
                             >
                               source →
                             </a>
@@ -299,12 +299,12 @@ function Kpi({
         ? "border-amber-400/30 bg-amber-500/5"
         : tone === "sky"
           ? "border-sky-400/30 bg-sky-500/5"
-          : "border-white/10 bg-black/40";
+          : "border-line-subtle bg-surface shadow-1";
   return (
     <div className={`rounded-lg border p-4 ${toneCls}`}>
-      <p className="text-[11px] uppercase tracking-wide text-ink-300">{label}</p>
-      <p className="mt-1 text-2xl font-semibold text-ink-50">{value}</p>
-      <p className="mt-1 text-[11px] text-ink-300">{hint}</p>
+      <p className="text-[11px] uppercase tracking-wide text-muted">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-primary">{value}</p>
+      <p className="mt-1 text-[11px] text-muted">{hint}</p>
     </div>
   );
 }

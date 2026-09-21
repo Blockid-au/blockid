@@ -99,10 +99,10 @@ function scoreColor(score: number): string {
 
 function scoreBadgeClass(score: number): string {
   if (score >= 85)
-    return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200";
+    return "bg-emerald-100 text-emerald-800";
   if (score >= 70)
-    return "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200";
-  return "bg-rose-100 text-rose-800 dark:bg-rose-900/50 dark:text-rose-200";
+    return "bg-amber-100 text-amber-800";
+  return "bg-rose-100 text-rose-800";
 }
 
 export default function AtlassianSviReportMirrorPage() {
@@ -123,7 +123,7 @@ export default function AtlassianSviReportMirrorPage() {
 
   return (
     <AtlassianWalkthroughProvider stepNumber={3}>
-      <div className="min-h-screen bg-surface-50 dark:bg-slate-950">
+      <div className="min-h-screen bg-surface-50">
         <div className="container mx-auto max-w-6xl px-4 py-8">
           <nav className="mb-4 text-sm">
             <Link
@@ -135,13 +135,13 @@ export default function AtlassianSviReportMirrorPage() {
           </nav>
 
           <header className="mb-8">
-            <p className="text-sm font-medium uppercase tracking-wide text-brand-700 dark:text-emerald-400">
+            <p className="text-sm font-medium uppercase tracking-wide text-brand-700">
               Step 3 — SVI score, 8 dimensions
             </p>
-            <h1 className="mt-2 text-3xl font-semibold text-ink-900 dark:text-slate-100">
+            <h1 className="mt-2 text-3xl font-semibold text-ink-900">
               Atlassian on the BlockID Startup Valuation Index
             </h1>
-            <p className="mt-3 max-w-3xl text-base text-ink-700 dark:text-slate-300">
+            <p className="mt-3 max-w-3xl text-base text-ink-700">
               We ran Atlassian through the same 8-dimension SVI grader we hand
               every founder on BlockID.au. Below is the composite, the
               per-criterion breakdown (each grounded in one SVI dimension), and
@@ -151,23 +151,23 @@ export default function AtlassianSviReportMirrorPage() {
 
           <section
             aria-labelledby="svi-hero"
-            className="mb-8 rounded-lg border border-brand-200 bg-brand-50 p-6 dark:border-emerald-900 dark:bg-emerald-950/30"
+            className="mb-8 rounded-lg border border-brand-200 bg-brand-50 p-6"
           >
             <h2
               id="svi-hero"
-              className="text-xs font-mono uppercase tracking-wide text-brand-800 dark:text-emerald-300"
+              className="text-xs font-mono uppercase tracking-wide text-brand-800"
             >
               Composite SVI
             </h2>
             <div className="mt-2 flex flex-wrap items-end gap-3">
-              <div className="text-6xl font-bold text-brand-900 dark:text-emerald-100">
+              <div className="text-6xl font-bold text-brand-900">
                 {compositeDisplay}
               </div>
-              <div className="text-lg text-brand-800 dark:text-emerald-200">
+              <div className="text-lg text-brand-800">
                 / 100
               </div>
             </div>
-            <p className="mt-3 max-w-2xl text-sm text-brand-900 dark:text-emerald-100">
+            <p className="mt-3 max-w-2xl text-sm text-brand-900">
               SVI 92/100 — if BlockID had scored 2015-IPO-era Atlassian. The
               lowest single-criterion score is 85 (dataroom), the highest is
               97 (revenue). No criterion is red, no criterion is a coin-flip.
@@ -177,11 +177,11 @@ export default function AtlassianSviReportMirrorPage() {
           <section aria-labelledby="svi-chart" className="mb-10">
             <h2
               id="svi-chart"
-              className="mb-3 text-xl font-semibold text-ink-900 dark:text-slate-100"
+              className="mb-3 text-xl font-semibold text-ink-900"
             >
               SVI signals — ranked
             </h2>
-            <div className="overflow-x-auto rounded-lg border border-surface-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+            <div className="overflow-x-auto rounded-lg border border-surface-200 bg-white p-4">
               <svg
                 role="img"
                 aria-label="Horizontal bar chart of 13 SVI criterion scores, sorted from highest to lowest"
@@ -200,7 +200,7 @@ export default function AtlassianSviReportMirrorPage() {
                         textAnchor="end"
                         fontSize={11}
                         fill="currentColor"
-                        className="fill-ink-700 dark:fill-slate-300"
+                        className="fill-ink-700"
                       >
                         {s.title}
                       </text>
@@ -210,7 +210,7 @@ export default function AtlassianSviReportMirrorPage() {
                         width={BAR_MAX}
                         height={ROW_H - 8}
                         rx={3}
-                        className="fill-surface-100 dark:fill-slate-800"
+                        className="fill-surface-100"
                       />
                       <rect
                         x={LABEL_COL}
@@ -228,7 +228,7 @@ export default function AtlassianSviReportMirrorPage() {
                         fontSize={11}
                         fontWeight={600}
                         fill="currentColor"
-                        className="fill-ink-800 dark:fill-slate-100"
+                        className="fill-ink-800"
                       >
                         {s.score}
                       </text>
@@ -242,7 +242,7 @@ export default function AtlassianSviReportMirrorPage() {
           <section aria-labelledby="svi-grid" className="mb-10">
             <h2
               id="svi-grid"
-              className="mb-3 text-xl font-semibold text-ink-900 dark:text-slate-100"
+              className="mb-3 text-xl font-semibold text-ink-900"
             >
               Criterion detail
             </h2>
@@ -250,15 +250,15 @@ export default function AtlassianSviReportMirrorPage() {
               {enriched.map((s) => (
                 <article
                   key={s.key}
-                  className="flex flex-col rounded-lg border border-surface-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900"
+                  className="flex flex-col rounded-lg border border-surface-200 bg-white p-3"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex-1">
-                      <h3 className="text-sm font-semibold text-ink-900 dark:text-slate-100">
+                      <h3 className="text-sm font-semibold text-ink-900">
                         {s.title}
                       </h3>
                       {s.subtitle ? (
-                        <p className="mt-0.5 text-[11px] text-ink-500 dark:text-slate-400">
+                        <p className="mt-0.5 text-[11px] text-ink-500">
                           {s.subtitle}
                         </p>
                       ) : null}
@@ -269,7 +269,7 @@ export default function AtlassianSviReportMirrorPage() {
                       {s.score}
                     </span>
                   </div>
-                  <p className="mt-2 flex-1 text-xs text-ink-700 dark:text-slate-300">
+                  <p className="mt-2 flex-1 text-xs text-ink-700">
                     {s.rationale}
                   </p>
                   <a
@@ -287,16 +287,16 @@ export default function AtlassianSviReportMirrorPage() {
 
           <section
             aria-labelledby="svi-why"
-            className="rounded-lg border border-brand-200 bg-brand-50 p-6 dark:border-emerald-900 dark:bg-emerald-950/30"
+            className="rounded-lg border border-brand-200 bg-brand-50 p-6"
           >
             <h2
               id="svi-why"
-              className="text-lg font-semibold text-brand-900 dark:text-emerald-100"
+              className="text-lg font-semibold text-brand-900"
             >
               Why this score
             </h2>
 
-            <div className="mt-4 space-y-3 text-sm text-brand-900 dark:text-emerald-100">
+            <div className="mt-4 space-y-3 text-sm text-brand-900">
               <p>
                 <strong>Revenue ({top3[0]?.score}) is the anchor.</strong>{" "}
                 US$5.2B FY2025 revenue at 83% gross margin, generating ~US$1.4B

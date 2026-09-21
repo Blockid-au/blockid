@@ -170,7 +170,7 @@ export default function AtlassianSummaryMirrorPage() {
                     }
                   >
                     <div className="flex items-baseline gap-2">
-                      <span className="rounded bg-ink-900 px-1.5 py-0.5 text-[10px] font-mono text-white">
+                      <span className="rounded border border-line bg-surface-sunken px-1.5 py-0.5 text-[10px] font-mono text-primary">
                         Step {step.n}
                       </span>
                       <span className="text-sm font-semibold text-ink-900">
