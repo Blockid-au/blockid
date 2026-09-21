@@ -1582,3 +1582,63 @@ describe("G15-R3 getProviderHealthSnapshot", () => {
     }
   });
 });
+
+// ---------------------------------------------------------------------------
+// G28-B — run-scoped provider strikes inside callAI
+// ---------------------------------------------------------------------------
+
+describe("G28-B — callAI honours the run-scoped strike ledger", () => {
+  it("a worker timeout from a provider is counted on the run ledger (once per error object)", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    const tier = await import("@/lib/ai/anthropic-tier");
+    tier._resetAnthropicTierForTests();
+    tierMock.call.mockRejectedValueOnce(new Error("Worker timeout (45s)"));
+    const { createRunStrikeLedger } = await import("@/lib/ai/run-strikes");
+    const { callAI, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    const runStrikes = createRunStrikeLedger();
+    await expect(callAI({ system: "s", user: "u", runStrikes })).rejects.toThrow(/Worker timeout/);
+    expect(runStrikes.strikes("claude-apikey")).toBe(1);
+    expect(runStrikes.struck("claude-apikey")).toBe(false);
+    tier._resetAnthropicTierForTests();
+  });
+
+  it("a struck provider is never dialled again in that run — the call fails fast with RunStruckError, no tier call, no cooldown", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    const tier = await import("@/lib/ai/anthropic-tier");
+    tier._resetAnthropicTierForTests();
+    tierMock.call.mockClear();
+    const { createRunStrikeLedger } = await import("@/lib/ai/run-strikes");
+    const { callAI, getProviderHealthSnapshot, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    const runStrikes = createRunStrikeLedger();
+    runStrikes.note("claude-apikey", new Error("Worker timeout (45s)"));
+    runStrikes.note("claude-apikey", new Error('HTTP 429: {"code":"engine_overloaded"}'));
+    expect(runStrikes.struck("claude-apikey")).toBe(true);
+    await expect(callAI({ system: "s", user: "u", runStrikes })).rejects.toThrow(/skipped for the rest of this run after 2 strikes/);
+    expect(tierMock.call).not.toHaveBeenCalled();
+    // Run scoping is not the process-wide cooldown: the provider stays "ok" for the next run.
+    expect(getProviderHealthSnapshot().providers.find((p) => p.name === "claude-apikey")?.state).toBe("ok");
+    // A fresh ledger (next run) dials it again.
+    tierMock.call.mockResolvedValueOnce({
+      text: "hello", model: "claude-sonnet-5", streamed: false, cost_usd: 0.001,
+      usage: { input_tokens: 10, output_tokens: 5, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
+    });
+    const out = await callAI({ system: "s", user: "u", runStrikes: createRunStrikeLedger() });
+    expect(out.text).toBe("hello");
+    expect(tierMock.call).toHaveBeenCalledTimes(1);
+    tier._resetAnthropicTierForTests();
+  });
+
+  it("without a ledger nothing changes (crons / chat keep the process-wide cooldown only)", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
+    const tier = await import("@/lib/ai/anthropic-tier");
+    tier._resetAnthropicTierForTests();
+    tierMock.call.mockRejectedValueOnce(new Error("Worker timeout (45s)"));
+    const { callAI, _resetDispatcherForTests, runStruck } = await loadClient();
+    _resetDispatcherForTests();
+    await expect(callAI({ system: "s", user: "u" })).rejects.toThrow(/Worker timeout/);
+    expect(runStruck({}, "claude-apikey")).toBe(false);
+    tier._resetAnthropicTierForTests();
+  });
+});

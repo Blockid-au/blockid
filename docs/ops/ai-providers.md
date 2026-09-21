@@ -1,4 +1,4 @@
-# AI providers — tiering, keys, limits, cost (S31-A 2026-09-13, S32-C 2026-09-15, G25-B 2026-09-21)
+# AI providers — tiering, keys, limits, cost (S31-A 2026-09-13, S32-C 2026-09-15, G25-B 2026-09-21, G28-B 2026-09-21)
 
 > **G25-B (founder decision 2026-09-21): there is NO Anthropic API key.**
 > `ANTHROPIC_API_KEY` is **optional**. Founder-only AI items (nightly C-level
@@ -96,6 +96,9 @@ no prefill, no `temperature` on Sonnet 5 / Opus 5.
 | `AI_BACKGROUND_RESERVE` | `0.25` | Share of slots crons may never take (kept for users). |
 | `AI_QUEUE_WAIT_MS` | `45000` | Max time a queued call waits before a 503. |
 | `AI_MODEL_PRUNE_STRIKES` | `3` | Consecutive failed health checks before a free model is pruned. |
+| `AI_RUN_STRIKE_THRESHOLD` | `2` | G28-B: worker timeouts / `engine_overloaded` / 429 answers from one provider inside ONE report run before it is skipped for the rest of that run (§ 11). |
+| `REPORT_PIPELINE_TIMEOUT_MS_CRITERION` / `_CHAPTER` / `_SYNTHESIS` | `45000` / `120000` / `120000` | G28-B: per-model attempt timeout by pipeline stage (W1–W3 / W4 / summary + auditor). Floor 5 s. |
+| `REPORT_W4_RESERVE_MS` | `120000` | G28-B: wall clock W1–W3 must leave for W4 (capped at half the run's deadline). `0` = no reserve. |
 | `AI_PROVIDER_PROBE` | – | `off` disables the boot-time probe kick. |
 | `DEEPINFRA_API_KEY` | – | **Quality-cost tier** (S32-C): DeepSeek-V4-Flash / V3.2 / Qwen3-235B / Kimi-K2.6 for reports; gpt-oss-120b / Llama-3.3-70B for classify. Set and valid on the box (194 models). |
 | `GOOGLE_GEMINI_API_KEY` | – | **Quality-cost tier** (S32-C): gemini-3-flash-preview / 2.5-flash (report), 3.1-pro-preview / 2.5-pro (synthesis), 2.5-flash-lite (classify). Probed via the models endpoint (key in the `x-goog-api-key` header, never the URL). |
@@ -303,6 +306,8 @@ FROM analyses WHERE id = …`, or the `[ai-client]` log lines for
 | `web/src/lib/analyses/first-analysis/meta.ts` | S32-C: `full_report_json.meta` — which model wrote each section, the PDF "Prepared with" line |
 | `web/src/lib/ai/capacity.ts` | `AICapacityError` → 503 contract for routes |
 | `web/src/lib/ai/model-strikes.ts` | dead-model strikes + pruning memory |
+| `web/src/lib/ai/run-strikes.ts` | G28-B: run-scoped provider strike ledger (`RunStrikeLedger`, `classifyRunStrike`, `RunStruckError`) |
+| `web/src/lib/report-pipeline/pipeline-timeouts.ts` | G28-B: per-stage timeouts (`PIPELINE_TIMEOUT_MS`, `pipelineCallTimeouts`), W4 reserve (`w4ReserveMsFor`) |
 | `web/scripts/ai/probe-providers.ts` | on-demand probe CLI (exit 2 = no usable provider) |
 | `web/src/app/api/cron/ai-health-check/route.ts` | 30-min cron: model pings + provider probe + pruning |
 
@@ -327,10 +332,117 @@ only surfaced in the log. Two small readers now feed `/api/status.ai` (R2):
   local, so a restart zeroes it (same as every other dispatcher counter).
 * `project_hash` is the first 12 hex of `sha256(projectId)` (`"anonymous"`
   without one) — no project ids on disk. `reason` ∈ `deadline_hit` /
-  `no_llm_calls` / `placeholder_summary` (`fullyDegradedReason()` in the
+  `no_llm_calls` / `placeholder_summary` / `mostly_degraded` (G28-B: ≥ 7 of
+  8 chapters on deterministic cards — `fullyDegradedReason()` in the
   orchestrator; `isFullyDegraded()` is unchanged and delegates to it). The
   writer is best-effort (never throws, never awaited), skipped under vitest,
   injectable via `OrchestratorInput.degradedWriter`; the file path is
   `process.cwd()/content/reports/report-pipeline-health.jsonl` (override
   `REPORT_PIPELINE_HEALTH_FILE`). Each event also logs one line the error
   digest keys on: `[report-pipeline] fully_degraded project=<hash> reason=<reason> llm_calls=<n>`.
+
+## 11. Resilience — per-stage timeouts, run-scoped strikes, W4 reserve (G28-B, 2026-09-21)
+
+**What went wrong.** BlockID's own showcase runs on 2026-09-21
+(`showcase-rerun5.log`, `showcase-rerun6.log`): every pipeline call asked
+for `timeoutMs: 120_000` per model, DeepInfra answered nothing
+(`Worker timeout (120s)` × 7) or `HTTP 429 engine_overloaded`, and each of
+the six parallel W1 calls walked the DeepInfra ladder on its own — three
+models × 120 s — before the chain moved on. W1 took 94 s (run 5) and 437 s
+(run 6) of a 480 s budget; W4 started at 480.1 s with nothing left, all
+eight chapters degraded to deterministic cards, `ReportFullyDegradedError`,
+no report. The process-wide cooldown could not help: it fires only after a
+provider's WHOLE ladder failed, once per call, and the parallel calls were
+already inside their own ladders.
+
+**Three rules now hold for every report-pipeline run** (`run-for-project.ts`,
+`run-report-pipeline.ts`, the paid-order `report-generator.ts`; crons, chat
+and the Money Finder narrative are untouched):
+
+1. **Per-stage model timeout.** The orchestrator hands its `callAI` a
+   `PipelineCallHint { stage, remainingMs }` (5th argument); the caller maps
+   it through `pipelineCallTimeouts()`:
+
+   | Stage | Calls | Per-attempt timeout | Env |
+   | --- | --- | --- | --- |
+   | `criterion` | W1–W3 (13 max) | **45 s** | `REPORT_PIPELINE_TIMEOUT_MS_CRITERION` |
+   | `chapter` | W4 (8 owners) | 120 s | `REPORT_PIPELINE_TIMEOUT_MS_CHAPTER` |
+   | `synthesis` | CEO summary, CDO cross-validate, auditor | 120 s | `REPORT_PIPELINE_TIMEOUT_MS_SYNTHESIS` |
+   | (no hint) | legacy / tests | 120 s | – |
+
+   The call also carries `budgetMs = remainingMs` (the run's wall clock left
+   — soft clock for criterion calls, hard clock otherwise), so ai-client's
+   `budgetedTimeoutMs()` clamps every attempt and no call outlives the
+   deadline. Inside a budget the attempt is
+   `min(stage timeout, max(budget / 2, budget − 45 s))`: a 120 s W4 reserve
+   gives a dead primary 75 s and the fallback 45 s; a 50 s window allows two
+   25 s attempts.
+
+2. **Run-scoped provider strikes** (`lib/ai/run-strikes.ts`). One
+   `RunStrikeLedger` per run (created in the run's `aiCaller` closure, passed
+   as `AICallOptions.runStrikes`). Every **worker timeout** or
+   **`engine_overloaded` / 429 / rate-limit** answer a provider gives during
+   the run is one strike; at **2** (`AI_RUN_STRIKE_THRESHOLD`) the provider is
+   **skipped for the rest of that run** — inside its own model ladder (no third
+   model; the six ladders check `runStruck()` before every attempt) and in
+   the provider loop of every later call (`callAI` filters struck providers
+   out of `remaining`). A 401, a 404 model id, an empty answer or a JSON
+   error is NOT a strike (they have their own cooldowns). The same error
+   object is counted once (ladder + `callAI` catch). A `RunStruckError`
+   never sets the process-wide cooldown. The provider ORDER is unchanged:
+   DeepInfra stays first, Gemini second, the Claude CLI subscription
+   (`claude-oauth`) stays the last Anthropic fallback, Groq / SambaNova /
+   Cerebras / OpenRouter after it; the next run starts with an empty ledger.
+   Log line: `[ai-client:run-strike] deepinfra struck out for this run (2 × worker timeout) — skipped until the run ends`.
+
+   Worked example (six parallel W1 calls, DeepInfra dead): every call's
+   first attempt times out at 45 s → six strikes at once → each ladder
+   breaks before its second model → Gemini answers at ≈ 50 s. Before G28-B
+   the same wave cost 360 s.
+
+3. **W4 reserve.** `ReportDeadline` carries a SOFT deadline at
+   `deadline − reserve` (`w4ReserveMsFor()`: 120 s, `REPORT_W4_RESERVE_MS`,
+   never more than half the deadline). W1–W3 race the soft deadline, their
+   late results are dropped (`isExpired` = soft), and `meterCallAI` refuses a
+   new criterion call inside the reserve. W4, the summary and the auditor
+   race the hard deadline as before. Deadlines by path: 90 / 120 / 240 s per
+   tier (`TIER_DEADLINE_MS`, interactive), 420 s paid orders
+   (`ORDER_DEADLINE_MS_DEFAULT`), 480 s the self-report script — reserve
+   45 / 60 / 120 / 120 / 120 s.
+
+**No-report rule (unchanged intent, wider):** a run that still ends with
+**≥ 7 of 8 degraded chapters** (`FULLY_DEGRADED_MIN_CHAPTERS`,
+`pipeline-health.ts`) is flagged `fullyDegraded` (`reason` =
+`mostly_degraded`, or the older `deadline_hit` / `no_llm_calls` /
+`placeholder_summary` when all 8 degraded), so `assertReportUsable()` throws,
+nothing is persisted or charged, and exactly ONE
+`[report-pipeline] fully_degraded …` line + one
+`report-pipeline-health.jsonl` row is written (the error digest's critical
+pattern). The `tbr-quality.jsonl` row such a run leaves (`words 0`,
+`degradedSections ≥ 7`) is **excluded from the grounding median** and counts
+only in `degradedShare` — the quality window is never lowered by an outage.
+
+**Constants** (all in code, env-overridable where an env is named):
+
+| Constant | Value | Where |
+| --- | --- | --- |
+| `PIPELINE_TIMEOUT_MS.criterion / chapter / synthesis` | 45 000 / 120 000 / 120 000 ms | `report-pipeline/pipeline-timeouts.ts` |
+| `PIPELINE_TIMEOUT_MS_DEFAULT` | 120 000 ms (no hint) | same |
+| `PIPELINE_TIMEOUT_MS_MIN` | 5 000 ms floor | same |
+| `FALLBACK_HEADROOM_MS` | 45 000 ms | same |
+| `W4_RESERVE_MS_DEFAULT` | 120 000 ms, ≤ deadline / 2 | same |
+| `RUN_STRIKE_THRESHOLD_DEFAULT` | 2 | `ai/run-strikes.ts` |
+| `FULLY_DEGRADED_MIN_CHAPTERS` | 7 of 8 | `report-pipeline/pipeline-health.ts` |
+| `TIER_DEADLINE_MS` | free 90 s / standard 120 s / premium 240 s | `report-pipeline/orchestrator.ts` |
+| `ORDER_DEADLINE_MS_DEFAULT` / `ORDER_CALL_MAX_DEFAULT` | 420 000 ms / 48 | `paywall/report-generator.ts` |
+| `INTERACTIVE_TIMEOUT_MS` / `INTERACTIVE_BUDGET_MS` | 30 s / 60 s (chat + Money Finder, unchanged) | `ai-client.ts` |
+
+**Tests:** `ai/run-strikes.test.ts` (classifier, threshold, dedupe, per-run
+reset), `report-pipeline/pipeline-timeouts.test.ts` (constants, env, headroom,
+reserve cap), `report-pipeline/orchestrator.test.ts` § G28-B (fake clock +
+fake provider chain: dead primary → 8 prose chapters in < 200 s of a 480 s
+budget, primary dialled exactly twice, strikes reset per run, hung W1 →
+W4 reserve still lands 8 chapters, ≥ 7 degraded → one digest event),
+`ai-client.test.ts` § G28-B (`callAI` counts a timeout, skips a struck
+provider without a cooldown, dials again on a fresh ledger),
+`quality-log.test.ts` (≥ 7 degraded excluded from the median).

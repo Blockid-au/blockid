@@ -95,7 +95,8 @@ import { executiveFromChapters, fromAssembledReport, inferPhase, type MoneyOnTab
 import { structureExecutive } from "@/lib/report-v2/executive-structure";
 import { dispatchExecutiveSummary, executiveOutputContract } from "./executive-summary";
 import { isReportV2, type CriterionCard, type DimensionChapter, type ExecutiveStructured, type ReportTierV2, type ReportV2 } from "@/lib/report-v2/schema";
-import { recordFullyDegraded, type DegradedEventWriter, type FullyDegradedReason } from "./pipeline-health";
+import { FULLY_DEGRADED_MIN_CHAPTERS, recordFullyDegraded, type DegradedEventWriter, type FullyDegradedReason } from "./pipeline-health";
+import { w4ReserveMsFor, type PipelineCallHint, type PipelineCallStage } from "./pipeline-timeouts";
 
 // ── AI caller contract ──────────────────────────────────────────────────────
 
@@ -111,8 +112,12 @@ export interface AICallerResult {
 
 export type AITaskClass = "classify" | "report" | "synthesis";
 
-/** What callers inject: a plain string or the rich result. */
-export type AICallerInput = (systemPrompt: string, userPrompt: string, maxTokens: number, taskClass?: AITaskClass) => Promise<string | AICallerResult>;
+/** What callers inject: a plain string or the rich result. G28-B: the 5th
+ *  argument says which stage the call belongs to (`criterion` W1–W3 /
+ *  `chapter` W4 / `synthesis`) and how much of the run's wall clock is left —
+ *  the caller maps it to a per-model timeout + call budget
+ *  (`pipeline-timeouts.ts`). Legacy callers ignore it. */
+export type AICallerInput = (systemPrompt: string, userPrompt: string, maxTokens: number, taskClass?: AITaskClass, hint?: PipelineCallHint) => Promise<string | AICallerResult>;
 
 // Internal: every stage sees a string transport (metered, deadline-aware).
 type AICaller = (systemPrompt: string, userPrompt: string, maxTokens: number, taskClass?: AITaskClass) => Promise<string>;
@@ -199,15 +204,21 @@ export function fullyDegradedReason(
 ): FullyDegradedReason | null {
   if (process.env.REPORT_FAIL_WHEN_FULLY_DEGRADED === "off") return null;
   if (!chapters || chapters.size < DIM_ORDER.length) return null;
-  if (!DIM_ORDER.every((dim) => chapters.get(dim)?.degraded === true)) return null;
-  // Every chapter is a deterministic card. That is "nothing an LLM wrote"
-  // when the summary is the error placeholder, when no metered call ever
-  // succeeded, or when the wall-clock deadline degraded everything (the
-  // deadline summary is deterministic prose, not the placeholder — W3 review P1).
-  if (opts.deadlineHit) return "deadline_hit";
-  if ((report.llmCalls ?? 0) === 0) return "no_llm_calls";
-  if (typeof report.executiveSummary === "string" && report.executiveSummary.includes(SUMMARY_PLACEHOLDER)) return "placeholder_summary";
-  return null;
+  const degradedCount = DIM_ORDER.filter((dim) => chapters.get(dim)?.degraded === true).length;
+  if (degradedCount < FULLY_DEGRADED_MIN_CHAPTERS) return null;
+  if (degradedCount === DIM_ORDER.length) {
+    // Every chapter is a deterministic card. That is "nothing an LLM wrote"
+    // when the summary is the error placeholder, when no metered call ever
+    // succeeded, or when the wall-clock deadline degraded everything (the
+    // deadline summary is deterministic prose, not the placeholder — W3 review P1).
+    if (opts.deadlineHit) return "deadline_hit";
+    if ((report.llmCalls ?? 0) === 0) return "no_llm_calls";
+    if (typeof report.executiveSummary === "string" && report.executiveSummary.includes(SUMMARY_PLACEHOLDER)) return "placeholder_summary";
+  }
+  // G28-B: ≥ 7 of 8 chapters on deterministic cards is not a product either —
+  // one prose chapter beside seven cards reads as an outage, not a report.
+  // Not persisted, not charged, one digest line (pipeline-health).
+  return "mostly_degraded";
 }
 
 // ── Cost meter (W2 review (b)) ──────────────────────────────────────────────
@@ -249,32 +260,69 @@ export class ReportDeadlineExceededError extends Error {
   }
 }
 
-/** A single timer the stages race against; `expired()` flips once and stays. */
+/**
+ * A single timer the stages race against; `expired()` flips once and stays.
+ *
+ * G28-B: a second, SOFT deadline at `ms − reserveMs` is what W1–W3 race
+ * against — they stop dispatching (and refuse new calls) `reserveMs` before
+ * the hard deadline so W4 always has its own window
+ * (`pipeline-timeouts.ts` W4 reserve). W4, the summary and the auditor race
+ * the hard deadline as before. `reserveMs` 0 → both deadlines coincide.
+ */
 export class ReportDeadline {
   private hit = false;
+  private softHit = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
+  private softTimer: ReturnType<typeof setTimeout> | null = null;
   readonly promise: Promise<"deadline">;
-  constructor(readonly ms: number, private readonly startedAt: number = Date.now()) {
+  /** Resolves at `ms − reserveMs` (or with the hard deadline when the reserve is 0). */
+  readonly softPromise: Promise<"deadline">;
+  readonly reserveMs: number;
+  constructor(readonly ms: number, private readonly startedAt: number = Date.now(), reserveMs = 0) {
+    this.reserveMs = Math.max(0, Math.min(Math.floor(reserveMs), ms));
     this.promise = new Promise((resolve) => {
       this.timer = setTimeout(() => {
         this.hit = true;
+        this.softHit = true;
         resolve("deadline");
       }, ms);
     });
+    this.softPromise = this.reserveMs === 0
+      ? this.promise
+      : new Promise((resolve) => {
+          this.softTimer = setTimeout(() => {
+            this.softHit = true;
+            resolve("deadline");
+          }, ms - this.reserveMs);
+        });
   }
   expired(): boolean {
     return this.hit;
   }
+  /** True once W1–W3 must stop: the W4 reserve has begun (or the hard deadline passed). */
+  softExpired(): boolean {
+    return this.softHit || this.hit;
+  }
   remainingMs(now: number = Date.now()): number {
     return Math.max(0, this.startedAt + this.ms - now);
+  }
+  /** Wall clock W1–W3 may still use (until the W4 reserve begins). */
+  remainingSoftMs(now: number = Date.now()): number {
+    return Math.max(0, this.startedAt + this.ms - this.reserveMs - now);
   }
   /** Resolve `work` or the deadline, whichever first; the loser keeps running but its result is dropped. */
   race<T>(work: Promise<T>): Promise<T | "deadline"> {
     return Promise.race([work, this.promise]);
   }
+  /** Same as `race` against the soft (W4-reserve) deadline — for W1–W3. */
+  raceSoft<T>(work: Promise<T>): Promise<T | "deadline"> {
+    return Promise.race([work, this.softPromise]);
+  }
   dispose(): void {
     if (this.timer) clearTimeout(this.timer);
+    if (this.softTimer) clearTimeout(this.softTimer);
     this.timer = null;
+    this.softTimer = null;
   }
 }
 
@@ -283,11 +331,25 @@ export class ReportDeadline {
  * refuses to start once the deadline has passed. Throws once exhausted /
  * expired — the dispatchers turn the throw into a deterministic card.
  */
-export function meterCallAI(callAI: AICallerInput, budget: ReportCallBudget, opts: { meter?: CostMeter; deadline?: ReportDeadline } = {}): AICaller {
+export function meterCallAI(
+  callAI: AICallerInput,
+  budget: ReportCallBudget,
+  opts: { meter?: CostMeter; deadline?: ReportDeadline; stage?: PipelineCallStage } = {},
+): AICaller {
+  // G28-B: the stage is bound per caller (one metered caller per stage), so a
+  // late W1 repair that fires after W4 started is still a `criterion` call
+  // and is refused inside the reserve — never re-labelled as a chapter call.
+  const stage: PipelineCallStage = opts.stage ?? "criterion";
   return async (system, user, maxTokens, taskClass) => {
     if (opts.deadline?.expired()) throw new ReportDeadlineExceededError(opts.deadline.ms);
+    // G28-B: a criterion call may not start inside the W4 reserve.
+    if (stage === "criterion" && opts.deadline?.softExpired()) throw new ReportDeadlineExceededError(opts.deadline.ms - opts.deadline.reserveMs);
     if (!budget.tryAcquire()) throw new CallBudgetExceededError(budget.max);
-    const out = await callAI(system, user, maxTokens, taskClass);
+    const hint: PipelineCallHint = {
+      stage,
+      ...(opts.deadline ? { remainingMs: stage === "criterion" ? opts.deadline.remainingSoftMs() : opts.deadline.remainingMs() } : {}),
+    };
+    const out = await callAI(system, user, maxTokens, taskClass, hint);
     if (typeof out === "string") return out;
     opts.meter?.record(out);
     return out.text;
@@ -347,6 +409,8 @@ export interface OrchestratorInput {
   maxCalls?: number;
   /** Override the wall-clock deadline in ms (tests). Defaults to deadlineMsForTier(tierV2). */
   deadlineMs?: number;
+  /** G28-B: override the W4 reserve in ms (tests). Defaults to w4ReserveMsFor(deadlineMs). */
+  w4ReserveMs?: number;
   /** Explicit growth phase (projects.growth_phase_current); inferred from criteria + dims otherwise. */
   phaseId?: string | null;
   /** G14-S36: projects.verification_level (0–5) → ReportV2.cover.verification badge; falls back to the analysis' meta, then L0. */
@@ -402,8 +466,14 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
   const tierV2: ReportTierV2 = input.tierV2 ?? input.tier;
   const budget = new ReportCallBudget(input.maxCalls ?? callMaxForTier(tierV2));
   const meter = new CostMeter();
-  const deadline = new ReportDeadline(input.deadlineMs ?? deadlineMsForTier(tierV2), t0);
-  const callAI = meterCallAI(input.callAI, budget, { meter, deadline });
+  const deadlineMs = input.deadlineMs ?? deadlineMsForTier(tierV2);
+  const deadline = new ReportDeadline(deadlineMs, t0, input.w4ReserveMs ?? w4ReserveMsFor(deadlineMs));
+  // G28-B: one metered caller per stage over the SAME call budget — the
+  // per-model timeout and the W4-reserve refusal live on the stage
+  // (pipeline-timeouts.ts). `callAI` = criterion (gather + W1–W3).
+  const callAI = meterCallAI(input.callAI, budget, { meter, deadline, stage: "criterion" });
+  const callAIChapter = meterCallAI(input.callAI, budget, { meter, deadline, stage: "chapter" });
+  const callAISynthesis = meterCallAI(input.callAI, budget, { meter, deadline, stage: "synthesis" });
   const partialDims = input.dims && input.dims.length ? DIM_ORDER.filter((d) => input.dims!.includes(d)) : null;
   const emit: PipelineEventHandler = (e) => {
     try {
@@ -519,7 +589,9 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
       tierV2,
       callBudget: budget,
       budgetOk: monthlyOk,
-      isExpired: () => deadline.expired(),
+      // G28-B: W1–W3 results that land inside the W4 reserve are dropped
+      // (W4 has started); W4 itself overrides this with the hard deadline.
+      isExpired: () => deadline.softExpired(),
       // §C.8 chapter-level cache (S-R5): unchanged evidence → last chapter, no
       // owner call. Per-dimension re-runs (partialDims) bypass it.
       chapterCache: input.chapterCache === undefined ? supabaseChapterCache(getSupabaseAdmin() as unknown as ChapterCacheDb | null) : (input.chapterCache ?? undefined),
@@ -529,20 +601,22 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
     };
 
     if (!partialDims) {
+      // G28-B: W1–W3 race the SOFT deadline (hard − W4 reserve) so a slow
+      // provider in W1 can never leave W4 with no wall clock.
       // Wave 1: Independent analyses
       notify("wave1", 15);
-      if (!deadline.expired()) await deadline.race(dispatchWave(wave1, context, input.tier, callAI, dispatchOpts));
+      if (!deadline.softExpired()) await deadline.raceSoft(dispatchWave(wave1, context, input.tier, callAI, dispatchOpts));
 
       // Wave 2: Depends on Wave 1
-      if (wave2.length > 0 && !deadline.expired()) {
+      if (wave2.length > 0 && !deadline.softExpired()) {
         notify("wave2", 45);
-        await deadline.race(dispatchWave(wave2, context, input.tier, callAI, dispatchOpts));
+        await deadline.raceSoft(dispatchWave(wave2, context, input.tier, callAI, dispatchOpts));
       }
 
       // Wave 3: Depends on Wave 1 + 2 (may be empty when evidenceCompleteness < 0.5)
-      if (wave3.length > 0 && !deadline.expired()) {
+      if (wave3.length > 0 && !deadline.softExpired()) {
         notify("wave3", 75);
-        await deadline.race(dispatchWave(wave3, context, input.tier, callAI, dispatchOpts));
+        await deadline.raceSoft(dispatchWave(wave3, context, input.tier, callAI, dispatchOpts));
       }
     }
 
@@ -567,8 +641,9 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
         const live = new Map<DimKey, DimensionChapter>();
         context.dimensionChapters = live;
         const w4 = deadline.race(
-          dispatchDimensionChapters(context, input.tier, callAI, {
+          dispatchDimensionChapters(context, input.tier, callAIChapter, {
             ...dispatchOpts,
+            isExpired: () => deadline.expired(),
             dims: w4Dims,
             onChapter: (dim, chapter) => {
               if (deadline.expired() || emitted.has(dim)) return;
@@ -606,7 +681,7 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
     // CDO cross-validation: one LLM call at premium+ (§B.9); deterministic elsewhere.
     context.consistencyIssues =
       (tierV2 === "premium" || tierV2 === "investor_memo") && !partialDims && !deadline.expired()
-        ? await crossValidate(context, callAI)
+        ? await crossValidate(context, callAISynthesis)
         : deterministicConsistencyIssues(context);
 
     // CEO executive summary — deterministic after the deadline / on a partial run.
@@ -616,7 +691,7 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
       context.executiveSummary = deterministicExecutiveSummary(context, partialDims ? "partial re-run" : "deadline");
       context.executiveStructured = null;
     } else {
-      const ceo = await generateExecutiveSummary(context, callAI, {
+      const ceo = await generateExecutiveSummary(context, callAISynthesis, {
         allowRepair: () => !deadline.expired() && monthlyOk() && budget.remaining >= 2,
         businessId: input.projectId ?? null,
         userId: input.userId ?? null,
@@ -631,7 +706,7 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
     // criterion sections). Fully fail-safe and metered; the critic passes run
     // in parallel under the tier cap. After the deadline only the free
     // deterministic citation gate runs.
-    const audit = await auditAllSections(context, tierV2, callAI, {
+    const audit = await auditAllSections(context, tierV2, callAISynthesis, {
       budgetOk: () => !deadline.expired() && !partialDims && monthlyOk() && budget.remaining >= 2,
     });
     context.executiveSummary = audit.executiveSummary;

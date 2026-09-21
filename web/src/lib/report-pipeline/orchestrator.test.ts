@@ -89,6 +89,11 @@ const H = vi.hoisted(() => {
     deterministicCalls: [] as string[],
     chapterFactory: null as null | ((dim: string) => unknown),
     w4HangAfter: null as null | number,
+    // G28-B: when set, the wave / W4 mocks route every task through the
+    // metered `callAI` the orchestrator hands them (so a fake provider chain
+    // with timeouts, the strike ledger and the stage hint are exercised).
+    waveUseCallAI: false,
+    w4UseCallAI: false,
     techAuditSpy: vi.fn(async (url: string) => ({ url, auditedAt: "2026-09-16T00:00:00.000Z", overallGrade: "B", evidenceLabels: [] })),
     repoAuditSpy: vi.fn(async (name: string) => ({ repoFullName: name, auditedAt: "2026-09-16T00:00:00.000Z", overallGrade: "A", evidenceLabels: [] })),
   };
@@ -150,7 +155,7 @@ vi.mock("./agent-dispatcher", () => ({
     context.dimensionChapters = map as ReportContext["dimensionChapters"];
     return map;
   }),
-  dispatchDimensionChapters: vi.fn(async (context: ReportContext, tier: string, _callAI: unknown, opts: Record<string, unknown>) => {
+  dispatchDimensionChapters: vi.fn(async (context: ReportContext, tier: string, callAIArg: unknown, opts: Record<string, unknown>) => {
     H.w4Calls.push({ tier, opts });
     // S-R3: like the real dispatcher, write into the map the orchestrator
     // handed us (context.dimensionChapters) and honour `opts.dims`.
@@ -162,6 +167,23 @@ vi.mock("./agent-dispatcher", () => ({
       map.set(d, chapter);
       (opts.onChapter as ((dim: string, c: unknown) => void) | undefined)?.(d, chapter);
     };
+    if (H.w4UseCallAI) {
+      // G28-B: one metered call per chapter, in parallel; a throw = a degraded card.
+      const callAI = callAIArg as (s: string, u: string, m: number) => Promise<string>;
+      await Promise.all(dims.map(async (d) => {
+        let chapter: unknown;
+        try {
+          await callAI(`sys-${d}`, "user", 1_500);
+          chapter = stubChapter(d);
+        } catch (err) {
+          chapter = stubChapter(d, { degraded: true, degradeReason: `schema/model: ${err instanceof Error ? err.message : String(err)}` });
+        }
+        if ((opts.isExpired as (() => boolean) | undefined)?.()) return;
+        map.set(d, chapter);
+        (opts.onChapter as ((dim: string, c: unknown) => void) | undefined)?.(d, chapter);
+      }));
+      return map;
+    }
     if (H.w4HangAfter !== null) {
       // A hung provider: the first N chapters land, the rest never resolve.
       dims.slice(0, H.w4HangAfter).forEach(emit);
@@ -174,7 +196,7 @@ vi.mock("./agent-dispatcher", () => ({
     wave: unknown,
     context: ReportContext,
     tier: ReportTier,
-    _callAI: unknown,
+    callAIArg: unknown,
     opts: unknown,
   ) => {
     H.dispatchCalls.push({
@@ -183,6 +205,24 @@ vi.mock("./agent-dispatcher", () => ({
       tier,
       opts,
     });
+    if (H.waveUseCallAI) {
+      // G28-B: one metered call per task, in parallel, like the real dispatchWave.
+      const callAI = callAIArg as (s: string, u: string, m: number) => Promise<string>;
+      const tasks = wave as Array<{ criterion: string }>;
+      const results = await Promise.all(tasks.map(async (t) => {
+        try {
+          const text = await callAI(`sys-${t.criterion}`, "user", 1_000);
+          return { criterion: t.criterion, ok: true, text };
+        } catch (err) {
+          return { criterion: t.criterion, ok: false, text: err instanceof Error ? err.message : String(err) };
+        }
+      }));
+      if ((opts as { isExpired?: () => boolean }).isExpired?.()) return;
+      for (const r of results) {
+        context.criterionResults.set(r.criterion as CriterionKey, { criterion: r.criterion, agentRole: "ceo", score: 60, content: r.text, highlights: [], dataPoints: {}, risks: [], nextSteps: [], visuals: [], confidence: 0.8, wordCount: 100, durationMs: 1, degraded: !r.ok } as unknown as AgentAnalysisResult);
+      }
+      return;
+    }
     const rows = H.dispatchScript.shift() ?? [];
     for (const { criterion, result } of rows) {
       context.criterionResults.set(criterion as CriterionKey, result as AgentAnalysisResult);
@@ -356,6 +396,8 @@ beforeEach(() => {
   H.deterministicCalls.length = 0;
   H.chapterFactory = null;
   H.w4HangAfter = null;
+  H.waveUseCallAI = false;
+  H.w4UseCallAI = false;
   delete process.env.REPORT_PIPELINE_W4;
   delete process.env.REPORT_DEADLINE_MS_STANDARD;
 });
@@ -1682,5 +1724,199 @@ describe("orchestrateReport() — Money on the Table from GATHER (G19-S43)", () 
     expect(none.reportV2?.moneyOnTable.visuals[0].subtitle).toMatch(/No grant profile yet/);
     expect(moneyOnTableFromGather({ gatherResults: {} })).toBeNull();
     expect(moneyOnTableFromGather({ gatherResults: { grants: { grants: [{ id: "x", name: "X", amountAud: "n/a", fit: "7" }], programs: "nope" } } })).toEqual({ grants: [{ id: "x", name: "X", amountAud: null, fit: 0 }], programs: [] });
+  });
+});
+
+// ─── G28-B — provider resilience: per-stage timeouts, run-scoped strikes, W4 reserve ───
+
+import { createRunStrikeLedger, type RunStrikeLedger } from "@/lib/ai/run-strikes";
+import { pipelineCallTimeouts, type PipelineCallHint } from "./pipeline-timeouts";
+import type { AICallerInput } from "./orchestrator";
+
+/**
+ * A fake provider chain shaped like ai-client's: the primary is dead (every
+ * attempt ends in a worker timeout after the caller's per-model timeout), the
+ * secondary answers after `answerMs`. It honours the strike ledger exactly as
+ * callAI does — a struck provider is not dialled again in this run — and the
+ * call budget the hint carries (no attempt outlives the run's wall clock).
+ */
+function fakeProviderChain(ledger: RunStrikeLedger, opts: { answerMs?: number } = {}) {
+  const answerMs = opts.answerMs ?? 2_000;
+  const dialed: string[] = [];
+  const hints: PipelineCallHint[] = [];
+  const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+  const callAI: AICallerInput = async (_sys, _user, _max, _cls, hint) => {
+    hints.push(hint!);
+    const { timeoutMs, budgetMs } = pipelineCallTimeouts(hint);
+    const deadlineAt = Date.now() + (budgetMs ?? Number.POSITIVE_INFINITY);
+    let lastErr: Error | null = null;
+    for (const provider of ["deepinfra", "gemini"]) {
+      if (ledger.struck(provider)) continue;
+      if (Date.now() >= deadlineAt) { lastErr = new Error("AI call budget exhausted"); break; }
+      dialed.push(provider);
+      const attemptMs = Math.min(timeoutMs, Math.max(1_000, deadlineAt - Date.now()));
+      if (provider === "deepinfra") {
+        await sleep(attemptMs);
+        lastErr = new Error(`Worker timeout (${Math.round(attemptMs / 1000)}s)`);
+        ledger.note(provider, lastErr);
+        continue;
+      }
+      await sleep(Math.min(answerMs, attemptMs));
+      return { text: "prose from gemini", provider, costUsd: 0.001 };
+    }
+    throw lastErr ?? new Error("All AI providers failed");
+  };
+  return { callAI, dialed, hints };
+}
+
+describe("orchestrateReport() — G28-B provider resilience (fake clock, dead primary provider)", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("dead primary: ≥ 7 prose chapters land inside a 480 s budget, the primary is dialled exactly twice (run-scoped strike) and every W1–W3 call ran on the 45 s criterion timeout", async () => {
+    vi.useFakeTimers();
+    H.waveUseCallAI = true;
+    H.w4UseCallAI = true;
+    const ledger = createRunStrikeLedger();
+    const chain = fakeProviderChain(ledger);
+    const events: PipelineEvent[] = [];
+    const degradedWriter = vi.fn();
+    const run = orchestrateReport(baseInput({ callAI: chain.callAI, deadlineMs: 480_000, maxCalls: 48, degradedWriter, onEvent: (e) => events.push(e) }));
+    await vi.advanceTimersByTimeAsync(480_000 + DEADLINE_GRACE_MS);
+    const report = await run;
+
+    const done = events.find((e): e is Extract<PipelineEvent, { type: "done" }> => e.type === "done")!;
+    expect(done.deadlineHit).toBe(false);
+    // W1 45 s + 2 s, W2 45 s + 2 s (second strike), W3 2 s, W4 2 s, summary 2 s — nowhere near 480 s.
+    expect(done.totalMs).toBeLessThan(200_000);
+    const chapters = [...(assembleSpy.mock.calls[0][0] as ReportContext).dimensionChapters!.values()];
+    expect(chapters.filter((c) => !c.degraded)).toHaveLength(8);
+    expect(report.fullyDegraded).toBe(false);
+    expect(degradedWriter).not.toHaveBeenCalled();
+    // Run-scoped strike: two worker timeouts → deepinfra skipped for the rest of the run.
+    expect(chain.dialed.filter((p) => p === "deepinfra")).toHaveLength(2);
+    expect(ledger.struck("deepinfra")).toBe(true);
+    expect(ledger.snapshot().deepinfra).toEqual({ strikes: 2, timeout: 2, overloaded: 0 });
+    // Stage hints: 3 criterion calls (W1–W3), 8 chapter calls, then synthesis.
+    const stages = chain.hints.map((h) => h.stage);
+    expect(stages.slice(0, 3)).toEqual(["criterion", "criterion", "criterion"]);
+    expect(stages.filter((s) => s === "chapter")).toHaveLength(8);
+    expect(stages.at(-1)).toBe("synthesis");
+    // Criterion calls carry the SOFT remaining clock (deadline − W4 reserve), chapters the hard one.
+    expect(chain.hints[0].remainingMs).toBeLessThanOrEqual(480_000 - 120_000);
+    expect(chain.hints.find((h) => h.stage === "chapter")!.remainingMs).toBeGreaterThan(480_000 - 120_000 - 100_000);
+    // Criterion attempts cap at 45 s; chapter / synthesis keep 120 s while the remaining clock is wide.
+    expect(chain.hints.every((h) => pipelineCallTimeouts(h).timeoutMs === (h.stage === "criterion" ? 45_000 : 120_000))).toBe(true);
+  });
+
+  it("strikes reset per run: a fresh ledger dials the primary again", async () => {
+    vi.useFakeTimers();
+    H.waveUseCallAI = true;
+    H.w4UseCallAI = true;
+    for (let run = 0; run < 2; run += 1) {
+      const ledger = createRunStrikeLedger();
+      const chain = fakeProviderChain(ledger);
+      const p = orchestrateReport(baseInput({ callAI: chain.callAI, deadlineMs: 480_000, maxCalls: 48 }));
+      await vi.advanceTimersByTimeAsync(480_000 + DEADLINE_GRACE_MS);
+      await p;
+      expect(chain.dialed.filter((x) => x === "deepinfra")).toHaveLength(2);
+      expect(ledger.strikes("deepinfra")).toBe(2);
+    }
+  });
+
+  it("W4 reserve: a hung W1 stops at deadline − reserve, W4 still lands 8 prose chapters and the run is not fully degraded", async () => {
+    vi.useFakeTimers();
+    H.waveUseCallAI = true;
+    H.w4UseCallAI = true;
+    const ledger = createRunStrikeLedger();
+    // Primary dead AND the secondary hangs for criterion calls only — nothing W1 can do.
+    let hang = true;
+    const inner = fakeProviderChain(ledger, { answerMs: 1_000 });
+    const callAI: AICallerInput = async (sys, user, max, cls, hint) => {
+      if (hint?.stage === "criterion" && hang) return new Promise<never>(() => {});
+      return inner.callAI(sys, user, max, cls, hint);
+    };
+    const events: PipelineEvent[] = [];
+    const run = orchestrateReport(baseInput({ callAI, deadlineMs: 100_000, w4ReserveMs: 50_000, maxCalls: 48, onEvent: (e) => events.push(e) }));
+    // W1 hangs; the soft deadline (50 s) hands the run to W4.
+    await vi.advanceTimersByTimeAsync(50_500);
+    hang = false;
+    expect(events.some((e) => e.type === "dimension_start")).toBe(true);
+    await vi.advanceTimersByTimeAsync(60_000);
+    const report = await run;
+    const done = events.find((e): e is Extract<PipelineEvent, { type: "done" }> => e.type === "done")!;
+    expect(done.deadlineHit).toBe(false);
+    expect(done.totalMs).toBeGreaterThanOrEqual(50_000);
+    expect(done.totalMs).toBeLessThan(100_000);
+    const chapters = [...(assembleSpy.mock.calls[0][0] as ReportContext).dimensionChapters!.values()];
+    expect(chapters.filter((c) => !c.degraded)).toHaveLength(8);
+    expect(report.fullyDegraded).toBe(false);
+    // The hung W1 call never wrote a criterion result (isExpired = soft deadline).
+    expect((assembleSpy.mock.calls[0][0] as ReportContext).criterionResults.size).toBe(0);
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("≥ 7 degraded chapters → fullyDegraded (`mostly_degraded`), ONE digest event; 6 degraded → a usable report", async () => {
+    const seven = vi.fn();
+    H.chapterFactory = (dim) => (dim === "svm" ? stubChapter(dim) : stubChapter(dim, { degraded: true, degradeReason: "schema/model: timeout" }));
+    const report7 = await orchestrateReport(baseInput({ degradedWriter: seven }));
+    expect(report7.fullyDegraded).toBe(true);
+    expect(() => assertReportUsable(report7)).toThrow(/report fully degraded/);
+    expect(seven).toHaveBeenCalledTimes(1);
+    expect((seven.mock.calls[0][0] as { reason: string }).reason).toBe("mostly_degraded");
+
+    const six = vi.fn();
+    H.chapterFactory = (dim) => (dim === "svm" || dim === "lco" ? stubChapter(dim) : stubChapter(dim, { degraded: true, degradeReason: "schema/model: timeout" }));
+    const report6 = await orchestrateReport(baseInput({ degradedWriter: six }));
+    expect(report6.fullyDegraded).toBe(false);
+    expect(six).not.toHaveBeenCalled();
+  });
+
+  it("meterCallAI: inside the W4 reserve a late criterion call (W1 repair) is refused, a chapter / synthesis call is not; hints carry soft vs hard remaining clocks", async () => {
+    vi.useFakeTimers();
+    const { meterCallAI, ReportCallBudget, ReportDeadline } = await import("./orchestrator");
+    const budget = new ReportCallBudget(10);
+    const deadline = new ReportDeadline(100_000, Date.now(), 40_000);
+    const seen: PipelineCallHint[] = [];
+    const inner: AICallerInput = async (_s, _u, _m, _c, hint) => { seen.push(hint!); return "ok"; };
+    const criterion = meterCallAI(inner, budget, { deadline, stage: "criterion" });
+    const chapter = meterCallAI(inner, budget, { deadline, stage: "chapter" });
+    const synthesis = meterCallAI(inner, budget, { deadline, stage: "synthesis" });
+    await vi.advanceTimersByTimeAsync(10_000);
+    await criterion("s", "u", 100);
+    expect(seen[0]).toEqual({ stage: "criterion", remainingMs: 50_000 });
+    await vi.advanceTimersByTimeAsync(50_500);
+    expect(deadline.softExpired()).toBe(true);
+    expect(deadline.expired()).toBe(false);
+    await expect(criterion("s", "u", 100)).rejects.toThrow(/deadline exceeded \(60000 ms\)/);
+    await chapter("s", "u", 100);
+    await synthesis("s", "u", 100);
+    expect(seen.slice(1).map((h) => h.stage)).toEqual(["chapter", "synthesis"]);
+    expect(seen[1].remainingMs).toBe(39_500);
+    // The refused call did not consume the call budget.
+    expect(budget.used).toBe(3);
+    deadline.dispose();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("the W4 reserve defaults to min(120 s, deadline / 2) and can be overridden per run", async () => {
+    vi.useFakeTimers();
+    H.waveUseCallAI = true;
+    const ledger = createRunStrikeLedger();
+    const chain = fakeProviderChain(ledger, { answerMs: 10 });
+    const p1 = orchestrateReport(baseInput({ callAI: chain.callAI, deadlineMs: 480_000 }));
+    await vi.advanceTimersByTimeAsync(200_000);
+    await p1;
+    expect(chain.hints[0].remainingMs).toBeLessThanOrEqual(360_000);
+    expect(chain.hints[0].remainingMs).toBeGreaterThan(300_000);
+    const ledger2 = createRunStrikeLedger();
+    const chain2 = fakeProviderChain(ledger2, { answerMs: 10 });
+    const p2 = orchestrateReport(baseInput({ callAI: chain2.callAI, deadlineMs: 120_000 }));
+    await vi.advanceTimersByTimeAsync(120_000);
+    await p2;
+    // 120 s deadline → reserve capped at 60 s.
+    expect(chain2.hints[0].remainingMs).toBeLessThanOrEqual(60_000);
+    expect(chain2.hints[0].remainingMs).toBeGreaterThan(50_000);
   });
 });

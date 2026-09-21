@@ -28,6 +28,7 @@ import path from "node:path";
 import { getStatusRoot, readJsonlTail, withinLast } from "@/lib/status/jsonl";
 import { estimatePages } from "@/lib/report-v2/page-estimate";
 import type { ReportV2 } from "@/lib/report-v2/schema";
+import { FULLY_DEGRADED_MIN_CHAPTERS } from "./pipeline-health";
 
 export const TBR_QUALITY_FILE = "tbr-quality.jsonl";
 export const TBR_QUALITY_PATH = path.join("content", "reports", TBR_QUALITY_FILE);
@@ -236,7 +237,7 @@ export function summariseTbrQuality(rows: RowLike[], now: number = Date.now(), w
     // deterministic) has nothing to ground — it counts in degradedShare, not
     // in the grounding median (G23-A; the 2026-09-20/21 outage rows were
     // groundedShare 0 with words 0 and dragged a 0.41 median to 0).
-    const noReport = row.words === 0 && typeof row.degradedSections === "number" && row.degradedSections >= 8;
+    const noReport = row.words === 0 && typeof row.degradedSections === "number" && row.degradedSections >= FULLY_DEGRADED_MIN_CHAPTERS;
     if (!noReport && typeof row.groundedShare === "number" && Number.isFinite(row.groundedShare)) grounded.push({ ts: String(row.ts), share: row.groundedShare });
     if (typeof row.costUsd === "number" && Number.isFinite(row.costUsd)) cost.push(row.costUsd);
     if (typeof row.degradedSections === "number" && row.degradedSections > 0) degradedRuns += 1;
