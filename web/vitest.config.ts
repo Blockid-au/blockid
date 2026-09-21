@@ -26,6 +26,8 @@ const UNIT_INCLUDE = [
   "scripts/db/*.test.mjs",
   // G14-S39: the SVI backtest runner (tsx script with `@/` imports).
   "scripts/backtest/*.test.ts",
+  // G21 P3-A: the score → outcome calibration runner (tsx script with `@/` imports).
+  "scripts/calibration/*.test.ts",
   // G14-S40: the external-signals ingest CLI + adapters (plain node, fixtures).
   "scripts/external-signals/*.test.mjs",
   // G19-S47: restructure a stored report_v2 without an AI run (fake-db unit).

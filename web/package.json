@@ -35,6 +35,7 @@
     "video:render": "remotion render ../remotion/index.tsx HowItWorks public/media/how-it-works.mp4 --overwrite --crf 28 --props {}",
     "investor:update": "node scripts/investor-update.mjs",
     "backtest": "tsx scripts/backtest/run.ts",
+    "calibration": "tsx scripts/calibration/run.ts",
     "traction:snapshot": "curl -sS -H \"Authorization: Bearer $CRON_SECRET\" -X POST \"${TRACTION_BASE_URL:-http://127.0.0.1:4001}/api/cron/traction-snapshot?dry=1\"",
     "pitch:3min": "tsx scripts/generate-pitch-deck-v3.ts --input content/pitch/pitch-deck-3min.md --out SVI-Pitch-3min-2026-09",
     "pitch:3min:html": "tsx scripts/generate-pitch-deck-v3.ts --html --input content/pitch/pitch-deck-3min.md --out SVI-Pitch-3min-2026-09"
