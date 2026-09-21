@@ -389,7 +389,7 @@ export default async function SVIDashboardPage() {
   const hubEvidence = await loadAllDimensionEvidence(supabase, projectId);
   // P1 merge: claims count from the claim register (P1-A) + the stage
   // benchmark under the n-rule (P1-C); both fail-soft.
-  const assessmentContext = await loadAssessmentContext(projectId, analysisWithDelta.stage);
+  const assessmentContext = await loadAssessmentContext(projectId, analysisWithDelta.stage, analysisWithDelta.sector ?? scope?.project.industry ?? null);
   const assessmentCard = assessmentCardFromAnalysis(
     analysisWithDelta,
     { name: projectName ?? "Your startup", sector: scope?.project.industry ?? null, verificationLevel: scope?.project.verificationLevel ?? null, generatedAt: lastAnalysisDate ?? null },

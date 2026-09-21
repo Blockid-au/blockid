@@ -34,12 +34,18 @@ const SLUGS = [
   "v1-evaluations-dossier",
   "v1-evaluations-assessment-read",
   "v1-evaluations-assessment-write",
+  "v1-institutional-cohorts",
+  "v1-institutional-cohort",
+  "v1-institutional-cohort-snapshots",
+  "v1-institutional-company",
+  "v1-institutional-benchmarks",
+  "v1-institutional-methodology",
 ] as const;
 const PARAM_INS: readonly ApiParamIn[] = ["query", "path", "body"] as const;
 
 describe("api-docs-registry: registry integrity", () => {
-  it("ships exactly the 10 documented endpoints (5 public no-auth + analyze + 4 Evaluator API v1)", () => {
-    expect(API_ENDPOINTS).toHaveLength(10);
+  it("ships exactly the 16 documented endpoints (5 public no-auth + analyze + 4 Evaluator API v1 + 6 Institutional API read-only)", () => {
+    expect(API_ENDPOINTS).toHaveLength(16);
   });
 
   it("every slug is unique", () => {

@@ -266,7 +266,7 @@ async function POST_handler(request: Request) {
       }
     }
     const docxBuffer = reportV2
-      ? await generateTbrDocx(reportV2, { assessment: assessmentCardOptionsFromContext(await loadAssessmentContext(exportProjectId, reportV2.cover.stage)) })
+      ? await generateTbrDocx(reportV2, { assessment: assessmentCardOptionsFromContext(await loadAssessmentContext(exportProjectId, reportV2.cover.stage, reportV2.cover.sector)) })
       : await generateSVIDocx(report);
 
     // Sanitise filename

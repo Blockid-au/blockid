@@ -196,6 +196,8 @@ export const HUBS: Readonly<Record<HubId, HubDef>> = Object.freeze({
     { segment: "feedback", label: { en: "Feedback", vi: "Góp ý" } },
     { segment: "enterprise", label: { en: "Enterprise", vi: "Doanh nghiệp" } },
     { segment: "audit", label: { en: "Audit log", vi: "Nhật ký kiểm toán" } },
+    // G21 P3-B — organisation retention (owner-only; others see the "for organisations" card).
+    { segment: "retention", label: { en: "Retention", vi: "Lưu trữ dữ liệu" } },
   ]),
   projects: hub("projects", { en: "My startups", vi: "Startup của tôi" }, [
     { segment: "", label: { en: "Active", vi: "Đang hoạt động" } },

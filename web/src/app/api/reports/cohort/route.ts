@@ -20,7 +20,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { getEntitlements, recordGateHit } from "@/lib/entitlements";
 import { canBatchScore, canExportLpReport } from "@/lib/evaluations/batch-shared";
 import { cohortReportCsv, cohortReportFilename, renderCohortReportHtml } from "@/lib/evaluations/cohort-report";
-import { cohortReportFromBundle, loadCohortBundle } from "@/lib/evaluations/program-journey-data";
+import { cohortReportFromBundle, loadCohortBundle, loadCohortMarketBenchmark } from "@/lib/evaluations/program-journey-data";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -74,7 +74,8 @@ export async function GET(request: Request) {
   const bundle = await loadCohortBundle(user.id, batchId);
   if (!bundle) return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
 
-  const data = cohortReportFromBundle(bundle, user);
+  // G21 P3-B: the benchmark line is the external stage segment, never the cohort's own median.
+  const data = cohortReportFromBundle(bundle, user, new Date(), await loadCohortMarketBenchmark(bundle));
   const base = siteBase(request);
   const common = { "cache-control": "private, no-store", "x-robots-tag": "noindex, nofollow" };
 

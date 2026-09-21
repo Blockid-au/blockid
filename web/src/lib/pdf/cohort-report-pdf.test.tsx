@@ -67,6 +67,8 @@ function input(over: Partial<CohortReportInput> = {}): CohortReportInput {
     ],
     overridesCount: 2,
     reviewer: { name: "Pat Program", role: "Program owner" },
+    // G21 P3-B: the benchmark line is the external stage segment, resolved by the route.
+    marketBenchmark: { stage: 3, sector: null, published: { median: 58, p25: null, p75: null, n: 14, band: "indicative", label: "indicative (n = 14)", segment: "Stage 3" }, fellBackToStage: false, sampleSize: 14 },
     ...over,
   };
 }
@@ -85,7 +87,8 @@ describe("renderCohortReportPdf", () => {
     expect(text).toContain("Cohort movement");
     expect(text).toContain("Median improvement per dimension");
     expect(text).toContain("Traction & Revenue");
-    expect(text).toMatch(/indicative — median \d+.*\(n = 12\)/);
+    expect(text).toContain("Stage 3 indicative — median 58 (n = 14)");
+    expect(text).toMatch(/Cohort median \d+ \(n = 12\)/);
     expect(text).toContain("Evidence completion");
     expect(text).toContain("Outputs");
     expect(text).toContain("Humans made every decision");
@@ -99,11 +102,11 @@ describe("renderCohortReportPdf", () => {
   });
 
   it("an empty cohort renders the not-enough line without throwing", async () => {
-    const data = buildCohortReport(input({ startups: [], snapshots: [], overridesCount: 0, reviewer: null }));
+    const data = buildCohortReport(input({ startups: [], snapshots: [], overridesCount: 0, reviewer: null, marketBenchmark: null }));
     const { buffer, pages } = await renderCohortReportPdf(data);
     expect(pages).toBeGreaterThanOrEqual(2);
     const text = await fullText(buffer);
-    expect(text).toContain("Not enough comparable companies");
+    expect(text).toContain("No benchmark yet (n = 0)");
     expect(text).toContain("No startup in this cohort yet");
     expect(text).toContain("____________________");
   });

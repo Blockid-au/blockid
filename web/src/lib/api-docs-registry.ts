@@ -729,6 +729,295 @@ console.log(data.legalName, data.verificationLevel, data.trustScore);`,
   ],
 };
 
+// ── Institutional API (read-only) — G21 P3-B (2026-09-21) ────────────────
+// `/api/v1/institutional/*`: the same bk_live_ key ladder as the Evaluator
+// API (scope `evaluations:read`, `api.access` plan gate) PLUS a 600 reads /
+// key / hour ceiling; every read writes an `institutional.read` audit row;
+// responses never carry founder PII (company name + ids + scores only);
+// ETag + `Cache-Control: private, max-age=60`; one error envelope
+// `{ ok:false, error, message }`. Prose: docs/api/institutional.md.
+
+const INSTITUTIONAL_AUTH: ApiAuthDoc = {
+  scheme: "bearer",
+  header: "Authorization: Bearer bk_live_…",
+  scope: "evaluations:read",
+  planGate: "api.access (Fund, Program and Index API plans) — re-checked on every call",
+  note: "Create a key under Workspace → Settings → Enterprise → API keys with the `evaluations:read` scope (evaluator accounts only). Read-only: no institutional endpoint accepts a write. 600 reads per key per hour on top of the per-minute budget.",
+};
+
+const INSTITUTIONAL_ERRORS: ApiErrorCodeDoc[] = [
+  { code: 401, when: "`unauthorized` — missing, malformed, unknown or revoked `Authorization: Bearer bk_live_…` key." },
+  { code: 402, when: "`plan_required` — the key owner's plan no longer carries `api.access`." },
+  { code: 403, when: "`insufficient_scope` — the key lacks `evaluations:read`." },
+  { code: 429, when: "`rate_limited` — the per-minute budget or the 600 / hour institutional ceiling is spent; `Retry-After` + `X-RateLimit-*` (window `hour`) carry the wait." },
+];
+
+const INSTITUTIONAL_RATE: ApiRateLimitDoc = { perMinute: 60, bucket: "v1-api-key (+ 600 / hour institutional)" };
+
+const V1_INSTITUTIONAL_COHORTS: ApiEndpointDoc = {
+  slug: "v1-institutional-cohorts",
+  method: "GET",
+  path: "/api/v1/institutional/cohorts",
+  title: "Institutional API — List Cohorts",
+  summary: "The key owner's readable BlockID Cohorts — the ones they created plus the ones they hold a reviewer / viewer seat on.",
+  description:
+    "Read-only. Rows are cohort summaries (id, name, program, status, your role, item counts, weights version, links to the items and snapshots endpoints) — never a private note or a reviewer's name. Every call writes one `institutional.read` audit row carrying the key's sha256 handle. `ETag` + `Cache-Control: private, max-age=60`: send `If-None-Match` to get a 304 when nothing changed.",
+  params: [{ name: "limit", in: "query", type: "number", required: false, description: "Page size, 1–100. Defaults to 50.", example: "50" }],
+  responseExample: `{
+  "ok": true,
+  "data": [
+    {
+      "id": "e1a2b3c4-0000-4000-8000-000000000001",
+      "name": "Cohort 5",
+      "program_name": "Example Accelerator",
+      "status": "done",
+      "role": "owner",
+      "total": 24,
+      "done_count": 24,
+      "failed_count": 0,
+      "weights_version": 2,
+      "created_at": "2026-09-10T00:00:00.000Z",
+      "finished_at": "2026-09-11T02:10:00.000Z",
+      "links": { "items": "/api/v1/institutional/cohorts/e1a2b3c4-0000-4000-8000-000000000001", "snapshots": "/api/v1/institutional/cohorts/e1a2b3c4-0000-4000-8000-000000000001/snapshots" }
+    }
+  ],
+  "meta": { "count": 1, "limit": 50 }
+}`,
+  curlSnippet: `curl "${BASE_URL}/api/v1/institutional/cohorts?limit=50" \\
+  -H "Authorization: Bearer ${FAKE_BEARER}"`,
+  jsSnippet: `const res = await fetch("${BASE_URL}/api/v1/institutional/cohorts?limit=50", {
+  headers: { Authorization: "Bearer ${FAKE_BEARER}" },
+});
+const { data } = await res.json();
+console.log(data.map((c) => [c.name, c.role, c.done_count]));`,
+  rateLimit: INSTITUTIONAL_RATE,
+  errorCodes: [...INSTITUTIONAL_ERRORS, { code: 400, when: "`invalid_query` — `limit` out of range; `issues[]` names the parameter." }],
+  changelog: [{ date: "2026-09-21", note: "Institutional API v1 (read-only) — initial release (G21 P3-B)." }],
+  auth: INSTITUTIONAL_AUTH,
+};
+
+const V1_INSTITUTIONAL_COHORT: ApiEndpointDoc = {
+  slug: "v1-institutional-cohort",
+  method: "GET",
+  path: "/api/v1/institutional/cohorts/{id}",
+  title: "Institutional API — Cohort Items",
+  summary: "One cohort with its items: project id, company, stage, sector, SVI, evidence confidence, BlockID Verified level, gaps count, decision, shortlist.",
+  description:
+    "Read-only. Each item is the BlockID Cohort row without its internals: no private notes, no reviewer name, no decision log — company name + ids + scores + counts + the recorded decision / review status / shortlist flag, the program's weighted score and the override count (the canonical SVI is never altered by an override). 404 — never 403 — for an unknown id and for a cohort the key owner has no seat on, so the id space cannot be enumerated.",
+  params: [{ name: "id", in: "path", type: "string", required: true, description: "Cohort id (an `evaluation_batches` uuid from GET /api/v1/institutional/cohorts).", example: "e1a2b3c4-0000-4000-8000-000000000001" }],
+  responseExample: `{
+  "ok": true,
+  "data": {
+    "cohort": { "id": "e1a2b3c4-0000-4000-8000-000000000001", "name": "Cohort 5", "role": "owner", "status": "done", "total": 24, "done_count": 24 },
+    "items": [
+      {
+        "item_id": 101,
+        "project_id": "e1a2b3c4-0000-4000-8000-0000000000aa",
+        "evaluation_id": "e1a2b3c4-0000-4000-8000-0000000000bb",
+        "company": "Example Trades Pty Ltd",
+        "stage": 4,
+        "stage_label": "Seed",
+        "sector": "saas",
+        "svi": 63,
+        "evidence_confidence": 48,
+        "verification": "L2",
+        "verification_level": 2,
+        "gaps_count": 3,
+        "delta": 2,
+        "decision": "proceed",
+        "review_status": "reviewed",
+        "shortlisted": true,
+        "weighted_score": 61.5,
+        "overrides_count": 1,
+        "risk_flags": [],
+        "status": "done",
+        "scored_at": "2026-09-11T02:10:00.000Z"
+      }
+    ]
+  },
+  "meta": { "items": 1 }
+}`,
+  curlSnippet: `curl "${BASE_URL}/api/v1/institutional/cohorts/{id}" \\
+  -H "Authorization: Bearer ${FAKE_BEARER}"
+# replace {id} with an id from GET /api/v1/institutional/cohorts`,
+  jsSnippet: `// replace {id} with an id from GET /api/v1/institutional/cohorts
+const res = await fetch("${BASE_URL}/api/v1/institutional/cohorts/{id}", {
+  headers: { Authorization: "Bearer ${FAKE_BEARER}" },
+});
+const { data } = await res.json();
+console.log(data.items.map((i) => [i.company, i.svi, i.evidence_confidence, i.decision]));`,
+  rateLimit: INSTITUTIONAL_RATE,
+  errorCodes: [...INSTITUTIONAL_ERRORS, { code: 404, when: "`not_found` — unknown id, or the key owner holds no seat on that cohort (identical body)." }, { code: 503, when: "`unavailable` — cohorts are not provisioned on this deployment (migration 0322)." }],
+  changelog: [{ date: "2026-09-21", note: "Institutional API v1 (read-only) — initial release (G21 P3-B)." }],
+  auth: INSTITUTIONAL_AUTH,
+};
+
+const V1_INSTITUTIONAL_SNAPSHOTS: ApiEndpointDoc = {
+  slug: "v1-institutional-cohort-snapshots",
+  method: "GET",
+  path: "/api/v1/institutional/cohorts/{id}/snapshots",
+  title: "Institutional API — Cohort Snapshots",
+  summary: "The cohort's point-in-time snapshots, newest first — the rows behind the Δ column and the Cohort Report movement chart.",
+  description:
+    "Read-only. Each snapshot carries `taken_at`, `reason` (batch_complete · manual · rescore), `weights_version`, a summary (n, scored, median SVI / confidence / verification / gaps) and one row per project (svi, evidence confidence, verification level, gaps count, the eight dimension scores, status). `created_by` never leaves. 404 for an unknown id or no seat.",
+  params: [
+    { name: "id", in: "path", type: "string", required: true, description: "Cohort id.", example: "e1a2b3c4-0000-4000-8000-000000000001" },
+    { name: "limit", in: "query", type: "number", required: false, description: "Snapshots returned, 1–100. Defaults to 20.", example: "20" },
+  ],
+  responseExample: `{
+  "ok": true,
+  "data": {
+    "cohort": { "id": "e1a2b3c4-0000-4000-8000-000000000001", "name": "Cohort 5", "role": "owner" },
+    "snapshots": [
+      {
+        "id": "e1a2b3c4-0000-4000-8000-0000000000cc",
+        "taken_at": "2026-09-15T00:00:00.000Z",
+        "reason": "rescore",
+        "weights_version": 2,
+        "summary": { "n": 24, "scored": 24, "median_svi": 61, "median_confidence": 47, "median_verification": 2, "median_gaps": 3, "dims": { "ftv": 66, "mpc": 60, "ptd": 55, "tre": 34, "cgh": 52, "iri": 47, "lco": 63, "svm": 58 } },
+        "rows": [{ "project_id": "e1a2b3c4-0000-4000-8000-0000000000aa", "item_id": 101, "svi": 63, "evidence_confidence": 48, "verification_level": 2, "gaps_count": 3, "dims": { "ftv": 70, "tre": 31 }, "status": "done" }]
+      }
+    ]
+  },
+  "meta": { "count": 1, "limit": 20 }
+}`,
+  curlSnippet: `curl "${BASE_URL}/api/v1/institutional/cohorts/{id}/snapshots?limit=20" \\
+  -H "Authorization: Bearer ${FAKE_BEARER}"
+# replace {id} with an id from GET /api/v1/institutional/cohorts`,
+  jsSnippet: `// replace {id} with an id from GET /api/v1/institutional/cohorts
+const res = await fetch("${BASE_URL}/api/v1/institutional/cohorts/{id}/snapshots?limit=20", {
+  headers: { Authorization: "Bearer ${FAKE_BEARER}" },
+});
+const { data } = await res.json();
+console.log(data.snapshots.map((s) => [s.taken_at, s.summary.median_svi]));`,
+  rateLimit: INSTITUTIONAL_RATE,
+  errorCodes: [...INSTITUTIONAL_ERRORS, { code: 400, when: "`invalid_query` — `limit` out of range." }, { code: 404, when: "`not_found` — unknown id, or the key owner holds no seat on that cohort." }],
+  changelog: [{ date: "2026-09-21", note: "Institutional API v1 (read-only) — initial release (G21 P3-B)." }],
+  auth: INSTITUTIONAL_AUTH,
+};
+
+const V1_INSTITUTIONAL_COMPANY: ApiEndpointDoc = {
+  slug: "v1-institutional-company",
+  method: "GET",
+  path: "/api/v1/institutional/companies/{projectId}",
+  title: "Institutional API — Company Assessment Card",
+  summary: "The Assessment Card for one company the key owner evaluates: SVI + band, evidence confidence, BlockID Verified level, top strength / gap and the published benchmark with its n.",
+  description:
+    "Read-only. Available only when the key owner has an evaluation on the project or a cohort seat whose items include it; otherwise 404 (same body as an unknown id). The benchmark is the nightly stage × sector segment when it is published (n ≥ 10), else the stage segment, else absent — always with `n` and the label (`indicative` 10–29 · `benchmark` 30–99 · `segmented` 100+). Evidence records and claims are not on this endpoint; the card is the evaluator-visible summary the dossier header shows.",
+  params: [{ name: "projectId", in: "path", type: "string", required: true, description: "Project id (from a cohort item's `project_id`).", example: "e1a2b3c4-0000-4000-8000-0000000000aa" }],
+  responseExample: `{
+  "ok": true,
+  "data": {
+    "project_id": "e1a2b3c4-0000-4000-8000-0000000000aa",
+    "company": "Example Trades Pty Ltd",
+    "slug": "example-trades",
+    "stage_label": "Seed",
+    "sector": "SaaS / Software",
+    "svi": 63,
+    "svi_band": "developing",
+    "evidence_confidence": 48,
+    "verification": { "level": 2, "short": "L2", "label": "BlockID Verified L2", "tier": "ABN verified" },
+    "pending_dims": 1,
+    "unverified_material_claims": 2,
+    "top_strength": { "dim": "ftv", "title": "Founder & Team Value", "score": 70, "weight": 15 },
+    "top_gap": { "dim": "tre", "title": "Traction & Revenue Evidence", "score": 31, "weight": 15 },
+    "benchmark": { "median": 58, "n": 41, "label": "benchmark", "segment": "Stage 4 · SaaS / Software", "fellBackToStage": false },
+    "methodology_version": "2.2.0",
+    "last_updated": "2026-09-15T00:00:00.000Z"
+  }
+}`,
+  curlSnippet: `curl "${BASE_URL}/api/v1/institutional/companies/{projectId}" \\
+  -H "Authorization: Bearer ${FAKE_BEARER}"
+# replace {projectId} with a cohort item's project_id`,
+  jsSnippet: `// replace {projectId} with a cohort item's project_id
+const res = await fetch("${BASE_URL}/api/v1/institutional/companies/{projectId}", {
+  headers: { Authorization: "Bearer ${FAKE_BEARER}" },
+});
+if (res.status === 404) throw new Error("not a company this key evaluates");
+const { data } = await res.json();
+console.log(data.company, data.svi, data.evidence_confidence, data.benchmark?.n);`,
+  rateLimit: INSTITUTIONAL_RATE,
+  errorCodes: [...INSTITUTIONAL_ERRORS, { code: 404, when: "`not_found` — unknown id, or the key owner does not evaluate that company (identical body)." }],
+  changelog: [{ date: "2026-09-21", note: "Institutional API v1 (read-only) — initial release (G21 P3-B)." }],
+  auth: INSTITUTIONAL_AUTH,
+};
+
+const V1_INSTITUTIONAL_BENCHMARKS: ApiEndpointDoc = {
+  slug: "v1-institutional-benchmarks",
+  method: "GET",
+  path: "/api/v1/institutional/benchmarks",
+  title: "Institutional API — Benchmark Segments",
+  summary: "The published stage and stage × sector SVI benchmark segments — median, p25, p75, always with n and the publication band.",
+  description:
+    "Read-only. Segments are recomputed nightly from one latest score per company (never one per analysis) and published only where n ≥ 10 (score governance § 7): 10–29 `indicative`, 30–99 `benchmark`, 100+ `segmented`. A segment under the floor is never in the list. `sector` is normalised (`SaaS / Software` and `saas` are the same segment). An empty `data` means nothing at that filter has reached the floor yet.",
+  params: [
+    { name: "stage", in: "query", type: "number", required: false, description: "Stage 0–12 (canonical SVI stage index).", example: "4" },
+    { name: "sector", in: "query", type: "string", required: false, description: "Sector key or label — `saas`, `fintech`, `SaaS / Software` …", example: "saas" },
+  ],
+  responseExample: `{
+  "ok": true,
+  "data": [
+    { "segment_key": "stage:4", "stage": 4, "sector": null, "sector_label": null, "n": 41, "median": 58, "p25": 51, "p75": 66, "band": "benchmark", "label": "benchmark (n = 41)", "computed_at": "2026-09-21T03:25:00.000Z" },
+    { "segment_key": "stage:4|sector:saas", "stage": 4, "sector": "saas", "sector_label": "SaaS / Software", "n": 12, "median": 61, "p25": 55, "p75": 68, "band": "indicative", "label": "indicative (n = 12)", "computed_at": "2026-09-21T03:25:00.000Z" }
+  ],
+  "meta": { "count": 2, "stage": 4, "sector": null, "floor": 10, "rule": "published where n >= 10; 10–29 indicative, 30–99 benchmark, 100+ segmented (stage × sector)", "governance": "https://blockid.au/methodology/governance" }
+}`,
+  curlSnippet: `curl "${BASE_URL}/api/v1/institutional/benchmarks?stage=4&sector=saas" \\
+  -H "Authorization: Bearer ${FAKE_BEARER}"`,
+  jsSnippet: `const res = await fetch("${BASE_URL}/api/v1/institutional/benchmarks?stage=4", {
+  headers: { Authorization: "Bearer ${FAKE_BEARER}" },
+});
+const { data } = await res.json();
+for (const s of data) console.log(s.segment_key, s.median, \`n = \${s.n}\`, s.band);`,
+  rateLimit: INSTITUTIONAL_RATE,
+  errorCodes: [...INSTITUTIONAL_ERRORS, { code: 400, when: "`invalid_query` — `stage` outside 0–12 or `sector` with characters other than letters, digits, space, `/ & . _ -`." }],
+  changelog: [{ date: "2026-09-21", note: "Institutional API v1 (read-only) — initial release (G21 P3-B)." }],
+  auth: INSTITUTIONAL_AUTH,
+};
+
+const V1_INSTITUTIONAL_METHODOLOGY: ApiEndpointDoc = {
+  slug: "v1-institutional-methodology",
+  method: "GET",
+  path: "/api/v1/institutional/methodology",
+  title: "Institutional API — Methodology",
+  summary: "The methodology facts an integration should pin: SVI_VERSION, score bands, the eight dimensions with weights, the evidence confidence ladder, the benchmark n-rules and the governance URL.",
+  description:
+    "Read-only and static per deployment — the ETag changes only with a release, so poll it with `If-None-Match` and re-read your cached copy on a 200. `principles` restates the governance stance: BlockID structures the evidence and standardises the first pass; humans make the decision; overrides append, never overwrite; no benchmark without its n.",
+  params: [],
+  responseExample: `{
+  "ok": true,
+  "data": {
+    "svi_version": "2.2.0",
+    "bands": [{ "band": "strong", "min": 70, "max": 100 }, { "band": "developing", "min": 40, "max": 69 }, { "band": "early", "min": 0, "max": 39 }, { "band": "pending", "min": null, "max": null, "note": "no confident number yet — dimensions still pending" }],
+    "dimensions": [{ "key": "tre", "title": "Traction & Revenue Evidence", "weight": 15 }],
+    "evidence_confidence_levels": ["self_declared", "public_url", "document_uploaded", "connected_source", "transaction_data", "third_party_verified"],
+    "benchmark_rules": { "floor": 10, "n_rules": [{ "band": "none", "min_n": 0, "max_n": 9, "shows": "no percentile, no rank — “not enough comparable companies (n = N)”" }], "counting": "n counts companies — one latest score per company, never one per analysis" },
+    "principles": ["BlockID structures the evidence and standardises the first-pass analysis. Humans make the decision."],
+    "urls": { "methodology": "https://blockid.au/methodology", "governance": "https://blockid.au/methodology/governance", "api_docs": "https://blockid.au/developers/api" }
+  }
+}`,
+  curlSnippet: `curl "${BASE_URL}/api/v1/institutional/methodology" \\
+  -H "Authorization: Bearer ${FAKE_BEARER}"`,
+  jsSnippet: `const res = await fetch("${BASE_URL}/api/v1/institutional/methodology", {
+  headers: { Authorization: "Bearer ${FAKE_BEARER}" },
+});
+const { data } = await res.json();
+console.log(data.svi_version, data.benchmark_rules.floor, res.headers.get("etag"));`,
+  rateLimit: INSTITUTIONAL_RATE,
+  errorCodes: [...INSTITUTIONAL_ERRORS],
+  changelog: [{ date: "2026-09-21", note: "Institutional API v1 (read-only) — initial release (G21 P3-B)." }],
+  auth: INSTITUTIONAL_AUTH,
+};
+
+export const INSTITUTIONAL_ENDPOINTS: ApiEndpointDoc[] = [
+  V1_INSTITUTIONAL_COHORTS,
+  V1_INSTITUTIONAL_COHORT,
+  V1_INSTITUTIONAL_SNAPSHOTS,
+  V1_INSTITUTIONAL_COMPANY,
+  V1_INSTITUTIONAL_BENCHMARKS,
+  V1_INSTITUTIONAL_METHODOLOGY,
+];
+
 export const API_ENDPOINTS: ApiEndpointDoc[] = [
   SVI_INDEX,
   PRICING_TEST_ASSIGN,
@@ -740,6 +1029,7 @@ export const API_ENDPOINTS: ApiEndpointDoc[] = [
   V1_EVALUATIONS_DOSSIER,
   V1_EVALUATIONS_ASSESSMENT_READ,
   V1_EVALUATIONS_ASSESSMENT_WRITE,
+  ...INSTITUTIONAL_ENDPOINTS,
 ];
 
 export function getEndpointBySlug(slug: string): ApiEndpointDoc | null {

@@ -316,7 +316,7 @@ async function renderExport(
       // G21 P1 (review): the same Assessment Card numbers as the web report.
       const { loadAssessmentContext, assessmentCardOptionsFromContext } = await import("@/lib/svi/assessment-context");
       const projectId = typeof reportRow.project_id === "string" ? reportRow.project_id : null;
-      const assessment = assessmentCardOptionsFromContext(await loadAssessmentContext(projectId, reportV2.cover.stage));
+      const assessment = assessmentCardOptionsFromContext(await loadAssessmentContext(projectId, reportV2.cover.stage, reportV2.cover.sector));
       const bytes =
         format === "docx"
           ? await (async () => {

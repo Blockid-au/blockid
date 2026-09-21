@@ -839,7 +839,7 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
 
   // G21-P1-B: the Assessment Card from the same ReportV2 + Evidence Hub rows
   // every other surface uses (the card never re-derives a score).
-  const assessmentContext = report ? await loadAssessmentContext(evaluation.projectId, report.cover.stage ?? null) : null;
+  const assessmentContext = report ? await loadAssessmentContext(evaluation.projectId, report.cover.stage ?? null, report.cover.sector ?? null) : null;
   const assessmentCard = report
     ? assessmentCardFromReport(report, { evidence: dossierEvidenceByDim(evidenceRows), ...(assessmentContext ? assessmentCardOptionsFromContext(assessmentContext) : {}) })
     : null;

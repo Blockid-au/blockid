@@ -39,6 +39,8 @@ vi.mock("@/lib/audit/log", () => ({ getUserAuditLog: (id: string, o: unknown) =>
 
 const listEventsMock = vi.fn();
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => null }));
+// G21 P3-B: the organisation export section resolves the org owner; a solo evaluator here.
+vi.mock("@/lib/org/admin", () => ({ resolveOrgAdmin: async () => ({ status: "individual", org: null, seats: [], isOwner: true }) }));
 vi.mock("@/lib/audit/events", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/audit/events")>();
   return { ...actual, listAuditEvents: (q: unknown) => listEventsMock(q) };

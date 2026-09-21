@@ -26,10 +26,11 @@ import {
 beforeEach(() => trackEventMock.mockClear());
 
 describe("FI catalogue", () => {
-  it("has 18 names: 10 aliases onto existing events + 8 native events, no overlap", () => {
-    expect(FI_EVENT_CATALOGUE).toHaveLength(18);
+  it("has 19 names: 10 aliases onto existing events + 9 native events (P3-B adds institutional_api_read), no overlap", () => {
+    expect(FI_EVENT_CATALOGUE).toHaveLength(19);
     expect(Object.keys(FI_EVENT_ALIASES)).toHaveLength(10);
-    expect(FI_NATIVE_EVENTS).toHaveLength(8);
+    expect(FI_NATIVE_EVENTS).toHaveLength(9);
+    expect(canonicalFiEvent("institutional_api_read")).toBe("institutional_api_read");
     for (const a of Object.keys(FI_EVENT_ALIASES)) expect(FI_NATIVE_EVENTS as readonly string[]).not.toContain(a);
     for (const n of FI_EVENT_CATALOGUE) expect(typeof canonicalFiEvent(n)).toBe("string");
     expect(canonicalFiEvent("report_opened")).toBe("report_view");

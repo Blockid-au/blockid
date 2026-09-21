@@ -29,7 +29,7 @@ import {
   resolveBatchAccess,
   type BatchRole,
 } from "./cohort-adapters";
-import { buildCohortReport, type CohortReportData, type CohortReportInput, type CohortReportStartup, type CohortSnapshotLite } from "./cohort-report";
+import { buildCohortReport, type CohortMarketBenchmark, type CohortReportData, type CohortReportInput, type CohortReportStartup, type CohortSnapshotLite } from "./cohort-report";
 import { quarterLabelFor } from "./quarterly-report";
 import { buildProgramJourney, summariseEvidence, type JourneyBatchRef, type JourneyIntake, type JourneySnapshot, type JourneyStartup, type ProgramJourneyView } from "./program-journey";
 
@@ -202,7 +202,7 @@ export function journeyStartupToReportStartup(s: JourneyStartup): CohortReportSt
   };
 }
 
-export function cohortReportInputFromBundle(bundle: CohortBundle, user: Pick<AppUser, "displayName" | "email">, now = new Date()): CohortReportInput {
+export function cohortReportInputFromBundle(bundle: CohortBundle, user: Pick<AppUser, "displayName" | "email">, now = new Date(), marketBenchmark: CohortMarketBenchmark | null = null): CohortReportInput {
   return {
     programName: user.displayName ?? null,
     cohortName: bundle.batch.name,
@@ -214,11 +214,40 @@ export function cohortReportInputFromBundle(bundle: CohortBundle, user: Pick<App
     snapshots: bundle.snapshots,
     overridesCount: bundle.overridesCount,
     reviewer: { name: user.displayName ?? user.email ?? "", role: bundle.role === "owner" ? "Program owner" : bundle.role === "reviewer" ? "Program reviewer" : "Program viewer" },
+    marketBenchmark,
   };
 }
 
-export function cohortReportFromBundle(bundle: CohortBundle, user: Pick<AppUser, "displayName" | "email">, now = new Date()): CohortReportData {
-  return buildCohortReport(cohortReportInputFromBundle(bundle, user, now));
+/** Pure: the stage most of the scored startups sit at (ties → the lower stage); null when none is scored. */
+export function dominantStage(startups: ReadonlyArray<{ stage: number | null; svi: number | null }>): number | null {
+  const counts = new Map<number, number>();
+  for (const s of startups) if (s.svi != null && s.stage != null && Number.isFinite(s.stage)) counts.set(s.stage, (counts.get(s.stage) ?? 0) + 1);
+  let best: number | null = null;
+  for (const [stage, n] of counts) if (best == null || n > counts.get(best)! || (n === counts.get(best) && stage < best)) best = stage;
+  return best;
+}
+
+/**
+ * G21 P3-B: the external comparison set for the Cohort Report — the
+ * published segment at the cohort's dominant stage (the batch rows carry no
+ * sector, so the stage segment is the one asked for). Null published +
+ * the sample size when nothing is published yet.
+ */
+export async function loadCohortMarketBenchmark(bundle: Pick<CohortBundle, "startups">): Promise<CohortMarketBenchmark | null> {
+  const stage = dominantStage(bundle.startups);
+  if (stage == null) return null;
+  try {
+    const { readPublishedSegment, readSegmentSampleSize } = await import("@/lib/benchmarks/segments-db");
+    const seg = await readPublishedSegment(stage, null);
+    if (seg) return { stage, sector: null, published: seg, fellBackToStage: seg.fellBackToStage, sampleSize: seg.n };
+    return { stage, sector: null, published: null, fellBackToStage: false, sampleSize: await readSegmentSampleSize(stage, null) };
+  } catch {
+    return { stage, sector: null, published: null, fellBackToStage: false, sampleSize: 0 };
+  }
+}
+
+export function cohortReportFromBundle(bundle: CohortBundle, user: Pick<AppUser, "displayName" | "email">, now = new Date(), marketBenchmark: CohortMarketBenchmark | null = null): CohortReportData {
+  return buildCohortReport(cohortReportInputFromBundle(bundle, user, now, marketBenchmark));
 }
 
 // ---------------------------------------------------------------------------

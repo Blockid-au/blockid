@@ -6,6 +6,8 @@ import { getCurrentProjectIsSandbox, getProjectScope } from "@/lib/projects";
 import { listMembers } from "@/lib/project-members/scope";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { getUserAuditLog, type AuditLogRow } from "@/lib/audit/log";
+import { resolveOrgAdmin } from "@/lib/org/admin";
+import { OrgAuditExportSection } from "./org-export-section";
 import {
   auditActionFamilies,
   buildAuditQuery,
@@ -128,9 +130,11 @@ export default async function AuditLogPage({ searchParams }: AuditLogPageProps) 
   const offset = (page - 1) * PAGE_SIZE;
   const source = sp.source === "legacy" ? "legacy" : "chain";
 
-  const [scope, isSandbox] = await Promise.all([
+  const [scope, isSandbox, orgAdmin] = await Promise.all([
     getProjectScope().catch(() => null),
     getCurrentProjectIsSandbox(),
+    // G21 P3-B: the organisation export section (owner-only; others see the "for organisations" card).
+    resolveOrgAdmin({ id: user.id, plan: user.plan ?? null }).catch(() => null),
   ]);
   const viewer: AuditViewerScope = resolveAuditViewerScope(user, scope);
 
@@ -346,6 +350,8 @@ export default async function AuditLogPage({ searchParams }: AuditLogPageProps) 
           filters={{ project: filters.project, actor: filters.actor, action: filters.action }}
           rowsShown={rows.length}
         />
+
+        {orgAdmin ? <OrgAuditExportSection admin={orgAdmin} /> : null}
       </div>
     </WorkspaceLayout>
   );

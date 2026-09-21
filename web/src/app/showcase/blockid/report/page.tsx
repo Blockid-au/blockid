@@ -48,7 +48,7 @@ export const revalidate = 3600;
 export default async function ShowcaseBlockidReportPage() {
   const loaded = await loadBlockidShowcaseReport();
   // G21 P1: claims count + stage benchmark for the Assessment Card (fail-soft).
-  const assessmentContext = await loadAssessmentContext(blockidShowcaseProjectId(), loaded?.report.cover.stage ?? null);
+  const assessmentContext = await loadAssessmentContext(blockidShowcaseProjectId(), loaded?.report.cover.stage ?? null, loaded?.report.cover.sector ?? null);
   return (
     <>
       <PageTracker page="showcase-blockid-report" />

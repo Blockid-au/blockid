@@ -13,7 +13,8 @@ export interface AssessmentCardStrings {
   stage: string;
   sector: string;
   benchmark: string;
-  benchmarkLine: (median: number, n: number, label: string) => string;
+  /** `segment` (G21 P3-B) names the comparison set ("Stage 4 · SaaS / Software"); absent = "stage median". */
+  benchmarkLine: (median: number, n: number, label: string, segment?: string) => string;
   benchmarkLabel: Record<"indicative" | "benchmark" | "segmented", string>;
   topStrength: string;
   topGap: string;
@@ -48,7 +49,7 @@ const EN: AssessmentCardStrings = {
   stage: "Stage",
   sector: "Sector",
   benchmark: "Benchmark",
-  benchmarkLine: (median, n, label) => `stage median ${median} (n = ${n}) · ${label}`,
+  benchmarkLine: (median, n, label, segment) => `${segment ? `${segment} median` : "stage median"} ${median} (n = ${n}) · ${label}`,
   benchmarkLabel: { indicative: "indicative", benchmark: "benchmark", segmented: "segmented benchmark" },
   topStrength: "Top strength",
   topGap: "Top gap",
@@ -82,7 +83,7 @@ const VI: AssessmentCardStrings = {
   stage: "Giai đoạn",
   sector: "Ngành",
   benchmark: "Chuẩn tham chiếu",
-  benchmarkLine: (median, n, label) => `trung vị giai đoạn ${median} (n = ${n}) · ${label}`,
+  benchmarkLine: (median, n, label, segment) => `${segment ? `trung vị ${segment}` : "trung vị giai đoạn"} ${median} (n = ${n}) · ${label}`,
   benchmarkLabel: { indicative: "tham khảo", benchmark: "chuẩn tham chiếu", segmented: "chuẩn theo phân khúc" },
   topStrength: "Điểm mạnh nhất",
   topGap: "Khoảng trống lớn nhất",

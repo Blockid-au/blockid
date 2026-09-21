@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Code2, Gauge, Terminal } from "lucide-react";
+import { ArrowRight, Building2, Code2, Gauge, Terminal } from "lucide-react";
 import { NavV2 } from "@/components/landing/nav-v2";
 import { Footer } from "@/components/marketing/footer";
-import { API_ENDPOINTS, type ApiEndpointDoc } from "@/lib/api-docs-registry";
+import { API_ENDPOINTS, FAKE_BEARER, INSTITUTIONAL_ENDPOINTS, type ApiEndpointDoc } from "@/lib/api-docs-registry";
 import { cn } from "@/lib/utils";
 
 const TITLE = "Public API Reference — BlockID Developer Platform";
@@ -39,6 +39,30 @@ export const metadata: Metadata = {
   },
 };
 
+// G21 P3-B — the two snippets the Institutional API section shows. The
+// only bearer literal is FAKE_BEARER (registry PII guard).
+const INSTITUTIONAL_CURL = `# list your cohorts, then every published benchmark at stage 4
+curl "https://blockid.au/api/v1/institutional/cohorts" \\
+  -H "Authorization: Bearer ${FAKE_BEARER}"
+curl "https://blockid.au/api/v1/institutional/benchmarks?stage=4" \\
+  -H "Authorization: Bearer ${FAKE_BEARER}"`;
+
+const INSTITUTIONAL_TS = `type Envelope<T> = { ok: true } & T | { ok: false; error: string; message: string };
+
+async function institutional<T>(path: string, etag?: string): Promise<{ status: number; etag: string | null; body: Envelope<T> | null }> {
+  const res = await fetch(\`https://blockid.au/api/v1/institutional\${path}\`, {
+    headers: { Authorization: "Bearer ${FAKE_BEARER}", ...(etag ? { "If-None-Match": etag } : {}) },
+  });
+  return { status: res.status, etag: res.headers.get("etag"), body: res.status === 304 ? null : await res.json() };
+}
+
+const cohorts = await institutional<{ data: { id: string; name: string }[] }>("/cohorts");
+if (cohorts.body?.ok) {
+  const first = cohorts.body.data[0];
+  const items = await institutional<{ data: { items: { company: string; svi: number | null; evidence_confidence: number | null }[] } }>(\`/cohorts/\${first.id}\`);
+  if (items.body?.ok) console.table(items.body.data.items);
+}`;
+
 function MethodPill({ method }: { method: ApiEndpointDoc["method"] }) {
   return (
     <span
@@ -73,14 +97,15 @@ export default function ApiIndexPage() {
               BlockID Public API
             </h1>
             <p className="mt-4 text-lg md:text-xl text-ink-500">
-              Five public endpoints with no key at all; five more behind a
+              Five public endpoints with no key at all; eleven more behind a
               bk_live_ key you mint yourself.
             </p>
             <p className="mt-3 text-sm text-ink-400 max-w-lg mx-auto">
               Public: SVI Index aggregates, the Business ID profile JSON, the
               pricing experiment harness and the first-principles idea
               questions engine. Keyed: credit-metered SVI analysis and the
-              Evaluator API v1 (evaluations, dossier, assessments — Fund,
+              Evaluator API v1 (evaluations, dossier, assessments) and the
+              read-only Institutional API (cohorts, snapshots, benchmarks — Fund,
               Program and Index API plans). The same registry that renders this page emits{" "}
               <Link
                 href="/api/openapi.json"
@@ -136,6 +161,43 @@ export default function ApiIndexPage() {
                 </li>
               ))}
             </ul>
+          </section>
+
+          {/* G21 P3-B — the read-only Institutional API, in one place with the two snippets. */}
+          <section id="institutional" className="mt-16 scroll-mt-24 rounded-2xl border border-surface-200 bg-white p-6" aria-labelledby="institutional-heading" data-testid="institutional-api">
+            <div className="flex items-center gap-2">
+              <Building2 strokeWidth={1.75} className="h-5 w-5 text-brand-600" />
+              <h2 id="institutional-heading" className="text-lg font-semibold text-ink-800">
+                Institutional API (read-only)
+              </h2>
+            </div>
+            <p className="mt-2 text-sm text-ink-600 leading-relaxed">
+              For accelerators, programs and funds that run BlockID Cohorts and want the numbers in their own systems:{" "}
+              {INSTITUTIONAL_ENDPOINTS.length} read-only endpoints under <code className="font-mono text-brand-700">/api/v1/institutional/*</code> — cohorts, cohort items (SVI, evidence confidence, verification, gaps, decision), snapshots, one company&apos;s Assessment Card, the published benchmark segments (always with n) and the methodology facts to pin. Same <code className="font-mono">bk_live_</code> key as the Evaluator API with the <code className="font-mono">evaluations:read</code> scope; Fund, Program and Index API plans; 600 reads per key per hour on top of the per-minute budget. Every read is written to the audit log with the key&apos;s id; no response carries a founder&apos;s e-mail or a private note. Full contract: <a href="https://github.com/Blockid-au/blockid/blob/master/docs/api/institutional.md" className="text-brand-600 hover:underline" rel="noopener">docs/api/institutional.md</a>.
+            </p>
+            <ul className="mt-4 grid gap-1.5 text-sm sm:grid-cols-2">
+              {INSTITUTIONAL_ENDPOINTS.map((ep) => (
+                <li key={ep.slug} className="min-w-0 truncate">
+                  <Link href={`/developers/api/${ep.slug}`} className="text-brand-700 hover:underline">
+                    <code className="font-mono text-xs">{ep.path}</code>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-5 grid gap-4 lg:grid-cols-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">curl</p>
+                <pre className="mt-1.5 overflow-x-auto rounded-lg bg-ink-900 p-3 text-xs text-ink-100">
+                  <code>{INSTITUTIONAL_CURL}</code>
+                </pre>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">TypeScript</p>
+                <pre className="mt-1.5 overflow-x-auto rounded-lg bg-ink-900 p-3 text-xs text-ink-100">
+                  <code>{INSTITUTIONAL_TS}</code>
+                </pre>
+              </div>
+            </div>
           </section>
 
           <section className="mt-16 rounded-2xl border border-surface-200 bg-surface-50 p-6">

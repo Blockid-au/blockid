@@ -179,7 +179,7 @@ export default async function TbrSharePage({
   if (!result) notFound();
   const initialReportV2 = await fetchStoredReportV2(result.row.id);
   // G21 P1: benchmark for the Assessment Card, published only under the n-rule.
-  const assessmentContext = await loadAssessmentContext(result.row.project_id ?? null, initialReportV2?.cover.stage ?? null);
+  const assessmentContext = await loadAssessmentContext(result.row.project_id ?? null, initialReportV2?.cover.stage ?? null, initialReportV2?.cover.sector ?? null);
 
   const pdfMode = pdf === "1";
   return (

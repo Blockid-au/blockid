@@ -6,7 +6,7 @@ import { getCurrentProjectIsSandbox } from "@/lib/projects";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { asReportTierClient, emitReportView, resolveReportTier } from "@/lib/analytics/funnel";
 import { BusinessReportClient } from "./business-report-client";
-import { loadAssessmentContext, resolveProjectStage } from "@/lib/svi/assessment-context";
+import { loadAssessmentContext, resolveProjectStageAndSector } from "@/lib/svi/assessment-context";
 import { orderParam } from "@/lib/paywall/report-delivery";
 
 export const metadata: Metadata = {
@@ -33,7 +33,8 @@ export default async function BusinessReportPage({
   // G21 P1: the Assessment Card context (stored evidence confidence, claim
   // count, stage benchmark under the n-rule) — the stage comes from the
   // report the client resolves, so the benchmark is resolved by stage below.
-  const assessmentContext = projectId !== "default" ? await loadAssessmentContext(projectId, await resolveProjectStage(projectId)) : null;
+  const projectStage = projectId !== "default" ? await resolveProjectStageAndSector(projectId) : null;
+  const assessmentContext = projectStage ? await loadAssessmentContext(projectId, projectStage.stage, projectStage.sector) : null;
   const assessmentBenchmarks = assessmentContext ? { total: assessmentContext.benchmark, evidenceConfidence: assessmentContext.evidenceConfidence, unverifiedMaterialClaims: assessmentContext.unverifiedMaterialClaims } : undefined;
 
   // G16-A funnel: `report_view` — the founder opened their Trusted Business

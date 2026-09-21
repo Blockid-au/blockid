@@ -16,6 +16,7 @@ import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { SampleSviCard } from "@/components/svi/sample-svi-card";
 import { cachedIndexHeadlines } from "@/lib/startup-index-cache";
 import { notEnoughLine } from "@/lib/benchmarks/publication-rules";
+import { listPublishedSegments } from "@/lib/benchmarks/segments-db";
 
 export const metadata: Metadata = pageMetadata({
   title: "Startup Value Index — live AU startup valuations",
@@ -90,6 +91,8 @@ function DeltaPill({ delta, suffix = "" }: { delta: number; suffix?: string }) {
 
 export default async function IndexExchangePage() {
   const data = await cachedIndexHeadlines(90);
+  // G21 P3-B: the nightly stage × sector segments (published rows only — n ≥ 10; the same table the Assessment Card and the institutional API read).
+  const segments = await listPublishedSegments().catch(() => []);
   const updatedAt = new Date(data.generatedAt).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
 
   return (
@@ -295,6 +298,47 @@ export default async function IndexExchangePage() {
               </div>
             ))}
           </div>
+        </section>
+
+        {/* ── STAGE × SECTOR SEGMENTS (G21 P3-B) ─────────────────────── */}
+        <section className="rounded-2xl border border-ink-200 bg-white p-5 mb-6" data-testid="benchmark-segments">
+          <div className="flex flex-wrap items-baseline justify-between gap-2 mb-3">
+            <h2 className="text-sm font-bold text-ink-900 uppercase tracking-wider">Stage × sector benchmarks</h2>
+            <p className="text-xs text-ink-500">Computed nightly · one latest score per company · published from n = 10</p>
+          </div>
+          {segments.length === 0 ? (
+            <p className="text-sm text-ink-500" data-publication-band="none">
+              No segment has reached the publication floor yet — a stage or stage × sector benchmark appears once 10 comparable companies are on the index (<Link href="/methodology/governance" className="underline">score governance § 7</Link>).
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-ink-100">
+                    <th className="text-left py-1 text-[10px] uppercase tracking-wider text-ink-400 font-semibold">Segment</th>
+                    <th className="text-right py-1 text-[10px] uppercase tracking-wider text-ink-400 font-semibold">Median SVI</th>
+                    <th className="text-right py-1 text-[10px] uppercase tracking-wider text-ink-400 font-semibold">p25–p75</th>
+                    <th className="text-right py-1 text-[10px] uppercase tracking-wider text-ink-400 font-semibold">n</th>
+                    <th className="text-left py-1 pl-3 text-[10px] uppercase tracking-wider text-ink-400 font-semibold">Band</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {segments.map((s) => (
+                    <tr key={s.segment_key} className="border-b border-ink-50 last:border-0" data-segment-key={s.segment_key} data-publication-band={s.band}>
+                      <td className="py-1.5 text-xs text-ink-700">
+                        Stage {s.stage}
+                        {s.sector_label ? <span className="text-ink-500"> · {s.sector_label}</span> : <span className="text-ink-400"> · all sectors</span>}
+                      </td>
+                      <td className="py-1.5 text-xs text-right font-mono tabular-nums">{s.median}</td>
+                      <td className="py-1.5 text-xs text-right font-mono tabular-nums">{s.p25 != null && s.p75 != null ? `${s.p25}–${s.p75}` : "—"}</td>
+                      <td className="py-1.5 text-xs text-right font-mono tabular-nums">n = {s.n}</td>
+                      <td className="py-1.5 pl-3 text-xs text-ink-600">{s.band === "indicative" ? "indicative" : s.band === "segmented" ? "segmented benchmark" : "benchmark"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </section>
 
         {/* ── SAMPLE SVI CARD ───────────────────────────────────────────
