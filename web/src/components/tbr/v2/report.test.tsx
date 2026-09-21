@@ -618,6 +618,13 @@ describe("<TbrReportV2> 375 px layout + markdown-lite (design check 2026-09-21)"
     expect(Math.min(...sizes)).toBeGreaterThanOrEqual(11);
   });
 
+  it("every <summary> and dimension-chip link carries a 44 px hit area (spec § 5 'footnotes 44 px' extended to the other inline targets)", () => {
+    for (const m of html.matchAll(/<summary class="([^"]*)"/g)) expect(m[1], m[0]).toContain("min-h-11");
+    const chips = html.match(/<a [^>]*data-tbr-chip="dim"[^>]*>/g) ?? [];
+    expect(chips.length).toBeGreaterThan(0);
+    for (const c of chips) expect(c, c).toContain("before:h-11");
+  });
+
   it("`**bold**` inside stored strengths / gaps renders as <strong>, never as raw asterisks", () => {
     const out = renderToStaticMarkup(<CitedText text="**Founder agreement:** even as a solo founder, document it. **" />);
     expect(out).toContain("<strong");

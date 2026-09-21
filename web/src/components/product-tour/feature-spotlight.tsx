@@ -167,7 +167,7 @@ export function FeatureSpotlight({
             <TourIcon icon={tour.icon} className="h-5 w-5" />
           </span>
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] uppercase tracking-wider text-muted">
+            <p className="text-xs uppercase tracking-wider text-muted">
               {copy.step} {stepIndex + 1} {copy.of} {tour.steps.length}
             </p>
             <h2
@@ -181,7 +181,7 @@ export function FeatureSpotlight({
             type="button"
             onClick={handleDismiss}
             aria-label={copy.dismiss}
-            className="shrink-0 rounded-md p-1 text-ink-500 hover:bg-surface-100 dark:hover:bg-surface-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-ink-500 hover:bg-surface-100 dark:hover:bg-surface-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
           >
             <X className="h-4 w-4" aria-hidden />
           </button>
@@ -216,7 +216,7 @@ export function FeatureSpotlight({
               <button
                 type="button"
                 onClick={handleBack}
-                className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium text-ink-700 dark:text-ink-200 hover:bg-surface-100 dark:hover:bg-surface-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                className="inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-xs font-medium text-ink-700 dark:text-ink-200 hover:bg-surface-100 dark:hover:bg-surface-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
               >
                 <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
                 {copy.back}
@@ -226,7 +226,7 @@ export function FeatureSpotlight({
               <Link
                 href={step.cta.href}
                 onClick={handleDismiss}
-                className="inline-flex items-center gap-1 rounded-md bg-brand-600 px-3 py-1 text-xs font-semibold text-white hover:bg-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                className="inline-flex min-h-11 items-center gap-1 rounded-md bg-action px-3 text-xs font-semibold text-on-action hover:bg-action-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy"
               >
                 {pickLocale(step.cta.label, locale)}
               </Link>
@@ -234,7 +234,7 @@ export function FeatureSpotlight({
               <button
                 type="button"
                 onClick={handleNext}
-                className="inline-flex items-center gap-1 rounded-md bg-brand-600 px-3 py-1 text-xs font-semibold text-white hover:bg-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                className="inline-flex min-h-11 items-center gap-1 rounded-md bg-action px-3 text-xs font-semibold text-on-action hover:bg-action-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy"
               >
                 {isLast ? copy.finish : copy.next}
                 {!isLast ? <ChevronRight className="h-3.5 w-3.5" aria-hidden /> : null}

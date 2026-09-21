@@ -233,7 +233,7 @@ export function CheckoutReviewCard({ order, strings, userId, signedOutHref, back
       </section>
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Link href={backHref} className="text-sm font-medium text-secondary underline-offset-4 hover:text-primary hover:underline" data-testid="checkout-review-back">
+        <Link href={backHref} className="inline-flex min-h-11 items-center rounded-md text-sm font-medium text-secondary underline-offset-4 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy" data-testid="checkout-review-back">
           ← {backLabel}
         </Link>
 

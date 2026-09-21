@@ -513,7 +513,7 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
         {primary(true)}
         {takeawayBlock}
         <details className="text-xs">
-          <summary className="cursor-pointer text-secondary">{t.howBuilt}</summary>
+          <summary className="min-h-11 cursor-pointer py-3 leading-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy text-secondary">{t.howBuilt}</summary>
           <div className="mt-2">
             <TbrScoreLedger chapter={ch} locale={locale} verificationLevel={verificationLevel} citations={citations} />
           </div>
@@ -578,7 +578,7 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
       </div>
       {takeawayBlock}
       <details className="text-xs">
-        <summary className="cursor-pointer text-secondary">{t.howBuilt}</summary>
+        <summary className="min-h-11 cursor-pointer py-3 leading-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy text-secondary">{t.howBuilt}</summary>
         <div className="mt-2">
           <TbrScoreLedger chapter={ch} locale={locale} verificationLevel={verificationLevel} citations={citations} />
         </div>

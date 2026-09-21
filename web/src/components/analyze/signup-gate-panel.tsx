@@ -192,7 +192,7 @@ export function SignupGatePanel({
           <button
             type="button"
             onClick={onEdit}
-            className="text-sm font-medium text-action underline-offset-2 hover:underline sm:ml-1"
+            className="inline-flex min-h-11 items-center rounded-md text-sm font-medium text-action underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy sm:ml-1"
             data-testid="analyze-signup-gate-edit"
           >
             Change what I entered

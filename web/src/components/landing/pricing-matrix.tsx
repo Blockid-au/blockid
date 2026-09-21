@@ -374,7 +374,7 @@ function ToggleButton({
       aria-checked={active}
       onClick={onClick}
       className={[
-        "flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
+        "flex min-h-11 items-center gap-2 rounded-full px-4 text-sm font-medium transition-all duration-200 ease-out focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface",
         active
           ? "bg-action text-on-action shadow-sm"
           : "text-secondary hover:text-primary",
@@ -384,7 +384,7 @@ function ToggleButton({
       {badge && (
         <span
           className={[
-            "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+            "rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide",
             active
               ? "bg-surface text-action"
               : "bg-action/10 text-action",

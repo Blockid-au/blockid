@@ -164,7 +164,7 @@ export function Chip({ kind, children, href, title, className, testId }: { kind:
   const cls = cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs font-medium tracking-wide", CHIP_TONE[kind], className);
   if (href) {
     return (
-      <a href={href} title={title} aria-label={title} data-tbr-chip={kind} data-testid={testId} className={cn(cls, "underline-offset-2 hover:underline")}>
+      <a href={href} title={title} aria-label={title} data-tbr-chip={kind} data-testid={testId} className={cn(cls, "relative underline-offset-2 hover:underline before:absolute before:inset-x-0 before:top-1/2 before:h-11 before:-translate-y-1/2 before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy")}>
         {children}
       </a>
     );

@@ -158,7 +158,7 @@ export function DimBarChart({ chart, caption, legend, showBand, locale, classNam
       </figcaption>
       {rows.length > 0 ? (
         <details className="mt-2 text-xs">
-          <summary className="cursor-pointer text-action underline-offset-2 hover:underline">{t.tableView}</summary>
+          <summary className="min-h-11 cursor-pointer py-3 leading-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy text-action underline-offset-2 hover:underline">{t.tableView}</summary>
           <div className={cn("mt-2", TABLE_SCROLL_CLASS)}>
             <table className="w-full min-w-[420px] text-xs">
               <caption className="sr-only">{chart.a11y.title}</caption>
