@@ -21,7 +21,7 @@ import { isNeverStarted, sweepPendingFullReports, type FullReportRow } from "./s
 export { isNeverStarted };
 
 /** G28-C: a swept row runs the v2 pipeline (new rows) or the S32 job (pre-G28 rows) — dispatch.ts decides by shape. */
-export type SweepRunOutcome = JobOutcome["outcome"] | ReportV2JobOutcome["outcome"];
+export type SweepRunOutcome = JobOutcome["outcome"] | ReportV2JobOutcome["outcome"] | "started";
 
 export interface SweepSummary {
   ok: boolean;
@@ -64,7 +64,7 @@ export function defaultSweepDeps(): SweepDeps {
 }
 
 export async function sweepFirstAnalysisReports(
-  opts: { dryRun?: boolean; limit?: number } = {},
+  opts: { dryRun?: boolean; limit?: number; awaitRuns?: boolean } = {},
   deps: SweepDeps = defaultSweepDeps(),
 ): Promise<SweepSummary> {
   const dryRun = Boolean(opts.dryRun);
@@ -110,13 +110,27 @@ export async function sweepFirstAnalysisReports(
         summary.emailed.push({ id: row.id, outcome: "send_failed" });
       }
     }
-    for (const row of runnable) {
-      try {
-        const out = await deps.run(row);
-        summary.ran.push({ id: row.id, outcome: out.outcome });
-      } catch (err) {
-        console.error("[first-analysis:sweep] run threw —", err, { analysisId: row.id });
-        summary.ran.push({ id: row.id, outcome: "failed" });
+    // G28-C: a v2 run takes up to ~8 min (the ReportV2 pipeline) — far past
+    // the cron route's 290 s clamp. The sweep starts the runs and returns;
+    // each job claims its row (state machine) so the next tick never
+    // double-runs it, and progress / delivery land server-side. `awaitRuns`
+    // keeps the old synchronous behaviour for tests and one-off scripts.
+    if (opts.awaitRuns) {
+      for (const row of runnable) {
+        try {
+          const out = await deps.run(row);
+          summary.ran.push({ id: row.id, outcome: out.outcome });
+        } catch (err) {
+          console.error("[first-analysis:sweep] run threw —", err, { analysisId: row.id });
+          summary.ran.push({ id: row.id, outcome: "failed" });
+        }
+      }
+    } else {
+      for (const row of runnable) {
+        void deps.run(row).catch((err: unknown) => {
+          console.error("[first-analysis:sweep] run threw —", err, { analysisId: row.id });
+        });
+        summary.ran.push({ id: row.id, outcome: "started" });
       }
     }
     return summary;
