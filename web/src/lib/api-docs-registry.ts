@@ -735,14 +735,18 @@ console.log(data.legalName, data.verificationLevel, data.trustScore);`,
 // key / hour ceiling; every read writes an `institutional.read` audit row;
 // responses never carry founder PII (company name + ids + scores only);
 // ETag + `Cache-Control: private, max-age=60`; one error envelope
-// `{ ok:false, error, message }`. Prose: docs/api/institutional.md.
+// `{ ok:false, error, message }`. Prose: docs/api/institutional.md, rendered
+// in-app at INSTITUTIONAL_DOCS_PATH (G22-C) — link there, not to GitHub.
+
+/** The in-app contract page (`app/(marketing)/docs/api/institutional`); /developers/api links here. */
+export const INSTITUTIONAL_DOCS_PATH = "/docs/api/institutional";
 
 const INSTITUTIONAL_AUTH: ApiAuthDoc = {
   scheme: "bearer",
   header: "Authorization: Bearer bk_live_…",
   scope: "evaluations:read",
   planGate: "api.access (Fund, Program and Index API plans) — re-checked on every call",
-  note: "Create a key under Workspace → Settings → Enterprise → API keys with the `evaluations:read` scope (evaluator accounts only). Read-only: no institutional endpoint accepts a write. 600 reads per key per hour on top of the per-minute budget.",
+  note: `Create a key under Workspace → Settings → Enterprise → API keys with the \`evaluations:read\` scope (evaluator accounts only). Read-only: no institutional endpoint accepts a write. 600 reads per key per hour on top of the per-minute budget. Full contract: ${INSTITUTIONAL_DOCS_PATH}.`,
 };
 
 const INSTITUTIONAL_ERRORS: ApiErrorCodeDoc[] = [

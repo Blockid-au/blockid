@@ -40,6 +40,7 @@
 import { t, type Messages } from "@/lib/i18n/t";
 import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL } from "@/lib/site/legal-entity";
 import { type PilotSkuId } from "@/lib/pricing/pilot-skus";
+import { pilotUiStrings } from "@/lib/pricing/pilot-strings";
 import { type PilotOfferCopy, type PilotOfferTier } from "@/components/marketing/PilotOffer";
 import {
   EVALUATOR_PRICING_HREF,
@@ -282,6 +283,7 @@ export function buildAcceleratorProps(
       copy: acceleratorPilotCopy(m),
       configured,
       returnPath: path,
+      strings: pilotUiStrings(m, lang),
     },
     faqs: faqs(m, "accelerator", 3),
     trustBadges: TRUST_BADGES,

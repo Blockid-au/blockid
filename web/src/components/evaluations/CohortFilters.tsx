@@ -34,7 +34,7 @@ export interface CohortFiltersProps {
 
 const chip = (active: boolean) =>
   cn(
-    "inline-flex min-h-9 cursor-pointer items-center gap-1 rounded-full border px-3 text-xs font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action",
+    "inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-full border px-3 text-xs font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action",
     active ? "border-brand-600 bg-brand-600 text-white dark:border-brand-400 dark:bg-brand-500" : "border-line bg-surface text-secondary hover:bg-surface-hover",
   );
 
@@ -116,7 +116,7 @@ export function CohortFilters({ filters, onChange, sectors, stages, shown, total
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Search company or sector"
-            className="h-10 w-full rounded-xl border border-line bg-surface pl-8 pr-3 text-sm text-primary placeholder:text-muted sm:w-56"
+            className="h-11 w-full rounded-xl border border-line bg-surface pl-8 pr-3 text-sm text-primary placeholder:text-muted sm:w-56"
             data-testid="filter-q"
           />
         </label>
@@ -135,7 +135,7 @@ export function CohortFilters({ filters, onChange, sectors, stages, shown, total
           <select
             value={filters.sector?.[0] ?? ""}
             onChange={(e) => onChange({ ...filters, sector: e.target.value ? [e.target.value] : undefined })}
-            className="h-9 max-w-[11rem] rounded-lg border border-line bg-surface px-2 text-sm text-primary"
+            className="h-11 max-w-[11rem] rounded-lg border border-line bg-surface px-2 text-sm text-primary"
             data-testid="filter-sector"
           >
             <option value="">All</option>
@@ -156,7 +156,7 @@ export function CohortFilters({ filters, onChange, sectors, stages, shown, total
           <select
             value={filters.ver ?? ""}
             onChange={(e) => onChange({ ...filters, ver: e.target.value === "" ? undefined : Number(e.target.value) })}
-            className="h-9 rounded-lg border border-line bg-surface px-2 text-sm text-primary"
+            className="h-11 rounded-lg border border-line bg-surface px-2 text-sm text-primary"
             data-testid="filter-ver"
           >
             <option value="">Any</option>
@@ -199,7 +199,7 @@ export function CohortFilters({ filters, onChange, sectors, stages, shown, total
           {shown} of {total} startup{total === 1 ? "" : "s"}
         </span>
         {count > 0 ? (
-          <button type="button" onClick={() => onChange({})} className="inline-flex min-h-9 items-center gap-1 rounded-full border border-line px-3 text-xs font-medium text-secondary hover:bg-surface-hover" data-testid="filter-clear">
+          <button type="button" onClick={() => onChange({})} className="inline-flex min-h-11 items-center gap-1 rounded-full border border-line px-3 text-xs font-medium text-secondary hover:bg-surface-hover" data-testid="filter-clear">
             <X className="h-3.5 w-3.5" aria-hidden="true" /> Clear ({count})
           </button>
         ) : null}

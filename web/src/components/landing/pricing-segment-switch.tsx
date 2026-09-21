@@ -43,6 +43,7 @@ import { trackEvent } from "@/lib/analytics";
 import { PricingMatrix } from "@/components/landing/pricing-matrix";
 import { PilotRung } from "@/components/marketing/PilotOffer";
 import type { PilotSkuId } from "@/lib/pricing/pilot-skus";
+import type { PilotUiStrings } from "@/lib/pricing/pilot-strings";
 import {
   PRICING_TABS,
   TAB_TO_SEGMENT,
@@ -74,8 +75,13 @@ export interface PricingSegmentSwitchProps {
    * Programs tab (ahead of Intake link / Cohort 25 / Cohort 100). The
    * server page passes `isPilotSkuConfigured()` per SKU; omitted → the rung
    * is not rendered (the /vi page passes its own copy).
+   *
+   * G22-C: `pilotStrings` (`pilotUiStrings(m, locale)` on the server) carries
+   * the rung's control strings in the page's language; without it the rung
+   * is not rendered either — no English control on a Vietnamese page.
    */
   pilotConfigured?: Readonly<Record<PilotSkuId, boolean>>;
+  pilotStrings?: PilotUiStrings;
   pilotCopy?: { title: string; sub: string };
 }
 
@@ -121,6 +127,7 @@ export function PricingSegmentSwitch({
   annualAvailable,
   purchasable,
   pilotConfigured,
+  pilotStrings,
   pilotCopy,
 }: PricingSegmentSwitchProps) {
   // The URL is an external store: "no tab" while hydrating (matches the
@@ -242,10 +249,11 @@ export function PricingSegmentSwitch({
         id={`pricing-panel-${tab}`}
         aria-labelledby={`pricing-tab-${tab}`}
       >
-        {tab === "programs" && pilotConfigured ? (
+        {tab === "programs" && pilotConfigured && pilotStrings ? (
           <PilotRung
             configured={pilotConfigured}
-            returnPath="/pricing?segment=programs"
+            strings={pilotStrings}
+            returnPath={pilotStrings.locale === "vi" ? "/vi/pricing?segment=programs" : "/pricing?segment=programs"}
             title={(pilotCopy ?? DEFAULT_PILOT_COPY).title}
             sub={(pilotCopy ?? DEFAULT_PILOT_COPY).sub}
           />

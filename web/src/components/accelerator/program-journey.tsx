@@ -151,7 +151,7 @@ function BatchPicker({ view, stage }: { view: ProgramJourneyView; stage: Program
       {view.batches.slice(0, 5).map((b, i) => (
         <span key={b.id}>
           {i > 0 ? <span className="text-tertiary"> · </span> : null}
-          <Link href={stageHref(stage, b.id)} className={b.id === view.batch?.id ? "font-semibold text-primary underline" : "text-action hover:underline"}>
+          <Link href={stageHref(stage, b.id)} className={`inline-flex min-h-11 items-center rounded-sm ${b.id === view.batch?.id ? "font-semibold text-primary underline" : "text-action hover:underline"}`}>
             {b.name}
           </Link>
         </span>

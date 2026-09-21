@@ -69,7 +69,7 @@ export function CohortSnapshotActions({ batchId, lastTakenAt, lastN, count }: Co
         type="button"
         onClick={() => void run("manual")}
         disabled={busy != null}
-        className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-surface-300 bg-white px-2.5 py-1 font-medium text-ink-700 hover:bg-surface-50 disabled:opacity-50"
+        className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-surface-300 bg-surface px-2.5 py-1 font-medium text-ink-700 hover:bg-surface-hover disabled:opacity-50"
         data-testid="cohort-snapshot-now"
       >
         {busy === "manual" ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <Camera className="h-3.5 w-3.5" aria-hidden="true" />}
@@ -80,7 +80,7 @@ export function CohortSnapshotActions({ batchId, lastTakenAt, lastN, count }: Co
         onClick={() => void run("rescore")}
         disabled={busy != null}
         title="Re-queue startups whose last score is older than 30 days, then snapshot"
-        className="inline-flex min-h-8 items-center gap-1 rounded-lg border border-surface-300 bg-white px-2.5 py-1 font-medium text-ink-700 hover:bg-surface-50 disabled:opacity-50"
+        className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-surface-300 bg-surface px-2.5 py-1 font-medium text-ink-700 hover:bg-surface-hover disabled:opacity-50"
         data-testid="cohort-rescore"
       >
         {busy === "rescore" ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : <RefreshCw className="h-3.5 w-3.5" aria-hidden="true" />}

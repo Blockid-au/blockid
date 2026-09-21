@@ -204,7 +204,7 @@ export default async function ViHomePage() {
         </Section>
 
         {/* Trust band — same slot as the English home (G21 P0-A). */}
-        <TrustBand />
+        <TrustBand locale="vi" />
 
         <Section id="notice" ariaLabel="Vietnamese founder notice" spacing="sm" align="center">
           <p className="mx-auto max-w-2xl text-center text-sm text-secondary">{t(m, "vi.hero.notice")}</p>

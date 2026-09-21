@@ -56,18 +56,18 @@ export default async function RetentionSettingsPage() {
           </p>
         </div>
 
-        <div className="bg-white border border-surface-200 shadow-sm rounded-2xl p-6 mb-6">
+        <div className="bg-surface border border-surface-200 shadow-sm rounded-2xl p-6 mb-6">
           <RetentionForm initialRetentionDays={settings.retentionDays} initialAuditExportEnabled={settings.auditExportEnabled} available={settings.available} />
         </div>
 
-        <section className="rounded-2xl border border-surface-200 bg-surface-50 p-6 text-sm text-ink-700" aria-labelledby="retention-what">
+        <section className="rounded-2xl border border-surface-200 bg-surface-sunken p-6 text-sm text-ink-700" aria-labelledby="retention-what">
           <h2 id="retention-what" className="text-sm font-semibold text-ink-800">
             What the window applies to
           </h2>
           <ul className="mt-3 list-disc space-y-1.5 pl-5">
             {ORG_RETENTION_TARGETS.map((t) => (
               <li key={t.table}>
-                <code className="rounded bg-white px-1 py-0.5 text-xs">{t.table}</code> — {TARGET_COPY[t.table]}
+                <code className="rounded bg-surface px-1 py-0.5 text-xs">{t.table}</code> — {TARGET_COPY[t.table]}
               </li>
             ))}
           </ul>

@@ -255,7 +255,7 @@ export function MethodologyPage(p: MethodologyProps) {
       </Section>
 
       {/* G21 P0-A — who stands behind the score, above the close. */}
-      <TrustBand />
+      <TrustBand locale={p.locale} />
 
       <CtaBand title={p.cta.title} primary={p.cta.primary} secondary={p.cta.secondary} />
     </MarketingShell>

@@ -17,6 +17,8 @@ import { StickyCta } from "@/components/sales/sticky-cta";
 import { PricingFeatureNotice } from "@/components/landing/pricing-feature-notice";
 import { GST_POLICY_LINE } from "@/lib/plans-v2";
 import { pilotSkusConfigured } from "../solutions/pilot-configured";
+import { getMessages } from "@/lib/i18n/t";
+import { pilotUiStrings } from "@/lib/pricing/pilot-strings";
 
 // S31-D: static + ISR (300 s, the edge TTL in
 // lib/security/public-cacheable-routes.ts). The catalogue is code
@@ -109,7 +111,7 @@ const FAQ_JSONLD = [
 export default async function PricingPage() {
   // Annual toggle honesty (2026-09-16 audit): only rungs with a yearly
   // Stripe Price render a per-year figure + carry `interval=annual`.
-  const [annualAvailable, purchasable] = await Promise.all([annualAvailablePlanIds(), purchasablePlanIds()]);
+  const [annualAvailable, purchasable, messages] = await Promise.all([annualAvailablePlanIds(), purchasablePlanIds(), getMessages("en")]);
   // Founding-50 promo sunset 2026-09-01 (Phase 3b) — the urgency banner
   // that used to live here linked to the (now deleted) /founding-50 route
   // and has been removed outright. `getFoundingPromoState()` still exists
@@ -179,7 +181,7 @@ export default async function PricingPage() {
         {/* G21 P0-C: the Programs tab leads with the paid Cohort Validation
             Pilot rung (one-off, from PILOT_SKUS); the env-var check runs here
             on the server so an unminted price renders a contact link. */}
-        <PricingSegmentSwitch annualAvailable={annualAvailable} purchasable={purchasable} pilotConfigured={pilotSkusConfigured()} />
+        <PricingSegmentSwitch annualAvailable={annualAvailable} purchasable={purchasable} pilotConfigured={pilotSkusConfigured()} pilotStrings={pilotUiStrings(messages, "en")} />
         {/* G11 §4g anchor line (T0249): prices the Money Finder scan against
             what a grants consultant charges. Sits under the ladder, outside
             <PricingMatrix /> so the matrix component stays untouched. */}

@@ -1,7 +1,8 @@
 /**
  * 31 — Marketing surface lane (G17-P2B, 2026-09-19):
  *
- *   • ANONYMOUS `/`, `/product`, `/samples`, `/solutions/investor`, `/pricing`
+ *   • ANONYMOUS `/`, `/product`, `/samples`, `/solutions/investor`, `/pricing`,
+ *     `/vi/pilot`, `/docs/api/institutional` (G22-C)
  *     answer 200 with exactly one <h1> each (the template contract, D5);
  *   • `/sitemap.xml` parses and a random 10-URL sample answers 200 on the
  *     first hop (the sitemap must never list a redirect or a 404);
@@ -28,7 +29,8 @@ import {
   toSiteUrl,
 } from "../../scripts/lib/link-check-core.mjs";
 
-const PAGES = ["/", "/product", "/samples", "/solutions/investor", "/pricing"] as const;
+// G22-C: the VI pilot mirror + the in-app Institutional API contract join the sweep.
+const PAGES = ["/", "/product", "/samples", "/solutions/investor", "/pricing", "/vi/pilot", "/docs/api/institutional"] as const;
 const SAMPLE = 10;
 const FIRST_N_LINKS = 50;
 

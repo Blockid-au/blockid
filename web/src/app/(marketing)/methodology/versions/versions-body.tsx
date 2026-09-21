@@ -58,6 +58,7 @@ export function VersionsBody({ locale }: { locale: "en" | "vi" }) {
   const rows = [...SVI_VERSION_HISTORY].reverse();
   return (
     <MarketingShell>
+      <div lang={locale} data-versions-locale={locale}>
       <PageHero eyebrow={t.eyebrow} title={t.title} sub={t.sub} align="start" />
 
       <Section id="current" eyebrow={t.currentEyebrow} title={t.current(SVI_VERSION)} tone="sunken">
@@ -68,9 +69,9 @@ export function VersionsBody({ locale }: { locale: "en" | "vi" }) {
 
       <Section id="history" eyebrow={t.tableEyebrow} title={t.tableTitle}>
         <div className="mt-2 overflow-x-auto rounded-xl border border-line-subtle bg-surface">
-          <table className="w-full text-sm" data-testid="versions-table">
+          <table className="w-full text-sm" data-testid="versions-table" lang="en">
             <thead>
-              <tr className="border-b border-line-subtle text-left text-[11px] uppercase tracking-wide text-tertiary">
+              <tr className="border-b border-line-subtle text-left text-xs uppercase tracking-wide text-tertiary">
                 {t.columns.map((c) => (
                   <th key={c} scope="col" className="px-3 py-2">
                     {c}
@@ -84,7 +85,7 @@ export function VersionsBody({ locale }: { locale: "en" | "vi" }) {
                   <td className="whitespace-nowrap px-3 py-2 font-mono font-medium text-primary">
                     {r.version}
                     {r.version === SVI_VERSION ? (
-                      <span className="ml-2 rounded-full border border-line-subtle bg-surface-sunken px-2 py-0.5 font-sans text-[11px] font-medium text-secondary">{t.currentTag}</span>
+                      <span className="ml-2 rounded-full border border-line-subtle bg-surface-sunken px-2 py-0.5 font-sans text-xs font-medium text-secondary">{t.currentTag}</span>
                     ) : null}
                   </td>
                   <td className="whitespace-nowrap px-3 py-2 tabular-nums text-tertiary">{r.date}</td>
@@ -119,6 +120,7 @@ export function VersionsBody({ locale }: { locale: "en" | "vi" }) {
       </Section>
 
       <CtaBand title={t.ctaTitle} primary={{ href: `${prefix}/methodology/governance`, label: t.governance }} secondary={{ href: `${prefix}/methodology`, label: t.methodology }} />
+      </div>
     </MarketingShell>
   );
 }

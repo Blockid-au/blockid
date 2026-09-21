@@ -304,3 +304,38 @@ describe("digest.why_moved.* catalogue parity (en ⇄ vi) — G14-S36 F-6", () =
     expect(EN["digest.why_moved.sentence"]).toContain("{level}");
   });
 });
+
+// G22-C — the paid Cohort Validation Pilot controls (PilotRung / PilotOffer /
+// PilotBuyButton via `pilotUiStrings()`), the /pilot + /vi/pilot page copy
+// (`buildPilotPageCopy()`) and the pilot meta pair read these keys for both
+// locales; a missing VI key would render an English control on /vi/pilot.
+describe("pilot.* + meta.pilot.* catalogue parity (en ⇄ vi) — G22-C", () => {
+  const tokens = (s: string) => (s.match(/\{[a-zA-Z0-9]+\}/g) ?? []).sort();
+
+  it.each(["pilot.", "meta.pilot."])("every %s key exists in both catalogues, none empty, and the {tokens} match", (prefix) => {
+    const missingInVi = enKeys(prefix).filter((k) => !(k in VI));
+    const missingInEn = viKeys(prefix).filter((k) => !(k in EN));
+    expect(missingInVi, "missing in vi.json").toEqual([]);
+    expect(missingInEn, "missing in en.json").toEqual([]);
+    expect(enKeys(prefix).length).toBeGreaterThan(0);
+    for (const k of enKeys(prefix)) {
+      expect(EN[k]!.trim().length, `en ${k}`).toBeGreaterThan(0);
+      expect(VI[k]!.trim().length, `vi ${k}`).toBeGreaterThan(0);
+      expect(tokens(VI[k]!), k).toEqual(tokens(EN[k]!));
+      // The VI line is a translation, never the English line copied across.
+      if (!/^\{[a-zA-Z0-9]+\}$/.test(EN[k]!)) expect(VI[k], `${k} is untranslated`).not.toBe(EN[k]);
+    }
+  });
+
+  it("amounts stay tokens ({price} / {priceLong} / {price25}) — no A$ literal in either language; the meta title fits the 60-character budget", () => {
+    for (const k of [...enKeys("pilot."), ...enKeys("meta.pilot.")]) {
+      expect(EN[k], `en ${k}`).not.toMatch(/A\$\d/);
+      expect(VI[k], `vi ${k}`).not.toMatch(/A\$\d/);
+    }
+    expect(EN["pilot.buy.label"]).toContain("{price}");
+    expect(VI["pilot.buy.label"]).toContain("{price}");
+    expect(EN["meta.pilot.description"]).toContain("{price25}");
+    expect(`${EN["meta.pilot.title"]} | BlockID.au`.length).toBeLessThanOrEqual(60);
+    expect(`${VI["meta.pilot.title"]} | BlockID.au`.length).toBeLessThanOrEqual(60);
+  });
+});

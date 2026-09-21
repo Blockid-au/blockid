@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ArrowRight, Building2, Code2, Gauge, Terminal } from "lucide-react";
 import { NavV2 } from "@/components/landing/nav-v2";
 import { Footer } from "@/components/marketing/footer";
-import { API_ENDPOINTS, FAKE_BEARER, INSTITUTIONAL_ENDPOINTS, type ApiEndpointDoc } from "@/lib/api-docs-registry";
+import { API_ENDPOINTS, FAKE_BEARER, INSTITUTIONAL_DOCS_PATH, INSTITUTIONAL_ENDPOINTS, type ApiEndpointDoc } from "@/lib/api-docs-registry";
 import { cn } from "@/lib/utils";
 
 const TITLE = "Public API Reference — BlockID Developer Platform";
@@ -173,7 +173,7 @@ export default function ApiIndexPage() {
             </div>
             <p className="mt-2 text-sm text-ink-600 leading-relaxed">
               For accelerators, programs and funds that run BlockID Cohorts and want the numbers in their own systems:{" "}
-              {INSTITUTIONAL_ENDPOINTS.length} read-only endpoints under <code className="font-mono text-brand-700">/api/v1/institutional/*</code> — cohorts, cohort items (SVI, evidence confidence, verification, gaps, decision), snapshots, one company&apos;s Assessment Card, the published benchmark segments (always with n) and the methodology facts to pin. Same <code className="font-mono">bk_live_</code> key as the Evaluator API with the <code className="font-mono">evaluations:read</code> scope; Fund, Program and Index API plans; 600 reads per key per hour on top of the per-minute budget. Every read is written to the audit log with the key&apos;s id; no response carries a founder&apos;s e-mail or a private note. Full contract: <a href="https://github.com/Blockid-au/blockid/blob/master/docs/api/institutional.md" className="text-brand-600 hover:underline" rel="noopener">docs/api/institutional.md</a>.
+              {INSTITUTIONAL_ENDPOINTS.length} read-only endpoints under <code className="font-mono text-brand-700">/api/v1/institutional/*</code> — cohorts, cohort items (SVI, evidence confidence, verification, gaps, decision), snapshots, one company&apos;s Assessment Card, the published benchmark segments (always with n) and the methodology facts to pin. Same <code className="font-mono">bk_live_</code> key as the Evaluator API with the <code className="font-mono">evaluations:read</code> scope; Fund, Program and Index API plans; 600 reads per key per hour on top of the per-minute budget. Every read is written to the audit log with the key&apos;s id; no response carries a founder&apos;s e-mail or a private note. Full contract: <Link href={INSTITUTIONAL_DOCS_PATH} className="text-brand-600 hover:underline" data-testid="institutional-docs-link">/docs/api/institutional</Link>.
             </p>
             <ul className="mt-4 grid gap-1.5 text-sm sm:grid-cols-2">
               {INSTITUTIONAL_ENDPOINTS.map((ep) => (

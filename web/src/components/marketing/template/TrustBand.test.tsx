@@ -7,15 +7,16 @@
 
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 import { DISCLAIMER_SURFACES } from "@/lib/legal/surfaces";
+import viMessages from "@/lib/i18n/messages/vi.json";
 import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL, LEGAL_ENTITY_ACN_LABEL, trustRows } from "@/lib/site/legal-entity";
 import { SVI_VERSION } from "@/lib/svi-analysis";
 import { DATA_PRINCIPLE_SENTENCE } from "@/lib/valuation-certificate/types";
 import { FOCUS_RING } from "./primitives";
-import { TRUST_BAND_ID, TrustBand, scoreDisclaimerText, trustBullets } from "./TrustBand";
+import { DATA_PRINCIPLE_SENTENCE_VI, TRUST_BAND_COPY, TRUST_BAND_ID, TrustBand, scoreDisclaimerText, trustBullets } from "./TrustBand";
 import * as templateIndex from "./index";
 
 const html = renderToStaticMarkup(<TrustBand />);
@@ -93,5 +94,80 @@ describe("<TrustBand />", () => {
     const custom = renderToStaticMarkup(<TrustBand id="who" sviVersion="9.9.9" />);
     expect(custom).toMatch(/<section[^>]*id="who"[^>]*aria-labelledby="who-heading"/);
     expect(custom).toContain("Startup Value Index v9.9.9");
+  });
+});
+
+// G22-C — `locale="vi"`: the VI copy table (eyebrow, title, dt labels, four
+// bullets, link labels), the same row VALUES and legal links as English, the
+// VI disclaimer lifted from the registered surface, the approved VI data
+// sentence, and `lang="vi"` on the section.
+describe("<TrustBand locale=\"vi\" />", () => {
+  const vi = renderToStaticMarkup(<TrustBand locale="vi" />);
+  const VI = viMessages as Record<string, string>;
+
+  it("defaults to EN: `data-locale=\"en\"`, `lang=\"en\"`, English eyebrow + title", () => {
+    expect(html).toMatch(/<section[^>]*data-locale="en"[^>]*lang="en"/);
+    expect(html).toContain(TRUST_BAND_COPY.en.eyebrow);
+    expect(html).toContain(TRUST_BAND_COPY.en.title);
+    expect(html).not.toContain(TRUST_BAND_COPY.vi.eyebrow);
+  });
+
+  it("renders the VI eyebrow, title, four dt labels and four bullet titles — and none of the English ones", () => {
+    expect(vi).toMatch(/<section[^>]*data-locale="vi"[^>]*lang="vi"/);
+    expect(vi).toContain(TRUST_BAND_COPY.vi.eyebrow);
+    expect(vi).toContain(TRUST_BAND_COPY.vi.title);
+    for (const label of TRUST_BAND_COPY.vi.rowLabels) expect(vi, label).toContain(`<dt class="text-xs font-semibold uppercase tracking-[0.14em] text-muted">${label}</dt>`);
+    const bullets = trustBullets("vi");
+    expect(bullets).toHaveLength(4);
+    for (const b of bullets) expect(vi, b.title).toContain(b.title);
+    for (const en of ["Operating entity", "Methodology version", "Privacy and evidence controls", "Score disclaimer", "Append-only audit trail", "Founder consent and data ownership", "Privacy policy", "All disclaimers"]) {
+      expect(vi, en).not.toContain(`>${en}<`);
+    }
+  });
+
+  it("the row VALUES are identical to English (entity, ACN / ABN, version, support e-mail)", () => {
+    for (const row of trustRows(SVI_VERSION)) expect(vi, row.label).toContain(row.value);
+    expect(vi).toContain(LEGAL_ENTITY.operator);
+    expect(vi).toContain(LEGAL_ENTITY_ACN_LABEL);
+    expect(vi).toContain(LEGAL_ENTITY_ABN_LABEL);
+    expect(vi).toContain(LEGAL_ENTITY.supportEmail);
+  });
+
+  it("the VI disclaimer is lifted from general_all.body_md_vi (no [TODO-VI] marker, no new wording) and the VI data sentence is solutions.principle.data verbatim", () => {
+    const disclaimer = scoreDisclaimerText("vi");
+    expect(disclaimer).toMatch(/thông tin chung/i);
+    expect(disclaimer).not.toContain("TODO-VI");
+    const surface = (DISCLAIMER_SURFACES.general_all.body_md_vi ?? "").replace(/\[TODO-VI\]\s*/g, "").replace(/\*\*/g, "");
+    for (const sentence of disclaimer.split(/(?<=\.)\s+/)) expect(surface).toContain(sentence);
+    expect(trustBullets("vi")[1]!.body).toBe(disclaimer);
+    expect(vi).toContain(disclaimer);
+    expect(DATA_PRINCIPLE_SENTENCE_VI).toBe(VI["solutions.principle.data"]);
+    expect(trustBullets("vi")[3]!.body).toBe(DATA_PRINCIPLE_SENTENCE_VI);
+    expect(vi).toContain(DATA_PRINCIPLE_SENTENCE_VI.replace(/'/g, "&#x27;"));
+    expect(vi).not.toContain("TODO-VI");
+  });
+
+  it("links: privacy + disclaimers unchanged, audit → /vi/methodology#audit; every link keeps the focus ring and ≥ 44 px", () => {
+    for (const href of ["/legal/privacy", "/legal/disclaimers", "/vi/methodology#audit"]) {
+      const m = vi.match(new RegExp(`<a\\b[^>]*href="${href.replace(/[/?#]/g, (c) => "\\" + c)}"[^>]*>`));
+      expect(m, href).not.toBeNull();
+      expect(m![0]).toContain("min-h-11");
+      for (const cls of FOCUS_RING.split(" ")) expect(m![0], `${href} ${cls}`).toContain(cls);
+    }
+    expect(vi).not.toContain('href="/methodology#audit"');
+    expect(existsSync(resolve(__dirname, "../../../app/vi/methodology/page.tsx"))).toBe(true);
+    expect(vi).not.toMatch(/#[0-9a-f]{6}\b/i);
+  });
+
+  it("every /vi mirror that mounts the band passes locale=\"vi\" (no English band on a Vietnamese page)", () => {
+    const app = resolve(__dirname, "../../../app");
+    const viHome = readFileSync(resolve(app, "vi/page.tsx"), "utf8");
+    expect(viHome).toContain('<TrustBand locale="vi" />');
+    const shell = readFileSync(resolve(app, "(marketing)/solutions/solutions-shared.tsx"), "utf8");
+    expect(shell).toContain("<TrustBand locale={lang} />");
+    const methodology = readFileSync(resolve(app, "(marketing)/methodology/methodology-page.tsx"), "utf8");
+    expect(methodology).toContain("<TrustBand locale={p.locale} />");
+    const viPilot = readFileSync(resolve(app, "(marketing)/pilot/pilot-page-body.tsx"), "utf8");
+    expect(viPilot).toContain('lang === "vi" ? <TrustBand locale="vi" /> : <TrustBand />');
   });
 });

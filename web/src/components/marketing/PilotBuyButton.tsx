@@ -2,8 +2,8 @@
 
 /**
  * PilotBuyButton — the buy control for the paid BlockID Cohort Validation
- * Pilot (G21 P0-C). Mounted on /solutions/accelerator#pilot, /pilot and the
- * /pricing Programs tab.
+ * Pilot (G21 P0-C). Mounted on /solutions/accelerator#pilot, /pilot, their
+ * /vi mirrors and the /pricing Programs tab.
  *
  * Transparent-pricing rule (founder): the visitor sees the amount, "inc.
  * GST" and what is included BEFORE anything is charged. The first click
@@ -19,6 +19,11 @@
  *   - 409 `sku_unconfigured` → the response's `fallback` (contact page);
  *   - anything else → inline error, button re-enabled.
  *
+ * G22-C: every visible string comes from `strings` (`PilotUiStrings`, built
+ * on the server by `pilotUiStrings(messages, locale)` from the `pilot.*`
+ * catalogue keys) — this file carries no English literal, so the /vi pages
+ * render the same control in Vietnamese by construction.
+ *
  * `resolvePilotCheckoutResponse` is the pure decision so the colocated
  * test can pin every branch without a DOM.
  */
@@ -30,11 +35,11 @@ import { trackEvent } from "@/lib/analytics";
 import { userErrorMessage } from "@/lib/ui/user-error";
 import {
   PILOT_CONTACT_FALLBACK,
-  PILOT_INCLUDES,
   formatPilotPrice,
   formatPilotPriceLong,
   type PilotSkuId,
 } from "@/lib/pricing/pilot-skus";
+import { fillPilotString, type PilotUiStrings } from "@/lib/pricing/pilot-strings";
 import { CTA_CLASS, FOCUS_RING, MOTION } from "@/components/marketing/template/primitives";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +49,8 @@ export interface PilotBuyButtonProps {
   configured: boolean;
   /** Where to come back to after sign-in (the page the button sits on). */
   returnPath: string;
+  /** The localised strings (`pilotUiStrings(m, locale)` on the server). */
+  strings: PilotUiStrings;
   label?: string;
   variant?: "primary" | "secondary";
   ctaId?: string;
@@ -56,28 +63,33 @@ export type PilotCheckoutNext =
   | { kind: "fallback"; href: string }
   | { kind: "error"; message: string };
 
+/** The English fallback for a checkout failure with no message (the strings object overrides it). */
+export const PILOT_CHECKOUT_ERROR_FALLBACK = "Could not start checkout — please try again.";
+
 /** Pure: what the button does with a checkout response. */
 export function resolvePilotCheckoutResponse(
   status: number,
   body: { ok?: boolean; url?: string; error?: string; fallback?: string; reason?: string; message?: string } | null,
   returnPath: string,
+  genericMessage: string = PILOT_CHECKOUT_ERROR_FALLBACK,
 ): PilotCheckoutNext {
   if (status === 401) return { kind: "login", href: `/auth/login?next=${encodeURIComponent(returnPath)}` };
   if (status === 409 || body?.error === "sku_unconfigured") {
     return { kind: "fallback", href: body?.fallback || PILOT_CONTACT_FALLBACK };
   }
   if (body?.url) return { kind: "navigate", href: body.url };
-  return { kind: "error", message: body?.message ?? body?.reason ?? body?.error ?? "Could not start checkout — please try again." };
+  return { kind: "error", message: body?.message ?? body?.reason ?? body?.error ?? genericMessage };
 }
 
-export function PilotBuyButton({ sku, configured, returnPath, label, variant = "primary", ctaId, className }: PilotBuyButtonProps) {
+export function PilotBuyButton({ sku, configured, returnPath, strings, label, variant = "primary", ctaId, className }: PilotBuyButtonProps) {
   const [open, setOpen] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const panelId = React.useId();
   const price = formatPilotPrice(sku);
   const priceLong = formatPilotPriceLong(sku);
-  const text = label ?? `Book the ${price} pilot`;
+  const vars = { price, priceLong };
+  const text = label ?? fillPilotString(strings.buyLabel, vars);
 
   if (!configured) {
     return (
@@ -94,7 +106,7 @@ export function PilotBuyButton({ sku, configured, returnPath, label, variant = "
           <ArrowRight aria-hidden="true" className="h-4 w-4" />
         </Link>
         <p className="text-xs text-muted" data-testid={`pilot-quote-${sku}`}>
-          {priceLong} · quote before you pay · booked through our team, reply within two business days.
+          {fillPilotString(strings.quoteContact, vars)}
         </p>
       </div>
     );
@@ -116,7 +128,7 @@ export function PilotBuyButton({ sku, configured, returnPath, label, variant = "
       } catch {
         body = null;
       }
-      const next = resolvePilotCheckoutResponse(res.status, body, returnPath);
+      const next = resolvePilotCheckoutResponse(res.status, body, returnPath, strings.errorGeneric);
       if (next.kind === "error") {
         setError(next.message);
         setBusy(false);
@@ -125,7 +137,7 @@ export function PilotBuyButton({ sku, configured, returnPath, label, variant = "
       window.location.href = next.href;
       return; // keep `busy` until the navigation completes (no double POST)
     } catch (err) {
-      setError(userErrorMessage(err, "We could not start the checkout. Please try again or contact us."));
+      setError(userErrorMessage(err, strings.errorNetwork));
     }
     setBusy(false);
   }
@@ -147,41 +159,39 @@ export function PilotBuyButton({ sku, configured, returnPath, label, variant = "
         {text}
       </button>
       <p className="text-xs text-muted" data-testid={`pilot-quote-${sku}`}>
-        {priceLong} · one-off · quote before you pay — the amount here is the amount Stripe charges.
+        {fillPilotString(strings.quoteCheckout, vars)}
       </p>
       {open ? (
         <div
           id={panelId}
           role="region"
-          aria-label={`Confirm the ${price} Cohort Validation Pilot`}
+          aria-label={fillPilotString(strings.confirmAria, vars)}
           data-testid={`pilot-confirm-${sku}`}
           className="mt-2 w-full max-w-xl rounded-xl border border-line bg-surface p-5 shadow-2"
         >
           <div className="flex items-start justify-between gap-4">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Before you pay</p>
-              <p className="mt-1 font-display text-lg font-semibold text-primary">{priceLong} · one real intake or existing cohort</p>
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">{strings.confirmEyebrow}</p>
+              <p className="mt-1 font-display text-lg font-semibold text-primary [overflow-wrap:anywhere]">{fillPilotString(strings.confirmTitle, vars)}</p>
             </div>
             <button
               type="button"
               onClick={() => setOpen(false)}
-              aria-label="Close"
-              className={cn("inline-flex h-11 w-11 items-center justify-center rounded-lg text-secondary hover:bg-surface-hover", MOTION, FOCUS_RING)}
+              aria-label={strings.close}
+              className={cn("inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-secondary hover:bg-surface-hover", MOTION, FOCUS_RING)}
             >
               <X aria-hidden="true" className="h-4 w-4" />
             </button>
           </div>
           <ul className="mt-4 grid gap-2 text-sm leading-relaxed text-secondary sm:grid-cols-2">
-            {PILOT_INCLUDES.map((item) => (
+            {strings.includes.map((item) => (
               <li key={item} className="flex items-start gap-2">
                 <span aria-hidden="true" className="mt-2 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-accent-600" />
                 <span>{item}</span>
               </li>
             ))}
           </ul>
-          <p className="mt-4 text-xs text-muted">
-            Secure payment by Stripe. You receive an ATO tax invoice; we set up your intake within two business days.
-          </p>
+          <p className="mt-4 text-xs text-muted">{strings.confirmNote}</p>
           <div className="mt-4 flex flex-wrap gap-3">
             <button
               type="button"
@@ -191,17 +201,17 @@ export function PilotBuyButton({ sku, configured, returnPath, label, variant = "
               className={cn(CTA_CLASS.primary, MOTION, "disabled:cursor-not-allowed disabled:opacity-60")}
             >
               {busy ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <Lock aria-hidden="true" className="h-4 w-4" />}
-              Continue to secure checkout — {price}
+              {fillPilotString(strings.confirmContinue, vars)}
             </button>
             <button type="button" onClick={() => setOpen(false)} className={cn(CTA_CLASS.secondary, MOTION)}>
-              Not now
+              {strings.confirmNotNow}
             </button>
           </div>
           {error ? (
             <p role="alert" className="mt-3 text-sm text-bear">
               {error}{" "}
-              <Link href={PILOT_CONTACT_FALLBACK} className="font-medium underline underline-offset-2">
-                Book through our team instead
+              <Link href={PILOT_CONTACT_FALLBACK} className={cn("rounded-sm font-medium underline underline-offset-2", FOCUS_RING)}>
+                {strings.errorContact}
               </Link>
             </p>
           ) : null}

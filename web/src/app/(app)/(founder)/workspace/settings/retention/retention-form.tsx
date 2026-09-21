@@ -68,12 +68,12 @@ export function RetentionForm({ initialRetentionDays, initialAuditExportEnabled,
         </p>
         <div className="grid gap-2 sm:grid-cols-2">
           {RETENTION_PRESETS.map((p) => (
-            <label key={p.value || "keep"} className="flex items-center gap-2 rounded-lg border border-surface-200 px-3 py-2 text-sm has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50">
+            <label key={p.value || "keep"} className="flex min-h-11 items-center gap-2 rounded-lg border border-surface-200 px-3 py-2 text-sm has-[:checked]:border-action has-[:checked]:bg-action/5">
               <input type="radio" name="retention" value={p.value} checked={choice === p.value} onChange={() => setChoice(p.value)} />
               {p.label}
             </label>
           ))}
-          <label className="flex items-center gap-2 rounded-lg border border-surface-200 px-3 py-2 text-sm has-[:checked]:border-brand-400 has-[:checked]:bg-brand-50">
+          <label className="flex min-h-11 items-center gap-2 rounded-lg border border-surface-200 px-3 py-2 text-sm has-[:checked]:border-action has-[:checked]:bg-action/5">
             <input type="radio" name="retention" value="custom" checked={choice === "custom"} onChange={() => setChoice("custom")} />
             Custom
             <input
@@ -89,13 +89,13 @@ export function RetentionForm({ initialRetentionDays, initialAuditExportEnabled,
               }}
               aria-label="Custom retention in days (30–3650)"
               aria-invalid={customInvalid || undefined}
-              className="ml-auto w-24 rounded border border-surface-200 px-2 py-1 text-right tabular-nums"
+              className="ml-auto min-h-9 w-24 rounded-lg border border-surface-200 bg-surface px-2 text-right tabular-nums text-primary"
               placeholder="days"
             />
           </label>
         </div>
-        {customInvalid ? <p className="text-xs text-red-700">Between 30 and 3650 days.</p> : null}
-        <label className="flex items-start gap-2 text-sm text-ink-700">
+        {customInvalid ? <p className="text-xs text-bear">Between 30 and 3650 days.</p> : null}
+        <label className="flex min-h-11 items-start gap-2 text-sm text-ink-700">
           <input type="checkbox" checked={auditExport} onChange={(e) => setAuditExport(e.target.checked)} className="mt-0.5" />
           <span>
             Allow the audit-log CSV export for this organisation (<a href="/workspace/settings/audit" className="underline">Settings → Audit log</a>). Every export is itself recorded on the audit log.
@@ -103,16 +103,16 @@ export function RetentionForm({ initialRetentionDays, initialAuditExportEnabled,
         </label>
       </fieldset>
       <div className="flex flex-wrap items-center gap-3">
-        <button type="submit" disabled={!available || state.kind === "saving" || customInvalid} className="rounded-md bg-ink-800 px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+        <button type="submit" disabled={!available || state.kind === "saving" || customInvalid} className="inline-flex min-h-11 items-center rounded-lg bg-action px-4 text-sm font-medium text-on-action hover:bg-action-hover disabled:opacity-50">
           {state.kind === "saving" ? "Saving…" : "Save retention settings"}
         </button>
         {state.kind === "saved" ? (
-          <p className="text-sm text-emerald-700" role="status" data-testid="retention-saved">
+          <p className="text-sm text-bull" role="status" data-testid="retention-saved">
             {state.message}
           </p>
         ) : null}
         {state.kind === "error" ? (
-          <p className="text-sm text-red-700" role="alert" data-testid="retention-error">
+          <p className="text-sm text-bear" role="alert" data-testid="retention-error">
             {state.message}
           </p>
         ) : null}
