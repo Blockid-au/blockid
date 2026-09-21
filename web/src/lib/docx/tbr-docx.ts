@@ -50,6 +50,8 @@ import { getTbrS43Strings, getTbrStrings } from "@/lib/i18n/tbr-strings";
 import { DIM_ORDER, type DimensionChapter, type ExecutiveStructured, type ReportV2 } from "@/lib/report-v2/schema";
 import { ensureExecutiveStructured } from "@/lib/report-v2/executive-structure";
 import { proseParagraphs } from "@/lib/report-v2/paragraphs";
+import { buildCitationIndex, citationEntries, createCitationIndex, parseCitations, type CitationIndex, type CitationSegment } from "@/lib/report-v2/citations";
+import { citationStrings } from "@/lib/report-v2/citation-strings";
 import { buildValuationView, CONNECTORS_HREF } from "@/lib/report-v2/valuation-view";
 import { PDF_ENTITY_LINE, PDF_FINANCIAL_PROJECTION_DISCLAIMER, PDF_GENERAL_ADVICE_DISCLAIMER } from "@/lib/pdf/advice-disclaimer";
 import { defaultPreparedWith } from "@/lib/report-v2/prepared-with";
@@ -88,6 +90,42 @@ function fmtDate(iso: string, locale: "en" | "vi"): string {
 
 type Block = Paragraph | Table;
 
+// G24-A: the document's footnote numbering, set once per `buildTbrDocx`
+// right before the block list is assembled (that assembly is synchronous —
+// no await between the assignment and the last `citedRuns` call).
+let cites: CitationIndex = createCitationIndex([]);
+let citeLocale: "en" | "vi" = "en";
+
+type RunOpts = { size?: number; color?: string; bold?: boolean; italics?: boolean };
+
+/**
+ * Text runs for prose that may carry `[ev:<id>]` / `[unevidenced]` markers:
+ * a footnote number as a superscript run (brand colour), an admission as a
+ * muted "(unverified)" run, an unknown id as nothing — the DOCX twin of
+ * `<CitedText>`. Plain text yields one run.
+ */
+function citedRuns(text: string, opts: RunOpts = {}): TextRun[] {
+  const base = { font: FONT, size: opts.size ?? 20, color: opts.color ?? INK, bold: opts.bold, italics: opts.italics };
+  const segs = parseCitations(text, cites);
+  const cs = citationStrings(citeLocale);
+  const out: TextRun[] = [];
+  for (let i = 0; i < segs.length; i++) {
+    const seg = segs[i]!;
+    if (seg.kind === "text") {
+      out.push(new TextRun({ ...base, text: seg.text }));
+      continue;
+    }
+    if (seg.kind === "unevidenced") {
+      out.push(new TextRun({ ...base, text: ` (${cs.unverified})`, color: MUTED, size: Math.max(12, (opts.size ?? 20) - 4), bold: false }));
+      continue;
+    }
+    const group: Array<Extract<CitationSegment, { kind: "cite" }>> = [seg];
+    while (i + 1 < segs.length && segs[i + 1]!.kind === "cite") group.push(segs[++i] as Extract<CitationSegment, { kind: "cite" }>);
+    out.push(new TextRun({ ...base, text: group.map((c) => c.n).join(","), superScript: true, color: BRAND, bold: true }));
+  }
+  return out.length ? out : [new TextRun({ ...base, text: "" })];
+}
+
 function h1(text: string, no?: string): Paragraph {
   return new Paragraph({
     heading: HeadingLevel.HEADING_1,
@@ -107,7 +145,7 @@ function p(text: string, opts: { size?: number; color?: string; bold?: boolean; 
   return new Paragraph({
     spacing: { after: opts.after ?? 80 },
     alignment: opts.align,
-    children: [new TextRun({ text, font: FONT, size: opts.size ?? 20, color: opts.color ?? INK, bold: opts.bold, italics: opts.italics })],
+    children: citedRuns(text, opts),
   });
 }
 
@@ -121,7 +159,7 @@ function kicker(text: string): Paragraph {
 
 function bullets(title: string, items: string[], mark: string): Paragraph[] {
   if (!items.length) return [];
-  return [kicker(title), ...items.map((it) => new Paragraph({ spacing: { after: 40 }, indent: { left: 240 }, children: [new TextRun({ text: `${mark} ${it}`, font: FONT, size: 18, color: INK })] }))];
+  return [kicker(title), ...items.map((it) => new Paragraph({ spacing: { after: 40 }, indent: { left: 240 }, children: citedRuns(`${mark} ${it}`, { size: 18 }) }))];
 }
 
 function pageBreak(): Paragraph {
@@ -344,7 +382,7 @@ function cardTable(items: Array<{ title: string; body: string; dim?: string; lif
       margins: { top: 80, bottom: 80, left: 120, right: 120 },
       children: it
         ? [
-            new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: `${String(index + 1).padStart(2, "0")}  ${it.title}`, font: FONT, size: 20, bold: true, color: INK })] }),
+            new Paragraph({ spacing: { after: 40 }, children: citedRuns(`${String(index + 1).padStart(2, "0")}  ${it.title}`, { size: 20, bold: true }) }),
             p(it.body, { size: 17, color: INK, after: 40 }),
             ...(it.dim || typeof it.lift === "number"
               ? [
@@ -379,12 +417,12 @@ function executive(report: ReportV2, images: TbrDocxImages, locale: "en" | "vi")
     h1("Executive Summary", "1"),
     small(s47.purpose.executive),
     small(`CEO · ${getTbrStrings(locale).v2.s44.evidenceConfidence(Math.round(e.confidence * 100))}`),
-    new Paragraph({ spacing: { before: 120, after: 120 }, children: [new TextRun({ text: x.headline, font: FONT, size: 30, bold: true, color: INK })] }),
+    new Paragraph({ spacing: { before: 120, after: 120 }, children: citedRuns(x.headline, { size: 30, bold: true }) }),
     ...x.summary.map((para) => p(para, { after: 100 })),
   ];
   if (x.keyInsight) {
     out.push(kicker(s47.keyInsight));
-    out.push(new Paragraph({ spacing: { after: 120 }, indent: { left: 240 }, border: { left: { style: BorderStyle.SINGLE, size: 18, color: BRAND, space: 8 } }, children: [new TextRun({ text: x.keyInsight, font: FONT, size: 20, color: INK })] }));
+    out.push(new Paragraph({ spacing: { after: 120 }, indent: { left: 240 }, border: { left: { style: BorderStyle.SINGLE, size: 18, color: BRAND, space: 8 } }, children: citedRuns(x.keyInsight, { size: 20 }) }));
   }
   if (x.reasonsToBack.length) {
     out.push(kicker(s47.whyBack));
@@ -421,12 +459,12 @@ function executive(report: ReportV2, images: TbrDocxImages, locale: "en" | "vi")
       ],
     }),
   );
-  out.push(new Paragraph({ spacing: { after: 120 }, indent: { left: 240 }, children: [new TextRun({ text: `${s47.condition}: ${x.verdict.condition ?? s47.noCondition}`, font: FONT, size: 18, color: INK })] }));
+  out.push(new Paragraph({ spacing: { after: 120 }, indent: { left: 240 }, children: citedRuns(`${s47.condition}: ${x.verdict.condition ?? s47.noCondition}`, { size: 18 }) }));
   if (x.actions.length) {
     out.push(kicker(s47.actions));
     x.actions.forEach((a, i) => {
-      out.push(new Paragraph({ spacing: { after: 20 }, indent: { left: 240 }, children: [new TextRun({ text: `${i + 1}. ${a.title}`, font: FONT, size: 18, bold: true, color: INK })] }));
-      out.push(new Paragraph({ spacing: { after: 60 }, indent: { left: 480 }, children: [new TextRun({ text: `${a.detail}  (${windowLabel[a.window]}${a.dim ? ` · ${a.dim.toUpperCase()}` : ""})`, font: FONT, size: 16, color: MUTED })] }));
+      out.push(new Paragraph({ spacing: { after: 20 }, indent: { left: 240 }, children: citedRuns(`${i + 1}. ${a.title}`, { size: 18, bold: true }) }));
+      out.push(new Paragraph({ spacing: { after: 60 }, indent: { left: 480 }, children: citedRuns(`${a.detail}  (${windowLabel[a.window]}${a.dim ? ` · ${a.dim.toUpperCase()}` : ""})`, { size: 16, color: MUTED }) }));
     });
   }
   out.push(auditLine(e.audit.grounded, e.audit.uncited, e.audit.revised));
@@ -610,6 +648,23 @@ function appendix(report: ReportV2, projection: FreeTierProjection, preparedWith
   return out;
 }
 
+/** G24-A: "Evidence cited" — the footnote list (n · label · level · source · date); empty when nothing is cited. */
+function evidenceCited(locale: "en" | "vi"): Block[] {
+  const rows = citationEntries(cites);
+  if (rows.length === 0) return [];
+  const cs = citationStrings(locale);
+  return [
+    pageBreak(),
+    h1(cs.appendixTitle, "15"),
+    small(cs.appendixPurpose),
+    table(
+      [cs.th.n, cs.th.label, cs.th.level, cs.th.source, cs.th.date],
+      rows.map((e) => [String(e.n), `${e.label}  ${e.id}`, cs.level(e), cs.source(e), cs.date(e)]),
+      [6, 46, 18, 18, 12],
+    ),
+  ];
+}
+
 // ── Document ────────────────────────────────────────────────────────────────
 
 export interface TbrDocxOptions {
@@ -642,6 +697,10 @@ export async function buildTbrDocx(rawReport: ReportV2, opts: TbrDocxOptions = {
   const r = projection.report;
   const images = opts.images ?? (await rasteriseReportVisuals(r));
   const prepared = opts.preparedWith?.trim() || defaultPreparedWith(report);
+  // G24-A: one footnote numbering per document, walked over the FULL text
+  // (not the free-tier projection) so web, PDF and DOCX print the same numbers.
+  cites = buildCitationIndex(report);
+  citeLocale = locale;
 
   const children: Block[] = [
     ...cover(r, images, locale, prepared),
@@ -654,6 +713,7 @@ export async function buildTbrDocx(rawReport: ReportV2, opts: TbrDocxOptions = {
     ...money(r, images, projection, locale),
     ...actionPlan(r, images, projection, locale),
     ...appendix(r, projection, prepared, locale),
+    ...evidenceCited(locale),
   ];
 
   const doc = new Document({
