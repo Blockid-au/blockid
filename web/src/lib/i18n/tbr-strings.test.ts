@@ -13,7 +13,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { CRITERIA } from "@/lib/evaluation-criteria";
 import { DIMENSION_OWNERS } from "@/lib/report-pipeline/dimension-owners";
-import { TBR_STRINGS, TBR_VALUATION_STRINGS, getTbrStrings, type TbrLocale } from "./tbr-strings";
+import { TBR_STRINGS, TBR_V3_STRINGS, TBR_VALUATION_STRINGS, getTbrStrings, getTbrV3Strings, type TbrLocale } from "./tbr-strings";
 
 const LOCALES: TbrLocale[] = ["en", "vi", "es", "ja"];
 
@@ -94,6 +94,27 @@ describe("TbrStrings key parity across locales", () => {
     const vi = shape(TBR_VALUATION_STRINGS.vi);
     expect([...en.keys()].filter((k) => !vi.has(k))).toEqual([]);
     expect([...vi.keys()].filter((k) => !en.has(k))).toEqual([]);
+  });
+
+  // G27 — the v3 investment-view block: same key tree + arity, VI is a real translation.
+  it("v3 investment-view strings (EN / VI) keep key parity, the same arity, and VI carries diacritics", () => {
+    const en = shape(TBR_V3_STRINGS.en);
+    const vi = shape(TBR_V3_STRINGS.vi);
+    expect([...en.keys()].filter((k) => !vi.has(k))).toEqual([]);
+    expect([...vi.keys()].filter((k) => !en.has(k))).toEqual([]);
+    for (const [k, t] of en) expect(vi.get(k), `vi.${k}`).toBe(t);
+    const enLeaves = leaves(TBR_V3_STRINGS.en);
+    const viLeaves = leaves(TBR_V3_STRINGS.vi);
+    expect(viLeaves.length).toBe(enLeaves.length);
+    for (const s of [...enLeaves, ...viLeaves]) expect(s.trim().length).toBeGreaterThan(0);
+    expect((viLeaves.join("\n").match(DIACRITIC_RE) ?? []).length).toBeGreaterThanOrEqual(100);
+    const same = viLeaves.filter((s, i) => s === enLeaves[i] && s.trim().split(/\s+/).length >= 3 && /[a-z]/i.test(s));
+    expect(same, `identical EN/VI sentences: ${same.join(" | ")}`).toEqual([]);
+    expect(getTbrV3Strings("vi")).toBe(TBR_V3_STRINGS.vi);
+    expect(getTbrV3Strings("ja")).toBe(TBR_V3_STRINGS.en);
+    // The mandatory sub-line (spec § 4) is verbatim in both locales.
+    expect(TBR_V3_STRINGS.en.subline).toBe("Based on the evidence supplied and the SVI rubric. BlockID structures the evidence; evaluators and founders make the decision. General information, not financial product advice.");
+    expect(TBR_V3_STRINGS.vi.subline).toBe("Dựa trên bằng chứng đã cung cấp và bộ tiêu chí SVI. BlockID sắp xếp bằng chứng; nhà đánh giá và nhà sáng lập tự ra quyết định. Thông tin chung, không phải lời khuyên về sản phẩm tài chính.");
   });
 });
 

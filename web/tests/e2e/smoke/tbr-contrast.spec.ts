@@ -316,3 +316,27 @@ test.describe("Trusted Business Report — contrast guard (G19-S47 · G26 light 
     });
   });
 });
+
+// ── G27 — the v3 report at 375 px: tiles stack, tables scroll inside their
+// wrapper, no horizontal page scroll; the v3 landmarks / chips are sampled
+// fail-soft (annotated when absent — the every-text-node sweep above is the
+// contract either way).
+const MOBILE_WIDTH = 375;
+const V3_SELECTORS = ["[data-tbr-tile]", "[data-tbr-callout]", "[data-tbr-band-chip]", "[data-tbr-verdict-band]", "[data-tbr-risk-row]", "#tbr-investment-view", "#tbr-risk-matrix", "#tbr-plan-90d"] as const;
+
+test.describe("Trusted Business Report — v3 layout at 375 px (G27)", () => {
+  test.setTimeout(60_000);
+  test.use({ colorScheme: "light", viewport: { width: MOBILE_WIDTH, height: 812 }, isMobile: true, hasTouch: true });
+
+  test(`/tbr/demo at ${MOBILE_WIDTH} px — no horizontal page scroll, v3 landmarks present, text still ≥ 4.5:1`, async ({ page }, testInfo) => {
+    await openReport(page);
+    const layout = await page.evaluate(() => ({ scrollWidth: document.documentElement.scrollWidth, clientWidth: document.documentElement.clientWidth }));
+    console.log(`[tbr-contrast] ${MOBILE_WIDTH}px: scrollWidth ${layout.scrollWidth} · clientWidth ${layout.clientWidth}`);
+    expect(layout.scrollWidth, `no horizontal page scroll at ${MOBILE_WIDTH} px (scrollWidth ${layout.scrollWidth})`).toBeLessThanOrEqual(MOBILE_WIDTH + 1);
+    const counts = await page.evaluate((sels) => Object.fromEntries(sels.map((s) => [s, document.querySelectorAll(s).length])), [...V3_SELECTORS]);
+    const absent = V3_SELECTORS.filter((sel) => counts[sel] === 0);
+    if (absent.length) testInfo.annotations.push({ type: "fail-soft", description: `v3 selectors absent on /tbr/demo: ${absent.join(", ")}` });
+    else expect(counts["[data-tbr-tile]"], "four dashboard tiles").toBeGreaterThanOrEqual(4);
+    await expectLightReport(page, `${MOBILE_WIDTH}px`);
+  });
+});

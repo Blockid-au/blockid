@@ -21,6 +21,7 @@ import { PHASE_EXIT_RULES, type PhaseGateResult } from "@/lib/growth/phase-gate"
 import { inferPhase } from "@/lib/growth/infer-phase";
 import { derivedLift } from "@/lib/svi-lift";
 import { ensureExecutiveStructured } from "./executive-structure";
+import { ensureInvestmentView } from "./investment-view";
 import { groundingAudit } from "./grounding";
 import { GROWTH_PHASE_IDS, GROWTH_PHASE_LABELS, type GrowthPhaseId } from "@/lib/growth/phase-taxonomy";
 import { DIMENSION_OWNERS, DIM_ORDER, criteriaForDimension, type DimKey } from "@/lib/report-pipeline/dimension-owners";
@@ -665,7 +666,8 @@ function buildChapter(c: ChapterCtx, phase: PhaseGateResult, tier: ReportTierV2,
     ? `${owner.title} was not scored in this snapshot — re-run the analysis to populate this chapter.`
     : !c.assessed
       ? words(`${owner.title} is not assessed yet — no evidence reached this dimension, so the ${c.score} in the ledger is the stage baseline, not a score.${verdictSrc ? ` Start with: ${verdictSrc}` : ""}`, 80)
-      : words(verdictSrc || `${owner.title} scores ${c.score}/100 (${c.band}) against a ${c.stageLabel} median of ${c.p50}.`, 80);
+      : // G27 never-say guard: a median is printed only with its n (publication-rules.ts); the static anchor is named as such.
+        words(verdictSrc || (typeof c.n === "number" && mayShowPercentile(c.n) ? `${owner.title} scores ${c.score}/100 (${c.band}) against a ${c.stageLabel} median of ${c.p50} (n = ${c.n}).` : `${owner.title} scores ${c.score}/100 (${c.band}) against the ${c.stageLabel} rubric anchor of ${c.p50}.`), 80);
   const floor = PHASE_EXIT_RULES[phase.currentPhase].dimensionFloors[c.dim as keyof typeof PHASE_EXIT_RULES.vision.dimensionFloors];
   // G19-S43: chapter-level bullets never repeat the criterion cards' own
   // bullets (the cards render them) — the dimension narrative (insights) is
@@ -1355,8 +1357,11 @@ export function fromAssembledReport(report: Pick<AssembledReport, "id" | "tier" 
 export function resolveReportV2(stored: unknown, fallback: SnapshotInput, validate: (v: unknown) => v is ReportV2): ReportV2 {
   // G19-S47: a document stored before S47 (or with a stale block) gets its
   // executive sections on read — the same parser the pipeline uses.
-  if (stored && validate(stored)) return ensureExecutiveStructured(stored);
-  return fromSnapshot(fallback);
+  // G27: the investment view (verdict band, conditions, key points, risk
+  // matrix, plan, takeaways) is derived on read the same way, so every stored
+  // document renders v3 without regeneration.
+  if (stored && validate(stored)) return ensureInvestmentView(ensureExecutiveStructured(stored));
+  return ensureInvestmentView(fromSnapshot(fallback));
 }
 
 export type { DimKey, GrowthPhaseId };

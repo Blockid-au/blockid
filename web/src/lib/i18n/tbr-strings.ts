@@ -1934,3 +1934,6 @@ export const TBR_S43_STRINGS: Record<TbrS43Locale, TbrS43Strings> = { en: s43En,
 export function getTbrS43Strings(locale: string | undefined): TbrS43Strings {
   return locale === "vi" ? s43Vi : s43En;
 }
+
+// ── G27 — TBR v3 investment-view strings live in tbr-v3-strings.ts (EN + VI) ──
+export { TBR_V3_STRINGS, getTbrV3Strings, type TbrV3Band, type TbrV3Conviction, type TbrV3Level, type TbrV3Locale, type TbrV3Strings } from "./tbr-v3-strings";

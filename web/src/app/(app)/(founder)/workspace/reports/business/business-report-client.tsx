@@ -38,7 +38,7 @@ import { TbrInvestorViews } from "@/components/tbr/tbr-investor-views";
 import { TbrQaChat } from "@/components/tbr/tbr-qa-chat";
 import { ActionPlan } from "@/components/score/ActionPlan";
 import type { TbrAssessmentBenchmarks } from "@/components/tbr/v2/assessment";
-import { TbrReportV2, tbrV2Toc, type TbrUnlockOrderStatus, type TbrUnlockProps } from "@/components/tbr/v2/report";
+import { TbrReportV2, tbrV2TocGroups, type TbrUnlockOrderStatus, type TbrUnlockProps } from "@/components/tbr/v2/report";
 import { TbrClaritySurvey } from "@/components/tbr/tbr-clarity-survey";
 import { ReportPaywallGate, type ReportPaywallQuote } from "@/components/paywall/ReportPaywallGate";
 import { ReportOrderBlocked, reportOrderExportHref } from "@/components/paywall/ReportOrderView";
@@ -657,13 +657,15 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
   // G19-S45 (D6): the clarity survey — paid founder view + public share, once per snapshot.
   const surveySnapshotId = report.snapshotId || snapshotId || paidExportsOrderId || null;
   const showSurvey = !pdfMode && Boolean(surveySnapshotId) && (shareToken ? true : founderMode && report.tier !== "free");
+  // G27: the v3 TOC groups — overview (dashboard · investment view · key points · valuation), the 8 chapters, closing (risk matrix · plan · money · appendix · evidence cited).
+  const v3Toc = tbrV2TocGroups(report, uiLocale);
   const tocGroups = [
-    { label: t.tocOverview, items: tbrV2Toc(report, t, uiLocale).slice(0, 2) },
-    { label: t.tocDimensions, items: tbrV2Toc(report, t, uiLocale).slice(2, 10) },
+    { label: t.tocOverview, items: v3Toc.overview },
+    { label: t.tocDimensions, items: v3Toc.dimensions },
     {
       label: t.tocAnalysis,
       items: [
-        ...tbrV2Toc(report, t, uiLocale).slice(10),
+        ...v3Toc.closing,
         ...(!pdfMode && !initialData && shareToken ? [{ id: "tbr-investor-views", label: "Investor Views" }] : []),
         { id: "tbr-peers", label: "Peer-5 Similarity Match" },
       ],

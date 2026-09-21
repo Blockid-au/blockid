@@ -1,4 +1,4 @@
-// Chapter 15 — "Evidence cited" (G24-A): the footnote list every `[ev:<id>]`
+// Section 16b — "Evidence cited" (G24-A): the footnote list every `[ev:<id>]`
 // superscript in the report links to. One row per cited evidence-register
 // row, in first-appearance order: n · label · evidence level · source kind ·
 // date. Omitted entirely when nothing in the document is cited. Hook-free;
@@ -19,7 +19,7 @@ export function shortId(id: string): string {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id.slice(0, 8) : id;
 }
 
-export function TbrEvidenceCited({ citations, locale = "en", kicker = "15" }: { citations: CitationIndex; locale?: TbrUiLocale; kicker?: string }) {
+export function TbrEvidenceCited({ citations, locale = "en", kicker = "16" }: { citations: CitationIndex; locale?: TbrUiLocale; kicker?: string }) {
   const rows = citationEntries(citations);
   if (rows.length === 0) return null;
   const t = citationStrings(locale);

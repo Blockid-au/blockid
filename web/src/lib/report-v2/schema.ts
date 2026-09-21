@@ -192,6 +192,100 @@ export interface DimensionChapter {
   scoreNote?: string;
   /** G19-S41: "How this score was built" — absent on documents stored before S41. */
   scoreBreakdown?: ScoreBreakdown;
+  /**
+   * G27: one line (≤ 25 words) the owner agent may write for the investor
+   * takeaway callout; the renderer falls back to the deterministic template
+   * (`report-v2/investment-view.ts`) and an LLM line wins only when it
+   * passes the claim gate. Optional — never a migration.
+   */
+  investorTakeaway?: string;
+}
+
+// ── G27: investment view (spec docs/design/tbr-v3-investor-report-spec.md § 4) ──
+
+export const INVESTMENT_BANDS = ["A", "B", "C", "D"] as const;
+export type InvestmentBand = (typeof INVESTMENT_BANDS)[number];
+export type InvestmentConviction = "low" | "medium" | "high";
+export type RiskLevel = "low" | "medium" | "high";
+
+export interface InvestmentCondition {
+  kind: "floor" | "unverified" | "ask" | "blocker";
+  text: string;
+  dim?: DimKey;
+}
+export interface InvestmentPoint {
+  text: string;
+  dim?: DimKey;
+  score?: number;
+  lift?: number;
+}
+export interface RiskMatrixRow {
+  id: string;
+  kind: "gap" | "blocker" | "unverified" | "ask";
+  text: string;
+  dim?: DimKey;
+  likelihood: RiskLevel;
+  impact: RiskLevel;
+  mitigation: string;
+}
+export interface ImprovementStep {
+  rank: number;
+  title: string;
+  dim: DimKey;
+  window: "this_week" | "30d" | "90d";
+  /** The catalogue / owner lift, printed as-is (never cumulative). */
+  expectedLift: number;
+  /** this_week 1 · 30d 2 · 90d 3 */
+  effort: 1 | 2 | 3;
+  /** expectedLift ÷ effort (2 dp). */
+  priority: number;
+  /** Localised "evidence to add" label, when the step adds an input. */
+  evidenceToAdd?: string;
+  href?: string;
+  source: "chapter" | "plan" | "criterion" | "evidence";
+}
+
+/**
+ * G27 — the deterministic investment view every v3 surface renders (web,
+ * PDF, DOCX, e-mail). Pure derivation from the stored document + the
+ * Assessment Card (`investment-view.ts`); optional on stored rows and
+ * rebuilt at read (`ensureInvestmentView`) so no migration is needed.
+ */
+export interface InvestmentView {
+  version: 1;
+  locale: "en" | "vi";
+  band: InvestmentBand;
+  /** Short label ("With conditions") and the rubric wording ("Investable with conditions"). */
+  bandLabel: string;
+  bandWording: string;
+  /** Which rubric row fired (tests / audit): "D:pending", "D:ec", "C:band", … */
+  rule: string;
+  conviction: InvestmentConviction;
+  convictionLine: string;
+  /** Evidence confidence 0–100 — the Assessment Card's one number. */
+  evidenceConfidence: number;
+  /** Σ weight × score over assessed dims, renormalised 0–100; null when nothing is assessed. */
+  compositeScore: number | null;
+  compositeBand: Band;
+  pendingDims: number;
+  floorMisses: DimKey[];
+  blockers: number;
+  unverifiedClaims: number;
+  askVerdict: "aligned" | "above_consensus" | "below_consensus" | null;
+  /** The mandatory sub-line (verbatim, spec § 4). */
+  subline: string;
+  conditions: InvestmentCondition[];
+  /** Band D: the evidence CTAs printed instead of conditions. */
+  evidenceCtas: EvidenceCta[];
+  reasons: InvestmentPoint[];
+  risks: InvestmentPoint[];
+  keyPoints: string[];
+  riskMatrix: RiskMatrixRow[];
+  improvementPlan: ImprovementStep[];
+  whatMovesIt: string[];
+  takeaways: Record<DimKey, string>;
+  /** The CEO agent's own label + sentence when it disagrees with the rubric band (never a silent overwrite). */
+  analystSynthesis: { label: ExecutiveVerdictLabel; text: string } | null;
 }
 
 export type ValuationMethodKey =
@@ -451,6 +545,8 @@ export interface ReportV2 {
   };
   quality: { score: number; groundedShare: number; consistencyIssues: ConsistencyIssue[]; degradedSections: string[] };
   pageBudget: { free: typeof FREE_PAGE_BUDGET; renderedPages?: number };
+  /** G27 — always present at render (`ensureInvestmentView`); optional on stored rows. */
+  investmentView?: InvestmentView;
 }
 
 // ── Zod ─────────────────────────────────────────────────────────────────────
@@ -638,6 +734,7 @@ const dimensionChapter = z
     proposedScore: z.number().optional(),
     scoreNote: z.string().optional(),
     scoreBreakdown: scoreBreakdownSchema.optional(),
+    investorTakeaway: z.string().optional(),
   })
   .refine((c) => c.evidence.length > 0 || c.primaryVisual.dataState !== "real", {
     message: "a chapter with no evidence rows cannot claim a `real` primary visual",
@@ -719,6 +816,56 @@ const valuationChapter = z.object({
   visuals: z.array(visualSpec),
   narrative: z.string(),
   audit: auditStamp,
+});
+
+// G27 — investment view (optional, rebuilt at read by `ensureInvestmentView`).
+const investmentBand = z.enum(INVESTMENT_BANDS);
+const riskLevel = z.enum(["low", "medium", "high"]);
+const actionWindow = z.enum(["this_week", "30d", "90d"]);
+const investmentPoint = z.object({ text: z.string(), dim: dimKey.optional(), score: z.number().optional(), lift: z.number().optional() });
+export const investmentViewSchema = z.object({
+  version: z.literal(1),
+  locale: z.enum(["en", "vi"]),
+  band: investmentBand,
+  bandLabel: z.string().min(1),
+  bandWording: z.string().min(1),
+  rule: z.string().min(1),
+  conviction: z.enum(["low", "medium", "high"]),
+  convictionLine: z.string().min(1),
+  evidenceConfidence: z.number().min(0).max(100),
+  compositeScore: z.number().min(0).max(100).nullable(),
+  compositeBand: band,
+  pendingDims: z.number().int().min(0).max(8),
+  floorMisses: z.array(dimKey),
+  blockers: z.number().int().nonnegative(),
+  unverifiedClaims: z.number().int().nonnegative(),
+  askVerdict: z.enum(["aligned", "above_consensus", "below_consensus"]).nullable(),
+  subline: z.string().min(1),
+  conditions: z.array(z.object({ kind: z.enum(["floor", "unverified", "ask", "blocker"]), text: z.string().min(1), dim: dimKey.optional() })).max(3),
+  evidenceCtas: z.array(evidenceCta),
+  reasons: z.array(investmentPoint).max(3),
+  risks: z.array(investmentPoint).max(3),
+  keyPoints: z.array(z.string().min(1)).max(5),
+  riskMatrix: z.array(
+    z.object({ id: z.string().min(1), kind: z.enum(["gap", "blocker", "unverified", "ask"]), text: z.string().min(1), dim: dimKey.optional(), likelihood: riskLevel, impact: riskLevel, mitigation: z.string() }),
+  ),
+  improvementPlan: z.array(
+    z.object({
+      rank: z.number().int().positive(),
+      title: z.string().min(1),
+      dim: dimKey,
+      window: actionWindow,
+      expectedLift: z.number(),
+      effort: z.union([z.literal(1), z.literal(2), z.literal(3)]),
+      priority: z.number(),
+      evidenceToAdd: z.string().optional(),
+      href: z.string().optional(),
+      source: z.enum(["chapter", "plan", "criterion", "evidence"]),
+    }),
+  ),
+  whatMovesIt: z.array(z.string()),
+  takeaways: z.object({ tre: z.string(), mpc: z.string(), ftv: z.string(), ptd: z.string(), cgh: z.string(), iri: z.string(), lco: z.string(), svm: z.string() }),
+  analystSynthesis: z.object({ label: z.enum(EXECUTIVE_VERDICT_LABELS), text: z.string() }).nullable(),
 });
 
 const phaseBlocker = z.object({
@@ -855,6 +1002,7 @@ export const reportV2Schema = z.object({
     degradedSections: z.array(z.string()),
   }),
   pageBudget: z.object({ free: z.literal(FREE_PAGE_BUDGET), renderedPages: z.number().optional() }),
+  investmentView: investmentViewSchema.optional(),
 });
 
 export class ReportV2ValidationError extends Error {

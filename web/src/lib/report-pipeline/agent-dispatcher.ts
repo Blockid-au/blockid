@@ -1504,7 +1504,8 @@ export function buildDimensionChapter(
       ? `${owner.title} was not scored in this run.`
       : !assessed
         ? `${owner.title} is not assessed yet — no evidence reached this dimension, so the ${score} in the ledger is the stage baseline, not a score.`
-        : `${owner.title} scores ${score}/100 (${band}) against a ${context.sviAnalysis.stageLabel} median of ${bench.p50}.`);
+        : // G27 never-say guard: the static stage anchor is not a cohort median — no "median N" without its n.
+          `${owner.title} scores ${score}/100 (${band}) against the ${context.sviAnalysis.stageLabel} rubric anchor of ${bench.p50}.`);
   const citedInVerdict = Array.from(verdict.matchAll(/\[ev:([^\]]+)\]/g)).some((m) => allowedIds.has(m[1].trim()));
   const uncited = [...strengths, ...gaps].filter((t) => /\[unevidenced\]$/i.test(t)).length;
   const frameworks = full?.frameworks_used?.length ? full.frameworks_used.slice(0, 8) : owner.frameworks;
