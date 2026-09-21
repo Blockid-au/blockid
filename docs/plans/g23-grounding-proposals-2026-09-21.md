@@ -5,6 +5,8 @@
 **Tracked in:** `docs/plans/SOURCE-OF-TRUTH.md` § G23 · `ROADMAP.md` row G23.
 **Sources:** G19's one open P1 (`groundedShare` 0.41 vs KPI 0.85 — `tbr_quality` status `watch`); the advisor plan's validation Level 3 ("two written pilot proposals") and § 33 funnel ("offer paid pilot → run cohort → convert to annual"); the G22 follow-ups (partial live-qa marker, log rotation, ledger write lock, `pilot.*` literal fallbacks).
 
+**Status:** CLOSED 2026-09-21 — v3.23.0 live (`c6e94a033` + review fixes `60a648e10`); live-qa 296/0, link-check 0, sweep 0; review 3 P1 / 3 P2 / 3 P3 fixed. The `groundedShare ≥ 0.85` acceptance line is NOT met (showcase 0.50, up from 0.41) — carried into G24 lane D. Findings + follow-ups in SOT § G23.
+
 ## Lanes
 
 ### A — Report grounding to the KPI (skills: svi-scoring, prompt-engineer, cdo, code-reviewer)
