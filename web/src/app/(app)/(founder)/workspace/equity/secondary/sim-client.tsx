@@ -43,7 +43,7 @@ export function SandboxBanner() {
   return (
     <div
       role="note"
-      className="rounded-xl border-2 border-dashed border-amber-400 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900 dark:border-amber-600 dark:bg-amber-950/30 dark:text-amber-100 flex items-start gap-2"
+      className="rounded-xl border-2 border-dashed border-amber-400 bg-amber-50 px-4 py-3 text-xs font-medium text-amber-900 flex items-start gap-2"
       data-testid="sandbox-banner"
     >
       <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
@@ -152,13 +152,13 @@ export function SecondarySimClient({ canTrade, locked, initial }: { canTrade: bo
       <header className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <ArrowDownUp strokeWidth={1.75} className="h-5 w-5 text-ink-500" />
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Pre-IPO secondary sandbox</h2>
-          <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-800 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200">
+          <h2 className="text-lg font-semibold text-slate-900">Pre-IPO secondary sandbox</h2>
+          <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-800">
             Sandbox
           </span>
         </div>
         {book ? (
-          <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400">
+          <label className="flex items-center gap-2 text-xs text-slate-600">
             <input type="checkbox" checked={book.settings.rofrEnabled} disabled={!canTrade || busy} onChange={(e) => toggleRofr(e.target.checked)} data-testid="sim-rofr-toggle" />
             Enforce shareholders&apos; agreement ROFR ({book.settings.rofrHoldHours} h hold on new sells)
           </label>
@@ -166,13 +166,13 @@ export function SecondarySimClient({ canTrade, locked, initial }: { canTrade: bo
       </header>
 
       {locked ? (
-        <div className="rounded-xl border border-brand-200 bg-brand-50/60 px-4 py-3 text-sm text-brand-900 dark:border-brand-800 dark:bg-brand-950/30 dark:text-brand-100" data-testid="sim-locked">
+        <div className="rounded-xl border border-brand-200 bg-brand-50/60 px-4 py-3 text-sm text-brand-900" data-testid="sim-locked">
           The sandbox order book is part of <strong>Growth</strong> and above — the same rung that carries your cap table.{" "}
           <Link href="/pricing?feature=secondary_market.view&from=/workspace/equity/secondary" className="underline font-medium">See plans</Link>
         </div>
       ) : null}
 
-      {loading ? <div className="animate-pulse h-40 rounded-2xl bg-slate-100 dark:bg-slate-800" data-testid="sim-loading" /> : null}
+      {loading ? <div className="animate-pulse h-40 rounded-2xl bg-slate-100" data-testid="sim-loading" /> : null}
       {error ? <p className="text-sm text-red-700" data-testid="sim-error">{error}</p> : null}
 
       {book ? (
@@ -188,18 +188,18 @@ export function SecondarySimClient({ canTrade, locked, initial }: { canTrade: bo
 
           <div className="grid gap-4 lg:grid-cols-3">
             {/* order form */}
-            <form onSubmit={place} className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-4 space-y-3" data-testid="sim-order-form">
+            <form onSubmit={place} className="rounded-2xl border border-slate-200 bg-white p-4 space-y-3" data-testid="sim-order-form">
               <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Place a sandbox order</p>
-              <div className="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 dark:bg-slate-800 p-1 text-xs font-medium">
+              <div className="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1 text-xs font-medium">
                 {(["buy", "sell"] as const).map((s) => (
-                  <button key={s} type="button" onClick={() => setSide(s)} className={`rounded-md py-1.5 ${side === s ? (s === "buy" ? "bg-emerald-600 text-white" : "bg-red-600 text-white") : "text-slate-600 dark:text-slate-300"}`} data-testid={`sim-side-${s}`}>
+                  <button key={s} type="button" onClick={() => setSide(s)} className={`rounded-md py-1.5 ${side === s ? (s === "buy" ? "bg-emerald-600 text-white" : "bg-red-600 text-white") : "text-slate-600"}`} data-testid={`sim-side-${s}`}>
                     {s === "buy" ? "Buy" : "Sell"}
                   </button>
                 ))}
               </div>
-              <label className="block text-xs text-slate-600 dark:text-slate-400">
+              <label className="block text-xs text-slate-600">
                 Trade as
-                <select value={holder} onChange={(e) => setHolder(e.target.value)} required className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent px-2 py-1.5 text-sm" data-testid="sim-holder">
+                <select value={holder} onChange={(e) => setHolder(e.target.value)} required className="mt-1 w-full rounded-lg border border-slate-300 bg-transparent px-2 py-1.5 text-sm" data-testid="sim-holder">
                   <option value="">Select a holder…</option>
                   {holders.filter((h) => h.onRegister).map((h) => (
                     <option key={h.holderKey} value={h.holderKey}>{h.label} — holds {num(h.position)}</option>
@@ -211,19 +211,19 @@ export function SecondarySimClient({ canTrade, locked, initial }: { canTrade: bo
                 </select>
               </label>
               {holder === "__sandbox__" ? (
-                <label className="block text-xs text-slate-600 dark:text-slate-400">
+                <label className="block text-xs text-slate-600">
                   Buyer label
-                  <input value={buyerLabel} onChange={(e) => setBuyerLabel(e.target.value)} required maxLength={120} placeholder="e.g. Angel syndicate A" className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent px-2 py-1.5 text-sm" data-testid="sim-buyer-label" />
+                  <input value={buyerLabel} onChange={(e) => setBuyerLabel(e.target.value)} required maxLength={120} placeholder="e.g. Angel syndicate A" className="mt-1 w-full rounded-lg border border-slate-300 bg-transparent px-2 py-1.5 text-sm" data-testid="sim-buyer-label" />
                 </label>
               ) : null}
               <div className="grid grid-cols-2 gap-2">
-                <label className="block text-xs text-slate-600 dark:text-slate-400">
+                <label className="block text-xs text-slate-600">
                   Limit price (A$)
-                  <input value={price} onChange={(e) => setPrice(e.target.value)} required type="number" min="0.0001" step="0.0001" className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent px-2 py-1.5 text-sm font-mono" data-testid="sim-price" />
+                  <input value={price} onChange={(e) => setPrice(e.target.value)} required type="number" min="0.0001" step="0.0001" className="mt-1 w-full rounded-lg border border-slate-300 bg-transparent px-2 py-1.5 text-sm font-mono" data-testid="sim-price" />
                 </label>
-                <label className="block text-xs text-slate-600 dark:text-slate-400">
+                <label className="block text-xs text-slate-600">
                   Shares
-                  <input value={qty} onChange={(e) => setQty(e.target.value)} required type="number" min="1" step="1" max={side === "sell" && selected ? sellCap : undefined} className="mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-transparent px-2 py-1.5 text-sm font-mono" data-testid="sim-qty" />
+                  <input value={qty} onChange={(e) => setQty(e.target.value)} required type="number" min="1" step="1" max={side === "sell" && selected ? sellCap : undefined} className="mt-1 w-full rounded-lg border border-slate-300 bg-transparent px-2 py-1.5 text-sm font-mono" data-testid="sim-qty" />
                 </label>
               </div>
               {side === "sell" && selected ? (
@@ -239,7 +239,7 @@ export function SecondarySimClient({ canTrade, locked, initial }: { canTrade: bo
             </form>
 
             {/* depth ladder */}
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-4" data-testid="sim-depth">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4" data-testid="sim-depth">
               <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Depth (sandbox)</p>
               <div className="mt-2 grid grid-cols-2 gap-3 text-xs font-mono">
                 <div>
@@ -256,7 +256,7 @@ export function SecondarySimClient({ canTrade, locked, initial }: { canTrade: bo
                 </div>
               </div>
               {orders.length > 0 ? (
-                <div className="mt-4 border-t border-slate-100 dark:border-slate-800 pt-3">
+                <div className="mt-4 border-t border-slate-100 pt-3">
                   <p className="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Open orders</p>
                   <ul className="mt-1 space-y-1 text-xs">
                     {orders.map((o) => (
@@ -278,7 +278,7 @@ export function SecondarySimClient({ canTrade, locked, initial }: { canTrade: bo
             </div>
 
             {/* tape + positions */}
-            <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-4" data-testid="sim-tape">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4" data-testid="sim-tape">
               <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Trades tape (sandbox)</p>
               {book.trades.length === 0 ? <p className="mt-2 text-xs text-slate-400">No sandbox trades yet.</p> : (
                 <ul className="mt-2 space-y-1 text-xs font-mono max-h-48 overflow-y-auto">
@@ -302,7 +302,7 @@ export function SecondarySimClient({ canTrade, locked, initial }: { canTrade: bo
             </div>
           </div>
 
-          <p className="flex items-start gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+          <p className="flex items-start gap-2 text-[11px] text-slate-500">
             <ShieldCheck className="h-3.5 w-3.5 shrink-0 mt-0.5" />
             <span>{book.notice} Sandbox positions never change the register or the chain.</span>
           </p>
@@ -314,9 +314,9 @@ export function SecondarySimClient({ canTrade, locked, initial }: { canTrade: bo
 
 function Stat({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 px-3 py-2">
+    <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
       <p className="text-[10px] uppercase tracking-wider text-slate-500">{label}</p>
-      <p className="mt-0.5 font-mono text-sm font-semibold text-slate-900 dark:text-slate-100">{value}</p>
+      <p className="mt-0.5 font-mono text-sm font-semibold text-slate-900">{value}</p>
       {sub ? <p className="text-[10px] text-slate-500">{sub}</p> : null}
     </div>
   );

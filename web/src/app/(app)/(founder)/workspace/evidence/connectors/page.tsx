@@ -195,17 +195,17 @@ export default async function IntegrationsPage({
           ))}
           {xeroConfigured ? (
             <div data-connector-card="xero">
-              <div className="border border-ink-200 dark:border-ink-800 rounded-lg p-5 bg-white dark:bg-ink-900">
+              <div className="border border-ink-200 rounded-lg p-5 bg-white">
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-base font-semibold text-ink-900 dark:text-ink-100">Xero</h3>
+                      <h3 className="text-base font-semibold text-ink-900">Xero</h3>
                       {xeroFreshness ? <FreshnessBadge freshness={xeroFreshness} /> : null}
                     </div>
-                    <p className="text-sm text-ink-600 dark:text-ink-400 mt-1">
+                    <p className="text-sm text-ink-600 mt-1">
                       Read-only OAuth. Pulls the 3-month profit and loss and the bank balance from your accounting file (AUD).
                     </p>
-                    {xeroFreshness?.error ? <p className="text-xs text-red-600 dark:text-red-400 mt-1">{xeroFreshness.error}</p> : null}
+                    {xeroFreshness?.error ? <p className="text-xs text-red-600 mt-1">{xeroFreshness.error}</p> : null}
                   </div>
                   <a href="/api/oauth/xero" className="px-3 py-1.5 text-sm rounded-md bg-brand-600 hover:bg-brand-700 text-white shrink-0">
                     {xeroFreshness ? "Reconnect" : "Connect"}

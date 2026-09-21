@@ -169,10 +169,10 @@ export function TrialBanner(): React.ReactElement | null {
   const tone = trialBannerTone(daysLeft);
   const toneClass =
     tone === "red"
-      ? "bg-red-100/70 border-red-500 text-red-900 dark:bg-red-900/40 dark:border-red-600 dark:text-red-100"
+      ? "bg-red-100/70 border-red-500 text-red-900"
       : tone === "amber"
-        ? "bg-amber-100/70 border-amber-400 text-amber-900 dark:bg-amber-900/40 dark:border-amber-600 dark:text-amber-100"
-        : "bg-blue-50 border-blue-300 text-blue-900 dark:bg-blue-900/30 dark:border-blue-700 dark:text-blue-100";
+        ? "bg-amber-100/70 border-amber-400 text-amber-900"
+        : "bg-blue-50 border-blue-300 text-blue-900";
 
   const message = buildTrialBannerMessage({ daysLeft, planId: status.planId, endDate });
 

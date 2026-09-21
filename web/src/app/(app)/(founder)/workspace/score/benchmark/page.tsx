@@ -186,11 +186,11 @@ export default async function BenchmarkPage() {
           <div className="mb-6">
             <h2
               id="dimension-benchmarks-heading"
-              className="text-xl font-semibold text-ink-800 dark:text-ink-100"
+              className="text-xl font-semibold text-ink-800"
             >
               Dimension benchmarks
             </h2>
-            <p className="text-sm text-ink-500 dark:text-ink-400 mt-1">
+            <p className="text-sm text-ink-500 mt-1">
               Per-dimension peer comparison against AU startups at the same stage.
             </p>
           </div>

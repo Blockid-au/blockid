@@ -110,10 +110,10 @@ export async function MentorAccessSection({ userId }: { userId: string }) {
               {historical.slice(0, 10).map((g) => (
                 <li
                   key={g.id}
-                  className="flex items-center justify-between rounded-2xl border border-surface-200 bg-white/60 px-4 py-3 text-xs text-ink-600 dark:border-white/10 dark:bg-surface-100/60 dark:text-ink-300"
+                  className="flex items-center justify-between rounded-2xl border border-surface-200 bg-white/60 px-4 py-3 text-xs text-ink-600"
                 >
                   <span>
-                    <strong className="font-semibold text-ink-800 dark:text-ink-100">
+                    <strong className="font-semibold text-ink-800">
                       {g.resellerName}
                     </strong>
                     {" · "}
@@ -133,11 +133,11 @@ export async function MentorAccessSection({ userId }: { userId: string }) {
 
 function EmptyState() {
   return (
-    <div className="rounded-3xl border border-dashed border-surface-300 bg-white p-8 text-center dark:border-white/10 dark:bg-surface-100">
-      <p className="text-sm font-semibold text-ink-800 dark:text-ink-100">
+    <div className="rounded-3xl border border-dashed border-surface-300 bg-white p-8 text-center">
+      <p className="text-sm font-semibold text-ink-800">
         No mentors have access.
       </p>
-      <p className="mt-1 text-xs text-ink-600 dark:text-ink-300">
+      <p className="mt-1 text-xs text-ink-600">
         Attributed mentors see only your growth phase &mdash; nothing else.
       </p>
     </div>
@@ -153,12 +153,12 @@ function ActiveList({ grants }: { grants: EnrichedGrant[] }) {
         return (
           <li
             key={g.id}
-            className="rounded-3xl border border-surface-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-surface-100"
+            className="rounded-3xl border border-surface-200 bg-white p-5 shadow-sm"
           >
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-base font-semibold text-ink-900 dark:text-ink-100">
+                  <p className="text-base font-semibold text-ink-900">
                     {g.resellerName}
                   </p>
                   <AccessTierBadge tier={g.tier} showTooltip />
@@ -182,7 +182,7 @@ function ActiveList({ grants }: { grants: EnrichedGrant[] }) {
                   ) : null}
                 </div>
                 {g.mentorEmail ? (
-                  <p className="mt-1 text-sm text-ink-600 dark:text-ink-300">
+                  <p className="mt-1 text-sm text-ink-600">
                     {g.mentorLabel} · {g.mentorEmail}
                   </p>
                 ) : null}
@@ -207,7 +207,7 @@ function ActiveList({ grants }: { grants: EnrichedGrant[] }) {
               <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
                 <Link
                   href={`/workspace/investors/access?upgrade=${encodeURIComponent(g.id)}`}
-                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3 text-xs font-medium text-ink-700 transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-white/10 dark:bg-transparent dark:text-ink-200 dark:hover:bg-white/5"
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3 text-xs font-medium text-ink-700 transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                 >
                   <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
                   Change tier
@@ -215,7 +215,7 @@ function ActiveList({ grants }: { grants: EnrichedGrant[] }) {
                 {g.expires_at ? (
                   <Link
                     href={`/workspace/investors/access?renew=${encodeURIComponent(g.id)}`}
-                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3 text-xs font-medium text-ink-700 transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-white/10 dark:bg-transparent dark:text-ink-200 dark:hover:bg-white/5"
+                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3 text-xs font-medium text-ink-700 transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
                   >
                     <RefreshCcw aria-hidden="true" className="h-3.5 w-3.5" />
                     Renew

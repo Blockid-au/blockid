@@ -37,7 +37,7 @@ function StringArray({ label, hint, values, onChange, max = 10 }: {
       <p className="text-[11px] text-muted-foreground mb-2">{hint}</p>
       <div className="flex flex-wrap gap-1.5 mb-2">
         {values.map((v, i) => (
-          <span key={i} className="inline-flex items-center gap-1 bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 text-xs px-2 py-1 rounded-full border border-blue-200 dark:border-blue-800/40">
+          <span key={i} className="inline-flex items-center gap-1 bg-blue-50 text-blue-700 text-xs px-2 py-1 rounded-full border border-blue-200">
             {v}
             <button
               onClick={() => onChange(values.filter((_, j) => j !== i))}

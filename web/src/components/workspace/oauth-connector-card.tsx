@@ -117,27 +117,27 @@ export function OAuthConnectorCard(props: OAuthConnectorCardProps): React.ReactE
   }
 
   return (
-    <div className="border border-ink-200 dark:border-ink-800 rounded-lg p-5 bg-white dark:bg-ink-900">
+    <div className="border border-ink-200 rounded-lg p-5 bg-white">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-base font-semibold text-ink-900 dark:text-ink-100">
+          <h3 className="text-base font-semibold text-ink-900">
             {props.title}
           </h3>
-          <p className="text-sm text-ink-600 dark:text-ink-400 mt-1">
+          <p className="text-sm text-ink-600 mt-1">
             {props.description}
           </p>
           {state.connected && state.accountId ? (
-            <p className="text-xs text-ink-500 dark:text-ink-500 mt-2">
+            <p className="text-xs text-ink-500 mt-2">
               Linked account: <span className="font-mono">{state.accountId}</span>
             </p>
           ) : null}
           {state.connected ? (
-            <p className="text-xs text-ink-500 dark:text-ink-500 mt-1">
+            <p className="text-xs text-ink-500 mt-1">
               Last sync: {formatWhen(state.lastSyncAt)}
             </p>
           ) : null}
           {state.lastSyncError ? (
-            <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+            <p className="text-xs text-red-600 mt-1">
               {state.lastSyncError}
             </p>
           ) : null}
@@ -163,7 +163,7 @@ export function OAuthConnectorCard(props: OAuthConnectorCardProps): React.ReactE
               <button
                 onClick={onDisconnect}
                 disabled={state.status === "disconnecting"}
-                className="px-3 py-1.5 text-sm rounded-md border border-red-300 text-red-700 dark:border-red-800 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950 disabled:opacity-50"
+                className="px-3 py-1.5 text-sm rounded-md border border-red-300 text-red-700 hover:bg-red-50 disabled:opacity-50"
               >
                 {state.status === "disconnecting" ? "Removing..." : "Disconnect"}
               </button>
@@ -180,7 +180,7 @@ export function OAuthConnectorCard(props: OAuthConnectorCardProps): React.ReactE
       </div>
 
       {state.toast ? (
-        <p className="text-xs text-ink-500 dark:text-ink-500 mt-3">{state.toast}</p>
+        <p className="text-xs text-ink-500 mt-3">{state.toast}</p>
       ) : null}
     </div>
   );

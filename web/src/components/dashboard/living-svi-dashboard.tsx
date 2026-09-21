@@ -433,7 +433,7 @@ export function LivingSVIDashboard(props: LivingDashboardProps) {
   return (
     <div className="space-y-6">
       {/* ── SVI Hero Header ──────────────────────────────────────────────── */}
-      <div className="rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 shadow-sm overflow-hidden">
+      <div className="rounded-2xl border border-surface-200 bg-surface-50 shadow-sm overflow-hidden">
         <div className="px-6 py-6 sm:px-8 sm:py-7">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             {/* Score + name */}
@@ -561,7 +561,7 @@ export function LivingSVIDashboard(props: LivingDashboardProps) {
                 "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all whitespace-nowrap cursor-pointer",
                 isActive
                   ? "bg-brand-600 text-white shadow-sm"
-                  : "bg-surface-50 dark:bg-surface-100 text-ink-600 hover:bg-surface-100 dark:hover:bg-surface-200 hover:text-ink-800",
+                  : "bg-surface-50 text-ink-600 hover:bg-surface-100 hover:text-ink-800",
               )}
             >
               <Icon className="h-4 w-4" strokeWidth={1.75} />
@@ -660,7 +660,7 @@ function JourneyTab({
     <div className="space-y-6">
       {/* 1. Stage Roadmap — horizontal progress showing 5 stages */}
       {/* WHY: Visual progress motivates founders and shows what comes next */}
-      <div className="rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 shadow-sm p-5">
+      <div className="rounded-2xl border border-surface-200 bg-surface-50 shadow-sm p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-ink-900">
             Your Startup Journey
@@ -698,7 +698,7 @@ function JourneyTab({
                       isCurrent &&
                         "bg-brand-50 border-brand-500 text-brand-600 ring-2 ring-brand-200",
                       isFuture &&
-                        "bg-surface-50 dark:bg-surface-100 border-surface-200 text-muted",
+                        "bg-surface-50 border-surface-200 text-muted",
                     )}
                   >
                     {isComplete ? (
@@ -762,7 +762,7 @@ function JourneyTab({
               return (
                 <div
                   key={i}
-                  className="rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 shadow-sm p-5 flex flex-col"
+                  className="rounded-2xl border border-surface-200 bg-surface-50 shadow-sm p-5 flex flex-col"
                 >
                   <div className="flex items-start justify-between gap-2 mb-2">
                     <h4 className="text-sm font-semibold text-ink-800 leading-snug">
@@ -894,13 +894,13 @@ function FullReportTab({
         return (
           <div
             key={phase.id}
-            className="rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 shadow-sm overflow-hidden"
+            className="rounded-2xl border border-surface-200 bg-surface-50 shadow-sm overflow-hidden"
           >
             {/* Phase Header — clickable to collapse */}
             <button
               type="button"
               onClick={() => togglePhase(phase.id)}
-              className="w-full px-5 py-4 flex items-center gap-3 hover:bg-surface-100 dark:hover:bg-surface-200 transition-colors cursor-pointer"
+              className="w-full px-5 py-4 flex items-center gap-3 hover:bg-surface-100 transition-colors cursor-pointer"
             >
               <div
                 className={cn(
@@ -1232,7 +1232,7 @@ function ReportSectionRow({
 
           {/* Expanded content: markdown rendering of full report */}
           {isExpanded && (hasFull || hasSummary) && saved && (
-            <div className="mt-4 rounded-xl border border-surface-200 bg-surface-50 dark:bg-surface-50 p-5">
+            <div className="mt-4 rounded-xl border border-surface-200 bg-surface-50 p-5">
               <div className="prose prose-sm max-w-none prose-headings:text-ink-900 prose-p:text-ink-700 prose-li:text-ink-700 prose-strong:text-ink-800">
                 <Markdown>{saved.content}</Markdown>
               </div>
@@ -1332,7 +1332,7 @@ function HistoryTab({
 
   if (recentReports.length === 0) {
     return (
-      <div className="rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 px-8 py-12 text-center shadow-sm">
+      <div className="rounded-2xl border border-surface-200 bg-surface-50 px-8 py-12 text-center shadow-sm">
         <div className="inline-flex items-center justify-center h-12 w-12 rounded-2xl bg-surface-100 border border-surface-200 mb-4">
           <History
             strokeWidth={1.75}
@@ -1363,7 +1363,7 @@ function HistoryTab({
       <SVITrendChart data={trendData} />
 
       {/* Analysis timeline */}
-      <div className="rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 shadow-sm overflow-hidden">
+      <div className="rounded-2xl border border-surface-200 bg-surface-50 shadow-sm overflow-hidden">
         <div className="px-5 py-4 border-b border-surface-100">
           <h3 className="text-sm font-semibold text-ink-900">
             All Analyses
@@ -1395,7 +1395,7 @@ function HistoryTab({
             return (
               <div
                 key={report.id}
-                className="px-5 py-4 flex items-start gap-3 hover:bg-surface-100 dark:hover:bg-surface-200 transition-colors"
+                className="px-5 py-4 flex items-start gap-3 hover:bg-surface-100 transition-colors"
               >
                 {/* Score circle */}
                 <div
@@ -1471,7 +1471,7 @@ function ActionsTab({
 
   if (gaps.length === 0) {
     return (
-      <div className="rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 px-8 py-12 text-center shadow-sm">
+      <div className="rounded-2xl border border-surface-200 bg-surface-50 px-8 py-12 text-center shadow-sm">
         <div className="inline-flex items-center justify-center h-12 w-12 rounded-2xl bg-emerald-50 border border-emerald-200 mb-4">
           <CheckCircle2
             strokeWidth={1.75}
@@ -1568,7 +1568,7 @@ function QuickStatCard({
   color: string;
 }) {
   return (
-    <div className="rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 shadow-sm p-4">
+    <div className="rounded-2xl border border-surface-200 bg-surface-50 shadow-sm p-4">
       <div
         className={cn(
           "h-8 w-8 rounded-lg flex items-center justify-center mb-2",
@@ -1598,7 +1598,7 @@ function ActionCard({ gap }: { gap: SVIEvidenceGap }) {
   };
 
   return (
-    <div className="rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 shadow-sm p-5 flex flex-col">
+    <div className="rounded-2xl border border-surface-200 bg-surface-50 shadow-sm p-5 flex flex-col">
       <div className="flex items-start justify-between gap-2 mb-3">
         <h4 className="text-sm font-semibold text-ink-800 leading-snug">
           {gap.label}

@@ -588,7 +588,7 @@ function FullReportViewer({ report }: { report: string }) {
   };
 
   return (
-    <div className="rounded-2xl border border-brand-200 bg-surface-50 dark:bg-surface-100 shadow-sm overflow-hidden">
+    <div className="rounded-2xl border border-brand-200 bg-surface-50 shadow-sm overflow-hidden">
       {/* Header */}
       <div className="border-b border-brand-100 bg-gradient-to-r from-brand-50 to-surface-50 px-5 py-4">
         <div className="flex items-center justify-between">
@@ -650,7 +650,7 @@ function FullReportViewer({ report }: { report: string }) {
             <button
               type="button"
               onClick={() => toggleSection(section.id)}
-              className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-surface-50 dark:hover:bg-surface-200 transition-colors cursor-pointer"
+              className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-surface-50 transition-colors cursor-pointer"
             >
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-brand-100 text-[11px] font-bold text-brand-700">
                 {i + 1}
@@ -933,7 +933,7 @@ function ProgressiveReport() {
   const summaryCount = INCLUDED_SECTIONS.filter(s => sections[s.id]?.summary && !sections[s.id]?.full).length;
 
   return (
-    <div className="rounded-2xl border border-brand-200 bg-surface-50 dark:bg-surface-100 shadow-sm overflow-hidden">
+    <div className="rounded-2xl border border-brand-200 bg-surface-50 shadow-sm overflow-hidden">
       {/* Header */}
       <div className="border-b border-brand-100 bg-gradient-to-r from-brand-50 to-surface-50 px-5 py-4">
         <div className="flex items-center justify-between">
@@ -2545,7 +2545,7 @@ export function SVIResultsPanel({
             )}
 
             {/* ── Quick Actions (icon buttons) ── */}
-            <div className="rounded-2xl border border-surface-200 bg-surface-50 dark:bg-surface-100 p-4 sm:p-5 mb-6">
+            <div className="rounded-2xl border border-surface-200 bg-surface-50 p-4 sm:p-5 mb-6">
               <p className="text-xs uppercase tracking-[0.15em] text-ink-500 font-medium mb-3">Actions</p>
               <div className="flex flex-wrap items-center gap-2">
                 {/* Primary CTA */}
@@ -2563,7 +2563,7 @@ export function SVIResultsPanel({
                   href="/workspace/score"
                   onClick={() => { if (email) void trackAction(email, { label: "View on Dashboard", type: "guide", href: "/workspace/score" }); }}
                   title="View on Dashboard"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-300 bg-surface-50 dark:bg-surface-200 text-ink-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-300 bg-surface-50 text-ink-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
                 >
                   <LayoutDashboard strokeWidth={1.75} className="h-4 w-4" />
                 </a>
@@ -2572,7 +2572,7 @@ export function SVIResultsPanel({
                 <Link
                   href="/workspace/reports"
                   title="Analysis History"
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-300 bg-surface-50 dark:bg-surface-200 text-ink-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-300 bg-surface-50 text-ink-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
                 >
                   <History strokeWidth={1.75} className="h-4 w-4" />
                 </Link>
@@ -2597,7 +2597,7 @@ export function SVIResultsPanel({
                     } catch {} finally { setPitchDeckLoading(false); }
                   }}
                   disabled={pitchDeckLoading}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-300 bg-surface-50 dark:bg-surface-200 text-ink-600 hover:border-brand-400 hover:text-brand-600 transition-colors disabled:opacity-50"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-300 bg-surface-50 text-ink-600 hover:border-brand-400 hover:text-brand-600 transition-colors disabled:opacity-50"
                 >
                   {pitchDeckLoading
                     ? <span className="h-4 w-4 rounded-full border-2 border-ink-300 border-t-ink-600 animate-spin" />
@@ -2612,7 +2612,7 @@ export function SVIResultsPanel({
                   type="button"
                   title="Share via Email"
                   onClick={handleCopy}
-                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-300 bg-surface-50 dark:bg-surface-200 text-ink-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-surface-300 bg-surface-50 text-ink-600 hover:border-brand-400 hover:text-brand-600 transition-colors"
                 >
                   <Mail strokeWidth={1.75} className="h-4 w-4" />
                 </button>
@@ -2626,7 +2626,7 @@ export function SVIResultsPanel({
                     "inline-flex h-9 w-9 items-center justify-center rounded-xl border transition-colors",
                     copied
                       ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                      : "border-surface-300 bg-surface-50 dark:bg-surface-200 text-ink-600 hover:border-brand-400 hover:text-brand-600",
+                      : "border-surface-300 bg-surface-50 text-ink-600 hover:border-brand-400 hover:text-brand-600",
                   )}
                 >
                   {copied ? <CheckCircle2 strokeWidth={1.75} className="h-4 w-4" /> : <Link2 strokeWidth={1.75} className="h-4 w-4" />}
@@ -2656,7 +2656,7 @@ export function SVIResultsPanel({
               </div>
 
               {/* Share URL bar */}
-              <div className="mt-3 flex items-center rounded-lg border border-surface-200 bg-surface-50 dark:bg-surface-200 px-3 py-2 min-w-0">
+              <div className="mt-3 flex items-center rounded-lg border border-surface-200 bg-surface-50 px-3 py-2 min-w-0">
                 <span className="text-[11px] text-ink-500 truncate font-mono flex-1 min-w-0">{shareUrl}</span>
                 <button
                   type="button"
@@ -2696,7 +2696,7 @@ export function SVIResultsPanel({
                 <h3 className="text-lg font-bold text-ink-900 mb-4">Your Pitch Deck Outline</h3>
                 <div className="space-y-4">
                   {pitchDeckSlides.map((slide) => (
-                    <div key={slide.slide} className="rounded-xl bg-surface-50 dark:bg-surface-100 border border-surface-200 p-4">
+                    <div key={slide.slide} className="rounded-xl bg-surface-50 border border-surface-200 p-4">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="h-7 w-7 rounded-lg bg-brand-600 text-white text-xs font-bold flex items-center justify-center">{slide.slide}</span>
                         <h4 className="text-sm font-bold text-ink-900">{slide.title}</h4>

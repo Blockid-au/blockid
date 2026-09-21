@@ -286,7 +286,7 @@ export default async function StartupHistoryPage({
                     </p>
                   )}
                   {entry.valuation_method_note && (
-                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-0.5">
+                    <p className="text-[11px] text-amber-600 mt-0.5">
                       {entry.valuation_method_note}
                     </p>
                   )}

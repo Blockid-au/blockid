@@ -74,46 +74,46 @@ export default async function SecondaryOfferPage() {
       <div className="p-6 max-w-4xl mx-auto space-y-8">
         <header className="space-y-2">
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+            <h1 className="text-3xl font-bold tracking-tight text-slate-900">
               Secondary Offer — Founder Intake
             </h1>
-            <span className="inline-flex items-center rounded-full border border-brand-300 bg-brand-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-700 dark:border-brand-700 dark:bg-brand-950/40 dark:text-brand-300">
+            <span className="inline-flex items-center rounded-full border border-brand-300 bg-brand-50 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-brand-700">
               Draft-only
             </span>
           </div>
-          <p className="text-sm text-slate-600 dark:text-slate-400">
+          <p className="text-sm text-slate-600">
             Declare an intent to sell an existing secondary parcel to
             verified sophisticated investors. Submissions start as{" "}
-            <code className="rounded bg-slate-100 dark:bg-slate-800 px-1 py-0.5 text-[11px]">
+            <code className="rounded bg-slate-100 px-1 py-0.5 text-[11px]">
               draft
             </code>{" "}
             — nothing is listed publicly until legal review promotes the
-            offer to <code className="rounded bg-slate-100 dark:bg-slate-800 px-1 py-0.5 text-[11px]">live</code>.
+            offer to <code className="rounded bg-slate-100 px-1 py-0.5 text-[11px]">live</code>.
           </p>
         </header>
 
         {/* Big, unmissable disclaimer block at the top */}
         <section
           aria-label="Legal disclaimer"
-          className="rounded-2xl border-2 border-amber-300 dark:border-amber-700 bg-amber-50/70 dark:bg-amber-900/20 p-5"
+          className="rounded-2xl border-2 border-amber-300 bg-amber-50/70 p-5"
         >
-          <div className="text-xs font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-200">
+          <div className="text-xs font-semibold uppercase tracking-wider text-amber-800">
             Read this first
           </div>
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-amber-900 dark:text-amber-100">
+          <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-amber-900">
             {DISCLAIMER_BODY}
           </p>
-          <p className="mt-3 text-xs font-medium text-amber-900/80 dark:text-amber-100/80">
+          <p className="mt-3 text-xs font-medium text-amber-900/80">
             Not financial advice. Seek independent counsel. This is not an
             offer of securities.
           </p>
         </section>
 
-        <section className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+        <section className="rounded-xl border border-slate-200 bg-white p-5">
+          <h2 className="text-lg font-semibold text-slate-900">
             Eligibility gates
           </h2>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-xs text-slate-500">
             Enforced server-side by <code>/api/secondary-offer</code>. Any
             submission from a company that fails a gate is rejected with a
             403 explaining the score shortfall.
@@ -121,7 +121,7 @@ export default async function SecondaryOfferPage() {
           <div className="mt-4 overflow-x-auto">
             <table className="min-w-full text-sm">
               <thead>
-                <tr className="text-left text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                <tr className="text-left text-xs uppercase tracking-wider text-slate-500 border-b border-slate-200">
                   <th className="py-2 pr-4">Gate</th>
                   <th className="py-2 pr-4">Requirement</th>
                   <th className="py-2 pr-4">Why</th>
@@ -131,15 +131,15 @@ export default async function SecondaryOfferPage() {
                 {ELIGIBILITY_GATES.map((row) => (
                   <tr
                     key={row.label}
-                    className="border-b border-slate-100 dark:border-slate-900 last:border-0 align-top"
+                    className="border-b border-slate-100 last:border-0 align-top"
                   >
-                    <td className="py-2 pr-4 font-medium text-slate-800 dark:text-slate-200">
+                    <td className="py-2 pr-4 font-medium text-slate-800">
                       {row.label}
                     </td>
-                    <td className="py-2 pr-4 text-slate-700 dark:text-slate-300">
+                    <td className="py-2 pr-4 text-slate-700">
                       {row.requirement}
                     </td>
-                    <td className="py-2 pr-4 text-slate-600 dark:text-slate-400">
+                    <td className="py-2 pr-4 text-slate-600">
                       {row.why}
                     </td>
                   </tr>

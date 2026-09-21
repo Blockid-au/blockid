@@ -48,12 +48,12 @@ export function SandboxBanner({ isSandbox }: SandboxBannerProps) {
       role="alert"
       aria-live="polite"
       data-testid="reseller-sandbox-banner"
-      className="border-b border-amber-300 bg-amber-50 text-amber-900 dark:border-amber-500/50 dark:bg-amber-500/10 dark:text-amber-100"
+      className="border-b border-amber-300 bg-amber-50 text-amber-900"
     >
       <div className="flex items-start gap-3 px-4 py-2.5 text-sm">
         <AlertTriangle
           strokeWidth={1.75}
-          className="mt-0.5 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300"
+          className="mt-0.5 h-4 w-4 shrink-0 text-amber-700"
         />
         <p className="flex-1 leading-snug">
           <strong className="font-semibold">{t.heading}</strong>{" "}

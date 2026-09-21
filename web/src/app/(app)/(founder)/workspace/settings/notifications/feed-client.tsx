@@ -205,7 +205,7 @@ export function NotificationFeedClient() {
               className={
                 filter === f.key
                   ? "rounded-full px-3 py-1 text-xs font-semibold bg-brand-600 text-white"
-                  : "rounded-full px-3 py-1 text-xs font-medium bg-ink-100 dark:bg-ink-800 text-ink-700 dark:text-ink-300 hover:bg-ink-200 dark:hover:bg-ink-700"
+                  : "rounded-full px-3 py-1 text-xs font-medium bg-ink-100 text-ink-700 hover:bg-ink-200"
               }
             >
               {f.label}
@@ -213,14 +213,14 @@ export function NotificationFeedClient() {
           ))}
         </div>
         <div className="ml-auto flex items-center gap-3">
-          <span className="text-xs text-ink-500 dark:text-ink-400 tabular-nums">
+          <span className="text-xs text-ink-500 tabular-nums">
             {unread} unread
           </span>
           <button
             type="button"
             onClick={markAllRead}
             disabled={marking || unread === 0}
-            className="text-xs font-semibold text-brand-700 dark:text-brand-300 hover:underline disabled:text-muted dark:disabled:text-ink-600 disabled:no-underline"
+            className="text-xs font-semibold text-brand-700 hover:underline disabled:text-muted disabled:no-underline"
           >
             Mark all read
           </button>
@@ -229,23 +229,23 @@ export function NotificationFeedClient() {
 
       {/* List */}
       {loading ? (
-        <div className="flex items-center justify-center py-16 text-ink-500 dark:text-ink-400">
+        <div className="flex items-center justify-center py-16 text-ink-500">
           <Loader2 className="h-4 w-4 animate-spin mr-2" /> Loading…
         </div>
       ) : error ? (
-        <div className="rounded-xl border border-red-200 bg-red-50 dark:bg-red-950/20 dark:border-red-900 p-4 text-sm text-red-700 dark:text-red-300">
+        <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
           {error}
         </div>
       ) : (items ?? []).length === 0 ? (
-        <div className="rounded-xl border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 p-8 text-center">
-          <Bell className="h-8 w-8 mx-auto text-muted dark:text-ink-600 mb-3" />
-          <p className="text-sm text-ink-700 dark:text-ink-200 font-medium">No notifications yet</p>
-          <p className="text-xs text-ink-500 dark:text-ink-400 mt-1">
+        <div className="rounded-xl border border-ink-200 bg-white p-8 text-center">
+          <Bell className="h-8 w-8 mx-auto text-muted mb-3" />
+          <p className="text-sm text-ink-700 font-medium">No notifications yet</p>
+          <p className="text-xs text-ink-500 mt-1">
             Share your Trusted Business Report to start seeing investor activity here.
           </p>
         </div>
       ) : (
-        <ul className="divide-y divide-ink-100 dark:divide-ink-800 border border-ink-200 dark:border-ink-800 rounded-xl bg-white dark:bg-ink-900 overflow-hidden">
+        <ul className="divide-y divide-ink-100 border border-ink-200 rounded-xl bg-white overflow-hidden">
           {(items ?? []).map((n) => {
             const meta = KIND_META[n.kind] ?? { icon: Bell, color: "text-ink-500", label: n.kind };
             const Icon = meta.icon;
@@ -256,26 +256,26 @@ export function NotificationFeedClient() {
                 key={n.id}
                 className={
                   isUnread
-                    ? "flex items-start gap-3 p-4 bg-brand-50/40 dark:bg-brand-950/10"
+                    ? "flex items-start gap-3 p-4 bg-brand-50/40"
                     : "flex items-start gap-3 p-4"
                 }
               >
-                <div className={`shrink-0 rounded-full h-8 w-8 flex items-center justify-center bg-ink-100 dark:bg-ink-800 ${meta.color}`}>
+                <div className={`shrink-0 rounded-full h-8 w-8 flex items-center justify-center bg-ink-100 ${meta.color}`}>
                   <Icon className="h-4 w-4" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-baseline gap-2">
-                    <p className="text-xs font-semibold text-ink-800 dark:text-ink-100 truncate">
+                    <p className="text-xs font-semibold text-ink-800 truncate">
                       {meta.label}
                     </p>
-                    <span className="text-[11px] text-ink-500 dark:text-ink-400 tabular-nums shrink-0">
+                    <span className="text-[11px] text-ink-500 tabular-nums shrink-0">
                       {timeAgo(n.created_at)}
                     </span>
                     {isUnread && (
                       <span className="ml-1 h-1.5 w-1.5 rounded-full bg-brand-500 shrink-0" aria-label="unread" />
                     )}
                   </div>
-                  <p className="text-sm text-ink-700 dark:text-ink-300 mt-0.5 leading-snug">
+                  <p className="text-sm text-ink-700 mt-0.5 leading-snug">
                     {summary(n)}
                   </p>
                   <div className="flex items-center gap-3 mt-2">
@@ -286,7 +286,7 @@ export function NotificationFeedClient() {
                           target={action.href.startsWith("http") ? "_blank" : undefined}
                           rel={action.href.startsWith("http") ? "noreferrer" : undefined}
                           onClick={() => void markOneRead(n.id)}
-                          className="text-xs font-semibold text-brand-700 dark:text-brand-300 hover:underline"
+                          className="text-xs font-semibold text-brand-700 hover:underline"
                         >
                           {action.label} →
                         </a>
@@ -294,7 +294,7 @@ export function NotificationFeedClient() {
                         <Link
                           href={action.href}
                           onClick={() => void markOneRead(n.id)}
-                          className="text-xs font-semibold text-brand-700 dark:text-brand-300 hover:underline"
+                          className="text-xs font-semibold text-brand-700 hover:underline"
                         >
                           {action.label} →
                         </Link>
@@ -303,7 +303,7 @@ export function NotificationFeedClient() {
                       <button
                         type="button"
                         onClick={() => void markOneRead(n.id)}
-                        className="text-xs text-ink-500 dark:text-ink-400 hover:text-ink-800 dark:hover:text-ink-200"
+                        className="text-xs text-ink-500 hover:text-ink-800"
                       >
                         Mark read
                       </button>

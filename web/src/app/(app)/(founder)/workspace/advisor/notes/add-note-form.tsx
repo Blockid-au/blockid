@@ -78,7 +78,7 @@ export function AddNoteForm({ clientId }: { clientId: string }) {
           required
           rows={5}
           aria-invalid={error ? true : undefined}
-          className="mt-1 block w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-ink-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           placeholder="What did you discuss? Next actions? Blockers?"
         />
       </label>

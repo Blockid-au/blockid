@@ -45,11 +45,11 @@ export interface PhaseSeriesPoint {
 /** Tailwind class pack per phase-readiness band (matches tile UX contract). */
 export const PHASE_BAND_CLASS: Record<ReadinessBand, string> = {
   "investor-ready":
-    "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200",
+    "bg-emerald-100 text-emerald-800",
   "warming-up":
-    "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
+    "bg-amber-100 text-amber-800",
   "not-ready":
-    "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200",
+    "bg-rose-100 text-rose-800",
 };
 
 /**
@@ -131,20 +131,20 @@ export function bandOf(score: number): Band {
     return {
       label: "investor-ready",
       klass:
-        "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200",
+        "bg-emerald-100 text-emerald-800",
     };
   }
   if (score >= 50) {
     return {
       label: "warming up",
       klass:
-        "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200",
+        "bg-amber-100 text-amber-800",
     };
   }
   return {
     label: "not ready",
     klass:
-      "bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-200",
+      "bg-rose-100 text-rose-800",
   };
 }
 

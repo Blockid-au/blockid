@@ -117,10 +117,10 @@ export function InvestorPackGenerateClient({ preview }: Props): React.ReactEleme
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <div className="mb-6">
-        <h1 className="text-xl font-bold text-ink-800 dark:text-slate-100">
+        <h1 className="text-xl font-bold text-ink-800">
           Generate investor pack
         </h1>
-        <p className="text-sm text-ink-600 dark:text-slate-400 mt-1">
+        <p className="text-sm text-ink-600 mt-1">
           Assembles your SVI, valuation, fundraise readiness, AU comparables,
           team and cap table into a single PDF you can send to investors.
         </p>
@@ -128,73 +128,73 @@ export function InvestorPackGenerateClient({ preview }: Props): React.ReactEleme
 
       <section
         aria-labelledby="pack-preview"
-        className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5 mb-4"
+        className="rounded-xl border border-slate-200 bg-white p-5 mb-4"
       >
         <h2
           id="pack-preview"
-          className="text-sm font-semibold text-ink-800 dark:text-slate-100 mb-3"
+          className="text-sm font-semibold text-ink-800 mb-3"
         >
           What will land in the pack
         </h2>
         <dl className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
           <div>
-            <dt className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <dt className="text-xs uppercase tracking-wider text-slate-500">
               Startup
             </dt>
-            <dd className="mt-1 text-sm font-semibold text-ink-800 dark:text-slate-100">
+            <dd className="mt-1 text-sm font-semibold text-ink-800">
               {preview.project.name}
             </dd>
           </div>
           <div>
-            <dt className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <dt className="text-xs uppercase tracking-wider text-slate-500">
               SVI
             </dt>
-            <dd className="mt-1 text-sm font-semibold text-brand-700 dark:text-brand-300">
+            <dd className="mt-1 text-sm font-semibold text-brand-700">
               {preview.svi.grade}{" "}
-              <span className="text-slate-500 dark:text-slate-400 font-normal">
+              <span className="text-slate-500 font-normal">
                 · {preview.svi.total}
               </span>
             </dd>
           </div>
           <div>
-            <dt className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <dt className="text-xs uppercase tracking-wider text-slate-500">
               Valuation
             </dt>
-            <dd className="mt-1 text-sm font-semibold text-ink-800 dark:text-slate-100">
+            <dd className="mt-1 text-sm font-semibold text-ink-800">
               {formatAud(preview.valuation.lowAud)} –{" "}
               {formatAud(preview.valuation.highAud)}
             </dd>
           </div>
           <div>
-            <dt className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <dt className="text-xs uppercase tracking-wider text-slate-500">
               Readiness
             </dt>
-            <dd className="mt-1 text-sm text-ink-800 dark:text-slate-100">
+            <dd className="mt-1 text-sm text-ink-800">
               {bandLabel(preview.checklist.band)}{" "}
-              <span className="text-slate-500 dark:text-slate-400">
+              <span className="text-slate-500">
                 · {preview.checklist.score}/100
               </span>
             </dd>
           </div>
           <div>
-            <dt className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <dt className="text-xs uppercase tracking-wider text-slate-500">
               Sector
             </dt>
-            <dd className="mt-1 text-sm text-ink-800 dark:text-slate-100">
+            <dd className="mt-1 text-sm text-ink-800">
               {preview.project.sector ?? "Not set"}
             </dd>
           </div>
           <div>
-            <dt className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+            <dt className="text-xs uppercase tracking-wider text-slate-500">
               Cost
             </dt>
-            <dd className="mt-1 text-sm text-ink-800 dark:text-slate-100">
+            <dd className="mt-1 text-sm text-ink-800">
               5 credits
             </dd>
           </div>
         </dl>
 
-        <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
+        <ul className="text-xs text-slate-600 space-y-1">
           {sections.map((sec) => (
             <li key={sec.label} className="flex items-center gap-2">
               <span
@@ -202,10 +202,10 @@ export function InvestorPackGenerateClient({ preview }: Props): React.ReactEleme
                 className={
                   sec.ok
                     ? "inline-block h-2 w-2 rounded-full bg-emerald-500"
-                    : "inline-block h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-600"
+                    : "inline-block h-2 w-2 rounded-full bg-slate-300"
                 }
               />
-              <span className={sec.ok ? "" : "text-slate-500 dark:text-slate-400"}>
+              <span className={sec.ok ? "" : "text-slate-500"}>
                 {sec.label}
                 {sec.ok ? "" : " — will render as “Not yet on file”"}
               </span>
@@ -216,14 +216,14 @@ export function InvestorPackGenerateClient({ preview }: Props): React.ReactEleme
 
       <form
         onSubmit={handleGenerate}
-        className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5 mb-4"
+        className="rounded-xl border border-slate-200 bg-white p-5 mb-4"
       >
         <fieldset className="space-y-4" disabled={status === "loading"}>
           <legend className="sr-only">Investor pack overrides</legend>
           <div>
             <label
               htmlFor="raise-amount"
-              className="block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400"
+              className="block text-xs font-medium uppercase tracking-wider text-slate-500"
             >
               Raise amount (AUD) — optional
             </label>
@@ -235,9 +235,9 @@ export function InvestorPackGenerateClient({ preview }: Props): React.ReactEleme
               placeholder="e.g. 1500000"
               value={raiseAmount}
               onChange={(e) => setRaiseAmount(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-ink-800 dark:text-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+              className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
             />
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            <p className="mt-1 text-xs text-slate-500">
               Leave blank to omit an ask; the pack will show &ldquo;Amount
               pending&rdquo;.
             </p>
@@ -245,7 +245,7 @@ export function InvestorPackGenerateClient({ preview }: Props): React.ReactEleme
           <div>
             <label
               htmlFor="use-of-funds"
-              className="block text-xs font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400"
+              className="block text-xs font-medium uppercase tracking-wider text-slate-500"
             >
               Use of funds — optional
             </label>
@@ -257,16 +257,16 @@ export function InvestorPackGenerateClient({ preview }: Props): React.ReactEleme
               placeholder="e.g. 40% engineering, 35% GTM, 20% hires, 5% runway"
               value={useOfFunds}
               onChange={(e) => setUseOfFunds(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-ink-800 dark:text-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+              className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
             />
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+            <p className="mt-1 text-xs text-slate-500">
               Blank falls back to the default splits described in the pack.
             </p>
           </div>
           {errorMsg && (
             <div
               role="alert"
-              className="rounded-md border border-red-300 dark:border-red-700 bg-red-50 dark:bg-red-950/40 px-3 py-2 text-sm text-red-800 dark:text-red-200"
+              className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800"
             >
               {errorMsg}
             </div>
@@ -278,14 +278,14 @@ export function InvestorPackGenerateClient({ preview }: Props): React.ReactEleme
             >
               {status === "loading" ? "Generating…" : "Generate PDF"}
             </button>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-500">
               5 credits · downloads immediately.
             </p>
           </div>
         </fieldset>
       </form>
 
-      <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
+      <p className="text-xs text-slate-500 leading-relaxed">
         General information only. Not financial advice. Comparables from public
         reporting. Prepared by {legalLine()}.
       </p>

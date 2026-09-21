@@ -155,7 +155,7 @@ export function ProductTour(): React.ReactElement | null {
       role="status"
       aria-live="polite"
       data-testid="product-tour-banner"
-      className="border-b border-brand-300 bg-brand-50 text-brand-900 dark:bg-brand-900/30 dark:border-brand-700 dark:text-brand-100 px-4 py-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4"
+      className="border-b border-brand-300 bg-brand-50 text-brand-900 px-4 py-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4"
     >
       <span className="text-sm font-medium flex-1 flex items-center gap-2">
         <MapPin strokeWidth={1.75} className="h-4 w-4 shrink-0" aria-hidden />

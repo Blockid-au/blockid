@@ -224,28 +224,28 @@ export function SviExplainerCard({ analysis }: Props) {
         {/* Top / bottom contributors */}
         <div className="space-y-4">
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mb-2 flex items-center gap-1.5">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 mb-2 flex items-center gap-1.5">
               <ArrowUpRight className="h-3 w-3" /> Top contributors
             </p>
             <div className="space-y-1.5">
               {top3.map((s) => (
-                <div key={s.key} className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg bg-emerald-50/40 dark:bg-emerald-950/15">
+                <div key={s.key} className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg bg-emerald-50/40">
                   <span className="text-xs font-medium">{DIMENSION_GUIDES[s.key]?.title ?? s.label}</span>
-                  <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 tabular-nums">{s.adjustment >= 0 ? "+" : ""}{s.adjustment.toFixed(1)}</span>
+                  <span className="text-xs font-bold text-emerald-700 tabular-nums">{s.adjustment >= 0 ? "+" : ""}{s.adjustment.toFixed(1)}</span>
                 </div>
               ))}
             </div>
           </div>
 
           <div>
-            <p className="text-[11px] font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-2 flex items-center gap-1.5">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-amber-700 mb-2 flex items-center gap-1.5">
               <ArrowDownRight className="h-3 w-3" /> Biggest drags (highest leverage to fix)
             </p>
             <div className="space-y-1.5">
               {bottom3.map((s) => (
-                <div key={s.key} className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg bg-amber-50/40 dark:bg-amber-950/15">
+                <div key={s.key} className="flex items-center justify-between gap-2 px-3 py-1.5 rounded-lg bg-amber-50/40">
                   <span className="text-xs font-medium">{DIMENSION_GUIDES[s.key]?.title ?? s.label}</span>
-                  <span className="text-xs font-bold text-amber-700 dark:text-amber-400 tabular-nums">{s.adjustment >= 0 ? "+" : ""}{s.adjustment.toFixed(1)}</span>
+                  <span className="text-xs font-bold text-amber-700 tabular-nums">{s.adjustment >= 0 ? "+" : ""}{s.adjustment.toFixed(1)}</span>
                 </div>
               ))}
             </div>
@@ -267,9 +267,9 @@ export function SviExplainerCard({ analysis }: Props) {
       </div>
 
       {/* AI insight */}
-      <div className="rounded-xl bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800/40 p-3 flex items-start gap-2">
+      <div className="rounded-xl bg-blue-50 border border-blue-200 p-3 flex items-start gap-2">
         <Sparkles className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
-        <p className="text-xs text-blue-900 dark:text-blue-300 leading-relaxed">
+        <p className="text-xs text-blue-900 leading-relaxed">
           The 3 amber rows above are your highest-leverage fixes. Closing them typically lifts SVI by{" "}
           <strong>10–25 points</strong> within 30 days. Each row links to the exact tool you need.
         </p>

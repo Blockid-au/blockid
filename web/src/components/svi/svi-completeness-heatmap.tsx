@@ -33,22 +33,22 @@ const DIMENSION_LABELS: Record<string, string> = {
 function colorClasses(pct: number): { cell: string; bar: string; text: string } {
   if (pct >= 70) {
     return {
-      cell: "border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950/40",
+      cell: "border-emerald-200 bg-emerald-50",
       bar: "bg-emerald-500",
-      text: "text-emerald-700 dark:text-emerald-400",
+      text: "text-emerald-700",
     };
   }
   if (pct >= 40) {
     return {
-      cell: "border-amber-200 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/40",
+      cell: "border-amber-200 bg-amber-50",
       bar: "bg-amber-400",
-      text: "text-amber-700 dark:text-amber-400",
+      text: "text-amber-700",
     };
   }
   return {
-    cell: "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950/40",
+    cell: "border-red-200 bg-red-50",
     bar: "bg-red-500",
-    text: "text-red-700 dark:text-red-400",
+    text: "text-red-700",
   };
 }
 
@@ -161,29 +161,29 @@ export function SviCompletenessHeatmap({ projectId, className }: SviCompleteness
               type="button"
               onClick={() => setSelectedDim(dim)}
               className={cn(
-                "min-h-[44px] rounded-lg border p-3 text-left transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-950",
-                "target:ring-2 target:ring-brand-500 target:ring-offset-2 target:ring-offset-white dark:target:ring-offset-ink-950",
+                "min-h-[44px] rounded-lg border p-3 text-left transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+                "target:ring-2 target:ring-brand-500 target:ring-offset-2 target:ring-offset-white",
                 colors.cell
               )}
             >
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-xs font-bold tracking-wider text-ink-800 dark:text-ink-100">
+                <span className="text-xs font-bold tracking-wider text-ink-800">
                   {DIMENSION_SHORT[dim.dimension] ?? dim.dimension.toUpperCase()}
                 </span>
                 <span className={cn("text-xs font-semibold tabular-nums", colors.text)}>
                   {pct}%
                 </span>
               </div>
-              <p className="text-[10px] text-ink-500 dark:text-ink-400 mb-2 leading-tight">
+              <p className="text-[10px] text-ink-500 mb-2 leading-tight">
                 {DIMENSION_LABELS[dim.dimension] ?? dim.dimension}
               </p>
-              <div className="h-1.5 w-full rounded-full bg-ink-200 dark:bg-ink-700 overflow-hidden">
+              <div className="h-1.5 w-full rounded-full bg-ink-200 overflow-hidden">
                 <div
                   className={cn("h-full rounded-full transition-all", colors.bar)}
                   style={{ width: `${pct}%` }}
                 />
               </div>
-              <p className="text-[10px] text-muted dark:text-ink-500 mt-1 tabular-nums">
+              <p className="text-[10px] text-muted mt-1 tabular-nums">
                 {dim.totalPresent}/{dim.totalPossible} items
               </p>
             </button>
@@ -201,22 +201,22 @@ export function SviCompletenessHeatmap({ projectId, className }: SviCompleteness
           onClick={() => setSelectedDim(null)}
         >
           <div
-            className="relative w-full max-w-md rounded-xl border border-ink-200 bg-white dark:border-ink-700 dark:bg-ink-900 shadow-xl p-5"
+            className="relative w-full max-w-md rounded-xl border border-ink-200 bg-white shadow-xl p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between mb-4">
               <div>
-                <span className="text-xs font-bold tracking-widest text-muted dark:text-ink-500">
+                <span className="text-xs font-bold tracking-widest text-muted">
                   {DIMENSION_SHORT[selectedDim.dimension] ?? selectedDim.dimension.toUpperCase()}
                 </span>
-                <h3 id="svi-heatmap-modal-title" className="text-sm font-semibold text-ink-800 dark:text-ink-100 leading-tight">
+                <h3 id="svi-heatmap-modal-title" className="text-sm font-semibold text-ink-800 leading-tight">
                   {DIMENSION_LABELS[selectedDim.dimension] ?? selectedDim.dimension} — {selectedDim.completenessPercent}% complete
                 </h3>
               </div>
               <button
                 type="button"
                 aria-label="Close dimension details"
-                className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md text-ink-500 dark:text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900 transition-colors shrink-0"
+                className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md text-ink-500 hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors shrink-0"
                 onClick={() => setSelectedDim(null)}
               >
                 <X className="h-4 w-4" aria-hidden="true" />

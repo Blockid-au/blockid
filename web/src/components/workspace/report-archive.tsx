@@ -299,7 +299,7 @@ export function ReportArchive({
       <section aria-labelledby="archive-compact-heading" className="mt-4">
         <h2
           id="archive-compact-heading"
-          className="text-sm font-semibold text-ink-800 dark:text-slate-100 mb-2"
+          className="text-sm font-semibold text-ink-800 mb-2"
         >
           Previously generated
         </h2>

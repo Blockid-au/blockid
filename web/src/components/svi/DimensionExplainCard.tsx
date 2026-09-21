@@ -156,7 +156,7 @@ export function DimensionExplainCard({ data, locale = "en", variant = "full", hr
       )}
 
       {data.nextAction && (
-        <div data-explain-next-action className="rounded-lg border border-brand-300 dark:border-brand-800 bg-surface px-2.5 py-1.5">
+        <div data-explain-next-action className="rounded-lg border border-brand-300 bg-surface px-2.5 py-1.5">
           <p className={LABEL}>{t.nextAction}</p>
           <p className="flex flex-wrap items-center gap-1.5 text-xs">
             {data.nextAction.href ? (

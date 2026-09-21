@@ -175,14 +175,14 @@ export default function EquityOfferRequestPage() {
 
   if (success) {
     return (
-      <main className="min-h-screen bg-slate-50 dark:bg-slate-950">
+      <main className="min-h-screen bg-slate-50">
         <div className="mx-auto max-w-2xl p-6 pt-16">
-          <div className="rounded-2xl border border-emerald-200 dark:border-emerald-800 bg-white dark:bg-slate-900 p-8 shadow-sm">
+          <div className="rounded-2xl border border-emerald-200 bg-white p-8 shadow-sm">
             <div className="text-4xl">✓</div>
-            <h1 className="mt-4 text-2xl font-semibold text-slate-900 dark:text-slate-100">
+            <h1 className="mt-4 text-2xl font-semibold text-slate-900">
               Thank you.
             </h1>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+            <p className="mt-2 text-sm text-slate-600">
               We will contact you within 3 business days. Nothing has been
               issued and no securities transaction has occurred — this
               intake is a request-a-call only.
@@ -190,7 +190,7 @@ export default function EquityOfferRequestPage() {
             <div className="mt-6 flex gap-3">
               <Link
                 href="/workspace/esop/offers"
-                className="rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 Back to overview
               </Link>
@@ -210,34 +210,34 @@ export default function EquityOfferRequestPage() {
 
   // No workspace shell on this page, so the wrapper IS the <main> landmark (G20-sweep).
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-slate-950">
+    <main className="min-h-screen bg-slate-50">
       <div className="mx-auto max-w-2xl p-6 pt-10 pb-16">
         <div className="mb-4">
           <Link
             href="/workspace/esop/offers"
-            className="text-sm text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200"
+            className="text-sm text-slate-500 hover:text-slate-700"
           >
             ← Back to Equity Offer overview
           </Link>
         </div>
 
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+        <h1 className="text-2xl font-bold text-slate-900">
           Request a Call
         </h1>
-        <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        <p className="mt-1 text-sm text-slate-600">
           This is a request-a-call intake only. No securities are being
           offered or issued through this form.
         </p>
 
         <form
           onSubmit={onSubmit}
-          className="mt-6 space-y-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6"
+          className="mt-6 space-y-6 rounded-2xl border border-slate-200 bg-white p-6"
         >
           {/* 1. Company name */}
           <div>
             <label
               htmlFor="company_name"
-              className="block text-sm font-medium text-slate-900 dark:text-slate-100"
+              className="block text-sm font-medium text-slate-900"
             >
               Company name
             </label>
@@ -250,7 +250,7 @@ export default function EquityOfferRequestPage() {
               onChange={(e) =>
                 setForm((p) => ({ ...p, companyName: e.target.value }))
               }
-              className="mt-1 block w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
           </div>
 
@@ -258,7 +258,7 @@ export default function EquityOfferRequestPage() {
           <div>
             <label
               htmlFor="stage"
-              className="block text-sm font-medium text-slate-900 dark:text-slate-100"
+              className="block text-sm font-medium text-slate-900"
             >
               Stage
             </label>
@@ -269,7 +269,7 @@ export default function EquityOfferRequestPage() {
               onChange={(e) =>
                 setForm((p) => ({ ...p, stage: e.target.value as Stage }))
               }
-              className="mt-1 block w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
             >
               <option value="">Select a stage…</option>
               {STAGE_OPTIONS.map((o) => (
@@ -285,11 +285,11 @@ export default function EquityOfferRequestPage() {
             <div className="flex items-baseline justify-between">
               <label
                 htmlFor="equity_pct"
-                className="block text-sm font-medium text-slate-900 dark:text-slate-100"
+                className="block text-sm font-medium text-slate-900"
               >
                 Proposed equity band
               </label>
-              <span className="text-sm font-semibold text-brand-700 dark:text-brand-300">
+              <span className="text-sm font-semibold text-brand-700">
                 {form.equityPct.toFixed(1)}%
               </span>
             </div>
@@ -308,7 +308,7 @@ export default function EquityOfferRequestPage() {
               }
               className="mt-2 block w-full accent-brand-600"
             />
-            <div className="mt-1 flex justify-between text-xs text-slate-500 dark:text-slate-400">
+            <div className="mt-1 flex justify-between text-xs text-slate-500">
               <span>5%</span>
               <span>15%</span>
             </div>
@@ -317,7 +317,7 @@ export default function EquityOfferRequestPage() {
           {/* 4. Scope multi-select */}
           <div>
             <fieldset>
-              <legend className="block text-sm font-medium text-slate-900 dark:text-slate-100">
+              <legend className="block text-sm font-medium text-slate-900">
                 Scope (select all that apply)
               </legend>
               <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -328,8 +328,8 @@ export default function EquityOfferRequestPage() {
                       key={opt.value}
                       className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm cursor-pointer ${
                         checked
-                          ? "border-brand-500 bg-brand-50 dark:bg-brand-950/30 text-brand-900 dark:text-brand-100"
-                          : "border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                          ? "border-brand-500 bg-brand-50 text-brand-900"
+                          : "border-slate-300 text-slate-700 hover:bg-slate-50"
                       }`}
                     >
                       <input
@@ -350,7 +350,7 @@ export default function EquityOfferRequestPage() {
           <div>
             <label
               htmlFor="message"
-              className="block text-sm font-medium text-slate-900 dark:text-slate-100"
+              className="block text-sm font-medium text-slate-900"
             >
               Message
             </label>
@@ -365,32 +365,32 @@ export default function EquityOfferRequestPage() {
                 setForm((p) => ({ ...p, message: e.target.value }))
               }
               placeholder="Tell us about your company, why an equity-for-solution model works for you, and what you would like to achieve in the first 90 days."
-              className="mt-1 block w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
             />
             <div className="mt-1 flex justify-between text-xs">
               <span
                 className={
                   messageCount < MIN_MESSAGE_CHARS
-                    ? "text-amber-600 dark:text-amber-400"
-                    : "text-slate-500 dark:text-slate-400"
+                    ? "text-amber-600"
+                    : "text-slate-500"
                 }
               >
                 {messageCount < MIN_MESSAGE_CHARS
                   ? `${MIN_MESSAGE_CHARS - messageCount} more characters required`
                   : "Looks good"}
               </span>
-              <span className="text-slate-400 dark:text-slate-500">
+              <span className="text-slate-400">
                 {messageCount} / 5000
               </span>
             </div>
           </div>
 
           {/* Consent block */}
-          <div className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 p-4 space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-amber-800 dark:text-amber-200">
+          <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 space-y-3">
+            <p className="text-xs font-semibold uppercase tracking-wider text-amber-800">
               Required acknowledgements
             </p>
-            <label className="flex items-start gap-2 text-sm text-amber-900 dark:text-amber-100">
+            <label className="flex items-start gap-2 text-sm text-amber-900">
               <input
                 type="checkbox"
                 checked={form.ackDisclaimer}
@@ -404,7 +404,7 @@ export default function EquityOfferRequestPage() {
                 page.
               </span>
             </label>
-            <label className="flex items-start gap-2 text-sm text-amber-900 dark:text-amber-100">
+            <label className="flex items-start gap-2 text-sm text-amber-900">
               <input
                 type="checkbox"
                 checked={form.ackIndependentCounsel}
@@ -426,7 +426,7 @@ export default function EquityOfferRequestPage() {
           {error && (
             <div
               role="alert"
-              className="rounded-lg border border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 p-3 text-sm text-rose-800 dark:text-rose-200"
+              className="rounded-lg border border-rose-300 bg-rose-50 p-3 text-sm text-rose-800"
             >
               {error}
               {nextEligibleAt && (
@@ -444,12 +444,12 @@ export default function EquityOfferRequestPage() {
               className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ${
                 canSubmit
                   ? "bg-brand-600 hover:bg-brand-700 text-white"
-                  : "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-500 cursor-not-allowed"
+                  : "bg-slate-200 text-slate-500 cursor-not-allowed"
               }`}
             >
               {submitting ? "Submitting…" : "Submit request"}
             </button>
-            <span className="text-xs text-slate-500 dark:text-slate-400">
+            <span className="text-xs text-slate-500">
               No securities issued at submission.
             </span>
           </div>

@@ -54,7 +54,7 @@ function StepBreadcrumb({ current }: { current: Step }) {
   const idx = steps.findIndex((s) => s.key === current);
   return (
     <ol
-      className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-ink-500 dark:text-ink-400"
+      className="flex items-center gap-2 text-[11px] font-medium uppercase tracking-[0.14em] text-ink-500"
       aria-label={`Step ${idx + 1} of ${steps.length}`}
     >
       {steps.map((s, i) => {
@@ -67,7 +67,7 @@ function StepBreadcrumb({ current }: { current: Step }) {
                 "inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold tabular-nums",
                 active && "bg-brand-600 text-white",
                 done && "bg-bull text-white",
-                !active && !done && "bg-ink-200 text-ink-600 dark:bg-ink-800 dark:text-ink-400",
+                !active && !done && "bg-ink-200 text-ink-600",
               )}
               aria-hidden="true"
             >
@@ -75,14 +75,14 @@ function StepBreadcrumb({ current }: { current: Step }) {
             </span>
             <span
               className={cn(
-                active && "text-brand-700 dark:text-brand-300",
-                done && "text-emerald-700 dark:text-emerald-400",
+                active && "text-brand-700",
+                done && "text-emerald-700",
               )}
             >
               {s.label}
             </span>
             {i < steps.length - 1 && (
-              <span className="text-muted dark:text-ink-700" aria-hidden="true">
+              <span className="text-muted" aria-hidden="true">
                 →
               </span>
             )}
@@ -326,10 +326,10 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
     <div className="space-y-6">
       <header className="flex items-start justify-between gap-3 flex-wrap">
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-ink-900 dark:text-ink-100">
+          <h1 className="text-2xl font-bold text-ink-900">
             Pitchdeck Analysis
           </h1>
-          <p className="text-sm text-ink-600 dark:text-ink-400 max-w-3xl">
+          <p className="text-sm text-ink-600 max-w-3xl">
             Upload your deck. We&rsquo;ll classify how well each of the 8 SVI
             dimensions is covered, then let you pick which ones to analyse —
             free where the deck has evidence, credit-gated when you want us
@@ -339,13 +339,13 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
         {credits && (
           <Link
             href="/workspace/billing"
-            className="inline-flex items-center gap-2 rounded-lg border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 px-3 py-2 text-xs font-medium text-ink-700 dark:text-ink-300 hover:border-brand-500 hover:text-brand-700 dark:hover:text-brand-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-950 transition-colors shrink-0"
+            className="inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-3 py-2 text-xs font-medium text-ink-700 hover:border-brand-500 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors shrink-0"
             aria-label={`Credit balance ${credits.balance.toFixed(2)} — go to billing`}
           >
-            <Wallet className="h-3.5 w-3.5 text-brand-600 dark:text-brand-400" aria-hidden="true" />
+            <Wallet className="h-3.5 w-3.5 text-brand-600" aria-hidden="true" />
             <span className="tabular-nums">{credits.balance.toFixed(2)} cr</span>
-            <span className="text-muted dark:text-ink-500">·</span>
-            <span className="text-ink-500 dark:text-ink-400">{credits.plan}</span>
+            <span className="text-muted">·</span>
+            <span className="text-ink-500">{credits.plan}</span>
           </Link>
         )}
       </header>
@@ -354,9 +354,9 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
 
       {/* Step 1 — Upload */}
       {step === "upload" && (
-        <div className="rounded-xl border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 p-6 space-y-4">
+        <div className="rounded-xl border border-ink-200 bg-white p-6 space-y-4">
           <div>
-            <label htmlFor="deck-file" className="text-sm font-semibold text-ink-800 dark:text-ink-100">
+            <label htmlFor="deck-file" className="text-sm font-semibold text-ink-800">
               Choose your deck (PDF or DOCX, up to 10 MB)
             </label>
             {/* Drag-and-drop dropzone — clickable to open the file picker,
@@ -376,14 +376,14 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
               }}
               className={cn(
                 "mt-2 flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed px-6 py-8 cursor-pointer transition-colors",
-                "focus-within:ring-2 focus-within:ring-brand-500 focus-within:ring-offset-2 focus-within:ring-offset-white dark:focus-within:ring-offset-ink-900",
+                "focus-within:ring-2 focus-within:ring-brand-500 focus-within:ring-offset-2 focus-within:ring-offset-white",
                 isDragging
-                  ? "border-brand-500 bg-brand-50 dark:bg-brand-950/30"
-                  : "border-ink-300 dark:border-ink-700 hover:border-brand-400 hover:bg-ink-50/40 dark:hover:bg-ink-950/40",
+                  ? "border-brand-500 bg-brand-50"
+                  : "border-ink-300 hover:border-brand-400 hover:bg-ink-50/40",
               )}
             >
-              <Upload className="h-6 w-6 text-brand-600 dark:text-brand-400" aria-hidden="true" />
-              <p className="text-sm font-medium text-ink-700 dark:text-ink-300">
+              <Upload className="h-6 w-6 text-brand-600" aria-hidden="true" />
+              <p className="text-sm font-medium text-ink-700">
                 {file ? (
                   <span className="inline-flex items-center gap-1">
                     <FileText className="h-3.5 w-3.5" /> {file.name} · {(file.size / 1024).toFixed(1)} KB
@@ -392,7 +392,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
                   "Drop your deck here or click to browse"
                 )}
               </p>
-              <p className="text-[11px] text-ink-500 dark:text-ink-400">
+              <p className="text-[11px] text-ink-500">
                 PDF or DOCX · max 10 MB · nothing charged at this step
               </p>
               <input
@@ -404,20 +404,20 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
               />
             </label>
           </div>
-          <div className="text-xs text-ink-500 dark:text-ink-400 flex items-center gap-2">
-            <span className="h-px flex-1 bg-ink-200 dark:bg-ink-800" />
+          <div className="text-xs text-ink-500 flex items-center gap-2">
+            <span className="h-px flex-1 bg-ink-200" />
             <span>or paste raw pitch text</span>
-            <span className="h-px flex-1 bg-ink-200 dark:bg-ink-800" />
+            <span className="h-px flex-1 bg-ink-200" />
           </div>
           <textarea
             value={pastedText}
             onChange={(e) => setPastedText(e.target.value)}
             placeholder="Paste your executive summary, elevator pitch, or a rough combo of team + traction bullets…"
             rows={5}
-            className="w-full rounded-md border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-950 px-3 py-2 text-sm text-ink-800 dark:text-ink-100 placeholder:text-muted dark:placeholder:text-ink-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           />
           {error && (
-            <p className="text-xs text-red-700 dark:text-red-400" role="alert">
+            <p className="text-xs text-red-700" role="alert">
               {error}
             </p>
           )}
@@ -428,7 +428,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
                 setFile(null);
                 setPastedText(SAMPLE_PITCH);
               }}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-700 dark:text-brand-300 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
             >
               <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
               Try a sample deck (paste example text)
@@ -439,7 +439,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
               disabled={busy || (!file && pastedText.trim().length < 40)}
               className={cn(
                 "inline-flex items-center justify-center min-h-[44px] rounded-lg px-5 text-sm font-semibold text-primary transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
                 busy || (!file && pastedText.trim().length < 40)
                   ? "bg-brand-300 cursor-not-allowed opacity-70"
                   : "bg-brand-600 hover:bg-brand-700",
@@ -457,18 +457,18 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
 
       {/* Step 2 — Coverage & selection */}
       {step === "coverage" && (
-        <div className="rounded-xl border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-900 p-6 space-y-5">
+        <div className="rounded-xl border border-ink-200 bg-white p-6 space-y-5">
           {/* Post-classify value teaser — turns the raw heatmap into a
               narrative + gives the founder a baseline number to react to
               before they see the credit-cost cell chips. */}
-          <div className="rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-950/30 p-4 space-y-2">
-            <p className="text-xs uppercase tracking-[0.14em] font-semibold text-brand-700 dark:text-brand-300">
+          <div className="rounded-lg border border-brand-200 bg-brand-50/60 p-4 space-y-2">
+            <p className="text-xs uppercase tracking-[0.14em] font-semibold text-brand-700">
               What we found in your deck
             </p>
-            <p className="text-sm text-ink-800 dark:text-ink-100 leading-relaxed">
-              <strong className="tabular-nums text-emerald-700 dark:text-emerald-400">{coverageStats.strong}</strong> strong ·{" "}
-              <strong className="tabular-nums text-amber-700 dark:text-amber-400">{coverageStats.partial}</strong> partial ·{" "}
-              <strong className="tabular-nums text-red-700 dark:text-red-400">{coverageStats.missing}</strong> missing dimensions.
+            <p className="text-sm text-ink-800 leading-relaxed">
+              <strong className="tabular-nums text-emerald-700">{coverageStats.strong}</strong> strong ·{" "}
+              <strong className="tabular-nums text-amber-700">{coverageStats.partial}</strong> partial ·{" "}
+              <strong className="tabular-nums text-red-700">{coverageStats.missing}</strong> missing dimensions.
               {baselineSvi !== null && (
                 <>
                   {" "}Baseline SVI on the free dims alone ≈{" "}
@@ -476,23 +476,23 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
                     className={cn(
                       "tabular-nums text-base",
                       baselineSvi >= 70
-                        ? "text-emerald-700 dark:text-emerald-300"
+                        ? "text-emerald-700"
                         : baselineSvi >= 40
-                          ? "text-amber-700 dark:text-amber-300"
-                          : "text-red-700 dark:text-red-300",
+                          ? "text-amber-700"
+                          : "text-red-700",
                     )}
                   >
                     {baselineSvi}/100
                   </strong>
                   {baselineSvi < 70 && (
-                    <span className="text-ink-600 dark:text-ink-400">
+                    <span className="text-ink-600">
                       {" "}— add missing dims to close the gap to 70+ (investor-ready).
                     </span>
                   )}
                 </>
               )}
             </p>
-            <p className="text-[11px] text-ink-500 dark:text-ink-400">
+            <p className="text-[11px] text-ink-500">
               The real analysis (below) will refine each score with deck excerpts + AU sector benchmarks.
             </p>
           </div>
@@ -500,11 +500,11 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
             <button
               type="button"
               onClick={() => setSelected(new Set(Object.keys(coverage)))}
-              className="text-[11px] font-medium text-brand-700 dark:text-brand-300 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded px-1"
+              className="text-[11px] font-medium text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded px-1"
             >
               Select all 8
             </button>
-            <span className="text-muted dark:text-ink-700">·</span>
+            <span className="text-muted">·</span>
             <button
               type="button"
               onClick={() => {
@@ -514,15 +514,15 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
                 }
                 setSelected(freeOnly);
               }}
-              className="text-[11px] font-medium text-brand-700 dark:text-brand-300 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded px-1"
+              className="text-[11px] font-medium text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded px-1"
             >
               Free only
             </button>
-            <span className="text-muted dark:text-ink-700">·</span>
+            <span className="text-muted">·</span>
             <button
               type="button"
               onClick={() => setSelected(new Set())}
-              className="text-[11px] font-medium text-ink-600 dark:text-ink-400 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded px-1"
+              className="text-[11px] font-medium text-ink-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded px-1"
             >
               Clear
             </button>
@@ -536,8 +536,8 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
           {/* Insufficient-credits panel — replaces the generic error banner
               when the user hits the 402 gate, offering a direct path to Billing. */}
           {insufficient && (
-            <div className="rounded-lg border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/30 p-4 flex items-start justify-between gap-3 flex-wrap">
-              <div className="text-xs text-amber-900 dark:text-amber-200 space-y-1">
+            <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 flex items-start justify-between gap-3 flex-wrap">
+              <div className="text-xs text-amber-900 space-y-1">
                 <p className="font-semibold">
                   Not enough credits — need <span className="tabular-nums">{insufficient.required.toFixed(2)}</span>,
                   you have <span className="tabular-nums">{insufficient.balance.toFixed(2)}</span>
@@ -554,20 +554,20 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
               </Link>
             </div>
           )}
-          <div className="flex items-center justify-between gap-3 flex-wrap pt-1 border-t border-ink-200 dark:border-ink-800">
-            <div className="text-xs text-ink-600 dark:text-ink-400">
-              <strong className="tabular-nums text-sm text-ink-800 dark:text-ink-100">{selected.size}</strong>
+          <div className="flex items-center justify-between gap-3 flex-wrap pt-1 border-t border-ink-200">
+            <div className="text-xs text-ink-600">
+              <strong className="tabular-nums text-sm text-ink-800">{selected.size}</strong>
               {" "}of 8 dimensions selected · speculative cost{" "}
               <strong className={cn(
                 "tabular-nums text-sm",
                 credits && speculativeCost > credits.balance
-                  ? "text-amber-700 dark:text-amber-300"
-                  : "text-brand-700 dark:text-brand-300",
+                  ? "text-amber-700"
+                  : "text-brand-700",
               )}>
                 {speculativeCost.toFixed(2)} cr
               </strong>
               {credits && (
-                <span className="ml-2 text-ink-500 dark:text-ink-400">
+                <span className="ml-2 text-ink-500">
                   (balance {credits.balance.toFixed(2)} cr)
                 </span>
               )}
@@ -576,7 +576,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
               <button
                 type="button"
                 onClick={() => setStep("upload")}
-                className="inline-flex items-center justify-center min-h-[44px] rounded-md px-4 text-xs font-medium text-ink-600 dark:text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900 transition-colors"
+                className="inline-flex items-center justify-center min-h-[44px] rounded-md px-4 text-xs font-medium text-ink-600 hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors"
               >
                 Back
               </button>
@@ -586,7 +586,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
                 disabled={busy || selected.size === 0}
                 className={cn(
                   "inline-flex items-center justify-center min-h-[44px] rounded-lg px-5 text-sm font-semibold text-primary transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
                   busy || selected.size === 0
                     ? "bg-brand-300 cursor-not-allowed opacity-70"
                     : "bg-brand-600 hover:bg-brand-700",
@@ -601,7 +601,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
             </div>
           </div>
           {error && (
-            <p className="text-xs text-red-700 dark:text-red-400" role="alert">
+            <p className="text-xs text-red-700" role="alert">
               {error}
             </p>
           )}
@@ -611,12 +611,12 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
       {/* Step 3 — Streaming analysis */}
       {step === "analyze" && analyzeDims && pitchdeckId && (
         <div className="space-y-4">
-          <div className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 px-4 py-2.5 text-xs text-emerald-800 dark:text-emerald-300">
+          <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 px-4 py-2.5 text-xs text-emerald-800">
             Credits reserved. Streaming analysis for {analyzeDims.length} dimension{analyzeDims.length === 1 ? "" : "s"} below —
             each result appears as the model finishes.
           </div>
           {savedSvi !== null && (
-            <div className="rounded-lg border border-brand-200 dark:border-brand-800 bg-brand-50/60 dark:bg-brand-950/30 px-4 py-2.5 text-xs text-brand-800 dark:text-brand-300 flex items-center gap-2">
+            <div className="rounded-lg border border-brand-200 bg-brand-50/60 px-4 py-2.5 text-xs text-brand-800 flex items-center gap-2">
               <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
               Saved as SVI snapshot ({savedSvi}/100). Score-delta on your next visit will compare from here.
             </div>

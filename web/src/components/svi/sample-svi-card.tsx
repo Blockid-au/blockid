@@ -40,9 +40,9 @@ const SAMPLE_SCORES: Record<string, number> = {
 const SAMPLE_TOTAL = 63;
 
 function scoreBadgeClass(score: number): string {
-  if (score >= 70) return "bg-emerald-100 text-emerald-800 dark:bg-emerald-900 dark:text-emerald-200";
-  if (score >= 40) return "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200";
-  return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+  if (score >= 70) return "bg-emerald-100 text-emerald-800";
+  if (score >= 40) return "bg-amber-100 text-amber-800";
+  return "bg-red-100 text-red-800";
 }
 
 export function SampleSviCard() {
@@ -57,17 +57,17 @@ export function SampleSviCard() {
     <section
       role="figure"
       aria-label="Sample SVI report preview"
-      className="rounded-2xl border border-ink-200 bg-white dark:bg-ink-900 dark:border-ink-800 p-5 md:p-6 space-y-5"
+      className="rounded-2xl border border-ink-200 bg-white p-5 md:p-6 space-y-5"
     >
       {/* Header */}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-5 w-5 text-brand-600 dark:text-brand-400" aria-hidden="true" />
-          <h2 className="text-sm font-semibold text-ink-800 dark:text-ink-100 uppercase tracking-[0.14em]">
+          <Sparkles className="h-5 w-5 text-brand-600" aria-hidden="true" />
+          <h2 className="text-sm font-semibold text-ink-800 uppercase tracking-[0.14em]">
             Sample SVI report
           </h2>
         </div>
-        <span className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/40 border border-amber-300 dark:border-amber-700 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800 dark:text-amber-200">
+        <span className="inline-flex items-center rounded-full bg-amber-100 border border-amber-300 px-2.5 py-0.5 text-[11px] font-semibold text-amber-800">
           Sample — not a real company
         </span>
       </div>
@@ -75,27 +75,27 @@ export function SampleSviCard() {
       {/* Hero score */}
       <div className="flex items-baseline gap-3 flex-wrap">
         <span
-          className="text-5xl md:text-6xl font-bold tabular-nums text-amber-700 dark:text-amber-300"
+          className="text-5xl md:text-6xl font-bold tabular-nums text-amber-700"
           aria-label="Sample SVI 63 out of 100"
         >
           {SAMPLE_TOTAL}
-          <span className="text-2xl text-ink-500 dark:text-ink-400 font-normal">/100</span>
+          <span className="text-2xl text-ink-500 font-normal">/100</span>
         </span>
-        <div className="text-sm text-ink-600 dark:text-ink-400">
-          <p className="font-medium text-ink-800 dark:text-ink-100">Aussie SaaS Co</p>
+        <div className="text-sm text-ink-600">
+          <p className="font-medium text-ink-800">Aussie SaaS Co</p>
           <p className="text-xs">Seed · SaaS · Sydney</p>
         </div>
       </div>
 
       {/* Band legend */}
       <div className="flex items-center gap-1.5 flex-wrap text-[11px]" aria-label="Score band legend">
-        <span className="inline-flex items-center rounded-full px-2 py-0.5 border bg-ink-50 border-ink-200 text-ink-500 dark:bg-ink-900 dark:border-ink-800 dark:text-ink-500">
+        <span className="inline-flex items-center rounded-full px-2 py-0.5 border bg-ink-50 border-ink-200 text-ink-500">
           0–39 · Early
         </span>
-        <span className="inline-flex items-center rounded-full px-2 py-0.5 border bg-amber-100 border-amber-400 text-amber-800 dark:bg-amber-900/40 dark:border-amber-500 dark:text-amber-200 font-semibold">
+        <span className="inline-flex items-center rounded-full px-2 py-0.5 border bg-amber-100 border-amber-400 text-amber-800 font-semibold">
           40–69 · Developing
         </span>
-        <span className="inline-flex items-center rounded-full px-2 py-0.5 border bg-ink-50 border-ink-200 text-ink-500 dark:bg-ink-900 dark:border-ink-800 dark:text-ink-500">
+        <span className="inline-flex items-center rounded-full px-2 py-0.5 border bg-ink-50 border-ink-200 text-ink-500">
           70–100 · Investor-ready
         </span>
       </div>
@@ -107,15 +107,15 @@ export function SampleSviCard() {
           return (
             <div
               key={key}
-              className="rounded-lg border border-ink-200 dark:border-ink-800 bg-ink-50/40 dark:bg-ink-950/30 px-3 py-2.5"
+              className="rounded-lg border border-ink-200 bg-ink-50/40 px-3 py-2.5"
             >
               <div className="flex items-center gap-1.5 mb-1">
-                <meta.Icon className="h-3.5 w-3.5 text-brand-600 dark:text-brand-400 shrink-0" aria-hidden="true" />
-                <span className="text-[11px] font-semibold text-ink-700 dark:text-ink-300 uppercase tracking-wider">
+                <meta.Icon className="h-3.5 w-3.5 text-brand-600 shrink-0" aria-hidden="true" />
+                <span className="text-[11px] font-semibold text-ink-700 uppercase tracking-wider">
                   {meta.short}
                 </span>
               </div>
-              <p className="text-[11px] text-ink-600 dark:text-ink-400 leading-tight mb-1.5">
+              <p className="text-[11px] text-ink-600 leading-tight mb-1.5">
                 {meta.label}
               </p>
               <div className="flex items-center justify-between gap-1">
@@ -127,7 +127,7 @@ export function SampleSviCard() {
                 >
                   {score}
                 </span>
-                <span className="text-[10px] text-ink-600 dark:text-ink-400 tabular-nums">
+                <span className="text-[10px] text-ink-600 tabular-nums">
                   {meta.weight}%
                 </span>
               </div>
@@ -137,16 +137,16 @@ export function SampleSviCard() {
       </div>
 
       {/* Fastest lift */}
-      <div className="rounded-lg bg-brand-50 dark:bg-brand-950/30 border border-brand-200 dark:border-brand-800 px-4 py-3 space-y-2">
-        <p className="text-[11px] uppercase tracking-[0.14em] text-brand-700 dark:text-brand-300 font-semibold">
+      <div className="rounded-lg bg-brand-50 border border-brand-200 px-4 py-3 space-y-2">
+        <p className="text-[11px] uppercase tracking-[0.14em] text-brand-700 font-semibold">
           Fastest way to lift this sample score
         </p>
         <ul className="space-y-1 text-sm">
           {weakest.map((w) => (
             <li key={w.key} className="flex items-center justify-between gap-3">
-              <span className="text-ink-700 dark:text-ink-300">
+              <span className="text-ink-700">
                 <span className="font-medium">{w.label}</span>{" "}
-                <span className="text-ink-500 dark:text-ink-400 tabular-nums text-xs">
+                <span className="text-ink-500 tabular-nums text-xs">
                   ({w.score}/100 · {w.weight}% weight)
                 </span>
               </span>
@@ -157,12 +157,12 @@ export function SampleSviCard() {
 
       {/* CTA */}
       <div className="flex items-center justify-between gap-3 flex-wrap pt-1">
-        <p className="text-xs text-ink-500 dark:text-ink-400">
+        <p className="text-xs text-ink-500">
           Yours in ~60 seconds. Free preview, no credit card.
         </p>
         <a
           href="/score"
-          className="inline-flex items-center justify-center gap-1.5 min-h-[44px] rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-ink-900 transition-colors"
+          className="inline-flex items-center justify-center gap-1.5 min-h-[44px] rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors"
         >
           Get your real SVI
           <ArrowRight className="h-4 w-4" aria-hidden="true" />

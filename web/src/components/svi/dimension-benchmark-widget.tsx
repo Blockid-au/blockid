@@ -58,27 +58,27 @@ function CohortBar({ score, p25, p50, p75 }: CohortBarProps) {
 
   return (
     <div
-      className="relative h-3 w-full rounded-full bg-surface-100 dark:bg-ink-800 overflow-visible"
+      className="relative h-3 w-full rounded-full bg-surface-100 overflow-visible"
       title={`Your score: ${score} · P25: ${p25} · P50: ${p50} · P75: ${p75}`}
     >
       {/* IQR fill */}
       <div
-        className="absolute inset-y-0 rounded-full bg-surface-300 dark:bg-ink-600 opacity-60"
+        className="absolute inset-y-0 rounded-full bg-surface-300 opacity-60"
         style={{ left: `${p25Pos}%`, width: `${p75Pos - p25Pos}%` }}
       />
       {/* p25 tick */}
       <div
-        className="absolute inset-y-0 w-px bg-ink-400 dark:bg-ink-500"
+        className="absolute inset-y-0 w-px bg-ink-400"
         style={{ left: `${p25Pos}%` }}
       />
       {/* p50 tick */}
       <div
-        className="absolute inset-y-0 w-0.5 bg-ink-600 dark:bg-ink-300"
+        className="absolute inset-y-0 w-0.5 bg-ink-600"
         style={{ left: `${p50Pos}%` }}
       />
       {/* p75 tick */}
       <div
-        className="absolute inset-y-0 w-px bg-ink-400 dark:bg-ink-500"
+        className="absolute inset-y-0 w-px bg-ink-400"
         style={{ left: `${p75Pos}%` }}
       />
       {/* Score dot */}
@@ -115,10 +115,10 @@ export function DimensionBenchmarkWidget({ projectId: _projectId }: { projectId:
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle className="text-base font-semibold text-ink-800 dark:text-ink-100">
+        <CardTitle className="text-base font-semibold text-ink-800">
           Cohort Benchmarking
         </CardTitle>
-        <p className="text-xs text-ink-500 dark:text-ink-400">
+        <p className="text-xs text-ink-500">
           How your SVI dimensions compare to AU-stage peers
         </p>
       </CardHeader>
@@ -142,7 +142,7 @@ export function DimensionBenchmarkWidget({ projectId: _projectId }: { projectId:
         )}
 
         {!loading && !error && data?.dimensionPercentiles.length === 0 && (
-          <p className="text-sm text-muted dark:text-ink-500 py-4 text-center">
+          <p className="text-sm text-muted py-4 text-center">
             Complete your SVI analysis to see cohort comparison
           </p>
         )}
@@ -168,14 +168,14 @@ export function DimensionBenchmarkWidget({ projectId: _projectId }: { projectId:
               const deltaColor = isNeutral
                 ? "text-ink-500"
                 : isPositive
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-red-600 dark:text-red-400";
+                  ? "text-emerald-600"
+                  : "text-red-600";
               const bandLabel = BAND_LABELS[dim.band];
 
               return (
                 <div key={dim.dimension} className="space-y-1.5">
                   <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <span className="text-sm font-medium text-ink-800 dark:text-ink-200">
+                    <span className="text-sm font-medium text-ink-800">
                       {fullName}
                     </span>
                     <div className="flex items-center gap-2">
@@ -190,7 +190,7 @@ export function DimensionBenchmarkWidget({ projectId: _projectId }: { projectId:
                           ? "±0"
                           : `${isPositive ? "+" : ""}${dim.vsMedianPts} pts`}
                       </span>
-                      <span className="text-xs text-muted dark:text-ink-500 hidden sm:inline">
+                      <span className="text-xs text-muted hidden sm:inline">
                         {bandLabel}
                       </span>
                     </div>
@@ -201,7 +201,7 @@ export function DimensionBenchmarkWidget({ projectId: _projectId }: { projectId:
                     p50={dim.cohortP50}
                     p75={dim.cohortP75}
                   />
-                  <div className="flex justify-between text-[10px] text-muted dark:text-ink-500 px-0.5">
+                  <div className="flex justify-between text-[10px] text-muted px-0.5">
                     <span>P25: {dim.cohortP25}</span>
                     <span>Median: {dim.cohortP50}</span>
                     <span>P75: {dim.cohortP75}</span>
@@ -212,7 +212,7 @@ export function DimensionBenchmarkWidget({ projectId: _projectId }: { projectId:
           </div>
         )}
 
-        <p className="mt-6 text-[10px] text-muted dark:text-ink-500 border-t border-surface-200 dark:border-ink-800 pt-3">
+        <p className="mt-6 text-[10px] text-muted border-t border-surface-200 pt-3">
           Based on AU cohort benchmarks by stage. Updates as your analysis evolves.
         </p>
       </CardContent>
