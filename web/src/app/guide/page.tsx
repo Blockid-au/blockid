@@ -117,7 +117,7 @@ export default function GuideIndexPage() {
           <div className="mt-4 flex justify-center gap-3 text-sm">
             <Link
               href="/analyze"
-              className="rounded-full bg-brand-600 px-5 py-2 font-semibold text-white hover:bg-brand-700"
+              className="rounded-full bg-action px-5 py-2 font-semibold text-on-action hover:bg-action-hover"
             >
               Analyse an idea
             </Link>

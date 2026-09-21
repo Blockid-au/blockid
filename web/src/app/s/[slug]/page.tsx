@@ -388,7 +388,7 @@ export default async function ShareScorePage({
                       ? "This investor link has been revoked by the founder and is no longer accessible."
                       : "This investor link has expired. Please contact the founder to request a new link."}
                   </p>
-                  <Link href="/" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">
+                  <Link href="/" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover">
                     Go to BlockID.au
                   </Link>
                 </div>
@@ -730,7 +730,7 @@ export default async function ShareScorePage({
             <div className="rounded-2xl border border-brand-200 bg-gradient-to-r from-brand-50 to-white p-6 text-center">
               <p className="text-lg font-semibold text-ink-800">Want to know your startup&apos;s value?</p>
               <p className="text-sm text-ink-500 mt-1">Get your free Startup Value Index in 60 seconds</p>
-              <Link href="/score" className="inline-flex items-center gap-2 mt-4 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700">
+              <Link href="/score" className="inline-flex items-center gap-2 mt-4 rounded-xl bg-action px-6 py-3 text-sm font-semibold text-on-action hover:bg-action-hover">
                 Get Your Free SVI Score →
               </Link>
             </div>
