@@ -33,6 +33,16 @@ vi.mock("@/lib/evaluations/program-journey-data", () => ({
   loadIntakeSummary: (u: string) => intakeMock(u),
   loadProgramJourney: (u: unknown, o: unknown) => journeyMock(u, o),
 }));
+// G24-C: the demo pre-step + the "Load a demo cohort" CTA (evaluator entitlement).
+const hasDemoMock = vi.fn(async () => false);
+vi.mock("@/lib/evaluations/demo-cohort", () => ({ hasDemoBatch: (u: string) => hasDemoMock(u as never) }));
+vi.mock("@/lib/evaluations/demo-cohort-labels", async () => {
+  const shared = await import("@/lib/evaluations/demo-cohort-shared");
+  return { loadDemoCohortLabels: async () => shared.DEMO_COHORT_LABELS_EN };
+});
+const flagsMock = vi.fn(async () => ["accelerator.cohort"]);
+vi.mock("@/lib/entitlements", () => ({ getEntitlements: (...a: unknown[]) => flagsMock(...(a as [])) }));
+vi.mock("next/headers", () => ({ cookies: async () => ({ get: () => undefined }) }));
 
 import { buildProgramJourney } from "@/lib/evaluations/program-journey";
 import { DATA_PRINCIPLE_SENTENCE } from "@/lib/valuation-certificate/types";
@@ -58,6 +68,8 @@ beforeEach(() => {
   latestMock.mockReset().mockResolvedValue(null);
   delete process.env.STRIPE_COUPON_PILOT_CREDIT_25;
   intakeMock.mockReset().mockResolvedValue({ links: 1, submissions: 8, publicUrl: "https://blockid.au/apply/x", openLinks: 1 });
+  hasDemoMock.mockReset().mockResolvedValue(false);
+  flagsMock.mockReset().mockResolvedValue(["accelerator.cohort"]);
   journeyMock.mockReset().mockResolvedValue({ view: buildProgramJourney({ batch: null, batches: [], startups: [], intake: null, snapshots: [], overridesCount: 0 }), bundle: null });
 });
 
@@ -75,6 +87,17 @@ describe("/workspace/accelerator/pilot — pilot delivery kit", () => {
     expect(out).toContain('href="/pilot"');
     expect(out).not.toContain('data-testid="pilot-checklist"');
     expect(journeyMock).not.toHaveBeenCalled();
+    // G24-C: an evaluator seat can try the workflow before booking — Import CSV beside Load a demo cohort.
+    expect(out).toContain('data-testid="pilot-demo-actions"');
+    expect(out).toContain('data-testid="load-demo-cohort"');
+    expect(out).toContain("Load a demo cohort");
+  });
+
+  it("no pilot order + no evaluator entitlement (G24-C): the demo CTA is not offered", async () => {
+    flagsMock.mockResolvedValue([]);
+    const out = await html();
+    expect(out).toContain('data-testid="pilot-book-card"');
+    expect(out).not.toContain('data-testid="pilot-demo-actions"');
   });
 
   it("live order: checklist ticks from data, every offer metric on the form, consent box, applicant consent screen verbatim", async () => {
@@ -82,6 +105,11 @@ describe("/workspace/accelerator/pilot — pilot delivery kit", () => {
     const out = await html();
     expect(out).toContain("up to 25 applicants");
     expect(out).toContain('data-testid="pilot-checklist"');
+    // G24-C: the demo pre-step comes first; not run yet → its own Import CSV + Load a demo cohort pair.
+    expect(out).toContain('data-step="demo" data-done="0"');
+    expect(out).toContain('data-testid="pilot-checklist-demo-actions"');
+    expect(out).toContain('data-testid="load-demo-cohort"');
+    expect(out).toContain("Demo run");
     expect(out).toContain('data-step="setup" data-done="1"');
     expect(out).toContain('data-step="intake" data-done="1"');
     expect(out).toContain('data-step="assessment" data-done="0"');

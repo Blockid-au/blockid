@@ -53,6 +53,8 @@ import {
 import { userErrorMessage } from "@/lib/ui/user-error";
 import { CohortFilters } from "./CohortFilters";
 import { CompareDrawer } from "./CompareDrawer";
+import { DemoCohortChip } from "./DemoCohortChip";
+import { DEMO_COHORT_LABELS_EN } from "@/lib/evaluations/demo-cohort-shared";
 import { OverrideDialog } from "./OverrideDialog";
 import {
   COHORT_COLUMNS,
@@ -93,6 +95,10 @@ export interface CohortTableProps {
   /** Server-parsed filters from the URL (the client re-parses on navigation). */
   initialFilters?: Filters;
   className?: string;
+  /** G24-C: the fictional demo cohort — every company cell carries the "Demo data — fictional" chip. */
+  isDemo?: boolean;
+  /** Catalogue copy for the chip (EN default). */
+  demoChip?: { label: string; title: string };
 }
 
 const DECISION_CHIP: Record<CohortDecision, string> = {
@@ -116,7 +122,7 @@ function fmtDelta(d: number | null, svi: number | null): { text: string; tone: s
 
 type BulkState = { kind: "idle" } | { kind: "busy" } | { kind: "ok"; n: number; skipped: number } | { kind: "error"; message: string };
 
-export function CohortTable({ rows, batchId, role, weightsVersion = 1, deltaWeightsChanged = null, loading = false, initialFilters, className }: CohortTableProps) {
+export function CohortTable({ rows, batchId, role, weightsVersion = 1, deltaWeightsChanged = null, loading = false, initialFilters, className, isDemo = false, demoChip }: CohortTableProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -484,6 +490,11 @@ export function CohortTable({ rows, batchId, role, weightsVersion = 1, deltaWeig
                           <Link href={r.dossierUrl} className="font-medium text-primary hover:underline" aria-label={`Open the BlockID Dossier for ${r.company}`}>
                             {r.company}
                           </Link>
+                          {isDemo ? (
+                            <div className="mt-0.5">
+                              <DemoCohortChip label={demoChip?.label} title={demoChip?.title} />
+                            </div>
+                          ) : null}
                           {r.riskFlags.length ? (
                             <div className="mt-0.5 flex flex-wrap gap-1" data-testid="risk-flags">
                               {r.riskFlags.map((f) => (
@@ -583,7 +594,7 @@ export function CohortTable({ rows, batchId, role, weightsVersion = 1, deltaWeig
         </table>
       </div>
 
-      <CompareDrawer open={compareOpen} rows={compareRows} onClose={closeCompare} onRemove={(id) => setCompare((c) => c.filter((x) => x !== id))} batchId={batchId} />
+      <CompareDrawer open={compareOpen} rows={compareRows} onClose={closeCompare} onRemove={(id) => setCompare((c) => c.filter((x) => x !== id))} batchId={batchId} demoChip={isDemo ? { label: demoChip?.label ?? DEMO_COHORT_LABELS_EN.chip, title: demoChip?.title ?? DEMO_COHORT_LABELS_EN.chipTitle } : null} />
       <OverrideDialog open={!!overrideRow} batchId={batchId} row={overrideRow} onClose={closeOverride} onSaved={() => router.refresh()} />
     </div>
   );

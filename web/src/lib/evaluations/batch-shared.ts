@@ -85,6 +85,15 @@ export interface EvaluationBatch {
    * and the audit export then fall back to owner-owned rows.
    */
   orgId: string | null;
+  /**
+   * G24-C (migration 0436) — true for the fictional demo cohort (five
+   * invented startups scored from the demo register, no AI). Optional so
+   * older literals still type; `mapBatchRow` always sets it. Demo batches
+   * are excluded from benchmarks, the Startup Index, calibration, the org
+   * export / retention scope, the institutional API and the validation
+   * auto rows (lib/evaluations/demo-cohort.ts).
+   */
+  isDemo?: boolean;
 }
 
 // G22-A — reviewer roles on a cohort (0423 evaluation_batch_members); the
@@ -320,6 +329,7 @@ export function mapBatchRow(row: Row): EvaluationBatch {
     })(),
     pilotOrderId: str(row.pilot_order_id),
     orgId: str(row.org_id),
+    isDemo: row.is_demo === true,
   };
 }
 

@@ -127,7 +127,9 @@ export function reviewTimeSaving(m: PilotMetrics): { before: number; after: numb
 // Delivery checklist — Setup → Intake → Assessment → Workshop → Report
 // ---------------------------------------------------------------------------
 
-export const PILOT_CHECKLIST_STEPS = ["setup", "intake", "assessment", "workshop", "report"] as const;
+// G24-C: "Demo run" is the pre-step — the buyer runs the fictional demo
+// cohort through every surface before real applicants arrive.
+export const PILOT_CHECKLIST_STEPS = ["demo", "setup", "intake", "assessment", "workshop", "report"] as const;
 export type PilotChecklistStep = (typeof PILOT_CHECKLIST_STEPS)[number];
 
 export interface PilotChecklistItem {
@@ -152,10 +154,16 @@ export interface PilotChecklistInput {
   workshopCaptured: boolean;
   /** A cohort report was exported (or all report metrics captured). */
   reportDone: boolean;
+  /** G24-C: the caller holds (or held) the fictional demo cohort — optional so older callers still type. */
+  demoRun?: boolean;
 }
 
-export function pilotChecklist(input: PilotChecklistInput): PilotChecklistItem[] {
+/** G24-C: the demo pre-step's copy (EN; the pilot page overrides from the catalogue). */
+export const PILOT_DEMO_STEP_COPY = Object.freeze({ label: "Demo run", detail: "Ran the demo cohort — five fictional startups through the table, the report and the letters — before real applicants." });
+
+export function pilotChecklist(input: PilotChecklistInput, copy: { demoLabel?: string; demoDetail?: string } = {}): PilotChecklistItem[] {
   return [
+    { key: "demo", label: copy.demoLabel ?? PILOT_DEMO_STEP_COPY.label, done: input.demoRun === true, detail: copy.demoDetail ?? PILOT_DEMO_STEP_COPY.detail, href: "/workspace/evaluations/cohort" },
     { key: "setup", label: "Setup", done: input.orderPaid && input.intakeLinks > 0, detail: "Pilot paid and the intake link published.", href: "/workspace/accelerator/applications" },
     { key: "intake", label: "Intake", done: input.submissions > 0, detail: "Applications received through the link or the CSV import.", href: "/workspace/accelerator?stage=intake" },
     { key: "assessment", label: "Assessment", done: input.scored > 0 && input.decided > 0, detail: "Every applicant scored on one rubric and a decision recorded.", href: "/workspace/accelerator?stage=assessment" },
@@ -164,10 +172,13 @@ export function pilotChecklist(input: PilotChecklistInput): PilotChecklistItem[]
   ];
 }
 
-export function checklistFromMetrics(m: PilotMetrics, counts: Omit<PilotChecklistInput, "workshopCaptured" | "reportDone">, reportExported: boolean): PilotChecklistItem[] {
-  return pilotChecklist({
-    ...counts,
-    workshopCaptured: typeof m.satisfaction === "number" || typeof m.evaluator_consistency === "number",
-    reportDone: reportExported || (typeof m.repeat_intent === "boolean" && typeof m.renewal_intent === "boolean"),
-  });
+export function checklistFromMetrics(m: PilotMetrics, counts: Omit<PilotChecklistInput, "workshopCaptured" | "reportDone">, reportExported: boolean, copy: { demoLabel?: string; demoDetail?: string } = {}): PilotChecklistItem[] {
+  return pilotChecklist(
+    {
+      ...counts,
+      workshopCaptured: typeof m.satisfaction === "number" || typeof m.evaluator_consistency === "number",
+      reportDone: reportExported || (typeof m.repeat_intent === "boolean" && typeof m.renewal_intent === "boolean"),
+    },
+    copy,
+  );
 }

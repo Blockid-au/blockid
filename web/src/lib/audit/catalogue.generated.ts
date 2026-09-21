@@ -157,6 +157,7 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/evaluations/batch/[id]/overrides/route.ts", family: "evaluations.batch.overrides", methods: ["POST"] },
   { route: "api/evaluations/batch/[id]/snapshot/route.ts", family: "evaluations.batch.snapshot", methods: ["POST"] },
   { route: "api/evaluations/batch/[id]/weights/route.ts", family: "evaluations.batch.weights", methods: ["PATCH"] },
+  { route: "api/evaluations/batch/demo/route.ts", family: "evaluations.batch.demo", methods: ["POST","DELETE"] },
   { route: "api/evaluations/batch/route.ts", family: "evaluations.batch", methods: ["POST"] },
   { route: "api/evaluations/claim/[token]/route.ts", family: "evaluations.claim", methods: ["POST"] },
   { route: "api/evaluations/route.ts", family: "evaluations", methods: ["POST"] },

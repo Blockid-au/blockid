@@ -7,6 +7,7 @@
 //   ?batch · 404 no role on the batch · 200 application/pdf (an empty
 //   selection still renders the cover with the "shortlist first" line).
 
+import { exportCohortName } from "@/lib/evaluations/demo-cohort-shared";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getEntitlements, recordGateHit } from "@/lib/entitlements";
@@ -51,7 +52,8 @@ export async function GET(request: Request) {
 
   const entries = demoDayPackFromStartups(bundle.startups.filter(isSelected));
   const { renderDemoDayPackPdf } = await import("@/lib/pdf/demo-day-pack-pdf");
-  const { buffer } = await renderDemoDayPackPdf({ cohortName: bundle.batch.name, programName: bundle.batch.programName ?? user.displayName ?? null, generatedAt: new Date().toISOString(), entries, base: siteBase(request) });
+  // G24-C: the demo cohort's pack says so on its cover.
+  const { buffer } = await renderDemoDayPackPdf({ cohortName: exportCohortName(bundle.batch), programName: bundle.batch.programName ?? user.displayName ?? null, generatedAt: new Date().toISOString(), entries, base: siteBase(request) });
   return new NextResponse(new Uint8Array(buffer), {
     status: 200,
     headers: {

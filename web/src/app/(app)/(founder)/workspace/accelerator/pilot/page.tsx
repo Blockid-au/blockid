@@ -34,6 +34,13 @@ import { checklistFromMetrics, readPilotMetrics } from "@/lib/pilots/metrics";
 import { APPLICANT_CONSENT_LABEL, APPLICANT_CONSENT_POINTS, APPLICANT_CONSENT_TEXT } from "@/lib/pilots/consent";
 import { loadIntakeSummary, loadProgramJourney } from "@/lib/evaluations/program-journey-data";
 import { PilotMetricsForm } from "./pilot-metrics-form";
+import { hasDemoBatch } from "@/lib/evaluations/demo-cohort";
+import { loadDemoCohortLabels } from "@/lib/evaluations/demo-cohort-labels";
+import { LoadDemoCohortButton } from "@/components/evaluations/DemoCohortActions";
+import { getEntitlements } from "@/lib/entitlements";
+import { canBatchScore } from "@/lib/evaluations/batch-shared";
+import { getMessages } from "@/lib/i18n/t";
+import { cookies } from "next/headers";
 
 export const metadata: Metadata = {
   title: "Pilot delivery kit · BlockID Cohort",
@@ -51,7 +58,26 @@ export default async function PilotKitPage(props: { searchParams?: Promise<Recor
   const searchParams = props.searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/accelerator/pilot");
-  const [isSandbox, order, sp] = await Promise.all([getCurrentProjectIsSandbox(), findActivePilotOrder(user.id), searchParams ?? Promise.resolve<Record<string, string | string[] | undefined>>({})]);
+  const [isSandbox, order, sp, demoLabels, demoRun, flags] = await Promise.all([
+    getCurrentProjectIsSandbox(),
+    findActivePilotOrder(user.id),
+    searchParams ?? Promise.resolve<Record<string, string | string[] | undefined>>({}),
+    loadDemoCohortLabels(),
+    hasDemoBatch(user.id),
+    getEntitlements(user.plan ?? "", user.id).catch(() => [] as string[]),
+  ]);
+  // G24-C: the checklist's demo pre-step copy from the catalogue (EN under VI).
+  const demoStepCopy = await (async () => {
+    try {
+      const store = await cookies();
+      const locale = store.get("blockid_lang")?.value === "vi" ? "vi" : "en";
+      const [en, local] = await Promise.all([getMessages("en"), getMessages(locale)]);
+      return { demoLabel: local["demoCohort.checklist.label"] ?? en["demoCohort.checklist.label"], demoDetail: local["demoCohort.checklist.detail"] ?? en["demoCohort.checklist.detail"] };
+    } catch {
+      return {};
+    }
+  })();
+  const canLoadDemo = canBatchScore(flags);
   const admin = user.role === "admin";
   const showKit = Boolean(order) || admin;
   // G23-B — the conversion card outlives the entitlement by the credit
@@ -70,7 +96,7 @@ export default async function PilotKitPage(props: { searchParams?: Promise<Recor
       metrics,
       scored: view.assessment.scored,
       decided,
-      checklist: checklistFromMetrics(metrics, { orderPaid: Boolean(order), intakeLinks: intake.links, submissions: intake.submissions, scored: view.assessment.scored, decided }, view.sponsor.snapshots > 0 && view.stages.find((s) => s.key === "sponsor")?.state === "done"),
+      checklist: checklistFromMetrics(metrics, { orderPaid: Boolean(order), intakeLinks: intake.links, submissions: intake.submissions, scored: view.assessment.scored, decided, demoRun }, view.sponsor.snapshots > 0 && view.stages.find((s) => s.key === "sponsor")?.state === "done", demoStepCopy),
     };
   }
 
@@ -111,6 +137,15 @@ export default async function PilotKitPage(props: { searchParams?: Promise<Recor
                 Back to the program journey
               </Link>
             </div>
+            {/* G24-C: try the workflow before booking — Import CSV beside Load a demo cohort (evaluator seats only). */}
+            {canLoadDemo ? (
+              <div className="mt-4 flex flex-wrap items-start gap-2" data-testid="pilot-demo-actions">
+                <Link href="/workspace/evaluations/cohort" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line-subtle bg-surface px-4 text-sm font-semibold text-primary hover:bg-surface-hover">
+                  {demoLabels.importCsv}
+                </Link>
+                <LoadDemoCohortButton labels={demoLabels} />
+              </div>
+            ) : null}
           </section>
         ) : null}
 
@@ -128,7 +163,7 @@ export default async function PilotKitPage(props: { searchParams?: Promise<Recor
               <h2 id="pilot-checklist-h" className="text-lg font-semibold text-primary">
                 Delivery checklist
               </h2>
-              <ol className="mt-3 grid gap-3 md:grid-cols-5">
+              <ol className="mt-3 grid gap-3 md:grid-cols-3 xl:grid-cols-6">
                 {kit.checklist.map((item, i) => (
                   <li key={item.key} className="rounded-2xl border border-line-subtle bg-surface p-4" data-step={item.key} data-done={item.done ? "1" : "0"}>
                     <div className="flex items-center gap-2">
@@ -139,9 +174,18 @@ export default async function PilotKitPage(props: { searchParams?: Promise<Recor
                     </div>
                     <p className="mt-2 text-xs text-secondary">{item.detail}</p>
                     <p className="mt-1 text-xs font-medium text-secondary">{item.done ? "Done" : "Not yet"}</p>
-                    <Link href={item.href} className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-action hover:underline">
-                      Open
-                    </Link>
+                    {item.key === "demo" && !item.done && canLoadDemo ? (
+                      <div className="mt-2 flex flex-wrap items-start gap-2" data-testid="pilot-checklist-demo-actions">
+                        <Link href="/workspace/evaluations/cohort" className="inline-flex min-h-11 items-center text-sm font-semibold text-action hover:underline">
+                          {demoLabels.importCsv}
+                        </Link>
+                        <LoadDemoCohortButton labels={demoLabels} />
+                      </div>
+                    ) : (
+                      <Link href={item.href} className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-action hover:underline">
+                        Open
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ol>

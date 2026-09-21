@@ -17,6 +17,7 @@ import { PilotActiveBanner } from "@/components/investor/pilot-active-banner";
 import { ProgramJourney } from "@/components/accelerator/program-journey";
 import { parseProgramStage } from "@/lib/evaluations/program-journey";
 import { loadIntakeSummary, loadProgramJourney } from "@/lib/evaluations/program-journey-data";
+import { loadDemoCohortLabels } from "@/lib/evaluations/demo-cohort-labels";
 
 export const metadata: Metadata = {
   title: "BlockID Cohort · Accelerator desk",
@@ -41,12 +42,15 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
   const stage = parseProgramStage(sp.stage);
   const batchParam = one(sp.batch) ?? null;
 
-  const journey = hub.evaluator
-    ? await (async () => {
-        const intake = await loadIntakeSummary(hub.user.id);
-        return loadProgramJourney(hub.user, { batchId: batchParam, intake });
-      })()
-    : null;
+  const [journey, demoLabels] = await Promise.all([
+    hub.evaluator
+      ? (async () => {
+          const intake = await loadIntakeSummary(hub.user.id);
+          return loadProgramJourney(hub.user, { batchId: batchParam, intake });
+        })()
+      : Promise.resolve(null),
+    loadDemoCohortLabels(),
+  ]);
 
   return (
     <WorkspaceLayout user={hub.user} isSandbox={hub.isSandbox}>
@@ -59,7 +63,7 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
             Screen faster · Trust the evidence · Track improvement. BlockID structures the evidence and standardises the first-pass analysis; your committee makes the decision.
           </p>
         </header>
-        {journey ? <ProgramJourney view={journey.view} stage={stage} canAct={journey.bundle ? journey.bundle.role !== "viewer" : true} /> : null}
+        {journey ? <ProgramJourney view={journey.view} stage={stage} canAct={journey.bundle ? journey.bundle.role !== "viewer" : true} isOwner={journey.bundle?.role === "owner"} demoLabels={demoLabels} /> : null}
       </div>
       {hub.content}
     </WorkspaceLayout>

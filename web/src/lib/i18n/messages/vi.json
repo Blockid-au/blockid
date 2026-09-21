@@ -1072,5 +1072,20 @@
   "tbr.citations.status.evidenced": "có bằng chứng",
   "tbr.citations.status.partial": "một phần",
   "tbr.citations.status.missing": "thiếu",
-  "tbr.citations.status.stale": "đã cũ"
+  "tbr.citations.status.stale": "đã cũ",
+  "demoCohort.chip": "Dữ liệu demo — hư cấu",
+  "demoCohort.chipTitle": "Một startup hư cấu được tạo cho bản demo quy trình. Không phải công ty thật; không có ABN; không đưa vào chuẩn so sánh và Chỉ số Startup.",
+  "demoCohort.load": "Tải cohort demo",
+  "demoCohort.loading": "Đang tải cohort demo…",
+  "demoCohort.importCsv": "Nhập CSV",
+  "demoCohort.banner.title": "Dữ liệu demo — hư cấu",
+  "demoCohort.banner.body": "Năm startup này là hư cấu để bạn chạy thử toàn bộ quy trình cohort — bộ lọc, so sánh, ghi đè, ảnh chụp, Báo cáo Cohort, gói demo day và thư phản hồi — trước khi có ứng viên thật. Không dữ liệu nào ở đây đi vào chuẩn so sánh, Chỉ số Startup, hiệu chuẩn, bản xuất của tổ chức bạn hay API tổ chức.",
+  "demoCohort.remove": "Gỡ cohort demo",
+  "demoCohort.removeConfirm": "Gỡ cohort demo cùng năm startup hư cấu? Các cohort thật của bạn không bị ảnh hưởng.",
+  "demoCohort.removed": "Đã gỡ cohort demo.",
+  "demoCohort.error": "Không tải được cohort demo. Vui lòng thử lại.",
+  "demoCohort.emptyHint": "Chưa sẵn sàng nhập dữ liệu? Tải năm startup hư cấu và thử từng bước trước.",
+  "demoCohort.checklist.label": "Chạy demo",
+  "demoCohort.checklist.detail": "Đã chạy cohort demo — năm startup hư cấu qua bảng, báo cáo và thư — trước khi có ứng viên thật.",
+  "demoCohort.cancel": "Hủy"
 }

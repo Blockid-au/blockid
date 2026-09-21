@@ -15,7 +15,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ClipboardList, Loader2, Plus, Trash2, X, Pencil, Check, Mail, FileText, RefreshCw, FileDown, Radar, CalendarClock, Layers } from "lucide-react";
+import { ClipboardList, Loader2, Plus, Trash2, X, Pencil, Check, Mail, FileText, RefreshCw, FileDown, Radar, CalendarClock, Layers, Upload } from "lucide-react";
 import type { EvaluationListRow, EvaluationConsentTier } from "@/lib/evaluations";
 import type { LastEvaluationReport, ReportQuota } from "@/lib/evaluations/report-quota";
 import { TrialReportBanner, trialDaysLeft } from "./trial-report-banner";
@@ -25,6 +25,9 @@ import { formatDelta, type EvaluatorProgress, type EvaluatorProgressItem, type P
 import { ReportDialog, type ReportKind, type ReportRunResult } from "./report-dialog";
 import { BatchDialog, type BatchQueuedResult } from "./batch-dialog";
 import { BATCH_ROLE_LABELS, batchProgressPct, type BatchRole, type EvaluationBatch } from "@/lib/evaluations/batch-shared";
+import { DEMO_COHORT_LABELS_EN, type DemoCohortLabels } from "@/lib/evaluations/demo-cohort-shared";
+import { DemoCohortChip } from "@/components/evaluations/DemoCohortChip";
+import { LoadDemoCohortButton } from "@/components/evaluations/DemoCohortActions";
 
 /** G22-A: a Cohorts-list row — `role` is the caller's seat (owner = created it; reviewer / viewer = invited). */
 type CohortListBatch = EvaluationBatch & { role?: BatchRole };
@@ -74,6 +77,8 @@ export interface EvaluationsClientProps {
   canBatch?: boolean;
   /** T0272 — batches this user queued, newest first (Cohorts section). */
   batches?: CohortListBatch[];
+  /** G24-C: catalogue copy for the demo cohort chip / CTA (EN default). */
+  demoLabels?: DemoCohortLabels;
 }
 
 const AU_STATE_OPTIONS: Array<{ value: string; label: string }> = [
@@ -301,7 +306,7 @@ const BATCH_ROLE_CHIP: Record<BatchRole, string> = {
   viewer: "border-surface-300 bg-surface-50 text-ink-500",
 };
 
-export function CohortsSection({ batches, canBatch }: { batches: CohortListBatch[]; canBatch: boolean }) {
+export function CohortsSection({ batches, canBatch, demoLabels = DEMO_COHORT_LABELS_EN }: { batches: CohortListBatch[]; canBatch: boolean; demoLabels?: DemoCohortLabels }) {
   if (!canBatch && batches.length === 0) return null;
   return (
     <section data-testid="cohorts-section" aria-label="Cohorts" className="rounded-2xl border border-surface-200 bg-white px-5 py-4">
@@ -314,7 +319,18 @@ export function CohortsSection({ batches, canBatch }: { batches: CohortListBatch
         {canBatch ? <span className="text-[11px] text-ink-500">Select startups below → Batch score</span> : null}
       </div>
       {batches.length === 0 ? (
-        <p className="mt-2 text-xs text-ink-500">No batches yet. Tick the startups to score together and choose Batch score.</p>
+        <div className="mt-2" data-testid="cohorts-empty">
+          <p className="text-xs text-ink-500">No batches yet. Tick the startups to score together and choose Batch score.</p>
+          {canBatch ? (
+            <div className="mt-3 flex flex-wrap items-start gap-2" data-testid="cohorts-empty-actions">
+              <Link href="/workspace/evaluations/cohort" className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line-subtle bg-surface px-4 text-sm font-semibold text-primary hover:bg-surface-hover" data-testid="cohorts-empty-import">
+                <Upload className="h-4 w-4" aria-hidden="true" />
+                {demoLabels.importCsv}
+              </Link>
+              <LoadDemoCohortButton labels={demoLabels} />
+            </div>
+          ) : null}
+        </div>
       ) : (
         <ul className="mt-3 divide-y divide-surface-100">
           {batches.map((b) => {
@@ -325,6 +341,7 @@ export function CohortsSection({ batches, canBatch }: { batches: CohortListBatch
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <Link href={`/workspace/evaluations/cohort/${encodeURIComponent(b.id)}`} className="truncate font-medium text-ink-900 hover:underline">{b.name}</Link>
+                    {b.isDemo ? <DemoCohortChip label={demoLabels.chip} title={demoLabels.chipTitle} /> : null}
                     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${chip.className}`}>{chip.label}</span>
                     {b.role ? (
                       <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${BATCH_ROLE_CHIP[b.role]}`} data-testid="cohort-role-chip" data-role={b.role}>
@@ -383,6 +400,7 @@ export function EvaluationsClient({
   autoOpenReport = false,
   autoOpenAdd = false,
   preselectBatchId = null,
+  demoLabels = DEMO_COHORT_LABELS_EN,
 }: EvaluationsClientProps) {
   const progressByEval = React.useMemo(() => {
     const m = new Map<string, EvaluatorProgressItem>();
@@ -761,7 +779,7 @@ export function EvaluationsClient({
       {isEvaluator && rows.length > 0 ? <ProgressRadarPanel progress={progress} hasMoneyRadar={hasMoneyRadar} /> : null}
 
       {/* Cohorts (T0272) — Program batch scoring */}
-      {isEvaluator ? <CohortsSection batches={batches} canBatch={canBatch} /> : null}
+      {isEvaluator ? <CohortsSection batches={batches} canBatch={canBatch} demoLabels={demoLabels} /> : null}
 
       {!isEvaluator && claimState.status === "idle" && (
         <div className="rounded-xl border border-surface-200 bg-white px-5 py-6 text-sm text-ink-600">
