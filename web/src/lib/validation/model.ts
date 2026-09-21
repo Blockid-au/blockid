@@ -197,7 +197,21 @@ export interface AutoInputs {
   pilotOrders: ReadonlyArray<{ id: string; user_id: string; buyer_email: string; sku: string; amount_cents: number; currency: string; status: string; created_at: string; metrics: Record<string, unknown> | null; converted_at?: string | null; converted_plan?: string | null }>;
   applications: ReadonlyArray<{ id: string; program_name: string; cohort_size: number; intake_month: string; received_at: string }>;
   feedbackLetters: ReadonlyArray<{ id: string; project_id: string; status: string; sent_at: string | null; org_count: number; k: number }>;
-  batches: ReadonlyArray<{ id: string; name: string | null; program_name?: string | null; status: string; total: number; done_count: number; finished_at: string | null; created_at: string; owner_email?: string | null }>;
+  batches: ReadonlyArray<{
+    id: string;
+    name: string | null;
+    program_name?: string | null;
+    status: string;
+    total: number;
+    done_count: number;
+    finished_at: string | null;
+    created_at: string;
+    owner_email?: string | null;
+    /** G24-C (0436): the fictional demo cohort — never a "Cohort scored" row. */
+    is_demo?: boolean;
+    /** G24-C: the creator is an admin / the operator account (a demo run by ourselves is not buyer evidence). */
+    owner_is_admin?: boolean;
+  }>;
 }
 
 export const PAID_PILOT_MIN_CENTS = 150_000;
@@ -281,6 +295,15 @@ export function deriveAutoRows(input: AutoInputs): AutoRow[] {
 
   for (const b of input.batches) {
     if (isQaEmail(b.owner_email)) continue;
+    // G24-C: a demo cohort is fictional data — it is never "Cohort scored"
+    // evidence. Loaded by an EXTERNAL (non-admin) seat it is a Level-2
+    // "workflow demo run" signal (the buyer ran the workflow themselves);
+    // loaded by us it is nothing.
+    if (b.is_demo) {
+      if (b.owner_is_admin) continue;
+      rows.push({ id: `evaluation_batches:${b.id}:demo`, source: "evaluation_batches", level: 2, counts: false, date: day(b.created_at), organisation: (b.owner_email ? orgFromEmail(b.owner_email) : null) || b.program_name || b.name || `cohort ${b.id.slice(0, 8)}`, detail: `Workflow demo run · demo cohort loaded by an external seat (${b.total} fictional startups) — not a scored cohort` });
+      continue;
+    }
     if (b.done_count <= 0) continue;
     rows.push({ id: `evaluation_batches:${b.id}`, source: "evaluation_batches", level: 2, counts: false, date: day(b.finished_at ?? b.created_at), organisation: b.program_name || b.name || `cohort ${b.id.slice(0, 8)}`, detail: `Cohort scored · ${b.done_count} of ${b.total} startups · ${b.status}` });
   }

@@ -122,6 +122,23 @@ describe("reduceInstitutional (pure)", () => {
   });
 });
 
+describe("computeNorthStar — G24-C demo cohorts", () => {
+  it("items of a demo batch (is_demo) count neither as assessed nor as assessed_all, and the batch is never a paying batch", () => {
+    const items = [
+      { batch_id: "b-demo", scored_at: "2026-09-21T00:00:00Z", status: "done" },
+      { batch_id: "b-demo", scored_at: "2026-09-21T00:00:00Z", status: "done" },
+      { batch_id: "b-real", scored_at: "2026-09-21T00:00:00Z", status: "done" },
+    ];
+    const batches = [
+      { id: "b-demo", user_id: "org", is_demo: true },
+      { id: "b-real", user_id: "org", is_demo: false },
+    ];
+    const owners = [{ id: "org", plan: "investor_fund", email: "desk@fund.vc" }];
+    const ns = computeNorthStar(items, batches, owners, "2026-09");
+    expect(ns).toMatchObject({ assessed: 1, assessed_all: 1, paying_batches: 1, paying_orgs: 1 });
+  });
+});
+
 describe("computeNorthStar (pure)", () => {
   const items = [
     { batch_id: "b1", scored_at: "2026-09-03T10:00:00Z", status: "done" },

@@ -206,7 +206,8 @@ async function memberBatchIds(userId: string): Promise<Map<string, BatchRole>> {
 /** The key owner's readable cohorts: created (owner) + member seats, newest first (G22-A: one `listBatches` read carries the role). */
 export async function listReadableBatches(userId: string, limit = 50): Promise<PublicCohortV1[]> {
   const batches = await listBatches(userId, limit);
-  return batches.map((b) => toPublicCohort(b, b.role));
+  // G24-C: the fictional demo cohort never leaves through the institutional API.
+  return batches.filter((b) => !b.isDemo).map((b) => toPublicCohort(b, b.role));
 }
 
 export type CohortLoad = { ok: true; cohort: PublicCohortV1; items: PublicCohortItemV1[] } | { ok: false; error: "not_found" | "unavailable" };
@@ -215,6 +216,8 @@ export type CohortLoad = { ok: true; cohort: PublicCohortV1; items: PublicCohort
 export async function loadCohortForKey(batchId: string, userId: string): Promise<CohortLoad> {
   const access = await assertBatchRole(batchId, userId, "viewer");
   if (!access.ok) return { ok: false, error: access.error === "unavailable" ? "unavailable" : "not_found" };
+  // G24-C: demo data is not institutional data — 404, the same as a foreign id.
+  if (access.batch.isDemo) return { ok: false, error: "not_found" };
   const { rows } = await loadBlockIdCohortRows(access.batch, userId);
   return { ok: true, cohort: toPublicCohort(access.batch, access.role), items: rows.map(toPublicCohortItem) };
 }
@@ -224,6 +227,7 @@ export type SnapshotsLoad = { ok: true; cohort: PublicCohortV1; snapshots: Publi
 export async function loadCohortSnapshotsForKey(batchId: string, userId: string, limit = 20): Promise<SnapshotsLoad> {
   const access = await assertBatchRole(batchId, userId, "viewer");
   if (!access.ok) return { ok: false, error: access.error === "unavailable" ? "unavailable" : "not_found" };
+  if (access.batch.isDemo) return { ok: false, error: "not_found" };
   const snapshots = await listCohortSnapshots(batchId, limit);
   return { ok: true, cohort: toPublicCohort(access.batch, access.role), snapshots: snapshots.map(toPublicSnapshot) };
 }

@@ -151,6 +151,8 @@ export interface JourneyStartup {
   confidence: number | null;
   /** projects.verification_level 0–5. */
   verification: number;
+  /** G24-C: true on every startup of the demo cohort (the card chip). */
+  isDemo?: boolean;
   stage: number | null;
   delta: number | null;
   topStrength: string | null;
@@ -191,6 +193,8 @@ export interface JourneyBatchRef {
   name: string;
   status: BatchStatus;
   createdAt: string;
+  /** G24-C: the fictional demo cohort — every surface labels it "Demo data — fictional". */
+  isDemo?: boolean;
 }
 
 export interface ProgramJourneyInput {

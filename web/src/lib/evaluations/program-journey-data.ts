@@ -31,6 +31,7 @@ import {
 } from "./cohort-adapters";
 import { buildCohortReport, type CohortMarketBenchmark, type CohortReportData, type CohortReportInput, type CohortReportStartup, type CohortSnapshotLite } from "./cohort-report";
 import { quarterLabelFor } from "./quarterly-report";
+import { demoJourneyForRows } from "./demo-cohort";
 import { buildProgramJourney, summariseEvidence, type JourneyBatchRef, type JourneyIntake, type JourneySnapshot, type JourneyStartup, type ProgramJourneyView } from "./program-journey";
 
 export interface CohortBundle {
@@ -43,7 +44,7 @@ export interface CohortBundle {
 }
 
 function refOf(b: EvaluationBatch): JourneyBatchRef {
-  return { id: b.id, name: b.name, status: b.status, createdAt: b.createdAt };
+  return { id: b.id, name: b.name, status: b.status, createdAt: b.createdAt, isDemo: b.isDemo === true };
 }
 
 /** Everything the journey / report / pack need for one batch the caller may read. Null when no role. */
@@ -71,9 +72,12 @@ export async function loadCohortBundle(userId: string, batchId: string): Promise
     countOverridesForBatch(rows.map((r) => r.itemId)),
   ]);
   const confidenceByProject = await loadLatestConfidenceByProject(projectIds);
+  // G24-C: the demo cohort never writes svi_snapshots / svi_dimension_evidence
+  // — its confidence, verification and evidence rows come from the fixture.
+  const demo = batch.isDemo ? demoJourneyForRows(rows.map((r) => ({ projectId: r.projectId, projectSlug: r.projectSlug }))) : null;
 
   const startups: JourneyStartup[] = rows.map((r) => {
-    const evidence = summariseEvidence(evidenceRows.get(r.projectId) ?? []);
+    const evidence = summariseEvidence((demo ? demo.evidence.get(r.projectId) : undefined) ?? evidenceRows.get(r.projectId) ?? []);
     return {
       itemId: r.itemId,
       evaluationId: r.evaluationId,
@@ -82,8 +86,9 @@ export async function loadCohortBundle(userId: string, batchId: string): Promise
       name: r.startup,
       status: r.status,
       svi: r.svi,
-      confidence: (snapshotByItem.has(r.itemId) ? confidenceBySnapshot.get(snapshotByItem.get(r.itemId) as string) : undefined) ?? confidenceByProject.get(r.projectId) ?? null,
-      verification: verification.get(r.projectId) ?? 0,
+      confidence: demo?.confidence.get(r.projectId) ?? (snapshotByItem.has(r.itemId) ? confidenceBySnapshot.get(snapshotByItem.get(r.itemId) as string) : undefined) ?? confidenceByProject.get(r.projectId) ?? null,
+      verification: demo?.verification.get(r.projectId) ?? verification.get(r.projectId) ?? 0,
+      isDemo: batch.isDemo === true,
       stage: r.stage,
       delta: r.delta,
       topStrength: r.topStrength,
