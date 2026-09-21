@@ -371,9 +371,16 @@
 ### G23 — Report grounding to KPI · pilot proposals + conversion · ops hygiene
 - **Source:** [`docs/plans/g23-grounding-proposals-2026-09-21.md`](./g23-grounding-proposals-2026-09-21.md) — G19's open P1 (`groundedShare` 0.41 vs 0.85), the advisor plan's Level-3 proposals + pilot → annual funnel, the G22 follow-ups.
 - **Lanes:** A report grounding (owner citations, CMO budgets, W4 verdict trim; showcase re-run ≥ 0.85; `tbr_quality` watch → ok) · B pilot proposal PDF from `/admin/validation` + pilot → Cohort annual conversion with a founder-minted credit coupon (contact fallback) · C ops hygiene (partial live-qa marker, log rotation, ledger write lock, `pilot.*` literals, grounded share on `/api/status`).
-- **Status:** **OPEN 2026-09-21** — lanes launching.
-- **Next action:** merge → full suite → deploy v3.23.0 → live-qa → review → close.
+- **Status:** **LIVE 2026-09-21 — v3.23.0** (`c6e94a033` 12/12 at 08:52 UTC; lanes A/B/C merged, 0434 applied + ledger, crontab installed; full unit 39 466 / pdf 233 green; elevated live-qa + link-check + sweep + read-only review running → close-out follows). Shipped: A auto-citer (every material number cited against the register, never an invented id), claim gate shared with the llm-auditor, truncated-JSON salvage on the first call, CMO/CFO/CPO budgets, verdict trim instead of degrade, executive gate over the whole register, ReportV2 citation-gate share, `TBR-grounding-v2.3.0` fixture, counters, `TBR_GROUNDED_SHARE_KPI` (demo report 1.00; showcase re-run pending) · B proposal PDF from `/admin/validation` (`GET /api/admin/validation/[id]/proposal`, 4 pages, figures from `PILOT_SKUS`), `convert_from_pilot` checkout with founder-minted coupons (contact fallback), webhook conversion write (0434), conversion card, L5 auto row · C partial live-qa summaries (`live-qa-latest-partial.json`), weekly cron logs (56 d prune), ledger serialised writes + `If-Match` → 409, `pilot.*` catalogue keys EN/VI, `/api/status.tbr_quality.grounded_share` + KPI, `/admin/funnel` Report grounding row. Also: lane 42 + gate 12 tolerate the Cloudflare-injected GTM inline baseline (the strict form had rolled back the G22 review-fix deploy).
+- **Next action:** close-out after QA + review; G24 opened (§ G24).
 - **Blocker:** founder mints `STRIPE_COUPON_PILOT_CREDIT_25/50` for the conversion credit (code falls back to contact).
+
+### G24 — Report readability · demo cohort for buyer demos · AI-run integrity
+- **Source:** [`docs/plans/g24-report-readability-demo-cohort-2026-09-21.md`](./g24-report-readability-demo-cohort-2026-09-21.md) — G23-A close notes (raw `[ev:]` / `[unevidenced]` markers in the live showcase prose; `ai_runs_prompt_version_id_fkey` failing on every pipeline call; invalid Anthropic key retried), advisor-plan validation Level 2 (workflow demos need a cohort with data), G21 follow-ups (`funding_round` feed).
+- **Lanes:** A citations as numbered footnotes + "Evidence cited" appendix (ReportV2 + PDF/DOCX twins, EN/VI; no raw marker ever reaches the DOM) · B AI-run integrity (prompt-version registration so `ai_runs` rows land; 401 → provider marked unconfigured once; `funding_round` signal feed; `tbr_quality` digest line) · C demo cohort (`POST /api/evaluations/batch/demo`: 5 fictional startups from the demo register, zero AI cost, `is_demo` 0436, excluded from benchmarks / calibration / index / exports / tracker auto rows; empty-state CTAs; pilot-kit pre-step).
+- **Status:** **OPEN 2026-09-21** — lanes launching on v3.23.0.
+- **Next action:** merge → 0436 → full suite → deploy v3.24.0 → live-qa (37 k, 42) → review → close.
+- **Blocker:** none engineering; founder-only: valid `ANTHROPIC_API_KEY` or leave unset.
 
 ## 2. Requirements Register
 
