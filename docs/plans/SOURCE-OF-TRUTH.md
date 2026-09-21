@@ -391,6 +391,13 @@
 - **Next action:** merge A → apply 0437 → remove the key line from `web/.env*` → full suite → v3.25.0 → deploy → full QA + review + UX check → close.
 - **Blocker:** none.
 
+### G26 — Light unicorn template on every page: light surfaces · dark high-contrast text · one harmonious palette
+- **Source:** [`docs/plans/g26-light-template-redesign-2026-09-21.md`](./g26-light-template-redesign-2026-09-21.md) — founder 2026-09-21: "nền sáng và chữ màu tối tương phản để dễ đọc và hài hoà màu sắc, redesign full all page same style for whole blockid.au … skill ui/ux pro max, unicorn style". Supersedes the G17 template's dark pairing / dark bands.
+- **Lanes:** T tokens + primitives + chrome + guard test (merges first) · M marketing + /vi · W1 founder workspace · W2 evaluator / accelerator / admin · R reports, PDF/DOCX, e-mail, SVG palette, tbr-contrast smoke.
+- **Status:** **OPEN 2026-09-21** — five ui-ux-pro-max lanes launching on `b17561226`, in parallel with G25-A.
+- **Next action:** merge T → merge M/W1/W2/R → full suite → deploy → page sweep light check + screenshot review → read-only review → fixes → close.
+- **Blocker:** none.
+
 ## 2. Requirements Register
 
 | ID | Source | Category | Status | Owner (skill) | Ship commit |
