@@ -148,9 +148,9 @@ function CodeBlock({
   tone?: "default" | "success";
 }) {
   return (
-    <div className="relative rounded-xl bg-ink-900 border border-ink-700 overflow-hidden">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-ink-700">
-        <span className="text-[10px] uppercase tracking-wider font-semibold text-slate-500">
+    <div className="relative rounded-xl bg-surface-sunken border border-line overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-2 border-b border-line">
+        <span className="text-[10px] uppercase tracking-wider font-semibold text-muted">
           {language}
         </span>
       </div>
@@ -158,7 +158,7 @@ function CodeBlock({
       <pre
         className={cn(
           "p-4 overflow-x-auto text-sm leading-relaxed",
-          tone === "success" ? "text-emerald-300" : "text-slate-300",
+          tone === "success" ? "text-bull" : "text-primary",
         )}
       >
         <code>{code}</code>

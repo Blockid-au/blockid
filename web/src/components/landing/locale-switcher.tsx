@@ -86,14 +86,14 @@ export function LocaleSwitcher() {
     <div
       role="group"
       aria-label="Language"
-      className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-1 py-0.5 text-xs font-semibold text-brand-ink-muted"
+      className="inline-flex items-center gap-1 rounded-full border border-line bg-surface-sunken px-1 py-0.5 text-xs font-semibold text-secondary"
       data-i18n-skip
     >
       {LOCALES.map((code, i) => {
         const active = code === current;
         const cls = active
-          ? "rounded-full bg-brand-cyan px-2 py-1 text-brand-navy"
-          : "rounded-full px-2 py-1 hover:text-brand-ink";
+          ? "rounded-full bg-action px-2 py-1 text-on-action"
+          : "rounded-full px-2 py-1 hover:text-primary";
         return (
           <span key={code} className="contents">
             {active ? (
@@ -107,13 +107,13 @@ export function LocaleSwitcher() {
               <button
                 type="button"
                 onClick={() => onPick(code)}
-                className={`${cls} focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan`}
+                className={`${cls} focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface`}
               >
                 {LABELS[code]}
               </button>
             )}
             {i === 0 ? (
-              <span aria-hidden="true" className="text-white/20">
+              <span aria-hidden="true" className="text-faint">
                 |
               </span>
             ) : null}

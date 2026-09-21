@@ -35,7 +35,7 @@ function fmtAud(v: number): string {
 }
 
 function MiniSparkline({ data }: { data: number[] }) {
-  if (data.length < 2) return <span className="text-ink-300 text-xs">—</span>;
+  if (data.length < 2) return <span className="text-muted text-xs">—</span>;
   const min = Math.min(...data) - 1;
   const max = Math.max(...data) + 1;
   const range = max - min || 1;

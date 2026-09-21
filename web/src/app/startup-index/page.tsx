@@ -39,8 +39,8 @@ function fmtAud(v: number): string {
 }
 
 function deltaColor(delta: number): string {
-  if (delta > 0) return "text-emerald-600";
-  if (delta < 0) return "text-rose-600";
+  if (delta > 0) return "text-bull";
+  if (delta < 0) return "text-bear";
   return "text-ink-400";
 }
 
@@ -53,11 +53,11 @@ function deltaBg(delta: number): string {
 }
 
 function deltaHeatBg(delta: number): string {
-  if (delta > 5) return "bg-emerald-500/90 text-white";
-  if (delta > 2) return "bg-emerald-400/80 text-white";
+  if (delta > 5) return "bg-bull text-white";
+  if (delta > 2) return "bg-emerald-100 text-emerald-900";
   if (delta > 0) return "bg-emerald-200 text-emerald-900";
-  if (delta < -5) return "bg-rose-500/90 text-white";
-  if (delta < -2) return "bg-rose-400/80 text-white";
+  if (delta < -5) return "bg-bear text-white";
+  if (delta < -2) return "bg-rose-100 text-rose-900";
   if (delta < 0) return "bg-rose-200 text-rose-900";
   return "bg-ink-100 text-ink-700";
 }
@@ -154,7 +154,7 @@ export default async function IndexExchangePage() {
             </div>
             <div>
               <p className="text-[10px] text-ink-500 uppercase tracking-wider font-medium">Analyses today</p>
-              <p className="text-xl font-bold text-emerald-600 tabular-nums">{data.bsiAu.analysesToday}</p>
+              <p className="text-xl font-bold text-bull tabular-nums">{data.bsiAu.analysesToday}</p>
             </div>
             <div>
               <p className="text-[10px] text-ink-500 uppercase tracking-wider font-medium">vs yesterday</p>
@@ -211,7 +211,7 @@ export default async function IndexExchangePage() {
           {/* Winners */}
           <div className="rounded-2xl border border-emerald-200 bg-white p-5">
             <div className="flex items-center gap-2 mb-3">
-              <ArrowUpRight className="h-4 w-4 text-emerald-600" />
+              <ArrowUpRight className="h-4 w-4 text-bull" />
               <h2 className="text-sm font-bold text-ink-900 uppercase tracking-wider">Top winners (7d)</h2>
             </div>
             {data.topMovers.winners.length === 0 ? (
@@ -235,7 +235,7 @@ export default async function IndexExchangePage() {
                       <td className="py-1.5 text-xs text-ink-600 capitalize">{m.sector}</td>
                       <td className="py-1.5 text-xs text-right font-mono">{m.svi}</td>
                       <td className="py-1.5 text-right">
-                        <span className="text-xs font-bold text-emerald-600 tabular-nums">+{m.deltaWeek}</span>
+                        <span className="text-xs font-bold text-bull tabular-nums">+{m.deltaWeek}</span>
                       </td>
                     </tr>
                   ))}
@@ -247,7 +247,7 @@ export default async function IndexExchangePage() {
           {/* Losers */}
           <div className="rounded-2xl border border-rose-200 bg-white p-5">
             <div className="flex items-center gap-2 mb-3">
-              <ArrowDownRight className="h-4 w-4 text-rose-600" />
+              <ArrowDownRight className="h-4 w-4 text-bear" />
               <h2 className="text-sm font-bold text-ink-900 uppercase tracking-wider">Biggest drops (7d)</h2>
             </div>
             {data.topMovers.losers.length === 0 ? (
@@ -351,14 +351,14 @@ export default async function IndexExchangePage() {
         </div>
 
         {/* ── CTA ────────────────────────────────────────────────────── */}
-        <section className="rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-600 to-amber-600 text-white p-8 mb-6 text-center shadow-md">
-          <Zap className="h-8 w-8 mx-auto mb-3 opacity-90" />
-          <h2 className="text-2xl font-bold mb-2">Where does your startup sit on the index?</h2>
-          <p className="text-sm opacity-90 mb-5 max-w-xl mx-auto">
+        <section className="rounded-2xl border border-line-subtle bg-surface-sunken p-8 mb-6 text-center">
+          <Zap className="h-8 w-8 mx-auto mb-3 text-action" aria-hidden />
+          <h2 className="text-2xl font-bold mb-2 text-primary">Where does your startup sit on the index?</h2>
+          <p className="text-sm text-secondary mb-5 max-w-xl mx-auto">
             Get a free SVI analysis in under 60 seconds. Evidence-backed evaluation against the AU companies on the index ({data.bsiAu.label}).
           </p>
           <div className="flex items-center gap-3 flex-wrap justify-center">
-            <Link href="/score" className="inline-flex items-center gap-1.5 bg-white text-brand-700 px-6 py-3 rounded-xl font-bold text-sm hover:bg-amber-50 transition-colors">
+            <Link href="/score" className="inline-flex min-h-11 items-center gap-1.5 bg-action text-on-action px-6 py-3 rounded-xl font-bold text-sm hover:bg-action-hover transition-colors">
               Get your score free
               <ArrowRight className="h-4 w-4" />
             </Link>
@@ -366,7 +366,7 @@ export default async function IndexExchangePage() {
                 the deliverable before starting a real analysis. */}
             <Link
               href="/sample-business-report"
-              className="inline-flex items-center gap-1.5 border border-white/50 text-white px-5 py-3 rounded-xl font-semibold text-sm hover:bg-white/10 transition-colors"
+              className="inline-flex min-h-11 items-center gap-1.5 border border-line bg-surface text-primary px-5 py-3 rounded-xl font-semibold text-sm hover:bg-surface-hover transition-colors"
             >
               See a sample report
             </Link>

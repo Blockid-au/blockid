@@ -555,7 +555,7 @@ export default async function ScoreActivityPage({
                             <span className="text-ink-700 font-medium">
                               Viewer #{idx + 1}
                             </span>
-                            <span className="text-xs text-ink-300 font-mono ml-2">
+                            <span className="text-xs text-muted font-mono ml-2">
                               {heat.viewer_hash.slice(0, 8)}...
                             </span>
                           </td>
@@ -606,7 +606,7 @@ export default async function ScoreActivityPage({
             <div className="mt-5">
               {totalViews === 0 ? (
                 <div className="py-12 text-center">
-                  <Eye strokeWidth={1.5} className="h-8 w-8 text-ink-300 mx-auto" />
+                  <Eye strokeWidth={1.5} className="h-8 w-8 text-faint mx-auto" />
                   <p className="mt-3 text-sm text-ink-400">
                     No views in the last 30 days.
                   </p>
@@ -629,7 +629,7 @@ export default async function ScoreActivityPage({
                           }`}
                           style={{ height: `${heightPct}%` }}
                         />
-                        <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-ink-900 text-white text-[10px] rounded whitespace-nowrap z-10">
+                        <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 border border-line bg-surface text-primary shadow-2 text-[10px] rounded whitespace-nowrap z-10">
                           {day.date}: {day.count}
                         </div>
                       </div>
@@ -637,7 +637,7 @@ export default async function ScoreActivityPage({
                   })}
                 </div>
               )}
-              <div className="flex justify-between mt-2 text-[10px] text-ink-300 font-mono">
+              <div className="flex justify-between mt-2 text-[10px] text-muted font-mono">
                 <span>{dailyViews[0]?.date}</span>
                 <span>{dailyViews[dailyViews.length - 1]?.date}</span>
               </div>
@@ -742,11 +742,11 @@ export default async function ScoreActivityPage({
                 <div className="mt-5">
                   {views.length === 0 ? (
                     <div className="py-12 text-center">
-                      <Eye strokeWidth={1.5} className="h-8 w-8 text-ink-300 mx-auto" />
+                      <Eye strokeWidth={1.5} className="h-8 w-8 text-faint mx-auto" />
                       <p className="mt-3 text-sm text-ink-400">
                         No investor views recorded yet.
                       </p>
-                      <p className="mt-1 text-xs text-ink-300">
+                      <p className="mt-1 text-xs text-muted">
                         Views will appear here once someone opens the share link.
                       </p>
                     </div>
@@ -829,7 +829,7 @@ export default async function ScoreActivityPage({
                                       {view.sections_viewed.length} sections
                                     </span>
                                   )}
-                                  <span className="text-[11px] text-ink-300 font-mono">
+                                  <span className="text-[11px] text-muted font-mono">
                                     {formatDate(view.viewed_at)}
                                   </span>
                                 </div>
@@ -925,7 +925,7 @@ export default async function ScoreActivityPage({
                             <span className="text-sm text-ink-600">{host}</span>
                             <span className="font-mono text-sm text-brand-600 tabular-nums">
                               {count}
-                              <span className="text-ink-300 text-xs ml-1">({pct}%)</span>
+                              <span className="text-muted text-xs ml-1">({pct}%)</span>
                             </span>
                           </div>
                           <div className="h-1.5 rounded-full bg-surface-100 overflow-hidden">
@@ -970,7 +970,7 @@ export default async function ScoreActivityPage({
                             {label}
                           </div>
                           <span className="font-mono text-sm tabular-nums text-ink-500">
-                            {count} <span className="text-ink-300 text-xs">({pct}%)</span>
+                            {count} <span className="text-muted text-xs">({pct}%)</span>
                           </span>
                         </li>
                       );
@@ -988,7 +988,7 @@ export default async function ScoreActivityPage({
                 <h2 className="text-lg font-semibold text-ink-800">Score</h2>
                 <p className="mt-3 text-4xl font-bold text-brand-600 tabular-nums">
                   {score?.total_score ?? 82}
-                  <span className="text-lg font-normal text-ink-300">/100</span>
+                  <span className="text-lg font-normal text-muted">/100</span>
                 </p>
                 <p className="mt-1 text-xs text-ink-400 font-mono">/{slug}</p>
                 <div className="mt-4">
