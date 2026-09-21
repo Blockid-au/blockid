@@ -82,7 +82,8 @@ describe("/workspace/accelerator — BlockID Cohort journey", () => {
     expect(out).toContain('href="/workspace/accelerator/applications"');
     expect(out).toContain('data-testid="onboarding-kit-link"');
     expect(out).toContain("data-landing");
-    expect(out).toContain("data-banner");
+    // G25: no pilot banner on the desk any more (the paid pilot is retired).
+    expect(out).not.toMatch(/pilot-active-banner|Cohort Validation Pilot/);
     expect(journeyMock).toHaveBeenCalledWith(USER, { batchId: null, intake: { links: 0, submissions: 0, publicUrl: null, openLinks: 0 } });
   });
 
