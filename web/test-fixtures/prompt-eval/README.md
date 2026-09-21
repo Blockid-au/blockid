@@ -82,6 +82,15 @@ case whose verdict must say "pre-revenue" / "Berkus" and where any `ARR A$` /
 `MRR A$` figure hard-fails, and a Stripe-connector case whose verdict must
 name the source and cite the row).
 
+G23-A adds `TBR-grounding-v2.3.0.json` (pinned by `tbr-fixtures.test.ts`): three
+W4-shaped cases with uuid-shaped evidence ids for the three grounding fixes —
+(a) an owner payload that quotes Stripe / founder numbers without an id must
+ground ≥ 0.85 once `auto-cite.ts` has mapped them (and an invented ARR still
+hard-fails), (c) a 100-word verdict is trimmed to the last full sentence within
+`verdict_max_words: 80` instead of failing the chapter, (b) a good CMO answer cut
+mid-JSON is salvaged (`lib/ai/json-salvage.ts`) and still meets every
+constraint. `verdict_max_words` is the new `expected` key (within +1, over -1).
+
 ## Promotion rule
 
 `web/src/lib/ai/eval-runner.ts::shouldPromote(result)` returns `true`

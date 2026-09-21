@@ -118,6 +118,8 @@ describe("renderTbrPdf — standard tier", () => {
   // G19-S44 — cover "current value" hero twin + one phase vocabulary + audit copy.
   it("cover: A$ range hero with confidence, SVI + band, phase label without the SVI stage label; 'valuation pending' below 30 % confidence; audit copy says 'no citation'", async () => {
     const report = demoReportV2();
+    // G23-A: the demo chapters ground on the citation gate; force one ungrounded chapter to pin the "no citation" copy.
+    report.dimensions[0]!.audit = { ...report.dimensions[0]!.audit, grounded: false, uncited: 0 };
     const { buffer } = await renderTbrPdf(report);
     const text = await fullText(buffer);
     expect(text).toContain("CURRENT VALUE");

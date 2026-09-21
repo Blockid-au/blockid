@@ -20,6 +20,8 @@ export const UNEVIDENCED_MARKERS =
   /[([](?:unevidenced|uncited|no evidence|estimate|estimated|illustrative|assumption)[)\]]|\b(?:not disclosed|not provided|no evidence (?:was )?(?:supplied|provided)|unverified|self-reported|founder-reported|indicative only)\b/i;
 
 export const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
+/** The inline citation marker every owner contract asks for. */
+export const EV_MARKER_RE = /\[ev:([^\]]+)\]/gi;
 
 /** Split prose into claim-sized units: sentences, list items, table rows. */
 export function splitClaims(text: string): string[] {
@@ -44,6 +46,9 @@ export function isMaterialClaim(claim: string): boolean {
 export function hasCitationOrMarker(claim: string, allowed: ReadonlySet<string> | string[] = []): boolean {
   if (UNEVIDENCED_MARKERS.test(claim)) return true;
   const set = Array.isArray(allowed) ? new Set(allowed.map(id => id.toLowerCase())) : allowed;
-  const uuids = claim.match(UUID_RE) ?? [];
-  return set.size === 0 ? uuids.length > 0 : uuids.some(u => set.has(u.toLowerCase()));
+  // G23-A: an `[ev:<id>]` marker counts for ANY allowed id (register ids are
+  // uuid-shaped in the pipeline, but demo / fixture rows use readable ids);
+  // a bare uuid still counts, as before.
+  const ids = [...Array.from(claim.matchAll(EV_MARKER_RE), m => m[1]!.trim()), ...(claim.match(UUID_RE) ?? [])];
+  return set.size === 0 ? ids.length > 0 : ids.some(u => set.has(u.toLowerCase()));
 }

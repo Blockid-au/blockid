@@ -76,6 +76,12 @@ export const ExpectedConstraints = z
      * owner was given. Present → +1, none present → -1.
      */
     verdict_must_mention_any: z.array(z.string().min(1)).optional(),
+    /**
+     * G23-A (TBR-grounding fixture): the `verdict` must be at most this many
+     * words — the §C.11 cap the chapter builder now trims to instead of
+     * failing the chapter. Within → +1, over → -1.
+     */
+    verdict_max_words: z.number().int().positive().optional(),
   })
   .default({ must_have_gaps: [], must_not_hallucinate: [] });
 export type ExpectedConstraints = z.infer<typeof ExpectedConstraints>;
@@ -283,6 +289,15 @@ function scoreCase(
     const verdictRaw = data["verdict"];
     const verdict = typeof verdictRaw === "string" ? verdictRaw.toLowerCase() : "";
     if (expected.verdict_must_mention_any.some((p) => verdict.includes(p.toLowerCase()))) positive += 1;
+    else positive -= 1;
+  }
+
+  // verdict_max_words → within the cap +1, over -1 (G23-A grounding fixture)
+  if (typeof expected.verdict_max_words === "number") {
+    possible += 1;
+    const verdictRaw = data["verdict"];
+    const words = typeof verdictRaw === "string" ? verdictRaw.trim().split(/\s+/).filter(Boolean).length : Number.POSITIVE_INFINITY;
+    if (words <= expected.verdict_max_words) positive += 1;
     else positive -= 1;
   }
 

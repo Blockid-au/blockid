@@ -12,7 +12,11 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { PromptEvalFixture, runEval, shouldPromote, type FixtureCase } from "@/lib/ai/eval-runner";
 import type { PromptVersion } from "@/lib/ai/prompt-registry";
-import { DimensionChapterInput, DimensionChapterPayload } from "./agent-dispatcher";
+import { DimensionChapterInput, DimensionChapterPayload, VERDICT_WORD_CAPS } from "./agent-dispatcher";
+import { autoCite, itemsFromEvidenceRows } from "./auto-cite";
+import { trimVerdict } from "./verdict-trim";
+import { salvageTruncatedJson } from "@/lib/ai/json-salvage";
+import { groundedShareOf } from "@/lib/ai/eval-runner";
 import { draftFromPayload, ExecutiveSummaryInput, ExecutiveSummaryPayload, type ExecutiveSummaryPayload as ExecutivePayload } from "./executive-summary";
 import { finaliseExecutiveStructured } from "@/lib/report-v2/executive-structure";
 import { EXECUTIVE_VERDICT_LABELS, hasMarkdownSyntax } from "@/lib/report-v2/schema";
@@ -65,8 +69,8 @@ function goodPayload(c: FixtureCase): Record<string, unknown> {
   return { ...payload, proposed_score: input.deterministicScore };
 }
 
-/** G19 fixtures beside the eight per-dimension files: S41 score ledger, S46 valuation inputs, S47 structured executive. */
-const G19_FIXTURES = ["TBR-executive-v2.2.0.json", "TBR-ledger-v2.1.0.json", "TBR-valuation-inputs-v2.1.0.json"];
+/** G19 fixtures beside the eight per-dimension files: S41 score ledger, S46 valuation inputs, S47 structured executive — plus the G23-A grounding fixture. */
+const G19_FIXTURES = ["TBR-executive-v2.2.0.json", "TBR-ledger-v2.1.0.json", "TBR-valuation-inputs-v2.1.0.json", "TBR-grounding-v2.3.0.json"];
 
 describe("TBR-<dim>-v2.0.0 fixtures", () => {
   it("ships exactly eight TBR-<dim>-v2.0.0 fixtures, one per dimension, discoverable by the nightly runner naming rule (plus the G19 TBR-ledger + TBR-valuation-inputs fixtures)", () => {
@@ -370,5 +374,99 @@ describe("TBR-executive-v2.2.0 fixture (G19-S47)", () => {
       },
     });
     expect(invented.hard_fail).toBe(true);
+  });
+});
+
+// ── G23-A: TBR-grounding-v2.3.0 — the three grounding fixes, pinned nightly-style (no LLM) ──
+describe("TBR-grounding-v2.3.0 fixture (G23-A)", () => {
+  const fx = PromptEvalFixture.parse(JSON.parse(readFileSync(path.join(FIXTURE_DIR, "TBR-grounding-v2.3.0.json"), "utf8")));
+  const pvG: PromptVersion = { ...pv("tre"), agent: "TBR-grounding", version: "2.3.0" };
+  type Rows = Array<{ id: string; label: string; value?: string }>;
+  const rowsOf = (c: FixtureCase) => (c.input as { evidenceRows: Rows }).evidenceRows;
+  const items = (c: FixtureCase) => itemsFromEvidenceRows(rowsOf(c).map((r) => ({ evidence_id: r.id, label: r.label, value: r.value })));
+  /** An owner payload whose sentences quote register numbers but carry no [ev:] marker (what the free models actually write). */
+  function uncitedPayload(c: FixtureCase, verdict: string, strengths: string[], gaps: string[]): Record<string, unknown> {
+    const input = c.input as { dim: DimKey; deterministicScore: number };
+    return { dim: input.dim, verdict, score_adjustment: { proposed: input.deterministicScore, deterministic: input.deterministicScore, reason: "aligned" }, strengths, gaps, next_action: { title: "Add evidence", window: "30d", expected_lift: 3 }, criterion_cards: [], primary_visual: { kind: DIMENSION_OWNERS[input.dim].primaryVisual, data_state: "partial", series: [] }, frameworks_used: [], confidence: 0.7, hallucination_risk: "low", proposed_score: input.deterministicScore };
+  }
+  /** What buildDimensionChapter does to the text fields: auto-cite against the chapter rows, trim the verdict to the cap. */
+  function groundPayload(c: FixtureCase, p: Record<string, unknown>): Record<string, unknown> {
+    const it = items(c);
+    const cite = (t: string) => autoCite(t, it).text;
+    return { ...p, verdict: cite(trimVerdict(p.verdict as string, VERDICT_WORD_CAPS.chapter).text), strengths: (p.strengths as string[]).map(cite), gaps: (p.gaps as string[]).map(cite) };
+  }
+  const caseById = (id: string) => fx.cases.find((c) => c.id === id)!;
+
+  it("parses, carries three cases (auto-cite, verdict trim, budget overrun) with uuid-shaped ids, valid W4 inputs and the grounding + word-cap constraints", () => {
+    expect(fx.cases.map((c) => c.id)).toEqual(["case_autocite_tre", "case_verdict_trim_mpc", "case_budget_overrun_mpc"]);
+    for (const c of fx.cases) {
+      expect(DimensionChapterInput.safeParse(c.input).success).toBe(true);
+      for (const r of rowsOf(c)) expect(r.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+      expect(c.expected.grounded_share_min).toBe(0.85);
+      expect(c.expected.verdict_max_words).toBe(80);
+      expect(c.expected.must_cite).toBeGreaterThanOrEqual(1);
+    }
+  });
+
+  it("(a) auto-cite: an uncited owner payload quoting the Stripe / founder numbers grounds below 0.85 raw and at or above 0.85 after the auto-citer — promotable; an invented ARR still hard-fails", async () => {
+    const c = caseById("case_autocite_tre");
+    const raw = uncitedPayload(
+      c,
+      "Traction is real but thin: Stripe shows A$12,400 MRR from 9 active subscriptions, growing 8 % month on month. The score sits at the seed median.",
+      ["MRR of A$12,400 with 2.1 % churn over 90 days", "9 paying customers on A$12,400 MRR"],
+      [`No cohort retention data yet [ev:${rowsOf(c)[1]!.id}]`],
+    );
+    expect(groundedShareOf(c, raw)).toBeLessThan(0.85);
+    const grounded = groundPayload(c, raw);
+    expect(groundedShareOf(c, grounded)).toBeGreaterThanOrEqual(0.85);
+    expect(String(grounded.verdict)).toMatch(/8 % month on month \[ev:6f1d2c3b-[^\]]+\]\./);
+    expect(DimensionChapterPayload.safeParse(grounded).success).toBe(true);
+    const run = async (data: Record<string, unknown>) => runEval({ ...fx, cases: [c] }, pvG, { runCase: async () => ({ ok: true, data, latencyMs: 5, costUsd: 0.001, runId: c.id }) });
+    const good = await run(grounded);
+    expect(good.hard_fail).toBe(false);
+    expect(good.accuracy_pct).toBeGreaterThanOrEqual(0.8);
+    expect(shouldPromote(good)).toBe(true);
+    const invented = await run({ ...grounded, verdict: `${grounded.verdict} Revenue reached A$1.2M ARR.` });
+    expect(invented.hard_fail).toBe(true);
+  });
+
+  it("(c) verdict trim: a 100-word verdict parses (no schema failure) and is trimmed to the last full sentence within 80 words, its citation kept — promotable; the raw verdict misses verdict_max_words", async () => {
+    const c = caseById("case_verdict_trim_mpc");
+    const anchor = rowsOf(c)[0]!.id;
+    const long = `Market pull is developing: the AU anchor puts SAM at A$310M [ev:${anchor}]. ${Array.from({ length: 60 }, (_, i) => `Filler${i}`).join(" ")}. ${Array.from({ length: 25 }, (_, i) => `More${i}`).join(" ")}.`;
+    const raw = uncitedPayload(c, long, [`SAM A$310M cross-checks with the ABS anchor [ev:${anchor}]`], [`No persona or interview evidence yet [ev:${rowsOf(c)[1]!.id}]`]);
+    expect(DimensionChapterPayload.safeParse(raw).success).toBe(true);
+    expect(long.split(/\s+/).length).toBeGreaterThan(80);
+    const grounded = groundPayload(c, raw);
+    const words = String(grounded.verdict).split(/\s+/).length;
+    expect(words).toBeLessThanOrEqual(80);
+    expect(String(grounded.verdict)).toContain(`[ev:${anchor}]`);
+    expect(String(grounded.verdict).endsWith("Filler59.")).toBe(true);
+    const run = async (data: Record<string, unknown>) => runEval({ ...fx, cases: [c] }, pvG, { runCase: async () => ({ ok: true, data, latencyMs: 5, costUsd: 0.001, runId: c.id }) });
+    const good = await run(grounded);
+    expect(shouldPromote(good)).toBe(true);
+    const untrimmed = await run(raw);
+    expect(untrimmed.accuracy_pct).toBeLessThan(good.accuracy_pct);
+  });
+
+  it("(b) budget overrun: a good CMO answer cut mid-JSON at ~2,500 tokens is salvaged to its last complete value, parses the W4 schema (confidence defaulted) and stays promotable", async () => {
+    const c = caseById("case_budget_overrun_mpc");
+    const anchor = rowsOf(c)[0]!.id;
+    const full = { ...uncitedPayload(c, `Market pull is developing: SAM A$310M against a TAM of A$4.2bn [ev:${anchor}].`, [`Bottom-up SAM A$310M [ev:${anchor}]`], [`No persona or interview evidence yet [ev:${rowsOf(c)[1]!.id}]`]), criterion_cards: [{ key: "market", lens: "mpc", verdict: "SAM cross-checked", strengths: [], gaps: [], next_action: "Interview 10 buyers", citations: [{ evidence_id: anchor, quote: "SAM A$310M" }] }], frameworks_used: ["TAM/SAM/SOM ABS-anchored (top-down × bottom-up cross-check)", "JTBD"] };
+    delete (full as Record<string, unknown>).confidence;
+    const text = JSON.stringify(full);
+    const cut = text.slice(0, text.indexOf(`"frameworks_used"`) + 40);
+    expect(() => JSON.parse(cut)).toThrow();
+    const rescued = salvageTruncatedJson(cut);
+    expect(rescued).not.toBeNull();
+    const parsed = DimensionChapterPayload.safeParse(JSON.parse(rescued!));
+    expect(parsed.success).toBe(true);
+    if (!parsed.success) return;
+    expect(parsed.data.confidence).toBe(0.5);
+    expect(parsed.data.criterion_cards).toHaveLength(1);
+    const data = { ...(parsed.data as unknown as Record<string, unknown>), proposed_score: parsed.data.score_adjustment.proposed };
+    const good = await runEval({ ...fx, cases: [c] }, pvG, { runCase: async () => ({ ok: true, data, latencyMs: 5, costUsd: 0.001, runId: c.id }) });
+    expect(good.hard_fail).toBe(false);
+    expect(shouldPromote(good)).toBe(true);
   });
 });

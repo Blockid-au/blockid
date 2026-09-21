@@ -10,5 +10,7 @@ import type { ReportV2 } from "./schema";
 export function defaultPreparedWith(report: ReportV2): string {
   const grounded = Math.round((report.quality.groundedShare ?? 0) * 100);
   const src = report.source === "pipeline" ? "the BlockID C-level agent pipeline" : report.source === "fixture" ? "demo data" : "the stored snapshot (adapter)";
-  return `Prepared with ${src} · ${report.pipelineVersion} · llm-auditor grounded ${grounded}%.`;
+  // G23-A: only a pipeline run carries the llm-auditor sweep; a projection’s share is the deterministic citation gate.
+  const gate = report.source === "pipeline" ? "llm-auditor" : "citation gate";
+  return `Prepared with ${src} · ${report.pipelineVersion} · ${gate} grounded ${grounded}%.`;
 }
