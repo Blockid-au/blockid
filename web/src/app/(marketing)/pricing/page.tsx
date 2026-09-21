@@ -16,7 +16,6 @@ import { LogoCloud } from "@/components/landing/logo-cloud";
 import { StickyCta } from "@/components/sales/sticky-cta";
 import { PricingFeatureNotice } from "@/components/landing/pricing-feature-notice";
 import { GST_POLICY_LINE } from "@/lib/plans-v2";
-import { getMessages } from "@/lib/i18n/t";
 
 // S31-D: static + ISR (300 s, the edge TTL in
 // lib/security/public-cacheable-routes.ts). The catalogue is code

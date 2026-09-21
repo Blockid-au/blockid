@@ -18,7 +18,6 @@ vi.mock("@/components/sales/sticky-cta", () => ({ StickyCta: () => null }));
 
 import { extractJsonLd } from "@/lib/seo/structured-data";
 import { renderedTitle } from "@/lib/seo/page-meta";
-import enMessages from "@/lib/i18n/messages/en.json";
 import PricingPage, { metadata } from "./page";
 
 async function html(el: React.ReactElement): Promise<string> {

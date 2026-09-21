@@ -1,5 +1,7 @@
-// G16-C — pilot lifecycle: start (one-click comp), end early, daily expiry,
-// list with counts. Every side effect goes through `PilotDeps` so the
+// G16-C — pilot lifecycle: start (one-click comp — retired by G25 on
+// 2026-09-21: no route calls `startPilot` any more; it stays for its tests
+// and the ledger shape), end early, daily expiry, list with counts. Every
+// side effect goes through `PilotDeps` so the
 // colocated test runs against an in-memory db, a temp ledger root and
 // recording stubs; the routes call the functions with the defaults.
 //

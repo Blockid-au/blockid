@@ -3,8 +3,6 @@
 // carries the data sentence verbatim and the seller-of-record sender identity.
 
 import { SENDER_IDENTITY_HTML, SENDER_IDENTITY_LINE } from "@/lib/email";
-import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
-import { formatAud } from "@/lib/plans-v2";
 import {
   DATA_PRINCIPLE_SENTENCE,
   DEFAULT_PILOT_DAYS,

@@ -26,7 +26,7 @@ import {
 } from "@/lib/stripe/addon-entitlements";
 import { extendTimedGrant, invalidateTimedGrants } from "@/lib/entitlements/timed-grants";
 import { STARTUP_PACKAGE_RADAR_DAYS } from "@/lib/plans-v2";
-import { emitFiEvent, onInvoicePaid } from "@/lib/analytics/fi-events";
+import { onInvoicePaid } from "@/lib/analytics/fi-events";
 
 // POST /api/stripe/webhook
 // Stripe sends webhook events here. Verifies the signature, then processes

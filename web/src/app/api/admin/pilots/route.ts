@@ -28,7 +28,7 @@ export async function GET() {
 // (DELETE /api/admin/pilots/[id]); starting one answers 410 so an old admin
 // tab or script cannot grant a comp by accident. `startPilot` stays in
 // lib/pilots/service for its tests and the ledger shape only.
-async function POST_handler(_request: Request) {
+async function POST_handler() {
   const g = await gateAdmin();
   if (g.response) return g.response;
   return NextResponse.json({ ok: false, error: "pilots_retired", message: "New pilots are no longer offered (G25, 2026-09-21). Evaluators go straight to the Cohort / Scout / Firm / Program plans." }, { status: 410 });
