@@ -44,8 +44,10 @@ test.describe("Pricing — evaluator segment", () => {
       expect(text, `${tier.name} price`).toContain(tier.price);
       expect(text, `${tier.name} trial pill`).toMatch(/7-day free trial/);
       expect(text, `${tier.name} card required`).toMatch(/card required/i);
+      // G25-D: the card CTA lands on the review step (never a card form or Stripe).
       expect(href ?? "", `${tier.name} CTA`).toContain(`plan=${tier.plan}`);
-      expect(href ?? "", `${tier.name} CTA segment`).toContain("segment=evaluator");
+      expect(href ?? "", `${tier.name} CTA review step`).toMatch(/^\/checkout\/review\?plan=/);
+      expect(href ?? "", `${tier.name} CTA entry`).toContain("entry=pricing_card");
     }
     await evidence(testInfo, "evaluator ladder", rows);
     await expect(page.getByTestId("evaluator-trial-included").first()).toContainText(/Trusted Business Report/);
@@ -88,7 +90,9 @@ test.describe("Evaluator registration — up to the card step", () => {
       const selected = await planSelect.evaluate((el) => (el as HTMLSelectElement).selectedOptions[0]?.textContent ?? "");
       expect(selected).toMatch(/Scout — A\$79\/mo/);
       await expect(page.getByTestId("signup-account-type")).toBeVisible();
-      const submit = page.getByRole("button", { name: /Start 7-day evaluator trial/ });
+      // G25-D: the submit names the card step and sits under the review block.
+      await expect(page.getByTestId("signup-review")).toHaveAttribute("data-plan-id", "investor_angel");
+      const submit = page.getByRole("button", { name: /Add card & start 7-day trial/ });
       await expect(submit).toBeVisible();
       // Stripe's CardElement mounts as an iframe titled "Secure card payment input (Stripe)".
       await expect(page.locator('iframe[title*="Secure card payment input"]').first()).toBeAttached({ timeout: 45_000 });
