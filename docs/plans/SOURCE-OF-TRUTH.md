@@ -391,6 +391,13 @@
 - **Next action:** none — G25 closed.
 - **Blocker:** none.
 
+### G28 — Grounding to the KPI · provider resilience · free-grant path on ReportV2 · print + SVI app parity
+- **Source:** [`docs/plans/g28-grounding-resilience-free-path-2026-09-21.md`](./g28-grounding-resilience-free-path-2026-09-21.md) — the open items at the G24–G27 close: showcase 0.82 vs 0.85, two fully-degraded showcase runs on DeepInfra worker timeouts, the free-grant path still e-mailing the S32 PDF, `@page` / `?band=` deviations, the SVI app still dark.
+- **Lanes:** A grounding ≥ 0.85 (residual-pattern prompt rules + computed rows, ≤ 2 paid runs) · B provider resilience (45 s per model, run-scoped strikes, W4 budget reserve, digest line) · C free-grant runs through the ReportV2 pipeline (v3 document + investment-view e-mail) · D print rules, `/tbr/demo?band=`, startupvalueindex.com light template.
+- **Status:** **OPEN 2026-09-21** — lanes launching on v3.26.1.
+- **Next action:** merge → full suite → v3.27.0 → deploy → QA + ui-ux check + review → close.
+- **Blocker:** none.
+
 ### G27 — Trusted Business Report v3: investor-grade valuation + investment report (PRIORITY)
 - **Source:** [`docs/plans/g27-tbr-v3-investor-report-2026-09-21.md`](./g27-tbr-v3-investor-report-2026-09-21.md) — founder 2026-09-21: clear, coherent assessments across the 8 criteria, a full startup-value + investment report that says whether it is a high-value investment and what to improve, key points made clear, modelled on the best standard business/investment reports, pro UI/UX; prioritised and synced with the running plan.
 - **Phases:** 1 research + spec (`docs/design/tbr-v3-investor-report-spec.md`: page-1 answers, v3 section order mapped to ReportV2, identical 8-chapter anatomy, deterministic investment-view rubric EN/VI, risk matrix, 90-day plan by lift ÷ effort, light-template visual spec, free/paid/e-mailed PDF, build plan) · 2 build (pure `investment-view.ts`, adapter, `components/tbr/v2` restructure, PDF/DOCX twins, e-mail summary, tests, live-qa 31, showcase re-run).
