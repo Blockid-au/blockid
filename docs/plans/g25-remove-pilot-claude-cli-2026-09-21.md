@@ -3,7 +3,7 @@
 **Opened:** 2026-09-21 — founder (verbatim): "continouos, lưu ý founder-only sử dụng luôn claude cli để xử lý và bỏ luôn coupon và pilot".
 **Owner:** Claude session loop — worktree lanes → merge → full `--project unit` + pdf → 12-gate deploy → elevated live-qa + link-check + page sweep → read-only review + ui-ux-pro-max check → fixes → close.
 **Tracked in:** `docs/plans/SOURCE-OF-TRUTH.md` § G25 · `ROADMAP.md` row G25.
-**Status:** OPEN — lane B merged (`00516f132`, `7baf22e77`); lane A running.
+**Status:** CLOSED 2026-09-21 — live in v3.26.0 (`be1f41cf2`); lanes A/B/C/D shipped; 0437–0440 applied; see SOT § G25.
 
 ## 1. Decision (overrides G21 P0-C / P2-C and G23 lane B)
 - The **paid Cohort Validation Pilot** (A$1,500 / A$2,500 one-off SKUs, `pilot_orders`, `/pilot`, `/vi/pilot`, pilot delivery kit purchase path) and the **pilot → annual coupon conversion** (`STRIPE_COUPON_PILOT_CREDIT_25/50`, `convert_from_pilot`) are removed. Programs go straight to the sold ladder (Cohort 25 / 100 annual with the card-required trial; Scout / Firm / Program). No other price changes. `pilot_orders` stays as a read-only ledger (0437 comment only; no drops).

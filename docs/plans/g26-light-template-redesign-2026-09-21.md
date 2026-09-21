@@ -3,7 +3,7 @@
 **Opened:** 2026-09-21 — founder (verbatim): "điều chỉnh thiết kế toàn bộ template của blockid.au là nền sáng và chữ màu tối tương phản để dễ đọc và hài hoà màu sắc, redesign full all page same style for whole blockid.au (spawn agent nếu cần thiết và dùng skill design ui/ux pro max phù hợp unicorn style)".
 **Owner:** Claude session loop — five worktree lanes (ui-ux-pro-max first in every lane) → merge → full suite → deploy → elevated live-qa + link-check + page sweep + screenshot review → read-only review → fixes → close.
 **Tracked in:** `docs/plans/SOURCE-OF-TRUTH.md` § G26 · `ROADMAP.md` row G26.
-**Status:** OPEN — lanes launching on `b17561226` (v3.24.0 + review fixes; G25-A pilot removal running in parallel — lanes merge master before reporting).
+**Status:** LIVE 2026-09-21 — v3.26.0 (`be1f41cf2`); lanes T/M/W1/W2/R/X shipped; guard enforcing (0 hits); close-out pending the v3.26.0 QA + review + ui-ux check (SOT § G26).
 
 ## 1. Design decision (supersedes `docs/design/unicorn-template.md` § 2 "light default with a full dark pairing" and § 6 "tone=dark once per page")
 - **Light is the only default.** Every page renders on light surfaces (`--ds-surface` white / `--ds-surface-sunken` soft grey) with dark ink text (`--ds-ink` ≥ 15:1, secondary ≥ 8:1, muted ≥ 4.5:1). No dark bands, no dark nav island, no dark footer edge, no dark hero. `prefers-color-scheme: dark` no longer flips the site; an explicit `[data-theme="dark"]` scope stays for the report/PDF theme contract and the toggle (if kept) but is opt-in only.
