@@ -1,5 +1,13 @@
 # BlockID.au Changelog
 
+## 2026-09-21 — v3.22.0: Upgrade hardening (G22)
+
+- **Cohort membership completeness** — reviewers and viewers invited to a BlockID Cohort now open every dossier and IC memo in it read-only through their seat (consent tier = the evaluation's own, never wider; writes stay 404); invited cohorts appear in the Cohorts list with a role chip; owners edit the program rubric weights (`weights_version` bumps, later snapshots stamp it, the Δ view says "weights changed"); dialogs return focus on close; the compare drawer shows a Day 0 / 60 / 180 trajectory per selected startup; members can read cohort snapshots (0432); dossier loaders run in parallel.
+- **Organisation model** — `org_id` on cohorts and intake links (0433, backfilled from the creator's organisation); retention and the audit export are scoped to the organisation's own cohorts and intake links.
+- **Vietnamese parity + docs** — TrustBand, pilot offer / buy controls and `/vi/pilot` in Vietnamese; `/vi/methodology/governance` chrome translated; the institutional API contract renders in-app at `/docs/api/institutional`; a 375 px + dark-mode pass over the outcomes, corrections, cohort, program journey, retention/audit and methodology pages (44 px controls, token colours, focus rings).
+- **Validation tracker** — `/admin/validation`: the advisor plan's five validation levels with editable entries (organisation, date, outcome, objection captured, next step), auto-filled rows from paid pilots, pilot metrics, applications, feedback letters and scored cohorts, the North Star line and the 14-question script; weekly G21 regression lane (`41-g21-regression`).
+- **Fix** — `/showcase/blockid/report` renders per request: as an ISR document its regenerated flight chunk no longer matched the cached hash-mode CSP header once the Assessment Card context changed on the server (blocked inline script + React #412).
+
 ## 2026-09-21 — v3.21.0: Longitudinal moat (G21 P3 — advisor-feedback upgrade, phase 4 of 4)
 
 - **Outcome ledger** — `startup_outcomes` (0427): funding raised, revenue growth, survival, next stage, grant success, accelerator selection, headcount growth, product release; recorded by founders / evaluators, proposed from existing signals (external funding feed, connector revenue deltas, stage changes, cohort "proceed" decisions, GitHub tags) by a daily cron — a human confirms, nothing auto-confirms. Founder `/workspace/evidence/outcomes`, evaluator block on the dossier, `/admin/outcomes` queue.

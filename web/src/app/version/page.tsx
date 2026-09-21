@@ -146,6 +146,17 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.22.0",
+    date: "2026-09-21",
+    title: "Upgrade hardening (G22)",
+    changes: [
+      "[G22] Cohort seats open dossiers + IC memos read-only, invited cohorts listed with a role chip, program weights editor (weights_version stamped on snapshots), dialog focus return, trajectory per row in the compare drawer, member snapshot policy (0432)",
+      "[G22] org_id on cohorts + intake links (0433, backfilled); retention + audit export scoped to the organisation",
+      "[G22] Vietnamese TrustBand / pilot bands / /vi/pilot / governance chrome; /docs/api/institutional in-app; 375 px + dark-mode pass over the new pages",
+      "[G22] /admin/validation tracker (advisor-plan levels 1–5, auto rows, 14-question script) + weekly G21 regression lane; showcase report per-request (ISR hash-mode CSP race)",
+    ],
+  },
+  {
     version: "3.21.0",
     date: "2026-09-21",
     title: "Longitudinal moat (G21 P3 — advisor-feedback upgrade)",
