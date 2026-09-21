@@ -337,7 +337,7 @@ export function MetricsInput({ onSubmitted }: MetricsInputProps) {
         <button
           type="submit"
           disabled={submitting}
-          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-hover disabled:opacity-50 transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-action text-on-action text-sm font-medium hover:bg-action-hover disabled:opacity-50 transition-colors cursor-pointer"
         >
           {submitting ? (
             <Loader2 className="h-4 w-4 animate-spin" />

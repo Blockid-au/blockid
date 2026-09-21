@@ -184,7 +184,7 @@ export function CompetitivePositioningClient() {
                 <Button
                   onClick={() => void handleGenerate()}
                   disabled={generating}
-                  className="bg-action text-white"
+                  className="bg-action text-on-action"
                 >
                   {generating ? (
                     <>

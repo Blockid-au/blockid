@@ -304,7 +304,7 @@ export function WalletClient() {
               href="https://metamask.io/download/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-white hover:bg-action-hover transition-colors"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
             >
               Install MetaMask
               <ExternalLink strokeWidth={1.75} className="h-4 w-4" />
@@ -327,7 +327,7 @@ export function WalletClient() {
               type="button"
               onClick={handleConnect}
               disabled={connecting}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50 transition-colors cursor-pointer"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50 transition-colors cursor-pointer"
             >
               {connecting ? (
                 <Loader2
@@ -661,7 +661,7 @@ export function WalletClient() {
               <button
                 type="submit"
                 disabled={transferring || !transferTo || !transferAmount}
-                className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 {transferring ? (
                   <Loader2

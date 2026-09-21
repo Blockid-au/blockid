@@ -299,7 +299,7 @@ export function InvestorsClient() {
             <button
               type="button"
               onClick={() => setShowAdd(true)}
-              className="inline-flex items-center gap-2 rounded-xl bg-action px-4 py-2 text-sm font-semibold text-white hover:bg-action-hover"
+              className="inline-flex items-center gap-2 rounded-xl bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover"
               data-testid="crm-add"
             >
               <Plus className="h-4 w-4" aria-hidden="true" /> Add contact
@@ -370,7 +370,7 @@ export function InvestorsClient() {
           </p>
           {canEdit && (
             <div className="mt-4 flex flex-wrap justify-center gap-2">
-              <button type="button" onClick={() => setShowAdd(true)} className="rounded-xl bg-action px-4 py-2 text-sm font-semibold text-white hover:bg-action-hover">
+              <button type="button" onClick={() => setShowAdd(true)} className="rounded-xl bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover">
                 Add your first contact
               </button>
               <button type="button" onClick={() => setShowImport(true)} className="rounded-xl border border-surface-300 px-4 py-2 text-sm font-semibold text-ink-700 hover:bg-surface-50">
@@ -735,7 +735,7 @@ function ContactDrawer(props: {
               <button type="button" onClick={props.onArchive} className="inline-flex items-center gap-1 text-xs text-ink-500 hover:text-red-700" data-testid="crm-archive">
                 <Archive className="h-3.5 w-3.5" aria-hidden="true" /> Archive contact
               </button>
-              <button type="submit" disabled={saving || props.busy} className="rounded-xl bg-action px-4 py-2 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-60">
+              <button type="submit" disabled={saving || props.busy} className="rounded-xl bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-60">
                 {saving ? "Saving…" : "Save"}
               </button>
             </div>
@@ -767,7 +767,7 @@ function ContactDrawer(props: {
                 aria-label="Note"
               />
               <div className="flex justify-end">
-                <button type="submit" disabled={saving || !note.body.trim()} className="rounded-lg bg-action px-3 py-1.5 min-h-9 text-xs font-semibold text-white disabled:opacity-50" data-testid="crm-add-note">
+                <button type="submit" disabled={saving || !note.body.trim()} className="rounded-lg bg-action px-3 py-1.5 min-h-9 text-xs font-semibold text-on-action disabled:opacity-50" data-testid="crm-add-note">
                   Add to timeline
                 </button>
               </div>
@@ -886,7 +886,7 @@ function AddContactDialog(props: { onClose: () => void; onCreated: (c: ContactRo
           <button type="button" onClick={props.onClose} className="rounded-xl border border-surface-300 px-4 py-2 text-sm font-semibold text-ink-700 hover:bg-surface-50">
             Cancel
           </button>
-          <button type="submit" disabled={saving || !form.name.trim()} className="rounded-xl bg-action px-4 py-2 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-60">
+          <button type="submit" disabled={saving || !form.name.trim()} className="rounded-xl bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-60">
             {saving ? "Adding…" : "Add contact"}
           </button>
         </div>
@@ -945,7 +945,7 @@ function ImportDialog(props: { onClose: () => void; onDone: (r: ImportResult) =>
           <button type="button" onClick={props.onClose} className="rounded-xl border border-surface-300 px-4 py-2 text-sm font-semibold text-ink-700 hover:bg-surface-50">
             Cancel
           </button>
-          <button type="submit" disabled={!file || busy} className="inline-flex items-center gap-2 rounded-xl bg-action px-4 py-2 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-60">
+          <button type="submit" disabled={!file || busy} className="inline-flex items-center gap-2 rounded-xl bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-60">
             {busy && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
             Import
           </button>

@@ -198,7 +198,7 @@ export function StructureDecisionFormClient() {
         <div className="flex flex-wrap gap-3">
           <button
             type="submit"
-            className="h-11 px-6 rounded-2xl bg-action text-sm font-semibold text-white hover:bg-action-hover"
+            className="h-11 px-6 rounded-2xl bg-action text-sm font-semibold text-on-action hover:bg-action-hover"
             data-testid="structure-submit"
           >
             Run structure decision

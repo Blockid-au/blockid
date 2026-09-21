@@ -239,7 +239,7 @@ export function FounderProfileClient({ initialProfile, executionLabels = {} }: P
           type="button"
           onClick={() => void save()}
           disabled={saving}
-          className="inline-flex items-center gap-1.5 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg"
+          className="inline-flex items-center gap-1.5 bg-action hover:bg-action-hover disabled:opacity-50 text-on-action text-sm font-semibold px-4 py-2 rounded-lg"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           Save
@@ -405,7 +405,7 @@ export function FounderProfileClient({ initialProfile, executionLabels = {} }: P
           type="button"
           onClick={() => void save()}
           disabled={saving}
-          className="inline-flex items-center gap-1.5 bg-action hover:bg-action-hover disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg"
+          className="inline-flex items-center gap-1.5 bg-action hover:bg-action-hover disabled:opacity-50 text-on-action text-sm font-semibold px-4 py-2 rounded-lg"
         >
           {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Award className="h-4 w-4" />}
           Save profile

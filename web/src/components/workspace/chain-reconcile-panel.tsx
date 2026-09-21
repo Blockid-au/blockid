@@ -150,7 +150,7 @@ export function ChainReconcilePanel({ initial }: { initial?: ReconcileState | nu
               type="button"
               onClick={() => act("push")}
               disabled={busy !== null || last?.status !== "drift" || pushable === 0}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-medium text-white hover:bg-action-hover disabled:opacity-50"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-medium text-on-action hover:bg-action-hover disabled:opacity-50"
               data-testid="chain-reconcile-push"
               title={pushable === 0 ? "Nothing to push" : `Queue ${pushable} correction${pushable === 1 ? "" : "s"} on the sync queue (on-chain execution needs a server signing key — not enabled yet)`}
             >

@@ -443,7 +443,7 @@ export function CapTableManager() {
               setEditingShareholder(null);
             }}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 rounded-[10px] bg-action px-4 py-2 text-sm font-semibold text-white hover:bg-action-hover transition-colors disabled:opacity-50 cursor-pointer"
+            className="inline-flex items-center gap-1.5 rounded-[10px] bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors disabled:opacity-50 cursor-pointer"
           >
             <Plus className="h-4 w-4" /> Add Shareholder
           </button>
@@ -768,7 +768,7 @@ export function CapTableManager() {
                   type="button"
                   onClick={() => setShowSetupEsop(true)}
                   disabled={busy}
-                  className="inline-flex items-center gap-1.5 rounded-[10px] bg-action px-4 py-2 text-sm font-semibold text-white hover:bg-action-hover transition-colors disabled:opacity-50 cursor-pointer"
+                  className="inline-flex items-center gap-1.5 rounded-[10px] bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   Setup ESOP
                 </button>
@@ -975,7 +975,7 @@ function ShareholderForm({
               notes: notes.trim() || null,
             })
           }
-          className="inline-flex items-center gap-1.5 rounded-[10px] bg-action px-5 py-2 text-sm font-semibold text-white hover:bg-action-hover transition-colors disabled:opacity-50 cursor-pointer"
+          className="inline-flex items-center gap-1.5 rounded-[10px] bg-action px-5 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors disabled:opacity-50 cursor-pointer"
         >
           {busy && <Loader2 className="h-4 w-4 animate-spin" />}
           {editing ? "Save Changes" : "Add Shareholder"}
@@ -1120,7 +1120,7 @@ function ClassForm({
               liquidationPreference: liquidationPreference ? Number(liquidationPreference) : null,
             })
           }
-          className="inline-flex items-center gap-1.5 rounded-[10px] bg-action px-5 py-2 text-sm font-semibold text-white hover:bg-action-hover transition-colors disabled:opacity-50 cursor-pointer"
+          className="inline-flex items-center gap-1.5 rounded-[10px] bg-action px-5 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors disabled:opacity-50 cursor-pointer"
         >
           {busy && <Loader2 className="h-4 w-4 animate-spin" />}
           Add Class
@@ -1204,7 +1204,7 @@ function EsopForm({
               poolPct: Number(poolPct) || 10,
             })
           }
-          className="inline-flex items-center gap-1.5 rounded-[10px] bg-action px-5 py-2 text-sm font-semibold text-white hover:bg-action-hover transition-colors disabled:opacity-50 cursor-pointer"
+          className="inline-flex items-center gap-1.5 rounded-[10px] bg-action px-5 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors disabled:opacity-50 cursor-pointer"
         >
           {busy && <Loader2 className="h-4 w-4 animate-spin" />}
           Setup ESOP

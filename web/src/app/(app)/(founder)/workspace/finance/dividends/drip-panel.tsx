@@ -239,7 +239,7 @@ export function DripPanel({ initial }: { initial?: DripPanelState }) {
       <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
         <p className="text-sm font-semibold text-ink-800">Elections</p>
         {allowed && electable.length > 0 && !adding && (
-          <button type="button" onClick={() => setAdding(true)} disabled={busy !== null} data-testid="drip-add" className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-white hover:bg-action-hover disabled:opacity-60">
+          <button type="button" onClick={() => setAdding(true)} disabled={busy !== null} data-testid="drip-add" className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover disabled:opacity-60">
             <PlusCircle strokeWidth={1.75} className="h-3.5 w-3.5" /> Add election
           </button>
         )}
@@ -286,7 +286,7 @@ export function DripPanel({ initial }: { initial?: DripPanelState }) {
             <input type="number" min={0} step={0.000001} value={draft.manualPriceAud} onChange={(e) => setDraft({ ...draft, manualPriceAud: e.target.value })} disabled={draft.priceBasis !== "manual"} required={draft.priceBasis === "manual"} data-testid="drip-manual-price" className="mt-1 w-full rounded-lg border border-surface-200 bg-white px-2 py-1.5 text-xs text-ink-800 disabled:opacity-50" />
           </label>
           <div className="flex gap-2 sm:col-span-2 lg:col-span-4">
-            <button type="submit" disabled={busy !== null || !draftValid} data-testid="drip-save" className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-white hover:bg-action-hover disabled:opacity-60">
+            <button type="submit" disabled={busy !== null || !draftValid} data-testid="drip-save" className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover disabled:opacity-60">
               {busy === "add" ? <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" /> : <PlusCircle strokeWidth={1.75} className="h-3.5 w-3.5" />}
               Save election
             </button>

@@ -349,7 +349,7 @@ export function ProjectsClient({
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-action px-4 py-2.5 text-sm font-semibold text-white hover:bg-action-hover transition-colors cursor-pointer shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action/60 focus-visible:ring-offset-2"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-action px-4 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action/60 focus-visible:ring-offset-2"
           >
             <Plus strokeWidth={1.75} className="h-4 w-4" />
             Create New Startup
@@ -532,7 +532,7 @@ export function ProjectsClient({
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="inline-flex items-center gap-2 rounded-xl bg-action px-4 py-2.5 text-sm font-semibold text-white hover:bg-action-hover transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 rounded-xl bg-action px-4 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer"
           >
             <Plus strokeWidth={1.75} className="h-4 w-4" />
             Create Your First Startup
@@ -584,7 +584,7 @@ export function ProjectsClient({
               {canWrite(project.role) ? (
                 <Link
                   href={`/workspace/projects/${project.slug}/analyze`}
-                  className="mb-2 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-action px-3 py-2 text-xs font-semibold text-white hover:bg-action-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action/60 focus-visible:ring-offset-2"
+                  className="mb-2 inline-flex min-h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-action px-3 py-2 text-xs font-semibold text-on-action hover:bg-action-hover transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action/60 focus-visible:ring-offset-2"
                 >
                   <Sparkles strokeWidth={1.75} className="h-3.5 w-3.5" />
                   Run SVI Analysis
@@ -758,7 +758,7 @@ export function ProjectsClient({
                 <button
                   type="submit"
                   disabled={creating || !newName.trim()}
-                  className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-white hover:bg-action-hover transition-colors cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {creating && <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" />}
                   Create Startup
@@ -855,7 +855,7 @@ export function ProjectsClient({
                 <button
                   type="submit"
                   disabled={saving || !editName.trim()}
-                  className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-white hover:bg-action-hover transition-colors cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {saving && <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" />}
                   Save Changes

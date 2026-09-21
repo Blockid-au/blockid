@@ -269,7 +269,7 @@ export function ExitClient() {
                 <div className="flex items-center gap-2 mb-2">
                   <div className={cn(
                     "h-8 w-8 rounded-lg flex items-center justify-center",
-                    isActive ? "bg-action text-white" : "bg-surface-100 text-ink-500",
+                    isActive ? "bg-action text-on-action" : "bg-surface-100 text-ink-500",
                   )}>
                     <Icon className="h-4 w-4" />
                   </div>
@@ -376,7 +376,7 @@ export function ExitClient() {
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-hover disabled:opacity-50 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-action text-on-action text-sm font-medium hover:bg-action-hover disabled:opacity-50 transition-colors cursor-pointer"
           >
             {loading ? (
               <>

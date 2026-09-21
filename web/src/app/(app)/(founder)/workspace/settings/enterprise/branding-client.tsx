@@ -339,7 +339,7 @@ export function BrandingClient({ isPro }: BrandingClientProps) {
         type="button"
         onClick={handleSave}
         disabled={saving}
-        className="w-full rounded-xl bg-action py-3 text-sm font-semibold text-white hover:bg-action-hover transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+        className="w-full rounded-xl bg-action py-3 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
       >
         {saving ? (
           <Loader2 className="h-4 w-4 animate-spin" />

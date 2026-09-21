@@ -347,7 +347,7 @@ export function RoundClient({ roundId }: { roundId: string }) {
                 type="button"
                 onClick={() => void activate()}
                 disabled={busy !== null}
-                className="inline-flex items-center gap-2 rounded-xl bg-action px-4 py-2 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-60"
+                className="inline-flex items-center gap-2 rounded-xl bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-60"
                 data-testid="round-activate"
               >
                 {busy === "activate" && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
@@ -574,7 +574,7 @@ export function RoundClient({ roundId }: { roundId: string }) {
             <button
               type="submit"
               disabled={busy !== null}
-              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-action px-4 py-2 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-60"
+              className="mt-3 inline-flex items-center gap-2 rounded-xl bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-60"
             >
               {busy === "add" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
               Add commitment

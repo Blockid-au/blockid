@@ -408,7 +408,7 @@ export function DividendStatementsPanel({ initial }: { initial?: StatementsPanel
                           onClick={() => void startIssue(r.id)}
                           disabled={busy !== null || preview !== null}
                           data-testid="issue-statements"
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-white hover:bg-action-hover disabled:opacity-60"
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover disabled:opacity-60"
                         >
                           {busy === `preview:${r.id}` ? <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" /> : <Receipt strokeWidth={1.75} className="h-3.5 w-3.5" />}
                           Issue statements ({costLabel})
@@ -474,7 +474,7 @@ export function DividendStatementsPanel({ initial }: { initial?: StatementsPanel
                           onClick={() => void confirmIssue()}
                           disabled={busy !== null}
                           data-testid="confirm-issue-statements"
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-white hover:bg-action-hover disabled:opacity-60"
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover disabled:opacity-60"
                         >
                           {busy === `issue:${r.id}` ? <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5" />}
                           {preview.included || preview.cost === 0 ? "Issue (included)" : `Issue for ${preview.cost} credits`}

@@ -480,7 +480,7 @@ export function WebhooksSection({ initialEndpoints, events, access, projectId, r
           <button
             type="submit"
             disabled={busy === "create"}
-            className="text-xs rounded-md bg-action px-3 py-1.5 text-white disabled:opacity-60"
+            className="text-xs rounded-md bg-action px-3 py-1.5 text-on-action disabled:opacity-60"
           >
             {busy === "create" ? "Adding…" : "Create endpoint"}
           </button>

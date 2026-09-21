@@ -111,7 +111,7 @@ export function PasswordForm({ hasExistingPassword }: { hasExistingPassword: boo
         <button
           type="submit"
           disabled={state === "saving"}
-          className="w-full rounded-xl bg-action px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-action-hover disabled:opacity-50 cursor-pointer"
+          className="w-full rounded-xl bg-action px-4 py-2.5 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover disabled:opacity-50 cursor-pointer"
         >
           {state === "saving" ? "Saving..." : hasExistingPassword ? "Update Password" : "Set Password"}
         </button>

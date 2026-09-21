@@ -128,7 +128,7 @@ export function ApiKeysClient({
           </div>
           <Link
             href="/pricing?feature=api.access&from=/workspace/settings/enterprise"
-            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-5 text-sm font-semibold text-white hover:bg-action-hover transition-colors"
+            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
           >
             <Sparkles strokeWidth={1.75} className="h-4 w-4" />
             Contact sales
@@ -156,7 +156,7 @@ export function ApiKeysClient({
             <button
               type="button"
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-4 text-sm font-semibold text-white hover:bg-action-hover transition-colors cursor-pointer"
+              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer"
             >
               <Plus strokeWidth={1.75} className="h-4 w-4" />
               Generate New Key
@@ -432,7 +432,7 @@ function CreateKeyModal({
             <button
               type="button"
               onClick={onClose}
-              className="w-full h-9 rounded-[10px] bg-action text-sm font-semibold text-white hover:bg-action-hover transition-colors cursor-pointer"
+              className="w-full h-9 rounded-[10px] bg-action text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer"
             >
               Done
             </button>
@@ -502,7 +502,7 @@ function CreateKeyModal({
                 onClick={handleCreate}
                 disabled={loading}
                 className={cn(
-                  "h-9 px-4 rounded-[10px] bg-action text-sm font-semibold text-white hover:bg-action-hover transition-colors cursor-pointer flex items-center gap-1.5",
+                  "h-9 px-4 rounded-[10px] bg-action text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer flex items-center gap-1.5",
                   loading && "opacity-60 cursor-wait",
                 )}
               >

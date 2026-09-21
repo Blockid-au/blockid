@@ -617,7 +617,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
           {/* G20-sweep: the empty state is the page — its title is the h1. */}
           <h1 className="text-sm font-medium text-warn">{t.noAnalysisTitle}</h1>
           <p className="text-xs text-warn">{t.noAnalysisBody}</p>
-          <Link href="/workspace/raise/deck" className="inline-flex items-center gap-1.5 rounded-lg bg-action hover:bg-action-hover text-white text-sm font-semibold px-4 py-2 transition-colors">
+          <Link href="/workspace/raise/deck" className="inline-flex items-center gap-1.5 rounded-lg bg-action hover:bg-action-hover text-on-action text-sm font-semibold px-4 py-2 transition-colors">
             {t.noAnalysisCta} <ChevronRight className="h-4 w-4" />
           </Link>
         </div>

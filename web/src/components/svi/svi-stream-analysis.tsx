@@ -1116,7 +1116,7 @@ function TbrOnboardingSteps({
               onClick={() => markStep(1)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-md bg-action hover:bg-action-hover text-white text-xs font-semibold px-3 py-1.5"
+              className="inline-flex items-center gap-1 rounded-md bg-action hover:bg-action-hover text-on-action text-xs font-semibold px-3 py-1.5"
             >
               Open TBR
             </a>
@@ -1762,7 +1762,7 @@ export function SviStreamAnalysis({
               "inline-flex items-center justify-center min-h-[44px] rounded-lg px-4 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white",
               running
                 ? "bg-surface-hover text-tertiary cursor-not-allowed"
-                : "bg-action hover:bg-action-hover text-white shadow-sm hover:shadow-md active:scale-95",
+                : "bg-action hover:bg-action-hover text-on-action shadow-sm hover:shadow-md active:scale-95",
             )}
           >
             {running ? (
@@ -2027,7 +2027,7 @@ export function SviStreamAnalysis({
                       </span>
                       <a
                         href={`/workspace/evidence/gaps?dim=${w.key}`}
-                        className="inline-flex items-center justify-center min-h-[36px] rounded-md bg-action hover:bg-action-hover text-white text-xs font-semibold px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-brand-50 transition-colors"
+                        className="inline-flex items-center justify-center min-h-[36px] rounded-md bg-action hover:bg-action-hover text-on-action text-xs font-semibold px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-brand-50 transition-colors"
                       >
                         Add evidence
                       </a>

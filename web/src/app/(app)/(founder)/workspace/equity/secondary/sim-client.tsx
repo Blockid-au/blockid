@@ -229,7 +229,7 @@ export function SecondarySimClient({ canTrade, locked, initial }: { canTrade: bo
               {side === "sell" && selected ? (
                 <p className="text-[11px] text-slate-500">Can sell up to {num(sellCap)} (position {num(selected.position)}, {num(selected.restingSell)} resting). No shorting.</p>
               ) : null}
-              <button type="submit" disabled={!canTrade || busy || !holder} className="w-full rounded-lg bg-action px-3 py-2 text-sm font-medium text-white hover:bg-action-hover disabled:opacity-50 inline-flex items-center justify-center gap-2" data-testid="sim-submit">
+              <button type="submit" disabled={!canTrade || busy || !holder} className="w-full rounded-lg bg-action px-3 py-2 text-sm font-medium text-on-action hover:bg-action-hover disabled:opacity-50 inline-flex items-center justify-center gap-2" data-testid="sim-submit">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Place sandbox {side}
               </button>
               {!canTrade && !locked ? <p className="text-[11px] text-slate-500">Editors and above can place sandbox orders.</p> : null}

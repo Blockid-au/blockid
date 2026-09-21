@@ -197,7 +197,7 @@ function InvestorPacksSection({
                   <a
                     href={pack.download_url}
                     download
-                    className="inline-flex items-center gap-1 rounded-lg bg-action px-2.5 py-1 text-xs font-semibold text-white hover:bg-action-hover transition-colors"
+                    className="inline-flex items-center gap-1 rounded-lg bg-action px-2.5 py-1 text-xs font-semibold text-on-action hover:bg-action-hover transition-colors"
                   >
                     <Download strokeWidth={1.75} className="h-3 w-3" />
                     Download PDF

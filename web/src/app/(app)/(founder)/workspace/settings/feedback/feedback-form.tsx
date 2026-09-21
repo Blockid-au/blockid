@@ -164,7 +164,7 @@ export function FeedbackForm() {
       <button
         type="submit"
         disabled={submitting || body.length < minChars || rating === 0}
-        className="w-full rounded-md bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="w-full rounded-md bg-action px-4 py-2 text-sm font-medium text-on-action hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {submitting ? "Submitting..." : "Submit Feedback"}
       </button>

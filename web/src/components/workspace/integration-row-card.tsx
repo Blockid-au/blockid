@@ -90,7 +90,7 @@ export function IntegrationRowCard({ row }: IntegrationRowCardProps): React.Reac
         <div className="flex flex-col gap-2 items-end shrink-0">
           <Link
             href={row.actionHref}
-            className="px-3 py-1.5 text-sm rounded-md bg-action hover:bg-action-hover text-white"
+            className="px-3 py-1.5 text-sm rounded-md bg-action hover:bg-action-hover text-on-action"
           >
             {ctaLabel}
           </Link>

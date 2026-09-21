@@ -123,7 +123,7 @@ export function NotificationsClient({
             type="button"
             onClick={resubscribeAll}
             disabled={saving}
-            className="inline-block bg-action text-white font-semibold text-sm px-5 py-2 rounded-lg hover:bg-action-hover transition-colors disabled:opacity-50"
+            className="inline-block bg-action text-on-action font-semibold text-sm px-5 py-2 rounded-lg hover:bg-action-hover transition-colors disabled:opacity-50"
           >
             {saving ? "Saving..." : "Resubscribe to all"}
           </button>
@@ -190,7 +190,7 @@ export function NotificationsClient({
             href="/api/digest/preview"
             target="_blank"
             rel="noreferrer"
-            className="inline-block bg-action text-white font-semibold text-sm px-5 py-2 rounded-lg hover:bg-action-hover transition-colors"
+            className="inline-block bg-action text-on-action font-semibold text-sm px-5 py-2 rounded-lg hover:bg-action-hover transition-colors"
           >
             Preview my next digest
           </a>

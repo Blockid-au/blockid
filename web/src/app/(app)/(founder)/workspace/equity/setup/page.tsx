@@ -46,7 +46,7 @@ export default async function EquitySetupPage() {
             </p>
             <a
               href="/workspace/projects?new=1"
-              className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-5 text-sm font-semibold text-white hover:bg-action-hover transition-colors"
+              className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
             >
               Create Project
             </a>

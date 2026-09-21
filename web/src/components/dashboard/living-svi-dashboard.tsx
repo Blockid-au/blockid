@@ -534,7 +534,7 @@ export function LivingSVIDashboard(props: LivingDashboardProps) {
               )}
               <Link
                 href="/"
-                className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-5 text-sm font-semibold text-white hover:bg-action-hover transition-colors"
+                className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
               >
                 <RefreshCw className="h-4 w-4" />
                 Run New Analysis
@@ -560,7 +560,7 @@ export function LivingSVIDashboard(props: LivingDashboardProps) {
               className={cn(
                 "inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all whitespace-nowrap cursor-pointer",
                 isActive
-                  ? "bg-action text-white shadow-sm"
+                  ? "bg-action text-on-action shadow-sm"
                   : "bg-surface-50 text-ink-600 hover:bg-surface-100 hover:text-ink-800",
               )}
             >
@@ -694,7 +694,7 @@ function JourneyTab({
                     className={cn(
                       "flex items-center justify-center h-10 w-10 rounded-xl border-2 transition-all",
                       isComplete &&
-                        "bg-action border-brand-600 text-white",
+                        "bg-action border-brand-600 text-on-action",
                       isCurrent &&
                         "bg-brand-50 border-brand-500 text-brand-600 ring-2 ring-brand-200",
                       isFuture &&
@@ -739,7 +739,7 @@ function JourneyTab({
             </p>
             <Link
               href={mentor.ctaHref}
-              className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-white hover:bg-action-hover transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
             >
               {mentor.cta}
               <ArrowRight className="h-3.5 w-3.5" />
@@ -1349,7 +1349,7 @@ function HistoryTab({
         {/* S31-B: an empty state always offers the next step. */}
         <Link
           href="/analyze"
-          className="mt-4 inline-flex items-center rounded-lg bg-action px-4 py-2 text-sm font-semibold text-white hover:bg-action-hover"
+          className="mt-4 inline-flex items-center rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover"
         >
           Run an SVI analysis
         </Link>

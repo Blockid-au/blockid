@@ -117,7 +117,7 @@ export function KnowledgeBaseClient({
               type="button"
               onClick={handleExport}
               disabled={exporting}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-action text-white hover:bg-action-hover disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-action text-on-action hover:bg-action-hover disabled:opacity-50 transition-colors"
             >
               <Download strokeWidth={1.75} className="h-4 w-4" />
               {exporting ? "Exporting…" : "Export KB"}
@@ -154,7 +154,7 @@ export function KnowledgeBaseClient({
             className={cn(
               "px-3 py-1.5 text-xs rounded-full border transition-colors",
               category === c.id
-                ? "bg-action text-white border-brand-600"
+                ? "bg-action text-on-action border-brand-600"
                 : "bg-white text-ink-700 border-surface-200 hover:bg-surface-50",
             )}
           >

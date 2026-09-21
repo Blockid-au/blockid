@@ -281,7 +281,7 @@ export function TechIntelligencePanel({
           onClick={handleAnalyse}
           data-testid="tech-analysis-run"
           disabled={readOnly || status === "loading" || !websiteUrl.trim()}
-          className="w-full py-2 px-4 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          className="w-full py-2 px-4 text-sm font-medium rounded-lg bg-action hover:bg-action-hover text-on-action disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
         >
           {status === "loading" ? c.loadingSteps[loadingStep] : c.analyseButton}
         </button>

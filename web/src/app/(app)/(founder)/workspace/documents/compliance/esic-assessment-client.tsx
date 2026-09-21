@@ -360,7 +360,7 @@ export function EsicAssessmentClient(props: Props) {
           <button
             type="submit"
             disabled={submitting}
-            className="h-11 px-6 rounded-2xl bg-action text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
+            className="h-11 px-6 rounded-2xl bg-action text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center gap-2"
           >
             {submitting ? (
               <>

@@ -356,7 +356,7 @@ export function ShareMgmtDrawer({
             onClick={commit}
             disabled={disabled}
             className={
-              "w-full rounded-xl bg-action py-2.5 text-sm font-semibold text-white shadow transition " +
+              "w-full rounded-xl bg-action py-2.5 text-sm font-semibold text-on-action shadow transition " +
               (disabled
                 ? "opacity-60 cursor-not-allowed"
                 : "hover:bg-action-hover")

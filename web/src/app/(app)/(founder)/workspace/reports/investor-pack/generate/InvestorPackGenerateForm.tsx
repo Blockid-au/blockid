@@ -62,7 +62,7 @@ export function InvestorPackGenerateForm({ initialDownloadUrl, previewHref, read
           type="button"
           onClick={handleGenerate}
           disabled={loading}
-          className="inline-flex items-center gap-2 rounded-lg bg-action hover:bg-action-hover disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-action px-4 py-2 text-sm font-medium text-white transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg bg-action hover:bg-action-hover disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-action px-4 py-2 text-sm font-medium text-on-action transition-colors"
           aria-busy={loading}
         >
           {loading ? (
@@ -144,7 +144,7 @@ export function InvestorPackGenerateForm({ initialDownloadUrl, previewHref, read
             </code>
             <a
               href={result.downloadUrl}
-              className="shrink-0 inline-flex items-center rounded-lg bg-bull hover:bg-emerald-800 px-3 py-1.5 text-xs font-medium text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 transition-colors"
+              className="shrink-0 inline-flex items-center rounded-lg bg-bull hover:bg-emerald-800 px-3 py-1.5 text-xs font-medium text-on-action focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 transition-colors"
               download
             >
               Download PDF

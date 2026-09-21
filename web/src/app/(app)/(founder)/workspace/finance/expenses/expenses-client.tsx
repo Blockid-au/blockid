@@ -318,7 +318,7 @@ export function CategoriseButton({
         type="button"
         onClick={openPreview}
         disabled={!canWrite || busy !== null || preview !== null}
-        className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-white hover:bg-action-hover disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover disabled:opacity-60"
       >
         {busy === "preview" ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
         {categoriseCostLabel(queue, cost, included)}

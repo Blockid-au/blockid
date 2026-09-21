@@ -132,7 +132,7 @@ export function ResearchPanel({ description, keywords, websiteUrl }: ResearchPan
           <button
             type="button"
             onClick={() => { void runResearch(); }}
-            className="shrink-0 h-9 px-4 rounded-xl bg-action text-white text-xs font-semibold hover:bg-action-hover transition-colors cursor-pointer"
+            className="shrink-0 h-9 px-4 rounded-xl bg-action text-on-action text-xs font-semibold hover:bg-action-hover transition-colors cursor-pointer"
           >
             Research now &rarr;
           </button>

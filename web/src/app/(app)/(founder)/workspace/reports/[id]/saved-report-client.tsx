@@ -484,7 +484,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
                               <button
                                 type="button"
                                 onClick={() => void handleUnlock(def.id)}
-                                className="inline-flex items-center gap-1.5 rounded-lg bg-action px-4 py-2 text-xs font-semibold text-white hover:bg-action-hover transition-colors cursor-pointer"
+                                className="inline-flex items-center gap-1.5 rounded-lg bg-action px-4 py-2 text-xs font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer"
                               >
                                 <Unlock strokeWidth={1.75} className="h-3.5 w-3.5" />
                                 Confirm Unlock
@@ -539,7 +539,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
                           <button
                             type="button"
                             onClick={() => void handleUnlock(def.id)}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-action px-4 py-2 text-xs font-semibold text-white hover:bg-action-hover transition-colors cursor-pointer"
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-action px-4 py-2 text-xs font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer"
                           >
                             <Unlock strokeWidth={1.75} className="h-3.5 w-3.5" />
                             Confirm Unlock
@@ -604,7 +604,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
                     type="button"
                     disabled={unlockAllLoading}
                     onClick={() => void handleUnlockAll()}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-action px-5 py-2.5 text-sm font-semibold text-white hover:bg-action-hover transition-colors cursor-pointer disabled:opacity-50"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-action px-5 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer disabled:opacity-50"
                   >
                     {unlockAllLoading ? (
                       <>
@@ -650,7 +650,7 @@ export function SavedReportClient({ analysis, savedSections, analysisId }: Saved
                       </span>
                     </p>
                   </div>
-                  <div className="shrink-0 ml-4 inline-flex items-center gap-1.5 rounded-xl bg-action px-4 py-2 text-xs font-semibold text-white">
+                  <div className="shrink-0 ml-4 inline-flex items-center gap-1.5 rounded-xl bg-action px-4 py-2 text-xs font-semibold text-on-action">
                     <Unlock strokeWidth={1.75} className="h-3.5 w-3.5" />
                     Unlock All
                   </div>

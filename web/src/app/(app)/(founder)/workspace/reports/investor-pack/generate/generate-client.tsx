@@ -274,7 +274,7 @@ export function InvestorPackGenerateClient({ preview }: Props): React.ReactEleme
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="submit"
-              className="inline-flex items-center rounded-lg bg-action hover:bg-action-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+              className="inline-flex items-center rounded-lg bg-action hover:bg-action-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action px-4 py-2 text-sm font-medium text-on-action disabled:opacity-60"
             >
               {status === "loading" ? "Generating…" : "Generate PDF"}
             </button>

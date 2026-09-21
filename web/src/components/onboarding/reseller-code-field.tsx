@@ -198,7 +198,7 @@ export function ResellerCodeField({ locale = "en", initialCode, onValidated, onC
           type="button"
           onClick={() => void runValidate(input)}
           disabled={status === "checking" || !input.trim()}
-          className="rounded-md bg-action px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+          className="rounded-md bg-action px-3 py-1.5 text-sm font-medium text-on-action disabled:opacity-50"
         >
           {status === "checking" ? t.checking : t.validate}
         </button>

@@ -149,7 +149,7 @@ export function UpgradeModal() {
             type="button"
             onClick={onPrimary}
             disabled={busy}
-            className="rounded-lg bg-action px-4 py-2 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-60"
+            className="rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-60"
           >
             {busy ? "Loading…" : copy.primaryCta}
           </button>

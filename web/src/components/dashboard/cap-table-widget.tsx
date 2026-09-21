@@ -79,7 +79,7 @@ export async function CapTableWidget({ email }: { email: string }) {
           </p>
           <Link
             href="/workspace/equity/cap-table"
-            className="mt-4 inline-flex items-center gap-1 rounded-lg bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover transition-colors"
+            className="mt-4 inline-flex items-center gap-1 rounded-lg bg-action px-4 py-2 text-sm font-medium text-on-action hover:bg-action-hover transition-colors"
           >
             Set up your cap table &rarr;
           </Link>

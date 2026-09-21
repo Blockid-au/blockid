@@ -92,7 +92,7 @@ export default async function AdvisorRosterPage() {
             </div>
             <Link
               href="/workspace/evaluations?add=1"
-              className="inline-flex items-center gap-2 rounded-lg bg-action hover:bg-action-hover text-white px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2"
+              className="inline-flex items-center gap-2 rounded-lg bg-action hover:bg-action-hover text-on-action px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2"
             >
               Add a startup
             </Link>
@@ -113,7 +113,7 @@ export default async function AdvisorRosterPage() {
                 <div className="mt-4 flex justify-center gap-3">
                   <Link
                     href="/workspace/evaluations?add=1"
-                    className="inline-flex items-center gap-2 rounded-lg bg-action hover:bg-action-hover text-white px-4 py-2 text-sm font-semibold transition-colors"
+                    className="inline-flex items-center gap-2 rounded-lg bg-action hover:bg-action-hover text-on-action px-4 py-2 text-sm font-semibold transition-colors"
                   >
                     Add a startup
                   </Link>

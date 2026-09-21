@@ -96,7 +96,7 @@ export function AddNoteForm({ clientId }: { clientId: string }) {
         <button
           type="submit"
           disabled={pending}
-          className="inline-flex items-center gap-2 rounded-lg bg-action hover:bg-action-hover text-white px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-lg bg-action hover:bg-action-hover text-on-action px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 disabled:opacity-60"
         >
           {pending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
           {pending ? "Saving…" : "Save note"}

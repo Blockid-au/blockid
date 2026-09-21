@@ -404,7 +404,7 @@ export function SecondaryOfferIntakeForm(): React.ReactElement {
       <button
         type="submit"
         disabled={!canSubmit}
-        className="inline-flex items-center gap-2 rounded-lg bg-action hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50 text-white px-4 py-2 text-sm font-semibold transition-colors"
+        className="inline-flex items-center gap-2 rounded-lg bg-action hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50 text-on-action px-4 py-2 text-sm font-semibold transition-colors"
       >
         {submitting ? "Submitting…" : "Submit draft intent"}
       </button>

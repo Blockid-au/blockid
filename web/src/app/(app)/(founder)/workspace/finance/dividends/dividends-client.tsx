@@ -280,7 +280,7 @@ export function DividendsClient() {
               type="button"
               onClick={handleConnect}
               disabled={connecting}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50 transition-colors cursor-pointer"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50 transition-colors cursor-pointer"
             >
               {connecting ? (
                 <Loader2
@@ -412,7 +412,7 @@ export function DividendsClient() {
             <button
               type="submit"
               disabled={declaring || !netIncome || incomeNum <= 0}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
               {declaring ? (
                 <Loader2
@@ -589,7 +589,7 @@ export function DividendsClient() {
                       type="button"
                       onClick={() => handleClaim(r.id)}
                       disabled={claiming === r.id}
-                      className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-bull px-4 text-sm font-semibold text-white hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                      className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-bull px-4 text-sm font-semibold text-on-action hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
                     >
                       {claiming === r.id ? (
                         <Loader2

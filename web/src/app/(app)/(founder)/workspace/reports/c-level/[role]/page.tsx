@@ -123,7 +123,7 @@ export default async function CLevelReportDetailPage({ params }: PageProps) {
             <Link
               href={`/workspace/reports/investor-pack/generate?from=c-level-${typedRole}`}
               data-testid="clevel-investor-pack-link"
-              className="rounded bg-bull px-4 py-2 text-sm font-medium text-white hover:bg-bull"
+              className="rounded bg-bull px-4 py-2 text-sm font-medium text-on-action hover:bg-bull"
             >
               Include in investor pack
             </Link>

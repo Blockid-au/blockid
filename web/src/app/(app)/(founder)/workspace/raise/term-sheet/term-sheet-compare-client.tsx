@@ -139,7 +139,7 @@ export function TermSheetCompareClient({ options, initial }: { options: CompareS
           </ul>
 
           <div className="mt-3 flex flex-wrap items-center gap-2 print:hidden">
-            <button type="button" onClick={startPreview} disabled={!canCompare || busy !== null || preview !== null} data-testid="compare-start" className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-white hover:bg-action-hover disabled:opacity-60">
+            <button type="button" onClick={startPreview} disabled={!canCompare || busy !== null || preview !== null} data-testid="compare-start" className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover disabled:opacity-60">
               {busy === "preview" ? <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" /> : <Columns3 strokeWidth={1.75} className="h-3.5 w-3.5" />}
               Compare {selected.length > 0 ? `${selected.length} sheet${selected.length === 1 ? "" : "s"}` : ""}
             </button>
@@ -165,7 +165,7 @@ export function TermSheetCompareClient({ options, initial }: { options: CompareS
                 ))}
               </ul>
               <div className="mt-3 flex gap-2">
-                <button type="button" onClick={confirm} disabled={busy !== null} data-testid="compare-confirm" className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-white hover:bg-action-hover disabled:opacity-60">
+                <button type="button" onClick={confirm} disabled={busy !== null} data-testid="compare-confirm" className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover disabled:opacity-60">
                   {busy === "compare" ? <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" /> : <Check strokeWidth={1.75} className="h-3.5 w-3.5" />}
                   Confirm ({compareCostLabel(preview.cost, preview.included)})
                 </button>

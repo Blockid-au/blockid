@@ -318,7 +318,7 @@ export function JournalClient() {
                 setEditingEntry(null);
               }
             }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-hover transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-action text-on-action text-sm font-medium hover:bg-action-hover transition-colors cursor-pointer"
           >
             {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             {showForm ? "Cancel" : "New Entry"}
@@ -461,7 +461,7 @@ export function JournalClient() {
               <button
                 type="submit"
                 disabled={submitting || !formTitle.trim()}
-                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-hover disabled:opacity-50 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-action text-on-action text-sm font-medium hover:bg-action-hover disabled:opacity-50 transition-colors cursor-pointer"
               >
                 {submitting ? "Saving..." : editingEntry ? "Update Entry" : "Save Entry"}
               </button>

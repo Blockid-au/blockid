@@ -145,7 +145,7 @@ export function SviTrendClient({ projectId }: Props) {
           </p>
           <Link
             href="/workspace/raise/deck"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-action hover:bg-action-hover text-white text-sm font-semibold px-4 py-2 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-action hover:bg-action-hover text-on-action text-sm font-semibold px-4 py-2 transition-colors"
           >
             Run your first analysis <ArrowUpRight className="h-4 w-4" />
           </Link>
@@ -199,7 +199,7 @@ export function SviTrendClient({ projectId }: Props) {
           {canRunNew ? (
             <Link
               href="/workspace/raise/deck"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-action hover:bg-action-hover text-white text-sm font-semibold px-4 py-2 transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-action hover:bg-action-hover text-on-action text-sm font-semibold px-4 py-2 transition-colors"
             >
               Run new analysis <RefreshCw className="h-3.5 w-3.5" />
             </Link>

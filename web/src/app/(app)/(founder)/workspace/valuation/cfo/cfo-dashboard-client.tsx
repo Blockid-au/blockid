@@ -487,7 +487,7 @@ export function CFODashboardClient({
           type="button"
           onClick={generateCommentary}
           disabled={loading}
-          className="inline-flex items-center gap-2 rounded-xl bg-action px-6 py-3 text-sm font-semibold text-white hover:bg-action-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-2 rounded-xl bg-action px-6 py-3 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin" />

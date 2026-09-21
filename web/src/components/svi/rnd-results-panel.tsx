@@ -513,7 +513,7 @@ function DesktopTOC({
                 <span
                   className={cn(
                     "flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold font-mono shrink-0",
-                    isActive ? "bg-action text-white" : "bg-surface-200 text-ink-600",
+                    isActive ? "bg-action text-on-action" : "bg-surface-200 text-ink-600",
                   )}
                 >
                   {page.num}
@@ -1004,7 +1004,7 @@ export function RndResultsPanel({
                       "inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors cursor-pointer",
                       shareSent
                         ? "bg-bull text-on-action"
-                        : "bg-action text-white hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed",
+                        : "bg-action text-on-action hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed",
                     )}
                   >
                     {shareSent ? (

@@ -239,7 +239,7 @@ export function AdvisorClient() {
           onClick={() =>
             setInvite((prev) => ({ ...prev, open: true }))
           }
-          className="inline-flex items-center gap-1.5 rounded-xl bg-action px-4 py-2 text-sm font-semibold text-white hover:bg-action-hover transition-colors"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
         >
           <Plus className="h-4 w-4" />
           Add client
@@ -283,7 +283,7 @@ export function AdvisorClient() {
               type="button"
               disabled={!invite.email || invite.sending}
               onClick={sendInvite}
-              className="rounded-xl bg-action px-4 py-2 text-sm font-semibold text-white hover:bg-action-hover transition-colors disabled:opacity-60 flex items-center gap-1.5"
+              className="rounded-xl bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors disabled:opacity-60 flex items-center gap-1.5"
             >
               {invite.sending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />

@@ -437,7 +437,7 @@ export function EquityEsopClient() {
             <button
               type="button"
               onClick={() => setAddOpen(true)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-3 text-sm font-semibold text-white hover:bg-action-hover"
+              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-3 text-sm font-semibold text-on-action hover:bg-action-hover"
             >
               <Plus className="size-4" /> Add Member
             </button>
@@ -981,7 +981,7 @@ function AddMemberModal({
           </button>
           <button
             type="submit"
-            className="h-9 rounded-[10px] bg-action px-4 text-sm font-semibold text-white hover:bg-action-hover"
+            className="h-9 rounded-[10px] bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover"
           >
             Add
           </button>
@@ -1162,7 +1162,7 @@ function GrantRegisterSection({
             type="button"
             onClick={onAddGrant}
             disabled={!planId}
-            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-3 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50"
+            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-3 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50"
             title={!planId ? "Save plan first to enable grants" : undefined}
           >
             <Plus className="size-4" /> Add Grant
@@ -1511,7 +1511,7 @@ function AddGrantModal({
           <button
             type="submit"
             disabled={adding}
-            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-4 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50"
+            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50"
           >
             {adding ? <Loader2 className="size-4 animate-spin" /> : <Plus className="size-4" />}
             {adding ? "Creating..." : "Create Grant"}

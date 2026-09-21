@@ -265,7 +265,7 @@ function AddRevenueForm({ onAdded }: { onAdded: () => void }) {
             <button
               type="submit"
               disabled={loading || !amount}
-              className="flex items-center gap-1.5 bg-action hover:bg-action-hover text-white text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1.5 bg-action hover:bg-action-hover text-on-action text-xs font-semibold px-4 py-2 rounded-lg disabled:opacity-50 transition-colors"
             >
               {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 className="h-3.5 w-3.5" />}
               Save & Update SVI

@@ -65,8 +65,8 @@ function StepBreadcrumb({ current }: { current: Step }) {
             <span
               className={cn(
                 "inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold tabular-nums",
-                active && "bg-action text-white",
-                done && "bg-bull text-white",
+                active && "bg-action text-on-action",
+                done && "bg-bull text-on-action",
                 !active && !done && "bg-ink-200 text-ink-600",
               )}
               aria-hidden="true"

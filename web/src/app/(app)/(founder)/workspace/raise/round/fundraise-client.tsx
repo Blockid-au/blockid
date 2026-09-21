@@ -413,7 +413,7 @@ export function FundraiseClient() {
                 className={cn(
                   "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
                   active && "bg-brand-50 text-brand-700 border border-brand-200",
-                  done && "bg-action text-white cursor-pointer",
+                  done && "bg-action text-on-action cursor-pointer",
                   !active && !done && "text-muted bg-surface-50",
                 )}
               >
@@ -732,7 +732,7 @@ export function FundraiseClient() {
               type="button"
               onClick={handleNext}
               disabled={loading}
-              className="flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-medium text-white hover:bg-action-hover transition-colors cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-medium text-on-action hover:bg-action-hover transition-colors cursor-pointer disabled:opacity-50"
             >
               {loading ? (
                 <>
@@ -874,7 +874,7 @@ export function FundraiseClient() {
             <button
               type="button"
               onClick={handleNext}
-              className="flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-medium text-white hover:bg-action-hover transition-colors cursor-pointer"
+              className="flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-medium text-on-action hover:bg-action-hover transition-colors cursor-pointer"
             >
               Allocate Investors <ArrowRight className="h-4 w-4" />
             </button>
@@ -1028,7 +1028,7 @@ export function FundraiseClient() {
             <button
               type="button"
               onClick={handleNext}
-              className="flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-medium text-white hover:bg-action-hover transition-colors cursor-pointer"
+              className="flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-medium text-on-action hover:bg-action-hover transition-colors cursor-pointer"
             >
               Review & Generate <ArrowRight className="h-4 w-4" />
             </button>
@@ -1163,7 +1163,7 @@ export function FundraiseClient() {
             <button
               type="button"
               onClick={resetWizard}
-              className="rounded-xl bg-action px-5 py-2.5 text-sm font-medium text-white hover:bg-action-hover transition-colors cursor-pointer"
+              className="rounded-xl bg-action px-5 py-2.5 text-sm font-medium text-on-action hover:bg-action-hover transition-colors cursor-pointer"
             >
               Model Another Round
             </button>

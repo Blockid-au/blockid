@@ -187,7 +187,7 @@ export default async function EquityOfferPage() {
             <div className="mt-4">
               <Link
                 href="/workspace/esop/offers/request"
-                className="inline-flex items-center gap-2 rounded-lg bg-action hover:bg-action-hover text-white px-4 py-2 text-sm font-semibold transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg bg-action hover:bg-action-hover text-on-action px-4 py-2 text-sm font-semibold transition-colors"
               >
                 Request a Call
               </Link>

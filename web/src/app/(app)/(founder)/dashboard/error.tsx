@@ -58,7 +58,7 @@ export default function DashboardError({
           <button
             type="button"
             onClick={reset}
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer"
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-action px-6 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer"
           >
             Try Again
           </button>

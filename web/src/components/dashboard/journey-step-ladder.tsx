@@ -376,7 +376,7 @@ function MobileNode({ ordinal, isCompleted, isCurrent, isFuture, currentOrdinal 
         className={cn(
           "flex items-center justify-center rounded-full h-8 w-8 shrink-0",
           isCompleted && "bg-emerald-500 text-primary",
-          isCurrent && "bg-action text-white ring-2 ring-brand-100",
+          isCurrent && "bg-action text-on-action ring-2 ring-brand-100",
           isFuture && "bg-surface-200 text-muted",
         )}
         aria-hidden

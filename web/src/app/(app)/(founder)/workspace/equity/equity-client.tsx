@@ -539,7 +539,7 @@ function MemberModal({
             <button
               type="submit"
               disabled={loading || overLimit || !form.name.trim() || !form.equityPct}
-              className="flex-1 h-10 rounded-xl bg-action text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center gap-2"
+              className="flex-1 h-10 rounded-xl bg-action text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center gap-2"
             >
               {loading ? (
                 <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" />
@@ -713,7 +713,7 @@ export function EquityClient({
             setFormError(null);
             setModalOpen(true);
           }}
-          className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-4 text-sm font-semibold text-white hover:bg-action-hover transition-colors cursor-pointer"
+          className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer"
         >
           <Plus strokeWidth={1.75} className="h-4 w-4" />
           Add Member

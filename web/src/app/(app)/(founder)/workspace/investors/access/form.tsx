@@ -158,7 +158,7 @@ export function MentorInviteForm(props: MentorInviteFormProps) {
           type="button"
           onClick={() => void submit("approve")}
           disabled={busy !== null || !canApprove}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-action px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-action px-4 text-sm font-semibold text-on-action shadow-sm transition-colors hover:bg-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {busy === "approve" ? (
             <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />

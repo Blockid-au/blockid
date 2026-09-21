@@ -107,7 +107,7 @@ export function GitHubConnectForm({ oauthEnabled, initialRepo }: Props) {
               <button
                 type="submit"
                 disabled={submitting || !repo.trim()}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50 transition-colors"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50 transition-colors"
               >
                 {submitting ? (
                   <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" />

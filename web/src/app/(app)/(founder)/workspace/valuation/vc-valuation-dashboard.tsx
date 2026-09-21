@@ -122,7 +122,7 @@ export function ValuationEmptyState() {
       </p>
       <Link
         href="/analyze"
-        className="mt-5 inline-flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-white hover:bg-action-hover transition-colors"
+        className="mt-5 inline-flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
       >
         Run my first score <ArrowRight strokeWidth={2} className="h-4 w-4" />
       </Link>
@@ -218,7 +218,7 @@ export function VcValuationDashboard() {
         </p>
         <Link
           href="/score"
-          className="inline-flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-white hover:bg-action-hover transition-colors"
+          className="inline-flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
         >
           Get your SVI Score <ArrowRight strokeWidth={2} className="h-4 w-4" />
         </Link>

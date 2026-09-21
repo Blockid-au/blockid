@@ -196,7 +196,7 @@ export default function EquityOfferRequestPage() {
               </Link>
               <Link
                 href="/dashboard"
-                className="rounded-lg bg-action hover:bg-action-hover text-white px-4 py-2 text-sm font-semibold"
+                className="rounded-lg bg-action hover:bg-action-hover text-on-action px-4 py-2 text-sm font-semibold"
               >
                 Dashboard
               </Link>
@@ -443,7 +443,7 @@ export default function EquityOfferRequestPage() {
               disabled={!canSubmit}
               className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 ${
                 canSubmit
-                  ? "bg-action hover:bg-action-hover text-white"
+                  ? "bg-action hover:bg-action-hover text-on-action"
                   : "bg-slate-200 text-slate-500 cursor-not-allowed"
               }`}
             >

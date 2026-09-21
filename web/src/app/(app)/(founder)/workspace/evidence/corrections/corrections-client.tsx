@@ -253,7 +253,7 @@ export function CorrectionsClient({ projectId, initial, canFile }: CorrectionsCl
 
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="text-xs text-ink-500">Nothing changes until a reviewer accepts it; the resolution records exactly what changed.</p>
-            <button type="submit" disabled={busy || !message.trim()} className="inline-flex min-h-11 items-center rounded-lg bg-action px-4 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed">
+            <button type="submit" disabled={busy || !message.trim()} className="inline-flex min-h-11 items-center rounded-lg bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed">
               {busy ? "Filing…" : "File correction"}
             </button>
           </div>

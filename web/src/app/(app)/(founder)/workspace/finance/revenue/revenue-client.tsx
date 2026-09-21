@@ -626,7 +626,7 @@ export function RevenueClient() {
           <button
             type="submit"
             disabled={entrySaving || !entryAmount}
-            className="h-9 px-5 rounded-lg bg-action text-white text-sm font-medium hover:bg-action-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
+            className="h-9 px-5 rounded-lg bg-action text-on-action text-sm font-medium hover:bg-action-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
           >
             {entrySaving ? "Saving..." : "Add Revenue"}
           </button>
@@ -791,7 +791,7 @@ export function RevenueClient() {
                   !dividends ||
                   dividends.totalDividend <= 0
                 }
-                className="px-5 py-2.5 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-action text-on-action text-sm font-medium hover:bg-action-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {distributing ? "Recording..." : "Record Distribution"}
               </button>
@@ -894,7 +894,7 @@ export function DataSourcesPanel({ data }: { data: Pick<RevenueData, "hasStripe"
             {!stripeOn && (
               <a
                 href="/api/oauth/stripe"
-                className="inline-flex h-8 items-center rounded-lg bg-action px-3 text-xs font-medium text-white hover:bg-action-hover transition-colors"
+                className="inline-flex h-8 items-center rounded-lg bg-action px-3 text-xs font-medium text-on-action hover:bg-action-hover transition-colors"
               >
                 Connect Stripe
               </a>
@@ -915,7 +915,7 @@ export function DataSourcesPanel({ data }: { data: Pick<RevenueData, "hasStripe"
             {!xeroOn && (
               <a
                 href="/api/oauth/xero"
-                className="inline-flex h-8 items-center rounded-lg bg-action px-3 text-xs font-medium text-white hover:bg-action-hover transition-colors"
+                className="inline-flex h-8 items-center rounded-lg bg-action px-3 text-xs font-medium text-on-action hover:bg-action-hover transition-colors"
               >
                 Connect Xero
               </a>

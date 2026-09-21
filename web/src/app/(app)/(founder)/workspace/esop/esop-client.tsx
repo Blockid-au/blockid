@@ -476,7 +476,7 @@ export function EsopClient() {
             <button
               type="button"
               onClick={startWizard}
-              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-4 text-sm font-semibold text-white hover:bg-action-hover transition-colors cursor-pointer"
+              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer"
             >
               <Plus strokeWidth={1.75} className="h-4 w-4" />
               New ESOP Grant
@@ -518,7 +518,7 @@ export function EsopClient() {
                 className={cn(
                   "h-8 w-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors",
                   step >= s
-                    ? "bg-action text-white"
+                    ? "bg-action text-on-action"
                     : "bg-surface-100 text-muted",
                 )}
               >
@@ -837,7 +837,7 @@ export function EsopClient() {
                   parseInt(grantConfig.totalShares) <= 0 ||
                   (isNewEmployee && !newEmployee.name.trim())
                 }
-                className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 Review
                 <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
@@ -932,7 +932,7 @@ export function EsopClient() {
                   type="button"
                   onClick={handleGrant}
                   disabled={submitting}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 >
                   {submitting ? (
                     <Loader2

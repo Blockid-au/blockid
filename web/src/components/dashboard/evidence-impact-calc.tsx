@@ -113,7 +113,7 @@ export function EvidenceImpactCalc({ analysis }: Props) {
       <div className="px-5 py-3 border-t border-surface-200">
         <Link
           href="/workspace/evidence"
-          className="flex items-center justify-center gap-2 w-full rounded-xl bg-action px-4 py-2.5 text-sm font-semibold text-white hover:bg-action-hover transition-colors"
+          className="flex items-center justify-center gap-2 w-full rounded-xl bg-action px-4 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
         >
           <Upload strokeWidth={1.75} className="h-4 w-4" />
           Upload Evidence

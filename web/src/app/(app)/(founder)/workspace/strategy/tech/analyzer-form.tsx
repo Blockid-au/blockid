@@ -199,7 +199,7 @@ export function AnalyzerForm({ projects }: { projects: ProjectOption[] }) {
         <button
           type="submit"
           disabled={disabled}
-          className="w-full flex items-center justify-center gap-2 rounded-xl bg-action px-4 py-3 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50 transition-colors cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 rounded-xl bg-action px-4 py-3 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50 transition-colors cursor-pointer"
         >
           {busy ? (
             <><span className="h-4 w-4 rounded-full border-2 border-line border-t-white animate-spin" />Analysing…</>

@@ -91,7 +91,7 @@ export function FounderSignalsClient({ initial, readOnly = false }: Props) {
     <button
       type="button"
       onClick={() => setMode(m)}
-      className={`rounded-full px-3 py-1 text-sm ${mode === m ? "bg-action text-white" : "border border-surface-300 text-ink-700"}`}
+      className={`rounded-full px-3 py-1 text-sm ${mode === m ? "bg-action text-on-action" : "border border-surface-300 text-ink-700"}`}
       aria-pressed={mode === m}
     >
       {label}
@@ -125,7 +125,7 @@ export function FounderSignalsClient({ initial, readOnly = false }: Props) {
           </label>
           <p className="text-xs text-ink-600">The URL is stored and shown to evaluators as a link. It is never fetched or scraped.</p>
           {error ? <p className="text-sm text-red-700" role="alert">{error}</p> : null}
-          <button type="submit" disabled={busy} className="rounded-lg bg-action px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+          <button type="submit" disabled={busy} className="rounded-lg bg-action px-4 py-2 text-sm font-medium text-on-action disabled:opacity-50">
             {busy ? "Parsing…" : "Save founder evidence"}
           </button>
         </form>
