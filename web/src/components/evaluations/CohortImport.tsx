@@ -92,7 +92,7 @@ export function CohortImport({ batchId, applicantsCap = null, used = 0, onImport
       <div className="flex flex-wrap items-center gap-2">
         <label
           htmlFor={inputId}
-          className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-brand-300 bg-surface px-4 py-2.5 text-sm font-semibold text-brand-700 transition-colors hover:bg-surface-hover dark:border-brand-700 ${busy ? "pointer-events-none opacity-60" : ""}`}
+          className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-brand-300 bg-surface px-4 py-2.5 text-sm font-semibold text-action transition-colors hover:bg-surface-hover dark:border-brand-700 ${busy ? "pointer-events-none opacity-60" : ""}`}
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Upload className="h-4 w-4" aria-hidden="true" />}
           {busy ? "Importing…" : "Import CSV"}
@@ -110,7 +110,7 @@ export function CohortImport({ batchId, applicantsCap = null, used = 0, onImport
             if (f) void upload(f);
           }}
         />
-        <a href={SAMPLE_CSV_HREF} download className="inline-flex min-h-11 items-center gap-1.5 px-2 text-xs font-medium text-ink-600 hover:text-brand-700" data-testid="cohort-import-sample">
+        <a href={SAMPLE_CSV_HREF} download className="inline-flex min-h-11 items-center gap-1.5 px-2 text-xs font-medium text-ink-600 hover:text-action-hover" data-testid="cohort-import-sample">
           <Download className="h-3.5 w-3.5" aria-hidden="true" />
           Sample CSV
         </a>

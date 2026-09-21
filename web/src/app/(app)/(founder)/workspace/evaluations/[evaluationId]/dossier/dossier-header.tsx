@@ -50,7 +50,7 @@ function Delta({ value }: { value: number | null }) {
 export function DossierHeader({ header, role, icKind }: { header: HeaderModel; role: DossierViewerRole; icKind?: "memo" | "one_page" }) {
   const site = header.website?.replace(/^https?:\/\//, "").replace(/\/$/, "") ?? null;
   return (
-    <header className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6" data-testid="dossier-header">
+    <header className="rounded-2xl border border-surface-200 bg-surface p-5 sm:p-6" data-testid="dossier-header">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -180,7 +180,7 @@ export function DossierHeader({ header, role, icKind }: { header: HeaderModel; r
                     </span>
                   </>
                 ) : (
-                  <Link href="/workspace/investor/mandate" className="text-xs text-brand-700 hover:underline">
+                  <Link href="/workspace/investor/mandate" className="text-xs text-action hover:underline">
                     Set your mandate
                   </Link>
                 )}
@@ -223,7 +223,7 @@ export function DossierHeader({ header, role, icKind }: { header: HeaderModel; r
             </span>
           ) : null}
           <ExportIcButton evaluationId={header.evaluationId} kind={icKind ?? "one_page"} />
-          <a href="#dossier-block-6" className="text-xs text-brand-700 hover:underline">
+          <a href="#dossier-block-6" className="text-xs text-action hover:underline">
             More actions ↓
           </a>
         </div>
@@ -235,7 +235,7 @@ export function DossierHeader({ header, role, icKind }: { header: HeaderModel; r
         </p>
       ) : (
         <p className="mt-4 text-xs text-ink-500">
-          <Link href="/workspace/evaluations" className="text-brand-700 hover:underline">
+          <Link href="/workspace/evaluations" className="text-action hover:underline">
             ← Startups I&apos;m evaluating
           </Link>
         </p>

@@ -101,9 +101,11 @@ export function RemoveDemoCohortButton({ labels = DEMO_COHORT_LABELS_EN, afterHr
   }
 
   if (!confirming) {
+    // Quiet until asked: the first press is a neutral secondary button (the demo banner
+    // must not open on a red action); the confirm step carries the danger tone.
     return (
       <span className={`inline-flex flex-col gap-1 ${className}`}>
-        <button type="button" onClick={() => setConfirming(true)} className={DANGER} data-testid="remove-demo-cohort">
+        <button type="button" onClick={() => setConfirming(true)} className={SECONDARY} data-testid="remove-demo-cohort">
           <Trash2 className="h-4 w-4" aria-hidden="true" />
           {labels.remove}
         </button>

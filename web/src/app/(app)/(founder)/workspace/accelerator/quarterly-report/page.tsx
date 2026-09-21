@@ -221,7 +221,7 @@ export default async function AcceleratorQuarterlyReportPage() {
             </Link>
           </header>
 
-          <section aria-labelledby="cohort-report-list-h" className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6" data-testid="cohort-report-list">
+          <section aria-labelledby="cohort-report-list-h" className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-surface dark:bg-slate-900 p-6" data-testid="cohort-report-list">
             <h2 id="cohort-report-list-h" className="text-lg font-semibold text-ink-900">
               Cohort Reports by cohort
             </h2>
@@ -284,7 +284,7 @@ export default async function AcceleratorQuarterlyReportPage() {
             />
           </section>
 
-          <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+          <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-surface dark:bg-slate-900 p-6">
             <h2 className="text-lg font-semibold text-ink-900">
               Top 10 cohort founders by SVI
             </h2>
@@ -361,7 +361,7 @@ function Tile({
   hint?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
+    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-surface dark:bg-slate-900 p-5">
       <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-ink-900">{value}</p>
       {hint ? (

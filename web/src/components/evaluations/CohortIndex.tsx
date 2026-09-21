@@ -35,14 +35,14 @@ export interface CohortIndexProps {
 
 const STATUS_CHIP: Record<EvaluationBatch["status"], { label: string; className: string }> = {
   queued: { label: "Queued · off-peak", className: "border-surface-300 bg-surface-100 text-ink-600" },
-  running: { label: "Scoring…", className: "border-brand-300 bg-brand-50 text-brand-700" },
+  running: { label: "Scoring…", className: "border-brand-300 bg-surface-sunken text-action" },
   done: { label: "Scored", className: "border-emerald-300 bg-emerald-50 text-emerald-700" },
   failed: { label: "Failed", className: "border-red-300 bg-red-50 text-red-700" },
 };
 
 /** G22-A: the caller's seat on the cohort (owner = created it; reviewer / viewer = invited). */
 export const ROLE_CHIP: Record<BatchRole, string> = {
-  owner: "border-brand-300 bg-brand-50 text-brand-700",
+  owner: "border-brand-300 bg-surface-sunken text-action",
   reviewer: "border-surface-300 bg-surface-100 text-ink-700",
   viewer: "border-surface-300 bg-surface-50 text-ink-500",
 };
@@ -104,14 +104,14 @@ export function CohortIndex({ batches, templates, canCreate, pilotCap, demoLabel
             </button>
           </span>
         ) : (
-          <Link href="/pricing?segment=evaluator" className="inline-flex min-h-11 items-center rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm font-medium text-ink-600 hover:bg-surface-50">
+          <Link href="/pricing?segment=evaluator" className="inline-flex min-h-11 items-center rounded-xl border border-surface-300 bg-surface px-4 py-2.5 text-sm font-medium text-ink-600 hover:bg-surface-50">
             Cohorts — Program plan
           </Link>
         )}
       </div>
 
       {open && canCreate ? (
-        <form onSubmit={create} className="grid gap-4 rounded-2xl border border-surface-200 bg-white p-5 sm:grid-cols-2" data-testid="cohort-new-form">
+        <form onSubmit={create} className="grid gap-4 rounded-2xl border border-surface-200 bg-surface p-5 sm:grid-cols-2" data-testid="cohort-new-form">
           <div>
             <label htmlFor="cohort-name" className="mb-1 block text-sm font-medium text-ink-700">Cohort name</label>
             <input id="cohort-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} placeholder="e.g. Round 1 intake" className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-500" />
@@ -132,7 +132,7 @@ export function CohortIndex({ batches, templates, canCreate, pilotCap, demoLabel
             </select>
             <p className="mt-1 text-xs text-ink-500">
               Templates set the questions founders answer, the rubric weights and the consent text.{" "}
-              <Link href="/workspace/accelerator/templates" className="font-medium text-brand-700 hover:underline">
+              <Link href="/workspace/accelerator/templates" className="font-medium text-action hover:underline">
                 Manage templates
               </Link>
             </p>
@@ -156,10 +156,10 @@ export function CohortIndex({ batches, templates, canCreate, pilotCap, demoLabel
       ) : null}
 
       {batches.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-surface-300 bg-white px-6 py-14 text-center text-sm text-ink-500" data-testid="cohort-empty">
+        <div className="rounded-2xl border border-dashed border-surface-300 bg-surface px-6 py-14 text-center text-sm text-ink-500" data-testid="cohort-empty">
           <Layers className="mx-auto mb-3 h-6 w-6 text-brand-600" aria-hidden="true" />
           No cohorts yet. Create one and import a CSV, or tick startups on{" "}
-          <Link href="/workspace/evaluations" className="font-medium text-brand-700 hover:underline">
+          <Link href="/workspace/evaluations" className="font-medium text-action hover:underline">
             Startups I&apos;m evaluating
           </Link>{" "}
           and choose Batch score.
@@ -175,7 +175,7 @@ export function CohortIndex({ batches, templates, canCreate, pilotCap, demoLabel
           {canCreate ? <p className="mt-3 text-xs text-ink-500">{demoLabels.emptyHint}</p> : null}
         </div>
       ) : (
-        <ul className="divide-y divide-surface-100 rounded-2xl border border-surface-200 bg-white" data-testid="cohort-list">
+        <ul className="divide-y divide-surface-100 rounded-2xl border border-surface-200 bg-surface" data-testid="cohort-list">
           {batches.map((b) => {
             const chip = STATUS_CHIP[b.status];
             const pct = batchProgressPct(b);
@@ -206,10 +206,10 @@ export function CohortIndex({ batches, templates, canCreate, pilotCap, demoLabel
                   </div>
                 </div>
                 <div className="flex items-center gap-1 whitespace-nowrap text-xs">
-                  <Link href={`/workspace/evaluations/cohort/${encodeURIComponent(b.id)}`} className="rounded-lg px-2.5 py-1.5 font-medium text-brand-700 hover:bg-brand-50">
+                  <Link href={`/workspace/evaluations/cohort/${encodeURIComponent(b.id)}`} className="rounded-lg px-2.5 py-1.5 font-medium text-action hover:bg-surface-hover">
                     Open
                   </Link>
-                  <a href={`/api/evaluations/batch/${encodeURIComponent(b.id)}/export.csv`} className="rounded-lg px-2.5 py-1.5 font-medium text-brand-700 hover:bg-brand-50">
+                  <a href={`/api/evaluations/batch/${encodeURIComponent(b.id)}/export.csv`} className="rounded-lg px-2.5 py-1.5 font-medium text-action hover:bg-surface-hover">
                     CSV
                   </a>
                 </div>

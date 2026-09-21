@@ -9,7 +9,7 @@ import { signatureLines, type ReviewerSignature } from "@/lib/evaluations/signat
 export function SignatureBlock({ signature }: { signature: ReviewerSignature | null }) {
   if (!signature) return null;
   return (
-    <section aria-labelledby="dossier-signature-heading" className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6" data-testid="dossier-signature" data-section="signature">
+    <section aria-labelledby="dossier-signature-heading" className="rounded-2xl border border-surface-200 bg-surface p-5 sm:p-6" data-testid="dossier-signature" data-section="signature">
       <h2 id="dossier-signature-heading" className="text-lg font-semibold text-ink-900">
         Reviewer signature
       </h2>
