@@ -14,7 +14,7 @@
 import { describe, expect, it } from "vitest";
 import { PDFParse } from "pdf-parse";
 import { tbrV2Toc } from "@/components/tbr/v2/report";
-import { demoReportV2, demoSnapshotInput, freeFixtureReportV2, preRevenueFixtureReportV2 } from "@/lib/report-v2/fixtures";
+import { citedDemoReportV2, demoReportV2, demoSnapshotInput, freeFixtureReportV2, preRevenueFixtureReportV2 } from "@/lib/report-v2/fixtures";
 import { fromSnapshot } from "@/lib/report-v2/adapter";
 import { levelForEstimate, projectForTier } from "@/lib/report-v2/free-tier";
 import { FREE_PAGE_BUDGET } from "@/lib/report-v2/schema";
@@ -296,5 +296,32 @@ describe("renderTbrPdf — evidence & data CTAs (G19-S43)", () => {
     const small = fromSnapshot({ ...demoSnapshotInput(), cohortPercentile: 66, cohort: { ...cohort, sample_size: 9 } });
     const smallText = await fullText((await renderTbrPdf(small)).buffer);
     expect(smallText).not.toMatch(/\d+th percentile/);
+  }, 180_000);
+});
+
+// ── G24-A: evidence citations as footnotes (PDF twin) ────────────────────────
+describe("renderTbrPdf — citations (G24-A)", () => {
+  it("no raw [ev:] / [unevidenced] marker reaches the PDF text; footnotes are numbered like the web and the Evidence cited appendix closes the document", async () => {
+    const report = citedDemoReportV2();
+    const { buffer } = await renderTbrPdf(report);
+    const text = await fullText(buffer);
+    expect(text).not.toContain("[ev:");
+    expect(text).not.toMatch(/\[unevidenced\]/i);
+    expect(text).not.toContain("not-a-register-id");
+    // The appendix: same numbering as the web (1 Stripe · 2 Xero · 3 ABS), level · source · date.
+    expect(tbrPdfOutline(report).at(-1)).toEqual({ id: "tbr-evidence-cited", label: "Evidence cited" });
+    const idx = text.indexOf("Evidence cited");
+    expect(idx).toBeGreaterThan(text.indexOf("Appendix"));
+    const appendix = text.slice(idx);
+    assertOrdered(appendix, ["1", "Stripe revenue (last sync)", "transaction data", "Stripe (revenue)", "2026-09-10", "2", "Xero P&L (last sync)", "3", "AU market anchor (ABS / IBISWorld)", "public URLs"]);
+    expect(appendix).not.toContain("GA4 acquisition (last 90 days)");
+    // The admission prints as the muted word, never the marker.
+    expect(text).toContain("(unverified)");
+    // Rendering never rewrites the stored text.
+    expect(report.dimensions.find((d) => d.dim === "tre")!.verdict).toContain("[ev:ev-connected-xero-pnl]");
+    // A document without citations has no footnote section.
+    const plain = await fullText((await renderTbrPdf(demoReportV2())).buffer);
+    expect(plain).not.toContain("Evidence cited");
+    expect(tbrPdfOutline(demoReportV2()).some((e) => e.id === "tbr-evidence-cited")).toBe(false);
   }, 180_000);
 });

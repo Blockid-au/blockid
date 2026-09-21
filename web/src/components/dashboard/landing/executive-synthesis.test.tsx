@@ -131,4 +131,19 @@ describe("<ExecutiveSynthesis>", () => {
     expect(html).not.toContain("Executive synthesis");
     expect(html).not.toContain("Top strengths");
   });
+
+  // G24-A: the dashboard has no footnote appendix — a stored `[ev:]` / `[unevidenced]` marker is stripped, never printed.
+  it("strips citation markers from the strengths, weaknesses, where-sentence and follow-ups", () => {
+    const report = demoReportV2();
+    report.executive.strengths[0] = `${report.executive.strengths[0]} [ev:ev-connected-revenue-stripe]`;
+    report.executive.gaps[0] = `${report.executive.gaps[0]} [unevidenced]`;
+    report.cover.threeQuestions.where = "Investor Progress Review with A$1.2M ARR [ev:ev-connected-revenue-stripe].";
+    report.actionPlan.steps[0]!.title = `${report.actionPlan.steps[0]!.title} [ev:ev-hub-data-room]`;
+    const data = synthesisFromReport(report);
+    const html = renderToStaticMarkup(<ExecutiveSynthesis ctx={ctx} data={data} />);
+    expect(html).not.toContain("[ev:");
+    expect(html).not.toMatch(/\[unevidenced\]/i);
+    expect(data.where.sentence).toBe("Investor Progress Review with A$1.2M ARR.");
+    expect(report.executive.strengths[0]).toContain("[ev:ev-connected-revenue-stripe]");
+  });
 });

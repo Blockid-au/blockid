@@ -996,5 +996,22 @@
   "execution.amount_band.1m-5m": "A$1M–5M",
   "execution.amount_band.5m-20m": "A$5M–20M",
   "execution.amount_band.20m+": "A$20M+",
-  "digest.why_moved.sentence": "Why it moved: evidence confidence is now capped by its source (self-declared ≤ document, connector, reviewer) and your ABN verification level (L{level}) now weights the score."
+  "digest.why_moved.sentence": "Why it moved: evidence confidence is now capped by its source (self-declared ≤ document, connector, reviewer) and your ABN verification level (L{level}) now weights the score.",
+  "tbr.citations.appendixTitle": "Evidence cited",
+  "tbr.citations.appendixPurpose": "Every numbered footnote in this report — the evidence row behind it, its evidence level, source and date.",
+  "tbr.citations.th.n": "#",
+  "tbr.citations.th.label": "Evidence",
+  "tbr.citations.th.level": "Evidence level",
+  "tbr.citations.th.source": "Source",
+  "tbr.citations.th.date": "Date",
+  "tbr.citations.levelUnrated": "not rated",
+  "tbr.citations.noDate": "—",
+  "tbr.citations.citeTitle": "Evidence {n}: {label}",
+  "tbr.citations.citeAria": "Footnote {n}, {label}",
+  "tbr.citations.unverified": "unverified",
+  "tbr.citations.unverifiedTitle": "No evidence row supports this claim — the auditor marked it unverified.",
+  "tbr.citations.status.evidenced": "evidenced",
+  "tbr.citations.status.partial": "partial",
+  "tbr.citations.status.missing": "missing",
+  "tbr.citations.status.stale": "stale"
 }

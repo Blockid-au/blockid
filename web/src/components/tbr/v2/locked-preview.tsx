@@ -7,12 +7,13 @@
 //
 // Hook-free: renders in the server /tbr/demo page and the client TBR alike.
 
+import { stripCitationMarkers } from "@/lib/report-v2/citations";
 import type { DimensionChapter } from "@/lib/report-v2/schema";
 import { v2Strings, type TbrUiLocale } from "./shared";
 
-/** First sentence of a narrative (≤ 220 chars), the preview's only real text. */
+/** First sentence of a narrative (≤ 220 chars), the preview's only real text — G24-A: citation markers stripped, never numbered here. */
 export function firstSentence(text: string, max = 220): string {
-  const clean = text.replace(/\s+/g, " ").trim();
+  const clean = stripCitationMarkers(text).replace(/\s+/g, " ").trim();
   if (!clean) return "";
   const m = clean.match(/^(.+?[.!?])(?:\s|$)/);
   const first = (m ? m[1] : clean).trim();

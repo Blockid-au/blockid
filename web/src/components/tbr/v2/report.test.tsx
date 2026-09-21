@@ -9,7 +9,7 @@ import { assertReportV2 } from "@/lib/report-v2/schema";
 import { fromSnapshot } from "@/lib/report-v2/adapter";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { demoReportV2, demoSnapshotInput, freeFixtureReportV2, preRevenueFixtureReportV2 } from "@/lib/report-v2/fixtures";
+import { citedDemoReportV2, demoReportV2, demoSnapshotInput, freeFixtureReportV2, preRevenueFixtureReportV2 } from "@/lib/report-v2/fixtures";
 import { TBR_STRINGS, TBR_VALUATION_STRINGS } from "@/lib/i18n/tbr-strings";
 import { catalogueLift } from "@/lib/svi-lift";
 import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
@@ -730,5 +730,66 @@ describe("<TbrReportV2> grounding (G23-A)", () => {
     const html = renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} />);
     expect(html).toContain(`${Math.round(demoReportV2().quality.groundedShare * 100)}%`);
     expect(html).not.toMatch(/\[ev:[0-9a-f]{8}-/);
+  });
+});
+
+// ── G24-A: evidence citations as footnotes ───────────────────────────────────
+describe("<TbrReportV2> citations (G24-A)", () => {
+  const html = renderToStaticMarkup(<TbrReportV2 report={citedDemoReportV2()} />);
+
+  it("no raw [ev:] / [unevidenced] marker reaches the DOM; the demo without markers renders no footnote section", () => {
+    expect(html).not.toContain("[ev:");
+    expect(html).not.toMatch(/\[unevidenced\]/i);
+    expect(html).not.toContain("not-a-register-id");
+    const plain = renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} />);
+    expect(plain).not.toContain(`id="${TBR_V2_SECTION_IDS.evidenceCited}"`);
+    expect(plain).not.toContain("Evidence cited");
+    expect(tbrV2Toc(demoReportV2()).some((e) => e.id === TBR_V2_SECTION_IDS.evidenceCited)).toBe(false);
+  });
+
+  it("citations render as numbered superscript links to the Evidence cited appendix, numbered by first appearance (one number per register row)", () => {
+    // Executive summary cites Stripe first → 1; TRE verdict adds Xero → 2; MPC adds the ABS anchor → 3.
+    expect(html).toMatch(/<sup[^>]*><span><a href="#ev-1"[^>]*data-tbr-cite="1"/);
+    expect(html).toContain('href="#ev-2"');
+    expect(html).toContain('href="#ev-3"');
+    expect(html).not.toContain('href="#ev-4"');
+    // Focus ring + 44 px hit area on every footnote link.
+    const links = html.match(/<a href="#ev-\d+"[^>]*>/g) ?? [];
+    expect(links.length).toBeGreaterThanOrEqual(5);
+    for (const a of links) {
+      expect(a).toContain("focus-visible:ring-2");
+      expect(a).toContain("before:-inset-y-3");
+      expect(a).toContain('title="Evidence ');
+    }
+    // The appendix: one row per cited register row, in order, with level · source · date.
+    expect(html).toContain(`id="${TBR_V2_SECTION_IDS.evidenceCited}"`);
+    const rows = html.match(/data-tbr-footnote="(\d+)"/g) ?? [];
+    expect(rows).toEqual(['data-tbr-footnote="1"', 'data-tbr-footnote="2"', 'data-tbr-footnote="3"']);
+    const appendix = html.slice(html.indexOf(`id="${TBR_V2_SECTION_IDS.evidenceCited}"`));
+    expect(appendix).toContain('id="ev-1"');
+    expect(appendix).toContain("Stripe revenue (last sync)");
+    expect(appendix).toContain("transaction data");
+    expect(appendix).toContain("Stripe (revenue)");
+    expect(appendix).toContain("2026-09-10");
+    expect(appendix).toContain("AU market anchor (ABS / IBISWorld)");
+    expect(appendix).toContain("public URLs");
+    expect(tbrV2Toc(citedDemoReportV2()).at(-1)).toEqual({ id: TBR_V2_SECTION_IDS.evidenceCited, label: "Evidence cited" });
+  });
+
+  it("[unevidenced] becomes the muted unverified chip (EN / VI), and the VI appendix reads Vietnamese", () => {
+    expect((html.match(/data-tbr-unverified/g) ?? []).length).toBe(2);
+    expect(html).toContain(">unverified</span>");
+    const vi = renderToStaticMarkup(<TbrReportV2 report={citedDemoReportV2()} locale="vi" />);
+    expect(vi).not.toContain("[ev:");
+    expect(vi).toContain(">chưa xác minh</span>");
+    expect(vi).toContain("Bằng chứng được trích dẫn");
+    expect(vi).toContain("dữ liệu giao dịch");
+  });
+
+  it("the stored markers are untouched by rendering: the grounding audit still reads them", () => {
+    const report = citedDemoReportV2();
+    renderToStaticMarkup(<TbrReportV2 report={report} />);
+    expect(report.dimensions.find((d) => d.dim === "tre")!.verdict).toContain("[ev:ev-connected-xero-pnl]");
+    expect(groundingAudit(report).groundedShare).toBeGreaterThanOrEqual(TBR_GROUNDED_SHARE_KPI);
   });
 });

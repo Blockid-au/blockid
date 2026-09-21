@@ -41,6 +41,8 @@ import { defaultPreparedWith } from "@/lib/report-v2/prepared-with";
 import { DIM_ORDER, type DimensionChapter, type ExecutiveStructured, type ReportV2 } from "@/lib/report-v2/schema";
 import { ensureExecutiveStructured } from "@/lib/report-v2/executive-structure";
 import { proseParagraphs } from "@/lib/report-v2/paragraphs";
+import { buildCitationIndex, citationEntries, createCitationIndex, parseCitations, type CitationIndex, type CitationSegment } from "@/lib/report-v2/citations";
+import { citationStrings } from "@/lib/report-v2/citation-strings";
 import { buildValuationView, CONNECTORS_HREF } from "@/lib/report-v2/valuation-view";
 import { AdviceDisclaimer, PDF_ENTITY_LINE } from "./advice-disclaimer";
 import { ASSESSMENT_CARD_PDF_TITLE, AssessmentCardPdf, assessmentCardSummaryLine } from "./assessment-card-pdf";
@@ -113,6 +115,52 @@ let s = STYLES.en;
 let tUnicode = false;
 const t = (value: unknown): string => pdfSafeText(value, { unicode: tUnicode });
 
+// G24-A: the document's footnote numbering + locale, swapped per document
+// exactly like `s` / `t` above (one synchronous react-pdf tree at a time).
+let cites: CitationIndex = createCitationIndex([]);
+let citeLocale: "en" | "vi" = "en";
+
+/** Point the module-level footnote index at this document (same swap discipline as `useFontSet`). */
+function useCitations(report: ReportV2, locale: "en" | "vi"): CitationIndex {
+  cites = buildCitationIndex(report);
+  citeLocale = locale;
+  return cites;
+}
+
+/**
+ * Inline prose with its `[ev:<id>]` markers as superscript footnote numbers
+ * and `[unevidenced]` as a muted "(unverified)" run — the PDF twin of
+ * `<CitedText>`. Renders INSIDE a parent <Text> (nested runs).
+ */
+function Cited({ text }: { text: string }): React.ReactElement {
+  const segs = parseCitations(text, cites);
+  const cs = citationStrings(citeLocale);
+  const out: React.ReactNode[] = [];
+  for (let i = 0; i < segs.length; i++) {
+    const seg = segs[i]!;
+    if (seg.kind === "text") {
+      out.push(t(seg.text));
+      continue;
+    }
+    if (seg.kind === "unevidenced") {
+      out.push(
+        <Text key={`u${i}`} style={{ color: C.muted, fontSize: 7 }}>
+          {t(` (${cs.unverified})`)}
+        </Text>,
+      );
+      continue;
+    }
+    const group: Array<Extract<CitationSegment, { kind: "cite" }>> = [seg];
+    while (i + 1 < segs.length && segs[i + 1]!.kind === "cite") group.push(segs[++i] as Extract<CitationSegment, { kind: "cite" }>);
+    out.push(
+      <Text key={`c${i}`} style={{ fontSize: 6, color: C.brand, verticalAlign: "super" }}>
+        {group.map((c) => c.n).join(",")}
+      </Text>,
+    );
+  }
+  return <>{out}</>;
+}
+
 /** Point the module-level styles / text shim at the locale's font set (see makeStyles). */
 function useFontSet(locale: "en" | "vi"): PdfFontSet {
   const fonts = pdfFontsForLocale(locale);
@@ -169,6 +217,8 @@ export function tbrPdfOutline(report: ReportV2, locale: "en" | "vi" = "en"): Arr
     { id: "tbr-money", label: TBR_PDF_SECTION_TITLES.money },
     { id: "tbr-action-plan", label: TBR_PDF_SECTION_TITLES.actionPlan },
     { id: "tbr-appendix", label: TBR_PDF_SECTION_TITLES.appendix },
+    // G24-A: the footnote list is a section only when the document cites something.
+    ...(buildCitationIndex(report).size > 0 ? [{ id: "tbr-evidence-cited", label: citationStrings(locale).appendixTitle }] : []),
   ];
 }
 
@@ -193,7 +243,9 @@ function Bullets({ title, items, mark }: { title: string; items: string[]; mark:
       {items.map((it, i) => (
         <View key={i} style={s.bullet}>
           <Text style={s.bulletMark}>{mark}</Text>
-          <Text style={s.bulletText}>{t(it)}</Text>
+          <Text style={s.bulletText}>
+            <Cited text={it} />
+          </Text>
         </View>
       ))}
     </View>
@@ -314,9 +366,18 @@ function Cover({ report, locale, preparedWith }: { report: ReportV2; locale: "en
       {radar && <Figure spec={radar} widthPt={230} caption={radar.subtitle ?? null} />}
       <View style={s.softBox} wrap={false}>
         <Text style={s.th}>Where · Worth · Next</Text>
-        <Text style={s.body}>{t(`Where: ${c.threeQuestions.where}`)}</Text>
-        <Text style={s.body}>{t(`Worth: ${c.threeQuestions.worth}`)}</Text>
-        <Text style={s.body}>{t(`Next: ${c.threeQuestions.next}`)}</Text>
+        <Text style={s.body}>
+          {t("Where: ")}
+          <Cited text={c.threeQuestions.where} />
+        </Text>
+        <Text style={s.body}>
+          {t("Worth: ")}
+          <Cited text={c.threeQuestions.worth} />
+        </Text>
+        <Text style={s.body}>
+          {t("Next: ")}
+          <Cited text={c.threeQuestions.next} />
+        </Text>
       </View>
       <Text style={s.tiny}>{t(preparedWith)}</Text>
     </View>
@@ -378,7 +439,10 @@ function ScoreLedger({ ch, locale, verificationLevel }: { ch: DimensionChapter; 
       )}
       {ch.scoreNote ? (
         <View style={s.tr}>
-          <Text style={[s.td, s.small]}>{t(`${strings.scoreNote}: ${ch.scoreNote}`)}</Text>
+          <Text style={[s.td, s.small]}>
+            {t(`${strings.scoreNote}: `)}
+            <Cited text={ch.scoreNote} />
+          </Text>
         </View>
       ) : null}
     </View>
@@ -395,7 +459,7 @@ function Paragraphs({ text, style, gap = 4 }: { text: string; style?: PdfStyle; 
     <View>
       {paras.map((p, i) => (
         <Text key={i} style={[s.body, ...(style ? [style] : []), { marginBottom: i === paras.length - 1 ? 0 : gap }]}>
-          {t(p)}
+          <Cited text={p} />
         </Text>
       ))}
     </View>
@@ -410,8 +474,13 @@ function ExecCard({ title, body, dim, lift, index, colour, locale }: { title: st
   const dimLabel = dim ? (locale === "vi" ? DIMENSION_OWNERS[dim as keyof typeof DIMENSION_OWNERS].titleVi : DIMENSION_OWNERS[dim as keyof typeof DIMENSION_OWNERS].shortLabel) : null;
   return (
     <View style={[s.box, { flex: 1, marginRight: 6, borderLeftWidth: 3, borderLeftColor: colour }]} wrap={false}>
-      <Text style={[s.h3, { marginTop: 0 }]}>{t(`${String(index + 1).padStart(2, "0")}  ${title}`)}</Text>
-      <Text style={s.small}>{t(body)}</Text>
+      <Text style={[s.h3, { marginTop: 0 }]}>
+        {t(`${String(index + 1).padStart(2, "0")}  `)}
+        <Cited text={title} />
+      </Text>
+      <Text style={s.small}>
+        <Cited text={body} />
+      </Text>
       {(dimLabel || typeof lift === "number") && (
         <View style={[s.row, { marginTop: 4 }]}>
           {dimLabel ? <Pill>{`${dim!.toUpperCase()} · ${dimLabel}`}</Pill> : null}
@@ -458,16 +527,20 @@ function Executive({ report, locale, compact = false }: { report: ReportV2; loca
         <Pill>ceo</Pill>
         <Text style={s.tiny}>{t(getTbrStrings(locale).v2.s44.evidenceConfidence(Math.round(e.confidence * 100)))}</Text>
       </View>
-      <Text style={[s.h1, { fontSize: 16, marginTop: 6, marginBottom: 6 }]}>{t(x.headline)}</Text>
+      <Text style={[s.h1, { fontSize: 16, marginTop: 6, marginBottom: 6 }]}>
+        <Cited text={x.headline} />
+      </Text>
       {x.summary.map((p, i) => (
         <Text key={i} style={[s.body, { marginBottom: 5 }]}>
-          {t(p)}
+          <Cited text={p} />
         </Text>
       ))}
       {x.keyInsight ? (
         <View style={[s.softBox, { borderLeftWidth: 3, borderLeftColor: C.brand, marginTop: 4 }]} wrap={false}>
           <Text style={s.th}>{t(s47.keyInsight)}</Text>
-          <Text style={s.body}>{t(x.keyInsight)}</Text>
+          <Text style={s.body}>
+            <Cited text={x.keyInsight} />
+          </Text>
         </View>
       ) : null}
       {compact ? (
@@ -508,11 +581,11 @@ function Executive({ report, locale, compact = false }: { report: ReportV2; loca
         </View>
         <Text style={[s.small, { marginTop: 4 }]}>
           <Text style={s.bold}>{t(`${s47.blocker}: `)}</Text>
-          {t(x.phaseNow.blocker)}
+          <Cited text={x.phaseNow.blocker} />
         </Text>
         <Text style={s.small}>
           <Text style={s.bold}>{t(`${s47.whatItTakes}: `)}</Text>
-          {t(x.phaseNow.whatItTakes)}
+          <Cited text={x.phaseNow.whatItTakes} />
         </Text>
         {e.visuals.map((v) => (
           <Figure key={v.id} spec={v} caption={null} />
@@ -529,7 +602,7 @@ function Executive({ report, locale, compact = false }: { report: ReportV2; loca
         </View>
         <Text style={s.small}>
           <Text style={s.bold}>{t(`${s47.condition}: `)}</Text>
-          {t(x.verdict.condition ?? s47.noCondition)}
+          <Cited text={x.verdict.condition ?? s47.noCondition} />
         </Text>
       </View>
       {x.actions.length > 0 && (
@@ -539,8 +612,12 @@ function Executive({ report, locale, compact = false }: { report: ReportV2; loca
             <View key={i} style={s.bullet} wrap={false}>
               <Text style={[s.bulletMark, s.bold, { color: C.brand }]}>{String(i + 1)}</Text>
               <View style={{ flex: 1 }}>
-                <Text style={[s.bulletText, s.bold]}>{t(a.title)}</Text>
-                <Text style={s.small}>{t(a.detail)}</Text>
+                <Text style={[s.bulletText, s.bold]}>
+                  <Cited text={a.title} />
+                </Text>
+                <Text style={s.small}>
+                  <Cited text={a.detail} />
+                </Text>
                 <Text style={s.tiny}>{t(`${windowLabel[a.window]}${a.dim ? ` · ${a.dim.toUpperCase()}` : ""}`)}</Text>
               </View>
             </View>
@@ -597,7 +674,12 @@ function Chapter({ ch, index, locale, projection, verificationLevel }: { ch: Dim
         <View style={s.row} wrap={false}>
           <View style={{ flex: 1, paddingRight: 8 }}>
             <Paragraphs text={ch.verdict} />
-            {ch.gaps[0] && <Text style={[s.small, { marginTop: 4 }]}>{t(`^ ${ch.gaps[0]}`)}</Text>}
+            {ch.gaps[0] && (
+              <Text style={[s.small, { marginTop: 4 }]}>
+                {"^ "}
+                <Cited text={ch.gaps[0]} />
+              </Text>
+            )}
             <Text style={[s.tiny, { marginTop: 6, color: C.brand }]}>{t(`Unlock the full ${ch.title} chapter — upgrade at blockid.au/pricing`)}</Text>
           </View>
           <View style={{ width: 200 }}>
@@ -663,7 +745,12 @@ function Chapter({ ch, index, locale, projection, verificationLevel }: { ch: Dim
               <Bullets title="Gaps" items={c.gaps.slice(0, 3)} mark="^" />
             </View>
           )}
-          {showCriterionDetail && c.nextAction ? <Text style={[s.small, { color: C.brand, marginTop: 2 }]}>{t(`Next: ${c.nextAction}`)}</Text> : null}
+          {showCriterionDetail && c.nextAction ? (
+            <Text style={[s.small, { color: C.brand, marginTop: 2 }]}>
+              {"Next: "}
+              <Cited text={c.nextAction} />
+            </Text>
+          ) : null}
           <Text style={s.tiny}>{t(`${c.quality} · ${c.agent.toUpperCase()} · ${c.grounded ? "grounded" : "uncited"}`)}</Text>
         </View>
       ))}
@@ -674,9 +761,16 @@ function Chapter({ ch, index, locale, projection, verificationLevel }: { ch: Dim
       </View>
       <View style={[s.softBox, { borderLeftWidth: 2, borderLeftColor: C.brand }]} wrap={false}>
         <Text style={s.th}>{`Next action (${WINDOW_LABEL[ch.nextAction.window]})`}</Text>
-        <Text style={s.body}>{t(nextActionLine(ch, locale))}</Text>
+        <Text style={s.body}>
+          <Cited text={nextActionLine(ch, locale)} />
+        </Text>
       </View>
-      {projection.show.phaseLens && ch.phaseLens.whatMattersNow ? <Text style={s.small}>{t(`${GROWTH_PHASE_LABELS[ch.phaseLens.phaseId][locale]}: ${ch.phaseLens.whatMattersNow}`)}</Text> : null}
+      {projection.show.phaseLens && ch.phaseLens.whatMattersNow ? (
+        <Text style={s.small}>
+          {t(`${GROWTH_PHASE_LABELS[ch.phaseLens.phaseId][locale]}: `)}
+          <Cited text={ch.phaseLens.whatMattersNow} />
+        </Text>
+      ) : null}
       {ch.secondaryVisuals.length > 0 && (
         <View style={[s.row, { flexWrap: "wrap", justifyContent: "space-around" }]}>
           {ch.secondaryVisuals.map((v) => (
@@ -989,6 +1083,37 @@ function Appendix({ report, projection, preparedWith, locale }: { report: Report
   );
 }
 
+/** G24-A: "Evidence cited" — the footnote list (n · label · level · source · date); omitted when nothing is cited. */
+function EvidenceCited({ locale }: { locale: "en" | "vi" }) {
+  const rows = citationEntries(cites);
+  if (rows.length === 0) return null;
+  const cs = citationStrings(locale);
+  return (
+    <View>
+      <SectionHead no="15" title={cs.appendixTitle} />
+      <Text style={[s.small, { marginBottom: 6 }]}>{t(cs.appendixPurpose)}</Text>
+      <View style={s.table}>
+        <View style={s.tr}>
+          <Text style={[s.th, { width: 18 }]}>{t(cs.th.n)}</Text>
+          <Text style={[s.th, s.cell3]}>{t(cs.th.label)}</Text>
+          <Text style={[s.th, s.cell1]}>{t(cs.th.level)}</Text>
+          <Text style={[s.th, s.cell1]}>{t(cs.th.source)}</Text>
+          <Text style={[s.th, s.cell1]}>{t(cs.th.date)}</Text>
+        </View>
+        {rows.map((e) => (
+          <View key={e.id} style={s.tr} wrap={false}>
+            <Text style={[s.td, s.bold, { width: 18, color: C.brand }]}>{String(e.n)}</Text>
+            <Text style={[s.td, s.cell3]}>{t(`${e.label}  ${e.id}`)}</Text>
+            <Text style={[s.td, s.cell1]}>{t(cs.level(e))}</Text>
+            <Text style={[s.td, s.cell1]}>{t(cs.source(e))}</Text>
+            <Text style={[s.td, s.cell1]}>{t(cs.date(e))}</Text>
+          </View>
+        ))}
+      </View>
+    </View>
+  );
+}
+
 // ── Document ────────────────────────────────────────────────────────────────
 
 export interface TbrPdfProps {
@@ -1012,6 +1137,9 @@ export function TbrReportPdf({ report: rawReport, level = 0, preparedWith, local
   const fonts = useFontSet(loc);
   const projection = projectForTier(report, level);
   const r = projection.report;
+  // G24-A: one footnote numbering per document — walked over the FULL text
+  // (not the free-tier projection) so web, PDF and DOCX print the same numbers.
+  const citations = useCitations(report, loc);
   const prepared = preparedWith?.trim() || defaultPreparedWith(report);
   const body: ReactNode[] = [];
   body.push(<Cover key="cover" report={r} locale={loc} preparedWith={prepared} />);
@@ -1056,6 +1184,13 @@ export function TbrReportPdf({ report: rawReport, level = 0, preparedWith, local
       <Appendix report={r} projection={projection} preparedWith={prepared} locale={loc} />
     </View>,
   );
+  if (citations.size > 0) {
+    body.push(
+      <View key="cited" break>
+        <EvidenceCited locale={loc} />
+      </View>,
+    );
+  }
   return (
     <Document title={`Trusted Business Report — ${r.cover.startupName}`} author="BlockID.au" subject="Trusted Business Report v2" creator="BlockID.au">
       <Page size="A4" style={s.page}>

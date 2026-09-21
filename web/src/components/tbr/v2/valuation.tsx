@@ -12,6 +12,7 @@ import type { ReportV2 } from "@/lib/report-v2/schema";
 import { buildValuationView, CONNECTORS_HREF, type ValuationSourceChip } from "@/lib/report-v2/valuation-view";
 import { cn } from "@/lib/utils";
 import { AgentBadge, AuditStampLine, Prose, TABLE_CLASS, TBR_V2_SECTION_IDS, THEAD_CLASS, TbrSection, stateLabel, v2Strings, valuationLocale, zebraRow, type TbrUiLocale } from "./shared";
+import type { CitationIndex } from "@/lib/report-v2/citations";
 
 const CHIP_CLASS: Record<ValuationSourceChip, string> = {
   connector: "border-emerald-300 dark:border-emerald-800 bg-surface-sunken text-bull",
@@ -35,7 +36,7 @@ function SubTitle({ children }: { children: React.ReactNode }) {
   return <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{children}</p>;
 }
 
-export function TbrValuation({ report, title, locale = "en" }: { report: ReportV2; title: string; locale?: TbrUiLocale }) {
+export function TbrValuation({ report, title, locale = "en", citations }: { report: ReportV2; title: string; locale?: TbrUiLocale; /** G24-A: footnote numbering (report.tsx). */ citations?: CitationIndex }) {
   const v = report.valuation;
   const free = report.tier === "free";
   const view = buildValuationView(v, valuationLocale(locale));
@@ -205,7 +206,7 @@ export function TbrValuation({ report, title, locale = "en" }: { report: ReportV
           ))}
         </>
       )}
-      <Prose text={v.narrative} size="xs" testId="tbr-valuation-narrative" />
+      <Prose text={v.narrative} size="xs" testId="tbr-valuation-narrative" citations={citations} locale={locale} />
       <AuditStampLine audit={v.audit} locale={locale} />
     </TbrSection>
   );

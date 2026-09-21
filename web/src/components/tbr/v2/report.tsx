@@ -10,6 +10,9 @@ import type { TbrLocale, TbrStrings } from "@/lib/i18n/tbr-strings";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import { TbrActionPlan } from "./action-plan";
 import { TbrAppendix } from "./appendix";
+import { TbrEvidenceCited } from "./evidence-cited";
+import { buildCitationIndex } from "@/lib/report-v2/citations";
+import { citationStrings } from "@/lib/report-v2/citation-strings";
 import { TbrAssessmentCard, type TbrAssessmentBenchmarks } from "./assessment";
 import { alignReportWithAssessmentCard } from "@/lib/svi/assessment-card";
 import { TbrChapter } from "./chapter";
@@ -111,25 +114,30 @@ export function TbrReportV2({ report: rawReport, strings, locale = "en", upgrade
   // locked (included / purchased / no card chapter) it follows the last one.
   const firstLockedIdx = lockCards ? report.dimensions.findIndex((ch) => ch.renderAs === "card") : -1;
   const railAfterIdx = free && unlock ? (firstLockedIdx >= 0 ? firstLockedIdx : report.dimensions.length - 1) : -1;
+  // G24-A: one footnote numbering per document, pre-walked in reading order;
+  // every chapter renders its `[ev:]` markers as superscripts against it and
+  // the "Evidence cited" section closes the report (omitted when nothing cites).
+  const citations = buildCitationIndex(report);
   return (
     <div className={cn("space-y-12", TBR_SURFACE_CLASS)} data-tbr-version={report.schemaVersion} data-tbr-tier={report.tier} data-tbr-source={report.source} data-tbr-unlock={free && unlock ? unlock.mode : undefined}>
       <TbrCover report={report} title={t.secCover} locale={locale} benchmarks={benchmarks} />
       {/* G21-P1-B: the Assessment Card — additive, above the executive summary. */}
       <TbrAssessmentCard report={report} locale={locale} benchmarks={benchmarks} data={aligned.card} />
-      <TbrExecutive report={report} title={t.secExecutive} locale={locale} />
+      <TbrExecutive report={report} title={t.secExecutive} locale={locale} citations={citations} />
       {afterExecutive}
       {report.dimensions.map((ch, i) => (
         <Fragment key={ch.dim}>
-          <TbrChapter chapter={ch} index={i + 2} locale={locale} verificationLevel={report.cover.verification?.level ?? null} upgradeHref={upgradeHref} locked={Boolean(lockCards) && ch.renderAs === "card"} forceFull={forceFull} />
+          <TbrChapter chapter={ch} index={i + 2} locale={locale} verificationLevel={report.cover.verification?.level ?? null} upgradeHref={upgradeHref} locked={Boolean(lockCards) && ch.renderAs === "card"} forceFull={forceFull} citations={citations} />
           {i === railAfterIdx && unlock && railFor(unlock.mode)}
         </Fragment>
       ))}
       {report.actionPlan.steps.length === 0 ? afterChapters : null}
-      <TbrValuation report={report} title={t.secValuation} locale={locale} />
+      <TbrValuation report={report} title={t.secValuation} locale={locale} citations={citations} />
       <TbrPhaseGates report={report} title={t.secPhaseGates} locale={locale} />
       <TbrMoney report={report} title={t.secMoney} locale={locale} />
-      <TbrActionPlan report={report} title={t.secActionPlan} locale={locale} />
+      <TbrActionPlan report={report} title={t.secActionPlan} locale={locale} citations={citations} />
       <TbrAppendix report={report} title={t.secAppendix} locale={locale} canCorrect={canCorrect} />
+      <TbrEvidenceCited citations={citations} locale={locale} />
     </div>
   );
 }
@@ -137,6 +145,8 @@ export function TbrReportV2({ report: rawReport, strings, locale = "en", upgrade
 /** TOC entries in render order (ids match the sections above). */
 export function tbrV2Toc(report: ReportV2, strings?: Partial<TbrReportV2Strings>, locale: TbrLocale = "en"): Array<{ id: string; label: string }> {
   const t = { ...EN, ...strings };
+  // G24-A: the footnote list is a section only when the document cites something.
+  const cited = buildCitationIndex(report).size > 0 ? [{ id: TBR_V2_SECTION_IDS.evidenceCited, label: citationStrings(locale).appendixTitle }] : [];
   return [
     { id: TBR_V2_SECTION_IDS.cover, label: t.secCover },
     { id: TBR_V2_SECTION_IDS.executive, label: t.secExecutive },
@@ -146,5 +156,6 @@ export function tbrV2Toc(report: ReportV2, strings?: Partial<TbrReportV2Strings>
     { id: TBR_V2_SECTION_IDS.money, label: t.secMoney },
     { id: TBR_V2_SECTION_IDS.actionPlan, label: t.secActionPlan },
     { id: TBR_V2_SECTION_IDS.appendix, label: t.secAppendix },
+    ...cited,
   ];
 }
