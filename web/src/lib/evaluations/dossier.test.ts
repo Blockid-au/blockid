@@ -353,7 +353,8 @@ describe("loadDossier — evaluator", () => {
     // viewer's audit trail; the consensus reader is mocked) + the G21 P1
     // Assessment Card context (claim register + stage benchmark, fail-soft).
     expect(tables.slice(1, 7).sort()).toEqual(["audit_events", "connector_snapshots", "evaluation_reports", "svi_dimension_evidence", "svi_snapshots", "svi_snapshots"]);
-    expect(tables.slice(7).sort()).toEqual(["audit_events", "claims", "evaluator_progress_sends", "mandate_fit_scores", "svi_analyses", "svi_snapshots", "svi_snapshots"]);
+    // G21 P3-B: the benchmark reads `benchmark_segments` first (empty on this fake DB → the live stage benchmark over svi_analyses).
+    expect(tables.slice(7).sort()).toEqual(["audit_events", "benchmark_segments", "claims", "evaluator_progress_sends", "mandate_fit_scores", "svi_analyses", "svi_snapshots", "svi_snapshots"]);
     expect(readConsensusMock).toHaveBeenCalledTimes(1);
     expect(readConsensusMock).toHaveBeenCalledWith(expect.objectContaining({ evaluationId: "e-1", viewerUserId: "u-eval" }));
     expect(percentileMock).toHaveBeenCalledTimes(1);
