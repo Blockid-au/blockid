@@ -1010,5 +1010,6 @@
   "demoCohort.error": "Could not load the demo cohort. Please try again.",
   "demoCohort.emptyHint": "Not ready to import? Load the fictional five and try every step first.",
   "demoCohort.checklist.label": "Demo run",
-  "demoCohort.checklist.detail": "Ran the demo cohort — five fictional startups through the table, the report and the letters — before real applicants."
+  "demoCohort.checklist.detail": "Ran the demo cohort — five fictional startups through the table, the report and the letters — before real applicants.",
+  "demoCohort.cancel": "Cancel"
 }

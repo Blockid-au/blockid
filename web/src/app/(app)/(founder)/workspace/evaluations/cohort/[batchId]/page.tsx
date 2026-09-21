@@ -36,6 +36,9 @@ import { latestSnapshots } from "@/lib/evaluations/cohort-snapshots";
 import { CohortTable } from "@/components/evaluations/CohortTable";
 import { ProgramWeightsDialog } from "@/components/evaluations/ProgramWeightsDialog";
 import { cohortDeltaWeightsChanged } from "@/lib/evaluations/cohort-delta";
+import { loadDemoCohortLabels } from "@/lib/evaluations/demo-cohort-labels";
+import { DemoCohortChip } from "@/components/evaluations/DemoCohortChip";
+import { RemoveDemoCohortButton } from "@/components/evaluations/DemoCohortActions";
 
 export const metadata: Metadata = {
   title: "BlockID Cohort | BlockID",
@@ -106,7 +109,7 @@ export default async function CohortPage({ params, searchParams }: PageProps) {
   if (!access.ok) notFound();
   const { batch, role } = access;
 
-  const [isSandbox, loaded, flags, members, meta, snapshots, sp] = await Promise.all([
+  const [isSandbox, loaded, flags, members, meta, snapshots, sp, demoLabels] = await Promise.all([
     getCurrentProjectIsSandbox(),
     loadBlockIdCohortRows(batch, user.id),
     getEntitlements(user.plan ?? "", user.id).catch(() => [] as string[]),
@@ -114,7 +117,9 @@ export default async function CohortPage({ params, searchParams }: PageProps) {
     loadCohortMeta(batch.id, batch.orgId ?? null),
     latestSnapshots(batch.id).catch(() => ({ latest: null, previous: null, count: 0 })),
     searchParams ?? Promise.resolve({} as Record<string, string | string[] | undefined>),
+    loadDemoCohortLabels(),
   ]);
+  const isDemo = batch.isDemo === true;
   const rows = loaded.rows;
   const stats = cohortHeaderStats(rows);
   const lpReport = canExportLpReport(flags);
@@ -136,10 +141,26 @@ export default async function CohortPage({ params, searchParams }: PageProps) {
           <span className="text-primary">BlockID Cohort</span>
         </nav>
 
+        {/* G24-C: the fictional demo cohort — labelled before anything else, removable by its owner. */}
+        {isDemo ? (
+          <section className="rounded-2xl border border-warn/40 bg-warn/5 px-4 py-4 sm:px-5" data-testid="demo-cohort-banner" aria-labelledby="demo-cohort-banner-h">
+            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+              <div className="min-w-0">
+                <h2 id="demo-cohort-banner-h" className="flex flex-wrap items-center gap-2 text-base font-semibold text-primary">
+                  <DemoCohortChip label={demoLabels.chip} title={demoLabels.chipTitle} size="md" />
+                </h2>
+                <p className="mt-2 max-w-3xl text-sm text-secondary">{demoLabels.bannerBody}</p>
+              </div>
+              {role === "owner" ? <RemoveDemoCohortButton labels={demoLabels} /> : null}
+            </div>
+          </section>
+        ) : null}
+
         <header className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div className="min-w-0">
-            <h1 className="text-2xl font-semibold text-primary" data-testid="cohort-h1">
-              BlockID Cohort — {batch.name}
+            <h1 className="flex flex-wrap items-center gap-2 text-2xl font-semibold text-primary" data-testid="cohort-h1">
+              <span>BlockID Cohort — {batch.name}</span>
+              {isDemo ? <DemoCohortChip label={demoLabels.chip} title={demoLabels.chipTitle} size="md" /> : null}
             </h1>
             {/* G22-B: the organisation this cohort was created for (org_id, 0433). */}
             {batch.orgId ? (
@@ -225,8 +246,8 @@ export default async function CohortPage({ params, searchParams }: PageProps) {
           ) : null}
         </section>
 
-        {/* P2-A: CSV import (owner + reviewer; respects the pilot applicants cap). */}
-        {role !== "viewer" ? (
+        {/* P2-A: CSV import (owner + reviewer; respects the pilot applicants cap). Never into the demo cohort — real applicants get a real cohort. */}
+        {role !== "viewer" && !isDemo ? (
           <section data-testid="cohort-import-section" className="rounded-xl border border-line-subtle bg-surface px-4 py-3">
             <CohortImport batchId={batch.id} applicantsCap={batch.applicantsCap ?? null} used={batch.total} />
           </section>
@@ -236,7 +257,7 @@ export default async function CohortPage({ params, searchParams }: PageProps) {
 
         {/* No Suspense: nothing here suspends, and the fallback table rendered a
             second column-chooser toggle beside the real one (live-qa 37). */}
-        <CohortTable rows={rows} batchId={batch.id} role={role} weightsVersion={weightsVersion} deltaWeightsChanged={deltaWeightsChanged} initialFilters={initialFilters} />
+        <CohortTable rows={rows} batchId={batch.id} role={role} weightsVersion={weightsVersion} deltaWeightsChanged={deltaWeightsChanged} initialFilters={initialFilters} isDemo={isDemo} demoChip={{ label: demoLabels.chip, title: demoLabels.chipTitle }} />
 
         <p className="text-sm text-secondary" data-testid="humans-decide">
           <span className="font-medium text-primary">Humans make the decision.</span> BlockID structures the evidence and standardises the first-pass analysis; every shortlist, override and decision above is recorded with who made it and why.

@@ -251,6 +251,7 @@ export interface DemoCohortLabels {
   remove: string;
   removeConfirm: string;
   removed: string;
+  cancel: string;
   error: string;
   emptyHint: string;
 }
@@ -266,6 +267,7 @@ export const DEMO_COHORT_LABEL_KEYS: Record<keyof DemoCohortLabels, string> = {
   remove: "demoCohort.remove",
   removeConfirm: "demoCohort.removeConfirm",
   removed: "demoCohort.removed",
+  cancel: "demoCohort.cancel",
   error: "demoCohort.error",
   emptyHint: "demoCohort.emptyHint",
 };
@@ -282,6 +284,7 @@ export const DEMO_COHORT_LABELS_EN: DemoCohortLabels = Object.freeze({
   remove: "Remove demo cohort",
   removeConfirm: "Remove the demo cohort and its five fictional startups? Your real cohorts are untouched.",
   removed: "Demo cohort removed.",
+  cancel: "Cancel",
   error: "Could not load the demo cohort. Please try again.",
   emptyHint: "Not ready to import? Load the fictional five and try every step first.",
 });

@@ -44,14 +44,20 @@ describe("mergePilotMetrics + readPilotMetrics", () => {
 });
 
 describe("pilotChecklist", () => {
-  it("five steps in delivery order with data-derived ticks", () => {
+  it("six steps — the G24-C demo pre-step then delivery order — with data-derived ticks", () => {
     const none = pilotChecklist({ orderPaid: false, intakeLinks: 0, submissions: 0, scored: 0, decided: 0, workshopCaptured: false, reportDone: false });
-    expect(none.map((i) => i.key)).toEqual(["setup", "intake", "assessment", "workshop", "report"]);
+    expect(none.map((i) => i.key)).toEqual(["demo", "setup", "intake", "assessment", "workshop", "report"]);
     expect(none.every((i) => !i.done)).toBe(true);
-    const mid = checklistFromMetrics({ evaluator_consistency: 4 }, { orderPaid: true, intakeLinks: 1, submissions: 8, scored: 8, decided: 3 }, false);
-    expect(mid.map((i) => i.done)).toEqual([true, true, true, true, false]);
+    expect(none[0]).toMatchObject({ label: "Demo run", href: "/workspace/evaluations/cohort" });
+    expect(none[0].detail).toMatch(/demo cohort/i);
+    const mid = checklistFromMetrics({ evaluator_consistency: 4 }, { orderPaid: true, intakeLinks: 1, submissions: 8, scored: 8, decided: 3, demoRun: true }, false);
+    expect(mid.map((i) => i.done)).toEqual([true, true, true, true, true, false]);
     const done = checklistFromMetrics({ repeat_intent: true, renewal_intent: false }, { orderPaid: true, intakeLinks: 1, submissions: 8, scored: 8, decided: 8 }, false);
-    expect(done[4].done).toBe(true);
-    expect(done[3].done).toBe(false);
+    expect(done[5].done).toBe(true);
+    expect(done[4].done).toBe(false);
+    expect(done[0].done).toBe(false);
+    // Catalogue copy overrides the EN default (the VI pilot page).
+    const vi = pilotChecklist({ orderPaid: false, intakeLinks: 0, submissions: 0, scored: 0, decided: 0, workshopCaptured: false, reportDone: false }, { demoLabel: "Chạy demo", demoDetail: "Đã chạy cohort demo" });
+    expect(vi[0]).toMatchObject({ label: "Chạy demo", detail: "Đã chạy cohort demo" });
   });
 });

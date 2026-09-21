@@ -1069,5 +1069,6 @@
   "demoCohort.error": "Không tải được cohort demo. Vui lòng thử lại.",
   "demoCohort.emptyHint": "Chưa sẵn sàng nhập dữ liệu? Tải năm startup hư cấu và thử từng bước trước.",
   "demoCohort.checklist.label": "Chạy demo",
-  "demoCohort.checklist.detail": "Đã chạy cohort demo — năm startup hư cấu qua bảng, báo cáo và thư — trước khi có ứng viên thật."
+  "demoCohort.checklist.detail": "Đã chạy cohort demo — năm startup hư cấu qua bảng, báo cáo và thư — trước khi có ứng viên thật.",
+  "demoCohort.cancel": "Hủy"
 }
