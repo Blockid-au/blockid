@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-21T04:24:46.352Z",
+  "generated_at": "2026-09-21T07:08:00.204Z",
   "ledger_present": true,
-  "total_files": 312,
+  "total_files": 313,
   "files": [
     "0001_init.sql",
     "0002_score_v2.sql",
@@ -286,6 +286,7 @@
     "0431_benchmark_segments_index_scale.sql",
     "0432_cohort_snapshots_member_select.sql",
     "0433_org_id_on_batches_intakes.sql",
+    "0434_pilot_orders_conversion.sql",
     "20260814_tech_analyses.sql",
     "20260815120000_analyzer_runs.sql",
     "20260816_clevel_reports_v2.sql",
