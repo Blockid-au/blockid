@@ -135,21 +135,21 @@ export function StepTrial({
   if (isFree) {
     return (
       <div>
-        <h1 className="text-2xl font-bold text-brand-ink sm:text-3xl">
+        <h1 className="text-2xl font-bold text-primary sm:text-3xl">
           You&apos;re all set — no card needed
         </h1>
-        <p className="mt-2 text-brand-ink-muted">
+        <p className="mt-2 text-muted">
           The Free plan never charges. Upgrade any time from Billing when
           you&apos;re ready for more.
         </p>
 
-        <div className="mt-8 flex items-center gap-3 rounded-2xl border border-brand-cyan/15 bg-brand-navy-elev-1 p-6">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brand-cyan/10 text-brand-cyan">
+        <div className="mt-8 flex items-center gap-3 rounded-2xl border border-line-subtle bg-surface p-6">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-action/10 text-action">
             <ShieldCheck aria-hidden="true" className="h-5 w-5" />
           </div>
           <div>
-            <p className="font-semibold text-brand-ink">Free plan · A$0/mo</p>
-            <p className="text-sm text-brand-ink-muted">
+            <p className="font-semibold text-primary">Free plan · A$0/mo</p>
+            <p className="text-sm text-muted">
               No card on file, no auto-charge.
             </p>
           </div>
@@ -159,7 +159,7 @@ export function StepTrial({
           type="button"
           onClick={completeFreePlan}
           disabled={completingFree}
-          className="mt-8 inline-flex items-center gap-2 rounded-xl bg-brand-cyan px-6 py-3 text-sm font-semibold text-brand-navy transition-colors hover:bg-brand-blue-bright disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
+          className="mt-8 inline-flex items-center gap-2 rounded-xl bg-action px-6 py-3 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
         >
           {completingFree && (
             <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
@@ -167,7 +167,7 @@ export function StepTrial({
           Go to my dashboard
         </button>
 
-        <p className="mt-6 text-xs text-brand-ink-muted">
+        <p className="mt-6 text-xs text-muted">
           Not financial or legal advice. {LEGAL_ENTITY.operator} · {LEGAL_ENTITY.city}.
         </p>
       </div>
@@ -176,10 +176,10 @@ export function StepTrial({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-brand-ink sm:text-3xl">
+      <h1 className="text-2xl font-bold text-primary sm:text-3xl">
         How your 7-day trial works
       </h1>
-      <p className="mt-2 text-brand-ink-muted">
+      <p className="mt-2 text-muted">
         Full access to {plan?.name ?? "your plan"} starts today. We&apos;ll
         remind you before anything is charged.
       </p>
@@ -189,36 +189,36 @@ export function StepTrial({
           <li key={item.day} className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
               <span
-                className="h-3 w-3 rounded-full bg-brand-cyan shadow-[0_0_10px_rgba(34,211,238,0.7)] motion-safe:animate-pulse"
+                className="h-3 w-3 rounded-full bg-action ring-4 ring-action/20 motion-safe:animate-pulse"
                 style={{ animationDelay: `${i * 0.3}s` }}
                 aria-hidden="true"
               />
               {i < TIMELINE.length - 1 && (
                 <span
-                  className="hidden h-px flex-1 bg-brand-cyan/25 sm:block"
+                  className="hidden h-px flex-1 bg-action/10 sm:block"
                   aria-hidden="true"
                 />
               )}
             </div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-brand-cyan">
+            <p className="text-xs font-semibold uppercase tracking-wide text-action">
               {item.day}
             </p>
-            <p className="text-sm font-semibold text-brand-ink">
+            <p className="text-sm font-semibold text-primary">
               {item.title}
             </p>
-            <p className="text-xs text-brand-ink-muted">{item.desc}</p>
+            <p className="text-xs text-muted">{item.desc}</p>
           </li>
         ))}
       </ol>
 
-      <label className="mt-10 flex cursor-pointer items-start gap-3 rounded-2xl border border-brand-cyan/15 bg-brand-navy-elev-1 p-5">
+      <label className="mt-10 flex cursor-pointer items-start gap-3 rounded-2xl border border-line-subtle bg-surface p-5">
         <input
           type="checkbox"
           checked={checked}
           onChange={(e) => setChecked(e.target.checked)}
-          className="mt-0.5 h-4 w-4 shrink-0 rounded border-brand-ink-muted/40 text-brand-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
+          className="mt-0.5 h-4 w-4 shrink-0 rounded border-line text-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
         />
-        <span className="text-sm text-brand-ink">
+        <span className="text-sm text-primary">
           I understand my card will be charged {priceLabel} on {chargeDate}{" "}
           unless I cancel before Day 7.
         </span>
@@ -234,7 +234,7 @@ export function StepTrial({
         type="button"
         onClick={handleAccept}
         disabled={!checked || submitting}
-        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-cyan px-6 py-3 text-sm font-semibold text-brand-navy transition-colors hover:bg-brand-blue-bright disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
+        className="mt-6 inline-flex items-center gap-2 rounded-xl bg-action px-6 py-3 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
       >
         {submitting ? (
           <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
@@ -244,7 +244,7 @@ export function StepTrial({
         Agree and continue
       </button>
 
-      <p className="mt-6 text-xs text-brand-ink-muted">
+      <p className="mt-6 text-xs text-muted">
         Not financial or legal advice. {LEGAL_ENTITY.operator} · {LEGAL_ENTITY.city}.
       </p>
     </div>

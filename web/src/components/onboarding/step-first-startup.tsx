@@ -182,16 +182,16 @@ export function StepFirstStartup({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-brand-ink sm:text-3xl">
+      <h1 className="text-2xl font-bold text-primary sm:text-3xl">
         {copy.title}
       </h1>
-      <p className="mt-2 text-brand-ink-muted">{copy.subtitle}</p>
+      <p className="mt-2 text-muted">{copy.subtitle}</p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-5">
         <div>
           <label
             htmlFor="first-startup-name"
-            className="block text-sm font-medium text-brand-ink"
+            className="block text-sm font-medium text-primary"
           >
             {copy.nameLabel}
           </label>
@@ -203,14 +203,14 @@ export function StepFirstStartup({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={copy.namePlaceholder}
-            className="mt-2 w-full rounded-xl border border-brand-cyan/15 bg-brand-navy-elev-1 px-4 py-3 text-sm text-brand-ink placeholder:text-brand-ink-muted/60 focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/30"
+            className="mt-2 w-full rounded-xl border border-line-subtle bg-surface px-4 py-3 text-sm text-primary placeholder:text-tertiary focus:border-action focus:outline-none focus:ring-2 focus:ring-action/30"
           />
         </div>
 
         <div>
           <label
             htmlFor="first-startup-desc"
-            className="block text-sm font-medium text-brand-ink"
+            className="block text-sm font-medium text-primary"
           >
             {copy.descLabel}
           </label>
@@ -221,14 +221,14 @@ export function StepFirstStartup({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder={copy.descPlaceholder}
-            className="mt-2 w-full resize-none rounded-xl border border-brand-cyan/15 bg-brand-navy-elev-1 px-4 py-3 text-sm text-brand-ink placeholder:text-brand-ink-muted/60 focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/30"
+            className="mt-2 w-full resize-none rounded-xl border border-line-subtle bg-surface px-4 py-3 text-sm text-primary placeholder:text-tertiary focus:border-action focus:outline-none focus:ring-2 focus:ring-action/30"
           />
         </div>
 
         <div>
           <label
             htmlFor="first-startup-url"
-            className="block text-sm font-medium text-brand-ink"
+            className="block text-sm font-medium text-primary"
           >
             {copy.urlLabel}
           </label>
@@ -239,7 +239,7 @@ export function StepFirstStartup({
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             placeholder={copy.urlPlaceholder}
-            className="mt-2 w-full rounded-xl border border-brand-cyan/15 bg-brand-navy-elev-1 px-4 py-3 text-sm text-brand-ink placeholder:text-brand-ink-muted/60 focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/30"
+            className="mt-2 w-full rounded-xl border border-line-subtle bg-surface px-4 py-3 text-sm text-primary placeholder:text-tertiary focus:border-action focus:outline-none focus:ring-2 focus:ring-action/30"
           />
         </div>
 
@@ -254,7 +254,7 @@ export function StepFirstStartup({
             type="button"
             onClick={handleSkip}
             disabled={submitting || skipping}
-            className="inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-brand-ink-muted underline decoration-brand-ink-muted/40 underline-offset-4 transition-colors hover:text-brand-cyan disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
+            className="inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-muted underline decoration-line-strong underline-offset-4 transition-colors hover:text-action disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
           >
             {skipping ? (
               <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
@@ -267,7 +267,7 @@ export function StepFirstStartup({
           <button
             type="submit"
             disabled={submitting || skipping}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-cyan px-6 py-3 text-sm font-semibold text-brand-navy transition-colors hover:bg-brand-blue-bright disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
+            className="inline-flex items-center justify-center gap-2 rounded-xl bg-action px-6 py-3 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
           >
             {submitting ? (
               <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />

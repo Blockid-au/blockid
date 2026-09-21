@@ -125,11 +125,13 @@ export function StepPayment({
       const card = elements.create("card", {
         style: {
           base: {
-            color: "#F8FAFC",
+            // Stripe's iframe cannot read CSS variables — these mirror the light
+            // tokens (--ds-ink / --ds-ink-tertiary / --ds-danger) in globals.css.
+            color: "#0b0f1a",
             fontSize: "15px",
-            "::placeholder": { color: "#CBD5E1" },
+            "::placeholder": { color: "#6b7280" },
           },
-          invalid: { color: "#F87171" },
+          invalid: { color: "#b91c1c" },
         },
       });
       card.mount(cardRef.current);
@@ -196,17 +198,17 @@ export function StepPayment({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-brand-ink sm:text-3xl">
+      <h1 className="text-2xl font-bold text-primary sm:text-3xl">
         Add your card to start
       </h1>
-      <p className="mt-2 text-brand-ink-muted">
+      <p className="mt-2 text-muted">
         {plan ? `${plan.name} · ${formatAud(chargeAud)}/${isAnnual ? "yr" : "mo"}` : "Your plan"}{" "}
         — 7-day free trial starts now.
       </p>
       {plan && typeof chargeAud === "number" && chargeAud > 0 ? (
         // QA-3 P2: the amount Stripe will charge when the trial ends, GST
         // shown, before the redirect — matches the invoice tax line.
-        <p className="mt-1 text-sm text-brand-ink-muted" data-testid="gst-line">
+        <p className="mt-1 text-sm text-muted" data-testid="gst-line">
           After the trial: {formatGstInclusiveAud(Math.round(chargeAud * 100))} per{" "}
           {isAnnual ? "year" : "month"}, charged in AUD. Cancel any time before the trial ends
           and nothing is charged.
@@ -214,8 +216,8 @@ export function StepPayment({
       ) : null}
 
       {(mode === "loading" || mode === "redirecting") && (
-        <div className="mt-10 flex items-center gap-3 text-brand-ink-muted">
-          <Loader2 aria-hidden="true" className="h-5 w-5 animate-spin text-brand-cyan" />
+        <div className="mt-10 flex items-center gap-3 text-muted">
+          <Loader2 aria-hidden="true" className="h-5 w-5 animate-spin text-action" />
           {mode === "redirecting"
             ? "Redirecting to secure checkout..."
             : "Preparing secure payment..."}
@@ -230,7 +232,7 @@ export function StepPayment({
 
       {mode === "card" && (
         <form onSubmit={handleSubmit} className="mt-10 space-y-6">
-          <div className="rounded-2xl border border-brand-cyan/15 bg-brand-navy-elev-1 p-5">
+          <div className="rounded-2xl border border-line-subtle bg-surface p-5">
             <div ref={cardRef} className="min-h-[24px]" />
           </div>
           {localError && (
@@ -241,7 +243,7 @@ export function StepPayment({
           <button
             type="submit"
             disabled={!cardReady || submitting}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-brand-cyan px-6 py-3 text-sm font-semibold text-brand-navy transition-colors hover:bg-brand-blue-bright disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy sm:w-auto"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-action px-6 py-3 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface sm:w-auto"
           >
             {submitting ? (
               <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
@@ -253,8 +255,8 @@ export function StepPayment({
         </form>
       )}
 
-      <p className="mt-8 flex items-center gap-2 text-xs text-brand-ink-muted">
-        <ShieldCheck aria-hidden="true" className="h-4 w-4 text-brand-cyan" />
+      <p className="mt-8 flex items-center gap-2 text-xs text-muted">
+        <ShieldCheck aria-hidden="true" className="h-4 w-4 text-action" />
         Cancel anytime — no charge until Day 8.
       </p>
     </div>

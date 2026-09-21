@@ -27,8 +27,8 @@ export function WizardProgress({ step }: { step: WizardState["step"] }) {
                 <div
                   className={`h-px flex-1 transition-colors ${
                     isDone || isActive
-                      ? "bg-brand-cyan/60"
-                      : "bg-brand-ink-muted/20"
+                      ? "bg-action/60"
+                      : "bg-line"
                   }`}
                   aria-hidden="true"
                 />
@@ -39,10 +39,10 @@ export function WizardProgress({ step }: { step: WizardState["step"] }) {
                   aria-label={`Step ${n}: ${label}${isDone ? " (completed)" : ""}`}
                   className={`h-2.5 w-2.5 shrink-0 rounded-full ring-4 transition-colors ${
                     isActive
-                      ? "bg-brand-cyan ring-brand-cyan/20"
+                      ? "bg-action ring-action/20"
                       : isDone
-                        ? "bg-brand-cyan/60 ring-transparent"
-                        : "bg-brand-ink-muted/30 ring-transparent"
+                        ? "bg-action/60 ring-transparent"
+                        : "bg-line-strong ring-transparent"
                   }`}
                 />
               </div>
@@ -61,10 +61,10 @@ export function WizardProgress({ step }: { step: WizardState["step"] }) {
               key={label}
               className={
                 isActive
-                  ? "text-brand-cyan"
+                  ? "text-action"
                   : isDone
-                    ? "text-brand-ink-muted"
-                    : "text-brand-ink-muted/50"
+                    ? "text-muted"
+                    : "text-tertiary"
               }
             >
               {label}

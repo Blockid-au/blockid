@@ -66,10 +66,10 @@ export function StepTier({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-brand-ink sm:text-3xl">
+      <h1 className="text-2xl font-bold text-primary sm:text-3xl">
         Pick your plan
       </h1>
-      <p className="mt-2 text-brand-ink-muted">
+      <p className="mt-2 text-muted">
         Every monthly plan includes a 7-day free trial. Cancel anytime before
         Day 8 — no charge.
       </p>
@@ -81,40 +81,40 @@ export function StepTier({
             type="button"
             onClick={() => choose(plan.id)}
             aria-pressed={state.planId === plan.id}
-            className={`relative flex flex-col rounded-2xl border p-6 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy ${
+            className={`relative flex flex-col rounded-2xl border p-6 text-left transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
               plan.most_popular
-                ? "border-brand-cyan bg-brand-navy-elev-2 shadow-[0_0_30px_-10px_rgba(34,211,238,0.5)]"
-                : "border-brand-cyan/15 bg-brand-navy-elev-1 hover:border-brand-cyan/40"
+                ? "border-action bg-action/5 shadow-1 ring-1 ring-action/20"
+                : "border-line-subtle bg-surface hover:border-line-strong"
             }`}
           >
             {plan.most_popular && (
-              <span className="absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full bg-brand-cyan px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-brand-navy">
+              <span className="absolute -top-3 left-6 inline-flex items-center gap-1 rounded-full bg-action px-3 py-1 text-[11px] font-bold uppercase tracking-wide text-on-action">
                 <Sparkles aria-hidden="true" className="h-3 w-3" />
                 Most popular
               </span>
             )}
-            <p className="text-sm font-semibold text-brand-ink-muted">
+            <p className="text-sm font-semibold text-muted">
               {plan.name}
             </p>
-            <p className="mt-2 text-3xl font-bold text-brand-ink">
+            <p className="mt-2 text-3xl font-bold text-primary">
               {formatAud(plan.monthly_aud)}
               {plan.monthly_aud !== null && (
-                <span className="text-sm font-medium text-brand-ink-muted">
+                <span className="text-sm font-medium text-muted">
                   /mo
                 </span>
               )}
             </p>
             {plan.trial_days > 0 && (
-              <span className="mt-2 inline-block w-fit rounded-full border border-brand-cyan/30 bg-brand-cyan/10 px-2.5 py-0.5 text-[11px] font-semibold text-brand-cyan">
+              <span className="mt-2 inline-block w-fit rounded-full border border-line-subtle bg-action/10 px-2.5 py-0.5 text-[11px] font-semibold text-action">
                 {plan.trial_days}-day free trial
               </span>
             )}
-            <ul className="mt-5 space-y-2 text-sm text-brand-ink-muted">
+            <ul className="mt-5 space-y-2 text-sm text-muted">
               {plan.features.slice(0, 5).map((feature) => (
                 <li key={feature} className="flex items-start gap-2">
                   <Check
                     aria-hidden="true"
-                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-cyan"
+                    className="mt-0.5 h-3.5 w-3.5 shrink-0 text-action"
                   />
                   <span>{feature}</span>
                 </li>
@@ -139,7 +139,7 @@ export function StepTier({
           <button
             type="button"
             onClick={() => choose("founder_free")}
-            className="text-sm font-medium text-brand-ink-muted underline decoration-brand-ink-muted/40 underline-offset-4 transition-colors hover:text-brand-cyan focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
+            className="text-sm font-medium text-muted underline decoration-line-strong underline-offset-4 transition-colors hover:text-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
           >
             Continue with a free preview (no trial)
           </button>

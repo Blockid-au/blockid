@@ -49,10 +49,10 @@ export function StepGoal({
 
   return (
     <div>
-      <h1 className="text-2xl font-bold text-brand-ink sm:text-3xl">
+      <h1 className="text-2xl font-bold text-primary sm:text-3xl">
         What do you want to do first?
       </h1>
-      <p className="mt-2 text-brand-ink-muted">
+      <p className="mt-2 text-muted">
         Pick your main goal — you can explore everything else later.
       </p>
 
@@ -65,10 +65,10 @@ export function StepGoal({
               type="button"
               onClick={() => choose(goal.id)}
               aria-pressed={selected}
-              className={`inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy ${
+              className={`inline-flex items-center gap-2 rounded-full border px-5 py-3 text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${
                 selected
-                  ? "border-brand-cyan bg-brand-cyan/10 text-brand-cyan"
-                  : "border-brand-cyan/15 bg-brand-navy-elev-1 text-brand-ink hover:border-brand-cyan/40 hover:bg-brand-navy-elev-2"
+                  ? "border-action bg-action/10 text-action"
+                  : "border-line-subtle bg-surface text-primary hover:border-line-strong hover:bg-surface-hover"
               }`}
             >
               {selected && (

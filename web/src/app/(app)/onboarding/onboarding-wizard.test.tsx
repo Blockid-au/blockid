@@ -123,9 +123,16 @@ describe("OnboardingWizard — 3 steps × 2 flows (S-IA4 §B.3)", () => {
     expect(stepMarker(out)).toBe("persona");
   });
 
-  it("nav / footer slots render inside the lux wrapper; signed-in line", () => {
+  it("nav / footer slots render inside the light wrapper; signed-in line", () => {
     const out = render({});
-    expect(out).toMatch(/data-theme="lux"[\s\S]*<nav data-nav[\s\S]*<footer data-footer/);
+    expect(out).toMatch(/data-onboarding-wizard="v4"[\s\S]*<nav data-nav[\s\S]*<footer data-footer/);
     expect(out).toContain("Signed in as f@x.test");
+  });
+
+  it("G26: the wizard renders on the light template — no dark surface, no lux scope, no brand-navy/cyan literals", () => {
+    const out = render({});
+    expect(out).not.toMatch(/data-theme="(lux|dark)"/);
+    expect(out).not.toMatch(/\b(bg-brand-navy|bg-slate-9\d\d|bg-black|bg-ink-9\d\d|bg-\[#0|text-brand-ink|bg-brand-cyan|dark:)/);
+    expect(out).toContain("bg-surface-sunken");
   });
 });

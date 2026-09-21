@@ -22,12 +22,12 @@ export function WizardRail({ step, flow }: { step: WizardStep; flow: OnboardingF
           const isDone = s.step < step;
           return (
             <React.Fragment key={s.step}>
-              {i > 0 && <div className={`h-px flex-1 transition-colors ${isDone || isActive ? "bg-brand-cyan/60" : "bg-brand-ink-muted/20"}`} aria-hidden="true" />}
+              {i > 0 && <div className={`h-px flex-1 transition-colors ${isDone || isActive ? "bg-action/60" : "bg-line"}`} aria-hidden="true" />}
               <div role="listitem">
                 <div
                   aria-current={isActive ? "step" : undefined}
                   aria-label={`Step ${s.step}: ${s.label[locale]}${isDone ? " (completed)" : ""}`}
-                  className={`h-2.5 w-2.5 shrink-0 rounded-full ring-4 transition-colors ${isActive ? "bg-brand-cyan ring-brand-cyan/20" : isDone ? "bg-brand-cyan/60 ring-transparent" : "bg-brand-ink-muted/30 ring-transparent"}`}
+                  className={`h-2.5 w-2.5 shrink-0 rounded-full ring-4 transition-colors ${isActive ? "bg-action ring-action/20" : isDone ? "bg-action/60 ring-transparent" : "bg-line-strong ring-transparent"}`}
                 />
               </div>
             </React.Fragment>
@@ -36,7 +36,7 @@ export function WizardRail({ step, flow }: { step: WizardStep; flow: OnboardingF
       </div>
       <div className="mt-2 flex justify-between text-[11px] font-medium">
         {steps.map((s) => (
-          <span key={s.step} className={s.step === step ? "text-brand-cyan" : s.step < step ? "text-brand-ink-muted" : "text-brand-ink-muted/50"}>
+          <span key={s.step} className={s.step === step ? "text-action" : s.step < step ? "text-muted" : "text-tertiary"}>
             {s.label[locale]}
           </span>
         ))}

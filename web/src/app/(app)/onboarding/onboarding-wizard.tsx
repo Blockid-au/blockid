@@ -18,8 +18,10 @@
 // localStorage + fire-and-forget POST /api/onboarding/save-progress (which
 // also writes account_type from `persona`) so a magic-link resume on
 // another device lands on the same step. Navbar / Footer arrive as slots
-// from the server page (they must sit inside the `data-theme="lux"` wrapper
-// and cannot be imported into a client file — see the legacy shell).
+// from the server page (they cannot be imported into a client file — see
+// the legacy shell). G26: the wizard renders on the light template
+// (`bg-surface-sunken` page, white card) — the `data-theme="lux"` navy
+// wrapper is gone.
 
 import * as React from "react";
 import { ArrowLeft } from "lucide-react";
@@ -131,13 +133,13 @@ export function OnboardingWizard({ user, initialParams, defaultPersona, personaO
   }
 
   return (
-    <div data-theme="lux" className="min-h-svh bg-brand-navy bg-lux-radial text-primary" data-onboarding-wizard="v4" data-wizard-flow={flow} data-wizard-step={state.step}>
+    <div className="min-h-svh bg-surface-sunken text-primary" data-onboarding-wizard="v4" data-wizard-flow={flow} data-wizard-step={state.step}>
       {nav}
 
       <main className="mx-auto max-w-3xl px-6 pb-24 pt-10">
         <WizardRail step={state.step} flow={flow} />
 
-        <div className="lux-card rounded-3xl p-8 sm:p-10">
+        <div className="rounded-3xl border border-line-subtle bg-surface p-8 shadow-1 sm:p-10">
           {state.step === 1 && (
             <StepPersona
               options={personaOptions}
@@ -182,7 +184,7 @@ export function OnboardingWizard({ user, initialParams, defaultPersona, personaO
               onClick={() => go("BACK", "back")}
               disabled={finishing}
               data-testid="wizard-back"
-              className="inline-flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-medium text-muted transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-medium text-muted transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:opacity-60"
             >
               <ArrowLeft aria-hidden="true" className="h-4 w-4" />
               Back
