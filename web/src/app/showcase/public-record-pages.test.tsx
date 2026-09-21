@@ -24,6 +24,7 @@ import {
   type PublicRecordCase,
 } from "@/lib/showcase/public-record/cases";
 import { BRAND_SUFFIX, DESCRIPTION_MAX, DESCRIPTION_MIN, TITLE_MAX } from "@/lib/seo/page-meta";
+import { expectLightSurfaces } from "@/test/light-surface";
 
 const VOID = new Set(["br", "img", "hr", "input", "meta", "link", "source", "wbr"]);
 
@@ -73,6 +74,11 @@ const PAGES: Array<[string, () => React.JSX.Element, { title?: unknown; descript
 
 describe.each(PAGES)("/showcase/%s", (slug, Page, meta, c) => {
   const html = renderToStaticMarkup(<Page />);
+
+  it("renders on the light template — no dark band, card or dark: variant (G26)", () => {
+    expectLightSurfaces(html, `/showcase/${slug}`, { whole: true });
+    expect(html).not.toMatch(/\bdark:/);
+  });
 
   it("renders the illustrative-SVI disclaimer above the company name", () => {
     expect(html).toContain('data-testid="illustrative-svi-notice"');

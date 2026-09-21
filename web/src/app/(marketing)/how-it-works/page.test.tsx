@@ -13,6 +13,7 @@ vi.mock("@/components/marketing/marketing-shell", () => ({
 
 import { DIMENSION_OWNERS, DIM_LEGACY_ORDER } from "@/lib/report-pipeline/dimension-owners";
 import { renderedTitle } from "@/lib/seo/page-meta";
+import { expectLightSurfaces } from "@/test/light-surface";
 import { HOW_IT_WORKS_DIMENSIONS, HOW_IT_WORKS_STEPS } from "./how-it-works-content";
 import HowItWorksPage, { metadata } from "./page";
 
@@ -54,8 +55,9 @@ describe("/how-it-works — template (G17 P2-A)", () => {
   it("one h1, the four steps as a numbered list under #how, #dimensions, the CTA hrefs, pageMetadata", async () => {
     const out = await html(<HowItWorksPage />);
     expect((out.match(/<h1\b/g) ?? []).length).toBe(1);
-    expect(out).toMatch(/<section[^>]*id="how"/);
+    expect(out).toMatch(/<section[^>]*id="how"[^>]*class="[^"]*bg-surface-sunken/); // G26: sunken, not dark
     expect(out).toMatch(/<section[^>]*id="dimensions"/);
+    expectLightSurfaces(out, "/how-it-works");
     expect(HOW_IT_WORKS_STEPS).toHaveLength(4);
     for (const s of HOW_IT_WORKS_STEPS) expect(out).toContain(esc(s.title));
     expect(out).toMatch(/Step (<!-- -->)?4/);
