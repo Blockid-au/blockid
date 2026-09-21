@@ -18,7 +18,8 @@
 // Runs entirely on the injected free `ModelCaller` — no Gemini, no GCP, $0.
 
 import { LlmAgent, SequentialAgent, newSession, type ModelCaller } from "@/lib/adk";
-import { hasCitationOrMarker, isMaterialClaim, splitClaims } from "./claim-gate";
+import { declaredTableRows, EV_MARKER_RE, expandShortCitations, hasCitationOrMarker, isMaterialClaim, isPrescriptiveClaim, splitClaims, UNEVIDENCED_MARKERS } from "./claim-gate";
+import { itemHasNumber, numericTokens, type CitableItem } from "./auto-cite";
 
 // The Stage-1 predicates live in ./claim-gate.ts (shared with the G23-A auto-citer); re-exported for existing callers.
 export { hasCitationOrMarker, isMaterialClaim, splitClaims, MATERIAL_PATTERNS, UNEVIDENCED_MARKERS } from "./claim-gate";
@@ -34,13 +35,21 @@ You will be given:
 1. EVIDENCE — the only facts that are known to be true (startup description, uploaded evidence, SVI scores).
 2. DRAFT — a piece of report prose that was generated from that evidence.
 
-Your job: find every claim in the DRAFT that is NOT supported by the EVIDENCE.
-Focus especially on:
-- Fabricated specifics: invented revenue/MRR/ARR figures, user counts, growth %, customer names, funding amounts, dates, or benchmarks that do not appear in the EVIDENCE.
-- Score/narrative mismatch: prose that contradicts the provided SVI scores (e.g. glowing language for a low-scored dimension).
+Your job: find every FACTUAL claim in the DRAFT that is NOT supported by the EVIDENCE.
+Focus on:
+- Fabricated specifics: invented revenue/MRR/ARR figures, user counts, growth %, customer names, funding amounts, dates, or industry benchmarks that do not appear in the EVIDENCE and are not marked as unevidenced.
+- Score/narrative mismatch: prose that clearly contradicts the provided SVI scores (e.g. glowing language for a low-scored dimension).
 - Overstated certainty: hedged or unknown facts presented as confirmed.
 
-Do NOT flag reasonable qualitative interpretation or standard advice — only unsupported factual assertions.
+The EVIDENCE is the founder's own submission plus what the platform gathered and computed. A sentence that restates something in it — including the per-criterion founder text, the gathered rows and the computed SVI / benchmark / valuation facts — IS supported.
+
+NEVER flag:
+- a sentence that already discloses its status: "(unevidenced)", "[unevidenced]", "(estimate)", "assuming …", "we estimate …", "base / bull / bear scenario" — it has told the reader; do not repeat it as a finding;
+- a sentence carrying an [ev:<id>] marker whose id is in the CITABLE IDS list, unless the number or name it states is absent from that catalogue item;
+- recommendations, next steps, hiring plans, targets, timelines, methods to use, or "should / could / would" advice — these are the analyst's plan, not claims about the world;
+- reasonable qualitative interpretation, inference from stated facts, or standard practitioner advice.
+
+Only a specific — a number, date, name, benchmark or a stated fact about the startup — that the EVIDENCE does not hold and the DRAFT does not mark is a finding. When you are not sure, do not flag it.
 
 Output format (exactly):
 FINDINGS:
@@ -50,6 +59,9 @@ FINDINGS:
 VERDICT: ACCURATE        (use this if there are zero findings)
 or
 VERDICT: NEEDS_REVISION  (use this if there is at least one finding)`;
+
+/** Exported for the prompt test (G24-D). */
+export const CRITIC_INSTRUCTION_TEXT = CRITIC_INSTRUCTION;
 
 // ── Reviser agent ─────────────────────────────────────────────────────────────
 // Mirrors llm-auditor's reviser: minimally edit the draft to fix exactly the
@@ -73,12 +85,22 @@ You will be given the original DRAFT. Produce a corrected version that:
 Output ONLY the corrected prose. No preamble, no explanation.`;
 
 export interface AuditResult {
-  /** True if the critic flagged at least one unsupported claim. */
+  /** True if the critic flagged at least one unsupported claim (after the deterministic filter). */
   hadIssues: boolean;
   /** Concise list of the critic's findings (empty if accurate). */
   findings: string[];
   /** The corrected prose. Equals the input when no issues were found. */
   revised: string;
+  /** G24-D: critic lines the deterministic filter dropped (disclosed, cited-and-matching, prescriptive, or "no finding"). */
+  droppedFindings?: string[];
+}
+
+/** G24-D: what the finding filter needs to know about the section under audit. */
+export interface AuditTextOptions {
+  /** Ids the section may cite — a finding on a sentence citing one of them is dropped when its numbers are in that item. */
+  allowedEvidenceIds?: string[];
+  /** The citable items (id + label + text) behind those ids. */
+  citable?: CitableItem[];
 }
 
 const criticAgent = new LlmAgent({
@@ -117,6 +139,7 @@ export async function auditText(
   evidence: string,
   model: ModelCaller,
   maxTokens = 3000,
+  options: AuditTextOptions = {},
 ): Promise<AuditResult> {
   if (!draft.trim()) return { hadIssues: false, findings: [], revised: draft };
 
@@ -127,16 +150,22 @@ export async function auditText(
     const criticInput = `## EVIDENCE\n${evidence}\n\n## DRAFT\n${draft}`;
     const criticResult = await criticAgent.run(criticInput, session, model);
 
-    const findings = parseFindings(criticResult.output);
-    const needsRevision =
-      /VERDICT:\s*NEEDS_REVISION/i.test(criticResult.output) || findings.length > 0;
+    // G24-D: the deterministic filter drops the classes of critic line the
+    // 09:02 showcase run showed to be noise (see filterCriticFindings); a
+    // NEEDS_REVISION verdict with nothing left after the filter is ACCURATE.
+    const rawFindings = parseFindings(criticResult.output);
+    const filtered = filterCriticFindings(rawFindings, draft, options);
+    const findings = filtered.kept;
 
-    if (!needsRevision) {
-      return { hadIssues: false, findings: [], revised: draft };
+    if (findings.length === 0) {
+      return { hadIssues: false, findings: [], revised: draft, droppedFindings: filtered.dropped };
     }
 
     // Step 2: reviser rewrites only the flagged parts. `critique` + `evidence`
     // are pulled from session state via {key} templating in the instruction.
+    // The critique the reviser sees is the FILTERED list — it must not "fix"
+    // a disclosed assumption or an action line the filter cleared.
+    session.state.critique = findings.map((f) => `- ${f}`).join("\n");
     const reviser = buildReviser(maxTokens);
     const reviserResult = await reviser.run(
       `## DRAFT\n${draft}`,
@@ -150,6 +179,7 @@ export async function auditText(
       findings,
       // Guard against a reviser that returns junk / empties — keep original then.
       revised: revised.length > draft.length * 0.4 ? revised : draft,
+      droppedFindings: filtered.dropped,
     };
   } catch {
     // Never let auditing break the pipeline.
@@ -202,6 +232,8 @@ export interface AuditableSection {
   content: string;
   /** Evidence ids this section is allowed to cite. */
   allowedEvidenceIds?: string[];
+  /** G24-D: the citable items behind those ids (label + text) — lets the finding filter check a cited number against its row. */
+  citable?: CitableItem[];
 }
 
 export interface SectionAuditOutcome {
@@ -216,6 +248,10 @@ export interface SectionAuditOutcome {
   grounded: boolean;
   /** True when the critic→reviser pass actually ran for this section. */
   llmAudited: boolean;
+  /** G24-D: true when the critic (after the deterministic filter) objected — the reviser then ran. */
+  hadIssues: boolean;
+  /** G24-D: critic lines the filter dropped, kept for the audit dump. */
+  droppedFindings: string[];
   /** Model calls this section consumed (0, 1 critic-only, or 2). */
   modelCalls: number;
   /** Why the LLM pass did not run. */
@@ -290,6 +326,8 @@ export async function auditSections(
       uncitedClaims,
       grounded,
       llmAudited: false,
+      hadIssues: false,
+      droppedFindings: [],
       modelCalls: 0,
     };
 
@@ -321,12 +359,14 @@ export async function auditSections(
       const index = candidates[cursor++];
       const section = sections[index];
       const base = outcomes[index];
-      const result = await auditText(section.content, evidence, model, maxTokens);
+      const result = await auditText(section.content, evidence, model, maxTokens, { allowedEvidenceIds: section.allowedEvidenceIds, citable: section.citable });
       outcomes[index] = {
         ...base,
         revised: result.revised,
         findings: result.findings,
         llmAudited: true,
+        hadIssues: result.hadIssues,
+        droppedFindings: result.droppedFindings ?? [],
         // critic always runs; the reviser only runs when the critic objected.
         modelCalls: result.hadIssues ? 2 : 1,
         grounded: base.grounded && !result.hadIssues,
@@ -360,12 +400,23 @@ export function findUncitedClaims(
   const allowed = new Set(allowedIds.map(id => id.toLowerCase()));
   const flagged: string[] = [];
 
-  for (const claim of splitClaims(text)) {
-    if (!isMaterialClaim(claim)) continue;
-    if (hasCitationOrMarker(claim, allowed)) continue;
+  // G24-D: a shortened id that names one allowed row is that row; a table
+  // under an "(estimates)" caption / header is a declared-estimate table.
+  const expanded = expandShortCitations(text, allowedIds);
+  const lines = expanded.split("\n");
+  const declared = declaredTableRows(expanded);
 
-    flagged.push(claim.length > 220 ? `${claim.slice(0, 217)}...` : claim);
-    if (flagged.length >= limit) break;
+  outer: for (let i = 0; i < lines.length; i += 1) {
+    if (declared[i]) continue;
+    for (const claim of splitClaims(lines[i]!)) {
+      if (!isMaterialClaim(claim)) continue;
+      // G24-D: window-tagged action lines are targets, not claims (claim-gate.ts).
+      if (isPrescriptiveClaim(claim)) continue;
+      if (hasCitationOrMarker(claim, allowed)) continue;
+
+      flagged.push(claim.length > 220 ? `${claim.slice(0, 217)}...` : claim);
+      if (flagged.length >= limit) break outer;
+    }
   }
 
   return flagged;
@@ -386,9 +437,64 @@ function parseFindings(criticOutput: string): string[] {
     if (/^\s*VERDICT:/i.test(line)) break;
     if (inFindings && /^\s*[-*]/.test(line)) {
       const text = line.replace(/^\s*[-*]\s*/, "").trim();
-      if (text && !/^none$/i.test(text)) findings.push(text);
+      if (text && !/^none\b/i.test(text)) findings.push(text);
     }
   }
 
   return findings.slice(0, 8);
+}
+
+// ── G24-D: deterministic finding filter ───────────────────────────────────────
+//
+// The 09:02 showcase run's critic lines fell into four classes that are not
+// grounding failures: (1) "… No finding here." / "… this is supported" lines
+// the parser counted as findings; (2) sentences the writer had already marked
+// "(unevidenced)" / "assuming …"; (3) sentences citing a register row whose
+// numbers ARE in that row (the critic had not been given the catalogue);
+// (4) window-tagged action-plan lines. Every dropped line is kept on the
+// outcome (`droppedFindings`) so the audit dump still shows it.
+
+/** The claim a critic line quotes — the longest "…" / “…” run, else the text before the first " — ". */
+export function quotedClaimOf(finding: string): string {
+  const quotes = Array.from(finding.matchAll(/["“]([^"”]{8,})["”]/g), (m) => m[1]!);
+  if (quotes.length) return quotes.sort((a, b) => b.length - a.length)[0]!;
+  const dash = finding.split(/\s[—–-]{1,2}\s/)[0] ?? finding;
+  return dash.trim();
+}
+
+const NON_FINDING_RE = /\b(?:no findings? here|not a finding|this is (?:accurate|supported|fine|correct)|(?:is|are) (?:a )?reasonable inference|(?<!no such )(?<!not a )(?:claim|statement|figure) (?:that )?is (?:accurate|supported)|no finding\.?$)/i;
+
+const ADVICE_RE = /\b(?:should|could|would|recommend(?:ed|s|ation)?|consider|essential|needs? to|must|ought to|advis(?:e|able)|prioriti[sz]e)\b/i;
+
+export function filterCriticFindings(findings: string[], draft: string, options: AuditTextOptions = {}): { kept: string[]; dropped: string[] } {
+  const kept: string[] = [];
+  const dropped: string[] = [];
+  const allowed = new Set((options.allowedEvidenceIds ?? []).map((id) => id.toLowerCase()));
+  const items = new Map((options.citable ?? []).map((i) => [i.id.toLowerCase(), i]));
+  const draftLines = splitClaims(draft);
+  for (const finding of findings) {
+    const quoted = quotedClaimOf(finding);
+    // The sentence as the DRAFT carries it (the critic usually trims the marker off its quote).
+    const probe = quoted.replace(/\s*\[ev:[^\]]*\]/gi, "").slice(0, 60).trim();
+    const inDraft = (probe.length >= 8 && draftLines.find((l) => l.includes(probe))) || quoted;
+    if (NON_FINDING_RE.test(finding)) { dropped.push(finding); continue; }
+    if (UNEVIDENCED_MARKERS.test(inDraft) || UNEVIDENCED_MARKERS.test(quoted)) { dropped.push(finding); continue; }
+    if (isPrescriptiveClaim(inDraft)) { dropped.push(finding); continue; }
+    // Advice without a strong specific ("the next roles should be filled in
+    // this order…", "an advisory board would de-risk…") is the analyst's plan,
+    // not a claim — a "should" sentence that states money / % / a multiple is
+    // still checked.
+    if (ADVICE_RE.test(inDraft) && !numericTokens(inDraft.replace(EV_MARKER_RE, "")).some((t) => t.strong)) { dropped.push(finding); continue; }
+    const cited = Array.from(inDraft.matchAll(EV_MARKER_RE), (m) => m[1]!.trim().toLowerCase()).filter((id) => allowed.has(id));
+    if (cited.length) {
+      const tokens = numericTokens(inDraft.replace(EV_MARKER_RE, ""));
+      const rows = cited.map((id) => items.get(id)).filter((i): i is CitableItem => Boolean(i));
+      const everyNumberInRows = tokens.every((tok) => rows.some((r) => itemHasNumber(r.text, tok)));
+      // A cited sentence with no numbers is a qualitative reading of its row;
+      // a cited sentence whose numbers are all in the row is supported.
+      if (!tokens.length || (rows.length > 0 && everyNumberInRows)) { dropped.push(finding); continue; }
+    }
+    kept.push(finding);
+  }
+  return { kept, dropped };
 }

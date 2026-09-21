@@ -50,6 +50,7 @@ import { evidenceHashFor } from "./chapter-cache";
 import { precomputeModulesForDim, type ModuleOutput } from "./module-precompute";
 import { bumpQualityCounter, REPORT_TIER_CONFIG } from "./types";
 import { autoCite, itemsFromCatalogue, itemsFromEvidenceRows, type CitableItem } from "./auto-cite";
+import { computedFactRows, computedFacts } from "./computed-facts";
 import { trimVerdict } from "./verdict-trim";
 import {
   callStructured,
@@ -170,17 +171,21 @@ export function buildEvidenceCatalogue(
   context: ReportContext,
 ): EvidenceCatalogueEntry[] {
   const entries: EvidenceCatalogueEntry[] = [];
-  const push = (kind: string, label: string, content: string) => {
+  const push = (kind: string, label: string, content: string, max = 2000) => {
     const trimmed = content.trim();
     if (!trimmed) return;
     entries.push({
       evidence_id: evidenceIdFor(`${criterion}|${kind}|${label}`),
       label,
-      content: trimmed.slice(0, 2000),
+      content: trimmed.slice(0, max),
     });
   };
 
-  push("description", "Startup description", context.rawText);
+  // G24-D: the description is already in the user turn in full; the catalogue
+  // copy is what the auto-citer and the critic match against, so it must
+  // carry the whole text — at 2,000 chars the showcase's raise / legal / roadmap
+  // paragraphs (A$500K, A$3.5M cap, 18 months runway) were never citable.
+  push("description", "Startup description", context.rawText, DESCRIPTION_CATALOGUE_MAX);
 
   const data = context.criteriaData[criterion];
   if (data?.textInput) push("criterion_text", `Founder evidence: ${criterion}`, data.textInput);
@@ -212,16 +217,20 @@ export function buildEvidenceCatalogue(
     push("scraped", "Scraped website data", JSON.stringify(gr.scrapedData));
   }
 
-  push(
-    "svi_scores",
-    "SVI dimension scores",
-    context.sviAnalysis.subs
-      .map((s: { label: string; value: number }) => `${s.label}: ${s.value}/100`)
-      .join("; "),
-  );
+  // G24-D: the platform's computed facts (SVI index + dimension scores, stage
+  // benchmark quartiles, CFO consensus valuation) with their stable shared ids
+  // — the same rows sit in every chapter's evidence table and the register, so
+  // a writer quoting "p50 52" or "A$4.6M consensus" has something to cite.
+  // Replaces the per-criterion "SVI dimension scores" row (one id per criterion).
+  for (const fact of computedFacts(context)) {
+    entries.push({ evidence_id: fact.evidence_id, label: fact.label, content: fact.content });
+  }
 
   return entries;
 }
+
+/** Chars of the startup description each criterion catalogue carries (the user turn has it in full regardless). */
+export const DESCRIPTION_CATALOGUE_MAX = 8000;
 
 // ── Boundary payload ────────────────────────────────────────────────────────
 //
@@ -323,6 +332,14 @@ RULES:
   that holds that fact. A sentence nothing in the catalogue supports ends with
   "(unevidenced)" instead. Sentences carrying neither lower the section
   confidence and are flagged "no citation" in the report.
+- INDUSTRY BENCHMARKS, TYPICAL RANGES, YOUR OWN ESTIMATES AND SCENARIOS
+  ("typical ARR at this stage is…", "we estimate CAC at…", "base case reaches
+  A$… MRR") are never in the catalogue: write them as "(unevidenced)" or start
+  the sentence with "Assuming" / "We estimate" / "Base scenario:" — never as a
+  bare fact. The same rule applies to numbers inside "risks", "highlights",
+  the section "heading" and the action titles.
+- The catalogue's computed rows (SVI scores, stage benchmark quartiles, CFO
+  consensus valuation) ARE citable — quote their numbers with their id.
 `.trim();
 
 function renderStructuredUser(input: DispatchInput): string {
@@ -637,13 +654,16 @@ function adaptPayload(
   // G23-A fix (a): sentences whose numbers are in the catalogue (or in a
   // quote the model cited) get the id the model omitted — before the
   // auditor’s citation gate reads the section. Unmatched numbers stay uncited.
+  // G24-D: the pass runs over the RENDERED section — the 09:02 showcase run's
+  // uncited claims were mostly in the parts the body-only pass never saw
+  // (the heading "A$12M addressable market", risk mitigations, action lines
+  // quoting the A$3 report) — the gate audits the rendered content, so the
+  // citer must see the same text.
   const citable = meta.citable ?? [];
-  const body = autoCite(payload.section.body_markdown, citable, validCitations);
-  const detail = autoCite(payload.finding.detail, citable, validCitations);
-  bumpQualityCounter(context, "autoCited", body.added + detail.added);
-  const citedPayload: AgentAnalysisPayload = { ...payload, finding: { ...payload.finding, detail: detail.text }, section: { ...payload.section, body_markdown: body.text } };
+  const autoCited = autoCite(renderContent(payload), citable, validCitations);
+  bumpQualityCounter(context, "autoCited", autoCited.added);
 
-  const content = renderContent(citedPayload);
+  const content = autoCited.text;
   const evidenceConfidence = computeConfidence(context.criteriaData[task.criterion]);
   let confidence = Math.min(evidenceConfidence, payload.section.confidence);
   if (!grounded) confidence *= 0.6;
@@ -1225,9 +1245,29 @@ export function buildEvidenceRows(context: ReportContext): EvidenceRow[] {
     }
     rows.set(row.evidence_id, { ...row, dims: [...row.dims] });
   });
+  // G24-D: the computed rows (same ids as the criterion catalogues) close the
+  // register; refreshComputedFactRows re-stamps them once the valuation
+  // chapter exists (it is built after this first pass).
+  computedFactRows(context, at).forEach((row) => rows.set(row.evidence_id, row));
   const out = Array.from(rows.values());
   context.evidenceRows = out;
   return out;
+}
+
+/**
+ * G24-D: re-stamp the computed rows in `context.evidenceRows` (in place, same
+ * ids) — the orchestrator calls it after `valuationChapter` is built so the
+ * valuation row carries the consensus figures the CEO / CFO prompts quote.
+ */
+export function refreshComputedFactRows(context: ReportContext): EvidenceRow[] {
+  const rows = buildEvidenceRows(context);
+  const fresh = new Map(computedFactRows(context).map((r) => [r.evidence_id, r]));
+  const next = rows.map((r) => fresh.get(r.evidence_id) ?? r);
+  fresh.forEach((row, id) => {
+    if (!next.some((r) => r.evidence_id === id)) next.push(row);
+  });
+  context.evidenceRows = next;
+  return next;
 }
 
 export function evidenceRowsForDim(context: ReportContext, dim: DimKey): EvidenceRow[] {

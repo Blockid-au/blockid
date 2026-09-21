@@ -16,8 +16,72 @@ export const MATERIAL_PATTERNS: RegExp[] = [
 
 // An explicit admission that a claim is not evidenced satisfies §5.4 just as
 // a citation does — the rule is "cite it or say you cannot".
+//
+// G24-D: a declared assumption / projection is that admission in prose form.
+// The 09:02 showcase run's revenue section carried eight uncited sentences of
+// the shape "Assuming an LTV of A$1,788 …", "we estimate CAC at A$200–500",
+// "Base scenario: … reaching A$6,980 MRR" — the model saying, in words, that
+// the number is its own working rather than a fact. Those phrases count as
+// the marker; a bare benchmark ("typical ARR is A$50k–200k") still does not.
 export const UNEVIDENCED_MARKERS =
-  /[([](?:unevidenced|uncited|no evidence|estimate|estimated|illustrative|assumption)[)\]]|\b(?:not disclosed|not provided|no evidence (?:was )?(?:supplied|provided)|unverified|self-reported|founder-reported|indicative only)\b/i;
+  /[([](?:unevidenced|uncited|no evidence|estimates?|estimated|illustrative|assumptions?)\b[^)\]]{0,80}[)\]]|\b(?:not disclosed|not provided|no evidence (?:was )?(?:supplied|provided)|unverified|self-reported|founder-reported|indicative only)\b|\b(?:we|i|our model) (?:estimate|assume|project|model)s?\b|\bassuming\b|\b(?:bear|base|bull)[- ](?:case|scenario)\b|\bscenario\b|\bhypothetical(?:ly)?\b|\brule of thumb\b|\billustrative\b|\b(?:this|which|that) (?:implies|suggests|would imply)\b|^\s*\|\s*(?:bear|base|bull)\s*\|/i;
+
+/**
+ * G24-D: a markdown table whose caption (the nearest prose line above it) or
+ * header row carries the unevidenced marker is a declared-estimate table —
+ * the CMO's "Channel Economics" grid of sector-typical CAC ranges. Its rows
+ * inherit the marker. Returns, per line, whether that line is a declared
+ * table row.
+ */
+export function declaredTableRows(text: string): boolean[] {
+  const lines = text.split("\n");
+  const out = new Array<boolean>(lines.length).fill(false);
+  let i = 0;
+  while (i < lines.length) {
+    if (!/^\s*\|/.test(lines[i]!)) { i += 1; continue; }
+    const start = i;
+    while (i < lines.length && /^\s*\|/.test(lines[i]!)) i += 1;
+    let caption = start - 1;
+    while (caption >= 0 && !lines[caption]!.trim()) caption -= 1;
+    const header = lines[start]!;
+    const declared = UNEVIDENCED_MARKERS.test(header) || (caption >= 0 && UNEVIDENCED_MARKERS.test(lines[caption]!));
+    if (declared) for (let k = start; k < i; k += 1) out[k] = true;
+  }
+  return out;
+}
+
+/**
+ * G24-D: free models shorten a 36-char id to its first block ("[ev:f73c3a4a]").
+ * When the prefix (≥ 8 hex chars) names exactly one allowed id, that is the
+ * id — rewrite the marker to the full id so the gate, the critic filter and
+ * the footnote renderer all resolve it. An ambiguous or unknown prefix is
+ * left as written (and stays uncited).
+ */
+export function expandShortCitations(text: string, allowedIds: Iterable<string>): string {
+  const allowed = Array.from(allowedIds);
+  if (!allowed.length || !/\[ev:/i.test(text)) return text;
+  return text.replace(EV_MARKER_RE, (whole, raw: string) => {
+    const id = raw.trim();
+    const lower = id.toLowerCase();
+    if (allowed.some((a) => a.toLowerCase() === lower)) return whole;
+    if (!/^[0-9a-f]{8,}(?:-[0-9a-f]*)*$/i.test(id) || lower.length < 8) return whole;
+    const matches = allowed.filter((a) => a.toLowerCase().startsWith(lower));
+    return matches.length === 1 ? `[ev:${matches[0]}]` : whole;
+  });
+}
+
+/**
+ * G24-D: an action-plan line ("[30d] Validate SAM with 10 accounting-firm
+ * interviews — owner: CEO", "1. [90d] …") is a target, not a claim about the
+ * world — the gate does not count it. Only the window-tagged shape the
+ * dispatcher renders qualifies; a sentence that merely recommends something
+ * is still checked for the facts it carries.
+ */
+export const PRESCRIPTIVE_LINE_RE = /^\s*(?:[-*]\s*|\d+\.\s*)?\[(?:\d+\s?d|this_week|30d|60d|90d)\]/i;
+
+export function isPrescriptiveClaim(claim: string): boolean {
+  return PRESCRIPTIVE_LINE_RE.test(claim);
+}
 
 export const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
 /** The inline citation marker every owner contract asks for. */

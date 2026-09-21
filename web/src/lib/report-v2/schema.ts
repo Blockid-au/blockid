@@ -831,6 +831,9 @@ export const reportV2Schema = z.object({
         revised: z.boolean(),
         grounded: z.boolean(),
         skipped: z.enum(["budget", "tier", "clean", "cap"]).optional(),
+        // G24-D: compact per-section audit summary (why a zero-uncited section is still ungrounded).
+        llmAudited: z.boolean().optional(),
+        hadIssues: z.boolean().optional(),
       }),
     ),
     comparablesN: z.number().int().nonnegative(),

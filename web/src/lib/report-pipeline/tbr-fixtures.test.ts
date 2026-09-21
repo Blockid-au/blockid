@@ -14,6 +14,7 @@ import { PromptEvalFixture, runEval, shouldPromote, type FixtureCase } from "@/l
 import type { PromptVersion } from "@/lib/ai/prompt-registry";
 import { DimensionChapterInput, DimensionChapterPayload, VERDICT_WORD_CAPS } from "./agent-dispatcher";
 import { autoCite, itemsFromEvidenceRows } from "./auto-cite";
+import { COMPUTED_FACT_IDS } from "./computed-facts";
 import { trimVerdict } from "./verdict-trim";
 import { salvageTruncatedJson } from "@/lib/ai/json-salvage";
 import { groundedShareOf } from "@/lib/ai/eval-runner";
@@ -70,7 +71,7 @@ function goodPayload(c: FixtureCase): Record<string, unknown> {
 }
 
 /** G19 fixtures beside the eight per-dimension files: S41 score ledger, S46 valuation inputs, S47 structured executive — plus the G23-A grounding fixture. */
-const G19_FIXTURES = ["TBR-executive-v2.2.0.json", "TBR-ledger-v2.1.0.json", "TBR-valuation-inputs-v2.1.0.json", "TBR-grounding-v2.3.0.json"];
+const G19_FIXTURES = ["TBR-executive-v2.2.0.json", "TBR-ledger-v2.1.0.json", "TBR-valuation-inputs-v2.1.0.json", "TBR-grounding-v2.4.0.json"];
 
 describe("TBR-<dim>-v2.0.0 fixtures", () => {
   it("ships exactly eight TBR-<dim>-v2.0.0 fixtures, one per dimension, discoverable by the nightly runner naming rule (plus the G19 TBR-ledger + TBR-valuation-inputs fixtures)", () => {
@@ -377,10 +378,10 @@ describe("TBR-executive-v2.2.0 fixture (G19-S47)", () => {
   });
 });
 
-// ── G23-A: TBR-grounding-v2.3.0 — the three grounding fixes, pinned nightly-style (no LLM) ──
-describe("TBR-grounding-v2.3.0 fixture (G23-A)", () => {
-  const fx = PromptEvalFixture.parse(JSON.parse(readFileSync(path.join(FIXTURE_DIR, "TBR-grounding-v2.3.0.json"), "utf8")));
-  const pvG: PromptVersion = { ...pv("tre"), agent: "TBR-grounding", version: "2.3.0" };
+// ── G23-A: TBR-grounding-v2.4.0 — the three grounding fixes + the G24-D computed-fact case, pinned nightly-style (no LLM) ──
+describe("TBR-grounding-v2.4.0 fixture (G23-A + G24-D)", () => {
+  const fx = PromptEvalFixture.parse(JSON.parse(readFileSync(path.join(FIXTURE_DIR, "TBR-grounding-v2.4.0.json"), "utf8")));
+  const pvG: PromptVersion = { ...pv("tre"), agent: "TBR-grounding", version: "2.4.0" };
   type Rows = Array<{ id: string; label: string; value?: string }>;
   const rowsOf = (c: FixtureCase) => (c.input as { evidenceRows: Rows }).evidenceRows;
   const items = (c: FixtureCase) => itemsFromEvidenceRows(rowsOf(c).map((r) => ({ evidence_id: r.id, label: r.label, value: r.value })));
@@ -397,8 +398,8 @@ describe("TBR-grounding-v2.3.0 fixture (G23-A)", () => {
   }
   const caseById = (id: string) => fx.cases.find((c) => c.id === id)!;
 
-  it("parses, carries three cases (auto-cite, verdict trim, budget overrun) with uuid-shaped ids, valid W4 inputs and the grounding + word-cap constraints", () => {
-    expect(fx.cases.map((c) => c.id)).toEqual(["case_autocite_tre", "case_verdict_trim_mpc", "case_budget_overrun_mpc"]);
+  it("parses, carries four cases (auto-cite, verdict trim, budget overrun, computed facts) with uuid-shaped ids, valid W4 inputs and the grounding + word-cap constraints", () => {
+    expect(fx.cases.map((c) => c.id)).toEqual(["case_autocite_tre", "case_verdict_trim_mpc", "case_budget_overrun_mpc", "case_computed_facts_iri"]);
     for (const c of fx.cases) {
       expect(DimensionChapterInput.safeParse(c.input).success).toBe(true);
       for (const r of rowsOf(c)) expect(r.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
@@ -468,5 +469,30 @@ describe("TBR-grounding-v2.3.0 fixture (G23-A)", () => {
     const good = await runEval({ ...fx, cases: [c] }, pvG, { runCase: async () => ({ ok: true, data, latencyMs: 5, costUsd: 0.001, runId: c.id }) });
     expect(good.hard_fail).toBe(false);
     expect(shouldPromote(good)).toBe(true);
+  });
+
+  it("(d) G24-D computed facts: the fixture's calc rows carry the pipeline's stable ids; an owner quoting the CFO consensus (either spelling) and the stage p50 without an id grounds at or above 0.85 after the auto-citer; an invented consensus still hard-fails", async () => {
+    const c = caseById("case_computed_facts_iri");
+    const rows = rowsOf(c);
+    expect(rows.map((r) => r.id)).toEqual(expect.arrayContaining([COMPUTED_FACT_IDS.valuation, COMPUTED_FACT_IDS.benchmarks, COMPUTED_FACT_IDS["svi-scores"]]));
+    const raw = uncitedPayload(
+      c,
+      "Investor readiness is at the stage median: the CFO consensus puts the company at A$4.6M (A$3.0M–A$6.6M) and the founder's A$3.5M pre-money sits inside that band. IRI reads 55 against a stage benchmark p50 of 55.",
+      ["Consensus mid A$4,622,000 with a 35% confidence", "Pre-money ask of A$3,500,000 on a A$500,000 raise, aligned with the consensus"],
+      [`No signed SAFE or data room yet — the ask is unevidenced beyond the stated cap [ev:${rows[3]!.id}]`],
+    );
+    expect(groundedShareOf(c, raw)).toBeLessThan(0.85);
+    const grounded = groundPayload(c, raw);
+    expect(groundedShareOf(c, grounded)).toBeGreaterThanOrEqual(0.85);
+    expect(String(grounded.verdict)).toContain(`[ev:${COMPUTED_FACT_IDS.valuation}]`);
+    expect((grounded.strengths as string[])[0]).toContain(`[ev:${COMPUTED_FACT_IDS.valuation}]`);
+    expect((grounded.strengths as string[])[1]).toContain(`[ev:${COMPUTED_FACT_IDS.valuation}]`);
+    expect(DimensionChapterPayload.safeParse(grounded).success).toBe(true);
+    const run = async (data: Record<string, unknown>) => runEval({ ...fx, cases: [c] }, pvG, { runCase: async () => ({ ok: true, data, latencyMs: 5, costUsd: 0.001, runId: c.id }) });
+    const good = await run(grounded);
+    expect(good.hard_fail).toBe(false);
+    expect(shouldPromote(good)).toBe(true);
+    const invented = await run({ ...grounded, verdict: `${grounded.verdict} The consensus is really A$9.9M.` });
+    expect(invented.hard_fail).toBe(true);
   });
 });

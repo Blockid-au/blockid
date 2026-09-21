@@ -11,7 +11,13 @@
 //   node scripts/run-self-analysis.mjs
 //
 // G19-S46 `--report` — BlockID's own Trusted Business Report as the showcase:
-//   node --env-file=.env scripts/run-self-analysis.mjs --report [--project <uuid>] [--seed | --no-seed] [--dry-run]
+//   node --env-file=.env scripts/run-self-analysis.mjs --report [--project <uuid>] [--seed | --no-seed] [--dry-run] [--audit-dump [<path>]]
+//
+// G24-D `--audit-dump [<path>]` — writes every section's grounding audit
+// (uncited claims, critic findings kept + dropped, llmAudited / hadIssues, the
+// audited text) plus the register ids to <path> (default
+// content/reports/tbr-audit-latest.json, gitignored) so a groundedShare miss
+// can be diagnosed after the run.| --no-seed] [--dry-run]
 // Resolves BlockID's canonical project (admin@blockid.au's "%blockid%" project
 // with the most svi_snapshots — "Blockid.au 1" unless --project says
 // otherwise; prints which), seeds the 13-criteria founder inputs + a fresh
@@ -137,6 +143,16 @@ if (REPORT_MODE) {
     forceSeed: ARGS.includes("--seed"),
     skipSeed: ARGS.includes("--no-seed"),
     dryRun: ARGS.includes("--dry-run"),
+    auditDump: ARGS.includes("--audit-dump")
+      ? {
+          path: resolve(WEB_DIR, (argValue("--audit-dump") && !argValue("--audit-dump").startsWith("--") ? argValue("--audit-dump") : null) ?? "content/reports/tbr-audit-latest.json"),
+          write: async (path, json) => {
+            const { mkdirSync } = await import("node:fs");
+            mkdirSync(dirname(path), { recursive: true });
+            writeFileSync(path, json);
+          },
+        }
+      : null,
   });
   if (summary.dryRun) {
     console.log(`\n✓ dry run — nothing written (project ${summary.project.id}, would seed: ${summary.wouldSeed})`);
@@ -145,6 +161,7 @@ if (REPORT_MODE) {
   console.log(`\n✓ report ${summary.reportId} persisted as report_v2 on snapshot ${summary.snapshotId ?? "(none)"}`);
   console.log(`  ${summary.qualityLine}`);
   console.log(`  showcase: ${summary.showcaseUrl}`);
+  if (summary.auditDumpPath) console.log(`  audit dump: ${summary.auditDumpPath}`);
   if (!summary.reportV2Persisted) console.log("  WARNING: no report_v2 persisted (snapshot write failed?) — the showcase will show the empty state.");
   process.exit(0);
 }

@@ -16,13 +16,16 @@
 //
 // Pure and client-safe (no I/O, no model call).
 
-import { hasCitationOrMarker, isMaterialClaim, splitClaims } from "./claim-gate";
+import { expandShortCitations, hasCitationOrMarker, isMaterialClaim, splitClaims } from "./claim-gate";
+import { COMPUTED_FACT_IDS } from "./computed-facts";
 
 /** One citable thing: an evidence-register row (label + value / content) or a model-cited quote. */
 export interface CitableItem {
   id: string;
   label: string;
   text: string;
+  /** G24-D: when set, the row is chosen only for a claim that names its topic — the AU-context knowledge row (R&DTI / ESIC / GST rates) must not back "20% growth". */
+  topicRe?: RegExp;
 }
 
 export interface AutoCiteResult {
@@ -51,7 +54,8 @@ export interface NumToken {
 
 const NUMBER_RE = /(A\$|AUD\s?|US\$|USD\s?|\$)?(\d[\d,]*(?:\.\d+)?)\s?(%|percent|per cent|bn|billion|million|mn|m|k|thousand|x|×)?(?![\w$])/gi;
 const UNIT: Record<string, NumToken["unit"]> = { "%": "%", percent: "%", "per cent": "%", bn: "bn", billion: "bn", million: "m", mn: "m", m: "m", k: "k", thousand: "k", x: "x", "×": "x" };
-const SOURCE_WORDS = ["stripe", "xero", "ga4", "github", "linkedin", "abr", "grantconnect", "asic", "abs"];
+// G24-D: the computed rows (computed-facts.ts) start with svi / benchmarks / valuation so "+6 points vs the p50 benchmark" can name its row.
+const SOURCE_WORDS = ["stripe", "xero", "ga4", "github", "linkedin", "abr", "grantconnect", "asic", "abs", "svi", "benchmark", "valuation"];
 
 /** Every number in a claim with its currency / unit context. Single plain digits and "NN/100" score echoes are ignored. */
 export function numericTokens(claim: string): NumToken[] {
@@ -96,6 +100,8 @@ export function itemHasNumber(itemText: string, token: NumToken): boolean {
   const bounded = (d: string) => new RegExp(`(?<![\\d.])${esc(d)}(?![\\d])`);
   for (const d of forms) {
     if (token.currency) {
+      // G24-D: "A$0 ARR" / "A$0 MRR" is what a pre-revenue row says — "0 active subscriptions", "0 MRR", "pre-revenue".
+      if (d === "0" && /\bpre-revenue\b|\b0 (?:mrr|arr|revenue|active subscriptions|subscriptions|paying customers)\b/.test(t)) return true;
       if (new RegExp(`(?:a\\$|aud\\s?|us\\$|usd\\s?|\\$)\\s?${esc(d)}(?![\\d])`).test(t)) return true;
       if (new RegExp(`(?<![\\d.])${esc(d)}\\s?(?:aud|usd|dollars|k\\b|m\\b)`).test(t)) return true;
       if (new RegExp(`(?:aud|usd|revenue|mrr|arr|price|cost|fee|charge)[^\\d]{0,12}${esc(d)}(?![\\d])`).test(t)) return true;
@@ -123,8 +129,10 @@ function labelMentioned(claim: string, label: string): boolean {
   const c = claim.toLowerCase();
   const l = label.toLowerCase().replace(/^(founder evidence|uploaded file|link|criterion input):\s*/i, "").trim();
   if (l.length >= 8 && c.includes(l)) return true;
-  const first = l.split(/[^a-z0-9]+/)[0] ?? "";
-  return SOURCE_WORDS.includes(first) && new RegExp(`\\b${esc(first)}\\b`).test(c);
+  // Singular stem: the "Benchmarks: …" row is named by "benchmark" as much as by "benchmarks".
+  const raw = l.split(/[^a-z0-9]+/)[0] ?? "";
+  const first = SOURCE_WORDS.includes(raw) ? raw : raw.replace(/s$/, "");
+  return SOURCE_WORDS.includes(first) && new RegExp(`\\b${esc(first)}s?\\b`).test(c);
 }
 
 /** Insert citation markers before the terminal punctuation (so the sentence splitter keeps them in the claim). */
@@ -139,7 +147,9 @@ function appendMarkers(claim: string, ids: string[]): string {
 
 /** Pick ≤ `max` items that together cover every needed token; null when they cannot. */
 function chooseItems(claim: string, need: NumToken[], items: CitableItem[], max: number): CitableItem[] | null {
-  const coverage = items.map((item, order) => ({ item, order, covered: need.filter((tok) => itemHasNumber(item.text, tok)), mentioned: labelMentioned(claim, item.label) }));
+  const coverage = items
+    .filter((item) => !item.topicRe || item.topicRe.test(claim))
+    .map((item, order) => ({ item, order, covered: need.filter((tok) => itemHasNumber(item.text, tok)), mentioned: labelMentioned(claim, item.label) }));
   // A claim whose only numbers are weak (2–3 plain digits) is cited only
   // when the sentence names the row's source (review G23 P1) — "38 signups"
   // alone must not attach the first row that happens to contain 38.
@@ -187,7 +197,8 @@ export function autoCite(text: string, items: CitableItem[], citations: Array<{ 
   let material = 0;
   let uncited = 0;
   if (!text.trim()) return { text, added, material, uncited };
-  const lines = text.split("\n").map((line) => {
+  // G24-D: "[ev:f73c3a4a]" (a free model's shortened id) → the one allowed id it names, before anything is counted.
+  const lines = expandShortCitations(text, items.map((i) => i.id)).split("\n").map((line) => {
     if (!line.trim() || line.trim().startsWith("<!--") || line.trim().startsWith("```")) return line;
     const indent = /^\s*/.exec(line)?.[0] ?? "";
     const units = splitClaims(line);
@@ -211,10 +222,17 @@ export function autoCite(text: string, items: CitableItem[], citations: Array<{ 
 
 /** Evidence rows (W4 / appendix shape) as citable items: label + value. */
 export function itemsFromEvidenceRows(rows: Array<{ evidence_id: string; label: string; value?: string | null }>): CitableItem[] {
-  return rows.map((r) => ({ id: r.evidence_id, label: r.label, text: [r.label, r.value ?? ""].filter(Boolean).join(" — ") }));
+  return rows.map((r) => withTopic({ id: r.evidence_id, label: r.label, text: [r.label, r.value ?? ""].filter(Boolean).join(" — ") }));
+}
+
+/** The AU-context knowledge row is cited only by a sentence about tax / R&D / ESIC / GST. */
+export const AU_CONTEXT_TOPIC_RE = /\b(?:r&d|r&dti|esic|gst|tax|offset|incentive)\b/i;
+
+function withTopic(item: CitableItem): CitableItem {
+  return item.id === COMPUTED_FACT_IDS["au-context"] ? { ...item, topicRe: AU_CONTEXT_TOPIC_RE } : item;
 }
 
 /** W1–W3 catalogue entries (label + content) as citable items. */
 export function itemsFromCatalogue(entries: Array<{ evidence_id: string; label: string; content: string }>): CitableItem[] {
-  return entries.map((e) => ({ id: e.evidence_id, label: e.label, text: `${e.label} — ${e.content}` }));
+  return entries.map((e) => withTopic({ id: e.evidence_id, label: e.label, text: `${e.label} — ${e.content}` }));
 }

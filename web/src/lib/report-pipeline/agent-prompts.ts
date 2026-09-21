@@ -138,8 +138,8 @@ Cover:
 ## Quantitative Analysis Requirements (ALWAYS include these subsections)
 
 ### Sensitivity Analysis
-Include a markdown table with 3 scenarios:
-| Scenario | Assumption | Revenue Impact | Runway Impact |
+Include a markdown table with 3 scenarios, captioned on the line above it exactly: "Scenarios (unevidenced): modelled from the pricing and stage benchmarks, not measured.":
+| Scenario (estimate) | Assumption | Revenue Impact | Runway Impact |
 |---|---|---|---|
 | Bear | MRR -30%, churn +50% | ... | ... |
 | Base | Current trajectory | ... | ... |
@@ -199,13 +199,13 @@ Cover:
 ## AU Market GTM Analysis (ALWAYS include)
 
 ### Channel Economics
-For each likely acquisition channel, estimate:
-| Channel | Est. CAC | Volume Ceiling | Payback |
+For each likely acquisition channel, estimate — and caption the table on the line above it exactly: "Channel estimates (unevidenced): sector-typical ranges, not measured.":
+| Channel | Est. CAC (estimate) | Volume Ceiling | Payback |
 |---|---|---|---|
 | Content/SEO | A$50-200 | High | 6-12mo |
 | Paid Search | A$200-800 | Medium | 3-6mo |
 | Partnerships | A$100-400 | High | 9-18mo |
-Fill with sector-appropriate estimates.
+Fill with sector-appropriate estimates; every figure in this table is an estimate and must never be restated in prose as a fact.
 
 ### Competitive Moat Assessment
 Rate 1-5 on: switching costs, network effects, data moat, brand, regulatory barriers.

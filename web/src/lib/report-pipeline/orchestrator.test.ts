@@ -138,6 +138,11 @@ vi.mock("./agent-dispatcher", () => ({
     context.evidenceRows = context.evidenceRows ?? [];
     return context.evidenceRows;
   }),
+  // G24-D: the computed rows are re-stamped after the valuation chapter; the mock keeps the register as is.
+  refreshComputedFactRows: vi.fn((context: ReportContext) => {
+    context.evidenceRows = context.evidenceRows ?? [];
+    return context.evidenceRows;
+  }),
   deterministicDimensionChapters: vi.fn((context: ReportContext, _tier: string, reason: string) => {
     H.deterministicCalls.push(reason);
     const map = new Map();
@@ -760,7 +765,7 @@ describe("orchestrateReport() — CEO executive summary", () => {
 // ─── audit sweep ─────────────────────────────────────────────────────────
 
 describe("orchestrateReport() — llm-auditor grounding sweep", () => {
-  it("builds evidence with startup name, stage, totalSVI, description slice, subs and per-criterion scores", async () => {
+  it("G24-D: builds the critic evidence with startup name, stage, SVI index, the FULL description, every criterion's founder text, per-criterion scores and the citable id list", async () => {
     H.dispatchScript = [
       [{ criterion: "code_git", result: makeAgentResult("code_git", { score: 42 }) }],
       [],
@@ -771,6 +776,7 @@ describe("orchestrateReport() — llm-auditor grounding sweep", () => {
       baseInput({
         rawText: bigText,
         startupName: "EvidenceCo",
+        criteriaData: makeCriteriaData({ code_git: { textInput: "Monorepo with 240 unit tests" } }),
         sviAnalysis: makeSVI({
           totalSVI: 210,
           stageLabel: "Series A",
@@ -782,15 +788,18 @@ describe("orchestrateReport() — llm-auditor grounding sweep", () => {
     const ev = auditCalls[0].evidence;
     expect(ev).toContain("Startup: EvidenceCo");
     expect(ev).toContain("Stage: Series A");
-    expect(ev).toContain("Overall SVI: 210/100");
-    expect(ev).toContain("- Market: 77/100"); // sub
-    expect(ev).toContain("- code_git: 42/100"); // criterion
-    // description is sliced to 4000 chars
-    const descIdx = ev.indexOf("## Startup Description\n");
+    expect(ev).toContain("SVI index: 210 (open-ended, base 100)");
+    expect(ev).not.toContain("210/100"); // the index is uncapped — never "/100"
+    expect(ev).toContain("- code_git: 42/100"); // criterion score
+    // the whole description (the 4,000-char slice hid the raise / legal paragraphs from the critic)
+    const descIdx = ev.indexOf("## Startup description (founder-submitted)\n");
     expect(descIdx).toBeGreaterThanOrEqual(0);
-    const desc = ev.slice(descIdx + "## Startup Description\n".length);
-    expect(desc.startsWith("a".repeat(4000))).toBe(true);
-    expect(desc.startsWith("a".repeat(4001))).toBe(false);
+    const desc = ev.slice(descIdx + "## Startup description (founder-submitted)\n".length);
+    expect(desc.startsWith("a".repeat(4100))).toBe(true);
+    // the per-criterion founder text the writers were given
+    expect(ev).toContain("## Founder evidence per criterion (founder-submitted)");
+    expect(ev).toContain("### code_git\nMonorepo with 240 unit tests");
+    // (the mocked dispatcher leaves the register empty, so no CITABLE IDS block here — criticEvidenceFor is pinned directly below)
   });
 
   it("uses llmOnlyWhenUncited=true and maxLlmSections=8 for the standard tier (cap raised 6 → 8 for the 8 chapters)", async () => {
@@ -1072,6 +1081,8 @@ describe("orchestrateReport() — llm-auditor grounding sweep", () => {
         revised: false,
         grounded: true,
         skipped: undefined,
+        llmAudited: false,
+        hadIssues: undefined,
       },
     ]);
   });

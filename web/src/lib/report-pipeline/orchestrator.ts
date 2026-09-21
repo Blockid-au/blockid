@@ -70,6 +70,7 @@ import {
   dispatchDimensionChapters,
   dispatchWave,
   buildEvidenceCatalogue,
+  refreshComputedFactRows,
   type CallBudget,
   type DispatchOptions,
 } from "./agent-dispatcher";
@@ -78,7 +79,7 @@ import type { IntakeContext } from "@/lib/intake/detect-context";
 import { assembleReport } from "./section-assembler";
 import { buildAgentPrompt } from "./agent-prompts";
 import { AUDITOR_CAP_BY_TIER, auditSections, type AuditableSection } from "./llm-auditor";
-import { autoCite, itemsFromEvidenceRows } from "./auto-cite";
+import { autoCite, itemsFromCatalogue, itemsFromEvidenceRows, type CitableItem } from "./auto-cite";
 import { bumpQualityCounter } from "./types";
 import { getAIBudgetStatus } from "@/lib/ai-client";
 import { DIM_ORDER, DIMENSION_OWNERS, criteriaForDimension, type DimKey } from "./dimension-owners";
@@ -303,7 +304,7 @@ export type PipelineEvent =
   | { type: "valuation_complete"; chapter: ReportV2["valuation"] }
   | { type: "criteria_synthesis"; criteria: CriterionCard[] }
   | { type: "executive_complete"; summary: string }
-  | { type: "audit_complete"; groundedShare: number; revised: number }
+  | { type: "audit_complete"; groundedShare: number; revised: number; /** G24-D: the full per-section audit (scripts/run-self-analysis.mjs --audit-dump); not forwarded on the SSE mapper. */ dump?: AuditDump }
   | { type: "progress"; completed: number; total: number; phase: PipelinePhase }
   | { type: "done"; reportId: string; totalMs: number; calls: number; costAud: number; costUsd: number; costReportedCalls: number; degradedSections: string[]; deadlineHit: boolean; budgetOverruns: number; verdictTrimmed: number; autoCited: number }
   | { type: "error"; dim?: DimKey; message: string; degraded: true };
@@ -504,6 +505,9 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
     buildEvidenceRows(context);
     context.moduleOutputs = precomputeModules(context);
     context.valuationChapter = valuationChapterFor(gather.valuation, input, context) ?? undefined;
+    // G24-D: the computed rows (SVI scores, benchmarks, valuation consensus)
+    // re-stamped now that the valuation chapter exists.
+    refreshComputedFactRows(context);
     emit({ type: "gather_complete", evidenceRows: context.evidenceRows?.length ?? 0, connectors: Object.keys(context.gatherResults).filter((k) => k !== "diagnostics"), diagnostics: context.gatherResults.diagnostics });
 
     // ── Phase 2: ANALYZE ────────────────────────────────────────────────
@@ -633,7 +637,7 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
     context.executiveSummary = audit.executiveSummary;
     context.auditFindings = audit.findings;
     context.sectionAudits = audit.records;
-    emit({ type: "audit_complete", groundedShare: audit.groundedShare, revised: audit.records.filter((r) => r.revised).length });
+    emit({ type: "audit_complete", groundedShare: audit.groundedShare, revised: audit.records.filter((r) => r.revised).length, dump: audit.dump });
 
     // ── §C.9 gate 3: deterministic consistency checks ───────────────────
     const gates = applyConsistencyGates({
@@ -924,51 +928,51 @@ async function auditAllSections(
   tierV2: ReportTierV2,
   callAI: (systemPrompt: string, userPrompt: string, maxTokens: number) => Promise<string>,
   opts: { budgetOk?: () => boolean } = {},
-): Promise<{ executiveSummary: string; findings: string[]; records: SectionAuditRecord[]; groundedShare: number }> {
+): Promise<{ executiveSummary: string; findings: string[]; records: SectionAuditRecord[]; groundedShare: number; dump: AuditDump }> {
   // G23-A fix (a): the CEO thesis quotes chapter numbers that sit in the
   // evidence register — give those sentences the id before the citation
   // gate reads them, and let the gate resolve ids against the whole register.
+  // G24-D: the citable pool is the FULL text behind every register id (the
+  // criterion catalogues + the gather rows), not the 160-char register
+  // values — the 09:02 showcase thesis quoted "A$12M SAM across 5,700
+  // organisations" from the market text past the value cut and stayed uncited.
   const registerIds = (context.evidenceRows ?? []).map((e) => e.evidence_id);
-  const thesisCite = autoCite(context.executiveSummary ?? "", itemsFromEvidenceRows(context.evidenceRows ?? []));
+  const reportCitable = citableItemsForReport(context);
+  const thesisCite = autoCite(context.executiveSummary ?? "", reportCitable);
   bumpQualityCounter(context, "autoCited", thesisCite.added);
   const draft = thesisCite.text;
 
-  // Build the grounding evidence: startup description + actual SVI scores +
-  // per-criterion scores. The auditor treats this as the ONLY source of truth.
-  const sviScores = context.sviAnalysis.subs
-    .map((s: { label: string; value: number }) => `- ${s.label}: ${s.value}/100`)
-    .join("\n");
-  const criterionScores = [...context.criterionResults.entries()]
-    .map(([key, r]) => `- ${key}: ${r.score}/100`)
-    .join("\n");
-
-  const evidence = [
-    `Startup: ${context.startupName}`,
-    `Stage: ${context.sviAnalysis.stageLabel}`,
-    `Overall SVI: ${context.sviAnalysis.totalSVI}/100`,
-    `## Startup Description\n${context.rawText.slice(0, 4000)}`,
-    `## SVI Dimension Scores\n${sviScores}`,
-    `## Per-Criterion Scores\n${criterionScores}`,
-  ].join("\n\n");
+  // The grounding evidence the critic sees. G24-D: the whole submission —
+  // the description, every criterion's founder text, the gathered rows, the
+  // computed facts and the citable id list — not just the description +
+  // scores; the 09:02 critic called "525 pages", "Sydney Angels 40
+  // applicants" and every cited anchor number fabricated because it had
+  // never been shown the criterion text they came from.
+  const evidence = criticEvidenceFor(context);
 
   const sections: AuditableSection[] = [];
   if (draft.trim()) {
-    sections.push({ id: "executive", title: "Executive Summary", content: draft, allowedEvidenceIds: registerIds });
+    sections.push({ id: "executive", title: "Executive Summary", content: draft, allowedEvidenceIds: registerIds, citable: reportCitable });
   }
   context.dimensionChapters?.forEach((chapter, dim) => {
+    const ids = chapter.evidence.map((e) => e.evidence_id);
+    const idSet = new Set(ids);
     sections.push({
       id: `dim:${dim}`,
       title: chapter.title,
       content: [chapter.verdict, ...chapter.strengths.map((s) => `- ${s}`), ...chapter.gaps.map((g) => `- ${g}`)].join("\n"),
-      allowedEvidenceIds: chapter.evidence.map((e) => e.evidence_id),
+      allowedEvidenceIds: ids,
+      citable: reportCitable.filter((i) => idSet.has(i.id)),
     });
   });
   context.criterionResults.forEach((result, key) => {
+    const catalogue = buildEvidenceCatalogue(key, context);
     sections.push({
       id: key,
       title: key,
       content: result.content,
-      allowedEvidenceIds: buildEvidenceCatalogue(key, context).map((e) => e.evidence_id),
+      allowedEvidenceIds: catalogue.map((e) => e.evidence_id),
+      citable: itemsFromCatalogue(catalogue),
     });
   });
 
@@ -993,9 +997,11 @@ async function auditAllSections(
   let executiveSummary = draft;
   const at = new Date().toISOString();
 
+  const dumpSections: AuditDump["sections"] = [];
   outcomes.forEach((o) => {
     const revised = o.revised !== originals.get(o.sectionId);
-    records.push({ sectionId: o.sectionId, uncitedClaims: o.uncitedClaims, findings: o.findings, revised, grounded: o.grounded, skipped: o.skipped });
+    records.push({ sectionId: o.sectionId, uncitedClaims: o.uncitedClaims, findings: o.findings, revised, grounded: o.grounded, skipped: o.skipped, llmAudited: o.llmAudited, hadIssues: o.hadIssues });
+    dumpSections.push({ ...records[records.length - 1]!, droppedFindings: o.droppedFindings, content: originals.get(o.sectionId) ?? "", allowedEvidenceIds: sections.find((s) => s.id === o.sectionId)?.allowedEvidenceIds ?? [] });
     o.findings.forEach((f) => findings.push(`[${o.sectionId}] ${f}`));
     o.uncitedClaims.slice(0, 2).forEach((c) => findings.push(`[${o.sectionId}] uncited claim: ${c}`));
 
@@ -1025,7 +1031,91 @@ async function auditAllSections(
   });
 
   const groundedShare = records.length ? Math.round((records.filter((r) => r.grounded).length / records.length) * 100) / 100 : 0;
-  return { executiveSummary, findings: findings.slice(0, 24), records, groundedShare };
+  const dump: AuditDump = {
+    groundedShare,
+    sections: dumpSections,
+    register: (context.evidenceRows ?? []).map((e) => ({ id: e.evidence_id, label: e.label, source: e.source, status: e.status })),
+    criticEvidenceChars: evidence.length,
+  };
+  return { executiveSummary, findings: findings.slice(0, 24), records, groundedShare, dump };
+}
+
+// ── G24-D: audit diagnostics ────────────────────────────────────────────────
+
+/**
+ * Everything the grounding sweep saw and decided, per section — carried on
+ * the `audit_complete` event so `scripts/run-self-analysis.mjs --audit-dump`
+ * can write it. The persisted ReportV2 keeps only the compact records.
+ */
+export interface AuditDump {
+  groundedShare: number;
+  sections: Array<
+    SectionAuditRecord & {
+      /** Critic lines the deterministic filter dropped (llm-auditor.ts filterCriticFindings). */
+      droppedFindings: string[];
+      /** The section text the gate + critic read (pre-revision). */
+      content: string;
+      allowedEvidenceIds: string[];
+    }
+  >;
+  register: Array<{ id: string; label: string; source: string; status: string }>;
+  criticEvidenceChars: number;
+}
+
+/**
+ * Every register id with the FULL text behind it: the 13 criterion
+ * catalogues (description, founder text, files, links, gather audits, market
+ * anchor, computed facts — same ids as buildEvidenceRows) plus the gather /
+ * hub rows that only exist as register rows (label + value).
+ */
+export function citableItemsForReport(context: ReportContext): CitableItem[] {
+  const seen = new Map<string, CitableItem>();
+  CRITERIA.forEach((def) => {
+    itemsFromCatalogue(buildEvidenceCatalogue(def.key, context)).forEach((item) => {
+      if (!seen.has(item.id)) seen.set(item.id, item);
+    });
+  });
+  itemsFromEvidenceRows(context.evidenceRows ?? []).forEach((item) => {
+    if (!seen.has(item.id) && item.text.trim()) seen.set(item.id, item);
+  });
+  return Array.from(seen.values());
+}
+
+/** Chars of the critic's evidence block — keeps the critic prompt inside the free-model context. */
+export const CRITIC_EVIDENCE_MAX_CHARS = 28_000;
+
+/**
+ * The critic's EVIDENCE: the founder's whole submission (description + every
+ * criterion's text, files and links), the gathered rows with a value, the
+ * computed facts, the per-criterion scores and the citable id list.
+ */
+export function criticEvidenceFor(context: ReportContext): string {
+  const rows = context.evidenceRows ?? [];
+  const criteriaText = CRITERIA.map((def) => {
+    const d = context.criteriaData[def.key];
+    const parts: string[] = [];
+    if (d?.textInput?.trim()) parts.push(d.textInput.trim());
+    (d?.files ?? []).forEach((f) => parts.push(`file: ${f.name} (${f.type}, ${f.size} bytes)`));
+    (d?.links ?? []).forEach((l) => parts.push(`link: ${l.label} — ${l.url}`));
+    return parts.length ? `### ${def.key}\n${parts.join("\n")}` : "";
+  }).filter(Boolean);
+  const gathered = rows
+    .filter((r) => r.value && r.value.trim() && !/^Founder evidence:|^Startup description$/.test(r.label))
+    .map((r) => `- ${r.label}: ${r.value!.trim()}`);
+  const criterionScores = [...context.criterionResults.entries()].map(([key, r]) => `- ${key}: ${Math.round(r.score)}/100`);
+  const ids = rows.map((r) => `- ${r.evidence_id} — ${r.label}`);
+  const blocks = [
+    `Startup: ${context.startupName}`,
+    `Stage: ${context.sviAnalysis.stageLabel}`,
+    `SVI index: ${Math.round(context.sviAnalysis.totalSVI)} (open-ended, base 100)`,
+    `## Startup description (founder-submitted)\n${context.rawText.trim()}`,
+    criteriaText.length ? `## Founder evidence per criterion (founder-submitted)\n${criteriaText.join("\n\n")}` : "",
+    gathered.length ? `## Gathered and computed rows (platform)\n${gathered.join("\n")}` : "",
+    criterionScores.length ? `## Per-criterion scores (platform)\n${criterionScores.join("\n")}` : "",
+    ids.length ? `## CITABLE IDS (an [ev:<id>] marker on a sentence points at one of these)\n${ids.join("\n")}` : "",
+  ].filter(Boolean);
+  const text = blocks.join("\n\n");
+  return text.length > CRITIC_EVIDENCE_MAX_CHARS ? `${text.slice(0, CRITIC_EVIDENCE_MAX_CHARS)}\n…(evidence truncated)` : text;
 }
 
 // ── ReportV2 projection ─────────────────────────────────────────────────────

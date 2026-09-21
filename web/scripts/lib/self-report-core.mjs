@@ -199,6 +199,57 @@ export function makeSelfReportDb(sb, { ownerEmail = BLOCKID_OWNER_EMAIL, namePat
 }
 
 /**
+ * G24-D: the `--audit-dump` document — every SectionAuditRecord the sweep
+ * produced (sectionId, grounded, skipped, uncitedClaims, findings,
+ * droppedFindings, llmAudited, hadIssues, the audited content) plus the
+ * register ids / labels, so a grounding miss is diagnosable after the run.
+ * `audit` is the orchestrator's `audit_complete.dump` (null when the pipeline
+ * predates it — the document then says so instead of failing the run).
+ */
+export function buildAuditDumpDocument({ audit, run, project, tier, locale, quality = null, now = new Date().toISOString() }) {
+  const sections = (audit?.sections ?? []).map((s) => ({
+    sectionId: s.sectionId,
+    grounded: Boolean(s.grounded),
+    skipped: s.skipped ?? null,
+    llmAudited: Boolean(s.llmAudited),
+    hadIssues: Boolean(s.hadIssues),
+    revised: Boolean(s.revised),
+    uncitedClaims: s.uncitedClaims ?? [],
+    findings: s.findings ?? [],
+    droppedFindings: s.droppedFindings ?? [],
+    allowedEvidenceIds: s.allowedEvidenceIds ?? [],
+    content: s.content ?? "",
+  }));
+  const ungrounded = sections.filter((s) => !s.grounded).map((s) => ({
+    sectionId: s.sectionId,
+    why: s.uncitedClaims.length ? (s.hadIssues ? "uncited+critic" : "uncited") : s.hadIssues ? "critic" : "unknown",
+    uncited: s.uncitedClaims.length,
+    findings: s.findings.length,
+  }));
+  return {
+    generatedAt: now,
+    reportId: run?.reportId ?? null,
+    snapshotId: run?.snapshotId ?? null,
+    project: project ? { id: project.id, name: project.name } : null,
+    tier,
+    locale,
+    groundedShare: audit?.groundedShare ?? quality?.groundedShare ?? null,
+    quality,
+    dumpAvailable: Boolean(audit),
+    note: audit ? undefined : "the pipeline emitted no audit_complete.dump — pipeline predates G24-D",
+    criticEvidenceChars: audit?.criticEvidenceChars ?? null,
+    summary: {
+      sections: sections.length,
+      grounded: sections.filter((s) => s.grounded).length,
+      llmAudited: sections.filter((s) => s.llmAudited).length,
+      ungrounded,
+    },
+    sections,
+    register: audit?.register ?? [],
+  };
+}
+
+/**
  * Resolve → seed (when the criteria are empty or `forceSeed`) → re-score on
  * the seeded raw input → runTrustReportForProject(standard, en) → summary.
  *
@@ -208,7 +259,7 @@ export function makeSelfReportDb(sb, { ownerEmail = BLOCKID_OWNER_EMAIL, namePat
  * `pipeline` : { runRescoreForProject, runTrustReportForProject, formatTbrQualityLine,
  *               criterionDimensions? } — tsx-loaded lib code, or fakes.
  */
-export async function runSelfReport({ db, pipeline, log = () => {}, projectId = null, forceSeed = false, skipSeed = false, dryRun = false, tier = "standard", locale = "en" }) {
+export async function runSelfReport({ db, pipeline, log = () => {}, projectId = null, forceSeed = false, skipSeed = false, dryRun = false, tier = "standard", locale = "en", auditDump = null }) {
   const rows = await db.listProjects();
   const project = pickCanonicalProject(rows, { preferredId: projectId ?? BLOCKID_CANONICAL_PROJECT_ID });
   if (!project) throw new Error(`no "${BLOCKID_NAME_PATTERN}" project owned by ${BLOCKID_OWNER_EMAIL}`);
@@ -245,8 +296,11 @@ export async function runSelfReport({ db, pipeline, log = () => {}, projectId = 
   }
 
   const t0 = Date.now();
+  // G24-D: the grounding sweep's per-section audit (audit_complete.dump) — written by `auditDump.write(path, json)` when the caller asked for it.
+  let audit = null;
   const onEvent = (event) => {
     const at = `${((Date.now() - t0) / 1000).toFixed(1)}s`;
+    if (event.type === "audit_complete" && event.dump) audit = event.dump;
     switch (event.type) {
       case "context": log(`[${at}] context: stage ${event.stage} ${event.stageLabel} · phase ${event.phaseId} · est. ${event.estimatedCalls} calls / ${event.estimatedSeconds}s`); break;
       case "gather_complete": log(`[${at}] gather: ${event.evidenceRows} evidence rows · connectors ${event.connectors.join(",") || "none"}${event.diagnostics ? " · " + Object.entries(event.diagnostics).map(([k, v]) => `${k}=${v.status}/${v.ms}ms`).join(" ") : ""}`); break;
@@ -262,11 +316,19 @@ export async function runSelfReport({ db, pipeline, log = () => {}, projectId = 
   const qualityLine = pipeline.formatTbrQualityLine ? pipeline.formatTbrQualityLine(run.quality) : JSON.stringify(run.quality);
   log(`report ${run.reportId} → snapshot ${run.snapshotId ?? "(none)"} share ${run.shareToken ? "minted" : "none"} svi ${run.svi} stage ${run.stage} words ${run.wordCount} quality ${run.qualityScore}`);
   log(qualityLine);
+  let auditDumpPath = null;
+  if (auditDump?.path && auditDump.write) {
+    const doc = buildAuditDumpDocument({ audit, run, project, tier, locale, quality: run.quality });
+    await auditDump.write(auditDump.path, JSON.stringify(doc, null, 2));
+    auditDumpPath = auditDump.path;
+    log(`audit dump: ${auditDump.path} (${doc.sections.length} sections, ${doc.summary.ungrounded.length} ungrounded)`);
+  }
   return {
     project: { id: project.id, name: project.name, snapshots: project.snapshots ?? null },
     ownerUserId,
     seeded,
     reportId: run.reportId,
+    auditDumpPath,
     snapshotId: run.snapshotId ?? null,
     shareToken: run.shareToken ?? null,
     svi: run.svi,

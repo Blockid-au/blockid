@@ -1,7 +1,7 @@
 {
   "agent": "TBR-grounding",
-  "version": "2.3.0",
-  "purpose": "Trusted Business Report v2 — G23-A grounding fixes on the W4 dimension-chapter call: (a) the auto-citer maps register numbers to the [ev:id] marker the owner omitted, (b) a budget-cut answer is salvaged before the parse, (c) a verdict over 80 words is trimmed, never failed; ids are uuid-shaped so the llm-auditor citation gate and the eval runner agree",
+  "version": "2.4.0",
+  "purpose": "Trusted Business Report v2 — G23-A grounding fixes on the W4 dimension-chapter call: (a) the auto-citer maps register numbers to the [ev:id] marker the owner omitted, (b) a budget-cut answer is salvaged before the parse, (c) a verdict over 80 words is trimmed, never failed; (d) G24-D — the platform's computed facts (SVI scores, stage benchmark quartiles, CFO consensus valuation) are register rows with stable ids, so a sentence quoting the consensus or a quartile is citable and the critic never calls it fabricated; ids are uuid-shaped so the llm-auditor citation gate and the eval runner agree",
   "cases": [
     {
       "id": "case_autocite_tre",
@@ -317,6 +317,116 @@
         "grounded_share_min": 0.85,
         "primary_visual": {
           "kind": "funnel"
+        },
+        "verdict_max_words": 80
+      }
+    },
+    {
+      "id": "case_computed_facts_iri",
+      "name": "(d) Early-traction IRI — the owner quotes the CFO consensus and the stage p50 from the computed rows without an id; the auto-citer attaches the calc rows and the section grounds at 0.85 or more; an invented consensus still hard-fails",
+      "input": {
+        "dim": "iri",
+        "weight": 12,
+        "stage": 3,
+        "stageLabel": "Early Traction",
+        "phaseId": "go_to_market",
+        "benchmark": {
+          "p25": 42,
+          "p50": 55,
+          "p75": 68,
+          "source": "svi-dimension-benchmarks ANCHORS"
+        },
+        "deterministicScore": 55,
+        "criterionResults": [
+          {
+            "key": "revenue",
+            "score": 52,
+            "verdict": "pre-revenue; consensus valuation A$4.6M",
+            "citations": [
+              {
+                "evidence_id": "22991fdb-4393-4847-8ac6-661674da19d9",
+                "quote": "mid A$4,622,000 (≈A$4.6M)"
+              }
+            ],
+            "grounded": true
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "22991fdb-4393-4847-8ac6-661674da19d9",
+            "source": "connector_other",
+            "status": "partial",
+            "observedAt": "2026-09-21T09:00:00.000Z",
+            "label": "Valuation: CFO 5-method consensus (computed)",
+            "value": "Consensus valuation A$3,035,400 (≈A$3.0M)–A$6,595,800 (≈A$6.6M), mid A$4,622,000 (≈A$4.6M), confidence 35%. Methods: Berkus mid A$2,500,000 (≈A$2.5M) (range A$2,000,000 (≈A$2.0M)–A$3,000,000 (≈A$3.0M), weight 30%); Scorecard mid A$4,800,000 (≈A$4.8M) (range A$3,500,000 (≈A$3.5M)–A$6,100,000 (≈A$6.1M), weight 40%). Founder ask: pre-money A$3,500,000 (≈A$3.5M), raise A$500,000 (≈A$500K) — aligned (-24% vs consensus)."
+          },
+          {
+            "id": "7936ad96-c5c5-48c2-a9f8-493f82161aed",
+            "source": "connector_other",
+            "status": "partial",
+            "observedAt": "2026-09-21T09:00:00.000Z",
+            "label": "Benchmarks: stage quartiles p25 / p50 / p75 (computed)",
+            "value": "Stage benchmarks for Early Traction (svi-dimension-benchmarks, per dimension, /100): IRI p25 42 / p50 55 / p75 68, +0 points vs the p50 median; TRE p25 40 / p50 52 / p75 64, −6 points vs the p50 median."
+          },
+          {
+            "id": "e48e1491-1076-43f4-8f23-0fc57926068c",
+            "source": "connector_other",
+            "status": "partial",
+            "observedAt": "2026-09-21T09:00:00.000Z",
+            "label": "SVI scores (computed by the platform)",
+            "value": "SVI index 138 (open-ended, base 100); stage Early Traction. Dimension scores: IRI (Investor Readiness) 55/100; TRE (Traction) 46/100."
+          },
+          {
+            "id": "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f70",
+            "source": "self_declared",
+            "status": "partial",
+            "observedAt": "2026-09-21T09:00:00.000Z",
+            "label": "Startup description"
+          }
+        ],
+        "moduleOutputs": [
+          {
+            "id": "report-pipeline/dimension-owners.ts:benchmarkFor",
+            "output": {
+              "dim": "iri",
+              "benchmarkStage": 3,
+              "p25": 42,
+              "p50": 55,
+              "p75": 68,
+              "deterministicScore": 55
+            }
+          }
+        ],
+        "phaseLens": {
+          "floor": 50,
+          "nextRequired": [
+            "revenue",
+            "documents"
+          ],
+          "whatMattersNow": "a stated ask inside the consensus band, a data room, a signed SAFE; floor iri 50"
+        },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": {
+          "min": 42,
+          "max": 68
+        },
+        "confidence": {
+          "min": 0.5
+        },
+        "must_have_gaps": [
+          "ask"
+        ],
+        "must_not_hallucinate": [
+          "A$9.9M",
+          "Series A"
+        ],
+        "must_cite": 1,
+        "grounded_share_min": 0.85,
+        "primary_visual": {
+          "kind": "heat_map"
         },
         "verdict_max_words": 80
       }

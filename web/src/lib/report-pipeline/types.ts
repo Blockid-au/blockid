@@ -142,6 +142,10 @@ export interface SectionAuditRecord {
   grounded: boolean;
   /** Why the LLM pass was skipped, when it was. */
   skipped?: "budget" | "tier" | "clean" | "cap";
+  /** G24-D: true when the critic→reviser pass ran on this section (absent on pre-G24 rows). */
+  llmAudited?: boolean;
+  /** G24-D: true when the critic objected after the deterministic filter — the reason a zero-uncited section is still ungrounded. */
+  hadIssues?: boolean;
 }
 
 // ── Gather Phase Results ────────────────────────────────────────────────────

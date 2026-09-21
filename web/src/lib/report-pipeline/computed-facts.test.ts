@@ -1,0 +1,176 @@
+// G24-D — computed facts as citable rows (SVI scores, stage benchmarks, CFO
+// consensus valuation): stable ids, both number spellings, auto-cite + gate
+// agreement.
+import { describe, expect, it } from "vitest";
+import { autoCite, itemsFromEvidenceRows } from "./auto-cite";
+import { COMPUTED_FACT_IDS, COMPUTED_FACT_LABELS, computedFactRows, computedFacts, formatAudBoth, isComputedFactId } from "./computed-facts";
+import { benchmarkFor, benchmarkStageForSvi, DIM_ORDER } from "./dimension-owners";
+import { evidenceIdFor } from "./evidence-ids";
+import { findUncitedClaims } from "./llm-auditor";
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+
+function input(overrides: Partial<Parameters<typeof computedFacts>[0]> = {}) {
+  return {
+    sviAnalysis: {
+      totalSVI: 138,
+      stageLabel: "Early Traction",
+      subs: DIM_ORDER.map((k, i) => ({ key: k, label: k.toUpperCase(), value: 40 + i * 5 })),
+      dimensionScores: Object.fromEntries(DIM_ORDER.map((k, i) => [k, 40 + i * 5])),
+    },
+    stage: 3,
+    valuationChapter: {
+      currency: "AUD" as const,
+      methods: [
+        { method: "berkus" as const, lowAud: 2_000_000, midAud: 2_500_000, highAud: 3_000_000, weight: 0.3, rationale: "", applicable: true },
+        { method: "scorecard" as const, lowAud: 3_500_000, midAud: 4_800_000, highAud: 6_100_000, weight: 0.4, rationale: "", applicable: true },
+        { method: "revenue_multiple" as const, lowAud: 0, midAud: 0, highAud: 0, weight: 0, rationale: "pre-revenue", applicable: false },
+      ],
+      consensus: { lowAud: 3_035_400, midAud: 4_622_000, highAud: 6_595_800, confidence: 0.35 },
+      ask: { preMoneyAud: 3_500_000, raiseAud: 500_000, verdict: "aligned" as const, gapPct: -24 },
+      scenarios: { bear: 3_035_400, base: 4_622_000, bull: 6_595_800 },
+      visuals: [],
+      narrative: "",
+      audit: { grounded: true, uncited: 0, revised: false, auditor: "llm-auditor" as const, at: "2026-09-21T00:00:00.000Z" },
+    } as unknown as NonNullable<Parameters<typeof computedFacts>[0]["valuationChapter"]>,
+    ...overrides,
+  };
+}
+
+describe("computed facts — ids", () => {
+  it("mints four stable uuid-shaped ids from the calc| seeds (the same on every run, for every startup)", () => {
+    expect(COMPUTED_FACT_IDS["svi-scores"]).toBe(evidenceIdFor("calc|svi-scores"));
+    expect(COMPUTED_FACT_IDS.benchmarks).toBe(evidenceIdFor("calc|benchmarks"));
+    expect(COMPUTED_FACT_IDS.valuation).toBe(evidenceIdFor("calc|valuation"));
+    for (const id of Object.values(COMPUTED_FACT_IDS)) {
+      expect(id).toMatch(UUID);
+      expect(isComputedFactId(id)).toBe(true);
+    }
+    expect(COMPUTED_FACT_IDS["au-context"]).toBe(evidenceIdFor("calc|au-context"));
+    expect(new Set(Object.values(COMPUTED_FACT_IDS)).size).toBe(4);
+    expect(isComputedFactId(evidenceIdFor("market|description|Startup description"))).toBe(false);
+  });
+
+  it("labels start with a source word the auto-citer knows (svi / benchmarks / valuation)", () => {
+    expect(COMPUTED_FACT_LABELS["svi-scores"]).toMatch(/^SVI /);
+    expect(COMPUTED_FACT_LABELS.benchmarks).toMatch(/^Benchmarks:/);
+    expect(COMPUTED_FACT_LABELS.valuation).toMatch(/^Valuation:/);
+  });
+});
+
+describe("computed facts — content", () => {
+  it("SVI row: the uncapped index (never '/100'), the stage and every dimension score", () => {
+    const svi = computedFacts(input()).find((f) => f.kind === "svi-scores")!;
+    expect(svi.content).toContain("SVI index 138 (open-ended, base 100)");
+    expect(svi.content).not.toContain("138/100");
+    expect(svi.content).toContain("stage Early Traction");
+    expect(svi.content).toContain("TRE (");
+    expect(svi.content).toMatch(/TRE \([^)]+\) 40\/100/);
+    expect(svi.content).toMatch(/SVM \([^)]+\) 75\/100/);
+  });
+
+  it("benchmarks row: p25 / p50 / p75 per dimension for the SVI stage's benchmark stage, with the signed delta vs p50", () => {
+    const row = computedFacts(input()).find((f) => f.kind === "benchmarks")!;
+    const b = benchmarkFor("tre", benchmarkStageForSvi(3));
+    expect(row.content).toContain(`TRE p25 ${b.p25} / p50 ${b.p50} / p75 ${b.p75}`);
+    const delta = 40 - b.p50;
+    expect(row.content).toContain(`${delta >= 0 ? "+" : "−"}${Math.abs(delta)} points vs the p50 median`);
+  });
+
+  it("valuation row: consensus range + mid in both spellings, applicable methods only, the founder ask", () => {
+    const row = computedFacts(input()).find((f) => f.kind === "valuation")!;
+    expect(row.content).toContain("A$3,035,400 (≈A$3.0M)–A$6,595,800 (≈A$6.6M)");
+    expect(row.content).toContain("mid A$4,622,000 (≈A$4.6M)");
+    expect(row.content).toContain("confidence 35%");
+    expect(row.content).toContain("Berkus mid A$2,500,000 (≈A$2.5M)");
+    expect(row.content).toContain("Scorecard mid A$4,800,000 (≈A$4.8M)");
+    expect(row.content).not.toContain("Revenue multiple");
+    expect(row.content).toContain("pre-money A$3,500,000 (≈A$3.5M), raise A$500,000 (≈A$500K) — aligned (-24% vs consensus)");
+  });
+
+  it("no valuation chapter → three rows (scores, benchmarks, AU context); a pending dimension prints 'pending'", () => {
+    const facts = computedFacts(input({ valuationChapter: null, sviAnalysis: { totalSVI: 100, stageLabel: "Concept", subs: [], dimensionScores: {} } }));
+    expect(facts.map((f) => f.kind)).toEqual(["svi-scores", "benchmarks", "au-context"]);
+    expect(facts[0]!.content).toContain("TRE (");
+    expect(facts[0]!.content).toMatch(/TRE \([^)]+\) pending/);
+  });
+
+  it("formatAudBoth: exact + rounded (K / M / bn); below A$1,000 exact only", () => {
+    expect(formatAudBoth(4_622_000)).toBe("A$4,622,000 (≈A$4.6M)");
+    expect(formatAudBoth(500_000)).toBe("A$500,000 (≈A$500K)");
+    expect(formatAudBoth(1_300_000_000)).toBe("A$1,300,000,000 (≈A$1.3bn)");
+    expect(formatAudBoth(149)).toBe("A$149");
+  });
+});
+
+describe("computed facts — rows + the auto-citer + the gate", () => {
+  it("rows carry every dimension, connector_other / partial, and the full content as the value", () => {
+    const rows = computedFactRows(input(), "2026-09-21T09:00:00.000Z");
+    expect(rows).toHaveLength(4);
+    for (const r of rows) {
+      expect(r.dims).toEqual([...DIM_ORDER]);
+      expect(r.source).toBe("connector_other");
+      expect(r.status).toBe("partial");
+      expect(r.observedAt).toBe("2026-09-21T09:00:00.000Z");
+      expect(r.value!.length).toBeGreaterThan(40);
+    }
+  });
+
+  it("a sentence quoting the consensus in either spelling is auto-cited to the valuation row and clears the gate", () => {
+    const items = itemsFromEvidenceRows(computedFactRows(input()));
+    const ids = items.map((i) => i.id);
+    const rounded = autoCite("The CFO consensus sits at A$4.6M, inside a A$3.0M–A$6.6M range.", items);
+    expect(rounded.added).toBe(1);
+    expect(rounded.text).toContain(`[ev:${COMPUTED_FACT_IDS.valuation}].`);
+    const exact = autoCite("Consensus mid A$4,622,000 against a founder pre-money of A$3,500,000.", items);
+    expect(exact.text).toContain(`[ev:${COMPUTED_FACT_IDS.valuation}]`);
+    expect(findUncitedClaims(rounded.text, ids)).toEqual([]);
+    expect(findUncitedClaims(exact.text, ids)).toEqual([]);
+  });
+
+  it("a weak-number benchmark sentence is cited only when it names the row ('benchmark'); a bare '+25 points' is not", () => {
+    const items = itemsFromEvidenceRows(computedFactRows(input()));
+    const b = benchmarkFor("tre", benchmarkStageForSvi(3));
+    const named = autoCite(`TRE sits ${b.p50} at the p50 benchmark for the stage, 12.5% under the p75.`, items);
+    // the % token is strong but not in the row → the sentence stays uncited (no invented match)
+    expect(named.added).toBe(0);
+    const only50 = autoCite(`The stage benchmark median for TRE is ${b.p50}, so a 40 reads below par (a 1.5x gap to the p75 band).`, items);
+    expect(only50.added).toBe(0);
+    const plain = autoCite(`TRE is ${b.p50} points against the stage benchmark median, worth A$0 today.`, items);
+    expect(plain.added).toBe(0);
+    const clean = autoCite(`Against the stage benchmark the TRE median is ${b.p50}.`, items);
+    // not material (no money / % / big count) → nothing to cite, nothing flagged
+    expect(clean.material).toBe(0);
+  });
+
+  it("AU-context row: states the R&DTI 43.5% refundable offset, ESIC 20% / A$200,000 and GST 10% — the numbers the agent prompts themselves quote", () => {
+    const row = computedFacts(input()).find((f) => f.kind === "au-context")!;
+    expect(row.content).toContain("43.5% refundable tax offset");
+    expect(row.content).toContain("under A$20M");
+    expect(row.content).toContain("20% non-refundable carry-forward tax offset capped at A$200,000");
+    expect(row.content).toContain("GST: 10%");
+    expect(row.label).toMatch(/platform knowledge/);
+  });
+
+  it("AU-context row: a sentence about the R&D Tax Incentive rate is cited to it; '20% growth' or 'A$200,000 MRR' never is (topic gate)", () => {
+    const items = itemsFromEvidenceRows(computedFactRows(input()));
+    const rd = autoCite("Engage an R&D consultant to claim up to 43.5% of eligible spend.", items);
+    expect(rd.added).toBe(1);
+    expect(rd.text).toContain(`[ev:${COMPUTED_FACT_IDS["au-context"]}]`);
+    const esic = autoCite("ESIC investors get a 20% offset capped at A$200,000 a year.", items);
+    expect(esic.added).toBe(1);
+    const growth = autoCite("Sign-ups grew 20% month on month.", items);
+    expect(growth.added).toBe(0);
+    expect(growth.uncited).toBe(1);
+    const mrr = autoCite("MRR reached A$200,000 in June.", items);
+    expect(mrr.added).toBe(0);
+    expect(mrr.uncited).toBe(1);
+  });
+
+  it("an invented figure never picks up a computed row", () => {
+    const items = itemsFromEvidenceRows(computedFactRows(input()));
+    const r = autoCite("Revenue reached A$1.2M ARR and the valuation is A$9.9M.", items);
+    expect(r.added).toBe(0);
+    expect(r.uncited).toBe(1);
+  });
+});

@@ -82,7 +82,7 @@ case whose verdict must say "pre-revenue" / "Berkus" and where any `ARR A$` /
 `MRR A$` figure hard-fails, and a Stripe-connector case whose verdict must
 name the source and cite the row).
 
-G23-A adds `TBR-grounding-v2.3.0.json` (pinned by `tbr-fixtures.test.ts`): three
+G23-A adds `TBR-grounding-v2.4.0.json` (pinned by `tbr-fixtures.test.ts`; v2.3.0 → v2.4.0 in G24-D, which added case (d): the computed rows — SVI scores, stage quartiles, CFO consensus — carry stable `calc|…` ids so a sentence quoting the consensus or a p50 is citable): three
 W4-shaped cases with uuid-shaped evidence ids for the three grounding fixes —
 (a) an owner payload that quotes Stripe / founder numbers without an id must
 ground ≥ 0.85 once `auto-cite.ts` has mapped them (and an invented ARR still
