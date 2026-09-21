@@ -99,16 +99,16 @@ export function FeedbackWidget(_props: { page?: string } = {}) {
   return (
     <div className="fixed z-50 flex flex-col items-end gap-2 bottom-5 right-5">
       {open && (
-        <div className="w-[22rem] max-w-[calc(100vw-2.5rem)] rounded-2xl border border-surface-200 bg-white shadow-xl dark:border-surface-700 dark:bg-surface-900 overflow-hidden">
-          <div className="flex items-center justify-between px-4 py-3 border-b border-surface-200 dark:border-surface-700">
+        <div className="w-[22rem] max-w-[calc(100vw-2.5rem)] rounded-2xl border border-surface-200 bg-white shadow-xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-surface-200">
             <div className="flex items-center gap-2">
               <MessageSquarePlus strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
-              <span className="text-sm font-semibold text-brand-900 dark:text-ink-100">Help us improve — earn credits</span>
+              <span className="text-sm font-semibold text-brand-900">Help us improve — earn credits</span>
             </div>
             <button
               type="button"
               onClick={reset}
-              className="h-6 w-6 flex items-center justify-center rounded-lg text-ink-400 hover:text-ink-700 hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+              className="h-6 w-6 flex items-center justify-center rounded-lg text-ink-400 hover:text-ink-700 hover:bg-surface-100 transition-colors"
               aria-label="Close feedback"
             >
               <X strokeWidth={2} className="h-3.5 w-3.5" />
@@ -118,19 +118,19 @@ export function FeedbackWidget(_props: { page?: string } = {}) {
           {status === "done" ? (
             <div className="px-4 py-6 flex flex-col items-center gap-3 text-center">
               <CheckCircle2 strokeWidth={1.5} className="h-10 w-10 text-green-500" />
-              <p className="text-sm font-semibold text-brand-900 dark:text-ink-100">Thanks for the feedback</p>
+              <p className="text-sm font-semibold text-brand-900">Thanks for the feedback</p>
               {credits != null && credits > 0 ? (
-                <p className="text-xs text-ink-500 dark:text-ink-400">
+                <p className="text-xs text-ink-500">
                   You earned <span className="text-brand-600 font-semibold">{credits.toFixed(2)} credits</span>.
                 </p>
               ) : null}
               {resultMsg ? (
-                <p className="text-xs text-ink-500 dark:text-ink-400 italic">&ldquo;{resultMsg}&rdquo;</p>
+                <p className="text-xs text-ink-500 italic">&ldquo;{resultMsg}&rdquo;</p>
               ) : null}
             </div>
           ) : (
             <form onSubmit={submit} className="p-4 space-y-3">
-              <p className="text-[11px] leading-snug text-ink-500 dark:text-ink-400">
+              <p className="text-[11px] leading-snug text-ink-500">
                 Useful feedback earns 0.25–1.00 credit each, AI-graded for specificity / actionability / value. Max 5 per day.
               </p>
 
@@ -138,7 +138,7 @@ export function FeedbackWidget(_props: { page?: string } = {}) {
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value as Category)}
-                  className="w-full appearance-none rounded-lg border border-surface-200 bg-surface-50 px-3 py-2 pr-8 text-xs text-ink-700 dark:border-surface-700 dark:bg-surface-800 dark:text-ink-200 focus:outline-none focus:ring-2 focus:ring-brand-300 cursor-pointer"
+                  className="w-full appearance-none rounded-lg border border-surface-200 bg-surface-50 px-3 py-2 pr-8 text-xs text-ink-700 focus:outline-none focus:ring-2 focus:ring-brand-300 cursor-pointer"
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c.value} value={c.value}>{c.label}</option>
@@ -154,7 +154,7 @@ export function FeedbackWidget(_props: { page?: string } = {}) {
                 rows={5}
                 maxLength={MAX_LEN}
                 placeholder="What would you change, add, or fix? Be specific."
-                className="w-full resize-none rounded-lg border border-surface-200 bg-surface-50 px-3 py-2 text-xs text-ink-700 placeholder:text-ink-400 dark:border-surface-700 dark:bg-surface-800 dark:text-ink-200 focus:outline-none focus:ring-2 focus:ring-brand-300"
+                className="w-full resize-none rounded-lg border border-surface-200 bg-surface-50 px-3 py-2 text-xs text-ink-700 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-300"
               />
 
               <div className="flex items-center justify-between text-[10px]">
@@ -188,7 +188,7 @@ export function FeedbackWidget(_props: { page?: string } = {}) {
         className={cn(
           "flex items-center gap-2 rounded-full shadow-lg pl-3 pr-4 h-11 transition-all duration-200",
           open
-            ? "bg-surface-200 text-ink-700 hover:bg-surface-300 dark:bg-surface-700 dark:text-ink-200"
+            ? "bg-surface-200 text-ink-700 hover:bg-surface-300"
             : "bg-brand-600 text-white hover:bg-brand-700 hover:scale-[1.03]",
         )}
         aria-label={open ? "Close feedback" : "Open feedback"}
