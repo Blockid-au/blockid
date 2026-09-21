@@ -171,7 +171,7 @@ export function TbrClaritySurveyForm({ snapshotId, strings: t, score, comment, p
                 className={cn(
                   "h-9 w-9 rounded-lg border text-sm font-semibold tabular-nums transition-colors",
                   score === n
-                    ? "border-brand-600 bg-brand-600 text-white"
+                    ? "border-action bg-action text-on-action"
                     : "border-line-subtle bg-surface text-secondary hover:border-line",
                 )}
               >
@@ -198,7 +198,7 @@ export function TbrClaritySurveyForm({ snapshotId, strings: t, score, comment, p
                 type="submit"
                 disabled={score === null || phase !== "idle"}
                 data-testid="tbr-clarity-submit"
-                className="inline-flex h-9 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:cursor-not-allowed disabled:opacity-50"
+                className="inline-flex h-9 items-center rounded-lg bg-action px-4 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {t.submit}
               </button>
