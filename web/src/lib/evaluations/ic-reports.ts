@@ -268,7 +268,17 @@ export async function createIcReport(input: { view: DossierView; userId: string;
     action: "ic_report.exported",
     resource_type: "ic_report",
     resource_id: report.id,
-    detail: { evaluation_id: report.evaluationId, project_id: report.projectId, kind: report.kind, weights_shown: report.weightsShown, pages: report.pages, decision: sections.decision.value, seats: sections.seats.length },
+    detail: {
+      evaluation_id: report.evaluationId,
+      project_id: report.projectId,
+      kind: report.kind,
+      weights_shown: report.weightsShown,
+      pages: report.pages,
+      decision: sections.decision.value,
+      seats: sections.seats.length,
+      // G22-A: a cohort seat's export names the batch it came through.
+      ...(input.view.viewer.viaBatchId ? { via_batch_id: input.view.viewer.viaBatchId } : {}),
+    },
   }).catch(() => {});
   return { ok: true, report };
 }

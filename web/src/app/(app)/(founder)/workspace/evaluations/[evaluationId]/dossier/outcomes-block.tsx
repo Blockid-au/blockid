@@ -23,24 +23,25 @@ export interface OutcomesBlockProps {
   role: "assessor" | "founder";
   consentTier: MentorAccessTier;
   verificationLevel: number | null;
+  /** G22-A: false for a BlockID Cohort seat (read-only dossier) — the ledger renders without the record form. */
+  canRecord?: boolean;
 }
 
-export async function OutcomesBlock({ projectId, role, consentTier, verificationLevel }: OutcomesBlockProps) {
+export async function OutcomesBlock({ projectId, role, consentTier, verificationLevel, canRecord = role === "assessor" }: OutcomesBlockProps) {
   const sb = getSupabaseAdmin();
   // Review P1: the chart honours the same consent tier as the ledger list.
   const withholdOutcomeValues = role === "assessor" && TIER_RANK[consentTier] < TIER_RANK.reports_shared;
-  const trajectory = await loadTrajectory(sb, projectId, { verificationLevel: verificationLevel === null ? null : `L${verificationLevel}`, withholdOutcomeValues });
-  let outcomes: OutcomeItem[] = [];
-  let unavailable = false;
-  if (sb) {
-    try {
-      outcomes = projectOutcomesByTier(await listProjectOutcomes(sb, projectId), role === "assessor" ? consentTier : null);
-    } catch {
-      unavailable = true;
-    }
-  } else {
-    unavailable = true;
-  }
+  // G22-A: the trajectory and the ledger read in parallel (each fail-soft on its own).
+  const [trajectory, ledger] = await Promise.all([
+    loadTrajectory(sb, projectId, { verificationLevel: verificationLevel === null ? null : `L${verificationLevel}`, withholdOutcomeValues }),
+    sb
+      ? listProjectOutcomes(sb, projectId)
+          .then((rows) => ({ ok: true as const, outcomes: projectOutcomesByTier(rows, role === "assessor" ? consentTier : null) }))
+          .catch(() => ({ ok: false as const, outcomes: [] as OutcomeItem[] }))
+      : Promise.resolve({ ok: false as const, outcomes: [] as OutcomeItem[] }),
+  ]);
+  const outcomes: OutcomeItem[] = ledger.outcomes;
+  const unavailable = !ledger.ok;
   return (
     <DossierBlock n={7} title="Outcomes & trajectory" testId="dossier-block-7">
       <p className="text-xs text-ink-500">
@@ -54,7 +55,7 @@ export async function OutcomesBlock({ projectId, role, consentTier, verification
             The outcome ledger is briefly unavailable — the trajectory above still reflects every snapshot.
           </p>
         ) : (
-          <OutcomesClient projectId={projectId} initial={outcomes} canRecord={role === "assessor"} canResolve={false} recordAs="evaluator" headingLevel={3} />
+          <OutcomesClient projectId={projectId} initial={outcomes} canRecord={canRecord} canResolve={false} recordAs="evaluator" headingLevel={3} />
         )}
       </div>
     </DossierBlock>

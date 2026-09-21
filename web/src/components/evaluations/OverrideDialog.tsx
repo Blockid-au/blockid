@@ -18,6 +18,7 @@ import { DIMENSION_KEYS, DIMENSION_LABELS, type DimensionKey } from "@/lib/evalu
 import type { CohortRow } from "@/lib/evaluations/cohort-rows";
 import { OVERRIDE_NOTE_MAX, OVERRIDE_REASON_CODES, OVERRIDE_REASON_LABELS, overrideInputSchema, type OverrideDimension, type OverrideReasonCode } from "@/lib/evaluations/overrides-shared";
 import { userErrorMessage } from "@/lib/ui/user-error";
+import { useReturnFocus } from "./use-return-focus";
 
 export interface OverrideDialogProps {
   open: boolean;
@@ -71,6 +72,11 @@ export function modelScoreFor(row: CohortRow | null, dimension: OverrideDimensio
 const field = "mt-1 h-11 w-full rounded-xl border border-line bg-surface px-3 text-sm text-primary focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-action";
 
 export function OverrideDialog({ open, batchId, row, onClose, onSaved, initialDimension }: OverrideDialogProps) {
+  // G22-A A.4: focus returns to the "Override" button that opened the dialog
+  // when it closes (hook declared here, above the early return, so it runs
+  // on every render; it follows focus while closed and pins the opener
+  // before the form's own first-field focus() runs).
+  useReturnFocus(open && !!row);
   if (!open || !row) return null;
   // Keyed by the row so every open starts from a fresh form (state initialisers, no reset effect).
   return <OverrideForm key={row.itemId} batchId={batchId} row={row} onClose={onClose} onSaved={onSaved} initialDimension={initialDimension} />;

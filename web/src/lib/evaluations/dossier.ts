@@ -84,6 +84,7 @@ import {
 import { emptyConsensus, readConsensus, shareOrg, type DossierConsensus } from "@/lib/investor/organisations";
 import { readAuditTrail, type DossierAuditEntry } from "./dossier-audit";
 import { loadReviewerSignature } from "./signature-load";
+import { batchSeatForEvaluation } from "./batch-members";
 import type { ReviewerSignature } from "./signature";
 import { loadFounderExecutionContext } from "@/lib/founder/execution-load";
 import { founderExecutionSignals } from "@/lib/founder/execution";
@@ -142,6 +143,8 @@ export interface DossierHeader {
   consensus: { label: string; submitted: number; seats: number; aggregate: DossierConsensus["aggregate"] } | null;
   /** S-D3: true when the viewer opened this dossier as a same-org seat (not the evaluator who added it). */
   viaOrgSeat: boolean;
+  /** G22-A: true when opened through a BlockID Cohort seat (read-only assessor). */
+  viaBatchSeat: boolean;
 }
 
 export interface DossierDimRow {
@@ -224,7 +227,14 @@ export interface DossierAssessmentBlock {
 }
 
 export interface DossierView {
-  viewer: { role: DossierViewerRole; userId: string };
+  viewer: {
+    role: DossierViewerRole;
+    userId: string;
+    /** G22-A: the cohort the viewer reached this dossier through (null = evaluator / claimed founder / org seat). */
+    viaBatchId: string | null;
+    /** G22-A: true for a cohort seat — no assessment form, no share / action writes; IC memo export stays. */
+    readOnly: boolean;
+  };
   header: DossierHeader;
   /** G21-P1-B: the BlockID Assessment Card (SVI · Evidence Confidence · BlockID Verified · strength / gap · unverified claims); null without a report. */
   assessmentCard: AssessmentCardData | null;
@@ -504,6 +514,15 @@ interface EvaluationWithProject {
   role: DossierViewerRole;
   /** S-D3: set when the viewer is a same-org seat of the evaluator (F1) — the org both belong to. */
   viaOrgId: string | null;
+  /**
+   * G22-A: set when the viewer holds a seat (viewer+) on a BlockID Cohort that
+   * contains this evaluation — read-only assessor: the same blocks at the
+   * evaluation's consent tier (never wider), no assessment / share / action
+   * writes (assessment-access.ts refuses them), IC memo export allowed.
+   */
+  viaBatchId: string | null;
+  /** True for `viaBatchId` access — the page hides the write surfaces. */
+  readOnly: boolean;
 }
 
 const EVALUATION_COLUMNS =
@@ -529,21 +548,35 @@ export async function resolveDossierAccess(evaluationId: string, userId: string)
   const evaluation = mapEvaluationRow(row);
   let role: DossierViewerRole;
   let viaOrgId: string | null = null;
+  let viaBatchId: string | null = null;
   if (evaluation.evaluatorUserId === userId) role = "assessor";
   else if (evaluation.founderUserId === userId && evaluation.ownerKind === "founder_claimed" && evaluation.claimedAt) role = "founder";
   else {
     // S-D3 (F1): a same-org seat opens the dossier the evaluator added.
     viaOrgId = evaluation.evaluatorUserId ? await shareOrg(userId, evaluation.evaluatorUserId) : null;
-    if (!viaOrgId) return null;
+    if (!viaOrgId) {
+      // G22-A: a seat on a BlockID Cohort that contains this evaluation opens
+      // it read-only (the cohort row's "Dossier" link resolves for members).
+      const seat = await batchSeatForEvaluation(userId, evaluationId).catch(() => null);
+      if (!seat) return null;
+      viaBatchId = seat.batchId;
+    }
     role = "assessor";
   }
   const p = (Array.isArray(row.projects) ? row.projects[0] : row.projects) ?? {};
   // A founder must never receive the invite token (Evaluation doc comment).
   if (role === "founder") evaluation.inviteToken = null;
+  // A cohort seat never receives the evaluator's private invite token or notes either.
+  if (viaBatchId) {
+    evaluation.inviteToken = null;
+    evaluation.notes = null;
+  }
   return {
     evaluation,
     role,
     viaOrgId,
+    viaBatchId,
+    readOnly: !!viaBatchId,
     project: {
       id: String(p.id ?? evaluation.projectId),
       name: String(p.name ?? "Untitled startup"),
@@ -785,8 +818,9 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
       latestSvi: svi,
       mine: mine ? { version: mine.version, snapshotId: mine.snapshotId, updatedAt: mine.updatedAt, submittedAt: mine.submittedAt } : null,
     }).catch(() => emptyProgressBlock()),
-    // S-D3: every seat's current assessment (assessor only; the founder never receives other seats' rows).
-    role === "assessor" && assessment.available
+    // S-D3: every seat's current assessment (assessor only; the founder never receives other seats' rows;
+    // G22-A: a cohort seat is not an org seat — the evaluator firm's consensus table stays theirs).
+    role === "assessor" && !access.viaBatchId && assessment.available
       ? readConsensus({ evaluationId: evaluation.id, viewerUserId: userId, viewerAssessment: mine }).catch(() => emptyConsensus(false))
       : Promise.resolve(emptyConsensus(false)),
     readAuditTrail(userId, evaluation.id).catch(() => [] as DossierAuditEntry[]),
@@ -825,6 +859,7 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
         ? { label: consensus.label, submitted: consensus.submittedCount, seats: consensus.seatCount, aggregate: consensus.aggregate }
         : null,
     viaOrgSeat: !!access.viaOrgId,
+    viaBatchSeat: !!access.viaBatchId,
   };
 
   const reportBlock: DossierReportBlock = {
@@ -842,28 +877,35 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
     founderExecution,
   };
 
+  const generatedAt = new Date().toISOString();
+  // Round 3 (G22-A: ONE Promise.all — these used to be awaited one after
+  // another, ~+150 ms per view). Each reader is fail-soft on its own:
+  //   assessment context  G21-P1-B — the Assessment Card options (stage /
+  //                       sector benchmark context) from the same ReportV2;
+  //   connector freshness G21 P3-C — the "stale connector" hint (sources past
+  //                       the proof TTL; [] without a db);
+  //   signature           G21 P3-C — the reviewer signature block (assessor
+  //                       only; founders see none);
+  //   (the outcomes ledger + trajectory are their own server block —
+  //   dossier/outcomes-block.tsx — and load in parallel there.)
+  const warn = (label: string) => (err: unknown) => {
+    console.warn(`[blockid:dossier] ${label} skipped`, err instanceof Error ? err.message : String(err));
+    return null;
+  };
+  const [assessmentContext, freshness, signature] = await Promise.all([
+    report ? loadAssessmentContext(evaluation.projectId, report.cover.stage ?? null, report.cover.sector ?? null).catch(warn("assessment context")) : Promise.resolve(null),
+    report ? connectorFreshness(evaluation.projectId, { db: getSupabaseAdmin() }).catch(warn("connector freshness")) : Promise.resolve(null),
+    role === "assessor" ? loadReviewerSignature({ userId, projectId: evaluation.projectId, generatedAt }).catch(warn("signature")) : Promise.resolve(null),
+  ]);
+  const staleConnectors = freshness ? staleConnectorCount(freshness) : 0;
   // G21-P1-B: the Assessment Card from the same ReportV2 + Evidence Hub rows
   // every other surface uses (the card never re-derives a score).
-  const assessmentContext = report ? await loadAssessmentContext(evaluation.projectId, report.cover.stage ?? null, report.cover.sector ?? null) : null;
-  // G21 P3-C: the "stale connector" hint — sources past the proof TTL (fail-soft, [] without a db).
-  const staleConnectors = report ? staleConnectorCount(await connectorFreshness(evaluation.projectId, { db: getSupabaseAdmin() })) : 0;
   const assessmentCard = report
     ? assessmentCardFromReport(report, { evidence: dossierEvidenceByDim(evidenceRows), ...(assessmentContext ? assessmentCardOptionsFromContext(assessmentContext) : {}), staleConnectors })
     : null;
 
-  const generatedAt = new Date().toISOString();
-  // G21 P3-C — the signature block (every read fail-soft; founders see none).
-  let signature: ReviewerSignature | null = null;
-  if (role === "assessor") {
-    try {
-      signature = await loadReviewerSignature({ userId, projectId: evaluation.projectId, generatedAt });
-    } catch (err) {
-      console.warn("[blockid:dossier] signature skipped", err instanceof Error ? err.message : String(err));
-    }
-  }
-
   return {
-    viewer: { role, userId },
+    viewer: { role, userId, viaBatchId: access.viaBatchId, readOnly: access.readOnly },
     header,
     assessmentCard,
     report: reportBlock,

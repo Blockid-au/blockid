@@ -10,7 +10,7 @@ import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Layers, Loader2, Plus } from "lucide-react";
-import { batchProgressPct, type EvaluationBatch } from "@/lib/evaluations/batch-shared";
+import { BATCH_ROLE_LABELS, batchProgressPct, type BatchRole, type EvaluationBatch } from "@/lib/evaluations/batch-shared";
 
 export interface CohortIndexTemplate {
   id: string;
@@ -18,7 +18,8 @@ export interface CohortIndexTemplate {
 }
 
 export interface CohortIndexProps {
-  batches: EvaluationBatch[];
+  /** G22-A: created + member cohorts; `role` = the caller's seat (a role chip renders when present). */
+  batches: Array<EvaluationBatch & { role?: BatchRole }>;
   templates: CohortIndexTemplate[];
   canCreate: boolean;
   /** Live paid pilot cap, shown on the form. */
@@ -30,6 +31,13 @@ const STATUS_CHIP: Record<EvaluationBatch["status"], { label: string; className:
   running: { label: "Scoring…", className: "border-brand-300 bg-brand-50 text-brand-700" },
   done: { label: "Scored", className: "border-emerald-300 bg-emerald-50 text-emerald-700" },
   failed: { label: "Failed", className: "border-red-300 bg-red-50 text-red-700" },
+};
+
+/** G22-A: the caller's seat on the cohort (owner = created it; reviewer / viewer = invited). */
+export const ROLE_CHIP: Record<BatchRole, string> = {
+  owner: "border-brand-300 bg-brand-50 text-brand-700",
+  reviewer: "border-surface-300 bg-surface-100 text-ink-700",
+  viewer: "border-surface-300 bg-surface-50 text-ink-500",
 };
 
 function fmt(iso: string): string {
@@ -154,6 +162,11 @@ export function CohortIndex({ batches, templates, canCreate, pilotCap }: CohortI
                     </Link>
                     {b.programName ? <span className="text-xs text-ink-500">{b.programName}</span> : null}
                     <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${chip.className}`}>{chip.label}</span>
+                    {b.role ? (
+                      <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] font-semibold ${ROLE_CHIP[b.role]}`} data-testid="cohort-role-chip" data-role={b.role}>
+                        {BATCH_ROLE_LABELS[b.role]}
+                      </span>
+                    ) : null}
                   </div>
                   <div className="mt-1 flex items-center gap-2 text-xs text-ink-500">
                     <span className="h-1.5 w-32 overflow-hidden rounded-full bg-surface-100" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct} aria-label={`${b.name} scoring progress`}>

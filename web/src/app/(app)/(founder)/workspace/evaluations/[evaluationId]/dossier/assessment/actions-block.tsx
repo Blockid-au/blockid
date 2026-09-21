@@ -77,6 +77,25 @@ export function ActionsBlock({ view, plan, batchAllowed = false }: { view: Dossi
                 .
               </li>
             </ul>
+          ) : view.viewer.readOnly ? (
+            // G22-A: a BlockID Cohort seat — the evaluator's actions stay theirs; the memo export is the one action here.
+            <ul className="mt-1 list-disc space-y-1 pl-5" data-testid="actions-read-only">
+              <li>
+                Overrides, review status and decisions are recorded on the{" "}
+                <Link href={view.viewer.viaBatchId ? `/workspace/evaluations/cohort/${encodeURIComponent(view.viewer.viaBatchId)}` : "/workspace/evaluations/cohort"} className="text-brand-700 hover:underline">
+                  cohort table
+                </Link>
+                .
+              </li>
+              <li>Export an IC memo / one-pager from the header — it prints under your name.</li>
+              {view.report.links.fullReport ? (
+                <li>
+                  <a href={view.report.links.fullReport} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">
+                    Open the latest full report
+                  </a>
+                </li>
+              ) : null}
+            </ul>
           ) : (
             <div className="mt-2 space-y-3" data-testid="actions-assessor">
               <DossierActions evaluationId={view.header.evaluationId} founderClaimed={view.header.founderClaimed} founderEmailOnFile={view.header.ownerKind !== "evaluator"} icKind={icKind} batchAllowed={batchAllowed} />

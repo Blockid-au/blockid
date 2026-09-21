@@ -18,13 +18,25 @@ export const ASSESSMENT_WRITES_PER_MINUTE = 60;
 
 export type AssessmentAccess = NonNullable<Awaited<ReturnType<typeof resolveDossierAccess>>>;
 
+export interface AssessmentAccessOptions {
+  /**
+   * G22-A: admit a BlockID Cohort seat (`viaBatchId`) — read-only routes and
+   * the IC memo export only. Default false: every assessment / share /
+   * action WRITE stays with the evaluator and their org seats (a cohort
+   * seat answering 404 here is the "read-only assessor" contract).
+   */
+  allowViaBatch?: boolean;
+}
+
 export async function resolveAssessmentAccess(
   evaluationId: string,
   user: { id: string; plan: string | null; accountType?: string | null },
+  opts: AssessmentAccessOptions = {},
 ): Promise<AssessmentAccess | null> {
   if (!ID_RE.test(evaluationId)) return null;
   const access = await resolveDossierAccess(evaluationId, user.id);
   if (!access) return null;
+  if (access.viaBatchId) return opts.allowViaBatch ? access : null;
   if (access.role === "assessor" && !(await isEvaluatorUser(user))) return null;
   return access;
 }

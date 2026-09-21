@@ -23,7 +23,7 @@ export function fakeView(over: { mine?: Partial<EvaluationAssessment> | null; co
     { dim: "lco", code: "LCO", title: "Legal & Compliance", weight: 8, score: 40, band: "developing", delta30d: null, p50: 58, percentile: 22, ownerAgent: "CLO" },
   ] as DossierView["report"]["dims"];
   return {
-    viewer: { role: "assessor", userId: "u-eval" },
+    viewer: { role: "assessor", userId: "u-eval", viaBatchId: null, readOnly: false },
     header: {
       evaluationId: "e-1", projectId: "p-1", projectSlug: "acme", name: "Acme Robotics", website: "https://acme.io", state: "NSW", label: null,
       badges: [{ axis: "industry", label: "Advanced manufacturing", unclassified: false, source: "auto" }, { axis: "business_model", label: "Unclassified", unclassified: true, source: "none" }, { axis: "stage", label: "Seed", unclassified: false, source: "auto" }],
@@ -33,7 +33,7 @@ export function fakeView(over: { mine?: Partial<EvaluationAssessment> | null; co
       verification: { level: 2, abnVerified: true, label: "Verified ABN" },
       decision: mine ? { value: mine.decision, status: mine.status, version: mine.version } : null,
       mandateFit: { mandateId: "m-1", mandateLabel: "Seed deep-tech AU", score: 77, passesFloor: true, reasons: ["Industry match", "Stage match"], gaps: ["Cheque above range"], blockers: [], source: "persisted", computedAt: null },
-      sinceLastView: null, consensus: null, viaOrgSeat: false,
+      sinceLastView: null, consensus: null, viaOrgSeat: false, viaBatchSeat: false,
     },
     // G21-P1-B: the Assessment Card the page + IC memo render (built from the same two dims).
     assessmentCard: buildAssessmentCard(

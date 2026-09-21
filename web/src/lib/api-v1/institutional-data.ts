@@ -21,7 +21,7 @@
 import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { isMissingRelation } from "@/lib/investors/mandates";
-import { getBatchById, listBatches } from "@/lib/evaluations/batch";
+import { listBatches } from "@/lib/evaluations/batch";
 import { assertBatchRole, type BatchRole } from "@/lib/evaluations/batch-members";
 import { loadBlockIdCohortRows } from "@/lib/evaluations/cohort-rows-loader";
 import { listCohortSnapshots, type CohortSnapshot } from "@/lib/evaluations/cohort-snapshots";
@@ -203,20 +203,10 @@ async function memberBatchIds(userId: string): Promise<Map<string, BatchRole>> {
   return out;
 }
 
-/** The key owner's readable cohorts: created (owner) + member seats, newest first. */
+/** The key owner's readable cohorts: created (owner) + member seats, newest first (G22-A: one `listBatches` read carries the role). */
 export async function listReadableBatches(userId: string, limit = 50): Promise<PublicCohortV1[]> {
-  const [own, members] = await Promise.all([listBatches(userId, limit), memberBatchIds(userId)]);
-  const out: PublicCohortV1[] = own.map((b) => toPublicCohort(b, "owner"));
-  const seen = new Set(own.map((b) => b.id));
-  for (const [batchId, role] of members) {
-    if (seen.has(batchId)) continue;
-    const b = await getBatchById(batchId);
-    if (b) {
-      out.push(toPublicCohort(b, role));
-      seen.add(batchId);
-    }
-  }
-  return out.sort((a, b) => (a.created_at < b.created_at ? 1 : a.created_at > b.created_at ? -1 : 0)).slice(0, limit);
+  const batches = await listBatches(userId, limit);
+  return batches.map((b) => toPublicCohort(b, b.role));
 }
 
 export type CohortLoad = { ok: true; cohort: PublicCohortV1; items: PublicCohortItemV1[] } | { ok: false; error: "not_found" | "unavailable" };

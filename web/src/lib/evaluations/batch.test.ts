@@ -22,6 +22,7 @@ const db = {
   evaluation_batch_items: [] as Row[],
   evaluations: [] as Row[],
   app_users: [] as Row[],
+  evaluation_batch_members: [] as Row[],
 };
 
 type Filter = (r: Row) => boolean;
@@ -50,7 +51,10 @@ function builder(table: keyof typeof db) {
     if (op === "update") {
       const rows = rowsMatching();
       for (const r of rows) Object.assign(r, patch);
-      return { data: rows.map((r) => ({ ...r })), error: null, count: null };
+      const out = rows.map((r) => ({ ...r }));
+      if (wantSingle === "maybe") return { data: out[0] ?? null, error: null, count: null };
+      if (wantSingle === "single") return out[0] ? { data: out[0], error: null, count: null } : { data: null, error: { code: "PGRST116" }, count: null };
+      return { data: out, error: null, count: null };
     }
     if (op === "delete") {
       const rows = rowsMatching();
@@ -115,6 +119,8 @@ import {
   countPendingBatchItems,
   nextQueuedItems,
   sweepExpiredLeases,
+  listBatches,
+  updateBatchWeights,
 } from "./batch";
 
 const NOW = new Date("2026-09-10T12:30:00.000Z");
@@ -134,6 +140,7 @@ function seed() {
     { id: "e-3", project_id: "p-3", label: null, state: null, projects: { name: "Gamma", slug: "gamma", industry: null, stage: 1 } },
   ];
   db.app_users = [{ id: "u-1", plan: "investor_vc_small" }];
+  db.evaluation_batch_members = [];
 }
 
 beforeEach(() => {
@@ -234,5 +241,67 @@ describe("#8 reserved quota", () => {
     db.evaluation_batch_items[2].status = "done";
     expect(await countPendingBatchItems("u-1")).toBe(2);
     expect(await countPendingBatchItems("u-other")).toBe(0);
+  });
+});
+
+describe("listBatches (G22-A: created + member cohorts, each with the caller's seat)", () => {
+  it("the creator's batches carry role owner; a member row adds that batch with its role; newest first; no duplicates", async () => {
+    db.evaluation_batches.push(
+      { id: "b-2", user_id: "u-2", name: "Other's cohort", rubric_weights: {}, status: "done", total: 1, done_count: 1, failed_count: 0, created_at: "2026-09-12T00:00:00Z", started_at: null, finished_at: null, weights_version: 3 },
+      { id: "b-3", user_id: "u-3", name: "Unrelated", rubric_weights: {}, status: "done", total: 1, done_count: 1, failed_count: 0, created_at: "2026-09-13T00:00:00Z", started_at: null, finished_at: null },
+    );
+    db.evaluation_batch_members.push({ batch_id: "b-2", user_id: "u-1", role: "reviewer" }, { batch_id: "b-1", user_id: "u-1", role: "viewer" });
+    const list = await listBatches("u-1");
+    expect(list.map((b) => [b.id, b.role])).toEqual([
+      ["b-2", "reviewer"],
+      ["b-1", "owner"], // a member row on a batch the caller created never demotes the creator
+    ]);
+    expect(list[0]?.weightsVersion).toBe(3);
+    expect(list.some((b) => b.id === "b-3")).toBe(false);
+  });
+
+  it("a stranger with no batches and no seats gets []; an unknown role string reads as viewer; the limit applies after the merge", async () => {
+    expect(await listBatches("u-nobody")).toEqual([]);
+    db.evaluation_batches.push({ id: "b-2", user_id: "u-2", name: "X", rubric_weights: {}, status: "done", total: 1, done_count: 1, failed_count: 0, created_at: "2026-09-12T00:00:00Z", started_at: null, finished_at: null });
+    db.evaluation_batch_members.push({ batch_id: "b-2", user_id: "u-1", role: "bogus" });
+    const list = await listBatches("u-1", 1);
+    expect(list).toHaveLength(1);
+    expect(list[0]).toMatchObject({ id: "b-2", role: "viewer" });
+  });
+});
+
+describe("updateBatchWeights (G22-A weights editor)", () => {
+  const equal = { ftv: 12.5, mpc: 12.5, ptd: 12.5, tre: 12.5, cgh: 12.5, iri: 12.5, lco: 12.5, svm: 12.5 };
+
+  it("a real change writes the normalised set and bumps weights_version by one; the row is re-read", async () => {
+    db.evaluation_batches[0].weights_version = 1;
+    const batch = (await listBatches("u-1"))[0]!;
+    const r = await updateBatchWeights(batch, { ...equal, tre: 40, mpc: 0 });
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.changed).toBe(true);
+    expect(r.previousVersion).toBe(1);
+    expect(r.batch.weightsVersion).toBe(2);
+    expect(r.batch.rubricWeights.mpc).toBe(0);
+    expect(r.batch.rubricWeights.tre).toBeGreaterThan(30);
+    const sum = Object.values(r.batch.rubricWeights).reduce((s, v) => s + v, 0);
+    expect(Math.round(sum)).toBe(100);
+    expect(db.evaluation_batches[0].weights_version).toBe(2);
+  });
+
+  it("an identical set (after normalisation) is a no-op: same version, changed:false, nothing written", async () => {
+    db.evaluation_batches[0].weights_version = 4;
+    db.evaluation_batches[0].rubric_weights = equal;
+    const batch = (await listBatches("u-1"))[0]!;
+    const r = await updateBatchWeights(batch, { ftv: 1, mpc: 1, ptd: 1, tre: 1, cgh: 1, iri: 1, lco: 1, svm: 1 });
+    expect(r).toMatchObject({ ok: true, changed: false, previousVersion: 4 });
+    expect(db.evaluation_batches[0].weights_version).toBe(4);
+  });
+
+  it("not_found when the batch row is gone", async () => {
+    const batch = (await listBatches("u-1"))[0]!;
+    db.evaluation_batches = [];
+    const r = await updateBatchWeights(batch, { ...equal, tre: 40 });
+    expect(r).toMatchObject({ ok: false, error: "not_found" });
   });
 });

@@ -73,7 +73,8 @@ export async function GET(request: Request, { params }: Ctx) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   const { id } = await params;
-  const access = await resolveAssessmentAccess(id, user);
+  // G22-A: a BlockID Cohort seat (viaBatch) may list / download / export too.
+  const access = await resolveAssessmentAccess(id, user, { allowViaBatch: true });
   if (!access || access.role !== "assessor") return notFound();
 
   const reportId = new URL(request.url).searchParams.get("report");
@@ -133,7 +134,8 @@ async function POST_handler(request: Request, { params }: Ctx) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ ok: false, error: "auth_required" }, { status: 401 });
   const { id } = await params;
-  const access = await resolveAssessmentAccess(id, user);
+  // G22-A: a BlockID Cohort seat (viaBatch) may list / download / export too.
+  const access = await resolveAssessmentAccess(id, user, { allowViaBatch: true });
   if (!access || access.role !== "assessor") return notFound();
 
   const limited = enforceRateLimit("ic-report-export", user.id, request, IC_EXPORTS_PER_MINUTE, 60 * 1000);

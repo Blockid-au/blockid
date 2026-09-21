@@ -24,6 +24,8 @@ export interface TrajectoryTimelineProps {
   outcomesHref?: string | null;
   /** Kicker + heading copy override (the dossier says "for this startup"). */
   title?: string;
+  /** G22-A: id prefix for the SVG title / desc — pass a unique one when several timelines share a page (Compare drawer). */
+  id?: string;
 }
 
 const LABEL = "text-[11px] font-semibold uppercase tracking-wide text-muted";
@@ -72,7 +74,7 @@ function MilestoneTile({ m }: { m: TrajectoryMilestone }) {
   );
 }
 
-function Chart({ data, height }: { data: Trajectory; height: number }) {
+function Chart({ data, height, id }: { data: Trajectory; height: number; id: string }) {
   const span = Math.max(1, data.spanDays);
   const plotW = W - PAD.l - PAD.r;
   const plotH = height - PAD.t - PAD.b;
@@ -99,9 +101,9 @@ function Chart({ data, height }: { data: Trajectory; height: number }) {
   const title = "SVI and Evidence Confidence over time";
   const desc = `From Day 0 (${data.day0 ?? "—"}) to Day ${span}: ${data.points.length} snapshot${data.points.length === 1 ? "" : "s"}, ${data.markers.length} confirmed outcome${data.markers.length === 1 ? "" : "s"}.`;
   return (
-    <svg viewBox={`0 0 ${W} ${height}`} width={W} height={height} role="img" aria-labelledby="trajectory-title trajectory-desc" className="h-auto w-full max-w-full text-primary" data-visual-id="trajectory-timeline">
-      <title id="trajectory-title">{title}</title>
-      <desc id="trajectory-desc">{desc}</desc>
+    <svg viewBox={`0 0 ${W} ${height}`} width={W} height={height} role="img" aria-labelledby={`${id}-title ${id}-desc`} className="h-auto w-full max-w-full text-primary" data-visual-id="trajectory-timeline">
+      <title id={`${id}-title`}>{title}</title>
+      <desc id={`${id}-desc`}>{desc}</desc>
       {/* grid */}
       {[0, 25, 50, 75, 100].map((v) => (
         <g key={v} className="text-line-subtle">
@@ -154,7 +156,7 @@ function Chart({ data, height }: { data: Trajectory; height: number }) {
   );
 }
 
-export function TrajectoryTimeline({ data, variant = "full", headingLevel = 2, className, outcomesHref = null, title }: TrajectoryTimelineProps) {
+export function TrajectoryTimeline({ data, variant = "full", headingLevel = 2, className, outcomesHref = null, title, id = "trajectory" }: TrajectoryTimelineProps) {
   const H = headingLevel === 2 ? "h2" : "h3";
   const rows = trajectoryTable(data);
   const cols = rows.length > 0 ? Object.keys(rows[0]!) : [];
@@ -206,7 +208,7 @@ export function TrajectoryTimeline({ data, variant = "full", headingLevel = 2, c
 
           <figure className="mt-3" data-visual-kind="trajectory" data-visual-state="real">
             <div className="w-full overflow-hidden rounded-xl border border-line-subtle bg-surface-sunken p-2">
-              <Chart data={data} height={variant === "full" ? H_FULL : H_COMPACT} />
+              <Chart data={data} height={variant === "full" ? H_FULL : H_COMPACT} id={id} />
             </div>
             <figcaption className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-muted">
               <span className="inline-flex items-center gap-1">
