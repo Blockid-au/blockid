@@ -1096,3 +1096,117 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .nav-v2-panel-enter { animation: none; }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   PRINT — Trusted Business Report on paper (G28-D, tbr-v3 spec § 5)
+   The browser print path of `<TbrReportV2>` (Ctrl+P / "Save as PDF" on
+   /tbr/demo, /tbr/[token], the founder report). The react-pdf twin has its
+   own pagination; these rules give the web document the same page rhythm:
+   A4, every numbered section on a fresh page (the components carry
+   `print:break-before-page`), no orphan headings, whole table rows, whole
+   tiles / callouts / figures, and none of the screen chrome. Guarded by
+   tests/e2e/smoke/tbr-print.spec.ts.
+   ═══════════════════════════════════════════════════════════════ */
+
+@page {
+  size: A4;
+  margin: 16mm;
+}
+
+@media print {
+  :root {
+    color-scheme: light;
+  }
+  html,
+  body {
+    background: #ffffff !important;
+    color: var(--ds-ink, #0b0f1a) !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Screen chrome never prints: nav + footer landmarks, the unlock rail,
+     the consent banner / cookie chip, any dialog, sticky toolbars. */
+  header,
+  footer,
+  nav,
+  [data-testid="tbr-unlock-rail"],
+  [aria-label="Analytics consent"],
+  [role="dialog"],
+  [data-print="hide"] {
+    display: none !important;
+  }
+
+  /* Let the page flow: no clipped scroll regions, no sticky offsets. */
+  main,
+  [data-tbr-version],
+  [data-tbr-version] * {
+    overflow: visible !important;
+    max-height: none !important;
+  }
+  [data-tbr-version] .sticky {
+    position: static !important;
+  }
+
+  /* Section breaks (spec § 5): the components mark sections 1–2 and 4–16
+     with `print:break-before-page`; the first printed page never starts
+     with a blank sheet. */
+  [data-tbr-version] > section:first-child {
+    break-before: auto !important;
+  }
+
+  /* No orphan headings: a heading always travels with the block below it. */
+  h1,
+  h2,
+  h3,
+  h4,
+  [data-tbr-version] figcaption {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* Tables: header row repeats on every page, rows never split. */
+  [data-tbr-version] table {
+    border-collapse: collapse;
+  }
+  [data-tbr-version] thead {
+    display: table-header-group;
+  }
+  [data-tbr-version] tr,
+  [data-tbr-version] td,
+  [data-tbr-version] th {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  [data-tbr-version] figure,
+  [data-tbr-version] [data-tbr-tile],
+  [data-tbr-version] [data-tbr-callout],
+  [data-tbr-version] [data-tbr-primary],
+  [data-tbr-version] [data-tbr-chapter-header] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Footnote superscripts keep their on-screen size ratio (never shrink to
+     an unreadable print default). */
+  [data-tbr-version] sup {
+    font-size: 0.7em !important;
+    line-height: 1;
+    vertical-align: super;
+  }
+  [data-tbr-version] sup a,
+  [data-tbr-version] a {
+    color: inherit;
+  }
+  [data-tbr-version] sup a {
+    text-decoration: none;
+  }
+
+  /* Details blocks (ledgers, chart table twins) show their summary as plain text. */
+  [data-tbr-version] details > summary {
+    list-style: none;
+  }
+  [data-tbr-version] details > summary::-webkit-details-marker {
+    display: none;
+  }
+}
