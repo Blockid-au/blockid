@@ -25,8 +25,10 @@
 //     so a long report never trips the HTTP timeout.
 //
 // Typed error chain: `Anthropic.AuthenticationError` marks the key invalid
-// for one hour (the hot path skips the provider; logged once per hour),
-// `Anthropic.RateLimitError` honours `retry-after` and feeds the headroom
+// for the REST OF THE PROCESS (G24-B: a bad key does not fix itself — the
+// hot path skips the provider, no retries, ONE log line that never carries
+// the key or any part of it; rotate ANTHROPIC_API_KEY and restart / redeploy
+// to clear it), `Anthropic.RateLimitError` honours `retry-after` and feeds the headroom
 // model, everything else surfaces as an `AnthropicTierError` with its
 // status so the dispatcher's cooldown regexes classify it like any other
 // provider failure. Rate-limit headers from every response are copied into
@@ -59,7 +61,6 @@ export const CACHE_WRITE_MULTIPLIER = 1.25;
 export const STREAM_THRESHOLD_TOKENS = 8000;
 export const SDK_MAX_RETRIES = 2;
 export const SDK_TIMEOUT_MS = 120_000;
-export const INVALID_KEY_COOLDOWN_MS = 60 * 60_000;
 
 export interface AnthropicUsage {
   input_tokens: number;
@@ -172,22 +173,29 @@ export function estimateAnthropicCostUsd(model: string, usage: AnthropicUsage): 
 
 // ── Key validity + headroom state (module-level, restart-safe by design) ──
 
-let invalidKeyUntil = 0;
-let lastInvalidLogAt = 0;
+/** G24-B: process-lifetime latch — a 401 marks the key invalid until restart. */
+let invalidKey = false;
+let invalidKeyLogged = false;
 let headroom: AnthropicHeadroom | null = null;
 
-export function isAnthropicKeyInvalid(now: number = Date.now()): boolean {
-  return now < invalidKeyUntil;
+export function isAnthropicKeyInvalid(_now: number = Date.now()): boolean {
+  return invalidKey;
 }
 
-export function markAnthropicKeyInvalid(now: number = Date.now(), reason = "401"): void {
-  invalidKeyUntil = now + INVALID_KEY_COOLDOWN_MS;
-  if (now - lastInvalidLogAt >= INVALID_KEY_COOLDOWN_MS) {
-    lastInvalidLogAt = now;
-    const key = process.env.ANTHROPIC_API_KEY ?? "";
+/**
+ * Mark the Anthropic key invalid for the rest of the process ("unconfigured"
+ * in the dispatcher's health snapshot). Logs ONCE per process; the line
+ * names the env var to rotate and never the key, its length or a prefix.
+ * `reason` is the caller's short status text — callers pass status codes /
+ * error types, never response bodies that could echo a credential.
+ */
+export function markAnthropicKeyInvalid(_now: number = Date.now(), reason = "401"): void {
+  invalidKey = true;
+  if (!invalidKeyLogged) {
+    invalidKeyLogged = true;
     console.warn(
-      `[ai-client:anthropic] API key rejected (${reason}) — provider skipped for 1 h. ` +
-      `key len=${key.length} prefix=${key.slice(0, 3)}… Set a valid ANTHROPIC_API_KEY (docs/ops/ai-providers.md).`,
+      `[ai-client:anthropic] API key rejected (${reason.slice(0, 80)}) — provider marked unconfigured for the rest of this process; ` +
+      "no retries. Rotate ANTHROPIC_API_KEY and restart (docs/ops/ai-providers.md).",
     );
   }
 }
@@ -239,8 +247,8 @@ export function anthropicRequestsRemaining(now: number = Date.now()): number | n
 
 /** Test-only. */
 export function _resetAnthropicTierForTests(): void {
-  invalidKeyUntil = 0;
-  lastInvalidLogAt = 0;
+  invalidKey = false;
+  invalidKeyLogged = false;
   headroom = null;
 }
 
@@ -302,7 +310,7 @@ export async function callAnthropicTier(
 ): Promise<AnthropicTierResult> {
   const now = deps.now ?? Date.now;
   if (isAnthropicKeyInvalid(now())) {
-    throw new AnthropicTierError("invalid_key", "Anthropic API key marked invalid (401) — skipped for 1 h");
+    throw new AnthropicTierError("invalid_key", "Anthropic API key marked invalid (401) — unconfigured for this process");
   }
   const apiKey = deps.apiKey ?? process.env.ANTHROPIC_API_KEY ?? "";
   const client: AnthropicClientLike = deps.client ?? (getAnthropicApiClient(apiKey) as unknown as AnthropicClientLike);
@@ -336,8 +344,9 @@ export async function callAnthropicTier(
   } catch (err) {
     if (err instanceof AnthropicTierError) throw err;
     if (err instanceof Anthropic.AuthenticationError) {
-      markAnthropicKeyInvalid(now(), `401 ${err.message.slice(0, 80)}`);
-      throw new AnthropicTierError("invalid_key", `Anthropic 401 authentication_error: ${err.message.slice(0, 120)}`, 401);
+      // The SDK message can embed the response body — never forward it to the log line.
+      markAnthropicKeyInvalid(now(), "401 authentication_error");
+      throw new AnthropicTierError("invalid_key", "Anthropic 401 authentication_error: API key rejected", 401);
     }
     if (err instanceof Anthropic.RateLimitError) {
       noteAnthropicHeadroom(parseRateLimitHeaders(err.headers, now()) ?? {

@@ -215,26 +215,41 @@ describe("callAnthropicTier — happy path", () => {
 });
 
 describe("callAnthropicTier — typed error chain", () => {
-  it("AuthenticationError latches the key invalid for 1 h and is not dialled again meanwhile (logged once)", async () => {
-    state.throwOnCreate = new Anthropic.AuthenticationError(401, { type: "error", error: { type: "authentication_error", message: "invalid x-api-key" } }, "invalid x-api-key", new Headers());
+  // G24-B: a 401 marks the key "unconfigured" for the REST OF THE PROCESS —
+  // no hourly re-dial, one log line, never any part of the key.
+  it("AuthenticationError latches the key invalid for the process lifetime — never dialled again, logged once, key-free line", async () => {
+    process.env.ANTHROPIC_API_KEY = "sk-ant-solo-secret";
+    state.throwOnCreate = new Anthropic.AuthenticationError(401, { type: "error", error: { type: "authentication_error", message: "invalid x-api-key sk-ant-solo-secret" } }, "invalid x-api-key sk-ant-solo-secret", new Headers());
     const now = 1_700_000_000_000;
     let clock = now;
     const deps = { client: fakeClient(state), now: () => clock };
-    await expect(callAnthropicTier({ system: "s", user: "u" }, deps)).rejects.toMatchObject({ kind: "invalid_key", status: 401 });
+    const err = await callAnthropicTier({ system: "s", user: "u" }, deps).catch((e) => e as AnthropicTierError);
+    expect(err).toMatchObject({ kind: "invalid_key", status: 401 });
+    expect(err.message).not.toContain("sk-ant-solo-secret"); // the SDK message (may echo the body) is not forwarded
     expect(isAnthropicKeyInvalid(now)).toBe(true);
-    // Second call within the hour never reaches the SDK.
+    // Second call never reaches the SDK.
     state.createParams.length = 0;
     await expect(callAnthropicTier({ system: "s", user: "u" }, deps)).rejects.toMatchObject({ kind: "invalid_key" });
     expect(state.createParams).toHaveLength(0);
     expect(warn).toHaveBeenCalledTimes(1);
     const logged = String(warn.mock.calls[0][0]);
-    expect(logged).toContain("key len=");
-    expect(logged).not.toContain("sk-ant-solo-secret");
-    // After the hour it is tried again.
+    expect(logged).toContain("unconfigured for the rest of this process");
+    expect(logged).toContain("ANTHROPIC_API_KEY");
+    expect(logged).not.toContain("key len=");
+    expect(logged).not.toContain("prefix=");
+    expect(logged).not.toContain("sk-ant");
+    // An hour, a day later: still latched (only a restart clears it).
     clock = now + 60 * 60_000 + 1;
-    expect(isAnthropicKeyInvalid(clock)).toBe(false);
+    expect(isAnthropicKeyInvalid(clock)).toBe(true);
+    clock = now + 24 * 60 * 60_000;
+    expect(isAnthropicKeyInvalid(clock)).toBe(true);
     state.throwOnCreate = undefined;
-    await expect(callAnthropicTier({ system: "s", user: "u" }, deps)).resolves.toMatchObject({ text: "ok" });
+    await expect(callAnthropicTier({ system: "s", user: "u" }, deps)).rejects.toMatchObject({ kind: "invalid_key" });
+    expect(state.createParams).toHaveLength(0);
+    // A second mark (e.g. the probe) does not log again.
+    markAnthropicKeyInvalid(clock, "probe 401");
+    expect(warn).toHaveBeenCalledTimes(1);
+    delete process.env.ANTHROPIC_API_KEY;
   });
 
   it("RateLimitError carries retry-after and zeroes requests_remaining so the dispatcher ranks it last", async () => {
@@ -273,13 +288,16 @@ describe("rate-limit headers → headroom", () => {
     expect(anthropicRequestsRemaining(2000)).toBeNull(); // past reset → trust the static ceiling again
   });
 
-  it("markAnthropicKeyInvalid never prints more than the key length + 3-char prefix", () => {
+  it("markAnthropicKeyInvalid never prints the key, its length or a prefix — only the env var NAME (G24-B)", () => {
     process.env.ANTHROPIC_API_KEY = "sk-ant-api03-SECRETSECRET";
     markAnthropicKeyInvalid(Date.now(), "probe 401");
     const line = String(warn.mock.calls[0][0]);
-    expect(line).toContain("key len=25");
-    expect(line).toContain("prefix=sk-");
+    expect(line).toContain("ANTHROPIC_API_KEY");
+    expect(line).not.toContain("key len=");
+    expect(line).not.toContain("prefix=");
+    expect(line).not.toContain("sk-");
     expect(line).not.toContain("SECRET");
+    expect(line).not.toContain("25");
     delete process.env.ANTHROPIC_API_KEY;
   });
 });

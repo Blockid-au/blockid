@@ -606,6 +606,8 @@ describe("callAI", () => {
   it("returns the Anthropic result (usage + cost) when the quality tier answers (S31-A)", async () => {
     process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
     process.env.GROQ_API_KEY = "gsk-free";
+    // G24-B: the previous test's 401 latched the tier for the process — clear it here.
+    (await import("@/lib/ai/anthropic-tier"))._resetAnthropicTierForTests();
     tierMock.call.mockResolvedValueOnce({
       text: "hello", model: "claude-sonnet-5", streamed: false, cost_usd: 0.0012,
       usage: { input_tokens: 100, output_tokens: 50, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
@@ -1347,7 +1349,7 @@ describe("G15-R3 getProviderHealthSnapshot", () => {
     expect(getProviderHealthSnapshot()).toEqual({ providers: [], budget_exhausted_1h: 0, interactive_order: [] });
   });
 
-  it("reports a configured provider as ok, then cooldown (with cooldown_until) after a failed call", async () => {
+  it("reports a configured provider as ok, then cooldown (with cooldown_until) after a transient failure", async () => {
     process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
     const { callAI, getProviderHealthSnapshot, _resetDispatcherForTests } = await loadClient();
     const spend = await import("@/lib/ai/spend-guard");
@@ -1360,20 +1362,21 @@ describe("G15-R3 getProviderHealthSnapshot", () => {
       budget_exhausted_1h: 0,
       interactive_order: ["claude-apikey"],
     });
+    tierMock.call.mockRejectedValueOnce(new Error("Anthropic HTTP 529: Overloaded"));
     const t0 = Date.now();
-    await expect(callAI({ system: "s", user: "u" })).rejects.toThrow(/401/);
+    await expect(callAI({ system: "s", user: "u" })).rejects.toThrow(/529/);
     const snap = getProviderHealthSnapshot();
     expect(snap.providers).toHaveLength(1);
     expect(snap.providers[0]).toMatchObject({ name: "claude-apikey", state: "cooldown", reason: "cooldown" });
     const until = Date.parse(snap.providers[0].cooldown_until ?? "");
-    expect(until).toBeGreaterThanOrEqual(t0 + 60 * 60_000 - 1_000); // 401 → 1 h cooldown
-    expect(until).toBeLessThanOrEqual(Date.now() + 60 * 60_000 + 1_000);
+    expect(until).toBeGreaterThanOrEqual(t0 + 15 * 60_000 - 1_000); // overloaded → 15 min cooldown (never the process latch)
+    expect(until).toBeLessThanOrEqual(Date.now() + 15 * 60_000 + 1_000);
     expect(snap.budget_exhausted_1h).toBe(0);
     spend._resetSpendGuardForTests();
     tier._resetAnthropicTierForTests();
   });
 
-  it("reports blocked + reason for a latched invalid key (no cooldown involved)", async () => {
+  it("reports blocked + unconfigured for a latched invalid key (no cooldown involved)", async () => {
     process.env.ANTHROPIC_API_KEY = "sk-ant-solo";
     const { getProviderHealthSnapshot, _resetDispatcherForTests } = await loadClient();
     const tier = await import("@/lib/ai/anthropic-tier");
@@ -1381,8 +1384,92 @@ describe("G15-R3 getProviderHealthSnapshot", () => {
     _resetDispatcherForTests();
     const now = Date.now();
     tier.markAnthropicKeyInvalid(now, "test");
-    expect(getProviderHealthSnapshot(now).providers).toEqual([{ name: "claude-apikey", state: "blocked", cooldown_until: null, reason: "invalid_key" }]);
+    expect(getProviderHealthSnapshot(now).providers).toEqual([{ name: "claude-apikey", state: "blocked", cooldown_until: null, reason: "unconfigured" }]);
     tier._resetAnthropicTierForTests();
+  });
+
+  // ── G24-B: a 401 marks the provider unconfigured for the process ──────────
+  describe("G24-B unconfigured latch", () => {
+    it("a 401 from the Anthropic tier marks claude-apikey unconfigured: ONE dial, no cooldown, blocked for the rest of the process", async () => {
+      process.env.ANTHROPIC_API_KEY = "sk-ant-solo-secret";
+      const { callAI, getProviderHealthSnapshot, providerBlockReason, pickBestProvider, pickFirstUsable, _resetDispatcherForTests } = await loadClient();
+      const spend = await import("@/lib/ai/spend-guard");
+      const tier = await import("@/lib/ai/anthropic-tier");
+      spend._resetSpendGuardForTests();
+      tier._resetAnthropicTierForTests();
+      _resetDispatcherForTests();
+      tierMock.call.mockRejectedValue(new Error("Anthropic 401 authentication_error: API key rejected"));
+      await expect(callAI({ system: "s", user: "u" })).rejects.toThrow(/401/);
+      expect(tierMock.call).toHaveBeenCalledTimes(1);
+      expect(providerBlockReason("claude-apikey")).toBe("unconfigured");
+      expect(getProviderHealthSnapshot().providers).toEqual([{ name: "claude-apikey", state: "blocked", cooldown_until: null, reason: "unconfigured" }]);
+      // Never picked — not even as "the coolest of an all-blocked list".
+      expect(pickBestProvider(["claude-apikey"], "report")).toBeNull();
+      expect(pickFirstUsable(["claude-apikey"])).toBeNull();
+      // Second call: no dial at all, and the error says why.
+      await expect(callAI({ system: "s", user: "u" })).rejects.toThrow(/blocked|invalid key|unconfigured/i);
+      expect(tierMock.call).toHaveBeenCalledTimes(1);
+      // One log line, from the tier module, naming the env var and never the key.
+      const lines = (warnSpy?.mock.calls ?? []).map((c) => String(c[0])).filter((l) => /unconfigured/.test(l));
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toContain("ANTHROPIC_API_KEY");
+      expect(lines[0]).not.toContain("sk-ant");
+      expect(lines[0]).not.toContain("key len=");
+      spend._resetSpendGuardForTests();
+      tier._resetAnthropicTierForTests();
+    });
+
+    it("any provider: markProviderUnconfigured latches for the process, logs once naming the env var (no value), and survives a transient-cooldown fallback", async () => {
+      process.env.GROQ_API_KEY = "gsk-secret-value";
+      process.env.DEEPINFRA_API_KEY = "di-secret-value";
+      const mod = await loadClient();
+      mod._resetDispatcherForTests();
+      expect(mod.providerBlockReason("groq")).toBeNull();
+      mod.markProviderUnconfigured("groq", "401 invalid key");
+      mod.markProviderUnconfigured("groq", "401 invalid key again");
+      expect(mod.isProviderUnconfigured("groq")).toBe(true);
+      expect(mod.providerBlockReason("groq")).toBe("unconfigured");
+      expect(mod.providerBlockReason("deepinfra")).toBeNull();
+      const lines = (warnSpy?.mock.calls ?? []).map((c) => String(c[0])).filter((l) => /groq rejected the key/.test(l));
+      expect(lines).toHaveLength(1);
+      expect(lines[0]).toContain("GROQ_API_KEY");
+      expect(lines[0]).toContain("unconfigured for the rest of this process");
+      expect(lines[0]).not.toContain("gsk-secret-value");
+      // deepinfra merely cooling → it is retried as the only candidate; groq never is.
+      expect(mod.pickBestProvider(["groq", "deepinfra"], "report")).toBe("deepinfra");
+      expect(mod.pickBestProvider(["groq"], "report")).toBeNull();
+      expect(mod.getProviderHealthSnapshot().providers.find((p) => p.name === "groq")).toEqual({ name: "groq", state: "blocked", cooldown_until: null, reason: "unconfigured" });
+      // Only the test reset clears it (a restart in production).
+      mod._resetDispatcherForTests();
+      expect(mod.providerBlockReason("groq")).toBeNull();
+    });
+
+    it("isInvalidKeyError: 401 / authentication_error / invalid api key / kind=invalid_key → true; 429 / 5xx / timeouts → false", async () => {
+      const { isInvalidKeyError, providerKeyEnvName } = await loadClient();
+      expect(isInvalidKeyError(new Error("HTTP 401: {\"error\":{\"message\":\"Invalid API Key\"}}"))).toBe(true);
+      expect(isInvalidKeyError(new Error("Anthropic 401 authentication_error: API key rejected"))).toBe(true);
+      expect(isInvalidKeyError(new Error("Gemini: invalid api key"))).toBe(true);
+      expect(isInvalidKeyError({ message: "x", kind: "invalid_key" })).toBe(true);
+      expect(isInvalidKeyError({ message: "x", status: 401 })).toBe(true);
+      expect(isInvalidKeyError(new Error("HTTP 429: rate limit"))).toBe(false);
+      expect(isInvalidKeyError(new Error("HTTP 529: Overloaded"))).toBe(false);
+      expect(isInvalidKeyError(new Error("timeout after 30000ms"))).toBe(false);
+      expect(isInvalidKeyError(new Error("HTTP 402: payment required"))).toBe(false);
+      expect(providerKeyEnvName("claude-apikey")).toBe("ANTHROPIC_API_KEY");
+      expect(providerKeyEnvName("groq")).toBe("GROQ_API_KEY");
+      expect(providerKeyEnvName("deepinfra")).toBe("DEEPINFRA_API_KEY");
+    });
+
+    it("Anthropic stays fallback-only: claude-oauth sits behind deepinfra / gemini in the report order and behind the free tiers for classify", async () => {
+      const { providerOrderForClass } = await loadClient();
+      const report = providerOrderForClass("report");
+      expect(report.indexOf("claude-oauth")).toBeGreaterThan(report.indexOf("deepinfra"));
+      expect(report.indexOf("claude-oauth")).toBeGreaterThan(report.indexOf("gemini"));
+      const classify = providerOrderForClass("classify");
+      for (const free of ["groq", "cerebras", "sambanova", "openrouter"] as const) {
+        expect(classify.indexOf("claude-oauth")).toBeGreaterThan(classify.indexOf(free));
+      }
+    });
   });
 
   it("counts AIBudgetExhaustedError throws for one hour and _resetDispatcherForTests clears them", async () => {
