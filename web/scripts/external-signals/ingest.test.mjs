@@ -11,6 +11,7 @@ import { describe, expect, it } from "vitest";
 
 import * as abr from "./adapters/abr-bulk.mjs";
 import * as grants from "./adapters/business-gov-grants.mjs";
+import * as funding from "./adapters/funding-announcements.mjs";
 import * as rdti from "./adapters/rdti-transparency.mjs";
 import { ADAPTERS, SEED_SOURCES, buildAllowSet, main, runSource } from "./ingest.mjs";
 import { EXIT_ERROR, EXIT_OK, EXIT_REFUSED, EXIT_USAGE, canonicalJson, contentHash, dedupeRows, filterByAllowSet, finaliseRow, incomeYearEnd, licenceGate, parseAbnFile, parseArgs, parseCsv, pickValue, toIsoDate, toNumber, validateAbnChecksum } from "./lib.mjs";
@@ -60,9 +61,9 @@ describe("lib — ABN / dates / csv", () => {
 });
 
 describe("licence gate", () => {
-  it("accepts the three active sources and refuses unknown / cite_only / disabled / blank licence", () => {
+  it("accepts the four active sources and refuses unknown / cite_only / disabled / blank licence", () => {
     const rows = seedRows();
-    for (const id of ["abr-bulk", "business-gov-grants", "rdti-transparency"]) expect(licenceGate(rows.get(id))).toEqual({ ok: true });
+    for (const id of ["abr-bulk", "business-gov-grants", "rdti-transparency", "funding-announcements"]) expect(licenceGate(rows.get(id))).toEqual({ ok: true });
     for (const id of ["cut-through-venture", "startup-muster", "acs-digital-pulse"]) {
       const g = licenceGate(rows.get(id));
       expect(g.ok).toBe(false);
@@ -74,8 +75,8 @@ describe("licence gate", () => {
     // A "cite only" marker in the licence text refuses even when status says active.
     expect(licenceGate({ id: "x", licence: "All rights reserved (cite only)", status: "active" }).ok).toBe(false);
   });
-  it("seed catalogue: exactly 3 ingestable + 3 cite_only, every adapter's licence matches its seed row", () => {
-    expect(SEED_SOURCES.filter((s) => s.status === "active").map((s) => s.id).sort()).toEqual(["abr-bulk", "business-gov-grants", "rdti-transparency"]);
+  it("seed catalogue: exactly 4 ingestable + 3 cite_only, every adapter's licence matches its seed row", () => {
+    expect(SEED_SOURCES.filter((s) => s.status === "active").map((s) => s.id).sort()).toEqual(["abr-bulk", "business-gov-grants", "funding-announcements", "rdti-transparency"]);
     expect(SEED_SOURCES.filter((s) => s.status === "cite_only")).toHaveLength(3);
     for (const [id, adapter] of Object.entries(ADAPTERS)) expect(adapter.licence, id).toBe(SEED_SOURCES.find((s) => s.id === id).licence);
   });
@@ -141,6 +142,24 @@ describe("adapters on the fixtures", () => {
     expect(dedupeRows(res.rows).fresh).toHaveLength(2);
     expect((await grants.parse(readFileSync(FIX("grants-sample.csv")), { limit: 2 })).parsed).toBe(2);
   });
+  it("funding-announcements (G24-B): curated columns by alias, ABN checksum required, no amount / no https link / non-AUD / no ABN skipped, funding_round rows with the sheet's own fields, duplicate hashes equal", async () => {
+    const res = await funding.parse(readFileSync(FIX("funding-sample.csv")));
+    expect(res.parsed).toBe(7);
+    expect(res.skipped).toEqual({ no_abn: 1, no_amount: 1, no_source: 1, not_aud: 1 });
+    expect(res.rows).toHaveLength(3);
+    const [a, b, dup] = res.rows;
+    expect(a).toMatchObject({ source_id: "funding-announcements", signal_type: "funding_round", entity_abn: "95608464535", entity_name: "HARBOUR ANALYTICS PTY LTD", as_of: "2025-06-12", match_confidence: "high", source_url: "https://example.com/press/harbour-analytics-seed" });
+    expect(a.value).toMatchObject({ round: "Seed", amount_aud: 1500000, currency: "AUD", announced_at: "2025-06-12", investors: "Blackbird Ventures, Aussie Angels", announced_by: "Company press release", state: "NSW", sector: "Maritime software", source_url: "https://example.com/press/harbour-analytics-seed" });
+    expect(b).toMatchObject({ entity_abn: "53666147271", as_of: "2026-02-04" });
+    expect(b.value).toMatchObject({ round: "Series A", amount_aud: 8000000, investors: "Main Sequence, CSIRO Innovation Fund" });
+    expect(dup.content_hash).toBe(a.content_hash);
+    expect(dedupeRows(res.rows).fresh).toHaveLength(2);
+    expect((await funding.parse(readFileSync(FIX("funding-sample.csv")), { limit: 2 })).parsed).toBe(2);
+    expect(funding.parseRow({ ABN: "95 608 464 535", Announced: "2025-01-01", Amount: "100000", "Source URL": "http://insecure.example" })).toEqual({ skip: "no_source" });
+    expect(funding.parseRow({ ABN: "12345678901", Announced: "2025-01-01", Amount: "100000", "Source URL": "https://x.example" })).toEqual({ skip: "no_abn" });
+    expect(funding.parseRow({ ABN: "95 608 464 535", Amount: "100000", "Source URL": "https://x.example" })).toEqual({ skip: "no_date" });
+  });
+
   it("rdti-transparency: ATO columns, income year → 30 June, ACN-only rows kept as low confidence, no-id rows skipped, register figures verbatim", async () => {
     const res = await rdti.parse(readFileSync(FIX("rdti-sample.csv")));
     expect(res.parsed).toBe(5);
@@ -219,20 +238,32 @@ describe("CLI main()", () => {
     expect(summary.sources[0].sample[0]).toMatchObject({ entity_abn: "95608464535", signal_type: "grant_award" });
   });
 
+  it("--dry on the funding fixture (no db, G24-B): licence gate from the seed catalogue, 2 would-insert, 1 duplicate, funding_round sample, exit 0", async () => {
+    const io = quiet();
+    const code = await main(["--dry", "--source", "funding-announcements", "--file", FIX("funding-sample.csv"), "--json"], { db: null, env: {}, ...io });
+    expect(code).toBe(EXIT_OK);
+    const summary = JSON.parse(io.out.join("\n"));
+    expect(summary.sources).toHaveLength(1);
+    expect(summary.sources[0]).toMatchObject({ id: "funding-announcements", status: "ok", licence: "CC BY 4.0", parsed: 7, kept: 3, duplicates: 1, inserted: 2 });
+    expect(summary.sources[0].sample[0]).toMatchObject({ entity_abn: "95608464535", signal_type: "funding_round" });
+  });
+
   it("refuses a cite_only / unknown / disabled source before parsing (exit 3 when every requested source is refused)", async () => {
     const rows = seedRows();
     rows.get("rdti-transparency").status = "disabled";
     rows.delete("business-gov-grants");
     rows.set("abr-bulk", { ...rows.get("abr-bulk"), licence: "All rights reserved (cite only)", status: "cite_only" });
+    rows.get("funding-announcements").licence = "   ";
     const io = quiet();
     const code = await main(["--dry", "--json", "--abn-file", FIX("../fixtures/abr-sample.xml")], { db: null, env: {}, loadSourceRows: async () => ({ rows, fromDb: false }), ...io });
     expect(code).toBe(EXIT_REFUSED);
     const summary = JSON.parse(io.out.join("\n"));
-    expect(summary.totals.refused).toBe(3);
-    expect(summary.sources.map((s) => [s.id, s.status])).toEqual([["abr-bulk", "refused"], ["business-gov-grants", "refused"], ["rdti-transparency", "refused"]]);
+    expect(summary.totals.refused).toBe(4);
+    expect(summary.sources.map((s) => [s.id, s.status])).toEqual([["abr-bulk", "refused"], ["business-gov-grants", "refused"], ["rdti-transparency", "refused"], ["funding-announcements", "refused"]]);
     expect(summary.sources[0].error).toMatch(/cite_only/);
     expect(summary.sources[1].error).toMatch(/unknown source/);
     expect(summary.sources[2].error).toMatch(/disabled/);
+    expect(summary.sources[3].error).toMatch(/no licence/);
     for (const s of summary.sources) expect(s.parsed).toBe(0);
   });
 

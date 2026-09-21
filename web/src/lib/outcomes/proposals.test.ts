@@ -3,8 +3,13 @@
 // only, dedupe against the ledger (any status, same day), the loader's
 // fail-soft reads, the upsert with ignoreDuplicates + audit rows, and the
 // cron runner's 180-day / cap behaviour.
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it, vi } from "vitest";
-import { deriveProposals, fetchGithubTags, listRecentlySnapshottedProjects, loadProposalContext, proposeOutcomesFromSignals, runOutcomeSignals, type ProposalContext } from "./proposals";
+import { parse as parseFundingCsv } from "../../../scripts/external-signals/adapters/funding-announcements.mjs";
+import { deriveProposals, fetchGithubTags, listRecentlySnapshottedProjects, loadProposalContext, proposeOutcomesFromSignals, runOutcomeSignals, type ExternalSignalLike, type ProposalContext } from "./proposals";
+
+const FUNDING_FIXTURE = resolve(__dirname, "../../../scripts/external-signals/fixtures/funding-sample.csv");
 
 const PID = "11111111-2222-4333-8444-555555555555";
 const NOW = new Date("2026-09-20T10:00:00.000Z");
@@ -33,6 +38,40 @@ describe("deriveProposals", () => {
     expect(out.map((o) => o.kind)).toEqual(["grant_success", "funding_raised"]);
     expect(out[0]).toMatchObject({ project_id: PID, source: "external_signal", confidence: 90, observed_at: "2026-03-04T00:00:00.000Z", value: { program: "AEA Ignite", agency: "DISR", amount_aud: 250000, source_url: "https://grants.gov.au/x" } });
     expect(out[1]!.value).toEqual({ amount_aud: 1_000_000, round: "seed" });
+  });
+
+  // G24-B: the funding_round feed — rows the `funding-announcements` ingest
+  // adapter writes (external_signals) reach deriveProposals unchanged through
+  // loadSignalsForAbn, so the fixture is run through the real adapter here.
+  it("funding_round signals from the funding-announcements fixture → funding_raised proposals (external_signal, 90), amount + round + link, one per day, never confirmed", async () => {
+    const parsed = await parseFundingCsv(readFileSync(FUNDING_FIXTURE));
+    expect(parsed.parsed).toBe(7);
+    expect(parsed.skipped).toEqual({ no_abn: 1, no_amount: 1, no_source: 1, not_aud: 1 });
+    expect(parsed.rows).toHaveLength(3); // 2 announcements + 1 exact duplicate
+    const signals: ExternalSignalLike[] = parsed.rows.map((r: { signal_type: string; as_of: string; value: Record<string, unknown>; source_url: string | null }) => ({
+      signal_type: r.signal_type,
+      as_of: r.as_of,
+      value: r.value,
+      source_url: r.source_url,
+    }));
+    const out = deriveProposals(ctx({ externalSignals: signals }));
+    expect(out.map((o) => o.kind)).toEqual(["funding_raised", "funding_raised"]); // the duplicate row collapses (same kind + source + day)
+    expect(out[0]).toMatchObject({
+      project_id: PID,
+      kind: "funding_raised",
+      source: "external_signal",
+      confidence: 90,
+      observed_at: "2025-06-12T00:00:00.000Z",
+      value: { amount_aud: 1_500_000, round: "Seed", source_url: "https://example.com/press/harbour-analytics-seed" },
+    });
+    expect(out[1]).toMatchObject({ observed_at: "2026-02-04T00:00:00.000Z", value: { amount_aud: 8_000_000, round: "Series A", source_url: "https://example.com/news/reef-robotics-series-a" } });
+    for (const o of out) {
+      expect(o.note).toMatch(/funding announcement/);
+      expect("status" in o).toBe(false); // proposals only — the ledger write sets status "proposed", a human confirms
+    }
+    // Already on the ledger (any status) for that day → not re-proposed.
+    const again = deriveProposals(ctx({ externalSignals: signals, existing: [{ kind: "funding_raised", source: "external_signal", observed_at: "2025-06-12T09:00:00.000Z" }] }));
+    expect(again.map((o) => o.observed_at)).toEqual(["2026-02-04T00:00:00.000Z"]);
   });
 
   it("connector MRR: ≥ +25 % against the snapshot ≥ 90 d earlier → revenue_growth (connector, 85); below the bar or too young → nothing", () => {

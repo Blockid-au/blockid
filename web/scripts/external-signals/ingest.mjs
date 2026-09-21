@@ -7,6 +7,11 @@
 //                        allow-set are kept)                     CC BY 3.0 AU
 //   business-gov-grants  GrantConnect grant-award CSV export       CC BY 3.0 AU
 //   rdti-transparency    ATO R&DTI transparency report (xlsx→csv)  CC BY 2.5 AU
+//   funding-announcements BlockID-curated CSV of PUBLIC funding
+//                        announcements (press releases / media, each row
+//                        links its source) → `funding_round` signals that
+//                        feed the funding_raised outcome proposals (G24-B)
+//                                                                 CC BY 4.0
 //
 //   node scripts/external-signals/ingest.mjs --dry --source business-gov-grants --file scripts/external-signals/fixtures/grants-sample.csv --limit 5
 //   node scripts/external-signals/ingest.mjs --source rdti-transparency --fetch
@@ -38,6 +43,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import * as abrBulk from "./adapters/abr-bulk.mjs";
 import * as grants from "./adapters/business-gov-grants.mjs";
 import * as rdti from "./adapters/rdti-transparency.mjs";
+import * as funding from "./adapters/funding-announcements.mjs";
 import {
   EXIT_ERROR,
   EXIT_OK,
@@ -62,17 +68,19 @@ export const WEB_DIR = resolve(__dirname, "..", "..");
 export const SUMMARY_FILE = "content/reports/external-signals-latest.json";
 export const HISTORY_FILE = "content/reports/external-signals-history.jsonl";
 
-export const ADAPTERS = { [abrBulk.sourceId]: abrBulk, [grants.sourceId]: grants, [rdti.sourceId]: rdti };
+export const ADAPTERS = { [abrBulk.sourceId]: abrBulk, [grants.sourceId]: grants, [rdti.sourceId]: rdti, [funding.sourceId]: funding };
 
 /**
- * Seed catalogue — the same six rows migration 0410 inserts (ingest.test.mjs
- * pins them against src/lib/signals/external-sources.ts). Used ONLY when
- * there is no DB (fixture dry runs); a live run reads external_sources.
+ * Seed catalogue — the six rows migration 0410 inserts plus the
+ * funding-announcements row from 0435 (ingest.test.mjs pins them against
+ * src/lib/signals/external-sources.ts). Used ONLY when there is no DB
+ * (fixture dry runs); a live run reads external_sources.
  */
 export const SEED_SOURCES = [
   { id: "abr-bulk", licence: "CC BY 3.0 AU", status: "active" },
   { id: "business-gov-grants", licence: "CC BY 3.0 AU", status: "active" },
   { id: "rdti-transparency", licence: "CC BY 2.5 AU", status: "active" },
+  { id: "funding-announcements", licence: "CC BY 4.0", status: "active" },
   { id: "cut-through-venture", licence: "All rights reserved (cite only)", status: "cite_only" },
   { id: "startup-muster", licence: "All rights reserved (cite only)", status: "cite_only" },
   { id: "acs-digital-pulse", licence: "All rights reserved (cite only)", status: "cite_only" },

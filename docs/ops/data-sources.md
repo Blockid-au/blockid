@@ -14,8 +14,9 @@ Only sources whose `external_sources` row is `active` **and** carries a licence 
 | `abr-bulk` | [ABN Bulk Extract](https://data.gov.au/data/dataset/abn-bulk-extract) — Australian Business Register, via data.gov.au | **CC BY 3.0 AU** | `abr_entity` — ABN status + from-date, entity type, legal name, state/postcode, ACN, GST status + from-date, DGR | weekly | *Contains ABN Bulk Extract data © Commonwealth of Australia (Australian Business Register, via data.gov.au), licensed under Creative Commons Attribution 3.0 Australia.* |
 | `business-gov-grants` | [GrantConnect grant awards](https://www.grants.gov.au/Ga/List) — where business.gov.au programs (Accelerating Commercialisation, Industry Growth Program, Entrepreneurs Programme …) publish every award | **CC BY 3.0 AU** | `grant_award` — GA id, agency, program, activity, purpose (≤ 300 chars), value (AUD), approval / publish date, recipient, state/postcode | weekly | *Grant award data © Commonwealth of Australia (Department of Finance, GrantConnect grants.gov.au), licensed under Creative Commons Attribution 3.0 Australia.* |
 | `rdti-transparency` | [R&D Tax Incentive transparency report](https://data.gov.au/data/dataset/research-and-development-tax-incentive) — ATO, via data.gov.au | **CC BY 2.5 AU** | `rdti_registration` — company name, ABN/ACN, total R&D expenditure (notional deductions less feedstock), amended total, income year | annual (report per income year) | *Research and Development Tax Incentive entity data © Commonwealth of Australia (Australian Taxation Office, via data.gov.au), licensed under Creative Commons Attribution 2.5 Australia.* |
+| `funding-announcements` | Australian startup funding announcements — a BlockID-curated CSV of **public** announcements (company press releases, investor / media reports); every row links its published source. G24-B: the feed for `funding_round` signals → `funding_raised` outcome proposals (human-confirmed) and an IRI evidence row | **CC BY 4.0** (BlockID's compilation; facts link to their source) | `funding_round` — company name, ABN (checksum required), round, amount (AUD, required), announcement date, investors, headline, announced-by, source URL (https, required), state, sector | weekly (curated) | *Funding announcement data compiled by BlockID.au (© Auschain Pty Ltd) from public company press releases and media reports; every row links to its published source. Compilation licensed under Creative Commons Attribution 4.0 International.* |
 
-The seed values live in **one** place — `web/src/lib/signals/external-sources.ts` (`EXTERNAL_SOURCE_CATALOG`). Migration 0410 seeds the table from the same text and `external-sources.test.ts` parses the SQL to keep them identical; the CLI's no-DB fallback (`SEED_SOURCES`) is pinned by the same test. To change a licence string: edit the catalogue, the migration seed, and re-apply 0410 (its `ON CONFLICT … DO UPDATE` refreshes the descriptive columns without touching `last_fetched_at` / `row_count` / `status`).
+The seed values live in **one** place — `web/src/lib/signals/external-sources.ts` (`EXTERNAL_SOURCE_CATALOG`). Migration 0410 seeds the table from the same text (0435 adds the `funding-announcements` row) and `external-sources.test.ts` parses the SQL to keep them identical; the CLI's no-DB fallback (`SEED_SOURCES`) is pinned by the same test. To change a licence string: edit the catalogue, the migration seed, and re-apply 0410 (its `ON CONFLICT … DO UPDATE` refreshes the descriptive columns without touching `last_fetched_at` / `row_count` / `status`).
 
 ## 2. Cite-only (never bulk-ingested) — and why
 
@@ -67,6 +68,15 @@ node web/scripts/external-signals/ingest.mjs --source rdti-transparency --fetch
 #    https://www.grants.gov.au/Ga/List → Advanced search → Export (CSV, "Grant Award"),
 #    save as ~/blockid-data/external-signals/business-gov-grants/ga-export-YYYY-MM-DD.csv
 node web/scripts/external-signals/ingest.mjs --source business-gov-grants
+
+# 2b. Funding announcements (G24-B) — curate the sheet by hand from public press
+#     releases / media (Company, ABN, Round, Amount (AUD), Announced, Investors,
+#     Headline, Announced By, Source URL — see fixtures/funding-sample.csv), save as
+#     ~/blockid-data/external-signals/funding-announcements/funding-YYYY-MM-DD.csv.
+#     Rows without a checksum-valid ABN, an AUD amount or an https source are skipped.
+node web/scripts/external-signals/ingest.mjs --source funding-announcements
+#     The outcome-signals cron then proposes `funding_raised` for the matched
+#     project (proposals only — an admin confirms on the outcome ledger).
 
 # 3. ABR bulk extract — ~2 GB of zips, OFF-PEAK ONLY (deploy window rules apply).
 #    The allow-set = projects.abn ∪ project_grant_profiles.abn ∪ ABNs already on
