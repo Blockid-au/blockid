@@ -51,7 +51,7 @@ export default async function PilotKitPage(props: { searchParams?: Promise<Recor
   const searchParams = props.searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/accelerator/pilot");
-  const [isSandbox, order, sp] = await Promise.all([getCurrentProjectIsSandbox(), findActivePilotOrder(user.id), searchParams ?? Promise.resolve({})]);
+  const [isSandbox, order, sp] = await Promise.all([getCurrentProjectIsSandbox(), findActivePilotOrder(user.id), searchParams ?? Promise.resolve<Record<string, string | string[] | undefined>>({})]);
   const admin = user.role === "admin";
   const showKit = Boolean(order) || admin;
   // G23-B — the conversion card outlives the entitlement by the credit
