@@ -265,7 +265,7 @@
   --ds-ink: #0b0f1a;                  /* text.primary — 19.62:1 AAA */
   --ds-ink-strong: #0b0f1a;
   --ds-ink-muted: #1f2937;            /* text.secondary — 15.35:1 AAA */
-  --ds-ink-subtle: #4b5563;           /* text.muted — 8.94:1 AAA body */
+  --ds-ink-subtle: #4b5563;           /* text.muted — 7.56:1 AAA body (G26 recomputed; was mis-noted 8.94) */
   --ds-ink-tertiary: #6b7280;         /* text.tertiary — 5.74:1 AA */
   --ds-ink-faint: #9ca3af;            /* text.faint — DECORATIVE ONLY */
   --ds-accent: #1b2a5e;               /* action = brand navy — 13.6:1 on white; white label 13.6:1 (G26) */

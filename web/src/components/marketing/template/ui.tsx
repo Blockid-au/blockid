@@ -265,6 +265,15 @@ type FieldProps =
   | (FieldBaseProps & { as: "textarea" } & Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "id" | "className" | "required">)
   | (FieldBaseProps & { as: "select"; children: ReactNode } & Omit<SelectHTMLAttributes<HTMLSelectElement>, "id" | "className" | "required">);
 
+const FIELD_ONLY_KEYS = new Set(["as", "id", "label", "hint", "error", "required", "className", "children"]);
+
+/** Everything on the props that belongs to the native control, not to the field wrapper. */
+function stripFieldProps(props: FieldProps): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(props)) if (!FIELD_ONLY_KEYS.has(k)) out[k] = v;
+  return out;
+}
+
 export function Field(props: FieldProps) {
   const { id, label, hint, error, required, className } = props;
   const hintId = hint ? `${id}-hint` : undefined;
@@ -279,20 +288,18 @@ export function Field(props: FieldProps) {
     className: FIELD_INPUT_CLASS,
   } as const;
 
+  const rest = stripFieldProps(props);
   let control: ReactNode;
   if (props.as === "textarea") {
-    const { as: _as, id: _i, label: _l, hint: _h, error: _e, required: _r, className: _c, ...rest } = props;
-    control = <textarea rows={4} {...shared} {...rest} />;
+    control = <textarea rows={4} {...shared} {...(rest as TextareaHTMLAttributes<HTMLTextAreaElement>)} />;
   } else if (props.as === "select") {
-    const { as: _as, id: _i, label: _l, hint: _h, error: _e, required: _r, className: _c, children, ...rest } = props;
     control = (
-      <select {...shared} {...rest}>
-        {children}
+      <select {...shared} {...(rest as SelectHTMLAttributes<HTMLSelectElement>)}>
+        {props.children}
       </select>
     );
   } else {
-    const { as: _as, id: _i, label: _l, hint: _h, error: _e, required: _r, className: _c, ...rest } = props;
-    control = <input type="text" {...shared} {...rest} />;
+    control = <input type="text" {...shared} {...(rest as InputHTMLAttributes<HTMLInputElement>)} />;
   }
 
   return (
