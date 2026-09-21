@@ -87,7 +87,8 @@ export function progressLineV2(view: Pick<FullReportView, "status" | "progressV2
     return `The report could not be written in this run${view.error ? ` (${view.error})` : ""}. It is retried automatically and e-mailed when it lands.`;
   }
   if (view.status === "done" && view.reportV2) {
-    const degraded = view.reportV2.quality?.degradedSections?.length ?? 0;
+    // Chapters the owner agent could not write fell back to the deterministic card (`degraded`).
+    const degraded = view.reportV2.dimensions.filter((d) => d.degraded).length;
     return degraded > 0
       ? `Complete — ${8 - Math.min(8, degraded)} of 8 chapters written by the agents; ${degraded} fell back to the deterministic card.`
       : "Complete — the full Trusted Business Report: investment view, valuation, 8 chapters, risk matrix and 90-day plan.";

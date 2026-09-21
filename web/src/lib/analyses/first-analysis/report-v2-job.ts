@@ -94,15 +94,21 @@ export interface ReportV2JobDeps {
   progressEveryMs: number;
 }
 
-/** The dispatcher, bound to the row's user (null for a guest — ai_runs.user_id is nullable; fairness caps are per-report, see run-for-project). */
-export function makeReportCaller(userId: string | null): ReportV2JobDeps["callAI"] {
+/**
+ * The dispatcher, scoped to ONE analyses row (its own per-agent semaphore
+ * slot, like `svi:<account>:<project>` on the paid path, so concurrent free
+ * runs never serialise through one bucket) and bound to the row's user —
+ * null for a guest (ai_runs.user_id is nullable). No per-user fairness cap
+ * on a report run, for the reason documented in run-for-project.
+ */
+export function makeReportCaller(analysisId: string, userId: string | null): ReportV2JobDeps["callAI"] {
   return async (system, user, maxTokens, taskClass): Promise<AICallerResult> => {
     const r = await callAI({
       system,
       user,
       maxTokens,
       timeoutMs: 120_000,
-      agentId: `svi:analysis:${userId ?? "guest"}`,
+      agentId: `svi:analysis:${analysisId}`,
       taskClass,
       priority: "user",
       userId: userId ?? undefined,
@@ -463,7 +469,7 @@ export function defaultReportV2Deps(): ReportV2JobDeps {
     finish: (id, outcome) => finishFullReport(id, outcome),
     orchestrate: (input) => orchestrateReport(input),
     // Bound to the row at start — see `startReportV2Job`.
-    callAI: makeReportCaller(null),
+    callAI: makeReportCaller("unbound", null),
     deliver: (row, envelope, opts) => deliverReportV2(row, envelope, opts),
     recordLastReport: writeLastReportProvider,
     progressEveryMs: 4_000,
@@ -483,7 +489,7 @@ export function startReportV2Job(id: string, opts: { userId?: string | null } = 
   if (!id || inFlight.has(id)) return;
   inFlight.add(id);
   const deps = defaultReportV2Deps();
-  deps.callAI = makeReportCaller(opts.userId ?? null);
+  deps.callAI = makeReportCaller(id, opts.userId ?? null);
   void runReportV2Job(id, deps)
     .then((out) => {
       if (out.outcome !== "done") console.warn("[report-v2-job] job ended", { analysisId: id, ...out });

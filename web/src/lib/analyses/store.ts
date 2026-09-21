@@ -280,7 +280,8 @@ export async function getAnalysisBySignedToken(id: string, token: string | null 
     console.error("[analyses:get-by-token] query failed —", error.message);
     return null;
   }
-  return data ? toClientAnalysis(data as unknown as StoredAnalysisRow) : null;
+  // The link is read-only: the holder sees the run, never the owner's controls.
+  return data ? { ...toClientAnalysis(data as unknown as StoredAnalysisRow), owned: false } : null;
 }
 
 export const LIST_LIMIT = 50;

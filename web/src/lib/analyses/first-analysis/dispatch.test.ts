@@ -18,7 +18,7 @@ vi.mock("./report-v2-job", () => ({
   runReportV2Job: (...a: unknown[]) => v2.run(...a),
   deliverReportV2: (...a: unknown[]) => v2.deliver(...a),
   defaultReportV2Deps: () => v2.deps(),
-  makeReportCaller: (u: unknown) => v2.caller(u),
+  makeReportCaller: (...a: unknown[]) => v2.caller(...a),
 }));
 
 import { deliverAnalysisReport, reportPathFor, runAnalysisReportJob, startAnalysisReportJob } from "./dispatch";
@@ -62,7 +62,7 @@ describe("startAnalysisReportJob", () => {
 describe("runAnalysisReportJob / deliverAnalysisReport (the cron)", () => {
   it("runs the right runner with the row's user bound", async () => {
     await runAnalysisReportJob(row(null, "u-1"));
-    expect(v2.caller).toHaveBeenCalledWith("u-1");
+    expect(v2.caller).toHaveBeenCalledWith(SAMPLE_ANALYSIS_ID, "u-1");
     expect(v2.run).toHaveBeenCalledWith(SAMPLE_ANALYSIS_ID, expect.objectContaining({ callAI: "report-caller" }));
     await runAnalysisReportJob(row(sampleReport()));
     expect(s32.caller).toHaveBeenCalledWith(null);

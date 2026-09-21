@@ -82,8 +82,8 @@ describe("G28-C: the v3 document on the analyze page", () => {
     expect(progressLineV2({ status: "running", progressV2: { phase: "analyze", pct: 35, at: "x", chaptersDone: 2 }, error: null, reportV2: null })).toBe(`${V2_PHASE_LABELS.analyze} 2 of 8 chapters in. 35 %`);
     expect(progressLineV2({ status: "running", progressV2: null, error: null, reportV2: null })).toBe(V2_PHASE_LABELS.starting);
     const report = demoReportV2();
-    expect(progressLineV2({ status: "done", progressV2: null, error: null, reportV2: { ...report, quality: { ...report.quality, degradedSections: [] } } })).toMatch(/^Complete — the full Trusted Business Report/);
-    expect(progressLineV2({ status: "done", progressV2: null, error: null, reportV2: { ...report, quality: { ...report.quality, degradedSections: ["tre", "mpc"] } } })).toBe("Complete — 6 of 8 chapters written by the agents; 2 fell back to the deterministic card.");
+    expect(progressLineV2({ status: "done", progressV2: null, error: null, reportV2: { ...report, dimensions: report.dimensions.map((d) => ({ ...d, degraded: false })) } })).toMatch(/^Complete — the full Trusted Business Report/);
+    expect(progressLineV2({ status: "done", progressV2: null, error: null, reportV2: { ...report, dimensions: report.dimensions.map((d, i) => ({ ...d, degraded: i < 2 })) } })).toBe("Complete — 6 of 8 chapters written by the agents; 2 fell back to the deterministic card.");
     expect(progressLineV2({ status: "failed", progressV2: null, error: "engine_overloaded", reportV2: null })).toMatch(/could not be written.*engine_overloaded.*retried automatically/);
   });
 

@@ -37,7 +37,7 @@ export async function runAnalysisReportJob(row: FullReportRow): Promise<JobOutco
     return runFirstAnalysisJob(row.id, deps);
   }
   const deps = defaultReportV2Deps();
-  deps.callAI = makeReportCaller(row.user_id ?? null);
+  deps.callAI = makeReportCaller(row.id, row.user_id ?? null);
   return runReportV2Job(row.id, deps);
 }
 
