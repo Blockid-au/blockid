@@ -996,5 +996,19 @@
   "execution.amount_band.1m-5m": "A$1M–5M",
   "execution.amount_band.5m-20m": "A$5M–20M",
   "execution.amount_band.20m+": "A$20M+",
-  "digest.why_moved.sentence": "Why it moved: evidence confidence is now capped by its source (self-declared ≤ document, connector, reviewer) and your ABN verification level (L{level}) now weights the score."
+  "digest.why_moved.sentence": "Why it moved: evidence confidence is now capped by its source (self-declared ≤ document, connector, reviewer) and your ABN verification level (L{level}) now weights the score.",
+  "demoCohort.chip": "Demo data — fictional",
+  "demoCohort.chipTitle": "An invented startup generated for the workflow demo. Not a real company; no ABN; excluded from benchmarks and the Startup Index.",
+  "demoCohort.load": "Load a demo cohort",
+  "demoCohort.loading": "Loading the demo cohort…",
+  "demoCohort.importCsv": "Import CSV",
+  "demoCohort.banner.title": "Demo data — fictional",
+  "demoCohort.banner.body": "These five startups are invented so you can run the whole cohort workflow — filters, compare, overrides, snapshots, the Cohort Report, the demo-day pack and feedback letters — before real applicants arrive. Nothing here reaches benchmarks, the Startup Index, calibration, your organisation's export or the institutional API.",
+  "demoCohort.remove": "Remove demo cohort",
+  "demoCohort.removeConfirm": "Remove the demo cohort and its five fictional startups? Your real cohorts are untouched.",
+  "demoCohort.removed": "Demo cohort removed.",
+  "demoCohort.error": "Could not load the demo cohort. Please try again.",
+  "demoCohort.emptyHint": "Not ready to import? Load the fictional five and try every step first.",
+  "demoCohort.checklist.label": "Demo run",
+  "demoCohort.checklist.detail": "Ran the demo cohort — five fictional startups through the table, the report and the letters — before real applicants."
 }

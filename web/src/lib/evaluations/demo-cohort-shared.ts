@@ -226,7 +226,7 @@ export function buildDemoCohortItems(register: DemoRegisterInput, startups: read
     }
     const coverageAvg = coverageSum / DIMENSION_KEYS.length;
     const sviTotal = Math.round(DIMENSION_KEYS.reduce((a, k) => a + dimensionScores[k], 0) / DIMENSION_KEYS.length);
-    const evidenceConfidence = clamp(Math.round(20 + 55 * coverageAvg + 5 * fixture.verificationLevel), 0, 100);
+    const evidenceConfidence = clamp(Math.round(15 + 55 * coverageAvg + 5 * fixture.verificationLevel), 0, 100);
     const notes = [
       "Demo data — fictional. This startup was generated for the workflow demo; remove the demo cohort before real applicants arrive.",
       fixture.conflictingClaims > 0 ? "Conflicting claim: the deck's revenue figure does not match the connected Stripe read." : null,
