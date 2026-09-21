@@ -3,7 +3,7 @@
 **Opened:** 2026-09-21 (standing founder directive: after each deploy → review → test → fix → next phase, continuously).
 **Owner:** Claude session loop — worktree lanes → merge → full `--project unit` + pdf → 12-gate deploy → elevated live-qa + link-check + page sweep → read-only review → fixes → close.
 **Tracked in:** `docs/plans/SOURCE-OF-TRUTH.md` § G24 · `ROADMAP.md` row G24.
-**Status:** OPEN — lanes launching on top of v3.23.0 (`c6e94a033`).
+**Status:** CLOSED 2026-09-21 — v3.24.0 live (`676cc46a4`), fixes live in v3.26.0; live-qa 294/3 → 0; review 2 P2 + 8 P3 fixed; UX check fixes; groundedShare 0.50 → 0.82 (0.85 carried). See SOT § G24.
 **Sources:** G23-A close notes (the live showcase renders raw `[ev:<uuid>]` / 52 × `[unevidenced]` markers in prose; `ai_runs_prompt_version_id_fkey` fails on every self-report call; `ANTHROPIC_API_KEY` 401 in the cron); the advisor plan's validation Level 2 ("3 workflow demos") — today a demo needs a real cohort with real founders; G21 follow-ups (`funding_round` signal has no feed; benchmark segments publish nothing under n ≥ 10).
 
 ## 1. Baseline (v3.23.0)

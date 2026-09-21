@@ -55,7 +55,7 @@ test.describe("Mobile 390 px", () => {
     });
   }
 
-  test("header account menu opens from the avatar and exposes credits, theme and sign out", async ({ page, visit }, testInfo) => {
+  test("header account menu opens from the avatar and exposes credits and sign out (no theme toggle — light template, G26)", async ({ page, visit }, testInfo) => {
     await visit("/workspace/investors");
     const bell = page.getByRole("button", { name: "Notifications" });
     await expect(bell).toBeVisible({ timeout: 30_000 });
@@ -76,9 +76,10 @@ test.describe("Mobile 390 px", () => {
       await expect(panel).toBeVisible({ timeout: 2_000 });
     }).toPass({ timeout: 20_000, intervals: [500, 1_000, 2_000] });
     await expect(panel).toContainText(/credits?/i);
-    await expect(panel).toContainText(/Theme/);
+    // G26: the light template has no theme toggle in the menu (light is the only default).
+    await expect(panel).not.toContainText(/Theme/);
     await expect(panel.getByRole("button", { name: /Sign out/ })).toBeVisible();
-    await expect(panel.getByRole("button", { name: /Switch to (dark|light) mode/ })).toBeVisible();
+    await expect(panel.getByRole("button", { name: /Switch to (dark|light) mode/ })).toHaveCount(0);
     const panelBox = await panel.boundingBox();
     await evidence(testInfo, "menu", { text: await panel.innerText(), panelBox });
     expect(panelBox && panelBox.x >= 0 && panelBox.x + panelBox.width <= 390, "menu panel inside the viewport").toBe(true);

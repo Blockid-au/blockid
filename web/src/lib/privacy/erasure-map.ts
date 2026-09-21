@@ -316,7 +316,8 @@ export interface ExtraEntry {
    * id (rows from the 2026-06/07 cap-table era). The RPC matches both
    * (`col = p_user_id OR col IN (owner's svi_accounts)`).
    */
-  by: "email" | "user_id" | "account";
+  /** `email_hash` (G25-C review): `col = public.free_report_email_hash(<pre-erasure email>)` — the ledger identity, so plus-tag / dot variants of the same inbox are erased too. */
+  by: "email" | "user_id" | "account" | "email_hash";
   mode: "delete" | "anonymise";
   scrub?: string;
   note: string;
@@ -361,6 +362,7 @@ export const NON_FK_EXTRAS: readonly ExtraEntry[] = Object.freeze([
   // reports they took, where they went); the aggregate counts on
   // /admin/funnel are telemetry we can afford to lose for one person.
   { table: "free_report_grants", column: "email", by: "email", mode: "delete", note: "Free-report grants keyed by the address (email, email_hash, ip_hash) — removed." },
+  { table: "free_report_grants", column: "email_hash", by: "email_hash", mode: "delete", note: "Free-report grants whose typed address differs from the account address (plus tags, gmail dots) — the normalised hash catches them (review v3.26.0 P3)." },
 ]);
 
 /**

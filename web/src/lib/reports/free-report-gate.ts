@@ -15,7 +15,7 @@
 import "server-only";
 
 import { getEntitlements } from "@/lib/entitlements";
-import { hashIp } from "@/lib/iphash";
+import { hashIpDaily } from "@/lib/iphash";
 import { TRUST_REPORT_AMOUNT_CENTS, TRUST_REPORT_SKU_ID, trustReportPriceLabelLong } from "@/lib/pricing/trust-report-price";
 import {
   countFreeReportsSubmittedToday,
@@ -32,6 +32,7 @@ import {
   FREE_REPORT_EMAIL_REQUIRED,
   FREE_REPORT_HONEYPOT_FIELD,
   FREE_REPORT_IP_LIMIT,
+  FREE_REPORT_DISABLED,
   FREE_REPORTS_PER_EMAIL,
   cleanReportEmail,
   decideFreeReportGate,
@@ -82,7 +83,7 @@ export function defaultFreeReportGateDeps(): FreeReportGateDeps {
     submittedToday: () => countFreeReportsSubmittedToday(),
     record: (input) => recordSubmission(input),
     entitlements: (plan, userId) => getEntitlements(plan, userId),
-    hashIp: (ip) => hashIp(ip),
+    hashIp: (ip) => hashIpDaily(ip),
   };
 }
 
@@ -191,6 +192,8 @@ export async function runFreeReportGate(
 
   if (!decision.allow) {
     if (decision.reason === FREE_REPORT_IP_LIMIT) return { allow: false, status: 429, reason: FREE_REPORT_IP_LIMIT };
+    // Cap 0 (free reports switched off) reads exactly like a spent allowance: the pay path takes over.
+    if (decision.reason === FREE_REPORT_DISABLED) return { allow: false, status: 200, reason: FREE_REPORT_ALLOWANCE_USED, used: 0 };
     return { allow: false, status: 200, reason: FREE_REPORT_ALLOWANCE_USED, used: decision.used };
   }
   if (decision.reason !== "free_allowance") {

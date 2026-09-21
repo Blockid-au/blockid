@@ -184,7 +184,12 @@ function originOf(url: string): string {
   }
 }
 
-const clean = (s: string) => stripCitationMarkers(s).replace(/\s+/g, " ").trim();
+// Review v3.26.0 P1: an `[unevidenced]` claim keeps an "(unverified)" suffix on the marker-free e-mail surface.
+const clean = (s: string) => {
+  const flagged = /\[(?:unevidenced|uncited)\]/i.test(s);
+  const out = stripCitationMarkers(s).replace(/\s+/g, " ").trim();
+  return flagged && out ? `${out} (unverified)` : out;
+};
 
 function h2(label: string): string {
   return `<p style="margin:22px 0 8px 0;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:${NAVY};font-weight:700;">${escapeHtml(label)}</p>`;

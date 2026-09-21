@@ -1849,6 +1849,11 @@ function SVIPaywall({
   >("idle");
   const [couponMsg, setCouponMsg] = React.useState("");
   const [checkoutLoading, setCheckoutLoading] = React.useState<string | null>(null);
+  // Review-before-pay (founder 2026-09-21): the Quick Report card never posts
+  // on its first click — it opens a confirm block (price inc. GST, one-off,
+  // PDF by e-mail) and only the explicit "Pay" button below calls
+  // /api/stripe/analysis.
+  const [quickConfirm, setQuickConfirm] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState("");
 
   /**
@@ -1957,10 +1962,36 @@ function SVIPaywall({
             price={formatAud(PAYWALL_QUICK_REPORT_AUD)}
             label="A. Quick Report"
             desc="3-page scan — all 10 sections at a glance"
-            onClick={handleSingleAnalysis}
-            highlight={false}
+            onClick={() => setQuickConfirm((v) => !v)}
+            highlight={quickConfirm}
             loading={checkoutLoading === "single"}
           />
+          {quickConfirm ? (
+            <div data-testid="quick-report-review" className="rounded-xl border border-line-subtle bg-surface-sunken p-4 text-sm text-ink-muted">
+              <p className="font-semibold text-ink">Review before you pay</p>
+              <p className="mt-1">
+                Quick Report · {formatAud(PAYWALL_QUICK_REPORT_AUD)} inc. GST · one-off, no subscription · the PDF is e-mailed to you and an ATO tax invoice follows every charge.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={handleSingleAnalysis}
+                  disabled={!!checkoutLoading}
+                  data-testid="quick-report-pay"
+                  className="inline-flex min-h-11 items-center rounded-lg bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action disabled:opacity-60"
+                >
+                  {checkoutLoading === "single" ? "Opening checkout…" : `Pay ${formatAud(PAYWALL_QUICK_REPORT_AUD)} now`}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQuickConfirm(false)}
+                  className="inline-flex min-h-11 items-center rounded-lg border border-line-subtle bg-surface px-4 text-sm font-medium text-ink hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
+                >
+                  Back
+                </button>
+              </div>
+            </div>
+          ) : null}
 
           {/* Option B: Custom Sections */}
           <button

@@ -202,7 +202,19 @@ test.describe("Cohort onboarding kit (G25)", () => {
     try {
       const anonRes = await anon.fetch(`${qa.baseURL}/api/accelerator/onboarding/metrics`, { method: "PATCH", data: { satisfaction: 5 } });
       await evidence(testInfo, "PATCH /api/accelerator/onboarding/metrics", { founder: founder.status(), anon: anonRes.status(), legacy: legacy.status() });
-      expect([403, 404]).toContain(founder.status());
+      // Under elevate=1 the QA seat can own an organisation (lanes 33/37 re-type it) → the org owner MAY write (200);
+      // a seat without an organisation must get 404 / 403.
+      if (founder.status() === 200) {
+        // Legitimate only for the OWNER of the acting organisation (an individual program owner counts —
+        // org settings stay institutional-only): the seat must read back its own org's metrics.
+        const mine = await api.fetch(`${qa.baseURL}/api/accelerator/onboarding/metrics`);
+        const body = (await mine.json()) as { ok?: boolean; org_id?: string; metrics?: Record<string, unknown> };
+        expect(mine.status(), "the owner reads its own onboarding metrics").toBe(200);
+        expect(typeof body.org_id).toBe("string");
+        expect(body.metrics?.satisfaction).toBe(5);
+      } else {
+        expect([403, 404]).toContain(founder.status());
+      }
       expect(anonRes.status()).toBe(401);
       expect(legacy.status()).toBe(404);
     } finally {

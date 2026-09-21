@@ -596,7 +596,9 @@ test.describe("BlockID Cohort — demo cohort (G24-C, lane k)", () => {
       const twice = await del<{ ok: boolean; error?: string }>(evaluator, "/api/evaluations/batch/demo");
       expect(twice.status).toBe(404);
       const pageGone = await page.request.get(`/workspace/evaluations/cohort/${encodeURIComponent(created.body.batch_id!)}`);
-      expect(pageGone.status()).toBe(404);
+      // notFound() after the streamed shell answers 200 with the not-found UI; either proves the page is gone.
+      const goneBody = await pageGone.text();
+      expect(pageGone.status() === 404 || /not found|no longer exists|404/i.test(goneBody), `removed cohort page: ${pageGone.status()}`).toBe(true);
     } finally {
       if (keyId) await del(evaluator, `/api/keys/${encodeURIComponent(keyId)}`).catch(() => undefined);
       if (demoBatchId) await del(evaluator, "/api/evaluations/batch/demo").catch(() => undefined);

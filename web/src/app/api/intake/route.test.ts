@@ -365,10 +365,11 @@ describe("POST /api/intake — the write can never cost the founder the analysis
 
 describe("POST /api/intake — write rate limit", () => {
   it("checks the limit against the anon key and the client IP", async () => {
+    // Review v3.26.0 P3: the LAST hop (our proxy's peer), never the client-forgeable first entry.
     await POST(req({ text: "an idea" }, { ip: "9.9.9.9, 10.0.0.1" }));
     expect(checkWriteLimitMock).toHaveBeenCalledWith(
       "anon-key-000000000000000",
-      "9.9.9.9",
+      "10.0.0.1",
     );
   });
 
@@ -552,7 +553,7 @@ describe("POST /api/intake — free-allowance gate (G25-C): what the route does 
 describe("POST /api/intake — anonymous run ceiling", () => {
   it("checks the client IP on the anonymous path", async () => {
     await POST(req({ text: "an idea" }, { ip: "9.9.9.9, 10.0.0.1" }));
-    expect(checkAnonRunLimitMock).toHaveBeenCalledWith("9.9.9.9");
+    expect(checkAnonRunLimitMock).toHaveBeenCalledWith("10.0.0.1"); // last hop, not the forgeable first
   });
 
   it("429s WITHOUT invoking the pipeline once the ceiling is hit", async () => {

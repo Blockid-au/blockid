@@ -24,7 +24,7 @@
 //   1. honeypot field filled → refused as invalid (a bot filled a hidden box);
 //   2. disposable-domain list → refused with a specific message;
 //   3. ≤ FREE_REPORTS_PER_IP_PER_DAY free reports per IP hash per UTC day
-//      (lib/iphash.ts rotates the salt daily — the hash IS the day key);
+//      (lib/iphash.ts hashIpDaily(): sha256(ip | salt | UTC day) — the hash IS the day key);
 //   4. the per-address allowance (FREE_REPORTS_PER_EMAIL);
 //   5. the platform cap (FREE_REPORTS_DAILY_CAP) — over it the submission
 //      is still ACCEPTED and recorded, the report is queued for the cron,
@@ -126,7 +126,7 @@ export function isDisposableReportEmail(cleanOrNormalised: string): boolean {
   return DISPOSABLE_DOMAINS.has(cleanOrNormalised.slice(at + 1));
 }
 
-/** The platform cap from the environment; invalid / missing → the default. `0` disables free reports for the day. */
+/** The platform cap from the environment; invalid / missing → the default. `0` disables free reports (refused → the pay path), never a silent queue. */
 export function freeReportsDailyCap(env: NodeJS.ProcessEnv = process.env): number {
   const raw = env[FREE_REPORTS_DAILY_CAP_ENV];
   if (raw === undefined || raw === null || raw.trim() === "") return FREE_REPORTS_DAILY_CAP_DEFAULT;
@@ -152,6 +152,7 @@ export const FREE_REPORT_EMAIL_INVALID = "email_invalid";
 export const FREE_REPORT_EMAIL_DISPOSABLE = "email_disposable";
 export const FREE_REPORT_ALLOWANCE_USED = "free_allowance_used";
 export const FREE_REPORT_IP_LIMIT = "free_ip_limit";
+export const FREE_REPORT_DISABLED = "free_reports_disabled";
 
 export interface FreeReportGateInput {
   /** Free reports already granted to this normalised address. */
@@ -195,6 +196,12 @@ export type FreeReportGateDecision =
     }
   | {
       allow: false;
+      /** Review v3.26.0 P3: `FREE_REPORTS_DAILY_CAP=0` refuses (the pay path takes over) instead of queueing forever. */
+      reason: typeof FREE_REPORT_DISABLED;
+      next: "pay";
+    }
+  | {
+      allow: false;
       reason: typeof FREE_REPORT_IP_LIMIT;
       /** Free reports this IP may start per day. */
       limit: number;
@@ -220,6 +227,7 @@ export function decideFreeReportGate(input: FreeReportGateInput): FreeReportGate
   }
   const sequenceNo = (used + 1) as 1 | 2;
   const cap = Number.isFinite(input.cap) ? Math.max(0, input.cap) : FREE_REPORTS_DAILY_CAP_DEFAULT;
+  if (cap === 0) return { allow: false, reason: FREE_REPORT_DISABLED, next: "pay" };
   const queued = input.submittedToday >= cap;
   return { allow: true, reason: "free_allowance", sequenceNo, queued };
 }

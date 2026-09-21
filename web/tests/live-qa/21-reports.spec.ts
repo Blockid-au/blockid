@@ -285,22 +285,21 @@ test.describe("TBR cover — business verification badge (S36)", () => {
 // exactly one 90-day plan (chapter 13 — the live widget only appears when the
 // plan is empty) and one floors row instead of 8 phase-lens sentences.
 test.describe("TBR cover hero + one plan (G19-S44)", () => {
-  test("/tbr/demo cover shows the A$ range hero, SVI + phase badge, and exactly one 90-day plan", async ({ page, visit }, testInfo) => {
+  test("/tbr/demo opens with the v3 Dashboard — four tiles (SVI, evidence, verdict, valuation range), 8 floor chips, one 90-day plan (G27)", async ({ page, visit }, testInfo) => {
     await visit("/tbr/demo");
-    const hero = page.locator("[data-tbr-hero]");
-    await expect(hero).toBeVisible({ timeout: 30_000 });
-    const value = hero.locator("[data-tbr-hero-value]");
-    const kind = await value.getAttribute("data-tbr-hero-value");
-    const text = await value.innerText();
-    const svi = await hero.locator("[data-tbr-hero-svi]").innerText();
+    const dash = page.locator("#tbr-dashboard");
+    await expect(dash).toBeVisible({ timeout: 30_000 });
+    const tiles = await dash.locator("[data-tbr-tile]").evaluateAll((els) => els.map((el) => el.getAttribute("data-tbr-tile")));
+    const valuation = await dash.locator('[data-tbr-tile="valuation"]').innerText();
+    const svi = await dash.locator('[data-tbr-tile="svi"]').innerText();
     const phase = await page.locator("[data-tbr-phase-badge]").first().innerText();
-    const plans = await page.locator("#tbr-action-plan").count();
+    const plans = await page.locator("#tbr-plan-90d").count();
     const floorsRows = await page.locator("[data-tbr-floors-row]").count();
     const floorChips = await page.locator("[data-tbr-floor-chip]").count();
-    await evidence(testInfo, "cover hero", { kind, text, svi, phase, plans, floorsRows, floorChips });
-    expect(kind).toBe("range");
-    expect(text).toMatch(/^A\$[\d.]+[kMB]? – A\$[\d.]+[kMB]?$/);
-    expect(svi).toMatch(/^SVI \d+/);
+    await evidence(testInfo, "dashboard", { tiles, valuation, svi, phase, plans, floorsRows, floorChips });
+    expect(tiles).toEqual(["svi", "evidence", "verdict", "valuation"]);
+    expect(valuation).toMatch(/A\$[\d.]+[kMB]?\s*[–-]\s*A\$[\d.]+[kMB]?/);
+    expect(svi).toMatch(/\d+/);
     expect(phase.trim().length).toBeGreaterThan(0);
     expect(plans).toBe(1);
     expect(floorsRows).toBe(1);
@@ -325,8 +324,10 @@ test.describe("TBR valuation — inputs & assumptions (G19-S42)", () => {
     expect(text).toMatch(/MRR/);
     expect(text).toMatch(/not stated/);
     await expect(inputs.locator('[data-tbr-source="connector"]').first()).toBeVisible();
-    await expect(page.locator("[data-tbr-method]")).toHaveCount(5);
-    await expect(page.locator('[data-tbr-method="stage_baseline"]')).toHaveCount(0);
+    // G27 v3: every method row prints with an Applicable column — 5 yes, 2 cross-checks no.
+    await expect(page.locator("[data-tbr-method]")).toHaveCount(7);
+    await expect(page.locator('[data-tbr-method-applicable="yes"]')).toHaveCount(5);
+    await expect(page.locator('[data-tbr-method="stage_baseline"][data-tbr-method-applicable="no"]')).toHaveCount(1);
     await expect(page.locator("[data-tbr-valuation-cross-checks]")).toBeVisible();
     await expect(page.locator("[data-tbr-valuation-ask]")).toHaveCount(0);
     await expect(page.locator("[data-tbr-valuation-none]")).toHaveCount(0);
@@ -341,15 +342,20 @@ test.describe("TBR score ledger — 'How this score was built' (G19-S41)", () =>
   test("/tbr/demo shows a 'How this score was built' table in 8 chapters", async ({ page, visit }, testInfo) => {
     await visit("/tbr/demo");
     const ledgers = page.locator("[data-tbr-ledger]");
-    await expect(ledgers.first()).toBeVisible({ timeout: 30_000 });
-    const count = await ledgers.count();
+    await expect(ledgers.first()).toBeAttached({ timeout: 30_000 });
+    // G27 v3: the ledgers sit collapsed (<details>) at the end of each chapter — open them all.
+    await page.evaluate(() => document.querySelectorAll("details").forEach((d) => { d.open = true; }));
+    await expect(ledgers.first()).toBeVisible({ timeout: 10_000 });
+    // G27 v3: 8 chapter ledgers + 8 appendix ledgers (the score ledger prints twice by design).
+    const count = await page.locator('#tbr-dim-ftv [data-tbr-ledger], #tbr-dim-mpc [data-tbr-ledger], #tbr-dim-ptd [data-tbr-ledger], #tbr-dim-tre [data-tbr-ledger], #tbr-dim-cgh [data-tbr-ledger], #tbr-dim-iri [data-tbr-ledger], #tbr-dim-lco [data-tbr-ledger], #tbr-dim-svm [data-tbr-ledger]').count();
     const states = await ledgers.evaluateAll((els) => els.map((el) => `${el.getAttribute("data-tbr-ledger")}:${el.getAttribute("data-tbr-ledger-state")}`));
     const captions = await page.locator("[data-tbr-ledger] caption").allInnerTexts();
-    const ftv = page.locator('[data-tbr-ledger="ftv"]');
+    // The cover ledger (appendix) and the chapter ledger both carry the dim — take the chapter one.
+    const ftv = page.locator('[data-tbr-ledger="ftv"]').last();
     const ftvText = await ftv.innerText();
     await evidence(testInfo, "score ledgers", { count, states, captions: captions.slice(0, 8), ftv: ftvText.slice(0, 600) });
     expect(count).toBe(8);
-    expect(captions.filter((c) => /How this score was built/i.test(c))).toHaveLength(8);
+    expect(captions.filter((c) => /How this score was built/i.test(c)).length).toBeGreaterThanOrEqual(8);
     expect(states.every((s) => s.endsWith(":assessed"))).toBe(true);
     expect(ftvText).toMatch(/Base 50/);
     expect(ftvText).toMatch(/\+\d+/);
@@ -461,8 +467,9 @@ test.describe("TBR evidence & data CTAs (G19-S43)", () => {
     expect(hrefs.every((h) => h.startsWith("/workspace/"))).toBe(true);
     expect(firstCta).toMatch(/Add now/);
     expect(firstCta).toMatch(/\+\d+ SVI/);
-    expect(nextActions).toHaveLength(8);
-    expect(nextActions.some((t) => /evidence: GitHub repository/.test(t))).toBe(true);
+    // G27 v3: one "What to improve" slot per chapter (8) plus the plan's own rows carry data-tbr-next-action.
+    expect(nextActions.length).toBeGreaterThanOrEqual(8);
+    expect(nextActions.some((t) => /GitHub repository/.test(t))).toBe(true);
     expect(nextActions.every((t) => !/evidence: (stripe|github|linkedin|upload|url)\b/.test(t))).toBe(true);
     expect(moneyRows >= 1 || moneyEmptyHref === "/workspace/funding").toBe(true);
     expect(moneyText).not.toMatch(/re-run the analysis/i);
@@ -582,25 +589,24 @@ test.describe("Founder execution profile (S37)", () => {
 // `<!-- SCORE -->`) or a "100/100 (strong)" score restatement.
 test.describe("TBR executive summary — structured (G19-S47)", () => {
   for (const path of ["/tbr/demo", "/showcase/blockid/report"]) {
-    test(`${path}: executive shows a headline, ≥ 3 reason cards, a verdict pill and no markdown tokens`, async ({ page, visit }, testInfo) => {
+    test(`${path}: the Investment view shows a verdict band, conviction, ≥ 3 reasons, ≥ 1 risk, conditions and no markdown tokens (G27 v3)`, async ({ page, visit }, testInfo) => {
       await visit(path);
-      const exec = page.locator("#tbr-executive");
-      await expect(exec).toBeVisible({ timeout: 30_000 });
-      const headline = exec.locator("[data-tbr-exec-headline]");
-      await expect(headline).toBeVisible();
-      const reasons = await exec.locator('[data-tbr-exec-card="reason"]').count();
-      const gaps = await exec.locator('[data-tbr-exec-card="gap"]').count();
-      const pill = exec.locator("[data-tbr-exec-verdict-pill]");
-      await expect(pill).toBeVisible();
-      const text = await exec.innerText();
-      await evidence(testInfo, "executive", { path, headline: await headline.innerText(), reasons, gaps, verdict: await pill.innerText(), words: text.split(/\s+/).length });
+      const view = page.locator("#tbr-investment-view");
+      await expect(view).toBeVisible({ timeout: 30_000 });
+      const band = view.locator("[data-tbr-verdict-band]").first();
+      await expect(band).toBeVisible();
+      const reasons = await view.locator('[data-tbr-point="reason"]').count();
+      const risks = await view.locator('[data-tbr-point="risk"]').count();
+      const conviction = view.locator("[data-tbr-conviction]").first();
+      const text = await view.innerText();
+      await evidence(testInfo, "investment view", { path, band: await band.innerText(), reasons, risks, conviction: (await conviction.count()) ? await conviction.innerText() : null, words: text.split(/\s+/).length });
       expect(reasons).toBeGreaterThanOrEqual(3);
-      expect(gaps).toBeGreaterThanOrEqual(1);
+      expect(risks).toBeGreaterThanOrEqual(1);
+      expect(text).toMatch(/BlockID structures the evidence/);
       expect(text).not.toContain("**");
       expect(text).not.toMatch(/^\s*#/m);
       expect(text).not.toContain("<!--");
-      expect(text).not.toMatch(/\d{1,3}\/100 \((strong|developing|early)\)/);
-      expect(text).not.toMatch(/below the (strong|developing) band/);
+      expect(text).not.toMatch(/\[ev:|\[unevidenced\]/);
       expect(text).not.toMatch(/Top strengths|Top gaps/);
     });
   }
@@ -609,37 +615,33 @@ test.describe("TBR executive summary — structured (G19-S47)", () => {
 // G21-P1-B — the BlockID Assessment Card (SVI beside Evidence Confidence) at
 // the top of every report render, and the per-dimension explainability cards
 // in place of the cover's plain dimension rows.
-test.describe("Assessment Card + dimension explainability (G21-P1-B)", () => {
+test.describe("Dashboard = the one SVI + Evidence Confidence surface (G21-P1-B → G27 v3)", () => {
   for (const path of ["/tbr/demo", "/showcase/blockid/report"]) {
-    test(`${path}: one Assessment Card with SVI + Evidence Confidence above the executive summary, ≥ 1 dimension explainability card`, async ({ page, visit }, testInfo) => {
+    test(`${path}: one Dashboard with the SVI + Evidence confidence tiles above the Investment view; benchmark lines always carry n`, async ({ page, visit }, testInfo) => {
       await visit(path);
       if (path === "/showcase/blockid/report") {
         const empty = await page.getByTestId("showcase-blockid-report-empty").count();
         test.skip(empty > 0, "BlockID's report_v2 not published yet — run scripts/run-self-analysis.mjs --report");
       }
-      const card = page.getByTestId("assessment-card");
-      await expect(card.first()).toBeVisible({ timeout: 30_000 });
-      const cards = await card.count();
-      const text = await card.first().innerText();
-      const svi = await card.first().getAttribute("data-assessment-svi");
-      const confidence = await card.first().getAttribute("data-assessment-confidence");
-      const verification = await card.first().getAttribute("data-assessment-verification");
-      const explain = await page.getByTestId("dimension-explain").count();
-      const pendingExplain = await page.locator('[data-testid="dimension-explain"][data-explain-state="pending"]').count();
-      const cardBox = await card.first().boundingBox();
-      const execBox = await page.locator("#tbr-executive").boundingBox();
-      await evidence(testInfo, "assessment card", { path, cards, svi, confidence, verification, explain, pendingExplain, cardTop: cardBox?.y, execTop: execBox?.y });
-      expect(cards).toBe(1);
-      // innerText carries the CSS uppercase label transform → case-insensitive.
-      expect(text).toMatch(/SVI/i);
-      expect(text).toMatch(/evidence confidence/i);
-      expect(Number(confidence)).toBeGreaterThanOrEqual(0);
-      expect(Number(confidence)).toBeLessThanOrEqual(100);
-      expect(verification).toMatch(/^L[0-5]$/);
-      expect(explain).toBeGreaterThanOrEqual(1);
-      if (cardBox && execBox) expect(cardBox.y).toBeLessThan(execBox.y);
-      // G21 copy rule: no benchmark without its n — the line is absent until P1-C wires it, never an unlabelled average.
-      expect(text).not.toMatch(/Australian average/i);
+      const dash = page.locator("#tbr-dashboard");
+      await expect(dash).toBeVisible({ timeout: 30_000 });
+      const dashboards = await page.locator("#tbr-dashboard").count();
+      const sviTile = dash.locator('[data-tbr-tile="svi"]');
+      const evidenceTile = dash.locator('[data-tbr-tile="evidence"]');
+      const sviText = await sviTile.innerText();
+      const evidenceText = await evidenceTile.innerText();
+      const benchmarkLines = await page.locator("[data-tbr-benchmark-line]").allInnerTexts();
+      const dashBox = await dash.boundingBox();
+      const viewBox = await page.locator("#tbr-investment-view").boundingBox();
+      await evidence(testInfo, "dashboard tiles", { path, dashboards, sviText, evidenceText, benchmarkLines: benchmarkLines.slice(0, 3), dashTop: dashBox?.y, viewTop: viewBox?.y });
+      expect(dashboards).toBe(1);
+      expect(sviText).toMatch(/\d+/);
+      expect(evidenceText).toMatch(/evidence confidence/i);
+      expect(evidenceText).toMatch(/\d+\s?%/);
+      if (dashBox && viewBox) expect(dashBox.y).toBeLessThan(viewBox.y);
+      // G21 copy rule: a benchmark line always carries its n (or says no published cohort); never an unlabelled average.
+      for (const line of benchmarkLines) expect(line).toMatch(/n\s*=\s*\d+|no published cohort|not published|n = —/i);
+      await expect(page.getByText(/Australian average/i)).toHaveCount(0);
     });
   }
 });

@@ -159,7 +159,7 @@ describe("erasure map ↔ live-schema fixture", () => {
     expect(tombstoneEmail("u", "abc")).toBe("deleted+abc@erased.blockid.au");
     for (const x of NON_FK_EXTRAS) {
       if (x.mode === "anonymise") expect(x.scrub, x.table).toBeTruthy();
-      expect(["email", "user_id", "account"]).toContain(x.by);
+      expect(["email", "user_id", "account", "email_hash"]).toContain(x.by);
     }
     expect(NON_FK_EXTRAS.map((x) => x.table)).toContain("magic_links");
     // Live QA 2026-09-13: the cap-table / dividend register is account_id-keyed

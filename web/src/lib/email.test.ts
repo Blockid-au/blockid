@@ -1319,10 +1319,11 @@ describe("sendFirstAnalysisReportEmail — the first analysis PDF (S32-B)", () =
     };
   }
 
-  it("refuses an unsubscribed address before touching the transport", async () => {
+  it("refuses an unsubscribed address before touching the transport — gated as transactional (payment_receipts), never promotions (review v3.26.0 P2)", async () => {
     canSendEmailMock.mockResolvedValueOnce(false);
     const { sendFirstAnalysisReportEmail } = await import("./email");
     expect(await sendFirstAnalysisReportEmail(await args())).toEqual({ ok: false, reason: "unsubscribed" });
+    expect(canSendEmailMock).toHaveBeenCalledWith(expect.any(String), "payment_receipts");
     expect(sendMailSpy).not.toHaveBeenCalled();
   });
 

@@ -295,7 +295,7 @@ function GuestRail({
         aria-busy={busy}
         className="inline-flex w-full items-center justify-center rounded-lg bg-action px-5 py-3 text-sm font-semibold text-on-action shadow-sm transition-colors hover:bg-action-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
-        {busy ? "Opening checkout…" : `Unlock for ${FUNDING_REPORT_PRICE_LABEL} — pay with card`}
+        {busy ? "Opening checkout…" : `Pay ${FUNDING_REPORT_PRICE_LABEL} & unlock`}
       </button>
       <p className="text-xs text-tertiary">
         Have an account?{" "}
