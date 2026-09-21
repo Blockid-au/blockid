@@ -57,6 +57,7 @@ const BATCH = {
   weightsVersion: 3,
   applicantsCap: null,
   pilotOrderId: null,
+  orgId: null,
 };
 
 const ITEMS = [

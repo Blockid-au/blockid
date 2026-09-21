@@ -8,7 +8,8 @@
 //        done, nothing to score) that the CSV import / intake link fills;
 //        program_name / template_id / intake_id are the 0422 cohort columns;
 //        applicants_cap + pilot_order_id are stamped from the caller's live
-//        paid Cohort Validation Pilot (pilot_orders) when there is one.
+//        paid Cohort Validation Pilot (pilot_orders) when there is one;
+//        org_id (G22-B, 0433) = resolveActingOrg(user) — never from the body.
 //   GET  → 200 { ok:true, batches:[…] }   (the Cohorts list, newest first)
 //
 //   401 anonymous · 403 feature_locked (Scout / Firm — no lp_export /
@@ -34,6 +35,7 @@ import { supabaseIntakeStore } from "@/lib/intake/program-intakes";
 import { BATCH_MAX_ITEMS, canBatchScore, normaliseWeights } from "@/lib/evaluations/batch-shared";
 import { isUuid } from "@/lib/security/request-guards";
 import { findActivePilotOrder } from "@/lib/pilots/paid-orders";
+import { resolveActingOrg } from "@/lib/investor/organisations";
 import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
@@ -187,6 +189,10 @@ async function POST_handler(request: Request) {
       );
     }
   }
+  // G22-B (0433): the cohort belongs to the organisation the creator acts
+  // for (an invited seat → the firm; else their own org, personal included).
+  // Null when the org tables are absent; dropped by createBatch before 0433.
+  const actingOrg = await resolveActingOrg(user.id).catch(() => null);
   const result = await createBatch({
     userId: user.id,
     name,
@@ -197,6 +203,7 @@ async function POST_handler(request: Request) {
     intakeId,
     applicantsCap: pilot?.applicants_cap ?? null,
     pilotOrderId: pilot?.id ?? null,
+    orgId: actingOrg?.id ?? null,
     plan: user.plan ?? null,
     email: user.email,
     channel: "workspace",

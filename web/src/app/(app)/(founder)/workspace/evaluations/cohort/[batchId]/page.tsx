@@ -8,7 +8,9 @@
 //
 // Header: n · median SVI · median confidence · last snapshot line (read
 // from P2-A's `cohort_snapshots` when the table exists, else "no snapshot
-// yet"), rubric line with the weight set version, members row + "Invite
+// yet"), an "Organisation" chip when the cohort carries an `org_id` (G22-B,
+// 0433 — name read from investor_organisations, fail-soft),
+// rubric line with the weight set version, members row + "Invite
 // reviewer" (owner), CSV export, sponsor / LP report, link to the program
 // journey (/workspace/accelerator — P2-C). Body: CohortTable (client,
 // URL-synced filters). "Humans make the decision" closes the table; the
@@ -59,11 +61,20 @@ function fmtDate(iso: string | null): string {
   return d.toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric" });
 }
 
-/** P2-A columns / tables read fail-soft: `weights_version` on the batch, the newest `cohort_snapshots` row. */
-async function loadCohortMeta(batchId: string): Promise<{ weightsVersion: number; lastSnapshotAt: string | null; snapshotsAvailable: boolean }> {
-  const out = { weightsVersion: 1, lastSnapshotAt: null as string | null, snapshotsAvailable: false };
+/** P2-A columns / tables read fail-soft: `weights_version` on the batch, the newest `cohort_snapshots` row, the organisation name (G22-B). */
+async function loadCohortMeta(batchId: string, orgId: string | null): Promise<{ weightsVersion: number; lastSnapshotAt: string | null; snapshotsAvailable: boolean; orgName: string | null }> {
+  const out = { weightsVersion: 1, lastSnapshotAt: null as string | null, snapshotsAvailable: false, orgName: null as string | null };
   const supabase = getSupabaseAdmin();
   if (!supabase) return out;
+  if (orgId) {
+    try {
+      const { data } = await supabase.from("investor_organisations").select("name").eq("id", orgId).maybeSingle();
+      const name = (data as { name?: unknown } | null)?.name;
+      if (typeof name === "string" && name.trim()) out.orgName = name.trim();
+    } catch {
+      /* pre-0393 or the org was deleted (SET NULL lands on the next read) */
+    }
+  }
   try {
     const { data } = await supabase.from("evaluation_batches").select("weights_version").eq("id", batchId).maybeSingle();
     const v = Number((data as { weights_version?: unknown } | null)?.weights_version);
@@ -98,7 +109,7 @@ export default async function CohortPage({ params, searchParams }: PageProps) {
     loadBlockIdCohortRows(batch, user.id),
     getEntitlements(user.plan ?? "", user.id).catch(() => [] as string[]),
     listBatchMembers(batch).catch(() => ({ members: [], available: false })),
-    loadCohortMeta(batch.id),
+    loadCohortMeta(batch.id, batch.orgId ?? null),
     latestSnapshots(batch.id).catch(() => ({ latest: null, previous: null, count: 0 })),
     searchParams ?? Promise.resolve({} as Record<string, string | string[] | undefined>),
   ]);
@@ -124,6 +135,13 @@ export default async function CohortPage({ params, searchParams }: PageProps) {
             <h1 className="text-2xl font-semibold text-primary" data-testid="cohort-h1">
               BlockID Cohort — {batch.name}
             </h1>
+            {/* G22-B: the organisation this cohort was created for (org_id, 0433). */}
+            {batch.orgId ? (
+              <span className="mt-1 inline-flex max-w-full items-center gap-1 rounded-full border border-line-subtle bg-surface-sunken px-2.5 py-0.5 text-xs font-medium text-secondary" data-testid="cohort-org-chip" title={`Organisation ${meta.orgName ?? batch.orgId}`}>
+                <span className="text-muted">Organisation</span>
+                <span className="truncate text-primary">{meta.orgName ?? "—"}</span>
+              </span>
+            ) : null}
             <p className="mt-1 text-sm text-secondary" data-testid="batch-status">
               {STATUS_LABEL[batch.status] ?? batch.status} · {batch.doneCount} of {batch.total} scored
               {batch.failedCount > 0 ? ` · ${batch.failedCount} failed` : ""} · queued {fmtDate(batch.createdAt)}

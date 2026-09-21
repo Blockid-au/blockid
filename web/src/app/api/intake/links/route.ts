@@ -7,6 +7,7 @@
 //         → 400 invalid_input · 402 feature_locked · 404 not_migrated
 //
 // Gate: `intake.manage` OR the evaluator persona (lib/intake/access.ts).
+// org_id (G22-B, 0433) = resolveActingOrg(user) — never from the body.
 // Every rule lives in lib/intake/program-intakes.ts.
 
 import { NextResponse } from "next/server";
@@ -15,6 +16,7 @@ import { PRIVATE_JSON_HEADERS, readJsonBody } from "@/lib/security/request-guard
 import { apiRoute } from "@/lib/audit/api-route";
 import { gateIntakeRequest as gate } from "@/lib/intake/access";
 import { createIntake, listMyIntakes, type CreateIntakeInput } from "@/lib/intake/program-intakes";
+import { resolveActingOrg } from "@/lib/investor/organisations";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -42,7 +44,10 @@ async function POST_handler(request: Request) {
   const body = read.body;
   if (!body || typeof body !== "object") return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
 
-  const result = await createIntake(user.id, body);
+  // G22-B (0433): the link belongs to the organisation the creator acts for
+  // (an invited seat → the firm; else their own org, personal included).
+  const actingOrg = await resolveActingOrg(user.id).catch(() => null);
+  const result = await createIntake(user.id, body, { orgId: actingOrg?.id ?? null });
   if (!result.ok) {
     const status = result.error === "invalid_input" ? 400 : result.error === "not_migrated" ? 404 : result.error === "service_unavailable" ? 503 : 500;
     return NextResponse.json({ ok: false, error: result.error, message: result.message }, { status });

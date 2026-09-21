@@ -46,6 +46,9 @@ vi.mock("@/lib/evaluations/batch", () => ({
 // Review P2: template / intake links must belong to the caller.
 const getTemplateMock = vi.fn(async (_u: string, id: string) => ({ id, name: "Round 1" }));
 vi.mock("@/lib/intake/templates", () => ({ getTemplate: (u: string, id: string) => getTemplateMock(u, id) }));
+// G22-B: the acting org stamped on the cohort (org_id) — never read from the body.
+const resolveActingOrgMock = vi.fn(async () => ({ id: "org-1", name: "Acme Ventures", owner_user_id: "u-1", is_personal: false }));
+vi.mock("@/lib/investor/organisations", () => ({ resolveActingOrg: (id: string) => resolveActingOrgMock(id) }));
 vi.mock("@/lib/intake/program-intakes", () => ({ supabaseIntakeStore: async () => ({ getIntakeForOwner: async (_u: string, id: string) => ({ id }) }) }));
 
 import { GET, POST, dynamic } from "./route";
@@ -212,6 +215,18 @@ describe("/api/evaluations/batch", () => {
     expect(ownedMock).toHaveBeenCalledWith("u-1", ["e-1", "e-2"]);
   });
 
+  it("G22-B: org_id comes from resolveActingOrg (a body org_id is ignored; no org / a throw → null, the cohort is still created)", async () => {
+    const res = await POST(post({ evaluation_ids: ["e-1"], org_id: "11111111-2222-4333-8444-555555555555" }));
+    expect(res.status).toBe(201);
+    expect(createBatchMock.mock.calls[0][0].orgId).toBe("org-1");
+    resolveActingOrgMock.mockResolvedValueOnce(null as never);
+    expect((await POST(post({ evaluation_ids: ["e-1"] }))).status).toBe(201);
+    expect(createBatchMock.mock.calls[1][0].orgId).toBeNull();
+    resolveActingOrgMock.mockRejectedValueOnce(new Error("boom"));
+    expect((await POST(post({ evaluation_ids: ["e-1"] }))).status).toBe(201);
+    expect(createBatchMock.mock.calls[2][0].orgId).toBeNull();
+  });
+
   // G21 P2-A — an empty BlockID Cohort (filled by CSV import / intake link)
   // with the 0422 metadata; a live paid pilot stamps its cap + order id.
   it("allow_empty creates an empty cohort with program_name / template_id and the pilot cap; bad template_id → 400", async () => {
@@ -227,9 +242,11 @@ describe("/api/evaluations/batch", () => {
       intakeId: null,
       applicantsCap: 25,
       pilotOrderId: "po-1",
+      orgId: "org-1",
       plan: "investor_vc_small",
       channel: "workspace",
     });
+    expect(resolveActingOrgMock).toHaveBeenCalledWith("u-1");
     expect((await POST(post({ evaluation_ids: [], allow_empty: true, template_id: "nope" }))).status).toBe(400);
     // Review P2: someone else's template → 404, nothing created.
     getTemplateMock.mockResolvedValueOnce(null as never);

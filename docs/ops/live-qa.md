@@ -221,6 +221,15 @@ still on (CSP-refused
 0 7 * * 0 cd /home/dovanlong/blockid.au/web && LIVE_QA_ALLOW_DB=1 LIVE_QA_ELEVATE=1 bash scripts/qa-live.sh >> /tmp/blockid-live-qa.log 2>&1
 ```
 
+G22-D (2026-09-21) adds a second, lighter row — the **G21 regression canary** — that runs only
+`tests/live-qa/41-g21-regression.spec.ts` through the same runner (`qa-live.sh --wait -- <spec>`),
+so it provisions and erases its own account and appends to `live-qa-history.jsonl` like the full
+suite: Sunday 05:10 UTC, before the 07:00 run. One assertion per G21 acceptance line (hero H1 + nav,
+trust band on 8 pages, methodology governance / versions / calibration, `/tbr/demo` Assessment Card,
+`/pilot` offer cards, institutional API 401, corrections + outcomes pages, `/workspace/score`
+trajectory, cohort index, trusted `/api/status` `data_moat`). Its only write is the lane-01 plan
+elevation on the run's own qa-live-* account when it runs alone.
+
 The job needs the Playwright chromium already provisioned (it is, for Gate 12) and access to
 the `supabase-db` container for the psql steps. Since G15 (2026-09-18) it shares the deploy
 lock etiquette (`--wait`), classifies 52x responses and honours `Retry-After` on 429s, and a
