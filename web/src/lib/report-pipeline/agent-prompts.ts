@@ -240,8 +240,8 @@ Cover:
 ## Revenue Growth Framework (ALWAYS include)
 
 ### Funnel Analysis
-Estimate the conversion funnel based on available data:
-| Stage | Benchmark | Startup Estimate | Gap |
+Estimate the conversion funnel based on available data. Caption the table on the line above it exactly: "Funnel (unevidenced): benchmark column = platform rule of thumb, startup column = estimate from the evidence." — and cite the catalogue row "Benchmarks: SaaS funnel and AU ARR bands (platform knowledge)" for the benchmark figures:
+| Stage | Benchmark (estimate) | Startup Estimate | Gap |
 |---|---|---|---|
 | Awareness → Trial | 2-5% | X% | ... |
 | Trial → Paid | 15-30% | X% | ... |
@@ -252,7 +252,7 @@ Estimate the conversion funnel based on available data:
 - Upsell/cross-sell opportunities based on current product
 - Land-and-expand motion assessment
 
-### AU Market Revenue Benchmarks
+### AU Market Revenue Benchmarks (platform knowledge — every band below is in the catalogue row "Benchmarks: SaaS funnel and AU ARR bands (platform knowledge)"; cite it)
 - SaaS startups at Seed: A$0–A$500k ARR typical
 - Series A: A$500k–A$3m ARR (median A$1.2m)
 - Series B: A$3m–A$15m ARR

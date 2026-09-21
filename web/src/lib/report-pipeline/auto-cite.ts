@@ -125,6 +125,8 @@ export function itemHasNumber(itemText: string, token: NumToken): boolean {
   return false;
 }
 
+const isDescriptionItem = (item: CitableItem): boolean => /^startup description/i.test(item.label);
+
 function labelMentioned(claim: string, label: string): boolean {
   const c = claim.toLowerCase();
   const l = label.toLowerCase().replace(/^(founder evidence|uploaded file|link|criterion input):\s*/i, "").trim();
@@ -161,7 +163,8 @@ function chooseItems(claim: string, need: NumToken[], items: CitableItem[], max:
       .filter((c) => !chosen.includes(c.item))
       .map((c) => ({ ...c, gain: c.covered.filter((tok) => remaining.includes(tok)).length }))
       .filter((c) => c.gain > 0 && (!weakOnly || c.mentioned))
-      .sort((a, b) => Number(b.mentioned) - Number(a.mentioned) || b.gain - a.gain || a.order - b.order)[0];
+      // G24-D: on a tie the specific row (founder text, connector, computed) beats the whole-description row.
+      .sort((a, b) => Number(b.mentioned) - Number(a.mentioned) || b.gain - a.gain || Number(isDescriptionItem(a.item)) - Number(isDescriptionItem(b.item)) || a.order - b.order)[0];
     if (!best) return null;
     chosen.push(best.item);
     remaining = remaining.filter((tok) => !best.covered.includes(tok));
@@ -228,8 +231,13 @@ export function itemsFromEvidenceRows(rows: Array<{ evidence_id: string; label: 
 /** The AU-context knowledge row is cited only by a sentence about tax / R&D / ESIC / GST. */
 export const AU_CONTEXT_TOPIC_RE = /\b(?:r&d|r&dti|esic|gst|tax|offset|incentive)\b/i;
 
+/** The SaaS-benchmark knowledge row is cited only by a sentence about a benchmark / band / funnel stage. */
+export const SAAS_BENCHMARK_TOPIC_RE = /\b(?:benchmarks?|typical(?:ly)?|rule of thumb|funnel|nrr|net revenue retention|retention|retained|trial|conversion|series [ab]|seed|band|median|world-class)\b/i;
+
 function withTopic(item: CitableItem): CitableItem {
-  return item.id === COMPUTED_FACT_IDS["au-context"] ? { ...item, topicRe: AU_CONTEXT_TOPIC_RE } : item;
+  if (item.id === COMPUTED_FACT_IDS["au-context"]) return { ...item, topicRe: AU_CONTEXT_TOPIC_RE };
+  if (item.id === COMPUTED_FACT_IDS["saas-benchmarks"]) return { ...item, topicRe: SAAS_BENCHMARK_TOPIC_RE };
+  return item;
 }
 
 /** W1–W3 catalogue entries (label + content) as citable items. */

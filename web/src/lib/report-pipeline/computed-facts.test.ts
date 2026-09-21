@@ -38,7 +38,7 @@ function input(overrides: Partial<Parameters<typeof computedFacts>[0]> = {}) {
 }
 
 describe("computed facts — ids", () => {
-  it("mints four stable uuid-shaped ids from the calc| seeds (the same on every run, for every startup)", () => {
+  it("mints five stable uuid-shaped ids from the calc| seeds (the same on every run, for every startup)", () => {
     expect(COMPUTED_FACT_IDS["svi-scores"]).toBe(evidenceIdFor("calc|svi-scores"));
     expect(COMPUTED_FACT_IDS.benchmarks).toBe(evidenceIdFor("calc|benchmarks"));
     expect(COMPUTED_FACT_IDS.valuation).toBe(evidenceIdFor("calc|valuation"));
@@ -47,7 +47,7 @@ describe("computed facts — ids", () => {
       expect(isComputedFactId(id)).toBe(true);
     }
     expect(COMPUTED_FACT_IDS["au-context"]).toBe(evidenceIdFor("calc|au-context"));
-    expect(new Set(Object.values(COMPUTED_FACT_IDS)).size).toBe(4);
+    expect(new Set(Object.values(COMPUTED_FACT_IDS)).size).toBe(5);
     expect(isComputedFactId(evidenceIdFor("market|description|Startup description"))).toBe(false);
   });
 
@@ -88,9 +88,9 @@ describe("computed facts — content", () => {
     expect(row.content).toContain("pre-money A$3,500,000 (≈A$3.5M), raise A$500,000 (≈A$500K) — aligned (-24% vs consensus)");
   });
 
-  it("no valuation chapter → three rows (scores, benchmarks, AU context); a pending dimension prints 'pending'", () => {
+  it("no valuation chapter → four rows (scores, benchmarks, AU context, SaaS benchmarks); a pending dimension prints 'pending'", () => {
     const facts = computedFacts(input({ valuationChapter: null, sviAnalysis: { totalSVI: 100, stageLabel: "Concept", subs: [], dimensionScores: {} } }));
-    expect(facts.map((f) => f.kind)).toEqual(["svi-scores", "benchmarks", "au-context"]);
+    expect(facts.map((f) => f.kind)).toEqual(["svi-scores", "benchmarks", "au-context", "saas-benchmarks"]);
     expect(facts[0]!.content).toContain("TRE (");
     expect(facts[0]!.content).toMatch(/TRE \([^)]+\) pending/);
   });
@@ -106,7 +106,7 @@ describe("computed facts — content", () => {
 describe("computed facts — rows + the auto-citer + the gate", () => {
   it("rows carry every dimension, connector_other / partial, and the full content as the value", () => {
     const rows = computedFactRows(input(), "2026-09-21T09:00:00.000Z");
-    expect(rows).toHaveLength(4);
+    expect(rows).toHaveLength(5);
     for (const r of rows) {
       expect(r.dims).toEqual([...DIM_ORDER]);
       expect(r.source).toBe("connector_other");
@@ -136,7 +136,7 @@ describe("computed facts — rows + the auto-citer + the gate", () => {
     expect(named.added).toBe(0);
     const only50 = autoCite(`The stage benchmark median for TRE is ${b.p50}, so a 40 reads below par (a 1.5x gap to the p75 band).`, items);
     expect(only50.added).toBe(0);
-    const plain = autoCite(`TRE is ${b.p50} points against the stage benchmark median, worth A$0 today.`, items);
+    const plain = autoCite(`TRE is ${b.p50} points against the stage benchmark median, worth A$7 today.`, items);
     expect(plain.added).toBe(0);
     const clean = autoCite(`Against the stage benchmark the TRE median is ${b.p50}.`, items);
     // not material (no money / % / big count) → nothing to cite, nothing flagged
@@ -165,6 +165,21 @@ describe("computed facts — rows + the auto-citer + the gate", () => {
     const mrr = autoCite("MRR reached A$200,000 in June.", items);
     expect(mrr.added).toBe(0);
     expect(mrr.uncited).toBe(1);
+  });
+
+  it("SaaS-benchmarks row: the CRO template's funnel / NRR / ARR bands are citable by a benchmark sentence, never by a plain traction figure (topic gate)", () => {
+    const row = computedFacts(input()).find((f) => f.kind === "saas-benchmarks")!;
+    expect(row.content).toContain("trial → paid 15–30%");
+    expect(row.content).toContain("Series A A$500k–A$3m ARR (A$500,000–A$3,000,000), median A$1.2m (A$1,200,000)");
+    const items = itemsFromEvidenceRows(computedFactRows(input()));
+    const band = autoCite("At Series A the median ARR benchmark is A$1.2m.", items);
+    expect(band.added).toBe(1);
+    expect(band.text).toContain(`[ev:${COMPUTED_FACT_IDS["saas-benchmarks"]}]`);
+    const funnel = autoCite("Trial-to-paid conversion typically runs 15–30% for SaaS.", items);
+    expect(funnel.added).toBe(1);
+    const own = autoCite("We closed A$1.2m ARR in June.", items);
+    expect(own.added).toBe(0);
+    expect(own.uncited).toBe(1);
   });
 
   it("an invented figure never picks up a computed row", () => {

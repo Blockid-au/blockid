@@ -1283,6 +1283,24 @@ export function evidenceRowsForDim(context: ReportContext, dim: DimKey): Evidenc
   return buildEvidenceRows(context).filter((r) => r.dims.includes(dim));
 }
 
+/**
+ * G24-D: register rows as citable items with the FULL text behind them — the
+ * register keeps a 160-char value (none at all for the description), so the
+ * chapter auto-citer could not see "3,302 weekly snapshots across 182
+ * startups" in the description (run 3, dim:svm). Description rows get
+ * `rawText`, "Founder evidence: <key>" rows the criterion's whole text; every
+ * other row keeps label + value.
+ */
+export function citableItemsForRows(context: Pick<ReportContext, "rawText" | "criteriaData">, rows: EvidenceRow[]): CitableItem[] {
+  return itemsFromEvidenceRows(rows).map((item, i) => {
+    const row = rows[i]!;
+    if (row.label === "Startup description" && context.rawText.trim()) return { ...item, text: `${row.label} — ${context.rawText}` };
+    const m = /^Founder evidence:\s*(\w+)$/.exec(row.label);
+    const full = m ? context.criteriaData[m[1] as CriterionKey]?.textInput : undefined;
+    return full?.trim() ? { ...item, text: `${row.label} — ${full}` } : item;
+  });
+}
+
 // ── Chapter assembly (payload | null → DimensionChapter) ────────────────────
 
 export interface ChapterMeta {
@@ -1400,7 +1418,7 @@ export function buildDimensionChapter(
   // G23-A fix (a): bullets and verdicts whose numbers are in this chapter’s
   // evidence rows (or in a citation the owner attached) get the id the owner
   // omitted — before the [unevidenced] suffix rule and the citation gate.
-  const citable = [...itemsFromEvidenceRows(evidence), ...itemsFromModuleOutputs(modules)];
+  const citable = [...citableItemsForRows(context, evidence), ...itemsFromModuleOutputs(modules)];
   const ownerCitations = payload && "criterion_cards" in payload ? (payload as DimensionChapterPayload).criterion_cards.flatMap((c) => c.citations).filter((c) => allowedIds.has(c.evidence_id)) : [];
   const cite = (text: string): string => {
     const r = autoCite(text, citable, ownerCitations);

@@ -66,7 +66,15 @@ export function expandShortCitations(text: string, allowedIds: Iterable<string>)
     if (allowed.some((a) => a.toLowerCase() === lower)) return whole;
     if (!/^[0-9a-f]{8,}(?:-[0-9a-f]*)*$/i.test(id) || lower.length < 8) return whole;
     const matches = allowed.filter((a) => a.toLowerCase().startsWith(lower));
-    return matches.length === 1 ? `[ev:${matches[0]}]` : whole;
+    if (matches.length === 1) return `[ev:${matches[0]}]`;
+    // A full-length id with one or two wrong characters ("…-4f3e-…" for
+    // "…-43f4-…") names the one allowed id within Hamming distance 2 — ids are
+    // random hex, so a second id that close does not occur.
+    if (lower.length >= 32) {
+      const near = allowed.filter((a) => a.length === lower.length && hamming(a.toLowerCase(), lower) <= 2);
+      if (near.length === 1) return `[ev:${near[0]}]`;
+    }
+    return whole;
   });
 }
 
@@ -79,8 +87,20 @@ export function expandShortCitations(text: string, allowedIds: Iterable<string>)
  */
 export const PRESCRIPTIVE_LINE_RE = /^\s*(?:[-*]\s*|\d+\.\s*)?\[(?:\d+\s?d|this_week|30d|60d|90d)\]/i;
 
+/** The dispatcher's risk row: `- **title** (severity) — mitigation`. */
+const RISK_LINE_RE = /^\s*[-*]\s*\*\*[^*]+\*\*\s*\((?:low|medium|high|critical)(?:\/[a-z ]+)?\)\s*[—–-]\s*/i;
+
 export function isPrescriptiveClaim(claim: string): boolean {
-  return PRESCRIPTIVE_LINE_RE.test(claim);
+  if (PRESCRIPTIVE_LINE_RE.test(claim)) return true;
+  // A risk row whose numbers sit only in the mitigation ("offer 0.5–1 % equity
+  // each") is a plan; a number in the title ("leaves A$50K on the table") is
+  // still a claim.
+  const risk = RISK_LINE_RE.exec(claim);
+  if (risk) {
+    const title = claim.slice(0, risk[0].length);
+    return !MATERIAL_PATTERNS.some((p) => p.test(title));
+  }
+  return false;
 }
 
 export const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
@@ -97,9 +117,16 @@ export function splitClaims(text: string): string[] {
     .filter(Boolean);
 }
 
-/** A specific, checkable assertion — money, percentage, large count, metric, multiple. */
+/** A specific, checkable assertion — money, percentage, large count, metric, multiple. The citation markers themselves never count (a uuid's "-1076-" block is not a figure). */
 export function isMaterialClaim(claim: string): boolean {
-  return MATERIAL_PATTERNS.some(p => p.test(claim));
+  const bare = claim.replace(EV_MARKER_RE, " ").replace(UUID_RE, " ");
+  return MATERIAL_PATTERNS.some(p => p.test(bare));
+}
+
+function hamming(a: string, b: string): number {
+  let d = 0;
+  for (let i = 0; i < a.length && d <= 2; i += 1) if (a[i] !== b[i]) d += 1;
+  return d;
 }
 
 /**

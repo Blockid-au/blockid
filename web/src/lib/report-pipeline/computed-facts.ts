@@ -20,7 +20,7 @@ import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { benchmarkFor, benchmarkStageForSvi, DIM_ORDER, DIMENSION_OWNERS, type DimKey } from "./dimension-owners";
 import { evidenceIdFor } from "./evidence-ids";
 
-export type ComputedFactKind = "svi-scores" | "benchmarks" | "valuation" | "au-context";
+export type ComputedFactKind = "svi-scores" | "benchmarks" | "valuation" | "au-context" | "saas-benchmarks";
 
 export interface ComputedFact {
   kind: ComputedFactKind;
@@ -35,6 +35,7 @@ export const COMPUTED_FACT_IDS: Record<ComputedFactKind, string> = {
   benchmarks: evidenceIdFor("calc|benchmarks"),
   valuation: evidenceIdFor("calc|valuation"),
   "au-context": evidenceIdFor("calc|au-context"),
+  "saas-benchmarks": evidenceIdFor("calc|saas-benchmarks"),
 };
 
 /** Labels start with a source word the auto-citer recognises (svi / benchmarks / valuation). */
@@ -43,7 +44,19 @@ export const COMPUTED_FACT_LABELS: Record<ComputedFactKind, string> = {
   benchmarks: "Benchmarks: stage quartiles p25 / p50 / p75 (computed)",
   valuation: "Valuation: CFO 5-method consensus (computed)",
   "au-context": "AU context: R&D Tax Incentive / ESIC / GST rates (platform knowledge)",
+  "saas-benchmarks": "Benchmarks: SaaS funnel and AU ARR bands (platform knowledge)",
 };
+
+/**
+ * The SaaS funnel / ARR benchmark bands the CRO template itself states
+ * (agent-prompts.ts "Funnel Analysis" + "AU Market Revenue Benchmarks") — run 3's
+ * customer_size section quoted "Series A: A$500k–A$3m ARR (median A$1.2m)" and
+ * the 2–5% / 15–30% / 60–80% funnel columns with nothing to cite. Rules of
+ * thumb, labelled as the platform's, one id.
+ */
+export const SAAS_BENCHMARK_FACTS =
+  "SaaS funnel benchmarks (platform rule of thumb, not measured for this startup): awareness → trial 2–5%; trial → paid 15–30%; paid → retained at 90 days 60–80%. Net Revenue Retention target above 100% (world-class above 120%). " +
+  "AU SaaS ARR bands by stage: Seed A$0–A$500k ARR (A$0–A$500,000) typical; Series A A$500k–A$3m ARR (A$500,000–A$3,000,000), median A$1.2m (A$1,200,000); Series B A$3m–A$15m ARR (A$3,000,000–A$15,000,000).";
 
 /**
  * The Australian programme facts the agent prompts themselves state (agent-prompts.ts
@@ -128,6 +141,7 @@ export function computedFacts(input: ComputedFactsInput): ComputedFact[] {
   });
 
   out.push({ kind: "au-context", evidence_id: COMPUTED_FACT_IDS["au-context"], label: COMPUTED_FACT_LABELS["au-context"], content: AU_CONTEXT_FACTS });
+  out.push({ kind: "saas-benchmarks", evidence_id: COMPUTED_FACT_IDS["saas-benchmarks"], label: COMPUTED_FACT_LABELS["saas-benchmarks"], content: SAAS_BENCHMARK_FACTS });
 
   const v = input.valuationChapter;
   if (v && v.consensus) {

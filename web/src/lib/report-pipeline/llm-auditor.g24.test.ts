@@ -110,6 +110,23 @@ describe("G24-D (run 1 follow-ups) — short ids, declared-estimate tables, pre-
     expect(f.kept).toEqual([`"Brand: 2/5 — worth A$4M of goodwill" — fabricated.`]);
   });
 
+  it("run 3: a citation marker never makes a claim material ('87/100 [ev:…-1076-…]'); a full id with ≤ 2 wrong characters resolves to the one allowed id", () => {
+    const GOOD = "e48e1491-1076-43f4-8f23-0fc57926068c";
+    expect(findUncitedClaims("The SVI score of 87/100 in Market & Problem reflects strong work [ev:e48e1491-1076-43f4-8f23-0fc57926068c].", [GOOD])).toEqual([]);
+    expect(findUncitedClaims("The SVI score of 87/100 in Market & Problem reflects strong work.", [])).toEqual([]);
+    const typo = "The SVI score of 87/100 and a A$12M SAM [ev:e48e1491-1076-43e4-8f23-0fc57926068c].";
+    expect(expandShortCitations(typo, [GOOD])).toBe(`The SVI score of 87/100 and a A$12M SAM [ev:${GOOD}].`);
+    expect(findUncitedClaims(typo, [GOOD])).toEqual([]);
+    // three wrong characters is not a near miss
+    expect(expandShortCitations("x [ev:e48e1491-1076-4f3e-8f23-0fc57926068c].", [GOOD])).toBe("x [ev:e48e1491-1076-4f3e-8f23-0fc57926068c].");
+  });
+
+  it("run 3: a risk row whose numbers sit only in the mitigation is a plan; a number in the title is still a claim", () => {
+    expect(findUncitedClaims("- **No advisory board limits strategic leverage** (medium) — Recruit 2–3 advisors; offer 0.5–1% equity each with standard vesting", [])).toEqual([]);
+    expect(findUncitedClaims("- **Unclaimed R&D Tax Incentive leaves A$50K–A$100K on the table** (medium) — Engage an R&D consultant", [])).toHaveLength(1);
+    expect(isPrescriptiveClaim("- **Low paid conversion — 0% across all cohorts** (critical) — A/B test pricing")).toBe(false);
+  });
+
   it("'A$0 ARR' / 'A$0 MRR' is backed by a pre-revenue row; 'A$0' against a row with real revenue is not", () => {
     const pre = [{ id: FULL, label: "Founder evidence: revenue", text: "Pre-revenue. Stripe shows 0 active subscriptions and 5 one-off charges; 0 MRR." }];
     expect(autoCite("BlockID.au is at A$0 ARR today.", pre).added).toBe(1);

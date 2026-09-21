@@ -59,8 +59,11 @@ import {
   MARKET_ANCHOR_LABEL,
   fillSectionFromFinding,
   structuredOutputSchema,
+  buildEvidenceRows,
+  citableItemsForRows,
 } from "./agent-dispatcher";
 import type { CriterionData, ReportContext } from "./types";
+import { autoCite } from "./auto-cite";
 import type { StructuredModelCaller } from "@/lib/ai/call-structured";
 import { CRITERION_KEYS, type CriterionKey } from "@/lib/evaluation-criteria";
 import { computeSVI, extractSignals } from "@/lib/svi-analysis";
@@ -536,6 +539,20 @@ describe("G23-A — auto-cite, per-role budgets, salvage fill, citable ids", () 
     expect(AgentAnalysisPayload.safeParse(bare).success).toBe(true);
     expect(fillSectionFromFinding(raw)).toEqual(raw);
     expect(fillSectionFromFinding("nope")).toBe("nope");
+  });
+
+  it("G24-D: citableItemsForRows gives the chapter auto-citer the FULL description / founder text behind a register row (the 160-char value hid '3,302 weekly snapshots across 182 startups')", () => {
+    const context = makeContext();
+    context.rawText = `${RAW_TEXT} Proprietary data: 3,302 weekly snapshots across 182 startups form a unique dataset.`;
+    context.criteriaData.customer_size.textInput = "182 startups analysed and 3,302 weekly SVI snapshots (capacity audit 2026-09-13). 5 evaluator accounts, none paying yet.";
+    const rows = buildEvidenceRows(context);
+    const items = citableItemsForRows(context, rows);
+    const desc = items.find((i) => i.label === "Startup description")!;
+    expect(desc.text).toContain("3,302 weekly snapshots across 182 startups");
+    const founder = items.find((i) => i.label === "Founder evidence: customer_size")!;
+    expect(founder.text).toContain("5 evaluator accounts, none paying yet");
+    const r = autoCite("A proprietary dataset of 3,302 weekly snapshots across 182 startups.", items);
+    expect(r.added).toBe(1);
   });
 
   it("the market catalogue carries the AU market anchor (ABS / IBISWorld) so TAM / SAM / SOM figures are citable, with the same id in buildEvidenceRows", () => {
