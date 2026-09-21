@@ -198,7 +198,7 @@ export default function HomePage() {
           sub={HOME_FINAL.sub}
           primary={{ ...HOME_PRIMARY_CTA, ctaId: "home_final_pilot" }}
           secondary={{ ...HOME_SECONDARY_CTA, ctaId: "home_final_score" }}
-          tone="dark"
+          tone="sunken"
         />
       </main>
 

@@ -215,7 +215,7 @@ export default async function ViHomePage() {
           sub={t(m, "vi.home.final.sub")}
           primary={{ href: "/vi/solutions/accelerator#pilot", label: t(m, "vi.home.cta.primary"), ctaId: "vi_home_final_pilot" }}
           secondary={{ href: HOME_SECONDARY_CTA.href, label: t(m, "vi.home.cta.secondary"), ctaId: "vi_home_final_score" }}
-          tone="dark"
+          tone="sunken"
         />
       </main>
 

@@ -52,7 +52,7 @@ export default function HowItWorksPage() {
         id="how"
         eyebrow="How it works"
         title="What happens after you press the button"
-        tone="dark"
+        tone="sunken"
         align="center"
       >
         <FeatureGrid
