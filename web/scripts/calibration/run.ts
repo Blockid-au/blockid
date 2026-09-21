@@ -89,7 +89,9 @@ async function defaultLoad(root: string): Promise<CalibrationSource> {
     if (rows.length < PAGE) break;
   }
   for (let from = 0; from < PAGE * 20; from += PAGE) {
-    const { data, error } = await sb.from("startup_outcomes").select("project_id, kind, observed_at, status").eq("status", "confirmed").order("observed_at", { ascending: true }).range(from, from + PAGE - 1);
+    // Review P1: a founder-declared outcome counts only when someone else
+    // (admin / evaluator) confirmed it — never the founder who recorded it.
+    const { data, error } = await sb.from("startup_outcomes").select("project_id, kind, observed_at, status, source, recorded_by, confirmed_by").eq("status", "confirmed").order("observed_at", { ascending: true }).range(from, from + PAGE - 1);
     if (error) {
       out.warnings.push(`startup_outcomes: ${error.message}`);
       break;
