@@ -34,6 +34,29 @@ Sources of truth this map condenses (it does not replace them): `docs/plans/unic
 
 The catalogue of speakable lines (E1/E2, F1–F4, I1–I3, G1–G3) lives in `web/src/lib/marketing/hero-variants.ts`; `messages/{en,vi}.json` mirror them under `hero.line.*`. Nothing else may introduce a new hero line.
 
+### 2b. Bands with a VI twin (G22-C, 2026-09-21)
+
+Every `/vi` mirror renders these bands in Vietnamese by construction — `TrustBand locale="vi"` (copy table in `components/marketing/template/TrustBand.tsx`), `pilot.*` / `meta.pilot.*` keys in `messages/{en,vi}.json` (parity-tested), `GOVERNANCE_CHROME` in `methodology/governance/governance-body.tsx`. Row VALUES (entity, ACN / ABN, version, e-mail) and every price stay identical in both languages.
+
+| Band | EN | VI |
+|---|---|---|
+| TrustBand eyebrow | `Who stands behind the score` | `Ai đứng sau điểm số` |
+| TrustBand title | `One operator, one methodology, one audit trail.` | `Một đơn vị vận hành, một phương pháp, một nhật ký kiểm toán.` |
+| TrustBand row labels | `Operating entity` · `ACN / ABN` · `Methodology version` · `Support` | `Đơn vị vận hành` · `ACN / ABN` · `Phiên bản phương pháp` · `Hỗ trợ` |
+| TrustBand bullets | `Privacy and evidence controls` · `Score disclaimer` · `Append-only audit trail` · `Founder consent and data ownership` | `Kiểm soát quyền riêng tư và bằng chứng` · `Tuyên bố miễn trừ về điểm số` · `Nhật ký kiểm toán chỉ ghi thêm` · `Sự đồng ý của founder và quyền sở hữu dữ liệu` |
+| TrustBand disclaimer sentence | lifted from `DISCLAIMER_SURFACES.general_all.body_md` (general information / not financial product advice) | lifted from `general_all.body_md_vi` (`thông tin chung` sentence, `[TODO-VI]` marker stripped) — never new wording |
+| TrustBand data sentence | § 9 verbatim (`DATA_PRINCIPLE_SENTENCE`) | `solutions.principle.data` verbatim |
+| Pilot page H1 (`pilot.page.hero.title`) | `Validate BlockID on one real cohort before you commit to a year.` | `Kiểm chứng BlockID trên một cohort thật trước khi cam kết cả năm.` |
+| Pilot page eyebrow | `Paid pilot · programs` | `Thí điểm trả phí · chương trình` |
+| Pilot buy label (`pilot.buy.label`) | `Book the {price} pilot` | `Đặt thí điểm {price}` |
+| Pilot rung eyebrow (`pilot.rung.eyebrow`) | `Start here` | `Bắt đầu tại đây` |
+| Pilot confirm eyebrow / continue | `Before you pay` · `Continue to secure checkout — {price}` | `Trước khi bạn trả` · `Tiếp tục đến thanh toán an toàn — {price}` |
+| Pilot meta title (`meta.pilot.title`) | `Cohort Validation Pilot for startup programs` | `Thí điểm xác thực Cohort cho chương trình` |
+| Governance H1 | `Startup Value Index — score governance` | `Startup Value Index — quản trị điểm số` |
+| Governance eyebrows | `Human in the loop` · `Contents` / `Sections` · `§ n` | `Con người trong vòng lặp` · `Mục lục` / `Các phần (tiếng Anh)` · `§ n · tiếng Anh` |
+| Governance closing band | `See the methodology the rules govern` · `Read the methodology` · `See a real report` | `Xem phương pháp mà các quy tắc này điều chỉnh` · `Đọc phương pháp` · `Xem một báo cáo thật` |
+| Versions H1 | `Startup Value Index — version history` | `Startup Value Index — lịch sử phiên bản` |
+
 ## 3. One line per audience (the evaluator ladder first, founders second)
 
 | Audience | Line | Home |
@@ -56,6 +79,8 @@ Order on any page that lists audiences: **Investors → Accelerators → Advisor
 | **Money Finder** | eligibility match for grants/investors | "Do you need money?" as a nav/footer CTA (it stays as the `/funding` page question only) |
 | **Founder Radar** | deadline-watch e-mails (Starter bundle) | "Money Radar" in public copy (the workspace tile keeps its name) |
 | **Intake link** · **Cohort table** · **Feedback letter** | program tools | — |
+| **Cohort Validation Pilot** (VI: **Thí điểm xác thực Cohort**) · `/pilot`, `/vi/pilot` | the paid one-off pilot (two sizes from `PILOT_SKUS`, priced before you pay) | "free pilot", "trial cohort", any A$ literal outside `formatPilotPrice()` |
+| **Institutional API** (read-only) · `/docs/api/institutional` | the six `/api/v1/institutional/*` read endpoints and their in-app contract page | "Enterprise API", "Data API", linking the contract to GitHub instead of the in-app page |
 | Tiers | Founder: **Free / Starter / Growth** · Evaluator: **Scout / Firm / Program** · B2B: **Fund / Intake link / Index API** · **Cohort 25 / Cohort 100** | "Angel", "Advisor plan", "VC Small", "Founding 100", "Founding 50" |
 | Reviewers | "the C-suite of AI agents", "a CFO, CLO, CMO, CRO, CTO, CHRO … each with its own domain module, then an auditor" | any agent count ("11 C-Level agents", "17 / 50+ AI agents"), any provider count ("9 AI providers") |
 | Credentials | Founder Institute · Spacecubed AI Fellowship · NVIDIA Inception | anything else |
