@@ -547,7 +547,6 @@ async function dispatchAgent(
   opts: DispatchOptions = {},
 ): Promise<AgentAnalysisResult> {
   const startTime = Date.now();
-  const tierConfig = REPORT_TIER_CONFIG[tier];
   const maxTokens = structuredMaxTokens(tier, task.budget, task.agentRole);
 
   const template = await (opts.resolvePromptTemplate ?? defaultPromptTemplate)(task.agentRole);
