@@ -20,12 +20,6 @@
       "reason": "code sample blocks keep an editor-dark ground (mono text on ink-900) — a recognised convention, not page chrome."
     },
     {
-      "file": "*",
-      "rule": "dark-surface",
-      "pattern": "(?:<(?:button|a|Link)\\b|inline-flex|rounded-(?:md|lg|xl|full))[^\\n]*bg-brand-navy(?!-deep)\\b(?![\\w-]*/(?:[4-9]\\d|100))",
-      "reason": "primary button / pill filled brand navy with a white label (the page lanes migrate these to bg-action, which IS navy, but the fill is legitimate)."
-    },
-    {
       "file": "components/brand/logo.tsx",
       "rule": "text-on-dark",
       "pattern": "isDark \\? \"text-white\"",

@@ -146,6 +146,19 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.25.0",
+    date: "2026-09-21",
+    title: "Commerce simplification + light template foundation (G25, G26-T/M/W1)",
+    changes: [
+      "[G25] Paid Cohort Validation Pilot + coupon conversion removed (301s, 29 files, 'Start a cohort' → Cohort 25 annual trial, validation levels on revenue events, Cohort proposal PDF, 0437)",
+      "[G25] First two business reports free per e-mail — e-mail + consent before the run, PDF e-mailed, third → A$3; abuse guard + daily cap; free_report_grants 0439/0440; counts on /api/status + /admin/funnel",
+      "[G25] Review before pay — /checkout/review (+ /vi) before every Stripe hand-off; only the explicit Pay / Add-card click starts checkout; caller guard test",
+      "[G25] Anthropic via the Claude CLI subscription (API key optional); demo names cleared; 33-row sourced funding CSV; founder-items.md",
+      "[G26] Light template foundation: light-only tokens (no OS auto-dark), navy/cyan palette, primitives, light nav + footer, guard; marketing + /vi and the founder workspace on the light template",
+      "[G24] Review + UX fixes: /workspace/accelerator error boundary, cohort page horizontal scroll, evaluator dark-mode contrast, 44 px targets, marker strips, claim-gate precision",
+    ],
+  },
+  {
     version: "3.24.0",
     date: "2026-09-21",
     title: "Report readability, demo cohort, AI-run integrity (G24)",

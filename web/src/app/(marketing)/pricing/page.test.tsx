@@ -38,7 +38,8 @@ describe("/pricing — template around the ladder (G17 P2-A)", () => {
     for (const slug of ["investor_vc_ent", "accelerator_enterprise", "index_api"]) {
       expect(out).toContain(`href="/contact?plan=${slug}&amp;contact_reason=${slug}"`);
     }
-    expect(out).toContain('href="/signup?plan=founder_growth&amp;trial=1"');
+    // G25-D: the hero trial CTA lands on the review step, never on sign-up → Stripe directly.
+    expect(out).toContain('href="/checkout/review?plan=founder_growth&amp;trial=1&amp;entry=pricing_hero"');
     expect(out).toContain('href="/contact"');
     expect(out).toContain("Auschain PTY LTD");
   });

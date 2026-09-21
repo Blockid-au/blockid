@@ -155,7 +155,7 @@ export function summarise(hits: readonly Hit[], topN = 8): Summary {
     byRule: zeroRules(),
     byArea: Object.fromEntries(areas.map((a) => [a, 0])) as Record<Area, number>,
     matrix: Object.fromEntries(areas.map((a) => [a, zeroRules()])) as Record<Area, Record<RuleId, number>>,
-    topFiles: Object.fromEntries(areas.map((a) => [a, []])) as Record<Area, [string, number][]>,
+    topFiles: Object.fromEntries(areas.map((a) => [a, [] as [string, number][]])) as Record<Area, [string, number][]>,
     files: new Map(),
   };
   const perAreaFile = new Map<Area, Map<string, number>>();

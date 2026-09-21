@@ -53,7 +53,7 @@ export function StepPayment({
           aria-label="Order summary"
           data-testid="onboarding-review"
           data-plan-id={plan.id}
-          className="mt-8 space-y-2 rounded-2xl border border-brand-cyan/15 bg-brand-navy-elev-1 p-5 text-sm text-ink-muted"
+          className="mt-8 space-y-2 rounded-2xl border border-line-subtle bg-surface-sunken p-5 text-sm text-ink-muted"
         >
           {/* QA-3 P2: the amount Stripe will charge when the trial ends, GST
               shown, before any hand-off — matches the invoice tax line. */}
