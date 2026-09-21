@@ -24,6 +24,12 @@
       "rule": "text-on-dark",
       "pattern": "isDark \\? \"text-white\"",
       "reason": "the Logo's variant=\"dark\" wordmark — graphic-only, for the rare caller that still places the mark on a navy fill (OG images, e-mail headers)."
+    },
+    {
+      "file": "*",
+      "rule": "dark-surface",
+      "pattern": "(?:fixed|absolute) inset-0[^\\n]*bg-ink-900/40|bg-ink-900/40[^\\n]*(?:fixed|absolute) inset-0",
+      "reason": "modal / drawer scrim at 40 % ink over the page (lane W2 uses the ink token instead of bg-black so no page carries a black utility) — not a surface."
     }
   ]
 }

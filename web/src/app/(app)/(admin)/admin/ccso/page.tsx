@@ -111,7 +111,7 @@ export default function CcsoPage() {
           <ArrowLeft strokeWidth={1.75} className="h-4 w-4" />
         </Link>
         <span className="font-semibold text-ink-800">CCSO — Voice of Customer</span>
-        <span className="text-xs font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded px-2 py-0.5">ADMIN</span>
+        <span className="text-xs font-medium text-bear bg-red-500/10 border border-red-500/20 rounded px-2 py-0.5">ADMIN</span>
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8 flex flex-col gap-6">
@@ -143,7 +143,7 @@ export default function CcsoPage() {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="rounded-2xl bg-white border border-surface-200 shadow-sm p-4 flex flex-col gap-1">
                 <span className="text-xs text-ink-500 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> NPS Score</span>
-                <span className={`text-3xl font-bold ${npsScore === null ? "text-muted" : npsScore >= 50 ? "text-green-600" : npsScore >= 0 ? "text-yellow-600" : "text-red-600"}`}>
+                <span className={`text-3xl font-bold ${npsScore === null ? "text-muted" : npsScore >= 50 ? "text-green-600" : npsScore >= 0 ? "text-warn" : "text-red-600"}`}>
                   {npsScore === null ? "—" : npsScore > 0 ? `+${npsScore}` : npsScore}
                 </span>
               </div>
@@ -157,7 +157,7 @@ export default function CcsoPage() {
                 <span className="text-xs text-muted">{total > 0 ? `${Math.round((promoters / total) * 100)}%` : ""}</span>
               </div>
               <div className="rounded-2xl bg-white border border-surface-200 shadow-sm p-4 flex flex-col gap-1">
-                <span className="text-xs text-yellow-600 flex items-center gap-1"><Minus className="h-3 w-3" /> Passives</span>
+                <span className="text-xs text-warn flex items-center gap-1"><Minus className="h-3 w-3" /> Passives</span>
                 <span className="text-3xl font-bold text-yellow-700">{passives}</span>
                 <span className="text-xs text-muted">{total > 0 ? `${Math.round((passives / total) * 100)}%` : ""}</span>
               </div>
@@ -181,9 +181,9 @@ export default function CcsoPage() {
                 <Users className="h-4 w-4 text-ink-500" />
                 <span className="text-sm font-medium">Recent Responses ({total})</span>
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-auto max-h-[75vh]">
                 <table className="w-full text-sm">
-                  <thead>
+                  <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                     <tr className="border-b border-surface-200 bg-surface-50">
                       <th className="text-left px-5 py-3 text-xs text-ink-500 font-medium">Score</th>
                       <th className="text-left px-4 py-3 text-xs text-ink-500 font-medium">Email</th>
@@ -192,7 +192,7 @@ export default function CcsoPage() {
                       <th className="text-left px-4 py-3 text-xs text-ink-500 font-medium">Date</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                     {responses.length === 0 && !npsLoading && (
                       <tr>
                         <td colSpan={5} className="px-5 py-6 text-center text-sm text-muted">No responses yet.</td>
@@ -227,9 +227,9 @@ export default function CcsoPage() {
                 <MessageSquare className="h-4 w-4 text-ink-500" />
                 <span className="text-sm font-medium">All Testimonials ({testimonials.length})</span>
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-auto max-h-[75vh]">
                 <table className="w-full text-sm">
-                  <thead>
+                  <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                     <tr className="border-b border-surface-200 bg-surface-50">
                       <th className="text-left px-5 py-3 text-xs text-ink-500 font-medium">Text</th>
                       <th className="text-left px-4 py-3 text-xs text-ink-500 font-medium">Name</th>
@@ -239,7 +239,7 @@ export default function CcsoPage() {
                       <th className="text-left px-4 py-3 text-xs text-ink-500 font-medium">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                     {testimonials.length === 0 && !tLoading && (
                       <tr>
                         <td colSpan={6} className="px-5 py-6 text-center text-sm text-muted">No testimonials yet.</td>
@@ -254,13 +254,13 @@ export default function CcsoPage() {
                         <td className="px-4 py-3 text-ink-600 text-xs whitespace-nowrap">{t.company || <span className="text-muted italic">—</span>}</td>
                         <td className="px-4 py-3">
                           {t.public
-                            ? <CheckCircle className="h-4 w-4 text-green-500" />
-                            : <XCircle className="h-4 w-4 text-gray-300" />}
+                            ? <CheckCircle className="h-4 w-4 text-bull" />
+                            : <XCircle className="h-4 w-4 text-ink-600" />}
                         </td>
                         <td className="px-4 py-3">
                           {t.approved
                             ? <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 rounded-full px-2 py-0.5"><CheckCircle className="h-3 w-3" /> Yes</span>
-                            : <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5"><XCircle className="h-3 w-3" /> No</span>}
+                            : <span className="inline-flex items-center gap-1 text-xs font-medium text-ink-500 bg-surface-200 rounded-full px-2 py-0.5"><XCircle className="h-3 w-3" /> No</span>}
                         </td>
                         <td className="px-4 py-3">
                           <button
@@ -269,7 +269,7 @@ export default function CcsoPage() {
                             className={[
                               "text-xs rounded-lg px-3 py-1.5 font-medium transition-colors disabled:opacity-50",
                               t.approved
-                                ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                                ? "bg-surface-200 hover:bg-surface-300 text-ink-700"
                                 : "bg-green-600 hover:bg-green-700 text-primary",
                             ].join(" ")}
                           >

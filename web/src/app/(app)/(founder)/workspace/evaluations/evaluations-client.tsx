@@ -222,7 +222,7 @@ export function ProgressRadarPanel({ progress, hasMoneyRadar }: { progress: Eval
         </div>
         <Link
           href="/pricing?segment=evaluator"
-          className="inline-flex min-h-10 items-center rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+          className="inline-flex min-h-10 items-center rounded-xl bg-brand-navy px-4 py-2 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 transition-colors"
         >
           Start Scout trial
         </Link>
@@ -687,7 +687,7 @@ export function EvaluationsClient({
           <button
             type="button"
             onClick={() => setShowAdd(true)}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 focus-visible:ring-offset-2"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 transition-colors cursor-pointer shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/60 focus-visible:ring-offset-2"
           >
             <Plus strokeWidth={1.75} className="h-4 w-4" />
             Add a startup
@@ -710,13 +710,13 @@ export function EvaluationsClient({
         </div>
       )}
       {claimState.status === "claimed" && (
-        <div role="status" className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+        <div role="status" className="rounded-xl border border-line-subtle border-l-4 border-l-bull bg-surface-sunken px-4 py-3 text-sm text-emerald-800">
           {claimState.already ? "You already claimed" : "You claimed"} <strong>{claimState.projectName}</strong>. Reports the evaluator runs on it are now shared with you.{" "}
           <Link href="/dashboard" className="underline font-medium">Go to your dashboard</Link>
         </div>
       )}
       {claimState.status === "error" && (
-        <div role="alert" className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div role="alert" className="rounded-xl border border-line-subtle border-l-4 border-l-bear bg-surface-sunken px-4 py-3 text-sm text-red-700">
           {claimState.message}
         </div>
       )}
@@ -812,7 +812,7 @@ export function EvaluationsClient({
             <button
               type="button"
               onClick={() => setShowAdd(true)}
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer"
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 transition-colors cursor-pointer"
             >
               <Plus strokeWidth={1.75} className="h-4 w-4" />
               Add a startup
@@ -820,10 +820,10 @@ export function EvaluationsClient({
           )}
         </div>
       ) : isEvaluator ? (
-        <div className="overflow-x-auto rounded-2xl border border-surface-200 bg-surface">
+        <div className="overflow-auto max-h-[75vh] rounded-2xl border border-surface-200 bg-surface">
           <table className="min-w-full text-sm">
             <caption className="sr-only">Startups you evaluate — stage, SVI, progress, consent and actions</caption>
-            <thead className="bg-surface-50 text-left text-xs uppercase tracking-wider text-ink-500">
+            <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
               <tr>
                 {canBatch ? (
                   <th scope="col" className="px-3 py-3">
@@ -844,7 +844,7 @@ export function EvaluationsClient({
                 <th scope="col" className="px-4 py-3 font-semibold text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-100">
+            <tbody className="divide-y divide-surface-100 [&>tr:nth-child(even)]:bg-surface-sunken">
               {rows.map((row) => {
                 const chip = CONSENT_CHIP[row.consentTier] ?? CONSENT_CHIP.attributed_only;
                 const editing = editingId === row.id;
@@ -870,7 +870,7 @@ export function EvaluationsClient({
                             value={editLabel}
                             maxLength={120}
                             onChange={(e) => setEditLabel(e.target.value)}
-                            className="w-44 rounded-md border border-surface-200 px-2 py-1 text-xs text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                            className="w-44 rounded-md border border-surface-200 px-2 py-1 text-xs text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-navy"
                             placeholder="e.g. Cohort 4 shortlist"
                           />
                           <button
@@ -954,7 +954,7 @@ export function EvaluationsClient({
                           type="button"
                           onClick={() => setReportDialog({ row, kind: "full" })}
                           aria-label={`Run Trusted Business Report for ${row.projectName}`}
-                          className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 cursor-pointer"
+                          className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-brand-navy px-2.5 text-xs font-semibold text-white hover:bg-brand-navy-elev-1 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
                         >
                           <FileText strokeWidth={1.75} className="h-3.5 w-3.5" aria-hidden="true" />
                           Run Trusted Business Report
@@ -964,7 +964,7 @@ export function EvaluationsClient({
                             type="button"
                             onClick={() => setReportDialog({ row, kind: "rescore" })}
                             aria-label={`Re-score ${row.projectName}`}
-                            className="inline-flex items-center gap-1 rounded-lg border border-brand-300 bg-surface px-2.5 py-1.5 text-xs font-medium text-action hover:bg-surface-hover cursor-pointer"
+                            className="inline-flex min-h-11 items-center gap-1 rounded-lg border border-brand-300 bg-surface px-2.5 text-xs font-medium text-action hover:bg-surface-hover cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
                           >
                             <RefreshCw strokeWidth={1.75} className="h-3.5 w-3.5" aria-hidden="true" />
                             Re-score
@@ -973,7 +973,7 @@ export function EvaluationsClient({
                         {row.latestSvi != null ? (
                           <Link
                             href={`/workspace/evaluations/${encodeURIComponent(row.id)}`}
-                            className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-action hover:bg-surface-hover"
+                            className="inline-flex min-h-11 items-center rounded-lg px-2.5 text-xs font-medium text-action hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
                             aria-label={`Open the Investor Dossier for ${row.projectName}`}
                           >
                             Dossier
@@ -981,7 +981,7 @@ export function EvaluationsClient({
                         ) : (
                           <Link
                             href={`/workspace/projects/${encodeURIComponent(row.projectSlug)}/analyze`}
-                            className="rounded-lg px-2.5 py-1.5 text-xs font-medium text-action hover:bg-surface-hover"
+                            className="inline-flex min-h-11 items-center rounded-lg px-2.5 text-xs font-medium text-action hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
                           >
                             Score
                           </Link>
@@ -993,7 +993,7 @@ export function EvaluationsClient({
                             setEditLabel(row.label ?? "");
                           }}
                           aria-label={`Edit label for ${row.projectName}`}
-                          className="rounded-lg p-1.5 text-ink-500 hover:bg-surface-100 hover:text-ink-800"
+                          className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink-500 hover:bg-surface-100 hover:text-ink-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
                         >
                           <Pencil strokeWidth={1.75} className="h-4 w-4" aria-hidden="true" />
                         </button>
@@ -1002,7 +1002,7 @@ export function EvaluationsClient({
                           onClick={() => handleRemove(row)}
                           disabled={removingId === row.id}
                           aria-label={`Stop evaluating ${row.projectName}`}
-                          className="rounded-lg p-1.5 text-ink-500 hover:bg-red-50 hover:text-red-700 disabled:opacity-50"
+                          className="inline-flex h-11 w-11 items-center justify-center rounded-lg text-ink-500 hover:bg-bear/10 hover:text-bear disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
                         >
                           {removingId === row.id ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Trash2 strokeWidth={1.75} className="h-4 w-4" aria-hidden="true" />}
                         </button>
@@ -1042,8 +1042,8 @@ export function EvaluationsClient({
 
       {/* Add dialog */}
       {showAdd && (
-        <div ref={addDialogRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="add-startup-title">
-          <div className="w-full max-w-md rounded-2xl bg-surface shadow-2xl border border-surface-200 overflow-hidden">
+        <div ref={addDialogRef} className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="add-startup-title">
+          <div className="w-full max-w-md rounded-2xl bg-surface shadow-2 border border-line-subtle overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-surface-200">
               <h2 id="add-startup-title" className="text-lg font-bold text-ink-900">Add a startup</h2>
               <button
@@ -1066,7 +1066,7 @@ export function EvaluationsClient({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. SprocketBay"
-                  className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                  className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-navy focus:border-transparent"
                 />
               </div>
               <div>
@@ -1080,7 +1080,7 @@ export function EvaluationsClient({
                   value={website}
                   onChange={(e) => setWebsite(e.target.value)}
                   placeholder="sprocketbay.com.au"
-                  className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                  className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-navy focus:border-transparent"
                 />
               </div>
               <div>
@@ -1092,7 +1092,7 @@ export function EvaluationsClient({
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Marketplace for industrial spare parts"
-                  className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                  className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-navy focus:border-transparent"
                 />
               </div>
               <div>
@@ -1105,7 +1105,7 @@ export function EvaluationsClient({
                   value={founderEmail}
                   onChange={(e) => setFounderEmail(e.target.value)}
                   placeholder="founder@startup.com"
-                  className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                  className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-navy focus:border-transparent"
                 />
               </div>
               <div>
@@ -1114,7 +1114,7 @@ export function EvaluationsClient({
                   id="eval-state"
                   value={state}
                   onChange={(e) => setState(e.target.value)}
-                  className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                  className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-navy focus:border-transparent"
                 >
                   {AU_STATE_OPTIONS.map((o) => (
                     <option key={o.value || "none"} value={o.value}>{o.label}</option>
@@ -1133,7 +1133,7 @@ export function EvaluationsClient({
                 <button
                   type="submit"
                   disabled={creating || !name.trim()}
-                  className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-lg bg-brand-navy px-4 py-2 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {creating && <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
                   Add startup

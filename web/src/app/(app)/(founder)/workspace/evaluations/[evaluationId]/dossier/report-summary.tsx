@@ -118,10 +118,10 @@ export function ReportSummary({ report }: { report: DossierReportBlock }) {
               <VisualFigure spec={report.radar} className="mx-auto max-w-[18rem]" caption="This startup (solid) vs stage-cohort median (dashed)" />
             ) : null}
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[75vh]">
             <table className="min-w-full text-sm" data-testid="weighted-table">
               <caption className="sr-only">Weighted 8-dimension table</caption>
-              <thead className="text-left text-xs uppercase tracking-wide text-ink-500">
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr>
                   <th scope="col" className="py-2 pr-3">
                     Dimension
@@ -146,7 +146,7 @@ export function ReportSummary({ report }: { report: DossierReportBlock }) {
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-100">
+              <tbody className="divide-y divide-surface-100 [&>tr:nth-child(even)]:bg-surface-sunken">
                 {report.dims.map((d) => (
                   <tr key={d.dim} data-testid="dim-row">
                     <td className="py-2 pr-3">

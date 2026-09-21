@@ -128,7 +128,7 @@ export function AdminLayout({ children, user }: AdminLayoutProps) {
       {/* Mobile overlay */}
       {mobileOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/30 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-ink-900/40 backdrop-blur-sm lg:hidden"
           onClick={() => setMobileOpen(false)}
         />
       )}
@@ -152,12 +152,12 @@ export function AdminLayout({ children, user }: AdminLayoutProps) {
           {sidebarOpen ? (
             <div className="flex items-center gap-2">
               <Logo variant="light" />
-              <span className="text-[10px] font-semibold text-red-500 bg-red-50 border border-red-200 rounded px-1.5 py-0.5 uppercase tracking-wider">
+              <span className="text-[10px] font-semibold text-bear bg-red-50 border border-red-200 rounded px-1.5 py-0.5 uppercase tracking-wider">
                 Admin
               </span>
             </div>
           ) : (
-            <Shield strokeWidth={1.75} className="h-4 w-4 text-red-500" />
+            <Shield strokeWidth={1.75} className="h-4 w-4 text-bear" />
           )}
           <button
             type="button"
@@ -222,7 +222,7 @@ export function AdminLayout({ children, user }: AdminLayoutProps) {
             funnel, sales, growth, pricing-metrics, ops, notifications,
             feedback, affiliate, resellers/requests). Filter is per-page. */}
         {sidebarOpen && (
-          <div className="mx-2 mb-2 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-[10px] leading-tight text-amber-800">
+          <div className="mx-2 mb-2 rounded-lg border border-line-subtle border-l-4 border-l-warn bg-surface-sunken px-2.5 py-1.5 text-[10px] leading-tight text-amber-800">
             <span className="font-semibold">🧪 Scope filter</span>
             <span className="ml-1 text-amber-700">available on table pages (all/live/sandbox)</span>
           </div>

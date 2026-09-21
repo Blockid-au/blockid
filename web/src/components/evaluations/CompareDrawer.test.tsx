@@ -7,6 +7,7 @@
 // the drawer relies on to never receive more than 4 rows).
 
 import * as React from "react";
+import { darkSurfaceOffences } from "@/design/light-markup";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { CompareDrawer, trajectoryStateFromResponse } from "./CompareDrawer";
@@ -63,6 +64,7 @@ function makeRows(n: number): CohortRow[] {
 describe("CompareDrawer — closed", () => {
   it("aria-hidden, data-open=false, and translated fully off-screen", () => {
     const out = renderToStaticMarkup(<CompareDrawer open={false} rows={[]} onClose={() => {}} />);
+    expect(darkSurfaceOffences(out), "G26 light template").toEqual([]);
     expect(out).toContain('data-testid="compare-drawer-root"');
     expect(out).toMatch(/aria-hidden="true"[^>]*data-testid="compare-drawer-root"[^>]*data-open="false"/);
     expect(out).toContain("translate-x-full");

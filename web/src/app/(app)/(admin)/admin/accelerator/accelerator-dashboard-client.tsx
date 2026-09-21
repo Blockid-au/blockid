@@ -116,7 +116,7 @@ export function AcceleratorDashboardClient({
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-navy text-white text-sm font-medium hover:bg-brand-navy-elev-1 transition-colors cursor-pointer"
           >
             <Plus strokeWidth={2} className="h-4 w-4" />
             Create Cohort
@@ -125,8 +125,8 @@ export function AcceleratorDashboardClient({
 
         {/* Create Cohort Modal */}
         {showCreate && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl border border-surface-200 shadow-xl w-full max-w-lg mx-4 p-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl border border-line-subtle shadow-2 w-full max-w-lg mx-4 p-6">
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-lg font-bold text-ink-800">Create New Cohort</h2>
                 <button
@@ -155,7 +155,7 @@ export function AcceleratorDashboardClient({
                     value={form.name}
                     onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                     placeholder="e.g. Melbourne Spring 2026"
-                    className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                    className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-500"
                   />
                 </div>
                 <div>
@@ -167,7 +167,7 @@ export function AcceleratorDashboardClient({
                     value={form.organization}
                     onChange={(e) => setForm((f) => ({ ...f, organization: e.target.value }))}
                     placeholder="e.g. StartupVic"
-                    className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                    className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-500"
                   />
                 </div>
                 <div>
@@ -180,7 +180,7 @@ export function AcceleratorDashboardClient({
                     value={form.managerEmail}
                     onChange={(e) => setForm((f) => ({ ...f, managerEmail: e.target.value }))}
                     placeholder="manager@accelerator.com"
-                    className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                    className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-500"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
@@ -192,7 +192,7 @@ export function AcceleratorDashboardClient({
                       type="date"
                       value={form.startDate}
                       onChange={(e) => setForm((f) => ({ ...f, startDate: e.target.value }))}
-                      className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                      className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-500"
                     />
                   </div>
                   <div>
@@ -203,7 +203,7 @@ export function AcceleratorDashboardClient({
                       type="date"
                       value={form.endDate}
                       onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
-                      className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                      className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-500"
                     />
                   </div>
                 </div>
@@ -218,7 +218,7 @@ export function AcceleratorDashboardClient({
                   <button
                     type="submit"
                     disabled={creating}
-                    className="px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-50 cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-brand-navy text-white text-sm font-medium hover:bg-brand-navy-elev-1 transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     {creating ? "Creating..." : "Create Cohort"}
                   </button>
@@ -244,7 +244,7 @@ export function AcceleratorDashboardClient({
               <p className="text-xs uppercase tracking-[0.15em] text-ink-700 font-medium">
                 Total Members
               </p>
-              <Users strokeWidth={1.75} className="h-4 w-4 text-teal-400" />
+              <Users strokeWidth={1.75} className="h-4 w-4 text-bull" />
             </div>
             <p className="text-3xl font-bold font-mono text-ink-800">
               {cohorts.reduce((sum, c) => sum + c.member_count, 0)}
@@ -255,7 +255,7 @@ export function AcceleratorDashboardClient({
               <p className="text-xs uppercase tracking-[0.15em] text-ink-700 font-medium">
                 Overall Avg SVI
               </p>
-              <TrendingUp strokeWidth={1.75} className="h-4 w-4 text-green-400" />
+              <TrendingUp strokeWidth={1.75} className="h-4 w-4 text-bull" />
             </div>
             <p className="text-3xl font-bold font-mono text-ink-800">
               {cohorts.length > 0
@@ -313,14 +313,14 @@ export function AcceleratorDashboardClient({
                   <div className="text-right">
                     <p
                       className={`text-3xl font-bold font-mono ${
-                        cohort.avg_svi >= 120
-                          ? "text-green-400"
+ cohort.avg_svi >= 120
+ ? "text-bull"
                           : cohort.avg_svi >= 100
                             ? "text-brand-600"
                             : cohort.avg_svi >= 80
-                              ? "text-amber-400"
+                              ? "text-warn"
                               : cohort.avg_svi > 0
-                                ? "text-red-400"
+                                ? "text-bear"
                                 : "text-muted"
                       }`}
                     >

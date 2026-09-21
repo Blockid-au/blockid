@@ -1,4 +1,5 @@
 import type React from "react";
+import { darkSurfaceOffences } from "@/design/light-markup";
 import { renderToReadableStream } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -74,6 +75,7 @@ describe("/workspace/accelerator — BlockID Cohort journey", () => {
     const out = await html();
     expect(out).toContain("<h1");
     expect(out).toContain("Program journey");
+    expect(darkSurfaceOffences(out), "G26 light template").toEqual([]);
     expect(out).toContain('data-testid="journey-tabs"');
     for (const s of ["intake", "assessment", "selection", "program", "demo-day", "sponsor"]) expect(out).toContain(`data-stage-tab="${s}"`);
     expect((out.match(/data-stage-state="not_started"/g) ?? []).length).toBeGreaterThanOrEqual(6);

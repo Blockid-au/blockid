@@ -60,7 +60,7 @@ export default function DocumentsUpload() {
 
       <div className="space-y-4">
         <div>
-          <label htmlFor="file-upload" className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:pointer-events-none disabled:opacity-50 bg-brand-600 text-white hover:bg-brand-700 h-10 px-4 py-2">
+          <label htmlFor="file-upload" className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy disabled:pointer-events-none disabled:opacity-50 bg-brand-navy text-white hover:bg-brand-navy-elev-1 h-10 px-4 py-2">
             Select File
           </label>
           <input
@@ -82,14 +82,14 @@ export default function DocumentsUpload() {
       <button
         onClick={handleUpload}
         disabled={!file || isUploading}
-        className="w-full inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:pointer-events-none disabled:opacity-50 border border-surface-200 bg-surface-100 hover:bg-surface-50 h-10 px-4 py-2 text-ink-800"
+        className="w-full inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy disabled:pointer-events-none disabled:opacity-50 border border-surface-200 bg-surface-100 hover:bg-surface-50 h-10 px-4 py-2 text-ink-800"
       >
         {isUploading ? "Uploading..." : "Upload to Google Drive"}
       </button>
 
       {uploadStatus === "success" && (
         <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20 flex flex-col items-center gap-2">
-          <div className="flex items-center gap-2 text-green-400">
+          <div className="flex items-center gap-2 text-bull">
             <CheckCircle className="h-5 w-5" />
             <span className="text-sm font-medium">Upload successful!</span>
           </div>
@@ -102,7 +102,7 @@ export default function DocumentsUpload() {
       )}
 
       {uploadStatus === "error" && (
-        <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-red-400">
+        <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 flex items-center gap-2 text-bear">
           <AlertCircle className="h-5 w-5 shrink-0" />
           <span className="text-sm font-medium">{errorMessage}</span>
         </div>

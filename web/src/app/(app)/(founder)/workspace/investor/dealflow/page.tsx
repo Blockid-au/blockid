@@ -61,15 +61,15 @@ export default async function InvestorDealFlowPage({ searchParams }: DealFlowPag
       <div className="p-6 max-w-7xl mx-auto space-y-6" data-dealflow data-migrated={df.migrated ? "1" : "0"} data-rows={df.rows.length}>
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <nav aria-label="Breadcrumb" className="mb-1 text-xs text-slate-500 dark:text-slate-400">
-              <Link href="/workspace/investor" className="hover:text-slate-700 dark:hover:text-slate-300">
+            <nav aria-label="Breadcrumb" className="mb-1 text-xs text-ink-500">
+              <Link href="/workspace/investor" className="hover:text-ink-700">
                 Investor Workspace
               </Link>
               <span aria-hidden="true"> / </span>
-              <span className="text-slate-700 dark:text-slate-300">Deal Flow</span>
+              <span className="text-ink-700">Deal Flow</span>
             </nav>
-            <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Deal Flow Inbox</h1>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            <h1 className="text-2xl font-semibold text-ink-900">Deal Flow Inbox</h1>
+            <p className="mt-1 text-sm text-ink-600">
               {df.mandate ? (
                 <>
                   Consented startups ranked against <strong>{df.mandate.label}</strong>
@@ -88,13 +88,13 @@ export default async function InvestorDealFlowPage({ searchParams }: DealFlowPag
             <Link
               href="/workspace/accelerator/applications"
               data-testid="dealflow-intake-link"
-              className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+              className="rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm font-medium text-ink-700 hover:bg-surface-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
             >
               Intake inbox
             </Link>
             <Link
               href="/workspace/investor/mandate"
-              className="rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+              className="rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm font-medium text-ink-700 hover:bg-surface-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
             >
               {df.mandate ? "Edit mandate" : "Write your mandate"}
             </Link>
@@ -137,9 +137,9 @@ export default async function InvestorDealFlowPage({ searchParams }: DealFlowPag
 // sort are single-value links. No client JS.
 // ---------------------------------------------------------------------------
 
-const activeChip = "inline-flex items-center rounded-full bg-brand-600 text-white px-3 py-1 text-xs font-semibold";
+const activeChip = "inline-flex min-h-11 items-center rounded-full bg-brand-navy text-white px-3 text-xs font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2";
 const idleChip =
-  "inline-flex items-center rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 px-3 py-1 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-800";
+  "inline-flex min-h-11 items-center rounded-full border border-surface-300 bg-white text-ink-700 px-3 text-xs font-medium hover:bg-surface-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2";
 
 function hrefWith(f: DealFlowFiltersV2, patch: Partial<DealFlowFiltersV2>): string {
   const next = { ...f, ...patch };
@@ -150,7 +150,7 @@ function hrefWith(f: DealFlowFiltersV2, patch: Partial<DealFlowFiltersV2>): stri
 function FilterBar({ filters: f }: { filters: DealFlowFiltersV2 }) {
   const industries = MANDATE_INDUSTRIES;
   return (
-    <section aria-label="Deal flow filters" className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4" data-filter-bar>
+    <section aria-label="Deal flow filters" className="rounded-2xl border border-surface-200 bg-white p-4" data-filter-bar>
       <div className="space-y-3">
         <FilterRow label="Industry">
           {industries.map((i) => (
@@ -217,7 +217,7 @@ function FilterBar({ filters: f }: { filters: DealFlowFiltersV2 }) {
             </Link>
           ))}
           {filtersToQuery(f) ? (
-            <Link href={BASE} className="text-xs text-slate-500 dark:text-slate-400 underline" data-filter="clear">
+            <Link href={BASE} className="text-xs text-ink-500 underline" data-filter="clear">
               Clear all
             </Link>
           ) : null}
@@ -230,7 +230,7 @@ function FilterBar({ filters: f }: { filters: DealFlowFiltersV2 }) {
 function FilterRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <span className="w-24 shrink-0 text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</span>
+      <span className="w-24 shrink-0 text-[11px] uppercase tracking-wide text-ink-500">{label}</span>
       <div className="flex flex-wrap gap-2">{children}</div>
     </div>
   );
@@ -239,7 +239,7 @@ function FilterRow({ label, children }: { label: string; children: React.ReactNo
 function MandatePicker({ mandates, current, filters }: { mandates: { id: string; label: string }[]; current: string; filters: DealFlowFiltersV2 }) {
   return (
     <nav aria-label="Mandate" className="flex flex-wrap items-center gap-2" data-mandate-picker>
-      <span className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">Mandate</span>
+      <span className="text-[11px] uppercase tracking-wide text-ink-500">Mandate</span>
       {mandates.map((m) => (
         <Link key={m.id} href={hrefWith(filters, { mandate_id: m.id })} className={m.id === current ? activeChip : idleChip} aria-current={m.id === current ? "true" : undefined}>
           {m.label}
@@ -256,9 +256,9 @@ function MandatePicker({ mandates, current, filters }: { mandates: { id: string;
 
 function DealFlowTable({ rows }: { rows: DealFlowRowV2[] }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+    <div className="overflow-auto max-h-[75vh] rounded-2xl border border-surface-200 bg-white">
       <table className="min-w-full text-sm" data-dealflow-table>
-        <thead className="bg-slate-50 dark:bg-slate-800/60 text-left">
+        <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
           <tr>
             <Th>Startup</Th>
             <Th>Industry</Th>
@@ -270,48 +270,48 @@ function DealFlowTable({ rows }: { rows: DealFlowRowV2[] }) {
             <Th className="text-right">Dossier</Th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+        <tbody className="divide-y divide-surface-100 [&>tr:nth-child(even)]:bg-surface-sunken">
           {rows.map((r) => (
-            <tr key={r.project_id} className="hover:bg-slate-50/60 dark:hover:bg-slate-800/40" data-row={r.project_id} data-fit={r.fit} data-unclassified={r.unclassified ? "1" : "0"}>
-              <Td className="font-medium text-slate-900 dark:text-slate-100">{r.company_name ?? "Startup"}</Td>
+            <tr key={r.project_id} className="hover:bg-surface-100" data-row={r.project_id} data-fit={r.fit} data-unclassified={r.unclassified ? "1" : "0"}>
+              <Td className="font-medium text-ink-900">{r.company_name ?? "Startup"}</Td>
               <Td>
                 {r.unclassified ? (
-                  <span className="inline-flex items-center rounded-full border border-dashed border-slate-400 px-2 py-0.5 text-[11px] text-slate-600 dark:text-slate-300" title="Founder confirmation pending" data-badge="unclassified">
+                  <span className="inline-flex items-center rounded-full border border-dashed border-line-strong px-2 py-0.5 text-[11px] text-ink-600" title="Founder confirmation pending" data-badge="unclassified">
                     Unclassified
                   </span>
                 ) : (
                   INDUSTRY_LABELS[r.industry].en
                 )}
               </Td>
-              <Td className="text-slate-700 dark:text-slate-300">{CANONICAL_STAGE_LABELS[r.stage_key as keyof typeof CANONICAL_STAGE_LABELS]?.label_en ?? r.stage_key}</Td>
-              <Td className="text-slate-700 dark:text-slate-300">{r.hq_state ?? "—"}</Td>
+              <Td className="text-ink-700">{CANONICAL_STAGE_LABELS[r.stage_key as keyof typeof CANONICAL_STAGE_LABELS]?.label_en ?? r.stage_key}</Td>
+              <Td className="text-ink-700">{r.hq_state ?? "—"}</Td>
               <Td className="text-right">
-                {r.svi === null ? <span className="text-slate-400">—</span> : <SviBadge score={r.svi} delta={r.svi_delta_30d} />}
+                {r.svi === null ? <span className="text-ink-400">—</span> : <SviBadge score={r.svi} delta={r.svi_delta_30d} />}
               </Td>
-              <Td className="text-right font-semibold text-slate-800 dark:text-slate-200">
+              <Td className="text-right font-semibold text-ink-800">
                 <span className={r.blockers.length ? "text-rose-600" : ""}>{r.fit}</span>
               </Td>
               <Td>
                 <ul className="flex flex-wrap gap-1" aria-label="Fit reasons and gaps">
                   {r.blockers.map((b) => (
-                    <li key={`b-${b}`} className="rounded-full bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300 px-2 py-0.5 text-[11px]" data-chip="blocker">
+                    <li key={`b-${b}`} className="rounded-full bg-rose-100 text-rose-800 px-2 py-0.5 text-[11px]" data-chip="blocker">
                       {b.replace(/_/g, " ")}
                     </li>
                   ))}
                   {r.reasons.slice(0, 3).map((x) => (
-                    <li key={`r-${x}`} className="rounded-full bg-emerald-50 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300 px-2 py-0.5 text-[11px]" data-chip="reason">
+                    <li key={`r-${x}`} className="rounded-full bg-emerald-50 text-emerald-800 px-2 py-0.5 text-[11px]" data-chip="reason">
                       {x}
                     </li>
                   ))}
                   {r.gaps.slice(0, 2).map((x) => (
-                    <li key={`g-${x}`} className="rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300 px-2 py-0.5 text-[11px]" data-chip="gap">
+                    <li key={`g-${x}`} className="rounded-full bg-surface-200 text-ink-600 px-2 py-0.5 text-[11px]" data-chip="gap">
                       {x}
                     </li>
                   ))}
                 </ul>
               </Td>
               <Td className="text-right">
-                <Link href={DOSSIER_ALIAS_PATH(r.project_id)} className="text-xs font-medium text-brand-700 dark:text-brand-300 hover:underline" aria-label={`Open the Investor Dossier for ${r.company_name ?? "this startup"}`}>
+                <Link href={DOSSIER_ALIAS_PATH(r.project_id)} className="text-xs font-medium text-brand-700 hover:underline" aria-label={`Open the Investor Dossier for ${r.company_name ?? "this startup"}`}>
                   Dossier
                 </Link>
               </Td>
@@ -325,28 +325,28 @@ function DealFlowTable({ rows }: { rows: DealFlowRowV2[] }) {
 
 function EmptyState({ kind, filters }: { kind: "no_mandate" | "no_rows"; filters?: DealFlowFiltersV2 }) {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/40 p-8 text-center" data-empty={kind}>
+    <div className="rounded-2xl border border-dashed border-surface-300 bg-surface-100 p-8 text-center" data-empty={kind}>
       {kind === "no_mandate" ? (
         <>
-          <p className="text-sm font-medium text-slate-800 dark:text-slate-200">Write your mandate to see deal-flow.</p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Sectors, stage, cheque, geography and floors — every consented startup is ranked against it nightly.</p>
+          <p className="text-sm font-medium text-ink-800">Write your mandate to see deal-flow.</p>
+          <p className="mt-1 text-xs text-ink-500">Sectors, stage, cheque, geography and floors — every consented startup is ranked against it nightly.</p>
           <div className="mt-4">
-            <Link href="/workspace/investor/mandate" className="inline-flex items-center rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-3 py-2 text-xs font-semibold">
+            <Link href="/workspace/investor/mandate" className="inline-flex items-center rounded-lg bg-brand-navy hover:bg-brand-navy-elev-1 text-white px-3 py-2 text-xs font-semibold">
               Write your mandate
             </Link>
           </div>
         </>
       ) : (
         <>
-          <p className="text-sm font-medium text-slate-800 dark:text-slate-200">No deals match these filters — broaden them.</p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Try clearing a chip, lowering the fit floor, or widening the sectors on your mandate.</p>
+          <p className="text-sm font-medium text-ink-800">No deals match these filters — broaden them.</p>
+          <p className="mt-1 text-xs text-ink-500">Try clearing a chip, lowering the fit floor, or widening the sectors on your mandate.</p>
           <div className="mt-4 flex justify-center gap-3">
             {filters && filtersToQuery(filters) ? (
-              <Link href={BASE} className="inline-flex items-center rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200">
+              <Link href={BASE} className="inline-flex items-center rounded-lg border border-surface-300 px-3 py-2 text-xs font-semibold text-ink-700">
                 Clear filters
               </Link>
             ) : null}
-            <Link href="/workspace/investor/mandate" className="inline-flex items-center rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-3 py-2 text-xs font-semibold">
+            <Link href="/workspace/investor/mandate" className="inline-flex items-center rounded-lg bg-brand-navy hover:bg-brand-navy-elev-1 text-white px-3 py-2 text-xs font-semibold">
               Edit mandate
             </Link>
           </div>
@@ -357,7 +357,7 @@ function EmptyState({ kind, filters }: { kind: "no_mandate" | "no_rows"; filters
 }
 
 function Notice({ kind, data, children }: { kind: "info" | "warn"; data: string; children: React.ReactNode }) {
-  const tone = kind === "warn" ? "border-amber-300 bg-amber-50 dark:bg-amber-900/20 text-amber-900 dark:text-amber-200" : "border-sky-200 bg-sky-50 dark:bg-sky-900/20 text-sky-900 dark:text-sky-200";
+  const tone = kind === "warn" ? "border-amber-300 bg-amber-50 text-amber-900" : "border-sky-200 bg-sky-50 text-sky-900";
   return (
     <p role="status" className={`rounded-xl border px-4 py-3 text-sm ${tone}`} data-notice={data}>
       {children}
@@ -367,7 +367,7 @@ function Notice({ kind, data, children }: { kind: "info" | "warn"; data: string;
 
 function Th({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   return (
-    <th scope="col" className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 ${className}`}>
+    <th scope="col" className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-ink-500 ${className}`}>
       {children}
     </th>
   );
@@ -380,15 +380,15 @@ function Td({ children, className = "" }: { children: React.ReactNode; className
 function SviBadge({ score, delta }: { score: number; delta: number | null }) {
   const tone =
     score >= 80
-      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
+      ? "bg-emerald-100 text-emerald-800"
       : score >= 60
-        ? "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
-        : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+        ? "bg-amber-100 text-amber-800"
+        : "bg-surface-200 text-ink-700";
   return (
     <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${tone}`}>
       SVI {Math.round(score)}
       {delta !== null && delta !== 0 ? (
-        <span className={delta > 0 ? "text-emerald-700 dark:text-emerald-300" : "text-rose-700 dark:text-rose-300"} data-delta={delta}>
+        <span className={delta > 0 ? "text-emerald-700" : "text-rose-700"} data-delta={delta}>
           {delta > 0 ? `▲${delta}` : `▼${Math.abs(delta)}`}
         </span>
       ) : null}

@@ -154,7 +154,7 @@ export function FundingReviewClient({ user, grants, programs, queue = [] }: Prop
         </div>
 
         {rows.length === 0 && (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
+          <div className="rounded-2xl border border-line-subtle border-l-4 border-l-warn bg-surface-sunken p-4 text-sm text-amber-800">
             No rows. Apply migration <code>0311_au_funding.sql</code> then run <code>node scripts/seed-au-funding.mjs</code> from <code>web/</code>.
           </div>
         )}
@@ -167,7 +167,7 @@ export function FundingReviewClient({ user, grants, programs, queue = [] }: Prop
               placeholder="Search name, id, provider..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+              className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-500"
             />
           </div>
           <Select label="Kind" value={kind} onChange={(v) => { setKind(v as "all" | FundingKind); setRegion("all"); }} options={[["all", "Grants + programs"], ["grants", "Grants"], ["programs", "Programs"]]} />
@@ -179,9 +179,9 @@ export function FundingReviewClient({ user, grants, programs, queue = [] }: Prop
         <ReviewQueuePanel queue={queue} />
 
         <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[75vh]">
             <table className="w-full text-sm">
-              <thead>
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr className="border-b border-surface-200 bg-surface-100">
                   <Th>Name</Th>
                   <Th>Kind</Th>
@@ -193,7 +193,7 @@ export function FundingReviewClient({ user, grants, programs, queue = [] }: Prop
                   <Th className="text-center">Actions</Th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                 {filtered.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-6 py-10 text-center text-ink-600">No rows match the filters</td>
@@ -296,7 +296,7 @@ function ReviewQueuePanel({ queue }: { queue: ReviewQueueEntry[] }) {
         className="w-full flex items-center justify-between gap-3 px-5 py-3 text-left cursor-pointer"
       >
         <div className="flex items-center gap-2">
-          <AlertTriangle strokeWidth={1.75} className="h-4 w-4 text-amber-600" />
+          <AlertTriangle strokeWidth={1.75} className="h-4 w-4 text-warn" />
           <span className="text-sm font-semibold text-ink-800">Review queue</span>
           <span className="text-xs text-ink-500">
             {queue.length} entr{queue.length === 1 ? "y" : "ies"} · from the weekly refresh-funding-sources cron
@@ -311,9 +311,9 @@ function ReviewQueuePanel({ queue }: { queue: ReviewQueueEntry[] }) {
             Nothing queued. The cron runs Sundays 04:00 UTC; run <code>/api/cron/refresh-funding-sources?dry=1</code> to preview.
           </p>
         ) : (
-          <div className="overflow-x-auto border-t border-surface-200">
+          <div className="overflow-auto max-h-[75vh] border-t border-surface-200">
             <table className="w-full text-xs">
-              <thead>
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr className="bg-surface-100 text-ink-700">
                   <Th>When</Th>
                   <Th>Kind</Th>
@@ -324,7 +324,7 @@ function ReviewQueuePanel({ queue }: { queue: ReviewQueueEntry[] }) {
                   <Th className="text-center">Links</Th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                 {queue.map((e, i) => (
                   <tr key={`${e.ts}:${e.kind}:${e.id ?? e.url}:${i}`} className="border-b border-surface-200/40 align-top">
                     <td className="px-4 py-2 whitespace-nowrap text-ink-600">{e.ts.slice(0, 10)}</td>
@@ -418,8 +418,8 @@ function ReviewDialog({ row, onClose, onSaved }: { row: ReviewRow; onClose: () =
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-2xl border border-surface-200 bg-white p-6 shadow-xl space-y-4" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="w-full max-w-lg rounded-2xl border border-surface-200 bg-white p-6 shadow-2 space-y-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-base font-bold text-ink-800">{row.name}</h2>
@@ -463,7 +463,7 @@ function ReviewDialog({ row, onClose, onSaved }: { row: ReviewRow; onClose: () =
           <p className="text-[11px] text-ink-500">Saving stamps verified_by=human and last_verified_at=today.</p>
           <div className="flex gap-2">
             <button type="button" onClick={onClose} className="rounded-xl border border-surface-200 px-3 py-1.5 text-sm text-ink-700 hover:bg-surface-50 cursor-pointer">Cancel</button>
-            <button type="button" onClick={save} disabled={busy} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60 cursor-pointer">
+            <button type="button" onClick={save} disabled={busy} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-navy px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-navy-elev-1 disabled:opacity-60 cursor-pointer">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Mark verified
             </button>
           </div>

@@ -132,7 +132,7 @@ export function Ga4DimensionsPanelView({ result, loading, applying, error, onRel
               type="button"
               onClick={onApply}
               disabled={applying || loading}
-              className="rounded-md bg-brand-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+              className="rounded-md bg-brand-navy px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-navy-elev-1 disabled:opacity-50"
             >
               {applying ? "Registering…" : `Register ${result.missing.length} missing`}
             </button>
@@ -158,7 +158,7 @@ export function Ga4DimensionsPanelView({ result, loading, applying, error, onRel
       )}
 
       {blocked && (
-        <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 p-4" role="status" data-testid="ga4-dimensions-blocked">
+        <div className="mt-4 rounded-lg border border-line-subtle border-l-4 border-l-warn bg-surface-sunken p-4" role="status" data-testid="ga4-dimensions-blocked">
           <p className="flex items-start gap-2 text-sm font-medium text-amber-800">
             <AlertTriangle strokeWidth={1.75} className="mt-0.5 h-4 w-4 shrink-0" />
             Blocked — {REASON_LABEL[blocked.reason] ?? blocked.reason}
@@ -185,9 +185,9 @@ export function Ga4DimensionsPanelView({ result, loading, applying, error, onRel
 
       {result?.error && !blocked && <p className="mt-3 text-xs text-red-600">{result.error}</p>}
 
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-4 overflow-auto max-h-[75vh]">
         <table className="w-full text-xs">
-          <thead>
+          <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
             <tr className="text-left text-ink-500">
               <th className="py-1 pr-3 font-medium">Param</th>
               <th className="py-1 pr-3 font-medium">Display name</th>
@@ -195,7 +195,7 @@ export function Ga4DimensionsPanelView({ result, loading, applying, error, onRel
               <th className="py-1 font-medium">State</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
             {wanted.map((d) => {
               const state = !result || blocked ? "unknown" : registered.has(d.parameterName) ? "registered" : "missing";
               return (

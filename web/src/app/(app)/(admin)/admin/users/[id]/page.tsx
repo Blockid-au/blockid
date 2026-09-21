@@ -419,7 +419,7 @@ export default async function AdminUserDetailPage({
           <div className="flex items-center gap-2">
             <span
               className={`rounded px-2 py-0.5 text-xs ${
-                user.role === "admin"
+ user.role === "admin"
                   ? "bg-red-50 text-red-800"
                   : "bg-surface-100 text-ink-700"
               }`}
@@ -555,7 +555,7 @@ export default async function AdminUserDetailPage({
           <div className="rounded-lg border border-surface-200 bg-white p-4">
             <div className="mb-3 flex items-baseline justify-between">
               <h3 className="text-sm font-semibold text-ink-900">Roles & permissions</h3>
-              <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-amber-800">
+              <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[11px] uppercase tracking-wide text-amber-800">
                 Edit via P12.6
               </span>
             </div>
@@ -575,8 +575,8 @@ export default async function AdminUserDetailPage({
                       <li
                         key={p}
                         className={`rounded px-1.5 py-0.5 font-mono text-[11px] ${
-                          known
-                            ? "bg-indigo-50 text-indigo-800"
+ known
+ ? "bg-indigo-50 text-indigo-800"
                             : "bg-surface-100 text-ink-700 ring-1 ring-amber-200"
                         }`}
                       >
@@ -624,8 +624,8 @@ export default async function AdminUserDetailPage({
                         )}
                       </span>
                       <span
-                        className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${
-                          m.status === "active"
+                        className={`rounded px-1.5 py-0.5 text-[11px] uppercase tracking-wide ${
+ m.status === "active"
                             ? "bg-emerald-50 text-emerald-800"
                             : "bg-surface-100 text-ink-500"
                         }`}
@@ -675,8 +675,8 @@ export default async function AdminUserDetailPage({
                         )}
                       </span>
                       <span
-                        className={`rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${
-                          a.status === "active" && !a.opted_out
+                        className={`rounded px-1.5 py-0.5 text-[11px] uppercase tracking-wide ${
+ a.status === "active" && !a.opted_out
                             ? "bg-emerald-50 text-emerald-800"
                             : "bg-surface-100 text-ink-500"
                         }`}
@@ -720,8 +720,8 @@ export default async function AdminUserDetailPage({
                       {c.client_display_name ?? c.client_email ?? c.client_id.slice(0, 8)}
                     </a>
                     <span
-                      className={`ml-2 rounded px-1.5 py-0.5 text-[10px] uppercase tracking-wide ${
-                        c.status === "active"
+                      className={`ml-2 rounded px-1.5 py-0.5 text-[11px] uppercase tracking-wide ${
+ c.status === "active"
                           ? "bg-emerald-50 text-emerald-800"
                           : "bg-surface-100 text-ink-500"
                       }`}
@@ -752,7 +752,7 @@ export default async function AdminUserDetailPage({
             <div className="p-4 text-sm text-ink-500">No transactions yet.</div>
           ) : (
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-ink-500">
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr>
                   <th className="p-3">When</th>
                   <th className="p-3">Amount</th>
@@ -760,7 +760,7 @@ export default async function AdminUserDetailPage({
                   <th className="p-3">Reason</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-100">
+              <tbody className="divide-y divide-surface-100 [&>tr:nth-child(even)]:bg-surface-sunken">
                 {transactions.map((t, i) => {
                   const isSandbox = isSandboxRow(t as unknown as Record<string, unknown>);
                   return (
@@ -770,7 +770,7 @@ export default async function AdminUserDetailPage({
                       </td>
                       <td
                         className={`p-3 text-sm font-medium ${
-                          t.amount >= 0 ? "text-emerald-700" : "text-red-700"
+ t.amount >= 0 ? "text-emerald-700" : "text-red-700"
                         }`}
                       >
                         {t.amount >= 0 ? "+" : ""}
@@ -806,7 +806,7 @@ export default async function AdminUserDetailPage({
             <div className="p-4 text-sm text-ink-500">No sessions on file.</div>
           ) : (
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-ink-500">
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr>
                   <th className="p-3">Created</th>
                   <th className="p-3">Last used</th>
@@ -815,7 +815,7 @@ export default async function AdminUserDetailPage({
                   <th className="p-3">User agent</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-100">
+              <tbody className="divide-y divide-surface-100 [&>tr:nth-child(even)]:bg-surface-sunken">
                 {sessions.map((s) => (
                   <tr key={s.token}>
                     <td className="p-3 text-xs text-ink-600">

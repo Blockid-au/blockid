@@ -1,4 +1,5 @@
 import type React from "react";
+import { darkSurfaceOffences } from "@/design/light-markup";
 import { renderToReadableStream } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -76,6 +77,7 @@ describe("/workspace/investor/mandate — 7-section mandate form", () => {
 
   it("evaluator: renders all 7 sections with headings, prefilled from the primary mandate", async () => {
     const out = await html();
+    expect(darkSurfaceOffences(out), "G26 light template").toEqual([]);
     for (const key of ["identity", "appetite", "stage_cheque", "geography", "floors", "tags_esg", "weights"]) {
       expect(out, key).toContain(`data-mandate-section="${key}"`);
     }

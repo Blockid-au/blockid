@@ -5,6 +5,7 @@
 // keeps the sibling admin gate (anon → login, non-admin → /admin).
 
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { darkSurfaceOffences } from "@/design/light-markup";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -68,6 +69,7 @@ describe("FunnelAdminView", () => {
     const data = await dataFromFixture();
     expect(data.latest).not.toBeNull();
     const out = await html(<FunnelAdminView data={data} />);
+    expect(darkSurfaceOffences(out), "G26 light template").toEqual([]);
     expect(out).toContain("<h1");
     expect(out).toContain('data-testid="funnel-status"');
     expect(out).toContain("report: ok");

@@ -226,7 +226,7 @@ export default async function AdminUsersPage({
             )}
             <button
               type="submit"
-              className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white"
+              className="rounded-md bg-brand-navy px-3 py-1.5 text-sm font-medium text-white"
             >
               Search
             </button>
@@ -290,10 +290,8 @@ export default async function AdminUsersPage({
               <a
                 key={f}
                 href={buildHref({ filter: f })}
-                className={`rounded-full px-3 py-1 text-xs ${
-                  filter === f
-                    ? "bg-brand-600 text-white"
-                    : "bg-white text-ink-700 ring-1 ring-surface-200 hover:bg-surface-100"
+                className={`inline-flex min-h-11 items-center rounded-full px-3 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2 ${
+                  filter === f ? "rounded-full bg-brand-navy text-white" : "bg-white text-ink-700 ring-1 ring-surface-200 hover:bg-surface-100"
                 }`}
               >
                 {f}
@@ -311,7 +309,7 @@ export default async function AdminUsersPage({
         ) : (
           <div className="overflow-hidden rounded-lg border border-surface-200 bg-white">
             <table className="w-full text-sm">
-              <thead className="bg-surface-50 text-left text-xs uppercase tracking-wide text-ink-500">
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr>
                   <th className="p-3">Email</th>
                   <th className="p-3">Name</th>
@@ -326,7 +324,7 @@ export default async function AdminUsersPage({
                   <th className="p-3">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-100">
+              <tbody className="divide-y divide-surface-100 [&>tr:nth-child(even)]:bg-surface-sunken">
                 {rows.map((r) => {
                   const at = isAccountType(r.account_type) ? r.account_type : null;
                   const resellerName = r.attribution_reseller_id
@@ -348,7 +346,7 @@ export default async function AdminUsersPage({
                       <td className="p-3">
                         <span
                           className={`rounded px-2 py-0.5 text-xs ${
-                            r.role === "admin"
+ r.role === "admin"
                               ? "bg-red-50 text-red-800"
                               : "bg-surface-100 text-ink-700"
                           }`}

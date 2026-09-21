@@ -1,4 +1,5 @@
 import type React from "react";
+import { darkSurfaceOffences } from "@/design/light-markup";
 import { renderToReadableStream } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -63,6 +64,7 @@ describe("/workspace/investor/dealflow — v2", () => {
 
   it("passes the URL filters to the loader and renders the mandate-scored rows keyed on project_id", async () => {
     const out = await html({ industry: "fintech,ai_ml", stage: "seed", fit: "0", sort: "svi" });
+    expect(darkSurfaceOffences(out), "G26 light template").toEqual([]);
     expect(dfMock).toHaveBeenCalledWith("u-inv", expect.objectContaining({ industry: ["fintech", "ai_ml"], stage: ["seed"], min_fit: 0, sort: "svi" }));
     expect(out).toContain('data-migrated="1"');
     expect(out).toContain('data-rows="3"');
@@ -92,7 +94,7 @@ describe("/workspace/investor/dealflow — v2", () => {
   it("filter bar: URL-serialised toggles per axis with aria-pressed; the active chip links to the toggled-off URL; Clear all", async () => {
     const out = await html({ stage: "seed", state: "NSW" });
     expect(out).toContain("data-filter-bar");
-    expect(out).toMatch(/class="inline-flex items-center rounded-full bg-brand-600[^"]*" data-filter="stage" data-value="seed" aria-pressed="true" href="\/workspace\/investor\/dealflow\?state=NSW"/);
+    expect(out).toMatch(/class="inline-flex min-h-11 items-center rounded-full bg-brand-navy[^"]*" data-filter="stage" data-value="seed" aria-pressed="true" href="\/workspace\/investor\/dealflow\?state=NSW"/);
     expect(out).toMatch(/data-filter="stage" data-value="seed" aria-pressed="true"/);
     expect(out).toMatch(/data-filter="stage" data-value="series_a" aria-pressed="false"/);
     expect(out).toContain('href="/workspace/investor/dealflow?stage=seed%2Cseries_a&amp;state=NSW"');

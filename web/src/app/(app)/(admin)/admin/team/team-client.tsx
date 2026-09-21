@@ -165,7 +165,7 @@ const TEAM_MEMBERS: TeamMember[] = [
     name: "Head of Operations",
     role: "Head of Operations",
     initial: "O",
-    color: "text-amber-600",
+    color: "text-warn",
     bgColor: "bg-amber-50",
     borderColor: "border-amber-300",
     responsibilities: [
@@ -297,7 +297,7 @@ const AI_AGENTS: AIAgent[] = [
     statusDetail: "daily cron",
     icon: Mail,
     department: "Operations",
-    deptColor: "text-amber-600",
+    deptColor: "text-warn",
     deptIconBg: "bg-amber-100",
   },
   {
@@ -311,7 +311,7 @@ const AI_AGENTS: AIAgent[] = [
     statusDetail: "3 jobs",
     icon: Clock,
     department: "Operations",
-    deptColor: "text-amber-600",
+    deptColor: "text-warn",
     deptIconBg: "bg-amber-100",
   },
 ];
@@ -388,7 +388,7 @@ function TeamMemberCard({ member }: { member: TeamMember }) {
         <div className="px-5 pb-5 border-t border-surface-200 pt-4 space-y-4">
           {/* Responsibilities */}
           <div>
-            <h4 className="text-[10px] uppercase tracking-wider text-ink-500 font-semibold mb-2">
+            <h4 className="text-[11px] uppercase tracking-wider text-ink-500 font-semibold mb-2">
               Responsibilities
             </h4>
             <ul className="space-y-1">
@@ -406,7 +406,7 @@ function TeamMemberCard({ member }: { member: TeamMember }) {
 
           {/* Priorities */}
           <div>
-            <h4 className="text-[10px] uppercase tracking-wider text-ink-500 font-semibold mb-2">
+            <h4 className="text-[11px] uppercase tracking-wider text-ink-500 font-semibold mb-2">
               Current Priorities
             </h4>
             <ul className="space-y-1">
@@ -417,7 +417,7 @@ function TeamMemberCard({ member }: { member: TeamMember }) {
                 >
                   <Zap
                     strokeWidth={2}
-                    className="h-3 w-3 text-amber-500 shrink-0 mt-0.5"
+                    className="h-3 w-3 text-warn shrink-0 mt-0.5"
                   />
                   {p}
                 </li>
@@ -428,7 +428,7 @@ function TeamMemberCard({ member }: { member: TeamMember }) {
           {/* Contact */}
           {member.contact && (
             <div>
-              <h4 className="text-[10px] uppercase tracking-wider text-ink-500 font-semibold mb-1">
+              <h4 className="text-[11px] uppercase tracking-wider text-ink-500 font-semibold mb-1">
                 Contact
               </h4>
               <p className="text-xs text-ink-600 font-mono">
@@ -486,7 +486,7 @@ export function TeamClient({ user, emailsSent }: TeamClientProps) {
               { icon: Route, label: "API Routes", value: "143", sub: "12 domains", color: "text-purple-600", bg: "bg-purple-50" },
               { icon: Database, label: "DB Tables", value: "68", sub: "6 groups", color: "text-teal-600", bg: "bg-teal-50" },
               { icon: Server, label: "Microservices", value: "4", sub: "2 live, 2 ready", color: "text-emerald-600", bg: "bg-emerald-50" },
-              { icon: Timer, label: "Cron Jobs", value: "12", sub: "automated", color: "text-amber-600", bg: "bg-amber-50" },
+              { icon: Timer, label: "Cron Jobs", value: "12", sub: "automated", color: "text-warn", bg: "bg-amber-50" },
               { icon: Settings, label: "Env Vars", value: "72", sub: "configured", color: "text-rose-600", bg: "bg-rose-50" },
             ].map(({ icon: Icon, label, value, sub, color, bg }) => (
               <div key={label} className="rounded-xl border border-surface-100 bg-surface-50 p-3 text-center">
@@ -539,28 +539,28 @@ export function TeamClient({ user, emailsSent }: TeamClientProps) {
           </h2>
 
           <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[75vh]">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                   <tr className="border-b border-surface-200 bg-surface-100">
-                    <th className="text-left px-5 py-3 text-[10px] uppercase tracking-wider text-ink-500 font-medium">
+                    <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider text-ink-500 font-medium">
                       Agent
                     </th>
-                    <th className="text-left px-5 py-3 text-[10px] uppercase tracking-wider text-ink-500 font-medium hidden sm:table-cell">
+                    <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider text-ink-500 font-medium hidden sm:table-cell">
                       Department
                     </th>
-                    <th className="text-left px-5 py-3 text-[10px] uppercase tracking-wider text-ink-500 font-medium hidden md:table-cell">
+                    <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider text-ink-500 font-medium hidden md:table-cell">
                       Model
                     </th>
-                    <th className="text-right px-5 py-3 text-[10px] uppercase tracking-wider text-ink-500 font-medium hidden md:table-cell">
+                    <th className="text-right px-5 py-3 text-[11px] uppercase tracking-wider text-ink-500 font-medium hidden md:table-cell">
                       Cost
                     </th>
-                    <th className="text-right px-5 py-3 text-[10px] uppercase tracking-wider text-ink-500 font-medium">
+                    <th className="text-right px-5 py-3 text-[11px] uppercase tracking-wider text-ink-500 font-medium">
                       Status
                     </th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                   {AI_AGENTS.map((agent) => {
                     const AgentIcon = agent.icon;
                     const isActive = agent.status === "Active";
@@ -682,7 +682,7 @@ export function TeamClient({ user, emailsSent }: TeamClientProps) {
                 value: emailsSent.toLocaleString(),
                 sub: "Via Gmail SMTP",
                 icon: Mail,
-                color: "text-amber-600",
+                color: "text-warn",
                 bg: "bg-amber-50",
               },
             ].map(({ label, value, sub, icon: Icon, color, bg }) => (
@@ -691,7 +691,7 @@ export function TeamClient({ user, emailsSent }: TeamClientProps) {
                 className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[10px] uppercase tracking-[0.15em] text-ink-500 font-medium">
+                  <p className="text-[11px] uppercase tracking-[0.15em] text-ink-500 font-medium">
                     {label}
                   </p>
                   <div

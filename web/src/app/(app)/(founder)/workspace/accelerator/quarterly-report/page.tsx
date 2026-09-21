@@ -215,13 +215,13 @@ export default async function AcceleratorQuarterlyReportPage() {
             </div>
             <Link
               href={exportHref}
-              className="inline-flex items-center gap-2 rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+              className="inline-flex items-center gap-2 rounded-lg bg-brand-navy hover:bg-brand-navy-elev-1 text-white px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
             >
               {summary.cohortId ? "Export legacy LP summary" : "Batch score a cohort"}
             </Link>
           </header>
 
-          <section aria-labelledby="cohort-report-list-h" className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-surface dark:bg-slate-900 p-6" data-testid="cohort-report-list">
+          <section aria-labelledby="cohort-report-list-h" className="rounded-2xl border border-surface-200 bg-surface p-6" data-testid="cohort-report-list">
             <h2 id="cohort-report-list-h" className="text-lg font-semibold text-ink-900">
               Cohort Reports by cohort
             </h2>
@@ -234,7 +234,7 @@ export default async function AcceleratorQuarterlyReportPage() {
                 and its report assembles itself from the record.
               </p>
             ) : (
-              <ul className="mt-3 divide-y divide-slate-100 dark:divide-slate-800">
+              <ul className="mt-3 divide-y divide-surface-100">
                 {batches.map((b) => (
                   <li key={b.id} className="flex flex-wrap items-center justify-between gap-3 py-3" data-testid="cohort-report-row">
                     <div>
@@ -244,16 +244,16 @@ export default async function AcceleratorQuarterlyReportPage() {
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <a href={COHORT_REPORT_HREF(b.id, "html")} target="_blank" rel="noopener" className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-3 text-sm font-semibold text-white hover:bg-brand-700">
+                      <a href={COHORT_REPORT_HREF(b.id, "html")} target="_blank" rel="noopener" className="inline-flex min-h-11 items-center rounded-lg bg-brand-navy px-3 text-sm font-semibold text-white hover:bg-brand-navy-elev-1">
                         Open report
                       </a>
-                      <a href={COHORT_REPORT_HREF(b.id, "pdf")} className="inline-flex min-h-11 items-center rounded-lg border border-slate-200 px-3 text-sm font-semibold text-ink-700 hover:bg-slate-50 dark:border-slate-700">
+                      <a href={COHORT_REPORT_HREF(b.id, "pdf")} className="inline-flex min-h-11 items-center rounded-lg border border-surface-200 px-3 text-sm font-semibold text-ink-700 hover:bg-surface-100">
                         PDF
                       </a>
-                      <a href={COHORT_REPORT_HREF(b.id, "csv")} className="inline-flex min-h-11 items-center rounded-lg border border-slate-200 px-3 text-sm font-semibold text-ink-700 hover:bg-slate-50 dark:border-slate-700">
+                      <a href={COHORT_REPORT_HREF(b.id, "csv")} className="inline-flex min-h-11 items-center rounded-lg border border-surface-200 px-3 text-sm font-semibold text-ink-700 hover:bg-surface-100">
                         CSV
                       </a>
-                      <a href={DEMO_DAY_PACK_HREF(b.id)} className="inline-flex min-h-11 items-center rounded-lg border border-slate-200 px-3 text-sm font-semibold text-ink-700 hover:bg-slate-50 dark:border-slate-700">
+                      <a href={DEMO_DAY_PACK_HREF(b.id)} className="inline-flex min-h-11 items-center rounded-lg border border-surface-200 px-3 text-sm font-semibold text-ink-700 hover:bg-surface-100">
                         Demo-day pack
                       </a>
                     </div>
@@ -284,7 +284,7 @@ export default async function AcceleratorQuarterlyReportPage() {
             />
           </section>
 
-          <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-surface dark:bg-slate-900 p-6">
+          <section className="rounded-2xl border border-surface-200 bg-surface p-6">
             <h2 className="text-lg font-semibold text-ink-900">
               Top 10 cohort founders by SVI
             </h2>
@@ -300,10 +300,10 @@ export default async function AcceleratorQuarterlyReportPage() {
                 view to populate this report.
               </p>
             ) : (
-              <div className="mt-4 overflow-x-auto">
+              <div className="mt-4 overflow-auto max-h-[75vh]">
                 <table className="min-w-full text-sm">
-                  <thead>
-                    <tr className="text-left text-xs uppercase tracking-wide text-slate-500 border-b border-slate-200 dark:border-slate-800">
+                  <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
+                    <tr className="text-left text-xs uppercase tracking-wide text-ink-500 border-b border-surface-200">
                       <th className="py-2 pr-4">Startup</th>
                       <th className="py-2 pr-4">Score</th>
                       <th className="py-2 pr-4">Stage</th>
@@ -311,11 +311,11 @@ export default async function AcceleratorQuarterlyReportPage() {
                       <th className="py-2 pr-4">Last activity</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                     {summary.topTen.map((m) => (
                       <tr
                         key={m.id}
-                        className="border-b border-slate-100 dark:border-slate-800 last:border-0"
+                        className="border-b border-surface-100 last:border-0"
                       >
                         <td className="py-2 pr-4 text-ink-900">
                           {m.startupName}
@@ -361,11 +361,11 @@ function Tile({
   hint?: string;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-surface dark:bg-slate-900 p-5">
-      <p className="text-xs uppercase tracking-wide text-slate-500">{label}</p>
+    <div className="rounded-2xl border border-surface-200 bg-surface p-5">
+      <p className="text-xs uppercase tracking-wide text-ink-500">{label}</p>
       <p className="mt-2 text-2xl font-semibold text-ink-900">{value}</p>
       {hint ? (
-        <p className="mt-1 text-xs text-slate-500 italic">{hint}</p>
+        <p className="mt-1 text-xs text-ink-500 italic">{hint}</p>
       ) : null}
     </div>
   );

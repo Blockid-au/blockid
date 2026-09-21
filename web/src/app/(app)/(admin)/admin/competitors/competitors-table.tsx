@@ -61,9 +61,9 @@ export function CompetitorsTable({ competitors }: { competitors: Competitor[] })
 
   return (
     <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden">
-      <div className="overflow-x-auto">
+      <div className="overflow-auto max-h-[75vh]">
         <table className="w-full text-sm">
-          <thead>
+          <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
             <tr className="bg-surface-50 border-b border-surface-200">
               <th className="text-left px-4 py-3 text-xs font-semibold text-ink-600 uppercase tracking-wider sticky left-0 bg-surface-50 z-10 min-w-[160px]">
                 Platform
@@ -91,7 +91,7 @@ export function CompetitorsTable({ competitors }: { competitors: Competitor[] })
               <th className="px-3 py-3 text-xs font-semibold text-ink-600 uppercase tracking-wider min-w-[40px]" />
             </tr>
           </thead>
-          <tbody>
+          <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
             {competitors.map((comp) => {
               const isBlockID = comp.name === "BlockID.au";
               const isOpen = expanded.has(comp.name);
@@ -202,10 +202,10 @@ function CompetitorRowGroup({
         <td className="px-3 py-3 text-center">
           <span
             className={`text-xs font-bold font-mono ${
-              featureCount === TOTAL_FEATURES
-                ? "text-brand-700"
+ featureCount === TOTAL_FEATURES
+ ? "text-brand-700"
                 : featureCount >= 3
-                  ? "text-amber-600"
+                  ? "text-warn"
                   : "text-ink-500"
             }`}
           >
@@ -246,7 +246,7 @@ function FeatureIcon({ has }: { has: boolean }) {
     </span>
   ) : (
     <span className="inline-flex items-center justify-center rounded-full bg-red-50 p-1">
-      <X strokeWidth={2.5} className="h-3 w-3 text-red-400" />
+      <X strokeWidth={2.5} className="h-3 w-3 text-bear" />
     </span>
   );
 }

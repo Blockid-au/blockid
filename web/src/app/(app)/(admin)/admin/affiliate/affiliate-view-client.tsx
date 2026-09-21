@@ -169,20 +169,20 @@ export function AffiliateViewClient({
                   type="button"
                   onClick={() => setSelectedId(r.id)}
                   className={`w-full text-left px-3 py-2 hover:bg-surface-50 transition-colors ${
-                    active ? "bg-brand-50" : ""
+ active ? "bg-brand-50" : ""
                   }`}
                 >
                   <div className="flex items-baseline justify-between gap-2">
                     <span
                       className={`text-sm font-medium ${
-                        active ? "text-brand-700" : "text-ink-900"
+ active ? "text-brand-700" : "text-ink-900"
                       }`}
                     >
                       {r.display_name}
                     </span>
                     <span
-                      className={`rounded px-1.5 py-0.5 text-[10px] uppercase ${
-                        r.status === "active"
+                      className={`rounded px-1.5 py-0.5 text-[11px] uppercase ${
+ r.status === "active"
                           ? "bg-emerald-50 text-emerald-800"
                           : r.status === "paused"
                             ? "bg-yellow-50 text-yellow-800"
@@ -250,8 +250,8 @@ export function AffiliateViewClient({
                     type="button"
                     onClick={() => setActiveTab(t.key)}
                     className={`rounded-t-md px-3 py-1.5 text-sm ${
-                      activeTab === t.key
-                        ? "bg-brand-50 font-semibold text-brand-700"
+ activeTab === t.key
+ ? "bg-brand-50 font-semibold text-brand-700"
                         : "text-ink-600 hover:bg-surface-50"
                     }`}
                     title={t.hint}
@@ -327,9 +327,9 @@ function AttributionTable({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-auto max-h-[75vh]">
       <table className="w-full text-sm">
-        <thead className="bg-surface-50 text-left text-xs uppercase tracking-wide text-ink-500">
+        <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
           <tr>
             <th className="p-2">Email</th>
             <th className="p-2">Display name</th>
@@ -340,7 +340,7 @@ function AttributionTable({
             <th className="p-2 text-right">Actions</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-surface-100">
+        <tbody className="divide-y divide-surface-100 [&>tr:nth-child(even)]:bg-surface-sunken">
           {rows.map((r) => (
             <AttributionRow
               key={r.attribution_id}
@@ -589,7 +589,7 @@ function ImpersonationTrailPanel({
                   <div className="flex items-baseline justify-between gap-2">
                     <div className="flex items-baseline gap-2">
                       <span
-                        className={`rounded px-1.5 py-0.5 text-[10px] uppercase ${badge.className}`}
+                        className={`rounded px-1.5 py-0.5 text-[11px] uppercase ${badge.className}`}
                         title={ev.action}
                       >
                         {badge.label}
@@ -671,13 +671,13 @@ function GrantCreditsModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40"
       onClick={() => (busy ? null : onClose(false))}
     >
       <form
         onClick={(e) => e.stopPropagation()}
         onSubmit={submit}
-        className="w-full max-w-sm rounded-lg bg-white p-4 shadow-xl"
+        className="w-full max-w-sm rounded-2xl border border-line-subtle bg-white p-4 shadow-2"
       >
         <h3 className="text-base font-semibold text-ink-900">Grant credits</h3>
         <p className="mt-1 text-xs text-ink-500">
@@ -727,7 +727,7 @@ function GrantCreditsModal({
           <button
             type="submit"
             disabled={busy}
-            className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+            className="rounded-md bg-brand-navy px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-navy-elev-1 disabled:opacity-50"
           >
             {busy ? "Granting…" : "Grant"}
           </button>

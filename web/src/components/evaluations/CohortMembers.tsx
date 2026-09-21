@@ -30,7 +30,7 @@ export interface CohortMembersProps {
 }
 
 const ROLE_CHIP: Record<CohortMemberView["role"], string> = {
-  owner: "border-brand-300 text-action dark:border-brand-700",
+  owner: "border-brand-300 text-action",
   reviewer: "border-line text-secondary",
   viewer: "border-line-subtle text-muted",
 };
@@ -95,7 +95,7 @@ export function CohortMembers({ batchId, members, canManage, available, classNam
         <ul className="flex flex-wrap items-center gap-1.5" aria-label="Seats on this cohort">
           {members.map((m) => (
             <li key={m.userId} className="flex items-center gap-1.5 rounded-full border border-line-subtle bg-surface-sunken py-0.5 pl-0.5 pr-2 text-xs" data-testid="cohort-member" data-role={m.role}>
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-brand-600 text-[11px] font-semibold text-white" aria-hidden="true">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-brand-navy text-[11px] font-semibold text-white" aria-hidden="true">
                 {initialsOf(m)}
               </span>
               <span className="text-primary">{m.displayName || m.email || "Seat"}</span>
@@ -127,7 +127,7 @@ export function CohortMembers({ batchId, members, canManage, available, classNam
               <option value="viewer">Viewer</option>
             </select>
           </label>
-          <button type="submit" disabled={state === "busy" || !available} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50" data-testid="invite-submit">
+          <button type="submit" disabled={state === "busy" || !available} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-navy px-4 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-50" data-testid="invite-submit">
             {state === "busy" ? "Adding…" : "Add"}
           </button>
         </form>

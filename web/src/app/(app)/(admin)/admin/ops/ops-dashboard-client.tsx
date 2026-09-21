@@ -122,8 +122,8 @@ function Sparkline({
   values,
   width = 180,
   height = 36,
-  stroke = "#0ea5e9",
-  fill = "rgba(14,165,233,0.12)",
+  stroke = "var(--color-brand-navy)",
+  fill = "color-mix(in srgb, var(--color-brand-navy) 12%, transparent)",
 }: {
   values: number[];
   width?: number;
@@ -163,7 +163,7 @@ function Bars({
   values,
   labels,
   height = 44,
-  color = "#8b5cf6",
+  color = "var(--color-brand-cyan-muted)",
 }: {
   values: number[];
   labels: string[];
@@ -330,7 +330,7 @@ export function OpsDashboardClient({
                       <div className="text-xs text-ink-500 mt-0.5 line-clamp-2">{e.hypothesis}</div>
                     ) : null}
                     <table className="mt-2 w-full text-xs">
-                      <thead>
+                      <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                         <tr className="text-ink-500">
                           <th className="text-left font-normal">variant</th>
                           <th className="text-right font-normal">impr</th>
@@ -338,7 +338,7 @@ export function OpsDashboardClient({
                           <th className="text-right font-normal">rate</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                         {e.variants.map((v) => (
                           <tr key={v.key} className="border-t border-surface-100">
                             <td className="py-1 font-mono text-ink-800 truncate">{v.key}</td>
@@ -373,7 +373,7 @@ export function OpsDashboardClient({
                   <Bars
                     values={growth.signupsDaily.map((d) => d.count)}
                     labels={growth.signupsDaily.map((d) => d.day)}
-                    color="#2563eb"
+                    color="var(--color-brand-navy)"
                   />
                 </div>
                 <div>
@@ -386,7 +386,7 @@ export function OpsDashboardClient({
                   <Bars
                     values={growth.analysesDaily.map((d) => d.count)}
                     labels={growth.analysesDaily.map((d) => d.day)}
-                    color="#059669"
+                    color="var(--color-bull)"
                   />
                 </div>
                 <div className="flex justify-between text-[10px] text-muted font-mono">
@@ -416,7 +416,7 @@ export function OpsDashboardClient({
                         <span className="truncate text-ink-800">{i.title}</span>
                         <span
                           className={`px-1.5 py-0.5 rounded uppercase text-[10px] font-semibold tracking-wide ${
-                            SEVERITY_PILL[i.severity] ?? "bg-surface-100 text-ink-700"
+ SEVERITY_PILL[i.severity] ?? "bg-surface-100 text-ink-700"
                           }`}
                         >
                           {i.severity}

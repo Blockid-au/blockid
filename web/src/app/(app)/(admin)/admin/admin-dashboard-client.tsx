@@ -115,19 +115,19 @@ export function AdminDashboardClient({
               label: "SVI Analyses",
               value: stats.analyses,
               icon: FileText,
-              color: "text-teal-400",
+              color: "text-bull",
             },
             {
               label: "SVI Accounts",
               value: stats.accounts,
               icon: TrendingUp,
-              color: "text-green-400",
+              color: "text-bull",
             },
             {
               label: "Notifications Sent",
               value: stats.notifications,
               icon: Bell,
-              color: "text-amber-400",
+              color: "text-warn",
             },
           ].map(({ label, value, icon: Icon, color }) => (
             <div
@@ -159,9 +159,9 @@ export function AdminDashboardClient({
               {sviAccounts.length} accounts
             </span>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[75vh]">
             <table className="w-full text-sm">
-              <thead>
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr className="border-b border-surface-200 bg-surface-100">
                   <th className="text-left px-6 py-3 text-xs text-ink-700 font-medium">
                     Email
@@ -183,7 +183,7 @@ export function AdminDashboardClient({
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                 {sviAccounts.length === 0 ? (
                   <tr>
                     <td
@@ -207,7 +207,7 @@ export function AdminDashboardClient({
                       </td>
                       <td className="px-4 py-3 text-right">
                         <span
-                          className={`font-mono font-bold text-sm ${acc.current_svi >= 140 ? "text-green-400" : acc.current_svi >= 120 ? "text-brand-600" : acc.current_svi >= 100 ? "text-amber-400" : "text-red-400"}`}
+                          className={`font-mono font-bold text-sm ${acc.current_svi >= 140 ? "text-bull" : acc.current_svi >= 120 ? "text-brand-600" : acc.current_svi >= 100 ? "text-warn" : "text-bear"}`}
                         >
                           {acc.current_svi}
                         </span>
@@ -256,7 +256,7 @@ export function AdminDashboardClient({
                   </span>
                   <div className="flex items-center gap-4">
                     <span
-                      className={`font-mono font-bold text-sm ${(a.total_svi ?? 0) >= 120 ? "text-green-400" : (a.total_svi ?? 0) >= 100 ? "text-amber-400" : "text-red-400"}`}
+                      className={`font-mono font-bold text-sm ${(a.total_svi ?? 0) >= 120 ? "text-bull" : (a.total_svi ?? 0) >= 100 ? "text-warn" : "text-bear"}`}
                     >
                       {a.total_svi} SVI
                     </span>

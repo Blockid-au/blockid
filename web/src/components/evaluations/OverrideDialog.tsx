@@ -130,8 +130,8 @@ function OverrideForm({ batchId, row, onClose, onSaved, initialDimension }: Omit
 
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="override-dialog-title" aria-describedby="override-dialog-desc" className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4" data-testid="override-dialog">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} aria-hidden="true" />
-      <form onSubmit={submit} noValidate className="relative w-full max-w-lg rounded-t-2xl border border-line-subtle bg-surface p-5 text-primary shadow-2xl sm:rounded-2xl">
+      <div className="absolute inset-0 bg-ink-900/40" onClick={onClose} aria-hidden="true" />
+      <form onSubmit={submit} noValidate className="relative w-full max-w-lg rounded-t-2xl border border-line-subtle bg-surface p-5 text-primary shadow-2 sm:rounded-2xl">
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 id="override-dialog-title" className="text-base font-semibold">
@@ -248,7 +248,7 @@ function OverrideForm({ batchId, row, onClose, onSaved, initialDimension }: Omit
           <button type="button" onClick={onClose} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-line px-4 text-sm font-medium text-secondary hover:bg-surface-hover">
             Cancel
           </button>
-          <button type="submit" disabled={state === "busy"} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50" data-testid="override-submit">
+          <button type="submit" disabled={state === "busy"} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-navy px-4 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-50" data-testid="override-submit">
             {state === "busy" ? "Recording…" : "Record override"}
           </button>
         </div>

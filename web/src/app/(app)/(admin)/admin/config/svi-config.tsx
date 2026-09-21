@@ -124,14 +124,14 @@ export function SviConfig({ initial }: Props) {
         <h3 className="text-sm font-semibold text-ink-700 mb-2 uppercase tracking-wider">SVI Dimension Weights</h3>
         <div className="bg-white border border-surface-200 rounded-lg overflow-hidden">
           <table className="w-full text-sm">
-            <thead>
+            <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
               <tr className="bg-surface-50 border-b border-surface-200">
                 <th className="text-left px-4 py-2.5 font-medium text-ink-600">Key</th>
                 <th className="text-left px-4 py-2.5 font-medium text-ink-600">Dimension</th>
                 <th className="text-right px-4 py-2.5 font-medium text-ink-600">Weight (%)</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
               {SVI_DIMENSION_LABELS.map((d) => (
                 <tr key={d.key} className="border-b border-surface-100">
                   <td className="px-4 py-2.5 font-mono text-xs text-ink-500">{d.key}</td>
@@ -144,7 +144,7 @@ export function SviConfig({ initial }: Props) {
                       step={1}
                       value={weights[d.key]}
                       onChange={(e) => setWeight(d.key, e.target.value)}
-                      className="w-20 text-sm text-right border border-surface-300 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent font-mono"
+                      className="w-20 text-sm text-right border border-surface-300 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy focus:border-transparent font-mono"
                     />
                   </td>
                 </tr>
@@ -181,7 +181,7 @@ export function SviConfig({ initial }: Props) {
                   step={0.05}
                   value={costs[f.key as keyof typeof costs] as number}
                   onChange={(e) => setCostField(f.key as keyof typeof costs, e.target.value)}
-                  className="w-24 text-sm text-right border border-surface-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent font-mono"
+                  className="w-24 text-sm text-right border border-surface-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy focus:border-transparent font-mono"
                 />
                 <span className="text-xs text-muted">cr</span>
               </div>
@@ -205,7 +205,7 @@ export function SviConfig({ initial }: Props) {
                 min={1}
                 value={costs.growth_plan_credits_monthly}
                 onChange={(e) => setCostField("growth_plan_credits_monthly", e.target.value)}
-                className="w-24 text-sm text-right border border-surface-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent font-mono"
+                className="w-24 text-sm text-right border border-surface-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy focus:border-transparent font-mono"
               />
               <span className="text-xs text-muted">cr</span>
             </div>
@@ -221,7 +221,7 @@ export function SviConfig({ initial }: Props) {
                 min={0}
                 value={costs.referral_credits}
                 onChange={(e) => setCostField("referral_credits", e.target.value)}
-                className="w-24 text-sm text-right border border-surface-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent font-mono"
+                className="w-24 text-sm text-right border border-surface-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy focus:border-transparent font-mono"
               />
               <span className="text-xs text-muted">cr</span>
             </div>
@@ -234,7 +234,7 @@ export function SviConfig({ initial }: Props) {
             <select
               value={String(costs.linkedin_post_enabled)}
               onChange={(e) => setCostField("linkedin_post_enabled", e.target.value)}
-              className="text-sm border border-surface-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              className="text-sm border border-surface-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy focus:border-transparent"
             >
               <option value="true">Enabled</option>
               <option value="false">Disabled</option>
@@ -246,7 +246,7 @@ export function SviConfig({ initial }: Props) {
       {/* Warning if weights invalid */}
       {!isWeightsValid && (
         <div className="rounded-lg bg-red-50 border border-red-200 p-3 flex gap-2 text-xs text-red-800">
-          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-red-500" />
+          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-bear" />
           <span>SVI weights must sum to exactly 100%. Current total: <strong>{weightTotal}%</strong></span>
         </div>
       )}
@@ -257,7 +257,7 @@ export function SviConfig({ initial }: Props) {
           type="button"
           onClick={() => void handleSave()}
           disabled={saving || !isDirty || !isWeightsValid}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 rounded-lg bg-brand-navy px-4 py-2 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-50 transition-colors cursor-pointer"
         >
           {saving ? (
             <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</>

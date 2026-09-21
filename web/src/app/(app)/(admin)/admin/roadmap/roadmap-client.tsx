@@ -461,7 +461,7 @@ function PhaseCard({ phase }: { phase: Phase }) {
         <div className="px-5 pb-5 border-t border-surface-200 pt-4 space-y-5">
           {/* Full goal */}
           <div className="rounded-lg bg-surface-50 border border-surface-200 p-3">
-            <p className="text-[10px] uppercase tracking-wider text-ink-500 font-semibold mb-1">
+            <p className="text-[11px] uppercase tracking-wider text-ink-500 font-semibold mb-1">
               Goal
             </p>
             <p className="text-sm text-ink-700 font-medium">
@@ -504,7 +504,7 @@ function PhaseCard({ phase }: { phase: Phase }) {
                     {goal.done ? (
                       <CheckCircle2
                         strokeWidth={2}
-                        className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5"
+                        className="h-3.5 w-3.5 text-bull shrink-0 mt-0.5"
                       />
                     ) : (
                       <Circle
@@ -528,7 +528,7 @@ function PhaseCard({ phase }: { phase: Phase }) {
 
               {/* Acceptance criteria */}
               <div className="rounded-lg bg-emerald-50/50 border border-emerald-100 p-2.5 ml-1">
-                <p className="text-[10px] uppercase tracking-wider text-emerald-600 font-semibold mb-0.5">
+                <p className="text-[11px] uppercase tracking-wider text-emerald-600 font-semibold mb-0.5">
                   Acceptance Criteria
                 </p>
                 <p className="text-[11px] text-ink-600 leading-relaxed">
@@ -578,8 +578,8 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
            ════════════════════════════════════════════════════════════ */}
         <div className="text-center py-4">
           <div className="flex justify-center mb-4">
-            <div className="h-14 w-14 rounded-2xl gradient-brand flex items-center justify-center shadow-lg">
-              <Map strokeWidth={1.75} className="h-7 w-7 text-primary" />
+            <div className="inline-flex h-14 w-14 rounded-xl bg-brand-navy text-white items-center justify-center shadow-1">
+              <Map strokeWidth={1.75} className="h-7 w-7" />
             </div>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-ink-900 tracking-tight">
@@ -621,7 +621,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
           <h2 className="text-lg font-semibold text-ink-800 mb-4 flex items-center gap-2">
             <BarChart3
               strokeWidth={1.75}
-              className="h-5 w-5 text-teal-500"
+              className="h-5 w-5 text-bull"
             />
             Live Business Metrics
           </h2>
@@ -646,7 +646,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
                 label: "Leads Captured",
                 value: liveStats.totalLeads,
                 icon: TrendingUp,
-                color: "text-amber-600",
+                color: "text-warn",
                 bg: "bg-amber-50",
               },
               {
@@ -667,7 +667,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
                 label: "Notifications Sent",
                 value: liveStats.totalNotifications,
                 icon: Zap,
-                color: "text-red-500",
+                color: "text-bear",
                 bg: "bg-red-50",
               },
             ].map(({ label, value, icon: Icon, color, bg }) => (
@@ -676,7 +676,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
                 className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[10px] uppercase tracking-[0.15em] text-ink-500 font-medium">
+                  <p className="text-[11px] uppercase tracking-[0.15em] text-ink-500 font-medium">
                     {label}
                   </p>
                   <div
@@ -770,25 +770,25 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
           </h2>
 
           <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[75vh]">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                   <tr className="border-b border-surface-200 bg-surface-100">
-                    <th className="text-left px-6 py-3 text-[10px] uppercase tracking-wider text-ink-500 font-medium">
+                    <th className="text-left px-6 py-3 text-[11px] uppercase tracking-wider text-ink-500 font-medium">
                       Metric
                     </th>
-                    <th className="text-right px-6 py-3 text-[10px] uppercase tracking-wider text-ink-500 font-medium">
+                    <th className="text-right px-6 py-3 text-[11px] uppercase tracking-wider text-ink-500 font-medium">
                       Current
                     </th>
-                    <th className="text-right px-6 py-3 text-[10px] uppercase tracking-wider text-ink-500 font-medium">
+                    <th className="text-right px-6 py-3 text-[11px] uppercase tracking-wider text-ink-500 font-medium">
                       3-Month
                     </th>
-                    <th className="text-right px-6 py-3 text-[10px] uppercase tracking-wider text-ink-500 font-medium">
+                    <th className="text-right px-6 py-3 text-[11px] uppercase tracking-wider text-ink-500 font-medium">
                       6-Month
                     </th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                   {[
                     {
                       metric: "Total Users",
@@ -842,7 +842,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
         {/* ════════════════════════════════════════════════════════════
             INVESTMENT THESIS
            ════════════════════════════════════════════════════════════ */}
-        <section className="rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-50 to-white p-8 shadow-sm">
+        <section className="rounded-2xl border border-line-subtle border-l-4 border-l-brand-navy bg-surface-sunken p-8">
           <h2 className="text-lg font-bold text-ink-900 mb-1 flex items-center gap-2">
             <Lightbulb
               strokeWidth={1.75}
@@ -858,7 +858,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
             {/* Left: Market + Problem */}
             <div className="space-y-5">
               <div>
-                <h3 className="text-[10px] uppercase tracking-wider text-brand-600 font-bold mb-2">
+                <h3 className="text-[11px] uppercase tracking-wider text-brand-600 font-bold mb-2">
                   Total Addressable Market
                 </h3>
                 <p className="text-2xl font-bold text-ink-800">
@@ -873,7 +873,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
               </div>
 
               <div>
-                <h3 className="text-[10px] uppercase tracking-wider text-red-500 font-bold mb-2">
+                <h3 className="text-[11px] uppercase tracking-wider text-bear font-bold mb-2">
                   The Problem
                 </h3>
                 <p className="text-sm text-ink-700 leading-relaxed">
@@ -885,7 +885,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
               </div>
 
               <div>
-                <h3 className="text-[10px] uppercase tracking-wider text-emerald-600 font-bold mb-2">
+                <h3 className="text-[11px] uppercase tracking-wider text-emerald-600 font-bold mb-2">
                   Our Solution
                 </h3>
                 <p className="text-sm text-ink-700 leading-relaxed">
@@ -899,7 +899,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
             {/* Right: Traction + Model */}
             <div className="space-y-5">
               <div>
-                <h3 className="text-[10px] uppercase tracking-wider text-purple-600 font-bold mb-2">
+                <h3 className="text-[11px] uppercase tracking-wider text-purple-600 font-bold mb-2">
                   Traction (Live)
                 </h3>
                 <div className="grid grid-cols-2 gap-3">
@@ -935,7 +935,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
               </div>
 
               <div>
-                <h3 className="text-[10px] uppercase tracking-wider text-amber-600 font-bold mb-2">
+                <h3 className="text-[11px] uppercase tracking-wider text-warn font-bold mb-2">
                   Business Model
                 </h3>
                 <p className="text-sm text-ink-700 leading-relaxed mb-2">
@@ -964,7 +964,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
               </div>
 
               <div>
-                <h3 className="text-[10px] uppercase tracking-wider text-teal-600 font-bold mb-2">
+                <h3 className="text-[11px] uppercase tracking-wider text-teal-600 font-bold mb-2">
                   Unfair Advantage
                 </h3>
                 <ul className="space-y-1">
@@ -980,7 +980,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
                     >
                       <CheckCircle2
                         strokeWidth={2}
-                        className="h-3 w-3 text-teal-500 shrink-0"
+                        className="h-3 w-3 text-bull shrink-0"
                       />
                       {item}
                     </li>

@@ -169,7 +169,7 @@ export function CreditsClient({ user, initialUsers, scope = "all" }: CreditsClie
               placeholder="Search by email or name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+              className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-500"
             />
           </div>
           <SandboxScopeChip
@@ -180,9 +180,9 @@ export function CreditsClient({ user, initialUsers, scope = "all" }: CreditsClie
 
         {/* Table */}
         <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[75vh]">
             <table className="w-full text-sm">
-              <thead>
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr className="border-b border-surface-200 bg-surface-100">
                   <th className="text-left px-6 py-3 text-xs text-ink-700 font-medium">
                     Email
@@ -210,7 +210,7 @@ export function CreditsClient({ user, initialUsers, scope = "all" }: CreditsClie
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                 {filtered.length === 0 ? (
                   <tr>
                     <td
@@ -242,7 +242,7 @@ export function CreditsClient({ user, initialUsers, scope = "all" }: CreditsClie
                       <td className="px-4 py-3">
                         <span
                           className={`text-[10px] font-medium rounded px-1.5 py-0.5 ${
-                            u.role === "admin"
+ u.role === "admin"
                               ? "bg-red-100 text-red-700"
                               : "bg-surface-100 text-ink-700"
                           }`}
@@ -256,7 +256,7 @@ export function CreditsClient({ user, initialUsers, scope = "all" }: CreditsClie
                       <td className="px-4 py-3 text-right font-mono text-xs text-green-600">
                         {formatCredits(u.credits.lifetime_earned)}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-xs text-red-500">
+                      <td className="px-4 py-3 text-right font-mono text-xs text-bear">
                         {formatCredits(u.credits.lifetime_spent)}
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -290,10 +290,10 @@ export function CreditsClient({ user, initialUsers, scope = "all" }: CreditsClie
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div
-            className="absolute inset-0 bg-black/30 backdrop-blur-sm"
+            className="absolute inset-0 bg-ink-900/40 backdrop-blur-sm"
             onClick={closeModal}
           />
-          <div className="relative bg-white rounded-2xl border border-surface-200 shadow-xl w-full max-w-md mx-4 p-6">
+          <div className="relative bg-white rounded-2xl border border-line-subtle shadow-2 w-full max-w-md mx-4 p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-ink-800">
                 {modalAction === "grant" ? "Grant Credits" : "Revoke Credits"}
@@ -332,7 +332,7 @@ export function CreditsClient({ user, initialUsers, scope = "all" }: CreditsClie
                   value={modalAmount}
                   onChange={(e) => setModalAmount(e.target.value)}
                   placeholder="e.g. 10"
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-500"
                   autoFocus
                 />
               </div>
@@ -350,14 +350,14 @@ export function CreditsClient({ user, initialUsers, scope = "all" }: CreditsClie
                   value={modalReason}
                   onChange={(e) => setModalReason(e.target.value)}
                   placeholder="e.g. bonus for early adopter"
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-500"
                 />
               </div>
 
               {feedback && (
                 <div
                   className={`text-sm rounded-lg px-3 py-2 ${
-                    feedback.type === "success"
+ feedback.type === "success"
                       ? "bg-green-50 text-green-700 border border-green-200"
                       : "bg-red-50 text-red-700 border border-red-200"
                   }`}
@@ -370,7 +370,7 @@ export function CreditsClient({ user, initialUsers, scope = "all" }: CreditsClie
                 type="submit"
                 disabled={submitting}
                 className={`w-full py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-                  modalAction === "grant"
+ modalAction === "grant"
                     ? "bg-green-600 text-primary hover:bg-green-700"
                     : "bg-red-600 text-white hover:bg-red-700"
                 }`}

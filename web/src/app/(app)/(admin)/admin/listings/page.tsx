@@ -28,7 +28,7 @@ const PLATFORMS = [
 
 const STATUS_CONFIG = {
   done: { icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50", label: "Live" },
-  in_progress: { icon: Clock, color: "text-amber-600", bg: "bg-amber-50", label: "In Progress" },
+  in_progress: { icon: Clock, color: "text-warn", bg: "bg-amber-50", label: "In Progress" },
   planned: { icon: Circle, color: "text-brand-600", bg: "bg-brand-50", label: "Planned" },
   todo: { icon: AlertCircle, color: "text-muted", bg: "bg-surface-100", label: "Todo" },
   evaluate: { icon: Circle, color: "text-muted", bg: "bg-surface-100", label: "Evaluate" },
@@ -89,7 +89,7 @@ export default async function ListingsPage() {
           ))}
 
           {/* Quick setup guides */}
-          <div className="mt-12 rounded-2xl border border-brand-200 bg-brand-50 p-6">
+          <div className="mt-12 rounded-2xl border border-line-subtle border-l-4 border-l-brand-navy bg-surface-sunken p-6">
             <h2 className="text-lg font-bold text-ink-900 mb-4">Quick Setup Guides</h2>
             <div className="grid md:grid-cols-2 gap-4">
               {[

@@ -56,7 +56,7 @@ interface ProvisionResponse {
 
 const label = "block text-xs font-medium uppercase tracking-wide text-ink-500";
 const input =
-  "mt-1 w-full rounded-md border border-surface-300 bg-white px-2 py-1.5 text-sm focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600";
+  "mt-1 w-full rounded-md border border-surface-300 bg-white px-2 py-1.5 text-sm focus:border-brand-600 focus:outline-none focus-visible:ring-2 focus:ring-brand-navy";
 const helpText = "mt-1 text-xs text-ink-500";
 const card =
   "rounded-lg border border-surface-200 bg-white p-4";
@@ -202,7 +202,7 @@ export function NewAffiliateForm({ resellers }: Props) {
         <SuccessCard result={result} onReset={resetForm} />
       ) : null}
       {errorText ? (
-        <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+        <div className="rounded-lg border border-line-subtle border-l-4 border-l-bear bg-surface-sunken p-4 text-sm text-red-800">
           <p className="font-medium">Provisioning failed</p>
           <p className="mt-1 font-mono text-xs">{errorText}</p>
         </div>
@@ -436,8 +436,8 @@ export function NewAffiliateForm({ resellers }: Props) {
               <label
                 key={m}
                 className={`cursor-pointer rounded-md border px-3 py-1.5 ${
-                  inviteMethod === m
-                    ? "border-brand-600 bg-brand-50 text-brand-800"
+ inviteMethod === m
+ ? "border-brand-600 bg-brand-50 text-brand-800"
                     : "border-surface-300"
                 }`}
               >
@@ -525,7 +525,7 @@ export function NewAffiliateForm({ resellers }: Props) {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+            className="rounded-md bg-brand-navy px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
           >
             {submitting ? "Provisioning…" : "Provision"}
           </button>
@@ -558,7 +558,7 @@ function SuccessCard({
   const idempotent = result.idempotent;
 
   return (
-    <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+    <div className="rounded-lg border border-line-subtle border-l-4 border-l-bull bg-surface-sunken p-4">
       <p className="text-sm font-medium text-emerald-900">
         {idempotent ? "Account already provisioned — no changes made." : "Account provisioned."}
       </p>
@@ -607,7 +607,7 @@ function SuccessCard({
             <button
               type="button"
               onClick={() => copy(invite.temp_password, "password")}
-              className="rounded-md bg-brand-600 px-2 py-1 text-xs font-medium text-white"
+              className="rounded-md bg-brand-navy px-2 py-1 text-xs font-medium text-white"
             >
               {copied === "password" ? "Copied" : "Copy"}
             </button>
@@ -627,7 +627,7 @@ function SuccessCard({
             <button
               type="button"
               onClick={() => copy(invite.magic_link_url!, "link")}
-              className="rounded-md bg-brand-600 px-2 py-1 text-xs font-medium text-white"
+              className="rounded-md bg-brand-navy px-2 py-1 text-xs font-medium text-white"
             >
               {copied === "link" ? "Copied" : "Copy"}
             </button>
@@ -660,7 +660,7 @@ function SuccessCard({
         {result.reseller?.code ? (
           <a
             href={`/admin/resellers/${result.reseller.code.toLowerCase()}`}
-            className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white"
+            className="rounded-md bg-brand-navy px-3 py-1.5 text-sm font-medium text-white"
           >
             Open reseller detail
           </a>

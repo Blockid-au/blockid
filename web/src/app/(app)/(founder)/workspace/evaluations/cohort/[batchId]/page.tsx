@@ -143,7 +143,7 @@ export default async function CohortPage({ params, searchParams }: PageProps) {
 
         {/* G24-C: the fictional demo cohort — labelled before anything else, removable by its owner. */}
         {isDemo ? (
-          <section className="rounded-2xl border border-warn/40 bg-warn/5 px-4 py-4 sm:px-5" data-testid="demo-cohort-banner" aria-labelledby="demo-cohort-banner-h">
+          <section className="rounded-2xl border border-line-subtle border-l-4 border-l-warn bg-surface-sunken px-4 py-4 sm:px-5" data-testid="demo-cohort-banner" aria-labelledby="demo-cohort-banner-h">
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div className="min-w-0">
                 <h2 id="demo-cohort-banner-h" className="flex flex-wrap items-center gap-2 text-base font-semibold text-primary">
@@ -214,11 +214,11 @@ export default async function CohortPage({ params, searchParams }: PageProps) {
             ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <a href={`/api/evaluations/batch/${encodeURIComponent(batch.id)}/export.csv`} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-300 bg-surface px-4 py-2.5 text-sm font-semibold text-action transition-colors hover:bg-surface-hover dark:border-brand-700" data-testid="cohort-export-csv">
+            <a href={`/api/evaluations/batch/${encodeURIComponent(batch.id)}/export.csv`} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-300 bg-surface px-4 py-2.5 text-sm font-semibold text-action transition-colors hover:bg-surface-hover" data-testid="cohort-export-csv">
               Download CSV
             </a>
             {lpReport ? (
-              <a href={`/api/reports/quarterly?batch=${encodeURIComponent(batch.id)}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700">
+              <a href={`/api/reports/quarterly?batch=${encodeURIComponent(batch.id)}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-navy-elev-1">
                 Sponsor / LP report
               </a>
             ) : (

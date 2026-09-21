@@ -48,7 +48,7 @@ describe("EvaluatorActivationChecklist", () => {
     expect(out).toContain(EVALUATIONS_COPY["checklist.step1.body"]);
     // CTAs
     expect(out).toContain('data-testid="evaluator-checklist-cta-1"');
-    expect(out).toMatch(/data-testid="evaluator-checklist-cta-1"[^>]*class="[^"]*bg-brand-600/); // primary = next step
+    expect(out).toMatch(/data-testid="evaluator-checklist-cta-1"[^>]*class="[^"]*bg-brand-navy/); // primary = next step (G26: navy primary)
     expect(out).not.toContain('data-testid="evaluator-checklist-cta-2"');
     expect(out).toContain(EVALUATIONS_COPY["checklist.stepBlocked"]);
     expect(out).toMatch(/<a href="\/workspace\/investor\/mandate"[^>]*data-testid="evaluator-checklist-cta-3"/);
@@ -67,7 +67,7 @@ describe("EvaluatorActivationChecklist", () => {
     expect(out).toMatch(/data-step="3" data-done="0"/);
     expect(out).not.toContain('data-testid="evaluator-checklist-cta-1"');
     expect(out).not.toContain('data-testid="evaluator-checklist-cta-2"');
-    expect(out).toMatch(/data-testid="evaluator-checklist-cta-3"[^>]*class="[^"]*bg-brand-600/);
+    expect(out).toMatch(/data-testid="evaluator-checklist-cta-3"[^>]*class="[^"]*bg-brand-navy/);
     expect(out).toMatch(/data-testid="evaluator-checklist-cta-4"[^>]*class="[^"]*border-brand-300/);
     expect(out).not.toContain(EVALUATIONS_COPY["checklist.stepBlocked"]);
   });

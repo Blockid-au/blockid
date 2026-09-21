@@ -92,7 +92,7 @@ export default async function DripStatsPage() {
     return (
       <div className="min-h-svh bg-surface-100 flex items-center justify-center">
         <div className="text-center">
-          <Shield className="mx-auto h-12 w-12 text-red-400 mb-4" />
+          <Shield className="mx-auto h-12 w-12 text-bear mb-4" />
           <h1 className="text-2xl font-bold text-ink-800 mb-2">Access Denied</h1>
           <Link href="/" className="text-brand-600 hover:text-brand-700 text-sm">
             ← Back to home
@@ -107,9 +107,9 @@ export default async function DripStatsPage() {
 
   const cards = [
     { label: "Total drips sent", value: stats.totalAll, icon: Send, color: "text-brand-600" },
-    { label: "Sent in last 7 days", value: stats.last7Days, icon: Mail, color: "text-teal-500" },
-    { label: "Total unsubscribes", value: stats.totalUnsubs, icon: MailX, color: "text-amber-500" },
-    { label: "Unsubscribes (7d)", value: stats.unsubs7Days, icon: MailX, color: "text-red-500" },
+    { label: "Sent in last 7 days", value: stats.last7Days, icon: Mail, color: "text-bull" },
+    { label: "Total unsubscribes", value: stats.totalUnsubs, icon: MailX, color: "text-warn" },
+    { label: "Unsubscribes (7d)", value: stats.unsubs7Days, icon: MailX, color: "text-bear" },
   ];
 
   const stepCards: Array<{ step: 1 | 2 | 3; label: string }> = [
@@ -129,7 +129,7 @@ export default async function DripStatsPage() {
 
       <main className="max-w-6xl mx-auto p-6 space-y-6">
         {stats.error && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          <div className="rounded-xl border border-line-subtle border-l-4 border-l-warn bg-surface-sunken px-4 py-3 text-sm text-amber-900">
             Could not read stats: {stats.error}. Showing zeros.
           </div>
         )}
@@ -186,14 +186,14 @@ export default async function DripStatsPage() {
             <p className="px-5 py-6 text-sm text-ink-600 text-center">No drip events recorded.</p>
           ) : (
             <table className="w-full text-sm">
-              <thead className="bg-surface-50 text-left text-xs text-ink-600 uppercase tracking-wide">
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr>
                   <th className="px-5 py-2 font-medium">Sent at</th>
                   <th className="px-4 py-2 font-medium">Lead ID</th>
                   <th className="px-4 py-2 font-medium">Step</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                 {stats.recent.map((row) => (
                   <tr key={row.id} className="border-t border-surface-200/60">
                     <td className="px-5 py-2 text-ink-700 text-xs font-mono">

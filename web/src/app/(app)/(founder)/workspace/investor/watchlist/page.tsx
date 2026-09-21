@@ -105,23 +105,23 @@ export default async function InvestorWatchlistPage() {
           <div>
             <nav
               aria-label="Breadcrumb"
-              className="mb-1 text-xs text-slate-500 dark:text-slate-400"
+              className="mb-1 text-xs text-ink-500"
             >
               <Link
                 href="/workspace/investor"
-                className="hover:text-slate-700 dark:hover:text-slate-300"
+                className="hover:text-ink-700"
               >
                 Investor Workspace
               </Link>
               <span aria-hidden="true"> / </span>
-              <span className="text-slate-700 dark:text-slate-300">
+              <span className="text-ink-700">
                 Watchlist
               </span>
             </nav>
-            <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
+            <h1 className="text-2xl font-semibold text-ink-900">
               Watchlist
             </h1>
-            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+            <p className="mt-1 text-sm text-ink-600">
               Private bookmarks — {rows.length}{" "}
               {rows.length === 1 ? "ticker" : "tickers"} tracked
               {rows.length > 0 && (
@@ -143,10 +143,10 @@ export default async function InvestorWatchlistPage() {
             <EmptyState />
           ) : (
             <div className="grid gap-6 lg:grid-cols-3">
-              <section className="lg:col-span-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden">
-                <div className="overflow-x-auto">
+              <section className="lg:col-span-2 rounded-2xl border border-surface-200 bg-white overflow-hidden">
+                <div className="overflow-auto max-h-[75vh]">
                   <table className="min-w-full text-sm">
-                    <thead className="bg-slate-50 dark:bg-slate-900/60 text-left">
+                    <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                       <tr>
                         <Th>Ticker</Th>
                         <Th>Added</Th>
@@ -156,7 +156,7 @@ export default async function InvestorWatchlistPage() {
                         <Th className="text-right">Actions</Th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    <tbody className="divide-y divide-surface-100 [&>tr:nth-child(even)]:bg-surface-sunken">
                       {rows.map((r) => {
                         const snap = scores.get(r.ticker);
                         const current = snap?.currentScore ?? null;
@@ -169,17 +169,17 @@ export default async function InvestorWatchlistPage() {
                         return (
                           <tr
                             key={r.id}
-                            className="hover:bg-slate-50 dark:hover:bg-slate-800/40"
+                            className="hover:bg-surface-100"
                           >
                             <Td>
                               <Link
                                 href={`/listings/${encodeURIComponent(r.ticker)}`}
-                                className="font-semibold text-brand-700 dark:text-brand-300 hover:underline"
+                                className="font-semibold text-brand-700 hover:underline"
                               >
                                 {r.ticker}
                               </Link>
                             </Td>
-                            <Td className="text-slate-500 dark:text-slate-400">
+                            <Td className="text-ink-500">
                               {formatDate(r.created_at)}
                             </Td>
                             <Td>
@@ -189,7 +189,7 @@ export default async function InvestorWatchlistPage() {
                               {current != null ? (
                                 <SviBadge score={current} />
                               ) : (
-                                <span className="text-slate-400">—</span>
+                                <span className="text-ink-400">—</span>
                               )}
                             </Td>
                             <Td className="text-right">
@@ -199,7 +199,7 @@ export default async function InvestorWatchlistPage() {
                               {projectIds.get(r.ticker) ? (
                                 <Link
                                   href={DOSSIER_ALIAS_PATH(projectIds.get(r.ticker) as string)}
-                                  className="mr-3 text-xs font-medium text-brand-700 dark:text-brand-300 hover:underline"
+                                  className="mr-3 text-xs font-medium text-brand-700 hover:underline"
                                   aria-label={`Open the Investor Dossier for ${r.ticker}`}
                                 >
                                   Dossier
@@ -207,7 +207,7 @@ export default async function InvestorWatchlistPage() {
                               ) : null}
                               <Link
                                 href={`/listings/${encodeURIComponent(r.ticker)}`}
-                                className="text-xs font-medium text-brand-700 dark:text-brand-300 hover:underline"
+                                className="text-xs font-medium text-brand-700 hover:underline"
                               >
                                 Open
                               </Link>
@@ -220,16 +220,16 @@ export default async function InvestorWatchlistPage() {
                 </div>
               </section>
 
-              <aside className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5">
-                <h2 className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              <aside className="rounded-2xl border border-surface-200 bg-white p-5">
+                <h2 className="text-sm font-semibold text-ink-900">
                   Tags &amp; notes
                 </h2>
-                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                <p className="mt-2 text-xs text-ink-500">
                   Tags (following / contacted / passed) and per-ticker notes
                   are edited on each listing page. Click a ticker on the left
                   to open its detail view and update its tag.
                 </p>
-                <ul className="mt-4 space-y-2 text-xs text-slate-700 dark:text-slate-300">
+                <ul className="mt-4 space-y-2 text-xs text-ink-700">
                   <li className="flex items-center gap-2">
                     <TagBadge tag="following" />
                     <span>Active pipeline — you&apos;re evaluating.</span>
@@ -243,7 +243,7 @@ export default async function InvestorWatchlistPage() {
                     <span>Reviewed and declined for this fund cycle.</span>
                   </li>
                 </ul>
-                <p className="mt-4 text-[11px] text-slate-400 italic">
+                <p className="mt-4 text-[11px] text-ink-400 italic">
                   Bulk tagging arrives with the next digest cycle.
                 </p>
               </aside>
@@ -267,11 +267,11 @@ function AddTickerForm() {
     <form
       action="/api/watchlist"
       method="post"
-      className="flex flex-wrap items-center gap-2 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4"
+      className="flex flex-wrap items-center gap-2 rounded-2xl border border-surface-200 bg-white p-4"
     >
       <label
         htmlFor="watchlist-ticker"
-        className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400"
+        className="text-xs font-semibold uppercase tracking-wide text-ink-500"
       >
         Add ticker
       </label>
@@ -282,15 +282,15 @@ function AddTickerForm() {
         required
         pattern="[A-Za-z]{1,8}-[A-Za-z0-9]{1,8}"
         placeholder="e.g. FIN-42AC"
-        className="min-w-[180px] rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-1.5 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+        className="min-w-[180px] rounded-lg border border-surface-300 bg-white px-3 py-1.5 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy"
       />
       <button
         type="submit"
-        className="rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+        className="rounded-lg bg-brand-navy hover:bg-brand-navy-elev-1 text-white px-3 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
       >
         Add to watchlist
       </button>
-      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+      <span className="text-[11px] text-ink-500">
         Tickers follow the format <code>ABC-1234</code>.
       </span>
     </form>
@@ -299,18 +299,18 @@ function AddTickerForm() {
 
 function EmptyState() {
   return (
-    <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/40 p-8 text-center">
-      <p className="text-sm font-medium text-slate-800 dark:text-slate-200">
+    <div className="rounded-2xl border border-dashed border-surface-300 bg-surface-100 p-8 text-center">
+      <p className="text-sm font-medium text-ink-800">
         Your watchlist is empty — search a listing and click Add.
       </p>
-      <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+      <p className="mt-1 text-xs text-ink-500">
         Tickers you save here appear in your weekly digest and portfolio
         deltas.
       </p>
       <div className="mt-4">
         <Link
           href="/workspace/investor/dealflow"
-          className="inline-flex items-center rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-3 py-2 text-xs font-semibold"
+          className="inline-flex items-center rounded-lg bg-brand-navy hover:bg-brand-navy-elev-1 text-white px-3 py-2 text-xs font-semibold"
         >
           Browse deal flow
         </Link>
@@ -333,7 +333,7 @@ function Th({
   return (
     <th
       scope="col"
-      className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 ${className}`}
+      className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-wide text-ink-500 ${className}`}
     >
       {children}
     </th>
@@ -353,10 +353,10 @@ function Td({
 function SviBadge({ score }: { score: number }) {
   const tone =
     score >= 80
-      ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300"
+      ? "bg-emerald-100 text-emerald-800"
       : score >= 60
-      ? "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
-      : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+      ? "bg-amber-100 text-amber-800"
+      : "bg-surface-200 text-ink-700";
   return (
     <span
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold ${tone}`}
@@ -368,20 +368,20 @@ function SviBadge({ score }: { score: number }) {
 
 function DeltaBadge({ value }: { value: number | null }) {
   if (value == null) {
-    return <span className="text-slate-400 dark:text-slate-500">—</span>;
+    return <span className="text-ink-400">—</span>;
   }
   const rounded = Math.round(value);
   if (rounded === 0) {
     return (
-      <span className="text-slate-500 dark:text-slate-400 text-xs font-medium">
+      <span className="text-ink-500 text-xs font-medium">
         0
       </span>
     );
   }
   const positive = rounded > 0;
   const tone = positive
-    ? "text-emerald-700 dark:text-emerald-300"
-    : "text-rose-700 dark:text-rose-300";
+    ? "text-emerald-700"
+    : "text-rose-700";
   return (
     <span className={`text-xs font-semibold ${tone}`}>
       {positive ? "+" : ""}
@@ -393,10 +393,10 @@ function DeltaBadge({ value }: { value: number | null }) {
 function TagBadge({ tag }: { tag: WatchlistTag }) {
   const tone =
     tag === "following"
-      ? "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300"
+      ? "bg-blue-100 text-blue-800"
       : tag === "contacted"
-      ? "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300"
-      : "bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300";
+      ? "bg-amber-100 text-amber-800"
+      : "bg-surface-300 text-ink-700";
   return (
     <span
       className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide ${tone}`}

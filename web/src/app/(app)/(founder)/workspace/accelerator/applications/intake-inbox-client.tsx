@@ -163,8 +163,8 @@ function CreateIntakeDialog({ onClose, onCreated, templates = [] }: { onClose: (
   }
 
   return (
-    <div ref={ref} className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="intake-create-title" data-testid="intake-create-dialog">
-      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-surface-200 bg-surface shadow-2xl">
+    <div ref={ref} className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="intake-create-title" data-testid="intake-create-dialog">
+      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-line-subtle bg-surface shadow-2">
         <div className="flex items-center justify-between border-b border-surface-200 px-6 py-4">
           <h2 id="intake-create-title" className="text-lg font-bold text-ink-900">
             {created ? "Your intake link is live" : "Create intake link"}
@@ -184,7 +184,7 @@ function CreateIntakeDialog({ onClose, onCreated, templates = [] }: { onClose: (
               <CopyButton text={created.publicUrl} />
             </div>
             <div className="flex justify-end">
-              <button type="button" onClick={onClose} className="inline-flex min-h-11 items-center rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">
+              <button type="button" onClick={onClose} className="inline-flex min-h-11 items-center rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-elev-1">
                 Done
               </button>
             </div>
@@ -243,7 +243,7 @@ function CreateIntakeDialog({ onClose, onCreated, templates = [] }: { onClose: (
               </span>
             </label>
             {error ? (
-              <p role="alert" className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+              <p role="alert" className="rounded-lg border border-line-subtle border-l-4 border-l-bear bg-surface-sunken px-3 py-2 text-sm text-red-800">
                 {error}
               </p>
             ) : null}
@@ -251,7 +251,7 @@ function CreateIntakeDialog({ onClose, onCreated, templates = [] }: { onClose: (
               <button type="button" onClick={onClose} className="inline-flex min-h-11 items-center rounded-xl border border-surface-300 bg-surface px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-surface-50">
                 Cancel
               </button>
-              <button type="submit" disabled={busy || !name.trim()} aria-busy={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" data-testid="intake-create-submit">
+              <button type="submit" disabled={busy || !name.trim()} aria-busy={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-60" data-testid="intake-create-submit">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
                 Create link
               </button>
@@ -322,7 +322,7 @@ export function IntakeInboxClient({ initialIntakes, initialRows, templates = [] 
           <h2 id="intake-links-title" className="text-base font-semibold text-ink-900">
             My intake links <span className="ml-1 text-sm font-normal text-ink-500">({intakes.length})</span>
           </h2>
-          <button type="button" onClick={() => setShowCreate(true)} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700" data-testid="intake-create-open">
+          <button type="button" onClick={() => setShowCreate(true)} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-elev-1" data-testid="intake-create-open">
             <Plus className="h-4 w-4" aria-hidden="true" />
             Create intake link
           </button>
@@ -384,9 +384,9 @@ export function IntakeInboxClient({ initialIntakes, initialRows, templates = [] 
             No applications yet. They appear here the moment a founder submits a deck on your link.
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-surface-200 bg-surface">
+          <div className="overflow-auto max-h-[75vh] rounded-2xl border border-surface-200 bg-surface">
             <table className="min-w-full text-sm" data-testid="intake-table">
-              <thead className="bg-surface-50 text-left text-xs uppercase tracking-wider text-ink-500">
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr>
                   <th scope="col" className="px-4 py-3 font-semibold" aria-sort={sort.key === "startup" ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}>
                     <button type="button" onClick={() => toggleSort("startup")} className="hover:text-ink-800" data-testid="sort-startup">
@@ -414,7 +414,7 @@ export function IntakeInboxClient({ initialIntakes, initialRows, templates = [] 
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-100">
+              <tbody className="divide-y divide-surface-100 [&>tr:nth-child(even)]:bg-surface-sunken">
                 {visible.map((r) => {
                   const chip = STATUS_CHIP[r.status];
                   return (
@@ -448,7 +448,7 @@ export function IntakeInboxClient({ initialIntakes, initialRows, templates = [] 
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap justify-end gap-1.5 text-xs">
                           {r.evaluationId && r.latestSvi == null ? (
-                            <button type="button" onClick={() => setReportFor(r)} className="rounded-lg bg-brand-600 px-2.5 py-1.5 font-semibold text-white hover:bg-brand-700" data-testid="intake-score-now">
+                            <button type="button" onClick={() => setReportFor(r)} className="rounded-lg bg-brand-navy px-2.5 py-1.5 font-semibold text-white hover:bg-brand-navy-elev-1" data-testid="intake-score-now">
                               Score now (1 report)
                             </button>
                           ) : null}

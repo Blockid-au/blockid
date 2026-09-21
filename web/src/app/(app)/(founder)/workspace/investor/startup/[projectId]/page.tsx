@@ -55,11 +55,11 @@ export default async function InvestorStartupAliasPage({ params }: PageProps) {
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             {isEvaluator ? (
-              <Link href="/workspace/evaluations" className="inline-flex min-h-11 items-center rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">
+              <Link href="/workspace/evaluations" className="inline-flex min-h-11 items-center rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-elev-1">
                 Add to my evaluations
               </Link>
             ) : (
-              <Link href="/pricing?segment=evaluator" className="inline-flex min-h-11 items-center rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">
+              <Link href="/pricing?segment=evaluator" className="inline-flex min-h-11 items-center rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-elev-1">
                 See evaluator plans
               </Link>
             )}

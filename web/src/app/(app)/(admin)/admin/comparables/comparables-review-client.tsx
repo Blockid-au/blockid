@@ -101,37 +101,37 @@ export function ComparablesReviewClient({ initial, viewer }: Props) {
         <Tile label="Rejected" value={String(c.rejected)} />
       </div>
 
-      {message ? <p className="rounded-lg border border-neutral-200 bg-white px-3 py-2 text-sm text-neutral-700 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-200">{message}</p> : null}
+      {message ? <p className="rounded-lg border border-surface-200 bg-white px-3 py-2 text-sm text-ink-700">{message}</p> : null}
 
-      <section className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-        <h2 className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">Pending ({pending.length})</h2>
-        <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">Oldest first. Fill post-money + ARR from the source before approving so the row counts as a disclosed multiple.</p>
+      <section className="rounded-2xl border border-surface-200 bg-white p-5">
+        <h2 className="text-sm font-semibold text-ink-800">Pending ({pending.length})</h2>
+        <p className="mt-1 text-xs text-ink-500">Oldest first. Fill post-money + ARR from the source before approving so the row counts as a disclosed multiple.</p>
         {pending.length === 0 ? (
-          <p className="mt-3 text-sm text-neutral-500 dark:text-neutral-400">Queue is empty — the next weekly ingest runs Sunday 17:40 UTC.</p>
+          <p className="mt-3 text-sm text-ink-500">Queue is empty — the next weekly ingest runs Sunday 17:40 UTC.</p>
         ) : (
-          <ul className="mt-4 divide-y divide-neutral-200 dark:divide-neutral-800">
+          <ul className="mt-4 divide-y divide-surface-200">
             {pending.map((r) => {
               const d = draft(r);
               return (
                 <li key={r.id} className="py-4" data-testid={`pending-${r.id}`}>
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <div>
-                      <span className="text-base font-semibold text-neutral-900 dark:text-neutral-50">{r.name}</span>
-                      <span className="ml-2 text-xs text-neutral-500 dark:text-neutral-400">
+                      <span className="text-base font-semibold text-ink-900">{r.name}</span>
+                      <span className="ml-2 text-xs text-ink-500">
                         {r.round_label ?? r.stage} · {r.round_date} · {aud(r.amount_aud)} · {r.source_name}
                       </span>
                     </div>
                     {r.source_url ? (
-                      <a href={r.source_url} target="_blank" rel="noreferrer noopener" className="text-xs text-blue-700 underline dark:text-blue-300">
+                      <a href={r.source_url} target="_blank" rel="noreferrer noopener" className="text-xs text-blue-700 underline">
                         source
                       </a>
                     ) : null}
                   </div>
-                  {r.note ? <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{r.note}</p> : null}
+                  {r.note ? <p className="mt-1 text-xs text-ink-500">{r.note}</p> : null}
                   <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-6">
-                    <label className="text-xs text-neutral-600 dark:text-neutral-300">
+                    <label className="text-xs text-ink-600">
                       Sector
-                      <select value={d.sector} onChange={(e) => setField(r, "sector", e.target.value)} className="mt-1 w-full rounded border border-neutral-300 bg-white px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-950">
+                      <select value={d.sector} onChange={(e) => setField(r, "sector", e.target.value)} className="mt-1 w-full rounded border border-surface-300 bg-white px-2 py-1 text-sm">
                         {SECTOR_VALUES.map((s) => (
                           <option key={s} value={s}>
                             {s}
@@ -139,9 +139,9 @@ export function ComparablesReviewClient({ initial, viewer }: Props) {
                         ))}
                       </select>
                     </label>
-                    <label className="text-xs text-neutral-600 dark:text-neutral-300">
+                    <label className="text-xs text-ink-600">
                       Stage
-                      <select value={d.stage} onChange={(e) => setField(r, "stage", e.target.value)} className="mt-1 w-full rounded border border-neutral-300 bg-white px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-950">
+                      <select value={d.stage} onChange={(e) => setField(r, "stage", e.target.value)} className="mt-1 w-full rounded border border-surface-300 bg-white px-2 py-1 text-sm">
                         {AU_STAGE_VALUES.map((s) => (
                           <option key={s} value={s}>
                             {s}
@@ -149,28 +149,28 @@ export function ComparablesReviewClient({ initial, viewer }: Props) {
                         ))}
                       </select>
                     </label>
-                    <label className="text-xs text-neutral-600 dark:text-neutral-300">
+                    <label className="text-xs text-ink-600">
                       Post-money A$
-                      <input inputMode="numeric" value={d.post_money_aud} onChange={(e) => setField(r, "post_money_aud", e.target.value)} placeholder="if disclosed" className="mt-1 w-full rounded border border-neutral-300 bg-white px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-950" />
+                      <input inputMode="numeric" value={d.post_money_aud} onChange={(e) => setField(r, "post_money_aud", e.target.value)} placeholder="if disclosed" className="mt-1 w-full rounded border border-surface-300 bg-white px-2 py-1 text-sm" />
                     </label>
-                    <label className="text-xs text-neutral-600 dark:text-neutral-300">
+                    <label className="text-xs text-ink-600">
                       ARR A$
-                      <input inputMode="numeric" value={d.arr_aud} onChange={(e) => setField(r, "arr_aud", e.target.value)} placeholder="if disclosed" className="mt-1 w-full rounded border border-neutral-300 bg-white px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-950" />
+                      <input inputMode="numeric" value={d.arr_aud} onChange={(e) => setField(r, "arr_aud", e.target.value)} placeholder="if disclosed" className="mt-1 w-full rounded border border-surface-300 bg-white px-2 py-1 text-sm" />
                     </label>
-                    <label className="text-xs text-neutral-600 dark:text-neutral-300">
+                    <label className="text-xs text-ink-600">
                       ARR multiple ×
-                      <input inputMode="decimal" value={d.arr_multiple} onChange={(e) => setField(r, "arr_multiple", e.target.value)} placeholder="auto" className="mt-1 w-full rounded border border-neutral-300 bg-white px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-950" />
+                      <input inputMode="decimal" value={d.arr_multiple} onChange={(e) => setField(r, "arr_multiple", e.target.value)} placeholder="auto" className="mt-1 w-full rounded border border-surface-300 bg-white px-2 py-1 text-sm" />
                     </label>
-                    <label className="text-xs text-neutral-600 dark:text-neutral-300">
+                    <label className="text-xs text-ink-600">
                       Note
-                      <input value={d.note} onChange={(e) => setField(r, "note", e.target.value)} placeholder="optional" className="mt-1 w-full rounded border border-neutral-300 bg-white px-2 py-1 text-sm dark:border-neutral-700 dark:bg-neutral-950" />
+                      <input value={d.note} onChange={(e) => setField(r, "note", e.target.value)} placeholder="optional" className="mt-1 w-full rounded border border-surface-300 bg-white px-2 py-1 text-sm" />
                     </label>
                   </div>
                   <div className="mt-3 flex gap-2">
                     <button type="button" disabled={busy === r.id} onClick={() => decide(r, "approve")} className="rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50">
                       Approve
                     </button>
-                    <button type="button" disabled={busy === r.id} onClick={() => decide(r, "reject")} className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 disabled:opacity-50 dark:border-neutral-700 dark:text-neutral-200">
+                    <button type="button" disabled={busy === r.id} onClick={() => decide(r, "reject")} className="rounded-lg border border-surface-300 px-3 py-1.5 text-sm text-ink-700 disabled:opacity-50">
                       Reject
                     </button>
                   </div>
@@ -181,14 +181,14 @@ export function ComparablesReviewClient({ initial, viewer }: Props) {
         )}
       </section>
 
-      <section className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-        <h2 className="text-sm font-semibold text-neutral-800 dark:text-neutral-100">Verified — latest {queue.verified.length} of {c.verified}</h2>
+      <section className="rounded-2xl border border-surface-200 bg-white p-5">
+        <h2 className="text-sm font-semibold text-ink-800">Verified — latest {queue.verified.length} of {c.verified}</h2>
         {queue.verified.length === 0 ? (
-          <p className="mt-3 text-sm text-neutral-500 dark:text-neutral-400">No verified rows yet — reports cite the static code table.</p>
+          <p className="mt-3 text-sm text-ink-500">No verified rows yet — reports cite the static code table.</p>
         ) : (
-          <div className="mt-3 overflow-x-auto">
+          <div className="mt-3 overflow-auto max-h-[75vh]">
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr>
                   <th className="py-1 pr-3">Company</th>
                   <th className="py-1 pr-3">Sector</th>
@@ -200,18 +200,18 @@ export function ComparablesReviewClient({ initial, viewer }: Props) {
                   <th className="py-1 pr-3" />
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
+              <tbody className="divide-y divide-surface-100 [&>tr:nth-child(even)]:bg-surface-sunken">
                 {queue.verified.map((r) => (
                   <tr key={r.id}>
-                    <td className="py-1 pr-3 font-medium text-neutral-900 dark:text-neutral-50">{r.name}</td>
+                    <td className="py-1 pr-3 font-medium text-ink-900">{r.name}</td>
                     <td className="py-1 pr-3">{r.sector}</td>
                     <td className="py-1 pr-3">{r.stage}</td>
                     <td className="py-1 pr-3">{r.round_date}</td>
                     <td className="py-1 pr-3 tabular-nums">{aud(r.amount_aud)}</td>
                     <td className="py-1 pr-3 tabular-nums">{r.arr_multiple != null ? `${r.arr_multiple}×` : "—"}</td>
-                    <td className="py-1 pr-3 text-xs text-neutral-500 dark:text-neutral-400">{r.source_name ?? "—"}</td>
+                    <td className="py-1 pr-3 text-xs text-ink-500">{r.source_name ?? "—"}</td>
                     <td className="py-1 pr-3">
-                      <button type="button" disabled={busy === r.id} onClick={() => decide(r, "reject")} className="text-xs text-neutral-500 underline disabled:opacity-50 dark:text-neutral-400">
+                      <button type="button" disabled={busy === r.id} onClick={() => decide(r, "reject")} className="text-xs text-ink-500 underline disabled:opacity-50">
                         reject
                       </button>
                     </td>
@@ -228,10 +228,10 @@ export function ComparablesReviewClient({ initial, viewer }: Props) {
 
 function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums text-neutral-900 dark:text-neutral-50">{value}</p>
-      {sub ? <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{sub}</p> : null}
+    <div className="rounded-2xl border border-surface-200 bg-white p-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">{label}</p>
+      <p className="mt-1 text-2xl font-semibold tabular-nums text-ink-900">{value}</p>
+      {sub ? <p className="mt-1 text-xs text-ink-500">{sub}</p> : null}
     </div>
   );
 }

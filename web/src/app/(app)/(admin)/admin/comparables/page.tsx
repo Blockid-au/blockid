@@ -47,29 +47,29 @@ export default async function ComparablesAdminPage() {
   const copyLine = comparablesCopyLine();
 
   return (
-    <div className="min-h-svh bg-neutral-50 px-4 py-8 dark:bg-neutral-950">
+    <div className="min-h-svh bg-surface-100 px-4 py-8">
       <div className="mx-auto max-w-6xl space-y-6">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">CFO · valuation evidence</p>
-            <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-50">AU comparables review</h1>
-            <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">CFO · valuation evidence</p>
+            <h1 className="text-2xl font-bold text-ink-900">AU comparables review</h1>
+            <p className="mt-1 text-sm text-ink-500">
               Weekly ingest from {INGEST_SOURCES.map((s) => s.label.split(" — ")[0]).join(", ")} → <code>pending</code>. Approve to make a row count; reports and the
               landing copy read the verified view only. Live copy today: <em>{copyLine}</em>. &ldquo;500+&rdquo; returns at {COMPARABLES_MILESTONE} verified.
             </p>
           </div>
           <div className="flex gap-2">
-            <Link href="/dashboard/admin/sector-multiples" className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800">
+            <Link href="/dashboard/admin/sector-multiples" className="rounded-lg border border-surface-300 px-3 py-1.5 text-sm text-ink-700 hover:bg-surface-200">
               Sector multiples
             </Link>
-            <Link href="/admin" className="rounded-lg border border-neutral-300 px-3 py-1.5 text-sm text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-200 dark:hover:bg-neutral-800">
+            <Link href="/admin" className="rounded-lg border border-surface-300 px-3 py-1.5 text-sm text-ink-700 hover:bg-surface-200">
               Admin home
             </Link>
           </div>
         </header>
 
         {queue.error ? (
-          <div className="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100">
+          <div className="rounded-2xl border border-line-subtle border-l-4 border-l-warn bg-surface-sunken p-4 text-sm text-amber-900">
             <p className="font-medium">Comparables table not readable — {queue.error}</p>
             <p className="mt-1">
               Apply <code>web/supabase/migrations/0402_comparables_connectors.sql</code> (<code>scripts/db/apply-migration.sh</code>). Until then every report cites the static code-table rows.

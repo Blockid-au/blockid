@@ -171,9 +171,9 @@ export function EvidenceReviewClient({ initial }: Props) {
         {queue.recent.length === 0 ? (
           <p className="text-sm text-ink-500">No decisions yet.</p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-surface-200 bg-white">
+          <div className="overflow-auto max-h-[75vh] rounded-xl border border-surface-200 bg-white">
             <table className="w-full text-sm">
-              <thead>
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr className="border-b border-surface-200 text-left text-xs uppercase tracking-wide text-ink-500">
                   <th className="px-3 py-2">Evidence</th>
                   <th className="px-3 py-2">Project</th>
@@ -183,7 +183,7 @@ export function EvidenceReviewClient({ initial }: Props) {
                   <th className="px-3 py-2">When</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                 {queue.recent.map((r) => (
                   <tr key={r.id} className="border-b border-surface-100">
                     <td className="px-3 py-2 text-ink-900">

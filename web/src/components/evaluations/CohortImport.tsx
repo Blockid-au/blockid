@@ -92,7 +92,7 @@ export function CohortImport({ batchId, applicantsCap = null, used = 0, onImport
       <div className="flex flex-wrap items-center gap-2">
         <label
           htmlFor={inputId}
-          className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-brand-300 bg-surface px-4 py-2.5 text-sm font-semibold text-action transition-colors hover:bg-surface-hover dark:border-brand-700 ${busy ? "pointer-events-none opacity-60" : ""}`}
+          className={`inline-flex min-h-11 cursor-pointer items-center gap-2 rounded-xl border border-brand-300 bg-surface px-4 py-2.5 text-sm font-semibold text-action transition-colors hover:bg-surface-hover ${busy ? "pointer-events-none opacity-60" : ""}`}
         >
           {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Upload className="h-4 w-4" aria-hidden="true" />}
           {busy ? "Importing…" : "Import CSV"}
@@ -149,14 +149,14 @@ export function CohortImport({ batchId, applicantsCap = null, used = 0, onImport
               {result.skipped && result.skipped.length > 0 ? (
                 <table className="mt-2 w-full text-xs">
                   <caption className="sr-only">Skipped rows</caption>
-                  <thead>
+                  <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                     <tr className="text-left text-ink-500">
                       <th scope="col" className="pr-3 font-medium">Line</th>
                       <th scope="col" className="pr-3 font-medium">Reason</th>
                       <th scope="col" className="font-medium">Detail</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                     {result.skipped.slice(0, 50).map((s) => (
                       <tr key={`${s.line}-${s.reason}`}>
                         <td className="pr-3 tabular-nums">{s.line}</td>

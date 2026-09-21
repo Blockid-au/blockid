@@ -26,7 +26,7 @@ interface DraftQuestion extends TemplateQuestion {
   keyTouched: boolean;
 }
 
-const FIELD = "w-full rounded-lg border border-surface-300 px-3 py-2 text-sm text-ink-800 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-500";
+const FIELD = "w-full rounded-lg border border-surface-300 px-3 py-2 text-sm text-ink-800 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-navy";
 const LABEL = "mb-1 block text-sm font-medium text-ink-800";
 
 function toDraft(q: TemplateQuestion): DraftQuestion {
@@ -140,7 +140,7 @@ export function TemplatesEditor({ initialTemplates, dataPrincipleSentence }: Tem
   return (
     <div className="grid gap-6 lg:grid-cols-[280px_1fr]" data-testid="templates-editor">
       <aside className="space-y-3">
-        <button type="button" onClick={() => load("new")} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700" data-testid="template-new">
+        <button type="button" onClick={() => load("new")} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-elev-1" data-testid="template-new">
           <Plus className="h-4 w-4" aria-hidden="true" />
           New template
         </button>
@@ -241,7 +241,7 @@ export function TemplatesEditor({ initialTemplates, dataPrincipleSentence }: Tem
           </div>
 
           {error ? (
-            <p role="alert" className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-800">
+            <p role="alert" className="rounded-lg border border-line-subtle border-l-4 border-l-bear bg-surface-sunken px-3 py-2 text-sm text-red-800">
               {error}
             </p>
           ) : null}
@@ -254,7 +254,7 @@ export function TemplatesEditor({ initialTemplates, dataPrincipleSentence }: Tem
             <button type="button" onClick={() => setEditing(null)} className="inline-flex min-h-11 items-center rounded-xl border border-surface-300 bg-surface px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-surface-50">
               Close
             </button>
-            <button type="submit" disabled={busy || !name.trim()} aria-busy={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" data-testid="template-save">
+            <button type="submit" disabled={busy || !name.trim()} aria-busy={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-60" data-testid="template-save">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : null}
               {editing === "new" ? "Create template" : "Save template"}
             </button>

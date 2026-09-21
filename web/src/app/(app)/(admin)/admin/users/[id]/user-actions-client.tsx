@@ -141,7 +141,7 @@ export function UserActionsClient({ userId, email, currentRole }: Props) {
             setMode("credits");
             setMsg(null);
           }}
-          className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white"
+          className="rounded-md bg-brand-navy px-3 py-1.5 text-sm font-medium text-white"
         >
           + Add credits
         </button>
@@ -170,7 +170,7 @@ export function UserActionsClient({ userId, email, currentRole }: Props) {
       {msg && (
         <p
           className={`mt-3 text-sm ${
-            msg.kind === "ok" ? "text-emerald-700" : "text-red-700"
+ msg.kind === "ok" ? "text-emerald-700" : "text-red-700"
           }`}
         >
           {msg.text}
@@ -210,7 +210,7 @@ export function UserActionsClient({ userId, email, currentRole }: Props) {
                 type="button"
                 onClick={submitCredits}
                 disabled={busy}
-                className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
+                className="rounded-md bg-brand-navy px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
               >
                 {busy ? "Granting…" : "Grant credits"}
               </button>
@@ -240,7 +240,7 @@ export function UserActionsClient({ userId, email, currentRole }: Props) {
                 type="button"
                 onClick={submitRole}
                 disabled={busy}
-                className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
+                className="rounded-md bg-brand-navy px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
               >
                 {busy ? "Updating…" : `Set role to ${nextRole}`}
               </button>
@@ -320,8 +320,8 @@ function Modal({
   children: React.ReactNode;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-5 shadow-xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 p-4">
+      <div className="w-full max-w-md rounded-2xl border border-line-subtle bg-white p-5 shadow-2">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-ink-900">{title}</h3>
           <button

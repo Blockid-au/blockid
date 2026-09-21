@@ -64,7 +64,7 @@ function fmtDateTime(s: string): string {
   });
 }
 function scoreColor(s: number): string {
-  return s >= 70 ? "text-green-400" : s >= 45 ? "text-amber-400" : "text-red-400";
+  return s >= 70 ? "text-bull" : s >= 45 ? "text-warn" : "text-bear";
 }
 
 async function loadRows(sp: SearchParams): Promise<{
@@ -168,18 +168,18 @@ export default async function AdminAnalysesPage({
           name="user"
           defaultValue={sp.user ?? ""}
           placeholder="Email contains…"
-          className="min-w-64 rounded-lg border border-line-subtle bg-surface-sunken px-3 py-2 text-sm text-primary placeholder:text-ink-500 focus:outline-none focus:ring-1 focus:ring-brand-400"
+          className="min-w-64 rounded-lg border border-line-subtle bg-surface-sunken px-3 py-2 text-sm text-primary placeholder:text-ink-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy"
         />
         <input
           name="startup"
           defaultValue={sp.startup ?? ""}
           placeholder="Startup name contains…"
-          className="min-w-64 rounded-lg border border-line-subtle bg-surface-sunken px-3 py-2 text-sm text-primary placeholder:text-ink-500 focus:outline-none focus:ring-1 focus:ring-brand-400"
+          className="min-w-64 rounded-lg border border-line-subtle bg-surface-sunken px-3 py-2 text-sm text-primary placeholder:text-ink-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy"
         />
         <select
           name="source"
           defaultValue={sp.source ?? ""}
-          className="rounded-lg border border-line-subtle bg-surface-sunken px-3 py-2 text-sm text-primary focus:outline-none focus:ring-1 focus:ring-brand-400"
+          className="rounded-lg border border-line-subtle bg-surface-sunken px-3 py-2 text-sm text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy"
         >
           <option value="">Any source</option>
           <option value="blockid">blockid</option>
@@ -187,7 +187,7 @@ export default async function AdminAnalysesPage({
         </select>
         <button
           type="submit"
-          className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-400 transition-colors"
+          className="rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white hover:bg-brand-400 transition-colors"
         >
           Filter
         </button>
@@ -200,7 +200,7 @@ export default async function AdminAnalysesPage({
 
       <div className="rounded-2xl border border-line-subtle bg-surface-sunken overflow-hidden">
         <table className="w-full text-sm">
-          <thead className="bg-surface-sunken text-[10px] uppercase tracking-wider text-muted">
+          <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
             <tr>
               <th className="text-left px-4 py-3">Timestamp</th>
               <th className="text-left px-4 py-3">User</th>
@@ -212,7 +212,7 @@ export default async function AdminAnalysesPage({
               <th className="text-left px-4 py-3">Source</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-line-subtle">
+          <tbody className="divide-y divide-line-subtle [&>tr:nth-child(even)]:bg-surface-sunken">
             {rows.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-4 py-8 text-center text-muted">
@@ -266,8 +266,8 @@ export default async function AdminAnalysesPage({
                   </td>
                   <td className="px-4 py-3">
                     <span className={`inline-block rounded-full px-2 py-0.5 text-[10px] font-medium border ${
-                      src === "svi"
-                        ? "bg-purple-400/10 text-purple-400 border-purple-400/20"
+ src === "svi"
+                        ? "bg-purple-400/10 text-accent border-purple-400/20"
                         : "bg-action/10 text-action border-action/25"
                     }`}>
                       {src}

@@ -78,13 +78,13 @@ export function SavedViewsBar({ views, filters, mandateView, mandateLabel }: Sav
 
   const chip = (active: boolean) =>
     active
-      ? "inline-flex items-center rounded-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 px-3 py-1 text-xs font-semibold"
-      : "inline-flex items-center rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 px-3 py-1 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-800";
+      ? "inline-flex min-h-11 items-center rounded-full bg-brand-navy text-white px-3 text-xs font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
+      : "inline-flex min-h-11 items-center rounded-full border border-surface-300 bg-white text-ink-700 px-3 text-xs font-medium hover:bg-surface-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2";
   const mandateQuery = mandateView ? filtersToQuery(mandateView) : "";
 
   return (
     <section aria-label={c.views} className="flex flex-wrap items-center gap-2" data-saved-views data-count={views.length}>
-      <span className="text-[11px] uppercase tracking-wide text-slate-500 dark:text-slate-400">{c.views}</span>
+      <span className="text-[11px] uppercase tracking-wide text-ink-500">{c.views}</span>
       <Link href={BASE} className={chip(current === "")} data-view="all">
         {c.all}
       </Link>
@@ -100,7 +100,7 @@ export function SavedViewsBar({ views, filters, mandateView, mandateLabel }: Sav
             <Link href={q ? `${BASE}?${q}` : BASE} className={chip(current === q && q !== "")}>
               {v.name}
             </Link>
-            <button type="button" onClick={() => void remove(v.id)} aria-label={`${c.del}: ${v.name}`} className="text-xs text-slate-400 hover:text-rose-600">
+            <button type="button" onClick={() => void remove(v.id)} aria-label={`${c.del}: ${v.name}`} className="text-xs text-ink-400 hover:text-rose-600">
               ×
             </button>
           </span>
@@ -118,12 +118,12 @@ export function SavedViewsBar({ views, filters, mandateView, mandateLabel }: Sav
             maxLength={40}
             placeholder={c.name}
             onChange={(e) => setName(e.target.value)}
-            className="w-40 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-2 py-1 text-xs text-slate-800 dark:text-slate-100"
+            className="w-40 rounded-lg border border-surface-300 bg-white px-2 py-1 text-xs text-ink-800"
           />
-          <button type="submit" disabled={status === "saving" || !name.trim()} className="rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-3 py-1 text-xs font-semibold disabled:opacity-60">
+          <button type="submit" disabled={status === "saving" || !name.trim()} className="rounded-lg bg-brand-navy hover:bg-brand-navy-elev-1 text-white px-3 py-1 text-xs font-semibold disabled:opacity-60">
             {status === "saving" ? c.saving : c.save}
           </button>
-          <span role="status" aria-live="polite" className="text-xs text-slate-500">
+          <span role="status" aria-live="polite" className="text-xs text-ink-500">
             {status === "saved" ? c.saved : status === "limit" ? c.limit : status === "failed" ? c.failed : null}
           </span>
         </form>

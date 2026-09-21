@@ -94,9 +94,9 @@ export function I18nReviewClient({ entries }: Props) {
                   <div className="mb-1 flex items-center justify-between text-xs uppercase tracking-wider text-muted">
                     <span>VI</span>
                     <span className={
-                      state === "ok" ? "text-emerald-400"
-                      : state === "err" ? "text-red-400"
-                      : state === "saving" ? "text-amber-400"
+                      state === "ok" ? "text-bull"
+                      : state === "err" ? "text-bear"
+                      : state === "saving" ? "text-warn"
                       : ""
                     }>
                       {state === "ok" ? "saved" : state === "err" ? "error" : state === "saving" ? "saving…" : ""}

@@ -67,45 +67,45 @@ function StatusBadge({ status }: { status: FunnelFileStatus }) {
 
 function Tile({ label, value, sub, testId }: { label: string; value: string; sub?: string; testId?: string }) {
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
-      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">{label}</p>
-      <p className="mt-1 text-2xl font-semibold tabular-nums text-neutral-900" data-testid={testId}>{value}</p>
-      {sub ? <p className="mt-1 text-xs text-neutral-500">{sub}</p> : null}
+    <div className="rounded-2xl border border-surface-200 bg-white p-4 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">{label}</p>
+      <p className="mt-1 text-2xl font-semibold tabular-nums text-ink-900" data-testid={testId}>{value}</p>
+      {sub ? <p className="mt-1 text-xs text-ink-500">{sub}</p> : null}
     </div>
   );
 }
 
 function CountsTable({ columns }: { columns: Array<{ title: string; counts: FunnelCounts | null }> }) {
   return (
-    <div className="overflow-x-auto rounded-2xl border border-neutral-200 bg-white shadow-sm">
+    <div className="overflow-auto max-h-[75vh] rounded-2xl border border-surface-200 bg-white shadow-sm">
       <table className="w-full text-sm" data-testid="funnel-steps-table">
-        <thead>
-          <tr className="border-b border-neutral-200 bg-neutral-50 text-xs text-neutral-500">
+        <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
+          <tr className="border-b border-surface-200 bg-surface-100 text-xs text-ink-500">
             <th className="px-4 py-2 text-left font-medium">Step</th>
             {columns.map((c) => (
               <th key={c.title} className="px-4 py-2 text-right font-medium">{c.title}</th>
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
           {STEP_LABELS.map((s) => (
-            <tr key={s.key} className="border-b border-neutral-100" data-step={s.key}>
+            <tr key={s.key} className="border-b border-surface-100" data-step={s.key}>
               <td className="px-4 py-2">
-                <span className="font-medium text-neutral-800">{s.label}</span>
-                <span className="ml-2 text-xs text-neutral-400">{s.note}</span>
+                <span className="font-medium text-ink-800">{s.label}</span>
+                <span className="ml-2 text-xs text-ink-400">{s.note}</span>
               </td>
               {columns.map((c) => (
-                <td key={c.title} className="px-4 py-2 text-right tabular-nums text-neutral-800">
+                <td key={c.title} className="px-4 py-2 text-right tabular-nums text-ink-800">
                   {c.counts ? n(c.counts[s.key] as number) : "n/a"}
                 </td>
               ))}
             </tr>
           ))}
           {CONV_LABELS.map((c) => (
-            <tr key={c.key} className="border-b border-neutral-100 bg-neutral-50/60" data-conv={c.key}>
-              <td className="px-4 py-1.5 text-xs text-neutral-600">conv · {c.label}</td>
+            <tr key={c.key} className="border-b border-surface-100 bg-surface-100" data-conv={c.key}>
+              <td className="px-4 py-1.5 text-xs text-ink-600">conv · {c.label}</td>
               {columns.map((col) => (
-                <td key={col.title} className="px-4 py-1.5 text-right text-xs tabular-nums text-neutral-700">
+                <td key={col.title} className="px-4 py-1.5 text-right text-xs tabular-nums text-ink-700">
                   {col.counts ? pct(col.counts.conv[c.key]) : "—"}
                 </td>
               ))}
@@ -120,16 +120,16 @@ function CountsTable({ columns }: { columns: Array<{ title: string; counts: Funn
 function GateTable({ gates }: { gates: Record<string, number> }) {
   const entries = Object.entries(gates).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 10);
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm" data-testid="funnel-gates">
-      <p className="text-sm font-medium text-neutral-800">Top gate features — 28 d</p>
-      <p className="mt-1 text-xs text-neutral-500">feature_gate_hit per feature (events, QA excluded). Which wall founders hit.</p>
+    <section className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm" data-testid="funnel-gates">
+      <p className="text-sm font-medium text-ink-800">Top gate features — 28 d</p>
+      <p className="mt-1 text-xs text-ink-500">feature_gate_hit per feature (events, QA excluded). Which wall founders hit.</p>
       {entries.length === 0 ? (
-        <p className="mt-3 text-sm text-neutral-500">None recorded.</p>
+        <p className="mt-3 text-sm text-ink-500">None recorded.</p>
       ) : (
         <table className="mt-3 w-full text-sm">
-          <tbody>
+          <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
             {entries.map(([k, v]) => (
-              <tr key={k} className="border-t border-neutral-100">
+              <tr key={k} className="border-t border-surface-100">
                 <td className="py-1.5 pr-4"><code>{k}</code></td>
                 <td className="py-1.5 text-right tabular-nums">{n(v)}</td>
               </tr>
@@ -143,16 +143,16 @@ function GateTable({ gates }: { gates: Record<string, number> }) {
 
 function SignupsTable({ signups }: { signups: FunnelLatest["last_signups"] }) {
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm" data-testid="funnel-signups">
-      <p className="text-sm font-medium text-neutral-800">Last {signups.length} sign-ups — furthest step</p>
-      <p className="mt-1 text-xs text-neutral-500">User-id prefix only (no e-mails). Persona from the sign-up, step = deepest funnel event seen in the window.</p>
+    <section className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm" data-testid="funnel-signups">
+      <p className="text-sm font-medium text-ink-800">Last {signups.length} sign-ups — furthest step</p>
+      <p className="mt-1 text-xs text-ink-500">User-id prefix only (no e-mails). Persona from the sign-up, step = deepest funnel event seen in the window.</p>
       {signups.length === 0 ? (
-        <p className="mt-3 text-sm text-neutral-500">No sign-ups in the window.</p>
+        <p className="mt-3 text-sm text-ink-500">No sign-ups in the window.</p>
       ) : (
-        <div className="overflow-x-auto">
+        <div className="overflow-auto max-h-[75vh]">
           <table className="mt-3 w-full text-sm">
-            <thead>
-              <tr className="text-xs text-neutral-500">
+            <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
+              <tr className="text-xs text-ink-500">
                 <th className="py-1 text-left font-medium">When (UTC)</th>
                 <th className="py-1 text-left font-medium">User</th>
                 <th className="py-1 text-left font-medium">Persona</th>
@@ -160,10 +160,10 @@ function SignupsTable({ signups }: { signups: FunnelLatest["last_signups"] }) {
                 <th className="py-1 text-left font-medium">Furthest step</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
               {signups.map((s, i) => (
-                <tr key={`${s.user_prefix}-${i}`} className="border-t border-neutral-100">
-                  <td className="py-1.5 pr-3 text-neutral-600">{s.ts ? s.ts.replace("T", " ").slice(0, 16) : "—"}</td>
+                <tr key={`${s.user_prefix}-${i}`} className="border-t border-surface-100">
+                  <td className="py-1.5 pr-3 text-ink-600">{s.ts ? s.ts.replace("T", " ").slice(0, 16) : "—"}</td>
                   <td className="py-1.5 pr-3"><code>{s.user_prefix}…</code></td>
                   <td className="py-1.5 pr-3">{s.persona ?? "—"}</td>
                   <td className="py-1.5 pr-3">{s.method ?? "—"}</td>
@@ -202,9 +202,9 @@ function InstitutionalSection({ fi }: { fi: InstitutionalFunnel }) {
   return (
     <section className="space-y-4" data-testid="funnel-institutional">
       <header>
-        <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">G21 · Institutional funnel</p>
-        <h2 className="text-xl font-bold text-neutral-900">Programs, evaluators and the data moat</h2>
-        <p className="mt-1 text-sm text-neutral-500">
+        <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">G21 · Institutional funnel</p>
+        <h2 className="text-xl font-bold text-ink-900">Programs, evaluators and the data moat</h2>
+        <p className="mt-1 text-sm text-ink-500">
           Live, window {fi.window.from} → {fi.window.to} ({fi.window.days} d) from <code>analytics_events</code> (FI envelope: organisation · startup · plan · channel), table counts and{" "}
           <code>traction-snapshot.json</code>. QA accounts excluded. “— P1 / P2 / P3” = no data path until that phase ships.
         </p>
@@ -224,17 +224,17 @@ function InstitutionalSection({ fi }: { fi: InstitutionalFunnel }) {
 
       <div className="grid gap-3 lg:grid-cols-2">
         {fi.sections.map((s) => (
-          <div key={s.key} className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm" data-fi-section={s.key}>
-            <p className="text-sm font-medium text-neutral-800">{s.label}</p>
+          <div key={s.key} className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm" data-fi-section={s.key}>
+            <p className="text-sm font-medium text-ink-800">{s.label}</p>
             <table className="mt-3 w-full text-sm">
-              <tbody>
+              <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                 {s.metrics.map((m) => (
-                  <tr key={m.key} className="border-t border-neutral-100 align-top" data-fi-metric={m.key} data-fi-status={m.status}>
+                  <tr key={m.key} className="border-t border-surface-100 align-top" data-fi-metric={m.key} data-fi-status={m.status}>
                     <td className="py-1.5 pr-3">
-                      <span className="text-neutral-800">{m.label}</span>
-                      <span className="block text-xs text-neutral-400">{m.note}</span>
+                      <span className="text-ink-800">{m.label}</span>
+                      <span className="block text-xs text-ink-400">{m.note}</span>
                     </td>
-                    <td className={`py-1.5 text-right tabular-nums ${m.status === "live" ? "text-neutral-900" : "text-neutral-400"}`}>{fiValue(m)}</td>
+                    <td className={`py-1.5 text-right tabular-nums ${m.status === "live" ? "text-ink-900" : "text-ink-400"}`}>{fiValue(m)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -281,8 +281,8 @@ function FreeReportsSection({ fr }: { fr: FreeReportMetrics }) {
   return (
     <section className="space-y-3" data-testid="funnel-free-reports">
       <div>
-        <p className="text-sm font-medium text-neutral-800">Free reports</p>
-        <p className="mt-1 text-xs text-neutral-500">
+        <p className="text-sm font-medium text-ink-800">Free reports</p>
+        <p className="mt-1 text-xs text-ink-500">
           Two free business reports per e-mail address, address required before the run (<code>free_report_grants</code>, migration 0439).
           Submitted = grants reserved · delivered = PDF e-mail accepted · people = distinct normalised addresses.
         </p>
@@ -294,17 +294,17 @@ function FreeReportsSection({ fr }: { fr: FreeReportMetrics }) {
         <Tile label="Today vs cap" value={`${n(fr.today)} / ${n(fr.cap)}`} sub={capLine} testId="funnel-free-reports-today" />
         <Tile label="Converted to paid" value={n(fr.converted_to_paid)} sub="addresses that later bought a report" testId="funnel-free-reports-converted" />
       </div>
-      <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
+      <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-surface-200 bg-white p-4 shadow-sm">
         <FreeReportSparkline points={fr.last_7_days} />
-        <table className="text-xs text-neutral-600" data-testid="funnel-free-reports-7d">
-          <thead>
-            <tr className="text-neutral-500">
+        <table className="text-xs text-ink-600" data-testid="funnel-free-reports-7d">
+          <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
+            <tr className="text-ink-500">
               {fr.last_7_days.map((p) => (
                 <th key={p.day} className="px-1.5 py-0.5 text-right font-medium">{p.day.slice(5)}</th>
               ))}
             </tr>
           </thead>
-          <tbody>
+          <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
             <tr>
               {fr.last_7_days.map((p) => (
                 <td key={p.day} className="px-1.5 py-0.5 text-right tabular-nums" title="submitted">{p.submitted}</td>
@@ -317,7 +317,7 @@ function FreeReportsSection({ fr }: { fr: FreeReportMetrics }) {
             </tr>
           </tbody>
         </table>
-        <p className="text-xs text-neutral-500">line = submitted · dots = delivered · UTC days, oldest first</p>
+        <p className="text-xs text-ink-500">line = submitted · dots = delivered · UTC days, oldest first</p>
       </div>
     </section>
   );
@@ -327,33 +327,33 @@ export function FunnelAdminView({ data }: { data: FunnelViewData }) {
   const { latest, status, fileError, daily, today, institutional, freeReports } = data;
   const recent = daily.slice(-14).reverse();
   return (
-    <div className="min-h-svh bg-neutral-50 px-4 py-8">
+    <div className="min-h-svh bg-surface-100 px-4 py-8">
       <div className="mx-auto max-w-6xl space-y-6">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500">CRO · First dollar</p>
-            <h1 className="text-2xl font-bold text-neutral-900">Funnel</h1>
-            <p className="mt-1 text-sm text-neutral-500">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">CRO · First dollar</p>
+            <h1 className="text-2xl font-bold text-ink-900">Funnel</h1>
+            <p className="mt-1 text-sm text-ink-500">
               sign_up → svi_analyze → report_view → paywall_view → checkout → trust_report_purchased, server-side <code>analytics_events</code>,
               distinct founders per step, QA accounts excluded. Daily 02:50 UTC · <code>content/reports/funnel-daily.jsonl</code>.
             </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-neutral-500">
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink-500">
               <StatusBadge status={status} />
               {latest ? <span>generated {latest.generated_at.replace("T", " ").slice(0, 16)} UTC · window {latest.window.from} → {latest.window.to}</span> : null}
             </div>
           </div>
           <div className="flex gap-2">
-            <Link href="/admin/traction" className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100">
+            <Link href="/admin/traction" className="rounded-lg border border-surface-300 bg-white px-3 py-1.5 text-sm font-medium text-ink-700 hover:bg-surface-200">
               Traction
             </Link>
-            <Link href="/admin" className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100">
+            <Link href="/admin" className="rounded-lg border border-surface-300 bg-white px-3 py-1.5 text-sm font-medium text-ink-700 hover:bg-surface-200">
               ← Admin home
             </Link>
           </div>
         </header>
 
         {!latest ? (
-          <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900" data-testid="funnel-missing">
+          <section className="rounded-2xl border border-line-subtle border-l-4 border-l-warn bg-surface-sunken p-5 text-sm text-amber-900" data-testid="funnel-missing">
             <p className="font-medium">No funnel report yet.</p>
             <p className="mt-1">
               {fileError ?? "The daily cron has not written content/reports/funnel-latest.json on this host."} Run it now:{" "}
@@ -396,16 +396,16 @@ export function FunnelAdminView({ data }: { data: FunnelViewData }) {
 
         {institutional ? <InstitutionalSection fi={institutional} /> : null}
 
-        <section className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm" data-testid="funnel-daily">
-          <p className="text-sm font-medium text-neutral-800">Daily — last {recent.length} days</p>
-          <p className="mt-1 text-xs text-neutral-500">One row per UTC day from funnel-daily.jsonl (distinct actors per step; conversions are same-day ratios, not cohorts).</p>
+        <section className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm" data-testid="funnel-daily">
+          <p className="text-sm font-medium text-ink-800">Daily — last {recent.length} days</p>
+          <p className="mt-1 text-xs text-ink-500">One row per UTC day from funnel-daily.jsonl (distinct actors per step; conversions are same-day ratios, not cohorts).</p>
           {recent.length === 0 ? (
-            <p className="mt-3 text-sm text-neutral-500">No daily rows yet.</p>
+            <p className="mt-3 text-sm text-ink-500">No daily rows yet.</p>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[75vh]">
               <table className="mt-3 w-full text-sm">
-                <thead>
-                  <tr className="text-xs text-neutral-500">
+                <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
+                  <tr className="text-xs text-ink-500">
                     <th className="py-1 text-left font-medium">Date</th>
                     {STEP_LABELS.map((s) => (
                       <th key={s.key} className="py-1 text-right font-medium">{s.label}</th>
@@ -414,15 +414,15 @@ export function FunnelAdminView({ data }: { data: FunnelViewData }) {
                     <th className="py-1 text-right font-medium">QA excl.</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                   {recent.map((r) => (
-                    <tr key={r.date} className="border-t border-neutral-100" data-date={r.date}>
+                    <tr key={r.date} className="border-t border-surface-100" data-date={r.date}>
                       <td className="py-1.5 pr-3"><code>{r.date}</code></td>
                       {STEP_LABELS.map((s) => (
                         <td key={s.key} className="py-1.5 text-right tabular-nums">{n(r[s.key] as number)}</td>
                       ))}
                       <td className="py-1.5 text-right tabular-nums">{n(Object.values(r.gate_hits).reduce((a, b) => a + b, 0))}</td>
-                      <td className="py-1.5 text-right tabular-nums text-neutral-500">{n(r.qa_excluded)}</td>
+                      <td className="py-1.5 text-right tabular-nums text-ink-500">{n(r.qa_excluded)}</td>
                     </tr>
                   ))}
                 </tbody>

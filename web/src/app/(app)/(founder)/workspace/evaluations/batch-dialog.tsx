@@ -81,8 +81,8 @@ export function BatchDialog({ selected, quotaRemaining, quotaLimit, trialActive 
   }
 
   return (
-    <div ref={dialogRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="batch-title" aria-describedby="batch-intro">
-      <div className="w-full max-w-lg rounded-2xl bg-surface shadow-2xl border border-surface-200 overflow-hidden">
+    <div ref={dialogRef} className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="batch-title" aria-describedby="batch-intro">
+      <div className="w-full max-w-lg rounded-2xl bg-surface shadow-2 border border-line-subtle overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-200">
           <h2 id="batch-title" className="text-lg font-bold text-ink-900">Batch score {n} startup{n === 1 ? "" : "s"}</h2>
           <button type="button" onClick={onClose} aria-label="Close" className="h-8 w-8 flex items-center justify-center rounded-lg text-ink-500 hover:text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer">
@@ -102,7 +102,7 @@ export function BatchDialog({ selected, quotaRemaining, quotaLimit, trialActive 
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Cohort 4 intake"
-              className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-navy focus:border-transparent"
             />
           </div>
 
@@ -144,7 +144,7 @@ export function BatchDialog({ selected, quotaRemaining, quotaLimit, trialActive 
               type="submit"
               disabled={submitting || n === 0 || insufficient}
               aria-busy={submitting}
-              className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg bg-brand-navy px-4 py-2 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 transition-colors cursor-pointer disabled:opacity-50"
             >
               {submitting && <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
               Queue {n} report{n === 1 ? "" : "s"}

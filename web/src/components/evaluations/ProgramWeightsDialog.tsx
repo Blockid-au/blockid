@@ -140,8 +140,8 @@ export function ProgramWeightsDialog({ batchId, weights, weightsVersion, onSaved
 
       {open ? (
         <div role="dialog" aria-modal="true" aria-labelledby="program-weights-title" aria-describedby="program-weights-desc" className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4" data-testid="program-weights-dialog">
-          <div className="absolute inset-0 bg-black/50" onClick={close} aria-hidden="true" />
-          <form onSubmit={save} noValidate className="relative max-h-[100dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-line-subtle bg-surface p-5 text-primary shadow-2xl sm:max-h-[90dvh] sm:rounded-2xl">
+          <div className="absolute inset-0 bg-ink-900/40" onClick={close} aria-hidden="true" />
+          <form onSubmit={save} noValidate className="relative max-h-[100dvh] w-full max-w-lg overflow-y-auto rounded-t-2xl border border-line-subtle bg-surface p-5 text-primary shadow-2 sm:max-h-[90dvh] sm:rounded-2xl">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <h2 id="program-weights-title" className="text-base font-semibold">
@@ -171,7 +171,7 @@ export function ProgramWeightsDialog({ batchId, weights, weightsVersion, onSaved
               <button type="button" onClick={close} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-line px-4 text-sm font-medium text-secondary hover:bg-surface-hover cursor-pointer">
                 Cancel
               </button>
-              <button type="submit" disabled={state === "busy"} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 cursor-pointer" data-testid="program-weights-save">
+              <button type="submit" disabled={state === "busy"} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-navy px-4 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-50 cursor-pointer" data-testid="program-weights-save">
                 {state === "busy" ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : null}
                 {state === "busy" ? "Saving…" : "Save weights"}
               </button>

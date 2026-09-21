@@ -40,7 +40,7 @@ const TYPE_COLORS: Record<NotificationType, string> = {
   weekly_report: "bg-blue-100 text-blue-700",
   milestone: "bg-purple-100 text-purple-700",
   score_dropped: "bg-red-100 text-red-700",
-  inactive: "bg-gray-100 text-gray-700",
+  inactive: "bg-surface-200 text-ink-700",
 };
 
 interface NotificationRow {
@@ -61,7 +61,7 @@ export default async function NotificationsPage() {
     return (
       <div className="min-h-svh bg-surface-100 flex items-center justify-center">
         <div className="text-center">
-          <Shield className="mx-auto h-12 w-12 text-red-400 mb-4" />
+          <Shield className="mx-auto h-12 w-12 text-bear mb-4" />
           <h1 className="text-2xl font-bold text-ink-800 mb-2">Access Denied</h1>
           <Link href="/" className="text-brand-600 hover:text-brand-700 text-sm">&larr; Back to home</Link>
         </div>
@@ -130,7 +130,7 @@ export default async function NotificationsPage() {
             <ArrowLeft strokeWidth={1.75} className="h-4 w-4" />
           </Link>
           <Logo variant="light" />
-          <span className="text-xs font-medium text-amber-600 bg-amber-500/10 border border-amber-500/20 rounded px-2 py-0.5">
+          <span className="text-xs font-medium text-warn bg-amber-500/10 border border-amber-500/20 rounded px-2 py-0.5">
             NOTIFICATIONS
           </span>
         </div>
@@ -214,9 +214,9 @@ export default async function NotificationsPage() {
               No notifications found.
             </div>
           ) : (
-            <div className="bg-white border border-surface-200 rounded-lg overflow-x-auto">
+            <div className="bg-white border border-surface-200 rounded-lg overflow-auto max-h-[75vh]">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                   <tr className="bg-surface-50 border-b border-surface-200">
                     <th className="text-left px-4 py-2.5 font-medium text-ink-600">Email</th>
                     <th className="text-left px-4 py-2.5 font-medium text-ink-600">Type</th>
@@ -225,14 +225,14 @@ export default async function NotificationsPage() {
                     <th className="text-left px-4 py-2.5 font-medium text-ink-600">Opened</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                   {recentNotifications.map((n) => (
                     <tr key={n.id} className="border-b border-surface-100 last:border-0">
                       <td className="px-4 py-2.5 font-mono text-xs text-ink-600 max-w-[180px] truncate">
                         {n.account_email}
                       </td>
                       <td className="px-4 py-2.5">
-                        <span className={`text-xs font-medium rounded-full px-2 py-0.5 ${TYPE_COLORS[n.notification_type] ?? "bg-gray-100 text-gray-700"}`}>
+                        <span className={`text-xs font-medium rounded-full px-2 py-0.5 ${TYPE_COLORS[n.notification_type] ?? "bg-surface-200 text-ink-700"}`}>
                           {TYPE_LABELS[n.notification_type] ?? n.notification_type}
                         </span>
                       </td>

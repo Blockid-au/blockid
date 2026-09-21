@@ -72,7 +72,7 @@ export default async function CompetitorsPage() {
     return (
       <div className="min-h-svh bg-surface-100 flex items-center justify-center">
         <div className="text-center">
-          <Shield className="mx-auto h-12 w-12 text-red-400 mb-4" />
+          <Shield className="mx-auto h-12 w-12 text-bear mb-4" />
           <h1 className="text-2xl font-bold text-ink-800 mb-2">Access Denied</h1>
           <p className="text-ink-600 text-sm mb-6">You don&apos;t have admin access to BlockID.</p>
           <Link href="/" className="text-brand-600 hover:text-brand-700 text-sm">&larr; Back to home</Link>
@@ -115,7 +115,7 @@ export default async function CompetitorsPage() {
 
         {/* Summary stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="rounded-xl border border-brand-200 bg-brand-50 p-5">
+          <div className="rounded-xl border border-line-subtle border-l-4 border-l-brand-navy bg-surface-sunken p-5">
             <div className="flex items-center gap-2 mb-2">
               <Trophy strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
               <p className="text-xs uppercase tracking-[0.15em] text-brand-700 font-medium">BlockID Coverage</p>
@@ -135,7 +135,7 @@ export default async function CompetitorsPage() {
             </p>
             <p className="text-xs text-ink-600 mt-1">capabilities covered</p>
           </div>
-          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-5">
+          <div className="rounded-xl border border-line-subtle border-l-4 border-l-bull bg-surface-sunken p-5">
             <div className="flex items-center gap-2 mb-2">
               <Zap strokeWidth={1.75} className="h-4 w-4 text-emerald-600" />
               <p className="text-xs uppercase tracking-[0.15em] text-emerald-700 font-medium">Advantage Gap</p>
@@ -163,7 +163,7 @@ export default async function CompetitorsPage() {
             {ADVANTAGES.map((adv, i) => (
               <div
                 key={i}
-                className="rounded-xl border border-brand-200 bg-gradient-to-br from-brand-50 to-white p-5 flex items-start gap-3"
+                className="rounded-xl border border-line-subtle border-l-4 border-l-brand-navy bg-surface-sunken p-5 flex items-start gap-3"
               >
                 <div className="mt-0.5 rounded-full bg-brand-100 p-1.5 shrink-0">
                   <Check strokeWidth={2.5} className="h-3.5 w-3.5 text-brand-700" />

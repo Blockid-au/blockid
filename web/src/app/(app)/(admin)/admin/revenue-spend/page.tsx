@@ -251,9 +251,9 @@ export default async function AdminRevenueSpendPage() {
               No payment data found in stripe_webhook_events.
             </p>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[75vh]">
               <table className="w-full text-sm">
-                <thead className="bg-surface-50 text-xs text-ink-500 uppercase tracking-wide">
+                <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                   <tr>
                     <th className="text-left px-6 py-3">Week starting</th>
                     <th className="text-right px-6 py-3">Payments</th>
@@ -261,7 +261,7 @@ export default async function AdminRevenueSpendPage() {
                     <th className="text-right px-6 py-3">Avg ticket</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-surface-100">
+                <tbody className="divide-y divide-surface-100 [&>tr:nth-child(even)]:bg-surface-sunken">
                   {weeklyRows.map((row) => (
                     <tr key={row.week} className="hover:bg-surface-50 transition-colors">
                       <td className="px-6 py-3 font-medium text-ink-700">
@@ -295,9 +295,9 @@ export default async function AdminRevenueSpendPage() {
               No credit spend recorded in last 30 days.
             </p>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[75vh]">
               <table className="w-full text-sm">
-                <thead className="bg-surface-50 text-xs text-ink-500 uppercase tracking-wide">
+                <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                   <tr>
                     <th className="text-left px-6 py-3">Feature / reason</th>
                     <th className="text-right px-6 py-3">Credits used</th>
@@ -305,7 +305,7 @@ export default async function AdminRevenueSpendPage() {
                     <th className="text-right px-6 py-3">Avg per tx</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-surface-100">
+                <tbody className="divide-y divide-surface-100 [&>tr:nth-child(even)]:bg-surface-sunken">
                   {spendRows.map((row) => (
                     <tr key={row.feature} className="hover:bg-surface-50 transition-colors">
                       <td className="px-6 py-3 font-medium text-ink-700 max-w-xs truncate">
@@ -339,9 +339,9 @@ export default async function AdminRevenueSpendPage() {
               No transactions found.
             </p>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[75vh]">
               <table className="w-full text-sm">
-                <thead className="bg-surface-50 text-xs text-ink-500 uppercase tracking-wide">
+                <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                   <tr>
                     <th className="text-left px-6 py-3">Date</th>
                     <th className="text-left px-6 py-3">Event ID</th>
@@ -349,7 +349,7 @@ export default async function AdminRevenueSpendPage() {
                     <th className="text-right px-6 py-3">Amount</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-surface-100">
+                <tbody className="divide-y divide-surface-100 [&>tr:nth-child(even)]:bg-surface-sunken">
                   {recentTx.map((tx) => (
                     <tr key={tx.id} className="hover:bg-surface-50 transition-colors">
                       <td className="px-6 py-3 text-ink-600 whitespace-nowrap">

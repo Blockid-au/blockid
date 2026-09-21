@@ -45,8 +45,8 @@ interface SavedKey {
 
 const STATUS_CONFIG = {
   active: { icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-200", label: "Active" },
-  configured: { icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50 border-amber-200", label: "Configured" },
-  missing: { icon: XCircle, color: "text-red-400", bg: "bg-red-50 border-red-200", label: "Missing" },
+  configured: { icon: AlertTriangle, color: "text-warn", bg: "bg-amber-50 border-amber-200", label: "Configured" },
+  missing: { icon: XCircle, color: "text-bear", bg: "bg-red-50 border-red-200", label: "Missing" },
   // G25-B: an optional provider left unset is not a fault — neutral, no red.
   not_configured: { icon: MinusCircle, color: "text-ink-500", bg: "bg-ink-50 border-ink-200", label: "Optional — not set" },
 } as const;
@@ -143,7 +143,7 @@ export function AIKeysClient() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-ink-800 flex items-center gap-2">
-          <Key strokeWidth={1.75} className="h-6 w-6 text-amber-500" />
+          <Key strokeWidth={1.75} className="h-6 w-6 text-warn" />
           AI Provider Management
         </h1>
         <p className="text-sm text-ink-600 mt-1">
@@ -159,11 +159,11 @@ export function AIKeysClient() {
             <p className="text-xs text-ink-600 mt-1">Active</p>
           </div>
           <div className="rounded-xl border border-surface-200 bg-white p-4 text-center">
-            <p className="text-3xl font-bold font-mono text-amber-600">{status.configuredCount - status.activeCount}</p>
+            <p className="text-3xl font-bold font-mono text-warn">{status.configuredCount - status.activeCount}</p>
             <p className="text-xs text-ink-600 mt-1">Configured</p>
           </div>
           <div className="rounded-xl border border-surface-200 bg-white p-4 text-center">
-            <p className="text-3xl font-bold font-mono text-red-400">{status.providers.filter((p) => p.status === "missing").length}</p>
+            <p className="text-3xl font-bold font-mono text-bear">{status.providers.filter((p) => p.status === "missing").length}</p>
             <p className="text-xs text-ink-600 mt-1">Missing</p>
           </div>
         </div>
@@ -241,7 +241,7 @@ export function AIKeysClient() {
                 {saving ? "Saving..." : "Save Key"}
               </Button>
               <Button variant="ghost" size="sm" onClick={() => setShowForm(false)}>Cancel</Button>
-              {saveMsg && <span className={`text-xs ${saveMsg.startsWith("Error") ? "text-red-500" : "text-emerald-600"}`}>{saveMsg}</span>}
+              {saveMsg && <span className={`text-xs ${saveMsg.startsWith("Error") ? "text-bear" : "text-emerald-600"}`}>{saveMsg}</span>}
             </div>
           </div>
         )}
@@ -251,7 +251,7 @@ export function AIKeysClient() {
             <p className="px-6 py-6 text-center text-sm text-ink-500">No admin-configured keys. Keys from .env are used by default.</p>
           ) : savedKeys.map((key) => (
             <div key={key.provider} className="px-6 py-4 flex items-center gap-4">
-              <Key strokeWidth={1.75} className="h-4 w-4 text-amber-500 shrink-0" />
+              <Key strokeWidth={1.75} className="h-4 w-4 text-warn shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-ink-800">{PROVIDER_OPTIONS.find((p) => p.value === key.provider)?.label ?? key.provider}</p>
                 <p className="text-xs text-ink-600 font-mono mt-0.5">{key.api_key_masked}</p>
@@ -261,7 +261,7 @@ export function AIKeysClient() {
               <span className={`text-[10px] font-medium rounded px-2 py-0.5 border ${key.is_active ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-red-50 border-red-200 text-red-700"}`}>
                 {key.is_active ? "Active" : "Disabled"}
               </span>
-              <button onClick={() => handleDelete(key.provider)} className="text-red-400 hover:text-red-500 cursor-pointer">
+              <button onClick={() => handleDelete(key.provider)} className="text-bear hover:text-bear cursor-pointer">
                 <Trash2 strokeWidth={1.75} className="h-4 w-4" />
               </button>
             </div>
@@ -272,7 +272,7 @@ export function AIKeysClient() {
       {/* Test AI */}
       <div className="rounded-2xl border border-surface-200 bg-white p-6">
         <h2 className="text-sm font-semibold text-ink-800 mb-3 flex items-center gap-2">
-          <Zap strokeWidth={1.75} className="h-4 w-4 text-amber-500" />
+          <Zap strokeWidth={1.75} className="h-4 w-4 text-warn" />
           Test AI Connection
         </h2>
         <p className="text-xs text-ink-600 mb-4">Run a real AI call through the fallback chain to verify which provider responds.</p>

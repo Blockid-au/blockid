@@ -180,7 +180,7 @@ const DB_TABLE_GROUPS: DBTableGroup[] = [
   },
   {
     domain: "Blockchain",
-    color: "text-amber-600",
+    color: "text-warn",
     bgColor: "bg-amber-50",
     tables: [
       "blockchain_sync_config", "blockchain_sync_queue",
@@ -298,12 +298,12 @@ export function ArchitectureClient({ user }: ArchitectureClientProps) {
             { label: "API Routes", value: String(totalRoutes), sub: "across 12 domains", icon: Route, color: "text-purple-600", bg: "bg-purple-50" },
             { label: "DB Tables", value: String(totalTables), sub: "6 domain groups", icon: Database, color: "text-teal-600", bg: "bg-teal-50" },
             { label: "Microservices", value: String(MICROSERVICES.length), sub: `${liveServices} live`, icon: Server, color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "Cron Jobs", value: String(CRON_JOBS.length), sub: "automated", icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
+            { label: "Cron Jobs", value: String(CRON_JOBS.length), sub: "automated", icon: Clock, color: "text-warn", bg: "bg-amber-50" },
             { label: "Env Vars", value: "72", sub: "configured", icon: Lock, color: "text-rose-600", bg: "bg-rose-50" },
           ].map(({ label, value, sub, icon: Icon, color, bg }) => (
             <div key={label} className="rounded-2xl border border-surface-200 bg-white p-4 shadow-sm">
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] uppercase tracking-[0.12em] text-ink-500 font-medium">{label}</p>
+                <p className="text-[11px] uppercase tracking-[0.12em] text-ink-500 font-medium">{label}</p>
                 <div className={cn("h-7 w-7 rounded-lg flex items-center justify-center", bg)}>
                   <Icon strokeWidth={1.75} className={cn("h-3.5 w-3.5", color)} />
                 </div>
@@ -439,11 +439,11 @@ export function ArchitectureClient({ user }: ArchitectureClientProps) {
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] uppercase tracking-wider text-muted font-medium w-12">Port</span>
+                    <span className="text-[11px] uppercase tracking-wider text-muted font-medium w-12">Port</span>
                     <span className="text-[11px] font-mono text-ink-700">{service.port}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] uppercase tracking-wider text-muted font-medium w-12">Stack</span>
+                    <span className="text-[11px] uppercase tracking-wider text-muted font-medium w-12">Stack</span>
                     <span className="text-[11px] font-mono text-ink-700">{service.runtime}</span>
                   </div>
                   <p className="text-[11px] text-ink-500 pt-1 border-t border-surface-100">{service.description}</p>
@@ -474,7 +474,7 @@ export function ArchitectureClient({ user }: ArchitectureClientProps) {
             {/* Total bar */}
             <div className="mt-4 pt-4 border-t border-surface-200">
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-[10px] uppercase tracking-wider text-ink-500 font-medium">Distribution</span>
+                <span className="text-[11px] uppercase tracking-wider text-ink-500 font-medium">Distribution</span>
               </div>
               <div className="h-3 rounded-full overflow-hidden flex">
                 {API_ROUTE_GROUPS.map((group) => (
@@ -495,17 +495,17 @@ export function ArchitectureClient({ user }: ArchitectureClientProps) {
            ════════════════════════════════════════════════════════════ */}
         <Section id="cron" title={`Cron Schedule (${CRON_JOBS.length} Jobs)`} icon={Timer}>
           <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[75vh]">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                   <tr className="border-b border-surface-200 bg-surface-100">
-                    <th className="text-left px-5 py-3 text-[10px] uppercase tracking-wider text-ink-500 font-medium">Schedule</th>
-                    <th className="text-left px-5 py-3 text-[10px] uppercase tracking-wider text-ink-500 font-medium">Job Name</th>
-                    <th className="text-left px-5 py-3 text-[10px] uppercase tracking-wider text-ink-500 font-medium hidden md:table-cell">Description</th>
-                    <th className="text-left px-5 py-3 text-[10px] uppercase tracking-wider text-ink-500 font-medium hidden lg:table-cell">Endpoint</th>
+                    <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider text-ink-500 font-medium">Schedule</th>
+                    <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider text-ink-500 font-medium">Job Name</th>
+                    <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider text-ink-500 font-medium hidden md:table-cell">Description</th>
+                    <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider text-ink-500 font-medium hidden lg:table-cell">Endpoint</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                   {CRON_JOBS.map((job) => (
                     <tr key={job.name} className="border-b border-surface-200/50 hover:bg-surface-50 transition-colors">
                       <td className="px-5 py-3">
@@ -563,7 +563,7 @@ export function ArchitectureClient({ user }: ArchitectureClientProps) {
                 value: "Cloudflare",
                 detail: "Edge caching, DDoS protection, WAF rules",
                 icon: Cloud,
-                color: "text-amber-600",
+                color: "text-warn",
                 bg: "bg-amber-50",
               },
             ].map(({ label, value, detail, icon: Icon, color, bg }) => (
@@ -572,7 +572,7 @@ export function ArchitectureClient({ user }: ArchitectureClientProps) {
                   <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center", bg)}>
                     <Icon strokeWidth={1.75} className={cn("h-4 w-4", color)} />
                   </div>
-                  <span className="text-[10px] uppercase tracking-[0.12em] text-ink-500 font-medium">{label}</span>
+                  <span className="text-[11px] uppercase tracking-[0.12em] text-ink-500 font-medium">{label}</span>
                 </div>
                 <p className="text-sm font-semibold text-ink-800">{value}</p>
                 <p className="text-[10px] text-ink-500 mt-1">{detail}</p>

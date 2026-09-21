@@ -96,7 +96,7 @@ export function CohortIndex({ batches, templates, canCreate, demoLabels = DEMO_C
         {canCreate ? (
           <span className="flex flex-wrap items-center gap-2">
             {!hasDemo && batches.length > 0 ? <LoadDemoCohortButton labels={demoLabels} /> : null}
-            <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700" data-testid="cohort-new">
+            <button type="button" onClick={() => setOpen((v) => !v)} aria-expanded={open} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface px-4 text-sm font-semibold text-primary hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2" data-testid="cohort-new">
               <Plus className="h-4 w-4" aria-hidden="true" />
               New cohort
             </button>
@@ -112,15 +112,15 @@ export function CohortIndex({ batches, templates, canCreate, demoLabels = DEMO_C
         <form onSubmit={create} className="grid gap-4 rounded-2xl border border-surface-200 bg-surface p-5 sm:grid-cols-2" data-testid="cohort-new-form">
           <div>
             <label htmlFor="cohort-name" className="mb-1 block text-sm font-medium text-ink-700">Cohort name</label>
-            <input id="cohort-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} placeholder="e.g. Round 1 intake" className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            <input id="cohort-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={120} placeholder="e.g. Round 1 intake" className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-navy" />
           </div>
           <div>
             <label htmlFor="cohort-program" className="mb-1 block text-sm font-medium text-ink-700">Program</label>
-            <input id="cohort-program" value={program} onChange={(e) => setProgram(e.target.value)} maxLength={160} placeholder="e.g. AI Fellowship 2026" className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-500" />
+            <input id="cohort-program" value={program} onChange={(e) => setProgram(e.target.value)} maxLength={160} placeholder="e.g. AI Fellowship 2026" className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-navy" />
           </div>
           <div className="sm:col-span-2">
             <label htmlFor="cohort-template" className="mb-1 block text-sm font-medium text-ink-700">Intake template</label>
-            <select id="cohort-template" value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-500">
+            <select id="cohort-template" value={templateId} onChange={(e) => setTemplateId(e.target.value)} className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-brand-navy">
               <option value="">Default form (no extra questions)</option>
               {templates.map((t) => (
                 <option key={t.id} value={t.id}>
@@ -141,10 +141,10 @@ export function CohortIndex({ batches, templates, canCreate, demoLabels = DEMO_C
             </p>
           ) : null}
           <div className="flex items-center justify-end gap-3 sm:col-span-2">
-            <button type="button" onClick={() => setOpen(false)} className="rounded-lg px-4 py-2 text-sm font-medium text-ink-600 hover:bg-surface-100">
+            <button type="button" onClick={() => setOpen(false)} className="inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium text-ink-600 hover:bg-surface-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2">
               Cancel
             </button>
-            <button type="submit" disabled={busy} className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50" data-testid="cohort-create">
+            <button type="submit" disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-navy px-4 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2" data-testid="cohort-create">
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
               Create cohort
             </button>
@@ -162,7 +162,7 @@ export function CohortIndex({ batches, templates, canCreate, demoLabels = DEMO_C
           and choose Batch score.
           {canCreate ? (
             <div className="mt-5 flex flex-wrap items-start justify-center gap-2" data-testid="cohort-empty-actions">
-              <button type="button" onClick={() => setOpen(true)} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700" data-testid="cohort-empty-import">
+              <button type="button" onClick={() => setOpen(true)} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-line bg-surface px-4 text-sm font-semibold text-primary hover:bg-surface-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2" data-testid="cohort-empty-import">
                 <Upload className="h-4 w-4" aria-hidden="true" />
                 {demoLabels.importCsv}
               </button>

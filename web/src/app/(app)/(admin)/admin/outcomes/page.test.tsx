@@ -6,6 +6,7 @@
 // usePathname → mocked.
 
 import { describe, expect, it, vi } from "vitest";
+import { darkSurfaceOffences } from "@/design/light-markup";
 import { renderToReadableStream } from "react-dom/server";
 
 vi.mock("next/navigation", () => ({
@@ -53,6 +54,7 @@ const ADMIN = { email: "admin@blockid.au", displayName: "Admin" };
 describe("<OutcomesTable>", () => {
   it("renders startup, kind + summary, source + confidence, status, source link; confirm / reject on proposed rows only", async () => {
     const out = await html(<OutcomesTable rows={[PROPOSED, DONE]} onResolve={() => {}} />);
+    expect(darkSurfaceOffences(out), "G26 light template").toEqual([]);
     expect(out).toContain('data-testid="outcomes-queue"');
     expect(out).toContain("Acme");
     expect(out).toContain("Grant awarded");

@@ -227,9 +227,9 @@ export function RndDashboard() {
             onClick={() => runResearch(key)}
             disabled={loading}
             className={`
-              group relative rounded-xl border px-4 py-4 text-left transition-all cursor-pointer
-              disabled:opacity-50 disabled:cursor-not-allowed
-              ${activeTopic === key && loading
+ group relative rounded-xl border px-4 py-4 text-left transition-all cursor-pointer
+ disabled:opacity-50 disabled:cursor-not-allowed
+ ${activeTopic === key && loading
                 ? "border-brand-500 bg-brand-50 shadow-sm"
                 : key === "full"
                   ? "border-brand-500/40 bg-brand-50 hover:border-brand-500 hover:shadow-sm"
@@ -264,7 +264,7 @@ export function RndDashboard() {
 
       {/* Error State */}
       {error && !loading && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 p-6 shadow-sm">
+        <div className="rounded-2xl border border-line-subtle border-l-4 border-l-bear bg-surface-sunken p-6 shadow-sm">
           <p className="text-sm font-medium text-red-700">Research Failed</p>
           <p className="text-xs text-red-600 mt-1">{error}</p>
         </div>
@@ -331,7 +331,7 @@ export function RndDashboard() {
                 </button>
                 <button
                   onClick={() => deleteHistoryReport(stored.id)}
-                  className="p-1.5 text-muted hover:text-red-500 transition-colors cursor-pointer"
+                  className="p-1.5 text-muted hover:text-bear transition-colors cursor-pointer"
                   title="Remove from history"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
