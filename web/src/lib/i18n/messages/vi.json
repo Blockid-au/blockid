@@ -235,6 +235,7 @@
   "pilot.buy.error.generic": "Không thể bắt đầu thanh toán — vui lòng thử lại.",
   "pilot.buy.error.network": "Chúng tôi không thể bắt đầu thanh toán. Vui lòng thử lại hoặc liên hệ với chúng tôi.",
   "pilot.buy.error.contact": "Đặt qua đội ngũ của chúng tôi",
+  "pilot.page.breadcrumb.home": "Trang chủ",
   "pilot.page.breadcrumb": "Thí điểm xác thực Cohort",
   "pilot.page.hero.eyebrow": "Thí điểm trả phí · chương trình",
   "pilot.page.hero.title": "Kiểm chứng BlockID trên một cohort thật trước khi cam kết cả năm.",

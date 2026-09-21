@@ -79,7 +79,7 @@ export function buildPilotPageCopy(m: Messages, lang: PilotLocale = "en"): Pilot
     lang,
     path: lang === "vi" ? PILOT_VI_PATH : PILOT_PATH,
     prefix,
-    breadcrumbHome: lang === "vi" ? "Trang chủ" : "Home",
+    breadcrumbHome: T("pilot.page.breadcrumb.home"),
     breadcrumb: T("pilot.page.breadcrumb"),
     metaTitle: T("meta.pilot.title"),
     metaDescription: F("meta.pilot.description"),

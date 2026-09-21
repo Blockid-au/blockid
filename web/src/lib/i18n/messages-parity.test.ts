@@ -339,3 +339,20 @@ describe("pilot.* + meta.pilot.* catalogue parity (en ⇄ vi) — G22-C", () => 
     expect(`${VI["meta.pilot.title"]} | BlockID.au`.length).toBeLessThanOrEqual(60);
   });
 });
+
+// G23-C — the two literal fallbacks that survived G22-C now come from the catalogue.
+describe("pilot.* literal fallbacks → catalogue keys (G23-C)", () => {
+  it("pilot.page.breadcrumb.home + pilot.buy.error.generic exist in EN and VI and are what the page / button consume", async () => {
+    expect(EN["pilot.page.breadcrumb.home"]).toBe("Home");
+    expect(VI["pilot.page.breadcrumb.home"]).toBe("Trang chủ");
+    expect(EN["pilot.buy.error.generic"]!.length).toBeGreaterThan(0);
+    expect(VI["pilot.buy.error.generic"]!.length).toBeGreaterThan(0);
+    const { buildPilotPageCopy } = await import("@/app/(marketing)/pilot/pilot-page-body");
+    const { PILOT_CHECKOUT_ERROR_KEY } = await import("@/components/marketing/PilotBuyButton");
+    const { pilotUiStrings } = await import("@/lib/pricing/pilot-strings");
+    expect(buildPilotPageCopy(EN as never, "en").breadcrumbHome).toBe(EN["pilot.page.breadcrumb.home"]);
+    expect(buildPilotPageCopy(VI as never, "vi").breadcrumbHome).toBe(VI["pilot.page.breadcrumb.home"]);
+    expect(PILOT_CHECKOUT_ERROR_KEY).toBe("pilot.buy.error.generic");
+    expect(pilotUiStrings(VI as never, "vi").errorGeneric).toBe(VI[PILOT_CHECKOUT_ERROR_KEY]);
+  });
+});

@@ -236,6 +236,7 @@
   "pilot.buy.error.generic": "Could not start checkout — please try again.",
   "pilot.buy.error.network": "We could not start the checkout. Please try again or contact us.",
   "pilot.buy.error.contact": "Book through our team instead",
+  "pilot.page.breadcrumb.home": "Home",
   "pilot.page.breadcrumb": "Cohort Validation Pilot",
   "pilot.page.hero.eyebrow": "Paid pilot · programs",
   "pilot.page.hero.title": "Validate BlockID on one real cohort before you commit to a year.",
