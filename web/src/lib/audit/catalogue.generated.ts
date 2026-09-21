@@ -51,6 +51,7 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/admin/users/[id]/route.ts", family: "admin.users", methods: ["DELETE"] },
   { route: "api/admin/users/create/route.ts", family: "admin.users.create", methods: ["POST"] },
   { route: "api/admin/users/manage/route.ts", family: "admin.users.manage", methods: ["POST"] },
+  { route: "api/admin/validation/route.ts", family: "admin.validation", methods: ["POST","PATCH","DELETE"] },
   { route: "api/advisor/invite/route.ts", family: "advisor.invite", methods: ["POST"] },
   { route: "api/advisor/notes/route.ts", family: "advisor.notes", methods: ["POST"] },
   { route: "api/ai/equity-split/route.ts", family: "ai.equity-split", methods: ["POST"] },

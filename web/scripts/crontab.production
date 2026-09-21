@@ -759,6 +759,16 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Sunday 07:00 UTC, after the Sunday data jobs. Remove this line to stop.
 0 7 * * 0 cd /home/dovanlong/blockid.au/web && LIVE_QA_ALLOW_DB=1 LIVE_QA_ELEVATE=1 bash scripts/qa-live.sh >> /tmp/blockid-live-qa.log 2>&1
 
+# G22-D (2026-09-21) — weekly G21 regression canary: ONLY lane 41
+# (tests/live-qa/41-g21-regression.spec.ts — hero / nav / trust band /
+# methodology pages / Assessment Card / pilot offer / institutional API 401 /
+# evidence pages / cohort index / trusted status data_moat) through the same
+# runner, so it provisions + erases its own qa-live-* account and appends to
+# content/reports/live-qa-history.jsonl like the full suite. Sunday 05:10 UTC,
+# before the 07:00 full run; `--wait` queues behind any run still holding the
+# lock. Remove this line to stop.
+10 5 * * 0 cd /home/dovanlong/blockid.au/web && LIVE_QA_ALLOW_DB=1 LIVE_QA_ELEVATE=1 bash scripts/qa-live.sh --wait -- tests/live-qa/41-g21-regression.spec.ts >> /tmp/blockid-live-qa.log 2>&1
+
 # G15-R2 (2026-09-18) — observability crons. Plain node (no cron-runner, own
 # pid locks in /tmp/blockid-{error-digest,latency-sample}.lock). Both exit 0
 # unless they crash; both write only under web/content/reports + /data/logs.
