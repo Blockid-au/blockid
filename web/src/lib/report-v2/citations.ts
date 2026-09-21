@@ -175,7 +175,9 @@ export function parseCitations(text: string, register: CitationIndex | readonly 
     if (m[1]) {
       const entry = index.numberFor(m[1]);
       pushText(out, before.replace(/\s+$/u, ""));
-      if (entry) out.push({ kind: "cite", n: entry.n, id: entry.id, label: entry.label, level: entry.level });
+      const prev = out[out.length - 1];
+      // Adjacent duplicates ("[ev:a] [ev:a]") collapse to one footnote.
+      if (entry && !(prev && prev.kind === "cite" && prev.n === entry.n)) out.push({ kind: "cite", n: entry.n, id: entry.id, label: entry.label, level: entry.level });
       // An unknown id renders nothing; keep one space when text continues on both sides.
       else if (/\S$/u.test(before) && /^\S/u.test(text.slice(start + m[0].length))) pushText(out, " ");
     } else {

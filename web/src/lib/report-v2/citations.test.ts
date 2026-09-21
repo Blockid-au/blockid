@@ -33,6 +33,8 @@ describe("parseCitations", () => {
       { kind: "text", text: "." },
     ]);
     expect(JSON.stringify(segs)).not.toContain("[ev:");
+    // Adjacent duplicates collapse to one footnote (no "1, 1").
+    expect(parseCitations("Grew 12 % [ev:ev-ga4] [ev:ev-ga4].", REGISTER).filter((s) => s.kind === "cite")).toHaveLength(1);
   });
 
   it("[unevidenced] (and [uncited]) become a chip segment with one space before it", () => {

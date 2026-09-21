@@ -120,6 +120,13 @@ const t = (value: unknown): string => pdfSafeText(value, { unicode: tUnicode });
 let cites: CitationIndex = createCitationIndex([]);
 let citeLocale: "en" | "vi" = "en";
 
+/** Point the module-level footnote index at this document (same swap discipline as `useFontSet`). */
+function useCitations(report: ReportV2, locale: "en" | "vi"): CitationIndex {
+  cites = buildCitationIndex(report);
+  citeLocale = locale;
+  return cites;
+}
+
 /**
  * Inline prose with its `[ev:<id>]` markers as superscript footnote numbers
  * and `[unevidenced]` as a muted "(unverified)" run — the PDF twin of
@@ -1132,8 +1139,7 @@ export function TbrReportPdf({ report: rawReport, level = 0, preparedWith, local
   const r = projection.report;
   // G24-A: one footnote numbering per document — walked over the FULL text
   // (not the free-tier projection) so web, PDF and DOCX print the same numbers.
-  cites = buildCitationIndex(report);
-  citeLocale = loc;
+  const citations = useCitations(report, loc);
   const prepared = preparedWith?.trim() || defaultPreparedWith(report);
   const body: ReactNode[] = [];
   body.push(<Cover key="cover" report={r} locale={loc} preparedWith={prepared} />);
@@ -1178,7 +1184,7 @@ export function TbrReportPdf({ report: rawReport, level = 0, preparedWith, local
       <Appendix report={r} projection={projection} preparedWith={prepared} locale={loc} />
     </View>,
   );
-  if (cites.size > 0) {
+  if (citations.size > 0) {
     body.push(
       <View key="cited" break>
         <EvidenceCited locale={loc} />
