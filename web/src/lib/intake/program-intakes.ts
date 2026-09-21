@@ -310,6 +310,8 @@ export function mapSubmissionRow(row: Row): IntakeSubmission {
 
 export interface IntakeInsert {
   ownerUserId: string;
+  /** G22-B (0433): the organisation the creator acts for; null / absent = not stamped. */
+  orgId?: string | null;
   slug: string;
   name: string;
   blurb: string | null;
@@ -369,6 +371,8 @@ function toStoreError(error: { code?: string; message?: string } | null | undefi
 function intakeToRow(row: IntakeInsert, withTemplate = true): Row {
   return {
     owner_user_id: row.ownerUserId,
+    // org_id is a 0405 column (0433 adds the FK + index), so it needs no 42703 fallback of its own.
+    ...(row.orgId ? { org_id: row.orgId } : {}),
     slug: row.slug,
     name: row.name,
     blurb: row.blurb,
@@ -526,6 +530,14 @@ export interface IntakeDeps {
   now?: Date;
   /** Injectable for deterministic slugs in tests. */
   suffix?: () => string;
+  /**
+   * G22-B (0433) — `createIntake` only: the investor_organisations row the
+   * creator acts for, resolved by the CALLER with `resolveActingOrg(user.id)`
+   * (the route / the pilot service) — never taken from the request body.
+   * Absent or null = the row is not stamped (retention / audit export then
+   * fall back to owner-owned rows).
+   */
+  orgId?: string | null;
 }
 
 async function resolveStore(deps: IntakeDeps): Promise<IntakeStore> {
@@ -551,7 +563,7 @@ export async function createIntake(ownerUserId: string, raw: CreateIntakeInput, 
     for (let attempt = 0; attempt < 3; attempt += 1) {
       const slug = makeSlug(input.name, deps.suffix ? deps.suffix() : undefined);
       try {
-        const intake = await store.insertIntake({ ownerUserId, slug, ...input });
+        const intake = await store.insertIntake({ ownerUserId, orgId: deps.orgId ?? null, slug, ...input });
         return { ok: true, intake: { ...intake, submissionCount: 0, publicUrl: publicUrlForSlug(intake.slug) } };
       } catch (err) {
         if (err instanceof IntakeStoreError && err.code === "duplicate") {
@@ -718,7 +730,7 @@ export function memoryIntakeStore(opts: { migrated?: boolean; snapshots?: Record
       const intake: ProgramIntake = {
         id: `intake-${++seq}`,
         ownerUserId: row.ownerUserId,
-        orgId: null,
+        orgId: row.orgId ?? null,
         slug: row.slug,
         name: row.name,
         blurb: row.blurb,

@@ -78,6 +78,13 @@ export interface EvaluationBatch {
   applicantsCap: number | null;
   /** pilot_orders.id that delivered this cohort. */
   pilotOrderId: string | null;
+  /**
+   * G22-B (migration 0433) — the investor_organisations row the creator
+   * acted for when the cohort was made (resolveActingOrg; personal org
+   * included). Null before 0433 / until the backfill script runs; retention
+   * and the audit export then fall back to owner-owned rows.
+   */
+  orgId: string | null;
 }
 
 export interface EvaluationBatchItem {
@@ -293,6 +300,7 @@ export function mapBatchRow(row: Row): EvaluationBatch {
       return n != null && n > 0 ? Math.round(n) : null;
     })(),
     pilotOrderId: str(row.pilot_order_id),
+    orgId: str(row.org_id),
   };
 }
 

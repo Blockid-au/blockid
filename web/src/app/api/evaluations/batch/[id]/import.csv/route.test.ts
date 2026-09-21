@@ -80,6 +80,7 @@ const BATCH = {
   weightsVersion: 1,
   applicantsCap: null,
   pilotOrderId: null,
+  orgId: null,
 };
 
 const CSV = [
