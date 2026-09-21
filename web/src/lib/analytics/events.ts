@@ -70,6 +70,11 @@ export type AnalyticsEvent =
   | { name: "report_view"; params: { tier: ReportViewTier; pages_est?: number; project_id: string; qa?: boolean } }
   | { name: "paywall_view"; params: { surface: PaywallSurface | string; sku: string; amount_cents: number; project_id?: string; qa?: boolean } }
   | { name: "checkout"; params: { sku: string; amount_cents: number; project_id?: string; order_id?: string; qa?: boolean } }
+  // ── G25-D review-before-pay (client via /api/analytics/event; anonymous allowed on the first) ──
+  //   checkout_review_viewed — /checkout/review rendered (plan / pack / sku, interval, trial, entry surface)
+  //   checkout_started       — the explicit Pay / Add-card button was pressed (the ONLY Stripe hand-off)
+  | { name: "checkout_review_viewed"; params: { plan: string; kind: "plan" | "pack" | "sku"; interval: "monthly" | "annual" | "once"; trial: boolean; entry: string; amount_cents: number; qa?: boolean } }
+  | { name: "checkout_started"; params: { plan: string; kind: "plan" | "pack" | "sku"; interval: "monthly" | "annual" | "once"; trial: boolean; entry: string; amount_cents: number; qa?: boolean } }
   | { name: "agent_invoke"; params: { agent: string; credits_spent: number; duration_ms?: number } }
   | { name: "cohort_action"; params: { cohort: string; action: string; detail?: Record<string, string | number | boolean> } }
   | { name: "investor_view_deal"; params: { deal_id: string; segment: UserSegment; source?: string } }
@@ -232,6 +237,8 @@ export function qaFlag(email: string | null | undefined): { qa?: true } {
 export const CLIENT_EMITTABLE_EVENTS = Object.freeze([
   "paywall_view",
   "checkout",
+  "checkout_review_viewed",
+  "checkout_started",
   "report_view",
   "dashboard_view",
   "share_link_open",
@@ -244,7 +251,7 @@ export function isClientEmittableEvent(name: string): name is ClientEmittableEve
 }
 
 /** Events an anonymous browser (no session cookie) may still send — the public /tbr/* paywall. */
-export const ANON_EMITTABLE_EVENTS: readonly ClientEmittableEvent[] = Object.freeze(["paywall_view", "share_link_open"]);
+export const ANON_EMITTABLE_EVENTS: readonly ClientEmittableEvent[] = Object.freeze(["paywall_view", "share_link_open", "checkout_review_viewed"]);
 
 // ── PII guard ──────────────────────────────────────────────────────────
 //

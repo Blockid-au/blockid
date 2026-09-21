@@ -126,7 +126,10 @@ export interface AnalyticsEventMap {
   founder_match_viewed: { matches: number; source: "mandates" | "prefs" | "mixed" | "none" };
   pricing_toggle_billing: { annual: boolean };
   plan_cta_clicked: { plan: string; label: string };
-  checkout_started: { plan: string };
+  /** G25-D: the explicit Pay / Add-card click on /checkout/review — the only Stripe hand-off. */
+  checkout_started: { plan: string; kind?: "plan" | "pack" | "sku"; interval?: "monthly" | "annual" | "once"; trial?: boolean; entry?: string; amount_cents?: number };
+  /** G25-D: /checkout/review rendered; `entry` = the surface that linked here. */
+  checkout_review_viewed: { plan: string; kind: "plan" | "pack" | "sku"; interval: "monthly" | "annual" | "once"; trial: boolean; entry: string; amount_cents: number };
   checkout_completed: { plan: string; value?: number; currency?: string };
   coupon_applied: { code: string; discount_pct: number };
 
