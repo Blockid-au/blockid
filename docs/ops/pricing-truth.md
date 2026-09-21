@@ -208,3 +208,23 @@ Appended by lane F1 of G20 (`docs/plans/g20-ready-for-sale-2026-09-20.md` § 3 F
 **Still dead flags (granted, nothing reads them — no customer impact, listed for a later csv prune):** `svi.public`, `profile.multi`, `svi.premium`, `term_sheet_ai`, `per_investor_share_links`, `svi.feed`, `advisory_equity`, `advisor_portal`, `diligence_pack`, `portfolio` (page uses `minPlan`), `custom_benchmark`, `multi_fund`, `weekly_delta`, `cohort.view`, `cohort.view.stats`, `cohort.manage`, `api` (only `api.access` is read), `white_label`, `sso`.
 
 **csv ↔ DB drift noticed (not fixed here):** migration `0316_grant_finder_flags.sql` omitted `founder_scale` (Pro, inactive) from the `grant_finder` / `money_radar` append, so the DB row lacks two flags the csv lists — inert (row inactive, fallback bundle has both). `founder_package` has no seeding migration for its `plans` row (checkout hard-codes the SKU by design, § 1).
+
+## 11. Pilot → annual Cohort plan — the credit coupons (G23-B, 2026-09-21)
+
+The advisor plan funnel ends "offer paid pilot → run cohort → convert to annual". A program that paid a Cohort Validation Pilot converts to the annual Cohort rung its SKU maps to (`lib/pricing/pilot-skus.ts` `planTier`), with the pilot fee credited against the first year. Code: `lib/pilots/conversion.ts`, `api/stripe/checkout` (`convert_from_pilot`), `api/stripe/webhook` (`customer.subscription.created` → `pilot_orders.converted_at`, migration `0434`), the card on `/workspace/accelerator/pilot`.
+
+| Pilot SKU | Converts to | Annual price (plans-v2, inc. GST) | Credit | Coupon env NAME |
+|---|---|---|---|---|
+| `cohort_pilot_25` (A$1,500) | `accelerator_starter` — Cohort 25 annual (`STRIPE_PRICE_ACCEL_STARTER_ANNUAL`) | A$5,000 | A$1,500 off the first year | `STRIPE_COUPON_PILOT_CREDIT_25` |
+| `cohort_pilot_50` (A$2,500) | `accelerator_growth` — Cohort 100 annual (`STRIPE_PRICE_ACCEL_GROWTH_ANNUAL`) | A$15,000 | A$2,500 off the first year | `STRIPE_COUPON_PILOT_CREDIT_50` |
+
+**Credit rule** (`PILOT_CREDIT_RULE`, printed on the proposal PDF, the card and here): the pilot fee is credited against the first year of a Cohort plan when the program converts within **60 days** of the pilot ending (`PILOT_CONVERSION_WINDOW_DAYS`; the window runs from `pilot_orders.entitlement_until`, a live pilot may convert early). Outside the window the annual plan is still sold at the list price via `/pricing?segment=programs` or by hand.
+
+**No Stripe writes from code.** The coupons are founder-minted in the Stripe dashboard: *amount off* = the pilot fee, currency AUD, duration **once**, restricted to the two Cohort annual prices ("Applies to specific products"), no redemption limit. Set the coupon **id** (e.g. `pilot25credit`) in `web/.env.production` under the env NAME above and restart — the card flips from the contact fallback to "Continue to secure checkout" without a deploy. The code reads the env var by NAME only (`isPilotCouponConfigured` / `readPilotCouponId`); the value is never logged, returned to a client or compared.
+
+**Until the coupons exist:** the card explains that the credit is applied by our team and links `/contact?topic=pilot`; `POST /api/stripe/checkout` with `convert_from_pilot` answers `409 coupon_unconfigured` + the same fallback. Apply the credit by hand: create the subscription from the dashboard with the coupon, or send a Checkout link with the coupon attached — then set `pilot_orders.converted_at` / `converted_plan` via psql so `/admin/validation` L5 counts it.
+
+**Checkout guards** (in order): signed in → `convert_from_pilot` is a uuid → the plan is `accelerator_starter` / `accelerator_growth` with `interval: "annual"` → the order exists (404) → the caller owns it (403 `not_order_owner`) → the SKU maps to that rung (409 `conversion_plan_mismatch`) → inside the window and not yet converted (409 `conversion_window_closed` / `already_converted`) → coupon configured (409 `coupon_unconfigured`). Then `discounts: [{ coupon }]`, `allow_promotion_codes` dropped (nothing stacks on the credit), `pilot_order_id` on the session **and** the subscription metadata, success → `/workspace/accelerator/pilot?converted=1`.
+
+**Transparent pricing:** the card quotes the annual price inc. GST, the pilot fee credited and the first-year figure (annual − fee, from the constants) before anything is posted; Stripe lists the same lines before payment. The trial follows `plans.trial_days` for the rung (14 days, card required).
+

@@ -26,7 +26,14 @@
  *   (f) the Trusted Business Report quote (A$3 + unlock rail) is lane 21
  *       (`21-reports.spec.ts`) — referenced, not repeated;
  *   (g) `/api/stripe/portal` on an account without a Stripe customer → 404
- *       (never 500); `/workspace/billing` shows the no-subscription state.
+ *       (never 500); `/workspace/billing` shows the no-subscription state;
+ *   (j) G23-B: `/workspace/accelerator/pilot` on an account with no pilot
+ *       order shows NO conversion card (or, if a paid order exists on this
+ *       account, only the contact fallback — never a checkout control
+ *       without a minted coupon); `POST /api/stripe/checkout` with
+ *       `convert_from_pilot` for a random order → 404 (owner check before
+ *       Stripe); `GET /api/admin/validation/<random>/proposal` anonymous →
+ *       401 / 403 and as the QA founder → 403 (admin only).
  *
  * Amounts come from `config/pricing/stripe-price-catalogue.json` (the
  * read-only Stripe audit) — never typed here — so a re-price fails this lane
@@ -370,5 +377,46 @@ test.describe("Purchase path — Cohort Validation Pilot (G21 P0-C, no spend)", 
       expect(page.url()).not.toMatch(/stripe\.com/);
     }
     await credits.assertUnchanged(before, "pilot buy control (never paid)");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// G23-B — pilot → annual conversion + the admin proposal route (never paid)
+// ---------------------------------------------------------------------------
+
+test.describe("Purchase path — pilot conversion + proposal route (G23-B, no spend)", () => {
+  test("(j) no pilot order → no conversion card (or contact fallback only); convert_from_pilot for a random order → 404; proposal route 401/403", async ({ api, page, visit, credits, qa }, testInfo) => {
+    const before = await credits.snapshot();
+    await visit("/workspace/accelerator/pilot");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Pilot delivery kit", { timeout: 30_000 });
+    const card = page.getByTestId("pilot-convert-card");
+    const cards = await card.count();
+    let mode: string | null = null;
+    if (cards > 0) {
+      mode = await card.getAttribute("data-convert-mode");
+      // A card can only exist for an account that paid for a pilot; this
+      // account never does, but if one is seeded it must not offer a
+      // checkout without the founder-minted coupon.
+      expect(["contact", "converted", "closed"]).toContain(mode);
+      if (mode === "contact") expect(await page.getByTestId("pilot-convert-contact").getAttribute("href")).toBe("/contact?topic=pilot");
+      expect(await page.getByTestId("pilot-convert-checkout").count()).toBe(0);
+    }
+
+    // The owner check runs before Stripe: a random order id is 404, never 500.
+    const convert = await post<CheckoutResponse>(api, "/api/stripe/checkout", { plan: "accelerator_starter", interval: "annual", convert_from_pilot: "3f2a9c1e-5b7d-4e8f-9a0b-1c2d3e4f5a6b" });
+    expect([400, 404]).toContain(convert.status);
+    expect(convert.body.ok).toBe(false);
+
+    const anon = await anonRequest(qa.baseURL);
+    try {
+      const proposalAnon = await fetchWithSwapRetry(anon, "GET", "/api/admin/validation/3f2a9c1e-5b7d-4e8f-9a0b-1c2d3e4f5a6b/proposal");
+      expect([401, 403]).toContain(proposalAnon.status());
+      const proposalUser = await fetchWithSwapRetry(api, "GET", "/api/admin/validation/3f2a9c1e-5b7d-4e8f-9a0b-1c2d3e4f5a6b/proposal");
+      expect(proposalUser.status()).toBe(403);
+      await evidence(testInfo, "pilot conversion + proposal gate", { cards, mode, convert: { status: convert.status, error: convert.body.error }, proposalAnon: proposalAnon.status(), proposalUser: proposalUser.status() });
+    } finally {
+      await anon.dispose();
+    }
+    await credits.assertUnchanged(before, "pilot conversion card (never paid)");
   });
 });

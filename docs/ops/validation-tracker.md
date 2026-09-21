@@ -35,6 +35,7 @@ Code: `web/src/lib/validation/{model,ledger,auto}.ts`, `web/src/app/api/admin/va
 | `objection_answered` | boolean | tick once the answer is on the site / in the proposal — drops it from "Next objection to answer" |
 | `next_step` | string ≤ 300 | |
 | `note` | string ≤ 2 000 | answers to the script questions, who else was in the room |
+| `proposal_generated_at` | ISO or absent | G23-B — stamped by the proposal route each time the PDF is generated (§ 6); PATCH `null` to clear |
 | `created_at` / `updated_at` | ISO | |
 
 Rules:
@@ -54,6 +55,7 @@ Read-only, source-labelled, QA accounts (`qa-live-*`) dropped from every source.
 |---|---|---|---|
 | `pilot_orders` (`status = paid`, ordered by `created_at`) | first paid order per buyer | L4 | yes when `amount_cents ≥ 150 000` (A$1,500); a smaller order is listed "below A$1,500 — not counted" |
 | `pilot_orders` | a later paid order by the **same buyer** (renewal) or a paid order by a **second distinct buyer** (second organisation) | L5 | same A$1,500 rule |
+| `pilot_orders` (`converted_at` set — G23-B, migration 0434) | "Pilot converted to Cohort 25 / Cohort 100 (annual) — same organisation paid again" | L5 | same A$1,500 rule (on the pilot amount) |
 | `pilot_orders.metrics` (jsonb non-empty, ignoring `updated_at` / `updated_by`) | "Pilot metrics captured · n fields", plus "case-study consent given" when `case_study_consent = true` | L4 | no (signal) |
 | `content/reports/pilot-applications.jsonl` | comp pilot applications from `/pilot/investor` (programme name, cohort size, intake month) | L1 | no (signal) |
 | `founder_feedback_letters` (`status ∈ sent, opened`) | feedback letter sent (k, org count) | L2 | no (signal) |
@@ -72,3 +74,12 @@ Rendered as a checklist card on the page (`lib/validation/model.ts` `VALIDATION_
 - `/admin/validation` — the ladder reflects last week's calls; every objection answered on the site or in a proposal is ticked `objection_answered`.
 - Commit the ledger (§ 2).
 - The G21 regression canary (`tests/live-qa/41-g21-regression.spec.ts`, Sun 05:10 UTC in `scripts/crontab.production`) appends to `content/reports/live-qa-history.jsonl`; a red row there is a product regression, not a tracker problem.
+
+## 6. "Generate proposal" — the written pilot proposal (G23-B, 2026-09-21)
+
+Level 3 counts a **written proposal with scope, price and dates sent to a named organisation**. Every entry row on `/admin/validation` has a **Proposal** button (`data-testid="validation-entry-proposal"`) → `GET /api/admin/validation/<id>/proposal` (admin only; 401 anon / 403 non-admin / 404 unknown entry / 30 per hour) → a 4-page PDF downloads, named `blockid-pilot-proposal-<organisation-slug>-<date>.pdf`.
+
+What it contains (`lib/validation/proposal.ts` `buildPilotProposal`, rendered by `lib/pdf/pilot-proposal-pdf.tsx`): cover (organisation, contact role, date, valid 30 days, prepared by the legal entity) · **the problem in their words** (the entry's `objection` quoted verbatim + the `note`) · scope and price for the size the entry implies (a number followed by "applicants / startups / …" in the note, next step or objection; ≤ 25 → the A$1,500 pilot, otherwise the A$2,500 pilot; override with `?applicants=<n>`) · what is delivered (the six stages `/solutions/accelerator` ships, from the EN catalogue) · the six success metrics · timeline (acceptance → setup → intake → assessment → workshop → report, 90 days of workspace access) · data and consent (the approved data sentence, the applicant consent paragraph, the privacy-policy § 4 retention line) · after the pilot (Cohort 25 / Cohort 100 annual, the 60-day credit rule) · acceptance + signature block · entity / ABN footer · the general-advice disclaimer. Every number is a constant (`pilot-skus.ts`, `plans-v2.ts`, `conversion.ts`); nothing is stored — the entry gains `proposal_generated_at` and an audit row `validation.proposal_generated`.
+
+Workflow: record the interview (L1/L2) → add an L3 row `booked` for the organisation with the objection verbatim → **Proposal** → read it once (the founder approves the wording for a real target) → send → set the L3 row to `done` and tick `objection_answered`. A signed acceptance becomes the paid pilot (L4, auto-filled from `pilot_orders` once paid).
+
