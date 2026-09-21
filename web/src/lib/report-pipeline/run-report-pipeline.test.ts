@@ -66,7 +66,7 @@ function fakeOrchestrate(opts: { dims?: string[]; degradeAll?: boolean } = {}) {
     emit({ type: "executive_complete", summary: "Exec summary" });
     emit({ type: "audit_complete", groundedShare: 0.9, revised: 1 });
     emit({ type: "progress", completed: 100, total: 100, phase: "complete" });
-    emit({ type: "done", reportId: "rpt-1", totalMs: 1234, calls: 24, costAud: 0.03, costUsd: 0.02, costReportedCalls: 24, degradedSections: [], deadlineHit: false });
+    emit({ type: "done", reportId: "rpt-1", totalMs: 1234, calls: 24, costAud: 0.03, costUsd: 0.02, costReportedCalls: 24, degradedSections: [], deadlineHit: false, budgetOverruns: 0, verdictTrimmed: 0, autoCited: 0 });
     return {
       id: "rpt-1",
       title: "Acme",

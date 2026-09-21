@@ -78,6 +78,8 @@ import type { IntakeContext } from "@/lib/intake/detect-context";
 import { assembleReport } from "./section-assembler";
 import { buildAgentPrompt } from "./agent-prompts";
 import { AUDITOR_CAP_BY_TIER, auditSections, type AuditableSection } from "./llm-auditor";
+import { autoCite, itemsFromEvidenceRows } from "./auto-cite";
+import { bumpQualityCounter } from "./types";
 import { getAIBudgetStatus } from "@/lib/ai-client";
 import { DIM_ORDER, DIMENSION_OWNERS, criteriaForDimension, type DimKey } from "./dimension-owners";
 import { PIPELINE_VERSION } from "./version";
@@ -303,7 +305,7 @@ export type PipelineEvent =
   | { type: "executive_complete"; summary: string }
   | { type: "audit_complete"; groundedShare: number; revised: number }
   | { type: "progress"; completed: number; total: number; phase: PipelinePhase }
-  | { type: "done"; reportId: string; totalMs: number; calls: number; costAud: number; costUsd: number; costReportedCalls: number; degradedSections: string[]; deadlineHit: boolean }
+  | { type: "done"; reportId: string; totalMs: number; calls: number; costAud: number; costUsd: number; costReportedCalls: number; degradedSections: string[]; deadlineHit: boolean; budgetOverruns: number; verdictTrimmed: number; autoCited: number }
   | { type: "error"; dim?: DimKey; message: string; degraded: true };
 
 export type PipelineEventHandler = (event: PipelineEvent) => void;
@@ -689,6 +691,10 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
       costReportedCalls: meter.reported,
       degradedSections: reportV2?.quality.degradedSections ?? [],
       deadlineHit: deadline.expired(),
+      // G23-A counters — written to the tbr-quality.jsonl row by run-for-project.
+      budgetOverruns: context.qualityCounters?.budgetOverruns ?? 0,
+      verdictTrimmed: context.qualityCounters?.verdictTrimmed ?? 0,
+      autoCited: context.qualityCounters?.autoCited ?? 0,
     });
     return report;
   } finally {
@@ -919,7 +925,13 @@ async function auditAllSections(
   callAI: (systemPrompt: string, userPrompt: string, maxTokens: number) => Promise<string>,
   opts: { budgetOk?: () => boolean } = {},
 ): Promise<{ executiveSummary: string; findings: string[]; records: SectionAuditRecord[]; groundedShare: number }> {
-  const draft = context.executiveSummary ?? "";
+  // G23-A fix (a): the CEO thesis quotes chapter numbers that sit in the
+  // evidence register — give those sentences the id before the citation
+  // gate reads them, and let the gate resolve ids against the whole register.
+  const registerIds = (context.evidenceRows ?? []).map((e) => e.evidence_id);
+  const thesisCite = autoCite(context.executiveSummary ?? "", itemsFromEvidenceRows(context.evidenceRows ?? []));
+  bumpQualityCounter(context, "autoCited", thesisCite.added);
+  const draft = thesisCite.text;
 
   // Build the grounding evidence: startup description + actual SVI scores +
   // per-criterion scores. The auditor treats this as the ONLY source of truth.
@@ -941,7 +953,7 @@ async function auditAllSections(
 
   const sections: AuditableSection[] = [];
   if (draft.trim()) {
-    sections.push({ id: "executive", title: "Executive Summary", content: draft });
+    sections.push({ id: "executive", title: "Executive Summary", content: draft, allowedEvidenceIds: registerIds });
   }
   context.dimensionChapters?.forEach((chapter, dim) => {
     sections.push({

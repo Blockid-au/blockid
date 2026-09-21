@@ -406,6 +406,9 @@ export function qualityRowFor(
     sviVersion: ctx.sviAnalysis.version,
     pipelineVersion: reportV2?.pipelineVersion ?? PIPELINE_VERSION,
     now,
+    budgetOverruns: report.pipelineStats?.budgetOverruns ?? 0,
+    verdictTrimmed: report.pipelineStats?.verdictTrimmed ?? 0,
+    autoCited: report.pipelineStats?.autoCited ?? 0,
   });
   try {
     console.info(formatTbrQualityLine(row));
@@ -496,6 +499,9 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
       durationMs: stats?.totalMs ?? Date.now() - t0,
       degradedSections: stats?.degradedSections ?? report.reportV2?.quality.degradedSections ?? [],
       deadlineHit: stats?.deadlineHit ?? false,
+      budgetOverruns: stats?.budgetOverruns ?? 0,
+      verdictTrimmed: stats?.verdictTrimmed ?? 0,
+      autoCited: stats?.autoCited ?? 0,
     };
     if ((input.qualityLog ?? "record") === "record") {
       await recordTbrQualityAsync(qualityRowFor(report, ctx, tier, null), input.qualityWriter);

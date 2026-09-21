@@ -1417,6 +1417,8 @@ describe("orchestrateReport() — onEvent SSE vocabulary (§C.12)", () => {
     const done = events.find((e) => e.type === "done") as Extract<PipelineEvent, { type: "done" }>;
     expect(done.calls).toBe(1);
     expect(done.costAud).toBeGreaterThanOrEqual(0);
+    // G23-A: the grounding counters ride on `done` (0 here — the mocked dispatcher never overruns, trims or auto-cites).
+    expect(done).toMatchObject({ budgetOverruns: 0, verdictTrimmed: 0, autoCited: 0 });
   });
 
   it("emits an error event (degraded:true) for every degraded chapter and never throws on a listener error", async () => {

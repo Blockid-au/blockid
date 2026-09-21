@@ -27,7 +27,7 @@ import { readTractionStatus, type TractionStatus } from "@/lib/traction/status";
 import { readSviBacktestStatus, type SviBacktestStatus } from "@/lib/backtest/latest";
 import { readCalibrationStatus, type CalibrationStatus } from "@/lib/calibration/latest";
 import { dataMoatForStatus, emptyDataMoat, readDataMoat, type DataMoatMetrics } from "@/lib/outcomes/data-moat";
-import { readTbrQualityStatus, type TbrQualityStatus } from "@/lib/report-pipeline/quality-log";
+import { emptyTbrQualityStatus, readTbrQualityStatus, type TbrQualityStatus } from "@/lib/report-pipeline/quality-log";
 import { emptyTbrGrounding, readTbrGrounding, type TbrGrounding } from "@/lib/status/tbr-grounding";
 import { getAIQueueDepth } from "@/lib/ai-client";
 import { publicStatusExtras, readStatusExtras, type PublicStatusExtras, type StatusExtras } from "@/lib/status";
@@ -563,7 +563,7 @@ export async function GET(): Promise<Response> {
     // G15 review: default root = the live web checkout (getStatusRoot), never the release-dir copy.
     readStatusExtras().catch(() => null),
     // G19-S46: same live-checkout root (the pipeline appends there at runtime).
-    readTbrQualityStatus().catch(() => ({ last24h: { runs: 0, groundedShareMedian: null, costUsdMedian: null, degradedShare: null }, status: "missing" as const })),
+    readTbrQualityStatus().catch(() => emptyTbrQualityStatus()),
     // G21 P3-A: calibration JSON freshness (same live-checkout root) + the cached data-moat counts.
     readCalibrationStatus(REPO_ROOT).catch(() => "missing" as const),
     readDataMoat().catch(() => emptyDataMoat()),

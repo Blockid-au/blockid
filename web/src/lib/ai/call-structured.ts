@@ -26,6 +26,7 @@ import "server-only";
 
 import { z } from "zod";
 
+import { looksTruncated, salvageTruncatedJson } from "@/lib/ai/json-salvage";
 import { canonicalizeScore } from "@/lib/proofs/canonical-json";
 import { hashScore } from "@/lib/proofs/hash";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -109,8 +110,8 @@ export type StructuredModelCaller = (
 ) => Promise<StructuredModelResult>;
 
 export type CallStructuredResult<T> =
-  | { ok: true; data: T; runId: string }
-  | { ok: false; reason: string; runId: string };
+  | { ok: true; data: T; runId: string; overrun?: boolean }
+  | { ok: false; reason: string; runId: string; overrun?: boolean };
 
 // ── Anthropic Messages API response shape (subset we use) ────────────
 
@@ -205,7 +206,7 @@ export async function callStructured<TIn, TOut>(
       evidenceIds,
       purpose,
     });
-    return { ok: true, data: firstParse.data, runId };
+    return { ok: true, data: firstParse.data, runId, overrun: firstParse.salvaged };
   }
 
   // Step 4b — ONE repair pass. Append the parse error and the raw
@@ -242,7 +243,7 @@ export async function callStructured<TIn, TOut>(
       evidenceIds,
       purpose,
     });
-    return { ok: false, reason: repairCall.reason, runId };
+    return { ok: false, reason: repairCall.reason, runId, overrun: firstParse.truncated };
   }
 
   const repairParse = tryParse(outputSchema, repairCall.text);
@@ -262,7 +263,7 @@ export async function callStructured<TIn, TOut>(
       evidenceIds,
       purpose,
     });
-    return { ok: true, data: repairParse.data, runId };
+    return { ok: true, data: repairParse.data, runId, overrun: firstParse.truncated || repairParse.salvaged };
   }
 
   // Both attempts failed schema — record schema_fail. Callers may
@@ -282,7 +283,7 @@ export async function callStructured<TIn, TOut>(
     evidenceIds,
     purpose,
   });
-  return { ok: false, reason: `schema_fail: ${repairParse.error}`, runId };
+  return { ok: false, reason: `schema_fail: ${repairParse.error}`, runId, overrun: firstParse.truncated || repairParse.truncated };
 }
 
 // ── Internal: Anthropic Messages POST ────────────────────────────────
@@ -410,8 +411,10 @@ async function safeText(res: Response): Promise<string> {
 // ── Internal: parse text as JSON then Zod-validate ───────────────────
 
 type ParseResult<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: string };
+  /** `salvaged`: the raw text was cut short and rewound to its last complete value before it validated (G23-A). */
+  | { ok: true; data: T; salvaged: boolean }
+  /** `truncated`: JSON.parse failed with an end-of-input signature — the output overran its budget. */
+  | { ok: false; error: string; truncated: boolean };
 
 function tryParse<T>(schema: z.ZodType<T>, text: string): ParseResult<T> {
   // Strip a leading ```json fence and a trailing ``` if the model wrapped
@@ -424,19 +427,33 @@ function tryParse<T>(schema: z.ZodType<T>, text: string): ParseResult<T> {
     .trim();
 
   let parsed: unknown;
+
   try {
     parsed = JSON.parse(cleaned);
   } catch (err) {
-    return {
-      ok: false,
-      error: `JSON.parse failed: ${err instanceof Error ? err.message : String(err)}`,
-    };
+    const message = err instanceof Error ? err.message : String(err);
+    // G23-A fix (b): an output cut short by its token budget is rewound to
+    // its last complete value / sentence and closed, instead of costing a
+    // repair pass that is cut the same way. Nothing the model did not write
+    // is added; a salvage that still fails the schema falls through to the
+    // ordinary repair pass with the original error.
+    const rescued = salvageTruncatedJson(cleaned);
+    if (rescued !== null) {
+      try {
+        const candidate: unknown = JSON.parse(rescued);
+        const zres = schema.safeParse(candidate);
+        if (zres.success) return { ok: true, data: zres.data, salvaged: true };
+      } catch {
+        /* fall through */
+      }
+    }
+    return { ok: false, error: `JSON.parse failed: ${message}`, truncated: looksTruncated(message) };
   }
   const zres = schema.safeParse(parsed);
   if (!zres.success) {
-    return { ok: false, error: zres.error.message };
+    return { ok: false, error: zres.error.message, truncated: false };
   }
-  return { ok: true, data: zres.data };
+  return { ok: true, data: zres.data, salvaged: false };
 }
 
 // ── Internal: audit-log insert ───────────────────────────────────────

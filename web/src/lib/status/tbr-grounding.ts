@@ -8,15 +8,12 @@
 // Fail-soft: a missing / unparsable file or no row with a finite
 // `groundedShare` reads as `grounded_share: null`; the KPI is always a number.
 //
-// KPI source: lane A (G23-A) exports `TBR_GROUNDED_SHARE_KPI` from
-// lib/report-pipeline/quality.ts. Until that file lands this module resolves
-// the KPI from the existing `TBR_QUALITY_GROUNDED_WATCH` (quality-log.ts, the
-// same 0.85 threshold /api/status `watch` is derived from) and falls back to
-// `TBR_GROUNDED_SHARE_KPI_FALLBACK`; the merge swaps `resolveGroundedShareKpi`
-// to the lane-A export in one line. No path, project or snapshot id leaves
-// this module.
+// KPI source: `TBR_GROUNDED_SHARE_KPI` (lib/report-pipeline/quality-log.ts,
+// G23-A) — the same threshold /api/status `watch` is derived from; the
+// fallback only guards a non-finite export. No path, project or snapshot id
+// leaves this module.
 
-import * as qualityLog from "@/lib/report-pipeline/quality-log";
+import { TBR_GROUNDED_SHARE_KPI, TBR_QUALITY_FILE } from "@/lib/report-pipeline/quality-log";
 import { getStatusRoot, readJsonlTail } from "./jsonl";
 
 /** The G19 §5 / G23-A target: groundedShare ≥ 0.85. */
@@ -35,13 +32,10 @@ type RowLike = { ts?: unknown; groundedShare?: unknown };
 
 const r2 = (x: number) => Math.round(x * 100) / 100;
 
-/** The KPI: lane A's export when present, else the quality-log watch threshold, else 0.85. */
+/** The KPI: the quality-log export (0.85), guarded against a non-finite value. */
 export function resolveGroundedShareKpi(): number {
-  const mod = qualityLog as Record<string, unknown>;
-  for (const key of ["TBR_GROUNDED_SHARE_KPI", "TBR_QUALITY_GROUNDED_WATCH"]) {
-    const v = mod[key];
-    if (typeof v === "number" && Number.isFinite(v) && v > 0 && v <= 1) return r2(v);
-  }
+  const v: number = TBR_GROUNDED_SHARE_KPI;
+  if (typeof v === "number" && Number.isFinite(v) && v > 0 && v <= 1) return r2(v);
   return TBR_GROUNDED_SHARE_KPI_FALLBACK;
 }
 
@@ -68,7 +62,7 @@ export function emptyTbrGrounding(): TbrGrounding {
 export async function readTbrGrounding(root: string = getStatusRoot()): Promise<TbrGrounding> {
   const kpi = resolveGroundedShareKpi();
   try {
-    const rows = await readJsonlTail<RowLike>(root, qualityLog.TBR_QUALITY_FILE, TBR_GROUNDING_TAIL_LINES);
+    const rows = await readJsonlTail<RowLike>(root, TBR_QUALITY_FILE, TBR_GROUNDING_TAIL_LINES);
     return { grounded_share: latestGroundedShare(rows), grounded_share_kpi: kpi };
   } catch {
     return { grounded_share: null, grounded_share_kpi: kpi };

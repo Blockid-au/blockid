@@ -21,6 +21,7 @@ import { PHASE_EXIT_RULES, type PhaseGateResult } from "@/lib/growth/phase-gate"
 import { inferPhase } from "@/lib/growth/infer-phase";
 import { derivedLift } from "@/lib/svi-lift";
 import { ensureExecutiveStructured } from "./executive-structure";
+import { groundingAudit } from "./grounding";
 import { GROWTH_PHASE_IDS, GROWTH_PHASE_LABELS, type GrowthPhaseId } from "@/lib/growth/phase-taxonomy";
 import { DIMENSION_OWNERS, DIM_ORDER, criteriaForDimension, type DimKey } from "@/lib/report-pipeline/dimension-owners";
 import { buildValuationChapter, type ValuationAskInput, type VcValuationLike } from "@/lib/report-pipeline/valuation-chapter";
@@ -1206,7 +1207,17 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
   // G19-S47: the executive sections (headline / paragraphs / reasons / gaps /
   // verdict / actions) are always present — parsed from the summary text or
   // built from the chapters, the valuation and the plan.
-  return ensureExecutiveStructured(report);
+  const structured = ensureExecutiveStructured(report);
+  // G23-A: a read-time projection never ran the llm-auditor sweep, so its
+  // grounded share is the deterministic citation gate over the same sections
+  // (the pipeline overwrites this with the audited value in buildReportV2).
+  const grounding = groundingAudit(structured);
+  structured.quality.groundedShare = grounding.groundedShare;
+  for (const d of structured.dimensions) {
+    const sec = grounding.sections.find((x) => x.id === `dim:${d.dim}`);
+    if (sec) d.audit = { ...d.audit, grounded: sec.grounded, uncited: sec.uncited.length };
+  }
+  return structured;
 }
 
 function fmtShort(v: number): string {

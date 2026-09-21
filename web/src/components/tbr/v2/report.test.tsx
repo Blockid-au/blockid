@@ -17,6 +17,8 @@ import { reportOrderPath } from "@/lib/paywall/report-delivery";
 import { cardRenderModes } from "@/lib/report-v2/card-modes";
 import { TBR_V2_SECTION_IDS, TbrReportV2, tbrV2Toc } from "./report";
 import { TBR_UNLOCK_RAIL_TESTID, tbrUnlockHeadline } from "./unlock-rail";
+import { groundingAudit } from "@/lib/report-v2/grounding";
+import { TBR_GROUNDED_SHARE_KPI } from "@/lib/report-pipeline/quality-log";
 
 function primaryCount(html: string): number {
   // Every chapter wraps its primary visual in [data-tbr-primary=<dim>]; count
@@ -415,7 +417,10 @@ describe("<TbrReportV2> synthesis + layout (G19-S44)", () => {
   });
 
   it("executive header: the SAME evidence confidence as the Assessment Card (review P1 — one number per report), no auditor / grounded-% jargon (the appendix keeps it); audit copy says 'no citation in this chapter'", () => {
-    const html = renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} />);
+    // G23-A: the demo chapters ground on the citation gate; force one ungrounded chapter to pin the "no citation" copy.
+    const demo = demoReportV2();
+    demo.dimensions[0]!.audit = { ...demo.dimensions[0]!.audit, grounded: false, uncited: 0 };
+    const html = renderToStaticMarkup(<TbrReportV2 report={demo} />);
     const exec = html.slice(html.indexOf(`id="${TBR_V2_SECTION_IDS.executive}"`), html.indexOf(`id="${TBR_V2_SECTION_IDS.dim("tre")}"`));
     const cardConfidence = html.match(/data-assessment-confidence="(\d+)"/)?.[1];
     expect(cardConfidence).toBeTruthy();
@@ -425,7 +430,9 @@ describe("<TbrReportV2> synthesis + layout (G19-S44)", () => {
     expect(html).not.toContain("not yet audited");
     expect(html).toContain("Auditor: no citation in this chapter");
     const appendix = html.slice(html.indexOf(`id="${TBR_V2_SECTION_IDS.appendix}"`));
-    expect(appendix).toContain("grounded 0%");
+    // G23-A: the appendix prints the citation-gate share of the projection (was a hard-coded 0 %).
+    expect(appendix).toContain(`grounded ${Math.round(demoReportV2().quality.groundedShare * 100)}%`);
+    expect(demoReportV2().quality.groundedShare).toBeGreaterThanOrEqual(TBR_GROUNDED_SHARE_KPI);
   });
 
   it("print page breaks on cover, executive, valuation and appendix only", () => {
@@ -708,5 +715,20 @@ describe("<TbrReportV2> corrections link (canCorrect)", () => {
     expect(vi).toContain("Báo lỗi để được chỉnh sửa");
     const viAnon = renderToStaticMarkup(<TbrReportV2 report={report} locale="vi" />);
     expect(viAnon).not.toContain("Báo lỗi để được chỉnh sửa");
+  });
+});
+
+
+// ── G23-A: the demo is the grounding reference ────────────────────────────────
+describe("<TbrReportV2> grounding (G23-A)", () => {
+  it("demo + free fixtures ground at or above the KPI on the citation gate, the appendix prints that share, and the rendered demo shows no raw evidence uuid", () => {
+    for (const report of [demoReportV2(), freeFixtureReportV2()]) {
+      const audit = groundingAudit(report);
+      expect(audit.groundedShare, JSON.stringify(audit.sections.filter((s) => !s.grounded))).toBeGreaterThanOrEqual(TBR_GROUNDED_SHARE_KPI);
+      expect(report.quality.groundedShare).toBe(audit.groundedShare);
+    }
+    const html = renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} />);
+    expect(html).toContain(`${Math.round(demoReportV2().quality.groundedShare * 100)}%`);
+    expect(html).not.toMatch(/\[ev:[0-9a-f]{8}-/);
   });
 });

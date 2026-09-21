@@ -18,6 +18,10 @@
 // Runs entirely on the injected free `ModelCaller` — no Gemini, no GCP, $0.
 
 import { LlmAgent, SequentialAgent, newSession, type ModelCaller } from "@/lib/adk";
+import { hasCitationOrMarker, isMaterialClaim, splitClaims } from "./claim-gate";
+
+// The Stage-1 predicates live in ./claim-gate.ts (shared with the G23-A auto-citer); re-exported for existing callers.
+export { hasCitationOrMarker, isMaterialClaim, splitClaims, MATERIAL_PATTERNS, UNEVIDENCED_MARKERS } from "./claim-gate";
 
 // ── Critic agent ──────────────────────────────────────────────────────────────
 // Mirrors llm-auditor's critic: verify each claim against ONLY the provided
@@ -339,33 +343,6 @@ export const AUDITOR_CONCURRENCY = 4;
 
 // ── Stage 1: deterministic citation gate ──────────────────────────────────────
 
-// A "material" claim is a specific, checkable assertion — the class of
-// statement free models fabricate. Qualitative prose is deliberately NOT
-// material: flagging it would drown the real signal.
-const MATERIAL_PATTERNS: RegExp[] = [
-  /(?:A?\$|AUD\s?|USD\s?)\s?\d[\d,.]*\s*(?:k|m|bn?|million|billion|thousand)?/i,
-  /\b\d+(?:\.\d+)?\s?%/,
-  /\b\d[\d,]{3,}\b/,
-  /\b(?:ARR|MRR|CAC|LTV|TAM|SAM|SOM|NPS|MAU|DAU|CAGR|churn|runway)\b[^.]{0,40}?\d/i,
-  /\b\d+(?:\.\d+)?x\b/i,
-];
-
-// An explicit admission that a claim is not evidenced satisfies §5.4 just as
-// a citation does — the rule is "cite it or say you cannot".
-const UNEVIDENCED_MARKERS =
-  /[([](?:unevidenced|uncited|no evidence|estimate|estimated|illustrative|assumption)[)\]]|\b(?:not disclosed|not provided|no evidence (?:was )?(?:supplied|provided)|unverified|self-reported|founder-reported|indicative only)\b/i;
-
-const UUID_RE = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
-
-/** Split prose into claim-sized units: sentences, list items, table rows. */
-function splitClaims(text: string): string[] {
-  return text
-    .split("\n")
-    .filter(line => !line.trim().startsWith("<!--"))
-    .flatMap(line => line.split(/(?<=[.!?])\s+/))
-    .map(s => s.trim())
-    .filter(Boolean);
-}
 
 /**
  * Return every material claim in `text` that carries neither an evidence_id
@@ -384,15 +361,8 @@ export function findUncitedClaims(
   const flagged: string[] = [];
 
   for (const claim of splitClaims(text)) {
-    if (!MATERIAL_PATTERNS.some(p => p.test(claim))) continue;
-    if (UNEVIDENCED_MARKERS.test(claim)) continue;
-
-    const uuids = claim.match(UUID_RE) ?? [];
-    const hasCitation =
-      allowed.size === 0
-        ? uuids.length > 0
-        : uuids.some(u => allowed.has(u.toLowerCase()));
-    if (hasCitation) continue;
+    if (!isMaterialClaim(claim)) continue;
+    if (hasCitationOrMarker(claim, allowed)) continue;
 
     flagged.push(claim.length > 220 ? `${claim.slice(0, 217)}...` : claim);
     if (flagged.length >= limit) break;
