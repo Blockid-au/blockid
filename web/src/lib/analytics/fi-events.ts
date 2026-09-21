@@ -340,3 +340,39 @@ export function emitScoreRecalculated(input: ScoreRecalculatedInput): boolean {
   emitFiEvent("score_recalculated", env);
   return true;
 }
+
+// ── G21 P3-A: outcome ledger ───────────────────────────────────────────
+
+export interface OutcomeRecordedInput extends EvidenceActorInput {
+  outcomeId: string;
+  kind: string;
+  source: string;
+  status: "proposed" | "confirmed" | "rejected";
+}
+
+/** Pure: the envelope `outcome_recorded` (native) is emitted with. Requires a project id. */
+export function outcomeRecordedEnvelope(input: OutcomeRecordedInput): FiEnvelope | null {
+  if (!input.projectId) return null;
+  return {
+    outcome_id: input.outcomeId,
+    project_id: input.projectId,
+    kind: input.kind,
+    // `source` is the sink's own column (RESERVED) — the outcome's source rides as outcome_source.
+    outcome_source: input.source,
+    status: input.status,
+    organisation: input.ownerUserId,
+    startup: input.projectId,
+    plan: input.plan ?? null,
+    channel: input.channel,
+    userId: input.actorUserId ?? input.ownerUserId,
+    email: input.email ?? null,
+  };
+}
+
+/** Returns true when an event was emitted (false when there is no project to key on). */
+export function emitOutcomeRecorded(input: OutcomeRecordedInput): boolean {
+  const env = outcomeRecordedEnvelope(input);
+  if (!env) return false;
+  emitFiEvent("outcome_recorded", env);
+  return true;
+}

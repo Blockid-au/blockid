@@ -126,6 +126,10 @@ describe("/workspace/score (S18-B)", () => {
     expect(dataAttr(out, "evidence")).toBe("3");
     expect(dataAttr(out, "readonly")).toBe("false");
     expect(out).not.toContain("viewer-readonly-note");
+    // G21-P3-A: the trajectory mounts below the Assessment Card, keyed on the project, linking to the outcome ledger.
+    expect(out.indexOf('data-testid="trajectory-timeline"')).toBeGreaterThan(out.indexOf('data-testid="assessment-card"'));
+    expect(out).toContain('href="/workspace/evidence/outcomes"');
+    expect(sb.hasEq("svi_snapshots", "project_id", "proj-1")).toBe(true);
   });
 
   it("member (editor): the OWNER's analyses / account / snapshots / evidence; credits, share views + actions stay the CALLER's", async () => {

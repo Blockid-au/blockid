@@ -184,6 +184,18 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # changes (docs/ops/crontab-setup.md → "SVI backtest"). Sun 03:40 UTC = 13:40 AEST.
 40 3 * * 0 cd /home/dovanlong/blockid.au/web && npx tsx scripts/backtest/run.ts >> /tmp/blockid-svi-backtest.log 2>&1
 
+# G21 P3-A (2026-09-20) — score → outcome calibration. Reads every svi_snapshot
+# + every CONFIRMED startup_outcomes row (0427) and publishes, per cohort
+# (stage × quarter of the first snapshot), the observed outcome rate by SVI band
+# and by Evidence Confidence band under the n-rules (nothing < 10 companies,
+# indicative 10–29, Wilson 95 % interval from 30) → content/reports/
+# calibration-latest.json + calibration-history.jsonl. Read by
+# /methodology/calibration ("Score → outcome calibration") and /api/status
+# `outcome_calibration: ok|stale|missing` (stale > 8 days). Never an accuracy
+# claim — association, observed rate, interval. Same shape as the backtest: a
+# tsx script, run directly. Sun 04:10 UTC = 14:10 AEST (after the backtest).
+10 4 * * 0 cd /home/dovanlong/blockid.au/web && npx tsx scripts/calibration/run.ts >> /tmp/blockid-calibration.log 2>&1
+
 # G14-S40 (2026-09-17) — open AU external signals ingest. Licence-gated
 # (external_sources, migration 0410): ABN Bulk Extract (CC BY 3.0 AU, stream-
 # parsed, only allow-listed ABNs kept), GrantConnect grant awards (CC BY 3.0
@@ -777,6 +789,16 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Add ?dry=1 by hand to inspect. Migration 0417 must be applied first (the job
 # 500s with "claims is missing" until then — cron-health shows it).
 35 2 * * * bash $RUN evidence-expiry --timeout 120
+
+# G21 P3-A (2026-09-20) — daily outcome proposals: for every project with an
+# svi_snapshot in the last 180 d (cap 500 / run) derive PROPOSED outcomes from
+# register grant awards (by ABN), connector MRR >= +25 % vs the snapshot >= 90 d
+# earlier, stage rises between snapshots, cohort "proceed" decisions and (when
+# GITHUB_TOKEN is set) GitHub tags → startup_outcomes (ignoreDuplicates on the
+# 0427 key). NEVER confirms — a person does on /workspace/evidence/outcomes or
+# /admin/outcomes; one outcome.proposed audit row per insert. Add ?dry=1 by hand
+# to inspect. Migration 0427 must be applied first. 03:10 UTC = 13:10 AEST.
+10 3 * * * bash $RUN outcome-signals --timeout 300
 
 # G16-A (2026-09-19) — daily funnel truth over analytics_events (plain node, own
 # pid lock /tmp/blockid-funnel-report.lock, reads web/.env for the service key).

@@ -355,5 +355,21 @@
     "patterns": [
       "nine steps"
     ]
+  },
+  {
+    "id": "outcome-calibration-n-rules",
+    "claim": "Score → outcome calibration is published per cohort only from 10 companies (indicative to 29, an interval from 30), after a 90-day horizon — the benchmark n-rules of docs/product/score-governance.md § 7.",
+    "class": "proven",
+    "value": "10 companies / 90 days",
+    "source": "src/lib/benchmarks/publication-rules.ts BENCHMARK_MIN_N = 10 / BENCHMARK_BASIC_N = 30; src/lib/calibration/compute.ts HORIZON_DAYS = 90 (G21 P3-A)",
+    "surfaces": [
+      "/methodology/calibration"
+    ],
+    "reviewed": "2026-09-20",
+    "patterns": [
+      "10 companies",
+      "ten companies"
+    ],
+    "note": "A rule about when a figure may be published, not a measurement. The page's empty state says exactly this until a cohort clears the floor."
   }
 ]

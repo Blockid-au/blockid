@@ -294,6 +294,29 @@ describe("/workspace/evaluations/[evaluationId]", () => {
     expect(out).toMatch(/data-testid="since-last-view"[\s\S]*?▲ \+<!-- -->2<!-- --> SVI|data-testid="since-last-view"[\s\S]*?\+2 SVI/);
   });
 
+  it("G21 P3-A: block 7 outcomes & trajectory — assessor gets the record form (evaluator source), the compact trajectory, the consent tier line; founder preview is read-only", async () => {
+    state.tables.startup_outcomes = [{ id: "o-1", project_id: "p-1", kind: "grant_success", observed_at: "2026-09-05T00:00:00.000Z", value: { program: "AEA Ignite", source_url: "https://grants.gov.au/x" }, source: "external_signal", confidence: 90, recorded_by: null, status: "confirmed", confirmed_by: "a", confirmed_at: "2026-09-06", note: "checked", created_at: "2026-09-05", updated_at: "2026-09-06" }];
+    const out = await html();
+    const b7 = out.slice(out.indexOf('data-testid="dossier-block-7"'), out.indexOf('data-testid="dossier-block-6"'));
+    expect(b7).toContain("Outcomes &amp; trajectory");
+    expect(b7).toContain('data-testid="trajectory-timeline"');
+    expect(b7).toContain('data-testid="outcomes-form"');
+    expect(b7).toContain("evaluator");
+    expect(b7).toContain("reports shared consent tier");
+    expect(b7).toContain("AEA Ignite");
+    // reports_shared → no source link, no note
+    expect(b7).not.toContain("grants.gov.au");
+    expect(b7).not.toContain("checked");
+    expect(b7).not.toContain('data-testid="outcome-confirm"');
+    getCurrentUserMock.mockResolvedValue(FOUNDER);
+    isEvaluatorUserMock.mockResolvedValue(false);
+    const f = await html();
+    const fb7 = f.slice(f.indexOf('data-testid="dossier-block-7"'), f.indexOf('data-testid="dossier-block-6"'));
+    expect(fb7).not.toContain('data-testid="outcomes-form"');
+    expect(fb7).toContain("AEA Ignite");
+    expect(fb7).toContain("grants.gov.au");
+  });
+
   it("founder preview: same block 1, NO assessment field anywhere, no evaluator entitlement needed", async () => {
     getCurrentUserMock.mockResolvedValue(FOUNDER);
     isEvaluatorUserMock.mockResolvedValue(false);

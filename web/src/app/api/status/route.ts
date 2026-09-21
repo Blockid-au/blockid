@@ -25,6 +25,8 @@ import { readAiProvidersSummary, type AiProvidersSummary } from "@/lib/ai/provid
 import { readLastReportProvider, type LastReportProvider } from "@/lib/ai/last-report";
 import { readTractionStatus, type TractionStatus } from "@/lib/traction/status";
 import { readSviBacktestStatus, type SviBacktestStatus } from "@/lib/backtest/latest";
+import { readCalibrationStatus, type CalibrationStatus } from "@/lib/calibration/latest";
+import { dataMoatForStatus, emptyDataMoat, readDataMoat, type DataMoatMetrics } from "@/lib/outcomes/data-moat";
 import { readTbrQualityStatus, type TbrQualityStatus } from "@/lib/report-pipeline/quality-log";
 import { getAIQueueDepth } from "@/lib/ai-client";
 import { publicStatusExtras, readStatusExtras, type PublicStatusExtras, type StatusExtras } from "@/lib/status";
@@ -203,6 +205,20 @@ type StatusResponse = {
   traction: TractionStatus;
   /** G14-S39 — see PublicStatusResponse.svi_backtest. */
   svi_backtest: SviBacktestStatus;
+  /**
+   * G21 P3-A — score → outcome calibration JSON freshness
+   * (content/reports/calibration-latest.json, weekly Sun 04:10 UTC):
+   * `ok` (< 8 days) | `stale` | `missing`. Trusted callers only.
+   */
+  outcome_calibration: CalibrationStatus;
+  /**
+   * G21 P3-A — the data-moat counts (lib/outcomes/data-moat, cached 10 min):
+   * companies, snapshots, evidence_records, longitudinal_companies (≥ 2
+   * snapshots ≥ 30 d apart), known_outcomes (confirmed), proposals_pending.
+   * A count is null when its table is unreachable (0427 pending) — never a
+   * fake zero. Trusted callers only.
+   */
+  data_moat: Omit<DataMoatMetrics, "warnings">;
   /** G19-S46 — see PublicStatusResponse.tbr_quality. */
   tbr_quality: TbrQualityStatus;
   /**
@@ -526,7 +542,7 @@ function safeQueueDepth(): ReturnType<typeof getAIQueueDepth> {
 // ---------- Handler ----------
 
 export async function GET(): Promise<Response> {
-  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens, ga4Events, backups, schemaMigrations, aiProviders, aiLastReport, traction, sviBacktest, extras, tbrQuality] = await Promise.all([
+  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens, ga4Events, backups, schemaMigrations, aiProviders, aiLastReport, traction, sviBacktest, extras, tbrQuality, outcomeCalibration, dataMoat] = await Promise.all([
     fetchHealthz(2000),
     summariseCrons().catch(() => [] as CronRow[]),
     readGitShaFallback(),
@@ -545,6 +561,9 @@ export async function GET(): Promise<Response> {
     readStatusExtras().catch(() => null),
     // G19-S46: same live-checkout root (the pipeline appends there at runtime).
     readTbrQualityStatus().catch(() => ({ last24h: { runs: 0, groundedShareMedian: null, costUsdMedian: null, degradedShare: null }, status: "missing" as const })),
+    // G21 P3-A: calibration JSON freshness (same live-checkout root) + the cached data-moat counts.
+    readCalibrationStatus(REPO_ROOT).catch(() => "missing" as const),
+    readDataMoat().catch(() => emptyDataMoat()),
   ]);
   const publicExtras = extras ? publicStatusExtras(extras) : null;
 
@@ -620,6 +639,8 @@ export async function GET(): Promise<Response> {
     ai_last_report_provider: aiLastReport,
     traction,
     svi_backtest: sviBacktest,
+    outcome_calibration: outcomeCalibration,
+    data_moat: dataMoatForStatus(dataMoat),
     tbr_quality: tbrQuality,
     errors_1h: extras?.errors_1h ?? null,
     ai: extras?.ai ?? null,

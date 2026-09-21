@@ -100,6 +100,8 @@ export const HUBS: Readonly<Record<HubId, HubDef>> = Object.freeze({
     { segment: "founder", label: { en: "Founder", vi: "Nhà sáng lập" } },
     // G21 P1-C: founder correction workflow + "what BlockID holds" panel. Free.
     { segment: "corrections", label: { en: "Corrections", vi: "Đính chính" } },
+    // G21 P3-A: the outcome ledger — what happened after assessment. Free.
+    { segment: "outcomes", label: { en: "Outcomes", vi: "Kết quả" } },
   ]),
   plan: hub("plan", { en: "Action plan", vi: "Kế hoạch hành động" }, [
     { segment: "", label: { en: "Action plan", vi: "Kế hoạch" } },

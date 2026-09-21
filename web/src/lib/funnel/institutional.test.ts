@@ -44,7 +44,11 @@ describe("reduceInstitutional (pure)", () => {
     }
     // the metrics with no data path today are never faked as 0
     expect(metric(sections, "pilot_page_views").status).toBe("p1");
-    expect(metric(sections, "known_outcomes").status).toBe("p3");
+    // G21 P3-A: the outcome ledger is live — a null value means the table is unreachable, never a fake zero.
+    expect(metric(sections, "known_outcomes").status).toBe("live");
+    expect(metric(sections, "known_outcomes").value).toBeNull();
+    expect(metric(sections, "proposals_pending").status).toBe("live");
+    expect(metric(sections, "claim_evidence_records").status).toBe("live");
     expect(metric(sections, "comparison_sessions").status).toBe("p2");
   });
 
@@ -84,6 +88,10 @@ describe("reduceInstitutional (pure)", () => {
     expect(metric(s, "arpa").value).toBe(34900);
     expect(metric(s, "companies").value).toBe(200);
     expect(metric(s, "longitudinal_companies").value).toBe(40);
+    const moat = reduceInstitutional([], { ...emptyDbCounts(), known_outcomes: 7, proposals_pending: 3, claim_evidence_records: 90 });
+    expect(metric(moat, "known_outcomes").value).toBe(7);
+    expect(metric(moat, "proposals_pending").value).toBe(3);
+    expect(metric(moat, "claim_evidence_records").value).toBe(90);
     expect(metric(s, "verified_claims").value).toBe(2);
   });
 

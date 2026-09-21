@@ -17,6 +17,7 @@
 // counts).
 
 import { STALE_AFTER_DAYS, countStaleConnectors } from "@/lib/evidence/freshness";
+import { computeLongitudinal, LONGITUDINAL_MIN_GAP_DAYS, type SnapshotDateRow } from "@/lib/outcomes/data-moat";
 import { getStatusRoot, readJsonFile, REPORTS_DIR } from "@/lib/status/jsonl";
 import { dayString, isQaRow, rowsInWindow, type FunnelEventRow } from "./core";
 
@@ -81,7 +82,14 @@ export interface InstitutionalDbCounts {
   companies: number | null;
   snapshots: number | null;
   evidence_records: number | null;
+  /** G21 P3-A: evidence_records rows (0417, the Claim ≠ Evidence graph). */
+  claim_evidence_records: number | null;
+  /** G21 P3-A: projects with ≥ 2 snapshots ≥ 30 days apart. */
   longitudinal_companies: number | null;
+  /** G21 P3-A: startup_outcomes rows with status confirmed. */
+  known_outcomes: number | null;
+  /** G21 P3-A: startup_outcomes rows with status proposed. */
+  proposals_pending: number | null;
   verified_claims: number | null;
   evidence_level_distribution: Record<string, number> | null;
   /** G21 P3-C: (project, provider) connections past the connector proof TTL (lib/evidence/freshness.ts). */
@@ -97,7 +105,10 @@ export function emptyDbCounts(): InstitutionalDbCounts {
     companies: null,
     snapshots: null,
     evidence_records: null,
+    claim_evidence_records: null,
     longitudinal_companies: null,
+    known_outcomes: null,
+    proposals_pending: null,
     verified_claims: null,
     evidence_level_distribution: null,
     stale_connectors: null,
@@ -220,8 +231,10 @@ export function reduceInstitutional(rowsIn: readonly FunnelEventRow[], db: Insti
         live("companies", "Companies", db.companies, "projects rows"),
         live("snapshots", "Snapshots", db.snapshots, "svi_snapshots rows"),
         live("evidence_records", "Evidence records", db.evidence_records, "svi_dimension_evidence rows"),
-        live("longitudinal_companies", "Longitudinal companies (≥ 2 snapshots)", db.longitudinal_companies, "projects with two or more svi_snapshots (bounded scan)"),
-        later("known_outcomes", "Known outcomes", "p3", "outcome ledger (P3-A)"),
+        live("claim_evidence_records", "Claim evidence records", db.claim_evidence_records, "evidence_records rows (0417 Claim ≠ Evidence graph)"),
+        live("longitudinal_companies", `Longitudinal companies (≥ 2 snapshots ≥ ${LONGITUDINAL_MIN_GAP_DAYS} d apart)`, db.longitudinal_companies, "projects whose earliest and latest svi_snapshots are ≥ 30 days apart (bounded scan)"),
+        live("known_outcomes", "Known outcomes (confirmed)", db.known_outcomes, "startup_outcomes rows with status confirmed (0427 outcome ledger, P3-A)"),
+        live("proposals_pending", "Outcome proposals pending", db.proposals_pending, "startup_outcomes rows with status proposed — awaiting a person's confirmation"),
       ],
     },
   ];
@@ -404,6 +417,10 @@ export async function readInstitutionalFunnel(client: InstitutionalClient | null
   db.companies = await countRows(client, warnings, "projects:count");
   db.snapshots = await countRows(client, warnings, "svi_snapshots:count");
   db.evidence_records = await countRows(client, warnings, "svi_dimension_evidence:count");
+  // G21 P3-A — the Claim ≠ Evidence graph + the outcome ledger (a missing 0417 / 0427 table reads as null, never 0).
+  db.claim_evidence_records = await countRows(client, warnings, "evidence_records:count");
+  db.known_outcomes = await countRows(client, warnings, "startup_outcomes:confirmed", (q) => q.eq("status", "confirmed"));
+  db.proposals_pending = await countRows(client, warnings, "startup_outcomes:proposed", (q) => q.eq("status", "proposed"));
   db.verified_claims = await countRows(client, warnings, "svi_dimension_evidence:verified", (q) => q.eq("confidence_level", "third_party_verified"));
 
   // G21 P3-C — stale connectors: bounded scan of the v2 vault, folded per
@@ -415,16 +432,11 @@ export async function readInstitutionalFunnel(client: InstitutionalClient | null
     if (conns.data.length >= FI_ROW_LIMIT) warnings.push(`oauth_connections_v2:stale: capped at ${FI_ROW_LIMIT} rows`);
   }
 
-  // Longitudinal companies: bounded scan of snapshot project ids.
-  const snaps = await safe(warnings, "svi_snapshots:longitudinal", async () => client.from("svi_snapshots").select("project_id").order("project_id", { ascending: true }).limit(FI_ROW_LIMIT));
+  // Longitudinal companies: bounded scan of (project_id, snapshot_date) — ≥ 2 snapshots ≥ 30 d apart (G21 P3-A, lib/outcomes/data-moat).
+  const snaps = await safe(warnings, "svi_snapshots:longitudinal", async () => client.from("svi_snapshots").select("project_id, snapshot_date").order("snapshot_date", { ascending: false }).limit(FI_ROW_LIMIT));
   if (snaps?.error) warnings.push(`svi_snapshots:longitudinal: ${snaps.error.message ?? "query failed"}`);
   else if (snaps?.data) {
-    const per = new Map<string, number>();
-    for (const r of snaps.data as Array<{ project_id?: string | null }>) {
-      if (!r.project_id) continue;
-      per.set(r.project_id, (per.get(r.project_id) ?? 0) + 1);
-    }
-    db.longitudinal_companies = [...per.values()].filter((n) => n >= 2).length;
+    db.longitudinal_companies = computeLongitudinal(snaps.data as SnapshotDateRow[]);
     if (snaps.data.length >= FI_ROW_LIMIT) warnings.push(`svi_snapshots:longitudinal: capped at ${FI_ROW_LIMIT} rows`);
   }
 

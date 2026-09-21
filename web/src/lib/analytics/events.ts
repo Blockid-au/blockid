@@ -109,7 +109,9 @@ export type AnalyticsEvent =
   | { name: "startup_added_to_cohort"; params: FiEnvelopeParams & { cohort_id: string; project_id?: string; via: "intake" | "import" | "manual" | "batch" } }
   | { name: "batch_scored"; params: FiEnvelopeParams & { batch_id: string; items: number; failed: number; svi_version?: string } }
   | { name: "pilot_started"; params: FiEnvelopeParams & { pilot_id: string; sku: string; applicants_cap: number; amount_cents: number; pilot_source: "paid" | "comp"; user_id?: string } }
-  | { name: "subscription_renewed"; params: FiEnvelopeParams & { invoice_id: string; billing_reason: string; gross_aud_cents: number; user_id?: string } };
+  | { name: "subscription_renewed"; params: FiEnvelopeParams & { invoice_id: string; billing_reason: string; gross_aud_cents: number; user_id?: string } }
+  // ── G21 P3-A outcome ledger — an outcome recorded / proposed / resolved on a project ──
+  | { name: "outcome_recorded"; params: FiEnvelopeParams & { outcome_id: string; project_id: string; kind: string; outcome_source: string; status: "proposed" | "confirmed" | "rejected"; user_id?: string } };
 
 export type AnalyticsEventName = AnalyticsEvent["name"];
 
@@ -165,12 +167,13 @@ export const FI_NATIVE_EVENTS = Object.freeze([
   "batch_scored",
   "pilot_started",
   "subscription_renewed",
+  "outcome_recorded",
 ] as const satisfies readonly AnalyticsEventName[]);
 
 export type FiNativeName = (typeof FI_NATIVE_EVENTS)[number];
 export type FiEventName = FiAliasName | FiNativeName;
 
-/** The 18 FI catalogue names, in funnel order. */
+/** The 19 FI catalogue names, in funnel order. */
 export const FI_EVENT_CATALOGUE: readonly FiEventName[] = Object.freeze([
   "startup_created",
   "deck_uploaded",
@@ -190,6 +193,7 @@ export const FI_EVENT_CATALOGUE: readonly FiEventName[] = Object.freeze([
   "payment_completed",
   "subscription_started",
   "subscription_renewed",
+  "outcome_recorded",
 ]);
 
 /** Canonical stored name for an FI name (alias target, or itself). */

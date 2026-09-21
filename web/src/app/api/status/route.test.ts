@@ -92,6 +92,24 @@ vi.mock("@/lib/security/oauth-token-health", () => ({
   }),
 }));
 
+// ─── G21 P3-A data_moat fixture ──────────────────────────────────────────
+// The route reads `readDataMoat()` (six COUNT queries, 10-min cache); stub
+// it so this suite stays DB-free. Its own behaviour is pinned in
+// src/lib/outcomes/data-moat.test.ts.
+
+const dataMoatState: { throwErr: boolean } = { throwErr: false };
+
+vi.mock("@/lib/outcomes/data-moat", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/outcomes/data-moat")>("@/lib/outcomes/data-moat");
+  return {
+    ...actual,
+    readDataMoat: vi.fn(async () => {
+      if (dataMoatState.throwErr) throw new Error("db down");
+      return { companies: 120, snapshots: 900, evidence_records: 340, longitudinal_companies: 40, known_outcomes: null, proposals_pending: null, longitudinal_capped: false, checked_at: "2026-09-20T00:00:00.000Z", warnings: ["startup_outcomes: relation does not exist"] };
+    }),
+  };
+});
+
 // ─── QA-2 P0 schema_migrations fixture ─────────────────────────────────
 // The route reads `readSchemaMigrationsStatus()` (manifest + Supabase
 // ledger, 5-min cache); stub it so this suite stays DB-free. Its own
@@ -961,6 +979,23 @@ describe("public payload redaction", () => {
     expect(body.slo.disk_pct).toBeDefined();
     expect(body.crons.length).toBeGreaterThan(0);
     expect(headers.get("cache-control")).toBe("no-store");
+    // G21 P3-A: the data-moat counts + calibration freshness ride on the trusted payload only; warnings never leave the process.
+    const raw = body as unknown as { data_moat: Record<string, unknown>; outcome_calibration: string };
+    expect(raw.data_moat).toMatchObject({ companies: 120, snapshots: 900, evidence_records: 340, longitudinal_companies: 40, known_outcomes: null, proposals_pending: null });
+    expect(raw.data_moat).not.toHaveProperty("warnings");
+    expect(["ok", "stale", "missing"]).toContain(raw.outcome_calibration);
+  });
+
+  it("G21 P3-A: a failing data-moat read degrades to null counts, never a 500", async () => {
+    process.env.STATUS_FULL_TOKEN = "test-trusted-token";
+    dataMoatState.throwErr = true;
+    try {
+      const { body, status } = await callGet();
+      expect(status).toBe(200);
+      expect((body as unknown as { data_moat: { companies: number | null } }).data_moat.companies).toBeNull();
+    } finally {
+      dataMoatState.throwErr = false;
+    }
   });
 });
 

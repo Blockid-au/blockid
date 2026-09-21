@@ -23,6 +23,7 @@ import type { Messages } from "@/lib/i18n/t";
 import { runBacktest } from "@/lib/backtest/run-backtest";
 import type { BacktestRow } from "@/lib/data/au-comparables-backtest";
 import { SVI_VERSION } from "@/lib/svi-analysis";
+import { computeCalibration } from "@/lib/calibration/compute";
 import { CALIBRATION_PATH, CALIBRATION_VI_PATH, CalibrationBody, bucketRangeBarsSvg } from "./calibration-body";
 import { generateMetadata } from "./page";
 import { generateMetadata as generateViMetadata } from "../../../vi/methodology/calibration/page";
@@ -189,5 +190,63 @@ describe("calibration.* catalogue parity (en ⇄ vi)", () => {
     }
     // VI copy is real Vietnamese (diacritics), not an ASCII stub.
     expect(VI["calibration.title"]).toMatch(/[ăâêôơưđà-ỹ]/i);
+  });
+});
+
+// ── G21 P3-A — score → outcome calibration section ─────────────────────────
+
+describe("/methodology/calibration — score → outcome section (G21 P3-A)", () => {
+  const NOW = new Date("2026-09-20T04:10:00Z");
+  const META = { sviVersion: SVI_VERSION, gitSha: "cafe123" };
+  const snaps = (prefix: string, n: number, svi: number, conf: number | null) => Array.from({ length: n }, (_, i) => ({ project_id: `${prefix}-${i}`, snapshot_date: "2026-01-10", svi_total: svi, evidence_confidence: conf, stage: 2 }));
+  const outs = (prefix: string, ids: number[]) => ids.map((i) => ({ project_id: `${prefix}-${i}`, kind: "funding_raised", observed_at: "2026-06-01", status: "confirmed" }));
+
+  it("no JSON → the honest empty state (no number, no stats, a link to record an outcome); renders on the VI mirror too", async () => {
+    const out = await html(<CalibrationBody locale="en" report={null} outcomes={null} />);
+    expect(out).toContain('data-testid="outcome-calibration-empty"');
+    expect(out).toContain(EN["calibration.outcomes.empty.title"]);
+    expect(out).not.toContain('data-testid="outcome-calibration-progress"');
+    expect(out).not.toContain('data-testid="outcome-calibration-table"');
+    expect(out).toContain('href="/workspace/evidence/outcomes"');
+    expect(out).not.toMatch(/predict|prediction accuracy/i);
+    const vi = await html(<CalibrationBody locale="vi" report={null} outcomes={null} />);
+    expect(vi).toContain(VI["calibration.outcomes.empty.title"]);
+  });
+
+  it("JSON with every cohort under the floor → empty state WITH the counts so far + limitations + provenance", async () => {
+    const small = computeCalibration({ snapshots: snaps("s", 6, 60, 50), outcomes: outs("s", [0]), now: NOW }, META);
+    const out = await html(<CalibrationBody locale="en" report={null} outcomes={small} />);
+    expect(out).toContain('data-testid="outcome-calibration-empty"');
+    expect(out).toContain('data-testid="outcome-calibration-progress"');
+    expect(out).toMatch(/6 companies with a snapshot(<!-- -->)? · (<!-- -->)?6 past the 90-day horizon(<!-- -->)? · (<!-- -->)?1 confirmed outcomes/);
+    expect(out).toContain('data-testid="outcome-calibration-limitations"');
+    expect(out).toContain("commit cafe123");
+    expect(out).not.toContain('data-testid="outcome-calibration-table"');
+  });
+
+  it("a published cohort → stats, the cohort row with n, rate + interval, per-band labels carrying n and the publication band, limitations verbatim", async () => {
+    const report = computeCalibration({ snapshots: [...snaps("a", 30, 75, 80), ...snaps("b", 12, 50, 50), ...snaps("c", 3, 20, null)], outcomes: [...outs("a", Array.from({ length: 12 }, (_, i) => i)), ...outs("b", [0, 1, 2])], now: NOW }, META);
+    const out = await html(<CalibrationBody locale="en" report={null} outcomes={report} />);
+    expect(out).not.toContain('data-testid="outcome-calibration-empty"');
+    expect(out).toContain('data-testid="outcome-calibration-eligible">45<');
+    expect(out).toContain('data-testid="outcome-calibration-published">1<');
+    expect(out).toContain('data-calibration-cohort="2026-Q1|2"');
+    expect(out).toMatch(/Stage 2(<!-- -->)? · (<!-- -->)?2026-Q1/);
+    expect(out).toContain("33%"); // 15 / 45
+    expect(out).toContain('data-calibration-band="svi-strong"');
+    expect(out).toContain("40% (n = 30)");
+    expect(out).toContain("25% indicative (n = 12)");
+    expect(out).toContain("not enough companies (n = 3)");
+    expect(out).toContain('data-publication-band="none"');
+    expect(out).toContain('data-publication-band="indicative"');
+    expect(out).toContain('data-publication-band="benchmark"');
+    let cursor = 0;
+    for (const l of report.limitations) {
+      const escaped = l.replace(/&/g, "&amp;").replace(/'/g, "&#x27;").replace(/"/g, "&quot;");
+      const at = out.indexOf(escaped, cursor);
+      expect(at, `limitation missing or out of order: ${l.slice(0, 40)}`).toBeGreaterThan(-1);
+      cursor = at;
+    }
+    expect(out).not.toMatch(/\bpredicts?\b|prediction|accuracy/i);
   });
 });
