@@ -146,6 +146,17 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.27.0",
+    date: "2026-09-21",
+    title: "Grounding rules, provider resilience, free reports on v3, print + band demo, Index light (G28)",
+    changes: [
+      "[G28] Free reports 1–2 produce the v3 Trusted Business Report (ReportV2 pipeline; investment-view e-mail + PDF + signed links)",
+      "[G28] Grounding rules for derived rates / statutory fees / cadences / market sub-counts; au-legal + sector-entities knowledge rows with provenance (≥ 0.85 pinned; live verification pending)",
+      "[G28] Provider resilience: per-stage timeouts, run-scoped strikes, W4 reserve, ≥ 7 degraded never persisted; cron fire-and-forget for v2 runs",
+      "[G28] A4 print rules + probe; /tbr/demo?band=A–D; startupvalueindex.com on the light template",
+    ],
+  },
+  {
     version: "3.26.1",
     date: "2026-09-21",
     title: "Review + UI/UX fixes for v3.26.0",
