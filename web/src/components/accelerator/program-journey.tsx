@@ -368,9 +368,9 @@ function DemoDayPanel({ view, batchId }: { view: ProgramJourneyView; batchId: st
       {rows.length === 0 ? (
         <Empty title="No selected startup yet" body="The demo-day view compares the selected startups on SVI, evidence confidence, verification and their top gap, and links each BlockID Dossier and live profile." cta={batchId ? { href: `${COHORT_TABLE_PATH(batchId)}?shortlist=1`, label: "Shortlist on the cohort table" } : undefined} />
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-line-subtle bg-surface">
+        <div className="overflow-auto max-h-[75vh] rounded-2xl border border-line-subtle bg-surface">
           <table className="min-w-full text-sm" data-testid="demo-day-table">
-            <thead>
+            <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
               <tr className="border-b border-line-subtle text-left text-xs uppercase tracking-wide text-tertiary">
                 <th className="px-4 py-3">Startup</th>
                 <th className="px-4 py-3 text-right">SVI</th>
@@ -381,7 +381,7 @@ function DemoDayPanel({ view, batchId }: { view: ProgramJourneyView; batchId: st
                 <th className="px-4 py-3">Links</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
               {rows.map(({ startup: s, verificationLabel, readiness }) => (
                 <tr key={s.itemId} className="border-b border-line-subtle last:border-0" data-testid="demo-day-row">
                   <td className="px-4 py-3 font-medium text-primary">

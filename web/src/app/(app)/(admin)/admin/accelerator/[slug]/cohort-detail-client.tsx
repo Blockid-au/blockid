@@ -246,8 +246,8 @@ export function CohortDetailClient({
                   <div className="flex items-center gap-4">
                     <span
                       className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                        i === 0
-                          ? "bg-amber-100 text-amber-700"
+ i === 0
+ ? "bg-amber-100 text-amber-700"
                           : i === 1
                             ? "bg-surface-200 text-ink-600"
                             : i === 2
@@ -297,9 +297,9 @@ export function CohortDetailClient({
             </button>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[75vh]">
             <table className="w-full text-sm">
-              <thead>
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr className="border-b border-surface-200 bg-surface-100">
                   <th className="text-left px-6 py-3 text-xs text-ink-700 font-medium">Email</th>
                   <th className="text-left px-4 py-3 text-xs text-ink-700 font-medium">Startup</th>
@@ -309,7 +309,7 @@ export function CohortDetailClient({
                   <th className="text-left px-4 py-3 text-xs text-ink-700 font-medium">Last Active</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                 {members.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-6 py-8 text-center text-ink-600 text-sm">
@@ -352,8 +352,8 @@ export function CohortDetailClient({
 
         {/* Add Member Modal */}
         {showAddMember && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl border border-surface-200 shadow-xl w-full max-w-md mx-4 p-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl border border-line-subtle shadow-2 w-full max-w-md mx-4 p-6">
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-lg font-bold text-ink-800">Add Member</h2>
                 <button

@@ -159,9 +159,9 @@ export function AdminDashboardClient({
               {sviAccounts.length} accounts
             </span>
           </div>
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[75vh]">
             <table className="w-full text-sm">
-              <thead>
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr className="border-b border-surface-200 bg-surface-100">
                   <th className="text-left px-6 py-3 text-xs text-ink-700 font-medium">
                     Email
@@ -183,7 +183,7 @@ export function AdminDashboardClient({
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                 {sviAccounts.length === 0 ? (
                   <tr>
                     <td

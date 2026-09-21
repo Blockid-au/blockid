@@ -121,13 +121,13 @@ export function CompareDrawer({ open, rows, onClose, onRemove, batchId, demoChip
 
   return (
     <div className={cn("fixed inset-0 z-[90]", open ? "" : "pointer-events-none invisible")} aria-hidden={!open} data-testid="compare-drawer-root" data-open={open ? "true" : "false"}>
-      <div className={cn("absolute inset-0 bg-black/50 transition-opacity duration-200", open ? "opacity-100" : "opacity-0")} onClick={onClose} aria-hidden="true" />
+      <div className={cn("absolute inset-0 bg-ink-900/40 transition-opacity duration-200", open ? "opacity-100" : "opacity-0")} onClick={onClose} aria-hidden="true" />
       <aside
         role="dialog"
         aria-modal="true"
         aria-labelledby="compare-drawer-title"
         className={cn(
-          "absolute inset-y-0 right-0 flex w-full max-w-4xl flex-col bg-surface text-primary shadow-2xl transition-transform duration-200 ease-out motion-reduce:transition-none",
+          "absolute inset-y-0 right-0 flex w-full max-w-4xl flex-col border-l border-line-subtle bg-surface text-primary shadow-2 transition-transform duration-200 ease-out motion-reduce:transition-none",
           open ? "translate-x-0" : "translate-x-full",
         )}
         data-testid="compare-drawer"
@@ -150,7 +150,7 @@ export function CompareDrawer({ open, rows, onClose, onRemove, batchId, demoChip
           <div className="min-h-0 flex-1 overflow-auto px-4 py-4 sm:px-6">
             <table className="w-full min-w-[32rem] border-separate border-spacing-0 text-sm" data-testid="compare-table">
               <caption className="sr-only">Side-by-side comparison of the selected startups</caption>
-              <thead>
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr>
                   <th scope="col" className="sticky left-0 z-10 bg-surface pb-2 pr-3 text-left text-xs font-semibold uppercase tracking-wider text-muted">
                     Metric
@@ -182,7 +182,7 @@ export function CompareDrawer({ open, rows, onClose, onRemove, batchId, demoChip
                   ))}
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                 <Row label="SVI (canonical)">{shown.map((r) => <Num key={r.itemId} v={r.svi} bold />)}</Row>
                 <Row label="Program score">{shown.map((r) => <Num key={r.itemId} v={r.weightedScore} suffix={r.overrideWeightedScore != null ? ` · with overrides ${r.overrideWeightedScore}` : ""} />)}</Row>
                 <Row label="Evidence confidence">{shown.map((r) => <Num key={r.itemId} v={r.confidence} />)}</Row>

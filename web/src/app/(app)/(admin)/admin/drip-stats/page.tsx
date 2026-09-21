@@ -186,14 +186,14 @@ export default async function DripStatsPage() {
             <p className="px-5 py-6 text-sm text-ink-600 text-center">No drip events recorded.</p>
           ) : (
             <table className="w-full text-sm">
-              <thead className="bg-surface-50 text-left text-xs text-ink-600 uppercase tracking-wide">
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr>
                   <th className="px-5 py-2 font-medium">Sent at</th>
                   <th className="px-4 py-2 font-medium">Lead ID</th>
                   <th className="px-4 py-2 font-medium">Step</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                 {stats.recent.map((row) => (
                   <tr key={row.id} className="border-t border-surface-200/60">
                     <td className="px-5 py-2 text-ink-700 text-xs font-mono">

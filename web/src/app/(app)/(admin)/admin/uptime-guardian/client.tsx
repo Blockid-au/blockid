@@ -139,7 +139,7 @@ export default function UptimeGuardianClient() {
         <h2 className="mb-2 text-lg font-semibold text-ink-900">Recent ticks (last 120)</h2>
         <div className="overflow-hidden rounded-lg border border-surface-200 bg-white">
           <table className="w-full text-xs">
-            <thead className="bg-surface-50 text-left uppercase tracking-wide text-ink-500">
+            <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
               <tr>
                 <th className="p-2">Time</th>
                 <th className="p-2">Health</th>
@@ -152,7 +152,7 @@ export default function UptimeGuardianClient() {
                 <th className="p-2">Rollback</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-100">
+            <tbody className="divide-y divide-surface-100 [&>tr:nth-child(even)]:bg-surface-sunken">
               {[...data.history].reverse().slice(0, 60).map((r, i) => (
                 <tr key={`${r.ts}-${i}`}>
                   <td className="p-2 font-mono text-ink-700">{r.ts.slice(11, 19)}</td>

@@ -109,10 +109,10 @@ async function loadMetrics(): Promise<Metrics> {
 
 function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">{label}</p>
-      <p className="mt-2 text-2xl font-semibold text-neutral-900 dark:text-neutral-50">{value}</p>
-      {sub ? <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{sub}</p> : null}
+    <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">{label}</p>
+      <p className="mt-2 text-2xl font-semibold text-ink-900">{value}</p>
+      {sub ? <p className="mt-1 text-xs text-ink-500">{sub}</p> : null}
     </div>
   );
 }
@@ -133,25 +133,25 @@ const SEGMENT_ORDER: ReadonlyArray<{ key: string; label: string }> = [
 function SegmentBreakdown({ mrr }: { mrr: RealMrr }) {
   const bySegment = new Map(mrr.bySegment.map((r) => [r.segment, r] as const));
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-      <p className="text-sm font-medium text-neutral-800 dark:text-neutral-100">MRR by segment</p>
-      <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+    <section className="rounded-2xl border border-surface-200 bg-white p-5">
+      <p className="text-sm font-medium text-ink-800">MRR by segment</p>
+      <p className="mt-1 text-xs text-ink-500">
         Recurring plans only, monthly-normalised. Sourced from <code>v_mrr_by_segment</code>.
       </p>
-      <div className="mt-3 overflow-x-auto">
+      <div className="mt-3 overflow-auto max-h-[75vh]">
         <table className="w-full text-sm">
-          <thead className="text-xs uppercase tracking-wide text-neutral-500 dark:text-neutral-400">
+          <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
             <tr className="text-left">
               <th className="pb-2 pr-4 font-semibold">Segment</th>
               <th className="pb-2 pr-4 text-right font-semibold">Active subs</th>
               <th className="pb-2 text-right font-semibold">MRR</th>
             </tr>
           </thead>
-          <tbody className="text-neutral-800 dark:text-neutral-100">
+          <tbody className="text-ink-800 [&>tr:nth-child(even)]:bg-surface-sunken">
             {SEGMENT_ORDER.map((row) => {
               const found = bySegment.get(row.key);
               return (
-                <tr key={row.key} className="border-t border-neutral-100 dark:border-neutral-800">
+                <tr key={row.key} className="border-t border-surface-100">
                   <td className="py-2 pr-4">{row.label}</td>
                   <td className="py-2 pr-4 text-right tabular-nums">{found?.subs ?? 0}</td>
                   <td className="py-2 text-right tabular-nums">{formatAud(found?.mrrAud ?? 0)}</td>
@@ -174,19 +174,19 @@ export default async function PricingMetricsPage() {
   const [m, mrr] = await Promise.all([loadMetrics(), getRealMrrAud()]);
 
   return (
-    <div className="min-h-svh bg-neutral-50 px-4 py-8 dark:bg-neutral-950">
+    <div className="min-h-svh bg-surface-100 px-4 py-8">
       <div className="mx-auto max-w-5xl space-y-6">
         <header className="flex items-center justify-between">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">CFO</p>
-            <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-50">Pricing metrics</h1>
-            <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">CFO</p>
+            <h1 className="text-2xl font-bold text-ink-900">Pricing metrics</h1>
+            <p className="mt-1 text-sm text-ink-500">
               Trailing 30-day view. GST is separated for BAS accrual.
             </p>
           </div>
           <Link
             href="/admin"
-            className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800"
+            className="rounded-lg border border-surface-300 bg-white px-3 py-1.5 text-sm font-medium text-ink-700 hover:bg-surface-200"
           >
             ← Admin home
           </Link>
@@ -209,8 +209,8 @@ export default async function PricingMetricsPage() {
 
         <SegmentBreakdown mrr={mrr} />
 
-        <section className="rounded-2xl border border-neutral-200 bg-white p-5 text-sm text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
-          <p className="font-medium text-neutral-800 dark:text-neutral-100">Data sources</p>
+        <section className="rounded-2xl border border-surface-200 bg-white p-5 text-sm text-ink-600">
+          <p className="font-medium text-ink-800">Data sources</p>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             <li>MRR / ARR / segment breakdown: <code>v_mrr_active</code>, <code>v_mrr_by_segment</code> (migration 0083)</li>
             <li>Revenue (30d) / GST: <code>revenue_events</code> (kinds: subscribe, renewal, upgrade)</li>

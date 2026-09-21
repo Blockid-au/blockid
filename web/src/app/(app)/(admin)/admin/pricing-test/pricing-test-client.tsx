@@ -39,7 +39,7 @@ const STATUS_STYLE: Record<Experiment["status"], string> = {
   draft: "bg-surface-100 text-ink-700",
   running: "bg-green-50 text-green-700 border border-green-200",
   paused: "bg-amber-50 text-amber-700 border border-amber-200",
-  concluded: "bg-slate-100 text-slate-700",
+  concluded: "bg-surface-200 text-ink-700",
 };
 
 function formatPct(x: number): string {
@@ -281,7 +281,7 @@ export function PricingTestClient({ user, initialExperiments, initialSummaries }
                           type="button"
                           disabled={busy === exp.id}
                           onClick={() => patchStatus(exp.id, "concluded")}
-                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-60"
+                          className="inline-flex items-center gap-1 rounded-lg border border-surface-200 bg-surface-100 px-2.5 py-1 text-[11px] font-medium text-ink-700 hover:bg-surface-200 disabled:opacity-60"
                         >
                           <Check strokeWidth={1.75} className="h-3 w-3" /> Conclude
                         </button>
@@ -289,9 +289,9 @@ export function PricingTestClient({ user, initialExperiments, initialSummaries }
                     </div>
                   </header>
 
-                  <div className="mt-4 overflow-x-auto">
+                  <div className="mt-4 overflow-auto max-h-[75vh]">
                     <table className="w-full text-xs">
-                      <thead>
+                      <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                         <tr className="border-b border-surface-200 bg-surface-50 text-ink-700">
                           <th className="px-3 py-2 text-left font-medium">Variant</th>
                           <th className="px-3 py-2 text-left font-medium">Label</th>
@@ -302,7 +302,7 @@ export function PricingTestClient({ user, initialExperiments, initialSummaries }
                           <th className="px-3 py-2 text-right font-medium">Revenue</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                         {exp.variants.map((v) => {
                           const s = rowByKey.get(v.key);
                           return (

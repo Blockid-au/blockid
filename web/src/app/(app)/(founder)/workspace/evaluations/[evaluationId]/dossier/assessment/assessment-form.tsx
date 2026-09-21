@@ -234,9 +234,9 @@ export function AssessmentForm({ evaluationId, initial, history, prefill, snapsh
       {/* ── A. AI vs me per dimension ── */}
       <section aria-labelledby="assessment-dims-heading">
         <h3 id="assessment-dims-heading" className="text-sm font-semibold text-ink-900">AI verdict vs my view — per dimension</h3>
-        <div className="mt-2 overflow-x-auto">
+        <div className="mt-2 overflow-auto max-h-[75vh]">
           <table className="w-full text-sm" data-testid="assessment-dims-table">
-            <thead>
+            <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
               <tr className="text-left text-xs text-ink-500">
                 <th scope="col" className="py-1 pr-2">Dimension</th>
                 <th scope="col" className="py-1 pr-2">AI score</th>
@@ -245,7 +245,7 @@ export function AssessmentForm({ evaluationId, initial, history, prefill, snapsh
                 <th scope="col" className="py-1">Note</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
               {DIM_ORDER_UPPER.map((k) => {
                 const ai = aiByDim.get(k);
                 const mine = values.dimension_ratings[k];
@@ -511,7 +511,7 @@ export function AssessmentForm({ evaluationId, initial, history, prefill, snapsh
             <legend className="text-xs font-medium text-ink-700">Decision</legend>
             <div className="mt-1 inline-flex overflow-hidden rounded-lg border border-surface-300" role="radiogroup" aria-label="Decision">
               {(Object.keys(DECISION_LABELS) as AssessmentDecision[]).map((d) => (
-                <button key={d} type="button" role="radio" aria-checked={values.decision === d} className={`px-3 py-1.5 text-sm ${values.decision === d ? "bg-ink-900 text-white" : "bg-white text-ink-700"}`} onClick={() => update({ decision: d })} data-testid={`decision-${d}`}>
+                <button key={d} type="button" role="radio" aria-checked={values.decision === d} className={`px-3 py-1.5 text-sm ${values.decision === d ? "bg-brand-navy text-white" : "bg-white text-ink-700"}`} onClick={() => update({ decision: d })} data-testid={`decision-${d}`}>
                   {DECISION_LABELS[d]}
                 </button>
               ))}

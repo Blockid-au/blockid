@@ -197,7 +197,7 @@ export default async function AdminResellerDetailPage({
           <div className="flex items-center gap-2">
             <span
               className={`rounded px-2 py-0.5 text-xs ${
-                reseller.billing_model === "wholesale"
+ reseller.billing_model === "wholesale"
                   ? "bg-purple-50 text-purple-800"
                   : "bg-blue-50 text-blue-800"
               }`}
@@ -206,7 +206,7 @@ export default async function AdminResellerDetailPage({
             </span>
             <span
               className={`rounded px-2 py-0.5 text-xs ${
-                reseller.status === "active"
+ reseller.status === "active"
                   ? "bg-emerald-50 text-emerald-800"
                   : reseller.status === "paused"
                     ? "bg-yellow-50 text-yellow-800"
@@ -282,7 +282,7 @@ export default async function AdminResellerDetailPage({
             </div>
           ) : (
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-ink-500">
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr>
                   <th className="p-3">Code</th>
                   <th className="p-3">Tier</th>
@@ -291,7 +291,7 @@ export default async function AdminResellerDetailPage({
                   <th className="p-3">Since</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-100">
+              <tbody className="divide-y divide-surface-100 [&>tr:nth-child(even)]:bg-surface-sunken">
                 {promotion_codes.map((c) => (
                   <tr key={c.id}>
                     <td className="p-3 font-mono">{c.code}</td>
@@ -302,7 +302,7 @@ export default async function AdminResellerDetailPage({
                     <td className="p-3">
                       <span
                         className={`rounded px-2 py-0.5 text-xs ${
-                          c.active ? "bg-emerald-50 text-emerald-800" : "bg-surface-100 text-ink-600"
+ c.active ? "bg-emerald-50 text-emerald-800" : "bg-surface-100 text-ink-600"
                         }`}
                       >
                         {c.active ? "yes" : "no"}
@@ -328,7 +328,7 @@ export default async function AdminResellerDetailPage({
             <div className="p-4 text-sm text-ink-500">No commission rows yet.</div>
           ) : (
             <table className="w-full text-sm">
-              <thead className="text-left text-xs uppercase tracking-wide text-ink-500">
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr>
                   <th className="p-3">When</th>
                   <th className="p-3">Invoice</th>
@@ -339,7 +339,7 @@ export default async function AdminResellerDetailPage({
                   <th className="p-3">Status</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-100">
+              <tbody className="divide-y divide-surface-100 [&>tr:nth-child(even)]:bg-surface-sunken">
                 {commissions.map((c) => (
                   <tr key={c.commission_id}>
                     <td className="p-3 text-xs text-ink-600">
@@ -355,7 +355,7 @@ export default async function AdminResellerDetailPage({
                     <td className="p-3">
                       <span
                         className={`rounded px-2 py-0.5 text-xs ${
-                          c.status === "cleared"
+ c.status === "cleared"
                             ? "bg-emerald-50 text-emerald-800"
                             : c.status === "clawed_back"
                               ? "bg-red-50 text-red-800"

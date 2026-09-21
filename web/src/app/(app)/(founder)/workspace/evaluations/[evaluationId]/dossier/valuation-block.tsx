@@ -38,7 +38,7 @@ export function ValuationBlock({ block, fullReportHref }: { block: DossierValuat
       <dl className="mt-3 grid grid-cols-3 gap-3" data-testid="valuation-consensus">
         {(["lowAud", "midAud", "highAud"] as const).map((k) => (
           <div key={k} className="rounded-lg bg-surface-50 px-3 py-2">
-            <dt className="text-[10px] uppercase tracking-wide text-ink-500">{k === "lowAud" ? "Low" : k === "midAud" ? "Mid" : "High"}</dt>
+            <dt className="text-[11px] uppercase tracking-wide text-ink-500">{k === "lowAud" ? "Low" : k === "midAud" ? "Mid" : "High"}</dt>
             <dd className="text-lg font-semibold tabular-nums text-ink-900">{aud(c[k])}</dd>
           </div>
         ))}
@@ -50,8 +50,8 @@ export function ValuationBlock({ block, fullReportHref }: { block: DossierValuat
       ) : null}
       {block.methods.length > 0 ? (
         <table className="mt-3 w-full text-xs" data-testid="valuation-methods">
-          <thead>
-            <tr className="border-b border-surface-200 text-left text-[10px] uppercase tracking-wide text-ink-500">
+          <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
+            <tr className="border-b border-surface-200 text-left text-[11px] uppercase tracking-wide text-ink-500">
               <th className="py-1 pr-2">Method</th>
               <th className="py-1 pr-2 text-right">Weight</th>
               <th className="py-1 pr-2 text-right">Low</th>
@@ -59,7 +59,7 @@ export function ValuationBlock({ block, fullReportHref }: { block: DossierValuat
               <th className="py-1 text-right">High</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
             {block.methods.map((m) => (
               <tr key={m.method} className={m.applicable ? "border-b border-surface-100" : "border-b border-surface-100 text-ink-400"} title={m.rationale}>
                 <td className="py-1 pr-2">{m.label}{m.applicable ? "" : " (n/a)"}</td>

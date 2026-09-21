@@ -253,9 +253,9 @@ export function EntriesTable({ entries, onEdit, onDelete, onProposal, busyId }: 
     return <p className="rounded-xl border border-dashed border-surface-300 bg-white p-6 text-sm text-ink-500" data-testid="validation-entries-empty">No entries yet — add the first interview above.</p>;
   }
   return (
-    <div className="overflow-x-auto rounded-xl border border-surface-200 bg-white">
+    <div className="overflow-auto max-h-[75vh] rounded-xl border border-surface-200 bg-white">
       <table className="w-full min-w-[40rem] text-left text-sm" data-testid="validation-entries">
-        <thead className="bg-surface-100 text-xs uppercase tracking-wide text-ink-500">
+        <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
           <tr>
             <th scope="col" className="px-3 py-2">Date</th>
             <th scope="col" className="px-3 py-2">Organisation · role</th>
@@ -265,7 +265,7 @@ export function EntriesTable({ entries, onEdit, onDelete, onProposal, busyId }: 
             <th scope="col" className="px-3 py-2"><span className="sr-only">Actions</span></th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-surface-200">
+        <tbody className="divide-y divide-surface-200 [&>tr:nth-child(even)]:bg-surface-sunken">
           {entries.map((e) => (
             <tr key={e.id} data-entry-id={e.id} data-entry-level={e.level} data-entry-outcome={e.outcome}>
               <td className="px-3 py-2 tabular-nums text-ink-600">{e.date}</td>
@@ -328,9 +328,9 @@ export function AutoRowsTable({ rows }: { rows: AutoRow[] }) {
       {rows.length === 0 ? (
         <p className="mt-3 rounded-xl border border-dashed border-surface-300 bg-white p-6 text-sm text-ink-500" data-testid="validation-auto-empty">No paid pilots, pilot metrics, applications, feedback letters or scored cohorts on record yet.</p>
       ) : (
-        <div className="mt-3 overflow-x-auto rounded-xl border border-surface-200 bg-white">
+        <div className="mt-3 overflow-auto max-h-[75vh] rounded-xl border border-surface-200 bg-white">
           <table className="w-full min-w-[36rem] text-left text-sm">
-            <thead className="bg-surface-100 text-xs uppercase tracking-wide text-ink-500">
+            <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
               <tr>
                 <th scope="col" className="px-3 py-2">Date</th>
                 <th scope="col" className="px-3 py-2">Organisation</th>
@@ -339,7 +339,7 @@ export function AutoRowsTable({ rows }: { rows: AutoRow[] }) {
                 <th scope="col" className="px-3 py-2">Source</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-200">
+            <tbody className="divide-y divide-surface-200 [&>tr:nth-child(even)]:bg-surface-sunken">
               {rows.map((r) => (
                 <tr key={r.id} data-auto-source={r.source} data-auto-counts={r.counts ? "1" : "0"}>
                   <td className="px-3 py-2 tabular-nums text-ink-600">{r.date || "—"}</td>

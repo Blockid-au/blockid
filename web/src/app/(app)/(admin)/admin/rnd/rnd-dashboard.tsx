@@ -227,8 +227,8 @@ export function RndDashboard() {
             onClick={() => runResearch(key)}
             disabled={loading}
             className={`
-              group relative rounded-xl border px-4 py-4 text-left transition-all cursor-pointer
-              disabled:opacity-50 disabled:cursor-not-allowed
+ group relative rounded-xl border px-4 py-4 text-left transition-all cursor-pointer
+ disabled:opacity-50 disabled:cursor-not-allowed
               ${activeTopic === key && loading
                 ? "border-brand-500 bg-brand-50 shadow-sm"
                 : key === "full"

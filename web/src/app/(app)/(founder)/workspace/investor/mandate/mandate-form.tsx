@@ -292,10 +292,10 @@ type Status =
   | { kind: "failed" };
 
 const input =
-  "mt-1 w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 px-3 py-2 text-sm text-ink-900 placeholder:text-slate-500 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30";
+  "mt-1 w-full rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm text-ink-900 placeholder:text-ink-500 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30";
 const chipOn = "inline-flex items-center rounded-full bg-brand-600 text-white px-3 py-1 text-xs font-semibold cursor-pointer";
 const chipOff =
-  "inline-flex items-center rounded-full border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 px-3 py-1 text-xs font-medium hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer";
+  "inline-flex items-center rounded-full border border-surface-300 bg-white text-ink-700 px-3 py-1 text-xs font-medium hover:bg-surface-100 cursor-pointer";
 
 export function MandateForm({ draft, draftSource, canEditWeights, limit, mandateCount, migrated }: MandateFormProps) {
   const [locale] = useLocale();
@@ -379,7 +379,7 @@ export function MandateForm({ draft, draftSource, canEditWeights, limit, mandate
       key={key}
       aria-labelledby={`${uid}-h-${key}`}
       data-mandate-section={key}
-      className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6"
+      className="rounded-2xl border border-surface-200 bg-white p-6"
     >
       <h2 id={`${uid}-h-${key}`} className="text-lg font-semibold text-ink-900">
         {t(MANDATE_COPY.sections[key])}
@@ -394,12 +394,12 @@ export function MandateForm({ draft, draftSource, canEditWeights, limit, mandate
   return (
     <form onSubmit={save} className="space-y-6" data-mandate-form data-mandate-id={f.id ?? ""} data-draft-source={draftSource} noValidate>
       {!migrated ? (
-        <p role="status" className="rounded-xl border border-amber-300 bg-amber-50 dark:bg-amber-900/20 px-4 py-3 text-sm text-amber-900 dark:text-amber-200" data-not-migrated>
+        <p role="status" className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900" data-not-migrated>
           {t(MANDATE_COPY.notMigrated)}
         </p>
       ) : null}
       {draftSource === "prefs" ? (
-        <p className="rounded-xl border border-sky-200 bg-sky-50 dark:bg-sky-900/20 px-4 py-3 text-sm text-sky-900 dark:text-sky-200" data-prefs-prefill>
+        <p className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900" data-prefs-prefill>
           {t(MANDATE_COPY.prefsPrefill)}
         </p>
       ) : null}
@@ -431,7 +431,7 @@ export function MandateForm({ draft, draftSource, canEditWeights, limit, mandate
               `${f.thesis.length}/${MANDATE_THESIS_MAX_LEN}`,
             )}
           </div>
-          <div className="sm:col-span-2 flex items-start justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 p-4" data-investor-visibility data-discoverable={f.discoverable ? "1" : "0"}>
+          <div className="sm:col-span-2 flex items-start justify-between gap-4 rounded-xl border border-surface-200 p-4" data-investor-visibility data-discoverable={f.discoverable ? "1" : "0"}>
             <div>
               <p id={`${uid}-disc-title`} className="text-sm font-semibold text-ink-900">
                 {t(MANDATE_COPY.discoverable)}
@@ -447,7 +447,7 @@ export function MandateForm({ draft, draftSource, canEditWeights, limit, mandate
               aria-labelledby={`${uid}-disc-title`}
               aria-describedby={`${uid}-disc-sub`}
               onClick={() => set("discoverable", !f.discoverable)}
-              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ${f.discoverable ? "bg-brand-600" : "bg-slate-300 dark:bg-slate-700"}`}
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ${f.discoverable ? "bg-brand-navy" : "bg-surface-400"}`}
               data-visibility-switch
             >
               <span aria-hidden="true" className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ${f.discoverable ? "translate-x-6" : "translate-x-1"}`} />
@@ -501,7 +501,7 @@ export function MandateForm({ draft, draftSource, canEditWeights, limit, mandate
           <div className="sm:col-span-2">
             <label htmlFor={`${uid}-min_svi`} className="block text-sm font-medium text-ink-800">
               {t(MANDATE_COPY.minSvi)}{" "}
-              <output htmlFor={`${uid}-min_svi`} className="ml-2 rounded-full bg-slate-100 dark:bg-slate-800 px-2 py-0.5 text-xs font-semibold text-ink-800" data-min-svi-value>
+              <output htmlFor={`${uid}-min_svi`} className="ml-2 rounded-full bg-surface-200 px-2 py-0.5 text-xs font-semibold text-ink-800" data-min-svi-value>
                 {f.min_svi === null ? t(MANDATE_COPY.none) : f.min_svi}
               </output>
             </label>

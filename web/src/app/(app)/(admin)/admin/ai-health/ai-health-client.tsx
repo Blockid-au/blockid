@@ -71,10 +71,10 @@ export function AIHealthClient({ initialRegistry }: { initialRegistry: Registry 
           <p className="text-sm text-ink-500">No degraded models. All clear.</p>
         ) : (
           <table className="w-full text-sm">
-            <thead className="text-left text-xs text-ink-500 uppercase">
+            <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
               <tr><th className="py-2">Provider</th><th>Model</th><th>Until</th><th>Backoff</th><th>Reason</th></tr>
             </thead>
-            <tbody>
+            <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
               {registry.degraded.map((d) => (
                 <tr key={`${d.provider}::${d.model}`} className="border-t border-surface-200">
                   <td className="py-2">{d.provider}</td>
@@ -128,10 +128,10 @@ function ModelTable({ rows }: { rows: Row[] }) {
   if (rows.length === 0) return <p className="text-sm text-ink-500">Empty.</p>;
   return (
     <table className="w-full text-sm">
-      <thead className="text-left text-xs text-ink-500 uppercase">
+      <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
         <tr><th className="py-2">Status</th><th>Provider</th><th>Model</th><th>Latency</th><th>Checked</th><th></th></tr>
       </thead>
-      <tbody>
+      <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
         {rows.map((r) => (
           <tr key={`${r.provider}::${r.model}`} className="border-t border-surface-200">
             <td className="py-2">

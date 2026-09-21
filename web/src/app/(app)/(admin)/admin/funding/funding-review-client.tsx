@@ -179,9 +179,9 @@ export function FundingReviewClient({ user, grants, programs, queue = [] }: Prop
         <ReviewQueuePanel queue={queue} />
 
         <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden shadow-sm">
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[75vh]">
             <table className="w-full text-sm">
-              <thead>
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr className="border-b border-surface-200 bg-surface-100">
                   <Th>Name</Th>
                   <Th>Kind</Th>
@@ -193,7 +193,7 @@ export function FundingReviewClient({ user, grants, programs, queue = [] }: Prop
                   <Th className="text-center">Actions</Th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                 {filtered.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-6 py-10 text-center text-ink-600">No rows match the filters</td>
@@ -311,9 +311,9 @@ function ReviewQueuePanel({ queue }: { queue: ReviewQueueEntry[] }) {
             Nothing queued. The cron runs Sundays 04:00 UTC; run <code>/api/cron/refresh-funding-sources?dry=1</code> to preview.
           </p>
         ) : (
-          <div className="overflow-x-auto border-t border-surface-200">
+          <div className="overflow-auto max-h-[75vh] border-t border-surface-200">
             <table className="w-full text-xs">
-              <thead>
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr className="bg-surface-100 text-ink-700">
                   <Th>When</Th>
                   <Th>Kind</Th>
@@ -324,7 +324,7 @@ function ReviewQueuePanel({ queue }: { queue: ReviewQueueEntry[] }) {
                   <Th className="text-center">Links</Th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                 {queue.map((e, i) => (
                   <tr key={`${e.ts}:${e.kind}:${e.id ?? e.url}:${i}`} className="border-b border-surface-200/40 align-top">
                     <td className="px-4 py-2 whitespace-nowrap text-ink-600">{e.ts.slice(0, 10)}</td>
@@ -418,8 +418,8 @@ function ReviewDialog({ row, onClose, onSaved }: { row: ReviewRow; onClose: () =
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="w-full max-w-lg rounded-2xl border border-surface-200 bg-white p-6 shadow-xl space-y-4" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="w-full max-w-lg rounded-2xl border border-surface-200 bg-white p-6 shadow-2 space-y-4" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 className="text-base font-bold text-ink-800">{row.name}</h2>

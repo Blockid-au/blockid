@@ -820,10 +820,10 @@ export function EvaluationsClient({
           )}
         </div>
       ) : isEvaluator ? (
-        <div className="overflow-x-auto rounded-2xl border border-surface-200 bg-white">
+        <div className="overflow-auto max-h-[75vh] rounded-2xl border border-surface-200 bg-white">
           <table className="min-w-full text-sm">
             <caption className="sr-only">Startups you evaluate — stage, SVI, progress, consent and actions</caption>
-            <thead className="bg-surface-50 text-left text-xs uppercase tracking-wider text-ink-500">
+            <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
               <tr>
                 {canBatch ? (
                   <th scope="col" className="px-3 py-3">
@@ -844,7 +844,7 @@ export function EvaluationsClient({
                 <th scope="col" className="px-4 py-3 font-semibold text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-100">
+            <tbody className="divide-y divide-surface-100 [&>tr:nth-child(even)]:bg-surface-sunken">
               {rows.map((row) => {
                 const chip = CONSENT_CHIP[row.consentTier] ?? CONSENT_CHIP.attributed_only;
                 const editing = editingId === row.id;
@@ -1042,8 +1042,8 @@ export function EvaluationsClient({
 
       {/* Add dialog */}
       {showAdd && (
-        <div ref={addDialogRef} className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="add-startup-title">
-          <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-surface-200 overflow-hidden">
+        <div ref={addDialogRef} className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="add-startup-title">
+          <div className="w-full max-w-md rounded-2xl bg-white shadow-2 border border-line-subtle overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-surface-200">
               <h2 id="add-startup-title" className="text-lg font-bold text-ink-900">Add a startup</h2>
               <button

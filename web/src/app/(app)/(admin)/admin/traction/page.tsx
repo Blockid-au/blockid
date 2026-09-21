@@ -41,10 +41,10 @@ function sumRecord(r: Record<string, number>): number {
 
 function Tile({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
-    <div className="rounded-2xl border border-neutral-200 bg-white p-5 shadow-sm dark:border-neutral-800 dark:bg-neutral-900">
-      <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">{label}</p>
-      <p className="mt-2 text-2xl font-semibold tabular-nums text-neutral-900 dark:text-neutral-50">{value}</p>
-      {sub ? <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{sub}</p> : null}
+    <div className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm">
+      <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">{label}</p>
+      <p className="mt-2 text-2xl font-semibold tabular-nums text-ink-900">{value}</p>
+      {sub ? <p className="mt-1 text-xs text-ink-500">{sub}</p> : null}
     </div>
   );
 }
@@ -52,16 +52,16 @@ function Tile({ label, value, sub }: { label: string; value: string; sub?: strin
 function PlanTable({ title, rows, note }: { title: string; rows: Record<string, number>; note: string }) {
   const entries = Object.entries(rows).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-      <p className="text-sm font-medium text-neutral-800 dark:text-neutral-100">{title}</p>
-      <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">{note}</p>
+    <section className="rounded-2xl border border-surface-200 bg-white p-5">
+      <p className="text-sm font-medium text-ink-800">{title}</p>
+      <p className="mt-1 text-xs text-ink-500">{note}</p>
       {entries.length === 0 ? (
-        <p className="mt-3 text-sm text-neutral-500 dark:text-neutral-400">None recorded.</p>
+        <p className="mt-3 text-sm text-ink-500">None recorded.</p>
       ) : (
         <table className="mt-3 w-full text-sm">
-          <tbody className="text-neutral-800 dark:text-neutral-100">
+          <tbody className="text-ink-800 [&>tr:nth-child(even)]:bg-surface-sunken">
             {entries.map(([k, v]) => (
-              <tr key={k} className="border-t border-neutral-100 dark:border-neutral-800">
+              <tr key={k} className="border-t border-surface-100">
                 <td className="py-1.5 pr-4"><code>{k}</code></td>
                 <td className="py-1.5 text-right tabular-nums">{v.toLocaleString("en-AU")}</td>
               </tr>
@@ -76,10 +76,10 @@ function PlanTable({ title, rows, note }: { title: string; rows: Record<string, 
 function StatusBadge({ status }: { status: TractionStatus }) {
   const tone =
     status === "ok"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950 dark:text-emerald-200"
+      ? "border-emerald-200 bg-emerald-50 text-emerald-800"
       : status === "stale"
-        ? "border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-200"
-        : "border-red-200 bg-red-50 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-200";
+        ? "border-amber-200 bg-amber-50 text-amber-800"
+        : "border-red-200 bg-red-50 text-red-800";
   return <span className={`inline-block rounded-full border px-2.5 py-0.5 text-xs font-medium ${tone}`}>snapshot: {status}</span>;
 }
 
@@ -89,9 +89,9 @@ function MrrDiff({ mrr }: { mrr: TractionSnapshot["mrr_aud_cents"] }) {
   const diff = typeof a === "number" && typeof b === "number" ? a - b : null;
   const reconciled = mrr.stripe_reconciled === null ? "n/a (Stripe not configured or unreachable)" : mrr.stripe_reconciled ? "yes — Stripe active-subscription count matches the DB" : "NO — Stripe and subscription_trial_state disagree (see warnings)";
   return (
-    <section className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900">
-      <p className="text-sm font-medium text-neutral-800 dark:text-neutral-100">MRR — two sources, one diff</p>
-      <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+    <section className="rounded-2xl border border-surface-200 bg-white p-5">
+      <p className="text-sm font-medium text-ink-800">MRR — two sources, one diff</p>
+      <p className="mt-1 text-xs text-ink-500">
         Subscriptions = active <code>subscription_trial_state</code> × plan monthly price (yearly ÷ 12), QA excluded. Revenue events = trailing-30-day
         <code> subscribe</code> + <code>renewal</code> net cash. They diverge when an annual up-front lands or a trial converts mid-window.
       </p>
@@ -100,7 +100,7 @@ function MrrDiff({ mrr }: { mrr: TractionSnapshot["mrr_aud_cents"] }) {
         <Tile label="MRR (revenue events)" value={aud(b)} sub="Cash, last 30 days" />
         <Tile label="Diff" value={diff === null ? "n/a" : `${diff >= 0 ? "+" : "−"}${aud(Math.abs(diff))}`} sub="subscriptions − revenue events" />
       </div>
-      <p className="mt-3 text-sm text-neutral-700 dark:text-neutral-200">
+      <p className="mt-3 text-sm text-ink-700">
         Stripe reconciled: <span className="font-medium">{reconciled}</span>
       </p>
     </section>
@@ -119,17 +119,17 @@ export default async function TractionAdminPage() {
   const snap: TractionSnapshot | null = parsed?.success ? parsed.data : null;
 
   return (
-    <div className="min-h-svh bg-neutral-50 px-4 py-8 dark:bg-neutral-950">
+    <div className="min-h-svh bg-surface-100 px-4 py-8">
       <div className="mx-auto max-w-5xl space-y-6">
         <header className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 dark:text-neutral-400">COO · CFO</p>
-            <h1 className="text-2xl font-bold text-neutral-900 dark:text-neutral-50">Traction snapshot</h1>
-            <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">COO · CFO</p>
+            <h1 className="text-2xl font-bold text-ink-900">Traction snapshot</h1>
+            <p className="mt-1 text-sm text-ink-500">
               What the investor update, the deck provenance table and <code>/api/platform-stats</code> quote. Daily 03:20 UTC ·{" "}
               <code>content/reports/traction-snapshot.json</code>.
             </p>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink-500">
               <StatusBadge status={status} />
               {snap ? <span>generated {new Date(snap.generated_at).toLocaleString("en-AU", { timeZone: "Australia/Sydney" })} AEST</span> : null}
               {snap?.git_sha ? <span>· sha <code>{snap.git_sha.slice(0, 10)}</code></span> : null}
@@ -138,13 +138,13 @@ export default async function TractionAdminPage() {
           <div className="flex gap-2">
             <Link
               href="/admin/pricing-metrics"
-              className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800"
+              className="rounded-lg border border-surface-300 bg-white px-3 py-1.5 text-sm font-medium text-ink-700 hover:bg-surface-200"
             >
               Pricing metrics
             </Link>
             <Link
               href="/admin"
-              className="rounded-lg border border-neutral-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-100 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-200 dark:hover:bg-neutral-800"
+              className="rounded-lg border border-surface-300 bg-white px-3 py-1.5 text-sm font-medium text-ink-700 hover:bg-surface-200"
             >
               ← Admin home
             </Link>
@@ -152,7 +152,7 @@ export default async function TractionAdminPage() {
         </header>
 
         {!snap ? (
-          <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950 dark:text-amber-100">
+          <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
             <p className="font-medium">No readable snapshot yet.</p>
             <p className="mt-1">
               {raw && parsed && !parsed.success
@@ -187,9 +187,9 @@ export default async function TractionAdminPage() {
               <PlanTable title="Funnel — last 7 days" rows={snap.funnel_7d} note="Top server-side analytics_events names (QA users excluded)." />
             </div>
 
-            <section className="rounded-2xl border border-neutral-200 bg-white p-5 dark:border-neutral-800 dark:bg-neutral-900" data-testid="traction-funnel-v2">
-              <p className="text-sm font-medium text-neutral-800 dark:text-neutral-100">Step funnel — last 7 days (G16-A)</p>
-              <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-400">
+            <section className="rounded-2xl border border-surface-200 bg-white p-5" data-testid="traction-funnel-v2">
+              <p className="text-sm font-medium text-ink-800">Step funnel — last 7 days (G16-A)</p>
+              <p className="mt-1 text-xs text-ink-500">
                 Distinct founders per step from the same reducer as <code>scripts/funnel-report.mjs</code> (QA rows excluded). Conversions, gates and daily rows:{" "}
                 <Link href="/admin/funnel" className="underline">/admin/funnel</Link>.
               </p>
@@ -203,27 +203,27 @@ export default async function TractionAdminPage() {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-neutral-200 bg-white p-5 text-sm dark:border-neutral-800 dark:bg-neutral-900">
-              <p className="font-medium text-neutral-800 dark:text-neutral-100">
-                Warnings <span className="ml-1 rounded-full bg-neutral-100 px-2 py-0.5 text-xs text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300">{snap.warnings.length}</span>
+            <section className="rounded-2xl border border-surface-200 bg-white p-5 text-sm">
+              <p className="font-medium text-ink-800">
+                Warnings <span className="ml-1 rounded-full bg-surface-200 px-2 py-0.5 text-xs text-ink-600">{snap.warnings.length}</span>
               </p>
               {snap.warnings.length === 0 ? (
-                <p className="mt-2 text-neutral-500 dark:text-neutral-400">Every query answered — no figure is null for a data reason.</p>
+                <p className="mt-2 text-ink-500">Every query answered — no figure is null for a data reason.</p>
               ) : (
-                <ul className="mt-2 list-disc space-y-1 pl-5 text-neutral-700 dark:text-neutral-200">
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-ink-700">
                   {snap.warnings.map((w, i) => (
                     <li key={i}><code className="text-xs">{w}</code></li>
                   ))}
                 </ul>
               )}
-              <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">
+              <p className="mt-3 text-xs text-ink-500">
                 A warning means that figure is <em>n/a</em> in the investor update too — never a silent 0. Missing tables (for example{" "}
                 <code>evaluation_assessments</code> before G13 S-D2) are expected until their sprint ships.
               </p>
             </section>
 
-            <section className="rounded-2xl border border-neutral-200 bg-white p-5 text-sm text-neutral-600 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-300">
-              <p className="font-medium text-neutral-800 dark:text-neutral-100">Data sources</p>
+            <section className="rounded-2xl border border-surface-200 bg-white p-5 text-sm text-ink-600">
+              <p className="font-medium text-ink-800">Data sources</p>
               <ul className="mt-2 list-disc space-y-1 pl-5">
                 <li>Users / founders / evaluators: <code>app_users</code> minus <code>QA_ACCOUNT_EMAIL_PATTERNS</code> (qa-*, qa-live-*, erased tombstones)</li>
                 <li>Analyses: <code>svi_analyses</code>, <code>analyses</code>, <code>guest_analyses</code> (paid / analyzing / delivered)</li>

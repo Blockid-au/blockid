@@ -348,7 +348,7 @@ export function CohortTable({ rows, batchId, role, weightsVersion = 1, deltaWeig
         <button type="button" onClick={() => setDensityPersist(density === "compact" ? "comfortable" : "compact")} aria-pressed={density === "compact"} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-line bg-surface px-3 font-medium text-secondary hover:bg-surface-hover" data-testid="density-toggle">
           <Rows3 className="h-4 w-4" aria-hidden="true" /> {density === "compact" ? "Compact" : "Comfortable"}
         </button>
-        <button type="button" onClick={() => setCompareOpen(true)} disabled={compare.length === 0} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-brand-300 bg-surface px-3 font-semibold text-action hover:bg-surface-hover disabled:opacity-50 dark:border-brand-700" data-testid="compare-open">
+        <button type="button" onClick={() => setCompareOpen(true)} disabled={compare.length === 0} className="inline-flex min-h-11 items-center gap-1.5 rounded-xl border border-brand-300 bg-surface px-3 font-semibold text-action hover:bg-surface-hover disabled:opacity-50" data-testid="compare-open">
           <Scale className="h-4 w-4" aria-hidden="true" /> Compare ({compare.length}/{MAX_COMPARE})
         </button>
         {compareFull ? (

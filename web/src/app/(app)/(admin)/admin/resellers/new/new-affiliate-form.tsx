@@ -56,7 +56,7 @@ interface ProvisionResponse {
 
 const label = "block text-xs font-medium uppercase tracking-wide text-ink-500";
 const input =
-  "mt-1 w-full rounded-md border border-surface-300 bg-white px-2 py-1.5 text-sm focus:border-brand-600 focus:outline-none focus:ring-1 focus:ring-brand-600";
+  "mt-1 w-full rounded-md border border-surface-300 bg-white px-2 py-1.5 text-sm focus:border-brand-600 focus:outline-none focus-visible:ring-2 focus:ring-brand-600";
 const helpText = "mt-1 text-xs text-ink-500";
 const card =
   "rounded-lg border border-surface-200 bg-white p-4";
@@ -436,8 +436,8 @@ export function NewAffiliateForm({ resellers }: Props) {
               <label
                 key={m}
                 className={`cursor-pointer rounded-md border px-3 py-1.5 ${
-                  inviteMethod === m
-                    ? "border-brand-600 bg-brand-50 text-brand-800"
+ inviteMethod === m
+ ? "border-brand-600 bg-brand-50 text-brand-800"
                     : "border-surface-300"
                 }`}
               >

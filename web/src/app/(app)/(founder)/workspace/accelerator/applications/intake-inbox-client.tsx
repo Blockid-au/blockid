@@ -163,7 +163,7 @@ function CreateIntakeDialog({ onClose, onCreated, templates = [] }: { onClose: (
   }
 
   return (
-    <div ref={ref} className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="intake-create-title" data-testid="intake-create-dialog">
+    <div ref={ref} className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="intake-create-title" data-testid="intake-create-dialog">
       <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-surface-200 bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b border-surface-200 px-6 py-4">
           <h2 id="intake-create-title" className="text-lg font-bold text-ink-900">
@@ -384,9 +384,9 @@ export function IntakeInboxClient({ initialIntakes, initialRows, templates = [] 
             No applications yet. They appear here the moment a founder submits a deck on your link.
           </p>
         ) : (
-          <div className="overflow-x-auto rounded-2xl border border-surface-200 bg-white">
+          <div className="overflow-auto max-h-[75vh] rounded-2xl border border-surface-200 bg-white">
             <table className="min-w-full text-sm" data-testid="intake-table">
-              <thead className="bg-surface-50 text-left text-xs uppercase tracking-wider text-ink-500">
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr>
                   <th scope="col" className="px-4 py-3 font-semibold" aria-sort={sort.key === "startup" ? (sort.dir === "asc" ? "ascending" : "descending") : "none"}>
                     <button type="button" onClick={() => toggleSort("startup")} className="hover:text-ink-800" data-testid="sort-startup">
@@ -414,7 +414,7 @@ export function IntakeInboxClient({ initialIntakes, initialRows, templates = [] 
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-100">
+              <tbody className="divide-y divide-surface-100 [&>tr:nth-child(even)]:bg-surface-sunken">
                 {visible.map((r) => {
                   const chip = STATUS_CHIP[r.status];
                   return (

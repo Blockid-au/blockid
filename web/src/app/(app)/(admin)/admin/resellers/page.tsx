@@ -85,7 +85,7 @@ export default async function AdminResellersPage() {
         ) : (
           <div className="overflow-hidden rounded-lg border border-surface-200 bg-white">
             <table className="w-full text-sm">
-              <thead className="bg-surface-50 text-left text-xs uppercase tracking-wide text-ink-500">
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr>
                   <th className="p-3">Reseller</th>
                   <th className="p-3">Model</th>
@@ -96,7 +96,7 @@ export default async function AdminResellersPage() {
                   <th className="p-3">Since</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-surface-100">
+              <tbody className="divide-y divide-surface-100 [&>tr:nth-child(even)]:bg-surface-sunken">
                 {rows.map((r) => (
                   <tr key={r.id}>
                     <td className="p-3">
@@ -111,7 +111,7 @@ export default async function AdminResellersPage() {
                     <td className="p-3">
                       <span
                         className={`rounded px-2 py-0.5 text-xs ${
-                          r.billing_model === "wholesale"
+ r.billing_model === "wholesale"
                             ? "bg-purple-50 text-purple-800"
                             : "bg-blue-50 text-blue-800"
                         }`}
@@ -122,7 +122,7 @@ export default async function AdminResellersPage() {
                     <td className="p-3">
                       <span
                         className={`rounded px-2 py-0.5 text-xs ${
-                          r.status === "active"
+ r.status === "active"
                             ? "bg-emerald-50 text-emerald-800"
                             : r.status === "paused"
                               ? "bg-yellow-50 text-yellow-800"

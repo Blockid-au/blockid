@@ -181,9 +181,9 @@ export default function CcsoPage() {
                 <Users className="h-4 w-4 text-ink-500" />
                 <span className="text-sm font-medium">Recent Responses ({total})</span>
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-auto max-h-[75vh]">
                 <table className="w-full text-sm">
-                  <thead>
+                  <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                     <tr className="border-b border-surface-200 bg-surface-50">
                       <th className="text-left px-5 py-3 text-xs text-ink-500 font-medium">Score</th>
                       <th className="text-left px-4 py-3 text-xs text-ink-500 font-medium">Email</th>
@@ -192,7 +192,7 @@ export default function CcsoPage() {
                       <th className="text-left px-4 py-3 text-xs text-ink-500 font-medium">Date</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                     {responses.length === 0 && !npsLoading && (
                       <tr>
                         <td colSpan={5} className="px-5 py-6 text-center text-sm text-muted">No responses yet.</td>
@@ -227,9 +227,9 @@ export default function CcsoPage() {
                 <MessageSquare className="h-4 w-4 text-ink-500" />
                 <span className="text-sm font-medium">All Testimonials ({testimonials.length})</span>
               </div>
-              <div className="overflow-x-auto">
+              <div className="overflow-auto max-h-[75vh]">
                 <table className="w-full text-sm">
-                  <thead>
+                  <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                     <tr className="border-b border-surface-200 bg-surface-50">
                       <th className="text-left px-5 py-3 text-xs text-ink-500 font-medium">Text</th>
                       <th className="text-left px-4 py-3 text-xs text-ink-500 font-medium">Name</th>
@@ -239,7 +239,7 @@ export default function CcsoPage() {
                       <th className="text-left px-4 py-3 text-xs text-ink-500 font-medium">Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                     {testimonials.length === 0 && !tLoading && (
                       <tr>
                         <td colSpan={6} className="px-5 py-6 text-center text-sm text-muted">No testimonials yet.</td>
@@ -255,12 +255,12 @@ export default function CcsoPage() {
                         <td className="px-4 py-3">
                           {t.public
                             ? <CheckCircle className="h-4 w-4 text-green-500" />
-                            : <XCircle className="h-4 w-4 text-gray-300" />}
+                            : <XCircle className="h-4 w-4 text-ink-600" />}
                         </td>
                         <td className="px-4 py-3">
                           {t.approved
                             ? <span className="inline-flex items-center gap-1 text-xs font-medium text-green-700 bg-green-50 rounded-full px-2 py-0.5"><CheckCircle className="h-3 w-3" /> Yes</span>
-                            : <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 rounded-full px-2 py-0.5"><XCircle className="h-3 w-3" /> No</span>}
+                            : <span className="inline-flex items-center gap-1 text-xs font-medium text-ink-500 bg-surface-200 rounded-full px-2 py-0.5"><XCircle className="h-3 w-3" /> No</span>}
                         </td>
                         <td className="px-4 py-3">
                           <button
@@ -269,7 +269,7 @@ export default function CcsoPage() {
                             className={[
                               "text-xs rounded-lg px-3 py-1.5 font-medium transition-colors disabled:opacity-50",
                               t.approved
-                                ? "bg-gray-100 hover:bg-gray-200 text-gray-700"
+                                ? "bg-surface-200 hover:bg-surface-300 text-ink-700"
                                 : "bg-green-600 hover:bg-green-700 text-primary",
                             ].join(" ")}
                           >

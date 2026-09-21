@@ -116,9 +116,9 @@ export function FeedbackClient({ user, initialRows, stats }: Props) {
             <span className="text-xs text-ink-500">{filtered.length} shown</span>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[75vh]">
             <table className="w-full text-sm">
-              <thead className="text-xs text-ink-500 uppercase tracking-wide">
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr className="border-b border-surface-200">
                   <th className="text-left py-2 px-2">When</th>
                   <th className="text-left py-2 px-2">User</th>
@@ -128,7 +128,7 @@ export function FeedbackClient({ user, initialRows, stats }: Props) {
                   <th className="text-right py-2 px-2">Credits</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                 {filtered.length === 0 ? (
                   <tr><td colSpan={6} className="py-6 text-center text-ink-500">No feedback matches.</td></tr>
                 ) : filtered.map((r) => (

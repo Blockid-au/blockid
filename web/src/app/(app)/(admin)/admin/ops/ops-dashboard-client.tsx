@@ -330,7 +330,7 @@ export function OpsDashboardClient({
                       <div className="text-xs text-ink-500 mt-0.5 line-clamp-2">{e.hypothesis}</div>
                     ) : null}
                     <table className="mt-2 w-full text-xs">
-                      <thead>
+                      <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                         <tr className="text-ink-500">
                           <th className="text-left font-normal">variant</th>
                           <th className="text-right font-normal">impr</th>
@@ -338,7 +338,7 @@ export function OpsDashboardClient({
                           <th className="text-right font-normal">rate</th>
                         </tr>
                       </thead>
-                      <tbody>
+                      <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                         {e.variants.map((v) => (
                           <tr key={v.key} className="border-t border-surface-100">
                             <td className="py-1 font-mono text-ink-800 truncate">{v.key}</td>
@@ -416,7 +416,7 @@ export function OpsDashboardClient({
                         <span className="truncate text-ink-800">{i.title}</span>
                         <span
                           className={`px-1.5 py-0.5 rounded uppercase text-[10px] font-semibold tracking-wide ${
-                            SEVERITY_PILL[i.severity] ?? "bg-surface-100 text-ink-700"
+ SEVERITY_PILL[i.severity] ?? "bg-surface-100 text-ink-700"
                           }`}
                         >
                           {i.severity}

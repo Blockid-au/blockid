@@ -30,7 +30,7 @@ export interface CohortMembersProps {
 }
 
 const ROLE_CHIP: Record<CohortMemberView["role"], string> = {
-  owner: "border-brand-300 text-action dark:border-brand-700",
+  owner: "border-brand-300 text-action",
   reviewer: "border-line text-secondary",
   viewer: "border-line-subtle text-muted",
 };

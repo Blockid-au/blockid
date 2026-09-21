@@ -77,30 +77,30 @@ const STATUS_COLORS: Record<string, string> = {
   GREEN: "bg-emerald-100 text-emerald-700 border-emerald-300",
   YELLOW: "bg-amber-100 text-amber-700 border-amber-300",
   RED: "bg-red-100 text-red-700 border-red-300",
-  NO_REPORT: "bg-gray-100 text-gray-500 border-gray-300",
+  NO_REPORT: "bg-surface-200 text-ink-500 border-surface-300",
 };
 
 const STATUS_DOT: Record<string, string> = {
   GREEN: "bg-emerald-500",
   YELLOW: "bg-amber-500",
   RED: "bg-red-500",
-  NO_REPORT: "bg-gray-400",
+  NO_REPORT: "bg-ink-400",
 };
 
 // ── Components ─────────────────────────────────────────────────────────
 
 function MetricCard({ label, value, unit, icon: Icon }: { label: string; value: number | string; unit?: string; icon: React.ElementType }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+    <div className="bg-white rounded-xl border border-surface-200 p-4 shadow-sm">
       <div className="flex items-center gap-3">
         <div className="rounded-lg bg-brand-50 p-2">
           <Icon className="h-5 w-5 text-brand-600" />
         </div>
         <div>
-          <p className="text-xs text-gray-500 font-medium">{label}</p>
-          <p className="text-xl font-bold text-gray-900">
+          <p className="text-xs text-ink-500 font-medium">{label}</p>
+          <p className="text-xl font-bold text-ink-900">
             {typeof value === "number" ? value.toLocaleString() : value}
-            {unit && <span className="text-sm font-normal text-gray-500 ml-1">{unit}</span>}
+            {unit && <span className="text-sm font-normal text-ink-500 ml-1">{unit}</span>}
           </p>
         </div>
       </div>
@@ -114,10 +114,10 @@ function AgentCard({ agent, expanded, onToggle }: { agent: AgentStatus; expanded
   const dotClass = STATUS_DOT[agent.status] ?? STATUS_DOT.NO_REPORT;
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className="bg-white rounded-xl border border-surface-200 shadow-sm overflow-hidden">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors text-left"
+        className="w-full flex items-center justify-between p-4 hover:bg-surface-100 transition-colors text-left"
       >
         <div className="flex items-center gap-3 min-w-0">
           <div className="rounded-lg bg-brand-50 p-2 shrink-0">
@@ -126,35 +126,35 @@ function AgentCard({ agent, expanded, onToggle }: { agent: AgentStatus; expanded
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <span className={`inline-block w-2 h-2 rounded-full ${dotClass}`} />
-              <h3 className="font-semibold text-gray-900 text-sm">{agent.agent.toUpperCase()}</h3>
+              <h3 className="font-semibold text-ink-900 text-sm">{agent.agent.toUpperCase()}</h3>
               <span className={`text-[10px] px-1.5 py-0.5 rounded border font-medium ${statusClass}`}>
                 {agent.status === "NO_REPORT" ? "No Report" : agent.status}
               </span>
             </div>
-            <p className="text-xs text-gray-600 truncate">{agent.title}</p>
+            <p className="text-xs text-ink-600 truncate">{agent.title}</p>
           </div>
         </div>
         <div className="flex items-center gap-3 shrink-0">
           <div className="text-right hidden sm:block">
-            <p className="text-[10px] text-gray-400">Research</p>
-            <p className="text-xs font-medium text-gray-700">{agent.researchCount} entries</p>
+            <p className="text-[10px] text-ink-400">Research</p>
+            <p className="text-xs font-medium text-ink-700">{agent.researchCount} entries</p>
           </div>
-          {expanded ? <ChevronUp className="h-4 w-4 text-gray-400" /> : <ChevronDown className="h-4 w-4 text-gray-400" />}
+          {expanded ? <ChevronUp className="h-4 w-4 text-ink-400" /> : <ChevronDown className="h-4 w-4 text-ink-400" />}
         </div>
       </button>
 
       {expanded && (
-        <div className="border-t border-gray-100 p-4 space-y-4">
-          <p className="text-sm text-gray-600">{agent.mission}</p>
+        <div className="border-t border-surface-100 p-4 space-y-4">
+          <p className="text-sm text-ink-600">{agent.mission}</p>
 
           {/* KPIs */}
           <div>
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">KPIs</h4>
+            <h4 className="text-xs font-semibold text-ink-500 uppercase tracking-wide mb-2">KPIs</h4>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {agent.kpis.map((kpi) => (
-                <div key={kpi.metric} className="bg-gray-50 rounded-lg p-2">
-                  <p className="text-[10px] text-gray-500">{kpi.label}</p>
-                  <p className="text-sm font-semibold text-gray-800">
+                <div key={kpi.metric} className="bg-surface-100 rounded-lg p-2">
+                  <p className="text-[10px] text-ink-500">{kpi.label}</p>
+                  <p className="text-sm font-semibold text-ink-800">
                     Target: {kpi.target.toLocaleString()} {kpi.unit}
                   </p>
                 </div>
@@ -166,7 +166,7 @@ function AgentCard({ agent, expanded, onToggle }: { agent: AgentStatus; expanded
           <div className="flex gap-4 flex-wrap">
             {agent.criteriaOwned.length > 0 && (
               <div>
-                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Criteria Owned</h4>
+                <h4 className="text-xs font-semibold text-ink-500 uppercase tracking-wide mb-1">Criteria Owned</h4>
                 <div className="flex flex-wrap gap-1">
                   {agent.criteriaOwned.map((c) => (
                     <span key={c} className="text-[10px] bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">{c}</span>
@@ -175,7 +175,7 @@ function AgentCard({ agent, expanded, onToggle }: { agent: AgentStatus; expanded
               </div>
             )}
             <div>
-              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">Report Sections</h4>
+              <h4 className="text-xs font-semibold text-ink-500 uppercase tracking-wide mb-1">Report Sections</h4>
               <div className="flex flex-wrap gap-1">
                 {agent.reportSections.map((s) => (
                   <span key={s} className="text-[10px] bg-purple-50 text-purple-700 px-1.5 py-0.5 rounded">{s}</span>
@@ -186,7 +186,7 @@ function AgentCard({ agent, expanded, onToggle }: { agent: AgentStatus; expanded
 
           {/* Research */}
           <div>
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+            <h4 className="text-xs font-semibold text-ink-500 uppercase tracking-wide mb-1">
               Research ({agent.researchFrequency})
             </h4>
             <div className="flex flex-wrap gap-1">
@@ -195,17 +195,17 @@ function AgentCard({ agent, expanded, onToggle }: { agent: AgentStatus; expanded
               ))}
             </div>
             {agent.lastResearchDate && (
-              <p className="text-[10px] text-gray-400 mt-1">Last research: {agent.lastResearchDate}</p>
+              <p className="text-[10px] text-ink-400 mt-1">Last research: {agent.lastResearchDate}</p>
             )}
           </div>
 
           {/* Today's Report */}
           {agent.lastReport && (
             <div>
-              <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">
+              <h4 className="text-xs font-semibold text-ink-500 uppercase tracking-wide mb-1">
                 Today&apos;s Report ({agent.lastReportDate})
               </h4>
-              <pre className="bg-gray-50 rounded-lg p-3 text-xs text-gray-700 whitespace-pre-wrap overflow-x-auto max-h-60 overflow-y-auto font-mono">
+              <pre className="bg-surface-100 rounded-lg p-3 text-xs text-ink-700 whitespace-pre-wrap overflow-x-auto max-h-60 overflow-y-auto font-mono">
                 {agent.lastReport}
               </pre>
             </div>
@@ -254,7 +254,7 @@ export function GoalsClient() {
       <div className="min-h-svh bg-surface-100 flex items-center justify-center">
         <div className="text-center">
           <RefreshCw className="h-8 w-8 text-brand-600 animate-spin mx-auto mb-3" />
-          <p className="text-sm text-gray-500">Loading CEO Goals...</p>
+          <p className="text-sm text-ink-500">Loading CEO Goals...</p>
         </div>
       </div>
     );
@@ -280,22 +280,24 @@ export function GoalsClient() {
     <div className="min-h-svh bg-surface-100">
       <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
         {/* CEO Header */}
-        <div className="bg-gradient-to-r from-brand-600 to-brand-700 rounded-2xl p-6 text-white shadow-lg">
-          <div className="flex items-start justify-between">
+        <div className="rounded-2xl border border-line-subtle border-l-4 border-l-brand-navy bg-white p-6 shadow-1">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Target className="h-6 w-6" />
-                <h1 className="text-2xl font-bold">CEO Goal Tree</h1>
+                <Target className="h-6 w-6 text-brand-navy" aria-hidden="true" />
+                <h1 className="font-display text-2xl font-bold text-ink-900">CEO Goal Tree</h1>
               </div>
-              <h2 className="text-lg font-medium opacity-90 mb-1">{data.ceo.title}</h2>
-              <p className="text-sm opacity-75 max-w-2xl">{data.ceo.mission}</p>
+              <h2 className="text-lg font-medium text-ink-800 mb-1">{data.ceo.title}</h2>
+              <p className="text-sm text-ink-600 max-w-2xl">{data.ceo.mission}</p>
             </div>
             <button
+              type="button"
               onClick={fetchData}
-              className="bg-surface-hover hover:bg-surface-sunken rounded-lg p-2 transition-colors"
+              className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-line-subtle bg-white text-ink-600 hover:bg-surface-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
               title="Refresh"
+              aria-label="Refresh"
             >
-              <RefreshCw className="h-4 w-4" />
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -310,18 +312,18 @@ export function GoalsClient() {
             else if (kpi.metric === "nps") currentValue = "—";
 
             return (
-              <div key={kpi.metric} className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-                <p className="text-xs text-gray-500 mb-1">{kpi.label}</p>
+              <div key={kpi.metric} className="bg-white rounded-xl border border-surface-200 p-4 shadow-sm">
+                <p className="text-xs text-ink-500 mb-1">{kpi.label}</p>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl font-bold text-gray-900">
+                  <span className="text-2xl font-bold text-ink-900">
                     {typeof currentValue === "number" ? currentValue.toLocaleString() : currentValue}
                   </span>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-ink-400">
                     / {kpi.target.toLocaleString()} {kpi.unit}
                   </span>
                 </div>
                 {typeof currentValue === "number" && (
-                  <div className="mt-2 bg-gray-100 rounded-full h-1.5">
+                  <div className="mt-2 bg-surface-200 rounded-full h-1.5">
                     <div
                       className="bg-brand-500 h-1.5 rounded-full transition-all"
                       style={{ width: `${Math.min(100, (currentValue / kpi.target) * 100)}%` }}
@@ -342,12 +344,12 @@ export function GoalsClient() {
 
         {/* Agent Status Summary */}
         <div className="flex items-center gap-4 flex-wrap">
-          <h2 className="text-lg font-bold text-gray-900">C-Level Agents</h2>
+          <h2 className="text-lg font-bold text-ink-900">C-Level Agents</h2>
           <div className="flex gap-2 text-xs">
             <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-medium">{greenCount} Green</span>
             <span className="bg-amber-100 text-amber-700 px-2 py-1 rounded-full font-medium">{yellowCount} Yellow</span>
             <span className="bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">{redCount} Red</span>
-            <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded-full font-medium">{noReportCount} No Report</span>
+            <span className="bg-surface-200 text-ink-500 px-2 py-1 rounded-full font-medium">{noReportCount} No Report</span>
           </div>
         </div>
 
@@ -364,36 +366,36 @@ export function GoalsClient() {
         </div>
 
         {/* Recent Cron Activity */}
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
-          <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <Clock className="h-4 w-4 text-gray-500" />
+        <div className="bg-white rounded-xl border border-surface-200 shadow-sm p-4">
+          <h3 className="text-sm font-semibold text-ink-900 mb-3 flex items-center gap-2">
+            <Clock className="h-4 w-4 text-ink-500" />
             Recent Cron Activity
           </h3>
-          <div className="overflow-x-auto">
+          <div className="overflow-auto max-h-[75vh]">
             <table className="w-full text-xs">
-              <thead>
-                <tr className="border-b border-gray-100">
-                  <th className="text-left py-1 px-2 text-gray-500 font-medium">Time (UTC)</th>
-                  <th className="text-left py-1 px-2 text-gray-500 font-medium">Endpoint</th>
-                  <th className="text-left py-1 px-2 text-gray-500 font-medium">Status</th>
-                  <th className="text-right py-1 px-2 text-gray-500 font-medium">Duration</th>
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
+                <tr className="border-b border-surface-100">
+                  <th className="text-left py-1 px-2 text-ink-500 font-medium">Time (UTC)</th>
+                  <th className="text-left py-1 px-2 text-ink-500 font-medium">Endpoint</th>
+                  <th className="text-left py-1 px-2 text-ink-500 font-medium">Status</th>
+                  <th className="text-right py-1 px-2 text-ink-500 font-medium">Duration</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                 {data.recentCronRuns.slice(0, 20).map((run, i) => (
-                  <tr key={`${run.ts}-${i}`} className="border-b border-gray-50 hover:bg-gray-50">
-                    <td className="py-1 px-2 text-gray-600 font-mono">{run.ts.slice(11, 19)}</td>
-                    <td className="py-1 px-2 text-gray-800 font-medium">{run.endpoint}</td>
+                  <tr key={`${run.ts}-${i}`} className="border-b border-surface-100 hover:bg-surface-100">
+                    <td className="py-1 px-2 text-ink-600 font-mono">{run.ts.slice(11, 19)}</td>
+                    <td className="py-1 px-2 text-ink-800 font-medium">{run.endpoint}</td>
                     <td className="py-1 px-2">
                       <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                        run.status === "ok" ? "bg-emerald-50 text-emerald-700" :
+ run.status === "ok" ? "bg-emerald-50 text-emerald-700" :
                         run.status === "rate_limited" ? "bg-amber-50 text-amber-700" :
                         "bg-red-50 text-red-700"
                       }`}>
                         {run.status}
                       </span>
                     </td>
-                    <td className="py-1 px-2 text-right text-gray-500 font-mono">{run.duration_ms}ms</td>
+                    <td className="py-1 px-2 text-right text-ink-500 font-mono">{run.duration_ms}ms</td>
                   </tr>
                 ))}
               </tbody>
@@ -402,7 +404,7 @@ export function GoalsClient() {
         </div>
 
         {/* Footer */}
-        <p className="text-center text-xs text-gray-400">
+        <p className="text-center text-xs text-ink-400">
           CEO Goal Tree — {data.today} — {data.agents.length} agents active
         </p>
       </div>

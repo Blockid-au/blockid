@@ -126,13 +126,13 @@ export default async function ConfigPage() {
           </div>
           <div className="bg-white border border-surface-200 rounded-lg overflow-hidden">
             <table className="w-full text-sm">
-              <thead>
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr className="bg-surface-50 border-b border-surface-200">
                   <th className="text-left px-4 py-2.5 font-medium text-ink-600">Risk Factor</th>
                   <th className="text-right px-4 py-2.5 font-medium text-ink-600">Penalty</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                 {RISK_PENALTIES.map((r) => (
                   <tr key={r.factor} className="border-b border-surface-100 last:border-0">
                     <td className="px-4 py-2.5">{r.factor}</td>
@@ -172,14 +172,14 @@ export default async function ConfigPage() {
           </div>
           <div className="bg-white border border-surface-200 rounded-lg overflow-hidden">
             <table className="w-full text-sm">
-              <thead>
+              <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr className="bg-surface-50 border-b border-surface-200">
                   <th className="text-left px-4 py-2.5 font-medium text-ink-600">Job</th>
                   <th className="text-left px-4 py-2.5 font-medium text-ink-600">Endpoint</th>
                   <th className="text-left px-4 py-2.5 font-medium text-ink-600">Schedule</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                 {CRON_JOBS.map((job) => (
                   <tr key={job.name} className="border-b border-surface-100 last:border-0">
                     <td className="px-4 py-2.5">

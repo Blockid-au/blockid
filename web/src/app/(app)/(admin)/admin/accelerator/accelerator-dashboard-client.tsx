@@ -125,8 +125,8 @@ export function AcceleratorDashboardClient({
 
         {/* Create Cohort Modal */}
         {showCreate && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
-            <div className="bg-white rounded-2xl border border-surface-200 shadow-xl w-full max-w-lg mx-4 p-6">
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm">
+            <div className="bg-white rounded-2xl border border-line-subtle shadow-2 w-full max-w-lg mx-4 p-6">
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-lg font-bold text-ink-800">Create New Cohort</h2>
                 <button
@@ -313,8 +313,8 @@ export function AcceleratorDashboardClient({
                   <div className="text-right">
                     <p
                       className={`text-3xl font-bold font-mono ${
-                        cohort.avg_svi >= 120
-                          ? "text-green-400"
+ cohort.avg_svi >= 120
+ ? "text-green-400"
                           : cohort.avg_svi >= 100
                             ? "text-brand-600"
                             : cohort.avg_svi >= 80

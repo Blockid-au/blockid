@@ -124,14 +124,14 @@ export function SviConfig({ initial }: Props) {
         <h3 className="text-sm font-semibold text-ink-700 mb-2 uppercase tracking-wider">SVI Dimension Weights</h3>
         <div className="bg-white border border-surface-200 rounded-lg overflow-hidden">
           <table className="w-full text-sm">
-            <thead>
+            <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
               <tr className="bg-surface-50 border-b border-surface-200">
                 <th className="text-left px-4 py-2.5 font-medium text-ink-600">Key</th>
                 <th className="text-left px-4 py-2.5 font-medium text-ink-600">Dimension</th>
                 <th className="text-right px-4 py-2.5 font-medium text-ink-600">Weight (%)</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
               {SVI_DIMENSION_LABELS.map((d) => (
                 <tr key={d.key} className="border-b border-surface-100">
                   <td className="px-4 py-2.5 font-mono text-xs text-ink-500">{d.key}</td>

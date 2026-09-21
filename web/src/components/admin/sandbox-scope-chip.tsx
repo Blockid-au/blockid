@@ -39,7 +39,10 @@ interface SandboxScopeChipProps {
   note?: string;
   /** Extra classes appended to the outer wrapper. */
   className?: string;
-  /** Force a colour scheme; defaults to auto (light-page styling). */
+  /**
+   * Kept for call-site compatibility; ignored since G26 (the admin shell is
+   * light-only — docs/plans/g26-light-template-redesign-2026-09-21.md § 1).
+   */
   theme?: "light" | "dark";
   /** Optional label text shown before the pills. Defaults to "Scope". */
   label?: string;
@@ -56,26 +59,21 @@ export function SandboxScopeChip({
   buildHref,
   note,
   className = "",
-  theme = "light",
+  theme: _theme = "light",
   label = "Scope",
 }: SandboxScopeChipProps) {
-  const isDark = theme === "dark";
+  void _theme;
   const wrapperCls =
-    "inline-flex flex-wrap items-center gap-2 text-xs " +
-    (isDark ? "text-gray-300" : "text-ink-600") +
+    "inline-flex flex-wrap items-center gap-2 text-xs text-ink-600" +
     (className ? ` ${className}` : "");
 
-  const labelCls = isDark ? "text-gray-400" : "text-ink-500";
+  const labelCls = "text-ink-500";
 
-  const activeCls = isDark ? "bg-blue-600 text-white" : "bg-brand-600 text-white";
-  const idleLinkCls = isDark
-    ? "bg-gray-800 border border-gray-700 text-gray-300 hover:bg-gray-700"
-    : "bg-white text-ink-700 ring-1 ring-surface-200 hover:bg-surface-100";
-  const idleStaticCls = isDark
-    ? "bg-gray-800 border border-gray-700 text-gray-500"
-    : "bg-white text-muted ring-1 ring-surface-200";
+  const activeCls = "bg-brand-navy text-white";
+  const idleLinkCls = "bg-white text-ink-700 ring-1 ring-surface-200 hover:bg-surface-100";
+  const idleStaticCls = "bg-white text-muted ring-1 ring-surface-200";
 
-  const noteCls = isDark ? "text-amber-400" : "text-amber-700";
+  const noteCls = "text-warn";
 
   return (
     <div className={wrapperCls} data-testid="sandbox-scope-chip">
@@ -83,7 +81,7 @@ export function SandboxScopeChip({
       <div className="flex items-center gap-1" role="group" aria-label="Sandbox scope filter">
         {SANDBOX_SCOPE_VALUES.map((value) => {
           const active = value === scope;
-          const cls = `rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+          const cls = `inline-flex min-h-11 items-center rounded-full px-3 text-xs font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2 ${
             active ? activeCls : buildHref ? idleLinkCls : idleStaticCls
           }`;
           if (buildHref && !active) {
@@ -141,7 +139,7 @@ export function SandboxRowBadge({
   return (
     <span
       className={`ml-1 inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide ${cls}${
-        className ? ` ${className}` : ""
+ className ? ` ${className}` : ""
       }`}
       title="Reseller sandbox activity (bookkeeping-only)"
     >

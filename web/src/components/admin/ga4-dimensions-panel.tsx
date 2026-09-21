@@ -185,9 +185,9 @@ export function Ga4DimensionsPanelView({ result, loading, applying, error, onRel
 
       {result?.error && !blocked && <p className="mt-3 text-xs text-red-600">{result.error}</p>}
 
-      <div className="mt-4 overflow-x-auto">
+      <div className="mt-4 overflow-auto max-h-[75vh]">
         <table className="w-full text-xs">
-          <thead>
+          <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
             <tr className="text-left text-ink-500">
               <th className="py-1 pr-3 font-medium">Param</th>
               <th className="py-1 pr-3 font-medium">Display name</th>
@@ -195,7 +195,7 @@ export function Ga4DimensionsPanelView({ result, loading, applying, error, onRel
               <th className="py-1 font-medium">State</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
             {wanted.map((d) => {
               const state = !result || blocked ? "unknown" : registered.has(d.parameterName) ? "registered" : "missing";
               return (

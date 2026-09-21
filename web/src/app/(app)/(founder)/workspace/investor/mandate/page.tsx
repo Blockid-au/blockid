@@ -61,11 +61,11 @@ export default async function InvestorMandatePage() {
         {evaluator && list && draft ? (
           <>
             {list.mandates.length > 1 ? (
-              <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4" aria-label="Your mandates" data-mandate-list>
+              <section className="rounded-2xl border border-surface-200 bg-white p-4" aria-label="Your mandates" data-mandate-list>
                 <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Your mandates</p>
                 <ul className="mt-2 flex flex-wrap gap-2">
                   {list.mandates.map((m) => (
-                    <li key={m.id} className="rounded-full border border-slate-300 dark:border-slate-700 px-3 py-1 text-xs text-ink-800" data-mandate-chip={m.id}>
+                    <li key={m.id} className="rounded-full border border-surface-300 px-3 py-1 text-xs text-ink-800" data-mandate-chip={m.id}>
                       {m.label}
                       {m.is_default ? " · default" : ""}
                     </li>
@@ -86,7 +86,7 @@ export default async function InvestorMandatePage() {
             />
           </>
         ) : (
-          <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 space-y-3" data-mandate-founder-copy>
+          <section className="rounded-2xl border border-surface-200 bg-white p-6 space-y-3" data-mandate-founder-copy>
             <h2 className="text-lg font-semibold text-ink-900">Fields covered</h2>
             <ul className="list-disc pl-5 text-sm text-ink-700 space-y-1">
               <li>Sectors and business models to include or exclude.</li>
@@ -105,18 +105,18 @@ export default async function InvestorMandatePage() {
           </section>
         )}
 
-        <section className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6">
+        <section className="rounded-2xl border border-surface-200 bg-white p-6">
           <h2 className="text-lg font-semibold text-ink-900">Where it shows up</h2>
           <div className="mt-3 flex flex-wrap gap-3">
             <Link
               href="/workspace/investor/dealflow"
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 dark:border-slate-700 text-ink-700 px-4 py-2 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg border border-surface-300 text-ink-700 px-4 py-2 text-sm font-semibold hover:bg-surface-100 transition-colors"
             >
               Deal flow
             </Link>
             <Link
               href="/workspace/settings/notifications"
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 dark:border-slate-700 text-ink-700 px-4 py-2 text-sm font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg border border-surface-300 text-ink-700 px-4 py-2 text-sm font-semibold hover:bg-surface-100 transition-colors"
             >
               Digest cadence
             </Link>

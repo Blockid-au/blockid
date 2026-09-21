@@ -388,7 +388,7 @@ function TeamMemberCard({ member }: { member: TeamMember }) {
         <div className="px-5 pb-5 border-t border-surface-200 pt-4 space-y-4">
           {/* Responsibilities */}
           <div>
-            <h4 className="text-[10px] uppercase tracking-wider text-ink-500 font-semibold mb-2">
+            <h4 className="text-[11px] uppercase tracking-wider text-ink-500 font-semibold mb-2">
               Responsibilities
             </h4>
             <ul className="space-y-1">
@@ -406,7 +406,7 @@ function TeamMemberCard({ member }: { member: TeamMember }) {
 
           {/* Priorities */}
           <div>
-            <h4 className="text-[10px] uppercase tracking-wider text-ink-500 font-semibold mb-2">
+            <h4 className="text-[11px] uppercase tracking-wider text-ink-500 font-semibold mb-2">
               Current Priorities
             </h4>
             <ul className="space-y-1">
@@ -428,7 +428,7 @@ function TeamMemberCard({ member }: { member: TeamMember }) {
           {/* Contact */}
           {member.contact && (
             <div>
-              <h4 className="text-[10px] uppercase tracking-wider text-ink-500 font-semibold mb-1">
+              <h4 className="text-[11px] uppercase tracking-wider text-ink-500 font-semibold mb-1">
                 Contact
               </h4>
               <p className="text-xs text-ink-600 font-mono">
@@ -539,28 +539,28 @@ export function TeamClient({ user, emailsSent }: TeamClientProps) {
           </h2>
 
           <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden shadow-sm">
-            <div className="overflow-x-auto">
+            <div className="overflow-auto max-h-[75vh]">
               <table className="w-full text-sm">
-                <thead>
+                <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                   <tr className="border-b border-surface-200 bg-surface-100">
-                    <th className="text-left px-5 py-3 text-[10px] uppercase tracking-wider text-ink-500 font-medium">
+                    <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider text-ink-500 font-medium">
                       Agent
                     </th>
-                    <th className="text-left px-5 py-3 text-[10px] uppercase tracking-wider text-ink-500 font-medium hidden sm:table-cell">
+                    <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider text-ink-500 font-medium hidden sm:table-cell">
                       Department
                     </th>
-                    <th className="text-left px-5 py-3 text-[10px] uppercase tracking-wider text-ink-500 font-medium hidden md:table-cell">
+                    <th className="text-left px-5 py-3 text-[11px] uppercase tracking-wider text-ink-500 font-medium hidden md:table-cell">
                       Model
                     </th>
-                    <th className="text-right px-5 py-3 text-[10px] uppercase tracking-wider text-ink-500 font-medium hidden md:table-cell">
+                    <th className="text-right px-5 py-3 text-[11px] uppercase tracking-wider text-ink-500 font-medium hidden md:table-cell">
                       Cost
                     </th>
-                    <th className="text-right px-5 py-3 text-[10px] uppercase tracking-wider text-ink-500 font-medium">
+                    <th className="text-right px-5 py-3 text-[11px] uppercase tracking-wider text-ink-500 font-medium">
                       Status
                     </th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="[&>tr:nth-child(even)]:bg-surface-sunken">
                   {AI_AGENTS.map((agent) => {
                     const AgentIcon = agent.icon;
                     const isActive = agent.status === "Active";
@@ -691,7 +691,7 @@ export function TeamClient({ user, emailsSent }: TeamClientProps) {
                 className="rounded-2xl border border-surface-200 bg-white p-5 shadow-sm"
               >
                 <div className="flex items-center justify-between mb-3">
-                  <p className="text-[10px] uppercase tracking-[0.15em] text-ink-500 font-medium">
+                  <p className="text-[11px] uppercase tracking-[0.15em] text-ink-500 font-medium">
                     {label}
                   </p>
                   <div

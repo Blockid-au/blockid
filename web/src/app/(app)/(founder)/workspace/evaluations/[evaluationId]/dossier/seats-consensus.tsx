@@ -56,9 +56,9 @@ export function SeatsConsensus({ consensus, evaluationId }: { consensus: Dossier
           {consensus.meanConviction != null ? ` · mean conviction ${consensus.meanConviction}/5` : ""}
         </p>
       </div>
-      <div className="mt-2 overflow-x-auto rounded-xl border border-surface-200">
+      <div className="mt-2 overflow-auto max-h-[75vh] rounded-xl border border-surface-200">
         <table className="min-w-full text-xs">
-          <thead className="bg-surface-50 text-left uppercase tracking-wide text-ink-500">
+          <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
             <tr>
               <th className="px-3 py-2 font-semibold">Seat</th>
               <th className="px-3 py-2 font-semibold">Decision</th>
@@ -71,7 +71,7 @@ export function SeatsConsensus({ consensus, evaluationId }: { consensus: Dossier
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-surface-100">
+          <tbody className="divide-y divide-surface-100 [&>tr:nth-child(even)]:bg-surface-sunken">
             {consensus.seats.map((s) => {
               const a = s.assessment;
               return (

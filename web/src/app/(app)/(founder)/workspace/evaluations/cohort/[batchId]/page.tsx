@@ -214,7 +214,7 @@ export default async function CohortPage({ params, searchParams }: PageProps) {
             ) : null}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <a href={`/api/evaluations/batch/${encodeURIComponent(batch.id)}/export.csv`} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-300 bg-surface px-4 py-2.5 text-sm font-semibold text-action transition-colors hover:bg-surface-hover dark:border-brand-700" data-testid="cohort-export-csv">
+            <a href={`/api/evaluations/batch/${encodeURIComponent(batch.id)}/export.csv`} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-300 bg-surface px-4 py-2.5 text-sm font-semibold text-action transition-colors hover:bg-surface-hover" data-testid="cohort-export-csv">
               Download CSV
             </a>
             {lpReport ? (

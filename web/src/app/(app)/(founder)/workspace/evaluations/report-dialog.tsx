@@ -289,14 +289,14 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
   return (
     <div
       ref={dialogRef}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4"
       role="dialog"
       aria-modal="true"
       aria-labelledby="report-dialog-title"
       aria-describedby="report-dialog-what"
       data-testid="report-dialog"
     >
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-2xl border border-surface-200 overflow-hidden">
+      <div className="w-full max-w-md rounded-2xl bg-white shadow-2 border border-line-subtle overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-200">
           <h2 id="report-dialog-title" tabIndex={-1} className="text-lg font-bold text-ink-900 outline-none">
             {copy.title} — {startupName}
