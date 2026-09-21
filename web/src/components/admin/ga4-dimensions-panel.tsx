@@ -132,7 +132,7 @@ export function Ga4DimensionsPanelView({ result, loading, applying, error, onRel
               type="button"
               onClick={onApply}
               disabled={applying || loading}
-              className="rounded-md bg-brand-navy px-3 py-1.5 text-xs font-medium text-white hover:bg-brand-navy-elev-1 disabled:opacity-50"
+              className="rounded-md bg-action px-3 py-1.5 text-xs font-medium text-on-action hover:bg-action-hover disabled:opacity-50"
             >
               {applying ? "Registering…" : `Register ${result.missing.length} missing`}
             </button>

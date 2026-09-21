@@ -176,7 +176,7 @@ export function PricingConfig({ initial, defaults }: Props) {
           type="button"
           onClick={() => void handleSave()}
           disabled={saving || !isDirty}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-navy px-4 py-2 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-50 transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50 transition-colors cursor-pointer"
         >
           {saving ? (
             <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</>

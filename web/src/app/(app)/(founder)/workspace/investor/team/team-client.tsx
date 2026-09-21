@@ -171,7 +171,7 @@ export function TeamClient(p: TeamClientProps) {
                     ))}
                   </select>
                 </label>
-                <button type="submit" disabled={invite.kind === "busy" || full} className="inline-flex min-h-9 items-center rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-60" data-testid="invite-submit">
+                <button type="submit" disabled={invite.kind === "busy" || full} className="inline-flex min-h-9 items-center rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover disabled:opacity-60" data-testid="invite-submit">
                   {invite.kind === "busy" ? "Sending…" : "Send invite"}
                 </button>
               </form>

@@ -49,7 +49,7 @@ export function BandChip({ band, locale, className }: { band: Band; locale?: Tbr
 export function VerdictBandBadge({ band, label, size = "md", className }: { band: InvestmentBand; label: string; size?: "md" | "lg"; className?: string }) {
   return (
     <span data-tbr-verdict-band={band} className={cn("inline-flex items-center gap-2", className)}>
-      <span aria-hidden="true" className={cn("inline-flex shrink-0 items-center justify-center rounded-md bg-brand-navy font-display font-bold text-white", size === "lg" ? "h-10 w-10 text-xl" : "h-7 w-7 text-sm")}>
+      <span aria-hidden="true" className={cn("inline-flex shrink-0 items-center justify-center rounded-md bg-action font-display font-bold text-on-action", size === "lg" ? "h-10 w-10 text-xl" : "h-7 w-7 text-sm")}>
         {band}
       </span>
       <span className={cn("font-display font-semibold text-primary", size === "lg" ? "text-lg" : "text-sm")}>
@@ -138,7 +138,7 @@ export function DimBarChart({ chart, caption, legend, showBand, locale, classNam
         <span>{caption}</span>
         <span className="flex flex-wrap items-center gap-3" aria-label={legend.join(", ")}>
           <span className="inline-flex items-center gap-1">
-            <span aria-hidden="true" className="inline-block h-2.5 w-4 rounded-sm bg-brand-navy" />
+            <span aria-hidden="true" className="inline-block h-2.5 w-4 rounded-sm bg-action" />
             {legend[0]}
           </span>
           {showBand ? (

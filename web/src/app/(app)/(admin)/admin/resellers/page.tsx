@@ -69,7 +69,7 @@ export default async function AdminResellersPage() {
           </div>
           <Link
             href="/admin/resellers/new"
-            className="rounded-md bg-brand-navy px-3 py-1.5 text-sm font-medium text-white"
+            className="rounded-md bg-action px-3 py-1.5 text-sm font-medium text-on-action"
           >
             + New reseller
           </Link>

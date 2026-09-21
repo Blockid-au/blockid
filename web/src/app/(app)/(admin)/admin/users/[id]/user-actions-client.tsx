@@ -141,7 +141,7 @@ export function UserActionsClient({ userId, email, currentRole }: Props) {
             setMode("credits");
             setMsg(null);
           }}
-          className="rounded-md bg-brand-navy px-3 py-1.5 text-sm font-medium text-white"
+          className="rounded-md bg-action px-3 py-1.5 text-sm font-medium text-on-action"
         >
           + Add credits
         </button>
@@ -210,7 +210,7 @@ export function UserActionsClient({ userId, email, currentRole }: Props) {
                 type="button"
                 onClick={submitCredits}
                 disabled={busy}
-                className="rounded-md bg-brand-navy px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
+                className="rounded-md bg-action px-3 py-1.5 text-sm font-medium text-on-action disabled:opacity-60"
               >
                 {busy ? "Granting…" : "Grant credits"}
               </button>
@@ -240,7 +240,7 @@ export function UserActionsClient({ userId, email, currentRole }: Props) {
                 type="button"
                 onClick={submitRole}
                 disabled={busy}
-                className="rounded-md bg-brand-navy px-3 py-1.5 text-sm font-medium text-white disabled:opacity-60"
+                className="rounded-md bg-action px-3 py-1.5 text-sm font-medium text-on-action disabled:opacity-60"
               >
                 {busy ? "Updating…" : `Set role to ${nextRole}`}
               </button>

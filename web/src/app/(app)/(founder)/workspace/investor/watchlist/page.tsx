@@ -286,7 +286,7 @@ function AddTickerForm() {
       />
       <button
         type="submit"
-        className="rounded-lg bg-brand-navy hover:bg-brand-navy-elev-1 text-white px-3 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
+        className="rounded-lg bg-action hover:bg-action-hover text-on-action px-3 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
       >
         Add to watchlist
       </button>
@@ -310,7 +310,7 @@ function EmptyState() {
       <div className="mt-4">
         <Link
           href="/workspace/investor/dealflow"
-          className="inline-flex items-center rounded-lg bg-brand-navy hover:bg-brand-navy-elev-1 text-white px-3 py-2 text-xs font-semibold"
+          className="inline-flex items-center rounded-lg bg-action hover:bg-action-hover text-on-action px-3 py-2 text-xs font-semibold"
         >
           Browse deal flow
         </Link>

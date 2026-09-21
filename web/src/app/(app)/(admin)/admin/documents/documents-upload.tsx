@@ -60,7 +60,7 @@ export default function DocumentsUpload() {
 
       <div className="space-y-4">
         <div>
-          <label htmlFor="file-upload" className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy disabled:pointer-events-none disabled:opacity-50 bg-brand-navy text-white hover:bg-brand-navy-elev-1 h-10 px-4 py-2">
+          <label htmlFor="file-upload" className="cursor-pointer inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy disabled:pointer-events-none disabled:opacity-50 bg-action text-on-action hover:bg-action-hover h-10 px-4 py-2">
             Select File
           </label>
           <input

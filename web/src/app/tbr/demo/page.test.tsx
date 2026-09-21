@@ -19,19 +19,22 @@ async function html(): Promise<string> {
   return new Response(stream).text();
 }
 
-describe("/tbr/demo (G21-P1-B)", () => {
-  it("shows the Assessment Card once with SVI + Evidence Confidence, above the executive summary, and ≥ 1 dimension explainability card", async () => {
+describe("/tbr/demo (G21-P1-B → G27 v3)", () => {
+  it("opens with the Dashboard — SVI + Evidence Confidence tiles once, above the Investment view — then the 8 dimension chapters", async () => {
     const out = await html();
-    expect((out.match(/data-testid="assessment-card"/g) ?? []).length).toBe(1);
-    const card = out.slice(out.indexOf('data-testid="assessment-card"'), out.indexOf('id="tbr-executive"'));
-    expect(card).toContain(">SVI<");
-    expect(card).toContain(">Evidence Confidence<");
-    expect(card).toContain("BlockID Verified L2");
-    expect(out.indexOf('data-testid="assessment-card"')).toBeLessThan(out.indexOf('id="tbr-executive"'));
-    expect(out.indexOf('data-testid="assessment-card"')).toBeGreaterThan(out.indexOf('id="tbr-cover"'));
-    expect((out.match(/data-testid="dimension-explain"/g) ?? []).length).toBe(8);
-    // No benchmark line until P1-C wires `benchmarkLabel(n)` through the `benchmarks` prop.
-    expect(out).not.toContain("data-assessment-benchmark");
+    // G27: the v3 Dashboard is the ONE surface for SVI + Evidence Confidence (the
+    // G21 Assessment Card's numbers now live in its tiles); it renders once,
+    // ahead of the Investment view, and never a benchmark line without n.
+    expect((out.match(/id="tbr-dashboard"/g) ?? []).length).toBe(1);
+    const dash = out.slice(out.indexOf('id="tbr-dashboard"'), out.indexOf('id="tbr-investment-view"'));
+    expect(dash).toContain('data-tbr-tile="svi"');
+    expect(dash).toContain('data-tbr-tile="evidence"');
+    expect(dash).toContain("Evidence confidence");
+    expect(out.indexOf('id="tbr-dashboard"')).toBeLessThan(out.indexOf('id="tbr-investment-view"'));
+    expect(out.indexOf('id="tbr-investment-view"')).toBeLessThan(out.indexOf('id="tbr-dim-'));
+    expect((out.match(/id="tbr-dim-[a-z]+"/g) ?? []).length).toBe(8);
+    expect(out).toContain('id="tbr-risk-matrix"');
     expect(out).not.toContain("Australian average");
+    expect(out).not.toMatch(/\[ev:|\[unevidenced\]/);
   });
 });

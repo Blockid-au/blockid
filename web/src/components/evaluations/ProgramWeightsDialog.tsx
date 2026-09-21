@@ -171,7 +171,7 @@ export function ProgramWeightsDialog({ batchId, weights, weightsVersion, onSaved
               <button type="button" onClick={close} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-line px-4 text-sm font-medium text-secondary hover:bg-surface-hover cursor-pointer">
                 Cancel
               </button>
-              <button type="submit" disabled={state === "busy"} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brand-navy px-4 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-50 cursor-pointer" data-testid="program-weights-save">
+              <button type="submit" disabled={state === "busy"} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50 cursor-pointer" data-testid="program-weights-save">
                 {state === "busy" ? <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : null}
                 {state === "busy" ? "Saving…" : "Save weights"}
               </button>

@@ -30,7 +30,7 @@ export function ExportIcButton({ evaluationId, kind }: { evaluationId: string; k
         type="button"
         onClick={run}
         disabled={state.kind === "busy"}
-        className="inline-flex min-h-9 items-center rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-60"
+        className="inline-flex min-h-9 items-center rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover disabled:opacity-60"
         data-testid="export-ic"
       >
         {state.kind === "busy" ? "Exporting…" : kind === "memo" ? "Export IC memo" : "Export one-pager"}

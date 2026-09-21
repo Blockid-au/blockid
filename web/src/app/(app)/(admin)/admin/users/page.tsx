@@ -226,7 +226,7 @@ export default async function AdminUsersPage({
             )}
             <button
               type="submit"
-              className="rounded-md bg-brand-navy px-3 py-1.5 text-sm font-medium text-white"
+              className="rounded-md bg-action px-3 py-1.5 text-sm font-medium text-on-action"
             >
               Search
             </button>
@@ -291,7 +291,7 @@ export default async function AdminUsersPage({
                 key={f}
                 href={buildHref({ filter: f })}
                 className={`inline-flex min-h-11 items-center rounded-full px-3 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2 ${
-                  filter === f ? "rounded-full bg-brand-navy text-white" : "bg-white text-ink-700 ring-1 ring-surface-200 hover:bg-surface-100"
+                  filter === f ? "rounded-full bg-action text-on-action" : "bg-white text-ink-700 ring-1 ring-surface-200 hover:bg-surface-100"
                 }`}
               >
                 {f}

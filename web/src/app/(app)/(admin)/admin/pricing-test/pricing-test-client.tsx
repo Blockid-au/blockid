@@ -206,7 +206,7 @@ export function PricingTestClient({ user, initialExperiments, initialSummaries }
           <button
             type="submit"
             disabled={creating}
-            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white hover:bg-brand-navy-elev-1 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/60 focus-visible:ring-offset-2"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-medium text-on-action hover:bg-action-hover disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/60 focus-visible:ring-offset-2"
           >
             {creating ? (
               <>

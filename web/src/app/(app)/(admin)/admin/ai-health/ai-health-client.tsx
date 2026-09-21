@@ -35,7 +35,7 @@ export function AIHealthClient({ initialRegistry }: { initialRegistry: Registry 
         <button
           onClick={() => trigger("health")}
           disabled={busy !== null}
-          className="px-4 py-2 rounded-lg bg-brand-navy text-white text-sm font-medium disabled:opacity-50"
+          className="px-4 py-2 rounded-lg bg-action text-on-action text-sm font-medium disabled:opacity-50"
         >
           {busy === "health" ? "Running…" : "Run health check now"}
         </button>

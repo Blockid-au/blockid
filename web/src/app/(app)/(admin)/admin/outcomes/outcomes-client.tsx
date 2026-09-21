@@ -78,7 +78,7 @@ export function OutcomesTable({ rows, onResolve, busyId }: { rows: QueueOutcomeR
                 <td className="px-3 py-2">
                   {r.status === "proposed" && onResolve ? (
                     <div className="flex gap-1">
-                      <button type="button" disabled={busyId === r.id} onClick={() => onResolve(r.id, "confirm")} className="inline-flex h-9 items-center gap-1 rounded-lg bg-brand-navy px-2.5 text-xs font-medium text-white hover:bg-brand-navy-elev-1 disabled:opacity-50" data-testid="outcome-queue-confirm">
+                      <button type="button" disabled={busyId === r.id} onClick={() => onResolve(r.id, "confirm")} className="inline-flex h-9 items-center gap-1 rounded-lg bg-action px-2.5 text-xs font-medium text-on-action hover:bg-action-hover disabled:opacity-50" data-testid="outcome-queue-confirm">
                         <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" /> Confirm
                       </button>
                       <button type="button" disabled={busyId === r.id} onClick={() => onResolve(r.id, "reject")} className="inline-flex h-9 items-center gap-1 rounded-lg border border-surface-300 bg-white px-2.5 text-xs font-medium text-ink-700 hover:bg-surface-100 disabled:opacity-50" data-testid="outcome-queue-reject">
@@ -159,7 +159,7 @@ export function OutcomesQueueClient({ user, initial }: OutcomesQueueClientProps)
                 onClick={() => setFilter(f)}
                 aria-pressed={filter === f}
                 data-testid={`outcomes-filter-${f}`}
-                className={`inline-flex h-9 items-center rounded-lg border px-3 text-xs font-medium ${filter === f ? "border-brand-600 bg-brand-navy text-white" : "border-surface-300 bg-white text-ink-700 hover:bg-surface-100"}`}
+                className={`inline-flex h-9 items-center rounded-lg border px-3 text-xs font-medium ${filter === f ? "border-brand-600 bg-action text-on-action" : "border-surface-300 bg-white text-ink-700 hover:bg-surface-100"}`}
               >
                 {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
                 {f !== "all" ? <span className="ml-1 tabular-nums opacity-80">{rows.filter((r) => r.status === f).length}</span> : null}

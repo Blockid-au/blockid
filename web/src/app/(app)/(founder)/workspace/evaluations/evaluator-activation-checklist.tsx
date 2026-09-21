@@ -58,7 +58,7 @@ const STEP_COPY: Record<ActivationStepNumber, { title: string; body: string; cta
 };
 
 const CTA_PRIMARY =
-  "inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 transition-colors cursor-pointer shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/60 focus-visible:ring-offset-2";
+  "inline-flex min-h-11 items-center justify-center rounded-xl bg-action px-4 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/60 focus-visible:ring-offset-2";
 const CTA_SECONDARY =
   "inline-flex min-h-11 items-center justify-center rounded-xl border border-brand-300 bg-surface px-4 py-2.5 text-sm font-semibold text-action hover:bg-surface-hover transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/60 focus-visible:ring-offset-2";
 

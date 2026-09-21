@@ -146,6 +146,17 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.26.0",
+    date: "2026-09-21",
+    title: "Light template complete + Trusted Business Report v3 (G26, G27)",
+    changes: [
+      "[G26] Every page on the light template: evaluator / accelerator / investor / admin surfaces, remaining marketing + tools + guides + startup package; ProShell removed; light-template guard enforcing (0 hits); page sweep 'light' check",
+      "[G27] Trusted Business Report v3 — investor-grade: Dashboard → Investment view (A/B/C/D rubric, conviction, reasons, risks, conditions) → Key points → Valuation → 8 chapters with one identical anatomy → Risk matrix → 90-day plan → Money → Appendix + Evidence cited; identical on web / PDF / DOCX; e-mail summary; EN + VI",
+      "[G24-C] Demo-cohort scores show on the program desk; Cohorts empty state has one primary action",
+      "[fix] Smoke pins follow G25 (review step, 'Start a cohort', /pilot 301s); disclaimer links on the action token",
+    ],
+  },
+  {
     version: "3.25.0",
     date: "2026-09-21",
     title: "Commerce simplification + light template foundation (G25, G26-T/M/W1)",

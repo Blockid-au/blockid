@@ -53,7 +53,7 @@ const SOURCE_LABEL: Record<AutoRow["source"], string> = {
 
 const INPUT = "block h-11 w-full rounded-lg border border-surface-300 bg-white px-3 text-sm text-ink-800 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-navy/30";
 const LABEL = "block text-xs font-medium text-ink-700";
-const BTN_PRIMARY = "inline-flex h-11 items-center gap-1.5 rounded-lg bg-brand-navy px-4 text-sm font-medium text-white hover:bg-brand-navy-elev-1 focus:outline-none focus:ring-2 focus:ring-brand-navy/40 disabled:opacity-50";
+const BTN_PRIMARY = "inline-flex h-11 items-center gap-1.5 rounded-lg bg-action px-4 text-sm font-medium text-on-action hover:bg-action-hover focus:outline-none focus:ring-2 focus:ring-brand-navy/40 disabled:opacity-50";
 const BTN_SECONDARY = "inline-flex h-11 items-center gap-1.5 rounded-lg border border-surface-300 bg-white px-3 text-sm font-medium text-ink-700 hover:bg-surface-100 focus:outline-none focus:ring-2 focus:ring-brand-navy/40 disabled:opacity-50";
 
 function n(v: number | null): string {

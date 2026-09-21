@@ -293,7 +293,7 @@ type Status =
 
 const input =
   "mt-1 w-full rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm text-ink-900 placeholder:text-ink-500 focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-navy/30";
-const chipOn = "inline-flex items-center rounded-full bg-brand-navy text-white px-3 py-1 text-xs font-semibold cursor-pointer";
+const chipOn = "inline-flex items-center rounded-full bg-action text-on-action px-3 py-1 text-xs font-semibold cursor-pointer";
 const chipOff =
   "inline-flex items-center rounded-full border border-surface-300 bg-white text-ink-700 px-3 py-1 text-xs font-medium hover:bg-surface-100 cursor-pointer";
 
@@ -447,7 +447,7 @@ export function MandateForm({ draft, draftSource, canEditWeights, limit, mandate
               aria-labelledby={`${uid}-disc-title`}
               aria-describedby={`${uid}-disc-sub`}
               onClick={() => set("discoverable", !f.discoverable)}
-              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2 ${f.discoverable ? "bg-brand-navy" : "bg-surface-400"}`}
+              className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2 ${f.discoverable ? "bg-action" : "bg-surface-400"}`}
               data-visibility-switch
             >
               <span aria-hidden="true" className={`inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ${f.discoverable ? "translate-x-6" : "translate-x-1"}`} />
@@ -597,7 +597,7 @@ export function MandateForm({ draft, draftSource, canEditWeights, limit, mandate
           type="submit"
           disabled={saving || !migrated || !canCreateMore}
           aria-busy={saving}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-navy hover:bg-brand-navy-elev-1 text-white px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-60"
+          className="inline-flex items-center gap-2 rounded-lg bg-action hover:bg-action-hover text-on-action px-4 py-2 text-sm font-semibold transition-colors disabled:opacity-60"
           data-mandate-save
         >
           {saving ? t(MANDATE_COPY.saving) : t(MANDATE_COPY.save)}

@@ -144,7 +144,7 @@ export function CohortIndex({ batches, templates, canCreate, demoLabels = DEMO_C
             <button type="button" onClick={() => setOpen(false)} className="inline-flex min-h-11 items-center rounded-lg px-4 text-sm font-medium text-ink-600 hover:bg-surface-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2">
               Cancel
             </button>
-            <button type="submit" disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-navy px-4 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2" data-testid="cohort-create">
+            <button type="submit" disabled={busy} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2" data-testid="cohort-create">
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
               Create cohort
             </button>

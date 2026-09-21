@@ -463,7 +463,7 @@ function ReviewDialog({ row, onClose, onSaved }: { row: ReviewRow; onClose: () =
           <p className="text-[11px] text-ink-500">Saving stamps verified_by=human and last_verified_at=today.</p>
           <div className="flex gap-2">
             <button type="button" onClick={onClose} className="rounded-xl border border-surface-200 px-3 py-1.5 text-sm text-ink-700 hover:bg-surface-50 cursor-pointer">Cancel</button>
-            <button type="button" onClick={save} disabled={busy} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-navy px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-navy-elev-1 disabled:opacity-60 cursor-pointer">
+            <button type="button" onClick={save} disabled={busy} className="inline-flex items-center gap-1.5 rounded-xl bg-action px-3 py-1.5 text-sm font-medium text-on-action hover:bg-action-hover disabled:opacity-60 cursor-pointer">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Mark verified
             </button>
           </div>

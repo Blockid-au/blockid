@@ -290,7 +290,7 @@ export function CohortDetailClient({
             <button
               type="button"
               onClick={() => setShowAddMember(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-navy text-white text-xs font-medium hover:bg-brand-navy-elev-1 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-action text-on-action text-xs font-medium hover:bg-action-hover transition-colors cursor-pointer"
             >
               <Plus strokeWidth={2} className="h-3 w-3" />
               Add Member
@@ -408,7 +408,7 @@ export function CohortDetailClient({
                   <button
                     type="submit"
                     disabled={adding}
-                    className="px-4 py-2 rounded-xl bg-brand-navy text-white text-sm font-medium hover:bg-brand-navy-elev-1 transition-colors disabled:opacity-50 cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-action text-on-action text-sm font-medium hover:bg-action-hover transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     {adding ? "Adding..." : "Add Member"}
                   </button>

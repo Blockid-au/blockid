@@ -116,7 +116,7 @@ export function AcceleratorDashboardClient({
           <button
             type="button"
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-navy text-white text-sm font-medium hover:bg-brand-navy-elev-1 transition-colors cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-action text-on-action text-sm font-medium hover:bg-action-hover transition-colors cursor-pointer"
           >
             <Plus strokeWidth={2} className="h-4 w-4" />
             Create Cohort
@@ -218,7 +218,7 @@ export function AcceleratorDashboardClient({
                   <button
                     type="submit"
                     disabled={creating}
-                    className="px-4 py-2 rounded-xl bg-brand-navy text-white text-sm font-medium hover:bg-brand-navy-elev-1 transition-colors disabled:opacity-50 cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-action text-on-action text-sm font-medium hover:bg-action-hover transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     {creating ? "Creating..." : "Create Cohort"}
                   </button>

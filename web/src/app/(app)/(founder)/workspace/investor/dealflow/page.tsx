@@ -137,7 +137,7 @@ export default async function InvestorDealFlowPage({ searchParams }: DealFlowPag
 // sort are single-value links. No client JS.
 // ---------------------------------------------------------------------------
 
-const activeChip = "inline-flex min-h-11 items-center rounded-full bg-brand-navy text-white px-3 text-xs font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2";
+const activeChip = "inline-flex min-h-11 items-center rounded-full bg-action text-on-action px-3 text-xs font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2";
 const idleChip =
   "inline-flex min-h-11 items-center rounded-full border border-surface-300 bg-white text-ink-700 px-3 text-xs font-medium hover:bg-surface-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2";
 
@@ -331,7 +331,7 @@ function EmptyState({ kind, filters }: { kind: "no_mandate" | "no_rows"; filters
           <p className="text-sm font-medium text-ink-800">Write your mandate to see deal-flow.</p>
           <p className="mt-1 text-xs text-ink-500">Sectors, stage, cheque, geography and floors — every consented startup is ranked against it nightly.</p>
           <div className="mt-4">
-            <Link href="/workspace/investor/mandate" className="inline-flex items-center rounded-lg bg-brand-navy hover:bg-brand-navy-elev-1 text-white px-3 py-2 text-xs font-semibold">
+            <Link href="/workspace/investor/mandate" className="inline-flex items-center rounded-lg bg-action hover:bg-action-hover text-on-action px-3 py-2 text-xs font-semibold">
               Write your mandate
             </Link>
           </div>
@@ -346,7 +346,7 @@ function EmptyState({ kind, filters }: { kind: "no_mandate" | "no_rows"; filters
                 Clear filters
               </Link>
             ) : null}
-            <Link href="/workspace/investor/mandate" className="inline-flex items-center rounded-lg bg-brand-navy hover:bg-brand-navy-elev-1 text-white px-3 py-2 text-xs font-semibold">
+            <Link href="/workspace/investor/mandate" className="inline-flex items-center rounded-lg bg-action hover:bg-action-hover text-on-action px-3 py-2 text-xs font-semibold">
               Edit mandate
             </Link>
           </div>

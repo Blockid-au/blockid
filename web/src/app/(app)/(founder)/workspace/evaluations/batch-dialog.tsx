@@ -144,7 +144,7 @@ export function BatchDialog({ selected, quotaRemaining, quotaLimit, trialActive 
               type="submit"
               disabled={submitting || n === 0 || insufficient}
               aria-busy={submitting}
-              className="inline-flex items-center gap-2 rounded-lg bg-brand-navy px-4 py-2 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 transition-colors cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer disabled:opacity-50"
             >
               {submitting && <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
               Queue {n} report{n === 1 ? "" : "s"}

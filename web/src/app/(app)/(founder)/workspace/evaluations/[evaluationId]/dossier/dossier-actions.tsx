@@ -108,7 +108,7 @@ export function DossierActions({ evaluationId, founderClaimed, founderEmailOnFil
             Add to batch
           </Link>
         ) : null}
-        <button type="button" className="inline-flex min-h-9 items-center rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-60" onClick={exportIc} disabled={busy !== null} data-testid="action-export-ic">
+        <button type="button" className="inline-flex min-h-9 items-center rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover disabled:opacity-60" onClick={exportIc} disabled={busy !== null} data-testid="action-export-ic">
           {busy === "ic" ? "Exporting…" : icKind === "memo" ? "Export IC memo" : "Export one-pager"}
         </button>
       </div>
@@ -129,7 +129,7 @@ export function DossierActions({ evaluationId, founderClaimed, founderEmailOnFil
             Ownership % (optional)
             <input value={ownership} onChange={(e) => setOwnership(e.target.value)} inputMode="decimal" className="mt-1 block w-28 rounded border border-surface-300 px-2 py-1 text-sm" placeholder="e.g. 7.5" />
           </label>
-          <button type="submit" className="inline-flex min-h-11 items-center rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2" disabled={busy !== null}>
+          <button type="submit" className="inline-flex min-h-11 items-center rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2" disabled={busy !== null}>
             {busy === "portfolio" ? "Saving…" : "Save to portfolio"}
           </button>
         </form>

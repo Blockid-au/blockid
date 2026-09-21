@@ -70,10 +70,10 @@ describe("CohortIndex — role chips (G22-A)", () => {
     // submit carries the navy fill.
     const creatable = renderToStaticMarkup(<CohortIndex batches={[]} templates={[]} canCreate pilotCap={null} />);
     expect(creatable).toMatch(/data-testid="cohort-empty-import/);
-    expect(creatable).not.toMatch(/class="[^"]*bg-brand-navy[^"]*"[^>]*data-testid="cohort-empty-import/);
-    expect(creatable).not.toMatch(/class="[^"]*bg-brand-navy[^"]*"[^>]*data-testid="cohort-new/);
+    expect(creatable).not.toMatch(/class="[^"]*bg-action[^"]*"[^>]*data-testid="cohort-empty-import/);
+    expect(creatable).not.toMatch(/class="[^"]*bg-action[^"]*"[^>]*data-testid="cohort-new/);
     // The form opens by default on the empty state, so exactly one navy fill is on screen: its "Create cohort" submit.
-    expect((creatable.match(/(?<![-\w:])bg-brand-navy(?![-\w])/g) ?? []).length).toBe(1);
-    expect(creatable).toMatch(/class="[^"]*bg-brand-navy[^"]*"[^>]*data-testid="cohort-create"/);
+    expect((creatable.match(/(?<![-\w:])bg-action(?![-\w])/g) ?? []).length).toBe(1);
+    expect(creatable).toMatch(/class="[^"]*bg-action[^"]*"[^>]*data-testid="cohort-create"/);
   });
 });

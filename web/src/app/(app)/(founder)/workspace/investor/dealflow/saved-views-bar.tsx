@@ -78,7 +78,7 @@ export function SavedViewsBar({ views, filters, mandateView, mandateLabel }: Sav
 
   const chip = (active: boolean) =>
     active
-      ? "inline-flex min-h-11 items-center rounded-full bg-brand-navy text-white px-3 text-xs font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
+      ? "inline-flex min-h-11 items-center rounded-full bg-action text-on-action px-3 text-xs font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
       : "inline-flex min-h-11 items-center rounded-full border border-surface-300 bg-white text-ink-700 px-3 text-xs font-medium hover:bg-surface-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2";
   const mandateQuery = mandateView ? filtersToQuery(mandateView) : "";
 
@@ -120,7 +120,7 @@ export function SavedViewsBar({ views, filters, mandateView, mandateLabel }: Sav
             onChange={(e) => setName(e.target.value)}
             className="w-40 rounded-lg border border-surface-300 bg-white px-2 py-1 text-xs text-ink-800"
           />
-          <button type="submit" disabled={status === "saving" || !name.trim()} className="rounded-lg bg-brand-navy hover:bg-brand-navy-elev-1 text-white px-3 py-1 text-xs font-semibold disabled:opacity-60">
+          <button type="submit" disabled={status === "saving" || !name.trim()} className="rounded-lg bg-action hover:bg-action-hover text-on-action px-3 py-1 text-xs font-semibold disabled:opacity-60">
             {status === "saving" ? c.saving : c.save}
           </button>
           <span role="status" aria-live="polite" className="text-xs text-ink-500">

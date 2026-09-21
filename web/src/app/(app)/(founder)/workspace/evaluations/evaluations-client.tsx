@@ -222,7 +222,7 @@ export function ProgressRadarPanel({ progress, hasMoneyRadar }: { progress: Eval
         </div>
         <Link
           href="/pricing?segment=evaluator"
-          className="inline-flex min-h-10 items-center rounded-xl bg-brand-navy px-4 py-2 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 transition-colors"
+          className="inline-flex min-h-10 items-center rounded-xl bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
         >
           Start Scout trial
         </Link>
@@ -687,7 +687,7 @@ export function EvaluationsClient({
           <button
             type="button"
             onClick={() => setShowAdd(true)}
-            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 transition-colors cursor-pointer shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/60 focus-visible:ring-offset-2"
+            className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-action px-4 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/60 focus-visible:ring-offset-2"
           >
             <Plus strokeWidth={1.75} className="h-4 w-4" />
             Add a startup
@@ -812,7 +812,7 @@ export function EvaluationsClient({
             <button
               type="button"
               onClick={() => setShowAdd(true)}
-              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 transition-colors cursor-pointer"
+              className="mt-6 inline-flex items-center gap-2 rounded-xl bg-action px-4 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer"
             >
               <Plus strokeWidth={1.75} className="h-4 w-4" />
               Add a startup
@@ -954,7 +954,7 @@ export function EvaluationsClient({
                           type="button"
                           onClick={() => setReportDialog({ row, kind: "full" })}
                           aria-label={`Run Trusted Business Report for ${row.projectName}`}
-                          className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-brand-navy px-2.5 text-xs font-semibold text-white hover:bg-brand-navy-elev-1 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
+                          className="inline-flex min-h-11 items-center gap-1 rounded-lg bg-action px-2.5 text-xs font-semibold text-on-action hover:bg-action-hover cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
                         >
                           <FileText strokeWidth={1.75} className="h-3.5 w-3.5" aria-hidden="true" />
                           Run Trusted Business Report
@@ -1133,7 +1133,7 @@ export function EvaluationsClient({
                 <button
                   type="submit"
                   disabled={creating || !name.trim()}
-                  className="inline-flex items-center gap-2 rounded-lg bg-brand-navy px-4 py-2 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 transition-colors cursor-pointer disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {creating && <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
                   Add startup

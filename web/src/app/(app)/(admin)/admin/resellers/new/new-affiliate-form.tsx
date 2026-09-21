@@ -525,7 +525,7 @@ export function NewAffiliateForm({ resellers }: Props) {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-md bg-brand-navy px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+            className="rounded-md bg-action px-3 py-1.5 text-sm font-medium text-on-action disabled:opacity-50"
           >
             {submitting ? "Provisioning…" : "Provision"}
           </button>
@@ -607,7 +607,7 @@ function SuccessCard({
             <button
               type="button"
               onClick={() => copy(invite.temp_password, "password")}
-              className="rounded-md bg-brand-navy px-2 py-1 text-xs font-medium text-white"
+              className="rounded-md bg-action px-2 py-1 text-xs font-medium text-on-action"
             >
               {copied === "password" ? "Copied" : "Copy"}
             </button>
@@ -627,7 +627,7 @@ function SuccessCard({
             <button
               type="button"
               onClick={() => copy(invite.magic_link_url!, "link")}
-              className="rounded-md bg-brand-navy px-2 py-1 text-xs font-medium text-white"
+              className="rounded-md bg-action px-2 py-1 text-xs font-medium text-on-action"
             >
               {copied === "link" ? "Copied" : "Copy"}
             </button>
@@ -660,7 +660,7 @@ function SuccessCard({
         {result.reseller?.code ? (
           <a
             href={`/admin/resellers/${result.reseller.code.toLowerCase()}`}
-            className="rounded-md bg-brand-navy px-3 py-1.5 text-sm font-medium text-white"
+            className="rounded-md bg-action px-3 py-1.5 text-sm font-medium text-on-action"
           >
             Open reseller detail
           </a>

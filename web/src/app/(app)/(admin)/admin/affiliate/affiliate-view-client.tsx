@@ -727,7 +727,7 @@ function GrantCreditsModal({
           <button
             type="submit"
             disabled={busy}
-            className="rounded-md bg-brand-navy px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-navy-elev-1 disabled:opacity-50"
+            className="rounded-md bg-action px-3 py-1.5 text-sm font-medium text-on-action hover:bg-action-hover disabled:opacity-50"
           >
             {busy ? "Granting…" : "Grant"}
           </button>

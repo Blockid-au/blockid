@@ -215,7 +215,7 @@ export default async function AcceleratorQuarterlyReportPage() {
             </div>
             <Link
               href={exportHref}
-              className="inline-flex items-center gap-2 rounded-lg bg-brand-navy hover:bg-brand-navy-elev-1 text-white px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
+              className="inline-flex items-center gap-2 rounded-lg bg-action hover:bg-action-hover text-on-action px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
             >
               {summary.cohortId ? "Export legacy LP summary" : "Batch score a cohort"}
             </Link>
@@ -244,7 +244,7 @@ export default async function AcceleratorQuarterlyReportPage() {
                       </p>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <a href={COHORT_REPORT_HREF(b.id, "html")} target="_blank" rel="noopener" className="inline-flex min-h-11 items-center rounded-lg bg-brand-navy px-3 text-sm font-semibold text-white hover:bg-brand-navy-elev-1">
+                      <a href={COHORT_REPORT_HREF(b.id, "html")} target="_blank" rel="noopener" className="inline-flex min-h-11 items-center rounded-lg bg-action px-3 text-sm font-semibold text-on-action hover:bg-action-hover">
                         Open report
                       </a>
                       <a href={COHORT_REPORT_HREF(b.id, "pdf")} className="inline-flex min-h-11 items-center rounded-lg border border-surface-200 px-3 text-sm font-semibold text-ink-700 hover:bg-surface-100">

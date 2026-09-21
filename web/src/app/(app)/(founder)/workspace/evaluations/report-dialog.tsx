@@ -342,7 +342,7 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
                     href={result.report_url}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-navy-elev-1"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover"
                   >
                     <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /> Open report
                     <span className="sr-only">(opens in a new tab)</span>
@@ -391,7 +391,7 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
                 disabled={!canRun}
                 aria-busy={running}
                 data-testid="report-confirm"
-                className="inline-flex items-center gap-2 rounded-lg bg-brand-navy px-4 py-2 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 transition-colors cursor-pointer disabled:opacity-50"
+                className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer disabled:opacity-50"
               >
                 {running && <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
                 {running ? (kind === "full" ? "Generating (up to 3 min)…" : "Re-scoring…") : copy.button}
