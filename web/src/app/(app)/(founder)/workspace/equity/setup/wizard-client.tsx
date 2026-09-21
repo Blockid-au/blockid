@@ -96,7 +96,7 @@ const ACCELERATION_LABELS: Record<AccelerationType, string> = {
 };
 
 const INPUT_CLS =
-  "w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors";
+  "w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors";
 
 // ---------------------------------------------------------------------------
 // Utility: generate stable IDs
@@ -522,7 +522,7 @@ export function EquityWizard({
             className={cn(
               "h-2 flex-1 rounded-full transition-colors duration-300",
               s < step
-                ? "bg-brand-600"
+                ? "bg-action"
                 : s === step
                   ? "bg-brand-500"
                   : "bg-surface-200",

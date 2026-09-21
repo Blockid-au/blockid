@@ -196,7 +196,7 @@ export default function EquityOfferRequestPage() {
               </Link>
               <Link
                 href="/dashboard"
-                className="rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-semibold"
+                className="rounded-lg bg-action hover:bg-action-hover text-white px-4 py-2 text-sm font-semibold"
               >
                 Dashboard
               </Link>
@@ -250,7 +250,7 @@ export default function EquityOfferRequestPage() {
               onChange={(e) =>
                 setForm((p) => ({ ...p, companyName: e.target.value }))
               }
-              className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-action"
             />
           </div>
 
@@ -269,7 +269,7 @@ export default function EquityOfferRequestPage() {
               onChange={(e) =>
                 setForm((p) => ({ ...p, stage: e.target.value as Stage }))
               }
-              className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-action"
             >
               <option value="">Select a stage…</option>
               {STAGE_OPTIONS.map((o) => (
@@ -336,7 +336,7 @@ export default function EquityOfferRequestPage() {
                         type="checkbox"
                         checked={checked}
                         onChange={() => onToggleScope(opt.value)}
-                        className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500"
+                        className="h-4 w-4 rounded border-slate-300 text-brand-600 focus:ring-action"
                       />
                       {opt.label}
                     </label>
@@ -365,7 +365,7 @@ export default function EquityOfferRequestPage() {
                 setForm((p) => ({ ...p, message: e.target.value }))
               }
               placeholder="Tell us about your company, why an equity-for-solution model works for you, and what you would like to achieve in the first 90 days."
-              className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="mt-1 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-action"
             />
             <div className="mt-1 flex justify-between text-xs">
               <span
@@ -397,7 +397,7 @@ export default function EquityOfferRequestPage() {
                 onChange={(e) =>
                   setForm((p) => ({ ...p, ackDisclaimer: e.target.checked }))
                 }
-                className="mt-0.5 h-4 w-4 rounded border-amber-400 text-brand-600 focus:ring-brand-500"
+                className="mt-0.5 h-4 w-4 rounded border-amber-400 text-brand-600 focus:ring-action"
               />
               <span>
                 I have read and acknowledge the disclaimers on the previous
@@ -414,7 +414,7 @@ export default function EquityOfferRequestPage() {
                     ackIndependentCounsel: e.target.checked,
                   }))
                 }
-                className="mt-0.5 h-4 w-4 rounded border-amber-400 text-brand-600 focus:ring-brand-500"
+                className="mt-0.5 h-4 w-4 rounded border-amber-400 text-brand-600 focus:ring-action"
               />
               <span>
                 I am not seeking financial or legal advice from BlockID; I
@@ -441,9 +441,9 @@ export default function EquityOfferRequestPage() {
             <button
               type="submit"
               disabled={!canSubmit}
-              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 ${
+              className={`inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 ${
                 canSubmit
-                  ? "bg-brand-600 hover:bg-brand-700 text-white"
+                  ? "bg-action hover:bg-action-hover text-white"
                   : "bg-slate-200 text-slate-500 cursor-not-allowed"
               }`}
             >

@@ -245,7 +245,7 @@ export function SectionPicker({ onConfirm, onClose, credits, loading }: SectionP
                             className={cn(
                               "shrink-0 rounded-lg px-2 sm:px-2.5 py-1 sm:py-1.5 text-[10px] sm:text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap",
                               depth === d
-                                ? "bg-brand-600 text-white"
+                                ? "bg-action text-white"
                                 : "bg-surface-100 text-ink-600 hover:bg-surface-200",
                             )}
                           >

@@ -114,7 +114,7 @@ export function EsopDashboardClient() {
               <button
                 onClick={handleCreatePool}
                 disabled={creatingPool}
-                className="flex-1 rounded-lg bg-brand-600 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60"
+                className="flex-1 rounded-lg bg-action py-2 text-sm font-medium text-white hover:bg-action-hover disabled:opacity-60"
               >
                 {creatingPool ? "Creating..." : "Create Pool"}
               </button>

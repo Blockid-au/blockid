@@ -318,7 +318,7 @@ export function JournalClient() {
                 setEditingEntry(null);
               }
             }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-hover transition-colors cursor-pointer"
           >
             {showForm ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
             {showForm ? "Cancel" : "New Entry"}
@@ -396,7 +396,7 @@ export function JournalClient() {
                   value={formTitle}
                   onChange={(e) => setFormTitle(e.target.value)}
                   placeholder="What happened?"
-                  className="w-full px-3 py-2 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400"
+                  className="w-full px-3 py-2 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-action/30 focus:border-action"
                   required
                 />
               </div>
@@ -433,7 +433,7 @@ export function JournalClient() {
                 onChange={(e) => setFormContent(e.target.value)}
                 placeholder="Details, context, reasoning..."
                 rows={4}
-                className="w-full px-3 py-2 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 resize-y"
+                className="w-full px-3 py-2 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-action/30 focus:border-action resize-y"
               />
             </div>
 
@@ -446,7 +446,7 @@ export function JournalClient() {
                 value={formTags}
                 onChange={(e) => setFormTags(e.target.value)}
                 placeholder="product, fundraising, team"
-                className="w-full px-3 py-2 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400"
+                className="w-full px-3 py-2 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-action/30 focus:border-action"
               />
             </div>
 
@@ -461,7 +461,7 @@ export function JournalClient() {
               <button
                 type="submit"
                 disabled={submitting || !formTitle.trim()}
-                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition-colors cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-hover disabled:opacity-50 transition-colors cursor-pointer"
               >
                 {submitting ? "Saving..." : editingEntry ? "Update Entry" : "Save Entry"}
               </button>

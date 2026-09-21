@@ -87,7 +87,7 @@ export function FeedbackForm() {
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value as Category)}
-          className="w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
+          className="w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action"
         >
           {CATEGORIES.map((c) => (
             <option key={c.value} value={c.value}>
@@ -140,7 +140,7 @@ export function FeedbackForm() {
           maxLength={maxChars}
           rows={6}
           placeholder="Tell us what you think — what's working well, what could be improved, and any specific suggestions..."
-          className="w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500 resize-vertical"
+          className="w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action resize-vertical"
           required
         />
         <div className="mt-1 flex justify-between text-xs text-muted">
@@ -164,7 +164,7 @@ export function FeedbackForm() {
       <button
         type="submit"
         disabled={submitting || body.length < minChars || rating === 0}
-        className="w-full rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="w-full rounded-md bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {submitting ? "Submitting..." : "Submit Feedback"}
       </button>

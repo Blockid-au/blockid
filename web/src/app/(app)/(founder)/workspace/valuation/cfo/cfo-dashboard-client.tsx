@@ -467,7 +467,7 @@ export function CFODashboardClient({
             <select
               value={input.stage}
               onChange={(e) => setInput((s) => ({ ...s, stage: e.target.value }))}
-              className="w-full rounded-xl border border-surface-200 bg-surface-50 px-3 py-2 text-sm font-medium text-ink-800 outline-none focus:border-brand-400 focus:ring-2 focus:ring-brand-100 transition-all"
+              className="w-full rounded-xl border border-surface-200 bg-surface-50 px-3 py-2 text-sm font-medium text-ink-800 outline-none focus:border-action focus:ring-2 focus:ring-action/25 transition-all"
             >
               {STAGE_OPTIONS.map((o) => (
                 <option key={o.value} value={o.value}>{o.label}</option>
@@ -487,7 +487,7 @@ export function CFODashboardClient({
           type="button"
           onClick={generateCommentary}
           disabled={loading}
-          className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-6 py-3 text-sm font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+          className="inline-flex items-center gap-2 rounded-xl bg-action px-6 py-3 text-sm font-semibold text-white hover:bg-action-hover transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
           {loading ? (
             <Loader2 className="h-4 w-4 animate-spin" />

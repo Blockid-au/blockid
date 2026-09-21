@@ -102,12 +102,12 @@ export function GitHubConnectForm({ oauthEnabled, initialRepo }: Props) {
                 value={repo}
                 onChange={(e) => setRepo(e.target.value)}
                 placeholder="https://github.com/owner/repo or owner/repo"
-                className="flex-1 rounded-xl border border-surface-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
+                className="flex-1 rounded-xl border border-surface-200 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-action"
               />
               <button
                 type="submit"
                 disabled={submitting || !repo.trim()}
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 transition-colors"
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50 transition-colors"
               >
                 {submitting ? (
                   <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" />

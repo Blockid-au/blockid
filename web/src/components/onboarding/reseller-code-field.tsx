@@ -190,7 +190,7 @@ export function ResellerCodeField({ locale = "en", initialCode, onValidated, onC
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder={t.input_placeholder}
-          className="flex-1 rounded-md border border-surface-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-brand-400"
+          className="flex-1 rounded-md border border-surface-300 bg-white px-3 py-1.5 text-sm outline-none focus:border-action"
           autoComplete="off"
           spellCheck={false}
         />
@@ -198,7 +198,7 @@ export function ResellerCodeField({ locale = "en", initialCode, onValidated, onC
           type="button"
           onClick={() => void runValidate(input)}
           disabled={status === "checking" || !input.trim()}
-          className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+          className="rounded-md bg-action px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
         >
           {status === "checking" ? t.checking : t.validate}
         </button>

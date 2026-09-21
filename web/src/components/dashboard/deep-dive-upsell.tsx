@@ -34,7 +34,7 @@ export function DeepDiveUpsell() {
 
       <Link
         href="/"
-        className="flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+        className="flex items-center justify-center gap-2 rounded-xl bg-action px-4 py-2.5 text-sm font-semibold text-white hover:bg-action-hover transition-colors"
       >
         Run Deep Dive
         <ArrowRight strokeWidth={1.75} className="h-4 w-4" />

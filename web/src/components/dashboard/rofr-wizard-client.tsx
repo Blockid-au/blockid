@@ -79,7 +79,7 @@ function InputField(props: {
         value={props.value}
         placeholder={props.placeholder}
         onChange={(e) => props.onChange(e.target.value)}
-        className="mt-2 w-full rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
+        className="mt-2 w-full rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action"
       />
     </label>
   );
@@ -104,7 +104,7 @@ function TextAreaField(props: {
         value={props.value}
         placeholder={props.placeholder}
         onChange={(e) => props.onChange(e.target.value)}
-        className="mt-2 w-full rounded-lg border border-surface-300 bg-white px-3 py-2 font-mono text-xs text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
+        className="mt-2 w-full rounded-lg border border-surface-300 bg-white px-3 py-2 font-mono text-xs text-ink-800 focus:outline-none focus:ring-2 focus:ring-action"
       />
     </label>
   );
@@ -131,7 +131,7 @@ function Toggle(props: {
         onClick={() => props.onChange(!props.checked)}
         className={cn(
           "relative mt-0.5 inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
-          props.checked ? "bg-brand-600" : "bg-surface-300",
+          props.checked ? "bg-action" : "bg-surface-300",
         )}
       >
         <span

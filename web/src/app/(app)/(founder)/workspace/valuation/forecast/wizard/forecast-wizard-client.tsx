@@ -133,7 +133,7 @@ export function ForecastWizardClient() {
         <p className="text-gray-600 mt-1">Step {step} of {TOTAL_STEPS}</p>
         <div className="mt-4 w-full bg-gray-200 h-2 rounded-full overflow-hidden">
           <div
-            className="bg-blue-600 h-full transition-all"
+            className="bg-action h-full transition-all"
             style={{ width: `${(step / TOTAL_STEPS) * 100}%` }}
           />
         </div>

@@ -1006,7 +1006,7 @@ export function SVIEntrance({ chrome = true }: SVIEntranceProps = {}) {
                       Your analysis is saved and waiting for you.
                     </p>
                     <div className="flex flex-wrap items-center gap-2 mt-3">
-                      <a href={`/auth/login?next=/workspace/score`} className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors">
+                      <a href={`/auth/login?next=/workspace/score`} className="inline-flex items-center gap-1.5 rounded-lg bg-action px-4 py-2 text-xs font-semibold text-white hover:bg-action-hover transition-colors">
                         Sign In &amp; Get {FREE_SIGNUP_CREDITS} Free Credits
                       </a>
                       <span className="text-[10px] text-brand-500">Use code <strong>LAUNCH50</strong> for 50% off</span>
@@ -1064,7 +1064,7 @@ export function SVIEntrance({ chrome = true }: SVIEntranceProps = {}) {
           <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 max-w-[calc(100vw-2rem)] animate-in slide-in-from-bottom duration-300">
             <button
               onClick={() => document.getElementById("svi-results")?.scrollIntoView({ behavior: "smooth" })}
-              className="flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-3 text-sm font-semibold text-white shadow-lg hover:bg-brand-700 transition-colors cursor-pointer"
+              className="flex items-center gap-2 rounded-xl bg-action px-5 py-3 text-sm font-semibold text-white shadow-lg hover:bg-action-hover transition-colors cursor-pointer"
             >
               <CheckCircle2 className="h-4 w-4" />
               Your SVI Score is ready — View Results
@@ -1209,7 +1209,7 @@ export function SVIEntrance({ chrome = true }: SVIEntranceProps = {}) {
                     className={cn(
                       "inline-flex min-h-9 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-medium cursor-pointer transition-colors",
                       selectedStage === s.value
-                        ? "bg-brand-600 text-white"
+                        ? "bg-action text-white"
                         : "bg-surface-100 text-ink-600 hover:bg-surface-200",
                     )}
                   >
@@ -1226,7 +1226,7 @@ export function SVIEntrance({ chrome = true }: SVIEntranceProps = {}) {
             <div className="mt-3 flex items-center justify-center">
               {loggedInUser ? (
                 <div className="flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 pl-3 pr-4 py-1.5">
-                  <div className="h-6 w-6 rounded-full bg-brand-600 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
+                  <div className="h-6 w-6 rounded-full bg-action flex items-center justify-center text-white text-[10px] font-bold shrink-0">
                     {(loggedInUser.displayName ?? loggedInUser.email)[0].toUpperCase()}
                   </div>
                   <span className="text-sm text-brand-700 font-medium">{loggedInUser.email}</span>
@@ -1240,7 +1240,7 @@ export function SVIEntrance({ chrome = true }: SVIEntranceProps = {}) {
                     </span>
                   )}
                   <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} onBlur={(e) => checkGate(e.target.value)} placeholder="your@email.com" required
-                    className="h-10 w-full rounded-lg border border-surface-300 bg-white px-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors" />
+                    className="h-10 w-full rounded-lg border border-surface-300 bg-white px-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-action focus:ring-2 focus:ring-action/25 transition-colors" />
                 </div>
               )}
             </div>
@@ -1265,7 +1265,7 @@ export function SVIEntrance({ chrome = true }: SVIEntranceProps = {}) {
 
             <div className="mt-4 flex w-full flex-col items-center justify-center gap-3 sm:flex-row">
               <button type="submit" disabled={state === "submitting"}
-                className="h-12 w-full max-w-xs px-8 rounded-2xl bg-brand-600 text-base font-bold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed cta-glow sm:w-auto">
+                className="h-12 w-full max-w-xs px-8 rounded-2xl bg-action text-base font-bold text-white hover:bg-action-hover transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed cta-glow sm:w-auto">
                 {state === "submitting" ? <span className="flex items-center gap-2"><span className="h-3.5 w-3.5 rounded-full border-2 border-line border-t-white animate-spin shrink-0" /><span className="truncate max-w-[200px]">{rndStatusEntries.length > 0 ? (rndStatusEntries[rndStatusEntries.length - 1].message.length > 30 ? rndStatusEntries[rndStatusEntries.length - 1].message.slice(0, 30) + "…" : rndStatusEntries[rndStatusEntries.length - 1].message) : SVI_FALLBACK_MESSAGES[sviFallbackIdx]}</span></span> : "Get My SVI — Free"}
               </button>
               <button type="button" onClick={() => { setText(QUICK_EXAMPLES[Math.floor(Math.random() * QUICK_EXAMPLES.length)]); textareaRef.current?.focus(); trackEvent("svi_form_started", { method: "example" }); }}
@@ -1348,7 +1348,7 @@ export function SVIEntrance({ chrome = true }: SVIEntranceProps = {}) {
                   investor-ready from day one.
                 </p>
                 <div className="mt-10 flex flex-col sm:flex-row flex-wrap gap-4">
-                  <a href="#svi" className="inline-flex h-14 sm:h-16 items-center justify-center gap-2.5 rounded-2xl bg-brand-600 px-8 sm:px-10 text-base sm:text-lg font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
+                  <a href="#svi" className="inline-flex h-14 sm:h-16 items-center justify-center gap-2.5 rounded-2xl bg-action px-8 sm:px-10 text-base sm:text-lg font-semibold text-white hover:bg-action-hover transition-colors cta-glow">
                     Start Your Journey <ArrowRight strokeWidth={2} className="h-5 w-5" />
                   </a>
                   <Link href="/tools/idea-valuation" className="inline-flex h-14 sm:h-16 items-center justify-center gap-2.5 rounded-2xl border border-surface-300 bg-white/80 backdrop-blur-sm px-8 sm:px-10 text-base sm:text-lg font-semibold text-ink-700 hover:bg-surface-100 transition-colors">
@@ -1487,7 +1487,7 @@ export function SVIEntrance({ chrome = true }: SVIEntranceProps = {}) {
               {/* The solution */}
               <div className="rounded-2xl border border-brand-200 bg-brand-50/50 p-6 ring-1 ring-brand-100 bento-card">
                 <div className="flex items-center gap-3 mb-5">
-                  <div className="h-10 w-10 rounded-xl bg-brand-600 flex items-center justify-center">
+                  <div className="h-10 w-10 rounded-xl bg-action flex items-center justify-center">
                     <Image src="/images/logo-icon-transparent.png" alt="" width={24} height={24} className="h-6 w-6" />
                   </div>
                   <div>
@@ -1522,7 +1522,7 @@ export function SVIEntrance({ chrome = true }: SVIEntranceProps = {}) {
 
             {/* Bottom CTA */}
             <div className="text-center mt-8">
-              <a href="#svi" className="inline-flex h-12 items-center gap-2 rounded-xl bg-brand-600 px-8 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
+              <a href="#svi" className="inline-flex h-12 items-center gap-2 rounded-xl bg-action px-8 text-sm font-semibold text-white hover:bg-action-hover transition-colors cta-glow">
                 Value Your Idea Free <ArrowRight className="h-4 w-4" />
               </a>
               <p className="mt-3 text-xs text-ink-500">
@@ -1611,7 +1611,7 @@ export function SVIEntrance({ chrome = true }: SVIEntranceProps = {}) {
                       <div className="hidden md:block absolute top-8 -right-5 w-5 h-0.5 bg-brand-200" aria-hidden="true" />
                     )}
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="h-8 w-8 rounded-full bg-brand-600 text-white text-xs font-bold flex items-center justify-center shadow-sm">{num}</span>
+                      <span className="h-8 w-8 rounded-full bg-action text-white text-xs font-bold flex items-center justify-center shadow-sm">{num}</span>
                       <Icon strokeWidth={1.75} className="h-4 w-4 text-brand-600" />
                     </div>
                     <p className="text-sm font-semibold text-ink-800 group-hover:text-brand-700 transition-colors">{title}</p>
@@ -1651,7 +1651,7 @@ export function SVIEntrance({ chrome = true }: SVIEntranceProps = {}) {
                   <li className="flex items-start gap-2"><CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-brand-600 shrink-0 mt-0.5" /> Shareable link</li>
                 </ul>
                 <div className="mt-auto">
-                  <a href="#svi" className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
+                  <a href="#svi" className="inline-flex h-11 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-white hover:bg-action-hover transition-colors cta-glow">
                     Try Free &mdash; Then {SVI_ANALYSIS_CREDITS.toFixed(2)} credits/report <ArrowRight strokeWidth={2} className="h-4 w-4" />
                   </a>
                 </div>
@@ -1662,7 +1662,7 @@ export function SVIEntrance({ chrome = true }: SVIEntranceProps = {}) {
                   A$5 lifetime, only 100 spots" promo that closed 2026-09-01. */}
               {PAYWALL_STARTER && (
                 <div className="rounded-2xl border-2 border-brand-400 bg-white px-5 sm:px-8 py-8 text-center shadow-lg flex flex-col relative overflow-hidden" data-testid="svi-pricing-starter">
-                  <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-brand-600 px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Best Value</div>
+                  <div className="absolute top-3 right-3 sm:top-4 sm:right-4 rounded-full bg-action px-2 sm:px-3 py-1 text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">Best Value</div>
                   <p className="text-xs uppercase tracking-[0.15em] text-brand-600 font-medium mb-2">Founder Plan</p>
                   <h3 className="text-xl font-bold text-ink-800 mb-1">{PAYWALL_STARTER.name}</h3>
                   <p className="text-2xl sm:text-3xl font-extrabold text-brand-600 mb-1">{formatAud(PAYWALL_STARTER.monthly_aud)}<span className="text-base font-semibold text-ink-500">/mo</span></p>
@@ -1675,7 +1675,7 @@ export function SVIEntrance({ chrome = true }: SVIEntranceProps = {}) {
                     ))}
                   </ul>
                   <div className="mt-auto">
-                    <Link href="/pricing#tier-starter" className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cta-glow">
+                    <Link href="/pricing#tier-starter" className="inline-flex h-11 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-white hover:bg-action-hover transition-colors cta-glow">
                       See the {PAYWALL_STARTER.name} plan <ArrowRight strokeWidth={2} className="h-4 w-4" />
                     </Link>
                   </div>
@@ -2059,7 +2059,7 @@ function SVIPaywall({
                 value={couponCode}
                 onChange={(e) => { setCouponCode(e.target.value); if (couponState === "error") { setCouponState("idle"); setCouponMsg(""); } }}
                 placeholder="Enter coupon code"
-                className="h-10 w-full rounded-xl border border-surface-300 bg-surface-50 pl-9 pr-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-100 transition-colors"
+                className="h-10 w-full rounded-xl border border-surface-300 bg-surface-50 pl-9 pr-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:border-action focus:ring-2 focus:ring-action/25 transition-colors"
                 onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleCouponValidate(); } }}
               />
             </div>
@@ -2155,13 +2155,13 @@ function TopBar() {
           <LanguageToggle variant="icon" className="ml-1" />
           {user ? (
             <Link href="/workspace/score" className="ml-2 h-9 inline-flex items-center gap-2 rounded-full bg-brand-50 border border-brand-200 px-3 hover:bg-brand-100 transition-colors">
-              <span className="h-6 w-6 rounded-full bg-brand-600 flex items-center justify-center text-white text-[10px] font-bold">
+              <span className="h-6 w-6 rounded-full bg-action flex items-center justify-center text-white text-[10px] font-bold">
                 {(user.displayName ?? user.email)[0].toUpperCase()}
               </span>
               <span className="text-sm text-brand-700 font-medium max-w-[120px] truncate">{user.displayName ?? user.email.split("@")[0]}</span>
             </Link>
           ) : (
-            <Link href="/auth/login" className="ml-2 h-9 px-5 inline-flex items-center justify-center rounded-lg bg-brand-600 text-sm font-medium text-white hover:bg-brand-700 transition-all cursor-pointer">Sign in</Link>
+            <Link href="/auth/login" className="ml-2 h-9 px-5 inline-flex items-center justify-center rounded-lg bg-action text-sm font-medium text-white hover:bg-action-hover transition-all cursor-pointer">Sign in</Link>
           )}
         </nav>
 
@@ -2190,13 +2190,13 @@ function TopBar() {
             <div className="my-2 border-t border-surface-200" />
             {user ? (
               <Link href="/workspace/score" onClick={() => setMobileOpen(false)} className="mx-3 h-10 flex items-center justify-center gap-2 rounded-lg bg-brand-50 border border-brand-200 text-sm font-medium text-brand-700">
-                <span className="h-6 w-6 rounded-full bg-brand-600 flex items-center justify-center text-white text-[10px] font-bold">
+                <span className="h-6 w-6 rounded-full bg-action flex items-center justify-center text-white text-[10px] font-bold">
                   {(user.displayName ?? user.email)[0].toUpperCase()}
                 </span>
                 {user.displayName ?? user.email.split("@")[0]}
               </Link>
             ) : (
-              <Link href="/auth/login" onClick={() => setMobileOpen(false)} className="mx-3 h-10 flex items-center justify-center rounded-lg bg-brand-600 text-sm font-medium text-white hover:bg-brand-700">Sign in</Link>
+              <Link href="/auth/login" onClick={() => setMobileOpen(false)} className="mx-3 h-10 flex items-center justify-center rounded-lg bg-action text-sm font-medium text-white hover:bg-action-hover">Sign in</Link>
             )}
             <div className="flex justify-center pt-2 pb-1">
               <LanguageToggle variant="pill" />
@@ -2211,7 +2211,7 @@ function TopBar() {
 // ═══════════════════════════════════════════════════════════════════════════════
 function BottomFooter() {
   return (
-    // G26: light footer (sunken) — the dark `data-theme="dark"` scope is gone;
+    // G26: light footer (sunken) — the dark theme scope is gone;
     // light is the only default and every link is `text-muted` ≥ 4.5:1 on it.
     <footer
       className="bg-surface-sunken text-sm text-muted border-t border-line-subtle"

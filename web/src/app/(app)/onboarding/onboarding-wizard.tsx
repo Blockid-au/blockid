@@ -20,8 +20,7 @@
 // another device lands on the same step. Navbar / Footer arrive as slots
 // from the server page (they cannot be imported into a client file — see
 // the legacy shell). G26: the wizard renders on the light template
-// (`bg-surface-sunken` page, white card) — the `data-theme="lux"` navy
-// wrapper is gone.
+// (`bg-surface-sunken` page, white card) — the navy lux wrapper is gone.
 
 import * as React from "react";
 import { ArrowLeft } from "lucide-react";

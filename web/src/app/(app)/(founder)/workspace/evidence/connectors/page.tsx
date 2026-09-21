@@ -207,7 +207,7 @@ export default async function IntegrationsPage({
                     </p>
                     {xeroFreshness?.error ? <p className="text-xs text-red-600 mt-1">{xeroFreshness.error}</p> : null}
                   </div>
-                  <a href="/api/oauth/xero" className="px-3 py-1.5 text-sm rounded-md bg-brand-600 hover:bg-brand-700 text-white shrink-0">
+                  <a href="/api/oauth/xero" className="px-3 py-1.5 text-sm rounded-md bg-action hover:bg-action-hover text-white shrink-0">
                     {xeroFreshness ? "Reconnect" : "Connect"}
                   </a>
                 </div>

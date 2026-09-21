@@ -162,7 +162,7 @@ export function SampleSviCard() {
         </p>
         <a
           href="/score"
-          className="inline-flex items-center justify-center gap-1.5 min-h-[44px] rounded-lg bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors"
+          className="inline-flex items-center justify-center gap-1.5 min-h-[44px] rounded-lg bg-action hover:bg-action-hover text-white text-sm font-semibold px-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors"
         >
           Get your real SVI
           <ArrowRight className="h-4 w-4" aria-hidden="true" />

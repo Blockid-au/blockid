@@ -70,7 +70,7 @@ export function ResellerConsentModal({ locale = "en", resellerName, onAccept, on
             ref={acceptRef}
             type="button"
             onClick={onAccept}
-            className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+            className="rounded-md bg-action px-4 py-2 text-sm font-medium text-white hover:bg-action-hover"
           >
             {t.accept}
           </button>

@@ -65,7 +65,7 @@ function StepBreadcrumb({ current }: { current: Step }) {
             <span
               className={cn(
                 "inline-flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold tabular-nums",
-                active && "bg-brand-600 text-white",
+                active && "bg-action text-white",
                 done && "bg-bull text-white",
                 !active && !done && "bg-ink-200 text-ink-600",
               )}
@@ -339,7 +339,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
         {credits && (
           <Link
             href="/workspace/billing"
-            className="inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-3 py-2 text-xs font-medium text-ink-700 hover:border-brand-500 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors shrink-0"
+            className="inline-flex items-center gap-2 rounded-lg border border-ink-200 bg-white px-3 py-2 text-xs font-medium text-ink-700 hover:border-brand-500 hover:text-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors shrink-0"
             aria-label={`Credit balance ${credits.balance.toFixed(2)} — go to billing`}
           >
             <Wallet className="h-3.5 w-3.5 text-brand-600" aria-hidden="true" />
@@ -414,7 +414,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
             onChange={(e) => setPastedText(e.target.value)}
             placeholder="Paste your executive summary, elevator pitch, or a rough combo of team + traction bullets…"
             rows={5}
-            className="w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="w-full rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
           />
           {error && (
             <p className="text-xs text-red-700" role="alert">
@@ -428,7 +428,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
                 setFile(null);
                 setPastedText(SAMPLE_PITCH);
               }}
-              className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action rounded"
             >
               <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
               Try a sample deck (paste example text)
@@ -439,10 +439,10 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
               disabled={busy || (!file && pastedText.trim().length < 40)}
               className={cn(
                 "inline-flex items-center justify-center min-h-[44px] rounded-lg px-5 text-sm font-semibold text-primary transition-colors",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white",
                 busy || (!file && pastedText.trim().length < 40)
                   ? "bg-brand-300 cursor-not-allowed opacity-70"
-                  : "bg-brand-600 hover:bg-brand-700",
+                  : "bg-action hover:bg-action-hover",
               )}
             >
               {busy ? (
@@ -500,7 +500,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
             <button
               type="button"
               onClick={() => setSelected(new Set(Object.keys(coverage)))}
-              className="text-[11px] font-medium text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded px-1"
+              className="text-[11px] font-medium text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action rounded px-1"
             >
               Select all 8
             </button>
@@ -514,7 +514,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
                 }
                 setSelected(freeOnly);
               }}
-              className="text-[11px] font-medium text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded px-1"
+              className="text-[11px] font-medium text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action rounded px-1"
             >
               Free only
             </button>
@@ -522,7 +522,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
             <button
               type="button"
               onClick={() => setSelected(new Set())}
-              className="text-[11px] font-medium text-ink-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded px-1"
+              className="text-[11px] font-medium text-ink-600 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action rounded px-1"
             >
               Clear
             </button>
@@ -576,7 +576,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
               <button
                 type="button"
                 onClick={() => setStep("upload")}
-                className="inline-flex items-center justify-center min-h-[44px] rounded-md px-4 text-xs font-medium text-ink-600 hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors"
+                className="inline-flex items-center justify-center min-h-[44px] rounded-md px-4 text-xs font-medium text-ink-600 hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors"
               >
                 Back
               </button>
@@ -586,10 +586,10 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
                 disabled={busy || selected.size === 0}
                 className={cn(
                   "inline-flex items-center justify-center min-h-[44px] rounded-lg px-5 text-sm font-semibold text-primary transition-colors",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white",
                   busy || selected.size === 0
                     ? "bg-brand-300 cursor-not-allowed opacity-70"
-                    : "bg-brand-600 hover:bg-brand-700",
+                    : "bg-action hover:bg-action-hover",
                 )}
               >
                 {busy ? (

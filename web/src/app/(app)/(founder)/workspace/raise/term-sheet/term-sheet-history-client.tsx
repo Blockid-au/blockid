@@ -106,7 +106,7 @@ export function TermSheetHistoryClient({ initialRows }: { initialRows: Row[] }) 
                     onClick={() => onDelete(r.id)}
                     disabled={deletingId === r.id}
                     aria-label="Delete analysis"
-                    className="inline-flex h-11 w-11 sm:h-9 sm:w-9 items-center justify-center rounded-md border border-surface-200 bg-white text-ink-500 hover:border-red-500/40 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 focus-visible:ring-offset-1"
+                    className="inline-flex h-11 w-11 sm:h-9 sm:w-9 items-center justify-center rounded-md border border-surface-200 bg-white text-ink-500 hover:border-red-500/40 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action/60 focus-visible:ring-offset-1"
                   >
                     {deletingId === r.id ? (
                       <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" />

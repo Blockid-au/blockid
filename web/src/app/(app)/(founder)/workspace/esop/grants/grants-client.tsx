@@ -243,7 +243,7 @@ export function GrantsClient({ initialGrants, disclaimer, readOnly = false }: Gr
               setError(null);
               setSuccess(null);
             }}
-            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
+            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-4 text-sm font-semibold text-white hover:bg-action-hover"
           >
             <Plus strokeWidth={1.75} className="h-4 w-4" />
             Create grant
@@ -475,7 +475,7 @@ export function GrantsClient({ initialGrants, disclaimer, readOnly = false }: Gr
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-action px-4 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50"
                 >
                   {submitting ? <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" /> : <Check strokeWidth={1.75} className="h-4 w-4" />}
                   Create grant
@@ -589,7 +589,7 @@ export function GrantsClient({ initialGrants, disclaimer, readOnly = false }: Gr
                   type="button"
                   onClick={runDiv83ACheck}
                   disabled={checking}
-                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-action px-4 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50"
                 >
                   {checking ? <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" /> : <ShieldCheck strokeWidth={1.75} className="h-4 w-4" />}
                   Run check

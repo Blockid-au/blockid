@@ -142,7 +142,7 @@ export function SviApiSection() {
             {tier === "institutional" && (
               <a
                 href={INSTITUTIONAL_CONTACT_HREF}
-                className="block w-full text-center text-sm bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-3 py-1.5 font-medium"
+                className="block w-full text-center text-sm bg-action hover:bg-action-hover text-white rounded-lg px-3 py-1.5 font-medium"
               >
                 Contact sales
               </a>

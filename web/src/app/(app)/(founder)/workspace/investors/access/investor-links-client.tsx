@@ -300,7 +300,7 @@ function CreateLinkModal({ onClose, onCreated }: CreateModalProps) {
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg bg-action px-5 py-2 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-60 transition-colors"
             >
               {loading ? "Creating…" : "Create Link"}
             </button>
@@ -399,7 +399,7 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
           </p>
           <button
             onClick={() => setShowModal(true)}
-            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-white hover:bg-action-hover transition-colors"
           >
             <Plus className="h-4 w-4" />
             Create First Link
@@ -426,7 +426,7 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
           </p>
           <button
             onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-white hover:bg-action-hover transition-colors"
           >
             <Plus className="h-3.5 w-3.5" />
             New Link

@@ -162,7 +162,7 @@ function AddShareholderModal({
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               placeholder="e.g. Alice Chen"
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
             />
           </div>
 
@@ -175,7 +175,7 @@ function AddShareholderModal({
               value={form.email}
               onChange={(e) => setForm({ ...form, email: e.target.value })}
               placeholder="alice@example.com"
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
             />
           </div>
 
@@ -186,7 +186,7 @@ function AddShareholderModal({
             <select
               value={form.role}
               onChange={(e) => setForm({ ...form, role: e.target.value })}
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors cursor-pointer"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors cursor-pointer"
             >
               {ROLES.map((r) => (
                 <option key={r.value} value={r.value}>
@@ -207,7 +207,7 @@ function AddShareholderModal({
                 setForm({ ...form, evmAddress: e.target.value })
               }
               placeholder="0x..."
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm font-mono text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm font-mono text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
             />
           </div>
 
@@ -222,7 +222,7 @@ function AddShareholderModal({
               value={form.shares}
               onChange={(e) => setForm({ ...form, shares: e.target.value })}
               placeholder="e.g. 1000000"
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
             />
           </div>
 
@@ -236,7 +236,7 @@ function AddShareholderModal({
             <button
               type="submit"
               disabled={loading || !form.name.trim() || !form.shares}
-              className="flex-1 h-10 rounded-xl bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center gap-2"
+              className="flex-1 h-10 rounded-xl bg-action text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center gap-2"
             >
               {loading ? (
                 <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" />
@@ -343,7 +343,7 @@ function TransferModal({
               value={toAddress}
               onChange={(e) => setToAddress(e.target.value)}
               placeholder="0x..."
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm font-mono text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm font-mono text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
             />
           </div>
 
@@ -359,7 +359,7 @@ function TransferModal({
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="e.g. 100000"
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
             />
           </div>
 
@@ -372,7 +372,7 @@ function TransferModal({
           <button
             type="submit"
             disabled={loading || !toAddress || !amount}
-            className="w-full h-10 rounded-xl bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center gap-2"
+            className="w-full h-10 rounded-xl bg-action text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer flex items-center justify-center gap-2"
           >
             {loading ? (
               <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" />
@@ -758,7 +758,7 @@ export function ShareholdersClient({ isAdmin }: { isAdmin: boolean }) {
               setAddError(null);
               setAddModalOpen(true);
             }}
-            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer"
+            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-4 text-sm font-semibold text-white hover:bg-action-hover transition-colors cursor-pointer"
           >
             <Plus strokeWidth={1.75} className="h-4 w-4" />
             Add Shareholder
@@ -836,7 +836,7 @@ export function ShareholdersClient({ isAdmin }: { isAdmin: boolean }) {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           placeholder="Search by name, email, role, or address..."
-          className="w-full h-10 pl-10 pr-4 rounded-xl border border-surface-200 bg-white text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+          className="w-full h-10 pl-10 pr-4 rounded-xl border border-surface-200 bg-white text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
         />
       </div>
 

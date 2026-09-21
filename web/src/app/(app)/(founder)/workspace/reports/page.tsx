@@ -111,7 +111,7 @@ export default async function AllReportsPage() {
             <p className="mt-1 text-sm text-ink-700">It is what investors and evaluators read first.</p>
             <Link
               href="/workspace/reports/business"
-              className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-5 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+              className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-5 text-sm font-semibold text-white transition-colors hover:bg-action-hover"
             >
               Generate
             </Link>

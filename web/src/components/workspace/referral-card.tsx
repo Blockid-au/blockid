@@ -166,7 +166,7 @@ export function ReferralCard() {
         <button
           type="button"
           onClick={handleCopy}
-          className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer"
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-white hover:bg-action-hover transition-colors cursor-pointer"
         >
           {copied ? (
             <>

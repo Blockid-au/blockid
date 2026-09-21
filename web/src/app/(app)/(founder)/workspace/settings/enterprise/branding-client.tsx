@@ -230,7 +230,7 @@ export function BrandingClient({ isPro }: BrandingClientProps) {
                     primaryColor: e.target.value,
                   }))
                 }
-                className="flex-1 rounded-lg border border-surface-200 px-3 py-2 text-xs font-mono text-ink-700 focus:outline-none focus:ring-2 focus:ring-brand-300"
+                className="flex-1 rounded-lg border border-surface-200 px-3 py-2 text-xs font-mono text-ink-700 focus:outline-none focus:ring-2 focus:ring-action/25"
                 placeholder="#2563eb"
                 maxLength={7}
               />
@@ -261,7 +261,7 @@ export function BrandingClient({ isPro }: BrandingClientProps) {
                     accentColor: e.target.value,
                   }))
                 }
-                className="flex-1 rounded-lg border border-surface-200 px-3 py-2 text-xs font-mono text-ink-700 focus:outline-none focus:ring-2 focus:ring-brand-300"
+                className="flex-1 rounded-lg border border-surface-200 px-3 py-2 text-xs font-mono text-ink-700 focus:outline-none focus:ring-2 focus:ring-action/25"
                 placeholder="#f59e0b"
                 maxLength={7}
               />
@@ -303,7 +303,7 @@ export function BrandingClient({ isPro }: BrandingClientProps) {
                   reportHeader: e.target.value,
                 }))
               }
-              className="w-full rounded-xl border border-surface-200 px-3 py-2 text-sm text-ink-700 focus:outline-none focus:ring-2 focus:ring-brand-300"
+              className="w-full rounded-xl border border-surface-200 px-3 py-2 text-sm text-ink-700 focus:outline-none focus:ring-2 focus:ring-action/25"
               placeholder="e.g. Powered by Acme Capital Partners"
               maxLength={80}
             />
@@ -321,7 +321,7 @@ export function BrandingClient({ isPro }: BrandingClientProps) {
                   footerText: e.target.value,
                 }))
               }
-              className="w-full rounded-xl border border-surface-200 px-3 py-2 text-sm text-ink-700 focus:outline-none focus:ring-2 focus:ring-brand-300"
+              className="w-full rounded-xl border border-surface-200 px-3 py-2 text-sm text-ink-700 focus:outline-none focus:ring-2 focus:ring-action/25"
               placeholder="e.g. Confidential — prepared for XYZ Ventures"
               maxLength={120}
             />
@@ -339,7 +339,7 @@ export function BrandingClient({ isPro }: BrandingClientProps) {
         type="button"
         onClick={handleSave}
         disabled={saving}
-        className="w-full rounded-xl bg-brand-600 py-3 text-sm font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+        className="w-full rounded-xl bg-action py-3 text-sm font-semibold text-white hover:bg-action-hover transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
       >
         {saving ? (
           <Loader2 className="h-4 w-4 animate-spin" />

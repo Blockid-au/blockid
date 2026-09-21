@@ -372,7 +372,7 @@ export function BillingClient({
             {effectivePlanId === "free" ? (
               <Link
                 href="#plans"
-                className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+                className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-5 text-sm font-semibold text-white hover:bg-action-hover transition-colors"
               >
                 <Sparkles strokeWidth={1.75} className="h-4 w-4" />
                 Upgrade
@@ -481,7 +481,7 @@ export function BillingClient({
                   onClick={() => setDrawerOpen(true)}
                   disabled={!addonAvailable}
                   className={cn(
-                    "inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 transition-colors",
+                    "inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-4 text-sm font-semibold text-white hover:bg-action-hover transition-colors",
                     !addonAvailable && "opacity-60 cursor-not-allowed",
                   )}
                   title={
@@ -589,7 +589,7 @@ export function BillingClient({
                       onClick={() => handleCheckout(plan.id)}
                       disabled={loadingAction === plan.id}
                       className={cn(
-                        "w-full h-9 rounded-[10px] bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5",
+                        "w-full h-9 rounded-[10px] bg-action text-sm font-semibold text-white hover:bg-action-hover transition-colors cursor-pointer flex items-center justify-center gap-1.5",
                         loadingAction === plan.id && "opacity-60 cursor-wait",
                       )}
                     >
@@ -824,7 +824,7 @@ function CreditsPurchaseSection() {
                 data-pack={pack.credits}
                 aria-label={`Buy ${pack.label} — ${priceLabel}`}
                 className={cn(
-                  "w-full h-9 rounded-lg bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer flex items-center justify-center gap-1.5",
+                  "w-full h-9 rounded-lg bg-action text-sm font-semibold text-white hover:bg-action-hover transition-colors cursor-pointer flex items-center justify-center gap-1.5",
                   loadingPack === pack.credits && "opacity-60 cursor-wait",
                 )}
               >

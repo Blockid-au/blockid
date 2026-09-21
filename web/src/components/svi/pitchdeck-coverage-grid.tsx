@@ -101,7 +101,7 @@ export function PitchdeckCoverageGrid({
               aria-label={`${meta.label} — ${LEVEL_LABEL[cov.level]}${isSelected ? " (selected)" : ""}`}
               className={cn(
                 "min-h-[44px] rounded-lg border p-3 text-left transition-all",
-                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white",
                 levelClass(cov.level),
                 isSelected
                   ? "ring-2 ring-brand-500 ring-offset-2 ring-offset-white"

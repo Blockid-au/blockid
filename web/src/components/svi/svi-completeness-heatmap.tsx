@@ -161,7 +161,7 @@ export function SviCompletenessHeatmap({ projectId, className }: SviCompleteness
               type="button"
               onClick={() => setSelectedDim(dim)}
               className={cn(
-                "min-h-[44px] rounded-lg border p-3 text-left transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+                "min-h-[44px] rounded-lg border p-3 text-left transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white",
                 "target:ring-2 target:ring-brand-500 target:ring-offset-2 target:ring-offset-white",
                 colors.cell
               )}
@@ -216,7 +216,7 @@ export function SviCompletenessHeatmap({ projectId, className }: SviCompleteness
               <button
                 type="button"
                 aria-label="Close dimension details"
-                className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md text-ink-500 hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors shrink-0"
+                className="inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md text-ink-500 hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors shrink-0"
                 onClick={() => setSelectedDim(null)}
               >
                 <X className="h-4 w-4" aria-hidden="true" />

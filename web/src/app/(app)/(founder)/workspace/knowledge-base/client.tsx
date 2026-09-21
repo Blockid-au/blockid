@@ -117,7 +117,7 @@ export function KnowledgeBaseClient({
               type="button"
               onClick={handleExport}
               disabled={exporting}
-              className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-50 transition-colors"
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm rounded-lg bg-action text-white hover:bg-action-hover disabled:opacity-50 transition-colors"
             >
               <Download strokeWidth={1.75} className="h-4 w-4" />
               {exporting ? "Exporting…" : "Export KB"}
@@ -139,7 +139,7 @@ export function KnowledgeBaseClient({
           placeholder="Search articles, methodologies, benchmarks…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-surface-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-brand-200"
+          className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-surface-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-action/25"
         />
         {searching && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted">searching…</span>}
       </div>
@@ -154,7 +154,7 @@ export function KnowledgeBaseClient({
             className={cn(
               "px-3 py-1.5 text-xs rounded-full border transition-colors",
               category === c.id
-                ? "bg-brand-600 text-white border-brand-600"
+                ? "bg-action text-white border-brand-600"
                 : "bg-white text-ink-700 border-surface-200 hover:bg-surface-50",
             )}
           >

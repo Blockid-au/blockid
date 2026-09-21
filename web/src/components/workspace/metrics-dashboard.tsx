@@ -428,7 +428,7 @@ export function MetricsDashboard({
           id="chart-metric"
           value={selectedMetric}
           onChange={(e) => setSelectedMetric(e.target.value as ChartableField)}
-          className="rounded-lg border border-surface-200 bg-surface-50 px-2.5 py-1.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-300"
+          className="rounded-lg border border-surface-200 bg-surface-50 px-2.5 py-1.5 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action/25"
         >
           {Object.entries(chartableLabels).map(([key, label]) => (
             <option key={key} value={key}>

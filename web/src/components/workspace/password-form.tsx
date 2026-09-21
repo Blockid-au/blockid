@@ -68,7 +68,7 @@ export function PasswordForm({ hasExistingPassword }: { hasExistingPassword: boo
               required
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="w-full rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm text-ink-800 placeholder:text-muted focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none transition-all"
+              className="w-full rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm text-ink-800 placeholder:text-muted focus:border-action focus:ring-1 focus:ring-action/25 outline-none transition-all"
             />
           </label>
         )}
@@ -82,7 +82,7 @@ export function PasswordForm({ hasExistingPassword }: { hasExistingPassword: boo
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             placeholder="Min 8 characters"
-            className="w-full rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm text-ink-800 placeholder:text-muted focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none transition-all"
+            className="w-full rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm text-ink-800 placeholder:text-muted focus:border-action focus:ring-1 focus:ring-action/25 outline-none transition-all"
           />
         </label>
 
@@ -94,7 +94,7 @@ export function PasswordForm({ hasExistingPassword }: { hasExistingPassword: boo
             minLength={8}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm text-ink-800 placeholder:text-muted focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none transition-all"
+            className="w-full rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm text-ink-800 placeholder:text-muted focus:border-action focus:ring-1 focus:ring-action/25 outline-none transition-all"
           />
         </label>
 
@@ -111,7 +111,7 @@ export function PasswordForm({ hasExistingPassword }: { hasExistingPassword: boo
         <button
           type="submit"
           disabled={state === "saving"}
-          className="w-full rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700 disabled:opacity-50 cursor-pointer"
+          className="w-full rounded-xl bg-action px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-action-hover disabled:opacity-50 cursor-pointer"
         >
           {state === "saving" ? "Saving..." : hasExistingPassword ? "Update Password" : "Set Password"}
         </button>

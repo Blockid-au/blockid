@@ -129,7 +129,7 @@ export function MentorInviteForm(props: MentorInviteFormProps) {
             type="checkbox"
             checked={consent}
             onChange={(e) => setConsent(e.target.checked)}
-            className="mt-0.5 h-4 w-4 shrink-0 rounded border-surface-300 text-brand-600 focus:ring-brand-500"
+            className="mt-0.5 h-4 w-4 shrink-0 rounded border-surface-300 text-brand-600 focus:ring-action"
           />
           <span>
             I understand this grants{" "}
@@ -145,7 +145,7 @@ export function MentorInviteForm(props: MentorInviteFormProps) {
           type="button"
           onClick={() => void submit("decline")}
           disabled={busy !== null}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-surface-200 bg-white px-4 text-sm font-medium text-ink-700 transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 disabled:opacity-60"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-surface-200 bg-white px-4 text-sm font-medium text-ink-700 transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action disabled:opacity-60"
         >
           {busy === "decline" ? (
             <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />
@@ -158,7 +158,7 @@ export function MentorInviteForm(props: MentorInviteFormProps) {
           type="button"
           onClick={() => void submit("approve")}
           disabled={busy !== null || !canApprove}
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-action px-4 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-action-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {busy === "approve" ? (
             <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />

@@ -128,7 +128,7 @@ export function ApiKeysClient({
           </div>
           <Link
             href="/pricing?feature=api.access&from=/workspace/settings/enterprise"
-            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-5 text-sm font-semibold text-white hover:bg-action-hover transition-colors"
           >
             <Sparkles strokeWidth={1.75} className="h-4 w-4" />
             Contact sales
@@ -156,7 +156,7 @@ export function ApiKeysClient({
             <button
               type="button"
               onClick={() => setShowCreateModal(true)}
-              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer"
+              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-4 text-sm font-semibold text-white hover:bg-action-hover transition-colors cursor-pointer"
             >
               <Plus strokeWidth={1.75} className="h-4 w-4" />
               Generate New Key
@@ -432,7 +432,7 @@ function CreateKeyModal({
             <button
               type="button"
               onClick={onClose}
-              className="w-full h-9 rounded-[10px] bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer"
+              className="w-full h-9 rounded-[10px] bg-action text-sm font-semibold text-white hover:bg-action-hover transition-colors cursor-pointer"
             >
               Done
             </button>
@@ -457,7 +457,7 @@ function CreateKeyModal({
                 onChange={(e) => setName(e.target.value)}
                 placeholder="e.g. Production, Staging, CI/CD"
                 maxLength={100}
-                className="w-full h-9 rounded-[10px] border border-surface-200 bg-white px-3 text-sm text-ink-800 placeholder-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                className="w-full h-9 rounded-[10px] border border-surface-200 bg-white px-3 text-sm text-ink-800 placeholder-ink-400 focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
               />
               <p className="text-xs text-muted mt-1">
                 A friendly label to help you identify this key.
@@ -502,7 +502,7 @@ function CreateKeyModal({
                 onClick={handleCreate}
                 disabled={loading}
                 className={cn(
-                  "h-9 px-4 rounded-[10px] bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer flex items-center gap-1.5",
+                  "h-9 px-4 rounded-[10px] bg-action text-sm font-semibold text-white hover:bg-action-hover transition-colors cursor-pointer flex items-center gap-1.5",
                   loading && "opacity-60 cursor-wait",
                 )}
               >

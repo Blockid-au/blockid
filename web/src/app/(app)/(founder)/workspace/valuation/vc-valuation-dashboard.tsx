@@ -122,7 +122,7 @@ export function ValuationEmptyState() {
       </p>
       <Link
         href="/analyze"
-        className="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+        className="mt-5 inline-flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-white hover:bg-action-hover transition-colors"
       >
         Run my first score <ArrowRight strokeWidth={2} className="h-4 w-4" />
       </Link>
@@ -218,7 +218,7 @@ export function VcValuationDashboard() {
         </p>
         <Link
           href="/score"
-          className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+          className="inline-flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-white hover:bg-action-hover transition-colors"
         >
           Get your SVI Score <ArrowRight strokeWidth={2} className="h-4 w-4" />
         </Link>
@@ -386,7 +386,7 @@ function SummaryTab({ report }: { report: VcValuationReport }) {
 function MarketTab({ report }: { report: VcValuationReport }) {
   const m = report.market;
   const bars = [
-    { label: "TAM", value: m.tamAud, color: "bg-brand-600" },
+    { label: "TAM", value: m.tamAud, color: "bg-action" },
     { label: "SAM", value: m.samAud, color: "bg-brand-400" },
     { label: "SOM", value: m.somAud, color: "bg-emerald-500" },
   ];

@@ -204,7 +204,7 @@ export function TrialBanner(): React.ReactElement | null {
       <div className="flex items-center gap-2 shrink-0">
         <Link
           href="/workspace/billing"
-          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/70 hover:bg-white ring-1 ring-current/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/70 hover:bg-white ring-1 ring-current/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
         >
           Choose Plan
         </Link>
@@ -212,7 +212,7 @@ export function TrialBanner(): React.ReactElement | null {
           <Link
             href="/workspace/billing#cancel"
             data-testid="trial-banner-cancel"
-            className="text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-white/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+            className="text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-white/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
           >
             Cancel trial
           </Link>
@@ -221,7 +221,7 @@ export function TrialBanner(): React.ReactElement | null {
           type="button"
           onClick={handleDismiss}
           aria-label="Dismiss trial banner for today"
-          className="text-xs font-medium px-2 py-1.5 rounded-lg hover:bg-white/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+          className="text-xs font-medium px-2 py-1.5 rounded-lg hover:bg-white/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
         >
           ✕
         </button>

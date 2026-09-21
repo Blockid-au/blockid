@@ -152,7 +152,7 @@ export function CohortRetentionTile() {
             value={state.signups_csv}
             onChange={(e) => patch("signups_csv", e.target.value)}
             placeholder={"user_id,signup_iso\n" + SAMPLE_SIGNUPS}
-            className="mt-2 w-full rounded-lg border border-surface-300 bg-white px-3 py-2 font-mono text-xs text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="mt-2 w-full rounded-lg border border-surface-300 bg-white px-3 py-2 font-mono text-xs text-ink-800 focus:outline-none focus:ring-2 focus:ring-action"
           />
         </label>
 
@@ -171,7 +171,7 @@ export function CohortRetentionTile() {
             value={state.activities_csv}
             onChange={(e) => patch("activities_csv", e.target.value)}
             placeholder={"user_id,activity_iso\n" + SAMPLE_ACTIVITIES}
-            className="mt-2 w-full rounded-lg border border-surface-300 bg-white px-3 py-2 font-mono text-xs text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="mt-2 w-full rounded-lg border border-surface-300 bg-white px-3 py-2 font-mono text-xs text-ink-800 focus:outline-none focus:ring-2 focus:ring-action"
           />
         </label>
       </div>
@@ -189,7 +189,7 @@ export function CohortRetentionTile() {
             data-testid="cohort-reference-date"
             value={state.reference_date_iso}
             onChange={(e) => patch("reference_date_iso", e.target.value)}
-            className="mt-2 rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="mt-2 rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action"
           />
         </label>
         <button

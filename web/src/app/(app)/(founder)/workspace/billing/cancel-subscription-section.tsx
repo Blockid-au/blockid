@@ -216,7 +216,7 @@ export function CancelSubscriptionSection({ subscription: initial, planLabel }: 
               disabled={busy === "resume"}
               data-testid="resume-subscription"
               className={cn(
-                "inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors",
+                "inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-5 text-sm font-semibold text-white hover:bg-action-hover transition-colors",
                 busy === "resume" && "opacity-60 cursor-wait",
               )}
             >

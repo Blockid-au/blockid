@@ -585,7 +585,7 @@ export function RevenueClient() {
               type="month"
               value={entryMonth}
               onChange={(e) => setEntryMonth(e.target.value)}
-              className="w-full h-9 rounded-lg border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-9 rounded-lg border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
             />
           </div>
           <div className="flex-1 w-full">
@@ -602,7 +602,7 @@ export function RevenueClient() {
                 value={entryAmount}
                 onChange={(e) => setEntryAmount(e.target.value)}
                 placeholder="e.g. 5000"
-                className="w-full h-9 rounded-lg border border-surface-200 pl-7 pr-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                className="w-full h-9 rounded-lg border border-surface-200 pl-7 pr-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
               />
             </div>
           </div>
@@ -614,7 +614,7 @@ export function RevenueClient() {
               id="rev-source"
               value={entrySource}
               onChange={(e) => setEntrySource(e.target.value)}
-              className="w-full h-9 rounded-lg border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors bg-white"
+              className="w-full h-9 rounded-lg border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors bg-white"
             >
               <option value="manual">Manual</option>
               <option value="stripe">Stripe</option>
@@ -626,7 +626,7 @@ export function RevenueClient() {
           <button
             type="submit"
             disabled={entrySaving || !entryAmount}
-            className="h-9 px-5 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
+            className="h-9 px-5 rounded-lg bg-action text-white text-sm font-medium hover:bg-action-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer whitespace-nowrap"
           >
             {entrySaving ? "Saving..." : "Add Revenue"}
           </button>
@@ -791,7 +791,7 @@ export function RevenueClient() {
                   !dividends ||
                   dividends.totalDividend <= 0
                 }
-                className="px-5 py-2.5 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-action text-white text-sm font-medium hover:bg-action-hover transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {distributing ? "Recording..." : "Record Distribution"}
               </button>
@@ -894,7 +894,7 @@ export function DataSourcesPanel({ data }: { data: Pick<RevenueData, "hasStripe"
             {!stripeOn && (
               <a
                 href="/api/oauth/stripe"
-                className="inline-flex h-8 items-center rounded-lg bg-brand-600 px-3 text-xs font-medium text-white hover:bg-brand-700 transition-colors"
+                className="inline-flex h-8 items-center rounded-lg bg-action px-3 text-xs font-medium text-white hover:bg-action-hover transition-colors"
               >
                 Connect Stripe
               </a>
@@ -915,7 +915,7 @@ export function DataSourcesPanel({ data }: { data: Pick<RevenueData, "hasStripe"
             {!xeroOn && (
               <a
                 href="/api/oauth/xero"
-                className="inline-flex h-8 items-center rounded-lg bg-brand-600 px-3 text-xs font-medium text-white hover:bg-brand-700 transition-colors"
+                className="inline-flex h-8 items-center rounded-lg bg-action px-3 text-xs font-medium text-white hover:bg-action-hover transition-colors"
               >
                 Connect Xero
               </a>

@@ -174,7 +174,7 @@ export function JourneyStepLadder({
           data-testid="journey-skip-to-current"
           className={cn(
             "mb-3 inline-flex items-center gap-1.5 rounded-lg bg-brand-50 px-3 py-2 text-xs font-semibold text-brand-700",
-            "outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
+            "outline-none focus-visible:ring-2 focus-visible:ring-action",
             "sm:sr-only sm:focus:not-sr-only sm:focus:mb-3 sm:focus:inline-flex",
           )}
         >
@@ -264,7 +264,7 @@ export function JourneyStepLadder({
         data-testid="journey-show-all-toggle"
         className={cn(
           "sm:hidden mt-2 flex w-full min-h-11 items-center justify-center gap-2 rounded-lg border border-surface-200 px-3 py-2",
-          "text-xs font-semibold text-brand-700 hover:bg-brand-50 outline-none focus-visible:ring-2 focus-visible:ring-brand-500",
+          "text-xs font-semibold text-brand-700 hover:bg-brand-50 outline-none focus-visible:ring-2 focus-visible:ring-action",
           "transition-colors duration-150 motion-reduce:transition-none",
         )}
       >
@@ -324,7 +324,7 @@ function PhaseNode({ ordinal, isCompleted, isCurrent, isFuture, currentOrdinal }
         className={cn(
           "relative flex items-center justify-center rounded-full h-8 w-8 transition-all duration-300 motion-reduce:transition-none",
           isCompleted && "bg-emerald-500",
-          isCurrent && "bg-brand-600 ring-4 ring-brand-100 animate-pulse motion-reduce:animate-none",
+          isCurrent && "bg-action ring-4 ring-brand-100 animate-pulse motion-reduce:animate-none",
           isFuture && "bg-surface-200",
         )}
         aria-label={`Phase ${ordinal}: ${label}${isCurrent ? " (current)" : isCompleted ? " (completed)" : " (upcoming)"}`}
@@ -350,7 +350,7 @@ function PhaseNode({ ordinal, isCompleted, isCurrent, isFuture, currentOrdinal }
     return (
       <Link
         href={href}
-        className="outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg"
+        className="outline-none focus-visible:ring-2 focus-visible:ring-action rounded-lg"
         data-testid={`journey-step-node-${ordinal}`}
       >
         {circle}
@@ -376,7 +376,7 @@ function MobileNode({ ordinal, isCompleted, isCurrent, isFuture, currentOrdinal 
         className={cn(
           "flex items-center justify-center rounded-full h-8 w-8 shrink-0",
           isCompleted && "bg-emerald-500 text-primary",
-          isCurrent && "bg-brand-600 text-white ring-2 ring-brand-100",
+          isCurrent && "bg-action text-white ring-2 ring-brand-100",
           isFuture && "bg-surface-200 text-muted",
         )}
         aria-hidden
@@ -412,7 +412,7 @@ function MobileNode({ ordinal, isCompleted, isCurrent, isFuture, currentOrdinal 
       <Link
         href={href}
         data-testid={`journey-step-node-${ordinal}`}
-        className="flex items-center gap-3 w-full min-h-11 outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded-lg"
+        className="flex items-center gap-3 w-full min-h-11 outline-none focus-visible:ring-2 focus-visible:ring-action rounded-lg"
       >
         {inner}
       </Link>

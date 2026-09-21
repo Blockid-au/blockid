@@ -280,7 +280,7 @@ export function DividendsClient() {
               type="button"
               onClick={handleConnect}
               disabled={connecting}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 transition-colors cursor-pointer"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50 transition-colors cursor-pointer"
             >
               {connecting ? (
                 <Loader2
@@ -347,7 +347,7 @@ export function DividendsClient() {
                   value={netIncome}
                   onChange={(e) => setNetIncome(e.target.value)}
                   placeholder="e.g. 100000"
-                  className="w-full h-10 rounded-xl border border-surface-200 pl-7 pr-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                  className="w-full h-10 rounded-xl border border-surface-200 pl-7 pr-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
                 />
               </div>
             </div>
@@ -412,7 +412,7 @@ export function DividendsClient() {
             <button
               type="submit"
               disabled={declaring || !netIncome || incomeNum <= 0}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
               {declaring ? (
                 <Loader2

@@ -204,7 +204,7 @@ export function NotificationFeedClient() {
               onClick={() => changeFilter(f.key)}
               className={
                 filter === f.key
-                  ? "rounded-full px-3 py-1 text-xs font-semibold bg-brand-600 text-white"
+                  ? "rounded-full px-3 py-1 text-xs font-semibold bg-action text-white"
                   : "rounded-full px-3 py-1 text-xs font-medium bg-ink-100 text-ink-700 hover:bg-ink-200"
               }
             >

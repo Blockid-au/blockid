@@ -25,7 +25,7 @@ export interface CorrectionsClientProps {
   canFile: boolean;
 }
 
-const INPUT = "w-full min-h-11 rounded-lg border border-ink-300 bg-white px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:border-brand-500 focus:ring-2 focus:ring-brand-200";
+const INPUT = "w-full min-h-11 rounded-lg border border-ink-300 bg-white px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:border-action focus:ring-2 focus:ring-action/25";
 const LABEL = "block text-xs font-medium text-ink-700 mb-1";
 
 const ERRORS: Record<string, string> = {
@@ -253,7 +253,7 @@ export function CorrectionsClient({ projectId, initial, canFile }: CorrectionsCl
 
           <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="text-xs text-ink-500">Nothing changes until a reviewer accepts it; the resolution records exactly what changed.</p>
-            <button type="submit" disabled={busy || !message.trim()} className="inline-flex min-h-11 items-center rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed">
+            <button type="submit" disabled={busy || !message.trim()} className="inline-flex min-h-11 items-center rounded-lg bg-action px-4 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed">
               {busy ? "Filing…" : "File correction"}
             </button>
           </div>

@@ -304,7 +304,7 @@ export function WalletClient() {
               href="https://metamask.io/download/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-white hover:bg-action-hover transition-colors"
             >
               Install MetaMask
               <ExternalLink strokeWidth={1.75} className="h-4 w-4" />
@@ -327,7 +327,7 @@ export function WalletClient() {
               type="button"
               onClick={handleConnect}
               disabled={connecting}
-              className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 transition-colors cursor-pointer"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50 transition-colors cursor-pointer"
             >
               {connecting ? (
                 <Loader2
@@ -599,7 +599,7 @@ export function WalletClient() {
                   <select
                     value={transferToken}
                     onChange={(e) => setTransferToken(e.target.value)}
-                    className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors cursor-pointer"
+                    className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors cursor-pointer"
                   >
                     {tokens.map((t) => (
                       <option key={t.address} value={t.address}>
@@ -622,7 +622,7 @@ export function WalletClient() {
                   value={transferTo}
                   onChange={(e) => setTransferTo(e.target.value)}
                   placeholder="0x..."
-                  className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm font-mono text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                  className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm font-mono text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
                 />
               </div>
 
@@ -637,7 +637,7 @@ export function WalletClient() {
                   value={transferAmount}
                   onChange={(e) => setTransferAmount(e.target.value)}
                   placeholder="e.g. 1000"
-                  className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                  className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
                 />
               </div>
 
@@ -661,7 +661,7 @@ export function WalletClient() {
               <button
                 type="submit"
                 disabled={transferring || !transferTo || !transferAmount}
-                className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 {transferring ? (
                   <Loader2

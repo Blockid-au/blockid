@@ -62,7 +62,7 @@ export function InvestorPackGenerateForm({ initialDownloadUrl, previewHref, read
           type="button"
           onClick={handleGenerate}
           disabled={loading}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 hover:bg-brand-700 disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 px-4 py-2 text-sm font-medium text-white transition-colors"
+          className="inline-flex items-center gap-2 rounded-lg bg-action hover:bg-action-hover disabled:opacity-60 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-action px-4 py-2 text-sm font-medium text-white transition-colors"
           aria-busy={loading}
         >
           {loading ? (
@@ -100,7 +100,7 @@ export function InvestorPackGenerateForm({ initialDownloadUrl, previewHref, read
           href={previewHref}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 transition-colors"
+          className="inline-flex items-center rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-ink-800 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
         >
           Preview
         </a>
@@ -108,7 +108,7 @@ export function InvestorPackGenerateForm({ initialDownloadUrl, previewHref, read
         {downloadUrl && !result && (
           <a
             href={downloadUrl}
-            className="inline-flex items-center rounded-lg border border-brand-300 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 transition-colors"
+            className="inline-flex items-center rounded-lg border border-brand-300 px-4 py-2 text-sm font-medium text-brand-700 hover:bg-brand-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-action transition-colors"
             download
           >
             Download last pack

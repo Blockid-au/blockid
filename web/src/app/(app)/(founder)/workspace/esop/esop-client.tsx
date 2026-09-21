@@ -476,7 +476,7 @@ export function EsopClient() {
             <button
               type="button"
               onClick={startWizard}
-              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer"
+              className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-4 text-sm font-semibold text-white hover:bg-action-hover transition-colors cursor-pointer"
             >
               <Plus strokeWidth={1.75} className="h-4 w-4" />
               New ESOP Grant
@@ -518,7 +518,7 @@ export function EsopClient() {
                 className={cn(
                   "h-8 w-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors",
                   step >= s
-                    ? "bg-brand-600 text-white"
+                    ? "bg-action text-white"
                     : "bg-surface-100 text-muted",
                 )}
               >
@@ -710,7 +710,7 @@ export function EsopClient() {
                         setNewEmployee({ ...newEmployee, name: e.target.value })
                       }
                       placeholder="e.g. Jane Smith"
-                      className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                      className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
                     />
                   </div>
                   <div>
@@ -727,7 +727,7 @@ export function EsopClient() {
                         })
                       }
                       placeholder="jane@company.com"
-                      className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                      className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
                     />
                   </div>
                   <div>
@@ -744,7 +744,7 @@ export function EsopClient() {
                         })
                       }
                       placeholder="0x..."
-                      className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm font-mono text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                      className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm font-mono text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
                     />
                   </div>
                 </div>
@@ -769,7 +769,7 @@ export function EsopClient() {
                   })
                 }
                 placeholder="e.g. 50000"
-                className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
               />
             </div>
 
@@ -789,7 +789,7 @@ export function EsopClient() {
                       cliffMonths: e.target.value,
                     })
                   }
-                  className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                  className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
                 />
               </div>
               <div>
@@ -807,7 +807,7 @@ export function EsopClient() {
                       vestingMonths: e.target.value,
                     })
                   }
-                  className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                  className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
                 />
               </div>
               <div>
@@ -823,7 +823,7 @@ export function EsopClient() {
                       startDate: e.target.value,
                     })
                   }
-                  className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+                  className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
                 />
               </div>
             </div>
@@ -837,7 +837,7 @@ export function EsopClient() {
                   parseInt(grantConfig.totalShares) <= 0 ||
                   (isNewEmployee && !newEmployee.name.trim())
                 }
-                className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
                 Review
                 <ArrowRight strokeWidth={1.75} className="h-4 w-4" />
@@ -932,7 +932,7 @@ export function EsopClient() {
                   type="button"
                   onClick={handleGrant}
                   disabled={submitting}
-                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                  className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-white hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
                 >
                   {submitting ? (
                     <Loader2

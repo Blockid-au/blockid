@@ -207,7 +207,7 @@ function ActiveList({ grants }: { grants: EnrichedGrant[] }) {
               <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
                 <Link
                   href={`/workspace/investors/access?upgrade=${encodeURIComponent(g.id)}`}
-                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3 text-xs font-medium text-ink-700 transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                  className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3 text-xs font-medium text-ink-700 transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
                 >
                   <ArrowUpRight aria-hidden="true" className="h-3.5 w-3.5" />
                   Change tier
@@ -215,7 +215,7 @@ function ActiveList({ grants }: { grants: EnrichedGrant[] }) {
                 {g.expires_at ? (
                   <Link
                     href={`/workspace/investors/access?renew=${encodeURIComponent(g.id)}`}
-                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3 text-xs font-medium text-ink-700 transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                    className="inline-flex h-9 items-center justify-center gap-1.5 rounded-xl border border-surface-200 bg-white px-3 text-xs font-medium text-ink-700 transition-colors hover:bg-surface-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
                   >
                     <RefreshCcw aria-hidden="true" className="h-3.5 w-3.5" />
                     Renew

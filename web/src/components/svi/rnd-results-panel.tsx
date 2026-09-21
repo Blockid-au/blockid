@@ -513,7 +513,7 @@ function DesktopTOC({
                 <span
                   className={cn(
                     "flex h-5 w-5 items-center justify-center rounded text-[10px] font-bold font-mono shrink-0",
-                    isActive ? "bg-brand-600 text-white" : "bg-surface-200 text-ink-600",
+                    isActive ? "bg-action text-white" : "bg-surface-200 text-ink-600",
                   )}
                 >
                   {page.num}
@@ -556,7 +556,7 @@ function MobileProgressDots({
               className={cn(
                 "h-2 rounded-full transition-all cursor-pointer",
                 idx === activeIdx
-                  ? "w-6 bg-brand-600"
+                  ? "w-6 bg-action"
                   : idx < activeIdx
                     ? "w-2 bg-brand-300"
                     : "w-2 bg-surface-300",
@@ -993,7 +993,7 @@ export function RndResultsPanel({
                     value={investorEmail}
                     onChange={(e) => setInvestorEmail(e.target.value)}
                     placeholder="investor@example.com"
-                    className="flex-1 rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500"
+                    className="flex-1 rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action focus:border-action"
                     onKeyDown={(e) => { if (e.key === "Enter") void handleShareWithInvestor(); }}
                   />
                   <button
@@ -1004,7 +1004,7 @@ export function RndResultsPanel({
                       "inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-colors cursor-pointer",
                       shareSent
                         ? "bg-bull text-on-action"
-                        : "bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed",
+                        : "bg-action text-white hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed",
                     )}
                   >
                     {shareSent ? (

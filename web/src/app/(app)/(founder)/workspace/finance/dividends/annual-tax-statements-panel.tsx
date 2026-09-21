@@ -341,7 +341,7 @@ export function AnnualTaxStatementsPanel({ initial }: { initial?: TaxStatementsP
                 onClick={() => void startGenerate(false)}
                 disabled={busy !== null || preview !== null}
                 data-testid="generate-tax-statements"
-                className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-white hover:bg-action-hover disabled:opacity-60"
               >
                 {busy === "preview" ? <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" /> : <FileText strokeWidth={1.75} className="h-3.5 w-3.5" />}
                 Generate statements ({costLabel})
@@ -402,7 +402,7 @@ export function AnnualTaxStatementsPanel({ initial }: { initial?: TaxStatementsP
                   onClick={() => void confirmGenerate()}
                   disabled={busy !== null}
                   data-testid="confirm-generate-tax-statements"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-white hover:bg-action-hover disabled:opacity-60"
                 >
                   {busy === "generate" ? <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5" />}
                   {preview.included || preview.cost === 0 ? "Generate (included)" : `Generate for ${preview.cost} credits`}

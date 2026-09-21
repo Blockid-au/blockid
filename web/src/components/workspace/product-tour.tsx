@@ -164,7 +164,7 @@ export function ProductTour(): React.ReactElement | null {
       <div className="flex items-center gap-2 shrink-0">
         <Link
           href={"/workspace/plan/guide/" + state.chapterSlug}
-          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/70 hover:bg-white ring-1 ring-current/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+          className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-white/70 hover:bg-white ring-1 ring-current/20 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
         >
           {copy.read}
         </Link>
@@ -172,7 +172,7 @@ export function ProductTour(): React.ReactElement | null {
           type="button"
           onClick={handleDismiss}
           aria-label={copy.dismiss}
-          className="text-xs font-medium px-2 py-1.5 rounded-lg hover:bg-white/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+          className="text-xs font-medium px-2 py-1.5 rounded-lg hover:bg-white/40 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
         >
           <X className="h-3.5 w-3.5" aria-hidden />
         </button>

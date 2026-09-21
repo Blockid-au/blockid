@@ -610,7 +610,7 @@ export function DataRoomClient({
                 href={driveSetupResult.dataRoomFolderUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors"
+                className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-xs font-semibold text-white hover:bg-action-hover transition-colors"
               >
                 <ExternalLink strokeWidth={1.75} className="h-3.5 w-3.5" />
                 Open Data Room in Drive ({driveSetupResult.totalTemplates} templates)
@@ -620,7 +620,7 @@ export function DataRoomClient({
                 type="button"
                 onClick={handleSetupDrive}
                 disabled={settingUpDrive}
-                className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-xs font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-xs font-semibold text-white hover:bg-action-hover transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {settingUpDrive ? (
                   <>

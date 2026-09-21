@@ -247,7 +247,7 @@ export function WidgetEditControls({ id, position, count, isPinned, onDragStart,
           onClick={onTogglePin}
           className={`${handleClass} ${
             isPinned
-              ? "bg-brand-600 text-white hover:bg-brand-700"
+              ? "bg-action text-white hover:bg-action-hover"
               : "bg-surface-100 text-ink-600 hover:bg-brand-50 hover:text-brand-700"
           }`}
           aria-pressed={isPinned}
@@ -524,7 +524,7 @@ export function WidgetGrid({ children }: WidgetGridProps) {
             <button
               type="button"
               onClick={() => setEditMode(false)}
-              className="inline-flex min-h-6 items-center gap-1 rounded-full bg-brand-600 px-3 py-1 font-medium text-white hover:bg-brand-700"
+              className="inline-flex min-h-6 items-center gap-1 rounded-full bg-action px-3 py-1 font-medium text-white hover:bg-action-hover"
               aria-label="Done customizing"
             >
               <X className="h-3 w-3" /> Done
@@ -554,7 +554,7 @@ export function WidgetGrid({ children }: WidgetGridProps) {
             <div key={id} data-widget-slot={id} className="relative">
               {isPinned && (
                 <span
-                  className="absolute -top-2 right-4 z-10 inline-flex items-center gap-1 rounded-full bg-brand-600 px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm"
+                  className="absolute -top-2 right-4 z-10 inline-flex items-center gap-1 rounded-full bg-action px-2 py-0.5 text-[10px] font-semibold text-white shadow-sm"
                   data-widget-pinned-badge
                 >
                   <Pin className="h-2.5 w-2.5" aria-hidden="true" /> Pinned

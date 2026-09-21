@@ -281,7 +281,7 @@ export function ListingReadinessClient({ initial }: { initial?: ListingReadiness
             </button>
           )}
           {editable && state.role !== null && (
-            <button type="button" onClick={() => void exportPdf()} disabled={busy !== null} data-testid="listing-export" className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60">
+            <button type="button" onClick={() => void exportPdf()} disabled={busy !== null} data-testid="listing-export" className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-white hover:bg-action-hover disabled:opacity-60">
               {busy === "pdf" ? <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" /> : <Download strokeWidth={1.75} className="h-3.5 w-3.5" />}
               {pdfButtonLabel(state.pdf)}
             </button>
@@ -403,7 +403,7 @@ export function ListingReadinessClient({ initial }: { initial?: ListingReadiness
               </div>
             </fieldset>
           )}
-          <button type="submit" disabled={busy !== null} data-testid="listing-save-facts" className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60">
+          <button type="submit" disabled={busy !== null} data-testid="listing-save-facts" className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-white hover:bg-action-hover disabled:opacity-60">
             {busy === "save" ? <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" /> : <Save strokeWidth={1.75} className="h-3.5 w-3.5" />}
             Save facts
           </button>

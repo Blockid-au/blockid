@@ -235,7 +235,7 @@ export function InvestorPackGenerateClient({ preview }: Props): React.ReactEleme
               placeholder="e.g. 1500000"
               value={raiseAmount}
               onChange={(e) => setRaiseAmount(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+              className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
             />
             <p className="mt-1 text-xs text-slate-500">
               Leave blank to omit an ask; the pack will show &ldquo;Amount
@@ -257,7 +257,7 @@ export function InvestorPackGenerateClient({ preview }: Props): React.ReactEleme
               placeholder="e.g. 40% engineering, 35% GTM, 20% hires, 5% runway"
               value={useOfFunds}
               onChange={(e) => setUseOfFunds(e.target.value)}
-              className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+              className="mt-1 block w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
             />
             <p className="mt-1 text-xs text-slate-500">
               Blank falls back to the default splits described in the pack.
@@ -274,7 +274,7 @@ export function InvestorPackGenerateClient({ preview }: Props): React.ReactEleme
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="submit"
-              className="inline-flex items-center rounded-lg bg-brand-600 hover:bg-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+              className="inline-flex items-center rounded-lg bg-action hover:bg-action-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-action px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
             >
               {status === "loading" ? "Generating…" : "Generate PDF"}
             </button>

@@ -123,7 +123,7 @@ export function NotificationsClient({
             type="button"
             onClick={resubscribeAll}
             disabled={saving}
-            className="inline-block bg-brand-600 text-white font-semibold text-sm px-5 py-2 rounded-lg hover:bg-brand-700 transition-colors disabled:opacity-50"
+            className="inline-block bg-action text-white font-semibold text-sm px-5 py-2 rounded-lg hover:bg-action-hover transition-colors disabled:opacity-50"
           >
             {saving ? "Saving..." : "Resubscribe to all"}
           </button>
@@ -162,7 +162,7 @@ export function NotificationsClient({
                     disabled
                       ? "cursor-not-allowed opacity-50"
                       : "cursor-pointer"
-                  } ${checked ? "bg-brand-600" : "bg-surface-300"}`}
+                  } ${checked ? "bg-action" : "bg-surface-300"}`}
                 >
                   <span
                     className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${
@@ -190,7 +190,7 @@ export function NotificationsClient({
             href="/api/digest/preview"
             target="_blank"
             rel="noreferrer"
-            className="inline-block bg-brand-600 text-white font-semibold text-sm px-5 py-2 rounded-lg hover:bg-brand-700 transition-colors"
+            className="inline-block bg-action text-white font-semibold text-sm px-5 py-2 rounded-lg hover:bg-action-hover transition-colors"
           >
             Preview my next digest
           </a>

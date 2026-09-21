@@ -226,7 +226,7 @@ export function SviFixRoadmap({ projectId, className }: SviFixRoadmapProps) {
                         checked={isChecked}
                         disabled={isPending}
                         onChange={() => void handleCheck(item)}
-                        className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-brand-500 shrink-0 cursor-pointer"
+                        className="h-4 w-4 rounded border-ink-300 text-brand-600 focus:ring-action shrink-0 cursor-pointer"
                         aria-label={item.actionTitle}
                       />
                       <div className="flex-1 min-w-0">

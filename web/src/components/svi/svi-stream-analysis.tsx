@@ -233,7 +233,7 @@ function AnalystPersonaBanner({
       <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-brand-400 via-brand-600 to-brand-400 animate-pulse" aria-hidden="true" />
       {/* Analyst badge */}
       <div className="relative flex-none">
-        <div className="h-11 w-11 rounded-full bg-brand-600 flex items-center justify-center shadow-md ring-4 ring-brand-200">
+        <div className="h-11 w-11 rounded-full bg-action flex items-center justify-center shadow-md ring-4 ring-brand-200">
           <Bot className="h-5 w-5 text-white" aria-hidden="true" />
         </div>
         {/* Pulsing outer ring */}
@@ -484,7 +484,7 @@ function DimCard({
               onClick={() => onToggle(dimKey)}
               aria-expanded={state.expanded}
               aria-label={state.expanded ? `Collapse ${meta.label} details` : `View full ${meta.label} details`}
-              className="shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md px-3 text-xs font-medium text-ink-500 hover:text-ink-700 hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors"
+              className="shrink-0 inline-flex items-center justify-center min-h-[44px] min-w-[44px] rounded-md px-3 text-xs font-medium text-ink-500 hover:text-ink-700 hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors"
             >
               {state.expanded ? "Collapse" : "View full"}
             </button>
@@ -854,7 +854,7 @@ function EmailReportPanel({
         </p>
         <a
           href="/workspace/evidence/gaps"
-          className="text-xs font-medium text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 rounded"
+          className="text-xs font-medium text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action rounded"
         >
           Detailed breakdown by 13 investor criteria →
         </a>
@@ -868,7 +868,7 @@ function EmailReportPanel({
           onChange={(e) => setEmail(e.target.value)}
           placeholder="you@company.com"
           disabled={status === "sending" || status === "sent"}
-          className="flex-1 min-w-[200px] min-h-[44px] rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          className="flex-1 min-w-[200px] min-h-[44px] rounded-md border border-ink-200 bg-white px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
         />
         <button
           type="button"
@@ -876,12 +876,12 @@ function EmailReportPanel({
           disabled={status === "sending" || status === "sent"}
           className={cn(
             "inline-flex items-center justify-center min-h-[44px] rounded-md px-4 text-sm font-semibold text-white transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white",
             status === "sent"
               ? "bg-emerald-600 cursor-default"
               : status === "sending"
                 ? "bg-surface-hover !text-tertiary cursor-not-allowed"
-                : "bg-brand-600 hover:bg-brand-700",
+                : "bg-action hover:bg-action-hover",
           )}
         >
           {status === "sent" ? "Sent ✓" : status === "sending" ? "Sending…" : "Email me the report"}
@@ -1116,7 +1116,7 @@ function TbrOnboardingSteps({
               onClick={() => markStep(1)}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 rounded-md bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3 py-1.5"
+              className="inline-flex items-center gap-1 rounded-md bg-action hover:bg-action-hover text-white text-xs font-semibold px-3 py-1.5"
             >
               Open TBR
             </a>
@@ -1705,7 +1705,7 @@ export function SviStreamAnalysis({
                         try { await Notification.requestPermission(); } catch { /* silent */ }
                       }
                     }}
-                    className="h-3.5 w-3.5 rounded border-ink-300 text-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500"
+                    className="h-3.5 w-3.5 rounded border-ink-300 text-brand-600 focus-visible:ring-2 focus-visible:ring-action"
                   />
                   Notify me when done (browser)
                 </label>
@@ -1749,7 +1749,7 @@ export function SviStreamAnalysis({
             <button
               type="button"
               onClick={stopAnalysis}
-              className="inline-flex items-center justify-center min-h-[44px] rounded-lg border border-ink-200 px-4 text-sm text-ink-600 hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors"
+              className="inline-flex items-center justify-center min-h-[44px] rounded-lg border border-ink-200 px-4 text-sm text-ink-600 hover:bg-ink-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors"
             >
               Stop
             </button>
@@ -1759,10 +1759,10 @@ export function SviStreamAnalysis({
             onClick={running ? undefined : done ? () => { reset(); void startAnalysis(); } : () => void startAnalysis()}
             disabled={running}
             className={cn(
-              "inline-flex items-center justify-center min-h-[44px] rounded-lg px-4 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white",
+              "inline-flex items-center justify-center min-h-[44px] rounded-lg px-4 text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white",
               running
                 ? "bg-surface-hover text-tertiary cursor-not-allowed"
-                : "bg-brand-600 hover:bg-brand-700 text-white shadow-sm hover:shadow-md active:scale-95",
+                : "bg-action hover:bg-action-hover text-white shadow-sm hover:shadow-md active:scale-95",
             )}
           >
             {running ? (
@@ -1823,7 +1823,7 @@ export function SviStreamAnalysis({
             type="button"
             onClick={() => { reset(); }}
             aria-label="Discard cached analysis and start fresh"
-            className="inline-flex items-center justify-center min-h-[44px] rounded-md px-4 text-xs font-medium text-brand-700 hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors"
+            className="inline-flex items-center justify-center min-h-[44px] rounded-md px-4 text-xs font-medium text-brand-700 hover:bg-brand-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white transition-colors"
           >
             Discard
           </button>
@@ -2027,7 +2027,7 @@ export function SviStreamAnalysis({
                       </span>
                       <a
                         href={`/workspace/evidence/gaps?dim=${w.key}`}
-                        className="inline-flex items-center justify-center min-h-[36px] rounded-md bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 focus-visible:ring-offset-brand-50 transition-colors"
+                        className="inline-flex items-center justify-center min-h-[36px] rounded-md bg-action hover:bg-action-hover text-white text-xs font-semibold px-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-brand-50 transition-colors"
                       >
                         Add evidence
                       </a>
@@ -2090,7 +2090,7 @@ export function SviStreamAnalysis({
             <div className="border-t border-brand-200/50 pt-3">
               <a
                 href={`/workspace/reports/business?pid=${encodeURIComponent(projectId ?? "default")}`}
-                className="inline-flex items-center gap-2 w-full justify-center rounded-lg border-2 border-brand-600 text-brand-700 hover:bg-brand-50 text-sm font-semibold px-4 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+                className="inline-flex items-center gap-2 w-full justify-center rounded-lg border-2 border-brand-600 text-brand-700 hover:bg-brand-50 text-sm font-semibold px-4 py-3 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action"
                 target="_blank"
                 rel="noopener noreferrer"
               >
