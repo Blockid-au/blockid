@@ -56,6 +56,10 @@ export const DEMO_WRITE_TABLES = Object.freeze(["projects", "evaluations", "eval
 const BATCH_COLUMNS =
   "id, user_id, name, rubric_weights, status, total, done_count, failed_count, created_at, started_at, finished_at, program_name, intake_id, template_id, weights_version, applicants_cap, pilot_order_id, org_id, is_demo";
 
+function omit<T extends Row>(row: T, key: string): Row {
+  return Object.fromEntries(Object.entries(row).filter(([k]) => k !== key));
+}
+
 function isMissingColumn(error: unknown, column?: string): boolean {
   const e = error as { code?: string; message?: string } | null;
   if (!e || e.code !== "42703") return false;
@@ -154,7 +158,7 @@ async function insertProjects(supabase: Db, userId: string, taken: Set<string>):
   }));
   let res = await supabase.from("projects").insert(rows).select("id, slug");
   if (res.error && isMissingColumn(res.error, "verification_level")) {
-    res = await supabase.from("projects").insert(rows.map(({ verification_level: _v, ...r }) => r)).select("id, slug");
+    res = await supabase.from("projects").insert(rows.map((r) => omit(r, "verification_level"))).select("id, slug");
   }
   if (res.error || !res.data) return { ok: false, error: res.error };
   const out = ((res.data ?? []) as Row[]).map((r) => {
@@ -234,8 +238,7 @@ export async function createDemoBatch(input: CreateDemoBatchInput): Promise<Crea
     return { ok: false, error: "migration_pending", message: "The demo cohort is not enabled on this server yet (migration 0436 pending)." };
   }
   if (batchRes.error && isMissingColumn(batchRes.error, "org_id") && orgId) {
-    const { org_id: _o, ...withoutOrg } = batchRow;
-    batchRes = await supabase.from("evaluation_batches").insert(withoutOrg).select(BATCH_COLUMNS).single();
+    batchRes = await supabase.from("evaluation_batches").insert(omit(batchRow, "org_id")).select(BATCH_COLUMNS).single();
   }
   if (batchRes.error || !batchRes.data) {
     console.error("[blockid:demo-cohort] batch insert failed", batchRes.error);
