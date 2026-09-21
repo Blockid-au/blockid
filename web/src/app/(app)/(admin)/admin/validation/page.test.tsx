@@ -7,6 +7,7 @@
 // usePathname → mocked.
 
 import { describe, expect, it, vi } from "vitest";
+import { darkSurfaceOffences } from "@/design/light-markup";
 import { renderToReadableStream } from "react-dom/server";
 
 vi.mock("next/navigation", () => ({
@@ -51,6 +52,7 @@ const ADMIN = { email: "admin@blockid.au", displayName: "Admin" };
 describe("<ValidationLadder>", () => {
   it("five rungs, actual / target per level, met state from actual ≥ target, progress bars with aria values", async () => {
     const out = await html(<ValidationLadder ladder={DASHBOARD.ladder} />);
+    expect(darkSurfaceOffences(out), "G26 light template").toEqual([]);
     expect(out.match(/data-testid="validation-rung"/g)).toHaveLength(5);
     expect(out).toContain('data-level="1" data-met="0"');
     expect(out).toContain('data-level="4" data-met="1"');

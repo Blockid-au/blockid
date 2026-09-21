@@ -16,6 +16,7 @@
 // states, URL- and prop-driven filtering, and the decision log.
 
 import * as React from "react";
+import { darkSurfaceOffences } from "@/design/light-markup";
 import { describe, expect, it, beforeEach, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
@@ -155,6 +156,7 @@ beforeEach(() => {
 describe("CohortTable — caption + header sort state", () => {
   it("the caption names the weight-set version and says the canonical SVI is unchanged", () => {
     const out = renderToStaticMarkup(<CohortTable rows={[acmeRow()]} batchId="b-1" role="owner" weightsVersion={2} />);
+    expect(darkSurfaceOffences(out), "G26 light template").toEqual([]);
     expect(out).toMatch(/<caption[^>]*>[^<]*weights v2[^<]*canonical SVI unchanged/);
     expect(out).not.toContain('data-testid="cohort-weights-changed"');
   });

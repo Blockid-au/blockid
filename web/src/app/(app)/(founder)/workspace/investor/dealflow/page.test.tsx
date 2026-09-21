@@ -1,4 +1,5 @@
 import type React from "react";
+import { darkSurfaceOffences } from "@/design/light-markup";
 import { renderToReadableStream } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -63,6 +64,7 @@ describe("/workspace/investor/dealflow — v2", () => {
 
   it("passes the URL filters to the loader and renders the mandate-scored rows keyed on project_id", async () => {
     const out = await html({ industry: "fintech,ai_ml", stage: "seed", fit: "0", sort: "svi" });
+    expect(darkSurfaceOffences(out), "G26 light template").toEqual([]);
     expect(dfMock).toHaveBeenCalledWith("u-inv", expect.objectContaining({ industry: ["fintech", "ai_ml"], stage: ["seed"], min_fit: 0, sort: "svi" }));
     expect(out).toContain('data-migrated="1"');
     expect(out).toContain('data-rows="3"');

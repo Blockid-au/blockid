@@ -209,7 +209,7 @@ export function ProgressRadarPanel({ progress, hasMoneyRadar }: { progress: Eval
     return (
       <div
         data-testid="progress-radar-teaser"
-        className="rounded-2xl border border-dashed border-line-subtle border-l-4 border-l-brand-navy bg-surface-sunken/40 px-5 py-4 text-sm text-ink-700 flex flex-wrap items-center justify-between gap-3"
+        className="rounded-2xl border border-line-subtle border-l-4 border-l-brand-navy bg-surface-sunken px-5 py-4 text-sm text-ink-700 flex flex-wrap items-center justify-between gap-3"
       >
         <div className="flex items-start gap-3">
           <Radar strokeWidth={1.75} className="mt-0.5 h-5 w-5 text-brand-600" />

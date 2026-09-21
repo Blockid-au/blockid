@@ -5,6 +5,7 @@
 // a fake client + a temp root for the summary file.
 
 import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { darkSurfaceOffences } from "@/design/light-markup";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -57,6 +58,7 @@ function data(over: Partial<ExternalSignalsAdminData> = {}): ExternalSignalsAdmi
 describe("ExternalSignalsAdminView", () => {
   it("renders every source with licence, attribution (verbatim) and status; cite-only rows are labelled and never counted", async () => {
     const out = await html(<ExternalSignalsAdminView data={data()} />);
+    expect(darkSurfaceOffences(out), "G26 light template").toEqual([]);
     expect(out).toContain("<h1");
     expect(out).toContain("External signals");
     expect((out.match(/data-source-id="/g) ?? []).length).toBe(EXTERNAL_SOURCE_CATALOG.length);

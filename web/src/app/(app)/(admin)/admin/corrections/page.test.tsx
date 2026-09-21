@@ -5,6 +5,7 @@
 // login and non-admin → /admin. AdminLayout mounts usePathname → mocked.
 
 import { describe, expect, it, vi } from "vitest";
+import { darkSurfaceOffences } from "@/design/light-markup";
 import { renderToReadableStream } from "react-dom/server";
 
 vi.mock("next/navigation", () => ({
@@ -51,6 +52,7 @@ const ADMIN = { email: "admin@blockid.au", displayName: "Admin" };
 describe("CorrectionsTable", () => {
   it("renders startup, founder e-mail, kind + target, proposed value, status and resolution; accept / reject only on open rows", async () => {
     const out = await html(<CorrectionsTable rows={[OPEN, DONE]} onResolve={() => {}} />);
+    expect(darkSurfaceOffences(out), "G26 light template").toEqual([]);
     expect(out).toContain('data-testid="corrections-queue"');
     expect(out).toContain("Acme");
     expect(out).toContain("f@acme.io");

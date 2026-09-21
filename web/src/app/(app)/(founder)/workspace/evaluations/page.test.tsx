@@ -1,4 +1,5 @@
 import type React from "react";
+import { darkSurfaceOffences } from "@/design/light-markup";
 import { renderToReadableStream } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -178,6 +179,7 @@ describe("/workspace/evaluations", () => {
   it("renders the table with stage / SVI, consent chips, added date and actions", async () => {
     const out = await html();
     expect(out).toContain("Startups I&#x27;m evaluating");
+    expect(darkSurfaceOffences(out), "G26 light template").toEqual([]);
     expect(out).toContain("Acme Robotics");
     expect(out).toContain("Beta Health");
     expect(out).toContain("MVP");
