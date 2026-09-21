@@ -662,6 +662,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.5,
     },
+    // G22-C — the Institutional API contract rendered in-app from
+    // docs/api/institutional.md (was a GitHub link on /developers/api).
+    {
+      url: `${SITE_URL}/docs/api/institutional`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.5,
+    },
     {
       url: `${SITE_URL}/status`,
       lastModified,
