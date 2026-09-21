@@ -147,13 +147,13 @@ function renderSviBlock(p: DigestPayload): string {
   if (!p.svi) return "";
   const { current, previous, delta, newSnapshot } = p.svi;
   let summary: string;
-  let colour = EMAIL_THEME.inkTertiary;
+  let colour: string = EMAIL_THEME.inkTertiary;
   let arrow = "—";
   if (delta === null) {
     summary = newSnapshot ? "First snapshot on record" : "No prior snapshot to compare";
   } else if (delta > 0) {
     summary = `+${delta} pts vs the start of the week`;
-    colour = "#047857";
+    colour = EMAIL_THEME.success;
     arrow = "▲";
   } else if (delta < 0) {
     summary = `${delta} pts vs the start of the week`;
