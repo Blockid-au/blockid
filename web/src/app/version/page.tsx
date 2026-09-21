@@ -146,6 +146,17 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.21.0",
+    date: "2026-09-21",
+    title: "Longitudinal moat (G21 P3 — advisor-feedback upgrade)",
+    changes: [
+      "[G21] Outcome ledger (0427): eight outcome kinds, proposals from existing signals with human confirmation only, founder page + dossier block + admin queue; score → outcome calibration under the n-rules with an honest empty state; Day 0 / 60 / 180 trajectory timeline; data-moat metrics",
+      "[G21] Stage × sector benchmark segments (0428) from one latest score per company, published only at n ≥ 10, feeding the Assessment Card, Cohort Report and /startup-index",
+      "[G21] Read-only institutional API (/api/v1/institutional: cohorts, snapshots, companies, benchmarks with n, methodology — key auth, 600/h, audit row per read, no PII); organisation audit export + retention setting + weekly retention cron",
+      "[G21] Connectors write EvidenceRecords and state which claim they strengthen; connector freshness on cards, the Assessment Card and the trust metrics; reviewer signature on dossiers + IC memos; /methodology/versions",
+    ],
+  },
+  {
     version: "3.20.0",
     date: "2026-09-20",
     title: "Cohort intelligence (G21 P2 — advisor-feedback upgrade) + P1 review fixes",

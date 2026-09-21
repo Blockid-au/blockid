@@ -78,18 +78,32 @@ export function latestScorePerProject(
   rows: ReadonlyArray<{ project_id: string | null; total_svi: number | string | null; stage: number | null }>,
   stage: number,
 ): number[] {
-  const seen = new Set<string>();
   const scores: number[] = [];
-  for (const row of rows) {
-    if (!row.project_id || seen.has(row.project_id)) continue;
+  for (const row of latestAnalysisPerProject(rows)) {
     // The newest analysis decides the company's stage; older rows at another
     // stage never count that company twice.
-    seen.add(row.project_id);
     if (row.stage !== stage) continue;
     const v = Number(row.total_svi);
     if (Number.isFinite(v)) scores.push(v);
   }
   return scores;
+}
+
+/**
+ * Pure: newest-first analysis rows → the latest row per project (guest rows
+ * without a project id are dropped). The ONE dedupe rule every benchmark
+ * pool uses — the stage benchmark above and the nightly segment refresh
+ * (lib/benchmarks/segments-db.ts, G21 P3-B) both go through it.
+ */
+export function latestAnalysisPerProject<T extends { project_id: string | null }>(rows: ReadonlyArray<T>): T[] {
+  const seen = new Set<string>();
+  const out: T[] = [];
+  for (const row of rows) {
+    if (!row.project_id || seen.has(row.project_id)) continue;
+    seen.add(row.project_id);
+    out.push(row);
+  }
+  return out;
 }
 
 async function readStageBenchmark(stage: number): Promise<AssessmentBenchmark | null> {
@@ -122,9 +136,8 @@ const cachedStageBenchmark = unstable_cache((stage: number) => readStageBenchmar
   revalidate: BENCHMARK_CACHE_SECONDS,
 });
 
-/** Stage benchmark over the live analyses (one score per company), published only under the n-rule; data-cached 1 h per stage. */
-export async function loadStageBenchmark(stage: number | null | undefined): Promise<AssessmentBenchmark | null> {
-  if (stage == null || !Number.isFinite(stage)) return null;
+/** Live stage benchmark over the analyses (one score per company), published only under the n-rule; data-cached 1 h per stage. */
+async function loadLiveStageBenchmark(stage: number): Promise<AssessmentBenchmark | null> {
   try {
     return await cachedStageBenchmark(stage);
   } catch (err) {
@@ -134,25 +147,60 @@ export async function loadStageBenchmark(stage: number | null | undefined): Prom
   }
 }
 
-/** The stage of the project's latest analysis (for surfaces that render before the report is resolved). */
-export async function resolveProjectStage(projectId: string): Promise<number | null> {
+/**
+ * The benchmark the Assessment Card prints for (stage, sector) — G21 P3-B:
+ *   1. the nightly `benchmark_segments` table (lib/benchmarks/segments-db):
+ *      the published stage × sector segment when it exists, else the
+ *      published stage segment (its `segment` text says the sector segment
+ *      is not published yet);
+ *   2. before migration 0428 / the first cron run (no rows at all) the live
+ *      stage benchmark over `svi_analyses` — the pre-P3 behaviour.
+ * Always `{ median, n, label }` under the n-rule, or null.
+ */
+export async function loadBenchmarkFor(stage: number | null | undefined, sector?: string | null): Promise<AssessmentBenchmark | null> {
+  if (stage == null || !Number.isFinite(stage)) return null;
+  try {
+    const { readPublishedSegment, segmentsAvailable } = await import("@/lib/benchmarks/segments-db");
+    if (await segmentsAvailable()) {
+      const seg = await readPublishedSegment(stage, sector);
+      if (!seg) return null;
+      const label = bandToLabel(seg.band);
+      if (!label) return null;
+      return { median: Math.round(seg.median), n: seg.n, label, segment: seg.segment, fellBackToStage: seg.fellBackToStage };
+    }
+  } catch {
+    /* segments unavailable → live stage benchmark */
+  }
+  return loadLiveStageBenchmark(stage);
+}
+
+/** Pre-P3 name: the stage benchmark without a sector (alias of `loadBenchmarkFor(stage)`). */
+export const loadStageBenchmark = (stage: number | null | undefined): Promise<AssessmentBenchmark | null> => loadBenchmarkFor(stage, null);
+
+/** The stage + sector of the project's latest analysis (for surfaces that render before the report is resolved). */
+export async function resolveProjectStageAndSector(projectId: string): Promise<{ stage: number | null; sector: string | null }> {
   try {
     const supabase = getSupabaseAdmin();
-    if (!supabase) return null;
+    if (!supabase) return { stage: null, sector: null };
     const { data, error } = await supabase
       .from("svi_analyses")
-      .select("stage:analysis_json->>stage")
+      .select("stage:analysis_json->>stage, sector:analysis_json->>sector")
       .eq("project_id", projectId)
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (error || !data) return null;
-    const raw = (data as { stage: string | number | null }).stage;
-    const v = raw == null || raw === "" ? NaN : Number(raw);
-    return Number.isFinite(v) ? v : null;
+    if (error || !data) return { stage: null, sector: null };
+    const row = data as { stage: string | number | null; sector: string | null };
+    const v = row.stage == null || row.stage === "" ? NaN : Number(row.stage);
+    return { stage: Number.isFinite(v) ? v : null, sector: typeof row.sector === "string" && row.sector ? row.sector : null };
   } catch {
-    return null;
+    return { stage: null, sector: null };
   }
+}
+
+/** The stage of the project's latest analysis. */
+export async function resolveProjectStage(projectId: string): Promise<number | null> {
+  return (await resolveProjectStageAndSector(projectId)).stage;
 }
 
 /** The stored evidence confidence of the latest snapshot (0419); null before the first post-P1 snapshot. */
@@ -176,10 +224,15 @@ export async function loadStoredEvidenceConfidence(projectId: string): Promise<n
   }
 }
 
-export async function loadAssessmentContext(projectId: string | null | undefined, stage: number | null | undefined): Promise<AssessmentContext> {
+/**
+ * `sector` (G21 P3-B) selects the stage × sector segment when it is
+ * published; callers that cannot name a sector pass nothing and get the
+ * stage benchmark.
+ */
+export async function loadAssessmentContext(projectId: string | null | undefined, stage: number | null | undefined, sector?: string | null): Promise<AssessmentContext> {
   const [claims, benchmark, evidenceConfidence] = await Promise.all([
     projectId ? loadUnverifiedMaterialClaims(projectId) : Promise.resolve(null),
-    loadStageBenchmark(stage),
+    loadBenchmarkFor(stage, sector),
     projectId ? loadStoredEvidenceConfidence(projectId) : Promise.resolve(null),
   ]);
   return { unverifiedMaterialClaims: claims, benchmark, evidenceConfidence };

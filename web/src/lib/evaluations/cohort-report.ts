@@ -6,7 +6,10 @@
 // Sections (goal doc § P2-C):
 //   cover · cohort movement (median SVI first vs latest snapshot, Δ; "one
 //   snapshot so far" fallback) · median improvement per dimension · benchmark
-//   line through `publishBenchmark` (n ≥ 10 only, always with n) · evidence
+//   line = the EXTERNAL stage / stage × sector segment (G21 P3-B,
+//   `readPublishedSegment`; n ≥ 10 only, always with n and band — "No
+//   benchmark yet (n = N)" when unpublished) beside the cohort's own median
+//   ("Cohort median 62 (n = 12)", never called a benchmark) · evidence
 //   completion (% of startups with ≥ L3 on each dimension) · outputs
 //   (decisions tally, shortlisted, dossiers produced, feedback letters sent)
 //   · top strengths / top gaps across the cohort · human-review note
@@ -21,7 +24,7 @@
 
 import { LEGAL_ENTITY, legalLine } from "@/lib/site/legal-entity";
 import { SVI_VERSION } from "@/lib/svi-analysis";
-import { formatBenchmarkLine, notEnoughLine, publishBenchmark, type PublishedBenchmark } from "@/lib/benchmarks/publication-rules";
+import { benchmarkNLabel, formatBenchmarkLine, type PublishedBenchmark } from "@/lib/benchmarks/publication-rules";
 import {
   CSV_BOM,
   DIMENSION_KEYS,
@@ -122,6 +125,25 @@ export interface CohortReportInput {
   snapshots: CohortSnapshotLite[];
   overridesCount: number;
   reviewer: CohortReportReviewer | null;
+  /**
+   * G21 P3-B: the external comparison set for the cohort's dominant stage
+   * (× sector when published) — `loadCohortMarketBenchmark()` in
+   * program-journey-data.ts resolves it from `benchmark_segments`. Absent /
+   * null = no segment is published (or the table is not populated yet): the
+   * report prints "No benchmark yet (n = N)".
+   */
+  marketBenchmark?: CohortMarketBenchmark | null;
+}
+
+/** The resolved external segment, or its sample size when unpublished. */
+export interface CohortMarketBenchmark {
+  stage: number | null;
+  sector: string | null;
+  published: PublishedBenchmark | null;
+  /** True when a sector was asked for and only the stage segment is published. */
+  fellBackToStage: boolean;
+  /** n behind the unpublished set (for the "no benchmark yet" line). */
+  sampleSize: number;
 }
 
 // ---------------------------------------------------------------------------
@@ -184,8 +206,14 @@ export interface CohortReportData {
   };
   movement: CohortMovement;
   dimensionImprovement: DimensionImprovementRow[];
+  /** The EXTERNAL stage / stage × sector segment (never the cohort's own median). */
   benchmark: PublishedBenchmark | null;
+  /** "Stage 4 · SaaS / Software benchmark — median 64, p25–p75 58–71 (n = 47)" or "No benchmark yet (n = 6)". */
   benchmarkLine: string;
+  /** The cohort's own median SVI over scored startups — the same number as the movement tile. */
+  cohortMedian: number | null;
+  /** "Cohort median 62 (n = 12)" · "Cohort median — (n = 0)". */
+  cohortMedianLine: string;
   evidenceCompletion: EvidenceCompletionRow[];
   outputs: CohortOutputs;
   strengths: CountedLabel[];
@@ -259,9 +287,16 @@ export function buildCohortReport(input: CohortReportInput): CohortReportData {
     return { key: k, label: DIMENSION_LABELS[k], first, latest, delta: first != null && latest != null ? Math.round((latest - first) * 10) / 10 : null };
   });
 
-  const medianSvi = median(scoredRows.map((s) => s.svi as number));
-  const benchmark = medianSvi == null ? null : publishBenchmark({ median: medianSvi, n: scored, segment: `${input.cohortName} cohort` });
-  const benchmarkLine = benchmark ? formatBenchmarkLine(benchmark) : notEnoughLine(scored, `${input.cohortName} cohort`);
+  // The cohort's own median is a descriptive figure, never a benchmark (P2
+  // review: it used to be published as one — the same number as the
+  // movement tile). The benchmark is the external segment (P3-B).
+  const cohortMedian = median(scoredRows.map((s) => s.svi as number));
+  const cohortMedianLine = `Cohort median ${cohortMedian == null ? "—" : Math.round(cohortMedian)} (${benchmarkNLabel(scored)})`;
+  const market = input.marketBenchmark ?? null;
+  const benchmark = market?.published ?? null;
+  const benchmarkLine = benchmark
+    ? `${formatBenchmarkLine(benchmark)}${market?.fellBackToStage && market.sector ? ` — ${market.sector} segment not published yet` : ""}`
+    : `No benchmark yet (${benchmarkNLabel(market?.sampleSize ?? 0)}) — a stage benchmark appears once 10 or more comparable companies are on the index.`;
 
   const evidenceCompletion: EvidenceCompletionRow[] = DIMENSION_KEYS.map((k) => {
     const count = scoredRows.filter((s) => (s.evidenceLevels[k] ?? 0) >= EVIDENCE_COMPLETE_LEVEL).length;
@@ -295,6 +330,8 @@ export function buildCohortReport(input: CohortReportInput): CohortReportData {
     dimensionImprovement,
     benchmark,
     benchmarkLine,
+    cohortMedian,
+    cohortMedianLine,
     evidenceCompletion,
     outputs,
     strengths: countLabels(scoredRows.map((s) => s.topStrength)),
@@ -420,6 +457,7 @@ ${nonce ? `<script nonce="${esc(nonce)}">document.getElementById("print-btn").ad
 <section aria-label="Benchmark" data-section="benchmark">
   <h2>Benchmark</h2>
   <p data-benchmark-line>${esc(data.benchmarkLine)}</p>
+  <p class="muted" data-cohort-median-line>${esc(data.cohortMedianLine)} — the cohort's own figure, shown for context; it is not a benchmark.</p>
 </section>
 
 <section aria-label="Evidence completion" data-section="evidence">

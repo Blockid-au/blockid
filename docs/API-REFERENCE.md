@@ -21,6 +21,7 @@
 8. [Other](#8-other)
 9. [Evaluator API v1](#9-evaluator-api-v1-apiv1evaluations)
 10. [Partner, public and session endpoints](#10-partner-public-and-session-endpoints)
+11. [Institutional API (read-only)](#11-institutional-api-read-only-apiv1institutional)
 
 ---
 
@@ -2001,6 +2002,51 @@ e-mail fallback) and an auto-reply. Audited by `apiRoute` with an anonymous acto
 | `GET /api/index/listing/{ticker}` | Public | One ticker's public detail. |
 | `POST /api/index/submit` | Public | Startup submission from `/submit` (zod; notifies ops). |
 | `POST /api/index/waitlist` | Public | `{ email, name }` → waitlist row; `400` on a missing field, `503` without a DB. |
+
+---
+
+## 11. Institutional API (read-only) (`/api/v1/institutional`)
+
+> G21 P3-B (2026-09-21). Machine-readable copy: `GET /api/openapi.json` (slugs `v1-institutional-*`), human copy
+> under `/developers/api#institutional`. Full contract, PII stance and versioning: `docs/api/institutional.md`.
+> Routes: `src/app/api/v1/institutional/**`; core `src/lib/api-v1/institutional.ts` + `institutional-data.ts`.
+
+Read-only access for accelerators, programs and funds that run BlockID Cohorts: cohorts, cohort items (SVI,
+evidence confidence, BlockID Verified level, gaps, decision, shortlist), snapshots, one company's Assessment Card
+with its published benchmark, the benchmark segments (always with `n`) and the methodology facts to pin.
+
+**Auth:** the Evaluator API key ladder (§ 9 — `Bearer bk_live_…`, scope `evaluations:read`, plan gate
+`api.access`, 401 · 429/min · 402 · 403 in that order) **plus** a per-key ceiling of **600 reads per hour**
+(429 with `Retry-After` and `X-RateLimit-Window: hour`). Every 2xx / 304 writes one `institutional.read` audit
+row (actor `api`, resource type + id, the key's sha256 handle) and one `institutional_api_read` analytics event.
+
+**Envelope:** every error is `{ ok:false, error, message }` (+ `retry_after_seconds` / `issues[]` /
+`required_scope`); every success `{ ok:true, data, meta }`. `ETag` + `Cache-Control: private, max-age=60` on
+every 200; `If-None-Match` → 304. Malformed, unknown and not-yours ids all answer **404** with the same body.
+
+| Method | Path | Query | Returns |
+|---|---|---|---|
+| GET | `/api/v1/institutional/cohorts` | `limit` 1–100 (50) | `PublicCohortV1[]` — created + seat cohorts, newest first, with `links.items` / `links.snapshots` |
+| GET | `/api/v1/institutional/cohorts/{id}` | — | `{ cohort, items[] }` — no private notes, reviewer names or decision log |
+| GET | `/api/v1/institutional/cohorts/{id}/snapshots` | `limit` 1–100 (20) | `{ cohort, snapshots[] }` — summary + per-project rows; `created_by` dropped |
+| GET | `/api/v1/institutional/companies/{projectId}` | — | the Assessment Card projection + `benchmark { median, n, label, segment, fellBackToStage }`; 404 unless the key owner evaluates the company |
+| GET | `/api/v1/institutional/benchmarks` | `stage` 0–12, `sector` | published segments only (n ≥ 10) with `n`, `band`, `label`; `meta.floor = 10` |
+| GET | `/api/v1/institutional/methodology` | — | `svi_version`, bands, dimensions + weights, evidence ladder, n-rules, governance URL |
+
+```bash
+curl "https://blockid.au/api/v1/institutional/benchmarks?stage=4&sector=saas" \
+  -H "Authorization: Bearer bk_live_example1234567890abcdef1234567890abcdef"
+```
+
+**Institutional admin** (organisation owners, session auth — not part of the keyed API):
+
+| Route | Auth | Purpose |
+|---|---|---|
+| `GET /api/org/audit-export.csv?from=&to=` | session; org owner; `org_settings.audit_export_enabled` | streamed CSV of every audit row written by the org's seats in the window (default 90 d, cap 366 d); formula-guarded cells; the export itself is recorded (`org.audit.exported`) |
+| `GET /api/org/settings` | session; org owner | `{ org, available, settings: { retention_days, audit_export_enabled, updated_at } }` |
+| `PATCH /api/org/settings` | session; org owner; audited | `{ retention_days: 30–3650 \| null, audit_export_enabled? }` → `org.settings.updated` with before → after |
+| `POST /api/cron/org-retention` | `CRON_SECRET` | Sunday 04:40 UTC — applies each org's window to its own cohort snapshots, overrides and intake submissions only (`docs/ops/retention.md`); `?dry=1` |
+| `POST /api/cron/benchmark-segments` | `CRON_SECRET` | daily 03:25 UTC — recomputes the stage / stage × sector segments from one latest score per company; `?dry=1` |
 
 ---
 

@@ -29,6 +29,14 @@ export interface AssessmentBenchmark {
   median: number;
   n: number;
   label: BenchmarkLabel;
+  /**
+   * G21 P3-B: the comparison set the figure describes ("Stage 4 · SaaS /
+   * Software", "Stage 4"). Absent = the live stage benchmark (pre-P3 rows);
+   * the renderers then print "stage median".
+   */
+  segment?: string;
+  /** True when a sector was asked for and only the stage segment is published. */
+  fellBackToStage?: boolean;
 }
 
 export interface AssessmentDimensionRef {

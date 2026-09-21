@@ -111,7 +111,9 @@ export type AnalyticsEvent =
   | { name: "pilot_started"; params: FiEnvelopeParams & { pilot_id: string; sku: string; applicants_cap: number; amount_cents: number; pilot_source: "paid" | "comp"; user_id?: string } }
   | { name: "subscription_renewed"; params: FiEnvelopeParams & { invoice_id: string; billing_reason: string; gross_aud_cents: number; user_id?: string } }
   // ── G21 P3-A outcome ledger — an outcome recorded / proposed / resolved on a project ──
-  | { name: "outcome_recorded"; params: FiEnvelopeParams & { outcome_id: string; project_id: string; kind: string; outcome_source: string; status: "proposed" | "confirmed" | "rejected"; user_id?: string } };
+  | { name: "outcome_recorded"; params: FiEnvelopeParams & { outcome_id: string; project_id: string; kind: string; outcome_source: string; status: "proposed" | "confirmed" | "rejected"; user_id?: string } }
+  // G21 P3-B: one row per institutional API read — resource + the key's sha256 handle, never PII.
+  | { name: "institutional_api_read"; params: FiEnvelopeParams & { resource: string; resource_id?: string; key_id: string; status: number; user_id?: string } };
 
 export type AnalyticsEventName = AnalyticsEvent["name"];
 
@@ -168,12 +170,13 @@ export const FI_NATIVE_EVENTS = Object.freeze([
   "pilot_started",
   "subscription_renewed",
   "outcome_recorded",
+  "institutional_api_read",
 ] as const satisfies readonly AnalyticsEventName[]);
 
 export type FiNativeName = (typeof FI_NATIVE_EVENTS)[number];
 export type FiEventName = FiAliasName | FiNativeName;
 
-/** The 19 FI catalogue names, in funnel order. */
+/** The 20 FI catalogue names, in funnel order (18 from P0-D + `outcome_recorded` P3-A + `institutional_api_read` P3-B). */
 export const FI_EVENT_CATALOGUE: readonly FiEventName[] = Object.freeze([
   "startup_created",
   "deck_uploaded",
@@ -194,6 +197,7 @@ export const FI_EVENT_CATALOGUE: readonly FiEventName[] = Object.freeze([
   "subscription_started",
   "subscription_renewed",
   "outcome_recorded",
+  "institutional_api_read",
 ]);
 
 /** Canonical stored name for an FI name (alias target, or itself). */

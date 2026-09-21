@@ -108,15 +108,37 @@ describe("buildCohortReport", () => {
     expect(d.dimensionImprovement.find((r) => r.key === "ftv")).toMatchObject({ first: 65, latest: 66, delta: 1 });
   });
 
-  it("benchmark: suppressed under n = 10 (not-enough line with n), published from 10 with n in the line", () => {
-    const small = buildCohortReport(input());
-    expect(small.benchmark).toBeNull();
-    expect(small.benchmarkLine).toMatch(/Not enough comparable companies/);
-    expect(small.benchmarkLine).toMatch(/n = 3/);
+  it("benchmark is the EXTERNAL segment (G21 P3-B): none loaded → 'No benchmark yet (n = N)'; the cohort's own median is a separate 'Cohort median' line", () => {
+    const none = buildCohortReport(input());
+    expect(none.benchmark).toBeNull();
+    expect(none.benchmarkLine).toMatch(/^No benchmark yet \(n = 0\)/);
+    expect(none.cohortMedian).toBeGreaterThan(60);
+    expect(none.cohortMedianLine).toMatch(/^Cohort median \d+ \(n = 3\)$/);
+    // 12 scored startups do NOT make a benchmark — the cohort is never its own comparison set (P2 review).
     const big = buildCohortReport(input({ startups: Array.from({ length: 12 }, () => startup()) }));
-    expect(big.benchmark?.n).toBe(12);
-    expect(big.benchmark?.band).toBe("indicative");
-    expect(big.benchmarkLine).toMatch(/indicative — median \d+.*\(n = 12\)/);
+    expect(big.benchmark).toBeNull();
+    expect(big.benchmarkLine).toMatch(/^No benchmark yet/);
+    expect(big.cohortMedianLine).toMatch(/^Cohort median \d+ \(n = 12\)$/);
+    expect(big.benchmarkLine).not.toMatch(/n = 12/);
+  });
+
+  it("benchmark: an unpublished segment quotes its n; a published stage segment prints median, band and n; a stage fallback says the sector segment is unpublished", () => {
+    const unpublished = buildCohortReport(input({ marketBenchmark: { stage: 4, sector: null, published: null, fellBackToStage: false, sampleSize: 6 } }));
+    expect(unpublished.benchmark).toBeNull();
+    expect(unpublished.benchmarkLine).toMatch(/^No benchmark yet \(n = 6\)/);
+    const published = buildCohortReport(
+      input({ marketBenchmark: { stage: 4, sector: null, published: { median: 58, p25: 51, p75: 66, n: 41, band: "benchmark", label: "benchmark (n = 41)", segment: "Stage 4" }, fellBackToStage: false, sampleSize: 41 } }),
+    );
+    expect(published.benchmark?.n).toBe(41);
+    expect(published.benchmarkLine).toBe("Stage 4 benchmark — median 58, p25–p75 51–66 (n = 41)");
+    const fallback = buildCohortReport(
+      input({ marketBenchmark: { stage: 4, sector: "saas", published: { median: 58, p25: null, p75: null, n: 14, band: "indicative", label: "indicative (n = 14)", segment: "Stage 4" }, fellBackToStage: true, sampleSize: 14 } }),
+    );
+    expect(fallback.benchmarkLine).toBe("Stage 4 indicative — median 58 (n = 14) — saas segment not published yet");
+    const html = renderCohortReportHtml(published, "https://blockid.au", "n");
+    expect(html).toContain("Stage 4 benchmark — median 58, p25–p75 51–66 (n = 41)");
+    expect(html).toMatch(/Cohort median \d+ \(n = 3\)/);
+    expect(html).toContain("it is not a benchmark");
   });
 
   it("evidence completion counts ≥ L3 per dimension; outputs count submitted decisions, shortlist, dossiers, letters", () => {

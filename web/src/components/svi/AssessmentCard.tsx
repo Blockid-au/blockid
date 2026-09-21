@@ -114,7 +114,7 @@ export function AssessmentCard({ data, locale = "en", className, dimHref, headin
         {data.benchmark && (
           <div data-assessment-benchmark={data.benchmark.label}>
             <dt className={LABEL}>{t.benchmark}</dt>
-            <dd className="tabular-nums text-secondary">{t.benchmarkLine(data.benchmark.median, data.benchmark.n, t.benchmarkLabel[data.benchmark.label])}</dd>
+            <dd className="tabular-nums text-secondary">{t.benchmarkLine(data.benchmark.median, data.benchmark.n, t.benchmarkLabel[data.benchmark.label], data.benchmark.segment)}</dd>
           </div>
         )}
         <div>

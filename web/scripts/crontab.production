@@ -829,3 +829,17 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 
 # G20-F2 (2026-09-20) — weekly public page sweep (docs/ops/page-sweep.md)
 30 4 * * 0 cd /home/dovanlong/blockid.au/web && node scripts/page-sweep.mjs --base https://blockid.au --persona public >> /data/logs/blockid-page-sweep.log 2>&1
+
+# G21 P3-B (2026-09-21) — NOT INSTALLED until migration 0428 is applied (the
+# jobs 503 "apply migration 0428" until then; cron-health would record it).
+#   benchmark-segments  nightly 03:25 UTC — stage / stage × sector SVI benchmark
+#                       segments from ONE latest score per company → benchmark_segments
+#                       (n < 10 stored, RLS-hidden) + content/reports/benchmark-segments-latest.json
+#                       (published rows only). Feeds the Assessment Card, the Cohort Report
+#                       benchmark line, /startup-index and /api/v1/institutional/benchmarks.
+#   org-retention       Sunday 04:40 UTC — applies org_settings.retention_days to each
+#                       organisation's own cohort_snapshots / assessment_overrides /
+#                       intake_submissions (never a founder's data; docs/ops/retention.md).
+# Add ?dry=1 by hand to inspect either.
+25 3 * * * bash $RUN benchmark-segments --timeout 120
+40 4 * * 0 bash $RUN org-retention --timeout 300

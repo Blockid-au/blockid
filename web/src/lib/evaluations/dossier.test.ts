@@ -365,8 +365,9 @@ describe("loadDossier — evaluator", () => {
     // for the stale-connector hint) and the reviewer signature (app_users ·
     // investor_organisation_members · assessment_overrides), all fail-soft.
     expect(tables.slice(1, 7).sort()).toEqual(["audit_events", "connector_snapshots", "evaluation_reports", "svi_dimension_evidence", "svi_snapshots", "svi_snapshots"]);
+    // G21 P3: the benchmark reads `benchmark_segments` first (empty on this fake DB → the live stage benchmark over svi_analyses); P3-C adds the freshness + signature reads.
     expect(tables.slice(7).sort()).toEqual([
-      "app_users", "assessment_overrides", "audit_events", "claims", "connector_snapshots", "evaluator_progress_sends", "investor_organisation_members",
+      "app_users", "assessment_overrides", "audit_events", "benchmark_segments", "claims", "connector_snapshots", "evaluator_progress_sends", "investor_organisation_members",
       "mandate_fit_scores", "oauth_connections_v2", "svi_analyses", "svi_snapshots", "svi_snapshots",
     ]);
     expect(readConsensusMock).toHaveBeenCalledTimes(1);

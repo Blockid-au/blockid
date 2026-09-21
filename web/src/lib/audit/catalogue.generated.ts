@@ -273,6 +273,7 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/nps/route.ts", family: "nps", methods: ["POST"] },
   { route: "api/onboarding/complete/route.ts", family: "onboarding.complete", methods: ["POST"] },
   { route: "api/onboarding/save-progress/route.ts", family: "onboarding.save-progress", methods: ["POST"] },
+  { route: "api/org/settings/route.ts", family: "org.settings", methods: ["PATCH"] },
   { route: "api/outcomes/[id]/route.ts", family: "outcomes", methods: ["PATCH"] },
   { route: "api/pilot/apply/route.ts", family: "pilot.apply", methods: ["POST"] },
   { route: "api/pilots/[orderId]/metrics/route.ts", family: "pilots.metrics", methods: ["PATCH"] },

@@ -23,7 +23,7 @@ export function assessmentCardLines(data: AssessmentCardData): Array<{ label: st
     { label: "Stage", value: data.stageLabel },
     { label: "Sector", value: data.sector },
   ];
-  if (data.benchmark) lines.push({ label: "Benchmark", value: `stage median ${data.benchmark.median} (n = ${data.benchmark.n}) · ${data.benchmark.label}` });
+  if (data.benchmark) lines.push({ label: "Benchmark", value: `${data.benchmark.segment ? `${data.benchmark.segment} median` : "stage median"} ${data.benchmark.median} (n = ${data.benchmark.n}) · ${data.benchmark.label}` });
   lines.push({ label: "Top strength", value: data.topStrength ? `${data.topStrength.dim.toUpperCase()} ${data.topStrength.title} ${data.topStrength.score}` : "—" });
   lines.push({ label: "Top gap", value: data.topGap ? `${data.topGap.dim.toUpperCase()} ${data.topGap.title} ${data.topGap.score}` : "—" });
   lines.push({ label: "Unverified material claims", value: String(data.unverifiedMaterialClaims) });

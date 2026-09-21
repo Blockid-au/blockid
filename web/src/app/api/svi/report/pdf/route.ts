@@ -100,7 +100,7 @@ export async function GET(request: Request) {
       const raced = tbrPdfCache.get(key);
       if (raced) return pdfResponse(raced, "hit");
       // G21 P1 (review): the same Assessment Card numbers as the web report.
-      const assessment = assessmentCardOptionsFromContext(await loadAssessmentContext(loaded.projectId, loaded.report.cover.stage));
+      const assessment = assessmentCardOptionsFromContext(await loadAssessmentContext(loaded.projectId, loaded.report.cover.stage, loaded.report.cover.sector));
       const { buffer, pages, level } = await renderTbrPdf(loaded.report, { assessment });
       const pdf: CachedPdf = { buffer, pages, level, source: loaded.path, filename: safeFilename(loaded.report.cover.startupName) };
       tbrPdfCache.set(key, pdf);

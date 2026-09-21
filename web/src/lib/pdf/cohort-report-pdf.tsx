@@ -157,6 +157,7 @@ export function CohortReportPdf({ data }: { data: CohortReportData }) {
 
         <Text style={s.h2}>Benchmark</Text>
         <Text style={s.body}>{t(data.benchmarkLine)}</Text>
+        <Text style={s.small}>{t(`${data.cohortMedianLine} — the cohort's own figure, shown for context; it is not a benchmark.`)}</Text>
 
         <View break>
           <Text style={s.h2}>Evidence completion</Text>
