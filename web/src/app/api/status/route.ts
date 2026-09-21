@@ -28,6 +28,7 @@ import { readSviBacktestStatus, type SviBacktestStatus } from "@/lib/backtest/la
 import { readCalibrationStatus, type CalibrationStatus } from "@/lib/calibration/latest";
 import { dataMoatForStatus, emptyDataMoat, readDataMoat, type DataMoatMetrics } from "@/lib/outcomes/data-moat";
 import { readTbrQualityStatus, type TbrQualityStatus } from "@/lib/report-pipeline/quality-log";
+import { emptyTbrGrounding, readTbrGrounding, type TbrGrounding } from "@/lib/status/tbr-grounding";
 import { getAIQueueDepth } from "@/lib/ai-client";
 import { publicStatusExtras, readStatusExtras, type PublicStatusExtras, type StatusExtras } from "@/lib/status";
 import type { LatencyP95 } from "@/lib/status/slo";
@@ -110,9 +111,11 @@ type PublicStatusResponse = {
    * groundedShare median, per-report cost median (USD), share of runs with a
    * degraded chapter, and `ok | watch | missing` (watch = grounded median
    * < 0.85 or degradedShare > 0.2). Aggregates only — no project, snapshot
-   * or path.
+   * or path. G23-C adds `grounded_share` (the LATEST run's groundedShare,
+   * null when no run is logged) and `grounded_share_kpi` (0.85) so the
+   * grounding goal is readable without the jsonl.
    */
-  tbr_quality: TbrQualityStatus;
+  tbr_quality: TbrQualityStatus & TbrGrounding;
   /**
    * G15-R2 — redacted v2 sections (lib/status publicStatusExtras): error-class
    * counts with path/host-free text, provider states, queue depths, backup
@@ -219,8 +222,8 @@ type StatusResponse = {
    * fake zero. Trusted callers only.
    */
   data_moat: Omit<DataMoatMetrics, "warnings">;
-  /** G19-S46 — see PublicStatusResponse.tbr_quality. */
-  tbr_quality: TbrQualityStatus;
+  /** G19-S46 (+ G23-C grounded_share / grounded_share_kpi) — see PublicStatusResponse.tbr_quality. */
+  tbr_quality: TbrQualityStatus & TbrGrounding;
   /**
    * G15-R2 — v2 observability sections (lib/status/*, cached 60 s):
    *   errors_1h        top-5 error classes from the 10-min error digest
@@ -542,7 +545,7 @@ function safeQueueDepth(): ReturnType<typeof getAIQueueDepth> {
 // ---------- Handler ----------
 
 export async function GET(): Promise<Response> {
-  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens, ga4Events, backups, schemaMigrations, aiProviders, aiLastReport, traction, sviBacktest, extras, tbrQuality, outcomeCalibration, dataMoat] = await Promise.all([
+  const [healthz, crons, fallbackSha, fallbackVersion, trusted, auditChain, oauthTokens, ga4Events, backups, schemaMigrations, aiProviders, aiLastReport, traction, sviBacktest, extras, tbrQualityWindow, outcomeCalibration, dataMoat, tbrGrounding] = await Promise.all([
     fetchHealthz(2000),
     summariseCrons().catch(() => [] as CronRow[]),
     readGitShaFallback(),
@@ -564,7 +567,10 @@ export async function GET(): Promise<Response> {
     // G21 P3-A: calibration JSON freshness (same live-checkout root) + the cached data-moat counts.
     readCalibrationStatus(REPO_ROOT).catch(() => "missing" as const),
     readDataMoat().catch(() => emptyDataMoat()),
+    // G23-C: latest-run groundedShare + the KPI (same live-checkout jsonl; fail-soft).
+    readTbrGrounding().catch(() => emptyTbrGrounding()),
   ]);
+  const tbrQuality: TbrQualityStatus & TbrGrounding = { ...tbrQualityWindow, ...tbrGrounding };
   const publicExtras = extras ? publicStatusExtras(extras) : null;
 
   const last_deploy = await readLastDeploy(fallbackSha).catch(() => ({

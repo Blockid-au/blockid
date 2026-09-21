@@ -1361,7 +1361,7 @@ describe("tbr_quality (G19-S46) — read from content/reports/tbr-quality.jsonl"
 
   it("missing when no run has been logged (or the file is unparsable)", async () => {
     fetchState.responder = { kind: "json", body: healthyHealthz() };
-    expect(read((await callGet()).body)).toEqual({ last24h: { runs: 0, groundedShareMedian: null, costUsdMedian: null, degradedShare: null }, status: "missing" });
+    expect(read((await callGet()).body)).toEqual({ last24h: { runs: 0, groundedShareMedian: null, costUsdMedian: null, degradedShare: null }, status: "missing", grounded_share: null, grounded_share_kpi: 0.85 });
     fsState.files.set(QUALITY_FILE, "{nope\n");
     expect(read((await callGet()).body)?.status).toBe("missing");
   });
@@ -1369,9 +1369,11 @@ describe("tbr_quality (G19-S46) — read from content/reports/tbr-quality.jsonl"
   it("ok with medians over the last 24 h; watch when the grounded median < 0.85 or > 20 % of runs degraded", async () => {
     fetchState.responder = { kind: "json", body: healthyHealthz() };
     fsState.files.set(QUALITY_FILE, [line(1, { groundedShare: 0.9, costUsd: 0.02 }), line(2, { groundedShare: 0.95, costUsd: 0.01 }), line(30, { groundedShare: 0.1, degradedSections: 8 })].join("\n") + "\n");
-    expect(read((await callGet()).body)).toEqual({ last24h: { runs: 2, groundedShareMedian: 0.93, costUsdMedian: 0.015, degradedShare: 0 }, status: "ok" });
+    expect(read((await callGet()).body)).toEqual({ last24h: { runs: 2, groundedShareMedian: 0.93, costUsdMedian: 0.015, degradedShare: 0 }, status: "ok", grounded_share: 0.9, grounded_share_kpi: 0.85 });
     fsState.files.set(QUALITY_FILE, [line(1, { groundedShare: 0.6 }), line(2, { groundedShare: 0.7 })].join("\n") + "\n");
     expect(read((await callGet()).body)?.status).toBe("watch");
+    // G23-C: grounded_share is the LATEST run (1 h ago → 0.6), not the median; the KPI rides beside it.
+    expect(read((await callGet()).body)).toMatchObject({ grounded_share: 0.6, grounded_share_kpi: 0.85 });
     fsState.files.set(QUALITY_FILE, [line(1, { degradedSections: 3 }), line(2), line(3)].join("\n") + "\n");
     expect(read((await callGet()).body)).toMatchObject({ last24h: { degradedShare: 0.33 }, status: "watch" });
   });
