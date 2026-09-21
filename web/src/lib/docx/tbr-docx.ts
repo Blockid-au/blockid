@@ -26,9 +26,11 @@
 // (EN + VI); nothing v3 is hard-coded here.
 //
 // Free tier (`report.tier === "free"`): the `free-tier.ts` projection at
-// level 0 plus the spec § 6 caps applied here — chapters 1–4 full, 5–8 as
-// compact cards, valuation range + method names / weights only, risk rows
-// ≤ RISK_ROWS_FREE, plan steps ≤ PLAN_STEPS_FREE, appendix counts only.
+// `opts.level` plus the spec § 6 caps applied here — chapters 1–4 full, 5–8
+// as compact cards, valuation range + method names / weights only, risk
+// rows ≤ RISK_ROWS_FREE, plan steps ≤ PLAN_STEPS_FREE; the projection's
+// `show.riskTable` / `show.appendixLedger` flags (level ≥ 3) drop the risk
+// table (grid kept) and the ledger / register tables (counts kept).
 //
 // `svi-report-docx.ts` (AssembledReport → DOCX) stays for reports that
 // have no ReportV2 at all (markdown-only fallback in /api/svi/docx).
@@ -551,7 +553,8 @@ function valuation(ctx: Ctx): Block[] {
       vs.method[m.method] ?? m.method,
       applicable ? t.yes : t.no,
       applicable ? `${Math.round(m.weight * 100)} %` : "0",
-      ...(free ? [] : [applicable ? aud(m.lowAud) : "—", applicable ? aud(m.midAud) : "—", applicable ? aud(m.highAud) : "—", `${vv.methodRows.find((x) => x.method === m.method)?.derivation ? `${vv.methodRows.find((x) => x.method === m.method)!.derivation} — ` : ""}${m.rationale}`]),
+      // Spec § 5: rationale only (the S42 derivation formula strings carry sector medians without an n, so they stay off this surface).
+      ...(free ? [] : [applicable ? aud(m.lowAud) : "—", applicable ? aud(m.midAud) : "—", applicable ? aud(m.highAud) : "—", m.rationale]),
     ];
   });
   const consensus = free ? [t.consensusRow, "", `${vv.methodRows.reduce((acc, m) => acc + m.weightPct, 0)} %`] : [t.consensusRow, "", "100 %", aud(v.consensus.lowAud), aud(v.consensus.midAud), aud(v.consensus.highAud), ""];
@@ -559,7 +562,7 @@ function valuation(ctx: Ctx): Block[] {
   out.push(
     free
       ? table([vs.thMethod, t.thApplicable, vs.thWeight], rows, { widths: [60, 20, 20], numeric: [2], boldRows: [rows.length - 1] })
-      : table([vs.thMethod, t.thApplicable, vs.thWeight, vs.low, vs.consensus, vs.high, vs.thDerivation], rows, { widths: [18, 8, 8, 11, 11, 11, 33], numeric: [2, 3, 4, 5], boldRows: [rows.length - 1], size: 15 }),
+      : table([vs.thMethod, t.thApplicable, vs.thWeight, vs.low, vs.consensus, vs.high, vs.thRationale], rows, { widths: [18, 8, 8, 11, 11, 11, 33], numeric: [2, 3, 4, 5], boldRows: [rows.length - 1], size: 15 }),
   );
   if (vv.needRevenueLine) out.push(small(vv.needRevenueLine));
   if (free) return out;
@@ -768,13 +771,18 @@ function riskMatrix(ctx: Ctx): Block[] {
       RISK_LEVELS_DESC.map((like) => [lv(like), ...RISK_LEVELS_ASC.map((imp) => String(grid[like][imp]))]),
       { widths: [40, 20, 20, 20], numeric: [1, 2, 3] },
     ),
-    spacer(120),
-    table(
-      [t.thRisk, t.likelihood, t.impact, t.thMitigation],
-      rows.map((row) => [`${row.text}${row.dim ? ` (${dimName(row.dim, locale)})` : ""}`, lv(row.likelihood), lv(row.impact), row.mitigation]),
-      { widths: [44, 12, 12, 32] },
-    ),
   );
+  // Free tier level ≥ 3 keeps the grid and drops the table (`free-tier.ts` `show.riskTable`).
+  if (ctx.projection.show.riskTable) {
+    out.push(
+      spacer(120),
+      table(
+        [t.thRisk, t.likelihood, t.impact, t.thMitigation],
+        rows.map((row) => [`${row.text}${row.dim ? ` (${dimName(row.dim, locale)})` : ""}`, lv(row.likelihood), lv(row.impact), row.mitigation]),
+        { widths: [44, 12, 12, 32] },
+      ),
+    );
+  }
   return out;
 }
 
@@ -861,7 +869,8 @@ function appendix(ctx: Ctx): Block[] {
   const s = getTbrStrings(locale).v2;
   const grounded = a.auditLog.filter((l) => l.grounded).length;
   const out: Block[] = [pageBreak(), h1(t.sec.appendix, 16), h2(s.appendix.method), small(a.method, INK), ...phaseGateMatrix(ctx)];
-  if (free) {
+  // Free tier level ≥ 3: counts only (`free-tier.ts` `show.appendixLedger`) — the ledger tables + the register are in the paid view.
+  if (!projection.show.appendixLedger) {
     out.push(h2(s.appendix.evidenceRegister), small(t.countsOnly(ctx.report.appendix.evidenceRegister.length, ctx.report.appendix.auditLog.length), INK));
   } else {
     out.push(...scoreLedgers(ctx));

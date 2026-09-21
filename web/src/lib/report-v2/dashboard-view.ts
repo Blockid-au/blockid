@@ -78,7 +78,8 @@ export function buildDashboardView(
     label: t.tileSvi,
     value: sviValue,
     sub: `${bandWord(card.sviBand)}${delta !== null && delta !== undefined ? ` · ${t.deltaVsLast(`${delta >= 0 ? "+" : ""}${delta}`)}` : ""}`,
-    note: view.compositeScore === null ? t.compositePending : t.composite(view.compositeScore),
+    // G21 P1 review: the cohort rank only beside its n and only above the publication floor.
+    note: `${view.compositeScore === null ? t.compositePending : t.composite(view.compositeScore)}${c.svi.cohortPercentile !== null && typeof c.svi.cohortN === "number" && mayShowPercentile(c.svi.cohortN) ? ` · ${t.benchPercentile(c.svi.cohortPercentile)} (n = ${c.svi.cohortN})` : ""}`,
     band: card.sviBand,
   };
   // ② Evidence confidence

@@ -104,6 +104,29 @@ function clause(text: string, max = 14): string {
   return words(clean, max);
 }
 
+/**
+ * Word cap that KEEPS the `[ev:]` / `[unevidenced]` markers (the reasons /
+ * risks render through CitedText so their footnotes survive); a marker is
+ * never split — the cut lands before it.
+ */
+function keepCites(text: string, max: number): string {
+  const tokens = text.replace(/\s+/g, " ").trim().split(" ");
+  const out: string[] = [];
+  let n = 0;
+  for (const tok of tokens) {
+    const marker = /^\[(?:ev:|unevidenced|uncited)/i.test(tok);
+    if (!marker) {
+      if (n >= max) {
+        out.push("…");
+        break;
+      }
+      n += 1;
+    }
+    out.push(tok);
+  }
+  return out.join(" ").replace(/\s+([.,;:!?])/g, "$1");
+}
+
 function normTitle(text: string): string {
   return stripCitationMarkers(text).trim().toLowerCase().replace(/[.;:,\s]+$/u, "");
 }
@@ -287,13 +310,13 @@ export function buildInvestmentView(rawReport: ReportV2, card: AssessmentCardDat
   const byDelta = [...assessed].sort((a, b) => b.score - b.benchmark.p50 - (a.score - a.benchmark.p50) || DIM_ORDER.indexOf(a.dim) - DIM_ORDER.indexOf(b.dim));
   const reasons: InvestmentPoint[] =
     x.reasonsToBack.length > 0
-      ? x.reasonsToBack.slice(0, 3).map((r) => ({ text: words(clause(`${r.title}${r.body ? ` — ${r.body}` : ""}`, 40), 30), ...(r.dim ? { dim: r.dim, score: byDim.get(r.dim)?.score } : {}) }))
+      ? x.reasonsToBack.slice(0, 3).map((r) => ({ text: keepCites(`${r.title}${r.body ? ` — ${r.body}` : ""}`, 30), ...(r.dim ? { dim: r.dim, score: byDim.get(r.dim)?.score } : {}) }))
       : byDelta.slice(0, 3).map(dimLine);
   const risks: InvestmentPoint[] =
     x.criticalGaps.length > 0
       ? x.criticalGaps.slice(0, 3).map((g) => {
           const lift = typeof g.lift === "number" && g.lift > 0 ? g.lift : g.dim ? byDim.get(g.dim)?.nextAction.expectedLift : undefined;
-          return { text: words(clause(`${g.title}${g.body ? ` — ${g.body}` : ""}`, 40), 30), ...(g.dim ? { dim: g.dim, score: byDim.get(g.dim)?.score } : {}), ...(typeof lift === "number" && lift > 0 ? { lift } : {}) };
+          return { text: keepCites(`${g.title}${g.body ? ` — ${g.body}` : ""}`, 30), ...(g.dim ? { dim: g.dim, score: byDim.get(g.dim)?.score } : {}), ...(typeof lift === "number" && lift > 0 ? { lift } : {}) };
         })
       : [...byDelta].reverse().slice(0, 3).map((ch) => ({ ...dimLine(ch), lift: ch.nextAction.expectedLift }));
 
@@ -306,8 +329,8 @@ export function buildInvestmentView(rawReport: ReportV2, card: AssessmentCardDat
   const topRisk = risks[0];
   const keyPoints = [
     words(clause(x.headline, 30), 30),
-    reasons[0] ? words(reasons[0].text, 30) : "",
-    topRisk ? words(`${topRisk.text}${typeof topRisk.lift === "number" ? ` (${t.lift(topRisk.lift)})` : ""}`, 30) : "",
+    reasons[0] ? clause(reasons[0].text, 30) : "",
+    topRisk ? clause(`${topRisk.text}${typeof topRisk.lift === "number" ? ` (${t.lift(topRisk.lift)})` : ""}`, 30) : "",
     words(consensusLine, 30),
     words(t.kpVerdict(t.bandWording[band], conditionsCapped[0]?.text ?? null), 30),
   ].filter(Boolean);

@@ -308,18 +308,24 @@ describe("buildTbrDocx — v3 structure", () => {
     const aligned = alignReportWithAssessmentCard(report, {});
     const view = buildInvestmentView(aligned.report, aligned.card, "en");
     const riskText = sectionText(doc, "Risk matrix", "90-day improvement plan");
-    for (const row of view.riskMatrix.slice(0, RISK_ROWS_FREE)) expect(riskText).toContain(row.text);
-    for (const row of view.riskMatrix.slice(RISK_ROWS_FREE)) expect(riskText).not.toContain(row.text);
+    const shown = view.riskMatrix.slice(0, RISK_ROWS_FREE);
+    for (const row of shown) expect(riskText).toContain(row.text);
+    for (const row of view.riskMatrix.slice(RISK_ROWS_FREE)) if (!shown.some((s) => s.text === row.text)) expect(riskText).not.toContain(row.text);
     const planText = sectionText(doc, "90-day improvement plan", "Money on the table — grants & programs");
     for (const st of view.improvementPlan.slice(0, PLAN_STEPS_FREE)) expect(planText).toContain(st.title);
     for (const st of view.improvementPlan.slice(PLAN_STEPS_FREE)) expect(planText).not.toContain(st.title);
-    // Appendix counts only + the omitted list.
-    expect(text).toContain("Evidence register: ");
-    expect(text).toContain("full tables in the paid view");
-    expect(text).not.toContain("Score ledger");
+    // Level 0 keeps the ledger + register (≤ 12 rows) and the omitted list.
+    expect(text).toContain("Score ledger");
     expect(text).toContain("Free tier (10-page budget) omits");
+    // Level 3 (`show.riskTable` / `show.appendixLedger` false): counts only, the 3×3 grid without the rows table.
+    const l3 = xmlText((await unzip((await buildTbrDocx(report, { level: 3 })).buffer)).doc);
+    expect(l3).toContain("full tables in the paid view");
+    expect(l3).not.toContain("Score ledger");
+    expect(l3).toContain("Likelihood \\ Impact");
+    expect(l3).not.toContain("Mitigation");
     expect(images.png).toBeGreaterThanOrEqual(media.length);
-    expect(media.length).toBeGreaterThanOrEqual(10);
+    // 8 chapter primaries + the dashboard chart + the range bars, de-duplicated by byte identity.
+    expect(media.length).toBeGreaterThanOrEqual(8);
     expect(text).not.toMatch(NEVER_SAY);
   }, 90_000);
 
@@ -337,7 +343,10 @@ describe("buildTbrDocx — v3 structure", () => {
     expect(body).toContain("Pending — not assessed.");
     expect(body).toContain("Connect GitHub to audit the repository · /workspace/evidence/connectors · +6 SVI");
     expect(body).toContain("Upload your LinkedIn export · /workspace/settings/founder · +5 SVI");
-    expect(body).toContain("No view on Founder & Team until evidence is supplied.");
+    const aligned = alignReportWithAssessmentCard(report, {});
+    const view = buildInvestmentView(aligned.report, aligned.card, "en");
+    expect(view.takeaways.ftv).toMatch(/^No view on .* until evidence is supplied\.$/);
+    expect(body).toContain(view.takeaways.ftv);
     expect(body).not.toContain("Evidence used");
     expect(body).not.toContain("Criteria");
     // Other chapters still carry the full anatomy and the dashboard footer counts the pending dim.

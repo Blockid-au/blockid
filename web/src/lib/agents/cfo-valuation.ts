@@ -868,8 +868,8 @@ export function buildVcValuationReport(input: BuildVcValuationInput): VcValuatio
         revenue_multiple: `ARR ${audShort(arrAud)} × ${multiLow}–${multiHigh} (sector p25–p75, ${bm.sourceLabel})`,
         berkus: `${pillarCount} of 5 pillars × A$500K (${pillarNames.join(", ")}) = ${audShort(berkus)}`,
         dcf_proxy: `ARR ${audShort(arrAud)} × (${multiLow} + 1) growth-adjusted proxy${growthAssumed ? ` — growth assumed ${assumedGrowthRatePct}%/mo` : ""}`,
-        comparables: `ARR ${audShort(arrAud)} × median ${bm.medianMultiple} × growth tier ${growthTier.factor} (${growthTier.tier}${growthAssumed ? ", assumed" : ""})`,
-        risk_factor_summation: `ARR ${audShort(arrAud)} × median ${bm.medianMultiple} × (1 + AU tax ${auTaxPct.toFixed(0)} %)`,
+        comparables: `ARR ${audShort(arrAud)} × sector p50 multiple ${bm.medianMultiple} × growth tier ${growthTier.factor} (${growthTier.tier}${growthAssumed ? ", assumed" : ""})`,
+        risk_factor_summation: `ARR ${audShort(arrAud)} × sector p50 multiple ${bm.medianMultiple} × (1 + AU tax ${auTaxPct.toFixed(0)} %)`,
         scorecard: `${scorecard.rationale.replace(/^Bill Payne Scorecard Method anchored to /, "").replace(/\.$/, "")} — reference`,
         stage_baseline: `SVI stage ${sviStage} (${stageBaseline.stageLabel}) median ${audShort(baseline.mid)} — cross-check`,
       };

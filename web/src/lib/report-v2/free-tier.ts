@@ -1,19 +1,25 @@
 // Free-tier projection + page-budget trim levels for the fixed-layout
 // surfaces (PDF, DOCX) — S-R4, spec §A.1 "the 10-page budget is enforced
-// by lib/pdf/page-count.ts" + §F S-R4 "page-count gate".
+// by lib/pdf/page-count.ts" + §F S-R4 "page-count gate"; G27 (TBR v3, spec
+// docs/design/tbr-v3-investor-report-spec.md § 6) adds the investment-view
+// blocks to the projection.
 //
 // The web renders every chapter and lets CSS decide; a PDF has a hard page
 // count, so the free tier is projected HERE, once, and the PDF / DOCX
 // builders read the projection rather than re-deciding per section:
 //
-//   level 0  the tier-native document — chapters 6–9 as cards, no secondary
-//            visuals, valuation range only, current phase-gate row only,
-//            top-3 money rows, 5 action steps, appendix register ≤ 12 rows
+//   level 0  the tier-native document — chapters 5–8 as locked compact
+//            cards, no secondary visuals, valuation range + method names /
+//            weights only, current phase-gate row only, top-3 money rows,
+//            5 action steps, appendix register ≤ 12 rows; G27: the
+//            investment view is kept at EVERY level, risk rows ≤ 5, plan
+//            steps ≤ 5
 //   level 1  criterion cards capped at 2 per full chapter
 //   level 2  evidence tables + phase lens dropped, criterion cards verdict-only,
 //            chapter strengths / gaps capped at 3 × 25 words, verdict ≤ 60 words
-//   level 3  appendix register + audit log dropped (counts remain), one
-//            criterion card per chapter, verdict ≤ 40 words
+//   level 3  appendix register + audit log + score ledger tables dropped
+//            (counts remain), the risk table dropped (the 3×3 grid stays),
+//            one criterion card per chapter, verdict ≤ 40 words
 //   level 4  every non-primary visual dropped (executive, money, action plan),
 //            strengths / gaps 2 × 15 words, verdict ≤ 30 words
 //
@@ -23,7 +29,8 @@
 //
 // Pure: no I/O, no React; client-safe.
 
-import type { DimensionChapter, ExecutiveStructured, ReportV2 } from "./schema";
+import { PLAN_STEPS_FREE, RISK_ROWS_FREE } from "./investment-view";
+import type { DimensionChapter, ExecutiveStructured, InvestmentView, ReportV2 } from "./schema";
 import { estimatePages } from "./page-estimate";
 
 export const MAX_TRIM_LEVEL = 4;
@@ -38,8 +45,12 @@ export interface FreeTierProjection {
   /** Money rows / action steps shown. */
   moneyLimit: number;
   actionSteps: number;
-  /** Section toggles the builders honour (data is never removed from chapters, so the schema still holds). */
-  show: { evidenceTables: boolean; phaseLens: boolean; criterionDetail: boolean };
+  /**
+   * Section toggles the builders honour (data is never removed from chapters, so the schema still holds).
+   * G27: `riskTable` = the risk-matrix table under the 3×3 grid; `appendixLedger` = the per-chapter
+   * score-ledger tables + the evidence register in the appendix (counts remain when false).
+   */
+  show: { evidenceTables: boolean; phaseLens: boolean; criterionDetail: boolean; riskTable: boolean; appendixLedger: boolean };
 }
 
 const words = (s: string, n: number): string => {
@@ -67,6 +78,23 @@ export function projectExecutiveStructured(x: ExecutiveStructured, level: TrimLe
   };
   if (level >= 2) delete out.keyInsight;
   return out;
+}
+
+/**
+ * G27: the investment view on the free tier — kept at EVERY level (the
+ * verdict, conditions, reasons / risks and key points are pages 1–3);
+ * the risk matrix keeps its top `RISK_ROWS_FREE` rows and the plan its top
+ * `PLAN_STEPS_FREE` steps (spec § 6). Level ≥ 4 trims the reasons / risks
+ * to two each (the 2-column cards are the tallest block on page 2).
+ */
+export function projectInvestmentView(view: InvestmentView, level: TrimLevel): InvestmentView {
+  return {
+    ...view,
+    riskMatrix: view.riskMatrix.slice(0, RISK_ROWS_FREE),
+    improvementPlan: view.improvementPlan.slice(0, PLAN_STEPS_FREE),
+    reasons: level >= 4 ? view.reasons.slice(0, 2) : view.reasons,
+    risks: level >= 4 ? view.risks.slice(0, 2) : view.risks,
+  };
 }
 
 function projectChapter(ch: DimensionChapter, free: boolean, level: TrimLevel): DimensionChapter {
@@ -99,9 +127,9 @@ function projectChapter(ch: DimensionChapter, free: boolean, level: TrimLevel): 
  */
 export function projectForTier(report: ReportV2, level: TrimLevel = 0): FreeTierProjection {
   const free = report.tier === "free";
-  const showAll = { evidenceTables: true, phaseLens: true, criterionDetail: true };
+  const showAll = { evidenceTables: true, phaseLens: true, criterionDetail: true, riskTable: true, appendixLedger: true };
   if (!free) return { report, free, level: 0, dropped: [], moneyLimit: 50, actionSteps: report.actionPlan.steps.length, show: showAll };
-  const dropped: string[] = ["secondary visuals", "chapters 6–9 as summary cards", "valuation method detail", "phase-gate matrix", "grants beyond the top 3", "action steps beyond 5"];
+  const dropped: string[] = ["secondary visuals", "chapters 5–8 as locked cards", "valuation method detail", "phase-gate heat map", "grants beyond the top 3", "action steps beyond 5", `risk rows beyond the top ${RISK_ROWS_FREE}`, `plan steps beyond ${PLAN_STEPS_FREE}`];
   const registerCap = level >= 3 ? 0 : 12;
   const projected: ReportV2 = {
     ...report,
@@ -122,10 +150,12 @@ export function projectForTier(report: ReportV2, level: TrimLevel = 0): FreeTier
       evidenceRegister: report.appendix.evidenceRegister.slice(0, registerCap),
       auditLog: level >= 3 ? [] : report.appendix.auditLog,
     },
+    // G27: the investment view survives every level (risk / plan rows capped).
+    ...(report.investmentView ? { investmentView: projectInvestmentView(report.investmentView, level) } : {}),
   };
   if (level >= 1) dropped.push("criterion cards beyond 2 per chapter");
   if (level >= 2) dropped.push("evidence tables", "phase lens");
-  if (level >= 3) dropped.push("evidence register", "auditor log");
+  if (level >= 3) dropped.push("evidence register", "auditor log", "score ledger tables", "risk table (grid kept)");
   if (level >= 4) dropped.push("executive / money / action-plan charts", "grants beyond the top 2", "action steps beyond 3");
   return {
     report: projected,
@@ -134,7 +164,13 @@ export function projectForTier(report: ReportV2, level: TrimLevel = 0): FreeTier
     dropped,
     moneyLimit: level >= 4 ? 2 : 3,
     actionSteps: Math.min(level >= 4 ? 3 : 5, report.actionPlan.steps.length),
-    show: level >= 2 ? { evidenceTables: false, phaseLens: false, criterionDetail: false } : showAll,
+    show: {
+      evidenceTables: level < 2,
+      phaseLens: level < 2,
+      criterionDetail: level < 2,
+      riskTable: level < 3,
+      appendixLedger: level < 3,
+    },
   };
 }
 
