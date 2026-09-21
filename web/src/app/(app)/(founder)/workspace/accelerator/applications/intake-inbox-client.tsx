@@ -39,7 +39,7 @@ const LEVEL_CLASS: Record<string, string> = {
 export const STATUS_CHIP: Record<SubmissionStatus, { label: string; className: string }> = {
   received: { label: "Received", className: "border-surface-300 bg-surface-100 text-ink-600" },
   scored: { label: "Scored", className: "border-emerald-300 bg-emerald-50 text-emerald-700" },
-  reviewed: { label: "Reviewed", className: "border-brand-300 bg-brand-50 text-brand-700" },
+  reviewed: { label: "Reviewed", className: "border-brand-300 bg-info-soft text-action" },
   rejected: { label: "Rejected", className: "border-red-300 bg-red-50 text-red-700" },
 };
 
@@ -100,7 +100,7 @@ function CopyButton({ text, label = "Copy link" }: { text: string; label?: strin
           /* clipboard blocked — the URL is visible next to the button */
         }
       }}
-      className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-surface-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-ink-700 hover:bg-surface-50"
+      className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-surface-300 bg-surface px-2.5 py-1.5 text-xs font-semibold text-ink-700 hover:bg-surface-50"
       aria-label={label}
       data-testid="copy-intake-url"
     >
@@ -164,7 +164,7 @@ function CreateIntakeDialog({ onClose, onCreated, templates = [] }: { onClose: (
 
   return (
     <div ref={ref} className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="intake-create-title" data-testid="intake-create-dialog">
-      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-line-subtle bg-white shadow-2">
+      <div className="w-full max-w-lg overflow-hidden rounded-2xl border border-line-subtle bg-surface shadow-2">
         <div className="flex items-center justify-between border-b border-surface-200 px-6 py-4">
           <h2 id="intake-create-title" className="text-lg font-bold text-ink-900">
             {created ? "Your intake link is live" : "Create intake link"}
@@ -231,7 +231,7 @@ function CreateIntakeDialog({ onClose, onCreated, templates = [] }: { onClose: (
               </select>
               <p className="mt-1 text-xs text-ink-500">
                 A template adds your program&apos;s questions and consent text to the form.{" "}
-                <Link href="/workspace/accelerator/templates" className="font-medium text-brand-700 hover:underline">
+                <Link href="/workspace/accelerator/templates" className="font-medium text-action hover:underline">
                   Manage templates
                 </Link>
               </p>
@@ -248,7 +248,7 @@ function CreateIntakeDialog({ onClose, onCreated, templates = [] }: { onClose: (
               </p>
             ) : null}
             <div className="flex justify-end gap-2">
-              <button type="button" onClick={onClose} className="inline-flex min-h-11 items-center rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-surface-50">
+              <button type="button" onClick={onClose} className="inline-flex min-h-11 items-center rounded-xl border border-surface-300 bg-surface px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-surface-50">
                 Cancel
               </button>
               <button type="submit" disabled={busy || !name.trim()} aria-busy={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-60" data-testid="intake-create-submit">
@@ -328,13 +328,13 @@ export function IntakeInboxClient({ initialIntakes, initialRows, templates = [] 
           </button>
         </div>
         {intakes.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-surface-300 bg-white px-6 py-8 text-center text-sm text-ink-500" data-testid="intake-links-empty">
+          <p className="rounded-2xl border border-dashed border-surface-300 bg-surface px-6 py-8 text-center text-sm text-ink-500" data-testid="intake-links-empty">
             No intake links yet. Create one, share <code className="text-ink-700">/apply/&lt;slug&gt;</code> with founders, and their scored applications appear below.
           </p>
         ) : (
           <ul className="grid gap-3 sm:grid-cols-2">
             {intakes.map((i) => (
-              <li key={i.id} className="rounded-2xl border border-surface-200 bg-white p-4" data-testid="intake-link-card" data-status={i.status}>
+              <li key={i.id} className="rounded-2xl border border-surface-200 bg-surface p-4" data-testid="intake-link-card" data-status={i.status}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="truncate font-semibold text-ink-900">{i.name}</p>
@@ -352,13 +352,13 @@ export function IntakeInboxClient({ initialIntakes, initialRows, templates = [] 
                   <CopyButton text={i.publicUrl} />
                 </div>
                 <div className="mt-3 flex flex-wrap gap-2 text-xs">
-                  <button type="button" onClick={() => setFilterIntake(filterIntake === i.id ? null : i.id)} className={`rounded-lg border px-2.5 py-1.5 font-semibold ${filterIntake === i.id ? "border-brand-300 bg-brand-50 text-brand-700" : "border-surface-300 bg-white text-ink-700 hover:bg-surface-50"}`} aria-pressed={filterIntake === i.id}>
+                  <button type="button" onClick={() => setFilterIntake(filterIntake === i.id ? null : i.id)} className={`rounded-lg border px-2.5 py-1.5 font-semibold ${filterIntake === i.id ? "border-brand-300 bg-info-soft text-action" : "border-surface-300 bg-surface text-ink-700 hover:bg-surface-50"}`} aria-pressed={filterIntake === i.id}>
                     {filterIntake === i.id ? "Showing this round" : "Show applications"}
                   </button>
-                  <button type="button" disabled={busyId === i.id} onClick={() => setIntakeStatus(i, i.status === "open" ? "closed" : "open")} className="rounded-lg border border-surface-300 bg-white px-2.5 py-1.5 font-semibold text-ink-700 hover:bg-surface-50 disabled:opacity-60" data-testid="intake-toggle-status">
+                  <button type="button" disabled={busyId === i.id} onClick={() => setIntakeStatus(i, i.status === "open" ? "closed" : "open")} className="rounded-lg border border-surface-300 bg-surface px-2.5 py-1.5 font-semibold text-ink-700 hover:bg-surface-50 disabled:opacity-60" data-testid="intake-toggle-status">
                     {i.status === "open" ? "Close round" : "Reopen"}
                   </button>
-                  <a href={`/apply/${i.slug}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-surface-300 bg-white px-2.5 py-1.5 font-semibold text-ink-700 hover:bg-surface-50">
+                  <a href={`/apply/${i.slug}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 rounded-lg border border-surface-300 bg-surface px-2.5 py-1.5 font-semibold text-ink-700 hover:bg-surface-50">
                     Preview <ExternalLink className="h-3 w-3" aria-hidden="true" />
                   </a>
                 </div>
@@ -374,17 +374,17 @@ export function IntakeInboxClient({ initialIntakes, initialRows, templates = [] 
           <h2 id="intake-table-title" className="text-base font-semibold text-ink-900">
             Applications <span className="ml-1 text-sm font-normal text-ink-500">({visible.length})</span>
           </h2>
-          <a href={exportHref} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-300 bg-white px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50" data-testid="intake-export-csv">
+          <a href={exportHref} className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-brand-300 bg-surface px-4 py-2.5 text-sm font-semibold text-action hover:bg-surface-hover" data-testid="intake-export-csv">
             <Download className="h-4 w-4" aria-hidden="true" />
             Export CSV
           </a>
         </div>
         {visible.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-surface-300 bg-white px-6 py-14 text-center text-sm text-ink-500" data-testid="intake-rows-empty">
+          <p className="rounded-2xl border border-dashed border-surface-300 bg-surface px-6 py-14 text-center text-sm text-ink-500" data-testid="intake-rows-empty">
             No applications yet. They appear here the moment a founder submits a deck on your link.
           </p>
         ) : (
-          <div className="overflow-auto max-h-[75vh] rounded-2xl border border-surface-200 bg-white">
+          <div className="overflow-auto max-h-[75vh] rounded-2xl border border-surface-200 bg-surface">
             <table className="min-w-full text-sm" data-testid="intake-table">
               <thead className="text-left text-[11px] font-semibold uppercase tracking-wider text-secondary [&_th]:sticky [&_th]:top-0 [&_th]:z-10 [&_th]:border-b [&_th]:border-line-subtle [&_th]:bg-surface-sunken">
                 <tr>
@@ -453,7 +453,7 @@ export function IntakeInboxClient({ initialIntakes, initialRows, templates = [] 
                             </button>
                           ) : null}
                           {r.dossierUrl ? (
-                            <Link href={r.dossierUrl} className="rounded-lg border border-surface-300 bg-white px-2.5 py-1.5 font-semibold text-ink-700 hover:bg-surface-50" data-testid="intake-dossier-link">
+                            <Link href={r.dossierUrl} className="rounded-lg border border-surface-300 bg-surface px-2.5 py-1.5 font-semibold text-ink-700 hover:bg-surface-50" data-testid="intake-dossier-link">
                               Dossier
                             </Link>
                           ) : r.warnings.some((w) => w.includes("evaluation_limit_reached")) ? (
@@ -466,12 +466,12 @@ export function IntakeInboxClient({ initialIntakes, initialRows, templates = [] 
                             </span>
                           )}
                           {r.status !== "reviewed" ? (
-                            <button type="button" disabled={busyId === r.id} onClick={() => triage(r, "reviewed")} className="rounded-lg border border-surface-300 bg-white px-2.5 py-1.5 font-semibold text-ink-700 hover:bg-surface-50 disabled:opacity-60">
+                            <button type="button" disabled={busyId === r.id} onClick={() => triage(r, "reviewed")} className="rounded-lg border border-surface-300 bg-surface px-2.5 py-1.5 font-semibold text-ink-700 hover:bg-surface-50 disabled:opacity-60">
                               Mark reviewed
                             </button>
                           ) : null}
                           {r.status !== "rejected" ? (
-                            <button type="button" disabled={busyId === r.id} onClick={() => triage(r, "rejected")} className="rounded-lg border border-surface-300 bg-white px-2.5 py-1.5 font-semibold text-ink-700 hover:bg-surface-50 disabled:opacity-60">
+                            <button type="button" disabled={busyId === r.id} onClick={() => triage(r, "rejected")} className="rounded-lg border border-surface-300 bg-surface px-2.5 py-1.5 font-semibold text-ink-700 hover:bg-surface-50 disabled:opacity-60">
                               Reject
                             </button>
                           ) : null}

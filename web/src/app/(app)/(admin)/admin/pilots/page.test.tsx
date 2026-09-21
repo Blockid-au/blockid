@@ -1,9 +1,10 @@
-// Colocated test for /admin/pilots (G16-C): the client view renders the
-// table (program, MASKED e-mail only, tier, days left, counts, status), the
-// "End early" button on active rows only, the start form with the offer
-// defaults (30 d, 180 credits) and the tier / price from props, the inbox +
-// /pilot links, the last applications, and the empty states. The page
-// gate redirects anon → login and non-admin → /admin. AdminLayout mounts
+// Colocated test for /admin/pilots (G16-C; a read-only ledger since G25):
+// the client view renders the table (program, MASKED e-mail only, tier, days
+// left, counts, status), the "End early" button on active rows only, the
+// "No new pilots" notice instead of a start form (no /pilot link, no
+// checkout), the tier / price caption from props, the inbox link, the last
+// applications of the retired form, and the empty states. The page gate
+// redirects anon → login and non-admin → /admin. AdminLayout mounts
 // usePathname → mocked.
 
 import { describe, expect, it, vi } from "vitest";
@@ -61,7 +62,7 @@ const ROW: PilotListRow = {
 };
 const ENDED: PilotListRow = { ...ROW, id: "p-2", email_masked: "o***@x.io", program_name: "Old Cohort", status: "ended", ended_reason: "converted", plan_reverted: false, days_left: -3, intake_url: null, intake_slug: null };
 const APP: PilotApplication = { id: "a-1", received_at: "2026-09-18T10:00:00.000Z", ip_hash: "abc", program_name: "Uni Program", contact_name: "Pat Lee", email: "pat@uni.edu", cohort_size: 40, intake_month: "2026-11", message: "Cohort 7" };
-const DEFAULTS = { days: 30, credits: 180, maxApplicants: 60, programPrice: "A$349", tier: "investor_vc_small" };
+const DEFAULTS = { programPrice: "A$349", tier: "investor_vc_small" };
 const USER = { email: "admin@blockid.au", displayName: null };
 
 describe("PilotsClient", () => {
@@ -86,20 +87,17 @@ describe("PilotsClient", () => {
     expect(out).toContain('data-testid="pilots-active">1<');
   });
 
-  it("start form carries the offer defaults + tier / price from props; links to the inbox and /pilot; applications listed", async () => {
+  it("G25: no start form — the retired notice, tier / price caption from props, links to the inbox and /admin/validation (never /pilot); applications listed", async () => {
     const out = await html(<PilotsClient user={USER} initial={{ pilots: [], active: 0, cap: 5 }} applications={[APP]} defaults={DEFAULTS} />);
-    expect(out).toContain('data-testid="pilot-start-form"');
-    expect(out).toContain('name="email"');
-    expect(out).toContain('name="program_name"');
-    expect(out).toContain('name="days"');
-    expect(out).toContain('value="30"');
-    expect(out).toContain('name="credits"');
-    expect(out).toContain('value="180"');
-    expect(out).toContain('name="intake_slug"');
+    expect(out).not.toContain('data-testid="pilot-start-form"');
+    expect(out).not.toContain('name="program_name"');
+    expect(out).toContain('data-testid="pilots-retired"');
+    expect(out).toContain("No new pilots");
     expect(out).toContain("A$349/mo list");
     expect(out).toContain("never a Stripe coupon");
     expect(out).toContain('href="/workspace/accelerator/applications"');
-    expect(out).toContain('href="/pilot"');
+    expect(out).toContain('href="/admin/validation"');
+    expect(out).not.toContain('href="/pilot"');
     expect(out).toContain('data-testid="pilots-empty"');
     expect(out).toContain('data-testid="pilot-applications"');
     expect(out).toContain("Uni Program");
@@ -128,6 +126,7 @@ describe("AdminPilotsPage gate", () => {
     const out = await html(await AdminPilotsPage());
     expect(out).toContain("Demo Accelerator");
     expect(out).toContain("Uni Program");
-    expect(out).toContain('value="180"');
+    expect(out).toContain('data-testid="pilots-retired"');
+    expect(out).not.toContain('data-testid="pilot-start-form"');
   });
 });

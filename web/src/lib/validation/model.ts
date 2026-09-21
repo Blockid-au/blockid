@@ -11,6 +11,7 @@
 // never a claim about the business.
 
 import { z } from "zod";
+import { PLANS_V2, formatAud } from "@/lib/plans-v2";
 
 // ── Levels ──────────────────────────────────────────────────────────────────
 
@@ -19,20 +20,38 @@ export const VALIDATION_LEVEL_VALUES: readonly ValidationLevel[] = [1, 2, 3, 4, 
 
 export interface ValidationLevelMeta {
   level: ValidationLevel;
-  key: "interviews" | "demos" | "proposals" | "paid_pilot" | "renewal";
+  key: "interviews" | "demos" | "proposals" | "first_paying_program" | "renewal";
   label: string;
   /** What one counted entry means — the bar a row must clear before `outcome: done`. */
   counts_when: string;
   target: number;
 }
 
+/**
+ * G25 (2026-09-21) — the paid Cohort Validation Pilot is retired, so L4 / L5
+ * count the sold ladder: the two Cohort rungs (annual) and the Program rung
+ * (monthly). Ids from plans-v2; the label carries the prices through
+ * `formatAud`, never a literal.
+ */
+export const PROGRAM_PLAN_IDS: readonly string[] = Object.freeze(["accelerator_starter", "accelerator_growth", "investor_vc_small"]);
+
+function programPlanLabels(): string {
+  const byId = new Map(PLANS_V2.map((p) => [p.id, p] as const));
+  const cohort = ["accelerator_starter", "accelerator_growth"].map((id) => byId.get(id)?.name ?? id).join(" / ");
+  const program = byId.get("investor_vc_small");
+  return `${cohort} annual, or ${program?.name ?? "Program"} ${formatAud(program?.monthly_aud ?? 0)}/mo`;
+}
+
+/** "Cohort 25 / Cohort 100 annual, or Program A$349/mo" — the L4 label. */
+export const PROGRAM_PLAN_LABELS = programPlanLabels();
+
 /** The advisor plan's ladder (L1 → L5), targets as written. */
 export const VALIDATION_LEVELS: readonly ValidationLevelMeta[] = Object.freeze([
   { level: 1, key: "interviews", label: "Qualified interviews", counts_when: "a 30–45 min conversation with someone who screens startups and owns or influences the budget, notes captured", target: 5 },
   { level: 2, key: "demos", label: "Real workflow demonstrations", counts_when: "the buyer ran a real intake, cohort or dossier workflow on their own applicants (not a slide walkthrough)", target: 3 },
-  { level: 3, key: "proposals", label: "Written pilot proposals", counts_when: "a written pilot proposal with scope, price and dates was sent to a named organisation", target: 2 },
-  { level: 4, key: "paid_pilot", label: "Paid pilot ≥ A$1,500", counts_when: "a paid Cohort Validation Pilot order of at least A$1,500 (auto-filled from pilot_orders)", target: 1 },
-  { level: 5, key: "renewal", label: "Renewal or second institutional customer", counts_when: "the same organisation paid again, or a second organisation paid (auto-filled from pilot_orders)", target: 1 },
+  { level: 3, key: "proposals", label: "Written proposals", counts_when: "a written proposal for a Cohort plan with scope, price and dates was sent to a named organisation", target: 2 },
+  { level: 4, key: "first_paying_program", label: `First paying program (${PROGRAM_PLAN_LABELS})`, counts_when: `the first paid invoice of a program plan — ${PROGRAM_PLAN_LABELS} — auto-filled from revenue_events (subscribe / renewal / upgrade, gross > 0)`, target: 1 },
+  { level: 5, key: "renewal", label: "Renewal or second paying organisation", counts_when: "the same organisation paid a later invoice, or a second organisation paid its first (auto-filled from revenue_events)", target: 1 },
 ]);
 
 export function levelMeta(level: ValidationLevel): ValidationLevelMeta {
@@ -177,14 +196,14 @@ export function sortEntries(entries: readonly ValidationEntry[]): ValidationEntr
 
 // ── Auto rows (read-only, source-labelled) ──────────────────────────────────
 
-export type AutoRowSource = "pilot_orders" | "pilot_orders.metrics" | "pilot-applications.jsonl" | "founder_feedback_letters" | "evaluation_batches";
+export type AutoRowSource = "revenue_events" | "pilot-applications.jsonl" | "founder_feedback_letters" | "evaluation_batches";
 
 export interface AutoRow {
   /** Stable id (`<source>:<row id>`) so the table can key on it. */
   id: string;
   source: AutoRowSource;
   level: ValidationLevel;
-  /** `true` when the row is an actual for its level (paid pilot → L4, renewal / second buyer → L5); signals never count. */
+  /** `true` when the row is an actual for its level (first paid program invoice → L4, renewal / second organisation → L5); signals never count. */
   counts: boolean;
   date: string;
   /** Organisation / programme label — never a full e-mail address. */
@@ -194,7 +213,9 @@ export interface AutoRow {
 
 /** The minimum each auto source needs — the DB reader maps real rows onto these; tests pass literals. */
 export interface AutoInputs {
-  pilotOrders: ReadonlyArray<{ id: string; user_id: string; buyer_email: string; sku: string; amount_cents: number; currency: string; status: string; created_at: string; metrics: Record<string, unknown> | null; converted_at?: string | null; converted_plan?: string | null }>;
+  /** revenue_events rows for the program plans (G25): the reader joins the payer's e-mail for the organisation label. */
+  revenueEvents: ReadonlyArray<{ id: string | number; user_id: string | null; plan_id: string | null; kind: string; gross_aud_cents: number | null; currency: string | null; ts: string; payer_email?: string | null }>;
+  /** Historical rows from the retired /pilot/investor form (G16-C) — L1 signals only. */
   applications: ReadonlyArray<{ id: string; program_name: string; cohort_size: number; intake_month: string; received_at: string }>;
   feedbackLetters: ReadonlyArray<{ id: string; project_id: string; status: string; sent_at: string | null; org_count: number; k: number }>;
   batches: ReadonlyArray<{
@@ -214,7 +235,8 @@ export interface AutoInputs {
   }>;
 }
 
-export const PAID_PILOT_MIN_CENTS = 150_000;
+/** revenue_events.kind values that are a paid program invoice (0420 CHECK list; trial_* rows carry no money). */
+export const PAYING_REVENUE_KINDS: ReadonlySet<string> = new Set(["subscribe", "renewal", "upgrade"]);
 
 /** `a***@domain` — the same masking rule as the pilots ledger. */
 function maskEmail(email: string): string {
@@ -236,56 +258,49 @@ function isQaEmail(email: string | null | undefined): boolean {
   return /^qa-live-/i.test(email ?? "");
 }
 
-const METRIC_INTERNAL_KEYS = new Set(["updated_at", "updated_by"]);
-
-function metricsCaptured(m: Record<string, unknown> | null | undefined): number {
-  if (!m || typeof m !== "object") return 0;
-  return Object.entries(m).filter(([k, v]) => !METRIC_INTERNAL_KEYS.has(k) && v !== null && v !== undefined && v !== "").length;
+function planName(planId: string | null): string {
+  const row = PLANS_V2.find((p) => p.id === planId);
+  return row ? row.name : (planId ?? "program plan");
 }
 
 /**
  * Derive the read-only rows. Pure and deterministic:
- *   • L4: every `paid` pilot order ≥ A$1,500 (first order per buyer);
- *   • L5: a later paid order by the same buyer (renewal) or a paid order by a
- *     second distinct buyer (second institutional customer), and — G23-B — a
- *     pilot that converted to an annual Cohort plan (`converted_at` set by
- *     the webhook, migration 0434): the same organisation paid again;
- *   • signals (never counted): metrics captured on an order, comp
- *     applications from /pilot, feedback letters sent, cohorts scored.
- * QA accounts (qa-live-*) are dropped from every source.
+ *   • L4: the first paid invoice (subscribe / renewal / upgrade, gross > 0)
+ *     of a program plan (PROGRAM_PLAN_IDS) per organisation;
+ *   • L5: a later paid invoice by the same organisation (renewal) or the
+ *     first paid invoice of a second distinct organisation;
+ *   • signals (never counted): historical comp applications, feedback
+ *     letters sent, cohorts scored, workflow demo runs.
+ * QA accounts (qa-live-*) are dropped from every source. Nothing reads
+ * pilot_orders any more (G25 — retired ledger).
  */
 export function deriveAutoRows(input: AutoInputs): AutoRow[] {
   const rows: AutoRow[] = [];
 
-  const paid = input.pilotOrders
-    .filter((o) => o.status === "paid" && !isQaEmail(o.buyer_email))
+  const paid = input.revenueEvents
+    .filter((r) => PAYING_REVENUE_KINDS.has(r.kind) && (r.gross_aud_cents ?? 0) > 0 && r.plan_id !== null && PROGRAM_PLAN_IDS.includes(r.plan_id) && !isQaEmail(r.payer_email))
     .slice()
-    .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at));
-  const seenBuyers = new Set<string>();
-  for (const o of paid) {
-    const buyer = o.user_id || o.buyer_email.toLowerCase();
-    const aud = `${o.currency.toUpperCase() === "AUD" ? "A$" : `${o.currency.toUpperCase()} `}${(o.amount_cents / 100).toLocaleString("en-AU", { maximumFractionDigits: 0 })}`;
-    const qualifies = o.amount_cents >= PAID_PILOT_MIN_CENTS;
-    const repeat = seenBuyers.has(buyer);
-    const secondOrg = !repeat && seenBuyers.size >= 1;
-    seenBuyers.add(buyer);
+    .sort((a, b) => Date.parse(a.ts) - Date.parse(b.ts));
+  const seenOrgs = new Set<string>();
+  for (const r of paid) {
+    const org = r.user_id ?? (r.payer_email ?? "").toLowerCase();
+    if (!org) continue;
+    const currency = (r.currency ?? "AUD").toUpperCase();
+    const aud = `${currency === "AUD" ? "A$" : `${currency} `}${((r.gross_aud_cents ?? 0) / 100).toLocaleString("en-AU", { maximumFractionDigits: 0 })}`;
+    const label = r.payer_email ? orgFromEmail(r.payer_email) : `organisation ${org.slice(0, 8)}`;
+    const repeat = seenOrgs.has(org);
+    const secondOrg = !repeat && seenOrgs.size >= 1;
+    seenOrgs.add(org);
+    const plan = planName(r.plan_id);
     if (repeat || secondOrg) {
-      rows.push({ id: `pilot_orders:${o.id}:l5`, source: "pilot_orders", level: 5, counts: qualifies, date: day(o.created_at), organisation: orgFromEmail(o.buyer_email), detail: `${repeat ? "Renewal — same buyer paid again" : "Second organisation paid"} · ${o.sku} · ${aud}${qualifies ? "" : " (below A$1,500 — not counted)"}` });
+      rows.push({ id: `revenue_events:${r.id}:l5`, source: "revenue_events", level: 5, counts: true, date: day(r.ts), organisation: label, detail: `${repeat ? "Renewal — same organisation paid again" : "Second organisation paid"} · ${plan} · ${aud} · ${r.kind}` });
     } else {
-      rows.push({ id: `pilot_orders:${o.id}`, source: "pilot_orders", level: 4, counts: qualifies, date: day(o.created_at), organisation: orgFromEmail(o.buyer_email), detail: `Paid pilot · ${o.sku} · ${aud}${qualifies ? "" : " (below A$1,500 — not counted)"}` });
-    }
-    if (o.converted_at) {
-      const plan = o.converted_plan === "accelerator_growth" ? "Cohort 100" : o.converted_plan === "accelerator_starter" ? "Cohort 25" : (o.converted_plan ?? "Cohort plan");
-      rows.push({ id: `pilot_orders:${o.id}:converted`, source: "pilot_orders", level: 5, counts: qualifies, date: day(o.converted_at), organisation: orgFromEmail(o.buyer_email), detail: `Pilot converted to ${plan} (annual) — same organisation paid again${qualifies ? "" : " (pilot below A$1,500 — not counted)"}` });
-    }
-    const captured = metricsCaptured(o.metrics);
-    if (captured > 0) {
-      rows.push({ id: `pilot_orders.metrics:${o.id}`, source: "pilot_orders.metrics", level: 4, counts: false, date: day(typeof o.metrics?.updated_at === "string" ? (o.metrics.updated_at as string) : o.created_at), organisation: orgFromEmail(o.buyer_email), detail: `Pilot metrics captured · ${captured} field${captured === 1 ? "" : "s"}${o.metrics?.case_study_consent === true ? " · case-study consent given" : ""}` });
+      rows.push({ id: `revenue_events:${r.id}`, source: "revenue_events", level: 4, counts: true, date: day(r.ts), organisation: label, detail: `First paying program · ${plan} · ${aud} · ${r.kind}` });
     }
   }
 
   for (const a of input.applications) {
-    rows.push({ id: `pilot-applications.jsonl:${a.id}`, source: "pilot-applications.jsonl", level: 1, counts: false, date: day(a.received_at), organisation: a.program_name, detail: `Comp pilot application · cohort ${a.cohort_size} · intake ${a.intake_month}` });
+    rows.push({ id: `pilot-applications.jsonl:${a.id}`, source: "pilot-applications.jsonl", level: 1, counts: false, date: day(a.received_at), organisation: a.program_name, detail: `Program enquiry (retired comp form, G16-C) · cohort ${a.cohort_size} · intake ${a.intake_month}` });
   }
 
   for (const l of input.feedbackLetters) {
@@ -402,7 +417,8 @@ export const VALIDATION_SCRIPT: readonly ScriptQuestion[] = Object.freeze([
   { n: 9, text: "Which tools are you paying for today?", listen_for: "tools, subscriptions, contractors" },
   { n: 10, text: "What does the review process cost?", listen_for: "a spend figure or an honest 'nothing'" },
   { n: 11, text: "If BlockID reduced first-pass assessment time by X%, what would that be worth?", listen_for: "a number, not 'interesting'" },
-  { n: 12, text: "Would you pay A$1,500 to use it on the next cohort?", listen_for: "yes / no / a condition" },
+  // G25: the ask names the Cohort 25 annual price from plans-v2 (the pilot figure is retired).
+  { n: 12, text: `Would you pay ${formatAud(PLANS_V2.find((p) => p.id === "accelerator_starter")?.annual_aud ?? 0)} a year to use it on the next cohort?`, listen_for: "yes / no / a condition" },
   { n: 13, text: "What would prevent you paying today?", listen_for: "the objection, in their words — capture it verbatim" },
   // The most important question.
   { n: 14, text: "Will you pay for the next cohort now?", listen_for: "record the answer exactly" },

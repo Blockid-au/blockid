@@ -71,7 +71,7 @@ function GitHubConnectStep() {
       ) : available ? (
         <a
           href="/api/oauth/github"
-          className="inline-flex h-10 items-center gap-2 rounded-xl bg-ink-800 px-5 text-sm font-semibold text-white hover:bg-ink-700 transition-colors"
+          className="inline-flex h-11 items-center gap-2 rounded-xl bg-action px-5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
         >
           <GitBranch className="h-4 w-4" /> Connect GitHub Account
         </a>
@@ -134,7 +134,7 @@ function AnalyticsConnectStep() {
             value={urlValue}
             onChange={(e) => setUrlValue(e.target.value)}
             placeholder="https://analytics.google.com/..."
-            className="w-full rounded-xl border border-surface-200 bg-white px-4 py-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-brand-500 mb-3"
+            className="w-full rounded-xl border border-surface-200 bg-white px-4 py-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-action mb-3"
             onKeyDown={(e) => {
               if (e.key === "Enter" && urlValue.trim()) void handleSubmit();
             }}
@@ -216,7 +216,7 @@ function LinkedInConnectStep() {
       ) : available ? (
         <a
           href="/api/oauth/linkedin"
-          className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#0A66C2] px-5 text-sm font-semibold text-white hover:bg-[#004182] transition-colors"
+          className="inline-flex h-11 items-center gap-2 rounded-xl bg-action px-5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
         >
           <LinkedInIcon className="h-4 w-4" /> Connect LinkedIn Profile
         </a>
@@ -288,7 +288,7 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-strong/50 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal — bottom sheet on mobile, centered on desktop */}
       <div className="relative w-full sm:max-w-lg max-h-[95svh] sm:max-h-[85svh] overflow-y-auto rounded-t-2xl sm:rounded-2xl border border-surface-200 bg-white shadow-2xl">
@@ -354,7 +354,7 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
                 onChange={e => setInputValue(e.target.value)}
                 placeholder="Describe your evidence here (customer quotes, market research findings, metrics...)…"
                 rows={5}
-                className="w-full rounded-xl border border-surface-200 bg-surface-100 px-4 py-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-brand-500 resize-none"
+                className="w-full rounded-xl border border-surface-200 bg-surface-100 px-4 py-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-action resize-none"
               />
             )}
 
@@ -364,7 +364,7 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
                 value={inputValue}
                 onChange={e => setInputValue(e.target.value)}
                 placeholder="https://yourwebsite.com"
-                className="w-full rounded-xl border border-surface-200 bg-surface-100 px-4 py-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-brand-500"
+                className="w-full rounded-xl border border-surface-200 bg-surface-100 px-4 py-3 text-sm text-ink-800 placeholder:text-ink-600 focus:outline-none focus:border-action"
               />
             )}
 

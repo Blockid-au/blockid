@@ -263,33 +263,33 @@ export default async function InvestorPackPage() {
         {/* Summary card */}
         <section
           aria-labelledby="pack-summary"
-          className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5 mb-4"
+          className="rounded-xl border border-slate-200 bg-white p-5 mb-4"
         >
           <h2 id="pack-summary" className="sr-only">
             Pack summary
           </h2>
           <dl className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
             <div>
-              <dt className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <dt className="text-xs uppercase tracking-wider text-slate-500">
                 Startup
               </dt>
-              <dd className="mt-1 text-lg font-semibold text-ink-800 dark:text-slate-100">
+              <dd className="mt-1 text-lg font-semibold text-ink-800">
                 {overview.startupName}
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <dt className="text-xs uppercase tracking-wider text-slate-500">
                 SVI grade
               </dt>
-              <dd className="mt-1 text-lg font-semibold text-brand-700 dark:text-brand-300">
+              <dd className="mt-1 text-lg font-semibold text-brand-700">
                 {overview.sviGrade}
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <dt className="text-xs uppercase tracking-wider text-slate-500">
                 Last generated
               </dt>
-              <dd className="mt-1 text-sm text-ink-700 dark:text-slate-200">
+              <dd className="mt-1 text-sm text-ink-700">
                 {overview.lastGeneratedAt
                   ? new Date(overview.lastGeneratedAt).toLocaleString("en-AU", {
                       dateStyle: "medium",
@@ -315,27 +315,27 @@ export default async function InvestorPackPage() {
         {overview.lastDownloadUrl && (
           <section
             aria-labelledby="share-link-live"
-            className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5 mb-4"
+            className="rounded-xl border border-slate-200 bg-white p-5 mb-4"
           >
             <h2
               id="share-link-live"
-              className="text-sm font-semibold text-ink-800 dark:text-slate-100 mb-2"
+              className="text-sm font-semibold text-ink-800 mb-2"
             >
               Share link
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+            <p className="text-xs text-slate-500 mb-3">
               Share this link with investors. It expires 30 days after
               generation and allows direct PDF download — no login required.
             </p>
             <div className="flex items-center gap-2">
-              <code className="flex-1 rounded bg-slate-100 dark:bg-slate-800 px-3 py-1.5 text-xs text-ink-700 dark:text-slate-200 break-all">
+              <code className="flex-1 rounded bg-slate-100 px-3 py-1.5 text-xs text-ink-700 break-all">
                 {typeof window === "undefined"
                   ? overview.lastDownloadUrl
                   : `${process.env.NEXT_PUBLIC_SITE_URL ?? ""}${overview.lastDownloadUrl}`}
               </code>
               <a
                 href={overview.lastDownloadUrl}
-                className="shrink-0 inline-flex items-center rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-1.5 text-xs font-medium text-ink-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+                className="shrink-0 inline-flex items-center rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-ink-800 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
                 download
               >
                 Download
@@ -347,25 +347,25 @@ export default async function InvestorPackPage() {
         {/* v3.7.1 — Pinned artefacts panel */}
         <section
           aria-labelledby="pinned-artefacts"
-          className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 p-5 mb-4"
+          className="rounded-xl border border-slate-200 bg-white p-5 mb-4"
         >
           <h2
             id="pinned-artefacts"
-            className="text-sm font-semibold text-ink-800 dark:text-slate-100 mb-3"
+            className="text-sm font-semibold text-ink-800 mb-3"
           >
             Pinned to next investor pack
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+          <p className="text-xs text-slate-500 mb-3">
             The next generated pack will embed the forecast and exit thesis
             pinned below. Change these from the forecast or exit-strategy
             results pages.
           </p>
           <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <dt className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <dt className="text-xs uppercase tracking-wider text-slate-500">
                 Revenue forecast
               </dt>
-              <dd className="mt-1 text-sm text-ink-800 dark:text-slate-100">
+              <dd className="mt-1 text-sm text-ink-800">
                 {pinned.pinnedForecast ? (
                   <a
                     href={`/workspace/valuation/forecast/${pinned.pinnedForecast.id}`}
@@ -385,10 +385,10 @@ export default async function InvestorPackPage() {
               </dd>
             </div>
             <div>
-              <dt className="text-xs uppercase tracking-wider text-slate-500 dark:text-slate-400">
+              <dt className="text-xs uppercase tracking-wider text-slate-500">
                 Exit thesis
               </dt>
-              <dd className="mt-1 text-sm text-ink-800 dark:text-slate-100">
+              <dd className="mt-1 text-sm text-ink-800">
                 {pinned.pinnedExit ? (
                   <a
                     href={`/workspace/exit/strategy/${pinned.pinnedExit.id}`}

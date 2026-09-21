@@ -54,7 +54,7 @@ export default async function TemplatesPage() {
         {allowed ? (
           <TemplatesEditor initialTemplates={templates} dataPrincipleSentence={DATA_PRINCIPLE_SENTENCE} />
         ) : (
-          <div className="rounded-2xl border border-surface-200 bg-white px-6 py-10 text-center" data-testid="templates-locked">
+          <div className="rounded-2xl border border-surface-200 bg-surface px-6 py-10 text-center" data-testid="templates-locked">
             <p className="text-sm text-ink-700">Intake templates come with the evaluator plans that include intake links (Firm, Program, Fund and every Programs rung).</p>
             <Link href="/pricing?segment=evaluator" className="mt-4 inline-flex min-h-11 items-center rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-elev-1">
               See evaluator plans

@@ -41,7 +41,7 @@ export function RequestAccessButton({ evaluationId, nextTier, founderClaimed }: 
         {phase.claimUrl ? (
           <>
             Send the founder this claim link (also in their invite email):{" "}
-            <code className="break-all rounded bg-white px-1 py-0.5 text-[11px]">{phase.claimUrl}</code>
+            <code className="break-all rounded bg-surface px-1 py-0.5 text-[11px]">{phase.claimUrl}</code>
           </>
         ) : (
           <>Add the founder&apos;s email on the evaluation row to send an invite — reports are shared once they claim it.</>

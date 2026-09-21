@@ -203,20 +203,20 @@ export default function StartupCompassPrimerPage() {
       <NavV2 />
       <main className="mx-auto max-w-3xl px-4 py-12 md:py-16">
         <header className="mb-10">
-          <p className="text-sm font-medium uppercase tracking-wide text-emerald-600">
+          <p className="text-sm font-medium uppercase tracking-wide text-bull">
             Startup Compass · Framework citations
           </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl dark:text-slate-100">
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-primary md:text-4xl">
             What Startup Compass actually is (and isn&apos;t)
           </h1>
-          <p className="mt-4 text-lg text-slate-700 dark:text-slate-300">
-            Startup Compass — the internal code symbol is <code className="rounded bg-slate-100 px-1.5 py-0.5 text-sm font-mono dark:bg-slate-800">SCN</code> — is
+          <p className="mt-4 text-lg text-slate-700">
+            Startup Compass — the internal code symbol is <code className="rounded bg-surface-sunken px-1.5 py-0.5 text-sm font-mono">SCN</code> — is
             BlockID&apos;s 5-dimension diagnostic overlay. It is <strong>not proprietary
             theory</strong>. It is a bundling of five widely-used, externally-published
             startup frameworks into a single actionable lens, so founders don&apos;t
             have to juggle 8-12 disparate models at once.
           </p>
-          <p className="mt-4 text-sm text-slate-600 dark:text-slate-400">
+          <p className="mt-4 text-sm text-secondary">
             If you&apos;re an advisor or investor evaluating BlockID&apos;s
             recommendations, every dimension below traces back to its primary
             source. Where we cannot verify a canonical published citation, we
@@ -224,14 +224,14 @@ export default function StartupCompassPrimerPage() {
           </p>
         </header>
 
-        <section className="mb-10 rounded-xl border border-slate-200 bg-slate-50 p-6 dark:border-slate-800 dark:bg-slate-900">
-          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+        <section className="mb-10 rounded-xl border border-line-subtle bg-surface-sunken p-6">
+          <h2 className="text-base font-semibold text-primary">
             The five dimensions
           </h2>
-          <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">
+          <p className="mt-2 text-sm text-slate-700">
             <strong>V</strong>alidation → <strong>P</strong>osition → <strong>V</strong>alue → <strong>D</strong>irection → <strong>C</strong>apital.
             Each maps to one or more chapters of the{" "}
-            <Link href="/guide/01-vision" className="text-emerald-700 underline decoration-dotted dark:text-emerald-400">
+            <Link href="/guide/01-vision" className="text-emerald-700 underline decoration-dotted">
               12-chapter Startup Journey guide
             </Link>
             .
@@ -241,46 +241,46 @@ export default function StartupCompassPrimerPage() {
         {DIMENSIONS.map((d) => (
           <section
             key={d.code}
-            className="mb-10 border-t border-slate-200 pt-8 dark:border-slate-800"
+            className="mb-10 border-t border-line-subtle pt-8"
           >
             <div className="flex items-baseline gap-3">
-              <span className="rounded-md bg-emerald-100 px-2 py-0.5 font-mono text-xs font-bold text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300">
+              <span className="rounded-md bg-emerald-100 px-2 py-0.5 font-mono text-xs font-bold text-emerald-800">
                 {d.code}
               </span>
-              <h2 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
+              <h2 className="text-2xl font-bold text-primary">
                 {d.name}
               </h2>
             </div>
-            <p className="mt-2 text-sm italic text-slate-600 dark:text-slate-400">
+            <p className="mt-2 text-sm italic text-secondary">
               &ldquo;{d.question}&rdquo;
             </p>
 
-            <h3 className="mt-6 text-sm font-semibold uppercase tracking-wider text-slate-500">
+            <h3 className="mt-6 text-sm font-semibold uppercase tracking-wider text-muted">
               Underlying frameworks
             </h3>
             <ul className="mt-3 space-y-4">
               {d.frameworks.map((f) => (
-                <li key={f.label} className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-950">
-                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+                <li key={f.label} className="rounded-lg border border-line-subtle bg-white p-4">
+                  <p className="text-sm font-semibold text-primary">
                     {f.label}
                     {f.citationNeeded && (
-                      <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-800 dark:bg-amber-900/40 dark:text-amber-300">
+                      <span className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-800">
                         citation-needed
                       </span>
                     )}
                   </p>
-                  <p className="mt-1 text-xs text-slate-500">
+                  <p className="mt-1 text-xs text-muted">
                     {f.author}
                     {f.year ? ` · ${f.year}` : null}
                   </p>
-                  <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">{f.summary}</p>
+                  <p className="mt-2 text-sm text-slate-700">{f.summary}</p>
                   {f.url && (
                     <p className="mt-2 text-xs">
                       <a
                         href={f.url}
                         target="_blank"
                         rel="noreferrer noopener"
-                        className="text-emerald-700 underline decoration-dotted hover:text-emerald-600 dark:text-emerald-400"
+                        className="text-emerald-700 underline decoration-dotted hover:text-bull"
                       >
                         Primary source ↗
                       </a>
@@ -290,7 +290,7 @@ export default function StartupCompassPrimerPage() {
               ))}
             </ul>
 
-            <h3 className="mt-6 text-sm font-semibold uppercase tracking-wider text-slate-500">
+            <h3 className="mt-6 text-sm font-semibold uppercase tracking-wider text-muted">
               Related chapters
             </h3>
             <ul className="mt-2 flex flex-wrap gap-2">
@@ -298,7 +298,7 @@ export default function StartupCompassPrimerPage() {
                 <li key={ch.slug}>
                   <Link
                     href={`/guide/${ch.slug}`}
-                    className="rounded-md border border-emerald-600 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
+                    className="rounded-md border border-emerald-600 px-2.5 py-1 text-xs font-medium text-emerald-700 hover:bg-emerald-50"
                   >
                     {ch.title}
                   </Link>
@@ -308,11 +308,11 @@ export default function StartupCompassPrimerPage() {
           </section>
         ))}
 
-        <section className="mt-12 rounded-xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+        <section className="mt-12 rounded-xl border border-line-subtle bg-white p-6">
+          <h2 className="text-base font-semibold text-primary">
             Why we bundle
           </h2>
-          <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">
+          <p className="mt-3 text-sm text-slate-700">
             A pre-seed founder faced with Sean Ellis, Porter, T2D3, JTBD, and BVP
             in parallel has to context-switch between five theoretical languages.
             Startup Compass compresses those languages into one 5-word question
@@ -320,33 +320,33 @@ export default function StartupCompassPrimerPage() {
             next? Are you ready to raise?</em> — and preserves the ability to
             drill down into the primary source when precision is required.
           </p>
-          <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">
+          <p className="mt-3 text-sm text-slate-700">
             Advisors and investors: if a Startup Compass recommendation surprises
             you, follow the citation. Founders: if a dimension feels shallow,
             open the linked framework and go deeper.
           </p>
         </section>
 
-        <nav className="mt-12 grid gap-4 border-t border-slate-200 pt-8 md:grid-cols-2 dark:border-slate-800">
+        <nav className="mt-12 grid gap-4 border-t border-line-subtle pt-8 md:grid-cols-2">
           <Link
             href="/guide/01-vision"
-            className="rounded-lg border border-slate-200 p-4 text-left transition hover:border-emerald-400 dark:border-slate-800"
+            className="rounded-lg border border-line-subtle p-4 text-left transition hover:border-emerald-400"
           >
-            <span className="text-xs uppercase tracking-wide text-slate-400">
+            <span className="text-xs uppercase tracking-wide text-muted">
               Start the journey
             </span>
-            <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+            <p className="mt-1 text-sm font-semibold text-primary">
               Chapter 1 · Vision
             </p>
           </Link>
           <Link
             href="/sample"
-            className="rounded-lg border border-slate-200 p-4 text-right transition hover:border-emerald-400 dark:border-slate-800"
+            className="rounded-lg border border-line-subtle p-4 text-right transition hover:border-emerald-400"
           >
-            <span className="text-xs uppercase tracking-wide text-slate-400">
+            <span className="text-xs uppercase tracking-wide text-muted">
               See reports built on Startup Compass
             </span>
-            <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+            <p className="mt-1 text-sm font-semibold text-primary">
               Report template library
             </p>
           </Link>

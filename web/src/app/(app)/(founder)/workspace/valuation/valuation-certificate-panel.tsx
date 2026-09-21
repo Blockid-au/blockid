@@ -225,7 +225,7 @@ export function ValuationCertificatePanel({ initial }: { initial?: CertificatePa
               onClick={() => void startIssue()}
               disabled={busy !== null || preview !== null}
               data-testid="issue-certificate"
-              className="inline-flex items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-60"
+              className="inline-flex items-center gap-2 rounded-xl bg-action px-4 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors disabled:opacity-60"
             >
               {busy === "preview" ? <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" /> : <Award strokeWidth={1.75} className="h-4 w-4" />}
               Issue valuation certificate ({costLabel})
@@ -272,7 +272,7 @@ export function ValuationCertificatePanel({ initial }: { initial?: CertificatePa
               onClick={() => void confirmIssue()}
               disabled={busy !== null}
               data-testid="confirm-issue"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover disabled:opacity-60"
             >
               {busy === "issue" ? <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" /> : <CheckCircle2 strokeWidth={1.75} className="h-3.5 w-3.5" />}
               {preview.included ? "Issue (included)" : `Issue for ${preview.cost} credits`}

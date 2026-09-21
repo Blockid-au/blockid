@@ -25,7 +25,6 @@ const ALLOW: Record<string, string> = {
   "app/(app)/error.tsx": "Next error boundary: error.message rendered only under NODE_ENV=development; production shows the digest",
   "app/(app)/(founder)/workspace/error.tsx": "Next error boundary: error.message rendered only under NODE_ENV=development",
   "app/(app)/(founder)/dashboard/error.tsx": "Next error boundary: error.message rendered only under NODE_ENV=development",
-  "components/onboarding/step-payment.tsx": "Stripe Elements `event.error.message` / `result.error.message` are Stripe's own end-user card validation copy",
   "app/(app)/(reseller)/reseller/settings/payment-method-form.tsx": "Stripe Elements `event.error.message` / `result.error.message` are Stripe's own end-user card validation copy",
   "app/(app)/(founder)/dashboard/admin/sector-multiples/page.tsx": "founder-admin server page: migration hint for the operator, not a customer surface",
   "app/(app)/(admin)/admin/drip-stats/page.tsx": "admin-only server page: query error surfaced to the operator",

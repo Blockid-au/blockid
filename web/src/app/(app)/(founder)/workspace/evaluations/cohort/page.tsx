@@ -18,7 +18,6 @@ import { getEntitlements } from "@/lib/entitlements";
 import { listBatches } from "@/lib/evaluations/batch";
 import { canBatchScore } from "@/lib/evaluations/batch-shared";
 import { listTemplates } from "@/lib/intake/templates";
-import { findActivePilotOrder } from "@/lib/pilots/paid-orders";
 import { CohortIndex } from "@/components/evaluations/CohortIndex";
 import { EvaluatorReportDisclaimer } from "@/components/legal/evaluator-report-disclaimer";
 import { loadDemoCohortLabels } from "@/lib/evaluations/demo-cohort-labels";
@@ -35,12 +34,11 @@ export default async function CohortIndexPage({ searchParams }: { searchParams?:
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/evaluations/cohort");
 
-  const [isSandbox, batches, flags, templates, pilot, demoLabels, sp] = await Promise.all([
+  const [isSandbox, batches, flags, templates, demoLabels, sp] = await Promise.all([
     getCurrentProjectIsSandbox(),
     listBatches(user.id),
     getEntitlements(user.plan ?? "", user.id).catch(() => [] as string[]),
     listTemplates(user.id),
-    findActivePilotOrder(user.id).catch(() => null),
     loadDemoCohortLabels(),
     searchParams ?? Promise.resolve({} as Record<string, string | string[] | undefined>),
   ]);
@@ -63,7 +61,7 @@ export default async function CohortIndexPage({ searchParams }: { searchParams?:
           </p>
         </header>
 
-        <CohortIndex batches={batches} templates={templates.map((t) => ({ id: t.id, name: t.name }))} canCreate={canBatchScore(flags)} pilotCap={pilot?.applicants_cap ?? null} demoLabels={demoLabels} demoRemoved={demoRemoved} />
+        <CohortIndex batches={batches} templates={templates.map((t) => ({ id: t.id, name: t.name }))} canCreate={canBatchScore(flags)} demoLabels={demoLabels} demoRemoved={demoRemoved} />
 
         <EvaluatorReportDisclaimer variant="compact" />
       </div>

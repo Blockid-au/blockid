@@ -9,7 +9,6 @@ import { CheckCircle2, Send } from "lucide-react";
 const TOPICS: ReadonlyArray<{ value: string; label: string }> = [
   { value: "general", label: "General question" },
   { value: "demo", label: "Book a demo" },
-  { value: "pilot", label: "Cohort Validation Pilot" },
   { value: "sales", label: "Sales / plans" },
   { value: "support", label: "Support" },
   { value: "legal", label: "Legal / privacy" },

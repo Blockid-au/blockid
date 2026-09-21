@@ -4,7 +4,7 @@
  * Mirrors the English home v7 block for block on the unicorn template: the
  * one H1 from `hero.line.fi1` + the FI2 sub-line from vi.json, the same
  * search box (`ViHeroSearch` → `SmartIntake`, hand-off to /analyze), the two
- * CTAs (cohort pilot / score my startup), the trust line, then Problem →
+ * CTAs (start a cohort / score my startup), the trust line, then Problem →
  * Product sequence → Three messages → Why not ChatGPT → Built for → the
  * TrustBand placeholder (lane P0-A) → the closing CtaBand — no prices (D3),
  * no `A$` strings, no agent counts. Copy keys live under `vi.home.*` in
@@ -27,6 +27,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { NavV2 } from "@/components/landing/nav-v2";
+import { START_COHORT_VI_HREF } from "@/lib/marketing/start-cohort";
 import { Footer } from "@/components/marketing/footer";
 import {
   BuiltFor,
@@ -98,7 +99,7 @@ export default async function ViHomePage() {
           title={t(m, "hero.line.fi1")}
           sub={t(m, "hero.line.fi2")}
           ctas={[
-            { href: "/vi/solutions/accelerator#pilot", label: t(m, "vi.home.cta.primary"), ctaId: "vi_hero_pilot" },
+            { href: START_COHORT_VI_HREF, label: t(m, "vi.home.cta.primary"), ctaId: "vi_hero_start_cohort" },
             { href: HOME_SECONDARY_CTA.href, label: t(m, "vi.home.cta.secondary"), ctaId: "vi_hero_score" },
           ]}
           visual={<ViHeroSearch placeholder={t(m, "vi.home.search.placeholder")} />}
@@ -213,9 +214,9 @@ export default async function ViHomePage() {
         <CtaBand
           title={t(m, "vi.home.final.title")}
           sub={t(m, "vi.home.final.sub")}
-          primary={{ href: "/vi/solutions/accelerator#pilot", label: t(m, "vi.home.cta.primary"), ctaId: "vi_home_final_pilot" }}
+          primary={{ href: START_COHORT_VI_HREF, label: t(m, "vi.home.cta.primary"), ctaId: "vi_home_final_start_cohort" }}
           secondary={{ href: HOME_SECONDARY_CTA.href, label: t(m, "vi.home.cta.secondary"), ctaId: "vi_home_final_score" }}
-          tone="dark"
+          tone="sunken"
         />
       </main>
 

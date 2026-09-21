@@ -136,7 +136,7 @@ export function ReferralsClient() {
         ) : (
           <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden">
             <table className="w-full text-sm">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
                 <tr className="border-b border-surface-100">
                   <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-muted">
                     Friend
@@ -152,7 +152,7 @@ export function ReferralsClient() {
                   </th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-line-subtle [&>tr:nth-child(even)]:bg-surface-sunken">
                 {referrals.map((r) => (
                   <tr
                     key={r.id}

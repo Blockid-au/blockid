@@ -17,11 +17,15 @@
  *     null or a uuid on every row (G22-B / 0433 fail-soft before apply);
  *   • the anonymous caller gets 401 on the report, the pack and the
  *     feedback-letter preview;
- *   • /workspace/accelerator/pilot on a non-pilot account shows the "Book a
- *     pilot" card (→ /pilot) and never the metrics form.
+ *   • /workspace/accelerator/onboarding (G25 — the Cohort onboarding kit;
+ *     /workspace/accelerator/pilot 301s here) renders the h1 and either the
+ *     "Start a cohort" card (→ the programs pricing tab) or the checklist,
+ *     never anything "pilot"; the onboarding metrics route refuses a
+ *     founder account (404 no organisation / 403 not owner) and 401s
+ *     anonymously.
  *
  * Nothing is sent and nothing is paid: the feedback-letter route is only
- * ever called anonymously (401) and the pilot page is read.
+ * ever called anonymously (401) and the onboarding page is read.
  */
 import { existsSync } from "node:fs";
 import path from "node:path";
@@ -160,33 +164,47 @@ test.describe("Cohort Report route — gates and the documented states", () => {
   });
 });
 
-test.describe("Pilot delivery kit", () => {
-  test("/workspace/accelerator/pilot on a non-pilot account shows the Book a pilot card, never the metrics form", async ({ browser, qa }, testInfo) => {
+test.describe("Cohort onboarding kit (G25)", () => {
+  test("/workspace/accelerator/onboarding renders the kit h1 and the Start a cohort card or the checklist — never a pilot; the old /pilot path 301s here", async ({ browser, qa }, testInfo) => {
     requireEvaluator();
     const { ctx, page } = await evaluatorBrowser(browser);
     try {
-      const res = await page.goto(`${qa.baseURL}/workspace/accelerator/pilot`, { waitUntil: "domcontentloaded" });
+      const hop = await ctx.request.get(`${qa.baseURL}/workspace/accelerator/pilot`, { maxRedirects: 0 });
+      expect(hop.status()).toBe(301);
+      expect(hop.headers()["location"] ?? "").toMatch(/\/workspace\/accelerator\/onboarding$/);
+      const res = await page.goto(`${qa.baseURL}/workspace/accelerator/onboarding`, { waitUntil: "domcontentloaded" });
       expect(res?.status()).toBe(200);
-      await expect(page.getByRole("heading", { level: 1 })).toContainText("Pilot delivery kit");
-      await expect(page.getByTestId("pilot-book-card")).toBeVisible();
-      const href = await page.getByTestId("pilot-book-card").getByRole("link", { name: /See the pilot/ }).getAttribute("href");
-      await evidence(testInfo, "/workspace/accelerator/pilot", { href });
-      expect(href).toBe("/pilot");
+      await expect(page.getByRole("heading", { level: 1 })).toContainText("Cohort onboarding kit");
+      const startCard = page.getByTestId("onboarding-start-card");
+      const checklist = page.getByTestId("onboarding-checklist");
+      const hasStart = (await startCard.count()) > 0;
+      const hasChecklist = (await checklist.count()) > 0;
+      let href: string | null = null;
+      if (hasStart) {
+        href = await startCard.getByRole("link", { name: /See the Cohort plans/ }).getAttribute("href");
+        expect(href).toBe("/pricing?segment=programs");
+      }
+      await evidence(testInfo, "/workspace/accelerator/onboarding", { hasStart, hasChecklist, href });
+      expect(hasStart || hasChecklist).toBe(true);
+      const text = await page.locator("main").innerText();
+      expect(text).not.toMatch(/pilot|coupon/i);
       await expect(page.getByTestId("pilot-metrics-form")).toHaveCount(0);
+      await expect(page.getByTestId("pilot-convert-card")).toHaveCount(0);
     } finally {
       await ctx.close();
     }
   });
 
-  test("the founder account cannot PATCH a foreign pilot order (404) and an anonymous caller gets 401", async ({ api, qa }, testInfo) => {
-    const orderId = "11111111-1111-4111-8111-111111111111";
-    const founder = await api.fetch(`${qa.baseURL}/api/pilots/${orderId}/metrics`, { method: "PATCH", data: { satisfaction: 5 } });
+  test("the founder account cannot write onboarding metrics (404 no organisation / 403 not owner) and an anonymous caller gets 401; the old per-order route is gone", async ({ api, qa }, testInfo) => {
+    const founder = await api.fetch(`${qa.baseURL}/api/accelerator/onboarding/metrics`, { method: "PATCH", data: { satisfaction: 5 } });
+    const legacy = await api.fetch(`${qa.baseURL}/api/pilots/11111111-1111-4111-8111-111111111111/metrics`, { method: "PATCH", data: { satisfaction: 5 } });
     const anon = await anonRequest(qa.baseURL);
     try {
-      const anonRes = await anon.fetch(`${qa.baseURL}/api/pilots/${orderId}/metrics`, { method: "PATCH", data: { satisfaction: 5 } });
-      await evidence(testInfo, "PATCH /api/pilots/[orderId]/metrics", { founder: founder.status(), anon: anonRes.status() });
-      expect(founder.status()).toBe(404);
+      const anonRes = await anon.fetch(`${qa.baseURL}/api/accelerator/onboarding/metrics`, { method: "PATCH", data: { satisfaction: 5 } });
+      await evidence(testInfo, "PATCH /api/accelerator/onboarding/metrics", { founder: founder.status(), anon: anonRes.status(), legacy: legacy.status() });
+      expect([403, 404]).toContain(founder.status());
       expect(anonRes.status()).toBe(401);
+      expect(legacy.status()).toBe(404);
     } finally {
       await anon.dispose();
     }

@@ -103,7 +103,7 @@ export function ValuationBlock({ block, fullReportHref }: { block: DossierValuat
       </div>
       {fullReportHref ? (
         <p className="mt-3 text-xs">
-          <a href={fullReportHref} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">
+          <a href={fullReportHref} target="_blank" rel="noopener noreferrer" className="text-action hover:underline">
             Open the valuation chapter in the full Trusted Business Report →
           </a>
         </p>

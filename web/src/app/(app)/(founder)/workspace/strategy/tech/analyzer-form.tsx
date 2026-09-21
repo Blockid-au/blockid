@@ -159,7 +159,7 @@ export function AnalyzerForm({ projects }: { projects: ProjectOption[] }) {
           <label className="block">
             <span className="text-xs font-semibold uppercase tracking-wide text-ink-500 mb-1 block">Startup</span>
             <select
-              className="w-full rounded-xl border border-surface-300 bg-white px-3 py-2.5 text-sm text-ink-800 focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none"
+              className="w-full rounded-xl border border-surface-300 bg-white px-3 py-2.5 text-sm text-ink-800 focus:border-action focus:ring-1 focus:ring-action/25 outline-none"
               value={startupId}
               onChange={(e) => setStartupId(e.target.value)}
             >
@@ -175,7 +175,7 @@ export function AnalyzerForm({ projects }: { projects: ProjectOption[] }) {
           <input
             type="url"
             placeholder="https://github.com/owner/repo"
-            className="w-full rounded-xl border border-surface-300 bg-white px-3 py-2.5 text-sm text-ink-800 placeholder:text-muted focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none"
+            className="w-full rounded-xl border border-surface-300 bg-white px-3 py-2.5 text-sm text-ink-800 placeholder:text-muted focus:border-action focus:ring-1 focus:ring-action/25 outline-none"
             value={githubUrl}
             onChange={(e) => setCode2Url(e.target.value)}
           />
@@ -188,7 +188,7 @@ export function AnalyzerForm({ projects }: { projects: ProjectOption[] }) {
           <input
             type="url"
             placeholder="https://example.com"
-            className="w-full rounded-xl border border-surface-300 bg-white px-3 py-2.5 text-sm text-ink-800 placeholder:text-muted focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none"
+            className="w-full rounded-xl border border-surface-300 bg-white px-3 py-2.5 text-sm text-ink-800 placeholder:text-muted focus:border-action focus:ring-1 focus:ring-action/25 outline-none"
             value={websiteUrl}
             onChange={(e) => setWebsiteUrl(e.target.value)}
           />
@@ -199,7 +199,7 @@ export function AnalyzerForm({ projects }: { projects: ProjectOption[] }) {
         <button
           type="submit"
           disabled={disabled}
-          className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 transition-colors cursor-pointer"
+          className="w-full flex items-center justify-center gap-2 rounded-xl bg-action px-4 py-3 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50 transition-colors cursor-pointer"
         >
           {busy ? (
             <><span className="h-4 w-4 rounded-full border-2 border-line border-t-white animate-spin" />Analysing…</>

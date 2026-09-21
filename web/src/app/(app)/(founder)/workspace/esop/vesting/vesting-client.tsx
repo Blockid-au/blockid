@@ -403,7 +403,7 @@ function AddGrantForm({
               value={form.shareholderName}
               onChange={(e) => update("shareholderName", e.target.value)}
               placeholder="e.g. Jane Smith"
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
             />
           </div>
           <div>
@@ -415,7 +415,7 @@ function AddGrantForm({
               value={form.shareholderEmail}
               onChange={(e) => update("shareholderEmail", e.target.value)}
               placeholder="jane@company.com"
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
             />
           </div>
         </div>
@@ -433,7 +433,7 @@ function AddGrantForm({
               value={form.totalShares}
               onChange={(e) => update("totalShares", e.target.value)}
               placeholder="e.g. 100000"
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
             />
           </div>
           <div>
@@ -444,7 +444,7 @@ function AddGrantForm({
               type="date"
               value={form.grantDate}
               onChange={(e) => update("grantDate", e.target.value)}
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
             />
           </div>
           <div>
@@ -459,7 +459,7 @@ function AddGrantForm({
                   e.target.value as VestingSchedule["vestingType"],
                 )
               }
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 bg-white focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 bg-white focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
             >
               {Object.entries(VESTING_TYPE_LABELS).map(([val, label]) => (
                 <option key={val} value={val}>
@@ -481,7 +481,7 @@ function AddGrantForm({
               max="48"
               value={form.cliffMonths}
               onChange={(e) => update("cliffMonths", e.target.value)}
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
             />
           </div>
           <div>
@@ -494,7 +494,7 @@ function AddGrantForm({
               max="120"
               value={form.totalMonths}
               onChange={(e) => update("totalMonths", e.target.value)}
-              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors"
+              className="w-full h-10 rounded-xl border border-surface-200 px-3 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors"
             />
           </div>
         </div>
@@ -506,7 +506,7 @@ function AddGrantForm({
               type="checkbox"
               checked={form.singleTrigger}
               onChange={(e) => update("singleTrigger", e.target.checked)}
-              className="h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500"
+              className="h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-action"
             />
             <span className="text-sm text-ink-700">Single Trigger</span>
           </label>
@@ -515,7 +515,7 @@ function AddGrantForm({
               type="checkbox"
               checked={form.doubleTrigger}
               onChange={(e) => update("doubleTrigger", e.target.checked)}
-              className="h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-brand-500"
+              className="h-4 w-4 rounded border-surface-300 text-brand-600 focus:ring-action"
             />
             <span className="text-sm text-ink-700">Double Trigger</span>
           </label>
@@ -531,7 +531,7 @@ function AddGrantForm({
             value={form.notes}
             onChange={(e) => update("notes", e.target.value)}
             placeholder="Optional notes about this grant..."
-            className="w-full rounded-xl border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-200 focus:border-brand-400 transition-colors resize-none"
+            className="w-full rounded-xl border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-action/25 focus:border-action transition-colors resize-none"
           />
         </div>
 
@@ -540,7 +540,7 @@ function AddGrantForm({
           <button
             type="submit"
             disabled={submitting}
-            className="inline-flex h-10 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
+            className="inline-flex h-10 items-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50 disabled:cursor-not-allowed transition-colors cursor-pointer"
           >
             {submitting ? (
               <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" />
@@ -625,7 +625,7 @@ export function VestingDashboard() {
           <button
             type="button"
             onClick={() => setShowForm(true)}
-            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer"
+            className="inline-flex h-9 items-center gap-1.5 rounded-[10px] bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer"
           >
             <Plus strokeWidth={1.75} className="h-4 w-4" />
             Add Grant

@@ -20,8 +20,8 @@
  * No price table lives here (D3/D5): the evaluator pages link to
  * `/pricing?segment=evaluator` for the ladder.
  *
- * Test contract (grep before touching): `data-testid="pilot-offer"` +
- * `pilot-offer-card[data-sku]` + `pilot-buy-<sku>` (tests/e2e/smoke/
+ * Test contract (grep before touching): `data-testid="cohort-offer"` +
+ * `cohort-offer-includes` / `cohort-offer-metrics` (G25; tests/e2e/smoke/
  * post-deploy.spec.ts, tests/live-qa/34-purchase-path.spec.ts), one `<h1>`,
  * one FAQPage + one BreadcrumbList JSON-LD (the colocated page tests),
  * `data-persona` on the wrapper, `solutions-problem` / `solutions-statement`
@@ -36,6 +36,7 @@ import Link from "next/link";
 import {
   ArrowRight,
   BarChart3,
+  Check,
   ClipboardCheck,
   Database,
   FileCheck2,
@@ -53,7 +54,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { MarketingShell } from "@/components/marketing/marketing-shell";
-import { PilotOffer, type PilotOfferProps, type PilotOfferTier } from "@/components/marketing/PilotOffer";
 import {
   CtaBand,
   Faq,
@@ -204,13 +204,14 @@ export interface SolutionPageProps {
    */
   statement?: { eyebrow?: string; title: string; body: string };
   /**
-   * G21 P0-C — the paid Cohort Validation Pilot block, rendered after the
-   * journey / statement and before the FAQ with `id="pilot"` so
-   * `/solutions/accelerator#pilot` lands on it. Accelerator only.
+   * G25 — what a Cohort plan delivers + the success metrics measured together,
+   * rendered after the journey / statement with `id="cohort"` so
+   * `/solutions/accelerator#cohort` lands on it (the G21 paid pilot block and
+   * its `#pilot` anchor are gone — founder decision 2026-09-21). Accelerator only.
    */
-  pilotOffer?: Omit<PilotOfferProps, "id">;
+  cohortOffer?: SolutionCohortOffer;
   /** G21 P0-C — plan rungs for this persona, prices from constants via tokens. */
-  tiers?: { title: string; lede?: string; items: readonly PilotOfferTier[] };
+  tiers?: { title: string; lede?: string; items: readonly SolutionTier[] };
   /**
    * The closing `CtaBand` title / line. Defaults per persona family
    * (`CLOSING_COPY`) so the three evaluator pages and the two founder pages
@@ -297,6 +298,28 @@ export const WORKFLOW_ICONS: readonly LucideIcon[] = [
 /** Icons for the plan-rung cards. */
 const TIER_ICONS: readonly LucideIcon[] = [ClipboardCheck, Users, Landmark, Link2];
 
+/** One plan rung card on a persona page (was `PilotOfferTier` in the retired PilotOffer). */
+export interface SolutionTier {
+  name: string;
+  price: string;
+  sub: string;
+  href: string;
+  label: string;
+  ctaId?: string;
+}
+
+/** G25 — the Cohort offer block: inclusions + the success metrics measured together (no prices; the rungs follow in `tiers`). */
+export interface SolutionCohortOffer {
+  eyebrow?: string;
+  title: string;
+  lede: string;
+  includesTitle: string;
+  includes: readonly string[];
+  metricsTitle: string;
+  metricsLede: string;
+  metrics: readonly string[];
+}
+
 type ClosingFamily = "evaluator" | "accelerator" | "founder";
 
 function closingFamily(slug: SolutionSlug): ClosingFamily {
@@ -316,7 +339,7 @@ export const CLOSING_COPY: Readonly<
     },
     accelerator: {
       title: "Run your next intake as one comparable cohort.",
-      sub: "Book the paid pilot on one real intake or your existing cohort. Your committee still makes every decision.",
+      sub: "Start a Cohort plan on one real intake or your existing cohort — 14-day trial, card required, cancel any time. Your committee still makes every decision.",
     },
     founder: {
       title: "Know what to fix before your next application.",
@@ -330,7 +353,7 @@ export const CLOSING_COPY: Readonly<
     },
     accelerator: {
       title: "Chạy đợt tuyển sinh tiếp theo như một khoá có thể so sánh.",
-      sub: "Đặt thí điểm trả phí trên một đợt tuyển sinh thật hoặc khoá hiện có. Hội đồng của bạn vẫn ra mọi quyết định.",
+      sub: "Bắt đầu gói Cohort trên một đợt tuyển sinh thật hoặc khoá hiện có — dùng thử 14 ngày, cần thẻ, huỷ bất cứ lúc nào. Hội đồng của bạn vẫn ra mọi quyết định.",
     },
     founder: {
       title: "Biết cần sửa gì trước lần nộp hồ sơ tiếp theo.",
@@ -364,7 +387,7 @@ export function SolutionsPageShell(props: SolutionPageProps) {
     problem,
     workflow,
     statement,
-    pilotOffer,
+    cohortOffer,
     tiers,
     closingTitle,
     closingSub,
@@ -546,21 +569,37 @@ export function SolutionsPageShell(props: SolutionPageProps) {
           </Section>
         ) : null}
 
-        {/* G21 P0-C — the paid Cohort Validation Pilot (#pilot) */}
-        {pilotOffer ? (
-          <PilotOffer
-            id="pilot"
-            ctaPrefix={`solutions_${slug}_pilot`}
-            {...pilotOffer}
-            copy={{
-              ...pilotOffer.copy,
-              eyebrow: fillPrices(pilotOffer.copy.eyebrow),
-              title: fillPrices(pilotOffer.copy.title),
-              lede: fillPrices(pilotOffer.copy.lede),
-              afterLede: pilotOffer.copy.afterLede ? fillPrices(pilotOffer.copy.afterLede) : undefined,
-              afterTiers: pilotOffer.copy.afterTiers?.map((t) => ({ ...t, price: fillPrices(t.price), sub: fillPrices(t.sub) })),
-            }}
-          />
+        {/* G25 — what a Cohort plan delivers + the metrics measured together (#cohort) */}
+        {cohortOffer ? (
+          <Section id="cohort" eyebrow={cohortOffer.eyebrow ? fillPrices(cohortOffer.eyebrow) : undefined} title={fillPrices(cohortOffer.title)} lede={fillPrices(cohortOffer.lede)}>
+            <div data-testid="cohort-offer" className="grid gap-4 sm:gap-6 lg:grid-cols-2">
+              <div className="rounded-2xl border border-line-subtle bg-surface p-6">
+                <h3 className="text-base font-semibold text-primary">{cohortOffer.includesTitle}</h3>
+                <ul data-testid="cohort-offer-includes" className="mt-4 space-y-2">
+                  {cohortOffer.includes.map((line) => (
+                    <li key={line} className="flex items-start gap-2 text-sm leading-relaxed text-secondary">
+                      <Check className="mt-0.5 h-4 w-4 shrink-0 text-bull" aria-hidden="true" />
+                      <span>{fillPrices(line)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="rounded-2xl border border-line-subtle bg-surface p-6">
+                <h3 className="text-base font-semibold text-primary">{cohortOffer.metricsTitle}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-secondary">{cohortOffer.metricsLede}</p>
+                <ol data-testid="cohort-offer-metrics" className="mt-4 space-y-2">
+                  {cohortOffer.metrics.map((line, i) => (
+                    <li key={line} className="flex items-start gap-3 text-sm leading-relaxed text-secondary">
+                      <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-surface-sunken text-xs font-semibold tabular-nums text-primary" aria-hidden="true">
+                        {i + 1}
+                      </span>
+                      <span>{line}</span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            </div>
+          </Section>
         ) : null}
 
         {/* G21 P0-C — plan rungs for this persona (prices via tokens) */}

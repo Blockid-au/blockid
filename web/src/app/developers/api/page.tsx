@@ -188,13 +188,13 @@ export default function ApiIndexPage() {
             <div className="mt-5 grid gap-4 lg:grid-cols-2">
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">curl</p>
-                <pre className="mt-1.5 overflow-x-auto rounded-lg bg-ink-900 p-3 text-xs text-ink-100">
+                <pre className="mt-1.5 overflow-x-auto rounded-lg border border-line bg-surface-sunken p-3 text-xs text-primary">
                   <code>{INSTITUTIONAL_CURL}</code>
                 </pre>
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">TypeScript</p>
-                <pre className="mt-1.5 overflow-x-auto rounded-lg bg-ink-900 p-3 text-xs text-ink-100">
+                <pre className="mt-1.5 overflow-x-auto rounded-lg border border-line bg-surface-sunken p-3 text-xs text-primary">
                   <code>{INSTITUTIONAL_TS}</code>
                 </pre>
               </div>

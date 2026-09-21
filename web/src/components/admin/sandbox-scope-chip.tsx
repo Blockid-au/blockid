@@ -69,7 +69,7 @@ export function SandboxScopeChip({
 
   const labelCls = "text-ink-500";
 
-  const activeCls = "bg-brand-navy text-white";
+  const activeCls = "rounded-full bg-brand-navy text-white";
   const idleLinkCls = "bg-white text-ink-700 ring-1 ring-surface-200 hover:bg-surface-100";
   const idleStaticCls = "bg-white text-muted ring-1 ring-surface-200";
 

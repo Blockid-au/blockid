@@ -126,7 +126,10 @@ export interface AnalyticsEventMap {
   founder_match_viewed: { matches: number; source: "mandates" | "prefs" | "mixed" | "none" };
   pricing_toggle_billing: { annual: boolean };
   plan_cta_clicked: { plan: string; label: string };
-  checkout_started: { plan: string };
+  /** G25-D: the explicit Pay / Add-card click on /checkout/review — the only Stripe hand-off. */
+  checkout_started: { plan: string; kind?: "plan" | "pack" | "sku"; interval?: "monthly" | "annual" | "once"; trial?: boolean; entry?: string; amount_cents?: number };
+  /** G25-D: /checkout/review rendered; `entry` = the surface that linked here. */
+  checkout_review_viewed: { plan: string; kind: "plan" | "pack" | "sku"; interval: "monthly" | "annual" | "once"; trial: boolean; entry: string; amount_cents: number };
   checkout_completed: { plan: string; value?: number; currency?: string };
   coupon_applied: { code: string; discount_pct: number };
 
@@ -356,6 +359,12 @@ export interface AnalyticsEventMap {
   tbr_section_view: { section: string; surface: "founder" | "share" | "order_page" | "demo"; tier?: string };
   tbr_export: { format: "pdf" | "docx"; surface: string };
   tbr_clarity_answered: { score: number; surface: "founder" | "share"; has_comment: boolean; snapshot_id?: string };
+
+  // ── G25-C free allowance (server-emitted; typed here so the GA4 audit + limits tests cover both maps) ──
+  //   free_report_submitted — a free business report reserved for an address (1 | 2 of 2)
+  //   free_report_delivered — its PDF e-mail accepted by the provider
+  free_report_submitted: { grant_id: string; sequence_no: 1 | 2; source: "guest" | "account"; queued: boolean; analysis_id?: string };
+  free_report_delivered: { grant_id: string; sequence_no: 1 | 2; source: "guest" | "account"; analysis_id?: string };
 
   // ── Global error boundary + 404 ──────────────────────────────────────────
   //   Fired by src/app/error.tsx when the App Router error boundary catches

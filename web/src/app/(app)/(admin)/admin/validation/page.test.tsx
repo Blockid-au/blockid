@@ -37,7 +37,7 @@ const NOW = new Date("2026-09-21T10:00:00.000Z");
 const DONE: ValidationEntry = newEntry({ organisation: "Demo Accelerator", contact_role: "Program manager", date: "2026-09-20", level: 1, outcome: "done", objection: "No budget until July", objection_answered: false, next_step: "Send proposal", note: "Q13: not now" }, "e-done", NOW);
 const BOOKED: ValidationEntry = newEntry({ organisation: "Uni Program", contact_role: "", date: "2026-09-25", level: 2, outcome: "booked", objection: "", objection_answered: false, next_step: "", note: "" }, "e-booked", NOW);
 const AUTO = deriveAutoRows({
-  pilotOrders: [{ id: "o-1", user_id: "u-1", buyer_email: "ops@program.org", sku: "cohort_pilot_25", amount_cents: 150_000, currency: "aud", status: "paid", created_at: "2026-09-10T00:00:00.000Z", metrics: null }],
+  revenueEvents: [{ id: 1, user_id: "u-1", plan_id: "accelerator_starter", kind: "subscribe", gross_aud_cents: 500_000, currency: "AUD", ts: "2026-09-10T00:00:00.000Z", payer_email: "ops@program.org" }],
   applications: [{ id: "a-1", program_name: "Uni Program", cohort_size: 40, intake_month: "2026-11", received_at: "2026-09-18T00:00:00.000Z" }],
   feedbackLetters: [],
   batches: [],
@@ -92,14 +92,14 @@ describe("<EntriesTable> + <AutoRowsTable> + <ScriptCard>", () => {
     expect(out.replace(/<!-- -->/g, "")).toContain("Proposal generated 2026-09-21");
     const without = await html(<EntriesTable entries={[BOOKED]} onEdit={() => {}} onDelete={() => {}} />);
     expect(without).not.toContain('data-testid="validation-entry-proposal"');
-    expect(proposalFilenameFrom('attachment; filename="blockid-pilot-proposal-demo-2026-09-21.pdf"', "e-1")).toBe("blockid-pilot-proposal-demo-2026-09-21.pdf");
-    expect(proposalFilenameFrom(null, "abcdefgh-1234")).toBe("blockid-pilot-proposal-abcdefgh.pdf");
-    expect(proposalFilenameFrom("inline", "abcdefgh-1234")).toBe("blockid-pilot-proposal-abcdefgh.pdf");
+    expect(proposalFilenameFrom('attachment; filename="blockid-cohort-proposal-demo-2026-09-21.pdf"', "e-1")).toBe("blockid-cohort-proposal-demo-2026-09-21.pdf");
+    expect(proposalFilenameFrom(null, "abcdefgh-1234")).toBe("blockid-cohort-proposal-abcdefgh.pdf");
+    expect(proposalFilenameFrom("inline", "abcdefgh-1234")).toBe("blockid-cohort-proposal-abcdefgh.pdf");
   });
 
   it("auto rows are source-labelled, counted vs signal, never show a full e-mail; empty state", async () => {
     const out = await html(<AutoRowsTable rows={AUTO} />);
-    expect(out).toContain('data-auto-source="pilot_orders" data-auto-counts="1"');
+    expect(out).toContain('data-auto-source="revenue_events" data-auto-counts="1"');
     expect(out).toContain('data-auto-source="pilot-applications.jsonl" data-auto-counts="0"');
     expect(out).toContain("program.org");
     expect(out).not.toContain("ops@program.org");

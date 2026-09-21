@@ -25,10 +25,10 @@ import { ApiError, userErrorMessage } from "@/lib/ui/user-error";
 const dimensionLabel = (dim: string): string => DIMENSION_OWNERS[dim as DimKey]?.title ?? dim.toUpperCase();
 
 const URGENCY_COLORS: Record<string, string> = {
-  critical: "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300",
-  high: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300",
-  medium: "bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300",
-  low: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400",
+  critical: "bg-red-100 text-red-800",
+  high: "bg-orange-100 text-orange-800",
+  medium: "bg-yellow-100 text-yellow-800",
+  low: "bg-gray-100 text-gray-700",
 };
 
 interface CompletenessData {
@@ -171,7 +171,7 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
 
   if (error) {
     return (
-      <div className="flex items-center gap-3 rounded-md border border-red-200 bg-red-50 p-4 text-red-800 dark:border-red-900 dark:bg-red-950 dark:text-red-300">
+      <div className="flex items-center gap-3 rounded-md border border-red-200 bg-red-50 p-4 text-red-800">
         <AlertTriangle className="h-5 w-5 shrink-0" />
         <p className="text-sm">{error}</p>
       </div>
@@ -188,10 +188,10 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
       {/* AI Dimension Analysis — streams results as each dimension completes */}
       <div className="space-y-3">
         <div>
-          <h2 className="text-base font-semibold text-ink-800 dark:text-ink-100">
+          <h2 className="text-base font-semibold text-ink-800">
             AI Dimension Analysis
           </h2>
-          <p className="text-sm text-ink-500 dark:text-ink-400 mt-0.5">
+          <p className="text-sm text-ink-500 mt-0.5">
             Instant AI-powered analysis across all 8 SVI dimensions — results stream as each completes.
           </p>
         </div>
@@ -201,8 +201,8 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-ink-800 dark:text-ink-100">SVI Evidence Completeness</h1>
-          <p className="text-sm text-ink-600 dark:text-ink-400 mt-1">
+          <h1 className="text-xl font-bold text-ink-800">SVI Evidence Completeness</h1>
+          <p className="text-sm text-ink-600 mt-1">
             Track evidence across all 8 SVI dimensions and follow the fix roadmap to boost your score.
           </p>
         </div>
@@ -215,9 +215,9 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
 
       {/* Forecast banner */}
       {forecast && forecast.potentialSviGain > 0 && (
-        <div className="flex items-center gap-3 rounded-md border border-brand-200 bg-brand-50 px-4 py-3 dark:border-brand-800 dark:bg-brand-950">
-          <TrendingUp className="h-5 w-5 shrink-0 text-brand-600 dark:text-brand-400" />
-          <p className="text-sm text-brand-800 dark:text-brand-300">
+        <div className="flex items-center gap-3 rounded-md border border-brand-200 bg-brand-50 px-4 py-3">
+          <TrendingUp className="h-5 w-5 shrink-0 text-brand-600" />
+          <p className="text-sm text-brand-800">
             Complete your roadmap to potentially reach{" "}
             <strong>{forecast.projectedSvi}</strong>{" "}
             (+{forecast.potentialSviGain} pts)
@@ -229,7 +229,7 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
       <SviCompletenessHeatmap projectId={projectId} className="mb-2" />
 
       {reviewNotice && (
-        <p role="status" className="rounded-md border border-ink-200 bg-white px-3 py-2 text-xs text-ink-700 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-200">
+        <p role="status" className="rounded-md border border-ink-200 bg-white px-3 py-2 text-xs text-ink-700">
           {reviewNotice}
         </p>
       )}
@@ -244,17 +244,17 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
           return (
             <Card key={dim.dimension} className="overflow-hidden">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-semibold text-ink-800 dark:text-ink-100">
+                <CardTitle className="text-sm font-semibold text-ink-800">
                   {dim.dimension.toUpperCase()} — {label}
                 </CardTitle>
                 <div className="flex items-center gap-2 mt-1">
-                  <div className="flex-1 h-2 rounded-full bg-ink-100 dark:bg-ink-800 overflow-hidden">
+                  <div className="flex-1 h-2 rounded-full bg-ink-100 overflow-hidden">
                     <div
                       className={`h-full rounded-full transition-all ${colorClass}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
-                  <span className="text-xs text-ink-500 dark:text-ink-400 tabular-nums whitespace-nowrap">
+                  <span className="text-xs text-ink-500 tabular-nums whitespace-nowrap">
                     {dim.totalPresent}/{dim.totalPossible}
                   </span>
                 </div>
@@ -267,7 +267,7 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
                       const row = rowFor(dim.dimension, ev.code);
                       const status = row?.review_status ?? "none";
                       return (
-                        <li key={ev.code} className="flex items-center gap-2 text-xs text-ink-700 dark:text-ink-300">
+                        <li key={ev.code} className="flex items-center gap-2 text-xs text-ink-700">
                           {row?.is_verified ? (
                             <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-600" aria-label="Verified by BlockID" />
                           ) : (
@@ -280,10 +280,10 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
                             <span
                               className={
                                 status === "approved"
-                                  ? "text-[10px] font-medium text-emerald-700 dark:text-emerald-400"
+                                  ? "text-[10px] font-medium text-emerald-700"
                                   : status === "rejected"
-                                    ? "text-[10px] font-medium text-red-700 dark:text-red-400"
-                                    : "text-[10px] font-medium text-ink-500 dark:text-ink-400"
+                                    ? "text-[10px] font-medium text-red-700"
+                                    : "text-[10px] font-medium text-ink-500"
                               }
                               title={row.review_note ?? undefined}
                             >
@@ -316,8 +316,8 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
                       const key = `${dim.dimension}:${ev.code}`;
                       const isAdding = adding === key;
                       return (
-                        <li key={ev.code} className="flex items-center gap-2 text-xs text-ink-500 dark:text-ink-400">
-                          <Circle className="h-3.5 w-3.5 shrink-0 text-muted dark:text-ink-600" />
+                        <li key={ev.code} className="flex items-center gap-2 text-xs text-ink-500">
+                          <Circle className="h-3.5 w-3.5 shrink-0 text-muted" />
                           <span className="flex-1">{ev.label}</span>
                           <Button
                             variant="ghost"
@@ -343,7 +343,7 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
                 )}
 
                 {dim.missingEvidence.length === 0 && (
-                  <p className="text-xs text-green-600 dark:text-green-400 font-medium">
+                  <p className="text-xs text-green-600 font-medium">
                     All evidence items present
                   </p>
                 )}
@@ -356,13 +356,13 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
       {/* Roadmap table */}
       {topRoadmap.length > 0 && (
         <div>
-          <h2 className="text-base font-semibold text-ink-800 dark:text-ink-100 mb-3">
+          <h2 className="text-base font-semibold text-ink-800 mb-3">
             Priority Fix Roadmap
           </h2>
-          <div className="overflow-x-auto rounded-md border border-ink-200 dark:border-ink-800">
+          <div className="overflow-x-auto rounded-md border border-ink-200">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-ink-50 dark:bg-ink-900 text-left text-xs text-ink-500 dark:text-ink-400 uppercase tracking-wide">
+              <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
+                <tr className="bg-ink-50 text-left text-xs text-ink-500 uppercase tracking-wide">
                   <th className="px-4 py-2 font-medium">Dimension</th>
                   <th className="px-4 py-2 font-medium">Action</th>
                   <th className="px-4 py-2 font-medium text-right">SVI Impact</th>
@@ -371,22 +371,22 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
                   <th className="px-4 py-2 font-medium">Urgency</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-ink-100 dark:divide-ink-800">
+              <tbody className="divide-y divide-line-subtle">
                 {topRoadmap.map((item, i) => (
-                  <tr key={i} className="bg-white dark:bg-ink-950 hover:bg-ink-50 dark:hover:bg-ink-900 transition-colors">
-                    <td className="px-4 py-2 font-medium text-ink-700 dark:text-ink-300 uppercase text-xs">
+                  <tr key={i} className="bg-white hover:bg-ink-50 transition-colors">
+                    <td className="px-4 py-2 font-medium text-ink-700 uppercase text-xs">
                       {item.dimension}
                     </td>
-                    <td className="px-4 py-2 text-ink-600 dark:text-ink-400 max-w-xs truncate">
+                    <td className="px-4 py-2 text-ink-600 max-w-xs truncate">
                       {item.actionTitle}
                     </td>
-                    <td className="px-4 py-2 text-right tabular-nums text-green-700 dark:text-green-400 font-medium">
+                    <td className="px-4 py-2 text-right tabular-nums text-green-700 font-medium">
                       +{item.estimatedSviImpact}
                     </td>
-                    <td className="px-4 py-2 text-right tabular-nums text-ink-600 dark:text-ink-400">
+                    <td className="px-4 py-2 text-right tabular-nums text-ink-600">
                       {item.estimatedEffortHours}
                     </td>
-                    <td className="px-4 py-2 text-right tabular-nums text-ink-600 dark:text-ink-400">
+                    <td className="px-4 py-2 text-right tabular-nums text-ink-600">
                       {item.roadmapWeek}
                     </td>
                     <td className="px-4 py-2">
@@ -404,14 +404,14 @@ export function SviEvidenceClient({ projectId = "" }: { projectId?: string }) {
 
       {/* 4-week fix roadmap */}
       <div>
-        <h2 className="text-base font-semibold text-ink-800 dark:text-ink-100 mb-3">
+        <h2 className="text-base font-semibold text-ink-800 mb-3">
           4-Week Fix Roadmap
         </h2>
         <SviFixRoadmap projectId={projectId} />
       </div>
 
       {/* Footer */}
-      <p className="text-xs text-ink-500 dark:text-ink-400 border-t border-ink-100 dark:border-ink-800 pt-4">
+      <p className="text-xs text-ink-500 border-t border-ink-100 pt-4">
         Evidence completeness improves SVI scoring confidence. Connect data sources in the Evidence Vault for higher-confidence scores.
       </p>
     </div>

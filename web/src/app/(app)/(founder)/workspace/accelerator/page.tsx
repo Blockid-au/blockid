@@ -2,8 +2,8 @@
 // on top of the evaluator hub root (G13-W4-IA4).
 //
 // `loadEvaluatorHub()` still does auth → persona → onboarding gate → the
-// landing loaders; this page mounts the workspace shell, the paid-pilot
-// banner (G21 P0-C), then — for an evaluator persona — the six-stage
+// landing loaders; this page mounts the workspace shell, then — for an
+// evaluator persona — the six-stage
 // journey (Intake → Assessment → Selection → Program → Demo day → Sponsor
 // reporting, `?stage=`, `?batch=` picks the cohort) with a completeness
 // chip per stage derived from the data, and the persona landing below it.
@@ -13,7 +13,6 @@
 import type { Metadata } from "next";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { loadEvaluatorHub, type EvaluatorHubSearchParams } from "@/components/investor/evaluator-hub-page";
-import { PilotActiveBanner } from "@/components/investor/pilot-active-banner";
 import { ProgramJourney } from "@/components/accelerator/program-journey";
 import { parseProgramStage } from "@/lib/evaluations/program-journey";
 import { loadIntakeSummary, loadProgramJourney } from "@/lib/evaluations/program-journey-data";
@@ -27,7 +26,7 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-type SearchParams = EvaluatorHubSearchParams & { pilot?: string | string[]; session_id?: string | string[]; stage?: string | string[]; batch?: string | string[] };
+type SearchParams = EvaluatorHubSearchParams & { stage?: string | string[]; batch?: string | string[] };
 
 function one(v: string | string[] | undefined): string | undefined {
   return Array.isArray(v) ? v[0] : v;
@@ -36,9 +35,6 @@ function one(v: string | string[] | undefined): string | undefined {
 export default async function Page({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const hub = await loadEvaluatorHub({ route: "accelerator", searchParams, landingHeading: "h2" });
   const sp = await searchParams;
-  const sessionId = one(sp.session_id);
-  // Only a Stripe return (with its session id) may show the pending state.
-  const justPaid = one(sp.pilot) === "paid" && typeof sessionId === "string" && /^cs_/.test(sessionId);
   const stage = parseProgramStage(sp.stage);
   const batchParam = one(sp.batch) ?? null;
 
@@ -54,7 +50,6 @@ export default async function Page({ searchParams }: { searchParams: Promise<Sea
 
   return (
     <WorkspaceLayout user={hub.user} isSandbox={hub.isSandbox}>
-      <PilotActiveBanner userId={hub.user.id} justPaid={justPaid} />
       <div className="mx-auto max-w-6xl px-6 pt-6">
         <header className="mb-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-action">BlockID Cohort</p>

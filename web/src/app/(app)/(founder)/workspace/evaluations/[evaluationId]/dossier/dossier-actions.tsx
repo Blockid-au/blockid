@@ -90,7 +90,7 @@ export function DossierActions({ evaluationId, founderClaimed, founderEmailOnFil
       setNote({ tone: "ok", text: `${r.kind === "memo" ? "IC memo" : "One-pager"} exported${r.pages ? ` (${r.pages} page${r.pages === 1 ? "" : "s"})` : ""} — the PDF opened in a new tab and is stored on this evaluation.` });
     });
 
-  const btn = "inline-flex min-h-9 items-center rounded-lg border border-surface-300 bg-white px-3 py-1.5 text-xs font-semibold text-ink-800 hover:bg-surface-50 disabled:opacity-60";
+  const btn = "inline-flex min-h-9 items-center rounded-lg border border-surface-300 bg-surface px-3 py-1.5 text-xs font-semibold text-ink-800 hover:bg-surface-50 disabled:opacity-60";
   return (
     <div data-testid="dossier-actions">
       <div className="flex flex-wrap gap-2">

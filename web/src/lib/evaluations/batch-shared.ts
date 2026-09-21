@@ -74,9 +74,9 @@ export interface EvaluationBatch {
   templateId: string | null;
   /** Bumped whenever rubric_weights change; stamped on every cohort snapshot. */
   weightsVersion: number;
-  /** From the paid pilot order; the CSV import refuses rows beyond it. Null = plan quota only. */
+  /** Legacy per-cohort cap stamped by the G21 paid pilot (retired G25); the CSV import refuses rows beyond it. Null = plan quota only. */
   applicantsCap: number | null;
-  /** pilot_orders.id that delivered this cohort. */
+  /** Legacy: the G21 pilot_orders.id that delivered this cohort (no new writes since G25). */
   pilotOrderId: string | null;
   /**
    * G22-B (migration 0433) — the investor_organisations row the creator

@@ -52,8 +52,8 @@ export function UpgradePrompt() {
   if (!visible) return null;
 
   return (
-    <div className="relative flex items-center gap-3 bg-gradient-to-r from-brand-600 to-violet-600 px-4 py-2.5 text-white">
-      <Zap strokeWidth={1.75} className="h-4 w-4 shrink-0 text-brand-200" />
+    <div className="relative flex items-center gap-3 border-b border-line-subtle bg-accent-soft px-4 py-2.5 text-primary">
+      <Zap strokeWidth={1.75} className="h-4 w-4 shrink-0 text-accent" />
       <p className="flex-1 text-xs leading-snug">
         <span className="font-semibold">Credits running low.</span>{" "}
         Upgrade to{" "}
@@ -64,10 +64,10 @@ export function UpgradePrompt() {
         type="button"
         onClick={handleUpgrade}
         disabled={loading}
-        className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-white/20 hover:bg-white/30 border border-white/30 px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60"
+        className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-action hover:bg-action-hover text-on-action px-3 py-1.5 min-h-9 text-xs font-semibold transition-colors cursor-pointer disabled:opacity-60"
       >
         {loading ? (
-          <span className="h-3 w-3 rounded-full border-2 border-white/30 border-t-white animate-spin" />
+          <span className="h-3 w-3 rounded-full border-2 border-on-action/30 border-t-on-action animate-spin" />
         ) : (
           <>
             <Sparkles strokeWidth={1.75} className="h-3 w-3" />
@@ -79,7 +79,7 @@ export function UpgradePrompt() {
         type="button"
         onClick={dismiss}
         aria-label="Dismiss"
-        className="shrink-0 flex h-6 w-6 items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/20 transition-colors cursor-pointer"
+        className="shrink-0 flex h-9 w-9 items-center justify-center rounded-full text-muted hover:text-primary hover:bg-surface-hover transition-colors cursor-pointer"
       >
         <X strokeWidth={1.75} className="h-3.5 w-3.5" />
       </button>

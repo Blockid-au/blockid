@@ -296,7 +296,7 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
       aria-describedby="report-dialog-what"
       data-testid="report-dialog"
     >
-      <div className="w-full max-w-md rounded-2xl bg-white shadow-2 border border-line-subtle overflow-hidden">
+      <div className="w-full max-w-md rounded-2xl bg-surface shadow-2 border border-line-subtle overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-200">
           <h2 id="report-dialog-title" tabIndex={-1} className="text-lg font-bold text-ink-900 outline-none">
             {copy.title} — {startupName}
@@ -325,7 +325,7 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
               <p className={`mt-1 ${preview.via === "none" ? "text-amber-800" : "text-ink-800"}`}>{describeCost(kind, preview)}</p>
             ) : null}
             {preview?.via === "none" && (
-              <Link href="/workspace/billing#credits" className="mt-2 inline-block font-semibold text-brand-700 underline">
+              <Link href="/workspace/billing#credits" className="mt-2 inline-block font-semibold text-action underline">
                 Buy credits
               </Link>
             )}
@@ -350,7 +350,7 @@ export function ReportDialog({ evaluationId, startupName, kind, onClose, onSucce
                   {result.pdf_url ? (
                     <a
                       href={result.pdf_url}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-brand-300 bg-white px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-50"
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-brand-300 bg-surface px-3 py-1.5 text-xs font-semibold text-action hover:bg-surface-hover"
                     >
                       <FileDown className="h-3.5 w-3.5" aria-hidden="true" /> Download PDF
                     </a>

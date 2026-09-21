@@ -80,9 +80,9 @@ export function PrivacyBanner({
     <div
       role="region"
       aria-label="Privacy notice"
-      className="fixed inset-x-0 bottom-0 z-[90] border-t border-slate-200 bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80 dark:border-slate-800 dark:bg-slate-950/95 dark:supports-[backdrop-filter]:bg-slate-950/80"
+      className="fixed inset-x-0 bottom-0 z-[90] border-t border-line-subtle bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/80"
     >
-      <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-3 text-sm text-slate-700 dark:text-slate-200 sm:flex-row sm:items-center sm:justify-between">
+      <div className="mx-auto flex max-w-6xl flex-col gap-2 px-4 py-3 text-sm text-slate-700 sm:flex-row sm:items-center sm:justify-between">
         <p className="leading-snug">
           BlockID.au uses cookies and processes personal information under the
           Privacy Act 1988 (Cth) and Australian Privacy Principles. See our{" "}
@@ -93,7 +93,7 @@ export function PrivacyBanner({
           <Link
             href="/legal/privacy"
             prefetch={false}
-            className="font-semibold text-brand-700 underline-offset-2 hover:underline dark:text-brand-300"
+            className="font-semibold text-brand-700 underline-offset-2 hover:underline"
           >
             Privacy Policy
           </Link>
@@ -103,7 +103,7 @@ export function PrivacyBanner({
           <Link
             href={preferencesHref}
             prefetch={false}
-            className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            className="inline-flex items-center justify-center rounded-lg border border-line bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-surface-sunken focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
           >
             Preferences
           </Link>
@@ -111,7 +111,7 @@ export function PrivacyBanner({
             type="button"
             onClick={onAccept}
             disabled={submitting}
-            className="inline-flex items-center justify-center rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex items-center justify-center rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action shadow-sm transition-colors hover:bg-action-hover focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
           >
             {submitting ? "Saving…" : "Accept"}
           </button>

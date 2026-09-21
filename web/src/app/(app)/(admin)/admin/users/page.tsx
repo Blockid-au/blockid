@@ -290,10 +290,8 @@ export default async function AdminUsersPage({
               <a
                 key={f}
                 href={buildHref({ filter: f })}
-                className={`rounded-full px-3 py-1 text-xs ${
- filter === f
- ? "bg-brand-navy text-white"
-                    : "bg-white text-ink-700 ring-1 ring-surface-200 hover:bg-surface-100"
+                className={`inline-flex min-h-11 items-center rounded-full px-3 text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2 ${
+                  filter === f ? "rounded-full bg-brand-navy text-white" : "bg-white text-ink-700 ring-1 ring-surface-200 hover:bg-surface-100"
                 }`}
               >
                 {f}

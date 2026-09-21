@@ -61,7 +61,7 @@ export default async function ApplicationsPage() {
         {allowed ? (
           <IntakeInboxClient initialIntakes={intakes} initialRows={rows} templates={templates.map((t) => ({ id: t.id, name: t.name }))} />
         ) : (
-          <section className="rounded-2xl border border-dashed border-surface-300 bg-white px-6 py-14 text-center" data-testid="intake-locked">
+          <section className="rounded-2xl border border-dashed border-surface-300 bg-surface px-6 py-14 text-center" data-testid="intake-locked">
             <h2 className="text-lg font-semibold text-ink-900">Intake links are an evaluator feature</h2>
             <p className="mx-auto mt-2 max-w-md text-sm text-ink-600">
               Firm, Program, Fund and every Programs plan from the Intake link up can publish an application link and receive a scored inbox.
@@ -70,7 +70,7 @@ export default async function ApplicationsPage() {
               <Link href="/pricing?segment=evaluator" className="inline-flex min-h-11 items-center rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-elev-1">
                 See evaluator plans
               </Link>
-              <Link href="/workspace/evaluations" className="inline-flex min-h-11 items-center rounded-xl border border-brand-300 bg-white px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50">
+              <Link href="/workspace/evaluations" className="inline-flex min-h-11 items-center rounded-xl border border-brand-300 bg-surface px-4 py-2.5 text-sm font-semibold text-action hover:bg-surface-hover">
                 Startups I&apos;m evaluating
               </Link>
             </div>

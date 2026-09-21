@@ -344,6 +344,12 @@ export interface FullReportView {
   error: string | null;
   /** Seconds to wait before polling again — honest backoff under load. */
   pollAfterSec: number;
+  /**
+   * G25-C: the run is a never-started free report held for today's platform
+   * cap (FREE_REPORTS_DAILY_CAP) — the cron starts it when the cap allows
+   * and the PDF is e-mailed; the page says "queued, we e-mail you".
+   */
+  heldForCap?: boolean;
 }
 
 /**

@@ -268,7 +268,7 @@ export default function AdminSalesPage() {
               aria-selected={activeTab === value}
               onClick={() => setActiveTab(value)}
               className={`-mb-px min-h-11 whitespace-nowrap border-b-2 px-4 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2 ${
-                activeTab === value ? "border-brand-navy text-brand-navy" : "border-transparent text-secondary hover:text-primary"
+ activeTab === value ? "border-brand-navy text-brand-navy" : "border-transparent text-secondary hover:text-primary"
               }`}
             >
               {label}

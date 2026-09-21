@@ -33,24 +33,24 @@ export default function WorkspaceError({
   }
 
   return (
-    <div className="min-h-[70vh] bg-surface-100 dark:bg-ink-900 flex items-center justify-center px-6" data-testid="error-boundary" role="alert">
+    <div className="min-h-[70vh] bg-surface-100 flex items-center justify-center px-6" data-testid="error-boundary" role="alert">
       <div className="text-center max-w-md">
-        <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-amber-100 dark:bg-amber-500/15 flex items-center justify-center">
+        <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-amber-100 flex items-center justify-center">
           <AlertTriangle className="h-7 w-7 text-amber-600" aria-hidden />
         </div>
-        <h1 className="text-2xl font-display font-semibold text-ink-900 dark:text-white mb-2">
+        <h1 className="text-2xl font-display font-semibold text-ink-900 mb-2">
           We couldn&apos;t load your workspace
         </h1>
-        <p className="text-ink-600 dark:text-ink-400 text-sm mb-6">
+        <p className="text-ink-600 text-sm mb-6">
           Your saved analyses and startup data are safe. Please retry in a moment.
         </p>
         {process.env.NODE_ENV === 'development' && (
-          <p className="mb-4 text-xs font-mono text-ink-500 dark:text-ink-500 break-all">
+          <p className="mb-4 text-xs font-mono text-ink-500 break-all">
             {error.message}
           </p>
         )}
         {error.digest && (
-          <p className="mb-4 text-[11px] font-mono text-muted dark:text-ink-500">
+          <p className="mb-4 text-[11px] font-mono text-muted">
             Error ID: {error.digest}
           </p>
         )}
@@ -58,13 +58,13 @@ export default function WorkspaceError({
           <button
             type="button"
             onClick={reset}
-            className="inline-flex h-11 items-center justify-center rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer"
+            className="inline-flex h-11 items-center justify-center rounded-xl bg-action px-6 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors cursor-pointer"
           >
             Try Again
           </button>
           <Link
             href="/dashboard"
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-surface-300 dark:border-ink-700 bg-white dark:bg-ink-800 px-6 text-sm font-semibold text-ink-700 dark:text-ink-200 hover:bg-surface-100 dark:hover:bg-ink-700 transition-colors"
+            className="inline-flex h-11 items-center justify-center rounded-xl border border-surface-300 bg-white px-6 text-sm font-semibold text-ink-700 hover:bg-surface-100 transition-colors"
           >
             Back to Dashboard
           </Link>

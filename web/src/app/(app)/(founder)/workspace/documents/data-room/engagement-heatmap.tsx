@@ -177,7 +177,7 @@ function HeatGrid({ model }: { model: HeatmapModel }) {
     <div className="mt-3">
       <div className="overflow-x-auto">
         <table className="w-full border-separate border-spacing-1 text-xs" aria-label="Engagement by investor link and section">
-          <thead>
+          <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
             <tr>
               <th scope="col" className="sticky left-0 z-10 bg-surface-raised text-left font-medium text-muted">
                 Investor link
@@ -192,7 +192,7 @@ function HeatGrid({ model }: { model: HeatmapModel }) {
               </th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-line-subtle [&>tr:nth-child(even)]:bg-surface-sunken">
             {model.rows.map((row) => (
               <tr key={row.linkId}>
                 <th scope="row" className="sticky left-0 z-10 max-w-40 truncate bg-surface-raised text-left font-semibold text-primary">
@@ -257,7 +257,7 @@ function HeatTable({ model }: { model: HeatmapModel }) {
     <div className="mt-3 overflow-x-auto">
       <table className="w-full text-xs" data-testid="engagement-heatmap-table">
         <caption className="sr-only">Views and time on each section, per investor link</caption>
-        <thead>
+        <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
           <tr className="border-b border-line-subtle text-left text-muted">
             <th scope="col" className="py-1.5 pr-3 font-medium">
               Investor link
@@ -276,7 +276,7 @@ function HeatTable({ model }: { model: HeatmapModel }) {
             </th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-line-subtle [&>tr:nth-child(even)]:bg-surface-sunken">
           {model.rows.flatMap((row) =>
             row.cells
               .filter((c) => c.views > 0)

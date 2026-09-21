@@ -198,7 +198,7 @@ function CreateLinkModal({ onClose, onCreated }: CreateModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-strong/50 backdrop-blur-sm p-4">
       <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-surface-200">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-5 border-b border-surface-100">
@@ -300,7 +300,7 @@ function CreateLinkModal({ onClose, onCreated }: CreateModalProps) {
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60 transition-colors"
+              className="inline-flex items-center gap-2 rounded-lg bg-action px-5 py-2 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-60 transition-colors"
             >
               {loading ? "Creating…" : "Create Link"}
             </button>
@@ -399,7 +399,7 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
           </p>
           <button
             onClick={() => setShowModal(true)}
-            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-action px-5 py-2.5 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
           >
             <Plus className="h-4 w-4" />
             Create First Link
@@ -426,7 +426,7 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
           </p>
           <button
             onClick={() => setShowModal(true)}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:bg-action-hover transition-colors"
           >
             <Plus className="h-3.5 w-3.5" />
             New Link
@@ -436,7 +436,7 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
         {/* Desktop table */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
               <tr className="bg-surface-50 text-left">
                 <th className="px-6 py-3 text-xs font-medium uppercase tracking-wide text-muted">
                   Investor
@@ -462,7 +462,7 @@ export function InvestorLinksClient({ links: initialLinks }: Props) {
                 <th className="px-6 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-100">
+            <tbody className="divide-y divide-line-subtle">
               {links.map((link) => (
                 <tr key={link.token} className="hover:bg-surface-50/50 transition-colors">
                   <td className="px-6 py-4">

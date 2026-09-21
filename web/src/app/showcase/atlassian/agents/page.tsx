@@ -88,7 +88,7 @@ export default function AtlassianAgentsIndexPage() {
               return (
                 <article
                   key={report.agent}
-                  className="flex flex-col rounded-lg border border-white/10 bg-black/40 p-5 shadow-sm"
+                  className="flex flex-col rounded-lg border border-line-subtle bg-surface p-5 shadow-1"
                   data-agent={report.agent}
                 >
                   <div className="mb-3 flex items-center gap-3">
@@ -99,23 +99,23 @@ export default function AtlassianAgentsIndexPage() {
                       {AGENT_ICON[report.agent] ?? "•"}
                     </span>
                     <div>
-                      <p className="text-lg font-semibold text-ink-50">
+                      <p className="text-lg font-semibold text-primary">
                         {report.agent}
                       </p>
-                      <p className="text-[11px] uppercase tracking-wide text-ink-300">
+                      <p className="text-[11px] uppercase tracking-wide text-muted">
                         Chief Officer briefing
                       </p>
                     </div>
                   </div>
-                  <span className="mb-3 inline-flex w-fit items-center rounded bg-white/10 px-2 py-0.5 text-[11px] font-medium text-ink-100">
+                  <span className="mb-3 inline-flex w-fit items-center rounded bg-surface-sunken px-2 py-0.5 text-[11px] font-medium text-primary">
                     {phaseName}
                   </span>
-                  <p className="mb-4 flex-1 text-sm leading-relaxed text-ink-200">
+                  <p className="mb-4 flex-1 text-sm leading-relaxed text-secondary">
                     {excerpt(report.bodyMarkdown)}
                   </p>
                   <Link
                     href={`/showcase/atlassian/agents/${slug}`}
-                    className="mt-auto text-sm font-medium text-brand-300 hover:text-brand-200 hover:underline"
+                    className="mt-auto text-sm font-medium text-action hover:text-action-hover hover:underline"
                   >
                     Read full report →
                   </Link>

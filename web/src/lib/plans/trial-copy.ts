@@ -52,6 +52,13 @@ export const TRIAL_COPY = {
     "Full access for 7 days. We only charge on day 8 if you keep going.",
   cta: "Start 7-day trial",
   cta_short: "Start trial",
+  /**
+   * G25-D (founder 2026-09-21): the submit button of the card-required
+   * sign-up sits under a Review block and names what the click does —
+   * "Add card & start 7-day trial" — for both ladders (the Programs rungs
+   * run 14 days). Never "Start trial" on a button that takes a card.
+   */
+  cta_card: (trialDays?: number | null): string => `Add card & start ${normaliseTrialDays(trialDays)}-day trial`,
   fine_print:
     `Card required to prevent abuse. Cancel anytime. Email reminder ${TRIAL_WARNING_HOURS_BEFORE}h before we charge.`,
   card_required_reason:

@@ -535,6 +535,16 @@ test.describe("BlockID Cohort — demo cohort (G24-C, lane k)", () => {
       // The one conflicting claim surfaces as a risk flag on exactly one row.
       await expect(page.getByTestId("risk-flags").filter({ hasText: "Conflicting claims" })).toHaveCount(1);
 
+      // G24 UI lane: the wide table scrolls INSIDE its container — the document never
+      // widens (the sr-only spans in the sort buttons once pushed scrollWidth to 1 417 px).
+      const desktopScroll = await page.evaluate(() => ({ doc: document.documentElement.scrollWidth, inner: window.innerWidth }));
+      expect(desktopScroll.doc, "document scrollWidth at desktop").toBe(desktopScroll.inner);
+      await page.setViewportSize({ width: 375, height: 812 });
+      const mobileScroll = await page.evaluate(() => ({ doc: document.documentElement.scrollWidth, inner: window.innerWidth }));
+      await evidence(testInfo, "cohort page horizontal overflow", { desktopScroll, mobileScroll });
+      expect(mobileScroll.doc, "document scrollWidth at 375").toBe(mobileScroll.inner);
+      await page.setViewportSize({ width: 1280, height: 800 });
+
       // The Cohorts index lists it with the chip.
       await page.goto(`${qa.baseURL}/workspace/evaluations/cohort`, { waitUntil: "domcontentloaded" });
       await expect(page.getByTestId("cohort-list").getByTestId("demo-chip").first()).toBeVisible();

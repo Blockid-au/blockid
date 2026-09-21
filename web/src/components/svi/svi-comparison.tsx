@@ -149,7 +149,7 @@ export function SVIComparison({
             {/* Score comparison bars */}
             <div className="space-y-2">
               {[
-                { label: "Your Score", value: analysis.totalSVI, color: "bg-brand-600" },
+                { label: "Your Score", value: analysis.totalSVI, color: "bg-action" },
                 { label: "Stage Median", value: live.medianSVI ?? 0, color: "bg-surface-400" },
                 { label: "Top 10%", value: live.topDecile ?? 0, color: "bg-emerald-500" },
               ].map(({ label, value, color }) => (

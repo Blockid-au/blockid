@@ -11,15 +11,15 @@ export interface IntegrationRowCardProps {
 
 const STATUS_STYLES: Record<IntegrationRow["status"], string> = {
   connected:
-    "border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
+    "border-emerald-300 bg-emerald-50 text-emerald-800",
   syncing:
-    "border-amber-300 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200",
+    "border-amber-300 bg-amber-50 text-amber-800",
   error:
-    "border-red-300 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200",
+    "border-red-300 bg-red-50 text-red-800",
   not_connected:
-    "border-ink-300 bg-ink-50 text-ink-700 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-300",
+    "border-ink-300 bg-ink-50 text-ink-700",
   not_configured:
-    "border-ink-200 bg-ink-50 text-ink-500 dark:border-ink-800 dark:bg-ink-950 dark:text-ink-500",
+    "border-ink-200 bg-ink-50 text-ink-500",
 };
 
 const STATUS_LABEL: Record<IntegrationRow["status"], string> = {
@@ -49,11 +49,11 @@ export function IntegrationRowCard({ row }: IntegrationRowCardProps): React.Reac
   const ctaLabel = row.status === "connected" || row.status === "syncing" ? "Manage" : "Set up";
 
   return (
-    <div className="border border-ink-200 dark:border-ink-800 rounded-lg p-5 bg-white dark:bg-ink-900">
+    <div className="border border-ink-200 rounded-lg p-5 bg-white">
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="text-base font-semibold text-ink-900 dark:text-ink-100">
+            <h3 className="text-base font-semibold text-ink-900">
               {row.title}
             </h3>
             <span
@@ -62,26 +62,26 @@ export function IntegrationRowCard({ row }: IntegrationRowCardProps): React.Reac
               {STATUS_LABEL[row.status]}
             </span>
           </div>
-          <p className="text-sm text-ink-600 dark:text-ink-400 mt-1">
+          <p className="text-sm text-ink-600 mt-1">
             {row.description}
           </p>
           {row.accountLabel ? (
-            <p className="text-xs text-ink-500 dark:text-ink-500 mt-2">
+            <p className="text-xs text-ink-500 mt-2">
               Token contract: <span className="font-mono">{row.accountLabel}</span>
             </p>
           ) : null}
           {row.statusDetail ? (
-            <p className="text-xs text-ink-500 dark:text-ink-500 mt-1">
+            <p className="text-xs text-ink-500 mt-1">
               {row.statusDetail}
             </p>
           ) : null}
           {row.lastSyncAt ? (
-            <p className="text-xs text-ink-500 dark:text-ink-500 mt-1">
+            <p className="text-xs text-ink-500 mt-1">
               Last sync: {formatRelativeTime(row.lastSyncAt)}
             </p>
           ) : null}
           {row.lastSyncError ? (
-            <p className="text-xs text-red-600 dark:text-red-400 mt-1">
+            <p className="text-xs text-red-600 mt-1">
               {row.lastSyncError}
             </p>
           ) : null}
@@ -90,7 +90,7 @@ export function IntegrationRowCard({ row }: IntegrationRowCardProps): React.Reac
         <div className="flex flex-col gap-2 items-end shrink-0">
           <Link
             href={row.actionHref}
-            className="px-3 py-1.5 text-sm rounded-md bg-brand-600 hover:bg-brand-700 text-white"
+            className="px-3 py-1.5 text-sm rounded-md bg-action hover:bg-action-hover text-on-action"
           >
             {ctaLabel}
           </Link>

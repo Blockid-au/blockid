@@ -269,7 +269,7 @@ export function ExitClient() {
                 <div className="flex items-center gap-2 mb-2">
                   <div className={cn(
                     "h-8 w-8 rounded-lg flex items-center justify-center",
-                    isActive ? "bg-brand-600 text-white" : "bg-surface-100 text-ink-500",
+                    isActive ? "bg-action text-on-action" : "bg-surface-100 text-ink-500",
                   )}>
                     <Icon className="h-4 w-4" />
                   </div>
@@ -341,7 +341,7 @@ export function ExitClient() {
                 placeholder="5000000"
                 min="1"
                 step="1"
-                className="w-full pl-7 pr-3 py-2 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400"
+                className="w-full pl-7 pr-3 py-2 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-action/30 focus:border-action"
                 required
               />
             </div>
@@ -376,7 +376,7 @@ export function ExitClient() {
           <button
             type="submit"
             disabled={loading}
-            className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 disabled:opacity-50 transition-colors cursor-pointer"
+            className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-action text-on-action text-sm font-medium hover:bg-action-hover disabled:opacity-50 transition-colors cursor-pointer"
           >
             {loading ? (
               <>
@@ -514,7 +514,7 @@ function ExitResultCard({
       {/* Payout table */}
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
-          <thead>
+          <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
             <tr className="text-left text-[10px] text-muted uppercase tracking-wider border-b border-surface-100">
               <th className="px-5 py-2 font-medium">Shareholder</th>
               <th className="px-3 py-2 font-medium">Role</th>
@@ -525,7 +525,7 @@ function ExitResultCard({
               <th className="px-3 py-2 font-medium text-right">Net Payout</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-line-subtle">
             {shareholderPayouts.map((p, i) => (
               <tr
                 key={i}
@@ -597,7 +597,7 @@ function ExitResultCard({
 
 export function AcquiHireFields({ form, onChange }: { form: AcquiHireForm; onChange: (f: AcquiHireForm) => void }) {
   const set = (k: keyof AcquiHireForm) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => onChange({ ...form, [k]: e.target.value });
-  const field = "w-full px-3 py-2 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400";
+  const field = "w-full px-3 py-2 rounded-xl border border-surface-200 text-sm focus:outline-none focus:ring-2 focus:ring-action/30 focus:border-action";
   return (
     <fieldset className="rounded-xl border border-brand-100 bg-brand-50/40 p-4 space-y-3" data-testid="acqui-hire-fields">
       <legend className="px-1 text-xs font-semibold text-brand-800">Acqui-hire assumptions (editable)</legend>

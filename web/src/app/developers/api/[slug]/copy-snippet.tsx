@@ -27,7 +27,7 @@ export function CopySnippet({ text, label }: CopySnippetProps) {
     <button
       type="button"
       onClick={handleCopy}
-      className="absolute top-3 right-3 inline-flex h-7 items-center gap-1.5 rounded-md border border-white/10 bg-white/10 px-2 text-[11px] font-semibold text-slate-200 hover:bg-white/20 hover:text-white transition-colors cursor-pointer"
+      className="absolute top-3 right-3 inline-flex h-7 items-center gap-1.5 rounded-md border border-line bg-surface px-2 text-[11px] font-semibold text-muted hover:bg-surface-hover hover:text-primary transition-colors cursor-pointer"
       aria-label={label ? `Copy ${label}` : "Copy to clipboard"}
     >
       {copied ? (

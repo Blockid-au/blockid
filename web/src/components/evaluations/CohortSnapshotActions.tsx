@@ -59,7 +59,7 @@ export function CohortSnapshotActions({ batchId, lastTakenAt, lastN, count }: Co
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-500" data-testid="cohort-snapshot-actions">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted" data-testid="cohort-snapshot-actions">
       <span data-testid="cohort-last-snapshot">
         Last snapshot: {formatSnapshotDate(lastTakenAt)}
         {lastTakenAt && lastN != null ? ` · n ${lastN}` : ""}

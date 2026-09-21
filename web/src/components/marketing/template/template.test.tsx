@@ -57,10 +57,11 @@ describe("primitives — the shared contract", () => {
     expect(EYEBROW).toContain("text-accent");
   });
 
-  it("focus ring is the accent-600 2 px ring; every button skin is ≥ 44 px tall and carries it", () => {
+  it("focus ring is the brand-navy 2 px ring (G26); every button skin is ≥ 44 px tall and carries it", () => {
     expect(FOCUS_RING).toContain("focus-visible:ring-2");
-    expect(FOCUS_RING).toContain("focus-visible:ring-accent-600");
-    for (const skin of ["primary", "secondary", "link"] as const) {
+    expect(FOCUS_RING).toContain("focus-visible:ring-brand-navy");
+    expect(FOCUS_RING).not.toContain("ring-accent-600");
+    for (const skin of ["primary", "secondary", "ghost", "link"] as const) {
       expect(CTA_CLASS[skin], skin).toContain("min-h-11");
       expect(CTA_CLASS[skin], skin).toContain(FOCUS_RING);
       expect(CTA_CLASS[skin], skin).toContain("duration-(--dur-base)");
@@ -127,8 +128,11 @@ describe("<Section />", () => {
     expect(html).toMatch(/<section[^>]*class="[^"]*scroll-mt-20[^"]*bg-surface-sunken/);
     expect(html).toContain("What is it worth");
     expect(html).toContain("<p>body</p>");
+    // G26: `tone="dark"` is a deprecated alias of `sunken` — no dark scope, no dark ground.
     const dark = renderToStaticMarkup(<Section id="j" title="T" tone="dark" />);
-    expect(dark).toMatch(/<section[^>]*data-theme="dark"/);
+    expect(dark).not.toMatch(/data-theme=/);
+    expect(dark).toMatch(/<section[^>]*data-tone="sunken"[^>]*class="[^"]*bg-surface-sunken/);
+    expect(renderToStaticMarkup(<Section id="k" title="T" />)).toMatch(/data-tone="base"[^>]*class="[^"]*bg-surface\b/);
   });
 
   it("without a title it takes aria-label and renders no h2; actions render a CTA row", () => {
@@ -224,7 +228,7 @@ describe("<ProofBand />", () => {
 });
 
 describe("<CtaBand />", () => {
-  it("one h2, primary + secondary CTAs, footnote; dark tone self-scopes", () => {
+  it("one h2, primary + secondary CTAs, footnote; deprecated dark tone renders sunken (G26)", () => {
     const html = renderToStaticMarkup(
       <CtaBand
         title="Score your first startup."
@@ -237,7 +241,8 @@ describe("<CtaBand />", () => {
     );
     expect((html.match(/<h2\b/g) ?? []).length).toBe(1);
     expect(html).toMatch(/<section[^>]*id="cta"[^>]*aria-labelledby="cta-heading"/);
-    expect(html).toMatch(/<section[^>]*data-theme="dark"/);
+    expect(html).not.toMatch(/data-theme=/);
+    expect(html).toMatch(/<section[^>]*data-tone="sunken"[^>]*class="[^"]*bg-surface-sunken/);
     expect(anchorTag(html, "/analyze")).toContain('data-cta-id="final_score"');
     expect(anchorTag(html, "/pricing")).toContain("border-line");
     expect(html).toContain("No card required.");

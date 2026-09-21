@@ -68,7 +68,7 @@ export function NotificationPrefs() {
               onClick={toggle}
               disabled={loading || saving}
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer disabled:opacity-50 ${
-                enabled ? "bg-brand-600" : "bg-surface-300"
+                enabled ? "bg-action" : "bg-surface-300"
               }`}
               aria-pressed={enabled}
               aria-label="Toggle investor view notifications"

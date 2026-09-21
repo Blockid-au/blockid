@@ -129,6 +129,14 @@ export interface AnalysisRowInput {
   filename?: string | null;
   mimeType?: string | null;
   bytes?: number | null;
+  /**
+   * G25-C: the address the guest gave BEFORE the run (the free-allowance
+   * e-mail capture). Stamped on the row at birth so the first-analysis job
+   * e-mails the PDF on completion and the on-screen report is never
+   * locked. Null for a signed-in run (the account address is resolved at
+   * delivery) and for the legacy paths that capture it later.
+   */
+  fullReportEmail?: string | null;
 }
 
 /** The exact object handed to `supabase.from("analyses").insert(...)`. */
@@ -164,6 +172,7 @@ export function buildAnalysisRow(input: AnalysisRowInput): Record<string, unknow
     // Only rows that were scored can be reported on — a row without signals
     // stays unqueued so the runner never spins on it.
     full_report_status: input.result.signals ? "queued" : null,
+    full_report_email: input.fullReportEmail ?? null,
   };
 }
 

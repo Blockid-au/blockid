@@ -156,7 +156,7 @@ export function CapTableHealthWidget() {
             type="button"
             onClick={handleCheck}
             disabled={loading}
-            className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 transition-colors"
+            className="rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-50 transition-colors"
           >
             {loading ? "Checking…" : "Run Health Check"}
           </button>

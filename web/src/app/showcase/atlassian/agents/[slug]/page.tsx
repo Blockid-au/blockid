@@ -119,7 +119,7 @@ function renderInline(source: string, keyPrefix: string): React.ReactNode[] {
     switch (run.type) {
       case "bold":
         return (
-          <strong key={key} className="font-semibold text-ink-50">
+          <strong key={key} className="font-semibold text-primary">
             {run.text}
           </strong>
         );
@@ -127,7 +127,7 @@ function renderInline(source: string, keyPrefix: string): React.ReactNode[] {
         return (
           <code
             key={key}
-            className="rounded bg-white/10 px-1 py-0.5 text-[0.85em] text-ink-100"
+            className="rounded bg-surface-sunken px-1 py-0.5 text-[0.85em] text-primary"
           >
             {run.text}
           </code>
@@ -139,7 +139,7 @@ function renderInline(source: string, keyPrefix: string): React.ReactNode[] {
             href={run.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-brand-300 underline hover:text-brand-200"
+            className="text-action underline hover:text-action-hover"
           >
             {run.text}
           </a>
@@ -174,10 +174,10 @@ function renderMarkdown(md: string): React.ReactNode {
       const text = heading[2] ?? "";
       const cls =
         level === 1
-          ? "mt-6 text-2xl font-semibold text-ink-50"
+          ? "mt-6 text-2xl font-semibold text-primary"
           : level === 2
-            ? "mt-6 text-xl font-semibold text-ink-50"
-            : "mt-5 text-lg font-semibold text-ink-100";
+            ? "mt-6 text-xl font-semibold text-primary"
+            : "mt-5 text-lg font-semibold text-primary";
       const inline = renderInline(text, `h-${blockKey}`);
       const key = nextKey();
       // The page already carries its one <h1>; a "# " heading inside the agent
@@ -213,7 +213,7 @@ function renderMarkdown(md: string): React.ReactNode {
       blocks.push(
         <blockquote
           key={key}
-          className="my-4 border-l-4 border-brand-400 bg-white/5 px-4 py-2 text-ink-200 italic"
+          className="my-4 border-l-4 border-brand-400 bg-surface-sunken px-4 py-2 text-secondary italic"
         >
           {quoteLines.map((q, qi) => (
             <p key={`${key}-l-${qi}`}>{renderInline(q, `${key}-i-${qi}`)}</p>
@@ -232,7 +232,7 @@ function renderMarkdown(md: string): React.ReactNode {
       }
       const key = nextKey();
       blocks.push(
-        <ul key={key} className="my-3 list-disc space-y-1 pl-6 text-ink-200">
+        <ul key={key} className="my-3 list-disc space-y-1 pl-6 text-secondary">
           {items.map((it, li) => (
             <li key={`${key}-l-${li}`}>{renderInline(it, `${key}-i-${li}`)}</li>
           ))}
@@ -250,7 +250,7 @@ function renderMarkdown(md: string): React.ReactNode {
       }
       const key = nextKey();
       blocks.push(
-        <ol key={key} className="my-3 list-decimal space-y-1 pl-6 text-ink-200">
+        <ol key={key} className="my-3 list-decimal space-y-1 pl-6 text-secondary">
           {items.map((it, li) => (
             <li key={`${key}-l-${li}`}>{renderInline(it, `${key}-i-${li}`)}</li>
           ))}
@@ -285,11 +285,11 @@ function renderMarkdown(md: string): React.ReactNode {
           <div key={key} className="my-4 overflow-x-auto">
             <table className="w-full min-w-[32rem] border-collapse text-left text-sm">
               <thead>
-                <tr className="border-b border-white/20">
+                <tr className="border-b border-line">
                   {headerCells.map((h, hi) => (
                     <th
                       key={`${key}-h-${hi}`}
-                      className="px-3 py-2 font-semibold text-ink-100"
+                      className="px-3 py-2 font-semibold text-primary"
                     >
                       {renderInline(h, `${key}-hc-${hi}`)}
                     </th>
@@ -300,12 +300,12 @@ function renderMarkdown(md: string): React.ReactNode {
                 {rows.map((row, ri) => (
                   <tr
                     key={`${key}-r-${ri}`}
-                    className="border-b border-white/10"
+                    className="border-b border-line-subtle"
                   >
                     {row.map((cell, ci) => (
                       <td
                         key={`${key}-c-${ri}-${ci}`}
-                        className="px-3 py-2 text-ink-200"
+                        className="px-3 py-2 text-secondary"
                       >
                         {renderInline(cell, `${key}-cc-${ri}-${ci}`)}
                       </td>
@@ -337,7 +337,7 @@ function renderMarkdown(md: string): React.ReactNode {
     }
     const key = nextKey();
     blocks.push(
-      <p key={key} className="my-3 text-ink-200 leading-relaxed">
+      <p key={key} className="my-3 text-secondary leading-relaxed">
         {renderInline(paraLines.join(" "), `${key}-i`)}
       </p>,
     );
@@ -403,11 +403,11 @@ export default async function AtlassianAgentDetailPage({
           </header>
 
           <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-            <article className="rounded-lg border border-white/10 bg-black/40 p-6">
+            <article className="rounded-lg border border-line-subtle bg-surface shadow-1 p-6">
               {renderMarkdown(report.bodyMarkdown)}
 
-              <section className="mt-8 border-t border-white/10 pt-4">
-                <h4 className="text-sm font-semibold uppercase tracking-wide text-ink-100">
+              <section className="mt-8 border-t border-line-subtle pt-4">
+                <h4 className="text-sm font-semibold uppercase tracking-wide text-primary">
                   Sources
                 </h4>
                 <ul className="mt-2 space-y-1 text-xs">
@@ -417,7 +417,7 @@ export default async function AtlassianAgentDetailPage({
                         href={s.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-brand-300 underline hover:text-brand-200"
+                        className="text-action underline hover:text-action-hover"
                       >
                         {s.label}
                       </a>
@@ -427,18 +427,18 @@ export default async function AtlassianAgentDetailPage({
               </section>
             </article>
 
-            <aside className="rounded-lg border border-white/10 bg-black/40 p-5 text-sm">
-              <h2 className="text-sm font-semibold uppercase tracking-wide text-ink-100">
+            <aside className="rounded-lg border border-line-subtle bg-surface shadow-1 p-5 text-sm">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-primary">
                 Agent metadata
               </h2>
-              <dl className="mt-3 space-y-3 text-ink-200">
+              <dl className="mt-3 space-y-3 text-secondary">
                 <div>
                   <dt className="text-xs uppercase tracking-wide text-ink-400">Agent</dt>
-                  <dd className="mt-0.5 text-ink-50">{agent}</dd>
+                  <dd className="mt-0.5 text-primary">{agent}</dd>
                 </div>
                 <div>
                   <dt className="text-xs uppercase tracking-wide text-ink-400">Phase focus</dt>
-                  <dd className="mt-0.5 text-ink-50">
+                  <dd className="mt-0.5 text-primary">
                     Phase {report.phaseSlug} · {phaseName}
                   </dd>
                 </div>
@@ -446,14 +446,14 @@ export default async function AtlassianAgentDetailPage({
                   <dt className="text-xs uppercase tracking-wide text-ink-400">
                     Sources cited
                   </dt>
-                  <dd className="mt-0.5 text-ink-50">{report.sources.length}</dd>
+                  <dd className="mt-0.5 text-primary">{report.sources.length}</dd>
                 </div>
               </dl>
 
-              <div className="mt-5 border-t border-white/10 pt-4">
+              <div className="mt-5 border-t border-line-subtle pt-4">
                 <Link
                   href={`/showcase/atlassian/growth-phases#${report.phaseSlug}`}
-                  className="text-sm font-medium text-brand-300 hover:text-brand-200 hover:underline"
+                  className="text-sm font-medium text-action hover:text-action-hover hover:underline"
                 >
                   See the phase in context →
                 </Link>
@@ -463,23 +463,23 @@ export default async function AtlassianAgentDetailPage({
 
           <nav
             aria-label="Previous / next agent"
-            className="mt-10 flex items-center justify-between rounded-lg border border-white/10 bg-black/30 px-5 py-4 text-sm"
+            className="mt-10 flex items-center justify-between rounded-lg border border-line-subtle bg-surface-sunken px-5 py-4 text-sm"
           >
             <Link
               href={`/showcase/atlassian/agents/${prevAgent.toLowerCase()}`}
-              className="text-brand-300 hover:text-brand-200 hover:underline"
+              className="text-action hover:text-action-hover hover:underline"
             >
               ← {prevAgent}
             </Link>
             <Link
               href="/showcase/atlassian/agents"
-              className="text-ink-300 hover:text-ink-100 hover:underline"
+              className="text-muted hover:text-primary hover:underline"
             >
               All agents
             </Link>
             <Link
               href={`/showcase/atlassian/agents/${nextAgent.toLowerCase()}`}
-              className="text-brand-300 hover:text-brand-200 hover:underline"
+              className="text-action hover:text-action-hover hover:underline"
             >
               {nextAgent} →
             </Link>

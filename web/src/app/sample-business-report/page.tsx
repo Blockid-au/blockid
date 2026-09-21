@@ -194,11 +194,11 @@ const SAMPLE_DATA = {
 
 export default function SampleBusinessReportPage() {
   return (
-    <div className="min-h-screen bg-white dark:bg-ink-950">
+    <div className="min-h-screen bg-white">
       {/* Sample banner — always visible, prompts sign-up */}
-      <div className="w-full bg-gradient-to-r from-brand-600 to-brand-500 text-white">
+      <div className="w-full border-b border-line-subtle bg-surface-sunken text-primary">
         <div className="mx-auto max-w-7xl px-4 md:px-6 py-3 flex items-center gap-4 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft text-accent px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide">
             Sample Report
           </span>
           <p className="text-sm">
@@ -206,7 +206,7 @@ export default function SampleBusinessReportPage() {
           </p>
           <Link
             href="/score"
-            className="ml-auto inline-flex items-center gap-1.5 rounded-lg bg-white/95 hover:bg-white text-brand-700 text-sm font-semibold px-3 py-1.5"
+            className="ml-auto inline-flex min-h-9 items-center gap-1.5 rounded-lg bg-action hover:bg-action-hover text-on-action text-sm font-semibold px-3 py-1.5"
           >
             Run yours in 5 min →
           </Link>

@@ -47,7 +47,6 @@ describe("CohortIndex — role chips (G22-A)", () => {
         ]}
         templates={[]}
         canCreate
-        pilotCap={null}
       />,
     );
     expect(out.match(/data-testid="cohort-row"/g)?.length).toBe(4);
@@ -62,7 +61,7 @@ describe("CohortIndex — role chips (G22-A)", () => {
   });
 
   it("empty state without cohorts; the Program-plan link when the seat cannot create", () => {
-    const empty = renderToStaticMarkup(<CohortIndex batches={[]} templates={[]} canCreate={false} pilotCap={null} />);
+    const empty = renderToStaticMarkup(<CohortIndex batches={[]} templates={[]} canCreate={false} />);
     expect(empty).toContain('data-testid="cohort-empty"');
     expect(empty).toContain("Cohorts — Program plan");
     expect(empty).not.toContain('data-testid="cohort-new"');

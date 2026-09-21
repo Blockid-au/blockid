@@ -4,7 +4,7 @@
 // `MENU` is the single source of the primary navigation — since G13-W5-IA5
 // NavV2 is the ONLY public header (site/navbar.tsx deleted) — so its shape
 // is a contract with the E2E spec (tests/e2e/nav/menu-structure.spec.ts
-// pins the seven labels, no dropdown, and the "Run a cohort pilot" CTA)
+// pins the seven labels, no dropdown, and the "Start a cohort" CTA)
 // and with the footer, which carries everything that left the bar
 // (Samples, Docs, the advisor landing, Funding rail, free tools, case
 // studies).
@@ -97,8 +97,9 @@ describe("MENU (public primary nav) — G21 P0-B", () => {
 });
 
 describe("nav CTAs", () => {
-  it("primary CTA is 'Run a cohort pilot' → /solutions/accelerator#pilot (G21 P0-B), never /onboarding or the money intent", () => {
-    expect(PRIMARY_CTA).toEqual({ label: "Run a cohort pilot", href: "/solutions/accelerator#pilot", ctaId: "run_cohort_pilot" });
+  it("primary CTA is 'Start a cohort' → the Cohort 25 annual trial sign-up (G25), never a pilot, /onboarding or the money intent", () => {
+    expect(PRIMARY_CTA).toEqual({ label: "Start a cohort", href: "/signup?segment=evaluator&plan=accelerator_starter&trial=1&interval=annual", ctaId: "start_cohort" });
+    expect(PRIMARY_CTA.href).not.toMatch(/pilot/);
     expect(PRIMARY_CTA.href).not.toMatch(/onboarding|funding/);
     expect(pageExists(PRIMARY_CTA.href)).toBe(true);
     // Deprecated alias survives one release for old importers.
@@ -127,23 +128,27 @@ describe("G7 Q2 → G17 — Demo placement", () => {
   });
 });
 
-// G13-W5-IA5 — one header. `variant="light"` is a second SKIN of the same
-// component (auth pages), never a second component; the legacy bar is gone.
-describe("S-IA5 — one header, two skins", () => {
+// G13-W5-IA5 — one header; G26 — ONE skin. The bar is light everywhere:
+// white island, 1 px line, dark ink links, navy primary CTA. The deprecated
+// `dark` key is an alias of the light table so old callers compile.
+describe("S-IA5 / G26 — one header, one light skin", () => {
   it("site/navbar.tsx no longer exists and nothing imports it", () => {
     expect(existsSync(resolve(__dirname, "../site/navbar.tsx"))).toBe(false);
   });
 
-  it("dark and light skins define the same class slots; light uses semantic tokens only, dark keeps the navy island", () => {
-    const dark = NAV_VARIANT_CLASSES.dark;
+  it("the light skin uses semantic tokens only — no navy island, no white/… alphas, no numeric ramps; `dark` is the same table", () => {
     const light = NAV_VARIANT_CLASSES.light;
-    expect(Object.keys(light).sort()).toEqual(Object.keys(dark).sort());
+    expect(NAV_VARIANT_CLASSES.dark).toBe(light);
     for (const [slot, classes] of Object.entries(light)) {
-      expect(classes, `light.${slot}`).not.toMatch(/brand-(navy|ink|cyan)|white\//);
+      expect(classes, `light.${slot}`).not.toMatch(/brand-(ink|cyan)\b|bg-brand-navy|white\/|text-white/);
       expect(classes, `light.${slot}`).not.toMatch(/\b(ink|surface)-\d{2,3}\b/);
+      expect(classes, `light.${slot}`).not.toMatch(/#[0-9a-f]{3,6}\b/i);
     }
-    expect(dark.header).toContain("bg-brand-navy/85");
-    expect(light.header).toContain("bg-surface/90");
+    expect(light.header).toContain("bg-surface/95");
+    expect(light.header).toContain("border-line-subtle");
     expect(light.cta).toContain("bg-action");
+    expect(light.cta).toContain("text-on-action");
+    expect(light.ring).toBe("focus-visible:ring-brand-navy");
+    expect(light.mobilePanel).toContain("bg-surface");
   });
 });

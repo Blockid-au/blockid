@@ -68,7 +68,7 @@ export function TermSheetHistoryClient({ initialRows }: { initialRows: Row[] }) 
       )}
       <div className="overflow-x-auto rounded-2xl border border-surface-200 bg-white">
         <table className="w-full min-w-[720px] text-sm">
-          <thead>
+          <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
             <tr className="text-left text-[11px] uppercase tracking-[0.15em] text-ink-600">
               <th className="px-5 py-3 font-medium">Date</th>
               <th className="px-5 py-3 font-medium">Company</th>
@@ -77,7 +77,7 @@ export function TermSheetHistoryClient({ initialRows }: { initialRows: Row[] }) 
               <th className="px-5 py-3 font-medium text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-surface-200/70">
+          <tbody className="divide-y divide-line-subtle">
             {rows.map((r) => (
               <tr key={r.id} className="hover:bg-surface-100/40">
                 <td className="px-5 py-3 text-ink-500 font-mono tabular-nums">
@@ -106,7 +106,7 @@ export function TermSheetHistoryClient({ initialRows }: { initialRows: Row[] }) 
                     onClick={() => onDelete(r.id)}
                     disabled={deletingId === r.id}
                     aria-label="Delete analysis"
-                    className="inline-flex h-11 w-11 sm:h-9 sm:w-9 items-center justify-center rounded-md border border-surface-200 bg-white text-ink-500 hover:border-red-500/40 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 focus-visible:ring-offset-1"
+                    className="inline-flex h-11 w-11 sm:h-9 sm:w-9 items-center justify-center rounded-md border border-surface-200 bg-white text-ink-500 hover:border-red-500/40 hover:text-red-600 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action/60 focus-visible:ring-offset-1"
                   >
                     {deletingId === r.id ? (
                       <Loader2 strokeWidth={1.75} className="h-4 w-4 animate-spin" />

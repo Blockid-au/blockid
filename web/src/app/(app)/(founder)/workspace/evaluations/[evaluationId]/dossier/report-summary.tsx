@@ -63,12 +63,13 @@ function ScoreRing({ score }: { score: number | null }) {
   const r = 14;
   const c = 2 * Math.PI * r;
   const pct = score == null ? 0 : Math.max(0, Math.min(100, score)) / 100;
-  const tone = score == null ? "var(--color-tertiary)" : score >= 70 ? "var(--color-bull)" : score >= 45 ? "var(--color-warn)" : "var(--color-bear)";
+  // Token pairs (light / dark) instead of raw hex so the ring keeps its contrast under OS dark.
+  const tone = score == null ? "var(--ds-ink-faint)" : score >= 70 ? "var(--ds-success)" : score >= 45 ? "var(--ds-warn)" : "var(--ds-danger)";
   return (
     <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true" className="shrink-0">
-      <circle cx="18" cy="18" r={r} fill="none" stroke="var(--color-line-subtle)" strokeWidth="4" />
+      <circle cx="18" cy="18" r={r} fill="none" stroke="var(--ds-border)" strokeWidth="4" />
       <circle cx="18" cy="18" r={r} fill="none" stroke={tone} strokeWidth="4" strokeDasharray={`${c * pct} ${c}`} strokeLinecap="round" transform="rotate(-90 18 18)" />
-      <text x="18" y="21" textAnchor="middle" fontSize="10" fontWeight="600" fill="var(--color-primary)">
+      <text x="18" y="21" textAnchor="middle" fontSize="10" fontWeight="600" fill="var(--ds-ink)">
         {score == null ? "–" : score}
       </text>
     </svg>
@@ -77,7 +78,7 @@ function ScoreRing({ score }: { score: number | null }) {
 
 export function ReportSummary({ report }: { report: DossierReportBlock }) {
   return (
-    <section aria-labelledby="dossier-block-1" className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6" data-testid="dossier-block-1">
+    <section aria-labelledby="dossier-block-1" className="rounded-2xl border border-surface-200 bg-surface p-5 sm:p-6" data-testid="dossier-block-1">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 id="dossier-block-1" className="text-lg font-semibold text-ink-900">
@@ -90,16 +91,16 @@ export function ReportSummary({ report }: { report: DossierReportBlock }) {
         </div>
         <div className="flex flex-wrap gap-2 text-xs">
           {report.links.fullReport ? (
-            <a href={report.links.fullReport} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-brand-300 bg-white px-3 py-1.5 font-medium text-brand-700 hover:bg-brand-50">
+            <a href={report.links.fullReport} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-brand-300 bg-surface px-3 py-1.5 font-medium text-action hover:bg-surface-hover">
               Open full Trusted Business Report
             </a>
           ) : (
-            <Link href={report.links.analyze} className="rounded-lg border border-brand-300 bg-white px-3 py-1.5 font-medium text-brand-700 hover:bg-brand-50">
+            <Link href={report.links.analyze} className="rounded-lg border border-brand-300 bg-surface px-3 py-1.5 font-medium text-action hover:bg-surface-hover">
               {report.available ? "Open analysis" : "Score this startup"}
             </Link>
           )}
           {report.links.pdf ? (
-            <a href={report.links.pdf} className="rounded-lg border border-surface-300 bg-white px-3 py-1.5 font-medium text-ink-700 hover:bg-surface-50">
+            <a href={report.links.pdf} className="rounded-lg border border-surface-300 bg-surface px-3 py-1.5 font-medium text-ink-700 hover:bg-surface-50">
               PDF
             </a>
           ) : null}

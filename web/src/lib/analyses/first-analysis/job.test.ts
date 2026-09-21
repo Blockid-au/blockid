@@ -17,6 +17,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/ai-client", () => ({ callAI: vi.fn() }));
 vi.mock("@/lib/entitlements", () => ({ getEntitlements: vi.fn().mockResolvedValue([]) }));
+// G25-C — the ledger stamp behind recordFreeReportDelivery (dynamic imports).
+const grantsMock = vi.hoisted(() => ({ grantForAnalysis: vi.fn(), markDelivered: vi.fn() }));
+const emitDeliveredMock = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/reports/free-grants", () => grantsMock);
+vi.mock("@/lib/analytics/funnel", () => ({ emitFreeReportDelivered: emitDeliveredMock }));
 vi.mock("./store", () => ({
   FULL_REPORT_MAX_ATTEMPTS: 3,
   claimFullReportEmailSend: vi.fn(),
@@ -30,7 +35,7 @@ vi.mock("./store", () => ({
 }));
 
 import { AICapacityError } from "@/lib/ai/capacity";
-import { deliverFullReport, runFirstAnalysisJob, type DeliverDeps, type JobDeps } from "./job";
+import { deliverFullReport, recordFreeReportDelivery, runFirstAnalysisJob, type DeliverDeps, type JobDeps } from "./job";
 import type { FullReportRow } from "./store";
 import { sampleIntake, sampleReport, SAMPLE_ANALYSIS_ID } from "./fixtures";
 import { FIRST_ANALYSIS_AGENTS, type FirstAnalysisReport } from "./types";
@@ -417,5 +422,67 @@ describe("deliverFullReport", () => {
     deps.send.mockResolvedValueOnce({ ok: false, reason: "send_error" });
     expect(await deliverFullReport(r, sampleReport(), { force: true }, deps)).toBe("send_failed");
     expect(deps.releaseSend).not.toHaveBeenCalled();
+  });
+
+  // G25-C — the free-allowance ledger is stamped from the delivery outcome.
+  it("stamps the ledger 'sent' on an accepted e-mail and 'failed' on a refused / thrown one; a throwing stamp never changes the outcome", async () => {
+    const recordDelivery = vi.fn().mockResolvedValue(undefined);
+    const deps = deliverDeps({ recordDelivery });
+    const r = row({ full_report_status: "done", full_report_email: "founder@example.com" });
+    expect(await deliverFullReport(r, sampleReport(), {}, deps)).toBe("sent");
+    expect(recordDelivery).toHaveBeenLastCalledWith(r, "sent", "single");
+    deps.send.mockResolvedValueOnce({ ok: false, reason: "send_error" });
+    expect(await deliverFullReport(r, sampleReport(), {}, deps)).toBe("send_failed");
+    expect(recordDelivery).toHaveBeenLastCalledWith(r, "failed", "single");
+    deps.send.mockRejectedValueOnce(new Error("smtp"));
+    expect(await deliverFullReport(r, sampleReport(), {}, deps)).toBe("send_failed");
+    expect(recordDelivery).toHaveBeenLastCalledWith(r, "failed", "single");
+    recordDelivery.mockRejectedValueOnce(new Error("ledger down"));
+    expect(await deliverFullReport(r, sampleReport(), {}, deps)).toBe("sent");
+    // no stamp dep at all (older doubles) → still sends
+    expect(await deliverFullReport(r, sampleReport(), {}, deliverDeps())).toBe("sent");
+  });
+});
+
+describe("recordFreeReportDelivery (G25-C)", () => {
+  const emitMock = emitDeliveredMock;
+
+  beforeEach(() => {
+    grantsMock.grantForAnalysis.mockReset();
+    grantsMock.markDelivered.mockReset();
+    emitMock.mockReset();
+  });
+
+  const grant = (status: "queued" | "sent" | "failed") => ({ id: "g1", email: "founder@example.com", sequence_no: 1, source: "guest", delivery_status: status });
+
+  it("no grant (an entitled run) → nothing stamped, nothing emitted", async () => {
+    grantsMock.grantForAnalysis.mockResolvedValue(null);
+    await recordFreeReportDelivery(row({ full_report_status: "done" }), "sent");
+    expect(grantsMock.markDelivered).not.toHaveBeenCalled();
+    expect(emitMock).not.toHaveBeenCalled();
+  });
+
+  it("first accepted e-mail → sent + free_report_delivered with the grant id; a later one never re-stamps", async () => {
+    grantsMock.grantForAnalysis.mockResolvedValue(grant("queued"));
+    grantsMock.markDelivered.mockResolvedValue(grant("sent"));
+    await recordFreeReportDelivery(row({ full_report_status: "done_partial", user_id: null }), "sent");
+    expect(grantsMock.markDelivered).toHaveBeenCalledWith(SAMPLE_ANALYSIS_ID, "sent");
+    expect(emitMock).toHaveBeenCalledWith({ grantId: "g1", sequenceNo: 1, source: "guest", analysisId: SAMPLE_ANALYSIS_ID, userId: null, email: "founder@example.com" });
+    grantsMock.grantForAnalysis.mockResolvedValue(grant("sent"));
+    grantsMock.markDelivered.mockClear();
+    await recordFreeReportDelivery(row({ full_report_status: "done" }), "sent");
+    expect(grantsMock.markDelivered).not.toHaveBeenCalled();
+  });
+
+  it("a failed send stamps 'failed' only while nothing was ever delivered, and emits nothing", async () => {
+    grantsMock.grantForAnalysis.mockResolvedValue(grant("queued"));
+    grantsMock.markDelivered.mockResolvedValue(grant("failed"));
+    await recordFreeReportDelivery(row({ full_report_status: "done" }), "failed");
+    expect(grantsMock.markDelivered).toHaveBeenCalledWith(SAMPLE_ANALYSIS_ID, "failed");
+    expect(emitMock).not.toHaveBeenCalled();
+    grantsMock.grantForAnalysis.mockResolvedValue(grant("sent"));
+    grantsMock.markDelivered.mockClear();
+    await recordFreeReportDelivery(row({ full_report_status: "done" }), "failed");
+    expect(grantsMock.markDelivered).not.toHaveBeenCalled();
   });
 });

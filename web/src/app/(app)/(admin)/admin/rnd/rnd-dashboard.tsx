@@ -229,7 +229,7 @@ export function RndDashboard() {
             className={`
  group relative rounded-xl border px-4 py-4 text-left transition-all cursor-pointer
  disabled:opacity-50 disabled:cursor-not-allowed
-              ${activeTopic === key && loading
+ ${activeTopic === key && loading
                 ? "border-brand-500 bg-brand-50 shadow-sm"
                 : key === "full"
                   ? "border-brand-500/40 bg-brand-50 hover:border-brand-500 hover:shadow-sm"

@@ -173,7 +173,7 @@ export function FundingReadinessTile({
                     className={cn(
                       "rounded-xl border p-3 space-y-1.5",
                       m.met
-                        ? "border-emerald-100 bg-emerald-50/50 dark:bg-emerald-950/10 dark:border-emerald-900/40"
+                        ? "border-emerald-100 bg-emerald-50/50"
                         : "border-border bg-muted/20",
                     )}
                   >
@@ -197,7 +197,7 @@ export function FundingReadinessTile({
                         <span
                           className={cn(
                             "text-sm font-medium leading-tight",
-                            m.met ? "text-emerald-800 dark:text-emerald-300" : "text-foreground",
+                            m.met ? "text-emerald-800" : "text-foreground",
                           )}
                         >
                           {m.label}

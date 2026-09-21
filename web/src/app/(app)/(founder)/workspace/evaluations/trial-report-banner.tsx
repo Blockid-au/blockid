@@ -110,7 +110,7 @@ export function TrialReportBanner({ trial, used = null, now }: TrialReportBanner
     <div
       role="status"
       data-testid="trial-report-banner"
-      className="rounded-xl border border-line-subtle border-l-4 border-l-brand-navy bg-surface-sunken px-4 py-3 text-sm text-brand-900 flex flex-wrap items-center justify-between gap-2"
+      className="rounded-xl border border-brand-300 bg-info-soft px-4 py-3 text-sm text-primary flex flex-wrap items-center justify-between gap-2"
     >
       <span>
         <strong>{copy.segments[0]}</strong>
@@ -129,7 +129,7 @@ export function TrialReportBanner({ trial, used = null, now }: TrialReportBanner
         onClick={handleManageBilling}
         disabled={opening}
         aria-busy={opening}
-        className="inline-flex min-h-6 items-center gap-1.5 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-brand-700 ring-1 ring-brand-300 hover:bg-brand-100 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-wait"
+        className="inline-flex min-h-6 items-center gap-1.5 rounded-lg bg-surface px-3 py-1.5 text-xs font-semibold text-action ring-1 ring-brand-300 hover:bg-brand-100 transition-colors cursor-pointer disabled:opacity-60 disabled:cursor-wait"
       >
         {opening ? <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" aria-hidden="true" /> : null}
         Manage billing

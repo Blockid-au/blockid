@@ -7,12 +7,15 @@
  *
  * Anonymous (a fresh context with no cookies):
  *   • `/` — the evidence-backed hero H1 + the seven nav items in order;
- *   • `data-testid="trust-band"` exactly once on the eight template pages;
+ *   • `data-testid="trust-band"` exactly once on the seven template pages;
  *   • `/methodology/{governance,versions,calibration}` → 200 + one h1; the
  *     calibration section shows either the empty state or `n =`;
  *   • `/tbr/demo` — one `assessment-card` with SVI + Evidence Confidence
  *     (case-insensitive) and no benchmark line without `n =`;
- *   • `/pilot` — both paid-pilot offer cards;
+ *   • G25: the "Start a cohort" CTA on `/`, the nav and `/solutions/accelerator`
+ *     → the Cohort 25 annual trial sign-up; `/pilot`, `/vi/pilot`,
+ *     `/pilot/investor` and `/workspace/accelerator/pilot` answer 301 to
+ *     their replacements; no pilot offer card anywhere;
  *   • `/api/v1/institutional/methodology` → 401 without a key.
  * Elevated founder (Growth):
  *   • `/workspace/evidence/corrections` 200, `/workspace/evidence/outcomes` 200;
@@ -44,7 +47,14 @@ const EVALUATOR_STATE = path.join(LIVE_QA_OUT, "evaluator-storage-state.json");
 
 const HERO_H1 = "Screen every startup on the same evidence-backed framework.";
 const NAV = ["Product", "For Programs", "For Investors", "For Founders", "Methodology", "Startup Index", "Pricing"] as const;
-const TRUST_PAGES = ["/", "/product", "/pricing", "/methodology", "/solutions/accelerator", "/solutions/investor", "/solutions/founder", "/pilot"] as const;
+const TRUST_PAGES = ["/", "/product", "/pricing", "/methodology", "/solutions/accelerator", "/solutions/investor", "/solutions/founder"] as const;
+const START_COHORT_HREF = "/signup?segment=evaluator&plan=accelerator_starter&trial=1&interval=annual";
+const RETIRED_PILOT_REDIRECTS: ReadonlyArray<[string, string]> = [
+  ["/pilot", "/solutions/accelerator"],
+  ["/vi/pilot", "/vi/solutions/accelerator"],
+  ["/pilot/investor", "/solutions/investor"],
+  ["/workspace/accelerator/pilot", "/workspace/accelerator/onboarding"],
+];
 const METHODOLOGY_PAGES = ["/methodology/governance", "/methodology/versions", "/methodology/calibration"] as const;
 
 type Browser = { newContext: (o: { storageState: string | { cookies: never[]; origins: never[] } }) => Promise<BrowserContext> };
@@ -98,7 +108,7 @@ test.describe("G21 regression — anonymous", () => {
     }
   });
 
-  test("trust band exactly once on the eight template pages", async ({ browser, qa }, testInfo) => {
+  test("trust band exactly once on the seven template pages", async ({ browser, qa }, testInfo) => {
     const { ctx, page } = await anonPage(browser);
     const seen: Record<string, number> = {};
     try {
@@ -154,16 +164,42 @@ test.describe("G21 regression — anonymous", () => {
     }
   });
 
-  test("/pilot shows both paid-pilot offer cards", async ({ browser, qa }, testInfo) => {
+  test("G25: 'Start a cohort' CTA on /, the nav and /solutions/accelerator → the Cohort 25 trial sign-up; no pilot offer card anywhere", async ({ browser, qa }, testInfo) => {
     const { ctx, page } = await anonPage(browser);
     try {
-      const res = await page.goto(`${qa.baseURL}/pilot`, { waitUntil: "domcontentloaded" });
-      expect(res?.status()).toBe(200);
-      const cards = page.getByTestId("pilot-offer-card");
-      await expect(cards).toHaveCount(2);
-      await evidence(testInfo, "pilot offer", { cards: await cards.allInnerTexts() });
+      const seen: Record<string, { hero: number; nav: number; pilotCards: number }> = {};
+      for (const path of ["/", "/solutions/accelerator"]) {
+        const res = await page.goto(`${qa.baseURL}${path}`, { waitUntil: "domcontentloaded" });
+        expect(res?.status(), path).toBe(200);
+        const hero = await page.locator(`main a[href="${START_COHORT_HREF}"]`).count();
+        const nav = await page.locator(`header a[href="${START_COHORT_HREF}"]`).count();
+        const pilotCards = await page.getByTestId("pilot-offer-card").count();
+        seen[path] = { hero, nav, pilotCards };
+        expect(hero, `${path} hero CTA`).toBeGreaterThanOrEqual(1);
+        expect(nav, `${path} nav CTA`).toBeGreaterThanOrEqual(1);
+        expect(pilotCards, `${path} pilot cards`).toBe(0);
+        await expect(page.locator(`main a[href="${START_COHORT_HREF}"]`).first()).toContainText("Start a cohort");
+        expect(await page.locator("main").innerText(), path).not.toMatch(/cohort validation pilot|paid pilot|run a cohort pilot/i);
+      }
+      await evidence(testInfo, "start a cohort CTA", seen);
     } finally {
       await ctx.close();
+    }
+  });
+
+  test("G25: the retired pilot URLs answer 301 to their replacements (one hop, no 404, no 200)", async ({ qa }, testInfo) => {
+    const anon = await anonRequest(qa.baseURL);
+    try {
+      const hops: Record<string, { status: number; location: string | undefined }> = {};
+      for (const [from, to] of RETIRED_PILOT_REDIRECTS) {
+        const res = await anon.get(from, { maxRedirects: 0 });
+        hops[from] = { status: res.status(), location: res.headers()["location"] };
+        expect(res.status(), from).toBe(301);
+        expect(res.headers()["location"] ?? "", from).toMatch(new RegExp(`${to.replace(/\//g, "\\/")}$`));
+      }
+      await evidence(testInfo, "retired pilot redirects", hops);
+    } finally {
+      await anon.dispose();
     }
   });
 

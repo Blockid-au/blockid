@@ -82,7 +82,7 @@ export function BatchDialog({ selected, quotaRemaining, quotaLimit, trialActive 
 
   return (
     <div ref={dialogRef} className="fixed inset-0 z-50 flex items-center justify-center bg-ink-900/40 backdrop-blur-sm p-4" role="dialog" aria-modal="true" aria-labelledby="batch-title" aria-describedby="batch-intro">
-      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2 border border-line-subtle overflow-hidden">
+      <div className="w-full max-w-lg rounded-2xl bg-surface shadow-2 border border-line-subtle overflow-hidden">
         <div className="flex items-center justify-between px-6 py-4 border-b border-surface-200">
           <h2 id="batch-title" className="text-lg font-bold text-ink-900">Batch score {n} startup{n === 1 ? "" : "s"}</h2>
           <button type="button" onClick={onClose} aria-label="Close" className="h-8 w-8 flex items-center justify-center rounded-lg text-ink-500 hover:text-ink-700 hover:bg-surface-100 transition-colors cursor-pointer">
@@ -114,7 +114,7 @@ export function BatchDialog({ selected, quotaRemaining, quotaLimit, trialActive 
                 onClick={() => setShowWeights((v) => !v)}
                 aria-expanded={showWeights}
                 aria-controls="batch-weight-sliders"
-                className="inline-flex min-h-6 items-center text-xs font-medium text-brand-700 hover:underline cursor-pointer"
+                className="inline-flex min-h-6 items-center text-xs font-medium text-action hover:underline cursor-pointer"
               >
                 {showWeights ? "Hide" : isEqualWeights(normalised) ? "Customise (equal by default)" : "Edit"}
               </button>

@@ -23,7 +23,7 @@ Sources of truth this map condenses (it does not replace them): `docs/plans/unic
 |---|---|---|
 | **H1 (FI1)** | `Screen every startup on the same evidence-backed framework.` | `Sàng lọc mọi startup trên cùng một khung đánh giá có bằng chứng.` |
 | **Sub (FI2)** | `BlockID turns startup applications, pitch decks and company evidence into a comparable Startup Value Index, evaluator dossier and improvement plan — so programs can screen faster and founders know exactly what to improve.` | `hero.line.fi2` in `vi.json` |
-| Primary CTA | `Run a cohort pilot` → `/solutions/accelerator#pilot` | `Chạy thử với một cohort` |
+| Primary CTA | `Start a cohort` → `/signup?segment=evaluator&plan=accelerator_starter&trial=1&interval=annual` (G25 — the Cohort 25 annual trial sign-up; `lib/marketing/start-cohort.ts`) | `Bắt đầu một khoá` → `/vi/solutions/accelerator#plans` |
 | Secondary CTA | `Score my startup` → `/analyze` | `Chấm điểm startup của tôi` |
 | Trust line | `Australian-built · Evidence-backed · Founder-controlled data` | — |
 | **H1 (E1, legacy arm)** | `Score any Australian startup in 60 seconds.` | `Chấm điểm bất kỳ startup Úc nào trong 60 giây.` |
@@ -36,7 +36,7 @@ The catalogue of speakable lines (E1/E2, F1–F4, I1–I3, G1–G3) lives in `we
 
 ### 2b. Bands with a VI twin (G22-C, 2026-09-21)
 
-Every `/vi` mirror renders these bands in Vietnamese by construction — `TrustBand locale="vi"` (copy table in `components/marketing/template/TrustBand.tsx`), `pilot.*` / `meta.pilot.*` keys in `messages/{en,vi}.json` (parity-tested), `GOVERNANCE_CHROME` in `methodology/governance/governance-body.tsx`. Row VALUES (entity, ACN / ABN, version, e-mail) and every price stay identical in both languages.
+Every `/vi` mirror renders these bands in Vietnamese by construction — `TrustBand locale="vi"` (copy table in `components/marketing/template/TrustBand.tsx`), `solutions.accelerator.cohort.*` / `solutions.accelerator.plans.*` keys in `messages/{en,vi}.json` (parity-tested; the `pilot.*` / `meta.pilot.*` keys were removed by G25), `GOVERNANCE_CHROME` in `methodology/governance/governance-body.tsx`. Row VALUES (entity, ACN / ABN, version, e-mail) and every price stay identical in both languages.
 
 | Band | EN | VI |
 |---|---|---|
@@ -46,12 +46,9 @@ Every `/vi` mirror renders these bands in Vietnamese by construction — `TrustB
 | TrustBand bullets | `Privacy and evidence controls` · `Score disclaimer` · `Append-only audit trail` · `Founder consent and data ownership` | `Kiểm soát quyền riêng tư và bằng chứng` · `Tuyên bố miễn trừ về điểm số` · `Nhật ký kiểm toán chỉ ghi thêm` · `Sự đồng ý của founder và quyền sở hữu dữ liệu` |
 | TrustBand disclaimer sentence | lifted from `DISCLAIMER_SURFACES.general_all.body_md` (general information / not financial product advice) | lifted from `general_all.body_md_vi` (`thông tin chung` sentence, `[TODO-VI]` marker stripped) — never new wording |
 | TrustBand data sentence | § 9 verbatim (`DATA_PRINCIPLE_SENTENCE`) | `solutions.principle.data` verbatim |
-| Pilot page H1 (`pilot.page.hero.title`) | `Validate BlockID on one real cohort before you commit to a year.` | `Kiểm chứng BlockID trên một cohort thật trước khi cam kết cả năm.` |
-| Pilot page eyebrow | `Paid pilot · programs` | `Thí điểm trả phí · chương trình` |
-| Pilot buy label (`pilot.buy.label`) | `Book the {price} pilot` | `Đặt thí điểm {price}` |
-| Pilot rung eyebrow (`pilot.rung.eyebrow`) | `Start here` | `Bắt đầu tại đây` |
-| Pilot confirm eyebrow / continue | `Before you pay` · `Continue to secure checkout — {price}` | `Trước khi bạn trả` · `Tiếp tục đến thanh toán an toàn — {price}` |
-| Pilot meta title (`meta.pilot.title`) | `Cohort Validation Pilot for startup programs` | `Thí điểm xác thực Cohort cho chương trình` |
+| Cohort offer eyebrow / title (`solutions.accelerator.cohort.*`, G25) | `Cohort plans` · `What a Cohort plan delivers` | `Gói Cohort` · `Gói Cohort mang lại gì` |
+| Cohort plans title / lede (`solutions.accelerator.plans.*`) | `Choose your Cohort plan` · `Both rungs are billed annually and start with a 14-day free trial, card required, cancel any time.` | `Chọn gói Cohort của bạn` · `Cả hai bậc tính theo năm và bắt đầu với 14 ngày dùng thử miễn phí, cần thẻ, huỷ bất cứ lúc nào.` |
+| Program CTA (`solutions.accelerator.cta`) | `Start a cohort` | `Bắt đầu một khoá` |
 | Governance H1 | `Startup Value Index — score governance` | `Startup Value Index — quản trị điểm số` |
 | Governance eyebrows | `Human in the loop` · `Contents` / `Sections` · `§ n` | `Con người trong vòng lặp` · `Mục lục` / `Các phần (tiếng Anh)` · `§ n · tiếng Anh` |
 | Governance closing band | `See the methodology the rules govern` · `Read the methodology` · `See a real report` | `Xem phương pháp mà các quy tắc này điều chỉnh` · `Đọc phương pháp` · `Xem một báo cáo thật` |
@@ -79,7 +76,7 @@ Order on any page that lists audiences: **Investors → Accelerators → Advisor
 | **Money Finder** | eligibility match for grants/investors | "Do you need money?" as a nav/footer CTA (it stays as the `/funding` page question only) |
 | **Founder Radar** | deadline-watch e-mails (Starter bundle) | "Money Radar" in public copy (the workspace tile keeps its name) |
 | **Intake link** · **Cohort table** · **Feedback letter** | program tools | — |
-| **Cohort Validation Pilot** (VI: **Thí điểm xác thực Cohort**) · `/pilot`, `/vi/pilot` | the paid one-off pilot (two sizes from `PILOT_SKUS`, priced before you pay) | "free pilot", "trial cohort", any A$ literal outside `formatPilotPrice()` |
+| **Cohort plan** (Cohort 25 / Cohort 100) · `/solutions/accelerator#cohort` → `#plans` | the sold ladder for programs — annual, 14-day card-required trial, price from `plans-v2` via tokens; the onboarding kit is `/workspace/accelerator/onboarding` | "Cohort Validation Pilot", "paid pilot", "pilot" as an offer of any kind (retired 2026-09-21, G25 — "bỏ luôn coupon và pilot"), any credit coupon, `/pilot` |
 | **Institutional API** (read-only) · `/docs/api/institutional` | the six `/api/v1/institutional/*` read endpoints and their in-app contract page | "Enterprise API", "Data API", linking the contract to GitHub instead of the in-app page |
 | Tiers | Founder: **Free / Starter / Growth** · Evaluator: **Scout / Firm / Program** · B2B: **Fund / Intake link / Index API** · **Cohort 25 / Cohort 100** | "Angel", "Advisor plan", "VC Small", "Founding 100", "Founding 50" |
 | Reviewers | "the C-suite of AI agents", "a CFO, CLO, CMO, CRO, CTO, CHRO … each with its own domain module, then an auditor" | any agent count ("11 C-Level agents", "17 / 50+ AI agents"), any provider count ("9 AI providers") |
@@ -141,7 +138,7 @@ Buyer order on any page: **Programs (accelerators, incubators, universities, inn
 |---|---|
 | Evaluator primary | `Score a startup` |
 | Evaluator secondary | `See a sample dossier` |
-| Pilot | `Start a pilot` |
+| Programs | `Start a cohort` |
 | Founder primary | `Get your score free` |
 | Buy the TBR | `Get the Trusted Business Report` (+ the SKU price from lane A's constant) |
 | Pricing | `See pricing` |
@@ -199,6 +196,7 @@ Short form for footers and PDF covers: `Not financial advice.`
 | `\bpredicts\b` `prediction accuracy` | G21: no forecasting claims — calibration is published with n and confidence intervals, never "predicts" | — |
 | `Australian average` | G21: no benchmark without its n — say "stage median (n = N)" or "the cohort at the same stage (n = N)" per docs/product/score-governance.md § 7 | `src/components/marketing/homepage/` (P0-B owns the homepage sample cards — replace with the stage median + n) |
 | `two-sided marketplace` | G21: marketplace is a later expansion module, not the current positioning | — |
+| `Cohort Validation Pilot` `[Pp]aid pilot` `[Cc]ohort pilot` `[Bb]ook (a\|the) pilot` `[Rr]un a cohort pilot` `[Ss]tart a pilot` `pilot (fee\|credit\|coupon)` `Thí điểm` `thí điểm` `A\$1,500` `A\$2,500` | G25 (2026-09-21, founder: "bỏ luôn coupon và pilot"): the paid Cohort Validation Pilot, its A$1,500 / A$2,500 one-off prices, the pilot → annual credit coupon and every "pilot" offer are retired — evaluators start on the sold ladder ("Start a cohort" → Cohort 25 / Cohort 100 annual trial; Scout / Firm / Program). A$1,500 may only ever appear as Cohort 100's monthly figure rendered from `plans-v2`, never as a literal | `src/app/version/` `src/app/(marketing)/roadmap/` `src/app/(marketing)/changelog/` `src/app/docs/` (history pages name what was retired) `src/app/(app)/(admin)/admin/pilots/` (the read-only ledger of past comps — no new pilots) |
 | `\bAU average\b` `\bnational average\b` `\bsector average\b` `\bindustry average\b` | G21 P1-C: same rule as "Australian average" — no aggregate without its n; every median / percentile line comes from `lib/benchmarks/publication-rules.ts` (`formatBenchmarkLine` → "SaaS / Pre-seed benchmark — median 64 (n = 47)", "indicative (n = 14)", or "not enough comparable companies (n = N)"). G21 P1 review: the free summary PDF prints the published stage median + n or the not-enough line — no allow-list | — |
 
 Documented exceptions that are **not** in the table because they are true: "beta users" as an item on a founder's own readiness checklist (`api/fundraise/readiness`), "GitHub or GitLab repository" as advice about the founder's own code (`api/score`), `v2.0.0-beta.N` release identifiers on `/security-audit`, `/roadmap`, `/changelog`, "13 criteria" inside the product (dossier, credit gate, PDF body) where it is the rubric depth the evaluator paid for. "Money Radar" remains the in-workspace tile name of the Founder Radar bundle (lib/funding is not a marketing surface); public copy says Founder Radar.

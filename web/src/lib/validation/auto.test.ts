@@ -1,4 +1,4 @@
-// G22-D — the read side on fakes: pilot orders / letters / batches (+ owner
+// G22-D — the read side on fakes: program invoices (revenue_events, G25) / letters / batches (+ owner
 // e-mail for the QA filter) become auto rows; the applications JSONL is read
 // from the temp root; a failing table is a warning, never a throw; no
 // client → warning + the JSONL rows still render; the dashboard carries the
@@ -44,29 +44,31 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true });
 });
 
-const ORDER = { id: "o-1", user_id: "u-1", buyer_email: "ops@program.org", sku: "cohort_pilot_25", amount_cents: 150_000, currency: "aud", status: "paid", created_at: "2026-09-10T00:00:00.000Z", metrics: { time_to_shortlist_before_min: 240 } };
+const INVOICE = { id: 1, user_id: "u-1", plan_id: "accelerator_starter", kind: "subscribe", gross_aud_cents: 500_000, currency: "AUD", ts: "2026-09-10T00:00:00.000Z" };
 
 describe("readAutoInputs", () => {
   it("no client → warning, the JSONL applications still read", async () => {
     const r = await readAutoInputs(null, root);
     expect(r.warnings.join(" ")).toMatch(/supabase not configured/);
     expect(r.inputs.applications.map((a) => a.program_name)).toEqual(["Uni Program"]);
-    expect(r.inputs.pilotOrders).toEqual([]);
+    expect(r.inputs.revenueEvents).toEqual([]);
   });
 
-  it("maps orders, letters and batches (+ owner e-mails); a failing table is a warning", async () => {
+  it("maps program invoices (+ payer e-mail), letters and batches (+ owner e-mails); a failing table is a warning; pilot_orders is never read", async () => {
     const calls: string[] = [];
     const client = fakeClient(
       {
-        pilot_orders: { data: [ORDER], error: null },
+        revenue_events: { data: [INVOICE], error: null },
         founder_feedback_letters: new Error("relation does not exist"),
         evaluation_batches: { data: [{ id: "b-1", user_id: "u-9", name: "Spring", program_name: "Spring 2026", status: "done", total: 5, done_count: 5, finished_at: "2026-09-16T00:00:00.000Z", created_at: "2026-09-15T00:00:00.000Z" }], error: null },
-        app_users: { data: [{ id: "u-9", email: "pm@program.org" }], error: null },
+        app_users: { data: [{ id: "u-9", email: "pm@program.org" }, { id: "u-1", email: "ops@program.org" }], error: null },
       },
       calls,
     );
     const r = await readAutoInputs(client, root);
-    expect(r.inputs.pilotOrders[0]).toMatchObject({ id: "o-1", metrics: { time_to_shortlist_before_min: 240 } });
+    expect(r.inputs.revenueEvents[0]).toMatchObject({ id: 1, plan_id: "accelerator_starter", payer_email: "ops@program.org" });
+    expect(calls.some((c) => c.startsWith("pilot_orders:"))).toBe(false);
+    expect(calls.some((c) => c.startsWith("revenue_events:") && c.includes("plan_id"))).toBe(true);
     expect(r.inputs.batches[0]).toMatchObject({ id: "b-1", owner_email: "pm@program.org", program_name: "Spring 2026" });
     expect(r.inputs.feedbackLetters).toEqual([]);
     expect(r.warnings.some((w) => w.startsWith("founder_feedback_letters:"))).toBe(true);
@@ -155,17 +157,17 @@ describe("readValidationDashboard", () => {
   it("ledger + auto rows + ladder + North Star + live window metrics + warnings", async () => {
     await writeValidationLedger(root, { version: 1, updated_at: null, entries: [newEntry({ organisation: "Acme", contact_role: "", date: "2026-09-19", level: 1, outcome: "done", objection: "Too early", objection_answered: false, next_step: "", note: "" }, "e-1")] });
     const client = fakeClient({
-      pilot_orders: { data: [ORDER], error: null },
+      revenue_events: { data: [INVOICE], error: null },
       evaluation_batch_items: { data: [{ batch_id: "b1", scored_at: "2026-09-02T00:00:00Z", status: "done" }], error: null },
       evaluation_batches: { data: [{ id: "b1", user_id: "org", name: "Cohort", status: "done", total: 1, done_count: 1, finished_at: null, created_at: "2026-09-01T00:00:00Z" }], error: null },
-      app_users: { data: [{ id: "org", plan: "investor_fund", email: "desk@fund.vc" }], error: null },
+      app_users: { data: [{ id: "org", plan: "investor_fund", email: "desk@fund.vc" }, { id: "u-1", email: "ops@program.org" }], error: null },
       projects: { data: null, count: 12, error: null },
     });
     const d = await readValidationDashboard(client, root, Date.UTC(2026, 8, 20));
     expect(d.ledger.entries).toHaveLength(1);
     expect(d.ladder[0]).toMatchObject({ level: 1, actual: 1, target: 5 });
     expect(d.ladder[3]).toMatchObject({ level: 4, actual: 1, auto_counted: 1 });
-    expect(d.auto.map((r) => r.source).sort()).toEqual(["evaluation_batches", "pilot-applications.jsonl", "pilot_orders", "pilot_orders.metrics"]);
+    expect(d.auto.map((r) => r.source).sort()).toEqual(["evaluation_batches", "pilot-applications.jsonl", "revenue_events"]);
     expect(d.objections[0]?.text).toBe("Too early");
     expect(d.north_star).toMatchObject({ month: "2026-09", assessed: 1, paying_orgs: 1 });
     expect(d.window?.days).toBe(28);

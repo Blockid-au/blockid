@@ -118,7 +118,7 @@ export function ActionPlanChecklist({ slug, pageId, actions, sviBoost }: ActionP
           <div
             className={cn(
               "h-2 rounded-full transition-all duration-500",
-              allDone ? "bg-emerald-500" : "bg-brand-600",
+              allDone ? "bg-emerald-500" : "bg-action",
             )}
             style={{ width: `${progressPct}%` }}
           />

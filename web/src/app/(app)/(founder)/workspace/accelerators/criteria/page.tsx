@@ -93,7 +93,7 @@ export default async function AcceleratorCriteriaPage() {
         </div>
 
         {/* Use callout */}
-        <div className="rounded-xl border border-purple-200 dark:border-purple-800/40 bg-purple-50/50 dark:bg-purple-950/15 p-4 flex items-start gap-3">
+        <div className="rounded-xl border border-purple-200 bg-purple-50/50 p-4 flex items-start gap-3">
           <Sparkles className="h-4 w-4 text-purple-600 mt-0.5 shrink-0" />
           <div className="text-xs text-foreground">
             <p className="font-semibold">How to use this</p>

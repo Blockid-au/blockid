@@ -68,7 +68,7 @@ const GROWTH_PHASES = [
       { name: "Market Size Analysis", desc: "TAM/SAM/SOM estimation and competitive landscape mapping" },
       { name: "Problem Clarity Assessment", desc: "Evaluate problem-solution fit with evidence-based scoring" },
     ],
-    color: "from-gray-500 to-gray-600",
+    color: "border-l-ink-500",
   },
   {
     phase: 1,
@@ -82,7 +82,7 @@ const GROWTH_PHASES = [
       { name: "Competitive Analysis", desc: "AI-powered competitor mapping across AU startup ecosystem" },
       { name: "SVI Trend Tracking", desc: "Weekly snapshots show your growth trajectory over time" },
     ],
-    color: "from-blue-500 to-blue-600",
+    color: "border-l-brand-500",
   },
   {
     phase: 2,
@@ -96,7 +96,7 @@ const GROWTH_PHASES = [
       { name: "Team Assessment", desc: "CHRO agent evaluates team composition, roles, and hiring gaps" },
       { name: "Code & Tech Audit", desc: "CTO agent reviews GitHub repos — architecture, security, code quality" },
     ],
-    color: "from-indigo-500 to-indigo-600",
+    color: "border-l-brand-700",
   },
   {
     phase: 3,
@@ -110,7 +110,7 @@ const GROWTH_PHASES = [
       { name: "Pitch Deck Review", desc: "AI-powered analysis of your pitch deck with improvement suggestions" },
       { name: "Investor Readiness Score", desc: "Detailed checklist of what investors look for at each stage" },
     ],
-    color: "from-purple-500 to-purple-600",
+    color: "border-l-accent-600",
   },
   {
     phase: 4,
@@ -124,7 +124,7 @@ const GROWTH_PHASES = [
       { name: "Market Capture Projections", desc: "Monthly TAM penetration forecasts with growth scenarios" },
       { name: "SVI Market Index", desc: "Unbounded index (Nikkei-style) that grows as you add more data" },
     ],
-    color: "from-emerald-500 to-emerald-600",
+    color: "border-l-bull",
   },
   {
     phase: 5,
@@ -138,7 +138,7 @@ const GROWTH_PHASES = [
       { name: "Multi-Agent Reports", desc: "11 C-Level AI agents produce comprehensive business intelligence" },
       { name: "Board Memo Generator", desc: "Professional board reports with financials, metrics, and strategy" },
     ],
-    color: "from-amber-500 to-amber-600",
+    color: "border-l-warn",
   },
 ];
 
@@ -508,13 +508,13 @@ export default function VersionPage() {
   return (
     <div className="min-h-svh bg-surface-100">
       {/* Header */}
-      <header className="bg-gradient-to-r from-brand-600 to-brand-700 text-white py-16">
+      <header className="border-b border-line-subtle bg-surface py-16">
         <div className="max-w-5xl mx-auto px-4 text-center">
-          <h1 className="text-4xl font-bold mb-3">BlockID.au — Features & Updates</h1>
-          <p className="text-lg opacity-90 max-w-2xl mx-auto">
-            Everything you need to answer: <strong>Where am I now? What am I worth? What should I do next?</strong>
+          <h1 className="text-4xl font-bold mb-3 text-primary">BlockID.au — Features & Updates</h1>
+          <p className="text-lg text-secondary max-w-2xl mx-auto">
+            Everything you need to answer: <strong className="text-primary">Where am I now? What am I worth? What should I do next?</strong>
           </p>
-          <p className="text-sm opacity-70 mt-2">
+          <p className="text-sm text-muted mt-2">
             Organized by your startup&apos;s growth path — from Day 0 to scale
           </p>
         </div>
@@ -590,13 +590,13 @@ export default function VersionPage() {
           <div className="space-y-8">
             {GROWTH_PHASES.map((phase) => (
               <div key={phase.phase} className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
-                <div className={`bg-gradient-to-r ${phase.color} px-6 py-4 text-white`}>
+                <div className={`border-b border-line-subtle border-l-4 ${phase.color} bg-surface-sunken px-6 py-4`}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <h3 className="text-lg font-bold">{phase.title}</h3>
-                      <p className="text-sm opacity-80">{phase.description}</p>
+                      <h3 className="text-lg font-bold text-primary">{phase.title}</h3>
+                      <p className="text-sm text-secondary">{phase.description}</p>
                     </div>
-                    <span className="text-xs bg-white/20 px-3 py-1 rounded-full font-medium shrink-0">
+                    <span className="text-xs border border-line bg-surface text-primary px-3 py-1 rounded-full font-medium shrink-0">
                       {phase.sviRange}
                     </span>
                   </div>
@@ -684,14 +684,14 @@ export default function VersionPage() {
         </section>
 
         {/* CTA */}
-        <section className="text-center bg-gradient-to-r from-brand-50 to-purple-50 rounded-2xl p-8 border border-brand-100">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Ready to start?</h2>
-          <p className="text-gray-600 mb-6">
+        <section className="text-center bg-surface-sunken rounded-2xl p-8 border border-line-subtle">
+          <h2 className="text-2xl font-bold text-primary mb-2">Ready to start?</h2>
+          <p className="text-secondary mb-6">
             Get your free SVI analysis and discover where your startup stands today.
           </p>
           <Link
             href="/score"
-            className="inline-block bg-brand-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-brand-700 transition-colors"
+            className="inline-flex min-h-11 items-center bg-action text-on-action px-6 py-3 rounded-xl font-semibold hover:bg-action-hover transition-colors"
           >
             Get Your Free SVI Score
           </Link>

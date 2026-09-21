@@ -190,7 +190,7 @@ export function StructureDecisionFormClient() {
             value={state.annual_revenue_aud}
             onChange={(e) => patch("annual_revenue_aud", e.target.value)}
             placeholder="5000000"
-            className="mt-2 w-full rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-500"
+            className="mt-2 w-full rounded-lg border border-surface-300 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-action"
             data-testid="structure-q-annual_revenue_aud"
           />
         </label>
@@ -198,7 +198,7 @@ export function StructureDecisionFormClient() {
         <div className="flex flex-wrap gap-3">
           <button
             type="submit"
-            className="h-11 px-6 rounded-2xl bg-brand-600 text-sm font-semibold text-white hover:bg-brand-700"
+            className="h-11 px-6 rounded-2xl bg-action text-sm font-semibold text-on-action hover:bg-action-hover"
             data-testid="structure-submit"
           >
             Run structure decision

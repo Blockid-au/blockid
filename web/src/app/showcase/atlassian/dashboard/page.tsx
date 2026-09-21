@@ -77,14 +77,14 @@ interface TileProps {
 
 function Tile({ label, value, caption, sourceLabel, sourceUrl, extra }: TileProps) {
   return (
-    <div className="flex flex-col rounded-lg border border-surface-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+    <div className="flex flex-col rounded-lg border border-surface-200 bg-white p-4">
       <div className="text-[11px] font-mono uppercase tracking-wide text-ink-500">
         {label}
       </div>
-      <div className="mt-2 text-3xl font-semibold text-brand-700 dark:text-emerald-400">
+      <div className="mt-2 text-3xl font-semibold text-brand-700">
         {value}
       </div>
-      <div className="mt-1 text-sm text-ink-700 dark:text-slate-300">
+      <div className="mt-1 text-sm text-ink-700">
         {caption}
       </div>
       {extra ? <div className="mt-2">{extra}</div> : null}
@@ -114,7 +114,7 @@ export default function AtlassianDashboardMirrorPage() {
 
   return (
     <AtlassianWalkthroughProvider stepNumber={2}>
-      <div className="min-h-screen bg-surface-50 dark:bg-slate-950">
+      <div className="min-h-screen bg-surface-50">
         <div className="container mx-auto max-w-6xl px-4 py-8">
           <nav className="mb-4 text-sm">
             <Link
@@ -126,13 +126,13 @@ export default function AtlassianDashboardMirrorPage() {
           </nav>
 
           <header className="mb-8">
-            <p className="text-sm font-medium uppercase tracking-wide text-brand-700 dark:text-emerald-400">
+            <p className="text-sm font-medium uppercase tracking-wide text-brand-700">
               Step 2 — Living dashboard
             </p>
-            <h1 className="mt-2 text-3xl font-semibold text-ink-900 dark:text-slate-100">
+            <h1 className="mt-2 text-3xl font-semibold text-ink-900">
               Atlassian, on the BlockID.au founder dashboard
             </h1>
-            <p className="mt-3 max-w-3xl text-base text-ink-700 dark:text-slate-300">
+            <p className="mt-3 max-w-3xl text-base text-ink-700">
               This is the morning-coffee view Mike Cannon-Brookes and Scott
               Farquhar would open every day if BlockID.au had existed since
               2002. Six tiles, one composite score, one honest opinion about
@@ -156,7 +156,7 @@ export default function AtlassianDashboardMirrorPage() {
                 sourceLabel="Atlassian FY2025 10-K + walkthrough fixture"
                 sourceUrl={ATLASSIAN_DEMO.sviScores[0] ? undefined : undefined}
                 extra={
-                  <div className="text-xs text-ink-500 dark:text-slate-400">
+                  <div className="text-xs text-ink-500">
                     Range {Math.min(
                       ...ATLASSIAN_DEMO.sviScores.map((s) => s.score0to100),
                     )}
@@ -187,7 +187,7 @@ export default function AtlassianDashboardMirrorPage() {
                 sourceUrl={latest?.source.url}
                 extra={
                   latest ? (
-                    <p className="text-xs text-ink-600 dark:text-slate-400 line-clamp-4">
+                    <p className="text-xs text-ink-600 line-clamp-4">
                       {latest.body}
                     </p>
                   ) : null
@@ -208,7 +208,7 @@ export default function AtlassianDashboardMirrorPage() {
                   "https://www.sec.gov/Archives/edgar/data/1650372/000165037225000036/team-20250630.htm"
                 }
                 extra={
-                  <div className="text-xs text-ink-500 dark:text-slate-400">
+                  <div className="text-xs text-ink-500">
                     +20% YoY · 83% gross margin · ~US$1.4B FCF
                   </div>
                 }
@@ -225,7 +225,7 @@ export default function AtlassianDashboardMirrorPage() {
                 }
                 extra={
                   profitability2005 ? (
-                    <p className="text-xs text-ink-600 dark:text-slate-400">
+                    <p className="text-xs text-ink-600">
                       Runway ceased to matter in {profitability2005.year}:{" "}
                       {profitability2005.title.toLowerCase()}. Every dollar
                       since has been optional capital, not survival capital.
@@ -241,7 +241,7 @@ export default function AtlassianDashboardMirrorPage() {
                 extra={
                   <Link
                     href="/showcase/atlassian/growth-phases?step=4"
-                    className="inline-block text-xs font-medium text-brand-700 hover:underline dark:text-emerald-400"
+                    className="inline-block text-xs font-medium text-brand-700 hover:underline"
                   >
                     Open the 12-phase growth map →
                   </Link>
@@ -254,15 +254,15 @@ export default function AtlassianDashboardMirrorPage() {
 
           <section
             aria-labelledby="founder-mentor-note"
-            className="mt-10 rounded-lg border border-brand-200 bg-brand-50 p-6 dark:border-emerald-900 dark:bg-emerald-950/30"
+            className="mt-10 rounded-lg border border-brand-200 bg-brand-50 p-6"
           >
             <h2
               id="founder-mentor-note"
-              className="text-lg font-semibold text-brand-900 dark:text-emerald-200"
+              className="text-lg font-semibold text-brand-900"
             >
               Founder-mentor note
             </h2>
-            <div className="mt-3 space-y-3 text-sm text-brand-900 dark:text-emerald-100">
+            <div className="mt-3 space-y-3 text-sm text-brand-900">
               <p>
                 This is what Mike and Scott would open every morning. In 2005
                 the equivalent view would have shown just two lines —

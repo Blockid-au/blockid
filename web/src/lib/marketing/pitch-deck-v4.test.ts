@@ -19,7 +19,7 @@
  *   - entity + ACN via lib/site/legal-entity.ts (front-matter parity, footer
  *     from the config, no stray entity literal outside the front-matter);
  *   - the slide-6 prices match plans.csv (Cohort 25 / 100, Starter / Growth)
- *     and the pilot SKUs match lib/pricing/pilot-skus.ts when it exists.
+ *     and no pilot SKU survives (G25 retired the paid pilot).
  */
 import { describe, expect, it } from "vitest";
 import * as fs from "node:fs";
@@ -87,7 +87,8 @@ describe("pitch-deck-v4.md — structure", () => {
     expect(t[2]).toMatch(/application.*evidence.*dossier.*cohort/);
     expect(t[3]).toMatch(/one real company/);
     expect(t[4]).toMatch(/programs first/);
-    expect(t[5]).toMatch(/paid pilot.*annual program.*institutional/);
+    expect(t[5]).toMatch(/annual program.*institutional/);
+    expect(t[5]).not.toMatch(/pilot/);
     expect(t[6]).toMatch(/why blockid/);
     expect(t[7]).toMatch(/proven.*observed.*measure/);
     expect(t[8]).toMatch(/researcher who ships/);
@@ -205,7 +206,7 @@ describe("pitch-deck-v4.md — provenance, claims register and guardrails", () =
     const offenders: string[] = [];
     for (const t of slideTexts(deck.slides[7])) for (const tok of numericTokens(t)) if (!allowed.has(tok)) offenders.push(`${tok} (in "${t}")`);
     expect(offenders, "slide 8 may only carry proven / observed numbers — see docs/design/public-claims-policy.md § 3 rule 8").toEqual([]);
-    expect(slideTexts(deck.slides[7]).join(" ")).toMatch(/paid pilots will measure/i);
+    expect(slideTexts(deck.slides[7]).join(" ")).toMatch(/first (paying )?cohorts will measure/i);
   });
 
   it("guardrail grep over both md files", () => {
@@ -241,7 +242,7 @@ describe("pitch-deck-v4.md — provenance, claims register and guardrails", () =
     expect(md).not.toMatch(/\bmarketingOperator\b/);
   });
 
-  it("slide-6 prices agree with plans.csv (Cohort 25 / Cohort 100 annual; Starter / Growth monthly) and the pilot SKUs", async () => {
+  it("slide-6 prices agree with plans.csv (Cohort 25 / Cohort 100 annual; Starter / Growth monthly); no pilot SKU anywhere in the deck (G25)", async () => {
     const csv = fs.readFileSync(path.join(WEB_ROOT, "src/config/pricing/plans.csv"), "utf8").split("\n");
     const row = (id: string) => csv.find((l) => l.startsWith(`${id},`))!.split(",");
     const annualK = (id: string) => `${Number(row(id)[4]) / 100 / 1000}K`;
@@ -251,16 +252,10 @@ describe("pitch-deck-v4.md — provenance, claims register and guardrails", () =
     expect(six).toContain(`A$${annualK("accelerator_growth")}`);
     expect(six).toContain(`${monthly("founder_starter")} a month`);
     expect(six).toContain(`${monthly("founder_growth")} a month`);
-    // Pilot SKUs: lib/pricing/pilot-skus.ts is lane P0-C's; when it exists the cents must match the deck.
-    const skuPath = path.join(WEB_ROOT, "src/lib/pricing/pilot-skus.ts");
-    const pilot25 = 1500;
-    const pilot50 = 2500;
-    expect(six).toContain(`A$${pilot25.toLocaleString("en-AU")}`);
-    expect(six).toContain(`A$${pilot50.toLocaleString("en-AU")}`);
-    if (fs.existsSync(skuPath)) {
-      const src = fs.readFileSync(skuPath, "utf8");
-      expect(src, "pilot-skus.ts must price cohort_pilot_25 at 150000 cents").toMatch(/150000/);
-      expect(src, "pilot-skus.ts must price cohort_pilot_50 at 250000 cents").toMatch(/250000/);
-    }
+    // G25 (2026-09-21): the paid Cohort Validation Pilot and its coupon are retired — no pilot SKU, no A$1,500 / A$2,500 one-off anywhere.
+    expect(fs.existsSync(path.join(WEB_ROOT, "src/lib/pricing/pilot-skus.ts"))).toBe(false);
+    const all = deck.slides.flatMap((s) => slideTexts(s)).join(" ");
+    expect(all).not.toMatch(/Cohort Validation Pilot|paid pilot|A\$2,500/i);
+    expect(six).not.toContain("A$1,500");
   });
 });

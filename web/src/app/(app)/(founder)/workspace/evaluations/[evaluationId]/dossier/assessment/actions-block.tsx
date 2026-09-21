@@ -53,7 +53,7 @@ export function ActionsBlock({ view, plan, batchAllowed = false }: { view: Dossi
   // Scout → one-pager; Firm / Program → memo (the route clamps again server-side).
   const icKind = clampIcKind(plan, undefined);
   return (
-    <section aria-labelledby="dossier-block-6" className="rounded-2xl border border-surface-200 bg-white p-5 sm:p-6" data-testid="dossier-block-6">
+    <section aria-labelledby="dossier-block-6" className="rounded-2xl border border-surface-200 bg-surface p-5 sm:p-6" data-testid="dossier-block-6">
       <h2 id="dossier-block-6" className="text-lg font-semibold text-ink-900">
         6 · Actions & audit trail
       </h2>
@@ -64,14 +64,14 @@ export function ActionsBlock({ view, plan, batchAllowed = false }: { view: Dossi
             <ul className="mt-1 list-disc space-y-1 pl-5" data-testid="actions-founder">
               <li>
                 Change what your evaluator can see on{" "}
-                <Link href="/workspace/investors/access" className="text-brand-700 hover:underline">
+                <Link href="/workspace/investors/access" className="text-action hover:underline">
                   Investor access
                 </Link>{" "}
                 (consent tier).
               </li>
               <li>
                 Intro requests from evaluators land in your{" "}
-                <Link href="/workspace/investors/pipeline" className="text-brand-700 hover:underline">
+                <Link href="/workspace/investors/pipeline" className="text-action hover:underline">
                   investor pipeline
                 </Link>
                 .
@@ -82,7 +82,7 @@ export function ActionsBlock({ view, plan, batchAllowed = false }: { view: Dossi
             <ul className="mt-1 list-disc space-y-1 pl-5" data-testid="actions-read-only">
               <li>
                 Overrides, review status and decisions are recorded on the{" "}
-                <Link href={view.viewer.viaBatchId ? `/workspace/evaluations/cohort/${encodeURIComponent(view.viewer.viaBatchId)}` : "/workspace/evaluations/cohort"} className="text-brand-700 hover:underline">
+                <Link href={view.viewer.viaBatchId ? `/workspace/evaluations/cohort/${encodeURIComponent(view.viewer.viaBatchId)}` : "/workspace/evaluations/cohort"} className="text-action hover:underline">
                   cohort table
                 </Link>
                 .
@@ -90,7 +90,7 @@ export function ActionsBlock({ view, plan, batchAllowed = false }: { view: Dossi
               <li>Export an IC memo / one-pager from the header — it prints under your name.</li>
               {view.report.links.fullReport ? (
                 <li>
-                  <a href={view.report.links.fullReport} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">
+                  <a href={view.report.links.fullReport} target="_blank" rel="noopener noreferrer" className="text-action hover:underline">
                     Open the latest full report
                   </a>
                 </li>
@@ -102,20 +102,20 @@ export function ActionsBlock({ view, plan, batchAllowed = false }: { view: Dossi
               <ul className="list-disc space-y-1 pl-5 text-xs">
                 <li>
                   Re-score ({formatAud(TRUST_REPORT_RESCORE_CREDITS)}) and the full Trusted Business Report ({trustReportPriceLabel()}) — from the row on{" "}
-                  <Link href="/workspace/evaluations" className="text-brand-700 hover:underline">
+                  <Link href="/workspace/evaluations" className="text-action hover:underline">
                     Startups I&apos;m evaluating
                   </Link>{" "}
                   (cost shown before anything is charged).
                 </li>
                 {view.report.links.fullReport ? (
                   <li>
-                    <a href={view.report.links.fullReport} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">
+                    <a href={view.report.links.fullReport} target="_blank" rel="noopener noreferrer" className="text-action hover:underline">
                       Open the latest full report
                     </a>
                     {view.report.links.pdf ? (
                       <>
                         {" · "}
-                        <a href={view.report.links.pdf} target="_blank" rel="noopener noreferrer" className="text-brand-700 hover:underline">
+                        <a href={view.report.links.pdf} target="_blank" rel="noopener noreferrer" className="text-action hover:underline">
                           PDF
                         </a>
                       </>
@@ -125,7 +125,7 @@ export function ActionsBlock({ view, plan, batchAllowed = false }: { view: Dossi
                 <li>Share / revoke your assessment — block 4 footer.</li>
                 <li>
                   Seats and the consensus table —{" "}
-                  <Link href="/workspace/investor/team" className="text-brand-700 hover:underline">
+                  <Link href="/workspace/investor/team" className="text-action hover:underline">
                     manage your organisation
                   </Link>
                   .
@@ -164,7 +164,7 @@ export function ActionsBlock({ view, plan, batchAllowed = false }: { view: Dossi
               )}
               <p className="mt-2 text-xs text-ink-500">
                 Every row is an HMAC-chained <code>audit_events</code> entry with ids only. Export your full log from{" "}
-                <Link href="/workspace/settings/audit" className="text-brand-700 hover:underline">
+                <Link href="/workspace/settings/audit" className="text-action hover:underline">
                   Settings → Audit log
                 </Link>
                 .

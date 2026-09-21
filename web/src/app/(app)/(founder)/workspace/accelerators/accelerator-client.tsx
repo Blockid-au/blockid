@@ -223,7 +223,7 @@ function ProgramCard({
   return (
     <div className={cn(
       "rounded-xl border p-5 space-y-4 transition-all",
-      isUrgent ? "border-amber-300 dark:border-amber-700 bg-amber-50/50 dark:bg-amber-950/10" : "border-border bg-card",
+      isUrgent ? "border-amber-300 bg-amber-50/50" : "border-border bg-card",
       isMissed ? "opacity-60" : "",
     )}>
       {/* Header */}
@@ -233,9 +233,9 @@ function ProgramCard({
             <h3 className="font-bold text-base">{program.name}</h3>
             <span className={cn(
               "text-[10px] font-semibold px-1.5 py-0.5 rounded",
-              program.country === "AU" ? "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400" :
-              program.country === "US" ? "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400" :
-              "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400"
+              program.country === "AU" ? "bg-blue-100 text-blue-700" :
+              program.country === "US" ? "bg-purple-100 text-purple-700" :
+              "bg-gray-100 text-gray-700"
             )}>{program.country}</span>
             <span className={cn(
               "text-[10px] font-semibold px-1.5 py-0.5 rounded",
@@ -277,7 +277,7 @@ function ProgramCard({
       <div className={cn(
         "flex items-center gap-2 text-sm font-medium rounded-lg px-3 py-2",
         isMissed ? "bg-muted text-muted-foreground" :
-        isUrgent ? "bg-amber-100 dark:bg-amber-900/20 text-amber-800 dark:text-amber-400" :
+        isUrgent ? "bg-amber-100 text-amber-800" :
         "bg-muted/50 text-foreground"
       )}>
         {isMissed ? <XCircle className="h-4 w-4" /> : isUrgent ? <AlertTriangle className="h-4 w-4" /> : <Calendar className="h-4 w-4 text-muted-foreground" />}
@@ -425,13 +425,13 @@ export function AcceleratorClient({ currentSvi, stage, startupName, milestones }
       </div>
 
       {urgentCount > 0 && (
-        <div className="flex items-center gap-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-700 rounded-xl p-4">
+        <div className="flex items-center gap-3 bg-amber-50 border border-amber-200 rounded-xl p-4">
           <Zap className="h-5 w-5 text-amber-600 shrink-0" />
           <div>
-            <p className="text-sm font-semibold text-amber-800 dark:text-amber-400">
+            <p className="text-sm font-semibold text-amber-800">
               {urgentCount} deadline{urgentCount > 1 ? "s" : ""} closing in the next 45 days
             </p>
-            <p className="text-xs text-amber-700 dark:text-amber-500 mt-0.5">
+            <p className="text-xs text-amber-700 mt-0.5">
               Prioritise your applications — filter by &ldquo;Open only&rdquo; to see what&apos;s active.
             </p>
           </div>

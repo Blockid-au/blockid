@@ -231,7 +231,7 @@ export function AdvisorClient() {
             placeholder="Search clients..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full rounded-xl border border-surface-200 bg-white pl-9 pr-3 py-2 text-sm text-ink-700 focus:outline-none focus:ring-2 focus:ring-brand-300"
+            className="w-full rounded-xl border border-surface-200 bg-white pl-9 pr-3 py-2 text-sm text-ink-700 focus:outline-none focus:ring-2 focus:ring-action/25"
           />
         </div>
         <button
@@ -239,7 +239,7 @@ export function AdvisorClient() {
           onClick={() =>
             setInvite((prev) => ({ ...prev, open: true }))
           }
-          className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+          className="inline-flex items-center gap-1.5 rounded-xl bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
         >
           <Plus className="h-4 w-4" />
           Add client
@@ -277,13 +277,13 @@ export function AdvisorClient() {
               onChange={(e) =>
                 setInvite((prev) => ({ ...prev, email: e.target.value }))
               }
-              className="flex-1 rounded-xl border border-surface-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-300"
+              className="flex-1 rounded-xl border border-surface-200 bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-action/25"
             />
             <button
               type="button"
               disabled={!invite.email || invite.sending}
               onClick={sendInvite}
-              className="rounded-xl bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition-colors disabled:opacity-60 flex items-center gap-1.5"
+              className="rounded-xl bg-action px-4 py-2 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors disabled:opacity-60 flex items-center gap-1.5"
             >
               {invite.sending ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -320,7 +320,7 @@ export function AdvisorClient() {
       ) : (
         <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden">
           <table className="w-full text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
               <tr className="border-b border-surface-100 bg-surface-50">
                 <th className="text-left px-5 py-3 text-xs font-semibold uppercase tracking-wide text-muted">
                   Founder
@@ -337,7 +337,7 @@ export function AdvisorClient() {
                 <th className="px-4 py-3" />
               </tr>
             </thead>
-            <tbody className="divide-y divide-surface-50">
+            <tbody className="divide-y divide-line-subtle">
               {filtered.map((c) => (
                 <tr
                   key={c.id}

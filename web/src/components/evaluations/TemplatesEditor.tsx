@@ -147,10 +147,10 @@ export function TemplatesEditor({ initialTemplates, dataPrincipleSentence }: Tem
         {templates.length === 0 ? (
           <p className="text-xs text-ink-500" data-testid="templates-empty">No templates yet. The default form asks for startup, founder, e-mail, website and deck.</p>
         ) : (
-          <ul className="divide-y divide-surface-100 rounded-xl border border-surface-200 bg-white" data-testid="templates-list">
+          <ul className="divide-y divide-surface-100 rounded-xl border border-surface-200 bg-surface" data-testid="templates-list">
             {templates.map((t) => (
               <li key={t.id} className="flex items-center justify-between gap-2 px-3 py-2 text-sm">
-                <button type="button" onClick={() => load(t)} className={`min-w-0 flex-1 truncate text-left ${editing !== "new" && editing?.id === t.id ? "font-semibold text-brand-700" : "text-ink-800 hover:text-brand-700"}`}>
+                <button type="button" onClick={() => load(t)} className={`min-w-0 flex-1 truncate text-left ${editing !== "new" && editing?.id === t.id ? "font-semibold text-action" : "text-ink-800 hover:text-action-hover"}`}>
                   {t.name}
                   <span className="ml-1 text-xs font-normal text-ink-500">· {t.questions.length} q</span>
                 </button>
@@ -163,11 +163,11 @@ export function TemplatesEditor({ initialTemplates, dataPrincipleSentence }: Tem
         )}
         <p className="text-xs text-ink-500">
           Attach a template when you create an intake link on{" "}
-          <Link href="/workspace/accelerator/applications" className="font-medium text-brand-700 hover:underline">
+          <Link href="/workspace/accelerator/applications" className="font-medium text-action hover:underline">
             Intake inbox
           </Link>{" "}
           or a cohort on{" "}
-          <Link href="/workspace/evaluations/cohort" className="font-medium text-brand-700 hover:underline">
+          <Link href="/workspace/evaluations/cohort" className="font-medium text-action hover:underline">
             Cohorts
           </Link>
           .
@@ -175,7 +175,7 @@ export function TemplatesEditor({ initialTemplates, dataPrincipleSentence }: Tem
       </aside>
 
       {editing ? (
-        <form onSubmit={save} className="space-y-6 rounded-2xl border border-surface-200 bg-white p-5" data-testid="template-form">
+        <form onSubmit={save} className="space-y-6 rounded-2xl border border-surface-200 bg-surface p-5" data-testid="template-form">
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="tpl-name" className={LABEL}>Template name</label>
@@ -222,7 +222,7 @@ export function TemplatesEditor({ initialTemplates, dataPrincipleSentence }: Tem
                 </button>
               </div>
             ))}
-            <button type="button" onClick={addQuestion} disabled={questions.length >= MAX_QUESTIONS} className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-surface-300 bg-white px-3 py-1.5 text-sm font-medium text-ink-700 hover:bg-surface-50 disabled:opacity-50" data-testid="template-add-question">
+            <button type="button" onClick={addQuestion} disabled={questions.length >= MAX_QUESTIONS} className="inline-flex min-h-9 items-center gap-1 rounded-lg border border-surface-300 bg-surface px-3 py-1.5 text-sm font-medium text-ink-700 hover:bg-surface-50 disabled:opacity-50" data-testid="template-add-question">
               <Plus className="h-3.5 w-3.5" aria-hidden="true" />
               Add question
             </button>
@@ -251,7 +251,7 @@ export function TemplatesEditor({ initialTemplates, dataPrincipleSentence }: Tem
             </p>
           ) : null}
           <div className="flex justify-end gap-2">
-            <button type="button" onClick={() => setEditing(null)} className="inline-flex min-h-11 items-center rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-surface-50">
+            <button type="button" onClick={() => setEditing(null)} className="inline-flex min-h-11 items-center rounded-xl border border-surface-300 bg-surface px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-surface-50">
               Close
             </button>
             <button type="submit" disabled={busy || !name.trim()} aria-busy={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-60" data-testid="template-save">
@@ -261,7 +261,7 @@ export function TemplatesEditor({ initialTemplates, dataPrincipleSentence }: Tem
           </div>
         </form>
       ) : (
-        <div className="rounded-2xl border border-dashed border-surface-300 bg-white px-6 py-14 text-center text-sm text-ink-500">Pick a template to edit, or create a new one.</div>
+        <div className="rounded-2xl border border-dashed border-surface-300 bg-surface px-6 py-14 text-center text-sm text-ink-500">Pick a template to edit, or create a new one.</div>
       )}
     </div>
   );

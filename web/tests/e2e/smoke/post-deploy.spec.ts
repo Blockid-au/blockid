@@ -212,7 +212,7 @@ test.describe("Post-deploy hydrated smoke", () => {
   // after React state fills in, the preview card is fetched from the live
   // /api/funding/preview route (nothing stubbed — the point is to catch a
   // broken catalogue read or matcher), and the sample report / unlock
-  // tables / comparison table / pilot CTA are the pages the ProductHunt kit
+  // tables / comparison table / Start a cohort CTA are the pages the ProductHunt kit
   // and the G12 evaluator funnel link to. Every test keeps a 15 s ceiling.
 
   test("/funding — hero + 3-question intake, live preview after NSW / MVP / agtech", async ({
@@ -340,25 +340,24 @@ test.describe("Post-deploy hydrated smoke", () => {
     expect(await table.getByRole("row").count()).toBeGreaterThan(3);
   });
 
-  test("/solutions/accelerator#pilot — the paid Cohort Validation Pilot block: two offer cards, each with a buy control (checkout or the contact fallback)", async ({
+  test("/solutions/accelerator#cohort — the Cohort offer (G25): inclusions + metrics, the two rungs at #plans with trial links, no pilot block and /pilot 301s", async ({
     page,
+    request,
   }) => {
     test.setTimeout(15_000);
-    await page.goto("/solutions/accelerator#pilot", { waitUntil: "domcontentloaded" });
-    await expect(page.getByTestId("pilot-offer")).toBeVisible({ timeout: PAGE_TIMEOUT });
-    await expect(page.getByTestId("pilot-offer-card")).toHaveCount(2);
-    // G21 P0-C: until the founder mints STRIPE_PRICE_COHORT_PILOT_25/50 the
-    // button is a link to /contact?topic=pilot; once minted it is the
-    // quote-then-checkout button. Accept either so the gate tracks the
-    // code, not the founder's Stripe timing.
-    for (const sku of ["cohort_pilot_25", "cohort_pilot_50"]) {
-      const buy = page.getByTestId(`pilot-buy-${sku}`);
-      await expect(buy).toBeVisible({ timeout: PAGE_TIMEOUT });
-      const mode = await buy.getAttribute("data-pilot-mode");
-      expect(["contact", "checkout"]).toContain(mode);
-      if (mode === "contact") await expect(buy).toHaveAttribute("href", "/contact?topic=pilot");
+    await page.goto("/solutions/accelerator#cohort", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("cohort-offer")).toBeVisible({ timeout: PAGE_TIMEOUT });
+    await expect(page.getByTestId("cohort-offer-includes").locator("li")).toHaveCount(8);
+    await expect(page.getByTestId("cohort-offer-metrics").locator("li")).toHaveCount(6);
+    await expect(page.getByTestId("solutions-tiers")).toBeVisible();
+    await expect(page.locator(`a[href="/signup?segment=evaluator&plan=accelerator_starter&trial=1&interval=annual"]`).first()).toBeVisible();
+    await expect(page.getByTestId("pilot-offer")).toHaveCount(0);
+    expect(await page.locator("main").innerText()).not.toMatch(/pilot/i);
+    for (const [from, to] of [["/pilot", "/solutions/accelerator"], ["/vi/pilot", "/vi/solutions/accelerator"], ["/pilot/investor", "/solutions/investor"]] as const) {
+      const res = await request.get(from, { maxRedirects: 0 });
+      expect(res.status(), from).toBe(301);
+      expect(res.headers()["location"], from).toMatch(new RegExp(`${to.replace(/\//g, "\\/")}$`));
     }
-    await expect(page.getByTestId("pilot-quote-cohort_pilot_25")).toContainText(/inc\. GST/);
   });
 
   // ── G13-W1-IA1 (D6) — legacy route redirects ─────────────────────────

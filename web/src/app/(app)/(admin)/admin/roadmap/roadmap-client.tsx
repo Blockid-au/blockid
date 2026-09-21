@@ -578,7 +578,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
            ════════════════════════════════════════════════════════════ */}
         <div className="text-center py-4">
           <div className="flex justify-center mb-4">
-            <div className="h-14 w-14 rounded-2xl bg-brand-navy text-white flex items-center justify-center shadow-1">
+            <div className="inline-flex h-14 w-14 rounded-xl bg-brand-navy text-white items-center justify-center shadow-1">
               <Map strokeWidth={1.75} className="h-7 w-7" />
             </div>
           </div>

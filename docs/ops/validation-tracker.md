@@ -13,9 +13,9 @@ Code: `web/src/lib/validation/{model,ledger,auto}.ts`, `web/src/app/api/admin/va
 |---|---|---|---|
 | L1 | Qualified interviews | 5 | a 30–45 min conversation with someone who screens startups and owns or influences the budget, with notes captured (the 14-question script below) |
 | L2 | Real workflow demonstrations | 3 | the buyer ran a real intake, cohort or dossier workflow on **their own** applicants — not a slide walkthrough |
-| L3 | Written pilot proposals | 2 | a written proposal with scope, price and dates was sent to a named organisation |
-| L4 | Paid pilot ≥ A$1,500 | 1 | a paid Cohort Validation Pilot order of at least A$1,500 — **auto-filled** from `pilot_orders` (a manual `done` row also counts, e.g. an invoice outside Stripe) |
-| L5 | Renewal or second institutional customer | 1 | the same organisation paid again, or a second organisation paid — **auto-filled** from `pilot_orders` |
+| L3 | Written proposals | 2 | a written proposal for a Cohort plan with scope, price and dates was sent to a named organisation (the Cohort proposal PDF, § 6) |
+| L4 | First paying program (Cohort 25 / Cohort 100 annual, or Program A$349/mo) | 1 | the first paid invoice of a program plan — **auto-filled** from `revenue_events` (G25; a manual `done` row also counts, e.g. an invoice outside Stripe) |
+| L5 | Renewal or second paying organisation | 1 | the same organisation paid a later invoice, or a second organisation paid its first — **auto-filled** from `revenue_events` |
 
 `actual` on the ladder = founder entries recorded as `done` + auto rows that count (L4 / L5 paid orders). `booked` and `declined` are shown beside the rung but never counted. Every number on the page is a **target** or an **actual count of recorded events** — it is never a claim about the business and must not be quoted on a marketing surface (the claims register in `docs/design/messaging.md` governs what may be said publicly).
 
@@ -49,19 +49,17 @@ Rules:
 
 ## 3. How the auto rows are derived (`lib/validation/model.ts` `deriveAutoRows`)
 
-Read-only, source-labelled, QA accounts (`qa-live-*`) dropped from every source. Only paid orders count toward the ladder; everything else is a **signal** shown for context.
+Read-only, source-labelled, QA accounts (`qa-live-*`) dropped from every source. Only paid program invoices count toward the ladder (G25 — `pilot_orders` is a retired ledger and is never read); everything else is a **signal** shown for context.
 
 | Source | Row | Level | Counts? |
 |---|---|---|---|
-| `pilot_orders` (`status = paid`, ordered by `created_at`) | first paid order per buyer | L4 | yes when `amount_cents ≥ 150 000` (A$1,500); a smaller order is listed "below A$1,500 — not counted" |
-| `pilot_orders` | a later paid order by the **same buyer** (renewal) or a paid order by a **second distinct buyer** (second organisation) | L5 | same A$1,500 rule |
-| `pilot_orders` (`converted_at` set — G23-B, migration 0434) | "Pilot converted to Cohort 25 / Cohort 100 (annual) — same organisation paid again" | L5 | same A$1,500 rule (on the pilot amount) |
-| `pilot_orders.metrics` (jsonb non-empty, ignoring `updated_at` / `updated_by`) | "Pilot metrics captured · n fields", plus "case-study consent given" when `case_study_consent = true` | L4 | no (signal) |
-| `content/reports/pilot-applications.jsonl` | comp pilot applications from `/pilot/investor` (programme name, cohort size, intake month) | L1 | no (signal) |
+| `revenue_events` (`plan_id ∈ accelerator_starter, accelerator_growth, investor_vc_small`; `kind ∈ subscribe, renewal, upgrade`; `gross_aud_cents > 0`; ordered by `ts`; payer e-mail via `app_users`) | first paid invoice per organisation — "First paying program · Cohort 25 · A$5,000 · subscribe" | L4 | yes |
+| `revenue_events` | a later paid invoice by the **same organisation** (renewal) or the first paid invoice of a **second distinct organisation** | L5 | yes |
+| `content/reports/pilot-applications.jsonl` | historical enquiries from the retired `/pilot/investor` form (G16-C; the route is gone since G25) | L1 | no (signal) |
 | `founder_feedback_letters` (`status ∈ sent, opened`) | feedback letter sent (k, org count) | L2 | no (signal) |
 | `evaluation_batches` (`done_count > 0`; owner e-mail via `app_users` for the QA filter; `program_name` when 0422 is applied) | cohort scored | L2 | no (signal) |
 
-The organisation column shows the buyer's e-mail **domain** (never the address) for orders, the programme name for applications, `project <8 chars>` for letters, and the programme / batch name for cohorts. A missing table or column is a warning at the foot of the page (`data-testid="validation-warnings"`), never a fake 0.
+The organisation column shows the payer's e-mail **domain** (never the address) for invoices, the programme name for applications, `project <8 chars>` for letters, and the programme / batch name for cohorts. A missing table or column is a warning at the foot of the page (`data-testid="validation-warnings"`), never a fake 0.
 
 **North Star + window** come verbatim from `lib/funnel/institutional.ts` `readInstitutionalFunnel` (the same reader `/admin/funnel` uses): startups assessed through paying institutional workflows this month, and the funnel's live metrics for its 28-day window.
 
@@ -75,11 +73,10 @@ Rendered as a checklist card on the page (`lib/validation/model.ts` `VALIDATION_
 - Commit the ledger (§ 2).
 - The G21 regression canary (`tests/live-qa/41-g21-regression.spec.ts`, Sun 05:10 UTC in `scripts/crontab.production`) appends to `content/reports/live-qa-history.jsonl`; a red row there is a product regression, not a tracker problem.
 
-## 6. "Generate proposal" — the written pilot proposal (G23-B, 2026-09-21)
+## 6. "Generate proposal" — the written Cohort proposal (G23-B, re-based by G25 on 2026-09-21)
 
-Level 3 counts a **written proposal with scope, price and dates sent to a named organisation**. Every entry row on `/admin/validation` has a **Proposal** button (`data-testid="validation-entry-proposal"`) → `GET /api/admin/validation/<id>/proposal` (admin only; 401 anon / 403 non-admin / 404 unknown entry / 30 per hour) → a 4-page PDF downloads, named `blockid-pilot-proposal-<organisation-slug>-<date>.pdf`.
+Level 3 counts a **written proposal with scope, price and dates sent to a named organisation**. Every entry row on `/admin/validation` has a **Proposal** button (`data-testid="validation-entry-proposal"`) → `GET /api/admin/validation/<id>/proposal` (admin only; 401 anon / 403 non-admin / 404 unknown entry / 30 per hour) → a 4-page PDF downloads, named `blockid-cohort-proposal-<organisation-slug>-<date>.pdf` (`x-proposal-plan` header names the rung).
 
-What it contains (`lib/validation/proposal.ts` `buildPilotProposal`, rendered by `lib/pdf/pilot-proposal-pdf.tsx`): cover (organisation, contact role, date, valid 30 days, prepared by the legal entity) · **the problem in their words** (the entry's `objection` quoted verbatim + the `note`) · scope and price for the size the entry implies (a number followed by "applicants / startups / …" in the note, next step or objection; ≤ 25 → the A$1,500 pilot, otherwise the A$2,500 pilot; override with `?applicants=<n>`) · what is delivered (the six stages `/solutions/accelerator` ships, from the EN catalogue) · the six success metrics · timeline (acceptance → setup → intake → assessment → workshop → report, 90 days of workspace access) · data and consent (the approved data sentence, the applicant consent paragraph, the privacy-policy § 4 retention line) · after the pilot (Cohort 25 / Cohort 100 annual, the 60-day credit rule) · acceptance + signature block · entity / ABN footer · the general-advice disclaimer. Every number is a constant (`pilot-skus.ts`, `plans-v2.ts`, `conversion.ts`); nothing is stored — the entry gains `proposal_generated_at` and an audit row `validation.proposal_generated`.
+What it contains (`lib/validation/proposal.ts` `buildCohortProposal`, rendered by `lib/pdf/cohort-proposal-pdf.tsx`): cover (organisation, contact role, date, valid 30 days, prepared by the legal entity) · **the problem in their words** (the entry's `objection` quoted verbatim + the `note`) · scope and price for the size the entry implies (a number followed by "applicants / startups / …" in the note, next step or objection; ≤ 25 → Cohort 25, otherwise Cohort 100; override with `?applicants=<n>`): the annual price inc. GST, the monthly alternative, the 14-day card-required trial, seats and reports from plans.generated · what is delivered (the six stages `/solutions/accelerator` ships, from the EN catalogue) · the six success metrics (`COHORT_SUCCESS_METRICS`) · timeline (acceptance → trial → setup → intake → assessment → workshop → report; the plan runs 12 months from the first invoice) · data and consent (the approved data sentence, the applicant consent paragraph, the privacy-policy § 4 retention line) · the two Cohort rungs (Cohort 25 / Cohort 100 annual — no credit rule, no coupon) · acceptance + signature block · entity / ABN footer · the general-advice disclaimer. Every number is a constant (`plans-v2.ts`, `plans.generated.ts`); nothing is stored — the entry gains `proposal_generated_at` and an audit row `validation.proposal_generated`.
 
-Workflow: record the interview (L1/L2) → add an L3 row `booked` for the organisation with the objection verbatim → **Proposal** → read it once (the founder approves the wording for a real target) → send → set the L3 row to `done` and tick `objection_answered`. A signed acceptance becomes the paid pilot (L4, auto-filled from `pilot_orders` once paid).
-
+Workflow: record the interview (L1/L2) → add an L3 row `booked` for the organisation with the objection verbatim → **Proposal** → read it once (the founder approves the wording for a real target) → send → set the L3 row to `done` and tick `objection_answered`. A signed acceptance becomes the first paying program (L4, auto-filled from `revenue_events` once the first invoice is paid — after the 14-day trial).

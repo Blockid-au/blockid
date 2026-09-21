@@ -25,9 +25,9 @@ export function InfoTooltip({ text, className }: InfoTooltipProps) {
         <Info className="h-3.5 w-3.5" />
       </button>
       {show && (
-        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 rounded-lg bg-ink-800 border border-ink-600 px-3 py-2 text-xs text-slate-300 leading-relaxed shadow-lg z-50">
+        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 rounded-lg bg-surface border border-line px-3 py-2 text-xs text-primary leading-relaxed shadow-2 z-50">
           {text}
-          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-2 h-2 bg-ink-800 border-r border-b border-ink-600 rotate-45" />
+          <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 w-2 h-2 bg-surface border-r border-b border-line rotate-45" />
         </div>
       )}
     </span>

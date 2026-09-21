@@ -92,7 +92,7 @@ export function StepStartup({ existingProjectId, onCreated, onSkip, onContinue }
   const [error, setError] = React.useState<string | null>(null);
   const uid = React.useId();
 
-  const input = "mt-2 w-full rounded-xl border border-brand-cyan/15 bg-brand-navy-elev-1 px-4 py-3 text-sm text-brand-ink placeholder:text-brand-ink-muted/60 focus:border-brand-cyan focus:outline-none focus:ring-2 focus:ring-brand-cyan/30";
+  const input = "mt-2 w-full rounded-xl border border-line-subtle bg-surface px-4 py-3 text-sm text-primary placeholder:text-tertiary focus:border-action focus:outline-none focus:ring-2 focus:ring-action/30";
 
   async function submit(ev: React.FormEvent) {
     ev.preventDefault();
@@ -126,10 +126,10 @@ export function StepStartup({ existingProjectId, onCreated, onSkip, onContinue }
   if (existingProjectId) {
     return (
       <div data-wizard-step="startup" data-startup-created={existingProjectId}>
-        <h1 className="text-2xl font-bold text-brand-ink sm:text-3xl">{copy.title}</h1>
-        <p className="mt-2 text-brand-ink-muted">{copy.created}</p>
+        <h1 className="text-2xl font-bold text-primary sm:text-3xl">{copy.title}</h1>
+        <p className="mt-2 text-muted">{copy.created}</p>
         <div className="mt-8 flex justify-end">
-          <button type="button" onClick={onContinue} data-testid="wizard-continue" className="inline-flex items-center gap-2 rounded-xl bg-brand-cyan px-6 py-3 text-sm font-semibold text-brand-navy hover:bg-brand-blue-bright">
+          <button type="button" onClick={onContinue} data-testid="wizard-continue" className="inline-flex items-center gap-2 rounded-xl bg-action px-6 py-3 text-sm font-semibold text-on-action hover:bg-action-hover">
             {copy.continue}
             <ArrowRight aria-hidden="true" className="h-4 w-4" />
           </button>
@@ -140,30 +140,30 @@ export function StepStartup({ existingProjectId, onCreated, onSkip, onContinue }
 
   return (
     <div data-wizard-step="startup">
-      <h1 className="text-2xl font-bold text-brand-ink sm:text-3xl">{copy.title}</h1>
-      <p className="mt-2 text-brand-ink-muted">{copy.subtitle}</p>
+      <h1 className="text-2xl font-bold text-primary sm:text-3xl">{copy.title}</h1>
+      <p className="mt-2 text-muted">{copy.subtitle}</p>
       <form onSubmit={submit} className="mt-8 space-y-5">
         <div>
-          <label htmlFor={`${uid}-name`} className="block text-sm font-medium text-brand-ink">{copy.nameLabel}</label>
+          <label htmlFor={`${uid}-name`} className="block text-sm font-medium text-primary">{copy.nameLabel}</label>
           <input id={`${uid}-name`} type="text" required maxLength={100} value={name} onChange={(e) => setName(e.target.value)} placeholder={copy.namePlaceholder} className={input} />
         </div>
         <div>
-          <label htmlFor={`${uid}-url`} className="block text-sm font-medium text-brand-ink">{copy.urlLabel}</label>
+          <label htmlFor={`${uid}-url`} className="block text-sm font-medium text-primary">{copy.urlLabel}</label>
           <input id={`${uid}-url`} type="url" maxLength={200} value={url} onChange={(e) => setUrl(e.target.value)} placeholder={copy.urlPlaceholder} className={input} />
         </div>
         <div>
-          <label htmlFor={`${uid}-desc`} className="block text-sm font-medium text-brand-ink">{copy.descLabel}</label>
+          <label htmlFor={`${uid}-desc`} className="block text-sm font-medium text-primary">{copy.descLabel}</label>
           <textarea id={`${uid}-desc`} rows={2} maxLength={500} value={description} onChange={(e) => setDescription(e.target.value)} placeholder={copy.descPlaceholder} className={`${input} resize-none`} />
         </div>
         {error ? (
           <p role="alert" className="text-sm text-red-400">{error}</p>
         ) : null}
         <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <button type="button" onClick={onSkip} disabled={submitting} data-testid="wizard-skip" className="inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-brand-ink-muted underline decoration-brand-ink-muted/40 underline-offset-4 hover:text-brand-cyan disabled:opacity-40">
+          <button type="button" onClick={onSkip} disabled={submitting} data-testid="wizard-skip" className="inline-flex items-center gap-2 rounded-lg px-2 py-2 text-sm font-medium text-muted underline decoration-line-strong underline-offset-4 hover:text-action disabled:opacity-40">
             <SkipForward aria-hidden="true" className="h-4 w-4" />
             {copy.skip}
           </button>
-          <button type="submit" disabled={submitting} data-testid="wizard-continue" className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-cyan px-6 py-3 text-sm font-semibold text-brand-navy hover:bg-brand-blue-bright disabled:opacity-40">
+          <button type="submit" disabled={submitting} data-testid="wizard-continue" className="inline-flex items-center justify-center gap-2 rounded-xl bg-action px-6 py-3 text-sm font-semibold text-on-action hover:bg-action-hover disabled:opacity-40">
             {submitting ? <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> : <Rocket aria-hidden="true" className="h-4 w-4" />}
             {submitting ? copy.submitting : copy.submit}
           </button>

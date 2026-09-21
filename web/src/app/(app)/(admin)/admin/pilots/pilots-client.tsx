@@ -1,11 +1,14 @@
 "use client";
 
-// /admin/pilots — G16-C. Table of pilots (masked e-mail, tier, days left,
-// submissions / reports / assessments, status), the "Start pilot" form
-// (POST /api/admin/pilots), "End early" (DELETE /api/admin/pilots/[id]),
-// links to the intake inbox and the last 20 /pilot applications. Posts JSON
-// from a client component — no inline scripts (CSP). Prices / defaults come
-// in as props from lib/pilots/offer (server) so no literal lives here.
+// /admin/pilots — G16-C, retired to a read-only ledger by G25 (2026-09-21:
+// "bỏ luôn coupon và pilot"). Table of past comped pilots (masked e-mail,
+// tier, days left, submissions / reports / assessments, status), "End early"
+// (DELETE /api/admin/pilots/[id]) for a comp still running, and the last 20
+// applications the retired /pilot/investor form collected. No new pilots are
+// offered: the start form is gone and POST /api/admin/pilots answers 410.
+// Posts JSON from a client component — no inline scripts (CSP). Prices /
+// defaults come in as props from lib/pilots/offer (server) so no literal
+// lives here.
 
 import * as React from "react";
 import Link from "next/link";
@@ -18,11 +21,10 @@ export interface PilotsClientProps {
   user: { email: string; displayName: string | null };
   initial: { pilots: PilotListRow[]; active: number; cap: number };
   applications: PilotApplication[];
-  defaults: { days: number; credits: number; maxApplicants: number; programPrice: string; tier: string };
+  /** Comp terms as they were, for the ledger caption (lib/pilots/offer). */
+  defaults: { programPrice: string; tier: string };
 }
 
-const INPUT = "w-full h-10 rounded-lg border border-surface-300 bg-white px-3 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-200";
-const LABEL = "block text-xs font-medium text-ink-600 mb-1";
 
 function fmt(iso: string | null): string {
   return iso ? iso.slice(0, 10) : "—";
@@ -36,7 +38,7 @@ function statusClass(status: PilotListRow["status"]): string {
 
 export function PilotsTable({ pilots, onEnd, ending }: { pilots: PilotListRow[]; onEnd?: (id: string) => void; ending?: string | null }) {
   if (pilots.length === 0) {
-    return <p className="rounded-xl border border-dashed border-surface-300 bg-white p-6 text-sm text-ink-500" data-testid="pilots-empty">No pilots yet. Start one below once the evaluator has a BlockID account.</p>;
+    return <p className="rounded-xl border border-dashed border-surface-300 bg-white p-6 text-sm text-ink-500" data-testid="pilots-empty">No pilots on the ledger. New pilots are no longer offered (G25).</p>;
   }
   return (
     <div className="overflow-x-auto rounded-xl border border-surface-200 bg-white">
@@ -91,7 +93,7 @@ export function PilotsTable({ pilots, onEnd, ending }: { pilots: PilotListRow[];
 }
 
 export function ApplicationsTable({ applications }: { applications: PilotApplication[] }) {
-  if (applications.length === 0) return <p className="text-sm text-ink-500" data-testid="pilot-applications-empty">No applications yet — the form is at /pilot.</p>;
+  if (applications.length === 0) return <p className="text-sm text-ink-500" data-testid="pilot-applications-empty">No applications — the public form was retired 2026-09-21 (G25).</p>;
   return (
     <div className="overflow-x-auto rounded-xl border border-surface-200 bg-white">
       <table className="w-full text-left text-sm" data-testid="pilot-applications">
@@ -125,12 +127,6 @@ export function ApplicationsTable({ applications }: { applications: PilotApplica
 export function PilotsClient({ user, initial, applications, defaults }: PilotsClientProps) {
   const [pilots, setPilots] = React.useState(initial.pilots);
   const [active, setActive] = React.useState(initial.active);
-  const [email, setEmail] = React.useState("");
-  const [programName, setProgramName] = React.useState("");
-  const [days, setDays] = React.useState(String(defaults.days));
-  const [credits, setCredits] = React.useState(String(defaults.credits));
-  const [intakeSlug, setIntakeSlug] = React.useState("");
-  const [submitting, setSubmitting] = React.useState(false);
   const [ending, setEnding] = React.useState<string | null>(null);
   const [feedback, setFeedback] = React.useState<{ type: "success" | "error"; message: string } | null>(null);
 
@@ -144,42 +140,6 @@ export function PilotsClient({ user, initial, applications, defaults }: PilotsCl
       }
     } catch {
       /* keep the current list */
-    }
-  }
-
-  async function handleStart(e: React.FormEvent) {
-    e.preventDefault();
-    if (submitting) return;
-    if (!email.includes("@") || !programName.trim()) {
-      setFeedback({ type: "error", message: "Evaluator e-mail and program name are required." });
-      return;
-    }
-    if (!window.confirm(`Start a ${days}-day Program-tier pilot for ${email.trim()} and grant ${credits} credits? (Admin comp — no Stripe.)`)) return;
-    setSubmitting(true);
-    setFeedback(null);
-    try {
-      const res = await fetch("/api/admin/pilots", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim(), program_name: programName.trim(), days: Number(days), credits: Number(credits), intake_slug: intakeSlug.trim() || undefined }),
-      });
-      const data = (await res.json()) as { ok: boolean; existing?: boolean; error?: string; message?: string; intake_url?: string | null; warnings?: string[] };
-      if (!res.ok || !data.ok) {
-        setFeedback({ type: "error", message: data.message ?? data.error ?? "Start failed" });
-        return;
-      }
-      setFeedback({
-        type: "success",
-        message: data.existing ? "That evaluator already has an active pilot — returned as is." : `Pilot started.${data.intake_url ? ` Intake: ${data.intake_url}` : ""}${data.warnings?.length ? ` Warnings: ${data.warnings.join("; ")}` : ""}`,
-      });
-      setEmail("");
-      setProgramName("");
-      setIntakeSlug("");
-      await refresh();
-    } catch {
-      setFeedback({ type: "error", message: "Network error." });
-    } finally {
-      setSubmitting(false);
     }
   }
 
@@ -215,7 +175,7 @@ export function PilotsClient({ user, initial, applications, defaults }: PilotsCl
       <div className="mx-auto max-w-7xl space-y-8 p-6">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">G16-C · evaluator pilots</p>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brand-700">G16-C · evaluator pilots · ledger only since G25</p>
             <h1 className="mt-1 flex items-center gap-2 text-2xl font-semibold text-ink-800"><FlaskConical strokeWidth={1.75} className="h-6 w-6 text-brand-600" /> Pilots</h1>
             <p className="mt-1 text-sm text-ink-500">
               <span data-testid="pilots-active">{active}</span>{` of ${initial.cap} active · comp = ${defaults.tier} (${defaults.programPrice}/mo list) by admin grant, never a Stripe coupon.`}
@@ -223,7 +183,7 @@ export function PilotsClient({ user, initial, applications, defaults }: PilotsCl
           </div>
           <nav className="flex flex-wrap gap-2 text-sm">
             <Link href="/workspace/accelerator/applications" className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-surface-300 bg-white px-3 text-ink-700 hover:bg-surface-100"><Inbox strokeWidth={1.75} className="h-4 w-4" /> Intake inbox</Link>
-            <Link href="/pilot" className="inline-flex h-9 items-center rounded-lg border border-surface-300 bg-white px-3 text-ink-700 hover:bg-surface-100">/pilot (public offer)</Link>
+            <Link href="/admin/validation" className="inline-flex h-9 items-center rounded-lg border border-surface-300 bg-white px-3 text-ink-700 hover:bg-surface-100">Validation tracker</Link>
             <Link href="/admin/credits" className="inline-flex h-9 items-center rounded-lg border border-surface-300 bg-white px-3 text-ink-700 hover:bg-surface-100">Credits</Link>
           </nav>
         </header>
@@ -237,40 +197,13 @@ export function PilotsClient({ user, initial, applications, defaults }: PilotsCl
           <PilotsTable pilots={pilots} onEnd={handleEnd} ending={ending} />
         </section>
 
-        <section aria-labelledby="pilots-start-heading" className="rounded-xl border border-surface-200 bg-white p-5">
-          <h2 id="pilots-start-heading" className="text-sm font-semibold uppercase tracking-wide text-ink-500">Start pilot</h2>
-          <p className="mt-1 text-xs text-ink-500">The evaluator must already have a BlockID account (404 otherwise — pilots never create accounts). Sets plan → {defaults.tier}, grants credits, creates the intake link (≤ {defaults.maxApplicants} applicants) as that user, sends the welcome e-mail, audits, alerts ops.</p>
-          <form onSubmit={handleStart} className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5" data-testid="pilot-start-form">
-            <div className="lg:col-span-2">
-              <label htmlFor="pilot-start-email" className={LABEL}>Evaluator e-mail</label>
-              <input id="pilot-start-email" name="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@program.org" className={INPUT} />
-            </div>
-            <div className="lg:col-span-2">
-              <label htmlFor="pilot-start-program" className={LABEL}>Program name</label>
-              <input id="pilot-start-program" name="program_name" type="text" required maxLength={120} value={programName} onChange={(e) => setProgramName(e.target.value)} placeholder="Startmate Winter 27" className={INPUT} />
-            </div>
-            <div>
-              <label htmlFor="pilot-start-days" className={LABEL}>Days</label>
-              <input id="pilot-start-days" name="days" type="number" min={1} max={90} value={days} onChange={(e) => setDays(e.target.value)} className={INPUT} />
-            </div>
-            <div>
-              <label htmlFor="pilot-start-credits" className={LABEL}>Credits</label>
-              <input id="pilot-start-credits" name="credits" type="number" min={0} max={5000} step="0.5" value={credits} onChange={(e) => setCredits(e.target.value)} className={INPUT} />
-            </div>
-            <div className="lg:col-span-2">
-              <label htmlFor="pilot-start-slug" className={LABEL}>Existing intake slug (optional — otherwise one is created)</label>
-              <input id="pilot-start-slug" name="intake_slug" type="text" value={intakeSlug} onChange={(e) => setIntakeSlug(e.target.value)} placeholder="winter-27-abcdefgh" className={INPUT} />
-            </div>
-            <div className="flex items-end lg:col-span-2">
-              <button type="submit" disabled={submitting} data-testid="pilot-start-submit" className="inline-flex h-10 items-center gap-2 rounded-lg bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50">
-                {submitting ? "Starting…" : "Start pilot"}
-              </button>
-            </div>
-          </form>
+        <section aria-labelledby="pilots-retired-heading" className="rounded-xl border border-surface-200 bg-white p-5" data-testid="pilots-retired">
+          <h2 id="pilots-retired-heading" className="text-sm font-semibold uppercase tracking-wide text-ink-500">No new pilots</h2>
+          <p className="mt-1 text-xs text-ink-500">Retired 2026-09-21 (G25). Evaluators go straight to the sold ladder — Cohort 25 / Cohort 100 annual with the card-required trial, or Scout / Firm / Program. This page stays as the ledger of past comps (a comp still running can be ended early above). Track written proposals and the first paying program on <Link href="/admin/validation" className="font-semibold text-brand-700 hover:underline">/admin/validation</Link>.</p>
         </section>
 
         <section aria-labelledby="pilots-applications-heading" className="space-y-3">
-          <h2 id="pilots-applications-heading" className="text-sm font-semibold uppercase tracking-wide text-ink-500">Applications from /pilot (last 20)</h2>
+          <h2 id="pilots-applications-heading" className="text-sm font-semibold uppercase tracking-wide text-ink-500">Applications from the retired /pilot/investor form (last 20)</h2>
           <ApplicationsTable applications={applications} />
         </section>
       </div>

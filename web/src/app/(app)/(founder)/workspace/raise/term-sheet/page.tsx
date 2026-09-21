@@ -57,7 +57,7 @@ export default async function TermSheetHistoryPage() {
           </div>
           <Link
             href="/tools/term-sheet"
-            className="inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
+            className="inline-flex items-center gap-1.5 rounded-md bg-action px-3 py-2 text-sm font-medium text-on-action hover:bg-action-hover transition-colors"
           >
             Analyse another term sheet
           </Link>
@@ -70,7 +70,7 @@ export default async function TermSheetHistoryPage() {
             </p>
             <Link
               href="/tools/term-sheet"
-              className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
+              className="mt-4 inline-flex items-center gap-1.5 rounded-md bg-action px-3 py-2 text-sm font-medium text-on-action hover:bg-action-hover transition-colors"
             >
               Try the Term Sheet AI
             </Link>

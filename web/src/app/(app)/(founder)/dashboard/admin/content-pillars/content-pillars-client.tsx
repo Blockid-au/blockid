@@ -36,8 +36,8 @@ function PillarCard({ stats }: { stats: PillarStats }) {
   return (
     <div className={cn(
       "rounded-xl border bg-card overflow-hidden",
-      status === "bad" ? "border-red-200 dark:border-red-800/40" :
-      status === "warn" ? "border-amber-200 dark:border-amber-700/50" :
+      status === "bad" ? "border-red-200" :
+      status === "warn" ? "border-amber-200" :
       "border-border"
     )}>
       <button onClick={() => setOpen(!open)} className="w-full px-5 py-4 text-left hover:bg-muted/30 transition-colors">
@@ -181,7 +181,7 @@ export function ContentPillarsClient({ stats, totalArticles }: Props) {
 
       {/* Status banner */}
       {overallWeekly < overallTarget * 0.5 && (
-        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-700 rounded-xl p-4 text-sm text-amber-800 dark:text-amber-400">
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
           <strong>Pacing warning:</strong> Only {overallWeekly} of {overallTarget} target posts published this week. CMO orchestrator should escalate to /api/insights/generate or schedule a content sprint.
         </div>
       )}

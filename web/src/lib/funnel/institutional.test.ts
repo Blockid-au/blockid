@@ -46,7 +46,11 @@ describe("reduceInstitutional (pure)", () => {
       }
     }
     // the metrics with no data path today are never faked as 0
-    expect(metric(sections, "pilot_page_views").status).toBe("p1");
+    expect(metric(sections, "programs_page_views").status).toBe("p1");
+    // G25: the pilot rows are historical only; a Cohort proposal count is live from the validation ledger.
+    expect(metric(sections, "paid_pilots").label).toMatch(/retired/);
+    expect(metric(sections, "pilot_revenue").label).toMatch(/retired/);
+    expect(metric(sections, "cohort_proposals").status).toBe("live");
     // G21 P3-A: the outcome ledger is live — a null value means the table is unreachable, never a fake zero.
     expect(metric(sections, "known_outcomes").status).toBe("live");
     expect(metric(sections, "known_outcomes").value).toBeNull();
@@ -221,7 +225,6 @@ describe("readInstitutionalFunnel (fail-soft)", () => {
       evaluation_batch_items: { data: [{ batch_id: "b1", scored_at: "2026-09-02T00:00:00Z", status: "done" }], error: null },
       evaluation_batches: { data: [{ id: "b1", user_id: "org" }], error: null },
       app_users: { data: [{ id: "org", plan: "investor_fund" }], error: null },
-      pilot_orders: new Error("relation does not exist"),
       oauth_connections_v2: {
         data: [
           { project_id: "p1", provider: "stripe", status: "active", last_sync_at: "2026-05-01T00:00:00Z", updated_at: "2026-05-01T00:00:00Z" },

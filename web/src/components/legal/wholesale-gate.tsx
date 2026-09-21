@@ -118,17 +118,17 @@ export function WholesaleGate({
       role="dialog"
       aria-modal="true"
       aria-labelledby="wsg-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/70 p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-ink-950/60 p-4"
     >
-      <div className="w-full max-w-lg rounded-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden">
-        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800">
+      <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-line-subtle overflow-hidden">
+        <div className="px-6 py-4 border-b border-line-subtle">
           <h2
             id="wsg-title"
-            className="text-lg font-semibold text-slate-900 dark:text-slate-100"
+            className="text-lg font-semibold text-primary"
           >
             Are you a wholesale investor?
           </h2>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          <p className="mt-1 text-xs text-muted">
             Per Corporations Act 2001 (Cth) s708(8)/(11) — sophisticated or
             professional investor.
           </p>
@@ -139,12 +139,12 @@ export function WholesaleGate({
             <button
               type="button"
               onClick={() => setMode("upload")}
-              className="w-full text-left rounded-lg border border-brand-500 bg-brand-50 dark:bg-brand-950/30 px-4 py-3 hover:bg-brand-100 dark:hover:bg-brand-950/50 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
+              className="w-full text-left rounded-lg border border-brand-500 bg-brand-50 px-4 py-3 hover:bg-brand-100 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
             >
-              <div className="text-sm font-semibold text-brand-900 dark:text-brand-100">
+              <div className="text-sm font-semibold text-brand-900">
                 Yes — upload certificate
               </div>
-              <div className="mt-0.5 text-xs text-brand-800/80 dark:text-brand-200/80">
+              <div className="mt-0.5 text-xs text-brand-800/80">
                 Upload an accountant&apos;s s708(8) certificate or professional
                 investor licence.
               </div>
@@ -152,23 +152,23 @@ export function WholesaleGate({
             <button
               type="button"
               onClick={onChooseRetail}
-              className="w-full text-left rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
+              className="w-full text-left rounded-lg border border-line px-4 py-3 hover:bg-surface-sunken transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
             >
-              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              <div className="text-sm font-semibold text-primary">
                 No — proceed as retail
               </div>
-              <div className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
+              <div className="mt-0.5 text-xs text-secondary">
                 Wholesale-only content will remain hidden.
               </div>
             </button>
             <Link
               href={faqHref}
-              className="block w-full text-left rounded-lg border border-slate-300 dark:border-slate-700 px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
+              className="block w-full text-left rounded-lg border border-line px-4 py-3 hover:bg-surface-sunken transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600 focus-visible:ring-offset-2"
             >
-              <div className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+              <div className="text-sm font-semibold text-primary">
                 Not sure — see FAQ
               </div>
-              <div className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
+              <div className="mt-0.5 text-xs text-secondary">
                 Learn how wholesale investor status is determined in Australia.
               </div>
             </Link>
@@ -177,7 +177,7 @@ export function WholesaleGate({
 
         {mode === "upload" && (
           <div className="px-6 py-5 space-y-4">
-            <p className="text-sm text-slate-700 dark:text-slate-300">
+            <p className="text-sm text-slate-700">
               Upload your s708(8) accountant&apos;s certificate (PDF, ≤ 8 MB). The
               file hash and metadata are stored in our audit trail; a human
               reviewer confirms status.
@@ -186,17 +186,17 @@ export function WholesaleGate({
               type="file"
               accept="application/pdf,image/png,image/jpeg"
               onChange={onFileChange}
-              className="block w-full text-sm text-slate-700 dark:text-slate-300 file:mr-3 file:rounded-lg file:border-0 file:bg-brand-600 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-brand-700"
+              className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-lg file:border-0 file:bg-action file:px-3 file:py-2 file:text-sm file:font-semibold file:text-on-action hover:file:bg-action-hover"
             />
             {file && (
-              <div className="text-xs text-slate-500 dark:text-slate-400">
+              <div className="text-xs text-muted">
                 Selected: {file.name} · {Math.round(file.size / 1024)} KB
               </div>
             )}
             {error && (
               <div
                 role="alert"
-                className="rounded-md border border-rose-300 dark:border-rose-800 bg-rose-50 dark:bg-rose-900/20 px-3 py-2 text-xs text-rose-800 dark:text-rose-200"
+                className="rounded-md border border-rose-300 bg-rose-50 px-3 py-2 text-xs text-rose-800"
               >
                 {error}
               </div>
@@ -205,7 +205,7 @@ export function WholesaleGate({
               <button
                 type="button"
                 onClick={() => setMode("prompt")}
-                className="rounded-lg border border-slate-300 dark:border-slate-700 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800"
+                className="rounded-lg border border-line px-3 py-2 text-sm font-medium text-slate-700 hover:bg-surface-sunken"
               >
                 Back
               </button>
@@ -215,8 +215,8 @@ export function WholesaleGate({
                 disabled={!file || submitting}
                 className={`rounded-lg px-4 py-2 text-sm font-semibold ${
                   file && !submitting
-                    ? "bg-brand-600 hover:bg-brand-700 text-white"
-                    : "bg-slate-200 dark:bg-slate-800 text-slate-500 cursor-not-allowed"
+                    ? "bg-action hover:bg-action-hover text-on-action"
+                    : "bg-slate-200 text-muted cursor-not-allowed"
                 }`}
               >
                 {submitting ? "Uploading…" : "Submit for review"}
@@ -228,14 +228,14 @@ export function WholesaleGate({
         {mode === "success" && (
           <div className="px-6 py-6 text-center space-y-3">
             <div className="text-3xl">✓</div>
-            <p className="text-sm text-slate-700 dark:text-slate-300">
+            <p className="text-sm text-slate-700">
               Received. Your certificate is queued for review. You will be
               notified once wholesale status is confirmed.
             </p>
             <button
               type="button"
               onClick={onClose}
-              className="rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-4 py-2 text-sm font-semibold"
+              className="rounded-lg bg-action hover:bg-action-hover text-on-action px-4 py-2 text-sm font-semibold"
             >
               Close
             </button>

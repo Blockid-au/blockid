@@ -35,7 +35,7 @@ export interface CohortFiltersProps {
 const chip = (active: boolean) =>
   cn(
     "inline-flex min-h-11 cursor-pointer items-center gap-1 rounded-full border px-3 text-xs font-medium transition-colors duration-150 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action",
-    active ? "border-brand-600 bg-brand-navy text-white" : "border-line bg-surface text-secondary hover:bg-surface-hover",
+    active ? "rounded-full border-brand-navy bg-brand-navy text-white" : "border-line bg-surface text-secondary hover:bg-surface-hover",
   );
 
 function toggleIn<T>(list: T[] | undefined, v: T): T[] | undefined {

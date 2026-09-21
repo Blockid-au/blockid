@@ -150,7 +150,7 @@ function InvestorPacksSection({
   return (
     <div className="rounded-xl border border-surface-200 bg-white overflow-hidden">
       <table className="w-full text-sm">
-        <thead>
+        <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
           <tr className="border-b border-surface-200 bg-surface-50">
             <th className="text-left px-4 py-2.5 text-[10px] uppercase tracking-[0.14em] text-ink-700 font-medium">
               Generated
@@ -166,7 +166,7 @@ function InvestorPacksSection({
             </th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-line-subtle">
           {packs.map((pack) => (
             <tr
               key={pack.id}
@@ -197,7 +197,7 @@ function InvestorPacksSection({
                   <a
                     href={pack.download_url}
                     download
-                    className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-brand-700 transition-colors"
+                    className="inline-flex items-center gap-1 rounded-lg bg-action px-2.5 py-1 text-xs font-semibold text-on-action hover:bg-action-hover transition-colors"
                   >
                     <Download strokeWidth={1.75} className="h-3 w-3" />
                     Download PDF
@@ -224,7 +224,7 @@ function AssembledReportsSection({
   return (
     <div className="rounded-xl border border-surface-200 bg-white overflow-hidden">
       <table className="w-full text-sm">
-        <thead>
+        <thead className="sticky top-0 z-10 bg-surface-sunken text-left text-xs font-semibold uppercase tracking-wide text-muted">
           <tr className="border-b border-surface-200 bg-surface-50">
             <th className="text-left px-4 py-2.5 text-[10px] uppercase tracking-[0.14em] text-ink-700 font-medium">
               Startup
@@ -243,7 +243,7 @@ function AssembledReportsSection({
             </th>
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-line-subtle">
           {reports.map((report) => (
             <tr
               key={report.id}
@@ -299,7 +299,7 @@ export function ReportArchive({
       <section aria-labelledby="archive-compact-heading" className="mt-4">
         <h2
           id="archive-compact-heading"
-          className="text-sm font-semibold text-ink-800 dark:text-slate-100 mb-2"
+          className="text-sm font-semibold text-ink-800 mb-2"
         >
           Previously generated
         </h2>

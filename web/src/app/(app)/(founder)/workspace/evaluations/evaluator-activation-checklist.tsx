@@ -60,7 +60,7 @@ const STEP_COPY: Record<ActivationStepNumber, { title: string; body: string; cta
 const CTA_PRIMARY =
   "inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 transition-colors cursor-pointer shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/60 focus-visible:ring-offset-2";
 const CTA_SECONDARY =
-  "inline-flex min-h-11 items-center justify-center rounded-xl border border-brand-300 bg-white px-4 py-2.5 text-sm font-semibold text-brand-700 hover:bg-brand-50 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/60 focus-visible:ring-offset-2";
+  "inline-flex min-h-11 items-center justify-center rounded-xl border border-brand-300 bg-surface px-4 py-2.5 text-sm font-semibold text-action hover:bg-surface-hover transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/60 focus-visible:ring-offset-2";
 
 export function EvaluatorActivationChecklist({
   input,
@@ -106,7 +106,7 @@ export function EvaluatorActivationChecklist({
       aria-labelledby="evaluator-checklist-title"
       data-testid="evaluator-activation-checklist"
       data-completed={state.completed}
-      className="rounded-2xl border border-surface-200 bg-white px-5 py-5 shadow-sm"
+      className="rounded-2xl border border-surface-200 bg-surface px-5 py-5 shadow-sm"
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
@@ -118,7 +118,7 @@ export function EvaluatorActivationChecklist({
         <div className="flex shrink-0 items-center gap-2">
           <span
             data-testid="evaluator-checklist-progress"
-            className="inline-flex items-center rounded-full border border-brand-200 bg-brand-50 px-2.5 py-1 text-xs font-semibold text-brand-700 tabular-nums"
+            className="inline-flex items-center rounded-full border border-brand-300 bg-info-soft px-2.5 py-1 text-xs font-semibold text-action tabular-nums"
           >
             {evaluationsCopy("checklist.progress", { done: state.completed, total: state.total })}
           </span>
@@ -173,7 +173,7 @@ export function EvaluatorActivationChecklist({
                     step.done
                       ? "mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white"
                       : primary
-                        ? "mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-brand-600 text-xs font-bold text-brand-700 tabular-nums"
+                        ? "mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-brand-600 text-xs font-bold text-action tabular-nums"
                         : "mt-0.5 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-surface-300 text-xs font-semibold text-ink-500 tabular-nums"
                   }
                 >

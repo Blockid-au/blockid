@@ -1,13 +1,13 @@
-// GET /api/admin/validation/[id]/proposal — the written pilot proposal PDF
-// for one validation-tracker entry (G23-B, 2026-09-21; the advisor plan's
-// Level 3 artefact).
+// GET /api/admin/validation/[id]/proposal — the written Cohort proposal PDF
+// for one validation-tracker entry (G23-B, 2026-09-21; re-based by G25 on
+// the Cohort annual plans — the advisor plan's Level 3 artefact).
 //
 //   401 anonymous · 403 signed-in non-admin · 400 malformed id / applicants ·
 //   404 unknown entry · 429 (PROPOSALS_PER_HOUR per admin) · 200 application/pdf
 //   with a Content-Disposition filename slugged from the organisation.
 //
 //   ?applicants=<n>  overrides the cohort size the entry text implies
-//                    (≤ 25 → the 25 pilot, else the 50 — lib/validation/proposal.ts).
+//                    (≤ the Cohort 25 cap → Cohort 25, else Cohort 100 — lib/validation/proposal.ts).
 //
 // Generated on demand, never stored. The one write is the entry stamp
 // `proposal_generated_at` (PATCH through the existing ledger helper), and
@@ -22,7 +22,7 @@ import { gateAdmin } from "@/lib/pilots/admin-gate";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { PRIVATE_JSON_HEADERS } from "@/lib/security/request-guards";
 import { patchEntry, readValidationLedger, resolveValidationRoot } from "@/lib/validation/ledger";
-import { buildPilotProposal } from "@/lib/validation/proposal";
+import { buildCohortProposal } from "@/lib/validation/proposal";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -61,9 +61,9 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
   if (!entry) return json({ ok: false, error: "not_found", message: "No entry with that id." }, 404);
 
   const now = new Date();
-  const proposal = buildPilotProposal(entry, { now, applicants });
-  const { renderPilotProposalPdf } = await import("@/lib/pdf/pilot-proposal-pdf");
-  const { buffer, pages } = await renderPilotProposalPdf(proposal);
+  const proposal = buildCohortProposal(entry, { now, applicants });
+  const { renderCohortProposalPdf } = await import("@/lib/pdf/cohort-proposal-pdf");
+  const { buffer, pages } = await renderCohortProposalPdf(proposal);
 
   // Stamp the entry (the ledger helper owns the write); a failed stamp never
   // withholds the PDF the founder is about to send.
@@ -75,7 +75,7 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
     action: "validation.proposal_generated",
     subjectType: "validation_entry",
     subjectId: entry.id,
-    fields: { level: entry.level, sku: proposal.meta.sku, applicants: proposal.scope.applicantsCap, pages, reference: proposal.meta.reference },
+    fields: { level: entry.level, plan: proposal.meta.planId, applicants: proposal.scope.applicantsCap, pages, reference: proposal.meta.reference },
     route: "/api/admin/validation/[id]/proposal",
     ip: extractIp(request.headers),
     ua: extractUserAgent(request.headers),
@@ -90,7 +90,7 @@ export async function GET(request: Request, ctx: { params: Promise<{ id: string 
       "cache-control": "private, no-store",
       "x-robots-tag": "noindex, nofollow",
       "x-proposal-pages": String(pages),
-      "x-proposal-sku": proposal.meta.sku,
+      "x-proposal-plan": proposal.meta.planId,
       // The stamped row's timestamps so the client's next PATCH carries the
       // current `If-Match` (review G23 P2: the edit after a download 409'd).
       ...(stamped.ok ? { "x-proposal-generated-at": stamped.value.proposal_generated_at ?? now.toISOString(), "x-entry-updated-at": stamped.value.updated_at } : {}),

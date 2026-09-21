@@ -1,7 +1,7 @@
 // Colocated vitest for GET + POST /api/admin/pilots and DELETE
 // /api/admin/pilots/[id] (G16-C). The service is mocked at its boundary so
 // this file pins the HTTP contract: auth ladder (401 anon / 403 non-admin),
-// 400 bad body, 404 unknown evaluator, 409 cap, idempotent 200 vs 201,
+// POST 410 (retired by G25 — no new pilots),
 // plan set + previous_plan in the returned row, the Stripe-subscriber guard
 // surfaced as plan_reverted:false, DELETE reason parsing. The lifecycle
 // itself is covered in src/lib/pilots/service.test.ts.
@@ -92,48 +92,16 @@ describe("GET", () => {
   });
 });
 
-describe("POST", () => {
+describe("POST — retired (G25, 2026-09-21)", () => {
   beforeEach(() => mocks.getCurrentUser.mockResolvedValue(ADMIN));
 
-  it("400 on a non-JSON body without calling the service", async () => {
-    const res = await POST(post("not json"));
-    expect(res.status).toBe(400);
-    expect(mocks.startPilot).not.toHaveBeenCalled();
-  });
-
-  it("201 with the ledger row (tier set, previous_plan kept), intake_url and the actor forwarded", async () => {
-    mocks.startPilot.mockResolvedValue({ ok: true, existing: false, pilot: PILOT, intake_url: "https://blockid.au/apply/demo-abcdefgh", warnings: [] });
+  it("410 pilots_retired for an admin — the service is never called, whatever the body", async () => {
     const res = await POST(post({ email: "Eval@Program.org", program_name: "Demo", days: 30 }));
-    expect(res.status).toBe(201);
-    const body = await res.json();
-    expect(body).toMatchObject({ ok: true, existing: false, intake_url: "https://blockid.au/apply/demo-abcdefgh", warnings: [] });
-    expect(body.pilot).toMatchObject({ tier: "investor_vc_small", previous_plan: "investor_angel", status: "active" });
-    expect(mocks.startPilot).toHaveBeenCalledWith({ email: "Eval@Program.org", program_name: "Demo", days: 30 }, { email: "admin@blockid.au", id: "admin-1" });
-  });
-
-  it("200 existing:true when the e-mail already has an active pilot (idempotent)", async () => {
-    mocks.startPilot.mockResolvedValue({ ok: true, existing: true, pilot: PILOT, intake_url: null, warnings: [] });
-    const res = await POST(post({ email: "eval@program.org", program_name: "Other" }));
-    expect(res.status).toBe(200);
-    expect(await res.json()).toMatchObject({ ok: true, existing: true, pilot: { id: "p-1" } });
-  });
-
-  it("404 unknown evaluator, 409 cap (with active count), 400 invalid, 503 no db — status + error passed through", async () => {
-    mocks.startPilot.mockResolvedValueOnce({ ok: false, status: 404, error: "user_not_found", message: "No BlockID account" });
-    let res = await POST(post({ email: "ghost@x.io", program_name: "x" }));
-    expect(res.status).toBe(404);
-    expect(await res.json()).toEqual({ ok: false, error: "user_not_found", message: "No BlockID account" });
-
-    mocks.startPilot.mockResolvedValueOnce({ ok: false, status: 409, error: "cap_reached", message: "5 of 5", active: 5 });
-    res = await POST(post({ email: "a@x.io", program_name: "x" }));
-    expect(res.status).toBe(409);
-    expect(await res.json()).toEqual({ ok: false, error: "cap_reached", message: "5 of 5", active: 5 });
-
-    mocks.startPilot.mockResolvedValueOnce({ ok: false, status: 400, error: "invalid_input", message: "days" });
-    expect((await POST(post({ email: "a@x.io", program_name: "x", days: 0 }))).status).toBe(400);
-
-    mocks.startPilot.mockResolvedValueOnce({ ok: false, status: 503, error: "db_unavailable", message: "no db" });
-    expect((await POST(post({ email: "a@x.io", program_name: "x" }))).status).toBe(503);
+    expect(res.status).toBe(410);
+    expect(await res.json()).toMatchObject({ ok: false, error: "pilots_retired" });
+    expect(mocks.startPilot).not.toHaveBeenCalled();
+    expect((await POST(post("not json"))).status).toBe(410);
+    expect(mocks.startPilot).not.toHaveBeenCalled();
   });
 });
 

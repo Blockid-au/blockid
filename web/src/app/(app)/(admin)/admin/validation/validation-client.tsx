@@ -45,9 +45,8 @@ const OUTCOME_CLASS: Record<ValidationOutcome, string> = {
 const OUTCOME_LABEL: Record<ValidationOutcome, string> = { booked: "Booked", done: "Done", declined: "Declined" };
 
 const SOURCE_LABEL: Record<AutoRow["source"], string> = {
-  pilot_orders: "pilot_orders",
-  "pilot_orders.metrics": "pilot_orders.metrics",
-  "pilot-applications.jsonl": "pilot-applications.jsonl",
+  revenue_events: "revenue_events",
+  "pilot-applications.jsonl": "pilot-applications.jsonl (retired form)",
   founder_feedback_letters: "founder_feedback_letters",
   evaluation_batches: "evaluation_batches",
 };
@@ -243,7 +242,7 @@ export function proposalFilenameFrom(disposition: string | null, entryId: string
     const unquoted = raw.startsWith(String.fromCharCode(34)) ? raw.slice(1, raw.indexOf(String.fromCharCode(34), 1)) : raw.split(";")[0]!.trim();
     if (unquoted && unquoted.toLowerCase().endsWith(".pdf")) return unquoted;
   }
-  return `blockid-pilot-proposal-${entryId.slice(0, 8)}.pdf`;
+  return `blockid-cohort-proposal-${entryId.slice(0, 8)}.pdf`;
 }
 
 // ── Entries table ───────────────────────────────────────────────────────────
@@ -297,7 +296,7 @@ export function EntriesTable({ entries, onEdit, onDelete, onProposal, busyId }: 
                 {onEdit && onDelete ? (
                   <div className="flex gap-1">
                     {onProposal ? (
-                      <button type="button" disabled={busyId === e.id} onClick={() => onProposal(e)} className="inline-flex h-11 items-center gap-1 rounded-lg border border-brand-200 bg-white px-3 text-xs font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50" aria-label={`Generate proposal for ${e.organisation}`} title="Generate the written pilot proposal (PDF)" data-testid="validation-entry-proposal">
+                      <button type="button" disabled={busyId === e.id} onClick={() => onProposal(e)} className="inline-flex h-11 items-center gap-1 rounded-lg border border-brand-200 bg-white px-3 text-xs font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50" aria-label={`Generate proposal for ${e.organisation}`} title="Generate the written Cohort proposal (PDF)" data-testid="validation-entry-proposal">
                         <FileDown className="h-4 w-4" aria-hidden="true" /> {busyId === e.id ? "Generating…" : "Proposal"}
                       </button>
                     ) : null}
@@ -324,9 +323,9 @@ export function AutoRowsTable({ rows }: { rows: AutoRow[] }) {
   return (
     <section aria-labelledby="validation-auto-h" data-testid="validation-auto">
       <h2 id="validation-auto-h" className="text-base font-semibold text-ink-800">From platform data (read-only)</h2>
-      <p className="mt-1 text-xs text-ink-500">Paid pilots count toward L4 / L5; every other row is a signal shown for context and never counted. QA accounts are excluded. Source in the last column.</p>
+      <p className="mt-1 text-xs text-ink-500">Paid program invoices (Cohort 25 / Cohort 100 / Program — revenue_events) count toward L4 / L5; every other row is a signal shown for context and never counted. QA accounts are excluded. Source in the last column.</p>
       {rows.length === 0 ? (
-        <p className="mt-3 rounded-xl border border-dashed border-surface-300 bg-white p-6 text-sm text-ink-500" data-testid="validation-auto-empty">No paid pilots, pilot metrics, applications, feedback letters or scored cohorts on record yet.</p>
+        <p className="mt-3 rounded-xl border border-dashed border-surface-300 bg-white p-6 text-sm text-ink-500" data-testid="validation-auto-empty">No paid program invoices, applications, feedback letters or scored cohorts on record yet.</p>
       ) : (
         <div className="mt-3 overflow-auto max-h-[75vh] rounded-xl border border-surface-200 bg-white">
           <table className="w-full min-w-[36rem] text-left text-sm">
@@ -530,7 +529,7 @@ export function ValidationClient({ user, initial }: ValidationClientProps) {
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  // G23-B — the written pilot proposal: fetched (so a 4xx/5xx passes through
+  // G23-B — the written Cohort proposal: fetched (so a 4xx/5xx passes through
   // userErrorMessage instead of a broken download), then saved through an
   // object URL. The route stamps proposal_generated_at; mirror it locally.
   async function handleProposal(e: ValidationEntry) {
@@ -575,7 +574,7 @@ export function ValidationClient({ user, initial }: ValidationClientProps) {
             <ClipboardList strokeWidth={1.75} className="h-6 w-6 text-brand-600" aria-hidden="true" /> Validation tracker
           </h1>
           <p className="mt-1 max-w-3xl text-sm text-ink-500">
-            The advisor plan&apos;s five validation levels — target versus actual. Actuals are entries you record as <em>done</em> plus paid pilots read from <code>pilot_orders</code>; nothing here is a claim about the business. Ledger: <code>content/reports/validation-tracker.json</code>, committed with the reports.
+            The advisor plan&apos;s five validation levels — target versus actual. Actuals are entries you record as <em>done</em> plus paid program invoices read from <code>revenue_events</code> (Cohort 25 / Cohort 100 / Program); nothing here is a claim about the business. Ledger: <code>content/reports/validation-tracker.json</code>, committed with the reports.
             {initial.ledger.updated_at ? <span className="ml-1 text-ink-400">Last edit {initial.ledger.updated_at.slice(0, 10)}.</span> : null}
           </p>
         </header>

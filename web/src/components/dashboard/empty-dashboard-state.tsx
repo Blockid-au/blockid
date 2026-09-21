@@ -58,7 +58,7 @@ export function EmptyDashboardState({
     : "text-[11px] font-semibold uppercase tracking-wide text-brand-600 mb-2";
   const primaryClasses = isDark
     ? "inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-on-action hover:opacity-90 transition-opacity"
-    : "inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 transition-colors";
+    : "inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-action px-6 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors";
 
   const cardClasses = isDark
     ? "group rounded-xl border border-line-subtle bg-surface-sunken p-5 text-left hover:border-action/25 transition-all"
