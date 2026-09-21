@@ -46,6 +46,8 @@ export interface PilotOrdersDb {
   findActive(userId: string, nowIso: string): Promise<PilotOrderRow | null>;
   /** One row by id (any status) — the conversion checkout verifies ownership + window on it. */
   findById(orderId: string): Promise<PilotOrderRow | null>;
+  /** The newest `paid` row for the user regardless of entitlement — the conversion card outlives the pilot by the credit window. */
+  findLatest(userId: string): Promise<PilotOrderRow | null>;
 }
 
 export interface PaidPilotDeps {
@@ -90,6 +92,14 @@ export async function supabasePilotOrdersDb(): Promise<PilotOrdersDb | null> {
     },
     async findById(orderId) {
       const { data, error } = await sb.from("pilot_orders").select("*").eq("id", orderId).maybeSingle();
+      if (error) {
+        console.error("[blockid:pilots] pilot_orders read failed", error.message);
+        return null;
+      }
+      return (data as PilotOrderRow | null) ?? null;
+    },
+    async findLatest(userId) {
+      const { data, error } = await sb.from("pilot_orders").select("*").eq("user_id", userId).eq("status", "paid").order("entitlement_until", { ascending: false }).limit(1).maybeSingle();
       if (error) {
         console.error("[blockid:pilots] pilot_orders read failed", error.message);
         return null;
@@ -213,6 +223,18 @@ export async function findPilotOrderById(orderId: string, deps: PaidPilotDeps = 
   }
 }
 
+/** G23-B — the newest paid order for the conversion card (the credit window outlives the entitlement). Never throws. */
+export async function findLatestPilotOrder(userId: string, deps: PaidPilotDeps = {}): Promise<PilotOrderRow | null> {
+  try {
+    const orders = deps.orders === undefined ? await supabasePilotOrdersDb() : deps.orders;
+    if (!orders) return null;
+    return await orders.findLatest(userId);
+  } catch (err) {
+    console.error("[blockid:pilots] findLatestPilotOrder failed", err instanceof Error ? err.message : String(err));
+    return null;
+  }
+}
+
 /** In-memory `pilot_orders` for tests and the QA harness. */
 export function createFakePilotOrdersDb(seed: PilotOrderRow[] = []): PilotOrdersDb & { rows: PilotOrderRow[] } {
   const rows = [...seed];
@@ -237,6 +259,9 @@ export function createFakePilotOrdersDb(seed: PilotOrderRow[] = []): PilotOrders
     },
     async findById(orderId) {
       return rows.find((r) => r.id === orderId) ?? null;
+    },
+    async findLatest(userId) {
+      return rows.filter((r) => r.user_id === userId && r.status === "paid").sort((a, b) => (a.entitlement_until < b.entitlement_until ? 1 : -1))[0] ?? null;
     },
   };
 }

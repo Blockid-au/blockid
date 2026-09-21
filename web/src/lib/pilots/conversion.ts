@@ -159,7 +159,60 @@ export function conversionOffer(order: ConversionOrderLike, now: Date = new Date
   };
 }
 
-// ── Webhook write (the webhook's side of the conversion) ────────────────────
+// ── The card's view (serialisable; no env NAME, no coupon value) ────────────
+
+export interface ConversionOfferView {
+  orderId: string;
+  plan: ConversionPlanId;
+  planName: string;
+  annualPriceLabel: string;
+  annualPriceLongLabel: string;
+  pilotFeeLabel: string;
+  /** "A$3,500" — annual minus the pilot credit, from the constants. */
+  firstYearLabel: string;
+  trialDays: number;
+  configured: boolean;
+  eligible: boolean;
+  reason: ConversionOffer["reason"];
+  /** "17 Feb 2027" — the last day the credit applies. */
+  windowEndsLabel: string;
+  creditRule: string;
+  contactHref: string;
+  convertedAtLabel: string | null;
+  convertedPlanName: string | null;
+}
+
+function fmtDay(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "Australia/Sydney" });
+}
+
+/** What the pilot page hands the client card. Pure; null when the order is not a pilot SKU. */
+export function conversionOfferView(order: ConversionOrderLike, now: Date = new Date(), env?: NodeJS.ProcessEnv): ConversionOfferView | null {
+  const offer = conversionOffer(order, now, env);
+  if (!offer) return null;
+  const row = conversionPlan(offer.plan);
+  const convertedPlan = order.converted_plan === "accelerator_starter" || order.converted_plan === "accelerator_growth" ? conversionPlan(order.converted_plan).name : null;
+  return {
+    orderId: offer.orderId,
+    plan: offer.plan,
+    planName: offer.planName,
+    annualPriceLabel: offer.annualPriceLabel,
+    annualPriceLongLabel: offer.annualPriceLongLabel,
+    pilotFeeLabel: offer.pilotFeeLabel,
+    firstYearLabel: formatAud(Math.max(0, offer.annualAud - offer.pilotFeeCents / 100)),
+    trialDays: row.trial_days,
+    configured: offer.configured,
+    eligible: offer.eligible,
+    reason: offer.reason,
+    windowEndsLabel: fmtDay(offer.windowEndsAt),
+    creditRule: offer.creditRule,
+    contactHref: offer.contactHref,
+    convertedAtLabel: order.converted_at ? fmtDay(order.converted_at) : null,
+    convertedPlanName: convertedPlan,
+  };
+}
+
+// ── Webhook write (the webhook side of the conversion) ──────────────────────
 
 export interface PilotConversionDb {
   /**

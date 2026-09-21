@@ -12,6 +12,10 @@
 //                 the case-study consent checkbox (published only with it).
 //   3. Consent    what applicants see — APPLICANT_CONSENT_TEXT
 //                 (lib/pilots/consent.ts), the default for intake templates.
+//   4. Convert    (G23-B) "Convert to Cohort 25 / Cohort 100 (annual)" —
+//                 the offer is computed here (`conversionOffer`, env NAME
+//                 only), the card posts convert_from_pilot to the checkout
+//                 or links /contact?topic=pilot when the coupon is unset.
 //
 // Server component; the h1 sits outside every gate.
 
@@ -22,8 +26,10 @@ import { CheckCircle2, Circle } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
-import { findActivePilotOrder } from "@/lib/pilots/paid-orders";
+import { findActivePilotOrder, findLatestPilotOrder } from "@/lib/pilots/paid-orders";
 import { PILOT_SKUS, formatPilotPriceLong, isPilotSkuId } from "@/lib/pricing/pilot-skus";
+import { conversionOfferView } from "@/lib/pilots/conversion";
+import { PilotConvertCard } from "./pilot-convert-card";
 import { checklistFromMetrics, readPilotMetrics } from "@/lib/pilots/metrics";
 import { APPLICANT_CONSENT_LABEL, APPLICANT_CONSENT_POINTS, APPLICANT_CONSENT_TEXT } from "@/lib/pilots/consent";
 import { loadIntakeSummary, loadProgramJourney } from "@/lib/evaluations/program-journey-data";
@@ -41,12 +47,18 @@ function fmtDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "numeric", timeZone: "Australia/Sydney" });
 }
 
-export default async function PilotKitPage() {
+export default async function PilotKitPage(props: { searchParams?: Promise<Record<string, string | string[] | undefined>> } = {}) {
+  const searchParams = props.searchParams;
   const user = await getCurrentUser();
   if (!user) redirect("/auth/login?next=/workspace/accelerator/pilot");
-  const [isSandbox, order] = await Promise.all([getCurrentProjectIsSandbox(), findActivePilotOrder(user.id)]);
+  const [isSandbox, order, sp] = await Promise.all([getCurrentProjectIsSandbox(), findActivePilotOrder(user.id), searchParams ?? Promise.resolve({})]);
   const admin = user.role === "admin";
   const showKit = Boolean(order) || admin;
+  // G23-B — the conversion card outlives the entitlement by the credit
+  // window, so an ended pilot still reads its newest paid order.
+  const convertSource = order ?? (admin ? null : await findLatestPilotOrder(user.id));
+  const convert = convertSource ? conversionOfferView(convertSource) : null;
+  const justConverted = sp?.converted === "1";
 
   let kit: { checklist: ReturnType<typeof checklistFromMetrics>; metrics: ReturnType<typeof readPilotMetrics>; scored: number; decided: number } | null = null;
   if (showKit) {
@@ -102,6 +114,14 @@ export default async function PilotKitPage() {
           </section>
         ) : null}
 
+        {!showKit && convert ? <PilotConvertCard offer={convert} /> : null}
+
+        {justConverted ? (
+          <p role="status" className="rounded-xl border border-bull/30 bg-bull/5 px-4 py-3 text-sm text-primary" data-testid="pilot-converted-banner">
+            Thanks — your Cohort plan is starting. The pilot credit is on the first invoice; the card below updates once Stripe confirms the subscription.
+          </p>
+        ) : null}
+
         {kit ? (
           <>
             <section aria-labelledby="pilot-checklist-h" data-testid="pilot-checklist">
@@ -126,6 +146,8 @@ export default async function PilotKitPage() {
                 ))}
               </ol>
             </section>
+
+            {convert ? <PilotConvertCard offer={convert} /> : null}
 
             <section id="pilot-metrics" aria-labelledby="pilot-metrics-h" className="space-y-3">
               <div>
