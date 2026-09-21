@@ -90,10 +90,10 @@ describe("<EntriesTable> + <AutoRowsTable> + <ScriptCard>", () => {
     expect(await html(<AutoRowsTable rows={[]} />)).toContain('data-testid="validation-auto-empty"');
   });
 
-  it("script card: 13 checkboxes, first + last question, ticks not saved", async () => {
+  it("script card: 14 checkboxes, first + last question, ticks not saved", async () => {
     const out = await html(<ScriptCard />);
     expect(out.match(/data-testid="validation-script-q"/g)).toHaveLength(14);
-    expect(out).toContain("Walk me through your intake process today");
+    expect(out).toContain("Walk me through your current intake process");
     expect(out).toContain("Will you pay for the next cohort now?");
     expect(out).toContain("not saved");
     expect(out).toContain('data-testid="validation-script-ticked">0<');
