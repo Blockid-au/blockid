@@ -23,6 +23,7 @@ import { TBR_UNLOCK_RAIL_TESTID, tbrUnlockHeadline } from "./unlock-rail";
 import { groundingAudit } from "@/lib/report-v2/grounding";
 import { TBR_GROUNDED_SHARE_KPI } from "@/lib/report-pipeline/quality-log";
 import { PLAN_STEPS_FREE, RISK_ROWS_FREE } from "@/lib/report-v2/investment-view";
+import { tbrPdfOutline } from "@/lib/pdf/tbr-pdf";
 
 const V3_ORDER = [
   "tbr-dashboard",
@@ -91,6 +92,10 @@ describe("<TbrReportV2> v3 structure (G27)", () => {
     expect(g.overview.map((x) => x.label)).toEqual(["Dashboard", "Investment view", "Key points", "Valuation"]);
     expect(tbrV2Toc(citedDemoReportV2()).at(-1)).toEqual({ id: TBR_V2_SECTION_IDS.evidenceCited, label: "Evidence cited" });
     expect(tbrV2Toc(demo, undefined, "vi").map((x) => x.label)[0]).toBe("Bảng tổng quan");
+    // Parity with the PDF outline (ids + labels) in EN and VI, cited and uncited.
+    for (const locale of ["en", "vi"] as const) {
+      for (const r of [demo, citedDemoReportV2()]) expect(tbrV2Toc(r, undefined, locale)).toEqual(tbrPdfOutline(r, locale));
+    }
   });
 
   it("dashboard: the four tiles in fixed order (SVI · evidence · verdict · valuation), the dim_bars chart (no radar) with legend + table twin, the footer line, the general-advice sentence", () => {
