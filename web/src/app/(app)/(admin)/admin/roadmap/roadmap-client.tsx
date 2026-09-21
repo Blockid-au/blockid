@@ -578,8 +578,8 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
            ════════════════════════════════════════════════════════════ */}
         <div className="text-center py-4">
           <div className="flex justify-center mb-4">
-            <div className="h-14 w-14 rounded-2xl gradient-brand flex items-center justify-center shadow-lg">
-              <Map strokeWidth={1.75} className="h-7 w-7 text-primary" />
+            <div className="h-14 w-14 rounded-2xl bg-brand-navy text-white flex items-center justify-center shadow-1">
+              <Map strokeWidth={1.75} className="h-7 w-7" />
             </div>
           </div>
           <h1 className="text-3xl md:text-4xl font-bold text-ink-900 tracking-tight">
@@ -842,7 +842,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
         {/* ════════════════════════════════════════════════════════════
             INVESTMENT THESIS
            ════════════════════════════════════════════════════════════ */}
-        <section className="rounded-2xl border border-brand-200 bg-gradient-to-br from-brand-50 to-white p-8 shadow-sm">
+        <section className="rounded-2xl border border-line-subtle border-l-4 border-l-brand-navy bg-surface-sunken p-8">
           <h2 className="text-lg font-bold text-ink-900 mb-1 flex items-center gap-2">
             <Lightbulb
               strokeWidth={1.75}

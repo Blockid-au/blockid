@@ -398,7 +398,7 @@ function FunnelStep({ label, count, rate, prev, isFirst }: { label: string; coun
       <div className="flex-1">
         <div className="h-6 bg-surface-100 rounded-lg overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-brand-500 to-brand-400 rounded-lg transition-all duration-500"
+            className="h-full rounded-full bg-brand-navy transition-all duration-500"
             style={{ width: `${Math.max(rate, 2)}%` }}
           />
         </div>

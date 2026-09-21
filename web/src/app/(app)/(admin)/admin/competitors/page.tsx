@@ -163,7 +163,7 @@ export default async function CompetitorsPage() {
             {ADVANTAGES.map((adv, i) => (
               <div
                 key={i}
-                className="rounded-xl border border-brand-200 bg-gradient-to-br from-brand-50 to-white p-5 flex items-start gap-3"
+                className="rounded-xl border border-line-subtle border-l-4 border-l-brand-navy bg-surface-sunken p-5 flex items-start gap-3"
               >
                 <div className="mt-0.5 rounded-full bg-brand-100 p-1.5 shrink-0">
                   <Check strokeWidth={2.5} className="h-3.5 w-3.5 text-brand-700" />

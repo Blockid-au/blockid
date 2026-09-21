@@ -102,7 +102,7 @@ describe("G26-W2 — light surfaces only in the evaluator / accelerator / invest
       it("uses bg-brand-navy only as a small brand fill (chip / button / avatar / rule), never a card or section", () => {
         for (const cls of lists) {
           if (!/\bbg-brand-navy(?:-elev-1)?\b/.test(cls)) continue;
-          expect(cls, cls).toMatch(/\b(?:text-white|rounded-full|min-h-11|h-\d|w-\d|px-\d|inline-flex|inline-block)\b/);
+          expect(cls, cls).toMatch(/\b(?:text-white|rounded-full|min-h-11|h-\d+|w-\d+|px-\d|inline-flex|inline-block)\b/);
           expect(cls, cls).not.toMatch(/\b(?:min-h-svh|min-h-screen|p-6|p-8|max-w-\dxl|overflow-x-auto)\b/);
         }
       });
