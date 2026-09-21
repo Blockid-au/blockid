@@ -32,6 +32,7 @@ import {
 import { buildCohortReport, type CohortMarketBenchmark, type CohortReportData, type CohortReportInput, type CohortReportStartup, type CohortSnapshotLite } from "./cohort-report";
 import { quarterLabelFor } from "./quarterly-report";
 import { demoJourneyForRows } from "./demo-cohort";
+import { exportCohortName } from "./demo-cohort-shared";
 import { buildProgramJourney, summariseEvidence, type JourneyBatchRef, type JourneyIntake, type JourneySnapshot, type JourneyStartup, type ProgramJourneyView } from "./program-journey";
 
 export interface CohortBundle {
@@ -210,7 +211,8 @@ export function journeyStartupToReportStartup(s: JourneyStartup): CohortReportSt
 export function cohortReportInputFromBundle(bundle: CohortBundle, user: Pick<AppUser, "displayName" | "email">, now = new Date(), marketBenchmark: CohortMarketBenchmark | null = null): CohortReportInput {
   return {
     programName: bundle.batch.programName ?? user.displayName ?? null,
-    cohortName: bundle.batch.name,
+    // G24-C: a demo cohort's report is labelled in its title / h1 / filename (every format, PDF twin included).
+    cohortName: exportCohortName(bundle.batch),
     periodLabel: quarterLabelFor(now),
     generatedAt: now.toISOString(),
     methodologyVersion: SVI_VERSION,

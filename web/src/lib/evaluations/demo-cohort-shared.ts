@@ -127,6 +127,14 @@ export const DEMO_STARTUPS: readonly DemoStartupFixture[] = Object.freeze([
 
 export const DEMO_COHORT_SIZE = DEMO_STARTUPS.length;
 
+/** The suffix every exported artefact (Cohort Report, demo-day pack, CSV filename) carries for a demo cohort. */
+export const DEMO_EXPORT_SUFFIX = " — Demo data (fictional)";
+
+/** Pure: the cohort name as exports print it — labelled when the batch is the demo. */
+export function exportCohortName(batch: { name: string; isDemo?: boolean }): string {
+  return batch.isDemo ? `${batch.name}${DEMO_EXPORT_SUFFIX}` : batch.name;
+}
+
 /** `demo-cohort-<key>` — the slug the demo project is created with (a numeric suffix may follow on collision). */
 export function demoProjectSlug(key: string): string {
   return `${DEMO_PROJECT_SLUG_PREFIX}${key}`;

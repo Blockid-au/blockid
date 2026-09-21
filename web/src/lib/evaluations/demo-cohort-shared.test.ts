@@ -17,6 +17,7 @@ import {
   demoCohortLabels,
   demoProjectSlug,
   demoStartupForSlug,
+  exportCohortName,
   type DemoRegisterInput,
 } from "./demo-cohort-shared";
 
@@ -66,6 +67,14 @@ describe("DEMO_STARTUPS — fictional, labelled, spread", () => {
     expect(demoStartupForSlug("acme-robotics")).toBeNull();
     expect(demoStartupForSlug("demo-cohort-unknown")).toBeNull();
     expect(demoStartupForSlug(null)).toBeNull();
+  });
+});
+
+describe("exportCohortName", () => {
+  it("labels a demo cohort's exports and leaves a real cohort's name alone", () => {
+    expect(exportCohortName({ name: "Demo cohort", isDemo: true })).toBe("Demo cohort — Demo data (fictional)");
+    expect(exportCohortName({ name: "Spring 2026" })).toBe("Spring 2026");
+    expect(exportCohortName({ name: "Spring 2026", isDemo: false })).toBe("Spring 2026");
   });
 });
 
