@@ -24,7 +24,8 @@ import { SmartIntake, type SmartIntakeSubmission } from "./smart-intake";
 import { AnalyzeCostModal, type CostRow } from "./analyze-cost-modal";
 import { SavedAnalysisPanel } from "./saved-analysis-panel";
 import { FreeSummaryPanel } from "./free-summary-panel";
-import { SignupGatePanel } from "./signup-gate-panel";
+import { FreeReportEmailPanel, type FreeReportEmailError } from "./free-report-email-panel";
+import { FreeReportPayPanel, type FreeReportPayQuote } from "./free-report-pay-panel";
 import { ArtefactGatePanel } from "./artefact-gate-panel";
 import {
   GuestPaidCheckout,
@@ -39,7 +40,12 @@ import {
   takeSignupIntake,
 } from "@/lib/analyze/pending-intake";
 import { claimedMessage, savedAnalysisPath } from "@/lib/analyses/summary";
-import { SIGNUP_REQUIRED } from "@/lib/analyses/signup-gate";
+import {
+  FREE_REPORT_ALLOWANCE_USED,
+  FREE_REPORT_HONEYPOT_FIELD,
+  FREE_REPORT_IP_LIMIT,
+} from "@/lib/reports/free-grants-rules";
+import type { FreeReportCopy } from "@/lib/reports/free-report-copy";
 import type { IntakeResult } from "@/lib/intake/analyze-input";
 import type { IntakeContext } from "@/lib/intake/detect-context";
 import type { AgentRole } from "@/lib/report-pipeline/types";
@@ -68,11 +74,43 @@ const FullReportPanel = dynamic(
   { ssr: false },
 );
 
-type Phase = "intake" | "gate" | "confirm" | "live" | "results";
+// G25-C: `email` — a guest is asked where the report goes BEFORE the run;
+// `pay` — the third run: the A$3 quote, nothing was run.
+type Phase = "intake" | "email" | "pay" | "confirm" | "live" | "results";
+
+/** localStorage key for the address a guest gave — the second run is one click. */
+export const REPORT_EMAIL_STORAGE_KEY = "blockid_report_email";
+
+function rememberedEmail(): string | null {
+  try {
+    const v = window.localStorage.getItem(REPORT_EMAIL_STORAGE_KEY);
+    return v && v.includes("@") ? v : null;
+  } catch {
+    return null;
+  }
+}
+
+function rememberEmail(email: string): void {
+  try {
+    window.localStorage.setItem(REPORT_EMAIL_STORAGE_KEY, email);
+  } catch {
+    /* private mode / blocked storage — the panel simply asks again next time */
+  }
+}
+
+/** Fill `{n}` / `{count}` / `{email}` in a status line. Client-safe (no catalogue import). */
+export function fillFreeReportLine(template: string, tokens: Record<string, string | number | null | undefined>): string {
+  return template.replace(/\{([a-zA-Z0-9]+)\}/g, (whole, key: string) => {
+    const v = tokens[key];
+    return v === null || v === undefined ? whole : String(v);
+  });
+}
 
 interface AnalyzeRootProps {
   /** ?tier=free|paid — controls whether a paid tier is pre-selected. */
   tier?: "free" | "paid";
+  /** G25-C: the free-allowance copy, resolved server-side (EN / VI). */
+  freeReportCopy: FreeReportCopy;
   /**
    * Server-resolved session state. When false and `tier === "paid"` the
    * confirm step sells the A$3 guest report instead of spending credits the
@@ -172,24 +210,40 @@ function placeholderEstimate(context?: IntakeContext): EstimateResult {
 /** Mirrors DECK_MAX_BYTES on the server (25 MB) — client copy only. */
 const FILE_MAX_MB = 25;
 
+export interface GuestIdentity {
+  /** The address the report goes to (required for a guest — G25-C). */
+  email: string;
+  /** The hidden field's value — empty for a person. */
+  honeypot: string;
+}
+
 async function postIntake(
   sub: SmartIntakeSubmission,
   tier: "free" | "paid" = "free",
+  guest?: GuestIdentity | null,
 ): Promise<Response> {
-  // `tier` rides along so the server-side signup gate can let a guest heading
-  // for the A$3 checkout straight through. It only ever widens the gate — it
-  // never charges anything and never grants credits.
+  // `tier` rides along so the server-side gate can let a guest heading for
+  // the A$3 guest checkout straight through. It only ever widens the gate —
+  // it never charges anything and never grants credits.
   if (sub.file) {
     const form = new FormData();
     form.set("file", sub.file);
     if (sub.text) form.set("text", sub.text);
     if (sub.url) form.set("url", sub.url);
     form.set("tier", tier);
+    if (guest) {
+      form.set("email", guest.email);
+      form.set(FREE_REPORT_HONEYPOT_FIELD, guest.honeypot);
+    }
     return fetch("/api/intake", { method: "POST", body: form });
   }
   const body: Record<string, string> = { tier };
   if (sub.text) body.text = sub.text;
   if (sub.url) body.url = sub.url;
+  if (guest) {
+    body.email = guest.email;
+    body[FREE_REPORT_HONEYPOT_FIELD] = guest.honeypot;
+  }
   return fetch("/api/intake", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -215,6 +269,17 @@ export function guestInputTypeFor(
   return null;
 }
 
+/**
+ * G25-C: the guest SKU from the SUBMISSION alone — on the third run the
+ * server never classified the input (`free_allowance_used` runs nothing),
+ * so the pay panel decides from what the visitor handed over.
+ */
+export function guestInputTypeForSubmission(sub: SmartIntakeSubmission | null): GuestInputType | null {
+  if (!sub) return null;
+  if (sub.file) return "pitch_file";
+  return guestUrlFor(null, sub) ? "website_url" : null;
+}
+
 /** Best-effort recovery of the site URL the visitor supplied. */
 export function guestUrlFor(
   intake: IntakeResult | null,
@@ -232,6 +297,7 @@ export function guestUrlFor(
 
 export function AnalyzeRoot({
   tier = "free",
+  freeReportCopy,
   authenticated,
   initialQuery,
   initialKind,
@@ -254,21 +320,32 @@ export function AnalyzeRoot({
   const [ocrOffered, setOcrOffered] = React.useState(false);
   const [ocrLoading, setOcrLoading] = React.useState(false);
   const [guestCheckoutOpen, setGuestCheckoutOpen] = React.useState(false);
-  // The address the founder gave for their free summary. Held so the
-  // run-2 account wall can read as a continuation of that one ask rather
-  // than a second, competing one — see the note above SignupGatePanel.
-  const [summaryEmail, setSummaryEmail] = React.useState<string | null>(null);
   // Bumped when the free-summary card reports a send, so the full-report
   // panel re-polls at once and the guest's locked sections open without a
   // reload.
   const [unlockNonce, setUnlockNonce] = React.useState(0);
-  // Set when /api/intake declines to run because this browser is past its
-  // free anonymous run. The numbers come from the API so the prompt states
-  // facts rather than invented copy; null means the gate has not fired.
-  const [gateInfo, setGateInfo] = React.useState<{
-    priorRuns?: number;
-    windowDays?: number;
+  // G25-C — the address a guest gave for the report (remembered on this
+  // browser so the second run is one click), the server's verdict on it,
+  // the quote when the allowance is used, and the run's own free-report
+  // facts (which of the two, where it goes, whether the cap queued it).
+  const [reportEmail, setReportEmail] = React.useState<string | null>(null);
+  const [emailError, setEmailError] = React.useState<FreeReportEmailError>(null);
+  const [payInfo, setPayInfo] = React.useState<{ quote: FreeReportPayQuote | null; payHref: string } | null>(null);
+  const [freeReportInfo, setFreeReportInfo] = React.useState<{
+    sequenceNo: number | null;
+    remaining: number;
+    queued: boolean;
+    emailTo: string | null;
   } | null>(null);
+  // Whether the run parked behind the e-mail ask should auto-start.
+  const pendingAutoRunRef = React.useRef<boolean | undefined>(undefined);
+  React.useEffect(() => {
+    // Post-hydration read of a per-browser convenience; the server render
+    // has no address and the first client render must agree with it.
+    const remembered = rememberedEmail();
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- localStorage is client-only; read once after mount
+    if (remembered) setReportEmail(remembered);
+  }, []);
 
   /** POST /api/svi/report-estimate with the freshly-detected context. */
   const loadEstimate = React.useCallback(
@@ -348,15 +425,48 @@ export function AnalyzeRoot({
    */
   async function handleSubmit(
     sub: SmartIntakeSubmission,
-    opts?: { autoRun?: boolean },
+    opts?: { autoRun?: boolean; guest?: GuestIdentity },
   ) {
     setSubmission(sub);
     setErrorMsg(null);
+    // G25-C — a guest is asked where the report goes BEFORE anything runs.
+    // The address is remembered on this browser, so only the first run on
+    // a device shows the panel; the run itself is parked and resumes with
+    // the same auto-run decision it arrived with.
+    const isGuest = authenticated !== true;
+    const guest: GuestIdentity | null = isGuest
+      ? (opts?.guest ?? (() => {
+          const known = reportEmail ?? rememberedEmail();
+          return known ? { email: known, honeypot: "" } : null;
+        })())
+      : null;
+    if (isGuest && !guest) {
+      pendingAutoRunRef.current = opts?.autoRun;
+      setAwaitingHandoff(false);
+      setPhase("email");
+      return;
+    }
     setIntakeLoading(true);
     try {
-      const res = await postIntake(sub, tier);
+      const res = await postIntake(sub, tier, guest);
+      if (res.status === 400 && isGuest) {
+        // The address did not pass the server (required / invalid /
+        // disposable) — back to the ask with the server's reason.
+        const body = (await res.json().catch(() => null)) as { reason?: string } | null;
+        const reason = body?.reason ?? "";
+        setEmailError(reason === "email_disposable" ? "disposable" : reason === "email_required" ? "required" : "invalid");
+        pendingAutoRunRef.current = opts?.autoRun;
+        setPhase("email");
+        setIntakeLoading(false);
+        return;
+      }
       if (res.status === 429) {
-        setErrorMsg("Slow down — rate limited. Try again in a minute.");
+        const body = (await res.json().catch(() => null)) as { reason?: string } | null;
+        setErrorMsg(
+          body?.reason === FREE_REPORT_IP_LIMIT
+            ? freeReportCopy.ipLimit
+            : "Slow down — rate limited. Try again in a minute.",
+        );
         setIntakeLoading(false);
         return;
       }
@@ -379,20 +489,20 @@ export function AnalyzeRoot({
       const data = (await res.json()) as {
         ok?: boolean;
         reason?: string;
-        priorRuns?: number;
-        windowDays?: number;
+        used?: number;
+        price?: FreeReportPayQuote;
+        payHref?: string;
+        freeReport?: { sequenceNo: number | null; remaining: number; queued: boolean; emailTo: string | null } | null;
         analysisId?: string | null;
       } & IntakeResult;
-      // The account wall. A 200 with `ok: false` and this reason means the
-      // server deliberately declined to run — nothing was analysed and
-      // nothing was spent. It is NOT an error and must never be rendered as
-      // one.
-      if (data.ok === false && data.reason === SIGNUP_REQUIRED) {
-        setGateInfo({
-          priorRuns: data.priorRuns,
-          windowDays: data.windowDays,
-        });
-        setPhase("gate");
+      // The quote. A 200 with `ok: false` and this reason means the two
+      // free reports are used and the server deliberately declined to run
+      // — nothing was analysed and nothing was spent. It is NOT an error
+      // and must never be rendered as one: the price is shown, then the
+      // existing A$3 path takes over.
+      if (data.ok === false && data.reason === FREE_REPORT_ALLOWANCE_USED) {
+        setPayInfo({ quote: data.price ?? null, payHref: data.payHref ?? "/workspace/reports/business" });
+        setPhase("pay");
         setIntakeLoading(false);
         return;
       }
@@ -401,7 +511,12 @@ export function AnalyzeRoot({
         setIntakeLoading(false);
         return;
       }
-      setGateInfo(null);
+      if (guest) {
+        setReportEmail(guest.email);
+        setEmailError(null);
+        rememberEmail(guest.email);
+      }
+      setFreeReportInfo(data.freeReport ?? null);
       setIntake(data);
       setAnalysisId(
         typeof data.analysisId === "string" ? data.analysisId : null,
@@ -536,7 +651,10 @@ export function AnalyzeRoot({
   function handleReset() {
     clearPendingIntake();
     clearSignupIntake();
-    setGateInfo(null);
+    setPayInfo(null);
+    setEmailError(null);
+    setFreeReportInfo(null);
+    pendingAutoRunRef.current = undefined;
     setDeckHandoffLost(false);
     setAwaitingHandoff(false);
     setPhase("intake");
@@ -554,19 +672,55 @@ export function AnalyzeRoot({
   // returns null for 0, so nothing is said when nothing was claimed.
   const claimedNote = claimedMessage(claimed);
 
-  if (phase === "gate") {
-    // The server declined to run and spent nothing. This is the account wall,
-    // not an error — so it renders in place of the analysis, with the typed
-    // input carried through to signup.
+  if (phase === "email") {
+    // G25-C — the address ask, before the run. Nothing has been sent to
+    // the server yet (or it came back asking for a usable address).
     return (
       <div className="flex w-full flex-col items-center gap-3">
-        <SignupGatePanel
-          priorRuns={gateInfo?.priorRuns}
-          windowDays={gateInfo?.windowDays}
-          submission={submission}
-          summaryEmail={summaryEmail}
+        <FreeReportEmailPanel
+          copy={freeReportCopy.email}
+          initialEmail={reportEmail}
+          serverError={emailError}
+          busy={intakeLoading}
+          onContinue={(email, honeypot) => {
+            if (!submission) return;
+            setEmailError(null);
+            void handleSubmit(submission, {
+              autoRun: pendingAutoRunRef.current ?? shouldAutoRun({ tier, authenticated, resumedFromSignup }),
+              guest: { email, honeypot },
+            });
+          }}
           onEdit={handleReset}
         />
+      </div>
+    );
+  }
+
+  if (phase === "pay") {
+    // G25-C — the third run: the quote. The server ran nothing and charged
+    // nothing; the price is on screen before any checkout exists.
+    const sellable = guestInputTypeForSubmission(submission);
+    return (
+      <div className="flex w-full flex-col items-center gap-3">
+        <FreeReportPayPanel
+          copy={freeReportCopy.pay}
+          quote={payInfo?.quote ?? null}
+          payHref={payInfo?.payHref ?? "/workspace/reports/business"}
+          authenticated={authenticated === true}
+          guestSellable={Boolean(sellable)}
+          onGuestCheckout={sellable ? () => setGuestCheckoutOpen(true) : undefined}
+          onEdit={handleReset}
+        />
+        {sellable && (
+          <GuestPaidCheckout
+            open={guestCheckoutOpen}
+            onClose={() => setGuestCheckoutOpen(false)}
+            inputType={sellable}
+            file={submission?.file ?? null}
+            url={guestUrlFor(null, submission)}
+            initialEmail={reportEmail ?? undefined}
+          />
+        )}
       </div>
     );
   }
@@ -639,7 +793,7 @@ export function AnalyzeRoot({
         <p className="text-[11px] uppercase tracking-wider text-tertiary">
           {tier === "paid"
             ? "Paid report · A$3 inc. GST · emailed as a PDF"
-            : "Free tier · upgrade any time"}
+            : "Your first two business reports are free · e-mailed as a PDF"}
         </p>
       </div>
     );
@@ -747,6 +901,30 @@ export function AnalyzeRoot({
         <>
           <AnalyzeResults intake={intake} />
           <div className="mx-auto mt-6 flex max-w-6xl flex-col gap-4 px-4 text-left">
+            {/* G25-C — which free report this is and where it goes. Facts
+                from the API (never invented): sequence, destination, and
+                whether today's cap queued it for the cron. */}
+            {freeReportInfo && (
+              <div
+                role="status"
+                className="rounded-xl border border-line-subtle bg-surface-sunken px-4 py-3 text-sm text-secondary"
+                data-testid="analyze-free-report-status"
+                data-sequence={freeReportInfo.sequenceNo ?? undefined}
+                data-queued={freeReportInfo.queued ? "1" : "0"}
+              >
+                <p>
+                  {fillFreeReportLine(
+                    freeReportInfo.queued ? freeReportCopy.status.queued : freeReportCopy.status.sending,
+                    { n: freeReportInfo.sequenceNo, email: freeReportInfo.emailTo ?? "your inbox" },
+                  )}
+                </p>
+                {freeReportInfo.sequenceNo !== null && (
+                  <p className="mt-1 text-xs text-tertiary">
+                    {freeReportInfo.remaining > 0 ? freeReportCopy.status.remainingOne : freeReportCopy.status.remainingNone}
+                  </p>
+                )}
+              </div>
+            )}
             {/* S32-B — the first analysis in full: what we read, the
                 valuation working, the seven C-level voices as they land.
                 Renders the echo instantly from the intake; everything else
@@ -772,10 +950,7 @@ export function AnalyzeRoot({
                 itself. Never rendered before `phase === "results"`. */}
             <FreeSummaryPanel
               analysisId={analysisId}
-              onSent={(email) => {
-                setSummaryEmail(email);
-                setUnlockNonce((n) => n + 1);
-              }}
+              onSent={() => setUnlockNonce((n) => n + 1)}
             />
             <SavedAnalysisPanel
               analysisId={analysisId}

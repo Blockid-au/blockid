@@ -92,6 +92,36 @@ vi.mock("@/lib/security/oauth-token-health", () => ({
   }),
 }));
 
+// ─── G25-C free_reports fixture ──────────────────────────────────────────
+// The route reads `readFreeReportMetricsCached()` (one bounded ledger read
+// + the converted-to-paid lookups, 60-s cache); stub it so this suite stays
+// DB-free. Its own behaviour is pinned in src/lib/reports/free-grants*.test.ts.
+
+const freeReportsState: { throwErr: boolean } = { throwErr: false };
+
+vi.mock("@/lib/reports/free-grants", () => ({
+  readFreeReportMetricsCached: vi.fn(async () => {
+    if (freeReportsState.throwErr) throw new Error("db down");
+    return {
+      submitted: 12,
+      delivered: 9,
+      unique_emails: 8,
+      today: 3,
+      cap: 50,
+      converted_to_paid: 1,
+      last_7_days: [
+        { day: "2026-09-15", submitted: 1, delivered: 1 },
+        { day: "2026-09-16", submitted: 2, delivered: 2 },
+        { day: "2026-09-17", submitted: 0, delivered: 0 },
+        { day: "2026-09-18", submitted: 3, delivered: 2 },
+        { day: "2026-09-19", submitted: 1, delivered: 1 },
+        { day: "2026-09-20", submitted: 2, delivered: 2 },
+        { day: "2026-09-21", submitted: 3, delivered: 1 },
+      ],
+    };
+  }),
+}));
+
 // ─── G21 P3-A data_moat fixture ──────────────────────────────────────────
 // The route reads `readDataMoat()` (six COUNT queries, 10-min cache); stub
 // it so this suite stays DB-free. Its own behaviour is pinned in
@@ -984,6 +1014,31 @@ describe("public payload redaction", () => {
     expect(raw.data_moat).toMatchObject({ companies: 120, snapshots: 900, evidence_records: 340, longitudinal_companies: 40, known_outcomes: null, proposals_pending: null });
     expect(raw.data_moat).not.toHaveProperty("warnings");
     expect(["ok", "stale", "missing"]).toContain(raw.outcome_calibration);
+    // G25-C: the free-allowance block rides on the trusted payload only.
+    const fr = (body as unknown as { free_reports: Record<string, unknown> }).free_reports;
+    expect(Object.keys(fr).sort()).toEqual(["cap", "converted_to_paid", "delivered", "last_7_days", "submitted", "today", "unique_emails"]);
+    expect(fr).toMatchObject({ submitted: 12, delivered: 9, unique_emails: 8, today: 3, cap: 50, converted_to_paid: 1 });
+    expect((fr.last_7_days as unknown[]).length).toBe(7);
+  });
+
+  it("G25-C: the free_reports block is absent from the public payload", async () => {
+    const { body } = await callGet();
+    expect(body as unknown as Record<string, unknown>).not.toHaveProperty("free_reports");
+  });
+
+  it("G25-C: a failing free-reports read degrades to the empty block with the cap, never a 500", async () => {
+    process.env.STATUS_FULL_TOKEN = "test-trusted-token";
+    freeReportsState.throwErr = true;
+    try {
+      const { body, status } = await callGet();
+      expect(status).toBe(200);
+      const fr = (body as unknown as { free_reports: { submitted: number; cap: number; last_7_days: unknown[] } }).free_reports;
+      expect(fr.submitted).toBe(0);
+      expect(fr.cap).toBe(50);
+      expect(fr.last_7_days.length).toBe(7);
+    } finally {
+      freeReportsState.throwErr = false;
+    }
   });
 
   it("G21 P3-A: a failing data-moat read degrades to null counts, never a 500", async () => {

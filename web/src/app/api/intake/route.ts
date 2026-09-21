@@ -17,31 +17,36 @@
 // loud server log and `analysisId: null`. Losing a good analysis to a
 // database hiccup would be a worse failure than not saving it.
 //
-// SIGNUP GATE (2026-09-08)
-// ------------------------
-// Run 1 is completely unwalled. From run 2, an anonymous browser is asked for
-// an email BEFORE the pipeline runs — see `@/lib/analyses/signup-gate` for
-// the reasoning and the counting window.
+// FREE-ALLOWANCE GATE (G25-C, 2026-09-21 — replaces the 2026-09-08 signup gate)
+// ---------------------------------------------------------------------------
+// Founder decision 2026-09-21: the first TWO business reports per e-mail
+// address are free, the address is REQUIRED before the run so the report can
+// be e-mailed, and the system records who submitted and who received it.
+// See `@/lib/reports/free-report-gate` (the gate) and
+// `@/lib/reports/free-grants` (the ledger, migration 0438).
 //
 // The gate is checked here, server-side, before `analyzeInput` is called. A
 // client-side check would be bypassed with one devtools edit and would leave
 // the model-spend exposure exactly where it started. The point of the gate is
 // to SPEND NOTHING, so the sequence is strictly: parse body → resolve
-// identity → count prior runs → decide → only then analyse.
+// identity → validate the address → count → decide → reserve the grant →
+// only then analyse.
 //
-// RESPONSE SHAPE — 200 with `{ ok: false, reason: "signup_required" }`, not 401
-//   A 401 says "your credentials failed". Nothing failed here: the request was
-//   valid, we understood it completely, and we are deliberately declining to
-//   run it yet. Three concrete reasons for the 200:
-//     1. the existing client already collapses every non-2xx into a generic
-//        "Something went wrong" — a 401 would surface the account wall as an
-//        error, which it is not;
-//     2. a 401 invites browsers, proxies and monitors to treat the route as
-//        broken and (for some) to prompt for HTTP auth;
-//     3. `reason` is a discriminator the client can branch on without parsing
-//        prose, and it rides alongside the real `priorRuns` / `windowDays` so
-//        the prompt can state facts rather than invent copy.
-//   The status line is not the contract; `ok` is.
+// RESPONSE SHAPES
+//   * 400 `{ ok: false, reason: "email_required" | "email_invalid" |
+//     "email_disposable" }` — a guest without a usable address. A genuine
+//     client error: the form did not send what the contract requires.
+//   * 429 `{ ok: false, reason: "free_ip_limit" }` — more than three free
+//     reports from one network today.
+//   * 200 `{ ok: false, reason: "free_allowance_used", used, price, next:
+//     "pay", payHref }` — the third run. Nothing failed: the request was
+//     valid, we understood it, and the A$3 quote-then-pay path takes over.
+//     A 200 because the client collapses every non-2xx into "Something went
+//     wrong", and this is not an error — it is the quote.
+//   * 200 `{ ok: true, …, freeReport: { sequenceNo, remaining, queued,
+//     emailTo } }` — the run. `queued` = the platform cap deferred it to
+//     the cron; the visitor is told "we e-mail you when it is ready".
+//   The status line is not the contract; `ok` + `reason` are.
 
 import { NextResponse } from "next/server";
 import { analyzeInput, type IntakeFileInput, type IntakeResult } from "@/lib/intake/analyze-input";
@@ -55,16 +60,27 @@ import {
   saveAnalysis,
 } from "@/lib/analyses/store";
 import { deriveCompactSvi, type CompactSvi } from "@/lib/analyses/payload";
-import { emitScoreComputed, emitSviAnalyze } from "@/lib/analytics/funnel";
+import { emitFreeReportSubmitted, emitScoreComputed, emitSviAnalyze } from "@/lib/analytics/funnel";
 import { emitDeckUploaded, emitWebsiteImported } from "@/lib/analytics/fi-events";
-import {
-  decideSignupGate,
-  isPaidSellableInput,
-  type SignupGateDecision,
-} from "@/lib/analyses/signup-gate";
+import { isPaidSellableInput } from "@/lib/analyses/signup-gate";
 import { apiRoute } from "@/lib/audit/api-route";
 import { startFirstAnalysisJob } from "@/lib/analyses/first-analysis/job";
 import { parseMultipart } from "@/lib/http/multipart";
+import { clientIpFromHeaders } from "@/lib/iphash";
+import { maskSummaryEmail } from "@/lib/analyses/free-summary";
+import { attachAnalysis, releaseGrant } from "@/lib/reports/free-grants";
+import {
+  FREE_REPORT_ALLOWANCE_USED,
+  FREE_REPORT_HONEYPOT_FIELD,
+  FREE_REPORT_IP_LIMIT,
+  FREE_REPORTS_PER_IP_PER_DAY,
+} from "@/lib/reports/free-grants-rules";
+import {
+  FREE_REPORT_PAY_HREF,
+  freeReportPayQuote,
+  runFreeReportGate,
+  type FreeReportGateResult,
+} from "@/lib/reports/free-report-gate";
 
 // 2026-09-19: same ceiling as the intake-link deck path (DECK_MAX_BYTES in
 // lib/intake/submission-runner — not imported to keep that fs/pitchdeck graph
@@ -79,6 +95,10 @@ interface Body {
   url?: string;
   /** `?tier=` the visitor arrived on — only ever widens the gate, never charges. */
   tier?: string;
+  /** G25-C: REQUIRED for a guest — where the free report is e-mailed. Ignored for a signed-in caller (the account address is used). */
+  email?: string;
+  /** G25-C honeypot (FREE_REPORT_HONEYPOT_FIELD) — a human never fills it. */
+  company_website?: string;
   file?: {
     filename: string;
     base64: string;
@@ -104,6 +124,7 @@ async function persist(
   result: IntakeResult,
   svi: CompactSvi | null,
   meta: PersistMeta,
+  fullReportEmail: string | null = null,
 ): Promise<string | null> {
   try {
     const key = anonKey ?? (await ensureAnonKey()).key;
@@ -125,6 +146,7 @@ async function persist(
       filename: meta.filename ?? null,
       mimeType: meta.mimeType ?? null,
       bytes: meta.bytes ?? null,
+      fullReportEmail,
     });
   } catch (err) {
     console.error("[intake] persist failed — analysis returned unsaved:", err);
@@ -143,6 +165,7 @@ async function resolveCaller(): Promise<{
   anonKey: string | null;
   userId: string | null;
   userEmail: string | null;
+  userPlan: string | null;
 }> {
   let anonKey: string | null = null;
   try {
@@ -152,25 +175,52 @@ async function resolveCaller(): Promise<{
   }
   let userId: string | null = null;
   let userEmail: string | null = null;
+  let userPlan: string | null = null;
   try {
     const user = await getCurrentUser();
     userId = user?.id ?? null;
-    userEmail = user?.email ?? null; // only ever used for the qa-live-* flag
+    userEmail = user?.email ?? null; // the qa-live-* flag + the account's free allowance (G25-C)
+    userPlan = user?.plan ?? null;
   } catch {
     userId = null; // anonymous is the normal case, not an error
   }
-  return { anonKey, userId, userEmail };
+  return { anonKey, userId, userEmail, userPlan };
 }
 
-/** The 200 body the client branches on when the account wall fires. */
-function gatedResponse(decision: Extract<SignupGateDecision, { allow: false }>) {
-  return NextResponse.json({
-    ok: false,
-    reason: decision.reason,
-    priorRuns: decision.priorRuns,
-    windowDays: decision.windowDays,
-    analysisId: null,
-  });
+/** The body the client branches on when the free-allowance gate declines. */
+function gatedResponse(result: Extract<FreeReportGateResult, { allow: false }>) {
+  if (result.reason === FREE_REPORT_ALLOWANCE_USED) {
+    // The third run: not an error — the quote. The client shows the price
+    // and hands over to the existing A$3 quote-then-pay path.
+    return NextResponse.json({
+      ok: false,
+      reason: FREE_REPORT_ALLOWANCE_USED,
+      used: result.used ?? 0,
+      price: freeReportPayQuote(),
+      next: "pay",
+      payHref: FREE_REPORT_PAY_HREF,
+      analysisId: null,
+    });
+  }
+  if (result.reason === FREE_REPORT_IP_LIMIT) {
+    return NextResponse.json(
+      {
+        ok: false,
+        reason: FREE_REPORT_IP_LIMIT,
+        error: `Up to ${FREE_REPORTS_PER_IP_PER_DAY} free reports a day from one network. Try again tomorrow, or sign in.`,
+        analysisId: null,
+      },
+      { status: 429 },
+    );
+  }
+  // email_required / email_invalid / email_disposable / honeypot — the form
+  // did not send a usable address. The honeypot answers with the generic
+  // shape so a bot learns nothing.
+  const reason = result.reason === "honeypot" ? "email_invalid" : result.reason;
+  return NextResponse.json(
+    { ok: false, reason, error: reason, analysisId: null },
+    { status: 400 },
+  );
 }
 
 async function POST_handler(request: Request) {
@@ -207,6 +257,8 @@ async function POST_handler(request: Request) {
         text: parsed.fields.text ?? undefined,
         url: parsed.fields.url ?? undefined,
         tier: parsed.fields.tier ?? undefined,
+        email: parsed.fields.email ?? undefined,
+        [FREE_REPORT_HONEYPOT_FIELD]: parsed.fields[FREE_REPORT_HONEYPOT_FIELD] ?? undefined,
       };
       const formFile = parsed.files.find((f) => f.name === "file") ?? parsed.files[0];
       if (formFile) {
@@ -249,23 +301,26 @@ async function POST_handler(request: Request) {
 
   // ── The gate. Nothing above this line costs money; nothing below it runs
   // until the gate says so. ────────────────────────────────────────────────
-  const { anonKey, userId, userEmail } = await resolveCaller();
+  const { anonKey, userId, userEmail, userPlan } = await resolveCaller();
   const authenticated = Boolean(userId);
-  // Counting is pointless for a signed-in caller and for an un-cookied one
-  // (nothing to count against), so skip the query entirely in both cases.
+  // G16-A `first` flag: an anonymous run is first when this cookie has no
+  // prior saved runs; skipped for a signed-in or un-cookied caller.
   const priorRuns =
     authenticated || !anonKey ? 0 : await countAnonRunsInWindow(anonKey);
-  const decision = decideSignupGate({
-    authenticated,
-    priorRuns,
-    tier: body.tier === "paid" ? "paid" : "free",
-    paidSellable: isPaidSellableInput({
-      hasFile: Boolean(file),
-      url: body.url,
-      text: body.text,
-    }),
+  const gate = await runFreeReportGate({
+    user: userId && userEmail ? { id: userId, email: userEmail, plan: userPlan } : null,
+    bodyEmail: body.email,
+    honeypot: body[FREE_REPORT_HONEYPOT_FIELD],
+    clientIp: clientIpFromHeaders(request.headers),
+    paidGuest:
+      body.tier === "paid" &&
+      isPaidSellableInput({ hasFile: Boolean(file), url: body.url, text: body.text }),
   });
-  if (!decision.allow) return gatedResponse(decision);
+  if (!gate.allow) return gatedResponse(gate);
+  // A guest's address rides on the row so the job e-mails the PDF and the
+  // page is never locked; a signed-in run resolves the account address at
+  // delivery (nothing to stamp).
+  const guestEmail = gate.source === "guest" ? gate.email : null;
 
   // Defence in depth. The gate above is keyed to a cookie and cookies can be
   // cleared, so an IP ceiling sits behind it — otherwise one person could
@@ -301,7 +356,18 @@ async function POST_handler(request: Request) {
       filename: file?.filename,
       mimeType: file?.mimeType,
       bytes: file?.buffer.length,
-    });
+    }, guestEmail);
+    // G25-C — the ledger. A saved row is attached to its reservation; a
+    // run that never saved gives the reservation back so the address is
+    // not charged a free report for nothing. Never affects the response.
+    if (gate.grant) {
+      try {
+        if (analysisId) await attachAnalysis(gate.grant.id, analysisId);
+        else await releaseGrant(gate.grant.id);
+      } catch (err) {
+        console.error("[intake] free-report ledger write failed —", err instanceof Error ? err.message : String(err));
+      }
+    }
     // G16-A — funnel truth. This route IS the founder's first analysis
     // (S32), so the `svi_analyze` step is emitted here, `first` decided
     // server-side: an anonymous run is first when the gate saw no prior
@@ -346,23 +412,58 @@ async function POST_handler(request: Request) {
       if (file) {
         emitDeckUploaded({ userId, email: userEmail, sessionId: anonKey, analysisId, channel: "intake", sizeBytes: file.buffer.length, mimeType: file.mimeType });
       }
+      // G25-C — the free allowance: one row per grant (event_id = the grant id).
+      if (gate.grant && analysisId) {
+        emitFreeReportSubmitted({
+          grantId: gate.grant.id,
+          sequenceNo: gate.grant.sequence_no,
+          source: gate.grant.source,
+          queued: gate.queued,
+          analysisId,
+          userId,
+          email: gate.email,
+          sessionId: anonKey,
+        });
+      }
     } catch (err) {
       console.warn("[intake] funnel emit failed —", err instanceof Error ? err.message : String(err));
     }
     // S32-B — the full first analysis (SVI reasoning, indicative valuation,
     // seven C-level sections, the emailed PDF) runs as a background job on
     // the saved row. Fire-and-forget: the response never waits on a model
-    // call, and the 5-minute cron re-drives anything that stalls. Costs the
-    // founder nothing — the first analysis is free on every path.
-    if (analysisId) {
+    // call, and the 5-minute cron re-drives anything that stalls.
+    //
+    // G25-C: it starts NOW on the free path and the entitled path. Over the
+    // daily platform cap (`gate.queued`) the row stays `queued` and the
+    // first-analysis cron starts it when the cap allows — the visitor is
+    // told "we e-mail you when it is ready". A paid guest's row is not
+    // started here at all: the A$3 guest pipeline delivers their report.
+    const startNow = Boolean(analysisId) && gate.path !== "paid_guest" && !gate.queued;
+    if (analysisId && startNow) {
       try {
         startFirstAnalysisJob(analysisId, { userId });
       } catch (err) {
         console.error("[intake] could not start the first-analysis job —", err);
       }
     }
-    return NextResponse.json({ ok: true, analysisId, ...result });
+    const freeReport =
+      gate.path === "free"
+        ? {
+            sequenceNo: gate.grant?.sequence_no ?? null,
+            remaining: gate.remaining,
+            queued: gate.queued,
+            emailTo: maskSummaryEmail(gate.email),
+          }
+        : null;
+    return NextResponse.json({ ok: true, analysisId, freeReport, ...result });
   } catch (err) {
+    if (gate.grant) {
+      try {
+        await releaseGrant(gate.grant.id);
+      } catch {
+        /* the reservation stays queued with no analysis; the runbook says how to clear it */
+      }
+    }
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
       { ok: false, error: `Intake failed: ${msg}` },
