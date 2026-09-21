@@ -42,7 +42,7 @@ export const TBR_SPACING = { section: "space-y-12", block: "space-y-6", item: "s
 export const PROSE_CLASS = "max-w-prose text-sm leading-relaxed text-primary";
 export const TABLE_CLASS = "w-full text-xs";
 /** Sticky header row (inside a scrolling wrapper) — background so rows never show through. */
-export const THEAD_CLASS = "sticky top-0 z-[1] bg-surface text-left text-[11px] uppercase tracking-wide text-muted";
+export const THEAD_CLASS = "sticky top-0 z-[1] bg-surface text-left text-xs uppercase tracking-wide text-muted";
 export const TABLE_WRAP_CLASS = "max-h-[70vh] overflow-auto rounded-lg border border-line-subtle print:max-h-none print:overflow-visible";
 /** Zebra rows: every second body row on the sunken surface. */
 export function zebraRow(i: number, extra?: string): string {
@@ -126,8 +126,8 @@ export function TbrSection({ id, title, kicker, purpose, children, className, pa
   return (
     <section id={id} className={cn("scroll-mt-24", TBR_SPACING.block, pageBreak ? "print:break-before-page" : "print:break-before-auto", className)} aria-labelledby={`${id}-h`}>
       <div className="border-b border-line-subtle pb-3">
-        <div className="flex items-baseline gap-3">
-          {kicker && <span className="font-mono text-[11px] uppercase tracking-[0.18em] text-muted">{kicker}</span>}
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+          {kicker && <span className="shrink-0 font-mono text-xs uppercase tracking-[0.18em] text-muted">{kicker}</span>}
           <h2 id={`${id}-h`} className="font-display text-lg font-bold tracking-tight text-primary print:text-xl">
             {title}
           </h2>
@@ -244,7 +244,7 @@ export function CiteSup({ cites, locale }: { cites: Array<Extract<CitationSegmen
 export function UnverifiedChip({ locale }: { locale?: TbrUiLocale }) {
   const t = citationStrings(locale);
   return (
-    <span data-tbr-unverified title={t.unverifiedTitle} className="mx-0.5 inline-flex items-center rounded-full border border-line-subtle bg-surface-sunken px-1.5 py-px align-baseline text-[11px] font-medium leading-tight tracking-wide text-muted">
+    <span data-tbr-unverified title={t.unverifiedTitle} className="mx-0.5 inline-flex items-center rounded-full border border-line-subtle bg-surface-sunken px-1.5 py-px align-baseline text-xs font-medium leading-tight tracking-wide text-muted">
       {t.unverified}
     </span>
   );
@@ -255,13 +255,38 @@ export function UnverifiedChip({ locale }: { locale?: TbrUiLocale }) {
  * unverified chips. Use it wherever agent prose is printed as-is (a bullet,
  * a card body, a one-line next action).
  */
+/**
+ * Markdown-lite bold inside stored prose: `**Lead:** rest` → <strong>Lead:</strong> rest.
+ * The chapter strengths / gaps / next actions reach <CitedText> through `words()`
+ * (no markdown strip), so the asterisks printed raw on the showcase report;
+ * unmatched `**` are dropped rather than shown.
+ */
+export function boldRuns(text: string, keyPrefix: string): React.ReactNode[] {
+  if (!text.includes("**")) return [text];
+  const out: React.ReactNode[] = [];
+  const re = /\*\*([^*\n]+?)\*\*/g;
+  let last = 0;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(text))) {
+    if (m.index > last) out.push(text.slice(last, m.index).replace(/\*\*/g, ""));
+    out.push(
+      <strong key={`${keyPrefix}-${m.index}`} className="font-semibold text-primary">
+        {m[1]}
+      </strong>,
+    );
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push(text.slice(last).replace(/\*\*/g, ""));
+  return out;
+}
+
 export function CitedText({ text, citations, locale }: { text: string; citations?: CitationIndex; locale?: TbrUiLocale }) {
   const segments = parseCitations(text, citations);
   const out: React.ReactNode[] = [];
   for (let i = 0; i < segments.length; i++) {
     const seg = segments[i]!;
     if (seg.kind === "text") {
-      out.push(seg.text);
+      out.push(...boldRuns(seg.text, `t${i}`));
       continue;
     }
     if (seg.kind === "unevidenced") {
@@ -317,7 +342,7 @@ export function Bullets({ items, tone, title, citations, locale }: { items: stri
         : "border-line-subtle bg-surface-sunken";
   return (
     <div className={cn("rounded-lg border p-3", cls)}>
-      <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-secondary">{title}</p>
+      <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-secondary">{title}</p>
       <ul className="space-y-1 text-xs text-secondary">
         {items.map((s, i) => (
           <li key={i} className="flex gap-1.5">

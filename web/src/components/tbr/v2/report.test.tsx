@@ -20,6 +20,7 @@ import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
 import { reportOrderPath } from "@/lib/paywall/report-delivery";
 import { TBR_V2_SECTION_IDS, TbrReportV2, tbrV2Toc, tbrV2TocGroups } from "./report";
 import { TBR_UNLOCK_RAIL_TESTID, tbrUnlockHeadline } from "./unlock-rail";
+import { CitedText } from "./shared";
 import { groundingAudit } from "@/lib/report-v2/grounding";
 import { TBR_GROUNDED_SHARE_KPI } from "@/lib/report-pipeline/quality-log";
 import { PLAN_STEPS_FREE, RISK_ROWS_FREE } from "@/lib/report-v2/investment-view";
@@ -206,6 +207,8 @@ describe("<TbrReportV2> v3 structure (G27)", () => {
     expect(html).not.toContain("<!--");
     expect(text).not.toMatch(/^[ \t]*#[ \t]*\S/m);
     expect(html).not.toContain("text-[10px]");
+    // G27 design check (2026-09-21): spec § 5 — caption 12 px, never below; the tile labels / table heads were 11 px.
+    expect(html).not.toContain("text-[11px]");
     expect(html).toContain('class="space-y-12 bg-surface text-primary"');
     for (const m of html.matchAll(/dark:[a-z0-9/-]+/g)) expect(m[0], m[0]).toMatch(/^dark:(border-|bg-emerald-950$|text-emerald-200$)/);
     expect(html).not.toMatch(/bg-white\b/);
@@ -592,5 +595,33 @@ describe("<TbrReportV2> citations (G24-A)", () => {
     renderToStaticMarkup(<TbrReportV2 report={report} />);
     expect(report.dimensions.find((d) => d.dim === "tre")!.verdict).toContain("[ev:ev-connected-xero-pnl]");
     expect(groundingAudit(report).groundedShare).toBeGreaterThanOrEqual(TBR_GROUNDED_SHARE_KPI);
+  });
+});
+
+describe("<TbrReportV2> 375 px layout + markdown-lite (design check 2026-09-21)", () => {
+  const html = renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} />);
+
+  it("chapter grid columns carry min-w-0 — without it the single-column grid on phones grew to the SVG's 560 px intrinsic width and body{overflow-x:hidden} clipped every chapter at 375", () => {
+    expect(html).toContain('class="min-w-0 space-y-4 lg:col-span-8"');
+    expect(html).toContain('class="min-w-0 space-y-4 lg:col-span-4"');
+  });
+
+  it("section header wraps the kicker above a long title on phones (flex-wrap, kicker shrink-0)", () => {
+    expect(html).toContain("flex flex-wrap items-baseline gap-x-3 gap-y-1");
+  });
+
+  it("the 375 px twin of the dimension chart is drawn at 300 units with 12 px labels (renders ≈ 1:1 in a 343 px card)", () => {
+    const compact = html.match(/<svg[^>]*viewBox="0 0 300 \d+"[^>]*>[\s\S]*?<\/svg>/);
+    expect(compact, "compact dim_bars svg").toBeTruthy();
+    const sizes = [...compact![0].matchAll(/font-size="([\d.]+)"/g)].map((m) => Number(m[1]));
+    expect(sizes.length).toBeGreaterThan(8);
+    expect(Math.min(...sizes)).toBeGreaterThanOrEqual(11);
+  });
+
+  it("`**bold**` inside stored strengths / gaps renders as <strong>, never as raw asterisks", () => {
+    const out = renderToStaticMarkup(<CitedText text="**Founder agreement:** even as a solo founder, document it. **" />);
+    expect(out).toContain("<strong");
+    expect(out).toContain("Founder agreement:");
+    expect(out).not.toContain("**");
   });
 });

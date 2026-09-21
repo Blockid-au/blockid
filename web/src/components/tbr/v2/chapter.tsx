@@ -78,7 +78,7 @@ export function TbrScoreLedger({ chapter, locale = "en", verificationLevel, cita
   return (
     <div data-tbr-ledger={ch.dim} data-tbr-ledger-state={unassessed ? "pending" : "assessed"} className="overflow-x-auto rounded-lg border border-line-subtle print:break-inside-avoid">
       <table className={TABLE_CLASS}>
-        <caption className="px-3 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted">{t.title}</caption>
+        <caption className="px-3 py-1.5 text-left text-xs font-semibold uppercase tracking-wide text-muted">{t.title}</caption>
         {pending ? (
           <tbody>
             <tr className="border-t border-line-subtle">
@@ -90,7 +90,7 @@ export function TbrScoreLedger({ chapter, locale = "en", verificationLevel, cita
             {pendingCtas.length > 0 && (
               <tr className="border-t border-line-subtle">
                 <td colSpan={3} className="px-3 py-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{pendingCtasHeading(locale)}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted">{pendingCtasHeading(locale)}</p>
                   <ul data-tbr-pending-ctas={ch.dim} className="mt-1 space-y-1">
                     {pendingCtas.map((r) => (
                       <li key={r.evidence_id}>
@@ -189,7 +189,7 @@ function EvidenceUsed({ ch, locale, citations }: { ch: DimensionChapter; locale:
   const more = rows.length - shown.length;
   return (
     <div data-tbr-evidence-used={ch.dim} className="rounded-lg border border-line-subtle p-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{t.evidenceUsed}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t.evidenceUsed}</p>
       {shown.length === 0 ? (
         <p className="mt-1 text-xs text-secondary">
           {s43.noEvidence}{" "}
@@ -250,7 +250,7 @@ function WhatToImprove({ ch, locale, citations }: { ch: DimensionChapter; locale
   for (const r of chapterCtaRows(ch, locale)) push({ key: r.evidence_id, title: r.cta!.label, lift: Number((r.cta!.liftLabel.match(/\d+/) ?? ["0"])[0]), window: "this_week", evidence: r.source, href: r.cta!.href });
   return (
     <div data-tbr-improve={ch.dim} className="rounded-r-lg border-l-4 border-warn bg-surface-sunken px-3 py-3 print:break-inside-avoid">
-      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-secondary">
+      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-secondary">
         <span aria-hidden="true">▸</span>
         {t.whatToImprove}
       </p>
@@ -382,7 +382,7 @@ function GapList({ ch, locale, citations }: { ch: DimensionChapter; locale: TbrU
   if (!gaps.length) return null;
   return (
     <div data-tbr-gaps={ch.dim} className="rounded-r-lg border-l-4 border-bear bg-surface-sunken px-3 py-3 print:break-inside-avoid">
-      <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-secondary">
+      <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-secondary">
         <span aria-hidden="true">▲</span>
         {t.risksGaps}
       </p>
@@ -451,7 +451,7 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
     </Callout>
   );
   const primary = (compact: boolean) => (
-    <div data-tbr-primary={ch.dim} className={cn("rounded-xl border border-line-subtle p-3 print:break-inside-avoid", compact && "md:max-w-[320px]")}>
+    <div data-tbr-primary={ch.dim} className={cn("min-w-0 rounded-xl border border-line-subtle p-3 print:break-inside-avoid", compact && "md:max-w-[320px]")}>
       <VisualFigure spec={ch.primaryVisual} caption={`${ch.primaryVisual.title} · ${stateLabel(ch.primaryVisual.dataState, locale)}${ch.primaryVisual.subtitle ? ` — ${ch.primaryVisual.subtitle}` : ""}`} />
     </div>
   );
@@ -473,7 +473,7 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
       <TbrSection id={id} kicker={kicker} title={title} pageBreak>
         {header}
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="space-y-3">
+          <div className="min-w-0 space-y-3">
             <Prose text={words(ch.verdict, 40)} testId={`tbr-verdict-${ch.dim}`} citations={citations} locale={locale} />
             {takeawayBlock}
             <p className="text-xs text-muted">
@@ -499,7 +499,7 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
           <p>{t.pendingCard}</p>
           {ctas.length > 0 && (
             <>
-              <p className="mt-2 text-[11px] font-semibold uppercase tracking-wide text-muted">{t.pendingAdd}</p>
+              <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-muted">{t.pendingAdd}</p>
               <ul data-tbr-pending-ctas={ch.dim} className="mt-1 flex flex-wrap gap-2">
                 {ctas.map((r) => (
                   <li key={r.evidence_id}>
@@ -538,15 +538,15 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
     <TbrSection id={id} kicker={kicker} title={title} pageBreak>
       {header}
       <div className="grid gap-4 lg:grid-cols-12">
-        <div className="space-y-4 lg:col-span-8">
+        <div className="min-w-0 space-y-4 lg:col-span-8">
           <div>
-            <p className="mb-1 text-[11px] font-semibold uppercase tracking-wide text-muted">{t.verdict}</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted">{t.verdict}</p>
             <Prose text={words(ch.verdict, 60)} testId={`tbr-verdict-${ch.dim}`} citations={citations} locale={locale} />
           </div>
           {primary(false)}
           {strengths.length > 0 && (
             <div data-tbr-strengths={ch.dim} className="rounded-r-lg border-l-4 border-brand-navy/40 bg-surface-sunken px-3 py-3 print:break-inside-avoid">
-              <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-secondary">
+              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-secondary">
                 <span aria-hidden="true">✓</span>
                 {t.strengths}
               </p>
@@ -568,7 +568,7 @@ export function TbrChapter({ chapter, index, locale = "en", verificationLevel, u
           {founderExecution && <FounderExecutionCard data={founderExecution} />}
           <CriteriaBlock ch={ch} locale={locale} citations={citations} paid={paid} />
         </div>
-        <aside className="space-y-4 lg:col-span-4">
+        <aside className="min-w-0 space-y-4 lg:col-span-4">
           <EvidenceUsed ch={ch} locale={locale} citations={citations} />
           <WhatToImprove ch={ch} locale={locale} citations={citations} />
           {ch.secondaryVisuals.slice(0, 1).map((v) => (

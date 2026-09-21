@@ -28,7 +28,10 @@ export function VisualFigure({ spec, caption, className, hideTable }: VisualFigu
   const cols = rows.length > 0 ? Object.keys(rows[0]) : [];
   return (
     <figure className={className} data-visual-kind={spec.kind} data-visual-state={spec.dataState}>
-      <div className="w-full [&>svg]:h-auto [&>svg]:w-full [&>svg]:max-w-full" dangerouslySetInnerHTML={{ __html: svg }} />
+      {/* Phones: keep the SVG at its drawn width inside a horizontal scroller (a 560-unit
+          chart squeezed into 293 px put its 9–10 px labels at ~5 px — illegible); from md
+          the chart fills the column as before. */}
+      <div className="w-full overflow-x-auto [&>svg]:h-auto [&>svg]:max-w-none md:[&>svg]:w-full md:[&>svg]:max-w-full" dangerouslySetInnerHTML={{ __html: svg }} />
       {caption !== null && (
         <figcaption className="mt-1 text-xs text-muted">
           {caption ?? spec.title}

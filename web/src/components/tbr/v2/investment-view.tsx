@@ -67,7 +67,7 @@ export function TbrInvestmentView({ report, view, structured, title, locale = "e
 
       {view.band === "D" ? (
         <div data-tbr-conditions="ctas" className={TBR_SPACING.item}>
-          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-secondary">{t.evidenceCtas}</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-secondary">{t.evidenceCtas}</h3>
           <ul className="space-y-1.5">
             {view.evidenceCtas.map((c) => (
               <li key={c.href + c.label} className="flex flex-wrap items-center gap-2 text-sm">
@@ -81,7 +81,7 @@ export function TbrInvestmentView({ report, view, structured, title, locale = "e
         </div>
       ) : view.conditions.length > 0 ? (
         <div data-tbr-conditions={String(view.conditions.length)} className={TBR_SPACING.item}>
-          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-secondary">{t.conditions}</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-secondary">{t.conditions}</h3>
           <ol className="space-y-1.5">
             {view.conditions.map((c, i) => (
               <li key={c.kind + i} data-tbr-condition={c.kind} className="flex gap-2 text-sm text-primary">
@@ -109,7 +109,7 @@ export function TbrInvestmentView({ report, view, structured, title, locale = "e
 
       <div className="grid gap-4 md:grid-cols-2">
         <div data-testid="tbr-exec-reasons" className={TBR_SPACING.item}>
-          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-action">{t.whyBack}</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-action">{t.whyBack}</h3>
           <ul className="space-y-2">
             {view.reasons.map((r, i) => (
               <PointCard key={i} text={r.text} dim={r.dim} score={r.score} index={i} tone="good" locale={locale} citations={citations} />
@@ -117,7 +117,10 @@ export function TbrInvestmentView({ report, view, structured, title, locale = "e
           </ul>
         </div>
         <div data-testid="tbr-exec-gaps" className={TBR_SPACING.item}>
-          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-bear">{t.whatWeighsAgainst}</h3>
+          <h3 className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-primary">
+            <span aria-hidden="true" className="text-bear">▲</span>
+            {t.whatWeighsAgainst}
+          </h3>
           <ul className="space-y-2">
             {view.risks.map((r, i) => (
               <PointCard key={i} text={r.text} dim={r.dim} score={r.score} lift={r.lift} index={i} tone="bad" locale={locale} citations={citations} />
@@ -128,20 +131,20 @@ export function TbrInvestmentView({ report, view, structured, title, locale = "e
 
       <div data-tbr-exec-phase className="rounded-xl border border-line-subtle p-4 print:break-inside-avoid">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-secondary">{t.whereYouAre}</h3>
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-secondary">{t.whereYouAre}</h3>
           <span data-tbr-exec-phase-badge className="rounded-full border border-brand-navy/40 bg-surface-sunken px-2.5 py-0.5 text-xs font-semibold text-primary">
             {phase}
           </span>
         </div>
         <dl className="mt-3 grid gap-3 sm:grid-cols-2">
           <div className="max-w-prose">
-            <dt className="text-[11px] font-semibold uppercase tracking-wide text-bear">{t.blocker}</dt>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-bear">{t.blocker}</dt>
             <dd className="mt-0.5 text-sm leading-relaxed text-primary">
               <CitedText text={structured.phaseNow.blocker || s47.noBlocker} citations={citations} locale={locale} />
             </dd>
           </div>
           <div className="max-w-prose">
-            <dt className="text-[11px] font-semibold uppercase tracking-wide text-action">{t.whatItTakes}</dt>
+            <dt className="text-xs font-semibold uppercase tracking-wide text-action">{t.whatItTakes}</dt>
             <dd className="mt-0.5 text-sm leading-relaxed text-primary">
               <CitedText text={structured.phaseNow.whatItTakes} citations={citations} locale={locale} />
             </dd>

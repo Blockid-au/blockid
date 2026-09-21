@@ -27,14 +27,14 @@ export function TbrRiskMatrix({ report, view, title, locale = "en" }: { report: 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
           <div data-tbr-risk-grid className="rounded-xl border border-line-subtle p-3 print:break-inside-avoid">
             <table className="w-full text-xs">
-              <caption className="pb-2 text-left text-[11px] font-semibold uppercase tracking-wide text-muted">{t.riskGridCaption}</caption>
+              <caption className="pb-2 text-left text-xs font-semibold uppercase tracking-wide text-muted">{t.riskGridCaption}</caption>
               <thead>
                 <tr>
-                  <th scope="col" className="px-2 py-1 text-left text-[11px] font-semibold uppercase tracking-wide text-muted">
+                  <th scope="col" className="px-2 py-1 text-left text-xs font-semibold uppercase tracking-wide text-muted">
                     {t.likelihood} ↓ / {t.impact} →
                   </th>
                   {RISK_LEVELS_ASC.map((impact) => (
-                    <th key={impact} scope="col" className="px-2 py-1 text-center text-[11px] font-semibold uppercase tracking-wide text-muted">
+                    <th key={impact} scope="col" className="px-2 py-1 text-center text-xs font-semibold uppercase tracking-wide text-muted">
                       {t.level[impact]}
                     </th>
                   ))}

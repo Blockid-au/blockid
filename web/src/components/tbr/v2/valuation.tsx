@@ -38,7 +38,7 @@ function SourceChip({ chip, label }: { chip: ValuationSourceChip; label: string 
 }
 
 function SubTitle({ children }: { children: React.ReactNode }) {
-  return <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{children}</p>;
+  return <p className="text-xs font-semibold uppercase tracking-wide text-muted">{children}</p>;
 }
 
 export function TbrValuation({ report, title, locale = "en", citations, investment }: { report: ReportV2; title: string; locale?: TbrUiLocale; /** G24-A: footnote numbering (report.tsx). */ citations?: CitationIndex; /** G27: "what moves it" rows. */ investment?: InvestmentView }) {
@@ -73,7 +73,7 @@ export function TbrValuation({ report, title, locale = "en", citations, investme
       <div data-tbr-valuation-range className="grid gap-3 sm:grid-cols-3">
         {(["lowAud", "midAud", "highAud"] as const).map((k) => (
           <div key={k} data-tbr-tile={`valuation-${k}`} className={cn("rounded-xl border p-4", k === "midAud" ? "border-brand-navy/40 bg-surface-sunken" : "border-line-subtle")}>
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-secondary">{k === "lowAud" ? s.low : k === "midAud" ? s.consensus : s.high}</p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-secondary">{k === "lowAud" ? s.low : k === "midAud" ? s.consensus : s.high}</p>
             <p className={cn("mt-1 text-2xl font-bold text-primary", FIGURE_CLASS)}>{aud(v.consensus[k])}</p>
           </div>
         ))}
@@ -88,7 +88,7 @@ export function TbrValuation({ report, title, locale = "en", citations, investme
       {!view.noneApplicable && (
         <div data-tbr-valuation-methods className={TABLE_SCROLL_CLASS}>
           <table className={TABLE_MIN_CLASS}>
-            <caption className="px-3 py-2 text-left text-[11px] font-semibold uppercase tracking-wide text-muted">{s.methodsTitle}</caption>
+            <caption className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted">{s.methodsTitle}</caption>
             <thead>
               <tr className="bg-surface">
                 <th scope="col" className={cn(TH_CLASS, STICKY_COL_CLASS, "min-w-[180px]")}>{s.thMethod}</th>
@@ -143,7 +143,7 @@ export function TbrValuation({ report, title, locale = "en", citations, investme
       )}
       {investment && investment.whatMovesIt.length > 0 && (
         <div data-tbr-what-moves-it className="rounded-r-lg border-l-4 border-warn bg-surface-sunken px-3 py-3 print:break-inside-avoid">
-          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-secondary">
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-secondary">
             <span aria-hidden="true">▸</span>
             {t3.whatMovesIt}
           </p>

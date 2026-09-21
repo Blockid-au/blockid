@@ -24,7 +24,7 @@ export const FIGURE_CLASS = "font-mono tabular-nums";
 export const STICKY_COL_CLASS = "sticky left-0 z-[1] bg-surface";
 export const TABLE_SCROLL_CLASS = "overflow-x-auto rounded-lg border border-line-subtle print:overflow-visible";
 export const TABLE_MIN_CLASS = "w-full min-w-[640px] text-sm";
-export const TH_CLASS = "px-3 py-2.5 text-left text-[11px] font-semibold uppercase tracking-wide text-muted";
+export const TH_CLASS = "px-3 py-2.5 text-left text-xs font-semibold uppercase tracking-wide text-muted";
 export const TD_CLASS = "px-3 py-2.5 align-top text-primary";
 
 // ── Band chip: dot carries BAND_COLOUR, text stays ink ──────────────────────
@@ -65,7 +65,7 @@ export function VerdictBandBadge({ band, label, size = "md", className }: { band
 export function StatTile({ id, label, value, sub, note, band, className }: { id: string; label: string; value: string; sub?: string; note?: string; band?: Band; className?: string }) {
   return (
     <div data-tbr-tile={id} className={cn("flex min-w-0 flex-col gap-1 rounded-xl border border-line-subtle bg-surface p-4 print:break-inside-avoid", className)}>
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted">{label}</p>
       <p className={cn("break-words font-bold leading-none text-primary", FIGURE_CLASS, value.length > 8 ? "text-2xl md:text-[1.6rem] lg:text-2xl xl:text-3xl" : "text-3xl md:text-4xl")} title={value}>
         {value}
       </p>
@@ -96,7 +96,7 @@ export function Callout({ kind, title, children, className, testId }: { kind: Ca
   return (
     <aside data-tbr-callout={kind} data-testid={testId} className={cn("rounded-r-lg border-l-4 bg-surface-sunken px-4 py-3 print:break-inside-avoid", CALLOUT_RULE[kind], className)}>
       {title ? (
-        <p className="mb-1 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wide text-secondary">
+        <p className="mb-1 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-secondary">
           <span aria-hidden="true">{CALLOUT_ICON[kind]}</span>
           {title}
         </p>
@@ -130,10 +130,11 @@ export function DimBarChart({ chart, caption, legend, showBand, locale, classNam
   const cols = rows.length ? Object.keys(rows[0]!) : [];
   return (
     <figure data-tbr-dim-bars className={cn("rounded-xl border border-line-subtle bg-surface p-3 print:break-inside-avoid md:p-4", className)}>
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{t.chartTitle}</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted">{t.chartTitle}</p>
       {/* Two renders of the one geometry: the wide chart (labels beside bars) from md up, the compact one (labels above bars, spec § 5 "375 px") below. Our own escaped renderer output feeds dangerouslySetInnerHTML (same rule as VisualFigure). */}
       <div className="mt-2 hidden w-full md:block [&>svg]:h-auto [&>svg]:w-full [&>svg]:max-w-full" data-visual-kind={chart.kind} data-visual-state={chart.dataState} dangerouslySetInnerHTML={{ __html: renderVisual(chart) }} />
-      <div className="mt-2 w-full md:hidden [&>svg]:h-auto [&>svg]:w-full [&>svg]:max-w-full" aria-hidden="true" dangerouslySetInnerHTML={{ __html: renderVisual(chart, { width: 340 }) }} />
+      {/* Drawn at 300 SVG units so a 343 px card (375 − gutters) scales it ≈ 1:1 — the 12 px labels stay 12 px. */}
+      <div className="mt-2 w-full md:hidden [&>svg]:h-auto [&>svg]:w-full [&>svg]:max-w-full" aria-hidden="true" dangerouslySetInnerHTML={{ __html: renderVisual(chart, { width: 300 }) }} />
       <figcaption className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
         <span>{caption}</span>
         <span className="flex flex-wrap items-center gap-3" aria-label={legend.join(", ")}>

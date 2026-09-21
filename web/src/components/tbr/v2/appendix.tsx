@@ -59,7 +59,7 @@ export function TbrAppendix({
             <div className="grid gap-3 md:grid-cols-2">
               {report.dimensions.map((ch) => (
                 <div key={ch.dim} className="space-y-1">
-                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{locale === "vi" ? ch.titleVi : ch.title}</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-muted">{locale === "vi" ? ch.titleVi : ch.title}</p>
                   <TbrScoreLedger chapter={ch} locale={locale} verificationLevel={report.cover.verification?.level ?? null} />
                 </div>
               ))}

@@ -30,7 +30,7 @@ export function TbrCoverLedger({ report, locale = "en" }: { report: ReportV2; lo
     <div data-tbr-cover-ledger className="space-y-1">
       {(cells.length > 0 || evidence) && (
         <div className="flex flex-wrap items-center gap-1 text-xs">
-          {cells.length > 0 && <span className="mr-1 text-[11px] font-semibold uppercase tracking-wide text-muted">{t.coverTitle}</span>}
+          {cells.length > 0 && <span className="mr-1 text-xs font-semibold uppercase tracking-wide text-muted">{t.coverTitle}</span>}
           {cells.map((cell, i) => (
             <span key={cell.label} className="inline-flex items-center gap-1">
               {i > 0 && <span className="text-muted">→</span>}
@@ -78,7 +78,7 @@ export function TbrDashboard({ report, view, title, locale = "en" }: { report: R
         <p className={cn("text-xs text-muted", FIGURE_CLASS)}>
           {date} · {view.footer.methodology}
           {report.source !== "pipeline" && (
-            <span className="ml-2 rounded-full border border-line-subtle px-2 py-0.5 text-[11px] uppercase tracking-wide text-muted">{report.source === "fixture" ? tc.demoData : tc.builtFromSnapshot}</span>
+            <span className="ml-2 rounded-full border border-line-subtle px-2 py-0.5 text-xs uppercase tracking-wide text-muted">{report.source === "fixture" ? tc.demoData : tc.builtFromSnapshot}</span>
           )}
         </p>
       </div>

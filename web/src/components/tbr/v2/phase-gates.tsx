@@ -44,7 +44,7 @@ export function TbrPhaseGateMatrix({ report, locale = "en" }: { report: ReportV2
       </p>
       <div className="overflow-x-auto">
         <table className={TABLE_CLASS}>
-          <caption className="py-1 text-left text-[11px] font-semibold uppercase tracking-wide text-muted">{t.requiredCriteria(phaseLabel(g.current, locale))}</caption>
+          <caption className="py-1 text-left text-xs font-semibold uppercase tracking-wide text-muted">{t.requiredCriteria(phaseLabel(g.current, locale))}</caption>
           <tbody>
             {currentRows.map((m, i) => (
               <tr key={m.criterion} className={zebraRow(i)} data-tbr-gate-row={m.criterion}>

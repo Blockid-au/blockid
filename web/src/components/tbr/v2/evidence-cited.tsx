@@ -42,11 +42,11 @@ export function TbrEvidenceCited({ citations, locale = "en", kicker = "16" }: { 
                 <td className="px-2 py-1 align-top font-semibold tabular-nums text-action">{e.n}</td>
                 <td className="px-2 py-1 align-top text-primary">
                   {e.label}
-                  <span className="ml-1 hidden font-mono text-[11px] text-muted sm:inline" title={e.id}>
+                  <span className="ml-1 hidden font-mono text-xs text-muted sm:inline" title={e.id}>
                     {shortId(e.id)}
                   </span>
                   {/* < sm: the three hidden columns stack under the label so the row reads without a sideways scroll. */}
-                  <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-muted sm:hidden" data-tbr-footnote-meta>
+                  <span className="mt-0.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-muted sm:hidden" data-tbr-footnote-meta>
                     <span>{t.level(e)}</span>
                     <span aria-hidden="true">·</span>
                     <Chip kind="source">{t.source(e)}</Chip>

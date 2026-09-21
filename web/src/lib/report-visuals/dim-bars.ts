@@ -28,9 +28,11 @@ export function renderDimBars(data: DimBarsData, opts: RenderOpts): string {
   const compact = width < 420;
   const labelW = compact ? 0 : 150;
   const valueW = 40;
-  const rowH = compact ? 34 : 26;
+  // Compact (< 420 px, the 375 px twin): the SVG is drawn at ~1:1 on the phone, so
+  // the labels must already be ≥ 12 px in SVG units (spec § 5: caption 12, never below).
+  const rowH = compact ? 40 : 26;
   const top = 16;
-  const axisH = 16;
+  const axisH = compact ? 20 : 16;
   const height = top + Math.max(1, rows.length) * rowH + axisH + 6;
   const plotX = labelW + 4;
   const plotW = width - plotX - valueW - 8;
@@ -39,14 +41,14 @@ export function renderDimBars(data: DimBarsData, opts: RenderOpts): string {
   if (rows.length === 0) body += text(plotX + plotW / 2, top + 14, "No dimensions supplied", { size: 10, anchor: "middle", fill: INK.muted });
   rows.forEach((r, i) => {
     const y = top + i * rowH;
-    const barY = compact ? y + 16 : y + 6;
+    const barY = compact ? y + 20 : y + 6;
     const barH = compact ? 12 : 14;
     const pending = r.pending === true || !Number.isFinite(r.value);
     const label = truncate(r.label, compact ? 26 : 22);
-    if (compact) body += text(plotX, y + 11, label, { size: 9, fill: INK.text });
+    if (compact) body += text(plotX, y + 13, label, { size: 12, fill: INK.text });
     else body += text(labelW - 4, barY + barH / 2 + 3.5, label, { size: 9.5, anchor: "end", fill: INK.text });
     if (pending) {
-      body += text(plotX, barY + barH / 2 + 3.5, r.pendingLabel ?? "— / 100 · pending", { size: 9, fill: INK.muted });
+      body += text(plotX, barY + barH / 2 + 3.5, r.pendingLabel ?? "— / 100 · pending", { size: compact ? 12 : 9, fill: INK.muted });
       return;
     }
     const band = data.showBand !== false && typeof r.p25 === "number" && typeof r.p75 === "number" && Number.isFinite(r.p25) && Number.isFinite(r.p75);
@@ -61,13 +63,13 @@ export function renderDimBars(data: DimBarsData, opts: RenderOpts): string {
       const mx = x(r.p50);
       body += `<line x1="${num(mx, 2)}" y1="${barY - 4}" x2="${num(mx, 2)}" y2="${barY + barH + 4}" stroke="${INK.muted}" stroke-width="2"/>`;
     }
-    body += text(plotX + plotW + 6, barY + barH / 2 + 3.5, `${Math.round(fin(r.value))}`, { size: 10, fill: INK.text, weight: 700 });
+    body += text(plotX + plotW + 6, barY + barH / 2 + 4, `${Math.round(fin(r.value))}`, { size: compact ? 12 : 10, fill: INK.text, weight: 700 });
   });
   // Axis: 0 / 50 / 100 only.
   const ay = top + Math.max(1, rows.length) * rowH + 10;
   for (const tick of [0, 50, 100]) {
     body += `<line x1="${num(x(tick), 2)}" y1="${ay - 6}" x2="${num(x(tick), 2)}" y2="${ay - 2}" stroke="${INK.grid}" stroke-width="1"/>`;
-    body += text(x(tick), ay + 7, String(tick), { size: 8, anchor: tick === 0 ? "start" : tick === 100 ? "end" : "middle", fill: INK.faint });
+    body += text(x(tick), ay + 8, String(tick), { size: compact ? 11 : 8, anchor: tick === 0 ? "start" : tick === 100 ? "end" : "middle", fill: INK.faint });
   }
   return frame({ id: opts.id, title: opts.title, description: opts.description, width, height, dataState: opts.dataState, hideBadge: opts.hideBadge ?? true }, body);
 }
