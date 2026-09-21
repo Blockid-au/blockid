@@ -114,7 +114,8 @@ describe("decideFreeReportGate — order and outcomes", () => {
   it("the platform cap queues, it never refuses", () => {
     expect(decideFreeReportGate({ ...base, submittedToday: 50 })).toEqual({ allow: true, reason: "free_allowance", sequenceNo: 1, queued: true });
     expect(decideFreeReportGate({ ...base, submittedToday: 49 })).toMatchObject({ queued: false });
-    expect(decideFreeReportGate({ ...base, cap: 0 })).toMatchObject({ allow: true, queued: true });
+    // Review v3.26.0 P3: cap 0 = free reports switched off → refused to the pay path, never a silent queue.
+    expect(decideFreeReportGate({ ...base, cap: 0 })).toEqual({ allow: false, reason: "free_reports_disabled", next: "pay" });
   });
 
   it("a paid entitlement is never counted", () => {

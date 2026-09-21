@@ -316,7 +316,7 @@ export function OneClickForm({ variant = "hero" }: OneClickFormProps) {
           </>
         ) : (
           <>
-            Get my A$3 report
+            Pay A$3 &amp; get my report
             <ArrowRight strokeWidth={1.75} className="h-5 w-5" />
           </>
         )}

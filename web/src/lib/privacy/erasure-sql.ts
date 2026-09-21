@@ -10,7 +10,7 @@
 import { ERASURE_MAP, NON_FK_EXTRAS, PROJECT_DETACHES, orderedEntries, type ErasureEntry } from "./erasure-map";
 
 /** Latest migration that (re)creates `erase_account()` from this map — tests read it. */
-export const ERASURE_MIGRATION_FILE = "0440_erasure_map_free_report_grants.sql";
+export const ERASURE_MIGRATION_FILE = "0441_erasure_free_report_email_hash.sql";
 
 export const MAP_BEGIN = "-- BEGIN erasure-map (generated from src/lib/privacy/erasure-map.ts — do not edit by hand)";
 export const MAP_END = "-- END erasure-map";

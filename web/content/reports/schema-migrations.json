@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-21T14:39:33.854Z",
+  "generated_at": "2026-09-21T17:12:21.736Z",
   "ledger_present": true,
-  "total_files": 319,
+  "total_files": 320,
   "files": [
     "0001_init.sql",
     "0002_score_v2.sql",
@@ -293,6 +293,7 @@
     "0438_org_settings_onboarding_metrics.sql",
     "0439_free_report_grants.sql",
     "0440_erasure_map_free_report_grants.sql",
+    "0441_erasure_free_report_email_hash.sql",
     "20260814_tech_analyses.sql",
     "20260815120000_analyzer_runs.sql",
     "20260816_clevel_reports_v2.sql",

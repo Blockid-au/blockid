@@ -39,6 +39,9 @@ const USER_AGENT = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, l
  */
 export const CLI_EXCEPTIONS = {
   "/docs/design-system": { h1: 7, reason: "noindex typography specimen page — each display/h1 level renders a real <h1> on purpose" },
+  // G25-D: the review step 404s by design without an order in the query string — sweep it with one.
+  "/checkout/review": { visit: "/checkout/review?plan=founder_growth&trial=1&entry=sweep", reason: "review-before-pay step; needs an order in the query (404 without one by design)" },
+  "/vi/checkout/review": { visit: "/vi/checkout/review?plan=founder_growth&trial=1&entry=sweep", reason: "VI mirror of the review step; needs an order in the query" },
 };
 
 async function main() {
@@ -57,7 +60,7 @@ async function main() {
     }
     return { ...entry, ...classifyRoute(entry, source) };
   });
-  const { visits, skippedDynamic } = planVisits(routes, opts);
+  const { visits, skippedDynamic } = planVisits(routes, { ...opts, exceptions: CLI_EXCEPTIONS });
 
   const needed = [...new Set(visits.map((v) => v.persona))];
   const skippedPersonas = needed.filter((p) => p !== "public" && !(opts.states[p] && existsSync(opts.states[p])));

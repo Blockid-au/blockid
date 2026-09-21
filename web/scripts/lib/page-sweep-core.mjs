@@ -652,7 +652,10 @@ export function planVisits(routes, opts) {
   const skippedDynamic = [];
   for (const entry of routes) {
     if (opts.routeFilter && !entry.route.includes(opts.routeFilter)) continue;
-    const urlPath = resolveDynamic(entry.route, entry.dynamic, opts.fixtures);
+    // A route that needs a query string to render (e.g. /checkout/review?plan=…)
+    // is visited at the documented `visit` path from the exceptions map.
+    const visitOverride = opts.exceptions?.[entry.route]?.visit;
+    const urlPath = typeof visitOverride === "string" ? visitOverride : resolveDynamic(entry.route, entry.dynamic, opts.fixtures);
     if (urlPath === null) {
       skippedDynamic.push(entry.route);
       continue;

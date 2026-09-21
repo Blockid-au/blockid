@@ -127,8 +127,9 @@ async function persist(
 ): Promise<string | null> {
   try {
     const key = anonKey ?? (await ensureAnonKey()).key;
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    // Review v3.26.0 P3: the trusted hop (the same helper the free-report
+    // ledger uses), never the client-forgeable first XFF entry.
+    const ip = clientIpFromHeaders(request.headers) ?? "unknown";
     const limit = checkAnalysisWriteLimit(key, ip);
     if (!limit.allowed) {
       console.warn(
@@ -313,8 +314,9 @@ async function POST_handler(request: Request) {
   // runs by clearing site data between them. Generous enough that a real
   // founder never meets it, and skipped entirely for a signed-in caller.
   if (!authenticated) {
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    // Review v3.26.0 P3: the trusted hop (the same helper the free-report
+    // ledger uses), never the client-forgeable first XFF entry.
+    const ip = clientIpFromHeaders(request.headers) ?? "unknown";
     const runLimit = checkAnonRunLimit(ip);
     if (!runLimit.allowed) {
       console.warn(`[intake] anonymous run ceiling hit (${runLimit.reason})`);

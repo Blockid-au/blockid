@@ -9,6 +9,7 @@ import { DIM_ORDER } from "@/lib/report-pipeline/dimension-owners";
 import { alignReportWithAssessmentCard } from "@/lib/svi/assessment-card";
 import { demoReportV2, investmentBandFixture, preRevenueFixtureReportV2 } from "./fixtures";
 import {
+  clause,
   BAND_TO_EXECUTIVE,
   buildInvestmentView,
   chapterGaps,
@@ -295,5 +296,27 @@ describe("ensureInvestmentView / investmentViewFor", () => {
     expect(rebuilt.evidenceConfidence).toBe(90);
     expect(rebuilt.rule).toBe("B:unverified"); // the demo still carries 2 unverified claims
     expect(investmentViewFor(once, alignReportWithAssessmentCard(once, { evidenceConfidence: 90, unverifiedMaterialClaims: 0 }).card, "en").band).toBe("A");
+  });
+});
+
+describe("marker-free surfaces keep the admission (review v3.26.0 P1)", () => {
+  it("clause(): an [unevidenced] / [uncited] claim ends with the localised '(unverified)' suffix after the markers are stripped; a cited claim does not", () => {
+    build(investmentBandFixture("B").report); // sets the EN suffix
+    expect(clause("Revenue of A$40k MRR was claimed [unevidenced].", 25)).toBe("Revenue of A$40k MRR was claimed (unverified)");
+    expect(clause("Sydney Angels took 40 applicants [uncited]", 25)).toMatch(/\(unverified\)$/);
+    expect(clause("182 startups analysed [ev:e5e0e468-23df-4bbb-8592-c0ef6d0d12ac].", 25)).toBe("182 startups analysed");
+    build(investmentBandFixture("B").report, {}, "vi");
+    expect(clause("Doanh thu A$40k MRR [unevidenced]", 25)).toMatch(/\(chưa xác minh\)$/);
+  });
+  it("every marker-free surface of a built view carries no raw marker and any admitted claim keeps its suffix", () => {
+    const g = investmentBandFixture("B");
+    const report = structuredClone(g.report);
+    for (const ch of report.dimensions) ch.gaps = ["Revenue of A$40k MRR was claimed [unevidenced]", ...(ch.gaps ?? [])];
+    const v = build(report);
+    const texts = [...v.keyPoints, ...v.riskMatrix.map((r) => r.text), ...v.improvementPlan.map((p) => p.title)];
+    for (const t of texts) expect(t).not.toMatch(/\[ev:|\[unevidenced\]|\[uncited\]/);
+    const admitted = v.riskMatrix.filter((r) => /A\$40k MRR/.test(r.text));
+    expect(admitted.length).toBeGreaterThan(0);
+    for (const r of admitted) expect(r.text).toMatch(/\(unverified\)$/);
   });
 });

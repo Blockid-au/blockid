@@ -59,7 +59,10 @@ const PERSONA_BUDGET_MS = 4 * 60_000;
  * a fixture-only page that answers 404 for the QA data; `redirectTo`: an
  * expected redirect target outside the shell prefixes.
  */
-export const PAGE_SWEEP_EXCEPTIONS: Record<string, { h1?: number; allow404?: boolean; redirectTo?: string; reason: string }> = {
+export const PAGE_SWEEP_EXCEPTIONS: Record<string, { h1?: number; allow404?: boolean; redirectTo?: string; visit?: string; reason: string }> = {
+  // G25-D: the review step 404s by design without an order in the query string — sweep it with one.
+  "/checkout/review": { visit: "/checkout/review?plan=founder_growth&trial=1&entry=sweep", reason: "review-before-pay step; needs an order in the query (404 without one by design)" },
+  "/vi/checkout/review": { visit: "/vi/checkout/review?plan=founder_growth&trial=1&entry=sweep", reason: "VI mirror of the review step; needs an order in the query" },
   "/docs/design-system": { h1: 7, reason: "noindex typography specimen page — each display/h1 level renders a real <h1> on purpose (golden-snapshot QA target)" },
   "/workspace/reports/[id]": { allow404: true, reason: "G19-owned report page; the QA project has no completed analysis in a sweep-only run, so the fixture id answers 404" },
 };
@@ -113,7 +116,7 @@ function routeTable() {
 }
 
 function visitsFor(persona: string, fixtures: Record<string, string>): { visits: Visit[]; skippedDynamic: string[] } {
-  const { visits, skippedDynamic } = planVisits(routeTable(), { fixtures, mode: "own", persona, limit: Infinity, routeFilter: null });
+  const { visits, skippedDynamic } = planVisits(routeTable(), { fixtures, mode: "own", persona, limit: Infinity, routeFilter: null, exceptions: PAGE_SWEEP_EXCEPTIONS });
   return { visits: visits as Visit[], skippedDynamic: skippedDynamic as string[] };
 }
 

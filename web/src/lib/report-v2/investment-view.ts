@@ -99,9 +99,19 @@ function words(s: string, max: number): string {
 }
 
 /** Marker-free, single-spaced, no trailing period — for a clause inside a template. */
-function clause(text: string, max = 14): string {
+/**
+ * Review v3.26.0 P1: a claim the pipeline marked `[unevidenced]` / `[uncited]`
+ * must never turn into a plain fact when its markers are stripped for a
+ * marker-free surface (key points, risk rows, plan titles, e-mail). The word
+ * cap keeps a localised "(unverified)" suffix on such text.
+ */
+export const UNVERIFIED_MARKER_RE = /\[(?:unevidenced|uncited)\]/i;
+let clauseUnverifiedSuffix = "(unverified)";
+export function clause(text: string, max = 14): string {
+  const flagged = UNVERIFIED_MARKER_RE.test(text);
   const clean = stripCitationMarkers(text).replace(/\s+/g, " ").trim().replace(/[.;:]+$/u, "");
-  return words(clean, max);
+  const capped = words(clean, max);
+  return flagged && capped ? `${capped} ${clauseUnverifiedSuffix}` : capped;
 }
 
 /**
@@ -252,6 +262,7 @@ const REVENUE_METHODS = new Set(["revenue_multiple", "dcf_proxy", "comparables",
 export function buildInvestmentView(rawReport: ReportV2, card: AssessmentCardData, localeIn: string | undefined = rawReport.locale): InvestmentView {
   const locale = investmentLocale(localeIn);
   const t = getTbrV3Strings(locale);
+  clauseUnverifiedSuffix = `(${t.unverified})`;
   const s43 = getTbrS43Strings(locale);
   const report = ensureExecutiveStructured(rawReport);
   const x = report.executive.structured!;

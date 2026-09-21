@@ -21,6 +21,18 @@ export function hashIp(ip: string | null | undefined): string | null {
   return createHash("sha256").update(`${ip}|${salt}`).digest("hex");
 }
 
+/**
+ * A DAILY-rotating hash for ledgers that only need "same network today"
+ * (the free-report per-IP guard, G25-C): `sha256(ip | salt | UTC day)` — the
+ * stored value is not a stable per-IP identifier across days even when
+ * `IP_HASH_SALT` is set (review v3.26.0 P3).
+ */
+export function hashIpDaily(ip: string | null | undefined, day: string = todayKey()): string | null {
+  if (!ip) return null;
+  const salt = process.env.IP_HASH_SALT || "default-salt";
+  return createHash("sha256").update(`${ip}|${salt}|${day}`).digest("hex");
+}
+
 // Best-effort extraction of the client IP from a Headers object — the hop
 // our edge actually saw, never a value the client can forge (S20-A review
 // P2-3; same rule as lib/audit/redact.ts `clientIp`):

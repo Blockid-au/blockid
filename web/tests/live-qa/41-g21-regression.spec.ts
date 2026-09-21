@@ -150,15 +150,16 @@ test.describe("G21 regression — anonymous", () => {
       // An anonymous context does not inherit the config baseURL — absolute URL.
       const res = await gotoWithSwapRetry(page, `${qa.baseURL}/tbr/demo`, { waitUntil: "domcontentloaded" });
       expect(res?.status()).toBe(200);
-      const card = page.getByTestId("assessment-card");
-      await expect(card.first()).toBeVisible({ timeout: 30_000 });
-      expect(await card.count()).toBe(1);
-      const text = await card.first().innerText();
+      // G27 v3: the Dashboard is the one SVI + Evidence Confidence surface (the G21 card's numbers live in its tiles).
+      const dash = page.locator("#tbr-dashboard");
+      await expect(dash).toBeVisible({ timeout: 30_000 });
+      expect(await page.locator("#tbr-dashboard").count()).toBe(1);
+      const text = await dash.innerText();
       expect(text).toMatch(/SVI/i);
       expect(text).toMatch(/evidence confidence/i);
-      const benchmarkLines = await card.locator("[data-assessment-benchmark]").allInnerTexts();
-      await evidence(testInfo, "assessment card", { text: text.slice(0, 600), benchmarkLines });
-      for (const line of benchmarkLines) expect(line, "benchmark line carries n =").toMatch(/n = \d+/);
+      const benchmarkLines = await page.locator("[data-tbr-benchmark-line]").allInnerTexts();
+      await evidence(testInfo, "dashboard", { text: text.slice(0, 600), benchmarkLines: benchmarkLines.slice(0, 4) });
+      for (const line of benchmarkLines) expect(line, "benchmark line carries n = or says no published cohort").toMatch(/n\s*=\s*\d+|no published cohort|not published|n = —/i);
     } finally {
       await ctx.close();
     }
@@ -171,6 +172,8 @@ test.describe("G21 regression — anonymous", () => {
       for (const path of ["/", "/solutions/accelerator"]) {
         const res = await page.goto(`${qa.baseURL}${path}`, { waitUntil: "domcontentloaded" });
         expect(res?.status(), path).toBe(200);
+        // The nav CTA renders only after auth hydration (SSR shows a skeleton) — wait for it.
+        await page.getByTestId("nav-v2-auth-skeleton").waitFor({ state: "detached", timeout: 15_000 }).catch(() => {});
         const hero = await page.locator(`main a[href="${START_COHORT_HREF}"]`).count();
         const nav = await page.locator(`header a[href="${START_COHORT_HREF}"]`).count();
         const pilotCards = await page.getByTestId("pilot-offer-card").count();

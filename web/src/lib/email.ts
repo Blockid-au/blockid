@@ -3296,7 +3296,10 @@ export async function sendFirstAnalysisReportEmail(params: {
   const pending = FIRST_ANALYSIS_AGENTS.filter((r) => !report.agents?.[r] && report.sections?.[r]?.status !== "unavailable");
   const pendingNames = pending.map((r) => AGENT_META[r].role).join(", ");
 
-  if (!(await canSendEmail(to, "promotions"))) {
+  // Review v3.26.0 P2: the report the visitor just asked for is transactional
+  // (like a receipt) — a promotions opt-out must not withhold it and burn the
+  // free-report grant. `payment_receipts` is the always-on category.
+  if (!(await canSendEmail(to, "payment_receipts"))) {
     return { ok: false, reason: "unsubscribed" };
   }
 

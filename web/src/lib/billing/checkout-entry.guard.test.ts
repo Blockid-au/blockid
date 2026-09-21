@@ -30,13 +30,18 @@ const SRC = resolve(__dirname, "../..");
 export const ALLOW: Readonly<Record<string, string>> = {
   "components/billing/checkout-review-card.tsx":
     "THE review step. Renders the full order (plan, included, price inc. GST + GST share, interval, trial, renewal, entity, data principle) and posts to the checkout route only from the explicit Pay / Add-card click.",
-  // Lane A (G25) is deleting the paid Cohort Pilot + coupon conversion. Both
-  // files carry their own quote-then-confirm panel and are not touched by
-  // lane D; the rows go when lane A's deletion merges.
-  "components/marketing/PilotBuyButton.tsx":
-    "G21 P0-C pilot buy control — confirm panel with the amount before the POST; being removed by G25 lane A (do not touch).",
-  "app/(app)/(founder)/workspace/accelerator/pilot/pilot-convert-card.tsx":
-    "G23-B pilot → annual conversion card — quotes annual price, credit and first-year figure before the POST; being removed by G25 lane A (do not touch).",
+  // Review v3.26.0 P2: the one-off report / funding quote panels. Each shows
+  // the price inc. GST and posts ONLY from an explicit "Pay A$X …" button.
+  "components/analyze/guest-paid-checkout.tsx":
+    "A$3 guest report quote panel — price inc. GST + e-mail, posts to /api/guest-analysis/create-order from the 'Pay {price} & get my report' button only.",
+  "app/(marketing)/one-click-report/one-click-form.tsx":
+    "The /one-click-report checkout landing — the price IS the offer (A$3 inc. GST, invoice note); the submit reads 'Pay A$3 & get my report'.",
+  "components/funding/funding-paywall.tsx":
+    "Money Finder A$3 paywall — price inc. GST, one-off, posts to /api/funding/checkout from the 'Pay A$3 & unlock' button only.",
+  "components/paywall/ReportPaywallGate.tsx":
+    "G16 quote-then-pay gate — 'Confirm & Pay A$3' after the quoted number; posts to /api/reports/checkout.",
+  "components/svi/svi-entrance.tsx":
+    "Quick Report option — first click opens the review block (price inc. GST, one-off, PDF by e-mail); only its 'Pay A$3 now' button posts to /api/stripe/analysis.",
 };
 
 /** The browser-side callers this guard looks for. */
@@ -47,6 +52,11 @@ const ROUTE_PATTERNS: ReadonlyArray<{ label: string; re: RegExp }> = [
   // `fetch("/api/credits")` GET reads the balance — only the POST mints a session.
   { label: "POST /api/credits", re: /fetch\(\s*["'`]\/api\/credits["'`]\s*,\s*\{[^}]*method:\s*["']POST["']/s },
   { label: "/api/svi-api/checkout", re: /["'`]\/api\/svi-api\/checkout["'`]/ },
+  // Review v3.26.0 P2: the other session-minting routes a browser can call.
+  { label: "/api/guest-analysis/create-order", re: /["'`]\/api\/guest-analysis\/create-order["'`]/ },
+  { label: "/api/funding/checkout", re: /["'`]\/api\/funding\/checkout["'`]/ },
+  { label: "/api/reports/checkout", re: /["'`]\/api\/reports\/checkout["'`]/ },
+  { label: "/api/stripe/analysis", re: /["'`]\/api\/stripe\/analysis["'`]/ },
 ];
 
 const SKIP_DIRS = new Set(["node_modules", ".next", "__snapshots__"]);
