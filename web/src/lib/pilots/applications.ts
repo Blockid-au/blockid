@@ -1,8 +1,9 @@
-// G16-C — /pilot applications: zod schema, the gitignored JSONL store
-// (`content/reports/pilot-applications.jsonl`), the ops alert and the
-// auto-reply. No account is created; nothing beyond the form's fields is
-// stored (plus a timestamp, an id and a hashed IP for the rate-limit
-// evidence). Erasure = the documented step in docs/ops/pilots.md.
+// G16-C — the (retired) /pilot/investor application store: zod schema, the
+// gitignored JSONL (`content/reports/pilot-applications.jsonl`), the ops
+// alert and the auto-reply. G25 (2026-09-21) removed the public form and
+// its route; `readApplications` still feeds /admin/pilots and the
+// validation tracker with the historical rows. Nothing appends any more.
+// Erasure = the documented step in docs/ops/pilots.md.
 
 import { promises as fs } from "node:fs";
 import path from "node:path";

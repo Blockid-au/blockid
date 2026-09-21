@@ -186,8 +186,6 @@ describe("STRIPE_PRICE_MAP", () => {
       "credits_100",
       "founder_package",
       "addon_share_mgmt_monthly",
-      "cohort_pilot_25",
-      "cohort_pilot_50",
       "addon_share_mgmt_annual",
       "one_click_report",
       // Money Finder A$3 report (G11 T0242) — POST /api/funding/checkout.

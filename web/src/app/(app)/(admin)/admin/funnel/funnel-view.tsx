@@ -209,7 +209,7 @@ function InstitutionalSection({ fi }: { fi: InstitutionalFunnel }) {
         <p className="text-sm text-indigo-900">startups assessed through paying institutional workflows this month</p>
         <p className="mt-1 text-xs text-indigo-800">
           {ns
-            ? `${n(ns.assessed_all)} batch items scored in total · ${n(ns.paying_batches)} paying batches · ${n(ns.paying_orgs)} paying organisations (Program / Fund / Cohort / Intake / paid pilot)`
+            ? `${n(ns.assessed_all)} batch items scored in total · ${n(ns.paying_batches)} paying batches · ${n(ns.paying_orgs)} paying organisations (Program / Fund / Cohort / Intake)`
             : "evaluation_batch_items unavailable"}
           {ns?.partial ? ` · partial: ${ns.partial}` : ""}
         </p>

@@ -173,7 +173,7 @@ export async function getBatchById(batchId: string): Promise<EvaluationBatch | n
  * Decorative on failure (an empty list only weakens dedupe, never blocks).
  */
 /** The evaluator's own tracked startups (all batches + standalone) — the import dedupes against these too (review P1: a retry after a proxy timeout minted duplicates). */
-/** Items already scored/queued across EVERY cohort attached to a paid pilot order (review P2: the cap is per pilot, not per batch). */
+/** Legacy (G21 pilot-era batches): items across EVERY cohort attached to one pilot_orders id — the cap was per order, not per batch. */
 export async function countItemsForPilotOrder(pilotOrderId: string): Promise<number> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return 0;

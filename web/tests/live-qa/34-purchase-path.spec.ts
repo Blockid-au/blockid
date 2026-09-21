@@ -27,13 +27,15 @@
  *       (`21-reports.spec.ts`) — referenced, not repeated;
  *   (g) `/api/stripe/portal` on an account without a Stripe customer → 404
  *       (never 500); `/workspace/billing` shows the no-subscription state;
- *   (j) G23-B: `/workspace/accelerator/pilot` on an account with no pilot
- *       order shows NO conversion card (or, if a paid order exists on this
- *       account, only the contact fallback — never a checkout control
- *       without a minted coupon); `POST /api/stripe/checkout` with
- *       `convert_from_pilot` for a random order → 404 (owner check before
- *       Stripe); `GET /api/admin/validation/<random>/proposal` anonymous →
- *       401 / 403 and as the QA founder → 403 (admin only).
+ *   (h)(i) G25: the programs page sells the Cohort rungs only — the offer
+ *       block + the two rungs at the catalogue's annual amounts; "Start a
+ *       cohort" takes an ANONYMOUS visitor to /signup with the Cohort 25
+ *       annual rung pre-selected (card-required trial), nothing is posted
+ *       to the checkout; the retired pilot SKU ids answer 400 at the
+ *       checkout route (never a session, never 503);
+ *   (j) `GET /api/admin/validation/<random>/proposal` anonymous → 401 / 403
+ *       and as the QA founder → 403 (admin only); the old pilot kit path
+ *       301s to the Cohort onboarding kit.
  *
  * Amounts come from `config/pricing/stripe-price-catalogue.json` (the
  * read-only Stripe audit) — never typed here — so a re-price fails this lane
@@ -281,131 +283,95 @@ test.describe("Purchase path — Free account billing truth", () => {
 });
 
 // ---------------------------------------------------------------------------
-// G21 P0-C — the paid Cohort Validation Pilot (never paid here)
+// G25 — the Cohort rungs replace the paid pilot (never paid here)
 // ---------------------------------------------------------------------------
 //
-//   (h) /solutions/accelerator#pilot shows BOTH offer cards at the PILOT_SKUS
-//       amounts (A$1,500 / ≤ 25, A$2,500 / ≤ 50 — read from the catalogue
-//       rows, never typed here), each with "inc. GST" and the
-//       quote-before-you-pay line;
-//   (i) clicking the A$1,500 control does ONE of two things, and the test
-//       asserts whichever occurs: with STRIPE_PRICE_COHORT_PILOT_25 set the
-//       button opens the confirm panel and "Continue to secure checkout"
-//       posts {plan:"cohort_pilot_25"} — the response is captured and the
-//       returned checkout.stripe.com URL is NEVER opened (the session
-//       expires unpaid); without the env var the control is a link that
-//       lands on /contact?topic=pilot. Credits are asserted unchanged.
-const PILOT_25_CENTS = PRICES.STRIPE_PRICE_COHORT_PILOT_25!.amount_cents; // 150000
-const PILOT_50_CENTS = PRICES.STRIPE_PRICE_COHORT_PILOT_50!.amount_cents; // 250000
+//   (h) /solutions/accelerator#cohort shows the Cohort offer (8 inclusions,
+//       6 metrics) and #plans the two rungs at the catalogue's ANNUAL
+//       amounts (read from the audit rows, never typed here) — no pilot
+//       card, no pilot price, no /contact?topic=pilot;
+//   (i) an ANONYMOUS visitor clicking "Start a cohort" lands on /signup with
+//       segment=evaluator, plan=accelerator_starter, trial=1, interval=annual
+//       and sees the card-required trial copy; nothing is posted to the
+//       checkout. The retired SKU ids (cohort_pilot_25 / _50) answer 400
+//       "Invalid or free plan" at the checkout route as the QA founder.
+const COHORT_25_ANNUAL_CENTS = PRICES.STRIPE_PRICE_ACCEL_STARTER_ANNUAL!.amount_cents; // 500000
+const COHORT_100_ANNUAL_CENTS = PRICES.STRIPE_PRICE_ACCEL_GROWTH_ANNUAL!.amount_cents; // 1500000
+const START_COHORT_HREF = "/signup?segment=evaluator&plan=accelerator_starter&trial=1&interval=annual";
 
-test.describe("Purchase path — Cohort Validation Pilot (G21 P0-C, no spend)", () => {
-  test("(h) /solutions/accelerator#pilot shows both offer cards at the catalogue amounts inc. GST with the quote line", async ({ page, visit, credits }, testInfo) => {
+test.describe("Purchase path — Cohort rungs (G25, no spend)", () => {
+  test("(h) /solutions/accelerator#cohort shows the offer + both rungs at the catalogue annual amounts; no pilot block, price or fallback", async ({ page, visit, credits }, testInfo) => {
     const before = await credits.snapshot();
-    await visit("/solutions/accelerator#pilot");
-    const cards = page.getByTestId("pilot-offer-card");
-    await expect(cards).toHaveCount(2, { timeout: 30_000 });
-    const seen: Array<{ sku: string | null; text: string }> = [];
-    for (let i = 0; i < 2; i++) {
-      const el = cards.nth(i);
-      const sku = await el.getAttribute("data-sku");
-      const text = (await el.innerText()).replace(/\s+/g, " ");
-      seen.push({ sku, text });
-    }
-    const c25 = seen.find((c) => c.sku === "cohort_pilot_25")!;
-    const c50 = seen.find((c) => c.sku === "cohort_pilot_50")!;
-    expect(c25.text).toContain(aud(PILOT_25_CENTS));
-    expect(c25.text).toContain("inc. GST");
-    expect(c25.text).toMatch(/Up to 25 applicants/i);
-    expect(c25.text).toMatch(/quote before you pay/i);
-    expect(c50.text).toContain(aud(PILOT_50_CENTS));
-    expect(c50.text).toMatch(/Up to 50 applicants/i);
-    await expect(page.getByTestId("pilot-metrics").locator("li")).toHaveCount(6);
-    await evidence(testInfo, "pilot offer cards", { seen });
-    await credits.assertUnchanged(before, "pilot offer cards (read-only)");
+    await visit("/solutions/accelerator#cohort");
+    await expect(page.getByTestId("cohort-offer")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId("cohort-offer-includes").locator("li")).toHaveCount(8);
+    await expect(page.getByTestId("cohort-offer-metrics").locator("li")).toHaveCount(6);
+    const tiers = page.getByTestId("solutions-tiers");
+    await expect(tiers).toBeVisible();
+    const text = (await tiers.innerText()).replace(/\s+/g, " ");
+    expect(text).toContain(`${aud(COHORT_25_ANNUAL_CENTS)} a year`);
+    expect(text).toContain(`${aud(COHORT_100_ANNUAL_CENTS)} a year`);
+    expect(await page.getByTestId("pilot-offer").count()).toBe(0);
+    expect(await page.getByTestId("pilot-offer-card").count()).toBe(0);
+    expect(await page.locator('a[href="/contact?topic=pilot"]').count()).toBe(0);
+    const main = (await page.locator("main").innerText()).replace(/\s+/g, " ");
+    expect(main).not.toMatch(/pilot/i);
+    expect(main).not.toMatch(/A\$1,500|A\$2,500/);
+    await evidence(testInfo, "cohort offer + rungs", { tiers: text.slice(0, 400) });
+    await credits.assertUnchanged(before, "cohort offer (read-only)");
   });
 
-  test("(i) the A$1,500 control → a checkout.stripe.com URL (captured, never opened) when the price is minted, else /contact?topic=pilot", async ({ page, visit, credits }, testInfo) => {
+  test("(i) anonymous 'Start a cohort' → /signup with the Cohort 25 annual rung pre-selected (card-required trial); retired pilot SKUs → 400 at the checkout", async ({ api, browser, qa, credits }, testInfo) => {
     const before = await credits.snapshot();
+    const ctx = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    const page = await ctx.newPage();
     const posted: unknown[] = [];
-    const responses: Array<{ status: number; body: CheckoutResponse | null }> = [];
-    await page.route("**/api/stripe/checkout", async (route) => {
-      posted.push(route.request().postDataJSON());
-      // Let the server mint (or refuse) the session, capture the answer, and
-      // hand the browser a dead-end so the Stripe URL is never navigated to.
-      const res = await route.fetch();
-      let body: CheckoutResponse | null = null;
-      try {
-        body = (await res.json()) as CheckoutResponse;
-      } catch {
-        body = null;
-      }
-      responses.push({ status: res.status(), body });
-      await route.fulfill({ status: 599, contentType: "application/json", body: JSON.stringify({ ok: false, reason: "captured by live-qa — never opened" }) });
-    });
-    await visit("/solutions/accelerator#pilot");
-    const buy = page.getByTestId("pilot-buy-cohort_pilot_25");
-    await expect(buy).toBeVisible({ timeout: 30_000 });
-    const mode = await buy.getAttribute("data-pilot-mode");
-    expect(["contact", "checkout"]).toContain(mode);
-
-    if (mode === "contact") {
-      // Unminted: a plain link, no POST, no login detour.
-      expect(await buy.getAttribute("href")).toBe("/contact?topic=pilot");
-      await buy.click();
-      await page.waitForURL(/\/contact\?topic=pilot/, { timeout: 30_000 });
-      await evidence(testInfo, "pilot buy (unconfigured → contact)", { landed: page.url(), posted });
+    try {
+      await page.route("**/api/stripe/checkout", async (route) => {
+        posted.push(route.request().postDataJSON());
+        await route.fulfill({ status: 599, contentType: "application/json", body: JSON.stringify({ ok: false, reason: "captured by live-qa — never opened" }) });
+      });
+      await page.goto(`${qa.baseURL}/solutions/accelerator`, { waitUntil: "domcontentloaded" });
+      const cta = page.locator(`main a[href="${START_COHORT_HREF}"]`).first();
+      await expect(cta).toBeVisible({ timeout: 30_000 });
+      await expect(cta).toContainText("Start a cohort");
+      await cta.click();
+      await page.waitForURL(/\/signup\?segment=evaluator&plan=accelerator_starter&trial=1&interval=annual/, { timeout: 30_000 });
+      const signup = (await page.locator("main").innerText()).replace(/\s+/g, " ");
+      await evidence(testInfo, "start a cohort → signup", { landed: page.url(), posted, snippet: signup.slice(0, 300) });
+      expect(signup).toMatch(/Cohort 25/);
+      expect(signup).toMatch(/trial/i);
+      expect(signup).not.toMatch(/pilot/i);
       expect(posted).toHaveLength(0);
-    } else {
-      // Minted: the confirm panel quotes the amount, then the POST is captured.
-      await buy.click();
-      const confirm = page.getByTestId("pilot-confirm-cohort_pilot_25");
-      await expect(confirm).toBeVisible({ timeout: 15_000 });
-      expect((await confirm.innerText()).replace(/\s+/g, " ")).toContain(`${aud(PILOT_25_CENTS)} inc. GST`);
-      await page.getByTestId("pilot-checkout-cohort_pilot_25").click();
-      await expect.poll(() => posted.length, { timeout: 15_000 }).toBe(1);
-      expect(posted[0]).toEqual({ plan: "cohort_pilot_25" });
-      await expect.poll(() => responses.length, { timeout: 30_000 }).toBe(1);
-      const r = responses[0]!;
-      await evidence(testInfo, "pilot buy (configured → captured session)", { status: r.status, ok: r.body?.ok, error: r.body?.error, host: r.body?.url ? new URL(r.body.url).host : null, fallback: r.body?.fallback });
-      if (r.status === 200) {
-        expect(r.body?.url).toMatch(/^https:\/\/checkout\.stripe\.com\//);
-      } else {
-        // The env var vanished between render and POST — still an honest answer.
-        expect(r.status).toBe(409);
-        expect(r.body?.fallback).toBe("/contact?topic=pilot");
-      }
-      expect(page.url()).not.toMatch(/stripe\.com/);
+    } finally {
+      await ctx.close();
     }
-    await credits.assertUnchanged(before, "pilot buy control (never paid)");
+    for (const sku of ["cohort_pilot_25", "cohort_pilot_50"]) {
+      const r = await post<CheckoutResponse>(api, "/api/stripe/checkout", { plan: sku });
+      await evidence(testInfo, `checkout ${sku} (retired)`, { status: r.status, body: r.body });
+      expect(r.status).toBe(400);
+      expect(r.body.ok).toBe(false);
+      expect(r.body.url).toBeUndefined();
+    }
+    await credits.assertUnchanged(before, "start a cohort (never paid)");
   });
 });
 
 // ---------------------------------------------------------------------------
-// G23-B — pilot → annual conversion + the admin proposal route (never paid)
+// G23-B / G25 — the admin proposal route (never paid) + the retired kit path
 // ---------------------------------------------------------------------------
 
-test.describe("Purchase path — pilot conversion + proposal route (G23-B, no spend)", () => {
-  test("(j) no pilot order → no conversion card (or contact fallback only); convert_from_pilot for a random order → 404; proposal route 401/403", async ({ api, page, visit, credits, qa }, testInfo) => {
+test.describe("Purchase path — proposal route gate + retired kit path (no spend)", () => {
+  test("(j) proposal route 401/403; /workspace/accelerator/pilot 301s to the Cohort onboarding kit; the kit never offers a conversion", async ({ api, page, visit, credits, qa }, testInfo) => {
     const before = await credits.snapshot();
-    await visit("/workspace/accelerator/pilot");
-    await expect(page.getByRole("heading", { level: 1 })).toContainText("Pilot delivery kit", { timeout: 30_000 });
-    const card = page.getByTestId("pilot-convert-card");
-    const cards = await card.count();
-    let mode: string | null = null;
-    if (cards > 0) {
-      mode = await card.getAttribute("data-convert-mode");
-      // A card can only exist for an account that paid for a pilot; this
-      // account never does, but if one is seeded it must not offer a
-      // checkout without the founder-minted coupon.
-      expect(["contact", "converted", "closed"]).toContain(mode);
-      if (mode === "contact") expect(await page.getByTestId("pilot-convert-contact").getAttribute("href")).toBe("/contact?topic=pilot");
-      expect(await page.getByTestId("pilot-convert-checkout").count()).toBe(0);
-    }
-
-    // The owner check runs before Stripe: a random order id is 404, never 500.
-    const convert = await post<CheckoutResponse>(api, "/api/stripe/checkout", { plan: "accelerator_starter", interval: "annual", convert_from_pilot: "3f2a9c1e-5b7d-4e8f-9a0b-1c2d3e4f5a6b" });
-    expect([400, 404]).toContain(convert.status);
-    expect(convert.body.ok).toBe(false);
+    const hop = await api.get(`${qa.baseURL}/workspace/accelerator/pilot`, { maxRedirects: 0 });
+    expect(hop.status()).toBe(301);
+    expect(hop.headers()["location"] ?? "").toMatch(/\/workspace\/accelerator\/onboarding$/);
+    await visit("/workspace/accelerator/onboarding");
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Cohort onboarding kit", { timeout: 30_000 });
+    expect(await page.getByTestId("pilot-convert-card").count()).toBe(0);
+    expect(await page.getByTestId("pilot-convert-checkout").count()).toBe(0);
+    expect((await page.locator("main").innerText())).not.toMatch(/pilot|coupon/i);
 
     const anon = await anonRequest(qa.baseURL);
     try {
@@ -413,10 +379,10 @@ test.describe("Purchase path — pilot conversion + proposal route (G23-B, no sp
       expect([401, 403]).toContain(proposalAnon.status());
       const proposalUser = await fetchWithSwapRetry(api, "GET", "/api/admin/validation/3f2a9c1e-5b7d-4e8f-9a0b-1c2d3e4f5a6b/proposal");
       expect(proposalUser.status()).toBe(403);
-      await evidence(testInfo, "pilot conversion + proposal gate", { cards, mode, convert: { status: convert.status, error: convert.body.error }, proposalAnon: proposalAnon.status(), proposalUser: proposalUser.status() });
+      await evidence(testInfo, "proposal gate + retired kit path", { hop: hop.status(), proposalAnon: proposalAnon.status(), proposalUser: proposalUser.status() });
     } finally {
       await anon.dispose();
     }
-    await credits.assertUnchanged(before, "pilot conversion card (never paid)");
+    await credits.assertUnchanged(before, "onboarding kit (never paid)");
   });
 });

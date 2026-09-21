@@ -1,6 +1,8 @@
 // G22-D — the read side of /admin/validation: the auto-filled rows
-// (pilot_orders + metrics, comp applications, feedback letters, cohorts
-// scored) and the North Star / window line from lib/funnel/institutional.
+// (program-plan invoices from revenue_events — G25, was pilot_orders —,
+// the retired comp form's historical applications, feedback letters,
+// cohorts scored) and the North Star / window line from
+// lib/funnel/institutional.
 //
 // Every read is fail-soft: a missing table, a missing column or a
 // misconfigured client becomes a warning on the page, never a 500 and never
@@ -10,7 +12,7 @@
 import { readApplications } from "@/lib/pilots/applications";
 import { readInstitutionalFunnel, type InstitutionalClient, type InstitutionalQuery, type InstitutionalResult } from "@/lib/funnel/institutional";
 import { readValidationLedger } from "./ledger";
-import { buildDashboard, deriveAutoRows, type AutoInputs, type AutoRow, type ValidationDashboard, type WindowMetric } from "./model";
+import { PROGRAM_PLAN_IDS, buildDashboard, deriveAutoRows, type AutoInputs, type AutoRow, type ValidationDashboard, type WindowMetric } from "./model";
 
 export const AUTO_ROW_LIMIT = 500;
 
@@ -33,13 +35,12 @@ function rowsOf<T>(warnings: string[], label: string, res: InstitutionalResult |
   return (res.data ?? []) as T[];
 }
 
-type OrderRow = AutoInputs["pilotOrders"][number];
+type RevenueRow = AutoInputs["revenueEvents"][number];
 type LetterRow = AutoInputs["feedbackLetters"][number];
 type BatchRow = AutoInputs["batches"][number];
 
-const ORDER_COLS = "id, user_id, buyer_email, sku, amount_cents, currency, status, created_at, metrics";
-/** G23-B (migration 0434): a converted pilot is an L5 row. */
-const ORDER_COLS_V2 = `${ORDER_COLS}, converted_at, converted_plan`;
+/** G25: L4 / L5 come from the program plans' paid invoices (0075 revenue_events, 0420 kinds). */
+const REVENUE_COLS = "id, user_id, plan_id, kind, gross_aud_cents, currency, ts";
 const BATCH_COLS = "id, user_id, name, status, total, done_count, finished_at, created_at";
 const BATCH_COLS_V2 = `${BATCH_COLS}, program_name`;
 /** G24-C (migration 0436): the demo flag — a demo cohort is a "workflow demo run" row, never "Cohort scored". */
@@ -60,26 +61,29 @@ export function isAdminOwner(owner: { email?: string | null; role?: string | nul
 /** Collect the inputs `deriveAutoRows` needs. Never throws. */
 export async function readAutoInputs(client: InstitutionalClient | null, root: string): Promise<{ inputs: AutoInputs; warnings: string[] }> {
   const warnings: string[] = [];
-  const inputs: AutoInputs = { pilotOrders: [], applications: [], feedbackLetters: [], batches: [] };
+  const inputs: AutoInputs = { revenueEvents: [], applications: [], feedbackLetters: [], batches: [] };
 
   const apps = await safe(warnings, "pilot-applications.jsonl", () => readApplications(root, AUTO_ROW_LIMIT));
   if (apps) inputs.applications = apps.map((a) => ({ id: a.id, program_name: a.program_name, cohort_size: a.cohort_size, intake_month: a.intake_month, received_at: a.received_at }));
 
   if (!client) {
-    warnings.push("supabase not configured — pilot orders, feedback letters and cohorts unavailable");
+    warnings.push("supabase not configured — program invoices, feedback letters and cohorts unavailable");
     return { inputs, warnings };
   }
 
   const q = (table: string, cols: string) => client.from(table).select(cols);
   const run = (query: InstitutionalQuery) => query;
 
-  // Pilot orders: the 0434 conversion columns first, then the 0416 shape (42703 = column missing, migration not applied yet).
-  let ordersRes = await safe(warnings, "pilot_orders", async () => await run(q("pilot_orders", ORDER_COLS_V2).order("created_at", { ascending: true }).limit(AUTO_ROW_LIMIT)));
-  if (ordersRes?.error && /converted_at|converted_plan|42703/i.test(ordersRes.error.message ?? "")) {
-    ordersRes = await safe(warnings, "pilot_orders", async () => await run(q("pilot_orders", ORDER_COLS).order("created_at", { ascending: true }).limit(AUTO_ROW_LIMIT)));
+  // Program invoices (G25): revenue_events rows on the Cohort 25 / Cohort 100 /
+  // Program plans, oldest first; the payer's e-mail joins the organisation
+  // label (domain only — never a full address on the page).
+  const revenue = rowsOf<RevenueRow>(warnings, "revenue_events", await safe(warnings, "revenue_events", async () => await run(q("revenue_events", REVENUE_COLS).in("plan_id", [...PROGRAM_PLAN_IDS]).order("ts", { ascending: true }).limit(AUTO_ROW_LIMIT))));
+  if (revenue && revenue.length > 0) {
+    const payerIds = [...new Set(revenue.map((r) => r.user_id).filter((id): id is string => typeof id === "string" && id.length > 0))];
+    const payers = payerIds.length > 0 ? rowsOf<{ id: string; email: string | null }>([], "app_users", await safe([], "app_users", async () => await run(q("app_users", "id, email").in("id", payerIds).limit(AUTO_ROW_LIMIT)))) : [];
+    const emailById = new Map((payers ?? []).map((u) => [u.id, u.email] as const));
+    inputs.revenueEvents = revenue.map((r) => ({ ...r, payer_email: r.user_id ? (emailById.get(r.user_id) ?? null) : null }));
   }
-  const orders = rowsOf<OrderRow>(warnings, "pilot_orders", ordersRes);
-  if (orders) inputs.pilotOrders = orders.map((o) => ({ ...o, metrics: o.metrics && typeof o.metrics === "object" ? o.metrics : null }));
 
   const letters = rowsOf<LetterRow>(warnings, "founder_feedback_letters", await safe(warnings, "founder_feedback_letters", async () => await run(q("founder_feedback_letters", "id, project_id, status, sent_at, org_count, k").in("status", ["sent", "opened"]).order("sent_at", { ascending: false }).limit(AUTO_ROW_LIMIT))));
   if (letters) inputs.feedbackLetters = letters;

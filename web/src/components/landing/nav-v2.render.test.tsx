@@ -49,14 +49,15 @@ describe("NavV2 — one header, one light skin (G26)", () => {
     }
   });
 
-  it("signed out: Sign in + the Run a cohort pilot CTA (G21 P0-B); signed in: My workspace + the shared user-menu rows for the persona", () => {
+  it("signed out: Sign in + the Start a cohort CTA (G25); signed in: My workspace + the shared user-menu rows for the persona", () => {
     auth.user = null;
     const out = renderToStaticMarkup(<NavV2 />);
     expect(out).toContain('href="/auth/login"');
     expect(out).toMatch(
-      /<a[^>]*data-cta-id="run_cohort_pilot"[^>]*href="\/solutions\/accelerator#pilot"|<a[^>]*href="\/solutions\/accelerator#pilot"[^>]*data-cta-id="run_cohort_pilot"/,
+      /<a[^>]*data-cta-id="start_cohort"[^>]*href="\/signup\?segment=evaluator&amp;plan=accelerator_starter&amp;trial=1&amp;interval=annual"|<a[^>]*href="\/signup\?segment=evaluator&amp;plan=accelerator_starter&amp;trial=1&amp;interval=annual"[^>]*data-cta-id="start_cohort"/,
     );
-    expect(out).toContain("Run a cohort pilot");
+    expect(out).toContain("Start a cohort");
+    expect(out).not.toMatch(/pilot/i);
     expect(out).not.toContain("Score a startup");
     expect(out).not.toContain("Do you need money?");
     // No dropdown trigger in the bar any more — seven plain links.

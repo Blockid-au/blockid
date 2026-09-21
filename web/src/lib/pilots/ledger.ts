@@ -33,8 +33,10 @@ export const LEDGER_VERSION = 1 as const;
 export type PilotStatus = "active" | "ended" | "expired";
 /**
  * G21 P0-C: `comp` = the admin grant (G16-C, capped at PILOT_CAP);
- * `paid` = a Cohort Validation Pilot bought through Stripe (`pilot_orders`,
- * never capped, Cohort-tier plan). Absent on rows written before P0-C → comp.
+ * `paid` = a Cohort Validation Pilot bought through Stripe (`pilot_orders`).
+ * Absent on rows written before P0-C → comp. G25 (2026-09-21): both kinds
+ * are retired — no new row is written; the type stays so historical rows
+ * on the ledger still parse and the expiry cron can end them.
  */
 export type PilotSource = "comp" | "paid";
 /** The plan tier a pilot row grants: the comped Program rung or a paid Cohort rung. */

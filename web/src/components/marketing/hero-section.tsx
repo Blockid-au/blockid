@@ -11,7 +11,7 @@
  * Copy is the FI1/FI2 pair from `lib/marketing/hero-variants.ts`; the G17
  * evaluator arm E1 and the founder arms F1–F3 stay selectable through
  * `?hero=` so the T0250 A/B protocol can run against the new default. The
- * primary CTA is the paid cohort pilot (`/solutions/accelerator#pilot`),
+ * primary CTA is "Start a cohort" (the Cohort 25 trial sign-up, G25),
  * the secondary is the free score; the line under the box is the trust
  * line "Australian-built · Evidence-backed · Founder-controlled data". No
  * price, no agent count, no AI-superiority claim in the hero.
@@ -52,12 +52,13 @@ import {
   setPendingIntake,
 } from "@/lib/analyze/pending-intake";
 import { PageHero } from "@/components/marketing/template/page-hero";
+import { START_COHORT_HREF, START_COHORT_LABEL } from "@/lib/marketing/start-cohort";
 
 /** The hero CTAs — exported so the page test and the smoke can pin them. */
 export const HERO_PRIMARY_CTA = {
-  href: "/solutions/accelerator#pilot",
-  label: "Run a cohort pilot",
-  ctaId: "hero_pilot",
+  href: START_COHORT_HREF,
+  label: START_COHORT_LABEL,
+  ctaId: "hero_start_cohort",
 } as const;
 export const HERO_SECONDARY_CTA = {
   href: "/analyze",

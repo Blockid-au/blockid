@@ -305,14 +305,30 @@ describe("digest.why_moved.* catalogue parity (en ⇄ vi) — G14-S36 F-6", () =
   });
 });
 
-// G22-C — the paid Cohort Validation Pilot controls (PilotRung / PilotOffer /
-// PilotBuyButton via `pilotUiStrings()`), the /pilot + /vi/pilot page copy
-// (`buildPilotPageCopy()`) and the pilot meta pair read these keys for both
-// locales; a missing VI key would render an English control on /vi/pilot.
-describe("pilot.* + meta.pilot.* catalogue parity (en ⇄ vi) — G22-C", () => {
+// G25 (2026-09-21) — the paid Cohort Validation Pilot, its `/pilot` page,
+// buy controls and coupon conversion were retired ("bỏ luôn coupon và
+// pilot"). No `pilot.*` / `meta.pilot.*` key may come back, and the Cohort
+// offer + plans blocks that replaced the pilot block on
+// /solutions/accelerator keep EN ⇄ VI parity.
+describe("G25 — no pilot catalogue keys; Cohort offer / plans parity (en ⇄ vi)", () => {
   const tokens = (s: string) => (s.match(/\{[a-zA-Z0-9]+\}/g) ?? []).sort();
 
-  it.each(["pilot.", "meta.pilot."])("every %s key exists in both catalogues, none empty, and the {tokens} match", (prefix) => {
+  it("no pilot.* / meta.pilot.* / solutions.accelerator.pilot.* / solutions.accelerator.after.* key in either catalogue", () => {
+    for (const prefix of ["pilot.", "meta.pilot.", "solutions.accelerator.pilot.", "solutions.accelerator.after."]) {
+      expect(enKeys(prefix), `en ${prefix}`).toEqual([]);
+      expect(viKeys(prefix), `vi ${prefix}`).toEqual([]);
+    }
+  });
+
+  it("no catalogue value sells a pilot: 'paid pilot', 'Cohort Validation Pilot', 'thí điểm' are gone", () => {
+    const offenders = Object.entries(EN)
+      .concat(Object.entries(VI))
+      .filter(([, v]) => /paid pilot|Cohort Validation Pilot|book a pilot|thí điểm/i.test(v))
+      .map(([k]) => k);
+    expect(offenders).toEqual([]);
+  });
+
+  it.each(["solutions.accelerator.cohort.", "solutions.accelerator.plans."])("every %s key exists in both catalogues, none empty, {tokens} match, VI translated", (prefix) => {
     const missingInVi = enKeys(prefix).filter((k) => !(k in VI));
     const missingInEn = viKeys(prefix).filter((k) => !(k in EN));
     expect(missingInVi, "missing in vi.json").toEqual([]);
@@ -322,37 +338,16 @@ describe("pilot.* + meta.pilot.* catalogue parity (en ⇄ vi) — G22-C", () => 
       expect(EN[k]!.trim().length, `en ${k}`).toBeGreaterThan(0);
       expect(VI[k]!.trim().length, `vi ${k}`).toBeGreaterThan(0);
       expect(tokens(VI[k]!), k).toEqual(tokens(EN[k]!));
-      // The VI line is a translation, never the English line copied across.
-      if (!/^\{[a-zA-Z0-9]+\}$/.test(EN[k]!)) expect(VI[k], `${k} is untranslated`).not.toBe(EN[k]);
-    }
-  });
-
-  it("amounts stay tokens ({price} / {priceLong} / {price25}) — no A$ literal in either language; the meta title fits the 60-character budget", () => {
-    for (const k of [...enKeys("pilot."), ...enKeys("meta.pilot.")]) {
       expect(EN[k], `en ${k}`).not.toMatch(/A\$\d/);
       expect(VI[k], `vi ${k}`).not.toMatch(/A\$\d/);
+      if (!/^(Cohort 25|Cohort 100)$/.test(EN[k]!)) expect(VI[k], `${k} is untranslated`).not.toBe(EN[k]);
     }
-    expect(EN["pilot.buy.label"]).toContain("{price}");
-    expect(VI["pilot.buy.label"]).toContain("{price}");
-    expect(EN["meta.pilot.description"]).toContain("{price25}");
-    expect(`${EN["meta.pilot.title"]} | BlockID.au`.length).toBeLessThanOrEqual(60);
-    expect(`${VI["meta.pilot.title"]} | BlockID.au`.length).toBeLessThanOrEqual(60);
+    expect(enKeys("solutions.accelerator.cohort.").filter((k) => /\.include\d+$/.test(k))).toHaveLength(8);
+    expect(enKeys("solutions.accelerator.cohort.").filter((k) => /\.metric\d+$/.test(k))).toHaveLength(6);
   });
-});
 
-// G23-C — the two literal fallbacks that survived G22-C now come from the catalogue.
-describe("pilot.* literal fallbacks → catalogue keys (G23-C)", () => {
-  it("pilot.page.breadcrumb.home + pilot.buy.error.generic exist in EN and VI and are what the page / button consume", async () => {
-    expect(EN["pilot.page.breadcrumb.home"]).toBe("Home");
-    expect(VI["pilot.page.breadcrumb.home"]).toBe("Trang chủ");
-    expect(EN["pilot.buy.error.generic"]!.length).toBeGreaterThan(0);
-    expect(VI["pilot.buy.error.generic"]!.length).toBeGreaterThan(0);
-    const { buildPilotPageCopy } = await import("@/app/(marketing)/pilot/pilot-page-body");
-    const { PILOT_CHECKOUT_ERROR_KEY } = await import("@/components/marketing/PilotBuyButton");
-    const { pilotUiStrings } = await import("@/lib/pricing/pilot-strings");
-    expect(buildPilotPageCopy(EN as never, "en").breadcrumbHome).toBe(EN["pilot.page.breadcrumb.home"]);
-    expect(buildPilotPageCopy(VI as never, "vi").breadcrumbHome).toBe(VI["pilot.page.breadcrumb.home"]);
-    expect(PILOT_CHECKOUT_ERROR_KEY).toBe("pilot.buy.error.generic");
-    expect(pilotUiStrings(VI as never, "vi").errorGeneric).toBe(VI[PILOT_CHECKOUT_ERROR_KEY]);
+  it("the program CTA is 'Start a cohort' in both languages", () => {
+    expect(EN["solutions.accelerator.cta"]).toBe("Start a cohort");
+    expect(VI["solutions.accelerator.cta"]).toBe("Bắt đầu một khoá");
   });
 });

@@ -17,7 +17,7 @@
  *  - Only ONE dropdown open at a time; clicking a link closes it.
  *  - Auth-aware (T0238): `useAuthUser()` asks /api/auth/me after hydration,
  *    so the header stays mountable on statically generated pages. Signed
- *    out → "Sign in" + the "Run a cohort pilot" CTA (G21 P0-B); signed in
+ *    out → "Sign in" + the "Start a cohort" CTA (G21 P0-B, G25 label); signed in
  *    → "My workspace" + the account menu; a neutral skeleton while resolving.
  *  - The ONLY public header (G13-W5-IA5, spec §E S-IA5). `site/navbar.tsx`
  *    — the floating glass bar ~50 app / docs / tools / auth pages mounted —
@@ -65,6 +65,7 @@ import {
 } from "@/hooks/useAuthUser";
 import { trackEvent } from "@/lib/analytics";
 import { USER_MENU_SIGN_OUT_LABEL, userMenuItems, type UserMenuIcon } from "@/lib/nav/user-menu";
+import { START_COHORT_CTA_ID, START_COHORT_HREF, START_COHORT_LABEL } from "@/lib/marketing/start-cohort";
 import { LocaleSwitcher } from "./locale-switcher";
 
 // ---------------------------------------------------------------------------
@@ -214,16 +215,17 @@ export const MENU: MenuEntry[] = [
 ];
 
 /**
- * Primary CTA (G21 P0-B). "Run a cohort pilot" → the paid Cohort Validation
- * Pilot block on the programs page — the commercial wedge the whole site
- * now points at. Replaces "Score a startup" → /analyze (G17 D1/D4), which
- * stays the hero's secondary CTA and the omnibox hand-off. The click is
- * reported as `cta_clicked { cta_id: "run_cohort_pilot", location }`.
+ * Primary CTA (G21 P0-B; G25 2026-09-21). "Start a cohort" → the Cohort 25
+ * annual trial sign-up (lib/marketing/start-cohort) — the sold ladder the
+ * whole site now points at; the paid pilot it used to sell is retired.
+ * Replaces "Score a startup" → /analyze (G17 D1/D4), which stays the hero's
+ * secondary CTA and the omnibox hand-off. The click is reported as
+ * `cta_clicked { cta_id: "start_cohort", location }`.
  */
 export const PRIMARY_CTA = {
-  label: "Run a cohort pilot",
-  href: "/solutions/accelerator#pilot",
-  ctaId: "run_cohort_pilot",
+  label: START_COHORT_LABEL,
+  href: START_COHORT_HREF,
+  ctaId: START_COHORT_CTA_ID,
 } as const;
 
 /** @deprecated G17 — kept as an alias for one release so nothing that imported it breaks; use PRIMARY_CTA. */

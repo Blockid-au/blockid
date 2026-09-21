@@ -27,7 +27,7 @@ export interface CohortImportResult {
 
 export interface CohortImportProps {
   batchId: string;
-  /** From the paid pilot; null = uncapped. Shown next to the control. */
+  /** Legacy per-cohort cap (a G21 pilot-era batch); null = uncapped. Shown next to the control. */
   applicantsCap?: number | null;
   /** Items already in the cohort (header count). */
   used?: number;
@@ -116,7 +116,7 @@ export function CohortImport({ batchId, applicantsCap = null, used = 0, onImport
         </a>
         {applicantsCap != null ? (
           <span className="text-xs text-ink-500" data-testid="cohort-import-cap">
-            {used} of {applicantsCap} pilot places used{remaining === 0 ? " — cap reached" : ""}
+            {used} of {applicantsCap} cohort places used{remaining === 0 ? " — cap reached" : ""}
           </span>
         ) : null}
       </div>

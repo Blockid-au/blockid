@@ -39,15 +39,13 @@ export const FOOTER_COLUMNS: FooterColumn[] = [
     ],
   },
   {
-    // Persona landings, the evaluator pilot and the walk-through demo.
+    // Persona landings and the walk-through demo (the G21 pilot link went with the pilot — G25).
     title: "For",
     items: [
       { href: "/solutions/investor", label: "Investors" },
       { href: "/solutions/accelerator", label: "Accelerators" },
       { href: "/solutions/advisor", label: "Advisors" },
       { href: "/solutions/founder", label: "Founders" },
-      // G21 P0-C — the paid Cohort Validation Pilot (A$1,500 / A$2,500 one-off).
-      { href: "/pilot", label: "Cohort pilot" },
       { href: "/showcase/atlassian?step=1", label: "Atlassian demo (live)" },
       { href: "/showcase", label: "All case studies" },
       { href: "/compare", label: "Compare" },

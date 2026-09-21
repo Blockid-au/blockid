@@ -26,8 +26,7 @@ import {
 } from "@/lib/stripe/addon-entitlements";
 import { extendTimedGrant, invalidateTimedGrants } from "@/lib/entitlements/timed-grants";
 import { STARTUP_PACKAGE_RADAR_DAYS } from "@/lib/plans-v2";
-import { emitFiEvent, onInvoicePaid } from "@/lib/analytics/fi-events";
-import { recordPilotConversion, supabasePilotConversionDb } from "@/lib/pilots/conversion";
+import { onInvoicePaid } from "@/lib/analytics/fi-events";
 
 // POST /api/stripe/webhook
 // Stripe sends webhook events here. Verifies the signature, then processes
@@ -296,9 +295,14 @@ export async function POST(request: Request) {
       return;
     }
 
-    // ── G21 P0-C — paid Cohort Validation Pilot (cohort_pilot_25 / _50) ──
+    // ── Retired: paid Cohort Validation Pilot (G21 P0-C → G25) ──────
+    // The SKU, its prices and the fulfilment are gone (founder decision
+    // 2026-09-21). No such session can exist (the prices were never
+    // minted), but a replayed or hand-made one must never fall through to
+    // the generic plan write below and set app_users.plan to a plan id
+    // that no longer exists. Acknowledge, log, do nothing.
     if (session.metadata?.kind === "cohort_pilot") {
-      await handleCohortPilotPurchase(session, e);
+      console.warn("[blockid:stripe] cohort_pilot session ignored — the paid pilot was retired 2026-09-21 (G25)", { session_id: session.id, sku: session.metadata?.sku ?? null });
       return;
     }
 
@@ -664,7 +668,6 @@ export async function POST(request: Request) {
       }
     }
 
-    const pilotOrderId = nonEmpty(meta.pilot_order_id);
     emitEventSafe({
       name: "subscription_created",
       params: {
@@ -673,49 +676,12 @@ export async function POST(request: Request) {
         status: sub.status,
         trialing: sub.status === "trialing",
         interval,
-        // One event per conversion (review G23 P2): the pilot channel rides on
-        // this emit instead of a second `subscription_started`.
-        ...(pilotOrderId ? { channel: "pilot_conversion", pilot_id: pilotOrderId } : {}),
         ...(userId ? { user_id: userId } : {}),
       },
       userId,
       source: "webhook:stripe",
       consentGranted: true,
     });
-
-    // G23-B — pilot → annual Cohort plan. The checkout route stamps
-    // `pilot_order_id` on subscription_data.metadata when the founder
-    // converted from a paid Cohort Validation Pilot; record it on the order
-    // (pilot_orders.converted_at / converted_plan, migration 0434 — idempotent
-    // on `converted_at IS NULL`), audit it, and emit `subscription_started`
-    // with channel "pilot_conversion" for the FI funnel. Never throws.
-    if (nonEmpty(meta.pilot_order_id)) {
-      try {
-        const conv = await recordPilotConversion({ metadata: meta, subscriptionId: sub.id ?? null, planId: nonEmpty(meta.plan_id) ?? nonEmpty(meta.blockid_plan) ?? null }, supabasePilotConversionDb(supabase));
-        if (!conv.ok) {
-          console.warn("[blockid:stripe] pilot conversion skipped", conv.skipped, conv.message);
-        } else {
-          const actor = userId ?? conv.user_id;
-          if (!conv.already) {
-            try {
-              const { logUserAction } = await import("@/lib/audit/log");
-              await logUserAction({
-                userId: actor ?? "system",
-                action: "pilot.converted",
-                subjectType: "pilot_order",
-                subjectId: conv.order_id,
-                fields: { plan: conv.plan, sku: conv.sku ?? nonEmpty(meta.pilot_sku) ?? null, subscription_id: sub.id, stripe_event_id: e.id, interval },
-                route: "/api/stripe/webhook",
-              });
-            } catch (err) {
-              console.warn("[blockid:stripe] audit log for pilot.converted failed", err instanceof Error ? err.message : String(err));
-            }
-          }
-        }
-      } catch (err) {
-        console.warn("[blockid:stripe] pilot conversion write failed", err instanceof Error ? err.message : String(err));
-      }
-    }
   }
 
   function nonEmpty(v: string | undefined): string | null {
@@ -1657,80 +1623,6 @@ export async function POST(request: Request) {
       currency: session.currency ?? "aud",
       kind: "startup_package",
       detail: { session_id: session.id, project_id: projectId },
-    });
-  }
-
-  // -------------------------------------------------------------------------
-  // G21 P0-C — paid Cohort Validation Pilot (cohort_pilot_25 / cohort_pilot_50)
-  // -------------------------------------------------------------------------
-  //
-  // Fires from checkout.session.completed when metadata.kind === "cohort_pilot"
-  // (set by the checkout route's PILOT_SKU branch). Fulfilment lives in
-  // lib/pilots/paid-orders.ts (`pilot_orders` row, migration 0416 + the
-  // Cohort-tier grant through lib/pilots/service.ts `startPaidPilot`, source
-  // "paid" — plan column, credits, intake link, ledger, confirmation e-mail,
-  // audit). Idempotent: the outer claimWebhookEvent() row, the UNIQUE
-  // stripe_session_id (a replay returns duplicate:true and re-runs nothing)
-  // and the ledger's order_id check. The revenue row + the money event stay
-  // here, same as founder_package, so the CFO reports aggregate one-offs.
-  async function handleCohortPilotPurchase(
-    session: Stripe.Checkout.Session,
-    event: Stripe.Event,
-  ): Promise<void> {
-    const userId = session.metadata?.blockid_user_id ?? null;
-    let result: Awaited<ReturnType<typeof import("@/lib/pilots/paid-orders").fulfilPaidPilot>> | null = null;
-    try {
-      const { fulfilPaidPilot } = await import("@/lib/pilots/paid-orders");
-      result = await fulfilPaidPilot(session);
-    } catch (err) {
-      console.error("[blockid:stripe] cohort_pilot fulfilment threw", err);
-      throw err; // 500 → Stripe retries; every step is idempotent.
-    }
-    if (!result.ok) {
-      console.warn("[blockid:stripe] cohort_pilot fulfilment skipped", { session_id: session.id, skipped: result.skipped, message: result.message });
-      return;
-    }
-    if (result.duplicate) {
-      console.info(`[blockid:stripe] cohort_pilot session ${session.id} already fulfilled (order ${result.order_id ?? "?"})`);
-      if (result.pilot && !result.pilot.ok) {
-        // The retry re-ran the grant and it failed again → 500 so Stripe keeps retrying.
-        throw new Error(`cohort_pilot grant failed on retry (${result.pilot.error}): ${result.pilot.message}`);
-      }
-      return;
-    }
-    if (result.pilot.ok && result.pilot.warnings.length > 0) {
-      console.warn("[blockid:stripe] cohort_pilot fulfilled with warnings", { order_id: result.order_id, warnings: result.pilot.warnings });
-    } else if (!result.pilot.ok) {
-      // Review P1 (2026-09-20): order recorded, entitlement not granted →
-      // answer 500 so Stripe retries; the retry path re-runs the idempotent grant.
-      console.error("[blockid:stripe] cohort_pilot order recorded but the entitlement grant failed", { order_id: result.order_id, error: result.pilot.error, message: result.pilot.message });
-      throw new Error(`cohort_pilot grant failed (${result.pilot.error}): ${result.pilot.message}`);
-    }
-
-    // Revenue analytics — same shape as founder_package / credit packs.
-    await recordRevenueEvent({
-      userId,
-      planId: result.sku,
-      stripeEventId: event.id,
-      grossCents: session.amount_total ?? 0,
-      currency: session.currency ?? "aud",
-      kind: "cohort_pilot",
-      detail: { session_id: session.id, order_id: result.order_id, sku: result.sku, entitlement_until: result.entitlement_until },
-    });
-
-    // The existing money event, keyed on the SKU (P0-D owns any new names).
-    void emitEvent({
-      name: "checkout_completed",
-      params: {
-        plan: result.sku,
-        sku: result.sku,
-        user_id: userId,
-        session_id: session.id,
-        gross_aud_cents: session.amount_total ?? 0,
-      },
-      userId,
-      source: "webhook:stripe",
-      consentGranted: true,
     });
   }
 

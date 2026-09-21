@@ -95,6 +95,8 @@ export interface InstitutionalDbCounts {
   evidence_level_distribution: Record<string, number> | null;
   /** G21 P3-C: (project, provider) connections past the connector proof TTL (lib/evidence/freshness.ts). */
   stale_connectors: number | null;
+  /** G25: validation-tracker entries with a generated Cohort proposal (proposal_generated_at); null when the ledger is unreadable. */
+  cohort_proposals: number | null;
   /** G23-C: the latest pipeline run's groundedShare (tbr-quality.jsonl); null when no run is logged. */
   report_grounding: number | null;
   /** G23-C: the grounding KPI the share is measured against (0.85). */
@@ -107,6 +109,7 @@ export function emptyDbCounts(): InstitutionalDbCounts {
   return {
     program_leads: null,
     demo_leads: null,
+    cohort_proposals: null,
     companies: null,
     snapshots: null,
     evidence_records: null,
@@ -186,11 +189,11 @@ export function reduceInstitutional(rowsIn: readonly FunnelEventRow[], db: Insti
       key: "acquisition",
       label: "Acquisition",
       metrics: [
-        live("program_leads", "Program leads", db.program_leads, "leads (source contact) with payload topic pilot / sales / partnership in the window (/contact?topic=pilot)"),
-        later("pilot_page_views", "Pilot page views", "p1", "GA4 page_view is client-side only; a server page_view for /pilot + /solutions/accelerator lands with P1"),
+        live("program_leads", "Program leads", db.program_leads, "leads (source contact) with payload topic pilot / sales / partnership in the window (legacy topic pilot rows kept; the form now offers sales / partnership)"),
+        later("programs_page_views", "Programs page views", "p1", "GA4 page_view is client-side only; a server page_view for /solutions/accelerator lands with P1"),
         live("demos", "Demo requests", db.demo_leads, "leads rows with topic demo"),
-        later("pilot_proposals", "Pilot proposals sent", "p2", "recorded by the pilot kit (P2-C)"),
-        live("paid_pilots", "Paid pilots started", count(rows, "pilot_started", isPaidPilot), "pilot_started with pilot_source = paid (P0-C fulfilment hook)"),
+        live("cohort_proposals", "Cohort proposals sent", db.cohort_proposals, "validation-tracker entries at Level 3+ with proposal_generated_at (the Cohort proposal PDF from /admin/validation, G25)"),
+        live("paid_pilots", "Paid pilots started (retired)", count(rows, "pilot_started", isPaidPilot), "historical pilot_started rows with pilot_source = paid — the paid pilot was retired 2026-09-21 (G25); evaluators start a Cohort plan instead (subscription_created)"),
       ],
     },
     {
@@ -217,7 +220,7 @@ export function reduceInstitutional(rowsIn: readonly FunnelEventRow[], db: Insti
       key: "revenue",
       label: "Revenue",
       metrics: [
-        live("pilot_revenue", "Pilot revenue", pilotRevenue, "sum of pilot_started.amount_cents where pilot_source = paid", "aud_cents"),
+        live("pilot_revenue", "Pilot revenue (retired)", pilotRevenue, "historical sum of pilot_started.amount_cents where pilot_source = paid — no new rows since G25 (2026-09-21)", "aud_cents"),
         live("mrr", "MRR", mrr, "traction-snapshot.json mrr_aud_cents.from_subscriptions (v_mrr_active definition)", "aud_cents"),
         live("arr", "ARR", arr, "MRR × 12 (annualised subscription revenue)", "aud_cents"),
         live("arpa", "ARPA", arpa, "MRR ÷ paying evaluator organisations", "aud_cents"),
@@ -409,6 +412,11 @@ export async function readInstitutionalFunnel(client: InstitutionalClient | null
     warnings.push("traction-snapshot.json: missing — MRR / ARR / ARPA unavailable");
   }
 
+  // G25 — Cohort proposals sent: validation-tracker entries carrying proposal_generated_at (the ledger file; fail-soft).
+  const tracker = await readJsonFile<{ entries?: Array<{ proposal_generated_at?: string | null }> }>(root, `${REPORTS_DIR}/validation-tracker.json`);
+  db.cohort_proposals = tracker && Array.isArray(tracker.entries) ? tracker.entries.filter((e) => typeof e?.proposal_generated_at === "string" && e.proposal_generated_at.length > 0).length : null;
+  if (!tracker) warnings.push("validation-tracker.json: missing — Cohort proposals unavailable");
+
   // G23-C — report grounding (latest run) + KPI from the live-checkout jsonl; fail-soft (null share, KPI kept).
   const grounding = await readTbrGrounding(root);
   db.report_grounding = grounding.grounded_share;
@@ -485,12 +493,8 @@ export async function readInstitutionalFunnel(client: InstitutionalClient | null
         const u = await safe(warnings, "app_users", async () => client.from("app_users").select("id, plan, email").in("id", userIds).limit(FI_ROW_LIMIT));
         if (u?.error || !u?.data) partial = partial ?? "app_users unavailable — owner plans unknown";
         else owners = u.data as OwnerRow[];
-        // Paid pilots (P0-C pilot_orders) — optional table; absence is not an error.
-        const po = await safe([], "pilot_orders", async () => client.from("pilot_orders").select("project_id, status").in("status", ["paid", "active"]).limit(FI_ROW_LIMIT));
-        if (po?.data) {
-          // pilot_orders keys on project_id (projects-only FKs); owners with any paid pilot are flagged via the batch owner's projects — P0-C decides the exact join.
-          partial = partial ?? (po.data.length > 0 ? "paid pilots present — counted only through owner plans until P0-C's pilot entitlement join lands" : null);
-        }
+        // G25: pilot_orders is a retired read-only ledger — a paying
+        // institutional workflow is an owner plan only (isPayingInstitutional).
       }
     }
     northStar = computeNorthStar(itemRows, batches, owners, month, { partial });

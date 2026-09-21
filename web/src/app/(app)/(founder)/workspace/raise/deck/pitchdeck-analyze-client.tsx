@@ -23,7 +23,7 @@ Market & Problem — Australian SMBs spend AUD $2.4B/yr on manual bookkeeping
 reconciliation. Our TAM AU is $310M ARR at a 12% penetration ceiling.
 
 Product — AI-native bank-feed reconciliation for Xero. Live with 82
-paying customers, 47 more in a 4-week paid pilot. Weekly retention 91%.
+paying customers, 47 more in a 4-week paid trial. Weekly retention 91%.
 
 Traction — $18k MRR in month 5, growing 34% MoM. LTV/CAC 4.2. 2 letter-
 of-intent enterprise deals worth AUD $180k ARR combined pending signature.

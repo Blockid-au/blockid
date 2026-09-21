@@ -1,6 +1,6 @@
 // G16-C — Evaluator pilot offer v2 ("Free cohort scoring for one intake").
 //
-// One source of truth for the terms that /pilot, the welcome e-mail, the
+// One source of truth for the terms that the welcome e-mail, the
 // admin page and the ledger defaults all quote. Figures come from the GTM
 // doc (docs/plans/g14-investor-feedback-2026-09-16/01-gtm-evaluators-90d.md
 // § 3) and the traction kit (docs/marketing/traction-kit-2026-09/
@@ -51,11 +51,6 @@ export const COHORT_25_ANNUAL_AUD = 5_000;
  */
 export function defaultPilotCredits(): number {
   return Math.ceil(FEATURE_COSTS.trust_report * PILOT_MAX_APPLICANTS);
-}
-
-/** G21 P0-C — the paid pilot's credit grant: the report cost × the applicants it covers (25 → 75, 50 → 150). */
-export function paidPilotCredits(applicantsCap: number): number {
-  return Math.ceil(FEATURE_COSTS.trust_report * applicantsCap);
 }
 
 export interface PilotOfferTerm {

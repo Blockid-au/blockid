@@ -799,7 +799,9 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # G16-C (2026-09-19) — evaluator pilot expiry: T-3 d reminder (once) + revert
 # app_users.plan on/after expires_at unless a Stripe subscription exists.
 # Ledger: web/content/pilots.json (committed) + pilots-journal.jsonl. Add
-# ?dry=1 by hand to inspect. Docs: docs/ops/pilots.md.
+# ?dry=1 by hand to inspect. Docs: docs/ops/pilots.md. G25 (2026-09-21):
+# pilots are retired — keep this row only until every ledger row is
+# ended / expired (`listPilots().active === 0`), then remove it.
 20 4 * * * bash $RUN pilot-expiry --timeout 120
 
 # G21 P1-A (2026-09-20) — daily evidence expiry: evidence_records past

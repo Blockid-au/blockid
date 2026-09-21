@@ -15,10 +15,10 @@
 //   handleInvoicePaid() after `paidUser` is resolved:
 //       void onInvoicePaid(invoice, paidUser ? { id: paidUser.id, email: paidUser.email, plan: paidUser.plan } : null);
 //
-//   onPilotStarted(order)  — `pilot_started` when a Cohort Validation Pilot
-//   is fulfilled (pilot_orders row, P0-C) or a comp pilot is granted. The
-//   merging session adds ONE line where the pilot_orders row is written:
-//       void onPilotStarted({ id: row.id, sku: row.sku, applicantsCap: row.applicants_cap, amountCents: row.amount_cents, source: "paid", userId, email, projectId: row.project_id });
+//   onPilotStarted(order)  — `pilot_started`. RETIRED as a producer by G25
+//   (2026-09-21): the paid Cohort Validation Pilot and the comp are gone, so
+//   nothing calls it any more; the builder and the event name stay so the
+//   historical rows in analytics_events keep reducing on /admin/funnel.
 //
 // Never throws, never awaits the network (trackEvent swallows). Callers `void`.
 

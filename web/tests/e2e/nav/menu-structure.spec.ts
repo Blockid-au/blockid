@@ -6,8 +6,8 @@
  *     /pricing, /docs, /auth/login, /tools/esic, /about/invest alike) see
  *     exactly seven nav items (G21 P0-B, 2026-09-20: Product · For Programs ·
  *     For Investors · For Founders · Methodology · Startup Index · Pricing),
- *     NO dropdown, and the "Run a cohort pilot" CTA →
- *     /solutions/accelerator#pilot. Samples, Docs and the advisor landing
+ *     NO dropdown, and the "Start a cohort" CTA (G25) → the Cohort 25
+ *     annual trial sign-up. Samples, Docs and the advisor landing
  *     moved to the footer; the Atlassian walkthrough (G7 Q2) is linked from
  *     /samples and from the footer on every page, and
  *     /showcase/atlassian?step=1 must still resolve. The legacy site/navbar
@@ -38,7 +38,7 @@ const WORKSPACE_NAV = 'nav[aria-label="Workspace navigation"]';
  * marketing shell, docs, a free tool, the auth page (light skin) and the
  * renamed invest pitch. One header means one contract; the loop keeps the
  * per-page assertions identical (the seven G21 labels, no dropdown, the
- * Run a cohort pilot CTA).
+ * Start a cohort CTA).
  */
 const PUBLIC_HEADER_PAGES: ReadonlyArray<{ path: string; variant: "dark" | "light" }> = [
   { path: "/", variant: "dark" },
@@ -60,13 +60,13 @@ const NAV_ITEMS = [
   ["Pricing", "/pricing"],
 ] as const;
 const NAV_LABELS = NAV_ITEMS.map(([label]) => label);
-const PRIMARY_CTA = { label: /^run a cohort pilot$/i, href: "/solutions/accelerator#pilot", ctaId: "run_cohort_pilot" } as const;
+const PRIMARY_CTA = { label: /^start a cohort$/i, href: "/signup?segment=evaluator&plan=accelerator_starter&trial=1&interval=annual", ctaId: "start_cohort" } as const;
 
 test.describe("Menu structure — anonymous visitor (NavV2, the one header)", () => {
   test.setTimeout(30_000);
 
   for (const { path, variant } of PUBLIC_HEADER_PAGES) {
-    test(`${path} top-nav: exactly the seven G21 items, no dropdown, Run a cohort pilot CTA (${variant} skin)`, async ({
+    test(`${path} top-nav: exactly the seven G21 items, no dropdown, Start a cohort CTA (${variant} skin)`, async ({
       page,
     }) => {
       await page.goto(path);
@@ -100,9 +100,10 @@ test.describe("Menu structure — anonymous visitor (NavV2, the one header)", ()
       await expect(primary.getByRole("button", { name: /^demo$/i })).toHaveCount(0);
       await expect(primary.getByRole("button", { name: /^get funding$/i })).toHaveCount(0);
 
-      // G21 P0-B — the primary CTA is "Run a cohort pilot" → the paid pilot
-      // block. It lives in the desktop CTA row, so it is scoped to the nav,
-      // not the <ul>. No A$ anywhere in the bar.
+      // G21 P0-B / G25 — the primary CTA is "Start a cohort" → the Cohort 25
+      // trial sign-up (the paid pilot is retired). It lives in the desktop
+      // CTA row, so it is scoped to the nav, not the <ul>. No A$ / pilot
+      // anywhere in the bar.
       const cta = primary.getByRole("link", { name: PRIMARY_CTA.label });
       await expect(cta).toBeVisible({ timeout: 15_000 });
       expect(await cta.getAttribute("href")).toBe(PRIMARY_CTA.href);
@@ -111,9 +112,10 @@ test.describe("Menu structure — anonymous visitor (NavV2, the one header)", ()
       await expect(primary.getByRole("link", { name: /^do you need money\?$/i })).toHaveCount(0);
       await expect(primary.getByRole("link", { name: /^start free$/i })).toHaveCount(0);
       expect(await primary.innerText()).not.toMatch(/A\$\s?\d/);
+      expect(await primary.innerText()).not.toMatch(/pilot/i);
     });
 
-    test(`${path}: the mobile drawer mirrors the seven items + the pilot CTA`, async ({ page }) => {
+    test(`${path}: the mobile drawer mirrors the seven items + the Start a cohort CTA`, async ({ page }) => {
       await page.setViewportSize({ width: 375, height: 740 });
       await page.goto(path);
       const toggle = page.getByRole("button", { name: /^open menu$/i });
@@ -181,14 +183,14 @@ test.describe("Menu structure — samples reachable from the footer, product fro
     });
   }
 
-  test("the three persona links in the bar resolve (programs / investors / founders) and the pilot anchor lands on the programs page", async ({ page, request }) => {
+  test("the three persona links in the bar resolve (programs / investors / founders) and the Start a cohort CTA lands on the sign-up with the Cohort 25 rung", async ({ page, request }) => {
     for (const href of ["/solutions/accelerator", "/solutions/investor", "/solutions/founder", "/methodology", "/startup-index"]) {
       expect((await request.get(href)).status(), href).toBe(200);
     }
     await page.goto("/");
-    const cta = page.locator('nav[aria-label="Primary"]').first().getByRole("link", { name: /^run a cohort pilot$/i });
+    const cta = page.locator('nav[aria-label="Primary"]').first().getByRole("link", { name: /^start a cohort$/i });
     await cta.click();
-    await page.waitForURL(/\/solutions\/accelerator#pilot$/, { timeout: 15_000 });
+    await page.waitForURL(/\/signup\?segment=evaluator&plan=accelerator_starter&trial=1&interval=annual$/, { timeout: 15_000 });
     await expect(page.locator("h1").first()).toBeVisible({ timeout: 15_000 });
   });
 

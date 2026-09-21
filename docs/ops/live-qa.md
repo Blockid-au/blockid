@@ -246,8 +246,8 @@ G22-D (2026-09-21) adds a second, lighter row — the **G21 regression canary** 
 `tests/live-qa/41-g21-regression.spec.ts` through the same runner (`qa-live.sh --wait -- <spec>`),
 so it provisions and erases its own account and appends a `partial: true` row to `live-qa-history.jsonl`
 (summary in `live-qa-latest-partial.json`, never `live-qa-latest.json`): Sunday 05:10 UTC, before the 07:00 run. One assertion per G21 acceptance line (hero H1 + nav,
-trust band on 8 pages, methodology governance / versions / calibration, `/tbr/demo` Assessment Card,
-`/pilot` offer cards, institutional API 401, corrections + outcomes pages, `/workspace/score`
+trust band on 7 pages, methodology governance / versions / calibration, `/tbr/demo` Assessment Card,
+the "Start a cohort" CTA + the retired `/pilot` 301s (G25), institutional API 401, corrections + outcomes pages, `/workspace/score`
 trajectory, cohort index, trusted `/api/status` `data_moat`). Its only write is the lane-01 plan
 elevation on the run's own qa-live-* account when it runs alone.
 
