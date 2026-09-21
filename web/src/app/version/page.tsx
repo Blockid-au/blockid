@@ -146,6 +146,17 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.24.0",
+    date: "2026-09-21",
+    title: "Report readability, demo cohort, AI-run integrity (G24)",
+    changes: [
+      "[G24] Evidence citations render as numbered footnotes + an 'Evidence cited' appendix on web / PDF / DOCX (EN + VI); raw markers never reach the page",
+      "[G24] Demo cohort for buyer demos: five fictional startups at zero AI cost (is_demo 0436), 'Demo data — fictional' chip, excluded from benchmarks / index / API / exports, 'Load a demo cohort' on empty states",
+      "[G24] AI-run integrity: prompt versions registered on first use (ai_runs rows land; 0435), 401 → provider unconfigured once, funding_round proposals from curated announcements, tbr_quality digest line",
+      "[G24] Showcase grounding 0.50 → 0.77: computed facts citable, critic sees the whole submission, auto-cite over rendered sections, --audit-dump",
+    ],
+  },
+  {
     version: "3.23.0",
     date: "2026-09-21",
     title: "Grounding, proposals and ops hygiene (G23)",

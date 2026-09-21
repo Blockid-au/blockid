@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 import type { ModelCaller } from "@/lib/adk";
 import { auditSections, auditText, CRITIC_INSTRUCTION_TEXT, filterCriticFindings, findUncitedClaims, quotedClaimOf } from "./llm-auditor";
-import { declaredTableRows, expandShortCitations, hasCitationOrMarker, isPrescriptiveClaim, UNEVIDENCED_MARKERS } from "./claim-gate";
+import { declaredTableRows, expandShortCitations, hasCitationOrMarker, isPrescriptiveClaim, isTargetSentence, UNEVIDENCED_MARKERS } from "./claim-gate";
 import { autoCite, itemsFromModuleOutputs } from "./auto-cite";
 
 function mockModel(handlers: { critic: (user: string) => string; reviser: (user: string) => string }): ModelCaller {
@@ -311,5 +311,26 @@ describe("G24-D — auditText / auditSections with the filter", () => {
     expect(CRITIC_INSTRUCTION_TEXT).toContain("[ev:<id>]");
     expect(CRITIC_INSTRUCTION_TEXT).toContain("recommendations, next steps");
     expect(CRITIC_INSTRUCTION_TEXT).toContain("computed SVI / benchmark / valuation facts");
+  });
+});
+
+describe("isTargetSentence (G24 merge — targets are plans, not claims)", () => {
+  it("treats advice whose numbers are all target-cued as prescriptive", () => {
+    for (const t of [
+      "LTV:CAC ratio should target >3x, but with zero MRR, this is theoretical.",
+      "- **Ongoing**: Monitor burn rate and runway monthly; target 18 months of runway post-raise.",
+      "Define a 90-day retention target of 60% for paid users.",
+      "**Action**: Founder should post 3x/week on LinkedIn about valuation insights, share sample reports, and engage in Australian founder groups.",
+      "Set a 90-day target of A$10k MRR from evaluator subscriptions.",
+    ]) expect(isTargetSentence(t), t).toBe(true);
+  });
+  it("keeps a fact hidden in advice, a plain fact, and a missed-target statement as claims", () => {
+    for (const t of [
+      "The team should note revenue was A$1.2M in FY25.",
+      "Revenue grew 40% last quarter.",
+      "The revenue target of A$100k MRR was missed by 30%.",
+      "The site is technically strong — A-grade performance, 182ms TTFB, 525 pages with zero broken links.",
+      "Consider that 182 startups have been analysed.",
+    ]) expect(isTargetSentence(t), t).toBe(false);
   });
 });

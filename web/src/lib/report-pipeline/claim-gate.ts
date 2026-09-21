@@ -90,8 +90,36 @@ export const PRESCRIPTIVE_LINE_RE = /^\s*(?:[-*]\s*|\d+\.\s*)?\[(?:\d+\s?d|this_
 /** The dispatcher's risk row: `- **title** (severity) — mitigation`. */
 const RISK_LINE_RE = /^\s*[-*]\s*\*\*[^*]+\*\*\s*\((?:low|medium|high|critical)(?:\/[a-z ]+)?\)\s*[—–-]\s*/i;
 
+/**
+ * A target sentence (G24 merge, after the 10:15 verification run): "Define a
+ * 90-day retention target of 60 %", "LTV:CAC should target > 3x", "**Action**:
+ * post 3x/week", "target 18 months of runway". The sentence must read as
+ * advice (an imperative lead or a modal) AND every number in it must sit next
+ * to a target cue — a fact hidden in advice ("should note revenue was A$1.2M")
+ * has an uncued number and is still checked.
+ */
+const ADVICE_LEAD_RE = /^\s*(?:[-*]\s*|\d+\.\s*)?(?:\*\*(?:action|ongoing|next(?: step)?|recommendation|priority|target|by day \d+)[^*]*\*\*\s*:?\s*)?(?:define|set|target|monitor|aim|consider|prioritise|prioritize|hire|offer|launch|run|build|publish|post|reach|convert|secure|raise|recommend|establish|track|commit|allocate|plan|schedule|negotiate|validate|test|pilot|ship|introduce|add)\b/i;
+const ADVICE_MODAL_RE = /\b(?:should|must|needs? to|aim(?:s|ing)? to|ought to|target(?:s|ing)?|recommend(?:ed|s)?|goal)\b/i;
+const TARGET_CUE_RE = /(?:\btargets?\b|\btargeting\b|\baim(?:s|ing)?\b|\bgoal\b|\bat least\b|\bup to\b|\bno more than\b|\b(?:minimum|maximum) of\b|[≥≤<>]|\bwithin\b|\bper (?:week|month|day)\b|\/\s?week\b|\ba (?:week|month)\b|\bmonths? of runway\b)/i;
+const NUMBER_RE = /(?:A?\$|AUD\s?|USD\s?)?\d[\d,.]*\s?(?:k|m|bn?|x|%|million|billion|thousand|-day|-month|-week)?/gi;
+
+export function isTargetSentence(claim: string): boolean {
+  const bare = claim.replace(EV_MARKER_RE, " ").replace(UUID_RE, " ");
+  if (!ADVICE_LEAD_RE.test(bare) && !ADVICE_MODAL_RE.test(bare)) return false;
+  let sawNumber = false;
+  for (const m of bare.matchAll(NUMBER_RE)) {
+    if (!/\d/.test(m[0])) continue;
+    sawNumber = true;
+    const before = bare.slice(Math.max(0, m.index! - 30), m.index!);
+    const after = bare.slice(m.index! + m[0].length, m.index! + m[0].length + 30);
+    if (!TARGET_CUE_RE.test(before) && !TARGET_CUE_RE.test(after)) return false;
+  }
+  return sawNumber;
+}
+
 export function isPrescriptiveClaim(claim: string): boolean {
   if (PRESCRIPTIVE_LINE_RE.test(claim)) return true;
+  if (isTargetSentence(claim)) return true;
   // A risk row whose numbers sit only in the mitigation ("offer 0.5–1 % equity
   // each") is a plan; a number in the title ("leaves A$50K on the table") is
   // still a claim.
