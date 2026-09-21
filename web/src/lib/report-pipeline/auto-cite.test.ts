@@ -47,6 +47,16 @@ describe("autoCite", () => {
     expect(findUncitedClaims(r.text, [ID_A, ID_B, ID_C])).toEqual([]);
   });
 
+  it("never attaches a row on a bare digit coincidence: money needs money context, weak numbers need the row named (review G23 P1)", () => {
+    const rows = itemsFromEvidenceRows([
+      { evidence_id: ID_A, label: "GA4 sessions", value: "1200 sessions, 38 signups in the last 30 days" },
+      { evidence_id: ID_B, label: "Stripe revenue (last sync)", value: "mrr_aud = 0" },
+    ]);
+    expect(idsForClaim("TAM is estimated at A$1,200 million for the AU segment.", rows)).toBeNull();
+    expect(idsForClaim("The site recorded 38 sign-ups.", rows)).toBeNull();
+    expect(idsForClaim("GA4 recorded 38 signups in the period.", rows)).toEqual([ID_A]);
+  });
+
   it("never cites when one material number is missing from every row, and never invents an id", () => {
     const r = autoCite("Revenue reached A$1.2M ARR with 3,302 snapshots.", ROWS);
     expect(r.text).toBe("Revenue reached A$1.2M ARR with 3,302 snapshots.");

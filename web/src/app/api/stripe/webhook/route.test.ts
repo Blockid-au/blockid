@@ -800,7 +800,7 @@ describe("POST /api/stripe/webhook — pilot conversion (G23-B)", () => {
     } as unknown as Stripe.Event;
   }
 
-  it("stamps converted_at + converted_plan on the order (guarded by converted_at IS NULL) and emits subscription_started with channel pilot_conversion", async () => {
+  it("stamps converted_at + converted_plan on the order (guarded by converted_at IS NULL) and the ONE subscription_created carries channel pilot_conversion (review G23 P2: no second FI event)", async () => {
     selectResponses.set("pilot_orders:update", { data: { id: ORDER_ID, user_id: "user-prog", sku: "cohort_pilot_25" }, error: null });
     verifyWebhookSignature.mockReturnValue(buildConversionEvent());
     const res = await invoke();
@@ -809,18 +809,15 @@ describe("POST /api/stripe/webhook — pilot conversion (G23-B)", () => {
     expect(write).toBeTruthy();
     expect(write!.row).toMatchObject({ converted_plan: "accelerator_starter", converted_subscription_id: "sub_conv_1" });
     expect(String(write!.row.converted_at)).toMatch(/^\d{4}-\d{2}-\d{2}T/);
-    // emitFiEvent is fire-and-forget (lazy import of the server sink) — settle it.
-    await vi.waitFor(() => expect(emitCalls.some((c) => c.params.fi_event === "subscription_started")).toBe(true));
-    const started = emitCalls.find((c) => c.name === "subscription_created" && c.params.fi_event === "subscription_started");
-    expect(started).toBeTruthy();
-    expect(started!.params).toMatchObject({ channel: "pilot_conversion", plan: "accelerator_starter", pilot_id: ORDER_ID, sku: "cohort_pilot_25" });
-    expect(started!.userId).toBe("user-prog");
-    // The plain subscription_created analytics row still fires once.
-    expect(emitCalls.filter((c) => c.name === "subscription_created" && !c.params.fi_event)).toHaveLength(1);
+    await new Promise((r) => setTimeout(r, 20));
+    const created = emitCalls.filter((c) => c.name === "subscription_created");
+    expect(created).toHaveLength(1);
+    expect(created[0]!.params).toMatchObject({ channel: "pilot_conversion", plan: "accelerator_starter", pilot_id: ORDER_ID });
+    expect(emitCalls.find((c) => c.params.fi_event === "subscription_started")).toBeUndefined();
     expect(markWebhookEventProcessed).toHaveBeenCalledWith("evt_sub_conv_1", undefined);
   });
 
-  it("a redelivery (row already converted → update matches nothing) writes nothing new and emits no second subscription_started", async () => {
+  it("a redelivery (row already converted → update matches nothing) writes nothing new and emits no subscription_started", async () => {
     verifyWebhookSignature.mockReturnValue(buildConversionEvent());
     const res = await invoke();
     expect(res.status).toBe(200);

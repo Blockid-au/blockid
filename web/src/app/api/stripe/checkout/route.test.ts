@@ -706,6 +706,9 @@ describe("stripe/checkout — pilot conversion (G23-B)", () => {
     expect(call?.allow_promotion_codes).toBeUndefined();
     expect((call?.subscription_data as { metadata?: Record<string, string> })?.metadata).toMatchObject({ pilot_order_id: ORDER_ID, pilot_sku: "cohort_pilot_25", plan_id: "accelerator_starter", interval: "annual" });
     expect(call?.metadata).toMatchObject({ pilot_order_id: ORDER_ID, kind: "pilot_conversion" });
+    // Review G23 P1: no trial on a conversion — the program already paid, and a
+    // trial cancelled in-trial would burn the one-time credit.
+    expect((call?.subscription_data as { trial_period_days?: number })?.trial_period_days).toBeUndefined();
     expect(String(call?.success_url)).toContain("/workspace/accelerator/pilot?converted=1");
     expect(mocks.sessionIdempotencyKeyMock).toHaveBeenCalledWith("pilot-conversion", [USER.id, "accelerator_starter", "price_c25_y", ORDER_ID]);
     expect(mocks.logUserActionMock).toHaveBeenCalledWith(expect.objectContaining({ fields: expect.objectContaining({ pilot_order_id: ORDER_ID, pilot_conversion: true }) }));
