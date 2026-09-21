@@ -65,7 +65,7 @@ export async function generateMetadata({
 
 function Bullets({ items }: { items: string[] }) {
   return (
-    <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-700 dark:text-slate-300">
+    <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-700">
       {items.map((item, i) => (
         <li key={i}>{item}</li>
       ))}
@@ -79,26 +79,26 @@ function ChapterBody({ c, locale }: { c: Chapter; locale: Locale }) {
     locale === "vi" ? v.vi : v.en;
   return (
     <>
-      <p className="text-lg text-slate-700 dark:text-slate-300">{t(c.summary)}</p>
+      <p className="text-lg text-slate-700">{t(c.summary)}</p>
 
       <section className="mt-10">
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+        <h2 className="text-xl font-semibold text-primary">
           {locale === "vi" ? "Founder làm gì" : "What the founder does"}
         </h2>
-        <p className="mt-3 text-sm text-slate-700 dark:text-slate-300">
+        <p className="mt-3 text-sm text-slate-700">
           {t(c.founderAction)}
         </p>
       </section>
 
       <section className="mt-10">
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+        <h2 className="text-xl font-semibold text-primary">
           {locale === "vi" ? "Agents được kích hoạt" : "Agents invoked"}
         </h2>
         <Bullets items={list(c.agentsInvoked)} />
       </section>
 
       <section className="mt-10">
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+        <h2 className="text-xl font-semibold text-primary">
           {locale === "vi"
             ? "Đầu ra kỳ vọng & cách đọc"
             : "Expected outputs & how to interpret"}
@@ -107,7 +107,7 @@ function ChapterBody({ c, locale }: { c: Chapter; locale: Locale }) {
       </section>
 
       <section className="mt-10">
-        <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+        <h2 className="text-xl font-semibold text-primary">
           {locale === "vi" ? "Bẫy thường gặp" : "Common pitfalls"}
         </h2>
         <Bullets items={list(c.commonPitfalls)} />
@@ -115,7 +115,7 @@ function ChapterBody({ c, locale }: { c: Chapter; locale: Locale }) {
 
       {c.sections?.map((s) => (
         <section key={s.id} className="mt-10">
-          <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+          <h2 className="text-xl font-semibold text-primary">
             {t(s.heading)}
           </h2>
           <Bullets items={list(s.body)} />
@@ -139,13 +139,13 @@ function ChapterBody({ c, locale }: { c: Chapter; locale: Locale }) {
       ) : null}
 
       {c.qualifyingTests ? (
-        <section className="mt-10 rounded-lg border border-amber-200 bg-amber-50 p-6 dark:border-amber-900/40 dark:bg-amber-950/20">
-          <h2 className="text-xl font-semibold text-amber-900 dark:text-amber-200">
+        <section className="mt-10 rounded-lg border border-amber-200 bg-amber-50 p-6">
+          <h2 className="text-xl font-semibold text-amber-900">
             {locale === "vi"
               ? "Checklist điều kiện Div 83A"
               : "Div 83A qualifying-tests checklist"}
           </h2>
-          <p className="mt-2 text-xs text-amber-800 dark:text-amber-300">
+          <p className="mt-2 text-xs text-amber-800">
             {locale === "vi"
               ? "Thông tin chung. Không phải tư vấn pháp lý hay thuế. Xác nhận đủ điều kiện với đại lý thuế đã đăng ký."
               : "General information only. Not legal or tax advice. Confirm eligibility with a registered tax agent."}
@@ -154,36 +154,36 @@ function ChapterBody({ c, locale }: { c: Chapter; locale: Locale }) {
         </section>
       ) : null}
 
-      <section className="mt-10 rounded-lg border border-emerald-200 bg-emerald-50 p-6 dark:border-emerald-900/40 dark:bg-emerald-950/30">
-        <h2 className="text-base font-semibold text-emerald-900 dark:text-emerald-200">
+      <section className="mt-10 rounded-lg border border-emerald-200 bg-emerald-50 p-6">
+        <h2 className="text-base font-semibold text-emerald-900">
           {locale === "vi"
             ? "Trên workspace showcase của BlockID.au"
             : "On BlockID.au's showcase workspace"}
         </h2>
-        <p className="mt-2 text-sm text-emerald-800 dark:text-emerald-300">
+        <p className="mt-2 text-sm text-emerald-800">
           {t(c.showcaseExample)}
         </p>
         <div className="mt-4 flex flex-wrap gap-3">
           <Link
             href="/showcase/blockid"
-            className="rounded-md border border-emerald-600 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:text-emerald-300"
+            className="rounded-md border border-emerald-600 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
           >
             {locale === "vi" ? "Xem showcase" : "View the showcase"}
           </Link>
           <Link
             href="/sample"
-            className="rounded-md border border-emerald-600 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100 dark:text-emerald-300"
+            className="rounded-md border border-emerald-600 px-3 py-1.5 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-100"
           >
             {locale === "vi" ? "Thư viện báo cáo" : "Browse the report library"}
           </Link>
         </div>
       </section>
 
-      <section className="mt-10 rounded-lg border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-        <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+      <section className="mt-10 rounded-lg border border-line-subtle bg-white p-6">
+        <p className="text-sm font-semibold text-primary">
           {locale === "vi" ? "Bước tiếp theo" : "Next step"}
         </p>
-        <p className="mt-2 text-sm text-slate-700 dark:text-slate-300">{t(c.cta)}</p>
+        <p className="mt-2 text-sm text-slate-700">{t(c.cta)}</p>
       </section>
     </>
   );
@@ -199,16 +199,16 @@ function ChapterNav({
   const { previous, next } = getAdjacentChapters(slug);
   const t = (v: { en: string; vi: string }) => (locale === "vi" ? v.vi : v.en);
   return (
-    <nav className="mt-12 grid gap-4 border-t border-slate-200 pt-8 md:grid-cols-2 dark:border-slate-800">
+    <nav className="mt-12 grid gap-4 border-t border-line-subtle pt-8 md:grid-cols-2">
       {previous ? (
         <Link
           href={`/guide/${previous.slug}`}
-          className="rounded-lg border border-slate-200 p-4 text-left transition hover:border-emerald-400 dark:border-slate-800"
+          className="rounded-lg border border-line-subtle p-4 text-left transition hover:border-emerald-400"
         >
-          <span className="text-xs uppercase tracking-wide text-slate-400">
+          <span className="text-xs uppercase tracking-wide text-muted">
             {locale === "vi" ? "Chương trước" : "Previous"}
           </span>
-          <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+          <p className="mt-1 text-sm font-semibold text-primary">
             {t(previous.title)}
           </p>
         </Link>
@@ -218,17 +218,17 @@ function ChapterNav({
       {next ? (
         <Link
           href={`/guide/${next.slug}`}
-          className="rounded-lg border border-slate-200 p-4 text-right transition hover:border-emerald-400 dark:border-slate-800"
+          className="rounded-lg border border-line-subtle p-4 text-right transition hover:border-emerald-400"
         >
-          <span className="text-xs uppercase tracking-wide text-slate-400">
+          <span className="text-xs uppercase tracking-wide text-muted">
             {locale === "vi" ? "Chương sau" : "Next"}
           </span>
-          <p className="mt-1 text-sm font-semibold text-slate-900 dark:text-slate-100">
+          <p className="mt-1 text-sm font-semibold text-primary">
             {t(next.title)}
           </p>
         </Link>
       ) : (
-        <div className="rounded-lg border border-dashed border-slate-300 p-4 text-right text-sm text-slate-500 dark:border-slate-700">
+        <div className="rounded-lg border border-dashed border-line p-4 text-right text-sm text-muted">
           {locale === "vi"
             ? "Bạn đã đến chương cuối. Sau thoái vốn, mở workspace mới ở Chương 1 hoặc chuyển sang vai đại lý."
             : "You've reached the final chapter. After exit, open a new workspace at Chapter 1 or move into the reseller/accelerator role."}
@@ -255,12 +255,12 @@ export default async function GuideChapterPage({
       <main className="mx-auto max-w-3xl px-4 py-12 md:py-16">
         <ChapterProgressRibbon phase={c.phase} locale={locale} variant="marketing" />
         <header className="mb-10">
-          <p className="text-sm font-medium uppercase tracking-wide text-emerald-600">
+          <p className="text-sm font-medium uppercase tracking-wide text-bull">
             {locale === "vi"
               ? `Phase ${c.phase} · ${c.phaseLabel.vi}`
               : `Phase ${c.phase} · ${c.phaseLabel.en}`}
           </p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900 md:text-4xl dark:text-slate-100">
+          <h1 className="mt-2 text-3xl font-bold tracking-tight text-primary md:text-4xl">
             {t(c.title)}
           </h1>
         </header>
