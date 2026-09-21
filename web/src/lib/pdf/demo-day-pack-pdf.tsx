@@ -17,12 +17,13 @@ import type { AssessmentCardData } from "@/lib/svi/assessment-card";
 import { AssessmentCardPdf } from "./assessment-card-pdf";
 import { AdviceDisclaimer, PDF_ENTITY_LINE } from "./advice-disclaimer";
 import { pdfPageCount } from "./page-count";
+import { PDF_THEME } from "./theme";
 
 export const DEMO_DAY_PACK_FOOTER = `Prepared with BlockID.au · ${LEGAL_ENTITY.operator} · not financial advice`;
 export const DEMO_DAY_PACK_TITLE = "BlockID Demo-day pack";
 export const DEMO_DAY_HUMAN_LINE = "BlockID structures the evidence and standardises the first-pass analysis. Humans make the decision.";
 
-const C = { ink: INK.text, muted: INK.muted, faint: INK.faint, grid: INK.grid, surface: INK.surfaceAlt, brand: "#0072B2" };
+const C = { ink: INK.text, muted: INK.muted, faint: INK.faint, grid: INK.grid, surface: INK.surfaceAlt, brand: PDF_THEME.navy };
 const MM = 72 / 25.4;
 const MARGIN = 16 * MM;
 

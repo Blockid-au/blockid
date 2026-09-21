@@ -10,6 +10,7 @@ import { estimateValuation, formatAUD } from "@/lib/valuation";
 import type { BrandSettings } from "@/lib/branding/load";
 import * as path from "path";
 import * as fs from "fs";
+import { PDF_LEGACY_C } from "./theme";
 
 /* Report template version — SCN = Startup Navigation System narrative
  * (Validation → Position → Value → Direction → Capital). Native vector
@@ -32,42 +33,7 @@ const LOGO_SRC = fs.existsSync(LOGO_PATH)
  * renderer falls back to this default `C` palette + built-in logo.
  * See web/src/lib/branding/gate.ts (canUsePdfBranding). */
 /* ─── Brand Palette ─────────────────────────────────────────────────────── */
-export const C = {
-  brand700: "#1d4ed8",
-  brand600: "#2563eb",
-  brand500: "#3b82f6",
-  brand200: "#bfdbfe",
-  brand100: "#dbeafe",
-  brand50: "#eff6ff",
-  ink900: "#0f172a",
-  ink800: "#1e293b",
-  ink700: "#334155",
-  ink600: "#475569",
-  ink500: "#64748b",
-  ink400: "#94a3b8",
-  ink300: "#cbd5e1",
-  surface200: "#e2e8f0",
-  surface100: "#f1f5f9",
-  surface50: "#f8fafc",
-  emerald600: "#059669",
-  emerald500: "#10b981",
-  emerald400: "#34d399",
-  emerald200: "#a7f3d0",
-  emerald100: "#d1fae5",
-  emerald50: "#ecfdf5",
-  amber700: "#b45309",
-  amber600: "#d97706",
-  amber500: "#f59e0b",
-  amber100: "#fef3c7",
-  amber50: "#fffbeb",
-  red600: "#dc2626",
-  red500: "#ef4444",
-  red100: "#fee2e2",
-  teal600: "#0d9488",
-  teal200: "#99f6e4",
-  teal50: "#f0fdfa",
-  white: "#ffffff",
-};
+export const C = PDF_LEGACY_C;
 
 /* ─── Dimension metadata ────────────────────────────────────────────────── */
 export const DIM_LABELS: Record<string, string> = {
@@ -223,7 +189,9 @@ export const s = StyleSheet.create({
 
   /* Insight callout box */
   insightBox: {
-    backgroundColor: C.brand600,
+    backgroundColor: C.brand50,
+    borderLeftWidth: 3,
+    borderLeftColor: C.brand600,
     borderRadius: 8,
     padding: 14,
     marginTop: 10,
@@ -231,7 +199,7 @@ export const s = StyleSheet.create({
   },
   insightText: {
     fontSize: 9,
-    color: C.white,
+    color: C.ink900,
     lineHeight: 1.6,
   },
   insightLabel: {

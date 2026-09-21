@@ -16,18 +16,20 @@ import {
 } from "@react-pdf/renderer";
 import type { FinancialProjectionOutput } from "@/lib/agents/cfo-financial-projection";
 import { AdviceDisclaimer } from "./advice-disclaimer";
+import { PDF_THEME } from "./theme";
 
+// G26: every colour from the one PDF theme (light paper, navy headings, ink body).
 const C = {
-  ink900: "#0F172A",
-  ink700: "#334155",
-  ink500: "#64748B",
-  ink400: "#94A3B8",
-  surface200: "#E2E8F0",
-  surface100: "#F1F5F9",
-  brand600: "#2563EB",
-  emerald700: "#047857",
-  red700: "#B91C1C",
-  white: "#FFFFFF",
+  ink900: PDF_THEME.ink,
+  ink700: "#374151",
+  ink500: PDF_THEME.inkTertiary,
+  ink400: PDF_THEME.inkFaint,
+  surface200: PDF_THEME.border,
+  surface100: PDF_THEME.hover,
+  brand600: PDF_THEME.navy,
+  emerald700: PDF_THEME.success,
+  red700: PDF_THEME.danger,
+  white: PDF_THEME.white,
 };
 
 const s = StyleSheet.create({

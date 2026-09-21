@@ -14,22 +14,26 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 import { AdviceDisclaimer } from "./advice-disclaimer";
+import { PDF_THEME } from "./theme";
 import type { HydratedFounderPack } from "@/lib/idea-phase/persist";
 
+// G26: light paper. This document was drawn on a dark ground; the role
+// names are kept (ink950 = page, slate50 = strongest text ...) and mapped onto
+// the one PDF theme, so the page is white, headings navy, body ink.
 const C = {
-  ink950: "#0B1220",
-  ink900: "#0F172A",
-  ink800: "#172033",
-  ink700: "#1F2A44",
-  slate50: "#F8FAFC",
-  slate200: "#E2E8F0",
-  slate300: "#CBD5E1",
-  slate400: "#94A3B8",
-  slate500: "#64748B",
-  brand400: "#5B9AEB",
-  brand500: "#3B7DD8",
-  amber400: "#FBBF24",
-  white: "#FFFFFF",
+  ink950: PDF_THEME.paper,
+  ink900: PDF_THEME.sunken,
+  ink800: PDF_THEME.hover,
+  ink700: PDF_THEME.border,
+  slate50: PDF_THEME.ink,
+  slate200: PDF_THEME.inkMuted,
+  slate300: PDF_THEME.inkMuted,
+  slate400: PDF_THEME.inkSubtle,
+  slate500: PDF_THEME.inkTertiary,
+  brand400: PDF_THEME.navyElev,
+  brand500: PDF_THEME.navy,
+  amber400: PDF_THEME.warn,
+  white: PDF_THEME.ink,
 } as const;
 
 const styles = StyleSheet.create({

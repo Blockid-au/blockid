@@ -1,41 +1,48 @@
-// report-visuals palette — colour-blind-safe (Okabe–Ito based), spec §D.2.
+// report-visuals palette — G26 lane R: charts sit on the light unicorn
+// template (white paper, no chart background). Grid lines are the
+// `--ds-border` token, labels are ink, bands are the semantic bull / warn /
+// bear colours, the primary series is brand navy and the secondary is
+// cyan. Every hex equals a `--ds-*` / brand token (`lib/pdf/theme.ts`
+// lists the same values for react-pdf).
 //
-// Bands: strong = #0072B2, developing = #E69F00, early = #D55E00,
-// pending = #999999. Sequential heat = single-hue blues. Never a red/green
-// pair. Every band is also encoded by label, and `target` /
+// Colour-blind safety (spec §D.2 kept): the categorical series alternates
+// the blue–orange axis (navy · cyan · amber · green · violet · red …) so no
+// two neighbours collapse under deuteranopia, no red/green pair sits next
+// to each other, every band is also encoded by label, and `target` /
 // `benchmark_only` charts use dashed strokes (react-pdf has no <pattern>).
 
+import { PDF_THEME } from "@/lib/pdf/theme";
 import type { Band, DataState } from "./types";
 
 export const BAND_COLOUR: Record<Band, string> = {
-  strong: "#0072B2",
-  developing: "#E69F00",
-  early: "#D55E00",
-  pending: "#999999",
+  strong: PDF_THEME.navy,
+  developing: PDF_THEME.warn,
+  early: PDF_THEME.danger,
+  pending: PDF_THEME.inkTertiary,
 };
 
-/** Okabe–Ito categorical series (8 colours). */
+/** Categorical series (8 colours): navy primary, cyan secondary, then the semantic ramp. */
 export const SERIES = [
-  "#0072B2",
-  "#E69F00",
-  "#009E73",
-  "#CC79A7",
-  "#56B4E9",
-  "#D55E00",
-  "#F0E442",
-  "#000000",
+  PDF_THEME.navy,
+  PDF_THEME.cyan,
+  PDF_THEME.warnMid,
+  PDF_THEME.success,
+  PDF_THEME.highlight,
+  PDF_THEME.danger,
+  PDF_THEME.navyElev,
+  PDF_THEME.inkSubtle,
 ] as const;
 
-/** Single-hue blue ramp for heat maps (light → dark). */
-export const HEAT_RAMP = ["#EEF4FA", "#CFE0F1", "#9FC2E3", "#6AA1D2", "#3B7FBF", "#0072B2"] as const;
+/** Single-hue navy ramp for heat maps (light → dark). */
+export const HEAT_RAMP = ["#eceef7", "#d0d5e6", "#a3add0", "#5c6ca3", "#3d4c88", PDF_THEME.navy] as const;
 
 export const INK = {
-  text: "#1F2937",
-  muted: "#6B7280",
-  faint: "#9CA3AF",
-  grid: "#E5E7EB",
-  surface: "#FFFFFF",
-  surfaceAlt: "#F8FAFC",
+  text: PDF_THEME.inkMuted,
+  muted: PDF_THEME.inkSubtle,
+  faint: PDF_THEME.inkFaint,
+  grid: PDF_THEME.border,
+  surface: PDF_THEME.paper,
+  surfaceAlt: PDF_THEME.sunken,
 } as const;
 
 export function bandFor(score: number | null | undefined): Band {
@@ -52,10 +59,10 @@ export function heatColour(value: number | null, max = 100): string {
   return HEAT_RAMP[idx];
 }
 
-/** Text colour that stays legible on a heat cell. */
+/** Text colour that stays legible on a heat cell (white from the 4th step up — ≥ 4.5:1 either way). */
 export function heatInk(value: number | null, max = 100): string {
   if (value === null || !Number.isFinite(value)) return INK.muted;
-  return max > 0 && value / max >= 0.6 ? "#FFFFFF" : INK.text;
+  return max > 0 && value / max >= 0.6 ? PDF_THEME.white : INK.text;
 }
 
 export const DATA_STATE_LABEL: Record<DataState, string> = {

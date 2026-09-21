@@ -28,8 +28,8 @@ export interface EmailBody {
   text: string;
 }
 
-const WRAP_OPEN = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:24px;background:#F1F5F9;color:#0F172A;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;"><div style="max-width:600px;margin:0 auto;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;padding:32px;"><p style="margin:0 0 8px 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#64748B;">BlockID.au · Startup Value Index</p>`;
-const WRAP_CLOSE = `<p style="margin:24px 0 0 0;font-size:11px;line-height:1.6;color:#64748B;">${SENDER_IDENTITY_HTML}</p></div></body></html>`;
+const WRAP_OPEN = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:24px;background:#eef0f5;color:#0b0f1a;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;"><div style="max-width:600px;margin:0 auto;background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;padding:32px;"><p style="margin:0 0 8px 0;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;">BlockID.au · Startup Value Index</p>`;
+const WRAP_CLOSE = `<p style="margin:24px 0 0 0;font-size:11px;line-height:1.6;color:#6b7280;">${SENDER_IDENTITY_HTML}</p></div></body></html>`;
 
 function p(html: string): string {
   return `<p style="margin:0 0 14px 0;font-size:15px;line-height:1.6;">${html}</p>`;

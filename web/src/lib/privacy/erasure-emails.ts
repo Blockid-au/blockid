@@ -16,21 +16,21 @@ function esc(s: string): string {
 }
 
 function card(headline: string, paragraphs: string[], cta: { label: string; url: string }, footer: string): string {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BlockID</title></head><body style="margin:0;padding:0;background:#0B1220;color:#F8FAFC;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#0B1220;padding:32px 16px;">
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>BlockID</title></head><body style="margin:0;padding:0;background:#f7f8fa;color:#0b0f1a;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
-      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#0F172A;border:1px solid #1F2A44;border-radius:16px;padding:32px;">
+      <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
         <tr><td>
-          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#3B7DD8;font-weight:500;">BlockID</p>
-          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#F8FAFC;">${esc(headline)}</h1>
-          ${paragraphs.map((p) => `<p style="margin:0 0 16px 0;color:#94A3B8;font-size:15px;line-height:1.6;">${esc(p)}</p>`).join("")}
+          <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID</p>
+          <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;">${esc(headline)}</h1>
+          ${paragraphs.map((p) => `<p style="margin:0 0 16px 0;color:#4b5563;font-size:15px;line-height:1.6;">${esc(p)}</p>`).join("")}
           <p style="margin:8px 0 24px 0;text-align:center;">
-            <a href="${cta.url}" style="display:inline-block;background:#3B7DD8;color:#0B1220;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${esc(cta.label)}</a>
+            <a href="${cta.url}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${esc(cta.label)}</a>
           </p>
-          <p style="margin:0 0 8px 0;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Or paste this URL</p>
-          <p style="margin:0 0 24px 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#94A3B8;word-break:break-all;">${cta.url}</p>
-          <hr style="border:none;border-top:1px solid #1F2A44;margin:24px 0 16px 0;">
-          <p style="margin:0;color:#64748B;font-size:12px;line-height:1.6;">${esc(footer)}</p>
+          <p style="margin:0 0 8px 0;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Or paste this URL</p>
+          <p style="margin:0 0 24px 0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;color:#4b5563;word-break:break-all;">${cta.url}</p>
+          <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
+          <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">${esc(footer)}</p>
         </td></tr>
       </table>
     </td></tr>

@@ -17,6 +17,7 @@
 
 import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import { C, Footer, HeaderBar } from "./svi-report-pdf";
+import { PDF_THEME } from "./theme";
 import { WatermarkLayer } from "./watermark";
 import { AdviceDisclaimer } from "./advice-disclaimer";
 import { longDate } from "@/lib/board-resolutions/build";
@@ -41,13 +42,13 @@ export function pdfSafe(text: string): string {
 
 const STATUS_COLOR: Record<ReadinessRow["status"], { fg: string; bg: string }> = {
   met: { fg: C.emerald600, bg: C.emerald50 },
-  not_met: { fg: "#b91c1c", bg: "#fef2f2" },
+  not_met: { fg: C.red600, bg: PDF_THEME.bgDanger },
   not_confirmed: { fg: C.amber700, bg: C.amber50 },
   confirm_current_rule: { fg: C.brand700, bg: C.brand50 },
 };
 
 const st = StyleSheet.create({
-  page: { paddingTop: 46, paddingBottom: 60, paddingHorizontal: 54, fontFamily: "Helvetica", fontSize: 9.5, color: C.ink800, backgroundColor: "#ffffff" },
+  page: { paddingTop: 46, paddingBottom: 60, paddingHorizontal: 54, fontFamily: "Helvetica", fontSize: 9.5, color: C.ink800, backgroundColor: C.white },
   eyebrow: { fontSize: 7.5, fontFamily: "Helvetica-Bold", letterSpacing: 1.4, textTransform: "uppercase", color: C.brand700, marginBottom: 6 },
   title: { fontSize: 17, fontFamily: "Helvetica-Bold", color: C.ink900, marginBottom: 4 },
   sub: { fontSize: 8.5, color: C.ink600, marginBottom: 10, lineHeight: 1.4 },

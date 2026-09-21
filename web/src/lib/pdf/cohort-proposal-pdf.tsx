@@ -23,13 +23,14 @@ import { pdfSafeText as t } from "@/lib/report-visuals/pdf-text";
 import type { CohortProposal } from "@/lib/validation/proposal";
 import { AdviceDisclaimer } from "./advice-disclaimer";
 import { pdfPageCount } from "./page-count";
+import { PDF_THEME } from "./theme";
 
 export const COHORT_PROPOSAL_FOOTER = `Prepared with BlockID.au · ${LEGAL_ENTITY.operator} · not financial advice`;
 export const COHORT_PROPOSAL_MAX_PAGES = 4;
 /** Text-only document on the built-in font — well under this. */
 export const COHORT_PROPOSAL_MAX_BYTES = 120 * 1024;
 
-const C = { ink: INK.text, muted: INK.muted, faint: INK.faint, grid: INK.grid, surface: INK.surfaceAlt, brand: "#0072B2" };
+const C = { ink: INK.text, muted: INK.muted, faint: INK.faint, grid: INK.grid, surface: INK.surfaceAlt, brand: PDF_THEME.navy };
 const MM = 72 / 25.4;
 const MARGIN = 16 * MM;
 

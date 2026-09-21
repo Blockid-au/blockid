@@ -49,7 +49,7 @@ export const BOARD_RESOLUTION_NOTE =
   "This resolution was prepared with BlockID.au from the records entered by the company, which is solely responsible for its accuracy and for confirming it against the company's constitution and any shareholders' agreement. It takes effect only when signed by the directors as stated above.";
 
 const st = StyleSheet.create({
-  page: { paddingTop: 46, paddingBottom: 60, paddingHorizontal: 54, fontFamily: "Helvetica", fontSize: 9.5, color: C.ink800, backgroundColor: "#ffffff" },
+  page: { paddingTop: 46, paddingBottom: 60, paddingHorizontal: 54, fontFamily: "Helvetica", fontSize: 9.5, color: C.ink800, backgroundColor: C.white },
   eyebrow: { fontSize: 7.5, fontFamily: "Helvetica-Bold", letterSpacing: 1.4, textTransform: "uppercase", color: C.brand700, marginBottom: 6 },
   title: { fontSize: 17, fontFamily: "Helvetica-Bold", color: C.ink900, marginBottom: 4 },
   basis: { fontSize: 8.5, color: C.ink600, marginBottom: 10, lineHeight: 1.4 },

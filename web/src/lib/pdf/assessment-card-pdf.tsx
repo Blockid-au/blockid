@@ -8,8 +8,9 @@ import { BAND_COLOUR, INK } from "@/lib/report-visuals";
 import { pdfSafeText } from "@/lib/report-visuals/pdf-text";
 import type { AssessmentCardData } from "@/lib/svi/assessment-card";
 import type { PdfFontSet } from "@/lib/pdf/fonts";
+import { PDF_THEME } from "./theme";
 
-const BRAND = "#0072B2";
+const BRAND = PDF_THEME.navy;
 
 /** One muted line, shared by the web card and both twins (G21 P3-C). */
 export function staleConnectorsLine(n: number): string {

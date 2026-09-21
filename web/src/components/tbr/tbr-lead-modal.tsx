@@ -151,15 +151,15 @@ export function TbrLeadModal({ token, dwellMs = 30_000 }: Props) {
     <div
       role="dialog"
       aria-labelledby="tbr-lead-title"
-      className="fixed bottom-4 right-4 z-40 w-[min(360px,calc(100vw-2rem))] rounded-2xl border border-ink-200 dark:border-ink-800 bg-white dark:bg-ink-950 shadow-2xl print:hidden"
+      className="fixed bottom-4 right-4 z-40 w-[min(360px,calc(100vw-2rem))] rounded-2xl border border-line-subtle bg-surface shadow-2xl print:hidden"
     >
-      <div className="flex items-start gap-3 p-4 border-b border-ink-100 dark:border-ink-800">
+      <div className="flex items-start gap-3 p-4 border-b border-line-subtle">
         <div className="flex-1">
-          <h2 id="tbr-lead-title" className="text-sm font-bold text-ink-900 dark:text-ink-50">
+          <h2 id="tbr-lead-title" className="text-sm font-bold text-primary">
             {submitted ? "Thanks — the founder has been notified." : "Interested in this startup?"}
           </h2>
           {!submitted && (
-            <p className="text-xs text-ink-500 dark:text-ink-400 mt-1 leading-snug">
+            <p className="text-xs text-muted mt-1 leading-snug">
               Reach out to the founder directly. Your details are shared only with them.
             </p>
           )}
@@ -168,7 +168,7 @@ export function TbrLeadModal({ token, dwellMs = 30_000 }: Props) {
           type="button"
           onClick={dismiss}
           aria-label="Dismiss"
-          className="rounded-md p-1 text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-800"
+          className="rounded-md p-1 text-muted hover:text-primary hover:bg-surface-hover"
         >
           <X className="h-4 w-4" />
         </button>
@@ -176,7 +176,7 @@ export function TbrLeadModal({ token, dwellMs = 30_000 }: Props) {
 
       {submitted ? (
         <div className="p-4">
-          <p className="text-xs text-ink-600 dark:text-ink-400 leading-relaxed">
+          <p className="text-xs text-muted leading-relaxed">
             They&apos;ll be in touch. You can close this window.
           </p>
         </div>
@@ -188,7 +188,7 @@ export function TbrLeadModal({ token, dwellMs = 30_000 }: Props) {
               placeholder="Your name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="text-sm rounded-md border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-2.5 py-1.5 text-ink-900 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="text-sm rounded-md border border-line-subtle bg-surface px-2.5 py-1.5 text-primary focus:outline-none focus:ring-2 focus:ring-brand-500"
               maxLength={120}
             />
             <input
@@ -197,7 +197,7 @@ export function TbrLeadModal({ token, dwellMs = 30_000 }: Props) {
               placeholder="Email *"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="text-sm rounded-md border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-2.5 py-1.5 text-ink-900 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="text-sm rounded-md border border-line-subtle bg-surface px-2.5 py-1.5 text-primary focus:outline-none focus:ring-2 focus:ring-brand-500"
               maxLength={254}
             />
             <input
@@ -205,7 +205,7 @@ export function TbrLeadModal({ token, dwellMs = 30_000 }: Props) {
               placeholder="Firm"
               value={firm}
               onChange={(e) => setFirm(e.target.value)}
-              className="text-sm rounded-md border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-2.5 py-1.5 text-ink-900 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="text-sm rounded-md border border-line-subtle bg-surface px-2.5 py-1.5 text-primary focus:outline-none focus:ring-2 focus:ring-brand-500"
               maxLength={160}
             />
             <input
@@ -213,16 +213,16 @@ export function TbrLeadModal({ token, dwellMs = 30_000 }: Props) {
               placeholder="Role"
               value={role}
               onChange={(e) => setRole(e.target.value)}
-              className="text-sm rounded-md border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-2.5 py-1.5 text-ink-900 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="text-sm rounded-md border border-line-subtle bg-surface px-2.5 py-1.5 text-primary focus:outline-none focus:ring-2 focus:ring-brand-500"
               maxLength={120}
             />
           </div>
 
           <fieldset className="space-y-1.5">
-            <legend className="text-[11px] font-semibold uppercase tracking-wide text-ink-500 dark:text-ink-400">
+            <legend className="text-[11px] font-semibold uppercase tracking-wide text-muted">
               Interest level
             </legend>
-            <div className="flex gap-3 text-xs text-ink-700 dark:text-ink-200">
+            <div className="flex gap-3 text-xs text-secondary">
               {(
                 [
                   { v: "exploring" as const, label: "Exploring" },
@@ -251,11 +251,11 @@ export function TbrLeadModal({ token, dwellMs = 30_000 }: Props) {
             onChange={(e) => setMessage(e.target.value)}
             rows={2}
             maxLength={2000}
-            className="w-full text-sm rounded-md border border-ink-200 dark:border-ink-700 bg-white dark:bg-ink-900 px-2.5 py-1.5 text-ink-900 dark:text-ink-100 focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
+            className="w-full text-sm rounded-md border border-line-subtle bg-surface px-2.5 py-1.5 text-primary focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"
           />
 
           {error && (
-            <p role="alert" className="text-xs text-red-600 dark:text-red-400">
+            <p role="alert" className="text-xs text-bear">
               {error}
             </p>
           )}
@@ -264,14 +264,14 @@ export function TbrLeadModal({ token, dwellMs = 30_000 }: Props) {
             <button
               type="button"
               onClick={dismiss}
-              className="text-xs text-ink-500 dark:text-ink-400 hover:text-ink-800 dark:hover:text-ink-200 px-2 py-1"
+              className="text-xs text-muted hover:text-primary px-2 py-1"
             >
               Not now
             </button>
             <button
               type="submit"
               disabled={submitting}
-              className="inline-flex items-center gap-1.5 bg-brand-600 hover:bg-brand-700 disabled:opacity-50 text-white text-xs font-semibold rounded-md px-3 py-1.5"
+              className="inline-flex items-center gap-1.5 bg-action hover:bg-action-hover disabled:opacity-50 text-on-action text-xs font-semibold rounded-md px-3 py-1.5"
             >
               {submitting ? "Sending…" : "Send to founder"}
             </button>

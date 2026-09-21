@@ -30,6 +30,7 @@
 
 import { Text, View } from "@react-pdf/renderer";
 import { linkFallbackRecipient } from "@/lib/dataroom/watermark-recipient";
+import { PDF_THEME } from "./theme";
 
 export interface WatermarkInput {
   /** Investor name, firm or email — whatever identifies the disclosure. */
@@ -68,7 +69,7 @@ export function watermarkLabel(input: WatermarkInput): string | null {
   return `Prepared for ${who.slice(0, 80)} · ${watermarkDate(input.date)} · BlockID.au`;
 }
 
-export const WATERMARK_COLOR = "#1d4ed8";
+export const WATERMARK_COLOR = PDF_THEME.action;
 export const WATERMARK_OPACITY = 0.12;
 
 /** Place inside every `<Page>` that should carry the mark. No-op when `label` is null. */

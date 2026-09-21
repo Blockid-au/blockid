@@ -261,8 +261,8 @@ describe("buildFounderDigest — readiness climb (P7a-readiness-climb)", () => {
     }
     // The current phase's tooltip carries its known score.
     expect(out.html).toContain("Phase 5 — 45/100");
-    // The current-phase bar carries the teal outline.
-    expect(out.html).toMatch(/border:2px solid #0f766e/);
+    // The current-phase bar carries the success outline (G26: EMAIL_THEME.success).
+    expect(out.html).toMatch(/border:2px solid #047857/);
     // Text mirror lists all 12 phases + marks the current phase with ▶.
     expect(out.text).toMatch(/Readiness across all 12 phases:/);
     expect(out.text).toMatch(/▶ Phase 5: 45\/100 \(Not investor-ready yet\)/);
@@ -373,8 +373,8 @@ describe("buildFounderDigest — week-over-week climb delta (P7a-climb-delta)", 
     // Phase 9 is new + carries the "you are here" chip.
     expect(out.html).toMatch(/Phase 9 · you are here/);
     expect(out.html).toMatch(/★ new/);
-    // Current row is highlighted with the cyan-50 band + bold weight.
-    expect(out.html).toMatch(/background:#ecfeff;font-weight:600/);
+    // Current row is highlighted with the info band + bold weight (G26: EMAIL_THEME.bgInfo).
+    expect(out.html).toMatch(/background:#eff6ff;font-weight:600/);
     // Text mirror walks the same rows with the same arrows.
     expect(out.text).toMatch(/Week-over-week climb/);
     expect(out.text).toMatch(/Phase 1: 88\/100 → 90\/100 \(▲ \+2\)/);
@@ -642,7 +642,7 @@ describe("buildFounderDigest — biggest mover callout (P7a-mover-callout)", () 
       isCurrent: true,
     });
     expect(down.icon).toBe("▼");
-    expect(down.colour).toBe("#be123c");
+    expect(down.colour).toBe("#b91c1c");
     expect(down.headline).toMatch(/Phase 3 \(you are here\) slipped -15 pts to 40\/100/);
     expect(down.hint).toMatch(/data room since the last digest/i);
 
@@ -657,7 +657,7 @@ describe("buildFounderDigest — biggest mover callout (P7a-mover-callout)", () 
       isCurrent: false,
     });
     expect(fresh.icon).toBe("★");
-    expect(fresh.colour).toBe("#0369a1");
+    expect(fresh.colour).toBe("#1d4ed8");
     expect(fresh.headline).toMatch(/Phase 9 entered your readiness map at 40\/100/);
     expect(fresh.hint).toMatch(/wasn't scored in last week's digest/i);
   });
@@ -756,7 +756,7 @@ describe("buildPackageProgressBlock — pure snapshot", () => {
     });
     expect(down.html).toContain("▼");
     expect(down.html).toContain("-40 pts vs last week");
-    expect(down.html).toContain("#be123c");
+    expect(down.html).toContain("#b91c1c");
   });
 
   it("escapes HTML in the phase title + next action", () => {

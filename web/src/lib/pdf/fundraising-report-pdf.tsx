@@ -13,37 +13,39 @@ import {
   renderToBuffer,
 } from "@react-pdf/renderer";
 import type { SVISubScore } from "@/lib/svi-analysis";
+import { PDF_THEME } from "./theme";
 
 // ── Brand palette ─────────────────────────────────────────────────────────────
+// G26: every colour from the one PDF theme (light paper, navy headings, ink body).
 const C = {
-  // Ink / background
-  ink950: "#0B1220",
-  ink900: "#0F172A",
-  ink800: "#172033",
-  ink700: "#1F2A44",
+  // Ink (text)
+  ink950: PDF_THEME.ink,
+  ink900: PDF_THEME.ink,
+  ink800: PDF_THEME.inkMuted,
+  ink700: PDF_THEME.inkSubtle,
   // Surface
-  slate50: "#F8FAFC",
-  slate100: "#F1F5F9",
-  slate200: "#E2E8F0",
-  slate300: "#CBD5E1",
-  slate400: "#94A3B8",
-  slate500: "#64748B",
-  // Brand (indigo)
-  brand400: "#818CF8",
-  brand500: "#6366F1",
-  brand600: "#4F46E5",
+  slate50: PDF_THEME.sunken,
+  slate100: PDF_THEME.hover,
+  slate200: PDF_THEME.border,
+  slate300: PDF_THEME.borderStrong,
+  slate400: PDF_THEME.inkSubtle,
+  slate500: PDF_THEME.inkTertiary,
+  // Brand
+  brand400: PDF_THEME.navyElev,
+  brand500: PDF_THEME.navy,
+  brand600: PDF_THEME.navyDeep,
   // Trust green
-  green400: "#34D399",
-  green500: "#10B981",
-  green600: "#059669",
+  green400: PDF_THEME.successMid,
+  green500: PDF_THEME.success,
+  green600: PDF_THEME.success,
   // Amber
-  amber400: "#FBBF24",
-  amber500: "#F59E0B",
+  amber400: PDF_THEME.warnMid,
+  amber500: PDF_THEME.warn,
   // Red
-  red400: "#F87171",
-  red500: "#EF4444",
+  red400: PDF_THEME.dangerMid,
+  red500: PDF_THEME.danger,
   // White
-  white: "#FFFFFF",
+  white: PDF_THEME.white,
 };
 
 // ── Data shape ────────────────────────────────────────────────────────────────
@@ -164,8 +166,8 @@ function confidenceLabel(m: number): string {
 const s = StyleSheet.create({
   // ── Cover page
   coverPage: {
-    backgroundColor: C.ink950,
-    color: C.slate50,
+    backgroundColor: C.white,
+    color: C.ink900,
     paddingTop: 72,
     paddingBottom: 56,
     paddingHorizontal: 56,
@@ -188,7 +190,7 @@ const s = StyleSheet.create({
   coverBrandText: {
     fontSize: 16,
     fontFamily: "Helvetica-Bold",
-    color: C.slate50,
+    color: C.brand500,
   },
   coverBrandSub: {
     fontSize: 9,
@@ -209,7 +211,7 @@ const s = StyleSheet.create({
   coverTitle: {
     fontSize: 32,
     fontFamily: "Helvetica-Bold",
-    color: C.white,
+    color: C.brand500,
     lineHeight: 1.25,
   },
   coverSubtitle: {
@@ -221,7 +223,7 @@ const s = StyleSheet.create({
   coverDivider: {
     marginTop: 48,
     height: 1,
-    backgroundColor: C.ink700,
+    backgroundColor: C.slate200,
   },
   coverMeta: {
     marginTop: 24,
@@ -237,14 +239,14 @@ const s = StyleSheet.create({
   },
   coverMetaValue: {
     fontSize: 11,
-    color: C.slate300,
+    color: C.ink800,
     marginTop: 3,
   },
   coverFooter: {
     marginTop: "auto",
     paddingTop: 16,
     borderTopWidth: 1,
-    borderTopColor: C.ink700,
+    borderTopColor: C.slate200,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-end",
@@ -257,7 +259,7 @@ const s = StyleSheet.create({
   },
   coverWatermark: {
     fontSize: 7,
-    color: C.ink700,
+    color: C.slate500,
     marginTop: 4,
   },
   // ── Interior pages
@@ -413,7 +415,7 @@ const s = StyleSheet.create({
   },
   dimHeader: {
     flexDirection: "row",
-    backgroundColor: C.ink900,
+    backgroundColor: C.slate100,
     paddingVertical: 8,
     paddingHorizontal: 10,
   },

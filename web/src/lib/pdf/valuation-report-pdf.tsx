@@ -1,25 +1,27 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { VcValuationReport } from "@/lib/agents/cfo-valuation";
+import { PDF_THEME } from "./theme";
 
 /* ─── Style ─────────────────────────────────────────────────────────────── */
+// G26: every colour from the one PDF theme (light paper, navy headings, ink body).
 const C = {
-  brand700: "#1d4ed8",
-  brand600: "#2563eb",
-  brand100: "#dbeafe",
-  ink900: "#0f172a",
-  ink700: "#334155",
-  ink600: "#475569",
-  ink400: "#94a3b8",
-  surface200: "#e2e8f0",
-  surface100: "#f1f5f9",
-  surface50: "#f8fafc",
-  emerald700: "#047857",
-  emerald50: "#ecfdf5",
-  amber700: "#b45309",
-  amber50: "#fffbeb",
-  red700: "#b91c1c",
-  red50: "#fef2f2",
-  white: "#ffffff",
+  brand700: PDF_THEME.navyDeep,
+  brand600: PDF_THEME.navy,
+  brand100: "#dfe3ef",
+  ink900: PDF_THEME.ink,
+  ink700: "#374151",
+  ink600: PDF_THEME.inkSubtle,
+  ink400: PDF_THEME.inkFaint,
+  surface200: PDF_THEME.border,
+  surface100: PDF_THEME.hover,
+  surface50: PDF_THEME.sunken,
+  emerald700: PDF_THEME.success,
+  emerald50: PDF_THEME.bgSuccess,
+  amber700: PDF_THEME.warn,
+  amber50: PDF_THEME.bgWarn,
+  red700: PDF_THEME.danger,
+  red50: PDF_THEME.bgDanger,
+  white: PDF_THEME.white,
 };
 
 const s = StyleSheet.create({

@@ -1,5 +1,5 @@
 /**
- * G19-S47 — Trusted Business Report contrast guard (Playwright, Gate 12).
+ * G19-S47 → G26 — Trusted Business Report contrast guard (Playwright, Gate 12).
  *
  * Founder review 2026-09-20: text on the report was unreadable — dark mode
  * kept `bg-white` cards under `dark:text-ink-*` (1.1–1.7:1), light mode put
@@ -7,16 +7,15 @@
  * semantic theme contract (components/tbr/v2/shared.tsx); this spec is the
  * regression guard.
  *
- * For /tbr/demo in BOTH colour schemes (dark also sets
- * `localStorage.blockid_theme = "dark"` + `html.dark`, the site's own
- * toggle), every visible text node inside <main> is sampled: its computed
- * colour, the effective background (walk up to the first opaque
- * background, alpha-composited), the WCAG 2.x ratio
- * `(L1 + 0.05) / (L2 + 0.05)`. Any colour syntax Chromium reports (rgb,
- * rgba, color(), oklab, oklch) is normalised by painting it on a 1×1
- * canvas. Threshold 4.5:1, or 3:1 for large text (≥ 24 px, or ≥ 18.66 px
- * bold). Zero offenders are allowed; a failure prints tag, classes, text
- * and the two colours.
+ * G26 (2026-09-21) — LIGHT IS THE ONLY DEFAULT. The light run is the
+ * contract: every visible text node inside <main> on /tbr/demo is sampled
+ * (computed colour, alpha-composited effective background, WCAG 2.x ratio)
+ * and must be ≥ 4.5:1 (3:1 for large text); the report root must be a light
+ * surface (luminance > 0.85) and no text may sit on a dark band. A second
+ * light run under `prefers-color-scheme: dark` proves the OS preference no
+ * longer flips the page. The explicit `[data-theme="dark"]` + `html.dark`
+ * run stays as the OPT-IN pass the toggle can still reach — it is skipped
+ * automatically when the toggle no longer produces a dark root.
  *
  * Run: PLAYWRIGHT_BASE_URL=http://127.0.0.1:4001 npx playwright test
  *      tests/e2e/smoke/tbr-contrast.spec.ts
@@ -172,43 +171,148 @@ function describeOffenders(list: Offender[]): string {
     .join("\n");
 }
 
-test.describe("Trusted Business Report — contrast guard (G19-S47)", () => {
+/** Relative luminance (0–1) of an `rgb(r,g,b)` string. */
+function luminance(rgb: string): number {
+  const [r, g, b] = rgb.match(/\d+/g)!.map(Number);
+  const f = (c: number) => {
+    const s = c / 255;
+    return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+}
+
+/** Runs inside the page: the page canvas + first <main> section must be light and body text dark (G26 acceptance). */
+function auditLightShell(): { bodyBg: string; mainBg: string; bodyColor: string; darkBands: string[] } {
+  // Any colour syntax Chromium reports (rgb, rgba, color(), oklab, oklch) is normalised by painting it on a 1×1 canvas.
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  const toRgba = (css: string): [number, number, number, number] | null => {
+    if (!ctx || !css) return null;
+    if (css === "transparent") return [0, 0, 0, 0];
+    ctx.clearRect(0, 0, 1, 1);
+    ctx.fillStyle = "#000";
+    ctx.fillStyle = css;
+    if (typeof ctx.fillStyle !== "string") return null;
+    ctx.fillRect(0, 0, 1, 1);
+    const d = ctx.getImageData(0, 0, 1, 1).data;
+    return [d[0], d[1], d[2], d[3] / 255];
+  };
+  const asRgb = (css: string): string => {
+    const c = toRgba(css);
+    return c ? `rgb(${c.slice(0, 3).map(Math.round).join(",")})` : css;
+  };
+  const lum = (css: string) => {
+    const c = toRgba(css);
+    if (!c || c[3] < 0.5) return 1; // translucent tints are judged by the contrast audit, not as bands
+    const f = (v: number) => {
+      const s = v / 255;
+      return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
+    };
+    return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
+  };
+  const cs = (el: Element | null) => (el ? getComputedStyle(el) : null);
+  const body = cs(document.body)!;
+  const main = document.querySelector("main");
+  const first = main?.querySelector("section, div") ?? main;
+  const mainCs = cs(first);
+  // Any block inside <main> wider than 60 % of the viewport painted dark counts as a dark band.
+  const darkBands: string[] = [];
+  if (main) {
+    for (const el of Array.from(main.querySelectorAll("section, div, header, footer, article, aside"))) {
+      const rect = el.getBoundingClientRect();
+      if (rect.width < window.innerWidth * 0.6 || rect.height < 40) continue;
+      const bg = getComputedStyle(el).backgroundColor;
+      if (lum(bg) < 0.2) darkBands.push(`<${el.tagName.toLowerCase()} class="${(el.getAttribute("class") ?? "").slice(0, 80)}"> ${asRgb(bg)}`);
+    }
+  }
+  const bodyBg = toRgba(body.backgroundColor);
+  return {
+    bodyBg: bodyBg && bodyBg[3] > 0 ? asRgb(body.backgroundColor) : "rgb(255,255,255)",
+    mainBg: mainCs ? asRgb(mainCs.backgroundColor) : "",
+    bodyColor: asRgb(body.color),
+    darkBands,
+  };
+}
+
+async function expectLightReport(page: Page, mode: string): Promise<void> {
+  const result = await page.evaluate(auditContrast, "main");
+  summarise(mode, result);
+  expect(result.htmlDark, `${mode}: html.dark must not be set`).toBe(false);
+  expect(luminance(result.rootBg), `${mode}: report root background ${result.rootBg} must be light`).toBeGreaterThan(0.85);
+  const shell = await page.evaluate(auditLightShell);
+  expect(luminance(shell.bodyBg), `${mode}: body background ${shell.bodyBg}`).toBeGreaterThan(0.85);
+  expect(luminance(shell.bodyColor), `${mode}: body text colour ${shell.bodyColor} must be dark ink`).toBeLessThan(0.35);
+  expect(shell.darkBands, `${mode}: dark bands inside <main>:\n  ${shell.darkBands.join("\n  ")}`).toEqual([]);
+  expect(result.sampled, "sampled text nodes").toBeGreaterThan(300);
+  expect(result.offenders, `${mode} contrast offenders:\n${describeOffenders(result.offenders)}`).toEqual([]);
+}
+
+test.describe("Trusted Business Report — contrast guard (G19-S47 · G26 light contract)", () => {
   test.setTimeout(60_000);
 
-  test.describe("light", () => {
+  test.describe("light (the default)", () => {
     test.use({ colorScheme: "light" });
 
-    test("/tbr/demo — every visible text node in <main> is ≥ 4.5:1 (3:1 for large text)", async ({ page }) => {
+    test("/tbr/demo — light surface, dark ink, every visible text node in <main> ≥ 4.5:1 (3:1 for large text)", async ({ page }) => {
       await openReport(page);
-      const result = await page.evaluate(auditContrast, "main");
-      summarise("light", result);
-      expect(result.htmlDark, "light run must not carry html.dark").toBe(false);
-      expect(result.sampled, "sampled text nodes").toBeGreaterThan(300);
-      expect(result.offenders, `light-mode contrast offenders:\n${describeOffenders(result.offenders)}`).toEqual([]);
+      await expectLightReport(page, "light");
+    });
+
+    test("/tbr/demo at 375 px — footnote superscripts and the appendix stay readable", async ({ page }) => {
+      await page.setViewportSize({ width: 375, height: 812 });
+      await openReport(page);
+      await expectLightReport(page, "light@375");
+      // No horizontal page scroll at phone width.
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+      expect(overflow, "horizontal overflow at 375 px").toBeLessThanOrEqual(1);
+      // Citation superscripts (when the fixture cites) keep a ≥ 44 px hit area via ::before and ≥ 10 px glyphs.
+      const cites = await page.evaluate(() => {
+        const out: Array<{ px: number; hit: number }> = [];
+        for (const a of Array.from(document.querySelectorAll<HTMLAnchorElement>("[data-tbr-cite]")).slice(0, 12)) {
+          const before = getComputedStyle(a, "::before");
+          const r = a.getBoundingClientRect();
+          out.push({ px: parseFloat(getComputedStyle(a).fontSize), hit: r.height + Math.abs(parseFloat(before.top) || 0) * 2 });
+        }
+        return out;
+      });
+      for (const c of cites) {
+        expect(c.px, "citation glyph size").toBeGreaterThanOrEqual(9);
+        expect(c.hit, "citation hit area").toBeGreaterThanOrEqual(40);
+      }
     });
   });
 
-  test.describe("dark", () => {
+  test.describe("OS dark preference (must still render light)", () => {
     test.use({ colorScheme: "dark" });
 
-    test("/tbr/demo with blockid_theme=dark + html.dark — every visible text node in <main> is ≥ 4.5:1 (3:1 for large text)", async ({ page }) => {
+    test("/tbr/demo with prefers-color-scheme: dark and no toggle — still the light template", async ({ page }) => {
+      await openReport(page);
+      await expectLightReport(page, "os-dark");
+    });
+  });
+
+  test.describe("explicit dark opt-in (toggle)", () => {
+    test.use({ colorScheme: "dark" });
+
+    test("/tbr/demo with blockid_theme=dark + html.dark + data-theme=dark — every visible text node in <main> is ≥ 4.5:1 (3:1 for large text)", async ({ page }) => {
       await page.addInitScript(() => {
         try {
           localStorage.setItem("blockid_theme", "dark");
         } catch {
-          // storage blocked — the class below still forces the theme
+          // storage blocked — the attributes below still force the theme
         }
         document.documentElement.classList.add("dark");
+        document.documentElement.setAttribute("data-theme", "dark");
       });
       await openReport(page);
       const result = await page.evaluate(auditContrast, "main");
-      summarise("dark", result);
-      expect(result.htmlDark, "dark run carries html.dark").toBe(true);
-      // The report root itself must be a dark surface (no leftover bg-white card).
-      const [r, g, b] = result.rootBg.match(/\d+/g)!.map(Number);
-      expect(0.2126 * r + 0.7152 * g + 0.0722 * b, `report root background ${result.rootBg} should be dark`).toBeLessThan(80);
+      summarise("dark-opt-in", result);
+      // G26: if the toggle no longer yields a dark report root, the opt-in pass is moot — skip, do not fail.
+      test.skip(luminance(result.rootBg) > 0.85, `dark opt-in no longer produces a dark report root (${result.rootBg}) — light-only build`);
       expect(result.sampled, "sampled text nodes").toBeGreaterThan(300);
-      expect(result.offenders, `dark-mode contrast offenders:\n${describeOffenders(result.offenders)}`).toEqual([]);
+      expect(result.offenders, `dark opt-in contrast offenders:\n${describeOffenders(result.offenders)}`).toEqual([]);
     });
   });
 });

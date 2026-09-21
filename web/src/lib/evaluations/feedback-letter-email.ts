@@ -55,7 +55,7 @@ export function letterMarkdownToHtml(md: string): string {
   let list: string[] = [];
   const flush = () => {
     if (list.length) {
-      out.push(`<ul style="margin:0 0 16px 20px;padding:0;color:#334155;font-size:15px;line-height:1.6;">${list.map((li) => `<li style="margin:0 0 6px 0;">${li}</li>`).join("")}</ul>`);
+      out.push(`<ul style="margin:0 0 16px 20px;padding:0;color:#1f2937;font-size:15px;line-height:1.6;">${list.map((li) => `<li style="margin:0 0 6px 0;">${li}</li>`).join("")}</ul>`);
       list = [];
     }
   };
@@ -67,15 +67,15 @@ export function letterMarkdownToHtml(md: string): string {
     }
     if (line.startsWith("### ")) {
       flush();
-      out.push(`<h3 style="margin:20px 0 8px 0;font-size:16px;font-weight:600;color:#0F172A;">${inline(line.slice(4))}</h3>`);
+      out.push(`<h3 style="margin:20px 0 8px 0;font-size:16px;font-weight:600;color:#0b0f1a;">${inline(line.slice(4))}</h3>`);
     } else if (line.startsWith("## ")) {
       flush();
-      out.push(`<h2 style="margin:0 0 12px 0;font-size:22px;font-weight:600;color:#0F172A;letter-spacing:-0.01em;">${inline(line.slice(3))}</h2>`);
+      out.push(`<h2 style="margin:0 0 12px 0;font-size:22px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">${inline(line.slice(3))}</h2>`);
     } else if (line.startsWith("- ")) {
       list.push(inline(line.slice(2)));
     } else {
       flush();
-      out.push(`<p style="margin:0 0 12px 0;color:#334155;font-size:15px;line-height:1.6;">${inline(line)}</p>`);
+      out.push(`<p style="margin:0 0 12px 0;color:#1f2937;font-size:15px;line-height:1.6;">${inline(line)}</p>`);
     }
   }
   flush();
@@ -101,30 +101,30 @@ export function renderFounderFeedbackLetterEmail(input: FeedbackLetterEmailInput
   const weakest = aggregate.weakestDim ? dimensionTitle(aggregate.weakestDim, "en") : null;
 
   const actionsHtml = nextActions.length
-    ? `<h3 style="margin:20px 0 8px 0;font-size:16px;font-weight:600;color:#0F172A;">${escapeHtml(t("feedback.block.actions"))}${weakest ? ` — ${escapeHtml(weakest)}` : ""}</h3>
-<ol style="margin:0 0 16px 20px;padding:0;color:#334155;font-size:15px;line-height:1.6;">
+    ? `<h3 style="margin:20px 0 8px 0;font-size:16px;font-weight:600;color:#0b0f1a;">${escapeHtml(t("feedback.block.actions"))}${weakest ? ` — ${escapeHtml(weakest)}` : ""}</h3>
+<ol style="margin:0 0 16px 20px;padding:0;color:#1f2937;font-size:15px;line-height:1.6;">
 ${nextActions
   .slice(0, 3)
-  .map((a) => `<li style="margin:0 0 8px 0;"><strong>${escapeHtml(a.title)}</strong> <span style="color:#16A34A;font-weight:600;">+${a.sviBenefit} SVI pts</span> · ${escapeHtml(a.effort)} effort · ${escapeHtml(a.timeToComplete)}<br><span style="color:#64748B;font-size:13px;">${escapeHtml(a.rationale)}</span></li>`)
+  .map((a) => `<li style="margin:0 0 8px 0;"><strong>${escapeHtml(a.title)}</strong> <span style="color:#047857;font-weight:600;">+${a.sviBenefit} SVI pts</span> · ${escapeHtml(a.effort)} effort · ${escapeHtml(a.timeToComplete)}<br><span style="color:#6b7280;font-size:13px;">${escapeHtml(a.rationale)}</span></li>`)
   .join("\n")}
 </ol>`
     : "";
 
   const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(subject)}</title></head>
-<body style="margin:0;padding:0;background:#F1F5F9;color:#0F172A;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;">
+<body style="margin:0;padding:0;background:#eef0f5;color:#0b0f1a;font-family:Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Helvetica,Arial,sans-serif;">
 <span style="display:none;max-height:0;overflow:hidden;color:transparent;">${escapeHtml(preheader)}</span>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F1F5F9;padding:32px 16px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef0f5;padding:32px 16px;">
   <tr><td align="center">
-    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#FFFFFF;border:1px solid #E2E8F0;border-radius:16px;padding:32px;">
+    <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;padding:32px;">
       <tr><td>
-        <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#2563EB;font-weight:600;">BlockID · Startup Value Index</p>
-        <p style="margin:0 0 16px 0;color:#334155;font-size:15px;line-height:1.6;">${escapeHtml(greeting)}</p>
+        <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:600;">BlockID · Startup Value Index</p>
+        <p style="margin:0 0 16px 0;color:#1f2937;font-size:15px;line-height:1.6;">${escapeHtml(greeting)}</p>
         ${letterMarkdownToHtml(input.letterMd)}
         ${actionsHtml}
         <p style="margin:24px 0 8px 0;text-align:center;">
-          <a href="${escapeHtml(url)}" style="display:inline-block;background:#2563EB;color:#FFFFFF;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${escapeHtml(t("feedback.email.cta"))}</a>
+          <a href="${escapeHtml(url)}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">${escapeHtml(t("feedback.email.cta"))}</a>
         </p>
-        <p style="margin:8px 0 0 0;color:#64748B;font-size:12px;text-align:center;">${escapeHtml(t("feedback.block.basedOn", { k: aggregate.k, orgs: aggregate.orgCount }))}</p>
+        <p style="margin:8px 0 0 0;color:#6b7280;font-size:12px;text-align:center;">${escapeHtml(t("feedback.block.basedOn", { k: aggregate.k, orgs: aggregate.orgCount }))}</p>
       </td></tr>
     </table>
   </td></tr>

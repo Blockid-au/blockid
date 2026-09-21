@@ -18,6 +18,7 @@
 import * as React from "react";
 import { producedByLine, statutoryLine } from "@/lib/site/legal-entity";
 import { StyleSheet, Text, View } from "@react-pdf/renderer";
+import { PDF_THEME } from "./theme";
 
 // Typed off the component so no transitive @react-pdf/* package is imported.
 type PdfStyle = Exclude<NonNullable<React.ComponentProps<typeof View>["style"]>, readonly unknown[]>;
@@ -73,8 +74,10 @@ export function AdviceDisclaimer({
   dark?: boolean;
   style?: PdfStyle;
 }) {
-  const color = dark ? "#94A3B8" : "#64748B";
-  const border = dark ? "#1E293B" : "#E2E8F0";
+  // G26: light paper only — the `dark` prop is kept for callers but no longer changes the colours.
+  const color = PDF_THEME.inkTertiary;
+  void dark;
+  const border = PDF_THEME.border;
   return (
     <View style={style ? [st.box, { borderTopColor: border }, style] : [st.box, { borderTopColor: border }]} wrap={false}>
       <Text style={[st.text, { color }]}>{adviceDisclaimerText(variant)}</Text>

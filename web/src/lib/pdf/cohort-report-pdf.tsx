@@ -22,11 +22,12 @@ import { fmtReportDate, type CohortReportData, type CohortReportStartup } from "
 import { COHORT_DECISION_LABELS, stageName } from "@/lib/evaluations/batch-shared";
 import { AdviceDisclaimer, PDF_ENTITY_LINE } from "./advice-disclaimer";
 import { pdfPageCount } from "./page-count";
+import { PDF_THEME } from "./theme";
 
 export const COHORT_REPORT_FOOTER = `Prepared with BlockID.au · ${LEGAL_ENTITY.operator} · not financial advice`;
 export const COHORT_REPORT_PDF_TITLE = "BlockID Cohort Report";
 
-const C = { ink: INK.text, muted: INK.muted, faint: INK.faint, grid: INK.grid, surface: INK.surfaceAlt, brand: "#0072B2" };
+const C = { ink: INK.text, muted: INK.muted, faint: INK.faint, grid: INK.grid, surface: INK.surfaceAlt, brand: PDF_THEME.navy };
 const MM = 72 / 25.4;
 const MARGIN = 16 * MM;
 

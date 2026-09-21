@@ -21,13 +21,15 @@ import {
   ShadingType,
 } from "docx";
 import type { AssembledReport } from "@/lib/report-pipeline/types";
+import { DOCX_THEME } from "./theme";
 
 // ── Brand Constants ───────────────────────────────────────────────────────────
 
-const BRAND_BLUE = "2563EB";
-const BRAND_DARK = "1E293B";
-const BRAND_GRAY = "64748B";
-const BRAND_LIGHT = "F8FAFC";
+// G26: every colour from the one DOCX theme (light paper, navy headings, ink body).
+const BRAND_BLUE = DOCX_THEME.navy;
+const BRAND_DARK = DOCX_THEME.ink;
+const BRAND_GRAY = DOCX_THEME.inkSubtle;
+const BRAND_LIGHT = DOCX_THEME.sunken;
 const FONT_HEADING = "Calibri";
 const FONT_BODY = "Calibri";
 
@@ -466,7 +468,7 @@ function buildCoverPage(report: AssembledReport): Paragraph[] {
 // ── Score Badge ───────────────────────────────────────────────────────────────
 
 function buildScoreBadge(score: number, agentRole: string): Paragraph {
-  const scoreColor = score >= 70 ? "10B981" : score >= 40 ? "F59E0B" : "EF4444";
+  const scoreColor = score >= 70 ? DOCX_THEME.success : score >= 40 ? DOCX_THEME.warn : DOCX_THEME.danger;
   const roleLabel = agentRole.toUpperCase();
 
   return new Paragraph({
@@ -746,7 +748,7 @@ function parseInlineFormatting(text: string): TextRun[] {
           color: BRAND_BLUE,
           shading: {
             type: ShadingType.CLEAR,
-            fill: "F1F5F9",
+            fill: DOCX_THEME.hover,
           },
         }),
       );
