@@ -9,9 +9,9 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const SHOW_DELAY_MS = 30_000;
 
 function getButtonColor(score: number): string {
-  if (score <= 6) return "bg-red-600 hover:bg-red-700 text-white";
-  if (score <= 8) return "bg-yellow-500 hover:bg-yellow-600 text-white";
-  return "bg-green-600 hover:bg-green-700 text-white";
+  if (score <= 6) return "bg-bear hover:opacity-90 text-on-action";
+  if (score <= 8) return "bg-warn hover:opacity-90 text-on-action";
+  return "bg-bull hover:opacity-90 text-on-action";
 }
 
 export function NpsWidget() {

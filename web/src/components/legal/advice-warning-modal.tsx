@@ -134,7 +134,7 @@ export function AdviceWarningModal({
       role="dialog"
       aria-modal="true"
       aria-labelledby="awm-title"
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-ink-950/60 p-0 sm:p-6"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center bg-strong/50 p-0 sm:p-6"
     >
       <div className="w-full sm:max-w-2xl rounded-t-2xl sm:rounded-2xl bg-white shadow-2xl border border-line-subtle overflow-hidden flex flex-col max-h-[90vh]">
         <div className="px-6 py-4 border-b border-line-subtle">

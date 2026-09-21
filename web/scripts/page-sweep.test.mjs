@@ -32,9 +32,14 @@ import {
   formatSummary,
   isReportableRequest,
   judge,
+  judgeLight,
+  LIGHT_MAX_TEXT,
+  LIGHT_MIN_BG,
+  lightScript,
   parseArgs,
   personasFor,
   planVisits,
+  relativeLuminance,
   resolveDynamic,
   summarize,
 } from "./lib/page-sweep-core.mjs";
@@ -249,13 +254,64 @@ describe("summarize / formatSummary", () => {
   });
 });
 
+describe("G26 light-template check (relativeLuminance / judgeLight)", () => {
+  it("relativeLuminance is WCAG 2.x: white 1, black 0, the template tokens on the right side of the thresholds", () => {
+    expect(relativeLuminance([255, 255, 255])).toBeCloseTo(1, 5);
+    expect(relativeLuminance([0, 0, 0])).toBeCloseTo(0, 5);
+    expect(relativeLuminance([128, 128, 128])).toBeCloseTo(0.2159, 3);
+    // --ds-surface-sunken #f7f8fa and --ds-surface-hover #eef0f5 are light grounds …
+    expect(relativeLuminance([247, 248, 250])).toBeGreaterThan(LIGHT_MIN_BG);
+    expect(relativeLuminance([238, 240, 245])).toBeGreaterThan(LIGHT_MIN_BG);
+    // … brand navy #1b2a5e, slate-950 #020617 and ink-900 #0f172a are not.
+    expect(relativeLuminance([27, 42, 94])).toBeLessThan(LIGHT_MIN_BG);
+    expect(relativeLuminance([2, 6, 23])).toBeLessThan(LIGHT_MIN_BG);
+    expect(relativeLuminance([15, 23, 42])).toBeLessThan(LIGHT_MIN_BG);
+    // --ds-ink #0b0f1a and --ds-ink-subtle #4b5563 are dark text; white / brand-ink-muted #cbd5e1 are not.
+    expect(relativeLuminance([11, 15, 26])).toBeLessThan(LIGHT_MAX_TEXT);
+    expect(relativeLuminance([75, 85, 99])).toBeLessThan(LIGHT_MAX_TEXT);
+    expect(relativeLuminance([255, 255, 255])).toBeGreaterThan(LIGHT_MAX_TEXT);
+    expect(relativeLuminance([203, 213, 225])).toBeGreaterThan(LIGHT_MAX_TEXT);
+    expect(relativeLuminance(null)).toBeNull();
+    expect(relativeLuminance([1])).toBeNull();
+  });
+  it("judgeLight names each failing surface with its luminance; a light page is clean", () => {
+    const light = { body_bg: [255, 255, 255], section_bg: [247, 248, 250], body_color: [11, 15, 26] };
+    expect(judgeLight(light)).toEqual([]);
+    expect(judgeLight({ ...light, body_bg: [2, 6, 23] })).toEqual(["light_body_bg (0.00)"]);
+    expect(judgeLight({ ...light, section_bg: [27, 42, 94] })).toEqual(["light_section_bg (0.03)"]);
+    expect(judgeLight({ ...light, body_color: [255, 255, 255] })).toEqual(["light_text (1.00)"]);
+    expect(judgeLight({ body_bg: [2, 6, 23], section_bg: [2, 6, 23], body_color: [248, 250, 252] })).toHaveLength(3);
+    expect(judgeLight(null)).toEqual([]);
+    expect(judgeLight({ ...light, body_bg: [200, 200, 200] }, { minBg: 0.5 })).toEqual([]);
+  });
+  it("judge adds the light defects to a rendered 200 only — not to redirects, non-HTML, anonymous bounces, or with light: false", () => {
+    const base = { route: "/tools", path: "/tools", persona: "public", persona_required: "public", status: 200, final_url: "https://blockid.au/tools", h1_count: 1, has_main: true, missing_alt: [], overflow_375: false, console_errors: [], failed_requests: [], gate_markers: [], error_boundary: false, content_type: "text/html; charset=utf-8" };
+    const dark = { body_bg: [2, 6, 23], section_bg: [2, 6, 23], body_color: [248, 250, 252] };
+    expect(judge({ ...base, light: { body_bg: [255, 255, 255], section_bg: [255, 255, 255], body_color: [11, 15, 26] } })).toEqual([]);
+    expect(judge({ ...base, light: dark })).toEqual(["light_body_bg (0.00)", "light_section_bg (0.00)", "light_text (0.95)"]);
+    expect(judge({ ...base, light: dark }, { light: false })).toEqual([]);
+    expect(judge({ ...base, light: dark, final_url: "https://blockid.au/elsewhere" })).toEqual([]);
+    expect(judge({ ...base, light: dark, content_type: "application/xml" })).toEqual([]);
+    expect(judge({ ...base, light: dark, route: "/workspace/plan", path: "/workspace/plan", persona_required: "founder", final_url: "https://blockid.au/auth/login?next=%2Fworkspace%2Fplan" })).toEqual([]);
+    expect(judge({ ...base, light: null })).toEqual([]);
+  });
+  it("lightScript is serialisable into page.evaluate (a plain function, no outer-scope references)", () => {
+    const src = lightScript.toString();
+    expect(src.startsWith("function lightScript()")).toBe(true);
+    expect(src).toContain('querySelector("main > section")');
+    expect(src).toContain("getImageData");
+    expect(src).not.toMatch(/\bLIGHT_MIN_BG\b|\brelativeLuminance\b/);
+  });
+});
+
 describe("parseArgs / planVisits", () => {
   it("parses the CLI flags and reads a fixtures file", () => {
     const dir = mkdtempSync(join(tmpdir(), "page-sweep-args-"));
     const fx = join(dir, "fx.json");
     writeFileSync(fx, JSON.stringify({ "[projectId]": "p1" }));
-    const o = parseArgs(["--base", "https://x.test/", "--persona", "founder", "--limit", "5", "--fixtures", fx, "--state", "founder=/tmp/a.json", "--state", "evaluator=/tmp/b=c.json", "--report-only", "--all-personas", "--route", "/workspace"]);
-    expect(o).toMatchObject({ base: "https://x.test", persona: "founder", limit: 5, fixtures: { "[projectId]": "p1" }, states: { founder: "/tmp/a.json", evaluator: "/tmp/b=c.json" }, reportOnly: true, mode: "all", routeFilter: "/workspace" });
+    const o = parseArgs(["--base", "https://x.test/", "--persona", "founder", "--limit", "5", "--fixtures", fx, "--state", "founder=/tmp/a.json", "--state", "evaluator=/tmp/b=c.json", "--report-only", "--all-personas", "--route", "/workspace", "--no-light"]);
+    expect(o).toMatchObject({ base: "https://x.test", persona: "founder", limit: 5, fixtures: { "[projectId]": "p1" }, states: { founder: "/tmp/a.json", evaluator: "/tmp/b=c.json" }, reportOnly: true, mode: "all", routeFilter: "/workspace", light: false });
+    expect(parseArgs([]).light).toBe(true);
     expect(() => parseArgs(["--bogus"])).toThrow(/unknown argument/);
   });
   it("plans one visit per (route, persona), skipping unresolved dynamic routes and honouring --persona / --route / --limit", () => {

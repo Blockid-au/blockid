@@ -221,6 +221,96 @@ export function overflowScript() {
   return { innerWidth: window.innerWidth, scrollWidth: se.scrollWidth, wide };
 }
 
+// ── G26 light-template check ────────────────────────────────────────────
+// docs/plans/g26-light-template-redesign-2026-09-21.md § 3: every page renders
+// light — the computed background of <body> and of the first `main > section`
+// (or <main>) must have relative luminance > LIGHT_MIN_BG and the body text
+// colour < LIGHT_MAX_TEXT. Measured in the browser (lightScript), judged here.
+
+export const LIGHT_MIN_BG = 0.85;
+export const LIGHT_MAX_TEXT = 0.35;
+
+/**
+ * Serialised into `page.evaluate`. Every colour is normalised through a 1×1
+ * canvas so `color-mix(in oklab …)` / `oklch()` values (Tailwind v4 opacity
+ * modifiers — the G26-R lesson) come back as sRGB + alpha, then composited
+ * over the ancestor chain down to the white canvas, so a `bg-surface/95`
+ * band or a transparent <main> reads as what the eye sees.
+ */
+export function lightScript() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 1;
+  canvas.height = 1;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  const parse = (css) => {
+    if (!ctx || !css || css === "transparent") return [0, 0, 0, 0];
+    ctx.clearRect(0, 0, 1, 1);
+    ctx.fillStyle = "#000";
+    ctx.fillStyle = css;
+    ctx.fillRect(0, 0, 1, 1);
+    const d = ctx.getImageData(0, 0, 1, 1).data;
+    return [d[0], d[1], d[2], d[3] / 255];
+  };
+  const over = (top, under) => {
+    const a = top[3];
+    return [Math.round(top[0] * a + under[0] * (1 - a)), Math.round(top[1] * a + under[1] * (1 - a)), Math.round(top[2] * a + under[2] * (1 - a)), 1];
+  };
+  // Composite the element's background over its ancestors (outermost first) on the white canvas.
+  const bgOf = (el) => {
+    const chain = [];
+    for (let n = el; n; n = n.parentElement) chain.push(n);
+    let out = [255, 255, 255, 1];
+    let imageOn = null;
+    for (const n of chain.reverse()) {
+      const cs = getComputedStyle(n);
+      out = over(parse(cs.backgroundColor), out);
+      if (cs.backgroundImage && cs.backgroundImage !== "none") imageOn = n.tagName.toLowerCase();
+    }
+    return { rgb: out.slice(0, 3), image: imageOn };
+  };
+  const body = document.body;
+  const section = document.querySelector("main > section") || document.querySelector("main, [role='main']") || body;
+  const bodyBg = bgOf(body);
+  const sectionBg = bgOf(section);
+  const text = over(parse(getComputedStyle(body).color), [...bodyBg.rgb, 1]).slice(0, 3);
+  return {
+    body_bg: bodyBg.rgb,
+    section_bg: sectionBg.rgb,
+    section: section === body ? "body" : section.tagName.toLowerCase() + (section.id ? `#${section.id}` : ""),
+    body_color: text,
+    bg_image: bodyBg.image || sectionBg.image,
+  };
+}
+
+/** WCAG 2.x relative luminance of an sRGB triplet (0–255 each) → 0 (black) … 1 (white). */
+export function relativeLuminance(rgb) {
+  if (!Array.isArray(rgb) || rgb.length < 3) return null;
+  const lin = (c) => {
+    const v = Math.min(255, Math.max(0, Number(c))) / 255;
+    return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(rgb[2]);
+}
+
+/**
+ * Judge one lightScript() result → defect names (empty = light template holds).
+ * `light_body_bg (0.12)` / `light_section_bg (0.12)` when a ground is darker
+ * than LIGHT_MIN_BG; `light_text (0.80)` when the body text is lighter than
+ * LIGHT_MAX_TEXT (white-on-something, or grey-on-grey).
+ */
+export function judgeLight(light, { minBg = LIGHT_MIN_BG, maxText = LIGHT_MAX_TEXT } = {}) {
+  if (!light) return [];
+  const out = [];
+  const fmt = (n) => n.toFixed(2);
+  const bodyBg = relativeLuminance(light.body_bg);
+  const sectionBg = relativeLuminance(light.section_bg);
+  const text = relativeLuminance(light.body_color);
+  if (bodyBg !== null && bodyBg <= minBg) out.push(`light_body_bg (${fmt(bodyBg)})`);
+  if (sectionBg !== null && sectionBg <= minBg) out.push(`light_section_bg (${fmt(sectionBg)})`);
+  if (text !== null && text >= maxText) out.push(`light_text (${fmt(text)})`);
+  return out;
+}
+
 // ── Console / request filtering ─────────────────────────────────────────
 
 /** Requests that never count: analytics beacons, favicon, cancelled prefetches. */
@@ -293,7 +383,7 @@ export function filterConsole(entries, { htmlHasCfInjection = false, htmlHasCfEm
  *   un-entitled persona (founder on an evaluator route, Free on a gated page)
  *     → 200 with a gate marker, a 402, or a redirect to /pricing|/workspace|/dashboard|/onboarding
  */
-export function judge(row, { exceptions = {} } = {}) {
+export function judge(row, { exceptions = {}, light = true } = {}) {
   const defects = [];
   const ex = exceptions[row.route] ?? null;
   const finalPath = safePath(row.final_url);
@@ -324,6 +414,9 @@ export function judge(row, { exceptions = {} } = {}) {
     if (row.h1_count !== 1 && !(ex && ex.h1 === row.h1_count)) defects.push(`h1_count_${row.h1_count}`);
     if (row.missing_alt?.length) defects.push(`missing_alt_${row.missing_alt.length}`);
     if (row.overflow_375) defects.push("overflow_375");
+    // G26: light template — skipped for redirects (judged on the target's own
+    // row), non-HTML documents and when the sweep ran with --no-light.
+    if (light && !redirected && row.light && (row.content_type == null || /html/.test(row.content_type))) defects.push(...judgeLight(row.light));
   }
   if (row.console_errors?.length) defects.push(`console_errors_${row.console_errors.length}`);
   if (row.failed_requests?.length) defects.push(`failed_requests_${row.failed_requests.length}`);
@@ -400,6 +493,7 @@ export function parseArgs(argv) {
     timeoutMs: 45_000,
     mode: "own",
     routeFilter: null,
+    light: true,
     help: false,
   };
   for (let i = 0; i < argv.length; i++) {
@@ -420,6 +514,7 @@ export function parseArgs(argv) {
     else if (a === "--timeout") opts.timeoutMs = Number(next());
     else if (a === "--all-personas") opts.mode = "all";
     else if (a === "--route") opts.routeFilter = String(next());
+    else if (a === "--no-light") opts.light = false;
     else if (a === "--help" || a === "-h") opts.help = true;
     else throw new Error(`unknown argument: ${a}`);
   }
@@ -433,9 +528,10 @@ export function parseArgs(argv) {
 export const USAGE = `page-sweep — render + console + a11y sweep of every page.tsx route, per persona
   node scripts/page-sweep.mjs [--base https://blockid.au] [--persona founder] [--limit 50]
         [--fixtures fixtures.json] [--state founder=state.json --state evaluator=…]
-        [--all-personas] [--route /workspace/plan] [--report-only] [--concurrency 3]
+        [--all-personas] [--route /workspace/plan] [--report-only] [--concurrency 3] [--no-light]
   Personas without a --state file are skipped (public needs none).
   Fixtures map a dynamic segment to a value: {"[projectId]":"<uuid>","[slug]":"my-startup"}.
+  --no-light skips the G26 light-template check (body / first main section luminance > 0.85, body text < 0.35).
   Writes content/reports/page-sweep.jsonl + page-sweep-latest.json; exit 1 on any defect unless --report-only.`;
 
 // ── Driver: one visit / the visit plan (Playwright context injected) ────
@@ -482,7 +578,7 @@ export async function sweepOne(context, { route, path: urlPath, persona, persona
   page.on("response", onResponse);
 
   const t0 = Date.now();
-  const row = { ts: new Date().toISOString(), route, path: urlPath, persona, persona_required: personaRequired, gate: gate ?? null, status: null, final_url: null, streamed_redirect: null, h1_count: 0, h1: [], console_errors: [], failed_requests: [], overflow_375: false, overflow_wide: [], missing_alt: [], has_main: false, gate_markers: [], error_boundary: false, title: null, ms: 0, defects: [] };
+  const row = { ts: new Date().toISOString(), route, path: urlPath, persona, persona_required: personaRequired, gate: gate ?? null, status: null, final_url: null, streamed_redirect: null, h1_count: 0, h1: [], console_errors: [], failed_requests: [], overflow_375: false, overflow_wide: [], missing_alt: [], has_main: false, gate_markers: [], error_boundary: false, title: null, content_type: null, light: null, ms: 0, defects: [] };
   try {
     let res = await page.goto(`${opts.base}${urlPath}`, { waitUntil: "domcontentloaded", timeout: opts.timeoutMs });
     if (res && (res.status() === 502 || res.status() === 503 || res.status() === 504)) {
@@ -491,6 +587,7 @@ export async function sweepOne(context, { route, path: urlPath, persona, persona
       res = await page.goto(`${opts.base}${urlPath}`, { waitUntil: "domcontentloaded", timeout: opts.timeoutMs });
     }
     row.status = res ? res.status() : null;
+    row.content_type = res ? (res.headers()["content-type"] ?? null) : null;
     await page.waitForTimeout(opts.settleMs);
     // A `redirect()` thrown after the route's loading.tsx shell streamed
     // cannot be a 307 any more — Next inserts <meta id="__next-page-redirect"
@@ -513,6 +610,9 @@ export async function sweepOne(context, { route, path: urlPath, persona, persona
       probe = (await page.evaluate(probeScript).catch(() => null)) ?? probe;
     }
     if (probe) Object.assign(row, { title: probe.title, h1_count: probe.h1_count, h1: probe.h1, has_main: probe.has_main, missing_alt: probe.missing_alt, gate_markers: probe.gate_markers, error_boundary: probe.error_boundary });
+    if (row.status !== null && row.status < 400 && opts.light !== false) {
+      row.light = await page.evaluate(lightScript).catch(() => null);
+    }
     if (row.status !== null && row.status < 400) {
       await page.setViewportSize({ width: 375, height: 812 });
       await page.waitForTimeout(150);
@@ -542,7 +642,7 @@ export async function sweepOne(context, { route, path: urlPath, persona, persona
   const allowedRequestUrls = new Set(failed.filter((f) => !failedRequests.includes(f)).map((f) => f.url));
   for (const f of failedRequests) if (!row.failed_requests.includes(f)) allowedRequestUrls.add(f.url);
   row.console_errors = filterConsole(consoleEntries, { htmlHasCfInjection, htmlHasCfEmail, allowedRequestUrls, streamedRedirect: !!row.streamed_redirect }).errors;
-  row.defects = judge(row, { exceptions: opts.exceptions ?? {} });
+  row.defects = judge(row, { exceptions: opts.exceptions ?? {}, light: opts.light !== false });
   return row;
 }
 

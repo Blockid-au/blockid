@@ -116,7 +116,7 @@ export default async function InvitePage({ params }: PageProps) {
             </p>
             <Link
               href={`/auth/login?next=${encodeURIComponent(nextUrl)}`}
-              className="inline-flex w-full items-center justify-center rounded-md bg-ink-800 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-900"
+              className="inline-flex w-full items-center justify-center min-h-11 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action shadow-sm hover:bg-action-hover"
             >
               Sign in to accept
             </Link>

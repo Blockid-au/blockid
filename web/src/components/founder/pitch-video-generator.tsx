@@ -157,10 +157,10 @@ export function PitchVideoGenerator({
           "inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors",
           "border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
           status === "success"
-            ? "bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-500"
+            ? "bg-bull text-on-action hover:opacity-90 focus-visible:ring-bull"
             : status === "error"
-              ? "bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500"
-              : "bg-[#00D4FF] text-[#0A0F1E] hover:bg-cyan-400 focus-visible:ring-cyan-500",
+              ? "bg-bear text-on-action hover:opacity-90 focus-visible:ring-bear"
+              : "bg-action text-on-action hover:bg-action-hover focus-visible:ring-brand-navy",
           isLoading ? "opacity-60 cursor-not-allowed" : "cursor-pointer",
         ].join(" ")}
         aria-busy={isLoading}
@@ -240,7 +240,7 @@ export function PitchVideoGenerator({
 
         {/* Credit badge (idle only) */}
         {status === "idle" && (
-          <span className="ml-1 rounded-full bg-[#0A0F1E]/20 px-2 py-0.5 text-xs font-semibold">
+          <span className="ml-1 rounded-full bg-surface/20 px-2 py-0.5 text-xs font-semibold">
             {copy.credits}
           </span>
         )}

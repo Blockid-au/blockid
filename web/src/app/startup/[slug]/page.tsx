@@ -302,7 +302,7 @@ function TechScoreBadge({ techAnalysis }: { techAnalysis: TechAnalysisRow }) {
 
   const colourClass =
     score > 75
-      ? "bg-action/10 text-action border-[rgba(0,212,255,0.3)]"
+      ? "bg-action/10 text-action border-action/30"
       : score > 60
         ? "bg-bull/10 text-bull border-bull/30"
         : score >= 40

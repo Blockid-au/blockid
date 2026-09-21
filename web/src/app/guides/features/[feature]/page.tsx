@@ -87,7 +87,7 @@ export default async function FeatureGuidePage({
               <div className="mt-4 flex flex-wrap gap-3">
                 <Link
                   href={tour.route}
-                  className="inline-flex items-center rounded-lg bg-ink-800 px-4 py-2 text-sm font-medium text-white hover:bg-ink-700"
+                  className="inline-flex items-center min-h-11 rounded-lg bg-action px-4 py-2 text-sm font-medium text-on-action hover:bg-action-hover"
                 >
                   Launch in-app
                 </Link>
@@ -126,7 +126,7 @@ export default async function FeatureGuidePage({
                   <div className="mt-4">
                     <Link
                       href={step.cta.href}
-                      className="inline-flex items-center rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700"
+                      className="inline-flex items-center min-h-11 rounded-lg bg-action px-4 py-2 text-sm font-medium text-on-action hover:bg-action-hover"
                     >
                       {step.cta.label.en}
                     </Link>

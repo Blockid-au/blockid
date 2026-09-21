@@ -122,7 +122,7 @@ export function AcceptInviteClient({ token, expectedEmail, currentEmail }: Props
         type="button"
         onClick={handleAccept}
         disabled={submitting}
-        className="inline-flex w-full items-center justify-center rounded-md bg-ink-800 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-ink-900 disabled:opacity-50"
+        className="inline-flex w-full items-center justify-center min-h-11 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action shadow-sm hover:bg-action-hover disabled:opacity-50"
       >
         {submitting ? "Accepting…" : "Accept invitation"}
       </button>

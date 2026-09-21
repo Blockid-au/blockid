@@ -154,22 +154,22 @@ export function DefaultUpgradeCta({
 }): React.ReactElement {
   const copy = gateCardCopy(feature, label);
   return (
-    <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/40 p-4" data-testid="feature-gate-card" data-feature={feature} data-plan={copy.planId ?? undefined}>
+    <div className="rounded-xl border border-dashed border-line bg-surface-sunken p-4" data-testid="feature-gate-card" data-feature={feature} data-plan={copy.planId ?? undefined}>
       <div className="flex items-start gap-3">
-        <div className="mt-0.5 shrink-0 rounded-full bg-slate-200/70 dark:bg-slate-800 p-2">
-          <Lock className="h-4 w-4 text-slate-600 dark:text-slate-300" strokeWidth={1.75} />
+        <div className="mt-0.5 shrink-0 rounded-full bg-surface-hover p-2">
+          <Lock className="h-4 w-4 text-muted" strokeWidth={1.75} />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">
+          <p className="text-sm font-semibold text-primary">
             {copy.title} is locked on your plan
           </p>
-          <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-400">
+          <p className="mt-0.5 text-xs text-secondary">
             {copy.body}
           </p>
         </div>
         <Link
           href={copy.href}
-          className="shrink-0 inline-flex items-center gap-1 rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 text-xs font-semibold transition-colors"
+          className="shrink-0 inline-flex items-center gap-1 min-h-9 rounded-lg bg-action hover:bg-action-hover text-on-action px-3 py-1.5 text-xs font-semibold transition-colors"
         >
           <Sparkles className="h-3 w-3" strokeWidth={2} />
           {copy.cta}

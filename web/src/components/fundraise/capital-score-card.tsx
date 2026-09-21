@@ -202,16 +202,16 @@ export function CapitalScoreCard() {
   }
 
   return (
-    <div className="rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden">
+    <div className="rounded-xl border border-line-subtle bg-surface-raised shadow-1 overflow-hidden">
       {/* Header */}
-      <div className="bg-gradient-to-r from-[#0B0F2A] to-[#1B2A5E] px-6 py-4 flex items-center justify-between">
+      <div className="border-b border-line-subtle border-t-4 border-t-action bg-surface-sunken px-6 py-4 flex items-center justify-between">
         <div>
-          <p className="text-[10px] uppercase tracking-widest text-cyan-400 font-semibold mb-0.5">CAPITAL Framework · 6 pillars</p>
-          <h2 className="text-white font-semibold">Investor Readiness Score</h2>
+          <p className="text-[10px] uppercase tracking-widest text-accent font-semibold mb-0.5">CAPITAL Framework · 6 pillars</p>
+          <h2 className="font-display text-primary font-semibold">Investor Readiness Score</h2>
         </div>
         {result && (
           <button type="button" onClick={() => setShowForm(f => !f)}
-            className="text-xs text-white/60 hover:text-white transition-colors cursor-pointer">
+            className="inline-flex min-h-9 items-center text-xs text-secondary underline underline-offset-4 hover:text-primary transition-colors cursor-pointer">
             {showForm ? "Hide inputs" : "Edit inputs"}
           </button>
         )}

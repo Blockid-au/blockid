@@ -234,7 +234,7 @@ function AnalystPersonaBanner({
       {/* Analyst badge */}
       <div className="relative flex-none">
         <div className="h-11 w-11 rounded-full bg-action flex items-center justify-center shadow-md ring-4 ring-brand-200">
-          <Bot className="h-5 w-5 text-white" aria-hidden="true" />
+          <Bot className="h-5 w-5 text-on-action" aria-hidden="true" />
         </div>
         {/* Pulsing outer ring */}
         <div className="absolute -inset-1 rounded-full border-2 border-brand-400/60 animate-pulse" aria-hidden="true" />
@@ -875,10 +875,10 @@ function EmailReportPanel({
           onClick={submit}
           disabled={status === "sending" || status === "sent"}
           className={cn(
-            "inline-flex items-center justify-center min-h-[44px] rounded-md px-4 text-sm font-semibold text-white transition-colors",
+            "inline-flex items-center justify-center min-h-[44px] rounded-md px-4 text-sm font-semibold text-on-action transition-colors",
             "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white",
             status === "sent"
-              ? "bg-emerald-600 cursor-default"
+              ? "bg-bull cursor-default"
               : status === "sending"
                 ? "bg-surface-hover !text-tertiary cursor-not-allowed"
                 : "bg-action hover:bg-action-hover",

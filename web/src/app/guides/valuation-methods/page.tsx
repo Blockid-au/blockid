@@ -333,7 +333,7 @@ export default function ValuationMethodsGuidePage() {
             <div className="mt-4 flex flex-wrap gap-3">
               <Link
                 href="/tools/idea-valuation"
-                className="inline-flex items-center rounded-lg bg-ink-800 px-5 py-2.5 text-sm font-medium text-white hover:bg-ink-700 transition"
+                className="inline-flex items-center min-h-11 rounded-lg bg-action px-5 py-2.5 text-sm font-medium text-on-action hover:bg-action-hover transition"
               >
                 Try the free calculator
               </Link>

@@ -41,17 +41,17 @@ export default function AppSegmentError({
   }
 
   return (
-    <div className="min-h-[70vh] bg-surface-100 dark:bg-ink-900 flex items-center justify-center px-6" data-testid="error-boundary" role="alert">
+    <div className="min-h-[70vh] bg-surface-sunken flex items-center justify-center px-6" data-testid="error-boundary" role="alert">
       <div className="max-w-md text-center">
-        <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-red-100 dark:bg-red-500/15 flex items-center justify-center">
+        <div className="mx-auto mb-4 h-16 w-16 rounded-full bg-bear-soft flex items-center justify-center">
           <span className="text-2xl" aria-hidden>
             !
           </span>
         </div>
-        <h1 className="mb-2 text-2xl font-semibold text-ink-900 dark:text-white">
+        <h1 className="mb-2 font-display text-2xl font-semibold text-primary">
           Something broke in your workspace
         </h1>
-        <p className="mb-6 text-sm text-ink-600 dark:text-ink-400">
+        <p className="mb-6 text-sm text-secondary">
           The page failed to render. Retry — if it persists, head back to your
           dashboard.
         </p>
@@ -69,13 +69,13 @@ export default function AppSegmentError({
           <button
             type="button"
             onClick={reset}
-            className="inline-flex h-11 cursor-pointer items-center justify-center rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+            className="inline-flex h-11 cursor-pointer items-center justify-center rounded-lg bg-action px-6 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover"
           >
             Try Again
           </button>
           <Link
             href="/dashboard"
-            className="inline-flex h-11 items-center justify-center rounded-xl border border-surface-300 bg-white px-6 text-sm font-semibold text-ink-700 transition-colors hover:bg-surface-100 dark:border-ink-700 dark:bg-ink-800 dark:text-ink-200 dark:hover:bg-ink-700"
+            className="inline-flex h-11 items-center justify-center rounded-lg border border-line bg-surface px-6 text-sm font-semibold text-primary transition-colors hover:bg-surface-hover"
           >
             Back to dashboard
           </Link>

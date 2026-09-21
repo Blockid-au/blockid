@@ -11,12 +11,15 @@
 //        --fixtures /tmp/fixtures.json --all-personas                           # signed-in sweep
 //   --persona founder   only that persona · --limit 40 · --route /workspace/plan (substring)
 //   --report-only       write the report, exit 0 even with defects
+//   --no-light          skip the G26 light-template check (body + first main section
+//                       background luminance > 0.85, body text luminance < 0.35)
 //   --all-personas      also visit every signed-in route anonymously (must bounce to
 //                       /auth/login) and evaluator/accelerator routes as the founder
 //
 // Per visit: {route, path, persona, persona_required, status, final_url, h1_count, h1,
 // console_errors[], failed_requests[], overflow_375, missing_alt[], has_main,
-// gate_markers[], error_boundary, ms, defects[]} → content/reports/page-sweep-latest.json
+// gate_markers[], error_boundary, content_type, light{body_bg, section_bg, body_color},
+// ms, defects[]} → content/reports/page-sweep-latest.json
 // (every row) + page-sweep.jsonl (one line per run: summary + defect rows).
 // Exit 1 when any visit has a defect (unless --report-only); 2 on a crash /
 // lock collision. Lock: /tmp/blockid-page-sweep.lock.

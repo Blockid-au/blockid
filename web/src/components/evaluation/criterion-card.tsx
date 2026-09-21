@@ -57,31 +57,31 @@ const QUALITY_BADGE: Record<
   exceptional: {
     label: "Exceptional",
     className:
-      "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400",
+      "bg-emerald-50 text-emerald-700",
     meterFill: 5,
   },
   strong: {
     label: "Strong",
     className:
-      "bg-brand-50 text-brand-700 dark:bg-brand-900/30 dark:text-brand-400",
+      "bg-brand-50 text-brand-700",
     meterFill: 4,
   },
   good: {
     label: "Good",
     className:
-      "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+      "bg-blue-50 text-blue-700",
     meterFill: 3,
   },
   basic: {
     label: "Basic",
     className:
-      "bg-amber-50 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400",
+      "bg-amber-50 text-amber-700",
     meterFill: 2,
   },
   incomplete: {
     label: "Incomplete",
     className:
-      "bg-ink-100 text-ink-500 dark:bg-ink-800 dark:text-ink-400",
+      "bg-ink-100 text-ink-500",
     meterFill: 0,
   },
 };
@@ -302,10 +302,10 @@ export function CriterionCard({
   return (
     <div
       className={cn(
-        "bg-white dark:bg-ink-900 rounded-2xl border transition-all duration-200",
+        "bg-surface-raised rounded-xl border transition-all duration-200",
         expanded
-          ? "border-brand-200 dark:border-brand-700 shadow-sm"
-          : "border-ink-200 dark:border-ink-700 hover:border-ink-300 dark:hover:border-ink-600",
+          ? "border-brand-200 shadow-sm"
+          : "border-ink-200 hover:border-ink-300",
       )}
     >
       {/* ── Header (always visible) ──────────────────────────────────────── */}
@@ -318,14 +318,14 @@ export function CriterionCard({
           className={cn(
             "h-10 w-10 rounded-xl flex items-center justify-center shrink-0",
             quality === "incomplete"
-              ? "bg-ink-100 dark:bg-ink-800"
+              ? "bg-ink-100"
               : quality === "basic"
-                ? "bg-amber-50 dark:bg-amber-900/20"
+                ? "bg-amber-50"
                 : quality === "good"
-                  ? "bg-blue-50 dark:bg-blue-900/20"
+                  ? "bg-blue-50"
                   : quality === "strong"
-                    ? "bg-brand-50 dark:bg-brand-900/20"
-                    : "bg-emerald-50 dark:bg-emerald-900/20",
+                    ? "bg-brand-50"
+                    : "bg-emerald-50",
           )}
         >
           <Icon
@@ -335,19 +335,19 @@ export function CriterionCard({
               quality === "incomplete"
                 ? "text-ink-400"
                 : quality === "basic"
-                  ? "text-amber-600 dark:text-amber-400"
+                  ? "text-amber-600"
                   : quality === "good"
-                    ? "text-blue-600 dark:text-blue-400"
+                    ? "text-blue-600"
                     : quality === "strong"
-                      ? "text-brand-600 dark:text-brand-400"
-                      : "text-emerald-600 dark:text-emerald-400",
+                      ? "text-brand-600"
+                      : "text-emerald-600",
             )}
           />
         </div>
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-sm font-semibold text-ink-900 dark:text-ink-100 truncate">
+            <h3 className="text-sm font-semibold text-ink-900 truncate">
               {criterion.title}
             </h3>
             <span
@@ -360,14 +360,14 @@ export function CriterionCard({
             </span>
           </div>
           {!expanded && (
-            <p className="text-xs text-ink-500 dark:text-ink-400 mt-0.5 truncate">
+            <p className="text-xs text-ink-500 mt-0.5 truncate">
               {criterion.subtitle}
             </p>
           )}
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[10px] font-medium text-ink-400 dark:text-ink-500 tabular-nums">
+          <span className="text-[10px] font-medium text-ink-400 tabular-nums">
             {criterion.weight}%
           </span>
           {expanded ? (
@@ -380,8 +380,8 @@ export function CriterionCard({
 
       {/* ── Expanded content ─────────────────────────────────────────────── */}
       {expanded && (
-        <div className="px-4 pb-4 space-y-4 border-t border-ink-100 dark:border-ink-800 pt-4">
-          <p className="text-xs text-ink-500 dark:text-ink-400">
+        <div className="px-4 pb-4 space-y-4 border-t border-ink-100 pt-4">
+          <p className="text-xs text-ink-500">
             {criterion.subtitle}
           </p>
 
@@ -392,15 +392,15 @@ export function CriterionCard({
               onChange={handleTextChange}
               placeholder={placeholder}
               rows={5}
-              className="w-full rounded-xl border border-ink-200 dark:border-ink-700 bg-ink-50 dark:bg-ink-800/50 px-3 py-2.5 text-sm text-ink-900 dark:text-ink-100 placeholder:text-ink-400 dark:placeholder:text-ink-500 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 resize-y min-h-[100px]"
+              className="w-full rounded-xl border border-ink-200 bg-ink-50 px-3 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-400 resize-y min-h-[100px]"
             />
             {saveStatus !== "idle" && (
               <span
                 className={cn(
                   "absolute top-2 right-2 text-[10px] font-medium px-1.5 py-0.5 rounded",
                   saveStatus === "saving"
-                    ? "text-ink-400 bg-ink-100 dark:bg-ink-800"
-                    : "text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-400",
+                    ? "text-ink-400 bg-ink-100"
+                    : "text-emerald-600 bg-emerald-50",
                 )}
               >
                 {saveStatus === "saving" ? "Saving..." : "Saved"}
@@ -411,7 +411,7 @@ export function CriterionCard({
           {/* Files section */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-ink-600 dark:text-ink-300">
+              <span className="text-xs font-medium text-ink-600">
                 Files
                 {data.files.length > 0 && (
                   <span className="ml-1 text-ink-400">
@@ -423,7 +423,7 @@ export function CriterionCard({
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
                 disabled={uploadLoading}
-                className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300 disabled:opacity-50 cursor-pointer"
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-600 hover:text-brand-700 disabled:opacity-50 cursor-pointer"
               >
                 {uploadLoading ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -452,10 +452,10 @@ export function CriterionCard({
                 {data.files.map((file, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center gap-2 bg-ink-50 dark:bg-ink-800/50 rounded-lg px-2.5 py-1.5"
+                    className="flex items-center gap-2 bg-ink-50 rounded-lg px-2.5 py-1.5"
                   >
                     <FileText className="h-3.5 w-3.5 text-ink-400 shrink-0" />
-                    <span className="text-xs text-ink-700 dark:text-ink-300 truncate flex-1">
+                    <span className="text-xs text-ink-700 truncate flex-1">
                       {file.name}
                     </span>
                     <button
@@ -470,7 +470,7 @@ export function CriterionCard({
               </div>
             )}
             {criterion.suggestedFileTypes.length > 0 && data.files.length === 0 && (
-              <p className="text-[11px] text-ink-400 dark:text-ink-500">
+              <p className="text-[11px] text-ink-400">
                 Suggested: {criterion.suggestedFileTypes.join(", ")} files
               </p>
             )}
@@ -478,7 +478,7 @@ export function CriterionCard({
 
           {/* Links section */}
           <div>
-            <span className="text-xs font-medium text-ink-600 dark:text-ink-300 mb-2 block">
+            <span className="text-xs font-medium text-ink-600 mb-2 block">
               Links
               {links.length > 0 && (
                 <span className="ml-1 text-ink-400">({links.length})</span>
@@ -489,14 +489,14 @@ export function CriterionCard({
                 {links.map((link, idx) => (
                   <div
                     key={idx}
-                    className="flex items-center gap-2 bg-ink-50 dark:bg-ink-800/50 rounded-lg px-2.5 py-1.5"
+                    className="flex items-center gap-2 bg-ink-50 rounded-lg px-2.5 py-1.5"
                   >
                     <Link2 className="h-3.5 w-3.5 text-ink-400 shrink-0" />
                     <a
                       href={link.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-xs text-brand-600 dark:text-brand-400 hover:underline truncate flex-1"
+                      className="text-xs text-brand-600 hover:underline truncate flex-1"
                     >
                       {link.label}
                     </a>
@@ -518,7 +518,7 @@ export function CriterionCard({
                 value={newLinkLabel}
                 onChange={(e) => setNewLinkLabel(e.target.value)}
                 placeholder="Label (optional)"
-                className="flex-1 min-w-0 rounded-lg border border-ink-200 dark:border-ink-700 bg-ink-50 dark:bg-ink-800/50 px-2.5 py-1.5 text-xs text-ink-900 dark:text-ink-100 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-brand-500/30"
+                className="flex-1 min-w-0 rounded-lg border border-ink-200 bg-ink-50 px-2.5 py-1.5 text-xs text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-brand-500/30"
               />
               <input
                 type="url"
@@ -531,19 +531,19 @@ export function CriterionCard({
                     addLink();
                   }
                 }}
-                className="flex-[2] min-w-0 rounded-lg border border-ink-200 dark:border-ink-700 bg-ink-50 dark:bg-ink-800/50 px-2.5 py-1.5 text-xs text-ink-900 dark:text-ink-100 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-brand-500/30"
+                className="flex-[2] min-w-0 rounded-lg border border-ink-200 bg-ink-50 px-2.5 py-1.5 text-xs text-ink-900 placeholder:text-ink-400 focus:outline-none focus:ring-1 focus:ring-brand-500/30"
               />
               <button
                 type="button"
                 onClick={addLink}
                 disabled={!newLinkUrl.trim()}
-                className="h-7 w-7 shrink-0 flex items-center justify-center rounded-lg bg-brand-600 hover:bg-brand-700 text-white disabled:opacity-40 cursor-pointer transition-colors"
+                className="h-7 w-7 shrink-0 flex items-center justify-center rounded-lg bg-action hover:bg-action-hover text-on-action disabled:opacity-40 cursor-pointer transition-colors"
               >
                 <Plus className="h-3.5 w-3.5" />
               </button>
             </div>
             {criterion.suggestedLinks.length > 0 && links.length === 0 && (
-              <p className="text-[11px] text-ink-400 dark:text-ink-500 mt-1.5">
+              <p className="text-[11px] text-ink-400 mt-1.5">
                 Suggested: {criterion.suggestedLinks.join(", ")}
               </p>
             )}
@@ -555,7 +555,7 @@ export function CriterionCard({
               type="button"
               onClick={handleAiSuggest}
               disabled={suggestLoading}
-              className="inline-flex items-center gap-1.5 border border-ink-300 dark:border-ink-600 rounded-xl px-3 py-1.5 text-xs font-medium text-ink-700 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800 disabled:opacity-50 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 border border-ink-300 rounded-xl px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50 disabled:opacity-50 transition-colors cursor-pointer"
             >
               {suggestLoading ? (
                 <>
@@ -571,7 +571,7 @@ export function CriterionCard({
               type="button"
               onClick={handleAiScore}
               disabled={scoreLoading}
-              className="inline-flex items-center gap-1.5 border border-ink-300 dark:border-ink-600 rounded-xl px-3 py-1.5 text-xs font-medium text-ink-700 dark:text-ink-300 hover:bg-ink-50 dark:hover:bg-ink-800 disabled:opacity-50 transition-colors cursor-pointer"
+              className="inline-flex items-center gap-1.5 border border-ink-300 rounded-xl px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-50 disabled:opacity-50 transition-colors cursor-pointer"
             >
               {scoreLoading ? (
                 <>
@@ -587,11 +587,11 @@ export function CriterionCard({
 
           {/* AI Score display */}
           {aiScore !== null && (
-            <div className="flex items-center gap-3 bg-ink-50 dark:bg-ink-800/50 rounded-xl px-3 py-2">
-              <span className="text-xs font-medium text-ink-500 dark:text-ink-400">
+            <div className="flex items-center gap-3 bg-ink-50 rounded-xl px-3 py-2">
+              <span className="text-xs font-medium text-ink-500">
                 AI Score
               </span>
-              <div className="flex-1 h-2 bg-ink-200 dark:bg-ink-700 rounded-full overflow-hidden">
+              <div className="flex-1 h-2 bg-ink-200 rounded-full overflow-hidden">
                 <div
                   className={cn(
                     "h-full rounded-full transition-all duration-500",
@@ -612,12 +612,12 @@ export function CriterionCard({
                 className={cn(
                   "text-sm font-bold tabular-nums",
                   aiScore >= 80
-                    ? "text-emerald-600 dark:text-emerald-400"
+                    ? "text-emerald-600"
                     : aiScore >= 60
-                      ? "text-brand-600 dark:text-brand-400"
+                      ? "text-brand-600"
                       : aiScore >= 40
-                        ? "text-blue-600 dark:text-blue-400"
-                        : "text-amber-600 dark:text-amber-400",
+                        ? "text-blue-600"
+                        : "text-amber-600",
                 )}
               >
                 {aiScore}/100
@@ -628,22 +628,22 @@ export function CriterionCard({
           {/* AI Suggestions */}
           {suggestions.length > 0 && (
             <div className="space-y-2">
-              <span className="text-xs font-medium text-ink-600 dark:text-ink-300">
+              <span className="text-xs font-medium text-ink-600">
                 AI Suggestions
               </span>
               {suggestions.map((suggestion, idx) => (
                 <div
                   key={idx}
-                  className="flex items-start gap-2 bg-brand-50/50 dark:bg-brand-900/10 border border-brand-100 dark:border-brand-800/30 rounded-xl px-3 py-2"
+                  className="flex items-start gap-2 bg-brand-50/50 border border-brand-100 rounded-xl px-3 py-2"
                 >
-                  <p className="text-xs text-ink-700 dark:text-ink-300 flex-1">
+                  <p className="text-xs text-ink-700 flex-1">
                     {suggestion}
                   </p>
                   <button
                     type="button"
                     onClick={() => acceptSuggestion(suggestion)}
                     title="Accept suggestion"
-                    className="shrink-0 h-6 w-6 flex items-center justify-center rounded-lg text-brand-600 hover:bg-brand-100 dark:text-brand-400 dark:hover:bg-brand-900/30 transition-colors cursor-pointer"
+                    className="shrink-0 h-6 w-6 flex items-center justify-center rounded-lg text-brand-600 hover:bg-brand-100 transition-colors cursor-pointer"
                   >
                     <Check className="h-3.5 w-3.5" />
                   </button>
@@ -653,7 +653,7 @@ export function CriterionCard({
           )}
 
           {/* Footer: quality meter + weight */}
-          <div className="flex items-center justify-between pt-2 border-t border-ink-100 dark:border-ink-800">
+          <div className="flex items-center justify-between pt-2 border-t border-ink-100">
             <div className="flex items-center gap-1">
               {[0, 1, 2, 3, 4].map((level) => (
                 <div
@@ -662,12 +662,12 @@ export function CriterionCard({
                     "h-1.5 w-5 rounded-full transition-colors",
                     level < badge.meterFill
                       ? METER_COLORS[badge.meterFill - 1] ?? "bg-ink-300"
-                      : "bg-ink-200 dark:bg-ink-700",
+                      : "bg-ink-200",
                   )}
                 />
               ))}
             </div>
-            <span className="text-[10px] font-medium text-ink-400 dark:text-ink-500">
+            <span className="text-[10px] font-medium text-ink-400">
               Weight: {criterion.weight}%
             </span>
           </div>

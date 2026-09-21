@@ -242,26 +242,26 @@ export default function ToolsPage() {
       <NavV2 />
       <main id="main" className="flex-1 min-h-screen bg-surface-50">
         {/* ── Hero ── */}
-        <section className="bg-ink-950 text-white pt-16 pb-16">
+        <section className="border-b border-line-subtle bg-surface pt-16 pb-16 text-primary">
           <div className="mx-auto max-w-6xl px-6 text-center">
-            <p className="text-xs uppercase tracking-[0.2em] text-brand-400 font-medium mb-3">
+            <p className="text-xs uppercase tracking-[0.2em] text-accent font-semibold mb-3">
               Free Tools for Founders
             </p>
-            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">
+            <h1 className="font-display text-4xl sm:text-5xl font-bold tracking-tight text-primary">
               Every hard problem a founder faces.{" "}
-              <span className="text-brand-400">Solved free.</span>
+              <span className="text-action">Solved free.</span>
             </h1>
-            <p className="mt-5 text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
+            <p className="mt-5 text-lg text-secondary max-w-2xl mx-auto leading-relaxed">
               {totalTools} AU-native tools covering ideation, valuation, equity,
               compliance, fundraising, and tax. No login. No paywall. Just
               answers.
             </p>
-            <div className="mt-8 flex flex-wrap justify-center gap-3 text-sm text-slate-500">
+            <div className="mt-8 flex flex-wrap justify-center gap-3 text-sm text-muted">
               {["No credit card", "No login required", "AU-specific data", "Updated for 2026"].map(
                 (badge) => (
                   <span
                     key={badge}
-                    className="rounded-full border border-slate-700 px-3 py-1 text-xs"
+                    className="rounded-full border border-line bg-surface-sunken px-3 py-1 text-xs"
                   >
                     ✓ {badge}
                   </span>
@@ -312,15 +312,15 @@ export default function ToolsPage() {
         </div>
 
         {/* ── CTA ── */}
-        <section className="bg-ink-950 text-white">
+        <section className="border-t border-line-subtle bg-surface-sunken text-primary">
           <div className="mx-auto max-w-3xl px-6 py-16 text-center">
-            <p className="text-xs uppercase tracking-[0.2em] text-brand-400 font-medium mb-3">
+            <p className="text-xs uppercase tracking-[0.2em] text-accent font-semibold mb-3">
               Full Platform
             </p>
-            <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+            <h2 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-primary">
               Want a single score that ties it all together?
             </h2>
-            <p className="mt-4 text-slate-400 leading-relaxed max-w-xl mx-auto">
+            <p className="mt-4 text-secondary leading-relaxed max-w-xl mx-auto">
               The BlockID Startup Value Index combines all dimensions — traction,
               team, IP, compliance, and more — into one investor-ready score.
               Free for early-stage founders.
@@ -328,13 +328,13 @@ export default function ToolsPage() {
             <div className="mt-8 flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/score"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-brand-600 px-8 py-3 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-action px-8 py-3 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
               >
                 Get Your Free SVI Score →
               </Link>
               <Link
                 href="/pricing"
-                className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 px-8 py-3 text-sm font-medium text-slate-300 hover:border-slate-500 hover:text-white transition-colors"
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-line bg-surface px-8 py-3 text-sm font-medium text-primary hover:bg-surface-hover transition-colors"
               >
                 View Pricing
               </Link>

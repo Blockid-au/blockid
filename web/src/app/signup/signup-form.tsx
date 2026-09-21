@@ -492,29 +492,29 @@ function InnerForm(props: SignupFormProps) {
           data-plan-id={selectedPlan.id}
           data-interval={effectiveInterval}
           data-trial-days={selectedPlan.trialDays}
-          className="mb-3.5 rounded-xl border border-[#1F2A44] bg-[#0B1220] px-4 py-3.5"
+          className="mb-3.5 rounded-xl border border-line bg-surface-sunken px-4 py-3.5"
         >
-          <p id="signup-review-title" className="text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <p id="signup-review-title" className="text-xs font-semibold uppercase tracking-wide text-muted">
             {props.review.title}
           </p>
-          <p className="mt-1.5 flex items-baseline justify-between gap-3 text-slate-50">
+          <p className="mt-1.5 flex items-baseline justify-between gap-3 text-primary">
             <span className="text-[15px] font-semibold" data-testid="signup-review-name">{selectedPlan.name}</span>
             <span className="text-[15px] font-semibold tabular-nums" data-testid="signup-review-price">
               {reviewPrice}/{effectiveInterval === "annual" ? "yr" : "mo"} inc. GST
             </span>
           </p>
-          <p className="mt-0.5 text-[11px] text-slate-500" data-testid="gst-line">
+          <p className="mt-0.5 text-[11px] text-muted" data-testid="gst-line">
             {fillCheckoutString(props.review.gstLine, { gst: reviewGstLabel })}
           </p>
-          <p className="mt-2 text-xs text-slate-300" data-testid="signup-review-trial">
+          <p className="mt-2 text-xs text-secondary" data-testid="signup-review-trial">
             {fillCheckoutString(props.review.trialLine, { n: selectedPlan.trialDays, price: reviewPrice, cadence: reviewCadence })}
           </p>
-          <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500" data-testid="signup-review-renewal">
+          <p className="mt-1.5 text-[11px] leading-relaxed text-muted" data-testid="signup-review-renewal">
             {fillCheckoutString(props.review.renewalLine, { cadence: reviewCadence, hours: TRIAL_WARNING_HOURS_BEFORE })}
           </p>
-          <p className="mt-1.5 text-[11px] text-slate-500" data-testid="signup-review-seller">{props.review.sellerLine}</p>
-          <p className="mt-1.5 text-[11px] leading-relaxed text-slate-500" data-testid="signup-review-data-principle">{props.review.dataPrinciple}</p>
-          <p className="mt-2 text-[11px] text-slate-400">{props.review.hint}</p>
+          <p className="mt-1.5 text-[11px] text-muted" data-testid="signup-review-seller">{props.review.sellerLine}</p>
+          <p className="mt-1.5 text-[11px] leading-relaxed text-muted" data-testid="signup-review-data-principle">{props.review.dataPrinciple}</p>
+          <p className="mt-2 text-[11px] text-muted">{props.review.hint}</p>
         </section>
       ) : null}
 

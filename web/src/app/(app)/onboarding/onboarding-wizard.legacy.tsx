@@ -193,16 +193,13 @@ export function OnboardingWizard({
   }
 
   return (
-    <div
-      data-theme="lux"
-      className="min-h-svh bg-brand-navy bg-lux-radial text-primary"
-    >
+    <div className="min-h-svh bg-surface-sunken text-primary">
       {nav}
 
       <main className="mx-auto max-w-3xl px-6 pb-24 pt-24">
         <WizardProgress step={state.step} />
 
-        <div className="lux-card rounded-3xl p-8 sm:p-10">
+        <div className="rounded-xl border border-line-subtle bg-surface-raised p-8 shadow-1 sm:p-10">
           {state.step === 1 && <StepSegment dispatch={dispatch} />}
           {state.step === 2 && <StepGoal state={state} dispatch={dispatch} />}
           {state.step === 3 && <StepTier state={state} dispatch={dispatch} />}
@@ -220,7 +217,7 @@ export function OnboardingWizard({
             <button
               type="button"
               onClick={handleBack}
-              className="inline-flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-medium text-muted transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy"
+              className="inline-flex items-center gap-2 rounded-lg px-2 py-1 text-sm font-medium text-muted transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             >
               <ArrowLeft aria-hidden="true" className="h-4 w-4" />
               Back
@@ -234,7 +231,7 @@ export function OnboardingWizard({
               type="button"
               onClick={handleSkipTrial}
               disabled={skippingTrial}
-              className="rounded-lg px-2 py-1 text-sm font-medium text-muted underline decoration-brand-ink-muted/40 underline-offset-4 transition-colors hover:text-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-cyan focus-visible:ring-offset-2 focus-visible:ring-offset-brand-navy disabled:opacity-60"
+              className="rounded-lg px-2 py-1 text-sm font-medium text-muted underline decoration-line underline-offset-4 transition-colors hover:text-action focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2 focus-visible:ring-offset-surface disabled:opacity-60"
             >
               {skippingTrial ? "Opening your dashboard…" : "Continue without a card — stay on Free, upgrade any time"}
             </button>

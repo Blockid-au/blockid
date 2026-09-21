@@ -217,7 +217,7 @@ export function CustomerDrawer({ customerId, displayName, onClose }: Props) {
   return (
     <div className="fixed inset-0 z-40 flex" role="dialog" aria-modal="true">
       <div
-        className="absolute inset-0 bg-black/40"
+        className="absolute inset-0 bg-strong/50"
         onClick={onClose}
         aria-hidden="true"
       />

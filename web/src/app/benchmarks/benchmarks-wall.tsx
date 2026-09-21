@@ -214,12 +214,12 @@ export function BenchmarksWall() {
       })}
 
       {/* Industry Distribution callout */}
-      <div className="rounded-2xl bg-ink-950 text-white p-8">
-        <p className="text-xs uppercase tracking-[0.2em] text-brand-400 font-semibold mb-2">
+      <div className="rounded-2xl border border-line-subtle border-t-4 border-t-action bg-surface-sunken text-primary p-8">
+        <p className="text-xs uppercase tracking-[0.2em] text-accent font-semibold mb-2">
           Data Source
         </p>
-        <h3 className="text-xl font-semibold mb-3">AU Startup Ecosystem Benchmarks</h3>
-        <p className="text-sm text-slate-400 leading-relaxed mb-6">
+        <h3 className="font-display text-xl font-semibold text-primary mb-3">AU Startup Ecosystem Benchmarks</h3>
+        <p className="text-sm text-secondary leading-relaxed mb-6">
           Benchmark data compiled from Startup Genome, ABS, AVCAL, Cut Through Venture, and
           publicly available AU accelerator cohort data. Covers 2,700+ active Australian
           startups across SaaS, fintech, medtech, and marketplace verticals.
@@ -230,15 +230,15 @@ export function BenchmarksWall() {
             { stat: "4 stages", label: "Pre-seed → Series B+" },
             { stat: "11 metrics", label: "Revenue, users, efficiency" },
           ].map((s) => (
-            <div key={s.stat} className="rounded-xl bg-white/5 p-4">
-              <p className="text-2xl font-bold text-white tabular-nums">{s.stat}</p>
-              <p className="text-xs text-slate-400 mt-1">{s.label}</p>
+            <div key={s.stat} className="rounded-xl border border-line-subtle bg-surface p-4">
+              <p className="font-mono text-2xl font-bold text-primary tabular-nums">{s.stat}</p>
+              <p className="text-xs text-muted mt-1">{s.label}</p>
             </div>
           ))}
         </div>
         <Link
           href="/"
-          className="inline-flex h-11 items-center gap-2 rounded-xl bg-brand-600 px-6 text-sm font-semibold text-white hover:bg-brand-700 transition-colors"
+          className="inline-flex h-11 items-center gap-2 rounded-lg bg-action px-6 text-sm font-semibold text-on-action hover:bg-action-hover transition-colors"
         >
           Compare your startup → <ArrowRight strokeWidth={2} className="h-4 w-4" />
         </Link>
@@ -296,7 +296,7 @@ export function BenchmarksWall() {
         </p>
         <Link
           href="/"
-          className="inline-flex h-12 items-center gap-2.5 rounded-2xl bg-brand-600 px-8 text-base font-semibold text-white hover:bg-brand-700 transition-colors cta-glow"
+          className="inline-flex h-12 items-center gap-2.5 rounded-lg bg-action px-8 text-base font-semibold text-on-action hover:bg-action-hover transition-colors"
         >
           Get your free SVI score <ArrowRight strokeWidth={2} className="h-5 w-5" />
         </Link>

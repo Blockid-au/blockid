@@ -19,14 +19,14 @@ interface TechIntelligenceRowProps {
 }
 
 function techScoreColour(score: number): string {
-  if (score > 75) return "text-[#00D4FF]";
+  if (score > 75) return "text-action-secondary";
   if (score > 60) return "text-emerald-600";
   if (score >= 40) return "text-amber-600";
   return "text-red-500";
 }
 
 function techScoreBg(score: number): string {
-  if (score > 75) return "bg-[rgba(0,212,255,0.08)] border-[rgba(0,212,255,0.2)]";
+  if (score > 75) return "bg-action-secondary/10 border-action-secondary/30";
   if (score > 60) return "bg-emerald-50 border-emerald-200";
   if (score >= 40) return "bg-amber-50 border-amber-200";
   return "bg-red-50 border-red-200";

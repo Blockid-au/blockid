@@ -118,7 +118,7 @@ export function WholesaleGate({
       role="dialog"
       aria-modal="true"
       aria-labelledby="wsg-title"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-ink-950/60 p-4"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-strong/50 p-4"
     >
       <div className="w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-line-subtle overflow-hidden">
         <div className="px-6 py-4 border-b border-line-subtle">
