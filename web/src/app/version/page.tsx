@@ -146,6 +146,17 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.23.0",
+    date: "2026-09-21",
+    title: "Grounding, proposals and ops hygiene (G23)",
+    changes: [
+      "[G23] Report grounding to the 0.85 KPI: auto-citer for every material number, shared claim gate, truncated-JSON salvage, role token budgets, verdict trim instead of degrade, executive gate over the whole register, ReportV2 citation-gate share, grounding fixture + counters (demo report 1.00)",
+      "[G23] Pilot proposal PDF from /admin/validation and pilot → annual conversion with the pilot credit (checkout convert_from_pilot, 0434 conversion columns, conversion card on the pilot page)",
+      "[G23] Ops hygiene: partial live-qa summaries, weekly cron logs, validation ledger If-Match (409), pilot copy via catalogue keys, /api/status.tbr_quality.grounded_share + KPI, Report grounding row on /admin/funnel",
+      "[G23] CSP lane 42 + gate 12 tolerate the Cloudflare-injected GTM inline baseline",
+    ],
+  },
+  {
     version: "3.22.0",
     date: "2026-09-21",
     title: "Upgrade hardening (G22)",
