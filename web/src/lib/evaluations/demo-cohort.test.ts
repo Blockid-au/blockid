@@ -212,10 +212,10 @@ describe("createDemoBatch", () => {
   });
 
   it("a leftover demo project bumps the slug suffix instead of failing the create", async () => {
-    db.projects.push({ id: "p-old", user_id: "u-1", slug: "demo-cohort-wattlebyte", name: "old" });
+    db.projects.push({ id: "p-old", user_id: "u-1", slug: "demo-cohort-banksiabyte", name: "old" });
     const r = await createDemoBatch({ userId: "u-1" });
     expect(r.ok).toBe(true);
-    expect(db.projects.some((p) => p.slug === "demo-cohort-wattlebyte-2")).toBe(true);
+    expect(db.projects.some((p) => p.slug === "demo-cohort-banksiabyte-2")).toBe(true);
     expect(db.evaluation_batch_items).toHaveLength(5);
   });
 });
@@ -272,7 +272,7 @@ describe("fixture-backed reads (no DB)", () => {
 
   it("demoAnalysisForRows maps slugs → confidence / verification / conflicting claims; foreign slugs are skipped", () => {
     const rows = [
-      { projectId: "p1", projectSlug: "demo-cohort-pelicanpay" },
+      { projectId: "p1", projectSlug: "demo-cohort-numbatpay" },
       { projectId: "p2", projectSlug: "demo-cohort-emberquay-2" },
       { projectId: "p3", projectSlug: "acme-robotics" },
     ];
@@ -284,7 +284,7 @@ describe("fixture-backed reads (no DB)", () => {
   });
 
   it("demoJourneyForRows carries confidence, verification and the evidence rows per project", () => {
-    const j = demoJourneyForRows([{ projectId: "p1", projectSlug: "demo-cohort-wattlebyte" }, { projectId: "p9", projectSlug: "real" }]);
+    const j = demoJourneyForRows([{ projectId: "p1", projectSlug: "demo-cohort-banksiabyte" }, { projectId: "p9", projectSlug: "real" }]);
     expect(j.verification.get("p1")).toBe(5);
     expect(j.confidence.get("p1")).toBeGreaterThan(50);
     expect((j.evidence.get("p1") ?? []).length).toBeGreaterThan(5);

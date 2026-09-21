@@ -158,6 +158,20 @@ export async function loadKnownHashes(db, sourceId) {
   return new Set(rows.map((r) => r.content_hash));
 }
 
+/** G25-B: curated inputs committed IN THE REPO — `web/content/external-signals/<sourceId>-*.csv`
+ *  (e.g. `funding-announcements-2026-09.csv`). Read FIRST, before the home
+ *  data dir, so a curated sheet ships with the code and needs no founder step.
+ *  Sorted by name (the YYYY-MM suffix) so the summary lists them in order. */
+export const REPO_CONTENT_DIR = resolve(WEB_DIR, "content", "external-signals");
+export function repoInputFiles(sourceId, format, contentDir = REPO_CONTENT_DIR) {
+  if (!existsSync(contentDir)) return [];
+  const wanted = format === "xml" ? ".xml" : ".csv";
+  return readdirSync(contentDir)
+    .filter((f) => f.startsWith(`${sourceId}-`) && extname(f).toLowerCase() === wanted)
+    .sort()
+    .map((f) => join(contentDir, f));
+}
+
 /** Newest input file for a source under <dataDir>/<sourceId>/ (matching the adapter's format), or null. */
 export function newestInputFile(dataDir, sourceId, format) {
   const dir = join(dataDir, sourceId);
@@ -280,9 +294,19 @@ export async function runSource(sourceId, ctx) {
     // abr-bulk is a 20-file extract: default to the whole directory so every
     // split file streams (newestInputFile would pick one split only).
     if (!input && sourceId === "abr-bulk" && existsSync(join(dataDir, sourceId))) input = join(dataDir, sourceId);
-    if (!input) input = newestInputFile(dataDir, sourceId, adapter.format);
-    if (!input) return { ...out, status: "skipped", error: `no input file — put one under ${join(dataDir, sourceId)}/ or pass --file / --fetch` };
-    out.file = input;
+    // G25-B: no explicit / fetched file → every curated sheet in the repo
+    // (web/content/external-signals/<sourceId>-*.csv) FIRST, then the newest
+    // file in the home data dir. All of them are parsed (content_hash keeps
+    // re-runs idempotent), so a founder never has to copy anything under ~.
+    let inputs = input ? [input] : [];
+    if (!input) {
+      inputs = repoInputFiles(sourceId, adapter.format, ctx.contentDir);
+      const home = newestInputFile(dataDir, sourceId, adapter.format);
+      if (home) inputs.push(home);
+      if (inputs.length === 0) return { ...out, status: "skipped", error: `no input file — commit one as ${join(ctx.contentDir ?? REPO_CONTENT_DIR, `${sourceId}-YYYY-MM.csv`)}, put one under ${join(dataDir, sourceId)}/ or pass --file / --fetch` };
+      input = inputs[0];
+    }
+    out.file = inputs.join(",");
 
     // 3. Parse (abr-bulk streams every xml file in the directory, allow-set applied inside).
     let rows = [];
@@ -299,11 +323,18 @@ export async function runSource(sourceId, ctx) {
       }
       out.filtered_out = out.parsed - rows.length;
     } else {
-      const res = await adapter.parse(createReadStream(input), { limit });
-      out.parsed = res.parsed;
-      out.skipped = res.skipped ?? {};
+      let remaining = limit;
+      for (const f of inputs) {
+        const res = await adapter.parse(createReadStream(f), { limit: remaining });
+        out.parsed += res.parsed;
+        for (const [k, v] of Object.entries(res.skipped ?? {})) out.skipped[k] = (out.skipped[k] ?? 0) + v;
+        rows.push(...res.rows);
+        if (limit) {
+          remaining = limit - out.parsed;
+          if (remaining <= 0) break;
+        }
+      }
       out.filtered_out = Object.values(out.skipped).reduce((a, b) => a + b, 0);
-      rows = res.rows;
     }
     // Belt and braces: every stored row must carry a checksum-valid ABN or an ACN.
     const valid = filterByAllowSet(rows, new Set(rows.map((r) => r.entity_abn).filter((a) => a && validateAbnChecksum(a))));
@@ -368,7 +399,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
 
   const summary = { ok: true, dry, ran_at: now(), db: Boolean(db), data_dir: dataDir, allow_set_size: allow.size, allow_set: provenance, limit: args.limit, sources: [], totals: { parsed: 0, kept: 0, inserted: 0, duplicates: 0, refused: 0, errors: 0 }, error: null };
   for (const id of sources) {
-    const res = await runSource(id, { db, dry, limit: args.limit, allow, sourceRows, dataDir, explicitFile: args.files[0] ? resolve(args.files[0]) : null, fetch: args.fetch, fetchSource: deps.fetchSource, log, now });
+    const res = await runSource(id, { db, dry, limit: args.limit, allow, sourceRows, dataDir, explicitFile: args.files[0] ? resolve(args.files[0]) : null, contentDir: deps.contentDir, fetch: args.fetch, fetchSource: deps.fetchSource, log, now });
     summary.sources.push(res);
     summary.totals.parsed += res.parsed;
     summary.totals.kept += res.kept;

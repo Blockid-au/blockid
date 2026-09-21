@@ -24,7 +24,12 @@ export const MATERIAL_PATTERNS: RegExp[] = [
 // the number is its own working rather than a fact. Those phrases count as
 // the marker; a bare benchmark ("typical ARR is A$50k–200k") still does not.
 export const UNEVIDENCED_MARKERS =
-  /[([](?:unevidenced|uncited|no evidence|estimates?|estimated|illustrative|assumptions?)\b[^)\]]{0,80}[)\]]|\b(?:not disclosed|not provided|no evidence (?:was )?(?:supplied|provided)|unverified|self-reported|founder-reported|indicative only)\b|\b(?:we|i|our model) (?:estimate|assume|project|model)s?\b|\bassuming\b|\b(?:bear|base|bull)[- ](?:case|scenario)\b|\bscenario\b|\bhypothetical(?:ly)?\b|\brule of thumb\b|\billustrative\b|\b(?:this|which|that) (?:implies|suggests|would imply)\b|^\s*\|\s*(?:bear|base|bull)\s*\|/i;
+  /[([](?:unevidenced|uncited|no evidence|estimates?|estimated|illustrative|assumptions?)\b[^)\]]{0,80}[)\]]|\b(?:not disclosed|not provided|no evidence (?:was )?(?:supplied|provided)|unverified|self-reported|founder-reported|indicative only)\b|\b(?:we|i|our model) (?:estimate|assume|project|model)s?\b|\bassuming\b|\b(?:bear|base|bull)[- ](?:case|scenario)\b|\bhypothetical(?:ly)?\b|\brule of thumb\b|^\s*(?:this|that) (?:implies|suggests|would imply)\b|^\s*\|\s*(?:bear|base|bull)\s*\|/i;
+// Review G24 P2: bare "scenario", "illustrative" and a mid-sentence "which
+// suggests" were stand-alone exemptions — "MRR is A$50K, which suggests early
+// PMF" is a fact with an inference attached, not an admission. A sentence
+// that STARTS "This implies …" is a derivation from the numbers before it and
+// still counts as declared working.
 
 /**
  * G24-D: a markdown table whose caption (the nearest prose line above it) or

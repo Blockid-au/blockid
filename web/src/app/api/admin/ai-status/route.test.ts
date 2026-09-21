@@ -76,7 +76,7 @@ async function jsonOf(res: Response): Promise<Record<string, unknown>> {
   return (await res.json()) as Record<string, unknown>;
 }
 
-type Provider = { id: string; name: string; status: "active" | "configured" | "missing"; detail: string };
+type Provider = { id: string; name: string; status: "active" | "configured" | "missing" | "not_configured"; detail: string };
 
 function providersById(body: Record<string, unknown>): Record<string, Provider> {
   const list = body.providers as Provider[];
@@ -182,7 +182,10 @@ describe("provider inventory — top-level counts + ordering", () => {
     expect(body.activeCount).toBe(0);
     expect(body.configuredCount).toBe(0);
     const byId = providersById(body);
-    for (const id of Object.keys(byId)) expect(byId[id].status).toBe("missing");
+    for (const id of Object.keys(byId)) {
+      // G25-B: the Anthropic API key is OPTIONAL — absent is `not_configured` (neutral), never a "missing" fault.
+      expect(byId[id].status).toBe(id === "claude-apikey" ? "not_configured" : "missing");
+    }
   });
 
   it("counts 'configured' as anything non-missing (active + configured), not just 'active'", async () => {
@@ -275,10 +278,16 @@ describe("claude-oauth provider (from ~/.claude/.credentials.json)", () => {
 
 // ---------------------------------------------------------------------------
 describe("claude-apikey provider (from ANTHROPIC_API_KEY)", () => {
-  it("marks missing when ANTHROPIC_API_KEY is absent", async () => {
+  it("G25-B: marks not_configured (optional, neutral) when ANTHROPIC_API_KEY is absent or a placeholder — the detail names the Claude CLI subscription as the Anthropic path", async () => {
     const byId = providersById(await jsonOf(await GET()));
-    expect(byId["claude-apikey"].status).toBe("missing");
-    expect(byId["claude-apikey"].detail).toMatch(/ANTHROPIC_API_KEY/);
+    expect(byId["claude-apikey"].status).toBe("not_configured");
+    expect(byId["claude-apikey"].detail).toBe("Anthropic via Claude CLI subscription (fallback) — ANTHROPIC_API_KEY optional");
+    process.env.ANTHROPIC_API_KEY = "sk-ant-xxxxxxxx";
+    const placeholder = providersById(await jsonOf(await GET()));
+    expect(placeholder["claude-apikey"].status).toBe("not_configured");
+    // not_configured never counts as configured (the tile's amber/red numbers stay honest).
+    const body = await jsonOf(await GET());
+    expect(body.configuredCount).toBe(0);
   });
 
   it("marks configured (not active — route does not live-probe) when the key is set", async () => {

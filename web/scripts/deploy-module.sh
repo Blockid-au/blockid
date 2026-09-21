@@ -57,7 +57,7 @@ case "$MODULE" in
 
     # Verify keys
     MISSING=0
-    for key in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY NEXT_PUBLIC_GOOGLE_CLIENT_ID STRIPE_SECRET_KEY ANTHROPIC_API_KEY CRON_SECRET; do
+    for key in SUPABASE_URL SUPABASE_SERVICE_ROLE_KEY NEXT_PUBLIC_GOOGLE_CLIENT_ID STRIPE_SECRET_KEY CRON_SECRET; do
       val=$(grep "^${key}=" .env | cut -d= -f2-)
       if [ -z "$val" ]; then echo "  ❌ $key MISSING"; MISSING=1; fi
     done

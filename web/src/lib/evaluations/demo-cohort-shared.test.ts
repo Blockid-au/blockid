@@ -68,6 +68,18 @@ describe("DEMO_STARTUPS — fictional, labelled, spread", () => {
     expect(demoStartupForSlug("demo-cohort-unknown")).toBeNull();
     expect(demoStartupForSlug(null)).toBeNull();
   });
+
+  it("G25-B name check: no coinage collides with a real AU business (Wattlebyte / Pelicanpay replaced); legacy slugs still resolve", () => {
+    const names = DEMO_STARTUPS.map((s) => s.name.toLowerCase());
+    for (const banned of ["wattlebyte", "wattle byte", "pelicanpay", "pelican pay"]) {
+      expect(names.some((n) => n.includes(banned))).toBe(false);
+    }
+    expect(DEMO_STARTUPS.map((s) => s.key)).toEqual(["banksiabyte", "coralwind", "numbatpay", "brolgafield", "emberquay"]);
+    // Demo projects created before the rename keep their old slug — the fixture still resolves.
+    expect(demoStartupForSlug("demo-cohort-wattlebyte")?.key).toBe("banksiabyte");
+    expect(demoStartupForSlug("demo-cohort-pelicanpay-2")?.key).toBe("numbatpay");
+    for (const s of DEMO_STARTUPS) expect(s.name.endsWith("(demo)")).toBe(true);
+  });
 });
 
 describe("exportCohortName", () => {
@@ -84,9 +96,9 @@ describe("buildDemoCohortItems — pure + deterministic from the register", () =
     const again = buildDemoCohortItems(REGISTER);
     expect(items).toEqual(again);
     expect(items.map((i) => [i.fixture.key, i.sviTotal, i.evidenceConfidence])).toEqual([
-      ["wattlebyte", 76, 95],
+      ["banksiabyte", 76, 95],
       ["coralwind", 59, 55],
-      ["pelicanpay", 59, 50],
+      ["numbatpay", 59, 50],
       ["brolgafield", 66, 73],
       ["emberquay", 47, 30],
     ]);
@@ -103,12 +115,12 @@ describe("buildDemoCohortItems — pure + deterministic from the register", () =
   it("more register rows held → more evidence rows and a higher confidence; the reference profile holds every evidenced row", () => {
     const items = buildDemoCohortItems(REGISTER);
     const byKey = Object.fromEntries(items.map((i) => [i.fixture.key, i]));
-    expect(byKey.wattlebyte.evidence.length).toBeGreaterThan(byKey.coralwind.evidence.length);
+    expect(byKey.banksiabyte.evidence.length).toBeGreaterThan(byKey.coralwind.evidence.length);
     expect(byKey.coralwind.evidence.length).toBeGreaterThan(byKey.emberquay.evidence.length);
-    expect(byKey.wattlebyte.evidenceConfidence).toBeGreaterThan(byKey.emberquay.evidenceConfidence);
+    expect(byKey.banksiabyte.evidenceConfidence).toBeGreaterThan(byKey.emberquay.evidenceConfidence);
     expect(byKey.emberquay.evidence.length).toBeGreaterThan(0);
     // Evidence rows carry the register's confidence rung and a real catalogue code.
-    for (const e of byKey.wattlebyte.evidence) {
+    for (const e of byKey.banksiabyte.evidence) {
       expect(DIMENSION_KEYS).toContain(e.dimension);
       expect(e.evidence_type).toMatch(/^[a-z_0-9]+$/);
       expect(["public_url", "connected_source", "transaction_data", "third_party_verified", null]).toContain(e.confidence_level);
@@ -119,7 +131,7 @@ describe("buildDemoCohortItems — pure + deterministic from the register", () =
     const items = buildDemoCohortItems(REGISTER);
     const conflict = items.find((i) => i.conflictingClaims > 0)!;
     const stale = items.find((i) => i.staleConnector)!;
-    expect(conflict.fixture.key).toBe("pelicanpay");
+    expect(conflict.fixture.key).toBe("numbatpay");
     expect(conflict.notes).toMatch(/Conflicting claim/);
     expect(stale.fixture.key).toBe("coralwind");
     expect(stale.notes).toMatch(/Stale connector: xero/);

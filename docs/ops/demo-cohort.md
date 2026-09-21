@@ -8,10 +8,10 @@ The demo cohort is one `evaluation_batches` row per evaluator (or acting organis
 
 | Fact | Value |
 |---|---|
-| Startups | Wattlebyte Compliance · Coralwind Health · Pelicanpay Ledger · Brolgafield Agsense · Emberquay Climate — every name ends in "(demo)", coinages that are not registered AU business names, **no ABN** |
+| Startups | Banksiabyte Compliance · Coralwind Health · Numbatpay Ledger · Brolgafield Agsense · Emberquay Climate — every name ends in "(demo)", coinages that are not registered AU business names (checked 2026-09-21, § "Name check" below), **no ABN** |
 | Scores | Deterministic, **no AI call, zero cost**: each startup holds a subset of the demo evidence register (`lib/report-v2/fixtures.ts`, the same rows `/tbr/demo` renders) and its 8 dimension scores scale the register's scores by coverage (`buildDemoCohortItems`) |
 | Spread | Verification levels L1–L5 (one each), evidence confidence 30–95, stage Idea → Early traction |
-| Risk stories | Pelicanpay carries one **conflicting claim** (deck MRR ≠ Stripe); Coralwind one **stale connector** (Xero, 97 days) |
+| Risk stories | Numbatpay carries one **conflicting claim** (deck MRR ≠ Stripe); Coralwind one **stale connector** (Xero, 97 days) |
 | Rows written | `projects` (5, evaluator-owned, `demo-cohort-<key>` slug, `verification_level`), `evaluations` (5, note "Demo data — fictional…"), `evaluation_batches` (1, `is_demo`, status `done`), `evaluation_batch_items` (5, `done`, `svi_total` + `dimension_scores`) — **nothing else** (pinned by `demo-cohort.test.ts`) |
 | Label | Every company card / row / header carries the "Demo data — fictional" chip (`data-testid="demo-chip"`); the cohort page and the journey show a banner |
 
@@ -46,7 +46,21 @@ Copy is catalogued (`demoCohort.*` in `lib/i18n/messages/{en,vi}.json`) and reac
 
 ## Operating notes
 
-- **Before a public demo** the founder approves the five company names (defaults ship; edit `DEMO_STARTUPS` in `demo-cohort-shared.ts` — the scorer test pins the numbers, update it in the same commit).
+- **Company names** — approval was delegated to an `au-compliance`-style register check (G25-B, 2026-09-21, below). Before renaming again, re-run the same check; edit `DEMO_STARTUPS` in `demo-cohort-shared.ts`, keep old keys in `legacyKeys` so demo projects created earlier still resolve, and update the scorer test in the same commit.
 - **Leftovers:** removing the demo deletes only projects with the `demo-cohort-` slug owned by the batch creator (evaluations + items cascade). A leftover demo project from an interrupted create only bumps the next slug suffix.
 - **Live QA:** `tests/live-qa/37-cohort.spec.ts` lane (k) creates the demo on the elevated evaluator seat, checks the five chips, the Cohort Report (200), that the institutional API does not list it, then removes it (404 afterwards).
 - **Erasure:** the demo rows are ordinary evaluator-owned rows — the account erasure path removes them with everything else.
+
+## Name check 2026-09-21
+
+Founder approval of the five demo names was delegated to lane G25-B, which ran an `au-compliance`-style collision check on each coinage: **ABN Lookup** (abr.business.gov.au, coinage + spaced variant), the **ASIC company and business-name datasets** on data.gov.au (snapshots of 14–15 Sep 2026; ASIC Connect itself blocks non-browser clients), **IP Australia** trade-mark quick search, and a general web / domain search. Verdicts:
+
+| Coinage | ABN Lookup | ASIC datasets | IP Australia | Web | Verdict | Action |
+|---|---|---|---|---|---|---|
+| Wattlebyte | **WATTLE BYTE PTY LTD** (ABN 78 700 081 410, ACT, registered Jul 2026) + WATTLEBIT PTY LTD (phonetic twin) | WATTLE BYTE PTY LTD registered 08/07/2026 | none | wattlebyte.com "launching soon", wattlebyte.com.au registered | **COLLISION** | replaced by **Banksiabyte** (ABN Lookup / ASIC / IP Australia / web / domains all clear) |
+| Coralwind | fuzzy hits only (Coralwood…) | none | none | no brand; neighbour "Coral Healthcare Pty Ltd" (AU, TGA-listed) shares words, not the coinage | CLEAR | keep — never shorten to "Coral Health" in demo copy |
+| Pelicanpay | none | none | two **dead** marks "PELICAN PAYS" (gaming) | **PelicanPay** — live UK regulated payments brand (Pelican Group), same sector | **COLLISION** (non-AU, same sector) | replaced by **Numbatpay** (all registers / web / domains clear) |
+| Brolgafield | none | none | none | no brand; sector neighbours Brolga Tech / Brolga Co (different names) | CLEAR | keep — never shorten to "Brolga" |
+| Emberquay | none | none | none | no AU brand; parked emberquay.com | CLEAR | keep |
+
+Alternates also cleared and held in reserve: Kurrajongbyte (Compliance), Quollpay (Ledger). Caveats: ASIC snapshots lag ~1 week; IP Australia was a word search only (no class-by-class similarity search); web search is a US index, so the registers are the authoritative signal. The renamed fixtures keep their old keys in `legacyKeys` (`demo-cohort-wattlebyte…` / `demo-cohort-pelicanpay…` slugs still resolve), pinned by `demo-cohort-shared.test.ts`.

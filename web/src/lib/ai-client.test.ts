@@ -1137,6 +1137,81 @@ describe("S32-C — provider order per task class", () => {
   });
 });
 
+// ---------------------------------------------------------------------------
+// G25-B — ANTHROPIC_API_KEY is OPTIONAL (founder 2026-09-21: no key, the
+// Claude CLI subscription is the Anthropic path). Absent or placeholder →
+// the tier does not exist for this process: zero calls, zero log lines, the
+// free chain order unchanged, claude-oauth still reachable as the fallback.
+// ---------------------------------------------------------------------------
+
+describe("G25-B — Anthropic key optional", () => {
+  const freeChain = () => {
+    process.env.DEEPINFRA_API_KEY = "di";
+    process.env.GOOGLE_GEMINI_API_KEY = "gm";
+    process.env.GROQ_API_KEY = "gq";
+    process.env.SAMBANOVA_API_KEY = "sn";
+    process.env.CEREBRAS_API_KEY = "cb";
+    process.env.OPENROUTER_API_KEY = "or";
+    setOAuthFixture();
+  };
+
+  it("absent key: claude-apikey is absent from every class, the rest of the chain keeps its order, claude-oauth stays as fallback", async () => {
+    freeChain();
+    delete process.env.ANTHROPIC_API_KEY;
+    const { getAvailableProviders, getProviderHealthSnapshot, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    expect(getAvailableProviders("report")).toEqual(["deepinfra", "gemini", "claude-oauth", "groq", "sambanova", "cerebras", "openrouter"]);
+    expect(getAvailableProviders("synthesis")).toEqual(["deepinfra", "gemini", "claude-oauth", "groq", "sambanova", "cerebras", "openrouter"]);
+    expect(getAvailableProviders("classify")).toEqual(["groq", "cerebras", "sambanova", "openrouter", "gemini", "deepinfra", "claude-oauth"]);
+    // Health: absent, not "blocked / unconfigured" — and claude-oauth has its own entry.
+    const snap = getProviderHealthSnapshot();
+    expect(snap.providers.map((p) => p.name)).not.toContain("claude-apikey");
+    expect(snap.providers.find((p) => p.name === "claude-oauth")).toEqual({ name: "claude-oauth", state: "ok", cooldown_until: null });
+    expect(snap.providers.every((p) => p.state === "ok")).toBe(true);
+  });
+
+  it("placeholder values (empty, whitespace, sk-ant-xxxx, changeme, <your-key>) count as absent", async () => {
+    freeChain();
+    for (const v of ["", "   ", "sk-ant-xxxxxxxx", "changeme", "<your-key>", "your_api_key_here", "..."]) {
+      process.env.ANTHROPIC_API_KEY = v;
+      const { getAvailableProviders } = await loadClient();
+      expect(getAvailableProviders("report")[0]).toBe("deepinfra");
+      expect(getAvailableProviders("report")).not.toContain("claude-apikey");
+    }
+    process.env.ANTHROPIC_API_KEY = "sk-ant-api03-real-looking-key";
+    const { getAvailableProviders } = await loadClient();
+    expect(getAvailableProviders("report")[0]).toBe("claude-apikey");
+  });
+
+  it("absent key: callAI never dials the Anthropic tier (zero calls) and never logs an Anthropic line; the free chain serves", async () => {
+    freeChain();
+    delete process.env.ANTHROPIC_API_KEY;
+    tierMock.call.mockClear();
+    const tier = await import("@/lib/ai/anthropic-tier");
+    tier._resetAnthropicTierForTests();
+    const { callAI, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    // Every non-Anthropic provider fails fast in this sandbox (no worker) —
+    // what matters is that the Anthropic tier is never on the list.
+    await callAI({ system: "s", user: "u", maxTokens: 50 }).catch(() => undefined);
+    expect(tierMock.call).not.toHaveBeenCalled();
+    expect(tier.isAnthropicKeyInvalid()).toBe(false);
+    const anthropicLines = (warnSpy?.mock.calls ?? []).flat().filter((l) => typeof l === "string" && /anthropic/i.test(l) && /rejected|unconfigured|missing|not set/i.test(l));
+    expect(anthropicLines).toEqual([]);
+  });
+
+  it("CLI path reachable as the fallback: with only the OAuth token the report chain is exactly [claude-oauth]", async () => {
+    delete process.env.ANTHROPIC_API_KEY;
+    setOAuthFixture();
+    const { getAvailableProviders, isAIConfigured, isAnthropicConfigured, pickBestProvider, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    expect(getAvailableProviders("report")).toEqual(["claude-oauth"]);
+    expect(pickBestProvider(["claude-oauth"], "report")).toBe("claude-oauth");
+    expect(isAIConfigured()).toBe(true);
+    expect(isAnthropicConfigured()).toBe(true);
+  });
+});
+
 describe("S32-C — AI_REPORT_PROVIDER_ORDER override", () => {
   it("parses a comma list: listed first, unknown ignored, '-name' drops, rest follow in default order", async () => {
     const { parseProviderOrderOverride } = await loadClient();

@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Key,
   Loader2,
+  MinusCircle,
   Plus,
   RefreshCw,
   Save,
@@ -20,7 +21,7 @@ import { userErrorMessage } from "@/lib/ui/user-error";
 interface ProviderInfo {
   id: string;
   name: string;
-  status: "active" | "configured" | "missing";
+  status: "active" | "configured" | "missing" | "not_configured";
   detail: string;
 }
 
@@ -46,6 +47,8 @@ const STATUS_CONFIG = {
   active: { icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50 border-emerald-200", label: "Active" },
   configured: { icon: AlertTriangle, color: "text-amber-600", bg: "bg-amber-50 border-amber-200", label: "Configured" },
   missing: { icon: XCircle, color: "text-red-400", bg: "bg-red-50 border-red-200", label: "Missing" },
+  // G25-B: an optional provider left unset is not a fault — neutral, no red.
+  not_configured: { icon: MinusCircle, color: "text-ink-500", bg: "bg-ink-50 border-ink-200", label: "Optional — not set" },
 } as const;
 
 const PROVIDER_OPTIONS = [
@@ -160,7 +163,7 @@ export function AIKeysClient() {
             <p className="text-xs text-ink-600 mt-1">Configured</p>
           </div>
           <div className="rounded-xl border border-surface-200 bg-white p-4 text-center">
-            <p className="text-3xl font-bold font-mono text-red-400">{status.totalProviders - status.configuredCount}</p>
+            <p className="text-3xl font-bold font-mono text-red-400">{status.providers.filter((p) => p.status === "missing").length}</p>
             <p className="text-xs text-ink-600 mt-1">Missing</p>
           </div>
         </div>
@@ -180,7 +183,7 @@ export function AIKeysClient() {
               const cfg = STATUS_CONFIG[provider.status];
               const Icon = cfg.icon;
               return (
-                <div key={provider.id} className={`px-6 py-4 flex items-center gap-4 ${provider.status === "missing" ? "opacity-50" : ""}`}>
+                <div key={provider.id} className={`px-6 py-4 flex items-center gap-4 ${provider.status === "missing" || provider.status === "not_configured" ? "opacity-50" : ""}`}>
                   <span className="text-xs font-mono text-muted w-6 shrink-0">{idx + 1}.</span>
                   <Icon strokeWidth={1.75} className={`h-5 w-5 shrink-0 ${cfg.color}`} />
                   <div className="flex-1 min-w-0">

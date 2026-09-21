@@ -551,7 +551,7 @@ web/src/lib/
 |---------|---------|-------------|
 | **Supabase** | PostgreSQL database (RLS enabled, service-role access) | `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` |
 | **Stripe** | Payments, subscriptions, customer portal, webhooks | `STRIPE_SECRET_KEY` + `STRIPE_WEBHOOK_SECRET` |
-| **Claude (Anthropic)** | AI scoring, SVI reports, term sheet analysis, research, growth recommendations | Claude CLI OAuth or `ANTHROPIC_API_KEY` |
+| **Claude (Anthropic)** | AI scoring, SVI reports, term sheet analysis, research, growth recommendations | Claude CLI subscription token (the Anthropic path, fallback after DeepInfra); `ANTHROPIC_API_KEY` optional (G25-B) |
 | **OpenAI** | Fallback AI provider (GPT-4o-mini) | `OPENAI_API_KEY` or Codex CLI |
 | **Google Gemini** | Free-tier AI fallback (gemini-2.0-flash) | `GOOGLE_GEMINI_API_KEY` |
 | **Google Drive** | Evidence document storage, admin sharing | Service Account (`GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL` + `GOOGLE_DRIVE_PRIVATE_KEY`) |

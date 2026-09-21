@@ -25,6 +25,7 @@ import path from "node:path";
 import { z } from "zod";
 
 import { callStructured } from "@/lib/ai/call-structured";
+import { callAI } from "@/lib/ai-client";
 import {
   PromptEvalFixture,
   runEval,
@@ -41,7 +42,7 @@ import {
 } from "@/lib/ai/prompt-registry";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
-import { DimensionChapterPayload, w4OutputContract } from "@/lib/report-pipeline/agent-dispatcher";
+import { DimensionChapterPayload, callAIToModelCaller, w4OutputContract } from "@/lib/report-pipeline/agent-dispatcher";
 import { AU_CONTEXT } from "@/lib/report-pipeline/agent-prompts";
 import { DIMENSION_OWNERS, isDimKey, type DimKey } from "@/lib/report-pipeline/dimension-owners";
 
@@ -104,11 +105,25 @@ function tbrSystemPrompt(dim: DimKey): string {
   return `${AU_CONTEXT}\n\n## Your Role: ${owner.primary.toUpperCase()} — owner of the "${owner.title}" chapter\n\n${w4OutputContract(dim, "full")}`;
 }
 
+/** G25-B: the eval runs on the dispatcher chain (DeepInfra-first, Claude CLI
+ *  subscription as the last fallback) — never the raw API-key path, which is
+ *  optional and absent on the box. Background priority so a founder's report
+ *  is never queued behind the nightly eval. */
+const EVAL_MAX_TOKENS = 4096;
+function dispatcherTransport(agent: string) {
+  return callAIToModelCaller(
+    (system, user, maxTokens) =>
+      callAI({ system, user, maxTokens, agentId: `prompt-eval:${agent}`, priority: "background", timeoutMs: 180_000 }).then((r) => r.text),
+    EVAL_MAX_TOKENS,
+  );
+}
+
 function defaultRunCase(): CaseRunner {
   return async (fx: FixtureCase, pv: PromptVersionT) => {
     const started = Date.now();
     const dim = tbrDim(pv.agent);
     const res = await callStructured({
+      modelCaller: dispatcherTransport(pv.agent),
       promptVersionId: pv.id,
       agent: pv.agent,
       model: pv.model,

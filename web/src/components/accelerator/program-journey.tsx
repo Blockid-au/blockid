@@ -204,7 +204,7 @@ function IntakePanel({ view, batchId, demoLabels }: { view: ProgramJourneyView; 
           <Upload className="h-4 w-4" aria-hidden="true" />
           Import applicants from CSV
         </Link>
-        {noCohort && !view.batch?.isDemo ? <LoadDemoCohortButton labels={demoLabels} hrefFor={(id) => `/workspace/accelerator?stage=assessment&batch=${encodeURIComponent(id)}`} /> : null}
+        {noCohort && !view.batch?.isDemo ? <LoadDemoCohortButton labels={demoLabels} hrefTemplate="/workspace/accelerator?stage=assessment&batch={batchId}" /> : null}
       </div>
       {it.links === 0 && view.assessment.total === 0 ? (
         <Empty title="No applications yet" body="Publish an intake link from the inbox, or import an existing cohort as CSV — company, URL, contact e-mail, stage, sector, deck link." cta={{ href: "/workspace/accelerator/applications", label: "Create an intake link" }} />
@@ -240,7 +240,7 @@ function AssessmentPanel({ view, batchId, demoLabels }: { view: ProgramJourneyVi
               <Upload className="h-4 w-4" aria-hidden="true" />
               {demoLabels.importCsv}
             </Link>
-            <LoadDemoCohortButton labels={demoLabels} hrefFor={(id) => `/workspace/accelerator?stage=assessment&batch=${encodeURIComponent(id)}`} />
+            <LoadDemoCohortButton labels={demoLabels} hrefTemplate="/workspace/accelerator?stage=assessment&batch={batchId}" />
           </div>
         </>
       )}

@@ -76,6 +76,7 @@ export class ConsoleGuard {
   private readonly errors: ConsoleEntry[] = [];
   private readonly failed: FailedRequest[] = [];
   private htmlHasCfInjection = false;
+  private cfInjectedDocuments = 0;
   private htmlHasCfEmail = false;
 
   constructor(private readonly page: Page, private readonly opts: GuardOptions = {}) {
@@ -108,7 +109,12 @@ export class ConsoleGuard {
       const ct = res.headers()["content-type"] ?? "";
       if (!ct.includes("text/html")) return;
       const body = await res.text();
-      if (CF_GTM_SIGNATURES.some((s) => body.includes(s))) this.htmlHasCfInjection = true;
+      if (CF_GTM_SIGNATURES.some((s) => body.includes(s))) {
+        this.htmlHasCfInjection = true;
+        // Two bootstrap scripts per injected DOCUMENT — a lane that walks
+        // several pages before reporting sees two lines per page.
+        this.cfInjectedDocuments += 1;
+      }
       if (CF_EMAIL_SIGNATURES.some((s) => body.includes(s))) this.htmlHasCfEmail = true;
     } catch {
       /* body may be gone after navigation — a later response will refresh it */
@@ -132,7 +138,7 @@ export class ConsoleGuard {
     const errors: ConsoleEntry[] = [];
     let cspAllowedCount = 0;
     for (const e of this.errors) {
-      if (this.htmlHasCfInjection && e.type === "console" && CSP_INLINE_SCRIPT_RE.test(e.text) && cspAllowedCount < 2) {
+      if (this.htmlHasCfInjection && e.type === "console" && CSP_INLINE_SCRIPT_RE.test(e.text) && cspAllowedCount < 2 * Math.max(1, this.cfInjectedDocuments)) {
         allowed.push(e);
         cspAllowedCount += 1;
         continue;

@@ -343,7 +343,9 @@ async function callAnthropic(opts: {
   messages: Array<{ role: "user" | "assistant"; content: string }>;
 }): Promise<AnthropicResult> {
   if (!opts.apiKey) {
-    return { ok: false, status: "model_error", reason: "ANTHROPIC_API_KEY not set" };
+    // G25-B: the API key is optional — callers that want the dispatcher
+    // chain (DeepInfra-first, Claude CLI fallback) pass `modelCaller`.
+    return { ok: false, status: "model_error", reason: "ANTHROPIC_API_KEY not set (optional) — pass modelCaller for the dispatcher chain" };
   }
   let res: Response;
   try {
@@ -497,7 +499,9 @@ export function promptVersionIdForRow(id: string | null | undefined): string | n
 
 function isPromptVersionFkError(err: { code?: string; message?: string } | null | undefined): boolean {
   if (!err) return false;
-  return err.code === "23503" || /ai_runs_prompt_version_id_fkey/.test(err.message ?? "");
+  // Only the prompt-version constraint (review G24 P3): another FK failure
+  // (user / business) must surface as itself, not be retried with NULL.
+  return /ai_runs_prompt_version_id_fkey/.test(err.message ?? "") || (err.code === "23503" && /prompt_version/.test(err.message ?? ""));
 }
 
 async function insertRun(args: InsertRunArgs): Promise<string> {

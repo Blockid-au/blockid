@@ -13,6 +13,17 @@
 > C-Level daily reports → CEO summary → orchestrator implementing-plan loop (8× daily); **weekly** — live QA
 > (Sun 07:00), comparables ingest, external signals, backtest, reseller reconciliation, evaluator progress radar.
 > Cloud-hosted C-Level routines are a separate system: `docs/runbooks/anthropic-cloud-routines.md`.
+>
+> **Anthropic path for crons (G25-B, 2026-09-21): the Claude CLI subscription, not an API key.**
+> `ANTHROPIC_API_KEY` is optional and unset on the box. Every cron that needs a Claude model
+> (`nightly-clevel-review` 04:30, `prompt-eval-nightly` 16:00, the CEO / orchestrator loops,
+> `ai-health` / `ai-health-check` probes) reaches Anthropic through the CLI token in
+> `~/.claude/.credentials.json`, refreshed by `scripts/ai-token-guardian.sh` (the "AI token
+> guardian" line), as the **last fallback after the DeepInfra-first chain**. No cron requires the
+> key: `nightly-clevel-review.mjs` uses the CLI token first, the key second, stub mode otherwise
+> (exit 0); `prompt-eval-nightly` runs through the dispatcher (`callAI` transport); the probes list
+> `anthropic: not_configured` ("Anthropic via Claude CLI subscription (fallback)") and neither the
+> error digest nor `cron-health.jsonl` pages on it. See `docs/ops/ai-providers.md` §1–3.
 
 ## Trial charge warning — `/api/cron/trial-charge-warning`
 
@@ -346,10 +357,14 @@ run directly like the S39 backtest.
 0 3 * * 6 cd /home/dovanlong/blockid.au/web && node scripts/external-signals/ingest.mjs >> /tmp/blockid-external-signals.log 2>&1
 ```
 
-- Runs weekly, Saturday 03:00 UTC (13:00 AEST). It reads the **newest file**
-  under `~/blockid-data/external-signals/<source-id>/` (outside the repo, so
-  the server's `git reset --hard` never touches it) and never downloads on
-  its own — a source with no file is `skipped`, not an error.
+- Runs weekly, Saturday 03:00 UTC (13:00 AEST). It reads every **curated
+  sheet committed in the repo** first — `web/content/external-signals/<source-id>-*.csv`
+  (G25-B: `funding-announcements-2026-09.csv` ships with the code, 33 public
+  AU rounds, no founder step) — then the **newest file** under
+  `~/blockid-data/external-signals/<source-id>/` (outside the repo, so the
+  server's periodic hard reset never touches it); all are parsed, `content_hash`
+  keeps re-runs idempotent. It never downloads on its own — a source with no
+  file anywhere is `skipped`, not an error.
 - Refreshing the inputs is a founder step (`--fetch`, off-peak; the ABR
   extract is ~2 GB) — see `docs/ops/data-sources.md` § "How to refresh".
 - Commit the regenerated summary JSON + history line (`chore(ops): logs`
