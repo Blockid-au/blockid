@@ -226,7 +226,7 @@ export default async function AdminUsersPage({
             )}
             <button
               type="submit"
-              className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white"
+              className="rounded-md bg-brand-navy px-3 py-1.5 text-sm font-medium text-white"
             >
               Search
             </button>
@@ -292,7 +292,7 @@ export default async function AdminUsersPage({
                 href={buildHref({ filter: f })}
                 className={`rounded-full px-3 py-1 text-xs ${
  filter === f
- ? "bg-brand-600 text-white"
+ ? "bg-brand-navy text-white"
                     : "bg-white text-ink-700 ring-1 ring-surface-200 hover:bg-surface-100"
                 }`}
               >

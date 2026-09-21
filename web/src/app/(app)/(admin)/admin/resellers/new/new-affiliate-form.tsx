@@ -56,7 +56,7 @@ interface ProvisionResponse {
 
 const label = "block text-xs font-medium uppercase tracking-wide text-ink-500";
 const input =
-  "mt-1 w-full rounded-md border border-surface-300 bg-white px-2 py-1.5 text-sm focus:border-brand-600 focus:outline-none focus-visible:ring-2 focus:ring-brand-600";
+  "mt-1 w-full rounded-md border border-surface-300 bg-white px-2 py-1.5 text-sm focus:border-brand-600 focus:outline-none focus-visible:ring-2 focus:ring-brand-navy";
 const helpText = "mt-1 text-xs text-ink-500";
 const card =
   "rounded-lg border border-surface-200 bg-white p-4";
@@ -525,7 +525,7 @@ export function NewAffiliateForm({ resellers }: Props) {
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+            className="rounded-md bg-brand-navy px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
           >
             {submitting ? "Provisioning…" : "Provision"}
           </button>
@@ -607,7 +607,7 @@ function SuccessCard({
             <button
               type="button"
               onClick={() => copy(invite.temp_password, "password")}
-              className="rounded-md bg-brand-600 px-2 py-1 text-xs font-medium text-white"
+              className="rounded-md bg-brand-navy px-2 py-1 text-xs font-medium text-white"
             >
               {copied === "password" ? "Copied" : "Copy"}
             </button>
@@ -627,7 +627,7 @@ function SuccessCard({
             <button
               type="button"
               onClick={() => copy(invite.magic_link_url!, "link")}
-              className="rounded-md bg-brand-600 px-2 py-1 text-xs font-medium text-white"
+              className="rounded-md bg-brand-navy px-2 py-1 text-xs font-medium text-white"
             >
               {copied === "link" ? "Copied" : "Copy"}
             </button>
@@ -660,7 +660,7 @@ function SuccessCard({
         {result.reseller?.code ? (
           <a
             href={`/admin/resellers/${result.reseller.code.toLowerCase()}`}
-            className="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white"
+            className="rounded-md bg-brand-navy px-3 py-1.5 text-sm font-medium text-white"
           >
             Open reseller detail
           </a>

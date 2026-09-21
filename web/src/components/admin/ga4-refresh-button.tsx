@@ -38,7 +38,7 @@ export function Ga4RefreshButton() {
       >
         {pending ? "Pulling GA4…" : "Refresh GA4"}
       </button>
-      {error && <span className="text-[10px] text-red-500" title={error}>failed</span>}
+      {error && <span className="text-[10px] text-bear" title={error}>failed</span>}
     </span>
   );
 }

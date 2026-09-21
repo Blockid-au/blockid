@@ -52,10 +52,10 @@ const SOURCE_LABEL: Record<AutoRow["source"], string> = {
   evaluation_batches: "evaluation_batches",
 };
 
-const INPUT = "block h-11 w-full rounded-lg border border-surface-300 bg-white px-3 text-sm text-ink-800 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-600/30";
+const INPUT = "block h-11 w-full rounded-lg border border-surface-300 bg-white px-3 text-sm text-ink-800 focus:border-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-navy/30";
 const LABEL = "block text-xs font-medium text-ink-700";
-const BTN_PRIMARY = "inline-flex h-11 items-center gap-1.5 rounded-lg bg-brand-600 px-4 text-sm font-medium text-white hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-600/40 disabled:opacity-50";
-const BTN_SECONDARY = "inline-flex h-11 items-center gap-1.5 rounded-lg border border-surface-300 bg-white px-3 text-sm font-medium text-ink-700 hover:bg-surface-100 focus:outline-none focus:ring-2 focus:ring-brand-600/40 disabled:opacity-50";
+const BTN_PRIMARY = "inline-flex h-11 items-center gap-1.5 rounded-lg bg-brand-navy px-4 text-sm font-medium text-white hover:bg-brand-navy-elev-1 focus:outline-none focus:ring-2 focus:ring-brand-navy/40 disabled:opacity-50";
+const BTN_SECONDARY = "inline-flex h-11 items-center gap-1.5 rounded-lg border border-surface-300 bg-white px-3 text-sm font-medium text-ink-700 hover:bg-surface-100 focus:outline-none focus:ring-2 focus:ring-brand-navy/40 disabled:opacity-50";
 
 function n(v: number | null): string {
   return v === null ? "n/a" : v.toLocaleString("en-AU");
@@ -204,7 +204,7 @@ export function EntryForm({ initial, onSubmit, onCancel, busy, error }: { initia
           <label htmlFor="v-objection" className={LABEL}>Objection captured</label>
           <textarea id="v-objection" className={`${INPUT} h-auto min-h-[5.5rem] py-2`} value={v.objection} maxLength={ENTRY_LIMITS.objection} onChange={(e) => set("objection", e.target.value)} placeholder="In their words — verbatim if you can." />
           <label className="mt-2 inline-flex min-h-11 items-center gap-2 text-sm text-ink-700">
-            <input type="checkbox" className="h-5 w-5 rounded border-surface-300 text-brand-600 focus:ring-brand-600/40" checked={v.objection_answered} onChange={(e) => set("objection_answered", e.target.checked)} />
+            <input type="checkbox" className="h-5 w-5 rounded border-surface-300 text-brand-600 focus:ring-brand-navy/40" checked={v.objection_answered} onChange={(e) => set("objection_answered", e.target.checked)} />
             Objection answered (drops it from the list)
           </label>
         </div>
@@ -418,7 +418,7 @@ export function ScriptCard() {
         {VALIDATION_SCRIPT.map((q) => (
           <li key={q.n}>
             <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-lg px-2 py-2 hover:bg-surface-100">
-              <input type="checkbox" className="mt-1 h-5 w-5 shrink-0 rounded border-surface-300 text-brand-600 focus:ring-brand-600/40" checked={ticked.has(q.n)} onChange={() => toggle(q.n)} data-testid="validation-script-q" />
+              <input type="checkbox" className="mt-1 h-5 w-5 shrink-0 rounded border-surface-300 text-brand-600 focus:ring-brand-navy/40" checked={ticked.has(q.n)} onChange={() => toggle(q.n)} data-testid="validation-script-q" />
               <span className="min-w-0">
                 <span className="text-sm text-ink-800"><span className="tabular-nums text-ink-500">{q.n}.</span> {q.text}</span>
                 <span className="block text-xs text-ink-500">Listen for: {q.listen_for}</span>

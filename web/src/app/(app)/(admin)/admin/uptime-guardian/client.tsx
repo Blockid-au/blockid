@@ -36,7 +36,7 @@ function fmtUptime(secs: number): string {
 
 function pctColor(pct: number): string {
   if (pct >= 85) return "text-red-700";
-  if (pct >= 75) return "text-orange-600";
+  if (pct >= 75) return "text-warn";
   if (pct >= 60) return "text-yellow-700";
   return "text-emerald-700";
 }

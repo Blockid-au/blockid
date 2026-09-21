@@ -102,7 +102,7 @@ export function BatchDialog({ selected, quotaRemaining, quotaLimit, trialActive 
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Cohort 4 intake"
-              className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+              className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-navy focus:border-transparent"
             />
           </div>
 
@@ -144,7 +144,7 @@ export function BatchDialog({ selected, quotaRemaining, quotaLimit, trialActive 
               type="submit"
               disabled={submitting || n === 0 || insufficient}
               aria-busy={submitting}
-              className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 transition-colors cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-2 rounded-lg bg-brand-navy px-4 py-2 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 transition-colors cursor-pointer disabled:opacity-50"
             >
               {submitting && <Loader2 strokeWidth={1.75} className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
               Queue {n} report{n === 1 ? "" : "s"}

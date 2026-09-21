@@ -23,7 +23,7 @@ export default async function RndPage() {
     return (
       <div className="min-h-svh bg-surface-100 flex items-center justify-center">
         <div className="text-center">
-          <Shield className="mx-auto h-12 w-12 text-red-400 mb-4" />
+          <Shield className="mx-auto h-12 w-12 text-bear mb-4" />
           <h1 className="text-2xl font-bold text-ink-800 mb-2">Access Denied</h1>
           <p className="text-ink-600 text-sm mb-6">You don&apos;t have admin access to BlockID.</p>
           <Link href="/" className="text-brand-600 hover:text-brand-700 text-sm">Back to home</Link>
@@ -37,7 +37,7 @@ export default async function RndPage() {
       <header className="border-b border-surface-200 px-6 py-4 flex items-center justify-between max-w-6xl mx-auto">
         <div className="flex items-center gap-3">
           <Logo variant="light" />
-          <span className="text-xs font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded px-2 py-0.5">ADMIN</span>
+          <span className="text-xs font-medium text-bear bg-red-500/10 border border-red-500/20 rounded px-2 py-0.5">ADMIN</span>
         </div>
         <div className="flex items-center gap-4">
           <span className="text-xs text-ink-700">{user.email}</span>

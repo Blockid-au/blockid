@@ -48,7 +48,7 @@ export default async function ConfigPage() {
     return (
       <div className="min-h-svh bg-surface-100 flex items-center justify-center">
         <div className="text-center">
-          <Shield className="mx-auto h-12 w-12 text-red-400 mb-4" />
+          <Shield className="mx-auto h-12 w-12 text-bear mb-4" />
           <h1 className="text-2xl font-bold text-ink-800 mb-2">Access Denied</h1>
           <Link href="/" className="text-brand-600 hover:text-brand-700 text-sm">&larr; Back to home</Link>
         </div>
@@ -64,7 +64,7 @@ export default async function ConfigPage() {
             <ArrowLeft strokeWidth={1.75} className="h-4 w-4" />
           </Link>
           <Logo variant="light" />
-          <span className="text-xs font-medium text-amber-600 bg-amber-500/10 border border-amber-500/20 rounded px-2 py-0.5">
+          <span className="text-xs font-medium text-warn bg-amber-500/10 border border-amber-500/20 rounded px-2 py-0.5">
             CONFIG
           </span>
         </div>
@@ -121,7 +121,7 @@ export default async function ConfigPage() {
         {/* Risk Penalties */}
         <section>
           <div className="flex items-center gap-2 mb-4">
-            <BarChart3 className="h-5 w-5 text-amber-500" />
+            <BarChart3 className="h-5 w-5 text-warn" />
             <h2 className="text-lg font-semibold">Risk Penalties</h2>
           </div>
           <div className="bg-white border border-surface-200 rounded-lg overflow-hidden">

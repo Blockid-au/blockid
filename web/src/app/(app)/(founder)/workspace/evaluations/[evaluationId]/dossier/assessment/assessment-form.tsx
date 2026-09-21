@@ -497,7 +497,7 @@ export function AssessmentForm({ evaluationId, initial, history, prefill, snapsh
             <legend className="text-xs font-medium text-ink-700">Conviction</legend>
             <div className="mt-1 flex gap-1" role="radiogroup" aria-label="Conviction 1 to 5">
               {RATINGS.map((r) => (
-                <button key={r} type="button" role="radio" aria-checked={values.conviction === r} aria-label={`Conviction ${r} of 5`} className={`h-8 w-8 rounded-full border text-sm ${values.conviction === r ? "border-brand-600 bg-brand-600 text-white" : "border-surface-300 text-ink-700"}`} onClick={() => update({ conviction: r })}>
+                <button key={r} type="button" role="radio" aria-checked={values.conviction === r} aria-label={`Conviction ${r} of 5`} className={`h-8 w-8 rounded-full border text-sm ${values.conviction === r ? "border-brand-600 bg-brand-navy text-white" : "border-surface-300 text-ink-700"}`} onClick={() => update({ conviction: r })}>
                   {r}
                 </button>
               ))}
@@ -521,7 +521,7 @@ export function AssessmentForm({ evaluationId, initial, history, prefill, snapsh
             <button type="button" className={`${btnCls} border-surface-300 text-ink-700`} onClick={() => void onSaveDraft()} disabled={save.kind === "saving" || !hasAnyContent(values)} data-testid="assessment-save-draft">
               {submitted ? `Save as v${current!.version + 1} draft` : "Save draft"}
             </button>
-            <button type="button" className={`${btnCls} border-brand-600 bg-brand-600 text-white`} onClick={() => void onSubmit()} disabled={save.kind === "saving"} data-testid="assessment-submit">
+            <button type="button" className={`${btnCls} border-brand-600 bg-brand-navy text-white`} onClick={() => void onSubmit()} disabled={save.kind === "saving"} data-testid="assessment-submit">
               {submitted ? `Submit v${current!.version + 1}` : "Submit assessment"}
             </button>
             <button type="button" className={`${btnCls} border-surface-300 text-ink-700`} onClick={() => setShareOpen(true)} disabled={!current || !founderClaimed || dirty} title={!founderClaimed ? "The founder has not claimed this evaluation yet" : dirty ? "Save first" : undefined} data-testid="assessment-share-open">

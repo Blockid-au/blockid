@@ -205,7 +205,7 @@ function CompetitorRowGroup({
  featureCount === TOTAL_FEATURES
  ? "text-brand-700"
                 : featureCount >= 3
-                  ? "text-amber-600"
+                  ? "text-warn"
                   : "text-ink-500"
             }`}
           >
@@ -246,7 +246,7 @@ function FeatureIcon({ has }: { has: boolean }) {
     </span>
   ) : (
     <span className="inline-flex items-center justify-center rounded-full bg-red-50 p-1">
-      <X strokeWidth={2.5} className="h-3 w-3 text-red-400" />
+      <X strokeWidth={2.5} className="h-3 w-3 text-bear" />
     </span>
   );
 }

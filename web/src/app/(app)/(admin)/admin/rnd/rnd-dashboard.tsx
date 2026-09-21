@@ -331,7 +331,7 @@ export function RndDashboard() {
                 </button>
                 <button
                   onClick={() => deleteHistoryReport(stored.id)}
-                  className="p-1.5 text-muted hover:text-red-500 transition-colors cursor-pointer"
+                  className="p-1.5 text-muted hover:text-bear transition-colors cursor-pointer"
                   title="Remove from history"
                 >
                   <Trash2 className="h-3.5 w-3.5" />

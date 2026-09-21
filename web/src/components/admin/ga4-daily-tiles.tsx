@@ -80,7 +80,7 @@ function PlaceholderCard({ message, hint }: { message: string; hint?: string }) 
         GA4 Traffic (Yesterday)
       </h2>
       <div className="rounded-2xl border border-surface-200 bg-white p-8 text-center">
-        <AlertTriangle strokeWidth={1.75} className="mx-auto h-8 w-8 text-amber-500 mb-3" />
+        <AlertTriangle strokeWidth={1.75} className="mx-auto h-8 w-8 text-warn mb-3" />
         <p className="text-sm font-medium text-ink-800">{message}</p>
         {hint && <p className="mt-2 text-xs text-ink-600 max-w-lg mx-auto leading-relaxed">{hint}</p>}
         <p className="mt-3 text-xs text-ink-500">See <code className="font-mono">docs/plans/mega-2026-07-24/05-cdo-ga4-dashboard.md</code> in the repo.</p>
@@ -147,11 +147,11 @@ export async function GA4DailyTiles() {
         <div className="rounded-2xl border border-surface-200 bg-white p-5">
           <div className="flex items-center justify-between mb-1">
             <p className="text-[10px] uppercase tracking-[0.15em] text-ink-600 font-medium">Active Users</p>
-            <Users strokeWidth={1.75} className="h-3.5 w-3.5 text-teal-500" />
+            <Users strokeWidth={1.75} className="h-3.5 w-3.5 text-bull" />
           </div>
           <p className="text-2xl font-bold font-mono text-ink-800">{fmt(usersToday)}</p>
           {usersDelta != null && (
-            <p className={`text-xs mt-1 ${usersDelta >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+            <p className={`text-xs mt-1 ${usersDelta >= 0 ? "text-emerald-600" : "text-bear"}`}>
               {usersDelta >= 0 ? "▲" : "▼"} {Math.abs(usersDelta).toLocaleString()} vs prior day
             </p>
           )}
@@ -162,7 +162,7 @@ export async function GA4DailyTiles() {
         <div className="rounded-2xl border border-surface-200 bg-white p-5">
           <div className="flex items-center justify-between mb-1">
             <p className="text-[10px] uppercase tracking-[0.15em] text-ink-600 font-medium">Conversions</p>
-            <Target strokeWidth={1.75} className="h-3.5 w-3.5 text-emerald-500" />
+            <Target strokeWidth={1.75} className="h-3.5 w-3.5 text-bull" />
           </div>
           <p className="text-2xl font-bold font-mono text-ink-800">{fmt(snap.totals.conversions)}</p>
           <p className="text-xs text-ink-600 mt-1">
@@ -194,7 +194,7 @@ export async function GA4DailyTiles() {
         <div className="rounded-2xl border border-surface-200 bg-white p-5">
           <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] uppercase tracking-[0.15em] text-ink-600 font-medium">Top Events</p>
-            <Zap strokeWidth={1.75} className="h-3.5 w-3.5 text-amber-500" />
+            <Zap strokeWidth={1.75} className="h-3.5 w-3.5 text-warn" />
           </div>
           <ul className="space-y-1.5">
             {(snap.topEvents ?? []).slice(0, 5).map((e) => (
@@ -211,7 +211,7 @@ export async function GA4DailyTiles() {
         <div className="rounded-2xl border border-surface-200 bg-white p-5">
           <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] uppercase tracking-[0.15em] text-ink-600 font-medium">Top Source / Medium</p>
-            <Globe2 strokeWidth={1.75} className="h-3.5 w-3.5 text-teal-500" />
+            <Globe2 strokeWidth={1.75} className="h-3.5 w-3.5 text-bull" />
           </div>
           <ul className="space-y-1.5">
             {(snap.sourceMedium ?? []).slice(0, 5).map((s, i) => (

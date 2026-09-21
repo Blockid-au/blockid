@@ -61,7 +61,7 @@ export default async function NotificationsPage() {
     return (
       <div className="min-h-svh bg-surface-100 flex items-center justify-center">
         <div className="text-center">
-          <Shield className="mx-auto h-12 w-12 text-red-400 mb-4" />
+          <Shield className="mx-auto h-12 w-12 text-bear mb-4" />
           <h1 className="text-2xl font-bold text-ink-800 mb-2">Access Denied</h1>
           <Link href="/" className="text-brand-600 hover:text-brand-700 text-sm">&larr; Back to home</Link>
         </div>
@@ -130,7 +130,7 @@ export default async function NotificationsPage() {
             <ArrowLeft strokeWidth={1.75} className="h-4 w-4" />
           </Link>
           <Logo variant="light" />
-          <span className="text-xs font-medium text-amber-600 bg-amber-500/10 border border-amber-500/20 rounded px-2 py-0.5">
+          <span className="text-xs font-medium text-warn bg-amber-500/10 border border-amber-500/20 rounded px-2 py-0.5">
             NOTIFICATIONS
           </span>
         </div>

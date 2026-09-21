@@ -62,7 +62,7 @@ export function RequestAccessButton({ evaluationId, nextTier, founderClaimed }: 
         type="button"
         onClick={run}
         disabled={phase.kind === "busy"}
-        className="inline-flex min-h-9 items-center rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60"
+        className="inline-flex min-h-9 items-center rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-60"
         data-testid="request-access-button"
       >
         {phase.kind === "busy" ? "Sending…" : label}

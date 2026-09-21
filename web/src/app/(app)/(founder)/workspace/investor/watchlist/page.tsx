@@ -282,11 +282,11 @@ function AddTickerForm() {
         required
         pattern="[A-Za-z]{1,8}-[A-Za-z0-9]{1,8}"
         placeholder="e.g. FIN-42AC"
-        className="min-w-[180px] rounded-lg border border-surface-300 bg-white px-3 py-1.5 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+        className="min-w-[180px] rounded-lg border border-surface-300 bg-white px-3 py-1.5 text-sm text-ink-800 placeholder:text-ink-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy"
       />
       <button
         type="submit"
-        className="rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-3 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2"
+        className="rounded-lg bg-brand-navy hover:bg-brand-navy-elev-1 text-white px-3 py-1.5 text-sm font-semibold focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy focus-visible:ring-offset-2"
       >
         Add to watchlist
       </button>
@@ -310,7 +310,7 @@ function EmptyState() {
       <div className="mt-4">
         <Link
           href="/workspace/investor/dealflow"
-          className="inline-flex items-center rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-3 py-2 text-xs font-semibold"
+          className="inline-flex items-center rounded-lg bg-brand-navy hover:bg-brand-navy-elev-1 text-white px-3 py-2 text-xs font-semibold"
         >
           Browse deal flow
         </Link>

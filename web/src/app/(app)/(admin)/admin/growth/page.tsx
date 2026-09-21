@@ -88,7 +88,7 @@ export default async function GrowthPage() {
     return (
       <div className="min-h-svh bg-surface-100 flex items-center justify-center">
         <div className="text-center">
-          <Shield className="mx-auto h-12 w-12 text-red-400 mb-4" />
+          <Shield className="mx-auto h-12 w-12 text-bear mb-4" />
           <h1 className="text-2xl font-bold text-ink-800 mb-2">Access Denied</h1>
           <Link href="/" className="text-brand-600 hover:text-brand-700 text-sm">← Back to home</Link>
         </div>
@@ -188,10 +188,10 @@ export default async function GrowthPage() {
         {/* Live Stats Bar */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           <StatCard label="Total Users" value={liveMetrics.totalUsers} icon={Users} color="text-brand-600" />
-          <StatCard label="SVI Analyses" value={liveMetrics.totalAnalyses} icon={Target} color="text-teal-500" />
-          <StatCard label="SVI Accounts" value={liveMetrics.totalAccounts} icon={TrendingUp} color="text-emerald-500" />
-          <StatCard label="Leads" value={liveMetrics.totalLeads} icon={Zap} color="text-amber-500" />
-          <StatCard label="Paying Users" value={liveMetrics.payingUsers} icon={DollarSign} color="text-green-500" />
+          <StatCard label="SVI Analyses" value={liveMetrics.totalAnalyses} icon={Target} color="text-bull" />
+          <StatCard label="SVI Accounts" value={liveMetrics.totalAccounts} icon={TrendingUp} color="text-bull" />
+          <StatCard label="Leads" value={liveMetrics.totalLeads} icon={Zap} color="text-warn" />
+          <StatCard label="Paying Users" value={liveMetrics.payingUsers} icon={DollarSign} color="text-bull" />
         </div>
 
         {/* GA4 Daily Tiles — reads web/content/reports/ga4-daily.jsonl */}
@@ -264,7 +264,7 @@ export default async function GrowthPage() {
               </div>
               {today.biggest_drop_off && (
                 <div className="px-6 py-3 bg-red-50 border-t border-red-100 flex items-center gap-2">
-                  <AlertTriangle strokeWidth={1.75} className="h-4 w-4 text-red-500 shrink-0" />
+                  <AlertTriangle strokeWidth={1.75} className="h-4 w-4 text-bear shrink-0" />
                   <p className="text-xs text-red-700">
                     Biggest drop-off: <strong>{today.biggest_drop_off}</strong> ({today.drop_off_rate}% lost)
                   </p>
@@ -411,7 +411,7 @@ function FunnelStep({ label, count, rate, prev, isFirst }: { label: string; coun
       </div>
       <div className="w-16 text-right">
         {delta !== null && delta !== 0 && (
-          <span className={`text-xs flex items-center justify-end gap-0.5 ${delta > 0 ? "text-emerald-600" : "text-red-500"}`}>
+          <span className={`text-xs flex items-center justify-end gap-0.5 ${delta > 0 ? "text-emerald-600" : "text-bear"}`}>
             {delta > 0 ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />}
             {Math.abs(delta)}
           </span>

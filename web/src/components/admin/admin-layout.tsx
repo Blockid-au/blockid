@@ -152,12 +152,12 @@ export function AdminLayout({ children, user }: AdminLayoutProps) {
           {sidebarOpen ? (
             <div className="flex items-center gap-2">
               <Logo variant="light" />
-              <span className="text-[10px] font-semibold text-red-500 bg-red-50 border border-red-200 rounded px-1.5 py-0.5 uppercase tracking-wider">
+              <span className="text-[10px] font-semibold text-bear bg-red-50 border border-red-200 rounded px-1.5 py-0.5 uppercase tracking-wider">
                 Admin
               </span>
             </div>
           ) : (
-            <Shield strokeWidth={1.75} className="h-4 w-4 text-red-500" />
+            <Shield strokeWidth={1.75} className="h-4 w-4 text-bear" />
           )}
           <button
             type="button"

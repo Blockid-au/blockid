@@ -120,7 +120,7 @@ export function SavedViewsBar({ views, filters, mandateView, mandateLabel }: Sav
             onChange={(e) => setName(e.target.value)}
             className="w-40 rounded-lg border border-surface-300 bg-white px-2 py-1 text-xs text-ink-800"
           />
-          <button type="submit" disabled={status === "saving" || !name.trim()} className="rounded-lg bg-brand-600 hover:bg-brand-700 text-white px-3 py-1 text-xs font-semibold disabled:opacity-60">
+          <button type="submit" disabled={status === "saving" || !name.trim()} className="rounded-lg bg-brand-navy hover:bg-brand-navy-elev-1 text-white px-3 py-1 text-xs font-semibold disabled:opacity-60">
             {status === "saving" ? c.saving : c.save}
           </button>
           <span role="status" aria-live="polite" className="text-xs text-ink-500">

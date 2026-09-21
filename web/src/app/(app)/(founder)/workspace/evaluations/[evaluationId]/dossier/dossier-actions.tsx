@@ -108,7 +108,7 @@ export function DossierActions({ evaluationId, founderClaimed, founderEmailOnFil
             Add to batch
           </Link>
         ) : null}
-        <button type="button" className="inline-flex min-h-9 items-center rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-700 disabled:opacity-60" onClick={exportIc} disabled={busy !== null} data-testid="action-export-ic">
+        <button type="button" className="inline-flex min-h-9 items-center rounded-lg bg-brand-navy px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-60" onClick={exportIc} disabled={busy !== null} data-testid="action-export-ic">
           {busy === "ic" ? "Exporting…" : icKind === "memo" ? "Export IC memo" : "Export one-pager"}
         </button>
       </div>

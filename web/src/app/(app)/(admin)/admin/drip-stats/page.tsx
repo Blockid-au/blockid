@@ -92,7 +92,7 @@ export default async function DripStatsPage() {
     return (
       <div className="min-h-svh bg-surface-100 flex items-center justify-center">
         <div className="text-center">
-          <Shield className="mx-auto h-12 w-12 text-red-400 mb-4" />
+          <Shield className="mx-auto h-12 w-12 text-bear mb-4" />
           <h1 className="text-2xl font-bold text-ink-800 mb-2">Access Denied</h1>
           <Link href="/" className="text-brand-600 hover:text-brand-700 text-sm">
             ← Back to home
@@ -107,9 +107,9 @@ export default async function DripStatsPage() {
 
   const cards = [
     { label: "Total drips sent", value: stats.totalAll, icon: Send, color: "text-brand-600" },
-    { label: "Sent in last 7 days", value: stats.last7Days, icon: Mail, color: "text-teal-500" },
-    { label: "Total unsubscribes", value: stats.totalUnsubs, icon: MailX, color: "text-amber-500" },
-    { label: "Unsubscribes (7d)", value: stats.unsubs7Days, icon: MailX, color: "text-red-500" },
+    { label: "Sent in last 7 days", value: stats.last7Days, icon: Mail, color: "text-bull" },
+    { label: "Total unsubscribes", value: stats.totalUnsubs, icon: MailX, color: "text-warn" },
+    { label: "Unsubscribes (7d)", value: stats.unsubs7Days, icon: MailX, color: "text-bear" },
   ];
 
   const stepCards: Array<{ step: 1 | 2 | 3; label: string }> = [

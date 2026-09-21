@@ -169,7 +169,7 @@ export function CreditsClient({ user, initialUsers, scope = "all" }: CreditsClie
               placeholder="Search by email or name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+              className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-500"
             />
           </div>
           <SandboxScopeChip
@@ -256,7 +256,7 @@ export function CreditsClient({ user, initialUsers, scope = "all" }: CreditsClie
                       <td className="px-4 py-3 text-right font-mono text-xs text-green-600">
                         {formatCredits(u.credits.lifetime_earned)}
                       </td>
-                      <td className="px-4 py-3 text-right font-mono text-xs text-red-500">
+                      <td className="px-4 py-3 text-right font-mono text-xs text-bear">
                         {formatCredits(u.credits.lifetime_spent)}
                       </td>
                       <td className="px-4 py-3 text-center">
@@ -332,7 +332,7 @@ export function CreditsClient({ user, initialUsers, scope = "all" }: CreditsClie
                   value={modalAmount}
                   onChange={(e) => setModalAmount(e.target.value)}
                   placeholder="e.g. 10"
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-500"
                   autoFocus
                 />
               </div>
@@ -350,7 +350,7 @@ export function CreditsClient({ user, initialUsers, scope = "all" }: CreditsClie
                   value={modalReason}
                   onChange={(e) => setModalReason(e.target.value)}
                   placeholder="e.g. bonus for early adopter"
-                  className="w-full px-3 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                  className="w-full px-3 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-500"
                 />
               </div>
 

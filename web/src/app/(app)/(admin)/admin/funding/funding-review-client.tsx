@@ -167,7 +167,7 @@ export function FundingReviewClient({ user, grants, programs, queue = [] }: Prop
               placeholder="Search name, id, provider..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+              className="w-full pl-9 pr-4 py-2 text-sm rounded-xl border border-surface-200 bg-white text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-500"
             />
           </div>
           <Select label="Kind" value={kind} onChange={(v) => { setKind(v as "all" | FundingKind); setRegion("all"); }} options={[["all", "Grants + programs"], ["grants", "Grants"], ["programs", "Programs"]]} />
@@ -296,7 +296,7 @@ function ReviewQueuePanel({ queue }: { queue: ReviewQueueEntry[] }) {
         className="w-full flex items-center justify-between gap-3 px-5 py-3 text-left cursor-pointer"
       >
         <div className="flex items-center gap-2">
-          <AlertTriangle strokeWidth={1.75} className="h-4 w-4 text-amber-600" />
+          <AlertTriangle strokeWidth={1.75} className="h-4 w-4 text-warn" />
           <span className="text-sm font-semibold text-ink-800">Review queue</span>
           <span className="text-xs text-ink-500">
             {queue.length} entr{queue.length === 1 ? "y" : "ies"} · from the weekly refresh-funding-sources cron
@@ -463,7 +463,7 @@ function ReviewDialog({ row, onClose, onSaved }: { row: ReviewRow; onClose: () =
           <p className="text-[11px] text-ink-500">Saving stamps verified_by=human and last_verified_at=today.</p>
           <div className="flex gap-2">
             <button type="button" onClick={onClose} className="rounded-xl border border-surface-200 px-3 py-1.5 text-sm text-ink-700 hover:bg-surface-50 cursor-pointer">Cancel</button>
-            <button type="button" onClick={save} disabled={busy} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60 cursor-pointer">
+            <button type="button" onClick={save} disabled={busy} className="inline-flex items-center gap-1.5 rounded-xl bg-brand-navy px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-navy-elev-1 disabled:opacity-60 cursor-pointer">
               {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />} Mark verified
             </button>
           </div>

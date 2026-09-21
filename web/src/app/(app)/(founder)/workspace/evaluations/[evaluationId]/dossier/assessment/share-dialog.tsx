@@ -161,7 +161,7 @@ export function ShareDialog({ evaluationId, values, initialFields, shared, onClo
               )}
               <div className="flex gap-2">
                 <button type="button" className="rounded-lg border border-surface-300 px-3 py-1.5 text-sm" onClick={onClose} disabled={phase.kind === "busy"}>Cancel</button>
-                <button type="button" className="rounded-lg border border-brand-600 bg-brand-600 px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50" onClick={() => void confirm()} disabled={phase.kind === "busy" || ticked.length === 0} data-testid="share-confirm">
+                <button type="button" className="rounded-lg border border-brand-600 bg-brand-navy px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50" onClick={() => void confirm()} disabled={phase.kind === "busy" || ticked.length === 0} data-testid="share-confirm">
                   {shared ? "Update what is shared" : "Share these sections"}
                 </button>
               </div>

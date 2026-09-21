@@ -171,7 +171,7 @@ export function PricingTestClient({ user, initialExperiments, initialSummaries }
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
                 placeholder="founder_price_v1"
-                className="mt-1 w-full rounded-lg border border-surface-200 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                className="mt-1 w-full rounded-lg border border-surface-200 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-500"
               />
             </label>
             <label className="block text-xs font-medium text-ink-700">
@@ -180,7 +180,7 @@ export function PricingTestClient({ user, initialExperiments, initialSummaries }
                 value={form.hypothesis}
                 onChange={(e) => setForm((f) => ({ ...f, hypothesis: e.target.value }))}
                 placeholder="Anchoring at $49 lifts free→paid by 15%."
-                className="mt-1 w-full rounded-lg border border-surface-200 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                className="mt-1 w-full rounded-lg border border-surface-200 bg-white px-3 py-2 text-sm text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-500"
               />
             </label>
           </div>
@@ -191,7 +191,7 @@ export function PricingTestClient({ user, initialExperiments, initialSummaries }
               rows={7}
               value={form.variantsJson}
               onChange={(e) => setForm((f) => ({ ...f, variantsJson: e.target.value }))}
-              className="mt-1 w-full rounded-lg border border-surface-200 bg-white px-3 py-2 font-mono text-xs text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+              className="mt-1 w-full rounded-lg border border-surface-200 bg-white px-3 py-2 font-mono text-xs text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-500"
             />
           </label>
           <label className="block text-xs font-medium text-ink-700">
@@ -200,13 +200,13 @@ export function PricingTestClient({ user, initialExperiments, initialSummaries }
               rows={2}
               value={form.trafficJson}
               onChange={(e) => setForm((f) => ({ ...f, trafficJson: e.target.value }))}
-              className="mt-1 w-full rounded-lg border border-surface-200 bg-white px-3 py-2 font-mono text-xs text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+              className="mt-1 w-full rounded-lg border border-surface-200 bg-white px-3 py-2 font-mono text-xs text-ink-800 focus:outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-500"
             />
           </label>
           <button
             type="submit"
             disabled={creating}
-            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 focus-visible:ring-offset-2"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white hover:bg-brand-navy-elev-1 disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy/60 focus-visible:ring-offset-2"
           >
             {creating ? (
               <>

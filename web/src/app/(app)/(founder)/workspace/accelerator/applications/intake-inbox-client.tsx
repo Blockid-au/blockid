@@ -184,7 +184,7 @@ function CreateIntakeDialog({ onClose, onCreated, templates = [] }: { onClose: (
               <CopyButton text={created.publicUrl} />
             </div>
             <div className="flex justify-end">
-              <button type="button" onClick={onClose} className="inline-flex min-h-11 items-center rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700">
+              <button type="button" onClick={onClose} className="inline-flex min-h-11 items-center rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-elev-1">
                 Done
               </button>
             </div>
@@ -251,7 +251,7 @@ function CreateIntakeDialog({ onClose, onCreated, templates = [] }: { onClose: (
               <button type="button" onClick={onClose} className="inline-flex min-h-11 items-center rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm font-semibold text-ink-700 hover:bg-surface-50">
                 Cancel
               </button>
-              <button type="submit" disabled={busy || !name.trim()} aria-busy={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-60" data-testid="intake-create-submit">
+              <button type="submit" disabled={busy || !name.trim()} aria-busy={busy} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-60" data-testid="intake-create-submit">
                 {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <Plus className="h-4 w-4" aria-hidden="true" />}
                 Create link
               </button>
@@ -322,7 +322,7 @@ export function IntakeInboxClient({ initialIntakes, initialRows, templates = [] 
           <h2 id="intake-links-title" className="text-base font-semibold text-ink-900">
             My intake links <span className="ml-1 text-sm font-normal text-ink-500">({intakes.length})</span>
           </h2>
-          <button type="button" onClick={() => setShowCreate(true)} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-700" data-testid="intake-create-open">
+          <button type="button" onClick={() => setShowCreate(true)} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white hover:bg-brand-navy-elev-1" data-testid="intake-create-open">
             <Plus className="h-4 w-4" aria-hidden="true" />
             Create intake link
           </button>
@@ -448,7 +448,7 @@ export function IntakeInboxClient({ initialIntakes, initialRows, templates = [] 
                       <td className="px-4 py-3">
                         <div className="flex flex-wrap justify-end gap-1.5 text-xs">
                           {r.evaluationId && r.latestSvi == null ? (
-                            <button type="button" onClick={() => setReportFor(r)} className="rounded-lg bg-brand-600 px-2.5 py-1.5 font-semibold text-white hover:bg-brand-700" data-testid="intake-score-now">
+                            <button type="button" onClick={() => setReportFor(r)} className="rounded-lg bg-brand-navy px-2.5 py-1.5 font-semibold text-white hover:bg-brand-navy-elev-1" data-testid="intake-score-now">
                               Score now (1 report)
                             </button>
                           ) : null}

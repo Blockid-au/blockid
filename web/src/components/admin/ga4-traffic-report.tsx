@@ -80,7 +80,7 @@ export function Ga4TrafficReport() {
       {/* Header */}
       <div className="flex items-center justify-between px-6 py-4 border-b border-line-subtle">
         <div className="flex items-center gap-2">
-          <BarChart3 className="h-5 w-5 text-cyan-400" aria-hidden="true" />
+          <BarChart3 className="h-5 w-5 text-action" aria-hidden="true" />
           <h2 className="text-base font-semibold text-ink-900">
             GA4 Page Traffic
           </h2>
@@ -106,7 +106,7 @@ export function Ga4TrafficReport() {
       <div className="px-6 py-4">
         {error && (
           <div className="flex items-start gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-500" aria-hidden="true" />
+            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-warn" aria-hidden="true" />
             <span>{error}</span>
           </div>
         )}

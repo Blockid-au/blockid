@@ -134,7 +134,7 @@ export function SandboxRowBadge({
 }) {
   const cls =
     theme === "dark"
-      ? "bg-amber-500/10 text-amber-300 border border-amber-500/20"
+      ? "bg-amber-500/10 text-warn border border-amber-500/20"
       : "bg-amber-50 text-amber-800 ring-1 ring-amber-200";
   return (
     <span

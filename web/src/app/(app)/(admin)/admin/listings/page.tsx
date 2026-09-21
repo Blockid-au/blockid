@@ -28,7 +28,7 @@ const PLATFORMS = [
 
 const STATUS_CONFIG = {
   done: { icon: CheckCircle2, color: "text-emerald-600", bg: "bg-emerald-50", label: "Live" },
-  in_progress: { icon: Clock, color: "text-amber-600", bg: "bg-amber-50", label: "In Progress" },
+  in_progress: { icon: Clock, color: "text-warn", bg: "bg-amber-50", label: "In Progress" },
   planned: { icon: Circle, color: "text-brand-600", bg: "bg-brand-50", label: "Planned" },
   todo: { icon: AlertCircle, color: "text-muted", bg: "bg-surface-100", label: "Todo" },
   evaluate: { icon: Circle, color: "text-muted", bg: "bg-surface-100", label: "Evaluate" },

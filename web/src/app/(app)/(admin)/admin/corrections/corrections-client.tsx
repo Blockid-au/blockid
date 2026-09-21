@@ -164,7 +164,7 @@ export function CorrectionsQueueClient({ user, initial }: CorrectionsQueueClient
                 onClick={() => setFilter(f)}
                 aria-pressed={filter === f}
                 data-testid={`corrections-filter-${f}`}
-                className={`inline-flex h-9 items-center rounded-lg border px-3 text-xs font-medium ${filter === f ? "border-brand-600 bg-brand-600 text-white" : "border-surface-300 bg-white text-ink-700 hover:bg-surface-100"}`}
+                className={`inline-flex h-9 items-center rounded-lg border px-3 text-xs font-medium ${filter === f ? "border-brand-600 bg-brand-navy text-white" : "border-surface-300 bg-white text-ink-700 hover:bg-surface-100"}`}
               >
                 {f === "all" ? "All" : f.charAt(0).toUpperCase() + f.slice(1)}
                 {f !== "all" ? <span className="ml-1 tabular-nums opacity-80">{rows.filter((r) => r.status === f).length}</span> : null}

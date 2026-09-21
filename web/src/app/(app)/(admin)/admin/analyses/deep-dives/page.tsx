@@ -48,7 +48,7 @@ function fmtDateTime(s: string): string {
   });
 }
 function scoreColor(s: number): string {
-  return s >= 70 ? "text-green-400" : s >= 45 ? "text-amber-400" : "text-red-400";
+  return s >= 70 ? "text-bull" : s >= 45 ? "text-warn" : "text-bear";
 }
 
 async function loadRows(sp: SearchParams): Promise<{
@@ -141,12 +141,12 @@ export default async function AdminDeepDivesPage({
           name="user"
           defaultValue={sp.user ?? ""}
           placeholder="Email contains…"
-          className="min-w-64 rounded-lg border border-line-subtle bg-surface-sunken px-3 py-2 text-sm text-primary placeholder:text-ink-500 focus:outline-none focus-visible:ring-2 focus:ring-brand-400"
+          className="min-w-64 rounded-lg border border-line-subtle bg-surface-sunken px-3 py-2 text-sm text-primary placeholder:text-ink-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy"
         />
         <select
           name="dimension"
           defaultValue={sp.dimension ?? ""}
-          className="rounded-lg border border-line-subtle bg-surface-sunken px-3 py-2 text-sm text-primary focus:outline-none focus-visible:ring-2 focus:ring-brand-400"
+          className="rounded-lg border border-line-subtle bg-surface-sunken px-3 py-2 text-sm text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy"
         >
           <option value="">Any dimension</option>
           {DIMENSIONS.map((d) => (
@@ -156,13 +156,13 @@ export default async function AdminDeepDivesPage({
         <select
           name="tier"
           defaultValue={sp.tier ?? ""}
-          className="rounded-lg border border-line-subtle bg-surface-sunken px-3 py-2 text-sm text-primary focus:outline-none focus-visible:ring-2 focus:ring-brand-400"
+          className="rounded-lg border border-line-subtle bg-surface-sunken px-3 py-2 text-sm text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy"
         >
           <option value="">Any tier</option>
           <option value="standard">standard</option>
           <option value="premium">premium</option>
         </select>
-        <button type="submit" className="rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-400 transition-colors">
+        <button type="submit" className="rounded-lg bg-brand-navy px-4 py-2 text-sm font-medium text-white hover:bg-brand-400 transition-colors">
           Filter
         </button>
         {(sp.user || sp.dimension || sp.tier) && (

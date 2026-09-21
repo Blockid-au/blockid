@@ -72,7 +72,7 @@ export default async function CompetitorsPage() {
     return (
       <div className="min-h-svh bg-surface-100 flex items-center justify-center">
         <div className="text-center">
-          <Shield className="mx-auto h-12 w-12 text-red-400 mb-4" />
+          <Shield className="mx-auto h-12 w-12 text-bear mb-4" />
           <h1 className="text-2xl font-bold text-ink-800 mb-2">Access Denied</h1>
           <p className="text-ink-600 text-sm mb-6">You don&apos;t have admin access to BlockID.</p>
           <Link href="/" className="text-brand-600 hover:text-brand-700 text-sm">&larr; Back to home</Link>

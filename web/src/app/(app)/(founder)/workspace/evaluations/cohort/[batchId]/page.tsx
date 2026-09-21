@@ -218,7 +218,7 @@ export default async function CohortPage({ params, searchParams }: PageProps) {
               Download CSV
             </a>
             {lpReport ? (
-              <a href={`/api/reports/quarterly?batch=${encodeURIComponent(batch.id)}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700">
+              <a href={`/api/reports/quarterly?batch=${encodeURIComponent(batch.id)}`} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-brand-navy px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-navy-elev-1">
                 Sponsor / LP report
               </a>
             ) : (

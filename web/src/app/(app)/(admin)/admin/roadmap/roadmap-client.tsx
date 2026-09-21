@@ -504,7 +504,7 @@ function PhaseCard({ phase }: { phase: Phase }) {
                     {goal.done ? (
                       <CheckCircle2
                         strokeWidth={2}
-                        className="h-3.5 w-3.5 text-emerald-500 shrink-0 mt-0.5"
+                        className="h-3.5 w-3.5 text-bull shrink-0 mt-0.5"
                       />
                     ) : (
                       <Circle
@@ -621,7 +621,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
           <h2 className="text-lg font-semibold text-ink-800 mb-4 flex items-center gap-2">
             <BarChart3
               strokeWidth={1.75}
-              className="h-5 w-5 text-teal-500"
+              className="h-5 w-5 text-bull"
             />
             Live Business Metrics
           </h2>
@@ -646,7 +646,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
                 label: "Leads Captured",
                 value: liveStats.totalLeads,
                 icon: TrendingUp,
-                color: "text-amber-600",
+                color: "text-warn",
                 bg: "bg-amber-50",
               },
               {
@@ -667,7 +667,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
                 label: "Notifications Sent",
                 value: liveStats.totalNotifications,
                 icon: Zap,
-                color: "text-red-500",
+                color: "text-bear",
                 bg: "bg-red-50",
               },
             ].map(({ label, value, icon: Icon, color, bg }) => (
@@ -873,7 +873,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
               </div>
 
               <div>
-                <h3 className="text-[11px] uppercase tracking-wider text-red-500 font-bold mb-2">
+                <h3 className="text-[11px] uppercase tracking-wider text-bear font-bold mb-2">
                   The Problem
                 </h3>
                 <p className="text-sm text-ink-700 leading-relaxed">
@@ -935,7 +935,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
               </div>
 
               <div>
-                <h3 className="text-[11px] uppercase tracking-wider text-amber-600 font-bold mb-2">
+                <h3 className="text-[11px] uppercase tracking-wider text-warn font-bold mb-2">
                   Business Model
                 </h3>
                 <p className="text-sm text-ink-700 leading-relaxed mb-2">
@@ -980,7 +980,7 @@ export function RoadmapClient({ user, liveStats }: RoadmapClientProps) {
                     >
                       <CheckCircle2
                         strokeWidth={2}
-                        className="h-3 w-3 text-teal-500 shrink-0"
+                        className="h-3 w-3 text-bull shrink-0"
                       />
                       {item}
                     </li>

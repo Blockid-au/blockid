@@ -180,7 +180,7 @@ const DB_TABLE_GROUPS: DBTableGroup[] = [
   },
   {
     domain: "Blockchain",
-    color: "text-amber-600",
+    color: "text-warn",
     bgColor: "bg-amber-50",
     tables: [
       "blockchain_sync_config", "blockchain_sync_queue",
@@ -298,7 +298,7 @@ export function ArchitectureClient({ user }: ArchitectureClientProps) {
             { label: "API Routes", value: String(totalRoutes), sub: "across 12 domains", icon: Route, color: "text-purple-600", bg: "bg-purple-50" },
             { label: "DB Tables", value: String(totalTables), sub: "6 domain groups", icon: Database, color: "text-teal-600", bg: "bg-teal-50" },
             { label: "Microservices", value: String(MICROSERVICES.length), sub: `${liveServices} live`, icon: Server, color: "text-emerald-600", bg: "bg-emerald-50" },
-            { label: "Cron Jobs", value: String(CRON_JOBS.length), sub: "automated", icon: Clock, color: "text-amber-600", bg: "bg-amber-50" },
+            { label: "Cron Jobs", value: String(CRON_JOBS.length), sub: "automated", icon: Clock, color: "text-warn", bg: "bg-amber-50" },
             { label: "Env Vars", value: "72", sub: "configured", icon: Lock, color: "text-rose-600", bg: "bg-rose-50" },
           ].map(({ label, value, sub, icon: Icon, color, bg }) => (
             <div key={label} className="rounded-2xl border border-surface-200 bg-white p-4 shadow-sm">
@@ -563,7 +563,7 @@ export function ArchitectureClient({ user }: ArchitectureClientProps) {
                 value: "Cloudflare",
                 detail: "Edge caching, DDoS protection, WAF rules",
                 icon: Cloud,
-                color: "text-amber-600",
+                color: "text-warn",
                 bg: "bg-amber-50",
               },
             ].map(({ label, value, detail, icon: Icon, color, bg }) => (

@@ -165,7 +165,7 @@ const TEAM_MEMBERS: TeamMember[] = [
     name: "Head of Operations",
     role: "Head of Operations",
     initial: "O",
-    color: "text-amber-600",
+    color: "text-warn",
     bgColor: "bg-amber-50",
     borderColor: "border-amber-300",
     responsibilities: [
@@ -297,7 +297,7 @@ const AI_AGENTS: AIAgent[] = [
     statusDetail: "daily cron",
     icon: Mail,
     department: "Operations",
-    deptColor: "text-amber-600",
+    deptColor: "text-warn",
     deptIconBg: "bg-amber-100",
   },
   {
@@ -311,7 +311,7 @@ const AI_AGENTS: AIAgent[] = [
     statusDetail: "3 jobs",
     icon: Clock,
     department: "Operations",
-    deptColor: "text-amber-600",
+    deptColor: "text-warn",
     deptIconBg: "bg-amber-100",
   },
 ];
@@ -417,7 +417,7 @@ function TeamMemberCard({ member }: { member: TeamMember }) {
                 >
                   <Zap
                     strokeWidth={2}
-                    className="h-3 w-3 text-amber-500 shrink-0 mt-0.5"
+                    className="h-3 w-3 text-warn shrink-0 mt-0.5"
                   />
                   {p}
                 </li>
@@ -486,7 +486,7 @@ export function TeamClient({ user, emailsSent }: TeamClientProps) {
               { icon: Route, label: "API Routes", value: "143", sub: "12 domains", color: "text-purple-600", bg: "bg-purple-50" },
               { icon: Database, label: "DB Tables", value: "68", sub: "6 groups", color: "text-teal-600", bg: "bg-teal-50" },
               { icon: Server, label: "Microservices", value: "4", sub: "2 live, 2 ready", color: "text-emerald-600", bg: "bg-emerald-50" },
-              { icon: Timer, label: "Cron Jobs", value: "12", sub: "automated", color: "text-amber-600", bg: "bg-amber-50" },
+              { icon: Timer, label: "Cron Jobs", value: "12", sub: "automated", color: "text-warn", bg: "bg-amber-50" },
               { icon: Settings, label: "Env Vars", value: "72", sub: "configured", color: "text-rose-600", bg: "bg-rose-50" },
             ].map(({ icon: Icon, label, value, sub, color, bg }) => (
               <div key={label} className="rounded-xl border border-surface-100 bg-surface-50 p-3 text-center">
@@ -682,7 +682,7 @@ export function TeamClient({ user, emailsSent }: TeamClientProps) {
                 value: emailsSent.toLocaleString(),
                 sub: "Via Gmail SMTP",
                 icon: Mail,
-                color: "text-amber-600",
+                color: "text-warn",
                 bg: "bg-amber-50",
               },
             ].map(({ label, value, sub, icon: Icon, color, bg }) => (

@@ -25,16 +25,16 @@ interface CohortDetailClientProps {
 }
 
 function TrendIcon({ trend }: { trend: "up" | "down" | "flat" }) {
-  if (trend === "up") return <ArrowUp strokeWidth={2} className="h-3.5 w-3.5 text-green-500" />;
-  if (trend === "down") return <ArrowDown strokeWidth={2} className="h-3.5 w-3.5 text-red-500" />;
+  if (trend === "up") return <ArrowUp strokeWidth={2} className="h-3.5 w-3.5 text-bull" />;
+  if (trend === "down") return <ArrowDown strokeWidth={2} className="h-3.5 w-3.5 text-bear" />;
   return <Minus strokeWidth={2} className="h-3.5 w-3.5 text-muted" />;
 }
 
 function sviColor(svi: number) {
-  if (svi >= 120) return "text-green-400";
+  if (svi >= 120) return "text-bull";
   if (svi >= 100) return "text-brand-600";
-  if (svi >= 80) return "text-amber-400";
-  if (svi > 0) return "text-red-400";
+  if (svi >= 80) return "text-warn";
+  if (svi > 0) return "text-bear";
   return "text-muted";
 }
 
@@ -227,7 +227,7 @@ export function CohortDetailClient({
             <p className="text-xs uppercase tracking-[0.15em] text-ink-700 font-medium mb-2">
               Trending Up
             </p>
-            <p className="text-3xl font-bold font-mono text-green-400">
+            <p className="text-3xl font-bold font-mono text-bull">
               {members.filter((m) => m.trend === "up").length}
             </p>
           </div>
@@ -237,7 +237,7 @@ export function CohortDetailClient({
         {leaderboard.length > 0 && (
           <div className="rounded-2xl border border-surface-200 bg-white shadow-sm overflow-hidden">
             <div className="px-6 py-4 border-b border-surface-200 flex items-center gap-2">
-              <Crown strokeWidth={1.75} className="h-4 w-4 text-amber-500" />
+              <Crown strokeWidth={1.75} className="h-4 w-4 text-warn" />
               <h2 className="text-sm font-semibold text-ink-800">Top 5 Leaderboard</h2>
             </div>
             <div className="divide-y divide-surface-200/50">
@@ -290,7 +290,7 @@ export function CohortDetailClient({
             <button
               type="button"
               onClick={() => setShowAddMember(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-600 text-white text-xs font-medium hover:bg-brand-700 transition-colors cursor-pointer"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-brand-navy text-white text-xs font-medium hover:bg-brand-navy-elev-1 transition-colors cursor-pointer"
             >
               <Plus strokeWidth={2} className="h-3 w-3" />
               Add Member
@@ -382,7 +382,7 @@ export function CohortDetailClient({
                     value={memberForm.email}
                     onChange={(e) => setMemberForm((f) => ({ ...f, email: e.target.value }))}
                     placeholder="founder@startup.com"
-                    className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                    className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-500"
                   />
                 </div>
                 <div>
@@ -394,7 +394,7 @@ export function CohortDetailClient({
                     value={memberForm.startupName}
                     onChange={(e) => setMemberForm((f) => ({ ...f, startupName: e.target.value }))}
                     placeholder="e.g. Acme Corp"
-                    className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500"
+                    className="w-full rounded-lg border border-surface-200 px-3 py-2 text-sm text-ink-800 placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-brand-navy/30 focus:border-brand-500"
                   />
                 </div>
                 <div className="flex justify-end gap-3 pt-2">
@@ -408,7 +408,7 @@ export function CohortDetailClient({
                   <button
                     type="submit"
                     disabled={adding}
-                    className="px-4 py-2 rounded-xl bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors disabled:opacity-50 cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-brand-navy text-white text-sm font-medium hover:bg-brand-navy-elev-1 transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     {adding ? "Adding..." : "Add Member"}
                   </button>

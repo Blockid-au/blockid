@@ -96,7 +96,7 @@ export function PricingConfig({ initial, defaults }: Props) {
     <div className="space-y-6">
       {/* DB setup notice */}
       <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 flex gap-2 text-xs text-amber-800">
-        <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-amber-600" />
+        <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5 text-warn" />
         <span>
           Requires a <code className="font-mono bg-amber-100 px-1 rounded">platform_config</code> table in Supabase.
           Run: <code className="font-mono bg-amber-100 px-1 rounded">CREATE TABLE platform_config (key TEXT PRIMARY KEY, value JSONB, updated_at TIMESTAMPTZ DEFAULT NOW(), updated_by TEXT);</code>
@@ -133,7 +133,7 @@ export function PricingConfig({ initial, defaults }: Props) {
                         <select
                           value={String(val)}
                           onChange={(e) => setValue(field.key, e.target.value)}
-                          className="text-sm border border-surface-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent"
+                          className="text-sm border border-surface-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy focus:border-transparent"
                         >
                           <option value="true">Enabled</option>
                           <option value="false">Disabled</option>
@@ -144,7 +144,7 @@ export function PricingConfig({ initial, defaults }: Props) {
                             type={field.type === "date" ? "date" : field.type === "number" ? "number" : "text"}
                             value={field.type === "date" ? String(val).slice(0, 10) : String(val)}
                             onChange={(e) => setValue(field.key, e.target.value)}
-                            className="w-40 text-sm border border-surface-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent font-mono"
+                            className="w-40 text-sm border border-surface-300 rounded-lg px-2 py-1.5 bg-white focus:outline-none focus:ring-2 focus:ring-brand-navy focus:border-transparent font-mono"
                           />
                           {field.unit && <span className="text-xs text-muted">{field.unit}</span>}
                         </div>
@@ -162,11 +162,11 @@ export function PricingConfig({ initial, defaults }: Props) {
       <section>
         <h3 className="text-sm font-semibold text-ink-700 mb-2 uppercase tracking-wider">Live Preview</h3>
         <div className="bg-surface-50 border border-surface-200 rounded-lg p-4 font-mono text-xs text-ink-600 space-y-1">
-          <div>Founding plan: <span className="text-ink-900 font-semibold">{values.founding_plan_name}</span> @ <span className="text-brand-600 font-semibold">A${(values.founding_price_cents / 100).toFixed(values.founding_price_cents % 100 === 0 ? 0 : 2)}</span> · <span className="text-emerald-600">{values.founding_spots_total} spots</span> · <span className="text-amber-600">{values.founding_credits} credits</span></div>
+          <div>Founding plan: <span className="text-ink-900 font-semibold">{values.founding_plan_name}</span> @ <span className="text-brand-600 font-semibold">A${(values.founding_price_cents / 100).toFixed(values.founding_price_cents % 100 === 0 ? 0 : 2)}</span> · <span className="text-emerald-600">{values.founding_spots_total} spots</span> · <span className="text-warn">{values.founding_credits} credits</span></div>
           <div>Growth: <span className="text-ink-900">A${(values.growth_price_monthly_cents / 100).toFixed(0)}/mo</span> or <span className="text-ink-900">A${(values.growth_price_yearly_cents / 100).toFixed(0)}/yr</span></div>
           <div>Promo: <span className="text-ink-900 font-semibold">{values.promo_code}</span> — {values.promo_label}</div>
           <div>Early bird until: <span className="text-ink-900">{values.early_bird_deadline}</span></div>
-          <div>Flags: founding_active=<span className={values.founding_plan_active ? "text-emerald-600" : "text-red-500"}>{String(values.founding_plan_active)}</span> · waitlist=<span className={values.waitlist_mode ? "text-amber-600" : "text-ink-500"}>{String(values.waitlist_mode)}</span></div>
+          <div>Flags: founding_active=<span className={values.founding_plan_active ? "text-emerald-600" : "text-bear"}>{String(values.founding_plan_active)}</span> · waitlist=<span className={values.waitlist_mode ? "text-warn" : "text-ink-500"}>{String(values.waitlist_mode)}</span></div>
         </div>
       </section>
 
@@ -176,7 +176,7 @@ export function PricingConfig({ initial, defaults }: Props) {
           type="button"
           onClick={() => void handleSave()}
           disabled={saving || !isDirty}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50 transition-colors cursor-pointer"
+          className="inline-flex items-center gap-2 rounded-lg bg-brand-navy px-4 py-2 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-50 transition-colors cursor-pointer"
         >
           {saving ? (
             <><Loader2 className="h-4 w-4 animate-spin" /> Saving…</>

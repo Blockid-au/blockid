@@ -72,8 +72,8 @@ function confidenceColor(pct: number): string {
 function sviScoreColor(score: number): string {
   if (score >= 140) return "text-emerald-600";
   if (score >= 120) return "text-brand-600";
-  if (score >= 100) return "text-amber-500";
-  return "text-red-500";
+  if (score >= 100) return "text-warn";
+  return "text-bear";
 }
 
 function riskCardColor(points: number): string {
@@ -91,7 +91,7 @@ export default async function SelfAnalysisPage() {
     return (
       <div className="min-h-svh bg-surface-100 flex items-center justify-center">
         <div className="text-center">
-          <Shield className="mx-auto h-12 w-12 text-red-400 mb-4" />
+          <Shield className="mx-auto h-12 w-12 text-bear mb-4" />
           <h1 className="text-2xl font-bold text-ink-800 mb-2">Access Denied</h1>
           <p className="text-ink-600 text-sm mb-6">Admin access required.</p>
           <Link href="/" className="text-brand-600 hover:text-brand-700 text-sm">&larr; Back to home</Link>
@@ -217,7 +217,7 @@ export default async function SelfAnalysisPage() {
                   Stage {stage}: {stageLabel}
                 </span>
                 <span className="inline-flex items-center gap-1.5 text-sm font-medium text-ink-700 bg-surface-100 rounded-lg px-3 py-1.5 border border-surface-200">
-                  <Activity strokeWidth={1.75} className="h-3.5 w-3.5 text-teal-500" />
+                  <Activity strokeWidth={1.75} className="h-3.5 w-3.5 text-bull" />
                   {(confidenceMultiplier * 100).toFixed(0)}% confidence
                 </span>
               </div>
@@ -300,7 +300,7 @@ export default async function SelfAnalysisPage() {
         {/* ─── Risk Assessment ──────────────────────────────────────────────── */}
         <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-ink-800 mb-4 flex items-center gap-2">
-            <AlertTriangle strokeWidth={1.75} className="h-4 w-4 text-amber-500" />
+            <AlertTriangle strokeWidth={1.75} className="h-4 w-4 text-warn" />
             Risk Assessment
           </h2>
           {riskPenalties.length > 0 ? (
@@ -386,17 +386,17 @@ export default async function SelfAnalysisPage() {
         {/* ─── Live Platform Metrics ────────────────────────────────────────── */}
         <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-ink-800 mb-4 flex items-center gap-2">
-            <BarChart3 strokeWidth={1.75} className="h-4 w-4 text-teal-500" />
+            <BarChart3 strokeWidth={1.75} className="h-4 w-4 text-bull" />
             Live Platform Metrics
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
             {[
               { label: "App Users", value: platformStats.users, icon: Users, color: "text-brand-600" },
-              { label: "SVI Analyses", value: platformStats.analyses, icon: FileText, color: "text-teal-500" },
-              { label: "Leads", value: platformStats.leads, icon: Zap, color: "text-amber-500" },
+              { label: "SVI Analyses", value: platformStats.analyses, icon: FileText, color: "text-bull" },
+              { label: "Leads", value: platformStats.leads, icon: Zap, color: "text-warn" },
               { label: "Paying Users", value: platformStats.payingUsers, icon: CreditCard, color: "text-emerald-600" },
-              { label: "Credit Balance", value: platformStats.creditTotal, icon: Hash, color: "text-purple-500" },
-              { label: "SVI Accounts", value: platformStats.sviAccounts, icon: TrendingUp, color: "text-sky-500" },
+              { label: "Credit Balance", value: platformStats.creditTotal, icon: Hash, color: "text-accent" },
+              { label: "SVI Accounts", value: platformStats.sviAccounts, icon: TrendingUp, color: "text-action" },
             ].map(({ label, value, icon: Icon, color }) => (
               <div key={label} className="rounded-xl border border-surface-200 bg-surface-50 px-4 py-3 text-center">
                 <Icon strokeWidth={1.75} className={`h-4 w-4 mx-auto mb-1.5 ${color}`} />
@@ -410,7 +410,7 @@ export default async function SelfAnalysisPage() {
         {/* ─── Next Goals (PRD Section 23.4) ────────────────────────────────── */}
         <div className="rounded-2xl border border-surface-200 bg-white p-6 shadow-sm">
           <h2 className="text-sm font-semibold text-ink-800 mb-4 flex items-center gap-2">
-            <CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-emerald-500" />
+            <CheckCircle2 strokeWidth={1.75} className="h-4 w-4 text-bull" />
             Next Goals
             <span className="text-[10px] text-ink-500 font-normal ml-1">(PRD Section 23.4)</span>
           </h2>

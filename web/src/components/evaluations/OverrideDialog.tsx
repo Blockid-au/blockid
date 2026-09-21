@@ -248,7 +248,7 @@ function OverrideForm({ batchId, row, onClose, onSaved, initialDimension }: Omit
           <button type="button" onClick={onClose} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-line px-4 text-sm font-medium text-secondary hover:bg-surface-hover">
             Cancel
           </button>
-          <button type="submit" disabled={state === "busy"} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700 disabled:opacity-50" data-testid="override-submit">
+          <button type="submit" disabled={state === "busy"} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-brand-navy px-4 text-sm font-semibold text-white hover:bg-brand-navy-elev-1 disabled:opacity-50" data-testid="override-submit">
             {state === "busy" ? "Recording…" : "Record override"}
           </button>
         </div>

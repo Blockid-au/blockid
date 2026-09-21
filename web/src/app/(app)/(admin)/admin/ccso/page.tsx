@@ -111,7 +111,7 @@ export default function CcsoPage() {
           <ArrowLeft strokeWidth={1.75} className="h-4 w-4" />
         </Link>
         <span className="font-semibold text-ink-800">CCSO — Voice of Customer</span>
-        <span className="text-xs font-medium text-red-400 bg-red-500/10 border border-red-500/20 rounded px-2 py-0.5">ADMIN</span>
+        <span className="text-xs font-medium text-bear bg-red-500/10 border border-red-500/20 rounded px-2 py-0.5">ADMIN</span>
       </header>
 
       <main className="max-w-6xl mx-auto px-6 py-8 flex flex-col gap-6">
@@ -143,7 +143,7 @@ export default function CcsoPage() {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div className="rounded-2xl bg-white border border-surface-200 shadow-sm p-4 flex flex-col gap-1">
                 <span className="text-xs text-ink-500 flex items-center gap-1"><TrendingUp className="h-3 w-3" /> NPS Score</span>
-                <span className={`text-3xl font-bold ${npsScore === null ? "text-muted" : npsScore >= 50 ? "text-green-600" : npsScore >= 0 ? "text-yellow-600" : "text-red-600"}`}>
+                <span className={`text-3xl font-bold ${npsScore === null ? "text-muted" : npsScore >= 50 ? "text-green-600" : npsScore >= 0 ? "text-warn" : "text-red-600"}`}>
                   {npsScore === null ? "—" : npsScore > 0 ? `+${npsScore}` : npsScore}
                 </span>
               </div>
@@ -157,7 +157,7 @@ export default function CcsoPage() {
                 <span className="text-xs text-muted">{total > 0 ? `${Math.round((promoters / total) * 100)}%` : ""}</span>
               </div>
               <div className="rounded-2xl bg-white border border-surface-200 shadow-sm p-4 flex flex-col gap-1">
-                <span className="text-xs text-yellow-600 flex items-center gap-1"><Minus className="h-3 w-3" /> Passives</span>
+                <span className="text-xs text-warn flex items-center gap-1"><Minus className="h-3 w-3" /> Passives</span>
                 <span className="text-3xl font-bold text-yellow-700">{passives}</span>
                 <span className="text-xs text-muted">{total > 0 ? `${Math.round((passives / total) * 100)}%` : ""}</span>
               </div>
@@ -254,7 +254,7 @@ export default function CcsoPage() {
                         <td className="px-4 py-3 text-ink-600 text-xs whitespace-nowrap">{t.company || <span className="text-muted italic">—</span>}</td>
                         <td className="px-4 py-3">
                           {t.public
-                            ? <CheckCircle className="h-4 w-4 text-green-500" />
+                            ? <CheckCircle className="h-4 w-4 text-bull" />
                             : <XCircle className="h-4 w-4 text-ink-600" />}
                         </td>
                         <td className="px-4 py-3">
