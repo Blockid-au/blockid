@@ -55,7 +55,8 @@ export interface NumToken {
 const NUMBER_RE = /(A\$|AUD\s?|US\$|USD\s?|\$)?(\d[\d,]*(?:\.\d+)?)\s?(%|percent|per cent|bn|billion|million|mn|m|k|thousand|x|×)?(?![\w$])/gi;
 const UNIT: Record<string, NumToken["unit"]> = { "%": "%", percent: "%", "per cent": "%", bn: "bn", billion: "bn", million: "m", mn: "m", m: "m", k: "k", thousand: "k", x: "x", "×": "x" };
 // G24-D: the computed rows (computed-facts.ts) start with svi / benchmarks / valuation so "+6 points vs the p50 benchmark" can name its row.
-const SOURCE_WORDS = ["stripe", "xero", "ga4", "github", "linkedin", "abr", "grantconnect", "asic", "abs", "svi", "benchmark", "valuation"];
+// G28-A: "asic" already names the fee row ("ASIC and IP Australia fees: …"); "sector" names the entity-count row.
+const SOURCE_WORDS = ["stripe", "xero", "ga4", "github", "linkedin", "abr", "grantconnect", "asic", "abs", "svi", "benchmark", "valuation", "sector"];
 
 /** Every number in a claim with its currency / unit context. Single plain digits and "NN/100" score echoes are ignored. */
 export function numericTokens(claim: string): NumToken[] {
@@ -234,9 +235,17 @@ export const AU_CONTEXT_TOPIC_RE = /\b(?:r&d|r&dti|esic|gst|tax|offset|incentive
 /** The SaaS-benchmark knowledge row is cited only by a sentence about a benchmark / band / funnel stage. */
 export const SAAS_BENCHMARK_TOPIC_RE = /\b(?:benchmarks?|typical(?:ly)?|rule of thumb|funnel|nrr|net revenue retention|retention|retained|trial|conversion|series [ab]|seed|band|median|world-class)\b/i;
 
+/** G28-A: the ASIC / IP Australia fee row is cited only by a sentence about the annual review, a statutory or filing fee, or a trade mark. */
+export const AU_LEGAL_TOPIC_RE = /\b(?:asic|annual (?:review|statement)|trade ?marks?|ip australia|late (?:payment|fee)|statutory|filing fee|registration fee|per class)\b/i;
+
+/** G28-A: the sector entity-count row is cited only by a sentence about the industry's businesses / entities / organisations (or its market). */
+export const SECTOR_ENTITIES_TOPIC_RE = /\b(?:entities|organisations|organizations|businesses|firms|companies|accounts|sector|industry|anzsic|abs|tam|sam|som)\b/i;
+
 function withTopic(item: CitableItem): CitableItem {
   if (item.id === COMPUTED_FACT_IDS["au-context"]) return { ...item, topicRe: AU_CONTEXT_TOPIC_RE };
   if (item.id === COMPUTED_FACT_IDS["saas-benchmarks"]) return { ...item, topicRe: SAAS_BENCHMARK_TOPIC_RE };
+  if (item.id === COMPUTED_FACT_IDS["au-legal"]) return { ...item, topicRe: AU_LEGAL_TOPIC_RE };
+  if (item.id === COMPUTED_FACT_IDS["sector-entities"]) return { ...item, topicRe: SECTOR_ENTITIES_TOPIC_RE };
   return item;
 }
 

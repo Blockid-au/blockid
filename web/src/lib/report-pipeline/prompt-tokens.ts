@@ -48,8 +48,12 @@ export const PROMPT_BLOCK_CAPS = {
   KNOWLEDGE_ROWS_MAX: 3,
   MODULES: 400,
   EVIDENCE: 400,
-  /** G23-A: 700 → 850 — the W4 contract + citation rule ran to 690–720 tokens; a capped contract silently lost its last rules. */
-  OUTPUT_SCHEMA: 850,
+  /**
+   * G23-A: 700 → 850 — the W4 contract + citation rule ran to 690–720 tokens; a capped contract silently lost its last rules.
+   * G28-A: 850 → 1100 — the derived-number / VI-marker rule pushed the W4 chapter contract to ~930 and the W1–W3 contract
+   * to ~1,000 tokens; at 850 the cap trimmed the scoreLedger rule / HARD LIMIT off their tails (agent-dispatcher tests pin both survive).
+   */
+  OUTPUT_SCHEMA: 1100,
 } as const;
 
 /** Upper bound for a whole v2 system prompt (all blocks at cap + AU context). */

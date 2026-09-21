@@ -1,0 +1,251 @@
+{
+  "agent": "TBR-grounding",
+  "version": "2.5.0",
+  "purpose": "Trusted Business Report v2 — G28-A grounding ≥ 0.85 on real data. The 11:34 UTC 2026-09-21 showcase run (snapshot 136a49f5, groundedShare 0.82 = 18/22) left four residual patterns: (1) a conversion rate the CRO derived from two register numbers ('5 of 182 ≈ 2.7%'), (2) a statutory fee the CLO remembered ('$290 ASIC fee', '~$250 per class') and a checklist contradiction, (3) a content-plan cadence the CMO wrote as a fact ('3–5 articles, each 2,000+ words'), (4) a market-entity subset the CMO derived from the anchor ('roughly 1,400 entities … 30–40 accounts'). Each case pins: the bare number stays uncited (never mis-cited to a knowledge row), the declared-estimate form ('we estimate … [unevidenced]', EN and VI) clears the gate, and a figure that IS in a platform-knowledge row (ASIC / IP Australia fee band, sector entity count) is auto-cited to that row. Ids are the pipeline's stable calc| ids.",
+  "cases": [
+    {
+      "id": "case_derived_rate_tre",
+      "name": "(1) Early-traction TRE — the owner derives trial-to-paid from the Stripe row; bare '2.7%' is uncited, 'we estimate … [unevidenced]' grounds, the 15–30% benchmark cites the SaaS row",
+      "input": {
+        "dim": "tre",
+        "weight": 20,
+        "stage": 3,
+        "stageLabel": "Early Traction",
+        "phaseId": "revenue_model",
+        "benchmark": { "p25": 50, "p50": 65, "p75": 80, "source": "svi-dimension-benchmarks ANCHORS" },
+        "deterministicScore": 46,
+        "criterionResults": [
+          {
+            "key": "customer_size",
+            "score": 46,
+            "verdict": "182 startups analysed, 5 one-off charges, 0 subscriptions",
+            "citations": [{ "evidence_id": "0b449430-5c8b-44e3-9a9c-7eb9f76831dd", "quote": "5 one-off A$3 report charges" }],
+            "grounded": true
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "0b449430-5c8b-44e3-9a9c-7eb9f76831dd",
+            "source": "stripe",
+            "status": "evidenced",
+            "observedAt": "2026-09-21T09:00:00.000Z",
+            "label": "Stripe revenue (last sync)",
+            "value": "182 startups analysed; 3,302 weekly SVI snapshots; 0 active subscriptions; 5 one-off A$3 report charges; A$0 MRR"
+          },
+          {
+            "id": "2c18ebf4-34c0-4cb1-b935-d77bf94f26d1",
+            "source": "connector_other",
+            "status": "partial",
+            "observedAt": "2026-09-21T09:00:00.000Z",
+            "label": "Benchmarks: SaaS funnel and AU ARR bands (platform knowledge)",
+            "value": "SaaS funnel benchmarks (platform rule of thumb, not measured for this startup): awareness → trial 2–5%; trial → paid 15–30%; paid → retained at 90 days 60–80%. Net Revenue Retention target above 100% (world-class above 120%). AU SaaS ARR bands by stage: Seed A$0–A$500k ARR (A$0–A$500,000) typical; Series A A$500k–A$3m ARR (A$500,000–A$3,000,000), median A$1.2m (A$1,200,000); Series B A$3m–A$15m ARR (A$3,000,000–A$15,000,000)."
+          },
+          {
+            "id": "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f70",
+            "source": "self_declared",
+            "status": "partial",
+            "observedAt": "2026-09-21T09:00:00.000Z",
+            "label": "Startup description"
+          }
+        ],
+        "moduleOutputs": [
+          { "id": "report-pipeline/dimension-owners.ts:benchmarkFor", "output": { "dim": "tre", "benchmarkStage": 3, "p25": 50, "p50": 65, "p75": 80, "deterministicScore": 46 } }
+        ],
+        "phaseLens": { "floor": 50, "nextRequired": ["customer_size", "revenue"], "whatMattersNow": "first subscriptions, a measured funnel, MoM growth; floor tre 50" },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": { "min": 36, "max": 56 },
+        "confidence": { "min": 0.5 },
+        "must_have_gaps": ["subscription"],
+        "must_not_hallucinate": ["conversion is 2.7%", "A$1.2M ARR"],
+        "must_cite": 1,
+        "grounded_share_min": 0.85,
+        "primary_visual": { "kind": "sparkline" },
+        "verdict_max_words": 80
+      }
+    },
+    {
+      "id": "case_statutory_fee_lco",
+      "name": "(2) Early-traction LCO — the owner quotes an ASIC fee and a trade mark fee; the remembered '$290' stays uncited, the row's band is auto-cited, an insurance premium is a declared estimate, a completed checklist item is never called missing",
+      "input": {
+        "dim": "lco",
+        "weight": 8,
+        "stage": 3,
+        "stageLabel": "Early Traction",
+        "phaseId": "go_to_market",
+        "benchmark": { "p25": 50, "p50": 62, "p75": 74, "source": "svi-dimension-benchmarks ANCHORS" },
+        "deterministicScore": 62,
+        "criterionResults": [
+          {
+            "key": "documents",
+            "score": 60,
+            "verdict": "ToS, privacy, trademark, SHA, vesting and ESOP completed; insurance and ESIC ruling open",
+            "citations": [{ "evidence_id": "agents/clo-compliance.ts:calculateComplianceScore", "quote": "completedIds[3] = trademark" }],
+            "grounded": true
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "27c6b5af-08fb-42a1-b8fe-e868f9b90dbb",
+            "source": "connector_other",
+            "status": "partial",
+            "observedAt": "2026-09-21T09:00:00.000Z",
+            "label": "ASIC and IP Australia fees: annual review fee band, trade mark fee per class (platform knowledge)",
+            "value": "ASIC annual review fee (proprietary company, s 345A Corporations Act 2001): A$321 (FY2024-25) to A$329 (FY2025-26) a year, indexed each 1 July — the current-year figure is at https://asic.gov.au/for-business/payments-fees-and-invoices/asic-fees/fees-for-commonly-lodged-documents/; a special-purpose company pays a reduced fee (about A$67). Late payment fee: about A$96 within one month, about A$401 after one month. The annual statement is issued on the registration anniversary and the fee is due within 2 months. IP Australia trade mark application fee: A$250–A$550 per class (A$250 for a standard online filing with a pick-list specification, up to A$550 with a custom specification) — https://www.ipaustralia.gov.au/trade-marks/understanding-trade-marks/trade-mark-costs. Two classes (e.g. class 36 financial services + class 42 software) therefore cost A$500–A$1,100 to file."
+          },
+          {
+            "id": "3ab8c0d1-7e2f-4a5b-9c6d-1e2f3a4b5c6d",
+            "source": "self_declared",
+            "status": "partial",
+            "observedAt": "2026-09-21T09:00:00.000Z",
+            "label": "Founder evidence: documents",
+            "value": "ACN 659 615 111, ABN 79 659 615 111; ToS and privacy policy live; trade mark filed; SHA, vesting and ESOP documented; no D&O insurance yet"
+          },
+          {
+            "id": "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f70",
+            "source": "self_declared",
+            "status": "partial",
+            "observedAt": "2026-09-21T09:00:00.000Z",
+            "label": "Startup description"
+          }
+        ],
+        "moduleOutputs": [
+          { "id": "agents/clo-compliance.ts:calculateComplianceScore", "output": { "score": 71, "completedIds": ["abn", "acn", "business_name", "trademark", "terms", "privacy_policy", "cap_table", "sha", "vesting", "esop"], "missingCritical": ["annual_review", "insurance"] } }
+        ],
+        "phaseLens": { "floor": 50, "nextRequired": ["documents", "dataroom"], "whatMattersNow": "insurance in place, ESIC self-assessment recorded, data room complete; floor lco 50" },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": { "min": 52, "max": 72 },
+        "confidence": { "min": 0.5 },
+        "must_have_gaps": ["insurance"],
+        "must_not_hallucinate": ["$290", "no registered trademarks"],
+        "must_cite": 1,
+        "grounded_share_min": 0.85,
+        "primary_visual": { "kind": "checklist" },
+        "verdict_max_words": 80
+      }
+    },
+    {
+      "id": "case_channel_cadence_mpc",
+      "name": "(3) Early-traction MPC — the owner writes a content-plan cadence; as a recommendation ('we recommend 3–5 articles of 2,000+ words') it is a target the gate does not count, as a fact about the startup it is a claim",
+      "input": {
+        "dim": "mpc",
+        "weight": 18,
+        "stage": 3,
+        "stageLabel": "Early Traction",
+        "phaseId": "go_to_market",
+        "benchmark": { "p25": 52, "p50": 64, "p75": 76, "source": "svi-dimension-benchmarks ANCHORS" },
+        "deterministicScore": 60,
+        "criterionResults": [
+          {
+            "key": "website",
+            "score": 58,
+            "verdict": "Grade A technical audit, 525 pages, content marketing nascent",
+            "citations": [{ "evidence_id": "bb8fc046-afec-442c-8660-fe98b805e14d", "quote": "0 broken links on 525 pages" }],
+            "grounded": true
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "bb8fc046-afec-442c-8660-fe98b805e14d",
+            "source": "url",
+            "status": "evidenced",
+            "observedAt": "2026-09-21T09:00:00.000Z",
+            "label": "Technical audit",
+            "value": "grade A; 0 broken links on 525 pages; 3,302 snapshots in the proprietary dataset; /insights and /methodology live"
+          },
+          {
+            "id": "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f70",
+            "source": "self_declared",
+            "status": "partial",
+            "observedAt": "2026-09-21T09:00:00.000Z",
+            "label": "Startup description"
+          }
+        ],
+        "moduleOutputs": [
+          { "id": "report-pipeline/dimension-owners.ts:benchmarkFor", "output": { "dim": "mpc", "benchmarkStage": 3, "p25": 52, "p50": 64, "p75": 76, "deterministicScore": 60 } }
+        ],
+        "phaseLens": { "floor": 55, "nextRequired": ["market", "website"], "whatMattersNow": "organic acquisition measured, content pillars live, persona validated; floor mpc 55" },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": { "min": 50, "max": 70 },
+        "confidence": { "min": 0.5 },
+        "must_have_gaps": ["content"],
+        "must_not_hallucinate": ["ranks #1", "10,000 monthly visits"],
+        "must_cite": 1,
+        "grounded_share_min": 0.85,
+        "primary_visual": { "kind": "funnel" },
+        "verdict_max_words": 80
+      }
+    },
+    {
+      "id": "case_sector_entities_mpc",
+      "name": "(4) Early-traction MPC — the owner narrows the anchored sector count to a SAM subset; the whole-industry count cites the sector row, 'roughly 1,400 entities' / '30–40 accounts' stay uncited bare and ground as declared estimates (EN and VI)",
+      "input": {
+        "dim": "mpc",
+        "weight": 18,
+        "stage": 3,
+        "stageLabel": "Early Traction",
+        "phaseId": "customer_dev",
+        "benchmark": { "p25": 52, "p50": 64, "p75": 76, "source": "svi-dimension-benchmarks ANCHORS" },
+        "deterministicScore": 62,
+        "criterionResults": [
+          {
+            "key": "market",
+            "score": 64,
+            "verdict": "bottom-up SAM of ~5,700 AU organisations worth A$12M at list prices",
+            "citations": [{ "evidence_id": "ca6821a0-4152-4247-9730-e906060131c6", "quote": "5,700 organisations" }],
+            "grounded": true
+          }
+        ],
+        "evidenceRows": [
+          {
+            "id": "ca6821a0-4152-4247-9730-e906060131c6",
+            "source": "self_declared",
+            "status": "partial",
+            "observedAt": "2026-09-21T09:00:00.000Z",
+            "label": "Founder evidence: market",
+            "value": "Australia only, counted bottom-up: 249 accelerators, 18 early-stage VC funds, 135 investor organisations, ~1,000 active angels, 4,345 accounting firms handling ESIC and R&D claims — ~5,700 organisations, A$12M at list prices"
+          },
+          {
+            "id": "014049b9-505a-474a-b44d-54978c909421",
+            "source": "connector_other",
+            "status": "partial",
+            "observedAt": "2026-09-21T09:00:00.000Z",
+            "label": "Sector entity count: active AU businesses in the anchored industry (ABS 8165.0, via the AU market anchor)",
+            "value": "Sector entity count: 8,400 (≈8.4k) active Australian businesses in Software Publishing (SaaS) (ANZSIC J5810), ABS 8165.0 basis — source: ABS, 8155.0 Australian Industry, 2022-23 (2024) https://www.abs.gov.au/statistics/industry/industry-overview/australian-industry/latest-release. This is the whole industry; any subset of it (a SAM counted in entities, \"the organisations that actively screen startups\") is not measured and must be written as a declared estimate."
+          },
+          {
+            "id": "d4e5f6a7-b8c9-4d0e-9f1a-2b3c4d5e6f70",
+            "source": "self_declared",
+            "status": "partial",
+            "observedAt": "2026-09-21T09:00:00.000Z",
+            "label": "Startup description"
+          }
+        ],
+        "moduleOutputs": [
+          { "id": "report-pipeline/au-market-anchor.ts", "output": { "anzsicCode": "J5810", "label": "Software Publishing (SaaS)", "businessCount": 8400 } }
+        ],
+        "phaseLens": { "floor": 55, "nextRequired": ["market", "idea"], "whatMattersNow": "SAM validated with 10 buyer interviews, persona, WTP; floor mpc 55" },
+        "tier": "standard",
+        "renderAs": "full"
+      },
+      "expected": {
+        "proposed_score": { "min": 52, "max": 72 },
+        "confidence": { "min": 0.5 },
+        "must_have_gaps": ["interview"],
+        "must_not_hallucinate": ["SAM is 1,400 entities", "SOM is 30–40 accounts"],
+        "must_cite": 1,
+        "grounded_share_min": 0.85,
+        "primary_visual": { "kind": "funnel" },
+        "verdict_max_words": 80
+      }
+    }
+  ]
+}

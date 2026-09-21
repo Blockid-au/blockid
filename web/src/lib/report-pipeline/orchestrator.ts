@@ -75,6 +75,7 @@ import {
   type DispatchOptions,
 } from "./agent-dispatcher";
 import { selectAgentsForContext } from "./agent-selector";
+import { computedFacts, isComputedFactId } from "./computed-facts";
 import type { IntakeContext } from "@/lib/intake/detect-context";
 import { assembleReport } from "./section-assembler";
 import { buildAgentPrompt } from "./agent-prompts";
@@ -1178,7 +1179,8 @@ export function criticEvidenceFor(context: ReportContext): string {
     return parts.length ? `### ${def.key}\n${parts.join("\n")}` : "";
   }).filter(Boolean);
   const gathered = rows
-    .filter((r) => r.value && r.value.trim() && !/^Founder evidence:|^Startup description$/.test(r.label))
+    // G28-A: the computed / knowledge rows move to the PROVENANCE block below (same content, plus its source).
+    .filter((r) => r.value && r.value.trim() && !/^Founder evidence:|^Startup description$/.test(r.label) && !isComputedFactId(r.evidence_id))
     .map((r) => `- ${r.label}: ${r.value!.trim()}`);
   const criterionScores = [...context.criterionResults.entries()].map(([key, r]) => `- ${key}: ${Math.round(r.score)}/100`);
   // The deterministic module outputs the chapter owners quote (score ledger,
@@ -1187,6 +1189,11 @@ export function criticEvidenceFor(context: ReportContext): string {
     itemsFromModuleOutputs(list ?? []).map((m) => `- [${dim}] ${m.id}: ${m.text.slice(0, 500)}`),
   );
   const ids = rows.map((r) => `- ${r.evidence_id} — ${r.label}`);
+  // G28-A: the computed / knowledge rows with their provenance — the 11:34
+  // showcase critic called the trade mark fee "an invented specific" because
+  // nothing told it where the platform's bands come from. Full content here
+  // (the gathered block above may carry it too; the provenance is what is new).
+  const provenance = computedFacts(context).map((f) => `- ${f.evidence_id} — ${f.label}\n  provenance: ${f.provenance}\n  content: ${f.content}`);
   const blocks = [
     `Startup: ${context.startupName}`,
     `Stage: ${context.sviAnalysis.stageLabel}`,
@@ -1194,6 +1201,7 @@ export function criticEvidenceFor(context: ReportContext): string {
     `## Startup description (founder-submitted)\n${context.rawText.trim()}`,
     criteriaText.length ? `## Founder evidence per criterion (founder-submitted)\n${criteriaText.join("\n\n")}` : "",
     gathered.length ? `## Gathered and computed rows (platform)\n${gathered.join("\n")}` : "",
+    provenance.length ? `## Platform knowledge and computed rows — PROVENANCE (a figure in one of these rows is supported by it; never call it fabricated)\n${provenance.join("\n")}` : "",
     criterionScores.length ? `## Per-criterion scores (platform)\n${criterionScores.join("\n")}` : "",
     modules.length ? `## Deterministic module outputs (platform — the chapter owners cite these by id)\n${modules.join("\n").slice(0, 8000)}` : "",
     ids.length ? `## CITABLE IDS (an [ev:<id>] marker on a sentence points at one of these, or at a module id above)\n${ids.join("\n")}` : "",

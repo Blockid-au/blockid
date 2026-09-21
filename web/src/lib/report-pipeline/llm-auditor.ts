@@ -43,8 +43,10 @@ Focus on:
 
 The EVIDENCE is the founder's own submission plus what the platform gathered and computed. A sentence that restates something in it — including the per-criterion founder text, the gathered rows and the computed SVI / benchmark / valuation facts — IS supported.
 
+PLATFORM KNOWLEDGE AND COMPUTED ROWS: the rows labelled "(computed)", "(computed by the platform)" or "(platform knowledge)" — the SVI scores, stage quartiles, CFO consensus valuation, R&DTI / ESIC / GST rates, SaaS funnel and ARR bands, ASIC and IP Australia fee bands, the sector entity count — are the platform's own reference data. Each one's PROVENANCE (the module that computed it or the public source URL) is listed in the EVIDENCE. A figure that appears in one of those rows is supported by that row; never call it fabricated or "not in the evidence". A figure DERIVED from them (a subset of the entity count, a rate computed from two register numbers) is not in the rows and is a finding unless the sentence declares itself an estimate.
+
 NEVER flag:
-- a sentence that already discloses its status: "(unevidenced)", "[unevidenced]", "(estimate)", "assuming …", "we estimate …", "base / bull / bear scenario" — it has told the reader; do not repeat it as a finding;
+- a sentence that already discloses its status: "(unevidenced)", "[unevidenced]", "(estimate)", "assuming …", "we estimate …", "base / bull / bear scenario" — or, in a Vietnamese draft, "chúng tôi ước tính …", "giả định …", "(chưa có bằng chứng)", "kịch bản cơ sở / lạc quan / bi quan" — it has told the reader; do not repeat it as a finding;
 - a sentence carrying an [ev:<id>] marker whose id is in the CITABLE IDS list, unless the number or name it states is absent from that catalogue item;
 - recommendations, next steps, hiring plans, targets, timelines, methods to use, or "should / could / would" advice — these are the analyst's plan, not claims about the world;
 - an analyst rating or assessment ("Network effects: 3/5", "moat rated 4/5", a 1–5 score the analyst assigns) — it is a judgement, not a measured fact;

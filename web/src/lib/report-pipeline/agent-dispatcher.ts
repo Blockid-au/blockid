@@ -346,6 +346,21 @@ RULES:
   the section "heading" and the action titles.
 - The catalogue's computed rows (SVI scores, stage benchmark quartiles, CFO
   consensus valuation) ARE citable — quote their numbers with their id.
+- DERIVED AND OUTSIDE NUMBERS (grounding rule G28): a rate you derive from two
+  rows ("5 of 182 ≈ 2.7%"), a subset of a row's entity count ("roughly 1,400
+  actively screen"), a statutory / professional fee or insurance premium, a
+  cadence or content plan ("3–5 articles of 2,000+ words"), or a peer
+  benchmark ("peers hold 4–6 contracts") that is NOT in a catalogue row is
+  never a bare number: cite the "(platform knowledge)" row that holds it
+  (SaaS funnel bands, ASIC / IP Australia fee bands, the sector entity count
+  when present), or write "We estimate … (unevidenced)", or drop the number —
+  also inside "risks" titles, "highlights" and "data_points". Never invent a
+  sector entity count when no "Sector entity count" row exists. Never call a
+  document or registration missing when a row or module output lists it as
+  completed.
+- WRITING IN VIETNAMESE: keep "(unevidenced)" or "(chưa có bằng chứng)" in
+  Latin letters, or start with "Chúng tôi ước tính …" / "Giả định …"; keep
+  [ev:<id>] exactly as given.
 `.trim();
 
 function renderStructuredUser(input: DispatchInput): string {
@@ -1172,7 +1187,7 @@ Return ONLY one JSON object, no prose outside it, no markdown fences:
   "confidence": <0 to 1>,
   "hallucination_risk": "one of low, medium, high"
 }
-RULES: 1-2 strengths, 1-2 gaps. Never state a number that is not in the evidence rows or module outputs.`;
+RULES: 1-2 strengths, 1-2 gaps. Never state a number that is not in the evidence rows or module outputs. A rate you derive, a subset count, a fee, a cadence or a peer benchmark that is not in a row is written "we estimate … [unevidenced]" or dropped — never as a bare number. In Vietnamese keep "[unevidenced]" (or "(chưa có bằng chứng)") in Latin letters, or start with "Chúng tôi ước tính".`;
   }
   return `## MACHINE-READABLE OUTPUT CONTRACT (mandatory) — dimension chapter
 Return ONLY one JSON object, no prose outside it, no markdown fences. Angle-quoted «…» parts are placeholders:
@@ -1195,6 +1210,8 @@ RULES:
 - "proposed" must stay within ±10 of the deterministic score; explain any move in "reason".
 - primary_visual.kind must be one of: ${owner.allowedVisuals.join(", ")}. Every number in "series" MUST appear in moduleOutputs or evidenceRows (± rounding) — otherwise omit primary_visual and the deterministic chart is used.
 - CITATIONS: every sentence that states a number, a money amount, a percentage, a date or a name carries [ev:«id»] before its full stop, with an id copied verbatim from evidenceRows — never invented. A sentence nothing in evidenceRows supports ends with [unevidenced]. Uncited sentences are flagged "no citation" in the report.
+- DERIVED AND OUTSIDE NUMBERS (grounding rule G28): a conversion rate you work out from two rows ("5 of 182 ≈ 2.7%"), a market-entity count that is a subset of a row ("roughly 1,400 entities actively screen"), a statutory or professional fee, an insurance premium, a channel cadence or content plan ("3–5 articles of 2,000+ words"), or a growth / peer benchmark ("peers typically hold 4–6 contracts") that is NOT in evidenceRows or moduleOutputs is never a bare number: cite the "(platform knowledge)" row that holds it (SaaS funnel bands, ASIC / IP Australia fee bands, the sector entity count when present) or write "we estimate … [unevidenced]" — or drop the number. Never invent a sector entity count when no "Sector entity count" row exists. Never say a document or registration is missing when a row or module output lists it as completed.
+- WRITING IN VIETNAMESE: keep "[unevidenced]" (or "(chưa có bằng chứng)") in Latin letters at the end of the sentence, or start it with "Chúng tôi ước tính …" / "Giả định …"; keep every [ev:«id»] exactly as given.
 - Explain the score using scoreLedger (base → each signal ± points → × confidence → adjustment): name at least one ledger signal in the verdict, quote its points as given, and NEVER invent a signal, a point value or a source that is not in scoreLedger. When scoreLedger.assessed is false say plainly that the dimension is not assessed yet and what input would assess it.
 - Follow the chapter template: ${owner.outputTemplate}`;
 }

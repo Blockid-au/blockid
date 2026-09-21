@@ -34,6 +34,7 @@
 
 import { z } from "zod";
 
+import { UNEVIDENCED_MARKERS } from "@/lib/report-pipeline/claim-gate";
 import type { PromptVersion } from "./prompt-registry";
 
 // ── Fixture Zod schemas ──────────────────────────────────────────────
@@ -346,11 +347,16 @@ function scoreCase(
  * grounded when it carries an `[ev:<id>]` marker, a criterion card also
  * when it has ≥ 1 citation. Null when the fixture input has no evidence
  * rows (nothing could have been cited).
+ *
+ * G28-A: a declared estimate ("we estimate … [unevidenced]", the §5.4
+ * "cite it or say you cannot" admission — claim-gate UNEVIDENCED_MARKERS,
+ * EN + VI) is grounded too, as the pipeline's own gate treats it.
  */
 export function groundedShareOf(fixtureCase: FixtureCase, data: Record<string, unknown>): number | null {
   const evidenceRows = fixtureCase.input["evidenceRows"];
   if (!Array.isArray(evidenceRows) || evidenceRows.length === 0) return null;
-  const marker = /\[ev:[^\]]+\]/;
+  const evMarker = /\[ev:[^\]]+\]/;
+  const marker = { test: (t: string) => evMarker.test(t) || UNEVIDENCED_MARKERS.test(t) };
   const strs = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : []);
   const claims: Array<{ text: string; cited: boolean }> = [];
   if (typeof data["verdict"] === "string") claims.push({ text: data["verdict"], cited: false });

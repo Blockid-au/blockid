@@ -841,6 +841,14 @@ describe("orchestrateReport() — llm-auditor grounding sweep", () => {
     // the per-criterion founder text the writers were given
     expect(ev).toContain("## Founder evidence per criterion (founder-submitted)");
     expect(ev).toContain("### code_git\nMonorepo with 240 unit tests");
+    // G28-A: the computed / knowledge rows with their provenance — the critic
+    // is told where each platform figure comes from (module or source URL).
+    expect(ev).toContain("## Platform knowledge and computed rows — PROVENANCE");
+    expect(ev).toContain("SVI scores (computed by the platform)\n  provenance: computed by svi-analysis.ts");
+    expect(ev).toMatch(/ASIC and IP Australia fees: [^\n]+\n  provenance: platform knowledge — https:\/\/asic\.gov\.au\//);
+    expect(ev).toContain("content: ASIC annual review fee (proprietary company");
+    // no market text in this fixture → no sector entity count row is ever shown to the critic
+    expect(ev).not.toContain("Sector entity count:");
     // (the mocked dispatcher leaves the register empty, so no CITABLE IDS block here — criticEvidenceFor is pinned directly below)
   });
 

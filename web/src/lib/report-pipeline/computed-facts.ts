@@ -15,18 +15,31 @@
 //
 // Pure: no I/O, no model call.
 
+import { trademarkFeeRange } from "@/lib/agents/clo-compliance";
+import { lookupByAnzsic, searchByKeyword, type AuIndustrySnapshot } from "@/lib/market/au-market-lookup";
 import type { EvidenceRow, ReportV2 } from "@/lib/report-v2/schema";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
+import { deriveIndustryKeyword, extractAnzsicCode } from "./au-market-anchor";
 import { benchmarkFor, benchmarkStageForSvi, DIM_ORDER, DIMENSION_OWNERS, type DimKey } from "./dimension-owners";
 import { evidenceIdFor } from "./evidence-ids";
 
-export type ComputedFactKind = "svi-scores" | "benchmarks" | "valuation" | "au-context" | "saas-benchmarks";
+// G28-A: two more knowledge rows for the residual uncited patterns of the
+// 11:34 UTC showcase run (groundedShare 0.82): the CLO quoting an ASIC annual
+// review fee and a trade mark class fee with nothing to cite ("au-legal"), and
+// the CMO deriving a market-entity count from an anchor that was never in the
+// register ("sector-entities" — present only when the AU market anchor matched
+// an industry; absent otherwise, and the owner prompt says not to invent one).
+// Every row now carries a provenance line the critic sees (orchestrator
+// criticEvidenceFor) so a platform figure is never called fabricated.
+export type ComputedFactKind = "svi-scores" | "benchmarks" | "valuation" | "au-context" | "saas-benchmarks" | "au-legal" | "sector-entities";
 
 export interface ComputedFact {
   kind: ComputedFactKind;
   evidence_id: string;
   label: string;
   content: string;
+  /** G28-A: where the numbers come from (module or public source URL). */
+  provenance: string;
 }
 
 /** Stable ids — the same on every run, for every startup. */
@@ -36,16 +49,58 @@ export const COMPUTED_FACT_IDS: Record<ComputedFactKind, string> = {
   valuation: evidenceIdFor("calc|valuation"),
   "au-context": evidenceIdFor("calc|au-context"),
   "saas-benchmarks": evidenceIdFor("calc|saas-benchmarks"),
+  "au-legal": evidenceIdFor("calc|au-legal"),
+  "sector-entities": evidenceIdFor("calc|sector-entities"),
 };
 
-/** Labels start with a source word the auto-citer recognises (svi / benchmarks / valuation). */
+/** Labels start with a source word the auto-citer recognises (svi / benchmarks / valuation / asic / sector). */
 export const COMPUTED_FACT_LABELS: Record<ComputedFactKind, string> = {
   "svi-scores": "SVI scores (computed by the platform)",
   benchmarks: "Benchmarks: stage quartiles p25 / p50 / p75 (computed)",
   valuation: "Valuation: CFO 5-method consensus (computed)",
   "au-context": "AU context: R&D Tax Incentive / ESIC / GST rates (platform knowledge)",
   "saas-benchmarks": "Benchmarks: SaaS funnel and AU ARR bands (platform knowledge)",
+  "au-legal": "ASIC and IP Australia fees: annual review fee band, trade mark fee per class (platform knowledge)",
+  "sector-entities": "Sector entity count: active AU businesses in the anchored industry (ABS 8165.0, via the AU market anchor)",
 };
+
+/** ASIC's fee schedule (annual review, late payment). */
+export const ASIC_FEES_URL = "https://asic.gov.au/for-business/payments-fees-and-invoices/asic-fees/fees-for-commonly-lodged-documents/";
+/** IP Australia's trade mark fee page (per class). */
+export const IP_AUSTRALIA_FEES_URL = "https://www.ipaustralia.gov.au/trade-marks/understanding-trade-marks/trade-mark-costs";
+
+/**
+ * G28-A: the provenance line the critic sees next to each row — the module
+ * that computed the number, or the public source the knowledge band was taken
+ * from. Plain text, one line each.
+ */
+export const COMPUTED_FACT_PROVENANCE: Record<ComputedFactKind, string> = {
+  "svi-scores": "computed by svi-analysis.ts for this startup (deterministic — the same inputs give the same score)",
+  benchmarks: "svi-dimension-benchmarks ANCHORS via report-pipeline/dimension-owners.ts benchmarkFor — stage quartiles, not measured for this startup",
+  valuation: "report-pipeline/valuation-chapter.ts — the CFO 5-method consensus computed for this startup",
+  "au-context": "platform knowledge — ATO R&D Tax Incentive and ESIC pages (ato.gov.au), GST Act; rates as published, not measured for this startup",
+  "saas-benchmarks": "platform rule of thumb (report-pipeline/agent-prompts.ts CRO template) — sector-typical bands, not measured for this startup",
+  "au-legal": `platform knowledge — ${ASIC_FEES_URL} and ${IP_AUSTRALIA_FEES_URL}; statutory bands indexed each 1 July, the current-year figure is on the source page`,
+  "sector-entities": "ABS 8165.0 Counts of Australian Businesses basis via lib/market/au-market-lookup.ts — the whole anchored industry, never a subset of it",
+};
+
+/**
+ * G28-A: the statutory fee band the CLO template leans on. The 11:34 showcase
+ * run wrote "pay the $290 fee on time" and "~$250 per class via IP Australia"
+ * with nothing to cite, and the critic called the trade mark cost invented.
+ * No constant in lib/legal or lib/compliance carries the ASIC figure
+ * (compliance/calendar.ts only holds the review URL); clo-compliance.ts has
+ * trademarkFeeRange(). So: one knowledge row, its source URLs inside, the
+ * ASIC figure as the published band (indexed every 1 July) — never a single
+ * "current" number the row cannot vouch for.
+ */
+export const AU_LEGAL_FACTS = (() => {
+  const [tmLow, tmHigh] = trademarkFeeRange();
+  return (
+    `ASIC annual review fee (proprietary company, s 345A Corporations Act 2001): A$321 (FY2024-25) to A$329 (FY2025-26) a year, indexed each 1 July — the current-year figure is at ${ASIC_FEES_URL}; a special-purpose company pays a reduced fee (about A$67). Late payment fee: about A$96 within one month, about A$401 after one month. The annual statement is issued on the registration anniversary and the fee is due within 2 months. ` +
+    `IP Australia trade mark application fee: A$${tmLow}–A$${tmHigh} per class (A$${tmLow} for a standard online filing with a pick-list specification, up to A$${tmHigh} with a custom specification) — ${IP_AUSTRALIA_FEES_URL}. Two classes (e.g. class 36 financial services + class 42 software) therefore cost A$${(tmLow * 2).toLocaleString("en-AU")}–A$${(tmHigh * 2).toLocaleString("en-AU")} to file.`
+  );
+})();
 
 /**
  * The SaaS funnel / ARR benchmark bands the CRO template itself states
@@ -79,6 +134,26 @@ export interface ComputedFactsInput {
   sviAnalysis: Pick<SVIAnalysis, "totalSVI" | "stageLabel" | "subs"> & { dimensionScores?: Record<string, number> };
   stage: number;
   valuationChapter?: ReportV2["valuation"] | null;
+  /** G28-A: the founder text the AU market anchor is derived from (ReportContext.rawText) — the sector-entities row exists only when an industry matches. */
+  rawText?: string;
+  /** G28-A: the market criterion text joins the lookup, as agent-dispatcher auMarketAnchorText does. */
+  criteriaData?: { market?: { textInput?: string | null } | null };
+}
+
+/** The industry the AU market anchor resolves for this startup (au-market-anchor.ts precedence: ANZSIC code in the text, else keyword), or null. */
+export function sectorEntitiesFor(input: Pick<ComputedFactsInput, "rawText" | "criteriaData">): AuIndustrySnapshot | null {
+  const text = `${input.rawText ?? ""}\n${input.criteriaData?.market?.textInput ?? ""}`;
+  if (!text.trim()) return null;
+  const code = extractAnzsicCode(text);
+  const keyword = deriveIndustryKeyword(text);
+  return (code && lookupByAnzsic(code)) || (keyword ? (searchByKeyword(keyword, 1)[0] ?? null) : null);
+}
+
+/** "8,400 (≈8.4k)" — exact and rounded spellings of a business count so either form the model writes is matched. */
+export function formatCountBoth(n: number): string {
+  const exact = Math.round(n).toLocaleString("en-AU");
+  if (n >= 1000) return `${exact} (≈${String(Math.round(n / 100) / 10)}k)`;
+  return exact;
 }
 
 /** "A$4,622,000 (≈A$4.6M)" — exact and rounded spellings so either form the model writes is matched. */
@@ -123,6 +198,7 @@ export function computedFacts(input: ComputedFactsInput): ComputedFact[] {
     kind: "svi-scores",
     evidence_id: COMPUTED_FACT_IDS["svi-scores"],
     label: COMPUTED_FACT_LABELS["svi-scores"],
+    provenance: COMPUTED_FACT_PROVENANCE["svi-scores"],
     content: `SVI index ${Math.round(input.sviAnalysis.totalSVI)} (open-ended, base 100); stage ${stageLabel}. Dimension scores: ${dims.join("; ")}.`,
   });
 
@@ -137,11 +213,29 @@ export function computedFacts(input: ComputedFactsInput): ComputedFact[] {
     kind: "benchmarks",
     evidence_id: COMPUTED_FACT_IDS.benchmarks,
     label: COMPUTED_FACT_LABELS.benchmarks,
+    provenance: COMPUTED_FACT_PROVENANCE.benchmarks,
     content: `Stage benchmarks for ${stageLabel} (svi-dimension-benchmarks, per dimension, /100): ${bench.join("; ")}.`,
   });
 
-  out.push({ kind: "au-context", evidence_id: COMPUTED_FACT_IDS["au-context"], label: COMPUTED_FACT_LABELS["au-context"], content: AU_CONTEXT_FACTS });
-  out.push({ kind: "saas-benchmarks", evidence_id: COMPUTED_FACT_IDS["saas-benchmarks"], label: COMPUTED_FACT_LABELS["saas-benchmarks"], content: SAAS_BENCHMARK_FACTS });
+  out.push({ kind: "au-context", evidence_id: COMPUTED_FACT_IDS["au-context"], label: COMPUTED_FACT_LABELS["au-context"], provenance: COMPUTED_FACT_PROVENANCE["au-context"], content: AU_CONTEXT_FACTS });
+  out.push({ kind: "saas-benchmarks", evidence_id: COMPUTED_FACT_IDS["saas-benchmarks"], label: COMPUTED_FACT_LABELS["saas-benchmarks"], provenance: COMPUTED_FACT_PROVENANCE["saas-benchmarks"], content: SAAS_BENCHMARK_FACTS });
+  out.push({ kind: "au-legal", evidence_id: COMPUTED_FACT_IDS["au-legal"], label: COMPUTED_FACT_LABELS["au-legal"], provenance: COMPUTED_FACT_PROVENANCE["au-legal"], content: AU_LEGAL_FACTS });
+
+  // G28-A: the sector entity count — only when the AU market anchor matched an
+  // industry. Both spellings of the count, and a plain statement of what the
+  // row is NOT (any subset such as "roughly 1,400 that actively screen"), so
+  // the owner declares such a subset as an estimate instead of citing this row.
+  const sector = sectorEntitiesFor(input);
+  if (sector) {
+    const src = sector.sources[0];
+    out.push({
+      kind: "sector-entities",
+      evidence_id: COMPUTED_FACT_IDS["sector-entities"],
+      label: COMPUTED_FACT_LABELS["sector-entities"],
+      provenance: COMPUTED_FACT_PROVENANCE["sector-entities"],
+      content: `Sector entity count: ${formatCountBoth(sector.businessCount)} active Australian businesses in ${sector.label} (ANZSIC ${sector.anzsicCode}), ABS 8165.0 basis${src ? ` — source: ${src.publisher}, ${src.title} (${src.publishedYear}) ${src.url}` : ""}. This is the whole industry; any subset of it (a SAM counted in entities, "the organisations that actively screen startups") is not measured and must be written as a declared estimate.`,
+    });
+  }
 
   const v = input.valuationChapter;
   if (v && v.consensus) {
@@ -154,6 +248,7 @@ export function computedFacts(input: ComputedFactsInput): ComputedFact[] {
       kind: "valuation",
       evidence_id: COMPUTED_FACT_IDS.valuation,
       label: COMPUTED_FACT_LABELS.valuation,
+      provenance: COMPUTED_FACT_PROVENANCE.valuation,
       content: `Consensus valuation ${formatAudBoth(c.lowAud)}–${formatAudBoth(c.highAud)}, mid ${formatAudBoth(c.midAud)}, confidence ${Math.round(c.confidence * 100)}%.${methods.length ? ` Methods: ${methods.join("; ")}.` : ""}${ask}`,
     });
   }

@@ -14,7 +14,8 @@ import { PromptEvalFixture, runEval, shouldPromote, type FixtureCase } from "@/l
 import type { PromptVersion } from "@/lib/ai/prompt-registry";
 import { DimensionChapterInput, DimensionChapterPayload, VERDICT_WORD_CAPS } from "./agent-dispatcher";
 import { autoCite, itemsFromEvidenceRows } from "./auto-cite";
-import { COMPUTED_FACT_IDS } from "./computed-facts";
+import { COMPUTED_FACT_IDS, computedFactRows } from "./computed-facts";
+import { findUncitedClaims } from "./llm-auditor";
 import { trimVerdict } from "./verdict-trim";
 import { salvageTruncatedJson } from "@/lib/ai/json-salvage";
 import { groundedShareOf } from "@/lib/ai/eval-runner";
@@ -71,7 +72,7 @@ function goodPayload(c: FixtureCase): Record<string, unknown> {
 }
 
 /** G19 fixtures beside the eight per-dimension files: S41 score ledger, S46 valuation inputs, S47 structured executive — plus the G23-A grounding fixture. */
-const G19_FIXTURES = ["TBR-executive-v2.2.0.json", "TBR-ledger-v2.1.0.json", "TBR-valuation-inputs-v2.1.0.json", "TBR-grounding-v2.4.0.json"];
+const G19_FIXTURES = ["TBR-executive-v2.2.0.json", "TBR-ledger-v2.1.0.json", "TBR-valuation-inputs-v2.1.0.json", "TBR-grounding-v2.4.0.json", "TBR-grounding-v2.5.0.json"];
 
 describe("TBR-<dim>-v2.0.0 fixtures", () => {
   it("ships exactly eight TBR-<dim>-v2.0.0 fixtures, one per dimension, discoverable by the nightly runner naming rule (plus the G19 TBR-ledger + TBR-valuation-inputs fixtures)", () => {
@@ -494,5 +495,111 @@ describe("TBR-grounding-v2.4.0 fixture (G23-A + G24-D)", () => {
     expect(shouldPromote(good)).toBe(true);
     const invented = await run({ ...grounded, verdict: `${grounded.verdict} The consensus is really A$9.9M.` });
     expect(invented.hard_fail).toBe(true);
+  });
+});
+
+// ── G28-A: TBR-grounding-v2.5.0 — the four residual patterns of the 11:34 showcase run (0.82), pinned nightly-style (no LLM) ──
+describe("TBR-grounding-v2.5.0 fixture (G28-A residual patterns)", () => {
+  const fx = PromptEvalFixture.parse(JSON.parse(readFileSync(path.join(FIXTURE_DIR, "TBR-grounding-v2.5.0.json"), "utf8")));
+  const pvG: PromptVersion = { ...pv("tre"), agent: "TBR-grounding", version: "2.5.0" };
+  type Rows = Array<{ id: string; label: string; value?: string }>;
+  const rowsOf = (c: FixtureCase) => (c.input as { evidenceRows: Rows }).evidenceRows;
+  const items = (c: FixtureCase) => itemsFromEvidenceRows(rowsOf(c).map((r) => ({ evidence_id: r.id, label: r.label, value: r.value })));
+  const ids = (c: FixtureCase) => rowsOf(c).map((r) => r.id);
+  function payload(c: FixtureCase, verdict: string, strengths: string[], gaps: string[]): Record<string, unknown> {
+    const input = c.input as { dim: DimKey; deterministicScore: number };
+    return { dim: input.dim, verdict, score_adjustment: { proposed: input.deterministicScore, deterministic: input.deterministicScore, reason: "aligned" }, strengths, gaps, next_action: { title: "Add evidence", window: "30d", expected_lift: 3 }, criterion_cards: [], primary_visual: { kind: DIMENSION_OWNERS[input.dim].primaryVisual, data_state: "partial", series: [] }, frameworks_used: [], confidence: 0.7, hallucination_risk: "low", proposed_score: input.deterministicScore };
+  }
+  /** What buildDimensionChapter does to the text fields: auto-cite against the chapter rows, trim the verdict. */
+  function ground(c: FixtureCase, p: Record<string, unknown>): Record<string, unknown> {
+    const it = items(c);
+    const cite = (t: string) => autoCite(t, it).text;
+    return { ...p, verdict: cite(trimVerdict(p.verdict as string, VERDICT_WORD_CAPS.chapter).text), strengths: (p.strengths as string[]).map(cite), gaps: (p.gaps as string[]).map(cite) };
+  }
+  /** Every material sentence in the payload's text fields passes the §5.4 gate (cited or declared). */
+  const gateClean = (c: FixtureCase, p: Record<string, unknown>) => findUncitedClaims([p.verdict as string, ...(p.strengths as string[]), ...(p.gaps as string[])].join("\n"), ids(c));
+  const run = async (c: FixtureCase, data: Record<string, unknown>) => runEval({ ...fx, cases: [c] }, pvG, { runCase: async () => ({ ok: true, data, latencyMs: 5, costUsd: 0.001, runId: c.id }) });
+  const caseById = (id: string) => fx.cases.find((c) => c.id === id)!;
+
+  it("parses, carries the four residual-pattern cases with uuid-shaped ids, valid W4 inputs, the grounding + word-cap constraints, and knowledge rows whose text equals the pipeline's", () => {
+    expect(fx.cases.map((c) => c.id)).toEqual(["case_derived_rate_tre", "case_statutory_fee_lco", "case_channel_cadence_mpc", "case_sector_entities_mpc"]);
+    for (const c of fx.cases) {
+      expect(DimensionChapterInput.safeParse(c.input).success).toBe(true);
+      for (const r of rowsOf(c)) expect(r.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
+      expect(c.expected.grounded_share_min).toBe(0.85);
+      expect(c.expected.verdict_max_words).toBe(80);
+      expect(c.expected.must_cite).toBeGreaterThanOrEqual(1);
+    }
+    // The fixture's knowledge rows are the pipeline's rows, verbatim — drift here would silently un-pin the auto-cite cases.
+    const live = new Map(computedFactRows({ sviAnalysis: { totalSVI: 138, stageLabel: "Early Traction", subs: [], dimensionScores: {} }, stage: 3, rawText: "A B2B SaaS platform for evaluators." }).map((r) => [r.evidence_id, r]));
+    const legal = rowsOf(caseById("case_statutory_fee_lco")).find((r) => r.id === COMPUTED_FACT_IDS["au-legal"])!;
+    expect(legal.value).toBe(live.get(COMPUTED_FACT_IDS["au-legal"])!.value);
+    expect(legal.label).toBe(live.get(COMPUTED_FACT_IDS["au-legal"])!.label);
+    const sector = rowsOf(caseById("case_sector_entities_mpc")).find((r) => r.id === COMPUTED_FACT_IDS["sector-entities"])!;
+    expect(sector.value).toBe(live.get(COMPUTED_FACT_IDS["sector-entities"])!.value);
+    const saas = rowsOf(caseById("case_derived_rate_tre")).find((r) => r.id === COMPUTED_FACT_IDS["saas-benchmarks"])!;
+    expect(saas.value).toBe(live.get(COMPUTED_FACT_IDS["saas-benchmarks"])!.value);
+  });
+
+  it("(1) derived rate: the bare '2.7%' payload fails the gate and grounds below 0.85; the declared-estimate payload clears the gate, cites the SaaS row for the benchmark and promotes; 'conversion is 2.7%' as a fact hard-fails", async () => {
+    const c = caseById("case_derived_rate_tre");
+    const bare = ground(c, payload(c, "Traction is thin: 182 startups analysed and 5 report purchases, so the trial-to-paid conversion is 2.7%, well below the 15–30% benchmark.", ["3,302 weekly SVI snapshots show usage"], ["Trial-to-paid conversion rate is critically low at ~2.7% vs the 15-30% benchmark"]));
+    expect(gateClean(c, bare).length).toBeGreaterThanOrEqual(2);
+    expect(groundedShareOf(c, bare)).toBeLessThan(0.85);
+    expect((await run(c, bare)).hard_fail).toBe(true);
+    const declared = ground(c, payload(c, "Traction is thin: 182 startups analysed, 0 active subscriptions and 5 one-off A$3 report charges. We estimate trial-to-paid at ≈ 2.7% (5 ÷ 182) [unevidenced]. The SaaS benchmark for trial → paid is 15–30%.", ["3,302 weekly SVI snapshots show usage"], ["We estimate trial-to-paid at ~2.7% vs the 15-30% SaaS benchmark [unevidenced] — no subscription yet"]));
+    expect(gateClean(c, declared)).toEqual([]);
+    expect(String(declared.verdict)).toContain(`[ev:${COMPUTED_FACT_IDS["saas-benchmarks"]}]`);
+    expect(String(declared.verdict)).toContain("[ev:0b449430-5c8b-44e3-9a9c-7eb9f76831dd]");
+    expect(groundedShareOf(c, declared)).toBeGreaterThanOrEqual(0.85);
+    expect(DimensionChapterPayload.safeParse(declared).success).toBe(true);
+    const good = await run(c, declared);
+    expect(good.hard_fail).toBe(false);
+    expect(shouldPromote(good)).toBe(true);
+  });
+
+  it("(2) statutory fee: '$290' stays uncited and hard-fails; the band quoted from the ASIC / IP Australia row is auto-cited, the premium is a declared estimate, the completed trade mark is never called missing — promotable", async () => {
+    const c = caseById("case_statutory_fee_lco");
+    const stale = ground(c, payload(c, "Compliance is solid. ASIC annual review is due on the anniversary — pay the $290 fee on time. You have no registered trademarks; registration costs ~$250 per class.", ["ToS and privacy policy live"], ["No D&O insurance — premiums run $1,200–$2,000 a year"]));
+    expect(gateClean(c, stale).length).toBeGreaterThanOrEqual(2);
+    expect((await run(c, stale)).hard_fail).toBe(true);
+    const fromRow = ground(c, payload(c, "Compliance is solid: trade mark filed, SHA, vesting and ESOP documented. The ASIC annual review fee is A$321–A$329 a year, indexed each 1 July, due within 2 months of the anniversary.", ["Trade mark filed; a second class costs A$250–A$550 per class with IP Australia"], ["No D&O insurance yet — we estimate the premium at A$1,200–A$2,000 a year [unevidenced]"]));
+    expect(gateClean(c, fromRow)).toEqual([]);
+    expect(String(fromRow.verdict)).toContain(`[ev:${COMPUTED_FACT_IDS["au-legal"]}]`);
+    expect((fromRow.strengths as string[])[0]).toContain(`[ev:${COMPUTED_FACT_IDS["au-legal"]}]`);
+    expect(groundedShareOf(c, fromRow)).toBeGreaterThanOrEqual(0.85);
+    expect(DimensionChapterPayload.safeParse(fromRow).success).toBe(true);
+    const good = await run(c, fromRow);
+    expect(good.hard_fail).toBe(false);
+    expect(shouldPromote(good)).toBe(true);
+  });
+
+  it("(3) channel cadence: 'we recommend 3–5 articles of 2,000+ words' is a target the gate does not count and the case promotes; the same numbers stated as a fact about the site are a claim", async () => {
+    const c = caseById("case_channel_cadence_mpc");
+    const plan = ground(c, payload(c, "Market pull is developing: the technical audit is grade A with 0 broken links on 525 pages and 3,302 snapshots in the proprietary dataset, but content marketing is nascent. We recommend a content pillar strategy: 3–5 cornerstone articles, each with 2,000+ words, and outreach to accounting-firm blogs.", ["3,302 snapshots can power data-driven content"], ["No content pillars live yet — no organic acquisition measured [unevidenced]"]));
+    expect(gateClean(c, plan)).toEqual([]);
+    expect(String(plan.verdict)).toContain("[ev:bb8fc046-afec-442c-8660-fe98b805e14d]");
+    expect(groundedShareOf(c, plan)).toBeGreaterThanOrEqual(0.85);
+    const good = await run(c, plan);
+    expect(good.hard_fail).toBe(false);
+    expect(shouldPromote(good)).toBe(true);
+    const fact = "The site already publishes 3–5 cornerstone articles a month, each with 2,000+ words.";
+    expect(findUncitedClaims(fact, ids(c))).toHaveLength(1);
+  });
+
+  it("(4) sector entities: the whole-industry count cites the sector row; 'SAM is 1,400 entities' bare hard-fails; the declared EN and VI subsets clear the gate and promote", async () => {
+    const c = caseById("case_sector_entities_mpc");
+    const bare = ground(c, payload(c, "The bottom-up SAM is ~5,700 organisations worth A$12M. The SAM is 1,400 entities that actively screen startups, and SOM is 30–40 accounts in year one.", ["5,700 organisations counted bottom-up"], ["No buyer interviews yet"]));
+    expect(gateClean(c, bare).length).toBeGreaterThanOrEqual(1);
+    expect((await run(c, bare)).hard_fail).toBe(true);
+    const declared = ground(c, payload(c, "The bottom-up SAM is ~5,700 organisations worth A$12M, inside a sector of 8,400 active Australian businesses on the ABS basis. We estimate the subset that actively screens startups at roughly 1,400 entities [unevidenced].", ["5,700 organisations counted bottom-up", "Chúng tôi ước tính SOM năm đầu khoảng 30–40 tài khoản (chưa có bằng chứng)."], ["No buyer interviews yet — the estimated subset is unvalidated [unevidenced]"]));
+    expect(gateClean(c, declared)).toEqual([]);
+    expect(String(declared.verdict)).toContain(`[ev:${COMPUTED_FACT_IDS["sector-entities"]}]`);
+    expect(String(declared.verdict)).toContain("[ev:ca6821a0-4152-4247-9730-e906060131c6]");
+    expect(groundedShareOf(c, declared)).toBeGreaterThanOrEqual(0.85);
+    expect(DimensionChapterPayload.safeParse(declared).success).toBe(true);
+    const good = await run(c, declared);
+    expect(good.hard_fail).toBe(false);
+    expect(shouldPromote(good)).toBe(true);
   });
 });

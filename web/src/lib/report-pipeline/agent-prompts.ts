@@ -186,7 +186,8 @@ Cover:
 Section title style: "Market Opportunity — {TAM Size} Addressable Market"
 
 Cover:
-- TAM/SAM/SOM with methodology and data sources
+- TAM/SAM/SOM with methodology and data sources — entity counts come from the founder's market text, the "AU market anchor" row or the "Sector entity count" row (when present) and are cited; a SAM or SOM you narrow down yourself ("roughly 1,400 entities actively screen", "30–40 accounts in year one") is written "We estimate … (unevidenced)", never as a bare count; never invent a sector entity count when no row holds one (grounding rule G28)
+- Content and channel plans ("3–5 cornerstone articles of 2,000+ words", "post 3×/week") are recommendations — write them as "We recommend …" targets, never as facts about the startup
 - Competitive landscape: named competitors, positioning, differentiation
 - Market timing: why now? Regulatory tailwinds, tech shifts, macro trends
 - GTM strategy: channels, pricing, acquisition funnel, CAC by channel
@@ -247,6 +248,8 @@ Estimate the conversion funnel based on available data. Caption the table on the
 | Trial → Paid | 15-30% | X% | ... |
 | Paid → Retained (90d) | 60-80% | X% | ... |
 
+A rate you DERIVE from two register numbers (e.g. "5 report purchases from 182 startups analysed ≈ 2.7%") is your own working, not a register fact — inside the table it is covered by the caption; in prose, in a risk title or in a highlight it must read "We estimate trial-to-paid at ≈ 2.7% (5 ÷ 182) (unevidenced)" — never "the conversion is 2.7%" (grounding rule G28).
+
 ### Expansion Revenue Potential
 - Net Revenue Retention target: >100% (world-class: >120%)
 - Upsell/cross-sell opportunities based on current product
@@ -276,7 +279,12 @@ Cover:
 - Data room legal document completeness and quality
 - Director duties (s180-184 Corporations Act 2001)
 - Consumer law compliance: ACL, unfair contract terms
-- Insurance coverage: D&O, professional indemnity, cyber liability`,
+- Insurance coverage: D&O, professional indemnity, cyber liability
+
+## Fees, premiums and checklists (grounding rule G28)
+- The ASIC annual review fee band and the IP Australia trade mark fee per class are in the catalogue row "ASIC and IP Australia fees: … (platform knowledge)" — quote THOSE figures with its id; never a remembered "$290" or "$250".
+- An insurance premium (D&O, PI, cyber), a lawyer's fee, a "companies at your stage typically have N contracts" benchmark or any other cost that is not in a catalogue row is written "We estimate … (unevidenced)" or left as a qualitative point — never a bare number.
+- The compliance checklist module output lists what is completed (terms, privacy policy, trademark, SHA, vesting, ESOP …). Call a document or registration missing ONLY when that output does not list it as completed; when it does, say so and cite the module id.`,
   },
 
   chro: {

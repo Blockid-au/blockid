@@ -3,7 +3,7 @@
 // agreement.
 import { describe, expect, it } from "vitest";
 import { autoCite, itemsFromEvidenceRows } from "./auto-cite";
-import { COMPUTED_FACT_IDS, COMPUTED_FACT_LABELS, computedFactRows, computedFacts, formatAudBoth, isComputedFactId } from "./computed-facts";
+import { ASIC_FEES_URL, COMPUTED_FACT_IDS, COMPUTED_FACT_LABELS, COMPUTED_FACT_PROVENANCE, computedFactRows, computedFacts, formatAudBoth, formatCountBoth, IP_AUSTRALIA_FEES_URL, isComputedFactId, sectorEntitiesFor } from "./computed-facts";
 import { benchmarkFor, benchmarkStageForSvi, DIM_ORDER } from "./dimension-owners";
 import { evidenceIdFor } from "./evidence-ids";
 import { findUncitedClaims } from "./llm-auditor";
@@ -38,7 +38,7 @@ function input(overrides: Partial<Parameters<typeof computedFacts>[0]> = {}) {
 }
 
 describe("computed facts — ids", () => {
-  it("mints five stable uuid-shaped ids from the calc| seeds (the same on every run, for every startup)", () => {
+  it("mints seven stable uuid-shaped ids from the calc| seeds (the same on every run, for every startup)", () => {
     expect(COMPUTED_FACT_IDS["svi-scores"]).toBe(evidenceIdFor("calc|svi-scores"));
     expect(COMPUTED_FACT_IDS.benchmarks).toBe(evidenceIdFor("calc|benchmarks"));
     expect(COMPUTED_FACT_IDS.valuation).toBe(evidenceIdFor("calc|valuation"));
@@ -47,7 +47,9 @@ describe("computed facts — ids", () => {
       expect(isComputedFactId(id)).toBe(true);
     }
     expect(COMPUTED_FACT_IDS["au-context"]).toBe(evidenceIdFor("calc|au-context"));
-    expect(new Set(Object.values(COMPUTED_FACT_IDS)).size).toBe(5);
+    expect(COMPUTED_FACT_IDS["au-legal"]).toBe(evidenceIdFor("calc|au-legal"));
+    expect(COMPUTED_FACT_IDS["sector-entities"]).toBe(evidenceIdFor("calc|sector-entities"));
+    expect(new Set(Object.values(COMPUTED_FACT_IDS)).size).toBe(7);
     expect(isComputedFactId(evidenceIdFor("market|description|Startup description"))).toBe(false);
   });
 
@@ -88,9 +90,10 @@ describe("computed facts — content", () => {
     expect(row.content).toContain("pre-money A$3,500,000 (≈A$3.5M), raise A$500,000 (≈A$500K) — aligned (-24% vs consensus)");
   });
 
-  it("no valuation chapter → four rows (scores, benchmarks, AU context, SaaS benchmarks); a pending dimension prints 'pending'", () => {
+  it("no valuation chapter, no market text → five rows (scores, benchmarks, AU context, SaaS benchmarks, AU legal — never a sector row); a pending dimension prints 'pending'", () => {
     const facts = computedFacts(input({ valuationChapter: null, sviAnalysis: { totalSVI: 100, stageLabel: "Concept", subs: [], dimensionScores: {} } }));
-    expect(facts.map((f) => f.kind)).toEqual(["svi-scores", "benchmarks", "au-context", "saas-benchmarks"]);
+    expect(facts.map((f) => f.kind)).toEqual(["svi-scores", "benchmarks", "au-context", "saas-benchmarks", "au-legal"]);
+    for (const f of facts) expect(f.provenance.length).toBeGreaterThan(20);
     expect(facts[0]!.content).toContain("TRE (");
     expect(facts[0]!.content).toMatch(/TRE \([^)]+\) pending/);
   });
@@ -106,7 +109,7 @@ describe("computed facts — content", () => {
 describe("computed facts — rows + the auto-citer + the gate", () => {
   it("rows carry every dimension, connector_other / partial, and the full content as the value", () => {
     const rows = computedFactRows(input(), "2026-09-21T09:00:00.000Z");
-    expect(rows).toHaveLength(5);
+    expect(rows).toHaveLength(6);
     for (const r of rows) {
       expect(r.dims).toEqual([...DIM_ORDER]);
       expect(r.source).toBe("connector_other");
@@ -187,5 +190,89 @@ describe("computed facts — rows + the auto-citer + the gate", () => {
     const r = autoCite("Revenue reached A$1.2M ARR and the valuation is A$9.9M.", items);
     expect(r.added).toBe(0);
     expect(r.uncited).toBe(1);
+  });
+});
+
+// ── G28-A: the two residual-pattern rows (ASIC / IP Australia fees, sector entity count) + provenance ──
+describe("computed facts — G28-A AU legal row", () => {
+  it("states the ASIC annual review fee as the published band with its source URL (indexed each 1 July, never one 'current' figure) and the trade mark fee per class from clo-compliance", () => {
+    const row = computedFacts(input()).find((f) => f.kind === "au-legal")!;
+    expect(row.label).toMatch(/^ASIC /);
+    expect(row.label).toMatch(/platform knowledge/);
+    expect(row.content).toContain("A$321 (FY2024-25) to A$329 (FY2025-26)");
+    expect(row.content).toContain("indexed each 1 July");
+    expect(row.content).toContain(ASIC_FEES_URL);
+    expect(row.content).toContain("A$250–A$550 per class");
+    expect(row.content).toContain(IP_AUSTRALIA_FEES_URL);
+    expect(row.content).not.toMatch(/\$290\b/);
+    expect(row.provenance).toContain(ASIC_FEES_URL);
+    expect(COMPUTED_FACT_PROVENANCE["au-legal"]).toMatch(/indexed each 1 July/);
+  });
+
+  it("a sentence about the ASIC annual review fee or a trade mark class fee is cited to it; a plain 'A$321 MRR' or 'A$250 CAC' never is (topic gate)", () => {
+    const items = itemsFromEvidenceRows(computedFactRows(input()));
+    const asic = autoCite("Budget for the ASIC annual review fee of A$321–A$329 a year, due within 2 months of the anniversary.", items);
+    expect(asic.added).toBe(1);
+    expect(asic.text).toContain(`[ev:${COMPUTED_FACT_IDS["au-legal"]}]`);
+    const tm = autoCite("Registering the two trade mark classes costs A$500–A$1,100 with IP Australia.", items);
+    expect(tm.added).toBe(1);
+    expect(tm.text).toContain(`[ev:${COMPUTED_FACT_IDS["au-legal"]}]`);
+    const mrr = autoCite("MRR reached A$321 in June.", items);
+    expect(mrr.added).toBe(0);
+    expect(mrr.uncited).toBe(1);
+    const cac = autoCite("Blended CAC came in at A$250 last quarter.", items);
+    expect(cac.added).toBe(0);
+    expect(cac.uncited).toBe(1);
+    // The remembered "$290" the 11:34 showcase wrote is not in the band → stays uncited, never mis-cited.
+    const stale = autoCite("Pay the ASIC annual review fee of $290 on time.", items);
+    expect(stale.added).toBe(0);
+  });
+});
+
+describe("computed facts — G28-A sector entity count row", () => {
+  it("is present only when the AU market anchor matches an industry: SaaS text → 8,400 (≈8.4k) with the ABS source; unrelated text → no row", () => {
+    const withAnchor = computedFacts(input({ rawText: "A B2B SaaS platform for Australian accounting firms." }));
+    const row = withAnchor.find((f) => f.kind === "sector-entities")!;
+    expect(row).toBeDefined();
+    expect(row.label).toMatch(/^Sector entity count/);
+    expect(row.content).toContain("8,400 (≈8.4k) active Australian businesses in Software Publishing (SaaS) (ANZSIC J5810)");
+    expect(row.content).toMatch(/source: ABS, 8155\.0 [^)]+\(\d{4}\) https:\/\/www\.abs\.gov\.au/);
+    expect(row.content).toContain("any subset of it");
+    expect(row.provenance).toContain("ABS 8165.0");
+    // The market criterion text joins the lookup, as the dispatcher's anchor does.
+    expect(computedFacts(input({ rawText: "We help founders.", criteriaData: { market: { textInput: "Fintech payments for SMEs" } } })).find((f) => f.kind === "sector-entities")?.content).toContain("1,150 (≈1.2k)");
+    expect(computedFacts(input({ rawText: "We help founders raise capital." })).some((f) => f.kind === "sector-entities")).toBe(false);
+    expect(computedFacts(input()).some((f) => f.kind === "sector-entities")).toBe(false);
+    expect(sectorEntitiesFor({ rawText: "" })).toBeNull();
+    expect(sectorEntitiesFor({ rawText: "ANZSIC J5810 software" })?.anzsicCode).toBe("J5810");
+  });
+
+  it("the whole-industry count is cited to it (either spelling); a subset the writer derives ('roughly 1,400 entities') is not, and the declared-estimate form clears the gate", () => {
+    const rows = computedFactRows(input({ rawText: "A B2B SaaS platform for Australian accounting firms." }));
+    const items = itemsFromEvidenceRows(rows);
+    const ids = rows.map((r) => r.evidence_id);
+    const whole = autoCite("The sector holds 8,400 active Australian businesses on the ABS basis.", items);
+    expect(whole.added).toBe(1);
+    expect(whole.text).toContain(`[ev:${COMPUTED_FACT_IDS["sector-entities"]}]`);
+    // "8.4k" is not a material shape for the gate (no money / % / 4-digit count) — nothing to cite, nothing flagged.
+    const rounded = autoCite("Roughly 8.4k businesses operate in the SaaS sector.", items);
+    expect(rounded.material).toBe(0);
+    expect(rounded.uncited).toBe(0);
+    const subset = autoCite("The SAM is the subset that actively screens startups, roughly 1,400 entities.", items);
+    expect(subset.added).toBe(0);
+    expect(subset.uncited).toBe(1);
+    expect(findUncitedClaims(subset.text, ids)).toHaveLength(1);
+    const declared = "We estimate the subset that actively screens startups at roughly 1,400 entities (unevidenced).";
+    expect(findUncitedClaims(declared, ids)).toEqual([]);
+    // A count in a different topic ("8,400 sessions") never picks the row up.
+    const sessions = autoCite("GA4 recorded 8,400 sessions in August.", items);
+    expect(sessions.added).toBe(0);
+  });
+
+  it("formatCountBoth: exact + rounded k spelling above 1,000; exact below", () => {
+    expect(formatCountBoth(8_400)).toBe("8,400 (≈8.4k)");
+    expect(formatCountBoth(24_600)).toBe("24,600 (≈24.6k)");
+    expect(formatCountBoth(2_000)).toBe("2,000 (≈2k)");
+    expect(formatCountBoth(640)).toBe("640");
   });
 });
