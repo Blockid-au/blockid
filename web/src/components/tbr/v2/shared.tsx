@@ -195,9 +195,17 @@ export function WindowChip({ window, locale }: { window: ActionWindow; locale?: 
 // a consumer without an index still strips every marker (unknown ids
 // render nothing).
 
-/** Focus ring + a 44 px hit area drawn by the ::before pseudo-element (the glyph stays superscript-sized). */
-const CITE_LINK_CLASS =
-  "relative inline-block rounded px-0.5 font-semibold tabular-nums text-action no-underline underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 before:absolute before:-inset-x-4 before:-inset-y-3 before:content-['']";
+/**
+ * Focus ring + a true 44 × 44 px hit area drawn by the ::before pseudo-element,
+ * centred on the glyph (the glyph itself stays superscript-sized and the
+ * surrounding text does not move). Pinned by report.test.tsx (G24 UI lane:
+ * the earlier `-inset-y-3` box measured ~32 px tall at 12 px body copy).
+ */
+export const CITE_HIT_AREA_CLASS = "before:absolute before:left-1/2 before:top-1/2 before:h-11 before:w-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-['']";
+const CITE_LINK_CLASS = cn(
+  "relative inline-block rounded px-px font-semibold tabular-nums text-action no-underline underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400",
+  CITE_HIT_AREA_CLASS,
+);
 
 /** One footnote reference: `<sup><a href="#ev-n">n</a></sup>`; consecutive references share one <sup> ("1, 2"). */
 export function CiteSup({ cites, locale }: { cites: Array<Extract<CitationSegment, { kind: "cite" }>>; locale?: TbrUiLocale }) {
