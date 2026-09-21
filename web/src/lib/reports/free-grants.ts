@@ -238,6 +238,48 @@ export async function markDelivered(
   return (data as unknown as FreeReportGrantRow | null) ?? null;
 }
 
+/** Which of these analyses have a free grant (the cron's cap hold applies only to those). Empty set on failure (nothing held). */
+export async function grantedAnalysisIds(analysisIds: readonly string[]): Promise<Set<string>> {
+  const out = new Set<string>();
+  const ids = analysisIds.filter(Boolean).slice(0, 500);
+  if (ids.length === 0) return out;
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return out;
+  const { data, error } = await supabase.from(FREE_REPORT_GRANTS_TABLE).select("analysis_id").in("analysis_id", ids);
+  if (error) {
+    console.error("[free-grants:granted] query failed —", error.message);
+    return out;
+  }
+  for (const r of (data as Array<{ analysis_id: string | null }> | null) ?? []) if (r.analysis_id) out.add(r.analysis_id);
+  return out;
+}
+
+/** How long a reservation may sit with no analysis before it is treated as abandoned. */
+export const STALE_RESERVATION_MS = 60 * 60 * 1000;
+
+/**
+ * Give back reservations whose run never saved (a crash between reserve and
+ * save, or a release that failed). Called by the first-analysis cron. Returns
+ * the number removed; 0 on failure.
+ */
+export async function releaseStaleReservations(now: Date = new Date()): Promise<number> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return 0;
+  const before = new Date(now.getTime() - STALE_RESERVATION_MS).toISOString();
+  const { data, error } = await supabase
+    .from(FREE_REPORT_GRANTS_TABLE)
+    .delete()
+    .is("analysis_id", null)
+    .eq("delivery_status", "queued")
+    .lt("submitted_at", before)
+    .select("id");
+  if (error) {
+    console.error("[free-grants:stale] delete failed —", error.message);
+    return 0;
+  }
+  return ((data as unknown[] | null) ?? []).length;
+}
+
 /** The grant behind an analysis, if any. */
 export async function grantForAnalysis(analysisId: string): Promise<FreeReportGrantRow | null> {
   const supabase = getSupabaseAdmin();
@@ -304,6 +346,15 @@ export function resetFreeReportMetricsCache(): void {
 }
 
 /** Distinct grant addresses that later paid: a paid guest A$3 order, or a member's paid Trusted Business Report order. */
+/** PostgREST `in` filters ride on the URL — keep each chunk well under proxy limits (review 2026-09-21). */
+const IN_CHUNK = 200;
+
+function chunk<T>(items: readonly T[], size = IN_CHUNK): T[][] {
+  const out: T[][] = [];
+  for (let i = 0; i < items.length; i += size) out.push(items.slice(i, i + size));
+  return out;
+}
+
 async function countConvertedToPaid(emails: string[]): Promise<number> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return 0;
@@ -311,23 +362,25 @@ async function countConvertedToPaid(emails: string[]): Promise<number> {
   if (distinct.length === 0) return 0;
   const paid = new Set<string>();
   try {
-    const { data: guests } = await supabase
-      .from("guest_analyses")
-      .select("email")
-      .in("email", distinct)
-      .in("status", ["paid", "analyzing", "delivered"])
-      .limit(2000);
-    for (const g of (guests as Array<{ email: string }> | null) ?? []) paid.add(g.email.toLowerCase());
-    const { data: users } = await supabase.from("app_users").select("id, email").in("email", distinct).limit(2000);
     const byId = new Map<string, string>();
-    for (const u of (users as Array<{ id: string; email: string }> | null) ?? []) byId.set(u.id, u.email.toLowerCase());
-    if (byId.size > 0) {
+    for (const part of chunk(distinct)) {
+      const { data: guests } = await supabase
+        .from("guest_analyses")
+        .select("email")
+        .in("email", part)
+        .in("status", ["paid", "analyzing", "delivered"])
+        .limit(IN_CHUNK);
+      for (const g of (guests as Array<{ email: string }> | null) ?? []) paid.add(g.email.toLowerCase());
+      const { data: users } = await supabase.from("app_users").select("id, email").in("email", part).limit(IN_CHUNK);
+      for (const u of (users as Array<{ id: string; email: string }> | null) ?? []) byId.set(u.id, u.email.toLowerCase());
+    }
+    for (const ids of chunk(Array.from(byId.keys()))) {
       const { data: orders } = await supabase
         .from("report_orders")
         .select("user_id")
-        .in("user_id", Array.from(byId.keys()))
+        .in("user_id", ids)
         .in("status", ["PAID", "GENERATING", "READY", "EXPIRED"])
-        .limit(2000);
+        .limit(IN_CHUNK * 4);
       for (const o of (orders as Array<{ user_id: string }> | null) ?? []) {
         const e = byId.get(o.user_id);
         if (e) paid.add(e);

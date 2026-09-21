@@ -427,12 +427,26 @@ describe("POST /api/intake — free-allowance gate (G25-C): what the route does 
     expect(freeSubmittedMock.mock.calls[0][0]).toMatchObject({ grantId: "grant-1", sequenceNo: 1, source: "guest", queued: false, analysisId: "row-1", email: "founder@example.com" });
   });
 
-  it("hands the gate the body address, the honeypot, the client IP and the paid-guest flag", async () => {
+  it("hands the gate the body address, the honeypot and the client IP; tier=paid is NOT a bypass (review 2026-09-21)", async () => {
     await POST(req({ url: "https://example.com", tier: "paid", company_website: "" }, { ip: "9.9.9.9" }));
-    expect(gateMock.mock.calls[0][0]).toMatchObject({ user: null, bodyEmail: "founder@example.com", honeypot: "", paidGuest: true, clientIp: "9.9.9.9" });
+    expect(gateMock.mock.calls[0][0]).toEqual({ user: null, bodyEmail: "founder@example.com", honeypot: "", clientIp: "9.9.9.9" });
+    // the same free path as any run: grant attached, job started
+    expect(attachMock).toHaveBeenCalledWith("grant-1", "row-1");
+    expect(startJobMock).toHaveBeenCalledTimes(1);
     gateMock.mockClear();
-    await POST(req({ text: "an idea", tier: "paid" }));
-    expect(gateMock.mock.calls[0][0]).toMatchObject({ paidGuest: false });
+    gateState.result = { allow: false, status: 200, reason: "free_allowance_used", used: 2 };
+    const body = await json(await POST(req({ url: "https://example.com", tier: "paid" })));
+    expect(body.reason).toBe("free_allowance_used");
+    expect(analyzeInputMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("the anonymous run ceiling fires BEFORE the ledger is touched (a 429 never burns a free report)", async () => {
+    checkAnonRunLimitMock.mockReturnValue({ allowed: false, reason: "hour" });
+    const res = await POST(req({ text: "an idea" }, { ip: "9.9.9.9" }));
+    expect(res.status).toBe(429);
+    expect(gateMock).not.toHaveBeenCalled();
+    expect(attachMock).not.toHaveBeenCalled();
+    expect(releaseMock).not.toHaveBeenCalled();
   });
 
   it("a signed-in caller is handed to the gate with id, address and plan (the account's allowance)", async () => {
@@ -497,16 +511,6 @@ describe("POST /api/intake — free-allowance gate (G25-C): what the route does 
     expect(attachMock).toHaveBeenCalledWith("grant-1", "row-1");
     expect(startJobMock).not.toHaveBeenCalled();
     expect(freeSubmittedMock.mock.calls[0][0]).toMatchObject({ queued: true });
-  });
-
-  it("a paid guest (tier=paid + site URL) is classified but never started as a free job", async () => {
-    gateState.result = { allow: true, path: "paid_guest", email: "founder@example.com", source: "guest", grant: null, queued: false, remaining: 0 };
-    const body = await json(await POST(req({ url: "https://example.com", tier: "paid" })));
-    expect(body.ok).toBe(true);
-    expect(body.freeReport).toBeNull();
-    expect(analyzeInputMock).toHaveBeenCalledTimes(1);
-    expect(startJobMock).not.toHaveBeenCalled();
-    expect(attachMock).not.toHaveBeenCalled();
   });
 
   it("an entitled member runs as before, no grant, no freeReport block", async () => {

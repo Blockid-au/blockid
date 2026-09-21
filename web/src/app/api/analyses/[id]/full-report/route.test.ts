@@ -26,6 +26,7 @@ const enqueueMock = vi.fn();
 vi.mock("@/lib/analyses/first-analysis/store", () => ({
   loadFullReportRow: (id: string) => loadRowMock(id),
   enqueueFullReport: (id: string) => enqueueMock(id),
+  isNeverStarted: (r: { full_report_status: string | null; full_report_attempts: number | null }) => r.full_report_status === "queued" && (r.full_report_attempts ?? 0) === 0,
 }));
 
 const startMock = vi.fn();
@@ -34,11 +35,8 @@ vi.mock("@/lib/analyses/first-analysis/job", () => ({
 }));
 // G25-C — the daily free cap: a never-started row is held while it is reached.
 const capMock = vi.fn<() => Promise<boolean>>();
-vi.mock("@/lib/reports/free-grants", () => ({ freeReportsCapReached: () => capMock() }));
-vi.mock("@/lib/analyses/first-analysis/sweep", async () => {
-  const actual = await vi.importActual<typeof import("@/lib/analyses/first-analysis/sweep")>("@/lib/analyses/first-analysis/sweep");
-  return { isNeverStarted: actual.isNeverStarted };
-});
+const grantMock = vi.fn<() => Promise<{ id: string } | null>>();
+vi.mock("@/lib/reports/free-grants", () => ({ freeReportsCapReached: () => capMock(), grantForAnalysis: () => grantMock() }));
 
 import { GET, HELD_POLL_SEC, dynamic } from "./route";
 import { sampleReport, SAMPLE_ANALYSIS_ID } from "@/lib/analyses/first-analysis/fixtures";
@@ -75,6 +73,7 @@ describe("GET /api/analyses/[id]/full-report", () => {
     loadRowMock.mockResolvedValue(row());
     enqueueMock.mockResolvedValue(true);
     capMock.mockResolvedValue(false);
+    grantMock.mockResolvedValue({ id: "grant-1" });
   });
 
   // G25-C — FREE_REPORTS_DAILY_CAP: the poll must not start a run the intake route deferred.
@@ -91,6 +90,16 @@ describe("GET /api/analyses/[id]/full-report", () => {
     expect(body.heldForCap).toBe(true);
     expect(body.pollAfterSec).toBe(HELD_POLL_SEC);
     expect(body.status).toBe("queued");
+  });
+
+  it("the cap never holds an entitled row (no grant)", async () => {
+    capMock.mockResolvedValue(true);
+    grantMock.mockResolvedValue(null);
+    loadRowMock.mockResolvedValue(row({ user_id: "u1", full_report_status: "queued", full_report_attempts: 0, full_report_json: null }));
+    getCurrentUserMock.mockResolvedValue({ id: "u1" });
+    const body = await (await req()).json();
+    expect(startMock).toHaveBeenCalledWith(ID, { userId: "u1" });
+    expect(body.heldForCap).toBe(false);
   });
 
   it("the cap never holds a row that already ran (queued with attempts) and a cap read that throws never holds", async () => {

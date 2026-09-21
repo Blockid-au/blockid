@@ -68,7 +68,7 @@ function deps(over: Partial<FreeReportGateDeps> = {}): FreeReportGateDeps & { ca
   };
 }
 
-const guest = { user: null, honeypot: "", clientIp: "203.0.113.9", paidGuest: false, env: {} as NodeJS.ProcessEnv };
+const guest = { user: null, honeypot: "", clientIp: "203.0.113.9", env: {} as NodeJS.ProcessEnv };
 
 beforeEach(() => {
   vi.spyOn(console, "warn").mockImplementation(() => {});
@@ -150,10 +150,11 @@ describe("guest — the two free reports, then the quote", () => {
     expect(r).toMatchObject({ allow: true, queued: true });
   });
 
-  it("a paid guest (tier=paid + sellable input) is neither counted nor reserved", async () => {
-    const d = deps({ remaining: async () => ({ used: 2 }) });
-    const r = await runFreeReportGate({ ...guest, bodyEmail: "founder@example.com", paidGuest: true }, d);
-    expect(r).toMatchObject({ allow: true, path: "paid_guest", grant: null });
+  it("a non-string honeypot value (a JSON bot) is still a filled honeypot", async () => {
+    const d = deps();
+    for (const honeypot of [1, ["x"], { a: 1 }]) {
+      expect(await runFreeReportGate({ ...guest, bodyEmail: "founder@example.com", honeypot }, d)).toEqual({ allow: false, status: 400, reason: "honeypot" });
+    }
     expect(d.calls.record).toEqual([]);
   });
 });

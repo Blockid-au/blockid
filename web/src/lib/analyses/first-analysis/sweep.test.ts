@@ -11,7 +11,10 @@ vi.mock("./job", () => ({
   defaultDeps: vi.fn(),
   runFirstAnalysisJob: vi.fn(),
 }));
-vi.mock("./store", () => ({ sweepPendingFullReports: vi.fn() }));
+vi.mock("./store", () => ({
+  sweepPendingFullReports: vi.fn(),
+  isNeverStarted: (r: { full_report_status: string | null; full_report_attempts: number | null }) => r.full_report_status === "queued" && (r.full_report_attempts ?? 0) === 0,
+}));
 
 import { isNeverStarted, sweepFirstAnalysisReports, type SweepDeps } from "./sweep";
 import type { FullReportRow } from "./store";
@@ -78,8 +81,11 @@ describe("sweepFirstAnalysisReports", () => {
   });
 });
 
-// G25-C — the daily platform cap: never-started rows wait while the cap is
-// reached; in-flight / failed / partial rows and every e-mail keep going.
+
+// G25-C — the daily platform cap. The cron reads the cap once and asks the
+// store to hold never-started FREE rows (before the limit slice — see
+// store.test.ts); the summary lists what was held. Abandoned reservations
+// are given back every sweep.
 describe("sweepFirstAnalysisReports — FREE_REPORTS_DAILY_CAP (G25-C)", () => {
   const never = (id: string) => r(id, { full_report_status: "queued", full_report_attempts: 0 });
 
@@ -90,37 +96,42 @@ describe("sweepFirstAnalysisReports — FREE_REPORTS_DAILY_CAP (G25-C)", () => {
     expect(isNeverStarted({ full_report_status: "failed", full_report_attempts: 0 })).toBe(false);
   });
 
-  it("cap reached → never-started rows are held (listed in heldForCap), failed rows and e-mails still go", async () => {
+  it("cap reached → the store is asked to hold; held rows are reported, the rest run, e-mails still go", async () => {
     const d = { ...deps(), capReached: vi.fn().mockResolvedValue(true) };
-    (d.sweep as ReturnType<typeof vi.fn>).mockResolvedValue({ runnable: [never("new-1"), r("retry-1")], emailable: [r("mail-1", { full_report_status: "done" })] });
+    (d.sweep as ReturnType<typeof vi.fn>).mockResolvedValue({ runnable: [r("retry-1")], emailable: [r("mail-1", { full_report_status: "done" })], heldForCap: [never("new-1")] });
     const out = await sweepFirstAnalysisReports({}, d);
+    expect(d.sweep).toHaveBeenCalledWith({ limit: 5, holdNeverStartedFree: true });
     expect(out.heldForCap).toEqual(["new-1"]);
     expect(out.runnable.map((x) => x.id)).toEqual(["retry-1"]);
     expect(out.ran).toEqual([{ id: "retry-1", outcome: "done" }]);
     expect(out.emailed).toEqual([{ id: "mail-1", outcome: "sent" }]);
-    expect(d.run).toHaveBeenCalledTimes(1);
   });
 
-  it("cap not reached → everything runs; the cap is only read when a never-started row is waiting", async () => {
+  it("cap not reached → no hold requested; a cap read that throws never holds; no dep → no hold", async () => {
     const d = { ...deps(), capReached: vi.fn().mockResolvedValue(false) };
-    (d.sweep as ReturnType<typeof vi.fn>).mockResolvedValue({ runnable: [never("new-1")], emailable: [] });
+    (d.sweep as ReturnType<typeof vi.fn>).mockResolvedValue({ runnable: [never("new-1")], emailable: [], heldForCap: [] });
     let out = await sweepFirstAnalysisReports({}, d);
+    expect(d.sweep).toHaveBeenCalledWith({ limit: 5, holdNeverStartedFree: false });
     expect(out.heldForCap).toEqual([]);
     expect(out.ran).toEqual([{ id: "new-1", outcome: "done" }]);
-    expect(d.capReached).toHaveBeenCalledTimes(1);
-    d.capReached.mockClear();
-    (d.sweep as ReturnType<typeof vi.fn>).mockResolvedValue({ runnable: [r("retry-1")], emailable: [] });
+    d.capReached.mockRejectedValue(new Error("db"));
     out = await sweepFirstAnalysisReports({}, d);
-    expect(d.capReached).not.toHaveBeenCalled();
-    expect(out.ran).toEqual([{ id: "retry-1", outcome: "done" }]);
-  });
-
-  it("a cap read that throws never holds anything (fail open); no capReached dep → nothing held", async () => {
-    const d = { ...deps(), capReached: vi.fn().mockRejectedValue(new Error("db")) };
-    (d.sweep as ReturnType<typeof vi.fn>).mockResolvedValue({ runnable: [never("new-1")], emailable: [] });
-    expect((await sweepFirstAnalysisReports({}, d)).ran).toEqual([{ id: "new-1", outcome: "done" }]);
+    expect(d.sweep).toHaveBeenLastCalledWith({ limit: 5, holdNeverStartedFree: false });
     const plain = deps();
     (plain.sweep as ReturnType<typeof vi.fn>).mockResolvedValue({ runnable: [never("new-2")], emailable: [] });
-    expect((await sweepFirstAnalysisReports({}, plain)).heldForCap).toEqual([]);
+    out = await sweepFirstAnalysisReports({}, plain);
+    expect(plain.sweep).toHaveBeenCalledWith({ limit: 5, holdNeverStartedFree: false });
+    expect(out.heldForCap).toEqual([]);
+  });
+
+  it("gives abandoned reservations back (not on a dry run); a failing release never breaks the sweep", async () => {
+    const d = { ...deps(), releaseStale: vi.fn().mockResolvedValue(3) };
+    expect((await sweepFirstAnalysisReports({ dryRun: true }, d)).staleReleased).toBe(0);
+    expect(d.releaseStale).not.toHaveBeenCalled();
+    expect((await sweepFirstAnalysisReports({}, d)).staleReleased).toBe(3);
+    d.releaseStale.mockRejectedValue(new Error("db"));
+    const out = await sweepFirstAnalysisReports({}, d);
+    expect(out.ok).toBe(true);
+    expect(out.staleReleased).toBe(0);
   });
 });

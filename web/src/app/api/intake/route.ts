@@ -62,7 +62,6 @@ import {
 import { deriveCompactSvi, type CompactSvi } from "@/lib/analyses/payload";
 import { emitFreeReportSubmitted, emitScoreComputed, emitSviAnalyze } from "@/lib/analytics/funnel";
 import { emitDeckUploaded, emitWebsiteImported } from "@/lib/analytics/fi-events";
-import { isPaidSellableInput } from "@/lib/analyses/signup-gate";
 import { apiRoute } from "@/lib/audit/api-route";
 import { startFirstAnalysisJob } from "@/lib/analyses/first-analysis/job";
 import { parseMultipart } from "@/lib/http/multipart";
@@ -307,26 +306,12 @@ async function POST_handler(request: Request) {
   // prior saved runs; skipped for a signed-in or un-cookied caller.
   const priorRuns =
     authenticated || !anonKey ? 0 : await countAnonRunsInWindow(anonKey);
-  const gate = await runFreeReportGate({
-    user: userId && userEmail ? { id: userId, email: userEmail, plan: userPlan } : null,
-    bodyEmail: body.email,
-    honeypot: body[FREE_REPORT_HONEYPOT_FIELD],
-    clientIp: clientIpFromHeaders(request.headers),
-    paidGuest:
-      body.tier === "paid" &&
-      isPaidSellableInput({ hasFile: Boolean(file), url: body.url, text: body.text }),
-  });
-  if (!gate.allow) return gatedResponse(gate);
-  // A guest's address rides on the row so the job e-mails the PDF and the
-  // page is never locked; a signed-in run resolves the account address at
-  // delivery (nothing to stamp).
-  const guestEmail = gate.source === "guest" ? gate.email : null;
 
-  // Defence in depth. The gate above is keyed to a cookie and cookies can be
-  // cleared, so an IP ceiling sits behind it — otherwise one person could
-  // loop "run #1" indefinitely by clearing site data between runs. Generous
-  // enough that a real founder never meets it, and skipped entirely for a
-  // signed-in caller whose spend is governed by credits.
+  // Defence in depth, BEFORE the ledger is touched (review 2026-09-21: a
+  // 429 after the reservation would burn one of the address's two free
+  // reports for nothing). The per-network ceiling stops one person looping
+  // runs by clearing site data between them. Generous enough that a real
+  // founder never meets it, and skipped entirely for a signed-in caller.
   if (!authenticated) {
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
@@ -343,6 +328,18 @@ async function POST_handler(request: Request) {
       );
     }
   }
+
+  const gate = await runFreeReportGate({
+    user: userId && userEmail ? { id: userId, email: userEmail, plan: userPlan } : null,
+    bodyEmail: body.email,
+    honeypot: body[FREE_REPORT_HONEYPOT_FIELD],
+    clientIp: clientIpFromHeaders(request.headers),
+  });
+  if (!gate.allow) return gatedResponse(gate);
+  // A guest's address rides on the row so the job e-mails the PDF and the
+  // page is never locked; a signed-in run resolves the account address at
+  // delivery (nothing to stamp).
+  const guestEmail = gate.source === "guest" ? gate.email : null;
 
   try {
     const result = await analyzeInput({
@@ -436,9 +433,8 @@ async function POST_handler(request: Request) {
     // G25-C: it starts NOW on the free path and the entitled path. Over the
     // daily platform cap (`gate.queued`) the row stays `queued` and the
     // first-analysis cron starts it when the cap allows — the visitor is
-    // told "we e-mail you when it is ready". A paid guest's row is not
-    // started here at all: the A$3 guest pipeline delivers their report.
-    const startNow = Boolean(analysisId) && gate.path !== "paid_guest" && !gate.queued;
+    // told "we e-mail you when it is ready".
+    const startNow = Boolean(analysisId) && !gate.queued;
     if (analysisId && startNow) {
       try {
         startFirstAnalysisJob(analysisId, { userId });

@@ -430,16 +430,13 @@ export function AnalyzeRoot({
     setSubmission(sub);
     setErrorMsg(null);
     // G25-C — a guest is asked where the report goes BEFORE anything runs.
-    // The address is remembered on this browser, so only the first run on
-    // a device shows the panel; the run itself is parked and resumes with
-    // the same auto-run decision it arrived with.
+    // The panel is ALWAYS shown to a guest (pre-filled with the address
+    // remembered on this browser, so the second run is one click) — never
+    // sent silently: on a shared machine the previous visitor's inbox must
+    // not receive this startup's report (review 2026-09-21). The run is
+    // parked and resumes with the same auto-run decision it arrived with.
     const isGuest = authenticated !== true;
-    const guest: GuestIdentity | null = isGuest
-      ? (opts?.guest ?? (() => {
-          const known = reportEmail ?? rememberedEmail();
-          return known ? { email: known, honeypot: "" } : null;
-        })())
-      : null;
+    const guest: GuestIdentity | null = isGuest ? (opts?.guest ?? null) : null;
     if (isGuest && !guest) {
       pendingAutoRunRef.current = opts?.autoRun;
       setAwaitingHandoff(false);
@@ -450,15 +447,17 @@ export function AnalyzeRoot({
     try {
       const res = await postIntake(sub, tier, guest);
       if (res.status === 400 && isGuest) {
-        // The address did not pass the server (required / invalid /
-        // disposable) — back to the ask with the server's reason.
+        // Only an address verdict (required / invalid / disposable) goes back
+        // to the ask; any other 400 (a malformed body) is the generic error.
         const body = (await res.json().catch(() => null)) as { reason?: string } | null;
         const reason = body?.reason ?? "";
-        setEmailError(reason === "email_disposable" ? "disposable" : reason === "email_required" ? "required" : "invalid");
-        pendingAutoRunRef.current = opts?.autoRun;
-        setPhase("email");
-        setIntakeLoading(false);
-        return;
+        if (reason === "email_required" || reason === "email_invalid" || reason === "email_disposable") {
+          setEmailError(reason === "email_disposable" ? "disposable" : reason === "email_required" ? "required" : "invalid");
+          pendingAutoRunRef.current = opts?.autoRun;
+          setPhase("email");
+          setIntakeLoading(false);
+          return;
+        }
       }
       if (res.status === 429) {
         const body = (await res.json().catch(() => null)) as { reason?: string } | null;

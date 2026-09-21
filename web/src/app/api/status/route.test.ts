@@ -1022,6 +1022,8 @@ describe("public payload redaction", () => {
   });
 
   it("G25-C: the free_reports block is absent from the public payload", async () => {
+    process.env.STATUS_FULL_TOKEN = "";
+    process.env.CRON_SECRET = "";
     const { body } = await callGet();
     expect(body as unknown as Record<string, unknown>).not.toHaveProperty("free_reports");
   });

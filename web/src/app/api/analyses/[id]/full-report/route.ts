@@ -28,8 +28,8 @@ import { getAnalysisForViewer } from "@/lib/analyses/store";
 import { enqueueFullReport, loadFullReportRow } from "@/lib/analyses/first-analysis/store";
 import { startFirstAnalysisJob } from "@/lib/analyses/first-analysis/job";
 import { buildFullReportView } from "@/lib/analyses/first-analysis/view";
-import { isNeverStarted } from "@/lib/analyses/first-analysis/sweep";
-import { freeReportsCapReached } from "@/lib/reports/free-grants";
+import { isNeverStarted } from "@/lib/analyses/first-analysis/store";
+import { freeReportsCapReached, grantForAnalysis } from "@/lib/reports/free-grants";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -80,10 +80,11 @@ export async function GET(
     // claim makes a duplicate start harmless. G25-C: a never-started row
     // while today's free cap is reached is the intake route's deferral
     // ("we e-mail you when it is ready") — the cron starts it tomorrow, the
-    // poll must not start it now.
+    // poll must not start it now. Only a FREE row (one with a grant) is
+    // ever held — an entitled member's row is kicked regardless.
     if (isNeverStarted(row)) {
       try {
-        heldForCap = await freeReportsCapReached();
+        heldForCap = (await freeReportsCapReached()) && Boolean(await grantForAnalysis(id));
       } catch {
         heldForCap = false;
       }

@@ -62,8 +62,6 @@ export interface FreeReportGateContext {
   honeypot: unknown;
   /** The hop our edge saw (lib/iphash clientIpFromHeaders) — hashed here, never stored raw. */
   clientIp: string | null;
-  /** `?tier=paid` with a sellable input: the guest is heading for the A$3 guest checkout — no free grant, no free run. */
-  paidGuest: boolean;
   now?: Date;
   env?: NodeJS.ProcessEnv;
 }
@@ -92,7 +90,7 @@ export type FreeReportGateResult =
   | {
       allow: true;
       /** Which path the run takes. */
-      path: "free" | "entitled" | "paid_guest";
+      path: "free" | "entitled";
       /** The destination the PDF goes to (guest: the given address; account: the account address). */
       email: string;
       source: FreeReportSource;
@@ -132,7 +130,8 @@ export async function runFreeReportGate(
 
   // Honeypot: a filled hidden field is a bot. Refuse quietly — the shape is
   // the "invalid" one so nothing tells the bot which field gave it away.
-  if (typeof ctx.honeypot === "string" && ctx.honeypot.trim().length > 0) {
+  // Any non-empty value counts (a JSON bot may send a number or an array).
+  if (ctx.honeypot !== undefined && ctx.honeypot !== null && String(ctx.honeypot).trim().length > 0) {
     console.warn(`[free-report-gate] honeypot "${FREE_REPORT_HONEYPOT_FIELD}" filled — refused`);
     return { allow: false, status: 400, reason: "honeypot" };
   }
@@ -156,11 +155,12 @@ export async function runFreeReportGate(
     source = "guest";
   }
 
-  // A guest heading for the A$3 guest checkout: the intake only classifies,
-  // the paid pipeline delivers. No free grant is spent and no free run starts.
-  if (!ctx.user && ctx.paidGuest) {
-    return { allow: true, path: "paid_guest", email, source, grant: null, queued: false, remaining: 0 };
-  }
+  // NOTE (review 2026-09-21): `?tier=paid` is NOT a bypass. Before G25-C the
+  // signup gate let a "paid guest" straight through and the S32 job then ran
+  // the full report for free; with the address now required on every guest
+  // run, a tier=paid submission is counted like any other — its third run
+  // is the quote, and the A$3 guest checkout is a separate purchase that
+  // never depends on this run.
 
   // A paid report entitlement is never counted against the allowance.
   if (ctx.user) {

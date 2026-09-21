@@ -28,7 +28,7 @@ function fakeClient() {
         db.ops.push({ table, op, args });
         return chain;
       };
-      for (const op of ["select", "insert", "update", "delete", "eq", "is", "in", "gte", "order", "limit", "maybeSingle", "single"]) chain[op] = self(op);
+      for (const op of ["select", "insert", "update", "delete", "eq", "is", "in", "gte", "lt", "order", "limit", "maybeSingle", "single"]) chain[op] = self(op);
       chain.then = (res: (v: unknown) => void) => {
         const error = nextError();
         if (error) return res({ data: null, count: null, error });
@@ -47,6 +47,8 @@ import {
   countIpFreeReportsToday,
   freeReportsCapReached,
   grantForAnalysis,
+  grantedAnalysisIds,
+  releaseStaleReservations,
   hashReportEmail,
   markDelivered,
   readFreeReportMetrics,
@@ -168,6 +170,29 @@ describe("attachAnalysis / releaseGrant / markDelivered / grantForAnalysis", () 
     db.tables.free_report_grants = { rows: [] };
     expect(await grantForAnalysis("a9")).toBeNull();
     expect(await markDelivered("a9", "sent")).toBeNull();
+  });
+});
+
+describe("grantedAnalysisIds / releaseStaleReservations (review 2026-09-21)", () => {
+  it("answers the ids that carry a grant; empty on failure / no ids", async () => {
+    db.tables.free_report_grants = { rows: [{ analysis_id: "a1" }, { analysis_id: "a3" }, { analysis_id: null }] };
+    expect(Array.from(await grantedAnalysisIds(["a1", "a2", "a3"])).sort()).toEqual(["a1", "a3"]);
+    expect(db.ops.find((o) => o.op === "in")?.args).toEqual(["analysis_id", ["a1", "a2", "a3"]]);
+    expect((await grantedAnalysisIds([])).size).toBe(0);
+    db.tables.free_report_grants = { error: { message: "boom" } };
+    expect((await grantedAnalysisIds(["a1"])).size).toBe(0);
+  });
+
+  it("releases only unattached, queued reservations older than an hour", async () => {
+    db.tables.free_report_grants = { rows: [{ id: "g1" }, { id: "g2" }] };
+    const now = new Date("2026-09-21T12:00:00.000Z");
+    expect(await releaseStaleReservations(now)).toBe(2);
+    expect(db.ops.map((o) => o.op)).toEqual(["delete", "is", "eq", "lt", "select"]);
+    expect(db.ops[1].args).toEqual(["analysis_id", null]);
+    expect(db.ops[2].args).toEqual(["delivery_status", "queued"]);
+    expect(db.ops[3].args).toEqual(["submitted_at", "2026-09-21T11:00:00.000Z"]);
+    db.tables.free_report_grants = { error: { message: "boom" } };
+    expect(await releaseStaleReservations(now)).toBe(0);
   });
 });
 
