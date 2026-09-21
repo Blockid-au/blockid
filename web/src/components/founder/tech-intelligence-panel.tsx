@@ -130,11 +130,11 @@ interface SubScoreBarProps {
 function SubScoreBar({ label, value }: SubScoreBarProps) {
   return (
     <div className="space-y-1">
-      <div className="flex justify-between text-xs font-medium text-gray-600 dark:text-gray-400">
+      <div className="flex justify-between text-xs font-medium text-gray-600">
         <span>{label}</span>
         <span>{value}</span>
       </div>
-      <div className="h-2 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${progressBarColor(value)}`}
           style={{ width: `${value}%` }}
@@ -154,8 +154,8 @@ function SignalChip({ label, active }: SignalChipProps) {
     <span
       className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium border ${
         active
-          ? "bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-700"
-          : "bg-gray-50 dark:bg-gray-800 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-700 line-through"
+          ? "bg-green-50 text-green-700 border-green-200"
+          : "bg-gray-50 text-gray-400 border-gray-200 line-through"
       }`}
     >
       {active ? "✓" : "✗"} {label}
@@ -245,14 +245,14 @@ export function TechIntelligencePanel({
     <div className={`space-y-6 ${className}`}>
       {/* Header */}
       <div>
-        <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">{c.title}</h2>
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{c.subtitle}</p>
+        <h2 className="text-lg font-semibold text-gray-900">{c.title}</h2>
+        <p className="text-sm text-gray-500 mt-0.5">{c.subtitle}</p>
       </div>
 
       {/* Input form */}
-      <div className="space-y-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+      <div className="space-y-3 bg-white border border-gray-200 rounded-xl p-4">
         <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+          <label className="block text-xs font-medium text-gray-600 mb-1">
             {c.websiteLabel}
           </label>
           <input
@@ -260,12 +260,12 @@ export function TechIntelligencePanel({
             value={websiteUrl}
             onChange={(e) => setWebsiteUrl(e.target.value)}
             placeholder={c.websitePlaceholder}
-            className="w-full text-sm px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={readOnly || status === "loading"}
           />
         </div>
         <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+          <label className="block text-xs font-medium text-gray-600 mb-1">
             {c.githubLabel}
           </label>
           <input
@@ -273,7 +273,7 @@ export function TechIntelligencePanel({
             value={githubUrl}
             onChange={(e) => setGithubUrl(e.target.value)}
             placeholder={c.githubPlaceholder}
-            className="w-full text-sm px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full text-sm px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={readOnly || status === "loading"}
           />
         </div>
@@ -286,7 +286,7 @@ export function TechIntelligencePanel({
           {status === "loading" ? c.loadingSteps[loadingStep] : c.analyseButton}
         </button>
         {status === "error" && error && (
-          <p className="text-xs text-red-600 dark:text-red-400">{error}</p>
+          <p className="text-xs text-red-600">{error}</p>
         )}
       </div>
 
@@ -299,7 +299,7 @@ export function TechIntelligencePanel({
             <div
               className={`flex flex-col items-center justify-center w-24 h-24 rounded-2xl border-4 ${scoreRingColor(result.techScore)}`}
             >
-              <span className="text-3xl font-bold text-gray-900 dark:text-gray-100">
+              <span className="text-3xl font-bold text-gray-900">
                 {result.techScore}
               </span>
               <span className={`text-xs font-medium px-2 py-0.5 rounded-full mt-1 ${scoreColor(result.techScore)}`}>
@@ -307,12 +307,12 @@ export function TechIntelligencePanel({
               </span>
             </div>
             <div className="space-y-2">
-              <span className="inline-block bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-700 text-xs font-semibold px-3 py-1 rounded-full">
+              <span className="inline-block bg-blue-50 text-blue-700 border border-blue-200 text-xs font-semibold px-3 py-1 rounded-full">
                 {c.sviContribution}: +{result.sviContribution} pts
               </span>
               <br />
               {result.valuationMultiplierBoost > 0 && (
-                <span className="inline-block bg-cyan-50 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-700 text-xs font-semibold px-3 py-1 rounded-full">
+                <span className="inline-block bg-cyan-50 text-cyan-700 border border-cyan-200 text-xs font-semibold px-3 py-1 rounded-full">
                   {c.valuationBoost}: +{result.valuationMultiplierBoost}%
                 </span>
               )}
@@ -320,7 +320,7 @@ export function TechIntelligencePanel({
           </div>
 
           {/* Sub-scores */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
+          <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
             <SubScoreBar label={c.subScores.techMaturity} value={result.llmAssessment.techMaturity} />
             <SubScoreBar label={c.subScores.productPresence} value={result.llmAssessment.productPresence} />
             <SubScoreBar label={c.subScores.developerActivity} value={result.llmAssessment.developerActivity} />
@@ -328,8 +328,8 @@ export function TechIntelligencePanel({
           </div>
 
           {/* Website signal chips */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
-            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+          <div className="bg-white border border-gray-200 rounded-xl p-4">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
               {c.websiteSignals}
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -344,7 +344,7 @@ export function TechIntelligencePanel({
                 {result.websiteSignals.techStack.map((t) => (
                   <span
                     key={t}
-                    className="px-2 py-0.5 text-xs rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-medium border border-gray-200 dark:border-gray-700"
+                    className="px-2 py-0.5 text-xs rounded bg-gray-100 text-gray-600 font-medium border border-gray-200"
                   >
                     {t}
                   </span>
@@ -354,8 +354,8 @@ export function TechIntelligencePanel({
           </div>
 
           {/* GitHub signals */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
-            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+          <div className="bg-white border border-gray-200 rounded-xl p-4">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
               {c.githubSignals}
             </h3>
             {result.githubSignals ? (
@@ -369,7 +369,7 @@ export function TechIntelligencePanel({
                     active={!!result.githubSignals.license}
                   />
                 </div>
-                <div className="flex flex-wrap gap-3 text-xs text-gray-500 dark:text-gray-400 mt-2">
+                <div className="flex flex-wrap gap-3 text-xs text-gray-500 mt-2">
                   <span>⭐ {result.githubSignals.stars} {c.stars}</span>
                   <span>
                     {c.lastCommit}:{" "}
@@ -377,7 +377,7 @@ export function TechIntelligencePanel({
                       className={
                         result.githubSignals.commitFrequency === "inactive"
                           ? "text-red-500"
-                          : "text-green-600 dark:text-green-400"
+                          : "text-green-600"
                       }
                     >
                       {result.githubSignals.lastCommitDays} {c.daysAgo} ({result.githubSignals.commitFrequency})
@@ -389,7 +389,7 @@ export function TechIntelligencePanel({
                     {result.githubSignals.languages.slice(0, 6).map((lang) => (
                       <span
                         key={lang}
-                        className="px-2 py-0.5 text-xs rounded bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-700 font-medium"
+                        className="px-2 py-0.5 text-xs rounded bg-indigo-50 text-indigo-700 border border-indigo-200 font-medium"
                       >
                         {lang}
                       </span>
@@ -398,24 +398,24 @@ export function TechIntelligencePanel({
                 )}
               </div>
             ) : (
-              <p className="text-xs text-gray-400 dark:text-gray-500 italic">{c.noGitHub}</p>
+              <p className="text-xs text-gray-400 italic">{c.noGitHub}</p>
             )}
           </div>
 
           {/* AI Assessment */}
-          <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
-            <h3 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
+          <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
               {c.aiSummary}
             </h3>
-            <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+            <p className="text-sm text-gray-700 leading-relaxed">
               {result.llmAssessment.summary}
             </p>
             {result.llmAssessment.strengths.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-green-700 dark:text-green-400 mb-1">{c.strengths}</p>
+                <p className="text-xs font-semibold text-green-700 mb-1">{c.strengths}</p>
                 <ul className="space-y-1">
                   {result.llmAssessment.strengths.map((s, i) => (
-                    <li key={i} className="text-xs text-gray-600 dark:text-gray-300 flex gap-2">
+                    <li key={i} className="text-xs text-gray-600 flex gap-2">
                       <span className="text-green-500 shrink-0">•</span>
                       {s}
                     </li>
@@ -425,10 +425,10 @@ export function TechIntelligencePanel({
             )}
             {result.llmAssessment.gaps.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">{c.gaps}</p>
+                <p className="text-xs font-semibold text-amber-700 mb-1">{c.gaps}</p>
                 <ul className="space-y-1">
                   {result.llmAssessment.gaps.map((g, i) => (
-                    <li key={i} className="text-xs text-gray-600 dark:text-gray-300 flex gap-2">
+                    <li key={i} className="text-xs text-gray-600 flex gap-2">
                       <span className="text-amber-500 shrink-0">•</span>
                       {g}
                     </li>

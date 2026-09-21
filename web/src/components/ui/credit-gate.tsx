@@ -221,7 +221,7 @@ export function CreditGate({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-ink-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto py-8">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-strong/50 backdrop-blur-sm animate-fade-in overflow-y-auto py-8">
       <div className="relative mx-4 w-full max-w-md rounded-2xl border border-surface-200 bg-white shadow-2xl">
         {/* Close button */}
         <button

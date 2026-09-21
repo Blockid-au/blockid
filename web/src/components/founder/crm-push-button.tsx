@@ -107,13 +107,13 @@ export function CrmPushButton({ locale = "en", className = "" }: CrmPushButtonPr
         onClick={handlePush}
         disabled={isLoading}
         className={[
-          "inline-flex items-center gap-2 rounded-md px-4 py-2 text-sm font-medium transition-colors",
+          "inline-flex items-center gap-2 rounded-md px-4 py-2 min-h-11 text-sm font-medium transition-colors",
           "border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
           status === "success"
-            ? "bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-500"
+            ? "bg-bull text-on-action hover:opacity-90 focus-visible:ring-bull"
             : status === "error"
-              ? "bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500"
-              : "bg-ink-900 text-white hover:bg-ink-700 dark:bg-ink-100 dark:text-ink-900 dark:hover:bg-white focus-visible:ring-ink-500",
+              ? "bg-bear text-on-action hover:opacity-90 focus-visible:ring-bear"
+              : "bg-action text-on-action hover:bg-action-hover focus-visible:ring-action",
           isLoading ? "opacity-60 cursor-not-allowed" : "cursor-pointer",
         ].join(" ")}
         aria-busy={isLoading}
@@ -156,12 +156,12 @@ export function CrmPushButton({ locale = "en", className = "" }: CrmPushButtonPr
 
       {/* Error message */}
       {status === "error" && errorMsg && (
-        <p className="text-xs text-red-600 dark:text-red-400">{errorMsg}</p>
+        <p className="text-xs text-red-600">{errorMsg}</p>
       )}
 
       {/* Success timestamp */}
       {status === "success" && pushedAt && (
-        <p className="text-xs text-emerald-600 dark:text-emerald-400">
+        <p className="text-xs text-emerald-600">
           {locale === "vi" ? "Đẩy lúc" : "Pushed at"}{" "}
           {new Date(pushedAt).toLocaleTimeString()}
         </p>

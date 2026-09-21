@@ -231,7 +231,7 @@ export function ConnectButtons({ evidence, onEvidenceAdded, onOpenWizard }: Conn
       {/* URL input modal */}
       {urlModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => { setUrlModalOpen(false); setUrlError(null); }} />
+          <div className="absolute inset-0 bg-strong/50 backdrop-blur-sm" onClick={() => { setUrlModalOpen(false); setUrlError(null); }} />
           <div className="relative w-full max-w-md rounded-2xl border border-surface-200 bg-white shadow-2xl p-6">
             <div className="flex items-center justify-between mb-4">
               <div>
