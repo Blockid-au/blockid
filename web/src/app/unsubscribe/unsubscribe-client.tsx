@@ -139,32 +139,32 @@ export function UnsubscribeClient({
   }
 
   return (
-    <div className="min-h-svh bg-[#0B1220] flex items-center justify-center px-4 py-12">
+    <div className="min-h-svh bg-surface-sunken flex items-center justify-center px-4 py-12">
       <div className="max-w-md w-full">
         {/* Header */}
         <div className="text-center mb-6">
-          <p className="text-[11px] tracking-[0.2em] uppercase text-[#3B7DD8] font-medium mb-2">
+          <p className="text-[11px] tracking-[0.2em] uppercase text-accent font-medium mb-2">
             BlockID
           </p>
-          <h1 className="text-2xl font-semibold text-[#F8FAFC] mb-2">
+          <h1 className="text-2xl font-semibold text-primary mb-2">
             Email Preferences
           </h1>
-          <p className="text-[#94A3B8] text-sm">
+          <p className="text-secondary text-sm">
             Managing preferences for{" "}
-            <span className="text-[#F8FAFC] font-medium">{maskedEmail}</span>
+            <span className="text-primary font-medium">{maskedEmail}</span>
           </p>
         </div>
 
         {/* ── Thank-you / Done banner ── */}
         {showDone && !prefs.unsubscribed_all && (
-          <div className="bg-[#0F172A] border border-[#1F2A44] rounded-xl p-5 mb-4 text-center">
+          <div className="bg-surface border border-line-subtle rounded-xl p-5 mb-4 text-center">
             <div className="text-2xl mb-2">{category ? "\u{2705}" : "\u{1F44B}"}</div>
-            <p className="text-[#4ADE80] text-sm font-medium mb-1">
+            <p className="text-bull text-sm font-medium mb-1">
               {category
                 ? `You've been unsubscribed from ${CATEGORY_LABELS[category]?.label ?? category}.`
                 : "Your preferences have been updated."}
             </p>
-            <p className="text-[#94A3B8] text-xs">
+            <p className="text-secondary text-xs">
               You can adjust individual categories below at any time.
             </p>
           </div>
@@ -172,25 +172,25 @@ export function UnsubscribeClient({
 
         {/* ── Global unsubscribe: Thank-you farewell ── */}
         {prefs.unsubscribed_all && (
-          <div className="bg-[#0F172A] border border-[#1F2A44] rounded-2xl overflow-hidden mb-4">
+          <div className="bg-surface border border-line-subtle rounded-2xl overflow-hidden mb-4">
             {/* Farewell hero */}
-            <div className="px-6 py-8 text-center border-b border-[#1F2A44]">
+            <div className="px-6 py-8 text-center border-b border-line-subtle">
               <div className="text-4xl mb-3">{"\u{1F44B}"}</div>
-              <h2 className="text-lg font-semibold text-[#F8FAFC] mb-2">
+              <h2 className="text-lg font-semibold text-primary mb-2">
                 We&rsquo;re sorry to see you go
               </h2>
-              <p className="text-[#94A3B8] text-sm leading-relaxed mb-4">
+              <p className="text-secondary text-sm leading-relaxed mb-4">
                 You&rsquo;ve been unsubscribed from all emails. You&rsquo;ll only receive
                 essential transactional emails (payment receipts) going forward.
               </p>
-              <p className="text-[#64748B] text-xs">
+              <p className="text-muted text-xs">
                 Your account and data remain intact. You can sign in and use BlockID anytime.
               </p>
             </div>
 
             {/* What you'll miss */}
-            <div className="px-6 py-5 border-b border-[#1F2A44]">
-              <p className="text-[11px] uppercase tracking-[0.15em] text-[#64748B] font-medium mb-3">
+            <div className="px-6 py-5 border-b border-line-subtle">
+              <p className="text-[11px] uppercase tracking-[0.15em] text-muted font-medium mb-3">
                 What you&rsquo;ll miss
               </p>
               <ul className="space-y-2">
@@ -199,8 +199,8 @@ export function UnsubscribeClient({
                   "Evidence reminders that boost your startup's valuation",
                   "New features and founder-exclusive offers",
                 ].map((item) => (
-                  <li key={item} className="flex items-start gap-2 text-xs text-[#94A3B8]">
-                    <span className="text-[#FBBF24] shrink-0 mt-px">{"\u{2022}"}</span>
+                  <li key={item} className="flex items-start gap-2 text-xs text-secondary">
+                    <span className="text-warn shrink-0 mt-px">{"\u{2022}"}</span>
                     {item}
                   </li>
                 ))}
@@ -208,15 +208,15 @@ export function UnsubscribeClient({
             </div>
 
             {/* Alternative: Reduce to digest */}
-            <div className="px-6 py-5 border-b border-[#1F2A44] text-center">
-              <p className="text-xs text-[#94A3B8] mb-3">
+            <div className="px-6 py-5 border-b border-line-subtle text-center">
+              <p className="text-xs text-secondary mb-3">
                 Too many emails? Try just the weekly digest instead.
               </p>
               <button
                 type="button"
                 onClick={reduceToDigest}
                 disabled={saving}
-                className="inline-block bg-[#1F2A44] text-[#F8FAFC] font-medium text-sm px-5 py-2.5 rounded-lg hover:bg-[#2a3a5c] transition-colors disabled:opacity-50 cursor-pointer border border-[#3B7DD8]/30"
+                className="inline-block bg-surface-sunken text-primary font-medium text-sm px-5 py-2.5 rounded-lg hover:bg-surface-hover transition-colors disabled:opacity-50 cursor-pointer border border-action/30"
               >
                 {saving ? "Saving..." : "Switch to weekly digest only"}
               </button>
@@ -228,7 +228,7 @@ export function UnsubscribeClient({
                 type="button"
                 onClick={resubscribeAll}
                 disabled={saving}
-                className="inline-block bg-[#3B7DD8] text-white font-semibold text-sm px-6 py-2.5 rounded-lg hover:bg-[#3B7DD8]/90 transition-colors disabled:opacity-50 cursor-pointer"
+                className="inline-block bg-action text-on-action font-semibold text-sm px-6 py-2.5 rounded-lg hover:bg-action-hover transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {saving ? "Saving..." : "Resubscribe to all emails"}
               </button>
@@ -238,9 +238,9 @@ export function UnsubscribeClient({
 
         {/* ── Feedback collection (shown after global unsubscribe) ── */}
         {prefs.unsubscribed_all && !feedbackSent && (
-          <div className="bg-[#0F172A] border border-[#1F2A44] rounded-2xl p-5 mb-4">
-            <p className="text-sm font-medium text-[#F8FAFC] mb-1">Help us improve</p>
-            <p className="text-xs text-[#94A3B8] mb-4">
+          <div className="bg-surface border border-line-subtle rounded-2xl p-5 mb-4">
+            <p className="text-sm font-medium text-primary mb-1">Help us improve</p>
+            <p className="text-xs text-secondary mb-4">
               Your feedback helps us send better, more relevant emails. Optional but appreciated.
             </p>
 
@@ -252,17 +252,17 @@ export function UnsubscribeClient({
                   onClick={() => setFeedbackReason(r.id)}
                   className={`w-full flex items-center gap-3 rounded-lg border px-3 py-2.5 text-left text-xs transition-all cursor-pointer ${
                     feedbackReason === r.id
-                      ? "border-[#3B7DD8] bg-[#3B7DD8]/10 text-[#F8FAFC]"
-                      : "border-[#1F2A44] text-[#94A3B8] hover:border-[#3B7DD8]/50"
+                      ? "border-action bg-action/10 text-primary"
+                      : "border-line-subtle text-secondary hover:border-action/50"
                   }`}
                 >
                   <div
                     className={`h-3.5 w-3.5 rounded-full border-2 flex items-center justify-center shrink-0 ${
-                      feedbackReason === r.id ? "border-[#3B7DD8]" : "border-[#475569]"
+                      feedbackReason === r.id ? "border-action" : "border-line-strong"
                     }`}
                   >
                     {feedbackReason === r.id && (
-                      <div className="h-1.5 w-1.5 rounded-full bg-[#3B7DD8]" />
+                      <div className="h-1.5 w-1.5 rounded-full bg-action" />
                     )}
                   </div>
                   {r.label}
@@ -277,7 +277,7 @@ export function UnsubscribeClient({
                 placeholder="Tell us more (optional)..."
                 rows={3}
                 maxLength={500}
-                className="w-full rounded-lg border border-[#1F2A44] bg-[#0B1220] px-3 py-2 text-xs text-[#F8FAFC] placeholder:text-[#475569] focus:outline-none focus:border-[#3B7DD8] resize-none mb-4"
+                className="w-full rounded-lg border border-line-subtle bg-surface-sunken px-3 py-2 text-xs text-primary placeholder:text-muted focus:outline-none focus:border-action resize-none mb-4"
               />
             )}
 
@@ -285,7 +285,7 @@ export function UnsubscribeClient({
               type="button"
               onClick={submitFeedback}
               disabled={!feedbackReason}
-              className="w-full rounded-lg bg-[#1F2A44] text-[#F8FAFC] font-medium text-xs px-4 py-2.5 hover:bg-[#2a3a5c] transition-colors disabled:opacity-50 cursor-pointer"
+              className="w-full rounded-lg bg-surface-sunken text-primary font-medium text-xs px-4 py-2.5 hover:bg-surface-hover transition-colors disabled:opacity-50 cursor-pointer"
             >
               Submit feedback
             </button>
@@ -293,23 +293,23 @@ export function UnsubscribeClient({
         )}
 
         {feedbackSent && (
-          <div className="bg-[#0F172A] border border-[#1F2A44] rounded-xl p-4 mb-4 text-center">
-            <p className="text-[#4ADE80] text-sm font-medium">Thank you for your feedback!</p>
-            <p className="text-[#94A3B8] text-xs mt-1">We appreciate your time and will use this to improve.</p>
+          <div className="bg-surface border border-line-subtle rounded-xl p-4 mb-4 text-center">
+            <p className="text-bull text-sm font-medium">Thank you for your feedback!</p>
+            <p className="text-secondary text-xs mt-1">We appreciate your time and will use this to improve.</p>
           </div>
         )}
 
         {/* Saved toast */}
         {saved && !showDone && (
-          <div className="bg-[#0F172A] border border-[#1F2A44] rounded-xl p-3 mb-4 text-center">
-            <p className="text-[#4ADE80] text-sm">Preferences saved.</p>
+          <div className="bg-surface border border-line-subtle rounded-xl p-3 mb-4 text-center">
+            <p className="text-bull text-sm">Preferences saved.</p>
           </div>
         )}
 
         {/* ── Category toggles (shown when NOT globally unsubscribed) ── */}
         {!prefs.unsubscribed_all && (
           <>
-            <div className="bg-[#0F172A] border border-[#1F2A44] rounded-2xl overflow-hidden">
+            <div className="bg-surface border border-line-subtle rounded-2xl overflow-hidden">
               {Object.entries(CATEGORY_LABELS).map(
                 ([key, { label, description, icon }], i) => {
                   const isPayment = key === "payment_receipts";
@@ -322,16 +322,16 @@ export function UnsubscribeClient({
                     <div
                       key={key}
                       className={`flex items-center justify-between px-5 py-4 ${
-                        i > 0 ? "border-t border-[#1F2A44]" : ""
+                        i > 0 ? "border-t border-line-subtle" : ""
                       }`}
                     >
                       <div className="flex items-start gap-3 flex-1 min-w-0 mr-4">
                         <span className="text-lg shrink-0">{icon}</span>
                         <div>
-                          <p className="text-sm font-medium text-[#F8FAFC]">
+                          <p className="text-sm font-medium text-primary">
                             {label}
                           </p>
-                          <p className="text-xs text-[#64748B] mt-0.5">
+                          <p className="text-xs text-muted mt-0.5">
                             {description}
                           </p>
                         </div>
@@ -342,11 +342,11 @@ export function UnsubscribeClient({
                         aria-checked={checked}
                         disabled={disabled}
                         onClick={() => toggleCategory(key)}
-                        className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors duration-200 focus:outline-none ${
+                        className={`relative inline-flex h-6 w-11 shrink-0 rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 ${
                           disabled
                             ? "cursor-not-allowed opacity-50"
                             : "cursor-pointer"
-                        } ${checked ? "bg-[#3B7DD8]" : "bg-[#1F2A44]"}`}
+                        } ${checked ? "bg-action" : "border border-line-strong bg-surface-hover"}`}
                       >
                         <span
                           className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-sm ring-0 transition-transform duration-200 ${
@@ -366,7 +366,7 @@ export function UnsubscribeClient({
                 type="button"
                 onClick={unsubscribeAll}
                 disabled={saving}
-                className="text-xs text-[#64748B] hover:text-[#F87171] transition-colors underline disabled:opacity-50 cursor-pointer"
+                className="text-xs text-muted hover:text-bear transition-colors underline disabled:opacity-50 cursor-pointer"
               >
                 Unsubscribe from all emails
               </button>
@@ -376,10 +376,10 @@ export function UnsubscribeClient({
 
         {/* Footer */}
         <div className="text-center mt-8 space-y-2">
-          <Link href="/" className="text-xs text-[#3B7DD8] hover:text-[#60A5FA] transition-colors">
+          <Link href="/" className="text-xs text-accent hover:text-action transition-colors">
             Return to BlockID.au
           </Link>
-          <p className="text-[10px] text-[#475569]">
+          <p className="text-[10px] text-muted">
             BlockID.au &mdash; {LEGAL_ENTITY.operator} | {LEGAL_ENTITY_ACN_LABEL}
           </p>
         </div>
