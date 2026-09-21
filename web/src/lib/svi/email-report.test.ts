@@ -18,6 +18,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeSupabase } from "@/test/fake-supabase";
 import { demoReportV2, investmentBandFixture, type InvestmentBandFixture } from "@/lib/report-v2/fixtures";
+import { EMAIL_THEME } from "@/lib/email/theme";
 import { TBR_V3_STRINGS } from "@/lib/i18n/tbr-v3-strings";
 import { alignReportWithAssessmentCard } from "@/lib/svi/assessment-card";
 import { buildInvestmentView } from "@/lib/report-v2/investment-view";
@@ -117,7 +118,7 @@ describe("renderReportEmailHtml — the 1-page investment view", () => {
     expect(text).toContain(EN.emailImprovements);
     const rows = view.improvementPlan.slice(0, 3);
     expect(rows).toHaveLength(3);
-    expect((html.match(/<td style="padding:8px;border-bottom:1px solid #E5E7EB;line-height:1.45;">/g) ?? []).length).toBe(3);
+    expect((html.match(/<td style="padding:8px;border-bottom:1px solid #e5e7eb;line-height:1.45;">/g) ?? []).length).toBe(3);
     for (const step of rows) {
       expect(text).toContain(EN.lift(step.expectedLift));
       expect(text).toContain(EN.window[step.window]);
@@ -144,7 +145,7 @@ describe("renderReportEmailHtml — the 1-page investment view", () => {
   it("uses inline styles only, the light palette and tabular numbers", () => {
     const html = renderReportEmailHtml({ report: demoReportV2(), dashboardUrl: DASHBOARD, shareUrl: SHARE });
     expect(html).not.toMatch(/<style|<link|class="/);
-    for (const hex of ["#1F2937", "#1B2A5E", "#0891B2", "#F7F8FA"]) expect(html).toContain(hex);
+    for (const hex of [EMAIL_THEME.inkMuted, EMAIL_THEME.navy, EMAIL_THEME.action, EMAIL_THEME.sunken]) expect(html).toContain(hex);
     expect(html).toContain("font-variant-numeric:tabular-nums");
     // No dark ground anywhere.
     expect(html).not.toMatch(/background:#0[0-9a-f]{5};/i);
@@ -162,7 +163,7 @@ describe("renderReportEmailHtml — the 1-page investment view", () => {
     expect(text).toContain(EN.subline);
     expect(view.keyPoints).toHaveLength(5);
     expect((html.match(/<li style="margin:0 0 5px 0;">/g) ?? []).length).toBe(5);
-    expect((html.match(/<td style="padding:8px;border-bottom:1px solid #E5E7EB;line-height:1.45;">/g) ?? []).length).toBe(3);
+    expect((html.match(/<td style="padding:8px;border-bottom:1px solid #e5e7eb;line-height:1.45;">/g) ?? []).length).toBe(3);
     if (band === "A") {
       expect(view.conditions).toEqual([]);
       expect(text).not.toContain(EN.conditions);
