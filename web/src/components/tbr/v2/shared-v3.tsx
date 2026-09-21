@@ -6,7 +6,7 @@
 // template only (spec § 5): navy `--color-brand-navy` accent, dark ink,
 // sunken panels; every colour is a semantic token from globals.css. Hook-free.
 
-import { VisualFigure } from "@/lib/report-visuals/react";
+import { renderVisual } from "@/lib/report-visuals";
 import type { Band, VisualSpecV2 } from "@/lib/report-visuals/types";
 import type { InvestmentBand, RiskLevel } from "@/lib/report-v2/schema";
 import { getTbrV3Strings, type TbrV3Strings } from "@/lib/i18n/tbr-v3-strings";
@@ -66,7 +66,7 @@ export function StatTile({ id, label, value, sub, note, band, className }: { id:
   return (
     <div data-tbr-tile={id} className={cn("flex min-w-0 flex-col gap-1 rounded-xl border border-line-subtle bg-surface p-4 print:break-inside-avoid", className)}>
       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{label}</p>
-      <p className={cn("truncate text-3xl font-bold leading-none text-primary md:text-4xl", FIGURE_CLASS)} title={value}>
+      <p className={cn("break-words font-bold leading-none text-primary", FIGURE_CLASS, value.length > 8 ? "text-2xl md:text-[1.6rem] lg:text-2xl xl:text-3xl" : "text-3xl md:text-4xl")} title={value}>
         {value}
       </p>
       {sub ? (
@@ -131,9 +131,9 @@ export function DimBarChart({ chart, caption, legend, showBand, locale, classNam
   return (
     <figure data-tbr-dim-bars className={cn("rounded-xl border border-line-subtle bg-surface p-3 print:break-inside-avoid md:p-4", className)}>
       <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">{t.chartTitle}</p>
-      <div className="mt-2">
-        <VisualFigure spec={chart} caption={null} hideTable />
-      </div>
+      {/* Two renders of the one geometry: the wide chart (labels beside bars) from md up, the compact one (labels above bars, spec § 5 "375 px") below. Our own escaped renderer output feeds dangerouslySetInnerHTML (same rule as VisualFigure). */}
+      <div className="mt-2 hidden w-full md:block [&>svg]:h-auto [&>svg]:w-full [&>svg]:max-w-full" data-visual-kind={chart.kind} data-visual-state={chart.dataState} dangerouslySetInnerHTML={{ __html: renderVisual(chart) }} />
+      <div className="mt-2 w-full md:hidden [&>svg]:h-auto [&>svg]:w-full [&>svg]:max-w-full" aria-hidden="true" dangerouslySetInnerHTML={{ __html: renderVisual(chart, { width: 340 }) }} />
       <figcaption className="mt-2 flex flex-wrap items-center justify-between gap-2 text-xs text-muted">
         <span>{caption}</span>
         <span className="flex flex-wrap items-center gap-3" aria-label={legend.join(", ")}>
