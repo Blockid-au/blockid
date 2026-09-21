@@ -21,6 +21,9 @@
 import Link from "next/link";
 import { CtaBand, PageHero, Section } from "@/components/marketing/template";
 import { readSviBacktestLatest } from "@/lib/backtest/latest";
+import { readCalibrationLatest } from "@/lib/calibration/latest";
+import type { CalibrationReport } from "@/lib/calibration/compute";
+import { OutcomeCalibration } from "./outcome-calibration";
 import { BOOTSTRAP_RESAMPLES, MIN_STAGE_N, type BacktestReport, type CiCell, type RhoCell } from "@/lib/backtest/run-backtest";
 import { BACKTEST_STAGES } from "@/lib/data/au-comparables-backtest";
 import type { Locale } from "@/lib/i18n/locales";
@@ -112,11 +115,14 @@ export interface CalibrationBodyProps {
   report?: BacktestReport | null;
   /** Injected by the page test. */
   messages?: Messages;
+  /** G21 P3-A — the score → outcome calibration JSON; injected by the page test, read from content/reports otherwise. */
+  outcomes?: CalibrationReport | null;
 }
 
-export async function CalibrationBody({ locale, report: injected, messages }: CalibrationBodyProps) {
+export async function CalibrationBody({ locale, report: injected, messages, outcomes: injectedOutcomes }: CalibrationBodyProps) {
   const m = messages ?? (await getMessages(locale));
   const report = injected === undefined ? await readSviBacktestLatest() : injected;
+  const outcomes = injectedOutcomes === undefined ? await readCalibrationLatest() : injectedOutcomes;
   // /methodology and /analyze have no /vi twin (S36 owns /methodology) — link the EN routes from both.
   const back = METHODOLOGY_PATH;
   const analyze = "/analyze";
@@ -133,6 +139,9 @@ export async function CalibrationBody({ locale, report: injected, messages }: Ca
           {`← ${t(m, "calibration.backLink")}`}
         </Link>
       </div>
+
+      {/* G21 P3-A — score → outcome calibration from the outcome ledger (0427), under the n-rules. */}
+      <OutcomeCalibration locale={locale} report={outcomes} messages={m} />
 
       {!report ? (
         <Section id="empty" title={t(m, "calibration.empty.title")} tone="sunken">
