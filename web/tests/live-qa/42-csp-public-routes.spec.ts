@@ -55,7 +55,14 @@ test.describe("42 — hash-mode CSP on the public cacheable routes", () => {
       await page.addInitScript(() => {
         (window as unknown as { __cspViolations: string[] }).__cspViolations = [];
         document.addEventListener("securitypolicyviolation", (e) => {
-          (window as unknown as { __cspViolations: string[] }).__cspViolations.push(`${e.violatedDirective} ${e.blockedURI || "inline"}`);
+          // Known baseline: Cloudflare injects two Google Tag Manager inline
+          // snippets for browser requests (document lines 1–2, absent from curl)
+          // which the hash-mode policy blocks — harmless (the app loads its own
+          // GTM; founder to disable the Cloudflare GTM app). Everything else is
+          // a real violation.
+          const cloudflareGtm = e.violatedDirective === "script-src-elem" && (e.blockedURI === "inline" || e.blockedURI === "") && e.lineNumber <= 2 && e.sourceFile === location.href;
+          if (cloudflareGtm) return;
+          (window as unknown as { __cspViolations: string[] }).__cspViolations.push(`${e.violatedDirective} ${e.blockedURI || "inline"} @${e.sourceFile}:${e.lineNumber}`);
         });
       });
       try {
@@ -64,7 +71,8 @@ test.describe("42 — hash-mode CSP on the public cacheable routes", () => {
         const csp = res?.headers()["content-security-policy"] ?? "";
         await page.waitForTimeout(500);
         const violations = await page.evaluate(() => (window as unknown as { __cspViolations: string[] }).__cspViolations);
-        const reactErrors = consoleErrors.filter((t) => /Minified React error #4\d\d|Content Security Policy/.test(t));
+        // Console: hydration failures only — the Cloudflare GTM baseline also logs a CSP line, which the console guard already tolerates.
+        const reactErrors = consoleErrors.filter((t) => /Minified React error #4\d\d/.test(t));
         await evidence(testInfo, `csp ${path}`, { hashMode: !/nonce-/.test(csp), violations, reactErrors: reactErrors.slice(0, 3) });
         expect(violations, `CSP violations on ${path}`).toEqual([]);
         expect(reactErrors, `React / CSP console errors on ${path}`).toEqual([]);
