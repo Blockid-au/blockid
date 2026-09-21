@@ -772,6 +772,75 @@ describe("POST /api/stripe/webhook — customer.subscription.created (G14-S33)",
   });
 });
 
+// ---------------------------------------------------------------------------
+// G23-B — customer.subscription.created with metadata.pilot_order_id →
+// pilot_orders.converted_at / converted_plan + subscription_started
+// (channel pilot_conversion)
+// ---------------------------------------------------------------------------
+
+describe("POST /api/stripe/webhook — pilot conversion (G23-B)", () => {
+  // A realistic uuid — an all-digit id trips the analytics PII (card-number) guard.
+  const ORDER_ID = "3f2a9c1e-5b7d-4e8f-9a0b-1c2d3e4f5a6b";
+  function buildConversionEvent(overrides: Record<string, unknown> = {}): Stripe.Event {
+    return {
+      id: "evt_sub_conv_1",
+      type: "customer.subscription.created",
+      data: {
+        object: {
+          id: "sub_conv_1",
+          object: "subscription",
+          customer: "cus_conv_1",
+          status: "trialing",
+          cancel_at_period_end: false,
+          metadata: { plan_id: "accelerator_starter", user_id: "user-prog", interval: "annual", pilot_order_id: ORDER_ID, pilot_sku: "cohort_pilot_25" },
+          items: { data: [{ price: { id: "price_c25_y", recurring: { interval: "year" } } }] },
+          ...overrides,
+        },
+      },
+    } as unknown as Stripe.Event;
+  }
+
+  it("stamps converted_at + converted_plan on the order (guarded by converted_at IS NULL) and emits subscription_started with channel pilot_conversion", async () => {
+    selectResponses.set("pilot_orders:update", { data: { id: ORDER_ID, user_id: "user-prog", sku: "cohort_pilot_25" }, error: null });
+    verifyWebhookSignature.mockReturnValue(buildConversionEvent());
+    const res = await invoke();
+    expect(res.status).toBe(200);
+    const write = updateCalls.find((c) => c.table === "pilot_orders");
+    expect(write).toBeTruthy();
+    expect(write!.row).toMatchObject({ converted_plan: "accelerator_starter", converted_subscription_id: "sub_conv_1" });
+    expect(String(write!.row.converted_at)).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    // emitFiEvent is fire-and-forget (lazy import of the server sink) — settle it.
+    await vi.waitFor(() => expect(emitCalls.some((c) => c.params.fi_event === "subscription_started")).toBe(true));
+    const started = emitCalls.find((c) => c.name === "subscription_created" && c.params.fi_event === "subscription_started");
+    expect(started).toBeTruthy();
+    expect(started!.params).toMatchObject({ channel: "pilot_conversion", plan: "accelerator_starter", pilot_id: ORDER_ID, sku: "cohort_pilot_25" });
+    expect(started!.userId).toBe("user-prog");
+    // The plain subscription_created analytics row still fires once.
+    expect(emitCalls.filter((c) => c.name === "subscription_created" && !c.params.fi_event)).toHaveLength(1);
+    expect(markWebhookEventProcessed).toHaveBeenCalledWith("evt_sub_conv_1", undefined);
+  });
+
+  it("a redelivery (row already converted → update matches nothing) writes nothing new and emits no second subscription_started", async () => {
+    verifyWebhookSignature.mockReturnValue(buildConversionEvent());
+    const res = await invoke();
+    expect(res.status).toBe(200);
+    expect(updateCalls.filter((c) => c.table === "pilot_orders")).toHaveLength(1);
+    await new Promise((r) => setTimeout(r, 20));
+    expect(emitCalls.find((c) => c.params.fi_event === "subscription_started")).toBeUndefined();
+  });
+
+  it("a subscription without pilot_order_id never touches pilot_orders; a non-Cohort plan with one is skipped", async () => {
+    verifyWebhookSignature.mockReturnValue(buildConversionEvent({ metadata: { plan_id: "accelerator_starter", user_id: "user-prog" } }));
+    await invoke();
+    expect(fromCalls).not.toContain("pilot_orders");
+    verifyWebhookSignature.mockReturnValue(buildConversionEvent({ metadata: { plan_id: "investor_angel", user_id: "user-prog", pilot_order_id: ORDER_ID } }));
+    await invoke();
+    expect(fromCalls).not.toContain("pilot_orders");
+    await new Promise((r) => setTimeout(r, 20));
+    expect(emitCalls.find((c) => c.params.fi_event === "subscription_started")).toBeUndefined();
+  });
+});
+
 describe("POST /api/stripe/webhook — idempotency (replay)", () => {
   it("replaying the same event.id short-circuits: no grants, no inserts, no update processed", async () => {
     verifyWebhookSignature.mockReturnValue(

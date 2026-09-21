@@ -48,6 +48,8 @@ export const ENTRY_LIMITS = Object.freeze({ organisation: 160, contact_role: 120
 export const LEDGER_MAX_ENTRIES = 2_000;
 
 const DATE_RE = /^\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])$/;
+/** ISO-8601 timestamp (`toISOString()` shape) — `proposal_generated_at` is stamped by the proposal route, never typed. */
+const ISO_TS_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{1,3})?Z$/;
 
 /** What the founder submits (POST) or patches — every field validated, unknown keys rejected. */
 export const validationEntryInputSchema = z
@@ -61,6 +63,10 @@ export const validationEntryInputSchema = z
     objection_answered: z.boolean().default(false),
     next_step: z.string().trim().max(ENTRY_LIMITS.next_step).default(""),
     note: z.string().trim().max(ENTRY_LIMITS.note).default(""),
+    // G23-B: when the pilot proposal PDF was last generated for this entry
+    // (GET /api/admin/validation/[id]/proposal). Optional so older rows and
+    // founder-typed bodies stay valid; null clears it.
+    proposal_generated_at: z.string().regex(ISO_TS_RE, "proposal_generated_at must be an ISO timestamp").nullable().optional(),
   })
   .strict();
 
@@ -78,6 +84,7 @@ export const validationEntryPatchSchema = z
     objection_answered: z.boolean().optional(),
     next_step: z.string().trim().max(ENTRY_LIMITS.next_step).optional(),
     note: z.string().trim().max(ENTRY_LIMITS.note).optional(),
+    proposal_generated_at: z.string().regex(ISO_TS_RE, "proposal_generated_at must be an ISO timestamp").nullable().optional(),
   })
   .strict();
 export type ValidationEntryPatch = z.infer<typeof validationEntryPatchSchema>;
@@ -187,7 +194,7 @@ export interface AutoRow {
 
 /** The minimum each auto source needs — the DB reader maps real rows onto these; tests pass literals. */
 export interface AutoInputs {
-  pilotOrders: ReadonlyArray<{ id: string; user_id: string; buyer_email: string; sku: string; amount_cents: number; currency: string; status: string; created_at: string; metrics: Record<string, unknown> | null }>;
+  pilotOrders: ReadonlyArray<{ id: string; user_id: string; buyer_email: string; sku: string; amount_cents: number; currency: string; status: string; created_at: string; metrics: Record<string, unknown> | null; converted_at?: string | null; converted_plan?: string | null }>;
   applications: ReadonlyArray<{ id: string; program_name: string; cohort_size: number; intake_month: string; received_at: string }>;
   feedbackLetters: ReadonlyArray<{ id: string; project_id: string; status: string; sent_at: string | null; org_count: number; k: number }>;
   batches: ReadonlyArray<{ id: string; name: string | null; program_name?: string | null; status: string; total: number; done_count: number; finished_at: string | null; created_at: string; owner_email?: string | null }>;
@@ -226,7 +233,9 @@ function metricsCaptured(m: Record<string, unknown> | null | undefined): number 
  * Derive the read-only rows. Pure and deterministic:
  *   • L4: every `paid` pilot order ≥ A$1,500 (first order per buyer);
  *   • L5: a later paid order by the same buyer (renewal) or a paid order by a
- *     second distinct buyer (second institutional customer);
+ *     second distinct buyer (second institutional customer), and — G23-B — a
+ *     pilot that converted to an annual Cohort plan (`converted_at` set by
+ *     the webhook, migration 0434): the same organisation paid again;
  *   • signals (never counted): metrics captured on an order, comp
  *     applications from /pilot, feedback letters sent, cohorts scored.
  * QA accounts (qa-live-*) are dropped from every source.
@@ -250,6 +259,10 @@ export function deriveAutoRows(input: AutoInputs): AutoRow[] {
       rows.push({ id: `pilot_orders:${o.id}:l5`, source: "pilot_orders", level: 5, counts: qualifies, date: day(o.created_at), organisation: orgFromEmail(o.buyer_email), detail: `${repeat ? "Renewal — same buyer paid again" : "Second organisation paid"} · ${o.sku} · ${aud}${qualifies ? "" : " (below A$1,500 — not counted)"}` });
     } else {
       rows.push({ id: `pilot_orders:${o.id}`, source: "pilot_orders", level: 4, counts: qualifies, date: day(o.created_at), organisation: orgFromEmail(o.buyer_email), detail: `Paid pilot · ${o.sku} · ${aud}${qualifies ? "" : " (below A$1,500 — not counted)"}` });
+    }
+    if (o.converted_at) {
+      const plan = o.converted_plan === "accelerator_growth" ? "Cohort 100" : o.converted_plan === "accelerator_starter" ? "Cohort 25" : (o.converted_plan ?? "Cohort plan");
+      rows.push({ id: `pilot_orders:${o.id}:converted`, source: "pilot_orders", level: 5, counts: qualifies, date: day(o.converted_at), organisation: orgFromEmail(o.buyer_email), detail: `Pilot converted to ${plan} (annual) — same organisation paid again${qualifies ? "" : " (pilot below A$1,500 — not counted)"}` });
     }
     const captured = metricsCaptured(o.metrics);
     if (captured > 0) {

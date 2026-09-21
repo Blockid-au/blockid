@@ -144,3 +144,19 @@ Record the step in the erasure ticket like any other manual sink.
 | `warnings: ["intake create: …not_migrated"]` | 0405 not applied | apply `0405_program_intakes.sql`; link an intake later via `intake_slug` on a fresh start (after ending) |
 | `plan_reverted: false` on end | Stripe subscription row or plan changed since | expected — never downgrade a payer; check `subscription_trial_state` |
 | ledger row missing after a deploy | `git reset --hard` restored an old file | `readLedger()` replays the journal on the next read; commit `pilots.json` |
+
+## 8. Pilot → annual Cohort plan (G23-B, 2026-09-21)
+
+The paid pilot ends in one of two ways: the program converts to the annual Cohort rung its SKU maps to (Cohort 25 for `cohort_pilot_25`, Cohort 100 for `cohort_pilot_50`) with the pilot fee credited against the first year, or it lapses. Pricing, the coupon env NAMES and the credit rule live in `docs/ops/pricing-truth.md` § 11 — this section is the ops view.
+
+| Step | Where | What happens |
+|---|---|---|
+| Offer | `/workspace/accelerator/pilot` card "Convert to Cohort 25 / Cohort 100 (annual)" (`lib/pilots/conversion.ts` `conversionOffer`) | rendered for the newest paid `pilot_orders` row (`findLatestPilotOrder` — the card outlives the entitlement by the 60-day window); quotes the annual price inc. GST, the credit and the first-year figure; `data-convert-mode` = `checkout` (coupon set) · `contact` (coupon unset → `/contact?topic=pilot`) · `closed` · `converted` |
+| Checkout | `POST /api/stripe/checkout { plan, interval: "annual", convert_from_pilot: <order id> }` | owner + window + SKU → rung checks, then the founder-minted coupon (env NAME only); `409 coupon_unconfigured` + fallback until the founder mints it |
+| Record | webhook `customer.subscription.created` with `metadata.pilot_order_id` | `pilot_orders.converted_at`, `converted_plan`, `converted_subscription_id` (migration `0434`, idempotent on `converted_at IS NULL`); audit `pilot.converted`; FI event `subscription_started` with `channel: "pilot_conversion"` |
+| Tracker | `/admin/validation` auto rows | a converted pilot is an **L5** row ("Pilot converted to Cohort 25 (annual) — same organisation paid again"), counted when the pilot was ≥ A$1,500 |
+
+**By hand (coupon not yet minted, or the program pays by invoice):** create the annual subscription from the Stripe dashboard with the credit applied, then `update pilot_orders set converted_at = now(), converted_plan = 'accelerator_starter', converted_subscription_id = '<sub_…>' where id = '<order id>';` — the card and the tracker read the row, not Stripe.
+
+**Failure modes:** `409 conversion_plan_mismatch` — the program picked the wrong rung (a 25 pilot converts to Cohort 25 only; upsells are a sales conversation); `409 conversion_window_closed` — more than 60 days after `entitlement_until` (sell at list price); `404 order_not_found` / `403 not_order_owner` — the converting account is not the buyer (the pilot was paid from another login — convert from that login or by hand); the webhook logs `pilot conversion skipped` when the subscription carries no `pilot_order_id` (a plain Cohort checkout — nothing to do).
+

@@ -10,7 +10,7 @@
 // scripts (CSP); every fetch error passes through userErrorMessage.
 
 import * as React from "react";
-import { CheckCircle2, ClipboardList, ListChecks, Pencil, Plus, Trash2, X } from "lucide-react";
+import { CheckCircle2, ClipboardList, FileDown, ListChecks, Pencil, Plus, Trash2, X } from "lucide-react";
 import { AdminLayout } from "@/components/admin/admin-layout";
 import { ApiError, readErrorBody, userErrorMessage } from "@/lib/ui/user-error";
 import {
@@ -234,9 +234,21 @@ export function EntryForm({ initial, onSubmit, onCancel, busy, error }: { initia
   );
 }
 
+/** The filename the proposal route sets (`attachment; filename="…"`), or a stable fallback. Pure. */
+export function proposalFilenameFrom(disposition: string | null, entryId: string): string {
+  const marker = "filename=";
+  const at = disposition?.indexOf(marker) ?? -1;
+  if (disposition && at >= 0) {
+    const raw = disposition.slice(at + marker.length).trim();
+    const unquoted = raw.startsWith(String.fromCharCode(34)) ? raw.slice(1, raw.indexOf(String.fromCharCode(34), 1)) : raw.split(";")[0]!.trim();
+    if (unquoted && unquoted.toLowerCase().endsWith(".pdf")) return unquoted;
+  }
+  return `blockid-pilot-proposal-${entryId.slice(0, 8)}.pdf`;
+}
+
 // ── Entries table ───────────────────────────────────────────────────────────
 
-export function EntriesTable({ entries, onEdit, onDelete, busyId }: { entries: ValidationEntry[]; onEdit?: (e: ValidationEntry) => void; onDelete?: (e: ValidationEntry) => void; busyId?: string | null }) {
+export function EntriesTable({ entries, onEdit, onDelete, onProposal, busyId }: { entries: ValidationEntry[]; onEdit?: (e: ValidationEntry) => void; onDelete?: (e: ValidationEntry) => void; onProposal?: (e: ValidationEntry) => void; busyId?: string | null }) {
   if (entries.length === 0) {
     return <p className="rounded-xl border border-dashed border-surface-300 bg-white p-6 text-sm text-ink-500" data-testid="validation-entries-empty">No entries yet — add the first interview above.</p>;
   }
@@ -260,6 +272,11 @@ export function EntriesTable({ entries, onEdit, onDelete, busyId }: { entries: V
               <td className="px-3 py-2">
                 <div className="font-medium text-ink-800">{e.organisation}</div>
                 {e.contact_role ? <div className="text-xs text-ink-500">{e.contact_role}</div> : null}
+                {e.proposal_generated_at ? (
+                  <div className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-brand-700" data-testid="validation-entry-proposal-at">
+                    <FileDown className="h-3 w-3" aria-hidden="true" /> Proposal generated {e.proposal_generated_at.slice(0, 10)}
+                  </div>
+                ) : null}
               </td>
               <td className="px-3 py-2 text-ink-700">
                 L{e.level} <span className="text-xs text-ink-500">{levelMeta(e.level).label}</span>
@@ -279,6 +296,11 @@ export function EntriesTable({ entries, onEdit, onDelete, busyId }: { entries: V
               <td className="px-3 py-2">
                 {onEdit && onDelete ? (
                   <div className="flex gap-1">
+                    {onProposal ? (
+                      <button type="button" disabled={busyId === e.id} onClick={() => onProposal(e)} className="inline-flex h-11 items-center gap-1 rounded-lg border border-brand-200 bg-white px-3 text-xs font-semibold text-brand-700 hover:bg-brand-50 disabled:opacity-50" aria-label={`Generate proposal for ${e.organisation}`} title="Generate the written pilot proposal (PDF)" data-testid="validation-entry-proposal">
+                        <FileDown className="h-4 w-4" aria-hidden="true" /> {busyId === e.id ? "Generating…" : "Proposal"}
+                      </button>
+                    ) : null}
                     <button type="button" disabled={busyId === e.id} onClick={() => onEdit(e)} className="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-surface-300 bg-white text-ink-700 hover:bg-surface-100 disabled:opacity-50" aria-label={`Edit ${e.organisation}`} data-testid="validation-entry-edit">
                       <Pencil className="h-4 w-4" aria-hidden="true" />
                     </button>
@@ -480,6 +502,35 @@ export function ValidationClient({ user, initial }: ValidationClientProps) {
     formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
+  // G23-B — the written pilot proposal: fetched (so a 4xx/5xx passes through
+  // userErrorMessage instead of a broken download), then saved through an
+  // object URL. The route stamps proposal_generated_at; mirror it locally.
+  async function handleProposal(e: ValidationEntry) {
+    setBusyId(e.id);
+    setFeedback(null);
+    try {
+      const res = await fetch(`/api/admin/validation/${encodeURIComponent(e.id)}/proposal`, { method: "GET" });
+      if (!res.ok) throw await readErrorBody(res);
+      const blob = await res.blob();
+      const filename = proposalFilenameFrom(res.headers.get("content-disposition"), e.id);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 10_000);
+      const stampedAt = new Date().toISOString();
+      setEntries((p) => p.map((x) => (x.id === e.id ? { ...x, proposal_generated_at: stampedAt } : x)));
+      setFeedback({ type: "success", message: `Proposal for ${e.organisation} downloaded (${filename}). Send it, then set the L3 entry to done.` });
+    } catch (err) {
+      setFeedback({ type: "error", message: userErrorMessage(err, "Could not generate the proposal. Please try again.") });
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   const editingForm: FormState | null = editing
     ? { organisation: editing.organisation, contact_role: editing.contact_role, date: editing.date, level: editing.level, outcome: editing.outcome, objection: editing.objection, objection_answered: editing.objection_answered, next_step: editing.next_step, note: editing.note }
     : null;
@@ -523,7 +574,7 @@ export function ValidationClient({ user, initial }: ValidationClientProps) {
           <h2 id="validation-entries-h" className="mb-2 text-base font-semibold text-ink-800">
             Entries <span className="text-sm font-normal tabular-nums text-ink-500">({entries.length})</span>
           </h2>
-          <EntriesTable entries={entries} onEdit={startEdit} onDelete={handleDelete} busyId={busyId} />
+          <EntriesTable entries={entries} onEdit={startEdit} onDelete={handleDelete} onProposal={handleProposal} busyId={busyId} />
         </section>
 
         <AutoRowsTable rows={initial.auto} />

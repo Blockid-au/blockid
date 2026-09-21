@@ -15,6 +15,7 @@ import {
   isPilotSkuId,
 } from "@/lib/pricing/pilot-skus";
 import { resolveIntervalPrice } from "@/lib/plans/billing-interval";
+import { PILOT_CONVERSION_CONTACT, conversionOffer, isPilotOrderId, readPilotCouponId } from "@/lib/pilots/conversion";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { normaliseResellerCode } from "@/lib/reseller/attribution";
 import { viaClientReferenceId } from "@/lib/reseller/attribution-server";
@@ -50,6 +51,9 @@ const CheckoutSchema = z
     // 2026-09-16 audit: the pricing card's Annual toggle now reaches the
     // charge. Honoured only when the plan row has `stripe_price_id_annual`.
     interval: z.enum(["monthly", "annual"]).optional(),
+    // G23-B: convert a paid Cohort Validation Pilot into the annual Cohort
+    // rung its SKU maps to, with the founder-minted credit coupon applied.
+    convert_from_pilot: z.string().max(64).optional(),
   })
   .strip();
 
@@ -96,10 +100,12 @@ async function POST_handler(request: Request) {
     origin: bodyOrigin,
     projectId: bodyProjectId,
     interval: rawInterval,
+    convert_from_pilot: bodyConvertFromPilot,
   } =
     (body as {
       plan?: string;
       interval?: "monthly" | "annual";
+      convert_from_pilot?: string;
       couponCode?: string;
       resellerCode?: string;
       // Sub-K4: optional reseller promotion code the founder typed on the
@@ -382,6 +388,46 @@ async function POST_handler(request: Request) {
 
   const isRecurring = plan.cadence === "monthly" || plan.cadence === "yearly";
 
+  // G23-B — pilot → annual Cohort plan. The caller names the pilot order it
+  // converts from; the route proves ownership, the 60-day window and the
+  // SKU → rung map (lib/pilots/conversion.ts), then applies the founder-minted
+  // credit coupon read by env NAME. Unset coupon → 409 coupon_unconfigured +
+  // the contact fallback (our team applies the credit by hand) — never a
+  // full-price checkout the card did not quote.
+  let pilotConversion: { orderId: string; coupon: string; sku: string } | null = null;
+  if (bodyConvertFromPilot !== undefined) {
+    if (!isPilotOrderId(bodyConvertFromPilot)) {
+      return NextResponse.json({ ok: false, error: "invalid_input", field: "convert_from_pilot", message: "convert_from_pilot must be the pilot order id." }, { status: 400 });
+    }
+    if (billedInterval !== "annual" || (planId !== "accelerator_starter" && planId !== "accelerator_growth")) {
+      return NextResponse.json({ ok: false, error: "conversion_plan_mismatch", planId, message: "A pilot converts to Cohort 25 or Cohort 100 billed annually." }, { status: 400 });
+    }
+    const { findPilotOrderById } = await import("@/lib/pilots/paid-orders");
+    const order = await findPilotOrderById(bodyConvertFromPilot);
+    if (!order) {
+      return NextResponse.json({ ok: false, error: "order_not_found", message: "No pilot order with that id." }, { status: 404 });
+    }
+    if (order.user_id !== user.id) {
+      return NextResponse.json({ ok: false, error: "not_order_owner", message: "Only the account that paid for the pilot can convert it." }, { status: 403 });
+    }
+    const offer = conversionOffer(order, new Date());
+    if (!offer) {
+      return NextResponse.json({ ok: false, error: "conversion_plan_mismatch", planId, message: "This order is not a Cohort Validation Pilot." }, { status: 409 });
+    }
+    if (offer.plan !== planId) {
+      return NextResponse.json({ ok: false, error: "conversion_plan_mismatch", planId, expected: offer.plan, message: `This pilot converts to ${offer.planName} (annual).` }, { status: 409 });
+    }
+    if (!offer.eligible) {
+      const closed = offer.reason === "already_converted";
+      return NextResponse.json({ ok: false, error: closed ? "already_converted" : "conversion_window_closed", planId, window_ends_at: offer.windowEndsAt, fallback: PILOT_CONVERSION_CONTACT, message: closed ? "This pilot has already been converted." : `The pilot credit applies within ${offer.windowEndsAt.slice(0, 10)} — talk to our team about a Cohort plan.` }, { status: 409 });
+    }
+    const coupon = readPilotCouponId(offer.sku);
+    if (!coupon) {
+      return NextResponse.json({ ok: false, error: "coupon_unconfigured", planId, fallback: PILOT_CONVERSION_CONTACT, message: "The pilot credit is applied by our team for now — we reply within two business days." }, { status: 409 });
+    }
+    pilotConversion = { orderId: order.id, coupon, sku: offer.sku };
+  }
+
   // Per CISO D3-CISO-07: hash raw user UUIDs before writing to Stripe metadata
   // so a metadata dump can't be joined against app_users directly. During the
   // backward-compat transition we ALSO keep the raw `user_id` field so
@@ -394,6 +440,9 @@ async function POST_handler(request: Request) {
     user_id_hash: hashUserId(user.id),
     plan_id: planId,
     interval: billedInterval,
+    // G23-B: the webhook reads `pilot_order_id` off subscription.metadata on
+    // customer.subscription.created and stamps pilot_orders.converted_at.
+    ...(pilotConversion ? { pilot_order_id: pilotConversion.orderId, pilot_sku: pilotConversion.sku } : {}),
   };
   if (userSegment) customerMetadata.segment = userSegment;
   else if (dbPlanSegment) customerMetadata.segment = dbPlanSegment;
@@ -668,9 +717,22 @@ async function POST_handler(request: Request) {
     }
   }
 
+  // G23-B — the pilot credit wins over any other discount (it is minted on
+  // the Cohort annual price; nothing stacks on it) and the pilot order id
+  // lands on the session for support / the success page.
+  if (pilotConversion) {
+    sessionParams.discounts = [{ coupon: pilotConversion.coupon }];
+    delete sessionParams.allow_promotion_codes;
+    sessionParams.metadata = { ...(sessionParams.metadata ?? {}), pilot_order_id: pilotConversion.orderId, kind: "pilot_conversion" };
+    sessionParams.success_url = `${siteUrl}/workspace/accelerator/pilot?converted=1&session_id={CHECKOUT_SESSION_ID}`;
+    sessionParams.cancel_url = `${siteUrl}/workspace/accelerator/pilot`;
+  }
+
   try {
     const session = await stripe.checkout.sessions.create(sessionParams, {
-      idempotencyKey: IS_STARTUP_PACKAGE
+      idempotencyKey: pilotConversion
+        ? sessionIdempotencyKey("pilot-conversion", [user.id, planId, priceId, pilotConversion.orderId])
+        : IS_STARTUP_PACKAGE
         ? sessionIdempotencyKey("startup-package", [
             user.id,
             "founder_package",
@@ -701,6 +763,7 @@ async function POST_handler(request: Request) {
         cadence: plan.cadence,
         trial_days: trialDays,
         reseller_attributed: Boolean(resellerAttribution),
+        ...(pilotConversion ? { pilot_order_id: pilotConversion.orderId, pilot_conversion: true } : {}),
       },
       route: "/api/stripe/checkout",
       ip: extractIp(request.headers),
