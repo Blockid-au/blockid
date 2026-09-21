@@ -66,8 +66,10 @@ test.describe("Post-deploy hydrated smoke", () => {
         timeout: PAGE_TIMEOUT,
       });
     }
+    // G25-D (2026-09-21): every rung lands on the review step first — never
+    // sign-up → Stripe on the first click.
     await expect(
-      page.locator('a[href*="/signup?segment=evaluator&plan=investor_angel"]'),
+      page.locator('a[href*="/checkout/review?plan=investor_angel"]').first(),
     ).toBeVisible({ timeout: PAGE_TIMEOUT });
   });
 
@@ -528,21 +530,25 @@ test.describe("Post-deploy hydrated smoke", () => {
       expect(report.failedRequests, `failed requests on /: ${JSON.stringify(report.failedRequests)}`).toEqual([]);
     });
 
-    test("/ — primary CTA navigates to the pilot block (/solutions/accelerator#pilot, 200); secondary to /analyze (200)", async ({ page }) => {
+    test("/ — primary CTA 'Start a cohort' → evaluator sign-up (Cohort 25 annual trial, 200); secondary to /analyze (200)", async ({ page }) => {
+      // G25-A (2026-09-21): the paid pilot is gone — the primary CTA on the
+      // hero, nav and final band is "Start a cohort" → the Cohort 25 annual
+      // trial sign-up (which lands on the review step before any card).
       test.setTimeout(30_000);
       await page.goto("/", { waitUntil: "domcontentloaded" });
-      const cta = page.locator('[data-cta-id="run_cohort_pilot"]').first();
-      await expect(cta).toBeVisible({ timeout: PAGE_TIMEOUT });
-      expect(await cta.getAttribute("href")).toBe("/solutions/accelerator#pilot");
-      // Hero primary carries its own id; both must point at the same target.
-      await expect(page.locator('[data-cta-id="hero_pilot"]').first()).toHaveAttribute("href", "/solutions/accelerator#pilot");
+      const startHref = "/signup?segment=evaluator&plan=accelerator_starter&trial=1&interval=annual";
+      const hero = page.locator('[data-cta-id="hero_start_cohort"]').first();
+      await expect(hero).toBeVisible({ timeout: PAGE_TIMEOUT });
+      await expect(hero).toHaveAttribute("href", startHref);
+      await expect(page.locator('[data-cta-id="home_final_start_cohort"]').first()).toHaveAttribute("href", startHref);
       await expect(page.locator('[data-cta-id="hero_score"]').first()).toHaveAttribute("href", "/analyze");
-      await cta.click();
-      // Next navigates client-side (RSC payload, no document response), so
-      // the URL + a rendered H1 prove the navigation and a direct GET the status.
-      await page.waitForURL(/\/solutions\/accelerator#pilot$/, { timeout: PAGE_TIMEOUT });
-      await expect(page.locator("h1").first()).toBeVisible({ timeout: PAGE_TIMEOUT });
+      expect((await page.request.get(startHref)).status(), "start-a-cohort sign-up status").toBe(200);
       expect((await page.request.get("/solutions/accelerator")).status(), "/solutions/accelerator status").toBe(200);
+      // The retired pilot routes redirect (301) — never a 404 for an old link.
+      for (const old of ["/pilot", "/vi/pilot", "/pilot/investor"]) {
+        const r = await page.request.get(old, { maxRedirects: 0 });
+        expect([301, 308], `${old} redirects`).toContain(r.status());
+      }
       expect((await page.request.get("/analyze")).status(), "/analyze status").toBe(200);
     });
 

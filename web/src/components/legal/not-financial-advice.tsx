@@ -83,7 +83,7 @@ export function NotFinancialAdvice({
           {flagHref ? (
             <>
               {" "}
-              <Link href={flagHref} className="font-medium text-brand-700 hover:text-brand-800" data-testid="report-flag-problem">
+              <Link href={flagHref} className="font-medium text-action hover:underline" data-testid="report-flag-problem">
                 Flag a problem with this report
               </Link>
             </>
@@ -105,14 +105,14 @@ export function NotFinancialAdvice({
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
         <Link
           href={learnMoreHref}
-          className="rounded-sm text-xs font-medium text-brand-700 hover:text-brand-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+          className="rounded-sm text-xs font-medium text-action hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
         >
           Learn more →
         </Link>
         {flagHref ? (
           <Link
             href={flagHref}
-            className="rounded-sm text-xs font-medium text-brand-700 hover:text-brand-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-600"
+            className="rounded-sm text-xs font-medium text-action hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-action"
             data-testid="report-flag-problem"
           >
             Flag a problem with this report
