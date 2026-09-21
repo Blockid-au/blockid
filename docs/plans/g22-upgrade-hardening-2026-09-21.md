@@ -3,6 +3,7 @@
 **Opened:** 2026-09-21 (founder: "review kết quả đã làm, test, commit, deploy, chạy QA/QC và fix, tiếp tục plan/goal trong phiên bản upgrade, spawn agent khi cần và dùng skill phù hợp").
 **Owner:** Claude session loop — worktree lanes → merge → full `--project unit` + pdf → 12-gate deploy → elevated live-qa + link-check + page sweep → read-only review → fixes → close.
 **Tracked in:** `docs/plans/SOURCE-OF-TRUTH.md` § G22 · `ROADMAP.md` row G22.
+**Status:** CLOSED 2026-09-21 — v3.22.0 live; findings + follow-ups in SOT § G22.
 **Source:** every engineering follow-up recorded at the G21 close (SOT § G21) plus the P0–P3 review P2/P3 rows that were deferred. Nothing new in positioning; this goal makes the shipped upgrade complete for the people who use it daily (program reviewers, org owners, Vietnamese founders) and gives the founder the validation tracker the advisor plan asks for.
 
 ## 1. Baseline (v3.21.0 + P3 review fixes, 2026-09-21)
