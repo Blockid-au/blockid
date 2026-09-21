@@ -435,7 +435,7 @@ Spec: `docs/plans/reliability-2026-09-18.md` § 3 R2; targets and runbook:
 
 | Script | Reads | Writes | Alerts |
 |---|---|---|---|
-| `scripts/error-digest.mjs` | `/data/logs/blockid-production.log` from the byte offset in `/data/logs/.error-digest.offset` (offset > size ⇒ rotated ⇒ restart at 0) | `content/reports/error-digest.jsonl` (`{ts, window_min, total, classes:[{tag,msg,count,first_seen}]}`), `error-digest-state.json` (7-day class memory) | Telegram (same `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` as the fleet, 30-min debounce per class): class not seen in 7 d · ≥ 5× its 24 h hourly median and ≥ 10 lines · any `fully_degraded` / `AIBudgetExhaustedError` / `permission denied` line |
+| `scripts/error-digest.mjs` | `/data/logs/blockid-production.log` from the byte offset in `/data/logs/.error-digest.offset` (offset > size ⇒ rotated ⇒ restart at 0) | `content/reports/error-digest.jsonl` (`{ts, window_min, total, classes:[{tag,msg,count,first_seen}]}`), `error-digest-state.json` (7-day class memory) | Telegram (same `TELEGRAM_BOT_TOKEN` / `TELEGRAM_CHAT_ID` as the fleet, 30-min debounce per class): class not seen in 7 d · ≥ 5× its 24 h hourly median and ≥ 10 lines · any `fully_degraded` / `AIBudgetExhaustedError` / `permission denied` line · G24-B: `/api/status.tbr_quality.status` ≠ ok for > 24 h (one line a day, e-mail fallback) |
 | `scripts/latency-sample.mjs` | tail of `/var/log/nginx/access.log` (+ `.1` right after logrotate) | `content/reports/latency.jsonl` (`{ts, window_min, classes:{name:{n,p50_ms,p95_ms,err_rate_5xx}}}`), `latency-state.json` (breach streaks) | Telegram after 3 consecutive 10-min windows over a class target, re-alert hourly, one "recovered" |
 
 ### Lines to install

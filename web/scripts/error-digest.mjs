@@ -16,6 +16,10 @@
 //      (a) a class not seen in 7 days, (b) ≥ 5× its 24 h hourly median and ≥ 10
 //      lines, (c) any line with fully_degraded / AIBudgetExhaustedError /
 //      permission denied.
+//   6. G24-B: reads /api/status (local, STATUS_BASE_URL or 127.0.0.1:4001) and
+//      raises ONE line when `tbr_quality.status` has been ≠ ok for > 24 h
+//      (then once a day while it holds) — same send path, so the e-mail
+//      fallback carries it when the Telegram token is dead. App down → no-op.
 //
 // Lock: /tmp/blockid-error-digest.lock (pid file, stale-safe). Exit 0 always
 // except a genuine crash (exit 1) so cron-health stays readable.
@@ -24,7 +28,7 @@ import { closeSync, existsSync, openSync, readSync, readFileSync, statSync, writ
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { acquireLock, appendJsonl, readJson, sendTelegram, WEB_DIR, writeJsonAtomic } from "./lib/ops-env.mjs";
-import { computeReadStart, digestLines, emptyState, evaluate, formatAlert, splitComplete, toReportRow, WINDOW_MIN } from "./lib/error-digest-core.mjs";
+import { computeReadStart, digestLines, emptyState, emptyTbrQualityState, evaluate, evaluateTbrQuality, formatAlert, pickTbrQuality, splitComplete, toReportRow, WINDOW_MIN } from "./lib/error-digest-core.mjs";
 
 const DEFAULT_LOG = existsSync("/data/logs/blockid-production.log") ? "/data/logs/blockid-production.log" : "/tmp/blockid-production.log";
 const DEFAULT_OFFSET = "/data/logs/.error-digest.offset";
@@ -32,6 +36,23 @@ const REPORT = path.join(WEB_DIR, "content", "reports", "error-digest.jsonl");
 const STATE = path.join(WEB_DIR, "content", "reports", "error-digest-state.json");
 const LOCK = "/tmp/blockid-error-digest.lock";
 const MAX_READ_BYTES = 32 * 1024 * 1024; // never slurp more than 32 MB per run
+const STATUS_TIMEOUT_MS = 5_000;
+
+/** G24-B: /api/status.tbr_quality from the local app, or null when unreachable / not a status body. */
+export async function readTbrQuality({ env = process.env, fetchImpl = globalThis.fetch, timeoutMs = STATUS_TIMEOUT_MS } = {}) {
+  const base = (env.STATUS_BASE_URL || "http://127.0.0.1:4001").replace(/\/+$/, "");
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs);
+  try {
+    const res = await fetchImpl(`${base}/api/status`, { headers: { accept: "application/json" }, signal: ctrl.signal });
+    if (!res.ok) return null;
+    return pickTbrQuality(await res.json());
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
 
 export function parseArgs(argv) {
   const out = { dryRun: false, json: false, log: DEFAULT_LOG, offsetFile: DEFAULT_OFFSET, windowMin: WINDOW_MIN };
@@ -84,18 +105,24 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
   const nowIso = new Date(now).toISOString();
   const log = deps.log ?? ((m) => process.stdout.write(`${m}\n`));
 
-  const release = args.dryRun ? () => {} : acquireLock(LOCK);
+  const release = args.dryRun ? () => {} : acquireLock(deps.lockFile ?? LOCK);
   if (!release) {
-    log(`[error-digest] ${nowIso} skip: previous run still holds ${LOCK}`);
+    log(`[error-digest] ${nowIso} skip: previous run still holds ${deps.lockFile ?? LOCK}`);
     return { skipped: "locked" };
   }
   try {
+    const stateFile = deps.stateFile ?? STATE;
     const offset = readOffset(args.offsetFile);
     const win = readWindow(args.log, offset);
     const digest = digestLines(win.lines, nowIso);
-    const seeding = !existsSync(STATE); // first run: remember classes, do not alert "new" on all of them
-    const prevState = readJson(STATE, emptyState());
+    const seeding = !existsSync(stateFile); // first run: remember classes, do not alert "new" on all of them
+    const prevState = readJson(stateFile, emptyState());
     const { state, alerts } = evaluate(prevState, digest, now, { suppressNew: seeding });
+    // G24-B: report-quality watch — evaluate() rebuilds the state object, so the
+    // tbr_quality slot is carried over here explicitly.
+    const tbrVerdict = await (deps.readTbrQuality ?? readTbrQuality)();
+    const tbr = evaluateTbrQuality(prevState.tbr_quality ?? emptyTbrQualityState(), tbrVerdict, now);
+    state.tbr_quality = tbr.next;
     const row = toReportRow(digest, nowIso, args.windowMin);
     const summary = {
       ts: nowIso,
@@ -110,11 +137,17 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
       classes: digest.classes.length,
       alerts: alerts.map((a) => ({ rule: a.rules.join("+"), tag: a.tag, count: a.count, msg: a.msg })),
       telegram: null,
+      tbr_quality: {
+        status: tbrVerdict?.status ?? null,
+        not_ok_since: tbr.next.not_ok_since,
+        alert: tbr.alert,
+        telegram: null,
+      },
     };
 
     if (!args.dryRun) {
-      appendJsonl(REPORT, row);
-      writeJsonAtomic(STATE, state);
+      appendJsonl(deps.reportFile ?? REPORT, row);
+      writeJsonAtomic(stateFile, state);
       try {
         writeFileSync(args.offsetFile, String(win.nextOffset));
       } catch (err) {
@@ -124,12 +157,16 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     if (alerts.length > 0) {
       summary.telegram = await (deps.sendTelegram ?? sendTelegram)(formatAlert(alerts, digest, args.windowMin), { dryRun: args.dryRun });
     }
+    if (tbr.alert) {
+      summary.tbr_quality.telegram = await (deps.sendTelegram ?? sendTelegram)(`BlockID report quality\n${tbr.alert}`, { dryRun: args.dryRun });
+    }
     if (args.json) log(JSON.stringify(summary));
     else {
       log(`[error-digest] ${nowIso}${args.dryRun ? " (dry-run)" : ""} ${win.lines.length} lines → ${digest.total} error lines in ${digest.classes.length} classes; alerts=${alerts.length}${win.missing ? " (log missing)" : ""}${summary.rotated ? " (rotation detected)" : ""}`);
       for (const c of digest.classes.slice(0, 10)) log(`  ×${c.count} [${c.tag}] ${c.msg}`);
       for (const a of alerts) log(`  ALERT ${a.rules.join("+")} [${a.tag}] ×${a.count}`);
       if (summary.telegram) log(`  telegram: ${summary.telegram.sent ? "sent" : `not sent (${summary.telegram.reason})`}`);
+      if (tbr.alert) log(`  ALERT ${tbr.alert}${summary.tbr_quality.telegram ? ` — ${summary.tbr_quality.telegram.sent ? "sent" : `not sent (${summary.tbr_quality.telegram.reason})`}` : ""}`);
     }
     return summary;
   } finally {
