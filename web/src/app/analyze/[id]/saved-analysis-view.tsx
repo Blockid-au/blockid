@@ -100,16 +100,24 @@ export interface SavedAnalysisViewProps {
   id: string;
   /** Real count from the claim that just ran, via `?claimed=`. 0 = nothing. */
   claimed?: number;
+  /** G28-C: the signed link token from the report e-mail (`?t=`) — sent to the API routes, never rendered. */
+  token?: string | null;
 }
 
-export function SavedAnalysisView({ id, claimed = 0 }: SavedAnalysisViewProps) {
+/** The fetch path, with the signed e-mail token when present. Exported for the test. */
+export function savedAnalysisApiPath(id: string, token?: string | null): string {
+  const base = `/api/analyses/${encodeURIComponent(id)}`;
+  return token ? `${base}?token=${encodeURIComponent(token)}` : base;
+}
+
+export function SavedAnalysisView({ id, claimed = 0, token = null }: SavedAnalysisViewProps) {
   const [state, setState] = React.useState<LoadState>({ status: "loading" });
 
   React.useEffect(() => {
     let live = true;
     void (async () => {
       try {
-        const res = await fetch(`/api/analyses/${encodeURIComponent(id)}`, {
+        const res = await fetch(savedAnalysisApiPath(id, token), {
           credentials: "same-origin",
         });
         if (!live) return;
@@ -125,7 +133,7 @@ export function SavedAnalysisView({ id, claimed = 0 }: SavedAnalysisViewProps) {
     return () => {
       live = false;
     };
-  }, [id]);
+  }, [id, token]);
 
   if (state.status === "loading") {
     return (
@@ -259,6 +267,7 @@ export function SavedAnalysisView({ id, claimed = 0 }: SavedAnalysisViewProps) {
           analysisId={analysis.id}
           authenticated={analysis.owned}
           intake={analysis.intake}
+          token={token}
         />
       </div>
     </div>

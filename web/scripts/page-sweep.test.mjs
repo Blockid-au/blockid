@@ -327,3 +327,10 @@ describe("parseArgs / planVisits", () => {
     expect(planVisits(routes, { fixtures: {}, mode: "own", persona: null, limit: 2, routeFilter: null }).visits).toHaveLength(2);
   });
 });
+
+describe("judge(): visit overrides", () => {
+  it("a `visit` path with a query string is not an unexpected redirect when the pathname matches", () => {
+    const row = { route: "/checkout/review", path: "/checkout/review?plan=founder_growth&trial=1&entry=sweep", persona: "founder", persona_required: "founder", status: 200, final_url: "https://blockid.au/checkout/review?plan=founder_growth&trial=1&entry=sweep", h1_count: 1, h1: ["Review your order"], console_errors: [], failed_requests: [], overflow_375: false, missing_alt: [], has_main: true, content_type: "text/html", light: { body: 1, section: 1, text: 0.05 } };
+    expect(judge(row, { light: false })).toEqual([]);
+  });
+});

@@ -1,5 +1,13 @@
 // The first-analysis job runner (S32-B).
 //
+// G28-C (2026-09-21): NEW intake rows no longer come here. Every free-grant
+// and entitled run is routed through the ReportV2 pipeline (./report-v2-job.ts
+// — the same `orchestrateReport` the paid Trusted Business Report uses) so the
+// first two free reports ARE the v3 document. This runner is kept for the
+// rows written before G28 that still hold a v1 `FirstAnalysisReport`: their
+// `done_partial` backfills, retries and e-mails. `./dispatch.ts` decides by
+// the stored shape; nothing starts an S32 job for a fresh row any more.
+//
 // One job per `analyses` row, started fire-and-forget by POST /api/intake
 // the moment the row is saved, and re-driven by the `first-analysis-report`
 // cron for anything that failed or stalled. The runner:
@@ -66,6 +74,7 @@ import {
   FIRST_ANALYSIS_REPORT_VERSION,
   FULL_REPORT_PARTIAL_MIN_SECTIONS,
   SECTION_MAX_ATTEMPTS,
+  isFirstAnalysisReport,
   pendingSections,
   type FirstAnalysisAgent,
   type FirstAnalysisReport,
@@ -238,7 +247,9 @@ export async function runFirstAnalysisJob(id: string, deps: JobDeps = defaultDep
 
   // Keep whatever a previous attempt already paid for — the sections, their
   // attempt counts, and the partial-delivery stamps.
-  const prior = row.full_report_json;
+  // G28-C: only a v1 report is reused; a ReportV2 envelope never reaches this
+  // runner (dispatch.ts routes by shape), so the guard is belt and braces.
+  const prior = isFirstAnalysisReport(row.full_report_json) ? row.full_report_json : null;
   if (prior && prior.version === FIRST_ANALYSIS_REPORT_VERSION && prior.agents) {
     for (const role of FIRST_ANALYSIS_AGENTS) {
       const section = prior.agents[role];

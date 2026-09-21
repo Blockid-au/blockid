@@ -10,6 +10,7 @@
 // is being written right now so the page can be honest about it.
 
 import type { InputEcho } from "@/lib/analyses/input-echo";
+import type { ReportV2 } from "@/lib/report-v2/schema";
 import type { ReportMeta } from "./meta";
 
 export const FIRST_ANALYSIS_REPORT_VERSION = 1 as const;
@@ -332,9 +333,89 @@ export interface FirstAnalysisPreview {
  * guest who has not yet given an email at the free-summary card; the
  * preview is theirs, the rest waits.
  */
+/**
+ * G28-C — the ReportV2 envelope. Since G28 every new intake row (a free
+ * grant, an entitled member) runs the SAME pipeline the paid Trusted
+ * Business Report runs (`orchestrateReport`, tier standard) and stores the
+ * v3 document here — `analyses.full_report_json` now holds EITHER a
+ * `FirstAnalysisReport` (version 1, the S32 seven-voice report — rows
+ * written before G28 and their in-flight backfills) OR this envelope
+ * (version "tbr-v2"). `version` is the discriminant; `isReportV2Envelope`
+ * / `isFirstAnalysisReport` are the only readers allowed to tell them apart.
+ *
+ * The document is stored on the analyses row (not `svi_snapshots`) on
+ * purpose: a snapshot needs an svi_accounts row and is UNIQUE per (account,
+ * day), so a founder's second free run the same day would overwrite the
+ * first. One row, one document, one PDF; no migration (jsonb already there).
+ */
+export const FULL_REPORT_V2_VERSION = "tbr-v2" as const;
+
+/** What the page prints while the pipeline runs (the orchestrator's `pipeline_progress`). */
+export interface ReportV2Progress {
+  /** Orchestrator phase label ("gather", "analyze", "synthesis", …). */
+  phase: string;
+  /** 0–100. */
+  pct: number;
+  /** ISO — last update. */
+  at: string;
+  /** Chapters that have landed so far. */
+  chaptersDone: number;
+}
+
+export interface FullReportV2Envelope {
+  version: typeof FULL_REPORT_V2_VERSION;
+  analysisId: string;
+  /** Startup name as printed on the cover / subject line. */
+  company: string;
+  /** ISO — when the run started. */
+  generatedAt: string;
+  /** ISO — when the document landed. */
+  completedAt?: string;
+  /** The v3 document. Null while the pipeline is still running. */
+  report: ReportV2 | null;
+  /** assembled report id from the orchestrator (null until it lands). */
+  reportId: string | null;
+  progress: ReportV2Progress;
+  /** Run telemetry (the tbr-quality row's numbers, kept with the document). */
+  pipeline?: {
+    calls: number;
+    costUsd: number;
+    durationMs: number;
+    degradedSections: string[];
+    deadlineHit: boolean;
+    pipelineVersion: string;
+  };
+}
+
+/** Whatever `analyses.full_report_json` holds. */
+export type StoredFullReport = FirstAnalysisReport | FullReportV2Envelope;
+
+export function isReportV2Envelope(v: unknown): v is FullReportV2Envelope {
+  return Boolean(v) && typeof v === "object" && (v as { version?: unknown }).version === FULL_REPORT_V2_VERSION;
+}
+
+export function isFirstAnalysisReport(v: unknown): v is FirstAnalysisReport {
+  return Boolean(v) && typeof v === "object" && (v as { version?: unknown }).version === FIRST_ANALYSIS_REPORT_VERSION;
+}
+
+/** Which job / renderer a row belongs to: the S32 seven-voice path only for a row that already holds a v1 report. */
+export function reportPathFor(json: unknown): "v2" | "s32" {
+  return isFirstAnalysisReport(json) ? "s32" : "v2";
+}
+
 export interface FullReportView {
   status: FullReportStatus | null;
   locked: boolean;
+  /**
+   * G28-C: which document this row carries — `"v2"` = the v3 Trusted
+   * Business Report (`reportV2` / `progressV2`), `"s32"` = the seven-voice
+   * first analysis (`report` / `preview`). A never-started row reads "v2".
+   */
+  kind: "v2" | "s32";
+  /** The v3 document once the pipeline landed (kind "v2"). */
+  reportV2: ReportV2 | null;
+  /** Pipeline progress while running (kind "v2"). */
+  progressV2: ReportV2Progress | null;
   report: FirstAnalysisReportView | null;
   preview: FirstAnalysisPreview | null;
   emailedAt: string | null;

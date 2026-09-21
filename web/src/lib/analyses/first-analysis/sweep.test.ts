@@ -5,11 +5,10 @@
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
-vi.mock("./job", () => ({
-  deliverFullReport: vi.fn(),
-  makeAgentCaller: vi.fn(),
-  defaultDeps: vi.fn(),
-  runFirstAnalysisJob: vi.fn(),
+// G28-C: the sweep runs / delivers through the dispatcher (v2 or S32 by shape).
+vi.mock("./dispatch", () => ({
+  runAnalysisReportJob: vi.fn(),
+  deliverAnalysisReport: vi.fn(),
 }));
 vi.mock("./store", () => ({
   sweepPendingFullReports: vi.fn(),
@@ -53,7 +52,7 @@ describe("sweepFirstAnalysisReports", () => {
       if (row.id === "run-2") throw new Error("boom");
       return { outcome: "done" };
     });
-    const out = await sweepFirstAnalysisReports({}, d);
+    const out = await sweepFirstAnalysisReports({ awaitRuns: true }, d);
     expect(order).toEqual(["mail:mail-1", "run:run-1", "run:run-2"]);
     expect(out.emailed).toEqual([{ id: "mail-1", outcome: "sent" }]);
     expect(out.ran).toEqual([{ id: "run-1", outcome: "done" }, { id: "run-2", outcome: "failed" }]);
@@ -67,7 +66,7 @@ describe("sweepFirstAnalysisReports", () => {
       emailable: [r("partial-1", { full_report_status: "done_partial", full_report_attempts: 2 })],
     });
     d.run.mockResolvedValue({ outcome: "done" });
-    const out = await sweepFirstAnalysisReports({}, d);
+    const out = await sweepFirstAnalysisReports({ awaitRuns: true }, d);
     expect(out.emailed).toEqual([{ id: "partial-1", outcome: "sent" }]);
     expect(out.ran).toEqual([{ id: "partial-1", outcome: "done" }]);
     expect(out.runnable[0]).toEqual({ id: "partial-1", status: "done_partial", attempts: 2 });
@@ -76,7 +75,7 @@ describe("sweepFirstAnalysisReports", () => {
   it("reports a sweep failure as ok:false", async () => {
     const d = deps();
     (d.sweep as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("supabase down"));
-    const out = await sweepFirstAnalysisReports({}, d);
+    const out = await sweepFirstAnalysisReports({ awaitRuns: true }, d);
     expect(out).toMatchObject({ ok: false, error: "supabase down" });
   });
 });
@@ -99,7 +98,7 @@ describe("sweepFirstAnalysisReports — FREE_REPORTS_DAILY_CAP (G25-C)", () => {
   it("cap reached → the store is asked to hold; held rows are reported, the rest run, e-mails still go", async () => {
     const d = { ...deps(), capReached: vi.fn().mockResolvedValue(true) };
     (d.sweep as ReturnType<typeof vi.fn>).mockResolvedValue({ runnable: [r("retry-1")], emailable: [r("mail-1", { full_report_status: "done" })], heldForCap: [never("new-1")] });
-    const out = await sweepFirstAnalysisReports({}, d);
+    const out = await sweepFirstAnalysisReports({ awaitRuns: true }, d);
     expect(d.sweep).toHaveBeenCalledWith({ limit: 5, holdNeverStartedFree: true });
     expect(out.heldForCap).toEqual(["new-1"]);
     expect(out.runnable.map((x) => x.id)).toEqual(["retry-1"]);
@@ -110,12 +109,12 @@ describe("sweepFirstAnalysisReports — FREE_REPORTS_DAILY_CAP (G25-C)", () => {
   it("cap not reached → no hold requested; a cap read that throws never holds; no dep → no hold", async () => {
     const d = { ...deps(), capReached: vi.fn().mockResolvedValue(false) };
     (d.sweep as ReturnType<typeof vi.fn>).mockResolvedValue({ runnable: [never("new-1")], emailable: [], heldForCap: [] });
-    let out = await sweepFirstAnalysisReports({}, d);
+    let out = await sweepFirstAnalysisReports({ awaitRuns: true }, d);
     expect(d.sweep).toHaveBeenCalledWith({ limit: 5, holdNeverStartedFree: false });
     expect(out.heldForCap).toEqual([]);
     expect(out.ran).toEqual([{ id: "new-1", outcome: "done" }]);
     d.capReached.mockRejectedValue(new Error("db"));
-    out = await sweepFirstAnalysisReports({}, d);
+    out = await sweepFirstAnalysisReports({ awaitRuns: true }, d);
     expect(d.sweep).toHaveBeenLastCalledWith({ limit: 5, holdNeverStartedFree: false });
     const plain = deps();
     (plain.sweep as ReturnType<typeof vi.fn>).mockResolvedValue({ runnable: [never("new-2")], emailable: [] });
@@ -128,10 +127,28 @@ describe("sweepFirstAnalysisReports — FREE_REPORTS_DAILY_CAP (G25-C)", () => {
     const d = { ...deps(), releaseStale: vi.fn().mockResolvedValue(3) };
     expect((await sweepFirstAnalysisReports({ dryRun: true }, d)).staleReleased).toBe(0);
     expect(d.releaseStale).not.toHaveBeenCalled();
-    expect((await sweepFirstAnalysisReports({}, d)).staleReleased).toBe(3);
+    expect((await sweepFirstAnalysisReports({ awaitRuns: true }, d)).staleReleased).toBe(3);
     d.releaseStale.mockRejectedValue(new Error("db"));
-    const out = await sweepFirstAnalysisReports({}, d);
+    const out = await sweepFirstAnalysisReports({ awaitRuns: true }, d);
     expect(out.ok).toBe(true);
     expect(out.staleReleased).toBe(0);
+  });
+});
+
+
+describe("sweep — cron mode starts runs without awaiting (G28-C: a v2 run outlives the 290 s cron clamp)", () => {
+  it("returns 'started' per runnable row and resolves before the run does", async () => {
+    let resolveRun: (() => void) | null = null;
+    const d = {
+      sweep: async () => ({ runnable: [{ id: "slow-1", full_report_status: "pending", full_report_attempts: 0 } as never], emailable: [] }),
+      releaseStale: async () => 0,
+      deliver: async () => "sent" as never,
+      run: () => new Promise<{ outcome: "done" }>((res) => { resolveRun = () => res({ outcome: "done" }); }),
+      capReached: async () => false,
+    } as never;
+    const out = await sweepFirstAnalysisReports({}, d);
+    expect(out.ran).toEqual([{ id: "slow-1", outcome: "started" }]);
+    expect(resolveRun).not.toBeNull();
+    resolveRun!();
   });
 });

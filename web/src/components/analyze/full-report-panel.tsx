@@ -17,6 +17,7 @@
 // without a reload.
 
 import * as React from "react";
+import dynamic from "next/dynamic";
 import { AlertCircle, CheckCircle2, Download, Loader2, Lock, Mail } from "lucide-react";
 
 import { InputEchoPanel } from "./input-echo-panel";
@@ -34,7 +35,22 @@ import {
   type ValuationSection,
 } from "@/lib/analyses/first-analysis/types";
 import type { IntakeResult } from "@/lib/intake/analyze-input";
+import type { ReportV2Progress } from "@/lib/analyses/first-analysis/types";
 import { cn } from "@/lib/utils";
+
+// G28-C — the v3 Trusted Business Report (the same <TbrReportV2> the paid
+// /workspace/reports/business and /tbr/<token> pages render). Loaded on
+// demand: the S32 rows never need it, and it is the heaviest client chunk.
+const TbrReportV2 = dynamic(() => import("@/components/tbr/v2/report").then((m) => m.TbrReportV2), {
+  ssr: false,
+  loading: () => (
+    <div className="mt-4 animate-pulse space-y-3 motion-reduce:animate-none" aria-hidden>
+      <div className="h-6 w-2/3 rounded bg-surface-hover" />
+      <div className="h-40 rounded-xl bg-surface-hover" />
+      <div className="h-6 w-1/2 rounded bg-surface-hover" />
+    </div>
+  ),
+});
 
 export interface FullReportPanelProps {
   analysisId: string | null;
@@ -44,7 +60,44 @@ export interface FullReportPanelProps {
   unlockNonce?: number;
   /** The live intake, so the echo renders before the first poll returns. */
   intake?: IntakeResult | null;
+  /** G28-C: the signed link token from the report e-mail (`/analyze/<id>?t=…`) — forwarded to the poll + PDF routes. */
+  token?: string | null;
   className?: string;
+}
+
+/** Phase wording for the v2 progress line. Exported for the test. */
+export const V2_PHASE_LABELS: Record<string, string> = {
+  starting: "Starting the report pipeline…",
+  gather: "Gathering evidence — the register, benchmarks and computed facts…",
+  analyze: "The C-level agents are assessing the eight dimensions…",
+  synthesis: "The CEO is writing the investment view…",
+  audit: "The auditor is checking every claim against the evidence…",
+  done: "Complete — your Trusted Business Report.",
+  failed: "The pipeline could not finish this run.",
+};
+
+/** The one-line progress statement for a v2 (Trusted Business Report) run. Exported for the test. */
+export function progressLineV2(view: Pick<FullReportView, "status" | "progressV2" | "error" | "heldForCap" | "reportV2"> | null): string {
+  if (!view || view.status === null) return "Preparing your Trusted Business Report…";
+  if (view.status === "queued" && view.heldForCap) {
+    return "Queued — today's free reports are all taken, so yours is in the queue. We e-mail it the moment it is written; you can close this page.";
+  }
+  if (view.status === "queued") return "Queued — the report pipeline starts in a moment.";
+  if (view.status === "failed") {
+    return `The report could not be written in this run${view.error ? ` (${view.error})` : ""}. It is retried automatically and e-mailed when it lands.`;
+  }
+  if (view.status === "done" && view.reportV2) {
+    // Chapters the owner agent could not write fell back to the deterministic card (`degraded`).
+    const degraded = view.reportV2.dimensions.filter((d) => d.degraded).length;
+    return degraded > 0
+      ? `Complete — ${8 - Math.min(8, degraded)} of 8 chapters written by the agents; ${degraded} fell back to the deterministic card.`
+      : "Complete — the full Trusted Business Report: investment view, valuation, 8 chapters, risk matrix and 90-day plan.";
+  }
+  const p: ReportV2Progress | null = view.progressV2;
+  if (!p) return V2_PHASE_LABELS.starting;
+  const label = V2_PHASE_LABELS[p.phase] ?? `Writing — ${p.phase}…`;
+  const chapters = p.chaptersDone > 0 ? ` ${p.chaptersDone} of 8 chapters in.` : "";
+  return `${label}${chapters} ${p.pct} %`;
 }
 
 /** How long we keep polling a job that never finishes before going quiet. */
@@ -112,6 +165,10 @@ export function parseView(body: unknown): FullReportView | null {
   return {
     status: b.status ?? null,
     locked: Boolean(b.locked),
+    // A body with no `kind` (an older server mid-deploy) is S32 iff it carries a v1 report / preview.
+    kind: b.kind === "s32" || (b.kind === undefined && (b.report || b.preview)) ? "s32" : "v2",
+    reportV2: b.reportV2 && typeof b.reportV2 === "object" ? b.reportV2 : null,
+    progressV2: b.progressV2 && typeof b.progressV2 === "object" ? b.progressV2 : null,
     report: normaliseReport(b.report),
     preview: b.preview ?? null,
     emailedAt: b.emailedAt ?? null,
@@ -125,7 +182,13 @@ export function parseView(body: unknown): FullReportView | null {
 
 type ResendState = { kind: "idle" } | { kind: "sending" } | { kind: "done"; message: string; ok: boolean };
 
-export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, intake, className }: FullReportPanelProps) {
+/** The poll / PDF path, with the signed token when the visitor came from the e-mail link. Exported for the test. */
+export function reportApiPath(analysisId: string, leaf: "full-report" | "report.pdf", token?: string | null): string {
+  const base = `/api/analyses/${encodeURIComponent(analysisId)}/${leaf}`;
+  return token ? `${base}?token=${encodeURIComponent(token)}` : base;
+}
+
+export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, intake, token = null, className }: FullReportPanelProps) {
   const [view, setView] = React.useState<FullReportView | null>(null);
   const [failedToLoad, setFailedToLoad] = React.useState(false);
   const [resend, setResend] = React.useState<ResendState>({ kind: "idle" });
@@ -139,7 +202,7 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
 
     async function tick() {
       try {
-        const res = await fetch(`/api/analyses/${encodeURIComponent(analysisId!)}/full-report`, { credentials: "same-origin" });
+        const res = await fetch(reportApiPath(analysisId!, "full-report", token), { credentials: "same-origin" });
         const body = res.ok ? await res.json().catch(() => null) : null;
         if (!live) return;
         const next = parseView(body);
@@ -163,7 +226,7 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
       live = false;
       if (timer) clearTimeout(timer);
     };
-  }, [analysisId, unlockNonce]);
+  }, [analysisId, unlockNonce, token]);
 
   const clientEcho = React.useMemo<InputEcho | null>(() => {
     if (!intake) return null;
@@ -182,10 +245,16 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
   const valuation: ValuationSection | null = report?.valuation ?? preview?.valuation ?? null;
   const locked = Boolean(view?.locked);
   const status = view?.status ?? null;
+  // G28-C: a v2 row renders the v3 document; an S32 row the seven voices.
+  const v2 = (view?.kind ?? "v2") === "v2";
+  const reportV2 = view?.reportV2 ?? null;
   // A partial report is readable and downloadable; its missing voices say so.
-  const done = isFullReportReadable(status);
-  const partial = status === "done_partial";
-  const canResend = done && !locked && (Boolean(view?.emailTo) || authenticated === true);
+  // A v2 row is readable only once its document exists (no partial state).
+  const done = v2 ? status === "done" && Boolean(reportV2) : isFullReportReadable(status);
+  const partial = !v2 && status === "done_partial";
+  // A visitor on the e-mail's signed link already has the e-mail; the resend
+  // route is cookie-scoped, so the button is not offered there.
+  const canResend = done && !locked && !token && (Boolean(view?.emailTo) || authenticated === true);
 
   async function handleResend() {
     if (resend.kind === "sending") return;
@@ -209,7 +278,7 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
   }
 
   return (
-    <div className={cn("flex flex-col gap-4", className)} data-testid="analyze-full-report">
+    <div className={cn("flex flex-col gap-4", className)} data-testid="analyze-full-report" data-kind={v2 ? "v2" : "s32"}>
       {echo && <InputEchoPanel echo={echo} />}
 
       <section
@@ -219,7 +288,7 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="min-w-0">
             <h2 id="full-report-heading" className="text-sm font-semibold text-primary">
-              Your first analysis — what BlockID&apos;s agents make of it
+              {v2 ? "Your Trusted Business Report — the same document an investor receives" : "Your first analysis — what BlockID's agents make of it"}
             </h2>
             <p className="mt-1 flex items-center gap-2 text-xs text-secondary" role="status" aria-live="polite" data-testid="analyze-full-report-progress">
               {status === "running" || status === "queued" || status === null || partial ? (
@@ -229,7 +298,7 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
               ) : (
                 <CheckCircle2 aria-hidden strokeWidth={2} className="h-3.5 w-3.5 text-bull" />
               )}
-              <span>{failedToLoad && !view ? "Could not reach the report just now — retrying." : progressLine(view)}</span>
+              <span>{failedToLoad && !view ? "Could not reach the report just now — retrying." : v2 ? progressLineV2(view) : progressLine(view)}</span>
             </p>
             <p className="mt-1 text-[11px] text-muted">
               Free · 0 credits — your first two business reports never cost anything.
@@ -238,7 +307,7 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
           {done && !locked && (
             <div className="flex flex-wrap items-center gap-2">
               <a
-                href={`/api/analyses/${encodeURIComponent(analysisId)}/report.pdf`}
+                href={reportApiPath(analysisId, "report.pdf", token)}
                 className="inline-flex items-center gap-1.5 rounded-lg bg-action px-3 py-1.5 text-xs font-semibold text-on-action hover:opacity-90"
                 data-testid="analyze-full-report-download"
               >
@@ -278,6 +347,27 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
           </p>
         )}
 
+        {/* G28-C — the v3 document, rendered by the same component the paid
+            report and /tbr/<token> use. Full standard document (spec § 6):
+            no unlock rail, no trim, one evidence-confidence number. */}
+        {v2 && reportV2 && !locked && (
+          <div className="mt-4" data-testid="analyze-report-v2">
+            <TbrReportV2 report={reportV2} upgradeHref="/pricing" />
+          </div>
+        )}
+        {v2 && !reportV2 && !locked && status !== "failed" && (
+          <div className="mt-4 rounded-xl border border-dashed border-line-subtle bg-surface-sunken p-4" data-testid="analyze-report-v2-pending" aria-busy="true">
+            <p className="text-xs font-semibold uppercase tracking-wider text-tertiary">What is being written</p>
+            <ol className="mt-2 space-y-1 text-sm text-secondary">
+              <li>1. Dashboard and investment view — SVI, evidence confidence, verdict band, valuation range</li>
+              <li>2. Valuation — the methods, the consensus and what moves it</li>
+              <li>3. Eight dimension chapters — verdict, evidence, strengths, gaps, what to improve</li>
+              <li>4. Risk matrix, 90-day improvement plan, money on the table, appendix</li>
+            </ol>
+            <p className="mt-3 text-xs text-muted">Usually 3–8 minutes. The report is e-mailed the moment it lands — you can close this page.</p>
+          </div>
+        )}
+
         {locked && (
           <div className="mt-3 flex items-start gap-2 rounded-xl border border-line-subtle bg-surface-sunken px-3 py-2.5 text-xs text-secondary" data-testid="analyze-full-report-locked">
             <Lock aria-hidden strokeWidth={2} className="mt-0.5 h-3.5 w-3.5 shrink-0 text-tertiary" />
@@ -287,7 +377,7 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
           </div>
         )}
 
-        {valuation && (
+        {!v2 && valuation && (
           <div className="mt-4 rounded-xl border border-line-subtle bg-surface p-3" data-testid="analyze-full-report-valuation">
             <p className="text-xs font-semibold uppercase tracking-wider text-tertiary">Indicative valuation — how it was built</p>
             <p className="mt-1 text-sm text-primary">
@@ -304,21 +394,23 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
           </div>
         )}
 
-        <div className="mt-4 flex flex-col gap-3">
-          {FIRST_ANALYSIS_AGENTS.map((role) => (
-            <AgentCard
-              key={role}
-              role={role}
-              section={report?.agents[role] ?? null}
-              ceoPreview={role === "ceo" && locked ? preview?.ceoParagraph ?? null : null}
-              locked={locked && role !== "ceo"}
-              status={status}
-              current={report?.progress.current ?? null}
-            />
-          ))}
-        </div>
+        {!v2 && (
+          <div className="mt-4 flex flex-col gap-3">
+            {FIRST_ANALYSIS_AGENTS.map((role) => (
+              <AgentCard
+                key={role}
+                role={role}
+                section={report?.agents[role] ?? null}
+                ceoPreview={role === "ceo" && locked ? preview?.ceoParagraph ?? null : null}
+                locked={locked && role !== "ceo"}
+                status={status}
+                current={report?.progress.current ?? null}
+              />
+            ))}
+          </div>
+        )}
 
-        {report && !locked && report.actionPlan.steps.length > 0 && (
+        {!v2 && report && !locked && report.actionPlan.steps.length > 0 && (
           <div className="mt-5" data-testid="analyze-full-report-plan">
             <p className="text-xs font-semibold uppercase tracking-wider text-tertiary">Your first 30 days</p>
             <ol className="mt-2 space-y-2">

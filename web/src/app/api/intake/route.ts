@@ -63,7 +63,7 @@ import { deriveCompactSvi, type CompactSvi } from "@/lib/analyses/payload";
 import { emitFreeReportSubmitted, emitScoreComputed, emitSviAnalyze } from "@/lib/analytics/funnel";
 import { emitDeckUploaded, emitWebsiteImported } from "@/lib/analytics/fi-events";
 import { apiRoute } from "@/lib/audit/api-route";
-import { startFirstAnalysisJob } from "@/lib/analyses/first-analysis/job";
+import { startAnalysisReportJob } from "@/lib/analyses/first-analysis/dispatch";
 import { parseMultipart } from "@/lib/http/multipart";
 import { clientIpFromHeaders } from "@/lib/iphash";
 import { maskSummaryEmail } from "@/lib/analyses/free-summary";
@@ -427,21 +427,25 @@ async function POST_handler(request: Request) {
     } catch (err) {
       console.warn("[intake] funnel emit failed —", err instanceof Error ? err.message : String(err));
     }
-    // S32-B — the full first analysis (SVI reasoning, indicative valuation,
-    // seven C-level sections, the emailed PDF) runs as a background job on
-    // the saved row. Fire-and-forget: the response never waits on a model
-    // call, and the 5-minute cron re-drives anything that stalls.
+    // G28-C — the report runs as a background job on the saved row, through
+    // the SAME ReportV2 pipeline the paid Trusted Business Report uses
+    // (`orchestrateReport`, tier standard): free runs 1–2 (guest or account)
+    // and an entitled member's run all receive the v3 document — on the
+    // page, in the e-mail body (the investment view) and as the PDF twin.
+    // Fire-and-forget: the response never waits on a model call, and the
+    // 5-minute cron re-drives anything that stalls. (S32-B's seven-voice
+    // runner remains only for rows written before G28 — dispatch.ts.)
     //
     // G25-C: it starts NOW on the free path and the entitled path. Over the
     // daily platform cap (`gate.queued`) the row stays `queued` and the
     // first-analysis cron starts it when the cap allows — the visitor is
-    // told "we e-mail you when it is ready".
+    // told "we e-mail you when it is ready". One pipeline run per grant.
     const startNow = Boolean(analysisId) && !gate.queued;
     if (analysisId && startNow) {
       try {
-        startFirstAnalysisJob(analysisId, { userId });
+        startAnalysisReportJob(analysisId, { userId });
       } catch (err) {
-        console.error("[intake] could not start the first-analysis job —", err);
+        console.error("[intake] could not start the report job —", err);
       }
     }
     const freeReport =

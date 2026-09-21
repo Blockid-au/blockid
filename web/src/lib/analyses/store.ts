@@ -262,6 +262,28 @@ export async function getAnalysisForViewer(
   return toClientAnalysis(row);
 }
 
+/**
+ * G28-C: the row behind a SIGNED link — the e-mail's `/analyze/<id>?t=…`
+ * (the same HMAC token as the PDF link, lib/analyses/first-analysis/
+ * download-token.ts). No tenancy: the token IS the entitlement, for this
+ * one row, until it expires. Null for a bad / expired token or a miss —
+ * the route answers 404 to every one of those alike.
+ */
+export async function getAnalysisBySignedToken(id: string, token: string | null | undefined): Promise<Record<string, unknown> | null> {
+  if (!token) return null;
+  const { verifyDownloadToken } = await import("@/lib/analyses/first-analysis/download-token");
+  if (verifyDownloadToken(id, token) !== "ok") return null;
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return null;
+  const { data, error } = await supabase.from(ANALYSES_TABLE).select(DETAIL_COLUMNS).eq("id", id).maybeSingle();
+  if (error) {
+    console.error("[analyses:get-by-token] query failed —", error.message);
+    return null;
+  }
+  // The link is read-only: the holder sees the run, never the owner's controls.
+  return data ? { ...toClientAnalysis(data as unknown as StoredAnalysisRow), owned: false } : null;
+}
+
 export const LIST_LIMIT = 50;
 
 /** The caller's own runs, newest first. Empty array when nothing identifies them. */

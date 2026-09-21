@@ -21,9 +21,9 @@ afterEach(() => {
 });
 
 describe("pipelineTimeoutMs — constants + env override", () => {
-  it("criterion 45 s, chapter / synthesis 120 s, no stage → the legacy 120 s", () => {
-    expect(PIPELINE_TIMEOUT_MS).toEqual({ criterion: 45_000, chapter: 120_000, synthesis: 120_000 });
-    expect(pipelineTimeoutMs("criterion")).toBe(45_000);
+  it("criterion 60 s, chapter / synthesis 120 s, no stage → the legacy 120 s", () => {
+    expect(PIPELINE_TIMEOUT_MS).toEqual({ criterion: 60_000, chapter: 120_000, synthesis: 120_000 });
+    expect(pipelineTimeoutMs("criterion")).toBe(60_000);
     expect(pipelineTimeoutMs("chapter")).toBe(120_000);
     expect(pipelineTimeoutMs("synthesis")).toBe(120_000);
     expect(pipelineTimeoutMs(undefined)).toBe(PIPELINE_TIMEOUT_MS_DEFAULT);
@@ -32,13 +32,13 @@ describe("pipelineTimeoutMs — constants + env override", () => {
 
   it("REPORT_PIPELINE_TIMEOUT_MS_<STAGE> overrides one stage; garbage / ≤ 0 keep the constant; the 5 s floor holds", () => {
     expect(pipelineTimeoutEnvName("criterion")).toBe("REPORT_PIPELINE_TIMEOUT_MS_CRITERION");
-    process.env.REPORT_PIPELINE_TIMEOUT_MS_CRITERION = "60000";
-    expect(pipelineTimeoutMs("criterion")).toBe(60_000);
+    process.env.REPORT_PIPELINE_TIMEOUT_MS_CRITERION = "75000";
+    expect(pipelineTimeoutMs("criterion")).toBe(75_000);
     expect(pipelineTimeoutMs("chapter")).toBe(120_000);
     process.env.REPORT_PIPELINE_TIMEOUT_MS_CRITERION = "garbage";
-    expect(pipelineTimeoutMs("criterion")).toBe(45_000);
+    expect(pipelineTimeoutMs("criterion")).toBe(60_000);
     process.env.REPORT_PIPELINE_TIMEOUT_MS_CRITERION = "-5";
-    expect(pipelineTimeoutMs("criterion")).toBe(45_000);
+    expect(pipelineTimeoutMs("criterion")).toBe(60_000);
     process.env.REPORT_PIPELINE_TIMEOUT_MS_SYNTHESIS = "1";
     expect(pipelineTimeoutMs("synthesis")).toBe(PIPELINE_TIMEOUT_MS_MIN);
   });
@@ -48,22 +48,23 @@ describe("pipelineCallTimeouts — the callAI options for a hint", () => {
   it("no hint → 120 s and no budget (legacy callers)", () => {
     expect(pipelineCallTimeouts()).toEqual({ timeoutMs: 120_000 });
     expect(pipelineCallTimeouts(null)).toEqual({ timeoutMs: 120_000 });
-    expect(pipelineCallTimeouts({ stage: "criterion" })).toEqual({ timeoutMs: 45_000 });
+    expect(pipelineCallTimeouts({ stage: "criterion" })).toEqual({ timeoutMs: 60_000 });
   });
 
   it("a wide remaining clock keeps the stage timeout and passes the clock as the call budget", () => {
-    expect(pipelineCallTimeouts({ stage: "criterion", remainingMs: 360_000 })).toEqual({ timeoutMs: 45_000, budgetMs: 360_000 });
+    expect(pipelineCallTimeouts({ stage: "criterion", remainingMs: 360_000 })).toEqual({ timeoutMs: 60_000, budgetMs: 360_000 });
     expect(pipelineCallTimeouts({ stage: "chapter", remainingMs: 384_000 })).toEqual({ timeoutMs: 120_000, budgetMs: 384_000 });
   });
 
-  it("inside a tight window an attempt leaves headroom for one fallback: min(stage, max(budget/2, budget − 45 s))", () => {
-    expect(FALLBACK_HEADROOM_MS).toBe(45_000);
-    // The 120 s W4 reserve: 75 s first attempt, 45 s left for the fallback.
-    expect(pipelineCallTimeouts({ stage: "chapter", remainingMs: 120_000 })).toEqual({ timeoutMs: 75_000, budgetMs: 120_000 });
+  it("inside a tight window an attempt leaves headroom for one fallback: min(stage, max(budget/2, budget − 60 s))", () => {
+    expect(FALLBACK_HEADROOM_MS).toBe(60_000); // = the criterion timeout: room for exactly one fallback attempt
+    // The 120 s W4 reserve: max(60, 120 − 60) = 60 s first attempt, 60 s left for the fallback.
+    expect(pipelineCallTimeouts({ stage: "chapter", remainingMs: 120_000 })).toEqual({ timeoutMs: 60_000, budgetMs: 120_000 });
     // 50 s left: two 25 s attempts beat one 50 s attempt.
     expect(pipelineCallTimeouts({ stage: "chapter", remainingMs: 50_000 })).toEqual({ timeoutMs: 25_000, budgetMs: 50_000 });
-    // Criterion never exceeds 45 s even with a wide window.
-    expect(pipelineCallTimeouts({ stage: "criterion", remainingMs: 100_000 })).toEqual({ timeoutMs: 45_000, budgetMs: 100_000 });
+    // Criterion never exceeds 60 s even with a wide window; inside 100 s it leaves the 60 s headroom (max(50, 40) = 50).
+    expect(pipelineCallTimeouts({ stage: "criterion", remainingMs: 100_000 })).toEqual({ timeoutMs: 50_000, budgetMs: 100_000 });
+    expect(pipelineCallTimeouts({ stage: "criterion", remainingMs: 200_000 })).toEqual({ timeoutMs: 60_000, budgetMs: 200_000 });
     // Nearly spent: the 5 s floor and a 1 s budget floor — fails fast instead of hanging.
     expect(pipelineCallTimeouts({ stage: "synthesis", remainingMs: 800 })).toEqual({ timeoutMs: 5_000, budgetMs: 1_000 });
     expect(pipelineCallTimeouts({ stage: "synthesis", remainingMs: Number.NaN })).toEqual({ timeoutMs: 120_000 });

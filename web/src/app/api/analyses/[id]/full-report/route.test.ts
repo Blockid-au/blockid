@@ -29,9 +29,10 @@ vi.mock("@/lib/analyses/first-analysis/store", () => ({
   isNeverStarted: (r: { full_report_status: string | null; full_report_attempts: number | null }) => r.full_report_status === "queued" && (r.full_report_attempts ?? 0) === 0,
 }));
 
+// G28-C: the route re-kicks through the dispatcher (shape decides v2 / S32).
 const startMock = vi.fn();
-vi.mock("@/lib/analyses/first-analysis/job", () => ({
-  startFirstAnalysisJob: (id: string, o: unknown) => startMock(id, o),
+vi.mock("@/lib/analyses/first-analysis/dispatch", () => ({
+  startAnalysisReportJob: (id: string, o: unknown) => startMock(id, o),
 }));
 // G25-C — the daily free cap: a never-started row is held while it is reached.
 const capMock = vi.fn<() => Promise<boolean>>();
@@ -40,6 +41,10 @@ vi.mock("@/lib/reports/free-grants", () => ({ freeReportsCapReached: () => capMo
 
 import { GET, HELD_POLL_SEC, dynamic } from "./route";
 import { sampleReport, SAMPLE_ANALYSIS_ID } from "@/lib/analyses/first-analysis/fixtures";
+import { mintDownloadToken } from "@/lib/analyses/first-analysis/download-token";
+import { V2_RUNNING_POLL_SEC } from "@/lib/analyses/first-analysis/view";
+import { demoReportV2 } from "@/lib/report-v2/fixtures";
+import type { FullReportV2Envelope } from "@/lib/analyses/first-analysis/types";
 
 const ID = SAMPLE_ANALYSIS_ID;
 
@@ -80,7 +85,7 @@ describe("GET /api/analyses/[id]/full-report", () => {
   it("a never-started queued row is kicked when the cap allows, held (heldForCap, slow poll) when it does not", async () => {
     loadRowMock.mockResolvedValue(row({ full_report_status: "queued", full_report_attempts: 0, full_report_json: null, full_report_email: "founder@example.com" }));
     let body = await (await req()).json();
-    expect(startMock).toHaveBeenCalledWith(ID, { userId: null });
+    expect(startMock).toHaveBeenCalledWith(ID, { userId: null, json: null });
     expect(body.heldForCap).toBe(false);
     expect(body.pollAfterSec).toBe(4);
     startMock.mockClear();
@@ -98,7 +103,7 @@ describe("GET /api/analyses/[id]/full-report", () => {
     loadRowMock.mockResolvedValue(row({ user_id: "u1", full_report_status: "queued", full_report_attempts: 0, full_report_json: null }));
     getCurrentUserMock.mockResolvedValue({ id: "u1" });
     const body = await (await req()).json();
-    expect(startMock).toHaveBeenCalledWith(ID, { userId: "u1" });
+    expect(startMock).toHaveBeenCalledWith(ID, { userId: "u1", json: null });
     expect(body.heldForCap).toBe(false);
   });
 
@@ -188,10 +193,73 @@ describe("GET /api/analyses/[id]/full-report", () => {
       .mockResolvedValueOnce(row({ full_report_status: "queued", full_report_json: null }));
     const body = await (await req()).json();
     expect(enqueueMock).toHaveBeenCalledWith(ID);
-    expect(startMock).toHaveBeenCalledWith(ID, { userId: null });
+    expect(startMock).toHaveBeenCalledWith(ID, { userId: null, json: null });
     expect(body.status).toBe("queued");
     expect(body.preview).toBeNull();
     expect(body.pollAfterSec).toBe(4);
+  });
+
+  // G28-C — the ReportV2 envelope: the v3 document rides on `reportV2`, the
+  // S32 fields stay null, and the e-mail's signed token opens it cookie-less.
+  describe("ReportV2 envelope (G28-C)", () => {
+    const envelope = (): FullReportV2Envelope => ({
+      version: "tbr-v2",
+      analysisId: ID,
+      company: "Acme",
+      generatedAt: "2026-09-21T00:00:00Z",
+      completedAt: "2026-09-21T00:05:00Z",
+      report: demoReportV2(),
+      reportId: "rpt-1",
+      progress: { phase: "done", pct: 100, at: "2026-09-21T00:05:00Z", chaptersDone: 8 },
+    });
+
+    it("a done v2 row → kind v2, reportV2 = the document, report/preview null, no poll", async () => {
+      loadRowMock.mockResolvedValue(row({ full_report_json: envelope(), full_report_email: "founder@example.com", full_report_emailed_at: "2026-09-21T00:06:00Z" }));
+      const body = await (await req()).json();
+      expect(body.kind).toBe("v2");
+      expect(body.locked).toBe(false);
+      expect(body.reportV2.cover.startupName).toBe(demoReportV2().cover.startupName);
+      expect(body.reportV2.dimensions).toHaveLength(8);
+      expect(body.report).toBeNull();
+      expect(body.preview).toBeNull();
+      expect(body.emailTo).toBe("f******@example.com");
+      expect(body.pollAfterSec).toBe(0);
+    });
+
+    it("a running v2 row → progressV2 (phase, pct) and a steady 5 s poll; a never-started row reads kind v2", async () => {
+      const e = envelope();
+      e.report = null;
+      e.progress = { phase: "analyze", pct: 35, at: "2026-09-21T00:01:00Z", chaptersDone: 2 };
+      loadRowMock.mockResolvedValue(row({ full_report_status: "running", full_report_json: e, full_report_email: "founder@example.com" }));
+      let body = await (await req()).json();
+      expect(body.kind).toBe("v2");
+      expect(body.reportV2).toBeNull();
+      expect(body.progressV2).toEqual({ phase: "analyze", pct: 35, at: "2026-09-21T00:01:00Z", chaptersDone: 2 });
+      expect(body.pollAfterSec).toBe(V2_RUNNING_POLL_SEC);
+      loadRowMock.mockResolvedValue(row({ full_report_status: "queued", full_report_attempts: 0, full_report_json: null, full_report_email: "founder@example.com" }));
+      body = await (await req()).json();
+      expect(body.kind).toBe("v2");
+      expect(body.progressV2).toBeNull();
+    });
+
+    it("the signed ?token= (the e-mail's page link) opens the row with no cookie and no session; a bad token falls to tenancy (404)", async () => {
+      getForViewerMock.mockResolvedValue(null);
+      readAnonKeyMock.mockResolvedValue(null);
+      loadRowMock.mockResolvedValue(row({ full_report_json: envelope(), full_report_email: "founder@example.com" }));
+      const prev = process.env.REPORT_LINK_SECRET;
+      process.env.REPORT_LINK_SECRET = "unit-test-secret-of-sufficient-length";
+      try {
+        const token = mintDownloadToken(ID)!;
+        const withToken = await GET(new Request(`http://x/api/analyses/${ID}/full-report?token=${encodeURIComponent(token)}`), { params: Promise.resolve({ id: ID }) });
+        expect(withToken.status).toBe(200);
+        expect((await withToken.json()).reportV2.dimensions).toHaveLength(8);
+        const bad = await GET(new Request(`http://x/api/analyses/${ID}/full-report?token=1.nope`), { params: Promise.resolve({ id: ID }) });
+        expect(bad.status).toBe(404);
+      } finally {
+        if (prev === undefined) delete process.env.REPORT_LINK_SECRET;
+        else process.env.REPORT_LINK_SECRET = prev;
+      }
+    });
   });
 
   it("a failed job exposes its error and stops polling", async () => {

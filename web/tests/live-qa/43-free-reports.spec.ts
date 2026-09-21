@@ -20,9 +20,12 @@
  *     seeded rows counted; the erasure dry-run for the QA account lists
  *     `free_report_grants` (0440) so the teardown's --write removes them.
  *
- * The real first / second free run (a full C-level report, ~US$0.006 on
- * DeepInfra) is exercised only with LIVE_QA_SPEND_OK, as the signed-in
- * founder, and asserts `freeReport.sequenceNo` 1 then 2 then the quote.
+ * The real first / second free run (G28-C: the v3 Trusted Business Report
+ * through the ReportV2 pipeline, ~US$0.07 a run) is exercised only with
+ * LIVE_QA_SPEND_OK, as the signed-in founder, and asserts
+ * `freeReport.sequenceNo` 1 then 2, the poll's `kind: "v2"` document with 8
+ * chapters, the PDF twin, and the ledger row stamped `sent`. Without the
+ * flag the lane still probes the signed-link structure (404, no leak).
  *
  * Credits are snapshotted around every step: nothing here may move them.
  */
@@ -33,7 +36,7 @@ import path from "node:path";
 
 import { test, expect } from "./fixtures";
 import { anonRequest, evidence, json, post } from "./lib/api";
-import { countFreeReportGrants, dbAllowed, deleteFreeReportGrants, freeReportGrantsTableExists, seedFreeReportGrants } from "./lib/db";
+import { countFreeReportGrants, dbAllowed, deleteFreeReportGrants, freeReportGrantDelivery, freeReportGrantsTableExists, seedFreeReportGrants } from "./lib/db";
 import { env } from "./lib/env";
 
 const WEB_DIR = path.resolve(__dirname, "..", "..");
@@ -61,6 +64,23 @@ interface IntakeReply {
   freeReport?: { sequenceNo: number | null; remaining: number; queued: boolean; emailTo: string | null } | null;
 }
 
+/** GET /api/analyses/[id]/full-report (G28-C shape) — only what the lane reads. */
+interface FullReportPoll {
+  ok?: boolean;
+  status?: string | null;
+  kind?: "v2" | "s32";
+  report?: unknown;
+  reportV2?: {
+    tier?: string;
+    source?: string;
+    cover?: { svi?: { band?: string } };
+    dimensions?: unknown[];
+    quality?: { degradedSections?: string[] };
+  } & Record<string, unknown>;
+  error?: string | null;
+  emailedAt?: string | null;
+}
+
 const IDEA = { text: "A marketplace for surplus building materials in regional NSW — contractors list leftover stock, builders buy at a discount." };
 
 test.describe("43 — free allowance (G25-C)", () => {
@@ -85,8 +105,14 @@ test.describe("43 — free allowance (G25-C)", () => {
     await credits.assertUnchanged(before, "gate refusals");
   });
 
-  test("with LIVE_QA_SPEND_OK: signed-in first run → free report 1 of 2, second → 2 of 2 (real runs)", async ({ api, qa, credits }, testInfo) => {
-    test.skip(!env.spendOk, "LIVE_QA_SPEND_OK unset — a real free run writes a full C-level report (model spend)");
+  // G28-C — the free run IS the v3 document: the ReportV2 pipeline (the paid
+  // Trusted Business Report's) runs on the row, the poll carries `kind: "v2"`
+  // + `reportV2` (8 chapters), the PDF is the TBR twin, and the ledger row is
+  // stamped `sent` when the e-mail (investment view + signed page / PDF links)
+  // goes out. Spend: two standard-tier runs (~US$0.07 each) — behind the flag.
+  test("with LIVE_QA_SPEND_OK: signed-in first run → free report 1 of 2 = the v3 document (poll, PDF, ledger sent); second → 2 of 2 (real runs)", async ({ api, qa, credits }, testInfo) => {
+    test.skip(!env.spendOk, "LIVE_QA_SPEND_OK unset — a real free run writes a full Trusted Business Report (model spend)");
+    test.setTimeout(20 * 60_000);
     const before = await credits.snapshot();
     const first = await post<IntakeReply>(api, "/api/intake", { ...IDEA, tier: "free" }, { timeoutMs: 120_000 });
     const second = await post<IntakeReply>(api, "/api/intake", { ...IDEA, tier: "free" }, { timeoutMs: 120_000 });
@@ -99,6 +125,69 @@ test.describe("43 — free allowance (G25-C)", () => {
     expect(second.body.freeReport?.remaining).toBe(0);
     if (dbAllowed() && freeReportGrantsTableExists()) expect(countFreeReportGrants(qa.email)).toBe(2);
     await credits.assertUnchanged(before, "two free runs never touch credits");
+
+    // The first row: poll until the pipeline lands (≤ 12 min), then the document.
+    const id = first.body.analysisId;
+    expect(typeof id).toBe("string");
+    let view: FullReportPoll = {};
+    await expect.poll(async () => {
+      const r = await json<FullReportPoll>(api, "GET", `/api/analyses/${id}/full-report`);
+      view = r.body;
+      return r.body.status;
+    }, { timeout: 12 * 60_000, intervals: [10_000, 15_000, 20_000] }).toMatch(/^(done|failed)$/);
+    await evidence(testInfo, "free run 1 — the v3 document", {
+      status: view.status,
+      kind: view.kind,
+      error: view.error ?? null,
+      chapters: view.reportV2?.dimensions?.length ?? null,
+      sections: view.reportV2 ? Object.keys(view.reportV2) : null,
+      degraded: view.reportV2?.quality?.degradedSections ?? null,
+      band: view.reportV2?.cover?.svi?.band ?? null,
+      emailedAt: view.emailedAt ?? null,
+    });
+    if (view.status === "failed") {
+      // A provider outage is a real finding, not a lane bug: say so and stop here.
+      testInfo.annotations.push({ type: "not-exercised", description: `free run 1 failed on the live pipeline (${view.error ?? "no error"}) — the cron retries; document assertions skipped` });
+      return;
+    }
+    expect(view.kind).toBe("v2");
+    expect(view.report ?? null).toBeNull();
+    expect(view.reportV2?.dimensions).toHaveLength(8);
+    for (const key of ["cover", "executive", "valuation", "dimensions", "phaseGates", "moneyOnTable", "actionPlan", "appendix"]) expect(view.reportV2).toHaveProperty(key);
+    expect(view.reportV2?.tier).toBe("standard");
+    expect(view.reportV2?.source).toBe("pipeline");
+
+    // The PDF twin, through the cookie path.
+    const pdf = await api.get(`/api/analyses/${id}/report.pdf`, { timeout: 120_000 });
+    await evidence(testInfo, "free run 1 — PDF", { status: pdf.status(), type: pdf.headers()["content-type"], disposition: pdf.headers()["content-disposition"], bytes: (await pdf.body()).byteLength });
+    expect(pdf.status()).toBe(200);
+    expect(pdf.headers()["content-type"]).toContain("application/pdf");
+    expect(pdf.headers()["content-disposition"]).toContain("blockid-business-report");
+
+    // The ledger: grant 1 attached to the row and stamped `sent` once the e-mail went out.
+    if (dbAllowed() && freeReportGrantsTableExists()) {
+      await expect.poll(() => freeReportGrantDelivery(qa.email, 1)?.status ?? null, { timeout: 3 * 60_000, intervals: [5_000, 10_000] }).toBe("sent");
+      expect(freeReportGrantDelivery(qa.email, 1)?.analysisId).toBe(id);
+    }
+  });
+
+  test("structure (no spend): a signed-link probe never leaks — unknown id + bad token → 404 on the poll, the PDF and the page", async ({ qa }, testInfo) => {
+    const anon = await anonRequest(qa.baseURL);
+    try {
+      const id = "0d4f7c1e-9b2a-4c3d-8e5f-6a7b8c9d0e1f";
+      const poll = await json<Record<string, unknown>>(anon, "GET", `/api/analyses/${id}/full-report?token=1.nope`);
+      const pdf = await anon.get(`/api/analyses/${id}/report.pdf?token=1.nope`);
+      const row = await json<Record<string, unknown>>(anon, "GET", `/api/analyses/${id}?token=1.nope`);
+      const page = await anon.get(`/analyze/${id}?t=1.nope`);
+      await evidence(testInfo, "signed-link probe", { poll: poll.status, pdf: pdf.status(), row: row.status, page: page.status() });
+      expect(poll.status).toBe(404);
+      expect(pdf.status()).toBe(404);
+      expect(row.status).toBe(404);
+      // The shell renders (the client fetch then lands on the one "not found" panel).
+      expect(page.status()).toBe(200);
+    } finally {
+      await anon.dispose();
+    }
   });
 
   test("third run → 200 free_allowance_used with the A$3 quote, as a guest AND as the account (never double-granted); nothing runs", async ({ api, qa, credits }, testInfo) => {

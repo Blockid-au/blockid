@@ -26,7 +26,7 @@ import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { ANALYSES_TABLE } from "@/lib/analyses/store";
-import { SECTION_MAX_ATTEMPTS, type FirstAnalysisReport, type FullReportStatus } from "./types";
+import { SECTION_MAX_ATTEMPTS, type FullReportStatus, type StoredFullReport } from "./types";
 
 export const FULL_REPORT_MAX_ATTEMPTS = 3;
 /** Hard ceiling on claims of a `done_partial` row (the per-section cap is the real bound). */
@@ -52,7 +52,8 @@ export interface FullReportRow {
   context: Record<string, unknown> | null;
   created_at: string;
   full_report_status: FullReportStatus | null;
-  full_report_json: FirstAnalysisReport | null;
+  /** G28-C: a v1 `FirstAnalysisReport` (S32 rows) or the `FullReportV2Envelope` (every row since G28) — see types.ts. */
+  full_report_json: StoredFullReport | null;
   full_report_error: string | null;
   full_report_attempts: number | null;
   full_report_started_at: string | null;
@@ -153,7 +154,7 @@ export async function claimFullReportJob(
 }
 
 /** Write the in-progress report so the page can stream sections in (a first run, or a partial being backfilled). */
-export async function saveFullReportProgress(id: string, report: FirstAnalysisReport): Promise<boolean> {
+export async function saveFullReportProgress(id: string, report: StoredFullReport): Promise<boolean> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return false;
   const { error } = await supabase
@@ -172,7 +173,7 @@ export async function finishFullReport(
   id: string,
   outcome: {
     status: "done" | "done_partial" | "failed";
-    report: FirstAnalysisReport | null;
+    report: StoredFullReport | null;
     error?: string | null;
     now?: Date;
     /** A "(part 1)" email went out: give the send-once stamp back so the complete report is emailed once more. */
