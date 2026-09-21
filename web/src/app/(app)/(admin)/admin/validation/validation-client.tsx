@@ -549,8 +549,11 @@ export function ValidationClient({ user, initial }: ValidationClientProps) {
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 10_000);
-      const stampedAt = new Date().toISOString();
-      setEntries((p) => p.map((x) => (x.id === e.id ? { ...x, proposal_generated_at: stampedAt } : x)));
+      // Mirror the server's timestamps (both — the next PATCH's If-Match is `updated_at`).
+      const stampedAt = res.headers.get("x-proposal-generated-at") ?? new Date().toISOString();
+      const updatedAt = res.headers.get("x-entry-updated-at");
+      setEntries((p) => p.map((x) => (x.id === e.id ? { ...x, proposal_generated_at: stampedAt, ...(updatedAt ? { updated_at: updatedAt } : {}) } : x)));
+      setEditing((cur) => (cur && cur.id === e.id ? { ...cur, proposal_generated_at: stampedAt, ...(updatedAt ? { updated_at: updatedAt } : {}) } : cur));
       setFeedback({ type: "success", message: `Proposal for ${e.organisation} downloaded (${filename}). Send it, then set the L3 entry to done.` });
     } catch (err) {
       setFeedback({ type: "error", message: userErrorMessage(err, "Could not generate the proposal. Please try again.") });

@@ -664,6 +664,7 @@ export async function POST(request: Request) {
       }
     }
 
+    const pilotOrderId = nonEmpty(meta.pilot_order_id);
     emitEventSafe({
       name: "subscription_created",
       params: {
@@ -672,6 +673,9 @@ export async function POST(request: Request) {
         status: sub.status,
         trialing: sub.status === "trialing",
         interval,
+        // One event per conversion (review G23 P2): the pilot channel rides on
+        // this emit instead of a second `subscription_started`.
+        ...(pilotOrderId ? { channel: "pilot_conversion", pilot_id: pilotOrderId } : {}),
         ...(userId ? { user_id: userId } : {}),
       },
       userId,
@@ -706,17 +710,6 @@ export async function POST(request: Request) {
             } catch (err) {
               console.warn("[blockid:stripe] audit log for pilot.converted failed", err instanceof Error ? err.message : String(err));
             }
-            emitFiEvent("subscription_started", {
-              channel: "pilot_conversion",
-              plan: conv.plan,
-              organisation: actor,
-              userId: actor,
-              source: "webhook:stripe",
-              pilot_id: conv.order_id,
-              sku: conv.sku ?? nonEmpty(meta.pilot_sku) ?? null,
-              subscription_id: sub.id,
-              interval,
-            });
           }
         }
       } catch (err) {

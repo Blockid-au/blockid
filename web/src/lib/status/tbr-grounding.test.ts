@@ -29,6 +29,8 @@ describe("resolveGroundedShareKpi / latestGroundedShare", () => {
     expect(latestGroundedShare([{ ts: "2026-09-21T01:00:00Z", groundedShare: 0.41 }, { ts: "2026-09-21T01:00:00Z", groundedShare: 0.87 }])).toBe(0.87);
     expect(latestGroundedShare([{ groundedShare: 1.4 }, { groundedShare: -2 }])).toBe(0);
     expect(latestGroundedShare([{ ts: "not a date", groundedShare: 0.5 }, { ts: "2020-01-01T00:00:00Z", groundedShare: 0.6 }])).toBe(0.6);
+    // Review G23 P1: a no-report outage row (words 0, all 8 chapters degraded) is not "the latest grounding".
+    expect(latestGroundedShare([{ ts: "2026-09-20T10:32:00Z", groundedShare: 0.41, words: 7657, degradedSections: 1 }, { ts: "2026-09-21T04:08:00Z", groundedShare: 0, words: 0, degradedSections: 8 }])).toBe(0.41);
   });
 });
 

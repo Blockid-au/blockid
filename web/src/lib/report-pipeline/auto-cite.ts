@@ -99,7 +99,8 @@ export function itemHasNumber(itemText: string, token: NumToken): boolean {
       if (new RegExp(`(?:a\\$|aud\\s?|us\\$|usd\\s?|\\$)\\s?${esc(d)}(?![\\d])`).test(t)) return true;
       if (new RegExp(`(?<![\\d.])${esc(d)}\\s?(?:aud|usd|dollars|k\\b|m\\b)`).test(t)) return true;
       if (new RegExp(`(?:aud|usd|revenue|mrr|arr|price|cost|fee|charge)[^\\d]{0,12}${esc(d)}(?![\\d])`).test(t)) return true;
-      if (d.replace(/\D/g, "").length >= 4 && bounded(d).test(t)) return true;
+      // Never a bare digit match for money (review G23 P1): "A$1,200 million"
+      // must not cite a row that only says "1200 sessions".
       continue;
     }
     if (token.unit === "%") {
@@ -139,13 +140,17 @@ function appendMarkers(claim: string, ids: string[]): string {
 /** Pick ≤ `max` items that together cover every needed token; null when they cannot. */
 function chooseItems(claim: string, need: NumToken[], items: CitableItem[], max: number): CitableItem[] | null {
   const coverage = items.map((item, order) => ({ item, order, covered: need.filter((tok) => itemHasNumber(item.text, tok)), mentioned: labelMentioned(claim, item.label) }));
+  // A claim whose only numbers are weak (2–3 plain digits) is cited only
+  // when the sentence names the row's source (review G23 P1) — "38 signups"
+  // alone must not attach the first row that happens to contain 38.
+  const weakOnly = need.every((tok) => !tok.strong);
   const chosen: CitableItem[] = [];
   let remaining = [...need];
   while (remaining.length && chosen.length < max) {
     const best = coverage
       .filter((c) => !chosen.includes(c.item))
       .map((c) => ({ ...c, gain: c.covered.filter((tok) => remaining.includes(tok)).length }))
-      .filter((c) => c.gain > 0)
+      .filter((c) => c.gain > 0 && (!weakOnly || c.mentioned))
       .sort((a, b) => Number(b.mentioned) - Number(a.mentioned) || b.gain - a.gain || a.order - b.order)[0];
     if (!best) return null;
     chosen.push(best.item);
