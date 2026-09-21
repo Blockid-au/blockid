@@ -95,6 +95,19 @@ describe("globals.css: light is the only default (G26) — no OS auto-dark", () 
   });
 });
 
+// G24 UI lane (2026-09-21): `text-ink-500` is the workspace's default muted
+// text (2 200+ uses) and sits on the sunken / hover grounds as often as on
+// white — it must clear AA on all three, not only on #ffffff.
+describe("globals.css ink-500 is AA on every light ground", () => {
+  it("light: ink-500 >= 4.5:1 on surface, surface-sunken and surface-hover", () => {
+    const ink = light.get("color-ink-500")!;
+    expect(ink).toMatch(/^#[0-9a-f]{6}$/);
+    for (const ground of ["#ffffff", "#f7f8fa", "#eef0f5"]) {
+      expect(contrastRatio(ink, ground), `ink-500 ${ink} on ${ground}`).toBeGreaterThanOrEqual(AA_TEXT);
+    }
+  });
+});
+
 describe("globals.css dark scope keeps the same tokens AA on the dark ground", () => {
   for (const [label, block] of [
     ["[data-theme=dark]", darkBlock()],

@@ -25,7 +25,7 @@ export function ProgressBlock({ block, role }: { block: DossierProgressBlock; ro
       <DossierBlock n={5} title="Progress radar" testId="dossier-block-5">
         <p data-testid="progress-empty">
           No snapshot history yet for this startup — the weekly Δ, movers and deadlines appear after the first re-score. The multi-startup view lives on{" "}
-          <Link href="/workspace/evaluations" className="text-brand-700 hover:underline">
+          <Link href="/workspace/evaluations" className="text-action hover:underline">
             Startups I&apos;m evaluating
           </Link>
           .
@@ -102,7 +102,7 @@ export function ProgressBlock({ block, role }: { block: DossierProgressBlock; ro
         </ul>
       ) : null}
       {role === "assessor" && block.sinceAssessment ? (
-        <p className="mt-3 rounded-lg border border-brand-200/70 bg-brand-50/50 px-3 py-2 text-xs text-ink-800" data-testid="progress-since-assessment">
+        <p className="mt-3 rounded-lg border border-brand-200/70 bg-info-soft/50 px-3 py-2 text-xs text-ink-800" data-testid="progress-since-assessment">
           Since my last assessment (v{block.sinceAssessment.version}, {fmtDate(block.sinceAssessment.assessedAt)}): SVI {block.sinceAssessment.sviThen ?? "—"} → {block.sinceAssessment.sviNow ?? "—"}{" "}
           <Delta value={block.sinceAssessment.delta} />
           {block.sinceAssessment.delta === 0 ? " — the startup has not moved; any change of view is yours." : ""}

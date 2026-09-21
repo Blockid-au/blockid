@@ -758,7 +758,8 @@ describe("<TbrReportV2> citations (G24-A)", () => {
     expect(links.length).toBeGreaterThanOrEqual(5);
     for (const a of links) {
       expect(a).toContain("focus-visible:ring-2");
-      expect(a).toContain("before:-inset-y-4");
+      expect(a).toContain("before:h-11 before:w-11");
+      expect(a).toContain("before:-translate-x-1/2 before:-translate-y-1/2");
       expect(a).toContain('title="Evidence ');
     }
     // The appendix: one row per cited register row, in order, with level · source · date.
@@ -774,6 +775,11 @@ describe("<TbrReportV2> citations (G24-A)", () => {
     expect(appendix).toContain("AU market anchor (ABS / IBISWorld)");
     expect(appendix).toContain("public URLs");
     expect(tbrV2Toc(citedDemoReportV2()).at(-1)).toEqual({ id: TBR_V2_SECTION_IDS.evidenceCited, label: "Evidence cited" });
+    // G24 UI lane: at < sm the level · source · date columns collapse into a stacked
+    // meta line under the label (no sideways scroll at 375 px); print keeps the columns.
+    expect(appendix.match(/hidden sm:table-cell print:table-cell/g)?.length ?? 0).toBeGreaterThanOrEqual(6);
+    expect((appendix.match(/data-tbr-footnote-meta/g) ?? []).length).toBe(3);
+    expect(appendix).toContain("sm:hidden");
   });
 
   it("[unevidenced] becomes the muted unverified chip (EN / VI), and the VI appendix reads Vietnamese", () => {

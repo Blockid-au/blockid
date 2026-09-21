@@ -122,6 +122,9 @@ function fmtDelta(d: number | null, svi: number | null): { text: string; tone: s
 
 type BulkState = { kind: "idle" } | { kind: "busy" } | { kind: "ok"; n: number; skipped: number } | { kind: "error"; message: string };
 
+/** Row / header checkbox: 20 px visual (the native 13 px box sits under the 24 px WCAG 2.5.8 floor; a replaced element takes no ::before hit box, the cell padding does the rest), focus ring, pointer. */
+export const CHECKBOX_CLASS = "h-5 w-5 cursor-pointer rounded border-line accent-brand-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-action";
+
 export function CohortTable({ rows, batchId, role, weightsVersion = 1, deltaWeightsChanged = null, loading = false, initialFilters, className, isDemo = false, demoChip }: CohortTableProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -413,7 +416,11 @@ export function CohortTable({ rows, batchId, role, weightsVersion = 1, deltaWeig
       )}
 
       {/* table */}
-      <div className="overflow-x-auto rounded-2xl border border-line-subtle bg-surface" data-testid="cohort-scroll">
+      {/* `relative` is load-bearing: the sr-only spans inside the sort buttons are absolutely
+          positioned, and without a positioned scroll container they resolve against the initial
+          containing block — at x ≈ 1 300 px inside the wide table — and widen the whole document
+          (scrollX 1 042 at 375 px, found by the G24 UI lane). */}
+      <div className="relative overflow-x-auto rounded-2xl border border-line-subtle bg-surface" data-testid="cohort-scroll">
         <table className={cn("min-w-full border-separate border-spacing-0 text-sm text-primary", density === "compact" ? "text-[13px]" : "")} data-testid="cohort-table" data-density={density}>
           <caption className="px-3 py-2 text-left text-xs text-secondary" data-testid="cohort-caption">
             BlockID Cohort — one row per startup. Ranked by Program score (weights v{weightsVersion}) · canonical SVI unchanged · human overrides shown beside the model score.
@@ -426,7 +433,7 @@ export function CohortTable({ rows, batchId, role, weightsVersion = 1, deltaWeig
           <thead className="bg-surface-sunken text-left text-[11px] uppercase tracking-wider text-muted">
             <tr>
               <th scope="col" className={cn("sticky left-0 z-20 bg-surface-sunken", pad)}>
-                {canWrite ? <input type="checkbox" aria-label="Select all visible startups" checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(visible.map((r) => r.evaluationId)))} data-testid="cohort-select-all" /> : <span className="sr-only">Select</span>}
+                {canWrite ? <input type="checkbox" className={CHECKBOX_CLASS} aria-label="Select all visible startups" checked={allSelected} onChange={() => setSelected(allSelected ? new Set() : new Set(visible.map((r) => r.evaluationId)))} data-testid="cohort-select-all" /> : <span className="sr-only">Select</span>}
               </th>
               {columns.map((c) => {
                 const def = COLUMN_DEFS[c];
@@ -435,7 +442,7 @@ export function CohortTable({ rows, batchId, role, weightsVersion = 1, deltaWeig
                 return (
                   <th key={c} scope="col" title={def.hint} aria-sort={def.sort ? (active ? (dir === "asc" ? "ascending" : "descending") : "none") : undefined} className={cn("whitespace-nowrap font-semibold", pad, def.numeric ? "text-right" : "", c === "company" ? "sticky left-10 z-20 bg-surface-sunken" : "")}>
                     {def.sort ? (
-                      <button type="button" onClick={() => toggleSort(def.sort!)} className="inline-flex min-h-6 cursor-pointer items-center gap-1 hover:text-primary" data-testid={`sort-${c}`}>
+                      <button type="button" onClick={() => toggleSort(def.sort!)} className="relative inline-flex min-h-6 cursor-pointer items-center gap-1 rounded hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-action before:absolute before:-inset-x-2 before:-inset-y-2.5 before:content-['']" data-testid={`sort-${c}`}>
                         {def.short ?? def.label}
                         <Icon className="h-3 w-3" strokeWidth={1.75} aria-hidden="true" />
                         <span className="sr-only">{active ? (dir === "asc" ? ", sorted ascending" : ", sorted descending") : ", sortable"}</span>
@@ -483,7 +490,7 @@ export function CohortTable({ rows, batchId, role, weightsVersion = 1, deltaWeig
                   <React.Fragment key={r.itemId}>
                     <tr data-cohort-row data-testid="cohort-row" data-item-id={r.itemId} data-decision={r.decision ?? ""} data-shortlisted={r.shortlisted ? "true" : "false"} className={cn("align-top", r.shortlisted ? "bg-accent-soft/40" : "")}>
                       <td className={cn("sticky left-0 z-10 bg-surface", pad)}>
-                        {canWrite ? <input type="checkbox" aria-label={`Select ${r.company}`} checked={selected.has(r.evaluationId)} onChange={() => setSelected((prev) => { const n = new Set(prev); if (n.has(r.evaluationId)) n.delete(r.evaluationId); else n.add(r.evaluationId); return n; })} data-testid="cohort-select" /> : null}
+                        {canWrite ? <input type="checkbox" className={CHECKBOX_CLASS} aria-label={`Select ${r.company}`} checked={selected.has(r.evaluationId)} onChange={() => setSelected((prev) => { const n = new Set(prev); if (n.has(r.evaluationId)) n.delete(r.evaluationId); else n.add(r.evaluationId); return n; })} data-testid="cohort-select" /> : null}
                       </td>
                       {show("company") ? (
                         <td className={cn("sticky left-10 z-10 min-w-[11rem] bg-surface", pad)}>
