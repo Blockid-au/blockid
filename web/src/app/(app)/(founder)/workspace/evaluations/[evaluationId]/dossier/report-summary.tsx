@@ -195,7 +195,7 @@ export function ReportSummary({ report }: { report: DossierReportBlock }) {
       <h3 className="mt-6 text-sm font-semibold text-ink-900">13 criteria</h3>
       <ol className="mt-2 divide-y divide-surface-100 rounded-xl border border-surface-200" data-testid="criteria-strip">
         {report.criteria.map((c) => (
-          <li key={c.key} className="flex items-start gap-3 px-3 py-2.5" data-testid="criterion-row">
+          <li key={c.key} className="flex flex-wrap items-start gap-x-3 gap-y-1 px-3 py-2.5" data-testid="criterion-row">
             <ScoreRing score={c.score} />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-baseline gap-x-2">
@@ -206,7 +206,8 @@ export function ReportSummary({ report }: { report: DossierReportBlock }) {
               </div>
               <p className="mt-0.5 text-sm text-ink-600">{c.verdict}</p>
             </div>
-            <div className="shrink-0 text-right text-xs text-ink-500" data-testid="criterion-evidence">
+            {/* 375 px: the evidence line wraps under the title instead of squeezing it to ~90 px (design check 2026-09-21). */}
+            <div className="basis-full text-left text-xs text-ink-500 sm:basis-auto sm:shrink-0 sm:text-right" data-testid="criterion-evidence">
               {c.evidenceCount === 0 ? (
                 <span>0 evidence — self-declared</span>
               ) : (

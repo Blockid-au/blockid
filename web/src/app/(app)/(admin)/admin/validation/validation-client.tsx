@@ -362,7 +362,7 @@ export function AutoRowsTable({ rows }: { rows: AutoRow[] }) {
 
 export function NorthStarCard({ northStar, window: win }: { northStar: ValidationDashboard["north_star"]; window: ValidationDashboard["window"] }) {
   return (
-    <section className="rounded-xl border border-indigo-200 bg-indigo-50 p-4" data-testid="validation-north-star" aria-labelledby="validation-ns-h">
+    <section className="min-w-0 rounded-xl border border-indigo-200 bg-indigo-50 p-4" data-testid="validation-north-star" aria-labelledby="validation-ns-h">
       <h2 id="validation-ns-h" className="text-xs font-semibold uppercase tracking-wide text-indigo-700">North Star · {northStar ? northStar.month : "this month"}</h2>
       <p className="mt-1 text-3xl font-semibold tabular-nums text-indigo-900" data-testid="validation-north-star-value">{northStar ? n(northStar.assessed) : "n/a"}</p>
       <p className="text-sm text-indigo-900">startups assessed through paying institutional workflows this month</p>
@@ -380,7 +380,7 @@ export function NorthStarCard({ northStar, window: win }: { northStar: Validatio
           ) : (
             <dl className="mt-2 grid gap-x-4 gap-y-1 sm:grid-cols-2 lg:grid-cols-3" data-testid="validation-window">
               {win.metrics.map((m) => (
-                <div key={m.key} className="flex items-baseline justify-between gap-2 text-xs">
+                <div key={m.key} className="flex min-w-0 items-baseline justify-between gap-2 text-xs">
                   <dt className="truncate text-indigo-900">{m.label}</dt>
                   <dd className="shrink-0 tabular-nums font-medium text-indigo-900">{metricValue(m)}</dd>
                 </div>
@@ -582,7 +582,7 @@ export function ValidationClient({ user, initial }: ValidationClientProps) {
         <ValidationLadder ladder={ladder} />
 
         <div className="grid gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+          <div className="min-w-0 lg:col-span-2">
             <NorthStarCard northStar={initial.north_star} window={initial.window} />
           </div>
           <ObjectionsList objections={objections} />

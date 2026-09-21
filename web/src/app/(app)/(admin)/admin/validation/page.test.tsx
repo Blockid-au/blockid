@@ -123,6 +123,10 @@ describe("<ValidationClient>", () => {
     expect(out).toMatch(/<h1[^>]*>[\s\S]*Validation tracker[\s\S]*<\/h1>/);
     expect(out).toContain('data-testid="validation-ladder"');
     expect(out).toContain('data-testid="validation-north-star-value">3<');
+    // Design check 2026-09-21: the North Star column needs min-w-0 — the long window
+    // labels (`truncate`, nowrap) grew the grid item to 432 px and the card was clipped at 375.
+    expect(out).toContain('class="min-w-0 lg:col-span-2"');
+    expect(out).toMatch(/<section class="min-w-0 [^"]*" data-testid="validation-north-star"/);
     expect(out.replace(/<!-- -->/g, "")).toContain("Last 28 d");
     expect(out).toContain("A$1,500");
     expect(out).toContain('data-testid="validation-objection"');

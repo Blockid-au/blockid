@@ -32,9 +32,14 @@ import { LoadDemoCohortButton } from "@/components/evaluations/DemoCohortActions
 /** G22-A: a Cohorts-list row — `role` is the caller's seat (owner = created it; reviewer / viewer = invited). */
 type CohortListBatch = EvaluationBatch & { role?: BatchRole };
 import { useModalDialog } from "@/hooks/useModalDialog";
-import { formatAud } from "@/lib/plans-v2";
+import { formatAud, PLANS_V2 } from "@/lib/plans-v2";
 import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
 import { TRUST_REPORT_RESCORE_CREDITS } from "@/lib/credits-public";
+
+/** Sold name for a plan id ("investor_vc_small" → "Program"); the raw id humanised was printing "Investor Vc Small plan" (design check 2026-09-21). */
+export function planDisplayName(planId: string): string {
+  return PLANS_V2.find((p) => p.id === planId)?.name ?? planId.replace(/_/g, " ");
+}
 
 /** Price labels read from the SKU / cost constants — never typed by hand (G20-F3). */
 const TBR_LABEL = trustReportPriceLabel();
@@ -748,7 +753,7 @@ export function EvaluationsClient({
           <span>
             <strong>{used} of {limitLabel}</strong> tracked startup{limit === 1 ? "" : "s"} used
             <span className="mx-1.5 text-surface-300">|</span>
-            <span className="capitalize">{plan.replace(/_/g, " ")}</span> plan
+            <span className="capitalize">{planDisplayName(plan)}</span> plan
             {reportQuota && reportQuota.limit > 0 ? (
               <>
                 <span className="mx-1.5 text-surface-300">|</span>

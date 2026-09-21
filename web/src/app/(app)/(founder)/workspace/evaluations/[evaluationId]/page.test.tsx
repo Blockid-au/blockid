@@ -222,6 +222,9 @@ describe("/workspace/evaluations/[evaluationId]", () => {
     expect(block).toContain("CRO"); // TRE owner
     expect(block).toContain("▲ +11"); // TRE Δ30d
     expect((block.match(/data-testid="criterion-row"/g) ?? []).length).toBe(13);
+    // Design check 2026-09-21: at 375 the evidence line wraps under the title (basis-full) instead of squeezing it.
+    expect(block).toMatch(/<li class="flex flex-wrap items-start gap-x-3 gap-y-1 px-3 py-2\.5" data-testid="criterion-row">/);
+    expect(block).toMatch(/class="basis-full text-left text-xs text-ink-500 sm:basis-auto sm:shrink-0 sm:text-right" data-testid="criterion-evidence"/);
     expect(block).toContain("Clear wedge in warehouse robotics.");
     expect(block).toContain("1 evidence · public URL");
     expect(block).toContain("0 evidence — self-declared");
