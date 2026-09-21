@@ -105,6 +105,13 @@ export function GovernanceBody(p: GovernanceBodyProps) {
               ))}
             </Prose>
           ) : null}
+          {s.link ? (
+            <p className="mt-4">
+              <Link href={p.locale === "vi" ? `/vi${s.link.href}` : s.link.href} className="text-sm font-medium text-accent underline decoration-dotted" data-testid={`governance-link-${s.id}`}>
+                {s.link.label}
+              </Link>
+            </p>
+          ) : null}
         </Section>
       ))}
 

@@ -17,19 +17,15 @@ import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import { EVIDENCE_CONFIDENCE, SVI_VERSION } from "@/lib/svi-analysis";
 import { BENCHMARK_N_RULES } from "@/lib/svi/benchmark-rules";
 import { VERIFICATION_MULTIPLIER_MAX, VERIFICATION_MULTIPLIER_MIN } from "@/lib/verification/confidence-multiplier";
+import { SVI_VERSION_HISTORY, VERSIONS_PATH } from "@/lib/svi/version-history";
 import { agentLabel } from "../methodology-content";
 
 export const GOVERNANCE_PATH = "/methodology/governance";
 export const GOVERNANCE_VI_PATH = "/vi/methodology/governance";
 export const GOVERNANCE_DOC_PATH = "docs/product/score-governance.md";
 
-/** SVI_VERSION history — the last row must equal the live constant (test-pinned). */
-export const SVI_VERSION_HISTORY: ReadonlyArray<{ version: string; date: string; change: string; type: "major" | "minor" | "initial" }> = Object.freeze([
-  { version: "1.0.0", date: "2026-05-19", change: "First engine: single composite score from text input", type: "initial" },
-  { version: "2.0.0", date: "2026-05-19", change: "Eight-dimension model, stage tracking, evidence wizard", type: "major" },
-  { version: "2.1.0", date: "2026-08-16", change: "Funding-readiness gates; enhanced finance, strategy and data analysis prompts", type: "minor" },
-  { version: "2.2.0", date: "2026-09-16", change: "Confidence cap by evidence origin; business-verification multiplier", type: "minor" },
-]);
+/** SVI_VERSION history — one table for this page and /methodology/versions (G21 P3-C: lib/svi/version-history.ts; the last row must equal the live constant, test-pinned). */
+export { SVI_VERSION_HISTORY } from "@/lib/svi/version-history";
 
 export interface GovernanceTable {
   columns: string[];
@@ -46,6 +42,8 @@ export interface GovernanceSection {
   table?: GovernanceTable;
   /** Paragraphs rendered after the table / bullets. */
   after?: string[];
+  /** G21 P3-C: an in-site link rendered after the section (the VI mirror prefixes /vi). */
+  link?: { href: string; label: string };
 }
 
 export interface GovernanceProps {
@@ -141,6 +139,7 @@ export function buildGovernanceSections(): GovernanceSection[] {
         columns: ["Version", "Date", "Change", "Type"],
         rows: SVI_VERSION_HISTORY.map((h) => [h.version, h.date, h.change, h.type === "initial" ? "—" : h.type]),
       },
+      link: { href: VERSIONS_PATH, label: "Version history — what each version changed and its effect on comparability" },
     },
     {
       id: "s6",

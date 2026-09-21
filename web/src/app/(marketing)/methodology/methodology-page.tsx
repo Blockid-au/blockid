@@ -237,6 +237,11 @@ export function MethodologyPage(p: MethodologyProps) {
             {p.governance.link}
           </Link>
         </p>
+        <p className="mt-1">
+          <Link href={p.governance.versionsHref} className="text-sm font-medium text-accent underline decoration-dotted" data-testid="methodology-versions-link">
+            {p.governance.versionsLink}
+          </Link>
+        </p>
       </Section>
 
       {/* 8. Calibration link (S39 fills the page). */}

@@ -771,6 +771,33 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         },
       },
     },
+    // G21 P3-C — SVI version history (what changed, effect on comparability), with a VI mirror.
+    {
+      url: `${SITE_URL}/methodology/versions`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.5,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/methodology/versions`,
+          vi: `${SITE_URL}/vi/methodology/versions`,
+          "x-default": `${SITE_URL}/methodology/versions`,
+        },
+      },
+    },
+    {
+      url: `${SITE_URL}/vi/methodology/versions`,
+      lastModified,
+      changeFrequency: "monthly",
+      priority: 0.4,
+      alternates: {
+        languages: {
+          en: `${SITE_URL}/methodology/versions`,
+          vi: `${SITE_URL}/vi/methodology/versions`,
+          "x-default": `${SITE_URL}/methodology/versions`,
+        },
+      },
+    },
     // G14-S36 — public scoring & verification methodology, with a VI mirror.
     {
       url: `${SITE_URL}/methodology`,

@@ -852,6 +852,7 @@
   "methodology.governance.body": "Dimension definitions, the weight policy, the version history and change policy, benchmark publication rules (no percentile below n = 10, always with n), how conflicting claims are handled, how human review and overrides are logged, and how corrections, appeals and re-scores work — written for program managers, investment committees and their auditors.",
   "methodology.governance.link": "Read the score governance →",
   "methodology.governance.version": "Methodology version v{version}",
+  "methodology.governance.versionsLink": "Version history — what changed in each version and its effect on comparability →",
   "methodology.hitl.kicker": "Human in the loop",
   "methodology.hitl.title": "Who decides",
   "methodology.hitl.body": "BlockID structures the evidence and standardises the first-pass analysis. Humans make the decision.",
