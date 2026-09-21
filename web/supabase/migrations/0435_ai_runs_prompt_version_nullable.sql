@@ -45,7 +45,7 @@ values
    'Australian startup funding announcements (BlockID-curated from public press releases)',
    'https://blockid.au/methodology#data-sources',
    'CC BY 4.0',
-   'Funding announcement data compiled by BlockID.au (© Auschain Pty Ltd) from public company press releases and media reports; every row links to its published source. Compilation licensed under Creative Commons Attribution 4.0 International.',
+   'Funding announcement data compiled by BlockID.au (© Auschain PTY LTD) from public company press releases and media reports; every row links to its published source. Compilation licensed under Creative Commons Attribution 4.0 International.',
    'weekly',
    'active')
 on conflict (id) do nothing;

@@ -13,6 +13,8 @@
  * Pure: no I/O.
  */
 
+import { BRAND_SITE, LEGAL_ENTITY } from "@/lib/site/legal-entity";
+
 export type ExternalSourceStatus = "active" | "cite_only" | "disabled";
 
 export type ExternalSourceId =
@@ -88,7 +90,7 @@ export const EXTERNAL_SOURCE_CATALOG: readonly ExternalSourceRow[] = [
     url: "https://blockid.au/methodology#data-sources",
     licence: "CC BY 4.0",
     attribution_text:
-      "Funding announcement data compiled by BlockID.au (© Auschain Pty Ltd) from public company press releases and media reports; every row links to its published source. Compilation licensed under Creative Commons Attribution 4.0 International.",
+      `Funding announcement data compiled by ${BRAND_SITE} (© ${LEGAL_ENTITY.copyrightHolder}) from public company press releases and media reports; every row links to its published source. Compilation licensed under Creative Commons Attribution 4.0 International.`,
     cadence: "weekly",
     last_fetched_at: null,
     row_count: 0,

@@ -178,7 +178,8 @@ let invalidKey = false;
 let invalidKeyLogged = false;
 let headroom: AnthropicHeadroom | null = null;
 
-export function isAnthropicKeyInvalid(_now: number = Date.now()): boolean {
+export function isAnthropicKeyInvalid(now: number = Date.now()): boolean {
+  void now; // kept for call-site compatibility — the latch no longer expires with time
   return invalidKey;
 }
 
@@ -189,7 +190,8 @@ export function isAnthropicKeyInvalid(_now: number = Date.now()): boolean {
  * `reason` is the caller's short status text — callers pass status codes /
  * error types, never response bodies that could echo a credential.
  */
-export function markAnthropicKeyInvalid(_now: number = Date.now(), reason = "401"): void {
+export function markAnthropicKeyInvalid(now: number = Date.now(), reason = "401"): void {
+  void now; // kept for call-site compatibility (probe + dispatcher pass their clock)
   invalidKey = true;
   if (!invalidKeyLogged) {
     invalidKeyLogged = true;
