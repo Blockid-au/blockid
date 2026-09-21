@@ -12,6 +12,7 @@
 
 import { getTbrStrings, type TbrLocale } from "@/lib/i18n/tbr-strings";
 import { GROWTH_PHASE_LABELS, type GrowthPhaseId } from "@/lib/growth/phase-taxonomy";
+import { stripCitationMarkers } from "@/lib/report-v2/citations";
 import { coverHero } from "@/lib/report-v2/cover-hero";
 import type { ActionStep, EvidenceRow, ReportV2 } from "@/lib/report-v2/schema";
 
@@ -59,7 +60,7 @@ export function topFollowUps(steps: readonly ActionStep[], n = 3): SynthesisFoll
   return [...steps]
     .sort((a, b) => b.expectedLift - a.expectedLift || a.day - b.day)
     .slice(0, n)
-    .map((s) => ({ title: s.title, day: s.day, lift: s.expectedLift, dimension: s.dimension }));
+    .map((s) => ({ title: stripCitationMarkers(s.title), day: s.day, lift: s.expectedLift, dimension: s.dimension }));
 }
 
 export function synthesisFromReport(report: ReportV2, locale: TbrLocale | undefined = "en"): ExecutiveSynthesisData {
@@ -80,11 +81,12 @@ export function synthesisFromReport(report: ReportV2, locale: TbrLocale | undefi
     snapshotId: report.snapshotId,
     generatedAt: report.generatedAt,
     tier: report.tier,
-    where: { phaseId, phaseLabel, sentence: report.cover.threeQuestions.where },
+    // G24-A: the dashboard has no footnote appendix — citation markers are stripped, never shown raw.
+    where: { phaseId, phaseLabel, sentence: stripCitationMarkers(report.cover.threeQuestions.where) },
     worth: { pending: hero.pending, headline: hero.headline, subline: hero.subline, lowAud: hero.lowAud, highAud: hero.highAud, confidencePct: hero.confidencePct },
     svi: { total: report.cover.svi.total, band: report.cover.svi.band, deltaVsLast: report.cover.svi.deltaVsLast },
-    strengths: report.executive.strengths.slice(0, 3),
-    weaknesses: report.executive.gaps.slice(0, 3),
+    strengths: report.executive.strengths.slice(0, 3).map(stripCitationMarkers),
+    weaknesses: report.executive.gaps.slice(0, 3).map(stripCitationMarkers),
     followUps: topFollowUps(report.actionPlan.steps, 3),
     dataToAdd,
     reportHref: EXECUTIVE_SYNTHESIS_REPORT_HREF,
