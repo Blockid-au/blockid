@@ -88,6 +88,23 @@ describe("FreeReportEmailPanel", () => {
     expect(out).toContain('aria-invalid="true"');
   });
 
+  it("G28 UI lane: the error is a semantic danger token with an icon (never colour alone, never an undefined utility) and every control has the navy focus ring + a 44 px hit area", () => {
+    const out = html(<FreeReportEmailPanel {...base} onEdit={() => {}} serverError="invalid" />);
+    // `text-danger` is not a utility in this Tailwind config — it rendered as ink on production (2026-09-21).
+    expect(out).not.toContain("text-danger");
+    const error = out.slice(out.indexOf('data-testid="analyze-free-report-email-error"') - 200, out.indexOf("That does not look like an e-mail address"));
+    expect(error).toContain("text-bear");
+    expect(error).toContain("<svg");
+    // input, submit and the edit button: FOCUS_RING (2 px navy) and min-h-11.
+    for (const id of ["analyze-free-report-email-input", "analyze-free-report-email-submit", "analyze-free-report-email-edit"]) {
+      const tagStart = out.lastIndexOf("<", out.indexOf(`data-testid="${id}"`));
+      const tag = out.slice(tagStart, out.indexOf(">", tagStart));
+      expect(tag, id).toContain("focus-visible:ring-2");
+      expect(tag, id).toContain("focus-visible:ring-brand-navy");
+      expect(tag, id).toContain("min-h-11");
+    }
+  });
+
   it("localEmailError mirrors the server's shape check", () => {
     expect(localEmailError("")).toBe("required");
     expect(localEmailError("  ")).toBe("required");

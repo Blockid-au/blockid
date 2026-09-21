@@ -1011,9 +1011,21 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
     roadmap.push(item);
   }
   const above70 = scoredDims.filter((c) => c.score >= 70).length;
+  // G28 UI lane: a strong composite with unscored dimensions is provisional —
+  // the investment view can still read band D ("insufficient evidence"), so
+  // the thesis must not open with "investor-ready" (seen on /tbr/demo?band=D).
+  const pendingDims = ctxs.length - scoredDims.length;
   const thesis =
     input.executiveSummary?.trim() ||
-    (sviBand === "strong" ? L.thesisStrong(sviTotal, above70) : sviBand === "developing" ? L.thesisDeveloping(sviTotal, gapDims.length) : sviBand === "early" ? L.thesisEarly(sviTotal) : L.thesisPending);
+    (sviBand === "strong" && pendingDims > 0
+      ? L.thesisPartial(sviTotal, pendingDims)
+      : sviBand === "strong"
+        ? L.thesisStrong(sviTotal, above70)
+        : sviBand === "developing"
+          ? L.thesisDeveloping(sviTotal, gapDims.length)
+          : sviBand === "early"
+            ? L.thesisEarly(sviTotal)
+            : L.thesisPending);
   const valuation = buildValuation({ sviTotal: Math.min(100, sviTotal), sviIndex: sviTotal, stageLabel, stage, industry, treScore: dimScores.tre ?? null, vc: input.vc, ask: input.valuationAsk ?? null, revenueEvidenceIds: input.revenueEvidenceIds ?? [], at });
   const worthLine = L.worthLine(fmtShort(valuation.consensus.lowAud), fmtShort(valuation.consensus.highAud), industry ?? L.sectorNeutral, stageLabel);
   const nextLine = roadmap[0] ? L.nextLine(dimensions.find((d) => d.dim === roadmap[0].c.dim)?.nextAction.title ?? L.addEvidence, roadmap[0].lift, DIMENSION_OWNERS[roadmap[0].c.dim].shortLabel) : L.nextFallback;

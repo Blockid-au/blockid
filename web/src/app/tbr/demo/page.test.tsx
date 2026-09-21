@@ -76,6 +76,23 @@ describe("/tbr/demo?band= (G28-D: one static variant per verdict band)", () => {
     expect(meta.alternates?.canonical).toBe(band === "B" ? "https://blockid.au/tbr/demo" : `https://blockid.au/tbr/demo?band=${band}`);
   });
 
+  it("G28 UI lane: the section title is the same string on every band (no reflow on switch), marketing chrome is print-hidden, the switcher names the band", async () => {
+    const titles = new Set<string>();
+    for (const band of DEMO_BANDS) {
+      const out = await html(await TbrDemoBandPage({ params: Promise.resolve({ band }) }));
+      const h2 = out.match(/<h2[^>]*>Trusted Business Report — demo startup<\/h2>/);
+      expect(h2, band).toBeTruthy();
+      titles.add(h2![0]);
+      // the band label lives in the switcher line, not the h2
+      const switcher = out.slice(out.indexOf('data-testid="tbr-demo-bands"'), out.indexOf('data-tbr-demo-band-view='));
+      expect(switcher.replace(/<!-- -->/g, "")).toContain(`This page shows band ${band}: `);
+      // hero (CTAs), switcher and cross-link cards never print — the printed document starts at the report card
+      expect((out.match(/data-print="hide"/g) ?? []).length).toBeGreaterThanOrEqual(4);
+      expect(out.indexOf('data-print="hide"')).toBeLessThan(out.indexOf("<h1"));
+    }
+    expect(titles.size).toBe(1);
+  });
+
   it("band D shows pending dimensions (evidence asked before a verdict), band A none", async () => {
     const d = await html(await TbrDemoBandPage({ params: Promise.resolve({ band: "D" }) }));
     const a = await html(await TbrDemoBandPage({ params: Promise.resolve({ band: "A" }) }));

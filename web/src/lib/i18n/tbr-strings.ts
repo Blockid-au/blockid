@@ -470,6 +470,8 @@ export interface TbrV2Strings {
   };
   adapter: {
     thesisStrong: (svi: number, above70: number) => string;
+    /** G28 UI lane: a strong index with unscored dimensions is provisional — never "investor-ready" beside a pending verdict. */
+    thesisPartial: (svi: number, pending: number) => string;
     thesisDeveloping: (svi: number, gaps: number) => string;
     thesisEarly: (svi: number) => string;
     thesisPending: string;
@@ -711,6 +713,7 @@ const v2En: TbrV2Strings = {
   },
   adapter: {
     thesisStrong: (svi, above70) => `SVI ${svi} — investor-ready: ${above70} of 8 dimensions are in the strong band.`,
+    thesisPartial: (svi, pending) => `SVI ${svi} is provisional — ${pending} of 8 dimensions are still pending evidence, so no investor-readiness call is made yet.`,
     thesisDeveloping: (svi, gaps) => `SVI ${svi} — developing: ${gaps} dimensions need evidence before a raise.`,
     thesisEarly: (svi) => `SVI ${svi} — early: build evidence on the highest-weight gaps first.`,
     thesisPending: "No dimension has been scored yet — run the analysis to populate this report.",
@@ -956,6 +959,7 @@ const v2Vi: TbrV2Strings = {
   },
   adapter: {
     thesisStrong: (svi, above70) => `SVI ${svi} — sẵn sàng gọi vốn: ${above70} trên 8 khía cạnh thuộc nhóm mạnh.`,
+    thesisPartial: (svi, pending) => `SVI ${svi} chỉ là tạm thời — ${pending} trên 8 khía cạnh vẫn chờ bằng chứng, nên chưa đưa ra kết luận về mức sẵn sàng gọi vốn.`,
     thesisDeveloping: (svi, gaps) => `SVI ${svi} — đang phát triển: ${gaps} khía cạnh cần thêm bằng chứng trước khi gọi vốn.`,
     thesisEarly: (svi) => `SVI ${svi} — giai đoạn sớm: hãy xây bằng chứng cho các khoảng trống có trọng số cao nhất trước.`,
     thesisPending: "Chưa có khía cạnh nào được chấm — hãy chạy phân tích để lấp đầy báo cáo này.",

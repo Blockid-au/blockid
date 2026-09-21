@@ -102,6 +102,17 @@ describe("<TbrInvestmentView> (G27)", () => {
     expect(htmlD).toContain('data-tbr-conditions="ctas"');
     expect(htmlD).toContain("Evidence to add before a view can form");
     expect(htmlD).toMatch(/href="\/workspace\/[^"]+"/);
+    // G28 UI lane: the pending CTAs are the only actions in a band-D view — 44 px hit area + navy focus ring;
+    // and the summary never opens "investor-ready" next to "not enough evidence".
+    const ctas = htmlD.slice(htmlD.indexOf('data-tbr-conditions="ctas"'), htmlD.indexOf("</ul>", htmlD.indexOf('data-tbr-conditions="ctas"')));
+    const links = ctas.match(/<a [^>]+>/g) ?? [];
+    expect(links.length).toBeGreaterThanOrEqual(3);
+    for (const a of links) {
+      expect(a).toContain("min-h-11");
+      expect(a).toContain("focus-visible:ring-brand-navy");
+    }
+    expect(htmlD).not.toMatch(/investor-ready/);
+    expect(htmlD).toContain("is provisional — 3 of 8 dimensions are still pending evidence");
   });
 
   it("analyst synthesis renders only when the CEO label disagrees with the rubric band", () => {

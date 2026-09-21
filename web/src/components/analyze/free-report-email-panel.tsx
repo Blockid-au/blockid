@@ -15,7 +15,9 @@
 // browser, localStorage) is pre-filled so the second run is one click.
 
 import * as React from "react";
-import { Mail } from "lucide-react";
+import { AlertCircle, Mail } from "lucide-react";
+
+import { FOCUS_RING } from "@/components/marketing/template/primitives";
 
 import type { FreeReportCopy } from "@/lib/reports/free-report-copy";
 import { FREE_REPORT_HONEYPOT_FIELD } from "@/lib/reports/free-grants-rules";
@@ -117,13 +119,13 @@ export function FreeReportEmailPanel({
             placeholder={copy.placeholder}
             aria-invalid={Boolean(errorText)}
             aria-describedby={errorText ? errorId : undefined}
-            className="min-h-11 flex-1 rounded-lg border border-line-subtle bg-surface px-3 py-2 text-sm text-primary placeholder:text-tertiary focus:border-action focus:outline-none"
+            className={`min-h-11 flex-1 rounded-lg border border-line-subtle bg-surface px-3 py-2 text-sm text-primary placeholder:text-tertiary focus:border-action ${FOCUS_RING}`}
             data-testid="analyze-free-report-email-input"
           />
           <button
             type="submit"
             disabled={busy}
-            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-action px-4 py-2.5 text-sm font-semibold text-on-action transition-opacity hover:opacity-90 disabled:opacity-60"
+            className={`inline-flex min-h-11 items-center justify-center rounded-lg bg-action px-4 py-2.5 text-sm font-semibold text-on-action transition-opacity hover:opacity-90 disabled:opacity-60 ${FOCUS_RING}`}
             data-testid="analyze-free-report-email-submit"
           >
             {copy.cta}
@@ -144,8 +146,9 @@ export function FreeReportEmailPanel({
           </label>
         </div>
         {errorText && (
-          <p id={errorId} role="alert" className="text-sm text-danger" data-testid="analyze-free-report-email-error">
-            {errorText}
+          <p id={errorId} role="alert" className="flex items-start gap-1.5 text-sm text-bear" data-testid="analyze-free-report-email-error">
+            <AlertCircle aria-hidden strokeWidth={2} className="mt-0.5 h-4 w-4 shrink-0" />
+            <span>{errorText}</span>
           </p>
         )}
         <p className="text-xs leading-relaxed text-tertiary" data-testid="analyze-free-report-consent">
@@ -158,7 +161,7 @@ export function FreeReportEmailPanel({
           <button
             type="button"
             onClick={onEdit}
-            className="self-start text-sm font-medium text-action underline-offset-2 hover:underline"
+            className={`inline-flex min-h-11 items-center self-start rounded-md text-sm font-medium text-action underline-offset-2 hover:underline ${FOCUS_RING}`}
             data-testid="analyze-free-report-email-edit"
           >
             {copy.edit}

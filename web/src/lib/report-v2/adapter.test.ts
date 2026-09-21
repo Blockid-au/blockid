@@ -112,6 +112,15 @@ describe("fromSnapshot — shapes the platform stores today", () => {
     expect(r.cover.svi.total).toBe(60);
   });
 
+  it("G28 UI lane: a strong composite with unscored dimensions opens 'provisional', never 'investor-ready' (band D reads that thesis beside 'insufficient evidence')", () => {
+    const r = assertReportV2(fromSnapshot({ dimStates: { ftv: { score: 90 }, mpc: { score: 88 }, ptd: { score: 85 }, tre: { score: 86 }, cgh: { score: 84 } } }));
+    expect(r.cover.svi.band).toBe("strong");
+    expect(r.executive.thesis).toMatch(/^SVI \d+ is provisional — 3 of 8 dimensions are still pending evidence/);
+    expect(r.executive.thesis).not.toMatch(/investor-ready/);
+    const all = assertReportV2(fromSnapshot({ dimStates: Object.fromEntries(DIM_ORDER.map((d) => [d, { score: 85 }])) }));
+    expect(all.executive.thesis).toMatch(/investor-ready/);
+  });
+
   it("empty snapshot still yields a valid document (nothing scored)", () => {
     const r = assertReportV2(fromSnapshot({ dimStates: {} }));
     expect(r.cover.svi.band).toBe("pending");

@@ -33,6 +33,7 @@ import { VerdictBandBadge } from "@/components/tbr/v2/shared-v3";
 import { getTbrV3Strings } from "@/lib/i18n/tbr-v3-strings";
 import { DEMO_BANDS, demoBandHref } from "@/lib/report-v2/demo-band-route";
 import { investmentBandFixture, type InvestmentBandFixture } from "@/lib/report-v2/fixtures";
+import { FOCUS_RING } from "@/components/marketing/template/primitives";
 import { cn } from "@/lib/utils";
 
 const TITLE = "Sample Trusted Business Report — BlockID SVI preview";
@@ -74,7 +75,9 @@ function BandSwitcher({ current }: { current: InvestmentBandFixture }) {
   return (
     <nav aria-label="Verdict band demos" data-testid="tbr-demo-bands" className="rounded-2xl border border-line-subtle bg-surface-sunken p-4 md:p-5">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted">See the other verdict bands</p>
-      <p className="mt-1 text-sm text-secondary">The same document rendered through the four outcomes of the verdict rubric. This page shows band {current}.</p>
+      <p className="mt-1 text-sm text-secondary">
+        The same document rendered through the four outcomes of the verdict rubric. This page shows band {current}: {t.bandLabel[current]}.
+      </p>
       <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {DEMO_BANDS.map((band) => {
           const active = band === current;
@@ -101,19 +104,27 @@ function BandSwitcher({ current }: { current: InvestmentBandFixture }) {
 
 export function TbrDemoView({ band }: { band: InvestmentBandFixture }) {
   const { report, assessment } = investmentBandFixture(band);
-  const t = getTbrV3Strings("en");
   return (
     <MarketingShell>
-      <MarketingHero
-        eyebrow="Demo · Not a real startup"
+      {/* Marketing chrome (hero CTAs, cross-links) never prints — the printed
+          document starts at the report card (spec § 5: dashboard on page 1). */}
+      <div data-print="hide">
+        <MarketingHero
+          eyebrow="Demo · Not a real startup"
         title="What a Trusted Business Report looks like"
         subtitle="A fully-populated sample report so investors can see the depth of evidence before asking a founder to mint one: 8 dimension chapters, each owned by a C-level agent with one deterministic chart, plus valuation, phase gates and a 90-day plan. Every number below is illustrative — no real company data is disclosed on this page."
         primaryCta={{ href: "/showcase/atlassian?step=1", label: "Open interactive showcase" }}
         secondaryCta={{ href: "/sample", label: "Browse sample gallery" }}
-      />
+        />
+      </div>
 
-      <MarketingSection kicker="Sample report" title={`Trusted Business Report — demo startup · verdict band ${band}: ${t.bandLabel[band]}`}>
-        <BandSwitcher current={band} />
+      {/* The h2 is the same string for every band — the band label lives in
+          the switcher line and the verdict card, so switching bands never
+          reflows the title (a 2- vs 3-line wrap moved the page 40 px at 1280). */}
+      <MarketingSection kicker="Sample report" title="Trusted Business Report — demo startup">
+        <div data-print="hide">
+          <BandSwitcher current={band} />
+        </div>
         <div className="mt-6 rounded-2xl border border-line-subtle bg-surface p-4 text-primary md:p-8" data-tbr-demo-band-view={band}>
           <TbrReportV2
             report={report}
@@ -121,7 +132,7 @@ export function TbrDemoView({ band }: { band: InvestmentBandFixture }) {
             benchmarks={{ evidenceConfidence: assessment.evidenceConfidence ?? null, unverifiedMaterialClaims: assessment.unverifiedMaterialClaims ?? null }}
           />
         </div>
-        <p className="mt-4 text-xs text-tertiary">
+        <p className="mt-4 text-xs text-tertiary" data-print="hide">
           The interactive report adds investor views, Peer-5 similarity and a Q&amp;A chat on top of these chapters. Preview the founder journey in the{" "}
           <Link className="text-action underline" href="/showcase/atlassian?step=1">
             Atlassian showcase
@@ -130,22 +141,24 @@ export function TbrDemoView({ band }: { band: InvestmentBandFixture }) {
         </p>
       </MarketingSection>
 
+      <div data-print="hide">
       <MarketingSection kicker="Ready for a real one?" title="Ask a founder to mint their TBR">
         <div className="grid gap-3 sm:grid-cols-3">
-          <Link href="/showcase/atlassian?step=1" className="group block rounded-2xl border border-line-subtle bg-surface p-5 transition-colors hover:border-line">
+          <Link href="/showcase/atlassian?step=1" className={cn("group block rounded-2xl border border-line-subtle bg-surface p-5 transition-colors hover:border-line", FOCUS_RING)}>
             <p className="text-sm font-semibold text-secondary">Interactive showcase</p>
             <p className="mt-1 text-xs text-tertiary">Walk through a fully-populated demo report step by step.</p>
           </Link>
-          <Link href="/sample" className="group block rounded-2xl border border-line-subtle bg-surface p-5 transition-colors hover:border-line">
+          <Link href="/sample" className={cn("group block rounded-2xl border border-line-subtle bg-surface p-5 transition-colors hover:border-line", FOCUS_RING)}>
             <p className="text-sm font-semibold text-secondary">Sample report gallery</p>
             <p className="mt-1 text-xs text-tertiary">Compare TBR variants across sectors and stages.</p>
           </Link>
-          <Link href="/investor" className="group block rounded-2xl border border-line-subtle bg-surface p-5 transition-colors hover:border-line">
+          <Link href="/investor" className={cn("group block rounded-2xl border border-line-subtle bg-surface p-5 transition-colors hover:border-line", FOCUS_RING)}>
             <p className="text-sm font-semibold text-secondary">Investor home</p>
             <p className="mt-1 text-xs text-tertiary">Browse startups with a real SVI grade and request the pack.</p>
           </Link>
         </div>
       </MarketingSection>
+      </div>
 
       <MarketingSection>
         <NotFinancialAdvice kind="not_financial_advice" />

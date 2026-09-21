@@ -71,7 +71,8 @@ export function TbrInvestmentView({ report, view, structured, title, locale = "e
           <ul className="space-y-1.5">
             {view.evidenceCtas.map((c) => (
               <li key={c.href + c.label} className="flex flex-wrap items-center gap-2 text-sm">
-                <a href={c.href} className="font-semibold text-action underline-offset-2 hover:underline">
+                {/* 44 px hit area: the pending CTAs are the only actions in a band-D view. */}
+                <a href={c.href} className="inline-flex min-h-11 items-center rounded-md font-semibold text-action underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy">
                   {c.label} →
                 </a>
                 {typeof c.lift === "number" && <Chip kind="lift">{t.lift(c.lift)}</Chip>}

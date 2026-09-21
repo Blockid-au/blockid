@@ -5,6 +5,7 @@
 
 import type { VcValuationLike } from "@/lib/report-pipeline/valuation-chapter";
 import { fromSnapshot, type MoneyOnTableInput, type SnapshotCriterionState, type SnapshotDimState, type SnapshotInput } from "./adapter";
+import { getTbrStrings } from "@/lib/i18n/tbr-strings";
 import { GATHER_MISSING_CTAS } from "./evidence-cta";
 import type { EvidenceRow, ReportTierV2, ReportV2, ScoreBreakdown, ScoreBreakdownSignal } from "./schema";
 
@@ -400,5 +401,12 @@ export function investmentBandFixture(band: InvestmentBandFixture): BandFixture 
     ch.scoreBreakdown = { base: ch.scoreBreakdown?.base ?? 40, signals: [], confidenceMultiplier: 0.2, adjustment: 0, assessed: false };
     report.cover.dims[dim] = { ...report.cover.dims[dim], score: 0, band: "pending" };
   }
+  // The stored thesis was written before the three dimensions went pending —
+  // rewrite its opening line so the summary never says "investor-ready" beside
+  // a band-D verdict (G28 UI lane; same rule as the adapter's thesisPartial).
+  const partial = getTbrStrings("en").v2.adapter.thesisPartial(report.cover.svi.total, 3);
+  const strong = getTbrStrings("en").v2.adapter.thesisStrong(report.cover.svi.total, 6);
+  report.executive.thesis = report.executive.thesis.replace(strong, partial);
+  if (report.executive.structured) report.executive.structured.summary = report.executive.structured.summary.map((p) => p.replace(strong, partial));
   return { report, assessment: { evidenceConfidence: 42, unverifiedMaterialClaims: 3 } };
 }
