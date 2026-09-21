@@ -306,7 +306,7 @@ export function buildPackageProgressBlock(
 
   const nextActionBlock = input.nextAction
     ? `<p style="margin:8px 0 0;font-size:13px;color:#0b0f1a"><strong>Next paid action:</strong> ${escapeHtml(input.nextAction.label)} <span style="color:#1d4ed8;font-weight:600">· ${input.nextAction.creditCost} credits</span></p>
-       <p style="margin:6px 0 0"><a href="${escapeAttr(input.nextAction.href)}" style="color:#047857;font-weight:600;text-decoration:none">Run this action →</a></p>`
+       <p style="margin:6px 0 0"><a href="${escapeAttr(input.nextAction.href)}" style="color:#1d4ed8;font-weight:600;text-decoration:none">Run this action →</a></p>`
     : `<p style="margin:8px 0 0;font-size:13px;color:#4b5563"><em>Caught up for this phase — no paid actions queued.</em></p>`;
 
   const unfinishedBadge =
@@ -327,7 +327,7 @@ export function buildPackageProgressBlock(
         <p style="margin:6px 0 0;font-size:12px;color:#4b5563">${pct}% of this phase's deliverables complete.</p>
         <p style="margin:10px 0 0;font-size:13px;color:#0b0f1a"><strong>SVI:</strong> ${input.sviCurrent} <span style="color:${sviColour};font-weight:600">${sviArrow} ${escapeHtml(sviDeltaLabel)}</span></p>
         ${nextActionBlock}
-        <p style="margin:12px 0 0"><a href="${escapeAttr(input.packageDashboardUrl)}" style="color:#047857;font-weight:600;text-decoration:none">Open Package dashboard →</a></p>
+        <p style="margin:12px 0 0"><a href="${escapeAttr(input.packageDashboardUrl)}" style="color:#1d4ed8;font-weight:600;text-decoration:none">Open Package dashboard →</a></p>
       </div>`;
 
   const textLines: string[] = [];
@@ -491,7 +491,7 @@ function renderHtml(input: BuildFounderDigestInput, score: number): string {
         <p style="margin:0;font-size:11px;font-weight:700;color:#1d4ed8;text-transform:uppercase;letter-spacing:0.16em">Do this next</p>
         <h2 style="margin:6px 0 4px;font-size:16px">${escapeHtml(input.nextAction.title)}</h2>
         <p style="margin:0 0 12px;color:#4b5563;font-size:13px">${escapeHtml(input.nextAction.reason)}</p>
-        <a href="${escapeAttr(input.nextAction.cta_url)}" style="display:inline-block;padding:10px 16px;background:#047857;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">${escapeHtml(input.nextAction.cta_label)}</a>
+        <a href="${escapeAttr(input.nextAction.cta_url)}" style="display:inline-block;padding:10px 16px;background:#1B2A5E;color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">${escapeHtml(input.nextAction.cta_label)}</a>
       </div>`
     : `
       <div style="padding:16px 24px;border-top:1px solid #e5e7eb">
@@ -508,7 +508,7 @@ function renderHtml(input: BuildFounderDigestInput, score: number): string {
             .map(
               (m) => `
           <li style="margin:6px 0">
-            <a href="${escapeAttr(m.cta_url)}" style="color:#047857;font-weight:600;text-decoration:none">${escapeHtml(m.title)}</a>
+            <a href="${escapeAttr(m.cta_url)}" style="color:#1d4ed8;font-weight:600;text-decoration:none">${escapeHtml(m.title)}</a>
             ${m.raise_blocker ? `<span style="display:inline-block;margin-left:6px;padding:1px 6px;background:#fecaca;color:${EMAIL_THEME.danger};border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em">Blocker</span>` : ""}
             <div style="color:#6b7280;font-size:12px;margin-top:2px">${escapeHtml(m.why_it_matters)}</div>
           </li>`,
@@ -540,7 +540,7 @@ function renderHtml(input: BuildFounderDigestInput, score: number): string {
     ${nextActionBlock}
     ${missingBlock}
     <div style="padding:16px 24px;border-top:1px solid #e5e7eb">
-      <a href="${escapeAttr(input.dashboardUrl)}" style="color:#047857;font-weight:600;text-decoration:none">Open your dashboard →</a>
+      <a href="${escapeAttr(input.dashboardUrl)}" style="color:#1d4ed8;font-weight:600;text-decoration:none">Open your dashboard →</a>
     </div>
     <div style="padding:16px 24px 20px;border-top:1px solid #e5e7eb;background:#f7f8fa;font-size:11px;color:#6b7280">
       ${escapeHtml(AFSL_DISCLAIMER)}

@@ -94,7 +94,7 @@ function renderHtml(p: DigestPayload, footer: DigestFooterOptions): string {
     ${pipelineBlock}
     ${shareBlock}
     <div style="padding:16px 24px;border-top:1px solid #e5e7eb">
-      <a href="${escapeAttr(p.notificationsUrl)}" style="color:#047857;font-weight:600;text-decoration:none">Open your notifications inbox →</a>
+      <a href="${escapeAttr(p.notificationsUrl)}" style="color:#1d4ed8;font-weight:600;text-decoration:none">Open your notifications inbox →</a>
     </div>
     <div style="padding:16px 24px 20px;border-top:1px solid #e5e7eb;background:#f7f8fa;font-size:11px;color:#6b7280">
       ${escapeHtml(AFSL_DISCLAIMER)}
@@ -204,7 +204,7 @@ function renderActionBlock(p: DigestPayload): string {
     <p style="margin:0 0 4px;font-size:12px;color:#4b5563">Weakest dimension this week: <strong>${escapeHtml(a.label)}</strong> (${a.score}/100)</p>
     <h2 style="margin:6px 0 4px;font-size:16px;color:#0b0f1a">${escapeHtml(a.headline)}</h2>
     <p style="margin:0 0 12px;color:#4b5563;font-size:13px">${escapeHtml(a.reason)}</p>
-    <a href="${escapeAttr(a.ctaUrl)}" style="display:inline-block;padding:10px 16px;background:#047857;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Improve this dimension →</a>
+    <a href="${escapeAttr(a.ctaUrl)}" style="display:inline-block;padding:10px 16px;background:#1B2A5E;color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Improve this dimension →</a>
   </div>`;
 }
 
@@ -219,7 +219,7 @@ function renderMoneyBlock(p: DigestPayload): string {
   if (!m.radar) {
     return `<div style="padding:16px 24px;border-top:1px solid #e5e7eb">
     <p style="margin:0 0 6px;font-size:11px;font-weight:700;color:#b45309;text-transform:uppercase;letter-spacing:0.16em">Money</p>
-    <p style="margin:0;font-size:14px;color:#4b5563"><a href="${escapeAttr(m.href)}" style="color:#047857;font-weight:600;text-decoration:none">${escapeHtml(MONEY_DIGEST_TEASER)} →</a></p>
+    <p style="margin:0;font-size:14px;color:#4b5563"><a href="${escapeAttr(m.href)}" style="color:#1d4ed8;font-weight:600;text-decoration:none">${escapeHtml(MONEY_DIGEST_TEASER)} →</a></p>
   </div>`;
   }
   const header = moneyDigestHeader(m);
@@ -260,7 +260,7 @@ function renderPipelineBlock(p: DigestPayload): string {
     <h2 style="margin:0 0 8px;font-size:15px;color:#0b0f1a">${escapeHtml(pipelineDigestHeader(s))}</h2>
     ${moves}
     ${overdue}
-    <a href="${escapeAttr(s.href)}" style="display:inline-block;padding:10px 16px;background:#047857;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Open the investor CRM →</a>
+    <a href="${escapeAttr(s.href)}" style="display:inline-block;padding:10px 16px;background:#1B2A5E;color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Open the investor CRM →</a>
   </div>`;
 }
 

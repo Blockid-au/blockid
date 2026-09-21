@@ -87,7 +87,7 @@ function renderEmptyHtml(name: string, browseUrl: string, unsub?: string): strin
       <p style="margin:8px 0 0;color:#4b5563;font-size:14px">You haven't tracked any startups yet — add a ticker to your watchlist and this digest will show its SVI movement each week.</p>
     </div>
     <div style="padding:20px 24px">
-      <a href="${browseUrl}" style="display:inline-block;padding:10px 16px;background:#047857;color:#fff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Browse the catalog</a>
+      <a href="${browseUrl}" style="display:inline-block;padding:10px 16px;background:#1B2A5E;color:#ffffff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Browse the catalog</a>
     </div>
     <div style="padding:16px 24px 20px;border-top:1px solid #e5e7eb;background:#f7f8fa;font-size:11px;color:#6b7280">
       ${escapeHtml(AFSL_DISCLAIMER)}
@@ -134,7 +134,7 @@ function renderRowsHtml(
         <td style="padding:10px 12px;text-align:right;font-weight:700;vertical-align:top">${r.svi.toFixed(1)}</td>
         <td style="padding:10px 12px;text-align:right;color:${d.colour};vertical-align:top">${d.arrow} ${escapeHtml(d.label)}</td>
         <td style="padding:10px 12px;text-align:right;vertical-align:top">
-          <a href="${href}" style="color:#047857;font-weight:600;text-decoration:none">Open</a>
+          <a href="${href}" style="color:#1d4ed8;font-weight:600;text-decoration:none">Open</a>
         </td>
       </tr>`;
     })
@@ -160,7 +160,7 @@ function renderRowsHtml(
       <tbody>${tableRows}</tbody>
     </table>
     <div style="padding:16px 24px;border-top:1px solid #e5e7eb">
-      <a href="${watchlistUrl}" style="color:#047857;font-weight:600;text-decoration:none">Manage your watchlist →</a>
+      <a href="${watchlistUrl}" style="color:#1d4ed8;font-weight:600;text-decoration:none">Manage your watchlist →</a>
     </div>
     <div style="padding:16px 24px 20px;border-top:1px solid #e5e7eb;background:#f7f8fa;font-size:11px;color:#6b7280">
       ${escapeHtml(AFSL_DISCLAIMER)}
