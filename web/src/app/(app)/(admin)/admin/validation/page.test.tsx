@@ -1,7 +1,7 @@
 // Colocated test for /admin/validation (G22-D): the client view renders the
 // h1 outside any gate, the five-rung ladder with actual / target, the
 // objections list, the entries table (edit / delete per row, empty state),
-// the source-labelled auto rows, the North Star card and the 13-question
+// the source-labelled auto rows, the North Star card and the 14-question
 // script card; copy says "target" / "actual", never a claim; the page gate
 // redirects anon → login and non-admin → /admin. AdminLayout mounts
 // usePathname → mocked.
@@ -92,7 +92,7 @@ describe("<EntriesTable> + <AutoRowsTable> + <ScriptCard>", () => {
 
   it("script card: 13 checkboxes, first + last question, ticks not saved", async () => {
     const out = await html(<ScriptCard />);
-    expect(out.match(/data-testid="validation-script-q"/g)).toHaveLength(13);
+    expect(out.match(/data-testid="validation-script-q"/g)).toHaveLength(14);
     expect(out).toContain("Walk me through your intake process today");
     expect(out).toContain("Will you pay for the next cohort now?");
     expect(out).toContain("not saved");

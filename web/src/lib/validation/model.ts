@@ -3,7 +3,7 @@
 // targets), the founder-edited entry schema, ledger merge helpers, the
 // ladder counts, the "next objection to answer" grouping, the auto-row
 // derivation from platform data (fed by lib/validation/auto.ts with real
-// rows, by the tests with fakes) and the 13-question validation script.
+// rows, by the tests with fakes) and the 14-question validation script.
 //
 // Nothing in here touches the filesystem or a database; lib/validation/ledger.ts
 // owns the file and lib/validation/auto.ts owns the reads. Copy rule: every
@@ -339,7 +339,7 @@ export function openObjections(entries: readonly ValidationEntry[]): ObjectionGr
   return [...groups.values()].sort((a, b) => b.count - a.count || (a.last_date < b.last_date ? 1 : a.last_date > b.last_date ? -1 : 0));
 }
 
-// ── The 13-question validation script ───────────────────────────────────────
+// ── The 14-question validation script ───────────────────────────────────────
 
 export interface ScriptQuestion {
   n: number;
@@ -354,19 +354,22 @@ export interface ScriptQuestion {
  * answered when the note carries the "listen for" element.
  */
 export const VALIDATION_SCRIPT: readonly ScriptQuestion[] = Object.freeze([
-  { n: 1, text: "Walk me through your intake process today — from the first application to the shortlist.", listen_for: "steps, people, tools, where the first cut happens" },
-  { n: 2, text: "How many applications did the last round receive, and how many minutes did each get before the first cut?", listen_for: "a volume and a minutes-per-application number" },
-  { n: 3, text: "Who reads the applications, and who decides?", listen_for: "reviewer count, committee, sponsor or LP sign-off" },
-  { n: 4, text: "What does the first-pass screen have to produce for the committee — a rank, a shortlist, a red-flag list, a memo?", listen_for: "the artefact and who consumes it" },
-  { n: 5, text: "Where did the last round go wrong — something missed, a disagreement, a time overrun?", listen_for: "one concrete failure and what it cost" },
-  { n: 6, text: "What do you pay for today to run screening (tools, subscriptions, contractors, your own hours), roughly per year?", listen_for: "a spend figure or an honest 'nothing'" },
-  { n: 7, text: "If every applicant were scored on one rubric with cited evidence, what would you do differently on decision day?", listen_for: "a changed behaviour, not 'interesting'" },
-  { n: 8, text: "What would make you distrust an AI-generated score — and what would make you trust it enough to put it in front of the committee or a sponsor?", listen_for: "named trust triggers: method, evidence, verification, track record" },
-  { n: 9, text: "What do you have to report upward after selection (sponsor, university, LPs), and how do you collect it from founders today?", listen_for: "the report, its cadence, who chases" },
-  { n: 10, text: "Who signs a A$1,500–5,000 line item for the program, and what would they need to see first?", listen_for: "the budget owner and the proof they need" },
-  { n: 11, text: "What would stop you from running a paid pilot on your next cohort?", listen_for: "the objection, in their words — capture it verbatim" },
-  { n: 12, text: "Which cohort is next, when does intake open, and how many applicants do you expect?", listen_for: "a date and a number — the pilot scope" },
-  { n: 13, text: "Will you pay for the next cohort now?", listen_for: "yes / no / a condition — record the answer exactly" },
+  // The advisor plan's script verbatim (docs/plans/g21-fi-upgrade-2026-09-20.md source § 28).
+  { n: 1, text: "Walk me through your current intake process.", listen_for: "steps, people, tools, where the first cut happens" },
+  { n: 2, text: "How many startups do you assess per year?", listen_for: "a volume — the repeat-intake wedge" },
+  { n: 3, text: "Who reviews them?", listen_for: "reviewer count, committee, sponsor or LP sign-off" },
+  { n: 4, text: "How many minutes/hours per startup?", listen_for: "a minutes-per-startup number" },
+  { n: 5, text: "What information is hardest to trust?", listen_for: "the claims they cannot verify today" },
+  { n: 6, text: "How do reviewers compare applicants?", listen_for: "a rubric, a spreadsheet, gut feel" },
+  { n: 7, text: "How do you give rejected founders feedback?", listen_for: "nothing / a template / a call" },
+  { n: 8, text: "How do you show sponsors program impact?", listen_for: "the report, its cadence, who chases" },
+  { n: 9, text: "Which tools are you paying for today?", listen_for: "tools, subscriptions, contractors" },
+  { n: 10, text: "What does the review process cost?", listen_for: "a spend figure or an honest 'nothing'" },
+  { n: 11, text: "If BlockID reduced first-pass assessment time by X%, what would that be worth?", listen_for: "a number, not 'interesting'" },
+  { n: 12, text: "Would you pay A$1,500 to use it on the next cohort?", listen_for: "yes / no / a condition" },
+  { n: 13, text: "What would prevent you paying today?", listen_for: "the objection, in their words — capture it verbatim" },
+  // The most important question.
+  { n: 14, text: "Will you pay for the next cohort now?", listen_for: "record the answer exactly" },
 ]);
 
 // ── Dashboard payload ───────────────────────────────────────────────────────

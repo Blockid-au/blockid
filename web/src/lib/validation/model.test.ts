@@ -2,7 +2,7 @@
 // wrote them, the strict entry schema, merge / patch / remove, the ladder
 // counts (manual done + counted auto rows), open-objection grouping, the
 // auto-row derivation (L4 first paid order, L5 renewal / second buyer,
-// signals never counted, QA rows dropped) and the 13-question script.
+// signals never counted, QA rows dropped) and the 14-question script.
 
 import { describe, expect, it } from "vitest";
 import {
@@ -51,11 +51,12 @@ describe("levels + script", () => {
     expect(VALIDATION_LEVELS[3]!.label).toContain("A$1,500");
   });
 
-  it("13 questions, numbered 1..13, opening on intake and closing on the payment ask", () => {
-    expect(VALIDATION_SCRIPT).toHaveLength(13);
-    expect(VALIDATION_SCRIPT.map((q) => q.n)).toEqual(Array.from({ length: 13 }, (_, i) => i + 1));
-    expect(VALIDATION_SCRIPT[0]!.text).toMatch(/^Walk me through your intake/);
-    expect(VALIDATION_SCRIPT[12]!.text).toBe("Will you pay for the next cohort now?");
+  it("14 questions (the advisor plan's 13 + the one that matters), numbered 1..14, opening on intake and closing on the payment ask", () => {
+    expect(VALIDATION_SCRIPT).toHaveLength(14);
+    expect(VALIDATION_SCRIPT.map((q) => q.n)).toEqual(Array.from({ length: 14 }, (_, i) => i + 1));
+    expect(VALIDATION_SCRIPT[0]!.text).toMatch(/^Walk me through your current intake/);
+    expect(VALIDATION_SCRIPT[11]!.text).toBe("Would you pay A$1,500 to use it on the next cohort?");
+    expect(VALIDATION_SCRIPT[13]!.text).toBe("Will you pay for the next cohort now?");
     for (const q of VALIDATION_SCRIPT) expect(q.listen_for.length).toBeGreaterThan(5);
   });
 });

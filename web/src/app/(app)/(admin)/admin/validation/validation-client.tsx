@@ -5,7 +5,7 @@
 // contact role, date, level, outcome, objection, next step, note) posted to
 // /api/admin/validation, the "next objection to answer" list, the read-only
 // auto rows (source-labelled), the North Star + window line, and the
-// 13-question script as a checklist card. Every number is a target or an
+// 14-question script as a checklist card. Every number is a target or an
 // actual count of recorded events. The h1 sits outside any gate. No inline
 // scripts (CSP); every fetch error passes through userErrorMessage.
 
@@ -387,7 +387,7 @@ export function ScriptCard() {
     <section className="rounded-xl border border-surface-200 bg-white p-4" data-testid="validation-script" aria-labelledby="validation-script-h">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 id="validation-script-h" className="flex items-center gap-2 text-base font-semibold text-ink-800">
-          <ListChecks className="h-5 w-5 text-brand-600" aria-hidden="true" /> The 13-question validation script
+          <ListChecks className="h-5 w-5 text-brand-600" aria-hidden="true" /> The 14-question validation script
         </h2>
         <p className="text-xs tabular-nums text-ink-500"><span data-testid="validation-script-ticked">{ticked.size}</span> / {VALIDATION_SCRIPT.length} covered on this call</p>
       </div>

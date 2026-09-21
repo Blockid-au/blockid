@@ -11,7 +11,7 @@ Code: `web/src/lib/validation/{model,ledger,auto}.ts`, `web/src/app/api/admin/va
 
 | Level | Label | Target | An entry counts (`outcome: done`) when… |
 |---|---|---|---|
-| L1 | Qualified interviews | 5 | a 30–45 min conversation with someone who screens startups and owns or influences the budget, with notes captured (the 13-question script below) |
+| L1 | Qualified interviews | 5 | a 30–45 min conversation with someone who screens startups and owns or influences the budget, with notes captured (the 14-question script below) |
 | L2 | Real workflow demonstrations | 3 | the buyer ran a real intake, cohort or dossier workflow on **their own** applicants — not a slide walkthrough |
 | L3 | Written pilot proposals | 2 | a written proposal with scope, price and dates was sent to a named organisation |
 | L4 | Paid pilot ≥ A$1,500 | 1 | a paid Cohort Validation Pilot order of at least A$1,500 — **auto-filled** from `pilot_orders` (a manual `done` row also counts, e.g. an invoice outside Stripe) |
@@ -63,9 +63,9 @@ The organisation column shows the buyer's e-mail **domain** (never the address) 
 
 **North Star + window** come verbatim from `lib/funnel/institutional.ts` `readInstitutionalFunnel` (the same reader `/admin/funnel` uses): startups assessed through paying institutional workflows this month, and the funnel's live metrics for its 28-day window.
 
-## 4. The 13-question script
+## 4. The 14-question script
 
-Rendered as a checklist card on the page (`lib/validation/model.ts` `VALIDATION_SCRIPT`). Ticks are for the call in front of you and are **not saved** — the answers go in the entry note. Opening question: "Walk me through your intake process today"; closing question: "Will you pay for the next cohort now?" — record the answer exactly, and the objection to Q11 verbatim into the entry's `objection`. The 8-question research script in `docs/research/evaluator-interviews-2026-09.md` § 4 is the longer, anonymised research instrument; this one is the sales-validation script.
+Rendered as a checklist card on the page (`lib/validation/model.ts` `VALIDATION_SCRIPT`). Ticks are for the call in front of you and are **not saved** — the answers go in the entry note. The questions are the advisor plan's script verbatim (never "Do you like BlockID?"): opening "Walk me through your current intake process."; Q12 "Would you pay A$1,500 to use it on the next cohort?"; Q13 "What would prevent you paying today?" — its answer goes verbatim into the entry's `objection`; Q14, the one that matters: "Will you pay for the next cohort now?" — record the answer exactly. The 8-question research script in `docs/research/evaluator-interviews-2026-09.md` § 4 is the longer, anonymised research instrument; this one is the sales-validation script.
 
 ## 5. Weekly checks
 
