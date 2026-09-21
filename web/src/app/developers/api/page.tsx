@@ -184,14 +184,15 @@ export default function ApiIndexPage() {
                 </li>
               ))}
             </ul>
+            {/* min-w-0 on the grid children: a <pre> otherwise widens its column past the viewport at 375 px (sweep). */}
             <div className="mt-5 grid gap-4 lg:grid-cols-2">
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">curl</p>
                 <pre className="mt-1.5 overflow-x-auto rounded-lg bg-ink-900 p-3 text-xs text-ink-100">
                   <code>{INSTITUTIONAL_CURL}</code>
                 </pre>
               </div>
-              <div>
+              <div className="min-w-0">
                 <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">TypeScript</p>
                 <pre className="mt-1.5 overflow-x-auto rounded-lg bg-ink-900 p-3 text-xs text-ink-100">
                   <code>{INSTITUTIONAL_TS}</code>

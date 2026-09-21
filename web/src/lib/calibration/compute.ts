@@ -63,6 +63,22 @@ export interface CalibrationOutcomeInput {
   kind: string;
   observed_at: string;
   status: string;
+  source?: string | null;
+  recorded_by?: string | null;
+  confirmed_by?: string | null;
+}
+
+/**
+ * Review P1 (2026-09-21): only outcomes confirmed by someone other than the
+ * founder who declared them enter the calibration — a self-declared,
+ * self-confirmed "raised a round" is a survivorship claim, not an
+ * observation. Connector / register / evaluator / admin sources pass as long
+ * as they are confirmed; founder-source rows need a different confirmer.
+ */
+export function isCalibrationEligibleOutcome(o: CalibrationOutcomeInput): boolean {
+  if (o.status !== "confirmed") return false;
+  if (o.source === "founder") return Boolean(o.confirmed_by) && o.confirmed_by !== o.recorded_by;
+  return true;
 }
 
 export interface CalibrationInput {
@@ -163,7 +179,7 @@ function cell(band: string, n: number, positives: number): BandCell {
 
 export const CALIBRATION_LIMITATIONS: readonly string[] = Object.freeze([
   "This is an association between the band a company was in at its first snapshot of the quarter and whether a confirmed outcome followed at least 90 days later. It describes the companies on the BlockID record; it is not a forecast for any one company.",
-  "Only confirmed outcomes count. An outcome nobody recorded or confirmed is counted as no outcome, so every rate is a floor on what happened, not a measurement of everything that happened.",
+  "Only confirmed outcomes count, and an outcome a founder recorded about their own company counts only when BlockID or an evaluator confirmed it — never the founder alone. An outcome nobody recorded or confirmed is counted as no outcome, so every rate is a floor on what happened, not a measurement of everything that happened.",
   "Companies younger than the 90-day horizon are excluded from the denominator rather than counted as 'no outcome'.",
   "Cohorts are stage × quarter of the first snapshot. A cohort with fewer than 10 companies is not published; a band with 10–29 companies is labelled indicative and carries no interval; an interval (Wilson 95 %) is shown from 30 companies.",
   "Founders choose whether to add evidence; companies that keep their record current are more likely to record outcomes. The bands are therefore not a random sample of Australian startups.",
@@ -196,7 +212,7 @@ export function computeCalibration(input: CalibrationInput, meta: { sviVersion: 
   const outcomesByProject = new Map<string, Array<{ ms: number; kind: string }>>();
   let confirmedOutcomes = 0;
   for (const o of input.outcomes) {
-    if (o.status !== "confirmed") continue;
+    if (!isCalibrationEligibleOutcome(o)) continue;
     const ms = Date.parse(o.observed_at);
     if (!Number.isFinite(ms)) continue;
     confirmedOutcomes += 1;

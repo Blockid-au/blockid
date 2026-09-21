@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-09-21T00:59:38.708Z",
+  "generated_at": "2026-09-21T02:05:05.491Z",
   "ledger_present": true,
-  "total_files": 308,
+  "total_files": 310,
   "files": [
     "0001_init.sql",
     "0002_score_v2.sql",
@@ -282,6 +282,8 @@
     "0427_outcomes.sql",
     "0428_benchmark_segments_org_settings.sql",
     "0429_erasure_map_outcomes.sql",
+    "0430_outcomes_owner_insert_check.sql",
+    "0431_benchmark_segments_index_scale.sql",
     "20260814_tech_analyses.sql",
     "20260815120000_analyzer_runs.sql",
     "20260816_clevel_reports_v2.sql",

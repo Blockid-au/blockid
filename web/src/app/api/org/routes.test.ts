@@ -62,8 +62,12 @@ describe("GET /api/org/audit-export.csv", () => {
     expect(pageMock).not.toHaveBeenCalled();
   });
 
-  it("200 streams the CSV for the org's seats inside the window, guards formula cells and records org.audit.exported", async () => {
-    pageMock.mockResolvedValueOnce([{ id: 9, ts: "2026-09-12T00:00:00.000Z", user_id: "seat-2", actor: "user", action: "=cmd()", resource_type: "batch", resource_id: "b1", detail: { method: "POST", route: "/api/x", status: 201 } }]);
+  it("200 streams only ORGANISATION rows for the org's seats (review P1: a seat's founder-side / other-org rows are dropped), guards formula cells and records org.audit.exported", async () => {
+    pageMock.mockResolvedValueOnce([
+      { id: 9, ts: "2026-09-12T00:00:00.000Z", user_id: "seat-2", actor: "user", action: "cohort.item_updated", resource_type: "batch", resource_id: "=cmd()", detail: { method: "POST", route: "/api/x", status: 201 } },
+      // The seat's own startup activity — never exported to the organisation.
+      { id: 8, ts: "2026-09-11T00:00:00.000Z", user_id: "seat-2", actor: "user", action: "report.view", resource_type: "project", resource_id: "p-founder", detail: { method: "GET", route: "/workspace/score", status: 200 } },
+    ]);
     const res = await exportCsv(new Request("http://localhost/api/org/audit-export.csv?from=2026-09-01&to=2026-09-20"));
     expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/csv");
@@ -71,7 +75,9 @@ describe("GET /api/org/audit-export.csv", () => {
     const text = await res.text();
     const lines = text.trimEnd().split("\r\n");
     expect(lines[0]).toMatch(/^id,ts,actor_user_id/);
+    expect(lines).toHaveLength(2);
     expect(lines[1]).toContain("'=cmd()");
+    expect(text).not.toContain("p-founder");
     expect(pageMock.mock.calls[0]![0]).toMatchObject({ seats: ["owner-1", "seat-2"], window: { from: "2026-09-01T00:00:00.000Z", to: "2026-09-20T00:00:00.000Z" } });
     expect(auditMock).toHaveBeenCalledWith(expect.objectContaining({ action: "org.audit.exported", resource_id: "org-1", detail: expect.objectContaining({ rows: 1, seats: 2 }) }));
   });

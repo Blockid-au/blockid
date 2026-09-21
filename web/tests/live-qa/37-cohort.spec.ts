@@ -267,7 +267,7 @@ test.describe("BlockID Cohort — view", () => {
       await page.goto(`${qa.baseURL}/workspace/evaluations/cohort/${encodeURIComponent(batchId)}`, { waitUntil: "domcontentloaded" });
       const table = page.getByTestId("cohort-table");
 
-      await page.getByTestId("column-chooser-toggle").click();
+      await page.getByTestId("column-chooser-toggle").first().click();
       await page.getByTestId("column-toggle-gaps").uncheck();
       await expect(table.getByTestId("sort-gaps")).toHaveCount(0);
       await page.getByTestId("column-toggle-gaps").check();
@@ -310,7 +310,7 @@ test.describe("BlockID Cohort — view", () => {
     }
   });
 
-  test("members API: GET lists the creator as owner, POST an unknown e-mail is 404, export.csv carries the BlockID Cohort header row", async ({ browser }, testInfo) => {
+  test("members API: GET lists the creator as owner, POST an unknown e-mail is 202 pending, export.csv carries the BlockID Cohort header row", async ({ browser }, testInfo) => {
     const { batchId } = requireBatch();
     const { ctx, page } = await evaluatorBrowser(browser);
     try {
@@ -330,8 +330,10 @@ test.describe("BlockID Cohort — view", () => {
       if (membersPost.status === 503) {
         testInfo.annotations.push({ type: "pending-migration", description: "evaluation_batch_members (0423) not applied on this environment — POST members answered 503" });
       } else {
-        expect(membersPost.status).toBe(404);
-        expect(membersPost.body.error).toBe("unknown_email");
+        // P2 review: an unknown address answers 202 pending — never a 404 that
+        // would confirm whether an e-mail has a BlockID account.
+        expect(membersPost.status).toBe(202);
+        expect(membersPost.body).toMatchObject({ ok: true, pending: true, invited: false });
       }
 
       const csv = await page.request.get(`/api/evaluations/batch/${encodeURIComponent(batchId)}/export.csv`);

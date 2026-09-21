@@ -16,7 +16,6 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
@@ -203,9 +202,9 @@ export default async function CohortPage({ params, searchParams }: PageProps) {
 
         <CohortMembers batchId={batch.id} members={members.members.map((m) => ({ userId: m.userId, role: m.role, email: m.email, displayName: m.displayName, isCreator: m.isCreator }))} canManage={role === "owner"} available={members.available} />
 
-        <Suspense fallback={<CohortTable rows={[]} batchId={batch.id} role={role} loading />}>
-          <CohortTable rows={rows} batchId={batch.id} role={role} weightsVersion={meta.weightsVersion} initialFilters={initialFilters} />
-        </Suspense>
+        {/* No Suspense: nothing here suspends, and the fallback table rendered a
+            second column-chooser toggle beside the real one (live-qa 37). */}
+        <CohortTable rows={rows} batchId={batch.id} role={role} weightsVersion={meta.weightsVersion} initialFilters={initialFilters} />
 
         <p className="text-sm text-secondary" data-testid="humans-decide">
           <span className="font-medium text-primary">Humans make the decision.</span> BlockID structures the evidence and standardises the first-pass analysis; every shortlist, override and decision above is recorded with who made it and why.

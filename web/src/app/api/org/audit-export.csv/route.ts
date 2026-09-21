@@ -14,7 +14,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { readOrgSettings, resolveOrgAdmin } from "@/lib/org/admin";
-import { parseExportWindow, recordAuditExport, streamOrgAuditCsv } from "@/lib/org/audit-export";
+import { loadOrgAuditScope, parseExportWindow, recordAuditExport, streamOrgAuditCsv } from "@/lib/org/audit-export";
+import { enforceRateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,7 +43,13 @@ export async function GET(request: Request) {
 
   const orgId = admin.org.id;
   const seats = admin.seats;
-  const stream = streamOrgAuditCsv(seats, window.window, { onDone: (rows) => recordAuditExport({ id: user.id }, orgId, window.window, rows, seats.length) });
+  // Review P2: a 50 k-row stream per hit (each writing a ledger row) — 5/min.
+  const limited = enforceRateLimit("org-audit-export", user.id, request, 5, 60 * 1000);
+  if (limited) return limited;
+  // Review P1: only organisation rows leave — org action families + rows on
+  // the org's own cohorts / intake links (owned by the org owner).
+  const scope = await loadOrgAuditScope(admin.org.owner_user_id ?? user.id);
+  const stream = streamOrgAuditCsv(seats, window.window, { scope, onDone: (rows) => recordAuditExport({ id: user.id }, orgId, window.window, rows, seats.length) });
   const stamp = window.window.to.slice(0, 10);
   return new NextResponse(stream, {
     status: 200,

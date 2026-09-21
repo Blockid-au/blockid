@@ -149,6 +149,22 @@ export function deriveProposals(ctx: ProposalContext): ProposedOutcome[] {
     if (!latest) continue;
     const prior = pickPriorSnapshot(latest, history.slice(1));
     if (!prior) continue;
+    // Review P2 (2026-09-21): a Xero window change (3 → 12 months) moves the
+    // derived MRR without a revenue change — compare like with like only.
+    const latestWindow = (latest.metrics ?? {}).windowMonths ?? null;
+    const priorWindow = (prior.metrics ?? {}).windowMonths ?? null;
+    if (provider === "xero" && latestWindow !== priorWindow) continue;
+    // Review P2: one growth event → one proposal. Weekly resyncs re-derive
+    // the same growth against the same baseline; skip when any existing
+    // revenue_growth row (any status) already sits inside this baseline → latest window.
+    const baselineMs = Date.parse(prior.taken_at);
+    const latestMs = Date.parse(latest.taken_at);
+    const alreadyProposed = ctx.existing.some((e) => {
+      if (e.kind !== "revenue_growth") return false;
+      const t = Date.parse(e.observed_at);
+      return Number.isFinite(t) && t >= baselineMs && t <= latestMs + DAY_MS;
+    });
+    if (alreadyProposed) continue;
     const to = snapshotMrrAud(latest);
     const from = snapshotMrrAud(prior);
     if (to === null || from === null || from <= 0) continue;

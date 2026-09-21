@@ -74,7 +74,8 @@ function seed(): Record<string, Row[]> {
       { id: "b-seat", user_id: "seat-1" },
       { id: "b-other", user_id: "someone-else" },
     ],
-    program_intakes: [{ id: "i-org", owner_user_id: "seat-1" }, { id: "i-other", owner_user_id: "someone-else" }],
+    // Review P1: only the OWNER account's artefacts are in scope — a seat's batch (b-seat) and a seat-owned intake (i-seat) are never touched.
+    program_intakes: [{ id: "i-org", owner_user_id: "owner-1" }, { id: "i-seat", owner_user_id: "seat-1" }, { id: "i-other", owner_user_id: "someone-else" }],
     cohort_snapshots: [
       { id: "s-old", batch_id: "b-org", taken_at: OLD },
       { id: "s-old-seat", batch_id: "b-seat", taken_at: OLD },
@@ -107,8 +108,8 @@ describe("runOrgRetention", () => {
     expect(s.ok).toBe(true);
     expect(s.dry_run).toBe(true);
     expect(s.orgs).toHaveLength(1);
-    expect(s.orgs[0]).toMatchObject({ org_id: "org-1", retention_days: 365, seats: 2, batches: 2, intakes: 1, deleted: { cohort_snapshots: 2, assessment_overrides: 1, intake_submissions: 1 }, more: false, dry_run: true });
-    expect(s.deleted_total).toBe(4);
+    expect(s.orgs[0]).toMatchObject({ org_id: "org-1", retention_days: 365, seats: 1, batches: 1, intakes: 1, deleted: { cohort_snapshots: 1, assessment_overrides: 1, intake_submissions: 1 }, more: false, dry_run: true });
+    expect(s.deleted_total).toBe(3);
     expect(db.deleted).toEqual([]);
     expect(auditMock).not.toHaveBeenCalled();
   });
@@ -117,14 +118,14 @@ describe("runOrgRetention", () => {
     const db = fakeDb(seed());
     const s = await runOrgRetention({ db: db as never, now: () => NOW });
     expect(s.ok).toBe(true);
-    expect(s.deleted_total).toBe(4);
+    expect(s.deleted_total).toBe(3);
     const deletedIds = db.deleted.flatMap((d) => d.ids).sort();
-    expect(deletedIds).toEqual(["o-old", "s-old", "s-old-seat", "sub-old"]);
-    expect(db.tables.cohort_snapshots!.map((r) => r.id)).toEqual(["s-new", "s-other-old"]);
-    expect(db.tables.intake_submissions!.map((r) => r.id)).toEqual(["sub-other-old"]);
+    expect(deletedIds).toEqual(["o-old", "s-old", "sub-old"]); // s-old-seat (a seat's batch) survives
+    expect(db.tables.cohort_snapshots!.map((r) => r.id)).toEqual(["s-old-seat", "s-new", "s-other-old"]);
+    expect(db.tables.intake_submissions!.map((r) => r.id)).toEqual(["sub-other-old"]); // i-seat had no rows; sub-old (owner intake) deleted
     expect(db.tables.projects).toHaveLength(1);
     expect(auditMock).toHaveBeenCalledTimes(1);
-    expect(auditMock.mock.calls[0]![0]).toMatchObject({ actor: "cron", action: "org.retention.applied", resource_id: "org-1", detail: { retention_days: 365, deleted: { cohort_snapshots: 2, assessment_overrides: 1, intake_submissions: 1 } } });
+    expect(auditMock.mock.calls[0]![0]).toMatchObject({ actor: "cron", action: "org.retention.applied", resource_id: "org-1", detail: { retention_days: 365, deleted: { cohort_snapshots: 1, assessment_overrides: 1, intake_submissions: 1 } } });
   });
 
   it("honours the per-table limit and flags `more`", async () => {

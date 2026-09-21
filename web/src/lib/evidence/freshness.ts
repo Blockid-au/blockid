@@ -133,14 +133,23 @@ export function computeConnectorFreshness(input: ConnectorFreshnessInput, now: D
   for (const c of input.connections) {
     if ((c.status !== "active" && c.status !== "error") || seen.has(c.provider)) continue;
     seen.add(c.provider);
-    const lastSyncAt = newest(c.lastSyncAt, c.updatedAt, latestSnapshot(c.provider));
+    // Review P2 (2026-09-21): a failed sync stamps `last_sync_at` too and a
+    // token refresh bumps `updated_at` without any data read — neither is a
+    // successful read. Freshness = the last SUCCESSFUL sync (no error) or the
+    // newest snapshot; `updated_at` never counts.
+    const failing = c.status === "error" || Boolean(c.lastSyncError) || Boolean(c.tokenUnreadable);
+    const successfulSync = failing ? null : c.lastSyncAt;
+    const snapshotAt = latestSnapshot(c.provider);
+    const lastSyncAt = newest(c.lastSyncAt, snapshotAt);
     const ageDays = ageInDays(lastSyncAt, now);
+    const readAge = ageInDays(newest(successfulSync, snapshotAt), now);
     out.push({
       provider: c.provider,
       label: connectorLabel(c.provider),
       lastSyncAt,
       ageDays,
-      state: freshnessState(ageDays),
+      // A connector that cannot read is stale whatever its last stamp says.
+      state: failing && (readAge == null || freshnessState(readAge) !== "fresh") ? "stale" : freshnessState(readAge ?? ageDays),
       error: c.tokenUnreadable ? "reconnect needed" : (c.lastSyncError ?? null) || null,
     });
   }

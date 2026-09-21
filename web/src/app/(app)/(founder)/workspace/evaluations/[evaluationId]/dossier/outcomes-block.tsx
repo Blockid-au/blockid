@@ -11,7 +11,7 @@
 // that still reflects every snapshot.
 
 import { TrajectoryTimeline } from "@/components/svi/TrajectoryTimeline";
-import type { MentorAccessTier } from "@/lib/mentor/access-tiers";
+import { TIER_RANK, type MentorAccessTier } from "@/lib/mentor/access-tiers";
 import { listProjectOutcomes, projectOutcomesByTier } from "@/lib/outcomes/service";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { loadTrajectory } from "@/lib/svi/trajectory-load";
@@ -27,7 +27,9 @@ export interface OutcomesBlockProps {
 
 export async function OutcomesBlock({ projectId, role, consentTier, verificationLevel }: OutcomesBlockProps) {
   const sb = getSupabaseAdmin();
-  const trajectory = await loadTrajectory(sb, projectId, { verificationLevel: verificationLevel === null ? null : `L${verificationLevel}` });
+  // Review P1: the chart honours the same consent tier as the ledger list.
+  const withholdOutcomeValues = role === "assessor" && TIER_RANK[consentTier] < TIER_RANK.reports_shared;
+  const trajectory = await loadTrajectory(sb, projectId, { verificationLevel: verificationLevel === null ? null : `L${verificationLevel}`, withholdOutcomeValues });
   let outcomes: OutcomeItem[] = [];
   let unavailable = false;
   if (sb) {

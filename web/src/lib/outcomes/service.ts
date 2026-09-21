@@ -157,7 +157,13 @@ export interface ResolveActor {
 }
 
 /** Sources the project owner may confirm on their own project; the rest are BlockID's call. */
-export const OWNER_RESOLVABLE_SOURCES: readonly OutcomeSource[] = Object.freeze(["founder", "evaluator"]);
+/**
+ * Review P1 (2026-09-21): the owner may confirm what SOMEONE ELSE observed
+ * (an evaluator's proposal) — never their own founder-declared rows, which
+ * would let a self-declared outcome feed the published calibration. Founder
+ * rows, connector and register proposals are confirmed by BlockID (admin).
+ */
+export const OWNER_RESOLVABLE_SOURCES: readonly OutcomeSource[] = Object.freeze(["evaluator"]);
 
 export async function resolveOutcome(
   db: OutcomesDb,
@@ -175,7 +181,7 @@ export async function resolveOutcome(
     // Existence is never confirmed to a stranger.
     if (!owns) return { ok: false, error: "not_found", message: "No such outcome.", status: 404 };
     if (!OWNER_RESOLVABLE_SOURCES.includes(row.source)) {
-      return { ok: false, error: "forbidden", message: "Proposals from connectors and public registers are confirmed by BlockID.", status: 403 };
+      return { ok: false, error: "forbidden", message: row.source === "founder" ? "Outcomes you recorded yourself are confirmed by BlockID or an evaluator, never by the founder — so calibration never rests on self-declared results." : "Proposals from connectors and public registers are confirmed by BlockID.", status: 403 };
     }
   }
   if (row.status !== "proposed") return { ok: false, error: "not_proposed", message: `Already ${row.status}.`, status: 409 };

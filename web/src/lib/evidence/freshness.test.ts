@@ -114,3 +114,14 @@ describe("connectorFreshness (db)", () => {
     warn.mockRestore();
   });
 });
+
+describe("review P2 (2026-09-21): a failing sync never reads as fresh", () => {
+  it("a weekly-failing connector with a recent last_sync_at stamp is stale; a failing one with a fresh snapshot stays fresh", () => {
+    const NOW = Date.parse("2026-09-21T00:00:00.000Z");
+    const daysAgo = (d: number) => new Date(NOW - d * 86_400_000).toISOString();
+    const [failing] = computeConnectorFreshness({ connections: [{ provider: "stripe", status: "active", lastSyncAt: daysAgo(3), lastSyncError: "token revoked" }], snapshots: [] }, NOW);
+    expect(failing).toMatchObject({ provider: "stripe", state: "stale", error: "token revoked", ageDays: 3 });
+    const [withSnapshot] = computeConnectorFreshness({ connections: [{ provider: "xero", status: "error", lastSyncAt: daysAgo(1), lastSyncError: "500" }], snapshots: [{ provider: "xero", taken_at: daysAgo(5) }] }, NOW);
+    expect(withSnapshot.state).toBe("fresh");
+  });
+});

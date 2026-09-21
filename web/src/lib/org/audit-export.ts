@@ -86,7 +86,51 @@ async function defaultPage({ seats, window, beforeId, limit }: Parameters<PageRe
  * short page, EXPORT_MAX_ROWS or an empty seat list. `onDone(rows)` fires
  * once the stream closes (the route records the audit row with the count).
  */
-export function streamOrgAuditCsv(seats: string[], window: ExportWindow, opts: { page?: PageReader; onDone?: (rows: number) => void | Promise<void>; pageSize?: number } = {}): ReadableStream<Uint8Array> {
+/**
+ * Review P1 (2026-09-21): a seat holder can sit in several organisations and
+ * every one owns a personal org, so "every audit row by a seat" would hand
+ * org A the analyst's work for org B and their founder-side activity. Only
+ * ORGANISATION rows leave the building: the org-level action families, and
+ * rows whose resource is one of the org's own cohorts / intake links.
+ */
+export const ORG_ACTION_FAMILIES: readonly string[] = Object.freeze(["org.", "cohort.", "intake.", "institutional.", "assessment.", "evaluation.batch.", "pilot."]);
+
+export function isOrgScopedAuditRow(row: Pick<AuditEventRow, "action" | "resource_id" | "detail">, scope: { batchIds: ReadonlySet<string>; intakeIds: ReadonlySet<string> }): boolean {
+  const action = String(row.action ?? "");
+  if (ORG_ACTION_FAMILIES.some((f) => action.startsWith(f))) return true;
+  const rid = row.resource_id == null ? "" : String(row.resource_id);
+  if (rid && (scope.batchIds.has(rid) || scope.intakeIds.has(rid))) return true;
+  const d = (row.detail ?? {}) as Record<string, unknown>;
+  const batchId = typeof d.batch_id === "string" ? d.batch_id : null;
+  const intakeId = typeof d.intake_id === "string" ? d.intake_id : null;
+  return Boolean((batchId && scope.batchIds.has(batchId)) || (intakeId && scope.intakeIds.has(intakeId)));
+}
+
+export interface OrgAuditScope {
+  batchIds: ReadonlySet<string>;
+  intakeIds: ReadonlySet<string>;
+}
+
+/** The org's own cohorts + intake links (owned by the org owner) — the resource scope of the export. */
+export async function loadOrgAuditScope(ownerUserId: string): Promise<OrgAuditScope> {
+  const batchIds = new Set<string>();
+  const intakeIds = new Set<string>();
+  const admin = getSupabaseAdmin();
+  if (!admin) return { batchIds, intakeIds };
+  try {
+    const [b, i] = await Promise.all([
+      admin.from("evaluation_batches").select("id").eq("user_id", ownerUserId).limit(2000),
+      admin.from("program_intakes").select("id").eq("owner_user_id", ownerUserId).limit(2000),
+    ]);
+    for (const r of (b.data ?? []) as Array<{ id: string }>) batchIds.add(String(r.id));
+    for (const r of (i.data ?? []) as Array<{ id: string }>) intakeIds.add(String(r.id));
+  } catch {
+    /* fail-soft: an empty scope exports only the org action families */
+  }
+  return { batchIds, intakeIds };
+}
+
+export function streamOrgAuditCsv(seats: string[], window: ExportWindow, opts: { page?: PageReader; onDone?: (rows: number) => void | Promise<void>; pageSize?: number; scope?: OrgAuditScope } = {}): ReadableStream<Uint8Array> {
   const enc = new TextEncoder();
   const page = opts.page ?? defaultPage;
   const size = Math.max(1, Math.min(EXPORT_PAGE_SIZE, opts.pageSize ?? EXPORT_PAGE_SIZE));
@@ -105,13 +149,14 @@ export function streamOrgAuditCsv(seats: string[], window: ExportWindow, opts: {
         controller.close();
         return;
       }
-      const batch = await page({ seats, window, beforeId, limit: size });
+      const fetched = await page({ seats, window, beforeId, limit: size });
+      const batch = opts.scope ? fetched.filter((r) => isOrgScopedAuditRow(r, opts.scope!)) : fetched;
       if (batch.length > 0) {
         controller.enqueue(enc.encode(batch.map(auditRowToCsvLine).join("\r\n") + "\r\n"));
         rows += batch.length;
-        beforeId = batch[batch.length - 1]!.id;
       }
-      if (batch.length < size || rows >= EXPORT_MAX_ROWS) {
+      if (fetched.length > 0) beforeId = fetched[fetched.length - 1]!.id;
+      if (fetched.length < size || rows >= EXPORT_MAX_ROWS) {
         done = true;
         try {
           await opts.onDone?.(rows);

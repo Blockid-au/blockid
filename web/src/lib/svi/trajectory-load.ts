@@ -11,7 +11,13 @@ export type TrajectoryDb = { from(table: string): any };
 
 export const TRAJECTORY_SNAPSHOT_LIMIT = 400;
 
-export async function loadTrajectory(db: TrajectoryDb | null, projectId: string, opts: { verificationLevel?: string | null; now?: Date } = {}): Promise<Trajectory> {
+/**
+ * `withholdOutcomeValues` (review P1, 2026-09-21): an evaluator below the
+ * `reports_shared` consent tier sees outcome KINDS as markers but never the
+ * amounts / round names — the same rule `projectOutcomesByTier` applies to
+ * the ledger list beneath the chart.
+ */
+export async function loadTrajectory(db: TrajectoryDb | null, projectId: string, opts: { verificationLevel?: string | null; now?: Date; withholdOutcomeValues?: boolean } = {}): Promise<Trajectory> {
   const empty = buildTrajectory({ snapshots: [], evidenceRecords: [], outcomes: [], verificationLevel: opts.verificationLevel ?? null, now: opts.now });
   if (!db) return empty;
   const safe = async <T,>(label: string, fn: () => Promise<T>, fallback: T): Promise<T> => {
@@ -46,7 +52,8 @@ export async function loadTrajectory(db: TrajectoryDb | null, projectId: string,
       async () => {
         const { data, error } = await db.from("startup_outcomes").select("id, kind, observed_at, value, source, status").eq("project_id", projectId).eq("status", "confirmed").order("observed_at", { ascending: true }).limit(200);
         if (error) throw new Error(error.message ?? "query failed");
-        return (data ?? []) as TrajectoryOutcomeInput[];
+        const rows = (data ?? []) as TrajectoryOutcomeInput[];
+        return opts.withholdOutcomeValues ? rows.map((r) => ({ ...r, value: {} })) : rows;
       },
       [] as TrajectoryOutcomeInput[],
     ),

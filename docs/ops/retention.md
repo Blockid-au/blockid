@@ -11,8 +11,7 @@ This is separate from the platform-wide privacy sweep (`/api/cron/privacy-retent
 
 ## Who is "the organisation"
 
-The `investor_organisations` row (0393) the owner acts for. Its **seats** = `owner_user_id` + every
-`investor_organisation_members.user_id`. The org's artefacts are the ones its seats created.
+The `investor_organisations` row (0393) the owner acts for. **The org's artefacts are the ones its OWNER account created** (`evaluation_batches.user_id` / `program_intakes.owner_user_id` = `owner_user_id`). Seat holders can belong to several organisations and own a personal one, and neither table carries an `org_id`, so a seat's cohorts are never in scope — P3 post-ship review (2026-09-21). When an `org_id` column lands on those tables the scope widens to it.
 
 ## Exactly what is deleted
 
@@ -20,9 +19,9 @@ For every `org_settings` row with `retention_days` set, rows older than `now −
 
 | Table | Reached through | Age column | What it is |
 |---|---|---|---|
-| `cohort_snapshots` | `batch_id` ∈ `evaluation_batches` where `user_id` ∈ seats | `taken_at` | the point-in-time cohort rows behind the Δ column and the Cohort Report movement chart |
+| `cohort_snapshots` | `batch_id` ∈ `evaluation_batches` where `user_id` = the org owner | `taken_at` | the point-in-time cohort rows behind the Δ column and the Cohort Report movement chart |
 | `assessment_overrides` | `batch_id` ∈ the same batches | `created_at` | reviewer overrides recorded on the org's cohorts (the canonical score was never changed by them) |
-| `intake_submissions` | `intake_id` ∈ `program_intakes` where `owner_user_id` ∈ seats | `submitted_at` | applications received through the org's `/apply/<slug>` links — founder e-mail, name, startup name, website, deck storage path, coverage |
+| `intake_submissions` | `intake_id` ∈ `program_intakes` where `owner_user_id` = the org owner | `submitted_at` | applications received through the org's `/apply/<slug>` links — founder e-mail, name, startup name, website, deck storage path, coverage |
 
 Bounded: at most **500 rows per table per organisation per run**, oldest first; a longer backlog drains over a
 few Sundays (`more: true` in the summary). Deletions are plain `DELETE … WHERE id IN (…)` on the rows found —
@@ -38,7 +37,7 @@ no cascade beyond what the schema already defines (`intake_submissions` has none
   (`program_intakes`), templates, pilot orders.
 - `audit_events` — append-only, hash-chained. Every retention run **adds** one row per organisation
   (`org.retention.applied`: cutoff, counts per table, `more`).
-- Anything owned by a user outside the org's seats, even on a shared batch.
+- Anything owned by a seat holder rather than the owner account (their cohorts may belong to another organisation), and anything owned by a user outside the org.
 
 ## Running it by hand
 

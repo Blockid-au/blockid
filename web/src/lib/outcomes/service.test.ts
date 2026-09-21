@@ -140,8 +140,8 @@ function actor(over: Partial<ResolveActor> = {}): ResolveActor {
 }
 
 describe("resolveOutcome", () => {
-  it("owner confirms a founder proposal on their own project; note appended; conditioned update on status = proposed", async () => {
-    const { db, calls } = makeDb({ startup_outcomes: [ROW] });
+  it("owner confirms an EVALUATOR proposal on their own project (never their own founder row — review P1); note appended; conditioned update on status = proposed", async () => {
+    const { db, calls } = makeDb({ startup_outcomes: [{ ...ROW, source: "evaluator" }] });
     const r = await resolveOutcome(db, { id: OID, decision: "confirm", note: "Verified against the ASIC filing.", actor: actor() }, { now: () => NOW });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
@@ -153,6 +153,8 @@ describe("resolveOutcome", () => {
   });
 
   it("owner cannot resolve connector / register proposals (403); non-owner → 404; admin resolves any", async () => {
+    // Review P1: the founder cannot confirm their own founder-source row (self-declared → calibration).
+    expect(await resolveOutcome(makeDb({ startup_outcomes: [{ ...ROW, source: "founder" }] }).db, { id: OID, decision: "confirm", note: null, actor: actor() })).toMatchObject({ ok: false, error: "forbidden", status: 403 });
     const connector: OutcomeRow = { ...ROW, source: "connector" };
     expect(await resolveOutcome(makeDb({ startup_outcomes: [connector] }).db, { id: OID, decision: "confirm", note: null, actor: actor() })).toMatchObject({ ok: false, error: "forbidden", status: 403 });
     expect(await resolveOutcome(makeDb({ startup_outcomes: [ROW] }).db, { id: OID, decision: "confirm", note: null, actor: actor({ ownsProject: async () => false }) })).toMatchObject({ ok: false, error: "not_found", status: 404 });
@@ -162,8 +164,8 @@ describe("resolveOutcome", () => {
 
   it("unknown id → 404; already resolved → 409; lost race → 409 already_resolved", async () => {
     expect(await resolveOutcome(makeDb({ startup_outcomes: [] }).db, { id: OID, decision: "confirm", note: null, actor: actor() })).toMatchObject({ ok: false, error: "not_found", status: 404 });
-    expect(await resolveOutcome(makeDb({ startup_outcomes: [{ ...ROW, status: "confirmed" }] }).db, { id: OID, decision: "confirm", note: null, actor: actor() })).toMatchObject({ ok: false, error: "not_proposed", status: 409 });
-    expect(await resolveOutcome(makeDb({ startup_outcomes: [ROW] }, { updateHits: false }).db, { id: OID, decision: "confirm", note: null, actor: actor() })).toMatchObject({ ok: false, error: "already_resolved", status: 409 });
+    expect(await resolveOutcome(makeDb({ startup_outcomes: [{ ...ROW, source: "evaluator", status: "confirmed" }] }).db, { id: OID, decision: "confirm", note: null, actor: actor() })).toMatchObject({ ok: false, error: "not_proposed", status: 409 });
+    expect(await resolveOutcome(makeDb({ startup_outcomes: [{ ...ROW, source: "evaluator" }] }, { updateHits: false }).db, { id: OID, decision: "confirm", note: null, actor: actor() })).toMatchObject({ ok: false, error: "already_resolved", status: 409 });
   });
 });
 

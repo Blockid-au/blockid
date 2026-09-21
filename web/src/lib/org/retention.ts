@@ -21,7 +21,6 @@ import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { appendAudit } from "@/lib/audit";
 import { isMissingRelation } from "@/lib/investors/mandates";
-import { listSeatUserIds } from "@/lib/investor/organisations";
 
 type Row = Record<string, unknown>;
 type Db = NonNullable<ReturnType<typeof getSupabaseAdmin>>;
@@ -104,17 +103,22 @@ async function deleteIds(db: Db, table: string, rowIds: string[]): Promise<numbe
   return (data ?? []).length;
 }
 
-/** The org's seat user ids plus its owner (the owner may have no member row). */
+/**
+ * Review P1 (2026-09-21): the window applies ONLY to artefacts owned by the
+ * organisation's owner account. A seat holder can sit in several
+ * organisations (and owns a personal one), and `evaluation_batches` /
+ * `program_intakes` carry no org id — so "owned by any seat" would let org A's
+ * window delete a shared analyst's cohorts run for org B. Until an `org_id`
+ * column lands on those tables, the owner account is the organisation.
+ */
 async function seatsWithOwner(db: Db, orgId: string): Promise<string[]> {
-  const seats = await listSeatUserIds(orgId);
   try {
     const { data } = await db.from("investor_organisations").select("owner_user_id").eq("id", orgId).maybeSingle();
     const owner = (data as Row | null)?.owner_user_id;
-    if (typeof owner === "string" && owner) seats.push(owner);
+    return typeof owner === "string" && owner ? [owner] : [];
   } catch {
-    /* fail-soft */
+    return [];
   }
-  return Array.from(new Set(seats));
 }
 
 /** Apply one org's window. Never throws. */

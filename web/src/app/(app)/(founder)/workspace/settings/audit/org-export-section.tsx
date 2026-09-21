@@ -29,7 +29,7 @@ export function OrgAuditExportSection({ admin, now = new Date() }: { admin: OrgA
         Organisation audit export
       </h2>
       <p className="mt-1 text-sm text-ink-700">
-        Every audit row written by the {admin.seats.length} seat{admin.seats.length === 1 ? "" : "s"} of <span className="font-medium">{admin.org.name}</span> — cohorts, evaluations, overrides, API reads — as a CSV. Default window: the last {EXPORT_DEFAULT_DAYS} days; at most {EXPORT_MAX_DAYS} days per file. Cells are guarded against spreadsheet formulas; the export itself is recorded on the log.
+        The organisation rows written by the {admin.seats.length} seat{admin.seats.length === 1 ? "" : "s"} of <span className="font-medium">{admin.org.name}</span> — cohort, intake, override, pilot and institutional-API actions, plus anything on the organisation&apos;s own cohorts and intake links — as a CSV. A seat holder&apos;s work for another organisation or their own startup is never included. Default window: the last {EXPORT_DEFAULT_DAYS} days; at most {EXPORT_MAX_DAYS} days per file. Cells are guarded against spreadsheet formulas; the export itself is recorded on the log.
       </p>
       <form method="get" action="/api/org/audit-export.csv" className="mt-4 flex flex-wrap items-end gap-3 text-sm">
         <label className="flex flex-col gap-1">
