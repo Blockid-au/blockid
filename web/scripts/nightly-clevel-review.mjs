@@ -24,11 +24,17 @@
  * Flags:
  *   --dry-run           log intended writes, do not touch the filesystem
  *   --persona=<name>    run only one persona (dev iteration)
- *   --stub              force stub mode regardless of ANTHROPIC_API_KEY (CI-safe)
+ *   --stub              force stub mode regardless of credentials (CI-safe)
  *   --version-mode      use legacy version-based filenames + manifest evidence
  *
+ * Credentials (G25-B, founder 2026-09-21 — the Anthropic API key is OPTIONAL):
+ *   1. Claude CLI subscription token (~/.claude/.credentials.json, refreshed
+ *      by ai-token-guardian.sh) — the Anthropic path on the box; used FIRST.
+ *   2. ANTHROPIC_API_KEY — only when set to a real key (never a placeholder).
+ *   Neither → stub mode (no LLM output, exit 0, nothing pages).
+ *
  * Env:
- *   ANTHROPIC_API_KEY         enables live LLM mode when set (and --stub absent)
+ *   ANTHROPIC_API_KEY         optional — live LLM mode via the API key
  *   CLEVEL_REVIEW_CHEAP=1     swap sonnet-5 -> haiku-4-5 (cost fallback)
  *   TELEGRAM_BOT_TOKEN        optional: digest message target
  *   TELEGRAM_CHAT_ID          optional: chat / channel id
@@ -103,6 +109,37 @@ function _loadEnvVar(name) {
 }
 
 const PERSONAS = ["cto", "cfo", "ceo", "cdo", "ciso", "cro", "cmo"];
+
+// ─── Credentials (CLI subscription first, API key second, else stub) ───────
+const PLACEHOLDER_KEY_RE = /^(?:sk-ant-)?(?:x{3,}|\.{3}|…|changeme|change[-_]?me|placeholder|your[-_]?(?:api[-_]?)?key(?:[-_]?here)?|todo|tbd|none|null|unset|disabled|optional|<[^>]*>)$/i;
+
+/** Mirrors src/lib/ai/anthropic-tier.ts#isAnthropicApiKeyConfigured. */
+export function isApiKeyConfigured(value = process.env.ANTHROPIC_API_KEY) {
+  const v = (value ?? "").trim();
+  return Boolean(v) && !PLACEHOLDER_KEY_RE.test(v);
+}
+
+/** Claude CLI subscription token, or null when absent / expiring within 5 min. */
+export function readCliOAuthToken(env = process.env, now = Date.now()) {
+  try {
+    const home = env.HOME ?? "/root";
+    const raw = readFileSync(join(home, ".claude", ".credentials.json"), "utf8");
+    const o = JSON.parse(raw)?.claudeAiOauth;
+    if (!o?.accessToken) return null;
+    if (o.expiresAt && now > o.expiresAt - 5 * 60_000) return null;
+    return o.accessToken;
+  } catch {
+    return null;
+  }
+}
+
+/** { kind: "claude_cli" | "api_key" | null } — never the secret itself. */
+export function resolveCredential(env = process.env) {
+  const token = readCliOAuthToken(env);
+  if (token) return { kind: "claude_cli", authToken: token };
+  if (isApiKeyConfigured(env.ANTHROPIC_API_KEY)) return { kind: "api_key", apiKey: env.ANTHROPIC_API_KEY.trim() };
+  return { kind: null };
+}
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = resolve(__dirname, "..", "..");
@@ -441,11 +478,11 @@ function scaffoldNightlyMarkdown({ persona, date, prior, timestamp }) {
 - **Generated:** ${timestamp}
 - **Date:** ${date}
 ${priorLine}
-- **Mode:** stub (ANTHROPIC_API_KEY not set or --stub passed). No LLM output.
+- **Mode:** stub (no Claude CLI token / API key, or --stub passed). No LLM output.
 
 ## Status
 
-_Stub mode — set ANTHROPIC_API_KEY and re-run to produce a real review._
+_Stub mode — sign in to the Claude CLI on the box (or set the optional ANTHROPIC_API_KEY) and re-run to produce a real review._
 
 ## Findings
 
@@ -473,12 +510,12 @@ function scaffoldMarkdown({ persona, version, prior, timestamp }) {
 - **Generated:** ${timestamp}
 - **Version:** ${version}
 ${priorLine}
-- **Mode:** stub (forced or ANTHROPIC_API_KEY unset). LLM output disabled for this run.
+- **Mode:** stub (forced, or no Claude CLI token / API key). LLM output disabled for this run.
 
 ## Ship summary
 
-_Placeholder — running in stub mode. Set ANTHROPIC_API_KEY and re-run without
-\`--stub\` to produce a real review._
+_Placeholder — running in stub mode. Sign in to the Claude CLI (or set the optional
+ANTHROPIC_API_KEY) and re-run without \`--stub\` to produce a real review._
 
 ${followUpLine}
 
@@ -726,11 +763,11 @@ function buildStubDigest({ date, timestamp, version, reportBodies }) {
 
 - **Generated:** ${timestamp}
 - **Version:** ${version}
-- **Mode:** stub (ANTHROPIC_API_KEY not set or --stub passed)
+- **Mode:** stub (no Claude CLI token / API key, or --stub passed)
 
 ## Overall Status: YELLOW
 
-Stub mode — no LLM analysis performed. Set ANTHROPIC_API_KEY for real reviews.
+Stub mode — no LLM analysis performed. Sign in to the Claude CLI on the box (the optional ANTHROPIC_API_KEY also works) for real reviews.
 
 ## Per-Domain Status
 
@@ -740,7 +777,7 @@ ${rows}
 
 ## Critical Action Items
 
-1. Set ANTHROPIC_API_KEY in web/.env to enable live nightly reviews.
+1. Refresh the Claude CLI token (scripts/ai-token-guardian.sh) to enable live nightly reviews (ANTHROPIC_API_KEY is optional).
 
 ## Positive Signals
 
@@ -1166,15 +1203,16 @@ async function main() {
   const today = new Date();
   const date = today.toISOString().slice(0, 10); // YYYY-MM-DD
 
-  const wantLive = !args.stub && !!process.env.ANTHROPIC_API_KEY;
+  const credential = args.stub ? { kind: null } : resolveCredential();
+  const wantLive = credential.kind !== null;
   const cheapMode = process.env.CLEVEL_REVIEW_CHEAP === "1";
   const model = cheapMode ? MODEL_CHEAP : MODEL_DEFAULT;
 
   const modeLabel = wantLive
-    ? `live (model=${model}${cheapMode ? " CHEAP" : ""})`
+    ? `live (model=${model}${cheapMode ? " CHEAP" : ""}, via ${credential.kind === "claude_cli" ? "Claude CLI subscription" : "API key"})`
     : args.stub
       ? "stub (forced via --stub)"
-      : "stub (ANTHROPIC_API_KEY not set)";
+      : "stub (no Claude CLI token and no ANTHROPIC_API_KEY — the key is optional)";
 
   const runMode = args.versionMode ? "version-mode" : "nightly";
 
@@ -1187,7 +1225,9 @@ async function main() {
   let client = null;
   if (wantLive) {
     const Anthropic = await loadAnthropicSDK();
-    client = new Anthropic();
+    client = credential.kind === "claude_cli"
+      ? new Anthropic({ authToken: credential.authToken, defaultHeaders: { "anthropic-beta": "oauth-2025-04-20" }, maxRetries: 2, timeout: 120_000 })
+      : new Anthropic({ apiKey: credential.apiKey, maxRetries: 2, timeout: 120_000 });
   }
 
   // Version-mode: use version.json + manifest evidence (legacy T-1100 approach).

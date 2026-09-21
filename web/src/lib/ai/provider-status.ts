@@ -11,7 +11,11 @@
 //   low_credit       OpenRouter credits below OPENROUTER_MIN_CREDIT_USD
 //   unreachable      timeout / DNS / 5xx — provider down or proxy dead
 //   not_configured   no key → never probed (listed so the status page shows
-//                    what is missing)
+//                    what is missing). For `anthropic` this is the NORMAL
+//                    state (G25-B: the API key is optional — the Claude CLI
+//                    subscription `claude-oauth` is the Anthropic path) and
+//                    carries the detail "Anthropic via Claude CLI
+//                    subscription (fallback)"; nothing warns on it.
 //
 // Nothing here logs or stores key material — only key length / first three
 // characters ever reach a log line. Probes are run by the ai-health-check
@@ -21,7 +25,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import { openRouterMinCreditUsd } from "./spend-guard";
-import { parseRateLimitHeaders, markAnthropicKeyInvalid, noteAnthropicHeadroom } from "./anthropic-tier";
+import { parseRateLimitHeaders, markAnthropicKeyInvalid, noteAnthropicHeadroom, isAnthropicApiKeyConfigured, ANTHROPIC_NOT_CONFIGURED_DETAIL } from "./anthropic-tier";
 
 export type ProviderStatusKind = "valid" | "invalid_key" | "unreachable" | "quota_exceeded" | "low_credit" | "not_configured";
 
@@ -88,7 +92,8 @@ function oauthToken(env: NodeJS.ProcessEnv): string | null {
 
 export function configuredProviders(env: NodeJS.ProcessEnv = process.env): Partial<Record<ProbeProvider, string>> {
   const out: Partial<Record<ProbeProvider, string>> = {};
-  if (env.ANTHROPIC_API_KEY) out.anthropic = env.ANTHROPIC_API_KEY;
+  // G25-B: absent OR placeholder = not configured (no probe, no warning).
+  if (isAnthropicApiKeyConfigured(env.ANTHROPIC_API_KEY)) out.anthropic = env.ANTHROPIC_API_KEY;
   const oat = oauthToken(env);
   if (oat) out["claude-oauth"] = oat;
   if (env.ANTHROPIC_PROXY_API_KEY && env.ANTHROPIC_PROXY_BASE_URL) out["claude-proxy"] = env.ANTHROPIC_PROXY_API_KEY.split(",")[0].trim();
@@ -328,7 +333,7 @@ export async function probeProviders(deps: ProbeDeps & { force?: boolean; file?:
     for (const p of PROBE_PROVIDERS) {
       const secret = configured[p];
       if (!secret) {
-        next.providers[p] = { provider: p, status: "not_configured", checked_at: next.updated_at, latency_ms: 0 };
+        next.providers[p] = { provider: p, status: "not_configured", checked_at: next.updated_at, latency_ms: 0, ...(p === "anthropic" ? { detail: ANTHROPIC_NOT_CONFIGURED_DETAIL } : {}) };
         continue;
       }
       const prior = cached.providers[p];
@@ -361,8 +366,12 @@ export interface AiProvidersSummary {
   providers: Record<string, { status: ProviderStatusKind; checked_at: string; headroom?: ProviderHeadroom; detail?: string }>;
   /** Number of providers currently usable (valid or low_credit-but-serving). */
   usable: number;
-  /** True when the Anthropic API key is present AND valid. */
+  /** True when the Anthropic API key is present AND valid. False is the
+   *  normal state since G25-B (no key on the box) — not a warning. */
   quality_tier_ready: boolean;
+  /** Which Anthropic path serves: `api_key` (funded key, valid), `claude_cli`
+   *  (the Claude CLI subscription token — the fallback path), or `none`. */
+  anthropic_path: "api_key" | "claude_cli" | "none";
 }
 
 /** Trusted-payload summary: verdicts + headroom only, never key material. */
@@ -377,11 +386,14 @@ export async function readAiProvidersSummary(root: string = process.cwd()): Prom
     providers[p] = { status: s.status, checked_at: s.checked_at, ...(s.headroom ? { headroom: s.headroom } : {}), ...(s.detail ? { detail: s.detail } : {}) };
     if (s.status === "valid") usable += 1;
   }
+  const apiKeyValid = data.providers.anthropic?.status === "valid";
+  const cliValid = data.providers["claude-oauth"]?.status === "valid";
   return {
     updated_at: data.updated_at,
     providers,
     usable,
-    quality_tier_ready: data.providers.anthropic?.status === "valid",
+    quality_tier_ready: apiKeyValid,
+    anthropic_path: apiKeyValid ? "api_key" : cliValid ? "claude_cli" : "none",
   };
 }
 

@@ -189,8 +189,11 @@ type StatusResponse = {
    * (content/reports/ai-provider-status.json, ≤ 1 probe / provider / 15 min):
    * `valid | invalid_key | unreachable | quota_exceeded | low_credit |
    * not_configured` plus headroom (RPM/TPM remaining, OpenRouter credits) and
-   * `quality_tier_ready` (Anthropic key present AND valid). Never key
-   * material. Trusted callers only.
+   * `quality_tier_ready` (Anthropic key present AND valid — false is the
+   * normal state since G25-B, the key is optional) and `anthropic_path`
+   * (`api_key` | `claude_cli` | `none`; `claude_cli` = the Claude CLI
+   * subscription fallback serves Anthropic). Never key material. Trusted
+   * callers only.
    */
   ai_providers: AiProvidersSummary;
   /**
@@ -556,7 +559,7 @@ export async function GET(): Promise<Response> {
     readGa4EventAuditStatus(REPO_ROOT).catch(() => "unknown"),
     readBackupHealth(REPO_ROOT).catch(() => ({ status: "missing" as const, last_backup: "", last_restore_test: "" })),
     readSchemaMigrationsStatus(REPO_ROOT).catch(() => "unknown" as const),
-    readAiProvidersSummary(REPO_ROOT).catch(() => ({ updated_at: "", providers: {}, usable: 0, quality_tier_ready: false } as AiProvidersSummary)),
+    readAiProvidersSummary(REPO_ROOT).catch(() => ({ updated_at: "", providers: {}, usable: 0, quality_tier_ready: false, anthropic_path: "none" } as AiProvidersSummary)),
     readLastReportProvider(REPO_ROOT).catch(() => null),
     readTractionStatus(REPO_ROOT).catch(() => "missing" as const),
     readSviBacktestStatus(REPO_ROOT).catch(() => "missing" as const),

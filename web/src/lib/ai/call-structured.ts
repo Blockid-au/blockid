@@ -343,7 +343,9 @@ async function callAnthropic(opts: {
   messages: Array<{ role: "user" | "assistant"; content: string }>;
 }): Promise<AnthropicResult> {
   if (!opts.apiKey) {
-    return { ok: false, status: "model_error", reason: "ANTHROPIC_API_KEY not set" };
+    // G25-B: the API key is optional — callers that want the dispatcher
+    // chain (DeepInfra-first, Claude CLI fallback) pass `modelCaller`.
+    return { ok: false, status: "model_error", reason: "ANTHROPIC_API_KEY not set (optional) — pass modelCaller for the dispatcher chain" };
   }
   let res: Response;
   try {

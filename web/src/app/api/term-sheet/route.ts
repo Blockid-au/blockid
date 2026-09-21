@@ -11,7 +11,8 @@
  * authenticated and Supabase is configured. Returns `analysis_id` in the
  * response payload.
  *
- * The route degrades to demo mode if ANTHROPIC_API_KEY is missing or the
+ * The route degrades to demo mode if no Anthropic credential is present
+ * (Claude CLI subscription token first, optional ANTHROPIC_API_KEY second) or the
  * SDK throws — the founder funnel must not block on transient API issues.
  */
 import { NextResponse } from "next/server";

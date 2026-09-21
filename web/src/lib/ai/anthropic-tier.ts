@@ -3,7 +3,16 @@
 // This is the QUALITY tier of the dispatcher in ../ai-client.ts: when a valid,
 // funded ANTHROPIC_API_KEY is present it is tried first; the free tiers
 // (Groq / Cerebras / SambaNova / OpenRouter free models) and the Claude
-// subscription OAuth path become overflow. Routing by task class:
+// subscription OAuth path become overflow.
+//
+// G25-B (founder decision 2026-09-21): the key is OPTIONAL. There is no
+// Anthropic API key on the box — founder-only AI items run on the Claude
+// CLI subscription (`claude-oauth`, ~/.claude/.credentials.json), which is
+// the LAST fallback after the DeepInfra-first chain. With the key absent or
+// a placeholder (`isAnthropicApiKeyConfigured` = false) the tier is silently
+// skipped: no probe, no log line per run, no health warning — `/api/status`
+// shows `anthropic: not_configured` with the detail "Anthropic via Claude
+// CLI subscription (fallback)". Routing by task class:
 //
 //   classify   → claude-haiku-4-5   categorisers, extractors, SVI signal
 //                                   parsing, short JSON
@@ -27,8 +36,9 @@
 // Typed error chain: `Anthropic.AuthenticationError` marks the key invalid
 // for the REST OF THE PROCESS (G24-B: a bad key does not fix itself — the
 // hot path skips the provider, no retries, ONE log line that never carries
-// the key or any part of it; rotate ANTHROPIC_API_KEY and restart / redeploy
-// to clear it), `Anthropic.RateLimitError` honours `retry-after` and feeds the headroom
+// the key or any part of it; rotate OR REMOVE ANTHROPIC_API_KEY and restart /
+// redeploy to clear it — the key is optional, the Claude CLI subscription is
+// the fallback), `Anthropic.RateLimitError` honours `retry-after` and feeds the headroom
 // model, everything else surfaces as an `AnthropicTierError` with its
 // status so the dispatcher's cooldown regexes classify it like any other
 // provider failure. Rate-limit headers from every response are copied into
@@ -39,6 +49,27 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { AICallOptions } from "@/lib/ai-client";
 
 export type AITaskClass = "classify" | "report" | "synthesis";
+
+/** What every status surface says for the Anthropic tier when no API key is
+ *  set — the CLI subscription path is the Anthropic path (G25-B). */
+export const ANTHROPIC_NOT_CONFIGURED_DETAIL = "Anthropic via Claude CLI subscription (fallback)";
+
+/** Values that mean "unset" even though the env var carries text — an
+ *  `.env.example` placeholder left in place must never dial the API. */
+const PLACEHOLDER_KEY_RE = /^(?:sk-ant-)?(?:x{3,}|\.{3}|…|changeme|change[-_]?me|placeholder|your[-_]?(?:api[-_]?)?key(?:[-_]?here)?|todo|tbd|none|null|unset|disabled|optional|<[^>]*>)$/i;
+
+/**
+ * True when `value` (default: `ANTHROPIC_API_KEY`) is a real-looking key —
+ * non-empty after trimming and not a placeholder. The dispatcher, the probe
+ * and every admin panel call this so "absent" and "unconfigured" are ONE
+ * state: the tier is skipped with zero calls and zero log lines.
+ */
+export function isAnthropicApiKeyConfigured(value: string | undefined = process.env.ANTHROPIC_API_KEY): boolean {
+  const v = (value ?? "").trim();
+  if (!v) return false;
+  if (PLACEHOLDER_KEY_RE.test(v)) return false;
+  return true;
+}
 
 export const ANTHROPIC_MODEL_BY_CLASS: Record<AITaskClass, string> = {
   classify: "claude-haiku-4-5",
@@ -197,7 +228,7 @@ export function markAnthropicKeyInvalid(now: number = Date.now(), reason = "401"
     invalidKeyLogged = true;
     console.warn(
       `[ai-client:anthropic] API key rejected (${reason.slice(0, 80)}) — provider marked unconfigured for the rest of this process; ` +
-      "no retries. Rotate ANTHROPIC_API_KEY and restart (docs/ops/ai-providers.md).",
+      "no retries. Rotate or remove ANTHROPIC_API_KEY (optional — the Claude CLI subscription is the fallback) and restart (docs/ops/ai-providers.md).",
     );
   }
 }
@@ -315,6 +346,11 @@ export async function callAnthropicTier(
     throw new AnthropicTierError("invalid_key", "Anthropic API key marked invalid (401) — unconfigured for this process");
   }
   const apiKey = deps.apiKey ?? process.env.ANTHROPIC_API_KEY ?? "";
+  if (!deps.client && !isAnthropicApiKeyConfigured(apiKey)) {
+    // Never dial the API without a real key — the dispatcher filters this
+    // provider out earlier; this is the belt for direct callers.
+    throw new AnthropicTierError("invalid_key", "Anthropic API key not configured — Claude CLI subscription is the fallback");
+  }
   const client: AnthropicClientLike = deps.client ?? (getAnthropicApiClient(apiKey) as unknown as AnthropicClientLike);
 
   const cls = inferTaskClass(opts);

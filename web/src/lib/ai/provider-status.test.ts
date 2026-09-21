@@ -199,6 +199,50 @@ describe("probeProviders — cache + file", () => {
   });
 });
 
+// ── G25-B: no Anthropic key = normal, silent `not_configured` state ──────────
+describe("G25-B — Anthropic key optional", () => {
+  it("configuredProviders ignores a placeholder key; a real key still configures anthropic", () => {
+    for (const v of ["", "sk-ant-xxxxxxxx", "changeme", "<your-key>"]) {
+      expect(Object.keys(configuredProviders(env({ ANTHROPIC_API_KEY: v })))).toEqual([]);
+    }
+    expect(Object.keys(configuredProviders(env({ ANTHROPIC_API_KEY: "sk-ant-api03-real" })))).toEqual(["anthropic"]);
+  });
+
+  it("probeProviders with no key: anthropic is not_configured with the CLI-subscription detail, zero probe calls, no warning; claude-oauth keeps its own entry", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    fsMock.files.set("/nx-no-home/.claude/.credentials.json", JSON.stringify({ claudeAiOauth: { accessToken: "sk-ant-oat", expiresAt: Date.now() + 3600_000 } }));
+    replies.set("https://api.anthropic.com/v1/models?limit=1", { status: 200, body: "{}" });
+    const out = await probeProviders({ fetchImpl, env: env(), now: () => 1_000_000, file: "/repo/content/reports/ai-provider-status.json", force: true });
+    expect(out.providers.anthropic).toMatchObject({ status: "not_configured", latency_ms: 0, detail: "Anthropic via Claude CLI subscription (fallback)" });
+    expect(out.providers["claude-oauth"]?.status).toBe("valid");
+    expect(calls.filter((c) => c.url === "https://api.anthropic.com/v1/messages")).toHaveLength(0);
+    expect(warn).not.toHaveBeenCalled();
+    expect(isAnthropicKeyInvalid()).toBe(false);
+  });
+
+  it("readAiProvidersSummary: anthropic_path = claude_cli when only the CLI token is valid, api_key when the key is valid, none otherwise", async () => {
+    const at = "2026-09-21T00:00:00.000Z";
+    fsMock.files.set("/repo/content/reports/ai-provider-status.json", JSON.stringify({
+      updated_at: at,
+      providers: {
+        anthropic: { provider: "anthropic", status: "not_configured", checked_at: at, latency_ms: 0, detail: "Anthropic via Claude CLI subscription (fallback)" },
+        "claude-oauth": { provider: "claude-oauth", status: "valid", checked_at: at, latency_ms: 120 },
+      },
+    }));
+    const cli = await readAiProvidersSummary("/repo");
+    expect(cli.anthropic_path).toBe("claude_cli");
+    expect(cli.quality_tier_ready).toBe(false);
+    expect(cli.providers.anthropic).toEqual({ status: "not_configured", checked_at: at, detail: "Anthropic via Claude CLI subscription (fallback)" });
+
+    fsMock.files.set("/repo/content/reports/ai-provider-status.json", JSON.stringify({
+      updated_at: at,
+      providers: { anthropic: { provider: "anthropic", status: "valid", checked_at: at, latency_ms: 90 } },
+    }));
+    expect((await readAiProvidersSummary("/repo")).anthropic_path).toBe("api_key");
+    expect((await readAiProvidersSummary("/nowhere")).anthropic_path).toBe("none");
+  });
+});
+
 describe("readAiProvidersSummary — the /api/status payload", () => {
   it("returns verdicts + headroom only, counts usable providers, flags quality_tier_ready", async () => {
     fsMock.files.set("/repo/content/reports/ai-provider-status.json", JSON.stringify({
@@ -216,7 +260,8 @@ describe("readAiProvidersSummary — the /api/status payload", () => {
     expect(s.providers.anthropic).toEqual({ status: "valid", checked_at: "2026-09-13T22:40:00.000Z", headroom: { rpm_remaining: 50 } });
     expect(s.providers.openrouter.detail).toMatch(/floor/);
     expect(Object.keys(s.providers.groq)).toEqual(["status", "checked_at"]);
-    expect(JSON.stringify(s)).not.toMatch(/latency_ms|api_key|secret/);
+    // No key material / internals: never a `latency_ms` or `"api_key":` FIELD (G25-B `anthropic_path: "api_key"` is a label, not a value).
+    expect(JSON.stringify(s)).not.toMatch(/latency_ms|"api_key":|secret|sk-ant/);
   });
 
   it("is empty (no throw) when the file is missing", async () => {
