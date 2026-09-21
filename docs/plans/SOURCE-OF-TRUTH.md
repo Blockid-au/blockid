@@ -391,6 +391,13 @@
 - **Next action:** merge A → apply 0437 → remove the key line from `web/.env*` → full suite → v3.25.0 → deploy → full QA + review + UX check → close.
 - **Blocker:** none.
 
+### G27 — Trusted Business Report v3: investor-grade valuation + investment report (PRIORITY)
+- **Source:** [`docs/plans/g27-tbr-v3-investor-report-2026-09-21.md`](./g27-tbr-v3-investor-report-2026-09-21.md) — founder 2026-09-21: clear, coherent assessments across the 8 criteria, a full startup-value + investment report that says whether it is a high-value investment and what to improve, key points made clear, modelled on the best standard business/investment reports, pro UI/UX; prioritised and synced with the running plan.
+- **Phases:** 1 research + spec (`docs/design/tbr-v3-investor-report-spec.md`: page-1 answers, v3 section order mapped to ReportV2, identical 8-chapter anatomy, deterministic investment-view rubric EN/VI, risk matrix, 90-day plan by lift ÷ effort, light-template visual spec, free/paid/e-mailed PDF, build plan) · 2 build (pure `investment-view.ts`, adapter, `components/tbr/v2` restructure, PDF/DOCX twins, e-mail summary, tests, live-qa 31, showcase re-run).
+- **Status:** **OPEN 2026-09-21** — phase 1 running; G26-R told to stay class-level in `components/tbr/**` so v3 rebases cleanly.
+- **Next action:** spec → read-only review → build lane → deploy → QA + ui-ux check → close.
+- **Blocker:** none.
+
 ### G26 — Light unicorn template on every page: light surfaces · dark high-contrast text · one harmonious palette
 - **Source:** [`docs/plans/g26-light-template-redesign-2026-09-21.md`](./g26-light-template-redesign-2026-09-21.md) — founder 2026-09-21: "nền sáng và chữ màu tối tương phản để dễ đọc và hài hoà màu sắc, redesign full all page same style for whole blockid.au … skill ui/ux pro max, unicorn style". Supersedes the G17 template's dark pairing / dark bands.
 - **Lanes:** T tokens + primitives + chrome + guard test (merges first) · M marketing + /vi · W1 founder workspace · W2 evaluator / accelerator / admin · R reports, PDF/DOCX, e-mail, SVG palette, tbr-contrast smoke.
