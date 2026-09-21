@@ -8,7 +8,18 @@
 import type { Metadata } from "next";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
-import { ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, Clock, Minus, Sparkles, Zap } from "lucide-react";
+import { ArrowDownRight, ArrowRight, ArrowUpRight, BarChart3, Bot, Clock, CreditCard, LayoutGrid, Microscope, Minus, ShoppingBag, ShoppingCart, Sparkles, Stethoscope, Zap, type LucideIcon } from "lucide-react";
+
+/** Sector glyphs as Lucide SVGs — the template forbids emoji icons (unicorn-template v2 § 6); the aggregator's emoji stays for feeds/e-mail. */
+const SECTOR_ICON: Record<string, LucideIcon> = {
+  saas: LayoutGrid,
+  fintech: CreditCard,
+  ai: Bot,
+  healthtech: Stethoscope,
+  marketplace: ShoppingCart,
+  deeptech: Microscope,
+  ecommerce: ShoppingBag,
+};
 import { NavV2 } from "@/components/landing/nav-v2";
 import { Footer } from "@/components/marketing/footer";
 import { PageViewTracker } from "@/components/site/page-view-tracker";
@@ -107,7 +118,7 @@ export default async function IndexExchangePage() {
             <div>
               <div className="inline-flex items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 mb-3">
                 <Sparkles className="h-3 w-3 text-amber-600" />
-                <span className="text-[10px] font-bold text-amber-700 uppercase tracking-[0.15em]">BlockID Startup Value Index™</span>
+                <span className="text-xs font-bold text-amber-700 uppercase tracking-[0.15em]">BlockID Startup Value Index™</span>
               </div>
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tight text-ink-900">
                 BSI-AU
@@ -136,7 +147,7 @@ export default async function IndexExchangePage() {
           {/* Sparkline */}
           <div className="mt-6">
             <Sparkline data={data.bsiAu.sparkline7d} />
-            <div className="flex justify-between text-[10px] text-ink-400 mt-1 uppercase tracking-wider">
+            <div className="flex justify-between text-xs text-ink-400 mt-1 uppercase tracking-wider">
               <span>7 days ago</span>
               <span>Today</span>
             </div>
@@ -145,19 +156,19 @@ export default async function IndexExchangePage() {
           {/* Stat row */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-brand-100">
             <div>
-              <p className="text-[10px] text-ink-500 uppercase tracking-wider font-medium">Companies</p>
+              <p className="text-xs text-ink-500 uppercase tracking-wider font-medium">Companies</p>
               <p className="text-xl font-bold text-ink-900 tabular-nums">{data.bsiAu.totalCompanies.toLocaleString()}</p>
             </div>
             <div>
-              <p className="text-[10px] text-ink-500 uppercase tracking-wider font-medium">Coverage</p>
+              <p className="text-xs text-ink-500 uppercase tracking-wider font-medium">Coverage</p>
               <p className="text-xl font-bold text-ink-900 tabular-nums">{fmtAud(data.bsiAu.totalCoverageAud)}</p>
             </div>
             <div>
-              <p className="text-[10px] text-ink-500 uppercase tracking-wider font-medium">Analyses today</p>
+              <p className="text-xs text-ink-500 uppercase tracking-wider font-medium">Analyses today</p>
               <p className="text-xl font-bold text-bull tabular-nums">{data.bsiAu.analysesToday}</p>
             </div>
             <div>
-              <p className="text-[10px] text-ink-500 uppercase tracking-wider font-medium">vs yesterday</p>
+              <p className="text-xs text-ink-500 uppercase tracking-wider font-medium">vs yesterday</p>
               <p className="text-xl font-bold text-ink-900 tabular-nums">{data.bsiAu.analysesYesterday}</p>
             </div>
           </div>
@@ -190,14 +201,17 @@ export default async function IndexExchangePage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
               {data.sectorIndices.map((s) => (
                 <div key={s.sector} className={`rounded-xl p-3 text-center transition-transform hover:scale-105 ${deltaHeatBg(s.deltaWeek)}`}>
-                  <p className="text-base">{s.emoji}</p>
-                  <p className="text-[11px] font-bold uppercase tracking-wider mt-1 truncate">{s.label}</p>
+                  {(() => {
+                    const Icon = SECTOR_ICON[s.sector] ?? LayoutGrid;
+                    return <Icon className="mx-auto h-5 w-5" aria-hidden="true" />;
+                  })()}
+                  <p className="text-xs font-bold uppercase tracking-wider mt-1 truncate">{s.label}</p>
                   {s.band === "none" ? (
-                    <p className="text-[11px] mt-1 leading-snug" data-publication-band="none">not enough companies yet</p>
+                    <p className="text-xs mt-1 leading-snug" data-publication-band="none">not enough companies yet</p>
                   ) : (
                     <p className="text-2xl font-bold mt-1 tabular-nums">{s.value}</p>
                   )}
-                  <p className="text-[10px] opacity-90 mt-0.5 tabular-nums" data-publication-band={s.band}>
+                  <p className="text-xs opacity-90 mt-0.5 tabular-nums" data-publication-band={s.band}>
                     {s.band === "none" ? `n = ${s.count}` : `${s.deltaWeek > 0 ? "+" : ""}${s.deltaWeek.toFixed(1)} · ${s.publicationLabel}`}
                   </p>
                 </div>
@@ -220,10 +234,10 @@ export default async function IndexExchangePage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-emerald-100">
-                    <th className="text-left py-1 text-[10px] uppercase tracking-wider text-ink-400 font-semibold">Ticker</th>
-                    <th className="text-left py-1 text-[10px] uppercase tracking-wider text-ink-400 font-semibold">Sector</th>
-                    <th className="text-right py-1 text-[10px] uppercase tracking-wider text-ink-400 font-semibold">SVI</th>
-                    <th className="text-right py-1 text-[10px] uppercase tracking-wider text-ink-400 font-semibold">Δ 7d</th>
+                    <th className="text-left py-1 text-xs uppercase tracking-wider text-ink-400 font-semibold">Ticker</th>
+                    <th className="text-left py-1 text-xs uppercase tracking-wider text-ink-400 font-semibold">Sector</th>
+                    <th className="text-right py-1 text-xs uppercase tracking-wider text-ink-400 font-semibold">SVI</th>
+                    <th className="text-right py-1 text-xs uppercase tracking-wider text-ink-400 font-semibold">Δ 7d</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -256,10 +270,10 @@ export default async function IndexExchangePage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-rose-100">
-                    <th className="text-left py-1 text-[10px] uppercase tracking-wider text-ink-400 font-semibold">Ticker</th>
-                    <th className="text-left py-1 text-[10px] uppercase tracking-wider text-ink-400 font-semibold">Sector</th>
-                    <th className="text-right py-1 text-[10px] uppercase tracking-wider text-ink-400 font-semibold">SVI</th>
-                    <th className="text-right py-1 text-[10px] uppercase tracking-wider text-ink-400 font-semibold">Δ 7d</th>
+                    <th className="text-left py-1 text-xs uppercase tracking-wider text-ink-400 font-semibold">Ticker</th>
+                    <th className="text-left py-1 text-xs uppercase tracking-wider text-ink-400 font-semibold">Sector</th>
+                    <th className="text-right py-1 text-xs uppercase tracking-wider text-ink-400 font-semibold">SVI</th>
+                    <th className="text-right py-1 text-xs uppercase tracking-wider text-ink-400 font-semibold">Δ 7d</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -287,14 +301,14 @@ export default async function IndexExchangePage() {
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
             {data.stageIndices.map((st) => (
               <div key={st.stage} className="rounded-lg border border-ink-100 bg-ink-50/40 p-2.5 text-center">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-ink-500">Stage {st.stage}</p>
+                <p className="text-xs font-bold uppercase tracking-wider text-ink-500">Stage {st.stage}</p>
                 <p className="text-xs text-ink-700 truncate">{st.label}</p>
                 {st.band === "none" ? (
-                  <p className="text-[11px] text-ink-500 mt-1 leading-snug" data-publication-band="none">not enough companies yet</p>
+                  <p className="text-xs text-ink-500 mt-1 leading-snug" data-publication-band="none">not enough companies yet</p>
                 ) : (
                   <p className="text-xl font-bold text-ink-900 mt-1 tabular-nums">{st.value}</p>
                 )}
-                <p className="text-[10px] text-ink-400 tabular-nums" data-publication-band={st.band}>{st.publicationLabel}</p>
+                <p className="text-xs text-ink-400 tabular-nums" data-publication-band={st.band}>{st.publicationLabel}</p>
               </div>
             ))}
           </div>
@@ -315,11 +329,11 @@ export default async function IndexExchangePage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-ink-100">
-                    <th className="text-left py-1 text-[10px] uppercase tracking-wider text-ink-400 font-semibold">Segment</th>
-                    <th className="text-right py-1 text-[10px] uppercase tracking-wider text-ink-400 font-semibold">Median SVI</th>
-                    <th className="text-right py-1 text-[10px] uppercase tracking-wider text-ink-400 font-semibold">p25–p75</th>
-                    <th className="text-right py-1 text-[10px] uppercase tracking-wider text-ink-400 font-semibold">n</th>
-                    <th className="text-left py-1 pl-3 text-[10px] uppercase tracking-wider text-ink-400 font-semibold">Band</th>
+                    <th className="text-left py-1 text-xs uppercase tracking-wider text-ink-400 font-semibold">Segment</th>
+                    <th className="text-right py-1 text-xs uppercase tracking-wider text-ink-400 font-semibold">Median SVI</th>
+                    <th className="text-right py-1 text-xs uppercase tracking-wider text-ink-400 font-semibold">p25–p75</th>
+                    <th className="text-right py-1 text-xs uppercase tracking-wider text-ink-400 font-semibold">n</th>
+                    <th className="text-left py-1 pl-3 text-xs uppercase tracking-wider text-ink-400 font-semibold">Band</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -391,7 +405,7 @@ export default async function IndexExchangePage() {
             </div>
             <div>
               <p className="font-bold text-ink-700 mb-1">Citation</p>
-              <p className="font-mono bg-ink-50 px-2 py-1 rounded text-[11px] mt-1">{data.citation}</p>
+              <p className="font-mono bg-ink-50 px-2 py-1 rounded text-xs mt-1">{data.citation}</p>
             </div>
           </div>
         </section>
