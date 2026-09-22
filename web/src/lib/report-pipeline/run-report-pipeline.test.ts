@@ -14,6 +14,7 @@ import {
   chapterToMarkdown,
   doneEvent,
   hashDeck,
+  scopedDeckCacheKey,
   DECK_CACHE_VERSION,
   syntheticDeckContext,
   newWireState,
@@ -295,25 +296,29 @@ describe("runReportPipeline", () => {
     expect(d.calls[0].rawText).toBe(deckText);
     expect(d.persisted).toHaveLength(0);
     expect(upserts).toHaveLength(1);
-    expect(upserts[0]).toMatchObject({ deck_hash: hashDeck(deckText), user_id: "user-1", pipeline_version: DECK_CACHE_VERSION, industry: "SaaS", stage: "Early Traction" });
+    expect(upserts[0]).toMatchObject({ deck_hash: scopedDeckCacheKey(deckText, "proj-1", "free"), user_id: "user-1", pipeline_version: DECK_CACHE_VERSION, industry: "SaaS", stage: "Early Traction" });
     expect((upserts[0].dim_results as unknown[]).length).toBe(8);
     expect((upserts[0].criterion_results as unknown[]).length).toBe(13);
     expect((events.at(-1) as Extract<StreamEvent, { type: "done" }>).snapshotId).toBeNull();
   });
 
-  it("deck cache hit (same hash, same pipeline_version, < 24 h) replays the legacy wire events and never runs the orchestrator", async () => {
+  it("deck cache replays the final projection written by the runner, not preview copies", async () => {
     const deckText = "same deck";
-    const row = { deck_hash: hashDeck(deckText), dim_results: [chapterToLegacy(chapterOf("tre")), chapterToLegacy(chapterOf("mpc"))], criterion_results: cards.slice(0, 3).map(cardToLegacy), created_at: new Date(1_000 - 60_000).toISOString(), industry: "SaaS", stage: "Seed", pipeline_version: DECK_CACHE_VERSION };
-    const { db } = fakeDb(row);
-    const d = deps({ db });
+    const first = fakeDb(null);
+    await runReportPipeline({ userId: "user-1", projectId: "proj-1", tier: "free", deckText, deps: deps({ db: first.db }) });
+    const row = first.upserts[0];
+    const stored = row.dim_results as Array<{ markdown: string; score: number }>;
+    stored[0].markdown = "obsolete preview A$12k MRR";
+    stored[0].score = 99;
+    const d = deps({ db: fakeDb(row).db });
     const events: StreamEvent[] = [];
-    const res = await runReportPipeline({ userId: "user-1", ownerEmail: "owner@x.test", projectId: "proj-1", tier: "free", deckText, onEvent: (e) => events.push(e), deps: d });
+    const res = await runReportPipeline({ userId: "user-1", projectId: "proj-1", tier: "free", deckText, onEvent: e => events.push(e), deps: d });
     expect(res.ok && res.fromCache).toBe(true);
     expect(d.calls).toHaveLength(0);
-    expect(events.map((e) => e.type)).toEqual(["context", "cache_hit", "dimension_complete", "progress", "dimension_complete", "progress", "criteria_synthesis_start", "criteria_synthesis", "done"]);
-    expect(events[1]).toMatchObject({ ageMs: 60_000, dims: 2, criteria: 3 });
-    expect(events.at(-1)).toMatchObject({ type: "done", fromCache: true });
-    expect(events.at(-1)).toMatchObject({ type: "done", valuationStatus: "unavailable" });
+    const final = events.find(e => e.type === "final_projection");
+    expect(final?.type === "final_projection" && final.projection.dimensions[0].markdown).not.toContain("obsolete preview");
+    expect(events.filter(e => e.type === "dimension_complete").map(e => e.markdown).join(" ")).not.toContain("obsolete preview");
+    expect(events.at(-1)).toMatchObject({ type: "done", fromCache: true, saveStatus: "not_requested", snapshotId: null });
   });
 
   it("a cached row from another pipeline version (or the legacy generator: NULL) is a miss", async () => {
@@ -478,7 +483,7 @@ describe("G30 deck input isolation", () => {
     expect(d.calls[1].rawText).toBe(second);
     expect(d.calls[0].sviAnalysis.signals.mrrAud).toBe(12000);
     expect(d.calls[1].sviAnalysis.signals.mrrAud).toBe(25000);
-    expect(upserts.map((row) => row.deck_hash)).toEqual([hashDeck(first), hashDeck(second)]);
+    expect(upserts.map((row) => row.deck_hash)).toEqual([scopedDeckCacheKey(first, "proj-1", "free"), scopedDeckCacheKey(second, "proj-1", "free")]);
     expect(upserts[0].deck_hash).not.toBe(upserts[1].deck_hash);
     expect(upserts.every((row) => row.pipeline_version === DECK_CACHE_VERSION)).toBe(true);
     expect(a.ok && a.inputSnapshot).toEqual({ version: "deck-input-v1", textSha256: hashDeck(first), receivedTextChars: first.length, extractionCompleteness: "unknown" });
@@ -548,4 +553,59 @@ it("partial retry without a valuation event does not overwrite the prior client 
   expect(events.some(e => e.type === "valuation_complete")).toBe(false);
   expect(events.at(-1)?.type).toBe("done");
   expect(events.at(-1)).toHaveProperty("valuationStatus", undefined);
+});
+
+it("final gated dimensions replace preview prose/scores/cards before save and SSE completion", async () => {
+  const { applyConsistencyGates } = await import("./consistency-gates");
+  const fake = fakeOrchestrate();
+  const final = structuredClone(demo);
+  const tre = final.dimensions.find(d => d.dim === "tre")!;
+  tre.verdict = "A$12k MRR";
+  tre.score = 99;
+  tre.criteria[0].verdict = "A$12k MRR";
+  final.cover.svi.total = 61;
+  const early = structuredClone(tre);
+  let releaseSave: (() => void) | undefined;
+  let saved: Parameters<NonNullable<RunPipelineDeps["persistSnapshot"]>>[0] | undefined;
+  const events: StreamEvent[] = [];
+  const d = deps({
+    orchestrate: async input => {
+      const report = await fake.orchestrate({ ...input, onEvent: event => input.onEvent?.(event.type === "dimension_complete" && event.dim === "tre" ? { ...event, chapter: early } : event) });
+      applyConsistencyGates({ chapters: new Map(final.dimensions.map(d => [d.dim, d])), dimScores: { tre: 42 }, valuation: null, stage: 3, evidenceRows: [], executiveSummary: "Review the evidence." });
+      return { ...report, reportV2: final };
+    },
+    persistSnapshot: async args => { saved = args; await new Promise<void>(resolve => { releaseSave = resolve; }); return { snapshotId: "saved-final", reportV2Saved: true }; },
+  });
+  const pending = runReportPipeline({ userId: "user-1", projectId: "proj-1", tier: "free", onEvent: e => events.push(e), deps: d });
+  await vi.waitFor(() => expect(releaseSave).toBeTypeOf("function"));
+  expect(events.some(e => e.type === "done" || e.type === "final_projection")).toBe(false);
+  expect(events.find(e => e.type === "dimension_complete" && e.dimension === "tre")).toMatchObject({ score: 99, markdown: expect.stringContaining("A$12k") });
+  expect(saved?.dimResults.find(d => d.dimension === "tre")).toMatchObject({ score: 42 });
+  expect(saved?.dimResults.find(d => d.dimension === "tre")?.markdown).not.toContain("A$12k");
+  expect(saved?.criterionResults.find(c => c.key === tre.criteria[0].key)?.verdict).toBe(tre.criteria[0].verdict);
+  releaseSave!();
+  await pending;
+  const event = events.find(e => e.type === "final_projection");
+  expect(event?.type === "final_projection" && event.projection.dimensions).toEqual(saved?.dimResults);
+  expect(event?.type === "final_projection" && event.projection.totalSVI).toBe(61);
+  expect(events.at(-1)).toMatchObject({ type: "done", saveStatus: "saved", snapshotId: "saved-final" });
+});
+
+it("separates cache identity by assessed project, tier and language", () => {
+  const keys = [
+    scopedDeckCacheKey("same deck", "one", "free", "en"),
+    scopedDeckCacheKey("same deck", "two", "free", "en"),
+    scopedDeckCacheKey("same deck", "one", "premium", "en"),
+    scopedDeckCacheKey("same deck", "one", "free", "vi"),
+  ];
+  expect(new Set(keys).size).toBe(4);
+});
+
+it("cannot replay a legacy preview merely stamped with the current cache version", async () => {
+  const row = { created_at: new Date(1000).toISOString(), pipeline_version: DECK_CACHE_VERSION,
+    dim_results: demo.dimensions.map(chapterToLegacy), criterion_results: cards.map(cardToLegacy) };
+  const d = deps({ db: fakeDb(row).db });
+  const result = await runReportPipeline({ userId: "user-1", projectId: "proj-1", tier: "free", deckText: "same input", deps: d });
+  expect(result.ok && result.fromCache).toBe(false);
+  expect(d.calls).toHaveLength(1);
 });

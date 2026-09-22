@@ -33,11 +33,12 @@ import type { ReportSaveStatus } from "@/lib/report-save-outcome";
 // and criteria come from one run, so there is no "late signal" to reconcile.
 
 import "server-only";
+import { readStreamValuation } from "@/lib/svi/stream-valuation";
 import { createHash } from "crypto";
 import { CRITERIA } from "@/lib/evaluation-criteria";
 import type { CriterionCard, DimensionChapter, ReportTierV2, ReportV2 } from "@/lib/report-v2/schema";
 import { writeSnapshotReportV2 } from "@/lib/report-v2/storage";
-import { DIM_LEGACY_ORDER, DIM_ORDER, legacyStreamDimMeta, type DimKey } from "./dimension-owners";
+import { DIM_LEGACY_ORDER, DIM_ORDER, type DimKey } from "./dimension-owners";
 import { PIPELINE_VERSION, assertReportUsable, orchestrateReport, type AICallerInput, type PipelineEvent } from "./orchestrator";
 import { pipelineCallTimeouts } from "./pipeline-timeouts";
 import { createRunStrikeLedger } from "@/lib/ai/run-strikes";
@@ -87,6 +88,7 @@ export type StreamEvent =
   | { type: "criteria_synthesis"; criteria: CriterionResult[] }
   | { type: "executive_complete"; summary: string }
   | { type: "audit_complete"; groundedShare: number; revised: number }
+  | { type: "final_projection"; projection: FinalProjection }
   | { type: "cache_hit"; ageMs: number; dims: number; criteria: number }
   | { type: "done"; valuationStatus?: "available" | "unavailable"; saveStatus?: ReportSaveStatus; totalMs: number; fromCache: boolean; reportId: string | null; snapshotId: string | null; calls: number; costAud: number; degradedSections: string[]; deadlineHit: boolean }
   | { type: "fatal_error"; message: string };
@@ -95,69 +97,8 @@ export type StreamEventHandler = (event: StreamEvent) => void;
 
 // ── Legacy projections ──────────────────────────────────────────────────────
 
-const LEGACY_META = legacyStreamDimMeta();
-
-export function legacyLabel(dim: DimKey): string {
-  return LEGACY_META[dim]?.label ?? dim.toUpperCase();
-}
-
-export function priorityForScore(score: number): "high" | "medium" | "low" {
-  return score < 50 ? "high" : score < 70 ? "medium" : "low";
-}
-
-/** Chapter → the ≤ 300-word markdown block the legacy card renders (strengths / gaps / next step). */
-export function chapterToMarkdown(chapter: DimensionChapter): string {
-  const lines = [chapter.verdict.trim(), ""];
-  lines.push("**Strengths (with evidence):**", ...(chapter.strengths.length ? chapter.strengths.map((s) => `- ${s}`) : ["- none evidenced yet"]), "");
-  lines.push("**Gaps (what's missing or unverifiable):**", ...(chapter.gaps.length ? chapter.gaps.map((g) => `- ${g}`) : ["- none identified"]), "");
-  const na = chapter.nextAction;
-  lines.push("**Next Step (concrete, this-week action):**", `- ${na.title} (${na.window.replace(/_/g, " ")}, expected lift +${na.expectedLift})`);
-  if (chapter.scoreNote) lines.push("", `*${chapter.scoreNote}*`);
-  if (chapter.degraded) lines.push("", `*Deterministic card — ${chapter.degradeReason ?? "owner call unavailable"}.*`);
-  return lines.join("\n");
-}
-
-const clip = (s: string, words: number) => {
-  const w = s.trim().split(/\s+/).filter(Boolean);
-  return w.length <= words ? w.join(" ") : `${w.slice(0, words).join(" ")}…`;
-};
-
-export function chapterToLegacy(chapter: DimensionChapter): LegacyDimResult {
-  // G19-S43: chapter bullets no longer repeat the criterion cards', so the
-  // Wave-24 card's two insights fall back to the first card's own bullets.
-  const cardStrength = chapter.criteria.flatMap((c) => c.strengths).find(Boolean);
-  const cardGap = chapter.criteria.flatMap((c) => c.gaps).find(Boolean);
-  const insights = [chapter.strengths[0] ?? cardStrength, chapter.gaps[0] ?? cardGap].filter((s): s is string => Boolean(s)).map((s) => clip(s.replace(/\s*\[(?:ev:[^\]]*|unevidenced)\]/g, ""), 15));
-  const b = chapter.benchmark;
-  return {
-    dimension: chapter.dim,
-    label: legacyLabel(chapter.dim),
-    score: chapter.score,
-    markdown: chapterToMarkdown(chapter),
-    insights: insights.length ? insights : ["Analysis complete — see the chapter"],
-    priority: priorityForScore(chapter.score),
-    market_benchmark: `Stage ${b.stage} cohort: p25 ${b.p25} · p50 ${b.p50} · p75 ${b.p75}${typeof b.percentile === "number" ? ` — you sit at the ${b.percentile}th percentile` : ""} (svi-dimension-benchmarks ANCHORS; sector cohort when N ≥ 30)`,
-  };
-}
-
-export function cardToLegacy(card: CriterionCard): CriterionResult {
-  const def = CRITERIA.find((c) => c.key === card.key);
-  return {
-    key: card.key,
-    title: card.title || def?.title || card.key,
-    primary_dimension: def?.primaryDimension ?? "tre",
-    weight: def?.weight ?? 0,
-    score: card.score,
-    verdict: card.verdict,
-    strengths: card.strengths.slice(0, 2),
-    gaps: card.gaps.slice(0, 2),
-    next_action: card.nextAction,
-    quality: card.quality,
-    citations: card.citations,
-  };
-}
-
-// ── Event translation (pure, tested) ────────────────────────────────────────
+import { cardToLegacy, chapterToLegacy, legacyLabel, projectFinalReport, readFinalProjection, type FinalProjection } from "./final-projection";
+export { cardToLegacy, chapterToLegacy, chapterToMarkdown, legacyLabel, priorityForScore } from "./final-projection";
 
 export interface WireState {
   dims: DimKey[];
@@ -255,7 +196,7 @@ export function doneEvent(state: WireState, totalMs: number, fromCache: boolean)
 // ── Runner ──────────────────────────────────────────────────────────────────
 
 /** Deck-derived analysis contract; old caches may contain another input's signals. */
-export const DECK_CACHE_VERSION = `${PIPELINE_VERSION}:deck-input-v1`;
+export const DECK_CACHE_VERSION = `${PIPELINE_VERSION}:deck-input-v1:final-projection-v1`;
 
 export interface DeckInputSnapshot {
   version: "deck-input-v1";
@@ -266,6 +207,10 @@ export interface DeckInputSnapshot {
 }
 
 export const DECK_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+export function scopedDeckCacheKey(text: string, projectId: string | undefined, tier: string, locale = "en"): string {
+  return createHash("sha256").update(JSON.stringify([hashDeck(text), projectId ?? null, tier, locale])).digest("hex");
+}
 
 export function hashDeck(deckText: string): string {
   return createHash("sha256").update(deckText).digest("hex");
@@ -390,7 +335,7 @@ async function defaultPersistSnapshot(args: PersistSnapshotArgs): Promise<{ snap
     dimResultsMap[d.dimension] = { status: "complete", score: d.score, markdown: d.markdown, insights: d.insights, priority: d.priority, marketBenchmark: d.market_benchmark ?? null };
     dimensionScores[d.dimension] = { score: d.score, priority: d.priority };
   });
-  const sviTotal = Math.round(ctx.sviAnalysis.totalSVI);
+  const sviTotal = Math.round(reportV2?.cover.svi.total ?? ctx.sviAnalysis.totalSVI);
   const { snapshotId } = await upsertSnapshotWithToken({
     accountId: ctx.account.id,
     projectId: ctx.projectId,
@@ -515,31 +460,35 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
 
   // 2. Same-deck cache (full deck runs only) keyed deck_hash + pipeline_version.
   const db = deps.db === undefined ? await defaultDb().catch(() => null) : deps.db;
-  const deckHash = deckText ? hashDeck(deckText) : null;
+  const deckHash = deckText ? scopedDeckCacheKey(deckText, ctx.projectId ?? input.projectId, input.tier, input.locale ?? "en") : null;
   if (deckHash && !partial && db) {
     try {
       const { data: cached } = await db.from("svi_deck_cache").select("dim_results, criterion_results, created_at, industry, stage, pipeline_version").eq("deck_hash", deckHash).eq("user_id", input.userId).maybeSingle();
       if (cached && cached.created_at && cached.pipeline_version === DECK_CACHE_VERSION) {
         const ageMs = now() - new Date(String(cached.created_at)).getTime();
         const cachedDims = Array.isArray(cached.dim_results) ? (cached.dim_results as LegacyDimResult[]) : [];
+        const cacheProjection = readFinalProjection((cachedDims[0] as (LegacyDimResult & { finalProjection?: unknown }) | undefined)?.finalProjection);
         const cachedCriteria = Array.isArray(cached.criterion_results) ? (cached.criterion_results as CriterionResult[]) : [];
-        if (ageMs < DECK_CACHE_TTL_MS && cachedDims.length > 0) {
+        if (ageMs >= 0 && ageMs < DECK_CACHE_TTL_MS && cacheProjection?.scope === "full" && cachedDims.length === 8) {
           send({ type: "context", industry: String(cached.industry ?? ctx.sviAnalysis.sectorLabel ?? "Unclassified"), stage: String(cached.stage ?? ctx.sviAnalysis.stageLabel), stageIndex: ctx.sviAnalysis.stage, phaseId: "", tier: input.tier, estimatedCalls: 0, estimatedSeconds: 0, dims });
           send({ type: "cache_hit", ageMs, dims: cachedDims.length, criteria: cachedCriteria.length });
-          cachedDims.forEach((r, i) => {
+          cacheProjection.dimensions.forEach((r, i) => {
             send({ type: "dimension_complete", ...r, dim: r.dimension as DimKey });
             send({ type: "progress", completed: i + 1, total: cachedDims.length });
           });
-          if (cachedCriteria.length) {
-            send({ type: "criteria_synthesis_start", total: cachedCriteria.length });
-            send({ type: "criteria_synthesis", criteria: cachedCriteria });
+          if (cacheProjection.criteria.length) {
+            send({ type: "criteria_synthesis_start", total: cacheProjection.criteria.length });
+            send({ type: "criteria_synthesis", criteria: cacheProjection.criteria });
           }
+          send({ type: "final_projection", projection: cacheProjection });
+          const cachedValuation = (cachedDims[0] as LegacyDimResult & { finalValuation?: ReportV2["valuation"] }).finalValuation;
+          const cachedValuationValid = readStreamValuation(cachedValuation) !== null;
+          if (cachedValuation && (cachedValuationValid || cachedValuation.status === "unavailable")) send({ type: "valuation_complete", chapter: cachedValuation });
           const totalMs = now() - t0;
-          // Legacy deck cache stores dimension/criterion JSON, not the canonical
-          // valuation chapter. Never authorize a client-side monetary fallback.
-          send({ type: "done", valuationStatus: "unavailable", totalMs, fromCache: true, reportId: null, snapshotId: null, calls: 0, costAud: 0, degradedSections: [], deadlineHit: false });
+          // This cache contains a display projection, not a durable report save receipt.
+          send({ type: "done", valuationStatus: cachedValuationValid ? "available" : "unavailable", saveStatus: "not_requested", totalMs, fromCache: true, reportId: null, snapshotId: null, calls: 0, costAud: 0, degradedSections: [], deadlineHit: false });
           void (deps.notify ?? defaultNotify)({ userId: input.userId, projectId: input.projectId, kind: "analysis_done", payload: { fromCache: true, dims: cachedDims.length } }).catch(() => undefined);
-          return { ok: true, fromCache: true, accountId: ctx.account.id, reportId: null, snapshotId: null, dimResults: cachedDims, chapters: [], criterionResults: cachedCriteria, report: null, calls: 0, costAud: 0, totalMs, deadlineHit: false, ...(inputSnapshot ? { inputSnapshot } : {}) };
+          return { ok: true, fromCache: true, accountId: ctx.account.id, reportId: null, snapshotId: null, dimResults: cacheProjection.dimensions, chapters: [], criterionResults: cacheProjection.criteria, report: null, calls: 0, costAud: 0, totalMs, deadlineHit: false, ...(inputSnapshot ? { inputSnapshot } : {}) };
         }
       }
     } catch (err) {
@@ -581,6 +530,12 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
     return { ok: false, error: fully ? "fully_degraded" : "pipeline_failed", message };
   }
 
+  const finalProjection = report.reportV2 ? projectFinalReport(report.reportV2, report.id, partial ? dims : undefined) : null;
+  if (finalProjection) {
+    state.dimResults = finalProjection.dimensions;
+    state.criteria = finalProjection.criteria;
+    state.chapters = report.reportV2!.dimensions.filter(d => !partial || dims.includes(d.dim));
+  }
   // Generated content remains usable if storage fails; this is separate from billing.
   let saveStatus: ReportSaveStatus = "not_requested";
   // 4. Persist.
@@ -589,7 +544,7 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
       if (db && state.dimResults.length) {
         try {
           const write = await db.from("svi_deck_cache").upsert(
-            { deck_hash: deckHash, user_id: input.userId, dim_results: state.dimResults, criterion_results: state.criteria, industry: state.industry, stage: state.stage, pipeline_version: DECK_CACHE_VERSION, created_at: new Date(now()).toISOString() },
+            { deck_hash: deckHash, user_id: input.userId, dim_results: state.dimResults.map((d, i) => i === 0 && finalProjection ? { ...d, finalProjection, finalValuation: report.reportV2?.valuation ?? null } : d), criterion_results: state.criteria, industry: state.industry, stage: state.stage, pipeline_version: DECK_CACHE_VERSION, created_at: new Date(now()).toISOString() },
             { onConflict: "deck_hash" },
           );
           if (write.error) console.warn("[run-report-pipeline:cache] write failed", write.error.message);
@@ -615,6 +570,7 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
     state.valuation = report.reportV2?.valuation ?? null;
     if (state.valuation) send({ type: "valuation_complete", chapter: state.valuation });
   }
+  if (finalProjection) send({ type: "final_projection", projection: finalProjection });
   const totalMs = now() - t0;
   send({ ...doneEvent(state, totalMs, false), ...(partial && !state.valuation ? { valuationStatus: undefined } : {}), saveStatus });
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { readFinalProjection, mergeFinalCriteria, replaceFinalDimensions, type FinalProjection } from "@/lib/report-pipeline/final-projection";
 import { retainReportSaveOutcome, type ReportSaveStatus } from "@/lib/report-save-outcome";
 import { ReportSaveStatusNotice, SavedReportActions } from "./report-save-status";
 
@@ -89,6 +90,7 @@ type SSEEvent =
   | { type: "criteria_synthesis_start"; total: number }
   | { type: "criteria_synthesis"; criteria: CriterionState[] }
   | { type: "criterion_addendum"; items: Array<{ dimension: string; delta: number; note: string }> }
+  | { type: "final_projection"; projection: unknown }
   | { type: "cache_hit"; ageMs: number; dims: number; criteria: number }
   | { type: "valuation_complete"; chapter: unknown }
   | { type: "done"; valuationStatus?: "available" | "unavailable"; saveStatus?: ReportSaveStatus; totalMs: number; fromCache?: boolean }
@@ -112,6 +114,7 @@ const STORAGE_MAX_AGE_MS = 30 * 60_000; // 30 min
 type StreamValuationStatus = "pending" | "available" | "unavailable";
 
 interface PersistedState {
+  finalProjection?: FinalProjection | null;
   valuation?: StreamValuation | null;
   valuationStatus?: StreamValuationStatus;
   saveStatus?: ReportSaveStatus;
@@ -1304,6 +1307,8 @@ export function SviStreamAnalysis({
   const [done, setDone] = useState(false);
   const [valuation, setValuation] = useState<StreamValuation | null>(null);
   const [valuationStatus, setValuationStatus] = useState<StreamValuationStatus>();
+  const [doneFired, setDoneFired] = useState(false);
+  const [finalProjection, setFinalProjection] = useState<FinalProjection | null>(null);
   const [saveStatus, setSaveStatus] = useState<ReportSaveStatus>();
   const [totalMs, setTotalMs] = useState<number | null>(null);
   const [fatalError, setFatalError] = useState<string | null>(null);
@@ -1340,6 +1345,7 @@ export function SviStreamAnalysis({
     setTotalMs(saved.totalMs);
     setDone(saved.done);
     setSaveStatus(saved.saveStatus);
+    setFinalProjection(readFinalProjection(saved.finalProjection));
     setValuationStatus(saved.valuationStatus);
     setValuation(readStreamValuation(saved.valuation));
     setIndustry(saved.industry);
@@ -1379,6 +1385,7 @@ export function SviStreamAnalysis({
     if (!anyComplete && !done) return;
     savePersisted(projectId ?? "", {
       savedAt: Date.now(),
+      finalProjection,
       saveStatus,
       valuationStatus,
       valuation,
@@ -1391,7 +1398,7 @@ export function SviStreamAnalysis({
       industry,
       stage,
     });
-  }, [dimStates, criterionStates, completed, total, totalMs, done, industry, stage, projectId, saveStatus, valuationStatus, valuation]);
+  }, [dimStates, criterionStates, completed, total, totalMs, done, industry, stage, projectId, saveStatus, valuationStatus, valuation, finalProjection]);
 
   const updateDim = useCallback(
     (key: string, patch: Partial<DimState>) => {
@@ -1411,6 +1418,8 @@ export function SviStreamAnalysis({
   }, []);
 
   const reset = useCallback(() => {
+    setFinalProjection(null);
+    setDoneFired(false);
     setDimStates(
       Object.fromEntries(
         DIM_KEYS.map((k) => [
@@ -1461,6 +1470,8 @@ export function SviStreamAnalysis({
         }
         return next;
       });
+      setDoneFired(false);
+      setFinalProjection(null); // a partial run cannot retain a previous full-report total
       setTotal(dimsFilter.length);
       setCompleted(0);
       setDone(false);
@@ -1601,6 +1612,15 @@ export function SviStreamAnalysis({
               setCriterionAddendum(event.items ?? []);
               break;
 
+            case "final_projection": {
+              const projection = readFinalProjection(event.projection);
+              if (!projection) break;
+              setDimStates(previous => replaceFinalDimensions(previous, projection));
+              setCriterionStates(previous => mergeFinalCriteria(previous, projection.criteria, projection.scope));
+              setFinalProjection(projection);
+              break;
+            }
+
             case "valuation_complete": {
               const canonical = readStreamValuation(event.chapter);
               setValuation(canonical);
@@ -1663,10 +1683,9 @@ export function SviStreamAnalysis({
   }, [done, notifyOnDone]);
 
   // Fire onDone once after the streaming `done` event lands, with the
-  // client-computed weighted total. Runs in an effect (not inline in the
+  // canonical full-run total when available, otherwise the legacy weighted total. Runs in an effect (not inline in the
   // SSE handler) so state updates from prior dimension_complete events
   // have committed and dimStates reflects the final scores.
-  const [doneFired, setDoneFired] = useState(false);
   useEffect(() => {
     if (!done || doneFired || !onDone) return;
     const scored = DIM_KEYS
@@ -1681,7 +1700,7 @@ export function SviStreamAnalysis({
       );
     if (scored.length === 0) return;
     const totalWeight = scored.reduce((acc, d) => acc + d.weight, 0);
-    const totalSVI = Math.round(
+    const totalSVI = finalProjection?.totalSVI ?? Math.round(
       scored.reduce((acc, d) => acc + (d.score * d.weight) / totalWeight, 0),
     );
     const dimResults: Record<string, { score: number; priority: "high" | "medium" | "low" | null }> = {};
@@ -1699,7 +1718,7 @@ export function SviStreamAnalysis({
     });
     // eslint-disable-next-line react-hooks/set-state-in-effect -- once-only guard flag set right after firing the parent onDone callback; the effect deliberately waits for committed dimStates before notifying
     setDoneFired(true);
-  }, [done, doneFired, dimStates, onDone, criterionStates, industry, stage, totalMs]);
+  }, [done, doneFired, dimStates, onDone, criterionStates, industry, stage, totalMs, finalProjection]);
 
   const stopAnalysis = useCallback(() => {
     abortRef.current?.abort();
@@ -1987,7 +2006,7 @@ export function SviStreamAnalysis({
           (acc, d) => acc + (d.score * d.weight) / totalWeight,
           0,
         );
-        const totalSvi = Math.round(weightedTotal);
+        const totalSvi = finalProjection?.totalSVI ?? Math.round(weightedTotal);
         const totalBand: "strong" | "developing" | "early" =
           totalSvi >= 70 ? "strong" : totalSvi >= 40 ? "developing" : "early";
         // "Fastest lift" = the two scored-lowest dimensions weighted by
