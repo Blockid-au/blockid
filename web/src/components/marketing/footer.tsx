@@ -133,10 +133,10 @@ export function Footer() {
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-5 text-xs text-secondary sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <p className="flex flex-wrap items-center gap-x-4 gap-y-1">
             <a
-              href="mailto:support@blockid.au"
+              href="mailto:admin@blockid.au"
               className="inline-flex min-h-11 items-center rounded-md text-action underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             >
-              support@blockid.au
+              admin@blockid.au
             </a>
             <span>Mon&ndash;Fri 9:00&ndash;18:00 AEST</span>
             <span className="inline-flex items-center rounded-full border border-line-subtle px-2 py-0.5 text-xs uppercase tracking-[0.14em] text-secondary">

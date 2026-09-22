@@ -1,7 +1,7 @@
 // Render test for /auth/login — hydration safety (release QA-2 F9).
 //
 // QA-2 saw React #418 (text) here. Root cause was Cloudflare Email
-// Obfuscation rewriting the footer's support@blockid.au into a data-cfemail
+// Obfuscation rewriting the footer's admin@blockid.au into a data-cfemail
 // <span> — fixed at the root layout (components/site/cloudflare-email-off).
 // This test pins the page's own contribution: the full server markup
 // (real Navbar + Footer + LoginForm, signed-out and signed-in) has no
@@ -40,7 +40,7 @@ describe("/auth/login — hydration safety", { timeout: 20_000 }, () => {
     auth.user = null;
     const out = await assertDeterministicRender(html);
     expect(out).toContain("Sign in to BlockID");
-    expect(out).toContain('href="mailto:support@blockid.au"');
+    expect(out).toContain('href="mailto:admin@blockid.au"');
     assertHydratableNesting(out, "/auth/login signed-out");
   });
 

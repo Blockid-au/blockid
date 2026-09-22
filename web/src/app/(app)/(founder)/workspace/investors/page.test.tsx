@@ -78,7 +78,7 @@ const MATCH = {
   investor_id: "inv-1", name: "Sydney Seed Fund", firm: "Sydney Angels", thesis: "Pre-seed agtech in ANZ", plan: "investor_angel", score: 100,
   reasons: ["Your SVI 62 clears their 50 floor", "Invests in agtech"], gaps: [], sectors: ["agtech"], stages: ["seed"], geos: ["AU"],
   cheque_band: "100k_500k", min_svi: 50,
-  intro_href: "mailto:support@blockid.au?subject=Intro%20request%3A%20Acme%20Agtech%20%E2%86%92%20Sydney%20Seed%20Fund",
+  intro_href: "mailto:admin@blockid.au?subject=Intro%20request%3A%20Acme%20Agtech%20%E2%86%92%20Sydney%20Seed%20Fund",
 };
 
 async function html(): Promise<string> {
@@ -128,7 +128,7 @@ describe("/workspace/investors — Matches (S-IA2, T0251)", { timeout: 20_000 },
     expect(growth).toContain("Fit 100");
     expect(growth).toContain("Invests in agtech");
     expect(growth).toContain("data-request-intro");
-    expect(growth).toContain('href="mailto:support@blockid.au?subject=Intro%20request');
+    expect(growth).toContain('href="mailto:admin@blockid.au?subject=Intro%20request');
     expect(growth).not.toContain("data-growth-locked");
     // The match is built from the project + report intake + SVI.
     expect(latestReportMock).toHaveBeenCalledWith("u-1", "proj-1");
@@ -152,7 +152,7 @@ describe("/workspace/investors — Matches (S-IA2, T0251)", { timeout: 20_000 },
         investor_id: "inv-1", name: "Ann Angel", firm: "Sydney Angels", thesis: "Pre-seed agtech in ANZ, A$50k first cheques", plan: "investor_angel", score: 90,
         reasons: ["No SVI floor", "Invests in agtech", "Backs seed rounds", "Invests in AU"], gaps: [], sectors: ["agtech"], stages: ["seed"], geos: ["AU"],
         cheque_band: "25k_100k", min_svi: null,
-        intro_href: "mailto:support@blockid.au?subject=Intro%20request%3A%20Acme%20Agtech%20%E2%86%92%20Ann%20Angel",
+        intro_href: "mailto:admin@blockid.au?subject=Intro%20request%3A%20Acme%20Agtech%20%E2%86%92%20Ann%20Angel",
         // A leaked field must never reach the markup even if a store ever returned it.
         email: "ann@example.com",
       },

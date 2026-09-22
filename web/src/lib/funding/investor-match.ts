@@ -33,7 +33,7 @@ import { chequeBandFor } from "@/lib/investors/mandates-shared";
 import { fill, FUNDING_COPY } from "./copy";
 
 /** Canonical support inbox — the footer / signup form hard-code the same address. */
-export const SUPPORT_EMAIL = "support@blockid.au";
+export const SUPPORT_EMAIL = "admin@blockid.au";
 
 export const INVESTOR_MATCH_LIMIT = 10;
 

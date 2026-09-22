@@ -87,7 +87,7 @@ export function CancelSubscriptionSection({ subscription: initial, planLabel }: 
       });
       const json = (await res.json().catch(() => ({ ok: false }))) as CancelResponse;
       if (!res.ok || !json.ok) {
-        setError(json.message ?? json.reason ?? "Could not cancel — please try again or e-mail support@blockid.au.");
+        setError(json.message ?? json.reason ?? "Could not cancel — please try again or e-mail admin@blockid.au.");
         return;
       }
       setOpen(false);

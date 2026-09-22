@@ -59,7 +59,7 @@ describe("Footer — the one public footer", () => {
   });
 
   it("keeps the AU support + residency lines and the disclaimer the legacy footer carried", () => {
-    expect(html).toContain("support@blockid.au");
+    expect(html).toContain("admin@blockid.au");
     expect(html).toContain("AU-based support");
     expect(html).toContain("AU Privacy Act 1988 compliant · AU data residency");
     expect(html).toContain("AU data residency. AU Privacy Act 1988 compliant.");

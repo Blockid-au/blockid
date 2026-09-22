@@ -31,7 +31,7 @@ describe("/contact — template (G17 P2-A)", () => {
     expect(out).toContain("<form");
     expect(out).toContain('name="company_website"');
     expect(out).toContain('id="contact-email"');
-    expect(out).toContain('href="mailto:support@blockid.au"');
+    expect(out).toContain('href="mailto:admin@blockid.au"');
     expect(out).toContain(`${LEGAL_ENTITY.operator} (${LEGAL_ENTITY_ABN_LABEL})`);
     expect(out).toContain('href="/solutions/investor"');
     expect(out).toContain('href="/solutions/accelerator"');

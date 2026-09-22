@@ -21,7 +21,7 @@ const contactPageJsonLd = {
     legalName: LEGAL_ENTITY.operator,
     taxID: LEGAL_ENTITY.abn,
     url: "https://blockid.au",
-    email: "support@blockid.au",
+    email: "admin@blockid.au",
     address: {
       "@type": "PostalAddress",
       addressLocality: "Sydney",
@@ -31,7 +31,7 @@ const contactPageJsonLd = {
     contactPoint: {
       "@type": "ContactPoint",
       contactType: "customer support",
-      email: "support@blockid.au",
+      email: "admin@blockid.au",
       availableLanguage: "English",
       areaServed: "AU",
     },

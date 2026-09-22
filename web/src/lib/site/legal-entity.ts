@@ -23,7 +23,7 @@ export const LEGAL_ENTITY = {
   marketingOperator: "PPL Food PTY LTD",
   jurisdiction: "Australia",
   city: "Sydney NSW",
-  supportEmail: "support@blockid.au",
+  supportEmail: "admin@blockid.au",
   privacyEmail: "privacy@blockid.au",
   adminEmail: "admin@blockid.au",
   privacyOwner: "Auschain PTY LTD",

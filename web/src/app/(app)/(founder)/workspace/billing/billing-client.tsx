@@ -598,7 +598,7 @@ export function BillingClient({
                     // A$99 vs founder_growth A$69) — a price switch, not an
                     // upgrade; support moves it (portal plan changes are off).
                     <div className="h-9 flex items-center justify-center rounded-[10px] bg-surface-100 text-xs font-medium text-ink-600 text-center px-2">
-                      Same tier as your plan — e-mail support@blockid.au to switch price
+                      Same tier as your plan — e-mail admin@blockid.au to switch price
                     </div>
                   )}
                 </div>

@@ -15,7 +15,7 @@ import { apiRoute } from "@/lib/audit/api-route";
 // pages ops on Telegram and lands in the support inbox. The IP rate limit
 // (10 / 10 min) lives in src/proxy.ts (bucket "lead").
 export const HONEYPOT_FIELD = "company_website";
-export const SUPPORT_INBOX = "support@blockid.au";
+export const SUPPORT_INBOX = "admin@blockid.au";
 export const CONTACT_TOPICS = ["general", "demo", "pilot", "sales", "support", "legal", "partnership", "press"] as const;
 export type ContactTopic = (typeof CONTACT_TOPICS)[number];
 
@@ -48,7 +48,7 @@ export function notifyContactLead(args: {
     "",
     args.message.slice(0, 1500),
     "",
-    "Reply from support@blockid.au · /admin/leads",
+    "Reply from admin@blockid.au · /admin/leads",
   ]
     .filter((l) => l !== null)
     .join("\n");

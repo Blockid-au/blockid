@@ -542,7 +542,7 @@ describe("QA-3 P1-9 — honeypot", () => {
 });
 
 describe("QA-3 P1-9 — contact leads page ops + support inbox, honouring ?topic=", () => {
-  it("source=contact → Telegram alert + email to support@blockid.au with the topic, name, message and IP", async () => {
+  it("source=contact → Telegram alert + email to admin@blockid.au with the topic, name, message and IP", async () => {
     const r = new Request("http://x/api/lead", {
       method: "POST",
       headers: { "content-type": "application/json", "x-forwarded-for": "203.0.113.9, 10.0.0.1" },
@@ -563,7 +563,7 @@ describe("QA-3 P1-9 — contact leads page ops + support inbox, honouring ?topic
 
     expect(sendEmailMock).toHaveBeenCalledTimes(1);
     const mail = sendEmailMock.mock.calls[0]?.[0];
-    expect(mail?.to).toBe("support@blockid.au");
+    expect(mail?.to).toBe("admin@blockid.au");
     expect(mail?.subject).toBe("[Contact · demo] Jo");
     expect(mail?.html).toContain("Can we see a demo?");
     expect(mail?.html).toContain("mailto:jo@acme.io");

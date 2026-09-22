@@ -103,7 +103,7 @@ async function POST_handler(request?: Request) {
         ok: false,
         reason,
         message:
-          "Billing portal is not available right now — the Stripe portal configuration could not be created. You can still cancel from this page; contact support@blockid.au for invoices.",
+          "Billing portal is not available right now — the Stripe portal configuration could not be created. You can still cancel from this page; contact admin@blockid.au for invoices.",
       },
       { status: 503 },
     );

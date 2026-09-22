@@ -115,7 +115,7 @@ export function SignupForm(props: SignupFormProps) {
       >
         Stripe is not configured on this environment (missing
         NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY). Signup is temporarily disabled —
-        please contact support@blockid.au.
+        please contact admin@blockid.au.
       </div>
     );
   }

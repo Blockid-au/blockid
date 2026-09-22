@@ -53,7 +53,7 @@ export const ONE_CLICK_TRUST: readonly string[] = [
 export const ONE_CLICK_FAQ = {
   refundQ: "What if I need my money back?",
   refundText:
-    "If your report doesn't arrive or the analysis clearly failed, email support@blockid.au and we'll refund the A$3 in full — no questions. It's a low-stakes trial for both of us.",
+    "If your report doesn't arrive or the analysis clearly failed, email admin@blockid.au and we'll refund the A$3 in full — no questions. It's a low-stakes trial for both of us.",
   rest: [
     {
       q: "How is my data used?",

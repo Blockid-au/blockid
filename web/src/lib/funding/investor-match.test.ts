@@ -127,9 +127,9 @@ describe("scoreInvestorFit", () => {
 
   it("Request intro is a support mailto with the D-3 subject — never the investor's address", () => {
     const m = scoreInvestorFit(PROJECT, investor())!;
-    expect(SUPPORT_EMAIL).toBe("support@blockid.au");
+    expect(SUPPORT_EMAIL).toBe("admin@blockid.au");
     expect(m.intro_href).toBe(introHref("Acme Agtech", "Sydney Seed Fund"));
-    expect(m.intro_href.startsWith("mailto:support@blockid.au?subject=")).toBe(true);
+    expect(m.intro_href.startsWith("mailto:admin@blockid.au?subject=")).toBe(true);
     expect(decodeURIComponent(m.intro_href.split("subject=")[1]!)).toBe("Intro request: Acme Agtech → Sydney Seed Fund");
     expect(JSON.stringify(m)).not.toMatch(/@(?!blockid\.au)/);
   });
@@ -251,7 +251,7 @@ describe("mandate direction (G13 S-T2)", () => {
     expect(m.score).toBeGreaterThanOrEqual(FIT_FLOOR_V2);
     expect(m.reasons).toContain("Invests in agtech food");
     expect(m.reasons.join(" ")).toContain("clears their 50 floor");
-    expect(JSON.stringify(m).replace("support@blockid.au", "")).not.toMatch(/@/); // only the support mailto, never an investor email
+    expect(JSON.stringify(m).replace("admin@blockid.au", "")).not.toMatch(/@/); // only the support mailto, never an investor email
     expect(Object.keys(m).sort()).toEqual(
       ["cheque_band", "firm", "gaps", "geos", "intro_href", "investor_id", "min_svi", "name", "plan", "reasons", "score", "sectors", "stages", "thesis", "source", "mandate_id"].sort(),
     );

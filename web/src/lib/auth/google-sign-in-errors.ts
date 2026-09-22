@@ -112,7 +112,7 @@ export function describeGoogleSignInError(
     case "login_failed":
       return {
         title: "Google confirmed you, but creating your BlockID session failed.",
-        hint: "Try again in a minute. If it keeps happening, sign in with email and contact support@blockid.au.",
+        hint: "Try again in a minute. If it keeps happening, sign in with email and contact admin@blockid.au.",
         configuration: false,
       };
     case "gis_failed":

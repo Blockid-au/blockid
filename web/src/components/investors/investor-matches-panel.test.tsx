@@ -11,7 +11,7 @@ const MATCH: InvestorMatch = {
   investor_id: "inv-1", name: "Sydney Seed Fund", firm: "Sydney Angels", thesis: "Pre-seed agtech in ANZ", plan: "investor_angel", score: 100,
   reasons: ["Invests in agtech"], gaps: ["stage"], sectors: ["agtech"], stages: ["seed"], geos: ["AU"],
   cheque_band: "100k_500k", min_svi: 50,
-  intro_href: "mailto:support@blockid.au?subject=Intro%20request",
+  intro_href: "mailto:admin@blockid.au?subject=Intro%20request",
 };
 
 describe("InvestorMatchesPanel", () => {

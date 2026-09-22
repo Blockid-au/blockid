@@ -28,7 +28,7 @@ export async function OrganizationJsonLd() {
     // site og:description (docs/design/messaging.md § 1).
     description: heroLine("FI2").en,
     alternateName: ["BlockID", "Startup Value Index"],
-    email: "support@blockid.au",
+    email: "admin@blockid.au",
     address: {
       "@type": "PostalAddress",
       addressLocality: "Sydney",
