@@ -4,6 +4,7 @@
 // svi_analyses + founder_profiles + svi_accounts. Anonymous-by-default; only
 // surfaces `publicName` when the founder explicitly opted in.
 
+import { deltaOrNull } from "@/lib/startup-index-movers";
 import { createHash } from "node:crypto";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { legacySectorLabel } from "@/lib/taxonomy/startup-taxonomy";
@@ -35,7 +36,8 @@ export interface ListingRow {
   stage: number;
   stageLabel: string;
   svi: number;
-  deltaWeek: number;
+  /** latest − prior-week close; null when there is no prior close ("new" — G29-D, never 0 / −99). */
+  deltaWeek: number | null;
   valuationAud: number;
   sparkline: number[];      // 7-point SVI history (daily aggregation)
   publicName: string | null;
@@ -255,10 +257,10 @@ export async function computeListings(args: {
     const valuationAud = extractValuation(latest);
     const hasRevenue = extractHasRevenue(latest);
 
-    // 7-day delta = latest - latest-older-than-7-days (fallback oldest)
+    // 7-day delta = latest - latest-older-than-7-days; no prior close → null ("new")
     const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
     const priorWeek = sortedNew.find((r) => new Date(r.created_at).getTime() < weekAgo);
-    const deltaWeek = priorWeek?.total_svi != null ? latest.total_svi - priorWeek.total_svi : 0;
+    const deltaWeek = deltaOrNull(latest.total_svi, priorWeek?.total_svi);
 
     // Sparkline needs oldest-first
     const sortedOld = [...history].sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
@@ -304,7 +306,10 @@ export async function computeListings(args: {
   const dir = order === "asc" ? 1 : -1;
   filtered.sort((a, b) => {
     switch (sort) {
-      case "delta":     return (a.deltaWeek - b.deltaWeek) * dir;
+      // "new" rows (no prior close) always sort after every real Δ, whichever direction.
+      case "delta":     return a.deltaWeek === null || b.deltaWeek === null
+                          ? (a.deltaWeek === null ? 1 : 0) - (b.deltaWeek === null ? 1 : 0)
+                          : (a.deltaWeek - b.deltaWeek) * dir;
       case "valuation": return (a.valuationAud - b.valuationAud) * dir;
       case "stage":     return (a.stage - b.stage) * dir;
       case "recent":    return (new Date(a.lastAnalysisAt).getTime() - new Date(b.lastAnalysisAt).getTime()) * dir;
@@ -340,7 +345,8 @@ export interface ListingDetail {
   stage: number;
   stageLabel: string;
   svi: number;
-  deltaWeek: number;
+  /** latest − prior-week close; null when there is no prior close ("new"). */
+  deltaWeek: number | null;
   valuationAud: number;
   sviHistory: Array<{ date: string; svi: number }>;
   analysesCount: number;
@@ -468,7 +474,7 @@ async function buildDetailFromRow(
   // Compute 7d delta
   const weekAgoTs = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const prior = sviHistory.find((h) => new Date(h.date).getTime() < weekAgoTs);
-  const deltaWeek = prior ? (latest.total_svi ?? 0) - prior.svi : 0;
+  const deltaWeek = deltaOrNull(latest.total_svi, prior?.svi);
 
   return {
     ticker: tickerOf(sector, latest.id),

@@ -7,6 +7,7 @@
 
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { benchmarkBand, benchmarkLabel, type BenchmarkBand } from "@/lib/benchmarks/publication-rules";
+import { deltaOrNull, moversFor, type Mover, type MoverInput, type NewListing } from "@/lib/startup-index-movers";
 
 const SECTOR_META: Record<string, { label: string; emoji: string }> = {
   saas:        { label: "SaaS",         emoji: "📊" },
@@ -23,9 +24,13 @@ const STAGE_LABELS = ["Concept", "Validated", "MVP", "Traction", "Revenue", "Gro
 export interface IndexHeadlines {
   bsiAu: {
     value: number;             // median SVI
-    deltaDay: number;
-    deltaWeek: number;
-    sparkline7d: number[];     // last 7 daily medians (oldest first)
+    /** today − yesterday, or null when either day has no close (G29-D: never a delta against the median filler). */
+    deltaDay: number | null;
+    /** today − 6 days ago, or null when either day has no close. */
+    deltaWeek: number | null;
+    sparkline7d: number[];     // last 7 daily medians (oldest first; empty days carry the index median as filler)
+    /** Which of the 7 sparkline slots had at least one analysis (oldest first) — the filler days are `false`. */
+    closes7d: boolean[];
     totalCompanies: number;
     /** G21 P1-C — publication band for `totalCompanies` (lib/benchmarks/publication-rules.ts). */
     band: BenchmarkBand;
@@ -54,10 +59,21 @@ export interface IndexHeadlines {
     band: BenchmarkBand;
     publicationLabel: string;
   }>;
+  /**
+   * G29-D — `lib/startup-index-movers.ts` rule: winners = positive Δ only,
+   * losers = negative Δ only, `newListings` = a close but no prior-week close
+   * (no Δ is printed for them).
+   */
   topMovers: {
-    winners: Array<{ ticker: string; slug: string; sector: string; svi: number; deltaWeek: number }>;
-    losers: Array<{ ticker: string; slug: string; sector: string; svi: number; deltaWeek: number }>;
+    winners: Mover[];
+    losers: Mover[];
+    newListings: NewListing[];
   };
+  /**
+   * True while the tracked set is below the basic benchmark band (n < 30):
+   * every surface prints the figures as a sample, not a market read.
+   */
+  isSample: boolean;
   generatedAt: string;
   /** Pretty citation snippet: "BSI-AU as of 2026-06-18: 105 (n=138)" */
   citation: string;
@@ -69,6 +85,11 @@ interface AnalysisRow {
   total_svi: number | null;
   created_at: string;
   analysis_json: Record<string, unknown> | null;
+}
+
+/** G29-D: below the basic benchmark band (n < 30) every index figure is a sample. */
+export function isSampleBand(band: BenchmarkBand): boolean {
+  return band === "none" || band === "indicative";
 }
 
 function median(nums: number[]): number {
@@ -181,9 +202,14 @@ export async function computeIndexHeadlines(windowDays = 90): Promise<IndexHeadl
 
   // ─── BSI-AU ───────────────────────────────────────────────────────────
   const bsiAu = median(allSvis);
+  const closes7d = dailyMedians.map((d) => d.svis.length > 0);
   const sparkline7d = dailyMedians.map((d) => median(d.svis) || bsiAu);
-  const deltaDay = sparkline7d[6] - sparkline7d[5];
-  const deltaWeek = sparkline7d[6] - sparkline7d[0];
+  // A day with no analyses has no close. Its sparkline slot carries the index
+  // median so the polyline stays continuous, but a delta is never taken
+  // against that filler (the "−99.0 1d" placeholder-baseline artefact).
+  const closeAt = (i: number): number | null => (closes7d[i] ? sparkline7d[i] : null);
+  const deltaDay = deltaOrNull(closeAt(6), closeAt(5));
+  const deltaWeek = deltaOrNull(closeAt(6), closeAt(0));
 
   // ─── Sector indices ───────────────────────────────────────────────────
   const sectorIndices = Array.from(sectorBuckets.entries())
@@ -219,27 +245,23 @@ export async function computeIndexHeadlines(windowDays = 90): Promise<IndexHeadl
     .sort((a, b) => a.stage - b.stage);
 
   // ─── Top movers — per-identity week-over-week ─────────────────────────
-  type MoverRow = { ticker: string; slug: string; sector: string; svi: number; deltaWeek: number };
-  const movers: MoverRow[] = [];
+  // Latest analysis vs the latest analysis older than 7 days; no such prior
+  // close → "new" (listed, no Δ). The pure rule lives in startup-index-movers.
+  const moverInputs: MoverInput[] = [];
   for (const [, bucket] of identityBuckets) {
-    if (bucket.recent.length < 2) continue;
-    // Compare latest analysis vs latest analysis older than 7 days
     const sortedById = [...bucket.recent].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
     const latest = sortedById[0];
+    if (!latest || latest.total_svi == null) continue;
     const priorWeek = sortedById.find((r) => new Date(r.created_at).getTime() < weekAgoTs);
-    if (!latest || !priorWeek || latest.total_svi == null || priorWeek.total_svi == null) continue;
-    const delta = latest.total_svi - priorWeek.total_svi;
-    if (Math.abs(delta) < 1) continue;
-    movers.push({
+    moverInputs.push({
       ticker: tickerForSector(bucket.sector, latest.id),
       slug: latest.id,
       sector: bucket.sector,
       svi: latest.total_svi,
-      deltaWeek: delta,
+      priorSvi: priorWeek?.total_svi ?? null,
     });
   }
-  const winners = [...movers].sort((a, b) => b.deltaWeek - a.deltaWeek).slice(0, 5);
-  const losers = [...movers].sort((a, b) => a.deltaWeek - b.deltaWeek).slice(0, 5);
+  const { winners, losers, newListings } = moversFor(moverInputs, { limit: 5, noiseFloor: 1 });
 
   const dateStr = new Date().toISOString().slice(0, 10);
   return {
@@ -248,6 +270,7 @@ export async function computeIndexHeadlines(windowDays = 90): Promise<IndexHeadl
       deltaDay,
       deltaWeek,
       sparkline7d,
+      closes7d,
       totalCompanies: identityBuckets.size,
       band: benchmarkBand(identityBuckets.size),
       label: benchmarkLabel(identityBuckets.size),
@@ -257,7 +280,8 @@ export async function computeIndexHeadlines(windowDays = 90): Promise<IndexHeadl
     },
     sectorIndices,
     stageIndices,
-    topMovers: { winners, losers },
+    topMovers: { winners, losers, newListings },
+    isSample: isSampleBand(benchmarkBand(identityBuckets.size)),
     generatedAt: new Date().toISOString(),
     citation: `BSI-AU as of ${dateStr}: ${bsiAu} (n=${identityBuckets.size} companies, window=${windowDays}d)`,
   };

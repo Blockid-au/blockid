@@ -105,6 +105,7 @@ describe("computeIndexHeadlines — degraded / empty inputs", () => {
     expect(out.stageIndices).toEqual([]);
     expect(out.topMovers.winners).toEqual([]);
     expect(out.topMovers.losers).toEqual([]);
+    expect(out.topMovers.newListings).toEqual([]);
   });
 
   it("returns zero-shape for empty analysis set", async () => {
@@ -254,6 +255,28 @@ describe("computeIndexHeadlines — sparkline & deltas", () => {
     const out = await computeIndexHeadlines();
     expect(out.bsiAu.deltaDay).toBe(130 - 100);
     expect(out.bsiAu.deltaWeek).toBe(130 - 70);
+  });
+
+  it("2026-09-21 case: a day with no close never yields a delta against the median filler (no '−99.0 1d')", async () => {
+    nextData = [
+      row("a@x.io", 100, -10 * DAY), // sets the median filler at 100, outside the sparkline
+      row("qa@x.io", 1, 3600_000), // one placeholder-looking analysis today; yesterday has no close
+    ];
+    const out = await computeIndexHeadlines();
+    expect(out.bsiAu.closes7d).toEqual([false, false, false, false, false, false, true]);
+    expect(out.bsiAu.deltaDay).toBeNull(); // used to print −99.0 1d (1 − filler)
+    expect(out.bsiAu.deltaWeek).toBeNull();
+    expect(out.bsiAu.sparkline7d[6]).toBe(1);
+  });
+
+  it("closes7d marks exactly the days that had an analysis", async () => {
+    nextData = [
+      row("a@x.io", 70, -6 * DAY + 3600_000),
+      row("b@x.io", 100, -1 * DAY + 3600_000),
+      row("c@x.io", 130, 3600_000),
+    ];
+    const out = await computeIndexHeadlines();
+    expect(out.bsiAu.closes7d).toEqual([true, false, false, false, false, true, true]);
   });
 
   it("rows older than the 7-day sparkline are excluded from the sparkline slots", async () => {
@@ -410,39 +433,51 @@ describe("computeIndexHeadlines — stage indices", () => {
 });
 
 describe("computeIndexHeadlines — top movers", () => {
-  it("skips identities with < 2 analyses (no basis for a delta)", async () => {
+  it("identities with a single analysis have no basis for a delta — they are 'new', in neither list", async () => {
     nextData = [row("a@x.io", 100, -1000, { sector: "saas" })];
     const out = await computeIndexHeadlines();
     expect(out.topMovers.winners).toEqual([]);
     expect(out.topMovers.losers).toEqual([]);
+    expect(out.topMovers.newListings).toHaveLength(1);
   });
 
-  it("requires a prior analysis > 7 days before the latest (adjacent day rows skipped)", async () => {
+  it("requires a prior analysis > 7 days before the latest (adjacent day rows skipped → 'new')", async () => {
     nextData = [
       row("a@x.io", 150, -1000, { sector: "saas" }), // latest
       row("a@x.io", 100, -3 * DAY, { sector: "saas" }), // within week — not a prior
     ];
     const out = await computeIndexHeadlines();
     expect(out.topMovers.winners).toEqual([]);
+    expect(out.topMovers.losers).toEqual([]);
+    expect(out.topMovers.newListings.map((n) => n.svi)).toEqual([150]);
   });
 
-  it("emits a winner when the latest svi is > 1 above the prior-week value", async () => {
+  it("emits a winner when the latest svi is > 1 above the prior-week value — and never a drop (G29-D)", async () => {
     nextData = [
       row("a@x.io", 180, -1000, { sector: "fintech" }), // latest
       row("a@x.io", 100, -10 * DAY, { sector: "fintech" }), // >7d prior
     ];
     const out = await computeIndexHeadlines();
-    // winners = movers sorted DESC by delta; losers = movers sorted ASC.
-    // Both lists are populated from the same movers[] — a lone positive mover
-    // therefore appears in both slices.
+    // winners = positive Δ only; losers = negative Δ only. A lone positive
+    // mover used to leak into "Biggest drops" (the 2026-09-21 UX check).
     expect(out.topMovers.winners).toHaveLength(1);
     expect(out.topMovers.winners[0].deltaWeek).toBe(80);
     expect(out.topMovers.winners[0].sector).toBe("fintech");
-    expect(out.topMovers.losers).toHaveLength(1);
-    expect(out.topMovers.losers[0].deltaWeek).toBe(80);
+    expect(out.topMovers.losers).toEqual([]);
   });
 
-  it("orders both lists off the same movers[] (winners DESC, losers ASC)", async () => {
+  it("2026-09-21 case: a single +100 mover (35 → 135) is a winner, 'Biggest drops' stays empty", async () => {
+    nextData = [
+      row("kkf@x.io", 135, -1000, { sector: "saas" }),
+      row("kkf@x.io", 35, -10 * DAY, { sector: "saas" }),
+    ];
+    const out = await computeIndexHeadlines();
+    expect(out.topMovers.winners.map((m) => m.deltaWeek)).toEqual([100]);
+    expect(out.topMovers.losers).toEqual([]);
+    expect(out.topMovers.losers.some((m) => m.deltaWeek > 0)).toBe(false);
+  });
+
+  it("splits winners (positive, DESC) from losers (negative, ASC) — never the same list twice", async () => {
     nextData = [
       row("a@x.io", 180, -1000, { sector: "fintech" }), // +80
       row("a@x.io", 100, -10 * DAY, { sector: "fintech" }),
@@ -450,8 +485,23 @@ describe("computeIndexHeadlines — top movers", () => {
       row("b@x.io", 200, -10 * DAY, { sector: "ai" }),
     ];
     const out = await computeIndexHeadlines();
-    expect(out.topMovers.winners.map((m) => m.deltaWeek)).toEqual([80, -150]);
-    expect(out.topMovers.losers.map((m) => m.deltaWeek)).toEqual([-150, 80]);
+    expect(out.topMovers.winners.map((m) => m.deltaWeek)).toEqual([80]);
+    expect(out.topMovers.losers.map((m) => m.deltaWeek)).toEqual([-150]);
+  });
+
+  it("a company with a close but no prior-week close is 'new' — listed without a Δ, in neither list", async () => {
+    nextData = [
+      row("solo@x.io", 1, -1000, { sector: "saas" }), // placeholder-looking close, single analysis
+      row("pair@x.io", 120, -1000, { sector: "saas" }),
+      row("pair@x.io", 100, -10 * DAY, { sector: "saas" }),
+    ];
+    const out = await computeIndexHeadlines();
+    expect(out.topMovers.newListings.map((n) => n.svi)).toEqual([1]);
+    expect(out.topMovers.newListings[0].ticker).toMatch(/^SAAS-/);
+    expect(out.topMovers.winners.map((m) => m.deltaWeek)).toEqual([20]);
+    expect(out.topMovers.losers).toEqual([]);
+    const all = [...out.topMovers.winners, ...out.topMovers.losers];
+    expect(all.some((m) => m.deltaWeek <= -99)).toBe(false);
   });
 
   it("drops movers whose |delta| < 1 (noise floor)", async () => {
@@ -506,6 +556,17 @@ describe("computeIndexHeadlines — top movers", () => {
     expect(ticker).toMatch(/^FINT-/);
     // Uppercase throughout
     expect(ticker).toBe(ticker.toUpperCase());
+  });
+});
+
+describe("computeIndexHeadlines — sample flag (G29-D)", () => {
+  it("isSample is true below the basic benchmark band (n < 30) and false from 30 companies", async () => {
+    nextData = Array.from({ length: 16 }, (_, i) => row(`c${i}@x.io`, 100 + i, -1000, { sector: "saas" }));
+    expect((await computeIndexHeadlines()).isSample).toBe(true);
+    nextData = Array.from({ length: 30 }, (_, i) => row(`c${i}@x.io`, 100 + i, -1000, { sector: "saas" }));
+    expect((await computeIndexHeadlines()).isSample).toBe(false);
+    nextData = [];
+    expect((await computeIndexHeadlines()).isSample).toBe(true);
   });
 });
 

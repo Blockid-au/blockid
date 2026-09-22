@@ -10,6 +10,8 @@ import { Footer } from "@/components/marketing/footer";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { AbnBadge } from "@/components/verification/abn-badge";
 import { computeListingDetail } from "@/lib/startup-index-listings";
+import { formatDelta } from "@/lib/startup-index-movers";
+import { getMessagesSync, t } from "@/lib/i18n/t";
 import { pageMetadata } from "@/lib/seo/page-meta";
 
 // S31-D: ISR 300 s (the `force-dynamic` that used to sit above it made
@@ -118,7 +120,20 @@ function HistoryChart({ data }: { data: Array<{ date: string; svi: number }> }) 
   );
 }
 
-function DeltaPill({ delta }: { delta: number }) {
+/** G29-D: `delta` null = no prior close → "new · 7d", never 0.0 / −99. */
+function DeltaPill({ delta }: { delta: number | null }) {
+  const msgs = getMessagesSync("en");
+  if (delta === null) {
+    return (
+      <span
+        className="inline-flex items-center gap-1 text-sm font-bold px-2 py-0.5 rounded border bg-ink-50 text-ink-500 border-ink-100"
+        title={t(msgs, "index.movers.new.title")}
+        data-testid="delta-new"
+      >
+        <span className="uppercase tracking-wider text-xs">{t(msgs, "index.movers.new")}</span> · 7d
+      </span>
+    );
+  }
   const Icon = delta > 0 ? ArrowUpRight : delta < 0 ? ArrowDownRight : Minus;
   const cls = delta > 0
     ? "bg-emerald-100 text-emerald-700 border-emerald-200"
@@ -127,8 +142,8 @@ function DeltaPill({ delta }: { delta: number }) {
       : "bg-ink-50 text-ink-500 border-ink-100";
   return (
     <span className={`inline-flex items-center gap-0.5 text-sm font-bold px-2 py-0.5 rounded border ${cls}`}>
-      <Icon className="h-3.5 w-3.5" />
-      {delta > 0 ? "+" : ""}{delta.toFixed(1)} 7d
+      <Icon className="h-3.5 w-3.5" aria-hidden="true" />
+      {formatDelta(delta)} 7d
     </span>
   );
 }
