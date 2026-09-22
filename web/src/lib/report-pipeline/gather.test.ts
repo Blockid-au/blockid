@@ -149,6 +149,11 @@ describe("gatherData — sources", () => {
     const kinds = out.evidenceRows.map((r) => r.label);
     expect(kinds).not.toContain("Market & competitive research (AI agent, this run)");
     expect(out.results.publicResearch?.status).toBe("not_run");
+    expect(d.retrievePublicSources).toHaveBeenCalledWith({
+      criterion: "market", question: "Who are the main competitors?",
+      businessScope: { name: "Acme", projectId: "proj-1" }, sources: [],
+    });
+    expect(JSON.stringify(vi.mocked(d.retrievePublicSources!).mock.calls)).not.toContain("MRR");
     expect(kinds).toContain("Valuation needs revenue information");
     // Every row carries source + observedAt.
     expect(out.evidenceRows.every((r) => r.source && r.observedAt)).toBe(true);
