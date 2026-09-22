@@ -611,6 +611,9 @@
 
 ---
 
+## 4b. Ready to sale (2026-09-22)
+[`docs/ops/ready-to-sale.md`](../ops/ready-to-sale.md) — what a buyer gets at v3.27.2, the QA gates, the honest gaps (provider fragility, 0.85 KPI unverified live, free real run not exercised) and the founder items (#9 paid AI capacity, #10 SVI repo remote).
+
 ## 5. Human-blocked Queue
 
 | Item | What's blocked | What's needed | Ping |
