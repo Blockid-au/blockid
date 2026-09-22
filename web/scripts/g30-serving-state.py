@@ -196,6 +196,14 @@ def retained_capacity(data):
     return count
 
 
+def extra_slot_authorization(web, data, candidate_sha=None, entry=None, stage="allocate"):
+    if web is None: raise ValueError('Pinned resource permit requires web root')
+    spec = importlib.util.spec_from_file_location('g30_resource_admission', Path(__file__).with_name('g30-resource-admission.py'))
+    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    evidence = module.authorize(web, data, retained_capacity(data), candidate_sha, stage)
+    if entry is not None: module.verify_candidate(entry)
+    return evidence
+
 def allocate(data, web=None):
     if web is not None:
         pin = web / ".next-candidate"
@@ -203,8 +211,10 @@ def allocate(data, web=None):
             retained_paths = {e["releasePath"] for e in (data or {}).get("retained", [])}
             if str(pin.resolve(strict=True)) not in retained_paths:
                 raise ValueError("Unregistered candidate remains pinned; inspect before another admission")
-    if data and (data['phase'] != 'stable' or retained_capacity(data) >= MAX_RETAINED):
-        raise ValueError('Promotion blocked: switching or retained-process cap (5); never kill to free capacity')
+    if data and data['phase'] != 'stable':
+        raise ValueError('Promotion blocked: switching')
+    if data and retained_capacity(data) >= MAX_RETAINED:
+        extra_slot_authorization(web, data)
     available = int(re.search(r'^MemAvailable:\s+(\d+)', Path('/proc/meminfo').read_text(), re.M).group(1))
     if available < MIN_AVAILABLE_KIB:
         raise ValueError('Less than 1 GiB available memory; promotion deferred')
@@ -286,9 +296,11 @@ def main():
             if not data:
                 raise ValueError('Initialize known-good serving state first')
             if args.register:
-                if data['phase'] != 'stable' or retained_capacity(data) >= MAX_RETAINED:
-                    raise ValueError('Candidate registration deferred: phase/cap')
+                if data['phase'] != 'stable':
+                    raise ValueError('Candidate registration deferred: phase')
                 entry = make_entry(web, args.listen_port, args.pid, args.release)
+                if retained_capacity(data) >= MAX_RETAINED:
+                    data['resourceAdmission'] = extra_slot_authorization(web, data, entry['sha'], entry, 'register')
                 if any(e['port'] == entry['port'] or e['pid'] == entry['pid'] for e in data['retained']):
                     raise ValueError('Candidate PID/port already retained')
                 if entry['schemaDigest'] != data['active']['schemaDigest']:

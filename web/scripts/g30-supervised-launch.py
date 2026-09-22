@@ -115,10 +115,20 @@ def launch(web, release=None, port=None, probe=False):
     unit = f'g30-probe-{tag}.service' if probe else f'g30-origin-{port}-{hashlib.sha256(str(release).encode()).hexdigest()[:10]}-{tag}.service'
     properties = ['--property=Restart=no', '--property=ExitType=cgroup', f'--property=User={owner}']
     extras = {}
+    resource_admission = None
     if probe:
         properties += ['--property=RuntimeMaxSec=15']
         executable = ['/usr/bin/sleep', '10']
     else:
+        state_spec = importlib.util.spec_from_file_location('g30_resource_state', Path(__file__).with_name('g30-serving-state.py'))
+        serving = importlib.util.module_from_spec(state_spec); state_spec.loader.exec_module(serving)
+        data = serving.read_state(web)
+        if data and serving.retained_capacity(data) >= serving.MAX_RETAINED:
+            manifest = json.loads((release / '.deploy-manifest.json').read_text())
+            resource_admission = serving.extra_slot_authorization(web, data, manifest.get('build_sha') or manifest.get('git_sha'), stage='launch')
+            resource_spec = importlib.util.spec_from_file_location('g30_resource_limits', Path(__file__).with_name('g30-resource-admission.py'))
+            resource = importlib.util.module_from_spec(resource_spec); resource_spec.loader.exec_module(resource)
+            properties += resource.unit_properties()
         directory = private_directory()
         env_file = directory / (unit + '.env')
         log_file = directory / (unit + '.log')
@@ -132,6 +142,7 @@ def launch(web, release=None, port=None, probe=False):
             raise ValueError('Node executable unavailable')
         executable = [str(Path(node).resolve()), 'server.js']
         extras = {'environmentFile': str(env_file), 'log': str(log_file), 'port': port, 'releasePath': str(release)}
+        if resource_admission is not None: extras['resourceAdmission'] = resource_admission
         # Persist a private unit locator BEFORE launch so interruption before
         # helper return cannot leave an unidentifiable retained service.
         metadata = directory / (unit + '.json')
