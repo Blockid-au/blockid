@@ -735,6 +735,7 @@ export function EvaluationsClient({
           input={activationInput}
           trialDaysLeft={checklistDaysLeft}
           canAdd={canAdd}
+          planId={plan}
           onAddStartup={() => setShowAdd(true)}
           onRunReport={openFirstReport}
         />

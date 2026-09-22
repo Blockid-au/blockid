@@ -24,7 +24,10 @@ export type { CopyTokens };
 export const EVALUATIONS_COPY = {
   // ── Activation checklist (trial → Scout) ──────────────────────────────
   "checklist.title": "Get the most from your trial in 4 steps",
-  "checklist.subtitle": "Each step unlocks something Scout keeps doing for you every week.",
+  // G29-C: `{plan}` is the seat's sold plan name (Scout / Firm / Program /
+  // Cohort 25 — `seatPlanName()` in lib/nav/persona-chrome.ts). It used to
+  // read "Scout" on every rung, so a Program seat saw another product's name.
+  "checklist.subtitle": "Each step unlocks something {plan} keeps doing for you every week.",
   "checklist.progress": "{done} of {total} done",
   "checklist.trialDaysOne": "1 day left in your trial",
   "checklist.trialDaysMany": "{days} days left in your trial",

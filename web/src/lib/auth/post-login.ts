@@ -16,7 +16,7 @@
 
 import "server-only";
 import { safeNextPath } from "@/lib/security/safe-redirect";
-import { PERSONAS, isEvaluatorPersona, resolvePersona, type PersonaKey } from "@/lib/nav/persona";
+import { PERSONAS, isEvaluatorPersona, personaFor, type PersonaKey } from "@/lib/nav/persona";
 import { loadPersonaRow } from "@/lib/nav/persona-server";
 
 export const ONBOARDING_HREF = "/onboarding";
@@ -57,11 +57,11 @@ export function resolvePostLoginHref({ persona, onboardingCompleted, next }: Pos
 
 /** DB-backed: persona + onboarding flag for `user`, then the pure rule. */
 export async function postLoginHref(
-  user: { id: string; role?: string | null; email?: string | null },
+  user: { id: string; role?: string | null; email?: string | null; plan?: string | null },
   opts: { next?: string | null } = {},
 ): Promise<string> {
   const row = await loadPersonaRow(user.id);
-  const persona = resolvePersona({ role: user.role ?? null, accountType: row.accountType, segment: row.segment });
+  const persona = personaFor({ role: user.role ?? null, accountType: row.accountType, segment: row.segment, plan: user.plan ?? null });
   // An unreadable row (no DB, missing user) never sends someone into the
   // wizard on a guess — the landing page re-checks with `needsOnboarding()`.
   // W4 review P2: the flag alone bounced 103 existing founders (29 with

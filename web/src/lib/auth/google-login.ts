@@ -115,7 +115,7 @@ export async function completeGoogleLogin(
   // S-IA4: the post-login target is resolved through PERSONAS — wizard when
   // the persona's flow is not done, else the persona landing (founder
   // /dashboard, evaluator /workspace/{investor,advisor,accelerator}).
-  const redirect = await postLoginHref({ id: result.user.id, role: result.user.role, email: result.user.email });
+  const redirect = await postLoginHref({ id: result.user.id, role: result.user.role, email: result.user.email, plan: result.user.plan });
 
   console.info(`[auth:google] login ok`, JSON.stringify({ flow, user: result.user.id, redirect }));
   return { ok: true, user: result.user, redirect, isAdmin };

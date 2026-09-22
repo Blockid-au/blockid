@@ -29,7 +29,7 @@ export default async function LoginPage({
   // S-IA4: a signed-in visitor's "Continue" goes to ?next= or the persona
   // landing (PERSONAS via postLoginHref) — never a literal /dashboard.
   // `next` is user input: same-origin path only (open redirect otherwise — W4 review).
-  const nextUrl = safeNextPath(sp.next, "") || (user ? await postLoginHref({ id: user.id, role: user.role, email: user.email }) : "/dashboard");
+  const nextUrl = safeNextPath(sp.next, "") || (user ? await postLoginHref({ id: user.id, role: user.role, email: user.email, plan: user.plan }) : "/dashboard");
 
   return (
     <>

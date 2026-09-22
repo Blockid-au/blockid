@@ -14,7 +14,6 @@ import { CreditBalance } from "@/components/ui/credit-balance";
 import { CreditBadge } from "@/components/workspace/credit-badge";
 import { ProjectSwitcher } from "@/components/ui/project-switcher";
 import { ConnectWalletButton } from "@/components/wallet/connect-wallet-button";
-import { FeedbackWidget } from "@/components/ui/feedback-widget";
 import { UpgradePrompt } from "@/components/ui/upgrade-prompt";
 import { NotificationBell } from "@/components/notifications/notification-bell";
 import { TrialBanner } from "@/components/workspace/trial-banner";
@@ -39,7 +38,8 @@ import {
   type NavGroup,
   type NavLeaf,
 } from "@/components/workspace/nav-groups";
-import { PERSONAS, resolvePersona, type PersonaKey } from "@/lib/nav/persona";
+import { PERSONAS, personaFor, type PersonaKey } from "@/lib/nav/persona";
+import { chromeFor } from "@/lib/nav/persona-chrome";
 import { NAV_PHASE_NAMES } from "@/lib/nav/founder-phase-shared";
 import { PaywallProvider } from "@/components/sales/paywall-nudge";
 import { TrialCountdownBanner } from "@/components/sales/trial-countdown-banner";
@@ -296,11 +296,14 @@ export function WorkspaceLayout({ children, user, currentPhase: currentPhaseProp
 
   // Persona → sidebar groups (D5). `navGroupsForIds` keeps the persona's
   // declared order; the reseller preset swaps in the console groups.
+  // G29-C: `personaFor` reads the PLAN too — a founder-typed seat on a Scout /
+  // Firm / Program / Cohort plan is an evaluator and never gets founder chrome.
   const personaKey = React.useMemo(
-    () => resolvePersona({ role: user.role ?? null, accountType, segment }),
-    [user.role, accountType, segment],
+    () => personaFor({ role: user.role ?? null, accountType, segment, plan: entitlement.user?.plan ?? null }),
+    [user.role, accountType, segment, entitlement.user?.plan],
   );
   const persona = PERSONAS[personaKey];
+  const chrome = chromeFor(personaKey);
   const groups = React.useMemo<NavGroup[]>(() => {
     if (navPreset === "reseller") {
       const consoleGroups = RESELLER_NAV_GROUPS.filter((g) => g.id !== "mentor-console" || entitlement.can("reseller.console"));
@@ -393,6 +396,7 @@ export function WorkspaceLayout({ children, user, currentPhase: currentPhaseProp
           className="flex-1 py-1 px-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-line"
           aria-label="Workspace navigation"
           data-persona={personaKey}
+          data-chrome={chrome.kind}
           data-nav-phase={currentPhase}
         >
           {nearGroups.map((group) =>
@@ -591,14 +595,19 @@ export function WorkspaceLayout({ children, user, currentPhase: currentPhaseProp
         <UpgradeBanner />
         <UpgradeModal />
 
-        {/* Track B B7 — interactive product tour; hides after per-phase dismissal. */}
-        <ProductTour />
+        {/* Track B B7 — interactive product tour ("You are on Phase X of 12");
+            hides after per-phase dismissal. Founder chrome only (G29-C): an
+            evaluator seat has no growth phase — it gets the activation
+            checklist / cohort progress on its own pages instead. Held back
+            while the plan is unknown so a Program seat never flashes it. */}
+        {chrome.phaseBanner && !planUnknown && <ProductTour />}
 
         {/* Product Tour v2 — per-feature spotlight; matched to route via registry. */}
         <FeatureSpotlight />
 
-        {/* Founding 50 upgrade nudge — shown when user has 1 free credit left */}
-        <UpgradePrompt />
+        {/* Growth upgrade nudge — shown when a free founder is nearly out of
+            credits. Founder ladder only (G29-C). */}
+        {chrome.founderUpgradeNudge && <UpgradePrompt />}
 
         {/* CRO trial countdown — self-hides when >3 days remain or user
             dismisses. Rendered immediately above <main> so the paywall
@@ -613,7 +622,7 @@ export function WorkspaceLayout({ children, user, currentPhase: currentPhaseProp
               routes (settings, projects) but must not see founder tab chrome
               such as "Founder profile · Enterprise" (W2 review). Admins keep
               the founder groups and therefore the tabs. */}
-          {(personaKey === "founder" || personaKey === "admin") && <HubTabs />}
+          {chrome.hubTabs && <HubTabs />}
           {children}
         </main>
 
@@ -628,8 +637,9 @@ export function WorkspaceLayout({ children, user, currentPhase: currentPhaseProp
         </footer>
       </div>
 
-      {/* Floating feedback FAB */}
-      <FeedbackWidget page={pathname} />
+      {/* The floating feedback FAB is mounted ONCE by the root layout inside the
+          shared FloatingStack (G29-C) — a second copy here rendered two FABs on
+          top of each other on every workspace page. */}
     </div>
     </PaywallProvider>
   );

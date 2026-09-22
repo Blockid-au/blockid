@@ -37,6 +37,7 @@ import {
   type ActivationStepNumber,
 } from "@/lib/evaluations/activation-checklist";
 import { EVALUATIONS_COPY, evaluationsCopy, trialDaysLeftLine } from "@/lib/evaluations/copy";
+import { seatPlanName } from "@/lib/nav/persona-chrome";
 
 export interface EvaluatorActivationChecklistProps {
   input: ActivationInputs;
@@ -48,6 +49,8 @@ export interface EvaluatorActivationChecklistProps {
   onRunReport: () => void;
   /** False at the tracked-startup cap — the add CTAs become the upgrade link. */
   canAdd?: boolean;
+  /** The seat's plan id — names the plan in the subtitle (Scout / Firm / Program / Cohort 25); G29-C. */
+  planId?: string | null;
 }
 
 const STEP_COPY: Record<ActivationStepNumber, { title: string; body: string; cta: string }> = {
@@ -68,6 +71,7 @@ export function EvaluatorActivationChecklist({
   onAddStartup,
   onRunReport,
   canAdd = true,
+  planId = null,
 }: EvaluatorActivationChecklistProps): React.ReactElement | null {
   const state = React.useMemo(() => deriveActivationChecklist(input), [input]);
   const [dismissed, setDismissed] = React.useState(false);
@@ -113,7 +117,7 @@ export function EvaluatorActivationChecklist({
           <h2 id="evaluator-checklist-title" className="text-base font-semibold text-ink-900">
             {EVALUATIONS_COPY["checklist.title"]}
           </h2>
-          <p className="mt-0.5 text-sm text-ink-500">{EVALUATIONS_COPY["checklist.subtitle"]}</p>
+          <p className="mt-0.5 text-sm text-ink-500">{evaluationsCopy("checklist.subtitle", { plan: seatPlanName(planId) })}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <span
