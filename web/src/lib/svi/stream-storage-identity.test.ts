@@ -54,3 +54,41 @@ it("late identity resolution cannot restore an earlier intake after a new deck a
   await Promise.resolve();
   expect(seen.mock.calls).toEqual([["new-key"]]);
 });
+
+it("bounded auth timeout resolves once without remounting on a late response", async () => {
+  const { resolveAuthenticatedStreamIdentity } = await import("./stream-storage-identity");
+  vi.useFakeTimers();
+  try {
+    let finish!: (response: Response) => void;
+    let signal: AbortSignal | undefined;
+    const seen = vi.fn();
+    const identity = vi.fn(async () => "late-key");
+    const cancel = resolveAuthenticatedStreamIdentity(scope, seen, { timeoutMs: 30, identity,
+      fetcher: vi.fn((_url, init) => { signal = init?.signal as AbortSignal; return new Promise<Response>(resolve => { finish = resolve; }); }) });
+    await vi.advanceTimersByTimeAsync(30);
+    expect(signal?.aborted).toBe(true);
+    expect(seen.mock.calls).toEqual([[null]]);
+    finish(new Response(JSON.stringify({ ok: true, user: { id: "late-user" } })));
+    await Promise.resolve();
+    expect(identity).not.toHaveBeenCalled();
+    expect(seen).toHaveBeenCalledTimes(1);
+    cancel();
+  } finally { vi.useRealTimers(); }
+});
+
+it("bounded identity uses authenticated user and aborts/cancels on input unmount", async () => {
+  const { resolveAuthenticatedStreamIdentity } = await import("./stream-storage-identity");
+  const seen = vi.fn();
+  const identity = vi.fn(async () => "bound-key");
+  const cancel = resolveAuthenticatedStreamIdentity(scope, seen, { identity,
+    fetcher: vi.fn(async () => new Response(JSON.stringify({ ok: true, user: { id: "authenticated-user" } }))) });
+  await vi.waitFor(() => expect(seen).toHaveBeenCalledWith("bound-key"));
+  expect(identity).toHaveBeenCalledWith(expect.objectContaining({ userId: "authenticated-user", deckText: scope.deckText }));
+  cancel();
+  const ignored = vi.fn();
+  let signal: AbortSignal | undefined;
+  const unmount = resolveAuthenticatedStreamIdentity(scope, ignored, { fetcher: vi.fn((_url, init) => { signal = init?.signal as AbortSignal; return new Promise<Response>(() => {}); }) });
+  unmount();
+  expect(signal?.aborted).toBe(true);
+  expect(ignored).not.toHaveBeenCalled();
+});

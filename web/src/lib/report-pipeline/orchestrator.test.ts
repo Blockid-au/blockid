@@ -1676,6 +1676,8 @@ describe("orchestrateReport() — per-dimension re-run (dims) + valuation event"
     expect(ctx.criterionResults.size).toBe(new Set(seed.map((c) => c.key)).size);
     expect(ctx.dimsFilter).toEqual(["cgh"]);
     expect(report.executiveSummary).toContain("partial re-run");
+    expect(report.finalDimensionChapters?.map(chapter => chapter.dim)).toEqual(["cgh"]);
+    expect(report.finalDimensionChapters?.[0]).toEqual(ctx.dimensionChapters?.get("cgh"));
     expect(auditCalls[0].options.budgetOk?.()).toBe(false);
   });
 
@@ -1696,24 +1698,22 @@ describe("orchestrateReport() — per-dimension re-run (dims) + valuation event"
     expect(report.reportV2?.cover.threeQuestions.worth).not.toContain("A$");
   });
 
-  it("valuation_complete (the §C.5 chapter from GATHER's CFO model) is emitted after the 8 chapters and before criteria_synthesis, and lands on report.reportV2.valuation", async () => {
+  it("unqualified stated revenue emits unavailable valuation after chapters and preserves it in the final report", async () => {
     const demo = demoReportV2();
     H.chapterFactory = (dim) => demo.dimensions.find((d) => d.dim === dim)!;
     const events: PipelineEvent[] = [];
-    // This event fixture requires an actual supplied revenue input. Missing
-    // revenue must not invoke the CFO builder through its zero default.
+    // A supplied number alone does not establish qualified revenue.
+    // Keep event ordering while refusing an unsupported business valuation.
     const sviAnalysis = { ...makeSVI(), signals: { mrrAud: 8000 } };
     const report = await orchestrateReport(baseInput({ sviAnalysis, onEvent: (e) => events.push(e) }));
     const types = events.map((e) => e.type).filter((t) => t !== "progress");
     expect(types.indexOf("valuation_complete")).toBeGreaterThan(types.lastIndexOf("dimension_complete"));
     expect(types.indexOf("valuation_complete")).toBeLessThan(types.indexOf("criteria_synthesis"));
     const val = events.find((e): e is Extract<PipelineEvent, { type: "valuation_complete" }> => e.type === "valuation_complete")!;
-    expect(val.chapter.methods).toHaveLength(7);
-    expect(val.chapter.consensus.midAud).toBe(100_000_000);
-    expect(report.reportV2?.valuation.consensus.midAud).toBe(100_000_000);
-    // G19-S42: the stub CFO row carries no method rows, so the chapter says so instead of claiming five.
-    expect(report.reportV2?.valuation.narrative).toMatch(/^Directional consensus \(no valuation method ran\)/);
-    expect(report.reportV2?.valuation.crossChecks?.length).toBeGreaterThanOrEqual(1);
+    expect(val.chapter).toMatchObject({ status: "unavailable" });
+    expect(val.chapter).not.toHaveProperty("consensus");
+    expect(report.reportV2?.valuation).toMatchObject({ status: "unavailable" });
+    expect(report.reportV2?.valuation).not.toHaveProperty("consensus");
   });
 });
 

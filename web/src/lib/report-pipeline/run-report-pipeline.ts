@@ -97,7 +97,7 @@ export type StreamEventHandler = (event: StreamEvent) => void;
 
 // ── Legacy projections ──────────────────────────────────────────────────────
 
-import { cardToLegacy, chapterToLegacy, legacyLabel, projectFinalReport, readFinalProjection, type FinalProjection } from "./final-projection";
+import { cardToLegacy, chapterToLegacy, legacyLabel, projectFinalReport, projectFinalSelectedChapters, readFinalProjection, type FinalProjection } from "./final-projection";
 export { cardToLegacy, chapterToLegacy, chapterToMarkdown, legacyLabel, priorityForScore } from "./final-projection";
 
 export interface WireState {
@@ -530,11 +530,18 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
     return { ok: false, error: fully ? "fully_degraded" : "pipeline_failed", message };
   }
 
-  const finalProjection = report.reportV2 ? projectFinalReport(report.reportV2, report.id, partial ? dims : undefined) : null;
+  const finalProjection = partial
+    ? projectFinalSelectedChapters(report.finalDimensionChapters, report.id, dims)
+    : report.reportV2 ? projectFinalReport(report.reportV2, report.id) : null;
+  if (partial && !finalProjection) {
+    const message = "The updated sections could not be finalized. Your previous saved report is unchanged.";
+    send({ type: "fatal_error", message });
+    return { ok: false, error: "pipeline_failed", message };
+  }
   if (finalProjection) {
     state.dimResults = finalProjection.dimensions;
     state.criteria = finalProjection.criteria;
-    state.chapters = report.reportV2!.dimensions.filter(d => !partial || dims.includes(d.dim));
+    state.chapters = partial ? report.finalDimensionChapters!.filter(d => dims.includes(d.dim)) : report.reportV2!.dimensions;
   }
   // Generated content remains usable if storage fails; this is separate from billing.
   let saveStatus: ReportSaveStatus = "not_requested";

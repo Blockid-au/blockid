@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { demoReportV2 } from "@/lib/report-v2/fixtures";
-import { mergeFinalCriteria, projectFinalReport, readFinalProjection, replaceFinalDimensions } from "./final-projection";
+import { mergeFinalCriteria, projectFinalSelectedChapters, projectFinalReport, readFinalProjection, replaceFinalDimensions } from "./final-projection";
 
 describe("canonical final projection client replacement", () => {
   it("replaces corrected prose/score while preserving expansion and untouched retry sections", () => {
@@ -34,4 +34,11 @@ describe("canonical final projection client replacement", () => {
     expect(readFinalProjection({ ...p, dimensions: [null, ...p.dimensions.slice(1)] })).toBeNull();
     expect(readFinalProjection({ ...p, totalSVI: NaN })).toBeNull();
   });
+});
+
+it("partial projection refuses missing or incomplete audited chapters", () => {
+  const chapters = demoReportV2().dimensions;
+  expect(projectFinalSelectedChapters(undefined, "report", ["tre"])).toBeNull();
+  expect(projectFinalSelectedChapters(chapters.filter(c => c.dim !== "tre"), "report", ["tre"])).toBeNull();
+  expect(projectFinalSelectedChapters(chapters, "report", ["tre"])?.dimensions.map(c => c.dimension)).toEqual(["tre"]);
 });

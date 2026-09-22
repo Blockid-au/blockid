@@ -112,3 +112,15 @@ export function replaceFinalDimensions<T extends object>(previous: Record<string
     insights: d.insights, priority: d.priority, marketBenchmark: d.market_benchmark ?? null, errorMsg: null } as T;
   return next;
 }
+
+/** Partial documents may contain adapter fallback dimensions. Use only the
+ * orchestrator's post-gate selected chapters, never those fallback guesses. */
+export function projectFinalSelectedChapters(chapters: DimensionChapter[] | undefined, reportId: string, dims: DimKey[]): FinalProjection | null {
+  if (!chapters) return null;
+  const selected = chapters.filter(chapter => dims.includes(chapter.dim));
+  if (selected.length !== dims.length || new Set(selected.map(c => c.dim)).size !== dims.length) return null;
+  const cards = new Map<string, CriterionCard>();
+  for (const chapter of selected) for (const card of chapter.criteria) if (!cards.has(card.key)) cards.set(card.key, card);
+  return readFinalProjection({ version: 1, scope: "partial", reportId, totalSVI: null,
+    dimensions: selected.map(chapterToLegacy), criteria: CRITERIA.flatMap(c => cards.has(c.key) ? [cardToLegacy(cards.get(c.key)!)] : []) });
+}

@@ -761,6 +761,7 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
     // ── Assemble ────────────────────────────────────────────────────────
     notify("rendering", 95);
     const report = assembleReport(context, input.tier, reportId);
+    report.finalDimensionChapters = structuredClone([...(context.dimensionChapters?.values() ?? [])]);
     report.llmCalls = budget.used;
     // Gate issues keep their real type / severity on the assembled report.
     const gateDescriptions = new Set(gates.issues.map((i) => i.description));

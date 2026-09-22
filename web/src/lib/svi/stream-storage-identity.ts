@@ -35,3 +35,32 @@ export function resolveStreamStorageIdentity(scope: StreamStorageScope, onResolv
   void resolve(scope).then(key => { if (!cancelled) onResolved(key); }, () => { if (!cancelled) onResolved(null); });
   return () => { cancelled = true; };
 }
+
+/** One bounded auth+hash resolution per intake. Timeout disables persistence
+ * for this mounted intake; a late auth response cannot remount an active run. */
+export function resolveAuthenticatedStreamIdentity(scope: Omit<StreamStorageScope, "userId">,
+  onResolved: (key: string | null) => void,
+  options: { fetcher?: typeof fetch; timeoutMs?: number; identity?: typeof streamStorageIdentity } = {}): () => void {
+  const controller = new AbortController();
+  let settled = false;
+  const finish = (key: string | null) => {
+    if (settled) return;
+    settled = true;
+    clearTimeout(timer);
+    onResolved(key);
+  };
+  const timer = setTimeout(() => { controller.abort(); finish(null); }, options.timeoutMs ?? 3000);
+  void (async () => {
+    try {
+      const response = await (options.fetcher ?? fetch)("/api/auth/me", { credentials: "same-origin", signal: controller.signal });
+      if (settled) return;
+      if (!response.ok) { finish(null); return; }
+      const body = await response.json() as { ok?: boolean; user?: { id?: unknown } };
+      if (settled) return;
+      if (!body.ok || typeof body.user?.id !== "string" || !body.user.id.trim()) { finish(null); return; }
+      const key = await (options.identity ?? streamStorageIdentity)({ ...scope, userId: body.user.id });
+      finish(key);
+    } catch { finish(null); }
+  })();
+  return () => { settled = true; clearTimeout(timer); controller.abort(); };
+}

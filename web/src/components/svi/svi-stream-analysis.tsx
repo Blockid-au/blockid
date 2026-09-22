@@ -1,7 +1,7 @@
 "use client";
 
-import { useAuthUser } from "@/hooks/useAuthUser";
-import { readStreamState, STREAM_REQUEST_SCOPE, resolveStreamStorageIdentity } from "@/lib/svi/stream-storage-identity";
+import { streamTransportCleanup } from "@/lib/svi/stream-transport";
+import { readStreamState, STREAM_REQUEST_SCOPE, resolveAuthenticatedStreamIdentity } from "@/lib/svi/stream-storage-identity";
 import { readFinalProjection, mergeFinalCriteria, replaceFinalDimensions, type FinalProjection } from "@/lib/report-pipeline/final-projection";
 import { retainReportSaveOutcome, type ReportSaveStatus } from "@/lib/report-save-outcome";
 import { ReportSaveStatusNotice, SavedReportActions } from "./report-save-status";
@@ -1261,15 +1261,13 @@ interface SviStreamAnalysisProps {
 
 /** Resolve identity before mounting stateful UI; stale async hashes cannot restore another input. */
 export function SviStreamAnalysis(props: SviStreamAnalysisProps) {
-  const user = useAuthUser();
-  const request = JSON.stringify([user?.id ?? null, props.projectId ?? null, props.initialDeckText ?? null]);
+  const request = JSON.stringify([props.projectId ?? null, props.initialDeckText ?? null]);
   const generation = useRef(0);
   const [resolved, setResolved] = useState<{ request: string; key: string | null; generation: number } | null>(null);
   useEffect(() => {
-    if (user === undefined) return;
-    return resolveStreamStorageIdentity({ userId: user?.id, projectId: props.projectId, deckText: props.initialDeckText, ...STREAM_REQUEST_SCOPE },
+    return resolveAuthenticatedStreamIdentity({ projectId: props.projectId, deckText: props.initialDeckText, ...STREAM_REQUEST_SCOPE },
       key => setResolved({ request, key, generation: ++generation.current }));
-  }, [request, props.projectId, props.initialDeckText, user]);
+  }, [request, props.projectId, props.initialDeckText]);
   if (!resolved || resolved.request !== request) return <div role="status" className="p-4 text-sm text-text-secondary">Preparing analysis…</div>;
   return <SviStreamAnalysisSession key={resolved.generation} {...props} storageIdentity={resolved.key} />;
 }
@@ -1337,6 +1335,7 @@ function SviStreamAnalysisSession({
     Array<{ dimension: string; delta: number; note: string }>
   >([]);
   const abortRef = useRef<AbortController | null>(null);
+  useEffect(() => streamTransportCleanup(abortRef), []);
 
   // Restore a recent (< 30 min) run on mount so a page refresh mid-analysis
   // or immediately after done doesn't discard the founder's results.
@@ -1498,6 +1497,7 @@ function SviStreamAnalysisSession({
     setRunning(true);
     setStartedAt(Date.now());
 
+    abortRef.current?.abort();
     const ctrl = new AbortController();
     abortRef.current = ctrl;
 
@@ -1514,6 +1514,7 @@ function SviStreamAnalysisSession({
         signal: ctrl.signal,
       });
 
+      if (ctrl.signal.aborted || abortRef.current !== ctrl) return;
       if (!res.ok) {
         const text = await res.text();
         setFatalError(`Request failed (${res.status}): ${text.slice(0, 200)}`);
@@ -1533,6 +1534,7 @@ function SviStreamAnalysisSession({
 
       while (true) {
         const { done: streamDone, value } = await reader.read();
+        if (ctrl.signal.aborted || abortRef.current !== ctrl) return;
         if (streamDone) break;
 
         buffer += decoder.decode(value, { stream: true });
@@ -1603,7 +1605,7 @@ function SviStreamAnalysisSession({
               break;
 
             case "criteria_synthesis":
-              setCriterionStates(event.criteria ?? []);
+              setCriterionStates(previous => mergeFinalCriteria(previous, event.criteria ?? [], dimsFilter?.length ? "partial" : "full"));
               setCriterionSynthesising(false);
               break;
 
@@ -1650,12 +1652,12 @@ function SviStreamAnalysisSession({
         }
       }
     } catch (err) {
-      if ((err as { name?: string }).name !== "AbortError") {
+      if (!ctrl.signal.aborted && abortRef.current === ctrl && (err as { name?: string }).name !== "AbortError") {
         console.error("[svi-stream] run", err);
         setFatalError(userErrorMessage(err, "The analysis stopped unexpectedly. Please try again."));
       }
     } finally {
-      setRunning(false);
+      if (abortRef.current === ctrl) setRunning(false);
     }
   }, [projectId, reset, updateDim, initialDeckText, mode]);
 

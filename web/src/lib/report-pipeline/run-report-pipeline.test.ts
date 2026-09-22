@@ -91,6 +91,7 @@ function fakeOrchestrate(opts: { dims?: string[]; degradeAll?: boolean } = {}) {
       createdAt: "2026-09-16T00:00:00.000Z",
       llmCalls: 24,
       reportV2: { ...demo, source: "pipeline", pipelineVersion: PIPELINE_VERSION },
+      finalDimensionChapters: dims.map(dim => chapterOf(dim)),
       fullyDegraded: opts.degradeAll ?? false,
     };
   };
@@ -608,4 +609,63 @@ it("cannot replay a legacy preview merely stamped with the current cache version
   const result = await runReportPipeline({ userId: "user-1", projectId: "proj-1", tier: "free", deckText: "same input", deps: d });
   expect(result.ok && result.fromCache).toBe(false);
   expect(d.calls).toHaveLength(1);
+});
+
+it("partial preview and audited final retain untouched sections and bypass adapter fallback", async () => {
+  const { applyConsistencyGates } = await import("./consistency-gates");
+  const { mergeFinalCriteria, replaceFinalDimensions } = await import("./final-projection");
+  const fake = fakeOrchestrate();
+  const audited = structuredClone(chapterOf("tre"));
+  audited.score = 99;
+  audited.verdict = "A$12k MRR";
+  audited.criteria[0].verdict = "A$12k MRR";
+  const preview = structuredClone(audited);
+  const untouched = cards.find(c => !preview.criteria.some(selected => selected.key === c.key))!;
+  let clientCards = [cardToLegacy(untouched), ...preview.criteria.map(cardToLegacy)];
+  let clientDims = { mpc: { score: 73, markdown: "untouched market", expanded: true }, tre: { score: 10, markdown: "previous revenue", expanded: true } };
+  const events: StreamEvent[] = [];
+  const d = deps({ orchestrate: async input => {
+    const report = await fake.orchestrate({ ...input, onEvent: event => {
+      if (event.type === "dimension_complete") input.onEvent?.({ ...event, chapter: preview });
+      else if (event.type === "criteria_synthesis") input.onEvent?.({ ...event, criteria: preview.criteria });
+      else input.onEvent?.(event);
+    } });
+    applyConsistencyGates({ chapters: new Map([["tre", audited]]), dimScores: { tre: 42 }, valuation: null, stage: 3, evidenceRows: [], executiveSummary: "Review the evidence." });
+    const adapter = structuredClone(demo);
+    adapter.dimensions.find(c => c.dim === "tre")!.verdict = "ADAPTER FALLBACK";
+    return { ...report, reportV2: adapter, finalDimensionChapters: [audited] };
+  } });
+  await runReportPipeline({ userId: "user-1", projectId: "proj-1", tier: "free", dims: ["tre"], deps: d, onEvent: event => {
+    events.push(event);
+    if (event.type === "criteria_synthesis") {
+      clientCards = mergeFinalCriteria(clientCards, event.criteria, "partial");
+      expect(clientCards.find(c => c.key === untouched.key)).toEqual(cardToLegacy(untouched));
+    }
+    if (event.type === "dimension_complete") clientDims = { ...clientDims, tre: { ...clientDims.tre, score: event.score, markdown: event.markdown } };
+    if (event.type === "final_projection") {
+      expect(event.projection).toMatchObject({ scope: "partial", totalSVI: null });
+      clientCards = mergeFinalCriteria(clientCards, event.projection.criteria, event.projection.scope);
+      clientDims = replaceFinalDimensions(clientDims, event.projection) as typeof clientDims;
+    }
+  } });
+  expect(events.find(e => e.type === "dimension_complete")).toMatchObject({ score: 99, markdown: expect.stringContaining("A$12k") });
+  expect(clientDims.tre).toMatchObject({ score: 42, expanded: true });
+  expect(clientDims.tre.markdown).not.toContain("A$12k");
+  expect(clientDims.tre.markdown).not.toContain("ADAPTER FALLBACK");
+  expect(clientDims.mpc).toEqual({ score: 73, markdown: "untouched market", expanded: true });
+  expect(clientCards.find(c => c.key === untouched.key)).toEqual(cardToLegacy(untouched));
+  expect(clientCards.find(c => c.key === audited.criteria[0].key)?.verdict).toBe(audited.criteria[0].verdict);
+  expect(events.at(-1)).toMatchObject({ type: "done", saveStatus: "not_requested" });
+  expect(d.persisted).toHaveLength(0);
+});
+
+it("does not save or complete a partial run without audited selected chapters", async () => {
+  const fake = fakeOrchestrate();
+  const d = deps({ orchestrate: async input => ({ ...await fake.orchestrate(input), finalDimensionChapters: undefined }) });
+  const events: StreamEvent[] = [];
+  const result = await runReportPipeline({ userId: "user-1", projectId: "proj-1", tier: "free", dims: ["tre"], deps: d, onEvent: event => events.push(event) });
+  expect(result).toMatchObject({ ok: false, error: "pipeline_failed" });
+  expect(d.persisted).toHaveLength(0);
+  expect(events.some(event => event.type === "fatal_error")).toBe(true);
+  expect(events.some(event => event.type === "done" || event.type === "final_projection")).toBe(false);
 });
