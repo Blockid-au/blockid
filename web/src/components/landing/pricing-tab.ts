@@ -80,3 +80,9 @@ export function pricingTabSearch(search: string, tab: PricingTab): string {
  if (tab !== "evaluator") params.set("segment", tab);
  return params.toString();
 }
+
+export function pricingViewVia(clicked: boolean, requested: PricingTab | null, rendered: PricingTab): "tab" | "deep_link" | "default" | null {
+ if (clicked) return "tab";
+ if (requested && requested !== rendered) return null; // wait for URL hydration
+ return requested ? "deep_link" : "default";
+}

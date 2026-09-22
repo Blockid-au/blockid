@@ -631,3 +631,10 @@ describe("G11/G12 funnel events are in AnalyticsEventMap", () => {
     ctx.restore();
   });
 });
+
+it("accepts default evaluator arrival without mislabeling it a deep link", () => {
+ const ctx = install({ withoutGtag: true });
+ trackEvent("evaluator_pricing_viewed", { via: "default", tab: "evaluator" });
+ expect(gtmRows(ctx.win.dataLayer)[0]).toMatchObject({ event: "evaluator_pricing_viewed", via: "default", tab: "evaluator" });
+ ctx.restore();
+});

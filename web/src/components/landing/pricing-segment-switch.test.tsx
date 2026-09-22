@@ -1,4 +1,4 @@
-import { pricingTabSearch } from "./pricing-tab";
+import { pricingTabSearch, pricingViewVia } from "./pricing-tab";
 // Colocated tests for the Founder | Evaluator switch on /pricing (G12,
 // T0268). Uses renderToStaticMarkup (this workspace has no
 // @testing-library/react) so the assertions are on the SSR markup each tab
@@ -226,4 +226,12 @@ it("keeps explicit founder links and removes stale aliases when selecting evalua
  expect(pricingTabSearch("?persona=founder&utm_source=fixture", "evaluator")).toBe("utm_source=fixture");
  expect(pricingTabSearch("?tier=investor&utm_source=fixture", "founder")).toBe("utm_source=fixture&segment=founder");
  expect(pricingTabSearch("?segment=founder", "programs")).toBe("segment=programs");
+});
+
+it("distinguishes default, explicit links and clicks without premature hydration views", () => {
+ expect(pricingViewVia(false, null, "evaluator")).toBe("default");
+ expect(pricingViewVia(false, "evaluator", "evaluator")).toBe("deep_link");
+ expect(pricingViewVia(false, "programs", "evaluator")).toBeNull();
+ expect(pricingViewVia(false, "founder", "evaluator")).toBeNull();
+ expect(pricingViewVia(true, "founder", "evaluator")).toBe("tab");
 });

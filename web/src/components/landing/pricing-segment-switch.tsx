@@ -46,6 +46,7 @@ import {
   TAB_TO_SEGMENT,
   resolvePricingTab,
   pricingTabSearch,
+  pricingViewVia,
   type PricingTab,
 } from "@/components/landing/pricing-tab";
 
@@ -120,8 +121,8 @@ export function PricingSegmentSwitch({
   const [chosen, setTabState] = useState<PricingTab | null>(null);
   const tab: PricingTab = chosen ?? urlTab ?? initialSegment;
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
-  // "deep_link" for the very first Evaluator paint, "tab" afterwards.
-  const viaRef = useRef<"deep_link" | "tab">("deep_link");
+  // A query-driven first view differs from the default Evaluator landing.
+  const viaRef = useRef<"tab" | null>(null);
 
   const setTab = useCallback(
     (next: PricingTab) => {
@@ -145,8 +146,10 @@ export function PricingSegmentSwitch({
     // Both non-founder ladders are evaluator surfaces for GA4 — the tab
     // param tells the Programs and Evaluator views apart.
     if (tab === "founder") return;
-    trackEvent("evaluator_pricing_viewed", { via: viaRef.current, tab: tab === "programs" ? "programs" : "evaluator" });
-  }, [tab]);
+    const via = pricingViewVia(viaRef.current === "tab", readTabFromUrl ? tabFromLocation() : null, tab);
+    if (via === null) return;
+    trackEvent("evaluator_pricing_viewed", { via, tab: tab === "programs" ? "programs" : "evaluator" });
+  }, [tab, readTabFromUrl]);
 
   // WAI-ARIA tablist keyboard pattern (three tabs, wraps around).
   const onTabKeyDown = useCallback(
