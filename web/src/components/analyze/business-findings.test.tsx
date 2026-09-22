@@ -112,3 +112,28 @@ it("renders detailed investor guidance, targeted requests and provenance inside 
   expect(vietnamese).toContain("Câu hỏi kiểm chứng cụ thể");
   expect(vietnamese).toContain("Chi tiêu toàn ngành");
 });
+
+
+it("previews the recorded criterion verdict, discloses source detail and provides local return links", () => {
+  const finding = projectBusinessFindings({ report: demoReportV2() }).find((item) => item.criteria.length > 0)!;
+  const criterion = finding.criteria[0];
+  criterion.verdict = "The deck names customers but does not establish paid demand.";
+  criterion.grounded = false;
+  criterion.citations = [{ id: "fixture-source", quote: "Customer interviews", sourceRecorded: true, sourceLabel: "Supplied deck", sourceDetail: "Full source text <script>untrusted()</script>" }];
+  const html = renderToStaticMarkup(<BusinessFindings findings={[finding]} />);
+  const criterionStart = html.indexOf(`data-criterion-id="${criterion.id}"`);
+  const summaryEnd = html.indexOf("</summary>", criterionStart);
+  expect(html.slice(criterionStart, summaryEnd)).toContain(criterion.verdict);
+  expect(html.slice(criterionStart, summaryEnd)).toContain("Support for this assessment has not been fully confirmed.");
+  expect(html).toContain("data-source-disclosure");
+  expect(html).not.toMatch(/<details[^>]*data-source-disclosure[^>]*open/);
+  expect(html).toContain("Full source text &lt;script&gt;");
+  expect(html).not.toContain("<script>");
+  expect(html).toContain(`href="#finding-${finding.id}-summary"`);
+  expect(html).toContain(`id="finding-${finding.id}-summary"`);
+  expect(html).toContain('href="#analyze-findings-heading"');
+  expect(html).toContain("Viewing existing detail uses no credits");
+  const vi = renderToStaticMarkup(<BusinessFindings findings={[finding]} locale="vi" />);
+  expect(vi).toContain("Mở nội dung nguồn đã lưu");
+  expect(vi).toContain("Quay lại tổng quan mục này");
+});

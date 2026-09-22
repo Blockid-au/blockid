@@ -1,5 +1,7 @@
 "use client";
 
+import { ArrowUp, ChevronDown } from "lucide-react";
+
 import type {
   BusinessFinding,
   FindingsLocale,
@@ -19,6 +21,10 @@ export function BusinessFindings({
   const copy = vi
     ? {
         heading: "Nội dung đã xem xét",
+        openDetail: "Xem phân tích và bằng chứng",
+        backArea: "Quay lại tổng quan mục này",
+        backOverview: "Quay lại nội dung đã xem xét",
+        sourceDetail: "Mở nội dung nguồn đã lưu",
         intro:
           "Mở từng mục để xem nhận định, giới hạn và thông tin cần bổ sung. Xem nội dung hiện có không tốn credit.",
         final: "Nội dung báo cáo",
@@ -45,6 +51,10 @@ export function BusinessFindings({
       }
     : {
         heading: "What we looked at",
+        openDetail: "Explore analysis and evidence",
+        backArea: "Back to this area overview",
+        backOverview: "Back to what we looked at",
+        sourceDetail: "Open stored source content",
         intro:
           "Open an area for its assessment, limitations and next evidence request. Viewing existing detail uses no credits.",
         final: "Report content",
@@ -78,6 +88,7 @@ export function BusinessFindings({
     >
       <h3
         id="analyze-findings-heading"
+        tabIndex={-1}
         className="text-base font-semibold text-primary"
       >
         {copy.heading}{" "}
@@ -117,7 +128,7 @@ export function BusinessFindings({
               data-report-id={finding.reportId}
               data-snapshot-id={finding.snapshotId}
             >
-              <summary className="min-h-11 cursor-pointer rounded-lg p-2 text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action">
+              <summary id={`finding-${finding.id}-summary`} className="min-h-11 cursor-pointer rounded-lg p-2 text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action">
                 <span className="font-semibold">{finding.title}</span>
                 <span className="ml-2 inline-block rounded bg-surface-hover px-2 py-1 text-xs text-secondary">
                   {copy[finding.state]}
@@ -125,6 +136,7 @@ export function BusinessFindings({
                 <span className="mt-2 block max-w-prose text-sm leading-relaxed text-secondary">
                   {finding.summary}
                 </span>
+                <span className="mt-2 inline-flex items-center gap-1 text-sm font-medium text-action">{copy.openDetail}<ChevronDown className="h-4 w-4" aria-hidden="true" /></span>
               </summary>
               <div className="space-y-5 px-2 pb-4 pt-3 text-base leading-relaxed text-secondary [overflow-wrap:anywhere]">
                 <FindingList
@@ -145,15 +157,15 @@ export function BusinessFindings({
                     {finding.criteria.map((criterion) => (
                       <details
                         key={criterion.id}
-                        className="mt-2 rounded-lg border border-line-subtle p-3"
+                        className="mt-3 rounded-xl border border-line-subtle bg-surface p-4"
+                        data-criterion-id={criterion.id}
                       >
-                        <summary className="min-h-11 cursor-pointer font-medium text-primary focus-visible:outline-2 focus-visible:outline-action">
+                        <summary className="min-h-11 cursor-pointer rounded font-medium text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action">
                           {criterion.title}
                           {criterion.conflicts.length > 0 && <span className="ml-2 text-sm text-warn">{copy.conflict}</span>}
+                          <span className="mt-2 block text-sm font-normal leading-relaxed text-secondary" data-criterion-preview>{criterion.verdict || copy.empty}</span>
+                          {!criterion.grounded && <span className="mt-2 block text-sm font-normal text-secondary">{copy.unsupported}</span>}
                         </summary>
-                        <p className="mt-2">
-                          {criterion.verdict || copy.empty}
-                        </p>
                         <FindingList title={copy.conflict} items={criterion.conflicts} />
                         <div className="mt-3">
                           <h5 className="font-semibold text-primary">{copy.guidance}</h5>
@@ -177,10 +189,11 @@ export function BusinessFindings({
                             <p className="mt-1">{citation.quote}</p>
                             {citation.sourceLabel && <p className="mt-2 font-medium">{citation.sourceLabel}</p>}
                             {citation.observedAt && <p className="mt-1">{citation.observedAt}</p>}
-                            {citation.sourceDetail && <div className="mt-2">
-                              <p className="font-medium">{copy.sourceRecord}</p>
-                              <blockquote className="mt-1 whitespace-pre-wrap border-l-2 border-line-subtle pl-3">{citation.sourceDetail}</blockquote>
-                            </div>}
+                            {citation.sourceDetail && <details className="mt-2 rounded-lg bg-surface-sunken p-3" data-source-disclosure>
+                              <summary className="flex min-h-11 cursor-pointer items-center gap-2 font-medium text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action">{copy.sourceDetail}<ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" /></summary>
+                              <p className="mt-2 font-medium">{copy.sourceRecord}</p>
+                              <blockquote className="mt-2 whitespace-pre-wrap border-l-2 border-line-subtle pl-3">{citation.sourceDetail}</blockquote>
+                            </details>}
                             {!citation.sourceRecorded && (
                               <p className="mt-1">{copy.unresolved}</p>
                             )}
@@ -196,6 +209,7 @@ export function BusinessFindings({
                           items={criterion.request ? [criterion.request] : []}
                         />
                         <FindingList title={copy.question} items={[criterion.diligenceQuestion]} />
+                        <a href={`#finding-${finding.id}-summary`} className="mt-4 inline-flex min-h-11 items-center gap-2 rounded text-sm font-medium text-action underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"><ArrowUp className="h-4 w-4" aria-hidden="true" />{copy.backArea}</a>
                       </details>
                     ))}
                   </div>
@@ -224,9 +238,10 @@ export function BusinessFindings({
                             <p className="text-sm">{source.observedAt}</p>
                           )}
                           {source.detail && (
-                            <p className="mt-2 whitespace-pre-wrap">
-                              {source.detail}
-                            </p>
+                            <details className="mt-2" data-source-disclosure>
+                              <summary className="flex min-h-11 cursor-pointer items-center gap-2 rounded text-sm font-medium text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action">{copy.sourceDetail}<ChevronDown className="h-4 w-4 shrink-0" aria-hidden="true" /></summary>
+                              <p className="mt-2 whitespace-pre-wrap">{source.detail}</p>
+                            </details>
                           )}
                         </li>
                       ))}
@@ -235,6 +250,7 @@ export function BusinessFindings({
                     <p className="mt-1 text-sm">{copy.noSources}</p>
                   )}
                 </div>
+                <a href="#analyze-findings-heading" className="inline-flex min-h-11 items-center gap-2 rounded text-sm font-medium text-action underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"><ArrowUp className="h-4 w-4" aria-hidden="true" />{copy.backOverview}</a>
               </div>
             </details>
           </div>

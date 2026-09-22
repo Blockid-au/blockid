@@ -1,0 +1,7 @@
+# G30 U01/U07 — findings detail disclosure
+
+Presentation-only continuation after investor desk commit 3d3b72227. `BusinessFindings` now exposes each recorded criterion verdict and unconfirmed-support notice in its closed summary, so an investor can understand the finding before opening its detailed rationale. Existing critical issue notices remain outside the area disclosure. No facts, quality scores, research conclusions, data or financial behavior are generated or changed.
+
+Within expanded criteria, quotes and source identity stay visible; long stored source content can be opened separately. This reduces the amount of evidence text shown at once without deleting or truncating it. Local return links lead from criterion → area summary and area → findings heading. These complement existing workspace breadcrumbs rather than duplicating global navigation. EN/VI labels follow the component's existing locale pattern; shared light surfaces, dark text and explicit focus/44px controls remain in use.
+
+Checks: 7 focused findings-reader cases pass, including old canonical/heuristic separation, critical limitations, EN/VI, escaped source content, source disclosure and return targets. Scoped ESLint clean and esbuild bundle passed. Browser interaction/mobile/contrast acceptance and all saved/share/export surfaces remain deferred. This change does not establish that recorded quotations are independently verified or that missing research has been completed. Existing detail remains free to open; no checkout or research invocation is introduced.
