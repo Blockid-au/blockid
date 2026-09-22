@@ -1,5 +1,14 @@
 # BlockID.au Changelog
 
+## v3.30.0 — G30 report and reading foundations
+
+- Rebuild fresh-deck context from received input and reject unsupported partial or empty deck requests before billing admission; invalidate older generation caches.
+- Distinguish report generation from successful saving. Show failed-save guidance and suppress stale share/export actions, including after section retries.
+- Normalize legacy dark preferences to light surfaces with dark text; preserve input and keep CSP script hashes aligned.
+- Scope four main report adapters to the DeepInfra policy. External free fallbacks remain unqualified; legacy direct AI routes need separate coverage.
+- Reject credit purchases when Stripe or pack prices are unavailable instead of granting unpaid credits.
+- Full evidence and valuation accuracy, atomic billing, paid-gap deck pricing, actual-page redesign and sale acceptance remain in progress.
+
 ## v3.29.0 — G30 initial safety and quote provenance
 
 - Model-written quotes no longer become evidence merely through a valid source ID; new generation cache version, with historical reports preserved.

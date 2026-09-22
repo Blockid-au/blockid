@@ -1,8 +1,9 @@
 {
-  "version": "v3.29.0",
-  "updated_at": "2026-09-22T05:36:06.124299Z",
-  "release_id": "g30-w0-safe-promotion-source-quotes",
+  "version": "v3.30.0",
+  "updated_at": "2026-09-22T06:30:55.154532Z",
+  "release_id": "g30-report-foundation-light-provider-policy",
   "shipped_summary": [
+    "v3.30.0 — G30 foundation: current-deck inputs, explicit report-save failures, light-theme migration, DeepInfra policy for four main report adapters, and missing-payment-configuration guard. Full report evidence/valuation, billing atomicity and whole-site redesign remain in progress.",
     "v3.29.0 — G30 initial safety release: source-backed quote checks and versioned report cache; protected releases, serialized warm recovery and non-stopping origin promotion. Existing report semantic/valuation issues and full-site redesign remain in progress.",
     "v3.28.2 — exit hub overflow root cause (2026-09-22): the locked tab's sr-only label (position: absolute) escaped the scrolling tablist and widened the document past 375 px on /workspace/exit*; tab links are relative now so it is clipped with the tab.",
     "v3.28.1 — post-deploy sweep fixes (2026-09-22): the hub tab strip scrolls inside the viewport at 375 px on /workspace/exit* (nav min-w-0 / main min-w-0 — the tablist's overflow-x-auto had nothing to clip against); /workspace/equity/setup carries an h1 (the wizard step title).",
@@ -35,5 +36,5 @@
     "T0192 (CEO loop, v3.15.0)"
   ],
   "notes": "Version sources: web/package.json + content/reports/project-state.json are written by the CEO implementing-plan loop (api/cron/agent-orchestrator update_artifacts); this file feeds /api/status, the footer badge, /version and /roadmap and is written by web/scripts/version-bump.mjs. Both were aligned by hand at v3.16.0 on 2026-09-19 (G18-B). Migrations applied through 0412 via scripts/db/apply-migration.sh. Founder-only follow-ups: new Telegram bot token, Drive quota auth for off-site backups (node --env-file=web/.env scripts/db-backup-offsite-auth.mjs), valid ANTHROPIC_API_KEY.",
-  "summary": "G20 Ready for sale: feature inventory + 19 hidden unfinished features (Not offered yet cards), signed-in page sweep across every persona (35 defects fixed: streamed redirects → real 307s, React #441 on compare, missing h1/main, dead API calls, mobile overflow), purchase path lane (nothing paid), workspace copy on the messaging map; G19 report quality batches 1–2 (peer session)."
+  "summary": "G30 phased upgrade in progress: report input/save honesty, light reading surfaces and scoped DeepInfra routing. See the approved source-of-truth plan for remaining quality, billing and design acceptance gates."
 }

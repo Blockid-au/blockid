@@ -4,7 +4,7 @@
 // importer. Bumped whenever the generator's output shape / prompts change —
 // the `svi_deck_cache` key is `deck_hash + pipeline_version`.
 
-export const PIPELINE_VERSION = "pipeline-v2.1-s-r4-source-quotes";
+export const PIPELINE_VERSION = "pipeline-v2.1-s-r5-input-provider-policy";
 
 /**
  * G24-B — the semver the CODE-DEFAULT prompts are registered under in
