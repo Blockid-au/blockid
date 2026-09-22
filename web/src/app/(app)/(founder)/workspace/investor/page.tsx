@@ -9,7 +9,7 @@ import { loadEvaluatorHub, type EvaluatorHubSearchParams } from "@/components/in
 
 export const metadata: Metadata = {
   title: "Investor desk · BlockID",
-  description: "Startups you evaluate, deal flow matching your mandate, report quota and mandate completeness.",
+  description: "Review businesses, explore their reports and evidence, discover investment opportunities, and manage your report allowance.",
   robots: { index: false, follow: false },
 };
 

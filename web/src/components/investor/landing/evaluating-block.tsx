@@ -17,7 +17,7 @@ export const EVALUATING_EMPTY = "Add your first startup — paste a website or p
 export const ADD_STARTUP_HREF = "/workspace/evaluations?add=1";
 
 const COPY: Record<LandingVariant, { title: string; add: string; open: string; icon: typeof Building2; unit: [string, string] }> = {
-  investor: { title: "Startups I'm evaluating", add: "Add startup", open: "Open evaluations", icon: Building2, unit: ["startup", "startups"] },
+  investor: { title: "Businesses under review", add: "Add business", open: "Open evaluations", icon: Building2, unit: ["business", "businesses"] },
   advisor: { title: "Clients", add: "Add client", open: "Open client list", icon: Users, unit: ["client", "clients"] },
   accelerator: { title: "Cohort", add: "Add to cohort", open: "Open cohort", icon: Layers, unit: ["startup", "startups"] },
 };
@@ -42,39 +42,52 @@ export function EvaluatingBlock({ ctx, variant, data, slot = 1 }: { ctx: Investo
       icon={copy.icon}
       span="wide"
       empty={empty}
-      aside={!empty ? <SviPill score={data.avgSvi} /> : undefined}
+      aside={!empty && variant !== "investor" ? <SviPill score={data.avgSvi} /> : undefined}
       cta={
-        <InvestorLandingCta block="evaluating" href={empty ? ADD_STARTUP_HREF : "/workspace/evaluations"} ctx={ctx} action={empty ? "add_startup" : "open_evaluations"} testId="landing-evaluating-cta">
+        <InvestorLandingCta block="evaluating" href={empty ? ADD_STARTUP_HREF : "/workspace/evaluations"} ctx={ctx} variant={variant === "investor" ? "secondary" : "primary"} action={empty ? "add_startup" : "open_evaluations"} testId="landing-evaluating-cta">
           {empty ? copy.add : copy.open}
         </InvestorLandingCta>
       }
     >
       {empty ? (
-        <p className="text-sm leading-relaxed text-secondary">{EVALUATING_EMPTY}</p>
+        <p className="text-sm leading-relaxed text-secondary">{variant === "investor" ? "Add a business to keep its assessment, reports and evidence together." : EVALUATING_EMPTY}</p>
       ) : (
         <div className="space-y-3">
           <dl className="grid grid-cols-3 gap-3" data-landing-evaluating-stats>
             <div className="rounded-lg bg-surface-sunken p-3">
-              <dt className="text-[10px] uppercase tracking-wide text-tertiary">Tracked</dt>
+              <dt className="text-xs font-medium text-secondary">Tracked</dt>
               <dd className="text-lg font-semibold text-primary" data-landing-count={data.count}>
                 {data.count} <span className="text-xs font-normal text-secondary">{data.count === 1 ? copy.unit[0] : copy.unit[1]}</span>
               </dd>
             </div>
             <div className="rounded-lg bg-surface-sunken p-3">
-              <dt className="text-[10px] uppercase tracking-wide text-tertiary">Avg SVI</dt>
+              <dt className="text-xs font-medium text-secondary">Avg SVI</dt>
               <dd className="text-lg font-semibold text-primary" data-landing-avg-svi={data.avgSvi ?? ""}>
                 {data.avgSvi != null ? data.avgSvi : "—"}
                 {data.scored < data.count ? <span className="text-xs font-normal text-secondary"> · {data.count - data.scored} unscored</span> : null}
               </dd>
             </div>
             <div className="rounded-lg bg-surface-sunken p-3">
-              <dt className="text-[10px] uppercase tracking-wide text-tertiary">Movers this week</dt>
+              <dt className="text-xs font-medium text-secondary">Movers this week</dt>
               <dd className="text-lg font-semibold text-primary" data-landing-movers={data.movers.length}>
                 {data.movers.length}
               </dd>
             </div>
           </dl>
-          {data.movers.length > 0 ? (
+          {variant === "investor" ? (
+            <div className="space-y-2" data-investor-review-list>
+              <h3 className="text-sm font-semibold text-primary">Continue your reviews</h3>
+              <ul className="divide-y divide-line-subtle">
+                {data.rows.slice(0, 3).map((row) => <li key={row.id}>
+                  <Link href={`/workspace/evaluations/${row.id}`} className="-mx-2 flex min-h-16 items-center gap-3 rounded-lg px-2 py-3 hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action">
+                    <span className="min-w-0 flex-1"><span className="block break-words text-sm font-semibold text-primary">{row.projectName || row.label || "Business review"}</span><span className="mt-1 block text-xs text-secondary">Open assessment &amp; evidence</span></span>
+                    <SviPill score={row.latestSvi} /><ChevronRight className="h-4 w-4 shrink-0 text-secondary" aria-hidden="true" />
+                  </Link>
+                </li>)}
+              </ul>
+              {data.rows.length > 3 ? <p className="text-xs text-secondary">Showing 3 of {data.count} businesses. Open evaluations to see the full list.</p> : null}
+            </div>
+          ) : data.movers.length > 0 ? (
             <ul className="divide-y divide-line-subtle" data-landing-mover-list>
               {data.movers.map((m) => (
                 <li key={m.evaluationId}>
@@ -90,9 +103,10 @@ export function EvaluatingBlock({ ctx, variant, data, slot = 1 }: { ctx: Investo
           ) : (
             <p className="text-xs text-tertiary">No score moved this week.</p>
           )}
-          <p className="text-[11px] text-tertiary" data-landing-consent>
-            Consent: {consentLine(data.consent) || "none granted yet"}
-          </p>
+          <details className="rounded-lg border border-line-subtle p-3">
+            <summary className="flex min-h-11 cursor-pointer items-center text-xs font-medium text-secondary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action">Access and sharing</summary>
+            <p className="mt-2 text-xs leading-relaxed text-secondary" data-landing-consent>Consent: {consentLine(data.consent) || "none granted yet"}</p>
+          </details>
         </div>
       )}
     </InvestorBlock>

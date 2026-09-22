@@ -184,7 +184,7 @@ describe("InvestorLanding — four blocks × three personas (G13-W4-IA4 §C.1)",
     expect(blocks(out)).toEqual(["evaluating", "dealflow", "quota"]);
     expect(dataAttr(out, "landing-persona")).toBe("investor_angel");
     expect(dataAttr(out, "landing-variant")).toBe("investor");
-    expect(out).toContain("Startups I&#x27;m evaluating");
+    expect(out).toContain("Businesses under review");
     expect(out).toContain('data-landing-count="2"');
     expect(out).toContain('data-landing-avg-svi="64"'); // only the scored row counts
     expect(out).toContain("1 unscored");
@@ -238,9 +238,9 @@ describe("InvestorLanding — four blocks × three personas (G13-W4-IA4 §C.1)",
     const out = await html(EMPTY("investor_angel"));
     expect(blocks(out)).toEqual(["evaluating", "mandate", "quota"]);
     for (const b of ["evaluating", "mandate", "quota"]) expect(isEmpty(out, b), b).toBe(true);
-    expect(out).toContain("Add your first startup — paste a website or pick from the Startup Index.");
+    expect(out).toContain("Add a business to keep its assessment, reports and evidence together.");
     expect(cta(out, "evaluating")).toBe("/workspace/evaluations?add=1");
-    expect(out).toContain(">Add startup<");
+    expect(out).toContain(">Add business<");
     expect(out).toContain("1 free Trusted Business Report on trial");
     expect(cta(out, "quota")).toBe("/pricing?segment=evaluator");
     expect(out).toContain(">Upgrade<");
@@ -371,5 +371,38 @@ describe("landing-data pure helpers", () => {
     expect(landingPersonaFor("investor", "founder")).toBe("investor_angel");
     expect(landingPersonaFor("advisor", "investor_vc")).toBe("advisor");
     expect(landingPersonaFor("accelerator", "founder")).toBe("accelerator");
+  });
+});
+
+
+describe("G30 investor desk hierarchy", () => {
+  it("keeps research visible and account controls collapsed when reports remain", async () => {
+    const out = await html(data("investor_angel"));
+    expect(out).toContain('href="/analyze"');
+    expect(out).toContain("Analyse a business");
+    expect(out).toContain('aria-label="Investor workspace sections"');
+    expect(out).toContain("Continue your reviews");
+    expect(out).toContain('href="/workspace/evaluations/ev-1"');
+    expect(out).toContain('href="/workspace/evaluations/ev-2"');
+    expect(out).toContain("Beta Bio"); // unscored business remains discoverable
+    expect(out).toMatch(/<details[^>]*data-investor-account-details[^>]*>/);
+    expect(out).not.toMatch(/<details[^>]*data-investor-account-details[^>]*open/);
+    expect(out.indexOf('data-investor-review-list')).toBeLessThan(out.indexOf('data-investor-account-details'));
+    expect(out).not.toContain("Latest reports"); // loader has score/roster data, not final report lineage
+  });
+
+  it("shows exhausted allowance without requiring disclosure", async () => {
+    const source = data("investor_angel");
+    const out = await html({ ...source, quota: { ...source.quota, quota: { ...QUOTA_OK, used: 3, remaining: 0 } } });
+    expect(out).toMatch(/<details[^>]*data-investor-account-details[^>]*open=""/);
+    expect(out).toContain("3/3 reports this month");
+  });
+
+  it("keeps the advisor and accelerator layouts outside the investor disclosure", async () => {
+    for (const persona of ["advisor", "accelerator"] as const) {
+      const out = await html(data(persona));
+      expect(out).not.toContain("data-investor-account-details");
+      expect(out).not.toContain('aria-label="Investor workspace sections"');
+    }
   });
 });

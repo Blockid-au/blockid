@@ -35,9 +35,9 @@ export interface InvestorLandingCtaProps {
 
 const VARIANT: Record<NonNullable<InvestorLandingCtaProps["variant"]>, string> = {
   primary:
-    "inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-action px-4 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover",
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-action px-4 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover",
   secondary:
-    "inline-flex min-h-9 items-center justify-center gap-2 rounded-xl border border-line-subtle bg-surface px-3 text-xs font-semibold text-primary transition-colors hover:border-action/40",
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-line-subtle bg-surface px-3 text-xs font-semibold text-primary transition-colors hover:border-action/40",
   link: "inline-flex min-h-6 items-center gap-1 text-xs font-medium text-action underline-offset-2 hover:underline",
 };
 
@@ -46,7 +46,7 @@ export function InvestorLandingCta({ block, href, ctx, action, variant = "primar
     trackEvent("landing_block_click", investorLandingClickPayload(block, href, ctx, action));
   }, [block, href, ctx, action]);
   return (
-    <Link href={href} onClick={onClick} data-landing-cta={block} data-testid={testId} className={cn(VARIANT[variant], className)}>
+    <Link href={href} onClick={onClick} data-landing-cta={block} data-testid={testId} className={cn(VARIANT[variant], "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action", className)}>
       {children}
     </Link>
   );

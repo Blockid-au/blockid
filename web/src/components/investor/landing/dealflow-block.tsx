@@ -48,7 +48,7 @@ export function DealflowBlock({ ctx, variant, dealflow, evaluating, slot = 2 }: 
             Review mandate
           </InvestorLandingCta>
         ) : (
-          <InvestorLandingCta block="dealflow" href="/workspace/investor/dealflow" ctx={ctx} action="see_all" testId="landing-dealflow-cta">
+          <InvestorLandingCta block="dealflow" href="/workspace/investor/dealflow" ctx={ctx} action="see_all" variant="secondary" testId="landing-dealflow-cta">
             See all{dealflow.totalAboveFloor > dealflow.rows.length ? ` (${dealflow.totalAboveFloor})` : ""}
           </InvestorLandingCta>
         )

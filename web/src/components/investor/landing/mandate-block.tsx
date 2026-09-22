@@ -39,7 +39,7 @@ export function MandateBlock({ ctx, variant, data, slot = 4 }: { ctx: InvestorLa
       empty={data.empty}
       aside={!data.empty ? <span className="text-[11px] font-semibold text-secondary" data-landing-mandate-sections={data.sectionsFilled}>{data.sectionsFilled}/{total} sections</span> : undefined}
       cta={
-        <InvestorLandingCta block="mandate" href={MANDATE_HREF} ctx={ctx} action={data.empty ? "set_mandate" : "complete_mandate"} testId="landing-mandate-cta">
+        <InvestorLandingCta block="mandate" href={MANDATE_HREF} ctx={ctx} variant={variant === "investor" ? "secondary" : "primary"} action={data.empty ? "set_mandate" : "complete_mandate"} testId="landing-mandate-cta">
           {data.empty ? copy.cta : "Complete it"}
         </InvestorLandingCta>
       }

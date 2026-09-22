@@ -14,6 +14,8 @@
 // `landing_viewed` fires once per mount with the blocks rendered and the
 // ones that are empty (the founder tracker, reused — it is persona-aware).
 
+import Link from "next/link";
+import { ArrowRight, ChevronDown, Plus } from "lucide-react";
 import { LandingViewedTracker, type LandingContext } from "@/components/dashboard/landing/landing-tracker";
 import { PERSONAS } from "@/lib/nav/persona";
 import { blockOrderFor, type InvestorLandingBlock, type InvestorLandingData } from "@/lib/investors/landing-data";
@@ -59,6 +61,18 @@ export function InvestorLanding({ data, user, now, headingLevel = "h1" }: Invest
   const name = user.displayName?.trim() || user.email.split("@")[0];
   const slotOf = (b: InvestorLandingBlock) => (order.indexOf(b) + 1) as 1 | 2 | 3 | 4;
 
+  const renderBlock = (block: InvestorLandingBlock) => {
+    switch (block) {
+      case "evaluating": return <EvaluatingBlock key={block} ctx={ctx} variant={data.variant} data={data.evaluating} slot={slotOf(block)} />;
+      case "dealflow": return <DealflowBlock key={block} ctx={ctx} variant={data.variant} dealflow={data.dealflow} evaluating={data.evaluating} slot={slotOf(block)} />;
+      case "quota": return <QuotaBlock key={block} ctx={ctx} variant={data.variant} data={data.quota} now={now} slot={slotOf(block)} />;
+      case "mandate": return <MandateBlock key={block} ctx={ctx} variant={data.variant} data={data.mandate} slot={slotOf(block)} />;
+    }
+  };
+  const investor = data.variant === "investor";
+  const supporting = (block: InvestorLandingBlock) => block === "quota" || (block === "mandate" && !data.mandate.empty);
+  const quota = quotaLine(data.quota.quota, now);
+
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-6 pb-24 pt-6" data-investor-landing data-landing-persona={data.persona} data-landing-variant={data.variant}>
       <LandingViewedTracker ctx={viewedCtx} blocks={order} emptyBlocks={emptyBlocks} />
@@ -68,25 +82,24 @@ export function InvestorLanding({ data, user, now, headingLevel = "h1" }: Invest
           <Heading className="text-2xl font-semibold text-primary">
             {HERO[data.variant]}, {name}
           </Heading>
+          {investor ? <p className="mt-2 max-w-2xl text-sm leading-relaxed text-secondary">Review the businesses that matter to you. Open a business to explore its report, evidence and next questions.</p> : null}
         </div>
+        {investor ? <Link href="/analyze" className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-action"><Plus className="h-4 w-4" aria-hidden="true" />Analyse a business</Link> : null}
       </header>
+      {investor ? <nav aria-label="Investor workspace sections" className="flex flex-wrap gap-2">
+        {[["/workspace/evaluations", "All businesses"], ["/workspace/investor/dealflow", "Discover businesses"], ["/workspace/investor/mandate", "Investment preferences"]].map(([href, label]) => <Link key={href} href={href} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-line-subtle bg-surface px-3 text-sm font-medium text-primary hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action">{label}<ArrowRight className="h-3.5 w-3.5" aria-hidden="true" /></Link>)}
+      </nav> : null}
 
       <section data-landing-grid className="grid grid-cols-1 gap-6 lg:grid-cols-12" aria-label="Your desk at a glance">
-        {order.map((block) => {
-          switch (block) {
-            case "evaluating":
-              return <EvaluatingBlock key={block} ctx={ctx} variant={data.variant} data={data.evaluating} slot={slotOf(block)} />;
-            case "dealflow":
-              return <DealflowBlock key={block} ctx={ctx} variant={data.variant} dealflow={data.dealflow} evaluating={data.evaluating} slot={slotOf(block)} />;
-            case "quota":
-              return <QuotaBlock key={block} ctx={ctx} variant={data.variant} data={data.quota} now={now} slot={slotOf(block)} />;
-            case "mandate":
-              return <MandateBlock key={block} ctx={ctx} variant={data.variant} data={data.mandate} slot={slotOf(block)} />;
-            default:
-              return null;
-          }
-        })}
+        {order.filter((block) => !investor || !supporting(block)).map(renderBlock)}
       </section>
+      {investor ? <details className="group rounded-2xl border border-line-subtle bg-surface" data-investor-account-details open={quota.empty || (!data.quota.quota.unlimited && data.quota.quota.remaining <= 0)}>
+        <summary className="flex min-h-14 cursor-pointer list-none flex-wrap items-center justify-between gap-3 rounded-2xl p-5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action [&::-webkit-details-marker]:hidden">
+          <span><span className="block font-semibold text-primary">Reports, credits &amp; preferences</span><span className="mt-1 block text-sm text-secondary">{quota.headline} · {data.quota.credits} credits</span></span>
+          <ChevronDown className="h-5 w-5 text-secondary transition-transform group-open:rotate-180 motion-reduce:transition-none" aria-hidden="true" />
+        </summary>
+        <div className="grid grid-cols-1 gap-4 border-t border-line-subtle p-4 lg:grid-cols-2">{order.filter(supporting).map((block) => <div key={block} className="min-w-0 only:lg:col-span-2">{renderBlock(block)}</div>)}</div>
+      </details> : null}
     </div>
   );
 }
