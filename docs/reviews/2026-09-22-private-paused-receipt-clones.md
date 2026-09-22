@@ -1,0 +1,20 @@
+# Private paused receipt-compatible origins — operational evidence
+
+Two private processes now run the existing immutable BlockID source `cba40ad1ea49e7447ba4575a5211689462f83391` from `/data/releases/KJ9KC1OITwuTxHwxD5w6q`. This is capacity and compatibility preparation, not a public purchase pause or financial-schema deployment.
+
+| Origin | PID | Start ticks | Unit |
+| --- | --- | --- | --- |
+| 4112 | 3190505 | 449619033 | g30-origin-4112-cd0b46c40e-936d0938662c.service |
+| 4113 | 3196216 | 449628265 | g30-origin-4113-cd0b46c40e-734739cdbbc4.service |
+
+Both processes have explicit `G30_CREDIT_RECEIPTS=0` and `G30_CREDIT_PURCHASES_PAUSED=1`, checked in the actual process environment, private supervisor metadata and authenticated status. Their schema manifest digest remains `307d6f5973d98e1edbb0943160f24f9cc2e84a89d3a306976c9f660158f0197d` (0447). Full frozen dependency inventories matched `c3038d8a0d365f347e2597a1f256baf40045198616cbd99c127aa973f46138e0`. Application environment values came privately from the existing4111 process; only clone port and explicit receipt-policy values changed. No secrets entered logs or command arguments.
+
+Public active4111/PID3037030 remains on cba with creation/pause off. Public warm4110/PID2831655 remains on `0ddc1d7dddaa605e18e08f284bad895dba36d1e6`. Legacy4001 and retained4109 remain alive. Nginx and existing release aliases were byte/target unchanged. The private clones are registered retained entries, not verifiedGood or public rollback targets; no gates-passed or mark-good action ran. A120-second readiness check was not claimed at registration and belongs to the next preflight.
+
+Capacity stayed within six live retained BlockID origins. Exact4107/PID1766058/start447261663 and4108/PID1999630/start447673690 were independently quarantined, drained and stopped. Each authenticated registry reported zero tracked activities and unresolved jobs. Original releases, manifests, frozen dependencies and static artifacts remain retained. Retirement explicitly does not prove quiescence of untracked detached tasks, ambiguous database effects or external workers/children. Their transient units are inactive, their PIDs absent, and no persistent unit/startup file remains.
+
+Each new process received a fresh7200-second resource permit bound to the compiled cba SHA and the current retained-state digest. Canonical explicit `candidate_sha` allocation retained the18GiB reserve; launch and registration independently retained the14GiB reserve and CPU/PSI/disk checks. Generic `--prebuilt` was not used because its historical source allowlist excludes the newer supervisor/controller tools. No allowlist or admission threshold was weakened. Canonical tooling was source64e09b165 (documentation-only successor of the reviewed prerequisite tools).
+
+The first preparation rejected a documentation-only HEAD movement before mutation; the tool pin was updated after verifying source-tool bytes unchanged. A subsequent inventory invocation was deliberately interrupted before mutation to correct the planned post-drain identity check: drained origins intentionally fail serving admission and must instead retain exact PID/start/cwd/cgroup identity plus drain receipts. After4107 stopped, systemd collected its transient unit and returned empty UnitFileState; the first post-stop assertion refused this state. A separate exact disposition verified inactive/MainPID0, absent PID/unit/startup links and the persisted drain receipt, then finalized retirement without stopping it again. Original refusal/interruption logs remain preserved.
+
+Private operational receipts are `/home/dovanlong/.local/state/blockid-runtime/private-paused-4112.json` and `private-paused-4113.json`, with separate launch metadata. Logs are `/tmp/g30-private-paused-4112*.log` and `/tmp/g30-private-paused-4113.log`; exact retirement records remain in canonical serving state. All operations held the existing shared deployment lock. No financial candidate stage record, SQL migration, customer credit/report write, provider call, public routing change, public purchase pause or receipt creation activation occurred.
