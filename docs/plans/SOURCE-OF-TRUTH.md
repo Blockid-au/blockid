@@ -1852,3 +1852,7 @@ Evidence: [proxy policy](../reviews/2026-09-22-g30-svi-proxy-provider-policy.md)
 
 
 **SVI ongoing protection11:55UTC:** live8b181401 remains at4202; tested warm rollback4002 retained. Sealed opsb33bd062 is installed with an enabled60-second monitor timer and explicit conditional rollback after three consecutive direct failures; public-only failures and deploy lock contention do not count. Initial and scheduled observations healthy. Candidate boot enablement is configured without restart; legacy next-start global shared-job recovery disabled without touching its running jobs. Actual reboot/PID-state reconciliation and host-loss recovery remain unverified. [Updated live/ops evidence](../reviews/2026-09-22-g30-svi-live.md).
+
+### G30 SEO / investor pricing implementation delta — 2026-09-22
+
+Source-only phase adds shared private-route metadata/sitemap exclusion, authenticated app noindex defaults, exact public TBR demo crawl exceptions, truthful sitemap modification dates and default Evaluator pricing with explicit deep-link preservation. No prices, private report publication, analytics/CSP or Search Console state changed. [Route coverage, evidence and remaining live acceptance](../reviews/2026-09-22-g30-seo-route-policy.md). Live robots/sitemap/canonical/hreflang verification and observed index coverage remain deployment/follow-up gates; source inventory does not prove every page renders correctly or ranks.

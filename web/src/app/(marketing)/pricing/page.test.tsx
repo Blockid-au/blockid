@@ -32,7 +32,7 @@ describe("/pricing — template around the ladder (G17 P2-A)", () => {
     expect((out.match(/<h1\b/g) ?? []).length).toBe(1);
     expect(out).toMatch(/<section[^>]*id="pricing-matrix"/);
     expect(out).toContain('data-testid="pricing-segment-switch"');
-    for (const id of ["tier-free", "tier-growth", "tier-pro"]) expect(out, id).toContain(`id="${id}"`);
+    for (const id of ["tier-scout", "tier-firm", "tier-program", "tier-fund"]) expect(out, id).toContain(`id="${id}"`);
     expect(out).toContain('data-testid="money-finder-anchor"');
     expect(out).toMatch(/<section[^>]*id="contact-sales"/);
     for (const slug of ["investor_vc_ent", "accelerator_enterprise", "index_api"]) {
@@ -44,14 +44,17 @@ describe("/pricing — template around the ladder (G17 P2-A)", () => {
     expect(out).toContain("Auschain PTY LTD");
   });
 
-  it("G25: the default (founder) document carries the A$3 footnote; the Programs tab is the sold ladder only — no pilot rung, no A$1,500 / A$2,500, no contact fallback", async () => {
+  it("G25: the default evaluator document preserves explicit founder pricing; the Programs tab is the sold ladder only — no pilot rung, no A$1,500 / A$2,500, no contact fallback", async () => {
     const out = await html(await PricingPage());
-    expect(out).toContain('data-testid="founder-payg"');
-    expect(out).toMatch(/A\$3(<!-- -->)? per report, pay-as-you-go/);
+    expect(out).toContain('data-active-tab="evaluator"');
+
     expect(out).not.toContain('data-testid="pricing-pilot-rung"');
     expect(out).not.toMatch(/pilot/i);
     const { PricingSegmentSwitch } = await import("@/components/landing/pricing-segment-switch");
     const { renderToStaticMarkup } = await import("react-dom/server");
+    const founder = renderToStaticMarkup(<PricingSegmentSwitch initialSegment="founder" readTabFromUrl={false} />);
+    expect(founder).toContain('data-testid="founder-payg"');
+    expect(founder).toMatch(/A\$3(<!-- -->)? per report, pay-as-you-go/);
     const programs = renderToStaticMarkup(<PricingSegmentSwitch initialSegment="programs" readTabFromUrl={false} />);
     expect(programs).toContain('data-testid="programs-ladder"');
     expect(programs).not.toContain('data-testid="pricing-pilot-rung"');

@@ -1,3 +1,5 @@
+import { PRIVATE_PAGE_ROBOTS } from "@/lib/seo/route-index-policy";
+import type { Metadata } from "next";
 /**
  * (app) route-group layout — Master Upgrade Plan §16.5.
  *
@@ -22,6 +24,7 @@ import { getServerAnonClient } from "@/lib/supabase/server-anon";
 import { getCurrentUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { robots: PRIVATE_PAGE_ROBOTS };
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   // Prefer the Supabase anon session (SSO cookie) but fall back to the

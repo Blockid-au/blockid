@@ -1,3 +1,4 @@
+import { PUBLIC_DEMO_ROBOTS_ALLOW } from "@/lib/seo/route-index-policy";
 /**
  * robots.txt — indexer directives for BlockID.au.
  *
@@ -25,6 +26,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: [
           "/",
+          ...PUBLIC_DEMO_ROBOTS_ALLOW,
           "/score",
           "/startup-index",
           "/solutions/",

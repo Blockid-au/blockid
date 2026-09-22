@@ -22,7 +22,7 @@
  * from `window.location` after mount (`readTabFromUrl` prop, default on)
  * — S31-D made /pricing a static, edge-cached page, so the server can no
  * longer read `searchParams` for it. The document always carries the
- * Founder ladder; a deep link switches within the first paint after
+ * Evaluator ladder; a deep link switches within the first paint after
  * hydration. Callers that know the tab (the /vi page) still pass
  * `initialSegment`. Switching also rewrites the query string with
  * `history.replaceState` so a copied URL lands on the same tab. The
@@ -45,6 +45,7 @@ import {
   PRICING_TABS,
   TAB_TO_SEGMENT,
   resolvePricingTab,
+  pricingTabSearch,
   type PricingTab,
 } from "@/components/landing/pricing-tab";
 
@@ -104,7 +105,7 @@ export function tabFromLocation(): PricingTab | null {
 }
 
 export function PricingSegmentSwitch({
-  initialSegment = "founder",
+  initialSegment = "evaluator",
   readTabFromUrl = true,
   labels,
   onChange,
@@ -130,8 +131,7 @@ export function PricingSegmentSwitch({
       if (typeof window !== "undefined" && window.history?.replaceState) {
         try {
           const url = new URL(window.location.href);
-          if (next === "founder") url.searchParams.delete("segment");
-          else url.searchParams.set("segment", next);
+          url.search = pricingTabSearch(url.search, next);
           window.history.replaceState(window.history.state, "", url.toString());
         } catch {
           // URL parsing can only fail in exotic embeds — the tab still works.

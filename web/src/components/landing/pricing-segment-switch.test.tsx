@@ -1,3 +1,4 @@
+import { pricingTabSearch } from "./pricing-tab";
 // Colocated tests for the Founder | Evaluator switch on /pricing (G12,
 // T0268). Uses renderToStaticMarkup (this workspace has no
 // @testing-library/react) so the assertions are on the SSR markup each tab
@@ -18,12 +19,12 @@ function html(el: React.ReactElement): string {
 }
 
 describe("resolvePricingTab()", () => {
-  it("defaults to founder for nothing / unknown values", () => {
-    expect(resolvePricingTab(undefined)).toBe("founder");
-    expect(resolvePricingTab(null)).toBe("founder");
-    expect(resolvePricingTab("")).toBe("founder");
+  it("defaults to evaluator for nothing / unknown values", () => {
+    expect(resolvePricingTab(undefined)).toBe("evaluator");
+    expect(resolvePricingTab(null)).toBe("evaluator");
+    expect(resolvePricingTab("")).toBe("evaluator");
     expect(resolvePricingTab("founder")).toBe("founder");
-    expect(resolvePricingTab("banana")).toBe("founder");
+    expect(resolvePricingTab("banana")).toBe("evaluator");
   });
 
   it("lands every investor-shaped value on the Evaluator tab and every program-shaped value on Programs", () => {
@@ -79,8 +80,8 @@ describe("tabFromLocation() — deep-link params", () => {
   });
 });
 
-describe("<PricingSegmentSwitch /> — Founder tab", () => {
-  const out = html(<PricingSegmentSwitch />);
+describe("PricingSegmentSwitch — explicit Founder tab", () => {
+  const out = html(<PricingSegmentSwitch initialSegment="founder" />);
 
   it("renders exactly three tabs (Founder / Evaluator / Programs), Founder selected", () => {
     expect(out.match(/role="tab"/g)).toHaveLength(3);
@@ -113,7 +114,7 @@ describe("<PricingSegmentSwitch /> — Founder tab", () => {
   });
 });
 
-describe("<PricingSegmentSwitch /> — Evaluator tab (deep link)", () => {
+describe("PricingSegmentSwitch — Evaluator tab (deep link)", () => {
   const out = html(<PricingSegmentSwitch initialSegment="evaluator" />);
 
   it("selects the Evaluator tab from the initialSegment prop", () => {
@@ -177,7 +178,7 @@ describe("<PricingSegmentSwitch /> — Evaluator tab (deep link)", () => {
 });
 
 // Pricing v4 (2026-09-16): third tab — the annual-first Programs ladder.
-describe("<PricingSegmentSwitch /> — Programs tab (deep link)", () => {
+describe("PricingSegmentSwitch — Programs tab (deep link)", () => {
   const out = html(<PricingSegmentSwitch initialSegment="programs" />);
 
   it("selects the Programs tab and renders Intake link / Cohort 25 / Cohort 100, annual by default, 14-day trial", () => {
@@ -197,7 +198,7 @@ describe("<PricingSegmentSwitch /> — Programs tab (deep link)", () => {
   });
 });
 
-describe("<PricingSegmentSwitch /> — localised labels", () => {
+describe("PricingSegmentSwitch — localised labels", () => {
   it("accepts label overrides for the /vi page without changing the ladder", () => {
     const out = html(
       <PricingSegmentSwitch
@@ -212,4 +213,17 @@ describe("<PricingSegmentSwitch /> — localised labels", () => {
     expect(out).toContain("Nhà đánh giá");
     expect(out).toContain('aria-label="Scout plan"');
   });
+});
+
+it("shows Evaluator by default on the server", () => {
+ const html = renderToStaticMarkup(<PricingSegmentSwitch />);
+ expect(html).toContain('data-active-tab="evaluator"');
+ expect(html).toMatch(/id="pricing-tab-evaluator"[^>]*aria-selected="true"/);
+});
+
+it("keeps explicit founder links and removes stale aliases when selecting evaluator", () => {
+ expect(resolvePricingTab("founder_growth")).toBe("founder");
+ expect(pricingTabSearch("?persona=founder&utm_source=fixture", "evaluator")).toBe("utm_source=fixture");
+ expect(pricingTabSearch("?tier=investor&utm_source=fixture", "founder")).toBe("utm_source=fixture&segment=founder");
+ expect(pricingTabSearch("?segment=founder", "programs")).toBe("segment=programs");
 });

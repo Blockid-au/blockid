@@ -18,6 +18,9 @@ const SITE_URL = "https://blockid.au";
 
 const ALLOW_EXPECTED = [
   "/",
+  "/tbr/demo$",
+  "/tbr/demo?",
+  "/tbr/demo/",
   "/score",
   "/startup-index",
   "/solutions/",

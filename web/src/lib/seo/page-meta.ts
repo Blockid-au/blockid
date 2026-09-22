@@ -1,3 +1,4 @@
+import { isPrivateDiscoveryPath } from "./route-index-policy";
 // Shared `generateMetadata` building blocks (S8-A SEO audit, 2026-09-11).
 //
 // Why this exists: the root layout applies `title.template = "%s | BlockID.au"`
@@ -187,7 +188,7 @@ export function pageMetadata(input: PageMetadataInput): Metadata {
       ? { en: abs(input.path.replace(/^\/vi(\/|$)/, "/")), vi: canonical, "x-default": abs(input.path.replace(/^\/vi(\/|$)/, "/")) }
       : { en: canonical, vi: abs(input.viPath), "x-default": canonical }
     : undefined;
-  const index = input.index ?? true;
+  const index = !isPrivateDiscoveryPath(input.path) && (input.index ?? true);
   return {
     title: input.title,
     description: input.description,

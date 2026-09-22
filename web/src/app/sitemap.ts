@@ -1,3 +1,4 @@
+import { isPrivateDiscoveryPath, recordedModifiedAt } from "@/lib/seo/route-index-policy";
 import type { MetadataRoute } from "next";
 import { getAllArticles, invalidateCache } from "@/lib/insights";
 import { listPublicSlugsForSitemap } from "@/lib/business-id/list-public-slugs";
@@ -15,7 +16,7 @@ const SITE_URL = "https://blockid.au";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   invalidateCache(); // ensure fresh read from disk (content volume)
-  const lastModified = new Date();
+
 
   // Master Upgrade Plan §11.1 + §14bis D3 — public Business ID profiles.
   // Only rows with public_index=true AND verification_level >= 2 make it
@@ -33,7 +34,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const publicListings = await getPublicListings({ limit: 200 });
   const listingEntries: MetadataRoute.Sitemap = publicListings.map((l) => ({
     url: `${SITE_URL}/reports/${encodeURIComponent(l.ticker)}`,
-    lastModified: new Date(l.updated_at ?? l.listed_at ?? Date.now()),
+    lastModified: recordedModifiedAt(l.updated_at ?? l.listed_at),
     changeFrequency: "weekly" as const,
     priority: 0.7,
   }));
@@ -46,7 +47,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const publishedProfiles = await listPublishedForSitemap();
   const publishedEntries: MetadataRoute.Sitemap = publishedProfiles.map((p) => ({
     url: `${SITE_URL}/listings/${p.slug}`,
-    lastModified: new Date(p.updatedAt ?? Date.now()),
+    lastModified: recordedModifiedAt(p.updatedAt),
     changeFrequency: "weekly" as const,
     priority: 0.8,
   }));
@@ -88,7 +89,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     listGrants({ excludeNonMatching: true }),
     listPrograms(),
   ]);
-  const verifiedDate = (v: string | null | undefined) => (v ? new Date(v) : lastModified);
+  const verifiedDate = recordedModifiedAt;
   // S8-A: index + capital pages inherit the newest `last_verified_at` of the
   // rows they list, so a refresh-cron verification bumps the parent too;
   // the state-only grants views (`?state=NSW`) self-canonicalise and are
@@ -107,7 +108,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${SITE_URL}/funding/grants`, lastModified: newest(grants), changeFrequency: "daily" as const, priority: 0.8 },
     { url: `${SITE_URL}/funding/programs`, lastModified: newest(programs), changeFrequency: "daily" as const, priority: 0.8 },
     // S7-B — public sample of the A$3 report (static, built from the seeds).
-    { url: `${SITE_URL}/funding/report/demo`, lastModified, changeFrequency: "monthly" as const, priority: 0.6 },
+    { url: `${SITE_URL}/funding/report/demo`, changeFrequency: "monthly" as const, priority: 0.6 },
     ...AU_STATES.filter((st) => grants.some((g) => g.state === st)).map((st) => ({
       url: `${SITE_URL}${grantsStatePath(st)}`,
       lastModified: newest(grants.filter((g) => g.state === st)),
@@ -150,7 +151,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     {
       url: `${SITE_URL}/`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 1,
       alternates: {
@@ -164,7 +164,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Vietnamese-Australian founder cohort (T-1400)
     {
       url: `${SITE_URL}/vi`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.9,
       alternates: {
@@ -177,7 +176,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${SITE_URL}/vi/pricing`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.8,
       alternates: {
@@ -193,13 +191,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // canonical). Only that URL is advertised to search engines.
     {
       url: `${SITE_URL}/startup-index`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.9,
     },
     {
       url: `${SITE_URL}/demo`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.7,
     },
@@ -207,67 +203,56 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // business report). High priority: this is a key sign-up funnel entry.
     {
       url: `${SITE_URL}/sample-business-report`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.9,
     },
     {
       url: `${SITE_URL}/tools`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/benchmarks`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/guides/valuation-methods`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/tools/dilution`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/tools/safe-calculator`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/tools/esop-checklist`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/tools/financial-projections`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/tools/idea-valuation`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/tools/idea-clarify`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     {
       url: `${SITE_URL}/tools/idea-lab`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.7,
     },
@@ -275,67 +260,56 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Google should crawl it daily and rank it as the highest-priority page.
     {
       url: `${SITE_URL}/one-click-report`,
-      lastModified,
       changeFrequency: "daily",
       priority: 1.0,
     },
     {
       url: `${SITE_URL}/tools/cap-table`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/tools/equity-split`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/tools/term-sheet`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/tools/data-room`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/tools/funding-plan`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/tools/cofounder-match`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/tools/asic`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/tools/esic`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/tools/rnd-tax`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/pricing`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.9,
       alternates: {
@@ -350,19 +324,16 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // re-home the depth the homepage used to carry.
     {
       url: `${SITE_URL}/product`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.9,
     },
     {
       url: `${SITE_URL}/samples`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/solutions`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.8,
     },
@@ -372,13 +343,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // 12-chapter guide, evidence completeness, LP anonymisation).
     {
       url: `${SITE_URL}/features`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.8,
     },
     {
       url: `${SITE_URL}/developers`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.7,
     },
@@ -393,7 +362,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // canonical target during transition.
     {
       url: `${SITE_URL}/solutions/founder`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
       alternates: {
@@ -407,7 +375,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Sub-T4 (§7.7) — VI mirror of the Founder persona page.
     {
       url: `${SITE_URL}/vi/solutions/founder`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
       alternates: {
@@ -420,7 +387,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${SITE_URL}/solutions/vn-sme`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
       alternates: {
@@ -433,7 +399,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${SITE_URL}/vi/solutions/vn-sme`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
       alternates: {
@@ -446,7 +411,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${SITE_URL}/solutions/investor`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
       alternates: {
@@ -459,7 +423,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${SITE_URL}/vi/solutions/investor`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
       alternates: {
@@ -472,7 +435,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${SITE_URL}/solutions/accelerator`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
       alternates: {
@@ -485,7 +447,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${SITE_URL}/vi/solutions/accelerator`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
       alternates: {
@@ -502,7 +463,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // /for/advisor 301s here.
     {
       url: `${SITE_URL}/solutions/advisor`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
       alternates: {
@@ -515,7 +475,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${SITE_URL}/vi/solutions/advisor`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
       alternates: {
@@ -530,7 +489,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // has a VI mirror; the two alias routes are English-only.
     {
       url: `${SITE_URL}/compare`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.7,
       alternates: {
@@ -543,7 +501,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${SITE_URL}/vi/compare`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
       alternates: {
@@ -556,20 +513,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${SITE_URL}/compare/chatgpt`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
       url: `${SITE_URL}/compare/valuers`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
     },
     // Business ID explainer (D3 — public, indexable)
     {
       url: `${SITE_URL}/business-id`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
       alternates: {
@@ -583,7 +537,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Sub-T3 — VI mirror of the /business-id explainer.
     {
       url: `${SITE_URL}/vi/business-id`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
       alternates: {
@@ -597,7 +550,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Insights / blog
     {
       url: `${SITE_URL}/insights`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.8,
     },
@@ -608,20 +560,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // top-level directory URL.
     {
       url: `${SITE_URL}/listings`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.85,
     },
     // Public transparency + docs surfaces
     {
       url: `${SITE_URL}/roadmap`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
     },
     {
       url: `${SITE_URL}/changelog`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.6,
     },
@@ -629,7 +578,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // phase exit criteria, generated from the nav catalogue + gate engine).
     {
       url: `${SITE_URL}/docs/unlocks`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.5,
     },
@@ -637,37 +585,31 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // docs/api/institutional.md (was a GitHub link on /developers/api).
     {
       url: `${SITE_URL}/docs/api/institutional`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.5,
     },
     {
       url: `${SITE_URL}/status`,
-      lastModified,
       changeFrequency: "daily",
       priority: 0.5,
     },
     {
       url: `${SITE_URL}/security-audit`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
       url: `${SITE_URL}/legal/terms`,
-      lastModified,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
       url: `${SITE_URL}/legal/privacy`,
-      lastModified,
       changeFrequency: "yearly",
       priority: 0.3,
     },
     {
       url: `${SITE_URL}/legal/disclaimers`,
-      lastModified,
       changeFrequency: "yearly",
       priority: 0.3,
     },
@@ -678,7 +620,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // listed).
     {
       url: `${SITE_URL}/analyze`,
-      lastModified,
       changeFrequency: "daily",
       priority: 0.9,
     },
@@ -690,32 +631,27 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Static pages
     {
       url: `${SITE_URL}/about`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.5,
     },
     {
       url: `${SITE_URL}/showcase`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
       url: `${SITE_URL}/team`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.5,
     },
     {
       // S-IA5: /investors → /about/invest (301); the old URL is not listed.
       url: `${SITE_URL}/about/invest`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
       url: `${SITE_URL}/contact`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.4,
     },
@@ -727,27 +663,23 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Google Search Console reports full coverage.
     {
       url: `${SITE_URL}/investor`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.7,
     },
     {
       url: `${SITE_URL}/how-it-works`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.7,
     },
     // G14-S39 — public SVI backtest / calibration page (weekly JSON refresh).
     {
       url: `${SITE_URL}/methodology/calibration`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.6,
     },
     // G21 P0-D — score governance (institutional readers), with a VI mirror.
     {
       url: `${SITE_URL}/methodology/governance`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
       alternates: {
@@ -760,7 +692,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${SITE_URL}/vi/methodology/governance`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.5,
       alternates: {
@@ -774,7 +705,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // G21 P3-C — SVI version history (what changed, effect on comparability), with a VI mirror.
     {
       url: `${SITE_URL}/methodology/versions`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.5,
       alternates: {
@@ -787,7 +717,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${SITE_URL}/vi/methodology/versions`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.4,
       alternates: {
@@ -801,7 +730,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // G14-S36 — public scoring & verification methodology, with a VI mirror.
     {
       url: `${SITE_URL}/methodology`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.7,
       alternates: {
@@ -814,7 +742,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${SITE_URL}/vi/methodology`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
       alternates: {
@@ -830,49 +757,41 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // advertised (release QA-1 #13 sweep).
     {
       url: `${SITE_URL}/sample`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
       url: `${SITE_URL}/tbr/demo`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
       url: `${SITE_URL}/showcase/atlassian`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
       url: `${SITE_URL}/showcase/canva`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
       url: `${SITE_URL}/showcase/xero`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
       url: `${SITE_URL}/showcase/safetyculture`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
       url: `${SITE_URL}/showcase/airwallex`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
     },
     {
       url: `${SITE_URL}/showcase/culture-amp`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
     },
@@ -881,14 +800,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // contradictory signal (release QA-1 #13).
     {
       url: `${SITE_URL}/showcase/blockid`,
-      lastModified,
       changeFrequency: "monthly",
       priority: 0.6,
     },
     // G19-S46: BlockID's own Trusted Business Report (weekly self-report).
     {
       url: `${SITE_URL}/showcase/blockid/report`,
-      lastModified,
       changeFrequency: "weekly",
       priority: 0.6,
     },
@@ -907,7 +824,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const e = entry as MetadataRoute.Sitemap[number];
     // G20-F1: a hidden feature's public URL is never advertised (its page
     // answers the "not offered" card with noindex).
-    if (isHiddenRoute(e.url.slice(SITE_URL.length))) return acc;
+    if (isPrivateDiscoveryPath(e.url.slice(SITE_URL.length)) || isHiddenRoute(e.url.slice(SITE_URL.length))) return acc;
     if (!acc.some((a) => a.url === e.url)) acc.push(e);
     return acc;
   }, []);

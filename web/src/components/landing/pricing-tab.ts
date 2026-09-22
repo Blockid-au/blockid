@@ -28,7 +28,7 @@ export const TAB_TO_SEGMENT: Record<PricingTab, Segment> = {
  * value to a tab. Investor-shaped values (investor, advisor, fund, vc,
  * evaluator) land on Evaluator; program-shaped values (accelerator,
  * program, incubator, university) land on Programs; everything else —
- * including nothing — is Founder.
+ * including nothing — uses the Evaluator default. Explicit Founder links remain Founder.
  */
 export function resolvePricingTab(
   raw: string | string[] | null | undefined,
@@ -57,7 +57,26 @@ export function resolvePricingTab(
     case "universities":
     case "cohort":
       return "programs";
-    default:
+    case "free":
+    case "starter":
+    case "growth":
+    case "pro":
+    case "startup":
+    case "founder_free":
+    case "founder_starter":
+    case "founder_growth":
+    case "founder":
+    case "founders":
       return "founder";
+    default:
+      return "evaluator";
   }
+}
+
+/** Keep copyable tab URLs deterministic after switching away from a legacy alias. */
+export function pricingTabSearch(search: string, tab: PricingTab): string {
+ const params = new URLSearchParams(search);
+ for (const key of ["segment", "persona", "tab", "tier"]) params.delete(key);
+ if (tab !== "evaluator") params.set("segment", tab);
+ return params.toString();
 }
