@@ -38,10 +38,6 @@ const SVIRadarChart = dynamic(
   () => import("@/components/svi/svi-radar-chart").then((m) => m.SVIRadarChart),
   { ssr: false, loading: () => null },
 );
-const SVIValuation = dynamic(
-  () => import("@/components/svi/svi-valuation").then((m) => m.SVIValuation),
-  { ssr: false, loading: () => null },
-);
 
 export interface AgentFinding {
   agent: AgentRole;
@@ -408,7 +404,7 @@ export function AnalyzeResults({
         </div>
 
         {effectiveRadar.length > 0 && <SVIRadarChart dimensions={effectiveRadar} />}
-        {!finalReport && derivedAnalysis && <SVIValuation analysis={derivedAnalysis} />}
+        {!finalReport && derivedAnalysis && <p className="rounded-lg bg-surface-raised p-3 text-sm text-secondary">{effectiveLocale === "vi" ? "Phần định giá sẽ xuất hiện trong báo cáo hoàn tất khi có đủ thông tin hỗ trợ. Điểm sơ bộ không phải giá trị doanh nghiệp." : "Valuation will appear in the completed report when supported by the available information. The preliminary score is not a business valuation."}</p>}
         {finalReport && <a href="#analyze-canonical-report" className="min-h-11 rounded-lg p-3 text-action underline focus-visible:outline-2 focus-visible:outline-action">{effectiveLocale === "vi" ? "Xem định giá và báo cáo đầy đủ" : "View valuation and the full report"}</a>}
 
         {!finalReport && <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
