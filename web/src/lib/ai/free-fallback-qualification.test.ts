@@ -6,9 +6,9 @@ function fixture() {
   const artifacts = new Map<string, string>();
   const store = (value: unknown) => { const raw = JSON.stringify(value); const hash = freeArtifactSha256(raw); artifacts.set(hash, raw); return hash; };
   const metadata = { fetchedAt: date, sourceUrl: `https://openrouter.ai/api/v1/models/${modelId}/endpoints`, data: { id: modelId, architecture: { input_modalities: ["text"], output_modalities: ["text"] }, endpoints: [{ model_id: modelId, tag: endpointTag, status: 0, context_length: 32000, max_completion_tokens: 8000, supported_parameters: ["max_tokens", "response_format", "structured_outputs"], pricing: { prompt: "0", completion: "0", request: "0" } }] } };
-  const quality = { suiteVersion: FREE_REPORT_SUITE, modelId, endpointTag, task: "scoped_assessment", evaluatedAt: date, promptSha256: store({ syntheticPrompt: "fixture" }), fixtureSha256: store({ syntheticFixture: "fixture" }), cases: REQUIRED_FREE_REPORT_CASES.flatMap(caseId => ["en", "vi"].map(locale => ({ caseId, locale, resultSha256: store({ syntheticResult: true, caseId, locale }), servedModelId: modelId, servedEndpointTag: endpointTag, passed: true, unsupportedClaims: 0, fabricatedCitations: 0, schemaValid: true, latencyMs: 1000, costUsd: 0 }))) };
-  const manifest = { version: "report-free-qualification-v1", entries: [{ modelId, endpointTag, metadataSha256: store(metadata), qualitySha256: store(quality), zeroCostContractSha256: undefined as string | undefined, reviewedAt: date, reviewer: "synthetic-test-review-only", task: "scoped_assessment" }] };
-  const demand: FreeFallbackDemand = { accountId: "a1", now, inputTokens: 10000, outputTokens: 5000, inferenceAuthorized: true, privacyApproved: true, quota: { accountId: "a1", checkedAt: date, utcDay: "2026-09-22", dailyRemaining: 25, minuteRemaining: 10, accountWideLedgerSynchronized: true, blockedUntil: null } };
+  const quality = { suiteVersion: FREE_REPORT_SUITE, dataScope: "private_report", modelId, endpointTag, task: "scoped_assessment", evaluatedAt: date, promptSha256: store({ syntheticPrompt: "fixture" }), fixtureSha256: store({ syntheticFixture: "fixture" }), cases: REQUIRED_FREE_REPORT_CASES.flatMap(caseId => ["en", "vi"].map(locale => ({ caseId, locale, resultSha256: store({ syntheticResult: true, caseId, locale }), servedModelId: modelId, servedEndpointTag: endpointTag, passed: true, unsupportedClaims: 0, fabricatedCitations: 0, schemaValid: true, latencyMs: 1000, costUsd: 0 }))) };
+  const manifest = { version: "report-free-qualification-v1", entries: [{ modelId, endpointTag, metadataSha256: store(metadata), qualitySha256: store(quality), zeroCostContractSha256: undefined as string | undefined, dataScope: "private_report", reviewedAt: date, reviewer: "synthetic-test-review-only", task: "scoped_assessment" }] };
+  const demand: FreeFallbackDemand = { dataScope: "private_report", accountId: "a1", now, inputTokens: 10000, outputTokens: 5000, inferenceAuthorized: true, privacyApproved: true, quota: { accountId: "a1", checkedAt: date, utcDay: "2026-09-22", dailyRemaining: 25, minuteRemaining: 10, accountWideLedgerSynchronized: true, blockedUntil: null } };
   const run = () => { manifest.entries[0].metadataSha256 = store(metadata); manifest.entries[0].qualitySha256 = store(quality); return loadQualifiedFreeFallbacks(manifest, async hash => artifacts.get(hash) ?? null, demand); };
   return { metadata, quality, manifest, demand, artifacts, run, store };
 }
@@ -18,6 +18,12 @@ describe("reviewed exact free fallback qualification", () => {
     expect(result.rejected).toEqual([]); expect(result.eligible).toHaveLength(1);
     expect(result.eligible[0].executionAllowed).toBe(false);
     expect(result.eligible[0].requestConstraints).toMatchObject({ model: "example/synthetic-only:free", provider: { allow_fallbacks: false, max_price: { prompt: 0, completion: 0, request: 0 }, only: ["synthetic"], data_collection: "deny", zdr: true }, plugins: [] });
+  });
+  it("never promotes public-only routing evidence to private-deck eligibility", async () => {
+    const f = fixture(); f.manifest.entries[0].dataScope = "public_synthetic_only"; f.quality.dataScope = "public_synthetic_only";
+    expect((await f.run()).rejected[0].reason).toBe("data_scope_not_qualified");
+    f.demand.dataScope = "public_synthetic_only";
+    expect((await f.run()).eligible[0].requestConstraints.provider).toMatchObject({ data_collection: "allow", zdr: false });
   });
   it("does not promote legacy verified/ping registries or paid/random aliases", async () => {
     const f = fixture(); expect((await loadQualifiedFreeFallbacks({ verified: { openrouter: ["some/model:free"] } }, async () => null, f.demand)).eligible).toEqual([]);

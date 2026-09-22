@@ -1,0 +1,107 @@
+{
+  "version": "independent-free-evaluation-review-v1",
+  "reviewer": "Codex source-and-output inspection; no model self-score",
+  "dataScope": "public_synthetic_only",
+  "privateDeckEligible": false,
+  "attemptedRequests": 7,
+  "plannedMaximumRequests": 14,
+  "completeResponses": 5,
+  "notRunCases": 7,
+  "successfulResponseCostUsdSum": 0,
+  "failedResponseCostStatus": "not_returned_not_assumed",
+  "medianSuccessfulLatencyMs": 6879,
+  "rows": [
+    {
+      "file": "01-source_attribution-en.json",
+      "sha256": "f8dad6eac7ec38931a971fef3c498f9b44601137308ab38673906cb42019c6d3",
+      "caseId": "source_attribution",
+      "locale": "en",
+      "status": "unavailable",
+      "schemaValid": false,
+      "exactSourceQuotes": false,
+      "reviewNote": "HTTP404; original body not retained, exact rejection cause unknown.",
+      "returnedCostUsd": null,
+      "latencyMs": 81
+    },
+    {
+      "file": "02-source_attribution-vi.json",
+      "sha256": "5043b3c6cfa68609ecc9dd5a6a4f596e8c91e472c6e7cfd4bec234ee8792fa55",
+      "caseId": "source_attribution",
+      "locale": "vi",
+      "status": "fail",
+      "schemaValid": true,
+      "exactSourceQuotes": true,
+      "reviewNote": "Substantive source attribution and uncertainty are appropriate, but answer/implication/limitations are English despite locale vi. Fails required language.",
+      "returnedCostUsd": 0,
+      "latencyMs": 8046
+    },
+    {
+      "file": "03-wrong_entity_same_number-en.json",
+      "sha256": "d35482d8c09f708ec258b35d1897fa66987c710ac138e97885eb95c2e5f1f53d",
+      "caseId": "wrong_entity_same_number",
+      "locale": "en",
+      "status": "pass_bounded_case",
+      "schemaValid": true,
+      "exactSourceQuotes": true,
+      "reviewNote": "Acme paid count remains unknown; correctly excludes unrelated Rival count. Exact source quotes and concrete disclosure need; no new score or verification.",
+      "returnedCostUsd": 0,
+      "latencyMs": 6879
+    },
+    {
+      "file": "04-wrong_entity_same_number-vi.json",
+      "sha256": "85009f2efe8565fc8de02ab22ec629747914f38a3054cc697c2fe440ea2e7d22",
+      "caseId": "wrong_entity_same_number",
+      "locale": "vi",
+      "status": "pass_bounded_case",
+      "schemaValid": true,
+      "exactSourceQuotes": true,
+      "reviewNote": "Vietnamese answer keeps Acme paid count undisclosed and excludes rival data. Useful investor implication and request for paid-customer disclosure.",
+      "returnedCostUsd": 0,
+      "latencyMs": 9670
+    },
+    {
+      "file": "05-missing_evidence-en.json",
+      "sha256": "b3cf57f1fa2f7cbe085328b209dfce59f6a01ee4b3da716681ce0f7dc952dc2e",
+      "caseId": "missing_evidence",
+      "locale": "en",
+      "status": "pass_bounded_case",
+      "schemaValid": true,
+      "exactSourceQuotes": true,
+      "reviewNote": "TAM/revenue/competitors remain unknown. Requests market sizing, statements and competitive analysis. No invented figures or competitors; limited to this elementary fixture.",
+      "returnedCostUsd": 0,
+      "latencyMs": 6397
+    },
+    {
+      "file": "06-missing_evidence-vi.json",
+      "sha256": "f399e154217606035a5aaaaa6355a15950dc5933cb3d40e853f8b5620a8445d4",
+      "caseId": "missing_evidence",
+      "locale": "vi",
+      "status": "partial",
+      "schemaValid": true,
+      "exactSourceQuotes": true,
+      "reviewNote": "Vietnamese uncertainty/abstention correct, but request for independent market/financial data is broad and omits concrete competitor evidence and sizing assumptions. Does not satisfy the desired detailed next-evidence request.",
+      "returnedCostUsd": 0,
+      "latencyMs": 5720
+    },
+    {
+      "file": "07-contradictory_evidence-en.json",
+      "sha256": "7a8036341681d02b15f159f9ac805a4e3836d053af6aab106ee4cf0a64f7533a",
+      "caseId": "contradictory_evidence",
+      "locale": "en",
+      "status": "unavailable",
+      "schemaValid": false,
+      "exactSourceQuotes": false,
+      "reviewNote": "HTTP200 envelope contains upstream503/provider_overloaded; no completion, model or usage. Stopped batch; not a semantic quality result.",
+      "returnedCostUsd": null,
+      "latencyMs": 307
+    }
+  ],
+  "qualified": false,
+  "reasons": [
+    "Incomplete EN/VI suite after404 and embedded503",
+    "Requested VI source-attribution output returned English",
+    "VI missing-evidence next steps insufficiently specific",
+    "Private-data routing compatibility and shared quota reservation not established"
+  ],
+  "activation": "none_manifest_remains_empty"
+}
