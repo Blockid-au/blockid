@@ -110,8 +110,8 @@ export const CREDIT_PACKS = [
   { credits: 5,   priceAudCents: 500,   label: "5 Credits",   savings: null },
   { credits: 10,  priceAudCents: 900,   label: "10 Credits",  savings: "Save 10%" },
   { credits: 25,  priceAudCents: 2000,  label: "25 Credits",  savings: "Save 20%" },
-  { credits: 50,  priceAudCents: 1500,  label: "50 Credits",  savings: "Save 70%" },
-  { credits: 100, priceAudCents: 2500,  label: "100 Credits", savings: "Save 75%" },
+  { credits: 50,  priceAudCents: 3500,  label: "50 Credits",  savings: "Save 30%" },
+  { credits: 100, priceAudCents: 6000,  label: "100 Credits", savings: "Save 40%" },
 ] as const;
 
 // ---------------------------------------------------------------------------

@@ -37,3 +37,7 @@ Configured keys are not automatically currently sold SKUs. In particular FOUNDER
 ## Next bounded acceptance work
 
 Keep the web five-pack catalogue and Stripe base amounts unchanged unless an approved pricing decision changes them. Remove service-catalogue drift before re-enabling that service, and test shared pack/entitlement mapping. Check actual tax defaults and final checkout/invoice totals in an appropriate safe test flow; this inventory did not create one. Extend parity to source-active nonpack families, database overrides, annual cadence, trials, coupons and entitlements in separate bounded audits. Atomic grant/receipt, idempotency and webhook retry remain the next implementation requirement; price parity alone closes none of those transaction risks.
+
+## Source correction after inventory
+
+The future foundation candidate aligns the disabled billing-service catalogue to the existing web/Stripe50-pack A$35 (30%) and100-pack A$60 (40%). A read-only parser comparison of all five source entries confirms amounts and savings match. This is a catalogue correction, not a new price decision, Stripe mutation or service activation. Standalone service deployment/build and fulfillment remain outside this change; keep remote mutations disabled until atomic receipt coverage passes.
