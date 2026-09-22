@@ -1375,7 +1375,9 @@ fi
 # G17 D7 (2026-09-19): internal link check against the temp build — every
 # <a>/<img>/<script> on the marketing pages must answer 200 before the swap.
 # DEPLOY_LINK_CHECK=0 skips; external hosts are never probed here.
-if [ "${DEPLOY_LINK_CHECK:-1}" = "1" ] && [ -f "$WEB_DIR/scripts/link-check.mjs" ]; then
+if [ "${G30_DEFER_EXTENDED_REVIEW:-0}" = "1" ]; then
+  echo "  ⏭  SKIPPED: Broad internal-link crawl deferred by founder; NOT a pass"
+elif [ "${DEPLOY_LINK_CHECK:-1}" = "1" ] && [ -f "$WEB_DIR/scripts/link-check.mjs" ]; then
   echo "  ▶ Internal link check against :$TEMP_PORT ..."
   if (cd "$WEB_DIR" && node scripts/link-check.mjs --base "http://127.0.0.1:$TEMP_PORT" --max 600 --concurrency 8 --no-external --no-alert --out-dir /tmp/blockid-deploy-link-check > /tmp/blockid-deploy-link-check.log 2>&1); then
     echo "  ✅ link check passed ($(grep -oE '[0-9]+ pages · [0-9]+ links' /tmp/blockid-deploy-link-check.log | head -1))"
@@ -1529,6 +1531,9 @@ rm -rf /tmp/nginx-blockid-cache/* 2>/dev/null && echo "  ✅ Nginx cache cleared
 # quietly; the browsers were provisioned in commit f9316160.
 # ══════════════════════════════════════════════════════════════════════
 gate "Post-deploy hydrated smoke (Playwright)"
+if [ "${G30_DEFER_EXTENDED_REVIEW:-0}" = "1" ]; then
+  skip "Extended hydrated/contrast suite deferred by founder; NOT a pass. Basic candidate smoke and post-deploy identity checks retained"
+else
 export PLAYWRIGHT_BASE_URL="${PLAYWRIGHT_BASE_URL:-https://blockid.au}"
 # Playwright config, tests, and node_modules live in $WEB_DIR. Previous swap
 # gate cd'd into $RELEASE_DIR (standalone output), which has no node_modules/.bin
@@ -1597,6 +1602,7 @@ if [ "$PW_EXIT" -ne 0 ]; then
   fail "Post-deploy hydrated smoke returned $PW_EXIT"
 fi
 pass "Post-deploy hydrated smoke passed against $PLAYWRIGHT_BASE_URL"
+fi
 
 g30_state --gates-passed --lock-fd 200 >/dev/null || fail "Cannot record release gates/soak start"
 

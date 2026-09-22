@@ -1667,3 +1667,16 @@ Founder explicitly authorizes continued coding/full phased live deployments and 
 Root uses canonical --quick to avoid duplicate standalone TypeScript/lint (production build still checks compilation); G30_DEFER_UNIT_TESTS=1 explicitly records the full unit-suite deferral. Build, locked candidate packaging, runtime identity, local/public health, warm rollback and a short operational smoke remain. After at least60seconds and independent operational checks, an explicit --mark-good --review-deferred records an operational rollback target with review pending; the normal default remains1800seconds. No automatic caller is switched to this profile.
 
 Confirmed data incompatibility, broken builds or failed live health are fixed before dependent rollout. Reader compatibility release still precedes new unavailable valuation writers. Next: reader bridge → report/data/light/findings foundation → atomic billing/caller fulfillment and research → remaining full-site UX and commercial integration; restore comprehensive review/quality/payment/retention/uptime evaluation as final-goal work, not silently discarded scope.
+
+### Accelerated release execution detail —22/09/2026
+
+`G30_DEFER_EXTENDED_REVIEW=1` explicitly defers the broad internal-link crawl
+and post-deploy hydrated/contrast suite, recording skips rather than passes.
+Build, environment/database checks, basic candidate endpoint/static/browser
+smoke, process ownership and post-deploy release identity remain required.
+Normal deployments retain the full checks by default. Root records operational
+verification with the explicit60-second deferred-review policy. Full report,
+UI/auth/export and sale acceptance remain open until later review.
+Admission also stops counting a missing, inactive/non-previous quarantined PID
+as a live process; its state, reserved port and artifact pins remain preserved.
+This does not retire live jobs or close O08.14 focused controller tests passed.
