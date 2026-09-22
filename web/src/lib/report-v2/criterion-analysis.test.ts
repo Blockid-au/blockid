@@ -31,7 +31,7 @@ describe("final criterion narrative publication", () => {
     if (reason === "rejected") x.audit.hadIssues = true;
     if (reason === "uncited") x.audit.uncitedClaims = ["Old unsupported revenue"];
     if (reason === "degraded") x.result.degraded = true;
-    if (reason === "conflict") x.report.quality.consistencyIssues.push({ type: "contradiction", severity: "high", criteria: [x.card.key], description: "Financial amounts conflict" });
+    if (reason === "conflict") x.report.quality.consistencyIssues.push({ type: "narrative_conflict", severity: "high", criteria: [x.card.key], description: "Financial amounts conflict" });
     const detail = withCriterionAnalysis(x.report, x.results, [x.audit]).dimensions[0].criteria[0].detailedAnalysis!;
     expect(detail.status).toBe("withheld"); expect(detail.narrative).toBe(""); expect(detail.citations).toEqual([]);
   });
