@@ -1,6 +1,6 @@
 import { test } from 'vitest';
 import assert from 'node:assert/strict';
-import { readFileSync, mkdtempSync, rmSync } from 'node:fs';
+import { readFileSync, mkdtempSync, rmSync, mkdirSync, symlinkSync, existsSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -130,3 +130,27 @@ test('candidate promotion is non-stopping and independently copies runtime artif
   assert.match(source, /G30_RECOVERY_EXPECTED_PORT/);
   assert.ok(source.indexOf('G30 warm rollback dry run') < source.indexOf('path A — previous immutable release'));
 });
+
+for (const nonLink of [false, true]) {
+  test(`candidate alias packaging preserves retained targets (non-link=${nonLink})`, () => {
+    const dir = mkdtempSync(join(tmpdir(), 'g30-alias-packaging-'));
+    try {
+      const release = join(dir, 'candidate'); const retained = join(dir, 'retained');
+      mkdirSync(release); mkdirSync(retained); writeFileSync(join(retained, 'proof'), 'retained');
+      for (const name of ['.next-current', '.next-previous', '.next-candidate']) {
+        if (nonLink && name === '.next-candidate') writeFileSync(join(release, name), 'must not delete');
+        else symlinkSync(retained, join(release, name));
+      }
+      const from = source.indexOf('# Discard leaked release aliases');
+      const to = source.indexOf('FREEZE_RESULT=', from);
+      assert.ok(from >= 0 && to > from);
+      const result = spawnSync('bash', ['-euc', 'fail() { exit 41; }\n' + source.slice(from, to)], {
+        env: { ...process.env, RELEASE_DIR: release }, encoding: 'utf8', timeout: 5000,
+      });
+      assert.equal(result.status, nonLink ? 41 : 0, result.stderr);
+      assert.equal(readFileSync(join(retained, 'proof'), 'utf8'), 'retained');
+      if (nonLink) assert.equal(readFileSync(join(release, '.next-candidate'), 'utf8'), 'must not delete');
+      else for (const name of ['.next-current', '.next-previous', '.next-candidate']) assert.equal(existsSync(join(release, name)), false);
+    } finally { rmSync(dir, { recursive: true, force: true }); }
+  });
+}

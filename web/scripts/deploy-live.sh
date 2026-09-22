@@ -1231,7 +1231,7 @@ if [ -d "$RELEASE_DIR/.next/server/app/index/index" ]; then
 fi
 
 # Discard leaked release aliases only if they are symlinks; never follow them.
-for alias in .next-current .next-previous; do
+for alias in .next-current .next-previous .next-candidate; do
   if [ -L "$RELEASE_DIR/$alias" ]; then
     rm -f "$RELEASE_DIR/$alias"
   elif [ -e "$RELEASE_DIR/$alias" ]; then
