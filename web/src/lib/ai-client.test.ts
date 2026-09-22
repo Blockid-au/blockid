@@ -1421,7 +1421,7 @@ describe("G15-R3 getProviderHealthSnapshot", () => {
   it("is empty when nothing is configured", async () => {
     const { getProviderHealthSnapshot, _resetDispatcherForTests } = await loadClient();
     _resetDispatcherForTests();
-    expect(getProviderHealthSnapshot()).toEqual({ providers: [], budget_exhausted_1h: 0, interactive_order: [] });
+    expect(getProviderHealthSnapshot()).toEqual({ providers: [], budget_exhausted_1h: 0, interactive_order: [], healthy_providers: 0, unfunded: [], dead_rungs: {} });
   });
 
   it("reports a configured provider as ok, then cooldown (with cooldown_until) after a transient failure", async () => {
@@ -1436,6 +1436,9 @@ describe("G15-R3 getProviderHealthSnapshot", () => {
       providers: [{ name: "claude-apikey", state: "ok", cooldown_until: null }],
       budget_exhausted_1h: 0,
       interactive_order: ["claude-apikey"],
+      healthy_providers: 1,
+      unfunded: [],
+      dead_rungs: {},
     });
     tierMock.call.mockRejectedValueOnce(new Error("Anthropic HTTP 529: Overloaded"));
     const t0 = Date.now();
@@ -1640,5 +1643,89 @@ describe("G28-B — callAI honours the run-scoped strike ledger", () => {
     await expect(callAI({ system: "s", user: "u" })).rejects.toThrow(/Worker timeout/);
     expect(runStruck({}, "claude-apikey")).toBe(false);
     tier._resetAnthropicTierForTests();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// G29-A — dead rungs at runtime. The strike table lives in the in-memory fs
+// mock; fixtures are the 2026-09-21 showcase log lines (model-strikes.test.ts
+// carries the verbatim heads). No HTTP transport is exercised: a dead rung is
+// skipped BEFORE any call, and an unfunded provider is blocked in the
+// dispatcher, so nothing here can reach a provider.
+// ---------------------------------------------------------------------------
+
+describe("G29-A — dead rungs are skipped at runtime without spending a call", () => {
+  const STRIKES = "/home/dovanlong/blockid.au/web/content/reports/ai-model-strikes.json";
+  const NOW = new Date("2026-09-21T10:30:00Z").getTime();
+  const dead = (until = "2026-09-22T10:00:00.000Z", reason = "model_not_found") =>
+    ({ strikes: 1, last_status: reason, last_at: "2026-09-21T10:00:00.000Z", dead_until: until, dead_reason: reason, dead_at: "2026-09-21T10:00:00.000Z" });
+
+  it("readyModels drops dead rungs from the curated ladder (the file prune never reached it) and never resurrects one through the all-cooling fallback", async () => {
+    fsMock.files.set(STRIKES, JSON.stringify({
+      "cerebras::gemma-4-31b": dead(undefined, "model_archived"),
+      "cerebras::qwen-3-32b": dead(),
+      "cerebras::llama-3.3-70b": dead(),
+      "cerebras::gpt-oss-120b": dead(undefined, "payment_required"),
+      "cerebras::lapsed": dead("2026-09-21T10:00:00.000Z"),
+    }));
+    const { readyModels, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    const ladder = ["gemma-4-31b", "gpt-oss-120b", "qwen-3-32b", "llama-3.3-70b", "llama-3.1-8b", "lapsed"];
+    expect(readyModels("cerebras", ladder, "classify", NOW)).toEqual(["llama-3.1-8b", "lapsed"]);
+    // the same ids on another provider are untouched (keys are provider-scoped)
+    expect(readyModels("groq", ["gemma-4-31b", "qwen-3-32b"], "classify", NOW)).toEqual(["gemma-4-31b", "qwen-3-32b"]);
+    // every rung dead → empty, not the "attempt anyway" fallback
+    expect(readyModels("cerebras", ["gemma-4-31b", "qwen-3-32b"], "classify", NOW)).toEqual([]);
+  });
+
+  it("a live 402 / 404 answer stamps the rung dead in the shared table (24 h); a 429 does not; a lapsed window is retried once", async () => {
+    const { noteDeadRung, readyModels, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    expect(noteDeadRung("sambanova", "DeepSeek-V3.2", 'HTTP 402: {"error":{"balance_units":0,"code":"PAYMENT_METHOD_REQUIRED","message":"A payment method is required."}}', NOW)).toBe(true);
+    expect(noteDeadRung("cerebras", "gemma-4-31b", 'HTTP 404: {"message":"Model gemma-4-31b is archived and unavailable for the organization.","code":"model_archived"}', NOW)).toBe(true);
+    expect(noteDeadRung("groq", "qwen/qwen3.8-27b", 'HTTP 429: {"error":{"message":"Request too large for model"}}', NOW)).toBe(false);
+    expect(noteDeadRung("deepinfra", "deepseek-ai/DeepSeek-V4-Flash", "Worker timeout (120s)", NOW)).toBe(false);
+    const written = JSON.parse(fsMock.files.get(STRIKES) ?? "{}") as Record<string, { dead_until?: string; dead_reason?: string }>;
+    expect(written["sambanova::DeepSeek-V3.2"]).toMatchObject({ dead_reason: "payment_required", dead_until: "2026-09-22T10:30:00.000Z" });
+    expect(written["cerebras::gemma-4-31b"]).toMatchObject({ dead_reason: "model_archived" });
+    expect(written["groq::qwen/qwen3.8-27b"]).toBeUndefined();
+    expect(readyModels("sambanova", ["DeepSeek-V3.2", "DeepSeek-R1"], "classify", NOW + 1_000)).toEqual(["DeepSeek-R1"]);
+    expect(readyModels("sambanova", ["DeepSeek-V3.2", "DeepSeek-R1"], "classify", NOW + 24 * 60 * 60_000 + 1)).toEqual(["DeepSeek-V3.2", "DeepSeek-R1"]);
+    expect(warnSpy?.mock.calls.map((c) => String(c[0])).some((l) => /dead-rung\] sambanova DeepSeek-V3\.2 → payment_required/.test(l))).toBe(true);
+  });
+
+  it("a provider whose account answered 402 is `unfunded`: blocked in the dispatcher, on the snapshot (dead_rungs + unfunded + healthy_providers), and callAI never dials it", async () => {
+    process.env.SAMBANOVA_API_KEY = "sn-test";
+    process.env.CEREBRAS_API_KEY = "cb-test";
+    fsMock.files.set(STRIKES, JSON.stringify({
+      "sambanova::DeepSeek-V3.2": dead(undefined, "payment_required"),
+      "cerebras::gemma-4-31b": dead(undefined, "model_archived"),
+    }));
+    const { providerBlockReason, getProviderHealthSnapshot, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    expect(providerBlockReason("sambanova", NOW)).toBe("unfunded");
+    expect(providerBlockReason("cerebras", NOW)).toBeNull(); // one archived rung of five = degraded, still dialled
+    const snap = getProviderHealthSnapshot(NOW);
+    expect(snap.providers.find((p) => p.name === "sambanova")).toEqual({ name: "sambanova", state: "blocked", cooldown_until: null, reason: "unfunded" });
+    expect(snap.unfunded).toEqual(["sambanova"]);
+    expect(snap.healthy_providers).toBe(1);
+    expect(snap.dead_rungs.sambanova).toMatchObject({ state: "unfunded", reason: "payment_required", dead: ["DeepSeek-V3.2"], total: 9 });
+    expect(snap.dead_rungs.cerebras).toMatchObject({ state: "degraded", dead: ["gemma-4-31b"], total: 5 });
+    // Only SambaNova configured + unfunded → nothing usable, no dial, the blocked error (not a 402 from the wire).
+    delete process.env.CEREBRAS_API_KEY;
+    const { callAI, _resetDispatcherForTests: reset2 } = await loadClient();
+    reset2();
+    await expect(callAI({ system: "s", user: "u" })).rejects.toThrow(/All AI providers are blocked/);
+  });
+
+  it("a provider whose every rung is dead throws DeadLadderError from its ladder — no call, no process-wide cooldown", async () => {
+    process.env.GROQ_API_KEY = "gq-test";
+    fsMock.files.set("/home/dovanlong/blockid.au/web/content/reports/ai-free-models.json", JSON.stringify({ groq: ["a", "b"] }));
+    fsMock.files.set(STRIKES, JSON.stringify({ "groq::a": dead(), "groq::b": dead() }));
+    const { DeadLadderError, providerBlockReason, getProviderHealthSnapshot, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    expect(new DeadLadderError("groq", 2).message).toMatch(/all 2 models are dead rungs/);
+    expect(providerBlockReason("groq", NOW)).toBe("unfunded");
+    expect(getProviderHealthSnapshot(NOW).dead_rungs.groq).toEqual({ state: "unfunded", reason: "all_rungs_dead", dead: ["a", "b"], total: 2, until: "2026-09-22T10:00:00.000Z" });
   });
 });

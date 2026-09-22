@@ -25,13 +25,36 @@ interface ProviderInfo {
   detail: string;
 }
 
+/** G29-A: one ladder provider's dead-rung verdict (see /api/status ai.dead_rungs). */
+interface DeadRungRow {
+  state: "ok" | "degraded" | "unfunded";
+  dead: string[];
+  total: number;
+  reason?: string;
+  until: string | null;
+}
+
+interface AICapacity {
+  healthy_providers: number;
+  unfunded: string[];
+  dead_rungs: Record<string, DeadRungRow>;
+  founder_item: string;
+}
+
 interface AIStatus {
   ok: boolean;
   activeCount: number;
   configuredCount: number;
   totalProviders: number;
   providers: ProviderInfo[];
+  capacity?: AICapacity | null;
 }
+
+const CAPACITY_BADGE: Record<DeadRungRow["state"], { label: string; cls: string }> = {
+  ok: { label: "OK", cls: "bg-emerald-50 border-emerald-200 text-emerald-700" },
+  degraded: { label: "Degraded", cls: "bg-amber-50 border-amber-200 text-warn" },
+  unfunded: { label: "Unfunded", cls: "bg-red-50 border-red-200 text-bear" },
+};
 
 interface SavedKey {
   provider: string;
@@ -165,6 +188,50 @@ export function AIKeysClient() {
           <div className="rounded-xl border border-surface-200 bg-white p-4 text-center">
             <p className="text-3xl font-bold font-mono text-bear">{status.providers.filter((p) => p.status === "missing").length}</p>
             <p className="text-xs text-ink-600 mt-1">Missing</p>
+          </div>
+        </div>
+      )}
+
+      {/* G29-A: Capacity — dead rungs + unfunded providers */}
+      {status?.capacity && (
+        <div className="rounded-2xl border border-surface-200 bg-white overflow-hidden" data-testid="ai-capacity">
+          <div className="px-6 py-4 border-b border-surface-200 flex items-center justify-between gap-4">
+            <div>
+              <h2 className="text-sm font-semibold text-ink-800">Capacity — dead rungs (last 24 h)</h2>
+              <p className="text-xs text-ink-600 mt-0.5">
+                {status.capacity.healthy_providers} healthy provider{status.capacity.healthy_providers === 1 ? "" : "s"} right now.
+                A rung that answered 402 / 404 / model_archived / model_not_found is skipped without a call until its next successful probe.
+              </p>
+            </div>
+            <a href="/api/status" className="text-xs text-brand-600 hover:text-brand-700 shrink-0">/api/status ai.dead_rungs</a>
+          </div>
+          {status.capacity.unfunded.length > 0 && (
+            <div className="px-6 py-3 border-b border-red-200 bg-red-50 text-xs text-ink-800" role="status">
+              <span className="font-semibold text-bear">Unfunded:</span> {status.capacity.unfunded.join(", ")} — every rung is dead or the account answered 402.
+              Founder action: <span className="font-mono">{status.capacity.founder_item}</span> (fund DeepInfra credit or an OpenRouter top-up).
+            </div>
+          )}
+          <div className="divide-y divide-surface-200/50">
+            {Object.entries(status.capacity.dead_rungs).map(([provider, row]) => {
+              const badge = CAPACITY_BADGE[row.state] ?? CAPACITY_BADGE.ok;
+              return (
+                <div key={provider} className="px-6 py-3 flex items-center gap-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-ink-800">{provider}</p>
+                    <p className="text-xs text-ink-600 mt-0.5 truncate">
+                      {row.dead.length} of {row.total} rungs dead
+                      {row.reason ? ` — ${row.reason.replace(/_/g, " ")}` : ""}
+                      {row.until ? ` — retried after ${new Date(row.until).toUTCString()}` : ""}
+                      {row.dead.length > 0 ? `: ${row.dead.join(", ")}` : ""}
+                    </p>
+                  </div>
+                  <span className={`text-[10px] font-medium rounded px-2 py-0.5 border ${badge.cls}`}>{badge.label}</span>
+                </div>
+              );
+            })}
+            {Object.keys(status.capacity.dead_rungs).length === 0 && (
+              <p className="px-6 py-3 text-xs text-ink-600">No ladder provider configured.</p>
+            )}
           </div>
         </div>
       )}

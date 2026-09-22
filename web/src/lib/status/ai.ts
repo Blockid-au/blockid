@@ -21,19 +21,46 @@ export const REPORT_PIPELINE_HEALTH_FILE = "report-pipeline-health.jsonl";
 export type ProviderState = "ok" | "cooldown" | "blocked";
 export type ProviderRow = { name: string; state: ProviderState; cooldown_until: string | null; reason?: string };
 export type ModelHealth = { updated_at: string; total: number; healthy: number; quota_exceeded: number };
+/** G29-A: one ladder provider's dead-rung verdict (lib/ai/model-strikes providerCapacity). */
+export type DeadRungRow = { state: "ok" | "degraded" | "unfunded"; dead: string[]; total: number; reason?: string; until: string | null };
 export type AiStatus = {
   providers: ProviderRow[] | null;
   budget_exhausted_1h: number | null;
   interactive_order: string[] | null;
+  /** G29-A: configured providers in state `ok`; null when the dispatcher is unavailable. */
+  healthy_providers: number | null;
+  /** G29-A: providers whose every rung is dead or that answered 402 in the last 24 h — founder item #9. */
+  unfunded: string[];
+  /** G29-A: dead rungs per ladder provider. */
+  dead_rungs: Record<string, DeadRungRow>;
   model_health: ModelHealth | null;
   fully_degraded_24h: number;
 };
 
-type Snapshot = { providers?: unknown; budget_exhausted_1h?: unknown; interactive_order?: unknown };
+type Snapshot = { providers?: unknown; budget_exhausted_1h?: unknown; interactive_order?: unknown; healthy_providers?: unknown; unfunded?: unknown; dead_rungs?: unknown };
 export type SnapshotFn = () => Snapshot | Promise<Snapshot>;
 
+function normaliseDeadRungs(raw: unknown): Record<string, DeadRungRow> {
+  const out: Record<string, DeadRungRow> = {};
+  if (!raw || typeof raw !== "object") return out;
+  for (const [provider, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (!v || typeof v !== "object") continue;
+    const r = v as Record<string, unknown>;
+    const state: DeadRungRow["state"] = r.state === "unfunded" || r.state === "degraded" ? r.state : "ok";
+    const row: DeadRungRow = {
+      state,
+      dead: Array.isArray(r.dead) ? r.dead.filter((x): x is string => typeof x === "string").slice(0, 30) : [],
+      total: typeof r.total === "number" && Number.isFinite(r.total) ? r.total : 0,
+      until: typeof r.until === "string" ? r.until : null,
+    };
+    if (typeof r.reason === "string" && r.reason) row.reason = r.reason.slice(0, 40);
+    out[provider] = row;
+  }
+  return out;
+}
+
 /** Coerce whatever the dispatcher returns into the documented shape. Exported for tests. */
-export function normaliseSnapshot(snap: unknown): Pick<AiStatus, "providers" | "budget_exhausted_1h" | "interactive_order"> {
+export function normaliseSnapshot(snap: unknown): Pick<AiStatus, "providers" | "budget_exhausted_1h" | "interactive_order" | "healthy_providers" | "unfunded" | "dead_rungs"> {
   const s = (snap && typeof snap === "object" ? snap : {}) as Snapshot;
   const providers: ProviderRow[] | null = Array.isArray(s.providers)
     ? (s.providers as Array<Record<string, unknown>>)
@@ -49,6 +76,12 @@ export function normaliseSnapshot(snap: unknown): Pick<AiStatus, "providers" | "
     providers,
     budget_exhausted_1h: typeof s.budget_exhausted_1h === "number" && Number.isFinite(s.budget_exhausted_1h) ? s.budget_exhausted_1h : null,
     interactive_order: Array.isArray(s.interactive_order) ? s.interactive_order.filter((x): x is string => typeof x === "string") : null,
+    // G29-A: an older dispatcher (no field) → derive the count from the rows when we have them.
+    healthy_providers: typeof s.healthy_providers === "number" && Number.isFinite(s.healthy_providers)
+      ? s.healthy_providers
+      : providers ? providers.filter((p) => p.state === "ok").length : null,
+    unfunded: Array.isArray(s.unfunded) ? s.unfunded.filter((x): x is string => typeof x === "string") : [],
+    dead_rungs: normaliseDeadRungs(s.dead_rungs),
   };
 }
 

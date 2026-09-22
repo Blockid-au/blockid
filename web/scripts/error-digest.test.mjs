@@ -14,23 +14,27 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
+  AI_CAPACITY_MIN_HEALTHY,
   classifyLine,
   computeReadStart,
   digestLines,
+  emptyAiCapacityState,
   emptyState,
   emptyTbrQualityState,
   evaluate,
+  evaluateAiCapacity,
   evaluateTbrQuality,
   formatAlert,
   formatTbrQualityAlert,
   hourlyMedian24h,
   normaliseMessage,
+  pickAiCapacity,
   pickTbrQuality,
   splitComplete,
   toReportRow,
   TBR_QUALITY_NOT_OK_HOURS,
 } from "./lib/error-digest-core.mjs";
-import { main, readTbrQuality, readWindow, parseArgs } from "./error-digest.mjs";
+import { main, readAiCapacity, readStatusBody, readTbrQuality, readWindow, parseArgs } from "./error-digest.mjs";
 
 const FIXTURE = [
   "▲ Next.js 16.3.5",
@@ -304,5 +308,86 @@ describe("tbr_quality watch (G24-B)", () => {
     const s6 = await main(["--dry-run", ...args], { now: base, log: () => {}, sendTelegram, readTbrQuality, stateFile, reportFile, lockFile });
     expect(s6.tbr_quality.alert).toBeNull();
     expect(JSON.parse(readFileSync(stateFile, "utf8")).tbr_quality.status).toBe("ok");
+  });
+});
+
+// ---------- G29-A: < 2 healthy AI providers for > 1 h → one digest line; clears at ≥ 2 ----------
+
+describe("ai_capacity watch (G29-A)", () => {
+  const H = 3_600_000;
+  const base = Date.parse("2026-09-21T10:00:00Z");
+  // /api/status.ai as published on 2026-09-21 after the dead-rung pass: only DeepInfra answering.
+  const low = { healthy: 1, unfunded: ["cerebras", "sambanova"] };
+  const none = { healthy: 0, unfunded: ["cerebras", "sambanova"] };
+  const fine = { healthy: 3, unfunded: [] };
+
+  it("pickAiCapacity reads healthy_providers + unfunded from the public body, counts ok rows for an older body, null without an ai block", () => {
+    expect(pickAiCapacity({ ai: { healthy_providers: 1, unfunded: ["cerebras", "sambanova", 4], providers: [] } })).toEqual(low);
+    expect(pickAiCapacity({ ai: { providers: [{ name: "deepinfra", state: "ok" }, { name: "groq", state: "cooldown" }, { name: "sambanova", state: "blocked" }] } })).toEqual({ healthy: 1, unfunded: [] });
+    expect(pickAiCapacity({ ai: null })).toBeNull();
+    expect(pickAiCapacity({ tbr_quality: { status: "ok" } })).toBeNull();
+    expect(pickAiCapacity(null)).toBeNull();
+  });
+
+  it("evaluateAiCapacity: low starts an episode, alerts ONCE after 1 h, debounces 24 h, clears at ≥ 2, ignores an unreadable status", () => {
+    expect(AI_CAPACITY_MIN_HEALTHY).toBe(2);
+    const r1 = evaluateAiCapacity(emptyAiCapacityState(), low, base);
+    expect(r1).toEqual({ next: { healthy: 1, low_since: new Date(base).toISOString(), last_alert_at: null }, alert: null });
+    // 59 min: still inside the hold
+    expect(evaluateAiCapacity(r1.next, low, base + 59 * 60_000).alert).toBeNull();
+    // 61 min: one line
+    const r3 = evaluateAiCapacity(r1.next, none, base + 61 * 60_000);
+    expect(r3.alert).toBe("[ai_capacity] 0 healthy AI providers for 1 h (need 2) — unfunded: cerebras, sambanova (founder item #9) — see /api/status ai.dead_rungs");
+    expect(r3.next.last_alert_at).toBe(new Date(base + 61 * 60_000).toISOString());
+    // 10 min later, 12 h later: debounced
+    expect(evaluateAiCapacity(r3.next, low, base + 71 * 60_000).alert).toBeNull();
+    expect(evaluateAiCapacity(r3.next, low, base + 13 * H).alert).toBeNull();
+    // 25 h after the first line: one more while it holds
+    const r6 = evaluateAiCapacity(r3.next, low, base + 26 * H + 60_000);
+    expect(r6.alert).toMatch(/^\[ai_capacity\] 1 healthy AI provider for 26 h \(need 2\)/);
+    // app down: unchanged
+    expect(evaluateAiCapacity(r6.next, null, base + 27 * H)).toEqual({ next: r6.next, alert: null });
+    // recovered → cleared; the next episode needs its own hour
+    const r8 = evaluateAiCapacity(r6.next, fine, base + 28 * H);
+    expect(r8).toEqual({ next: { healthy: 3, low_since: null, last_alert_at: null }, alert: null });
+    expect(evaluateAiCapacity(r8.next, low, base + 29 * H).alert).toBeNull();
+    expect(evaluateAiCapacity(undefined, null, base)).toEqual({ next: emptyAiCapacityState(), alert: null });
+    // exactly 2 healthy is fine
+    expect(evaluateAiCapacity(r1.next, { healthy: 2, unfunded: [] }, base + 2 * H).next.low_since).toBeNull();
+  });
+
+  it("readAiCapacity / readStatusBody: 200 → the picked block; non-200 / network error → null (never throws)", async () => {
+    const okFetch = async () => ({ ok: true, json: async () => ({ ai: { healthy_providers: 1, unfunded: ["sambanova"] } }) });
+    expect(await readAiCapacity({ env: { STATUS_BASE_URL: "http://127.0.0.1:1/" }, fetchImpl: okFetch })).toEqual({ healthy: 1, unfunded: ["sambanova"] });
+    expect(await readAiCapacity({ env: {}, fetchImpl: async () => ({ ok: false, status: 503, json: async () => ({}) }) })).toBeNull();
+    expect(await readAiCapacity({ env: {}, fetchImpl: async () => { throw new Error("ECONNREFUSED"); } })).toBeNull();
+    expect(await readStatusBody({ env: {}, fetchImpl: async () => { throw new Error("x"); } })).toBeNull();
+  });
+
+  it("main(): the episode is persisted next to tbr_quality; > 1 h low sends ONE message through the shared path; ≥ 2 clears it", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "digest-aicap-"));
+    const log = join(dir, "prod.log");
+    const stateFile = join(dir, "state.json");
+    const reportFile = join(dir, "digest.jsonl");
+    writeFileSync(log, "");
+    const sent = [];
+    const sendTelegram = async (text, opts) => { sent.push({ text, opts }); return { sent: true, via: "email" }; };
+    const args = ["--json", "--log", log, "--offset-file", join(dir, "off")];
+    const lockFile = join(dir, "lock");
+    const s1 = await main(args, { now: base, log: () => {}, sendTelegram, readAiCapacity: async () => low, stateFile, reportFile, lockFile });
+    expect(s1.ai_capacity).toEqual({ healthy: 1, unfunded: ["cerebras", "sambanova"], low_since: new Date(base).toISOString(), alert: null, telegram: null });
+    expect(s1.tbr_quality.status).toBeNull(); // the other watch saw no status body (nothing fetched)
+    expect(JSON.parse(readFileSync(stateFile, "utf8")).ai_capacity).toEqual({ healthy: 1, low_since: new Date(base).toISOString(), last_alert_at: null });
+    expect(sent).toHaveLength(0);
+    const s2 = await main(args, { now: base + 2 * H, log: () => {}, sendTelegram, readAiCapacity: async () => low, stateFile, reportFile, lockFile });
+    expect(s2.ai_capacity.alert).toMatch(/^\[ai_capacity\] 1 healthy AI provider for 2 h \(need 2\) — unfunded: cerebras, sambanova/);
+    expect(sent).toHaveLength(1);
+    expect(sent[0].text).toBe(`BlockID AI capacity\n${s2.ai_capacity.alert}`);
+    const s3 = await main(args, { now: base + 2 * H + 600_000, log: () => {}, sendTelegram, readAiCapacity: async () => low, stateFile, reportFile, lockFile });
+    expect(s3.ai_capacity.alert).toBeNull();
+    expect(sent).toHaveLength(1);
+    const s4 = await main(args, { now: base + 3 * H, log: () => {}, sendTelegram, readAiCapacity: async () => fine, stateFile, reportFile, lockFile });
+    expect(s4.ai_capacity).toEqual({ healthy: 3, unfunded: [], low_since: null, alert: null, telegram: null });
+    expect(sent).toHaveLength(1);
   });
 });

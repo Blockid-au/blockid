@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getAIBudgetStatus } from "@/lib/ai-client";
+import { getAIBudgetStatus, getProviderHealthSnapshot } from "@/lib/ai-client";
 import { ANTHROPIC_NOT_CONFIGURED_DETAIL, isAnthropicApiKeyConfigured } from "@/lib/ai/anthropic-tier";
 
 export const dynamic = "force-dynamic";
@@ -101,6 +101,26 @@ export async function GET() {
   const configuredCount = providers.filter((p) => p.status === "active" || p.status === "configured").length;
   const budget = getAIBudgetStatus();
 
+  // G29-A: dead rungs + unfunded providers (founder item #9) — from the
+  // dispatcher snapshot; never throws the page (fail-open to null).
+  let capacity: {
+    healthy_providers: number;
+    unfunded: string[];
+    dead_rungs: ReturnType<typeof getProviderHealthSnapshot>["dead_rungs"];
+    founder_item: string;
+  } | null = null;
+  try {
+    const snap = getProviderHealthSnapshot();
+    capacity = {
+      healthy_providers: snap.healthy_providers,
+      unfunded: snap.unfunded,
+      dead_rungs: snap.dead_rungs,
+      founder_item: "docs/ops/founder-items.md #9 — paid AI capacity",
+    };
+  } catch {
+    capacity = null;
+  }
+
   return NextResponse.json({
     ok: true,
     activeCount,
@@ -109,5 +129,6 @@ export async function GET() {
     providers,
     priority: providers.map((p) => p.id),
     budget,
+    capacity,
   });
 }

@@ -1505,7 +1505,7 @@ describe("G15-R2 — errors_1h / ai / queues / backups_detail / slo.latency_p95_
     expect(raw.crons_failed_24h).toEqual([{ endpoint: "db-backup-offsite", count: 1, last_ts: expect.any(String), last_error: "Service account has no Drive quota — see <path>" }]);
     expect(raw.backups_detail).toMatchObject({ local_age_h: 3, offsite_status: "founder_action_required" });
     // ai: the dispatcher mock in this suite has no getProviderHealthSnapshot → providers null, file-backed fields present
-    expect(raw.ai).toEqual({ providers: null, budget_exhausted_1h: null, interactive_order: null, model_health: { updated_at: expect.any(String), total: 28, healthy: 13, quota_exceeded: 0 }, fully_degraded_24h: 0 });
+    expect(raw.ai).toEqual({ providers: null, budget_exhausted_1h: null, interactive_order: null, healthy_providers: null, unfunded: [], dead_rungs: {}, model_health: { updated_at: expect.any(String), total: 28, healthy: 13, quota_exceeded: 0 }, fully_degraded_24h: 0 });
     expect(JSON.stringify(raw.backups_detail)).not.toContain("/data");
   });
 

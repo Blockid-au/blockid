@@ -38,9 +38,31 @@ describe("normaliseSnapshot", () => {
     expect(s.budget_exhausted_1h).toBe(2);
     expect(s.interactive_order).toEqual(["deepinfra", "groq"]);
   });
+  it("G29-A: carries healthy_providers / unfunded / dead_rungs, derives the count from the rows for an older dispatcher, drops junk", () => {
+    const s = normaliseSnapshot({
+      providers: [{ name: "groq", state: "ok", cooldown_until: null }, { name: "sambanova", state: "blocked", cooldown_until: null, reason: "unfunded" }],
+      healthy_providers: 1,
+      unfunded: ["sambanova", 7],
+      dead_rungs: {
+        sambanova: { state: "unfunded", reason: "payment_required", dead: ["DeepSeek-V3.2", 3], total: 9, until: "2026-09-22T10:00:00.000Z" },
+        groq: { state: "weird", dead: "no", total: "x", until: null },
+        junk: null,
+      },
+    });
+    expect(s.healthy_providers).toBe(1);
+    expect(s.unfunded).toEqual(["sambanova"]);
+    expect(s.dead_rungs).toEqual({
+      sambanova: { state: "unfunded", reason: "payment_required", dead: ["DeepSeek-V3.2"], total: 9, until: "2026-09-22T10:00:00.000Z" },
+      groq: { state: "ok", dead: [], total: 0, until: null },
+    });
+    const old = normaliseSnapshot({ providers: [{ name: "groq", state: "ok", cooldown_until: null }, { name: "gemini", state: "cooldown", cooldown_until: "x" }] });
+    expect(old.healthy_providers).toBe(1);
+    expect(old.unfunded).toEqual([]);
+    expect(old.dead_rungs).toEqual({});
+  });
   it("null / garbage → all null", () => {
-    expect(normaliseSnapshot(null)).toEqual({ providers: null, budget_exhausted_1h: null, interactive_order: null });
-    expect(normaliseSnapshot("x")).toEqual({ providers: null, budget_exhausted_1h: null, interactive_order: null });
+    expect(normaliseSnapshot(null)).toEqual({ providers: null, budget_exhausted_1h: null, interactive_order: null, healthy_providers: null, unfunded: [], dead_rungs: {} });
+    expect(normaliseSnapshot("x")).toEqual({ providers: null, budget_exhausted_1h: null, interactive_order: null, healthy_providers: null, unfunded: [], dead_rungs: {} });
   });
 });
 
@@ -69,6 +91,9 @@ describe("readAiStatus", () => {
       providers: null,
       budget_exhausted_1h: null,
       interactive_order: null,
+      healthy_providers: null,
+      unfunded: [],
+      dead_rungs: {},
       model_health: { updated_at: "2026-09-18T05:00:00Z", total: 28, healthy: 13, quota_exceeded: 1 },
       fully_degraded_24h: 1,
     });

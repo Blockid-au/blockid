@@ -63,10 +63,12 @@ vi.mock("fs", () => ({
 const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn<() => Promise<{ id: string; email: string; role?: string } | null>>(),
   getAIBudgetStatus: vi.fn<() => { month: string; spent: number; limit: number; percent: number; calls: number }>(),
+  // G29-A: dispatcher snapshot (dead rungs); undefined → the route answers capacity: null.
+  getProviderHealthSnapshot: vi.fn<() => unknown>(),
 }));
 
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => mocks.getCurrentUser() }));
-vi.mock("@/lib/ai-client", () => ({ getAIBudgetStatus: () => mocks.getAIBudgetStatus() }));
+vi.mock("@/lib/ai-client", () => ({ getAIBudgetStatus: () => mocks.getAIBudgetStatus(), getProviderHealthSnapshot: () => mocks.getProviderHealthSnapshot() }));
 
 import { GET, dynamic } from "./route";
 
@@ -389,6 +391,37 @@ describe("budget passthrough", () => {
   it("calls getAIBudgetStatus exactly once per request (not per provider)", async () => {
     await GET();
     expect(mocks.getAIBudgetStatus).toHaveBeenCalledTimes(1);
+  });
+});
+
+// ---------------------------------------------------------------------------
+describe("G29-A capacity block — dead rungs + unfunded providers for /admin/ai-keys", () => {
+  it("threads healthy_providers / unfunded / dead_rungs from the dispatcher snapshot and names founder item #9", async () => {
+    mocks.getProviderHealthSnapshot.mockReturnValue({
+      providers: [{ name: "sambanova", state: "blocked", cooldown_until: null, reason: "unfunded" }, { name: "groq", state: "ok", cooldown_until: null }],
+      budget_exhausted_1h: 0,
+      interactive_order: ["groq"],
+      healthy_providers: 1,
+      unfunded: ["sambanova"],
+      dead_rungs: { sambanova: { state: "unfunded", reason: "payment_required", dead: ["DeepSeek-V3.2"], total: 9, until: "2026-09-22T10:00:00.000Z" }, groq: { state: "ok", dead: [], total: 2, until: null } },
+    });
+    const body = await jsonOf(await GET());
+    expect(body.capacity).toEqual({
+      healthy_providers: 1,
+      unfunded: ["sambanova"],
+      dead_rungs: { sambanova: { state: "unfunded", reason: "payment_required", dead: ["DeepSeek-V3.2"], total: 9, until: "2026-09-22T10:00:00.000Z" }, groq: { state: "ok", dead: [], total: 2, until: null } },
+      founder_item: "docs/ops/founder-items.md #9 — paid AI capacity",
+    });
+    expect(JSON.stringify(body.capacity)).not.toMatch(/sk-|api_key/);
+  });
+
+  it("a throwing snapshot never breaks the page: capacity is null, the inventory still answers", async () => {
+    mocks.getProviderHealthSnapshot.mockImplementation(() => { throw new Error("dispatcher not loaded"); });
+    const res = await GET();
+    expect(res.status).toBe(200);
+    const body = await jsonOf(res);
+    expect(body.capacity).toBeNull();
+    expect(Array.isArray(body.providers)).toBe(true);
   });
 });
 

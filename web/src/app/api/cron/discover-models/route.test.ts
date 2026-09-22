@@ -296,3 +296,77 @@ describe("POST /api/cron/discover-models — file write", () => {
     expect(sizes.sambanova).toBe(0);
   });
 });
+
+// -----------------------------------------------------------------------------
+// G29-A — the storm POST is also the pruning pass. Strike-table fixture = the
+// 2026-09-21 verdicts (Cerebras gemma-4-31b 404 model_archived, qwen-3-32b 404
+// model_not_found, gpt-oss-120b 402 payment_required).
+// -----------------------------------------------------------------------------
+
+describe("POST /api/cron/discover-models — G29-A dead-rung pruning pass", () => {
+  const STRIKES = "/home/dovanlong/blockid.au/web/content/reports/ai-model-strikes.json";
+  const LIST = "/tmp/test-discover-models.json";
+  const T = "2026-09-21T10:30:00.000Z";
+  const dead = (reason: string) => ({ strikes: 1, last_status: reason, last_at: T, dead_until: "2026-09-22T10:00:00.000Z", dead_reason: reason, dead_at: T });
+  const strikes = {
+    "cerebras::gemma-4-31b": dead("model_archived"),
+    "cerebras::qwen-3-32b": dead("model_not_found"),
+    "cerebras::gpt-oss-120b": dead("payment_required"),
+    "cerebras::lapsed": { ...dead("model_not_found"), dead_until: "2026-09-21T09:00:00.000Z" },
+  };
+  const files = (list: unknown) => (p: string) => {
+    if (p === LIST) return JSON.stringify(list);
+    if (p === STRIKES) return JSON.stringify(strikes);
+    throw new Error("ENOENT");
+  };
+
+  beforeEach(() => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(T));
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("drops every rung with a live dead_until from ai-free-models.json and writes the file even when nothing new was found", async () => {
+    mocks.readFileMock.mockImplementation(files({ updatedAt: "x", cerebras: ["gemma-4-31b", "gpt-oss-120b", "qwen-3-32b", "llama-3.1-8b", "lapsed"], groq: ["ok"] }));
+    const res = await POST(req({ authorization: "Bearer test_cron_secret" }));
+    const body = await json(res);
+    expect(body.ok).toBe(true);
+    expect(body.noChange).toBeUndefined();
+    expect(body.removed).toEqual({ cerebras: ["gemma-4-31b", "gpt-oss-120b", "qwen-3-32b"] });
+    const listWrite = mocks.writeFileMock.mock.calls.find((c) => c[0] === LIST);
+    expect(listWrite).toBeDefined();
+    const written = JSON.parse(listWrite?.[1] as string) as { cerebras: string[]; groq: string[] };
+    expect(written.cerebras).toEqual(["llama-3.1-8b", "lapsed"]); // a lapsed window is a normal rung again
+    expect(written.groq).toEqual(["ok"]);
+    // the strike table is stamped (pruned_at) so the 7-day memory keeps them out of refresh
+    const strikeWrite = mocks.writeFileMock.mock.calls.find((c) => c[0] === STRIKES);
+    expect(strikeWrite).toBeDefined();
+    const s = JSON.parse(strikeWrite?.[1] as string) as Record<string, { pruned_at?: string }>;
+    expect(s["cerebras::gemma-4-31b"].pruned_at).toBe(T);
+  });
+
+  it("a dead rung is never re-added by discovery: it is in rank()'s exclude set", async () => {
+    process.env.CEREBRAS_API_KEY = "cb-test";
+    mocks.readFileMock.mockImplementation(files({ cerebras: ["llama-3.1-8b"] }));
+    mocks.fetchJsonMock.mockResolvedValue([{ id: "gemma-4-31b" }, { id: "fresh" }]);
+    mocks.rankMock.mockReturnValue(["fresh"]);
+    await POST(req({ authorization: "Bearer test_cron_secret" }));
+    const call = mocks.rankMock.mock.calls.find((c) => c[2] instanceof Set && (c[2] as Set<string>).has("llama-3.1-8b"));
+    expect(call).toBeDefined();
+    const exclude = call?.[2] as Set<string>;
+    expect(exclude.has("gemma-4-31b")).toBe(true);
+    expect(exclude.has("gpt-oss-120b")).toBe(true);
+    expect(exclude.has("lapsed")).toBe(false);
+  });
+
+  it("nothing dead + nothing new → noChange, no write (the S31 contract holds)", async () => {
+    mocks.readFileMock.mockImplementation(files({ cerebras: ["llama-3.1-8b"] }));
+    const res = await POST(req({ authorization: "Bearer test_cron_secret" }));
+    const body = await json(res);
+    expect(body.noChange).toBe(true);
+    expect(body.removed).toEqual({});
+    expect(mocks.writeFileMock).not.toHaveBeenCalled();
+  });
+});

@@ -32,7 +32,7 @@ export type StatusExtras = {
 
 export type PublicStatusExtras = {
   errors_1h: { total: number; classes: Array<{ tag: string; msg: string; count: number }> } | null;
-  ai: { providers: Array<{ name: string; state: string }> | null; budget_exhausted_1h: number | null; models_healthy: number | null; models_total: number | null; fully_degraded_24h: number } | null;
+  ai: { providers: Array<{ name: string; state: string }> | null; budget_exhausted_1h: number | null; models_healthy: number | null; models_total: number | null; fully_degraded_24h: number; healthy_providers: number | null; unfunded: string[] } | null;
   queues: Queues;
   backups_detail: BackupsDetail;
   latency_p95_ms: LatencySummary["latency_p95_ms"] | null;
@@ -94,6 +94,9 @@ export function publicStatusExtras(x: StatusExtras): PublicStatusExtras {
           models_healthy: x.ai.model_health ? x.ai.model_health.healthy : null,
           models_total: x.ai.model_health ? x.ai.model_health.total : null,
           fully_degraded_24h: x.ai.fully_degraded_24h,
+          // G29-A: the error digest reads these from the public body (< 2 healthy for > 1 h → one line).
+          healthy_providers: x.ai.healthy_providers,
+          unfunded: x.ai.unfunded,
         }
       : null,
     queues: x.queues,
