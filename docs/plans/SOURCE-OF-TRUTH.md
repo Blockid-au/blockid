@@ -351,6 +351,9 @@ Status dùng coverage contract hiện hành: answered/partial/missing/conflict/n
 - Lưu URL/title/excerpt/content+excerpt hash/fetch time/publication date nếu biết, source family/independence, research attempts và availability. `not_run`, `blocked`, `not_found`, `stale`, `conflicting` khác nhau. Trích nguyên văn khớp chỉ chứng minh trang nói gì; không tự chứng minh tính đúng hay verified competitor.
 - Claim material phải có supporting span phù hợp hoặc nhãn assumption/missing/conflict. Citation-consumption paths phải giữ entity/metric/period/literal scope; numeric match, model evidence strings hoặc ID tồn tại không đủ. External text là untrusted data, không là chỉ dẫn cho agent.
 
+- Routing cả hai site phải hội tụ chính sách DeepInfra chính đã được đánh giá; không giả định proxy AI chung của SVI đã tuân policy report của BlockID. Free fallback chỉ được dùng khi đã xác minh chất lượng/quota/điều kiện dữ liệu; hết quota thì queue/retry theo quote, không tự chuyển sang nhà cung cấp trả phí ngoài mức đã chấp thuận.
+- Giảm chi phí bằng reuse source snapshot còn hạn và đúng quyền/entity, dedup research chung giữa câu hỏi, cache theo input/source/rubric/model versions và giới hạn tokens/calls theo scope. Reuse không được che nguồn stale hoặc gắn nhãn fresh sai. Phân biệt chi phí đọc nguồn, suy luận mới và đọc lại report; hiển thị credit quote của khách tách với chi phí provider. Không hứa mức tiết kiệm/chất lượng khi chưa đo.
+
 #### C. Điểm mới, ảnh hưởng toàn report và lịch sử
 
 - Gắn kết quả với `baseRevision`, `inputSnapshot`, `researchSnapshot`, rubric/model/prompt versions và task scope. Lưu narrative/rationale/evidence IDs/score/weight cùng một revision; không chỉ đổi text tại SVI trong khi score chỉ tồn tại trong React state.
