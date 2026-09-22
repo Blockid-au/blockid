@@ -1,3 +1,4 @@
+import { trackOriginWork } from "@/lib/ops/origin-activity";
 // S20-A — `apiRoute()`: the single choke point that audits every mutating
 // API route.
 //
@@ -124,7 +125,7 @@ async function defaultSink(record: AuditRecord): Promise<void> {
   if (process.env.AUDIT_DISABLED === "1") return;
   if (isTestEnv() && !sinkExplicit) return;
   const mod = await import("./sink");
-  await mod.writeAuditEvent(record);
+  await trackOriginWork("audit_write", () => mod.writeAuditEvent(record));
 }
 
 async function withTimeout(p: Promise<void>, ms: number): Promise<void> {

@@ -1,3 +1,4 @@
+import { trackOriginWork } from "@/lib/ops/origin-activity";
 import type { ReportSaveStatus } from "@/lib/report-save-outcome";
 // run-report-pipeline — `runReportPipeline()`, the single generator behind
 // the streaming SVI analysis (`/api/svi/dimensions/stream`), the per-dimension
@@ -397,6 +398,10 @@ async function defaultSendEmail(args: EmailArgs): Promise<unknown> {
  * outage or a FULLY degraded report; a degraded-but-usable report is `ok`.
  */
 export async function runReportPipeline(input: RunReportPipelineInput): Promise<RunReportPipelineResult> {
+  return trackOriginWork("report_pipeline", () => runReportPipelineTracked(input));
+}
+
+async function runReportPipelineTracked(input: RunReportPipelineInput): Promise<RunReportPipelineResult> {
   const deps = input.deps ?? {};
   const now = deps.now ?? Date.now;
   const t0 = now();
@@ -487,7 +492,7 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
           const totalMs = now() - t0;
           // This cache contains a display projection, not a durable report save receipt.
           send({ type: "done", valuationStatus: cachedValuationValid ? "available" : "unavailable", saveStatus: "not_requested", totalMs, fromCache: true, reportId: null, snapshotId: null, calls: 0, costAud: 0, degradedSections: [], deadlineHit: false });
-          void (deps.notify ?? defaultNotify)({ userId: input.userId, projectId: input.projectId, kind: "analysis_done", payload: { fromCache: true, dims: cachedDims.length } }).catch(() => undefined);
+          void trackOriginWork("report_notification", () => (deps.notify ?? defaultNotify)({ userId: input.userId, projectId: input.projectId, kind: "analysis_done", payload: { fromCache: true, dims: cachedDims.length } })).catch(() => undefined);
           return { ok: true, fromCache: true, accountId: ctx.account.id, reportId: null, snapshotId: null, dimResults: cacheProjection.dimensions, chapters: [], criterionResults: cacheProjection.criteria, report: null, calls: 0, costAud: 0, totalMs, deadlineHit: false, ...(inputSnapshot ? { inputSnapshot } : {}) };
         }
       }
@@ -583,13 +588,13 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
 
   // 5. Notify + email (fire-and-forget; a full run only).
   if (!partial && saveStatus !== "save_failed") {
-    void (deps.notify ?? defaultNotify)({ userId: input.userId, projectId: input.projectId, kind: "analysis_done", payload: { fromCache: false, dims: state.dimResults.length, totalMs, reportId: report.id } }).catch(() => undefined);
+    void trackOriginWork("report_notification", () => (deps.notify ?? defaultNotify)({ userId: input.userId, projectId: input.projectId, kind: "analysis_done", payload: { fromCache: false, dims: state.dimResults.length, totalMs, reportId: report.id } })).catch(() => undefined);
     if (state.criteria.length) {
       const dimEmail: EmailArgs["dimResults"] = {};
       state.dimResults.forEach((d) => {
         dimEmail[d.dimension] = { score: d.score, priority: d.priority, insights: d.insights, label: d.label };
       });
-      void (deps.sendEmail ?? defaultSendEmail)({ userId: input.userId, projectId: input.projectId, dimResults: dimEmail, criterionResults: state.criteria, industry: state.industry ?? "Technology", stage: state.stage ?? ctx.sviAnalysis.stageLabel, baseUrl: input.baseUrl, reportV2: report.reportV2 ?? null, snapshotId: state.snapshotId ?? null }).catch((err: unknown) => console.warn("[run-report-pipeline:email] error", err));
+      void trackOriginWork("report_email", () => (deps.sendEmail ?? defaultSendEmail)({ userId: input.userId, projectId: input.projectId, dimResults: dimEmail, criterionResults: state.criteria, industry: state.industry ?? "Technology", stage: state.stage ?? ctx.sviAnalysis.stageLabel, baseUrl: input.baseUrl, reportV2: report.reportV2 ?? null, snapshotId: state.snapshotId ?? null })).catch((err: unknown) => console.warn("[run-report-pipeline:email] error", err));
     }
   }
 

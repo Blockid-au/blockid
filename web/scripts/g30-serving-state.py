@@ -118,6 +118,8 @@ def verify_entry(entry, web=None):
     req = urllib.request.Request(f'http://127.0.0.1:{entry["port"]}/api/status', headers={'Cache-Control': 'no-cache', 'User-Agent': 'BlockID-Release-Controller/1', 'Authorization': f'Bearer {token}'})
     with urllib.request.urlopen(req, timeout=8) as response:
         payload = json.loads(response.read(1024 * 1024))
+        if payload.get('origin_draining') is True:
+            raise ValueError('Origin admission closed; explicit resume required before serving/rollback')
         if response.status != 200 or payload.get('git_sha') != entry['sha'] or payload.get('schema_migrations') != 'ok':
             raise ValueError('Origin release identity/health mismatch')
     return entry

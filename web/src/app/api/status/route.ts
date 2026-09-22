@@ -1,3 +1,4 @@
+import { originActivity } from "@/lib/ops/origin-activity";
 // GET /api/status — public status endpoint.
 //
 // Aggregates:
@@ -682,7 +683,7 @@ export async function GET(): Promise<Response> {
     crons_failed_24h: extras?.crons_failed_24h ?? [],
   };
 
-  return NextResponse.json(trusted ? fullBody : publicBody, {
+  return NextResponse.json(trusted ? { ...fullBody, origin_draining: originActivity()?.snapshot().draining ?? null } : publicBody, {
     status: 200,
     headers: {
       "cache-control": trusted ? "no-store" : "s-maxage=30, stale-while-revalidate=60",

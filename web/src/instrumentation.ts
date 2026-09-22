@@ -6,6 +6,8 @@
 
 export async function register() {
   if (process.env.NEXT_RUNTIME === "nodejs") {
+    const { installOriginHttpAdmission } = await import("@/lib/ops/origin-http-admission");
+    installOriginHttpAdmission();
     const { captureExceptionSync } = await import("@/lib/error-tracker");
 
     process.on("uncaughtException", (err) => {

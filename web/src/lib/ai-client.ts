@@ -1,3 +1,4 @@
+import { trackOriginWork } from "@/lib/ops/origin-activity";
 /**
  * Unified AI client — task-class-aware, parallel-load-aware dispatcher
  * (S31-A tiers, S32-C quality-first / cheapest-possible routing, Sep 2026).
@@ -2480,6 +2481,10 @@ export function cooldownForError(provider: Provider, err: Error): number {
 }
 
 export async function callAI(opts: AICallOptions): Promise<AICallResult> {
+  return trackOriginWork("ai_call", () => callAITracked(opts));
+}
+
+async function callAITracked(opts: AICallOptions): Promise<AICallResult> {
   // Resolve policy before any gateway/probe I/O. The legacy gateway cannot
   // attest exact model or account eligibility and is outside this scoped chain.
   const scoped = scopedReportPolicy(opts);

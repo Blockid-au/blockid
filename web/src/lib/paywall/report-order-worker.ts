@@ -1,3 +1,4 @@
+import { trackOriginWork } from "@/lib/ops/origin-activity";
 /**
  * report-order-worker.ts — Trust Business Report background worker.
  *
@@ -161,6 +162,10 @@ export const MAX_RETRIES = 3;
 export async function processNextQueuedOrder(
   deps: WorkerDeps,
 ): Promise<ProcessOutcome> {
+  return trackOriginWork("report_order_worker", () => processNextQueuedOrderTracked(deps));
+}
+
+async function processNextQueuedOrderTracked(deps: WorkerDeps): Promise<ProcessOutcome> {
   const supabase = (deps.supabase ??
     getSupabaseAdmin()) as MinimalSupabase | null;
   if (!supabase) {
