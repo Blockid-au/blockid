@@ -151,6 +151,8 @@ export interface SectionAuditRecord {
 // ── Gather Phase Results ────────────────────────────────────────────────────
 
 export interface GatherResults {
+  /** Submitted-input quotations remain reported/unverified; never admitted as valuation inputs. */
+  submittedFinancial?: import("./submitted-financial-context").SubmittedFinancialContext;
   techAudit?: Record<string, unknown>;
   repoAudit?: Record<string, unknown>;
   competitiveResearch?: Record<string, unknown>;

@@ -27,6 +27,7 @@
 // imported lazily so a unit test (and the free-tier report with no links)
 // never loads scrapers or GitHub clients. All I/O is injectable via `deps`.
 
+import { submittedFinancialContext } from "./submitted-financial-context";
 import { qualifyRevenue, type RevenueQualification } from "./revenue-qualification";
 import type { CriterionKey } from "@/lib/evaluation-criteria";
 import { CRITERION_KEYS } from "@/lib/evaluation-criteria";
@@ -860,6 +861,8 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
     ...(conflict ? ["conflicting_qualified_revenue"] : []),
     ...(typeof signals.mrrAud === "number" || typeof signals.arrAud === "number" ? ["founder_revenue_provenance_missing"] : []),
   ])];
+  const submittedFinancial = submittedFinancialContext({ text: context.rawText, ownerUserId, projectId, businessName: context.startupName, locale: context.locale });
+  results.submittedFinancial = submittedFinancial;
   results.revenueQualification = { status: mrrAud === null ? "unqualified" : "qualified", reasons: qualificationReasons };
   const gm = grantsMatch as GrantsMatch | null;
   const rdti = gm?.rdSpendAud && gm.rdSpendAud > 0 ? Math.round(gm.rdSpendAud * 0.435) : 0;
@@ -885,7 +888,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
   if (mrrAud === null) {
     // Omitting MRR is not enough: the shared CFO builder defaults it to zero.
     // Keep missing revenue distinct from an explicit pre-revenue observation.
-    const reason = "The available financial information has not been validated for this business, currency and reporting period. A reliable valuation is unavailable.";
+    const reason = submittedFinancial.explanation;
     results.valuation = { inputs: valuationInput, status: "unavailable", reason, qualificationReasons };
     rows.push(row("valuation", "revenue-gap", "connector_other", "Valuation needs revenue information", "missing", ["iri", "cgh", "tre"], observed, reason));
     diag("valuation", "skipped", now(), "missing_or_invalid_revenue");
@@ -904,7 +907,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
 
   return { results, evidenceRows: rows, valuation: {
     status: vc ? "available" : "unavailable",
-    ...(!vc ? { reason: mrrAud === null ? "missing_or_invalid_revenue" : "valuation_failed", missingInputs: mrrAud === null ? ["current_revenue"] : [] } : {}),
+    ...(!vc ? { reason: mrrAud === null ? submittedFinancial.explanation : "valuation_failed", missingInputs: mrrAud === null ? ["current_revenue", ...submittedFinancial.missingInputs] : [] } : {}),
     vc, ask, revenueEvidenceIds,
   } };
 }

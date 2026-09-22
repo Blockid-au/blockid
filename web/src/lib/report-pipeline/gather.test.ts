@@ -501,11 +501,25 @@ describe("G30 valuation revenue presence", () => {
     const buildValuation = vi.fn(vcStub!);
     const out = await gatherData(withoutRevenue(), callAI, { deps: deps({ buildValuation }) });
     expect(buildValuation).not.toHaveBeenCalled();
-    expect(out.valuation).toMatchObject({ status: "unavailable", reason: "missing_or_invalid_revenue", missingInputs: ["current_revenue"], vc: null, ask: { statedCapAud: null, statedCapKind: null, raiseAud: 1_000_000 }, revenueEvidenceIds: [] });
+    expect(out.valuation).toMatchObject({ status: "unavailable", reason: expect.stringContaining("No explicitly labelled revenue statement"), missingInputs: expect.arrayContaining(["current_revenue", "independent_financial_validation"]), vc: null, ask: { statedCapAud: null, statedCapKind: null, raiseAud: 1_000_000 }, revenueEvidenceIds: [] });
     expect(out.results.valuation).toMatchObject({ status: "unavailable", inputs: { mrrAud: null, arrAud: null } });
     expect(out.results.diagnostics?.valuation).toMatchObject({ status: "skipped", note: "missing_or_invalid_revenue" });
     expect(out.evidenceRows.some((r) => r.label.startsWith("CFO 5-method"))).toBe(false);
-    expect(out.evidenceRows.find((r) => r.label === "Valuation needs revenue information")).toMatchObject({ status: "missing", value: expect.stringContaining("has not been validated for this business, currency and reporting period") });
+    expect(out.evidenceRows.find((r) => r.label === "Valuation needs revenue information")).toMatchObject({ status: "missing", value: expect.stringContaining("Provide dated revenue records identifying the business") });
+  });
+
+  it("carries exact submitted quotations to canonical unavailable output without admitting reported money", async () => {
+    const context = withoutRevenue();
+    context.rawText = `${context.startupName}: MRR AUD 12,000 as of 2026-08-31`;
+    const buildValuation = vi.fn(vcStub!);
+    const out = await gatherData(context, callAI, { deps: deps({ buildValuation }) });
+    expect(buildValuation).not.toHaveBeenCalled();
+    expect(out.valuation.reason).toContain(context.rawText);
+    expect(out.valuation.reason).toContain("not independently verified");
+    expect(out.results.submittedFinancial).toMatchObject({ valuationEligible: false, verification: "reported_not_independently_verified" });
+    expect(out.results.valuation).toMatchObject({ inputs: { mrrAud: null, arrAud: null } });
+    expect(out.valuation.revenueEvidenceIds).toEqual([]);
+    expect(out.valuation.missingInputs).toContain("independent_financial_validation");
   });
 
   it.each([NaN, Infinity, -1])("does not turn invalid stated MRR %s into a zero-valued input", async (value) => {
