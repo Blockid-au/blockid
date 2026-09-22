@@ -104,7 +104,7 @@ function DeltaPill({ delta, suffix = "", noPriorLabel }: { delta: number | null;
         data-testid="delta-no-prior"
       >
         <Minus className="h-3 w-3" aria-hidden="true" />
-        <span aria-hidden="true">—{suffix}</span>
+        <span aria-hidden="true">{suffix.trim()}</span>
         <span className="sr-only">{noPriorLabel}{suffix}</span>
       </span>
     );
@@ -184,7 +184,7 @@ export default async function IndexExchangePage() {
                 <DeltaPill delta={data.bsiAu.deltaWeek} suffix=" 7d" noPriorLabel={noPriorLabel} />
               </div>
               {noPriorCloseAnywhere ? (
-                <p className="mt-1 max-w-[16rem] text-xs text-ink-500 sm:ml-auto" data-testid="delta-no-prior-note">{t(msgs, "index.movers.noPriorClose.note")}</p>
+                <p className="mt-1 max-w-[16rem] text-xs text-ink-500 text-right sm:ml-auto" data-testid="delta-no-prior-note">{t(msgs, "index.movers.noPriorClose.note")}</p>
               ) : null}
             </div>
           </div>
