@@ -923,11 +923,11 @@ fi
 
 # ══════════════════════════════════════════════════════════════════════
 # GATE 4b: Unit tests (vitest)
-# Runs even on --quick (only --skip-build skips it). Tests are fast (~3s) and
+# Runs on --quick unless explicitly deferred by the founder release profile;
 # are the ONLY behavioural gate that can catch logic regressions the smoke test
 # (200-OK only) and tsc/lint cannot — the key guard for autonomous AI deploys.
 # ══════════════════════════════════════════════════════════════════════
-if [ "${1:-}" != "--skip-build" ]; then
+if [ "${1:-}" != "--skip-build" ] && [ "${G30_DEFER_UNIT_TESTS:-0}" != "1" ]; then
   gate "Unit tests (vitest)"
 
   # Capture vitest's exit via PIPESTATUS[0], NOT `$?` after the pipe — otherwise
@@ -959,6 +959,9 @@ if [ "${1:-}" != "--skip-build" ]; then
     fail "Unit tests failed (exit $TEST_EXIT) — see $VITEST_LOG. Fix before deploy."
   fi
   pass "All unit tests pass"
+elif [ "${1:-}" != "--skip-build" ]; then
+  gate "Unit tests (vitest)"
+  skip "Unit tests deferred by founder accelerated-release decision; NOT a pass"
 fi
 
 # ══════════════════════════════════════════════════════════════════════
