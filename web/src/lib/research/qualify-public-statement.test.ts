@@ -1,10 +1,21 @@
 import { describe, it, expect } from "vitest";
-import { qualifyPublicStatement, supportsPublicAttribution, excerptDigest, type PublicStatementRequest } from "./qualify-public-statement";
+import { qualifyPublicStatement, publicResearchAnalysisContext, supportsPublicAttribution, excerptDigest, type PublicStatementRequest } from "./qualify-public-statement";
 import { retrievePublicSources } from "./public-sources";
 import { publicResearchSchema } from "./public-source-contract";
 const load = () => retrievePublicSources({ criterion: "market", question: "Who are the main competitors?", businessScope: { name: "Acme Clinic", projectId: "p1" }, sources: [{ url: "https://acme.example/pricing", role: "business" }] }, { now: () => 0, read: async () => ({ ok: true, status: 200, text: '<title>Acme Clinic</title><p>Acme Clinic does not claim AUD 200 monthly revenue. Another company reported AUD 200 monthly revenue.</p>', blocked: false, truncated: false, attempts: 1 }) });
 const request = (source: Awaited<ReturnType<typeof load>>): PublicStatementRequest => ({ kind: "attributed_source_statement", sourceId: source.sources[0].id, projectId: "p1", entityName: "Acme Clinic", sourceUrl: source.sources[0].url, excerptSha256: source.sources[0].excerptSha256!, quote: source.sources[0].excerpt });
 describe("source statement qualification", () => {
+  it("analysis context recomputes source scope and excludes forged stored promotions", async () => {
+    const source = await load();
+    source.attributions![0].supportedClaim = "Acme has verified AUD 999999 revenue.";
+    const context = publicResearchAnalysisContext(source);
+    expect(context).not.toContain("999999");
+    expect(context).not.toContain("public-attribution-");
+    expect(context).toContain("not in the report citation register");
+    expect(context).toContain("does not claim AUD 200");
+    source.sources[0].status = "blocked";
+    expect(JSON.parse(publicResearchAnalysisContext(source)).observations).toEqual([]);
+  });
   it("qualifies only whole-excerpt attribution and preserves snapshot and negation", async () => {
     const source = await load(); const result = qualifyPublicStatement(source, request(source));
     expect(result.status).toBe("qualified_attribution"); expect(source.attributions).toHaveLength(1);

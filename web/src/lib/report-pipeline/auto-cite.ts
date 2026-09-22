@@ -25,6 +25,8 @@ export interface CitableItem {
   text: string;
   /** G24-D: when set, the row is chosen only for a claim that names its topic — the AU-context knowledge row (R&DTI / ESIC / GST rates) must not back "20% growth". */
   topicRe?: RegExp;
+  /** Public page observations can support only this complete, literal attribution. */
+  claimScope?: { kind: "literal_public_attribution"; exactClaim: string };
 }
 
 export interface AutoCiteResult {
@@ -146,10 +148,25 @@ function appendMarkers(claim: string, ids: string[]): string {
   return `${claim.trimEnd()} ${markers}`;
 }
 
+const PUBLIC_ATTRIBUTION_ID = /^public-attribution-/i;
+function scopedClaimMatches(item: CitableItem, claim: string): boolean {
+  if (!item.claimScope) return !PUBLIC_ATTRIBUTION_ID.test(item.id);
+  return claim.replace(/\[ev:[^\]]+\]/gi, "").trim() === item.claimScope.exactClaim;
+}
+
+/** Strip scope-invalid markers even if they were already supplied by the model. */
+function enforcePublicAttributionScope(line: string, items: CitableItem[]): string {
+  return line.replace(/\[ev:([^\]]+)\]/gi, (marker, rawId: string) => {
+    const item = items.find(i => i.id.toLowerCase() === rawId.trim().toLowerCase());
+    if (!PUBLIC_ATTRIBUTION_ID.test(rawId.trim()) && !item?.claimScope) return marker;
+    return item && scopedClaimMatches(item, line) ? marker : "";
+  });
+}
+
 /** Pick ≤ `max` items that together cover every needed token; null when they cannot. */
 function chooseItems(claim: string, need: NumToken[], items: CitableItem[], max: number): CitableItem[] | null {
   const coverage = items
-    .filter((item) => !item.topicRe || item.topicRe.test(claim))
+    .filter((item) => scopedClaimMatches(item, claim) && (!item.topicRe || item.topicRe.test(claim)))
     .map((item, order) => ({ item, order, covered: need.filter((tok) => itemHasNumber(item.text, tok)), mentioned: labelMentioned(claim, item.label) }));
   // A claim whose only numbers are weak (2–3 plain digits) is cited only
   // when the sentence names the row's source (review G23 P1) — "38 signups"
@@ -209,7 +226,18 @@ export function autoCite(text: string, items: CitableItem[], citations: Array<{ 
   let uncited = 0;
   if (!text.trim()) return { text, added, material, uncited };
   // G24-D: "[ev:f73c3a4a]" (a free model's shortened id) → the one allowed id it names, before anything is counted.
-  const lines = expandShortCitations(text, items.map((i) => i.id)).split("\n").map((line) => {
+  const lines = expandShortCitations(text, items.map((i) => i.id)).split("\n").map((rawLine) => {
+    const line = enforcePublicAttributionScope(rawLine, items);
+    // Full source quotations may contain several sentences; splitting them would
+    // discard attribution/negation context. Only an exact whole line is admitted.
+    const exact = pool.find(item => item.claimScope && scopedClaimMatches(item, line));
+    if (exact) {
+      const isMaterial = isMaterialClaim(line);
+      if (isMaterial) material += 1;
+      if (hasCitationOrMarker(line, new Set([exact.id.toLowerCase()]))) return line;
+      added += 1;
+      return `${line.trimEnd()} [ev:${exact.id}]`;
+    }
     if (!line.trim() || line.trim().startsWith("<!--") || line.trim().startsWith("```")) return line;
     const indent = /^\s*/.exec(line)?.[0] ?? "";
     const units = splitClaims(line);

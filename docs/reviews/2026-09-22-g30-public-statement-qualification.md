@@ -21,3 +21,13 @@ Promoted attribution IDs are deliberately separate from the generic evidence/cit
 ## Still open
 
 R02 independent corroboration, publisher ownership, competitor entity resolution, sector/geography/period applicability, arbitrary claim entailment, source freshness and material contradiction analysis are not completed here. The UI continues to present source relevance as pending. A quote match cannot raise revenue eligibility, valuation certainty, report score or research coverage to verified.
+
+## Follow-up: scoped citation guard and pipeline consumption
+
+`auto-cite.ts` now accepts an optional literal-public-attribution scope. A scoped item can be selected only for its complete exact attributed claim. Whole-quote lines are kept intact so sentence splitting cannot discard the source attribution or negation. Markers are appended outside the quote. Pre-existing model-supplied markers are removed when the complete line does not match the scope, including non-numeric assertions. An attribution-prefixed ID without scope metadata is denied rather than treated as ordinary numeric evidence. Model-supplied quote pairs cannot broaden scope.
+
+Production market context now uses `publicResearchAnalysisContext`: it recomputes qualification from the server-owned source snapshot, disregards forged/stale stored promotion flags, and supplies only the exact source-states observation with source URL/time and explicit limits. It excludes attribution IDs from the prompt because these observations are not yet registered in the final report citation register. Sources that cannot meet this narrow qualification remain pending; their stored originals remain available in the appendix.
+
+This is concrete **context-only** consumption plus a defensive auto-cite guard, not a claim that public evidence now has complete end-to-end final citation support. The current criterion adapter determines grounded status from allowed citation IDs before all downstream checks, and other citation consumers do not yet carry literal-scope metadata. Promoting new IDs into that entire path without those changes would overstate verification. No global citation-quality gate is marked complete.
+
+Focused follow-up: 17 citation/auto-cite tests passed and 27 qualification/dispatcher tests passed. Includes same-number wrong-entity/metric, shortened quote, extra conclusion, pre-existing bogus marker, non-numeric misuse, scope metadata loss, exact-quote idempotence and forged stored promotion in analysis context. ESLint clean on changed source/test modules; no broad TypeScript rerun or paid call.
