@@ -159,6 +159,8 @@ export interface GatherResults {
   // ── S-R3 §C.3 (un-stubbed GATHER) ──────────────────────────────────
   /** Connector signal snapshots read from the LAST sync (svi_signals / connector_snapshots) — never a live OAuth call. */
   connectorSignals?: Record<string, unknown>;
+  /** Admission result; unqualified observations cannot authorize a valuation. */
+  revenueQualification?: { status: "qualified" | "unqualified"; reasons: string[] };
   /** Cap-table register summary (shareholders + esop_pool). */
   capTable?: Record<string, unknown>;
   /** Grants / programs match (grant-advisor.ts) for the project's grant profile. */
