@@ -50,6 +50,33 @@ export function setFloatingStackLift(px: number): void {
   else root.style.removeProperty(LIFT_VAR);
 }
 
+/**
+ * Lift the stack above a page-owned fixed bottom element while `active` —
+ * by the element's live height (ResizeObserver), optionally only below a
+ * viewport width (`belowPx`, e.g. 640 for a bar that is full-width under
+ * `sm`). Cleared on unmount / deactivation. StickyCta (pricing) and the
+ * FeatureSpotlight card (bottom-right tour sheet) use it so the pills never
+ * cover their primary button.
+ */
+export function useFloatingStackLift(ref: React.RefObject<HTMLElement | null>, active: boolean, belowPx?: number): void {
+  React.useEffect(() => {
+    if (!active) return;
+    const el = ref.current;
+    if (!el) return;
+    const mq = typeof belowPx === "number" ? window.matchMedia(`(max-width: ${belowPx - 1}px)`) : null;
+    const apply = () => setFloatingStackLift(mq && !mq.matches ? 0 : el.getBoundingClientRect().height + 12);
+    apply();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(apply) : null;
+    ro?.observe(el);
+    mq?.addEventListener("change", apply);
+    return () => {
+      ro?.disconnect();
+      mq?.removeEventListener("change", apply);
+      setFloatingStackLift(0);
+    };
+  }, [ref, active, belowPx]);
+}
+
 /** Shared positioning for the host and the no-host fallback. */
 export const FLOATING_STACK_CLASS =
   "fixed z-[70] flex flex-col items-end gap-3 pointer-events-none print:hidden " +

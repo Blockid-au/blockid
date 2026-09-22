@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
-import { FLOATING_SLOT, FLOATING_STACK_CLASS, FLOATING_STACK_ID, FloatingSlot, FloatingStackHost } from "./floating-stack";
+import { FLOATING_SLOT, FLOATING_STACK_CLASS, FLOATING_STACK_ID, FloatingSlot, FloatingStackHost, setFloatingStackLift } from "./floating-stack";
 
 const SRC = resolve(__dirname, "..");
 const read = (rel: string) => readFileSync(resolve(SRC, rel), "utf8");
@@ -85,9 +85,15 @@ describe("every floating pill goes through the slot (no private corners)", () =>
     expect(read("../app/layout.tsx").match(/<FeedbackWidget \/>/g)?.length).toBe(1);
   });
 
-  it("StickyCta lifts the stack while its full-width mobile bar is visible", () => {
-    const src = read("sales/sticky-cta.tsx");
-    expect(src).toContain("setFloatingStackLift(");
-    expect(src).toMatch(/max-width: 639px/);
+  it("StickyCta (full-width bar below sm) and the FeatureSpotlight card lift the stack while visible", () => {
+    const cta = read("sales/sticky-cta.tsx");
+    expect(cta).toContain("useFloatingStackLift(barRef, visible, 640)");
+    const spotlight = read("product-tour/feature-spotlight.tsx");
+    expect(spotlight).toContain("useFloatingStackLift(cardRef, showing)");
+  });
+
+  it("setFloatingStackLift is a no-op without a document (server) and clears the var at 0", () => {
+    expect(() => setFloatingStackLift(48)).not.toThrow();
+    expect(() => setFloatingStackLift(0)).not.toThrow();
   });
 });

@@ -23,7 +23,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { X, ArrowRight } from "lucide-react";
-import { setFloatingStackLift } from "@/components/ui/floating-stack";
+import { useFloatingStackLift } from "@/components/ui/floating-stack";
 import {
   getCtaVariant,
   type CtaSurface,
@@ -131,22 +131,7 @@ export function StickyCta({
   // bar's height while it is visible so the pills never cover the primary CTA.
   const barRef = React.useRef<HTMLDivElement | null>(null);
   const visible = mounted && !dismissed;
-  React.useEffect(() => {
-    if (!visible) return;
-    const el = barRef.current;
-    if (!el) return;
-    const mq = window.matchMedia("(max-width: 639px)");
-    const apply = () => setFloatingStackLift(mq.matches ? el.getBoundingClientRect().height : 0);
-    apply();
-    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(apply) : null;
-    ro?.observe(el);
-    mq.addEventListener("change", apply);
-    return () => {
-      ro?.disconnect();
-      mq.removeEventListener("change", apply);
-      setFloatingStackLift(0);
-    };
-  }, [visible]);
+  useFloatingStackLift(barRef, visible, 640);
 
   if (!visible) return null;
 
