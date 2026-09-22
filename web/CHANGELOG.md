@@ -2,6 +2,9 @@
 
 ## v3.30.0 — G30 report and reading foundations
 
+- Represent insufficient valuation inputs explicitly across new reports, streaming, saved views and exports; suppress stale monetary summaries when valuation is unavailable. Historical reports remain compatible.
+- Introduce investor-first business wording and the existing URL/text/file intake on English and Vietnamese homepages, with aligned social previews.
+
 - Rebuild fresh-deck context from received input and reject unsupported partial or empty deck requests before billing admission; invalidate older generation caches.
 - Distinguish report generation from successful saving. Show failed-save guidance and suppress stale share/export actions, including after section retries.
 - Normalize legacy dark preferences to light surfaces with dark text; preserve input and keep CSP script hashes aligned.

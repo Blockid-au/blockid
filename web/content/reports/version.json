@@ -1,9 +1,9 @@
 {
   "version": "v3.30.0",
-  "updated_at": "2026-09-22T06:30:55.154532Z",
+  "updated_at": "2026-09-22T07:17:30.593188+00:00",
   "release_id": "g30-report-foundation-light-provider-policy",
   "shipped_summary": [
-    "v3.30.0 — G30 foundation: current-deck inputs, explicit report-save failures, light-theme migration, DeepInfra policy for four main report adapters, and missing-payment-configuration guard. Full report evidence/valuation, billing atomicity and whole-site redesign remain in progress.",
+    "v3.30.0 — G30 foundation: current-deck inputs, honest report-save and valuation availability, light surfaces, investor-first business intake, scoped DeepInfra report routing and missing-payment-configuration guard. Research, valuation input accuracy, billing atomicity and whole-site redesign remain in progress.",
     "v3.29.1 — G30 rollout repair: system-service ownership for candidate lifetimes, private environment snapshots and retained exit diagnostics; current-process status probing and legacy writer admission guards. Full release soak and broader report/design upgrades remain separate gates.",
     "v3.29.0 — G30 initial safety release: source-backed quote checks and versioned report cache; protected releases, serialized warm recovery and non-stopping origin promotion. Existing report semantic/valuation issues and full-site redesign remain in progress.",
     "v3.28.2 — exit hub overflow root cause (2026-09-22): the locked tab's sr-only label (position: absolute) escaped the scrolling tablist and widened the document past 375 px on /workspace/exit*; tab links are relative now so it is clipped with the tab.",

@@ -61,3 +61,13 @@ The supplied `/tmp/g30-free-model-screen.json` records three exact model/provide
 5. Run held-out report-quality and cost evaluations on exact DeepInfra candidates; separately qualify only genuinely zero-price external fallbacks with usable quota. Track accepted-report cost, citation support, missing-data honesty, competitor research relevance, valuation assumptions and latency together.
 
 No source, production database, provider configuration or runtime state was changed while preparing this note.
+
+## Added candidate slices after initial foundation review
+
+U06 adds the shared EN/VI investor headline ("Know the business before you invest"), keeps URL/text/file collection, and aligns light social previews and browser expectations. Six offline bundled-hero browser cases passed; actual full-page and authenticated acceptance remain pending. The entire site has not yet been redesigned.
+
+V01 introduces an explicit unavailable valuation union for insufficient revenue inputs and preserves it through report generation, prompts, storage-compatible views, streaming, HTML, PDF and DOCX. Unavailable output carries no monetary valuation fields. Missing and explicit zero remain distinct. Actual export regressions reproduced and then suppressed stale executive-summary valuation ranges while preserving legitimate revenue amounts. Historical records retain backward compatibility. The integrated V01 slice passed69files/1099 tests and TypeScript before the final foundation merge.
+
+The stale-claim filter is bounded lexical/section suppression, not a general financial fact verifier. Existing connector currency/period/entity semantics remain unqualified; available streaming valuation still needs parity with the canonical chapter. V01 is partial, not a claim that valuations are financially reliable. The generation cache is bumped to `pipeline-v2.1-s-r6-valuation-availability` and code-default prompt version to2.4.0 so prior outputs do not silently stand in for the new contract.
+
+The future candidate also incorporates the independently validated supervisor/status/legacy-writer repair. That does not make this branch live or bypass W0's repeated release and soak gates.

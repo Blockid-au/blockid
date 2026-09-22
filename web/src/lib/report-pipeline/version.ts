@@ -4,7 +4,7 @@
 // importer. Bumped whenever the generator's output shape / prompts change —
 // the `svi_deck_cache` key is `deck_hash + pipeline_version`.
 
-export const PIPELINE_VERSION = "pipeline-v2.1-s-r5-input-provider-policy";
+export const PIPELINE_VERSION = "pipeline-v2.1-s-r6-valuation-availability";
 
 /**
  * G24-B — the semver the CODE-DEFAULT prompts are registered under in
@@ -12,4 +12,4 @@ export const PIPELINE_VERSION = "pipeline-v2.1-s-r5-input-provider-policy";
  * without a prod row. Bump it whenever agent-prompts.ts changes what the
  * model sees, so `ai_runs` can be sliced by prompt generation.
  */
-export const CODE_PROMPT_VERSION = "2.3.0";
+export const CODE_PROMPT_VERSION = "2.4.0";
