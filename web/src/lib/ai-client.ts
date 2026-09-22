@@ -440,13 +440,22 @@ export function isProviderUnfunded(p: Provider, now: number = Date.now()): boole
   return cap?.state === "unfunded";
 }
 
+/** Read-modify-write against a FRESH copy of the table (never the 30 s cache), so a
+ *  runtime stamp cannot overwrite what the health-check / discover cron wrote a
+ *  moment ago. Last writer still wins on a true race — a lost stamp costs one
+ *  extra call later, never a wrong skip. */
+function updateStrikes(mutate: (fresh: StrikeFile) => StrikeFile, now: number): StrikeFile {
+  const next = mutate(readStrikes());
+  strikesCache = { data: next, at: now };
+  writeStrikes(next);
+  return next;
+}
+
 /** A live answer that is a dead-rung verdict → stamp the rung dead (24 h) in the shared table. */
 export function noteDeadRung(provider: Provider, model: string, errMsg: string, now: number = Date.now()): boolean {
   const reason = classifyDeadRung({ message: errMsg });
   if (!reason) return false;
-  const next = markDeadRung(currentStrikes(now), provider, model, reason, new Date(now));
-  strikesCache = { data: next, at: now };
-  writeStrikes(next);
+  const next = updateStrikes((fresh) => markDeadRung(fresh, provider, model, reason, new Date(now)), now);
   const until = next[strikeKey(provider, model)]?.dead_until ?? "";
   console.warn(`[ai-client:dead-rung] ${provider} ${model} → ${reason}; skipped without a call until ${until}`);
   return true;
@@ -454,13 +463,14 @@ export function noteDeadRung(provider: Provider, model: string, errMsg: string, 
 
 /** A live success forgets the rung's strike entry (dead or not) — mirrors the probe rule. */
 function clearDeadRung(provider: Provider, model: string, now: number = Date.now()): void {
-  const strikes = currentStrikes(now);
   const key = strikeKey(provider, model);
-  if (!strikes[key]) return;
-  const next = { ...strikes };
-  delete next[key];
-  strikesCache = { data: next, at: now };
-  writeStrikes(next);
+  if (!currentStrikes(now)[key]) return; // cheap path: nothing to forget
+  updateStrikes((fresh) => {
+    if (!fresh[key]) return fresh;
+    const next = { ...fresh };
+    delete next[key];
+    return next;
+  }, now);
 }
 
 /** Thrown by a ladder whose every rung is dead — no call was made. */

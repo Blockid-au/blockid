@@ -1694,6 +1694,18 @@ describe("G29-A — dead rungs are skipped at runtime without spending a call", 
     expect(warnSpy?.mock.calls.map((c) => String(c[0])).some((l) => /dead-rung\] sambanova DeepSeek-V3\.2 → payment_required/.test(l))).toBe(true);
   });
 
+  it("a runtime stamp merges into a FRESH read of the table — a stamp the health-check cron wrote a moment ago survives the 30 s cache", async () => {
+    fsMock.files.set(STRIKES, JSON.stringify({ "cerebras::a": dead() }));
+    const { noteDeadRung, readyModels, _resetDispatcherForTests } = await loadClient();
+    _resetDispatcherForTests();
+    expect(readyModels("cerebras", ["a", "b", "c"], "classify", NOW)).toEqual(["b", "c"]); // warms the cache
+    fsMock.files.set(STRIKES, JSON.stringify({ "cerebras::a": dead(), "cerebras::b": dead() })); // the cron writes b
+    noteDeadRung("cerebras", "c", 'HTTP 404: {"code":"model_not_found"}', NOW + 5_000);
+    const written = JSON.parse(fsMock.files.get(STRIKES) ?? "{}") as Record<string, unknown>;
+    expect(Object.keys(written).sort()).toEqual(["cerebras::a", "cerebras::b", "cerebras::c"]);
+    expect(readyModels("cerebras", ["a", "b", "c", "d"], "classify", NOW + 6_000)).toEqual(["d"]);
+  });
+
   it("a provider whose account answered 402 is `unfunded`: blocked in the dispatcher, on the snapshot (dead_rungs + unfunded + healthy_providers), and callAI never dials it", async () => {
     process.env.SAMBANOVA_API_KEY = "sn-test";
     process.env.CEREBRAS_API_KEY = "cb-test";
