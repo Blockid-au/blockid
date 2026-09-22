@@ -10,7 +10,7 @@ Remaining limitations:
 
 - Snapshot/projection and ReportV2 writes remain separate operations; this does not provide atomic multi-store persistence, immutable revisions or authenticated cache provenance.
 - `reportId` identifies the generated document, not proof that it was saved. Snapshot identity still travels in the existing terminal server event; this change does not redesign report-link resolution.
-- Browser storage still has the existing project-only key and short retention. Input-specific local restore identity remains follow-on work; this change stores the final projection alongside the existing state but does not claim to solve all stale local restores.
+- F03 now scopes browser results to the authenticated user and resolved project plus full received deck and effective report tier/locale, using SHA-256. Old project-only keys are ignored without deletion. Stored-project runs without a supplied deck still lack an immutable backend input revision; browser storage is a convenience cache, not a save receipt or access-control decision.
 - Dimension audit revisions that only set audit flags without rewriting structured source fields remain an upstream issue. This patch makes displays agree with the final canonical document; it cannot certify that every audit finding was actually resolved.
 - Executive structured-versus-narrative reconciliation and all legacy independent report readers remain separate work. Historical reports are not rewritten.
 

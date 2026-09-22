@@ -1,5 +1,7 @@
 "use client";
 
+import { useAuthUser } from "@/hooks/useAuthUser";
+import { readStreamState, STREAM_REQUEST_SCOPE, resolveStreamStorageIdentity } from "@/lib/svi/stream-storage-identity";
 import { readFinalProjection, mergeFinalCriteria, replaceFinalDimensions, type FinalProjection } from "@/lib/report-pipeline/final-projection";
 import { retainReportSaveOutcome, type ReportSaveStatus } from "@/lib/report-save-outcome";
 import { ReportSaveStatusNotice, SavedReportActions } from "./report-save-status";
@@ -108,7 +110,6 @@ type SSEEvent =
 // mid-flight or right after must not wipe results. Snapshot per-project state
 // to localStorage on every dimension_complete + restore on mount if fresh.
 
-const STORAGE_PREFIX = "svi-stream:";
 const STORAGE_MAX_AGE_MS = 30 * 60_000; // 30 min
 
 type StreamValuationStatus = "pending" | "available" | "unavailable";
@@ -129,36 +130,25 @@ interface PersistedState {
   stage: string | null;
 }
 
-function storageKey(projectId: string): string {
-  return `${STORAGE_PREFIX}${projectId || "default"}`;
-}
-
-function loadPersisted(projectId: string): PersistedState | null {
+function loadPersisted(key: string | null): PersistedState | null {
   if (typeof window === "undefined") return null;
-  try {
-    const raw = window.localStorage.getItem(storageKey(projectId));
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as PersistedState;
-    if (Date.now() - parsed.savedAt > STORAGE_MAX_AGE_MS) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
+  try { return readStreamState<PersistedState>(window.localStorage, key, Date.now(), STORAGE_MAX_AGE_MS); }
+  catch { return null; }
 }
 
-function savePersisted(projectId: string, state: PersistedState): void {
-  if (typeof window === "undefined") return;
+function savePersisted(key: string | null, state: PersistedState): void {
+  if (typeof window === "undefined" || !key) return;
   try {
-    window.localStorage.setItem(storageKey(projectId), JSON.stringify(state));
+    window.localStorage.setItem(key, JSON.stringify(state));
   } catch {
     // quota exceeded / disabled — silent
   }
 }
 
-function clearPersisted(projectId: string): void {
-  if (typeof window === "undefined") return;
+function clearPersisted(key: string | null): void {
+  if (typeof window === "undefined" || !key) return;
   try {
-    window.localStorage.removeItem(storageKey(projectId));
+    window.localStorage.removeItem(key);
   } catch {
     /* no-op */
   }
@@ -1269,7 +1259,22 @@ interface SviStreamAnalysisProps {
   variant?: "deck" | "site" | "idea" | "dimensions";
 }
 
-export function SviStreamAnalysis({
+/** Resolve identity before mounting stateful UI; stale async hashes cannot restore another input. */
+export function SviStreamAnalysis(props: SviStreamAnalysisProps) {
+  const user = useAuthUser();
+  const request = JSON.stringify([user?.id ?? null, props.projectId ?? null, props.initialDeckText ?? null]);
+  const generation = useRef(0);
+  const [resolved, setResolved] = useState<{ request: string; key: string | null; generation: number } | null>(null);
+  useEffect(() => {
+    if (user === undefined) return;
+    return resolveStreamStorageIdentity({ userId: user?.id, projectId: props.projectId, deckText: props.initialDeckText, ...STREAM_REQUEST_SCOPE },
+      key => setResolved({ request, key, generation: ++generation.current }));
+  }, [request, props.projectId, props.initialDeckText, user]);
+  if (!resolved || resolved.request !== request) return <div role="status" className="p-4 text-sm text-text-secondary">Preparing analysis…</div>;
+  return <SviStreamAnalysisSession key={resolved.generation} {...props} storageIdentity={resolved.key} />;
+}
+
+function SviStreamAnalysisSession({
   projectId,
   pitchdeckId,
   initialDims,
@@ -1278,7 +1283,8 @@ export function SviStreamAnalysis({
   onDone,
   mode,
   variant: _variant,
-}: SviStreamAnalysisProps) {
+  storageIdentity,
+}: SviStreamAnalysisProps & { storageIdentity: string | null }) {
   // `variant` is threaded through the props for downstream consumers
   // (event listeners emit variant-specific handlers). Silence the unused
   // warning at the leaf without changing existing behaviour.
@@ -1335,7 +1341,7 @@ export function SviStreamAnalysis({
   // Restore a recent (< 30 min) run on mount so a page refresh mid-analysis
   // or immediately after done doesn't discard the founder's results.
   useEffect(() => {
-    const saved = loadPersisted(projectId ?? "");
+    const saved = loadPersisted(storageIdentity);
     if (!saved) return;
     /* eslint-disable react-hooks/set-state-in-effect -- post-hydration restore of the <30 min run from localStorage; a lazy initialiser would mismatch the server render */
     setDimStates(saved.dimStates);
@@ -1344,6 +1350,7 @@ export function SviStreamAnalysis({
     setTotal(saved.total);
     setTotalMs(saved.totalMs);
     setDone(saved.done);
+    setDoneFired(Boolean(saved.done)); // restoring a result is not a new completion/save event
     setSaveStatus(saved.saveStatus);
     setFinalProjection(readFinalProjection(saved.finalProjection));
     setValuationStatus(saved.valuationStatus);
@@ -1352,7 +1359,7 @@ export function SviStreamAnalysis({
     if (saved.stage) setStage(saved.stage);
     setRestoredFromCache(true);
     /* eslint-enable react-hooks/set-state-in-effect */
-  }, [projectId]);
+  }, [storageIdentity]);
 
   // Score-delta: fetch the last-persisted SVI snapshot on mount so the
   // done-state (and pre-analysis header) can compare "your last SVI was 57
@@ -1383,7 +1390,7 @@ export function SviStreamAnalysis({
   useEffect(() => {
     const anyComplete = Object.values(dimStates).some((d) => d.status === "complete");
     if (!anyComplete && !done) return;
-    savePersisted(projectId ?? "", {
+    savePersisted(storageIdentity, {
       savedAt: Date.now(),
       finalProjection,
       saveStatus,
@@ -1398,7 +1405,7 @@ export function SviStreamAnalysis({
       industry,
       stage,
     });
-  }, [dimStates, criterionStates, completed, total, totalMs, done, industry, stage, projectId, saveStatus, valuationStatus, valuation, finalProjection]);
+  }, [dimStates, criterionStates, completed, total, totalMs, done, industry, stage, projectId, saveStatus, valuationStatus, valuation, finalProjection, storageIdentity]);
 
   const updateDim = useCallback(
     (key: string, patch: Partial<DimState>) => {
@@ -1454,8 +1461,8 @@ export function SviStreamAnalysis({
     setLogEntries([]);
     setCacheHitAgeMs(null);
     setCriterionAddendum([]);
-    clearPersisted(projectId ?? "");
-  }, [projectId]);
+    clearPersisted(storageIdentity);
+  }, [storageIdentity]);
 
   const startAnalysis = useCallback(async (dimsFilter?: string[]) => {
     // Full-run: clear all cards. Retry: only touch the cards being re-run so
@@ -1655,7 +1662,7 @@ export function SviStreamAnalysis({
   // Auto-start when the parent (e.g. pitchdeck flow) asks for it — kicks
   // off the run with the initialDims filter as soon as the component mounts.
   useEffect(() => {
-    if (!autoStart || !initialDims || initialDims.length === 0) return;
+    if (!autoStart || !initialDims || initialDims.length === 0 || loadPersisted(storageIdentity)?.done) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- mount-only auto-start; the useCallback loader sets loading flags synchronously then streams after await, and the rule cannot see the async boundary through the reference
     void startAnalysis(initialDims);
     // Only fire once on mount, hence the disabled deps warning.
