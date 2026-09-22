@@ -159,7 +159,7 @@ def main(argv=None):
         if pressure or args.maintenance:
             if os.geteuid() != 0:
                 raise PermissionError('cleanup inspection requires root process visibility')
-            fd = os.open(LOCK, os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o666)
+            fd = os.open(LOCK, os.O_RDWR | os.O_NOFOLLOW)
             with os.fdopen(fd, 'a') as lock:
                 if not stat.S_ISREG(os.fstat(lock.fileno()).st_mode):
                     raise ValueError('deployment lock is not a regular file')

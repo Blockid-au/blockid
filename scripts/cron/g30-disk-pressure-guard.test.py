@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
 import importlib.util
+import contextlib
+import io
+import json
 import os
 from pathlib import Path
 import tempfile
@@ -111,6 +114,30 @@ class GuardTests(unittest.TestCase):
         self.assertFalse(destination.is_symlink())
         self.assertEqual(self.log.read_text(), 'safe build log')
         self.assertEqual(destination.stat().st_mode & 0o777, 0o600)
+
+    def test_missing_deployment_lock_refuses_without_creating(self):
+        missing = self.root / 'missing-deploy.lock'
+        output = io.StringIO()
+        with patch.object(guard, 'LOCK', missing), patch.object(guard.os, 'geteuid', return_value=0), \
+             patch.object(guard.os, 'nice'), contextlib.redirect_stdout(output):
+            code = guard.main(['--dry-run', '--maintenance'])
+        self.assertEqual(code, 1)
+        self.assertFalse(missing.exists())
+        self.assertEqual(json.loads(output.getvalue())['reason'], 'FileNotFoundError')
+
+    def test_busy_deployment_lock_does_not_clean(self):
+        lock = self.root / 'existing-deploy.lock'
+        lock.touch()
+        output = io.StringIO()
+        with lock.open('a') as held:
+            guard.fcntl.flock(held, guard.fcntl.LOCK_EX | guard.fcntl.LOCK_NB)
+            with patch.object(guard, 'LOCK', lock), patch.object(guard.os, 'geteuid', return_value=0), \
+                 patch.object(guard.os, 'nice'), patch.object(guard, 'clean_logs') as cleanup, \
+                 contextlib.redirect_stdout(output):
+                code = guard.main(['--apply', '--maintenance'])
+            cleanup.assert_not_called()
+        self.assertEqual(code, 75)
+        self.assertEqual(json.loads(output.getvalue())['status'], 'skipped_deployment_lock_busy')
 
     def test_real_process_descriptor_detected(self):
         # Scan self only through a private proc fixture; no privileged visibility needed.
