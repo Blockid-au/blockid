@@ -65,6 +65,18 @@ def validate_manifest(base,candidate,sql,changed,ledger):
 def require_clean_source(source):
  if git(source,'status','--porcelain','--untracked-files=all'):raise ValueError('dirty source cannot stage')
 
+def reviewed_fixture_hashes(source):
+ result={}
+ for name in ['credit-operation-receipts.py','credit-checkout-fulfillment.py']:
+  expected=subprocess.check_output(['git','-C',str(source),'show',DRAFT+':web/scripts/db/tests/'+name])
+  actual=(source/'scripts/db/tests'/name).read_bytes()
+  if actual!=expected:raise ValueError('reviewed fixture changed')
+  result[name]=hashlib.sha256(actual).hexdigest()
+ return result
+
+def verify_staged_fixtures(record,source):
+ if record.get('fixtureSources')!=reviewed_fixture_hashes(source):raise ValueError('fixture bytes changed since staging preflight')
+
 def check_source(source,baseline_sha,base_manifest,ledger):
  current=git(source,'rev-parse','HEAD')
  changed=git(source,'diff','--name-only',baseline_sha,'HEAD','--','supabase/migrations').splitlines()
@@ -76,10 +88,7 @@ def check_source(source,baseline_sha,base_manifest,ledger):
  for name in FILES:
   committed=subprocess.check_output(['git','-C',str(source),'show',current+':web/supabase/migrations/'+name])
   if hashlib.sha256(committed).hexdigest()!=FILES[name]:raise ValueError('uncommitted SQL')
- for name in ['credit-operation-receipts.py','credit-checkout-fulfillment.py']:
-  relative='web/scripts/db/tests/'+name
-  exact=subprocess.check_output(['git','-C',str(source),'show',DRAFT+':'+relative])
-  if (source/'scripts/db/tests'/name).read_bytes()!=exact:raise ValueError('reviewed fixture changed')
+ reviewed_fixture_hashes(source)
  # Require clean committed source. Runtime evidence stays outside this worktree.
  require_clean_source(source)
  return current,candidate
@@ -96,10 +105,11 @@ def preflight(source,control,baseline_ports=()):
  ledger,catalogue=expansion.current_database()
  sha,manifest=check_source(source,active['sha'],baseline,ledger)
  return {'version':1,'phase':'preflight','sourceWeb':str(source),'controlWeb':str(control),'sourceSha':sha,
-   'active':active,'pausedBaselines':clones,'manifest':manifest,'baselineManifest':baseline,'baselineLedger':ledger,'baselineCatalogueDigest':catalogue,
+   'active':active,'fixtureSources':reviewed_fixture_hashes(source),'pausedBaselines':clones,'manifest':manifest,'baselineManifest':baseline,'baselineLedger':ledger,'baselineCatalogueDigest':catalogue,
    'sql':FILES,'createdAt':int(time.time()),'inspectionOnly':True,'promotionAuthorized':False}
 
 def inspect(source,control,record,port,pid,release):
+ verify_staged_fixtures(record,source)
  if record.get('phase')!='frozen' or record.get('releasePath')!=str(release):raise ValueError('candidate not frozen and pinned')
  if record['sourceWeb']!=str(source) or record['controlWeb']!=str(control):raise ValueError('staging roots changed')
  if git(source,'rev-parse','HEAD')!=record['sourceSha']:raise ValueError('candidate source changed')
@@ -147,6 +157,7 @@ def next_commands(record,source,control):
  import shlex
  candidate=record.get('candidate')
  if record.get('phase')!='inspected' or not candidate:raise ValueError('inspect candidate before migration planning')
+ verify_staged_fixtures(record,source)
  prefix=[sys.executable,str(source/'scripts/g30-schema-expansion-controller.py'),'--web',str(source),'--control-web',str(control)]
  commands={'prepare':prefix+['prepare','--candidate-port',str(candidate['port']),'--candidate-pid',str(candidate['pid']),'--candidate-release',candidate['releasePath'],'--recovery-port',str(record['pausedBaselines'][1]['port']),'--lock-fd','200','--cron-lock-fd','201']}
  commands['next']=prefix+['next','--lock-fd','200','--cron-lock-fd','201']

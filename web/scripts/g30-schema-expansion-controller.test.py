@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import hashlib
 from pathlib import Path
 import tempfile
 import unittest
@@ -18,6 +19,19 @@ class Controller(unittest.TestCase):
    with patch.object(c.subprocess,'check_output',return_value=str(common)),patch.object(c,'current_database') as db:
     with self.assertRaises(ValueError):c.main(['--web',str(source),'--control-web',str(control),'next','--lock-fd','200','--cron-lock-fd','201'])
     db.assert_not_called()
+ def test_prepare_cannot_rebless_fixture_changed_after_inspection(self):
+  with tempfile.TemporaryDirectory() as folder:
+   source=Path(folder)/'source';control=Path(folder)/'control';fixtures=source/'scripts/db/tests';fixtures.mkdir(parents=True)
+   hashes={}
+   for name in ['credit-operation-receipts.py','credit-checkout-fulfillment.py']:
+    (fixtures/name).write_bytes(b'original');hashes[name]=hashlib.sha256(b'original').hexdigest()
+   candidate={'sha':'a'*40,'pid':123,'port':4112,'startTicks':'456','releasePath':'/data/releases/test','schemaDigest':'b'*64}
+   record={'phase':'inspected','sourceWeb':str(source),'controlWeb':str(control),'candidate':candidate,'fixtureSources':hashes,'sql':{'exact':'bytes'}}
+   path=control/'content/reports/g30-receipt-candidate.json';path.parent.mkdir(parents=True);path.write_text(json.dumps(record))
+   with patch.object(c,'sql_hashes',return_value={'exact':'bytes'}):
+    self.assertEqual(c.verify_staged_fixture_sources(source,control,candidate),hashes)
+    (fixtures/'credit-checkout-fulfillment.py').write_bytes(b'weakened test')
+    with self.assertRaises(ValueError):c.verify_staged_fixture_sources(source,control,candidate)
  def test_failed_or_partial_record_refuses_before_probe(self):
   for phase in ('prepared','applying','failed'):
    with patch.object(c,'read',return_value={'phase':phase}),patch.object(c,'current_database') as db:

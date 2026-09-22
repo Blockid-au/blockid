@@ -24,6 +24,15 @@ class Candidate(unittest.TestCase):
     with self.assertRaises(ValueError):c.roots(control,control)
     (source/'.next').symlink_to(control)
     with self.assertRaises(ValueError):c.roots(source,control)
+ def test_changed_fixture_after_preflight_refuses(self):
+  with tempfile.TemporaryDirectory() as folder:
+   source=Path(folder);fixtures=source/'scripts/db/tests';fixtures.mkdir(parents=True)
+   for name in ['credit-operation-receipts.py','credit-checkout-fulfillment.py']:(fixtures/name).write_bytes(b'original')
+   with patch.object(c.subprocess,'check_output',return_value=b'original'):
+    record={'fixtureSources':c.reviewed_fixture_hashes(source)}
+    c.verify_staged_fixtures(record,source)
+    (fixtures/'credit-checkout-fulfillment.py').write_bytes(b'changed after preflight')
+    with self.assertRaises(ValueError):c.verify_staged_fixtures(record,source)
  def test_exact_baseline_and_three_pending_accepted(self):self.validate()
  def test_changed_sql_refused(self):
   values=dict(c.FILES);values[next(iter(values))]='0'*64
@@ -50,7 +59,8 @@ class Candidate(unittest.TestCase):
  def test_unsealed_command_plan_refused(self):
   with self.assertRaises(ValueError):c.next_commands({'phase':'preflight'},Path('/source'),Path('/control'))
  def test_commands_are_manual_only(self):
-  plan=c.next_commands({'phase':'inspected','pausedBaselines':[{'port':4113},{'port':4114}],'candidate':{'port':4112,'pid':123,'releasePath':'/data/releases/private'}},Path('/source/web'),Path('/control/web'))
+  with patch.object(c,'verify_staged_fixtures'):
+   plan=c.next_commands({'phase':'inspected','pausedBaselines':[{'port':4113},{'port':4114}],'candidate':{'port':4112,'pid':123,'releasePath':'/data/releases/private'}},Path('/source/web'),Path('/control/web'))
   self.assertFalse(plan['automaticExecution'])
   self.assertEqual(len([k for k in plan['commands'] if k.startswith('manual_apply_')]),3)
   self.assertNotIn('promote',plan['commands'])

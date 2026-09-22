@@ -71,6 +71,8 @@ Failed/unserved candidates and partial preflight records remain pinned for inves
 
 Focused staging/controller/state tests and actual SQL/erasure-map checks are recorded in the handoff. No Next build, private candidate launch, environment edit, production SQL, public routing or promotion was executed while preparing this source. The eventual full compile/freeze/launch inspection is still a required execution gate.
 
-Source preparation validation: 19 candidate-staging tests, 14 serving-state tests, 8 expansion-controller tests, 7 expansion-policy tests, 12 privacy-map/parity tests and 8 isolated actual purchase/erasure tests passed (68 total). Shell syntax and whitespace checks passed. These checks do not claim a completed application compile or launched candidate.
+Source preparation validation: 20 candidate-staging tests, 14 serving-state tests, 9 expansion-controller tests, 7 expansion-policy tests, 12 privacy-map/parity tests and 8 isolated actual purchase/erasure tests passed (70 total). Shell syntax and whitespace checks passed. These checks do not claim a completed application compile or launched candidate.
 
 For precreated baseline clones, the resource allocation must bind the exact frozen baseline release SHA (use the reviewed `allocate(data, control_web, candidate_sha=baseline_entry['sha'])` contract under the canonical lock), not the newer tooling checkout HEAD. Supervisor launch and registration independently recheck the real process/release identity and resource permit. No capacity override is introduced.
+
+Fixture continuity: preflight stores hashes of both files after comparing exact bytes with draft4776; inspection and command planning recheck those pins. Expansion prepare must consume the inspected stage's exact candidate/source/fixture/SQL pins rather than newly blessing current test bytes. Changed-fixture-after-preflight and changed-fixture-before-prepare regressions are covered.

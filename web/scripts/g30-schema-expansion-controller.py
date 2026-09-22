@@ -80,6 +80,16 @@ def fixture(web,record):
     if before!={p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in (script,helper)}: raise ValueError('fixture source changed')
     return core.fingerprint({'sql':record['migrations'],'scripts':before,'result':hashlib.sha256(result.stdout).hexdigest()})
 
+def verify_staged_fixture_sources(web,control,candidate):
+    location=control/'content/reports/g30-receipt-candidate.json'
+    if location.is_symlink():raise ValueError('staging record cannot be symlink')
+    staged=json.loads(location.read_text())
+    if staged.get('phase')!='inspected' or staged.get('sourceWeb')!=str(web) or staged.get('controlWeb')!=str(control):raise ValueError('exact inspected source stage required')
+    if any(staged.get('candidate',{}).get(k)!=candidate.get(k) for k in ('sha','pid','port','startTicks','releasePath','schemaDigest')):raise ValueError('inspected candidate changed')
+    current={name:hashlib.sha256((web/'scripts/db/tests'/name).read_bytes()).hexdigest() for name in ('credit-checkout-fulfillment.py','credit-operation-receipts.py')}
+    if current!=staged.get('fixtureSources') or sql_hashes(web)!=staged.get('sql'):raise ValueError('staged fixture or SQL bytes changed')
+    return current
+
 def allowed(web,source,target,serving):
     record=read(web)
     if not record or record.get('phase')!='sealed': return False
@@ -114,10 +124,11 @@ def main(argv=None):
         assert_paused(control,serving)
         recovery=next(e for e in serving['retained'] if e['port']==args.recovery_port)
         candidate=state.make_entry(control,args.candidate_port,args.candidate_pid,args.candidate_release,'pending:3')
+        staged_fixtures=verify_staged_fixture_sources(web,control,candidate) if args.control_web or (control/'content/reports/g30-receipt-candidate.json').exists() else None
         a,b,c=endpoint(control,serving['active']),endpoint(control,recovery),endpoint(control,candidate,'pending:3')
         ledger,digest=current_database()
         record=core.prepare(serving,a,b,c,sql_hashes(web),ledger,digest,now,probe)
-        record['fixture_sources']={name:hashlib.sha256((web/'scripts/db/tests'/name).read_bytes()).hexdigest() for name in ('credit-checkout-fulfillment.py','credit-operation-receipts.py')}
+        record['fixture_sources']=staged_fixtures or {name:hashlib.sha256((web/'scripts/db/tests'/name).read_bytes()).hexdigest() for name in ('credit-checkout-fulfillment.py','credit-operation-receipts.py')}
         record['transition_id']=core.fingerprint({k:v for k,v in record.items() if k!='transition_id'})
     else:
         if not record: raise ValueError('no prepared transition')
