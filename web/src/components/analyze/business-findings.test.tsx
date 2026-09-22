@@ -99,3 +99,16 @@ describe("canonical findings preserve qualifications", () => {
     expect(html).toContain('href="#analyze-canonical-report"');
   });
 });
+
+it("renders detailed investor guidance, targeted requests and provenance inside native criterion disclosures", () => {
+  const report = demoReportV2();
+  const html = renderToStaticMarkup(<BusinessFindings findings={projectBusinessFindings({ report })} />);
+  expect(html).toContain("Investor relevance — diligence guidance");
+  expect(html).toContain("Specific diligence question");
+  expect(html).toContain("TAM needs relevant buyers");
+  expect(html).toContain("Viewing existing detail uses no credits");
+  expect(html).not.toContain("/checkout");
+  const vietnamese = renderToStaticMarkup(<BusinessFindings locale="vi" findings={projectBusinessFindings({ report, locale: "vi" })} />);
+  expect(vietnamese).toContain("Câu hỏi kiểm chứng cụ thể");
+  expect(vietnamese).toContain("Chi tiêu toàn ngành");
+});

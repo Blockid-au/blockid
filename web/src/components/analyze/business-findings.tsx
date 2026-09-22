@@ -13,6 +13,9 @@ export function BusinessFindings({
   locale?: FindingsLocale;
 }) {
   const vi = locale === "vi";
+  const qualityLabels = vi
+    ? { incomplete: "Chưa đầy đủ", basic: "Cơ bản", good: "Tốt", strong: "Vững", exceptional: "Nổi bật" }
+    : { incomplete: "Incomplete", basic: "Basic", good: "Good", strong: "Strong", exceptional: "Exceptional" };
   const copy = vi
     ? {
         heading: "Nội dung đã xem xét",
@@ -34,6 +37,10 @@ export function BusinessFindings({
         citation: "Trích dẫn trong báo cáo — cần đối chiếu nguồn",
         unresolved: "Chưa có nguồn tương ứng trong mục này",
         quality: "Mức chất lượng ghi nhận",
+        guidance: "Ý nghĩa với nhà đầu tư — hướng dẫn thẩm định",
+        question: "Câu hỏi kiểm chứng cụ thể",
+        limits: "Giới hạn của tiêu chí này",
+        sourceRecord: "Nội dung nguồn đã lưu — cần đối chiếu trích dẫn",
         conflict: "Điểm cần lưu ý trước khi kết luận",
       }
     : {
@@ -57,6 +64,10 @@ export function BusinessFindings({
         citation: "Report citation — check against its source",
         unresolved: "No matching source recorded in this section",
         quality: "Recorded quality level",
+        guidance: "Investor relevance — diligence guidance",
+        question: "Specific diligence question",
+        limits: "Limits of this criterion",
+        sourceRecord: "Stored source content — compare with the quote",
         conflict: "Consider before drawing a conclusion",
       };
   return (
@@ -138,12 +149,19 @@ export function BusinessFindings({
                       >
                         <summary className="min-h-11 cursor-pointer font-medium text-primary focus-visible:outline-2 focus-visible:outline-action">
                           {criterion.title}
+                          {criterion.conflicts.length > 0 && <span className="ml-2 text-sm text-warn">{copy.conflict}</span>}
                         </summary>
                         <p className="mt-2">
                           {criterion.verdict || copy.empty}
                         </p>
+                        <FindingList title={copy.conflict} items={criterion.conflicts} />
+                        <div className="mt-3">
+                          <h5 className="font-semibold text-primary">{copy.guidance}</h5>
+                          <p className="mt-1 max-w-prose">{criterion.implication}</p>
+                        </div>
+                        <FindingList title={copy.limits} items={criterion.limitations} />
                         <p className="mt-1 text-sm">
-                          {copy.quality}: {criterion.quality}
+                          {copy.quality}: {qualityLabels[criterion.quality]}
                         </p>
                         {!criterion.grounded && (
                           <p className="mt-1 text-sm">{copy.unsupported}</p>
@@ -157,6 +175,12 @@ export function BusinessFindings({
                               {copy.citation}: [{citation.id}]
                             </p>
                             <p className="mt-1">{citation.quote}</p>
+                            {citation.sourceLabel && <p className="mt-2 font-medium">{citation.sourceLabel}</p>}
+                            {citation.observedAt && <p className="mt-1">{citation.observedAt}</p>}
+                            {citation.sourceDetail && <div className="mt-2">
+                              <p className="font-medium">{copy.sourceRecord}</p>
+                              <blockquote className="mt-1 whitespace-pre-wrap border-l-2 border-line-subtle pl-3">{citation.sourceDetail}</blockquote>
+                            </div>}
                             {!citation.sourceRecorded && (
                               <p className="mt-1">{copy.unresolved}</p>
                             )}
@@ -171,6 +195,7 @@ export function BusinessFindings({
                           title={copy.next}
                           items={criterion.request ? [criterion.request] : []}
                         />
+                        <FindingList title={copy.question} items={[criterion.diligenceQuestion]} />
                       </details>
                     ))}
                   </div>

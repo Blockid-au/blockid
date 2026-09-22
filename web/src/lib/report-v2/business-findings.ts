@@ -1,3 +1,5 @@
+import { criterionDiligence } from "./criterion-diligence";
+import { getCriterion } from "@/lib/evaluation-criteria";
 import type { IntakeResult } from "@/lib/intake/analyze-input";
 import type { ReportV2, CriterionCard, EvidenceConfidence } from "./schema";
 
@@ -31,8 +33,12 @@ export interface BusinessFinding {
     gaps: string[];
     request: string;
     grounded: boolean;
+    implication: string;
+    diligenceQuestion: string;
+    limitations: string[];
+    conflicts: string[];
     quality: CriterionCard["quality"];
-    citations: Array<{ id: string; quote: string; sourceRecorded: boolean }>;
+    citations: Array<{ id: string; quote: string; sourceRecorded: boolean; sourceLabel?: string; sourceDetail?: string; observedAt?: string }>;
   }>;
 }
 
@@ -203,19 +209,28 @@ export function projectBusinessFindings({
         })),
         criteria: chapter.criteria.map((c) => ({
           id: c.key,
-          title: c.title,
+          title: vi ? getCriterion(c.key)?.titleVi ?? c.title : c.title,
           verdict: c.verdict,
           strengths: c.strengths,
           gaps: c.gaps,
           request: c.nextAction,
           grounded: c.grounded,
+          implication: criterionDiligence(c.key, locale).implication,
+          diligenceQuestion: criterionDiligence(c.key, locale).question,
+          conflicts: issues.filter(issue => issue.criteria.includes(c.key)).map(issue => issue.description),
+          limitations: [
+            ...(!c.grounded ? [vi ? "Báo cáo chưa xác nhận đầy đủ cơ sở cho nhận định của tiêu chí này." : "The report has not confirmed sufficient support for this criterion’s assessment."] : []),
+            ...(!c.citations.length ? [vi ? "Chưa có trích dẫn gắn trực tiếp với tiêu chí; không đồng nghĩa doanh nghiệp không có năng lực này." : "No citations are linked directly to this criterion; this does not mean the business lacks the capability."] : []),
+            ...(limited ? [vi ? "Đây là nội dung từ phần báo cáo hạn chế hoặc phiên bản chuyển đổi; chưa coi là đánh giá đầy đủ." : "This content comes from a limited section or converted report; it is not a complete assessment."] : []),
+          ],
           quality: c.quality,
           citations: c.citations.map((citation) => ({
             id: citation.evidence_id,
             quote: citation.quote,
-            sourceRecorded: chapter.evidence.some(
-              (e) => e.evidence_id === citation.evidence_id,
-            ),
+            sourceRecorded: [...chapter.evidence, ...report.appendix.evidenceRegister].some(e => e.evidence_id === citation.evidence_id),
+            sourceLabel: [...chapter.evidence, ...report.appendix.evidenceRegister].find(e => e.evidence_id === citation.evidence_id)?.label,
+            sourceDetail: [...chapter.evidence, ...report.appendix.evidenceRegister].find(e => e.evidence_id === citation.evidence_id)?.value,
+            observedAt: [...chapter.evidence, ...report.appendix.evidenceRegister].find(e => e.evidence_id === citation.evidence_id)?.observedAt,
           })),
         })),
       };
