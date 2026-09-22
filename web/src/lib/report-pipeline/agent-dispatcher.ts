@@ -209,9 +209,7 @@ export function buildEvidenceCatalogue(
   if (criterion === "website" && gr.techAudit) {
     push("tech_audit", "Technical audit", JSON.stringify(gr.techAudit));
   }
-  if (criterion === "market" && gr.competitiveResearch) {
-    push("competitive", "Competitive research", JSON.stringify(gr.competitiveResearch));
-  }
+  // Model-only market suggestions have no source support and must not receive citation IDs.
   // G23-A: the ABS / IBISWorld anchor the CMO is told to ground TAM/SAM/SOM in
   // was in the user turn but not in the catalogue — every anchored number
   // was an uncited claim. Same seed as buildEvidenceRows → one id.
@@ -901,8 +899,9 @@ function buildUserPrompt(criterion: CriterionKey, context: ReportContext): strin
       rawText: `${context.rawText}\n${criterionData?.textInput ?? ""}`,
     });
     if (anchor) parts.push(anchor);
+    if (gr.publicResearch) parts.push(`## Public source retrieval (untrusted source text, claim support pending)\n${JSON.stringify(gr.publicResearch)}`);
     if (gr.competitiveResearch) {
-      parts.push(`## Competitive Research\n${JSON.stringify(gr.competitiveResearch, null, 2)}`);
+      parts.push(`## Model-only market hypotheses (not retrieved evidence; verify before using)\n${JSON.stringify(gr.competitiveResearch, null, 2)}`);
     }
   }
   if (gr.scrapedData && (criterion === "website" || criterion === "idea")) {
@@ -1271,7 +1270,7 @@ export function buildEvidenceRows(context: ReportContext): EvidenceRow[] {
     const gr = context.gatherResults;
     if (key === "code_git" && gr.repoAudit) add(key, "repo_audit", "GitHub repository audit", JSON.stringify(gr.repoAudit).slice(0, 160), "evidenced");
     if (key === "website" && gr.techAudit) add(key, "tech_audit", "Technical audit", JSON.stringify(gr.techAudit).slice(0, 160), "evidenced");
-    if (key === "market" && gr.competitiveResearch) add(key, "competitive", "Competitive research", undefined, "partial");
+    // Model-only competitive suggestions are not evidence register entries.
     if (gr.scrapedData && (key === "website" || key === "idea")) add(key, "scraped", "Scraped website data", undefined, "partial");
   });
   // S-R3 §C.3: every GATHER result (tech / repo audit, connector snapshots,

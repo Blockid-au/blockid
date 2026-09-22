@@ -1,3 +1,4 @@
+import { publicResearchSchema, type PublicResearchResult } from "@/lib/research/public-source-contract";
 // ReportV2 — the one JSON contract every Trusted Business Report surface
 // renders from (web, PDF, DOCX, Investor Dossier, email).
 //
@@ -560,6 +561,7 @@ export interface ReportV2 {
     dataPrinciple: string;
     disclaimer: string;
     evidenceRegister: EvidenceRow[];
+    publicResearch?: PublicResearchResult;
     auditLog: SectionAuditRecord[];
     comparablesN: number;
     comparablesWithMultiplesN: number;
@@ -999,6 +1001,7 @@ export const reportV2Schema = z.object({
     dataPrinciple: z.literal(DATA_PRINCIPLE_SENTENCE),
     disclaimer: z.string(),
     evidenceRegister: z.array(evidenceRow),
+    publicResearch: publicResearchSchema.optional(),
     auditLog: z.array(
       z.object({
         sectionId: z.string(),

@@ -1325,7 +1325,7 @@ export function buildReportV2(
         // PIPELINE chapters (the adapter's own block was built on its fallback chapters).
         structured: context.executiveStructured ?? structuredFromThesis(context, base, withValuation, dimensions, fromCards.confidence ?? base.executive.confidence),
       },
-      appendix: { ...base.appendix, evidenceRegister: context.evidenceRows ?? [], auditLog: context.sectionAudits ?? [] },
+      appendix: { ...base.appendix, evidenceRegister: context.evidenceRows ?? [], auditLog: context.sectionAudits ?? [], ...(context.gatherResults.publicResearch ? { publicResearch: context.gatherResults.publicResearch } : {}) },
       quality: { ...base.quality, score: context.qualityScore ?? base.quality.score, groundedShare, degradedSections: degraded, consistencyIssues: report.consistencyIssues },
     };
     const safe = ensureExecutiveStructured(v2);

@@ -154,6 +154,7 @@ export interface GrantsMatch {
 }
 
 export interface GatherDeps {
+  retrievePublicSources?: typeof import("@/lib/research/public-sources").retrievePublicSources;
   researchMarket?: (input: { startupName: string; description: string; sector?: string }, callAI: AICaller) => Promise<unknown>;
   deepTechAudit?: (url: string) => Promise<Row>;
   auditGitHubRepo?: (repoFullName: string, accessToken: string) => Promise<Row>;
@@ -524,10 +525,27 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
         const out = await rm({ startupName: context.startupName, description: context.rawText, sector: context.criteriaData.market?.textInput || undefined }, callAI);
         if (out) {
           results.competitiveResearch = out as Record<string, unknown>;
-          rows.push(row("research", "market", "connector_other", "Market & competitive research (AI agent, this run)", "partial", ["mpc", "svm"], observed));
+          // Model-only output is a hypothesis, never an external evidence row.
         }
         diag("research", "ok", t0);
       }, Math.max(timeoutMs, Math.min(GATHER_RESEARCH_TIMEOUT_MS, deps.deadlineRemainingMs?.() ?? GATHER_RESEARCH_TIMEOUT_MS)));
+
+  // R01: only explicitly supplied public links; never derive search queries from private deck text.
+  const publicResearch = opts.skipResearch
+    ? Promise.resolve(void diag("publicResearch", "skipped", now(), "partial re-run"))
+    : run("publicResearch", async () => {
+        const t0 = now();
+        const retrieve = deps.retrievePublicSources ?? (await import("@/lib/research/public-sources")).retrievePublicSources;
+        results.publicResearch = await retrieve({
+          criterion: "market", question: "Who are the main competitors?",
+          businessScope: { name: context.startupName, projectId },
+          sources: [
+            ...(context.criteriaData.market?.links ?? []).map(l => ({ url: l.url, role: "market_or_alternative" as const })),
+            ...(context.criteriaData.website?.links ?? []).slice(0, 1).map(l => ({ url: l.url, role: "business" as const })),
+          ],
+        });
+        diag("publicResearch", results.publicResearch.status === "not_run" ? "skipped" : "ok", t0, results.publicResearch.status);
+      });
 
   // ── 2. Tech audit (website link, cached 24 h by URL) ──────────────────
   const websiteUrl = firstLink(context, "website");
@@ -821,7 +839,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
     totalCriteria: CRITERION_KEYS.length,
   };
 
-  await Promise.allSettled([research, tech, repo, connectors, capTable, founder, founderExecution, ga4, grants, external, evidenceHub]);
+  await Promise.allSettled([research, publicResearch, tech, repo, connectors, capTable, founder, founderExecution, ga4, grants, external, evidenceHub]);
 
   // ── 8. Valuation inputs + CFO 5-method model (deterministic, after connectors)
   const signals = (context.sviAnalysis.signals ?? {}) as Partial<{ mrrAud: number; arrAud: number; raiseAskAud: number; statedCapAud: number; statedCapKind: ValuationAskInput["statedCapKind"]; hasVesting: boolean; hasShareholdersAgreement: boolean; esopAllocated: boolean; hasDataRoom: boolean; customerCount: number }>;

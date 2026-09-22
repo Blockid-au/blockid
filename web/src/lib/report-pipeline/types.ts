@@ -154,6 +154,7 @@ export interface GatherResults {
   techAudit?: Record<string, unknown>;
   repoAudit?: Record<string, unknown>;
   competitiveResearch?: Record<string, unknown>;
+  publicResearch?: import("@/lib/research/public-sources").PublicResearchResult;
   scrapedData?: Record<string, unknown>;
   evidenceQuality?: Record<string, unknown>;
   // ── S-R3 §C.3 (un-stubbed GATHER) ──────────────────────────────────

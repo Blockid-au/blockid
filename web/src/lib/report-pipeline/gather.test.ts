@@ -92,6 +92,7 @@ const callAI = vi.fn(async () => "AI");
 function deps(extra: Partial<GatherDeps> = {}): GatherDeps {
   return {
     researchMarket: vi.fn(async () => ({ trends: ["t"], positioning: "p" })),
+    retrievePublicSources: vi.fn(async task => ({ version: "public-sources-v1", task, status: "not_run", sources: [], discovery: { status: "not_run", reason: "fixture" }, limits: { requested: task.sources.length, attempted: 0, maxSources: 5, targetAlternatives: 5, verifiedAlternatives: 0 }, instruction: "fixture" })),
     db: null,
     buildValuation: vcStub,
     ...extra,
@@ -146,7 +147,8 @@ describe("gatherData — sources", () => {
     expect(out.results.diagnostics?.repoAudit?.status).toBe("skipped");
     expect(out.results.diagnostics?.connectors).toMatchObject({ status: "skipped" });
     const kinds = out.evidenceRows.map((r) => r.label);
-    expect(kinds).toContain("Market & competitive research (AI agent, this run)");
+    expect(kinds).not.toContain("Market & competitive research (AI agent, this run)");
+    expect(out.results.publicResearch?.status).toBe("not_run");
     expect(kinds).toContain("Valuation needs revenue information");
     // Every row carries source + observedAt.
     expect(out.evidenceRows.every((r) => r.source && r.observedAt)).toBe(true);
