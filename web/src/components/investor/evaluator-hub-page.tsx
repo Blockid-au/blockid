@@ -20,7 +20,7 @@ import { FeatureGate } from "@/components/access/FeatureGate";
 import { getCurrentUser, type AppUser } from "@/lib/auth";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { isEvaluatorPersona, PERSONAS, resolvePersona, type PersonaKey } from "@/lib/nav/persona";
+import { isEvaluatorPersona, PERSONAS, personaFor, type PersonaKey } from "@/lib/nav/persona";
 import { loadPersonaRow } from "@/lib/nav/persona-server";
 import { needsOnboarding } from "@/lib/onboarding/needs-onboarding";
 import { loadInvestorLanding, type LandingPersona } from "@/lib/investors/landing-data";
@@ -60,7 +60,7 @@ export async function loadEvaluatorHub({ route, searchParams, landingHeading = "
   const sp = (await searchParams) ?? {};
 
   const personaRow = await loadPersonaRow(user.id);
-  const userPersona = resolvePersona({ role: user.role, accountType: personaRow.accountType, segment: personaRow.segment });
+  const userPersona = personaFor({ role: user.role, accountType: personaRow.accountType, segment: personaRow.segment, plan: user.plan });
   const evaluator = isEvaluatorPersona(userPersona);
 
   if (evaluator && (await needsOnboarding({ user, persona: userPersona, onboardingCompleted: user.onboardingCompleted || personaRow.onboardingCompleted, supabase: getSupabaseAdmin() }))) {

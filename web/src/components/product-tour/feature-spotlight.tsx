@@ -20,6 +20,7 @@ import Link from "next/link";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 
 import { useLocale } from "@/lib/use-locale";
+import { useFloatingStackLift } from "@/components/ui/floating-stack";
 import {
   dismissKeyFor,
   getFeatureTour,
@@ -123,8 +124,15 @@ export function FeatureSpotlight({
     }
   }, [hydrated, tour, stepIndex]);
 
+  // G29-C: the card sits at the same bottom-right corner as the FloatingStack
+  // (cookie prefs + feedback pills), which covered its Next / Done button —
+  // lift the stack by the card's height while it shows.
+  const cardRef = React.useRef<HTMLDivElement | null>(null);
+  const showing = Boolean(hydrated && tour && shouldShowFeatureTour({ tour, dismissedVersion }) && tour.steps[stepIndex]);
+  useFloatingStackLift(cardRef, showing);
+
   if (!hydrated || !tour) return null;
-  if (!shouldShowFeatureTour({ tour, dismissedVersion })) return null;
+  if (!showing) return null;
 
   const step = tour.steps[stepIndex];
   if (!step) return null;
@@ -159,6 +167,7 @@ export function FeatureSpotlight({
       data-testid="feature-spotlight"
       data-tour-slug={tour.slug}
       data-step-index={stepIndex}
+      ref={cardRef}
       className="fixed z-40 bottom-4 right-4 left-4 sm:left-auto sm:w-[380px] max-w-full pointer-events-auto"
     >
       <div className="rounded-2xl border border-surface-200 bg-white/95 dark:bg-surface-900/95 dark:border-surface-700 shadow-xl backdrop-blur-sm overflow-hidden">

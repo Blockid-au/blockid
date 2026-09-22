@@ -54,7 +54,7 @@ import { resolveFounderNavPhase } from "@/lib/nav/founder-phase";
 import { isGrowthPhaseId } from "@/lib/growth/phase-taxonomy";
 import { displayPhaseFor, phaseDimsFromAnalysis } from "@/lib/growth/infer-phase";
 import { publishPercentile } from "@/lib/benchmarks/publication-rules";
-import { isEvaluatorPersona, resolvePersona } from "@/lib/nav/persona";
+import { isEvaluatorPersona, personaFor } from "@/lib/nav/persona";
 import { loadPersonaRow } from "@/lib/nav/persona-server";
 import { landingHrefFor, personaLandingEnabled } from "@/lib/auth/post-login";
 import { needsOnboarding } from "@/lib/onboarding/needs-onboarding";
@@ -79,7 +79,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
 
   // ── Persona branch (§C.1) — evaluators land on their own hub ─────────────
   const personaRow = await loadPersonaRow(user.id);
-  const persona = resolvePersona({ role: user.role, accountType: personaRow.accountType, segment: personaRow.segment });
+  const persona = personaFor({ role: user.role, accountType: personaRow.accountType, segment: personaRow.segment, plan: user.plan });
   if (personaLandingEnabled() && isEvaluatorPersona(persona)) redirect(landingHrefFor(persona));
 
   // ── Scope (owner vs member) ───────────────────────────────────────────────

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import { headers } from "next/headers";
 import { Inter, IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
@@ -13,6 +13,7 @@ import {
 import { Providers } from "@/components/providers";
 import { AuthSyncClient } from "@/components/auth/AuthSyncClient";
 import { FeedbackWidget } from "@/components/ui/feedback-widget";
+import { FloatingStackHost } from "@/components/ui/floating-stack";
 import { ResellerRefCapture } from "@/components/marketing/reseller-ref-capture";
 import { TranslationProvider } from "@/components/i18n/translation-provider";
 import { CloudflareEmailOffEnd, CloudflareEmailOffStart } from "@/components/site/cloudflare-email-off";
@@ -57,6 +58,16 @@ const SITE_URL = "https://blockid.au";
 // Same resolver as the proxy CSP hasher, so the rendered gtag bootstrap is
 // byte-identical to the hashed one.
 const GA_MEASUREMENT_ID = analyticsIdsFromEnv().gaMeasurementId;
+
+// `viewport-fit=cover` is what makes `env(safe-area-inset-*)` non-zero on a
+// notched phone — without it the FloatingStack's safe-area padding and the
+// `.safe-pb` utility resolve to 0 (G29-C). Zoom stays enabled (a11y).
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  // theme-color stays the hand-written <meta> in <head> below (G26 guard).
+};
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -266,6 +277,11 @@ export default async function RootLayout({
         <Suspense fallback={null}>
           <ConsentBanner />
         </Suspense>
+        {/* ONE bottom-right slot for every floating pill (G29-C): the cookie
+            prefs pill, the feedback FAB and the report Q&A FAB portal into it
+            and stack instead of overlapping each other or a page's primary
+            CTA at 375 px. Safe-area aware; StickyCta lifts it on mobile. */}
+        <FloatingStackHost />
         <CloudflareEmailOffEnd />
       </body>
     </html>

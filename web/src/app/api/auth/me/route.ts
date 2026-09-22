@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { resolvePostLoginHref } from "@/lib/auth/post-login";
-import { resolvePersona } from "@/lib/nav/persona";
+import { personaFor } from "@/lib/nav/persona";
 
 // GET /api/auth/me
 // Returns the current authenticated user (id, email, plan, role) or
@@ -58,7 +58,7 @@ export async function GET() {
     if (trialRes.data) onboardingCompleted = trialRes.data.onboarding_completed === true;
   }
 
-  const persona = resolvePersona({ role: user.role, accountType, segment });
+  const persona = personaFor({ role: user.role, accountType, segment, plan: user.plan });
   const redirect = resolvePostLoginHref({ persona, onboardingCompleted });
 
   return NextResponse.json({

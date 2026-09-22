@@ -137,7 +137,7 @@ export async function GET(request: Request) {
     target = `${siteUrl()}/s/p/${packSlug}?welcome=1`;
   } else {
     // Only relative paths are honoured for `next` (isSafeNext).
-    const path = await postLoginHref({ id: user.id, role: user.role, email: user.email }, { next: payload.next ?? null });
+    const path = await postLoginHref({ id: user.id, role: user.role, email: user.email, plan: user.plan }, { next: payload.next ?? null });
     const sep = path.includes("?") ? "&" : "?";
     target = `${siteUrl()}${path}${sep}logged_in=true`;
   }

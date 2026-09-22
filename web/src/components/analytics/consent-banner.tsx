@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { denyConsent, grantConsent, hasResponded } from "@/lib/analytics/consent";
+import { FLOATING_SLOT, FloatingSlot } from "@/components/ui/floating-stack";
 
 const HIDDEN_PREFIXES = ["/dashboard", "/workspace", "/admin", "/portal"];
 
@@ -48,17 +49,22 @@ export function ConsentBanner() {
 
   // Always render the small "Cookie prefs" pill on public routes so users
   // can revoke or re-open the banner at any time (OAIC APP 6 — revocable
-  // consent). The full banner only shows while `visible` is true.
+  // consent). The full banner only shows while `visible` is true. The pill
+  // lives in the shared bottom-right FloatingStack (G29-C) so it never
+  // overlaps the feedback FAB or a page's primary CTA at 375 px.
   if (!visible) {
     return (
-      <button
-        type="button"
-        onClick={() => setVisible(true)}
-        aria-label="Open cookie preferences"
-        className="fixed bottom-3 left-3 z-[70] inline-flex min-h-11 items-center rounded-full border border-line bg-surface/90 px-3 text-xs font-medium text-primary shadow-md backdrop-blur hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy"
-      >
-        Cookie prefs
-      </button>
+      <FloatingSlot order={FLOATING_SLOT.cookiePrefs} testId="cookie-prefs-slot">
+        <button
+          type="button"
+          onClick={() => setVisible(true)}
+          aria-label="Open cookie preferences"
+          data-testid="cookie-prefs-pill"
+          className="inline-flex min-h-11 items-center rounded-full border border-line bg-surface/90 px-3 text-xs font-medium text-primary shadow-md backdrop-blur hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-navy"
+        >
+          Cookie prefs
+        </button>
+      </FloatingSlot>
     );
   }
 

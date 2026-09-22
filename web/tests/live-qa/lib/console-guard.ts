@@ -43,6 +43,19 @@ export const FEDCM_NOISE_RE = /^(Provider's accounts list is empty|Not signed in
  */
 const CSP_INLINE_SCRIPT_RE = /(Refused to execute inline script because it violates|Executing inline script violates) the following Content Security Policy directive/;
 
+/**
+ * Google Identity Services' OWN report-only CSP on the sign-in button iframe
+ * (`frame-ancestors 'self'`): Chromium logs the violation in the embedding
+ * page's console when blockid.au frames accounts.google.com, but a report-only
+ * policy blocks nothing — the button renders and the popup flow works. It is
+ * Google's header, not ours, so it is never a page defect (G29-C; /auth/login,
+ * /ja/auth/login, every `?next=` bounce). Only the report-only wording for
+ * accounts.google.com is tolerated — an ENFORCED "Framing … violates" line
+ * still fails. Mirrored in scripts/lib/page-sweep-core.mjs (parity pinned by
+ * scripts/page-sweep.test.mjs).
+ */
+export const GSI_REPORT_ONLY_FRAME_RE = /^Framing 'https:\/\/accounts\.google\.com\/[^']*' violates the following report-only Content Security Policy directive: "frame-ancestors [^"]*"\. The violation has been logged, but no further action has been taken\.$/;
+
 export interface ConsoleEntry {
   type: "console" | "pageerror";
   text: string;
@@ -148,6 +161,10 @@ export class ConsoleGuard {
         continue;
       }
       if (e.type === "console" && FEDCM_NOISE_RE.test(e.text.trim())) {
+        allowed.push(e);
+        continue;
+      }
+      if (e.type === "console" && GSI_REPORT_ONLY_FRAME_RE.test(e.text.trim())) {
         allowed.push(e);
         continue;
       }

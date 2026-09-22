@@ -14,7 +14,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { landingHrefFor } from "@/lib/auth/post-login";
-import { PERSONAS, resolvePersona } from "@/lib/nav/persona";
+import { PERSONAS, personaFor } from "@/lib/nav/persona";
 import { loadPersonaRow } from "@/lib/nav/persona-server";
 import { isWizardPersona, personaOptionsFor, type WizardPersona } from "@/lib/onboarding/flow";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -63,7 +63,7 @@ export default async function OnboardingPage({ searchParams }: { searchParams: P
   if (!user) redirect(`/auth/login?next=${encodeURIComponent(`/onboarding${toQueryString(sp)}`)}`);
 
   const row = await loadPersonaRow(user.id);
-  const persona = resolvePersona({ role: user.role, accountType: row.accountType, segment: row.segment });
+  const persona = personaFor({ role: user.role, accountType: row.accountType, segment: row.segment, plan: user.plan });
   const landing = landingHrefFor(persona);
 
   // Personas without a wizard flow (reseller / mentor / innovator / admin /

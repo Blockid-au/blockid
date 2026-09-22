@@ -11,7 +11,7 @@
 
 import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase";
-import { PERSONAS, resolvePersona, type Persona, type PersonaKey, type PersonaResolverInput } from "./persona";
+import { PERSONAS, personaFor, type Persona, type PersonaKey, type PersonaSeatInput } from "./persona";
 
 export interface PersonaRow {
   accountType: string | null;
@@ -44,14 +44,20 @@ export async function loadPersonaRow(userId: string | null | undefined): Promise
   }
 }
 
-/** Persona for a signed-in user (`role` from the session, columns from the DB). */
-export async function resolvePersonaForUser(user: { id: string; role?: string | null } | null | undefined): Promise<PersonaKey> {
+/**
+ * Persona for a signed-in SEAT (`role` + `plan` from the session, columns
+ * from the DB). G29-C: goes through `personaFor()`, so a founder-typed row on
+ * an evaluator plan (Scout / Firm / Program / Cohort) lands on the evaluator
+ * hub and never gets founder chrome — the same rule `isEvaluatorUser()`
+ * applies to page gates. Callers that hand in an `AppUser` pass its plan.
+ */
+export async function resolvePersonaForUser(user: { id: string; role?: string | null; plan?: string | null } | null | undefined): Promise<PersonaKey> {
   if (!user) return "founder";
   if (user.role === "admin") return "admin";
   const row = await loadPersonaRow(user.id);
-  return resolvePersona({ role: user.role ?? null, accountType: row.accountType, segment: row.segment } satisfies PersonaResolverInput);
+  return personaFor({ role: user.role ?? null, accountType: row.accountType, segment: row.segment, plan: user.plan ?? null } satisfies PersonaSeatInput);
 }
 
-export async function getPersonaForUser(user: { id: string; role?: string | null } | null | undefined): Promise<Persona> {
+export async function getPersonaForUser(user: { id: string; role?: string | null; plan?: string | null } | null | undefined): Promise<Persona> {
   return PERSONAS[await resolvePersonaForUser(user)];
 }

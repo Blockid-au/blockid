@@ -100,7 +100,7 @@ const defaultDeps: FounderRedirectDeps = {
  */
 export async function resolveFounderLayoutRedirect(
   rawPathname: string | null | undefined,
-  user: Pick<AppUser, "id" | "role"> | null,
+  user: (Pick<AppUser, "id" | "role"> & { plan?: string | null }) | null,
   deps: FounderRedirectDeps = defaultDeps,
 ): Promise<string | null> {
   const pathname = normalizePathname(rawPathname);

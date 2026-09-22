@@ -256,6 +256,69 @@ export function getPersona(user: PersonaResolverInput | null | undefined): Perso
   return PERSONAS[resolvePersona(user)];
 }
 
+// ---------------------------------------------------------------------------
+// G29 lane C — the SEAT persona: plan is a signal too.
+//
+// `resolvePersona()` reads who the row *says* it is (account_type / segment).
+// A seat on an evaluator SKU (Scout / Firm / Program / Fund / Cohort) is an
+// evaluator whatever the row says — `isEvaluatorUser()` (lib/evaluations.ts)
+// already treats the plan that way for page gates, but the shell resolved the
+// persona from account_type alone, so a founder-typed account on a Program
+// plan got the founder chrome: the "Phase 1 of 12" tour banner, the Growth
+// upgrade nudge and the founder hub tabs. `personaFor()` is the ONE resolver
+// the chrome uses; `resolvePersona()` stays for the row-only callers.
+//
+// Precedence: role=admin → a non-founder account_type → an evaluator plan →
+// a non-founder segment (incl. the signup literal "evaluator") → founder.
+// ---------------------------------------------------------------------------
+
+/** Evaluator SKU → persona. Mirrors `EVALUATOR_TRIAL_PLAN_IDS` + the legacy accel_* ids in `PLAN_ID_TO_TIER`. */
+const PLAN_TO_PERSONA: Readonly<Record<string, PersonaKey>> = Object.freeze({
+  investor_angel: "investor_angel",
+  investor_advisor: "advisor",
+  investor_vc_small: "investor_vc",
+  investor_vc_ent: "investor_vc",
+  investor_fund: "investor_vc",
+  accelerator_intake: "accelerator",
+  accelerator_starter: "accelerator",
+  accelerator_growth: "accelerator",
+  accelerator_enterprise: "accelerator",
+  accel_starter: "accelerator",
+  accel_growth: "accelerator",
+  accel_scale: "accelerator",
+  accel_ent: "accelerator",
+});
+
+export const EVALUATOR_PLAN_IDS: readonly string[] = Object.freeze(Object.keys(PLAN_TO_PERSONA));
+
+/** Persona an evaluator plan implies; null for founder / reseller / unknown plans. */
+export function personaForPlan(plan: string | null | undefined): PersonaKey | null {
+  return typeof plan === "string" ? (PLAN_TO_PERSONA[plan] ?? null) : null;
+}
+
+export interface PersonaSeatInput extends PersonaResolverInput {
+  /** `app_users.plan` — an evaluator SKU makes the seat an evaluator. */
+  plan?: string | null;
+}
+
+/**
+ * Resolve the persona for a signed-in SEAT — account_type, segment AND plan.
+ * Use this for every chrome decision (banners, tabs, nudges, landing); it
+ * never returns "founder" for a seat that holds an evaluator plan or segment.
+ */
+export function personaFor(user: PersonaSeatInput | null | undefined): PersonaKey {
+  if (!user) return "founder";
+  if (user.role === "admin") return "admin";
+  const byRow = resolvePersona({ accountType: user.accountType ?? null, segment: user.segment ?? null });
+  if (byRow !== "founder") return byRow;
+  const byPlan = personaForPlan(user.plan);
+  if (byPlan) return byPlan;
+  const seg = user.segment ?? null;
+  if (seg === "evaluator") return "investor_angel";
+  if (seg && SEGMENT_TO_PERSONA[seg] && SEGMENT_TO_PERSONA[seg] !== "founder") return SEGMENT_TO_PERSONA[seg];
+  return "founder";
+}
+
 /** Convenience: iterate personas in declared order. */
 export function listPersonas(): Persona[] {
   return PERSONA_KEYS.map((k) => PERSONAS[k]);
