@@ -1,3 +1,4 @@
+import { trackOriginWork, trackedJobDeps } from "@/lib/ops/origin-activity";
 // The ReportV2 job runner for an `analyses` row (G28-C, 2026-09-21).
 //
 // Founder decision (G25-C) → the first two business reports per e-mail are
@@ -209,6 +210,10 @@ export function lastReportRecordV2(analysisId: string, report: ReportV2, tally: 
 }
 
 export async function runReportV2Job(id: string, deps: ReportV2JobDeps = defaultReportV2Deps()): Promise<ReportV2JobOutcome> {
+  return trackOriginWork("report_v2_job", () => runReportV2JobTracked(id, trackedJobDeps("report_v2_job", deps)), id);
+}
+
+async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise<ReportV2JobOutcome> {
   const row = await deps.claim(id);
   if (!row) return { outcome: "not_claimable" };
 
@@ -249,7 +254,7 @@ export async function runReportV2Job(id: string, deps: ReportV2JobDeps = default
     const t = deps.now().getTime();
     if (t - lastSaved >= deps.progressEveryMs || ev.type === "dimension_complete" || ev.type === "gather_complete") {
       lastSaved = t;
-      void deps.saveProgress(id, envelope).catch(() => undefined);
+      void trackOriginWork("report_progress", () => deps.saveProgress(id, envelope)).catch(() => undefined);
     }
   };
 

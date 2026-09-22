@@ -1,3 +1,4 @@
+import { trackOriginWork, trackedJobDeps } from "@/lib/ops/origin-activity";
 // The first-analysis job runner (S32-B).
 //
 // G28-C (2026-09-21): NEW intake rows no longer come here. Every free-grant
@@ -222,6 +223,10 @@ function refreshMeta(report: FirstAnalysisReport): void {
 }
 
 export async function runFirstAnalysisJob(id: string, deps: JobDeps = defaultDeps()): Promise<JobOutcome> {
+  return trackOriginWork("first_analysis_job", () => runFirstAnalysisJobTracked(id, trackedJobDeps("first_analysis_job", deps)), id);
+}
+
+async function runFirstAnalysisJobTracked(id: string, deps: JobDeps): Promise<JobOutcome> {
   const row = await deps.claim(id);
   if (!row) return { outcome: "not_claimable" };
 

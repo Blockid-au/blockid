@@ -49,6 +49,7 @@ def observe(web,port):
                 raise ValueError('registry identity mismatch')
             report['registry']={k:registry.get(k) for k in ('version','draining','persistenceFailed','trackedWorkDrained','coverage','remainingCoverage')}
             report['tracked_activity_count']=len(registry.get('activities',{}))
+            report['unresolved_job_count']=len(registry.get('unresolvedJobs',{}))
         except Exception: report['registry_status']='unavailable_or_unverified'
     else: report['registry_status']='credential_unavailable'
     # Revalidate identity after all observations. Never label PID reuse idle.

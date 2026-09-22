@@ -1,3 +1,4 @@
+import { trackOriginWork } from "@/lib/ops/origin-activity";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { z } from "zod";
@@ -542,27 +543,27 @@ async function POST_handler(request: Request) {
   // New users: auto-create app_users with temp password, send combined
   // welcome+report email with credentials. Existing users: send report only.
   if (!authenticatedUserId && supabase) {
-    void (async () => {
+    void trackOriginWork("report_notification", async () => {
       try {
         const result = await autoCreateUserWithTempPassword(email);
         if (result.ok && result.isNewUser && result.tempPassword) {
           // New user — send combined welcome + report + credentials
-          void sendWelcomeWithReport({
+          void trackOriginWork("report_email", () => sendWelcomeWithReport({
             to: email, slug, rawInput: parsed.input?.rawText,
             analysis, tempPassword: result.tempPassword, locale,
-          }).catch(() => {});
+          })).catch(() => {});
         } else {
           // Existing user — send report only
-          void sendSVIReport({ to: email, slug, rawInput: parsed.input?.rawText, analysis, locale }).catch(() => {});
+          void trackOriginWork("report_email", () => sendSVIReport({ to: email, slug, rawInput: parsed.input?.rawText, analysis, locale })).catch(() => {});
         }
       } catch {
         // Fallback: send report without account creation
-        void sendSVIReport({ to: email, slug, rawInput: parsed.input?.rawText, analysis, locale }).catch(() => {});
+        void trackOriginWork("report_email", () => sendSVIReport({ to: email, slug, rawInput: parsed.input?.rawText, analysis, locale })).catch(() => {});
       }
-    })();
+    }).catch(() => {});
   } else {
     // Authenticated user — just send report
-    void sendSVIReport({ to: email, slug, rawInput: parsed.input?.rawText, analysis, locale }).catch(() => {});
+    void trackOriginWork("report_email", () => sendSVIReport({ to: email, slug, rawInput: parsed.input?.rawText, analysis, locale })).catch(() => {});
   }
 
   // ── CCSO onboarding drip + D30 NPS pulse ────────────────────────────
@@ -574,13 +575,13 @@ async function POST_handler(request: Request) {
       ? analysis.subs.reduce((min, s) => (s.value < min.value ? s : min), analysis.subs[0])
       : null;
     if (weakest) {
-      void enqueueOnboardingDrip(email, authenticatedUserId, {
+      void trackOriginWork("report_notification", () => enqueueOnboardingDrip(email, authenticatedUserId, {
         weakestDim: weakest.label,
         weakestScore: weakest.value,
         sector: analysis.sectorLabel ?? analysis.sector ?? null,
         // G16-B: D1 + the +24 h unlock nudge deep-link to this project's report.
         projectId: projectId ?? null,
-      }).catch(() => {});
+      })).catch(() => {});
     }
   }
 

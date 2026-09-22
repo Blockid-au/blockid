@@ -2,10 +2,10 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { closeSync, fsyncSync, mkdirSync, openSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 
-type Kind = "http" | "report_pipeline" | "ai_call" | "report_order_worker" | "audit_write" | "report_notification" | "report_email";
-type Entry = { kind: Kind; startedAt: string };
+type Kind = "http" | "report_pipeline" | "ai_call" | "report_order_worker" | "audit_write" | "report_notification" | "report_email" | "http_upgrade" | "http_connect" | "first_analysis_job" | "report_v2_job" | "report_progress";
+type Entry = { kind: Kind; startedAt: string; jobRefSha256?: string };
 const context = new AsyncLocalStorage<boolean>();
 
 /** Persist BEFORE work admission; persistence failure fails closed. No inputs,
@@ -13,6 +13,7 @@ const context = new AsyncLocalStorage<boolean>();
  */
 export class OriginActivity {
   private activities = new Map<string, Entry>();
+  private unresolvedJobs = new Map<string, { kind: string; jobRefSha256: string; state: "claim_pending" | "claimed" | "finish_unconfirmed" }>();
   private draining = false;
   private persistenceFailed = false;
   constructor(readonly file: string, readonly identity: { pid: number; startTicks: string; releasePath: string }) {
@@ -24,9 +25,9 @@ export class OriginActivity {
   }
   snapshot() {
     return { version: 1, ...this.identity, draining: this.draining, persistenceFailed: this.persistenceFailed,
-      activities: Object.fromEntries(this.activities), trackedWorkDrained: this.draining && this.activities.size === 0 && !this.persistenceFailed,
+      activities: Object.fromEntries(this.activities), unresolvedJobs: Object.fromEntries(this.unresolvedJobs), trackedWorkDrained: this.draining && this.activities.size === 0 && this.unresolvedJobs.size === 0 && !this.persistenceFailed,
       retirementEligible: false, coverage: "http_and_selected_background_scopes",
-      remainingCoverage: ["upgrade_connections", "other_detached_tasks", "database_job_ownership_and_ambiguous_effects", "external_workers_and_child_processes"] };
+      remainingCoverage: ["other_detached_tasks", "database_job_ownership_and_ambiguous_effects", "external_workers_and_child_processes"] };
   }
   private persist() {
     const temporary = this.file + ".tmp";
@@ -40,15 +41,22 @@ export class OriginActivity {
   }
   resume() { if (this.persistenceFailed) throw new Error("origin_registry_unreliable"); this.draining = false; this.persist(); return this.snapshot(); }
   drain() { this.draining = true; this.persist(); return this.snapshot(); }
-  admit(kind: Kind, continuation = false) {
+  admit(kind: Kind, continuation = false, jobId?: string) {
     if (this.persistenceFailed || (this.draining && !continuation)) throw new Error("origin_draining");
-    const id = randomUUID(); this.activities.set(id, { kind, startedAt: new Date().toISOString() });
+    const id = randomUUID(); this.activities.set(id, { kind, startedAt: new Date().toISOString(), ...(jobId ? { jobRefSha256: createHash("sha256").update(`${kind}:${jobId}`).digest("hex") } : {}) });
     this.persist();
     let ended = false;
     return () => { if (!ended) { ended = true; this.activities.delete(id); this.persist(); } };
   }
-  async run<T>(kind: Kind, work: () => Promise<T>): Promise<T> {
-    const done = this.admit(kind, context.getStore() === true);
+  jobState(kind: string, jobId: string, state: "claim_pending" | "claimed" | "finish_unconfirmed" | "settled", attempt = "direct") {
+    const jobRefSha256 = createHash("sha256").update(`${kind}:${jobId}`).digest("hex");
+    const key = `${jobRefSha256}:${attempt}`;
+    if (state === "settled") this.unresolvedJobs.delete(key);
+    else this.unresolvedJobs.set(key, { kind, jobRefSha256, state });
+    this.persist();
+  }
+  async run<T>(kind: Kind, work: () => Promise<T>, jobId?: string): Promise<T> {
+    const done = this.admit(kind, context.getStore() === true, jobId);
     return context.run(true, async () => { try { return await work(); } finally { done(); } });
   }
 }
@@ -66,7 +74,31 @@ export function installOriginActivity() {
   (globalThis as Holder)[globalKey] = registry;
   return registry;
 }
-export function trackOriginWork<T>(kind: Kind, work: () => Promise<T>): Promise<T> {
-  return originActivity()?.run(kind, work) ?? work();
+export function trackOriginWork<T>(kind: Kind, work: () => Promise<T>, jobId?: string): Promise<T> {
+  return originActivity()?.run(kind, work, jobId) ?? work();
 }
 export function runAdmittedHttp<T>(work: () => T): T { return context.run(true, work); }
+
+/** Wrap the actual database acknowledgement, without changing its claim/finish
+ * semantics. A timeout or false finish retains a local unresolved obligation.
+ * This is durable origin evidence, not a database lease or retry permission.
+ */
+export function trackedJobDeps<T extends { claim: (id: string) => Promise<unknown>; finish: (...args: never[]) => Promise<boolean> }>(kind: string, deps: T, registry = originActivity()): T {
+  if (!registry) return deps;
+  const attempt = randomUUID();
+  return { ...deps,
+    claim: async (id: string) => {
+      registry.jobState(kind, id, "claim_pending", attempt);
+      const row = await deps.claim(id);
+      registry.jobState(kind, id, row ? "claimed" : "settled", attempt);
+      return row;
+    },
+    finish: async (...args: never[]) => {
+      const id = args[0] as string;
+      registry.jobState(kind, id, "finish_unconfirmed", attempt);
+      const confirmed = await deps.finish(...args);
+      registry.jobState(kind, id, confirmed ? "settled" : "finish_unconfirmed", attempt);
+      return confirmed;
+    },
+  } as T;
+}
