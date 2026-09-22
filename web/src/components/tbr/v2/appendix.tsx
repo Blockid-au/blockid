@@ -1,3 +1,4 @@
+import { PublicResearchDetails } from "./public-research-details";
 // Section 16 — Appendix (G27 order: limiting conditions last, 409A style):
 // method → phase-gate matrix → score ledger per chapter → evidence register
 // → data principle → sources → auditor log → disclaimer → correction link.
@@ -106,6 +107,7 @@ export function TbrAppendix({
             <p>{t.noEvidence}</p>
           )}
         </div>
+        <PublicResearchDetails research={a.publicResearch} locale={locale} />
         <div>
           <p className="font-semibold text-primary">{t.dataPrinciple}</p>
           <p>{a.dataPrinciple}</p>
