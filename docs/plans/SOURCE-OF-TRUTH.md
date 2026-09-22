@@ -1232,6 +1232,14 @@ R01/O01 research/provider work chỉ chạy live khi capacity/budget đã đư�
 - **Frontend:** rollout theo page family với feature flag nếu phù hợp; fallback chỉ tới reader/rendering không tái giới thiệu known critical misinformation. Schema support cần deploy trước UI consumer.
 - **Stop conditions:** bất kỳ confirmed critical false fact, cross-project exposure, double charge/grant, READY-without-artifact hoặc regression lớn về completion thì pause affected path và giữ last-good valid report. Không làm đẹp KPI bằng xóa failed runs; ghi sự cố, scope, owner và evidence retest.
 
+#### 12.5.1 P0 release order: reader compatibility trước valuation writer mới
+
+**Review implementation22/09/2026:** live v3.29.1/f88ed0f90 vẫn yêu cầu numeric valuation fields trong ReportV2. Foundation có `valuation.status=unavailable` và cố ý không lưu methods/consensus/scenarios. Vì vậy phiên bản live hiện tại chưa phải rollback target tương thích cho dữ liệu mới này: storage validation cũ có thể bỏ canonical record để dùng adapter, trong khi một số analyses/HTML/PDF readers dereference monetary fields trực tiếp. Không được coi cùng schema database hoặc cùng envelope `tbr-v2` là bằng chứng tương thích nội dung JSON.
+
+**Thứ tự bắt buộc, thuộc F02/F03/U02 và O05/O06 hiện có:** (1) triển khai reader-only compatibility trên schema validation, saved/shared/analyses readers, UI và exports; giữ nguyên generator/gather/cách ghi đang chạy; (2) fixture canonical unavailable mới phải qua đọc/render/export mà không mất trạng thái hoặc tạo số thay thế, historical available vẫn đúng; (3) release qua canonical gates và soak, trở thành verified-compatible LKG; (4) mới triển khai full foundation writer và findings, rollback target phải đọc được dữ liệu mới đã ghi. Reader bridge không đóng V01, full report quality hoặc toàn bộ F03.
+
+Root giữ full foundation release chờ gate này. Agents chia implementation reader bridge và independent compatibility review, root kiểm scope/no-writer-diff và chịu trách nhiệm deploy. Migration0443 credit receipts được chuẩn bị/kiểm thử ở database cô lập trong nhánh riêng, chưa đưa vào release reader bridge hoặc áp dụng production; caller fulfillment/erasure/permission/rollback gates vẫn cần hoàn tất.
+
 ### 12.6 Definition of ready/done và issue closure packet
 
 **Ready để implement một item:** requirement/I-ID rõ, baseline reproducible, expected behavior + acceptance fixture, dependencies/schema migration review, owner và phạm vi được cho bắt đầu. Unknown production state phải có bước read-only verification, không chữa theo giả định. Chưa có approval G30 thì mọi item giữ proposed.
