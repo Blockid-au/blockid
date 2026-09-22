@@ -1811,3 +1811,16 @@ a completed O08 gate or permission to kill unknown jobs.
 - Preserve all existing origins/artifacts and the verified compatible rollback. Legacy detached job ownership remains unresolved; O08 and production financial migration activation remain open.
 - RA1 durable storage is developed in isolation: escrow reservation, immutable revision, base-version CAS, exactly-once capture after accepted save, and failure/cancellation release. Do not add draft0446 to the approved migration allowlist implicitly.
 - Continue into bounded market research and per-criterion evidence enrichment after this release; do not invent prices, claim new paid re-analysis is live, or close the full goal based on these prerequisites.
+
+### Continuous implementation queue after v3.31.0 candidate
+
+1. **Report value + usable detail:** scoped public-source refresh is implemented as a bounded collector with lease/cancellation checks and honest partial/no-evidence outcomes. It does not itself qualify a paid result. Criterion summaries show stored verdicts/support limitations; long source excerpts expand separately with local return links. Scoped business-specific synthesis follows, preserving evidence and score limits.
+2. **Investor dashboard:** implemented clearer review priority, direct paths for unscored businesses and progressive disclosure for credits/preferences. Focused19-case render suite and7-case reader suite passed; full browser/mobile/all-route review is deferred. No fabricated recency metrics.
+3. **Cross-site provider consistency:** BlockID proxy source now applies `blockid-report-v1` and one shared deadline through JSON repair, returning actual provider/model/policy metadata. Current scoped dispatcher permits DeepInfra only; free qualification remains open. SVI isolated commit `03ae50a` adds default-OFF `SVI_SCOPED_REPORT_POLICY=1` mode resolving the controller's active origin on each call and rejecting missing policy/model or local paid fallback. Do not activate before the proxy phase is live and effective runtime authentication/read access is checked. This does not establish a shared wallet or report write rights.
+4. **Durable credit/revision work:** isolated0446 draft commits `d31ed3023` + `a96e9865f` implement reservation/lease/checkpoints/cancellation/CAS/capture and released-attempt retry lineage;10 scratch PostgreSQL cases passed. No production application. Keep0446 out of current0443–0445 schema allowlist; canonical report writer adoption, held-credit/erasure reconciliation and authorization/consent integration remain required.
+5. **Delivery sequence:** root promotes only one candidate at a time, keeps source frozen during build, records actual live SHA after full tool exit and preserves compatible rollback. Additional source work continues in isolated branches. Do not treat a passing fixture, queued commit or bounded capacity permit as full goal completion or permission for unlimited origins.
+
+Evidence: [proxy policy](../reviews/2026-09-22-g30-svi-proxy-provider-policy.md),
+[scoped source collector](../reviews/2026-09-22-g30-scoped-public-research.md),
+[investor dashboard](../reviews/2026-09-22-g30-investor-dashboard-ux.md),
+[criterion disclosure](../reviews/2026-09-22-g30-findings-disclosure-ux.md).
