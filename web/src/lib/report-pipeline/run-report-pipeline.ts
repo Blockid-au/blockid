@@ -208,7 +208,7 @@ export interface DeckInputSnapshot {
 
 export const DECK_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
-export function scopedDeckCacheKey(text: string, projectId: string | undefined, tier: string, locale = "en"): string {
+export function scopedDeckCacheKey(text: string, projectId: string | null | undefined, tier: string, locale = "en"): string {
   return createHash("sha256").update(JSON.stringify([hashDeck(text), projectId ?? null, tier, locale])).digest("hex");
 }
 
