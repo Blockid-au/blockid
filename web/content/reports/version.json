@@ -1,8 +1,9 @@
 {
-  "version": "v3.33.2",
-  "updated_at": "2026-09-22T17:46:50.177174+00:00",
-  "release_id": "g30-personal-report-wallet-authority",
+  "version": "v3.33.3",
+  "updated_at": "2026-09-22T18:31:07.056926+00:00",
+  "release_id": "g30-receipt-compatibility-budgeted-discovery",
   "shipped_summary": [
+    "v3.33.3 — Receipt-compatible credit runtime and retry-safe purchase verification; shared Brave budget reserved before each discovery request. New receipt creation and customer research remain disabled pending the coordinated financial and worker rollout.",
     "v3.33.2 — Owned-report wallet connection with explicit version-bound acceptance and revocation; private report snapshots and additive-schema rollback support. Connection does not charge credits. New paid research remains disabled.",
     "v3.33.1 — Signed SVI account-status authority and closed-account rejection. Atomic Brave budget, wallet admission and bounded ephemeral discovery foundations included; customer paid research remains disabled.",
     "v3.33.0 — Preserve final audited business analysis per criterion, with expandable web detail and paid PDF/DOCX parity. Rejected narratives remain withheld; existing reports are not backfilled. No new research charge or scoring activation.",
