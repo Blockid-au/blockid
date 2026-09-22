@@ -404,3 +404,20 @@ describe("buildTbrDocx — v3 structure", () => {
     expect(plain.subarray(0, 2).toString("latin1")).toBe("PK");
   }, 60_000);
 });
+
+describe("G30 unavailable valuation DOCX", () => {
+  it("exports the data gap without valuation numeric tables or chart payloads", async () => {
+    const { unavailableValuation } = await import("@/lib/report-v2/schema");
+    const report: import("@/lib/report-v2/schema").ReportV2 = demoReportV2();
+    report.valuation = unavailableValuation("missing_or_invalid_revenue", report.generatedAt, ["current_revenue"]);
+    const { buffer } = await buildTbrDocx(report);
+    const { doc } = await unzip(buffer);
+    expect(xmlText(doc)).toContain(report.valuation.narrative);
+    expect(xmlText(doc)).not.toContain("The consensus valuation sits between");
+    // Revenue, grant eligibility and statutory thresholds are different facts;
+    // unavailable business worth must not indiscriminately redact currencies.
+    expect(xmlText(doc)).toContain("A$1.2M ARR");
+    expect(xmlText(doc)).not.toContain("Directional valuation — three cases and consensus");
+    expect(xmlText(doc)).not.toContain("AU comparables —");
+  }, 60000);
+});

@@ -345,7 +345,8 @@ export interface ValuationCrossCheck {
   n?: number;
 }
 
-export interface ValuationChapter {
+export interface AvailableValuationChapter {
+  status?: "available";
   currency: "AUD";
   methods: Array<{
     method: ValuationMethodKey;
@@ -378,6 +379,27 @@ export interface ValuationChapter {
   visuals: VisualSpecV2[];
   narrative: string;
   audit: AuditStamp;
+}
+
+export interface UnavailableValuationChapter {
+  status: "unavailable";
+  reason: string;
+  missingInputs: string[];
+  currency: "AUD";
+  narrative: string;
+  audit: AuditStamp;
+  visuals: [];
+}
+export type ValuationChapter = AvailableValuationChapter | UnavailableValuationChapter;
+export function isValuationAvailable(v: ValuationChapter): v is AvailableValuationChapter {
+  return v.status !== "unavailable";
+}
+export function unavailableValuation(reason: string, at: string, missingInputs: string[] = []): UnavailableValuationChapter {
+  const narrative = reason === "missing_or_invalid_revenue"
+    ? "Business value is unavailable. Add current revenue information or financial statements before a valuation can be calculated."
+    : reason === "valuation_failed" ? "Business value is unavailable because the valuation could not be calculated." : reason;
+  return { status: "unavailable", reason, missingInputs, currency: "AUD", narrative,
+    audit: { grounded: false, uncited: 0, revised: false, auditor: "llm-auditor", at }, visuals: [] };
 }
 
 export interface MatchedGrant {
@@ -781,7 +803,8 @@ const valuationCrossCheck = z.object({
   n: z.number().optional(),
 });
 
-const valuationChapter = z.object({
+const availableValuationChapter = z.object({
+  status: z.literal("available").optional(),
   currency: z.literal("AUD"),
   methods: z
     .array(valuationMethod)
@@ -817,6 +840,12 @@ const valuationChapter = z.object({
   narrative: z.string(),
   audit: auditStamp,
 });
+
+const valuationChapter = z.discriminatedUnion("status", [
+  z.object({ status: z.literal("unavailable"), reason: z.string().min(1), missingInputs: z.array(z.string()),
+    currency: z.literal("AUD"), narrative: z.string(), audit: auditStamp, visuals: z.tuple([]) }).strict(),
+  availableValuationChapter,
+]);
 
 // G27 — investment view (optional, rebuilt at read by `ensureInvestmentView`).
 const investmentBand = z.enum(INVESTMENT_BANDS);

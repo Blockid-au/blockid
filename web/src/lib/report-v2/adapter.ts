@@ -54,7 +54,7 @@ import {
   type ScoreBreakdown,
   type ScoreBreakdownSignal,
   type SviLedger,
-  type ValuationChapter,
+  type AvailableValuationChapter as ValuationChapter,
 } from "./schema";
 import { evidenceGapRows, type EvidenceGapLike } from "./evidence-cta";
 import { chooseNextAction, dedupeAgainstCards, type NextActionFacts } from "./next-action";

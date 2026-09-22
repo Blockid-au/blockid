@@ -223,3 +223,16 @@ describe("ReportV2 schema — rules", () => {
     expect(err!.message).toContain("ReportV2 invalid");
   });
 });
+
+describe("V01 unavailable valuation contract", () => {
+  it("accepts unavailable without any monetary placeholders and rejects hidden numeric fields", async () => {
+    const { unavailableValuation } = await import("./schema");
+    const report: ReportV2 = { ...demoReportV2(), valuation: unavailableValuation("missing_or_invalid_revenue", new Date(0).toISOString(), ["current_revenue"]) };
+    expect(isReportV2(report)).toBe(true);
+    expect(report.valuation).not.toHaveProperty("consensus");
+    expect(report.valuation).not.toHaveProperty("scenarios");
+    for (const extra of [{ consensus: { lowAud: 0, midAud: 0, highAud: 0, confidence: 0 } }, { methods: [] }, { scenarios: { bear: 0, base: 0, bull: 0 } }, { sectorMultiples: { low: 0 } }]) {
+      expect(isReportV2({ ...report, valuation: { ...report.valuation, ...extra } })).toBe(false);
+    }
+  });
+});

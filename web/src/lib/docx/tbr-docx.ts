@@ -533,6 +533,7 @@ function keyPoints(ctx: Ctx): Block[] {
 function valuation(ctx: Ctx): Block[] {
   const { r, view, t, locale, free } = ctx;
   const v = r.valuation;
+  if (v.status === "unavailable") return [h1(t.sec.valuation, 4), p(v.narrative)];
   const vv = buildValuationView(v, locale);
   const vs = vv.strings;
   const out: Block[] = [h1(t.sec.valuation, 4)];
@@ -939,7 +940,7 @@ export async function buildTbrDocx(rawReport: ReportV2, opts: TbrDocxOptions = {
   // The dashboard chart is built at render time, so a caller's pre-rasterised set may lack it.
   let images = opts.images ?? (await rasteriseReportVisuals(r, undefined, [dash.chart]));
   if (!images.byId.has(dash.chart.id)) {
-    const chart = await rasteriseReportVisuals({ ...r, cover: { ...r.cover, visuals: [] }, executive: { ...r.executive, visuals: [] }, dimensions: [], valuation: { ...r.valuation, visuals: [] }, phaseGates: { ...r.phaseGates, visuals: [] }, moneyOnTable: { ...r.moneyOnTable, visuals: [] }, actionPlan: { ...r.actionPlan, visuals: [] } }, undefined, [dash.chart]);
+    const chart = await rasteriseReportVisuals({ ...r, cover: { ...r.cover, visuals: [] }, executive: { ...r.executive, visuals: [] }, dimensions: [], valuation: { ...r.valuation, visuals: [] as [] }, phaseGates: { ...r.phaseGates, visuals: [] }, moneyOnTable: { ...r.moneyOnTable, visuals: [] }, actionPlan: { ...r.actionPlan, visuals: [] } }, undefined, [dash.chart]);
     images = { byId: new Map([...images.byId, ...chart.byId]), pngCount: images.pngCount + chart.pngCount, svgCount: images.svgCount + chart.svgCount };
   }
   const prepared = opts.preparedWith?.trim() || defaultPreparedWith(report);

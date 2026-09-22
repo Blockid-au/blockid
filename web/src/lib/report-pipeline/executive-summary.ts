@@ -1,3 +1,4 @@
+import { isValuationAvailable } from "@/lib/report-v2/schema";
 // G19-S47 — the CEO executive summary as a JSON contract.
 //
 // The SYNTH stage used to ask the CEO agent for "a comprehensive Executive
@@ -74,7 +75,7 @@ export function executiveSummaryInput(context: ReportContext): ExecutiveSummaryI
   const chapters = context.dimensionChapters ? DIM_ORDER.map((d) => context.dimensionChapters!.get(d)).filter((c): c is NonNullable<typeof c> => Boolean(c)) : [];
   const scored = chapters.filter((c) => c.band !== "pending");
   const lowest = scored.length ? [...scored].sort((a, b) => a.score - b.score)[0] : null;
-  const v = context.valuationChapter?.consensus;
+  const v = context.valuationChapter && isValuationAvailable(context.valuationChapter) ? context.valuationChapter.consensus : null;
   return {
     startupName: context.startupName,
     svi: context.sviAnalysis.totalSVI,

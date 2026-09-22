@@ -1,3 +1,5 @@
+import { withSvg } from "@/lib/report-visuals";
+import { isValuationAvailable } from "./schema";
 // G19-S47 — executive summary structure, pure and client-safe.
 //
 //   structureExecutive(thesis, chapters, valuation, phase, opts)
@@ -424,7 +426,8 @@ export function structureExecutive(
   const locale = opts.locale;
   const L = s47(locale);
   const bandLabels = getTbrStrings(locale).v2.band;
-  const { h1, sections } = sectionise(tokenise(thesis ?? ""));
+  const safeThesis = valuation && !isValuationAvailable(valuation) ? withoutUnavailableValuationProse(thesis ?? "", opts.locale) : thesis ?? "";
+  const { h1, sections } = sectionise(tokenise(safeThesis));
   const find = (kind: SectionKind) => sections.filter((sct) => sct.kind === kind);
   const startupName = opts.cover?.startupName?.trim() || chapters[0]?.title.split(" ")[0] || "Startup";
   const svi = opts.cover?.svi;
@@ -448,7 +451,7 @@ export function structureExecutive(
   }
   // Deterministic paragraphs fill to at least two: worth, then phase.
   const worth =
-    valuation && valuation.consensus.confidence >= 0.3 && valuation.consensus.highAud > 0
+    valuation && isValuationAvailable(valuation) && valuation.consensus.confidence >= 0.3 && valuation.consensus.highAud > 0
       ? L.worthParagraph(aud(valuation.consensus.lowAud), aud(valuation.consensus.highAud), Math.round(valuation.consensus.confidence * 100))
       : L.worthPending;
   const phaseSentence = L.phaseParagraph(phaseLabelFor(phase.currentPhase, locale), Math.round(phase.completionPct), phase.nextPhase ? phaseLabelFor(phase.nextPhase, locale) : null);
@@ -705,7 +708,51 @@ export function hasValidExecutiveStructured(report: Pick<ReportV2, "executive">)
  * built from the chapters). Pure — returns the same object when nothing
  * had to change.
  */
+/** Suppress valuation-related prose when this run has no valuation; preserve
+ * unrelated revenue, raise and market statements. This is section suppression,
+ * not a general financial-claim verifier. Evidence quotes are not rewritten. */
+export function withoutUnavailableValuationProse(text: string, locale?: string): string {
+  const gap = locale === "vi" ? "Chưa có định giá doanh nghiệp: cần bổ sung dữ liệu tài chính phù hợp." : "Business valuation is unavailable: suitable financial inputs are needed.";
+  return text.split(/\n\s*\n/).map((paragraph) => {
+    // A clearly attributed ask is not our estimate. Preserve its amount when
+    // the paragraph does not also assert consensus/value/alignment.
+    const statedAsk = /\bfounder[ -]stated\b|\bfounder(?:'s)?\s+(?:ask|asks|requests)\b/i.test(paragraph);
+    const calculatedClaim = /\bconsensus\b|\bour estimate\b|\bfair value\b|\bwe estimate\b|\b(?:above|below|aligned)\b|\b(?:business|company|startup)\s+(?:is\s+)?(?:worth|valued)|\bvaluation\s+(?:sits|is|range)/i.test(paragraph);
+    if (statedAsk && !calculatedClaim) return paragraph;
+    return /\bvaluation\b|\bconsensus\s+(?:value|range)|\b(?:business|company|startup|venture)\s+(?:is\s+)?(?:worth|valued)|\b(?:pre|post)[ -]money\b|định giá/iu.test(paragraph) ? gap : paragraph;
+  }).join("\n\n");
+}
+
+function suppressExecutiveValuationProse(report: ReportV2): ReportV2 {
+  if (isValuationAvailable(report.valuation)) return report;
+  const scrub = (text: string) => withoutUnavailableValuationProse(text, report.locale);
+  const original = report.executive;
+  const block = original.structured;
+  const structured = block ? { ...block,
+    headline: scrub(block.headline), summary: block.summary.map(scrub),
+    ...(block.keyInsight ? { keyInsight: scrub(block.keyInsight) } : {}),
+    reasonsToBack: block.reasonsToBack.map((item) => ({ ...item, title: scrub(item.title), body: scrub(item.body) })),
+    criticalGaps: block.criticalGaps.map((item) => ({ ...item, title: scrub(item.title), body: scrub(item.body) })),
+    benchmarks: block.benchmarks.map((item) => ({ ...item, ...(item.note ? { note: scrub(item.note) } : {}) })),
+    phaseNow: { ...block.phaseNow, blocker: scrub(block.phaseNow.blocker), whatItTakes: scrub(block.phaseNow.whatItTakes) },
+    verdict: { ...block.verdict, ...(block.verdict.condition ? { condition: scrub(block.verdict.condition) } : {}) },
+    actions: block.actions.map((item) => ({ ...item, title: scrub(item.title), detail: scrub(item.detail) })),
+  } : undefined;
+  const worth = report.locale === "vi" ? "Chưa có định giá doanh nghiệp." : "Business valuation unavailable.";
+  return { ...report,
+    cover: { ...report.cover, threeQuestions: { ...report.cover.threeQuestions, worth }, visuals: report.cover.visuals.map((visual) => visual.kind === "three_questions_strip" ? withSvg({ ...visual, data: { ...visual.data, worth }, a11y: {
+      title: visual.a11y.title, description: worth,
+      tableFallback: [{ where: String(visual.data.where ?? ""), worth, next: String(visual.data.next ?? "") }],
+    } }) : visual) },
+    executive: { ...original, thesis: scrub(original.thesis), strengths: original.strengths.map(scrub), gaps: original.gaps.map(scrub), verdict: scrub(original.verdict),
+      ...(structured ? { structured } : {}),
+      visuals: original.visuals.filter((visual) => !/valuation|định giá/i.test(visual.title)),
+    },
+  };
+}
+
 export function ensureExecutiveStructured(report: ReportV2): ReportV2 {
+  report = suppressExecutiveValuationProse(report);
   if (hasValidExecutiveStructured(report)) return report;
   const structured = structureExecutive(report.executive.thesis, report.dimensions, report.valuation, report.executive.phaseNow, {
     locale: report.locale,

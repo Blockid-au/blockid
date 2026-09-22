@@ -35,7 +35,7 @@ import { stageKeyFromNumber } from "@/lib/investors/fit-refresh";
 import type { StartupTaxonomyRow } from "@/lib/taxonomy/startup-taxonomy";
 import { makeVisual } from "@/lib/report-visuals";
 import type { VisualSpecV2 } from "@/lib/report-visuals/types";
-import type { ReportV2, ValuationChapter } from "@/lib/report-v2/schema";
+import type { ReportV2, AvailableValuationChapter as ValuationChapter } from "@/lib/report-v2/schema";
 import { readLastDossierView } from "./dossier-audit";
 
 type Row = Record<string, unknown>;
@@ -94,6 +94,7 @@ export function emptyValuationBlock(): DossierValuationBlock {
 export function buildValuationBlock(report: ReportV2 | null, mine: Pick<EvaluationAssessment, "valuationView"> | null): DossierValuationBlock {
   if (!report) return emptyValuationBlock();
   const v = report.valuation;
+  if (v.status === "unavailable") return { ...emptyValuationBlock(), source: report.source, audit: v.audit };
   const pending = report.cover.svi.band === "pending";
   const base = v.visuals.find((x) => x.kind === "range_bars") ?? null;
   // Overlay the assessor's view as a second marker on the same chart (§A.3 block 2).

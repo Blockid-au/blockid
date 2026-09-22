@@ -1,3 +1,4 @@
+import { isValuationAvailable } from "@/lib/report-v2/schema";
 // computed-facts — G24-D: the platform's own computed numbers as citable
 // evidence rows.
 //
@@ -238,7 +239,7 @@ export function computedFacts(input: ComputedFactsInput): ComputedFact[] {
   }
 
   const v = input.valuationChapter;
-  if (v && v.consensus) {
+  if (v && isValuationAvailable(v)) {
     const c = v.consensus;
     const methods = (v.methods ?? [])
       .filter((m) => m.applicable)

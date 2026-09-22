@@ -244,3 +244,27 @@ describe("ensureExecutiveStructured / hasValidExecutiveStructured / executiveThe
     expect(thesis).not.toMatch(MD);
   });
 });
+
+describe("V01 stale valuation prose", () => {
+  it("replaces old valuation paragraphs while retaining separate revenue and raise facts", async () => {
+    const { unavailableValuation } = await import("./schema");
+    const { withoutUnavailableValuationProse } = await import("./executive-structure");
+    const text = "The consensus valuation sits between A$6M and A$9.8M.\n\nRevenue is A$1.2M ARR.\n\nThe stated raise is A$500k.\n\nFounder-stated pre-money ask: A$8M.";
+    const safe = withoutUnavailableValuationProse(text);
+    expect(safe).not.toContain("A$6M");
+    expect(safe).toContain("A$1.2M ARR");
+    expect(safe).toContain("A$500k");
+    expect(safe).toContain("Founder-stated pre-money ask: A$8M");
+    const original = demoReportV2();
+    const report = { ...original, valuation: unavailableValuation("valuation_failed", new Date(0).toISOString()), executive: { ...original.executive, thesis: text } };
+    const cleaned = ensureExecutiveStructured(report);
+    expect(cleaned.executive.thesis).not.toContain("A$6M");
+    expect(cleaned.executive.thesis).toContain("A$1.2M ARR");
+    expect(cleaned.executive.audit).toEqual(original.executive.audit);
+    const coverStrip = cleaned.cover.visuals.find((visual) => visual.kind === "three_questions_strip");
+    expect(JSON.stringify(coverStrip)).not.toContain("A$6");
+    expect(coverStrip?.svg).toContain("Business valuation unavailable");
+    expect(cleaned.executive.visuals).toEqual(original.executive.visuals.filter((visual) => !/valuation|định giá/i.test(visual.title)));
+    expect(JSON.stringify(cleaned.executive.structured)).not.toContain("The consensus valuation sits between");
+  });
+});

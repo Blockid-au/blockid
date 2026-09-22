@@ -1,3 +1,4 @@
+import { isValuationAvailable } from "./schema";
 // investment-view — G27: the deterministic investor-grade layer over a
 // ReportV2 (docs/design/tbr-v3-investor-report-spec.md § 4). Pure derivation
 // from the stored document + the Assessment Card, so every stored report
@@ -277,7 +278,7 @@ export function buildInvestmentView(rawReport: ReportV2, card: AssessmentCardDat
   const floorMisses = chapters.filter((c) => c.phaseLens.floorMet === false).map((c) => c.dim);
   const blockers = report.phaseGates.blockers.length;
   const unverified = Math.max(0, Math.round(card.unverifiedMaterialClaims));
-  const ask = report.valuation.ask?.verdict ?? null;
+  const ask = isValuationAvailable(report.valuation) ? report.valuation.ask?.verdict ?? null : null;
   const { band, rule } = verdictBand({ ec, pending, band: compositeBand, floorMisses: floorMisses.length, blockers, unverified, ask });
   const conviction = convictionFor(ec);
 
@@ -289,7 +290,7 @@ export function buildInvestmentView(rawReport: ReportV2, card: AssessmentCardDat
       if (typeof ch.phaseLens.floor === "number") conditions.push({ kind: "floor", dim, text: words(t.condFloor(dimName(dim, locale), phaseLabel(ch.phaseLens.phaseId), ch.phaseLens.floor, ch.score), 20) });
     }
     if (unverified >= 1) conditions.push({ kind: "unverified", text: t.condUnverified(unverified) });
-    if (ask === "above_consensus" && report.valuation.ask) {
+    if (ask === "above_consensus" && isValuationAvailable(report.valuation) && report.valuation.ask) {
       conditions.push({ kind: "ask", text: words(t.condAsk(Math.round(report.valuation.ask.gapPct), aud(report.valuation.consensus.lowAud), aud(report.valuation.consensus.highAud)), 20) });
     }
     const blocker = clause(x.phaseNow.blocker || report.phaseGates.blockers[0]?.detail || "", 20);
@@ -333,10 +334,10 @@ export function buildInvestmentView(rawReport: ReportV2, card: AssessmentCardDat
 
   // Key points (spec § 4.2), each ≤ 30 words.
   const v = report.valuation;
-  const applicable = v.methods.filter((m) => m.applicable).length;
-  const revenueNotRun = v.methods.filter((m) => !m.applicable && REVENUE_METHODS.has(m.method)).length;
+  const applicable = isValuationAvailable(v) ? v.methods.filter((m) => m.applicable).length : 0;
+  const revenueNotRun = isValuationAvailable(v) ? v.methods.filter((m) => !m.applicable && REVENUE_METHODS.has(m.method)).length : 0;
   const valuationPending = coverValuationPending(report);
-  const consensusLine = valuationPending ? t.kpValuationPending : `${t.kpConsensus(aud(v.consensus.lowAud), aud(v.consensus.highAud), applicable)}${revenueNotRun > 0 ? `; ${t.kpRevenueMethods(revenueNotRun)}` : ""}`;
+  const consensusLine = valuationPending || !isValuationAvailable(v) ? t.kpValuationPending : `${t.kpConsensus(aud(v.consensus.lowAud), aud(v.consensus.highAud), applicable)}${revenueNotRun > 0 ? `; ${t.kpRevenueMethods(revenueNotRun)}` : ""}`;
   const topRisk = risks[0];
   const keyPoints = [
     words(clause(x.headline, 30), 30),
@@ -363,7 +364,7 @@ export function buildInvestmentView(rawReport: ReportV2, card: AssessmentCardDat
     if (text) riskRows.push({ id: `blocker-${i}`, kind: "blocker", text, likelihood: "high", impact: "high", mitigation: t.mitigationBlocker });
   });
   if (unverified >= 1) riskRows.push({ id: "unverified", kind: "unverified", text: t.riskUnverified(unverified), likelihood: "medium", impact: "medium", mitigation: t.mitigationUnverified });
-  if (ask === "above_consensus" && v.ask) riskRows.push({ id: "ask", kind: "ask", text: t.riskAsk(Math.round(v.ask.gapPct)), likelihood: "medium", impact: "high", mitigation: t.mitigationAsk });
+  if (ask === "above_consensus" && isValuationAvailable(v) && v.ask) riskRows.push({ id: "ask", kind: "ask", text: t.riskAsk(Math.round(v.ask.gapPct)), likelihood: "medium", impact: "high", mitigation: t.mitigationAsk });
   const riskMatrix = riskRows
     .sort((a, b) => LEVEL_RANK[a.impact] - LEVEL_RANK[b.impact] || LEVEL_RANK[a.likelihood] - LEVEL_RANK[b.likelihood] || (a.dim && b.dim ? byDim.get(a.dim)!.score - byDim.get(b.dim)!.score : 0))
     .slice(0, RISK_ROWS_MAX);
@@ -405,11 +406,13 @@ export function buildInvestmentView(rawReport: ReportV2, card: AssessmentCardDat
 
   // What moves the valuation (≤ 3).
   const whatMovesIt: string[] = [];
+  if (isValuationAvailable(v)) {
   if (revenueNotRun > 0) whatMovesIt.push(t.movesRevenue(revenueNotRun));
   if (v.inputs?.growthAssumed) whatMovesIt.push(t.movesGrowth);
   if ((report.cover.verification?.level ?? 0) < 2) whatMovesIt.push(t.movesVerification);
   if (unverified >= 1) whatMovesIt.push(t.movesClaims(unverified));
   if (!v.ask) whatMovesIt.push(t.movesAsk);
+  }
 
   // Per-dimension takeaways.
   const takeaways = Object.fromEntries(DIM_ORDER.map((d) => [d, takeawayFor(byDim.get(d)!, locale, t)])) as Record<DimKey, string>;
@@ -464,6 +467,7 @@ export function investmentViewFor(report: ReportV2, card: AssessmentCardData, lo
  * matching block is already stored.
  */
 export function ensureInvestmentView(report: ReportV2, opts: AssessmentCardOptions = {}): ReportV2 {
+  if (!isValuationAvailable(report.valuation)) report = ensureExecutiveStructured(report);
   const aligned = alignReportWithAssessmentCard(report, opts);
   const view = investmentViewFor(aligned.report, aligned.card, report.locale);
   if (report.investmentView === view) return report;

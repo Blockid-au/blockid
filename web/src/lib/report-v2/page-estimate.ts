@@ -1,3 +1,4 @@
+import { isValuationAvailable } from "./schema";
 // Page-count estimate for a ReportV2 (length gate C.9-5, risk R6).
 //
 // The real page count comes from the rendered PDF (`lib/pdf/page-count.ts`
@@ -125,8 +126,8 @@ export function estimatePages(report: ReportV2): PageEstimate {
   sections.push({ id: "key-points", pages: KEY_POINTS_PAGES + kpWords / WORDS_PER_PAGE, words: kpWords });
 
   // 4 · Valuation: range tiles + method table (names / weights only on free) + what moves it; paid adds inputs, cross-checks, narrative.
-  const applicable = report.valuation.methods.filter((m) => m.applicable);
-  const valWords = free ? 0 : wc(report.valuation.narrative, ...applicable.map((m) => m.rationale), ...applicable.map((m) => report.valuation.derivation?.[m.method] ?? ""));
+  const applicable = isValuationAvailable(report.valuation) ? report.valuation.methods.filter((m) => m.applicable) : [];
+  const valWords = free ? 0 : wc(report.valuation.narrative, ...applicable.map((m) => m.rationale), ...applicable.map((m) => (isValuationAvailable(report.valuation) ? report.valuation.derivation?.[m.method] : "") ?? ""));
   sections.push({ id: "valuation", pages: free ? 0.45 : 0.5 + report.valuation.visuals.length * FULL_VISUAL_PAGES + valWords / WORDS_PER_PAGE, words: valWords });
   visuals += free ? 0 : report.valuation.visuals.length;
 

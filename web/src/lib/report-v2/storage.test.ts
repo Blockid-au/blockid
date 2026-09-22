@@ -4,7 +4,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { demoReportV2 } from "./fixtures";
-import { __resetReportV2StorageWarnings, readAssembledReportJson, readSnapshotReportV2, writeAssembledReportJson, writeSnapshotReportV2 } from "./storage";
+import { __resetReportV2StorageWarnings, readAssembledReportJson, readEvaluationReportV2, readSnapshotReportV2, writeAssembledReportJson, writeSnapshotReportV2 } from "./storage";
 
 function fakeDb(opts: { selectResult?: { data: unknown; error: { message: string } | null }; updateError?: { message: string } | null; throwOn?: "select" | "update" }) {
   const calls: Array<{ table: string; op: string; payload?: unknown }> = [];
@@ -76,5 +76,42 @@ describe("report-v2 storage", () => {
     const db = fakeDb({ throwOn: "select" });
     expect(await readSnapshotReportV2(db.db, "s1")).toBeNull();
     expect(await readAssembledReportJson(db.db, "r1")).toBeNull();
+  });
+});
+
+
+describe("G30 reader-first rollback compatibility", () => {
+  it("reads a final unavailable record through all three unchanged storage readers", async () => {
+    const report = { ...demoReportV2(), valuation: {
+      status: "unavailable" as const,
+      reason: "The available financial information has not been validated for this business, currency and reporting period. A reliable valuation is unavailable.",
+      missingInputs: ["qualified_recurring_revenue"], currency: "AUD" as const,
+      narrative: "The available financial information has not been validated for this business, currency and reporting period. A reliable valuation is unavailable.",
+      audit: { grounded: false, uncited: 0, revised: false, auditor: "llm-auditor" as const, at: "2026-09-22T00:00:00.000Z" },
+      visuals: [] as [],
+    } };
+    for (const [reader, column] of [[readSnapshotReportV2, "report_v2"], [readAssembledReportJson, "report_json"], [readEvaluationReportV2, "report_v2"]] as const) {
+      // JSON round-trip models the final persisted document, not a class/type cast.
+      const stored = JSON.parse(JSON.stringify(report));
+      const source = fakeDb({ selectResult: { data: { [column]: stored }, error: null } });
+      const result = await reader(source.db, "fixture-record");
+      expect(result).not.toBeNull();
+      expect(result?.valuation).toEqual(report.valuation);
+      expect(result?.valuation).not.toHaveProperty("consensus");
+      expect(result?.executive.thesis).not.toContain("The consensus valuation sits between");
+      expect(source.calls.every((call) => call.op.startsWith("select:"))).toBe(true);
+    }
+  });
+
+  it("preserves both historical absent-status and explicit available records", async () => {
+    for (const status of [undefined, "available"] as const) {
+      const report = demoReportV2();
+      if (status) report.valuation.status = status;
+      const source = fakeDb({ selectResult: { data: { report_v2: report }, error: null } });
+      const result = await readSnapshotReportV2(source.db, "old-record");
+      expect(result?.valuation).toEqual(report.valuation);
+      expect(result?.executive).toEqual(report.executive);
+      expect(result?.cover).toEqual(report.cover);
+    }
   });
 });

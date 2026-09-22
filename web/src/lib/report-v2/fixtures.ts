@@ -1,3 +1,4 @@
+import { isValuationAvailable, type AvailableValuationChapter } from "./schema";
 // ReportV2 fixtures — the /tbr/demo sample and the free-tier length-gate
 // fixture. Deterministic (fixed generatedAt, fixed numbers) so snapshot
 // tests and the page estimate are stable. "Not a real startup" — every
@@ -309,8 +310,8 @@ export function demoSnapshotInput(tier: ReportTierV2 = "standard"): SnapshotInpu
 }
 
 /** The /tbr/demo report — standard tier, every chapter in full. */
-export function demoReportV2(): ReportV2 {
-  return fromSnapshot(demoSnapshotInput("standard"));
+export function demoReportV2(): ReportV2 & { valuation: AvailableValuationChapter } {
+  return availableFixture(fromSnapshot(demoSnapshotInput("standard")));
 }
 
 /** The free-tier fixture the 10-page length gate is tested against. */
@@ -323,8 +324,8 @@ export function freeFixtureReportV2(): ReportV2 {
  * exactly Berkus + scorecard + stage_baseline applicable, weights 0.5 / 0.3 /
  * 0.2, no ask. Used by the schema, render and twin tests.
  */
-export function preRevenueFixtureReportV2(tier: ReportTierV2 = "standard"): ReportV2 {
-  return fromSnapshot({
+export function preRevenueFixtureReportV2(tier: ReportTierV2 = "standard"): ReportV2 & { valuation: AvailableValuationChapter } {
+  return availableFixture(fromSnapshot({
     ...demoSnapshotInput(tier),
     snapshotId: "demo-pre-revenue",
     reportId: "rv2-demo-pre-revenue",
@@ -336,7 +337,7 @@ export function preRevenueFixtureReportV2(tier: ReportTierV2 = "standard"): Repo
     vc: preRevenueVcValuation(),
     revenueEvidenceIds: [],
     valuationAsk: null,
-  });
+  }));
 }
 
 /**
@@ -409,4 +410,9 @@ export function investmentBandFixture(band: InvestmentBandFixture): BandFixture 
   report.executive.thesis = report.executive.thesis.replace(strong, partial);
   if (report.executive.structured) report.executive.structured.summary = report.executive.structured.summary.map((p) => p.replace(strong, partial));
   return { report, assessment: { evidenceConfidence: 42, unverifiedMaterialClaims: 3 } };
+}
+
+function availableFixture(report: ReportV2): ReportV2 & { valuation: AvailableValuationChapter } {
+  if (!isValuationAvailable(report.valuation)) throw new Error("Expected available valuation fixture");
+  return { ...report, valuation: report.valuation };
 }

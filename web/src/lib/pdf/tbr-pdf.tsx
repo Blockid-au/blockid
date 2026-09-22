@@ -831,6 +831,9 @@ function KeyPoints({ view, locale }: { view: InvestmentView; locale: Loc }) {
 
 function ValuationSection({ report, view, locale, projection }: { report: ReportV2; view: InvestmentView; locale: Loc; projection: FreeTierProjection }) {
   const v = report.valuation;
+  if (v.status === "unavailable") return (
+    <View><SectionHead no="4" title={getTbrV3Strings(locale).sec.valuation} /><Text style={s.body}>{t(v.narrative)}</Text></View>
+  );
   const vv = buildValuationView(v, locale);
   const vs = vv.strings;
   const t3 = getTbrV3Strings(locale);

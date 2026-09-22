@@ -1,3 +1,4 @@
+import { isValuationAvailable } from "./schema";
 // G19-S44 — the cover "current value" hero, computed once for every surface
 // (web cover, PDF, DOCX, dashboard executive synthesis) so they show the same
 // A$ range, the same pending rule and the same percentile column decision.
@@ -14,7 +15,7 @@ export const COVER_VALUATION_MIN_CONFIDENCE = 0.3;
 
 /** Is the valuation range worth showing as the headline? Nothing scored, or confidence < 30 % → pending. */
 export function coverValuationPending(report: Pick<ReportV2, "valuation" | "cover">): boolean {
-  return report.cover.svi.band === "pending" || !(report.valuation.consensus.confidence >= COVER_VALUATION_MIN_CONFIDENCE);
+  return !isValuationAvailable(report.valuation) || report.cover.svi.band === "pending" || !(report.valuation.consensus.confidence >= COVER_VALUATION_MIN_CONFIDENCE);
 }
 
 /** True when at least one cover row carries a percentile — otherwise the Pctl column hides (no "—" column). */
@@ -42,10 +43,10 @@ export interface CoverHero {
   pending: boolean;
   /** "A$6.0M – A$9.8M" when not pending. */
   rangeLabel: string | null;
-  lowAud: number;
-  highAud: number;
-  midAud: number;
-  confidencePct: number;
+  lowAud: number | null;
+  highAud: number | null;
+  midAud: number | null;
+  confidencePct: number | null;
   /** The localised headline: the range, or the pending sentence. */
   headline: string;
   /** "pre-money, directional · confidence 85%" (empty when pending). */
@@ -56,6 +57,10 @@ export interface CoverHero {
 
 export function coverHero(report: Pick<ReportV2, "valuation" | "cover">, locale: TbrLocale | undefined): CoverHero {
   const s = getTbrStrings(locale).v2.s44;
+  if (!isValuationAvailable(report.valuation)) return {
+    pending: true, rangeLabel: null, lowAud: null, highAud: null, midAud: null, confidencePct: null,
+    headline: s.valuationPending, subline: "", sviLabel: s.sviTotal(report.cover.svi.total), showPctl: coverHasPercentiles(report.cover),
+  };
   const v = report.valuation.consensus;
   const pending = coverValuationPending(report);
   const confidencePct = Math.round((Number.isFinite(v.confidence) ? v.confidence : 0) * 100);

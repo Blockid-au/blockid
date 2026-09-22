@@ -1,3 +1,4 @@
+import { isValuationAvailable } from "./schema";
 // dashboard-view — G27: the page-1 dashboard as one view-model (spec § 5):
 // the four stat tiles (SVI index · evidence confidence · verdict · valuation),
 // the 8-dimension `dim_bars` chart spec with its caption and table twin, and
@@ -89,13 +90,13 @@ export function buildDashboardView(
   const verdictTile: DashboardTile = { id: "verdict", label: t.tileVerdict, value: view.band, sub: t.bandLabel[view.band], note: view.band === "D" ? t.evidenceCtas : t.conditionsCount(view.conditions.length) };
   // ④ Valuation
   const pending = coverValuationPending(report);
-  const applicable = v.methods.filter((m) => m.applicable).length;
-  const revenueNotRun = v.methods.filter((m) => !m.applicable && REVENUE_METHODS.has(m.method)).length;
+  const applicable = isValuationAvailable(v) ? v.methods.filter((m) => m.applicable).length : 0;
+  const revenueNotRun = isValuationAvailable(v) ? v.methods.filter((m) => !m.applicable && REVENUE_METHODS.has(m.method)).length : 0;
   const valuationTile: DashboardTile = {
     id: "valuation",
     label: t.tileValuation,
-    value: pending ? t.valuationPending : `${aud(v.consensus.lowAud)} – ${aud(v.consensus.highAud)}`,
-    sub: `${t.methodsRan(applicable, v.methods.length)} · ${v.ask ? t.askChip[v.ask.verdict] : t.askNone}`,
+    value: pending || !isValuationAvailable(v) ? t.valuationPending : `${aud(v.consensus.lowAud)} – ${aud(v.consensus.highAud)}`,
+    sub: isValuationAvailable(v) ? `${t.methodsRan(applicable, v.methods.length)} · ${v.ask ? t.askChip[v.ask.verdict] : t.askNone}` : "",
     note: revenueNotRun > 0 ? t.revenueNotRun(revenueNotRun) : "",
   };
 

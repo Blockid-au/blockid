@@ -632,3 +632,20 @@ describe("<TbrReportV2> 375 px layout + markdown-lite (design check 2026-09-21)"
     expect(out).not.toContain("**");
   });
 });
+
+
+describe("G30 reader-first unavailable document", () => {
+  it("renders the whole stored report with no obsolete valuation range", async () => {
+    const { unavailableValuation } = await import("@/lib/report-v2/schema");
+    const report = { ...demoReportV2(), valuation: unavailableValuation("The available financial information has not been validated for this business, currency and reporting period. A reliable valuation is unavailable.", "2026-09-22T00:00:00.000Z", ["qualified_recurring_revenue"]) };
+    for (const tier of ["free", "standard"] as const) {
+      const html = renderToStaticMarkup(<TbrReportV2 report={{ ...report, tier }} />);
+      expect(html).toContain("data-valuation-unavailable");
+      expect(html).toContain(report.valuation.narrative);
+      expect(html).not.toContain("The consensus valuation sits between");
+      expect(html).not.toContain("data-tbr-valuation-range");
+      expect(html).not.toContain("data-tbr-valuation-methods");
+      expect(html).toContain("A$1.2M ARR");
+    }
+  });
+});

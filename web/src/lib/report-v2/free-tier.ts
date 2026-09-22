@@ -1,3 +1,4 @@
+import { isValuationAvailable } from "./schema";
 // Free-tier projection + page-budget trim levels for the fixed-layout
 // surfaces (PDF, DOCX) — S-R4, spec §A.1 "the 10-page budget is enforced
 // by lib/pdf/page-count.ts" + §F S-R4 "page-count gate"; G27 (TBR v3, spec
@@ -144,7 +145,7 @@ export function projectForTier(report: ReportV2, level: TrimLevel = 0): FreeTier
     // G19-S43: the P0 / P1 evidence rows follow the register rule (≤ 3 rows, dropped with the register at level 3); level 4 keeps 3 steps.
     actionPlan: { ...report.actionPlan, steps: report.actionPlan.steps.slice(0, level >= 4 ? 3 : 5), visuals: level >= 4 ? [] : report.actionPlan.visuals, ...(report.actionPlan.evidenceToAdd ? { evidenceToAdd: report.actionPlan.evidenceToAdd.slice(0, level >= 3 ? 0 : 3) } : {}) },
     phaseGates: { ...report.phaseGates, visuals: report.phaseGates.visuals.filter((v) => v.kind === "route_map") },
-    valuation: { ...report.valuation, visuals: report.valuation.visuals.filter((v) => v.kind === "range_bars"), narrative: "" },
+    valuation: isValuationAvailable(report.valuation) ? { ...report.valuation, visuals: report.valuation.visuals.filter((v) => v.kind === "range_bars"), narrative: "" } : report.valuation,
     appendix: {
       ...report.appendix,
       evidenceRegister: report.appendix.evidenceRegister.slice(0, registerCap),

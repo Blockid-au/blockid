@@ -35,7 +35,7 @@
 
 import { getMultiplesBenchmark, mapSectorToAUIndustry, mapStageToAUStage } from "@/lib/data/au-comparables";
 import { comparablesCounts, topComparables } from "@/lib/valuation/comparables-repo";
-import { VALUATION_METHOD_KEYS, type ValuationChapter, type ValuationCrossCheck, type ValuationInputsV2, type ValuationMethodKey } from "@/lib/report-v2/schema";
+import { VALUATION_METHOD_KEYS, type AvailableValuationChapter, type ValuationCrossCheck, type ValuationInputsV2, type ValuationMethodKey } from "@/lib/report-v2/schema";
 import { makeVisual } from "@/lib/report-visuals";
 import { crossCheckStatedCap, VALUATION_BASELINES_AUD, type CapCrossCheck } from "@/lib/valuation";
 
@@ -179,7 +179,7 @@ function round0(n: number): number {
 }
 
 /** The inputs table — the CFO record when present, else derived from the raw gather row. */
-function inputsFor(vc: VcValuationLike, stage: number, sectorMultiples: ValuationChapter["sectorMultiples"]): ValuationInputsV2 {
+function inputsFor(vc: VcValuationLike, stage: number, sectorMultiples: AvailableValuationChapter["sectorMultiples"]): ValuationInputsV2 {
   if (vc.valuationInputs) return vc.valuationInputs;
   const raw = vc.inputs ?? {};
   const mrr = typeof raw.mrrAud === "number" ? raw.mrrAud : typeof raw.arrAud === "number" ? raw.arrAud / 12 : 0;
@@ -219,7 +219,7 @@ function inputsFor(vc: VcValuationLike, stage: number, sectorMultiples: Valuatio
  * sum to 1; non-applicable rows weigh 0 and keep their rationale so the
  * renderer can say "N methods need revenue".
  */
-export function buildValuationChapter(input: ValuationChapterInput): ValuationChapter {
+export function buildValuationChapter(input: ValuationChapterInput): AvailableValuationChapter {
   const { vc, at } = input;
   const preRevenue = isPreRevenue(vc);
 
@@ -239,7 +239,7 @@ export function buildValuationChapter(input: ValuationChapterInput): ValuationCh
     return { key, row, applicable, rawWeight };
   });
   const weightSum = rows.reduce((a, r) => a + r.rawWeight, 0);
-  const methods: ValuationChapter["methods"] = rows.map(({ key, row, applicable, rawWeight }) => {
+  const methods: AvailableValuationChapter["methods"] = rows.map(({ key, row, applicable, rawWeight }) => {
     const weight = weightSum > 0 ? rawWeight / weightSum : 0;
     const rationale = row?.rationale ? row.rationale : `${METHOD_LABEL[key]} — not computed for this snapshot.`;
     return {
@@ -272,7 +272,7 @@ export function buildValuationChapter(input: ValuationChapterInput): ValuationCh
 
   // Ask cross-check — only when the founder stated a cap; the raise is the
   // founder's number (or the CFO injection when it was founder-stated), never invented.
-  let ask: ValuationChapter["ask"];
+  let ask: AvailableValuationChapter["ask"];
   let askNote: string | null = null;
   const statedCap = input.ask?.statedCapAud;
   const statedRaise = typeof input.ask?.raiseAud === "number" && Number.isFinite(input.ask.raiseAud) && input.ask.raiseAud > 0
@@ -284,7 +284,7 @@ export function buildValuationChapter(input: ValuationChapterInput): ValuationCh
     const kind = input.ask?.statedCapKind ?? "cap";
     const preMoney = kind === "post_money" ? Math.max(0, statedCap - statedRaise) : statedCap;
     const check = crossCheckStatedCap({ low: consensus.lowAud, mid: consensus.midAud, high: consensus.highAud }, preMoney, kind === "post_money" ? "pre_money" : kind);
-    const verdict: NonNullable<ValuationChapter["ask"]>["verdict"] =
+    const verdict: NonNullable<AvailableValuationChapter["ask"]>["verdict"] =
       check?.verdict === "indicative_above" ? "below_consensus" : check?.verdict === "indicative_below" ? "above_consensus" : "aligned";
     ask = {
       preMoneyAud: round0(preMoney),
@@ -306,7 +306,7 @@ export function buildValuationChapter(input: ValuationChapterInput): ValuationCh
     : { sector: auIndustry, low: staticMult.low, median: staticMult.median, high: staticMult.high, sourceLabel: live.source === "table" ? "BlockID AU comparables (verified table)" : "BlockID AU comparables (code table)", sourceDate: live.sourceWindow };
 
   const comps = topComparables(auIndustry, auStage, 5);
-  const comparables: ValuationChapter["comparables"] = {
+  const comparables: AvailableValuationChapter["comparables"] = {
     n: live.n,
     withMultiplesN: live.withMultiplesN,
     rows: comps.map((cp) => ({ name: "anonymised", stage: cp.stage, industry: cp.industry, year: cp.founded_year, arrMultiple: cp.arr_multiple, source: live.sourceLabel })),
@@ -318,7 +318,7 @@ export function buildValuationChapter(input: ValuationChapterInput): ValuationCh
   // (gather.ts signals) counts as stated even when the CFO record ran without it.
   const rawInputs = inputsFor(vc, input.stage, sectorMultiples);
   const inputs: ValuationInputsV2 = statedRaise > 0 && !rawInputs.raiseStated ? { ...rawInputs, raiseStated: true, raiseAud: round0(statedRaise) } : rawInputs;
-  const derivation: NonNullable<ValuationChapter["derivation"]> = {};
+  const derivation: NonNullable<AvailableValuationChapter["derivation"]> = {};
   for (const key of VALUATION_METHOD_KEYS) {
     const line = vc.derivation?.[key];
     if (typeof line === "string" && line.trim()) derivation[key] = line;
