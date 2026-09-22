@@ -47,7 +47,7 @@ function parseTier(raw: unknown): ReportTierV2 {
 
 function parseDims(raw: unknown): DimKey[] | undefined {
   if (!Array.isArray(raw)) return undefined;
-  const valid = raw.filter((k): k is DimKey => typeof k === "string" && (DIM_ORDER as readonly string[]).includes(k));
+  const valid = [...new Set(raw.filter((k): k is DimKey => typeof k === "string" && (DIM_ORDER as readonly string[]).includes(k)))];
   return valid.length > 0 && valid.length < DIM_ORDER.length ? valid : undefined;
 }
 
@@ -68,7 +68,15 @@ async function POST_handler(request: Request) {
   const explicitProjectId = typeof body.projectId === "string" && body.projectId ? body.projectId : null;
   const tier = parseTier(body.tier);
   const dims = parseDims(body.dims);
-  const deckText = typeof body.deckText === "string" && body.deckText.trim() ? body.deckText : null;
+  // Preserve explicit document intent: blank text must never fall back to a
+  // previous project analysis, and partial generation skips first-pass research.
+  const deckText = typeof body.deckText === "string" ? body.deckText : null;
+  if (deckText !== null && !deckText.trim()) {
+    return Response.json({ ok: false, error: "needs_input", message: "The supplied document has no readable text. Please provide readable business information." }, { status: 400 });
+  }
+  if (deckText !== null && dims) {
+    return Response.json({ ok: false, error: "full_analysis_required", message: "A new document requires a full analysis. Start a full analysis to assess all criteria before opening individual sections." }, { status: 400 });
+  }
 
   // Project scope: an explicit id is verified (404 non-member / 403 below viewer);
   // the report is built from the OWNER's record (scope.dataEmail).

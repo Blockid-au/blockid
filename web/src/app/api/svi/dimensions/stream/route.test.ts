@@ -176,10 +176,10 @@ describe("POST /api/svi/dimensions/stream — SSE wire", () => {
     expect(events.at(-1)).toMatchObject({ type: "done", fromCache: false, reportId: "rpt-1", snapshotId: "snap-1" });
   });
 
-  it("dims:[…] is forwarded as a partial re-run; deckText is forwarded; unknown dims are dropped", async () => {
-    const res = await POST(req({ projectId: "proj-1", dims: ["cgh", "nope"], deckText: "slide text" }));
+  it("dims:[…] is forwarded for a stored-input partial re-run; unknown dims are dropped", async () => {
+    const res = await POST(req({ projectId: "proj-1", dims: ["cgh", "nope"] }));
     const events = await readEvents(res);
-    expect(runner.calls[0]).toMatchObject({ dims: ["cgh"], deckText: "slide text" });
+    expect(runner.calls[0]).toMatchObject({ dims: ["cgh"], deckText: null });
     expect(events.filter((e) => e.type === "dimension_complete")).toHaveLength(1);
     expect(events.some((e) => e.type === "criteria_synthesis_start")).toBe(false);
   });
@@ -240,5 +240,38 @@ describe("POST /api/svi/dimensions/stream — REPORT_GENERATOR=legacy_stream", (
     expect(legacy.calls).toBe(1);
     expect(runner.calls).toHaveLength(0);
     expect(await res.text()).toContain("legacy");
+  });
+});
+
+
+describe("G30 explicit deck input at the HTTP boundary", () => {
+  it("rejects blank deck text rather than invoking a report on stored analysis", async () => {
+    for (const deckText of ["", " ", "\n\t"]) {
+      const res = await POST(req({ projectId: "proj-1", tier: "standard", deckText }));
+      expect(res.status).toBe(400);
+      expect(await res.json()).toMatchObject({ ok: false, error: "needs_input" });
+    }
+    expect(runner.calls).toHaveLength(0);
+    expect(credits.canAfford).not.toHaveBeenCalled();
+    expect(credits.spendCredits).not.toHaveBeenCalled();
+  });
+
+  it("rejects partial new-deck requests without silently buying a full analysis", async () => {
+    for (const dims of [["tre"], ["cgh", "nope"], Array(8).fill("cgh")]) {
+      const res = await POST(req({ projectId: "proj-1", tier: "premium", deckText: "New business deck", dims }));
+      expect(res.status).toBe(400);
+      expect(await res.json()).toMatchObject({ ok: false, error: "full_analysis_required", message: expect.stringContaining("full analysis") });
+    }
+    expect(runner.calls).toHaveLength(0);
+    expect(credits.canAfford).not.toHaveBeenCalled();
+    expect(credits.spendCredits).not.toHaveBeenCalled();
+  });
+
+  it("allows a full new-deck run and retains the exact received text", async () => {
+    const deckText = "  New business\nMRR A$12,000.  ";
+    const res = await POST(req({ projectId: "proj-1", deckText }));
+    expect(res.status).toBe(200);
+    await res.text();
+    expect(runner.calls[0]).toMatchObject({ deckText, dims: undefined });
   });
 });

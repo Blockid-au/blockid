@@ -252,6 +252,17 @@ export function doneEvent(state: WireState, totalMs: number, fromCache: boolean)
 
 // ── Runner ──────────────────────────────────────────────────────────────────
 
+/** Deck-derived analysis contract; old caches may contain another input's signals. */
+export const DECK_CACHE_VERSION = `${PIPELINE_VERSION}:deck-input-v1`;
+
+export interface DeckInputSnapshot {
+  version: "deck-input-v1";
+  textSha256: string;
+  receivedTextChars: number;
+  /** Upstream extraction may already be truncated; this runner cannot certify it. */
+  extractionCompleteness: "unknown";
+}
+
 export const DECK_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 export function hashDeck(deckText: string): string {
@@ -316,7 +327,7 @@ export interface RunReportPipelineInput {
   tier: ReportTierV2;
   /** Per-dimension re-run: only these W4 chapters; W1–W3 reused from the stored criterion cards. */
   dims?: DimKey[];
-  /** Deck flow: the extracted deck text replaces the stored analysis text as the primary context (≤ 8 KiB). */
+  /** Deck flow: full received text is the source for a fresh deterministic analysis. */
   deckText?: string | null;
   locale?: "en" | "vi";
   /** Origin for links in the report email. */
@@ -342,10 +353,10 @@ export type RunReportPipelineResult =
       costAud: number;
       totalMs: number;
       deadlineHit: boolean;
+      /** In-memory trace; cache stores its hash, full snapshot persistence is follow-on. */
+      inputSnapshot?: DeckInputSnapshot;
     }
-  | { ok: false; error: "no_account" | "no_analysis" | "db_unavailable" | "fully_degraded" | "pipeline_failed"; message: string };
-
-const DECK_TEXT_MAX = 8_000;
+  | { ok: false; error: "no_account" | "no_analysis" | "db_unavailable" | "fully_degraded" | "pipeline_failed" | "needs_input" | "full_analysis_required"; message: string };
 
 function tierForOrchestrator(tier: ReportTierV2): ReportTier {
   return tier === "free" ? "standard" : tier;
@@ -449,7 +460,22 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
   };
   const dims: DimKey[] = input.dims?.length ? DIM_ORDER.filter((d) => input.dims!.includes(d)) : [...DIM_ORDER];
   const partial = dims.length !== DIM_ORDER.length;
-  const deckText = typeof input.deckText === "string" && input.deckText.trim() ? input.deckText.slice(0, DECK_TEXT_MAX) : null;
+  // Never fall back to an old project analysis when an explicitly supplied
+  // deck contains no usable text, and never hash only the first 8,000 chars.
+  if (typeof input.deckText === "string" && !input.deckText.trim()) {
+    const message = "The supplied document has no readable text. Please provide readable business information.";
+    send({ type: "fatal_error", message });
+    return { ok: false, error: "needs_input", message };
+  }
+  const deckText = typeof input.deckText === "string" ? input.deckText : null;
+  if (deckText && partial) {
+    const message = "A new document requires a full analysis. Start a full analysis to assess all criteria before opening individual sections.";
+    send({ type: "fatal_error", message });
+    return { ok: false, error: "full_analysis_required", message };
+  }
+  const inputSnapshot: DeckInputSnapshot | undefined = deckText ? {
+    version: "deck-input-v1", textSha256: hashDeck(deckText), receivedTextChars: deckText.length, extractionCompleteness: "unknown",
+  } : undefined;
   const persist = input.persist !== false;
 
   // 1. Context — account + latest analysis + evidence + 13-criteria inputs.
@@ -466,8 +492,22 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
     send({ type: "fatal_error", message });
     return { ok: false, error: loaded.error, message };
   }
-  const ctx = loaded.ctx;
-  if (deckText) ctx.latestAnalysis = { ...ctx.latestAnalysis, raw_input: deckText };
+  let ctx = loaded.ctx;
+  if (deckText) {
+    const fresh = syntheticDeckContext(input, deckText);
+    // Preserve resolved account/project identity and authorization scope, but
+    // never borrow signals/answers from a different document. Existing rows
+    // carry no matching input fingerprint, so their evidence cannot be reused
+    // here. Criterion definitions/questions remain in the shared catalogue.
+    ctx = {
+      ...ctx,
+      account: { ...ctx.account, current_svi: fresh.account.current_svi, current_stage: fresh.account.current_stage },
+      latestAnalysis: { ...fresh.latestAnalysis, analysis_json: { ...fresh.latestAnalysis.analysis_json, input_snapshot: inputSnapshot } },
+      sviAnalysis: fresh.sviAnalysis,
+      evidenceItems: [],
+      criteriaData: buildCriteriaData(null),
+    };
+  }
 
   // 2. Same-deck cache (full deck runs only) keyed deck_hash + pipeline_version.
   const db = deps.db === undefined ? await defaultDb().catch(() => null) : deps.db;
@@ -475,7 +515,7 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
   if (deckHash && !partial && db) {
     try {
       const { data: cached } = await db.from("svi_deck_cache").select("dim_results, criterion_results, created_at, industry, stage, pipeline_version").eq("deck_hash", deckHash).eq("user_id", input.userId).maybeSingle();
-      if (cached && cached.created_at && cached.pipeline_version === PIPELINE_VERSION) {
+      if (cached && cached.created_at && cached.pipeline_version === DECK_CACHE_VERSION) {
         const ageMs = now() - new Date(String(cached.created_at)).getTime();
         const cachedDims = Array.isArray(cached.dim_results) ? (cached.dim_results as LegacyDimResult[]) : [];
         const cachedCriteria = Array.isArray(cached.criterion_results) ? (cached.criterion_results as CriterionResult[]) : [];
@@ -493,7 +533,7 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
           const totalMs = now() - t0;
           send({ type: "done", totalMs, fromCache: true, reportId: null, snapshotId: null, calls: 0, costAud: 0, degradedSections: [], deadlineHit: false });
           void (deps.notify ?? defaultNotify)({ userId: input.userId, projectId: input.projectId, kind: "analysis_done", payload: { fromCache: true, dims: cachedDims.length } }).catch(() => undefined);
-          return { ok: true, fromCache: true, accountId: ctx.account.id, reportId: null, snapshotId: null, dimResults: cachedDims, chapters: [], criterionResults: cachedCriteria, report: null, calls: 0, costAud: 0, totalMs, deadlineHit: false };
+          return { ok: true, fromCache: true, accountId: ctx.account.id, reportId: null, snapshotId: null, dimResults: cachedDims, chapters: [], criterionResults: cachedCriteria, report: null, calls: 0, costAud: 0, totalMs, deadlineHit: false, ...(inputSnapshot ? { inputSnapshot } : {}) };
         }
       }
     } catch (err) {
@@ -505,7 +545,7 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
   const state = newWireState(dims);
   const agentId = `svi:${ctx.account.id}${ctx.projectId ? `:${ctx.projectId}` : ""}`;
   const callAI = deps.callAI ?? (await defaultCallAI(agentId, input.userId));
-  const seedCriteria = partial ? await loadStoredCriteria(db, ctx) : null;
+  const seedCriteria = partial && !deckText ? await loadStoredCriteria(db, ctx) : null;
   let report: AssembledReport;
   try {
     report = await (deps.orchestrate ?? orchestrateReport)({
@@ -541,7 +581,7 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
       if (db && state.dimResults.length) {
         try {
           const write = await db.from("svi_deck_cache").upsert(
-            { deck_hash: deckHash, user_id: input.userId, dim_results: state.dimResults, criterion_results: state.criteria, industry: state.industry, stage: state.stage, pipeline_version: PIPELINE_VERSION, created_at: new Date(now()).toISOString() },
+            { deck_hash: deckHash, user_id: input.userId, dim_results: state.dimResults, criterion_results: state.criteria, industry: state.industry, stage: state.stage, pipeline_version: DECK_CACHE_VERSION, created_at: new Date(now()).toISOString() },
             { onConflict: "deck_hash" },
           );
           if (write.error) console.warn("[run-report-pipeline:cache] write failed", write.error.message);
@@ -588,6 +628,7 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
     costAud: state.done?.costAud ?? 0,
     totalMs,
     deadlineHit: state.done?.deadlineHit ?? false,
+    ...(inputSnapshot ? { inputSnapshot } : {}),
   };
 }
 

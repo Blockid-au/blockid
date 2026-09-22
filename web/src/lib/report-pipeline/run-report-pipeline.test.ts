@@ -14,6 +14,8 @@ import {
   chapterToMarkdown,
   doneEvent,
   hashDeck,
+  DECK_CACHE_VERSION,
+  syntheticDeckContext,
   newWireState,
   priorityForScore,
   runReportPipeline,
@@ -271,7 +273,7 @@ describe("runReportPipeline", () => {
     expect(d.calls[0].rawText).toBe(deckText);
     expect(d.persisted).toHaveLength(0);
     expect(upserts).toHaveLength(1);
-    expect(upserts[0]).toMatchObject({ deck_hash: hashDeck(deckText), user_id: "user-1", pipeline_version: PIPELINE_VERSION, industry: "SaaS", stage: "Early Traction" });
+    expect(upserts[0]).toMatchObject({ deck_hash: hashDeck(deckText), user_id: "user-1", pipeline_version: DECK_CACHE_VERSION, industry: "SaaS", stage: "Early Traction" });
     expect((upserts[0].dim_results as unknown[]).length).toBe(8);
     expect((upserts[0].criterion_results as unknown[]).length).toBe(13);
     expect((events.at(-1) as Extract<StreamEvent, { type: "done" }>).snapshotId).toBeNull();
@@ -279,7 +281,7 @@ describe("runReportPipeline", () => {
 
   it("deck cache hit (same hash, same pipeline_version, < 24 h) replays the legacy wire events and never runs the orchestrator", async () => {
     const deckText = "same deck";
-    const row = { deck_hash: hashDeck(deckText), dim_results: [chapterToLegacy(chapterOf("tre")), chapterToLegacy(chapterOf("mpc"))], criterion_results: cards.slice(0, 3).map(cardToLegacy), created_at: new Date(1_000 - 60_000).toISOString(), industry: "SaaS", stage: "Seed", pipeline_version: PIPELINE_VERSION };
+    const row = { deck_hash: hashDeck(deckText), dim_results: [chapterToLegacy(chapterOf("tre")), chapterToLegacy(chapterOf("mpc"))], criterion_results: cards.slice(0, 3).map(cardToLegacy), created_at: new Date(1_000 - 60_000).toISOString(), industry: "SaaS", stage: "Seed", pipeline_version: DECK_CACHE_VERSION };
     const { db } = fakeDb(row);
     const d = deps({ db });
     const events: StreamEvent[] = [];
@@ -293,7 +295,7 @@ describe("runReportPipeline", () => {
 
   it("a cached row from another pipeline version (or the legacy generator: NULL) is a miss", async () => {
     const deckText = "old deck";
-    for (const version of [null, "pipeline-v2.0-w4"]) {
+    for (const version of [null, "pipeline-v2.0-w4", PIPELINE_VERSION]) {
       const { db } = fakeDb({ deck_hash: hashDeck(deckText), dim_results: [chapterToLegacy(chapterOf("tre"))], criterion_results: [], created_at: new Date(1_000).toISOString(), pipeline_version: version });
       const d = deps({ db });
       const res = await runReportPipeline({ userId: "user-1", ownerEmail: "owner@x.test", projectId: "proj-1", tier: "free", deckText, onEvent: () => undefined, deps: d });
@@ -363,5 +365,76 @@ describe("runReportPipeline", () => {
     const res = await runReportPipeline({ userId: "user-1", ownerEmail: "owner@x.test", projectId: "proj-1", tier: "free", onEvent: (e) => events.push(e), deps: d });
     expect(res.ok).toBe(true);
     expect((events.at(-1) as Extract<StreamEvent, { type: "done" }>).snapshotId).toBeNull();
+  });
+});
+
+
+describe("G30 deck input isolation", () => {
+  const request = { userId: "user-1", ownerEmail: "owner@x.test", callerEmail: "member@x.test", projectId: "proj-1", tier: "free" as const, onEvent: () => undefined };
+
+  it("recomputes new deck signals without borrowing old revenue, answers or evidence", async () => {
+    const stale = ctxOk();
+    const old = syntheticDeckContext(request, "Acme\nMRR A$50,000 from 100 paying customers. Raising A$2m.");
+    stale.ctx.sviAnalysis = old.sviAnalysis as never;
+    stale.ctx.latestAnalysis = { ...stale.ctx.latestAnalysis, raw_input: old.latestAnalysis.raw_input, analysis_json: old.latestAnalysis.analysis_json as never };
+    stale.ctx.evidenceItems = [{ evidence_type: "traction", dimension: "tre", confidence_level: "transaction_data", label: "Old deck claims" }] as never;
+    stale.ctx.criteriaData = { revenue: { textInput: "Old revenue A$50,000", aiScore: 99, files: [], links: [], qualityLevel: "complete" } } as never;
+    const before = JSON.stringify(stale);
+    const d = deps({ loadContext: async () => stale });
+    const deckText = "Acme\nWe are exploring an idea. No revenue and no paying customers. No product yet.";
+    const result = await runReportPipeline({ ...request, deckText, deps: d });
+    expect(result.ok).toBe(true);
+    expect(old.sviAnalysis.signals.mrrAud).toBe(50000);
+    expect(d.calls[0].sviAnalysis.signals.mrrAud).toBeUndefined();
+    expect(d.calls[0].sviAnalysis).not.toEqual(old.sviAnalysis);
+    expect(d.calls[0].evidenceItems).toEqual([]);
+    expect(d.calls[0].criteriaData.revenue).toMatchObject({ textInput: "", qualityLevel: "incomplete" });
+    expect(Object.keys(d.calls[0].criteriaData)).toHaveLength(13);
+    expect(d.calls[0]).toMatchObject({ accountId: "acct-1", projectId: "proj-1", startupName: "Acme", userId: "user-1", ownerUserId: "owner-1" });
+    expect(JSON.stringify(stale)).toBe(before);
+  });
+
+  it("keeps the entire received text and separates documents sharing an 8k prefix", async () => {
+    const prefix = "Business context. ".repeat(600);
+    const first = prefix + "\nMRR A$12,000.";
+    const second = prefix + "\nMRR A$25,000.";
+    const { db, upserts } = fakeDb(null);
+    const d = deps({ db });
+    const a = await runReportPipeline({ ...request, deckText: first, deps: d });
+    const b = await runReportPipeline({ ...request, deckText: second, deps: d });
+    expect(d.calls[0].rawText).toBe(first);
+    expect(d.calls[1].rawText).toBe(second);
+    expect(d.calls[0].sviAnalysis.signals.mrrAud).toBe(12000);
+    expect(d.calls[1].sviAnalysis.signals.mrrAud).toBe(25000);
+    expect(upserts.map((row) => row.deck_hash)).toEqual([hashDeck(first), hashDeck(second)]);
+    expect(upserts[0].deck_hash).not.toBe(upserts[1].deck_hash);
+    expect(upserts.every((row) => row.pipeline_version === DECK_CACHE_VERSION)).toBe(true);
+    expect(a.ok && a.inputSnapshot).toEqual({ version: "deck-input-v1", textSha256: hashDeck(first), receivedTextChars: first.length, extractionCompleteness: "unknown" });
+    expect(b.ok && b.inputSnapshot?.textSha256).toBe(hashDeck(second));
+  });
+
+  it("rejects partial new-deck analysis before context, seeds or any model call", async () => {
+    const loadContext = vi.fn(async () => ctxOk());
+    const callAI = vi.fn(async () => "must not run");
+    const d = deps({ loadContext, callAI });
+    const events: StreamEvent[] = [];
+    const result = await runReportPipeline({ ...request, dims: ["tre"], deckText: "Acme\nNo revenue yet.", onEvent: (event) => events.push(event), deps: d });
+    expect(result).toMatchObject({ ok: false, error: "full_analysis_required" });
+    expect(events).toEqual([{ type: "fatal_error", message: expect.stringContaining("full analysis") }]);
+    expect(loadContext).not.toHaveBeenCalled();
+    expect(callAI).not.toHaveBeenCalled();
+    expect(d.calls).toHaveLength(0);
+    expect(d.persisted).toHaveLength(0);
+    expect(d.notified).toHaveLength(0);
+    expect(d.emailed).toHaveLength(0);
+  });
+
+  it("fails blank document input before loading stale context or invoking an agent", async () => {
+    const loadContext = vi.fn(async () => ctxOk());
+    const d = deps({ loadContext });
+    const result = await runReportPipeline({ ...request, deckText: " \n\t ", deps: d });
+    expect(result).toMatchObject({ ok: false, error: "needs_input" });
+    expect(loadContext).not.toHaveBeenCalled();
+    expect(d.calls).toHaveLength(0);
   });
 });
