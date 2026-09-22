@@ -1,0 +1,351 @@
+{
+  "schemaVersion": "deepinfra-research-pricing-evidence-draft-v1",
+  "policyId": "deepinfra-standard-text-2026-09-22-draft",
+  "status": "draft_not_loaded_by_runtime",
+  "executionEnabled": false,
+  "observedAt": "2026-09-22T19:01:44.675180+00:00",
+  "reviewBy": "2026-09-23T19:01:44.675180+00:00",
+  "validUntilApproved": false,
+  "source": {
+    "repositoryCommit": "6009f5da15ad7aad33e68d68152dd508b18af7bb",
+    "file": "web/src/lib/ai-client.ts",
+    "sha256": "62ed066a3af0076b5c6661fcbea6f4076eb375331c7f7b1329cb1d9675c9c1c4",
+    "selection": "Frozen REPORT_POLICY_MODELS report and synthesis copies at source module initialization",
+    "chains": {
+      "report": [
+        "deepseek-ai/DeepSeek-V4-Flash",
+        "deepseek-ai/DeepSeek-V3.2",
+        "Qwen/Qwen3-235B-A22B-Instruct-2507",
+        "openai/gpt-oss-120b"
+      ],
+      "synthesis": [
+        "deepseek-ai/DeepSeek-V4-Flash",
+        "deepseek-ai/DeepSeek-V3.2",
+        "moonshotai/Kimi-K2.6"
+      ]
+    }
+  },
+  "scope": {
+    "provider": "deepinfra",
+    "endpoint": "https://api.deepinfra.com/v1/openai/chat/completions",
+    "input": "text-only system/user messages",
+    "n": 1,
+    "serviceTier": "standard_by_omission",
+    "explicitCacheRetentionAllowed": false,
+    "providerFallbackAllowed": false,
+    "externalFreeFallbacks": [],
+    "unknownPriceOrCeiling": "ineligible",
+    "qualityCertification": "not_performed",
+    "freeQuotaCertification": "not_performed"
+  },
+  "freshness": {
+    "maximumProposedAgeHours": 24,
+    "isProviderPriceGuarantee": false,
+    "onExpiredOrChangedEvidence": "deny_new_reservations_until_reviewed_refresh"
+  },
+  "reservation": {
+    "rounding": "ceil total nanoUSD divided by 1000 to integer microUSD",
+    "formula": "ceil((contextTokens * inputNanoUsdPerToken + providerMaxOutputTokens * outputNanoUsdPerToken) / 1000)",
+    "templateOverheadAssumption": null,
+    "byteTokenConversionAssumption": null,
+    "cacheDiscountAssumption": null,
+    "purposeCaps": {
+      "research_synthesis": 6000,
+      "research_grounded_review": 4000
+    },
+    "unknownTransportOrUsage": "retain_full_reservation_until_authoritative_reconciliation",
+    "eachInternalModelAttempt": "requires_distinct_durable_reservation",
+    "jobScope": "cumulative_call_and_cost_limits_required",
+    "priceOrCeilingMissing": "deny"
+  },
+  "models": [
+    {
+      "modelId": "deepseek-ai/DeepSeek-V4-Flash",
+      "taskClasses": [
+        "report",
+        "synthesis"
+      ],
+      "availability": {
+        "publicCatalogListed": true,
+        "modelInfoReadableWithoutAuthentication": true,
+        "accountInferenceAccessVerified": false,
+        "deprecated": null,
+        "replacement": null
+      },
+      "standardTextPrice": {
+        "currency": "USD",
+        "inputNanoUsdPerToken": 90,
+        "outputNanoUsdPerToken": 180,
+        "inputUsdPerMillionTokens": "0.09",
+        "outputUsdPerMillionTokens": "0.18",
+        "cacheSavingsAssumed": false
+      },
+      "limits": {
+        "contextTokens": 1048576,
+        "providerMaxOutputTokens": 65536,
+        "providerMaxOutputStatus": "explicit_model_info_field",
+        "applicationMaxOutputTokens": 16384,
+        "synthesisRequestedOutputTokens": 6000,
+        "reviewRequestedOutputTokens": 4000
+      },
+      "draftBudgetEvidenceComplete": true,
+      "runtimeEligible": false,
+      "blockingReasons": [
+        "runtime_policy_not_approved",
+        "quality_not_certified",
+        "account_access_not_verified"
+      ],
+      "conservativeReservation": {
+        "inputTokenCeiling": 1048576,
+        "outputTokenCeiling": 65536,
+        "maximumCostMicroUsd": 106169,
+        "method": "full_context_input_plus_full_verified_provider_output",
+        "invoiceOrExpectedCost": false
+      },
+      "conditionalRequestedOutputExamplesMicroUsd": {
+        "synthesis6000": 95452,
+        "review4000": 95092,
+        "admissibleAsGrant": false,
+        "condition": "Only after separately certifying all billed completion and reasoning tokens are capped by request max_tokens; never overrides missing provider ceiling."
+      },
+      "evidence": {
+        "modelPageUrl": "https://deepinfra.com/deepseek-ai/DeepSeek-V4-Flash",
+        "modelInfoUrl": "https://api.deepinfra.com/models/deepseek-ai/DeepSeek-V4-Flash",
+        "observedAt": "2026-09-22T19:01:44.675180+00:00",
+        "responseSha256": "b91edd87fd907b1e04cea6dd92d1ead404db2a935b15cbc9485bb1c99cf459cb"
+      }
+    },
+    {
+      "modelId": "deepseek-ai/DeepSeek-V3.2",
+      "taskClasses": [
+        "report",
+        "synthesis"
+      ],
+      "availability": {
+        "publicCatalogListed": true,
+        "modelInfoReadableWithoutAuthentication": true,
+        "accountInferenceAccessVerified": false,
+        "deprecated": null,
+        "replacement": null
+      },
+      "standardTextPrice": {
+        "currency": "USD",
+        "inputNanoUsdPerToken": 260,
+        "outputNanoUsdPerToken": 380,
+        "inputUsdPerMillionTokens": "0.26",
+        "outputUsdPerMillionTokens": "0.38",
+        "cacheSavingsAssumed": false
+      },
+      "limits": {
+        "contextTokens": 163840,
+        "providerMaxOutputTokens": null,
+        "providerMaxOutputStatus": "unknown_null_model_info_field",
+        "applicationMaxOutputTokens": 16384,
+        "synthesisRequestedOutputTokens": 6000,
+        "reviewRequestedOutputTokens": 4000
+      },
+      "draftBudgetEvidenceComplete": false,
+      "runtimeEligible": false,
+      "blockingReasons": [
+        "provider_output_ceiling_unknown",
+        "runtime_policy_not_approved",
+        "quality_not_certified",
+        "account_access_not_verified"
+      ],
+      "conservativeReservation": {
+        "inputTokenCeiling": 163840,
+        "outputTokenCeiling": null,
+        "maximumCostMicroUsd": null,
+        "method": "full_context_input_plus_full_verified_provider_output",
+        "invoiceOrExpectedCost": false
+      },
+      "conditionalRequestedOutputExamplesMicroUsd": {
+        "synthesis6000": 44879,
+        "review4000": 44119,
+        "admissibleAsGrant": false,
+        "condition": "Only after separately certifying all billed completion and reasoning tokens are capped by request max_tokens; never overrides missing provider ceiling."
+      },
+      "evidence": {
+        "modelPageUrl": "https://deepinfra.com/deepseek-ai/DeepSeek-V3.2",
+        "modelInfoUrl": "https://api.deepinfra.com/models/deepseek-ai/DeepSeek-V3.2",
+        "observedAt": "2026-09-22T19:01:44.610855+00:00",
+        "responseSha256": "a2148b0c7f88d10e46a6fe9c6cd1a2ae5a21e91163f9f12f69bbbe83f138ad17"
+      }
+    },
+    {
+      "modelId": "Qwen/Qwen3-235B-A22B-Instruct-2507",
+      "taskClasses": [
+        "report"
+      ],
+      "availability": {
+        "publicCatalogListed": true,
+        "modelInfoReadableWithoutAuthentication": true,
+        "accountInferenceAccessVerified": false,
+        "deprecated": null,
+        "replacement": null
+      },
+      "standardTextPrice": {
+        "currency": "USD",
+        "inputNanoUsdPerToken": 90,
+        "outputNanoUsdPerToken": 550,
+        "inputUsdPerMillionTokens": "0.09",
+        "outputUsdPerMillionTokens": "0.55",
+        "cacheSavingsAssumed": false
+      },
+      "limits": {
+        "contextTokens": 262144,
+        "providerMaxOutputTokens": null,
+        "providerMaxOutputStatus": "unknown_null_model_info_field",
+        "applicationMaxOutputTokens": 16384,
+        "synthesisRequestedOutputTokens": 6000,
+        "reviewRequestedOutputTokens": 4000
+      },
+      "draftBudgetEvidenceComplete": false,
+      "runtimeEligible": false,
+      "blockingReasons": [
+        "provider_output_ceiling_unknown",
+        "runtime_policy_not_approved",
+        "quality_not_certified",
+        "account_access_not_verified"
+      ],
+      "conservativeReservation": {
+        "inputTokenCeiling": 262144,
+        "outputTokenCeiling": null,
+        "maximumCostMicroUsd": null,
+        "method": "full_context_input_plus_full_verified_provider_output",
+        "invoiceOrExpectedCost": false
+      },
+      "conditionalRequestedOutputExamplesMicroUsd": {
+        "synthesis6000": 26893,
+        "review4000": 25793,
+        "admissibleAsGrant": false,
+        "condition": "Only after separately certifying all billed completion and reasoning tokens are capped by request max_tokens; never overrides missing provider ceiling."
+      },
+      "evidence": {
+        "modelPageUrl": "https://deepinfra.com/Qwen/Qwen3-235B-A22B-Instruct-2507",
+        "modelInfoUrl": "https://api.deepinfra.com/models/Qwen/Qwen3-235B-A22B-Instruct-2507",
+        "observedAt": "2026-09-22T19:01:44.671786+00:00",
+        "responseSha256": "6f53ffe3cb1e3ff7e8c843e341a8aa89d4fbb0bf43e24f55e768302750313309"
+      }
+    },
+    {
+      "modelId": "openai/gpt-oss-120b",
+      "taskClasses": [
+        "report"
+      ],
+      "availability": {
+        "publicCatalogListed": true,
+        "modelInfoReadableWithoutAuthentication": true,
+        "accountInferenceAccessVerified": false,
+        "deprecated": null,
+        "replacement": null
+      },
+      "standardTextPrice": {
+        "currency": "USD",
+        "inputNanoUsdPerToken": 37,
+        "outputNanoUsdPerToken": 170,
+        "inputUsdPerMillionTokens": "0.037",
+        "outputUsdPerMillionTokens": "0.17",
+        "cacheSavingsAssumed": false
+      },
+      "limits": {
+        "contextTokens": 131072,
+        "providerMaxOutputTokens": 131072,
+        "providerMaxOutputStatus": "explicit_model_info_field",
+        "applicationMaxOutputTokens": 16384,
+        "synthesisRequestedOutputTokens": 6000,
+        "reviewRequestedOutputTokens": 4000
+      },
+      "draftBudgetEvidenceComplete": true,
+      "runtimeEligible": false,
+      "blockingReasons": [
+        "runtime_policy_not_approved",
+        "quality_not_certified",
+        "account_access_not_verified"
+      ],
+      "conservativeReservation": {
+        "inputTokenCeiling": 131072,
+        "outputTokenCeiling": 131072,
+        "maximumCostMicroUsd": 27132,
+        "method": "full_context_input_plus_full_verified_provider_output",
+        "invoiceOrExpectedCost": false
+      },
+      "conditionalRequestedOutputExamplesMicroUsd": {
+        "synthesis6000": 5870,
+        "review4000": 5530,
+        "admissibleAsGrant": false,
+        "condition": "Only after separately certifying all billed completion and reasoning tokens are capped by request max_tokens; never overrides missing provider ceiling."
+      },
+      "evidence": {
+        "modelPageUrl": "https://deepinfra.com/openai/gpt-oss-120b",
+        "modelInfoUrl": "https://api.deepinfra.com/models/openai/gpt-oss-120b",
+        "observedAt": "2026-09-22T19:01:44.602387+00:00",
+        "responseSha256": "7905af69af67c72ff962b8b44b5ec4b49e40e8dbeffac999aaa750c46cc2b26a"
+      }
+    },
+    {
+      "modelId": "moonshotai/Kimi-K2.6",
+      "taskClasses": [
+        "synthesis"
+      ],
+      "availability": {
+        "publicCatalogListed": true,
+        "modelInfoReadableWithoutAuthentication": true,
+        "accountInferenceAccessVerified": false,
+        "deprecated": null,
+        "replacement": null
+      },
+      "standardTextPrice": {
+        "currency": "USD",
+        "inputNanoUsdPerToken": 750,
+        "outputNanoUsdPerToken": 3500,
+        "inputUsdPerMillionTokens": "0.75",
+        "outputUsdPerMillionTokens": "3.5",
+        "cacheSavingsAssumed": false
+      },
+      "limits": {
+        "contextTokens": 262144,
+        "providerMaxOutputTokens": null,
+        "providerMaxOutputStatus": "unknown_null_model_info_field",
+        "applicationMaxOutputTokens": 16384,
+        "synthesisRequestedOutputTokens": 6000,
+        "reviewRequestedOutputTokens": 4000
+      },
+      "draftBudgetEvidenceComplete": false,
+      "runtimeEligible": false,
+      "blockingReasons": [
+        "provider_output_ceiling_unknown",
+        "runtime_policy_not_approved",
+        "quality_not_certified",
+        "account_access_not_verified"
+      ],
+      "conservativeReservation": {
+        "inputTokenCeiling": 262144,
+        "outputTokenCeiling": null,
+        "maximumCostMicroUsd": null,
+        "method": "full_context_input_plus_full_verified_provider_output",
+        "invoiceOrExpectedCost": false
+      },
+      "conditionalRequestedOutputExamplesMicroUsd": {
+        "synthesis6000": 217608,
+        "review4000": 210608,
+        "admissibleAsGrant": false,
+        "condition": "Only after separately certifying all billed completion and reasoning tokens are capped by request max_tokens; never overrides missing provider ceiling."
+      },
+      "evidence": {
+        "modelPageUrl": "https://deepinfra.com/moonshotai/Kimi-K2.6",
+        "modelInfoUrl": "https://api.deepinfra.com/models/moonshotai/Kimi-K2.6",
+        "observedAt": "2026-09-22T19:01:44.598568+00:00",
+        "responseSha256": "711c923b605474b8fe25f2a2199300b625e736151d545177904184c60a92ff5b"
+      }
+    }
+  ],
+  "sharedEvidenceUrls": [
+    "https://api.deepinfra.com/models/list",
+    "https://docs.deepinfra.com/api-reference/models/models-info",
+    "https://docs.deepinfra.com/api-reference/chat-completions/openai-chat-completions",
+    "https://docs.deepinfra.com/chat/overview",
+    "https://docs.deepinfra.com/chat/reasoning",
+    "https://api.deepinfra.com/openrouter/models"
+  ]
+}
