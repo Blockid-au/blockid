@@ -80,7 +80,7 @@ export function ConsentBanner() {
           <div className="flex-1 text-sm leading-6 text-brand-900/90 dark:text-ink-100">
             <p className="font-semibold">We use analytics to improve BlockID.</p>
             <p className="mt-1 text-brand-900/75 dark:text-ink-200">
-              AU users can opt in below — nothing is tracked until you agree.{" "}
+              Optional analytics cookies stay off until you agree. Google may receive measurement signals without cookies.{" "}
               <Link href="/privacy" className="underline underline-offset-2 hover:text-action">
                 Learn more
               </Link>
