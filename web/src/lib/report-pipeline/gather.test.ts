@@ -487,7 +487,7 @@ describe("G30 valuation revenue presence", () => {
     expect(out.results.valuation).toMatchObject({ status: "unavailable", inputs: { mrrAud: null, arrAud: null } });
     expect(out.results.diagnostics?.valuation).toMatchObject({ status: "skipped", note: "missing_or_invalid_revenue" });
     expect(out.evidenceRows.some((r) => r.label.startsWith("CFO 5-method"))).toBe(false);
-    expect(out.evidenceRows.find((r) => r.label === "Valuation needs revenue information")).toMatchObject({ status: "missing", value: expect.stringContaining("Revenue is missing") });
+    expect(out.evidenceRows.find((r) => r.label === "Valuation needs revenue information")).toMatchObject({ status: "missing", value: expect.stringContaining("has not been validated for this business, currency and reporting period") });
   });
 
   it.each([NaN, Infinity, -1])("does not turn invalid stated MRR %s into a zero-valued input", async (value) => {
