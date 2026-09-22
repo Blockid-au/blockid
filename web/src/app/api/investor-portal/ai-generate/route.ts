@@ -97,6 +97,17 @@ async function POST_handler(req: Request) {
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
+  const research = body.purpose === "research_synthesis" || body.purpose === "research_grounded_review";
+  if (research) {
+    // Caller authentication is not spend consent. This remains disabled until
+    // durable per-call model budget/job authority is wired and reviewed.
+    if (!sharedSecret || process.env.SVI_RESEARCH_MODEL_EXECUTION_ENABLED !== "1") {
+      return NextResponse.json({ error: "research_model_execution_disabled" }, { status: 503 });
+    }
+    if (body.responseFormat !== "json" || typeof body.system !== "string" || body.system.length > 12000 || typeof body.user !== "string" || body.user.length > 60000) {
+      return NextResponse.json({ error: "invalid_research_model_input" }, { status: 400 });
+    }
+  }
   const rawSystem = typeof body.system === "string" ? body.system.slice(0, MAX_SYSTEM) : "";
   const user = typeof body.user === "string" ? body.user.slice(0, MAX_USER) : "";
   if (!user) {
@@ -106,18 +117,18 @@ async function POST_handler(req: Request) {
   const system = wantsJson ? rawSystem + JSON_PRIMER : rawSystem;
   const bounded = (value: unknown, fallback: number, min: number, max: number) =>
     typeof value === "number" && Number.isFinite(value) ? Math.max(min, Math.min(value, max)) : fallback;
-  const budgetMs = Math.floor(bounded(body.timeoutMs, 120_000, 1_000, 240_000));
+  const budgetMs = Math.floor(bounded(body.timeoutMs, research ? 20000 : 120_000, 1_000, research ? 20000 : 240_000));
   // One server-selected policy and deadline cover both the first attempt and
   // optional JSON repair. Request JSON cannot select a paid fallback/provider.
   const callOpts: AICallOptions = {
     policy: "blockid-report-v1",
-    taskClass: "report",
-    agentId: "svi:investor-portal",
+    taskClass: body.purpose === "research_synthesis" ? "synthesis" : "report",
+    agentId: research ? `svi:${body.purpose}` : "svi:investor-portal",
     budgetMs,
     deadlineAt: Date.now() + budgetMs,
     system,
     user,
-    maxTokens: Math.floor(bounded(body.maxTokens, 4000, 1, 16_000)),
+    maxTokens: Math.floor(bounded(body.maxTokens, 4000, 1, research ? body.purpose === "research_grounded_review" ? 4000 : 6000 : 16_000)),
     temperature: bounded(body.temperature, 0.2, 0, 1),
     timeoutMs: budgetMs,
   };
@@ -133,7 +144,7 @@ async function POST_handler(req: Request) {
     // once with a much stronger prompt hint. This is cheaper than SVI's
     // silent "markProxyBroken" penalty which locks the proxy for 5 min
     // for ALL tasks on a single stray token.
-    if (wantsJson && !looksLikeJson(text)) {
+    if (!research && wantsJson && !looksLikeJson(text)) {
       retried = true;
       const stricter =
         rawSystem +
@@ -145,8 +156,12 @@ async function POST_handler(req: Request) {
       text = stripFences(out.text);
     }
 
+    if (research && (!looksLikeJson(text) || Buffer.byteLength(text) > 100000 || out.policy !== "blockid-report-v1" || (out.via ?? out.provider) !== "deepinfra")) {
+      return NextResponse.json({ error: "research_model_output_rejected" }, { status: 502 });
+    }
     return NextResponse.json({
       ok: true,
+      ...(research ? { purpose: body.purpose } : {}),
       text,
       provider: out.via ?? out.provider,
       model: out.model,
@@ -159,7 +174,7 @@ async function POST_handler(req: Request) {
       {
         ok: false,
         error: "ai_call_failed",
-        detail: err instanceof Error ? err.message : String(err),
+        ...(research ? {} : { detail: err instanceof Error ? err.message : String(err) }),
         responseFormat: wantsJson ? "json" : "text",
       },
       { status: 502 },
