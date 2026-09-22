@@ -215,6 +215,7 @@ describe("generateAndPersistReport", () => {
     expect(callOpts.agentId).toBe("svi:acc-1:p-1");
     expect(callOpts).not.toHaveProperty("userId");
     expect(callOpts.taskClass).toBe("report");
+    expect(callOpts.policy).toBe("blockid-report-v1");
     expect(orchestrateMock).toHaveBeenCalledWith(expect.objectContaining({ accountId: "acc-1", userId: "u-1", projectId: "p-1", startupName: "Acme", tier: "standard", locale: "en" }));
     const inserted = state.calls.filter((c) => c.op === "insert").map((c) => c.table);
     expect(inserted).toEqual(["assembled_reports", "agent_report_tasks"]);

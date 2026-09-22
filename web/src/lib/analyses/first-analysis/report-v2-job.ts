@@ -116,6 +116,7 @@ export function makeReportCaller(analysisId: string, _userId: string | null): Re
   const runStrikes = createRunStrikeLedger();
   return async (system, user, maxTokens, taskClass, hint): Promise<AICallerResult> => {
     const r = await callAI({
+      policy: "blockid-report-v1",
       system,
       user,
       maxTokens,

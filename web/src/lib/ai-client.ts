@@ -498,7 +498,7 @@ export function readyModels(provider: Provider, models: string[], cls: AITaskCla
   return demoteFlaky(ready.length > 0 ? ready : eligible);
 }
 
-function coolDownModel(model: string, errMsg: string): void {
+function coolDownModel(model: string, errMsg: string, allowDiscovery = true): void {
   const m = errMsg.toLowerCase();
   let ms = 90_000; // default 90s for transient errors
   const isRateLimit = /rate.?limit|\b429\b|quota|temporarily|too many requests|capacity/.test(m);
@@ -514,13 +514,13 @@ function coolDownModel(model: string, errMsg: string): void {
     ms = 60 * 60_000; // model gone → 1h (next daily refresh usually drops it)
   } else if (isQuotaExhausted) {
     ms = 60 * 60_000; // quota gone → 1h; try elsewhere
-    noteHardFailureEvent(model, "quota_exhausted");
+    if (allowDiscovery) noteHardFailureEvent(model, "quota_exhausted");
   } else if (isProviderOffline) {
     ms = 10 * 60_000; // provider down → 10 min
-    noteHardFailureEvent(model, "provider_offline");
+    if (allowDiscovery) noteHardFailureEvent(model, "provider_offline");
   } else if (isRateLimit) {
     ms = 5 * 60_000; // rate-limited (soft) → 5 min
-    noteRateLimitEvent(model);
+    if (allowDiscovery) noteRateLimitEvent(model);
   }
   modelCooldownUntil.set(model, Date.now() + ms);
   recordModelOutcome(model, false);
@@ -862,7 +862,17 @@ interface OAuthCredentials {
   };
 }
 
+export type AIReportPolicy = "blockid-report-v1";
+
+function scopedReportPolicy(opts: AICallOptions): boolean {
+  if (opts.policy === undefined) return false;
+  if (opts.policy !== "blockid-report-v1") throw new Error("Unknown AI report policy");
+  return true;
+}
+
 export interface AICallOptions {
+  /** Trusted server callsite only; never copy this field from request input. */
+  policy?: AIReportPolicy;
   system: string;
   user: string;
   maxTokens?: number;
@@ -989,6 +999,8 @@ export interface AICallUsage {
 }
 
 export interface AICallResult {
+  /** Applied dispatcher policy; omitted for legacy/shared consumers. */
+  policy?: AIReportPolicy;
   text: string;
   /** Coarse family (kept for compatibility — Cerebras / SambaNova / DeepInfra
    *  report "groq" because they speak the same OpenAI-compatible dialect).
@@ -1490,13 +1502,25 @@ export const DEEPINFRA_MODELS_BY_CLASS: Record<AITaskClass, string[]> = {
   ],
 };
 
+// Initial scoped candidates preserve the existing deployed model IDs. These are
+// not a quality certification. External fallback remains empty until exact model,
+// account quota and zero-charge eligibility have been qualified. Freeze copies so
+// discovery, provider-order overrides and shared consumer mutations cannot widen it.
+const REPORT_POLICY_MODELS: Readonly<Record<AITaskClass, readonly string[]>> = Object.freeze({
+  report: Object.freeze([...DEEPINFRA_MODELS_BY_CLASS.report]),
+  synthesis: Object.freeze([...DEEPINFRA_MODELS_BY_CLASS.synthesis]),
+  classify: Object.freeze([...DEEPINFRA_MODELS_BY_CLASS.classify]),
+});
+
 async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): Promise<AICallResult> {
   const apiKey = process.env.DEEPINFRA_API_KEY ?? getDBKey("deepinfra")?.api_key ?? "";
   if (!apiKey) throw new Error("DeepInfra API key not configured");
 
   let lastErr: Error | null = null;
-  const deepinfraRungs = readyPaidModels("deepinfra", DEEPINFRA_MODELS_BY_CLASS[cls]);
-  if (deepinfraRungs.length === 0) throw new DeadLadderError("deepinfra", DEEPINFRA_MODELS_BY_CLASS[cls].length);
+  const scoped = scopedReportPolicy(opts);
+  const models = scoped ? [...REPORT_POLICY_MODELS[cls]] : DEEPINFRA_MODELS_BY_CLASS[cls];
+  const deepinfraRungs = readyPaidModels("deepinfra", models);
+  if (deepinfraRungs.length === 0) throw new DeadLadderError("deepinfra", models.length);
   for (const model of deepinfraRungs) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     if (runStruck(opts, "deepinfra")) { lastErr = lastErr ?? runStruckError(opts, "deepinfra"); break; }
@@ -1533,7 +1557,7 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
       };
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
-      coolDownModel(key, lastErr.message);
+      coolDownModel(key, lastErr.message, !scoped);
       noteDeadRung("deepinfra", model, lastErr.message);
       noteRunStrike(opts, "deepinfra", lastErr);
       console.warn(`[ai-client] DeepInfra ${model} failed: ${lastErr.message.slice(0, 200)}`);
@@ -1733,6 +1757,9 @@ async function callClaudeProxy(opts: AICallOptions): Promise<AICallResult> {
 }
 
 async function callProvider(provider: Provider, opts: AICallOptions, cls: AITaskClass = inferTaskClass(opts)): Promise<AICallResult> {
+  if (scopedReportPolicy(opts) && provider !== "deepinfra") {
+    throw new Error("Provider is not eligible for BlockID report policy");
+  }
   const noTools = { ...opts, tools: undefined };
   switch (provider) {
     case "claude-oauth":
@@ -2453,8 +2480,10 @@ export function cooldownForError(provider: Provider, err: Error): number {
 }
 
 export async function callAI(opts: AICallOptions): Promise<AICallResult> {
-  // Phase 1: Try AI Gateway microservice first (if configured)
-  const gatewayResult = await callViaGateway(opts);
+  // Resolve policy before any gateway/probe I/O. The legacy gateway cannot
+  // attest exact model or account eligibility and is outside this scoped chain.
+  const scoped = scopedReportPolicy(opts);
+  const gatewayResult = scoped ? null : await callViaGateway(opts);
   if (gatewayResult) return gatewayResult;
 
   // Fallback: local provider chain (existing behavior)
@@ -2464,7 +2493,9 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
   // provider uses (see header). Inferred from agentId / maxTokens when the
   // caller did not say.
   const taskClass = inferTaskClass(opts);
-  const allProviders = opts.interactive ? orderForInteractive(getAvailableProviders(taskClass)) : getAvailableProviders(taskClass);
+  const allProviders: Provider[] = scoped
+    ? (providerConfigured("deepinfra") ? ["deepinfra"] : [])
+    : opts.interactive ? orderForInteractive(getAvailableProviders(taskClass)) : getAvailableProviders(taskClass);
   if (opts.interactive && opts.timeoutMs == null) opts = { ...opts, timeoutMs: INTERACTIVE_TIMEOUT_MS };
   // Default interactive budget = at least one full attempt at the caller's
   // own `timeoutMs` (full-report asks 180 s, report-section 120 s, the CFO
@@ -2486,7 +2517,7 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
     );
   }
 
-  maybeKickProviderProbe();
+  if (!scoped) maybeKickProviderProbe();
 
   // L5 → L3 → L4: the per-user fairness slot FIRST, then the global slot
   // (priority lane), then the agent slot. Every queue is bounded; overflow
@@ -2547,7 +2578,7 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
             notifyCapReached("daily_cap", { provider }).catch(() => { /* best-effort */ });
           }
         }
-        return { ...result, cost_usd: cost, via: provider, taskClass };
+        return { ...result, cost_usd: cost, via: provider, taskClass, ...(scoped ? { policy: opts.policy } : {}) };
       } catch (err) {
         lastError = err instanceof Error ? err : new Error(String(err));
         if (isInvalidKeyError(lastError)) {
@@ -2616,6 +2647,8 @@ export function isAnthropicConfigured(): boolean {
 // Priority: Cerebras → Groq → SambaNova → OpenRouter → Claude OAuth.
 
 export async function callAIForUpgrade(opts: AICallOptions): Promise<AICallResult | null> {
+  // Report requests must use the budgeted dispatcher, never this legacy chain.
+  if (scopedReportPolicy(opts)) throw new Error("Report policy requires callAI dispatcher");
   await getDBKeys(); // ensure cache is warm
 
   // Free and subscription providers only — the paid tiers are for customers.

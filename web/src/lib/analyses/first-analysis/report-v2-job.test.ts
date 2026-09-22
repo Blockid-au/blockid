@@ -50,6 +50,7 @@ vi.mock("./store", () => ({
   saveFullReportProgress: vi.fn(),
 }));
 
+import { callAI } from "@/lib/ai-client";
 import { demoReportV2 } from "@/lib/report-v2/fixtures";
 import type { AssembledReport } from "@/lib/report-pipeline/types";
 import { sampleIntake, SAMPLE_ANALYSIS_ID } from "./fixtures";
@@ -58,6 +59,7 @@ import {
   deliveryLinks,
   lastReportRecordV2,
   newEnvelope,
+  makeReportCaller,
   progressFromEvent,
   runReportV2Job,
   tallyingCaller,
@@ -357,5 +359,26 @@ describe("deliverReportV2", () => {
     expect(await deliverReportV2(row({ full_report_status: "done" }), envelope(), { force: true }, deps)).toBe("send_failed");
     expect(deps.claimSend).not.toHaveBeenCalled();
     expect(deps.releaseSend).not.toHaveBeenCalled();
+  });
+});
+
+
+describe("customer report AI policy", () => {
+  it("binds every stage to the report policy while preserving run strikes and usage", async () => {
+    const mock = vi.mocked(callAI);
+    mock.mockResolvedValue({ text: "analysis", provider: "groq", via: "deepinfra", model: "exact-model", cost_usd: 0.02 });
+    const caller = makeReportCaller("analysis-policy", "owner-1");
+    for (const taskClass of ["report", "synthesis", "classify"] as const) {
+      expect(await caller("rubric", "evidence", 800, taskClass)).toEqual({
+        text: "analysis", provider: "deepinfra", model: "exact-model", costUsd: 0.02,
+      });
+      expect(mock).toHaveBeenLastCalledWith(expect.objectContaining({
+        policy: "blockid-report-v1", system: "rubric", user: "evidence", maxTokens: 800,
+        taskClass, agentId: "svi:analysis:analysis-policy", runStrikes: expect.any(Object),
+      }));
+    }
+    const calls = mock.mock.calls.slice(-3);
+    expect(calls[1][0].runStrikes).toBe(calls[0][0].runStrikes);
+    expect(calls[2][0].runStrikes).toBe(calls[0][0].runStrikes);
   });
 });

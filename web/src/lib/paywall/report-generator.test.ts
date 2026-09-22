@@ -15,6 +15,11 @@
  */
 
 import { describe, it, expect, vi } from "vitest";
+vi.mock("@/lib/ai-client", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/ai-client")>(),
+  callAI: vi.fn(),
+}));
+import { callAI } from "@/lib/ai-client";
 import {
   generateTrustReportForOrder,
   tierForOrderMetadata,
@@ -631,24 +636,26 @@ describe("generateTrustReportForOrder — orchestrate", () => {
     );
   });
 
-  it("provides a callAI wrapper that returns the AI client's text + real cost / provider (S-R3 cost telemetry)", async () => {
-    const state = happyState();
-    let callAIArg: unknown;
+  it("binds paid report stages to the scoped policy and preserves cost and one run ledger", async () => {
+    const mock = vi.mocked(callAI);
+    mock.mockResolvedValue({ text: "analysis", provider: "groq", via: "deepinfra", model: "exact-model", cost_usd: 0.03 });
     const orchestrate = vi.fn(async (input: Parameters<NonNullable<GeneratorDeps["orchestrate"]>>[0]) => {
-      callAIArg = await input.callAI("sys", "user", 123);
+      for (const taskClass of ["report", "synthesis", "classify"] as const) {
+        expect(await input.callAI("sys", "evidence", 123, taskClass)).toEqual({
+          text: "analysis", provider: "deepinfra", model: "exact-model", costUsd: 0.03,
+        });
+        expect(mock).toHaveBeenLastCalledWith(expect.objectContaining({
+          policy: "blockid-report-v1", system: "sys", user: "evidence", maxTokens: 123,
+          taskClass, agentId: `paywall:${ORDER_ID}`, runStrikes: expect.any(Object),
+        }));
+      }
       return baseReport();
     });
-    await run(state, { orchestrate });
-    // The callAI wrapper the generator injects is the production callAI —
-    // in this test env with no AI key it would either throw or resolve to
-    // a stub. We only need to prove the wrapper hands the orchestrator the
-    // rich `{ text, costUsd, provider, model }` result (S-R3: the `done`
-    // event sums real cost) when the underlying call resolves; the E2E test
-    // covers the wire.
-    if (callAIArg !== undefined) {
-      expect(typeof (callAIArg as { text: unknown }).text).toBe("string");
-      expect(Object.keys(callAIArg as object)).toEqual(expect.arrayContaining(["text", "costUsd", "provider", "model"]));
-    }
+    const result = await run(happyState(), { orchestrate });
+    expect(result).toMatchObject({ ok: true });
+    expect(mock).toHaveBeenCalledTimes(3);
+    expect(mock.mock.calls[1][0].runStrikes).toBe(mock.mock.calls[0][0].runStrikes);
+    expect(mock.mock.calls[2][0].runStrikes).toBe(mock.mock.calls[0][0].runStrikes);
   });
 });
 

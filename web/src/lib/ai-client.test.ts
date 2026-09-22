@@ -65,6 +65,21 @@
 //     stick to a stale positive)
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type https from "node:https";
+import childProcess from "node:child_process";
+import { EventEmitter } from "node:events";
+
+// Hard network boundary: namespace imports in ai-client must receive the mock,
+// not a copied node namespace captured before a later spy is installed.
+const networkMock = vi.hoisted(() => ({ request: vi.fn(() => { throw new Error("HTTP 599: unexpected test transport"); }) }));
+vi.mock("https", async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return { ...actual, request: networkMock.request };
+});
+vi.mock("http", async (importOriginal) => {
+  const actual = await importOriginal<Record<string, unknown>>();
+  return { ...actual, request: networkMock.request };
+});
 
 // ---------------------------------------------------------------------------
 // fs mock — every ai-client read/write funnels through this so tests own the
@@ -1739,5 +1754,156 @@ describe("G29-A — dead rungs are skipped at runtime without spending a call", 
     expect(new DeadLadderError("groq", 2).message).toMatch(/all 2 models are dead rungs/);
     expect(providerBlockReason("groq", NOW)).toBe("unfunded");
     expect(getProviderHealthSnapshot(NOW).dead_rungs.groq).toEqual({ state: "unfunded", reason: "all_rungs_dead", dead: ["a", "b"], total: 2, until: "2026-09-22T10:00:00.000Z" });
+  });
+});
+
+// No external model/account combination has qualified for this scope yet.
+describe("G30 BlockID report policy", () => {
+  const request = { system: "rubric", user: "evidence", policy: "blockid-report-v1" as const };
+  let fetchMock: ReturnType<typeof vi.fn>;
+  let transportSpies: Array<{ mockRestore(): void }>;
+  beforeEach(() => {
+    process.env.AI_FETCH_MODE = "direct";
+    process.env.DEEPINFRA_API_KEY = "test-di";
+    process.env.ANTHROPIC_API_KEY = "sk-ant-test";
+    process.env.GROQ_API_KEY = "test-groq";
+    process.env.OPENROUTER_API_KEY = "test-or";
+    process.env.GOOGLE_GEMINI_API_KEY = "test-gemini";
+    process.env.AI_GATEWAY_URL = "https://gateway.invalid";
+    process.env.AI_GATEWAY_SECRET = "test-gateway";
+    process.env.AI_REPORT_PROVIDER_ORDER = "claude-apikey,groq,openrouter";
+    setOAuthFixture();
+    fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify({
+      choices: [{ message: { content: "Evidence-based analysis" } }],
+      usage: { prompt_tokens: 100, completion_tokens: 20 },
+    }), { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+    // The dispatcher uses node:https, not global fetch. Intercept both transports
+    // and prohibit subprocess fallback: no test may contact a real provider.
+    const requestMock = ((_options: Record<string, unknown>, callback: (response: unknown) => void) => {
+      const req = new EventEmitter() as EventEmitter & { write(body: string): void; end(): void; destroy(err: Error): void };
+      let body = "";
+      req.write = (value) => { body = value; };
+      req.destroy = (err) => { req.emit("error", err); };
+      req.end = () => {
+        void fetchMock(`https://${_options.hostname}${_options.path}`, { body }).then(async (reply: Response) => {
+          const res = new EventEmitter() as EventEmitter & { statusCode: number; setEncoding(): void };
+          res.statusCode = reply.status;
+          res.setEncoding = () => {};
+          callback(res);
+          res.emit("data", await reply.text());
+          res.emit("end");
+        }).catch((err: Error) => req.emit("error", err));
+      };
+      return req;
+    }) as unknown as typeof https.request;
+    networkMock.request.mockImplementation(requestMock as never);
+    transportSpies = [
+      vi.spyOn(childProcess, "spawn").mockImplementation(() => { throw new Error("HTTP 599: forbidden test subprocess"); }),
+    ];
+  });
+  afterEach(() => { networkMock.request.mockReset(); transportSpies.forEach((spy) => spy.mockRestore()); vi.unstubAllGlobals(); });
+  const calledModels = (mock: typeof fetchMock) => mock.mock.calls.map(([, init]) => JSON.parse(init.body).model);
+  const onlyDeepInfra = (mock: typeof fetchMock) => {
+    expect(mock.mock.calls.length).toBeGreaterThan(0);
+    expect(mock.mock.calls.every(([url]) => url === "https://api.deepinfra.com/v1/openai/chat/completions")).toBe(true);
+    expect(tierMock.call).not.toHaveBeenCalled();
+  };
+
+  it.each(["report", "synthesis", "classify"] as const)("routes %s through DeepInfra despite gateway, paid keys, OAuth and overrides", async (taskClass) => {
+    const client = await loadClient();
+    const result = await client.callAI({ ...request, taskClass, interactive: true });
+    expect(result).toMatchObject({ via: "deepinfra", taskClass, policy: request.policy });
+    expect(result.cost_usd).toBeGreaterThan(0);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    onlyDeepInfra(fetchMock);
+    expect(calledModels(fetchMock)).toEqual([client.DEEPINFRA_MODELS_BY_CLASS[taskClass][0]]);
+  });
+  it("fails closed when DeepInfra is missing", async () => {
+    delete process.env.DEEPINFRA_API_KEY;
+    const { callAI } = await loadClient();
+    await expect(callAI(request)).rejects.toThrow("No AI provider configured");
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(tierMock.call).not.toHaveBeenCalled();
+  });
+  it("never restores discovered or mutated weak defaults after exact rungs fail", async () => {
+    const client = await loadClient();
+    const exact = [...client.DEEPINFRA_MODELS_BY_CLASS.report];
+    client.DEEPINFRA_MODELS_BY_CLASS.report.splice(0, exact.length, "unqualified/weak-model");
+    fsMock.files.set(client.FREE_MODELS_CONFIG, JSON.stringify({ deepinfra: ["unqualified/weak-model"], openrouter: ["paid/model"] }));
+    fetchMock.mockImplementation(async () => new Response("model not found", { status: 404 }));
+    await expect(client.callAI(request)).rejects.toThrow();
+    onlyDeepInfra(fetchMock);
+    for (const model of calledModels(fetchMock)) expect(exact).toContain(model);
+    const attempts = fetchMock.mock.calls.length;
+    await expect(client.callAI(request)).rejects.toThrow();
+    expect(fetchMock).toHaveBeenCalledTimes(attempts);
+  });
+  it("suppresses discovery requests on provider failure", async () => {
+    process.env.CRON_SECRET = "test-secret";
+    process.env.NEXT_PUBLIC_SITE_URL = "https://discovery.invalid";
+    const { callAI } = await loadClient();
+    fetchMock.mockImplementation(async () => new Response("payment required", { status: 402 }));
+    await expect(callAI(request)).rejects.toThrow();
+    onlyDeepInfra(fetchMock);
+  });
+  it("rejects unknown policy and upgrade-chain misuse before I/O", async () => {
+    const { callAI, callAIForUpgrade } = await loadClient();
+    await expect(callAI({ ...request, policy: "unknown" as typeof request.policy })).rejects.toThrow("Unknown AI report policy");
+    await expect(callAIForUpgrade(request)).rejects.toThrow("requires callAI");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it("honors an expired deadline without dialing", async () => {
+    const { callAI } = await loadClient();
+    await expect(callAI({ ...request, deadlineAt: Date.now() - 1, budgetMs: 1 })).rejects.toThrow();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it("honors monthly budget before dialing", async () => {
+    fsMock.files.set(BUDGET_FILE, JSON.stringify({ month: currentMonth(), totalUSD: 101, calls: 1, byModel: {} }));
+    const { callAI } = await loadClient();
+    await expect(callAI(request)).rejects.toThrow("Monthly AI budget exceeded");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it("does not launch background provider probes even outside test mode", async () => {
+    const { callAI } = await loadClient();
+    const probes = await import("@/lib/ai/provider-status");
+    const spy = vi.spyOn(probes, "probeProviders").mockRejectedValue(new Error("probe forbidden"));
+    vi.stubEnv("NODE_ENV", "production");
+    try {
+      await callAI(request);
+      expect(spy).not.toHaveBeenCalled();
+      onlyDeepInfra(fetchMock);
+    } finally { spy.mockRestore(); vi.unstubAllEnvs(); }
+  });
+  it("honors run strikes without trying an external fallback", async () => {
+    const { callAI } = await loadClient();
+    const { createRunStrikeLedger } = await import("@/lib/ai/run-strikes");
+    const runStrikes = createRunStrikeLedger();
+    fetchMock.mockImplementation(async () => new Response("engine_overloaded", { status: 429 }));
+    await expect(callAI({ ...request, runStrikes })).rejects.toThrow();
+    expect(runStrikes.struck("deepinfra")).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await expect(callAI({ ...request, runStrikes })).rejects.toThrow();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    onlyDeepInfra(fetchMock);
+  });
+  it("honors the daily paid-spend cap instead of enabling another provider", async () => {
+    process.env.AI_DAILY_SPEND_CAP_AUD = "1";
+    const { callAI } = await loadClient();
+    const spend = await import("@/lib/ai/spend-guard");
+    spend._resetSpendGuardForTests();
+    spend.recordPaidSpend("deepinfra", 5);
+    try {
+      await expect(callAI(request)).rejects.toThrow("All AI providers are blocked");
+      expect(fetchMock).not.toHaveBeenCalled();
+    } finally { spend._resetSpendGuardForTests(); }
+  });
+  it("leaves unscoped gateway consumers working", async () => {
+    const { callAI } = await loadClient();
+    fetchMock.mockImplementation(async () => new Response(JSON.stringify({ ok: true, text: "legacy", provider: "groq", model: "legacy-model" }), { status: 200 }));
+    const result = await callAI({ system: "s", user: "u" });
+    expect(result.text).toBe("legacy");
+    expect(result.policy).toBeUndefined();
+    expect(String(fetchMock.mock.calls[0][0])).toContain("gateway.invalid");
   });
 });

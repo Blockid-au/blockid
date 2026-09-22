@@ -352,6 +352,7 @@ export async function generateTrustReportForOrder(
     hint?: PipelineCallHint,
   ) => {
     const result = await callAI({
+      policy: "blockid-report-v1",
       system: systemPrompt,
       user: userPrompt,
       maxTokens,

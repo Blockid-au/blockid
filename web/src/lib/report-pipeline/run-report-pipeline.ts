@@ -356,7 +356,7 @@ async function defaultCallAI(agentId: string, userId: string): Promise<AICallerI
   // G28-B: one strike ledger per run + per-stage timeouts (pipeline-timeouts.ts).
   const runStrikes = createRunStrikeLedger();
   return async (system, user, maxTokens, taskClass, hint) => {
-    const r = await callAI({ system, user, maxTokens, ...pipelineCallTimeouts(hint), agentId, userId, taskClass, runStrikes });
+    const r = await callAI({ policy: "blockid-report-v1", system, user, maxTokens, ...pipelineCallTimeouts(hint), agentId, userId, taskClass, runStrikes });
     return { text: r.text, costUsd: r.cost_usd, provider: r.via ?? r.provider, model: r.model };
   };
 }

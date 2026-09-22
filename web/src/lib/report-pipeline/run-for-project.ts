@@ -475,6 +475,7 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
     hint?: PipelineCallHint,
   ): Promise<AICallerResult> => {
     const result = await callAI({
+      policy: "blockid-report-v1",
       system: systemPrompt,
       user: userPrompt,
       maxTokens,
