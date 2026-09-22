@@ -879,6 +879,7 @@ export async function grantCredits(
   amount: number,
   reason: string,
   metadata?: Record<string, unknown>,
+  purchaseProof?: import("./stripe/credit-fulfillment").LegacyCreditPurchaseProof,
 ): Promise<{ ok: boolean; balance: number }> {
   if (amount <= 0) return { ok: false, balance: 0 };
 
@@ -887,7 +888,7 @@ export async function grantCredits(
 
   if (reason === "credit_pack_purchase") {
     const { guardLegacyCreditPackGrant } = await import("./stripe/credit-fulfillment");
-    const receipt = await guardLegacyCreditPackGrant(userId, amount, metadata?.session_id);
+    const receipt = await guardLegacyCreditPackGrant(userId, amount, metadata?.session_id, purchaseProof);
     if (receipt) return receipt;
   }
 

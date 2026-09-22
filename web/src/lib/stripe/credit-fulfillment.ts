@@ -53,23 +53,52 @@ export async function fulfillCreditCheckout(sessionId: string) {
   return data as { outcome: "completed"; operation_id: string; ledger_id: string; balance_after: number };
 }
 
-/** Defense for any legacy grant caller, including an old event payload whose
- * authoritative Stripe session was marked for receipt-backed fulfillment.
- * null authorizes only the pre-cutover legacy path; errors never authorize it.
- */
-export async function guardLegacyCreditPackGrant(userId: string, credits: number, sessionId: unknown) {
+// An unforgeable, request-local proof avoids a second Stripe network failure
+// AFTER the legacy webhook's insert-only event claim. Never serialize/store it.
+declare const legacyPurchaseProofBrand: unique symbol;
+export type LegacyCreditPurchaseProof = { readonly [legacyPurchaseProofBrand]: true };
+const legacyProofs = new WeakMap<object, { userId: string; credits: number; sessionId: string }>();
+async function verifiedPurchaseSession(userId: string, credits: number, sessionId: unknown) {
   if (typeof sessionId !== "string" || !sessionId.startsWith("cs_")) throw new Error("credit_purchase_session_required");
   if (creditPurchasesPaused()) throw new Error("credit_purchase_paused");
   const stripe = getStripe();
   if (!stripe) throw new Error("credit_purchase_verification_unavailable");
   const session = await stripe.checkout.sessions.retrieve(sessionId);
-  if (session.metadata?.type !== "credit_purchase" || session.mode !== "payment" ||
+  if (session.id !== sessionId || session.metadata?.type !== "credit_purchase" || session.mode !== "payment" ||
       session.status !== "complete" || session.payment_status !== "paid" ||
       session.metadata.blockid_user_id !== userId || session.metadata.blockid_credits !== String(credits)) {
     throw new Error("credit_purchase_identity_invalid");
   }
-  if (session.metadata.credit_receipt_version === "1") {
-    const receipt = await fulfillCreditCheckout(sessionId);
+  return session;
+}
+/** Must run before claimWebhookEvent. Only an actual authoritative retrieval
+ * can mint a proof. Caller-supplied objects cannot bypass the grant guard.
+ */
+export async function preflightLegacyCreditPurchase(userId: string, credits: number, sessionId: unknown) {
+  const session = await verifiedPurchaseSession(userId, credits, sessionId);
+  if (session.metadata?.credit_receipt_version === "1") return { kind: "receipt" as const, sessionId: session.id };
+  if (creditReceiptsEnabled()) throw new Error("legacy_checkout_requires_review");
+  const proof = Object.freeze({}) as LegacyCreditPurchaseProof;
+  legacyProofs.set(proof, { userId, credits, sessionId: session.id });
+  return { kind: "legacy" as const, proof };
+}
+
+/** Defence for legacy callers. A preflight proof is exact-bound and single-use;
+ * callers without one still require authoritative Stripe retrieval.
+ * null authorizes only the pre-cutover legacy path; errors never authorize it.
+ */
+export async function guardLegacyCreditPackGrant(userId: string, credits: number, sessionId: unknown, proof?: LegacyCreditPurchaseProof) {
+  if (creditPurchasesPaused()) throw new Error("credit_purchase_paused");
+  if (proof !== undefined) {
+    const verified = legacyProofs.get(proof);
+    legacyProofs.delete(proof);
+    if (!verified || verified.userId !== userId || verified.credits !== credits || verified.sessionId !== sessionId) throw new Error("credit_purchase_proof_invalid");
+    if (creditReceiptsEnabled()) throw new Error("legacy_checkout_requires_review");
+    return null;
+  }
+  const session = await verifiedPurchaseSession(userId, credits, sessionId);
+  if (session.metadata?.credit_receipt_version === "1") {
+    const receipt = await fulfillCreditCheckout(session.id);
     if (receipt.outcome !== "completed") throw new Error("credit_fulfillment_not_committed");
     return { ok: true, balance: receipt.balance_after };
   }

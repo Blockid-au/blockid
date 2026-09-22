@@ -1,4 +1,4 @@
-import { creditReceiptsEnabled, creditPurchasesPaused, fulfillCreditCheckout } from "@/lib/stripe/credit-fulfillment";
+import { creditReceiptsEnabled, creditPurchasesPaused, fulfillCreditCheckout, preflightLegacyCreditPurchase, type LegacyCreditPurchaseProof } from "@/lib/stripe/credit-fulfillment";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
@@ -71,6 +71,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true, fulfillment: result.outcome });
     } catch {
       return NextResponse.json({ error: "credit_fulfillment_retry_required" }, { status: 503 });
+    }
+  }
+
+  // The old event claim is insert-only, including failed attempts. Verify the
+  // new legacy Stripe dependency BEFORE claiming, then carry a single-use proof
+  // into the actual grant so no second lookup can consume an unfulfilled event.
+  let legacyPurchaseProof: LegacyCreditPurchaseProof | undefined;
+  if (event.type === "checkout.session.completed" &&
+      (event.data.object as Stripe.Checkout.Session).metadata?.type === "credit_purchase") {
+    const session = event.data.object as Stripe.Checkout.Session;
+    const userId = session.metadata?.blockid_user_id;
+    const credits = Number(session.metadata?.blockid_credits);
+    if (event.account || !userId || !Number.isSafeInteger(credits) || credits <= 0) return NextResponse.json({ error: "credit_purchase_identity_invalid" }, { status: 503 });
+    try {
+      const preflight = await preflightLegacyCreditPurchase(userId, credits, session.id);
+      if (preflight.kind === "receipt") {
+        const receipt = await fulfillCreditCheckout(preflight.sessionId);
+        return NextResponse.json({ received: true, fulfillment: receipt.outcome });
+      }
+      legacyPurchaseProof = preflight.proof;
+    } catch {
+      return NextResponse.json({ error: "credit_purchase_verification_retry_required" }, { status: 503 });
     }
   }
 
@@ -341,6 +363,7 @@ export async function POST(request: Request) {
             session_id: session.id,
             stripe_event_id: e.id,
           },
+          legacyPurchaseProof,
         );
         if (grantResult.ok) {
           console.info(

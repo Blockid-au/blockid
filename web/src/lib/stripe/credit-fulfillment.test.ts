@@ -3,7 +3,7 @@ const m = vi.hoisted(() => ({ retrieve: vi.fn(), list: vi.fn(), rpc: vi.fn() }))
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/stripe", () => ({ getStripe: () => ({ checkout: { sessions: { retrieve: m.retrieve, listLineItems: m.list } } }) }));
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => ({ rpc: m.rpc }) }));
-import { fulfillCreditCheckout, guardLegacyCreditPackGrant, recordCreditCheckout } from "./credit-fulfillment";
+import { fulfillCreditCheckout, guardLegacyCreditPackGrant, recordCreditCheckout, preflightLegacyCreditPurchase } from "./credit-fulfillment";
 const session = () => ({ id: "cs_fixture", livemode: false, mode: "payment", status: "complete", payment_status: "paid", currency: "aud", metadata: { type: "credit_purchase", credit_receipt_version: "1", blockid_user_id: "user", blockid_credits: "5" }, amount_subtotal: 500, amount_total: 500, total_details: { amount_tax: 45, amount_discount: 0, amount_shipping: 0 }, automatic_tax: { status: "complete" }, customer_details: { address: { country: "AU" } }, payment_intent: "pi_fixture" });
 beforeEach(() => {
  vi.stubEnv("G30_CREDIT_RECEIPTS", "");
@@ -67,4 +67,19 @@ it("checkout recording uses the exact receipt RPC and refuses unmarked sessions"
  expect(m.rpc).toHaveBeenCalledWith("record_credit_checkout",expect.objectContaining({p_session:"cs_fixture",p_user:"user",p_price:"price_fixture",p_credits:5,p_subtotal:500}));
  m.rpc.mockClear();const legacy=session();delete (legacy.metadata as Record<string,string>).credit_receipt_version;
  await expect(recordCreditCheckout(legacy as never,"user","price_fixture",5,500)).rejects.toThrow("legacy_checkout");expect(m.rpc).not.toHaveBeenCalled();
+});
+
+it("preflight proof is exact-bound, single-use and cannot be forged to bypass Stripe",async()=>{
+ const legacy=session();delete (legacy.metadata as Record<string,string>).credit_receipt_version;m.retrieve.mockResolvedValue(legacy);
+ const preflight=await preflightLegacyCreditPurchase("user",5,"cs_fixture");if(preflight.kind!=="legacy")throw Error("fixture");
+ expect(await guardLegacyCreditPackGrant("user",5,"cs_fixture",preflight.proof)).toBeNull();
+ expect(m.retrieve).toHaveBeenCalledTimes(1);
+ await expect(guardLegacyCreditPackGrant("user",5,"cs_fixture",preflight.proof)).rejects.toThrow("proof_invalid");
+ await expect(guardLegacyCreditPackGrant("user",5,"cs_fixture",{} as never)).rejects.toThrow("proof_invalid");
+ const other=await preflightLegacyCreditPurchase("user",5,"cs_fixture");if(other.kind!=="legacy")throw Error("fixture");
+ await expect(guardLegacyCreditPackGrant("other",5,"cs_fixture",other.proof)).rejects.toThrow("proof_invalid");
+});
+it("preflight discovers an authoritative receipt marker before legacy event claiming",async()=>{
+ expect(await preflightLegacyCreditPurchase("user",5,"cs_fixture")).toEqual({kind:"receipt",sessionId:"cs_fixture"});
+ expect(m.rpc).not.toHaveBeenCalled();
 });

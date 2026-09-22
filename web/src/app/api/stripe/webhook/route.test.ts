@@ -103,11 +103,13 @@ vi.mock("@/lib/supabase", () => ({
 
 // Stripe: only used by the webhook module for subscription lookups + plan-id
 // mapping. We keep the SDK out of the tests entirely.
+const stripeSessionsRetrieve = vi.fn();
 const stripeSubscriptionsRetrieve = vi.fn();
 const stripeSubscriptionsCancel = vi.fn();
 vi.mock("@/lib/stripe", () => ({
   isStripeConfigured: () => true,
   getStripe: () => ({
+    checkout: { sessions: { retrieve: stripeSessionsRetrieve } },
     subscriptions: { retrieve: stripeSubscriptionsRetrieve, cancel: stripeSubscriptionsCancel },
   }),
   STRIPE_PRICE_MAP: {
@@ -121,9 +123,10 @@ vi.mock("@/lib/stripe", () => ({
 // Signature verification + idempotency claim.
 const verifyWebhookSignature = vi.fn<(raw: string, sig: string) => unknown>();
 const receiptFulfill = vi.hoisted(() => vi.fn());
+const purchasePreflight = vi.hoisted(() => vi.fn());
 vi.mock("@/lib/stripe/credit-fulfillment", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/stripe/credit-fulfillment")>(),
-  fulfillCreditCheckout: receiptFulfill,
+  fulfillCreditCheckout: receiptFulfill, preflightLegacyCreditPurchase: purchasePreflight,
 }));
 const claimWebhookEvent = vi.fn<(event: unknown) => Promise<{ duplicate: boolean }>>();
 const markWebhookEventProcessed = vi.fn<(id: string, err?: string) => Promise<undefined>>();
@@ -133,12 +136,15 @@ vi.mock("@/lib/stripe/verify", () => ({
   markWebhookEventProcessed: (id: string, err?: string) => markWebhookEventProcessed(id, err),
 }));
 
+const purchaseProofs: unknown[] = [];
 // Credit grants — count invocations per SKU test.
 const grantCreditsMock =
   vi.fn<(userId: string, amount: number, reason: string, detail: unknown) => Promise<{ ok: boolean }>>();
 vi.mock("@/lib/credits", () => ({
-  grantCredits: (userId: string, amount: number, reason: string, detail: unknown) =>
-    grantCreditsMock(userId, amount, reason, detail),
+  grantCredits: (userId: string, amount: number, reason: string, detail: unknown, proof?: unknown) => {
+    if (reason === "credit_pack_purchase") purchaseProofs.push(proof);
+    return grantCreditsMock(userId, amount, reason, detail);
+  },
   PLAN_CREDITS: {
     founding50: { amount: 100 },
   },
@@ -283,6 +289,8 @@ beforeEach(() => {
   vi.stubEnv("G30_CREDIT_RECEIPTS", "0");
   vi.stubEnv("G30_CREDIT_PURCHASES_PAUSED", "0");
   receiptFulfill.mockReset().mockResolvedValue({outcome:"completed"});
+  purchasePreflight.mockReset().mockResolvedValue({kind:"legacy",proof:{}});
+  stripeSessionsRetrieve.mockReset();purchaseProofs.length=0;
   emitCalls.length = 0;
   fromCalls.length = 0;
   insertCalls.length = 0;
@@ -1132,4 +1140,20 @@ describe("receipt-compatible webhook routing", () => {
     expect((await invoke()).status).toBe(503);
     expect(claimWebhookEvent).not.toHaveBeenCalled(); expect(grantCreditsMock).not.toHaveBeenCalled();
   });
+});
+
+it("legacy transient Stripe retrieval retries same event before claim, then grants with no second lookup",async()=>{
+ const actual=await vi.importActual<typeof import("@/lib/stripe/credit-fulfillment")>("@/lib/stripe/credit-fulfillment");
+ purchasePreflight.mockImplementation(actual.preflightLegacyCreditPurchase);
+ const event=buildCheckoutEvent({id:"legacy_retry",metadata:{type:"credit_purchase",blockid_user_id:"user",blockid_credits:"25"}});
+ verifyWebhookSignature.mockReturnValue(event);
+ stripeSessionsRetrieve.mockRejectedValueOnce(new Error("Stripe transient"))
+  .mockResolvedValueOnce({id:"cs_test_legacy_retry",mode:"payment",status:"complete",payment_status:"paid",metadata:{type:"credit_purchase",blockid_user_id:"user",blockid_credits:"25"}});
+ grantCreditsMock.mockImplementation(async(user,credits,_reason,metadata)=>{
+  await actual.guardLegacyCreditPackGrant(user,credits,(metadata as {session_id:string}).session_id,purchaseProofs.at(-1) as import("@/lib/stripe/credit-fulfillment").LegacyCreditPurchaseProof);
+  return {ok:true};
+ });
+ expect((await invoke()).status).toBe(503);expect(claimWebhookEvent).not.toHaveBeenCalled();expect(grantCreditsMock).not.toHaveBeenCalled();
+ expect((await invoke()).status).toBe(200);expect(claimWebhookEvent).toHaveBeenCalledTimes(1);expect(grantCreditsMock).toHaveBeenCalledTimes(1);
+ expect(stripeSessionsRetrieve).toHaveBeenCalledTimes(2); // first failed preflight, second successful preflight only
 });
