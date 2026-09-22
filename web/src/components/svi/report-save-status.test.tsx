@@ -1,12 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ReportSaveStatusNotice, SavedReportActions } from "./report-save-status";
+import { retainReportSaveOutcome } from "@/lib/report-save-outcome";
 
 const language = vi.hoisted(() => ({ locale: "en" }));
 vi.mock("@/lib/use-locale", () => ({ useLocale: () => [language.locale] }));
 beforeEach(() => { language.locale = "en"; });
 
 describe("report save notice", () => {
+  it.each(["not_requested", undefined] as const)("retains failed-save guidance and blocks stale exports after a partial retry returning %s", (incoming) => {
+    const status = retainReportSaveOutcome("save_failed", incoming);
+    const restored = JSON.parse(JSON.stringify({ saveStatus: status })).saveStatus;
+    expect(renderToStaticMarkup(<ReportSaveStatusNotice status={restored} />)).toContain("could not save");
+    expect(renderToStaticMarkup(<SavedReportActions status={restored}><button>Share report</button></SavedReportActions>)).toBe("");
+  });
+  it("clears the warning on an acknowledged save and resets independently for a new full run", () => {
+    expect(retainReportSaveOutcome("save_failed", "saved")).toBe("saved");
+    expect(retainReportSaveOutcome(undefined, "not_requested")).toBe("not_requested");
+  });
   it("explains incomplete saving while retaining access to the generated report", () => {
     const html = renderToStaticMarkup(<ReportSaveStatusNotice status="save_failed" />);
     expect(html).toContain('role="status"');

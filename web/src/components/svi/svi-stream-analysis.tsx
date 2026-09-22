@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReportSaveStatus } from "@/lib/report-save-outcome";
+import { retainReportSaveOutcome, type ReportSaveStatus } from "@/lib/report-save-outcome";
 import { ReportSaveStatusNotice, SavedReportActions } from "./report-save-status";
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
@@ -1448,7 +1448,6 @@ export function SviStreamAnalysis({
       setTotal(dimsFilter.length);
       setCompleted(0);
       setDone(false);
-      setSaveStatus(undefined);
     } else {
       reset();
       // Prime every card to "loading" immediately so the grid shows pulsing
@@ -1587,7 +1586,7 @@ export function SviStreamAnalysis({
               break;
 
             case "done":
-              setSaveStatus(event.saveStatus);
+              setSaveStatus((previous) => retainReportSaveOutcome(previous, event.saveStatus));
               setDone(true);
               setTotalMs(event.totalMs);
               break;
