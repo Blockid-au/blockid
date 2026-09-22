@@ -2,7 +2,8 @@
 // deadline wave from `done.deadlineHitPhase`, the strike ledger folded in.
 import { describe, expect, it } from "vitest";
 import { createRunStrikeLedger } from "@/lib/ai/run-strikes";
-import type { PipelineEvent, PipelinePhase } from "./orchestrator";
+import type { PipelineEvent } from "./orchestrator";
+import type { PipelinePhase } from "./types";
 import { RunDiagnosticsTracker } from "./run-diagnostics";
 
 const progress = (phase: PipelinePhase, completed = 0): PipelineEvent => ({ type: "progress", completed, total: 100, phase });

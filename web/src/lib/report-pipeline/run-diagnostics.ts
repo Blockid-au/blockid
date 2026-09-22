@@ -17,7 +17,8 @@
 // Pure module: no I/O, no globals, no provider secrets (provider NAMES only —
 // the same names /api/status.ai already publishes).
 
-import type { PipelineEvent, PipelinePhase } from "./orchestrator";
+import type { PipelineEvent } from "./orchestrator";
+import type { PipelinePhase } from "./types";
 
 export interface WaveTiming {
   phase: PipelinePhase;
