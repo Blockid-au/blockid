@@ -1,5 +1,13 @@
 # BlockID.au Changelog
 
+## v3.30.1 — Source attribution and clearer return paths
+
+- Match whole source excerpts to the correct business and saved snapshot. Market analysis receives explicitly attributed source statements; a matching quote does not independently verify a business claim.
+- Restrict scoped public citation markers to the exact supported statement; preserve limitations and prevent number-only reuse.
+- Add shared workspace links to Home, the appropriate investor/founder overview and known parent sections.
+- Report unavailable paid-gap pricing clearly without directing customers to buy credits for a configuration error.
+- Allow explicitly bounded incremental secret scans for subsequent phases; full scanning remains the default.
+
 ## v3.30.0 — G30 report and reading foundations
 
 - Expand “What we looked at” into section-specific findings, evidence limits, investor implications and questions, using the final report for fresh and saved results. Hide provisional monetary estimates while final valuation is pending.
