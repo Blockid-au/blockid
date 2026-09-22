@@ -1,3 +1,4 @@
+import { criterionDetailExport } from "./criterion-detail-export";
 // Trusted Business Report v3 — the PDF surface (G27 PDF twin).
 //
 // One `ReportV2` in, one A4 document out, in the fixed 16-section order of
@@ -1201,6 +1202,19 @@ function Chapter({ ch, index, locale, projection, view }: { ch: DimensionChapter
               </View>
             ))}
           />
+          {showCards && ch.criteria.map((c) => {
+            const detail = criterionDetailExport(c, [...ch.evidence, ...projection.report.appendix.evidenceRegister], locale);
+            if (!detail) return null;
+            return (
+              <View key={`analysis-${c.key}`} style={{ marginTop: 8, marginBottom: 8 }}>
+                <Text style={[s.smallInk, s.bold]} minPresenceAhead={45}>{t(`${c.title}: ${detail.heading}`)}</Text>
+                <Text style={[s.tiny, { marginBottom: 5 }]}>{t(detail.disclosure)}</Text>
+                {detail.paragraphs.map((paragraph, index) => <Text key={index} style={[s.body, { marginBottom: 5 }]}>{t(paragraph)}</Text>)}
+                {detail.quotes.length > 0 && <Text style={[s.smallInk, s.bold]} minPresenceAhead={25}>{t(detail.sourcesHeading)}</Text>}
+                {detail.quotes.map((quote, index) => <Text key={index} style={[s.tiny, { marginBottom: 4 }]}>{t(quote)}</Text>)}
+              </View>
+            );
+          })}
           {showCards ? (
             ch.criteria.map((c) =>
               c.strengths.length > 0 || c.gaps.length > 0 || c.nextAction ? (

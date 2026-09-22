@@ -1,3 +1,4 @@
+import { criterionDetailExport } from "@/lib/pdf/criterion-detail-export";
 // Trusted Business Report v3 — the DOCX surface (G27, investor-grade twin).
 //
 // Same 16 sections, same order as the web and the PDF
@@ -718,6 +719,15 @@ function criteriaTable(ctx: Ctx, ch: DimensionChapter): Block[] {
     h3(t.criteria),
     table([t.thCriterion, t.thScore, t.thQuality, t.thVerdict], ch.criteria.map((c) => [c.title, String(c.score), quality[c.quality] ?? c.quality, oneLine(c.verdict, 20)]), { widths: [26, 10, 14, 50], numeric: [1] }),
   ];
+  if (!ctx.free && ctx.projection.show.criterionDetail) {
+    for (const card of ch.criteria) {
+      const detail = criterionDetailExport(card, [...ch.evidence, ...ctx.r.appendix.evidenceRegister], locale);
+      if (!detail) continue;
+      out.push(h3(`${card.title}: ${detail.heading}`), small(detail.disclosure));
+      out.push(...detail.paragraphs.map(paragraph => p(paragraph)));
+      if (detail.quotes.length) out.push(kicker(detail.sourcesHeading), ...detail.quotes.map(quote => small(quote)));
+    }
+  }
   if (ctx.free) out.push(small(t.fullCardsPaid));
   return out;
 }
