@@ -519,6 +519,9 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
     if (deadlineHitPhase === null) deadlineHitPhase = currentPhase;
   };
   const notify = (phase: PipelinePhase, progress: number, currentAgent?: AgentRole) => {
+    // A deadline that fired inside the phase we are leaving is attributed to
+    // that phase (the audit / gates run under "synthesizing", never "complete").
+    if (deadline.softExpired()) markDeadline();
     currentPhase = phase;
     input.onPhaseChange?.({
       reportId,
@@ -691,7 +694,6 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
 
     // ── Phase 3: SYNTHESIZE ─────────────────────────────────────────────
     notify("synthesizing", 85);
-    if (deadline.expired()) markDeadline();
 
     // CDO cross-validation: one LLM call at premium+ (§B.9); deterministic elsewhere.
     context.consistencyIssues =
@@ -785,7 +787,7 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
       costReportedCalls: meter.reported,
       degradedSections: reportV2?.quality.degradedSections ?? [],
       deadlineHit: deadline.expired(),
-      deadlineHitPhase: deadline.expired() ? (deadlineHitPhase ?? currentPhase) : deadlineHitPhase,
+      deadlineHitPhase,
       // G23-A counters — written to the tbr-quality.jsonl row by run-for-project.
       budgetOverruns: context.qualityCounters?.budgetOverruns ?? 0,
       verdictTrimmed: context.qualityCounters?.verdictTrimmed ?? 0,
