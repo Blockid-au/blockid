@@ -1,3 +1,4 @@
+import { g30WriterDeferred } from "@/lib/ops/g30-writer-ownership";
 // POST /api/cron/agent-orchestrator — Leader/Manager that auto-upgrades
 // BlockID.au platform itself.  Each C-Level AI agent researches its domain,
 // generates code improvements, and the orchestrator pushes them through:
@@ -561,6 +562,11 @@ export async function POST(request: Request) {
   if (!isCronAuthorised(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // These legacy handlers may mutate source, releases or deployment caches.
+  // Auth remains first; defer before budgets, state, maintenance or notifications.
+  const ownershipDeferral = g30WriterDeferred();
+  if (ownershipDeferral) return ownershipDeferral;
 
   const rl = await checkRateLimit("orchestrator", 6, 600_000);
   if (!rl.allowed) {

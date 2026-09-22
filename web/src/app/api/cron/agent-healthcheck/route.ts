@@ -1,3 +1,4 @@
+import { g30WriterDeferred } from "@/lib/ops/g30-writer-ownership";
 // POST /api/cron/agent-healthcheck — Daily comprehensive QA + Security + Ops agent
 //
 // Categories:
@@ -66,6 +67,11 @@ export async function POST(request: Request) {
   if (!isCronAuthorised(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // These legacy handlers may mutate source, releases or deployment caches.
+  // Auth remains first; defer before budgets, state, maintenance or notifications.
+  const ownershipDeferral = g30WriterDeferred();
+  if (ownershipDeferral) return ownershipDeferral;
 
   const rl = checkRateLimit("cron:agent-healthcheck", 2, 30 * 60 * 1000);
   if (!rl.allowed) {

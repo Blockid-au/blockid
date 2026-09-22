@@ -1,3 +1,4 @@
+import { g30WriterDeferred } from "@/lib/ops/g30-writer-ownership";
 // POST /api/cron/agent-guardian — Auto-guardian: monitor → detect → fix → alert
 //
 // Runs every 10 minutes. Lightweight — no tsc/lint, no heavy AI calls.
@@ -416,6 +417,11 @@ export async function POST(request: Request) {
   if (!isCronAuthorised(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // These legacy handlers may mutate source, releases or deployment caches.
+  // Auth remains first; defer before budgets, state, maintenance or notifications.
+  const ownershipDeferral = g30WriterDeferred();
+  if (ownershipDeferral) return ownershipDeferral;
 
   // CRON_SECRET above is the access gate. If the guardian already ran very
   // recently, skip gracefully (200) rather than failing the cron with a 429.
