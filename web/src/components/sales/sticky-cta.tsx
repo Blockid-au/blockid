@@ -23,6 +23,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { X, ArrowRight } from "lucide-react";
+import { setFloatingStackLift } from "@/components/ui/floating-stack";
 import {
   getCtaVariant,
   type CtaSurface,
@@ -125,7 +126,29 @@ export function StickyCta({
     });
   }, [mounted, dismissed, location, variant, phase, href]);
 
-  if (!mounted || dismissed) return null;
+  // G29-C: below `sm` the bar spans the whole viewport foot, exactly where the
+  // FloatingStack (cookie prefs + feedback pills) sits — lift the stack by the
+  // bar's height while it is visible so the pills never cover the primary CTA.
+  const barRef = React.useRef<HTMLDivElement | null>(null);
+  const visible = mounted && !dismissed;
+  React.useEffect(() => {
+    if (!visible) return;
+    const el = barRef.current;
+    if (!el) return;
+    const mq = window.matchMedia("(max-width: 639px)");
+    const apply = () => setFloatingStackLift(mq.matches ? el.getBoundingClientRect().height : 0);
+    apply();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(apply) : null;
+    ro?.observe(el);
+    mq.addEventListener("change", apply);
+    return () => {
+      ro?.disconnect();
+      mq.removeEventListener("change", apply);
+      setFloatingStackLift(0);
+    };
+  }, [visible]);
+
+  if (!visible) return null;
 
   const handleClick = () => {
     fireGa("cta_click", {
@@ -150,7 +173,7 @@ export function StickyCta({
       aria-label="Conversion call to action"
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 sm:inset-x-auto sm:right-6 sm:bottom-6"
     >
-      <div className="pointer-events-auto flex items-stretch gap-2 border-t border-line-subtle bg-surface-sunken/95 p-3 shadow-2xl backdrop-blur sm:rounded-2xl sm:border sm:border-line-subtle sm:p-2 sm:pr-3">
+      <div ref={barRef} className="pointer-events-auto flex items-stretch gap-2 border-t border-line-subtle bg-surface-sunken/95 p-3 shadow-2xl backdrop-blur sm:rounded-2xl sm:border sm:border-line-subtle sm:p-2 sm:pr-3">
         <Link
           href={href}
           onClick={handleClick}

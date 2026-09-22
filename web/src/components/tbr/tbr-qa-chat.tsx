@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MessageCircle, Send, X, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FLOATING_SLOT, FloatingSlot } from "@/components/ui/floating-stack";
 
 interface ChatMessage {
   role: "user" | "assistant";
@@ -87,8 +88,10 @@ export function TbrQaChat({ projectId, token, className }: Props) {
 
   const showSuggestions = messages.length === 0 && !sending;
 
+  // Top of the shared bottom-right FloatingStack (G29-C): the feedback FAB
+  // used to sit on top of this button at the same corner.
   return (
-    <div className={cn("fixed bottom-4 right-4 z-40 print:hidden", className)}>
+    <FloatingSlot order={FLOATING_SLOT.reportChat} testId="report-chat-slot" className={cn("print:hidden", className)}>
       {!open && (
         <button
           type="button"
@@ -232,6 +235,6 @@ export function TbrQaChat({ projectId, token, className }: Props) {
           </form>
         </div>
       )}
-    </div>
+    </FloatingSlot>
   );
 }

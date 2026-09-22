@@ -3,6 +3,7 @@
 import * as React from "react";
 import { MessageSquarePlus, X, Send, CheckCircle2, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FLOATING_SLOT, FloatingSlot } from "@/components/ui/floating-stack";
 
 type Category = "general" | "bug" | "feature" | "pricing" | "ux";
 
@@ -96,8 +97,10 @@ export function FeedbackWidget(_props: { page?: string } = {}) {
   const len = text.trim().length;
   const canSubmit = len >= MIN_LEN && len <= MAX_LEN && status !== "sending";
 
+  // Bottom of the shared FloatingStack (G29-C) — the cookie-prefs pill and the
+  // report Q&A FAB stack above it instead of overlapping.
   return (
-    <div className="fixed z-50 flex flex-col items-end gap-2 bottom-5 right-5">
+    <FloatingSlot order={FLOATING_SLOT.feedback} testId="feedback-slot" className="gap-2">
       {open && (
         <div className="w-[22rem] max-w-[calc(100vw-2.5rem)] rounded-2xl border border-surface-200 bg-white shadow-xl overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-surface-200">
@@ -192,13 +195,14 @@ export function FeedbackWidget(_props: { page?: string } = {}) {
             : "bg-brand-600 text-white hover:bg-brand-700 hover:scale-[1.03]",
         )}
         aria-label={open ? "Close feedback" : "Open feedback"}
+        data-testid="feedback-pill"
       >
         {open
           ? <X strokeWidth={2} className="h-4 w-4" />
           : <MessageSquarePlus strokeWidth={1.75} className="h-4 w-4" />}
         <span className="text-xs font-medium">Feedback</span>
       </button>
-    </div>
+    </FloatingSlot>
   );
 }
 
