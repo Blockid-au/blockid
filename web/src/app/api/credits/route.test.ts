@@ -1,8 +1,8 @@
 // Colocated vitest for GET + POST /api/credits — P9-credits-route-test.
 //
 // GET returns the authenticated user's balance + transactions. POST buys
-// credits via Stripe Checkout (or grants directly when Stripe is not
-// configured for credits). This is the ONLY surface that mints
+// credits via Stripe Checkout. Missing payment configuration must never
+// grant credits. This is the ONLY surface that mints
 // Stripe Checkout sessions with `type=credit_purchase` metadata, which is
 // the exact key the stripe-reconcile cron scans for on missed webhooks —
 // so the metadata shape here is load-bearing across TWO independent systems.
@@ -15,8 +15,8 @@
 //     hand-crafted `{amount: 999999}` mint a Checkout for that value;
 //   - dropping the `type: credit_purchase` metadata would break the
 //     stripe-reconcile cron's ability to auto-grant on missed webhooks;
-//   - flipping the fallback path to skip the auth check would let anon
-//     callers pass grantCredits() a user id and mint free balance.
+//   - granting credits when payment configuration is missing would mint
+//     unpaid balance for authenticated callers.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -66,7 +66,7 @@ const mocks = vi.hoisted(() => ({
     credits_10: "price_credits_10",
     credits_25: "price_credits_25",
     credits_50: "price_credits_50",
-    // credits_100 intentionally missing to exercise the fallback path.
+    // credits_100 intentionally missing to exercise unavailable checkout.
   } as Record<string, string | undefined>,
 }));
 
@@ -418,48 +418,27 @@ describe("POST /api/credits — Stripe Checkout path", () => {
 });
 
 // -----------------------------------------------------------------------------
-// POST — direct-grant fallback (Stripe or price not configured)
+// POST — unavailable payment configuration
 // -----------------------------------------------------------------------------
 
-describe("POST /api/credits — direct-grant fallback", () => {
-  it("grants credits directly when Stripe is not configured", async () => {
-    mocks.isStripeConfiguredMock.mockReturnValue(false);
-    const res = await POST(postReq({ amount: 25 }));
-    expect(res.status).toBe(200);
-    const body = await json(res);
-    expect(body.ok).toBe(true);
-    expect(body.granted).toBe(25);
-    expect(body.method).toBe("direct");
-    expect(body.balance).toBe(250);
-    expect(mocks.grantCreditsMock).toHaveBeenCalledTimes(1);
-    expect(mocks.stripeCreateMock).not.toHaveBeenCalled();
-  });
-
-  it("grants credits directly when the price is missing from STRIPE_PRICE_MAP (100-pack)", async () => {
-    // credits_100 intentionally absent from fixture — pin the fallback.
-    const res = await POST(postReq({ amount: 100 }));
-    const body = await json(res);
-    expect(body.method).toBe("direct");
-    expect(mocks.stripeCreateMock).not.toHaveBeenCalled();
-  });
-
-  it("returns 500 when grantCredits fails on the fallback path", async () => {
-    mocks.isStripeConfiguredMock.mockReturnValue(false);
-    mocks.grantCreditsMock.mockResolvedValue({ ok: false });
-    const res = await POST(postReq({ amount: 25 }));
-    expect(res.status).toBe(500);
-    const body = await json(res);
-    expect(body.reason).toBe("Failed to grant credits");
-  });
-
-  it("passes user.id + kind='purchase' + amount to grantCredits", async () => {
-    mocks.isStripeConfiguredMock.mockReturnValue(false);
-    await POST(postReq({ amount: 25 }));
-    const [uid, amt, kind] = mocks.grantCreditsMock.mock.calls[0] ?? [];
-    expect(uid).toBe(USER.id);
-    expect(amt).toBe(25);
-    expect(kind).toBe("purchase");
-  });
+describe("POST /api/credits — unavailable checkout", () => {
+  it.each(["missing provider", "missing client", "missing price"])(
+    "returns 503 without changing credits for %s",
+    async (failure) => {
+      if (failure === "missing provider") mocks.isStripeConfiguredMock.mockReturnValue(false);
+      if (failure === "missing client") mocks.getStripeMock.mockReturnValue(null);
+      const res = await POST(postReq({ amount: failure === "missing price" ? 100 : 25 }));
+      expect(res.status).toBe(503);
+      const body = await json(res);
+      expect(body).toEqual({
+        ok: false,
+        error: "sku_unconfigured",
+        reason: "Credit purchases are temporarily unavailable. Please try again later.",
+      });
+      expect(mocks.grantCreditsMock).not.toHaveBeenCalled();
+      expect(mocks.stripeCreateMock).not.toHaveBeenCalled();
+    },
+  );
 });
 
 // -----------------------------------------------------------------------------

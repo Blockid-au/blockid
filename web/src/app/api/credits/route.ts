@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { getBalance, getTransactionHistory, grantCredits, CREDIT_PACKS } from "@/lib/credits";
+import { getBalance, getTransactionHistory, CREDIT_PACKS } from "@/lib/credits";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
 import { sessionIdempotencyKey } from "@/lib/stripe/idempotency";
 import { enforceRateLimit } from "@/lib/rate-limit";
@@ -39,10 +39,10 @@ export async function GET() {
 
 // POST /api/credits
 // Purchase a credit pack via Stripe Checkout.
-// Body: { amount: 10 | 25 | 50 | 100 }
+// Body: { amount: 5 | 10 | 25 | 50 | 100 }
 //
-// If STRIPE is not configured or no price ID exists for credits, falls back
-// to granting credits directly (dev/staging convenience).
+// A configured payment provider and pack price are required.
+// This checkout endpoint never grants credits.
 
 async function POST_handler(request: Request) {
   const user = await getCurrentUser();
@@ -127,25 +127,10 @@ async function POST_handler(request: Request) {
     }
   }
 
-  // Fallback: grant credits directly (dev/staging without Stripe prices).
-  const result = await grantCredits(user.id, amount, "purchase", {
-    pack: amount,
-    note: "Direct grant (Stripe not configured for credits)",
-  });
-
-  if (!result.ok) {
-    return NextResponse.json(
-      { ok: false, reason: "Failed to grant credits" },
-      { status: 500 },
-    );
-  }
-
-  return NextResponse.json({
-    ok: true,
-    balance: result.balance,
-    granted: amount,
-    method: "direct",
-  });
+  return NextResponse.json(
+    { ok: false, error: "sku_unconfigured", reason: "Credit purchases are temporarily unavailable. Please try again later." },
+    { status: 503 },
+  );
 }
 
 export const dynamic = "force-dynamic";
