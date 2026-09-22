@@ -10,6 +10,8 @@ import {
   inferTractionFromTreScore,
   type MethodMeta,
 } from "@/lib/svi/valuation-method-selector";
+import { readStreamValuation, valuationForRun, type StreamValuation } from "@/lib/svi/stream-valuation";
+import { CanonicalValuation } from "./canonical-valuation";
 import { RunningSviHero } from "./running-svi-hero";
 import {
   Users,
@@ -88,7 +90,7 @@ type SSEEvent =
   | { type: "criteria_synthesis"; criteria: CriterionState[] }
   | { type: "criterion_addendum"; items: Array<{ dimension: string; delta: number; note: string }> }
   | { type: "cache_hit"; ageMs: number; dims: number; criteria: number }
-  | { type: "valuation_complete"; chapter: { status?: "available" | "unavailable" } }
+  | { type: "valuation_complete"; chapter: unknown }
   | { type: "done"; valuationStatus?: "available" | "unavailable"; saveStatus?: ReportSaveStatus; totalMs: number; fromCache?: boolean }
   | { type: "error"; dimension: string; message: string }
   | { type: "fatal_error"; message: string }
@@ -110,6 +112,7 @@ const STORAGE_MAX_AGE_MS = 30 * 60_000; // 30 min
 type StreamValuationStatus = "pending" | "available" | "unavailable";
 
 interface PersistedState {
+  valuation?: StreamValuation | null;
   valuationStatus?: StreamValuationStatus;
   saveStatus?: ReportSaveStatus;
   savedAt: number;
@@ -1299,6 +1302,7 @@ export function SviStreamAnalysis({
   const [completed, setCompleted] = useState(0);
   const [total, setTotal] = useState(8);
   const [done, setDone] = useState(false);
+  const [valuation, setValuation] = useState<StreamValuation | null>(null);
   const [valuationStatus, setValuationStatus] = useState<StreamValuationStatus>();
   const [saveStatus, setSaveStatus] = useState<ReportSaveStatus>();
   const [totalMs, setTotalMs] = useState<number | null>(null);
@@ -1337,6 +1341,7 @@ export function SviStreamAnalysis({
     setDone(saved.done);
     setSaveStatus(saved.saveStatus);
     setValuationStatus(saved.valuationStatus);
+    setValuation(readStreamValuation(saved.valuation));
     setIndustry(saved.industry);
     if (saved.stage) setStage(saved.stage);
     setRestoredFromCache(true);
@@ -1376,6 +1381,7 @@ export function SviStreamAnalysis({
       savedAt: Date.now(),
       saveStatus,
       valuationStatus,
+      valuation,
       dimStates,
       criterionStates,
       completed,
@@ -1385,7 +1391,7 @@ export function SviStreamAnalysis({
       industry,
       stage,
     });
-  }, [dimStates, criterionStates, completed, total, totalMs, done, industry, stage, projectId, saveStatus, valuationStatus]);
+  }, [dimStates, criterionStates, completed, total, totalMs, done, industry, stage, projectId, saveStatus, valuationStatus, valuation]);
 
   const updateDim = useCallback(
     (key: string, patch: Partial<DimState>) => {
@@ -1427,6 +1433,7 @@ export function SviStreamAnalysis({
     setDone(false);
     setSaveStatus(undefined);
     setValuationStatus("pending");
+    setValuation(previous => valuationForRun(previous, false));
     setTotalMs(null);
     setFatalError(null);
     setIndustry(null);
@@ -1445,6 +1452,7 @@ export function SviStreamAnalysis({
     // Full-run: clear all cards. Retry: only touch the cards being re-run so
     // we don't wipe the other 7 completed scores.
     if (dimsFilter && dimsFilter.length > 0) {
+      setValuation(previous => valuationForRun(previous, true));
       setFatalError(null);
       setDimStates((prev) => {
         const next: Record<string, DimState> = { ...prev };
@@ -1593,9 +1601,12 @@ export function SviStreamAnalysis({
               setCriterionAddendum(event.items ?? []);
               break;
 
-            case "valuation_complete":
-              setValuationStatus(event.chapter.status === "unavailable" ? "unavailable" : "available");
+            case "valuation_complete": {
+              const canonical = readStreamValuation(event.chapter);
+              setValuation(canonical);
+              setValuationStatus(canonical ? "available" : "unavailable");
               break;
+            }
 
             case "done":
               if (event.valuationStatus) setValuationStatus(event.valuationStatus);
@@ -1938,6 +1949,7 @@ export function SviStreamAnalysis({
           industry={industry}
           totalCount={total}
           valuationStatus={valuationStatus}
+          valuation={valuation}
           running={running}
           done={done}
         />
@@ -2062,10 +2074,8 @@ export function SviStreamAnalysis({
               </div>
             )}
             <SectorCohortWidget userTotal={totalSvi} industry={industry} />
-            {/* Directional 3-case valuation cards — worst / average / best.
-                Uses the client-computed SVI total + industry + stage from the
-                context SSE event. Zero server call (all math is deterministic). */}
-            {(valuationStatus === undefined || valuationStatus === "available") ? <ThreeCaseValuationCards
+            {/* New runs display the canonical report. Missing-status historical runs retain their legacy projection. */}
+            {valuationStatus === "available" && valuation ? <CanonicalValuation valuation={valuation} /> : valuationStatus === undefined ? <ThreeCaseValuationCards
               svi={totalSvi}
               stage={stage}
               industry={industry}

@@ -525,3 +525,27 @@ describe("G30 valuation availability wire", () => {
     expect(doneEvent(newWireState(["tre"]), 10, false)).toMatchObject({ valuationStatus: "unavailable" });
   });
 });
+
+describe("canonical final valuation parity", () => {
+  it("publishes the final report value after an earlier conflicting chapter and before done", async () => {
+    const fake = fakeOrchestrate();
+    const final = { ...demo.valuation, consensus: { ...demo.valuation.consensus, lowAud: 11000000, midAud: 12000000, highAud: 13000000 } };
+    const events: StreamEvent[] = [];
+    const d = deps({ orchestrate: async input => ({ ...await fake.orchestrate(input), reportV2: { ...demo, valuation: final } }) });
+    await runReportPipeline({ userId: "user-1", projectId: "proj-1", tier: "free", onEvent: e => events.push(e), deps: d });
+    const chapters = events.filter(e => e.type === "valuation_complete");
+    expect(chapters[0]).toMatchObject({ chapter: demo.valuation });
+    expect(chapters.at(-1)).toEqual({ type: "valuation_complete", chapter: final });
+    expect(events.at(-1)).toMatchObject({ type: "done", valuationStatus: "available" });
+  });
+});
+
+it("partial retry without a valuation event does not overwrite the prior client outcome", async () => {
+  const fake = fakeOrchestrate();
+  const events: StreamEvent[] = [];
+  const d = deps({ orchestrate: async input => fake.orchestrate({ ...input, onEvent: event => { if (event.type !== "valuation_complete") input.onEvent?.(event); } }) });
+  await runReportPipeline({ userId: "user-1", projectId: "proj-1", tier: "free", dims: ["tre"], onEvent: event => events.push(event), deps: d });
+  expect(events.some(e => e.type === "valuation_complete")).toBe(false);
+  expect(events.at(-1)?.type).toBe("done");
+  expect(events.at(-1)).toHaveProperty("valuationStatus", undefined);
+});

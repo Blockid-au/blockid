@@ -6,6 +6,8 @@ import {
   selectValuationMethod,
   inferTractionFromTreScore,
 } from "@/lib/svi/valuation-method-selector";
+import type { StreamValuation } from "@/lib/svi/stream-valuation";
+import { CanonicalValuation } from "./canonical-valuation";
 import { cn } from "@/lib/utils";
 
 // Running SVI hero — Wave 23 Phase A.
@@ -16,9 +18,8 @@ import { cn } from "@/lib/utils";
 // done-state uses, so the number the founder sees during analysis is
 // consistent with the final one.
 //
-// Also shows a directional 3-case valuation range that grows/shrinks
-// as more evidence arrives — genuinely useful signal for the founder
-// during the ~60s analysis instead of an inert progress bar.
+// New runs display the canonical report valuation when it arrives.
+// Historical missing-status results retain the earlier directional projection.
 
 export interface RunningDim {
   key: string;
@@ -28,6 +29,7 @@ export interface RunningDim {
 }
 
 interface Props {
+  valuation?: StreamValuation | null;
   valuationStatus?: "pending" | "available" | "unavailable";
   dims: RunningDim[];
   stage: string | null;
@@ -80,7 +82,7 @@ function useCountUp(target: number, durationMs = 500): number {
   return displayed;
 }
 
-export function RunningSviHero({ dims, stage, industry, totalCount, running, done, valuationStatus }: Props) {
+export function RunningSviHero({ dims, stage, industry, totalCount, running, done, valuationStatus, valuation }: Props) {
   const scored = dims.filter((d): d is RunningDim & { score: number } => d.score !== null);
 
   const totalWeight = scored.reduce((acc, d) => acc + d.weight, 0);
@@ -95,7 +97,7 @@ export function RunningSviHero({ dims, stage, industry, totalCount, running, don
   // component exists for, and React throws "Rendered more hooks than during
   // the previous render" on it. Hooks first, then bail.
   if (scored.length === 0 && !running) return null;
-  const showValuation = scored.length >= 3 && (valuationStatus === undefined || valuationStatus === "available");
+  const showValuation = scored.length >= 3 && valuationStatus === undefined;
 
   const band: "strong" | "developing" | "early" | "pending" =
     scored.length === 0 ? "pending" : rawTotal >= 70 ? "strong" : rawTotal >= 40 ? "developing" : "early";
@@ -191,6 +193,7 @@ export function RunningSviHero({ dims, stage, industry, totalCount, running, don
         </div>
       )}
 
+      {valuationStatus === "available" && valuation && <CanonicalValuation valuation={valuation} />}
       {showValuation && (() => {
         const v = computeThreeCaseValuation(rawTotal, stage, industry);
         const treDim = dims.find((d) => d.key === "tre");

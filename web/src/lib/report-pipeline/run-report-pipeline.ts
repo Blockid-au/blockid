@@ -609,8 +609,14 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
     }
   }
 
+  // Final consistency gates can revise the earlier chapter. Publish the same
+  // canonical value used by saved reports and exports before acknowledging done.
+  if (!partial) {
+    state.valuation = report.reportV2?.valuation ?? null;
+    if (state.valuation) send({ type: "valuation_complete", chapter: state.valuation });
+  }
   const totalMs = now() - t0;
-  send({ ...doneEvent(state, totalMs, false), saveStatus });
+  send({ ...doneEvent(state, totalMs, false), ...(partial && !state.valuation ? { valuationStatus: undefined } : {}), saveStatus });
 
   // 5. Notify + email (fire-and-forget; a full run only).
   if (!partial && saveStatus !== "save_failed") {
