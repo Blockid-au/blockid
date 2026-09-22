@@ -28,11 +28,11 @@ const settlementSchema=z.discriminatedUnion("state",[
   z.object({attemptId:digest,state:z.literal("reported_usage"),inputTokens:integer,outputTokens:integer}).strict(),
 ]);
 const entrySchema=z.object({
-  id:digest,binding:digest,job:digest,call:digest,grant:digest,grantBinding:digest,jobLimitsBinding:digest,
+  id:digest,binding:digest,job:digest,call:digest,grant:digest,grantBinding:digest,jobLimitsBinding:digest,callLimitsBinding:digest,
   model:label,payloadSha256:digest,policy:digest,policyBinding:digest,price:modelSchema,
   promptBytes:positive,requestedOutputTokens:positive,maximumCostMicroUsd:positive,
   heldCostMicroUsd:integer,state:z.enum(["reserved","unknown","reported_usage"]),
-  settlement:digest.nullable(),inputTokens:integer.nullable(),outputTokens:integer.nullable(),
+  settlement:digest.nullable(),conflictSettlement:digest.nullable(),inputTokens:integer.nullable(),outputTokens:integer.nullable(),
 }).strict();
 const ledgerSchema=z.object({version:z.literal(1),account:digest,month,entries:z.array(entrySchema).max(5000)}).strict();
 type Entry=z.infer<typeof entrySchema>;
@@ -53,6 +53,7 @@ function validateLedger(value:unknown,context:ResearchBudgetContext):Ledger {
   if(new Set(ledger.entries.map(e=>e.id)).size!==ledger.entries.length)return reject("ledger unavailable");
   for(const e of ledger.entries) {
     if(e.model!==e.price.model||e.maximumCostMicroUsd!==maximumCost(e.price)||e.heldCostMicroUsd>e.maximumCostMicroUsd||e.requestedOutputTokens>e.price.providerMaxOutputTokens)return reject("ledger unavailable");
+    if(e.conflictSettlement!==null&&(e.state!=="unknown"||e.settlement===null))return reject("ledger unavailable");
     if(e.state!=="reported_usage") {
       if(e.heldCostMicroUsd!==e.maximumCostMicroUsd||e.inputTokens!==null||e.outputTokens!==null||(e.state==="reserved"&&e.settlement!==null)||(e.state==="unknown"&&e.settlement===null))return reject("ledger unavailable");
     } else if(e.inputTokens===null||e.outputTokens===null||!e.settlement||e.inputTokens>e.price.contextTokens||e.outputTokens>e.requestedOutputTokens||(e.inputTokens===0&&e.outputTokens===0)||BigInt(e.inputTokens)+BigInt(e.outputTokens)>BigInt(e.price.contextTokens)||!e.price.completeUsageAccountingCertified||e.heldCostMicroUsd!==cost(e.price,e.inputTokens,e.outputTokens))return reject("ledger unavailable");
@@ -79,7 +80,7 @@ export function createResearchAttemptBudget(options:{
   const job=hash(context.jobId),call=hash(context.callId),grant=hash(context.grantId);
   const clock=()=>{const n=now();if(!Number.isSafeInteger(n)||n<0||!Number.isFinite(new Date(n).getTime()))return reject("invalid clock");return n;};
   async function transaction<T>(fn:(ledger:Ledger)=>Promise<{result:T;write:boolean}>):Promise<T> {
-    let locked=false;
+    let locked=false,recoveryRequired=false;
     try {
       if(resolve(directory)!==directory||await realpath(directory)!==directory)return reject("unsafe ledger directory");
       const dir=await lstat(directory);
@@ -101,16 +102,17 @@ export function createResearchAttemptBudget(options:{
       if(write) {
         validateLedger(ledger,context);
         const bytes=JSON.stringify(ledger);if(Buffer.byteLength(bytes)>4_000_000)return reject("ledger capacity reached");
+        recoveryRequired=true; // A failed durable write must block new admission until recovery.
         const temp=join(directory,`.attempt-${randomUUID()}.tmp`);
         try {
           const out=await open(temp,constants.O_WRONLY|constants.O_CREAT|constants.O_EXCL|constants.O_NOFOLLOW,0o600);
           try{await out.writeFile(bytes);await out.sync();}finally{await out.close();}
-          await rename(temp,filePath);await syncDirectory();
+          await rename(temp,filePath);await syncDirectory();recoveryRequired=false;
         } finally {await unlink(temp).catch(()=>undefined);}
       }
       return result;
     } catch(error) {if(error instanceof ResearchAttemptBudgetError)throw error;return reject("ledger or authority unavailable; reservation may be retained");}
-    finally {if(locked)await rmdir(lock).catch(()=>undefined);}
+    finally {if(locked&&!recoveryRequired)await rmdir(lock).catch(()=>undefined);}
   }
   return {
     callId:context.callId,
@@ -132,8 +134,8 @@ export function createResearchAttemptBudget(options:{
         // Baseline usage can increase independently. Immutable grant ceilings,
         // exact payload set and expiry cannot change under the same grant ID.
         const {externalUsage,...immutableGrant}=a;
-        const grantBinding=hash(immutableGrant),jobLimitsBinding=hash(a.limits.job);
-        if(ledger.entries.some(e=>(e.policy===policyId&&e.policyBinding!==policyBinding)||(e.grant===grant&&e.grantBinding!==grantBinding)||(e.job===job&&e.jobLimitsBinding!==jobLimitsBinding)))return reject("immutable authorization changed");
+        const grantBinding=hash(immutableGrant),jobLimitsBinding=hash(a.limits.job),callLimitsBinding=hash(a.limits.call);
+        if(ledger.entries.some(e=>(e.policy===policyId&&e.policyBinding!==policyBinding)||(e.grant===grant&&e.grantBinding!==grantBinding)||(e.job===job&&e.jobLimitsBinding!==jobLimitsBinding)||(e.call===call&&(e.callLimitsBinding!==callLimitsBinding||e.job!==job))))return reject("immutable authorization changed");
         const maximum=maximumCost(price),permit:AttemptPermit={dispatchAllowed:true,attemptId:request.attemptId,payloadSha256:request.payloadSha256,model:request.model,maximumPromptBytes:binding.promptBytes,maximumInputTokens:price.contextTokens,maximumOutputTokens:request.maximumOutputTokens,maximumCostMicroUsd:maximum,pricePolicyId:policy.id,expiresAt:Math.min(a.expiresAt,policy.expiresAt)};
         const fullBinding=hash({request,context,grantBinding,policyBinding});
         const previous=ledger.entries.find(e=>e.id===request.attemptId);
@@ -143,26 +145,36 @@ export function createResearchAttemptBudget(options:{
           const total=entries.reduce((sum,e)=>sum+BigInt(e.heldCostMicroUsd),BigInt(externalUsage[level].costMicroUsd));
           if(total+BigInt(maximum)>BigInt(a.limits[level].costMicroUsd)||BigInt(entries.length)+BigInt(externalUsage[level].attempts)+1n>BigInt(a.limits[level].attempts))return reject(`${level} budget exhausted`);
         }
-        ledger.entries.push({id:request.attemptId,binding:fullBinding,job,call,grant,grantBinding,jobLimitsBinding,model:request.model,payloadSha256:request.payloadSha256,policy:policyId,policyBinding,price, promptBytes:request.promptBytes,requestedOutputTokens:request.maximumOutputTokens,maximumCostMicroUsd:maximum,heldCostMicroUsd:maximum,state:"reserved",settlement:null,inputTokens:null,outputTokens:null});
+        ledger.entries.push({id:request.attemptId,binding:fullBinding,job,call,grant,grantBinding,jobLimitsBinding,callLimitsBinding,model:request.model,payloadSha256:request.payloadSha256,policy:policyId,policyBinding,price, promptBytes:request.promptBytes,requestedOutputTokens:request.maximumOutputTokens,maximumCostMicroUsd:maximum,heldCostMicroUsd:maximum,state:"reserved",settlement:null,conflictSettlement:null,inputTokens:null,outputTokens:null});
         return {result:permit,write:true};
       });
     },
     async settle(input) {
       const parsed=settlementSchema.safeParse(structuredClone(input));if(!parsed.success)return reject("invalid settlement");const receipt=parsed.data;
-      await transaction(async ledger=>{
+      const conflict=await transaction(async ledger=>{
         await options.assertSettlementAuthorized(structuredClone(context));
         const entry=ledger.entries.find(e=>e.id===receipt.attemptId&&e.job===job&&e.call===call&&e.grant===grant);
         if(!entry)return reject("settlement scope mismatch");
         const receiptHash=hash(receipt);
-        if(entry.settlement) {if(entry.settlement!==receiptHash)return reject("settlement conflict; prior hold retained");return {result:undefined,write:false};}
+        if(entry.conflictSettlement)return {result:true,write:false};
+        if(entry.settlement) {
+          if(entry.settlement===receiptHash)return {result:false,write:false};
+          // Commit the conservative restoration before surfacing the conflict.
+          // Preserve the original and first conflicting receipt digests for audit;
+          // no later receipt can reduce this hold without separate reconciliation.
+          entry.conflictSettlement=receiptHash;entry.state="unknown";
+          entry.inputTokens=null;entry.outputTokens=null;entry.heldCostMicroUsd=entry.maximumCostMicroUsd;
+          return {result:true,write:true};
+        }
         entry.settlement=receiptHash;
         const complete=receipt.state==="reported_usage"&&entry.price.completeUsageAccountingCertified&&receipt.inputTokens<=entry.price.contextTokens&&receipt.outputTokens<=entry.requestedOutputTokens&&(receipt.inputTokens>0||receipt.outputTokens>0)&&BigInt(receipt.inputTokens)+BigInt(receipt.outputTokens)<=BigInt(entry.price.contextTokens);
         if(complete&&receipt.state==="reported_usage") {
           entry.state="reported_usage";entry.inputTokens=receipt.inputTokens;entry.outputTokens=receipt.outputTokens;
           entry.heldCostMicroUsd=cost(entry.price,receipt.inputTokens,receipt.outputTokens);
         } else {entry.state="unknown";} // Sticky full ceiling; no automatic later refund.
-        return {result:undefined,write:true};
+        return {result:false,write:true};
       });
+      if(conflict)return reject("settlement conflict; full hold restored; reconciliation required");
     },
   };
 }

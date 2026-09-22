@@ -47,7 +47,7 @@ it("settles once with original certified prices after month change, not current 
  const later=createResearchAttemptBudget({directory:dir,context:context(),readAuthorization:async()=>{throw Error("do not consult changed prices");},assertSettlementAuthorized:async()=>{},now:()=>Date.parse("2026-10-01T00:00:00Z")});
  await later.settle({attemptId:r.attemptId,state:"reported_usage",inputTokens:10,outputTokens:5});await later.settle({attemptId:r.attemptId,state:"reported_usage",inputTokens:10,outputTokens:5});
  expect((await read(dir)).entries[0]).toMatchObject({state:"reported_usage",heldCostMicroUsd:20});
- await expect(later.settle({attemptId:r.attemptId,state:"reported_usage",inputTokens:1,outputTokens:1})).rejects.toThrow("settlement conflict");expect((await read(dir)).entries[0].heldCostMicroUsd).toBe(20);
+ await expect(later.settle({attemptId:r.attemptId,state:"reported_usage",inputTokens:1,outputTokens:1})).rejects.toThrow("settlement conflict");expect((await read(dir)).entries[0].heldCostMicroUsd).toBe(2000);
  await expect(later.reserve(r)).rejects.toThrow("original month mismatch");
 }));
 it("out-of-bound or zero usage retains maximum rather than granting a false refund",()=>isolated(async dir=>{
@@ -103,4 +103,34 @@ it("rechecks original month after slow authorization and denies unauthorized set
  await expect(crossing.reserve(request())).rejects.toThrow("authorization scope or expiry mismatch");expect((await read(dir)).entries).toHaveLength(0);
  await coordinator(dir).reserve(request());const denied=createResearchAttemptBudget({directory:dir,context:context(),readAuthorization:async()=>authorization(),assertSettlementAuthorized:async()=>{throw Error("revoked accounting worker");},now:()=>time});
  await expect(denied.settle({attemptId:request().attemptId,state:"reported_usage",inputTokens:1,outputTokens:1})).rejects.toThrow();expect((await read(dir)).entries[0]).toMatchObject({state:"reserved",heldCostMicroUsd:2000});
+}));
+
+it("conflicting lower usage restores full durable hold, prevents future reduction and blocks another reservation",()=>isolated(async dir=>{
+ const auth=authorization();auth.grant.limits.month.costMicroUsd=3000;
+ const co=coordinator(dir,context(),auth),r=request();await co.reserve(r);
+ const original={attemptId:r.attemptId,state:"reported_usage" as const,inputTokens:10,outputTokens:5};
+ await co.settle(original);expect((await read(dir)).entries[0].heldCostMicroUsd).toBe(20);
+ const conflict={...original,inputTokens:1,outputTokens:1};
+ await expect(co.settle(conflict)).rejects.toThrow("full hold restored");
+ const entry=(await read(dir)).entries[0];expect(entry).toMatchObject({state:"unknown",heldCostMicroUsd:2000,inputTokens:null,outputTokens:null,settlement:hash(original),conflictSettlement:hash(conflict)});
+ for(const receipt of [original,conflict,{attemptId:r.attemptId,state:"unknown" as const}])await expect(coordinator(dir,context(),auth).settle(receipt)).rejects.toThrow("reconciliation required");
+ expect((await read(dir)).entries[0].heldCostMicroUsd).toBe(2000);
+ const c=context(1),next=authorization(c);next.grant.limits.month.costMicroUsd=3000;
+ await expect(coordinator(dir,c,next).reserve(request(c))).rejects.toThrow("month budget exhausted");expect((await read(dir)).entries).toHaveLength(1);
+}));
+it("changing grants cannot widen a durable call ceiling or reuse its identity under another job",()=>isolated(async dir=>{
+ await coordinator(dir).reserve(request());
+ for(const change of [(c:ResearchBudgetContext,a:ResearchBudgetAuthorization)=>{a.grant.limits.call.costMicroUsd=5000;},(c:ResearchBudgetContext,a:ResearchBudgetAuthorization)=>{c.jobId="different-job";a.grant.scope.jobId=c.jobId;}]) {
+  const c={...context(),grantId:"new-grant"},r=request(c,1),auth=authorization(c,r);change(c,auth);
+  await expect(coordinator(dir,c,auth).reserve(r)).rejects.toThrow("immutable authorization changed");
+ }
+ expect((await read(dir)).entries).toHaveLength(1);
+}));
+it("failed restoration write preserves the recovery lock instead of admitting against a possibly low hold",()=>isolated(async dir=>{
+ const co=coordinator(dir),r=request();await co.reserve(r);await co.settle({attemptId:r.attemptId,state:"reported_usage",inputTokens:10,outputTokens:5});
+ // Simulate a real filesystem failure during commit after the protected read.
+ // This deliberately corrupts only our synthetic temporary ledger path.
+ const broken=createResearchAttemptBudget({directory:dir,context:context(),readAuthorization:async()=>authorization(),assertSettlementAuthorized:async()=>{await unlink(file(dir));await mkdir(file(dir));},now:()=>time});
+ await expect(broken.settle({attemptId:r.attemptId,state:"reported_usage",inputTokens:1,outputTokens:1})).rejects.toThrow("ledger or authority unavailable");
+ await expect(coordinator(dir).reserve(r)).rejects.toThrow("lock requires recovery");
 }));
