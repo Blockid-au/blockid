@@ -42,6 +42,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .next-backup/
+# G30 deployment runtime locators; authoritative origin state is kept separately.
+/.g30-candidate.pid
+/.g30-candidate-unit
 
 # zero-downtime release dirs (immutable per-build copies the live server runs from)
 /releases/

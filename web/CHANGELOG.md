@@ -9,6 +9,13 @@
 - Reject credit purchases when Stripe or pack prices are unavailable instead of granting unpaid credits.
 - Full evidence and valuation accuracy, atomic billing, paid-gap deck pricing, actual-page redesign and sale acceptance remain in progress.
 
+## v3.29.1 — G30 supervised launch repair
+
+- Keep candidate processes under the system service manager after deployment tools exit; retain exit diagnostics and private configuration outside the repository.
+- Probe the current process for status health, so retained origins do not report another version's health.
+- Defer legacy source/deployment/cache-maintenance writers while G30 owns implementation; separate uptime monitors continue.
+- v3.29.0 passed release gates but failed its soak when its unsupervised process disappeared. Warm rollback restored v3.28.2. This release must repeat gates and soak before it becomes known-good.
+
 ## v3.29.0 — G30 initial safety and quote provenance
 
 - Model-written quotes no longer become evidence merely through a valid source ID; new generation cache version, with historical reports preserved.

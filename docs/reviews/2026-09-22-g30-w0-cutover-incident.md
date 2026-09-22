@@ -35,3 +35,17 @@ The initial old SHA observed during temporary smoke preceded the script's manife
 ## Artifacts
 
 Local investigation artifacts: `/tmp/g30-w0-attempt3-vitest.json`, `/tmp/g30-w0-attempt3-vitest.log`, `/tmp/g30-release-public-curl-health-extended.jsonl`, `/tmp/blockid-production-new.log`, and the controller's serving-state/deploy logs. These paths are evidence locations, not additional implementation plans. No report-quality, sale-ready or 24/7 availability certification follows from this release attempt.
+
+## Repair validation before controlled retry
+
+The candidate launcher now uses a system transient service running as the application user, with private environment/log/locator files outside the repository, no automatic restart, and retained normal/failure exit diagnostics. Ten mocked supervisor cases, eight promotion regressions and nine manual rollback regressions passed. A real synthetic Node fixture launched through the helper survived completion of the entire tool command with the same MainPID, PID1 parent, independent system cgroup and application UID. Literal environment values round-tripped correctly. After its natural exit, exit status remained inspectable. Only that synthetic unit was stopped and its synthetic private files removed; no production origin was stopped. Evidence: `/tmp/g30-supervisor-live-fixture-evidence.json`, `/tmp/g30-supervisor-integrated-shell-tests.log`, `/tmp/g30-supervisor-rollback-regression.log`.
+
+This proves the host supervisor boundary, not production health or soak. The next candidate must repeat every canonical release gate and remain healthy after the full deployment tool exits, then complete the 30-minute soak. Transient units do not survive reboot; O09 remains open. O08 durable job ownership and safe retirement remain open.
+
+The current-process status fix passed 116 targeted tests. Legacy writer admission now defers five scheduled mutation/maintenance endpoints while G30 owns execution; the source cron wrapper is effective immediately and API guards await deployment. Their combined regression checks passed 57 cases plus two Python cron matrices. Existing independent uptime watchers continue; paused maintenance endpoints leave a documented measurement/maintenance gap. These guards do not establish that previously admitted work has finished.
+
+## Bounded request-impact assessment
+
+For [06:44:00,06:50:00)UTC, nginx recorded 1,329 requests and 10 GET502 responses. No report-generation, payment or Stripe-webhook POSTs were identified in this interval. Nine POSTs were experiment exposure (four200), pricing telemetry (four202) and funding preview (one200). Eight payment-related GETs returned200. Nginx lacks upstream release identity, so these totals cannot be attributed exclusively to the candidate.
+
+Internal cron bypasses nginx: the report-email sweep recorded sent0/failed0; Stripe reconciliation scanned27 records over its48-hour window with missed0; one report-order-drain call recorded an error without usable affected-job counts. All seven attempted read-only database count queries failed. Therefore database impact, affected jobs and data loss remain UNKNOWN; request logs alone cannot rule them out. No retries, refunds, data mutations or human notifications were performed during this assessment.
