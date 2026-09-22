@@ -3,6 +3,8 @@
 ## v3.30.0 — G30 report and reading foundations
 
 - Represent insufficient valuation inputs explicitly across new reports, streaming, saved views and exports; suppress stale monetary summaries when valuation is unavailable. Historical reports remain compatible.
+- Use the final audited report for saved dimensions, streaming completion and cache replay. Bind browser restoration to authenticated user, project and received deck; completed restores do not trigger another run.
+- Withhold unqualified legacy financial amounts from gathered evidence and valuation. Match numeric citations by amount, sign, currency and unit; broader claim verification remains open.
 - Introduce investor-first business wording and the existing URL/text/file intake on English and Vietnamese homepages, with aligned social previews.
 
 - Rebuild fresh-deck context from received input and reject unsupported partial or empty deck requests before billing admission; invalidate older generation caches.
