@@ -74,6 +74,18 @@ import { AICapacityError } from "@/lib/ai/capacity";
 import { type RunStrikeSink, RunStruckError } from "@/lib/ai/run-strikes";
 import { isDailyCapReached, notifyCapReached, recordPaidSpend } from "@/lib/ai/spend-guard";
 import { cachedProviderStatus, probeProviders, readProviderStatusFile, PROBE_TTL_MS, type ProbeProvider } from "@/lib/ai/provider-status";
+import {
+  classifyDeadRung,
+  isDeadRung,
+  markDeadRung,
+  providerCapacity as deadRungCapacity,
+  readStrikes,
+  strikeKey,
+  unfundedProviders,
+  writeStrikes,
+  type ProviderCapacity,
+  type StrikeFile,
+} from "@/lib/ai/model-strikes";
 
 // Embedded AI worker source. Written to a temp file as a last-resort fallback
 // when no on-disk ai-worker.mjs can be found — e.g. an incomplete standalone
@@ -380,13 +392,108 @@ export function modelsForClass(models: string[], cls: AITaskClass): string[] {
   return strong.length > 0 ? strong : models;
 }
 
-/** Order a model list with cooled-down models dropped; if ALL are cooling,
- *  return the full list so we still attempt (degraded) rather than give up.
- *  Within whichever set we return, chronically-failing models are sunk to the
- *  bottom so the models that actually answer get tried first. For report
- *  classes the MIN_REPORT_MODEL allow-list is applied first (S32-C). */
-function readyModels(models: string[], cls: AITaskClass = "classify"): string[] {
-  const eligible = modelsForClass(models, cls);
+// ── G29-A dead rungs (runtime side) ──────────────────────────────────
+// The strike table (content/reports/ai-model-strikes.json, shared with the
+// health-check / discover / refresh crons) is read through a short cache; a
+// rung with a live `dead_until` is skipped by every ladder WITHOUT spending a
+// call — curated fallback ladders included, which is where the 2026-09-21
+// runs lost 27 calls per run (the file prune never reached them). A live
+// 402 / 404 / archived / not-found answer stamps the rung dead here and now;
+// one successful answer forgets it.
+const STRIKES_CACHE_TTL_MS = 30_000;
+let strikesCache: { data: StrikeFile; at: number } | null = null;
+
+function currentStrikes(now: number = Date.now()): StrikeFile {
+  if (!strikesCache || now - strikesCache.at > STRIKES_CACHE_TTL_MS) strikesCache = { data: readStrikes(), at: now };
+  return strikesCache.data;
+}
+
+/** Provider ids that carry a model ladder (the rest have a single fixed model). */
+const LADDER_PROVIDERS: readonly Provider[] = ["groq", "cerebras", "sambanova", "openrouter", "deepinfra", "gemini"];
+
+/** The ladder `provider` would dial right now (dynamic file list or curated default; both classes for the paid tier). */
+export function ladderFor(provider: Provider): string[] {
+  switch (provider) {
+    case "groq": return getDynamicModels("groq", GROQ_DEFAULT_MODELS);
+    case "cerebras": return getDynamicModels("cerebras", CEREBRAS_DEFAULT_MODELS);
+    case "sambanova": return getDynamicModels("sambanova", SAMBANOVA_DEFAULT_MODELS);
+    case "openrouter": return getDynamicModels("openrouter", OPENROUTER_DEFAULT_MODELS);
+    case "deepinfra": return [...new Set([...DEEPINFRA_MODELS_BY_CLASS.report, ...DEEPINFRA_MODELS_BY_CLASS.classify])];
+    case "gemini": return [...new Set([...GEMINI_MODELS_BY_CLASS.report, ...GEMINI_MODELS_BY_CLASS.classify])];
+    default: return [];
+  }
+}
+
+/** Capacity verdict per ladder provider (configured ones only) — the `/api/status.ai.dead_rungs` block. */
+export function getProviderCapacity(now: number = Date.now()): Record<string, ProviderCapacity> {
+  const ladders: Record<string, string[]> = {};
+  for (const p of LADDER_PROVIDERS) if (providerConfigured(p)) ladders[p] = ladderFor(p);
+  return deadRungCapacity(currentStrikes(now), ladders, new Date(now));
+}
+
+/** True when every rung of `p` is dead or the provider answered 402 in the dead window. */
+export function isProviderUnfunded(p: Provider, now: number = Date.now()): boolean {
+  if (!LADDER_PROVIDERS.includes(p)) return false;
+  const ladder = ladderFor(p);
+  if (ladder.length === 0) return false;
+  const cap = deadRungCapacity(currentStrikes(now), { [p]: ladder }, new Date(now))[p];
+  return cap?.state === "unfunded";
+}
+
+/** Read-modify-write against a FRESH copy of the table (never the 30 s cache), so a
+ *  runtime stamp cannot overwrite what the health-check / discover cron wrote a
+ *  moment ago. Last writer still wins on a true race — a lost stamp costs one
+ *  extra call later, never a wrong skip. */
+function updateStrikes(mutate: (fresh: StrikeFile) => StrikeFile, now: number): StrikeFile {
+  const next = mutate(readStrikes());
+  strikesCache = { data: next, at: now };
+  writeStrikes(next);
+  return next;
+}
+
+/** A live answer that is a dead-rung verdict → stamp the rung dead (24 h) in the shared table. */
+export function noteDeadRung(provider: Provider, model: string, errMsg: string, now: number = Date.now()): boolean {
+  const reason = classifyDeadRung({ message: errMsg });
+  if (!reason) return false;
+  const next = updateStrikes((fresh) => markDeadRung(fresh, provider, model, reason, new Date(now)), now);
+  const until = next[strikeKey(provider, model)]?.dead_until ?? "";
+  console.warn(`[ai-client:dead-rung] ${provider} ${model} → ${reason}; skipped without a call until ${until}`);
+  return true;
+}
+
+/** A live success forgets the rung's strike entry (dead or not) — mirrors the probe rule. */
+function clearDeadRung(provider: Provider, model: string, now: number = Date.now()): void {
+  const key = strikeKey(provider, model);
+  if (!currentStrikes(now)[key]) return; // cheap path: nothing to forget
+  updateStrikes((fresh) => {
+    if (!fresh[key]) return fresh;
+    const next = { ...fresh };
+    delete next[key];
+    return next;
+  }, now);
+}
+
+/** Thrown by a ladder whose every rung is dead — no call was made. */
+export class DeadLadderError extends Error {
+  constructor(readonly provider: Provider, readonly total: number) {
+    super(`${provider}: all ${total} models are dead rungs (402 / 404 in the last 24 h) — skipped without a call; see /api/status ai.dead_rungs`);
+    this.name = "DeadLadderError";
+  }
+}
+
+/** Order a model list with dead rungs (G29-A) and cooled-down models
+ *  dropped; if ALL survivors are cooling, return them anyway so we still
+ *  attempt (degraded) rather than give up — but a dead rung is never
+ *  resurrected by that fallback. Within whichever set we return,
+ *  chronically-failing models are sunk to the bottom so the models that
+ *  actually answer get tried first. For report classes the
+ *  MIN_REPORT_MODEL allow-list is applied first (S32-C). Exported for tests. */
+export function readyModels(provider: Provider, models: string[], cls: AITaskClass = "classify", now: number = Date.now()): string[] {
+  const strikes = currentStrikes(now);
+  const at = new Date(now);
+  const alive = models.filter((m) => !isDeadRung(strikes, provider, m, at));
+  if (alive.length === 0) return [];
+  const eligible = modelsForClass(alive, cls);
   const ready = eligible.filter(modelReady);
   return demoteFlaky(ready.length > 0 ? ready : eligible);
 }
@@ -424,6 +531,11 @@ function coolDownModel(model: string, errMsg: string): void {
 // /api/cron/discover-models so 3 NEW strong free models get prepended to the
 // shared list before the next request reads it. Throttled to once per 30 min
 // so a sustained outage doesn't hammer the discovery endpoint.
+// G29-A: the same POST is the pruning pass — the route drops every dead rung
+// (402 / 404 / archived / not-found in the last 24 h) from ai-free-models.json
+// before it looks for new models, so a storm shortens the ladder as well as
+// widening it. The runtime skip does not wait for it (readyModels reads the
+// strike table directly).
 const rateLimitTimestamps: number[] = [];
 const STORM_WINDOW_MS = 5 * 60_000;     // 5-minute sliding window
 const STORM_THRESHOLD = 2;              // ≥2 rate-limit events → trigger
@@ -1093,8 +1205,13 @@ function paidKey(provider: "deepinfra" | "gemini", model: string): string {
 }
 
 function readyPaidModels(provider: "deepinfra" | "gemini", models: string[]): string[] {
-  const ready = models.filter((m) => modelReady(paidKey(provider, m)));
-  const list = ready.length > 0 ? ready : models;
+  // G29-A: a dead rung (402 / 404 in the last 24 h) is never dialled.
+  const strikes = currentStrikes();
+  const at = new Date();
+  const alive = models.filter((m) => !isDeadRung(strikes, provider, m, at));
+  if (alive.length === 0) return [];
+  const ready = alive.filter((m) => modelReady(paidKey(provider, m)));
+  const list = ready.length > 0 ? ready : alive;
   return demoteFlaky(list.map((m) => paidKey(provider, m))).map((k) => k.slice(provider.length + 1));
 }
 
@@ -1103,7 +1220,9 @@ async function callGemini(opts: AICallOptions, cls: AITaskClass = "report"): Pro
   if (!apiKey) throw new Error("Gemini API key not configured");
 
   let lastErr: Error | null = null;
-  for (const model of readyPaidModels("gemini", GEMINI_MODELS_BY_CLASS[cls])) {
+  const geminiRungs = readyPaidModels("gemini", GEMINI_MODELS_BY_CLASS[cls]);
+  if (geminiRungs.length === 0) throw new DeadLadderError("gemini", GEMINI_MODELS_BY_CLASS[cls].length);
+  for (const model of geminiRungs) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     if (runStruck(opts, "gemini")) { lastErr = lastErr ?? runStruckError(opts, "gemini"); break; }
     const key = paidKey("gemini", model);
@@ -1136,6 +1255,7 @@ async function callGemini(opts: AICallOptions, cls: AITaskClass = "report"): Pro
       const output = Number(um.candidatesTokenCount ?? 0) + Number(um.thoughtsTokenCount ?? 0);
       const cost = usageCostUsd("gemini", model, input, output);
       recordModelOutcome(key, true);
+      clearDeadRung("gemini", model);
       return {
         text,
         provider: "gemini",
@@ -1148,6 +1268,7 @@ async function callGemini(opts: AICallOptions, cls: AITaskClass = "report"): Pro
       // RESOURCE_EXHAUSTED is Google's 429 — the shared regex reads "quota".
       const msg = /resource_exhausted/i.test(lastErr.message) ? `429 quota ${lastErr.message}` : lastErr.message;
       coolDownModel(key, msg);
+      noteDeadRung("gemini", model, lastErr.message);
       noteRunStrike(opts, "gemini", lastErr);
       console.warn(`[ai-client] Gemini ${model} failed: ${lastErr.message.slice(0, 200)}`);
     }
@@ -1157,23 +1278,27 @@ async function callGemini(opts: AICallOptions, cls: AITaskClass = "report"): Pro
 
 // ── Groq (OpenAI-compatible, free tier, llama-3.3-70b) ────────────────
 
+// Groq models ranked by Sep 2026 official docs + prod health data:
+// llama-3.3-70b-versatile re-added — Groq's own docs list it as production-grade
+// (280 t/s, 131K ctx). Kept below qwen3.6 while cooldown/health prove it out again.
+const GROQ_DEFAULT_MODELS: string[] = [
+  "qwen/qwen3.6-27b",          // A-tier: Qwen3 27B, top of Aug 2026 discovery
+  "openai/gpt-oss-120b",       // A-tier: 117B MoE, best quality when available
+  "llama-3.3-70b-versatile",   // B-tier: 70B, 280 t/s — re-verified in Groq docs (Sep 2026)
+  "llama-3.1-8b-instant",      // C-tier: 8B, 560 t/s — most reliable in prod (76 ok)
+  "openai/gpt-oss-20b",        // C-tier: 20B, fast fallback
+];
+
 async function callGroq(opts: AICallOptions, cls: AITaskClass = "classify"): Promise<AICallResult> {
   const apiKey = process.env.GROQ_API_KEY ?? getDBKey("groq")?.api_key ?? "";
   if (!apiKey) throw new Error("Groq API key not configured");
 
-  // Groq models ranked by Sep 2026 official docs + prod health data:
-  // llama-3.3-70b-versatile re-added — Groq's own docs list it as production-grade
-  // (280 t/s, 131K ctx). Kept below qwen3.6 while cooldown/health prove it out again.
-  const GROQ_MODELS = getDynamicModels("groq", [
-    "qwen/qwen3.6-27b",          // A-tier: Qwen3 27B, top of Aug 2026 discovery
-    "openai/gpt-oss-120b",       // A-tier: 117B MoE, best quality when available
-    "llama-3.3-70b-versatile",   // B-tier: 70B, 280 t/s — re-verified in Groq docs (Sep 2026)
-    "llama-3.1-8b-instant",      // C-tier: 8B, 560 t/s — most reliable in prod (76 ok)
-    "openai/gpt-oss-20b",        // C-tier: 20B, fast fallback
-  ]);
+  const GROQ_MODELS = getDynamicModels("groq", GROQ_DEFAULT_MODELS);
 
   let lastErr: Error | null = null;
-  for (const model of readyModels(GROQ_MODELS, cls)) {
+  const groqRungs = readyModels("groq", GROQ_MODELS, cls);
+  if (groqRungs.length === 0) throw new DeadLadderError("groq", GROQ_MODELS.length);
+  for (const model of groqRungs) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     if (runStruck(opts, "groq")) { lastErr = lastErr ?? runStruckError(opts, "groq"); break; }
     try {
@@ -1195,10 +1320,12 @@ async function callGroq(opts: AICallOptions, cls: AITaskClass = "classify"): Pro
       const text = data.choices?.[0]?.message?.content ?? "";
       if (!text) throw new Error("Empty Groq response");
       recordModelOutcome(model, true);
+      clearDeadRung("groq", model);
       return { text, provider: "groq", model };
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
       coolDownModel(model, lastErr.message);
+      noteDeadRung("groq", model, lastErr.message);
       noteRunStrike(opts, "groq", lastErr);
       console.warn(`[ai-client] Groq ${model} failed: ${lastErr.message}`);
     }
@@ -1210,25 +1337,32 @@ async function callGroq(opts: AICallOptions, cls: AITaskClass = "classify"): Pro
 // Free: 30 RPM, 60K TPM, ~1M tokens/day. No credit card required.
 // API: https://api.cerebras.ai/v1 (OpenAI-compatible)
 
+// Cerebras models ranked by Aug 2026 prod health + discovery:
+// gemma-4-31b (1424 ok, 0 fails — most reliable) > gpt-oss-120b (ok:506)
+// > llama-3.1-8b (C-tier fallback) > llama-3.3-70b (legacy compat)
+// NOTE: "openai/gpt-oss-120b" (Groq-prefixed ID) removed — Cerebras uses "gpt-oss-120b"
+// NOTE: "zai-glm-4.7" excluded from defaults — 96 fails, 3 ok (extremely flaky)
+// G29-A: on 2026-09-21 gemma-4-31b answered 404 model_archived, qwen-3-32b /
+// llama-3.3-70b 404 model_not_found and gpt-oss-120b 402 payment_required —
+// the dead-rung table skips them for 24 h after each such answer.
+const CEREBRAS_DEFAULT_MODELS: string[] = [
+  "gemma-4-31b",             // B-tier: 1424 prod successes — most reliable on Cerebras
+  "gpt-oss-120b",            // A-tier: 117B MoE, high throughput when available (ok:506)
+  "qwen-3-32b",              // B-tier: Qwen 3 32B, 2000 t/s, Vietnamese-friendly (Sep 2026 add)
+  "llama-3.3-70b",           // B-tier: 70B, legacy compat
+  "llama-3.1-8b",            // C-tier: 8B ultra-fast fallback
+];
+
 async function callCerebras(opts: AICallOptions, cls: AITaskClass = "classify"): Promise<AICallResult> {
   const apiKey = process.env.CEREBRAS_API_KEY ?? getDBKey("cerebras")?.api_key ?? "";
   if (!apiKey) throw new Error("Cerebras API key not configured");
 
-  // Cerebras models ranked by Aug 2026 prod health + discovery:
-  // gemma-4-31b (1424 ok, 0 fails — most reliable) > gpt-oss-120b (ok:506)
-  // > llama-3.1-8b (C-tier fallback) > llama-3.3-70b (legacy compat)
-  // NOTE: "openai/gpt-oss-120b" (Groq-prefixed ID) removed — Cerebras uses "gpt-oss-120b"
-  // NOTE: "zai-glm-4.7" excluded from defaults — 96 fails, 3 ok (extremely flaky)
-  const CEREBRAS_MODELS = getDynamicModels("cerebras", [
-    "gemma-4-31b",             // B-tier: 1424 prod successes — most reliable on Cerebras
-    "gpt-oss-120b",            // A-tier: 117B MoE, high throughput when available (ok:506)
-    "qwen-3-32b",              // B-tier: Qwen 3 32B, 2000 t/s, Vietnamese-friendly (Sep 2026 add)
-    "llama-3.3-70b",           // B-tier: 70B, legacy compat
-    "llama-3.1-8b",            // C-tier: 8B ultra-fast fallback
-  ]);
+  const CEREBRAS_MODELS = getDynamicModels("cerebras", CEREBRAS_DEFAULT_MODELS);
 
   let lastErr: Error | null = null;
-  for (const model of readyModels(CEREBRAS_MODELS, cls)) {
+  const cerebrasRungs = readyModels("cerebras", CEREBRAS_MODELS, cls);
+  if (cerebrasRungs.length === 0) throw new DeadLadderError("cerebras", CEREBRAS_MODELS.length);
+  for (const model of cerebrasRungs) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     if (runStruck(opts, "cerebras")) { lastErr = lastErr ?? runStruckError(opts, "cerebras"); break; }
     try {
@@ -1250,10 +1384,12 @@ async function callCerebras(opts: AICallOptions, cls: AITaskClass = "classify"):
       const text = data.choices?.[0]?.message?.content ?? "";
       if (!text) throw new Error("Empty Cerebras response");
       recordModelOutcome(model, true);
+      clearDeadRung("cerebras", model);
       return { text, provider: "groq" as const, model }; // reuse "groq" provider type for compat
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
       coolDownModel(model, lastErr.message);
+      noteDeadRung("cerebras", model, lastErr.message);
       noteRunStrike(opts, "cerebras", lastErr);
       console.warn(`[ai-client] Cerebras ${model} failed: ${lastErr.message}`);
     }
@@ -1265,28 +1401,34 @@ async function callCerebras(opts: AICallOptions, cls: AITaskClass = "classify"):
 // Free: ~294 TPS, DeepSeek + Llama + Qwen models. No credit card.
 // API: https://api.sambanova.ai/v1 (OpenAI-compatible)
 
+// SambaNova models ranked by Aug 2026 discovery + benchmark intelligence:
+// DeepSeek-V3.2/V3.1 (S-tier ~52, newest checkpoints) > gpt-oss-120b (A-tier)
+// > gemma-4-31B-it (B-tier) > Meta-Llama-3.3-70B (B-tier) > Meta-Llama-3.1-8B (C-tier)
+// NOTE: "DeepSeek-V3-0324" kept last for health record continuity — may still be live
+// G29-A: on 2026-09-21 every rung answered 402 PAYMENT_METHOD_REQUIRED
+// (balance_units 0) or 404 model_not_found → the provider shows `unfunded`.
+const SAMBANOVA_DEFAULT_MODELS: string[] = [
+  "DeepSeek-R1",                    // S-tier: strongest free reasoning model on SambaNova
+  "Qwen3-235B-A22B-Instruct-2507",  // S-tier: 235B MoE, competes with Claude (Sep 2026 add)
+  "DeepSeek-V3.2",                  // S-tier: latest DeepSeek V3 on SambaNova (Aug 2026)
+  "DeepSeek-V3.1",                  // S-tier: previous DeepSeek V3 checkpoint
+  "gpt-oss-120b",                   // A-tier: OpenAI 117B open-weight on SambaNova
+  "gemma-4-31B-it",                 // B-tier: Gemma 4 31B instruct (Aug 2026 discovery)
+  "Meta-Llama-3.3-70B-Instruct",    // B-tier: Llama 3.3 70B, reliable general
+  "Meta-Llama-3.1-8B-Instruct",     // C-tier: Llama 3.1 8B, fast fallback
+  "DeepSeek-V3-0324",               // S-tier: legacy ID — may still be aliased on SambaNova
+];
+
 async function callSambaNova(opts: AICallOptions, cls: AITaskClass = "classify"): Promise<AICallResult> {
   const apiKey = process.env.SAMBANOVA_API_KEY ?? getDBKey("sambanova")?.api_key ?? "";
   if (!apiKey) throw new Error("SambaNova API key not configured");
 
-  // SambaNova models ranked by Aug 2026 discovery + benchmark intelligence:
-  // DeepSeek-V3.2/V3.1 (S-tier ~52, newest checkpoints) > gpt-oss-120b (A-tier)
-  // > gemma-4-31B-it (B-tier) > Meta-Llama-3.3-70B (B-tier) > Meta-Llama-3.1-8B (C-tier)
-  // NOTE: "DeepSeek-V3-0324" kept last for health record continuity — may still be live
-  const SAMBANOVA_MODELS = getDynamicModels("sambanova", [
-    "DeepSeek-R1",                    // S-tier: strongest free reasoning model on SambaNova
-    "Qwen3-235B-A22B-Instruct-2507",  // S-tier: 235B MoE, competes with Claude (Sep 2026 add)
-    "DeepSeek-V3.2",                  // S-tier: latest DeepSeek V3 on SambaNova (Aug 2026)
-    "DeepSeek-V3.1",                  // S-tier: previous DeepSeek V3 checkpoint
-    "gpt-oss-120b",                   // A-tier: OpenAI 117B open-weight on SambaNova
-    "gemma-4-31B-it",                 // B-tier: Gemma 4 31B instruct (Aug 2026 discovery)
-    "Meta-Llama-3.3-70B-Instruct",    // B-tier: Llama 3.3 70B, reliable general
-    "Meta-Llama-3.1-8B-Instruct",     // C-tier: Llama 3.1 8B, fast fallback
-    "DeepSeek-V3-0324",               // S-tier: legacy ID — may still be aliased on SambaNova
-  ]);
+  const SAMBANOVA_MODELS = getDynamicModels("sambanova", SAMBANOVA_DEFAULT_MODELS);
 
   let lastErr: Error | null = null;
-  for (const model of readyModels(SAMBANOVA_MODELS, cls)) {
+  const sambaRungs = readyModels("sambanova", SAMBANOVA_MODELS, cls);
+  if (sambaRungs.length === 0) throw new DeadLadderError("sambanova", SAMBANOVA_MODELS.length);
+  for (const model of sambaRungs) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     if (runStruck(opts, "sambanova")) { lastErr = lastErr ?? runStruckError(opts, "sambanova"); break; }
     try {
@@ -1308,10 +1450,12 @@ async function callSambaNova(opts: AICallOptions, cls: AITaskClass = "classify")
       const text = data.choices?.[0]?.message?.content ?? "";
       if (!text) throw new Error("Empty SambaNova response");
       recordModelOutcome(model, true);
+      clearDeadRung("sambanova", model);
       return { text, provider: "groq" as const, model }; // reuse "groq" provider type for compat
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
       coolDownModel(model, lastErr.message);
+      noteDeadRung("sambanova", model, lastErr.message);
       noteRunStrike(opts, "sambanova", lastErr);
       console.warn(`[ai-client] SambaNova ${model} failed: ${lastErr.message}`);
     }
@@ -1351,7 +1495,9 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
   if (!apiKey) throw new Error("DeepInfra API key not configured");
 
   let lastErr: Error | null = null;
-  for (const model of readyPaidModels("deepinfra", DEEPINFRA_MODELS_BY_CLASS[cls])) {
+  const deepinfraRungs = readyPaidModels("deepinfra", DEEPINFRA_MODELS_BY_CLASS[cls]);
+  if (deepinfraRungs.length === 0) throw new DeadLadderError("deepinfra", DEEPINFRA_MODELS_BY_CLASS[cls].length);
+  for (const model of deepinfraRungs) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     if (runStruck(opts, "deepinfra")) { lastErr = lastErr ?? runStruckError(opts, "deepinfra"); break; }
     const key = paidKey("deepinfra", model);
@@ -1377,6 +1523,7 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
       const output = Number(data.usage?.completion_tokens ?? 0);
       const cost = usageCostUsd("deepinfra", model, input, output);
       recordModelOutcome(key, true);
+      clearDeadRung("deepinfra", model);
       return {
         text,
         provider: "groq" as const, // OpenAI-compatible family (compat) — `via` says "deepinfra"
@@ -1387,6 +1534,7 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
       coolDownModel(key, lastErr.message);
+      noteDeadRung("deepinfra", model, lastErr.message);
       noteRunStrike(opts, "deepinfra", lastErr);
       console.warn(`[ai-client] DeepInfra ${model} failed: ${lastErr.message.slice(0, 200)}`);
     }
@@ -1430,39 +1578,43 @@ async function callClaudeHaikuDirect(opts: AICallOptions): Promise<AICallResult>
 
 // ── OpenRouter (OpenAI-compatible, free models) ──────────────────────
 
+// Free models ranked by Aug 2026 discovery + intelligence benchmark.
+// S-tier (50+) → A-tier (42-50) → B-tier (35-42) → C-tier (<35)
+// Last updated: 2026-08-13 — daily refresh writes to ai-free-models.json.
+// Hardcoded list is fallback if file is missing/stale (getDynamicModels prefers file).
+const OPENROUTER_DEFAULT_MODELS: string[] = [
+  // ── S-tier: Frontier-class free models ──────────────────────────
+  "google/gemini-2.5-flash:free",                        // Google Gemini 2.5 Flash — fastest frontier model
+  "deepseek/deepseek-r1:free",                           // DeepSeek R1 reasoning — strongest free reasoning
+  "deepseek/deepseek-chat-v3.1:free",                    // DeepSeek V3.1 chat — S-tier reasoning (Sep 2026 add)
+  "deepseek/deepseek-v3:free",                           // DeepSeek V3 — top-tier general + coding
+  "meta-llama/llama-4-maverick:free",                    // Llama 4 Maverick — Meta's best free MoE
+  "qwen/qwen3-235b-a22b:free",                           // Qwen3 235B MoE — Alibaba flagship free
+  "moonshotai/kimi-k2:free",                             // Kimi K2 — 1T MoE, strong agentic tasks
+
+  // ── A-tier: Strong general-purpose ──────────────────────────────
+  "meta-llama/llama-4-scout:free",                       // Llama 4 Scout — Meta efficient MoE
+  "nvidia/llama-3.1-nemotron-ultra-253b-v1:free",        // NVIDIA Nemotron 253B — large reasoning
+  "microsoft/phi-4-reasoning-plus:free",                 // Phi-4 Reasoning Plus — strong for size
+  "tngtech/deepseek-r1t-chimera:free",                   // DeepSeek R1T Chimera — hybrid reasoning
+  "inclusionai/ling-3.0-flash-fin:free",                 // Ling 3.0 Fin — 124B MoE, 262K ctx, finance-tuned (BlockID domain fit)
+
+  // ── B-tier: Solid quality, reliable ─────────────────────────────
+  "google/gemma-3-27b-it:free",                          // Gemma 3 27B — Google efficient instruct
+  "mistralai/mistral-small-3.2-24b-instruct:free",       // Mistral Small 3.2 — reliable European model
+  "liquid/lfm-2.5-2.6b:free",                            // Liquid LFM 2.5 2.6B — 65K ctx, ultra-fast small fallback
+];
+
 async function callOpenRouter(opts: AICallOptions, cls: AITaskClass = "classify"): Promise<AICallResult> {
   const apiKey = process.env.OPENROUTER_API_KEY ?? getDBKey("openrouter")?.api_key ?? "";
   if (!apiKey) throw new Error("OpenRouter API key not configured");
 
-  // Free models ranked by Aug 2026 discovery + intelligence benchmark.
-  // S-tier (50+) → A-tier (42-50) → B-tier (35-42) → C-tier (<35)
-  // Last updated: 2026-08-13 — daily refresh writes to ai-free-models.json.
-  // Hardcoded list is fallback if file is missing/stale (getDynamicModels prefers file).
-  const FREE_MODELS = getDynamicModels("openrouter", [
-    // ── S-tier: Frontier-class free models ──────────────────────────
-    "google/gemini-2.5-flash:free",                        // Google Gemini 2.5 Flash — fastest frontier model
-    "deepseek/deepseek-r1:free",                           // DeepSeek R1 reasoning — strongest free reasoning
-    "deepseek/deepseek-chat-v3.1:free",                    // DeepSeek V3.1 chat — S-tier reasoning (Sep 2026 add)
-    "deepseek/deepseek-v3:free",                           // DeepSeek V3 — top-tier general + coding
-    "meta-llama/llama-4-maverick:free",                    // Llama 4 Maverick — Meta's best free MoE
-    "qwen/qwen3-235b-a22b:free",                           // Qwen3 235B MoE — Alibaba flagship free
-    "moonshotai/kimi-k2:free",                             // Kimi K2 — 1T MoE, strong agentic tasks
-
-    // ── A-tier: Strong general-purpose ──────────────────────────────
-    "meta-llama/llama-4-scout:free",                       // Llama 4 Scout — Meta efficient MoE
-    "nvidia/llama-3.1-nemotron-ultra-253b-v1:free",        // NVIDIA Nemotron 253B — large reasoning
-    "microsoft/phi-4-reasoning-plus:free",                 // Phi-4 Reasoning Plus — strong for size
-    "tngtech/deepseek-r1t-chimera:free",                   // DeepSeek R1T Chimera — hybrid reasoning
-    "inclusionai/ling-3.0-flash-fin:free",                 // Ling 3.0 Fin — 124B MoE, 262K ctx, finance-tuned (BlockID domain fit)
-
-    // ── B-tier: Solid quality, reliable ─────────────────────────────
-    "google/gemma-3-27b-it:free",                          // Gemma 3 27B — Google efficient instruct
-    "mistralai/mistral-small-3.2-24b-instruct:free",       // Mistral Small 3.2 — reliable European model
-    "liquid/lfm-2.5-2.6b:free",                            // Liquid LFM 2.5 2.6B — 65K ctx, ultra-fast small fallback
-  ]);
+  const FREE_MODELS = getDynamicModels("openrouter", OPENROUTER_DEFAULT_MODELS);
 
   let lastErr: Error | null = null;
-  for (const model of readyModels(FREE_MODELS, cls)) {
+  const openrouterRungs = readyModels("openrouter", FREE_MODELS, cls);
+  if (openrouterRungs.length === 0) throw new DeadLadderError("openrouter", FREE_MODELS.length);
+  for (const model of openrouterRungs) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     if (runStruck(opts, "openrouter")) { lastErr = lastErr ?? runStruckError(opts, "openrouter"); break; }
     try {
@@ -1485,10 +1637,12 @@ async function callOpenRouter(opts: AICallOptions, cls: AITaskClass = "classify"
       const text = data.choices?.[0]?.message?.content ?? "";
       if (!text) throw new Error("Empty response");
       recordModelOutcome(model, true);
+      clearDeadRung("openrouter", model);
       return { text, provider: "openrouter", model };
     } catch (err) {
       lastErr = err instanceof Error ? err : new Error(String(err));
       coolDownModel(model, lastErr.message);
+      noteDeadRung("openrouter", model, lastErr.message);
       noteRunStrike(opts, "openrouter", lastErr);
       console.warn(`[ai-client] OpenRouter ${model} failed: ${lastErr.message}`);
     }
@@ -1865,6 +2019,8 @@ function probeIdFor(p: Provider): ProbeProvider | null {
 export function providerBlockReason(p: Provider, now: number = Date.now()): string | null {
   // G24-B: a rejected key outranks every other state — never re-dialled this process.
   if (isProviderUnconfigured(p)) return "unconfigured";
+  // G29-A: every rung dead, or a 402 in the last 24 h → not dialled, no call spent (founder item #9).
+  if (isProviderUnfunded(p, now)) return "unfunded";
   if ((providerCooldown.get(p) ?? 0) > now) return "cooldown";
   if (isPaidProvider(p) && isDailyCapReached(now)) return "daily_cap";
   const id = probeIdFor(p);
@@ -2182,7 +2338,7 @@ export interface ProviderHealthEntry {
   state: "ok" | "cooldown" | "blocked";
   /** ISO timestamp when the cooldown lifts; null unless `state === "cooldown"`. */
   cooldown_until: string | null;
-  /** Block reason from `providerBlockReason` (unconfigured / invalid_key / quota_exceeded / low_credit / daily_cap / unreachable). */
+  /** Block reason from `providerBlockReason` (unconfigured / unfunded / invalid_key / quota_exceeded / low_credit / daily_cap / unreachable). */
   reason?: string;
 }
 
@@ -2190,6 +2346,12 @@ export interface ProviderHealthSnapshot {
   providers: ProviderHealthEntry[];
   budget_exhausted_1h: number;
   interactive_order: string[];
+  /** G29-A: configured providers in state `ok` — the digest alerts when < 2 for > 1 h. */
+  healthy_providers: number;
+  /** G29-A: providers whose every rung is dead or that answered 402 in the last 24 h (founder item #9). */
+  unfunded: string[];
+  /** G29-A: per ladder provider — dead rungs vs ladder length (configured providers only). */
+  dead_rungs: Record<string, ProviderCapacity>;
 }
 
 const BUDGET_EXHAUSTED_WINDOW_MS = 60 * 60_000;
@@ -2220,10 +2382,14 @@ export function getProviderHealthSnapshot(now: number = Date.now()): ProviderHea
     if (reason) return { name, state: "blocked", cooldown_until: null, reason };
     return { name, state: "ok", cooldown_until: null };
   });
+  const dead_rungs = getProviderCapacity(now);
   return {
     providers,
     budget_exhausted_1h: budgetExhaustedEvents.length,
     interactive_order: orderForInteractive(configured),
+    healthy_providers: providers.filter((p) => p.state === "ok").length,
+    unfunded: unfundedProviders(dead_rungs),
+    dead_rungs,
   };
 }
 
@@ -2243,6 +2409,8 @@ export function _resetDispatcherForTests(): void {
   paidTierEvents.length = 0;
   budgetExhaustedEvents.length = 0;
   lastProbeKickAt = 0;
+  strikesCache = null;
+  modelCfgCache = null;
 }
 
 // ── Boot-time probe kick ─────────────────────────────────────────────────
@@ -2388,6 +2556,7 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
           continue;
         }
         if (lastError instanceof RunStruckError) continue; // struck by a parallel call of this run — no process-wide cooldown from it
+        if (lastError instanceof DeadLadderError) continue; // G29-A: no call was made; the dead-rung table (not a cooldown) owns the skip
         noteRunStrike(opts, provider, lastError);
         const cooldownMs = cooldownForError(provider, lastError);
         providerCooldown.set(provider, Date.now() + cooldownMs);

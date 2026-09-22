@@ -11,6 +11,13 @@
 //      (fire-and-forget, throttled to once per 30 min via discoverDebounce)
 //   2. Weekly cron entry (Sun 04:00 UTC) for proactive freshness
 //
+// G29-A (2026-09-22): this POST is also the PRUNING PASS. Before looking for
+// new models it drops every dead rung (402 / 404 / model_archived /
+// model_not_found / payment_required in the last 24 h — lib/ai/model-strikes
+// `dead_until`) from ai-free-models.json and writes the file even when nothing
+// new was found, so a storm shortens the ladder as well as widening it.
+// Dead rungs are also excluded from re-discovery (`recentlyPruned`).
+//
 // Auth: Bearer CRON_SECRET.
 
 import { NextResponse } from "next/server";
@@ -19,7 +26,7 @@ import { FREE_MODELS_CONFIG } from "@/lib/ai-client";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { fetchJson, filterFreeOpenRouter, rank } from "@/lib/model-discovery";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
-import { readStrikes, recentlyPruned } from "@/lib/ai/model-strikes";
+import { compactStrikes, pruneDeadModels, readStrikes, recentlyPruned, writeStrikes } from "@/lib/ai/model-strikes";
 
 export const dynamic = "force-dynamic";
 
@@ -74,10 +81,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  const current = readCurrent();
+  // G29-A: pruning pass first — dead rungs leave the ladder before anything is added.
+  const stored = readCurrent();
+  const prune = pruneDeadModels(stored as Record<string, unknown>, readStrikes());
+  const removed = prune.removed;
+  const removedCount = Object.values(removed).reduce((n, ms) => n + ms.length, 0);
+  if (removedCount > 0) writeStrikes(compactStrikes(prune.strikes));
+  const current = prune.config as CurrentList;
   const added: Record<string, string[]> = {};
-  // S31-A: never re-add a model the health check pruned in the last 7 days.
-  const pruned = recentlyPruned(readStrikes());
+  // S31-A: never re-add a model the health check pruned in the last 7 days
+  // (G29-A: nor a rung that is dead right now).
+  const pruned = recentlyPruned(prune.strikes);
 
   // ── OpenRouter — biggest source of NEW free models ──
   const orAll = await fetchJson("https://openrouter.ai/api/v1/models");
@@ -103,11 +117,12 @@ export async function POST(request: Request) {
     if (fresh.length > 0) added[provider] = fresh;
   }
 
-  // Nothing new — return early without rewriting the file
-  if (Object.keys(added).length === 0) {
+  // Nothing new and nothing pruned — return early without rewriting the file
+  if (Object.keys(added).length === 0 && removedCount === 0) {
     return NextResponse.json({
       ok: true,
       noChange: true,
+      removed,
       reason: "No new strong free models discovered beyond current list",
     });
   }
@@ -134,10 +149,13 @@ export async function POST(request: Request) {
     );
   }
 
+  if (removedCount > 0) console.warn(`[discover-models] dead rungs pruned: ${JSON.stringify(removed)}`);
+
   return NextResponse.json({
     ok: true,
     updatedAt: merged.updatedAt,
     added,
+    removed,
     totalListSizes: Object.fromEntries(
       (["openrouter", "groq", "cerebras", "sambanova"] as const)
         .map((p) => [p, (merged[p] as string[] | undefined)?.length ?? 0]),

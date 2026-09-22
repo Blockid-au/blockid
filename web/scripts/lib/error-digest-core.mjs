@@ -299,3 +299,70 @@ export function formatTbrQualityAlert(verdict, heldMs) {
   parts.push(`runs ${verdict.runs ?? 0} (24 h)`);
   return `[tbr_quality] status=${verdict.status} for ${hours} h — ${parts.join(", ")} — see /api/status tbr_quality`;
 }
+
+// ---------- G29-A: fewer than 2 healthy AI providers for > 1 h → one digest line ----------
+//
+// /api/status.ai.healthy_providers counts the configured providers the
+// dispatcher would dial right now (state `ok` — not cooling, not unfunded,
+// not latched on a bad key). One healthy provider is a single point of
+// failure for every report; zero means the free-report funnel is failing
+// after 3 attempts (2026-09-21). A transient dip is normal during a storm;
+// the same verdict held for more than AI_CAPACITY_LOW_HOURS is an incident
+// nobody would otherwise see. The digest raises ONE line for it, then at most
+// one per AI_CAPACITY_ALERT_DEBOUNCE_HOURS while it persists, and clears the
+// episode as soon as ≥ AI_CAPACITY_MIN_HEALTHY providers are healthy again.
+// An unreadable status (app down) changes nothing.
+
+export const AI_CAPACITY_MIN_HEALTHY = 2;
+export const AI_CAPACITY_LOW_HOURS = 1;
+export const AI_CAPACITY_ALERT_DEBOUNCE_HOURS = 24;
+
+export function emptyAiCapacityState() {
+  return { healthy: null, low_since: null, last_alert_at: null };
+}
+
+/** `{ healthy, unfunded }` from a status body, or null when the body carries no `ai` block. */
+export function pickAiCapacity(statusBody) {
+  const ai = statusBody && typeof statusBody === "object" ? statusBody.ai : null;
+  if (!ai || typeof ai !== "object") return null;
+  let healthy = typeof ai.healthy_providers === "number" && Number.isFinite(ai.healthy_providers) ? ai.healthy_providers : null;
+  if (healthy === null && Array.isArray(ai.providers)) healthy = ai.providers.filter((p) => p && p.state === "ok").length;
+  if (healthy === null) return null;
+  const unfunded = Array.isArray(ai.unfunded) ? ai.unfunded.filter((x) => typeof x === "string").slice(0, 12) : [];
+  return { healthy, unfunded };
+}
+
+/**
+ * Apply one verdict to the ai_capacity state and decide the alert.
+ *   verdict null              → app unreachable / no ai block: state unchanged, no alert
+ *   healthy ≥ MIN_HEALTHY     → episode over: cleared (the next one alerts after its own hour)
+ *   healthy < MIN_HEALTHY     → low_since starts at the first low sighting; once it is older
+ *                               than AI_CAPACITY_LOW_HOURS one line fires, then at most one
+ *                               per AI_CAPACITY_ALERT_DEBOUNCE_HOURS while it holds.
+ * Pure: returns { next, alert } and never mutates `prev`.
+ */
+export function evaluateAiCapacity(prev, verdict, nowMs = Date.now(), opts = {}) {
+  const lowMs = (opts.lowHours ?? AI_CAPACITY_LOW_HOURS) * 3_600_000;
+  const debounceMs = (opts.debounceHours ?? AI_CAPACITY_ALERT_DEBOUNCE_HOURS) * 3_600_000;
+  const minHealthy = opts.minHealthy ?? AI_CAPACITY_MIN_HEALTHY;
+  const base = { ...emptyAiCapacityState(), ...(prev && typeof prev === "object" ? prev : {}) };
+  if (!verdict) return { next: base, alert: null };
+  const nowIso = new Date(nowMs).toISOString();
+  if (verdict.healthy >= minHealthy) return { next: { healthy: verdict.healthy, low_since: null, last_alert_at: null }, alert: null };
+
+  const sinceMs = Date.parse(base.low_since ?? "");
+  const since = Number.isFinite(sinceMs) && sinceMs <= nowMs ? sinceMs : nowMs;
+  const next = { healthy: verdict.healthy, low_since: new Date(since).toISOString(), last_alert_at: base.last_alert_at ?? null };
+  if (nowMs - since <= lowMs) return { next, alert: null };
+  const lastAlert = Date.parse(base.last_alert_at ?? "");
+  if (Number.isFinite(lastAlert) && nowMs - lastAlert < debounceMs) return { next, alert: null };
+  next.last_alert_at = nowIso;
+  return { next, alert: formatAiCapacityAlert(verdict, nowMs - since) };
+}
+
+/** One line — counts + provider names only, never a key or a URL. */
+export function formatAiCapacityAlert(verdict, heldMs) {
+  const hours = Math.floor(heldMs / 3_600_000);
+  const unfunded = verdict.unfunded && verdict.unfunded.length > 0 ? ` — unfunded: ${verdict.unfunded.join(", ")} (founder item #9)` : "";
+  return `[ai_capacity] ${verdict.healthy} healthy AI provider${verdict.healthy === 1 ? "" : "s"} for ${hours} h (need ${AI_CAPACITY_MIN_HEALTHY})${unfunded} — see /api/status ai.dead_rungs`;
+}

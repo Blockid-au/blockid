@@ -42,7 +42,7 @@ describe("publicStatusExtras", () => {
   it("keeps counts/states/timestamps, redacts message text, drops cron error detail", () => {
     const full: StatusExtras = {
       errors_1h: { total: 7, classes: [{ tag: "ai-client", msg: "ECONNREFUSED http://ai-gateway:8080/v1 falling back; see /home/dovanlong/web/.env on ai-gateway:8080 and db.internal.local", count: 7 }], windows: 6, last_ts: "x" },
-      ai: { providers: [{ name: "anthropic", state: "blocked", cooldown_until: null, reason: "401 key sk-…" }], budget_exhausted_1h: 1, interactive_order: ["deepinfra"], model_health: { updated_at: "u", total: 28, healthy: 13, quota_exceeded: 0 }, fully_degraded_24h: 2 },
+      ai: { providers: [{ name: "anthropic", state: "blocked", cooldown_until: null, reason: "401 key sk-…" }], budget_exhausted_1h: 1, interactive_order: ["deepinfra"], healthy_providers: 0, unfunded: ["sambanova"], dead_rungs: { sambanova: { state: "unfunded", dead: ["DeepSeek-V3.2"], total: 1, reason: "payment_required", until: "2026-09-22T10:00:00.000Z" } }, model_health: { updated_at: "u", total: 28, healthy: 13, quota_exceeded: 0 }, fully_degraded_24h: 2 },
       queues: { email_queued: 1, email_failed_24h: 0, webhook_failed_24h: null, report_orders_pending: 0 },
       backups_detail: { local_last_ok_at: "2026-09-17T02:20:05.000Z", local_age_h: 27.7, offsite_status: "founder_action_required", offsite_last_at: "2026-09-17T02:40:05.000Z", restore_drill_last_ok_at: null },
       latency: { ts: "t", latency_p95_ms: { marketing: 400, workspace: null, api_ai: null, api_other: 120, tbr: null }, err_rate_5xx: { marketing: 0, workspace: null, api_ai: null, api_other: 0, tbr: null }, requests: 100, timing: true },
@@ -50,7 +50,7 @@ describe("publicStatusExtras", () => {
     };
     const pub = publicStatusExtras(full);
     expect(pub.errors_1h).toEqual({ total: 7, classes: [{ tag: "ai-client", msg: "ECONNREFUSED <url> falling back; see <path> on <host> and <host>", count: 7 }] });
-    expect(pub.ai).toEqual({ providers: [{ name: "anthropic", state: "blocked" }], budget_exhausted_1h: 1, models_healthy: 13, models_total: 28, fully_degraded_24h: 2 });
+    expect(pub.ai).toEqual({ providers: [{ name: "anthropic", state: "blocked" }], budget_exhausted_1h: 1, models_healthy: 13, models_total: 28, fully_degraded_24h: 2, healthy_providers: 0, unfunded: ["sambanova"] });
     expect(pub.crons_failed_24h).toEqual([{ endpoint: "db-backup-offsite", count: 1 }]);
     expect(pub.latency_p95_ms).toEqual(full.latency!.latency_p95_ms);
     expect(JSON.stringify(pub)).not.toMatch(/sk-|\/home\/|ai-gateway|Drive quota/);

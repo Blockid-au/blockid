@@ -446,3 +446,94 @@ W4 reserve still lands 8 chapters, ≥ 7 degraded → one digest event),
 `ai-client.test.ts` § G28-B (`callAI` counts a timeout, skips a struck
 provider without a cooldown, dials again on a fresh ledger),
 `quality-log.test.ts` (≥ 7 degraded excluded from the median).
+
+## 12. Dead rungs — 402 / 404 pruning, `unfunded` providers, capacity digest (G29-A, 2026-09-22)
+
+**What went wrong.** The same 2026-09-21 showcase re-runs
+(`showcase-rerun5/6/7.log`) spent **27 calls per run on rungs that could
+never answer**, before the G28-B strikes even had a chance to count:
+
+| Provider | Model | Answer | Count (3 runs) |
+| --- | --- | --- | --- |
+| Cerebras | `gemma-4-31b` | `HTTP 404` `model_archived` ("archived and unavailable for the organization") | 24 |
+| Cerebras | `qwen-3-32b`, `llama-3.3-70b` | `HTTP 404` `model_not_found` | 24 + 24 |
+| Cerebras | `gpt-oss-120b` | `HTTP 402` `payment_required` ("Visit your billing tab") | 19 |
+| SambaNova | every rung | `HTTP 402` `PAYMENT_METHOD_REQUIRED` (`balance_units: 0`) | 118 |
+| SambaNova | `Qwen3-235B-A22B-Instruct-2507`, `DeepSeek-V3-0324` | `HTTP 404` `model_not_found` | 20 + 20 |
+
+The S31-A prune (3 failed **health probes** = 90 min) only edits
+`ai-free-models.json`; that file carried no `cerebras` / `sambanova` list at
+the time, so ai-client used its **curated fallback ladders** — which the
+prune never touches — and the per-model cooldown (1 h) is per process and
+reset by every deploy. Gemini 429 / 503, Groq 429 / 413 and the DeepInfra
+worker timeouts are transient and stay with their cooldowns and the G28-B
+run strikes; a 402 or a 404 is not.
+
+**The rule** (`lib/ai/model-strikes.ts`, shared by the crons and the runtime):
+
+1. **Dead verdict.** `classifyDeadRung({ status?, message })` — HTTP 402,
+   `payment_required`, `PAYMENT_METHOD_REQUIRED`, `balance_units: 0` →
+   `payment_required`; `model_archived` → `model_archived`; HTTP 404,
+   `model_not_found`, `not_found_error`, "does not exist", "No endpoints
+   found" → `model_not_found`. The status is read from the `HTTP nnn:` prefix
+   ai-client's transport puts on every non-2xx answer, or passed by the
+   health probe. 401 / 413 / 429 / 5xx / timeouts are **never** dead.
+2. **24 h window.** The rung's entry in `content/reports/ai-model-strikes.json`
+   gets `dead_until = now + 24 h` (`DEAD_RUNG_HOURS`), `dead_reason`,
+   `dead_at` — from ONE health probe (`applyHealthResults`) or ONE live
+   answer (`noteDeadRung` in every ladder's catch). One healthy answer
+   (probe or live) deletes the entry. After the window the rung is retried
+   once and re-stamped if it still answers 402 / 404.
+3. **Runtime skip, no call.** `readyModels(provider, ladder, cls)` /
+   `readyPaidModels` drop dead rungs BEFORE the cooldown filter — curated
+   ladders included — and the "everything is cooling, attempt anyway"
+   fallback never resurrects one. A ladder with no live rung throws
+   `DeadLadderError` without dialling; `callAI` treats it like a run strike
+   (no process-wide cooldown). Strike table reads are cached 30 s.
+4. **File prune.** `pruneDeadModels` removes a rung with a live `dead_until`
+   (as well as ≥ 3 strikes) from `ai-free-models.json`; `recentlyPruned`
+   keeps dead rungs out of `refresh-models` / `discover-models` re-ranking.
+   **The storm hook is the pruning pass:** `POST /api/cron/discover-models`
+   (fired by ai-client on ≥ 2 rate-limit events / 5 min or any hard failure,
+   and weekly) prunes first, then adds, and writes the file even when nothing
+   new was found (`removed` in its body). The 30-min health check does the
+   same on its schedule.
+5. **`unfunded` provider** (`providerCapacity`): every ladder rung dead
+   (`reason: all_rungs_dead`), or **any** rung answered 402 in the window
+   (`reason: payment_required` — the 402 is about the account, not the
+   model). `providerBlockReason()` returns `unfunded`, so the dispatcher
+   never dials it (ahead of cooldown / probe verdicts); some rungs dead →
+   `degraded` (still dialled). Founder action = `docs/ops/founder-items.md`
+   **#9 paid AI capacity** (DeepInfra credit or an OpenRouter top-up).
+
+**Status shape.** `/api/status.ai` (both bodies) now carries
+`healthy_providers` (configured providers in state `ok`) and `unfunded[]`;
+the trusted body adds `dead_rungs: { <provider>: { state: ok | degraded |
+unfunded, dead: [...], total, reason?, until } }` and each provider row can
+show `state: blocked, reason: unfunded`. `/admin/ai-keys` renders the same
+block ("Capacity — dead rungs (last 24 h)") with the founder item.
+`GET /api/admin/ai-status` → `capacity`.
+
+**Digest line.** `scripts/error-digest.mjs` reads `ai.healthy_providers`
+from the same local `/api/status` read as the G24-B quality watch and raises
+ONE line when it has been **< 2 for > 1 h** (`AI_CAPACITY_MIN_HEALTHY`,
+`AI_CAPACITY_LOW_HOURS`), then at most one per 24 h while it holds; the
+episode clears the moment ≥ 2 are healthy again. Same Telegram → e-mail path:
+`[ai_capacity] 0 healthy AI providers for 1 h (need 2) — unfunded: cerebras,
+sambanova (founder item #9) — see /api/status ai.dead_rungs`. State lives in
+`error-digest-state.json` (`ai_capacity`).
+
+**Log lines.** `[ai-client:dead-rung] sambanova DeepSeek-V3.2 →
+payment_required; skipped without a call until 2026-09-22T10:30:00.000Z`;
+`[discover-models] dead rungs pruned: {"cerebras":[…]}`. Never a key.
+
+**Tests:** `ai/model-strikes.test.ts` § G29-A (the classifier on the verbatim
+2026-09-21 lines, 24 h stamp, probe → immediate prune, healthy probe clears,
+`providerCapacity` on the 2026-09-21 chain: Cerebras + SambaNova `unfunded`,
+Groq / DeepInfra `ok`), `ai-client.test.ts` § G29-A (`readyModels` skips dead
+rungs on the curated ladder, live 402 / 404 stamps the shared table, 429 /
+timeout do not, `unfunded` blocks the dispatcher + snapshot fields,
+`DeadLadderError`), `cron/discover-models/route.test.ts` § G29-A (prune +
+write, exclude set, no-change contract), `status/ai.test.ts`,
+`admin/ai-status/route.test.ts` (capacity block), `scripts/error-digest.test.mjs`
+(`pickAiCapacity`, once-per-episode + debounce + clear, `main()` wiring).

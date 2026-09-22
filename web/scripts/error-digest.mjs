@@ -20,6 +20,10 @@
 //      raises ONE line when `tbr_quality.status` has been ≠ ok for > 24 h
 //      (then once a day while it holds) — same send path, so the e-mail
 //      fallback carries it when the Telegram token is dead. App down → no-op.
+//   7. G29-A: from the same /api/status read, raises ONE line when
+//      `ai.healthy_providers` has been < 2 for > 1 h (then once a day while
+//      it holds) and clears the episode at ≥ 2 — the dead-rung / unfunded
+//      signal (docs/ops/ai-providers.md § 12).
 //
 // Lock: /tmp/blockid-error-digest.lock (pid file, stale-safe). Exit 0 always
 // except a genuine crash (exit 1) so cron-health stays readable.
@@ -28,7 +32,7 @@ import { closeSync, existsSync, openSync, readSync, readFileSync, statSync, writ
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { acquireLock, appendJsonl, readJson, sendTelegram, WEB_DIR, writeJsonAtomic } from "./lib/ops-env.mjs";
-import { computeReadStart, digestLines, emptyState, emptyTbrQualityState, evaluate, evaluateTbrQuality, formatAlert, pickTbrQuality, splitComplete, toReportRow, WINDOW_MIN } from "./lib/error-digest-core.mjs";
+import { computeReadStart, digestLines, emptyAiCapacityState, emptyState, emptyTbrQualityState, evaluate, evaluateAiCapacity, evaluateTbrQuality, formatAlert, pickAiCapacity, pickTbrQuality, splitComplete, toReportRow, WINDOW_MIN } from "./lib/error-digest-core.mjs";
 
 const DEFAULT_LOG = existsSync("/data/logs/blockid-production.log") ? "/data/logs/blockid-production.log" : "/tmp/blockid-production.log";
 const DEFAULT_OFFSET = "/data/logs/.error-digest.offset";
@@ -38,20 +42,30 @@ const LOCK = "/tmp/blockid-error-digest.lock";
 const MAX_READ_BYTES = 32 * 1024 * 1024; // never slurp more than 32 MB per run
 const STATUS_TIMEOUT_MS = 5_000;
 
-/** G24-B: /api/status.tbr_quality from the local app, or null when unreachable / not a status body. */
-export async function readTbrQuality({ env = process.env, fetchImpl = globalThis.fetch, timeoutMs = STATUS_TIMEOUT_MS } = {}) {
+/** The local /api/status body, or null when unreachable / non-200 (never throws). */
+export async function readStatusBody({ env = process.env, fetchImpl = globalThis.fetch, timeoutMs = STATUS_TIMEOUT_MS } = {}) {
   const base = (env.STATUS_BASE_URL || "http://127.0.0.1:4001").replace(/\/+$/, "");
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     const res = await fetchImpl(`${base}/api/status`, { headers: { accept: "application/json" }, signal: ctrl.signal });
     if (!res.ok) return null;
-    return pickTbrQuality(await res.json());
+    return await res.json();
   } catch {
     return null;
   } finally {
     clearTimeout(timer);
   }
+}
+
+/** G24-B: /api/status.tbr_quality from the local app, or null when unreachable / not a status body. */
+export async function readTbrQuality(opts = {}) {
+  return pickTbrQuality(await readStatusBody(opts));
+}
+
+/** G29-A: /api/status.ai → { healthy, unfunded }, or null when unreachable / no ai block. */
+export async function readAiCapacity(opts = {}) {
+  return pickAiCapacity(await readStatusBody(opts));
 }
 
 export function parseArgs(argv) {
@@ -120,9 +134,17 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     const { state, alerts } = evaluate(prevState, digest, now, { suppressNew: seeding });
     // G24-B: report-quality watch — evaluate() rebuilds the state object, so the
     // tbr_quality slot is carried over here explicitly.
-    const tbrVerdict = await (deps.readTbrQuality ?? readTbrQuality)();
+    // One /api/status read serves both watches; an injected reader (tests)
+    // replaces the fetch for its own watch and leaves the other with null.
+    const injected = Boolean(deps.readTbrQuality || deps.readAiCapacity);
+    const statusBody = injected ? null : await (deps.readStatusBody ?? readStatusBody)();
+    const tbrVerdict = deps.readTbrQuality ? await deps.readTbrQuality() : pickTbrQuality(statusBody);
     const tbr = evaluateTbrQuality(prevState.tbr_quality ?? emptyTbrQualityState(), tbrVerdict, now);
     state.tbr_quality = tbr.next;
+    // G29-A: < 2 healthy AI providers for > 1 h → one line; clears at ≥ 2.
+    const aiVerdict = deps.readAiCapacity ? await deps.readAiCapacity() : pickAiCapacity(statusBody);
+    const aiCap = evaluateAiCapacity(prevState.ai_capacity ?? emptyAiCapacityState(), aiVerdict, now);
+    state.ai_capacity = aiCap.next;
     const row = toReportRow(digest, nowIso, args.windowMin);
     const summary = {
       ts: nowIso,
@@ -143,6 +165,13 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
         alert: tbr.alert,
         telegram: null,
       },
+      ai_capacity: {
+        healthy: aiVerdict?.healthy ?? null,
+        unfunded: aiVerdict?.unfunded ?? [],
+        low_since: aiCap.next.low_since,
+        alert: aiCap.alert,
+        telegram: null,
+      },
     };
 
     if (!args.dryRun) {
@@ -160,6 +189,9 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
     if (tbr.alert) {
       summary.tbr_quality.telegram = await (deps.sendTelegram ?? sendTelegram)(`BlockID report quality\n${tbr.alert}`, { dryRun: args.dryRun });
     }
+    if (aiCap.alert) {
+      summary.ai_capacity.telegram = await (deps.sendTelegram ?? sendTelegram)(`BlockID AI capacity\n${aiCap.alert}`, { dryRun: args.dryRun });
+    }
     if (args.json) log(JSON.stringify(summary));
     else {
       log(`[error-digest] ${nowIso}${args.dryRun ? " (dry-run)" : ""} ${win.lines.length} lines → ${digest.total} error lines in ${digest.classes.length} classes; alerts=${alerts.length}${win.missing ? " (log missing)" : ""}${summary.rotated ? " (rotation detected)" : ""}`);
@@ -167,6 +199,7 @@ export async function main(argv = process.argv.slice(2), deps = {}) {
       for (const a of alerts) log(`  ALERT ${a.rules.join("+")} [${a.tag}] ×${a.count}`);
       if (summary.telegram) log(`  telegram: ${summary.telegram.sent ? "sent" : `not sent (${summary.telegram.reason})`}`);
       if (tbr.alert) log(`  ALERT ${tbr.alert}${summary.tbr_quality.telegram ? ` — ${summary.tbr_quality.telegram.sent ? "sent" : `not sent (${summary.tbr_quality.telegram.reason})`}` : ""}`);
+      if (aiCap.alert) log(`  ALERT ${aiCap.alert}${summary.ai_capacity.telegram ? ` — ${summary.ai_capacity.telegram.sent ? "sent" : `not sent (${summary.ai_capacity.telegram.reason})`}` : ""}`);
     }
     return summary;
   } finally {
