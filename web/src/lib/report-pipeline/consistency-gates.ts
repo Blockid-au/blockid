@@ -1,3 +1,4 @@
+import { isValuationAvailable } from "@/lib/report-v2/schema";
 // consistency-gates — the deterministic consistency checks of the quality
 // gates (spec 12-product-ai-tbr-v2.md §C.9 gate 3, S-R3). No LLM, no I/O;
 // runs in the orchestrator after AUDIT and before ASSEMBLE and mutates the
@@ -144,7 +145,7 @@ export function applyConsistencyGates(input: ConsistencyGateInput): ConsistencyG
   // 2. Valuation consensus within the stage band.
   let valuationInBand: boolean | null = null;
   const v = input.valuation;
-  if (v && v.consensus.midAud > 0) {
+  if (v && isValuationAvailable(v) && v.consensus.midAud > 0) {
     const band = valuationStageBand(input.stage);
     valuationInBand = v.consensus.midAud >= band.low && v.consensus.midAud <= band.high;
     if (!valuationInBand) {

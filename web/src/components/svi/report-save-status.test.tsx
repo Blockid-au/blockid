@@ -49,3 +49,15 @@ describe("report save notice", () => {
   });
 
 });
+
+
+describe("unavailable stream result navigation", () => {
+  it.each([undefined, "not_requested", "save_failed"] as const)("blocks old-report links and exports when canonical save is %s", (status) => {
+    const html = renderToStaticMarkup(<SavedReportActions status={status} valuationStatus="unavailable"><a href="/workspace/reports/business?pid=demo">Share / PDF / full report</a></SavedReportActions>);
+    expect(html).toBe("");
+  });
+  it("allows the acknowledged saved report with its explicit unavailable valuation", () => {
+    const html = renderToStaticMarkup(<SavedReportActions status="saved" valuationStatus="unavailable"><a href="/workspace/reports/business?pid=demo">Read saved report</a></SavedReportActions>);
+    expect(html).toContain("Read saved report");
+  });
+});

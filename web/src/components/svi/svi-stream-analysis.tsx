@@ -88,7 +88,8 @@ type SSEEvent =
   | { type: "criteria_synthesis"; criteria: CriterionState[] }
   | { type: "criterion_addendum"; items: Array<{ dimension: string; delta: number; note: string }> }
   | { type: "cache_hit"; ageMs: number; dims: number; criteria: number }
-  | { type: "done"; saveStatus?: ReportSaveStatus; totalMs: number; fromCache?: boolean }
+  | { type: "valuation_complete"; chapter: { status?: "available" | "unavailable" } }
+  | { type: "done"; valuationStatus?: "available" | "unavailable"; saveStatus?: ReportSaveStatus; totalMs: number; fromCache?: boolean }
   | { type: "error"; dimension: string; message: string }
   | { type: "fatal_error"; message: string }
   // Block 2 (2026-09-08) — /analyze live variants stream these three
@@ -106,7 +107,10 @@ type SSEEvent =
 const STORAGE_PREFIX = "svi-stream:";
 const STORAGE_MAX_AGE_MS = 30 * 60_000; // 30 min
 
+type StreamValuationStatus = "pending" | "available" | "unavailable";
+
 interface PersistedState {
+  valuationStatus?: StreamValuationStatus;
   saveStatus?: ReportSaveStatus;
   savedAt: number;
   dimStates: Record<string, DimState>;
@@ -1295,6 +1299,7 @@ export function SviStreamAnalysis({
   const [completed, setCompleted] = useState(0);
   const [total, setTotal] = useState(8);
   const [done, setDone] = useState(false);
+  const [valuationStatus, setValuationStatus] = useState<StreamValuationStatus>();
   const [saveStatus, setSaveStatus] = useState<ReportSaveStatus>();
   const [totalMs, setTotalMs] = useState<number | null>(null);
   const [fatalError, setFatalError] = useState<string | null>(null);
@@ -1331,6 +1336,7 @@ export function SviStreamAnalysis({
     setTotalMs(saved.totalMs);
     setDone(saved.done);
     setSaveStatus(saved.saveStatus);
+    setValuationStatus(saved.valuationStatus);
     setIndustry(saved.industry);
     if (saved.stage) setStage(saved.stage);
     setRestoredFromCache(true);
@@ -1369,6 +1375,7 @@ export function SviStreamAnalysis({
     savePersisted(projectId ?? "", {
       savedAt: Date.now(),
       saveStatus,
+      valuationStatus,
       dimStates,
       criterionStates,
       completed,
@@ -1378,7 +1385,7 @@ export function SviStreamAnalysis({
       industry,
       stage,
     });
-  }, [dimStates, criterionStates, completed, total, totalMs, done, industry, stage, projectId, saveStatus]);
+  }, [dimStates, criterionStates, completed, total, totalMs, done, industry, stage, projectId, saveStatus, valuationStatus]);
 
   const updateDim = useCallback(
     (key: string, patch: Partial<DimState>) => {
@@ -1419,6 +1426,7 @@ export function SviStreamAnalysis({
     setTotal(8);
     setDone(false);
     setSaveStatus(undefined);
+    setValuationStatus("pending");
     setTotalMs(null);
     setFatalError(null);
     setIndustry(null);
@@ -1585,7 +1593,12 @@ export function SviStreamAnalysis({
               setCriterionAddendum(event.items ?? []);
               break;
 
+            case "valuation_complete":
+              setValuationStatus(event.chapter.status === "unavailable" ? "unavailable" : "available");
+              break;
+
             case "done":
+              if (event.valuationStatus) setValuationStatus(event.valuationStatus);
               setSaveStatus((previous) => retainReportSaveOutcome(previous, event.saveStatus));
               setDone(true);
               setTotalMs(event.totalMs);
@@ -1924,6 +1937,7 @@ export function SviStreamAnalysis({
           stage={stage}
           industry={industry}
           totalCount={total}
+          valuationStatus={valuationStatus}
           running={running}
           done={done}
         />
@@ -2051,12 +2065,12 @@ export function SviStreamAnalysis({
             {/* Directional 3-case valuation cards — worst / average / best.
                 Uses the client-computed SVI total + industry + stage from the
                 context SSE event. Zero server call (all math is deterministic). */}
-            <ThreeCaseValuationCards
+            {(valuationStatus === undefined || valuationStatus === "available") ? <ThreeCaseValuationCards
               svi={totalSvi}
               stage={stage}
               industry={industry}
               treScore={dimStates["tre"]?.score ?? null}
-            />
+            /> : <p role="status" data-stream-valuation-unavailable className="rounded-xl border border-line p-4 text-sm text-secondary">Business value is not available for this result. Review the report financial inputs before relying on a valuation.</p>}
             {/* Email-me-this-report opt-in + deeper 13-criteria CTA (Wave 21).
                 The CTA anchors the founder in "we already ran the 13 canonical
                 investor criteria per dim" (Wave 15) but presents an obvious
@@ -2087,7 +2101,7 @@ export function SviStreamAnalysis({
               </div>
             )}
 
-            <SavedReportActions status={saveStatus}>
+            <SavedReportActions status={saveStatus} valuationStatus={valuationStatus}>
             {/* Wave 25C — TBR onboarding tour. Only shown on the first done
                 state for this projectId; a localStorage flag suppresses the
                 panel on subsequent runs. */}

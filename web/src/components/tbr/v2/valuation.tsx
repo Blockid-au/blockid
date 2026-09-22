@@ -43,6 +43,12 @@ function SubTitle({ children }: { children: React.ReactNode }) {
 
 export function TbrValuation({ report, title, locale = "en", citations, investment }: { report: ReportV2; title: string; locale?: TbrUiLocale; /** G24-A: footnote numbering (report.tsx). */ citations?: CitationIndex; /** G27: "what moves it" rows. */ investment?: InvestmentView }) {
   const v = report.valuation;
+  if (v.status === "unavailable") return (
+    <TbrSection id={TBR_V2_SECTION_IDS.valuation} kicker="4" title={title} pageBreak>
+      <p role="status" data-valuation-unavailable className="rounded-xl border border-dashed border-line p-4 text-sm text-secondary">{v.narrative}</p>
+      <AuditStampLine audit={v.audit} locale={locale} />
+    </TbrSection>
+  );
   const free = report.tier === "free";
   const view = buildValuationView(v, valuationLocale(locale));
   const s = view.strings;

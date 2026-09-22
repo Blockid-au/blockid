@@ -28,6 +28,7 @@ export interface RunningDim {
 }
 
 interface Props {
+  valuationStatus?: "pending" | "available" | "unavailable";
   dims: RunningDim[];
   stage: string | null;
   industry: string | null;
@@ -79,7 +80,7 @@ function useCountUp(target: number, durationMs = 500): number {
   return displayed;
 }
 
-export function RunningSviHero({ dims, stage, industry, totalCount, running, done }: Props) {
+export function RunningSviHero({ dims, stage, industry, totalCount, running, done, valuationStatus }: Props) {
   const scored = dims.filter((d): d is RunningDim & { score: number } => d.score !== null);
 
   const totalWeight = scored.reduce((acc, d) => acc + d.weight, 0);
@@ -94,7 +95,7 @@ export function RunningSviHero({ dims, stage, industry, totalCount, running, don
   // component exists for, and React throws "Rendered more hooks than during
   // the previous render" on it. Hooks first, then bail.
   if (scored.length === 0 && !running) return null;
-  const showValuation = scored.length >= 3;
+  const showValuation = scored.length >= 3 && (valuationStatus === undefined || valuationStatus === "available");
 
   const band: "strong" | "developing" | "early" | "pending" =
     scored.length === 0 ? "pending" : rawTotal >= 70 ? "strong" : rawTotal >= 40 ? "developing" : "early";

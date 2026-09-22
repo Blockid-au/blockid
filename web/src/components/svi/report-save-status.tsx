@@ -5,8 +5,10 @@ import type { ReportSaveStatus } from "@/lib/report-save-outcome";
 import { useLocale } from "@/lib/use-locale";
 
 /** Project-only links could open an older snapshot after this run failed to save. */
-export function SavedReportActions({ status, children }: { status?: ReportSaveStatus; children: ReactNode }) {
-  return status === "save_failed" ? null : <>{children}</>;
+export function SavedReportActions({ status, valuationStatus, children }: { status?: ReportSaveStatus; valuationStatus?: "pending" | "available" | "unavailable"; children: ReactNode }) {
+  // A project-only link can open an older report when this result has no
+  // acknowledged canonical save (including legacy deck-cache replays).
+  return status === "save_failed" || (valuationStatus === "unavailable" && status !== "saved") ? null : <>{children}</>;
 }
 
 export function ReportSaveStatusNotice({ status }: { status?: ReportSaveStatus }) {

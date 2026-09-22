@@ -226,10 +226,13 @@ describe("generateAndPersistReport", () => {
     // G13-W1-R1: ReportV2 projection written best-effort to report_json (0395).
     const rj = state.calls.find((c) => c.table === "assembled_reports" && c.op === "update")!;
     expect(rj.eqs).toEqual([{ col: "id", val: "rpt-1" }]);
-    const doc = (rj.payload as { report_json: { schemaVersion: string; dimensions: unknown[]; source: string } }).report_json;
+    const doc = (rj.payload as { report_json: { schemaVersion: string; dimensions: unknown[]; source: string; valuation: Record<string, unknown>; cover: { threeQuestions: { worth: string } } } }).report_json;
     expect(doc.schemaVersion).toBe("2.0");
     expect(doc.dimensions).toHaveLength(8);
     expect(doc.source).toBe("adapter");
+    expect(doc.valuation).toMatchObject({ status: "unavailable", visuals: [] });
+    expect(doc.valuation).not.toHaveProperty("consensus");
+    expect(doc.cover.threeQuestions.worth).not.toContain("A$");
   });
 
   // G19-S46: one tbr-quality row per run — captured from the orchestrator's `done` event.
@@ -315,6 +318,15 @@ describe("generateAndPersistReport", () => {
     callAIMock.mockImplementation(async () => ({ text: "ok" }));
   });
 
+  it("keeps an actual pipeline valuation instead of replacing it with fallback unavailable", async () => {
+    const { demoReportV2 } = await import("@/lib/report-v2/fixtures");
+    const document = demoReportV2();
+    orchestrateMock.mockResolvedValue({ ...REPORT, reportV2: document });
+    await generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 3 });
+    const write = state.calls.find((call) => call.table === "assembled_reports" && call.op === "update")!;
+    expect((write.payload as { report_json: unknown }).report_json).toEqual(document);
+  });
+
   it("writes a failed row and re-throws when the orchestrator fails", async () => {
     orchestrateMock.mockRejectedValue(new Error("agents down"));
     await expect(generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 3 })).rejects.toThrow("agents down");
@@ -351,6 +363,9 @@ describe("runTrustReportForProject (evaluator)", () => {
     expect(qualityWriter).toHaveBeenCalledTimes(1);
     expect(run.quality).toBe(qualityWriter.mock.calls[0][0]);
     expect(run.quality).toMatchObject({ snapshotId: "snap-1", tier: "standard", words: 2600, groundedShare: run.reportV2!.quality.groundedShare, pipelineVersion: run.reportV2!.pipelineVersion });
+    expect(run.reportV2?.valuation).toMatchObject({ status: "unavailable", visuals: [] });
+    expect(run.reportV2?.valuation).not.toHaveProperty("consensus");
+    expect(run.reportV2?.cover.threeQuestions.worth).not.toContain("A$");
     expect(run.quality.projectId).not.toContain("p-1");
 
     const analysisInsert = state.calls.find((c) => c.table === "svi_analyses" && c.op === "insert")!.payload as Record<string, unknown>;

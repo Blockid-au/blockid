@@ -508,3 +508,20 @@ describe("renderTbrPdf — citations (G24-A)", () => {
     expect(tbrPdfOutline(demoReportV2()).some((e) => e.id === "tbr-evidence-cited")).toBe(false);
   }, 180_000);
 });
+
+describe("G30 unavailable valuation export", () => {
+  it("renders the unavailable explanation without valuation range charts", async () => {
+    const { unavailableValuation } = await import("@/lib/report-v2/schema");
+    const report: import("@/lib/report-v2/schema").ReportV2 = demoReportV2();
+    report.valuation = unavailableValuation("missing_or_invalid_revenue", report.generatedAt, ["current_revenue"]);
+    const { buffer } = await renderTbrPdf(report);
+    const text = await fullText(buffer);
+    expect(text).toContain(report.valuation.narrative);
+    expect(text).not.toContain("The consensus valuation sits between");
+    // Revenue, grant eligibility and statutory thresholds are different facts;
+    // unavailable business worth must not indiscriminately redact currencies.
+    expect(text).toContain("A$1.2M ARR");
+    expect(text).not.toContain("Directional valuation — three cases and consensus");
+    expect(text).not.toContain("AU comparables —");
+  }, 60000);
+});

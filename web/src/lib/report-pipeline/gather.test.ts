@@ -465,3 +465,67 @@ describe("gatherData — G19-S43 CTAs + Evidence Hub", () => {
     expect(rows).toEqual([{ dimension: "ftv", evidence_type: "founder_linkedin", evidence_label: "LinkedIn", evidence_value_or_url: null, confidence_level: "public_url", is_verified: false, verified_at: null, review_status: null, created_at: null, updated_at: null }]);
   });
 });
+
+describe("G30 valuation revenue presence", () => {
+  function withoutRevenue() {
+    const context = ctx();
+    context.rawText = "Business information; revenue not supplied.";
+    context.sviAnalysis = { ...context.sviAnalysis, signals: { raiseAskAud: 1_000_000 } } as ReportContext["sviAnalysis"];
+    return context;
+  }
+  const clock = Date.parse("2026-09-16T00:00:00.000Z");
+  function connectorDeps(revenue: Awaited<ReturnType<NonNullable<GatherDeps["loadConnectedRevenue"]>>>) {
+    return deps({ db: fakeDb({}), loadConnectedRevenue: async () => revenue, loadCapTable: async () => null, loadGrants: async () => null, now: () => clock });
+  }
+
+  it("withholds numerical valuation for missing revenue while preserving the ask and a visible gap", async () => {
+    const buildValuation = vi.fn(vcStub!);
+    const out = await gatherData(withoutRevenue(), callAI, { deps: deps({ buildValuation }) });
+    expect(buildValuation).not.toHaveBeenCalled();
+    expect(out.valuation).toMatchObject({ status: "unavailable", reason: "missing_or_invalid_revenue", missingInputs: ["current_revenue"], vc: null, ask: { statedCapAud: null, statedCapKind: null, raiseAud: 1_000_000 }, revenueEvidenceIds: [] });
+    expect(out.results.valuation).toMatchObject({ status: "unavailable", inputs: { mrrAud: null, arrAud: null } });
+    expect(out.results.diagnostics?.valuation).toMatchObject({ status: "skipped", note: "missing_or_invalid_revenue" });
+    expect(out.evidenceRows.some((r) => r.label.startsWith("CFO 5-method"))).toBe(false);
+    expect(out.evidenceRows.find((r) => r.label === "Valuation needs revenue information")).toMatchObject({ status: "missing", value: expect.stringContaining("Revenue is missing") });
+  });
+
+  it.each([NaN, Infinity, -1])("does not turn invalid stated MRR %s into a zero-valued input", async (value) => {
+    const context = withoutRevenue();
+    context.sviAnalysis.signals.mrrAud = value;
+    const buildValuation = vi.fn(vcStub!);
+    const out = await gatherData(context, callAI, { deps: deps({ buildValuation }) });
+    expect(buildValuation).not.toHaveBeenCalled();
+    expect(out.valuation.vc).toBeNull();
+  });
+
+  it("preserves explicit founder-stated zero instead of falling through to positive ARR", async () => {
+    const context = withoutRevenue();
+    context.sviAnalysis.signals.mrrAud = 0;
+    context.sviAnalysis.signals.arrAud = 120000;
+    const out = await gatherData(context, callAI, { deps: deps() });
+    expect(out.valuation.status).toBe("available");
+    expect(out.valuation.vc?.inputs).toMatchObject({ mrrAud: 0, arrAud: 0, revenueSource: "founder-stated" });
+    expect(out.evidenceRows.find((r) => r.label.startsWith("CFO 5-method"))?.status).toBe("partial");
+  });
+
+  it("preserves current connected zero over positive founder revenue and cites only the selected input", async () => {
+    const out = await gatherData(ctx(), callAI, { deps: connectorDeps([
+      { provider: "stripe", mrrAud: 0, capturedAt: "2026-09-10T00:00:00Z" },
+      { provider: "xero", mrrAud: 9000, capturedAt: "2026-09-10T00:00:00Z" },
+    ]) });
+    expect(out.valuation.vc?.inputs).toMatchObject({ mrrAud: 0, arrAud: 0 });
+    expect(out.valuation.revenueEvidenceIds).toEqual([gatherEvidenceId("connected_revenue", "stripe")]);
+    expect(out.evidenceRows.find((r) => r.label.startsWith("CFO 5-method"))?.status).toBe("partial");
+  });
+
+  it.each(["not-a-date", "2026-09-17T00:00:00Z", "2026-01-01T00:00:00Z"])("rejects unusable connected capture time %s for valuation", async (capturedAt) => {
+    const out = await gatherData(withoutRevenue(), callAI, { deps: connectorDeps([{ provider: "stripe", mrrAud: 5000, capturedAt }]) });
+    expect(out.valuation.vc).toBeNull();
+    expect(out.valuation.revenueEvidenceIds).toEqual([]);
+  });
+
+  it.each(["bad", "2026-09-10T00:00:00Z", "2026-09-11T00:00:00Z"])("does not invent a growth interval for prior timestamp %s", async (priorCapturedAt) => {
+    const out = await gatherData(ctx(), callAI, { deps: connectorDeps([{ provider: "stripe", mrrAud: 10000, capturedAt: "2026-09-10T00:00:00Z", priorMrrAud: 5000, priorCapturedAt }]) });
+    expect(out.valuation.vc?.inputs?.monthlyGrowthRatePct).toBeUndefined();
+  });
+});

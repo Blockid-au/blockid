@@ -147,3 +147,13 @@ describe("<ExecutiveSynthesis>", () => {
     expect(report.executive.strengths[0]).toContain("[ev:ev-connected-revenue-stripe]");
   });
 });
+
+describe("G30 unavailable valuation dashboard", () => {
+  it("carries no monetary range or confidence into the dashboard", async () => {
+    const { unavailableValuation } = await import("@/lib/report-v2/schema");
+    const report: import("@/lib/report-v2/schema").ReportV2 = demoReportV2();
+    report.valuation = unavailableValuation("missing_or_invalid_revenue", report.generatedAt, ["current_revenue"]);
+    const data = synthesisFromReport(report);
+    expect(data.worth).toMatchObject({ pending: true, lowAud: null, highAud: null, confidencePct: null });
+  });
+});

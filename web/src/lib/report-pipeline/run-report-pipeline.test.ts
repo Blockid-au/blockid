@@ -313,6 +313,7 @@ describe("runReportPipeline", () => {
     expect(events.map((e) => e.type)).toEqual(["context", "cache_hit", "dimension_complete", "progress", "dimension_complete", "progress", "criteria_synthesis_start", "criteria_synthesis", "done"]);
     expect(events[1]).toMatchObject({ ageMs: 60_000, dims: 2, criteria: 3 });
     expect(events.at(-1)).toMatchObject({ type: "done", fromCache: true });
+    expect(events.at(-1)).toMatchObject({ type: "done", valuationStatus: "unavailable" });
   });
 
   it("a cached row from another pipeline version (or the legacy generator: NULL) is a miss", async () => {
@@ -507,5 +508,20 @@ describe("G30 deck input isolation", () => {
     expect(result).toMatchObject({ ok: false, error: "needs_input" });
     expect(loadContext).not.toHaveBeenCalled();
     expect(d.calls).toHaveLength(0);
+  });
+});
+
+describe("G30 valuation availability wire", () => {
+  it("carries unavailable through the chapter event and terminal event without numeric fields", async () => {
+    const { unavailableValuation } = await import("@/lib/report-v2/schema");
+    const state = newWireState(["tre"]);
+    const chapter = unavailableValuation("missing_or_invalid_revenue", "2026-09-22T00:00:00Z", ["current_revenue"]);
+    const events = toWireEvents({ type: "valuation_complete", chapter }, state);
+    expect(events).toEqual([{ type: "valuation_complete", chapter }]);
+    expect(JSON.stringify(events)).not.toMatch(/consensus|lowAud|midAud|highAud/);
+    expect(doneEvent(state, 10, false)).toMatchObject({ valuationStatus: "unavailable" });
+  });
+  it("never turns an absent valuation event into permission for a client SVI-derived estimate", () => {
+    expect(doneEvent(newWireState(["tre"]), 10, false)).toMatchObject({ valuationStatus: "unavailable" });
   });
 });

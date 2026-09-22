@@ -197,7 +197,7 @@ export interface GatherOutput {
   results: GatherResults;
   evidenceRows: EvidenceRow[];
   /** Inputs the valuation chapter builder needs (ask + revenue evidence ids). */
-  valuation: { vc: VcValuationLike | null; ask: ValuationAskInput | null; revenueEvidenceIds: string[] };
+  valuation: { status?: "available" | "unavailable"; reason?: string; missingInputs?: string[]; vc: VcValuationLike | null; ask: ValuationAskInput | null; revenueEvidenceIds: string[] };
 }
 
 export const GATHER_TIMEOUT_MS = 20_000;
@@ -813,25 +813,29 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
   // ── 8. Valuation inputs + CFO 5-method model (deterministic, after connectors)
   const signals = (context.sviAnalysis.signals ?? {}) as Partial<{ mrrAud: number; arrAud: number; raiseAskAud: number; statedCapAud: number; statedCapKind: ValuationAskInput["statedCapKind"]; hasVesting: boolean; hasShareholdersAgreement: boolean; esopAllocated: boolean; hasDataRoom: boolean; customerCount: number }>;
   const fresh = connectedRevenue
-    .filter((r) => Number.isFinite(r.mrrAud) && r.mrrAud > 0 && now() - new Date(r.capturedAt).getTime() < 90 * 24 * 3600 * 1000)
+    .filter((r) => {
+      const age = now() - new Date(r.capturedAt).getTime();
+      return Number.isFinite(r.mrrAud) && r.mrrAud >= 0 && Number.isFinite(age) && age >= 0 && age < 90 * 24 * 3600 * 1000;
+    })
     .sort((a, b) => (a.provider === "stripe" ? -1 : 1) - (b.provider === "stripe" ? -1 : 1));
   const revenueEvidenceIds: string[] = [];
-  let mrrAud = 0;
+  let mrrAud: number | null = null;
   let revenueSource: string | null = null;
   let growthPct: number | undefined;
   if (fresh.length) {
     mrrAud = fresh[0].mrrAud;
     revenueSource = `${fresh[0].provider} (last sync ${fresh[0].capturedAt.slice(0, 10)})`;
-    fresh.forEach((r) => revenueEvidenceIds.push(gatherEvidenceId("connected_revenue", r.provider)));
+    revenueEvidenceIds.push(gatherEvidenceId("connected_revenue", fresh[0].provider));
     const prior = fresh[0].priorMrrAud;
-    if (typeof prior === "number" && prior > 0 && fresh[0].priorCapturedAt) {
-      const months = Math.max(1, (new Date(fresh[0].capturedAt).getTime() - new Date(fresh[0].priorCapturedAt).getTime()) / (30 * 24 * 3600 * 1000));
+    const elapsed = fresh[0].priorCapturedAt ? new Date(fresh[0].capturedAt).getTime() - new Date(fresh[0].priorCapturedAt).getTime() : NaN;
+    if (typeof prior === "number" && Number.isFinite(prior) && prior > 0 && Number.isFinite(elapsed) && elapsed > 0) {
+      const months = elapsed / (30 * 24 * 3600 * 1000);
       growthPct = Math.round((Math.pow(mrrAud / prior, 1 / months) - 1) * 1000) / 10;
     }
-  } else if (typeof signals.mrrAud === "number" && signals.mrrAud > 0) {
+  } else if (typeof signals.mrrAud === "number" && Number.isFinite(signals.mrrAud) && signals.mrrAud >= 0) {
     mrrAud = signals.mrrAud;
     revenueSource = "founder-stated";
-  } else if (typeof signals.arrAud === "number" && signals.arrAud > 0) {
+  } else if (typeof signals.arrAud === "number" && Number.isFinite(signals.arrAud) && signals.arrAud >= 0) {
     mrrAud = signals.arrAud / 12;
     revenueSource = "founder-stated (ARR)";
   }
@@ -842,8 +846,8 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
     sector: context.sviAnalysis.sector ?? "default",
     stage: STAGE_TO_CFO[Math.max(0, Math.min(7, context.stage))] ?? "pre-seed",
     sviStage: Math.max(0, Math.min(7, context.stage)),
-    mrrAud: Math.round(mrrAud),
-    arrAud: Math.round(mrrAud * 12),
+    mrrAud: mrrAud === null ? null : Math.round(mrrAud),
+    arrAud: mrrAud === null ? null : Math.round(mrrAud * 12),
     ...(typeof growthPct === "number" && Number.isFinite(growthPct) ? { monthlyGrowthRatePct: growthPct } : {}),
     ...(typeof signals.raiseAskAud === "number" ? { raiseAud: signals.raiseAskAud } : {}),
     ...(typeof signals.customerCount === "number" ? { customers: signals.customerCount } : {}),
@@ -856,7 +860,14 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
     revenueSource,
   };
   let vc: VcValuationLike | null = null;
-  try {
+  if (mrrAud === null) {
+    // Omitting MRR is not enough: the shared CFO builder defaults it to zero.
+    // Keep missing revenue distinct from an explicit pre-revenue observation.
+    const reason = "Revenue is missing or unusable. Provide current recurring revenue or appropriate financial statements before estimating a business value.";
+    results.valuation = { inputs: valuationInput, status: "unavailable", reason };
+    rows.push(row("valuation", "revenue-gap", "connector_other", "Valuation needs revenue information", "missing", ["iri", "cgh", "tre"], observed, reason));
+    diag("valuation", "skipped", now(), "missing_or_invalid_revenue");
+  } else try {
     vc = deps.buildValuation ? deps.buildValuation(valuationInput) : await defaultBuildValuation(valuationInput);
     results.valuation = { inputs: valuationInput, blended: vc.blended, scenarios: vc.scenarios, sectorMultiples: vc.sectorMultiples ?? null };
     rows.push(row("valuation", "cfo", "connector_other", "CFO 5-method valuation (buildVcValuationReport)", mrrAud > 0 && revenueEvidenceIds.length ? "evidenced" : "partial", ["iri", "cgh", "tre"], observed, `consensus_mid_aud = ${Math.round(vc.blended.midAud)}; low = ${Math.round(vc.blended.lowAud)}; high = ${Math.round(vc.blended.highAud)}; mrr_aud = ${Math.round(mrrAud)}`));
@@ -869,5 +880,9 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
       ? { statedCapAud: signals.statedCapAud ?? null, statedCapKind: signals.statedCapKind ?? null, raiseAud: signals.raiseAskAud ?? null }
       : null;
 
-  return { results, evidenceRows: rows, valuation: { vc, ask, revenueEvidenceIds } };
+  return { results, evidenceRows: rows, valuation: {
+    status: vc ? "available" : "unavailable",
+    ...(!vc ? { reason: mrrAud === null ? "missing_or_invalid_revenue" : "valuation_failed", missingInputs: mrrAud === null ? ["current_revenue"] : [] } : {}),
+    vc, ask, revenueEvidenceIds,
+  } };
 }

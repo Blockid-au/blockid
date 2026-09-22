@@ -569,6 +569,10 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
           report.id,
           report.reportV2 ??
           fromAssembledReport(report, {
+            // This is a NEW generation fallback, not a historical snapshot.
+            // Missing reportV2 must not invent a directional valuation.
+            valuationStatus: "unavailable",
+            valuationReason: "Business valuation is unavailable because this generated report has no valuation result.",
             projectId: ctx.projectId,
             accountId: ctx.account.id,
             startupName: ctx.account.startup_name,
@@ -996,6 +1000,10 @@ export async function runTrustReportForProject(args: {
       reportV2 = report.reportV2
         ? { ...report.reportV2, snapshotId, projectId: project.id }
         : fromAssembledReport(report, {
+            // This is a NEW generation fallback, not a historical snapshot.
+            // Missing reportV2 must not invent a directional valuation.
+            valuationStatus: "unavailable",
+            valuationReason: "Business valuation is unavailable because this generated report has no valuation result.",
             snapshotId,
             projectId: project.id,
             accountId: ctx.account.id,

@@ -177,3 +177,15 @@ describe("dispatchExecutiveSummary", () => {
     expect(draft.benchmarks).toHaveLength(8);
   });
 });
+
+it("V01 tells the CEO why no company value may be inferred", async () => {
+  const { unavailableValuation } = await import("@/lib/report-v2/schema");
+  const context = makeContext();
+  context.valuationChapter = unavailableValuation("missing_or_invalid_revenue", new Date(0).toISOString());
+  const input = executiveSummaryInput(context);
+  expect(input.valuation).toBeNull();
+  const prompt = renderExecutiveUser(input);
+  expect(prompt).toContain("Valuation unavailable");
+  expect(prompt).toContain("Do not estimate business value");
+  expect(prompt).not.toContain("Valuation consensus: A$");
+});

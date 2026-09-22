@@ -1,3 +1,4 @@
+import { isValuationAvailable } from "./schema";
 // valuation-view — the one view-model behind the ReportV2 valuation chapter
 // on the web (components/tbr/v2/valuation.tsx), the PDF (lib/pdf/tbr-pdf.tsx)
 // and the DOCX (lib/docx/tbr-docx.ts) so the three twins print the same
@@ -44,8 +45,10 @@ export interface ValuationCrossCheckRow {
 }
 
 export interface ValuationView {
+  available: boolean;
+  reason: string | null;
   strings: TbrValuationStrings;
-  confidencePct: number;
+  confidencePct: number | null;
   inputRows: ValuationInputRow[];
   methodRows: ValuationMethodRowView[];
   /** Revenue methods that did not run (pre-revenue) — drives the "N methods need revenue" line. */
@@ -76,8 +79,14 @@ function num(v: unknown): number | null {
   return typeof v === "number" && Number.isFinite(v) ? v : null;
 }
 
+export function buildValuationView(v: import("./schema").AvailableValuationChapter, locale?: string): ValuationView & { available: true; confidencePct: number };
+export function buildValuationView(v: ValuationChapter, locale?: string): ValuationView;
 export function buildValuationView(v: ValuationChapter, locale: string | undefined = "en"): ValuationView {
   const s = getTbrValuationStrings(locale);
+  if (!isValuationAvailable(v)) return { available: false, reason: v.reason, strings: s, confidencePct: null,
+    inputRows: [], methodRows: [], hiddenNeedRevenue: 0, noneApplicable: true, needRevenueLine: null,
+    unitEconomics: [], crossChecks: [], consistency: [], scenarioLine: "", askLine: null,
+    sectorMultiplesTitle: "", sectorMultiplesLine: "", comparablesLine: "" };
   const inputs = v.inputs;
   const revenueChip: ValuationSourceChip = inputs ? inputs.revenueSource : "none";
 
@@ -154,7 +163,7 @@ export function buildValuationView(v: ValuationChapter, locale: string | undefin
   const askLine = v.ask ? s.askLine(aud(v.ask.preMoneyAud), aud(v.ask.raiseAud), s.askVerdict[v.ask.verdict], pct(v.ask.gapPct)) : null;
 
   return {
-    strings: s,
+    available: true, reason: null, strings: s,
     confidencePct: Math.round(v.consensus.confidence * 100),
     inputRows,
     methodRows,

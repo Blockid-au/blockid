@@ -565,3 +565,17 @@ describe("fromSnapshot — G19-S43 evidence rows, next actions, plan, money, cov
     expect(r.dimensions.find((d) => d.dim === "ftv")!.nextAction.title).not.toMatch(/co-?founder/i);
   });
 });
+
+describe("V01 explicit new-run valuation gap", () => {
+  it("does not synthesize a benchmark valuation or worth claim when explicitly unavailable", () => {
+    const r = fromSnapshot({ ...demoSnapshotInput(), vc: null, valuationStatus: "unavailable", valuationReason: "missing_or_invalid_revenue", valuationMissingInputs: ["current_revenue"] });
+    expect(isReportV2(r)).toBe(true);
+    expect(r.valuation).toMatchObject({ status: "unavailable", visuals: [], missingInputs: ["current_revenue"] });
+    expect(r.valuation).not.toHaveProperty("consensus");
+    expect(r.valuation).not.toHaveProperty("methods");
+    expect(r.valuation.narrative).not.toContain("missing_or_invalid_revenue");
+    expect(r.cover.threeQuestions.worth).not.toContain("A$");
+    const strip = r.cover.visuals.find((v) => v.kind === "three_questions_strip");
+    expect(JSON.stringify(strip?.data)).not.toMatch(/A\$[\d.,]+.*consensus/);
+  });
+});

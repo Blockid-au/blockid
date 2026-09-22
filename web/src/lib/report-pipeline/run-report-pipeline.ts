@@ -88,7 +88,7 @@ export type StreamEvent =
   | { type: "executive_complete"; summary: string }
   | { type: "audit_complete"; groundedShare: number; revised: number }
   | { type: "cache_hit"; ageMs: number; dims: number; criteria: number }
-  | { type: "done"; saveStatus?: ReportSaveStatus; totalMs: number; fromCache: boolean; reportId: string | null; snapshotId: string | null; calls: number; costAud: number; degradedSections: string[]; deadlineHit: boolean }
+  | { type: "done"; valuationStatus?: "available" | "unavailable"; saveStatus?: ReportSaveStatus; totalMs: number; fromCache: boolean; reportId: string | null; snapshotId: string | null; calls: number; costAud: number; degradedSections: string[]; deadlineHit: boolean }
   | { type: "fatal_error"; message: string };
 
 export type StreamEventHandler = (event: StreamEvent) => void;
@@ -242,6 +242,7 @@ export function doneEvent(state: WireState, totalMs: number, fromCache: boolean)
     type: "done",
     totalMs,
     fromCache,
+    valuationStatus: state.valuation && state.valuation.status !== "unavailable" ? "available" : "unavailable",
     reportId: state.reportId,
     snapshotId: state.snapshotId,
     calls: state.done?.calls ?? 0,
@@ -534,7 +535,9 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
             send({ type: "criteria_synthesis", criteria: cachedCriteria });
           }
           const totalMs = now() - t0;
-          send({ type: "done", totalMs, fromCache: true, reportId: null, snapshotId: null, calls: 0, costAud: 0, degradedSections: [], deadlineHit: false });
+          // Legacy deck cache stores dimension/criterion JSON, not the canonical
+          // valuation chapter. Never authorize a client-side monetary fallback.
+          send({ type: "done", valuationStatus: "unavailable", totalMs, fromCache: true, reportId: null, snapshotId: null, calls: 0, costAud: 0, degradedSections: [], deadlineHit: false });
           void (deps.notify ?? defaultNotify)({ userId: input.userId, projectId: input.projectId, kind: "analysis_done", payload: { fromCache: true, dims: cachedDims.length } }).catch(() => undefined);
           return { ok: true, fromCache: true, accountId: ctx.account.id, reportId: null, snapshotId: null, dimResults: cachedDims, chapters: [], criterionResults: cachedCriteria, report: null, calls: 0, costAud: 0, totalMs, deadlineHit: false, ...(inputSnapshot ? { inputSnapshot } : {}) };
         }

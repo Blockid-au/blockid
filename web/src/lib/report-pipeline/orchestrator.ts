@@ -1,3 +1,4 @@
+import { isValuationAvailable, unavailableValuation } from "@/lib/report-v2/schema";
 // Report Orchestrator — the ONE generator every Trusted Business Report ships
 // through (spec 12-product-ai-tbr-v2.md §C.1, S-R3: the stream route, the
 // paid A$3 report, the evaluator report and the per-dimension re-run all
@@ -93,7 +94,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { supabaseChapterCache, type ChapterCache, type ChapterCacheDb } from "./chapter-cache";
 import { applyConsistencyGates } from "./consistency-gates";
 import { executiveFromChapters, fromAssembledReport, inferPhase, type MoneyOnTableInput } from "@/lib/report-v2/adapter";
-import { structureExecutive } from "@/lib/report-v2/executive-structure";
+import { structureExecutive, ensureExecutiveStructured, withoutUnavailableValuationProse } from "@/lib/report-v2/executive-structure";
 import { dispatchExecutiveSummary, executiveOutputContract } from "./executive-summary";
 import { isReportV2, type CriterionCard, type DimensionChapter, type ExecutiveStructured, type ReportTierV2, type ReportV2 } from "@/lib/report-v2/schema";
 import { FULLY_DEGRADED_MIN_CHAPTERS, recordFullyDegraded, type DegradedEventWriter, type FullyDegradedReason } from "./pipeline-health";
@@ -475,9 +476,14 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
   // G28-B: one metered caller per stage over the SAME call budget — the
   // per-model timeout and the W4-reserve refusal live on the stage
   // (pipeline-timeouts.ts). `callAI` = criterion (gather + W1–W3).
-  const callAI = meterCallAI(input.callAI, budget, { meter, deadline, stage: "criterion" });
-  const callAIChapter = meterCallAI(input.callAI, budget, { meter, deadline, stage: "chapter" });
-  const callAISynthesis = meterCallAI(input.callAI, budget, { meter, deadline, stage: "synthesis" });
+  let valuationUnavailable = false;
+  const valuationGuardedCall: AICallerInput = (system, user, maxTokens, taskClass, hint) => input.callAI(
+    valuationUnavailable ? `${system}\nBusiness valuation is unavailable for this run. Do not infer company value, valuation ranges, valuation confidence or ask alignment. Describe missing inputs. Preserve separately stated revenue, fundraising and market facts without converting them into company value.` : system,
+    user, maxTokens, taskClass, hint,
+  );
+  const callAI = meterCallAI(valuationGuardedCall, budget, { meter, deadline, stage: "criterion" });
+  const callAIChapter = meterCallAI(valuationGuardedCall, budget, { meter, deadline, stage: "chapter" });
+  const callAISynthesis = meterCallAI(valuationGuardedCall, budget, { meter, deadline, stage: "synthesis" });
   const partialDims = input.dims && input.dims.length ? DIM_ORDER.filter((d) => input.dims!.includes(d)) : null;
   const emit: PipelineEventHandler = (e) => {
     try {
@@ -590,6 +596,7 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
     buildEvidenceRows(context);
     context.moduleOutputs = precomputeModules(context);
     context.valuationChapter = valuationChapterFor(gather.valuation, input, context) ?? undefined;
+    valuationUnavailable = !context.valuationChapter || !isValuationAvailable(context.valuationChapter);
     // G24-D: the computed rows (SVI scores, benchmarks, valuation consensus)
     // re-stamped now that the valuation chapter exists.
     refreshComputedFactRows(context);
@@ -715,6 +722,10 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
       });
       context.executiveSummary = ceo.thesis;
       context.executiveStructured = ceo.structured;
+    }
+    if (valuationUnavailable) {
+      context.executiveSummary = withoutUnavailableValuationProse(context.executiveSummary ?? "", context.locale);
+      context.executiveStructured = null; // rebuild from the safe thesis and evidence-backed chapters
     }
     emit({ type: "executive_complete", summary: context.executiveSummary });
 
@@ -879,7 +890,7 @@ export function deterministicExecutiveSummary(context: ReportContext, reason: st
 
 /** The valuation chapter from the GATHER outputs (§C.5); null when the CFO model did not run. */
 function valuationChapterFor(v: GatherOutput["valuation"], input: OrchestratorInput, context: ReportContext): ReportV2["valuation"] | null {
-  if (!v.vc) return null;
+  if (v.status === "unavailable" || !v.vc) return unavailableValuation(v.reason ?? "Valuation unavailable: verified inputs could not be established for this run.", new Date().toISOString(), v.missingInputs ?? []);
   try {
     return buildValuationChapter({
       vc: v.vc,
@@ -893,7 +904,7 @@ function valuationChapterFor(v: GatherOutput["valuation"], input: OrchestratorIn
     });
   } catch (err) {
     console.warn("[report-pipeline] valuation chapter failed:", err instanceof Error ? err.message : String(err));
-    return null;
+    return unavailableValuation("Valuation unavailable: calculation could not be completed.", new Date().toISOString());
   }
 }
 
@@ -1256,7 +1267,7 @@ export function buildReportV2(
   input: OrchestratorInput,
   tierV2: ReportTierV2,
   groundedShare: number,
-  valuation?: { vc: VcValuationLike | null; ask: ValuationAskInput | null; revenueEvidenceIds: string[] },
+  valuation?: GatherOutput["valuation"],
 ): ReportV2 | null {
   try {
     const base = fromAssembledReport(report, {
@@ -1274,6 +1285,9 @@ export function buildReportV2(
       verificationLevel: input.verificationLevel ?? input.sviAnalysis.meta?.verification?.level ?? null,
       tier: tierV2,
       locale: context.locale,
+      valuationStatus: valuation?.status ?? (valuation?.vc ? "available" : "unavailable"),
+      valuationReason: valuation?.reason ?? "Valuation unavailable: verified inputs could not be established for this run.",
+      valuationMissingInputs: valuation?.missingInputs ?? [],
       vc: valuation?.vc ?? null,
       valuationAsk: valuation?.ask ?? null,
       revenueEvidenceIds: valuation?.revenueEvidenceIds ?? null,
@@ -1283,7 +1297,7 @@ export function buildReportV2(
       moneyOnTable: moneyOnTableFromGather(context),
     });
     // §C.5: the gated valuation chapter (consistency-gates may have annotated it).
-    const withValuation: ReportV2 = context.valuationChapter ? { ...base, valuation: context.valuationChapter } : base;
+    const withValuation: ReportV2 = isValuationAvailable(base.valuation) && context.valuationChapter ? { ...base, valuation: context.valuationChapter } : base;
     const chapters = context.dimensionChapters;
     if (!chapters || chapters.size !== 8) return withValuation;
     const dimensions = DIM_ORDER.map((dim) => chapters.get(dim)!);
@@ -1313,7 +1327,8 @@ export function buildReportV2(
       appendix: { ...base.appendix, evidenceRegister: context.evidenceRows ?? [], auditLog: context.sectionAudits ?? [] },
       quality: { ...base.quality, score: context.qualityScore ?? base.quality.score, groundedShare, degradedSections: degraded, consistencyIssues: report.consistencyIssues },
     };
-    if (isReportV2(v2)) return v2;
+    const safe = ensureExecutiveStructured(v2);
+    if (isReportV2(safe)) return safe;
     console.warn("[report-pipeline] ReportV2 projection failed validation — keeping the adapter projection");
     return base;
   } catch (err) {

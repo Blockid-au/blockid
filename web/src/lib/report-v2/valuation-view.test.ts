@@ -83,3 +83,14 @@ describe("buildValuationView", () => {
     expect(vi.strings.source.founder_stated).toBe("nhà sáng lập khai báo");
   });
 });
+
+it("V01 unavailable valuation exposes no hero or view numbers", async () => {
+  const { unavailableValuation } = await import("./schema");
+  const { coverHero } = await import("./cover-hero");
+  const unavailable = unavailableValuation("missing_or_invalid_revenue", new Date(0).toISOString(), ["current_revenue"]);
+  const report = { ...demoReportV2(), valuation: unavailable };
+  const hero = coverHero(report, "en");
+  expect(hero).toMatchObject({ pending: true, rangeLabel: null, lowAud: null, highAud: null, midAud: null, confidencePct: null });
+  const view = buildValuationView(unavailable);
+  expect(view).toMatchObject({ available: false, confidencePct: null, methodRows: [], crossChecks: [], scenarioLine: "", comparablesLine: "", sectorMultiplesLine: "" });
+});

@@ -1,3 +1,4 @@
+import { isValuationAvailable, unavailableValuation, type AvailableValuationChapter } from "./schema";
 // ReportV2 adapter — builds a valid ReportV2 from what the platform stores
 // TODAY (svi_snapshots.dim_results / criterion_results / dimension_scores,
 // or an `AssembledReport` from the C-level pipeline), so every stored report
@@ -144,6 +145,9 @@ export interface SnapshotInput {
   qualityScore?: number | null;
   consistencyIssues?: ReportV2["quality"]["consistencyIssues"];
   /** Optional CFO 5-method valuation (server side) — fills valuation.methods. */
+  valuationStatus?: "available" | "unavailable";
+  valuationReason?: string;
+  valuationMissingInputs?: string[];
   vc?: VcValuationLike | null;
   /** S-R3 §C.5: founder-stated ask for the valuation cross-check (only used with `vc`). */
   valuationAsk?: ValuationAskInput | null;
@@ -822,7 +826,7 @@ function buildValuation(args: { sviTotal: number; sviIndex: number; stageLabel: 
   const comps = topComparables(auIndustry, auStage, 5);
   // G19-S42: same shape as the pipeline chapter — every method non-applicable,
   // one honest line, the stage baseline as the only cross-check, no ask.
-  const methods: ValuationChapter["methods"] = VALUATION_METHOD_KEYS.map((key) => ({
+  const methods: AvailableValuationChapter["methods"] = VALUATION_METHOD_KEYS.map((key) => ({
     method: key,
     lowAud: 0,
     midAud: 0,
@@ -834,7 +838,7 @@ function buildValuation(args: { sviTotal: number; sviIndex: number; stageLabel: 
   const consensus = { lowAud: three.average.low, midAud: three.average.mid, highAud: three.average.high, confidence: 0.35 };
   const baselineStage = Math.max(0, Math.min(7, Math.round(Number.isFinite(args.stage) ? args.stage : 0)));
   const baseline = VALUATION_BASELINES_AUD[baselineStage];
-  const crossChecks: ValuationChapter["crossChecks"] = [
+  const crossChecks: AvailableValuationChapter["crossChecks"] = [
     { label: `AU stage baseline — SVI stage ${baselineStage} pre-money`, lowAud: baseline.low, midAud: baseline.mid, highAud: baseline.high, source: "Cut Through Venture — State of Australian Startup Funding 2024/25 medians", asOf: "2025" },
   ];
   const scenarios = { bear: three.worst.mid, base: three.average.mid, bull: three.best.mid };
@@ -1026,8 +1030,10 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
           : sviBand === "early"
             ? L.thesisEarly(sviTotal)
             : L.thesisPending);
-  const valuation = buildValuation({ sviTotal: Math.min(100, sviTotal), sviIndex: sviTotal, stageLabel, stage, industry, treScore: dimScores.tre ?? null, vc: input.vc, ask: input.valuationAsk ?? null, revenueEvidenceIds: input.revenueEvidenceIds ?? [], at });
-  const worthLine = L.worthLine(fmtShort(valuation.consensus.lowAud), fmtShort(valuation.consensus.highAud), industry ?? L.sectorNeutral, stageLabel);
+  const valuation = input.valuationStatus === "unavailable"
+    ? unavailableValuation(input.valuationReason ?? "Valuation unavailable: sufficient verified inputs were not available.", at, input.valuationMissingInputs ?? [])
+    : buildValuation({ sviTotal: Math.min(100, sviTotal), sviIndex: sviTotal, stageLabel, stage, industry, treScore: dimScores.tre ?? null, vc: input.vc, ask: input.valuationAsk ?? null, revenueEvidenceIds: input.revenueEvidenceIds ?? [], at });
+  const worthLine = isValuationAvailable(valuation) ? L.worthLine(fmtShort(valuation.consensus.lowAud), fmtShort(valuation.consensus.highAud), industry ?? L.sectorNeutral, stageLabel) : (input.locale === "vi" ? "Chưa có định giá: cần thêm dữ liệu đáng tin cậy." : "Valuation unavailable: more reliable inputs are needed.");
   const nextLine = roadmap[0] ? L.nextLine(dimensions.find((d) => d.dim === roadmap[0].c.dim)?.nextAction.title ?? L.addEvidence, roadmap[0].lift, DIMENSION_OWNERS[roadmap[0].c.dim].shortLabel) : L.nextFallback;
   // G19-S44 (D5): the where-sentence names the 12-phase label only — the SVI stage label is benchmark-internal.
   const whereLine = L.whereLine(industry ?? L.startup, sviTotal, getTbrStrings(input.locale).v2.band[sviBand].toLowerCase(), phaseLabelFor(phase.currentPhase, input.locale), phase.completionPct);
@@ -1270,6 +1276,9 @@ export interface AssembledReportContext {
   phaseId?: string | null;
   tier?: ReportTierV2;
   locale?: ReportV2["locale"];
+  valuationStatus?: "available" | "unavailable";
+  valuationReason?: string;
+  valuationMissingInputs?: string[];
   vc?: VcValuationLike | null;
   valuationAsk?: ValuationAskInput | null;
   revenueEvidenceIds?: string[] | null;
@@ -1349,6 +1358,9 @@ export function fromAssembledReport(report: Pick<AssembledReport, "id" | "tier" 
     executiveSummary: report.executiveSummary,
     qualityScore: report.qualityScore,
     consistencyIssues: report.consistencyIssues,
+    valuationStatus: ctx.valuationStatus,
+    valuationReason: ctx.valuationReason,
+    valuationMissingInputs: ctx.valuationMissingInputs,
     vc: ctx.vc,
     valuationAsk: ctx.valuationAsk ?? null,
     revenueEvidenceIds: ctx.revenueEvidenceIds ?? null,

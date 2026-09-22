@@ -279,3 +279,10 @@ describe("computed facts — G28-A sector entity count row", () => {
     expect(formatCountBoth(640)).toBe("640");
   });
 });
+
+it("V01 does not turn unavailable valuation into a citable numeric fact", async () => {
+  const { unavailableValuation } = await import("@/lib/report-v2/schema");
+  const facts = computedFacts(input({ valuationChapter: unavailableValuation("missing_or_invalid_revenue", new Date(0).toISOString()) }));
+  expect(facts.some((fact) => fact.kind === "valuation")).toBe(false);
+  expect(facts.some((fact) => fact.kind === "svi-scores")).toBe(true);
+});

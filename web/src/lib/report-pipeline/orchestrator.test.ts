@@ -1679,11 +1679,31 @@ describe("orchestrateReport() — per-dimension re-run (dims) + valuation event"
     expect(auditCalls[0].options.budgetOk?.()).toBe(false);
   });
 
+  it("missing revenue emits an unavailable valuation without failing the report", async () => {
+    const events: PipelineEvent[] = [];
+    const buildValuation = vi.fn(() => IN_BAND_VC);
+    const report = await orchestrateReport(baseInput({
+      sviAnalysis: { ...makeSVI(), signals: {} },
+      gatherDeps: { db: null, buildValuation },
+      onEvent: (event) => events.push(event),
+    }));
+    expect(buildValuation).not.toHaveBeenCalled();
+    expect(events.find((event) => event.type === "valuation_complete")).toMatchObject({ chapter: { status: "unavailable" } });
+    expect(events.some((event) => event.type === "done")).toBe(true);
+    expect(report.reportV2).not.toBeNull();
+    expect(report.reportV2?.valuation).toMatchObject({ status: "unavailable", visuals: [] });
+    expect(report.reportV2?.valuation).not.toHaveProperty("consensus");
+    expect(report.reportV2?.cover.threeQuestions.worth).not.toContain("A$");
+  });
+
   it("valuation_complete (the §C.5 chapter from GATHER's CFO model) is emitted after the 8 chapters and before criteria_synthesis, and lands on report.reportV2.valuation", async () => {
     const demo = demoReportV2();
     H.chapterFactory = (dim) => demo.dimensions.find((d) => d.dim === dim)!;
     const events: PipelineEvent[] = [];
-    const report = await orchestrateReport(baseInput({ onEvent: (e) => events.push(e) }));
+    // This event fixture requires an actual supplied revenue input. Missing
+    // revenue must not invoke the CFO builder through its zero default.
+    const sviAnalysis = { ...makeSVI(), signals: { mrrAud: 8000 } };
+    const report = await orchestrateReport(baseInput({ sviAnalysis, onEvent: (e) => events.push(e) }));
     const types = events.map((e) => e.type).filter((t) => t !== "progress");
     expect(types.indexOf("valuation_complete")).toBeGreaterThan(types.lastIndexOf("dimension_complete"));
     expect(types.indexOf("valuation_complete")).toBeLessThan(types.indexOf("criteria_synthesis"));

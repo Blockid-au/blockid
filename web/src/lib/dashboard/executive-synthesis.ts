@@ -41,7 +41,7 @@ export interface ExecutiveSynthesisData {
   /** From the report's own tier — a free document synthesises the free chapters only, and the block says so through the CTA. */
   tier: ReportV2["tier"];
   where: { phaseId: GrowthPhaseId; phaseLabel: string; sentence: string };
-  worth: { pending: boolean; headline: string; subline: string; lowAud: number; highAud: number; confidencePct: number };
+  worth: { pending: boolean; headline: string; subline: string; lowAud: number | null; highAud: number | null; confidencePct: number | null };
   svi: { total: number; band: ReportV2["cover"]["svi"]["band"]; deltaVsLast: number | null };
   strengths: string[];
   weaknesses: string[];
