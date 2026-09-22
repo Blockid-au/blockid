@@ -1,7 +1,8 @@
+import { criterionResearchCoverage } from "./criterion-research-coverage";
 import { criterionDiligence } from "./criterion-diligence";
 import { getCriterion } from "@/lib/evaluation-criteria";
 import type { IntakeResult } from "@/lib/intake/analyze-input";
-import type { ReportV2, CriterionCard, EvidenceConfidence } from "./schema";
+import type { ReportV2, CriterionCard, CriterionResearchCoverage, EvidenceConfidence } from "./schema";
 
 export type FindingsLocale = "en" | "vi";
 export interface BusinessFinding {
@@ -29,6 +30,7 @@ export interface BusinessFinding {
     id: string;
     title: string;
     verdict: string;
+    researchCoverage?: CriterionResearchCoverage;
     strengths: string[];
     gaps: string[];
     request: string;
@@ -211,6 +213,7 @@ export function projectBusinessFindings({
           id: c.key,
           title: vi ? getCriterion(c.key)?.titleVi ?? c.title : c.title,
           verdict: c.verdict,
+          researchCoverage: criterionResearchCoverage(c, report),
           strengths: c.strengths,
           gaps: c.gaps,
           request: c.nextAction,

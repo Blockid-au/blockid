@@ -1,3 +1,4 @@
+import { withCriterionResearchCoverage } from "@/lib/report-v2/criterion-research-coverage";
 import { isValuationAvailable, unavailableValuation } from "@/lib/report-v2/schema";
 // Report Orchestrator — the ONE generator every Trusted Business Report ships
 // through (spec 12-product-ai-tbr-v2.md §C.1, S-R3: the stream route, the
@@ -1330,7 +1331,7 @@ export function buildReportV2(
       appendix: { ...base.appendix, evidenceRegister: context.evidenceRows ?? [], auditLog: context.sectionAudits ?? [], ...(context.gatherResults.publicResearch ? { publicResearch: context.gatherResults.publicResearch } : {}) },
       quality: { ...base.quality, score: context.qualityScore ?? base.quality.score, groundedShare, degradedSections: degraded, consistencyIssues: report.consistencyIssues },
     };
-    const safe = ensureExecutiveStructured(v2);
+    const safe = withCriterionResearchCoverage(ensureExecutiveStructured(v2));
     if (isReportV2(safe)) return safe;
     console.warn("[report-pipeline] ReportV2 projection failed validation — keeping the adapter projection");
     return base;

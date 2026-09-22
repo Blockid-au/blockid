@@ -46,6 +46,9 @@ export function BusinessFindings({
         guidance: "Ý nghĩa với nhà đầu tư — hướng dẫn thẩm định",
         question: "Câu hỏi kiểm chứng cụ thể",
         limits: "Giới hạn của tiêu chí này",
+        research: "Phạm vi nghiên cứu đã ghi nhận",
+        businessImplication: "Chưa có nhận định riêng về tác động của tiêu chí này đối với quyết định đầu tư vào doanh nghiệp.",
+        comparisonLimit: "Việc đọc nguồn chưa xác nhận tính phù hợp của đối thủ hay hoàn tất so sánh thị trường.",
         sourceRecord: "Nội dung nguồn đã lưu — cần đối chiếu trích dẫn",
         conflict: "Điểm cần lưu ý trước khi kết luận",
       }
@@ -77,6 +80,9 @@ export function BusinessFindings({
         guidance: "Investor relevance — diligence guidance",
         question: "Specific diligence question",
         limits: "Limits of this criterion",
+        research: "Recorded research coverage",
+        businessImplication: "A business-specific implication for the investment decision has not been recorded for this criterion.",
+        comparisonLimit: "Reading sources does not establish competitor relevance or a completed market comparison.",
         sourceRecord: "Stored source content — compare with the quote",
         conflict: "Consider before drawing a conclusion",
       };
@@ -167,6 +173,25 @@ export function BusinessFindings({
                           {!criterion.grounded && <span className="mt-2 block text-sm font-normal text-secondary">{copy.unsupported}</span>}
                         </summary>
                         <FindingList title={copy.conflict} items={criterion.conflicts} />
+                        {criterion.researchCoverage && <div className="mt-3 rounded-lg bg-surface-sunken p-3 text-sm" data-criterion-research={criterion.researchCoverage.status}>
+                          <h5 className="font-semibold text-primary">{copy.research}</h5>
+                          <p className="mt-1">{(vi ? {
+                            not_recorded: "Chưa có hồ sơ nghiên cứu bên ngoài cho tiêu chí này.",
+                            not_run: "Chưa thực hiện đọc nguồn bên ngoài cho tiêu chí này.",
+                            blocked: "Việc đọc nguồn bên ngoài bị chặn.",
+                            not_found: "Chưa lấy được nguồn bên ngoài từ lần thử đã ghi nhận.",
+                            sources_retrieved: `Đã lưu ${criterion.researchCoverage.retrievedSourceIds.length} nguồn được đọc; chưa phải kết luận đã kiểm chứng.`,
+                          } : {
+                            not_recorded: "No external research record is available for this criterion.",
+                            not_run: "External source retrieval has not run for this criterion.",
+                            blocked: "External source retrieval was blocked.",
+                            not_found: "No external source was retrieved in the recorded attempt.",
+                            sources_retrieved: `${criterion.researchCoverage.retrievedSourceIds.length} retrieved source records are available; these are not verified conclusions.`,
+                          })[criterion.researchCoverage.status]}</p>
+                          {criterion.researchCoverage.question && <p className="mt-2">{copy.question}: {criterion.researchCoverage.question}</p>}
+                          {criterion.researchCoverage.status === "sources_retrieved" && <p className="mt-2">{copy.comparisonLimit}</p>}
+                          <p className="mt-2">{copy.businessImplication}</p>
+                        </div>}
                         <div className="mt-3">
                           <h5 className="font-semibold text-primary">{copy.guidance}</h5>
                           <p className="mt-1 max-w-prose">{criterion.implication}</p>

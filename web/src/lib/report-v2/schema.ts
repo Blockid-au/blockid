@@ -80,6 +80,14 @@ export interface AuditStamp {
   at: string;
 }
 
+export interface CriterionResearchCoverage {
+  status: "not_recorded" | "not_run" | "blocked" | "not_found" | "sources_retrieved";
+  question?: string;
+  retrievedSourceIds: string[];
+  comparison: "not_assessed";
+  businessImplication: "not_recorded";
+}
+
 export interface CriterionCard {
   key: CriterionKey;
   title: string;
@@ -89,6 +97,7 @@ export interface CriterionCard {
   strengths: string[];
   gaps: string[];
   nextAction: string;
+  researchCoverage?: CriterionResearchCoverage;
   citations: Array<{ evidence_id: string; quote: string }>;
   grounded: boolean;
   agent: AgentRole;
@@ -718,6 +727,13 @@ const criterionCard = z.object({
   strengths: z.array(z.string()),
   gaps: z.array(z.string()),
   nextAction: z.string(),
+  researchCoverage: z.object({
+    status: z.enum(["not_recorded", "not_run", "blocked", "not_found", "sources_retrieved"]),
+    question: z.string().optional(),
+    retrievedSourceIds: z.array(z.string()),
+    comparison: z.literal("not_assessed"),
+    businessImplication: z.literal("not_recorded"),
+  }).optional(),
   citations: z.array(z.object({ evidence_id: z.string(), quote: z.string() })),
   grounded: z.boolean(),
   agent: agentRole,
