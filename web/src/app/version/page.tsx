@@ -146,6 +146,14 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.27.2",
+    date: "2026-09-22",
+    title: "UI/UX check fixes for v3.27.0",
+    changes: [
+      "[ui/ux] /analyze e-mail panel: visible error colour + icon, focus rings, 44 px edit link; band switcher without layout shift; band-D summary no longer contradicts the verdict; pending CTAs 44 px; print starts at the report; /startup-index/listings on template tokens",
+    ],
+  },
+  {
     version: "3.27.1",
     date: "2026-09-21",
     title: "Review fixes for v3.27.0",

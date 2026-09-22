@@ -1,5 +1,9 @@
 # BlockID.au Changelog
 
+## 2026-09-22 — v3.27.2: UI/UX check fixes for v3.27.0
+
+- **ui-ux-pro-max check (production, 375 / 1280 / print)** — the `/analyze` e-mail panel showed its inline errors in body ink (the `text-danger` utility did not exist) → bear red with an icon, focus rings on the input / submit / "Change what I entered" (44 px); the `/tbr/demo` band switcher shifted the layout by 40 px between bands (the h2 carried the band label) → one title, label on the switcher; the band-D fixture opened its executive summary with "investor-ready" under "Not enough evidence to form a view" → a partial thesis (EN + VI) when a strong composite has unscored dimensions; pending-evidence CTAs reach 44 px; print no longer starts with the marketing hero and CTA buttons; `/startup-index/listings` moves to template tokens with a 12 px floor, 44 px chips and links, `aria-sort`.
+
 ## 2026-09-21 — v3.27.1: Review fixes for v3.27.0
 
 - **P1 — free reports really produce the v3 document now.** On v3.27.0 the free-grant job (and the workspace re-score) ran the ReportV2 pipeline under the interactive default (120 s wall clock, 30 calls, one 120 s attempt per call, a per-user fairness cap) — every free run degraded fully. Both now use the background budget the paid drain and the showcase script use (420 s / 48 calls), the G28-B stage timeouts and a run-scoped strike ledger. A run that fails on its last attempt releases the free grant (the address keeps its allowance) and the panel says so — raw pipeline error strings never reach the visitor. Degraded runs record their real spend.
