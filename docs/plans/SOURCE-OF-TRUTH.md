@@ -20,7 +20,7 @@
 
 **Delta cuối 04:30:29 UTC:** workspace HEAD đã tiến tới `3396adc00e78144ec86788db3fb03edf51abb1bc`, package3.28.2 từ luồng release khác. Diff sau baseline chỉ sửa `hub-tabs.tsx` thêm relative positioning cho sr-only label và metadata/version; không đổi report/billing/provider code đã review. `/api/status` tại thời điểm này vẫn trả **v3.28.1**; local manifest ghi3.28.2 nhưng deployed_at rỗng, nên **chưa xác nhận3.28.2 đã live**. Tests/browsing ở annex thuộc baseline3.28.1; delta3.28.2 chỉ được review source, không gán nhầm là đã browser-verified. G30 phải freeze lại source/live trước implementation.
 
-**Live milestone09:47UTC:** v3.30.0/fb4c4a396, [foundation release evidence](../reviews/2026-09-22-g30-foundation-live.md); extended review deferred.
+**Latest live milestone10:03UTC:** v3.30.1/c867ce271, [criterion/navigation release evidence](../reviews/2026-09-22-g30-criterion-navigation-live.md); extended review deferred. Previous foundationv3.30.0/fb4c4a396 remains a retained compatible rollback target.
 
 **Evidence baseline lịch sử:** [final revalidation](../reviews/2026-09-22-g30-final-revalidation.md). **Bản trước tổng hợp:** [G30 rev1.9 archive](../archive/g30-rev1.9-before-final-review-2026-09-22.md). Archive chỉ là history, không competing plan.
 
@@ -327,7 +327,7 @@ Status dùng coverage contract hiện hành: answered/partial/missing/conflict/n
 
 **Acceptance bổ sung:** (1)100% applicable findings có state và truy cập được, không bị cắt vĩnh viễn sau4 mục; (2)không final expanded item nào chỉ gồm generic gap/score; (3)mọi kết luận material có nguồn đúng hoặc nhãn assumption/missing/conflict,0 nguồn hay số liệu bịa; (4)Problem và TAM trả lời đủ phạm vi/lập luận/implication/next request như mẫu, thích ứng đúng dữ liệu có thật; (5)đổi tên business nhưng giữ đoạn phân tích không phù hợp phải bị swap-name review bắt; (6)active/saved/share/export cùng final revision, legacy report ghi rõ chưa có phân tích sâu thay vì tự suy diễn; (7)credit chỉ áp dụng cho công việc mới được xác nhận; (8)giữ các gate factual accuracy/citation ở §13, không thay bằng việc render đủ fields. Agent QA kiểm độc lập producer→projection→UI; root duyệt integration/release. Skill ui-ux-pro-max và playwright áp dụng ở bước thực thi giao diện/acceptance theo §12.7.
 
-**Status22/09 — A02 detail implemented partial:** canonical eight-area findings now expose nested criteria with the saved verdict/strengths/gaps, criterion-specific diligence guidance and concrete requests for all13 criteria, criterion-scoped conflicts/limitations, and matched source records with dates alongside report quotes. Guidance is labelled separately from business findings; missing facts are not invented. EN/VI native disclosures remain free to read. [Detail implementation](../reviews/2026-09-22-g30-criterion-detail.md). Full52-question coverage, business-specific generated implications, independent research, semantic claim support, export parity and live-browser acceptance remain open; this does not close all§6.6 gates.
+**Status22/09 — A02 detail partial LIVE v3.30.1; extended review deferred:** canonical eight-area findings now expose nested criteria with the saved verdict/strengths/gaps, criterion-specific diligence guidance and concrete requests for all13 criteria, criterion-scoped conflicts/limitations, and matched source records with dates alongside report quotes. Guidance is labelled separately from business findings; missing facts are not invented. EN/VI native disclosures remain free to read. [Detail implementation](../reviews/2026-09-22-g30-criterion-detail.md). Full52-question coverage, business-specific generated implications, independent research, semantic claim support, export parity and live-browser acceptance remain open; this does not close all§6.6 gates.
 
 ### 6.7 ↻ Re-analyze theo tiêu chí/câu hỏi — BlockID và Startup Value Index
 
@@ -1782,3 +1782,12 @@ older candidate wording for the released foundation only; no complete45-item,
 52-question research, financial accuracy, all-page design or sale gate claim.
 The next A02 criterion-detail/R02 attribution/U01 return-path slice remains
 source-only until its own deployment.
+
+### Live criterion/navigation milestone —22/09/2026
+
+v3.30.1/c867ce271 deployed the criterion-detail, attribution, return-path and
+pricing-error slices. [Evidence](../reviews/2026-09-22-g30-criterion-navigation-live.md).
+This supersedes source-only wording for these slices; full research, all-page
+UI, financial accuracy, O08 and billing activation gates remain open.
+RE-ANALYZE§6.7 is merged as a detailed cross-site plan only, with no new fee
+or live action behavior enabled.
