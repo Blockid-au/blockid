@@ -1,5 +1,7 @@
 # BlockID.au — Architecture
 
+> **Planning authority — 2026-09-22:** [G30 SOURCE OF TRUTH](docs/plans/SOURCE-OF-TRUTH.md) is the consolidated proposed next upgrade, awaiting founder review. This architecture file and generated architecture summaries are implementation/history references, not competing task queues. Verify runtime/build identity before treating an older snapshot as current.
+
 > **Snapshot of v3.9.23 (2026-09-07).** Not re-verified since; the living architecture summary and change notes
 > are in `web/content/reports/architecture.md` (v3.16.0, rendered by the CEO loop) and the stack table in
 > `README.md`. Since this snapshot: nav v4 + personas (G13), Trusted Business Report v2, Evaluator API v1 +

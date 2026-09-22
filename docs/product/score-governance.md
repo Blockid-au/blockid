@@ -1,5 +1,7 @@
 # Startup Value Index — score governance
 
+> **Next upgrade — 2026-09-22:** [G30 SOURCE OF TRUTH](../plans/SOURCE-OF-TRUTH.md) proposes claim-level verification, question coverage and clearer assessment states. It is awaiting founder review and does not change the current scoring methodology by itself. Any approved scoring change requires versioning, evaluation and historical comparability; existing governance remains the implementation baseline where compatible.
+
 **Methodology version:** the current `SVI_VERSION` is printed on `/methodology` and on every report; this document describes the rules that version follows.
 **Published at:** `https://blockid.au/methodology/governance` (rendered from `web/src/app/(marketing)/methodology/governance/governance-content.ts`, which reads the same code constants the engine runs on; the section list of that page is tested against this file).
 **Audience:** accelerator and program managers, investment committees, university and government innovation programs, and auditors of any of them.

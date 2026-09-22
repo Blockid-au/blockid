@@ -1,5 +1,7 @@
 # G25 — Remove the paid pilot + coupon · Anthropic via the Claude CLI · founder-only items resolved by AI
 
+> **Planning authority — 2026-09-22:** [G30 SOURCE OF TRUTH](./SOURCE-OF-TRUTH.md) consolidates the next upgrade, priorities, dependencies and sale gates. **PROPOSED / awaiting founder review; implementation not started.** This document is a historical component plan. Its shipped work is retained; residual work is mapped into G30 §3/§12. Older “continuous”, “defaults ship” or lane-launch instructions do not authorise G30 implementation.
+
 **Opened:** 2026-09-21 — founder (verbatim): "continouos, lưu ý founder-only sử dụng luôn claude cli để xử lý và bỏ luôn coupon và pilot".
 **Owner:** Claude session loop — worktree lanes → merge → full `--project unit` + pdf → 12-gate deploy → elevated live-qa + link-check + page sweep → read-only review + ui-ux-pro-max check → fixes → close.
 **Tracked in:** `docs/plans/SOURCE-OF-TRUTH.md` § G25 · `ROADMAP.md` row G25.

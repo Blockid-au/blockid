@@ -1,5 +1,7 @@
 # Unicorn template v2 — light only: tokens, primitives, chrome, rules
 
+> **Planning authority — 2026-09-22:** [G30 SOURCE OF TRUTH](../plans/SOURCE-OF-TRUTH.md) is the consolidated proposed upgrade plan, awaiting review. This file remains the light-template implementation reference where compatible. G30 retains light/navy/cyan-muted and proposes one component API plus investor-focused report disclosure; old nav/copy examples below require reconciliation with the approved product decisions. No new palette is proposed.
+
 **Goal:** G26 (`docs/plans/g26-light-template-redesign-2026-09-21.md`, § 1 decision) — supersedes v1 (G17 D1–D7, 2026-09-19) wherever the two disagree.
 **Shipped:** v2 foundation (lane T), 2026-09-21 — tokens, primitives, nav + footer, guard; the four page lanes (marketing, founder workspace, evaluator/admin, reports) roll it out.
 **Owner:** every page under `web/src/app/**` — marketing, workspace, admin and reports share ONE template and ONE palette. There is no second palette for the app.

@@ -1,5 +1,7 @@
 # BlockID — Startup Value Index (SVI) System Goals
 
+> **Planning authority — 2026-09-22:** the consolidated next goal is [G30 Investor Report Quality & Sale Readiness](docs/plans/SOURCE-OF-TRUTH.md), **PROPOSED / awaiting founder review**. The goals/formula notes below are historical context; current implementation is verified from source, and new priorities/acceptance live only in G30. This update does not start implementation.
+
 **Sync-status (v3.9.23):** canonical taxonomy is the **12-phase growth model** in
 [`web/src/lib/growth/phase-taxonomy.ts`](./web/src/lib/growth/phase-taxonomy.ts).
 The legacy 8-stage vocabulary below (Stage 0 Raw Idea → Stage 7 Corporation) is

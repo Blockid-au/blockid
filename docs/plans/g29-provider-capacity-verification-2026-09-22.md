@@ -1,5 +1,7 @@
 # G29 — Provider capacity automation · degraded-run diagnostics · free-report verification · persona copy · index sample logic
 
+> **Planning authority — 2026-09-22:** [G30 SOURCE OF TRUTH](./SOURCE-OF-TRUTH.md) consolidates the next upgrade, priorities, dependencies and sale gates. **PROPOSED / awaiting founder review; implementation not started.** This document is a historical component plan. Its shipped work is retained; residual work is mapped into G30 §3/§12. Older “continuous”, “defaults ship” or lane-launch instructions do not authorise G30 implementation.
+
 **Opened:** 2026-09-22 after G28 closed at v3.27.2. Standing directive: continuous.
 **Tracked in:** `docs/plans/SOURCE-OF-TRUTH.md` § G29 · `ROADMAP.md` row G29.
 **Status:** OPEN — lanes launching on v3.27.2 (`a6c8e38d0`).

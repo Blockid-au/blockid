@@ -1,5 +1,7 @@
 # G20 — Ready for sale: feature audit, hide the unfinished, every page error-free
 
+> **Planning authority — 2026-09-22:** [G30 SOURCE OF TRUTH](./SOURCE-OF-TRUTH.md) consolidates the next upgrade, priorities, dependencies and sale gates. **PROPOSED / awaiting founder review; implementation not started.** This document is a historical component plan. Its shipped work is retained; residual work is mapped into G30 §3/§12. Older “continuous”, “defaults ship” or lane-launch instructions do not authorise G30 implementation.
+
 **Opened:** 2026-09-20 (founder: "review lại toàn bộ feature, ẩn đi những chức năng thừa hoặc chưa hoàn thành, rà soát toàn bộ các trang trong site để không còn lỗi và fix, commit, deploy live để product ready sale").
 **Owner:** Claude session loop — 3 worktree lanes → merge → full vitest → deploy → elevated live-qa + link-check + page sweep → read-only review → fixes → close.
 **Tracked in:** `docs/plans/SOURCE-OF-TRUTH.md` § G20.

@@ -1,5 +1,7 @@
 # G27 — Trusted Business Report v3: an investor-grade startup valuation + investment report (PRIORITY)
 
+> **Planning authority — 2026-09-22:** [G30 SOURCE OF TRUTH](./SOURCE-OF-TRUTH.md) consolidates the next upgrade, priorities, dependencies and sale gates. **PROPOSED / awaiting founder review; implementation not started.** This document is a historical component plan. Its shipped work is retained; residual work is mapped into G30 §3/§12. Older “continuous”, “defaults ship” or lane-launch instructions do not authorise G30 implementation.
+
 **Opened:** 2026-09-21 — founder (verbatim): "thiết kế trusted biz report page thật rõ ràng, mạch lạc các nhận xét, đánh giá, các hạng mục trong 8 criterias và bố cục hài hoà, hợp lý như bảng báo cáo đầy đủ về giá trị startup và báo cáo đầu tư, có giá trị đầu tư cao hay không và cần cải thiện gì, làm rõ những điểm chính và tạo thành report có giá trị cho nhà đầu tư ⇒ nghiên cứu các loại report tiêu chuẩn tốt nhất về biz và thiết kế report chất lượng về nội dung và hài hoà về bố cục, design, ui/ux pro ⇒ spawn agent và skill pro phù hợp, đồng bộ với plan đang thực thi và ưu tiên việc này".
 **Owner:** Claude session loop. **Priority:** above G26 page lanes; sequenced after G26-R's class-level light restyle of `components/tbr/**` (told to stay class/theme-level so v3 rebases cleanly).
 **Tracked in:** `docs/plans/SOURCE-OF-TRUTH.md` § G27 · `ROADMAP.md` row G27.

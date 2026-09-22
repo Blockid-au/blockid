@@ -1,6 +1,6 @@
 # BlockID.au + Startup Value Index — Master Roadmap
 
-> **This is the single source of truth.** Every roadmap, plan, architecture diagram, or task list lives here or is linked from here. When in doubt, this file wins.
+> **Planning authority updated 2026-09-22:** [SOURCE-OF-TRUTH — G30 Investor Report Quality & Sale Readiness](docs/plans/SOURCE-OF-TRUTH.md) is the single consolidated upgrade plan. **PROPOSED / awaiting founder review; implementation not started.** This roadmap is a historical release/index document; its version header and older priorities below do not override G30. No new code, deployment or spend is authorised by this documentation update.
 
 **Current version:** `v3.16.0` (web/package.json = web/content/reports/version.json, aligned 2026-09-19 by G18-B) — Reliability (G15) · First dollar (G16) · Unicorn homepage (G17) · truth sweep (G18). Ladder: founders Free / Starter A$29 / Growth A$69 (Pro A$299 retired 2026-09-08); evaluators Scout A$79 / Firm A$149 / Program A$349 · Fund A$999 / Intake link A$249 / Index API A$299 · Cohort 25 A$5K/yr / Cohort 100 A$15K/yr; Trusted Business Report A$3. Positioning: "Startup Value Index … by BlockID", evaluator-first. Release log: `web/CHANGELOG.md`; goal status: §1–§3 below and `docs/plans/SOURCE-OF-TRUTH.md`.
 **Last updated:** 2026-09-19 UTC (header + §5 header; goal tables owned by the main session)

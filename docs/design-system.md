@@ -1,7 +1,7 @@
 # BlockID Design System — Canonical Token Spec
 
 > **Version:** 2026-09-08 · rev.3 (LIGHT-FIRST · verified AA on live 2026-09-08) · Applies to: `blockid.au` (web) + `startupvalueindex.com`
-> **Owner:** CEO (Do Van Long) · **Authority:** any UI change referencing colour/type must resolve tokens from this file before merging.
+> **Owner:** CEO (Do Van Long) · **Authority update 2026-09-22:** this rev.3 document is a historical token reference. [Light template v2](design/unicorn-template.md) supersedes conflicting colour/type/page rules. [G30 SOURCE OF TRUTH](plans/SOURCE-OF-TRUTH.md) is the sole proposed next upgrade plan, awaiting founder review; it retains the light/navy/cyan-muted template.
 > **Skill reference:** `ui-ux-pro-max` → *Data-Dense Dashboard* (Premium Neutral) chassis, SVI orange kept as brand accent.
 >
 > **rev.3 changelog (2026-09-08):**

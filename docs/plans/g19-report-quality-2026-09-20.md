@@ -1,5 +1,7 @@
 # G19 — Report Quality: reasons behind every score · honest valuation · unassessed ≠ scored · one synthesis everywhere · paid view = ReportV2 · BlockID's own report as the showcase — Goal Doc
 
+> **Planning authority — 2026-09-22:** [G30 SOURCE OF TRUTH](./SOURCE-OF-TRUTH.md) consolidates the next upgrade, priorities, dependencies and sale gates. **PROPOSED / awaiting founder review; implementation not started.** This document is a historical component plan. Its shipped work is retained; residual work is mapped into G30 §3/§12. Older “continuous”, “defaults ship” or lane-launch instructions do not authorise G30 implementation.
+
 > **Back-link:** [`docs/plans/SOURCE-OF-TRUTH.md`](./SOURCE-OF-TRUTH.md) § G19 (consult first).
 > **Opened:** 2026-09-20 (founder brief in VI: "nâng cấp chất lượng phân tích… chấm điểm có lý do rõ ràng và định giá chuẩn… những giá trị chưa đánh giá được thì kêu gọi nhập thêm dữ liệu… bố cục hài hoà… áp dụng cho blockid.au") · **Owner:** CEO · **Status:** batch 1 running.
 > **Companion audits (same folder):** [`01-audit-pipeline.md`](./g19-report-quality-2026-09-20/01-audit-pipeline.md) (engine/contract/valuation gaps with file:line) · [`02-audit-ux.md`](./g19-report-quality-2026-09-20/02-audit-ux.md) (founder-facing UX, inputs, surfaces, i18n, analytics).

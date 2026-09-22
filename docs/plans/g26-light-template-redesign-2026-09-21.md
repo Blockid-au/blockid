@@ -1,5 +1,7 @@
 # G26 — Light unicorn template on every page: light surfaces, dark high-contrast text, one harmonious palette
 
+> **Planning authority — 2026-09-22:** [G30 SOURCE OF TRUTH](./SOURCE-OF-TRUTH.md) consolidates the next upgrade, priorities, dependencies and sale gates. **PROPOSED / awaiting founder review; implementation not started.** This document is a historical component plan. Its shipped work is retained; residual work is mapped into G30 §3/§12. Older “continuous”, “defaults ship” or lane-launch instructions do not authorise G30 implementation.
+
 **Opened:** 2026-09-21 — founder (verbatim): "điều chỉnh thiết kế toàn bộ template của blockid.au là nền sáng và chữ màu tối tương phản để dễ đọc và hài hoà màu sắc, redesign full all page same style for whole blockid.au (spawn agent nếu cần thiết và dùng skill design ui/ux pro max phù hợp unicorn style)".
 **Owner:** Claude session loop — five worktree lanes (ui-ux-pro-max first in every lane) → merge → full suite → deploy → elevated live-qa + link-check + page sweep + screenshot review → read-only review → fixes → close.
 **Tracked in:** `docs/plans/SOURCE-OF-TRUTH.md` § G26 · `ROADMAP.md` row G26.

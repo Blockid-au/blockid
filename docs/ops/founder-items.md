@@ -1,6 +1,8 @@
 # Founder items — what still needs a human (G25-B, 2026-09-21)
 
-Everything an AI session can resolve has been resolved; the founder decision of 2026-09-21 (founder-only AI items run on the **Claude CLI subscription**, no Anthropic API key) is implemented in lane G25-B. What is left needs a **person** — a dashboard login, a token minted under a human account, a signature, or a business decision. Nothing here blocks sales or a deploy.
+> **Planning authority — 2026-09-22:** [G30 SOURCE OF TRUTH](../plans/SOURCE-OF-TRUTH.md), proposed and awaiting founder review, owns new priorities and sale gates. This file is an operational inventory, not implementation authorisation. Capacity, payment parity and buyer scope may block the corresponding sale path until verified; other items may have working fallbacks. Do not assume that every item is non-blocking.
+
+The founder decision of 2026-09-21 (Claude CLI subscription fallback, optional Anthropic API key) was implemented in G25-B. The items below require account access, signatures or business decisions, and their current status must be rechecked at the approved implementation baseline.
 
 ## Resolved in G25-B (no founder step)
 

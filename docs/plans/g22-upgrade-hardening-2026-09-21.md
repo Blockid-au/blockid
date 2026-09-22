@@ -1,5 +1,7 @@
 # G22 — Upgrade hardening: cohort membership completeness · organisation model · localisation parity · validation tracker
 
+> **Planning authority — 2026-09-22:** [G30 SOURCE OF TRUTH](./SOURCE-OF-TRUTH.md) consolidates the next upgrade, priorities, dependencies and sale gates. **PROPOSED / awaiting founder review; implementation not started.** This document is a historical component plan. Its shipped work is retained; residual work is mapped into G30 §3/§12. Older “continuous”, “defaults ship” or lane-launch instructions do not authorise G30 implementation.
+
 **Opened:** 2026-09-21 (founder: "review kết quả đã làm, test, commit, deploy, chạy QA/QC và fix, tiếp tục plan/goal trong phiên bản upgrade, spawn agent khi cần và dùng skill phù hợp").
 **Owner:** Claude session loop — worktree lanes → merge → full `--project unit` + pdf → 12-gate deploy → elevated live-qa + link-check + page sweep → read-only review → fixes → close.
 **Tracked in:** `docs/plans/SOURCE-OF-TRUTH.md` § G22 · `ROADMAP.md` row G22.

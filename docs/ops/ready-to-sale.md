@@ -1,6 +1,8 @@
 # Ready to sale — release readiness (2026-09-22, v3.27.2)
 
-One page the founder can read before selling. Everything below is live unless marked.
+> **Review update — 2026-09-22:** [G30 SOURCE OF TRUTH](../plans/SOURCE-OF-TRUTH.md) is the consolidated proposed upgrade and sale-readiness plan, awaiting founder approval. The inventory below records the v3.27.2 release claims; it is not a current sign-off that report quality or every delivery path is ready for sale. The [source/output review](../reviews/2026-09-22-source-output-design-review.md) identified material gaps. G30 §13 defines proposed content, buyer-value and operational gates; none is marked passed by this docs update.
+
+Historical one-page release inventory follows. Re-verify each advertised capability against the deployed build and final report snapshot before a new sale-readiness sign-off.
 
 ## What a buyer gets today
 | Segment | Entry | What is live |

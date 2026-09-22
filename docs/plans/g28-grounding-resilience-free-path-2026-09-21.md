@@ -1,5 +1,7 @@
 # G28 — Grounding to the KPI · provider resilience · free-grant path on ReportV2 · print + SVI app parity
 
+> **Planning authority — 2026-09-22:** [G30 SOURCE OF TRUTH](./SOURCE-OF-TRUTH.md) consolidates the next upgrade, priorities, dependencies and sale gates. **PROPOSED / awaiting founder review; implementation not started.** This document is a historical component plan. Its shipped work is retained; residual work is mapped into G30 §3/§12. Older “continuous”, “defaults ship” or lane-launch instructions do not authorise G30 implementation.
+
 **Opened:** 2026-09-21 after G24–G27 closed at v3.26.1. Standing directive: continuous — lanes → merge → full suite once → deploy → full QA + ui-ux check + review → fixes → close.
 **Tracked in:** `docs/plans/SOURCE-OF-TRUTH.md` § G28 · `ROADMAP.md` row G28.
 **Status:** CLOSED 2026-09-22 — v3.27.0 → v3.27.2 live; lanes A/B/C/D shipped; review 2 P1 / 3 P2 / 3 P3 + 7 UX fixes shipped; KPI 0.85 pinned, not verified live (provider outage); see SOT § G28.
