@@ -2,6 +2,9 @@
 
 ## v3.30.0 — G30 report and reading foundations
 
+- Expand “What we looked at” into section-specific findings, evidence limits, investor implications and questions, using the final report for fresh and saved results. Hide provisional monetary estimates while final valuation is pending.
+- Read up to five supplied public sources and retain retrieval details in the report appendix. Pages remain pending relevance checks and are not treated as verified citations; automated competitor discovery remains in progress.
+
 - Represent insufficient valuation inputs explicitly across new reports, streaming, saved views and exports; suppress stale monetary summaries when valuation is unavailable. Historical reports remain compatible.
 - Use the final audited report for saved dimensions, streaming completion and cache replay. Bind browser restoration to authenticated user, project and received deck; completed restores do not trigger another run.
 - Withhold unqualified legacy financial amounts from gathered evidence and valuation. Match numeric citations by amount, sign, currency and unit; broader claim verification remains open.
