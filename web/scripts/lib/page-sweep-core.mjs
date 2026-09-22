@@ -23,6 +23,19 @@ export const REACT_418_RE = /Minified React error #418/;
  */
 export const FEDCM_NOISE_RE = /^(Provider's accounts list is empty|Not signed in with the identity provider)\.?$|^\[GSI_LOGGER\]: FedCM get\(\) rejects with NetworkError|^\[auth:google\] client one_tap (unknown_reason|opt_out_or_no_session)$/;
 export const CSP_INLINE_SCRIPT_RE = /(Refused to execute inline script because it violates|Executing inline script violates) the following Content Security Policy directive/;
+/**
+ * Google Identity Services' OWN report-only CSP on the sign-in button iframe
+ * (`frame-ancestors 'self'`): Chromium logs the violation in the embedding
+ * page's console when blockid.au frames accounts.google.com, but a report-only
+ * policy blocks nothing — the button renders and the popup flow works. It is
+ * Google's header, not ours (our enforced `frame-src` already allows the
+ * origin, release QA-1 #10), so it is never a page defect (G29-C, seen on
+ * /auth/login, /ja/auth/login and every `?next=` bounce). Only the report-only
+ * wording for accounts.google.com is tolerated — an ENFORCED "Framing …
+ * violates" line still fails the sweep. Mirrored in
+ * tests/live-qa/lib/console-guard.ts (parity pinned by scripts/page-sweep.test.mjs).
+ */
+export const GSI_REPORT_ONLY_FRAME_RE = /^Framing 'https:\/\/accounts\.google\.com\/[^']*' violates the following report-only Content Security Policy directive: "frame-ancestors [^"]*"\. The violation has been logged, but no further action has been taken\.$/;
 export const NOISE_URL_RE = /google-analytics\.com|googletagmanager\.com|\/g\/collect|cloudflareinsights|stripe\.com\/b|r\.stripe\.com/;
 export const FAILED_RESOURCE_RE = /Failed to load resource: the server responded with a status of (\d+)/;
 
@@ -361,6 +374,10 @@ export function filterConsole(entries, { htmlHasCfInjection = false, htmlHasCfEm
       continue;
     }
     if (e.type === "console" && FEDCM_NOISE_RE.test(e.text.trim())) {
+      allowed.push(e);
+      continue;
+    }
+    if (e.type === "console" && GSI_REPORT_ONLY_FRAME_RE.test(e.text.trim())) {
       allowed.push(e);
       continue;
     }

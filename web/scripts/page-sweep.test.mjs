@@ -22,6 +22,7 @@ import {
   CSP_INLINE_SCRIPT_RE,
   FAILED_RESOURCE_RE,
   FEDCM_NOISE_RE,
+  GSI_REPORT_ONLY_FRAME_RE,
   NOISE_URL_RE,
   PERSONAS,
   REACT_418_RE,
@@ -157,6 +158,8 @@ describe("allow-list parity with tests/live-qa/lib/console-guard.ts", () => {
     expect(ts).toContain(NOISE_URL_RE.toString());
     expect(ts).toContain(FAILED_RESOURCE_RE.toString());
     expect(ts).toContain(`FEDCM_NOISE_RE = ${FEDCM_NOISE_RE.toString()}`);
+    expect(ts).toContain(`GSI_REPORT_ONLY_FRAME_RE = ${GSI_REPORT_ONLY_FRAME_RE.toString()}`);
+    expect(ts).toContain("GSI_REPORT_ONLY_FRAME_RE.test(e.text.trim())");
     expect(ts).toContain("/[?&]_rsc=/.test(req.url())");
   });
   it("FedCM 'no Google account' console lines are allowed (headless browsers never have one)", () => {
@@ -167,6 +170,22 @@ describe("allow-list parity with tests/live-qa/lib/console-guard.ts", () => {
     const other = { type: "console", text: "Not signed in with the identity provider. Also something else" };
     const realGis = { type: "console", text: "[auth:google] client one_tap unregistered_origin" };
     expect(filterConsole([fedcm, fedcm2, fedcm3, fedcm4, other, realGis]).errors).toEqual([other, realGis]);
+  });
+  it("Google's report-only frame-ancestors line on the sign-in button is allowed; an enforced framing refusal or another origin is not (G29-C)", () => {
+    const reportOnly = {
+      type: "console",
+      text: "Framing 'https://accounts.google.com/' violates the following report-only Content Security Policy directive: \"frame-ancestors 'self'\". The violation has been logged, but no further action has been taken.\n",
+    };
+    const reportOnlyPath = {
+      type: "console",
+      text: "Framing 'https://accounts.google.com/gsi/button?x=1' violates the following report-only Content Security Policy directive: \"frame-ancestors 'self' https://example.com\". The violation has been logged, but no further action has been taken.",
+    };
+    const enforced = { type: "console", text: "Framing 'https://accounts.google.com/' violates the following Content Security Policy directive: \"frame-src https://js.stripe.com\"." };
+    const otherOrigin = { type: "console", text: "Framing 'https://evil.example/' violates the following report-only Content Security Policy directive: \"frame-ancestors 'self'\". The violation has been logged, but no further action has been taken." };
+    const ours = { type: "console", text: "Framing 'https://blockid.au/' violates the following report-only Content Security Policy directive: \"frame-ancestors 'none'\". The violation has been logged, but no further action has been taken." };
+    const out = filterConsole([reportOnly, reportOnlyPath, enforced, otherOrigin, ours]);
+    expect(out.allowed).toEqual([reportOnly, reportOnlyPath]);
+    expect(out.errors).toEqual([enforced, otherOrigin, ours]);
   });
   it("filterConsole applies the guard rules (≤ 2 CSP refusals with the CF tag, #418 with email obfuscation, allowed-request echoes)", () => {
     const csp = { type: "console", text: "Executing inline script violates the following Content Security Policy directive 'script-src'" };

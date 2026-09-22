@@ -166,6 +166,73 @@ async function personaContext(browser: Browser, storageState: string): Promise<B
   return browser.newContext({ storageState, viewport: { width: 1366, height: 900 } });
 }
 
+/**
+ * G29-C persona pin — the shell's chrome must match the seat, not the
+ * account_type column: an evaluator seat (Scout / Firm / Program / Cohort
+ * plan, or an evaluator / accelerator account) never sees the founder
+ * growth-phase banner ("You are on Phase 1 of 12"), the founder hub tablist
+ * or the Growth credits nudge. `data-chrome` on the sidebar nav is what
+ * `chromeFor(personaFor(seat))` resolved (lib/nav/persona-chrome.ts).
+ */
+async function pinPersonaChrome(context: BrowserContext, baseURL: string, route: string, expected: "founder" | "evaluator"): Promise<{ chrome: string | null; persona: string | null }> {
+  const page = await context.newPage();
+  try {
+    await page.goto(`${baseURL}${route}`, { waitUntil: "networkidle", timeout: 45_000 });
+    const nav = page.locator("nav[aria-label='Workspace navigation']");
+    await expect(nav, `${route}: the workspace shell renders for this seat`).toBeVisible({ timeout: 15_000 });
+    // The chrome is resolved client-side once /api/entitlement/me answers (plan) — wait for the attribute to settle.
+    await expect(nav, `${route}: data-chrome resolves to ${expected}`).toHaveAttribute("data-chrome", expected, { timeout: 15_000 });
+    const chrome = await nav.getAttribute("data-chrome");
+    const persona = await nav.getAttribute("data-persona");
+    if (expected === "evaluator") {
+      await expect(page.getByTestId("product-tour-banner"), `${route}: no founder phase banner for an evaluator seat`).toHaveCount(0);
+      await expect(page.getByText(/You are on Phase \d+ of 12/), `${route}: no "Phase N of 12" copy for an evaluator seat`).toHaveCount(0);
+      await expect(page.getByRole("tablist"), `${route}: no founder hub tablist for an evaluator seat`).toHaveCount(0);
+      await expect(page.getByText(/Credits running low/), `${route}: no founder Growth nudge for an evaluator seat`).toHaveCount(0);
+      expect(persona, `${route}: persona is an evaluator`).toMatch(/^(investor_angel|investor_vc|advisor|accelerator)$/);
+    }
+    return { chrome, persona };
+  } finally {
+    await page.close();
+  }
+}
+
+/**
+ * G29-C pill pin at 375 — the cookie-prefs pill and the feedback FAB live in
+ * ONE bottom-right stack (`FloatingStackHost`), never overlap each other, and
+ * both sit inside the viewport above the safe-area foot.
+ */
+async function pinFloatingPills(context: BrowserContext, baseURL: string, route: string): Promise<Record<string, unknown>> {
+  const page = await context.newPage();
+  try {
+    await page.setViewportSize({ width: 375, height: 740 });
+    await page.goto(`${baseURL}${route}`, { waitUntil: "networkidle", timeout: 45_000 });
+    const stack = page.getByTestId("floating-stack");
+    await expect(stack, `${route}: the floating stack host is mounted`).toHaveCount(1);
+    const cookie = stack.getByTestId("cookie-prefs-pill");
+    const feedback = stack.getByTestId("feedback-pill");
+    await expect(cookie, `${route}: cookie-prefs pill sits inside the stack`).toBeVisible({ timeout: 15_000 });
+    await expect(feedback, `${route}: feedback pill sits inside the stack (signed-in seat)`).toBeVisible({ timeout: 15_000 });
+    const [c, f] = await Promise.all([cookie.boundingBox(), feedback.boundingBox()]);
+    expect(c && f, `${route}: both pills have a box`).toBeTruthy();
+    const overlap = !(c!.x + c!.width <= f!.x || f!.x + f!.width <= c!.x || c!.y + c!.height <= f!.y || f!.y + f!.height <= c!.y);
+    expect(overlap, `${route}: cookie pill ${JSON.stringify(c)} overlaps feedback pill ${JSON.stringify(f)}`).toBe(false);
+    // Cookie prefs stacks ABOVE the feedback FAB (the primary action stays at the thumb).
+    expect(c!.y + c!.height, `${route}: cookie pill sits above the feedback pill`).toBeLessThanOrEqual(f!.y + 1);
+    for (const [name, b] of [["cookie", c!], ["feedback", f!]] as const) {
+      expect(b.x, `${name}: inside the left edge`).toBeGreaterThanOrEqual(0);
+      expect(b.x + b.width, `${name}: inside the right edge at 375`).toBeLessThanOrEqual(375 + 0.5);
+      expect(b.y + b.height, `${name}: above the viewport foot`).toBeLessThanOrEqual(740 - 8);
+      expect(b.height, `${name}: ≥ 44 px touch target`).toBeGreaterThanOrEqual(43);
+    }
+    // Only ONE feedback FAB on the page (the workspace shell used to mount a second one).
+    await expect(page.getByTestId("feedback-pill")).toHaveCount(1);
+    return { cookie: c, feedback: f };
+  } finally {
+    await page.close();
+  }
+}
+
 test.describe("Page sweep — founder", () => {
   test("every founder route renders clean on the run's plan (Free → gates; Growth when elevated)", async ({ browser, qa, credits }, testInfo) => {
     test.setTimeout(PERSONA_BUDGET_MS + 60_000);
@@ -190,6 +257,10 @@ test.describe("Page sweep — founder", () => {
       // Read-only by construction — nothing is clicked; the balance proves it.
       await credits.assertUnchanged(before, "founder page sweep");
       await assertClean([...rows, ...growthRows], skippedDynamic, `founder (${readRunState().plan})`, testInfo);
+      // G29-C: the founder seat keeps the founder chrome …
+      await evidence(testInfo, "founder chrome pin (/dashboard)", await pinPersonaChrome(ctx, qa.baseURL, "/dashboard", "founder"));
+      // … and the cookie-prefs + feedback pills share one bottom-right stack at 375 on a long public page.
+      await evidence(testInfo, "floating pills at 375 (/tbr/demo)", await pinFloatingPills(ctx, qa.baseURL, "/tbr/demo"));
     } finally {
       await ctx.close();
     }
@@ -209,6 +280,9 @@ test.describe("Page sweep — evaluator + accelerator seat", () => {
     try {
       const rows = await sweep(ctx, visits, qa.baseURL, "evaluator (investor_angel)");
       await assertClean(rows, skippedDynamic, "evaluator", testInfo);
+      // G29-C persona pin: the Scout seat gets the evaluator chrome — no founder phase banner / hub tabs / Growth nudge.
+      await evidence(testInfo, "evaluator chrome pin (/workspace/evaluations)", await pinPersonaChrome(ctx, qa.baseURL, "/workspace/evaluations", "evaluator"));
+      await evidence(testInfo, "evaluator chrome pin (/workspace/settings — shared route)", await pinPersonaChrome(ctx, qa.baseURL, "/workspace/settings", "evaluator"));
     } finally {
       await ctx.close();
     }
@@ -229,6 +303,8 @@ test.describe("Page sweep — evaluator + accelerator seat", () => {
     try {
       const rows = await sweep(ctx, visits, qa.baseURL, `accelerator (${env.elevate ? "accelerator_starter" : "free"})`);
       await assertClean(rows, skippedDynamic, "accelerator", testInfo);
+      // G29-C persona pin: the elevated Program / Cohort seat never sees "Phase 1 of 12" or the founder tabs.
+      await evidence(testInfo, "accelerator chrome pin (/workspace/accelerator)", await pinPersonaChrome(ctx, qa.baseURL, "/workspace/accelerator", "evaluator"));
     } finally {
       await ctx.close();
       // Restore the seat for the lanes that follow (29-intake expects a paying Scout).
