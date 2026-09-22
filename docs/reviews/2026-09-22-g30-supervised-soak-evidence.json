@@ -1,0 +1,510 @@
+{
+  "observedAt": "2026-09-22T08:46:06.161254+00:00",
+  "gateTime": "2026-09-22T08:15:08Z",
+  "soakSeconds": 1858,
+  "active": {
+    "schemaDigest": "08a43b4454e665d23116de258945545d752a1a603356781ef69337ae5310b58a",
+    "port": 4101,
+    "pid": 749255,
+    "startTicks": "445575211",
+    "releasePath": "/data/releases/on4GQhWkTQ5K8kjTVasPx",
+    "sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd"
+  },
+  "verifiedGood": [
+    4001,
+    4101
+  ],
+  "quarantined": [
+    4100
+  ],
+  "samples": [
+    {
+      "ts": "2026-09-22T08:15:26Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.34
+    },
+    {
+      "ts": "2026-09-22T08:15:56Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.42
+    },
+    {
+      "ts": "2026-09-22T08:16:27Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.358
+    },
+    {
+      "ts": "2026-09-22T08:16:57Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.432
+    },
+    {
+      "ts": "2026-09-22T08:17:28Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.383
+    },
+    {
+      "ts": "2026-09-22T08:17:58Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.478
+    },
+    {
+      "ts": "2026-09-22T08:18:28Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.377
+    },
+    {
+      "ts": "2026-09-22T08:18:59Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.38
+    },
+    {
+      "ts": "2026-09-22T08:19:31Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 2.185
+    },
+    {
+      "ts": "2026-09-22T08:20:01Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.43
+    },
+    {
+      "ts": "2026-09-22T08:20:32Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.418
+    },
+    {
+      "ts": "2026-09-22T08:21:02Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.379
+    },
+    {
+      "ts": "2026-09-22T08:21:33Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.453
+    },
+    {
+      "ts": "2026-09-22T08:22:03Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.412
+    },
+    {
+      "ts": "2026-09-22T08:22:33Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.409
+    },
+    {
+      "ts": "2026-09-22T08:23:04Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.438
+    },
+    {
+      "ts": "2026-09-22T08:23:34Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.373
+    },
+    {
+      "ts": "2026-09-22T08:24:05Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.401
+    },
+    {
+      "ts": "2026-09-22T08:24:37Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 2.178
+    },
+    {
+      "ts": "2026-09-22T08:25:07Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.376
+    },
+    {
+      "ts": "2026-09-22T08:25:38Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.415
+    },
+    {
+      "ts": "2026-09-22T08:26:08Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.422
+    },
+    {
+      "ts": "2026-09-22T08:26:38Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.351
+    },
+    {
+      "ts": "2026-09-22T08:27:09Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.437
+    },
+    {
+      "ts": "2026-09-22T08:27:39Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.407
+    },
+    {
+      "ts": "2026-09-22T08:28:10Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.36
+    },
+    {
+      "ts": "2026-09-22T08:28:40Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.391
+    },
+    {
+      "ts": "2026-09-22T08:29:10Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.384
+    },
+    {
+      "ts": "2026-09-22T08:29:42Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 2.114
+    },
+    {
+      "ts": "2026-09-22T08:30:13Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.366
+    },
+    {
+      "ts": "2026-09-22T08:30:43Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.431
+    },
+    {
+      "ts": "2026-09-22T08:31:14Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.404
+    },
+    {
+      "ts": "2026-09-22T08:31:44Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.409
+    },
+    {
+      "ts": "2026-09-22T08:32:14Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.365
+    },
+    {
+      "ts": "2026-09-22T08:32:45Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.403
+    },
+    {
+      "ts": "2026-09-22T08:33:15Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.411
+    },
+    {
+      "ts": "2026-09-22T08:33:46Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.399
+    },
+    {
+      "ts": "2026-09-22T08:34:16Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.422
+    },
+    {
+      "ts": "2026-09-22T08:34:48Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 2.158
+    },
+    {
+      "ts": "2026-09-22T08:35:19Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.433
+    },
+    {
+      "ts": "2026-09-22T08:35:49Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.445
+    },
+    {
+      "ts": "2026-09-22T08:36:20Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.422
+    },
+    {
+      "ts": "2026-09-22T08:36:50Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.408
+    },
+    {
+      "ts": "2026-09-22T08:37:20Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.354
+    },
+    {
+      "ts": "2026-09-22T08:37:51Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.409
+    },
+    {
+      "ts": "2026-09-22T08:38:21Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.499
+    },
+    {
+      "ts": "2026-09-22T08:38:52Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.407
+    },
+    {
+      "ts": "2026-09-22T08:39:22Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.441
+    },
+    {
+      "ts": "2026-09-22T08:39:54Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 2.248
+    },
+    {
+      "ts": "2026-09-22T08:40:25Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.421
+    },
+    {
+      "ts": "2026-09-22T08:40:55Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.343
+    },
+    {
+      "ts": "2026-09-22T08:41:25Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.358
+    },
+    {
+      "ts": "2026-09-22T08:41:56Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.416
+    },
+    {
+      "ts": "2026-09-22T08:42:26Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.422
+    },
+    {
+      "ts": "2026-09-22T08:42:57Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.378
+    },
+    {
+      "ts": "2026-09-22T08:43:27Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.447
+    },
+    {
+      "ts": "2026-09-22T08:43:57Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.359
+    },
+    {
+      "ts": "2026-09-22T08:44:28Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.5
+    },
+    {
+      "ts": "2026-09-22T08:45:00Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 2.174
+    },
+    {
+      "ts": "2026-09-22T08:45:31Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.438
+    },
+    {
+      "ts": "2026-09-22T08:46:01Z",
+      "http": 200,
+      "version": "v3.29.1",
+      "git_sha": "f88ed0f90307e79c0581c1dd4ac4ac1d4f6398cd",
+      "ok": true,
+      "seconds": 0.398
+    }
+  ]
+}
