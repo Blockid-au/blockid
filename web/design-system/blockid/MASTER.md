@@ -1,6 +1,6 @@
 # BlockID — Design System Master
 
-> When building a page, check `design-system/blockid/pages/[page].md` first. If it exists, it overrides this file. Otherwise, follow the rules below.
+> **SUPERSEDED design direction — 2026-09-22:** the dark/teal rules below are historical. Use [light template v2](../../../docs/design/unicorn-template.md) for the existing implementation, and [G30 SOURCE OF TRUTH](../../../docs/plans/SOURCE-OF-TRUTH.md) for the proposed unified upgrade (awaiting founder review). Page overrides must not revive this retired palette or override the current semantic tokens. This documentation change does not implement G30.
 
 **Project:** BlockID — Persistent Identity & Trust Infrastructure for Private Capital Markets
 **Style direction:** Enterprise Trust + Bento Grid (selected by user)
