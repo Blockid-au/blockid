@@ -1,8 +1,9 @@
 {
-  "version": "v3.30.1",
-  "updated_at": "2026-09-22T09:40:00Z",
-  "release_id": "g30-source-attribution-workspace-return-paths",
+  "version": "v3.31.0",
+  "updated_at": "2026-09-22T10:27:00Z",
+  "release_id": "g30-origin-drain-reanalysis-contracts",
   "shipped_summary": [
+    "v3.31.0 — Track scoped origin work and expose authenticated drain controls; bind re-analysis requests to authorized report snapshots, scope and credit quotes. New paid re-analysis execution and database migrations remain disabled. Legacy origin retirement remains unproven.",
     "v3.30.1 — Exact source-attribution context, clearer workspace routes to Home and overview, and honest unavailable research-pricing errors. Verified competitor research, valuation qualification and receipt billing activation remain open.",
     "v3.30.0 — G30 foundation: current-deck inputs, honest report-save and valuation availability, light surfaces, investor-first business intake, scoped DeepInfra report routing and missing-payment-configuration guard. Research, valuation input accuracy, billing atomicity and whole-site redesign remain in progress.",
     "v3.29.2 — Report readers accept explicitly unavailable valuation across saved views and exports, preparing compatible rollback before new report writers. Extended review deferred under founder accelerated-release instruction; generation rollout follows separately.",

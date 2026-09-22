@@ -1800,3 +1800,12 @@ admission/drain is resolved; preserve incompatible legacy jobs/artifacts and
 use compatible4103/4102 for rollback. Isolated drain source does not provide
 retroactive proof for legacy processes. This is a release prerequisite, not
 a completed O08 gate or permission to kill unknown jobs.
+
+
+### G30 next phase: origin tracking + re-analysis contracts (candidate v3.31.0)
+
+- Implementation: serving-process work registry, explicit authenticated drain/resume, fail-closed retirement eligibility, and scoped re-analysis request/quote authorization contracts. Real Next build/start fixture passed; payment execution and SQL activation remain off.
+- Release-owner capacity decision under the approved continuous deployment scope: allow exactly one sixth live origin only through a private, expiring permit pinned to the final candidate SHA and retained-set digest. Require24GiB available before build,14GiB before launch/registration, CPU/pressure/disk checks, and enforce6GiB/2CPU candidate limits. Refuse admission if any condition changes. This creates no paid service and is not legacy job quiescence or permission for further cap increases.
+- Preserve all existing origins/artifacts and the verified compatible rollback. Legacy detached job ownership remains unresolved; O08 and production financial migration activation remain open.
+- RA1 durable storage is developed in isolation: escrow reservation, immutable revision, base-version CAS, exactly-once capture after accepted save, and failure/cancellation release. Do not add draft0446 to the approved migration allowlist implicitly.
+- Continue into bounded market research and per-criterion evidence enrichment after this release; do not invent prices, claim new paid re-analysis is live, or close the full goal based on these prerequisites.

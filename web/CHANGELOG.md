@@ -1,5 +1,12 @@
 # BlockID.au Changelog
 
+## v3.31.0 — Origin work tracking and re-analysis request foundations
+
+- Record scoped work in the actual serving process and provide authenticated drain/resume controls. Partial coverage explicitly prevents automatic retirement.
+- Bind re-analysis scope, report snapshot, requester, wallet authorization and stored quote before execution; paid execution remains disabled pending durable transactions and integration.
+- Permit one additional origin only with an expiring candidate-specific resource budget and enforced process limits. Existing origins remain retained.
+- Validate the drain lifecycle with a real Next fixture; broad review remains deferred under the accelerated phase policy.
+
 ## v3.30.1 — Source attribution and clearer return paths
 
 - Expand all13 criterion details with investor reading guidance, concrete diligence requests and resolved source context, preserving canonical findings and explicit limitations.
