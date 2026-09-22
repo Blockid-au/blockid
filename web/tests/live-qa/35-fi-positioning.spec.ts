@@ -1,9 +1,8 @@
 /**
  * 35 — Positioning + trust lane (G21 P0, 2026-09-20):
  *
- *   • ANONYMOUS `/` renders the evidence-backed hero H1, the two CTAs
- *     (Start a cohort → the Cohort 25 annual trial sign-up (G25), Score my
- *     startup → /analyze), the trust line, the section order problem → sequence →
+ *   • ANONYMOUS `/` and `/vi` render the G30 business hero, intake and
+ *     sample report link. English keeps the section order problem → sequence →
  *     messages → why-not-chatgpt → built-for → trust → cta, and no "A$"
  *     figure or agent count anywhere in <main> (G17 D3 + G21 § 0);
  *   • the top nav carries exactly the seven G21 items in order and the
@@ -16,7 +15,7 @@
  *     human-in-the-loop line; `/solutions/accelerator#cohort` shows the
  *     Cohort offer (inclusions + metrics) and `#plans` the two rungs with
  *     the catalogue's annual prices — never a pilot card or a pilot price;
- *   • `og:image:alt` and the site description carry the FI hero, not the
+ *   • `og:image:alt` and the site description carry the business hero, not the
  *     legacy "60 seconds" line.
  *
  * Read-only: every request is an anonymous GET. Nothing touches the QA
@@ -26,7 +25,7 @@ import { test, expect } from "./fixtures";
 import type { Page } from "@playwright/test";
 import { evidence } from "./lib/api";
 
-const HERO_H1 = "Screen every startup on the same evidence-backed framework.";
+const HERO_H1 = "Know the business before you invest.";
 const NAV = ["Product", "For Programs", "For Investors", "For Founders", "Methodology", "Startup Index", "Pricing"] as const;
 const TRUST_PAGES = ["/", "/product", "/pricing", "/methodology", "/solutions/accelerator", "/solutions/investor", "/solutions/founder"] as const;
 const START_COHORT_HREF = "/signup?segment=evaluator&plan=accelerator_starter&trial=1&interval=annual";
@@ -38,16 +37,17 @@ async function mainText(page: Page): Promise<string> {
 }
 
 test.describe("G21 P0 — home positioning", () => {
-  test("hero H1, two CTAs, trust line, section order, no price / agent count in <main>", async ({ page, qa }, testInfo) => {
+  test("hero H1, intake, sample report, outcome line, section order, no price / agent count in <main>", async ({ page, qa }, testInfo) => {
     const res = await page.goto(`${qa.baseURL}/`, { waitUntil: "domcontentloaded" });
     expect(res?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(HERO_H1);
-    const primary = page.locator(`main a[href="${START_COHORT_HREF}"]`).first();
-    const secondary = page.locator('main a[href="/analyze"]').first();
-    await expect(primary).toContainText("Start a cohort");
-    await expect(secondary).toContainText("Score my startup");
+    const intake = page.getByTestId("hero-search");
+    await expect(intake.getByTestId("smart-intake-text")).toBeVisible();
+    await expect(intake.getByTestId("smart-intake-cta")).toHaveText("Analyse a business");
+    await expect(intake.getByTestId("smart-intake-cta")).toBeDisabled();
+    await expect(intake.locator('[data-cta-id="hero_sample_report"]')).toHaveAttribute("href", "/tbr/demo");
     const text = await mainText(page);
-    expect(text).toContain("Australian-built · Evidence-backed · Founder-controlled data");
+    expect(text).toContain("Business context · Key risks · Next questions");
     const ids = await page.locator("main section[id]").evaluateAll((els) => els.map((e) => e.id));
     expect(ids).toEqual(["problem", "sequence", "messages", "why-not-chatgpt", "built-for", "trust", "cta"]);
     expect(text).not.toMatch(/A\$\s?\d/);
@@ -57,6 +57,17 @@ test.describe("G21 P0 — home positioning", () => {
     expect(text).toContain("Trust the evidence");
     expect(text).toContain("Track improvement");
     await evidence(testInfo, "home", { ids, h1: HERO_H1 });
+  });
+
+  test("Vietnamese homepage uses the approved business intake and sample copy", async ({ page, qa }) => {
+    await page.goto(`${qa.baseURL}/vi`, { waitUntil: "domcontentloaded" });
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Hiểu rõ doanh nghiệp trước khi đầu tư.");
+    const intake = page.getByTestId("hero-search");
+    await expect(intake.getByTestId("smart-intake-text")).toHaveAttribute("placeholder", "Dán website hoặc mô tả doanh nghiệp");
+    await expect(intake.getByTestId("smart-intake-cta")).toHaveText("Phân tích doanh nghiệp");
+    await expect(intake.getByTestId("smart-intake-cta")).toBeDisabled();
+    await expect(intake.locator('[data-cta-id="hero_sample_report"]')).toHaveText("Xem báo cáo mẫu");
+    await expect(intake.locator('[data-cta-id="hero_sample_report"]')).toHaveAttribute("href", "/tbr/demo");
   });
 
   test("top nav = the seven G21 items in order; primary nav CTA is Start a cohort (signed out)", async ({ browser, qa }) => {
@@ -73,13 +84,13 @@ test.describe("G21 P0 — home positioning", () => {
     await ctx.close();
   });
 
-  test("og:image:alt and description carry the FI hero, not the legacy 60-seconds line", async ({ page, qa }, testInfo) => {
+  test("og:image:alt and description carry the business hero, not the legacy 60-seconds line", async ({ page, qa }, testInfo) => {
     await page.goto(`${qa.baseURL}/`, { waitUntil: "domcontentloaded" });
     const ogAlt = await page.locator('meta[property="og:image:alt"]').getAttribute("content");
     const description = await page.locator('meta[name="description"]').getAttribute("content");
     await evidence(testInfo, "home-meta", { ogAlt, description });
-    expect(ogAlt ?? "").toContain("Screen every startup on the same evidence-backed framework");
-    expect(description ?? "").toContain("evidence");
+    expect(ogAlt ?? "").toContain("Know the business before you invest");
+    expect(description ?? "").toContain("business");
     expect(`${ogAlt} ${description}`).not.toMatch(/60 seconds/);
   });
 });

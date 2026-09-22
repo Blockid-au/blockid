@@ -233,14 +233,14 @@ describe("the hero and brand lines the map fixes are the ones the code ships", (
     expect(DATA_PRINCIPLE_SENTENCE).toBe(quote);
   });
 
-  it("site name, OG alt and manifest carry the brand line", () => {
+  it("site name, OG alt and manifest carry the brand line", async () => {
     const layout = readFileSync(resolve(WEB_ROOT, "src/app/layout.tsx"), "utf8");
     expect(layout).toContain('const SITE_NAME = "BlockID.au — Startup Value Index"');
     expect(layout).toContain('template: "%s | BlockID.au"');
-    const og = readFileSync(resolve(WEB_ROOT, "src/app/opengraph-image.tsx"), "utf8");
-    expect(og).toContain('export const alt = "Screen every startup on the same evidence-backed framework · BlockID.au"');
-    const pageMeta = readFileSync(resolve(WEB_ROOT, "src/lib/seo/page-meta.ts"), "utf8");
-    expect(pageMeta).toContain('export const OG_IMAGE_ALT = "Screen every startup on the same evidence-backed framework · BlockID.au"');
+    const { alt } = await import("@/app/opengraph-image");
+    const { OG_IMAGE_ALT } = await import("@/lib/seo/page-meta");
+    expect(alt).toBe("Know the business before you invest. · BlockID.au");
+    expect(OG_IMAGE_ALT).toBe(alt);
     const manifest = JSON.parse(readFileSync(resolve(WEB_ROOT, "public/site.webmanifest"), "utf8")) as { name: string; short_name: string };
     expect(manifest.name).toBe("BlockID.au — Startup Value Index");
     expect(manifest.short_name).toBe("BlockID");

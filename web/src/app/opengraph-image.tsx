@@ -1,9 +1,10 @@
 import { ImageResponse } from "next/og";
+import { HOMEPAGE_HERO } from "@/lib/marketing/homepage-hero";
+import { OG_IMAGE_ALT } from "@/lib/seo/page-meta";
 
 export const runtime = "edge";
-// G21 P0-B: og:image:alt mirrors the FI1 hero H1 (docs/design/messaging.md § 2)
-// so the social card, browser tab and hero headline all say the same thing.
-export const alt = "Screen every startup on the same evidence-backed framework · BlockID.au";
+// The social preview and homepage use the same approved message.
+export const alt = OG_IMAGE_ALT;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -18,7 +19,7 @@ export default async function OGImage() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg, #0A0F1E 0%, #111827 100%)",
+          background: "linear-gradient(135deg, #FFFFFF 0%, #ECFEFF 100%)",
           fontFamily: "Inter, sans-serif",
           position: "relative",
         }}
@@ -54,7 +55,7 @@ export default async function OGImage() {
           }}>
             <div style={{ color: "#0A0F1E", fontSize: 28, fontWeight: 800, display: "flex" }}>B</div>
           </div>
-          <div style={{ color: "#F8FAFC", fontSize: 32, fontWeight: 700, display: "flex" }}>BlockID</div>
+          <div style={{ color: "#0F172A", fontSize: 32, fontWeight: 700, display: "flex" }}>BlockID</div>
         </div>
 
         {/* Headline */}
@@ -67,40 +68,40 @@ export default async function OGImage() {
           <div style={{
             fontSize: 56,
             fontWeight: 800,
-            color: "#F8FAFC",
+            color: "#0F172A",
             textAlign: "center",
             lineHeight: 1.1,
             maxWidth: 900,
             display: "flex",
           }}>
-            Screen every startup on the same evidence-backed framework
+            {HOMEPAGE_HERO.en.title}
           </div>
           <div style={{
             fontSize: 22,
-            color: "#94A3B8",
+            color: "#475569",
             textAlign: "center",
             display: "flex",
           }}>
-            Startup Value Index · by BlockID
+            {HOMEPAGE_HERO.en.eyebrow}
           </div>
         </div>
 
-        {/* Stats strip */}
+        {/* Report benefits — no fabricated metrics or valuation promises */}
         <div style={{
           display: "flex",
           gap: 48,
           marginTop: 48,
           paddingTop: 32,
-          borderTop: "1px solid rgba(255,255,255,0.1)",
+          borderTop: "1px solid rgba(15,23,42,0.12)",
         }}>
           {[
-            { value: "8 SVI dimensions", label: "one rubric for every deal" },
-            { value: "AUD valuation range", label: "evidence-backed" },
-            { value: "Investor Dossier", label: "founders get the feedback free" },
+            { value: "Business context", label: "Understand the business" },
+            { value: "Key risks", label: "See what needs attention" },
+            { value: "Next questions", label: "Know what to investigate" },
           ].map((stat) => (
             <div key={stat.label} style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-              <div style={{ fontSize: 28, fontWeight: 700, color: "#00D4FF", display: "flex" }}>{stat.value}</div>
-              <div style={{ fontSize: 14, color: "#94A3B8", display: "flex" }}>{stat.label}</div>
+              <div style={{ fontSize: 28, fontWeight: 700, color: "#0E7490", display: "flex" }}>{stat.value}</div>
+              <div style={{ fontSize: 14, color: "#475569", display: "flex" }}>{stat.label}</div>
             </div>
           ))}
         </div>
@@ -110,7 +111,7 @@ export default async function OGImage() {
           position: "absolute",
           bottom: 32,
           right: 40,
-          color: "#94A3B8",
+          color: "#475569",
           fontSize: 16,
           display: "flex",
         }}>

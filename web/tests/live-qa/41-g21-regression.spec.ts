@@ -6,13 +6,13 @@
  * content/reports/live-qa-history.jsonl through the runner.
  *
  * Anonymous (a fresh context with no cookies):
- *   • `/` — the evidence-backed hero H1 + the seven nav items in order;
+ *   • `/` and `/vi` — the business hero; English keeps the seven nav items;
  *   • `data-testid="trust-band"` exactly once on the seven template pages;
  *   • `/methodology/{governance,versions,calibration}` → 200 + one h1; the
  *     calibration section shows either the empty state or `n =`;
  *   • `/tbr/demo` — one `assessment-card` with SVI + Evidence Confidence
  *     (case-insensitive) and no benchmark line without `n =`;
- *   • G25: the "Start a cohort" CTA on `/`, the nav and `/solutions/accelerator`
+ *   • G30: home intake and sample; G25: "Start a cohort" in the nav and `/solutions/accelerator`
  *     → the Cohort 25 annual trial sign-up; `/pilot`, `/vi/pilot`,
  *     `/pilot/investor` and `/workspace/accelerator/pilot` answer 301 to
  *     their replacements; no pilot offer card anywhere;
@@ -45,7 +45,7 @@ import { LIVE_QA_OUT } from "../../playwright.live-qa.config";
 
 const EVALUATOR_STATE = path.join(LIVE_QA_OUT, "evaluator-storage-state.json");
 
-const HERO_H1 = "Screen every startup on the same evidence-backed framework.";
+const HERO_H1 = "Know the business before you invest.";
 const NAV = ["Product", "For Programs", "For Investors", "For Founders", "Methodology", "Startup Index", "Pricing"] as const;
 const TRUST_PAGES = ["/", "/product", "/pricing", "/methodology", "/solutions/accelerator", "/solutions/investor", "/solutions/founder"] as const;
 const START_COHORT_HREF = "/signup?segment=evaluator&plan=accelerator_starter&trial=1&interval=annual";
@@ -92,7 +92,7 @@ test.describe("G21 regression — provision", () => {
 // ── Anonymous ───────────────────────────────────────────────────────────────
 
 test.describe("G21 regression — anonymous", () => {
-  test("home: hero H1 + the seven nav items in order", async ({ browser, qa }, testInfo) => {
+  test("home: EN/VI business hero + the seven English nav items in order", async ({ browser, qa }, testInfo) => {
     const { ctx, page } = await anonPage(browser);
     try {
       const res = await page.goto(`${qa.baseURL}/`, { waitUntil: "domcontentloaded" });
@@ -103,6 +103,12 @@ test.describe("G21 regression — anonymous", () => {
       for (const item of NAV) expect(labels, `nav item ${item}`).toContain(item);
       const order = NAV.map((n) => labels.indexOf(n));
       expect([...order].sort((a, b) => a - b)).toEqual(order);
+      await page.goto(`${qa.baseURL}/vi`, { waitUntil: "domcontentloaded" });
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("Hiểu rõ doanh nghiệp trước khi đầu tư.");
+      const intake = page.getByTestId("hero-search");
+      await expect(intake.getByTestId("smart-intake-cta")).toHaveText("Phân tích doanh nghiệp");
+      await expect(intake.getByTestId("smart-intake-cta")).toBeDisabled();
+      await expect(intake.locator('[data-cta-id="hero_sample_report"]')).toHaveAttribute("href", "/tbr/demo");
     } finally {
       await ctx.close();
     }
@@ -165,7 +171,7 @@ test.describe("G21 regression — anonymous", () => {
     }
   });
 
-  test("G25: 'Start a cohort' CTA on /, the nav and /solutions/accelerator → the Cohort 25 trial sign-up; no pilot offer card anywhere", async ({ browser, qa }, testInfo) => {
+  test("G30 home intake and G25 accelerator cohort CTA; existing nav and no pilot offer cards", async ({ browser, qa }, testInfo) => {
     const { ctx, page } = await anonPage(browser);
     try {
       const seen: Record<string, { hero: number; nav: number; pilotCards: number }> = {};
@@ -178,10 +184,17 @@ test.describe("G21 regression — anonymous", () => {
         const nav = await page.locator(`header a[href="${START_COHORT_HREF}"]`).count();
         const pilotCards = await page.getByTestId("pilot-offer-card").count();
         seen[path] = { hero, nav, pilotCards };
-        expect(hero, `${path} hero CTA`).toBeGreaterThanOrEqual(1);
+        if (path === "/") {
+          const intake = page.getByTestId("hero-search");
+          await expect(intake.getByTestId("smart-intake-cta")).toHaveText("Analyse a business");
+          await expect(intake.getByTestId("smart-intake-cta")).toBeDisabled();
+          await expect(intake.locator('[data-cta-id="hero_sample_report"]')).toHaveAttribute("href", "/tbr/demo");
+        } else {
+          expect(hero, `${path} cohort CTA`).toBeGreaterThanOrEqual(1);
+          await expect(page.locator(`main a[href="${START_COHORT_HREF}"]`).first()).toContainText("Start a cohort");
+        }
         expect(nav, `${path} nav CTA`).toBeGreaterThanOrEqual(1);
         expect(pilotCards, `${path} pilot cards`).toBe(0);
-        await expect(page.locator(`main a[href="${START_COHORT_HREF}"]`).first()).toContainText("Start a cohort");
         expect(await page.locator("main").innerText(), path).not.toMatch(/cohort validation pilot|paid pilot|run a cohort pilot/i);
       }
       await evidence(testInfo, "start a cohort CTA", seen);

@@ -459,10 +459,9 @@ test.describe("Post-deploy hydrated smoke", () => {
   // ── G17-P2B (2026-09-19) → G21 P0-B (2026-09-20) — homepage hydration +
   // CTA navigation. The home is the one page every campaign lands on, and
   // the curl gates only see its SSR shell. These assert what a visitor
-  // experiences after hydration: one FI1 H1 ("Screen every startup on the
-  // same evidence-backed framework."), the animated search ring reacting to
+  // experiences after hydration: the approved business H1 and search ring reacting to
   // focus (the `.asf-wrap:focus-within` rule in globals.css), the primary
-  // CTA actually navigating to the pilot block, the persona links resolving,
+  // form and sample-report navigation, the persona links resolving,
   // the seven-entry nav, the seven sections in order, no price string on
   // the home (D3), no console errors, and no sideways scroll at 375 px.
   // Plus a minimal a11y pass (axe is not a dependency).
@@ -471,15 +470,15 @@ test.describe("Post-deploy hydrated smoke", () => {
     const NAV_LABELS = ["Product", "For Programs", "For Investors", "For Founders", "Methodology", "Startup Index", "Pricing"] as const;
     const SECTION_IDS = ["problem", "sequence", "messages", "why-not-chatgpt", "built-for", "trust", "cta"] as const;
 
-    test("/ — one FI1 H1, hero search ring reacts to focus, nav = seven labels, sections in order, no A$ in main, no console errors", async ({ page }) => {
+    test("/ — one business H1, hero search ring reacts to focus, nav = seven labels, sections in order, no A$ in main, no console errors", async ({ page }) => {
       test.setTimeout(30_000);
       const guard = new ConsoleGuard(page);
       await page.goto("/", { waitUntil: "domcontentloaded" });
 
       const h1 = page.locator("h1");
       await expect(h1).toHaveCount(1, { timeout: PAGE_TIMEOUT });
-      await expect(h1).toContainText(/Screen every startup on the same evidence-backed framework/i);
-      await expect(page.getByTestId("hero-trust-line")).toContainText("Australian-built · Evidence-backed · Founder-controlled data");
+      await expect(h1).toContainText(/Know the business before you invest/i);
+      await expect(page.getByTestId("hero-trust-line")).toContainText("Business context · Key risks · Next questions");
 
       // Search frame: visible, and focusing its input lights the ring.
       const frame = page.getByTestId("hero-search");
@@ -530,26 +529,41 @@ test.describe("Post-deploy hydrated smoke", () => {
       expect(report.failedRequests, `failed requests on /: ${JSON.stringify(report.failedRequests)}`).toEqual([]);
     });
 
-    test("/ — primary CTA 'Start a cohort' → evaluator sign-up (Cohort 25 annual trial, 200); secondary to /analyze (200)", async ({ page }) => {
-      // G25-A (2026-09-21): the paid pilot is gone — the primary CTA on the
-      // hero, nav and final band is "Start a cohort" → the Cohort 25 annual
-      // trial sign-up (which lands on the review step before any card).
-      test.setTimeout(30_000);
-      await page.goto("/", { waitUntil: "domcontentloaded" });
+    for (const [path, title, submit, sample] of [
+      ["/", "Know the business before you invest.", "Analyse a business", "View a sample report"],
+      ["/vi", "Hiểu rõ doanh nghiệp trước khi đầu tư.", "Phân tích doanh nghiệp", "Xem báo cáo mẫu"],
+    ] as const) {
+      test(`${path} — business intake and sample report, without submitting an analysis`, async ({ page }) => {
+        await page.goto(path, { waitUntil: "domcontentloaded" });
+        await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+        const form = page.getByTestId("hero-search");
+        await expect(form.getByTestId("smart-intake-text")).toBeVisible();
+        await expect(form.getByTestId("smart-intake-file")).toHaveAttribute("accept", /\.pdf/);
+        await expect(form.getByTestId("smart-intake-cta")).toHaveText(submit);
+        await expect(form.getByTestId("smart-intake-cta")).toBeDisabled();
+        const preview = form.locator('[data-cta-id="hero_sample_report"]');
+        await expect(preview).toHaveText(sample);
+        await expect(preview).toHaveAttribute("href", "/tbr/demo");
+        if (path === "/") {
+          await expect(page.locator('[data-cta-id="home_final_intake"]')).toHaveAttribute("href", "#smart-intake-input");
+          await expect(page.locator('[data-cta-id="home_final_sample"]')).toHaveAttribute("href", "/tbr/demo");
+        }
+        // Only an existing sample is opened; no input, upload, or analysis request.
+        await preview.click();
+        await expect(page).toHaveURL(/\/tbr\/demo(?:[?#]|$)/);
+        await expect(page.locator("#tbr-dashboard")).toBeVisible({ timeout: PAGE_TIMEOUT });
+      });
+    }
+
+    test("existing cohort entry and retired pilot links still resolve", async ({ page }) => {
       const startHref = "/signup?segment=evaluator&plan=accelerator_starter&trial=1&interval=annual";
-      const hero = page.locator('[data-cta-id="hero_start_cohort"]').first();
-      await expect(hero).toBeVisible({ timeout: PAGE_TIMEOUT });
-      await expect(hero).toHaveAttribute("href", startHref);
-      await expect(page.locator('[data-cta-id="home_final_start_cohort"]').first()).toHaveAttribute("href", startHref);
-      await expect(page.locator('[data-cta-id="hero_score"]').first()).toHaveAttribute("href", "/analyze");
-      expect((await page.request.get(startHref)).status(), "start-a-cohort sign-up status").toBe(200);
-      expect((await page.request.get("/solutions/accelerator")).status(), "/solutions/accelerator status").toBe(200);
-      // The retired pilot routes redirect (301) — never a 404 for an old link.
-      for (const old of ["/pilot", "/vi/pilot", "/pilot/investor"]) {
-        const r = await page.request.get(old, { maxRedirects: 0 });
-        expect([301, 308], `${old} redirects`).toContain(r.status());
+      for (const href of [startHref, "/solutions/accelerator", "/analyze"]) {
+        expect((await page.request.get(href)).status(), `${href} status`).toBe(200);
       }
-      expect((await page.request.get("/analyze")).status(), "/analyze status").toBe(200);
+      for (const old of ["/pilot", "/vi/pilot", "/pilot/investor"]) {
+        const response = await page.request.get(old, { maxRedirects: 0 });
+        expect([301, 308], `${old} redirects`).toContain(response.status());
+      }
     });
 
     test("/ — no horizontal overflow at a 375px viewport", async ({ page }) => {
