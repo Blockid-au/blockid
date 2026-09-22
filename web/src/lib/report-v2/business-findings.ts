@@ -31,6 +31,7 @@ export interface BusinessFinding {
     title: string;
     verdict: string;
     researchCoverage?: CriterionResearchCoverage;
+    detailedAnalysis?: CriterionCard["detailedAnalysis"];
     strengths: string[];
     gaps: string[];
     request: string;
@@ -214,6 +215,7 @@ export function projectBusinessFindings({
           title: vi ? getCriterion(c.key)?.titleVi ?? c.title : c.title,
           verdict: c.verdict,
           researchCoverage: criterionResearchCoverage(c, report),
+          detailedAnalysis: c.detailedAnalysis,
           strengths: c.strengths,
           gaps: c.gaps,
           request: c.nextAction,

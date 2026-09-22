@@ -88,6 +88,14 @@ export interface CriterionResearchCoverage {
   businessImplication: "not_recorded";
 }
 
+export interface CriterionDetailedAnalysis {
+  status: "supported" | "withheld";
+  source: "post_audit_criterion";
+  auditKind: "model_and_citation" | "citation_only";
+  narrative: string;
+  citations: Array<{ evidence_id: string; quote: string }>;
+}
+
 export interface CriterionCard {
   key: CriterionKey;
   title: string;
@@ -98,6 +106,7 @@ export interface CriterionCard {
   gaps: string[];
   nextAction: string;
   researchCoverage?: CriterionResearchCoverage;
+  detailedAnalysis?: CriterionDetailedAnalysis;
   citations: Array<{ evidence_id: string; quote: string }>;
   grounded: boolean;
   agent: AgentRole;
@@ -718,7 +727,16 @@ const auditStamp = z.object({
   at: z.string(),
 });
 
+const detailedAnalysis = z.object({
+  status: z.enum(["supported", "withheld"]),
+  source: z.literal("post_audit_criterion"),
+  auditKind: z.enum(["model_and_citation", "citation_only"]),
+  narrative: z.string(),
+  citations: z.array(z.object({ evidence_id: z.string(), quote: z.string() })),
+}).refine(value => value.status === "supported" ? Boolean(value.narrative.trim()) : value.narrative === "" && value.citations.length === 0, "Withheld analysis cannot expose rejected prose or citations");
+
 const criterionCard = z.object({
+  detailedAnalysis: detailedAnalysis.optional(),
   key: criterionKey,
   title: z.string(),
   score: z.number(),

@@ -104,7 +104,7 @@ function projectChapter(ch: DimensionChapter, free: boolean, level: TrimLevel): 
   if (ch.renderAs === "card") return { ...out, criteria: ch.criteria.slice(0, 1) };
   if (level >= 1) out.criteria = ch.criteria.slice(0, 2);
   if (level >= 2) {
-    out.criteria = out.criteria.map((c) => ({ ...c, strengths: [], gaps: [], nextAction: "", verdict: words(c.verdict, 40) }));
+    out.criteria = out.criteria.map((c) => ({ ...c, detailedAnalysis: undefined, strengths: [], gaps: [], nextAction: "", verdict: words(c.verdict, 40) }));
     out.verdict = words(ch.verdict, 60);
     out.strengths = ch.strengths.slice(0, 3).map((x) => words(x, 25));
     out.gaps = ch.gaps.slice(0, 3).map((x) => words(x, 25));
