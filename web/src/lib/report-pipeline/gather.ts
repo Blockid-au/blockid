@@ -27,6 +27,7 @@
 // imported lazily so a unit test (and the free-tier report with no links)
 // never loads scrapers or GitHub clients. All I/O is injectable via `deps`.
 
+import { qualifyRevenue, type RevenueQualification } from "./revenue-qualification";
 import type { CriterionKey } from "@/lib/evaluation-criteria";
 import { CRITERION_KEYS } from "@/lib/evaluation-criteria";
 import { HUB_EVIDENCE_COLUMNS, hubRowsToEvidenceRows, type HubEvidenceRowLike } from "@/lib/evidence/hub-rows";
@@ -73,6 +74,8 @@ export interface ConnectorSignalRow {
 }
 
 export interface ConnectedRevenueLike {
+  /** No current connector writer supplies this source qualification. */
+  qualification?: unknown;
   provider: "stripe" | "xero";
   mrrAud: number;
   capturedAt: string;
@@ -586,6 +589,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
 
   // ── 4. Connector pulls (last sync only) ───────────────────────────────
   let connectedRevenue: ConnectedRevenueLike[] = [];
+  const revenueChecks = new Map<ConnectedRevenueLike, RevenueQualification>();
   const connectors = db
     ? run("connectors", async () => {
         const t0 = now();
@@ -594,6 +598,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
           (deps.loadConnectedRevenue ?? defaultLoadConnectedRevenue)(db, { userId: ownerUserId, projectId, accountId: context.accountId }).catch(() => [] as ConnectedRevenueLike[]),
         ]);
         connectedRevenue = revenue;
+        for (const r of revenue) revenueChecks.set(r, qualifyRevenue(r, { ownerUserId, projectId, businessName: context.startupName, now: now() }));
         const byProvider: Record<string, Row> = {};
         signals.forEach((s) => {
           if (!s.provider || !s.signal_key) return;
@@ -609,12 +614,20 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
             .filter(([k]) => k !== "captured_at")
             .map(([k, v]) => `${k} = ${String(v)}`)
             .join("; ");
-          rows.push(row("connector", prov, src, `${prov.toUpperCase()} signals (last sync)`, "evidenced", dimsFor[prov] ?? ["tre"], capturedAt, value));
+          const financial = prov === "stripe" || prov === "xero";
+          rows.push(row("connector", prov, src, `${prov.toUpperCase()} signals (last sync)`, financial ? "partial" : "evidenced", dimsFor[prov] ?? ["tre"], capturedAt, financial ? "Unqualified financial observation: legacy connector fields do not establish metric, currency, period, completeness or business identity. Not usable as financial facts." : value));
+          if (financial) byProvider[prov] = { qualification: "unqualified", reason: "legacy_connector_provenance_missing", captured_at: capturedAt };
         });
         revenue.forEach((r) => {
-          rows.push(row("connected_revenue", r.provider, r.provider, `${r.provider === "stripe" ? "Stripe" : "Xero"} revenue (last sync)`, "evidenced", ["tre", "iri", "cgh"], r.capturedAt, `mrr_aud = ${Math.round(r.mrrAud)}${typeof r.priorMrrAud === "number" ? `; prior_mrr_aud = ${Math.round(r.priorMrrAud)}` : ""}${typeof r.churnRate90dPct === "number" ? `; churn_90d_pct = ${r.churnRate90dPct}` : ""}${typeof r.grossMarginPct === "number" ? `; gross_margin_pct = ${r.grossMarginPct}` : ""}${typeof r.operatingExpensesAud === "number" ? `; opex_aud = ${Math.round(r.operatingExpensesAud)}` : ""}`));
+          const check = revenueChecks.get(r)!;
+          rows.push(row("connected_revenue", r.provider, r.provider, `${r.provider === "stripe" ? "Stripe" : "Xero"} revenue (last sync)`, check.eligible ? "evidenced" : "partial", ["tre", "iri", "cgh"], r.capturedAt,
+            check.eligible ? `mrr_aud = ${r.mrrAud}; source_id = ${check.provenance!.sourceId}; as_of = ${check.provenance!.asOf}` : `Unqualified financial observation; not usable as MRR, ARR or valuation evidence. Reasons: ${check.reasons.join(", ")}`));
         });
-        results.connectorSignals = { providers: Object.keys(byProvider), signals: byProvider, revenue: revenue.map((r) => ({ provider: r.provider, mrrAud: Math.round(r.mrrAud), capturedAt: r.capturedAt, priorMrrAud: r.priorMrrAud ?? null, churnRate90dPct: r.churnRate90dPct ?? null, grossMarginPct: r.grossMarginPct ?? null, operatingExpensesAud: r.operatingExpensesAud ?? null })) };
+        results.connectorSignals = { providers: Object.keys(byProvider), signals: byProvider, revenue: revenue.map((r) => {
+          const check = revenueChecks.get(r)!;
+          return { provider: r.provider, capturedAt: r.capturedAt, qualification: check.eligible ? "qualified" : "unqualified", reasons: check.reasons,
+            ...(check.eligible ? { mrrAud: r.mrrAud, provenance: check.provenance } : {}) };
+        }) };
         diag("connectors", "ok", t0);
       })
     : Promise.resolve(void diag("connectors", "skipped", now(), "no db"));
@@ -812,33 +825,24 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
 
   // ── 8. Valuation inputs + CFO 5-method model (deterministic, after connectors)
   const signals = (context.sviAnalysis.signals ?? {}) as Partial<{ mrrAud: number; arrAud: number; raiseAskAud: number; statedCapAud: number; statedCapKind: ValuationAskInput["statedCapKind"]; hasVesting: boolean; hasShareholdersAgreement: boolean; esopAllocated: boolean; hasDataRoom: boolean; customerCount: number }>;
-  const fresh = connectedRevenue
-    .filter((r) => {
-      const age = now() - new Date(r.capturedAt).getTime();
-      return Number.isFinite(r.mrrAud) && r.mrrAud >= 0 && Number.isFinite(age) && age >= 0 && age < 90 * 24 * 3600 * 1000;
-    })
-    .sort((a, b) => (a.provider === "stripe" ? -1 : 1) - (b.provider === "stripe" ? -1 : 1));
+  const fresh = connectedRevenue.filter((r) => revenueChecks.get(r)?.eligible);
   const revenueEvidenceIds: string[] = [];
   let mrrAud: number | null = null;
   let revenueSource: string | null = null;
-  let growthPct: number | undefined;
-  if (fresh.length) {
+  // Multiple qualified observations must agree; provider preference cannot
+  // silently resolve conflicting finances. Prior-period growth is not yet qualified.
+  const conflict = fresh.some((r) => r.mrrAud !== fresh[0]?.mrrAud);
+  if (fresh.length && !conflict) {
     mrrAud = fresh[0].mrrAud;
-    revenueSource = `${fresh[0].provider} (last sync ${fresh[0].capturedAt.slice(0, 10)})`;
+    revenueSource = `${fresh[0].provider} (source-qualified recurring revenue)`;
     revenueEvidenceIds.push(gatherEvidenceId("connected_revenue", fresh[0].provider));
-    const prior = fresh[0].priorMrrAud;
-    const elapsed = fresh[0].priorCapturedAt ? new Date(fresh[0].capturedAt).getTime() - new Date(fresh[0].priorCapturedAt).getTime() : NaN;
-    if (typeof prior === "number" && Number.isFinite(prior) && prior > 0 && Number.isFinite(elapsed) && elapsed > 0) {
-      const months = elapsed / (30 * 24 * 3600 * 1000);
-      growthPct = Math.round((Math.pow(mrrAud / prior, 1 / months) - 1) * 1000) / 10;
-    }
-  } else if (typeof signals.mrrAud === "number" && Number.isFinite(signals.mrrAud) && signals.mrrAud >= 0) {
-    mrrAud = signals.mrrAud;
-    revenueSource = "founder-stated";
-  } else if (typeof signals.arrAud === "number" && Number.isFinite(signals.arrAud) && signals.arrAud >= 0) {
-    mrrAud = signals.arrAud / 12;
-    revenueSource = "founder-stated (ARR)";
   }
+  const qualificationReasons = [...new Set([
+    ...[...revenueChecks.values()].flatMap((check) => check.reasons),
+    ...(conflict ? ["conflicting_qualified_revenue"] : []),
+    ...(typeof signals.mrrAud === "number" || typeof signals.arrAud === "number" ? ["founder_revenue_provenance_missing"] : []),
+  ])];
+  results.revenueQualification = { status: mrrAud === null ? "unqualified" : "qualified", reasons: qualificationReasons };
   const gm = grantsMatch as GrantsMatch | null;
   const rdti = gm?.rdSpendAud && gm.rdSpendAud > 0 ? Math.round(gm.rdSpendAud * 0.435) : 0;
   const cap = results.capTable as Partial<CapTableSummary> | undefined;
@@ -846,9 +850,9 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
     sector: context.sviAnalysis.sector ?? "default",
     stage: STAGE_TO_CFO[Math.max(0, Math.min(7, context.stage))] ?? "pre-seed",
     sviStage: Math.max(0, Math.min(7, context.stage)),
-    mrrAud: mrrAud === null ? null : Math.round(mrrAud),
-    arrAud: mrrAud === null ? null : Math.round(mrrAud * 12),
-    ...(typeof growthPct === "number" && Number.isFinite(growthPct) ? { monthlyGrowthRatePct: growthPct } : {}),
+    mrrAud,
+    arrAud: mrrAud === null ? null : mrrAud * 12,
+
     ...(typeof signals.raiseAskAud === "number" ? { raiseAud: signals.raiseAskAud } : {}),
     ...(typeof signals.customerCount === "number" ? { customers: signals.customerCount } : {}),
     esicQualifies: false,
@@ -863,8 +867,8 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
   if (mrrAud === null) {
     // Omitting MRR is not enough: the shared CFO builder defaults it to zero.
     // Keep missing revenue distinct from an explicit pre-revenue observation.
-    const reason = "Revenue is missing or unusable. Provide current recurring revenue or appropriate financial statements before estimating a business value.";
-    results.valuation = { inputs: valuationInput, status: "unavailable", reason };
+    const reason = "The available financial information has not been validated for this business, currency and reporting period. A reliable valuation is unavailable.";
+    results.valuation = { inputs: valuationInput, status: "unavailable", reason, qualificationReasons };
     rows.push(row("valuation", "revenue-gap", "connector_other", "Valuation needs revenue information", "missing", ["iri", "cgh", "tre"], observed, reason));
     diag("valuation", "skipped", now(), "missing_or_invalid_revenue");
   } else try {

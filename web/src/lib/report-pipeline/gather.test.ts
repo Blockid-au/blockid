@@ -8,6 +8,7 @@ import type { CriterionKey } from "@/lib/evaluation-criteria";
 import { CRITERION_KEYS } from "@/lib/evaluation-criteria";
 import type { CriterionData, ReportContext } from "./types";
 import { GATHER_RESEARCH_CALLS, GatherTimeoutError, gatherData, gatherEvidenceId, loadDimensionEvidenceRows, parseGitHubRepo, resetGatherCache, withTimeout, type GatherDb, type GatherDeps, type GatherQuery } from "./gather";
+import { itemsFromEvidenceRows } from "./auto-cite";
 import { signalsForAbn } from "@/lib/signals/external-signals";
 
 type Row = Record<string, unknown>;
@@ -135,7 +136,7 @@ describe("helpers", () => {
 });
 
 describe("gatherData — sources", () => {
-  it("with no links / db it still returns research, evidence quality and the valuation row (never throws)", async () => {
+  it("with no links / db it returns research, evidence quality and a valuation gap (never throws)", async () => {
     const d = deps();
     const out = await gatherData(ctx(), callAI, { deps: d });
     expect(d.researchMarket).toHaveBeenCalledTimes(1);
@@ -146,13 +147,11 @@ describe("gatherData — sources", () => {
     expect(out.results.diagnostics?.connectors).toMatchObject({ status: "skipped" });
     const kinds = out.evidenceRows.map((r) => r.label);
     expect(kinds).toContain("Market & competitive research (AI agent, this run)");
-    expect(kinds.some((k) => k.startsWith("CFO 5-method valuation"))).toBe(true);
+    expect(kinds).toContain("Valuation needs revenue information");
     // Every row carries source + observedAt.
     expect(out.evidenceRows.every((r) => r.source && r.observedAt)).toBe(true);
-    // Valuation inputs: founder-stated MRR, ask from signals.
-    expect(out.valuation.vc?.inputs).toMatchObject({ mrrAud: 8000, arrAud: 96000, sector: "saas", stage: "seed", raiseAud: 1_000_000, hasFounderVesting: true, revenueSource: "founder-stated" });
-    // G19-S42: the SVI stage 0–7 travels with the row so the CFO picks the exact stage baseline.
-    expect(typeof (out.valuation.vc?.inputs as Row).sviStage).toBe("number");
+    expect(out.valuation.vc).toBeNull();
+    expect(out.results.revenueQualification).toMatchObject({ reasons: ["founder_revenue_provenance_missing"] });
     expect(out.valuation.ask).toEqual({ statedCapAud: 6_000_000, statedCapKind: "cap", raiseAud: 1_000_000 });
     expect(out.valuation.revenueEvidenceIds).toEqual([]);
   });
@@ -230,7 +229,7 @@ describe("gatherData — sources", () => {
     expect(row.value).toMatch(/412 commits; 3 contributors; tests true; CI true/);
   });
 
-  it("connector pulls read the LAST sync only (svi_signals + connected revenue), scoped to the owner + project, and feed the valuation MRR with the evidence ids", async () => {
+  it("connector pulls read the LAST sync only (svi_signals + connected revenue), scoped to the owner + project, and keep unqualified money out of valuation and citable numeric facts", async () => {
     const db = fakeDb({
       svi_signals: [
         { user_id: "owner-9", project_id: "proj-1", provider: "stripe", signal_key: "mrr_aud", signal_value_num: 12400, signal_value_text: null, captured_at: "2026-09-10T00:00:00.000Z" },
@@ -242,25 +241,27 @@ describe("gatherData — sources", () => {
     const now = Date.parse("2026-09-16T00:00:00.000Z");
     const out = await gatherData(ctx(), callAI, { ownerUserId: "owner-9", projectId: "proj-1", deps: deps({ db, loadConnectedRevenue: revenue, loadCapTable: async () => null, loadGrants: async () => null, now: () => now }) });
     expect(revenue).toHaveBeenCalledWith(db, { userId: "owner-9", projectId: "proj-1", accountId: "acc-1" });
-    expect(out.results.connectorSignals).toMatchObject({ providers: ["stripe", "ga4"], revenue: [{ provider: "stripe", mrrAud: 12400, priorMrrAud: 9000 }] });
+    expect(out.results.connectorSignals).toMatchObject({ providers: ["stripe", "ga4"], revenue: [{ provider: "stripe", qualification: "unqualified" }] });
     const stripe = out.evidenceRows.find((r) => r.label === "STRIPE signals (last sync)")!;
-    expect(stripe).toMatchObject({ source: "stripe", status: "evidenced", observedAt: "2026-09-10T00:00:00.000Z", value: "mrr_aud = 12400" });
+    expect(stripe).toMatchObject({ source: "stripe", status: "partial", observedAt: "2026-09-10T00:00:00.000Z", value: expect.stringContaining("Unqualified financial observation") });
     const ga4 = out.evidenceRows.find((r) => r.label === "GA4 signals (last sync)")!;
     expect(ga4.dims).toEqual(["tre", "mpc"]);
     const rev = out.evidenceRows.find((r) => r.label === "Stripe revenue (last sync)")!;
-    expect(rev.value).toBe("mrr_aud = 12400; prior_mrr_aud = 9000; churn_90d_pct = 2.5");
-    // Connected MRR beats the founder-stated 8,000; growth derived from the prior snapshot.
-    expect(out.valuation.vc?.inputs).toMatchObject({ mrrAud: 12400, revenueSource: "stripe (last sync 2026-09-10)" });
-    expect((out.valuation.vc?.inputs as Row).monthlyGrowthRatePct).toBeGreaterThan(0);
-    expect(out.valuation.revenueEvidenceIds).toEqual([gatherEvidenceId("connected_revenue", "stripe")]);
-    expect(out.evidenceRows.find((r) => r.label.startsWith("CFO 5-method valuation"))!.status).toBe("evidenced");
+    expect(rev.value).toContain("not usable as MRR");
+    expect(out.valuation.vc).toBeNull();
+    expect(out.valuation.revenueEvidenceIds).toEqual([]);
+    expect(JSON.stringify(out.results.connectorSignals)).not.toContain("12400");
+    const citable = itemsFromEvidenceRows(out.evidenceRows.filter((r) => r.source === "stripe"));
+    expect(JSON.stringify(citable)).not.toContain("12400");
+    expect(citable.every((item) => item.text.includes("Unqualified"))).toBe(true);
+
   });
 
   it("stale connected revenue (> 90 days) is ignored for the valuation input", async () => {
     const db = fakeDb({});
     const revenue: GatherDeps["loadConnectedRevenue"] = async () => [{ provider: "xero" as const, mrrAud: 50_000, capturedAt: "2026-01-01T00:00:00.000Z" }];
     const out = await gatherData(ctx(), callAI, { deps: deps({ db, loadConnectedRevenue: revenue, loadCapTable: async () => null, loadGrants: async () => null, now: () => Date.parse("2026-09-16T00:00:00.000Z") }) });
-    expect(out.valuation.vc?.inputs).toMatchObject({ mrrAud: 8000, revenueSource: "founder-stated" });
+    expect(out.valuation.vc).toBeNull();
     expect(out.valuation.revenueEvidenceIds).toEqual([]);
   });
 
@@ -283,7 +284,7 @@ describe("gatherData — sources", () => {
     expect(grants).toMatchObject({ source: "connector_other", status: "partial" });
     expect(grants.value).toBe("R&D Tax Incentive (fit 82); Startmate (fit 61)");
     // RDTI estimate from the grant profile's R&D spend (43.5 %) + ESOP pool from the register.
-    expect(withData.valuation.vc?.inputs).toMatchObject({ estimatedRdtiRefundAud: 87_000, hasEsopPool: true });
+    expect((withData.results.valuation as { inputs: Row }).inputs).toMatchObject({ estimatedRdtiRefundAud: 87_000, hasEsopPool: true });
 
     const empty = await gatherData(ctx(), callAI, { deps: deps({ db, loadConnectedRevenue: async () => [], loadCapTable: async () => null, loadGrants: async () => null }) });
     expect(empty.evidenceRows.find((r) => r.label === "Cap-table register")).toMatchObject({ status: "missing" });
@@ -408,8 +409,8 @@ describe("gatherData — sources", () => {
     expect(d.deepTechAudit).not.toHaveBeenCalled();
     expect(out.results.diagnostics?.research).toMatchObject({ status: "skipped", note: "deadline" });
     expect(out.results.diagnostics?.techAudit).toMatchObject({ status: "skipped", note: "deadline" });
-    // The valuation is deterministic and still runs.
-    expect(out.valuation.vc).not.toBeNull();
+    // Unqualified financial inputs do not unlock a valuation.
+    expect(out.valuation.vc).toBeNull();
   });
 
   it("a throwing source is isolated (error diagnostics), never a thrown gather", async () => {
@@ -426,7 +427,7 @@ describe("gatherData — G19-S43 CTAs + Evidence Hub", () => {
   it("every `missing` row carries a linked CTA (GitHub / cap table / founder signals / founder profile / grant profile / ABN) with the catalogue lift", async () => {
     const c = ctx({ criteriaData: criteria({ code_git: { links: [{ url: "https://github.com/acme/widgets", label: "repo" }] } }) });
     const out = await gatherData(c, callAI, { deps: quiet({ githubToken: async () => null }) });
-    const missing = out.evidenceRows.filter((r) => r.status === "missing");
+    const missing = out.evidenceRows.filter((r) => r.status === "missing" && r.label !== "Valuation needs revenue information");
     expect(missing.length).toBe(6);
     for (const r of missing) expect(r.cta?.href).toMatch(/^\/workspace\//);
     const byLabel = Object.fromEntries(missing.map((r) => [r.label, r.cta]));
@@ -498,24 +499,44 @@ describe("G30 valuation revenue presence", () => {
     expect(out.valuation.vc).toBeNull();
   });
 
-  it("preserves explicit founder-stated zero instead of falling through to positive ARR", async () => {
+  it("does not qualify bare founder zero or fall through to bare positive ARR", async () => {
     const context = withoutRevenue();
     context.sviAnalysis.signals.mrrAud = 0;
     context.sviAnalysis.signals.arrAud = 120000;
     const out = await gatherData(context, callAI, { deps: deps() });
-    expect(out.valuation.status).toBe("available");
-    expect(out.valuation.vc?.inputs).toMatchObject({ mrrAud: 0, arrAud: 0, revenueSource: "founder-stated" });
-    expect(out.evidenceRows.find((r) => r.label.startsWith("CFO 5-method"))?.status).toBe("partial");
+    expect(out.valuation.status).toBe("unavailable");
+    expect(out.valuation.vc).toBeNull();
   });
 
-  it("preserves current connected zero over positive founder revenue and cites only the selected input", async () => {
+  it("does not accept spoofed complete zero provenance or fall through to positive unqualified revenue", async () => {
     const out = await gatherData(ctx(), callAI, { deps: connectorDeps([
-      { provider: "stripe", mrrAud: 0, capturedAt: "2026-09-10T00:00:00Z" },
+      { provider: "stripe", mrrAud: 0, capturedAt: "2026-09-10T00:00:00Z", qualification: {
+        version: 1, producer: "stripe-source-verified", producerVersion: 1, status: "qualified", metric: "mrr", currency: "AUD", basis: "recurring_contracts", amountAud: 0,
+        asOf: "2026-09-10T00:00:00Z", capturedAt: "2026-09-10T00:00:00Z", complete: true,
+        ownerUserId: "user-1", projectId: "proj-1", businessName: "Acme", entityId: "acme-legal", sourceEntityId: "acme-legal", sourceId: "fixture-only", sourceProvider: "stripe", derivation: "native_aud_complete_recurring_contracts",
+      } },
       { provider: "xero", mrrAud: 9000, capturedAt: "2026-09-10T00:00:00Z" },
     ]) });
-    expect(out.valuation.vc?.inputs).toMatchObject({ mrrAud: 0, arrAud: 0 });
-    expect(out.valuation.revenueEvidenceIds).toEqual([gatherEvidenceId("connected_revenue", "stripe")]);
-    expect(out.evidenceRows.find((r) => r.label.startsWith("CFO 5-method"))?.status).toBe("partial");
+    expect(out.valuation.vc).toBeNull();
+    expect(out.valuation.revenueEvidenceIds).toEqual([]);
+    expect(out.results.revenueQualification).toMatchObject({ reasons: expect.arrayContaining(["trusted_producer_unavailable"]) });
+  });
+
+  it("rejects otherwise plausible source records with wrong currency, entity, period, date or completeness before the builder", async () => {
+    const qualification = {
+      version: 1, producer: "stripe-source-verified", producerVersion: 1, status: "qualified", metric: "mrr", currency: "AUD", basis: "recurring_contracts", amountAud: 77777,
+      asOf: "2026-09-10", capturedAt: "2026-09-11", complete: true, ownerUserId: "user-1", projectId: "proj-1",
+      businessName: "Acme", entityId: "acme", sourceEntityId: "acme", sourceId: "fixture", sourceProvider: "stripe",
+      derivation: "native_aud_complete_recurring_contracts",
+    };
+    for (const change of [{ currency: "USD" }, { metric: "accounting_revenue" }, { sourceEntityId: "other" }, { complete: false }, { asOf: "2025-01-01" }]) {
+      const buildValuation = vi.fn(vcStub!);
+      const d = connectorDeps([{ provider: "stripe", mrrAud: 77777, capturedAt: "2026-09-11", qualification: { ...qualification, ...change } }]);
+      const out = await gatherData(withoutRevenue(), callAI, { deps: { ...d, buildValuation } });
+      expect(buildValuation).not.toHaveBeenCalled();
+      expect(out.valuation.status).toBe("unavailable");
+      expect(JSON.stringify(itemsFromEvidenceRows(out.evidenceRows))).not.toContain("77777");
+    }
   });
 
   it.each(["not-a-date", "2026-09-17T00:00:00Z", "2026-01-01T00:00:00Z"])("rejects unusable connected capture time %s for valuation", async (capturedAt) => {
