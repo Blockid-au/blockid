@@ -20,7 +20,7 @@
 
 **Delta cuối 04:30:29 UTC:** workspace HEAD đã tiến tới `3396adc00e78144ec86788db3fb03edf51abb1bc`, package3.28.2 từ luồng release khác. Diff sau baseline chỉ sửa `hub-tabs.tsx` thêm relative positioning cho sr-only label và metadata/version; không đổi report/billing/provider code đã review. `/api/status` tại thời điểm này vẫn trả **v3.28.1**; local manifest ghi3.28.2 nhưng deployed_at rỗng, nên **chưa xác nhận3.28.2 đã live**. Tests/browsing ở annex thuộc baseline3.28.1; delta3.28.2 chỉ được review source, không gán nhầm là đã browser-verified. G30 phải freeze lại source/live trước implementation.
 
-**Latest live milestone10:03UTC:** v3.30.1/c867ce271, [criterion/navigation release evidence](../reviews/2026-09-22-g30-criterion-navigation-live.md); extended review deferred. Previous foundationv3.30.0/fb4c4a396 remains a retained compatible rollback target.
+**Latest live milestone10:51UTC:** v3.31.0/6732b1115, [origin/re-analysis foundation evidence](../reviews/2026-09-22-g30-origin-reanalysis-live.md), operationally verified with extended review deferred. Compatible warm rollback remains v3.30.1/c867ce271 at4104 andv3.30.0/fb4c4a396 at4103. Founder explicitly accepted stopping only inactive4102 after this release became stable; that stop is complete and artifacts preserved. Other legacy retirement and full O08 coverage remain open.
 
 **Evidence baseline lịch sử:** [final revalidation](../reviews/2026-09-22-g30-final-revalidation.md). **Bản trước tổng hợp:** [G30 rev1.9 archive](../archive/g30-rev1.9-before-final-review-2026-09-22.md). Archive chỉ là history, không competing plan.
 
@@ -1828,3 +1828,5 @@ Evidence: [proxy policy](../reviews/2026-09-22-g30-svi-proxy-provider-policy.md)
 [scoped source collector](../reviews/2026-09-22-g30-scoped-public-research.md),
 [investor dashboard](../reviews/2026-09-22-g30-investor-dashboard-ux.md),
 [criterion disclosure](../reviews/2026-09-22-g30-findings-disclosure-ux.md).
+
+**Continuous implementation22/09,10:52UTC:** v3.31.0 is live. The next isolated queue contains investor dashboard/detail disclosure, scoped source collection/draft synthesis, submitted-financial-context explanations, SVI proxy policy/client groundwork and empty-manifest free-model qualification. Durable financial migrations remain isolated, not applied. Full plan remains IN PROGRESS.
