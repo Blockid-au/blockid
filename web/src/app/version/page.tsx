@@ -146,6 +146,17 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.28.0",
+    date: "2026-09-22",
+    title: "Provider capacity, degraded-run diagnostics, persona chrome, index movers (G29)",
+    changes: [
+      "[G29] Dead AI rungs pruned automatically (runtime + cron, 24 h window); providers marked unfunded; capacity digest line",
+      "[G29] Degraded report runs leave an audit dump + strike ledger; status/funnel show the last degraded run honestly",
+      "[G29] Persona-aware workspace chrome for evaluator/program seats; one floating stack for the bottom-right pills; sweep allow-list for the Google sign-in CSP line",
+      "[G29] Startup Index movers: 'new' for no prior close, drops negative-only, sample label below n = 30",
+    ],
+  },
+  {
     version: "3.27.2",
     date: "2026-09-22",
     title: "UI/UX check fixes for v3.27.0",

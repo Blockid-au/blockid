@@ -371,5 +371,21 @@
       "ten companies"
     ],
     "note": "A rule about when a figure may be published, not a measurement. The page's empty state says exactly this until a cohort clears the floor."
+  },
+  {
+    "id": "startup-index-sample-threshold",
+    "claim": "The Startup Index labels its figures as a sample while fewer than 30 companies are tracked — the same n = 30 publication threshold the benchmark rules use.",
+    "class": "proven",
+    "value": "30 companies",
+    "source": "src/lib/startup-index-aggregator.ts isSampleBand (n < 30); src/lib/benchmarks/publication-rules.ts BENCHMARK_BASIC_N = 30 (G29-D)",
+    "surfaces": [
+      "/startup-index",
+      "/startup-index/listings"
+    ],
+    "reviewed": "2026-09-22",
+    "patterns": [
+      "30 companies"
+    ],
+    "note": "A publication rule, not a measurement: the index page and listings carry a 'sample' label below the n = 30 floor (G29-D)."
   }
 ]
