@@ -23,7 +23,7 @@ fi
 # G30 ownership admission precedes HTTP, secrets, probes and lock acquisition.
 # These exact legacy endpoints can mutate source/releases or delete caches.
 case "$ENDPOINT" in
-  agent-orchestrator|agent-auto-improve|agent-deploy|agent-healthcheck|agent-guardian)
+  agent-orchestrator|agent-auto-improve|agent-deploy|agent-healthcheck|agent-guardian|publish-insight)
     G30_CONTROL="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/docs/plans/g30-execution-control.json"
     G30_DECISION=$(python3 - "$G30_CONTROL" <<'G30_PY'
 import json, sys
@@ -196,23 +196,17 @@ if command -v flock >/dev/null 2>&1 && ! flock -n /tmp/blockid-deploy.lock -c tr
   DEPLOY_ACTIVE=true
 fi
 
-# Demote fail/error → deploy_blip during active deploy. Server restart blips are
-# expected, not real failures — they used to leave "fail" rows that triggered
-# DANGER alerts for hours after the deploy.
-if [ "$DEPLOY_ACTIVE" = true ] && { [ "$STATUS" = "fail" ] || [ "$STATUS" = "error" ]; }; then
-  STATUS="deploy_blip"
-fi
+# A deployment lease is context, not evidence that a job failure is harmless.
+# Preserve failures in the health ledger even while a build is running.
 
 # Log to text file (always — useful for grep/debugging)
 NOOP_TAG=""
 [ "${NOOP:-0}" = "1" ] && NOOP_TAG=" [noop]"
 echo "$TS_SHORT $ENDPOINT: $STATUS${NOOP_TAG} (${DURATION_MS}ms)" >> "$LOG"
 
-# Log to structured health file — skip when:
-#   • noop:true (no transaction = no record), OR
-#   • deploy_blip (transient server-restart artefact)
-if [ "${NOOP:-0}" != "1" ] && [ "$STATUS" != "deploy_blip" ]; then
-  echo "{\"ts\":\"$TS\",\"endpoint\":\"$ENDPOINT\",\"status\":\"$STATUS\",\"duration_ms\":$DURATION_MS,\"detail\":$(echo "$DETAIL" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read().strip()))" 2>/dev/null || echo "\"\"")}" >> "$HEALTH_LOG"
+# No-op ticks remain excluded; real outcomes always retain deployment context.
+if [ "${NOOP:-0}" != "1" ]; then
+  echo "{\"ts\":\"$TS\",\"endpoint\":\"$ENDPOINT\",\"status\":\"$STATUS\",\"duration_ms\":$DURATION_MS,\"deploy_active\":$DEPLOY_ACTIVE,\"detail\":$(echo "$DETAIL" | python3 -c "import sys,json; print(json.dumps(sys.stdin.read().strip()))" 2>/dev/null || echo "\"\"")}" >> "$HEALTH_LOG"
 fi
 
 # Post-hook: for publish-insight, sync newly written content back to the
@@ -240,7 +234,7 @@ fi
 # Alert on failure via Telegram (rate_limited and deploy_blip are expected, not failures).
 if [ "$STATUS" != "ok" ] && [ "$STATUS" != "rate_limited" ] && [ "$STATUS" != "deploy_blip" ]; then
   if [ "$DEPLOY_ACTIVE" = true ]; then
-    log "$ENDPOINT failed during active deploy — alert suppressed (expected restart blip)"
+    printf '%s %s failed during active deploy — existing alert suppression retained; failure recorded\n' "$TS_SHORT" "$ENDPOINT" >> "$LOG"
   else
     MSG="⚠️ *Cron Failed*: \`$ENDPOINT\`
 ⏰ $TS

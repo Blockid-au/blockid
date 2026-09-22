@@ -7,7 +7,7 @@ import tempfile
 import unittest
 ROOT = Path(__file__).resolve().parents[2]
 CONTROL = dict(version=1, owner='g30', status='active', source_of_truth='docs/plans/SOURCE-OF-TRUTH.md')
-WRITERS = ['agent-orchestrator', 'agent-auto-improve', 'agent-deploy', 'agent-healthcheck', 'agent-guardian']
+WRITERS = ['agent-orchestrator', 'agent-auto-improve', 'agent-deploy', 'agent-healthcheck', 'agent-guardian', 'publish-insight']
 class TestAdmission(unittest.TestCase):
     def test_admission_matrix(self):
         with tempfile.TemporaryDirectory() as temp:
