@@ -93,3 +93,11 @@ The final candidate cache namespace is now `pipeline-v2.1-s-r7-final-projection`
 ## Independent integrated review — unresolved before release
 
 Review found two partial-run blockers beyond helper tests: preview criteria synthesis replaces untouched cards before final merge, and partial orchestration may expose adapter fallback as final selected prose. Agent fixes and actual event-sequence regressions are in progress. Auth identity resolution also needs a bounded failure path, and unmount must abort the old client transport (without implying server job cancellation). F02/F03 remain blocked for release despite the previously passing focused tests/typecheck.
+
+## Integrated lifecycle and financial projection fixes
+
+Commit584574090 merges the partial preview-card preservation, final audited selected chapters, bounded auth/hash resolution and client transport cleanup. An actual preview→audit→final stream sequence fixture retains untouched sections and rejects adapter fallback prose. A partial run without complete audited selected chapters now returns an error before saving or emitting completion.143 focused cases passed before this admission guard; the affected runner35 tests passed after it. One inherited valuation fixture was updated: a founder-supplied MRR number alone no longer qualifies monetary valuation; event ordering remains checked.
+
+E02 commit e048d63c3 removes unqualified financial quantities from Hub report projections and original-input revenue-derived modules. The actual Hub→evidence catalogue→auto-citation path no longer cites a synthetic unqualified A$77,777 assertion; original records and nonfinancial evidence remain.66 targeted tests passed in that slice. See [explicit remaining provenance paths](2026-09-22-g30-financial-projection-limits.md): lexical recognition is bounded, original prose/SVI heuristics and standalone valuation APIs still need separate treatment.
+
+The merged report pipeline plus Hub/storage/transport integration suite passed846 tests across39files (`/tmp/g30-foundation-report-integration-tests.log`). These overlap earlier test counts. Full release checks, actual UI journeys, durable jobs/atomic persistence, qualified financial producers and semantic citation verification remain open. Neither this evidence nor unavailable valuation constitutes the final investor-quality goal.

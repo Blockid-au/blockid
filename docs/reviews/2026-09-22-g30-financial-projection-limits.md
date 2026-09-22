@@ -1,0 +1,13 @@
+# E02 bounded financial projection containment
+
+Base72a563449. No live DB/provider calls. Hub report projection removes financial quantities from labels/values and reports qualification pending; original Hub records and extraction inputs remain untouched. Recognition uses financial type/label/value terms, including currency-prefixed amounts, not universal financial-language understanding. Nonfinancial Hub evidence remains usable. Original financial signal amounts and Rule-of-40 are removed from module projections; revenue-dependent funding readiness is explicitly unavailable.
+
+Remaining paths (not fixed or qualified here):
+- agent-dispatcher.ts:194/196,877/880,1328–1335 still place original rawText/criterion text into prompts and citable catalogues, even for partial/self-declared rows. A claim may acquire a citation to its own founder assertion without attribution. Add an assertion-aware citation contract/consumer later; do not erase the original assertions or relabel them verified.
+- hub-rows.ts:hubRowToEvidenceItem and run-for-project.ts:941/1106 still provide evidence flags to extractSignals/computeSVI. Existing SVI/Antler heuristic scores derive from unverified context. This slice does not claim to remove every influence on business assessments; it contains monetary fact projections and the directly revenue-dependent readiness calculation.
+- Arbitrary prose/unknown Hub fields can evade lexical financial recognition. End-to-end source classification/typed assertion provenance remains necessary; no claim of full financial semantic verification.
+- /api/valuation/vc GET: startup_metrics mrr and burn fields→buildVcValuationReport→loadConnectedRevenueSignals/applyConnectedRevenueBridge. The workspace vc-valuation-dashboard fetches that independent API. POST likewise accepts calculator inputs and builds a value. None uses revenue-qualification.ts. Keep intentional scenario/calculator assertions distinct from verified company value in a separately reviewed API/UI contract.
+- /api/score:1259 independently computeValuation→bridgeConnectedRevenue and persists valuation fields; not changed here.
+- New report gather's trusted revenue producer allowlist remains empty. Document/reviewer confidence is not source qualification. This patch does not enable producers, verify original figures, change source storage, or certify sale readiness.
+
+Tests: real Hub conversion→itemsFromEvidenceRows→autoCite cannot cite the synthetic unqualified A$77,777; gather projection does not reintroduce it; original objects and nonfinancial evidence preserved; original revenue missing/zero/positive cannot enter monetary module fields or fabricate readiness numbers; existing revenue-qualification negative gates retained.
