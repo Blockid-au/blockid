@@ -273,6 +273,60 @@ Nhiều dimension có thể tham chiếu một criterion; question/evidence lưu
 
 Ví dụ này là chuẩn về cách lập luận và xử lý thiếu thông tin; không phải một template để chép số sang report khác.
 
+### 6.6 “What we looked at”: giải thích kết quả từng nội dung, không chỉ liệt kê gap
+
+**Yêu cầu bổ sung của founder22/09/2026 — plan only cho phần này.** Áp dụng trên toàn bộ blockid.au nơi trình bày findings: kết quả đang phân tích, report hoàn tất, trang sau login, báo cáo đã lưu/chia sẻ, dashboard drill-down và exports tương ứng. Đây là phần cụ thể hóa §6.4, §8 và thiết kế detail ở §10; không tạo plan hoặc bộ tiêu chí cạnh tranh.
+
+**Bằng chứng source:** `web/src/components/analyze/analyze-results.tsx` hiện nhận `AgentFinding` chỉ gồm agent/headline/bullets. Fallback `effectiveFindings` cắt còn4 dimensions, lấy một số evidence/gap từ `derivedAnalysis.subs`; `AgentFindings` chỉ mở danh sách bullets. Các câu “Clarify the problem being solved” và “Define total addressable market size (TAM/SAM/SOM)” xuất phát từ heuristic trong `web/src/lib/svi-analysis.ts`. Các caller phân tích/saved view còn dùng fallback thay vì canonical criterion findings. Đây là thiếu contract và wiring, không chỉ thiếu copy; nhãn agent không chứng minh agent đã research.
+
+**Kết quả mong muốn:** người đọc hiểu BlockID đã đánh giá nội dung nào, phát hiện gì riêng ở doanh nghiệp này, vì sao nhận định như vậy, tác động đến quyết định đầu tư và cần kiểm chứng điều gì tiếp. Một dòng “Gap: …” có thể là nhãn tóm tắt, nhưng không được là toàn bộ nội dung sau khi mở chi tiết. Không viết dài thêm bằng lời chung chung hoặc suy diễn khi thiếu dữ liệu.
+
+#### A. Contract phân tích bắt buộc ở từng question/finding
+
+Mỗi finding liên kết với criterion/question ID hiện có và final report revision; không dùng vị trí trong mảng hoặc tên agent làm identity. Contract E01/A02 cần mang các phần sau, có state rõ khi chưa có dữ liệu:
+
+| Phần | Nội dung phải trả lời |
+|---|---|
+| Nội dung đã xem | Câu hỏi cụ thể và phạm vi business/customer/geography/stage/period đã đánh giá; tài liệu/trang/đoạn hoặc nguồn ngoài đã thực sự đọc |
+| Tìm thấy gì | Các dữ kiện cụ thể, lời founder khai và kết quả nghiên cứu tách riêng; nguồn, thời điểm, đơn vị và mức độ xác minh đi cùng nhận định |
+| Đánh giá của BlockID | Kết luận riêng cho business, lập luận từ thông tin tới kết luận; phân biệt quan sát, suy luận và giả định; không lặp lại deck hoặc đổi tên business trong một đoạn mẫu |
+| Điểm mạnh và điều cần thận trọng | Yếu tố ủng hộ, phản chứng hoặc cách giải thích khác có căn cứ; không ép đủ bull/bear khi không có bằng chứng |
+| Ý nghĩa với investor | Liên hệ tới demand, khả năng bán, tăng trưởng, biên lợi nhuận, rủi ro, suitability của valuation hoặc bước diligence; không tự biến score thành khuyến nghị mua/bán |
+| Phần còn thiếu và ảnh hưởng | Thiếu chính xác tài liệu/biến số nào, vì sao nó quan trọng, điều gì chưa thể kết luận; không đồng nhất “chưa cung cấp” với “doanh nghiệp không có” |
+| Việc cần làm tiếp | Câu hỏi hoặc bằng chứng cần xin, người có thể cung cấp, mức ưu tiên và điều kiện khiến kết luận thay đổi; tránh chỉ yêu cầu “clarify”/“provide more detail” |
+| Nguồn và giới hạn | Mở được đoạn hỗ trợ, nguồn mâu thuẫn, ngày truy cập; research blocked/not-found/not-run khác nhau. Citation phải hỗ trợ đúng claim, không chỉ là URL hoặc founder tự khẳng định |
+
+Status dùng coverage contract hiện hành: answered/partial/missing/conflict/not-applicable với lý do; không đặt thêm trạng thái cạnh tranh. Confidence phải giải thích theo bằng chứng, không tự tạo phần trăm chắc chắn. Không có tài liệu thì phân tích giới hạn và next request cụ thể; không tự bịa customer, TAM, đối thủ hoặc kết quả nghiên cứu để lấp chỗ trống.
+
+#### B. Hai mẫu nghiệm thu — tình huống giả định, không phải kết luận về khách hàng thật
+
+**Problem clarity:** giả sử deck chỉ viết “giúp SME tiết kiệm thời gian bằng AI”. Chi tiết phải nêu rằng mô tả chưa xác định người sử dụng/người trả tiền, công việc cụ thể, tần suất và chi phí của vấn đề. BlockID giải thích vì sao hiện chưa phân biệt được pain đủ lớn để trả tiền với tiện ích dễ thay thế; ảnh hưởng là chưa có cơ sở chắc chắn cho willingness-to-pay và tốc độ bán. Yêu cầu tiếp theo có trọng tâm: mô tả một workflow trước/sau, ví dụ khách đã gặp vấn đề, bằng chứng phỏng vấn/pilot và cách đo thời gian/chi phí thực tế. Nếu deck có những thông tin này ở trang khác, phải trích đúng trang và phân tích chúng, không giữ nguyên generic gap. Giải pháp hiện tại/đối thủ chỉ được so sánh như research khi đã đọc nguồn thật.
+
+**TAM/SAM/SOM:** giả sử deck chỉ đưa tổng chi tiêu của ngành. Chi tiết phải phân tích liệu con số đó có cùng sản phẩm, customer segment, geography và kỳ với business hay không; không coi tổng chi tiêu ngành là thị trường phần mềm có thể thu tiền. Trình bày cấu trúc kiểm chứng: TAM từ số buyer phù hợp × mức chi tiêu năm cho sản phẩm; SAM lọc phân khúc/địa lý/quy định/khả năng phục vụ; SOM trong thời hạn nêu rõ dựa trên kênh bán, sales capacity, conversion và cạnh tranh. Mỗi input có source hoặc nhãn assumption; thiếu input thì chỉ trình bày công thức và dữ liệu cần bổ sung, không tự gán số hay lấy1% TAM. Đánh giá cho investor nêu khả năng doanh thu đạt được và sensitivity; không tự suy multiple hay định giá doanh nghiệp từ TAM. Với mô hình khác SaaS, dùng đơn vị/cách tính phù hợp và giải thích lựa chọn.
+
+#### C. Cách hiển thị: ngắn ở ngoài, đủ lập luận khi mở
+
+- Summary mỗi mục: tiêu đề câu hỏi dễ hiểu, một nhận định cụ thể, trạng thái bằng chứng và điểm quan trọng nhất với investor. Dùng tiêu đề đề xuất “What we found” / “BlockID đã tìm thấy gì”; “What we looked at” có thể giữ làm mô tả phạm vi. U05 kiểm chứng wording EN/VI trước chốt.
+- Mở mục để xem lần lượt: đã biết → phân tích → ý nghĩa với investor → điểm còn thiếu/next step → nguồn. Dùng subheading/accordion nhất quán, không một danh sách bullet dài không cấu trúc.
+- Hiển thị ít mục nổi bật ban đầu được phép, nhưng phải có “View all assessed areas”, tổng số mục/trạng thái và đường đến mọi criterion/question áp dụng; bỏ giới hạn4 mục như giới hạn dữ liệu. Đánh dấu rõ phần chưa đánh giá, không làm người đọc tưởng đã bao phủ toàn bộ.
+- Giữ Back to overview/Home, breadcrumb, vị trí scroll và trạng thái mở khi đi xem evidence rồi quay lại; keyboard/mobile/light contrast theo U01/U03. Critical finding hoặc mâu thuẫn quan trọng phải hiện ở summary, không giấu sau accordion hoặc paywall.
+- Phân tích có sẵn, bằng chứng đã thu thập và lý do của kết luận hiện tại thuộc baseline report: mở/đọc lại không trừ credit. Chỉ research bổ sung mới hoặc phạm vi sâu hơn mới theo R04/B03/U08: mô tả sẽ tìm gì, quote/credit trước khi chạy, top-up/resume, không charge-on-expand và không hứa chắc tìm được dữ liệu.
+
+#### D. Merge vào implementation phases hiện có — không tăng45 work items
+
+| Bước / owner | Công việc và dependency | Bằng chứng hoàn tất |
+|---|---|---|
+| E01 + A02 contract; Q01 fixtures | Ánh xạ13 criteria/52 questions/8 dimensions vào finding có ID/revision/provenance; lưu heuristic preview riêng với final analysis | Fixtures Problem/TAM, business khác ngành/stage, missing/conflict, tài liệu có dữ liệu ở cuối; không tự tạo taxonomy mới |
+| A02a + F02/F03, ưu tiên ngay sau truth/finalization foundation W1 | Thay fallback-only bằng projection từ final report đã audit cho active và saved view; baseline phân tích input hiện có có thể giao trước khi retrieval sẵn sàng | Preview→final→save→reload đồng nhất; không gọi heuristic là research; retry một mục không xóa các mục khác |
+| A02b + R01–R03/A01 trong W2 | Thực hiện research thật theo từng câu hỏi, so sánh3–5 đối thủ liên quan khi có thể tìm đủ nguồn; cập nhật kết luận/phản chứng thay vì chỉ đính links | Có nguồn đã đọc, relevance và giới hạn; nguồn ít hoặc retrieval lỗi ghi thiếu rõ, không bịa đủ số |
+| U01 + U05/U07 + U02 trong W3; prototype sớm | Summary/detail/evidence/return navigation; cùng findings revision trên web, dashboard, saved/share và export | Actual browser mobile/desktop/EN/VI, keyboard và export parity; không đợi toàn-site redesign mới sửa generic-only final findings |
+| R04/B03/U08 trong W4 | Optional deeper research, quote/top-up/resume và bổ sung có version | Mở detail đã có không bị tính phí; run mới idempotent, failure không mất report cũ; billing acceptance riêng |
+| Q01/Q02 + S01 release gate | Review chất lượng từng nội dung hiển thị, không chỉ có header/độ dài/snapshot pass | Các tiêu chí dưới đây đạt trên corpus hiện hành; investor reviewer đánh giá được lý do và bước tiếp theo |
+
+**Acceptance bổ sung:** (1)100% applicable findings có state và truy cập được, không bị cắt vĩnh viễn sau4 mục; (2)không final expanded item nào chỉ gồm generic gap/score; (3)mọi kết luận material có nguồn đúng hoặc nhãn assumption/missing/conflict,0 nguồn hay số liệu bịa; (4)Problem và TAM trả lời đủ phạm vi/lập luận/implication/next request như mẫu, thích ứng đúng dữ liệu có thật; (5)đổi tên business nhưng giữ đoạn phân tích không phù hợp phải bị swap-name review bắt; (6)active/saved/share/export cùng final revision, legacy report ghi rõ chưa có phân tích sâu thay vì tự suy diễn; (7)credit chỉ áp dụng cho công việc mới được xác nhận; (8)giữ các gate factual accuracy/citation ở §13, không thay bằng việc render đủ fields. Agent QA kiểm độc lập producer→projection→UI; root duyệt integration/release. Skill ui-ux-pro-max và playwright áp dụng ở bước thực thi giao diện/acceptance theo §12.7.
+
+**Status:** bổ sung kế hoạch đã được yêu cầu; chưa implement hoặc deploy tính năng này. Các regression hiện có của foundation không chứng minh yêu cầu mới đã đạt.
+
 ## 7. Research theo startup: từ câu hỏi tới nguồn và nhận định
 
 ### 7.1 Pipeline đề xuất
@@ -1594,3 +1648,5 @@ Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi 
 - **22/09/2026 — E03 bounded fix:** model-authored quotes cannot become source evidence merely via allowedID; real excerpt retains original context/topic restrictions.50files/910tests pass. Pipelineversion source-quotes prevents oldcachegenerationreuse; oldreports notrewritten. Strictmetric experiment at docs/archive/g30-strict-autocite-experiment.patch is NON-SHIPPING research input, not approved implementation; normalization/verifier work stillrequired.
 
 - **22/09/2026 — W0b candidate preparation:** non-stopping active-origin controller/consumer integration independently reviewed; sourceversion3.29.0 prepared. Full deploy/runtime/30-minute soak gates still pending; no claim uninterrupted cutover proven before actualrun. Legacy4001 retained, no dependencyinstaller changes, max5retained admission.
+
+- **22/09/2026 — Founder bổ sung What we looked at:** thêm §6.6 contract phân tích từng finding, Problem/TAM examples, summary/detail/evidence UX và baseline/deep-credit boundary; nối E01/A02/F02/F03/R01–R04/U01/U02/U05/U07/U08/Q01/Q02/S01 vào45-item queue. Agent source review xác nhận heuristic fallback/4-dimension cap. Plan-only cho yêu cầu này; chưa code tính năng.
