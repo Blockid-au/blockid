@@ -1328,11 +1328,11 @@ Approval22/09/2026 bắt đầu W0a. Đây là status của cùng45 items, khôn
 | Item | Status | Evidence / next gate |
 |---|---|---|
 | P01 | IN PROGRESS | Approval commit168b6fe98; source/live/topology/cron/resource/backup evidence in [W0 inventory](../reviews/2026-09-22-g30-w0-runtime-inventory.md); automate writer coordination next |
-| O05 | IMPLEMENTED / RUNTIME VERIFICATION PENDING | Non-stopping controller + frozen runtime + active-origin consumers; independent isolated review passed, first controlled deploy pending |
-| O06 | IN PROGRESS — partial verified | Manual rollback9 tests; protected retention15 tests; shared prune helper integrated. LKG selection/compatibility/quarantine và safe cutover còn pending |
+| O05 | SOAK FAILED / RELEASES PAUSED FOR REPAIR | Candidate1bcd6c844 passed12/12 gates and cutover, then process disappeared after launcher completion. Public502 observed; warm rollback restored4001 at06:48:35UTC. [Incident evidence](../reviews/2026-09-22-g30-w0-cutover-incident.md). Supervised launch + parent-exit survival gate required before another promotion |
+| O06 | IN PROGRESS — WARM RECOVERY VERIFIED | Manual rollback9 tests; protected retention15 tests; actual serialized rollback restored verified old PID without restart after candidate death. Failed4100 quarantined, old4001 retained. Candidate soak/continuous operation still failed |
 | O07/O09 | IN PROGRESS | Actual inventory documented; recovery coordination7 isolated tests passed. Offsite backup failed quota; chưa chạy host-failure drill |
 | O09 off-host backup/standby | DEFERRED BY FOUNDER (22/09/2026) | User: “chưa cần bây giờ”. No new backup purchase/setup now. Local backup/restore checks remain; host-loss continuity not verified and no HA/absolute24h promise. This scope decision allows independent phased deploys, not a claim off-host DR passed |
-| E03 quote provenance | PARTIAL VERIFIED / NOT RELEASED | Sourcequote authentication fixed, pipeline cacheversion bumped;50files/910tests passed. Numeric/entity/period semantic matching and cited-claim verification remain open. Strict experiment archived, not shipped |
+| E03 quote provenance | PARTIAL VERIFIED / ROLLED BACK | Sourcequote authentication fixed, pipeline cacheversion bumped;50files/910tests passed. Briefly deployed in1bcd6c844, then rolled back for process-lifetime failure. Numeric/entity/period semantic matching and cited-claim verification remain open. Strict experiment archived, not shipped |
 | Remaining items | PENDING | Theo dependency §12/phase§12.8, chưa có closure evidence |
 
 ## 13. Quality gates và định nghĩa ready for sale
