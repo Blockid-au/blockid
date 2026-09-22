@@ -5,44 +5,41 @@
 //   15 2 * * * cd /home/dovanlong/blockid.au && node scripts/cron/ga4-daily-pull.mjs \
 //                >> web/content/reports/ga4-daily.log 2>&1
 //
-// Requires env (loaded from .env.local):
+// Requires env (process env or existing root/web dotenv files):
 //   GA4_PROPERTY_ID                       "properties/123456789" or "123456789"
-//   GOOGLE_APPLICATION_CREDENTIALS_JSON   raw service-account JSON string
+//   GOOGLE_APPLICATION_CREDENTIALS_JSON   raw service-account JSON, OR
+//   GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL / GOOGLE_DRIVE_PRIVATE_KEY
+//   GA_PROPERTY_ID is accepted as a fallback property alias.
 //
+// Options: --dry-run previews configuration/scope only (no API calls or writes).
+//          --no-notify explicitly disables notifications; none are sent in any mode.
 // Behaviour:
 //   - Missing env  → logs "not configured", writes cron-health line, exits 0.
-//   - Skips duplicate if a snapshot line already exists for the UTC "yesterday".
-//   - Emits a heartbeat to web/content/reports/cron-health.jsonl on every run.
+//   - Skips only same-day/property/range/hostname-scoped snapshots.
+//   - Filters every report request to blockid.au/www.blockid.au.
+//   - Emits a heartbeat to web/content/reports/cron-health.jsonl except dry-run.
 //
-// This script implements the pull inline (rather than importing the TS
-// client) so it needs no build step — same pattern as sibling *-goal-loop.mjs.
+// Plain ESM helpers keep this cron independent of the application build.
 
 import { readFile, appendFile, mkdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
+import { createRequire } from 'node:module'
+import { ga4Configuration, mergeEnvText, hasScopedSnapshot, collectDailySnapshot, cronOptions, HOSTNAME_SCOPE } from './ga4-daily-helpers.mjs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
 
+// No notification hooks exist; --no-notify is an explicit supported guarantee.
+const options = cronOptions(process.argv.slice(2))
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const REPO_ROOT = resolve(__dirname, '..', '..')
 const REPORTS_DIR = join(REPO_ROOT, 'web', 'content', 'reports')
 const JSONL = join(REPORTS_DIR, 'ga4-daily.jsonl')
 const HEALTH = join(REPORTS_DIR, 'cron-health.jsonl')
 
-// ── env loader (dotenv is optional; skip if not installed) ───────────────
-try {
-  const envFile = join(REPO_ROOT, '.env.local')
-  if (existsSync(envFile)) {
-    const raw = await readFile(envFile, 'utf8')
-    for (const line of raw.split('\n')) {
-      const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/)
-      if (!m) continue
-      if (process.env[m[1]] !== undefined) continue
-      let v = m[2]
-      if (v.startsWith('"') && v.endsWith('"')) v = v.slice(1, -1)
-      process.env[m[1]] = v
-    }
-  }
-} catch { /* non-fatal */ }
+// Preserve explicit process env; accept the app's existing private env location.
+for (const envFile of [join(REPO_ROOT, '.env.local'), join(REPO_ROOT, 'web', '.env.local'), join(REPO_ROOT, 'web', '.env')]) {
+  try { if (existsSync(envFile)) mergeEnvText(process.env, await readFile(envFile, 'utf8')) } catch { /* non-fatal */ }
+}
 
 // ── heartbeat ────────────────────────────────────────────────────────────
 async function heartbeat(ok, note) {
@@ -56,12 +53,6 @@ async function heartbeat(ok, note) {
   } catch { /* ignore */ }
 }
 
-function getPropertyId() {
-  const raw = (process.env.GA4_PROPERTY_ID ?? '').trim()
-  if (!raw) return null
-  return raw.startsWith('properties/') ? raw : `properties/${raw}`
-}
-
 function utcOffsetDate(days) {
   const now = new Date()
   const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - days))
@@ -69,11 +60,14 @@ function utcOffsetDate(days) {
 }
 
 // ── main ─────────────────────────────────────────────────────────────────
-const property = getPropertyId()
-const credsRaw = (process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON ?? '').trim()
+const { property, credentials } = ga4Configuration(process.env)
+if (options.dryRun) {
+  console.log(JSON.stringify({ dryRun: true, configured: Boolean(property && credentials), hostname_scope: HOSTNAME_SCOPE, date: utcOffsetDate(1), requestsPlanned: 5, googleRequestsSent: 0, writesPerformed: false, notifications: false }))
+  process.exit(0)
+}
 
-if (!property || !credsRaw) {
-  const msg = 'GA4_PROPERTY_ID or GOOGLE_APPLICATION_CREDENTIALS_JSON missing — skip'
+if (!property || !credentials) {
+  const msg = 'GA4 property or service-account credentials missing/invalid — skip'
   console.log(`[ga4-daily-pull] ${msg}`)
   await heartbeat(false, msg)
   process.exit(0)
@@ -86,12 +80,7 @@ const end7 = utcOffsetDate(1)
 
 let existing = ''
 try { existing = await readFile(JSONL, 'utf8') } catch { /* new */ }
-const alreadyHasToday = existing
-  .split('\n')
-  .filter(Boolean)
-  .some((line) => {
-    try { return JSON.parse(line).date === date } catch { return false }
-  })
+const alreadyHasToday = hasScopedSnapshot(existing, date, property)
 if (alreadyHasToday) {
   console.log(`[ga4-daily-pull] snapshot for ${date} already present — no-op`)
   await heartbeat(true, `no-op (${date} already recorded)`)
@@ -100,19 +89,11 @@ if (alreadyHasToday) {
 
 let google
 try {
-  ({ google } = await import('googleapis'))
+  // Resolve the app's installed dependency; the root cron has no package install.
+  const requireWeb = createRequire(join(REPO_ROOT, 'web', 'package.json'))
+  ;({ google } = requireWeb('googleapis'))
 } catch (e) {
-  const msg = `googleapis import failed: ${e?.message ?? e}`
-  console.error(`[ga4-daily-pull] ${msg}`)
-  await heartbeat(false, msg)
-  process.exit(1)
-}
-
-let credentials
-try {
-  credentials = JSON.parse(credsRaw)
-} catch (e) {
-  const msg = 'GOOGLE_APPLICATION_CREDENTIALS_JSON is not valid JSON'
+  const msg = 'googleapis dependency unavailable'
   console.error(`[ga4-daily-pull] ${msg}`)
   await heartbeat(false, msg)
   process.exit(1)
@@ -128,100 +109,15 @@ async function runReport(requestBody) {
   const res = await analytics.properties.runReport({ property, requestBody })
   return res.data ?? {}
 }
-function num(v) {
-  const n = Number(v)
-  return Number.isFinite(n) ? n : 0
-}
-function readMetric(row, idx) { return num(row?.metricValues?.[idx]?.value) }
-function readDim(row, idx) { return row?.dimensionValues?.[idx]?.value ?? '' }
-
 try {
-  const totalsRes = await runReport({
-    dateRanges: [{ startDate: date, endDate: date }],
-    metrics: [
-      { name: 'sessions' }, { name: 'activeUsers' }, { name: 'newUsers' },
-      { name: 'screenPageViews' }, { name: 'conversions' },
-      { name: 'engagementRate' }, { name: 'averageSessionDuration' },
-    ],
-  })
-  const tRow = totalsRes.rows?.[0] ?? totalsRes.totals?.[0]
-  const totals = {
-    sessions: readMetric(tRow, 0),
-    activeUsers: readMetric(tRow, 1),
-    newUsers: readMetric(tRow, 2),
-    screenPageViews: readMetric(tRow, 3),
-    conversions: readMetric(tRow, 4),
-    engagementRate: readMetric(tRow, 5),
-    averageSessionDuration: readMetric(tRow, 6),
-  }
-
-  const pagesRes = await runReport({
-    dateRanges: [{ startDate: date, endDate: date }],
-    dimensions: [{ name: 'pagePath' }],
-    metrics: [{ name: 'sessions' }, { name: 'screenPageViews' }],
-    orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
-    limit: 5,
-  })
-  const topPages = (pagesRes.rows ?? []).map((r) => ({
-    path: readDim(r, 0), sessions: readMetric(r, 0), views: readMetric(r, 1),
-  }))
-
-  const eventsRes = await runReport({
-    dateRanges: [{ startDate: date, endDate: date }],
-    dimensions: [{ name: 'eventName' }],
-    metrics: [{ name: 'eventCount' }],
-    orderBys: [{ metric: { metricName: 'eventCount' }, desc: true }],
-    limit: 5,
-  })
-  const topEvents = (eventsRes.rows ?? []).map((r) => ({ name: readDim(r, 0), count: readMetric(r, 0) }))
-
-  const srcRes = await runReport({
-    dateRanges: [{ startDate: date, endDate: date }],
-    dimensions: [{ name: 'sessionSource' }, { name: 'sessionMedium' }],
-    metrics: [{ name: 'sessions' }],
-    orderBys: [{ metric: { metricName: 'sessions' }, desc: true }],
-    limit: 5,
-  })
-  const sourceMedium = (srcRes.rows ?? []).map((r) => ({
-    source: readDim(r, 0), medium: readDim(r, 1), sessions: readMetric(r, 0),
-  }))
-
-  const trendRes = await runReport({
-    dateRanges: [{ startDate: start7, endDate: end7 }],
-    dimensions: [{ name: 'date' }],
-    metrics: [{ name: 'sessions' }, { name: 'activeUsers' }, { name: 'conversions' }],
-    orderBys: [{ dimension: { dimensionName: 'date' }, desc: false }],
-    limit: 14,
-  })
-  const trend7d = (trendRes.rows ?? []).map((r) => {
-    const raw = readDim(r, 0)
-    const iso = raw.length === 8 ? `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}` : raw
-    return {
-      date: iso,
-      sessions: readMetric(r, 0),
-      users: readMetric(r, 1),
-      conversions: readMetric(r, 2),
-    }
-  })
-
-  const snapshot = {
-    captured_at: new Date().toISOString(),
-    date,
-    range_days: 1,
-    property_id: property,
-    totals,
-    topPages,
-    topEvents,
-    sourceMedium,
-    trend7d,
-  }
+  const snapshot = await collectDailySnapshot({ runReport, property, date, start7, end7 })
 
   await mkdir(REPORTS_DIR, { recursive: true })
   await appendFile(JSONL, JSON.stringify(snapshot) + '\n', 'utf8')
-  console.log(`[ga4-daily-pull] appended snapshot for ${date} (sessions=${totals.sessions})`)
-  await heartbeat(true, `appended ${date} sessions=${totals.sessions}`)
+  console.log(`[ga4-daily-pull] appended snapshot for ${date} (sessions=${snapshot.totals.sessions})`)
+  await heartbeat(true, `appended ${date} sessions=${snapshot.totals.sessions}`)
 } catch (e) {
-  const msg = `GA4 pull failed: ${e?.message ?? e}`
+  const msg = 'GA4 readonly pull failed — check API access and quota'
   console.error(`[ga4-daily-pull] ${msg}`)
   await heartbeat(false, msg)
   process.exit(1)
