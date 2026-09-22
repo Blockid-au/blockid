@@ -242,7 +242,15 @@ def prebuilt_sha(web):
     return sha
 
 
-def allocate(data, web=None, prebuilt=False):
+def allocate(data, web=None, prebuilt=False, candidate_sha=None):
+    if candidate_sha is not None and (prebuilt or not re.fullmatch(r"[a-f0-9]{40}", candidate_sha)):
+        raise ValueError("invalid isolated candidate SHA")
+    if web is not None:
+        receipt_stage = web / "content/reports/g30-receipt-candidate.json"
+        if receipt_stage.exists() or receipt_stage.is_symlink():
+            stage_record = json.loads(receipt_stage.read_text())
+            if candidate_sha is None or stage_record.get("phase") != "preflight" or stage_record.get("sourceSha") != candidate_sha:
+                raise ValueError("Receipt candidate staging requires explicit disposition before another admission")
     if web is not None:
         pin = web / ".next-candidate"
         if pin.exists() or pin.is_symlink():
@@ -252,7 +260,7 @@ def allocate(data, web=None, prebuilt=False):
     if data and data['phase'] != 'stable':
         raise ValueError('Promotion blocked: switching')
     if data and retained_capacity(data) >= MAX_RETAINED:
-        extra_slot_authorization(web, data, prebuilt_sha(web), stage="launch") if prebuilt else extra_slot_authorization(web, data)
+        extra_slot_authorization(web, data, prebuilt_sha(web), stage="launch") if prebuilt else (extra_slot_authorization(web, data, candidate_sha) if candidate_sha is not None else extra_slot_authorization(web, data))
     available = int(re.search(r'^MemAvailable:\s+(\d+)', Path('/proc/meminfo').read_text(), re.M).group(1))
     if available < MIN_AVAILABLE_KIB:
         raise ValueError('Less than 1 GiB available memory; promotion deferred')

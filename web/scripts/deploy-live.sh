@@ -14,16 +14,27 @@ DEPLOY_WAIT=0
 if [ "${DEPLOY_NOTIFY:-1}" = "0" ]; then G30_NO_NOTIFICATIONS=1; fi
 readonly G30_NO_NOTIFICATIONS="${G30_NO_NOTIFICATIONS:-0}"
 DEPLOY_DRY_RUN=0
+G30_RECEIPT_STAGE=0
+G30_CONTROL_WEB=""
+G30_STAGE_BASELINE_PORTS=()
 _ARGS=()
 for _a in "$@"; do
   case "$_a" in
     --wait) DEPLOY_WAIT=1 ;;
     --dry-run) DEPLOY_DRY_RUN=1 ;;
+    --stage-credit-receipts) G30_RECEIPT_STAGE=1 ;;
+    --stage-baseline-port=*) G30_STAGE_BASELINE_PORTS+=(--baseline-port "${_a#--stage-baseline-port=}") ;;
+    --control-web=*) G30_CONTROL_WEB="${_a#--control-web=}" ;;
     *) _ARGS+=("$_a") ;;
   esac
 done
 set -- "${_ARGS[@]}"
 unset _a _ARGS
+if [ "$G30_RECEIPT_STAGE" = "1" ]; then
+  [ "$#" = "0" ] && [ -n "$G30_CONTROL_WEB" ] && [ "${#G30_STAGE_BASELINE_PORTS[@]}" = "4" ] && [ "$DEPLOY_DRY_RUN" = "0" ] || { echo "Receipt staging requires only --stage-credit-receipts --control-web=CANONICAL_WEB"; exit 2; }
+elif [ -n "$G30_CONTROL_WEB" ] || [ "${#G30_STAGE_BASELINE_PORTS[@]}" != "0" ]; then
+  echo "--control-web is only allowed for receipt staging"; exit 2
+fi
 if [ "$DEPLOY_DRY_RUN" = "1" ] && [ "${1:-}" != "--rollback" ]; then
   echo "❌ --dry-run is only meaningful with --rollback (bash scripts/deploy-live.sh --rollback --dry-run)"
   exit 2
@@ -121,6 +132,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WEB_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 STANDALONE="$WEB_DIR/.next/standalone"
+if [ "$G30_RECEIPT_STAGE" != "1" ]; then G30_CONTROL_WEB="$WEB_DIR"; fi
 
 # node_modules lives on /data (1.7GB) as a symlink: web/node_modules -> /data/node_modules-blockid-web.
 # Node's symlink-realpath resolution breaks Next's internal require('next/dist/compiled/*')
@@ -131,13 +143,14 @@ export NODE_PATH="$NODE_MODULES_REAL"
 BACKUP_DIR="${DATA_DIR:-/data}/backups/next-backup"
 # Fallback: if /data not mounted, use legacy location so deploys never fail
 [ -d "/data/backups" ] || BACKUP_DIR="$WEB_DIR/.next-backup"
+if [ "$G30_RECEIPT_STAGE" = "1" ]; then BACKUP_DIR="$WEB_DIR/.next-receipt-stage-backup"; fi
 # ── Immutable release dirs (the real zero-downtime fix) ───────────────
 # The live server runs from releases/<BUILD_ID>, NOT from .next/standalone.
 # Because of that, the NEXT build's `rm -rf .next` can no longer delete the
 # directory the running server is serving /_next/static/* from. Past outage:
 # every deploy did `rm -rf .next`, which nuked the live server's cwd mid-build
 # (cwd → "(deleted)") so every JS/CSS chunk 500'd for the whole build window.
-RELEASES_DIR="$WEB_DIR/releases"           # symlink → /data/releases (300GB disk)
+RELEASES_DIR="$G30_CONTROL_WEB/releases"           # symlink → /data/releases (300GB disk)
 CURRENT_LINK="$WEB_DIR/.next-current"     # symlink → releases/<BUILD_ID> now live
 PREV_LINK="$WEB_DIR/.next-previous"       # symlink → previous live release (rollback)
 RELEASES_KEEP=6                           # retain 6 releases (space is ample on /data)
@@ -145,7 +158,7 @@ RELEASES_KEEP=6                           # retain 6 releases (space is ample on
 # scripts/rotate-production-log.sh; /tmp/blockid-production.log stays a symlink.
 # The process log is opened with `>>` (O_APPEND) so copy-truncate rotation works.
 LOG="/data/logs/blockid-production.log"
-[ "$DEPLOY_DRY_RUN" = "1" ] || bash "$WEB_DIR/scripts/rotate-production-log.sh" >/dev/null 2>&1 || true
+[ "$DEPLOY_DRY_RUN" = "1" ] || [ "$G30_RECEIPT_STAGE" = "1" ] || bash "$WEB_DIR/scripts/rotate-production-log.sh" >/dev/null 2>&1 || true
 [ -w "$(dirname "$LOG")" ] || LOG="/tmp/blockid-production.log"   # dev box without /data
 LOG_NEW="/tmp/blockid-production-new.log"
 PID_FILE="/tmp/blockid-production.pid"
@@ -235,7 +248,7 @@ write_deploy_log() {
 # G30: non-stopping promotion. This controller never retires a process;
 # nginx HTTP drain is not proof that detached jobs have completed (O08).
 g30_state() {
-  python3 "$WEB_DIR/scripts/g30-serving-state.py" --web "$WEB_DIR" "$@"
+  python3 "$WEB_DIR/scripts/g30-serving-state.py" --web "$G30_CONTROL_WEB" "$@"
 }
 g30_json_field() {
   python3 -c 'import json,sys; d=json.load(sys.stdin); v=d[sys.argv[1]]; print(json.dumps(v) if isinstance(v,(dict,list)) else v)' "$1"
@@ -606,13 +619,18 @@ fi
 # The state helper reads only its status token from .env itself. Loading the
 # application environment here would leak production mode/credentials into
 # TypeScript, lint and unit-test gates. Load it only when launching a runtime.
+if [ "$G30_RECEIPT_STAGE" = "1" ]; then
+  python3 "$WEB_DIR/scripts/g30-receipt-candidate.py" preflight --source-web "$WEB_DIR" \
+    --control-web "$G30_CONTROL_WEB" "${G30_STAGE_BASELINE_PORTS[@]}" --lock-fd 200 >/dev/null || fail "Exact receipt staging preflight refused"
+else
 g30_state --init --listen-port 4001 --pid "$(cat "$PID_FILE")" \
   --release "$(readlink -f "$CURRENT_LINK")" --lock-fd 200 >/dev/null || fail "Cannot establish/verify known-good serving state"
+fi
 PROD_PORT=$(g30_state --port) || fail "Serving origin is not stable"
 ROLLBACK_TARGET_JSON=$(g30_state --verify-active) || fail "Active origin identity/schema unverified"
 ACTIVE_SHA=$(printf '%s' "$ROLLBACK_TARGET_JSON" | g30_json_field sha) || fail "Missing active SHA"
 G30_AUTHORITY_EXPANSION=0
-if ! git -C "$WEB_DIR" diff --quiet "$ACTIVE_SHA" HEAD -- supabase/migrations; then
+if [ "$G30_RECEIPT_STAGE" != "1" ] && ! git -C "$WEB_DIR" diff --quiet "$ACTIVE_SHA" HEAD -- supabase/migrations; then
   python3 "$WEB_DIR/scripts/g30-authority-schema-transition.py" --web "$WEB_DIR" preflight \
     --active-sha "$ACTIVE_SHA" --lock-fd 200 >/dev/null || \
     fail "Migration changes require expanded compatibility/rollback verification before promotion"
@@ -622,9 +640,13 @@ CONFIGURED_PORT=$(g30_configured_port) || fail "Unsupported nginx origin configu
 [ "$CONFIGURED_PORT" = "$PROD_PORT" ] || fail "nginx origin differs from stable serving state"
 G30_ALLOCATE_ARGS=()
 [ "${1:-}" = "--skip-build" ] && G30_ALLOCATE_ARGS+=(--prebuilt)
+if [ "$G30_RECEIPT_STAGE" = "1" ]; then
+  TEMP_PORT=$(python3 "$WEB_DIR/scripts/g30-receipt-candidate.py" allocate --source-web "$WEB_DIR" --control-web "$G30_CONTROL_WEB" --lock-fd 200) || fail "Receipt staging resource admission refused"
+else
 TEMP_PORT=$(g30_state --allocate "${G30_ALLOCATE_ARGS[@]}" --lock-fd 200) || fail "No safe capacity/free origin port for candidate"
+fi
 # A disposable system service must outlive its launcher before expensive build work.
-python3 "$WEB_DIR/scripts/g30-supervised-launch.py" --web "$WEB_DIR" --probe --apply --lock-fd 200 >/dev/null \
+python3 "$WEB_DIR/scripts/g30-supervised-launch.py" --web "$G30_CONTROL_WEB" --probe --apply --lock-fd 200 >/dev/null \
   || fail "Independent supervisor lifetime probe failed; live origin unchanged"
 CANDIDATE_PORT="$TEMP_PORT"
 
@@ -1264,16 +1286,35 @@ for alias in .next-current .next-previous .next-candidate; do
     fail "Unexpected non-symlink alias inside candidate: $alias"
   fi
 done
-FREEZE_RESULT=$(python3 "$WEB_DIR/scripts/g30-freeze-runtime.py" --web "$WEB_DIR" \
+if [ "$G30_RECEIPT_STAGE" = "1" ]; then
+  mkdir -p "$RELEASE_DIR/supabase/migrations" "$RELEASE_DIR/content/reports"
+  for receipt_sql in 0443_credit_operation_receipts.sql 0444_credit_checkout_fulfillment.sql 0445_erasure_credit_purchase_receipts.sql; do
+    cp "$WEB_DIR/supabase/migrations/$receipt_sql" "$RELEASE_DIR/supabase/migrations/$receipt_sql" || fail "Cannot freeze reviewed receipt SQL"
+  done
+  cp "$WEB_DIR/content/reports/schema-migrations.json" "$RELEASE_DIR/content/reports/schema-migrations.json" || fail "Cannot freeze honest receipt manifest"
+  # Control-plane state is read from canonical control-web, never copied from
+  # this isolated checkout into a runtime. Only this new artifact is changed.
+  for control_file in g30-serving-state.json g30-schema-expansion.json g30-receipt-candidate.json last-good-build.json release-retention-pins.json deploy-log.jsonl; do
+    rm -f -- "$RELEASE_DIR/content/reports/$control_file"
+  done
+fi
+FREEZE_RESULT=$(python3 "$WEB_DIR/scripts/g30-freeze-runtime.py" --web "$G30_CONTROL_WEB" \
   --release "$RELEASE_DIR" --apply --lock-fd 200) || fail "Independent candidate runtime freeze failed"
 FROZEN_NODE_PATH=$(printf '%s' "$FREEZE_RESULT" | python3 -c 'import json,sys; print(json.load(sys.stdin)["snapshot"])') || fail "Runtime snapshot manifest missing"
 export NODE_PATH="$RELEASE_DIR/$FROZEN_NODE_PATH"
 [ -d "$NODE_PATH" ] || fail "Frozen dependency snapshot missing"
 ln -sfn "$RELEASE_DIR" "$WEB_DIR/.next-candidate" || fail "Cannot pin candidate before start"
+if [ "$G30_RECEIPT_STAGE" = "1" ]; then
+  python3 "$WEB_DIR/scripts/g30-receipt-candidate.py" pin --source-web "$WEB_DIR" --control-web "$G30_CONTROL_WEB" \
+    --release "$RELEASE_DIR" --lock-fd 200 >/dev/null || fail "Cannot protect frozen receipt candidate"
+fi
 echo "  ✅ Release frozen: releases/$BUILD_ID"
 
 # Start on temp port (from the immutable release dir)
 load_env
+if [ "$G30_RECEIPT_STAGE" = "1" ]; then
+  export G30_CREDIT_RECEIPTS=0 G30_CREDIT_PURCHASES_PAUSED=1
+fi
 export NODE_PATH="$RELEASE_DIR/$FROZEN_NODE_PATH"
 export PORT=$TEMP_PORT
 export HOSTNAME=127.0.0.1
@@ -1281,7 +1322,7 @@ export HOSTNAME=127.0.0.1
 # after startup. Never kill another process to claim this port.
 
 cd "$RELEASE_DIR"
-SUPERVISED=$(python3 "$WEB_DIR/scripts/g30-supervised-launch.py" --web "$WEB_DIR" \
+SUPERVISED=$(python3 "$WEB_DIR/scripts/g30-supervised-launch.py" --web "$G30_CONTROL_WEB" \
   --release "$RELEASE_DIR" --port "$TEMP_PORT" --apply --lock-fd 200) \
   || fail "Supervised candidate launch failed; retained origins unchanged"
 NEW_PID=$(printf '%s' "$SUPERVISED" | g30_json_field pid) || fail "Missing supervised PID"
@@ -1289,7 +1330,7 @@ CANDIDATE_UNIT=$(printf '%s' "$SUPERVISED" | g30_json_field unit) || fail "Missi
 LOG_NEW=$(printf '%s' "$SUPERVISED" | g30_json_field log) || fail "Missing candidate log"
 printf '%s\n' "$CANDIDATE_UNIT" > "$WEB_DIR/.g30-candidate-unit"
 # The helper launcher has returned. Verify independently before any live traffic.
-python3 "$WEB_DIR/scripts/g30-supervised-launch.py" --web "$WEB_DIR" --release "$RELEASE_DIR" \
+python3 "$WEB_DIR/scripts/g30-supervised-launch.py" --web "$G30_CONTROL_WEB" --release "$RELEASE_DIR" \
   --check "$CANDIDATE_UNIT" --pid "$NEW_PID" --apply --lock-fd 200 >/dev/null \
   || fail "Candidate did not survive its launcher"
 printf '%s\n' "$NEW_PID" > "$WEB_DIR/.g30-candidate.pid"
@@ -1438,6 +1479,16 @@ else
 fi
 
 # ══════════════════════════════════════════════════════════════════════
+# Receipt stage stops before every registration/routing/promotion action.
+if [ "$G30_RECEIPT_STAGE" = "1" ]; then
+  python3 "$WEB_DIR/scripts/g30-receipt-candidate.py" inspect --source-web "$WEB_DIR" \
+    --control-web "$G30_CONTROL_WEB" --port "$TEMP_PORT" --pid "$NEW_PID" --release "$RELEASE_DIR" --lock-fd 200 \
+    || fail "Private receipt candidate inspection failed; retained for explicit disposition"
+  write_deploy_log "staged" "Receipt candidate pending:3; no SQL or promotion"
+  echo "Receipt candidate staged privately; purchases on active origin unchanged. Manual expansion window required."
+  exit 0
+fi
+
 # G-11: Stamp deploy-manifest.json (after successful build+smoke, before swap)
 # Guardian consumers read this to know which sha/build is being promoted.
 # ══════════════════════════════════════════════════════════════════════
@@ -1487,7 +1538,7 @@ for G30_REGISTER_ATTEMPT in 1 2 3 4; do
   esac
 done
 [ "$G30_REGISTERED" -eq 1 ] || fail "Candidate resource pressure persisted; current traffic retained"
-python3 "$WEB_DIR/scripts/g30-supervised-launch.py" --web "$WEB_DIR" --release "$RELEASE_DIR" \
+python3 "$WEB_DIR/scripts/g30-supervised-launch.py" --web "$G30_CONTROL_WEB" --release "$RELEASE_DIR" \
   --check "$CANDIDATE_UNIT" --pid "$NEW_PID" --apply --lock-fd 200 >/dev/null \
   || fail "Candidate supervisor identity changed before cutover"
 g30_state --begin --lock-fd 200 >/dev/null || fail "Cannot enter serialized cutover"

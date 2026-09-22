@@ -11,6 +11,13 @@ class Controller(unittest.TestCase):
   with tempfile.TemporaryDirectory() as root, patch.object(c.state.proxy,'require_lock',side_effect=ValueError('missing lock')), patch.object(c,'current_database') as db, patch.object(c.state,'atomic_json') as save:
    with self.assertRaises(ValueError):c.main(['--web',root,'next','--lock-fd','200','--cron-lock-fd','201'])
    db.assert_not_called();save.assert_not_called()
+ def test_isolated_control_rejects_noncanonical_root_before_database(self):
+  with tempfile.TemporaryDirectory() as root:
+   source=Path(root)/'source';control=Path(root)/'wrong';common=Path(root)/'.git'
+   source.mkdir();control.mkdir();common.mkdir()
+   with patch.object(c.subprocess,'check_output',return_value=str(common)),patch.object(c,'current_database') as db:
+    with self.assertRaises(ValueError):c.main(['--web',str(source),'--control-web',str(control),'next','--lock-fd','200','--cron-lock-fd','201'])
+    db.assert_not_called()
  def test_failed_or_partial_record_refuses_before_probe(self):
   for phase in ('prepared','applying','failed'):
    with patch.object(c,'read',return_value={'phase':phase}),patch.object(c,'current_database') as db:

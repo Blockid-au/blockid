@@ -94,22 +94,27 @@ def main(argv=None):
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--web',type=Path,required=True)
     p.add_argument('command',choices=['prepare','next','observe','seal','enroll','fail'])
     p.add_argument('--lock-fd',type=int,required=True);p.add_argument('--cron-lock-fd',type=int,required=True)
+    p.add_argument('--control-web',type=Path,help='Canonical control checkout for an isolated reviewed candidate source')
     p.add_argument('--recovery-port',type=int);p.add_argument('--candidate-port',type=int);p.add_argument('--candidate-pid',type=int);p.add_argument('--candidate-release',type=Path)
     p.add_argument('--migration',choices=core.FILES)
     p.add_argument('--allow-purchase-writes',action='store_true',help='Explicitly permit a verified successor started with purchases enabled after sealed expansion')
     args=p.parse_args(argv);web=args.web.resolve(strict=True)
+    control=args.control_web.resolve(strict=True) if args.control_web else web
+    if args.control_web:
+        common=Path(subprocess.check_output(['git','-C',str(web),'rev-parse','--path-format=absolute','--git-common-dir'],text=True).strip()).resolve(strict=True)
+        if web==control or control!=common.parent/'web': raise ValueError('isolated source/canonical control required')
     state.proxy.require_lock(args.lock_fd)
     state.proxy.require_lock(args.cron_lock_fd,Path('/tmp/blockid-cron.stripe-reconcile.lock'))
-    serving=state.read_state(web);record=read(web);now=int(time.time());probe=str(time.time_ns())
+    serving=state.read_state(control);record=read(control);now=int(time.time());probe=str(time.time_ns())
     if args.command=='fail':
         if not record: raise ValueError('no transition')
-        state.atomic_json(path(web),core.fail(record,'operator stopped; financial writes remain paused'));return 0
+        state.atomic_json(path(control),core.fail(record,'operator stopped; financial writes remain paused'));return 0
     if args.command=='prepare':
         if record: raise ValueError('transition already exists; explicit recovery required')
-        assert_paused(web,serving)
+        assert_paused(control,serving)
         recovery=next(e for e in serving['retained'] if e['port']==args.recovery_port)
-        candidate=state.make_entry(web,args.candidate_port,args.candidate_pid,args.candidate_release,'pending:3')
-        a,b,c=endpoint(web,serving['active']),endpoint(web,recovery),endpoint(web,candidate,'pending:3')
+        candidate=state.make_entry(control,args.candidate_port,args.candidate_pid,args.candidate_release,'pending:3')
+        a,b,c=endpoint(control,serving['active']),endpoint(control,recovery),endpoint(control,candidate,'pending:3')
         ledger,digest=current_database()
         record=core.prepare(serving,a,b,c,sql_hashes(web),ledger,digest,now,probe)
         record['fixture_sources']={name:hashlib.sha256((web/'scripts/db/tests'/name).read_bytes()).hexdigest() for name in ('credit-checkout-fulfillment.py','credit-operation-receipts.py')}
@@ -119,9 +124,9 @@ def main(argv=None):
         if sql_hashes(web)!=record['migrations']: raise ValueError('reviewed SQL bytes changed')
         ledger,digest=current_database()
         if args.command=='enroll':
-            if not allowed(web,serving['active'],serving['active'],serving): raise ValueError('active release outside sealed transition')
-            entry=state.make_entry(web,args.candidate_port,args.candidate_pid,args.candidate_release)
-            observed=endpoint(web,entry);observed['receipt_fixture_digest']=fixture(web,record)
+            if not allowed(control,serving['active'],serving['active'],serving): raise ValueError('active release outside sealed transition')
+            entry=state.make_entry(control,args.candidate_port,args.candidate_pid,args.candidate_release)
+            observed=endpoint(control,entry);observed['receipt_fixture_digest']=fixture(web,record)
             ledger,digest=current_database()
             record=core.enroll_successor(record,observed,ledger,digest,args.allow_purchase_writes)
         elif args.command=='next':
@@ -129,15 +134,15 @@ def main(argv=None):
         elif args.command=='observe':
             record=core.record_applied(record,args.migration,ledger,digest,now,probe)
         elif args.command=='seal':
-            assert_paused(web,serving)
+            assert_paused(control,serving)
             evidence=fixture(web,record)
             for role,entry in record['releases'].items():
-                observed=endpoint(web,entry);observed['receipt_fixture_digest']=evidence
+                observed=endpoint(control,entry);observed['receipt_fixture_digest']=evidence
                 ledger,digest=current_database()
                 record=core.verify_endpoint(record,role,observed,ledger,digest,int(time.time()),str(time.time_ns()))
             ledger,digest=current_database()
             record=core.seal(record,ledger,digest,int(time.time()))
-    state.atomic_json(path(web),record)
+    state.atomic_json(path(control),record)
     print(json.dumps({'transition_id':record['transition_id'],'phase':record['phase']}));return 0
 if __name__=='__main__':
     try: raise SystemExit(main())
