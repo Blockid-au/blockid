@@ -1,0 +1,21 @@
+[Unit]
+Description=BlockID bounded disk pressure cleanup (80 percent)
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /usr/local/lib/blockid-maintenance/disk-guard.py --apply --threshold 80 --log-owner-uid 1001 --summary /var/lib/blockid-maintenance/latest.json
+User=root
+Nice=10
+IOSchedulingClass=idle
+CPUQuota=20%
+MemoryMax=256M
+TimeoutStartSec=45
+SuccessExitStatus=75
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/tmp /var/lib/blockid-maintenance
+ProtectHome=read-only
+PrivateTmp=false
+StandardOutput=null
+StandardError=journal

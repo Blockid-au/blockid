@@ -1,0 +1,11 @@
+[Unit]
+Description=Check BlockID disk pressure every five minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+AccuracySec=15s
+Unit=blockid-disk-guard.service
+
+[Install]
+WantedBy=timers.target

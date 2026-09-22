@@ -5,16 +5,14 @@
 # Runs every 2 minutes via crontab. Complements the existing:
 #   - watchdog.sh (production process restart)
 #   - uptime-watcher.sh (external HTTP probe)
-#   - server-cleanup.sh (disk-only, runs at 85%+)
+#   - blockid-disk-guard.timer (80% on /,/data,/tmp)
 #
 # What this script adds (24/7 focus):
-#   1. Escalating disk-pressure response (60/75/85% thresholds).
+#   1. Disk-pressure observation; dedicated80% cleanup timer.
 #   2. Memory pressure detection + smart offender identification.
-#   3. Log rotation for the reseller loop JSONLs (already have their
-#      own rotation, but belt-and-braces at 300KB).
-#   4. Old-release trimming based on absolute count, not disk %.
-#   5. Ephemeral file cleanup (/tmp, .next build cache, node_modules
-#      duplicates).
+#   3. Shared report history is preserved; retention belongs to its writer.
+#   4. Release retention remains with the deployment controller.
+#   5. Ephemeral log cleanup remains with the bounded disk guard.
 #   6. Auto-rollback if HEAD build is unhealthy for > 3 consecutive
 #      probes (delegates to deploy-live.sh --rollback).
 #   7. Structured JSONL health snapshot to
@@ -83,50 +81,24 @@ fi
 # ────────────────────────────────────────────────────────────────────────
 # 3. Disk-pressure response (escalating).
 # ────────────────────────────────────────────────────────────────────────
+# Disk cleanup belongs to blockid-disk-guard.timer (all three mounts,80%).
+# This health observer must not bypass its lock, ownership or open-file guards.
 DISK_ACTION="none"
-if [ "$DISK_PCT" -ge 85 ]; then
-  # Never invoke broad build/cache cleanup while a deploy may be in progress.
-  # Protected releases take precedence over disk/count targets.
-  DISK_ACTION="critical"
-  echo "$TS [DISK-CRIT] $DISK_PCT% used — protected release retention" >> "$LOG"
-  python3 "$REPO/scripts/cron/g30-release-retention.py" --web "$WEB" --keep 2 >> "$LOG" 2>&1 \
-    || echo "$TS [RETENTION-DEFERRED] safety/lock check blocked cleanup; capacity needs review" >> "$LOG"
-elif [ "$DISK_PCT" -ge 75 ]; then
-  DISK_ACTION="high"
-  echo "$TS [DISK-HIGH] $DISK_PCT% used — protected release retention" >> "$LOG"
-  python3 "$REPO/scripts/cron/g30-release-retention.py" --web "$WEB" --keep 3 >> "$LOG" 2>&1 \
-    || echo "$TS [RETENTION-DEFERRED] safety/lock check blocked cleanup; capacity needs review" >> "$LOG"
-elif [ "$DISK_PCT" -ge 60 ]; then
-  # WARN — rotate logs only.
-  DISK_ACTION="warn"
-  echo "$TS [DISK-WARN] $DISK_PCT% used — log rotation" >> "$LOG"
+if [ "$DISK_PCT" -ge 80 ]; then
+  DISK_ACTION="guard_managed_pressure"
 fi
 
 # ────────────────────────────────────────────────────────────────────────
 # 4. Log rotation — belt-and-braces at 300KB even if the loop's own
 #    rotation missed.
 # ────────────────────────────────────────────────────────────────────────
-for f in \
-  "$WEB/content/reports/reseller-goal-history.jsonl" \
-  "$WEB/content/reports/reseller-monitor.jsonl" \
-  "$WEB/content/reports/uptime-guardian.jsonl" \
-  "$WEB/content/reports/cron-health.jsonl" \
-  "$WEB/content/reports/guardian-history.jsonl"
-do
-  [ ! -f "$f" ] && continue
-  size=$(stat -c %s "$f")
-  if [ "$size" -gt 307200 ]; then   # 300 KB
-    tail -n 800 "$f" > "$f.tmp" && mv "$f.tmp" "$f"
-    echo "$TS [ROTATE] $(basename "$f") -> tail 800 lines" >> "$LOG"
-  fi
-done
+# Do not tail/move shared JSONL while other writers append. Retention must be
+# implemented by each data owner; pressure is not permission to discard history.
 
 # ────────────────────────────────────────────────────────────────────────
 # 5. /tmp cleanup — files older than 48h that we own.
 # ────────────────────────────────────────────────────────────────────────
-find /tmp -maxdepth 2 -user "$(id -un)" -type f -mtime +2 \
-  \( -name '*.log' -o -name 'blockid-*.tmp' \) \
-  -delete 2>/dev/null || true
+# Temporary-file cleanup is exclusively owned by the bounded disk guard.
 
 # ────────────────────────────────────────────────────────────────────────
 # 6. Memory pressure — record only. We do NOT auto-kill blockid because
