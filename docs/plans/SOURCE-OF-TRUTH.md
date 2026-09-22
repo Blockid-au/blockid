@@ -1690,3 +1690,14 @@ Dynamic business/report IDs are not exposed in labels. Investor views preserve
 their own navigation.21 focused checks passed; source only, not yet deployed.
 [Scope/evidence](../reviews/2026-09-22-g30-workspace-navigation.md).
 Remaining dashboard hierarchy, menu grouping and all-page redesign stay open.
+
+### B02 pricing error containment — candidate
+
+The pitchdeck aggregate feature `pitchdeck_speculative` is absent from the
+canonical feature catalogue. Paid-gap requests now return503
+`analysis_pricing_unavailable` before affordability/debit/state mutation; the
+client removes stale insufficient-credit prompts and explains that top-up does
+not fix configuration. Fully evidenced/free requests keep their current path.
+15 focused route tests pass. This does not introduce a new price or close
+B03 quote/reserve/capture; paid-gap analysis remains unavailable until its
+approved aggregate pricing and keyed billing flow are implemented.

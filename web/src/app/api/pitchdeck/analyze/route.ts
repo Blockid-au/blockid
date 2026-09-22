@@ -118,6 +118,16 @@ async function POST_handler(request: Request): Promise<Response> {
     return acc + c;
   }, 0);
 
+  if (cost > 0 && FEATURE_COSTS.pitchdeck_speculative === undefined) {
+    // This aggregate debit has no configured feature price. Buying credits
+    // cannot repair configuration; do not report a customer's balance error.
+    return NextResponse.json({
+      ok: false,
+      error: "analysis_pricing_unavailable",
+      message: "Additional research pricing is temporarily unavailable. No credits were charged. You do not need to top up to resolve this error.",
+    }, { status: 503 });
+  }
+
   if (cost > 0) {
     // Pre-flight — cheap read to reject with a clear message before we
     // hit the atomic spend path (which races).

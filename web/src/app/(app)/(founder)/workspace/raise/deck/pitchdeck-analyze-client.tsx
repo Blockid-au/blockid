@@ -290,6 +290,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
 
   const submitAnalyze = useCallback(async () => {
     if (!pitchdeckId || selected.size !== 8) return;
+    setInsufficient(null);
     setError(null);
     setBusy(true);
     try {
@@ -300,7 +301,9 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
       });
       const body = (await res.json()) as AnalyzeResponse;
       if (!body.ok || !body.dims) {
-        if (res.status === 402 && body.error === "insufficient_credits") {
+        if (body.error === "analysis_pricing_unavailable") {
+          setError("Additional research pricing is temporarily unavailable. No credits were charged. You do not need to buy credits to resolve this error.");
+        } else if (res.status === 402 && body.error === "insufficient_credits") {
           setInsufficient({
             required: body.required ?? 0,
             balance: body.balance ?? 0,

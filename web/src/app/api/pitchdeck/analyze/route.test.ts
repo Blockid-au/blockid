@@ -51,13 +51,14 @@ describe("fresh deck admission before credit debit", () => {
     expect(mock.spend).not.toHaveBeenCalled();
     expect(mock.update).not.toHaveBeenCalled();
   });
-  it("keeps the explicitly requested full run and its existing speculative charge", async () => {
+  it("reports unavailable aggregate pricing without asking for a top-up or attempting a debit", async () => {
     const response = await POST(request([...dims].reverse()));
-    expect(response.status).toBe(200);
-    expect(await response.json()).toMatchObject({ ok: true, dims: [...dims].reverse(), creditsCharged: 1, deckText: "New business evidence" });
+    expect(response.status).toBe(503);
+    expect(await response.json()).toMatchObject({ ok: false, error: "analysis_pricing_unavailable" });
     expect(mock.filters).toHaveBeenCalledWith("user_id", "user-1");
-    expect(mock.spend).toHaveBeenCalledExactlyOnceWith("user-1", "pitchdeck_speculative", { pitchdeckId: "deck-1", dims: ["tre"], totalCost: 1 });
-    expect(mock.update).toHaveBeenCalledWith(expect.objectContaining({ status: "analyzing", selected_dims: [...dims].reverse() }));
+    expect(mock.canAfford).not.toHaveBeenCalled();
+    expect(mock.spend).not.toHaveBeenCalled();
+    expect(mock.update).not.toHaveBeenCalled();
   });
   it("keeps a fully evidenced full run free", async () => {
     mock.row!.dim_coverage = Object.fromEntries(dims.map((dim) => [dim, { level: "strong" }]));
