@@ -9,6 +9,35 @@
 
 set -u
 
+# G30/P01: scheduled legacy writers yield to the approved implementation.
+# Validate before env reads, logging, fetching or any workspace mutation.
+# Missing/malformed control fails closed; only an explicit released handoff runs.
+G30_CONTROL="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/docs/plans/g30-execution-control.json"
+g30_writer_guard() {
+  local decision
+  decision=$(python3 - "$G30_CONTROL" <<'G30_PY'
+import json, sys
+try:
+    with open(sys.argv[1]) as handle:
+        value = json.load(handle)
+    valid = (isinstance(value, dict) and type(value.get("version")) is int
+             and value["version"] == 1 and value.get("owner") == "g30"
+             and value.get("source_of_truth") == "docs/plans/SOURCE-OF-TRUTH.md"
+             and value.get("status") in ("active", "released"))
+    print(value["status"] if valid else "invalid")
+except Exception:
+    print("invalid")
+G30_PY
+  ) || decision=invalid
+  case "$decision" in
+    released) return 0 ;;
+    active) printf '%s\n' 'G30 owns implementation; legacy writer deferred.' >&2; exit 0 ;;
+    *) printf '%s\n' 'G30 execution control unavailable/invalid; legacy writer refused.' >&2; exit 1 ;;
+  esac
+}
+g30_writer_guard
+# END G30 admission guard
+
 WEB_DIR="/home/dovanlong/blockid.au/web"
 LOCK="/tmp/blockid-deploy.lock"
 LOG="/tmp/blockid-cron.log"
@@ -31,6 +60,7 @@ fi
 LOCAL_AHEAD=$(git rev-list origin/master..HEAD 2>/dev/null | wc -l)
 if [ "$LOCAL_AHEAD" -gt 0 ]; then
   log "pushing $LOCAL_AHEAD local commits to GitHub"
+  g30_writer_guard
   if git push origin master 2>/dev/null; then
     log "push OK ($LOCAL_AHEAD commits)"
   else
@@ -39,6 +69,7 @@ if [ "$LOCAL_AHEAD" -gt 0 ]; then
 fi
 
 # Step 2: Pull from GitHub (fast-forward only)
+g30_writer_guard
 git fetch origin master --quiet 2>/dev/null
 REMOTE_AHEAD=$(git rev-list HEAD..origin/master 2>/dev/null | wc -l)
 
@@ -48,6 +79,7 @@ if [ "$REMOTE_AHEAD" -eq 0 ]; then
 fi
 
 log "pulling $REMOTE_AHEAD new commits from GitHub"
+g30_writer_guard
 if ! git merge origin/master --ff-only 2>/dev/null; then
   log "merge FAILED — non-fast-forward, needs manual resolution"
   # Alert via Telegram
@@ -60,6 +92,7 @@ fi
 
 # Step 3: Deploy
 log "deploying after GitHub sync ($REMOTE_AHEAD commits)"
+g30_writer_guard
 DEPLOY_NOTE="GitHub sync: $REMOTE_AHEAD commits" bash scripts/deploy-live.sh >> /tmp/blockid-sync-deploy.log 2>&1
 DEPLOY_EXIT=$?
 

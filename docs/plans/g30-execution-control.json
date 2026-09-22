@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "owner": "g30",
+  "status": "active",
+  "source_of_truth": "docs/plans/SOURCE-OF-TRUTH.md",
+  "scope": [
+    "web/scripts/self-upgrade-agent.sh",
+    "web/scripts/git-sync-deploy.sh"
+  ],
+  "resume_instruction": "Set status to released only after G30 owner handoff and confirmation that no legacy writer is already running."
+}

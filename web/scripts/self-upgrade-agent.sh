@@ -15,6 +15,35 @@
 
 set -u
 
+# G30/P01: scheduled legacy writers yield to the approved implementation.
+# Validate before env reads, logging, fetching or any workspace mutation.
+# Missing/malformed control fails closed; only an explicit released handoff runs.
+G30_CONTROL="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/docs/plans/g30-execution-control.json"
+g30_writer_guard() {
+  local decision
+  decision=$(python3 - "$G30_CONTROL" <<'G30_PY'
+import json, sys
+try:
+    with open(sys.argv[1]) as handle:
+        value = json.load(handle)
+    valid = (isinstance(value, dict) and type(value.get("version")) is int
+             and value["version"] == 1 and value.get("owner") == "g30"
+             and value.get("source_of_truth") == "docs/plans/SOURCE-OF-TRUTH.md"
+             and value.get("status") in ("active", "released"))
+    print(value["status"] if valid else "invalid")
+except Exception:
+    print("invalid")
+G30_PY
+  ) || decision=invalid
+  case "$decision" in
+    released) return 0 ;;
+    active) printf '%s\n' 'G30 owns implementation; legacy writer deferred.' >&2; exit 0 ;;
+    *) printf '%s\n' 'G30 execution control unavailable/invalid; legacy writer refused.' >&2; exit 1 ;;
+  esac
+}
+g30_writer_guard
+# END G30 admission guard
+
 REPO="/home/dovanlong/blockid.au"
 WEB_DIR="$REPO/web"
 LOG="/tmp/blockid-self-upgrade.log"
@@ -46,7 +75,9 @@ fi
 bash "$WEB_DIR/scripts/refresh-claude-oauth.sh" >/dev/null 2>&1 || true
 
 # Sync to GitHub master so we build on the latest committed state.
+g30_writer_guard
 git fetch origin master -q 2>/dev/null || true
+g30_writer_guard
 git merge --ff-only origin/master -q 2>/dev/null || true
 HEAD_BEFORE=$(git rev-parse HEAD 2>/dev/null)
 
@@ -87,10 +118,12 @@ HARD RULES:
 
 Work autonomously end-to-end, then stop.'
 
+g30_writer_guard
 timeout "$TIMEOUT_S" claude -p "$PROMPT" \
   --permission-mode bypassPermissions \
   --no-session-persistence >> "$LOG" 2>&1
 CLAUDE_EXIT=$?
+g30_writer_guard
 [ $CLAUDE_EXIT -ne 0 ] && log "claude exited $CLAUDE_EXIT (timeout/err) — continuing to check for commit"
 
 HEAD_AFTER=$(git rev-parse HEAD 2>/dev/null)
@@ -103,22 +136,26 @@ log "agent committed: $MSG"
 
 # Dry run: prove the agent works without touching production.
 if [ "$DRY_RUN" = "--dry-run" ]; then
+  g30_writer_guard
   git reset --hard "$HEAD_BEFORE" -q
   log "DRY RUN — reverted commit, no deploy"
   exit 0
 fi
 
 # Gated deploy. deploy-live.sh keeps the last-known-good build on any gate failure.
+g30_writer_guard
 DEPLOY_NOTE="Auto-upgrade (Claude subscription): $MSG" bash "$WEB_DIR/scripts/deploy-live.sh" > "$DEPLOY_LOG" 2>&1
 DEPLOY_EXIT=$?
 
 if [ $DEPLOY_EXIT -eq 0 ] && grep -q "DEPLOY COMPLETE" "$DEPLOY_LOG"; then
+  g30_writer_guard
   git push origin master -q 2>/dev/null && log "deployed + pushed to GitHub: $MSG"
   tg "🤖 *Auto-upgrade deployed*
 ✅ $MSG
 (gates passed, pushed to GitHub)"
 else
   GATE=$(grep -E "GATE FAILED|Build failed|errors" "$DEPLOY_LOG" | head -1)
+  g30_writer_guard
   git reset --hard "$HEAD_BEFORE" -q
   log "deploy FAILED gates — reverted: $MSG | $GATE"
   tg "⚠️ *Auto-upgrade reverted* (failed gates)
