@@ -1,3 +1,4 @@
+import { g30WriterDeferred } from "@/lib/ops/g30-writer-ownership";
 // POST /api/cron/agent-auto-improve — Daily autonomous improvement pipeline
 //
 // Reads recent research from agent_knowledge_base, asks AI to generate
@@ -185,6 +186,11 @@ export async function POST(request: Request) {
   if (!isCronAuthorised(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+
+  // These legacy handlers may mutate source, releases or deployment caches.
+  // Auth remains first; defer before budgets, state, maintenance or notifications.
+  const ownershipDeferral = g30WriterDeferred();
+  if (ownershipDeferral) return ownershipDeferral;
 
   // Rate limit: max 1 run per hour
   const rl = checkRateLimit("cron:agent-auto-improve", 1, 60 * 60 * 1000);

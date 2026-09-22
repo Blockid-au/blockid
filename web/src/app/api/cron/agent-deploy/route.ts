@@ -1,3 +1,4 @@
+import { g30WriterDeferred } from "@/lib/ops/g30-writer-ownership";
 // POST /api/cron/agent-deploy — Receive code patches from Claude Cloud agents
 //
 // Flow:
@@ -171,6 +172,11 @@ export async function POST(request: Request) {
   if (!isCronAuthorised(request)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
+
+  // These legacy handlers may mutate source, releases or deployment caches.
+  // Auth remains first; defer before budgets, state, maintenance or notifications.
+  const ownershipDeferral = g30WriterDeferred();
+  if (ownershipDeferral) return ownershipDeferral;
 
   let body: {
     agent: string;

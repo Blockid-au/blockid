@@ -36,6 +36,10 @@ const mocks = vi.hoisted(() => {
   };
 });
 
+// Legacy maintenance behavior is exercised only after an explicit G30
+// released handoff. Active/invalid admission is covered by ownership tests.
+vi.mock("@/lib/ops/g30-writer-ownership", () => ({ g30WriterDeferred: () => null }));
+
 vi.mock("child_process", () => ({
   execSync: (cmd: string, opts?: unknown) => mocks.execSyncMock(cmd, opts),
 }));
