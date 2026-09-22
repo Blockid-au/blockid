@@ -149,3 +149,16 @@ describe("S32-E: partial report and normalised sections", () => {
     expect(writing).toContain("The CLO is checking structure and compliance…");
   });
 });
+
+describe("final finding handoff", () => {
+  it("requires completed and unlocked validated report; partial or malformed payload cannot replace preview", async () => {
+    const { finalFindingReport } = await import("./full-report-panel");
+    const report = demoReportV2();
+    const view = parseView({ ok: true, status: "done", reportV2: report })!;
+    expect(finalFindingReport(view)).toBe(report);
+    expect(finalFindingReport({ ...view, locked: true })).toBeNull();
+    expect(finalFindingReport({ ...view, status: "running" })).toBeNull();
+    expect(finalFindingReport({ ...view, reportV2: { schemaVersion: report.schemaVersion } as typeof report })).toBeNull();
+    expect(finalFindingReport(null)).toBeNull();
+  });
+});

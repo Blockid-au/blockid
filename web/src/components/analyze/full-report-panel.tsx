@@ -37,6 +37,7 @@ import {
 import type { IntakeResult } from "@/lib/intake/analyze-input";
 import type { ReportV2Progress } from "@/lib/analyses/first-analysis/types";
 import { cn } from "@/lib/utils";
+import { isReportV2, type ReportV2 } from "@/lib/report-v2/schema";
 
 // G28-C — the v3 Trusted Business Report (the same <TbrReportV2> the paid
 // /workspace/reports/business and /tbr/<token> pages render). Loaded on
@@ -52,8 +53,21 @@ const TbrReportV2 = dynamic(() => import("@/components/tbr/v2/report").then((m) 
   ),
 });
 
+export interface FinalReportUpdate {
+  analysisId: string;
+  intake?: IntakeResult | null;
+  token: string | null;
+  report: ReportV2 | null;
+}
+
+/** Only completed, permitted, structurally valid report content replaces preview. */
+export function finalFindingReport(view: FullReportView | null): ReportV2 | null {
+  return view?.status === "done" && !view.locked && isReportV2(view.reportV2) ? view.reportV2 : null;
+}
+
 export interface FullReportPanelProps {
   analysisId: string | null;
+  onFinalReport?: (update: FinalReportUpdate) => void;
   /** Server-resolved session state; undefined = unknown. */
   authenticated?: boolean;
   /** Bump to re-poll immediately (the guest just gave an email). */
@@ -197,14 +211,16 @@ export function reportApiPath(analysisId: string, leaf: "full-report" | "report.
   return token ? `${base}?token=${encodeURIComponent(token)}` : base;
 }
 
-export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, intake, token = null, className }: FullReportPanelProps) {
-  const [view, setView] = React.useState<FullReportView | null>(null);
+export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, intake, token = null, className, onFinalReport }: FullReportPanelProps) {
+  const [scopedView, setScopedView] = React.useState<{ analysisId: string; intake?: IntakeResult | null; token: string | null; value: FullReportView } | null>(null);
+  const view = scopedView?.analysisId === analysisId && scopedView?.intake === intake && scopedView?.token === token ? scopedView.value : null;
   const [failedToLoad, setFailedToLoad] = React.useState(false);
   const [resend, setResend] = React.useState<ResendState>({ kind: "idle" });
 
   // Poll until the server says stop (pollAfterSec 0) or we give up.
   React.useEffect(() => {
     if (!analysisId) return;
+    onFinalReport?.({ analysisId, intake, token, report: null });
     let live = true;
     let timer: ReturnType<typeof setTimeout> | null = null;
     const startedAt = Date.now();
@@ -216,16 +232,21 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
         if (!live) return;
         const next = parseView(body);
         if (!next) {
+          onFinalReport?.({ analysisId: analysisId!, intake, token, report: null });
+          setScopedView(null);
           setFailedToLoad(true);
           return;
         }
         setFailedToLoad(false);
-        setView(next);
+        setScopedView({ analysisId: analysisId!, intake, token, value: next });
+        onFinalReport?.({ analysisId: analysisId!, intake, token, report: finalFindingReport(next) });
         if (next.pollAfterSec > 0 && Date.now() - startedAt < POLL_GIVE_UP_MS) {
           timer = setTimeout(tick, Math.max(2, next.pollAfterSec) * 1000);
         }
       } catch {
         if (!live) return;
+        setScopedView(null);
+        onFinalReport?.({ analysisId: analysisId!, intake, token, report: null });
         setFailedToLoad(true);
         if (Date.now() - startedAt < POLL_GIVE_UP_MS) timer = setTimeout(tick, 6000);
       }
@@ -235,7 +256,7 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
       live = false;
       if (timer) clearTimeout(timer);
     };
-  }, [analysisId, unlockNonce, token]);
+  }, [analysisId, unlockNonce, token, intake, onFinalReport]);
 
   const clientEcho = React.useMemo<InputEcho | null>(() => {
     if (!intake) return null;
@@ -360,7 +381,7 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
             report and /tbr/<token> use. Full standard document (spec § 6):
             no unlock rail, no trim, one evidence-confidence number. */}
         {v2 && reportV2 && !locked && (
-          <div className="mt-4" data-testid="analyze-report-v2">
+          <div id="analyze-canonical-report" className="mt-4" data-testid="analyze-report-v2">
             <TbrReportV2 report={reportV2} upgradeHref="/pricing" />
           </div>
         )}

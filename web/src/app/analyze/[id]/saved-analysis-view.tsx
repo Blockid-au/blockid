@@ -1,5 +1,7 @@
 "use client";
 
+import type { FinalReportUpdate } from "@/components/analyze/full-report-panel";
+
 // SavedAnalysisView — renders one saved run at /analyze/[id].
 //
 // The fetch is client-side and same-origin on purpose. Entitlement lives in an
@@ -111,7 +113,9 @@ export function savedAnalysisApiPath(id: string, token?: string | null): string 
 }
 
 export function SavedAnalysisView({ id, claimed = 0, token = null }: SavedAnalysisViewProps) {
-  const [state, setState] = React.useState<LoadState>({ status: "loading" });
+  const [findingReport, setFindingReport] = React.useState<FinalReportUpdate | null>(null);
+  const [loaded, setLoaded] = React.useState<{ id: string; token: string | null; state: LoadState } | null>(null);
+  const state: LoadState = loaded?.id === id && loaded?.token === token ? loaded.state : { status: "loading" };
 
   React.useEffect(() => {
     let live = true;
@@ -123,11 +127,11 @@ export function SavedAnalysisView({ id, claimed = 0, token = null }: SavedAnalys
         if (!live) return;
         const body = res.ok ? await res.json().catch(() => null) : null;
         if (!live) return;
-        setState(resolveLoadState({ ok: res.ok, body }));
+        setLoaded({ id, token, state: resolveLoadState({ ok: res.ok, body }) });
       } catch {
         // A network failure is not a missing analysis, but the founder can do
         // exactly the same thing about either: reload, or start a new run.
-        if (live) setState({ status: "not-found" });
+        if (live) setLoaded({ id, token, state: { status: "not-found" } });
       }
     })();
     return () => {
@@ -259,11 +263,12 @@ export function SavedAnalysisView({ id, claimed = 0, token = null }: SavedAnalys
       </div>
 
       <div className="mt-6">
-        <AnalyzeResults intake={analysis.intake} />
+        <AnalyzeResults intake={analysis.intake} finalReport={findingReport?.analysisId === id && findingReport?.intake === analysis.intake && findingReport?.token === token ? findingReport.report : null} />
       </div>
 
       <div className="mx-auto mt-6 max-w-6xl px-4">
         <FullReportPanel
+          onFinalReport={setFindingReport}
           analysisId={analysis.id}
           authenticated={analysis.owned}
           intake={analysis.intake}

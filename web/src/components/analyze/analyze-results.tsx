@@ -14,6 +14,10 @@
 // /analyze route stays snappy while the stream is still running.
 
 import * as React from "react";
+import { useLocale } from "@/lib/use-locale";
+import type { ReportV2 } from "@/lib/report-v2/schema";
+import { projectBusinessFindings, type FindingsLocale } from "@/lib/report-v2/business-findings";
+import { BusinessFindings } from "./business-findings";
 import dynamic from "next/dynamic";
 import { cn } from "@/lib/utils";
 import { computeSVI, type SVIAnalysis } from "@/lib/svi-analysis";
@@ -74,6 +78,8 @@ export interface AnalyzeResultsProps {
   gaps?: GapItem[];
   actions?: PrioritisedAction[];
   findings?: AgentFinding[];
+  finalReport?: ReportV2 | null;
+  locale?: FindingsLocale;
   pdfHref?: string;
   onOverrideStage?: () => void;
   /**
@@ -299,11 +305,15 @@ export function AnalyzeResults({
   gaps,
   actions,
   findings,
+  finalReport,
+  locale,
   pdfHref,
   onOverrideStage,
   intake,
   className,
 }: AnalyzeResultsProps) {
+  const [selectedLocale] = useLocale();
+  const effectiveLocale = locale ?? selectedLocale;
   // ── Derive analysis from intake when no explicit analysis was passed ──
   // computeSVI is a pure function of the extracted signals — safe to run
   // client-side. This gives the founder the real dimension breakdown,
@@ -320,7 +330,7 @@ export function AnalyzeResults({
   }, [analysis, intake]);
 
   const effectiveStage: StageKey =
-    stage ??
+    (finalReport ? sviStageToCanonical(finalReport.cover.stage) : stage) ??
     (intake?.context
       ? sviStageToCanonical(intake.context.stage)
       : derivedAnalysis
@@ -328,12 +338,12 @@ export function AnalyzeResults({
         : "idea");
 
   const effectiveScore =
-    typeof score === "number"
+    finalReport ? finalReport.cover.svi.total : typeof score === "number"
       ? score
       : derivedAnalysis?.totalSVI ?? 100;
 
   const effectiveRadar: RadarDimension[] =
-    radar ??
+    (finalReport ? finalReport.dimensions.map((d) => ({ key: d.dim, label: effectiveLocale === "vi" ? d.titleVi : d.title, value: d.score })) : radar) ??
     (derivedAnalysis?.subs.map((s) => ({
       key: s.key,
       label: DIM_LABEL[s.key] ?? s.label,
@@ -360,33 +370,7 @@ export function AnalyzeResults({
       effort: a.impact,
     }));
 
-  const effectiveFindings: AgentFinding[] =
-    findings ??
-    (derivedAnalysis?.subs ?? [])
-      .filter((s) => s.evidence.length > 0 || s.gaps.length > 0)
-      .slice(0, 4)
-      .map<AgentFinding>((s) => ({
-        // Heuristic mapping SVI dimension → responsible agent for the
-        // findings accordion. Not authoritative — swapped when the real
-        // per-agent findings arrive from the deep-dive stream.
-        agent:
-          s.key === "ftv" || s.key === "cgh"
-            ? "chro"
-            : s.key === "mpc" || s.key === "svm"
-              ? "cmo"
-              : s.key === "ptd"
-                ? "cto"
-                : s.key === "tre"
-                  ? "cfo"
-                  : s.key === "iri"
-                    ? "ceo"
-                    : "clo",
-        headline: `${DIM_LABEL[s.key] ?? s.label}: ${Math.round(s.value)}/100`,
-        bullets: [
-          ...s.evidence.slice(0, 3),
-          ...s.gaps.slice(0, 2).map((g) => `Gap: ${g}`),
-        ],
-      }));
+  const businessFindings = projectBusinessFindings({ report: finalReport, intake, locale: effectiveLocale });
 
   return (
     <div
@@ -395,8 +379,8 @@ export function AnalyzeResults({
     >
       <StageBanner
         stage={effectiveStage}
-        confidence={derivedAnalysis?.confidenceMultiplier}
-        signals={stageSignals}
+        confidence={finalReport ? undefined : derivedAnalysis?.confidenceMultiplier}
+        signals={finalReport ? undefined : stageSignals}
         onOverride={onOverrideStage}
       />
 
@@ -408,8 +392,7 @@ export function AnalyzeResults({
               Your Startup Value Index
             </h1>
             <p className="mt-1 text-sm text-muted">
-              Score computed from the evidence in your input, benchmarked to
-              AU startups at the same stage.
+              {finalReport ? (effectiveLocale === "vi" ? "Điểm ghi trong báo cáo; xem nhận định và giới hạn bên dưới." : "The score recorded in your report; review the findings and limitations below.") : (effectiveLocale === "vi" ? "Điểm sơ bộ từ đầu vào; chưa phải kết luận đã nghiên cứu." : "A preliminary score from your input; not a researched conclusion.")}
             </p>
             {pdfHref && (
               <a
@@ -425,14 +408,15 @@ export function AnalyzeResults({
         </div>
 
         {effectiveRadar.length > 0 && <SVIRadarChart dimensions={effectiveRadar} />}
-        {derivedAnalysis && <SVIValuation analysis={derivedAnalysis} />}
+        {!finalReport && derivedAnalysis && <SVIValuation analysis={derivedAnalysis} />}
+        {finalReport && <a href="#analyze-canonical-report" className="min-h-11 rounded-lg p-3 text-action underline focus-visible:outline-2 focus-visible:outline-action">{effectiveLocale === "vi" ? "Xem định giá và báo cáo đầy đủ" : "View valuation and the full report"}</a>}
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+        {!finalReport && <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <TopGapsList gaps={effectiveGaps} />
           <PrioritisedActions actions={effectiveActions} />
-        </div>
+        </div>}
 
-        <AgentFindings findings={effectiveFindings} />
+        {findings && !finalReport ? <AgentFindings findings={findings} /> : <BusinessFindings findings={businessFindings} locale={effectiveLocale} />}
       </div>
     </div>
   );

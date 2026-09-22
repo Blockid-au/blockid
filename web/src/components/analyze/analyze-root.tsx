@@ -1,5 +1,7 @@
 "use client";
 
+import type { FinalReportUpdate } from "./full-report-panel";
+
 // AnalyzeRoot — the /analyze route's client-side state machine.
 //
 // Phases:
@@ -11,7 +13,7 @@
 //                 walked from intake.structured.slides; site EventSource
 //                 to /api/site-crawl/stream; idea lab stage card from
 //                 intake.context) then fires onDone(intake).
-//   4. RESULTS  — <AnalyzeResults intake={intake} /> derives StageBanner,
+//   4. RESULTS  — <AnalyzeResults intake={intake} finalReport={findingReport?.analysisId === analysisId && findingReport?.intake === intake ? findingReport.report : null} /> derives StageBanner,
 //                 SviScoreRing, radar, gaps, actions from the intake.
 //
 // This ships the "honesty" fix flagged by prior review: handleConfirm()
@@ -311,6 +313,7 @@ export function AnalyzeRoot({
   // Row id from POST /api/intake. `null` means the save failed — the analysis
   // is still valid, we just have no permalink to offer and say nothing about
   // saving. See SavedAnalysisPanel.
+  const [findingReport, setFindingReport] = React.useState<FinalReportUpdate | null>(null);
   const [analysisId, setAnalysisId] = React.useState<string | null>(null);
   const [intakeLoading, setIntakeLoading] = React.useState(false);
   const [estimate, setEstimate] = React.useState<EstimateResult | null>(null);
@@ -898,7 +901,7 @@ export function AnalyzeRoot({
 
       {phase === "results" && intake && (
         <>
-          <AnalyzeResults intake={intake} />
+          <AnalyzeResults intake={intake} finalReport={findingReport?.analysisId === analysisId && findingReport?.intake === intake ? findingReport.report : null} />
           <div className="mx-auto mt-6 flex max-w-6xl flex-col gap-4 px-4 text-left">
             {/* G25-C — which free report this is and where it goes. Facts
                 from the API (never invented): sequence, destination, and
@@ -929,6 +932,7 @@ export function AnalyzeRoot({
                 Renders the echo instantly from the intake; everything else
                 streams in from the job keyed on the saved row. */}
             <FullReportPanel
+              onFinalReport={setFindingReport}
               analysisId={analysisId}
               authenticated={authenticated}
               unlockNonce={unlockNonce}
