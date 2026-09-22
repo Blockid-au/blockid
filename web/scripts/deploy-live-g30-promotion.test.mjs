@@ -20,7 +20,7 @@ readlink() { echo /tmp/retained-origin; }
 git() { return 0; }
 fail() { echo "$*" >&2; exit 1; }
 g30_state() { case "$1" in --port) echo 4001;; --verify-active) echo '{"sha":"old"}';; --allocate) echo 4100;; esac; }
-g30_json_field() { cat >/dev/null; echo old; }
+${shellFunction('g30_json_field')}
 g30_configured_port() { echo 4001; }
 ${source.slice(start, end)}
 test -z "\${NODE_ENV:-}"
