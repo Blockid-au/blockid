@@ -41,7 +41,7 @@ A separate canonical `g30-receipt-candidate.json` pins preflight/source/ledger a
 ## Short migration window after the candidate is ready
 
 1. The two paused clones already exist and are retained from before staging. No additional allocation is allowed or needed after the stage record is created. Under the reviewed operational window, select the precreated retained ports with the existing begin/proxy/activate flow (without allocate/register), execute real rollback/forward and mark-good checks, then retire incompatible writers through separately authorized operations. Both baseline manifests already contain 0447. No known-live retained handler is waived merely because it is unrouted/quarantined.
-2. Only now schedule the actual purchase pause on the required baseline processes. Recheck truthful runtime flags and drain requirements; the controller requires compatible paused processes with sufficient uptime. Keep receipt creation off. General site/report reading remains available.
+2. The first public switch to a precreated paused clone in step1 begins the purchase pause. Record that exact time and keep the pause through the migration window; it is not delayed until SQL execution. Recheck actual runtime flags and drain requirements; the controller requires every remaining live retained process to be compatible and paused with sufficient uptime. Keep receipt creation off. General site/report reading remains available.
 3. Hold both the canonical deployment lock (FD200) and `/tmp/blockid-cron.stripe-reconcile.lock` (FD201). The `commands` helper prints the exact reviewed `prepare`, `next`, individual manual apply, `observe`, and `seal` commands:
 
 ```sh
