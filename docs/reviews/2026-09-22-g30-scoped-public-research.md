@@ -1,0 +1,13 @@
+# G30 RA2 scoped source collection
+
+`src/lib/reanalysis/scoped-public-research.ts` adds a worker-facing orchestrator over the existing bounded public-page reader. Based on `f667013f9`; no billing/0446 migration dependency, route activation, paid call, search service, inference or report-head mutation.
+
+The caller supplies a server-loaded durable job and mandatory lease/cancellation/checkpoint adapters. The orchestrator validates scope version/IDs and fresh-research mode, checks cancellation and live lease before checkpoint/fetch and before returning, and executes one bounded public-page pass for all selected market-related scopes. It sends only business name/scope and explicit source URLs/roles into the reader, never the private job/deck payload. Existing safe URL/DNS/redirect/body/timeout rules remain authoritative.
+
+Outputs preserve base revision/input hash, requested scope/question, research-policy/cutoff binding, source records and deterministic snapshot digest. Market source collection is `partial` when pages were read; empty/blocked/no-source work is `no_evidence`; unsupported nonmarket adapters are `not_run`. All source relevance/assessment limitations remain explicit. No competitors, score changes or completed assessment are fabricated; `scoreChange:null` and `readyForFinalCapture:false` prevent treating collection alone as delivered paid analysis.
+
+Cancellation after fetch drops the result and prevents a completion checkpoint; a final lease/cancel check also guards return after checkpoint latency. This does not claim the existing fetch helper can abort an already-sent request remotely. Checkpoint failures propagate; durable retry/reconciliation is the worker's responsibility. The mandatory lease adapter must bind the actual loaded job/token and latest state; this pure orchestrator is not itself an auth service or distributed lock.
+
+Six focused cases cover one shared retrieval pass, unsupported criterion, deterministic snapshot digest, no evidence/no invented competitors, lease refusal, early/late cancellation, private data exclusion and existing-evidence mode. Targeted ESLint only. No broad TypeScript/live test.
+
+Still required: database worker integration, authorized source loading/snapshot persistence, historical cutoff eligibility (the requested cutoff is recorded, not proof a live page reflects that date), source relevance and claim-supported analysis, counterpart/competitor resolution, score/dependency recomputation and final accepted revision. There is no public web search provider here; supplied-page refresh is not a complete market search. RA2 stays partial.
