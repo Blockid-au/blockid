@@ -12,7 +12,7 @@ After the canonical build is complete, launch and registration recheck14GiB (6ca
 
 ## Concrete admission and enforcement
 
-`g30-resource-admission.py` validates an optional `docs/plans/g30-resource-admission.json`:
+`g30-resource-admission.py` validates an optional `<application-owner-home>/.local/state/blockid-runtime/g30-resource-admission.json` (outside Git):
 
 - exact candidate40-character commit SHA;
 - exact digest of active entry, all retained entries and quarantine list;
@@ -64,3 +64,8 @@ The report worker selects the oldest queued row by enqueued_at and updates start
 Runtime confirmation of financial lookback (read-only, PID/startTicks verified):4001 started2026-09-22T04:55:25.78Z,4101 at08:13:10.11Z,4102 at09:27:05.95Z. None configured STRIPE_RECONCILE_LOOKBACK_HOURS; each retained commit's actual source uses default48h, recomputed from invocation Date.now with session created>=since. These start times do not constrain what an old origin could reconcile later. No DB query, Stripe request, job replay or financial mutation was performed for this observation.
 
 Canonical pre-build ordering was verified: deploy-live.sh invokes g30_state --allocate before TypeScript and npm build. Therefore the24GiB check precedes expensive work; it is not merely a post-build justification. The14GiB launch/register stage applies only after the canonical build/freeze boundary.
+
+
+Private permit correction: the file resides in the supervisor's existing application-owner runtime directory, resolved through pwd/getuid rather than inherited HOME. Admission opens the directory and file with O_NOFOLLOW, checks directory0700, regular file0600, matching UID and single link, then reads the same checked file descriptor. No permit file or directory is created by inspection. The policy is never tracked/committed: issuing it cannot dirty the checkout or change the candidate SHA. Metadata labels this an operator/release-owner resource decision; it does not claim a separate founder-specific approval. Root/operator creates or atomically replaces the private permit under its existing operational authority.
+
+Private-permit validation:12 targeted tests now pass, including outside-repository account-home resolution,0600/0700 modes, owner mismatch, file/directory symlinks and hardlinks;14 controller and10 supervisor regressions still pass. Only temporary test fixtures were written. No live permit was created or edited.

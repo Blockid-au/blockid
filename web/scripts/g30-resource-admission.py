@@ -7,6 +7,8 @@ import argparse
 import hashlib
 import json
 import os
+import pwd
+import stat
 from pathlib import Path
 import re
 import shutil
@@ -25,7 +27,27 @@ def retained_digest(state):
     value={'active':state['active'],'retained':state['retained'],'quarantined':sorted(state['quarantined'])}
     return hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':')).encode()).hexdigest()
 
-def policy_path(web): return web.parent/'docs/plans/g30-resource-admission.json'
+def policy_path(_web=None):
+    # Same account-database home and directory as supervisor.private_directory;
+    # never inherited HOME, and no directory creation during read-only checks.
+    return Path(pwd.getpwuid(os.getuid()).pw_dir)/'.local/state/blockid-runtime/g30-resource-admission.json'
+
+def read_policy(path):
+    directory=os.open(path.parent,os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW)
+    try:
+        info=os.fstat(directory)
+        if info.st_uid!=os.getuid() or stat.S_IMODE(info.st_mode)!=0o700:
+            raise ValueError('resource permit directory must be owner-private0700')
+        fd=os.open(path.name,os.O_RDONLY|os.O_NOFOLLOW|os.O_NONBLOCK,dir_fd=directory)
+        try:
+            info=os.fstat(fd)
+            if not stat.S_ISREG(info.st_mode) or info.st_uid!=os.getuid() or stat.S_IMODE(info.st_mode)!=0o600 or info.st_nlink!=1:
+                raise ValueError('resource permit must be owner-private0600 regular file')
+            raw=os.read(fd,65537)
+            if len(raw)>65536: raise ValueError('resource permit too large')
+            return json.loads(raw)
+        finally: os.close(fd)
+    finally: os.close(directory)
 
 def pressure(path):
     raw=Path(path).read_text()
@@ -68,14 +90,13 @@ def validate(policy,state,candidate_sha,sample,now,count,stage="allocate"):
         raise ValueError('CPU/memory contention outside admission budget')
     if sample['release_free_bytes']<16*GIB or sample['tmp_free_bytes']<6*GIB:
         raise ValueError('insufficient artifact/build disk reserve')
-    return {'policy_sha256':hashlib.sha256(json.dumps(policy,sort_keys=True).encode()).hexdigest(),
+    return {'decision_authority':'release_owner_resource_permit','policy_sha256':hashlib.sha256(json.dumps(policy,sort_keys=True).encode()).hexdigest(),
       'observed_at':now,'stage':stage,'required_available_bytes':reserve,'candidate_sha':candidate_sha,'max_live_origins':CAP,'limits':{'memory_max_bytes':CANDIDATE_BYTES,'cpu_cores':2},'sample':sample,
       'legacy_retirement_proven':False}
 
 def authorize(web,state,count,candidate_sha=None,stage="allocate"):
     path=policy_path(web)
-    if path.is_symlink(): raise ValueError('permit symlink refused')
-    policy=json.loads(path.read_text())
+    policy=read_policy(path)
     if candidate_sha is None:
         candidate_sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=web,text=True,timeout=5).strip()
     return validate(policy,state,candidate_sha,resources(web),int(time.time()),count,stage)
