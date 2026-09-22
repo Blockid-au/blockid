@@ -1,7 +1,7 @@
 // Colocated vitest for GET /api/status — P9-status-route-test.
 //
 // The route is the public status board. It is the single fan-in that:
-//   1. Calls the internal /api/healthz over localhost:4001 with a 2s abort
+//   1. Calls this process’s /api/healthz over loopback with a 2s abort
 //      timeout — a hang there must never hang the status page.
 //   2. Reads two JSONL logs (deploy-log, cron-health) from cwd/content/reports,
 //      parses the last-real deploy skipping webhook `event` rows, and buckets
@@ -212,6 +212,7 @@ function resetFetch(): void {
 }
 
 beforeEach(() => {
+  vi.stubEnv("PORT", undefined);
   resetFs();
   resetFetch();
   oauthState.status = "ok";
@@ -250,6 +251,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.unstubAllEnvs();
   vi.unstubAllGlobals();
   vi.useRealTimers();
 });
@@ -444,9 +446,9 @@ describe("happy path — everything healthy", () => {
     expect(t).toBeLessThanOrEqual(after);
   });
 
-  it("fetch called with localhost:4001/api/healthz and cache no-store", async () => {
+  it("absent PORT uses the legacy loopback port 4001", async () => {
     await callGet();
-    expect(fetchState.calls[0]?.url).toBe("http://localhost:4001/api/healthz");
+    expect(fetchState.calls[0]?.url).toBe("http://127.0.0.1:4001/api/healthz");
   });
 });
 
@@ -1560,5 +1562,36 @@ describe("G15-R2 — errors_1h / ai / queues / backups_detail / slo.latency_p95_
     } finally {
       spy.mockRestore();
     }
+  });
+});
+
+
+describe("health probe belongs to this process", () => {
+  it.each(["4100", "4199", "65535", "1"])("probes only PORT=%s and uses that process's health/version", async (port) => {
+    vi.stubEnv("PORT", port);
+    const health = healthyHealthz();
+    health.version = "v.candidate";
+    fetchState.responder = { kind: "json", body: health };
+    const { body } = await callGet();
+    expect(fetchState.calls.map((call) => call.url)).toEqual([`http://127.0.0.1:${port}/api/healthz`]);
+    expect(body.version).toBe("v.candidate");
+    expect(body.services.find((service) => service.name === "db")).toMatchObject({ status: "ok" });
+  });
+  it.each(["", "0", "65536", "-1", "+4100", "4100.5", "4e3", " 4100", "4100 ", "4100/path", "Infinity"])("invalid PORT=%j does not fall back to a different server", async (port) => {
+    vi.stubEnv("PORT", port);
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    fsState.files.set(DEPLOY_MANIFEST, JSON.stringify({ version: "v.own-manifest", build_sha: "own-build" }));
+    const { body } = await callGet();
+    expect(fetchState.calls).toHaveLength(0);
+    expect(body.version).toBe("v.own-manifest");
+    expect(body.services).toEqual([]);
+  });
+  it("an unreachable candidate uses its own manifest without retrying the old origin", async () => {
+    vi.stubEnv("PORT", "4100");
+    fetchState.responder = { kind: "throw", error: new Error("ECONNREFUSED") };
+    fsState.files.set(DEPLOY_MANIFEST, JSON.stringify({ version: "v.own-manifest", build_sha: "own-build" }));
+    const { body } = await callGet();
+    expect(body.version).toBe("v.own-manifest");
+    expect(fetchState.calls.map((call) => call.url)).toEqual(["http://127.0.0.1:4100/api/healthz"]);
   });
 });
