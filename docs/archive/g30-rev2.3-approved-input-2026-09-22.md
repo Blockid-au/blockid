@@ -1,12 +1,10 @@
 # BlockID.au — SOURCE OF TRUTH: G30 Business Research, Report Quality & Sale Readiness
 
-**Revision:** G30 / 2.4 — APPROVED IMPLEMENTATION — 22/09/2026. **Owner quyết định:** Do Van Long.
+**Revision:** G30 / 2.3 — FINAL REVIEW PROPOSAL — 22/09/2026. **Owner quyết định:** Do Van Long.
 
-**Trạng thái:** `APPROVED — IMPLEMENTATION IN PROGRESS`. **Phase:** `W0a — production protection`.
+**Trạng thái:** `PROPOSED — AWAITING FOUNDER REVIEW`. **Implementation:** `NOT STARTED`.
 
-**Approval22/09/2026:** founder yêu cầu bắt đầu triển khai G30, spawn agents khi cần, commit và deploy live sau mỗi phase phù hợp đã đủ gates. Quyền này thay các câu “plan only / awaiting approval” lịch sử bên dưới; không có nghĩa mọi item đã implemented hoặc verified. Từng item còn pending trừ status ledger ở §12.9. Giữ nguyên gates, existing fee policy và các budget/topology decisions chưa chốt. Root sở hữu release, agents không tự deploy.
-
-**Phạm vi hiện được giao:** triển khai code, kiểm chứng, commit và deploy từng phase đủ điều kiện theo G30. Không tự thay giá hoặc mua hạ tầng khi chưa chốt ngân sách; không gửi khách hàng ngoài phạm vi đã cấp.
+**Phạm vi đã được giao:** nghiên cứu, đối chiếu source/plan, hợp nhất yêu cầu và viết kế hoạch; **chưa code, chưa migration, chưa deploy, chưa chạy AI tính phí, chưa gửi khách hàng**.
 
 **Phạm vi site được founder xác nhận:** toàn bộ yêu cầu, góp ý, phát hiện review và đề xuất điều chỉnh trong cuộc trao đổi này áp dụng cho **website `blockid.au` và tất cả trang con/routes thuộc site `blockid.au`**. Bao gồm trang công khai, trang sau đăng nhập, mọi persona/workspace, dashboard, report/detail/share, pricing/billing/checkout entry, admin, docs/help/legal, utility và các trạng thái giao diện. Không giới hạn ở homepage hoặc các trang đã được kiểm tra mẫu. Backend/API, dữ liệu lưu trữ, report exports/email và tích hợp Stripe được review/điều chỉnh trong phạm vi phục vụ chính các luồng của site này. Stripe hosted checkout/portal là bề mặt tích hợp bên ngoài cần đồng bộ mapping, nội dung và hành trình; không thuộc quyền redesign giao diện tùy ý như trang con BlockID. Các domain/sản phẩm/repository riêng, gồm `startupvalueindex.com`, không tự động thuộc scope. **Xác nhận phạm vi này chỉ cập nhật plan, không cho phép bắt đầu code hoặc deploy.**
 
@@ -26,7 +24,7 @@
 
 **Kết luận review:** giữ nền tảng đã có và nâng cấp theo từng contract. Chưa sẵn sàng tuyên bố G30 sale-ready: lỗi citation/final report/valuation, billing fulfillment và historical snapshot identity cần giải quyết trước. Không rewrite toàn bộ ứng dụng; redesign toàn bộ pages bằng shared template, dữ liệu/report nâng cấp dần có compatibility.
 
-**Trạng thái bản này:** `APPROVED / IMPLEMENTATION IN PROGRESS` (approval mới nhất ở đầu tài liệu). “Final” nghĩa là đã hợp nhất yêu cầu và review hiện tại, không đóng băng trước feedback hoặc ngụ ý đã code. Agent review đã được user yêu cầu và đã chạy; **agent implementation chỉ spawn sau khi user cho bắt đầu**. G1–G29 đã shipped không bị đổi thành chưa làm; G30 requirements mới vẫn proposed.
+**Trạng thái bản này:** `FINAL REVIEW PROPOSAL / NOT APPROVED FOR IMPLEMENTATION`. “Final” nghĩa là đã hợp nhất yêu cầu và review hiện tại, không đóng băng trước feedback hoặc ngụ ý đã code. Agent review đã được user yêu cầu và đã chạy; **agent implementation chỉ spawn sau khi user cho bắt đầu**. G1–G29 đã shipped không bị đổi thành chưa làm; G30 requirements mới vẫn proposed.
 
 | Quyết định đã rõ từ founder | Kết quả cần đạt |
 |---|---|
@@ -38,7 +36,7 @@
 | Design & message | Một Unicorn system toàn site; hero “Know the business before you invest.”, giữ text/URL/file intake; investor-first business wording |
 | Navigation & density | Dashboard tóm tắt giá trị, click vào chi tiết; menu theo cấp/persona; mọi trang có parent/Home rõ và giữ context (§10.12) |
 | Availability & rollback | Vận hành24/24, không gián đoạn do deploy; phục hồi newest verified-good compatible release; kiểm RTO/RPO và host-failure plan (§12.8) |
-| Approval boundary | Implementation/commit/phased live deploy đã được founder cấp; fee schedule/new spend và release quality gates vẫn áp dụng |
+| Approval boundary | Chỉ plan/docs hiện tại; implementation, fee schedule/budget và release có phạm vi quyết định rõ |
 
 **Critical path đề xuất cuối:** baseline + verified deploy/rollback/monitoring protection (§12.8) → contracts → truth + persistence + financial integrity → proactive research/business lenses/valuation → report/dashboard/full-site UX → paid deep research integration → independent quality/buyer/economics evidence → controlled-sale sign-off. Billing foundation làm sớm, không chờ research/UI mới phát hiện lost credits. P0/P1 ở task table là priority thực hiện, không sửa severity lịch sử của review.
 
@@ -961,7 +959,7 @@ T01 tạo **data lineage matrix**: entity/table/bucket → writer → reader →
 
 ## 12. Backlog hợp nhất và thứ tự thực hiện
 
-**Work items đã được APPROVED để triển khai; trạng thái thực tế từng item ở §12.9, không tự coi approved là completed.** Owner là vai trò trách nhiệm, không phải lệnh spawn agent. Chỉ có một delivery queue trong bảng này; generated plans hoặc G29 không tạo queue cạnh tranh. Dependencies là điều kiện hoàn thành, không chỉ thứ tự merge.
+**Tất cả work items dưới đây là `PROPOSED / NOT STARTED`.** Owner là vai trò trách nhiệm, không phải lệnh spawn agent. Chỉ có một delivery queue trong bảng này; generated plans hoặc G29 không tạo queue cạnh tranh. Dependencies là điều kiện hoàn thành, không chỉ thứ tự merge.
 
 | ID | Ưu tiên/owner | Công việc cụ thể | Depends | Điều kiện nghiệm thu |
 |---|---|---|---|---|
@@ -1313,18 +1311,6 @@ Bằng chứng gồm release IDs, timeline, request-error counts trong cutover, 
 **Agent ownership bổ sung:** sau approval, W0 có thể phân `release_safety` O05/O06 và `reliability_audit` O07/O09 read-only/spec song song với report-contract work nếu đủ slot. Một owner duy nhất sửa deploy/proxy/supervisor/cleanup; không hai agents cùng quản process. O08 phối hợp Report/Billing owners sau contract freeze. Vẫn tối đa3children + root; không spawn thêm ngoài giới hạn hoặc cho agent tự deploy. Dùng official nginx/local framework docs; playwright cho browser continuity khi thực sự thực thi, không cần cài skill/plugin mới để lập plan.
 
 
-### 12.9 Implementation status — cập nhật bằng evidence
-
-Approval22/09/2026 bắt đầu W0a. Đây là status của cùng45 items, không queue mới. Review/proposal statements cũ giữ làm lịch sử; dùng approval đầu tài liệu và bảng này để điều hành.
-
-| Item | Status | Evidence / next gate |
-|---|---|---|
-| P01 | IN PROGRESS | Archived approved rev2.3; baseline source977574979/live3396adc00 v3.28.2; freeze actual automation/topology next |
-| O05 | IN PROGRESS — inventory | Root + read-only runtime inventory; chưa đổi proxy/process |
-| O06 | IN PROGRESS — implementation | Agents xử lý I42 rollback verification và I43 protected retention, isolated tests; chưa deploy |
-| O07/O09 | IN PROGRESS — inventory | Read-only actual monitoring/backups/resources; chưa chạy failure drill |
-| Remaining items | PENDING | Theo dependency §12/phase§12.8, chưa có closure evidence |
-
 ## 13. Quality gates và định nghĩa ready for sale
 
 Các ngưỡng dưới đây là **đề xuất acceptance để founder review**, chưa phải kết quả đo hiện tại hoặc SLA công bố. Automated evaluator không được là bằng chứng duy nhất cho factual accuracy.
@@ -1565,5 +1551,3 @@ Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi 
 - **22/09/2026 — G30 rev2.2 FINAL REVIEW PROPOSAL:** áp dụng ui-ux-pro-max và đối chiếu navigation source; thêm §10.12 whole-site IA, dashboard value mapping, page content layers, parent/Home/deep-link/history và purchase-return journeys. Bổ sung I40/D19, merge owner/gates vào40 work items; giữ report quality và light-only, không mở queue mới. Chỉ cập nhật plan, chưa code/runtime/deploy.
 
 - **22/09/2026 — G30 rev2.3 FINAL REVIEW PROPOSAL:** revalidated live3.28.2 at05:06UTC và source977574979; review deploy/guardian/rollback thêm I41–I46. Thêm O05–O09 nâng queue45 items, ưu tiên W0a/W0b safety→truth/data/money→research→UX→commerce/evidence→sale. §12.8 đặc tả parallel cutover, compatible verified LKG, protected cleanup, independent monitoring, durable jobs và host-failure DR; D20/gates đồng bộ. Chỉ docs, chưa code/test deployment/rollback/DB mutation/spend.
-
-- **22/09/2026 — G30 rev2.4 APPROVED IMPLEMENTATION:** founder cấp implementation, agents, commits và live deployment theo phase/gates. Bắt đầu W0a, archived approved input; chỉ status có evidence mới được closed.

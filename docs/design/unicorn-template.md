@@ -1,5 +1,6 @@
 # Unicorn template v2 — light only: tokens, primitives, chrome, rules
 
+> **G30 light-only scope update — 2026-09-22:** [G30 §10.11](../plans/SOURCE-OF-TRUTH.md#1011-light-only-thực-tế-sửa-lệch-giữa-mắt-nhìn-và-báo-cáo-hệ-thống) proposes light surfaces and dark text on all blockid.au pages, including returning users. The explicit dark opt-in/toggle/restore rules below describe the old implementation and are superseded for the planned upgrade. Implementation has not started; do not interpret this docs update as a runtime fix.
 > **Planning authority — 2026-09-22:** [G30 SOURCE OF TRUTH](../plans/SOURCE-OF-TRUTH.md) is the consolidated proposed upgrade plan, awaiting review. This file remains the light-template implementation reference where compatible. G30 retains light/navy/cyan-muted and proposes one component API plus investor-focused report disclosure; old nav/copy examples below require reconciliation with the approved product decisions. No new palette is proposed.
 
 **Goal:** G26 (`docs/plans/g26-light-template-redesign-2026-09-21.md`, § 1 decision) — supersedes v1 (G17 D1–D7, 2026-09-19) wherever the two disagree.

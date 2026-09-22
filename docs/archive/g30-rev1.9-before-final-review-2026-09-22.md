@@ -1,12 +1,10 @@
-# BlockID.au — SOURCE OF TRUTH: G30 Business Research, Report Quality & Sale Readiness
+# BlockID.au — SOURCE OF TRUTH: G30 Investor Report Quality & Sale Readiness
 
-**Revision:** G30 / 2.4 — APPROVED IMPLEMENTATION — 22/09/2026. **Owner quyết định:** Do Van Long.
+**Revision:** G30 / 1.9 — 22/09/2026. **Owner quyết định:** Do Van Long.
 
-**Trạng thái:** `APPROVED — IMPLEMENTATION IN PROGRESS`. **Phase:** `W0a — production protection`.
+**Trạng thái:** `PROPOSED — AWAITING FOUNDER REVIEW`. **Implementation:** `NOT STARTED`.
 
-**Approval22/09/2026:** founder yêu cầu bắt đầu triển khai G30, spawn agents khi cần, commit và deploy live sau mỗi phase phù hợp đã đủ gates. Quyền này thay các câu “plan only / awaiting approval” lịch sử bên dưới; không có nghĩa mọi item đã implemented hoặc verified. Từng item còn pending trừ status ledger ở §12.9. Giữ nguyên gates, existing fee policy và các budget/topology decisions chưa chốt. Root sở hữu release, agents không tự deploy.
-
-**Phạm vi hiện được giao:** triển khai code, kiểm chứng, commit và deploy từng phase đủ điều kiện theo G30. Không tự thay giá hoặc mua hạ tầng khi chưa chốt ngân sách; không gửi khách hàng ngoài phạm vi đã cấp.
+**Phạm vi đã được giao:** nghiên cứu, đối chiếu source/plan, hợp nhất yêu cầu và viết kế hoạch; **chưa code, chưa migration, chưa deploy, chưa chạy AI tính phí, chưa gửi khách hàng**.
 
 **Phạm vi site được founder xác nhận:** toàn bộ yêu cầu, góp ý, phát hiện review và đề xuất điều chỉnh trong cuộc trao đổi này áp dụng cho **website `blockid.au` và tất cả trang con/routes thuộc site `blockid.au`**. Bao gồm trang công khai, trang sau đăng nhập, mọi persona/workspace, dashboard, report/detail/share, pricing/billing/checkout entry, admin, docs/help/legal, utility và các trạng thái giao diện. Không giới hạn ở homepage hoặc các trang đã được kiểm tra mẫu. Backend/API, dữ liệu lưu trữ, report exports/email và tích hợp Stripe được review/điều chỉnh trong phạm vi phục vụ chính các luồng của site này. Stripe hosted checkout/portal là bề mặt tích hợp bên ngoài cần đồng bộ mapping, nội dung và hành trình; không thuộc quyền redesign giao diện tùy ý như trang con BlockID. Các domain/sản phẩm/repository riêng, gồm `startupvalueindex.com`, không tự động thuộc scope. **Xác nhận phạm vi này chỉ cập nhật plan, không cho phép bắt đầu code hoặc deploy.**
 
@@ -16,47 +14,17 @@
 
 **Review đầu vào:** [source/output/design review ngày 22/09](../reviews/2026-09-22-source-output-design-review.md).
 
-**Baseline revalidated 22/09/2026, 04:23–04:24 UTC:** local HEAD `83c6a55d381d390719667a7b96564472ba2bfc74`, package `3.28.1`; deployment manifest cùng SHA, timestamp04:20:22Z; live `/api/status`, `/version`, `/pricing` và showcase hiển thị v3.28.1. Đây là các bằng chứng tương thích, chưa độc lập chứng minh SHA của mọi process production. Report showcase vẫn snapshot21/09. Review ban đầu `bb0fb53af`/3.27.2 giữ làm history; baseline cần freeze lại khi bắt đầu implement.
-
-**Delta cuối 04:30:29 UTC:** workspace HEAD đã tiến tới `3396adc00e78144ec86788db3fb03edf51abb1bc`, package3.28.2 từ luồng release khác. Diff sau baseline chỉ sửa `hub-tabs.tsx` thêm relative positioning cho sr-only label và metadata/version; không đổi report/billing/provider code đã review. `/api/status` tại thời điểm này vẫn trả **v3.28.1**; local manifest ghi3.28.2 nhưng deployed_at rỗng, nên **chưa xác nhận3.28.2 đã live**. Tests/browsing ở annex thuộc baseline3.28.1; delta3.28.2 chỉ được review source, không gán nhầm là đã browser-verified. G30 phải freeze lại source/live trước implementation.
-
-**Evidence mới nhất:** [final revalidation](../reviews/2026-09-22-g30-final-revalidation.md). **Bản trước tổng hợp:** [G30 rev1.9 archive](../archive/g30-rev1.9-before-final-review-2026-09-22.md). Archive chỉ là history, không competing plan.
-
-## 0. Bản cuối để review: quyết định, thứ tự và phạm vi bắt đầu
-
-**Kết luận review:** giữ nền tảng đã có và nâng cấp theo từng contract. Chưa sẵn sàng tuyên bố G30 sale-ready: lỗi citation/final report/valuation, billing fulfillment và historical snapshot identity cần giải quyết trước. Không rewrite toàn bộ ứng dụng; redesign toàn bộ pages bằng shared template, dữ liệu/report nâng cấp dần có compatibility.
-
-**Trạng thái bản này:** `APPROVED / IMPLEMENTATION IN PROGRESS` (approval mới nhất ở đầu tài liệu). “Final” nghĩa là đã hợp nhất yêu cầu và review hiện tại, không đóng băng trước feedback hoặc ngụ ý đã code. Agent review đã được user yêu cầu và đã chạy; **agent implementation chỉ spawn sau khi user cho bắt đầu**. G1–G29 đã shipped không bị đổi thành chưa làm; G30 requirements mới vẫn proposed.
-
-| Quyết định đã rõ từ founder | Kết quả cần đạt |
-|---|---|
-| Phạm vi | blockid.au và tất cả trang con; integrations chỉ phục vụ site này, domain khác không tự đổi |
-| Buyer & business | Investor chính; business gồm early/growth/SeriesA–B/established, rollout mỗi scope theo evidence |
-| Report | Baseline nghiên cứu thực từ documents/URL + 13criteria/52questions + overlays; source-backed competitors3–5 khi đủ nguồn; assessment/valuation có điều kiện dữ liệu |
-| Detail & credits | Existing purchased analysis/evidence mở lại không charge; deep research mới có quote/top-up/reserve/capture/refund và versioned supplement |
-| AI | DeepInfra primary theo role và cost/accepted-report; other provider chỉ qualified free fallback, không paid spillover |
-| Design & message | Một Unicorn system toàn site; hero “Know the business before you invest.”, giữ text/URL/file intake; investor-first business wording |
-| Navigation & density | Dashboard tóm tắt giá trị, click vào chi tiết; menu theo cấp/persona; mọi trang có parent/Home rõ và giữ context (§10.12) |
-| Availability & rollback | Vận hành24/24, không gián đoạn do deploy; phục hồi newest verified-good compatible release; kiểm RTO/RPO và host-failure plan (§12.8) |
-| Approval boundary | Implementation/commit/phased live deploy đã được founder cấp; fee schedule/new spend và release quality gates vẫn áp dụng |
-
-**Critical path đề xuất cuối:** baseline + verified deploy/rollback/monitoring protection (§12.8) → contracts → truth + persistence + financial integrity → proactive research/business lenses/valuation → report/dashboard/full-site UX → paid deep research integration → independent quality/buyer/economics evidence → controlled-sale sign-off. Billing foundation làm sớm, không chờ research/UI mới phát hiện lost credits. P0/P1 ở task table là priority thực hiện, không sửa severity lịch sử của review.
-
-**Hai mốc khác nhau:** có thể demo/kiểm chứng core journey trước khi migrate hết pages, nhưng đó chỉ là milestone nội bộ. G30 full-site completion và final S03 vẫn cần U06 inventory toàn site; muốn sale scope hẹp hơn trước đó phải có founder decision sửa scope rõ, không tự bỏ admin/auth/utility pages.
-
-**Đọc để duyệt:** §12 là45 work items/implementation steps; §12.8 thay thứ tự phase bằng safety-first và yêu cầu24/24/LKG; §12.7 là agent spawn/ownership/skills; §13 là gates; §16 là decisions. §10.5 giữ copy hero duy nhất; §10.8 là form/layout, §10.9 là benefit/proof, §10.10 là business coverage, §10.11 là light-only, §10.12 là phân cấp menu/nội dung và đường về trên toàn site. Không dùng các lịch sử slogan/plan cũ làm alternative default.
-
-**Còn cần chốt trước hoạt động phụ thuộc:** ICP/sector validation order; actual DeepInfra/eval/search budget; exact model IDs sau benchmark; deep-research fee/expiry/partial-refund policy; account permissions và production operations. Các việc thiết kế/code được cho bắt đầu rõ có thể tiến hành trong phạm vi đó; thiếu ngân sách không chặn docs/fixtures/local implementation độc lập, nhưng không cho phép live spend.
+**Baseline local:** HEAD `bb0fb53af`, package `3.27.2`, ReportV2 schema `2.0`, pipeline `pipeline-v2.1-s-r3`. Source local, release metadata và live là các snapshot riêng; chưa xác nhận chúng cùng deployed SHA. Baseline phải đóng băng lại khi bắt đầu triển khai.
 
 ## 1. Quyết định sản phẩm và goal
 
 ### 1.1 Goal duy nhất
 
-Biến Trusted Business Report thành **báo cáo nghiên cứu và thẩm định sơ bộ có giá trị cho investor**, phân tích đúng doanh nghiệp đang xét, trả lời bộ câu hỏi theo tiêu chí, kiểm chứng các nhận định trọng yếu, trình bày nhiều góc nhìn và định giá có cơ sở; kết quả nhất quán trên web, PDF, DOCX và email, được giao đáng tin cậy qua luồng bán hàng hiện có.
+Biến Trusted Business Report thành **báo cáo nghiên cứu và thẩm định sơ bộ có giá trị cho investor**, phân tích đúng startup đang xét, trả lời bộ câu hỏi theo tiêu chí, kiểm chứng các nhận định trọng yếu, trình bày nhiều góc nhìn và định giá có cơ sở; kết quả nhất quán trên web, PDF, DOCX và email, được giao đáng tin cậy qua luồng bán hàng hiện có.
 
 Investor cần trả lời được trong khoảng 3 phút:
 
-1. Doanh nghiệp bán gì, cho ai, vấn đề có thật và khách hàng có lý do trả tiền không?
+1. Startup bán gì, cho ai, vấn đề có thật và khách hàng có lý do trả tiền không?
 2. Vì sao đáng xem tiếp, vì sao có thể không đầu tư, điều gì có thể làm thay đổi nhận định?
 3. Chúng ta biết chắc điều gì; đâu là founder-stated, giả định, thiếu hoặc mâu thuẫn?
 4. Giá trị doanh nghiệp được ước lượng theo cách nào, phạm vi hợp lý đến đâu, nhạy nhất với biến nào?
@@ -67,7 +35,7 @@ Investor cần trả lời được trong khoảng 3 phút:
 ### 1.2 Khách hàng và phạm vi bán đầu tiên
 
 - **Investor là khách hàng chính**, theo yêu cầu mới nhất; thay ưu tiên programs-first/angels-secondary trong G21. Giữ khả năng cohort cho accelerator, không xóa tính năng đã bán.
-- Phạm vi business bao gồm startup/early-stage, growth/Series A–B và doanh nghiệp đang hoạt động; investor cá nhân/nhóm/quỹ là primary. AU pre-seed–seed B2B SaaS chỉ là **validation cohort khởi đầu đề xuất**, không giới hạn sản phẩm. Mỗi stage/sector có applicability, valuation và corpus proof trước khi bán cùng độ sâu (§10.10).
+- ICP đề xuất để founder review: angel groups/syndicates và quỹ pre-seed–seed tại Australia. Trọng tâm kỹ thuật ban đầu: B2B SaaS/phần mềm; sector khác phải có lens, nguồn và bộ kiểm chứng trước khi quảng cáo cùng độ sâu.
 - Founder là chủ sở hữu/người cung cấp dữ liệu, được nhận giải thích và checklist cải thiện. Advisor/accelerator là khách hàng thứ cấp.
 - Sản phẩm bán là chất lượng hồ sơ đánh giá và quy trình làm việc; không bán lời hứa AI dự đoán thắng/thua hoặc một con số “đúng tuyệt đối”.
 - Tên công khai giữ **Trusted Business Report — by BlockID**; SVI là phương pháp/chỉ số bên trong; Investor Dossier là hồ sơ/workspace chứa báo cáo, không phải một bộ kết luận khác.
@@ -76,7 +44,7 @@ Investor cần trả lời được trong khoảng 3 phút:
 ### 1.3 Thứ tự ưu tiên bất biến
 
 1. **P0 sản phẩm:** factual correctness, nguồn, xử lý thiếu/mâu thuẫn, kết luận nhất quán, không biến giả định thành dữ kiện.
-2. **P1 sản phẩm:** độ sâu riêng cho doanh nghiệp, research, 13 criteria/52 câu hỏi + các câu hỏi diligence còn thiếu, định giá và investor implications.
+2. **P1 sản phẩm:** độ sâu riêng cho startup, research, 13 criteria/52 câu hỏi + các câu hỏi diligence còn thiếu, định giá và investor implications.
 3. **P1 vận hành:** khả năng hoàn thành/giao báo cáo, snapshot/cache/version, chi phí có kiểm soát.
 4. **P2:** UI theo lớp thông tin, so sánh, xuất báo cáo và trải nghiệm investor.
 5. **P2 thương mại:** chứng minh giá trị với buyer thật, packaging/pricing phù hợp chi phí, sale gates.
@@ -88,7 +56,7 @@ P0/P1 ở đây là ưu tiên của chương trình, không thay đổi severity
 
 | Hạng mục | Bằng chứng trong source/tài liệu | Đánh giá và quyết định G30 |
 |---|---|---|
-| Quy mô | 382 page.tsx, 682 API route.ts, 5.305 file `web/src` ở final review; không đại diện mọi dynamic state | Đủ rộng; không cần xây thêm hệ thống song song để bán báo cáo |
+| Quy mô | 382 page routes, 682 API routes, 5.297 file `web/src` ở lượt review | Đủ rộng; không cần xây thêm hệ thống song song để bán báo cáo |
 | Báo cáo | `lib/report-v2/schema.ts`, `components/tbr/v2/report.tsx` | Giữ ReportV2 làm nền; UI v3 và schema v2 là hai version khác nhau, không đổi tên chỉ để marketing |
 | Free path mới | `lib/analyses/first-analysis/report-v2-job.ts` | G28 đã dùng cùng orchestrator cho hai full reports miễn phí; **giữ**, không hiểu nhầm đây vẫn là PDF cũ |
 | Guest paid cũ | `lib/guest-analysis/runner.ts`, Stripe webhook/reconcile | Vẫn có đường chạy legacy và lỗi extraction/delivery; inventory traffic trước khi hợp nhất, giữ tương thích đơn cũ |
@@ -100,8 +68,8 @@ P0/P1 ở đây là ưu tiên của chương trình, không thay đổi severity
 | Valuation | `agents/cfo-valuation.ts`, `valuation-chapter.ts` | Có nhiều methods và assumptions table; vẫn có CAC floor 500, GM default 72 và derived metric hiện như fact. Cần provenance ở cấp từng input/output |
 | Score/context | `run-report-pipeline.ts` | Deck mới có thể dùng scoring cũ; stream/cache giữ projection trước gates; phải sửa trước khi dùng làm cơ sở investor memo |
 | UI | G26 light template, report v3, hai Button implementations | Giữ light/navy; hợp nhất component, copy, trạng thái dữ liệu và disclosure; không redesign palette từ đầu |
-| Reliability | G28 timeout/strikes/background budget; G29 mitigation đã landed ở3.28.0, patch UI3.28.1 | Giữ mới nhất; capacity + diagnostics + live completion là phụ thuộc thực tế của quality, không chỉ ops phụ |
-| Test | Final review: typecheck đạt;56 files/1.061 scoped tests đạt. Lượt đầu81 files/2.491 tests là baseline khác | Bảo vệ contract nhưng chưa chứng minh độ đúng của nhận định; cần golden cases và đánh giá độc lập |
+| Reliability | G28 timeout/strikes/background budget; G29 open | Giữ mới nhất; capacity + diagnostics + live completion là phụ thuộc thực tế của quality, không chỉ ops phụ |
+| Test | Typecheck đạt; 81 file/2.491 test trọng tâm đạt ở review | Bảo vệ contract nhưng chưa chứng minh độ đúng của nhận định; cần golden cases và đánh giá độc lập |
 | Buyer validation | `docs/research/evaluator-interviews-2026-09.md` có rollup 0/10 | Có instrument, chưa có bằng chứng phỏng vấn hoàn tất trong file này; không coi task “shipped” là customer validation đã xong |
 | Sale readiness | `docs/ops/ready-to-sale.md` thừa nhận real free run chưa kiểm chứng, KPI 0.85 chưa đạt live mới, provider outage | Chưa đủ bằng chứng để gọi mọi advertised path sale-ready; xác nhận lại bằng gates §13 |
 | Generated status | `project-state.json`, `implementing-plan.md`, `architecture.md` có version/task cũ | Chỉ là telemetry/history; không được ghi đè kế hoạch này hoặc tự đóng task bằng commit subject |
@@ -131,17 +99,6 @@ G28 release notes nói đã sửa band-D summary; quan sát live cho thấy **ph
 | 7 hai Button | U03 |
 | 8 design docs xung đột | P01, U03 |
 
-### 2.3 Final revalidation: giữ tiến bộ mới, bổ sung issues ưu tiên
-
-Baseline và nguồn chi tiết trong [revalidation annex](../reviews/2026-09-22-g30-final-revalidation.md). G29 dead-rung/unfunded/capacity/degraded diagnostics, free ReportV2 path và patch hub layout/h1 có trong source3.28.1: reuse và verify, không xây lại. Homepage vẫn program/cohort-first; showcase136a49f5 vẫn0%confidence/verdictD với số/narrative cần reconcile. Tests pass không phủ các lỗi mới dưới đây.
-
-- **I35 — Same-day overwrite:** `run-for-project.ts:799–850` update snapshot cùng account/ngày và giữ share token. F02/T02 tách immutable report revision khỏi daily SVI projection; test hai runs cùng ngày vẫn giữ hai nội dung và links lịch sử.
-- **I36 — Routing policy bypass/shared consumer:** `ai-client.ts:964,1071–1114` có orders khác nhau; override “deepinfra” append defaults, classify bỏ qua override. O01 cần hard provider+model allowlist trên mọi task/interactive/background/probe và consumer-scoped policy vì `ai/registry.ts:1–3` còn phục vụ startupvalueindex.com ngoài scope.
-- **I37 — Financial integrity:** `credits.ts:877–931` grant read/upsert/ledger tách; webhook có thể ACK khi grant false; event duplicate guard chặn retry failed event; cron recovery có nhưng grant/revenue write riêng. B02/B03 P0: atomic purchase fulfillment dùng chung webhook/cron/replay; event lease khác purchase dedupe; giữ local debit RPC đang có. Remote ambiguous timeout phải reconcile operation trước local retry.
-- **I38 — False persistence success:** `report-v2/storage.ts` update no error chưa chứng minh có row được lưu. F02/T02 cần affected-row/read-back, test update target không tồn tại, DB read failure khác empty history.
-
-Đã kiểm lại typecheck và1.061 scoped tests; chưa private Stripe/DB audit, paid E2E, fresh PDF generation hoặc whole-repo tests. Metadata QA306/0 cũ predates deployment mới. Search snapshot pricing3.17 không là live hiện tại; direct request mới cho3.28.1. `/version.json`404, dùng `/version` và `/api/status`.
-
 ## 3. Hợp nhất plan: luật ưu tiên và quyết định thay thế
 
 Thứ tự: **yêu cầu founder hiện tại → G30 được duyệt → source/runtime có bằng chứng → đặc tả thành phần tương thích → tài liệu lịch sử**. Source cho biết đã có gì, không tự chứng minh đã đúng. Quyết định mới hơn chỉ thay phần thực sự mâu thuẫn; các entitlement, consent và hành vi tốt đã có phải được giữ.
@@ -155,7 +112,7 @@ Thứ tự: **yêu cầu founder hiện tại → G30 được duyệt → sourc
 | G22 | Retention/export, validation ledger, regression | Manual counter cần bằng chứng nguồn; generated status không là authority |
 | G23–G24 | Audit logs, readable citations, demo exclusion | `groundedShare ≥0.85` chỉ là chỉ số tương thích, không phải release gate chất lượng; unknown citation phải lộ lỗi, không im lặng biến mất |
 | G25 | Hai full reports miễn phí/email, review trước Pay, bỏ pilot/coupon | Không đổi quota/giá trong đợt lập plan. Capacity cho production đánh giá theo chất lượng/chi phí, không mặc định free chain luôn đủ |
-| G26 | Light surfaces, navy action, cyan-muted `#0e7490`, accessible primitives | §10.11 thay explicit dark opt-in bằng light-only toàn site; bỏ restore/toggle/scoped dark có kiểm migration. Hợp nhất Button, supersede MASTER dark/teal; không đổi sang palette cạnh tranh |
+| G26 | Light surfaces, navy action, cyan-muted `#0e7490`, accessible primitives | Hợp nhất Button; supersede MASTER dark/teal. G27 ghi cyan `#0891B2` không thắng token contrast mới hơn |
 | G27 | Dashboard, investment view, valuation, 8 chapters, risk/plan, EN/VI, PDF/DOCX | Báo cáo nhiều lớp; một final recommendation; không gán xác suất risk từ thiếu evidence; không xếp ưu tiên chỉ bằng SVI lift |
 | G28 | Same full report free path, stage timeout/strikes, background budget, print/band demo | Audit nội dung cuối và thêm golden tests; không giảm điều kiện fact-check để đạt KPI |
 | G29 A/B | Dead-rung pruning, capacity alerts, degraded diagnostics | Hấp thụ vào O01–O02, cần sớm để chạy quality eval thật |
@@ -163,7 +120,7 @@ Thứ tự: **yêu cầu founder hiện tại → G30 được duyệt → sourc
 | G29 D | Index movers đúng dấu, new không phải -99%, sample label | O04, sau report blockers; không kéo dài critical path nếu ẩn bề mặt chưa đạt |
 | G1–G18/roadmaps cũ | Những capability đã dùng và history | Không mở lại blockchain, marketplace, reseller expansions, ES/JA, extra agents trong critical path này |
 
-G19–G28 vẫn giữ trạng thái **historically shipped**. G29 đã có mitigation source landed; phần còn thiếu verification hoặc khác policy mới được chuyển vào O01/O02/O04, không làm lại máy móc phần đã có. Việc bắt đầu thực hiện G30 còn chờ duyệt.
+G19–G28 vẫn giữ trạng thái **historically shipped**. G29 residuals đã được chuyển thành work items trong plan; không giả vờ chúng đã xong. Việc bắt đầu thực hiện G30 còn chờ duyệt.
 
 ## 4. Nghiên cứu bên ngoài và cách áp dụng
 
@@ -538,7 +495,7 @@ Wording audit mở rộng tới navigation, footer, page titles/subtitles, featu
 
 **Bố cục đề xuất trong cùng Unicorn template:**
 
-1. Header ngắn: workspace/portfolio hoặc doanh nghiệp đang chọn, search và primary CTA “Analyse a business”; bộ chọn doanh nghiệp luôn rõ, giữ ngữ cảnh khi chuyển tab.
+1. Header ngắn: workspace/portfolio hoặc startup đang chọn, search và primary CTA “Analyse a startup”; bộ chọn startup luôn rõ, giữ ngữ cảnh khi chuyển tab.
 2. “Needs your attention”: các evidence requests, material changes, conflicts, failed jobs cần hành động; mỗi item có lý do, thời điểm và next step. Sắp theo mức ảnh hưởng, không theo lợi ích tăng điểm SVI.
 3. “Latest reports”: danh sách/bảng chính gồm startup, report status, assessment, evidence coverage, valuation state, data cutoff, finalized time và Open report. Desktop hiển thị cột trọng yếu; mobile cards cùng ý nghĩa, chi tiết mở theo nhu cầu.
 4. “What changed”: thay đổi dữ liệu/nhận định giữa hai version đủ điều kiện so sánh; mỗi thay đổi dẫn về criterion/source. Tách hoạt động mới (upload/comment) khỏi kết quả phân tích mới.
@@ -565,7 +522,7 @@ Dùng timestamp có timezone và absolute date khi mở chi tiết; relative tim
 
 ### 10.8 Hero investor-first: dễ hiểu, hấp dẫn và giữ nguyên khung intake
 
-**Yêu cầu founder:** dùng ngôn ngữ đơn giản cho investor ladder, tránh từ “program” khó hiểu ở hero; homepage hấp dẫn đúng buyer, **vẫn giữ khung search nhập dữ liệu/upload file như hiện tại**. Đây là bổ sung kế hoạch implementation, chưa code. §10.5 là nguồn copy EN/VI duy nhất; mục này mô tả layout/intake, không tạo hero default khác. “Hấp dẫn nhất” phải được kiểm chứng qua người dùng/conversion, không tự tuyên bố từ một bản thiết kế.
+**Yêu cầu founder:** dùng ngôn ngữ đơn giản cho investor ladder, tránh từ “program” khó hiểu ở hero; homepage hấp dẫn đúng buyer, **vẫn giữ khung search nhập dữ liệu/upload file như hiện tại**. Đây là bổ sung kế hoạch implementation, chưa code. §10.5 là copy draft đồng bộ với mục này; không có hai hero mặc định cạnh tranh. “Hấp dẫn nhất” phải được kiểm chứng qua người dùng/conversion, không tự tuyên bố từ một bản thiết kế.
 
 **Nghiên cứu và hiện trạng:** [homepage live](https://blockid.au/) đọc ngày 22/09/2026 còn positioning programs, CTA “Start a cohort”, secondary “Score my startup”, khung URL/deck/idea. [hero-section.tsx](../../web/src/components/marketing/hero-section.tsx) dùng shared PageHero và SmartIntake; [smart-intake.tsx](../../web/src/components/analyze/smart-intake.tsx) có URL/text/file detection; [pending-intake.ts](../../web/src/lib/analyze/pending-intake.ts) chuyển payload tới analyze. Đây là source/live observations riêng, chưa xác nhận cùng SHA. Hướng thiết kế áp dụng nguyên tắc giải thích rõ sản phẩm, minh họa đầu ra và hành động dễ nhận ra từ [NN/g homepage principles](https://www.nngroup.com/articles/homepage-design-principles/), cùng chuẩn Unicorn/UI-UX hiện có; đây là cơ sở thiết kế, không chứng minh conversion của BlockID.
 
@@ -573,8 +530,8 @@ Dùng timestamp có timezone và absolute date khi mở chi tiết; relative tim
 
 | Tránh ở hero/CTA chính | Cách diễn đạt đơn giản đề xuất |
 |---|---|
-| Programs / Start a cohort | Investors / Analyse a business; trang riêng dùng “Accelerators” hoặc “Startup support teams” theo đúng nội dung |
-| Evaluator dossier / assessment infrastructure | Business report / research report |
+| Programs / Start a cohort | Investors / Analyse a startup; trang riêng dùng “Accelerators” hoặc “Startup support teams” theo đúng nội dung |
+| Evaluator dossier / assessment infrastructure | Startup report / research report |
 | Evidence provenance / conviction rubric | Sources behind the findings / what we know and what is missing |
 | Agent orchestration / DeepInfra / model routing | Mô tả công việc: research the startup, compare competitors, explain the risks |
 | SVI như headline value duy nhất | Business, competitors, risks and valuation assumptions; chỉ số giải thích trong report |
@@ -648,7 +605,14 @@ Fixed placeholder + label thay placeholder xoay gây khó đọc; format/size gu
 
 **Phân tích thông điệp:** draft trước nói “opportunity/risks” dễ đọc nhưng áp dụng được cho nhiều sản phẩm, chưa nói rõ tình huống đầu tư startup hoặc kết quả người dùng nhận. Hướng mới gồm **quyết định người dùng cần làm → output cụ thể → benefit → bằng chứng → hành động**. Nguyên tắc NN/g về value proposition, ngôn ngữ người dùng và ví dụ nội dung hỗ trợ hướng này ([nghiên cứu homepage](https://www.nngroup.com/articles/homepage-design-principles/)); lựa chọn câu chữ dưới đây là đề xuất của BlockID cần buyer test, không phải headline đã được nghiên cứu chứng minh thắng.
 
-**Message chuẩn:** dùng đúng eyebrow/H1/subcopy/CTA EN/VI ở §10.5. Phần này chỉ bổ sung benefit line: **Understand the business. Challenge the claims. Know what to ask next.** / **Hiểu doanh nghiệp. Kiểm chứng thông tin. Biết cần hỏi gì tiếp theo.** Đặt dưới form hoặc đầu section tiếp theo tùy viewport; không nhét mọi câu vào hero.
+**Message chuẩn đề xuất để review:**
+
+- Eyebrow: **Business research for investors** / Nghiên cứu doanh nghiệp dành cho nhà đầu tư.
+- H1: **Know the business before you invest.** / **Hiểu rõ doanh nghiệp trước khi đầu tư.**
+- Sub: **Turn business documents or a website into a clear investment research report. Understand the business, compare competitors, and see the risks and questions that matter.**
+- Tiếng Việt: **Từ tài liệu doanh nghiệp hoặc website, nhận báo cáo nghiên cứu đầu tư rõ ràng. Hiểu doanh nghiệp, so sánh đối thủ và thấy những rủi ro, câu hỏi quan trọng.**
+- Intake giữ URL/text/file và CTA **Analyse a business / Phân tích doanh nghiệp**. Hint vẫn cho biết có thể mô tả doanh nghiệp; subline không phải danh sách exhaustive input formats.
+- Supporting benefit line: **Understand the business. Challenge the claims. Know what to ask next.** / **Hiểu doanh nghiệp. Kiểm chứng thông tin. Biết cần hỏi gì tiếp theo.** Dùng dưới form hoặc đầu section tiếp theo tùy viewport, không nhét mọi câu vào hero.
 
 “Know” là lời mời tìm hiểu trước quyết định, không hứa toàn bộ facts được xác minh hoặc không còn rủi ro. Hero đi cùng report mẫu thể hiện unknowns; không đổi thành “Invest with certainty”, “Never miss a winner” hoặc bảo đảm lợi nhuận. Câu “tiết kiệm thời gian” là benefit cần S01 đo trước khi thêm con số/claim mạnh lên trang.
 
@@ -682,13 +646,13 @@ Benefit cards là nội dung theo vai trò, không bắt persona selection để
 
 **Test candidates giới hạn:** A = “Know the business before you invest.” (draft chính), B = “Turn a pitch deck into a clearer investment view.” (nhấn output). Bản “See the opportunity…” cũ chỉ giữ trong history, không tiếp tục là default ở §10.5/10.8. Giữ form/visual/subcopy cố định khi kiểm headline; nếu kiểm cả bundle thì ghi rõ không thể quy uplift riêng cho headline. Chọn bản theo comprehension + qualified intake + report-open/completion và chất lượng, không theo click-through đơn lẻ; không công bố best-converting khi chưa đủ bằng chứng. Các experiment/production copy chỉ chạy sau approval, không trong lượt viết plan.
 
-**Merge và acceptance:** mở rộng U04/U05/U06/S01 hiện có, không thêm UX work item (tổng queue hiện tại45 theo §12.8). Gate gồm message consistency EN/VI/SEO/nav, benefit-proof traceability, primary intake không bị đẩy mất, mobile/keyboard/readability và persona comprehension. Nếu lời hứa mới vượt capability đã verified, sửa wording hoặc hoàn thành dependency trước publish; không bịa proof để giữ slogan. D15 bao gồm lần tinh chỉnh này; mọi code/design runtime/Stripe/database vẫn chưa triển khai.
+**Merge và acceptance:** mở rộng U04/U05/U06/S01 hiện có, giữ40 work items. Gate gồm message consistency EN/VI/SEO/nav, benefit-proof traceability, primary intake không bị đẩy mất, mobile/keyboard/readability và persona comprehension. Nếu lời hứa mới vượt capability đã verified, sửa wording hoặc hoàn thành dependency trước publish; không bịa proof để giữ slogan. D15 bao gồm lần tinh chỉnh này; mọi code/design runtime/Stripe/database vẫn chưa triển khai.
 
 ### 10.10 Business-first wording và phạm vi doanh nghiệp theo giai đoạn
 
 **Yêu cầu founder:** dùng **business / doanh nghiệp** hoặc từ tương đương làm cách gọi bao quát, thay vì mặc định mọi đối tượng là startup. Bao gồm doanh nghiệp mới/startup, doanh nghiệp đang tăng trưởng/gọi vốn Series A/B và doanh nghiệp đang hoạt động muốn được đánh giá. Investor vẫn là khách hàng chính; chủ doanh nghiệp và advisor cũng phải nhận ra lợi ích của mình. Đây là mở rộng phạm vi sản phẩm trong plan, chưa chứng minh mọi loại doanh nghiệp đã được hỗ trợ và chưa cho code.
 
-**Copy draft thống nhất:** §10.5 là nguồn duy nhất cho hero và CTA; §10.8 là form labels/layout, generic wording dùng business/company. Giữ URL/text/file; hướng dẫn “pitch deck, company overview or business documents” chỉ mô tả nội dung, không mở thêm format chưa có parser.
+**Copy draft thống nhất:** eyebrow **Business research for investors**; hero **Know the business before you invest.** / **Hiểu rõ doanh nghiệp trước khi đầu tư.** Subcopy: **Turn business documents or a website into a clear investment research report. Understand the business, compare competitors, and see the risks and questions that matter.** CTA **Analyse a business / Phân tích doanh nghiệp**. Label **Add a business to analyse / Thêm doanh nghiệp cần phân tích**. Giữ input URL/text/file, upload tài liệu với formats thực được hỗ trợ; hướng dẫn “pitch deck, company overview or business documents” chỉ mô tả nội dung, không tự mở thêm định dạng file chưa có parser.
 
 **Supporting audience line đề xuất:** “For early-stage, growing and established businesses.” / “Dành cho doanh nghiệp mới, đang tăng trưởng và đã hoạt động ổn định.” Chỉ publish theo capability matrix được nghiệm thu; nếu từng nhóm còn giới hạn, nêu rõ phạm vi ở product/how-it-works và intake, không quảng cáo full coverage rồi áp startup rubric cho tất cả. Chủ doanh nghiệp có benefit **Understand your business strengths, risks and next steps** / **Hiểu điểm mạnh, rủi ro và bước tiếp theo của doanh nghiệp**, đặt ở role card/solution page; không bắt họ phải có ý định gọi vốn mới được dùng.
 
@@ -711,115 +675,7 @@ Benefit cards là nội dung theo vai trò, không bắt persona selection để
 - **U04/U05/U06/U07:** terminology inventory toàn blockid.au, business labels và role benefits đồng bộ homepage→intake→dashboard→report→export; cập nhật §10.8/10.9 draft qua scope này. Không đổi routes/IDs hoặc rebrand SVI chỉ bằng find-and-replace.
 - **B01/S02/S03:** pricing/inclusions ghi rõ business scope và research limitations; stage/sector không được quảng cáo cùng độ sâu trước gates. Chốt thứ tự rollout từng nhóm trong decision packet, chưa đổi giá/Stripe.
 
-**Acceptance:** người thuộc startup, Series A/B và doanh nghiệp hoạt động nhận ra mình thuộc audience; intake không áp sai stage, questions/methods phù hợp business; sample có business đa giai đoạn đã được review; wording không giới hạn toàn site thành startup nhưng vẫn nói rõ scope khả dụng. Hero và all-page design giữ cùng Unicorn template, không tạo site/product mới. Merge vào work items hiện có, không thêm UX item (tổng queue hiện tại45 theo §12.8); chưa code/publish.
-
-### 10.11 Light-only thực tế: sửa lệch giữa mắt nhìn và báo cáo hệ thống
-
-**Yêu cầu founder:** toàn bộ blockid.au và trang con dùng **nền sáng, chữ tối, tương phản dễ đọc**. Quyết định mới này thay G26 “light default nhưng vẫn cho explicit dark opt-in”: **light-only trên mọi site-owned page/shell/state**, không chỉ trình duyệt mới. Không giữ dark/lux wrapper, toggle hoặc saved preference làm website đổi về nền tối. Chỉ plan, chưa thay CSS/theme script/localStorage người dùng thật hoặc deploy.
-
-**Đã tái hiện trên homepage live trong lượt này bằng2 browser contexts tạm, cùng OS preference light:**
-
-| Trạng thái trước load | DOM sau load | Màu thực tế computed | Metadata |
-|---|---|---|---|
-| Không có `blockid_theme` | html không `.dark` | html/body trắng `rgb(255,255,255)`, ink tối | `theme-color=#FFFFFF` |
-| `localStorage.blockid_theme=dark` | html có `.dark` | html/body `rgb(11,15,26)` = `#0b0f1a`, ink sáng; hero kế thừa dark tokens | Vẫn `theme-color=#FFFFFF` |
-
-Đây là **confirmed reproduction của một nguyên nhân** khớp hiện tượng user mô tả; chưa đọc browser của user nên không khẳng định là nguyên nhân duy nhất trên mọi trang. Root cause source: `web/src/app/layout.tsx:208` render `THEME_RESTORE_SCRIPT`; `web/src/lib/security/inline-scripts.ts:31` đọc saved dark và thêm `.dark`; `web/src/app/globals.css:310–328` map `.dark`/`data-theme=dark`/`lux` sang dark surfaces. `components/ui/theme-toggle.tsx` còn hỗ trợ apply/persist dark nếu được mount; comment nói no inline restore không khớp layout thực tế, phải sửa cùng docs/tests. Metadata trắng chỉ gợi ý browser chrome, **không chứng minh pixel nền trắng**.
-
-**Vì sao báo cáo hệ thống có thể nói “white”:** kiểm tra clean browser/default config sẽ đúng với trạng thái đó nhưng bỏ sót returning user có saved dark. Một số audit còn có giả định fallback: `tests/e2e/smoke/tbr-contrast.spec.ts:232` coi body transparent là white; cần resolve ancestor/composited background thay giả định. Test hiện có cũng đo computed colours ở một số paths, nên không kết luận toàn bộ hệ thống chỉ đọc meta; phải trace report cụ thể đang tuyên bố trắng tới checks, timestamp, route và browser state. Không đánh dấu “all light” từ root token, theme-color hoặc vài screenshots clean profile.
-
-**Implementation bắt buộc trong U03/U06/O04:**
-
-1. **U04 inventory:** liệt kê source và runtime theme writers/readers: inline restore, theme toggle, cookies/storage, html/body classes, scoped dark/lux wrappers, `dark:` styles, raw backgrounds, gradients/pseudo-elements, portals/dialogs, loading/error/auth/admin/report/print. Mỗi dark surface có route/component/state và lý do; không chỉ grep `.dark` rồi kết luận hết.
-2. **U03 theme contract:** light-only first paint→hydration→client navigation; vô hiệu hoá dark restoration cho site; xử lý legacy `blockid_theme` bằng migration nhỏ có version theo scope, không clear toàn bộ localStorage hoặc draft/consent/auth. Remove/disable toggle dark, normalize legacy `.dark`/data-theme scope và khai báo light native form controls; không chỉ ép body trắng mà để descendant text vẫn trắng.
-3. **U03 tokens:** semantic surfaces white/soft-grey, ink navy/near-black; cùng foreground/background pairs cho headings/body/secondary/placeholder/link/table/chart/tooltips/modals. Dark-palette aliases chỉ được giữ tạm trong migration nếu không còn kích hoạt trên site và có owner/deadline; không dùng để xây component mới. Chữ sáng trên nút navy vẫn là contrast pair hợp lệ; yêu cầu light-only nói về reading surfaces/chrome, không bắt nút navy dùng chữ đen. Nội dung ảnh/logo đen của tài liệu không bị invert hoặc sửa dữ liệu gốc.
-4. **U06 page families:** migrate marketing/workspace/dashboard/report/admin/auth/utility cùng shared template, kiểm portal dưới body và overlays. Report web/Brief/Full export light surfaces + dark ink; report/PDF theme setting cũ không được tạo black full-page background trên site. Email cũng dùng light-authored layout; forced dark của email client/OS accessibility là external rendering cần ghi phạm vi, không hứa điều khiển tuyệt đối.
-5. **O04 CSP/cache:** nếu đổi/xóa inline restore, cập nhật hash/nonce catalogue và tests liên quan; không bỏ CSP hoặc thêm unsafe-inline. Đối chiếu deployed build/CSS/cache và reload/navigation; không dùng cache purge thay cho sửa root cause. Không sửa browser extension/forced-colors của user để làm test xanh.
-6. **U05 docs/status wording:** cập nhật template/MASTER/runbook từ “light default with opt-in” sang light-only; dashboard QA công bố route/state/browser/time/build đã đo, `unknown/not tested` nếu chưa kiểm; chỉ gọi “all-page light complete” khi toàn route inventory và states bắt buộc đạt.
-
-**Ma trận nghiệm thu:** clean storage và legacy saved-dark × OS light/dark × direct load/hydrated/client navigation/hard reload ×375/768/1440; thêm auth roles/pages, dialogs/dropdowns/tooltips, loading/error/empty/report detail, print/PDF. Seed old dark preference chỉ trong test contexts rồi đóng, không thao tác browser người dùng thật. Storage unavailable/private browsing phải vẫn light. Screenshot inspection và computed style checks đi cùng nhau, đối chiếu effective background qua ancestor/transparency/overlays; không đo transparent=white mặc định hoặc chỉ sample những node dễ pass. Website root/light state đúng chưa đủ nếu child black panel còn chiếm phần đọc chính.
-
-**Contrast gate:** text thường≥4.5:1, large text≥3:1, meaningful controls/focus/non-text indicators≥3:1 với bề mặt liên quan; statuses có text/icon ngoài màu. Kiểm cả disabled/placeholder/read-only readability theo vai trò, keyboard/zoom/forced-colors không phá accessibility. Tất cả surfaces sáng thuộc template phải nằm trong approved tokens; gradient/black background coverage cần visual review, không chỉ tên class. Browser/theme reports phải ghi cả stored-theme input, actual html classes, computed foreground/background và screenshot reference.
-
-**Đóng I39:** repro saved-dark trước sửa fail / sau sửa light từ first paint, không flash đen/trắng hoặc chữ trắng trên nền trắng; full page-family coverage có evidence; old preference không tái kích hoạt qua navigation/login; theme metadata/CSS/QA report nhất quán. Không thêm UX work item (tổng queue hiện tại45 theo §12.8), mở rộng U03/U04/U05/U06/U02/O04/Q02, không tạo design system thứ hai. Đây là release gate của full-site redesign trong S03; không chấp nhận “default white” làm bằng chứng đạt light-only.
-
-### 10.12 Phân cấp nội dung và điều hướng toàn site: rõ, gọn, luôn biết đường về
-
-**Yêu cầu đã hợp nhất:** mọi trang blockid.au, gồm phân tích, sau login, dashboard, report, billing và admin, dùng cùng nguyên tắc tổ chức thông tin. Người dùng cần biết đang ở đâu, điều gì quan trọng, mục nào mở được và cách về nội dung tổng thể. Dashboard thể hiện các nhóm giá trị quan trọng bằng tóm tắt có đường dẫn; không nhồi toàn bộ chi tiết vào màn hình đầu. Đây là đặc tả proposed, chưa phải giao diện đã triển khai.
-
-**Căn cứ và giới hạn review:** source đã có catalogue `web/src/lib/nav/hubs.ts`, persona mapping `web/src/lib/nav/persona.ts` và shared `web/src/components/workspace/hub-tabs.tsx`; score/evidence/report có nhiều tabs, nên cần phân nhóm theo công việc và persona thay vì tạo thêm một hệ navigation. Shared tabs hiện có xử lý active route và arrow navigation; phải kiểm lại semantics khi đổi trang có tải dữ liệu. Search tìm thấy breadcrumb JSON-LD phục vụ SEO, nhưng điều này không chứng minh đã có hoặc chưa có breadcrumb trực quan trên mọi page. U04 cần kiểm runtime từng page family/role; chưa coi authenticated usability đã được chứng minh bằng source review.
-
-**Skill áp dụng:** [ui-ux-pro-max](../../../.codex/skills/ui-ux-pro-max/SKILL.md), hướng dẫn hierarchy, progressive disclosure, predictable Back, focus và deep links. Nghiên cứu ngày22/09/2026: [NN/g — Progressive Disclosure](https://www.nngroup.com/articles/progressive-disclosure/) hỗ trợ đưa thông tin chính lên trước và mở chi tiết khi cần; [NN/g — Breadcrumbs](https://www.nngroup.com/articles/breadcrumbs/) hỗ trợ chỉ vị trí trong cấu trúc, bổ sung global navigation; [W3C — Tabs Pattern](https://www.w3.org/WAI/ARIA/apg/patterns/tabs/) chỉ khuyến nghị tự kích hoạt tab khi nội dung xuất hiện không có độ trễ đáng kể. Các số lượng nhóm dưới đây là đề xuất thiết kế BlockID cần usability review, không phải tiêu chuẩn của các nguồn này.
-
-#### A. Một hệ phân cấp cho public và workspace
-
-| Cấp | Nội dung/nhãn đề xuất | Quy tắc |
-|---|---|---|
-| Public | Home; Sample report; How it works; Pricing; Sign in/My workspace | Hero vẫn giữ text/URL/file intake; help/legal ở vị trí phụ dễ tìm. Không đưa toàn bộ chức năng nội bộ lên header |
-| Workspace | Overview; Businesses; Reports; Research; tài khoản có Credits & billing, Settings, Help | Mục tiêu khoảng4–5 nhóm chính; Research chỉ hiện như nhóm độc lập nếu có công việc/route thực sự cần riêng. Chốt nhãn qua inventory và task review, không dựng trang rỗng cho đủ menu |
-| Business | Overview; Reports; Documents; các mục chuyên môn cần thiết theo role/stage | Business selector xác định phạm vi rõ. Valuation/finance/team/raise… được map thành nhóm con thích hợp; không dàn tất cả hubs ngang hàng |
-| Report | Overview; Analysis; Evidence; History | Export/share là actions; Analysis chứa 8 dimensions→13 criteria và câu hỏi tương ứng. Valuation có điểm vào rõ từ Overview và Analysis; chỉ tách tab nếu task review chứng minh cần |
-| Criterion | Nhận định; bằng chứng; thông tin thiếu; phân tích bổ sung | Giữ tên business, report version và criterion; có “Back to report overview”. Deep research mới có quote riêng theo §14.4 |
-
-Đây là **information architecture**, không phải danh sách URLs mới được duyệt. U04 map từng nhãn đến existing route/pattern; retain/merge/redirect proposals có owner và kiểm deep links/quyền. Mở rộng catalogue hiện có với parent, label, scope và canonical destination nếu thiếu; menu, tabs, breadcrumbs và active state lấy cùng metadata. Không tạo catalogue cạnh tranh hoặc hardcode đường về riêng ở mỗi page. Founder/investor/advisor/admin chỉ thấy navigation phù hợp quyền và công việc; chức năng chưa mua được giới thiệu tại ngữ cảnh liên quan, không phủ sidebar bằng hàng loạt mục khóa. Không tự bỏ tính năng đang có.
-
-Desktop dùng một global shell và một cấp local navigation khi cần; mobile dùng menu có nhãn và local navigation phù hợp chiều rộng. Không lặp cùng một tập link ở sidebar, tabs và bottom bar. Mục tiêu3–5 local tabs dễ quét; nếu nhiều hơn, xét lại nhóm, sau đó dùng “More”/selector có label và keyboard support khi phù hợp. Không cắt mất tab hoặc trông chờ người dùng đoán có thể cuộn ngang.
-
-#### B. Dashboard làm rõ giá trị và điểm cần hành động
-
-Dashboard tổng hợp nhiều businesses phải ghi rõ phạm vi; khi chọn một business, mọi số liệu/report/action cùng scope. Không cộng hoặc lấy trung bình các valuation/scores không cùng cơ sở. Bố cục đề xuất: header ngắn + selector + một primary action, sau đó latest report và needs-attention nổi bật, rồi các tóm tắt phụ. Khoảng4–6 khối là mục tiêu biên tập, không bắt mọi khối nằm trên một màn hình mobile.
-
-| Khối giá trị | Hiện ngay | Click để xem tiếp |
-|---|---|---|
-| Latest report | Business, final version/date, một câu kết luận, trạng thái độ đầy đủ | Đúng report overview; có nguồn gốc timestamp theo §10.7 |
-| Risks & missing information | Những vấn đề ưu tiên và ảnh hưởng đến quyết định; critical caveats không bị giấu | Criterion liên quan và evidence/request checklist |
-| Business value | Range nếu đủ dữ liệu, ngày/cơ sở và limitation; thiếu dữ liệu ghi chưa đủ cơ sở | Valuation analysis, phương pháp, assumptions, sensitivity |
-| Market & competitors | Insight chính, mức coverage thực tế và độ mới | Matrix đối thủ và nguồn; không giả đủ3–5 khi chưa tìm đủ |
-| What changed / next action | Thay đổi có thể so sánh và bước cần làm; phân biệt upload với report mới | Version comparison, document request hoặc research task đúng context |
-| Reports & usage | Lối vào library, job đang chạy, credits gọn ở khu phụ | Report history/job status hoặc Credits & billing; không để upsell lấn kết quả |
-
-Có thể gộp các khối phụ theo persona để tránh dashboard thành nhiều ô nhỏ. Empty state hướng dẫn bước đầu bằng một CTA; lỗi tải dữ liệu có retry và last-good rõ, không giả “chưa có report”. Dashboard là bản tóm tắt từ canonical report/read model, không sinh narrative/valuation độc lập. Mỗi card có link/action label cụ thể như “View valuation”, không chỉ “More”. Card tĩnh không mang hình thức có thể click.
-
-#### C. Mỗi page có một nhiệm vụ và nội dung theo lớp
-
-| Page family | Lớp đầu cần rõ | Nội dung mở khi cần |
-|---|---|---|
-| Homepage | Business benefit, intake, sample report và bước tiếp theo | Method, buyer benefits, FAQ và pricing explanation phía dưới; không chèn nhiều sales banners vào hero |
-| Input/analysis progress | Đúng input/business; bước hiện tại, trạng thái và hành động hợp lệ | Input preview, research coverage và lỗi có thể xử lý; không đưa internal agent logs/model jargon lên màn hình chính |
-| Report overview | Investment case, key risks, valuation basis, confidence/missing evidence, next questions | Dimensions→criteria→sources/calculations; critical limitations vẫn ở cạnh headline |
-| Criterion analysis | Câu hỏi, nhận định đặc trưng business, lý do và uncertainty | Evidence excerpts, counter-evidence, calculations, research scope; purchased detail mở lại không charge |
-| Library/documents | Search/filter, tên business, version/status, ngày đúng nghĩa | Detail/history/lineage; advanced filters thu gọn, giữ lựa chọn khi quay về |
-| Billing/settings/admin | Tác vụ chính của từng nhóm; balance/price hoặc trạng thái có thể hành động | Ledger/invoices, cấu hình nâng cao và logs theo quyền; tránh một trang chứa tất cả forms |
-
-Dùng tabs cho các phần ngang cấp; accordion cho chi tiết ngắn trong cùng phần; drawer cho kiểm nhanh nguồn; page riêng cho phân tích dài, so sánh hoặc công việc nhiều bước. Tránh accordion lồng nhiều tầng và modal dùng như hệ điều hướng. Drawer/modal có close, focus return, keyboard và đường mở trang đầy đủ nếu cần. Không giấu dữ liệu thiết yếu để có layout đẹp; giảm lặp nội dung và phân phối sang phần có tên rõ.
-
-Mỗi trang có page title, context/status ngắn và một primary action theo tác vụ, secondary actions nhẹ hơn. Heading/spacing/table alignment và light-only tokens theo §10.3/10.11; không dùng nhiều màu/gradient/badge để tranh sự chú ý. Không lặp hero slogan trên dashboard, forms hoặc mọi tab. Banners dành cho thông tin cần hành động; alerts cùng loại được nhóm và không che controls. Chart có một thông điệp chính, units/date/source và textual fallback; không biến13 criteria thành13 charts cùng xuất hiện.
-
-#### D. Đi tới chi tiết và quay về không mất ngữ cảnh
-
-- Global shell luôn có link **Home** rõ tới trang chủ public và **Workspace overview** cho người đã login; logo có accessible name và destination nhất quán. Không dùng cùng nhãn “Home” cho hai điểm đến khó phân biệt.
-- Trang sâu có breadcrumb theo cấu trúc thực, ví dụ `Workspace → Businesses → Business name → Report → Criterion`; chỉ hiện ancestor thực sự có trang và quyền. Có link trực tiếp về report/business overview, không phụ thuộc browser history. Mobile giữ parent link và current title, ancestors khác có thể nằm trong disclosure có nhãn.
-- Browser Back/Forward giữ business, report version, filter, pagination, scroll và draft phù hợp; parent link dẫn canonical parent. Người mở direct link/new tab hoặc refresh vẫn tìm được parent. Shared anonymous report có “Report overview” và public Home; không lộ tên/link private ancestor hoặc ép vào dashboard không được phép.
-- Login return, top-up return, cancelled checkout và research completion quay lại đúng business/report/criterion theo validated internal return context. Top-up thành công không tự chạy research tính phí. Draft/file cần persistence theo F01/T01, không đặt tài liệu hoặc private text vào URL để giữ context.
-- Dùng semantic links cho navigation, buttons cho actions, active state không chỉ bằng màu, visible focus và label/chevron nhất quán. Không nesting button/link trong một clickable card gây xung đột. Các đích bị khóa nêu quyền/chi phí trước khi chuyển; không tự mở checkout khi người dùng chỉ muốn đọc kết quả.
-- Route navigation dạng tab ưu tiên semantic links + current-page indication; nếu dùng ARIA tablist phải có panel/keyboard semantics đúng. Không auto-navigate qua network chậm mỗi lần nhấn arrow; chọn manual activation hoặc route-nav pattern phù hợp sau kiểm thực tế. Loading/error/forbidden/404 vẫn có parent an toàn và Home, không trở thành ngõ cụt.
-
-#### E. Implementation hợp nhất, bằng chứng và gate
-
-Giữ các UX work items hiện có (tổng queue hiện tại45 theo §12.8), bổ sung **I40** vào issue register dưới dạng yêu cầu/coverage gap, không tuyên bố mọi trang hiện tại đều lỗi:
-
-| Owner hiện có | Bổ sung phải làm khi được cho implement | Điều kiện đóng |
-|---|---|---|
-| U04 | Route→persona→parent→tabs→primary task→summary/detail→return destination matrix; sitemap và annotated desktop/mobile designs; content-density audit | Mọi retained route có vị trí/đường về, không trùng hệ navigation; review representative families trước migration |
-| U03/U06 | Shared shell/breadcrumb/menus/tabs/cards và focus/history conventions; migrate từng family sau shared API contract | Active state, permissions, Home/parent, responsive và light-only đúng toàn inventory; không mất tính năng |
-| U01/U02 | Report layers, criterion drilldown/evidence và anchors; web/export giữ cùng material findings | Không giấu critical caveats; mở sâu/quay overview giữ report/version; export không mất detail do UI collapse |
-| U07/T02 | Dashboard value mapping và scoped read model; filters/history/state restoration | Mỗi summary dẫn đúng data/context; latest semantics và failure states đạt §10.7 |
-| U08/B03/F01/T01 | Login/intake/top-up/research return journey và draft/quote context | Cancel/retry/reload không mất context hoặc charge ngoài ý định; permissions và version đúng |
-| U05/S01/Q02 | Plain-language nav/action labels, tree/task testing và independent accessibility/route checks | Evidence theo tác vụ bên dưới, không chỉ screenshot đẹp hoặc test có breadcrumb element |
-
-**Kiểm nghiệm đề xuất:** cùng cohort ít nhất5 investors của S01, đo riêng completion/time/wrong turns cho: (1) tìm latest report của business đã chọn; (2) từ dashboard mở valuation và hiểu limitation; (3) mở criterion→source rồi về report overview; (4) tìm missing evidence và bước tiếp; (5) direct-link vào detail rồi về parent và Home; (6) quay lại library giữ filters; (7) phân biệt included detail với research mới và trở lại sau top-up/cancel. Mục tiêu ≥4/5 hoàn thành mỗi tác vụ cốt lõi không được hướng dẫn, **không có nhầm lẫn critical về business/version hoặc charge**. Ghi n và lỗi thực, ngưỡng này chưa phải kết quả đo. Review bổ sung founder/admin với tasks riêng, không lấy investor test thay mọi persona.
-
-QA kiểm representative templates ở375/768/1440, keyboard/screen reader smoke, direct URL/refresh/Back/Forward, deep permission states, long labels EN/VI và empty/loading/error/long-content. Mỗi deep page có visible safe-parent action một lần click và Home truy cập được từ shell (mobile qua menu rõ ràng), focus không bị mất sau drilldown/close. Inventory check bao phủ tất cả retained routes, không bắt mỗi dynamic ID phải có screenshot riêng. S03 chỉ đóng full-site UX khi matrix đầy đủ và blockers được xử lý; đây là mở rộng gates hiện có, không phải queue hoặc goal triển khai thứ hai.
+**Acceptance:** người thuộc startup, Series A/B và doanh nghiệp hoạt động nhận ra mình thuộc audience; intake không áp sai stage, questions/methods phù hợp business; sample có business đa giai đoạn đã được review; wording không giới hạn toàn site thành startup nhưng vẫn nói rõ scope khả dụng. Hero và all-page design giữ cùng Unicorn template, không tạo site/product mới. Merge vào work items hiện có, giữ40 items; chưa code/publish.
 
 ## 11. Kiến trúc triển khai và bảo toàn dữ liệu
 
@@ -961,7 +817,7 @@ T01 tạo **data lineage matrix**: entity/table/bucket → writer → reader →
 
 ## 12. Backlog hợp nhất và thứ tự thực hiện
 
-**Work items đã được APPROVED để triển khai; trạng thái thực tế từng item ở §12.9, không tự coi approved là completed.** Owner là vai trò trách nhiệm, không phải lệnh spawn agent. Chỉ có một delivery queue trong bảng này; generated plans hoặc G29 không tạo queue cạnh tranh. Dependencies là điều kiện hoàn thành, không chỉ thứ tự merge.
+**Tất cả work items dưới đây là `PROPOSED / NOT STARTED`.** Owner là vai trò trách nhiệm, không phải lệnh spawn agent. Chỉ có một delivery queue trong bảng này; generated plans hoặc G29 không tạo queue cạnh tranh. Dependencies là điều kiện hoàn thành, không chỉ thứ tự merge.
 
 | ID | Ưu tiên/owner | Công việc cụ thể | Depends | Điều kiện nghiệm thu |
 |---|---|---|---|---|
@@ -987,40 +843,34 @@ T01 tạo **data lineage matrix**: entity/table/bucket → writer → reader →
 | V03 | P1 · Valuation/Analyst | Valuation reconciliation/terms/ask không circular, specialist review | V02,A03 | Narrative/bảng/sources nhất quán; critical assumptions nổi bật |
 | U01 | P1 · Design/Frontend | Brief + 8 dimensions + 13 expandable criteria/evidence | A03,V03,F03 | Đọc brief tìm thesis/risk/value/requests; drill-down không mất context |
 | U02 | P1 · Export | Web/PDF/DOCX/email same snapshot; brief/full exports | U01 | Key facts/verdict/numbers/qualifiers/permissions parity; visual review đạt |
-| U03 | P1 · Design/Frontend | Light-only theme migration + hợp nhất primitives/docs, fixed controls, EN/VI (§10.11) | U04,U01 | Một component API, responsive/accessibility và persona flows đúng |
-| U04 | P1 · Product/Design | Inventory toàn bộ routes/states + hierarchy/parent/content layers và annotated designs theo §10.4–10.12 | P01 | Mỗi route có owner/disposition; một design system, không bỏ sót admin/utility |
+| U03 | P2 · Design/Frontend | Hợp nhất primitives/docs, fixed controls, EN/VI theo một Unicorn template | U04,U01 | Một component API, responsive/accessibility và persona flows đúng |
+| U04 | P1 · Product/Design | Inventory toàn bộ routes/states + template mapping và annotated designs theo §10.4–10.6 | P01 | Mỗi route có owner/disposition; một design system, không bỏ sót admin/utility |
 | U05 | P1 · Content/Product | Investor-first plain-language hero giữ intake (§10.8), copy EN/VI toàn site, CTA/metadata/claim audit | U04 | Copy matrix, draft hero review, promise có proof, investor comprehension đạt |
-| U06 | P1 · Design/Frontend/QA | Redesign toàn bộ page families theo shared Unicorn template, rollout và visual/function review | U03,U05 | 100% inventory có disposition nghiệm thu; retained routes migrate, exceptions duyệt rõ; không theme drift hoặc mất chức năng |
-| B01 | P0 · Product/Finance | Full price/entitlement catalogue + source/DB/runtime/Stripe drift review (§14.1) | P01 | Mọi sold SKU và annual/add-on/legacy có mapping/status; không giá tự suy |
-| B02 | P0 · Billing/QA | Financial-integrity foundation sớm + CTA→Stripe→entitlement lifecycle (§14.2/§2.3) | B01,T01; final integration thêm F04 | Event lease + purchase dedupe, no ACK-lost grant; amount/cadence/rights/recovery đúng |
+| U06 | P2 · Design/Frontend/QA | Redesign toàn bộ page families theo shared Unicorn template, rollout và visual/function review | U03,U05 | 100% inventory có disposition nghiệm thu; retained routes migrate, exceptions duyệt rõ; không theme drift hoặc mất chức năng |
+| B01 | P1 · Product/Finance | Full price/entitlement catalogue + source/DB/runtime/Stripe drift review (§14.1) | P01 | Mọi sold SKU và annual/add-on/legacy có mapping/status; không giá tự suy |
+| B02 | P1 · Billing/QA | CTA→Stripe→order→entitlement lifecycle và reconciliation (§14.2) | B01,F04 | Amount/cadence/rights parity; duplicate/cancel/failure/recovery đúng |
 | T01 | P0 · Data/Product | Storage/lineage/schema inventory, retention/access và consistency audit (§11.5) | P01 | Writer/reader/owner/version rõ; findings có evidence, không sửa production |
 | T02 | P0 · Data/Backend | Reconcile report stores/library/artifacts, persistence recovery và migration/restore | T01,F03,F04 | Final lưu/read-back được, historical links giữ, không orphan/duplicate quyền trong cases |
-| U07 | P1 · Product/Design/Frontend | Dashboard/library/latest update, value summaries→detail và context restoration (§10.7/10.12) | U04,T02,U01 | Latest đúng scope/version, loading/error tách empty; 4/5 reviewers hoàn thành tasks |
+| U07 | P1 · Product/Design/Frontend | Dashboard/library/latest update contract và friendly layouts (§10.7) | U04,T02,U01 | Latest đúng scope/version, loading/error tách empty; 4/5 reviewers hoàn thành tasks |
 | O03 | P1 · QA/Ops | Free1/free2/paid3, subscription/quota, delivery/failure real-path verification | F04,U02,O02,B02,T02 | E2E receipt/artifact, retry/refund correctness, no false success |
 | O04 | P2 · Frontend/Data | G29 Index movers/sample + CSP diagnosis | P01 | Fix được verify hoặc scope disposition rõ trước S03; không nới CSP theo phỏng đoán |
 | Q02 | P0 · QA/Independent analyst | Holdout semantic audit, contradiction/red-team, export parity | A03,V03,U02,R04 | Quality gates §13 đạt, không đổi gate để hợp thức lỗi |
 | S01 | P1 · Product/Sales | 5 investor workflow reviews, ≥10 reports, timed usability và homepage comprehension | U01,U05,U07,U08,Q02 | Evidence/consent, objections, buyer usefulness và time saving đo được |
 | S02 | P1 · Product/Finance | Unit economics + SKU/inclusions/terms parity, legal scope review | O03,S01,B01 | Giá/allowance chịu được cost và quality; chỉ đổi giá sau quyết định |
 | R04 | P1 · Research/Analyst | Proactive deck hypotheses, competitor 3–5 matrix và criterion deep research (§7.5–7.7) | R03,A02 | Baseline khác deep scope rõ; source relevance, counter-evidence và incremental startup-specific value |
-| B03 | P0 · Billing/Data | Atomic credit/fulfillment foundation sớm + research quote/reserve/capture/refund (§14.4/§2.3) | B01,T01 để foundation; B02,T02,R04 để complete | Atomic grant/ledger/common fulfillment, no ambiguous-timeout double debit; approved fee policy trước deep rollout |
+| B03 | P1 · Billing/Data | Versioned research quote, credit reservation/capture/refund, top-up reconciliation (§14.4) | B01,B02,T02,R04 | Exact-once ledger/job; server quote, no double spend; approved fee policy trước rollout |
 | U08 | P1 · Product/Frontend | Per-criterion deep-research purchase/top-up/resume và supplements UX | U07,R04,B03 | Included vs new research rõ; no surprise charge; final/revised report và permissions đúng |
-| S03 | P0 · Release owner | Ready-for-controlled-sale decision packet | Q02,O03,S01,S02,U06,U07,T02,B02,O04,R04,B03,U08,O05,O06,O07,O08,O09 | Không blocker mở; reviewer + founder sign-off, rollback và support rõ |
-| O05 | P0 · Release/Ops | Isolated artifact, parallel candidate, readiness/proxy switch/drain và unified deploy authority (§12.8) | P01 | Cutover drill không user-visible interruption; identity/dependency completeness, no overwrite active release |
-| O06 | P0 · Release/Data | Verified compatible LKG catalogue, truthful bounded rollback và protected retention | P01; integrated cutover O05 | Bad release quarantined, rollback health/exit đúng, cleanup bảo vệ targets, schema compatibility |
-| O07 | P0 · SRE/Ops | External/core-journey monitoring, recovery coordination, on-call/error budget | P01; recovery integration O05,O06 | Failure detection/recovery measured, no false200 health hoặc rollback loop |
-| O08 | P0 · Backend/Ops | Durable report jobs/checkpoints, graceful drain, bounded queue/retry và side-effect recovery | T01,F02,O01; financial integration B02,B03 | Deploy/restart/disconnect không mất job hoặc duplicate charge/final, outage graceful |
-| O09 | P0 · Data/SRE | Backup/restore drill, failure-domain topology, RTO/RPO và host-failure continuity | P01,T01; final O05,O06,T02 | Restore/data parity measured, topology/cost decision rõ; không claim HA từ single-host backup |
+| S03 | P0 · Release owner | Ready-for-controlled-sale decision packet | Q02,O03,S01,S02,U06,U07,T02,B02,O04,R04,B03,U08 | Không blocker mở; reviewer + founder sign-off, rollback và support rõ |
 
 ### 12.1 Milestones
 
 | Milestone | Kết quả hữu hình | Điều kiện chuyển bước |
 |---|---|---|
 | **M0 — Approve & baseline** | G30 được duyệt, source/live snapshot, corpus spec, budget envelope | Không có code trước approval; estimate kỹ thuật sau dependency review |
-| **M0b — Production protection** | O05/O06 cutover/LKG + O07 monitoring foundation + O09 restore/topology | §12.8 safety gate trước G30 production rollout; final O08/O09 integration ởM4 |
 | **M1 — Truth foundation** | T01–T02 data integrity + F01–F04, E01–E03, V01, O01–O02: đầu ra không false-verified/default fact, final snapshot đúng | Repro blockers đóng; nguồn/runs không mất traceability |
 | **M2 — Research & investor analysis** | R01–R04, A01–A03, V02–V03: proactive research, 52 questions, research, đa chiều và valuation | Golden sample có nội dung startup-specific và review analyst |
-| **M3 — Unified investor experience** | U01–U07 verified, U08 design only: criterion deep-research/top-up UX, dashboard/library/latest update, report theo lớp, exports, homepage/hero wording và redesign toàn bộ trang theo một Unicorn template | Route coverage + visual/function + parity + copy/usability đạt; không đóng milestone chỉ với homepage/report |
-| **M4 — Release evidence** | O05–O09 final evidence + U08 purchase integration verified + B01–B03/Q02/O03/S01/S02: research credits/top-up và price/Stripe parity, holdout, end-to-end, buyer feedback, economics | Gaps được sửa hoặc scope bán bị thu hẹp rõ ràng |
+| **M3 — Unified investor experience** | U01–U08: criterion deep-research/top-up UX, dashboard/library/latest update, report theo lớp, exports, homepage/hero wording và redesign toàn bộ trang theo một Unicorn template | Route coverage + visual/function + parity + copy/usability đạt; không đóng milestone chỉ với homepage/report |
+| **M4 — Release evidence** | B01–B03/Q02/O03/S01/S02: research credits/top-up và price/Stripe parity, holdout, end-to-end, buyer feedback, economics | Gaps được sửa hoặc scope bán bị thu hẹp rõ ràng |
 | **M5 — Controlled sale** | S03 decision packet; giao dịch trên existing SKU và hỗ trợ rõ | Founder cho release/sale theo scope; triển khai production tuân theo quyền đã có lúc đó |
 | **M6 — Scale decision** | Số liệu sử dụng/completion/value thật sau controlled sale | Không tự mở rộng sector/volume chỉ vì M5 đã đạt |
 
@@ -1028,7 +878,7 @@ Không cam kết lịch triển khai trước khi chọn capacity/search source 
 
 ### 12.2 Issue register hợp nhất: không bỏ sót phát hiện và không nhầm giả thuyết thành lỗi đã xác nhận
 
-Register này là **traceability của cùng backlog §12**, không tạo queue thứ hai. `Source/repro` = đã quan sát code hoặc tái hiện ở baseline review; `Live observation` = chỉ snapshot được nêu; `Risk/gap` = cần kiểm chứng phạm vi trước sửa. G30 remediation vẫn **NOT STARTED**; I15/I18/I20 có G29 mitigation source đã triển khai nhưng G30 acceptance chưa verified, các issues khác giữ OPEN theo evidence. Tài liệu được đồng bộ không có nghĩa runtime đã sửa. “Tất cả” ở đây là toàn bộ issues đã phân tích trong review/G30, không phải chứng nhận repository không còn lỗi chưa phát hiện.
+Register này là **traceability của cùng backlog §12**, không tạo queue thứ hai. `Source/repro` = đã quan sát code hoặc tái hiện ở baseline review; `Live observation` = chỉ snapshot được nêu; `Risk/gap` = cần kiểm chứng phạm vi trước sửa. Tất cả issues còn **OPEN / remediation NOT STARTED**; tài liệu được đồng bộ không có nghĩa runtime đã sửa. “Tất cả” ở đây là toàn bộ issues đã phân tích trong review/G30, không phải chứng nhận repository không còn lỗi chưa phát hiện.
 
 | Issue | Bằng chứng/trạng thái | Cách xử lý và work items chịu trách nhiệm | Bằng chứng bắt buộc để đóng |
 |---|---|---|---|
@@ -1046,12 +896,12 @@ Register này là **traceability của cùng backlog §12**, không tạo queue 
 | I12 Research dựa general knowledge chưa có retrieval ở nhánh market | Source/gap §2 | R01–R03/A02: question-led fetch/read, counter-evidence | Source đọc thật, relevant/time/entity match, not-found có state |
 | I13 Phân tích generic hoặc thiếu câu hỏi diligence | Requirement/gap | E01/A02/R03: 52 question states + overlays + startup implications | Coverage, swap-name test, actionable requests đạt §13 |
 | I14 Valuation thiếu eligibility/comps/calibration, nhầm ask/EV/equity | Risk/gap §9 | V02/V03: eligible methods, source comps, bridge/scenarios | Independent recalculation; unknown cho phép not-estimable |
-| I15 Provider dead rungs/capacity, diagnostics và SLA chưa chứng minh | G29 mitigation implemented; G30 policy/gates unverified | O01/O02/O03: bounded retry, qualified fallback, cost/run ledger | Failures tính denominator; live capacity/completion gates đạt |
+| I15 Provider dead rungs/capacity, diagnostics và SLA chưa chứng minh | G29 residual/gap | O01/O02/O03: bounded retry, qualified fallback, cost/run ledger | Failures tính denominator; live capacity/completion gates đạt |
 | I16 Hai Button API/palette và design docs xung đột | Source, #7–8 | P01/U03/U04/U06: shared primitives, compatibility wrapper, one reference | Inventory imports/routes migrated, visual/accessibility evidence |
 | I17 Hero/copy chưa cùng investor story; all-page consistency | Requirement + UX observation | U04/U05/U06: copy matrix, claim proof, redesign từng family | Homepage comprehension, no unsupported promises, all routes accounted |
 | I18 Demo intro/mobile fixed controls che nội dung | Browser observation, cần kiểm theo route | U01/U03/U06: brief lên sớm, overlay placement và responsive | Mobile first view đọc được summary/CTA; keyboard và overlay-open checks |
 | I19 CSP inline errors chưa rõ tác động | Browser observation, nguyên nhân chưa xác nhận | O04: reproduce đúng build, trace blocked scripts/hash/nonce | Root cause + functional reproduction; không nới CSP để che lỗi |
-| I20 Index movers/sample/new labels | G29 source implemented; final policy/output verification pending | O04: same-cohort comparable deltas, new/missing labels, sample exclusion | Fixtures sign/new/zero baseline, sample không vào real KPI |
+| I20 Index movers/sample/new labels | G29 residual | O04: same-cohort comparable deltas, new/missing labels, sample exclusion | Fixtures sign/new/zero baseline, sample không vào real KPI |
 | I21 Price truth phân tán, annual/cadence/tax/feature drift | Source architecture/risk §11.4 | B01/B02/S02: union SKU catalogue + runtime/live reconciliation | Mỗi sold SKU khớp UI→checkout→invoice→rights; chưa audit ghi unknown |
 | I22 Historical5aud ID, instant delivery/90days/free quota copy | Source/copy conflict risk | B01/U05/S02: stable IDs giữ, semantics & promises đối chiếu | A$3 đúng amount; validity/access/refresh/free units rõ, không hứa instant chưa đo |
 | I23 Stripe CTA/cancel/webhook/lifecycle và fulfillment | Risk cần end-to-end verify | B02/F04/O03: order state, idempotency, lifecycle recovery | Duplicate/out-of-order/async/failure không double grant hoặc false paid |
@@ -1066,20 +916,8 @@ Register này là **traceability của cùng backlog §12**, không tạo queue 
 | I32 Research chưa chủ động kiểm chứng deck theo mọi criterion | Requirement mở rộng | R04/R01–R03/A02: hypotheses + 3–5 relevant competitors + research theo §7.7 | Standard không chỉ tóm deck; evidence/counter-evidence và implications rõ |
 | I33 Paid detail/credits hiện có nhiều feature costs, chưa có unified deep quote | Source configuration/risk | B03/B01/S02: feature mapping, reserve/capture/refund, top-up | Fee được duyệt, no double bill, source/Stripe/grant parity và failure cases |
 | I34 Deep research upsell có thể che evidence, mất context hoặc làm report stale | Requirement/risk | U08/U07/A03/T02: included vs new, resume, supplement/revision | No charge expand, findings critical phản ánh summary; version/quyền nhất quán |
-| I35 Same-day report/share snapshot bị update | Source verified, final review §2.3 | F02/T02 immutable revisions; daily projection riêng | Hai runs/ngày, old/new links vẫn đúng nội dung và permissions |
-| I36 Provider override không hard allowlist, shared registry ngoài scope | Source verified §2.3 | O01 all-task/consumer-scoped policy | All task classes/overrides/retries/probes không paid spillover hoặc đổi excluded consumer |
-| I37 Grant/fulfillment/event retries chưa atomic/exact-once | Source verified §2.3, chưa production repro | B02/B03 P0 foundation | Concurrent grant/spend, failed-event retry, webhook+cron race, timeout ledger oracle đúng |
-| I38 Update0rows có thể coi saved | Source verified §2.3 | F02/T02 persist+read-back | Nonexistent target không READY; read error không masquerade missing |
-| I39 Saved dark làm nền thật đen nhưng metadata vẫn trắng | Live browser repro + source §10.11 | U03/U06 light-only migration; O04 scripts/CSP, QA state matrix | Legacy saved-dark cũng light từ first paint, all-page effective colour/contrast và screenshots đạt |
-| I40 Phân cấp navigation/content density/đường về chưa có coverage nghiệm thu toàn site | Requirement + source infrastructure review; authenticated runtime cần U04 audit (§10.12) | U04/U03/U06/U01/U07/U08: một route hierarchy, summary→detail, safe parent/Home và giữ context | All-route matrix + direct-link/Back/keyboard/permission checks; ≥4/5 investor task completion, không critical context/charge confusion |
-| I41 Stop-before-start cutover | Source §12.8, chưa live fault injection | O05 | Drill và closure evidence theo §12.8 |
-| I42 Rollback success/target sai | Source §12.8, chưa live fault injection | O06 | Drill và closure evidence theo §12.8 |
-| I43 Guardian retention không pin LKG | Source §12.8, chưa live fault injection | O06 | Drill và closure evidence theo §12.8 |
-| I44 Health/recovery thiếu verification | Source §12.8, chưa live fault injection | O07 | Drill và closure evidence theo §12.8 |
-| I45 Release identity/dependency mutable | Source §12.8, chưa live fault injection | O05/O06 | Drill và closure evidence theo §12.8 |
-| I46 Runbooks/entrypoints/automation drift | Source §12.8, chưa live fault injection | P01/O05 | Drill và closure evidence theo §12.8 |
 
-### 12.3 Implementation playbook: 40 items sản phẩm; O05–O09 chi tiết tại §12.8
+### 12.3 Implementation playbook chi tiết cho 40 work items
 
 Các bước dưới đây là **kế hoạch thực hiện sau khi được duyệt**, không phải lệnh chạy ngay. Owner/dependencies lấy từ bảng §12; vị trí source lấy từ review và §11.4, xác nhận lại khi freeze baseline. Tên schema/event/field là contract đề xuất, chốt tương thích ở E01/P01 trước khi migration; không tự áp schema chỉ vì đã ghi trong plan.
 
@@ -1087,7 +925,7 @@ Các bước dưới đây là **kế hoạch thực hiện sau khi được duy
 
 | ID | Trình tự giải quyết cụ thể | Artifact/kiểm chứng và lưu ý chuyển đổi |
 |---|---|---|
-| P01 | (1) Freeze source SHA, deployed SHA và affected snapshots; (2) lập coverage map writer→renderer→export và gắn I01–I46; (3) chốt scope/budget/decision IDs; (4) sửa authority pointers và sau approval mới sửa generator đọc trạng thái G30 | Baseline manifest, decision log, issue-owner map; giữ lịch sử G1–G29; không ghi đè unrelated working tree hoặc tự đóng task từ commit subject |
+| P01 | (1) Freeze source SHA, deployed SHA và affected snapshots; (2) lập coverage map writer→renderer→export và gắn I01–I34; (3) chốt scope/budget/decision IDs; (4) sửa authority pointers và sau approval mới sửa generator đọc trạng thái G30 | Baseline manifest, decision log, issue-owner map; giữ lịch sử G1–G29; không ghi đè unrelated working tree hoặc tự đóng task từ commit subject |
 | Q01 | (1) Dựng fixtures từ repro review bằng dữ liệu được phép; (2) thêm missing/conflict/OCR/deck suffix/old-new/project/locale/provider-failure cases; (3) human-label expected claims, forbidden claims, formulas; (4) khóa development/holdout split | Versioned corpus + oracle và regression failure trước sửa; fixture synthetic ghi rõ, không chép raw customer data vào repo |
 | E01 | (1) Định nghĩa stable question/source/claim IDs và typed metric context; (2) nối claim→source excerpt→document/page/cell/hash; (3) tách answer/support/freshness/reviewer state; (4) thiết kế schema version, compatibility adapter, migration manifest | Schema mapping 13×4 questions + overlays; source permission kế thừa; missing legacy fields trở thành unknown, không default verified |
 | F01 | (1) Extract đầy đủ và ghi extraction completeness; (2) hash toàn input trước clipping; (3) tạo RunInputSnapshot và signals mới cho deck mới; (4) chỉ reuse project evidence theo provenance/version; (5) fail/needs_input nếu không có content dùng được | A→B fixture so signal/score/context; scanned/tables/end-of-deck/URL-only cases; không scoring từ URL string hoặc input cũ |
@@ -1097,7 +935,7 @@ Các bước dưới đây là **kế hoạch thực hiện sau khi được duy
 | F03 | (1) Cache key gồm full input/context/scope/locale/versions; (2) unique constraint đúng composite identity; (3) lưu final snapshot reference + quality metadata; (4) invalidate legacy key namespace; (5) replay cùng projector | Key-change tests từng dimension, unchanged hit parity; không migrate cache cũ thành verified; cache có thể bỏ/rebuild nhưng không xóa report lịch sử |
 | F04 | (1) Inventory guest/free/paid entry và giữ G28 free orchestrator; (2) chuyển legacy guest vào common final contract; (3) tách generation/artifact/channel state; (4) storage key riêng, resolver cấp URL có quyền; (5) bounded retry theo stage và refund/credit theo policy | Fault injection scrape/PDF/upload/sign/email; resume không charge/grant lại; old order/link mapping giữ; provider accepted không gọi inbox delivered |
 | T01 | (1) Trace mọi data writers/readers/tables/buckets; (2) đối chiếu migrations áp dụng thật khi có quyền; (3) profile scoped counts/nulls/orphans/dedup/retention; (4) quyết định canonical vs projection vs legacy; (5) định nghĩa access/restore contracts | Lineage matrix + redacted issue evidence, migration dry-run spec, restore plan; không tự sửa/delete records ở bước audit |
-| T02 | (1) Stable report identity mapping giữa stores; (2) final artifact persistence/reconciliation và retry; (3) backfill mapping theo batch idempotent, preserve originals; immutable revision tách daily snapshot/share token; affected-row/read-back checks; (4) unified scoped read model có cursor; (5) restore drill + old-link reconciliation | Mixed old/new/multi-project/guest cases, pre/post counts và content hashes; chuyển reader có fallback có nhãn, không recompute historical score bằng method mới |
+| T02 | (1) Stable report identity mapping giữa stores; (2) final artifact persistence/reconciliation và retry; (3) backfill mapping theo batch idempotent, preserve originals; (4) unified scoped read model có cursor; (5) restore drill + old-link reconciliation | Mixed old/new/multi-project/guest cases, pre/post counts và content hashes; chuyển reader có fallback có nhãn, không recompute historical score bằng method mới |
 
 F02 triển khai cơ chế finalization generic ở M1; A03 bổ sung investment-specific reconciliation ở M2. M1 chưa đủ điều kiện bán khi A03/V03/Q02 chưa đạt. Điều này tránh hiểu dependency F02→A03 là được publish assessment chưa qua business rules.
 
@@ -1119,21 +957,21 @@ F02 triển khai cơ chế finalization generic ở M1; A03 bổ sung investment
 
 | ID | Trình tự giải quyết cụ thể | Artifact/kiểm chứng và lưu ý chuyển đổi |
 |---|---|---|
-| U04 | (1) Inventory source routes/navigation/personas/states; (2) map mỗi page family tới one template; (3) annotated designs cho homepage/report/dashboard/billing/forms/admin; (4) hierarchy/parent/task/content-layer matrix và return journeys theo §10.12; (5) review responsive và content density | Route matrix có owner/retain/redirect/retire proposal; không tự bỏ route; design chuẩn bị sau M0, rollout phụ thuộc data contract |
+| U04 | (1) Inventory source routes/navigation/personas/states; (2) map mỗi page family tới one template; (3) annotated designs cho homepage/report/dashboard/billing/forms/admin; (4) review responsive và content density | Route matrix có owner/retain/redirect/retire proposal; không tự bỏ route; design chuẩn bị sau M0, rollout phụ thuộc data contract |
 | U01 | (1) Build L1 brief từ final snapshot; (2) L2 dimension synthesis; (3) L3 criteria/questions/evidence drawers và anchors; (4) critical caveats cạnh kết luận; (5) permission-safe source access | Brief tìm được thesis/risk/value/next step; keyboard/deep links; collapse không làm mất evidence; unknown state không hiện score0 |
 | U02 | (1) Shared export projection từ report ID/version; (2) Brief/Full templates; (3) preserve qualifiers, citations và units; (4) pagination/headings/chart fallback; (5) compare extracted text + visual render | Web/PDF/DOCX/email material parity; email link đúng snapshot/quyền; export retry không sinh lại analysis/narrative |
 | U03 | (1) Choose canonical tokens/primitives API; (2) compatibility wrapper old Button; (3) migrate callsites và states; (4) unify overlays/focus/i18n; (5) deprecate docs/CSS aliases sau inventory | Không third Button API; 44px target và accessible states; giữ alias tạm có expiry/owner, không bulk replace thiếu review |
 | U05 | (1) Current→proposed copy matrix từng slot/locale; (2) homepage/hero theo §10.5; (3) persona CTA và terminology; (4) pricing/feature/delivery proof audit; (5) reviewer comprehension rồi chốt | EN/VI equivalent, no unsupported logo/stat/SLA; source-based prices không tự publish trước B01/B02 parity |
 | U06 | (1) Rollout shared shell và family representatives; (2) migrate remaining route inventory; (3) check permission/data/error variants; (4) mobile/desktop/keyboard screenshots + task paths; (5) resolve exceptions | 100% routes có disposition; retained routes đạt design contract; SEO/redirect/navigation giữ; rollback theo family không mất data |
-| U07 | (1) Latest-final scoped resolver dựa T02; (2) cutoff/final/activity timestamps riêng; (3) library filters/search/cursor/dedup; (4) needs-attention và change summary; (5) empty/error/loading/stale states; (6) clickable value summaries, parent/Home và filter/context restoration theo §10.12; (7) reviewer tasks | Old+new path cùng startup chọn đúng final; upload không đổi report final time; failed refresh giữ last-good; 4/5 reviewer task acceptance theo §10.7 |
+| U07 | (1) Latest-final scoped resolver dựa T02; (2) cutoff/final/activity timestamps riêng; (3) library filters/search/cursor/dedup; (4) needs-attention và change summary; (5) empty/error/loading/stale states; (6) reviewer tasks | Old+new path cùng startup chọn đúng final; upload không đổi report final time; failed refresh giữ last-good; 4/5 reviewer task acceptance theo §10.7 |
 
 #### D. Pricing, vận hành và chứng minh sale readiness
 
 | ID | Trình tự giải quyết cụ thể | Artifact/kiểm chứng và lưu ý chuyển đổi |
 |---|---|---|
 | B01 | (1) Union mọi sold SKU/annual/add-on/credits/custom/legacy; (2) trace CSV/generated/DB/env/UI; (3) read-only Stripe audit khi có quyền; (4) amount/cadence/tax/units/features/access matrix; (5) decision log giải drift | §14 source snapshot chỉ baseline; không rename5aud ID, tự đổi giá/quota; unresolved live mapping = unverified, không match |
-| B02 | (1) Map CTA và checkout endpoints; (2) validate server SKU/customer/project mapping; (3) verify receipt/return/webhook→rights bằng common durable purchase operation, event lease/retry failed; cron/admin replay dùng cùng fulfillment; (4) replay/out-of-order/async/cancel/refund/renewal cases; (5) reconcile outstanding order state | Test-mode trước production có quyền; idempotency theo operation, không chỉ button disabled; preserve legacy renewal; Stripe mutations không nằm trong docs-only approval |
-| O01 | (1) Trace all callers và official/account model catalogue; (2) benchmark DeepInfra role shortlist và free candidates; (3) chốt champion/allowlist/quality floor; (4) hard all-task allowlist, BlockID consumer scope giữ external registry compatible; scoped cache/tier/quota admission + circuit/bounded retries; (5) canary/capacity/cost theo §11.3.1–11.3.4 | Qualified primary/fallback matrix, quality/cost/time limits; fallback hỏng thì explicit failure/partial scope, không hạ verification |
+| B02 | (1) Map CTA và checkout endpoints; (2) validate server SKU/customer/project mapping; (3) verify receipt/return/webhook→rights; (4) replay/out-of-order/async/cancel/refund/renewal cases; (5) reconcile outstanding order state | Test-mode trước production có quyền; idempotency theo operation, không chỉ button disabled; preserve legacy renewal; Stripe mutations không nằm trong docs-only approval |
+| O01 | (1) Trace all callers và official/account model catalogue; (2) benchmark DeepInfra role shortlist và free candidates; (3) chốt champion/allowlist/quality floor; (4) implement scoped cache/tier/quota admission + provider circuit/bounded retries; (5) canary/capacity/cost theo §11.3.1–11.3.4 | Qualified primary/fallback matrix, quality/cost/time limits; fallback hỏng thì explicit failure/partial scope, không hạ verification |
 | O02 | (1) Correlate run/input/report/order/artifact IDs; (2) log stage/provider/latency/cost/reason/retry/quality; (3) diagnostics redaction; (4) alerts theo action/owner; (5) dashboard failure denominator và freshness | Failure có trace, provider output không leak raw private inputs; stale telemetry có timestamp; no success-only KPI |
 | O03 | (1) Exercise free1/free2/paid3 và subscription; (2) guest→claim→library; (3) retry/reconnect/concurrency/failure delivery; (4) compare charged/granted/consumed/refunded counters; (5) capacity run windows §13 | Receipts + final artifact + delivery state; real run ghi rõ real/mocked/test mode; không gửi email/charge thật ngoài scope được cấp |
 | O04 | (1) Index fixtures comparable/new/missing/sample; (2) sửa delta semantics hoặc hide affected path theo decision; (3) reproduce CSP trên deployed SHA; (4) identify blocked script nonce/hash/hydration effect; (5) targeted fix và regression | CSP không thêm unsafe-inline theo phỏng đoán; root cause unconfirmed thì issue vẫn mở; Index visual không chặn content pipeline nếu scope exclude rõ |
@@ -1147,17 +985,17 @@ F02 triển khai cơ chế finalization generic ở M1; A03 bổ sung investment
 | ID | Trình tự giải quyết cụ thể | Artifact/kiểm chứng và lưu ý chuyển đổi |
 |---|---|---|
 | R04 | (1) Deck→hypotheses kể cả claims đã có; (2) standard competitor candidate selection/3–5 source-backed matrix; (3) map research tất cả criteria; (4) deep scope/output templates theo startup; (5) negative/counter-evidence và cross-criterion reuse; (6) validate incremental value | Baseline/deep examples cùng startup + evaluator rubric; không cố đủ competitor; không bịa private metrics; same truth gates trước publish |
-| B03 | (1) Audit callers/RPC/billing-service fallback; (2) foundation P0: atomic grant+ledger+common fulfillment, event lease, webhook/cron race và timeout outcome-unknown; (3) test concurrency/retry/reconcile trước; (4) deep integration sau R04: chốt action catalogue/fee policy và server quote/expiry/scope hash; (5) reserve+job/capture sau final/release/refund; (6) top-up/resume/partial scope tests | Ledger oracle trước-sau, approved catalogue, test-mode receipts; timeout không double spend; no price/Stripe mutation trong plan; reuse ledger hiện có nếu đạt contract |
+| B03 | (1) Audit credit costs/callers/RPC/billing-service fallback; (2) chốt action catalogue và fee policy; (3) server quote/expiry/scope hash; (4) atomic reserve+job, capture sau final, release/refund; (5) idempotent top-up/webhook/reconcile; (6) test concurrency/timeout/partial | Ledger oracle trước-sau, approved catalogue, test-mode receipts; timeout không double spend; no price/Stripe mutation trong plan; reuse ledger hiện có nếu đạt contract |
 | U08 | (1) Existing detail vs new research CTAs; (2) quote/balance/permission/input gate; (3) top-up chọn pack và preserve context; (4) explicit run confirm sau return; (5) job states/result/supplements; (6) revised snapshot notices và exports | Reviewer hiểu scope/cost/remaining credits; no charge reopen; refresh mới quote lại; critical findings không bị paywall khỏi summary đang được trình bày |
 
 ### 12.4 Thứ tự implementing hợp nhất và điểm bàn giao
 
-**Rev2.3:** thứ tự phase bên dưới được §12.8 thay thế bằng W0a/W0b safety trước production changes; các dependency kỹ thuật tiếp tục áp dụng. Đây là thứ tự phụ thuộc, không phải lịch ngày đã cam kết. Một work item có thể thiết kế sớm, nhưng chỉ `verified` khi dependencies và acceptance hoàn tất. Bảng wave không tự cho phép spawn implementation agents, chạy jobs, sửa source hoặc migrations. Sau approval, áp dụng phân công agent/skills ở §12.7; review agents read-only đã được user yêu cầu riêng.
+Đây là thứ tự phụ thuộc, không phải lịch ngày đã cam kết. Một work item có thể thiết kế sớm, nhưng chỉ `verified` khi dependencies và acceptance hoàn tất. Không spawn agents, chạy jobs, sửa source hoặc migrations từ kế hoạch này.
 
 | Wave | Nội dung | Điểm bàn giao/điều kiện sang wave kế |
 |---|---|---|
 | W0 / M0 | P01 → Q01/E01/T01; đồng thời chuẩn bị U04 và B01 inventory | Baseline + issue repro + contracts + inventory được chốt; scope/budget đủ cho bước tương ứng |
-| W1 / M1 | F01→E02→E03; V01; F02→F03/F04→T02; B02/B03 financial foundation sau B01/T01; O01→O02 | Truth/persistence/cache/delivery foundation passes; A03 business reconciliation vẫn pending, chưa sale |
+| W1 / M1 | F01→E02→E03; V01; F02→F03/F04→T02; O01→O02 | Truth/persistence/cache/delivery foundation passes; A03 business reconciliation vẫn pending, chưa sale |
 | W2 / M2 | R01→R02→R03; A01→A02→A03; R04; V02→V03 | Startup-specific golden reports với verified claims và explainable valuation |
 | W3 / M3 | U01→U02; U03/U05→U06; T02+U01→U07; chuẩn bị U08 designs | Finalized report + all-page template/copy + dashboard/library usable; no data/permission regression |
 | W4 / M4 | B02→B03→U08 nghiệm thu end-to-end; O03, Q02, S01→S02; O04 phải verify hoặc có scope disposition trước release | Measured content/payment/data/UX/economics evidence; unresolved failures quay về owning work item |
@@ -1190,141 +1028,6 @@ R01/O01 research/provider work chỉ chạy live khi capacity/budget đã đư�
 - Với business/value: reviewer/time/cost evidence, không thay bằng unit tests hoặc benchmark tự chấm.
 - Issue mới phát hiện thêm vào register này và nối một work item hiện có hoặc thêm item có owner/dependencies; cập nhật milestone/gate ngay trong G30. Không tạo implementing-plan độc lập, không âm thầm scope-cut.
 
-### 12.7 Spawn agents và skills — phân công triển khai sau approval
-
-**Review turn này:** user đã yêu cầu nêu spawn agent; root đã spawn3 agents read-only `report_review`, `billing_data_review`, `design_review`, tổng hợp findings tại §2.3/evidence annex. Điều đó không cho phép các agent bắt đầu code. **Implementation sau approval:** root làm integration owner; tối đa3 child agents cùng lúc (4 slots tổng), inherit model mặc định, không tự chọn model đắt/nhẹ hoặc spawn nested agents nếu chưa cần. Tool-agent Codex cho triển khai là cơ chế khác với AI agents chạy report qua DeepInfra, không tính chung quota/chi phí.
-
-**Spawn một agent chỉ khi:** task cụ thể/độc lập, input contracts đủ, không sửa cùng file với agent khác; root đang có phần integration hữu ích để làm. Mỗi assignment phải có work-item/I-IDs, read-only hoặc write scope, owned paths, dependencies, tests/artifacts, no-deploy/no-spend scope và handoff requirements. Nếu contract chưa ổn, agent làm review/spec/fixtures hoặc chờ dependency; không tự implement schema phỏng đoán.
-
-| Wave / lúc spawn | Child agent slot1 | Child agent slot2 | Child agent slot3 | Root chịu trách nhiệm |
-|---|---|---|---|---|
-| W0 baseline | `evidence_contracts`: Q01/E01/T01 inventory, draft contract | `billing_audit`: B01 + I37 source/fixtures, không đổi fee | `design_inventory`: U04/U05 copy và route/state map | P01 decisions, freeze common schema/IDs, one queue |
-| W1 foundation, chia thành batches theo dependency | `report_data`: F01/E02/E03 rồi F02/F03/T02 trong thứ tự | `billing_integrity`: B02/B03 foundation, credit/Stripe/cron | `provider_policy`: O01/O02, DeepInfra hard allowlist | Merge stable contracts, integration fixtures; F04 phối hợp sau F02, không hai agent sửa same writer |
-| W2 research/analysis | `research`: R01–R04 theo deps | `valuation`: V01–V03/A01 phần calculations, chờ normalized inputs | `independent_eval`: Q01 development cases, source review, không mở sealed holdout để tune | A02/A03 integration; một owner executive/orchestrator, kiểm valuation và research tương thích |
-| W3 UI, chỉ khi data contract stable | `design_system`: U03/U06 shared primitives + shells | `report_experience`: U01/U02, U08 designs sau shared API freeze | `dashboard_experience`: U07 adapters/UX sau T02 | Page-family routing/locale integration; resolve shared-file changes qua owner |
-| W4 purchase/evidence | `billing_research`: B03/B02 deep quote/top-up integration, U08 backend | `frontend_research`: U08 states/return/supplements | `independent_qa`: Q02/O03 browser/export/negative cases | S01/S02 buyer/economics; acceptance version freeze; O04 disposition |
-| W5 release proposal | `release_audit`: read-only gates/permissions/artifacts check nếu hữu ích | Không tự mở task mới | Không tự mở task mới | S03 decision packet, rollback/support; release chỉ trong phạm vi user cấp |
-
-Shared component API được chốt ở **design contract U04** trước W3; U01 dùng contract này, không phải chờ U03 migration hoàn tất. U03/U06 consolidation nghiệm thu sau U01 theo dependency table; tránh vòng chờ U01↔U03.
-
-Các tên trên là vai trò spawn đề xuất, **không phải9 agents chạy đồng thời**. Cùng vai trò có thể reuse bằng follow-up task hoặc spawn mới ở wave sau khi slot rảnh. Independent QA không tự approve output của chính implementation mình; root không đóng milestone bằng lời agent báo “done” mà phải xem tests/artifacts/diff.
-
-**File ownership và worktree:** schema/migrations cùng một Data owner; `ai-client`/registry cùng Provider owner; wallet/webhook/reconcile cùng Billing owner; tokens/Button/template cùng Design System owner; `orchestrator`/final projector cùng Report owner. Agent khác đề xuất patch/spec qua root hoặc chờ bàn giao. Isolated worktree khi cần code song song, root giữ merge quyền; không reset/revert unrelated work hoặc chạy automated deploy scripts. Deployment/schema changes theo `web/AGENTS.md` và runbook sau explicit scope; migrations không tự applied bởi deploy.
-
-| Skill hoặc tài liệu | Khi dùng / work items | Kết quả cần bàn giao |
-|---|---|---|
-| [ui-ux-pro-max](../../../.codex/skills/ui-ux-pro-max/SKILL.md) | U01/U03–U08: hero, all-page template, dashboard/report/purchase states | Annotated layouts, component/state/contrast/mobile checklist; giữ light/navy/Inter đã chốt, không lấy generated palette thay brand |
-| [playwright](../../../.codex/skills/playwright/SKILL.md) | O03/U-items/S01: browser navigation, intake recovery, viewport/keyboard/flows | Screenshots/snapshots + task evidence; authenticated flows dùng quyền được cấp; không tự charge/email/inference |
-| [pdf](../../../.codex/skills/pdf/SKILL.md) | U02/Q02 khi render/review PDF layout và extraction parity | Brief/full render checks, page breaks/citations/table readability; DOCX dùng tooling source phù hợp, không giả pdf skill kiểm mọi format |
-| `web/AGENTS.md` + local Next docs | Mọi agent viết Next source sau approval | Đọc relevant `web/node_modules/next/dist/docs/` trước code; không dùng training memory thay version thực |
-| Source tests + official provider/Stripe docs | E/F/R/V/B/O items | Không có skill billing/valuation chuyên biệt được cài trong session; dùng repo contracts, deterministic tests, domain reviewer; không invent skill hoặc cài plugin để làm checklist |
-
-Skill paths trên resolve từ docs/plans tới `/home/dovanlong/.codex/skills`; nếu môi trường thay đổi phải rediscover path trước dùng. Skills đã dùng trong review: ui-ux-pro-max và playwright bởi design agent. PDF skill dự kiến dùng khi thực sự review export, chưa tạo PDF mới trong turn này. Imagegen không cần cho report proof dựa dữ liệu; Figma/GitHub/Stripe plugins không là prerequisite. Security chuyên sâu chỉ dùng skill tương ứng khi có yêu cầu riêng; quyền dữ liệu/billing integrity vẫn là acceptance bắt buộc của task hiện tại.
-
-**Handoff chuẩn:** requirement IDs → source snapshot/owned files → implementation hoặc review output → tests/evals + logs → open issues/limits → migration/rollback → root verification. Không gửi thông tin riêng tư/keys cho agent hoặc log không cần thiết. Không agent nào tự gửi khách hàng, mua credits/provider capacity, đổi giá/Stripe hoặc deploy ngoài authorization của parent/user.
-
-### 12.8 Re-prioritization rev2.3: vận hành liên tục trước mọi production change
-
-**Yêu cầu mới:** blockid.au phục vụ24/24; khi candidate lỗi phải phục hồi về **bản gần nhất đã được xác minh chạy tốt và còn tương thích**, không đơn thuần commit trước hoặc thư mục mới thứ hai. Không thể chứng minh hay hứa tuyệt đối100% availability bằng một health check. G30 đặt mục tiêu không gián đoạn do deploy, theo dõi uptime thực và diễn tập phục hồi; host/network/DB failure cần redundancy riêng. Không hạ report-quality gates để giữ HTTP200.
-
-**Review bổ sung22/09/2026 05:06UTC:** source HEAD `977574979`, live `/api/status`200/version`v3.28.2`/SHA`3396adc00e78144ec86788db3fb03edf51abb1bc`; `/` và `/pricing`200. Manifest deployed_at04:55:23Z cùng live SHA; HEAD mới hơn chỉ đổi live-QA test/telemetry theo diff. Inventory vẫn382 pages/682 API routes. Các checks này chứng minh reachability tại thời điểm đo, không chứng minh24h uptime hoặc authenticated flows. Review source có chọn lọc theo toàn bộ subsystem và findings trước, không tuyên bố đã đọc từng dòng5305 files. Chưa chạy deploy/rollback/cleanup, paid AI, DB mutation hoặc full test suite mới.
-
-**Giữ lại cải tiến có sẵn:** deploy lock, dirty-tree refusal, temp smoke, immutable release-directory concept, automatic post-swap rollback có verification, current/previous protection trong `deploy-live.sh` prune, ledger migrations thủ công và test gates. Các lỗi dưới đây là gaps cụ thể, không phải đề nghị rewrite toàn bộ infrastructure.
-
-| Issue mới | Bằng chứng source và tác động | Cách giải quyết / owner |
-|---|---|---|
-| I41 Stop-before-start deploy | `web/scripts/deploy-live.sh:1288–1322` kill process/fuser, sleep2, rồi start mới; temp candidate đã bị stop ở1233. Comment zero-downtime không chứng minh cutover liên tục | O05: candidate chạy song song, readiness rồi proxy switch, drain process cũ; test requests liên tục |
-| I42 Manual rollback false-success / chọn nhầm target | `deploy-live.sh:430–499` log success/exit0 sau curl không yêu cầu HTTP200; archive chọn2nd-newest, current/previous đổi chỗ có thể đưa bản lỗi trở lại | O06: verified compatible LKG catalogue, quarantine bad release, explicit health outcome/exit status, bounded recovery; không dùng mtime làm health |
-| I43 Guardian xóa release cần phục hồi | `scripts/cron/uptime-24x7-guardian.sh:86–99` trim2/3 newest không kiểm current/previous như deploy prune đã làm | O06: một retention policy và shared lock, pin active/candidate/draining/LKG, capacity preflight và protected paths |
-| I44 Health/recovery thiếu xác nhận | Guardian: local `/`200, 3ticks khoảng6phút theo comment cadence; rollback background, reset counter ngay và chỉ log attempted. Chưa xác minh cron thực đang bật | O07: independent external probe + scoped readiness, controller state machine/cooldown, recovery verified và escalation; audit actual schedulers |
-| I45 Release chưa hoàn toàn độc lập | `deploy-live.sh:1058–1085` reuse BUILD_ID với rm release dir, hardlinks và symlink Next runtime vào mutable source node_modules; nguy cơ rebuild/update dependency làm thay bản LKG | O05/O06: unique release identity, frozen runtime dependencies/artifact checksum, no overwrite pinned target; test dependency change/redeploy collision |
-| I46 Runbooks/entrypoints/automation drift | `web/DEPLOY_RULES.md`9gates vs `docs/ops/deploy.md`12; root `deploy.sh` Docker path khác canonical; AGENTS mô tả automated reset và commit-subject closure | P01/O05: audit callers/cron/service thực; một authorized release controller, docs generated from actual gates, human/agent approval state tách commit subject; không mặc định legacy scripts đang active |
-
-#### A. Thứ tự ưu tiên mới — áp dụng cho toàn bộ45 work items
-
-Bảng này **thay thứ tự waves ở §12.4 khi khác nhau**, không tạo queue khác. §12 task table là nguồn ID/dependency; §12.8 là thứ tự phase/rollout. P0 là an toàn vận hành/facts/data/money; P1 là giá trị report và UX cần bán; P2 là cải tiến phụ có disposition rõ. Không có task bắt buộc nào bị âm thầm bỏ. O05–O09 là5 work items mới, tổng45; các40 items trước giữ nguyên IDs.
-
-| Phase / thứ tự | Work items và trình tự | Exit gate / được phép làm tiếp |
-|---|---|---|
-| W0a — baseline và production protection | P01; O05 inventory/candidate contract; O06 LKG/cleanup/rollback foundation; O07 monitor/recovery foundation; O09 dependency/restore inventory. Q01,E01,T01,B01,U04 chuẩn bị contracts song song khi độc lập | Baseline freeze, active automations và release owner rõ, known-good target verified, rollback plan/dry-run và resource headroom. Chưa có production change tự động |
-| W0b — chứng minh đường phát hành an toàn | O05→O06 integrated cutover/recovery; O07 checks; O09 restore drill/topology decision | Candidate giữ old process phục vụ; fail-before-switch không ảnh hưởng live; post-switch rollback verified; backups restore được. Gate bắt buộc trước G30 production rollout; local source/spec work độc lập có thể tiến hành sớm |
-| W1 — sửa sai report, dữ liệu và tiền | F01→E02→E03→F02→F03/F04→T02; V01; B02/B03 atomic foundation sau B01/T01; O01→O02; O08 durable-job design rồi tích hợp sau F02/T01 | Không false facts/final/saved/delivered; không duplicate debit/grant; old links/data compatible. Mỗi release nhỏ qua O05–O07, không chờ xong toàn G30 mới sửa blocker |
-| W2 — giá trị phân tích | R01→R02→R03; A01→A02→A03; V02→V03; R04; O08 job/provider-failure acceptance | Research theo business, source-supported competitors/criteria, valuation có căn cứ, reconciled report; quality evidence theo Q01/Q02, không demo narrative thay validation |
-| W3 — UX toàn site và exports | U04 contracts→U01→U02; U03/U05→U06; T02/U01→U07; U08 design. O04 CSP diagnosis sớm nếu ảnh hưởng auth/render, Index phần phụ theo disposition | Light-only, menu/parent/Home/content layers và all-route coverage; report/export/version parity; UI không làm thay semantics/data |
-| W4 — thương mại và kiểm định | B02/B03 full integration→U08; O03,Q02; S01→S02; O08/O09 final drills và O04 disposition | Actual quality/payment/jobs/data/UI/uptime/economics evidence; fee policy được duyệt trước tính phí, không dependency vòng với S02 |
-| W5 — controlled sale | S03 sau tất cả dependencies + O05–O09 | Release/rollback/support packet, scoped founder approval; monitor/canary/soak đạt, không tự mở rộng traffic |
-| W6 — vận hành24/24 | O07/O08/O09 ongoing; S03 review cohort, quality/cost/support/availability | Scale dựa measured reliability và business value; incidents đóng bằng evidence; freeze upgrades nếu error budget/critical issue vượt ngưỡng |
-
-**Điều chỉnh priority:** B01 lênP0 vì catalogue là đầu vào financial integrity; U03/U06 lênP1 vì light/readability/full-site requirement; O05–O09 P0. R/A/V research vẫn P1/P0 theo task table và là ưu tiên giá trị cao nhất sau safety/factual fixes. O04 giữP2 cho Index phụ; bất kỳ CSP chặn login/report được triageP0/P1 theo impact, không đợi W4. Design drafts/inventory có thể chuẩn bị W0, không chiếm quyền phát hành trước safety gates.
-
-#### B. Deploy không cắt dịch vụ — O05
-
-1. Chốt actual topology: reverse proxy/CDN, port/process supervisor, worker, cron, DB/storage/Redis, filesystem mounts và resource budgets. Không suy blue-green đã có vì có temp port. Audit mọi deploy/build/reset/cleanup entrypoint; một lock/owner/state machine cho promotion và recovery, không tắt monitoring khi freeze upgrades.
-2. Build từ committed isolated source; artifact mang source SHA, build ID, dependency/lock digest, schema compatibility range, config version và gates. Manifest lỗi là release blocked; `--skip-build` chỉ dùng artifact có provenance tương ứng, không stamp HEAD mới lên bundle cũ. Emergency path giữ identity/readiness/rollback gates, exceptions phải được ghi và duyệt.
-3. Candidate và current chạy đồng thời, ports riêng do inventory chốt; release-owned dependencies không trỏ mutable source. Check CPU/RAM/disk đủ chạy hai bản cộng worker; nếu thiếu phải bổ sung capacity hoặc tách build host trước, không kill old để lấy chỗ build. Unique release IDs; build collision phải abort, không rm active release.
-4. Candidate readiness gồm critical config/schema compatibility, auth/read path, report fixture/artifacts, CSS/chunks/hydration; providers phụ không làm liveness toàn site fail. Không chạy paid inference hoặc real payment trong health probes.
-5. Validate proxy config, switch traffic sang candidate đã healthy, verify public+origin identity và synthetic journeys. Giữ old process warm và drain in-flight HTTP/SSE; old asset URLs còn dùng được trong compatibility window, server-action/version skew có recovery giữ draft. Không retry POST/charge mù khi reverse proxy failover.
-6. Pilot/canary nếu topology hỗ trợ safe scope, sau đó tăng traffic theo evidence; nếu chưa hỗ trợ canary, dùng verified switch với warm rollback và ghi rõ giới hạn. Soak đề xuất30phút sau cutover, theo dõi24h trước đánh dấu stable lâu dài. Không serialize việc theo dõi24h bằng giữ shell lock cả ngày; deployment controller quản release state rõ.
-
-Cơ sở kỹ thuật: [nginx process control](https://nginx.org/en/docs/control.html) mô tả graceful reload và workers cũ xử lý requests đang mở; **suy luận G30:** phối hợp proxy reload với hai app instances healthy và drain có kiểm chứng, không coi reload proxy tự bảo đảm app zero downtime.
-
-#### C. LKG và rollback đúng nghĩa — O06
-
-Lưu release catalogue với `candidate / serving / verified-good / quarantined / retired`, timestamps, checksums, health evidence, schema/config compatibility và rollback eligibility. **LKG là newest verified-good compatible**, không tự động previous hoặc newest successful build. Candidate chưa qua soak không đẩy mất stable fallback. Có thể có bản serving tốt nhưng feature report bị tắt vì known quality issue; ghi rõ scope, không gọi toàn bộ sản phẩm verified-good.
-
-Rollback trigger: post-cutover identity/readiness/hydration lỗi, critical route regression, error spike xác nhận hoặc data/payment integrity incident. Integrity incident ưu tiên pause affected writes/jobs ngay; rollback application chỉ khi target còn compatible. Pipeline/health controller dùng cùng transaction/lock, tránh watchdog và deploy đánh nhau; không xóa lock inode để chen ngang. Recovery ưu tiên hơn queued deploy, có bounded timeout/escalation, không chờ30phút mới xử lý site chết.
-
-Trình tự: khóa promotion→quarantine candidate→kiểm target/files/dependencies/schema→start/warm target nếu chưa chạy→switch proxy→verify origin/public identity và critical journeys→drain bad instance→ghi outcome. Chỉ `success` khi probes đạt; `attempted`, `failed`, `unavailable` phải khác nhau. Không quay tự động lại quarantined build; tối đa một rollback mỗi failed release, retry có giới hạn/cooldown và escalation khi không có healthy target. Không auto-rollback app cho external AI/Stripe outage khi cả hai versions bị cùng lỗi.
-
-Retention dùng chung helper/policy: pin serving/candidate/draining/latest-good và ít nhất một verified fallback bổ sung nếu capacity cho phép; mọi cleanup script phải kiểm resolved paths/pins và lock. Khi disk không đủ, stop build/new promotion và xử lý removable cache/log theo policy trước; không xóa bản đang phục vụ để giữ quota số lượng. Archive có checksum, dependency completeness và off-host copy. Không gọi cold archive phục hồi trong vài giây khi chưa diễn tập.
-
-App rollback không reverse financial ledger hoặc xóa reports mới. Expand/contract schema qua nhiều releases, dual-reader compatibility và worker payload versions; retire old schema chỉ khi hết rollback window, backfill verified và rollback target được cập nhật. Nếu không target compatible, tắt affected feature/write path có thông báo rõ, giữ phần đọc an toàn và fix forward có kiểm định; tuyệt đối không khôi phục toàn DB làm mất giao dịch sau deployment chỉ để quay code cũ.
-
-#### D. Monitoring24/24 và phục hồi jobs — O07/O08
-
-Phân biệt liveness(process), readiness(critical serving), dependency health, business journeys và report quality. External probes từ ít nhất hai failure domains, origin probes và heartbeat của chính monitor; kiểm DNS/TLS/CDN/cached-response identity. Homepage200 chỉ là một signal, không thay login→library→existing report→export test. Synthetic accounts fixtures riêng được duyệt; không lộ tài liệu thật/charge tự động.
-
-Mục tiêu engineering đề xuất: probes mỗi30–60s; xác nhận incident sau2–3 failures độc lập/consistent; detection≤2phút, warm compatible rollback phục hồi≤5phút từ confirmed incident. Đây là targets phải diễn tập, không claim current SLA. Web/core-read availability mục tiêu99.95% rolling30days, đo riêng report-generation success/latency theo §13 và billing integrity. Planned downtime cũng tính; toàn outage/degraded windows có denominator rõ; cached homepage không làm che downtime workspace. Nếu chưa đạt, hiển thị kết quả thực và giữ status chưaverified.
-
-O07 runbook: owner/on-call và backup owner, severity/escalation, incident ID, current release/LKG/last probe, automatic action/outcome, manual recovery và postmortem. Thiết kế alert channel trong plan; chỉ cấu hình/gửi messages khi user cấp phạm vi tương ứng. Freeze nonessential releases khi critical incident hoặc error budget cạn; phục hồi service và reconciliation trước feature work.
-
-O08 tách request lifecycle khỏi report job: durable job ID, persisted checkpoints, lease/heartbeat, cancellation, bounded retries và idempotent finalization; drain worker không nhận job mới, job đang chạy hoàn thành hoặc checkpoint/resume. Restart/deploy/SSE disconnect không chạy lại tính phí từ đầu. Orphan reservation có expiry/reconciliation, payment side effects theo B02/B03, không claim exactly-once toàn distributed system. Admission control/per-account fairness/queue bounds bảo vệ interactive đọc report; AI/provider down thì giữ existing verified reports, hiển thị queued/retry state và scope rõ, không trả fabricated fallback report. Thiết kế theo [Google SRE — Handling Overload](https://sre.google/sre-book/handling-overload/): phân loại ưu tiên và giới hạn tải; G30 giữ nguyên evidence-quality floor khi giảm tải.
-
-#### E. Disaster recovery và bài nghiệm thu bắt buộc — O09
-
-Blue-green cùng host bảo vệ deploy, **không** bảo vệ mất host/disk/region. Inventory phải xác minh DB/Redis/object storage đang local hay managed; lập phương án backup off-host, restore và second failure-domain capacity với costs. Để đáp ứng24/24 khi host hỏng, cần warm standby/multi-host và data replication/failover phù hợp, không chỉ một bản build backup cùng disk. Chưa có topology/budget thì ghi dependency chưa chốt, không gọi HA đã xong; không tự mua infrastructure.
-
-Đặt RPO/RTO riêng cho DB/credits/orders, uploaded documents/final reports, job queue và telemetry. Mục tiêu app rollback không mất committed transactions; whole-host disaster RPO/RTO phải được chốt từ replication/backup capability và diễn tập trước S03, không áp chung “5phút” của warm app rollback. Khôi phục backup vào môi trường cách ly, kiểm counts/checksums/report access và ledger balance; không dùng production restore để thử nghiệm.
-
-| Failure drill | Kết quả bắt buộc / owner |
-|---|---|
-| Build/temp smoke/dependency/package lỗi | Old traffic không gián đoạn, candidate không promote; O05 |
-| Reuse BUILD_ID hoặc update source node_modules | Active/LKG không thay đổi; O05/O06 |
-| Candidate lỗi sau switch, rollback target trả500 | Outcome đúng failed, không log success; chuyển eligible target hoặc escalate; O06/O07 |
-| Guardian cleanup khi LKG cũ hơn retention window | Active/LKG/draining files nguyên vẹn; lock race covered; O06 |
-| Concurrent deploy/rollback/watchdog | Một controller quyết định, không ping-pong hoặc kill nhầm; O05–O07 |
-| Deploy trong lúc report chạy / webhook retry | Resume đúng job/report version, không duplicate spend/grant/final; O08/B02/B03 |
-| Provider outage / DB outage / full disk | Degradation theo dependency, không rollback loop hoặc false READY; O07–O09 |
-| New schema + old application / cold restore | Compatibility verified hoặc promote bị chặn; no destructive data rollback; O06/O09/T02 |
-| Host/network failure | Independent monitor phát hiện; restore/failover đo RTO/RPO và data parity; O09 |
-
-Bằng chứng gồm release IDs, timeline, request-error counts trong cutover, concurrent user/session/stream results, latency, rollback target và persisted transaction checks. Diễn tập trên môi trường cách ly trước; production drill chỉ theo scope được cấp. Không phá live site để chứng minh uptime. Mỗi release giữ packet này và quality/business gates; S03 không thể pass chỉ bằng HTTP200 hay test suite green.
-
-**Agent ownership bổ sung:** sau approval, W0 có thể phân `release_safety` O05/O06 và `reliability_audit` O07/O09 read-only/spec song song với report-contract work nếu đủ slot. Một owner duy nhất sửa deploy/proxy/supervisor/cleanup; không hai agents cùng quản process. O08 phối hợp Report/Billing owners sau contract freeze. Vẫn tối đa3children + root; không spawn thêm ngoài giới hạn hoặc cho agent tự deploy. Dùng official nginx/local framework docs; playwright cho browser continuity khi thực sự thực thi, không cần cài skill/plugin mới để lập plan.
-
-
-### 12.9 Implementation status — cập nhật bằng evidence
-
-Approval22/09/2026 bắt đầu W0a. Đây là status của cùng45 items, không queue mới. Review/proposal statements cũ giữ làm lịch sử; dùng approval đầu tài liệu và bảng này để điều hành.
-
-| Item | Status | Evidence / next gate |
-|---|---|---|
-| P01 | IN PROGRESS | Archived approved rev2.3; baseline source977574979/live3396adc00 v3.28.2; freeze actual automation/topology next |
-| O05 | IN PROGRESS — inventory | Root + read-only runtime inventory; chưa đổi proxy/process |
-| O06 | IN PROGRESS — implementation | Agents xử lý I42 rollback verification và I43 protected retention, isolated tests; chưa deploy |
-| O07/O09 | IN PROGRESS — inventory | Read-only actual monitoring/backups/resources; chưa chạy failure drill |
-| Remaining items | PENDING | Theo dependency §12/phase§12.8, chưa có closure evidence |
-
 ## 13. Quality gates và định nghĩa ready for sale
 
 Các ngưỡng dưới đây là **đề xuất acceptance để founder review**, chưa phải kết quả đo hiện tại hoặc SLA công bố. Automated evaluator không được là bằng chứng duy nhất cho factual accuracy.
@@ -1345,14 +1048,11 @@ Các ngưỡng dưới đây là **đề xuất acceptance để founder review*
 | Critical citation correctness | **100%** claim critical source-supported có source thật và khớp nội dung | ID/excerpt/entity/metric/period checks + analyst inspection |
 | Noncritical citation precision | ≥98% trên claim-level annotated holdout | Số citation đúng / citation được review; luôn ghi n, không tuyên bố accuracy toàn thị trường |
 | Question coverage | **100%** applicable questions có answer/partial/missing/conflict state | Không yêu cầu 100% answered hay verified; not-applicable cần reason |
-| Business specificity | ≥90% material analytical statements được reviewer xác nhận gắn vào startup/context cụ thể | Swap-name test + sources + cause→implication; generic framework text tách riêng |
+| Startup specificity | ≥90% material analytical statements được reviewer xác nhận gắn vào startup/context cụ thể | Swap-name test + sources + cause→implication; generic framework text tách riêng |
 | Contradictions | **0 unresolved critical contradictions** trong final conclusion hoặc giữa các surface | Narrative/structured executive/table/valuation/score facts graph checks |
 | Arithmetic/provenance | **100%** displayed derived material metrics tái tính được và có input lineage | Currency/period, formula, rounding, ownership/valuation test cases |
 | Unknown handling | **0** missing→0 hoặc assumption→actual sai nhãn | Adversarial cases và rendered exports |
-| Continuous operation / rollback | O05–O09 verified trước S03; every production rollout có healthy compatible LKG và safe cutover; no false rollback success | §12.8 failure drills, external monitoring, release identity, measured RTO/RPO, restore/data parity; không dùng homepage200 thay uptime |
-| Actual light-only surfaces | All site-owned reading surfaces sáng/chữ tối, cả saved-dark/OS-dark; không chỉ metadata/default | U03/U06/O04 §10.11 rendered colours + visual/contrast/state inventory; không transparent=white assumption |
 | Design/copy coverage | 100% route inventory có disposition nghiệm thu; mọi retained page dùng template chung; exceptions cần quyết định rõ | U04–U06 route matrix, visual/function checks, copy proof audit và homepage comprehension ≥4/5 reviewers |
-| Navigation & information density | Mọi retained route có hierarchy/primary task, safe parent/Home; summaries dẫn đúng detail/context; critical findings không bị giấu | U04/U06 matrix + U01/U07/U08 return journeys, keyboard/direct-link/history checks; S01 ≥4/5 hoàn thành từng core task theo §10.12 |
 | Criterion research/credits | Baseline external research có nguồn; deep results đúng scope; no duplicate spend/charge-on-expand; top-up/resume/refund đúng | R04/B03/U08 fixtures, ledger reconciliation và investor task review; prices phải được duyệt |
 | AI routing/cost/capacity | DeepInfra primary; exact-ID qualified free fallback, no paid spillover; quality gates giữ nguyên | O01/O02 role benchmark, quota audit, outage/load/cost evidence theo §11.3.4 |
 | Price/Stripe parity | 100% SKU thực bán khớp giá/cadence/currency/entitlement và route; 0 duplicate fulfillment trong cases | B01/B02 catalogue + checkout/webhook/reconciliation evidence; live chưa audit phải ghi rõ |
@@ -1520,10 +1220,6 @@ Mỗi thay đổi yêu cầu mới phải sửa chính plan và acceptance liên
 | D07 Sequence | M0→M1 truth→M2 depth→M3 UX→M4 proof→M5 sale | Chờ duyệt |
 | D08 Money/packaging | Giữ giá/quota hiện tại; chốt search/provider/eval budget và pricing trước paid rollout mới | Chưa cấp ngân sách hay thay SKU |
 | D09 Quality gates | Corpus/claim-level/independent reviewer + live delivery, không dùng groundedShare làm gate duy nhất | Chờ duyệt |
-| D20 Availability and reprioritization | Safety-first phases §12.8, continuous operation, verified-compatible LKG/rollback/retention/jobs/DR;45 work items | Founder yêu cầu24/24 và rollback; targets/topology cần kiểm chứng, chỉ plan chưa execution |
-| D19 Simple whole-site navigation | Một hierarchy theo persona, dashboard value summaries→detail; safe parent/Home, context restoration, progressive disclosure theo §10.12 | Founder yêu cầu rõ; ui-ux-pro-max + source/reference review; chỉ plan, chưa implementation |
-| D18 Actual light-only site | Toàn blockid.au nền sáng/chữ tối, bỏ legacy dark opt-in/restore; kiểm actual rendered contrast, không dựa metadata (§10.11) | Founder yêu cầu rõ; root cause đã repro, chưa sửa code/theme/runtime |
-| D17 Final review & agent execution | Rev2.0 source3.28.2 delta reviewed/live3.28.1 at04:30UTC, I35–I38, early billing integrity, §12.7 bounded spawn/skills; root owns integration | Review agents đã chạy read-only theo yêu cầu; implementation chưa được cho bắt đầu |
 | D16 Business-wide terminology/scope | Business/company thay startup ở generic messaging; stage-specific lenses cho early/growth/Series A/B/established (§10.10) | Founder yêu cầu rõ; từng scope cần validation trước sale, chưa code |
 | D15 Hero & homepage | Benefit-led investor-first message và proof trực quan, giữ URL/text/file intake; §10.5/10.8–10.9 thay program/cohort-first copy | Founder yêu cầu scope rõ; draft copy/layout cần review, chưa code/publish |
 | D14 AI provider policy | DeepInfra primary tối ưu cost/accepted-report; other providers chỉ qualified free fallback theo task quality + effective quota (§11.3.1–11.3.4) | Founder quyết định scope rõ; exact model selection/budget qua evaluation, chưa code/config/spend |
@@ -1542,11 +1238,11 @@ Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi 
 
 - **22/09/2026 — G30 rev1.2, PROPOSED:** thêm source-grounded pricing/Stripe review, source price-list snapshot, data lineage/persistence/lifecycle, dashboard/library/latest-update semantics và usability; B01–B02/T01–T02/U07 đưa backlog lên 37 work items, nối milestones và sale gates. Source bổ sung đọc tại `d1ba4a614`; chưa audit private Stripe/production DB, chưa code/migration/checkout/charge/deploy.
 
-- **22/09/2026 — G30 rev1.3, PROPOSED:** hợp nhất cách giải quyết toàn bộ issues đã phân tích bằng register I01–I39, implementation playbook cho đủ 37 work items, W0–W6 dependency waves, migration/rollback và closure packet (§12.2–12.6). Không phát sinh queue độc lập; mọi remediation còn NOT STARTED. Chỉ sửa plan, chưa code, chưa thay database/Stripe/runtime hoặc deploy.
+- **22/09/2026 — G30 rev1.3, PROPOSED:** hợp nhất cách giải quyết toàn bộ issues đã phân tích bằng register I01–I34, implementation playbook cho đủ 37 work items, W0–W6 dependency waves, migration/rollback và closure packet (§12.2–12.6). Không phát sinh queue độc lập; mọi remediation còn NOT STARTED. Chỉ sửa plan, chưa code, chưa thay database/Stripe/runtime hoặc deploy.
 
 - **22/09/2026 — G30 rev1.4, PROPOSED:** ghi nhận xác nhận của founder rằng toàn bộ góp ý, review và yêu cầu điều chỉnh áp dụng cho site `blockid.au` và tất cả trang con của site; bao gồm public/authenticated/persona/admin/dynamic routes, không chỉ trang đã review mẫu. Làm rõ integrations phục vụ site và loại trừ domain/repo riêng; thêm D12. Giữ nguyên 37 work items và trạng thái chưa implementation; chỉ cập nhật plan.
 
-- **22/09/2026 — G30 rev1.5, PROPOSED:** bổ sung proactive deck-driven research, competitor matrix 3–5 và research/deep-dive cho 13 criteria; phân biệt included detail với research mới bằng credits, quote/top-up/reservation/refund/supplements. Thêm R04/B03/U08: 40 work items, I01–I39; cập nhật dependency/gates và D13. Bảo toàn standard report research/entitlements, không quyết định giá mới hay code/Stripe/data changes.
+- **22/09/2026 — G30 rev1.5, PROPOSED:** bổ sung proactive deck-driven research, competitor matrix 3–5 và research/deep-dive cho 13 criteria; phân biệt included detail với research mới bằng credits, quote/top-up/reservation/refund/supplements. Thêm R04/B03/U08: 40 work items, I01–I34; cập nhật dependency/gates và D13. Bảo toàn standard report research/entitlements, không quyết định giá mới hay code/Stripe/data changes.
 
 - **22/09/2026 — G30 rev1.6, PROPOSED:** DeepInfra primary, role-based model shortlist và cost/accepted-report; tận dụng caching/structured output/tiers/batch theo capability và measured economics; free-only external fallback có quality/quota allowlist, no paid spillover. Mở rộng O01/O02/Q01/Q02/S02 và D14, giữ 40 work items. Giá public là USD snapshot; chưa inference/account audit, chưa code/config/spend/deploy.
 
@@ -1555,15 +1251,3 @@ Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi 
 - **22/09/2026 — G30 rev1.8, PROPOSED:** làm mạnh message theo investor outcome “Know the startup before you invest”, đồng bộ hero draft/wireframe; thêm benefit-proof matrix, case-based visual story, giá trị riêng từng persona và comprehension/experiment plan tại §10.9. Merge U04/U05/U06/S01, giữ40 work items. Chưa code/publish hoặc chạy experiment.
 
 - **22/09/2026 — G30 rev1.9, PROPOSED:** business-first wording cho hero/intake/CTA và phạm vi toàn site; mở audience tới startup, growth/Series A/B và established businesses, thêm stage/applicability/valuation/corpus readiness matrix ở §10.10; cập nhật D02/D16, giữ40 work items. Chưa code/publish, không đổi IDs/routes/Stripe hoặc tự tuyên bố mọi scope đã support.
-
-- **22/09/2026 — G30 rev2.0 FINAL REVIEW PROPOSAL:** revalidate source83c6a55d3/live3.28.1, independent3-agent review; preserve G29 mitigations, add I35–I38 snapshot/routing/credit/persistence issues. Consolidate business-first authority,40-item backlog with earlyP0 financial integrity and separate U08 integration gate, add §0 decision overview and §12.7 spawn/skills ownership. Typecheck +1,061 scoped tests pass; not sale/readiness proof. Docs only, no implementation/deploy/spend.
-
-- **Final delta check04:30:29UTC:** external release advanced source to3396adc00/3.28.2 (hub-tab sr-only positioning fix + metadata); source diff reviewed. Live status remained3.28.1, deployed_at for3.28.2 empty; no claim3.28.2 deployment complete. Root review still docs-only; no additional broad tests required for unchanged report/billing modules.
-
-- **22/09/2026 — G30 rev2.1 FINAL REVIEW PROPOSAL:** confirmed live saved-dark reproduction: meta trắng nhưng html/body#0b0f1a; thêm I39 và §10.11 light-only toàn site thay default-light/explicit-dark. Đồng bộ migration/theme/CSP/contrast/QA acceptance trong40 work items hiện có. Browser tests chỉ contexts tạm, chưa code/CSS/runtime/deploy.
-
-- **22/09/2026 — G30 rev2.2 FINAL REVIEW PROPOSAL:** áp dụng ui-ux-pro-max và đối chiếu navigation source; thêm §10.12 whole-site IA, dashboard value mapping, page content layers, parent/Home/deep-link/history và purchase-return journeys. Bổ sung I40/D19, merge owner/gates vào40 work items; giữ report quality và light-only, không mở queue mới. Chỉ cập nhật plan, chưa code/runtime/deploy.
-
-- **22/09/2026 — G30 rev2.3 FINAL REVIEW PROPOSAL:** revalidated live3.28.2 at05:06UTC và source977574979; review deploy/guardian/rollback thêm I41–I46. Thêm O05–O09 nâng queue45 items, ưu tiên W0a/W0b safety→truth/data/money→research→UX→commerce/evidence→sale. §12.8 đặc tả parallel cutover, compatible verified LKG, protected cleanup, independent monitoring, durable jobs và host-failure DR; D20/gates đồng bộ. Chỉ docs, chưa code/test deployment/rollback/DB mutation/spend.
-
-- **22/09/2026 — G30 rev2.4 APPROVED IMPLEMENTATION:** founder cấp implementation, agents, commits và live deployment theo phase/gates. Bắt đầu W0a, archived approved input; chỉ status có evidence mới được closed.
