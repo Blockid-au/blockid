@@ -1,8 +1,9 @@
 {
-  "version": "v3.33.1",
-  "updated_at": "2026-09-22T16:25:28.558348+00:00",
-  "release_id": "g30-account-authority-budget",
+  "version": "v3.33.2",
+  "updated_at": "2026-09-22T17:46:50.177174+00:00",
+  "release_id": "g30-personal-report-wallet-authority",
   "shipped_summary": [
+    "v3.33.2 — Owned-report wallet connection with explicit version-bound acceptance and revocation; private report snapshots and additive-schema rollback support. Connection does not charge credits. New paid research remains disabled.",
     "v3.33.1 — Signed SVI account-status authority and closed-account rejection. Atomic Brave budget, wallet admission and bounded ephemeral discovery foundations included; customer paid research remains disabled.",
     "v3.33.0 — Preserve final audited business analysis per criterion, with expandable web detail and paid PDF/DOCX parity. Rejected narratives remain withheld; existing reports are not backfilled. No new research charge or scoring activation.",
     "v3.32.1 — Evaluator pricing default, consistent admin@blockid.au support, private-route discovery exclusions, public-demo crawl correction and factual sitemap dates. Criterion research coverage and quote-consent/free-qualification prerequisites included; paid re-analysis and new scoring activation remain pending.",
