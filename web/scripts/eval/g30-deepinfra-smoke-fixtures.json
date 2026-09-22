@@ -1,0 +1,216 @@
+[
+  {
+    "id": "S01",
+    "topic": "financial units",
+    "evidence": {
+      "E1": "AcaciaLedger current MRR A$100,000; SAM A$310M; customer count 310; churn 0.5%; LTV/CAC 3.4x. No company valuation supplied."
+    },
+    "facts": {
+      "mrr_aud": 100000,
+      "sam_aud": 310000000,
+      "customers": 310,
+      "churn_pct": 0.5,
+      "ltv_cac_ratio": 3.4
+    },
+    "gaps": [
+      "valuation_inputs"
+    ],
+    "competitors": [],
+    "fact_sources": {
+      "mrr_aud": [
+        "E1"
+      ],
+      "sam_aud": [
+        "E1"
+      ],
+      "customers": [
+        "E1"
+      ],
+      "churn_pct": [
+        "E1"
+      ],
+      "ltv_cac_ratio": [
+        "E1"
+      ]
+    }
+  },
+  {
+    "id": "S02",
+    "topic": "missing is not zero",
+    "evidence": {
+      "E1": "Bank Gum Studio revenue not supplied.",
+      "E2": "Zero active subscriptions. Founder requests business value."
+    },
+    "facts": {
+      "revenue_aud": null,
+      "active_subscriptions": 0
+    },
+    "gaps": [
+      "current_revenue",
+      "valuation_inputs"
+    ],
+    "competitors": [],
+    "fact_sources": {
+      "revenue_aud": [
+        "E1"
+      ],
+      "active_subscriptions": [
+        "E2"
+      ]
+    }
+  },
+  {
+    "id": "S03",
+    "topic": "explicit zero",
+    "evidence": {
+      "E1": "Saltbush Tools August 2026 financial statement explicitly reports AUD MRR 0. No company valuation or methodology supplied."
+    },
+    "facts": {
+      "mrr_aud": 0
+    },
+    "gaps": [
+      "valuation_inputs"
+    ],
+    "competitors": [],
+    "fact_sources": {
+      "mrr_aud": [
+        "E1"
+      ]
+    }
+  },
+  {
+    "id": "S04",
+    "topic": "currency entity period conflict",
+    "evidence": {
+      "E1": "WattlePay parent FY2025 total revenue USD1.2M.",
+      "E2": "WattlePay AU subsidiary August 2026 recurring receipts AUD90k.",
+      "E3": "Founder deck claims AUD150k MRR without a period. No reconciliation or FX evidence."
+    },
+    "facts": {
+      "parent_fy2025_revenue_usd": 1200000,
+      "subsidiary_aug2026_receipts_aud": 90000,
+      "undated_deck_mrr_claim_aud": 150000
+    },
+    "gaps": [
+      "reconciliation",
+      "fx",
+      "valuation_inputs"
+    ],
+    "competitors": [],
+    "fact_sources": {
+      "parent_fy2025_revenue_usd": [
+        "E1"
+      ],
+      "subsidiary_aug2026_receipts_aud": [
+        "E2"
+      ],
+      "undated_deck_mrr_claim_aud": [
+        "E3"
+      ]
+    }
+  },
+  {
+    "id": "S05",
+    "topic": "negative cash flow and founder ask",
+    "evidence": {
+      "E1": "RiverOps operating cash flow -A$100k; refunds 100; monthly gross margin .5%. Founder proposes raising A$2M at A$10M pre-money; this is an ask, not an assessed value."
+    },
+    "facts": {
+      "operating_cash_flow_aud": -100000,
+      "refund_count": 100,
+      "gross_margin_pct": 0.5,
+      "founder_raise_ask_aud": 2000000,
+      "founder_premoney_ask_aud": 10000000
+    },
+    "gaps": [
+      "valuation_inputs"
+    ],
+    "competitors": [],
+    "fact_sources": {
+      "operating_cash_flow_aud": [
+        "E1"
+      ],
+      "refund_count": [
+        "E1"
+      ],
+      "gross_margin_pct": [
+        "E1"
+      ],
+      "founder_raise_ask_aud": [
+        "E1"
+      ],
+      "founder_premoney_ask_aud": [
+        "E1"
+      ]
+    }
+  },
+  {
+    "id": "S06",
+    "topic": "competitor abstention",
+    "evidence": {
+      "E1": "Fictional cafe invoice-reconciliation business claims no competition. No retrieved sources. Investor asks for 3–5 researched competitors."
+    },
+    "facts": {},
+    "gaps": [
+      "competitor_research",
+      "valuation_inputs"
+    ],
+    "competitors": [],
+    "fact_sources": {}
+  },
+  {
+    "id": "S07",
+    "topic": "three competitors and duplicate source",
+    "evidence": {
+      "E1": "Retrieved synthetic fixture https://coralbooks.test, observed 2026-09-22: CoralBooks offers accounting and payables.",
+      "E2": "Retrieved synthetic fixture https://billfern.test, observed 2026-09-22: BillFern offers invoice matching for cafes.",
+      "E3": "Retrieved synthetic fixture https://ledgerwren.test, observed 2026-09-22: LedgerWren offers supplier workflows.",
+      "E4": "Duplicate BillFern URL https://billfern.test. No pricing, market share or private revenue evidence for any competitor."
+    },
+    "facts": {},
+    "gaps": [
+      "competitor_pricing",
+      "market_share",
+      "valuation_inputs"
+    ],
+    "competitors": [
+      "CoralBooks",
+      "BillFern",
+      "LedgerWren"
+    ],
+    "fact_sources": {}
+  },
+  {
+    "id": "S08",
+    "topic": "EN VI investor summary",
+    "evidence": {
+      "E1": "Bottlebrush Services August 2026 revenue AUD120k/month; operating costs AUD100k/month (cost scope incomplete); two customers account for 70% of revenue. Renewal terms missing. Owner seeks capital; no valuation supplied."
+    },
+    "facts": {
+      "monthly_revenue_aud": 120000,
+      "monthly_operating_costs_aud": 100000,
+      "concentrated_customer_count": 2,
+      "customer_concentration_pct": 70
+    },
+    "gaps": [
+      "renewal_terms",
+      "complete_costs",
+      "valuation_inputs"
+    ],
+    "competitors": [],
+    "fact_sources": {
+      "monthly_revenue_aud": [
+        "E1"
+      ],
+      "monthly_operating_costs_aud": [
+        "E1"
+      ],
+      "concentrated_customer_count": [
+        "E1"
+      ],
+      "customer_concentration_pct": [
+        "E1"
+      ]
+    }
+  }
+]
