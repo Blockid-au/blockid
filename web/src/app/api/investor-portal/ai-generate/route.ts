@@ -1,11 +1,11 @@
 // Internal AI proxy for startupvalueindex.com — lets the sibling standalone
-// app on :4002 reuse blockid.au's ai-client (Claude CLI OAuth → Anthropic API
-// key → OpenAI → Gemini fallback chain). Locked to server-to-server calls from
+// app reuse BlockID's scoped DeepInfra-first report dispatcher, with qualified
+// free fallbacks. Local SVI fallbacks are governed separately. Server calls from
 // 127.0.0.1 to keep it off the public surface.
 
 import "server-only";
 import { NextResponse } from "next/server";
-import { callAI } from "@/lib/ai-client";
+import { callAI, type AICallOptions } from "@/lib/ai-client";
 import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
@@ -104,12 +104,22 @@ async function POST_handler(req: Request) {
   }
   const wantsJson = body.responseFormat === "json";
   const system = wantsJson ? rawSystem + JSON_PRIMER : rawSystem;
-  const callOpts = {
+  const bounded = (value: unknown, fallback: number, min: number, max: number) =>
+    typeof value === "number" && Number.isFinite(value) ? Math.max(min, Math.min(value, max)) : fallback;
+  const budgetMs = Math.floor(bounded(body.timeoutMs, 120_000, 1_000, 240_000));
+  // One server-selected policy and deadline cover both the first attempt and
+  // optional JSON repair. Request JSON cannot select a paid fallback/provider.
+  const callOpts: AICallOptions = {
+    policy: "blockid-report-v1",
+    taskClass: "report",
+    agentId: "svi:investor-portal",
+    budgetMs,
+    deadlineAt: Date.now() + budgetMs,
     system,
     user,
-    maxTokens: Math.min(body.maxTokens ?? 4000, 16_000),
-    temperature: body.temperature ?? (wantsJson ? 0.2 : undefined),
-    timeoutMs: Math.min(body.timeoutMs ?? 120_000, 300_000),
+    maxTokens: Math.floor(bounded(body.maxTokens, 4000, 1, 16_000)),
+    temperature: bounded(body.temperature, 0.2, 0, 1),
+    timeoutMs: budgetMs,
   };
   try {
     let out = await callAI(callOpts);
@@ -138,7 +148,9 @@ async function POST_handler(req: Request) {
     return NextResponse.json({
       ok: true,
       text,
-      provider: out.provider,
+      provider: out.via ?? out.provider,
+      model: out.model,
+      policy: out.policy,
       responseFormat: wantsJson ? "json" : "text",
       retried,
     });
