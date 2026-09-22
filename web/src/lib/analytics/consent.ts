@@ -56,7 +56,12 @@ function callGtagConsent(mode: "granted" | "denied"): void {
   // Ensure dataLayer exists even if the loader script hasn't finished yet;
   // gtag.js drains the queue when it initialises.
   window.dataLayer = window.dataLayer || [];
-  const gtag: Gtag = (...args: unknown[]) => window.dataLayer!.push(args);
+  // Google processes gtag commands as Arguments objects, not plain arrays.
+  // Use the parser-installed bootstrap when present; preserve its queue format
+  // if consent is changed before that bootstrap is available.
+  const gtag: Gtag = typeof window.gtag === "function" ? window.gtag : function () {
+    window.dataLayer!.push(arguments);
+  };
   gtag("consent", "update", {
     ad_storage: mode,
     analytics_storage: mode,

@@ -10,7 +10,7 @@
 // SSR-safety contract — every helper must no-op when `window` is
 // undefined so a server-render call site cannot crash.
 
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   getConsent,
@@ -40,6 +40,7 @@ interface FakeDocument {
 interface FakeWindow {
   localStorage: FakeStorage;
   dataLayer?: unknown[];
+  gtag?: (...args: unknown[]) => void;
 }
 
 function makeStorage(): FakeStorage {
@@ -83,6 +84,7 @@ function install(win?: Partial<FakeWindow>, doc?: FakeDocument): {
   const fake: FakeWindow = {
     localStorage: storage,
     dataLayer: win?.dataLayer,
+    gtag: win?.gtag,
   };
   const g = globalThis as unknown as { window?: FakeWindow; document?: FakeDocument };
   const prevWindow = g.window;
@@ -232,9 +234,9 @@ describe("grantConsent", () => {
     expect(ctx.win.dataLayer).toBeDefined();
     const layer = ctx.win.dataLayer!;
     expect(layer).toHaveLength(1);
-    // gtag() pushes its arguments as a single Arguments-like array/object.
-    // The consent-update helper spreads (kind, action, params) so the entry
-    // reads like ["consent", "update", { ad_storage, ... }].
+    // A plain array looks similar but is not a Google gtag command.
+    expect(Object.prototype.toString.call(layer[0])).toBe("[object Arguments]");
+    expect(Array.isArray(layer[0])).toBe(false);
     const entry = layer[0] as unknown[];
     expect(Array.from(entry)).toEqual([
       "consent",
@@ -307,6 +309,7 @@ describe("denyConsent", () => {
     denyConsent();
     const layer = ctx.win.dataLayer!;
     expect(layer).toHaveLength(1);
+    expect(Object.prototype.toString.call(layer[0])).toBe("[object Arguments]");
     const entry = layer[0] as unknown[];
     expect(Array.from(entry)).toEqual([
       "consent",
@@ -364,5 +367,20 @@ describe("consent state round-trip", () => {
     expect(state.granted).toBe(false);
     // hasResponded remains true — a denial is still an explicit answer.
     expect(hasResponded()).toBe(true);
+  });
+});
+
+
+describe("installed gtag command dispatch", () => {
+  it("uses the installed bootstrap for both consent grant and revocation", () => {
+    const gtag = vi.fn();
+    const ctx = install({ gtag }, makeDocument());
+    try {
+      grantConsent();
+      denyConsent();
+      expect(gtag.mock.calls.map(call => [call[0], call[1], (call[2] as { analytics_storage: string }).analytics_storage]))
+        .toEqual([["consent", "update", "granted"], ["consent", "update", "denied"]]);
+      expect(ctx.win.dataLayer).toEqual([]);
+    } finally { ctx.restore(); }
   });
 });
