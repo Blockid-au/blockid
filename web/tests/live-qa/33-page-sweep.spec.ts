@@ -209,6 +209,14 @@ async function pinFloatingPills(context: BrowserContext, baseURL: string, route:
     await page.goto(`${baseURL}${route}`, { waitUntil: "networkidle", timeout: 45_000 });
     const stack = page.getByTestId("floating-stack");
     await expect(stack, `${route}: the floating stack host is mounted`).toHaveCount(1);
+    // A fresh seat has not answered the consent banner yet, and the pill only
+    // renders once it has (revocable consent) — reject analytics first, the
+    // same path a real first visit takes; the read-only sweep stays read-only.
+    const banner = page.getByRole("dialog", { name: "Analytics consent" });
+    if (await banner.isVisible().catch(() => false)) {
+      await banner.getByRole("button", { name: "Reject" }).click();
+      await expect(banner, `${route}: consent banner closes on Reject`).toBeHidden({ timeout: 10_000 });
+    }
     const cookie = stack.getByTestId("cookie-prefs-pill");
     const feedback = stack.getByTestId("feedback-pill");
     await expect(cookie, `${route}: cookie-prefs pill sits inside the stack`).toBeVisible({ timeout: 15_000 });
