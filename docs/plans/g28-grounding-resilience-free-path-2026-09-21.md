@@ -2,7 +2,7 @@
 
 **Opened:** 2026-09-21 after G24–G27 closed at v3.26.1. Standing directive: continuous — lanes → merge → full suite once → deploy → full QA + ui-ux check + review → fixes → close.
 **Tracked in:** `docs/plans/SOURCE-OF-TRUTH.md` § G28 · `ROADMAP.md` row G28.
-**Status:** OPEN — lanes launching on v3.26.1 (`280404ce3`).
+**Status:** CLOSED 2026-09-22 — v3.27.0 → v3.27.2 live; lanes A/B/C/D shipped; review 2 P1 / 3 P2 / 3 P3 + 7 UX fixes shipped; KPI 0.85 pinned, not verified live (provider outage); see SOT § G28.
 
 ## 1. Sources
 - G24-D / G27 close: showcase `groundedShare` 0.82 vs KPI 0.85; residuals = model-invented specifics the critic catches (customer_size "2.7 % conversion", gtm "1,400 entities", documents ASIC fee, website content strategy).
