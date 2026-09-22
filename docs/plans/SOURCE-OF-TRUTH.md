@@ -2080,3 +2080,19 @@ The EN/VI business intake now uses “See the business clearly before you invest
 Typed discovery coverage is included in the release: budget/provider failure, cancellation and incomplete search remain distinct from successful empty results, and limitations are preserved through synthesis/review. The research worker is still dormant; delivery of its source is not activation of customer research, charging or score updates. Retry query binding is separately committed as `a25b567` in an isolated branch, pending integration/deployment.
 
 Next financial release preparation now explicitly creates two private paused baseline clones **before** staging the pending-schema candidate. They remain registered and unserved until the planned window; current public purchases stay unchanged during preparation. The staging record blocks further allocation, so later promotion uses these already retained processes. Operational tools and financial SQL/manifest are separate commits; only tooling is eligible for canonical installation at this step. Private candidate building does not itself apply SQL, create receipts or authorize public promotion.
+
+
+### Next implementation contracts — after live c585147 phase
+
+Canonical operational tooling is installed as `1f6f90365` + `f3b19241d`; financial SQL is still absent from the primary migration directory. Exact staging helper bytes match the isolated candidate. SVI immutable approved-query retry binding is merged as `addfe03`, **not yet part of the live c585147 binary**.
+
+The unpaused purchase path requires a separate legacy-history transition before it can claim closure-safe atomic fulfillment. Old wallet update and ledger insert were not one transaction, so a missing historical ledger row cannot prove a purchase was never granted. Implement the following conservative authority policy in a separately reviewed draft0452 wrapper, leaving0443–0445/0447 unchanged:
+
+- Exact single verified historical session/account/credit record: acknowledge existing fulfillment without another wallet mutation.
+- Conflicting records or missing history without a trusted stored order: explicit reconciliation; no automatic regrant and no legacy fallback on RPC/Stripe failure.
+- Verified stored order: use atomic receipt fulfillment with account/session serialization; closed accounts cannot acquire a recreated wallet.
+- New checkout creation remains governed by the explicit receipt-creation setting and verified catalogue. Merely selecting a runtime protocol cannot imply database/catalogue verification or silently create orders while reporting creation disabled.
+
+This source phase must cover webhook/reconcile consistency, different-event same-session races, before-claim retry behavior and truthful status capabilities. It does not authorize activating the draft or changing current prices. The staged0443–0445 transition and later safe unpause are distinct operational milestones.
+
+In parallel, implement the real shared model-attempt ledger: explicit trusted job/month authorization and approved price policy; full certified input/output cost reservation before each request; replay denial; held cost for ambiguous/incomplete usage; bounded cumulative call/job/account spend. The inactive DeepInfra price evidence remains input for review, not an enabled policy. Missing ledger requires explicit provisioning and cannot reset spent budget.
