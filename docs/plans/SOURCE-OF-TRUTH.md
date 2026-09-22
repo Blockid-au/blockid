@@ -1337,6 +1337,7 @@ Approval22/09/2026 bắt đầu W0a. Đây là status của cùng45 items, khôn
 | O01 provider scope | PARTIAL CANDIDATE / NOT RELEASED | Four main report adapters enforce existing DeepInfra-only policy; no qualified external fallback yet. Routing tests pass, held-out quality/cost/availability evaluations and legacy direct-route coverage remain open |
 | B02 checkout guard | PARTIAL CANDIDATE / NOT RELEASED | Missing Stripe/price returns503 instead of granting unpaid credits;33 mocked tests passed. Does not close B03 atomic fulfillment, price parity or webhook reconciliation |
 | U03 light foundation | PARTIAL CANDIDATE / NOT RELEASED | Legacy theme migration and shared light tokens;84 unit tests and12 compiled-CSS browser fixture cases passed. Actual site/authenticated-page acceptance and full U06 redesign still pending |
+| R01 external retrieval | SOURCE GAP CONFIRMED / NOT IMPLEMENTED | Existing market helper uses general model knowledge, not retrieved competitor pages. [Retrieval readiness](../reviews/2026-09-22-g30-research-retrieval-readiness.md) records provider documentation and bounded credential check; no configured search provider found in the checked names. Model hypotheses must not be advertised as verified web research. Retrieval/quotas/source coverage and held-out evaluation remain open |
 | Remaining items | PENDING | Theo dependency §12/phase§12.8, chưa có closure evidence |
 
 ## 13. Quality gates và định nghĩa ready for sale
