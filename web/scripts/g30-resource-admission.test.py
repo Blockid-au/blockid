@@ -23,8 +23,21 @@ class Admission(unittest.TestCase):
  def test_seventh_origin_cannot_use_permit(self):
   with self.assertRaises(ValueError):m.validate(self.policy,self.state,self.sha,self.sample,150,6)
  def test_memory_build_reserve_and_pressure_fail_closed(self):
-  for patch in ({'available_bytes':23*m.GIB},{'memory_psi10':1},{'cpu_psi10':20},{'load5':5},{'release_free_bytes':15*m.GIB}):
+  for patch in ({'available_bytes':18*m.GIB-1},{'memory_psi10':1},{'cpu_psi10':20},{'load5':5},{'release_free_bytes':15*m.GIB}):
    with self.assertRaises(ValueError):self.valid(**patch)
+ def test_prebuild_sequential_peak_keeps_full_operating_reserve(self):
+  self.assertEqual(self.valid(available_bytes=18*m.GIB)['required_available_bytes'],18*m.GIB)
+  self.assertEqual(m.OPERATING_RESERVE,8*m.GIB)
+  self.assertEqual(m.BUILD_RESERVE,10*m.GIB)
+  self.assertEqual(m.CANDIDATE_BYTES,6*m.GIB)
+ def test_canonical_build_precedes_candidate_launch(self):
+  source=Path(__file__).with_name('deploy-live.sh').read_text()
+  allocation=source.index('TEMP_PORT=$(g30_state --allocate')
+  build=source.index('BUILD_OUTPUT=$(npm run build 2>&1)')
+  completed=source.index('BUILD_EXIT=$?',build)
+  launch=source.index('SUPERVISED=$(python3',completed)
+  self.assertLess(allocation,build);self.assertLess(completed,launch)
+  self.assertNotIn(' &',source[build:completed])
  def test_post_build_rechecks_candidate_plus_operating_reserve(self):
   sample={**self.sample,'available_bytes':15*m.GIB}
   self.assertEqual(m.validate(self.policy,self.state,self.sha,sample,150,5,'launch')['required_available_bytes'],14*m.GIB)

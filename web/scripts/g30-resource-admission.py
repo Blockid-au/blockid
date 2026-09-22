@@ -83,9 +83,13 @@ def validate(policy,state,candidate_sha,sample,now,count,stage="allocate"):
     if policy.get('retained_digest')!=retained_digest(state) or state.get('phase')!='stable':
         raise ValueError('retained set/active changed since approval')
     if stage not in ('allocate','launch','register'): raise ValueError('unknown admission stage')
-    reserve=CANDIDATE_BYTES+OPERATING_RESERVE+(BUILD_RESERVE if stage=='allocate' else 0)
+    # deploy-live awaits the compiler before freezing/launching the candidate.
+    # Existing origins are already charged in MemAvailable. Keep the operating
+    # reserve throughout; compiler and the NEW candidate are sequential costs.
+    # Launch/register independently resample after build, never reuse allocation.
+    reserve=OPERATING_RESERVE+(max(BUILD_RESERVE,CANDIDATE_BYTES) if stage=='allocate' else CANDIDATE_BYTES)
     if sample['available_bytes']<reserve:
-        raise ValueError('insufficient candidate+operating+build memory reserve')
+        raise ValueError('insufficient stage-specific memory reserve')
     if sample['effective_cpus']<4 or sample['load5']>sample['effective_cpus']/2 or sample['cpu_psi10']>10 or sample['memory_psi10']>.1:
         raise ValueError('CPU/memory contention outside admission budget')
     if sample['release_free_bytes']<16*GIB or sample['tmp_free_bytes']<6*GIB:
