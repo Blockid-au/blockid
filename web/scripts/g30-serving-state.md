@@ -89,3 +89,11 @@ Only the canonical nginx site configuration and reserved origin ports are allowe
 It preserves symlink target ownership/mode, backs up, tests configuration,
 reloads gracefully, and verifies a new worker generation. Its optional drain
 result is HTTP-only and never authorizes detached-job termination.
+
+## Accelerated phase capacity (22 September 2026)
+
+Admission counts live or unknown retained processes. An inactive, non-previous,
+quarantined entry whose Linux PID directory is absent does not consume a live
+process slot. Its state, port reservation and release pin remain intact.
+Unreadable procfs and reused PIDs remain counted. This is not job retirement;
+live process drain and full O08 completion remain open.

@@ -34,6 +34,22 @@ class ServingTests(unittest.TestCase):
             result = m.main()
         return result, out.getvalue(), err.getvalue()
 
+    def test_dead_quarantined_capacity_preserves_pins_and_history(self):
+        self.data['retained'] = list(self.entries)
+        self.data['quarantined'] = [4100]
+        before = copy.deepcopy(self.data)
+        with patch.object(Path, 'stat', side_effect=FileNotFoundError):
+            self.assertEqual(m.retained_capacity(self.data), 2)
+        self.assertEqual(self.data, before)
+        m.write_state(self.web, self.data)
+        self.assertEqual(len(json.loads((self.web / 'content/reports/release-retention-pins.json').read_text())['paths']), 3)
+        for result in (PermissionError(), MagicMock()):
+            with patch.object(Path, 'stat', side_effect=result if isinstance(result, Exception) else None, return_value=result):
+                self.assertEqual(m.retained_capacity(self.data), 3)
+        self.data['previous'] = self.entries[1]
+        with patch.object(Path, 'stat', side_effect=FileNotFoundError):
+            self.assertEqual(m.retained_capacity(self.data), 3)
+
     def test_missing_only_bootstrap_and_malformed_failclosed(self):
         self.assertEqual(self.command('--port')[:2], (0, '4001\n'))
         m.state_path(self.web).write_text('{}')

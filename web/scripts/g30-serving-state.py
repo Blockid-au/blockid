@@ -171,6 +171,29 @@ def write_state(web, data):
     atomic_json(state_path(web), data)
 
 
+def retained_capacity(data):
+    """Count live/unknown entries; keep dead quarantined artifacts pinned.
+
+    Only a missing Linux PID directory can release a capacity slot. A reused
+    PID, unreadable procfs, active/previous entry or non-quarantined process
+    remains counted. This neither retires jobs nor makes a release eligible.
+    """
+    protected = {data['active']['port']}
+    if data.get('previous'):
+        protected.add(data['previous']['port'])
+    count = 0
+    for entry in data['retained']:
+        if entry['port'] in data['quarantined'] and entry['port'] not in protected:
+            try:
+                Path(f'/proc/{entry["pid"]}').stat()
+            except FileNotFoundError:
+                continue
+            except OSError:
+                pass
+        count += 1
+    return count
+
+
 def allocate(data, web=None):
     if web is not None:
         pin = web / ".next-candidate"
@@ -178,7 +201,7 @@ def allocate(data, web=None):
             retained_paths = {e["releasePath"] for e in (data or {}).get("retained", [])}
             if str(pin.resolve(strict=True)) not in retained_paths:
                 raise ValueError("Unregistered candidate remains pinned; inspect before another admission")
-    if data and (data['phase'] != 'stable' or len(data['retained']) >= MAX_RETAINED):
+    if data and (data['phase'] != 'stable' or retained_capacity(data) >= MAX_RETAINED):
         raise ValueError('Promotion blocked: switching or retained-process cap (5); never kill to free capacity')
     available = int(re.search(r'^MemAvailable:\s+(\d+)', Path('/proc/meminfo').read_text(), re.M).group(1))
     if available < MIN_AVAILABLE_KIB:
@@ -261,7 +284,7 @@ def main():
             if not data:
                 raise ValueError('Initialize known-good serving state first')
             if args.register:
-                if data['phase'] != 'stable' or len(data['retained']) >= MAX_RETAINED:
+                if data['phase'] != 'stable' or retained_capacity(data) >= MAX_RETAINED:
                     raise ValueError('Candidate registration deferred: phase/cap')
                 entry = make_entry(web, args.listen_port, args.pid, args.release)
                 if any(e['port'] == entry['port'] or e['pid'] == entry['pid'] for e in data['retained']):
