@@ -26,7 +26,7 @@ export class OriginActivity {
     return { version: 1, ...this.identity, draining: this.draining, persistenceFailed: this.persistenceFailed,
       activities: Object.fromEntries(this.activities), trackedWorkDrained: this.draining && this.activities.size === 0 && !this.persistenceFailed,
       retirementEligible: false, coverage: "http_and_selected_background_scopes",
-      remainingCoverage: ["other_detached_tasks", "database_job_ownership_and_ambiguous_effects", "external_workers_and_child_processes"] };
+      remainingCoverage: ["upgrade_connections", "other_detached_tasks", "database_job_ownership_and_ambiguous_effects", "external_workers_and_child_processes"] };
   }
   private persist() {
     const temporary = this.file + ".tmp";

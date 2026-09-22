@@ -40,3 +40,19 @@ Installed Next shutdown source was inspected: production SIGTERM waits server.cl
 Private status now exposes origin_draining; serving-state verification refuses an admission-closed runtime as a serving/rollback target until explicit resume. Existing health/status200 cannot silently promote an origin that rejects customer traffic. Unknown legacy flag remains unknown, not evidence of quiescence; existing root semantic quarantine is separate.
 
 Validation:4 registry cases plus1 real local Node HTTP admission/drain fixture passed; scoped registry/hook TypeScript check passed. This is not a production Next fixture or full background-job drain acceptance.
+
+## Real Next follow-up before rollout
+
+Root ran the installed Next production build/start on a minimal localhost
+fixture using the actual registry and HTTP hook. Strict Next typechecking
+caught three overloaded emit spread errors; fixed using Reflect.apply.
+Startup installed the registry in the serving PID; drain rejected new work,
+a detached tracked email remained visible after HTTP completion, explicit
+release settled it, and resume restored ordinary requests. Retirement
+eligibility remained false. Empty/invalid drain actions now return400.
+
+One bounded HTML sample with tracking/fsync enabled:60 requests, concurrency4,
+559ms total,49ms p95. This is not production load or full job coverage proof.
+Fixture uses no database, production credentials, model calls or network
+research. `web/scripts/ops/check-next-origin-drain.mjs` is the reproducible
+runner; only fixture-owned processes are started/stopped.

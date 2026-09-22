@@ -13,7 +13,7 @@ async function postHandler(request: Request) {
   const registry = originActivity();
   if (!registry) return Response.json({ retirementEligible: false, reason: "registry_unavailable" }, { status: 503 });
   const body = await request.json().catch(() => ({})) as { action?: string };
-  if (body.action && body.action !== "drain" && body.action !== "resume") return Response.json({ error: "invalid_action" }, { status: 400 });
+  if (body.action !== "drain" && body.action !== "resume") return Response.json({ error: "invalid_action" }, { status: 400 });
   return Response.json(body.action === "resume" ? registry.resume() : registry.drain(), { headers: { "Cache-Control": "no-store" } });
 }
 
