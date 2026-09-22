@@ -391,6 +391,13 @@
 - **Next action:** none — G25 closed.
 - **Blocker:** none.
 
+### G29 — Provider capacity automation · degraded-run diagnostics · free-report verification · persona copy · index sample logic
+- **Source:** [`docs/plans/g29-provider-capacity-verification-2026-09-22.md`](./g29-provider-capacity-verification-2026-09-22.md) — the G28 close-out gaps: the free chain failed end-to-end on 2026-09-21 (dead rungs 402/404 waste 27 attempts per run), degraded runs leave no audit dump, the free real run is unexercised, evaluator persona copy, `/startup-index` sample movers, phone pill overlap, `/ja` CSP line.
+- **Lanes:** A dead-rung pruning + unfunded-provider alerting · B degraded-run diagnostics (dump + strike ledger + `/admin/funnel` row) · C free real-run verification (merge session, once healthy) + persona-aware copy + pill stacking + sweep allow-list · D index movers logic.
+- **Status:** **OPEN 2026-09-22** — lanes launching on v3.27.2.
+- **Next action:** merge → full suite → v3.28.0 → deploy → QA + ui-ux check + review → close.
+- **Blocker:** founder item #9 (paid AI capacity) decides whether the free funnel is reliable; engineering mitigations ship regardless.
+
 ### G28 — Grounding to the KPI · provider resilience · free-grant path on ReportV2 · print + SVI app parity
 - **Source:** [`docs/plans/g28-grounding-resilience-free-path-2026-09-21.md`](./g28-grounding-resilience-free-path-2026-09-21.md) — the open items at the G24–G27 close: showcase 0.82 vs 0.85, two fully-degraded showcase runs on DeepInfra worker timeouts, the free-grant path still e-mailing the S32 PDF, `@page` / `?band=` deviations, the SVI app still dark.
 - **Lanes:** A grounding ≥ 0.85 (residual-pattern prompt rules + computed rows, ≤ 2 paid runs) · B provider resilience (45 s per model, run-scoped strikes, W4 budget reserve, digest line) · C free-grant runs through the ReportV2 pipeline (v3 document + investment-view e-mail) · D print rules, `/tbr/demo?band=`, startupvalueindex.com light template.
