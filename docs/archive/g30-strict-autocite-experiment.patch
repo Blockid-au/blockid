@@ -1,0 +1,283 @@
+diff --git a/web/src/lib/report-pipeline/auto-cite.test.ts b/web/src/lib/report-pipeline/auto-cite.test.ts
+index 951d43d18..600c52d3c 100644
+--- a/web/src/lib/report-pipeline/auto-cite.test.ts
++++ b/web/src/lib/report-pipeline/auto-cite.test.ts
+@@ -86,14 +86,15 @@ describe("autoCite", () => {
+     expect(r.added).toBe(1);
+   });
+ 
+-  it("uses the model’s own verbatim quotes as citable text, but only for allowed ids", () => {
++  it("never treats a model quote as evidence merely because its source ID is allowed", () => {
+     const items = itemsFromCatalogue([{ evidence_id: ID_A, label: "Startup description", content: "A founder gets a free score." }]);
+     const cites = [
+       { evidence_id: ID_A, quote: "Cohort 25 A$5,000/yr and Cohort 100 A$15,000/yr" },
+       { evidence_id: ID_B, quote: "MRR is A$77k" },
+     ];
+     const r = autoCite("Cohort 25 costs A$5,000 a year. MRR is A$77k.", items, cites);
+-    expect(r.text).toBe(`Cohort 25 costs A$5,000 a year [ev:${ID_A}]. MRR is A$77k.`);
++    expect(r.text).toBe("Cohort 25 costs A$5,000 a year. MRR is A$77k.");
++    expect(r.added).toBe(0);
+   });
+ 
+   it("does not cite a plain 2-digit number against a date fragment when nothing strong anchors it", () => {
+@@ -101,3 +102,55 @@ describe("autoCite", () => {
+     expect(autoCite("MRR grew 13 last month.", rows).text).toBe("MRR grew 13 last month.");
+   });
+ });
++
++
++describe("G30 source-backed numeric attachment", () => {
++  const rows = (text: string) => [{ id: ID_A, label: "Evidence", text }];
++
++  it("matches metric identity, not a percentage shared by unrelated metrics", () => {
++    expect(idsForClaim("Revenue grew 20%.", rows("Customer churn was 20%."))).toBeNull();
++    expect(idsForClaim("Revenue was A$20,000.", rows("Revenue A$10,000; cost A$20,000."))).toBeNull();
++    expect(idsForClaim("Revenue A$100k and costs A$100k.", rows("Revenue A$100k; costs A$50k."))).toBeNull();
++    expect(idsForClaim("Revenue A$100k and costs A$100k.", rows("Revenue A$100k; costs A$100k."))).toEqual([ID_A]);
++    expect(idsForClaim("Churn 20% and growth 20%.", rows("Churn 20%; growth 10%."))).toBeNull();
++    expect(idsForClaim("Gross margin 20%.", rows("Net margin 20%."))).toBeNull();
++    expect(idsForClaim("Churn was 20%.", rows("Customer churn was 20%."))).toEqual([ID_A]);
++  });
++
++  it("does not invent currency conversion or drop magnitude", () => {
++    expect(idsForClaim("Revenue AUD 100,000.", rows("Revenue USD 100,000."))).toBeNull();
++    expect(idsForClaim("Revenue A$100.", rows("Revenue A$100M."))).toBeNull();
++    expect(idsForClaim("Revenue A$100k.", rows("Revenue AUD 100000."))).toEqual([ID_A]);
++    expect(idsForClaim("Revenue A$100k.", rows("Revenue $100000."))).toBeNull();
++  });
++
++  it("preserves explicit business identity and reporting period", () => {
++    expect(idsForClaim("Business Beta revenue A$100,000 in FY2026.", rows("Business Alpha revenue A$100,000 in FY2024."))).toBeNull();
++    expect(idsForClaim("Revenue A$100,000 in Q1 2025.", rows("Revenue A$100,000 in Q2 2025."))).toBeNull();
++    expect(idsForClaim("Beta revenue A$100,000.", rows("Alpha revenue A$100,000; Beta revenue A$200,000."))).toBeNull();
++    expect(idsForClaim("Beta revenue A$100,000.", rows("Alpha revenue A$100,000."))).toBeNull();
++    expect(idsForClaim("Business Alpha revenue A$100,000 in FY2026.", rows("Business Alpha revenue A$100,000 in FY2024."))).toBeNull();
++    expect(idsForClaim("Business Alpha revenue A$100,000 in FY2024.", rows("Business Alpha revenue A$100,000 in FY2024."))).toEqual([ID_A]);
++  });
++
++  it("checks weak counts even when a supported amount is present", () => {
++    expect(idsForClaim("100 customers pay A$5,000 price.", rows("25 customers; price A$5,000."))).toBeNull();
++    expect(idsForClaim("25 customers pay A$5,000 price.", rows("25 customers; price A$5,000."))).toEqual([ID_A]);
++  });
++
++  it("cannot strip source negation or forecast status using a genuine excerpt", () => {
++    const source = rows("Revenue is not A$100,000. Forecast revenue A$200,000.");
++    expect(autoCite("Revenue is A$100,000.", source, [{ evidence_id: ID_A, quote: "A$100,000" }]).added).toBe(0);
++    expect(autoCite("Revenue A$200,000.", source, [{ evidence_id: ID_A, quote: "revenue A$200,000" }]).added).toBe(0);
++  });
++
++  it("keeps a real source excerpt citable and preserves topic restrictions", () => {
++    const source = rows("Monthly recurring revenue AUD 100000.");
++    expect(autoCite("MRR A$100k.", source, [{ evidence_id: ID_A, quote: "Monthly recurring revenue AUD 100000." }]).added).toBe(1);
++    expect(autoCite("Churn 20%.", [{ ...rows("Churn 20%.")[0]!, topicRe: /tax/ }], [{ evidence_id: ID_A, quote: "Churn 20%." }]).added).toBe(0);
++  });
++
++  it("leaves unknown metrics unresolved instead of matching an arbitrary number", () => {
++    expect(idsForClaim("Acquisition magic is 2000.", rows("Acquisition magic 2000."))).toBeNull();
++  });
++});
+diff --git a/web/src/lib/report-pipeline/auto-cite.ts b/web/src/lib/report-pipeline/auto-cite.ts
+index 5b518fece..998785621 100644
+--- a/web/src/lib/report-pipeline/auto-cite.ts
++++ b/web/src/lib/report-pipeline/auto-cite.ts
+@@ -8,8 +8,8 @@
+ // a number that IS in the register the model was given ("3,302 weekly
+ // snapshots", "A$3 report", "0 active subscriptions") — the owner simply
+ // omitted the 36-character id. This pass adds the id when, and only when,
+-// every material number in the sentence appears in a register row (or in a
+-// quote the model itself cited); it prefers the row whose label the sentence
++// every material number has a compatible metric in actual source text.
++// Ambiguous matches stay uncited. It prefers the row whose label the sentence
+ // names. Nothing else changes: an unmatched number stays uncited and the
+ // auditor still downgrades it. Ids are never invented — only ids from the
+ // supplied items are ever written.
+@@ -19,7 +19,7 @@
+ import { expandShortCitations, hasCitationOrMarker, isMaterialClaim, splitClaims } from "./claim-gate";
+ import { COMPUTED_FACT_IDS } from "./computed-facts";
+ 
+-/** One citable thing: an evidence-register row (label + value / content) or a model-cited quote. */
++/** One source-backed evidence-register row (label + value / content). */
+ export interface CitableItem {
+   id: string;
+   label: string;
+@@ -45,6 +45,8 @@ export interface AutoCiteOptions {
+ 
+ export interface NumToken {
+   raw: string;
++  /** Original occurrence, so repeated equal values retain their own metric. */
++  index?: number;
+   /** Comma-stripped digits, e.g. "3302", "1.2". */
+   digits: string;
+   currency: boolean;
+@@ -71,7 +73,7 @@ export function numericTokens(claim: string): NumToken[] {
+     const before = claim.slice(Math.max(0, m.index! - 2), m.index!);
+     if (!strong && /^\s?\/\s?100/.test(after)) continue;
+     if (/\/\s?$/.test(before)) continue; // the denominator of "44/100"
+-    out.push({ raw: m[0], digits, currency, unit, strong });
++    out.push({ raw: m[0], index: m.index, digits, currency, unit, strong });
+   }
+   return out;
+ }
+@@ -148,11 +150,123 @@ function appendMarkers(claim: string, ids: string[]): string {
+   return `${claim.trimEnd()} ${markers}`;
+ }
+ 
++// G30/E03: number equality only locates a candidate. Automatic attachment
++// requires a recognisable metric beside that number, compatible currency and
++// explicit qualifiers. This is deliberately conservative, not an entailment
++// verifier; unresolved prose belongs to the later truth audit.
++const METRIC_PATTERNS: Array<[string, RegExp]> = [
++  ["mrr", /\bmrr\b|monthly recurring revenue/gi],
++  ["arr", /\barr\b|annual(?:ized)? recurring revenue/gi],
++  ["customer-share", /\btop customer(?: is)?/gi],
++  ["revenue", /\brevenue\b|\bsales\b/gi],
++  ["churn", /\bchurn\b/gi], ["growth", /\bgrowth\b|\bgrew\b|\bgrowing\b|\bcagr\b/gi],
++  ["gross-margin", /\bgross margin\b/gi], ["net-margin", /\bnet margin\b/gi], ["margin", /\bmargin\b/gi], ["retention", /\bretention\b|\bnrr\b/gi],
++  ["tam", /\btam\b|total addressable market/gi],
++  ["sam", /\bsam\b|serviceable available market/gi],
++  ["som", /\bsom\b|serviceable obtainable market/gi],
++  ["snapshots", /\bsnapshots?\b/gi], ["startups", /\bstartups?\b/gi],
++  ["customers", /\bcustomers?\b|\bSMEs?\b/gi], ["users", /\busers?\b/gi],
++  ["sessions", /\bsessions?\b/gi], ["signups", /\bsign[ -]?ups?\b/gi],
++  ["subscriptions", /\bsubscriptions?\b/gi], ["charges", /\bcharges?\b/gi],
++  ["payback", /\b(?:cac )?payback(?: months)?\b/gi],
++  ["founders-equity", /\bfounders(?: hold)?\b/gi], ["esop", /\besop(?: pool)?\b/gi],
++  ["checklist", /\bdd checklist\b/gi], ["completeness", /\bcompleteness\b|\bcomplete\b/gi],
++  ["partner-channel", /\bpartner[ -](?:led )?channel\b/gi],
++  ["ltv-cac", /\bltv[ /_-]*cac\b/gi], ["cac", /\bcac\b/gi],
++  ["valuation", /\bvaluation\b|enterprise value/gi],
++  ["price", /\bprice\b|\bcosts?\b|\bfees?\b/gi],
++];
++
++function metricAt(text: string, index: number, length: number): string | null {
++  // Expand snake_case connector keys without changing offsets.
++  const prose = text.replace(/_/g, " ");
++  const candidates: Array<{ metric: string; distance: number }> = [];
++  const claimed: Array<[number, number]> = [];
++  for (const [metric, re] of METRIC_PATTERNS) {
++    for (const match of prose.matchAll(re)) {
++      const start = match.index!;
++      const end = start + match[0].length;
++      // Specific MRR/ARR phrases win over their nested generic revenue word.
++      if (claimed.some(([a, b]) => start >= a && end <= b)) continue;
++      claimed.push([start, end]);
++      const distance = start >= index + length ? start - index - length : index >= end ? index - end : 0;
++      const between = prose.slice(Math.min(end, index + length), Math.max(start, index));
++      if (distance <= 45 && !/[;.!?\n]/.test(between)) candidates.push({ metric, distance });
++    }
++  }
++  candidates.sort((a, b) => a.distance - b.distance);
++  if (!candidates.length || (candidates[1]?.distance === candidates[0]!.distance && candidates[1]?.metric !== candidates[0]!.metric)) return null;
++  return candidates[0]!.metric;
++}
++
++function explicitCurrency(text: string): Set<string> {
++  const out = new Set<string>();
++  if (/A\$|\bAUD\b|_aud\b/i.test(text)) out.add("AUD");
++  if (/US\$|\bUSD\b|_usd\b/i.test(text)) out.add("USD");
++  if (/€|\bEUR\b|_eur\b/i.test(text)) out.add("EUR");
++  if (/£|\bGBP\b|_gbp\b/i.test(text)) out.add("GBP");
++  return out;
++}
++
++function qualifiersCompatible(claim: string, source: string): boolean {
++  // A dated source cannot silently substantiate a different requested period.
++  const periods = claim.match(/\b(?:FY\s*)?20\d{2}\b|\bQ[1-4]\b|\b(?:last|this|prior|previous|current)\s+(?:month|quarter|year)\b/gi) ?? [];
++  if (periods.some((p) => !source.toLowerCase().includes(p.toLowerCase()))) return false;
++  const entities = [...claim.matchAll(/\b(?:business|company)\s+([A-Z][\w-]*)/g)].map((m) => m[1]!);
++  if (entities.some((name) => !new RegExp(`\\b${esc(name)}\\b`).test(source))) return false;
++  // Do not turn a forecast, denial or comparison into an actual result.
++  for (const re of [/\b(?:not|never|no)\b/i, /\b(?:forecast|projected|target|expected)\b/i]) {
++    if (re.test(claim) !== re.test(source)) return false;
++  }
++  const generic = new Set(["a", "an", "the", "our", "their", "this", "that", "business", "company", "annual", "monthly", "weekly", "quarterly", "fy", "aud", "usd", "eur", "gbp", "bottom-up", "partner-led", "clean", "mom", "ltv", "dd", "data", "deck"]);
++  const names = claim.match(/\b[A-Z][A-Za-z0-9'-]*\b/g) ?? [];
++  for (const name of names) {
++    if (generic.has(name.toLowerCase()) || /^(?:FY)?20\d{2}$|^Q[1-4]$/.test(name)) continue;
++    if (METRIC_PATTERNS.some(([, re]) => new RegExp(re.source, "i").test(name))) continue;
++    if (!new RegExp(`\\b${esc(name)}\\b`, "i").test(source)) return false;
++  }
++  return true;
++}
++
++function supportsToken(claim: string, token: NumToken, item: CitableItem): boolean {
++  if (!qualifiersCompatible(claim, item.text)) return false;
++  if (/^20\d{2}$/.test(token.digits) && !token.currency && !token.unit
++    && new RegExp(`(?:FY\\s*|(?:in|year)\\s+|Q[1-4]\\s+)${token.digits}\\b`, "i").test(claim)) {
++    return new RegExp(`(?:FY\\s*)?${token.digits}\\b`, "i").test(item.text);
++  }
++  const index = token.index ?? claim.indexOf(token.raw);
++  const metric = metricAt(claim, index, token.raw.length);
++  if (!metric) return false;
++  const claimCurrency = explicitCurrency(token.raw);
++  // Source matches are checked at each numeric occurrence so revenue100 and
++  // churn20 in one long row cannot support revenue20.
++  for (const match of item.text.matchAll(NUMBER_RE)) {
++    const sourceIndex = match.index!;
++    const sourceUnit = match[3] ? (UNIT[match[3].toLowerCase()] ?? "") : "";
++    const factors = { k: 1_000, m: 1_000_000, bn: 1_000_000_000 };
++    const amount = (digits: string, unit: NumToken["unit"]) => Number(digits.replace(/,/g, "")) * (unit === "k" || unit === "m" || unit === "bn" ? factors[unit] : 1);
++    if (amount(token.digits, token.unit) !== amount(match[2]!, sourceUnit)) continue;
++    if (metricAt(item.text, sourceIndex, match[0].length) !== metric) continue;
++    const start = Math.max(item.text.lastIndexOf(";", sourceIndex), item.text.lastIndexOf("\n", sourceIndex)) + 1;
++    const endings = [item.text.indexOf(";", sourceIndex), item.text.indexOf("\n", sourceIndex)].filter((n) => n >= 0);
++    const fragment = item.text.slice(start, endings.length ? Math.min(...endings) : undefined);
++    if (!qualifiersCompatible(claim, `${item.label} — ${fragment}`)) continue;
++    const sourceCurrency = explicitCurrency(fragment);
++    if (claimCurrency.size && (sourceCurrency.size !== 1 || !sourceCurrency.has([...claimCurrency][0]!))) continue;
++    // Restrict the matching number while preserving the source metric's unit
++    // key (e.g. churn_90d_pct = 2.1 or mrr_aud = 100000).
++    const numberContext = `${metric} ${[...sourceCurrency].join(" ")} ${match[0]}`;
++    const unitContext = /(?:pct|percent)/i.test(fragment) ? `${numberContext} %` : numberContext;
++    if (itemHasNumber(unitContext, token)) return true;
++  }
++  return false;
++}
++
+ /** Pick ≤ `max` items that together cover every needed token; null when they cannot. */
+ function chooseItems(claim: string, need: NumToken[], items: CitableItem[], max: number): CitableItem[] | null {
+   const coverage = items
+     .filter((item) => !item.topicRe || item.topicRe.test(claim))
+-    .map((item, order) => ({ item, order, covered: need.filter((tok) => itemHasNumber(item.text, tok)), mentioned: labelMentioned(claim, item.label) }));
++    .map((item, order) => ({ item, order, covered: need.filter((tok) => supportsToken(claim, tok, item)), mentioned: labelMentioned(claim, item.label) }));
+   // A claim whose only numbers are weak (2–3 plain digits) is cited only
+   // when the sentence names the row's source (review G23 P1) — "38 signups"
+   // alone must not attach the first row that happens to contain 38.
+@@ -176,8 +290,7 @@ function chooseItems(claim: string, need: NumToken[], items: CitableItem[], max:
+ /** Which ids one claim should cite, or null when its numbers are not all in the register. Exported for tests. */
+ export function idsForClaim(claim: string, items: CitableItem[], max = 2): string[] | null {
+   const tokens = numericTokens(claim);
+-  const strong = tokens.filter((t) => t.strong);
+-  const need = strong.length ? strong : tokens;
++  const need = tokens;
+   if (!need.length) return null;
+   const chosen = chooseItems(claim, need, items, max);
+   return chosen ? chosen.map((c) => c.id) : null;
+@@ -186,8 +299,8 @@ export function idsForClaim(claim: string, items: CitableItem[], max = 2): strin
+ /**
+  * Add `[ev:<id>]` to every material claim in `text` whose numbers all appear
+  * in the citable items. `citations` (the model’s own evidence_id + verbatim
+- * quote pairs, already filtered to allowed ids) are searched after the
+- * register rows so a real row wins a tie. Whitespace inside a line is
++ * quote pairs) must match a source excerpt; they never expand the
++ * available evidence beyond the register. Whitespace inside a line is
+  * normalised; lines, list markers and table rows are kept.
+  */
+ export function autoCite(text: string, items: CitableItem[], citations: Array<{ evidence_id: string; quote: string }> = [], options: AutoCiteOptions = {}): AutoCiteResult {
+@@ -195,7 +308,15 @@ export function autoCite(text: string, items: CitableItem[], citations: Array<{
+   const allowed = new Set(items.map((i) => i.id.toLowerCase()));
+   const pool: CitableItem[] = [
+     ...items.filter((i) => i.id && i.text),
+-    ...citations.filter((c) => allowed.has(c.evidence_id.toLowerCase()) && c.quote.trim().length >= 3).map((c) => ({ id: c.evidence_id, label: "quote", text: c.quote })),
++    ...citations.flatMap((c) => {
++      const quote = c.quote.trim().replace(/\s+/g, " ");
++      if (quote.length < 3) return [];
++      const source = items.find((i) => i.id.toLowerCase() === c.evidence_id.toLowerCase()
++        && i.text.replace(/\s+/g, " ").includes(quote));
++      // Keep source qualifiers and topic restrictions; a verified excerpt is
++      // never an independent source or a way to strip a negation/context.
++      return source ? [source] : [];
++    }),
+   ];
+   let added = 0;
+   let material = 0;

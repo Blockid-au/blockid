@@ -8,8 +8,7 @@
 // a number that IS in the register the model was given ("3,302 weekly
 // snapshots", "A$3 report", "0 active subscriptions") — the owner simply
 // omitted the 36-character id. This pass adds the id when, and only when,
-// every material number in the sentence appears in a register row (or in a
-// quote the model itself cited); it prefers the row whose label the sentence
+// every material number in the sentence appears in a register row (in the actual source text); it prefers the row whose label the sentence
 // names. Nothing else changes: an unmatched number stays uncited and the
 // auditor still downgrades it. Ids are never invented — only ids from the
 // supplied items are ever written.
@@ -19,7 +18,7 @@
 import { expandShortCitations, hasCitationOrMarker, isMaterialClaim, splitClaims } from "./claim-gate";
 import { COMPUTED_FACT_IDS } from "./computed-facts";
 
-/** One citable thing: an evidence-register row (label + value / content) or a model-cited quote. */
+/** One source-backed evidence-register row (label + value / content). */
 export interface CitableItem {
   id: string;
   label: string;
@@ -186,8 +185,8 @@ export function idsForClaim(claim: string, items: CitableItem[], max = 2): strin
 /**
  * Add `[ev:<id>]` to every material claim in `text` whose numbers all appear
  * in the citable items. `citations` (the model’s own evidence_id + verbatim
- * quote pairs, already filtered to allowed ids) are searched after the
- * register rows so a real row wins a tie. Whitespace inside a line is
+ * quote pairs) must match a source excerpt; they never expand the
+ * available evidence beyond the register. Whitespace inside a line is
  * normalised; lines, list markers and table rows are kept.
  */
 export function autoCite(text: string, items: CitableItem[], citations: Array<{ evidence_id: string; quote: string }> = [], options: AutoCiteOptions = {}): AutoCiteResult {
@@ -195,7 +194,16 @@ export function autoCite(text: string, items: CitableItem[], citations: Array<{ 
   const allowed = new Set(items.map((i) => i.id.toLowerCase()));
   const pool: CitableItem[] = [
     ...items.filter((i) => i.id && i.text),
-    ...citations.filter((c) => allowed.has(c.evidence_id.toLowerCase()) && c.quote.trim().length >= 3).map((c) => ({ id: c.evidence_id, label: "quote", text: c.quote })),
+    // G30/E03: an allowed ID does not authenticate model-authored text.
+    // Only accept an excerpt present in the source, and retain the source's
+    // full context and topic restriction rather than trusting a quote alone.
+    ...citations.flatMap((c) => {
+      const quote = c.quote.trim().replace(/\s+/g, " ");
+      if (quote.length < 3) return [];
+      const source = items.find((i) => i.id.toLowerCase() === c.evidence_id.toLowerCase()
+        && i.text.replace(/\s+/g, " ").includes(quote));
+      return source ? [source] : [];
+    }),
   ];
   let added = 0;
   let material = 0;

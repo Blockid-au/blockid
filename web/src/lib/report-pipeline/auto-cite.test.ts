@@ -86,18 +86,44 @@ describe("autoCite", () => {
     expect(r.added).toBe(1);
   });
 
-  it("uses the model’s own verbatim quotes as citable text, but only for allowed ids", () => {
+  it("never treats a model quote as evidence merely because its source ID is allowed", () => {
     const items = itemsFromCatalogue([{ evidence_id: ID_A, label: "Startup description", content: "A founder gets a free score." }]);
     const cites = [
       { evidence_id: ID_A, quote: "Cohort 25 A$5,000/yr and Cohort 100 A$15,000/yr" },
       { evidence_id: ID_B, quote: "MRR is A$77k" },
     ];
     const r = autoCite("Cohort 25 costs A$5,000 a year. MRR is A$77k.", items, cites);
-    expect(r.text).toBe(`Cohort 25 costs A$5,000 a year [ev:${ID_A}]. MRR is A$77k.`);
+    expect(r.text).toBe("Cohort 25 costs A$5,000 a year. MRR is A$77k.");
+    expect(r.added).toBe(0);
   });
 
   it("does not cite a plain 2-digit number against a date fragment when nothing strong anchors it", () => {
     const rows = itemsFromEvidenceRows([{ evidence_id: ID_A, label: "Capacity audit", value: "audit 2026-09-13" }]);
     expect(autoCite("MRR grew 13 last month.", rows).text).toBe("MRR grew 13 last month.");
+  });
+});
+
+
+describe("G30 model quote provenance", () => {
+  it("retains genuine excerpts while rejecting a fabricated extension", () => {
+    const items = itemsFromCatalogue([{ evidence_id: ID_A, label: "Stripe revenue", content: "MRR is A$10,000.\nARR is A$120,000." }]);
+    const genuine = [{ evidence_id: ID_A, quote: "MRR is A$10,000. ARR is A$120,000." }];
+    expect(autoCite("MRR is A$10,000.", items, genuine).added).toBe(1);
+    const forged = [{ evidence_id: ID_A, quote: "MRR is A$10,000. ARR is A$999,000." }];
+    expect(autoCite("ARR is A$999,000.", items, forged).added).toBe(0);
+  });
+
+  it("cannot remove topic restrictions through a real quoted excerpt", () => {
+    const items = [{ id: ID_A, label: "Tax rate", text: "Tax rate 20%.", topicRe: /tax/i }];
+    const quotes = [{ evidence_id: ID_A, quote: "Tax rate 20%." }];
+    expect(autoCite("Revenue growth 20%.", items, quotes).added).toBe(0);
+    expect(autoCite("Tax rate 20%.", items, quotes).added).toBe(1);
+  });
+
+  it("does not accept an absent source, empty source or unknown ID", () => {
+    const quote = "MRR is A$77,000.";
+    expect(autoCite(quote, [], [{ evidence_id: ID_A, quote }]).added).toBe(0);
+    expect(autoCite(quote, [{ id: ID_A, label: "Missing", text: "" }], [{ evidence_id: ID_A, quote }]).added).toBe(0);
+    expect(autoCite(quote, [{ id: ID_A, label: "Evidence", text: "No financial information." }], [{ evidence_id: ID_B, quote }]).added).toBe(0);
   });
 });

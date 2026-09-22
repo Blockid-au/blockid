@@ -1313,6 +1313,14 @@ Bằng chứng gồm release IDs, timeline, request-error counts trong cutover, 
 **Agent ownership bổ sung:** sau approval, W0 có thể phân `release_safety` O05/O06 và `reliability_audit` O07/O09 read-only/spec song song với report-contract work nếu đủ slot. Một owner duy nhất sửa deploy/proxy/supervisor/cleanup; không hai agents cùng quản process. O08 phối hợp Report/Billing owners sau contract freeze. Vẫn tối đa3children + root; không spawn thêm ngoài giới hạn hoặc cho agent tự deploy. Dùng official nginx/local framework docs; playwright cho browser continuity khi thực sự thực thi, không cần cài skill/plugin mới để lập plan.
 
 
+### 12.8.1 Quyết định triển khai W0: giữ process cũ khi chưa chứng minh drain
+
+Source audit22/09 phát hiện detached report runners, sweep jobs, email/ledger/audit tails; HTTP/nginx drain hoặc analyses.status=done không chứng minh process đã hết việc. `cron-runner.sh` còn gửi trực tiếp4001, nên bridge stop/start4001 sẽ cắt công việc hoặc tiếp tục cấp việc cho bản cũ. Chi tiết trong W0 evidence/agent audit; O08 chưa đạt.
+
+**Quyết định implementation:** triển khai promotion không dừng process: candidate cổng riêng4100–4199 (reserved/free validation), nginx cùng upload API chuyển tới active origin đã verified; bản cũ giữ sống và được pin. Một state contract v1 quản active/previous/retained cùng PID start identity, release path/SHA và stable/switching. Cron/health/recovery dùng cùng active-origin resolver, invalid/switching state không fallback tùy tiện. Rollback về warm eligible previous qua proxy, không kill/restart theo mtime. Bản legacy4001 chưa instrumented không tự retire bằng chờ một số phút. Có cap retained processes và resource gate; đạt cap thì dừng promotion, không tự kill để lấy chỗ.
+
+O08 bổ sung admission + central tracking/drain của mọi detached work trước khi tự động retirement. Phương án này thay ý tưởng bridge tạm4099→restart4001 trong notes nghiên cứu, giữ nguyên yêu cầu24/24 và artifact/rollback gates. Đã hoãn off-host backup theo founder; không hoãn bảo vệ local transactions/report jobs. App deploy vẫn chưa thực hiện cho tới khi controller/consumers/helpers được kiểm chứng cùng nhau.
+
 ### 12.9 Implementation status — cập nhật bằng evidence
 
 Approval22/09/2026 bắt đầu W0a. Đây là status của cùng45 items, không queue mới. Review/proposal statements cũ giữ làm lịch sử; dùng approval đầu tài liệu và bảng này để điều hành.
@@ -1323,6 +1331,8 @@ Approval22/09/2026 bắt đầu W0a. Đây là status của cùng45 items, khôn
 | O05 | IN PROGRESS — inventory | Root + read-only runtime inventory; chưa đổi proxy/process |
 | O06 | IN PROGRESS — partial verified | Manual rollback9 tests; protected retention15 tests; shared prune helper integrated. LKG selection/compatibility/quarantine và safe cutover còn pending |
 | O07/O09 | IN PROGRESS | Actual inventory documented; recovery coordination7 isolated tests passed. Offsite backup failed quota; chưa chạy host-failure drill |
+| O09 off-host backup/standby | DEFERRED BY FOUNDER (22/09/2026) | User: “chưa cần bây giờ”. No new backup purchase/setup now. Local backup/restore checks remain; host-loss continuity not verified and no HA/absolute24h promise. This scope decision allows independent phased deploys, not a claim off-host DR passed |
+| E03 quote provenance | PARTIAL VERIFIED / NOT RELEASED | Sourcequote authentication fixed, pipeline cacheversion bumped;50files/910tests passed. Numeric/entity/period semantic matching and cited-claim verification remain open. Strict experiment archived, not shipped |
 | Remaining items | PENDING | Theo dependency §12/phase§12.8, chưa có closure evidence |
 
 ## 13. Quality gates và định nghĩa ready for sale
@@ -1569,3 +1579,7 @@ Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi 
 - **22/09/2026 — G30 rev2.4 APPROVED IMPLEMENTATION:** founder cấp implementation, agents, commits và live deployment theo phase/gates. Bắt đầu W0a, archived approved input; chỉ status có evidence mới được closed.
 
 - **22/09/2026 — W0a safety checkpoint:**31 isolated regression cases passed (9 rollback+15 retention+7 recovery), shell syntax/diff checks passed. Root changes shared prune, removes unsafe general build deletion, serializes watchdog and suppresses rollback for healthy-origin external outage. Cron-loaded script changes take effect from source; no application process restart/proxy switch or deployment performed. O05–O09 remain incomplete.
+
+- **22/09/2026 — Scope decision:** founder defers off-host backup for now. O09 off-host provisioning/standby excluded from current execution gates; retain local backup/integrity checks and explicit single-host disaster risk. Do not spend or mark deferred DR verified. Remaining safety/report/product work continues.
+
+- **22/09/2026 — E03 bounded fix:** model-authored quotes cannot become source evidence merely via allowedID; real excerpt retains original context/topic restrictions.50files/910tests pass. Pipelineversion source-quotes prevents oldcachegenerationreuse; oldreports notrewritten. Strictmetric experiment at docs/archive/g30-strict-autocite-experiment.patch is NON-SHIPPING research input, not approved implementation; normalization/verifier work stillrequired.
