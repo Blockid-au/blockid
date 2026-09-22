@@ -772,6 +772,13 @@ describe("auth — session cookie helpers", () => {
 // ---------------------------------------------------------------------------
 
 describe("auth — getCurrentUser", () => {
+  it.each(["deleted_at", "erased_at"])("rejects a closed account even with valid session: %s", async (field) => {
+    state.cookies.set(SESSION_COOKIE, "live-tok");
+    push("sessions", "select", { data: { token: "live-tok", user_id: "u-42", expires_at: new Date(Date.now() + 3600_000).toISOString() }, error: null });
+    push("app_users", "select", { data: { id: "u-42", email: "closed@example.com", [field]: "2026-01-01T00:00:00Z" }, error: null });
+    expect(await getCurrentUser()).toBeNull();
+  });
+
   it("returns null when supabase is unconfigured (does not throw)", async () => {
     state.adminConfigured = false;
     const out = await getCurrentUser();

@@ -428,11 +428,11 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<App
   const { data: user } = await supabase
     .from("app_users")
     .select(
-      "id, email, display_name, created_at, last_login_at, role, plan, google_id, avatar_url, discount_pct, startup_name, startup_stage, industry, onboarding_completed, startup_goals",
+      "id, email, display_name, created_at, last_login_at, role, plan, google_id, avatar_url, discount_pct, startup_name, startup_stage, industry, onboarding_completed, startup_goals, deleted_at, erased_at",
     )
     .eq("id", session.user_id)
     .maybeSingle();
-  if (!user) return null;
+  if (!user || user.deleted_at != null || user.erased_at != null) return null;
   const mapped = mapAppUser(user);
   // S20-A: annotate the request's audit context (no-op outside apiRoute()).
   setAuditActor({ userId: mapped.id, kind: "user", role: mapped.role });
