@@ -1297,6 +1297,8 @@ export function buildReportV2(
       evidenceRows: context.evidenceRows ?? null,
       moneyOnTable: moneyOnTableFromGather(context),
     });
+    // Preserve retrieval provenance even when the report falls back before all eight chapters exist.
+    if (context.gatherResults.publicResearch) base.appendix.publicResearch = context.gatherResults.publicResearch;
     // §C.5: the gated valuation chapter (consistency-gates may have annotated it).
     const withValuation: ReportV2 = isValuationAvailable(base.valuation) && context.valuationChapter ? { ...base, valuation: context.valuationChapter } : base;
     const chapters = context.dimensionChapters;
