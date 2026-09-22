@@ -1906,4 +1906,76 @@ describe("G30 BlockID report policy", () => {
     expect(result.policy).toBeUndefined();
     expect(String(fetchMock.mock.calls[0][0])).toContain("gateway.invalid");
   });
+  function attemptLedger() {
+    const held = new Map<string, string>();
+    const reserve = vi.fn(async (r: import("./ai/research-attempt-budget").AttemptRequest) => {
+      const replay = held.has(r.attemptId);
+      if (!replay) held.set(r.attemptId, "reserved");
+      return { ...r, dispatchAllowed: !replay, maximumPromptBytes: 100_000, maximumInputTokens: 40_000,
+        maximumCostMicroUsd: 1000, pricePolicyId: "test-certified-policy", expiresAt: Date.now() + 60_000 };
+    });
+    const settle = vi.fn(async (r: { attemptId: string; state: string }) => { held.set(r.attemptId, r.state); });
+    return { held, budget: { callId: "durable-job/synthesis/batch-1", reserve, settle } };
+  }
+  it("requires trusted research authorization before any gateway or provider I/O", async () => {
+    const { callAI } = await loadClient();
+    await expect(callAI({ ...request, agentId: "svi:research_synthesis" })).rejects.toThrow("durable attempt authorization");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it("reserves each actual model attempt; denial stops ladder and retains ambiguous first cost", async () => {
+    const { callAI } = await loadClient();
+    const { budget, held } = attemptLedger();
+    const permit = budget.reserve.getMockImplementation()!;
+    budget.reserve.mockImplementation(async r => budget.reserve.mock.calls.length === 1 ? permit(r) : { ...await permit(r), dispatchAllowed: false });
+    fetchMock.mockRejectedValue(new Error("unknown network interruption"));
+    await expect(callAI({ ...request, agentId: "svi:research_synthesis", attemptBudget: budget })).rejects.toThrow("dispatch denied");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(budget.reserve).toHaveBeenCalledTimes(2);
+    expect(budget.settle).toHaveBeenCalledWith({ attemptId: budget.reserve.mock.calls[0][0].attemptId, state: "unknown" });
+    expect(held.get(budget.reserve.mock.calls[0][0].attemptId)).toBe("unknown");
+    expect(transportSpies[0]).not.toHaveBeenCalled();
+  });
+  it("allows an independently reserved second rung and reports usage without refunding the first", async () => {
+    const { callAI } = await loadClient();
+    const { budget } = attemptLedger();
+    fetchMock.mockResolvedValueOnce(new Response("failed", { status: 500 }));
+    await callAI({ ...request, attemptBudget: budget });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(new Set(budget.reserve.mock.calls.map(([r]) => r.attemptId)).size).toBe(2);
+    expect(budget.settle.mock.calls.map(([r]) => r.state)).toEqual(["unknown", "reported_usage"]);
+    expect(budget.settle).toHaveBeenLastCalledWith(expect.objectContaining({ inputTokens: 100, outputTokens: 20 }));
+  });
+  it("rejects replay of the same durable call without dispatching again", async () => {
+    const { callAI } = await loadClient();
+    const { budget } = attemptLedger();
+    await callAI({ ...request, attemptBudget: budget });
+    await expect(callAI({ ...request, attemptBudget: budget })).rejects.toThrow("dispatch denied");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(budget.reserve.mock.calls[0][0].attemptId).toBe(budget.reserve.mock.calls[1][0].attemptId);
+  });
+  it("retains unknown usage rather than recording a zero-cost reservation", async () => {
+    const { callAI } = await loadClient();
+    const { budget } = attemptLedger();
+    fetchMock.mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: "answer" } }] })));
+    await callAI({ ...request, attemptBudget: budget });
+    expect(budget.settle).toHaveBeenCalledWith(expect.objectContaining({ state: "unknown" }));
+    expect(budget.settle.mock.calls[0][0]).not.toHaveProperty("inputTokens");
+  });
+  it("rejects expired or insufficient permits before provider I/O", async () => {
+    const { callAI } = await loadClient();
+    const { budget } = attemptLedger();
+    const permit = budget.reserve.getMockImplementation()!;
+    budget.reserve.mockImplementation(async r => ({ ...await permit(r), maximumPromptBytes: 1 }));
+    await expect(callAI({ ...request, attemptBudget: budget })).rejects.toThrow("invalid or expired permit");
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+  it("fails terminally on settlement failure without another rung or transport", async () => {
+    const { callAI } = await loadClient();
+    const { budget } = attemptLedger();
+    budget.settle.mockRejectedValue(new Error("ledger unavailable"));
+    await expect(callAI({ ...request, attemptBudget: budget })).rejects.toThrow("settlement unavailable");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(budget.settle).toHaveBeenCalledTimes(1);
+  });
+
 });

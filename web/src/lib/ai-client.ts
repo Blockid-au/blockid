@@ -1,3 +1,4 @@
+import { ResearchAttemptBudgetError, reserveResearchAttempt, settleResearchAttempt, type ResearchAttemptBudget } from "@/lib/ai/research-attempt-budget";
 import { trackOriginWork } from "@/lib/ops/origin-activity";
 /**
  * Unified AI client — task-class-aware, parallel-load-aware dispatcher
@@ -210,7 +211,7 @@ function inprocessFetch(url: string, headers: Record<string, string>, body: stri
  * the legacy subprocess worker on any UNEXPECTED failure — so AI can never go
  * fully dark even if the in-process path misbehaves in some environment.
  */
-async function workerFetch(url: string, headers: Record<string, string>, body: string, timeoutMs = 30_000): Promise<string> {
+async function workerFetch(url: string, headers: Record<string, string>, body: string, timeoutMs = 30_000, allowTransportFallback = true): Promise<string> {
   if (process.env.AI_FETCH_MODE !== "subprocess") {
     try {
       return await inprocessFetch(url, headers, body, timeoutMs);
@@ -218,7 +219,7 @@ async function workerFetch(url: string, headers: Record<string, string>, body: s
       const msg = err instanceof Error ? err.message : String(err);
       // Real HTTP errors / timeouts are genuine — propagate so the model/provider
       // cooldown + fallback chain handles them (a subprocess retry would repeat them).
-      if (/^HTTP \d/.test(msg) || /timeout/i.test(msg) || /Empty response/.test(msg)) throw err;
+      if (!allowTransportFallback || /^HTTP \d/.test(msg) || /timeout/i.test(msg) || /Empty response/.test(msg)) throw err;
       // Anything else (unexpected runtime/env issue) → fall back to the subprocess once.
       console.warn(`[ai-worker] in-process fetch failed (${msg}); falling back to subprocess`);
       return subprocessFetch(url, headers, body, timeoutMs);
@@ -926,6 +927,8 @@ export interface AICallOptions {
    *  provider loop — on top of the process-wide cooldown, which only fires
    *  after the whole ladder failed. Omitted → no run scoping (crons, chat). */
   runStrikes?: RunStrikeSink;
+  /** Trusted durable coordinator, mandatory for research agents. Never sourced from request JSON. */
+  attemptBudget?: ResearchAttemptBudget;
 }
 
 /** True when the run ledger says `provider` is struck out for this run. */
@@ -1526,19 +1529,16 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     if (runStruck(opts, "deepinfra")) { lastErr = lastErr ?? runStruckError(opts, "deepinfra"); break; }
     const key = paidKey("deepinfra", model);
+    const maxTokens = Math.min(opts.maxTokens ?? 4096, 16_384);
+    const payload = JSON.stringify({ model, max_tokens: maxTokens, temperature: opts.temperature ?? 0.7,
+      messages: [{ role: "system", content: opts.system }, { role: "user", content: opts.user }] });
+    const permit = opts.attemptBudget ? await reserveResearchAttempt(opts.attemptBudget, model, payload, maxTokens) : null;
+    let settled = false;
     try {
+      if (permit && aiBudgetExpired(opts)) throw new ResearchAttemptBudgetError("deadline expired; reservation retained");
       const raw = await workerFetch("https://api.deepinfra.com/v1/openai/chat/completions", {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      }, JSON.stringify({
-        model,
-        max_tokens: Math.min(opts.maxTokens ?? 4096, 16_384),
-        temperature: opts.temperature ?? 0.7,
-        messages: [
-          { role: "system", content: opts.system },
-          { role: "user", content: opts.user },
-        ],
-      }), budgetedTimeoutMs(opts));
+        "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json",
+      }, payload, budgetedTimeoutMs(opts), !permit);
 
       const data = JSON.parse(raw);
       if (data.error) throw new Error(data.error.message ?? "DeepInfra error");
@@ -1546,6 +1546,10 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
       if (!text) throw new Error("Empty DeepInfra response");
       const input = Number(data.usage?.prompt_tokens ?? 0);
       const output = Number(data.usage?.completion_tokens ?? 0);
+      if (permit && opts.attemptBudget) {
+        settled = true; // A failed settlement must never trigger a second settlement/refund.
+        await settleResearchAttempt(opts.attemptBudget, permit, data.usage);
+      }
       const cost = usageCostUsd("deepinfra", model, input, output);
       recordModelOutcome(key, true);
       clearDeadRung("deepinfra", model);
@@ -1557,6 +1561,12 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
         ...(cost !== null ? { cost_usd: cost } : {}),
       };
     } catch (err) {
+      if (permit && opts.attemptBudget && !settled) {
+        settled = true;
+        await settleResearchAttempt(opts.attemptBudget, permit);
+      }
+      if (err instanceof ResearchAttemptBudgetError) throw err;
+
       lastErr = err instanceof Error ? err : new Error(String(err));
       coolDownModel(key, lastErr.message, !scoped);
       noteDeadRung("deepinfra", model, lastErr.message);
@@ -2488,6 +2498,10 @@ async function callAITracked(opts: AICallOptions): Promise<AICallResult> {
   // Resolve policy before any gateway/probe I/O. The legacy gateway cannot
   // attest exact model or account eligibility and is outside this scoped chain.
   const scoped = scopedReportPolicy(opts);
+  const research = opts.agentId === "svi:research_synthesis" || opts.agentId === "svi:research_grounded_review";
+  if ((research && (!scoped || !opts.attemptBudget)) || (opts.attemptBudget && !scoped))
+    throw new ResearchAttemptBudgetError("research requires scoped durable attempt authorization");
+
   const gatewayResult = scoped ? null : await callViaGateway(opts);
   if (gatewayResult) return gatewayResult;
 
@@ -2585,6 +2599,7 @@ async function callAITracked(opts: AICallOptions): Promise<AICallResult> {
         }
         return { ...result, cost_usd: cost, via: provider, taskClass, ...(scoped ? { policy: opts.policy } : {}) };
       } catch (err) {
+        if (err instanceof ResearchAttemptBudgetError) throw err;
         lastError = err instanceof Error ? err : new Error(String(err));
         if (isInvalidKeyError(lastError)) {
           // G24-B: wrong credential → unconfigured for the process, one line, no cooldown re-dial.
@@ -2652,6 +2667,8 @@ export function isAnthropicConfigured(): boolean {
 // Priority: Cerebras → Groq → SambaNova → OpenRouter → Claude OAuth.
 
 export async function callAIForUpgrade(opts: AICallOptions): Promise<AICallResult | null> {
+  if (opts.attemptBudget || opts.agentId === "svi:research_synthesis" || opts.agentId === "svi:research_grounded_review")
+    throw new ResearchAttemptBudgetError("research requires callAI dispatcher");
   // Report requests must use the budgeted dispatcher, never this legacy chain.
   if (scopedReportPolicy(opts)) throw new Error("Report policy requires callAI dispatcher");
   await getDBKeys(); // ensure cache is warm
