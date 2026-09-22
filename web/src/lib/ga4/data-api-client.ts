@@ -1,6 +1,6 @@
 // GA4 Data API client — server-only wrapper around googleapis
 // (analyticsdata_v1beta). Auth via service-account JSON pulled from
-// GOOGLE_APPLICATION_CREDENTIALS_JSON. All Google auth work is deferred
+// GOOGLE_APPLICATION_CREDENTIALS_JSON or the existing service-account pair. All Google auth work is deferred
 // to request/cron time so importing this module never crashes at build.
 //
 // CDO plan: docs/plans/mega-2026-07-24/05-cdo-ga4-dashboard.md.
@@ -15,6 +15,7 @@
 // { error, hint } so they can render a placeholder tile instead.
 
 import "server-only";
+import { ga4ServiceAccount, ga4PropertyPath } from "../analytics/ga4-credentials";
 
 // ── Types ────────────────────────────────────────────────────────────────
 
@@ -71,15 +72,14 @@ export type Ga4SnapshotResult =
 // ── Env helpers ──────────────────────────────────────────────────────────
 
 export function getGa4PropertyId(): string | null {
-  const raw = process.env.GA4_PROPERTY_ID?.trim();
-  if (!raw) return null;
-  // Accept "123456789" or "properties/123456789"; normalise to the latter.
-  return raw.startsWith("properties/") ? raw : `properties/${raw}`;
+  return ga4PropertyPath();
 }
 
 function getServiceAccountJson(): string | null {
   const raw = process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON?.trim();
-  return raw ? raw : null;
+  if (raw) return raw;
+  const credentials = ga4ServiceAccount();
+  return credentials ? JSON.stringify(credentials) : null;
 }
 
 export function isGa4Configured(): boolean {
@@ -182,7 +182,7 @@ export async function fetchDailySnapshot(): Promise<Ga4SnapshotResult> {
     return {
       ok: false,
       error: "GA4 API not configured",
-      hint: "Set GA4_PROPERTY_ID and GOOGLE_APPLICATION_CREDENTIALS_JSON in .env.local — see docs/plans/mega-2026-07-24/05-cdo-ga4-dashboard.md.",
+      hint: "Set GA4_PROPERTY_ID and either GOOGLE_APPLICATION_CREDENTIALS_JSON or the configured service-account email/key pair — see docs/plans/mega-2026-07-24/05-cdo-ga4-dashboard.md.",
     };
   }
 

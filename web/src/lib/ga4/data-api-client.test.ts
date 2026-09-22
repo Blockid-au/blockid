@@ -56,6 +56,9 @@ vi.mock("googleapis", () => {
 
 const ENV_KEYS = [
   "GA4_PROPERTY_ID",
+  "GA_PROPERTY_ID",
+  "GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL",
+  "GOOGLE_DRIVE_PRIVATE_KEY",
   "GOOGLE_APPLICATION_CREDENTIALS_JSON",
 ] as const;
 
@@ -794,5 +797,28 @@ describe("fetchDailySnapshot", () => {
     // 5 sub-queries → 5 GoogleAuth instantiations (deferred per call, no cache).
     expect(googleAuthCtor.mock.calls.length).toBeGreaterThanOrEqual(5);
     expect(analyticsdataFactory.mock.calls.length).toBeGreaterThanOrEqual(5);
+  });
+});
+
+
+describe("existing service-account pair", () => {
+  it("uses the same property and credentials as the Admin API without a duplicate JSON secret", async () => {
+    process.env.GA_PROPERTY_ID = "123";
+    process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL = "existing@example.test";
+    process.env.GOOGLE_DRIVE_PRIVATE_KEY = "line1\\nline2";
+    runReportMock.mockResolvedValue({ data: {} });
+    const mod = await importModule();
+    expect(mod.isGa4Configured()).toBe(true);
+    await mod.runReport({ dateRanges: [{startDate:"yesterday",endDate:"yesterday"}], metrics:[{name:"sessions"}] });
+    expect(googleAuthCtor).toHaveBeenCalledWith(expect.objectContaining({ credentials: {client_email:"existing@example.test",private_key:"line1\nline2"}, scopes:["https://www.googleapis.com/auth/analytics.readonly"] }));
+    expect(runReportMock).toHaveBeenCalledWith(expect.objectContaining({property:"properties/123"}));
+  });
+  it("does not treat a partial pair as usable credentials", async () => {
+    process.env.GA4_PROPERTY_ID = "123";
+    process.env.GOOGLE_DRIVE_SERVICE_ACCOUNT_EMAIL = "existing@example.test";
+    const mod = await importModule();
+    expect(mod.isGa4Configured()).toBe(false);
+    expect((await mod.fetchDailySnapshot()).ok).toBe(false);
+    expect(runReportMock).not.toHaveBeenCalled();
   });
 });
