@@ -1701,3 +1701,10 @@ not fix configuration. Fully evidenced/free requests keep their current path.
 15 focused route tests pass. This does not introduce a new price or close
 B03 quote/reserve/capture; paid-gap analysis remains unavailable until its
 approved aggregate pricing and keyed billing flow are implemented.
+
+For repeated accelerated phases, the release owner may set
+`G30_SECRET_SCAN_BASE_SHA` to a full ancestor SHA whose history already passed
+secret scanning. Only newly reachable commits are rescanned; the manifest log
+labels this incremental, never a new full-history pass. Invalid/non-ancestor
+baselines fail closed. Default remains a full-history scan. Current full scan
+anchor:fb4c4a396 (complete SHA must be used), scanned14134 commits at09:33UTC.

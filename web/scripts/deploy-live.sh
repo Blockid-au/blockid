@@ -733,11 +733,21 @@ else
   if [ -f "$WEB_DIR/.gitleaks.toml" ]; then
     GITLEAKS_CONFIG="--config $WEB_DIR/.gitleaks.toml"
   fi
-  # `detect` scans the whole tracked tree; `--exit-code 1` makes leaks fatal.
-  if ! gitleaks detect --no-banner --exit-code 1 $GITLEAKS_CONFIG 2>&1; then
+  # An explicit previously scanned ancestor can bound repeat phase scans.
+  # Default remains full history; malformed/non-ancestor input fails closed.
+  G30_SCAN_ARGS=()
+  G30_SCAN_LABEL="tracked repo history"
+  if [ -n "${G30_SECRET_SCAN_BASE_SHA:-}" ]; then
+    [[ "$G30_SECRET_SCAN_BASE_SHA" =~ ^[a-f0-9]{40}$ ]] || fail "Secret scan baseline must be a full commit SHA"
+    git merge-base --is-ancestor "$G30_SECRET_SCAN_BASE_SHA" HEAD || fail "Secret scan baseline is not an ancestor"
+    G30_SCAN_ARGS=("--log-opts=${G30_SECRET_SCAN_BASE_SHA}..HEAD")
+    G30_SCAN_LABEL="new commits since $G30_SECRET_SCAN_BASE_SHA (earlier history not rescanned)"
+    GITLEAKS_STATUS="incremental"
+  fi
+  if ! gitleaks detect --no-banner --exit-code 1 $GITLEAKS_CONFIG "${G30_SCAN_ARGS[@]}" 2>&1; then
     fail "gitleaks flagged committed content — run 'gitleaks detect --verbose' to inspect"
   fi
-  pass "No secrets detected in tracked repo"
+  pass "No secrets detected in $G30_SCAN_LABEL"
 fi
 
 # ══════════════════════════════════════════════════════════════════════
