@@ -353,11 +353,18 @@ function toIso(ts: unknown): string {
 }
 
 async function fetchHealthz(timeoutMs = 2000): Promise<HealthzBody | null> {
+  // Probe this server, including a candidate that has not received traffic yet.
+  // Serving-state points at the active release and must not select this origin.
+  // Only an absent PORT retains the historical 4001 development/legacy default.
+  const rawPort = process.env.PORT;
+  if (rawPort !== undefined && !/^\d+$/.test(rawPort)) return null;
+  const port = rawPort === undefined ? 4001 : Number(rawPort);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) return null;
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), timeoutMs);
     try {
-      const res = await fetch("http://localhost:4001/api/healthz", {
+      const res = await fetch(`http://127.0.0.1:${port}/api/healthz`, {
         cache: "no-store",
         signal: ctrl.signal,
       });
