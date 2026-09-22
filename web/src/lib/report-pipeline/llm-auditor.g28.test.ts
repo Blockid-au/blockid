@@ -94,14 +94,15 @@ describe("G28-A — residual pattern 2: statutory fees and a checklist contradic
   const items = () => itemsFromEvidenceRows(rows());
   const ids = () => rows().map((r) => r.evidence_id);
 
-  it("the remembered '$290' stays uncited (not in the band); '~$250 per class' IS the row's low end and is auto-cited; the band quoted from the row clears the gate", () => {
+  it("the remembered $290 and unspecified-dollar $250 stay uncited; the explicitly AUD band remains citable", () => {
     const stale = "ASIC annual review is due by your registration anniversary—ensure you file the annual statement and pay the $290 fee on time. Australian trademark registration (Class 36, Class 42) costs ~$250 per class via IP Australia.";
     const out = autoCite(stale, items());
-    expect(out.added).toBe(1);
-    expect(out.text).toContain(`~$250 per class via IP Australia [ev:${LEGAL}].`);
+    expect(out.added).toBe(0);
+    expect(out.text).not.toContain(`[ev:${LEGAL}]`);
     const flagged = findUncitedClaims(out.text, ids());
-    expect(flagged).toHaveLength(1);
+    expect(flagged).toHaveLength(2);
     expect(flagged[0]).toContain("$290");
+    expect(flagged[1]).toContain("$250");
     const fromRow = "ASIC's annual review fee for a proprietary company is A$321–A$329 a year, indexed each 1 July. Trade mark registration with IP Australia costs A$250–A$550 per class.";
     const cited = autoCite(fromRow, items());
     expect(cited.added).toBe(2);

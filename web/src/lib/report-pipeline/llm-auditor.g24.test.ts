@@ -131,9 +131,10 @@ describe("G24-D (run 1 follow-ups) — short ids, declared-estimate tables, pre-
     expect(isPrescriptiveClaim("- **Low paid conversion — 0% across all cohorts** (critical) — A/B test pricing")).toBe(false);
   });
 
-  it("'A$0 ARR' / 'A$0 MRR' is backed by a pre-revenue row; 'A$0' against a row with real revenue is not", () => {
+  it("a pre-revenue label or zero subscriptions does not authenticate a monetary amount; explicit AUD zero remains citable", () => {
     const pre = [{ id: FULL, label: "Founder evidence: revenue", text: "Pre-revenue. Stripe shows 0 active subscriptions and 5 one-off charges; 0 MRR." }];
-    expect(autoCite("BlockID.au is at A$0 ARR today.", pre).added).toBe(1);
+    expect(autoCite("BlockID.au is at A$0 ARR today.", pre).added).toBe(0);
+    expect(autoCite("MRR is A$0.", [{ id: FULL, label: "Stripe revenue", text: "mrr_aud = 0" }]).added).toBe(1);
     const paid = [{ id: FULL, label: "Stripe revenue", text: "mrr_aud = 12400; active_subscriptions = 9" }];
     expect(autoCite("BlockID.au is at A$0 ARR today.", paid).added).toBe(0);
   });

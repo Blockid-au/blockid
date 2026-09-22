@@ -51,8 +51,8 @@ export interface NumToken {
   strong: boolean;
 }
 
-const NUMBER_RE = /(A\$|AUD\s?|US\$|USD\s?|\$)?(\d[\d,]*(?:\.\d+)?)\s?(%|percent|per cent|bn|billion|million|mn|m|k|thousand|x|×)?(?![\w$])/gi;
-const UNIT: Record<string, NumToken["unit"]> = { "%": "%", percent: "%", "per cent": "%", bn: "bn", billion: "bn", million: "m", mn: "m", m: "m", k: "k", thousand: "k", x: "x", "×": "x" };
+const NUMBER_RE = /(?<![\w.])(?:[−-]\s*)?(A\$\s*|AUD\s*|US\$\s*|USD\s*|\$\s*)?([−-]?(?:\d[\d,]*(?:\.\d+)?|\.\d+))\s?(%|percent|per cent|pct|bn|billion|million|mn|m|k|thousand|x|×)?(?![\w$])/gi;
+const UNIT: Record<string, NumToken["unit"]> = { "%": "%", percent: "%", "per cent": "%", pct: "%", bn: "bn", billion: "bn", million: "m", mn: "m", m: "m", k: "k", thousand: "k", x: "x", "×": "x" };
 // G24-D: the computed rows (computed-facts.ts) start with svi / benchmarks / valuation so "+6 points vs the p50 benchmark" can name its row.
 // G28-A: "asic" already names the fee row ("ASIC and IP Australia fees: …"); "sector" names the entity-count row.
 const SOURCE_WORDS = ["stripe", "xero", "ga4", "github", "linkedin", "abr", "grantconnect", "asic", "abs", "svi", "benchmark", "valuation", "sector"];
@@ -62,7 +62,8 @@ export function numericTokens(claim: string): NumToken[] {
   const out: NumToken[] = [];
   for (const m of claim.matchAll(NUMBER_RE)) {
     const currency = Boolean(m[1]);
-    const digits = m[2]!.replace(/,/g, "");
+    const unsignedDigits = m[2]!.replace(/,/g, "").replace(/^[−-]/, "");
+    const digits = /^[−-]/.test(m[0]) || /^[−-]/.test(m[2]!) ? `-${unsignedDigits}` : unsignedDigits;
     const unit = m[3] ? (UNIT[m[3].toLowerCase()] ?? "") : "";
     const strong = currency || unit !== "" || digits.replace(/\D/g, "").length >= 4;
     if (!strong && digits.replace(/\D/g, "").length < 2) continue;
@@ -77,50 +78,48 @@ export function numericTokens(claim: string): NumToken[] {
 
 const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-function scaled(digits: string, factor: number): string | null {
-  const n = Number(digits);
-  if (!Number.isFinite(n)) return null;
-  const v = n * factor;
-  return Number.isInteger(v) ? String(v) : null;
+const MAGNITUDE: Record<NumToken["unit"], number> = { "": 1, "%": 1, x: 1, k: 1_000, m: 1_000_000, bn: 1_000_000_000 };
+type Currency = "AUD" | "USD" | "unspecified" | null;
+
+function currencyOf(prefix: string): Currency {
+  prefix = prefix.replace(/^[−-]\s*/, "");
+  if (/^(?:A\$|AUD)/i.test(prefix)) return "AUD";
+  if (/^(?:US\$|USD)/i.test(prefix)) return "USD";
+  return prefix.includes("$") ? "unspecified" : null;
 }
 
-/** Normalise register text: thousands separators dropped, lower-cased, "per cent" → "%". */
-function normaliseItemText(text: string): string {
-  return text.replace(/(\d),(?=\d{3}\b)/g, "$1").replace(/per cent/gi, "%").toLowerCase();
-}
-
-/** True when the register text carries this number in a compatible form (bounded, unit-aware). */
+/**
+ * Compare normalized amounts, never just matching digits. A$310 and A$310M
+ * are different evidence, as are AUD and USD. This is numeric compatibility
+ * only: the caller still needs metric/entity/period and claim entailment.
+ */
 export function itemHasNumber(itemText: string, token: NumToken): boolean {
-  const t = normaliseItemText(itemText);
-  const forms = new Set<string>([token.digits]);
-  if (token.unit === "k") { const s = scaled(token.digits, 1000); if (s) forms.add(s); }
-  if (token.unit === "m") { const s = scaled(token.digits, 1_000_000); if (s) forms.add(s); }
-  if (token.unit === "bn") { const s = scaled(token.digits, 1_000_000_000); if (s) forms.add(s); }
-  if (token.unit === "" && /^\d+$/.test(token.digits) && Number(token.digits) >= 1000 && Number(token.digits) % 1000 === 0) forms.add(`${Number(token.digits) / 1000}k`);
-  const bounded = (d: string) => new RegExp(`(?<![\\d.])${esc(d)}(?![\\d])`);
-  for (const d of forms) {
-    if (token.currency) {
-      // G24-D: "A$0 ARR" / "A$0 MRR" is what a pre-revenue row says — "0 active subscriptions", "0 MRR", "pre-revenue".
-      if (d === "0" && /\bpre-revenue\b|\b0 (?:mrr|arr|revenue|active subscriptions|subscriptions|paying customers)\b/.test(t)) return true;
-      if (new RegExp(`(?:a\\$|aud\\s?|us\\$|usd\\s?|\\$)\\s?${esc(d)}(?![\\d])`).test(t)) return true;
-      if (new RegExp(`(?<![\\d.])${esc(d)}\\s?(?:aud|usd|dollars|k\\b|m\\b)`).test(t)) return true;
-      if (new RegExp(`(?:aud|usd|revenue|mrr|arr|price|cost|fee|charge)[^\\d]{0,12}${esc(d)}(?![\\d])`).test(t)) return true;
-      // Never a bare digit match for money (review G23 P1): "A$1,200 million"
-      // must not cite a row that only says "1200 sessions".
-      continue;
-    }
-    if (token.unit === "%") {
-      if (new RegExp(`(?<![\\d.])${esc(d)}\\s?(?:%|pct|percent)`).test(t)) return true;
-      if (new RegExp(`(?:%|pct|percent|rate|margin|churn|growth|share)[^\\d]{0,12}${esc(d)}(?![\\d])`).test(t)) return true;
-      continue;
-    }
-    if (token.unit === "x") {
-      if (new RegExp(`(?<![\\d.])${esc(d)}\\s?[x×]`).test(t)) return true;
-      if (new RegExp(`(?:ratio|multiple|coverage|ltv[_/ ]?cac)[^\\d]{0,12}${esc(d)}(?![\\d])`).test(t)) return true;
-      continue;
-    }
-    // A plain 2–3 digit number must not be a date / ratio fragment ("2026-09-13", "4/100").
-    if (token.strong ? bounded(d).test(t) : new RegExp(`(?<![\\d.\\-/:])${esc(d)}(?![\\d\\-/:])`).test(t)) return true;
+  const expected = Number(token.digits) * MAGNITUDE[token.unit];
+  if (!Number.isFinite(expected) || (token.currency && (token.unit === "%" || token.unit === "x"))) return false;
+  const expectedCurrency = token.currency ? currencyOf(token.raw) : null;
+  const expectedKind = token.currency ? "money" : token.unit === "%" ? "percent" : token.unit === "x" ? "ratio" : "count";
+  for (const match of itemText.matchAll(NUMBER_RE)) {
+    const unit = match[3] ? (UNIT[match[3].toLowerCase()] ?? "") : "";
+    const numeric = Number(match[2]!.replace(/,/g, "").replace(/^[−-]/, ""));
+    const negative = /^[−-]/.test(match[0]) || /^[−-]/.test(match[2]!);
+    const amount = numeric * (negative ? -1 : 1) * MAGNITUDE[unit];
+    if (!Number.isFinite(amount) || Math.abs(amount - expected) > Number.EPSILON * Math.max(1, Math.abs(amount), Math.abs(expected)) * 4) continue;
+    const before = itemText.slice(Math.max(0, match.index! - 70), match.index!);
+    const after = itemText.slice(match.index! + match[0].length, match.index! + match[0].length + 25);
+    // Typed connector keys and explicit suffixes can identify currency. A bare
+    // revenue/MRR label, zero subscriptions or an unspecified $ cannot prove AUD.
+    const keyCurrency = /(?:^|[_\s])(?:aud|usd)\s*[:=]?\s*$/i.exec(before)?.[0].match(/aud|usd/i)?.[0];
+    const suffixCurrency = /^\s*(AUD|USD)\b/i.exec(after)?.[1];
+    const currency: Currency = currencyOf(match[1] ?? "") ?? ((keyCurrency ?? suffixCurrency)?.toUpperCase() as "AUD" | "USD" | undefined) ?? null;
+    if (currency && (unit === "%" || unit === "x")) continue;
+    const percentKey = /(?:pct|percent|percentage)\s*[:=]?\s*$/i.test(before);
+    const ratioKey = /(?:ratio|multiple|ltv[_/ ]?cac)\s*[:=]?\s*$/i.test(before);
+    const kind = currency ? "money" : unit === "%" || percentKey ? "percent" : unit === "x" || ratioKey ? "ratio" : "count";
+    if (kind !== expectedKind) continue;
+    if (expectedKind === "money" && currency !== expectedCurrency) continue;
+    // Reject date, identifier, decimal and fraction fragments for plain counts.
+    if (kind === "count" && (/[\w.\-/:]$/.test(before) || /^[\w\-/:]/.test(after))) continue;
+    return true;
   }
   return false;
 }
