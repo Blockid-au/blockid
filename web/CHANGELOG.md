@@ -1,5 +1,13 @@
 # BlockID.au Changelog
 
+## v3.29.0 — G30 initial safety and quote provenance
+
+- Model-written quotes no longer become evidence merely through a valid source ID; new generation cache version, with historical reports preserved.
+- Release retention and recovery share protected process/release state. Candidate promotion keeps old processes alive for unfinished jobs and warm rollback.
+- Active-origin cron/health readers and legacy-upgrade ownership guards prevent competing restarts or deployments.
+- Broader report verification, valuation, billing integrity and whole-site redesign remain in progress. Off-host backup is deferred by the founder.
+
+
 ## 2026-09-22 — v3.28.2: Exit hub overflow, root cause
 
 - `/workspace/exit*` still overflowed the 375 px viewport after v3.28.1: the locked tab's screen-reader-only label is `position: absolute`, and with no positioned ancestor inside the scrolling tablist it escaped the clip and sat 110 px past the viewport. Each tab link is now `relative`, so the label is clipped with its tab.

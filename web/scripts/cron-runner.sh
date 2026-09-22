@@ -50,6 +50,26 @@ esac
 [ "$TIMEOUT" -lt 1 ] && TIMEOUT=60
 [ "$TIMEOUT" -gt "$TIMEOUT_MAX_S" ] && TIMEOUT=$TIMEOUT_MAX_S
 
+# Resolve once before the POST. A switch/invalid state defers this tick;
+# preserved old instances may finish a request already admitted before cutover.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WEB_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+STATE_HELPER="$WEB_DIR/scripts/g30-serving-state.py"
+if ! ORIGIN_PORT=$(python3 "$STATE_HELPER" --web "$WEB_DIR" --port 2>/dev/null); then
+  echo "$(date -u '+%m-%d %H:%M') $ENDPOINT: deferred (serving state invalid or switching)" >> /tmp/blockid-cron.log
+  exit 0
+fi
+RUN_RELEASE=""
+if [ -e "$WEB_DIR/content/reports/g30-serving-state.json" ] || [ -L "$WEB_DIR/content/reports/g30-serving-state.json" ]; then
+  if ! SERVING_SNAPSHOT=$(python3 "$STATE_HELPER" --web "$WEB_DIR" --snapshot 2>/dev/null) || \
+      ! RUN_RELEASE=$(printf '%s' "$SERVING_SNAPSHOT" | python3 -c 'import json,sys; d=json.load(sys.stdin); assert d["phase"]=="stable" and str(d["active"]["port"])==sys.argv[1]; print(d["active"]["releasePath"])' "$ORIGIN_PORT" 2>/dev/null); then
+    echo "$(date -u '+%m-%d %H:%M') $ENDPOINT: deferred (serving instance changed before admission)" >> /tmp/blockid-cron.log
+    exit 0
+  fi
+else
+  RUN_RELEASE="$(readlink -f "$WEB_DIR/.next-current" 2>/dev/null || true)"
+fi
+
 # Overall watchdog: hard-kill this process tree so a hung curl+retry can never
 # block the next cron tick. Sized from --timeout (curl budget + 30 s for the
 # retry/Telegram tail) — a fixed 90 s used to kill every cron that legitimately
@@ -58,7 +78,7 @@ esac
 WATCHDOG_S=$((TIMEOUT + 30))
 ( sleep "$WATCHDOG_S" && kill -TERM -$$ 2>/dev/null ) &
 WATCHDOG_PID=$!
-trap 'kill $WATCHDOG_PID 2>/dev/null; rm -f "$LOCK_FILE" 2>/dev/null' EXIT
+trap 'kill $WATCHDOG_PID 2>/dev/null' EXIT  # retain lock inode for queued cron invocations
 
 # Secrets are read from the gitignored .env (never hardcoded in committed
 # scripts). An already-exported env var wins; otherwise we pull the single key
@@ -69,7 +89,7 @@ env_val() { grep -E "^$1=" "$WEB_DIR/.env" "$WEB_DIR/.env.runtime" 2>/dev/null |
 
 # Config
 CRON_SECRET="${CRON_SECRET:-$(env_val CRON_SECRET)}"
-BASE="http://127.0.0.1:4001/api/cron"
+BASE="http://127.0.0.1:$ORIGIN_PORT/api/cron"
 
 # Fail LOUD if CRON_SECRET is missing — otherwise every cron silently 401s
 # and health-log fills with useless "Unauthorized" rows. Manual testers /
@@ -100,10 +120,9 @@ TS=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
 TS_SHORT=$(date -u '+%m-%d %H:%M')
 START_NS=$(date +%s%N)
 
-# Run the endpoint with ONE retry on transient failure. The server briefly
-# returns HTML / refuses connections during deploys & restarts; a single retry
-# after a short wait avoids false "Cron Failed" alerts for those blips. Real app
-# failures (valid JSON with ok:false) are NOT retried — they're reported as-is.
+# Send exactly once: transport timeout/non-JSON can follow a committed write.
+# Do not replay an ambiguous POST; the endpoint's next scheduled tick and
+# durable idempotency/reconciliation own recovery.
 ATTEMPT=0
 while :; do
   ATTEMPT=$((ATTEMPT + 1))
@@ -134,12 +153,7 @@ while :; do
     DETAIL=$(echo "$BODY" | head -c 120)
   fi
 
-  # Retry once for transient blips (connection error / non-JSON HTML).
-  if { [ "$STATUS" = "error" ] || [ "$STATUS" = "transient" ]; } && [ $ATTEMPT -lt 3 ]; then
-    sleep 8
-    continue
-  fi
-  # A transient that survived the retry is a genuine failure.
+  # An uncertain transport outcome is recorded, never blindly retried.
   [ "$STATUS" = "transient" ] && STATUS="fail"
   break
 done
@@ -177,10 +191,10 @@ fi
 # source tree so it survives the next deploy (releases are ephemeral).
 if [ "$ENDPOINT" = "publish-insight" ] && [ "$STATUS" = "ok" ]; then
   SOURCE_INSIGHTS="$WEB_DIR/content/insights"
-  # Find the active release dir from symlink or last-known-good build id.
-  BUILD_ID=$(python3 -c "import json; d=json.load(open('$WEB_DIR/content/reports/last-good-build.json')); print(d.get('buildId',''))" 2>/dev/null)
-  RELEASE_INSIGHTS="$WEB_DIR/releases/$BUILD_ID/content/insights"
-  if [ -n "$BUILD_ID" ] && [ -d "$RELEASE_INSIGHTS" ]; then
+  # Read from the instance that handled this POST, even if a newer release
+  # became active while it ran. LKG is not necessarily the serving instance.
+  RELEASE_INSIGHTS="$RUN_RELEASE/content/insights"
+  if [ -n "$RUN_RELEASE" ] && [ -d "$RELEASE_INSIGHTS" ]; then
     for f in "$RELEASE_INSIGHTS"/*.md; do
       base=$(basename "$f")
       [ ! -f "$SOURCE_INSIGHTS/$base" ] && cp "$f" "$SOURCE_INSIGHTS/$base"

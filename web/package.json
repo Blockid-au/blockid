@@ -1,6 +1,6 @@
 {
   "name": "blockid-web",
-  "version": "3.28.2",
+  "version": "3.29.0",
   "private": true,
   "scripts": {
     "dev": "next dev",

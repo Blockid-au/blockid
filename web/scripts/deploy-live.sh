@@ -10,6 +10,9 @@
 # `[ "${1:-}" = ... ]` check below is untouched; --wait / --dry-run are lifted
 # out of "$@" wherever they appear.
 DEPLOY_WAIT=0
+# Preserve caller notification opt-out across .env loading.
+if [ "${DEPLOY_NOTIFY:-1}" = "0" ]; then G30_NO_NOTIFICATIONS=1; fi
+readonly G30_NO_NOTIFICATIONS="${G30_NO_NOTIFICATIONS:-0}"
 DEPLOY_DRY_RUN=0
 _ARGS=()
 for _a in "$@"; do
@@ -146,8 +149,11 @@ LOG="/data/logs/blockid-production.log"
 [ -w "$(dirname "$LOG")" ] || LOG="/tmp/blockid-production.log"   # dev box without /data
 LOG_NEW="/tmp/blockid-production-new.log"
 PID_FILE="/tmp/blockid-production.pid"
-TEMP_PORT=4099
+TEMP_PORT=4099 # assigned from reserved free-port pool before build
 PROD_PORT=4001
+CANDIDATE_PORT=""
+ROLLBACK_TARGET_JSON=""
+G30_STATE_FILE="$WEB_DIR/content/reports/g30-serving-state.json"
 GATE_PASSED=0
 GATE_TOTAL=0
 LKG_FILE="$WEB_DIR/content/reports/last-good-build.json"
@@ -226,49 +232,101 @@ write_deploy_log() {
     "$(cat "$PID_FILE" 2>/dev/null)" "$reason_json" "$note_json" >> "$DEPLOY_LOG" 2>/dev/null || true
 }
 
+# G30: non-stopping promotion. This controller never retires a process;
+# nginx HTTP drain is not proof that detached jobs have completed (O08).
+g30_state() {
+  python3 "$WEB_DIR/scripts/g30-serving-state.py" --web "$WEB_DIR" "$@"
+}
+g30_json_field() {
+  python3 -c 'import json,sys; d=json.load(sys.stdin); v=d[sys.argv[1]]; print(json.dumps(v) if isinstance(v,(dict,list)) else v)' "$1"
+}
+g30_configured_port() {
+  python3 "$WEB_DIR/scripts/g30-proxy-switch.py" --current-port
+}
+g30_proxy_switch() {
+  local from="$1" to="$2" output="$3"
+  python3 "$WEB_DIR/scripts/g30-proxy-switch.py" --apply --sudo --lock-fd 200 \
+    --from-port "$from" --to-port "$to" > "$output"
+}
+g30_verify_public() {
+  local expected="$1" actual attempt
+  for attempt in {1..5}; do
+    actual=$(curl -fsS --connect-timeout 2 --max-time 8 -H 'Cache-Control: no-cache' \
+      "https://blockid.au/api/status?g30=$(date +%s)" 2>/dev/null \
+      | python3 -c 'import json,sys; print(json.load(sys.stdin).get("git_sha", ""))' 2>/dev/null || true)
+    [ "$actual" = "$expected" ] && return 0
+    [ "$attempt" -eq 5 ] || sleep 1
+  done
+  return 1
+}
+g30_sync_aliases() {
+  local state active previous pid
+  state=$(g30_state --snapshot) || return 1
+  active=$(printf '%s' "$state" | python3 -c 'import json,sys; print(json.load(sys.stdin)["active"]["releasePath"])') || return 1
+  previous=$(printf '%s' "$state" | python3 -c 'import json,sys; print((json.load(sys.stdin).get("previous") or {}).get("releasePath", ""))') || return 1
+  pid=$(printf '%s' "$state" | python3 -c 'import json,sys; print(json.load(sys.stdin)["active"]["pid"])') || return 1
+  ln -sfn "$active" "$CURRENT_LINK" || return 1
+  if [ -n "$previous" ]; then
+    ln -sfn "$previous" "$PREV_LINK" || return 1
+  elif [ -L "$PREV_LINK" ]; then
+    rm -f "$PREV_LINK" || return 1
+  fi
+  printf '%s\n' "$pid" > "$PID_FILE.g30-new" || return 1
+  mv "$PID_FILE.g30-new" "$PID_FILE"
+}
+g30_warm_rollback() {
+  local target port sha source phase state
+  ROLLBACK_STATUS="failed"; ROLLBACK_HTTP="000"
+  if [ -n "${ROLLBACK_TARGET_JSON:-}" ]; then
+    target="$ROLLBACK_TARGET_JSON"
+  else
+    target=$(g30_state --rollback-target) || { ROLLBACK_STATUS="unavailable"; return 1; }
+  fi
+  port=$(printf '%s' "$target" | g30_json_field port) || return 1
+  sha=$(printf '%s' "$target" | g30_json_field sha) || return 1
+  g30_state --verify-port --listen-port "$port" >/dev/null || return 1
+  state=$(g30_state --snapshot) || return 1
+  phase=$(printf '%s' "$state" | g30_json_field phase) || return 1
+  if [ -n "${CANDIDATE_PORT:-}" ] && [ "$CANDIDATE_PORT" != "$port" ]; then
+    g30_state --quarantine --listen-port "$CANDIDATE_PORT" --lock-fd 200 >/dev/null || return 1
+  fi
+  [ "$phase" = "switching" ] || g30_state --begin --lock-fd 200 >/dev/null || return 1
+  source=$(g30_configured_port) || return 1
+  if [ "$source" != "$port" ]; then
+    if ! g30_proxy_switch "$source" "$port" "/tmp/blockid-g30-rollback-$$.json"; then
+      # The helper may have restored its input configuration. Never infer a
+      # successful recovery from command launch or kill either retained app.
+      return 1
+    fi
+  fi
+  # Persist the actual locally verified origin before external CDN checks.
+  # Public failure is explicit, but must not strand healthy local routing in
+  # switching phase and disable future monitoring/reconciliation.
+  g30_state --activate --rollback --listen-port "$port" --lock-fd 200 >/dev/null || return 1
+  g30_sync_aliases || return 1
+  PROD_PORT="$port"
+  if ! g30_verify_public "$sha"; then
+    ROLLBACK_STATUS="external_unverified"; ROLLBACK_HTTP="200"
+    return 1
+  fi
+  ROLLBACK_STATUS="success"; ROLLBACK_HTTP="200"
+  rollback_log "success" "warm-origin:$port" "200" "$(cat "$PID_FILE")"
+  return 0
+}
+
 # Post-swap rollback. Once Gate 8 has swapped, the broken build is serving
 # production, so an abort MUST put the previous release back rather than just
 # print. Restores $PREV_LINK, restarts it on $PROD_PORT and re-verifies 200.
 # Sets ROLLBACK_STATUS = success | failed | unavailable, ROLLBACK_HTTP = code.
 rollback_after_swap() {
-  local prev http i
-  prev="$(readlink -f "$PREV_LINK" 2>/dev/null || true)"
-  if [ -z "$prev" ] || [ ! -f "$prev/server.js" ]; then
-    ROLLBACK_STATUS="unavailable"
-    ROLLBACK_HTTP="000"
-    echo "  ❌ No previous release to roll back to ($PREV_LINK)"
-    rollback_log "failed" "auto-post-swap:none" "000" "0"
+  # Every G30 promotion has persisted warm state before proxy cutover.
+  # No stop/start fallback: missing/invalid state requires explicit recovery.
+  if [ ! -f "$G30_STATE_FILE" ]; then
+    ROLLBACK_STATUS="unavailable"; ROLLBACK_HTTP="000"
     return 1
   fi
-  echo "  ↩  Rolling back to previous release: $(basename "$prev")"
-  if [ -f "$PID_FILE" ]; then kill "$(cat "$PID_FILE")" 2>/dev/null || true; fi
-  fuser -k $PROD_PORT/tcp 2>/dev/null || true
-  sleep 2
-  export PORT=$PROD_PORT
-  if ! cd "$prev"; then
-    ROLLBACK_STATUS="failed"; ROLLBACK_HTTP="000"
-    rollback_log "failed" "auto-post-swap:$(basename "$prev")" "000" "0"
-    return 1
-  fi
-  nohup node server.js >> "$LOG" 2>&1 9>&- 200>&- &
-  echo $! > "$PID_FILE"
-  cd "$WEB_DIR" || true
-  # The restored release is live again; it is no longer the rollback target.
-  ln -sfn "$prev" "$CURRENT_LINK"
-  http="000"
-  for i in $(seq 1 20); do
-    sleep 1
-    http=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:$PROD_PORT/" 2>/dev/null || echo "000")
-    [ "$http" = "200" ] && break
-  done
-  ROLLBACK_HTTP="$http"
-  if [ "$http" = "200" ]; then
-    ROLLBACK_STATUS="success"
-    rollback_log "success" "auto-post-swap:$(basename "$prev")" "$http" "$(cat "$PID_FILE" 2>/dev/null)"
-    return 0
-  fi
-  ROLLBACK_STATUS="failed"
-  rollback_log "failed" "auto-post-swap:$(basename "$prev")" "$http" "$(cat "$PID_FILE" 2>/dev/null)"
+  if g30_warm_rollback; then return 0; fi
+  rollback_log "failed" "warm-origin" "$ROLLBACK_HTTP" "$(cat "$PID_FILE" 2>/dev/null)"
   return 1
 }
 
@@ -280,15 +338,15 @@ fail() {
     # Gate 8 already swapped: the failing build IS production right now.
     echo "════════════════════════════════════════════"
     echo "  DEPLOY FAILED AFTER SWAP ($GATE_PASSED/$GATE_TOTAL gates passed)"
-    echo "  ⚠ The NEW build is ALREADY LIVE on port $PROD_PORT — 'no damage' does NOT apply."
-    echo "  Rolling back to the previous release now..."
+    echo "  ⚠ Proxy cutover started; serving state must be verified. Both retained processes remain alive."
+    echo "  Recovering a verified warm origin through nginx..."
     echo "════════════════════════════════════════════"
     if rollback_after_swap; then
       echo ""
       echo "════════════════════════════════════════════"
       echo "  ✅ ROLLBACK SUCCEEDED"
       echo "  Live again: release $(basename "$(readlink -f "$CURRENT_LINK" 2>/dev/null || echo unknown)") — HTTP $ROLLBACK_HTTP, PID $(cat "$PID_FILE" 2>/dev/null)"
-      echo "  The broken build (${BUILD_ID:-unknown}) is NOT serving traffic."
+      echo "  Public identity verified on rollback target. Old nginx requests/jobs may still drain on retained processes."
       echo "  Fix the issue and try again."
       echo "════════════════════════════════════════════"
     else
@@ -296,7 +354,7 @@ fail() {
       echo "🔥🔥🔥════════════════════════════════════════════🔥🔥🔥"
       echo "  ROLLBACK FAILED ($ROLLBACK_STATUS) — PRODUCTION IS NOT HEALTHY"
       echo "  Port $PROD_PORT last answered HTTP ${ROLLBACK_HTTP:-000}."
-      echo "  The site is DOWN or serving a broken build. Act now:"
+      echo "  Recovery is unverified. Retained processes were not stopped. Inspect controller/proxy state:"
       echo "    bash scripts/deploy-live.sh --rollback"
       echo "    tail -50 $LOG"
       echo "🔥🔥🔥════════════════════════════════════════════🔥🔥🔥"
@@ -363,7 +421,7 @@ rollback_log() {
   ts="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
   printf '{"ts":"%s","status":"%s","src":"%s","http":"%s","pid":"%s"}\n' \
     "$ts" "$status" "$src" "$http" "$pid" >> /tmp/blockid-rollback.log 2>/dev/null || true
-  if [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
+  if [ "$G30_NO_NOTIFICATIONS" != "1" ] && [ -n "${TELEGRAM_BOT_TOKEN:-}" ] && [ -n "${TELEGRAM_CHAT_ID:-}" ]; then
     msg="🔁 BlockID rollback ${status} — src=${src} HTTP=${http} pid=${pid} @ ${ts}"
     curl -s -m 5 -o /dev/null "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
       --data-urlencode "chat_id=${TELEGRAM_CHAT_ID}" \
@@ -402,6 +460,13 @@ verify_manual_rollback() {
   return 1
 }
 
+if [ "${1:-}" = "--rollback" ] && [ "$DEPLOY_DRY_RUN" = "1" ] && { [ -e "$G30_STATE_FILE" ] || [ -L "$G30_STATE_FILE" ]; }; then
+  echo "G30 warm rollback dry run — no processes or config will change"
+  g30_state --snapshot || exit 1
+  g30_state --rollback-target || exit 1
+  echo "Would verify warm target, switch nginx, verify public SHA, and retain every process."
+  exit 0
+fi
 if [ "${1:-}" = "--rollback" ] && [ "$DEPLOY_DRY_RUN" = "1" ]; then
   # ── Rollback drill (G15-R1): print exactly what --rollback would do. ──
   # Read-only: no lock, no env load, no process signal, no symlink change.
@@ -454,6 +519,18 @@ if [ "${1:-}" = "--rollback" ] && [ "$DEPLOY_DRY_RUN" = "1" ]; then
   echo ""
   echo "  Dry run complete — nothing was changed."
   exit 0
+fi
+if [ "${1:-}" = "--rollback" ] && { [ -e "$G30_STATE_FILE" ] || [ -L "$G30_STATE_FILE" ] || [ "${G30_REQUIRE_WARM_ROLLBACK:-0}" = "1" ]; }; then
+  load_env 2>/dev/null || true
+  RECOVERY_STATE=$(g30_state --snapshot) || { echo "Warm recovery refused: invalid/missing G30 state"; exit 1; }
+  RECOVERY_PORT=$(printf '%s' "$RECOVERY_STATE" | python3 -c 'import json,sys; print(json.load(sys.stdin)["active"]["port"])') || exit 1
+  if [ -n "${G30_RECOVERY_EXPECTED_PORT:-}" ] && [ "$RECOVERY_PORT" != "$G30_RECOVERY_EXPECTED_PORT" ]; then
+    echo "Warm recovery refused: active origin changed while caller waited for lock"; exit 1
+  fi
+  CANDIDATE_PORT=$(g30_configured_port) || { echo "Cannot determine configured origin for warm recovery"; exit 1; }
+  if g30_warm_rollback; then exit 0; fi
+  rollback_log "failed" "warm-origin" "$ROLLBACK_HTTP" "$(cat "$PID_FILE" 2>/dev/null)"
+  echo "Warm recovery unverified; all retained processes left running"; exit 1
 fi
 if [ "${1:-}" = "--rollback" ]; then
   echo ""
@@ -522,6 +599,23 @@ if [ "${1:-}" = "--rollback" ]; then
   fi
   exit 1
 fi
+
+# G30 initial admission: establish the healthy legacy origin once; no process
+# is stopped. New migrations need O09 compatibility approval outside this
+# initial controller. Mutation crons pause while phase is switching.
+load_env
+g30_state --init --listen-port 4001 --pid "$(cat "$PID_FILE")" \
+  --release "$(readlink -f "$CURRENT_LINK")" --lock-fd 200 >/dev/null || fail "Cannot establish/verify known-good serving state"
+PROD_PORT=$(g30_state --port) || fail "Serving origin is not stable"
+ROLLBACK_TARGET_JSON=$(g30_state --verify-active) || fail "Active origin identity/schema unverified"
+ACTIVE_SHA=$(printf '%s' "$ROLLBACK_TARGET_JSON" | g30_json_field sha) || fail "Missing active SHA"
+if ! git -C "$WEB_DIR" diff --quiet "$ACTIVE_SHA" HEAD -- supabase/migrations; then
+  fail "Migration changes require expanded compatibility/rollback verification before promotion"
+fi
+CONFIGURED_PORT=$(g30_configured_port) || fail "Unsupported nginx origin configuration"
+[ "$CONFIGURED_PORT" = "$PROD_PORT" ] || fail "nginx origin differs from stable serving state"
+TEMP_PORT=$(g30_state --allocate --lock-fd 200) || fail "No safe capacity/free origin port for candidate"
+CANDIDATE_PORT="$TEMP_PORT"
 
 # ══════════════════════════════════════════════════════════════════════
 # PRE-GATE (G15-R1): Manifest truth — stamp what we are about to build.
@@ -1083,10 +1177,14 @@ echo "  ✅ Standalone integrity OK (server.js + ai-worker.mjs + BUILD_ID + $MAN
 BUILD_ID="$(cat "$STANDALONE/.next/BUILD_ID")"
 RELEASE_DIR="$RELEASES_DIR/$BUILD_ID"
 mkdir -p "$RELEASES_DIR"
-rm -rf "$RELEASE_DIR"
-# Copy contents into release dir (add trailing slash to avoid nesting)
-mkdir -p "$RELEASE_DIR"
-cp -al "$STANDALONE/." "$RELEASE_DIR/" 2>/dev/null || cp -a "$STANDALONE/." "$RELEASE_DIR/"
+# G30/O05: BUILD_ID reuse must never overwrite a serving/rollback artifact.
+# Even an apparently unused existing directory needs explicit disposition.
+if [ -e "$RELEASE_DIR" ] || [ -L "$RELEASE_DIR" ]; then
+  fail "Release identity already exists: $BUILD_ID. Build a fresh candidate; existing release preserved."
+fi
+# Copy contents into a new release dir (no overwrite).
+mkdir "$RELEASE_DIR" || fail "Cannot reserve unique release directory: $BUILD_ID"
+cp -a --reflink=auto "$STANDALONE/." "$RELEASE_DIR/" || fail "Independent release artifact copy failed"
 [ -f "$RELEASE_DIR/server.js" ] || restore_lkg_and_fail "Failed to freeze release dir $RELEASE_DIR."
 # Next 16 + --webpack standalone has multiple packaging gaps that make the
 # release un-runnable out of the box:
@@ -1127,17 +1225,34 @@ if [ -d "$RELEASE_DIR/.next/server/app/index/index" ]; then
   done
 fi
 
+# Discard leaked release aliases only if they are symlinks; never follow them.
+for alias in .next-current .next-previous; do
+  if [ -L "$RELEASE_DIR/$alias" ]; then
+    rm -f "$RELEASE_DIR/$alias"
+  elif [ -e "$RELEASE_DIR/$alias" ]; then
+    fail "Unexpected non-symlink alias inside candidate: $alias"
+  fi
+done
+FREEZE_RESULT=$(python3 "$WEB_DIR/scripts/g30-freeze-runtime.py" --web "$WEB_DIR" \
+  --release "$RELEASE_DIR" --apply --lock-fd 200) || fail "Independent candidate runtime freeze failed"
+FROZEN_NODE_PATH=$(printf '%s' "$FREEZE_RESULT" | python3 -c 'import json,sys; print(json.load(sys.stdin)["snapshot"])') || fail "Runtime snapshot manifest missing"
+export NODE_PATH="$RELEASE_DIR/$FROZEN_NODE_PATH"
+[ -d "$NODE_PATH" ] || fail "Frozen dependency snapshot missing"
+ln -sfn "$RELEASE_DIR" "$WEB_DIR/.next-candidate" || fail "Cannot pin candidate before start"
 echo "  ✅ Release frozen: releases/$BUILD_ID"
 
 # Start on temp port (from the immutable release dir)
 load_env
+export NODE_PATH="$RELEASE_DIR/$FROZEN_NODE_PATH"
 export PORT=$TEMP_PORT
-fuser -k $TEMP_PORT/tcp 2>/dev/null || true
-sleep 1
+export HOSTNAME=127.0.0.1
+# Candidate port was reserved by admission; PID/listener ownership is verified
+# after startup. Never kill another process to claim this port.
 
 cd "$RELEASE_DIR"
 nohup node server.js > "$LOG_NEW" 2>&1 9>&- 200>&- &
 NEW_PID=$!
+printf '%s\n' "$NEW_PID" > "$WEB_DIR/.g30-candidate.pid"
 
 # Wait for healthy (max 15s)
 HEALTHY=false
@@ -1149,10 +1264,10 @@ for i in $(seq 1 15); do
 done
 
 if [ "$HEALTHY" != "true" ]; then
-  kill $NEW_PID 2>/dev/null || true
+  # Retain/pin even a failed candidate: test routes may have detached work.
   echo "  Last 10 lines of log:"
   tail -10 "$LOG_NEW"
-  rm -rf "$RELEASE_DIR"   # discard failed release; live release untouched
+  # Candidate remains pinned for explicit inspection; do not delete live cwd.
   if [ -d "$BACKUP_DIR" ]; then
     rm -rf "$WEB_DIR/.next"; mv "$BACKUP_DIR" "$WEB_DIR/.next"
     echo "  Backup restored."
@@ -1254,13 +1369,10 @@ if [ "${DEPLOY_LINK_CHECK:-1}" = "1" ] && [ -f "$WEB_DIR/scripts/link-check.mjs"
   fi
 fi
 
-# Kill temp process
-kill $NEW_PID 2>/dev/null || true
-fuser -k $TEMP_PORT/tcp 2>/dev/null || true
-sleep 1
+# Keep candidate serving on its own port throughout promotion/recovery.
 
 if [ "$SMOKE_FAIL" -gt 0 ]; then
-  rm -rf "$RELEASE_DIR"   # discard failed release; live release untouched
+  # Candidate remains pinned for explicit inspection; do not delete live cwd.
   if [ -d "$BACKUP_DIR" ]; then
     rm -rf "$WEB_DIR/.next"; mv "$BACKUP_DIR" "$WEB_DIR/.next"
     echo "  Backup restored."
@@ -1308,39 +1420,22 @@ fi
 # ══════════════════════════════════════════════════════════════════════
 # GATE 8: Swap to Production (< 1s gap)
 # ══════════════════════════════════════════════════════════════════════
-gate "Swap to production port $PROD_PORT"
-
-# Record the outgoing release as the rollback target BEFORE we swap.
-OUTGOING="$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
-[ -n "$OUTGOING" ] && [ "$OUTGOING" != "$RELEASE_DIR" ] && ln -sfn "$OUTGOING" "$PREV_LINK"
-
-# Kill old process
-if [ -f "$PID_FILE" ]; then
-  OLD_PID=$(cat "$PID_FILE")
-  kill "$OLD_PID" 2>/dev/null || true
-  echo "  Stopped old (PID $OLD_PID)"
-fi
-# Stop legacy Docker container if present (previous deploy.sh path)
-if command -v docker >/dev/null 2>&1 && docker ps --format '{{.Names}}' 2>/dev/null | grep -q '^deploy-blockid-production$'; then
-  docker rm -f deploy-blockid-production >/dev/null 2>&1 || true
-  echo "  Removed legacy Docker container deploy-blockid-production"
-fi
-fuser -k $PROD_PORT/tcp 2>/dev/null || true
-sleep 2
-# ── POINT OF NO RETURN ────────────────────────────────────────────────
-# The old process is gone. From here a failure cannot be shrugged off with
-# "old build still running" — fail() must roll back. See fail() above.
-SWAPPED=1
-
-# Start new on production port — from the immutable release dir.
-export PORT=$PROD_PORT
-cd "$RELEASE_DIR"
-nohup node server.js >> "$LOG" 2>&1 9>&- 200>&- &
-echo $! > "$PID_FILE"
-# Mark this release as the live one, then prune stale releases.
-ln -sfn "$RELEASE_DIR" "$CURRENT_LINK"
+gate "Promote retained candidate through nginx ($PROD_PORT → $TEMP_PORT)"
+# Registration verifies exact PID/start/cwd/listener/SHA/schema and pins all
+# retained releases before state changes. Candidate is not rollback-eligible
+# until the final gate records mark-good.
+g30_state --register --pid "$NEW_PID" --release "$RELEASE_DIR" \
+  --listen-port "$TEMP_PORT" --lock-fd 200 >/dev/null || fail "Cannot register verified candidate"
+g30_state --begin --lock-fd 200 >/dev/null || fail "Cannot enter serialized cutover"
+SWAPPED=1 # proxy may change from here; failures must verify warm recovery.
+PROXY_RESULT="/tmp/blockid-g30-promotion-$$.json"
+g30_proxy_switch "$PROD_PORT" "$TEMP_PORT" "$PROXY_RESULT" || fail "Proxy promotion failed; recovering verified warm origin"
+g30_verify_public "$MANIFEST_BUILD_SHA" || fail "Candidate public identity failed after proxy cutover"
+g30_state --activate --listen-port "$TEMP_PORT" --lock-fd 200 >/dev/null || fail "Cannot persist verified serving origin"
+g30_sync_aliases || fail "Cannot synchronize serving aliases"
+PROD_PORT="$TEMP_PORT"
 prune_releases
-pass "New process started (PID $(cat "$PID_FILE")) from release $BUILD_ID"
+pass "Candidate serves on retained port $PROD_PORT; previous PID remains warm (O08 retirement deferred)"
 
 # ══════════════════════════════════════════════════════════════════════
 # GATE 9: Post-Deploy Verification
@@ -1483,6 +1578,8 @@ if [ "$PW_EXIT" -ne 0 ]; then
 fi
 pass "Post-deploy hydrated smoke passed against $PLAYWRIGHT_BASE_URL"
 
+g30_state --gates-passed --lock-fd 200 >/dev/null || fail "Cannot record release gates/soak start"
+
 # ══════════════════════════════════════════════════════════════════════
 # G-11: Snapshot the successful release to /data/blockid-releases/ and
 # prune to the 5 most-recent snapshots. Runs AFTER swap + smoke succeed so
@@ -1493,13 +1590,20 @@ pass "Post-deploy hydrated smoke passed against $PLAYWRIGHT_BASE_URL"
   mkdir -p "$RELEASES_ARCHIVE" 2>/dev/null || true
   if [ -d "$RELEASES_ARCHIVE" ] && [ -w "$RELEASES_ARCHIVE" ]; then
     ARCHIVE_SHA_SHORT="$(git -C "$WEB_DIR" rev-parse --short HEAD 2>/dev/null || echo nogit)"
-    ARCHIVE_DIR="$RELEASES_ARCHIVE/$(date +%Y-%m-%d)-$ARCHIVE_SHA_SHORT"
+    ARCHIVE_DIR="$RELEASES_ARCHIVE/$(date +%Y-%m-%d)-$BUILD_ID-$ARCHIVE_SHA_SHORT"
     if [ ! -d "$ARCHIVE_DIR" ]; then
-      mkdir -p "$ARCHIVE_DIR"
-      # Hardlink copy — near-instant + tiny disk cost (release is immutable).
-      cp -al "$RELEASE_DIR/." "$ARCHIVE_DIR/" 2>/dev/null || cp -a "$RELEASE_DIR/." "$ARCHIVE_DIR/" 2>/dev/null || true
-      cp "$WEB_DIR/.deploy-manifest.json" "$ARCHIVE_DIR/.deploy-manifest.json" 2>/dev/null || true
-      echo "  📦 Snapshot → $ARCHIVE_DIR"
+      ARCHIVE_STAGE=""
+      # Publish only a completed independent copy. A failed/partial copy is
+      # not an archive and must never produce a successful snapshot message.
+      if ARCHIVE_STAGE=$(mktemp -d "$RELEASES_ARCHIVE/.g30-snapshot-XXXXXX") \
+          && cp -a --reflink=auto "$RELEASE_DIR/." "$ARCHIVE_STAGE/" \
+          && [ -f "$ARCHIVE_STAGE/.deploy-manifest.json" ] \
+          && mv "$ARCHIVE_STAGE" "$ARCHIVE_DIR"; then
+        echo "  📦 Snapshot copied → $ARCHIVE_DIR (restore drill still required)"
+      else
+        [ -z "$ARCHIVE_STAGE" ] || rm -rf "$ARCHIVE_STAGE"
+        echo "  ⚠ Snapshot copy failed; no archive published"
+      fi
     fi
     # Prune: keep 5 newest by mtime; rm the rest.
     ls -1dt "$RELEASES_ARCHIVE"/*/ 2>/dev/null | tail -n +6 | while read -r old; do
@@ -1516,7 +1620,7 @@ pass "Post-deploy hydrated smoke passed against $PLAYWRIGHT_BASE_URL"
 # ══════════════════════════════════════════════════════════════════════
 echo ""
 echo "════════════════════════════════════════════"
-echo "  ✅ DEPLOY COMPLETE"
+echo "  ✅ DEPLOY GATES COMPLETE — SOAK PENDING"
 echo "  Gates: $GATE_PASSED/$GATE_TOTAL passed$([ "$GATE_SKIPPED" -gt 0 ] && echo " ($GATE_SKIPPED skipped/unverified — see \"gitleaks\" and \"lint\" in deploy-log.jsonl)")"
 echo "  PID:   $(cat "$PID_FILE")"
 echo "  Release: ${BUILD_ID:-?} (releases/${BUILD_ID:-?})"
@@ -1544,9 +1648,5 @@ echo "  📝 Deploy event logged → content/reports/deploy-log.jsonl"
 # (.next-backup) define the rollback target and the bar every future build
 # must clear. A failed build never overwrites this — the LKG keeps serving.
 # ══════════════════════════════════════════════════════════════════════
-LKG_BUILD_ID=$(cat "$STANDALONE/.next/BUILD_ID" 2>/dev/null || echo "unknown")
-LKG_SHA="$(git -C "$WEB_DIR" rev-parse HEAD 2>/dev/null || echo unknown)"
-LKG_EPOCH="$(date +%s)"
-printf '{"ts":"%s","epoch":%s,"sha":"%s","buildId":"%s","gates":"%s/%s","pid":"%s","note":%s}\n' \
-  "$DEPLOY_TS" "$LKG_EPOCH" "$LKG_SHA" "$LKG_BUILD_ID" "$GATE_PASSED" "$GATE_TOTAL" "$(cat "$PID_FILE" 2>/dev/null)" "$DEPLOY_NOTE_JSON" > "$LKG_FILE"
-echo "  📌 Last-known-good build recorded (BUILD_ID $LKG_BUILD_ID, sha ${LKG_SHA:0:8}) → content/reports/last-good-build.json"
+echo "  ⏳ Release gates passed; 30-minute soak pending. Existing verified LKG remains unchanged."
+echo "     After independent public/quality checks and soak, run g30-serving-state.py --mark-good under deploy lock."

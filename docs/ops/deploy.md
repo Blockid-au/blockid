@@ -15,13 +15,17 @@ bash scripts/deploy-live.sh --rollback --dry-run                   # print what 
 bash scripts/deploy-live.sh --rollback                             # put the previous release back
 ```
 
-## G30 implementation checkpoint (22 September 2026)
+## G30 retained-origin rollout (22 September 2026)
 
-The approved authority is [G30](../plans/SOURCE-OF-TRUTH.md), especially §12.8 and the implementation ledger. Existing directory isolation does **not** make the current stop/start cutover zero downtime. Parallel serving, drained proxy switching, compatible verified-good selection and dependency freezing remain release gates while W0 work proceeds.
+Authority: [G30 §12.8–12.9](../plans/SOURCE-OF-TRUTH.md); exact state/CLI contract: [retained-origin controller](../../web/scripts/g30-serving-state.md). This section supersedes historical stop/start and archive-position rollback instructions below **once G30 serving state exists**. The first controlled deployment is pending runtime gates at this checkpoint.
 
-Manual rollback now requires the restored PID to remain alive and HTTP200 within bounded attempts; a failed check logs failure and exits nonzero. This does not yet establish release identity, schema compatibility or external availability. Never infer success from a printed restart command.
+The candidate runs on a validated free loopback port4100–4199. Deployment freezes independent artifacts/dependencies, verifies the candidate, then changes both nginx origin references without stopping the old process. Current, previous and retained processes stay pinned because the old runtime cannot prove detached report/email/ledger jobs drained. Five retained processes is a hard admission cap; never kill an old process merely to free a port or RAM.
 
-Release pruning uses `scripts/cron/g30-release-retention.py` under the deployment flock. Current, previous, last-good, candidate/draining and explicit pins survive the recent-release window. Missing/invalid metadata defers cleanup. The general server-cleanup job no longer deletes `.next-*` directories by age. Root reviews isolated regression evidence before each operations commit; no application restart is needed to activate cron-loaded script fixes.
+Cron and monitors resolve the active port from `g30-serving-state.json`; absent state alone means bootstrap4001. Invalid state fails closed. Interrupted switching is reconciled by the serialized warm controller. Warm rollback requires matching PID/start/cwd/socket/SHA/schema and verified-good eligibility; quarantined candidates cannot become rollback targets. Existing legacy cold rollback branches must not be used as a fallback when G30 state is present or malformed.
+
+Run the normal full-gate deploy with `G30_NO_NOTIFICATIONS=1` when outbound notices were not requested. Do not use quick/skip-build/dirty-tree overrides for this rollout. A passed deploy starts a30-minute soak and retains the previous LKG. After independent origin/public/browser checks and the soak, acquire `/tmp/blockid-deploy.lock` onFD200 and call `python3 scripts/g30-serving-state.py --web "$PWD" --mark-good --lock-fd 200` from `web/`. The helper re-verifies and writes LKG identity atomically; elapsed time alone is not an operator's evidence of a clean soak.
+
+All release pruning uses `scripts/cron/g30-release-retention.py` under the deployment flock. Missing/ambiguous pins defer cleanup. General server-cleanup no longer deletes `.next-*` by age. Legacy4001 still has historical dependency links: do not install/update source dependencies until a new frozen release is verified and fallback eligibility is migrated. Off-host backup is deferred by the founder; local backup/restore evidence remains required and single-host loss protection is not claimed.
 
 ## 1. The lock — one deploy at a time
 

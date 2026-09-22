@@ -5,7 +5,7 @@
 # with a graduated response:
 #
 #   1 fail   → log only
-#   3 fails  → kill stale next-server + Telegram alert
+#   3 fails  → request origin watchdog verification + existing alert path
 #   5 fails  → automatic rollback via deploy-live.sh --rollback
 #
 # State (consecutive failure counter) lives in /tmp/blockid-uptime-state.
@@ -24,7 +24,7 @@ URL_SLUG=$(echo "$URL" | sed 's|^https\?://||; s|[/.]|-|g')
 STATE_FILE="/tmp/uptime-state-${URL_SLUG}"
 LOG="/tmp/uptime-${URL_SLUG}.log"
 PID_FILE="/tmp/blockid-production.pid"
-DEPLOY_DIR="/home/dovanlong/blockid.au/web"
+DEPLOY_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Read CRON_SECRET + TELEGRAM creds from .env (we only need TELEGRAM here)
 TG_BOT="${TELEGRAM_BOT_TOKEN:-$(grep "^TELEGRAM_BOT_TOKEN=" "$DEPLOY_DIR/.env" 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"')}"
@@ -106,7 +106,7 @@ if [ "$FAILS" -eq 3 ]; then
   # origin. The watchdog verifies local health and serializes any recovery
   # against deployment; it also loads the correct runtime environment.
   ACTION="watchdog_requested"
-  if timeout 45 bash "$DEPLOY_DIR/scripts/watchdog.sh" >> "$LOG" 2>&1; then
+  if timeout 100 bash "$DEPLOY_DIR/scripts/watchdog.sh" >> "$LOG" 2>&1; then
     log "Origin watchdog completed; external recovery remains unverified until next probe"
   else
     ACTION="watchdog_failed"
@@ -115,16 +115,25 @@ if [ "$FAILS" -eq 3 ]; then
 
 elif [ "$FAILS" -ge 5 ] && [ "$LAST_ACTION" != "rollback_attempted" ]; then
   # Do not roll back healthy origin code for a CDN/DNS/network failure.
-  ORIGIN_CODE=$(curl -s --connect-timeout 2 --max-time 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:4001/ 2>/dev/null || true)
+  ORIGIN_CODE="state_unavailable"
+  if ORIGIN_PORT=$(python3 "$DEPLOY_DIR/scripts/g30-serving-state.py" --web "$DEPLOY_DIR" --port 2>> "$LOG"); then
+    ORIGIN_CODE=$(curl -s --connect-timeout 2 --max-time 5 -o /dev/null -w '%{http_code}' "http://127.0.0.1:$ORIGIN_PORT/" 2>/dev/null || true)
+  fi
   ALERT_NOW=true
   if [ "$ORIGIN_CODE" = "200" ]; then
     ACTION="external_failure_origin_healthy"
     log "External probe failed but origin is healthy — application rollback suppressed"
+  elif [ "$ORIGIN_CODE" = "state_unavailable" ]; then
+    ACTION="recovery_deferred"
+    log "Serving state invalid/switching — external monitoring continues, recovery deferred"
   else
-    ACTION="rollback_attempted"
-    log "5+ external failures plus unhealthy origin — requesting serialized rollback"
-    nohup bash "$DEPLOY_DIR/scripts/deploy-live.sh" --rollback > /tmp/blockid-rollback.log 2>&1 &
-    log "Rollback dispatched; success remains unverified until recovery probes"
+    ACTION="watchdog_requested"
+    if timeout 100 bash "$DEPLOY_DIR/scripts/watchdog.sh" >> "$LOG" 2>&1; then
+      log "Origin watchdog completed; public recovery still requires next external probe"
+    else
+      ACTION="watchdog_failed"
+      log "Origin recovery failed/deferred; no success claimed"
+    fi
   fi
 fi
 

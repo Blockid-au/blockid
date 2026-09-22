@@ -1328,7 +1328,7 @@ Approval22/09/2026 bắt đầu W0a. Đây là status của cùng45 items, khôn
 | Item | Status | Evidence / next gate |
 |---|---|---|
 | P01 | IN PROGRESS | Approval commit168b6fe98; source/live/topology/cron/resource/backup evidence in [W0 inventory](../reviews/2026-09-22-g30-w0-runtime-inventory.md); automate writer coordination next |
-| O05 | IN PROGRESS — inventory | Root + read-only runtime inventory; chưa đổi proxy/process |
+| O05 | IMPLEMENTED / RUNTIME VERIFICATION PENDING | Non-stopping controller + frozen runtime + active-origin consumers; independent isolated review passed, first controlled deploy pending |
 | O06 | IN PROGRESS — partial verified | Manual rollback9 tests; protected retention15 tests; shared prune helper integrated. LKG selection/compatibility/quarantine và safe cutover còn pending |
 | O07/O09 | IN PROGRESS | Actual inventory documented; recovery coordination7 isolated tests passed. Offsite backup failed quota; chưa chạy host-failure drill |
 | O09 off-host backup/standby | DEFERRED BY FOUNDER (22/09/2026) | User: “chưa cần bây giờ”. No new backup purchase/setup now. Local backup/restore checks remain; host-loss continuity not verified and no HA/absolute24h promise. This scope decision allows independent phased deploys, not a claim off-host DR passed |
@@ -1583,3 +1583,5 @@ Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi 
 - **22/09/2026 — Scope decision:** founder defers off-host backup for now. O09 off-host provisioning/standby excluded from current execution gates; retain local backup/integrity checks and explicit single-host disaster risk. Do not spend or mark deferred DR verified. Remaining safety/report/product work continues.
 
 - **22/09/2026 — E03 bounded fix:** model-authored quotes cannot become source evidence merely via allowedID; real excerpt retains original context/topic restrictions.50files/910tests pass. Pipelineversion source-quotes prevents oldcachegenerationreuse; oldreports notrewritten. Strictmetric experiment at docs/archive/g30-strict-autocite-experiment.patch is NON-SHIPPING research input, not approved implementation; normalization/verifier work stillrequired.
+
+- **22/09/2026 — W0b candidate preparation:** non-stopping active-origin controller/consumer integration independently reviewed; sourceversion3.29.0 prepared. Full deploy/runtime/30-minute soak gates still pending; no claim uninterrupted cutover proven before actualrun. Legacy4001 retained, no dependencyinstaller changes, max5retained admission.

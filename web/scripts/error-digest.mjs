@@ -30,6 +30,7 @@
 
 import { closeSync, existsSync, openSync, readSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { acquireLock, appendJsonl, readJson, sendTelegram, WEB_DIR, writeJsonAtomic } from "./lib/ops-env.mjs";
 import { computeReadStart, digestLines, emptyAiCapacityState, emptyState, emptyTbrQualityState, evaluate, evaluateAiCapacity, evaluateTbrQuality, formatAlert, pickAiCapacity, pickTbrQuality, splitComplete, toReportRow, WINDOW_MIN } from "./lib/error-digest-core.mjs";
@@ -43,8 +44,21 @@ const MAX_READ_BYTES = 32 * 1024 * 1024; // never slurp more than 32 MB per run
 const STATUS_TIMEOUT_MS = 5_000;
 
 /** The local /api/status body, or null when unreachable / non-200 (never throws). */
-export async function readStatusBody({ env = process.env, fetchImpl = globalThis.fetch, timeoutMs = STATUS_TIMEOUT_MS } = {}) {
-  const base = (env.STATUS_BASE_URL || "http://127.0.0.1:4001").replace(/\/+$/, "");
+export function servingStatusBase({ env = process.env, execImpl = execFileSync } = {}) {
+  if (env.STATUS_BASE_URL) return env.STATUS_BASE_URL.replace(/\/+$/, "");
+  try {
+    const port = String(execImpl("python3", [path.join(WEB_DIR, "scripts", "g30-serving-state.py"), "--web", WEB_DIR, "--port"],
+      { encoding: "utf8", timeout: STATUS_TIMEOUT_MS, stdio: ["ignore", "pipe", "pipe"] })).trim();
+    if (!/^(4001|41[0-9]{2})$/.test(port)) return null;
+    return `http://127.0.0.1:${port}`;
+  } catch {
+    return null; // invalid/switching state must never silently probe legacy4001
+  }
+}
+
+export async function readStatusBody({ env = process.env, fetchImpl = globalThis.fetch, timeoutMs = STATUS_TIMEOUT_MS, execImpl = execFileSync } = {}) {
+  const base = servingStatusBase({ env, execImpl });
+  if (!base) return null;
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
