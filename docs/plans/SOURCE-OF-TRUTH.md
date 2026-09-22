@@ -1,16 +1,16 @@
 # BlockID.au — SOURCE OF TRUTH: G30 Business Research, Report Quality & Sale Readiness
 
-**Revision:** G30 / 2.4 — APPROVED IMPLEMENTATION — 22/09/2026. **Owner quyết định:** Do Van Long.
+**Revision:** G30 / 2.5 — APPROVED IMPLEMENTATION — 22/09/2026. **Owner quyết định:** Do Van Long.
 
-**Trạng thái:** `APPROVED — IMPLEMENTATION IN PROGRESS`. **Phase:** `W0a — production protection`.
+**Trạng thái:** `APPROVED — IMPLEMENTATION IN PROGRESS`. **Phase:** `W1 report foundation live; W1/W2 implementation continuing; broader ops gates open`.
 
 **Approval22/09/2026:** founder yêu cầu bắt đầu triển khai G30, spawn agents khi cần, commit và deploy live sau mỗi phase phù hợp đã đủ gates. Quyền này thay các câu “plan only / awaiting approval” lịch sử bên dưới; không có nghĩa mọi item đã implemented hoặc verified. Từng item còn pending trừ status ledger ở §12.9. Giữ nguyên gates, existing fee policy và các budget/topology decisions chưa chốt. Root sở hữu release, agents không tự deploy.
 
 **Phạm vi hiện được giao:** triển khai code, kiểm chứng, commit và deploy từng phase đủ điều kiện theo G30. Không tự thay giá hoặc mua hạ tầng khi chưa chốt ngân sách; không gửi khách hàng ngoài phạm vi đã cấp.
 
-**Phạm vi site được founder xác nhận:** toàn bộ yêu cầu, góp ý, phát hiện review và đề xuất điều chỉnh trong cuộc trao đổi này áp dụng cho **website `blockid.au` và tất cả trang con/routes thuộc site `blockid.au`**. Bao gồm trang công khai, trang sau đăng nhập, mọi persona/workspace, dashboard, report/detail/share, pricing/billing/checkout entry, admin, docs/help/legal, utility và các trạng thái giao diện. Không giới hạn ở homepage hoặc các trang đã được kiểm tra mẫu. Backend/API, dữ liệu lưu trữ, report exports/email và tích hợp Stripe được review/điều chỉnh trong phạm vi phục vụ chính các luồng của site này. Stripe hosted checkout/portal là bề mặt tích hợp bên ngoài cần đồng bộ mapping, nội dung và hành trình; không thuộc quyền redesign giao diện tùy ý như trang con BlockID. Các domain/sản phẩm/repository riêng, gồm `startupvalueindex.com`, không tự động thuộc scope. **Xác nhận phạm vi này chỉ cập nhật plan, không cho phép bắt đầu code hoặc deploy.**
+**Phạm vi site được founder xác nhận:** toàn bộ yêu cầu, góp ý, phát hiện review và đề xuất điều chỉnh trong cuộc trao đổi này áp dụng cho **website `blockid.au` và tất cả trang con/routes thuộc site `blockid.au`**. Bao gồm trang công khai, trang sau đăng nhập, mọi persona/workspace, dashboard, report/detail/share, pricing/billing/checkout entry, admin, docs/help/legal, utility và các trạng thái giao diện. Không giới hạn ở homepage hoặc các trang đã được kiểm tra mẫu. Backend/API, dữ liệu lưu trữ, report exports/email và tích hợp Stripe được review/điều chỉnh trong phạm vi phục vụ chính các luồng của site này. Stripe hosted checkout/portal là bề mặt tích hợp bên ngoài cần đồng bộ mapping, nội dung và hành trình; không thuộc quyền redesign giao diện tùy ý như trang con BlockID. Các domain/sản phẩm/repository riêng không tự động thuộc scope toàn-site này. **Cập nhật mới nhất22/09: founder mở rộng riêng workflow RE-ANALYZE và các luồng report/criteria/questions/credit/identity liên quan sang cả `startupvalueindex.com`, theo §6.7. Yêu cầu mở rộng này hiện là plan-only; không tự cho phép triển khai feature mới hoặc đặt phí. Các phase G30 đã được cho phép tiếp tục code/commit/deploy như approval phía trên.**
 
-Đây là **kế hoạch chuẩn duy nhất cho đợt nâng cấp tiếp theo của BlockID.au**. Các tài liệu G1–G29 là lịch sử, bằng chứng hoặc đặc tả thành phần; không tạo hàng đợi triển khai độc lập nếu mâu thuẫn với bản này. Các quyết định mới trong G30 là đề xuất chờ duyệt, không phải mô tả tính năng đã có. Việc viết tài liệu không thay đổi cron/runtime hoặc tự cho phép một session khác bắt đầu triển khai. Chỉ chuyển sang `APPROVED` khi founder đồng ý rõ ràng; im lặng không phải phê duyệt.
+Đây là **kế hoạch chuẩn duy nhất cho đợt nâng cấp tiếp theo của BlockID.au**. Các tài liệu G1–G29 là lịch sử, bằng chứng hoặc đặc tả thành phần; không tạo hàng đợi triển khai độc lập nếu mâu thuẫn với bản này. G30 đã được founder cho phép triển khai; trạng thái live/implemented/deferred được ghi riêng ở §12.9 và evidence, không suy từ câu mô tả mục tiêu. Giá mới, ngân sách chưa chốt và phần mở rộng RE-ANALYZE §6.7 vẫn giữ trạng thái cụ thể của chúng. Việc viết tài liệu không tự thay đổi cron/runtime hoặc bật thu phí; im lặng không phải phê duyệt cho quyết định còn chờ.
 
 **Bản lịch sử nguyên vẹn:** [SOT trước G30](../archive/source-of-truth-pre-g30-2026-09-22.md).
 
@@ -20,7 +20,9 @@
 
 **Delta cuối 04:30:29 UTC:** workspace HEAD đã tiến tới `3396adc00e78144ec86788db3fb03edf51abb1bc`, package3.28.2 từ luồng release khác. Diff sau baseline chỉ sửa `hub-tabs.tsx` thêm relative positioning cho sr-only label và metadata/version; không đổi report/billing/provider code đã review. `/api/status` tại thời điểm này vẫn trả **v3.28.1**; local manifest ghi3.28.2 nhưng deployed_at rỗng, nên **chưa xác nhận3.28.2 đã live**. Tests/browsing ở annex thuộc baseline3.28.1; delta3.28.2 chỉ được review source, không gán nhầm là đã browser-verified. G30 phải freeze lại source/live trước implementation.
 
-**Evidence mới nhất:** [final revalidation](../reviews/2026-09-22-g30-final-revalidation.md). **Bản trước tổng hợp:** [G30 rev1.9 archive](../archive/g30-rev1.9-before-final-review-2026-09-22.md). Archive chỉ là history, không competing plan.
+**Live milestone09:47UTC:** v3.30.0/fb4c4a396, [foundation release evidence](../reviews/2026-09-22-g30-foundation-live.md); extended review deferred.
+
+**Evidence baseline lịch sử:** [final revalidation](../reviews/2026-09-22-g30-final-revalidation.md). **Bản trước tổng hợp:** [G30 rev1.9 archive](../archive/g30-rev1.9-before-final-review-2026-09-22.md). Archive chỉ là history, không competing plan.
 
 ## 0. Bản cuối để review: quyết định, thứ tự và phạm vi bắt đầu
 
