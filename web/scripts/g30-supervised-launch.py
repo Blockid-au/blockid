@@ -44,6 +44,54 @@ def private_directory():
     return path
 
 
+POLICY_FLAGS = ('G30_CREDIT_RECEIPTS', 'G30_CREDIT_PURCHASES_PAUSED')
+
+
+def runtime_policy(values):
+    policy = {name: values.get(name, '0') for name in POLICY_FLAGS}
+    if any(value not in ('0', '1') for value in policy.values()):
+        raise ValueError('Receipt runtime policy flags must be exactly0 or1')
+    return policy
+
+
+def verify_runtime_policy(pid, expected):
+    expected = runtime_policy(expected)
+    values = dict(item.split(b'=', 1) for item in (Path('/proc') / str(pid) / 'environ').read_bytes().split(b'\0') if b'=' in item)
+    # New launches always serialize both policy flags, including explicit0.
+    actual = {name: values.get(name.encode(), b'').decode('ascii') for name in POLICY_FLAGS}
+    if actual != expected:
+        raise ValueError('Supervised runtime policy differs from pinned launch intent')
+    return actual
+
+
+def stored_runtime_policy(unit):
+    if not re.fullmatch(r'g30-(?:origin|probe)-[a-z0-9-]+\.service', unit):
+        raise ValueError('Invalid G30 unit name')
+    path = private_directory() / (unit + '.json')
+    try:
+        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    except FileNotFoundError:
+        return None  # Historical units did not pin policy; do not invent it.
+    try:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or stat.S_IMODE(info.st_mode) != 0o600 or info.st_nlink != 1:
+            raise ValueError('Unsafe private unit metadata')
+        raw = os.read(fd, 65537)
+        if len(raw) > 65536:
+            raise ValueError('Unit metadata too large')
+        record = json.loads(raw)
+        if record.get('unit') != unit:
+            raise ValueError('Unit metadata identity mismatch')
+        if 'runtimePolicy' not in record:
+            return None
+        policy = record['runtimePolicy']
+        if not isinstance(policy, dict) or set(policy) != set(POLICY_FLAGS):
+            raise ValueError('Incomplete pinned runtime policy')
+        return runtime_policy(policy)
+    finally:
+        os.close(fd)
+
+
 def environment(web, release, port):
     # Read names, not values. The caller already applied its established .env
     # loader; copying these exported values preserves that parsing contract.
@@ -59,6 +107,8 @@ def environment(web, release, port):
     for name in ('NODE_OPTIONS', 'SUPABASE_URL', 'REDIS_URL'):
         if name in os.environ:
             values[name] = os.environ[name]
+    # These two reviewed nonsecret flags may be provided without editing .env.
+    values.update(runtime_policy(os.environ))
     snapshot = Path(values['NODE_PATH'])
     if not snapshot.is_dir() or not snapshot.resolve().is_relative_to(release):
         raise ValueError('NODE_PATH must reference the frozen release runtime')
@@ -85,7 +135,7 @@ def write_private(path, text):
         os.fsync(out.fileno())
 
 
-def check(unit, expected_pid=None, release=None):
+def check(unit, expected_pid=None, release=None, expected_policy=None):
     if not re.fullmatch(r'g30-(?:origin|probe)-[a-z0-9-]+\.service', unit):
         raise ValueError('Invalid G30 unit name')
     raw = command(['systemctl', 'show', unit, '--property=MainPID', '--property=ActiveState', '--property=ControlGroup'])
@@ -104,6 +154,10 @@ def check(unit, expected_pid=None, release=None):
         raise ValueError('Process cgroup does not match the supervisor')
     if release is not None and (proc / 'cwd').resolve() != release:
         raise ValueError('Supervised process has the wrong release working directory')
+    if expected_policy is not None:
+        verify_runtime_policy(pid, expected_policy)
+        if (proc / 'stat').read_text().rsplit(')', 1)[1].split()[19] != fields[19]:
+            raise ValueError('Process identity changed while verifying policy')
     return {'unit': unit, 'pid': pid, 'startTicks': fields[19], 'controlGroup': group}
 
 
@@ -116,6 +170,7 @@ def launch(web, release=None, port=None, probe=False):
     properties = ['--property=Restart=no', '--property=ExitType=cgroup', f'--property=User={owner}']
     extras = {}
     resource_admission = None
+    policy = None
     if probe:
         properties += ['--property=RuntimeMaxSec=15']
         executable = ['/usr/bin/sleep', '10']
@@ -132,7 +187,9 @@ def launch(web, release=None, port=None, probe=False):
         directory = private_directory()
         env_file = directory / (unit + '.env')
         log_file = directory / (unit + '.log')
-        write_private(env_file, encode_environment(environment(web, release, port)))
+        values = environment(web, release, port)
+        policy = runtime_policy(values)
+        write_private(env_file, encode_environment(values))
         write_private(log_file, '')
         properties += ['--property=RemainAfterExit=yes', '--property=CollectMode=inactive',
                        f'--property=WorkingDirectory={release}', f'--property=EnvironmentFile={env_file}',
@@ -141,7 +198,7 @@ def launch(web, release=None, port=None, probe=False):
         if not node:
             raise ValueError('Node executable unavailable')
         executable = [str(Path(node).resolve()), 'server.js']
-        extras = {'environmentFile': str(env_file), 'log': str(log_file), 'port': port, 'releasePath': str(release)}
+        extras = {'environmentFile': str(env_file), 'log': str(log_file), 'port': port, 'releasePath': str(release), 'runtimePolicy': policy}
         if resource_admission is not None: extras['resourceAdmission'] = resource_admission
         # Persist a private unit locator BEFORE launch so interruption before
         # helper return cannot leave an unidentifiable retained service.
@@ -151,9 +208,9 @@ def launch(web, release=None, port=None, probe=False):
     command(['systemd-run', '--quiet', *(['--collect'] if probe else []), '--service-type=exec', '--unit=' + unit, *properties, '--', *executable])
     # systemd-run (the launcher) has exited. The main process must now belong
     # to PID 1 in a separate cgroup, not the tool/deploy's process tree.
-    first = check(unit, release=release)
+    first = check(unit, release=release, expected_policy=policy)
     time.sleep(0.25)
-    second = check(unit, first['pid'], release)
+    second = check(unit, first['pid'], release, expected_policy=policy)
     if second['startTicks'] != first['startTicks']:
         raise ValueError('Main process changed during launcher survival verification')
     return {**second, **extras}
@@ -181,7 +238,7 @@ def main():
         if not args.apply:
             print(json.dumps({'plan': True, 'probe': args.probe, 'releasePath': str(release) if release else None, 'port': args.port})); return 0
         proxy.require_lock(args.lock_fd)
-        result = check(args.check, args.pid, release) if args.check else launch(web, release, args.port, args.probe)
+        result = check(args.check, args.pid, release, expected_policy=stored_runtime_policy(args.check)) if args.check else launch(web, release, args.port, args.probe)
         print(json.dumps(result)); return 0
     except Exception as exc:
         # Never print arbitrary provider/subprocess/env exception strings.

@@ -23,3 +23,22 @@ The controller records `.g30-candidate-unit` for diagnostics. `g30-serving-state
 Before live promotion, the root operator must run the helper on a disposable fixture, finish the launching tool, then independently confirm the unit's PID/cgroup and HTTP identity remain valid. Tests here mock every supervisor command; they do not prove host systemd behavior or secret-file parsing on the host. No test sends signals or contacts production.
 
 On command failure, inspect the named unit and private log locally; the helper intentionally omits raw supervisor stderr because EnvironmentFile diagnostics may echo secrets. Failed launches leave artifacts/processes retained and block admission through the existing candidate pin; do not retry by deleting the pin or killing a port owner.
+
+## Receipt policy flags
+
+New launches explicitly carry `G30_CREDIT_RECEIPTS` and
+`G30_CREDIT_PURCHASES_PAUSED`, even when their names are absent from `.env`.
+Only exact string `0` or `1` is accepted; absent flags are serialized as `0`.
+No other caller environment names gain implicit forwarding. The existing deploy
+loader still establishes the environment before this helper; if `.env` already
+contains either name, inspect its effective value rather than assuming an
+outer-shell export wins that loader.
+
+The private unit metadata records these two nonsecret values as `runtimePolicy`.
+Both post-launch process checks compare `/proc/PID/environ` to that pinned
+intent and recheck process start ticks. Subsequent `--check` reads the private
+metadata and enforces the same values. Historical units without this snapshot
+retain legacy checks and are not retroactively attested as receipt-compatible.
+The status endpoint's actual runtime flags/capabilities must independently agree
+before a paused financial transition is prepared. This helper patch does not
+change any running process flags or authorize financial migration/activation.

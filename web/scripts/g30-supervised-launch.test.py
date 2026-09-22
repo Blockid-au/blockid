@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import importlib.util
 import os
+import json
 from pathlib import Path
 import tempfile
 import sys
@@ -71,12 +72,55 @@ class SupervisedLaunchTests(unittest.TestCase):
                 self.assertIn('--property=RemainAfterExit=yes', argv)
                 self.assertIn('--property=CollectMode=inactive', argv)
                 self.assertTrue(Path(result['metadataFile']).is_file())
+                self.assertEqual(json.loads(Path(result['metadataFile']).read_text())['runtimePolicy'], dict.fromkeys(m.POLICY_FLAGS, '0'))
+                self.assertTrue(all(call.kwargs['expected_policy'] == dict.fromkeys(m.POLICY_FLAGS, '0') for call in check.call_args_list))
                 self.assertNotIn('SENSITIVE_VALUE', Path(result['metadataFile']).read_text())
                 self.assertNotIn('SENSITIVE_VALUE', ' '.join(argv))
                 self.assertNotIn('SENSITIVE_VALUE', str(result))
                 self.assertEqual(check.call_count, 2)
                 self.assertEqual(Path(result['environmentFile']).stat().st_mode & 0o777, 0o600)
                 self.assertIn('SENSITIVE_VALUE', Path(result['environmentFile']).read_text())
+
+    def test_receipt_flags_forward_without_dotenv_names_and_reject_invalid_values(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); release = root / 'release'; runtime = release / '.g30-runtime'
+            runtime.mkdir(parents=True); (root / '.env').write_text('API_KEY=old\n')
+            for receipt, paused in [('0', '0'), ('0', '1'), ('1', '0'), ('1', '1')]:
+                with patch.dict(os.environ, {'NODE_PATH': str(runtime), 'G30_CREDIT_RECEIPTS': receipt, 'G30_CREDIT_PURCHASES_PAUSED': paused}, clear=True):
+                    values = m.environment(root, release, 4112)
+                    self.assertEqual(values['G30_CREDIT_RECEIPTS'], receipt)
+                    self.assertEqual(values['G30_CREDIT_PURCHASES_PAUSED'], paused)
+            with patch.dict(os.environ, {'NODE_PATH': str(runtime)}, clear=True):
+                self.assertEqual(m.runtime_policy(m.environment(root, release, 4112)), dict.fromkeys(m.POLICY_FLAGS, '0'))
+            for invalid in ['', 'true', 'false', 'yes', '2', ' 1', '1\n']:
+                with patch.dict(os.environ, {'NODE_PATH': str(runtime), 'G30_CREDIT_PURCHASES_PAUSED': invalid}, clear=True):
+                    with self.assertRaises(ValueError): m.environment(root, release, 4112)
+
+    def test_actual_process_flags_must_equal_explicit_launch_intent(self):
+        expected = {'G30_CREDIT_RECEIPTS': '0', 'G30_CREDIT_PURCHASES_PAUSED': '1'}
+        good = b'G30_CREDIT_RECEIPTS=0\0G30_CREDIT_PURCHASES_PAUSED=1\0API_KEY=never-export\0'
+        with patch.object(Path, 'read_bytes', return_value=good):
+            self.assertEqual(m.verify_runtime_policy(123, expected), expected)
+        for raw in [good.replace(b'PAUSED=1', b'PAUSED=0'), good.replace(b'G30_CREDIT_PURCHASES_PAUSED=1\0', b''), good.replace(b'PAUSED=1', b'PAUSED=true')]:
+            with patch.object(Path, 'read_bytes', return_value=raw):
+                with self.assertRaises(ValueError): m.verify_runtime_policy(123, expected)
+
+    def test_policy_snapshot_is_private_strict_and_old_units_not_falsely_attested(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp); unit = 'g30-origin-4112-abc.service'; path = root / (unit + '.json')
+            with patch.object(m, 'private_directory', return_value=root):
+                self.assertIsNone(m.stored_runtime_policy(unit))
+                m.write_private(path, json.dumps({'unit': unit}))
+                self.assertIsNone(m.stored_runtime_policy(unit))
+                expected = {'G30_CREDIT_RECEIPTS': '0', 'G30_CREDIT_PURCHASES_PAUSED': '1'}
+                path.write_text(json.dumps({'unit': unit, 'runtimePolicy': expected}))
+                self.assertEqual(m.stored_runtime_policy(unit), expected)
+                path.write_text(json.dumps({'unit': unit, 'runtimePolicy': {'G30_CREDIT_RECEIPTS': '0'}}))
+                with self.assertRaises(ValueError): m.stored_runtime_policy(unit)
+                path.write_text(json.dumps({'unit': unit, 'runtimePolicy': expected})); path.chmod(0o644)
+                with self.assertRaises(ValueError): m.stored_runtime_policy(unit)
+                path.unlink(); path.symlink_to(root / 'missing')
+                with self.assertRaises(OSError): m.stored_runtime_policy(unit)
 
     def test_failed_post_launch_identity_is_not_success(self):
         with patch.object(m.os, 'getuid', return_value=1001), patch.object(m.pwd, 'getpwuid'), patch.object(m, 'command'), patch.object(m, 'check', side_effect=ValueError('dead')):
