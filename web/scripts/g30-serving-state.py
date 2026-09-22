@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 import re
 import socket
+import subprocess
 import sys
 import tempfile
 import time
@@ -204,7 +205,22 @@ def extra_slot_authorization(web, data, candidate_sha=None, entry=None, stage="a
     if entry is not None: module.verify_candidate(entry)
     return evidence
 
-def allocate(data, web=None):
+def prebuilt_sha(web):
+    manifest = json.loads((web / '.deploy-manifest.json').read_text())
+    sha = manifest.get('build_sha', '')
+    if not re.fullmatch('[a-f0-9]{40}', sha) or manifest.get('git_tree_dirty') is not False or manifest.get('merge_in_progress') is not False:
+        raise ValueError('Prebuilt admission requires a clean recorded build SHA')
+    build = (web / '.next/BUILD_ID').read_text().strip()
+    if not build or build != (web / '.next/standalone/.next/BUILD_ID').read_text().strip() or not (web / '.next/standalone/server.js').is_file():
+        raise ValueError('Prebuilt artifact identity mismatch')
+    changed = subprocess.check_output(['git', 'diff', '--name-only', sha, 'HEAD'], cwd=web, text=True).splitlines()
+    allowed = {'web/scripts/g30-serving-state.py', 'web/scripts/g30-resource-admission.py', 'web/scripts/deploy-live.sh'}
+    if any(name not in allowed and not name.startswith('docs/') for name in changed):
+        raise ValueError('Source changed after reusable build; rebuild required')
+    return sha
+
+
+def allocate(data, web=None, prebuilt=False):
     if web is not None:
         pin = web / ".next-candidate"
         if pin.exists() or pin.is_symlink():
@@ -214,7 +230,7 @@ def allocate(data, web=None):
     if data and data['phase'] != 'stable':
         raise ValueError('Promotion blocked: switching')
     if data and retained_capacity(data) >= MAX_RETAINED:
-        extra_slot_authorization(web, data)
+        extra_slot_authorization(web, data, prebuilt_sha(web), stage="launch") if prebuilt else extra_slot_authorization(web, data)
     available = int(re.search(r'^MemAvailable:\s+(\d+)', Path('/proc/meminfo').read_text(), re.M).group(1))
     if available < MIN_AVAILABLE_KIB:
         raise ValueError('Less than 1 GiB available memory; promotion deferred')
@@ -237,6 +253,7 @@ def main():
     command = parser.add_mutually_exclusive_group(required=True)
     for name in ('port', 'snapshot', 'verify-active', 'verify-port', 'rollback-target', 'gates-passed', 'mark-good', 'quarantine', 'init', 'allocate', 'register', 'begin', 'activate', 'stable'):
         command.add_argument('--' + name, action='store_true')
+    parser.add_argument('--prebuilt', action='store_true', help='Allocate without compiler reserve only for validated existing build')
     parser.add_argument('--lock-fd', type=int)
     parser.add_argument('--listen-port', type=int)
     parser.add_argument('--pid', type=int)
@@ -244,6 +261,8 @@ def main():
     parser.add_argument('--rollback', action='store_true', help='Activation clears previous; never offer failed candidate as rollback target')
     parser.add_argument('--review-deferred', action='store_true', help='Founder-authorized accelerated mark-good: 60-second operational soak; extended review remains pending')
     args = parser.parse_args()
+    if args.prebuilt and not args.allocate:
+        parser.error('--prebuilt is only valid with --allocate')
     if args.review_deferred and not args.mark_good:
         parser.error('--review-deferred is only valid with --mark-good')
     try:
@@ -279,7 +298,7 @@ def main():
             print(json.dumps(verify_entry(data['active'], web))); return 0
         proxy.require_lock(args.lock_fd)
         if args.allocate:
-            print(allocate(data, web)); return 0
+            print(allocate(data, web, args.prebuilt)); return 0
         if args.init:
             if data:
                 if data['phase'] != 'stable':

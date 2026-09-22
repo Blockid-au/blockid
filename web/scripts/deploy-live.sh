@@ -616,7 +616,9 @@ if ! git -C "$WEB_DIR" diff --quiet "$ACTIVE_SHA" HEAD -- supabase/migrations; t
 fi
 CONFIGURED_PORT=$(g30_configured_port) || fail "Unsupported nginx origin configuration"
 [ "$CONFIGURED_PORT" = "$PROD_PORT" ] || fail "nginx origin differs from stable serving state"
-TEMP_PORT=$(g30_state --allocate --lock-fd 200) || fail "No safe capacity/free origin port for candidate"
+G30_ALLOCATE_ARGS=()
+[ "${1:-}" = "--skip-build" ] && G30_ALLOCATE_ARGS+=(--prebuilt)
+TEMP_PORT=$(g30_state --allocate "${G30_ALLOCATE_ARGS[@]}" --lock-fd 200) || fail "No safe capacity/free origin port for candidate"
 # A disposable system service must outlive its launcher before expensive build work.
 python3 "$WEB_DIR/scripts/g30-supervised-launch.py" --web "$WEB_DIR" --probe --apply --lock-fd 200 >/dev/null \
   || fail "Independent supervisor lifetime probe failed; live origin unchanged"
@@ -1013,6 +1015,7 @@ if [ "${1:-}" != "--skip-build" ]; then
   fi
   pass "Build successful"
   MANIFEST_BUILD_SHA="$MANIFEST_SHA"   # the standalone on disk is now HEAD's
+  write_manifest start   # retain successful build identity even if later freeze/smoke fails
 else
   gate "Build (skipped)"
   if [ ! -f "$STANDALONE/server.js" ]; then
