@@ -1,0 +1,20 @@
+{
+  "version": "independent-free-evaluation-review-v1",
+  "modelId": "google/gemma-4-31b-it:free",
+  "endpointTag": "google-ai-studio",
+  "dataScope": "public_synthetic_only",
+  "privateDeckEligible": false,
+  "attemptedRequests": 1,
+  "plannedMaximumRequests": 14,
+  "completeResponses": 0,
+  "notRunCases": 13,
+  "httpStatus": 429,
+  "retryAfter": null,
+  "qualityVerdict": "not_evaluated_no_completion",
+  "costStatus": "not_returned_not_assumed",
+  "qualified": false,
+  "activation": "none",
+  "sourceModelCard": "https://ai.google.dev/gemma/docs/core/model_card_4",
+  "fixturePromptImprovement": "Explicit natural-language English/Vietnamese requirement; no semantic comparison possible because request was rate-limited.",
+  "artifactSha256": "fe3c0a2d949bcc782e80721ded169d21802e4464feee1cb14bff694d05fe7083"
+}

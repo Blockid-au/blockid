@@ -55,7 +55,7 @@ export interface FreeFallbackCandidate {
   /** Loader eligibility is not permission to dispatch: acquire one atomic account-wide quota reservation first. */
   executionAllowed: false;
   requiredNext: "atomic_account_quota_reservation_and_scoped_transport_integration";
-  requestConstraints: { model: string; max_tokens: number; provider: {
+  requestConstraints: { model: string; max_tokens: number; response_format: { type: "json_object" }; provider: {
     only: string[]; order: string[]; allow_fallbacks: false; require_parameters: true;
     max_price: { prompt: 0; completion: 0; request: 0 }; data_collection: "deny" | "allow"; zdr: boolean;
   }; plugins: []; stream: false };
@@ -107,7 +107,7 @@ export async function loadQualifiedFreeFallbacks(manifest: unknown, readArtifact
       } catch { /* Unknown contract cannot attest omitted pricing. */ }
     }
     if (!["prompt", "completion"].every(k => Object.hasOwn(endpoint.pricing, k)) || (!Object.hasOwn(endpoint.pricing, "request") && !documentedZeroRequestCost) || Object.entries(endpoint.pricing).some(([k, v]) => k !== "discount" && (typeof v === "string" ? !/^0(?:\.0+)?$/.test(v) : v !== 0))) { reject(entry.modelId, "zero_cost_not_fully_attested"); continue; }
-    if (!metadata.data.architecture.input_modalities.includes("text") || !metadata.data.architecture.output_modalities.includes("text") || endpoint.status !== 0 || endpoint.context_length < demand.inputTokens + demand.outputTokens || endpoint.max_completion_tokens < demand.outputTokens || (endpoint.max_prompt_tokens != null && endpoint.max_prompt_tokens < demand.inputTokens) || !["max_tokens", "response_format", "structured_outputs"].every(p => endpoint.supported_parameters.includes(p))) { reject(entry.modelId, "endpoint_capability_insufficient"); continue; }
+    if (!metadata.data.architecture.input_modalities.includes("text") || !metadata.data.architecture.output_modalities.includes("text") || endpoint.status !== 0 || endpoint.context_length < demand.inputTokens + demand.outputTokens || endpoint.max_completion_tokens < demand.outputTokens || (endpoint.max_prompt_tokens != null && endpoint.max_prompt_tokens < demand.inputTokens) || !["max_tokens", "response_format"].every(p => endpoint.supported_parameters.includes(p))) { reject(entry.modelId, "endpoint_capability_insufficient"); continue; }
     if (quality.dataScope !== entry.dataScope || quality.modelId !== entry.modelId || quality.endpointTag !== entry.endpointTag || !fresh(quality.evaluatedAt, demand.now, 7 * 86400_000) || Date.parse(entry.reviewedAt) < Date.parse(quality.evaluatedAt)) { reject(entry.modelId, "quality_binding_or_freshness"); continue; }
     const caseKeys = quality.cases.map(c => `${c.caseId}:${c.locale}`);
     if (new Set(caseKeys).size !== caseKeys.length || REQUIRED_FREE_REPORT_CASES.some(c => ["en", "vi"].some(locale => !caseKeys.includes(`${c}:${locale}`))) || quality.cases.some(c => c.servedModelId !== entry.modelId || c.servedEndpointTag !== entry.endpointTag || !c.passed || !c.schemaValid || c.unsupportedClaims !== 0 || c.fabricatedCitations !== 0 || c.costUsd !== 0)) { reject(entry.modelId, "quality_rubric_failed_or_incomplete"); continue; }
@@ -116,7 +116,7 @@ export async function loadQualifiedFreeFallbacks(manifest: unknown, readArtifact
     if (artifacts.some(a => !a)) { reject(entry.modelId, "quality_evidence_missing"); continue; }
     result.eligible.push({ dataScope: entry.dataScope, modelId: entry.modelId, endpointTag: entry.endpointTag, metadataSha256: entry.metadataSha256, qualitySha256: entry.qualitySha256,
       executionAllowed: false, requiredNext: "atomic_account_quota_reservation_and_scoped_transport_integration",
-      requestConstraints: { model: entry.modelId, max_tokens: demand.outputTokens, provider: { only: [entry.endpointTag], order: [entry.endpointTag], allow_fallbacks: false, require_parameters: true, max_price: { prompt: 0, completion: 0, request: 0 }, data_collection: entry.dataScope === "private_report" ? "deny" : "allow", zdr: entry.dataScope === "private_report" }, plugins: [], stream: false },
+      requestConstraints: { model: entry.modelId, max_tokens: demand.outputTokens, response_format: { type: "json_object" }, provider: { only: [entry.endpointTag], order: [entry.endpointTag], allow_fallbacks: false, require_parameters: true, max_price: { prompt: 0, completion: 0, request: 0 }, data_collection: entry.dataScope === "private_report" ? "deny" : "allow", zdr: entry.dataScope === "private_report" }, plugins: [], stream: false },
     });
   }
   return result;
