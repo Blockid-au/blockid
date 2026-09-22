@@ -1,5 +1,14 @@
 # BlockID.au Changelog
 
+## v3.32.0 — Clearer investor decisions and report detail
+
+- Prioritize business review on the investor desk, including direct access to unscored businesses; group secondary allowance/preferences into expandable controls.
+- Show stored criterion verdicts and support limitations before expansion, disclose long source excerpts separately and provide local return links.
+- Explain unavailable valuation using exact submitted financial context and evidence requests; submitted values remain unverified and do not become approved valuation inputs.
+- Add scoped source refresh and assessment draft foundations with immutable bindings and attribution checks; new paid execution and score changes remain disabled.
+- Apply the scoped report policy and a shared request deadline to the SVI proxy. Free qualification artifacts start with no approved models; separate SVI client rollout remains controlled.
+- Extend tracked detached work and upgraded connections; budget sequential compiler/candidate memory without reducing the operating reserve.
+
 ## v3.31.0 — Origin work tracking and re-analysis request foundations
 
 - Record scoped work in the actual serving process and provide authenticated drain/resume controls. Partial coverage explicitly prevents automatic retirement.

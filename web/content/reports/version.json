@@ -1,8 +1,9 @@
 {
-  "version": "v3.31.0",
-  "updated_at": "2026-09-22T10:27:00Z",
-  "release_id": "g30-origin-drain-reanalysis-contracts",
+  "version": "v3.32.0",
+  "updated_at": "2026-09-22T10:56:00Z",
+  "release_id": "g30-investor-detail-research-foundations",
   "shipped_summary": [
+    "v3.32.0 — Clearer investor dashboard and criterion/source disclosure; submitted financial context explains unavailable valuation; scoped research/assessment foundations and SVI proxy policy. New paid re-analysis, semantic verification, approved free fallback and full cross-site rollout remain pending.",
     "v3.31.0 — Track scoped origin work and expose authenticated drain controls; bind re-analysis requests to authorized report snapshots, scope and credit quotes. New paid re-analysis execution and database migrations remain disabled. Legacy origin retirement remains unproven.",
     "v3.30.1 — Exact source-attribution context, clearer workspace routes to Home and overview, and honest unavailable research-pricing errors. Verified competitor research, valuation qualification and receipt billing activation remain open.",
     "v3.30.0 — G30 foundation: current-deck inputs, honest report-save and valuation availability, light surfaces, investor-first business intake, scoped DeepInfra report routing and missing-payment-configuration guard. Research, valuation input accuracy, billing atomicity and whole-site redesign remain in progress.",

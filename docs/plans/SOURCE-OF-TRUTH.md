@@ -1830,3 +1830,8 @@ Evidence: [proxy policy](../reviews/2026-09-22-g30-svi-proxy-provider-policy.md)
 [criterion disclosure](../reviews/2026-09-22-g30-findings-disclosure-ux.md).
 
 **Continuous implementation22/09,10:52UTC:** v3.31.0 is live. The next isolated queue contains investor dashboard/detail disclosure, scoped source collection/draft synthesis, submitted-financial-context explanations, SVI proxy policy/client groundwork and empty-manifest free-model qualification. Durable financial migrations remain isolated, not applied. Full plan remains IN PROGRESS.
+
+
+**Next candidate v3.32.0:** investor dashboard/detail and financial-context explanations become runtime changes; research collector/synthesis and free qualification remain prerequisites, not paid feature activation. Pipeline cache identity advances to r9 to avoid serving old generic unavailable reasons for newly generated reports. No migration change.
+
+**Sequential memory accounting (release-owner decision):** source inspection confirms compiler completion precedes candidate launch. Prebuild reserve is now8GiB operating + max(10GiB compiler,6GiB candidate)=18GiB; fresh launch/registration still require14GiB. Every retained process stays counted in measured available memory. Candidate6GiB/2CPU enforcement, exact-SHA permit, cap6, CPU/PSI/disk checks and expiry remain unchanged. Revert to additive budgeting if build and candidate lifetimes are ever made concurrent. This replaces the24GiB prebuild calculation for future releases, without inventing legacy quiescence or authorizing another retirement.
