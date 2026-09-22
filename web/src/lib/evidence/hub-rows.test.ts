@@ -2,6 +2,7 @@
 // EvidenceRow (GATHER / chapter tables) and EvidenceItem (extractSignals),
 // origin-capped per S36 / D4, rejected rows dropped.
 
+import { autoCite, itemsFromEvidenceRows } from "@/lib/report-pipeline/auto-cite";
 import { describe, expect, it } from "vitest";
 import { hubEvidenceId, hubRowConfidence, hubRowStatus, hubRowToEvidenceItem, hubRowToEvidenceRow, hubRowsToEvidenceItems, hubRowsToEvidenceRows, isUsableHubRow } from "./hub-rows";
 
@@ -29,7 +30,7 @@ describe("hub-rows", () => {
 
   it("hubRowToEvidenceRow: deterministic id, dimension, source by rung, label with the hub / review marker, confidence, observedAt from the row", () => {
     const row = hubRowToEvidenceRow({ dimension: "TRE", evidence_type: "revenue_proof", evidence_label: "Bank statements", evidence_value_or_url: "statements-q2.pdf", confidence_level: "document_uploaded", created_at: "2026-09-01T00:00:00.000Z", updated_at: "2026-09-02T00:00:00.000Z", review_status: "pending" }, AT)!;
-    expect(row).toMatchObject({ evidence_id: hubEvidenceId("tre", "revenue_proof"), source: "upload", label: "Bank statements — Evidence Hub, review pending", status: "evidenced", observedAt: "2026-09-02T00:00:00.000Z", value: "statements-q2.pdf", dims: ["tre"], confidence: "document_uploaded" });
+    expect(row).toMatchObject({ evidence_id: hubEvidenceId("tre", "revenue_proof"), source: "upload", label: "Financial submission — Evidence Hub, source qualification pending", status: "partial", observedAt: "2026-09-02T00:00:00.000Z", dims: ["tre"], confidence: "self_declared" });
     expect(row.evidence_id).toMatch(/^[0-9a-f-]{36}$/);
     expect(hubEvidenceId("tre", "revenue_proof")).toBe(hubEvidenceId("TRE", "revenue_proof"));
     const signed = hubRowToEvidenceRow({ dimension: "lco", evidence_type: "ip_assignment", evidence_label: "", confidence_level: "third_party_verified", is_verified: true, verified_at: "2026-09-05T00:00:00.000Z" }, AT)!;
@@ -50,4 +51,23 @@ describe("hub-rows", () => {
     expect(hubRowsToEvidenceItems(rows)).toHaveLength(2);
     expect(hubRowsToEvidenceRows(rows, AT)).toHaveLength(2);
   });
+});
+
+it.each([false, true])("does not promote unqualified Hub finances into citable facts, reviewer signed=%s", signed => {
+  const original = { dimension: "tre", evidence_type: "revenue_proof", evidence_label: "MRR A$77,777", evidence_value_or_url: "ARR A$933,324; churn 17%", confidence_level: "document_uploaded", is_verified: signed };
+  const before = JSON.stringify(original);
+  const row = hubRowToEvidenceRow(original, AT)!;
+  expect(row.status).toBe("partial");
+  expect(row.value).toContain(signed ? "reviewer" : "founder");
+  const citable = itemsFromEvidenceRows([row]);
+  expect(JSON.stringify(citable)).not.toMatch(/77,777|933,324|17%/);
+  expect(autoCite("MRR is A$77,777.", citable).added).toBe(0);
+  expect(JSON.stringify(original)).toBe(before);
+});
+it("preserves nonfinancial evidence while detecting financial values hidden under a generic type", () => {
+  const row = hubRowToEvidenceRow({ dimension: "ptd", evidence_type: "custom", evidence_label: "Notes", evidence_value_or_url: "MRR AUD77777" }, AT)!;
+  expect(row.status).toBe("partial");
+  expect(row.value).not.toContain("77777");
+  const repo = hubRowToEvidenceRow({ dimension: "ptd", evidence_type: "github_repo", evidence_label: "GitHub", evidence_value_or_url: "https://github.com/acme/code", confidence_level: "public_url" }, AT)!;
+  expect(repo.value).toBe("https://github.com/acme/code");
 });

@@ -42,7 +42,8 @@ describe("precomputeModules", () => {
     expect(ids("svm")).toContain("report-pipeline/module-precompute.ts:fiveFactorMoat");
     expect(ids("mpc")).toContain("agents/cfo-tam-sam-som.ts:auMarketProfile");
     const traction = m.tre!.find((r) => r.id.includes("traction"))!.output;
-    expect(traction.hasRevenue).toBe(true);
+    expect(traction.financialStatus).toBe("unqualified");
+    expect(traction).not.toHaveProperty("hasRevenue");
   });
 
   it("uses criterion results when present and never invents Rule-of-40 inputs", () => {
@@ -91,4 +92,21 @@ describe("precomputeModules", () => {
     const rows = precomputeModulesForDim(c, "cgh");
     expect(rows.map((r) => r.id)).toEqual(["report-pipeline/dimension-owners.ts:benchmarkFor"]);
   });
+});
+
+it.each([undefined, 0, 77777])("unqualified signal revenue %s cannot become a measured financial fact or funding score", mrrAud => {
+  const c = ctx();
+  c.sviAnalysis.signals = { ...c.sviAnalysis.signals, mrrAud, arrAud: 933324, pilotRevenueAud: 123456, revenueMonths: 19 } as typeof c.sviAnalysis.signals;
+  Object.assign(c.sviAnalysis, { growthRatePct: 31, profitMarginPct: 22 });
+  const modules = precomputeModules(c);
+  const traction = modules.tre!.find(m => m.id.includes("traction"))!;
+  expect(traction.output).toMatchObject({ financialStatus: "unqualified", financialNote: expect.stringContaining("founder assertion") });
+  for (const key of ["mrrAud", "arrAud", "pilotRevenueAud", "revenueMonths", "hasRevenue", "revenueBand"]) expect(traction.output).not.toHaveProperty(key);
+  expect(modules.tre!.some(m => m.id.includes("calculateRuleOf40"))).toBe(false);
+  const readiness = modules.iri!.find(m => m.id.includes("scoreFundingReadiness"))!;
+  expect(readiness.output).toMatchObject({ status: "unavailable" });
+  expect(readiness.output).not.toHaveProperty("overall");
+  expect(moduleNumbers([traction, readiness], { measuredOnly: true })).not.toContain(77777);
+  expect(moduleNumbers([readiness], { measuredOnly: true })).toEqual([]);
+  expect(c.sviAnalysis.signals?.mrrAud).toBe(mrrAud);
 });

@@ -10,15 +10,13 @@
 // (Stripe MRR series, cap-table register, tech audit numbers) are simply
 // absent — the visuals then fall back to benchmark_only / target states.
 //
-// Nothing here imports ai-client: `cfo-valuation.ts` does, so its pure
-// Rule-of-40 formula is re-stated inline with the same module id for
-// provenance.
+// Financial input assertions are not measured observations. Revenue-derived
+// funding readiness and Rule of 40 remain unavailable until source qualification.
 
 import { auMarketProfile } from "@/lib/agents/cfo-tam-sam-som";
 import { scoreEsop, type GovernanceHealth } from "@/lib/agents/cfo-esop-scoring";
 import { calculateComplianceScore } from "@/lib/agents/clo-compliance";
 import { evaluateAntlerSignals } from "@/lib/agents/antler-signals";
-import { scoreFundingReadiness, type FundingStage } from "@/lib/agents/cro-funding-readiness";
 import type { CriterionKey } from "@/lib/evaluation-criteria";
 import type { SVIExtractedSignals } from "@/lib/svi-analysis";
 import { benchmarkFor, benchmarkStageForSvi, DIM_ORDER, type DimKey } from "./dimension-owners";
@@ -43,13 +41,6 @@ function criterionScore(ctx: ReportContext, key: CriterionKey): number | null {
   if (r && Number.isFinite(r.score)) return Math.round(r.score);
   const ai = ctx.criteriaData[key]?.aiScore;
   return typeof ai === "number" && Number.isFinite(ai) ? Math.round(ai) : null;
-}
-
-function fundingStage(stage: number): FundingStage {
-  if (stage >= 6) return "series-b";
-  if (stage >= 5) return "series-a";
-  if (stage >= 2) return "seed";
-  return "pre-seed";
 }
 
 function signalsOf(ctx: ReportContext): SVIExtractedSignals | null {
@@ -206,23 +197,16 @@ function treModules(ctx: ReportContext): ModuleOutput[] {
   const s = signalsOf(ctx);
   if (s) {
     const output: Record<string, unknown> = {
-      hasRevenue: s.hasRevenue,
-      revenueBand: s.revenueBand,
+      financialStatus: "unqualified",
+      financialNote: "Revenue extracted from the original input is a founder assertion, not a source-qualified financial fact.",
       hasCustomers: s.hasCustomers,
       hasAnalytics: s.hasAnalytics,
     };
-    if (typeof s.mrrAud === "number") output.mrrAud = Math.round(s.mrrAud);
-    if (typeof s.arrAud === "number") output.arrAud = Math.round(s.arrAud);
-    if (typeof s.revenueMonths === "number") output.revenueMonths = s.revenueMonths;
     if (typeof s.pilotCount === "number") output.pilotCount = s.pilotCount;
-    if (typeof s.pilotRevenueAud === "number") output.pilotRevenueAud = Math.round(s.pilotRevenueAud);
     out.push({ id: "svi-analysis.ts:extractSignals(traction)", output });
-    // Rule of 40 needs growth + margin — only when both are stated (never inferred).
-    const growth = (ctx.sviAnalysis as { growthRatePct?: number }).growthRatePct;
-    const margin = (ctx.sviAnalysis as { profitMarginPct?: number }).profitMarginPct;
-    if (typeof growth === "number" && typeof margin === "number") {
-      out.push({ id: "agents/cfo-valuation.ts:calculateRuleOf40", output: { growthRatePct: growth, profitMarginPct: margin, ruleOf40: growth + margin } });
-    }
+    // Stated growth/margin do not establish compatible verified periods or units.
+    // A qualified financial producer is required before publishing Rule of 40.
+
   }
   const ga4 = ga4FunnelModule(ctx);
   if (ga4) out.push(ga4);
@@ -360,23 +344,10 @@ function iriModules(ctx: ReportContext): ModuleOutput[] {
   const out: ModuleOutput[] = [];
   const s = signalsOf(ctx);
   if (s) {
-    const fr = scoreFundingReadiness({
-      stage: fundingStage(ctx.stage),
-      mrrAud: typeof s.mrrAud === "number" ? s.mrrAud : 0,
-      hasTechnicalFounder: s.hasSourceCode || s.hasProduct,
-      hasFounderVesting: s.hasVesting,
-      hasShareholdersAgreement: s.hasShareholdersAgreement,
-      esopPoolPct: s.esopAllocated ? 12 : 0,
-      dataRoomPct: s.hasDataRoom ? 60 : 0,
-      hasPitchDeck: s.hasPitchDeck,
-      hasFinancialModel: s.hasFinancialModel,
-      hasUseOfFunds: s.targetRaiseMentioned,
+    out.push({
+      id: "agents/cro-funding-readiness.ts:scoreFundingReadiness",
+      output: { status: "unavailable", reason: "Funding readiness needs qualified financial inputs. Missing revenue must not be scored as zero." },
     });
-    const output: Record<string, unknown> = { overall: Math.round(fr.overall), verdict: fr.verdict };
-    fr.pillars.forEach((p) => {
-      output[p.key] = Math.round(p.score);
-    });
-    out.push({ id: "agents/cro-funding-readiness.ts:scoreFundingReadiness", output });
     out.push({
       id: "svi-analysis.ts:extractSignals(investor)",
       output: { hasPitchDeck: s.hasPitchDeck, hasFinancialModel: s.hasFinancialModel, hasDataRoom: s.hasDataRoom, raiseMentioned: s.raiseMentioned },

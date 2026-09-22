@@ -71,6 +71,15 @@ export function hubEvidenceId(dimension: string, evidenceType: string): string {
   return evidenceIdFor(`gather|hub|${dimension.toLowerCase()}|${evidenceType}`);
 }
 
+/** A document/reviewer badge does not qualify its financial observations.
+ * Conservative report projection only; original Hub records stay available for review.
+ * Arbitrary descriptions can still contain undiscovered claims: this is not NLP verification.
+ */
+export function isFinancialHubObservation(row: HubEvidenceRowLike): boolean {
+  const text = [row.evidence_type, row.evidence_label, row.evidence_value_or_url].filter(Boolean).join(" ").replace(/_/g, " ");
+  return /\b(?:mrr|arr|revenue|financial|finance|bank|statement|invoice|stripe|xero|profit|margin|cash|burn|runway|valuation|churn|ltv|cac|opex|refund|ebitda|gmv|balance sheet|income|expense|doanh thu|lợi nhuận|định giá)\b|p&l|(?:A\$|US\$|\$|\bAUD\b|\bUSD\b|₫|\bVND\b)\s*[-−]?\s*\d/i.test(text);
+}
+
 /** `svi_dimension_evidence` row → `EvidenceRow` (undefined when unusable). */
 export function hubRowToEvidenceRow(row: HubEvidenceRowLike, fallbackObservedAt: string): EvidenceRow | undefined {
   if (!isUsableHubRow(row)) return undefined;
@@ -80,6 +89,17 @@ export function hubRowToEvidenceRow(row: HubEvidenceRowLike, fallbackObservedAt:
   const value = typeof row.evidence_value_or_url === "string" && row.evidence_value_or_url.trim() ? row.evidence_value_or_url.trim() : undefined;
   const signed = row.is_verified === true || Boolean(row.verified_at);
   const observedAt = row.verified_at ?? row.updated_at ?? row.created_at ?? fallbackObservedAt;
+  if (isFinancialHubObservation(row)) {
+    return {
+      evidence_id: hubEvidenceId(dim, row.evidence_type), source: sourceFor(confidence, value),
+      label: "Financial submission — Evidence Hub, source qualification pending",
+      status: "partial", observedAt, dims: [dim], confidence: "self_declared",
+      value: signed
+        ? "A reviewer marked this submission reviewed. Its financial metric, currency, reporting period, completeness and business identity are not source-qualified; do not treat its figures as established financial facts. Review the original submission."
+        : "A founder supplied financial information. Its figures are unverified assertions, not established financial facts. Review the original submission and qualify metric, currency, reporting period, completeness and business identity.",
+    };
+  }
+
   return {
     evidence_id: hubEvidenceId(dim, row.evidence_type),
     source: sourceFor(confidence, value),

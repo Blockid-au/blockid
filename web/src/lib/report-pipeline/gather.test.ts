@@ -452,7 +452,7 @@ describe("gatherData — G19-S43 CTAs + Evidence Hub", () => {
     expect(out.results.evidenceHub).toMatchObject({ count: 2, byDim: { tre: 1, lco: 1 }, verified: 1 });
     const tre = out.evidenceRows.filter((r) => r.dims.includes("tre") && r.label.includes("Evidence Hub"));
     expect(tre).toHaveLength(1);
-    expect(tre[0]).toMatchObject({ source: "upload", status: "evidenced", confidence: "document_uploaded", label: "Bank statements Q2 — Evidence Hub, review pending", value: "q2.pdf", observedAt: "2026-09-01T00:00:00.000Z" });
+    expect(tre[0]).toMatchObject({ source: "upload", status: "partial", confidence: "self_declared", label: "Financial submission — Evidence Hub, source qualification pending", observedAt: "2026-09-01T00:00:00.000Z" });
     const lco = out.evidenceRows.find((r) => r.label.startsWith("IP deed"))!;
     expect(lco).toMatchObject({ dims: ["lco"], confidence: "third_party_verified", status: "evidenced", observedAt: "2026-09-05T00:00:00.000Z" });
     expect(out.evidenceRows.some((r) => r.label.startsWith("Minutes"))).toBe(false);
@@ -465,6 +465,17 @@ describe("gatherData — G19-S43 CTAs + Evidence Hub", () => {
     const rows = await loadDimensionEvidenceRows(fakeDb({ svi_dimension_evidence: [{ project_id: "proj-1", dimension: "ftv", evidence_type: "founder_linkedin", evidence_label: "LinkedIn", confidence_level: "public_url", is_verified: false }, { project_id: "other", dimension: "ftv", evidence_type: "founder_bio" }] }), "proj-1");
     expect(rows).toEqual([{ dimension: "ftv", evidence_type: "founder_linkedin", evidence_label: "LinkedIn", evidence_value_or_url: null, confidence_level: "public_url", is_verified: false, verified_at: null, review_status: null, created_at: null, updated_at: null }]);
   });
+
+it("gather does not reintroduce pending Hub financial numbers as report evidence", async () => {
+  const original = { dimension: "tre", evidence_type: "revenue_proof", evidence_label: "MRR A$77,777", evidence_value_or_url: "ARR A$933,324", confidence_level: "document_uploaded", review_status: "pending" };
+  const out = await gatherData(ctx(), callAI, { deps: quiet({ loadDimensionEvidence: async () => [original] }) });
+  const projected = itemsFromEvidenceRows(out.evidenceRows);
+  expect(JSON.stringify(projected)).not.toMatch(/77,777|933,324/);
+  expect(out.evidenceRows.find(r => r.label.includes("Evidence Hub"))).toMatchObject({ status: "partial", value: expect.stringContaining("unverified assertions") });
+  expect(out.valuation.status).toBe("unavailable");
+  expect(original.evidence_value_or_url).toBe("ARR A$933,324");
+});
+
 });
 
 describe("G30 valuation revenue presence", () => {
