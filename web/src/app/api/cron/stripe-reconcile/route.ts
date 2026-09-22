@@ -1,3 +1,4 @@
+import { creditReceiptsEnabled, creditPurchasesPaused, fulfillCreditCheckout } from "@/lib/stripe/credit-fulfillment";
 // /api/cron/stripe-reconcile — safety net for missed Stripe webhooks.
 //
 // Scans Stripe checkout sessions in the last N hours and cross-checks against
@@ -80,6 +81,20 @@ export async function GET(request: Request) {
 
       const userId = md.blockid_user_id;
       if (!userId || typeof userId !== "string") continue;
+
+      // Keep a migration-window credit-pack pause ahead of revenue lookup or any grant.
+      if (md.type === "credit_purchase" && creditPurchasesPaused()) continue;
+
+      // New purchases use the same receipt as webhook, never revenue absence.
+      if ((creditReceiptsEnabled() || md.credit_receipt_version === "1") && md.type === "credit_purchase") {
+        try { await fulfillCreditCheckout(s.id); }
+        catch {
+          misses.push({ session_id: s.id, user_id: userId, email: s.customer_email ?? null,
+            amount_cents: s.amount_total ?? 0, kind: "credit_purchase", action: "grant_failed",
+            detail: "Receipt unavailable or historical/identity conflict: review required; no legacy regrant" });
+        }
+        continue;
+      }
 
       // Have we already recorded revenue for this session?
       const { data: existing } = await supabase

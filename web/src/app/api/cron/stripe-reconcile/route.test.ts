@@ -129,6 +129,8 @@ async function json(res: Response): Promise<Record<string, unknown>> {
 }
 
 beforeEach(() => {
+  vi.stubEnv("G30_CREDIT_RECEIPTS","0");
+  vi.stubEnv("G30_CREDIT_PURCHASES_PAUSED","0");
   state.existingRevRow = null;
   state.fromCalls = [];
   state.inserts = [];
@@ -546,4 +548,14 @@ describe("stripe-reconcile — response shape", () => {
     expect(typeof body.missed).toBe("number");
     expect(Array.isArray(body.misses)).toBe(true);
   });
+});
+
+it("pause skips marked and legacy credit purchases before lookup or grant",async()=>{
+ vi.stubEnv("G30_CREDIT_PURCHASES_PAUSED","1");
+ mocks.stripeSessionsListMock.mockResolvedValueOnce({data:[
+  {id:"cs_legacy",status:"complete",payment_status:"paid",metadata:{type:"credit_purchase",blockid_user_id:"user",blockid_credits:"25"}},
+  {id:"cs_receipt",status:"complete",payment_status:"paid",metadata:{type:"credit_purchase",blockid_user_id:"user",blockid_credits:"25",credit_receipt_version:"1"}},
+ ],has_more:false});
+ expect((await GET(req("GET",{"x-cron-secret":"test_cron_secret"}))).status).toBe(200);
+ expect(mocks.grantCreditsMock).not.toHaveBeenCalled();expect(state.fromCalls).not.toContain("revenue_events");expect(state.inserts).toHaveLength(0);
 });

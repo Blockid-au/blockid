@@ -299,6 +299,7 @@ export async function grantCredits(
   reason: string,
   metadata?: Record<string, unknown>,
 ): Promise<GrantResult> {
+  if (reason === "credit_pack_purchase") throw new Error("credit_purchase_requires_web_authority");
   if (amount <= 0) return { ok: false, balance: 0 };
 
   const supabase = getSupabase();

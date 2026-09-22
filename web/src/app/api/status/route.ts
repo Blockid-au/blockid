@@ -1,3 +1,4 @@
+import { creditReceiptCapabilities } from "@/lib/stripe/credit-receipt-policy";
 import { originActivity } from "@/lib/ops/origin-activity";
 // GET /api/status — public status endpoint.
 //
@@ -683,7 +684,7 @@ export async function GET(): Promise<Response> {
     crons_failed_24h: extras?.crons_failed_24h ?? [],
   };
 
-  return NextResponse.json(trusted ? { ...fullBody, origin_draining: originActivity()?.snapshot().draining ?? null, origin_activity_version: originActivity() ? 1 : null, origin_activity_healthy: originActivity()?.snapshot().persistenceFailed === false } : publicBody, {
+  return NextResponse.json(trusted ? { ...fullBody, credit_receipt_capabilities: creditReceiptCapabilities(), origin_draining: originActivity()?.snapshot().draining ?? null, origin_activity_version: originActivity() ? 1 : null, origin_activity_healthy: originActivity()?.snapshot().persistenceFailed === false } : publicBody, {
     status: 200,
     headers: {
       "cache-control": trusted ? "no-store" : "s-maxage=30, stale-while-revalidate=60",

@@ -120,6 +120,11 @@ vi.mock("@/lib/stripe", () => ({
 
 // Signature verification + idempotency claim.
 const verifyWebhookSignature = vi.fn<(raw: string, sig: string) => unknown>();
+const receiptFulfill = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/stripe/credit-fulfillment", async (importOriginal) => ({
+  ...await importOriginal<typeof import("@/lib/stripe/credit-fulfillment")>(),
+  fulfillCreditCheckout: receiptFulfill,
+}));
 const claimWebhookEvent = vi.fn<(event: unknown) => Promise<{ duplicate: boolean }>>();
 const markWebhookEventProcessed = vi.fn<(id: string, err?: string) => Promise<undefined>>();
 vi.mock("@/lib/stripe/verify", () => ({
@@ -275,6 +280,9 @@ async function invoke(): Promise<Response> {
 // ---------- Suite ------------------------------------------------------------
 
 beforeEach(() => {
+  vi.stubEnv("G30_CREDIT_RECEIPTS", "0");
+  vi.stubEnv("G30_CREDIT_PURCHASES_PAUSED", "0");
+  receiptFulfill.mockReset().mockResolvedValue({outcome:"completed"});
   emitCalls.length = 0;
   fromCalls.length = 0;
   insertCalls.length = 0;
@@ -1100,5 +1108,28 @@ describe("checkout.session.completed — cancel_subscription_id (QA-3 P1-13)", (
     await invoke();
     expect(stripeSubscriptionsRetrieve).not.toHaveBeenCalled();
     expect(stripeSubscriptionsCancel).not.toHaveBeenCalled();
+  });
+});
+
+describe("receipt-compatible webhook routing", () => {
+  it("fulfills marked receipts before legacy claim with creation disabled", async () => {
+    verifyWebhookSignature.mockReturnValue(buildCheckoutEvent({id:"marked",metadata:{type:"credit_purchase",credit_receipt_version:"1",blockid_user_id:"user",blockid_credits:"25"}}));
+    const response=await invoke(); expect(response.status).toBe(200);
+    expect(receiptFulfill).toHaveBeenCalledWith("cs_test_marked");
+    expect(claimWebhookEvent).not.toHaveBeenCalled(); expect(grantCreditsMock).not.toHaveBeenCalled();
+  });
+  it("pause blocks marked and legacy purchases before claiming events", async () => {
+    vi.stubEnv("G30_CREDIT_PURCHASES_PAUSED","1");
+    for(const metadata of [{type:"credit_purchase"},{type:"credit_purchase",credit_receipt_version:"1"}]) {
+      verifyWebhookSignature.mockReturnValue(buildCheckoutEvent({id:"paused",metadata}));
+      expect((await invoke()).status).toBe(503);
+    }
+    expect(receiptFulfill).not.toHaveBeenCalled(); expect(claimWebhookEvent).not.toHaveBeenCalled(); expect(grantCreditsMock).not.toHaveBeenCalled();
+  });
+  it("ambiguous receipt refuses ACK and never falls back to a legacy grant", async () => {
+    receiptFulfill.mockRejectedValue(new Error("ambiguous"));
+    verifyWebhookSignature.mockReturnValue(buildCheckoutEvent({id:"ambiguous",metadata:{type:"credit_purchase",credit_receipt_version:"1"}}));
+    expect((await invoke()).status).toBe(503);
+    expect(claimWebhookEvent).not.toHaveBeenCalled(); expect(grantCreditsMock).not.toHaveBeenCalled();
   });
 });

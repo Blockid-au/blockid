@@ -885,6 +885,12 @@ export async function grantCredits(
   const supabase = getSupabaseAdmin();
   if (!supabase) return { ok: false, balance: 0 };
 
+  if (reason === "credit_pack_purchase") {
+    const { guardLegacyCreditPackGrant } = await import("./stripe/credit-fulfillment");
+    const receipt = await guardLegacyCreditPackGrant(userId, amount, metadata?.session_id);
+    if (receipt) return receipt;
+  }
+
   // Read current balance (may not exist yet).
   const { data: row } = await supabase
     .from("credit_balances")

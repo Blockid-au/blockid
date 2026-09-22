@@ -1595,3 +1595,21 @@ describe("health probe belongs to this process", () => {
     expect(fetchState.calls.map((call) => call.url)).toEqual(["http://127.0.0.1:4100/api/healthz"]);
   });
 });
+
+describe("receipt compatibility is truthful trusted-only process telemetry", () => {
+  it("reports actual flags and paused-only account refusal without database readiness", async () => {
+    vi.stubEnv("G30_CREDIT_RECEIPTS", "0");
+    vi.stubEnv("G30_CREDIT_PURCHASES_PAUSED", "1");
+    const { body } = await callGet();
+    const caps=(body as unknown as Record<string,unknown>).credit_receipt_capabilities;
+    expect(caps).toMatchObject({ creation_enabled:false,purchases_paused:true,database_activation_verified:false,
+      erased_account_refusal:{verified:true,mechanism:"all_purchase_paths_paused"} });
+    vi.unstubAllEnvs();
+  });
+  it("does not expose purchase policy or process uptime to anonymous callers", async () => {
+    const previous=process.env.STATUS_FULL_TOKEN;
+    process.env.STATUS_FULL_TOKEN="";
+    try { const {body}=await callGet();expect(body).not.toHaveProperty("credit_receipt_capabilities"); }
+    finally { process.env.STATUS_FULL_TOKEN=previous; }
+  });
+});

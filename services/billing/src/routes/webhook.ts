@@ -96,6 +96,13 @@ export async function webhookRoutes(app: FastifyInstance): Promise<void> {
       return reply.code(400).send({ error: "Invalid signature" });
     }
 
+    // Web is the sole credit-pack authority. Refuse BEFORE event caching so
+    // accidental forwarding cannot ACK or grant a purchase outside receipts.
+    if ((event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") &&
+        (event.data.object as Stripe.Checkout.Session).metadata?.type === "credit_purchase") {
+      return reply.code(503).send({ error: "credit_purchase_requires_web_authority" });
+    }
+
     // Idempotency check.
     if (markProcessed(event.id)) {
       app.log.info(`Webhook event ${event.id} already processed — skipping`);

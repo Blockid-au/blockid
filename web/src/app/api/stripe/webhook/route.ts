@@ -1,3 +1,4 @@
+import { creditReceiptsEnabled, creditPurchasesPaused, fulfillCreditCheckout } from "@/lib/stripe/credit-fulfillment";
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
 import { getStripe, isStripeConfigured, STRIPE_PRICE_MAP } from "@/lib/stripe";
@@ -51,6 +52,26 @@ export async function POST(request: Request) {
   const event = verifyWebhookSignature(rawBody, sig);
   if (!event) {
     return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
+  }
+
+  if (creditPurchasesPaused() &&
+      (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") &&
+      (event.data.object as Stripe.Checkout.Session).metadata?.type === "credit_purchase") {
+    return NextResponse.json({ error: "credit_purchase_paused" }, { status: 503 });
+  }
+
+  // Purchase receipt is the transaction boundary; failed/ambiguous events
+  // retry the same purchase key before legacy insert-only event dedupe.
+  if ((creditReceiptsEnabled() || (event.data.object as Stripe.Checkout.Session).metadata?.credit_receipt_version === "1") &&
+      (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") &&
+      (event.data.object as Stripe.Checkout.Session).metadata?.type === "credit_purchase") {
+    if (event.account) return NextResponse.json({ error: "unsupported_connect_purchase" }, { status: 503 });
+    try {
+      const result = await fulfillCreditCheckout((event.data.object as Stripe.Checkout.Session).id);
+      return NextResponse.json({ received: true, fulfillment: result.outcome });
+    } catch {
+      return NextResponse.json({ error: "credit_fulfillment_retry_required" }, { status: 503 });
+    }
   }
 
   // Idempotency: insert into stripe_webhook_events. Duplicate delivery → 200.

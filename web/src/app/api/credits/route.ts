@@ -1,3 +1,4 @@
+import { creditReceiptsEnabled, creditPurchasesPaused, recordCreditCheckout } from "@/lib/stripe/credit-fulfillment";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getBalance, getTransactionHistory, CREDIT_PACKS } from "@/lib/credits";
@@ -79,6 +80,8 @@ async function POST_handler(request: Request) {
     );
   }
 
+  if (creditPurchasesPaused()) return NextResponse.json({ ok: false, reason: "Credit purchases are temporarily paused. Please try again later." }, { status: 503 });
+
   // If Stripe is configured and a credits price exists, create a Checkout session.
   const stripe = isStripeConfigured() ? getStripe() : null;
   const creditsPriceId = STRIPE_PRICE_MAP[`credits_${amount}`];
@@ -106,10 +109,11 @@ async function POST_handler(request: Request) {
             blockid_user_id: user.id,
             blockid_credits: String(amount),
             type: "credit_purchase",
+            ...(creditReceiptsEnabled() ? { credit_receipt_version: "1" } : {}),
           },
         },
         {
-          idempotencyKey: sessionIdempotencyKey("credits", [
+          idempotencyKey: sessionIdempotencyKey(creditReceiptsEnabled() ? "credits-receipt-v1" : "credits", [
             user.id,
             amount,
             creditsPriceId,
@@ -117,6 +121,7 @@ async function POST_handler(request: Request) {
         },
       );
 
+      if (creditReceiptsEnabled()) await recordCreditCheckout(session, user.id, creditsPriceId, amount, validPack.priceAudCents);
       return NextResponse.json({ ok: true, url: session.url });
     } catch (err) {
       console.error("[blockid:credits] Stripe checkout creation failed", err);

@@ -19,6 +19,10 @@
 //     unpaid balance for authenticated callers.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+const receiptRecord=vi.hoisted(()=>vi.fn(async()=>undefined));
+vi.mock("@/lib/stripe/credit-fulfillment",async(importOriginal)=>({
+ ...await importOriginal<typeof import("@/lib/stripe/credit-fulfillment")>(),recordCreditCheckout:receiptRecord,
+}));
 
 interface AppUser {
   id: string;
@@ -463,4 +467,20 @@ describe("POST /api/credits — gate precedence", () => {
     expect(res.status).toBe(400);
     expect(mocks.stripeCreateMock).not.toHaveBeenCalled();
   });
+});
+
+it("migration-window purchase pause prevents Stripe checkout creation",async()=>{
+ vi.stubEnv("G30_CREDIT_PURCHASES_PAUSED","1");
+ try {const res=await POST(postReq({amount:25}));expect(res.status).toBe(503);expect(mocks.stripeCreateMock).not.toHaveBeenCalled();}
+ finally{vi.unstubAllEnvs();}
+});
+
+it("explicit receipt creation marks checkout and persists its order before returning",async()=>{
+ vi.stubEnv("G30_CREDIT_RECEIPTS","1");vi.stubEnv("G30_CREDIT_PURCHASES_PAUSED","0");receiptRecord.mockClear();
+ mocks.stripeCreateMock.mockResolvedValueOnce({id:"cs_marked",url:"https://stripe.example/marked",metadata:{credit_receipt_version:"1"}});
+ try {
+  const response=await POST(postReq({amount:25}));expect(response.status).toBe(200);
+  expect(mocks.stripeCreateMock.mock.calls[0][0]).toMatchObject({metadata:{type:"credit_purchase",credit_receipt_version:"1"}});
+  expect(receiptRecord).toHaveBeenCalledTimes(1);expect(mocks.sessionIdempotencyKeyMock).toHaveBeenCalledWith("credits-receipt-v1",expect.any(Array));
+ } finally {vi.unstubAllEnvs();}
 });
