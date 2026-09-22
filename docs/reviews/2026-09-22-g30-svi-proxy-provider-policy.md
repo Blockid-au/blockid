@@ -1,8 +1,9 @@
 # G30 SVI proxy policy implementation
 
 The BlockID `/api/investor-portal/ai-generate` server adapter now selects
-`blockid-report-v1` itself: DeepInfra first, then the dispatcher’s qualified
-free alternatives. Request input cannot select another provider policy.
+`blockid-report-v1` itself: the current scoped dispatcher permits DeepInfra
+only. Free fallback qualification remains pending; no unqualified fallback is
+activated by this change. Request input cannot select another provider policy.
 Both initial generation and optional JSON repair share one absolute deadline;
 numeric request options are bounded and actual `via`/model/policy metadata is
 returned instead of only the legacy coarse provider label.

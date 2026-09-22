@@ -1,6 +1,6 @@
 // Internal AI proxy for startupvalueindex.com — lets the sibling standalone
-// app reuse BlockID's scoped DeepInfra-first report dispatcher, with qualified
-// free fallbacks. Local SVI fallbacks are governed separately. Server calls from
+// app reuse BlockID's scoped DeepInfra report dispatcher. Free fallback
+// qualification remains pending; local SVI fallback is separate. Server calls from
 // 127.0.0.1 to keep it off the public surface.
 
 import "server-only";
