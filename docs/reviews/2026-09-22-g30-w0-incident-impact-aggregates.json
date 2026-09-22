@@ -1,0 +1,87 @@
+{
+  "interval_utc": {
+    "start_inclusive": "2026-09-22T06:44:00Z",
+    "end_exclusive": "2026-09-22T06:50:00Z"
+  },
+  "recorded_at_utc": "2026-09-22T07:18:59.117205+00:00",
+  "query_method": "HEAD with exact count; no row bodies",
+  "source_attestation": {
+    "method": "active serving-state PID matched /proc startTicks before credential selection",
+    "pid": 4147939,
+    "startTicks": "444388778",
+    "supabase_url_kind": "loopback",
+    "note": "Attestation values transcribed from same active serving state; no repeat queries."
+  },
+  "queries": {
+    "analyses_created": {
+      "http_status": 200,
+      "count": 0
+    },
+    "jobs_started": {
+      "http_status": 200,
+      "count": 0
+    },
+    "jobs_finished": {
+      "http_status": 200,
+      "count": 0
+    },
+    "orders_created": {
+      "http_status": 200,
+      "count": 0
+    },
+    "credit_transactions_created": {
+      "http_status": 200,
+      "count": 0
+    },
+    "stripe_events_received": {
+      "http_status": 200,
+      "count": 0
+    },
+    "queue_enqueued": {
+      "http_status": 200,
+      "count": 0
+    },
+    "queue_started": {
+      "http_status": 200,
+      "count": 0
+    },
+    "queue_finished": {
+      "http_status": 200,
+      "count": 0
+    },
+    "queue_current_queued": {
+      "http_status": 200,
+      "count": 0
+    },
+    "queue_current_running": {
+      "http_status": 200,
+      "count": 0
+    },
+    "analysis_current_running_before_window_end": {
+      "http_status": 200,
+      "count": 0
+    },
+    "analyses_completed_jobs_overlapping_window": {
+      "http_status": 200,
+      "count": 0
+    },
+    "queue_completed_jobs_overlapping_window": {
+      "http_status": 200,
+      "count": 0
+    }
+  },
+  "limits": [
+    "Current backlog counts reflect query time, not a historical backlog snapshot.",
+    "No universal no-data-loss claim; counts cover named stores and timestamp boundaries."
+  ],
+  "drain_failure": {
+    "time_utc": "2026-09-22T06:48:01Z",
+    "curl_exit": 7,
+    "duration_ms": 17
+  },
+  "initial_query_failures": {
+    "cause": "audit config chose unresolved .env.runtime hostname",
+    "dns_code": "ENOTFOUND",
+    "production_db_outage_proven": false
+  }
+}
