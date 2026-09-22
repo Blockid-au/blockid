@@ -7,15 +7,14 @@
  * semantic theme contract (components/tbr/v2/shared.tsx); this spec is the
  * regression guard.
  *
- * G26 (2026-09-21) — LIGHT IS THE ONLY DEFAULT. The light run is the
+ * G30 — LIGHT-ONLY, including legacy saved-dark preferences. The light run is the
  * contract: every visible text node inside <main> on /tbr/demo is sampled
  * (computed colour, alpha-composited effective background, WCAG 2.x ratio)
  * and must be ≥ 4.5:1 (3:1 for large text); the report root must be a light
  * surface (luminance > 0.85) and no text may sit on a dark band. A second
  * light run under `prefers-color-scheme: dark` proves the OS preference no
  * longer flips the page. The explicit `[data-theme="dark"]` + `html.dark`
- * run stays as the OPT-IN pass the toggle can still reach — it is skipped
- * automatically when the toggle no longer produces a dark root.
+ * run is a required migration check: it must remain light without skipping.
  *
  * Run: PLAYWRIGHT_BASE_URL=http://127.0.0.1:4001 npx playwright test
  *      tests/e2e/smoke/tbr-contrast.spec.ts
@@ -69,8 +68,10 @@ function auditContrast(rootSelector: string): AuditResult {
     return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
   };
   const over = (top: [number, number, number, number], bottom: [number, number, number, number]): [number, number, number, number] => {
-    const a = top[3];
-    return [top[0] * a + bottom[0] * (1 - a), top[1] * a + bottom[1] * (1 - a), top[2] * a + bottom[2] * (1 - a), 1];
+    const a = top[3] + bottom[3] * (1 - top[3]);
+    if (a === 0) return [0, 0, 0, 0];
+    const channel = (index: number) => (top[index] * top[3] + bottom[index] * bottom[3] * (1 - top[3])) / a;
+    return [channel(0), channel(1), channel(2), a];
   };
   const ratio = (fg: [number, number, number, number], bg: [number, number, number, number]): number => {
     const l1 = lum(fg);
@@ -81,11 +82,9 @@ function auditContrast(rootSelector: string): AuditResult {
   const effectiveBg = (el: Element): [number, number, number, number] | null => {
     const chain: Element[] = [];
     for (let e: Element | null = el; e; e = e.parentElement) chain.push(e);
-    let acc: [number, number, number, number] = [255, 255, 255, 1];
-    const htmlBg = toRgba(getComputedStyle(document.documentElement).backgroundColor);
-    const bodyBg = toRgba(getComputedStyle(document.body).backgroundColor);
-    if (htmlBg && htmlBg[3] > 0) acc = over(htmlBg, acc);
-    if (bodyBg && bodyBg[3] > 0) acc = over(bodyBg, acc);
+    // Compose each ancestor once. Transparent root/body is not evidence of
+    // a white canvas; an unresolved background must not pass as white.
+    let acc: [number, number, number, number] = [0, 0, 0, 0];
     for (let i = chain.length - 1; i >= 0; i--) {
       const cs = getComputedStyle(chain[i]);
       if (cs.backgroundImage && cs.backgroundImage !== "none") return null; // gradients: not judged
@@ -93,7 +92,7 @@ function auditContrast(rootSelector: string): AuditResult {
       if (!bg) return null;
       if (bg[3] > 0) acc = over(bg, acc);
     }
-    return acc;
+    return acc[3] >= 0.999 ? acc : null;
   };
   const root = document.querySelector(rootSelector) ?? document.body;
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
@@ -173,7 +172,9 @@ function describeOffenders(list: Offender[]): string {
 
 /** Relative luminance (0–1) of an `rgb(r,g,b)` string. */
 function luminance(rgb: string): number {
-  const [r, g, b] = rgb.match(/\d+/g)!.map(Number);
+  const channels = rgb.match(/\d+/g);
+  if (!channels || channels.length < 3) throw new Error(`Unresolved background cannot pass luminance: ${rgb}`);
+  const [r, g, b] = channels.map(Number);
   const f = (c: number) => {
     const s = c / 255;
     return s <= 0.03928 ? s / 12.92 : Math.pow((s + 0.055) / 1.055, 2.4);
@@ -212,25 +213,38 @@ function auditLightShell(): { bodyBg: string; mainBg: string; bodyColor: string;
     };
     return 0.2126 * f(c[0]) + 0.7152 * f(c[1]) + 0.0722 * f(c[2]);
   };
+  const effectiveBackground = (element: Element): string => {
+    const chain: Element[] = [];
+    for (let node: Element | null = element; node; node = node.parentElement) chain.push(node);
+    let result = [0, 0, 0, 0];
+    for (const node of chain.reverse()) {
+      const style = getComputedStyle(node);
+      if (style.backgroundImage !== "none") return "unresolved-background-image";
+      const foreground = toRgba(style.backgroundColor);
+      if (!foreground) return "unresolved-background-color";
+      const alpha = foreground[3] + result[3] * (1 - foreground[3]);
+      if (alpha === 0) continue;
+      result = [0, 1, 2].map((i) => (foreground[i] * foreground[3] + result[i] * result[3] * (1 - foreground[3])) / alpha).concat(alpha);
+    }
+    return result[3] >= 0.999 ? `rgb(${result.slice(0, 3).map(Math.round).join(",")})` : "unresolved-transparent-canvas";
+  };
   const cs = (el: Element | null) => (el ? getComputedStyle(el) : null);
   const body = cs(document.body)!;
   const main = document.querySelector("main");
   const first = main?.querySelector("section, div") ?? main;
-  const mainCs = cs(first);
   // Any block inside <main> wider than 60 % of the viewport painted dark counts as a dark band.
   const darkBands: string[] = [];
   if (main) {
     for (const el of Array.from(main.querySelectorAll("section, div, header, footer, article, aside"))) {
       const rect = el.getBoundingClientRect();
       if (rect.width < window.innerWidth * 0.6 || rect.height < 40) continue;
-      const bg = getComputedStyle(el).backgroundColor;
+      const bg = effectiveBackground(el);
       if (lum(bg) < 0.2) darkBands.push(`<${el.tagName.toLowerCase()} class="${(el.getAttribute("class") ?? "").slice(0, 80)}"> ${asRgb(bg)}`);
     }
   }
-  const bodyBg = toRgba(body.backgroundColor);
   return {
-    bodyBg: bodyBg && bodyBg[3] > 0 ? asRgb(body.backgroundColor) : "rgb(255,255,255)",
-    mainBg: mainCs ? asRgb(mainCs.backgroundColor) : "",
+    bodyBg: effectiveBackground(document.body),
+    mainBg: first ? effectiveBackground(first) : "",
     bodyColor: asRgb(body.color),
     darkBands,
   };
@@ -293,13 +307,14 @@ test.describe("Trusted Business Report — contrast guard (G19-S47 · G26 light 
     });
   });
 
-  test.describe("explicit dark opt-in (toggle)", () => {
+  test.describe("legacy saved-dark preference migrates to light", () => {
     test.use({ colorScheme: "dark" });
 
-    test("/tbr/demo with blockid_theme=dark + html.dark + data-theme=dark — every visible text node in <main> is ≥ 4.5:1 (3:1 for large text)", async ({ page }) => {
+    test("/tbr/demo saved dark remains light, readable and preserves unrelated storage", async ({ page }) => {
       await page.addInitScript(() => {
         try {
           localStorage.setItem("blockid_theme", "dark");
+          localStorage.setItem("g30-test-intake-draft", "keep this draft");
         } catch {
           // storage blocked — the attributes below still force the theme
         }
@@ -307,12 +322,12 @@ test.describe("Trusted Business Report — contrast guard (G19-S47 · G26 light 
         document.documentElement.setAttribute("data-theme", "dark");
       });
       await openReport(page);
-      const result = await page.evaluate(auditContrast, "main");
-      summarise("dark-opt-in", result);
-      // G26: if the toggle no longer yields a dark report root, the opt-in pass is moot — skip, do not fail.
-      test.skip(luminance(result.rootBg) > 0.85, `dark opt-in no longer produces a dark report root (${result.rootBg}) — light-only build`);
-      expect(result.sampled, "sampled text nodes").toBeGreaterThan(300);
-      expect(result.offenders, `dark opt-in contrast offenders:\n${describeOffenders(result.offenders)}`).toEqual([]);
+      await expectLightReport(page, "legacy-saved-dark");
+      await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+      expect(await page.evaluate(() => localStorage.getItem("blockid_theme"))).toBeNull();
+      expect(await page.evaluate(() => localStorage.getItem("g30-test-intake-draft"))).toBe("keep this draft");
+      await page.reload({ waitUntil: "domcontentloaded" });
+      await expectLightReport(page, "legacy-saved-dark-reload");
     });
   });
 });

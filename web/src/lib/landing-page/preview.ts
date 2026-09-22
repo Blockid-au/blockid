@@ -175,10 +175,7 @@ export function renderLandingPageHtml(input: LandingPageInput): string {
   <title>${headline}</title>
   <meta name="description" content="${subheadline}" />
 ${analytics}  <style>
-    :root { color-scheme: light dark; --fg: #0f172a; --bg: #ffffff; --accent: #2563eb; --muted: #475569; }
-    @media (prefers-color-scheme: dark) {
-      :root { --fg: #f8fafc; --bg: #0f172a; --accent: #60a5fa; --muted: #94a3b8; }
-    }
+    :root { color-scheme: light; --fg: #0f172a; --bg: #ffffff; --accent: #2563eb; --muted: #475569; }
     * { box-sizing: border-box; }
     body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: var(--fg); background: var(--bg); line-height: 1.6; }
     main { max-width: 720px; margin: 0 auto; padding: 4rem 1.5rem; }

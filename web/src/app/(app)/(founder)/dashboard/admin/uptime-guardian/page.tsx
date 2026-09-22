@@ -203,7 +203,7 @@ export default async function UptimeGuardianPage() {
             Tail of <span className="font-mono">/tmp/blockid-uptime.log</span>
           </p>
           {/* Terminal-style log block — intentional dark inversion. */}
-          <pre data-theme="dark" className="mt-3 max-h-72 overflow-auto rounded-lg bg-[color:var(--ds-surface)] text-[color:var(--ds-ink)] text-xs p-3 whitespace-pre-wrap">
+          <pre data-theme="light" className="mt-3 max-h-72 overflow-auto rounded-lg bg-[color:var(--ds-surface)] text-[color:var(--ds-ink)] text-xs p-3 whitespace-pre-wrap">
             {uptimeTail.length === 0 ? "(no probe log yet)" : uptimeTail.join("\n")}
           </pre>
         </section>

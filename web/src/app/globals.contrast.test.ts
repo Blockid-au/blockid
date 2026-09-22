@@ -23,7 +23,7 @@ function themeBlock(): string {
   return CSS.slice(start, end);
 }
 
-/** The explicit `:root[data-theme="dark"]` scope. */
+/** The legacy dark alias, now normalized to complete light token pairs. */
 function darkBlock(): string {
   const start = CSS.indexOf(':root[data-theme="dark"],');
   const end = CSS.indexOf("\n}\n", start);
@@ -92,8 +92,8 @@ describe("globals.css light tokens meet WCAG AA on white (release QA-1 #7)", () 
   });
 });
 
-describe("globals.css: light is the only default (G26) — no OS auto-dark", () => {
-  it("has no `@media (prefers-color-scheme: dark)` token scope; the dark ramp is an explicit [data-theme=dark] / .dark opt-in", () => {
+describe("globals.css: G30 light-only — no OS or saved-theme dark rendering", () => {
+  it("has no OS auto-dark and legacy selectors resolve to the light palette", () => {
     expect(CSS).not.toMatch(/@media\s*\(prefers-color-scheme:\s*dark\)/);
     expect(CSS).toContain(':root[data-theme="dark"],');
   });
@@ -112,14 +112,14 @@ describe("globals.css ink-500 is AA on every light ground", () => {
   });
 });
 
-describe("globals.css dark scope keeps the same tokens AA on the dark ground", () => {
+describe("globals.css legacy dark scope resolves to readable light pairs", () => {
   for (const [label, block] of [
     ["[data-theme=dark]", darkBlock()],
   ] as const) {
     it(`${label}: ink-400 and gold-600 are ≥ 4.5:1 on --color-surface-50`, () => {
       const dark = cssHexTokens(block);
       const ground = dark.get("color-surface-50")!;
-      expect(ground, "dark ground").toMatch(/^#[0-9a-f]{6}$/);
+      expect(ground, "legacy dark ground must now be white").toBe("#ffffff");
       for (const name of ["color-ink-400", "color-ink-500", "color-gold-600"]) {
         const v = dark.get(name);
         expect(v, `${label} ${name} declared`).toBeTruthy();

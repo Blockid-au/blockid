@@ -178,14 +178,15 @@ export default async function RootLayout({
   return (
     <html
       lang={htmlLang}
+      data-theme="light"
       className={`${inter.variable} ${plexMono.variable} ${spaceGrotesk.variable} h-full antialiased`}
       suppressHydrationWarning
     >
       <head>
-        {/* G26: light is the only default — one theme-color, no OS-dark variant. */}
+        {/* G30: light-only, including returning visitors with legacy dark preferences. */}
         <meta name="theme-color" content="#FFFFFF" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         {/* GA/GTM connection warm-up. Lighthouse (mobile, throttled) flagged
             "Preconnect to required origins" against
             https://www.google-analytics.com at an estimated 300 ms saving:
@@ -229,7 +230,7 @@ export default async function RootLayout({
           <script id="google-analytics" dangerouslySetInnerHTML={{ __html: gaConfigScript(GA_MEASUREMENT_ID) }} />
         )}
       </head>
-      <body className="min-h-full bg-surface-50 text-brand-900 dark:text-ink-800 font-sans flex flex-col">
+      <body className="min-h-full bg-surface-50 text-brand-900 font-sans flex flex-col">
         {/* Release QA-2 F9 — Cloudflare Email Obfuscation rewrote every
             rendered email address (footer support@, invite + onboarding
             emails) into a data-cfemail <span>, which React then failed to

@@ -196,3 +196,14 @@ describe("renderLandingPageHtml", () => {
     expect(html).toContain("Ship your MVP in a week</footer>");
   });
 });
+
+
+describe("G30 light-only generated preview", () => {
+  it("keeps light paper and dark ink under every OS preference", () => {
+    const html = renderLandingPageHtml(goodInput());
+    expect(html).toContain("color-scheme: light;");
+    expect(html).toContain("--fg: #0f172a; --bg: #ffffff;");
+    expect(html).not.toContain("prefers-color-scheme: dark");
+    expect(html).not.toContain("color-scheme: light dark");
+  });
+});

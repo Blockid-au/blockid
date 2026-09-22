@@ -21,7 +21,7 @@ const sha = (s: string) => `'sha256-${createHash("sha256").update(s).digest("bas
 describe("first-party inline scripts", () => {
   it("pins the exact snippet text (the layout renders these constants verbatim — an edited copy would be blocked)", () => {
     expect(THEME_RESTORE_SCRIPT).toBe(
-      `(function(){try{var t=localStorage.getItem("blockid_theme");if(t==="dark"){document.documentElement.classList.add("dark")}}catch(e){}})()`,
+      `(function(){var r=document.documentElement;r.classList.remove("dark");r.setAttribute("data-theme","light");r.style.colorScheme="light";try{localStorage.removeItem("blockid_theme");localStorage.setItem("blockid_theme_version","light-v1")}catch(e){}})()`,
     );
     expect(GTAG_CONSENT_DEFAULT_SCRIPT).toContain("gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied'");
     expect(GTAG_CONSENT_DEFAULT_SCRIPT).toContain("wait_for_update:500");

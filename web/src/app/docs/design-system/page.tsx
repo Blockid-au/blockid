@@ -200,8 +200,7 @@ export default function DesignSystemPage() {
         <Container size="lg">
           <Heading level="display-xl">Design system snapshot</Heading>
           <p className="mt-4 text-[length:var(--text-body-lg)] leading-[var(--text-body-lg--line-height)] text-[var(--ds-ink-muted)] max-w-2xl">
-            Every primitive rendered in every variant across the light and{" "}
-            <code>.dark</code> skins. Golden-snapshot QA target — noindex,
+            Every primitive rendered across the light base and raised surfaces. Golden-snapshot QA target — noindex,
             not linked from navigation.
           </p>
         </Container>
@@ -211,8 +210,8 @@ export default function DesignSystemPage() {
           <div className="rounded-[var(--radius-xl)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-6">
             <Palette title="Light" />
           </div>
-          <div className="dark rounded-[var(--radius-xl)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-6">
-            <Palette title="Dark" />
+          <div className="rounded-[var(--radius-xl)] border border-[var(--ds-border)] bg-[var(--ds-surface)] p-6">
+            <Palette title="Raised surface" />
           </div>
         </Container>
       </Section>

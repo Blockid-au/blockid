@@ -25,11 +25,13 @@
  */
 
 /**
- * Dark-mode class restore — runs before first paint so a dark user never
- * sees a light flash. Renders as a plain `<script>` in `<head>`.
+ * Light-only legacy preference migration, synchronous before first paint.
+ * Renders as a plain `<script>` in `<head>` and shares its exact CSP hash.
  */
+// G30: normalize legacy preferences before first paint. Keep the exported
+// catalogue name stable so CSP hashes are derived from this exact new text.
 export const THEME_RESTORE_SCRIPT =
-  `(function(){try{var t=localStorage.getItem("blockid_theme");if(t==="dark"){document.documentElement.classList.add("dark")}}catch(e){}})()`;
+  `(function(){var r=document.documentElement;r.classList.remove("dark");r.setAttribute("data-theme","light");r.style.colorScheme="light";try{localStorage.removeItem("blockid_theme");localStorage.setItem("blockid_theme_version","light-v1")}catch(e){}})()`;
 
 /**
  * Google Consent Mode v2 defaults — DENIED before gtag.js loads (OAIC APP

@@ -252,8 +252,7 @@
 /* ═══════════════════════════════════════════════════════════════
    LIGHT-ONLY TOKEN LAYER (docs/design/unicorn-template.md v2, G26)
    Every page renders white / #f7f8fa surfaces with near-black ink.
-   The dark ramp exists only for an explicit :root[data-theme="dark"]
-   (or .dark) opt-in scope — never from the OS preference.
+   Every legacy preference/scope now resolves to this light-only contract.
    ═══════════════════════════════════════════════════════════════ */
 
 :root {
@@ -299,126 +298,13 @@
   --ds-bg-brand: #fff7ed;
 }
 
-/* ── DARK PALETTE — explicit opt-in ONLY (G26, 2026-09-21) ────────
-   Light is the only default. The former OS-preference media query
-   auto-flip is gone: an OS in dark mode no longer re-skins the
-   site. The dark ramp below activates only under an explicit
-   `[data-theme="dark"]` / `.dark` scope — the report/PDF theme contract,
-   the workspace toggle (user-chosen) and the legacy `[data-theme="lux"]`
-   wrappers the page lanes are retiring. */
-
+/* G30 compatibility aliases: legacy dark/lux scopes resolve to the same
+   complete light surface/ink pairs. These aliases are migration-only; new
+   components use the existing semantic tokens without a theme wrapper. */
 :root[data-theme="dark"],
 [data-theme="dark"],
 .dark,
-[data-theme="lux"] {
-  color-scheme: dark;
-
-  --ds-surface: #0b0f1a;
-  --ds-surface-elevated: #111827;
-  --ds-surface-sunken: #050813;
-  --ds-surface-hover: #1f2937;
-  --ds-border: rgba(148, 163, 184, 0.16);
-  --ds-border-strong: rgba(148, 163, 184, 0.28);
-  --ds-border-emphasis: #cbd5e1;
-  --ds-ink: #f9fafb;
-  --ds-ink-strong: #ffffff;
-  --ds-ink-muted: #e5e7eb;
-  --ds-ink-subtle: #cbd5e1;
-  --ds-ink-tertiary: #9ca3af;
-  --ds-ink-faint: #6b7280;
-  --ds-accent: #60a5fa;
-  --ds-accent-hover: #93c5fd;
-  --ds-accent-contrast: #0b0f1a;
-  --ds-brand: #fbbf24;
-  --ds-brand-ink: #0b0f1a;
-  --ds-success: #34d399;
-  --ds-warn: #fbbf24;
-  --ds-danger: #f87171;
-  --ds-info: #60a5fa;
-  --ds-accent-secondary: #67e8f9;     /* cyan on the dark ground (opt-in scope only) */
-  --ds-focus-ring: #93c5fd;
-  --ds-highlight: #c4b5fd;            /* accent-300 — 9.5:1 on #0b0f1a (G17) */
-  --ds-highlight-soft: rgba(139, 92, 246, 0.16);
-  --ds-ring-start: #60a5fa;
-  --ds-ring-end: #a78bfa;
-
-  --ds-bg-success: rgba(52, 211, 153, 0.12);
-  --ds-bg-warn: rgba(251, 191, 36, 0.14);
-  --ds-bg-danger: rgba(248, 113, 113, 0.14);
-  --ds-bg-info: rgba(96, 165, 250, 0.14);
-  --ds-bg-brand: rgba(251, 191, 36, 0.14);
-
-  --color-surface-50: #0b0f1a;
-  --color-surface-100: #111827;
-  --color-surface-200: #1f2937;
-  --color-surface-300: #374151;
-  --color-surface-400: #4b5563;
-
-  --color-ink-950: #f9fafb;
-  --color-ink-900: #f3f4f6;
-  --color-ink-800: #e5e7eb;
-  --color-ink-700: #d1d5db;
-  --color-ink-600: #9ca3af;
-  --color-ink-500: #9ca3af;
-  --color-ink-400: #e5e7eb;
-  /* release QA-1 #7: light gold-600 is now amber-700 (#b45309), only 3.8:1
-     on the dark ground — lift to amber-500 here (8.9:1 on #0b0f1a). */
-  --color-gold-600: #f59e0b;
-  --color-ink-300: #d1d5db;
-  --color-ink-200: #9ca3af;
-  --color-ink-100: #9ca3af;
-
-  --color-paper-50: #111827;
-
-  /* ── rev.4 (2026-09-08): re-declare the semantic --color-* generators
-       inside the dark scope.
-
-       Tailwind v4 hoists the `@theme` block to `:root`, so
-       `--color-primary: var(--ds-ink)` is *substituted* on :root against
-       the LIGHT `--ds-ink` (#0b0f1a) and descendants then inherit that
-       already-computed value. Re-pointing `--ds-ink` on a nested
-       `[data-theme="dark"]` section therefore did nothing: `text-primary`
-       kept painting near-black ink onto the dark hero, which is why the
-       homepage H1 rendered invisible (#0b0f1a on #0a0f1e ≈ 1.02:1).
-
-       Restating each --color-* here re-substitutes it against the dark
-       --ds-* values within the scope, so nested dark islands resolve for
-       real. Keep this list in sync with the @theme block above. */
-  --color-surface: var(--ds-surface);
-  --color-surface-raised: var(--ds-surface-elevated);
-  --color-surface-sunken: var(--ds-surface-sunken);
-  --color-surface-hover: var(--ds-surface-hover);
-  --color-line: var(--ds-border-strong);
-  --color-line-subtle: var(--ds-border);
-  --color-line-strong: var(--ds-border-emphasis);
-  --color-primary: var(--ds-ink);
-  --color-strong: var(--ds-ink-strong);
-  --color-secondary: var(--ds-ink-muted);
-  --color-muted: var(--ds-ink-subtle);
-  --color-tertiary: var(--ds-ink-tertiary);
-  --color-faint: var(--ds-ink-faint);
-  --color-on-brand: var(--ds-brand-ink);
-  --color-on-action: var(--ds-accent-contrast);
-  --color-action: var(--ds-accent);
-  --color-action-hover: var(--ds-accent-hover);
-  --color-action-secondary: var(--ds-accent-secondary);
-  /* G26 aliases — the page lanes' migration vocabulary (text-ink /
-     text-ink-muted / text-ink-subtle) is the same pair set as
-     text-primary / text-secondary / text-muted. */
-  --color-ink: var(--ds-ink);
-  --color-ink-muted: var(--ds-ink-muted);
-  --color-ink-subtle: var(--ds-ink-subtle);
-  --color-accent: var(--ds-highlight);
-  --color-accent-soft: var(--ds-highlight-soft);
-  --color-bull: var(--ds-success);
-  --color-bear: var(--ds-danger);
-  --color-warn: var(--ds-warn);
-  --color-svi-500: var(--ds-brand);
-}
-
-/* Force-light escape hatch — admin shell, dashboards that must stay
-   light regardless of user OS preference. Re-declares light DS vars
-   inside the scope so [data-theme="light"] beats any ancestor dark. */
+[data-theme="lux"],
 :root[data-theme="light"],
 [data-theme="light"] {
   color-scheme: light;
@@ -458,9 +344,7 @@
   --ds-bg-info: #eff6ff;
   --ds-bg-brand: #fff7ed;
 
-  /* rev.4 — same re-substitution as the dark scope (see note above), so a
-     [data-theme="light"] island nested inside a dark ancestor resolves its
-     semantic --color-* tokens against the LIGHT --ds-* values. */
+  /* Re-substitute semantic generators within every legacy scope. */
   --color-surface: var(--ds-surface);
   --color-surface-raised: var(--ds-surface-elevated);
   --color-surface-sunken: var(--ds-surface-sunken);
@@ -498,12 +382,7 @@
   --color-surface-300: #e2e8f0;
   --color-surface-400: #cbd5e1;
 
-  /* rev.5 — restore the ink ramp too. The dark scope INVERTS --color-ink-*
-     (ink-950 becomes #f9fafb), and this block did not put it back, so a
-     forced-light island nested under a dark :root — which is exactly the
-     admin shell when the viewer's OS is in dark mode — painted
-     `text-ink-800` at #e5e7eb on white (1.2:1). Every admin heading and
-     table cell was invisible in that one configuration. */
+  /* Keep legacy utility ramps paired with the light reading surfaces. */
   --color-ink-950: #020617;
   --color-ink-900: #0f172a;
   --color-ink-800: #1e293b;
@@ -515,6 +394,7 @@
   --color-ink-200: #e2e8f0;
   --color-ink-100: #f8fafc;
   --color-paper-50: #f8fafc;
+  --color-gold-600: #b45309;
 }
 
 html, body {
@@ -580,9 +460,6 @@ body {
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
 }
-.dark .glass {
-  background: rgba(30,41,59,0.72);
-}
 
 /* ── Gradients ────────────────────────────────────────────── */
 .gradient-hero {
@@ -625,21 +502,11 @@ body {
   100% { transform: translate(10px, -10px) scale(1.01); }
 }
 
-.dark .gradient-hero {
-  background:
-    radial-gradient(ellipse 80% 50% at 20% 0%, rgba(37,99,235,0.12) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 40% at 80% 10%, rgba(6,182,212,0.08) 0%, transparent 60%),
-    radial-gradient(ellipse 50% 50% at 50% 80%, rgba(16,185,129,0.06) 0%, transparent 60%),
-    linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
-}
 
 .gradient-section {
   background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
 }
 
-.dark .gradient-section {
-  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-}
 
 /* ── SVI section: floating particles background ─────────── */
 .gradient-section::before {
@@ -783,23 +650,12 @@ body {
   border: 2px solid #cbd5e1;
   transition: border-color 200ms ease, box-shadow 200ms ease;
 }
-.dark .svi-input-glow {
-  background: #1e293b;
-  border-color: rgba(148, 163, 184, 0.32);
-}
 .svi-input-glow:hover {
   border-color: #06b6d4;
-}
-.dark .svi-input-glow:hover {
-  border-color: #22d3ee;
 }
 .svi-input-glow:focus-within {
   border-color: #06b6d4;
   box-shadow: 0 0 0 4px rgba(6, 182, 212, 0.16);
-}
-.dark .svi-input-glow:focus-within {
-  border-color: #22d3ee;
-  box-shadow: 0 0 0 4px rgba(34, 211, 238, 0.22);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -813,10 +669,6 @@ body {
   -webkit-backdrop-filter: blur(24px) saturate(180%);
   border: 1px solid rgba(37, 99, 235, 0.1);
   box-shadow: 0 4px 24px -4px rgba(37, 99, 235, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-.dark .trust-glass-strip {
-  background: rgba(30, 41, 59, 0.7);
-  border: 1px solid rgba(37, 99, 235, 0.2);
 }
 
 /* ── Typing indicator dots ───────────────────────────────────── */
@@ -955,8 +807,9 @@ body {
    * matching a real `<body data-theme="lux">` if one is ever used.
    */
   [data-theme="lux"] .lux-card {
-    background: linear-gradient(180deg, #22326B 0%, #1B2A5E 100%);
-    border: 1px solid rgba(34, 211, 238, 0.18);
+    background: var(--ds-surface-elevated);
+    color: var(--ds-ink);
+    border: 1px solid var(--ds-border);
     border-radius: 1rem;
   }
 
@@ -977,52 +830,12 @@ body {
   }
 
   [data-theme="lux"] .lux-heading {
-    background: linear-gradient(120deg, #F8FAFC 0%, #22D3EE 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+    background: none;
+    color: var(--ds-ink-strong);
   }
 }
 
-/* ── Lux-theme token remap for shared legacy-light components ──────────
-   Bento / CtaStrip / LogoCloud are shared with the V1 light homepage and
-   style themselves with the light `surface-*` / `ink-*` / `brand-900`
-   tokens. When nested inside the V2 dark lux homepage they would render
-   as leftover white panels sandwiched between dark navy sections. Since
-   Tailwind v4 color utilities resolve through CSS custom properties at
-   paint time, redefining the underlying variables inside the
-   `[data-theme="lux"]` subtree re-skins those shared components to the
-   luxury dark palette without forking them into lux-only copies. */
-[data-theme="lux"] {
-  --color-surface-50: #131938;
-  --color-surface-100: #0B0F2A;
-  --color-surface-200: rgba(148, 163, 184, 0.16);
-  --color-ink-600: #94A3B8;
-  --color-ink-700: #CBD5E1;
-  --color-ink-800: #F1F5F9;
-  /* Contrast fix Sep 2026 (lux theme parity with dark) — lift ink-100 from
-   * slate-500 to slate-400 so muted-meta text on the deep navy ground clears
-   * WCAG AA body. Was: #64748B → 4.4:1 fail body; now #94A3B8 → 6.9:1 pass. */
-  --color-ink-100: #94A3B8;
-  --color-ink-200: #94A3B8;
-  --color-ink-300: #CBD5E1;
-  --color-ink-400: #E2E8F0;
-  --color-brand-900: #F1F5F9;
-  --color-brand-600: #22D3EE;
-  --color-brand-700: #0891B2;
-  /* Legacy brand-navy tokens (used by shared legacy-light components) get
-     remapped to the deeper fintech base so v2 nav/legacy pieces don't punch
-     a lighter navy strip through the new palette. */
-  --color-brand-navy: #0B0F2A;
-  --color-brand-navy-elev-1: #131938;
-  --color-brand-navy-elev-2: #1A2247;
-  --color-brand-navy-deep: #05081C;
-  /* Old `gold-*` scale remapped to accent cyan so any leftover .text-gold-500
-     token in legacy components paints as brand cyan in lux mode. */
-  --color-gold-300: #7DD3FC;
-  --color-gold-500: #22D3EE;
-  --color-gold-600: #0891B2;
-}
+
 
 /* ═══════════════════════════════════════════════════════════════
    FINTECH HERO — subtle glow + entrance keyframes
@@ -1077,9 +890,9 @@ body {
   100% { transform: translate(20px, -40px) scale(1.05); }
 }
 
-/* Placeholder input text-[#94A3B8] in dark bg */
+/* Search placeholder remains readable on the approved light surface. */
 .search-ring input::placeholder {
-  color: #94A3B8;
+  color: var(--ds-ink-subtle);
 }
 
 /* ═══════════════════════════════════════════════════════════════
