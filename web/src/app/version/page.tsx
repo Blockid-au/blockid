@@ -146,6 +146,12 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.28.1",
+    date: "2026-09-22",
+    title: "Post-deploy sweep fixes",
+    changes: ["[fix] Hub tab strip scrolls within the viewport at 375 px on the exit pages; equity setup wizard carries an h1"],
+  },
+  {
     version: "3.28.0",
     date: "2026-09-22",
     title: "Provider capacity, degraded-run diagnostics, persona chrome, index movers (G29)",

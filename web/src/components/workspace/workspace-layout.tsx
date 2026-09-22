@@ -617,7 +617,7 @@ export function WorkspaceLayout({ children, user, currentPhase: currentPhaseProp
         {/* Page content. HubTabs renders the hub tablist when the page sits
             under a hub layout (`HubTabsProvider`, G13-W2-IA2) and nothing
             otherwise. */}
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 min-w-0 overflow-auto">
           {/* Hub tabs are founder IA (§A.1); evaluators / consoles share a few
               routes (settings, projects) but must not see founder tab chrome
               such as "Founder profile · Enterprise" (W2 review). Admins keep

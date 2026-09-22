@@ -1,5 +1,9 @@
 # BlockID.au Changelog
 
+## 2026-09-22 — v3.28.1: Post-deploy sweep fixes
+
+- The founder page sweep on v3.28.0 found the hub tab strip overflowing the 375 px viewport on `/workspace/exit*` (the tablist's `overflow-x-auto` had no width to clip against — `min-w-0` on the nav and the workspace `<main>`) and `/workspace/equity/setup` without an h1 (the wizard step title is the h1 now).
+
 ## 2026-09-22 — v3.28.0: Provider capacity automation, degraded-run diagnostics, persona chrome, Index movers (G29)
 
 - **Dead rungs never cost a call again** — a model that answered 402 / 404 / `model_archived` / `model_not_found` is dropped from the ladder (runtime and the discover-models cron, curated fallback ladders included) for 24 h and retried once; a provider whose rungs are all dead or that answers 402 is **unfunded** on `/api/status.ai` and `/admin/ai-keys` (founder item #9); one digest line when fewer than two providers stay healthy for over an hour. Fixtures are the verbatim failure lines of 2026-09-21.

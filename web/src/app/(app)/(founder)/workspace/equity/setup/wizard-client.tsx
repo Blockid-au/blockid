@@ -536,9 +536,9 @@ export function EquityWizard({
         <div className="text-xs font-medium text-muted uppercase tracking-wider mb-1">
           Step {step} of 6
         </div>
-        <h2 className="text-xl font-bold text-ink-800">
+        <h1 className="text-xl font-bold text-ink-800">
           {STEP_TITLES[step]}
-        </h2>
+        </h1>
         <p className="text-sm text-ink-500 mt-0.5">
           {STEP_DESCRIPTIONS[step]}
         </p>

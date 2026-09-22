@@ -169,7 +169,7 @@ export function HubTabs({ hub, className }: HubTabsProps) {
   const hubLabel = locale === "vi" && hubDef.label.vi ? hubDef.label.vi : hubDef.label.en;
 
   return (
-    <nav aria-label={`${hubLabel} tabs`} data-hub={hubDef.id} className={cn("border-b border-line-subtle bg-surface px-6", className)}>
+    <nav aria-label={`${hubLabel} tabs`} data-hub={hubDef.id} className={cn("min-w-0 max-w-full border-b border-line-subtle bg-surface px-6", className)}>
       <div ref={listRef} role="tablist" aria-orientation="horizontal" onKeyDown={onKeyDown} className="-mb-px flex gap-1 overflow-x-auto">
         {resolved.map((r, i) => {
           const selected = r.tab === active;
