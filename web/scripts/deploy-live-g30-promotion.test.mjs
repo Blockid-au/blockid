@@ -22,7 +22,16 @@ fail() { echo "$*" >&2; exit 1; }
 g30_state() { case "$1" in --port) echo 4001;; --verify-active) echo '{"sha":"old"}';; --allocate) echo 4100;; esac; }
 ${shellFunction('g30_json_field')}
 g30_configured_port() { echo 4001; }
+python3() {
+  if [[ "$1" == */g30-supervised-launch.py ]]; then
+    test -z "\${NODE_ENV:-}" || return 1
+    SUPERVISOR_PROBED=1
+    return 0
+  fi
+  command python3 "$@"
+}
 ${source.slice(start, end)}
+test "\${SUPERVISOR_PROBED:-}" = 1
 test -z "\${NODE_ENV:-}"
 test -z "\${G30_FAKE_PRODUCTION_SECRET:-}"
 `], { env: process.env, encoding: 'utf8', timeout: 5000 });

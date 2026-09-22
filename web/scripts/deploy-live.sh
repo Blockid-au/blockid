@@ -617,6 +617,9 @@ fi
 CONFIGURED_PORT=$(g30_configured_port) || fail "Unsupported nginx origin configuration"
 [ "$CONFIGURED_PORT" = "$PROD_PORT" ] || fail "nginx origin differs from stable serving state"
 TEMP_PORT=$(g30_state --allocate --lock-fd 200) || fail "No safe capacity/free origin port for candidate"
+# A disposable system service must outlive its launcher before expensive build work.
+python3 "$WEB_DIR/scripts/g30-supervised-launch.py" --web "$WEB_DIR" --probe --apply --lock-fd 200 >/dev/null \
+  || fail "Independent supervisor lifetime probe failed; live origin unchanged"
 CANDIDATE_PORT="$TEMP_PORT"
 
 # ══════════════════════════════════════════════════════════════════════
@@ -1252,8 +1255,17 @@ export HOSTNAME=127.0.0.1
 # after startup. Never kill another process to claim this port.
 
 cd "$RELEASE_DIR"
-nohup node server.js > "$LOG_NEW" 2>&1 9>&- 200>&- &
-NEW_PID=$!
+SUPERVISED=$(python3 "$WEB_DIR/scripts/g30-supervised-launch.py" --web "$WEB_DIR" \
+  --release "$RELEASE_DIR" --port "$TEMP_PORT" --apply --lock-fd 200) \
+  || fail "Supervised candidate launch failed; retained origins unchanged"
+NEW_PID=$(printf '%s' "$SUPERVISED" | g30_json_field pid) || fail "Missing supervised PID"
+CANDIDATE_UNIT=$(printf '%s' "$SUPERVISED" | g30_json_field unit) || fail "Missing supervised unit"
+LOG_NEW=$(printf '%s' "$SUPERVISED" | g30_json_field log) || fail "Missing candidate log"
+printf '%s\n' "$CANDIDATE_UNIT" > "$WEB_DIR/.g30-candidate-unit"
+# The helper launcher has returned. Verify independently before any live traffic.
+python3 "$WEB_DIR/scripts/g30-supervised-launch.py" --web "$WEB_DIR" --release "$RELEASE_DIR" \
+  --check "$CANDIDATE_UNIT" --pid "$NEW_PID" --apply --lock-fd 200 >/dev/null \
+  || fail "Candidate did not survive its launcher"
 printf '%s\n' "$NEW_PID" > "$WEB_DIR/.g30-candidate.pid"
 
 # Wait for healthy (max 15s)
@@ -1428,6 +1440,9 @@ gate "Promote retained candidate through nginx ($PROD_PORT → $TEMP_PORT)"
 # until the final gate records mark-good.
 g30_state --register --pid "$NEW_PID" --release "$RELEASE_DIR" \
   --listen-port "$TEMP_PORT" --lock-fd 200 >/dev/null || fail "Cannot register verified candidate"
+python3 "$WEB_DIR/scripts/g30-supervised-launch.py" --web "$WEB_DIR" --release "$RELEASE_DIR" \
+  --check "$CANDIDATE_UNIT" --pid "$NEW_PID" --apply --lock-fd 200 >/dev/null \
+  || fail "Candidate supervisor identity changed before cutover"
 g30_state --begin --lock-fd 200 >/dev/null || fail "Cannot enter serialized cutover"
 SWAPPED=1 # proxy may change from here; failures must verify warm recovery.
 PROXY_RESULT="/tmp/blockid-g30-promotion-$$.json"
@@ -1462,7 +1477,7 @@ LIVE_SHA="$(curl -s -m 15 "http://127.0.0.1:$PROD_PORT/api/status" 2>/dev/null \
 echo "  Live git_sha: ${LIVE_SHA:-<none>} (stamped build_sha ${MANIFEST_BUILD_SHA}${MANIFEST_BUILD_SHA:+ }$([ "$MANIFEST_BUILD_SHA" != "$MANIFEST_SHA" ] && echo "— HEAD is ${MANIFEST_SHA:0:8}, --skip-build promotion" || true))"
 
 # Check for errors in first 3 seconds of logs
-ERRORS=$(tail -20 "$LOG" | grep -ic "error" || true)
+ERRORS=$(tail -20 "$LOG_NEW" | grep -ic "error" || true)
 echo "  Errors: $ERRORS in startup logs"
 
 # Stale-tab chunk safety (2026-09-19): the PREVIOUS release's chunks must still
@@ -1628,7 +1643,8 @@ echo "  PID:   $(cat "$PID_FILE")"
 echo "  Release: ${BUILD_ID:-?} (releases/${BUILD_ID:-?})"
 echo "  Local: HTTP $LOCAL"
 echo "  Public: HTTP $PUBLIC"
-echo "  Log:   $LOG"
+echo "  Log:   $LOG_NEW"
+echo "  Unit:  $CANDIDATE_UNIT"
 echo "  Rollback: bash scripts/deploy-live.sh --rollback"
 echo "════════════════════════════════════════════"
 
