@@ -80,7 +80,7 @@ Financial containment applies before both gathered factual evidence and valuatio
 
 Numeric auto-citation now compares normalized magnitude, signs, currency and percent/ratio/count units. Initial fixtures reproduced8 failures out of17, including A$310 incorrectly backed by A$310M. Independent review added decimal-fragment, incompatible unit and formatting cases; the final focused regression set passed232 tests across9 files. Two legacy test expectations were corrected: zero subscriptions do not prove a monetary figure, and unspecified dollars do not establish AUD. Existing-citation ID checks and general metric/entity/period/negation entailment remain incomplete; numeric compatibility is not a whole-claim fact checker.
 
-## Final audited projection and authenticated restoration — 08:03 UTC
+## Final audited projection and authenticated restoration — integration review
 
 F02 now projects the final audited ReportV2 into saved dimension rows, UI completion and cached replay. A consistency-gate fixture removes the unsupported provisional “A$12k MRR” claim and changes its score; all final projections reflect the correction. Partial runs replace only requested sections and do not claim a new complete canonical total. Save failure retains the corrected generated content with `save_failed`; a document ID is not a durable save receipt.
 
@@ -89,3 +89,7 @@ F03 browser storage keys bind authenticated user, project, complete received dec
 The merged TypeScript check passed (`/tmp/g30-foundation-f03-tsc.log`). The focused qualification/gather/final-projection/storage suite passed62 tests in4 files. An earlier combined run passed115/116; its remaining failure asserted superseded missing-revenue copy, now aligned with the financial qualification reason and retested. The seven previously passing files were not rerun solely for that wording correction. These counts overlap earlier slices.
 
 The final candidate cache namespace is now `pipeline-v2.1-s-r7-final-projection`, superseding the unreleased r6 namespace. Changelog and the authoritative implementation ledger include these changes. No foundation release or full browser acceptance has occurred. W0 supervised retry is still running its canonical gates on separate primary SHA f88ed0f90; its predecessor packaging failure never switched traffic.
+
+## Independent integrated review — unresolved before release
+
+Review found two partial-run blockers beyond helper tests: preview criteria synthesis replaces untouched cards before final merge, and partial orchestration may expose adapter fallback as final selected prose. Agent fixes and actual event-sequence regressions are in progress. Auth identity resolution also needs a bounded failure path, and unmount must abort the old client transport (without implying server job cancellation). F02/F03 remain blocked for release despite the previously passing focused tests/typecheck.
