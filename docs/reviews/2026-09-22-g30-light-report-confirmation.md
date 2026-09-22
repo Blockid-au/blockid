@@ -1,0 +1,9 @@
+# G30 shared reading-surface fix — report confirmation
+
+Bounded source review found MarketingShell, NavV2 and the inspected marketing/docs template paths already use the shared light palette. No claim is made that every public route was crawled or visually accepted. The concrete forced-dark reading surface found was `ReportPaywallGate`: it selected the legacy `--fintech-bg-primary` navy background and light ink even under the light document body.
+
+The shared confirmation dialog now uses light surface/sunken tokens with dark text, semantic readable error color, navy primary action, secondary credit action, visible focus and 44px controls. Word-count/model detail is independently expandable; prices and required credits remain visible before confirmation. A larger “Cancel and return to report” control uses the same existing close callback. The unsupported approximate four-minute generation claim is removed. Checkout/redeem handlers, API payloads, prices, GST copy, subscription checks and routing are unchanged.
+
+Confirmed runtime source consumer: `/workspace/reports/business` through `business-report-client.tsx`. This is one shared component and one confirmed route consumer, not an all-marketing-page redesign. The backdrop remains dimmed to distinguish the modal; chart/logo/artwork colors and brand accents are untouched.
+
+Applied UI/UX Pro Max guidance on light readable surfaces, progressive disclosure, focus and touch targets. Offline esbuild + React static-render checks passed for subscribed and unsubscribed modal states, preserving the source price label, fractional credit count and word count while removing legacy fintech color bindings. No clicks, HTTP requests or shared dependency-cache writes were made. Actual open-dialog keyboard/mobile/contrast checks remain deferred; the source-scoped result does not establish whole-site UI completion.

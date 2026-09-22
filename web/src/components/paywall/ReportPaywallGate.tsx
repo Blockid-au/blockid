@@ -189,7 +189,7 @@ export function ReportPaywallGate({
     <dialog
       ref={dialogRef}
       aria-labelledby="paywall-heading"
-      className="report-paywall-gate max-w-lg rounded-2xl border border-white/10 bg-[var(--fintech-bg-primary,#0b1220)] p-0 text-[var(--fintech-ink,#e2e8f0)] shadow-2xl backdrop:bg-black/60"
+      className="report-paywall-gate w-[calc(100%-2rem)] max-w-lg rounded-2xl border border-line-subtle bg-surface p-0 text-primary shadow-2xl backdrop:bg-black/50"
       data-testid="report-paywall-gate"
     >
       <div className="flex flex-col gap-4 px-6 py-6">
@@ -199,30 +199,30 @@ export function ReportPaywallGate({
         >
           Generate this Trusted Business Report
         </h2>
-        <p className="text-sm leading-relaxed text-[var(--fintech-ink-muted,#94a3b8)]">
-          This report analyses <strong>8 SVI dimensions</strong>{" "}
-          using <strong>6 C-Level agents</strong>. Estimated{" "}
-          <strong className="tabular-nums">
-            {quote.estimatedWords.toLocaleString("en-AU")}
-          </strong>{" "}
-          words · model <strong>{HUMAN_MODEL_LABEL[quote.model]}</strong> ·
-          generation time ~4 min.
+        <p className="text-sm leading-relaxed text-secondary">
+          Review the business across eight assessment areas, with supporting
+          evidence and recorded gaps. Choose how to pay below.
         </p>
 
-        <dl className="grid grid-cols-2 gap-3 rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3 text-sm">
+        <details className="rounded-lg border border-line-subtle bg-surface-sunken px-3" data-paywall-report-details>
+          <summary className="flex min-h-11 cursor-pointer items-center rounded text-sm font-medium text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action">Report details</summary>
+          <p className="pb-3 text-sm leading-relaxed text-secondary">Estimated <strong className="tabular-nums">{quote.estimatedWords.toLocaleString("en-AU")}</strong> words · model <strong>{HUMAN_MODEL_LABEL[quote.model]}</strong>. Completion time varies.</p>
+        </details>
+
+        <dl className="grid grid-cols-2 gap-3 rounded-xl border border-line-subtle bg-surface-sunken px-4 py-3 text-sm">
           <div>
-            <dt className="text-xs uppercase tracking-wide text-[var(--fintech-ink-muted,#94a3b8)]">
+            <dt className="text-xs uppercase tracking-wide text-secondary">
               One-off
             </dt>
             <dd className="font-mono text-base font-semibold">
               {PATH_A_LABEL}
-              <span className="ml-1 text-xs text-[var(--fintech-ink-muted,#94a3b8)]">
+              <span className="ml-1 text-xs text-secondary">
                 inc. GST
               </span>
             </dd>
           </div>
           <div>
-            <dt className="text-xs uppercase tracking-wide text-[var(--fintech-ink-muted,#94a3b8)]">
+            <dt className="text-xs uppercase tracking-wide text-secondary">
               Or credits
             </dt>
             <dd className="font-mono text-base font-semibold tabular-nums">
@@ -232,7 +232,7 @@ export function ReportPaywallGate({
         </dl>
 
         {error ? (
-          <p role="alert" className="text-sm text-red-400">
+          <p role="alert" className="text-sm text-bear">
             {error}
           </p>
         ) : null}
@@ -243,7 +243,7 @@ export function ReportPaywallGate({
             onClick={handleCheckout}
             disabled={pending !== null}
             aria-label={`Confirm and pay ${PATH_A_LABEL} inc. GST via Stripe`}
-            className="inline-flex h-11 flex-1 items-center justify-center rounded-xl bg-[var(--fintech-accent,#22d3ee)] px-4 text-sm font-semibold text-[var(--fintech-bg-primary,#0b1220)] transition-colors hover:bg-[var(--fintech-accent-hover,#67e8f9)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-focus-ring,rgba(34,211,238,0.4))] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary,#0b1220)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-action px-4 py-2 text-sm font-semibold text-on-action transition-colors hover:bg-action-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action disabled:cursor-not-allowed disabled:opacity-60"
           >
             {pending === "checkout"
               ? "Redirecting to Stripe…"
@@ -254,7 +254,7 @@ export function ReportPaywallGate({
             onClick={handleRedeem}
             disabled={pending !== null || !canRedeem}
             aria-label={`Confirm and use ${quote.credits} credits from your subscription balance`}
-            className="inline-flex h-11 flex-1 items-center justify-center rounded-xl border border-white/15 bg-white/[0.03] px-4 text-sm font-medium text-[var(--fintech-ink,#e2e8f0)] transition-colors hover:border-[var(--fintech-accent,#22d3ee)]/50 hover:bg-white/[0.06] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--fintech-focus-ring,rgba(34,211,238,0.4))] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--fintech-bg-primary,#0b1220)] disabled:cursor-not-allowed disabled:opacity-60"
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl border border-line-subtle bg-surface px-4 py-2 text-sm font-medium text-primary transition-colors hover:bg-surface-sunken focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action disabled:cursor-not-allowed disabled:opacity-60"
           >
             {pending === "redeem"
               ? "Debiting credits…"
@@ -263,18 +263,18 @@ export function ReportPaywallGate({
         </div>
 
         {!hasSubscription ? (
-          <p className="text-xs text-[var(--fintech-ink-muted,#94a3b8)]">
+          <p className="text-xs text-secondary">
             The credit path is available on active subscriptions. See{" "}
             <a
               href="/pricing"
-              className="underline underline-offset-2 hover:text-[var(--fintech-accent,#22d3ee)]"
+              className="rounded text-action underline underline-offset-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
             >
               plans
             </a>
             .
           </p>
         ) : !canRedeem ? (
-          <p className="text-xs text-[var(--fintech-ink-muted,#94a3b8)]">
+          <p className="text-xs text-secondary">
             Your balance ({creditBalance.toLocaleString("en-AU")} credits)
             is below the required {quote.credits}. Top up or use one-off.
           </p>
@@ -283,9 +283,9 @@ export function ReportPaywallGate({
         <button
           type="button"
           onClick={onClose}
-          className="text-xs text-[var(--fintech-ink-muted,#94a3b8)] hover:text-[var(--fintech-ink,#e2e8f0)] focus:outline-none focus-visible:underline"
+          className="min-h-11 rounded-lg text-sm font-medium text-secondary hover:bg-surface-sunken hover:text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
         >
-          Cancel
+          Cancel and return to report
         </button>
       </div>
     </dialog>
