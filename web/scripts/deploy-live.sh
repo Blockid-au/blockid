@@ -1189,6 +1189,12 @@ if [ "$MANIFEST_COUNT" -lt 20 ]; then
 fi
 echo "  ✅ Standalone integrity OK (server.js + ai-worker.mjs + BUILD_ID + $MANIFEST_COUNT route manifests)"
 
+# Next traces the start-of-build manifest, before build_sha is updated after
+# successful compilation. Freeze the recorded completed-build identity now;
+# the supervisor checks it before the later smoke/swap manifest stamp.
+cp "$MANIFEST_FILE" "$STANDALONE/.deploy-manifest.json" \
+  || fail "Cannot attach completed-build manifest before runtime freeze"
+
 # ── Freeze this build into an immutable release dir ───────────────────
 # From here on, the temp smoke test AND the production server run from
 # releases/<BUILD_ID> — never from .next/standalone. This is the fix that
