@@ -16,7 +16,8 @@ export function HeroSection({ locale = "en" }: { locale?: "en" | "vi" }) {
   useEffect(() => {
     if (reported.current) return;
     reported.current = true;
-    trackEvent("hero_variant_shown", { arm: HOMEPAGE_COPY_VERSION, copy_version: HOMEPAGE_COPY_VERSION, locale });
+    // The registered GA4 hero dimension is `arm`; it carries this copy version.
+    trackEvent("hero_variant_shown", { arm: HOMEPAGE_COPY_VERSION });
   }, [locale]);
 
   function handleSmartSubmit(payload: SmartIntakeSubmission) {
@@ -24,8 +25,6 @@ export function HeroSection({ locale = "en" }: { locale?: "en" | "vi" }) {
       method: payload.file ? "file" : "text",
       has_file: !!payload.file,
       arm: HOMEPAGE_COPY_VERSION,
-      copy_version: HOMEPAGE_COPY_VERSION,
-      locale,
     });
     setPendingIntake(payload);
     router.push(pendingIntakeQuery(payload));

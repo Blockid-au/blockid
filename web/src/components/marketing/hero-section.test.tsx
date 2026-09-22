@@ -43,7 +43,7 @@ describe("homepage hero", () => {
       expect(doubles.push).toHaveBeenLastCalledWith(pendingIntakeQuery(payload));
       expect(doubles.track).toHaveBeenLastCalledWith("svi_submitted", {
         method: payload.file ? "file" : "text", has_file: !!payload.file,
-        arm: HOMEPAGE_COPY_VERSION, copy_version: HOMEPAGE_COPY_VERSION, locale,
+        arm: HOMEPAGE_COPY_VERSION,
       });
     }
     expect(JSON.stringify(doubles.track.mock.calls)).not.toMatch(/example.test|company.docx/);

@@ -1,3 +1,4 @@
+import { HOMEPAGE_COPY_VERSION } from "@/lib/marketing/homepage-hero";
 // Unit tests for the browser GA4 + GTM tracker at web/src/lib/analytics.ts.
 //
 // Pins the three runtime exports (trackEvent / setUserProperties /
@@ -247,6 +248,19 @@ describe("trackEvent", () => {
     expect(row?.event).toBe("plan_cta_clicked");
     expect(row?.plan).toBe("growth");
     expect(row?.label).toBe("Buy");
+  });
+
+  it("transports the canonical homepage copy version through the registered arm parameter", () => {
+    trackEvent("hero_variant_shown", { arm: HOMEPAGE_COPY_VERSION });
+    trackEvent("svi_submitted", { method: "file", has_file: true, arm: HOMEPAGE_COPY_VERSION });
+    expect(rec.calls).toEqual([
+      ["event", "hero_variant_shown", { arm: HOMEPAGE_COPY_VERSION }],
+      ["event", "svi_submitted", { method: "file", has_file: true, arm: HOMEPAGE_COPY_VERSION }],
+    ]);
+    expect(ctx.win.dataLayer).toEqual([
+      { event: "hero_variant_shown", arm: HOMEPAGE_COPY_VERSION },
+      { event: "svi_submitted", method: "file", has_file: true, arm: HOMEPAGE_COPY_VERSION },
+    ]);
   });
 
   it("hero_variant_shown carries the arm, and svi_submitted accepts an optional arm (T0250)", () => {
