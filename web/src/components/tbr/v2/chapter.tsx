@@ -43,6 +43,7 @@ import { AgentBadge, AuditStampLine, Bullets, Chip, CitedText, Prose, TABLE_CLAS
 import { BandChip, Callout, FIGURE_CLASS, STICKY_COL_CLASS, TABLE_SCROLL_CLASS, TD_CLASS, TH_CLASS, v3Strings } from "./shared-v3";
 import { FounderExecutionCard, founderExecutionFromChapter } from "./founder-execution-card";
 import { TbrLockedChapterPreview } from "./locked-preview";
+import { CriterionAnalysis } from "./criterion-analysis";
 
 /** G19-S43 — one CTA: "<label> · Add now → · +N SVI" linking the internal page where the input is added. */
 export function CtaLink({ row, locale = "en" }: { row: EvidenceRowView; locale?: TbrUiLocale }) {
@@ -338,6 +339,14 @@ function CriteriaBlock({ ch, locale, citations, paid }: { ch: DimensionChapter; 
           </tbody>
         </table>
       </div>
+      {ch.criteria.filter((c) => modes.get(c.key) !== "compact" && c.detailedAnalysis).map((c) => (
+        <details key={`analysis-${c.key}`} className="rounded-xl border border-line-subtle bg-surface p-3" data-tbr-criterion-analysis={c.key}>
+          <summary className="min-h-11 cursor-pointer rounded text-sm font-medium text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action">
+            {c.title} — {locale === "vi" ? "Xem phân tích chi tiết" : "Read detailed analysis"}
+          </summary>
+          <CriterionAnalysis detail={c.detailedAnalysis} vi={locale === "vi"} />
+        </details>
+      ))}
       {paid ? (
         <div className="grid gap-3 md:grid-cols-2">
           {ch.criteria

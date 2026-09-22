@@ -137,3 +137,39 @@ it("previews the recorded criterion verdict, discloses source detail and provide
   expect(vi).toContain("Mở nội dung nguồn đã lưu");
   expect(vi).toContain("Quay lại tổng quan mục này");
 });
+
+it("shows retained business analysis inside its criterion and keeps source quotes collapsed and escaped", () => {
+  const finding = projectBusinessFindings({ report: demoReportV2() }).find((item) => item.criteria.length > 0)!;
+  finding.criteria[0].detailedAnalysis = {
+    status: "supported", source: "post_audit_criterion", auditKind: "citation_only",
+    narrative: "The paid pilot covers one buyer segment.\nThe wider market claim still needs evidence. <script>untrusted()</script>",
+    citations: [{ evidence_id: "pilot-record", quote: "One paid pilot <img src=x onerror=bad()>" }],
+  };
+  const html = renderToStaticMarkup(<BusinessFindings findings={[finding]} />);
+  expect(html).toContain("Detailed business analysis");
+  expect(html).toContain("The paid pilot covers one buyer segment.");
+  expect(html).toContain("The wider market claim still needs evidence.");
+  expect(html).toContain("independent verification");
+  expect(html).toContain("&lt;script&gt;");
+  expect(html).not.toContain("<script>");
+  expect(html).not.toContain("<img");
+  expect(html).toContain("[pilot-record]");
+  expect(html).not.toMatch(/<details[^>]*data-analysis-citations[^>]*open/);
+  expect(html).not.toContain("/checkout");
+  expect(html.indexOf("data-criterion-analysis")).toBeGreaterThan(html.indexOf("data-criterion-id"));
+  const vi = renderToStaticMarkup(<BusinessFindings findings={[finding]} locale="vi" />);
+  expect(vi).toContain("Phân tích chi tiết về doanh nghiệp");
+  expect(vi).toContain("Xem trích dẫn của phân tích này");
+});
+
+it("does not leak rejected narrative or citations from a withheld payload", () => {
+  const finding = projectBusinessFindings({ report: demoReportV2() }).find((item) => item.criteria.length > 0)!;
+  finding.criteria[0].detailedAnalysis = {
+    status: "withheld", source: "post_audit_criterion", auditKind: "model_and_citation",
+    narrative: "REJECTED_FINANCIAL_ASSERTION", citations: [{ evidence_id: "REJECTED_SOURCE", quote: "REJECTED_QUOTE" }],
+  };
+  const html = renderToStaticMarkup(<BusinessFindings findings={[finding]} />);
+  expect(html).toContain('data-criterion-analysis="withheld"');
+  expect(html).toContain("did not meet report checks");
+  expect(html).not.toContain("REJECTED_");
+});

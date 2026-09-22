@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowUp, ChevronDown } from "lucide-react";
+import { CriterionAnalysis } from "@/components/tbr/v2/criterion-analysis";
 
 import type {
   BusinessFinding,
@@ -173,6 +174,7 @@ export function BusinessFindings({
                           {!criterion.grounded && <span className="mt-2 block text-sm font-normal text-secondary">{copy.unsupported}</span>}
                         </summary>
                         <FindingList title={copy.conflict} items={criterion.conflicts} />
+                        <CriterionAnalysis detail={criterion.detailedAnalysis} vi={vi} />
                         {criterion.researchCoverage && <div className="mt-3 rounded-lg bg-surface-sunken p-3 text-sm" data-criterion-research={criterion.researchCoverage.status}>
                           <h5 className="font-semibold text-primary">{copy.research}</h5>
                           <p className="mt-1">{(vi ? {
