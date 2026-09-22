@@ -1,8 +1,9 @@
 {
-  "version": "v3.29.1",
-  "updated_at": "2026-09-22T07:09:31.082977Z",
-  "release_id": "g30-supervised-launch-recovery",
+  "version": "v3.29.2",
+  "updated_at": "2026-09-22T09:03:48.882678+00:00",
+  "release_id": "g30-report-reader-compatibility",
   "shipped_summary": [
+    "v3.29.2 — Report readers accept explicitly unavailable valuation across saved views and exports, preparing compatible rollback before new report writers. Extended review deferred under founder accelerated-release instruction; generation rollout follows separately.",
     "v3.29.1 — G30 rollout repair: system-service ownership for candidate lifetimes, private environment snapshots and retained exit diagnostics; current-process status probing and legacy writer admission guards. Full release soak and broader report/design upgrades remain separate gates.",
     "v3.29.0 — G30 initial safety release: source-backed quote checks and versioned report cache; protected releases, serialized warm recovery and non-stopping origin promotion. Existing report semantic/valuation issues and full-site redesign remain in progress.",
     "v3.28.2 — exit hub overflow root cause (2026-09-22): the locked tab's sr-only label (position: absolute) escaped the scrolling tablist and widened the document past 375 px on /workspace/exit*; tab links are relative now so it is clipped with the tab.",

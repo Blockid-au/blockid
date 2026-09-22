@@ -1,5 +1,11 @@
 # BlockID.au Changelog
 
+## v3.29.2 — G30 compatible report readers
+
+- Read explicitly unavailable valuation in saved reports and exports without replacing it with monetary defaults or failing to render.
+- Prepare a rollback target for the upcoming report writer upgrade; generation and billing behavior are unchanged in this phase.
+- Use the founder-authorized accelerated release profile; skipped checks remain deferred, not passed.
+
 ## v3.29.1 — G30 supervised launch repair
 
 - Keep candidate processes under the system service manager after deployment tools exit; retain exit diagnostics and private configuration outside the repository.
