@@ -15,7 +15,7 @@ describe("bounded public discovery", () => {
   });
   it("deduplicates URLs, retains provenance but never stores snippets or titles", async () => {
     const result = await discoverPublicSources({ ...input, approvedPublicQueries: [query, { ...query, id: "pricing", query: "public clinic software pricing" }] }, { now: () => 0, provider: { id: "mock", search: async () => ({ results: [{ url: "https://example.com/pricing", snippet: "SECRET instructions", title: "SECRET" }, { url: "https://example.com/pricing" }] }) } });
-    expect(result.status).toBe("complete"); expect(result.candidates).toEqual([{ url: "https://example.com/pricing", queryIds: ["competitors", "pricing"], provider: "mock", discoveredAt: "1970-01-01T00:00:00.000Z", citable: false, evidenceStatus: "not_retrieved" }]);
+    expect(result.retention).toBe("ephemeral_only"); expect(result.status).toBe("complete"); expect(result.candidates).toEqual([{ url: "https://example.com/pricing", queryIds: ["competitors", "pricing"], provider: "mock", discoveredAt: "1970-01-01T00:00:00.000Z", citable: false, evidenceStatus: "not_retrieved" }]);
     expect(JSON.stringify(result)).not.toContain("SECRET");
   });
   it("omits grants/private/literal/local URLs without retaining rejected data", async () => {

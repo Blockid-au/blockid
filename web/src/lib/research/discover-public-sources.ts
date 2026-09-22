@@ -11,6 +11,8 @@ export type DiscoveryProvider = {
 type Reason = "not_configured" | "not_approved" | "invalid_queries" | "provider_failed" | "malformed_response" | "timeout" | "cancelled" | "budget_exhausted" | "unsafe_results_omitted";
 export type DiscoveryResult = {
   version: "public-discovery-v1";
+  /** API-derived candidates are request-local only: do not log, cache or persist this result. */
+  retention: "ephemeral_only";
   status: "complete" | "partial" | "unavailable";
   reasons: Reason[];
   queries: { id: string; query: string; provider: string; searchedAt: string; status: "complete" | "failed" }[];
@@ -46,7 +48,7 @@ export async function discoverPublicSources(input: {
   /** Server policy admission, NOT a flag accepted from request JSON. Daily spend admission belongs upstream. */
   providerRequestsApproved: boolean;
 }, deps: { provider?: DiscoveryProvider; signal?: AbortSignal; timeoutMs?: number; now?: () => number } = {}): Promise<DiscoveryResult> {
-  const out: DiscoveryResult = { version: "public-discovery-v1", status: "unavailable", reasons: [], queries: [], candidates: [], limits: { maxQueries: MAX_QUERIES, maxResults: MAX_RESULTS, attemptedQueries: 0, maxResponseBytes: MAX_BYTES } };
+  const out: DiscoveryResult = { version: "public-discovery-v1", retention: "ephemeral_only", status: "unavailable", reasons: [], queries: [], candidates: [], limits: { maxQueries: MAX_QUERIES, maxResults: MAX_RESULTS, attemptedQueries: 0, maxResponseBytes: MAX_BYTES } };
   if (!input.providerRequestsApproved) { out.reasons.push("not_approved"); return out; }
   if (!deps.provider || !/^[a-z0-9_-]{1,40}$/.test(deps.provider.id)) { out.reasons.push("not_configured"); return out; }
   const queries = input.approvedPublicQueries;
@@ -96,7 +98,9 @@ export async function discoverPublicSources(input: {
   return out;
 }
 
-/** Fixed official endpoint. No environment reads, automatic spending, redirects, retry or fallback. */
+/** Fixed official endpoint. No environment reads, automatic spending, redirects, retry or fallback.
+ * Brave-derived URLs are ephemeral only. Production integration requires a permitted retention policy.
+ */
 export function createBraveDiscoveryProvider(config: { apiKey?: string; fetch?: typeof fetch }): DiscoveryProvider | undefined {
   const key = config.apiKey?.trim();
   if (!key || key.length > 512 || /\s/.test(key)) return undefined;
