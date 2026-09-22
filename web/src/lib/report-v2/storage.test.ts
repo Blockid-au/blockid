@@ -6,7 +6,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { demoReportV2 } from "./fixtures";
 import { __resetReportV2StorageWarnings, readAssembledReportJson, readSnapshotReportV2, writeAssembledReportJson, writeSnapshotReportV2 } from "./storage";
 
-function fakeDb(opts: { selectResult?: { data: unknown; error: { message: string } | null }; updateError?: { message: string } | null; throwOn?: "select" | "update" }) {
+function fakeDb(opts: { selectResult?: { data: unknown; error: { message: string } | null }; updateError?: { message: string } | null; updateRow?: { id: string } | null; throwOn?: "select" | "update" }) {
   const calls: Array<{ table: string; op: string; payload?: unknown }> = [];
   const db = {
     from(table: string) {
@@ -23,7 +23,11 @@ function fakeDb(opts: { selectResult?: { data: unknown; error: { message: string
         update(payload: unknown) {
           calls.push({ table, op: "update", payload });
           if (opts.throwOn === "update") throw new Error("boom");
-          return { eq: async () => ({ error: opts.updateError ?? null }) };
+          return { eq: (_column: string, id: string) => {
+            const result = { error: opts.updateError ?? null };
+            return { ...result, then: (resolve: (value: typeof result) => unknown) => Promise.resolve(resolve(result)),
+              select: () => ({ maybeSingle: async () => ({ ...result, data: opts.updateRow === undefined ? { id } : opts.updateRow }) }) };
+          } };
         },
       };
     },
@@ -70,6 +74,12 @@ describe("report-v2 storage", () => {
     const ok2 = fakeDb({});
     expect(await writeAssembledReportJson(ok2.db, "r1", demoReportV2())).toBe(true);
     expect((ok2.calls[0].payload as { report_json: unknown }).report_json).toBeTruthy();
+  });
+
+  it("does not claim saved when an update matched no row or another row", async () => {
+    for (const updateRow of [null, { id: "other" }]) {
+      expect(await writeSnapshotReportV2(fakeDb({ updateRow }).db, "s1", demoReportV2())).toBe(false);
+    }
   });
 
   it("read never throws even when the client throws", async () => {

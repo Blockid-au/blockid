@@ -55,13 +55,13 @@ export async function readSnapshotReportV2(db: Db, snapshotId: string): Promise<
 /** Best-effort write of `svi_snapshots.report_v2`; returns true when stored. */
 export async function writeSnapshotReportV2(db: Db, snapshotId: string, report: ReportV2): Promise<boolean> {
   try {
-    const { error } = await db.from("svi_snapshots").update({ report_v2: report }).eq("id", snapshotId);
+    const { data, error } = await db.from("svi_snapshots").update({ report_v2: report }).eq("id", snapshotId).select("id").maybeSingle();
     if (error) {
       if (isMissingColumn(error.message)) noteMissingColumn("svi_snapshots", "report_v2", error.message);
       else console.warn("[report-v2] svi_snapshots.report_v2 write failed:", error.message);
       return false;
     }
-    return true;
+    return data?.id === snapshotId;
   } catch (err) {
     console.warn("[report-v2] svi_snapshots.report_v2 write threw:", err instanceof Error ? err.message : String(err));
     return false;

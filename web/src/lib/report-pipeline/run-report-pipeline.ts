@@ -1,3 +1,4 @@
+import type { ReportSaveStatus } from "@/lib/report-save-outcome";
 // run-report-pipeline — `runReportPipeline()`, the single generator behind
 // the streaming SVI analysis (`/api/svi/dimensions/stream`), the per-dimension
 // re-run (`/api/svi/dimension-analyze`) and — through run-for-project — the
@@ -87,7 +88,7 @@ export type StreamEvent =
   | { type: "executive_complete"; summary: string }
   | { type: "audit_complete"; groundedShare: number; revised: number }
   | { type: "cache_hit"; ageMs: number; dims: number; criteria: number }
-  | { type: "done"; totalMs: number; fromCache: boolean; reportId: string | null; snapshotId: string | null; calls: number; costAud: number; degradedSections: string[]; deadlineHit: boolean }
+  | { type: "done"; saveStatus?: ReportSaveStatus; totalMs: number; fromCache: boolean; reportId: string | null; snapshotId: string | null; calls: number; costAud: number; degradedSections: string[]; deadlineHit: boolean }
   | { type: "fatal_error"; message: string };
 
 export type StreamEventHandler = (event: StreamEvent) => void;
@@ -236,7 +237,7 @@ export function toWireEvents(ev: PipelineEvent, state: WireState): StreamEvent[]
   }
 }
 
-export function doneEvent(state: WireState, totalMs: number, fromCache: boolean): StreamEvent {
+export function doneEvent(state: WireState, totalMs: number, fromCache: boolean): Extract<StreamEvent, { type: "done" }> {
   return {
     type: "done",
     totalMs,
@@ -287,7 +288,7 @@ export interface RunPipelineDeps {
   callAI?: AICallerInput;
   /** `undefined` → getSupabaseAdmin(); `null` → no DB (no cache, no persist). */
   db?: RunnerDb | null;
-  persistSnapshot?: (args: PersistSnapshotArgs) => Promise<{ snapshotId: string | null }>;
+  persistSnapshot?: (args: PersistSnapshotArgs) => Promise<{ snapshotId: string | null; reportV2Saved: boolean }>;
   notify?: (args: { userId: string; projectId: string | null; kind: "analysis_done"; payload: Row }) => Promise<unknown>;
   sendEmail?: (args: EmailArgs) => Promise<unknown>;
   now?: () => number;
@@ -341,6 +342,7 @@ export interface RunReportPipelineInput {
 export type RunReportPipelineResult =
   | {
       ok: true;
+      saveStatus?: ReportSaveStatus;
       fromCache: boolean;
       accountId: string | null;
       reportId: string | null;
@@ -378,9 +380,9 @@ async function defaultDb(): Promise<RunnerDb | null> {
 }
 
 /** Today's svi_snapshots row for the account: legacy shapes + the pipeline ReportV2. */
-async function defaultPersistSnapshot(args: PersistSnapshotArgs): Promise<{ snapshotId: string | null }> {
+async function defaultPersistSnapshot(args: PersistSnapshotArgs): Promise<{ snapshotId: string | null; reportV2Saved: boolean }> {
   const { ctx, report, dimResults, criterionResults, reportV2 } = args;
-  if (!ctx.projectId) return { snapshotId: null };
+  if (!ctx.projectId) return { snapshotId: null, reportV2Saved: false };
   const dimResultsMap: Record<string, Row> = {};
   const dimensionScores: Record<string, { score: number; priority: "high" | "medium" | "low" }> = {};
   dimResults.forEach((d) => {
@@ -408,11 +410,12 @@ async function defaultPersistSnapshot(args: PersistSnapshotArgs): Promise<{ snap
     dimResults: dimResultsMap,
     criterionResults: criterionResults as unknown as Row[],
   });
+  let reportV2Saved = false;
   if (snapshotId && reportV2) {
     const db = await defaultDb();
-    if (db) await writeSnapshotReportV2(db as unknown as Parameters<typeof writeSnapshotReportV2>[0], snapshotId, { ...reportV2, snapshotId, projectId: ctx.projectId });
+    if (db) reportV2Saved = await writeSnapshotReportV2(db as unknown as Parameters<typeof writeSnapshotReportV2>[0], snapshotId, { ...reportV2, snapshotId, projectId: ctx.projectId });
   }
-  return { snapshotId };
+  return { snapshotId, reportV2Saved };
 }
 
 async function defaultNotify(args: { userId: string; projectId: string | null; kind: "analysis_done"; payload: Row }): Promise<unknown> {
@@ -575,6 +578,8 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
     return { ok: false, error: fully ? "fully_degraded" : "pipeline_failed", message };
   }
 
+  // Generated content remains usable if storage fails; this is separate from billing.
+  let saveStatus: ReportSaveStatus = "not_requested";
   // 4. Persist.
   if (persist && !partial) {
     if (deckHash) {
@@ -591,19 +596,21 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
       }
     } else {
       try {
-        const { snapshotId } = await (deps.persistSnapshot ?? defaultPersistSnapshot)({ ctx, report, dimResults: state.dimResults, criterionResults: state.criteria, reportV2: report.reportV2 ?? null });
+        const { snapshotId, reportV2Saved } = await (deps.persistSnapshot ?? defaultPersistSnapshot)({ ctx, report, dimResults: state.dimResults, criterionResults: state.criteria, reportV2: report.reportV2 ?? null });
         state.snapshotId = snapshotId;
+        saveStatus = snapshotId && reportV2Saved ? "saved" : "save_failed";
       } catch (err) {
+        saveStatus = "save_failed";
         console.warn("[run-report-pipeline] snapshot persist failed", err instanceof Error ? err.message : String(err));
       }
     }
   }
 
   const totalMs = now() - t0;
-  send(doneEvent(state, totalMs, false));
+  send({ ...doneEvent(state, totalMs, false), saveStatus });
 
   // 5. Notify + email (fire-and-forget; a full run only).
-  if (!partial) {
+  if (!partial && saveStatus !== "save_failed") {
     void (deps.notify ?? defaultNotify)({ userId: input.userId, projectId: input.projectId, kind: "analysis_done", payload: { fromCache: false, dims: state.dimResults.length, totalMs, reportId: report.id } }).catch(() => undefined);
     if (state.criteria.length) {
       const dimEmail: EmailArgs["dimResults"] = {};
@@ -616,6 +623,7 @@ export async function runReportPipeline(input: RunReportPipelineInput): Promise<
 
   return {
     ok: true,
+    saveStatus,
     fromCache: false,
     accountId: ctx.account.id,
     reportId: report.id,

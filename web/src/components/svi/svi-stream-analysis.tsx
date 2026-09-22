@@ -1,5 +1,8 @@
 "use client";
 
+import type { ReportSaveStatus } from "@/lib/report-save-outcome";
+import { ReportSaveStatusNotice, SavedReportActions } from "./report-save-status";
+
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { computeThreeCaseValuation, formatAud } from "@/lib/svi/three-case-valuation";
 import {
@@ -85,7 +88,7 @@ type SSEEvent =
   | { type: "criteria_synthesis"; criteria: CriterionState[] }
   | { type: "criterion_addendum"; items: Array<{ dimension: string; delta: number; note: string }> }
   | { type: "cache_hit"; ageMs: number; dims: number; criteria: number }
-  | { type: "done"; totalMs: number; fromCache?: boolean }
+  | { type: "done"; saveStatus?: ReportSaveStatus; totalMs: number; fromCache?: boolean }
   | { type: "error"; dimension: string; message: string }
   | { type: "fatal_error"; message: string }
   // Block 2 (2026-09-08) — /analyze live variants stream these three
@@ -104,6 +107,7 @@ const STORAGE_PREFIX = "svi-stream:";
 const STORAGE_MAX_AGE_MS = 30 * 60_000; // 30 min
 
 interface PersistedState {
+  saveStatus?: ReportSaveStatus;
   savedAt: number;
   dimStates: Record<string, DimState>;
   criterionStates: CriterionState[];
@@ -1291,6 +1295,7 @@ export function SviStreamAnalysis({
   const [completed, setCompleted] = useState(0);
   const [total, setTotal] = useState(8);
   const [done, setDone] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<ReportSaveStatus>();
   const [totalMs, setTotalMs] = useState<number | null>(null);
   const [fatalError, setFatalError] = useState<string | null>(null);
   const [industry, setIndustry] = useState<string | null>(null);
@@ -1325,6 +1330,7 @@ export function SviStreamAnalysis({
     setTotal(saved.total);
     setTotalMs(saved.totalMs);
     setDone(saved.done);
+    setSaveStatus(saved.saveStatus);
     setIndustry(saved.industry);
     if (saved.stage) setStage(saved.stage);
     setRestoredFromCache(true);
@@ -1362,6 +1368,7 @@ export function SviStreamAnalysis({
     if (!anyComplete && !done) return;
     savePersisted(projectId ?? "", {
       savedAt: Date.now(),
+      saveStatus,
       dimStates,
       criterionStates,
       completed,
@@ -1371,7 +1378,7 @@ export function SviStreamAnalysis({
       industry,
       stage,
     });
-  }, [dimStates, criterionStates, completed, total, totalMs, done, industry, stage, projectId]);
+  }, [dimStates, criterionStates, completed, total, totalMs, done, industry, stage, projectId, saveStatus]);
 
   const updateDim = useCallback(
     (key: string, patch: Partial<DimState>) => {
@@ -1411,6 +1418,7 @@ export function SviStreamAnalysis({
     setCompleted(0);
     setTotal(8);
     setDone(false);
+    setSaveStatus(undefined);
     setTotalMs(null);
     setFatalError(null);
     setIndustry(null);
@@ -1440,6 +1448,7 @@ export function SviStreamAnalysis({
       setTotal(dimsFilter.length);
       setCompleted(0);
       setDone(false);
+      setSaveStatus(undefined);
     } else {
       reset();
       // Prime every card to "loading" immediately so the grid shows pulsing
@@ -1578,6 +1587,7 @@ export function SviStreamAnalysis({
               break;
 
             case "done":
+              setSaveStatus(event.saveStatus);
               setDone(true);
               setTotalMs(event.totalMs);
               break;
@@ -1778,6 +1788,8 @@ export function SviStreamAnalysis({
           </button>
         </div>
       </div>
+
+      {done && <ReportSaveStatusNotice status={saveStatus} />}
 
       {/* Fatal error */}
       {fatalError && (
@@ -2076,17 +2088,17 @@ export function SviStreamAnalysis({
               </div>
             )}
 
+            <SavedReportActions status={saveStatus}>
             {/* Wave 25C — TBR onboarding tour. Only shown on the first done
                 state for this projectId; a localStorage flag suppresses the
                 panel on subsequent runs. */}
+            {/* Email dispatch is asynchronous; this stream has no delivery acknowledgement. */}
             <TbrOnboardingSteps
               projectId={projectId ?? "default"}
-              emailWasSent={cacheHitAgeMs === null}
+              emailWasSent={false}
             />
 
-            {/* Full Business Report CTA — links to the TBR page which reads
-                the localStorage-cached dim results and renders a comprehensive
-                analyst-style document with TOC + risk register + roadmap. */}
+            {/* This project-only link may load a stored snapshot, so hide it after a failed save. */}
             <div className="border-t border-brand-200/50 pt-3">
               <a
                 href={`/workspace/reports/business?pid=${encodeURIComponent(projectId ?? "default")}`}
@@ -2100,6 +2112,8 @@ export function SviStreamAnalysis({
                 View Full Business Report
               </a>
             </div>
+
+            </SavedReportActions>
 
             {/* Score-delta versus the last stored snapshot — validates
                 improvement over time and gives founders something to beat. */}

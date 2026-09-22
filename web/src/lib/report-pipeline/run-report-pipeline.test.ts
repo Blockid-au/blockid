@@ -26,6 +26,12 @@ import {
 import type { AssembledReport } from "./types";
 import type { LoadContextResult } from "./run-for-project";
 
+// Every default-persistence test uses local transport substitutes, never a DB.
+const persistenceDb = vi.hoisted(() => ({ value: null as unknown }));
+vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => persistenceDb.value }));
+const defaultTransport = vi.hoisted(() => vi.fn());
+vi.mock("@/lib/ai-client", () => ({ callAI: defaultTransport }));
+
 // ── Fixtures ────────────────────────────────────────────────────────────────
 
 const demo = demoReportV2();
@@ -121,7 +127,7 @@ function deps(extra: Partial<RunPipelineDeps> = {}): RunPipelineDeps & { calls: 
     db: null,
     persistSnapshot: async (args) => {
       persisted.push(args);
-      return { snapshotId: "snap-1" };
+      return { snapshotId: "snap-1", reportV2Saved: true };
     },
     notify: async (args) => {
       notified.push(args);
@@ -234,6 +240,22 @@ describe("toWireEvents — orchestrator vocabulary → wire vocabulary", () => {
 // ── Runner ──────────────────────────────────────────────────────────────────
 
 describe("runReportPipeline", () => {
+  it("applies the report provider policy through the default AI adapter", async () => {
+    defaultTransport.mockResolvedValueOnce({ text: "fixture", cost_usd: 0, via: "deepinfra", model: "fixture" });
+    const fake = fakeOrchestrate();
+    const d = deps({
+      callAI: undefined,
+      orchestrate: async (input) => {
+        if (typeof input.callAI !== "function") throw new Error("Expected callable AI adapter");
+        await input.callAI("system", "user", 128, "classify");
+        return fake.orchestrate(input);
+      },
+    });
+    const result = await runReportPipeline({ userId: "user-1", ownerEmail: "owner@x.test", projectId: "proj-1", tier: "free", persist: false, onEvent: () => {}, deps: d });
+    expect(result.ok).toBe(true);
+    expect(defaultTransport).toHaveBeenCalledWith(expect.objectContaining({ policy: "blockid-report-v1", taskClass: "classify", agentId: "svi:acct-1:proj-1", userId: "user-1" }));
+  });
+
   it("full run: loads the context, runs the orchestrator with the tier / owner / callAI, persists today's snapshot + report_v2, emits done with the snapshot id, notifies and emails", async () => {
     const d = deps();
     const events: StreamEvent[] = [];
@@ -247,7 +269,7 @@ describe("runReportPipeline", () => {
     expect((d.persisted[0] as { reportV2: { pipelineVersion: string } }).reportV2.pipelineVersion).toBe(PIPELINE_VERSION);
     const done = events.at(-1) as Extract<StreamEvent, { type: "done" }>;
     expect(done.type).toBe("done");
-    expect(done).toMatchObject({ fromCache: false, reportId: "rpt-1", snapshotId: "snap-1", calls: 24 });
+    expect(done).toMatchObject({ fromCache: false, reportId: "rpt-1", snapshotId: "snap-1", saveStatus: "saved", calls: 24 });
     expect(res).toMatchObject({ reportId: "rpt-1", snapshotId: "snap-1", accountId: "acct-1", calls: 24, costAud: 0.03 });
     expect(res.dimResults).toHaveLength(8);
     expect(res.criterionResults).toHaveLength(13);
@@ -359,13 +381,62 @@ describe("runReportPipeline", () => {
     expect(d.persisted).toHaveLength(0);
   });
 
-  it("a snapshot persist failure never fails the run — done carries snapshotId null", async () => {
+  it("a failed save preserves generated content but does not announce saved or email", async () => {
     const d = deps({ persistSnapshot: async () => { throw new Error("db write failed"); } });
     const events: StreamEvent[] = [];
     const res = await runReportPipeline({ userId: "user-1", ownerEmail: "owner@x.test", projectId: "proj-1", tier: "free", onEvent: (e) => events.push(e), deps: d });
-    expect(res.ok).toBe(true);
-    expect((events.at(-1) as Extract<StreamEvent, { type: "done" }>).snapshotId).toBeNull();
+    expect(res).toMatchObject({ ok: true, saveStatus: "save_failed", report: expect.any(Object) });
+    expect(events.at(-1)).toMatchObject({ type: "done", snapshotId: null, saveStatus: "save_failed" });
+    expect(events.filter((event) => event.type === "done")).toHaveLength(1);
+    expect(d.notified).toHaveLength(0);
+    expect(d.emailed).toHaveLength(0);
   });
+  it.each([{ snapshotId: null, reportV2Saved: false }, { snapshotId: "partial-snap", reportV2Saved: false }])("reports unacknowledged save honestly: %j", async (outcome) => {
+    const d = deps({ persistSnapshot: async () => outcome });
+    const events: StreamEvent[] = [];
+    const res = await runReportPipeline({ userId: "user-1", ownerEmail: "owner@x.test", projectId: "proj-1", tier: "standard", onEvent: (event) => events.push(event), deps: d });
+    expect(res).toMatchObject({ ok: true, saveStatus: "save_failed", snapshotId: outcome.snapshotId, report: expect.any(Object) });
+    expect(events.at(-1)).toMatchObject({ type: "done", saveStatus: "save_failed" });
+    expect(d.emailed).toHaveLength(0);
+    expect(d.notified).toHaveLength(0);
+  });
+  it("does not mislabel intentionally disabled persistence as a failed save", async () => {
+    const d = deps();
+    const res = await runReportPipeline({ userId: "user-1", ownerEmail: "owner@x.test", projectId: "proj-1", tier: "free", persist: false, onEvent: () => {}, deps: d });
+    expect(res).toMatchObject({ ok: true, saveStatus: "not_requested" });
+    expect(d.persisted).toHaveLength(0);
+  });
+
+  it.each([false, true])("default adapter requires canonical write acknowledgement (%s)", async (acknowledged) => {
+    const legacy = await import("./run-for-project");
+    const storage = await import("@/lib/report-v2/storage");
+    const upsert = vi.spyOn(legacy, "upsertSnapshotWithToken").mockResolvedValue({ snapshotId: "snap-actual", shareToken: "fixture" });
+    const write = vi.spyOn(storage, "writeSnapshotReportV2").mockResolvedValue(acknowledged);
+    persistenceDb.value = {};
+    const d = deps({ persistSnapshot: undefined });
+    try {
+      const res = await runReportPipeline({ userId: "user-1", ownerEmail: "owner@x.test", projectId: "proj-1", tier: "standard", onEvent: () => {}, deps: d });
+      expect(write).toHaveBeenCalledWith({}, "snap-actual", expect.objectContaining({ snapshotId: "snap-actual", projectId: "proj-1" }));
+      expect(res).toMatchObject({ ok: true, snapshotId: "snap-actual", saveStatus: acknowledged ? "saved" : "save_failed" });
+      expect(d.emailed).toHaveLength(acknowledged ? 1 : 0);
+      expect(d.notified).toHaveLength(acknowledged ? 1 : 0);
+    } finally { upsert.mockRestore(); write.mockRestore(); persistenceDb.value = null; }
+  });
+  it("default adapter treats unavailable canonical storage as save_failed", async () => {
+    const legacy = await import("./run-for-project");
+    const storage = await import("@/lib/report-v2/storage");
+    const upsert = vi.spyOn(legacy, "upsertSnapshotWithToken").mockResolvedValue({ snapshotId: "snap-partial", shareToken: "fixture" });
+    const write = vi.spyOn(storage, "writeSnapshotReportV2");
+    persistenceDb.value = null;
+    const d = deps({ persistSnapshot: undefined });
+    try {
+      const res = await runReportPipeline({ userId: "user-1", ownerEmail: "owner@x.test", projectId: "proj-1", tier: "standard", onEvent: () => {}, deps: d });
+      expect(res).toMatchObject({ ok: true, saveStatus: "save_failed", snapshotId: "snap-partial" });
+      expect(write).not.toHaveBeenCalled();
+      expect(d.emailed).toHaveLength(0);
+    } finally { upsert.mockRestore(); write.mockRestore(); }
+  });
+
 });
 
 

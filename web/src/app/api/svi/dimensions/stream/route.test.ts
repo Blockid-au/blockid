@@ -46,7 +46,7 @@ vi.mock("@/lib/credits", () => ({
 
 const runner = vi.hoisted(() => ({
   calls: [] as Array<Record<string, unknown>>,
-  mode: "ok" as "ok" | "cache" | "throw" | "fatal",
+  mode: "ok" as "ok" | "cache" | "throw" | "fatal" | "save_failed",
 }));
 vi.mock("@/lib/report-pipeline/run-report-pipeline", () => ({
   runReportPipeline: async (input: Record<string, unknown>) => {
@@ -76,8 +76,8 @@ vi.mock("@/lib/report-pipeline/run-report-pipeline", () => ({
     if (dims.length === 8) send({ type: "criteria_synthesis", criteria: [] });
     send({ type: "executive_complete", summary: "s" });
     send({ type: "audit_complete", groundedShare: 0.9, revised: 0 });
-    send({ type: "done", totalMs: 100, fromCache: false, reportId: "rpt-1", snapshotId: "snap-1", calls: 24, costAud: 0.03, degradedSections: [], deadlineHit: false });
-    return { ok: true, fromCache: false, accountId: "acct-1", reportId: "rpt-1", snapshotId: "snap-1", dimResults: [], chapters: [], criterionResults: [], report: null, calls: 24, costAud: 0.03, totalMs: 100, deadlineHit: false };
+    send({ type: "done", saveStatus: runner.mode === "save_failed" ? "save_failed" : "saved", totalMs: 100, fromCache: false, reportId: "rpt-1", snapshotId: "snap-1", calls: 24, costAud: 0.03, degradedSections: [], deadlineHit: false });
+    return { ok: true, saveStatus: runner.mode === "save_failed" ? "save_failed" : "saved", fromCache: false, accountId: "acct-1", reportId: "rpt-1", snapshotId: "snap-1", dimResults: [], chapters: [], criterionResults: [], report: null, calls: 24, costAud: 0.03, totalMs: 100, deadlineHit: false };
   },
 }));
 
@@ -241,6 +241,22 @@ describe("POST /api/svi/dimensions/stream — REPORT_GENERATOR=legacy_stream", (
     expect(runner.calls).toHaveLength(0);
     expect(await res.text()).toContain("legacy");
   });
+  it("keeps the generation debit contract when a usable report could not be saved", async () => {
+    runner.mode = "save_failed";
+    const events = await readEvents(await POST(req({ tier: "standard" })));
+    expect(events.at(-1)).toMatchObject({ type: "done", saveStatus: "save_failed" });
+    expect(credits.spendCredits).toHaveBeenCalledTimes(1);
+    expect(credits.spendCredits).toHaveBeenCalledWith("user-caller", "enhanced_report_standard", expect.objectContaining({ reportId: "rpt-1" }));
+  });
+  it("does not charge a disconnected caller even when generation succeeds but saving fails", async () => {
+    runner.mode = "save_failed";
+    const controller = new AbortController();
+    controller.abort();
+    const request = new Request("http://x/api/svi/dimensions/stream", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ tier: "standard" }), signal: controller.signal });
+    await readEvents(await POST(request));
+    expect(credits.spendCredits).not.toHaveBeenCalled();
+  });
+
 });
 
 
