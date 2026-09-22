@@ -129,7 +129,13 @@ export function createBraveDiscoveryProvider(config: { apiKey?: string; fetch?: 
       const bytes = new Uint8Array(size); let offset = 0;
       for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.length; }
       const parsed = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(bytes));
-      if (!parsed || !Array.isArray(parsed.web?.results)) throw new Error("search_response_invalid");
+      // Brave always supplies type/query; the web group itself is nullable/optional.
+      // An absent web group is no returned candidates, not an authentication failure.
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || parsed.type !== "search" ||
+          !("query" in parsed) || (parsed.query !== null && (typeof parsed.query !== "object" || Array.isArray(parsed.query) || typeof parsed.query.original !== "string")) ||
+          "error" in parsed) throw new Error("search_response_invalid");
+      if (parsed.web == null) return { results: [] };
+      if (typeof parsed.web !== "object" || Array.isArray(parsed.web) || !Array.isArray(parsed.web.results)) throw new Error("search_response_invalid");
       return { results: parsed.web.results.slice(0, count).map((row: unknown) => ({ url: row && typeof row === "object" ? (row as { url?: unknown }).url : null })) };
     } catch { throw new Error("search_response_failed"); }
     finally { void reader.cancel().catch(() => {}); reader.releaseLock(); }

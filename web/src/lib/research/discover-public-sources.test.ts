@@ -52,7 +52,7 @@ describe("bounded public discovery", () => {
 });
 describe("Brave HTTP adapter: mock transport only", () => {
   it("uses fixed endpoint/header, no redirects/cache and never returns snippets", async () => {
-    const fetcher = vi.fn(async (_url: unknown, _init?: RequestInit) => json({ web: { results: [{ url: "https://example.com/", description: "SECRET" }] } }));
+    const fetcher = vi.fn(async (_url: unknown, _init?: RequestInit) => json({ type: "search", query: { original: query.query }, web: { results: [{ url: "https://example.com/", description: "SECRET" }] } }));
     const out = await discoverPublicSources(input, { provider: createBraveDiscoveryProvider({ apiKey: "TEST_SECRET_KEY", fetch: fetcher }) });
     const [url, init] = fetcher.mock.calls[0] as [URL, RequestInit];
     expect(url.origin + url.pathname).toBe("https://api.search.brave.com/res/v1/web/search"); expect(url.searchParams.get("count")).toBe("10");
@@ -66,10 +66,20 @@ describe("Brave HTTP adapter: mock transport only", () => {
       if (kind === "quota") return new Response("SECRET", { status: 429 });
       if (kind === "redirect") throw new Error("SECRET redirect blocked");
       if (kind === "html") return new Response("SECRET", { headers: { "content-type": "text/html" } });
-      return json({ web: { unexpected: "SECRET" } });
+      return json({ type: "search", query: { original: query.query }, web: { unexpected: "SECRET" } });
     });
     const out = await discoverPublicSources(input, { provider: createBraveDiscoveryProvider({ apiKey: "SECRET", fetch: fetcher }) });
     expect(out.status).toBe("unavailable"); expect(out.reasons).toEqual(["provider_failed"]); expect(JSON.stringify(out)).not.toContain("SECRET"); expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+  it.each([undefined, null, { results: [] }])("accepts successful search with absent/null/empty web group: %s", async web => {
+    const fetcher = vi.fn(async () => json({ type: "search", query: { original: query.query }, ...(web === undefined ? {} : { web }) }));
+    const out = await discoverPublicSources(input, { provider: createBraveDiscoveryProvider({ apiKey: "SECRET", fetch: fetcher }) });
+    expect(out.status).toBe("complete"); expect(out.reasons).toEqual([]); expect(out.candidates).toEqual([]);
+    expect(out.queries[0].status).toBe("complete"); expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+  it.each([{}, { type: "search" }, { type: "error", query: null }, { type: "search", query: {} }, { type: "search", query: null, error: "SECRET" }, { type: "search", query: null, web: {} }])("rejects malformed 200 envelope: %s", async body => {
+    const out = await discoverPublicSources(input, { provider: createBraveDiscoveryProvider({ apiKey: "SECRET", fetch: async () => json(body) }) });
+    expect(out.status).toBe("unavailable"); expect(out.reasons).toEqual(["provider_failed"]); expect(JSON.stringify(out)).not.toContain("SECRET");
   });
   it("bounds a stalled body and aborts transport", async () => {
     let signal: AbortSignal | undefined;

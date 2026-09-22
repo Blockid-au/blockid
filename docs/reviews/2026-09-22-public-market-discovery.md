@@ -31,3 +31,7 @@ Before activation:
 ## Focused verification
 
 15 mocked tests passed covering explicit admission, unapproved/sensitive queries, provenance/deduplication, grant/private/network URL screening, query/result caps, malformed provider data, redacted failures, pre-cancel, timeout, partial cancellation, official HTTP shape, body cap, invalid JSON/schema, quota response, redirect rejection and stalled response stream. No live Brave requests were used. Build/deploy remain root-controlled.
+
+## Empty successful responses
+
+The [official response schema](https://api-dashboard.search.brave.com/api-reference/web/search/get) documents a nullable `web` group, with `web.results` required only when that group exists. `result_filter` documentation says `type` and `query` remain present. The adapter accepts `type: search` with valid query metadata and absent/null/empty web results as a completed search returning zero candidates. It rejects malformed envelopes, explicit error fields and a present malformed web group. Zero candidates does not establish no competitors exist, validate research completeness or independently prove the account plan. Follow-up adds nine mocked cases (24 total); no provider request was made.
