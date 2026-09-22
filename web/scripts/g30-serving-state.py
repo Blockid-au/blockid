@@ -79,7 +79,9 @@ def read_state(web):
     return data
 
 
-def verify_entry(entry, web=None):
+def verify_entry(entry, web=None, expected_schema_status="ok"):
+    if expected_schema_status not in ("ok", "pending:3"):
+        raise ValueError("Unsupported staging schema status")
     info = proxy.process_info(entry['pid'])
     if not info or info['start'] != entry['startTicks']:
         raise ValueError('Process missing or PID reused')
@@ -121,12 +123,22 @@ def verify_entry(entry, web=None):
         payload = json.loads(response.read(1024 * 1024))
         if payload.get('origin_draining') is True:
             raise ValueError('Origin admission closed; explicit resume required before serving/rollback')
-        if response.status != 200 or payload.get('git_sha') != entry['sha'] or payload.get('schema_migrations') != 'ok':
+        if response.status != 200 or payload.get('git_sha') != entry['sha'] or payload.get('schema_migrations') != expected_schema_status:
             raise ValueError('Origin release identity/health mismatch')
     return entry
 
 
 def schema_compatible(web, source, target):
+    financial = web / 'content/reports/g30-schema-expansion.json'
+    if financial.exists() or financial.is_symlink():
+        # A financial transition must never be bypassed by equal old manifests
+        # or the independent0447 additive edge, including corrupt/partial state.
+        try:
+            spec = importlib.util.spec_from_file_location('g30_financial_controller', Path(__file__).with_name('g30-schema-expansion-controller.py'))
+            controller = importlib.util.module_from_spec(spec); spec.loader.exec_module(controller)
+            return controller.allowed(web, source, target, read_state(web))
+        except Exception:
+            return False
     if source['schemaDigest'] == target['schemaDigest']:
         return True
     # Only the separately sealed exact0447 additive transition may cross digests.
@@ -136,7 +148,7 @@ def schema_compatible(web, source, target):
     return module.allowed(web, source, target, type('StateAdapter', (), {'validate_entry': staticmethod(validate_entry), 'verify_entry': staticmethod(verify_entry)}))
 
 
-def make_entry(web, port, pid, release):
+def make_entry(web, port, pid, release, expected_schema_status="ok"):
     path = release.resolve(strict=True)
     manifest = json.loads((path / '.deploy-manifest.json').read_text())
     info = proxy.process_info(pid)
@@ -149,7 +161,7 @@ def make_entry(web, port, pid, release):
     entry = {'schemaDigest': digest, 'port': port, 'pid': pid, 'startTicks': info['start'], 'releasePath': str(path),
              'sha': manifest.get('build_sha') or manifest.get('git_sha')}
     validate_entry(entry, web)
-    return verify_entry(entry, web)
+    return verify_entry(entry, web) if expected_schema_status == "ok" else verify_entry(entry, web, expected_schema_status)
 
 
 def atomic_json(path, data):

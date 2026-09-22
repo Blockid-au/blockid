@@ -15,6 +15,12 @@ a = importlib.util.module_from_spec(spec); spec.loader.exec_module(a)
 
 
 class TransitionTests(unittest.TestCase):
+    def test_missing_or_unsealed_record_does_not_probe_live_database(self):
+        for record in (None, {"phase": "prepared"}, {"phase": "observed"}):
+            with patch.object(a, "read", return_value=record), patch.object(a, "ledger") as database:
+                self.assertFalse(a.allowed(Path("/unused"), {}, {}, None))
+                database.assert_not_called()
+
     def setUp(self):
         self.old = {'files': ['0001_baseline.sql'], 'deferred': [], 'ledger_present': True}
         self.ledger = {'0001_baseline.sql': 'a' * 64}

@@ -120,6 +120,8 @@ def edge(record, source, target, current):
 def allowed(web, source, target, state):
     try:
         record = read(web)
+        if record is None or record.get("phase") != "sealed":
+            return False
         edge(record, source, target, ledger())
         pin(state, web, source); pin(state, web, target)
         return True
