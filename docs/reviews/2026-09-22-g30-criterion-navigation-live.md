@@ -23,3 +23,13 @@ pipeline-v2.1-s-r8-public-attribution, code prompt default2.4.1.
 
 RE-ANALYZE§6.7 across both sites is a subsequent plan addition, not a
 shipped paid workflow. Billing and O08 isolated source remain unactivated.
+
+At10:03:54UTC root marked the release operationally verified using the
+explicit60-second deferred-review policy under the deployment lock.
+The controller resolves rollback to v3.30.0/4103; bridgev3.29.2/4102 remains
+compatible and warm. Older4001/4101 stay excluded from rollback but running.
+
+Five live retained processes now consume the configured admission capacity;
+six historical entries include dead quarantined4100. Further live promotion
+requires resolving O08 admission/drain conditions. No old jobs were stopped
+and no cap was increased to bypass this condition.

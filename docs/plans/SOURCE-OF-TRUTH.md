@@ -1791,3 +1791,10 @@ This supersedes source-only wording for these slices; full research, all-page
 UI, financial accuracy, O08 and billing activation gates remain open.
 RE-ANALYZE§6.7 is merged as a detailed cross-site plan only, with no new fee
 or live action behavior enabled.
+
+**Next release prerequisite10:04UTC:** serving state now retains5 live origins
+plus dead quarantined4100. Existing cap prevents another promotion until O08
+admission/drain is resolved; preserve incompatible legacy jobs/artifacts and
+use compatible4103/4102 for rollback. Isolated drain source does not provide
+retroactive proof for legacy processes. This is a release prerequisite, not
+a completed O08 gate or permission to kill unknown jobs.
