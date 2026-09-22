@@ -548,9 +548,10 @@ async function POST_handler(request: Request) {
         const result = await autoCreateUserWithTempPassword(email);
         if (result.ok && result.isNewUser && result.tempPassword) {
           // New user — send combined welcome + report + credentials
+          const tempPassword = result.tempPassword;
           void trackOriginWork("report_email", () => sendWelcomeWithReport({
             to: email, slug, rawInput: parsed.input?.rawText,
-            analysis, tempPassword: result.tempPassword, locale,
+            analysis, tempPassword, locale,
           })).catch(() => {});
         } else {
           // Existing user — send report only
