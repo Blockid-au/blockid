@@ -189,7 +189,10 @@ export function HubTabs({ hub, className }: HubTabsProps) {
               title={title}
               data-locked={r.locked ? "1" : undefined}
               className={cn(
-                "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action/40",
+                // `relative` keeps the locked tab's sr-only span (position:absolute)
+                // inside the scrolling tablist; otherwise it escapes the clip and
+                // widens the document past the viewport at 375 px.
+                "relative inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-action/40",
                 selected
                   ? "border-action text-action"
                   : r.locked

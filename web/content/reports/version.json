@@ -1,9 +1,10 @@
 {
-  "version": "v3.28.1",
-  "updated_at": "2026-09-22T04:20:00Z",
+  "version": "v3.28.2",
+  "updated_at": "2026-09-22T04:40:00Z",
   "git_sha": "93a25e5cd",
-  "release_id": "g29-post-deploy-sweep-fix",
+  "release_id": "g29-exit-overflow-root-cause",
   "shipped_summary": [
+    "v3.28.2 — exit hub overflow root cause (2026-09-22): the locked tab's sr-only label (position: absolute) escaped the scrolling tablist and widened the document past 375 px on /workspace/exit*; tab links are relative now so it is clipped with the tab.",
     "v3.28.1 — post-deploy sweep fixes (2026-09-22): the hub tab strip scrolls inside the viewport at 375 px on /workspace/exit* (nav min-w-0 / main min-w-0 — the tablist's overflow-x-auto had nothing to clip against); /workspace/equity/setup carries an h1 (the wizard step title).",
     "v3.28.0 — G29 (2026-09-22): dead AI rungs (402 / 404 / archived) pruned automatically at runtime and by the discover-models cron with a 24 h window, providers marked 'unfunded' on /api/status.ai + /admin/ai-keys, one digest line when fewer than two providers are healthy for over an hour; degraded report runs leave an audit dump with the provider strike ledger, wave timings and the wave that hit the deadline, quality rows carry providers_struck / deadline_hit_wave, /api/status.tbr_quality.last_degraded + an honest /admin/funnel note; persona-aware workspace chrome (evaluator / program seats never see the founder phase banner or founder copy), one bottom-right floating stack for the cookie / feedback / report-chat pills (safe-area aware; a duplicate feedback FAB removed), the Google sign-in report-only CSP line allow-listed in the sweep; Startup Index movers: no prior close → 'new' (never −99), drops are negative-only, sample data labelled below n = 30. Includes the founder planning session's G30 SOURCE-OF-TRUTH proposal (PROPOSED — awaiting founder review, no code).",
     "v3.27.2 — v3.27.0 UI/UX check fixes (2026-09-22): /analyze e-mail panel errors in bear red with an icon + focus rings + 44 px edit link; /tbr/demo band switcher no longer shifts the layout (title is one string); band-D executive summary no longer contradicts 'not enough evidence' (thesisPartial EN/VI); pending-evidence CTAs 44 px; print starts at the report card (hero / switcher / cross-links hidden); /startup-index/listings on template tokens with 12 px floor, 44 px chips + links, aria-sort.",

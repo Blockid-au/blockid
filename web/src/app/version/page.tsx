@@ -146,6 +146,12 @@ const GROWTH_PHASES = [
 
 const VERSION_HISTORY = [
   {
+    version: "3.28.2",
+    date: "2026-09-22",
+    title: "Exit hub overflow root cause",
+    changes: ["[fix] Locked hub tabs' sr-only label no longer escapes the scrolling tablist (tab links are relative) — /workspace/exit* clean at 375 px"],
+  },
+  {
     version: "3.28.1",
     date: "2026-09-22",
     title: "Post-deploy sweep fixes",

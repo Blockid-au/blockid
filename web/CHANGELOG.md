@@ -1,5 +1,9 @@
 # BlockID.au Changelog
 
+## 2026-09-22 — v3.28.2: Exit hub overflow, root cause
+
+- `/workspace/exit*` still overflowed the 375 px viewport after v3.28.1: the locked tab's screen-reader-only label is `position: absolute`, and with no positioned ancestor inside the scrolling tablist it escaped the clip and sat 110 px past the viewport. Each tab link is now `relative`, so the label is clipped with its tab.
+
 ## 2026-09-22 — v3.28.1: Post-deploy sweep fixes
 
 - The founder page sweep on v3.28.0 found the hub tab strip overflowing the 375 px viewport on `/workspace/exit*` (the tablist's `overflow-x-auto` had no width to clip against — `min-w-0` on the nav and the workspace `<main>`) and `/workspace/equity/setup` without an h1 (the wizard step title is the h1 now).
