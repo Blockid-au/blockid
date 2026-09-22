@@ -207,7 +207,10 @@ def main():
     parser.add_argument('--pid', type=int)
     parser.add_argument('--release', type=Path)
     parser.add_argument('--rollback', action='store_true', help='Activation clears previous; never offer failed candidate as rollback target')
+    parser.add_argument('--review-deferred', action='store_true', help='Founder-authorized accelerated mark-good: 60-second operational soak; extended review remains pending')
     args = parser.parse_args()
+    if args.review_deferred and not args.mark_good:
+        parser.error('--review-deferred is only valid with --mark-good')
     try:
         web = args.web.resolve(strict=True)
         data = read_state(web)
@@ -275,8 +278,11 @@ def main():
                 if data['phase'] != 'stable' or data['active']['port'] in data['quarantined']:
                     raise ValueError('Cannot verify an unstable/quarantined origin')
                 since = data.get('gatesPassedAt', {}).get(str(data['active']['port']))
-                if type(since) is not int or not 1800 <= time.time() - since:
-                    raise ValueError('Stable baseline requires at least 30 minutes after release gates')
+                required_soak = 60 if args.review_deferred else 1800
+                if type(since) is not int or not required_soak <= time.time() - since:
+                    raise ValueError(f'Stable baseline requires at least {required_soak} seconds after release gates')
+                if args.review_deferred:
+                    data.setdefault('reviewDeferred', {})[str(data['active']['port'])] = {'policy': 'founder-accelerated-2026-09-22', 'minimumSoakSeconds': 60, 'recordedAt': int(time.time())}
                 verify_entry(data['active'], web)
                 if data['active']['port'] not in data['verifiedGood']:
                     data['verifiedGood'].append(data['active']['port'])
@@ -310,7 +316,7 @@ def main():
                 'ts': datetime.now(timezone.utc).isoformat(), 'epoch': int(time.time()),
                 'sha': entry['sha'], 'buildId': Path(entry['releasePath']).name,
                 'releasePath': entry['releasePath'], 'pid': str(entry['pid']), 'port': entry['port'],
-                'gates': 'G30 release gates + 30-minute soak', 'note': 'Verified immutable origin after soak; prior releases remain pinned'})
+                'gates': 'Operational gates + 60-second soak; extended review deferred by founder' if args.review_deferred else 'G30 release gates + 30-minute soak', 'review_deferred': args.review_deferred, 'note': 'Verified immutable origin after operational soak; prior releases remain pinned'})
         print(json.dumps(data)); return 0
     except Exception as error:
         print(f'serving-state refused: {error}', file=sys.stderr); return 1

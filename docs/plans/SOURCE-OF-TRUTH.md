@@ -1658,3 +1658,11 @@ Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi 
 - **22/09/2026 — W0b candidate preparation:** non-stopping active-origin controller/consumer integration independently reviewed; sourceversion3.29.0 prepared. Full deploy/runtime/30-minute soak gates still pending; no claim uninterrupted cutover proven before actualrun. Legacy4001 retained, no dependencyinstaller changes, max5retained admission.
 
 - **22/09/2026 — Founder bổ sung What we looked at:** thêm §6.6 contract phân tích từng finding, Problem/TAM examples, summary/detail/evidence UX và baseline/deep-credit boundary; nối E01/A02/F02/F03/R01–R04/U01/U02/U05/U07/U08/Q01/Q02/S01 vào45-item queue. Agent source review xác nhận heuristic fallback/4-dimension cap. Plan-only cho yêu cầu này; chưa code tính năng.
+
+### Founder execution update — 22/09/2026: accelerate phases, review after implementation
+
+Founder explicitly authorizes continued coding/full phased live deployments and temporarily deferring checks/reviews/tests that slow progress. This supersedes repeated full-review/full-regression/30-minute-soak requirements for the current implementation sequence; deferred work remains required before claiming the entire goal or sale acceptance complete. Existing successful evidence is retained, skipped checks never become passes.
+
+Root uses canonical --quick to avoid duplicate standalone TypeScript/lint (production build still checks compilation); G30_DEFER_UNIT_TESTS=1 explicitly records the full unit-suite deferral. Build, locked candidate packaging, runtime identity, local/public health, warm rollback and a short operational smoke remain. After at least60seconds and independent operational checks, an explicit --mark-good --review-deferred records an operational rollback target with review pending; the normal default remains1800seconds. No automatic caller is switched to this profile.
+
+Confirmed data incompatibility, broken builds or failed live health are fixed before dependent rollout. Reader compatibility release still precedes new unavailable valuation writers. Next: reader bridge → report/data/light/findings foundation → atomic billing/caller fulfillment and research → remaining full-site UX and commercial integration; restore comprehensive review/quality/payment/retention/uptime evaluation as final-goal work, not silently discarded scope.
