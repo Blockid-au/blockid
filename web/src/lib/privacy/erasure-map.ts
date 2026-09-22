@@ -438,3 +438,20 @@ export function summariseErasureMap(map: readonly ErasureEntry[] = ERASURE_MAP):
 export function orderedEntries(map: readonly ErasureEntry[] = ERASURE_MAP): ErasureEntry[] {
   return [...map].sort((a, b) => a.order - b.order || a.table.localeCompare(b.table) || a.column.localeCompare(b.column));
 }
+
+/**
+ * 0447 own-report child FKs: removed by the existing analyses.user_id deletion,
+ * not by direct DELETE (sealed-row guards reject it while the parent exists).
+ * This list records privacy coverage; it is deliberately excluded from the
+ * erase_account VALUES renderer. SVI association production remains disabled;
+ * enabling it requires an explicit erasure path before any such rows exist.
+ */
+export const CASCADE_ERASURE_COVERAGE = Object.freeze([
+  { table: "reanalysis_report_associations", column: "actor_user_id", via: "analyses.user_id", migration: "0447_reanalysis_authority.sql", scope: "blockid_owned_analysis" },
+  { table: "reanalysis_report_associations", column: "account_user_id", via: "analyses.user_id", migration: "0447_reanalysis_authority.sql", scope: "blockid_owned_analysis" },
+  { table: "reanalysis_wallet_grants", column: "actor_user_id", via: "analyses.user_id", migration: "0447_reanalysis_authority.sql", scope: "blockid_owned_analysis" },
+  { table: "reanalysis_wallet_grants", column: "wallet_owner_user_id", via: "analyses.user_id", migration: "0447_reanalysis_authority.sql", scope: "blockid_owned_analysis" },
+  { table: "reanalysis_wallet_grants", column: "granting_user_id", via: "analyses.user_id", migration: "0447_reanalysis_authority.sql", scope: "blockid_owned_analysis" },
+  { table: "reanalysis_quotes", column: "requester_user_id", via: "analyses.user_id", migration: "0447_reanalysis_authority.sql", scope: "blockid_owned_analysis" },
+  { table: "reanalysis_quotes", column: "billing_owner_user_id", via: "analyses.user_id", migration: "0447_reanalysis_authority.sql", scope: "blockid_owned_analysis" },
+] as const);

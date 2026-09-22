@@ -8,9 +8,12 @@ trap cleanup EXIT
 docker run -d --name "$name" --network none --tmpfs /tmp --user postgres \
   -v "$repo/web/supabase/migrations/0447_reanalysis_authority.sql:/migration.sql:ro" \
   -v "$repo/scripts/db/tests/reanalysis-authority.sql:/test.sql:ro" \
+  -v "$repo/web/supabase/migrations/0442_erasure_guest_analyses_by_email.sql:/erasure-migration.sql:ro" \
+  -v "$repo/scripts/db/tests/reanalysis-authority-erasure.sql:/erasure-test.sql:ro" \
   --entrypoint bash supabase/postgres:15.8.1.085 -c 'initdb -D /tmp/authority-pg -A trust -U postgres >/dev/null && exec postgres -D /tmp/authority-pg -k /tmp' >/dev/null
 for i in $(seq 1 30); do
   if docker exec "$name" pg_isready -h /tmp -U postgres >/dev/null 2>&1; then break; fi
   sleep 1
 done
 docker exec "$name" psql -h /tmp -U postgres -d postgres -f /test.sql
+docker exec "$name" psql -h /tmp -U postgres -d postgres -f /erasure-test.sql

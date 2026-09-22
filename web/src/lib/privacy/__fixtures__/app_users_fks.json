@@ -1,8 +1,8 @@
 {
   "dumped_at": "2026-09-17",
-  "source": "pg_constraint (contype=f) on production supabase-db, confrelid = public.app_users; 0417 claims/evidence_records/claim_versions FKs + 0422 intake_templates/cohort_snapshots FKs + 0418 corrections FKs + 0427 startup_outcomes FKs added by hand until `--fixture` is re-run; regenerate with `node scripts/db/app-users-fk-inventory.mjs --json --fixture`",
+  "source": "pg_constraint (contype=f) on production supabase-db, confrelid = public.app_users; 0417 claims/evidence_records/claim_versions FKs + 0422 intake_templates/cohort_snapshots FKs + 0418 corrections FKs + 0427 startup_outcomes FKs added by hand until `--fixture` is re-run; regenerate with `node scripts/db/app-users-fk-inventory.mjs --json --fixture`; 0447 seven own-report authority FKs added from reviewed migration source (not a fresh live dump)",
   "referenced": "public.app_users(id)",
-  "count": 149,
+  "count": 156,
   "fks": [
     {
       "constraint": "ab_assignments_user_id_fkey",
@@ -1046,6 +1046,55 @@
       "column": "confirmed_by",
       "on_delete": "SET NULL",
       "not_null": false
+    },
+    {
+      "constraint": "reanalysis_quotes_billing_owner_user_id_fkey",
+      "table": "reanalysis_quotes",
+      "column": "billing_owner_user_id",
+      "on_delete": "NO ACTION",
+      "not_null": true
+    },
+    {
+      "constraint": "reanalysis_quotes_requester_user_id_fkey",
+      "table": "reanalysis_quotes",
+      "column": "requester_user_id",
+      "on_delete": "NO ACTION",
+      "not_null": true
+    },
+    {
+      "constraint": "reanalysis_report_associations_account_user_id_fkey",
+      "table": "reanalysis_report_associations",
+      "column": "account_user_id",
+      "on_delete": "NO ACTION",
+      "not_null": true
+    },
+    {
+      "constraint": "reanalysis_report_associations_actor_user_id_fkey",
+      "table": "reanalysis_report_associations",
+      "column": "actor_user_id",
+      "on_delete": "NO ACTION",
+      "not_null": true
+    },
+    {
+      "constraint": "reanalysis_wallet_grants_actor_user_id_fkey",
+      "table": "reanalysis_wallet_grants",
+      "column": "actor_user_id",
+      "on_delete": "NO ACTION",
+      "not_null": true
+    },
+    {
+      "constraint": "reanalysis_wallet_grants_granting_user_id_fkey",
+      "table": "reanalysis_wallet_grants",
+      "column": "granting_user_id",
+      "on_delete": "NO ACTION",
+      "not_null": true
+    },
+    {
+      "constraint": "reanalysis_wallet_grants_wallet_owner_user_id_fkey",
+      "table": "reanalysis_wallet_grants",
+      "column": "wallet_owner_user_id",
+      "on_delete": "NO ACTION",
+      "not_null": true
     }
   ]
 }

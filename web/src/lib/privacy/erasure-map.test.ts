@@ -14,6 +14,7 @@ import { describe, expect, it } from "vitest";
 import fixture from "./__fixtures__/app_users_fks.json";
 import {
   ERASURE_MAP,
+  CASCADE_ERASURE_COVERAGE,
   NON_FK_EXTRAS,
   PROJECT_DETACHES,
   TOMBSTONE_NULL_COLUMNS,
@@ -45,23 +46,38 @@ const fks = fixture.fks as Fk[];
 const fkByKey = new Map(fks.map((f) => [`${f.table}.${f.column}`, f]));
 
 describe("erasure map ↔ live-schema fixture", () => {
-  it("fixture is the 149-FK production dump (129 live + the three 0393 investor FKs + the 0405 intake FK + the 0406 feedback-letter FK + the four 0417 claims/evidence_records/claim_versions FKs + the 0416 pilot_orders FK + the two 0422 intake_templates/cohort_snapshots FKs + the two 0418 corrections FKs + the four 0423 cohort overrides/members FKs + the two 0427 startup_outcomes FKs)", () => {
+  it("fixture includes the reviewed 0447 seven cascade-covered FKs plus the 149-FK production baseline (129 live + the three 0393 investor FKs + the 0405 intake FK + the 0406 feedback-letter FK + the four 0417 claims/evidence_records/claim_versions FKs + the 0416 pilot_orders FK + the two 0422 intake_templates/cohort_snapshots FKs + the two 0418 corrections FKs + the four 0423 cohort overrides/members FKs + the two 0427 startup_outcomes FKs)", () => {
     expect(fixture.referenced).toBe("public.app_users(id)");
-    expect(fks.length).toBe(149);
+    expect(fks.length).toBe(156);
     expect(fixture.count).toBe(fks.length);
     const by = fks.reduce<Record<string, number>>((acc, f) => ({ ...acc, [f.on_delete]: (acc[f.on_delete] ?? 0) + 1 }), {});
-    expect(by).toEqual({ CASCADE: 92, "NO ACTION": 14, "SET NULL": 37, RESTRICT: 6 });
+    expect(by).toEqual({ CASCADE: 92, "NO ACTION": 21, "SET NULL": 37, RESTRICT: 6 });
   });
 
   it("every FK is mapped exactly once and nothing stale is mapped", () => {
-    const keys = ERASURE_MAP.map(entryKey);
+    const keys = [...ERASURE_MAP.map(entryKey), ...CASCADE_ERASURE_COVERAGE.map(entryKey)];
     const dupes = keys.filter((k, i) => keys.indexOf(k) !== i);
     expect(dupes).toEqual([]);
     const unmapped = [...fkByKey.keys()].filter((k) => !keys.includes(k));
     expect(unmapped, "FK referencing app_users with no erasure decision").toEqual([]);
     const stale = keys.filter((k) => !fkByKey.has(k));
     expect(stale, "map entry with no matching FK in the fixture").toEqual([]);
-    expect(ERASURE_MAP.length).toBe(fks.length);
+    expect(ERASURE_MAP.length + CASCADE_ERASURE_COVERAGE.length).toBe(fks.length);
+  });
+
+
+  it("0447 authority child coverage points to a real deletion entry without adding direct deletes", () => {
+    expect(CASCADE_ERASURE_COVERAGE).toHaveLength(7);
+    for (const child of CASCADE_ERASURE_COVERAGE) {
+      expect(ERASURE_MAP.find(entry => entryKey(entry) === child.via)?.mode).toBe("delete");
+      expect(ERASURE_MAP.some(entry => entryKey(entry) === entryKey(child))).toBe(false);
+      expect(child.scope).toBe("blockid_owned_analysis");
+      expect(fkByKey.get(entryKey(child))).toMatchObject({ on_delete: "NO ACTION", not_null: true });
+    }
+    const authoritySql = readFileSync(path.resolve(path.dirname(MIGRATION), "0447_reanalysis_authority.sql"), "utf8");
+    expect(authoritySql).toContain("owned_analysis_id uuid REFERENCES public.analyses(id) ON DELETE CASCADE");
+    expect(authoritySql).toContain("REFERENCES public.reanalysis_report_associations(id, actor_user_id, site) ON DELETE CASCADE");
+    expect(authoritySql).toContain("REFERENCES public.reanalysis_wallet_grants(id, association_id, actor_user_id, wallet_id) ON DELETE CASCADE");
   });
 
   it("detach and nullRef only target nullable columns; immutable only the append-only ledgers", () => {

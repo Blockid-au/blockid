@@ -24,3 +24,11 @@ Connection creates no charge, hold, research job, provider search or score updat
 ## Verification
 
 `scripts/db/tests/run-reanalysis-authority.sh` starts a temporary PostgreSQL instance in a Docker container with no network, host ports or production volume, bootstrapped independently of Supabase initialization; removes it on exit. Applies migration twice, then checks read-only preview, role privileges, genuine wallet identity, exact owner binding, explicit acceptance, deleted/erased accounts, stale terms, truncated input, changed report revision, idempotent connection, immutable grants/quotes, monotonic owner-scoped revocation, and deletion of the report cascading through private snapshots/grants/quotes. This is schema/contract verification; it does not claim 0446 integration, concurrency reservation tests or production activation.
+
+## Existing account-erasure compatibility
+
+The follow-up isolated suite executes the **actual unmodified 0442 `erase_account` migration**, not a simulated deletion helper. It supplies representative account/report/wallet tables and allows the routine's normal missing-table path to skip unrelated subsystems. A real private snapshot, active grant and quote are created first. Dry-run preserves them; service-role erasure deletes the owned analysis, cascades snapshot/grant/quote deletion, removes the wallet and tombstones the account. Preview then denies access and repeating erasure remains successful. This verifies the relevant erasure dependency order; it is not a complete production-schema restore drill.
+
+`CASCADE_ERASURE_COVERAGE` records all seven new app_users foreign keys as covered by `analyses.user_id` deletion. These entries deliberately do not enter the direct-delete SQL map: direct deletion would violate the sealed-record guard while the original report remains. The FK fixture now includes seven explicitly source-derived 0447 rows, pending the normal live catalog refresh. The 0442 routine and the pinned 0447 migration bytes remain unchanged. SVI association creation stays disabled; before enabling it, its non-analyses source needs a separate erasure mechanism and coverage.
+
+Validation: isolated schema plus actual-erasure suite passed; privacy map suite **12 tests passed**. No production database writes.
