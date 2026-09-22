@@ -205,8 +205,15 @@ export function makeSelfReportDb(sb, { ownerEmail = BLOCKID_OWNER_EMAIL, namePat
  * register ids / labels, so a grounding miss is diagnosable after the run.
  * `audit` is the orchestrator's `audit_complete.dump` (null when the pipeline
  * predates it — the document then says so instead of failing the run).
+ *
+ * G29-B: a run that threw (`ReportFullyDegradedError`, or a mid-wave throw)
+ * still gets a document — `degraded: true`, the records collected so far,
+ * `diagnostics` (the run-scoped strike ledger snapshot, per-wave timings,
+ * the wave that hit the deadline — run-for-project's `run_diagnostics`
+ * event) and the script's own `trail` (phases with timings, chapter
+ * outcomes, error events) so a mid-wave failure is diagnosable too.
  */
-export function buildAuditDumpDocument({ audit, run, project, tier, locale, quality = null, now = new Date().toISOString() }) {
+export function buildAuditDumpDocument({ audit, run, project, tier, locale, quality = null, now = new Date().toISOString(), degraded = null }) {
   const sections = (audit?.sections ?? []).map((s) => ({
     sectionId: s.sectionId,
     grounded: Boolean(s.grounded),
@@ -226,6 +233,12 @@ export function buildAuditDumpDocument({ audit, run, project, tier, locale, qual
     uncited: s.uncitedClaims.length,
     findings: s.findings.length,
   }));
+  const isDegraded = Boolean(degraded);
+  const note = isDegraded
+    ? `run degraded — no report persisted: ${degraded.error ?? "unknown error"}${audit ? "" : " (the run threw before the grounding sweep — no section records)"}`
+    : audit
+      ? undefined
+      : "the pipeline emitted no audit_complete.dump — pipeline predates G24-D";
   return {
     generatedAt: now,
     reportId: run?.reportId ?? null,
@@ -233,10 +246,12 @@ export function buildAuditDumpDocument({ audit, run, project, tier, locale, qual
     project: project ? { id: project.id, name: project.name } : null,
     tier,
     locale,
+    degraded: isDegraded,
+    ...(isDegraded ? { diagnostics: degradedDiagnostics(degraded) } : {}),
     groundedShare: audit?.groundedShare ?? quality?.groundedShare ?? null,
     quality,
     dumpAvailable: Boolean(audit),
-    note: audit ? undefined : "the pipeline emitted no audit_complete.dump — pipeline predates G24-D",
+    note,
     criticEvidenceChars: audit?.criticEvidenceChars ?? null,
     summary: {
       sections: sections.length,
@@ -246,6 +261,80 @@ export function buildAuditDumpDocument({ audit, run, project, tier, locale, qual
     },
     sections,
     register: audit?.register ?? [],
+  };
+}
+
+/** G29-B: the degraded block of the dump — ledger + waves + the script's event trail (all optional, never throws). */
+function degradedDiagnostics(d) {
+  const diag = d.diagnostics ?? null;
+  const strikes = diag?.strikes && typeof diag.strikes === "object" ? diag.strikes : {};
+  return {
+    error: d.error ?? null,
+    failedWave: diag?.failedWave ?? d.trail?.currentPhase ?? null,
+    deadlineHit: Boolean(diag?.deadlineHit),
+    deadlineHitWave: diag?.deadlineHitWave ?? null,
+    providersStruck: Array.isArray(diag?.providersStruck) ? diag.providersStruck : [],
+    /** provider → { strikes, timeout, overloaded } — the run-scoped ledger (G28-B). */
+    strikes,
+    /** Per-wave timings as the orchestrator reported them (null when the run threw before run-for-project could snapshot). */
+    waves: Array.isArray(diag?.waves) ? diag.waves : null,
+    calls: diag?.calls ?? null,
+    totalMs: diag?.totalMs ?? d.trail?.elapsedMs ?? null,
+    diagnosticsEventSeen: Boolean(diag),
+    /** The script's own view: phases with timings, chapter outcomes, error events, in order. */
+    trail: d.trail ?? null,
+  };
+}
+
+/**
+ * G29-B: the script-side event trail — phases with timings, chapter outcomes
+ * and error events in order — so a run that throws mid-wave (before
+ * run-for-project's `run_diagnostics` event, or from a pipeline that predates
+ * it) still leaves the waves it ran. Pure; `now` is injectable.
+ */
+export function createEventTrail(now = () => Date.now()) {
+  const t0 = now();
+  const phases = [];
+  const chapters = [];
+  const errors = [];
+  let currentPhase = null;
+  const closeOpen = (at) => {
+    const open = phases[phases.length - 1];
+    if (open && open.ms === null) open.ms = Math.max(0, at - open.startedAtMs);
+  };
+  return {
+    observe(event) {
+      const at = now() - t0;
+      switch (event?.type) {
+        case "progress":
+          if (event.phase === currentPhase) return;
+          closeOpen(at);
+          phases.push({ phase: event.phase, startedAtMs: at, ms: null });
+          currentPhase = event.phase;
+          return;
+        case "dimension_complete":
+          chapters.push({ dim: event.dim, atMs: at, degraded: Boolean(event.chapter?.degraded), reason: event.chapter?.degradeReason ?? null, score: event.chapter?.score ?? null });
+          return;
+        case "error":
+          errors.push({ atMs: at, dim: event.dim ?? null, message: String(event.message ?? "") });
+          return;
+        case "done":
+          closeOpen(at);
+          return;
+        default:
+          return;
+      }
+    },
+    snapshot() {
+      const at = now() - t0;
+      return {
+        currentPhase,
+        elapsedMs: at,
+        phases: phases.map((p) => ({ ...p, ms: p.ms === null ? Math.max(0, at - p.startedAtMs) : p.ms })),
+        chapters: [...chapters],
+        errors: errors.slice(0, 40),
+      };
+    },
   };
 }
 
@@ -298,9 +387,14 @@ export async function runSelfReport({ db, pipeline, log = () => {}, projectId = 
   const t0 = Date.now();
   // G24-D: the grounding sweep's per-section audit (audit_complete.dump) — written by `auditDump.write(path, json)` when the caller asked for it.
   let audit = null;
+  // G29-B: run-for-project's `run_diagnostics` (ledger + waves) and the script's own trail — the dump of a run that throws.
+  let diagnostics = null;
+  const trail = createEventTrail();
   const onEvent = (event) => {
     const at = `${((Date.now() - t0) / 1000).toFixed(1)}s`;
     if (event.type === "audit_complete" && event.dump) audit = event.dump;
+    if (event.type === "run_diagnostics") diagnostics = event;
+    trail.observe(event);
     switch (event.type) {
       case "context": log(`[${at}] context: stage ${event.stage} ${event.stageLabel} · phase ${event.phaseId} · est. ${event.estimatedCalls} calls / ${event.estimatedSeconds}s`); break;
       case "gather_complete": log(`[${at}] gather: ${event.evidenceRows} evidence rows · connectors ${event.connectors.join(",") || "none"}${event.diagnostics ? " · " + Object.entries(event.diagnostics).map(([k, v]) => `${k}=${v.status}/${v.ms}ms`).join(" ") : ""}`); break;
@@ -308,11 +402,30 @@ export async function runSelfReport({ db, pipeline, log = () => {}, projectId = 
       case "audit_complete": log(`[${at}] audit: grounded ${event.groundedShare} · revised ${event.revised}`); break;
       case "progress": log(`[${at}] ${event.phase} ${event.completed}/${event.total}`); break;
       case "error": log(`[${at}] error${event.dim ? ` (${event.dim})` : ""}: ${event.message}`); break;
-      case "done": log(`[${at}] done: ${event.calls} calls · US$${event.costUsd.toFixed(4)} · degraded ${event.degradedSections.length} · deadline hit ${event.deadlineHit}`); break;
+      case "done": log(`[${at}] done: ${event.calls} calls · US$${event.costUsd.toFixed(4)} · degraded ${event.degradedSections.length} · deadline hit ${event.deadlineHit}${event.deadlineHitPhase ? ` (${event.deadlineHitPhase})` : ""}`); break;
+      case "run_diagnostics": log(`[${at}] diagnostics: failed in ${event.failedWave ?? "?"} · deadline wave ${event.deadlineHitWave ?? "-"} · providers struck ${event.providersStruck?.length ? event.providersStruck.join(",") : "none"}`); break;
       default: break;
     }
   };
-  const run = await pipeline.runTrustReportForProject({ projectId: project.id, requestedByUserId: ownerUserId, tier, locale, creditsCost: 0, onEvent });
+  let run;
+  try {
+    run = await pipeline.runTrustReportForProject({ projectId: project.id, requestedByUserId: ownerUserId, tier, locale, creditsCost: 0, onEvent });
+  } catch (err) {
+    // G29-B: the run threw (ReportFullyDegradedError after the sweep, or a
+    // mid-wave failure) — the dump still lands, marked degraded, with the
+    // records collected so far, the strike ledger and the wave timings.
+    if (auditDump?.path && auditDump.write) {
+      const doc = buildAuditDumpDocument({ audit, run: null, project, tier, locale, quality: null, degraded: { error: err instanceof Error ? err.message : String(err), diagnostics, trail: trail.snapshot() } });
+      try {
+        await auditDump.write(auditDump.path, JSON.stringify(doc, null, 2));
+        if (err && typeof err === "object") err.auditDumpPath = auditDump.path;
+        log(`audit dump (degraded): ${auditDump.path} (${doc.sections.length} sections, providers struck ${doc.diagnostics.providersStruck.length ? doc.diagnostics.providersStruck.join(",") : "none"}, deadline wave ${doc.diagnostics.deadlineHitWave ?? "-"})`);
+      } catch (writeErr) {
+        log(`audit dump (degraded) NOT written: ${writeErr instanceof Error ? writeErr.message : String(writeErr)}`);
+      }
+    }
+    throw err;
+  }
   const qualityLine = pipeline.formatTbrQualityLine ? pipeline.formatTbrQualityLine(run.quality) : JSON.stringify(run.quality);
   log(`report ${run.reportId} → snapshot ${run.snapshotId ?? "(none)"} share ${run.shareToken ? "minted" : "none"} svi ${run.svi} stage ${run.stage} words ${run.wordCount} quality ${run.qualityScore}`);
   log(qualityLine);

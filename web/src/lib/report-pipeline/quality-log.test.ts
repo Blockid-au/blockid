@@ -14,6 +14,8 @@ import {
   TBR_GROUNDED_SHARE_KPI,
   TBR_QUALITY_GROUNDED_WATCH,
   appendTbrQualityRow,
+  emptyTbrQualityStatus,
+  isNoReportRow,
   buildTbrQualityRow,
   formatTbrQualityLine,
   projectHash,
@@ -133,7 +135,7 @@ describe("summariseTbrQuality (24 h window)", () => {
   const ago = (h: number) => new Date(now - h * 3_600_000).toISOString();
 
   it("missing when no run falls inside the window (old rows and junk are ignored)", () => {
-    expect(summariseTbrQuality([], now)).toEqual({ last24h: { runs: 0, groundedShareMedian: null, groundedShareLatest: null, costUsdMedian: null, degradedShare: null, budgetOverruns: 0, verdictTrimmed: 0 }, status: "missing", grounded_share_kpi: 0.85 });
+    expect(summariseTbrQuality([], now)).toEqual({ last24h: { runs: 0, groundedShareMedian: null, groundedShareLatest: null, costUsdMedian: null, degradedShare: null, budgetOverruns: 0, verdictTrimmed: 0 }, status: "missing", grounded_share_kpi: 0.85, last_degraded: null });
     expect(summariseTbrQuality([row({ ts: ago(30) }), { ts: "nope" }, null as never, "x" as never], now).status).toBe("missing");
   });
 
@@ -149,7 +151,7 @@ describe("summariseTbrQuality (24 h window)", () => {
       ],
       now,
     );
-    expect(s).toEqual({ last24h: { runs: 5, groundedShareMedian: 0.9, groundedShareLatest: 0.9, costUsdMedian: 0.03, degradedShare: 0.2, budgetOverruns: 0, verdictTrimmed: 0 }, status: "ok", grounded_share_kpi: 0.85 });
+    expect(s).toEqual({ last24h: { runs: 5, groundedShareMedian: 0.9, groundedShareLatest: 0.9, costUsdMedian: 0.03, degradedShare: 0.2, budgetOverruns: 0, verdictTrimmed: 0 }, status: "ok", grounded_share_kpi: 0.85, last_degraded: null });
   });
 
   it("watch when the grounded median drops under 0.85 or more than 20 % of runs degraded", () => {
@@ -158,7 +160,7 @@ describe("summariseTbrQuality (24 h window)", () => {
     expect(summariseTbrQuality([row({ ts: ago(1), groundedShare: 0.7 }), row({ ts: ago(2), groundedShare: 0.84 })], now)).toMatchObject({ last24h: { runs: 2, groundedShareMedian: 0.77 }, status: "watch" });
     expect(summariseTbrQuality([row({ ts: ago(1), degradedSections: 2 }), row({ ts: ago(2) }), row({ ts: ago(3) })], now)).toMatchObject({ last24h: { degradedShare: 0.33 }, status: "watch" });
     // A row without a grounded figure still counts as a run but not toward the median.
-    expect(summariseTbrQuality([row({ ts: ago(1), groundedShare: undefined as never })], now)).toEqual({ last24h: { runs: 1, groundedShareMedian: null, groundedShareLatest: null, costUsdMedian: 0.01, degradedShare: 0, budgetOverruns: 0, verdictTrimmed: 0 }, status: "ok", grounded_share_kpi: 0.85 });
+    expect(summariseTbrQuality([row({ ts: ago(1), groundedShare: undefined as never })], now)).toEqual({ last24h: { runs: 1, groundedShareMedian: null, groundedShareLatest: null, costUsdMedian: 0.01, degradedShare: 0, budgetOverruns: 0, verdictTrimmed: 0 }, status: "ok", grounded_share_kpi: 0.85, last_degraded: null });
   });
 
   it("readTbrQualityStatus reads content/reports/tbr-quality.jsonl under the root, skips bad lines, and is missing without the file", async () => {
@@ -166,7 +168,7 @@ describe("summariseTbrQuality (24 h window)", () => {
     expect(await readTbrQualityStatus(root, now)).toMatchObject({ status: "missing" });
     await fs.mkdir(path.join(root, "content", "reports"), { recursive: true });
     await fs.writeFile(path.join(root, "content", "reports", TBR_QUALITY_FILE), [JSON.stringify(row({ ts: ago(1), groundedShare: 0.91 })), "{broken", JSON.stringify(row({ ts: ago(2), groundedShare: 0.93 }))].join("\n") + "\n");
-    expect(await readTbrQualityStatus(root, now)).toEqual({ last24h: { runs: 2, groundedShareMedian: 0.92, groundedShareLatest: 0.91, costUsdMedian: 0.01, degradedShare: 0, budgetOverruns: 0, verdictTrimmed: 0 }, status: "ok", grounded_share_kpi: 0.85 });
+    expect(await readTbrQualityStatus(root, now)).toEqual({ last24h: { runs: 2, groundedShareMedian: 0.92, groundedShareLatest: 0.91, costUsdMedian: 0.01, degradedShare: 0, budgetOverruns: 0, verdictTrimmed: 0 }, status: "ok", grounded_share_kpi: 0.85, last_degraded: null });
   });
 
   // ── G23-A: KPI export, counters, and the no-report exclusion ──────────────
@@ -195,6 +197,46 @@ describe("summariseTbrQuality (24 h window)", () => {
     expect(seven.last24h).toMatchObject({ runs: 2, groundedShareMedian: 0.9, degradedShare: 0.5 });
     // 6 degraded chapters is a (poor) report — its share stays in the median.
     expect(summariseTbrQuality([row({ ts: ago(1), groundedShare: 0.9 }), row({ ts: ago(2), groundedShare: 0, words: 0, degradedSections: 6 })], now).last24h.groundedShareMedian).toBe(0.45);
+  });
+
+  // ── G29-B: degraded-run diagnostics on the row + last_degraded on the status ──
+  it("G29-B: a degraded row carries providers_struck + deadline_hit_wave (only when given), the log line prints them, and legacy rows are unchanged", () => {
+    const r = buildTbrQualityRow({ projectId: "p", snapshotId: null, tier: "standard", report: null, calls: 16, costUsd: 0.01, durationMs: 480_000, degradedSections: 8, sviVersion: "2.2.0", providersStruck: ["deepinfra", "", "groq"], deadlineHitWave: "wave1" });
+    expect(r).toMatchObject({ degradedSections: 8, words: 0, providers_struck: ["deepinfra", "groq"], deadline_hit_wave: "wave1" });
+    expect(formatTbrQualityLine(r)).toContain("providers_struck=deepinfra,groq deadline_hit_wave=wave1");
+    const noDeadline = buildTbrQualityRow({ projectId: "p", snapshotId: null, tier: "standard", report: null, calls: 1, costUsd: 0, durationMs: 1, sviVersion: "2.2.0", providersStruck: [], deadlineHitWave: null });
+    expect(noDeadline).toMatchObject({ providers_struck: [], deadline_hit_wave: null });
+    expect(formatTbrQualityLine(noDeadline)).toContain("providers_struck=- deadline_hit_wave=-");
+    const good = buildTbrQualityRow({ projectId: "p", snapshotId: null, tier: "standard", report: demoReportV2(), calls: 1, costUsd: 0, durationMs: 1, sviVersion: "2.2.0" });
+    expect("providers_struck" in good).toBe(false);
+    expect("deadline_hit_wave" in good).toBe(false);
+    expect(formatTbrQualityLine(good)).not.toContain("providers_struck");
+  });
+
+  it("G29-B: last_degraded names the latest no-report run in the window (ts, providers_struck, deadline_hit_wave) while the grounding median still excludes it; null when every run produced a report", () => {
+    expect(isNoReportRow({ words: 0, degradedSections: 8 })).toBe(true);
+    expect(isNoReportRow({ words: 0, degradedSections: 7 })).toBe(true);
+    expect(isNoReportRow({ words: 0, degradedSections: 6 })).toBe(false);
+    expect(isNoReportRow({ words: 12, degradedSections: 8 })).toBe(false);
+    expect(isNoReportRow(null)).toBe(false);
+    const s = summariseTbrQuality(
+      [
+        row({ ts: ago(1), groundedShare: 0.9 }),
+        row({ ts: ago(2), groundedShare: 0, words: 0, degradedSections: 8, providers_struck: ["deepinfra"], deadline_hit_wave: "wave1" }),
+        row({ ts: ago(5), groundedShare: 0, words: 0, degradedSections: 7, providers_struck: ["groq"], deadline_hit_wave: null }),
+        row({ ts: ago(3), groundedShare: 0.88 }),
+      ],
+      now,
+    );
+    // Pin: the outage rows never enter the median / latest share.
+    expect(s.last24h).toMatchObject({ runs: 4, groundedShareMedian: 0.89, groundedShareLatest: 0.9, degradedShare: 0.5 });
+    expect(s.last_degraded).toEqual({ ts: ago(2), providers_struck: ["deepinfra"], deadline_hit_wave: "wave1" });
+    // A legacy outage row (no G29-B fields) still names itself, with empty diagnostics.
+    expect(summariseTbrQuality([row({ ts: ago(1), groundedShare: 0, words: 0, degradedSections: 8 })], now).last_degraded).toEqual({ ts: ago(1), providers_struck: [], deadline_hit_wave: null });
+    expect(summariseTbrQuality([row({ ts: ago(1), groundedShare: 0.9 })], now).last_degraded).toBeNull();
+    // Out of the window → not "last".
+    expect(summariseTbrQuality([row({ ts: ago(1), groundedShare: 0.9 }), row({ ts: ago(30), groundedShare: 0, words: 0, degradedSections: 8 })], now).last_degraded).toBeNull();
+    expect(emptyTbrQualityStatus().last_degraded).toBeNull();
   });
 
   it("buildTbrQualityRow carries the G23-A counters (0 when absent) and the log line prints them", () => {

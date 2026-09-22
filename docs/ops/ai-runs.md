@@ -104,6 +104,61 @@ Caveats:
   change; `schema_fail` rising after a `CODE_PROMPT_VERSION` bump means the
   output contract and the prompt disagree.
 
+## Degraded runs (G29-B)
+
+A Trusted Business Report run that ends in `ReportFullyDegradedError`
+(≥ 7 of 8 chapters on deterministic cards — G28-B) or throws mid-wave is
+**not persisted and not charged**, but since G29-B it is diagnosable after
+the fact from three places. Provider *names* only — never keys, project ids
+or paths.
+
+1. **The audit dump** — `content/reports/tbr-audit-latest.json` (gitignored)
+   is written by `scripts/run-self-analysis.mjs --report --audit-dump` even
+   when the run throws (the script then exits 1 and prints the path). On a
+   degraded run the document carries:
+
+   | field | meaning |
+   | --- | --- |
+   | `degraded: true` | the run produced no report; `reportId` / `snapshotId` are null |
+   | `note` | `run degraded — no report persisted: <error>` |
+   | `sections`, `register`, `summary` | every `SectionAuditRecord` the sweep produced before the throw (empty when the run died before the grounding sweep — `dumpAvailable: false`) |
+   | `diagnostics.error` / `failedWave` | the thrown message and the wave the run was in (`gathering` · `wave1`–`wave4` · `synthesizing` …) |
+   | `diagnostics.deadlineHit` / `deadlineHitWave` | whether the wall clock fired and the wave whose race it won (the soft W4-reserve deadline counts — `deadlineHitWave: "wave1"` with `deadlineHit: false` means W1 ate the whole W1–W3 window) |
+   | `diagnostics.providersStruck` / `strikes` | the run-scoped strike ledger (`lib/ai/run-strikes.ts`): providers skipped for the rest of the run, and `provider → { strikes, timeout, overloaded }` for every provider that struck at all |
+   | `diagnostics.waves` | per-wave timings `{ phase, startedAtMs, ms }` as run-for-project observed them (null when the pipeline predates the `run_diagnostics` event) |
+   | `diagnostics.trail` | the script's own view: phases with timings, chapter outcomes (`dim`, `degraded`, `reason`, `score`) and `error` events, in order |
+
+   The source is the `run_diagnostics` event `lib/report-pipeline/run-for-project.ts`
+   emits right before re-throwing (`lib/report-pipeline/run-diagnostics.ts`);
+   a good run has `degraded: false` and no `diagnostics` block.
+
+2. **The quality row** — the `tbr-quality.jsonl` row of a degraded run
+   (`words 0`, `degradedSections ≥ 7`) now also carries `providers_struck`
+   (array) and `deadline_hit_wave` (string | null); the
+   `[tbr-quality] …` log line prints both. Good rows are unchanged.
+
+3. **Status + admin** — `/api/status.tbr_quality.last_degraded` is the latest
+   no-report run in the 24 h window as `{ ts, providers_struck,
+   deadline_hit_wave }` (null when every run produced a report). That row
+   stays **excluded** from `groundedShareMedian` / `groundedShareLatest`
+   (G28-B). `/admin/funnel` › Trust › "Report grounding" keeps the last GOOD
+   run's share as its value and, when the latest run degraded, prefixes the
+   note with `last run degraded at <ts> UTC (providers struck: …; deadline hit
+   in <wave>) —` instead of printing the outage row's 0.
+
+Reading a degraded dump:
+
+```sh
+node -e 'const d=require("./content/reports/tbr-audit-latest.json"); console.log(d.degraded, d.diagnostics?.failedWave, d.diagnostics?.deadlineHitWave, d.diagnostics?.providersStruck, d.diagnostics?.waves)'
+```
+
+`providersStruck` naming the first provider in the chain with
+`deadlineHitWave: "wave1"` is the 2026-09-21 pattern (each W1 call sat
+through the provider's model ladder before the ledger struck it) — a
+provider-capacity problem, not a prompt problem. An empty ledger with a
+`failedWave` and a thrown message is a code / schema failure: read the
+`trail.errors`.
+
 ## Related
 
 `docs/ops/ai-providers.md` (provider chain, the process-lifetime

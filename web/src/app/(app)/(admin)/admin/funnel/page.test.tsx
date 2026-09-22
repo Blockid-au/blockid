@@ -168,6 +168,14 @@ describe("FunnelAdminView — institutional section (G21 P0-D)", () => {
     expect(out).toMatch(/data-fi-metric="report_grounding" data-fi-status="live"[\s\S]*?Report grounding \/ KPI 85%[\s\S]*?n\/a</);
     expect(out).toContain("report grounding unavailable");
   });
+
+  it("G29-B: when the latest run degraded the Trust row prints 'last run degraded (providers struck: …)' beside the last GOOD share — never a placeholder 0", async () => {
+    const data = await dataFromFixture();
+    const sections = reduceInstitutional([], { ...emptyDbCounts(), report_grounding: 0.41, report_grounding_kpi: 0.85, report_grounding_degraded: { ts: "2026-09-22T03:10:00.000Z", providers_struck: ["deepinfra", "groq"], deadline_hit_wave: "wave1" } });
+    const out = await html(<FunnelAdminView data={{ ...data, institutional: { window: { days: 28, from: "2026-08-22", to: "2026-09-19" }, sections, northStar: null, warnings: [] } }} />);
+    expect(out).toMatch(/data-fi-metric="report_grounding" data-fi-status="live"[\s\S]*?Report grounding \/ KPI 85%[\s\S]*?last run degraded at 2026-09-22 03:10 UTC \(providers struck: deepinfra, groq; deadline hit in wave1\)[\s\S]*?41%</);
+    expect(out).not.toMatch(/data-fi-metric="report_grounding"[\s\S]*?>0%</);
+  });
 });
 
 describe("/admin/funnel page gate", () => {

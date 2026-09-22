@@ -259,12 +259,59 @@ describe("generateAndPersistReport", () => {
     const writer = vi.fn();
     await expect(generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 3, qualityWriter: writer })).rejects.toThrow("report fully degraded");
     expect(writer).toHaveBeenCalledTimes(1);
-    expect(writer.mock.calls[0][0]).toMatchObject({ snapshotId: null, tier: "standard", calls: 16, degradedSections: 8, groundedShare: 0, pendingDims: 0, words: 0, pages: 0 });
+    expect(writer.mock.calls[0][0]).toMatchObject({ snapshotId: null, tier: "standard", calls: 16, degradedSections: 8, groundedShare: 0, pendingDims: 0, words: 0, pages: 0, providers_struck: [], deadline_hit_wave: null });
     // A plain failure (no degraded/calls fields) logs nothing.
     writer.mockClear();
     orchestrateMock.mockRejectedValue(new Error("agents down"));
     await expect(generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 3, qualityWriter: writer })).rejects.toThrow("agents down");
     expect(writer).not.toHaveBeenCalled();
+  });
+
+  // G29-B: the strike ledger + wave timings leave with a failed run — as a
+  // `run_diagnostics` event (the self-report script's degraded audit dump) and
+  // on the quality row (providers_struck / deadline_hit_wave).
+  it("G29-B: a degraded run emits run_diagnostics (ledger snapshot, per-wave timings, deadline wave) before re-throwing and stamps the quality row", async () => {
+    class ReportFullyDegradedError extends Error {
+      constructor(readonly degradedSections: number, readonly calls: number) { super("report fully degraded"); }
+    }
+    // Two DeepInfra worker timeouts + two Groq 429s reach the ledger through the aiCaller's `runStrikes` option; Gemini strikes once.
+    callAIMock.mockImplementation(async (a: { runStrikes?: { note(p: string, e: unknown): unknown } }) => {
+      a.runStrikes?.note("deepinfra", new Error("Worker timeout (120s)"));
+      a.runStrikes?.note("deepinfra", new Error("Worker timeout (120s)"));
+      a.runStrikes?.note("groq", new Error("429 Too Many Requests"));
+      a.runStrikes?.note("groq", new Error("429 Too Many Requests"));
+      a.runStrikes?.note("gemini", new Error("Worker timeout (120s)"));
+      return { text: "ok" };
+    });
+    orchestrateMock.mockImplementation(async (i: { onEvent?: (e: unknown) => void; callAI: (s: string, u: string, m: number) => Promise<unknown> }) => {
+      i.onEvent?.({ type: "progress", completed: 15, total: 100, phase: "wave1" });
+      await i.callAI("s", "u", 100);
+      i.onEvent?.({ type: "progress", completed: 80, total: 100, phase: "wave4" });
+      i.onEvent?.({ type: "done", reportId: "rpt-1", totalMs: 480_000, calls: 16, costAud: 0.02, costUsd: 0.0123, costReportedCalls: 16, degradedSections: ["ftv"], deadlineHit: true, deadlineHitPhase: "wave1", budgetOverruns: 0, verdictTrimmed: 0, autoCited: 0 });
+      throw new ReportFullyDegradedError(8, 16);
+    });
+    const writer = vi.fn();
+    const events: Array<Record<string, unknown>> = [];
+    await expect(generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 3, qualityWriter: writer, onEvent: (e) => events.push(e as unknown as Record<string, unknown>) })).rejects.toThrow("report fully degraded");
+    const diag = events.find((e) => e.type === "run_diagnostics")!;
+    expect(diag).toMatchObject({ degraded: true, error: "report fully degraded", failedWave: "wave4", deadlineHit: true, deadlineHitWave: "wave1", calls: 16, totalMs: 480_000, providersStruck: ["deepinfra", "groq"] });
+    expect(diag.strikes).toEqual({ deepinfra: { strikes: 2, timeout: 2, overloaded: 0 }, groq: { strikes: 2, timeout: 0, overloaded: 2 }, gemini: { strikes: 1, timeout: 1, overloaded: 0 } });
+    expect((diag.waves as Array<{ phase: string }>).map((w) => w.phase)).toEqual(["wave1", "wave4"]);
+    // The diagnostics event is the LAST thing the listener sees (after `done`).
+    expect(events.at(-1)!.type).toBe("run_diagnostics");
+    expect(writer.mock.calls[0][0]).toMatchObject({ calls: 16, degradedSections: 8, words: 0, providers_struck: ["deepinfra", "groq"], deadline_hit_wave: "wave1" });
+    // A mid-wave throw (no `done`) still leaves the ledger + the wave it died in; a throwing listener never masks the error.
+    events.length = 0;
+    orchestrateMock.mockImplementation(async (i: { onEvent?: (e: unknown) => void; callAI: (s: string, u: string, m: number) => Promise<unknown> }) => {
+      i.onEvent?.({ type: "progress", completed: 15, total: 100, phase: "wave1" });
+      i.onEvent?.({ type: "progress", completed: 45, total: 100, phase: "wave2" });
+      await i.callAI("s", "u", 100);
+      throw new Error("W2 dispatcher crashed");
+    });
+    await expect(generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 3, qualityWriter: writer, onEvent: (e) => { events.push(e as unknown as Record<string, unknown>); if ((e as { type: string }).type === "run_diagnostics") throw new Error("listener boom"); } })).rejects.toThrow("W2 dispatcher crashed");
+    expect(events.at(-1)).toMatchObject({ type: "run_diagnostics", failedWave: "wave2", deadlineHit: false, deadlineHitWave: null, calls: null, providersStruck: ["deepinfra", "groq"] });
+    callAIMock.mockReset();
+    callAIMock.mockImplementation(async () => ({ text: "ok" }));
   });
 
   it("writes a failed row and re-throws when the orchestrator fails", async () => {

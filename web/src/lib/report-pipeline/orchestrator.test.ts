@@ -1571,6 +1571,8 @@ describe("orchestrateReport() — wall-clock deadline (W2 review a)", () => {
     expect(auditCalls[0].options.budgetOk?.()).toBe(false);
     const done = events.find((e): e is Extract<PipelineEvent, { type: "done" }> => e.type === "done")!;
     expect(done.deadlineHit).toBe(true);
+    // G29-B: the wave whose race the deadline won.
+    expect(done.deadlineHitPhase).toBe("wave4");
     const ctx = assembleSpy.mock.calls[0][0] as ReportContext;
     expect([...ctx.dimensionChapters!.values()].filter((c) => c.degraded).map((c) => c.dim)).toEqual(["ptd", "cgh", "iri", "lco", "svm"]);
     const ctxEvent = events.find((e): e is Extract<PipelineEvent, { type: "context" }> => e.type === "context")!;
@@ -1597,6 +1599,8 @@ describe("orchestrateReport() — wall-clock deadline (W2 review a)", () => {
     // the persisting callers must not charge for it.
     expect(report.fullyDegraded).toBe(true);
     expect((events.at(-1) as Extract<PipelineEvent, { type: "done" }>).deadlineHit).toBe(true);
+    // G29-B: the deadline fired while GATHER was still racing the hung research call.
+    expect((events.at(-1) as Extract<PipelineEvent, { type: "done" }>).deadlineHitPhase).toBe("gathering");
   });
 
   it("the deadline timer is disposed — no open handle keeps the process alive after a fast report", async () => {
@@ -1855,6 +1859,8 @@ describe("orchestrateReport() — G28-B provider resilience (fake clock, dead pr
     const report = await run;
     const done = events.find((e): e is Extract<PipelineEvent, { type: "done" }> => e.type === "done")!;
     expect(done.deadlineHit).toBe(false);
+    // G29-B: the SOFT deadline (W4 reserve) won W1's race — named even though the hard deadline never fired.
+    expect(done.deadlineHitPhase).toBe("wave1");
     expect(done.totalMs).toBeGreaterThanOrEqual(50_000);
     expect(done.totalMs).toBeLessThan(100_000);
     const chapters = [...(assembleSpy.mock.calls[0][0] as ReportContext).dimensionChapters!.values()];

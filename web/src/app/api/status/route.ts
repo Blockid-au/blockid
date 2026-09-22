@@ -115,7 +115,10 @@ type PublicStatusResponse = {
    * < 0.85 or degradedShare > 0.2). Aggregates only — no project, snapshot
    * or path. G23-C adds `grounded_share` (the LATEST run's groundedShare,
    * null when no run is logged) and `grounded_share_kpi` (0.85) so the
-   * grounding goal is readable without the jsonl.
+   * grounding goal is readable without the jsonl. G29-B adds
+   * `last_degraded` — the latest no-report run in the window as
+   * `{ ts, providers_struck, deadline_hit_wave }` (provider names only),
+   * null when every run produced a report.
    */
   tbr_quality: TbrQualityStatus & TbrGrounding;
   /**
@@ -584,7 +587,9 @@ export async function GET(): Promise<Response> {
     // G25-C: the free-allowance ledger counts (fail-soft: the empty block with the configured cap).
     readFreeReportMetricsCached().catch(() => emptyFreeReportMetrics(freeReportsDailyCap())),
   ]);
-  const tbrQuality: TbrQualityStatus & TbrGrounding = { ...tbrQualityWindow, ...tbrGrounding };
+  // G29-B: `last_degraded` is the 24 h window's (summariseTbrQuality) — the
+  // grounding reader's copy is the funnel's "latest row" view and stays there.
+  const tbrQuality: TbrQualityStatus & TbrGrounding = { ...tbrQualityWindow, ...tbrGrounding, last_degraded: tbrQualityWindow.last_degraded };
   const publicExtras = extras ? publicStatusExtras(extras) : null;
 
   const last_deploy = await readLastDeploy(fallbackSha).catch(() => ({

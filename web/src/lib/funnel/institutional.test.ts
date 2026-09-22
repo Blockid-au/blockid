@@ -9,6 +9,7 @@ import {
   PAYING_INSTITUTIONAL_PLANS,
   asInstitutionalClient,
   computeNorthStar,
+  degradedRunNote,
   emptyDbCounts,
   isPayingInstitutional,
   monthString,
@@ -66,6 +67,20 @@ describe("reduceInstitutional (pure)", () => {
     const trust = reduceInstitutional([], { ...emptyDbCounts(), report_grounding: 0.41, report_grounding_kpi: 0.85 }).find((s) => s.key === "trust")!;
     const m = trust.metrics.find((x) => x.key === "report_grounding")!;
     expect(m).toMatchObject({ status: "live", unit: "ratio", value: 0.41, label: "Report grounding / KPI 85%" });
+    expect(m.note).not.toMatch(/degraded/);
+  });
+
+  it("G29-B: when the latest run degraded the Trust row keeps the last GOOD share as its value and says 'last run degraded (providers struck: …)' in the note — never a placeholder 0", () => {
+    const last = { ts: "2026-09-22T03:10:00.000Z", providers_struck: ["deepinfra", "groq"], deadline_hit_wave: "wave1" };
+    const m = metric(reduceInstitutional([], { ...emptyDbCounts(), report_grounding: 0.41, report_grounding_kpi: 0.85, report_grounding_degraded: last }), "report_grounding");
+    expect(m).toMatchObject({ status: "live", unit: "ratio", value: 0.41, label: "Report grounding / KPI 85%" });
+    expect(m.note).toMatch(/^last run degraded at 2026-09-22 03:10 UTC \(providers struck: deepinfra, groq; deadline hit in wave1\) — groundedShare of the latest Trusted Business Report run that produced a report/);
+    expect(degradedRunNote({ ts: "", providers_struck: [], deadline_hit_wave: null })).toBe("last run degraded (providers struck: none) — ");
+    expect(degradedRunNote(null)).toBe("");
+    // No earlier good run at all: value null (n/a), the note still explains.
+    const none = metric(reduceInstitutional([], { ...emptyDbCounts(), report_grounding_kpi: 0.85, report_grounding_degraded: last }), "report_grounding");
+    expect(none.value).toBeNull();
+    expect(none.note).toMatch(/^last run degraded/);
     expect(m.note).toContain("grounded_share");
   });
 

@@ -6,7 +6,8 @@
 //   { ts, projectId (sha256 prefix, never the uuid), snapshotId, tier, calls,
 //     costUsd, groundedShare, degradedSections, consistencyIssues,
 //     pendingDims (S41 `assessed:false` chapters), words, pages, durationMs,
-//     sviVersion, pipelineVersion }
+//     sviVersion, pipelineVersion,
+//     providers_struck?, deadline_hit_wave? (G29-B — degraded runs only) }
 //
 // Readers:
 //   /api/status.tbr_quality   summariseTbrQuality() over the last 24 h —
@@ -14,7 +15,9 @@
 //                             degradedShare (runs with ≥ 1 degraded chapter ÷
 //                             runs) and a one-word verdict: `ok` | `watch`
 //                             (median grounded < 0.85 or degradedShare > 0.2)
-//                             | `missing` (no run in the window).
+//                             | `missing` (no run in the window); G29-B adds
+//                             `last_degraded` — the latest no-report run's
+//                             { ts, providers_struck, deadline_hit_wave }.
 //   /admin report KPI tile    the same reducer (lib/admin/report-kpis.ts).
 //
 // Rules (mirrors pipeline-health.ts): best effort — the writer never throws
@@ -72,6 +75,17 @@ export interface TbrQualityRow {
   verdictTrimmed?: number;
   /** G23-A: material claims that received an evidence id from the auto-citer. */
   autoCited?: number;
+  /** G29-B (degraded runs): providers the run-scoped strike ledger struck out (names only). */
+  providers_struck?: string[];
+  /** G29-B (degraded runs): the wave whose wall-clock race the deadline won; null when the deadline never fired. */
+  deadline_hit_wave?: string | null;
+}
+
+/** G29-B: the most recent no-report (fully degraded) run — what /api/status and /admin/funnel print instead of a placeholder share. */
+export interface TbrLastDegraded {
+  ts: string;
+  providers_struck: string[];
+  deadline_hit_wave: string | null;
 }
 
 export interface TbrQualityWindow {
@@ -95,13 +109,15 @@ export interface TbrQualityStatus {
   status: TbrQualityVerdict;
   /** The KPI the verdict is judged against (TBR_GROUNDED_SHARE_KPI). */
   grounded_share_kpi: number;
+  /** G29-B: the latest no-report run in the window (excluded from the grounding median, named here); null when every run produced a report. */
+  last_degraded: TbrLastDegraded | null;
 }
 
 const EMPTY_WINDOW: TbrQualityWindow = { runs: 0, groundedShareMedian: null, groundedShareLatest: null, costUsdMedian: null, degradedShare: null, budgetOverruns: 0, verdictTrimmed: 0 };
 
 /** The `missing` status (no run in the window / unreadable file) — shared with the /api/status fallback. */
 export function emptyTbrQualityStatus(): TbrQualityStatus {
-  return { last24h: { ...EMPTY_WINDOW }, status: "missing", grounded_share_kpi: TBR_GROUNDED_SHARE_KPI };
+  return { last24h: { ...EMPTY_WINDOW }, status: "missing", grounded_share_kpi: TBR_GROUNDED_SHARE_KPI, last_degraded: null };
 }
 
 export type TbrQualityWriter = (row: TbrQualityRow) => void | Promise<void>;
@@ -143,6 +159,10 @@ export function buildTbrQualityRow(input: {
   budgetOverruns?: number;
   verdictTrimmed?: number;
   autoCited?: number;
+  /** G29-B: written only when given (degraded runs) — provider names from the run-scoped strike ledger. */
+  providersStruck?: string[];
+  /** G29-B: written only when given (degraded runs). */
+  deadlineHitWave?: string | null;
 }): TbrQualityRow {
   const report = input.report ?? null;
   const est = report ? estimatePages(report) : null;
@@ -166,7 +186,25 @@ export function buildTbrQualityRow(input: {
     budgetOverruns: Math.floor(nonNeg(input.budgetOverruns)),
     verdictTrimmed: Math.floor(nonNeg(input.verdictTrimmed)),
     autoCited: Math.floor(nonNeg(input.autoCited)),
+    ...(input.providersStruck !== undefined ? { providers_struck: input.providersStruck.filter((p) => typeof p === "string" && p.length > 0).slice(0, 12) } : {}),
+    ...(input.deadlineHitWave !== undefined ? { deadline_hit_wave: input.deadlineHitWave ?? null } : {}),
   };
+}
+
+/**
+ * G28-B rule: a run that produced no report (words 0, ≥ FULLY_DEGRADED_MIN_CHAPTERS
+ * chapters deterministic) has nothing to ground — it counts in degradedShare,
+ * never in the grounding median / the "latest share" (quality-log + tbr-grounding).
+ */
+export function isNoReportRow(row: { words?: unknown; degradedSections?: unknown } | null | undefined): boolean {
+  return Boolean(row) && row!.words === 0 && typeof row!.degradedSections === "number" && row!.degradedSections >= FULLY_DEGRADED_MIN_CHAPTERS;
+}
+
+/** G29-B: the row's degraded diagnostics in the status shape (fail-soft on legacy rows without them). */
+export function lastDegradedOf(row: RowLike): TbrLastDegraded {
+  const struck = Array.isArray(row.providers_struck) ? row.providers_struck.filter((p): p is string => typeof p === "string" && p.length > 0).slice(0, 12) : [];
+  const wave = typeof row.deadline_hit_wave === "string" && row.deadline_hit_wave ? row.deadline_hit_wave : null;
+  return { ts: typeof row.ts === "string" ? row.ts : "", providers_struck: struck, deadline_hit_wave: wave };
 }
 
 function qualityFilePath(): string {
@@ -216,7 +254,8 @@ export async function recordTbrQualityAsync(row: TbrQualityRow, writer: TbrQuali
 
 /** One human-readable line for logs / the self-report script. */
 export function formatTbrQualityLine(row: TbrQualityRow): string {
-  return `[tbr-quality] tier=${row.tier} calls=${row.calls} cost_usd=${row.costUsd.toFixed(4)} grounded=${row.groundedShare.toFixed(2)} degraded=${row.degradedSections} consistency=${row.consistencyIssues} pending_dims=${row.pendingDims} words=${row.words} pages=${row.pages} ms=${row.durationMs} budget_overruns=${row.budgetOverruns ?? 0} verdict_trimmed=${row.verdictTrimmed ?? 0} auto_cited=${row.autoCited ?? 0} snapshot=${row.snapshotId ?? "-"}`;
+  const degraded = row.providers_struck !== undefined || row.deadline_hit_wave !== undefined ? ` providers_struck=${row.providers_struck?.length ? row.providers_struck.join(",") : "-"} deadline_hit_wave=${row.deadline_hit_wave ?? "-"}` : "";
+  return `[tbr-quality] tier=${row.tier} calls=${row.calls} cost_usd=${row.costUsd.toFixed(4)} grounded=${row.groundedShare.toFixed(2)} degraded=${row.degradedSections} consistency=${row.consistencyIssues} pending_dims=${row.pendingDims} words=${row.words} pages=${row.pages} ms=${row.durationMs} budget_overruns=${row.budgetOverruns ?? 0} verdict_trimmed=${row.verdictTrimmed ?? 0} auto_cited=${row.autoCited ?? 0} snapshot=${row.snapshotId ?? "-"}${degraded}`;
 }
 
 type RowLike = Partial<Record<keyof TbrQualityRow, unknown>>;
@@ -229,6 +268,8 @@ export function summariseTbrQuality(rows: RowLike[], now: number = Date.now(), w
   let degradedRuns = 0;
   let budgetOverruns = 0;
   let verdictTrimmed = 0;
+  // G29-B: the latest no-report row (by ts, position breaks ties) → last_degraded.
+  let lastDegraded: { ts: number; row: RowLike } | null = null;
   for (const row of rows) {
     if (!row || typeof row !== "object") continue;
     if (!withinLast(row.ts, windowMs, now)) continue;
@@ -237,14 +278,19 @@ export function summariseTbrQuality(rows: RowLike[], now: number = Date.now(), w
     // deterministic) has nothing to ground — it counts in degradedShare, not
     // in the grounding median (G23-A; the 2026-09-20/21 outage rows were
     // groundedShare 0 with words 0 and dragged a 0.41 median to 0).
-    const noReport = row.words === 0 && typeof row.degradedSections === "number" && row.degradedSections >= FULLY_DEGRADED_MIN_CHAPTERS;
+    const noReport = isNoReportRow(row);
+    if (noReport) {
+      const t = Date.parse(String(row.ts));
+      const at = Number.isFinite(t) ? t : -Infinity;
+      if (!lastDegraded || at >= lastDegraded.ts) lastDegraded = { ts: at, row };
+    }
     if (!noReport && typeof row.groundedShare === "number" && Number.isFinite(row.groundedShare)) grounded.push({ ts: String(row.ts), share: row.groundedShare });
     if (typeof row.costUsd === "number" && Number.isFinite(row.costUsd)) cost.push(row.costUsd);
     if (typeof row.degradedSections === "number" && row.degradedSections > 0) degradedRuns += 1;
     if (typeof row.budgetOverruns === "number" && Number.isFinite(row.budgetOverruns)) budgetOverruns += Math.max(0, row.budgetOverruns);
     if (typeof row.verdictTrimmed === "number" && Number.isFinite(row.verdictTrimmed)) verdictTrimmed += Math.max(0, row.verdictTrimmed);
   }
-  if (runs === 0) return { last24h: { ...EMPTY_WINDOW }, status: "missing", grounded_share_kpi: TBR_GROUNDED_SHARE_KPI };
+  if (runs === 0) return { last24h: { ...EMPTY_WINDOW }, status: "missing", grounded_share_kpi: TBR_GROUNDED_SHARE_KPI, last_degraded: null };
   const groundedMed = median(grounded.map((g) => g.share));
   const latest = grounded.length ? [...grounded].sort((a, b) => a.ts.localeCompare(b.ts))[grounded.length - 1]!.share : null;
   const costMed = median(cost);
@@ -262,6 +308,7 @@ export function summariseTbrQuality(rows: RowLike[], now: number = Date.now(), w
     },
     status: watch ? "watch" : "ok",
     grounded_share_kpi: TBR_GROUNDED_SHARE_KPI,
+    last_degraded: lastDegraded ? lastDegradedOf(lastDegraded.row) : null,
   };
 }
 
@@ -271,6 +318,6 @@ export async function readTbrQualityStatus(root: string = getStatusRoot(), now: 
     const rows = await readJsonlTail<RowLike>(root, TBR_QUALITY_FILE, TBR_QUALITY_TAIL_LINES);
     return summariseTbrQuality(rows, now);
   } catch {
-    return { last24h: { ...EMPTY_WINDOW }, status: "missing", grounded_share_kpi: TBR_GROUNDED_SHARE_KPI };
+    return { last24h: { ...EMPTY_WINDOW }, status: "missing", grounded_share_kpi: TBR_GROUNDED_SHARE_KPI, last_degraded: null };
   }
 }

@@ -97,6 +97,7 @@ import { structureExecutive } from "@/lib/report-v2/executive-structure";
 import { dispatchExecutiveSummary, executiveOutputContract } from "./executive-summary";
 import { isReportV2, type CriterionCard, type DimensionChapter, type ExecutiveStructured, type ReportTierV2, type ReportV2 } from "@/lib/report-v2/schema";
 import { FULLY_DEGRADED_MIN_CHAPTERS, recordFullyDegraded, type DegradedEventWriter, type FullyDegradedReason } from "./pipeline-health";
+import type { RunDiagnostics } from "./run-diagnostics";
 import { w4ReserveMsFor, type PipelineCallHint, type PipelineCallStage } from "./pipeline-timeouts";
 
 // ── AI caller contract ──────────────────────────────────────────────────────
@@ -369,8 +370,10 @@ export type PipelineEvent =
   | { type: "executive_complete"; summary: string }
   | { type: "audit_complete"; groundedShare: number; revised: number; /** G24-D: the full per-section audit (scripts/run-self-analysis.mjs --audit-dump); not forwarded on the SSE mapper. */ dump?: AuditDump }
   | { type: "progress"; completed: number; total: number; phase: PipelinePhase }
-  | { type: "done"; reportId: string; totalMs: number; calls: number; costAud: number; costUsd: number; costReportedCalls: number; degradedSections: string[]; deadlineHit: boolean; budgetOverruns: number; verdictTrimmed: number; autoCited: number }
-  | { type: "error"; dim?: DimKey; message: string; degraded: true };
+  | { type: "done"; reportId: string; totalMs: number; calls: number; costAud: number; costUsd: number; costReportedCalls: number; degradedSections: string[]; deadlineHit: boolean; /** G29-B: the wave whose race the deadline (soft W4-reserve or hard) first won — null when neither fired. */ deadlineHitPhase?: PipelinePhase | null; budgetOverruns: number; verdictTrimmed: number; autoCited: number }
+  | { type: "error"; dim?: DimKey; message: string; degraded: true }
+  /** G29-B: emitted by run-for-project (not the orchestrator) right before a failed run re-throws — the strike ledger + wave timings for the audit dump. */
+  | ({ type: "run_diagnostics" } & RunDiagnostics);
 
 export type PipelineEventHandler = (event: PipelineEvent) => void;
 
@@ -509,7 +512,14 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
   };
   if (partialDims && input.seedCriteria?.length) seedCriterionResults(context, input.seedCriteria);
 
+  // G29-B: the wave whose wall-clock race the deadline (soft or hard) first won — `done.deadlineHitPhase`.
+  let currentPhase: PipelinePhase = "gathering";
+  let deadlineHitPhase: PipelinePhase | null = null;
+  const markDeadline = () => {
+    if (deadlineHitPhase === null) deadlineHitPhase = currentPhase;
+  };
   const notify = (phase: PipelinePhase, progress: number, currentAgent?: AgentRole) => {
+    currentPhase = phase;
     input.onPhaseChange?.({
       reportId,
       phase,
@@ -569,6 +579,7 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
         deps: { ...(input.gatherDeps ?? {}), deadlineRemainingMs: () => deadline.remainingMs() },
       }),
     );
+    if (gathered === "deadline") markDeadline();
     const gather: GatherOutput = gathered === "deadline" ? { results: { diagnostics: { gather: { ms: deadline.ms, status: "timeout", note: "deadline" } } }, evidenceRows: [], valuation: { vc: null, ask: null, revenueEvidenceIds: [] } } : gathered;
     context.gatherResults = gather.results;
     context.gatherEvidenceRows = gather.evidenceRows;
@@ -606,18 +617,18 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
       // provider in W1 can never leave W4 with no wall clock.
       // Wave 1: Independent analyses
       notify("wave1", 15);
-      if (!deadline.softExpired()) await deadline.raceSoft(dispatchWave(wave1, context, input.tier, callAI, dispatchOpts));
+      if (!deadline.softExpired() && (await deadline.raceSoft(dispatchWave(wave1, context, input.tier, callAI, dispatchOpts))) === "deadline") markDeadline();
 
       // Wave 2: Depends on Wave 1
       if (wave2.length > 0 && !deadline.softExpired()) {
         notify("wave2", 45);
-        await deadline.raceSoft(dispatchWave(wave2, context, input.tier, callAI, dispatchOpts));
+        if ((await deadline.raceSoft(dispatchWave(wave2, context, input.tier, callAI, dispatchOpts))) === "deadline") markDeadline();
       }
 
       // Wave 3: Depends on Wave 1 + 2 (may be empty when evidenceCompleteness < 0.5)
       if (wave3.length > 0 && !deadline.softExpired()) {
         notify("wave3", 75);
-        await deadline.raceSoft(dispatchWave(wave3, context, input.tier, callAI, dispatchOpts));
+        if ((await deadline.raceSoft(dispatchWave(wave3, context, input.tier, callAI, dispatchOpts))) === "deadline") markDeadline();
       }
     }
 
@@ -634,6 +645,7 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
         });
       };
       if (deadline.expired()) {
+        markDeadline();
         degradeAll(`deadline: wall-clock budget (${Math.round(deadline.ms / 1000)} s) reached before W4`);
       } else if (!monthlyOk() || budget.remaining === 0) {
         degradeAll(budget.remaining === 0 ? `budget: report call cap (${budget.max}) reached before W4` : "budget: monthly AI cap reached before W4");
@@ -655,6 +667,7 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
           }),
         );
         if ((await w4) === "deadline") {
+          markDeadline();
           // Seal: late chapters keep writing to `live`; the report reads a copy
           // with the missing dims filled deterministically.
           const sealed = new Map<DimKey, DimensionChapter>(live);
@@ -678,6 +691,7 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
 
     // ── Phase 3: SYNTHESIZE ─────────────────────────────────────────────
     notify("synthesizing", 85);
+    if (deadline.expired()) markDeadline();
 
     // CDO cross-validation: one LLM call at premium+ (§B.9); deterministic elsewhere.
     context.consistencyIssues =
@@ -771,6 +785,7 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
       costReportedCalls: meter.reported,
       degradedSections: reportV2?.quality.degradedSections ?? [],
       deadlineHit: deadline.expired(),
+      deadlineHitPhase: deadline.expired() ? (deadlineHitPhase ?? currentPhase) : deadlineHitPhase,
       // G23-A counters — written to the tbr-quality.jsonl row by run-for-project.
       budgetOverruns: context.qualityCounters?.budgetOverruns ?? 0,
       verdictTrimmed: context.qualityCounters?.verdictTrimmed ?? 0,

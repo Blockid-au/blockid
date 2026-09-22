@@ -40,6 +40,7 @@ import { newSlug } from "@/lib/slug";
 import { assertReportUsable, orchestrateReport, type AICallerResult, type PipelineEvent, type PipelineEventHandler } from "@/lib/report-pipeline/orchestrator";
 import { backgroundRunBudget, pipelineCallTimeouts, type PipelineCallHint } from "@/lib/report-pipeline/pipeline-timeouts";
 import { createRunStrikeLedger } from "@/lib/ai/run-strikes";
+import { RunDiagnosticsTracker } from "@/lib/report-pipeline/run-diagnostics";
 import type { ReportTierV2, ReportV2 } from "@/lib/report-v2/schema";
 import type { AssembledReport, ReportTier, CriterionData, ReportSection } from "@/lib/report-pipeline/types";
 import { CRITERIA, CRITERION_KEYS, type CriterionKey } from "@/lib/evaluation-criteria";
@@ -432,8 +433,13 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
   // wall-clock) for the quality row; the caller's SSE hook still sees every event.
   const t0 = Date.now();
   let done: Extract<PipelineEvent, { type: "done" }> | null = null;
+  // G29-B: per-wave timings + the deadline wave, folded with the strike
+  // ledger into ONE `run_diagnostics` event (and the quality row) when the
+  // run fails — the audit dump of a degraded run (run-diagnostics.ts).
+  const diagnostics = new RunDiagnosticsTracker(t0);
   const onEvent: PipelineEventHandler = (event) => {
     if (event.type === "done") done = event;
+    diagnostics.observe(event);
     input.onEvent?.(event);
   };
 
@@ -619,6 +625,15 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
     // G19-S46: a fully-degraded run is still a run — log it (8 degraded, no
     // snapshot) so /api/status.tbr_quality sees the outage as degradedShare.
     const stats = done as Extract<PipelineEvent, { type: "done" }> | null;
+    // G29-B: the strike ledger + wave timings leave with the run — as an
+    // event the self-report script writes to tbr-audit-latest.json, and on
+    // the quality row (providers_struck / deadline_hit_wave). Never throws.
+    const diag = diagnostics.snapshot({ ledger: runStrikes, error: err });
+    try {
+      input.onEvent?.({ type: "run_diagnostics", ...diag });
+    } catch {
+      /* a listener error never masks the run's own failure */
+    }
     const degradedErr = err as { degradedSections?: unknown; calls?: unknown };
     if (typeof degradedErr?.degradedSections === "number" && typeof degradedErr?.calls === "number") {
       await recordTbrQualityAsync(
@@ -633,6 +648,8 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
           degradedSections: degradedErr.degradedSections,
           sviVersion: ctx.sviAnalysis.version,
           pipelineVersion: PIPELINE_VERSION,
+          providersStruck: diag.providersStruck,
+          deadlineHitWave: diag.deadlineHitWave,
         }),
         input.qualityWriter,
       );

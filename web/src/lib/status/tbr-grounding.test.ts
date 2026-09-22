@@ -5,7 +5,7 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { TBR_GROUNDED_SHARE_KPI_FALLBACK, emptyTbrGrounding, latestGroundedShare, readTbrGrounding, resolveGroundedShareKpi } from "./tbr-grounding";
+import { TBR_GROUNDED_SHARE_KPI_FALLBACK, emptyTbrGrounding, latestDegradedRun, latestGroundedShare, readTbrGrounding, resolveGroundedShareKpi } from "./tbr-grounding";
 
 let root: string;
 beforeEach(() => {
@@ -19,7 +19,7 @@ describe("resolveGroundedShareKpi / latestGroundedShare", () => {
   it("the KPI is the 0.85 grounded target (lane A export or the quality-log watch threshold)", () => {
     expect(resolveGroundedShareKpi()).toBe(0.85);
     expect(TBR_GROUNDED_SHARE_KPI_FALLBACK).toBe(0.85);
-    expect(emptyTbrGrounding()).toEqual({ grounded_share: null, grounded_share_kpi: 0.85 });
+    expect(emptyTbrGrounding()).toEqual({ grounded_share: null, grounded_share_kpi: 0.85, last_degraded: null });
   });
 
   it("picks the latest run by ts (position breaks ties), clamps to 0..1, rounds to 2 dp, ignores rows without a finite share", () => {
@@ -31,19 +31,38 @@ describe("resolveGroundedShareKpi / latestGroundedShare", () => {
     expect(latestGroundedShare([{ ts: "not a date", groundedShare: 0.5 }, { ts: "2020-01-01T00:00:00Z", groundedShare: 0.6 }])).toBe(0.6);
     // Review G23 P1: a no-report outage row (words 0, all 8 chapters degraded) is not "the latest grounding".
     expect(latestGroundedShare([{ ts: "2026-09-20T10:32:00Z", groundedShare: 0.41, words: 7657, degradedSections: 1 }, { ts: "2026-09-21T04:08:00Z", groundedShare: 0, words: 0, degradedSections: 8 }])).toBe(0.41);
+    // G28-B rule shared with the quality window: ≥ 7 of 8 degraded with no prose is no report either.
+    expect(latestGroundedShare([{ ts: "2026-09-20T10:32:00Z", groundedShare: 0.41, words: 7657, degradedSections: 1 }, { ts: "2026-09-21T04:08:00Z", groundedShare: 0, words: 0, degradedSections: 7 }])).toBe(0.41);
+  });
+
+  it("G29-B: latestDegradedRun names the latest row only when it is a no-report run — ts, providers_struck, deadline_hit_wave (empty on legacy rows); null when the latest run produced a report", () => {
+    const good = { ts: "2026-09-20T10:32:00Z", groundedShare: 0.41, words: 7657, degradedSections: 1 };
+    const outage = { ts: "2026-09-21T04:08:00Z", groundedShare: 0, words: 0, degradedSections: 8, providers_struck: ["deepinfra", "groq"], deadline_hit_wave: "wave1" };
+    expect(latestDegradedRun([])).toBeNull();
+    expect(latestDegradedRun([outage, { ...good, ts: "2026-09-21T09:00:00Z" }])).toBeNull(); // a later good run wins by ts, whatever the position
+    expect(latestDegradedRun([good, outage])).toEqual({ ts: "2026-09-21T04:08:00Z", providers_struck: ["deepinfra", "groq"], deadline_hit_wave: "wave1" });
+    expect(latestDegradedRun([good, { ts: "2026-09-22T00:00:00Z", groundedShare: 0, words: 0, degradedSections: 7 }])).toEqual({ ts: "2026-09-22T00:00:00Z", providers_struck: [], deadline_hit_wave: null });
+    // Position breaks a ts tie; junk never throws.
+    expect(latestDegradedRun([outage, { ...good, ts: outage.ts }])).toBeNull();
+    expect(latestDegradedRun([null as never, "x" as never, { ts: 5, words: 0, degradedSections: 8 }])).toEqual({ ts: "", providers_struck: [], deadline_hit_wave: null });
   });
 });
 
 describe("readTbrGrounding (temp root)", () => {
   it("missing file → null share + the KPI; unparsable → the same; a real tail → the latest run's share", async () => {
-    expect(await readTbrGrounding(root)).toEqual({ grounded_share: null, grounded_share_kpi: 0.85 });
+    expect(await readTbrGrounding(root)).toEqual({ grounded_share: null, grounded_share_kpi: 0.85, last_degraded: null });
     const file = path.join(root, "content", "reports", "tbr-quality.jsonl");
     mkdirSync(path.dirname(file), { recursive: true });
     writeFileSync(file, "{nope\n");
-    expect(await readTbrGrounding(root)).toEqual({ grounded_share: null, grounded_share_kpi: 0.85 });
+    expect(await readTbrGrounding(root)).toEqual({ grounded_share: null, grounded_share_kpi: 0.85, last_degraded: null });
     writeFileSync(file, [row("2026-09-20T00:00:00Z", 0.9), "{broken", row("2026-09-21T00:00:00Z", 0.41)].join("\n") + "\n");
     const out = await readTbrGrounding(root);
-    expect(out).toEqual({ grounded_share: 0.41, grounded_share_kpi: 0.85 });
+    expect(out).toEqual({ grounded_share: 0.41, grounded_share_kpi: 0.85, last_degraded: null });
     expect(JSON.stringify(out)).not.toMatch(/snap-9|deadbeef|tbr-quality/);
+    // G29-B: a trailing outage row → the last GOOD share stays, last_degraded names the outage; no id or path leaks.
+    writeFileSync(file, [row("2026-09-21T00:00:00Z", 0.41), JSON.stringify({ ts: "2026-09-22T03:00:00Z", projectId: "deadbeef0000", snapshotId: null, groundedShare: 0, words: 0, degradedSections: 8, providers_struck: ["deepinfra"], deadline_hit_wave: "wave4" })].join("\n") + "\n");
+    const degraded = await readTbrGrounding(root);
+    expect(degraded).toEqual({ grounded_share: 0.41, grounded_share_kpi: 0.85, last_degraded: { ts: "2026-09-22T03:00:00Z", providers_struck: ["deepinfra"], deadline_hit_wave: "wave4" } });
+    expect(JSON.stringify(degraded)).not.toMatch(/deadbeef|tbr-quality/);
   });
 });

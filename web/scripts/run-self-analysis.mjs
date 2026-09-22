@@ -17,7 +17,10 @@
 // (uncited claims, critic findings kept + dropped, llmAudited / hadIssues, the
 // audited text) plus the register ids to <path> (default
 // content/reports/tbr-audit-latest.json, gitignored) so a groundedShare miss
-// can be diagnosed after the run.| --no-seed] [--dry-run]
+// can be diagnosed after the run. G29-B: the dump is written even when the
+// run throws (ReportFullyDegradedError, a mid-wave failure) — `degraded: true`
+// + the provider strike ledger, per-wave timings and the deadline wave
+// (docs/ops/ai-runs.md § "Degraded runs"); the script then exits 1.
 // Resolves BlockID's canonical project (admin@blockid.au's "%blockid%" project
 // with the most svi_snapshots — "Blockid.au 1" unless --project says
 // otherwise; prints which), seeds the 13-criteria founder inputs + a fresh
@@ -135,25 +138,32 @@ if (REPORT_MODE) {
   process.env.REPORT_PIPELINE_DEBUG ??= "1";
   const { runSelfReport, makeSelfReportDb } = await import("./lib/self-report-core.mjs");
   const pipeline = await loadReportPipeline();
-  const summary = await runSelfReport({
-    db: makeSelfReportDb(SUPABASE),
-    pipeline,
-    log: (line) => console.log(`  ${line}`),
-    projectId: argValue("--project"),
-    forceSeed: ARGS.includes("--seed"),
-    skipSeed: ARGS.includes("--no-seed"),
-    dryRun: ARGS.includes("--dry-run"),
-    auditDump: ARGS.includes("--audit-dump")
-      ? {
-          path: resolve(WEB_DIR, (argValue("--audit-dump") && !argValue("--audit-dump").startsWith("--") ? argValue("--audit-dump") : null) ?? "content/reports/tbr-audit-latest.json"),
-          write: async (path, json) => {
-            const { mkdirSync } = await import("node:fs");
-            mkdirSync(dirname(path), { recursive: true });
-            writeFileSync(path, json);
-          },
-        }
-      : null,
-  });
+  let summary;
+  try {
+    summary = await runSelfReport({
+      db: makeSelfReportDb(SUPABASE),
+      pipeline,
+      log: (line) => console.log(`  ${line}`),
+      projectId: argValue("--project"),
+      forceSeed: ARGS.includes("--seed"),
+      skipSeed: ARGS.includes("--no-seed"),
+      dryRun: ARGS.includes("--dry-run"),
+      auditDump: ARGS.includes("--audit-dump")
+        ? {
+            path: resolve(WEB_DIR, (argValue("--audit-dump") && !argValue("--audit-dump").startsWith("--") ? argValue("--audit-dump") : null) ?? "content/reports/tbr-audit-latest.json"),
+            write: async (path, json) => {
+              const { mkdirSync } = await import("node:fs");
+              mkdirSync(dirname(path), { recursive: true });
+              writeFileSync(path, json);
+            },
+          }
+        : null,
+    });
+  } catch (err) {
+    console.error(`\n✗ self-report failed: ${err instanceof Error ? err.message : String(err)}`);
+    if (err && typeof err === "object" && err.auditDumpPath) console.error(`  audit dump (degraded): ${err.auditDumpPath}`);
+    process.exit(1);
+  }
   if (summary.dryRun) {
     console.log(`\n✓ dry run — nothing written (project ${summary.project.id}, would seed: ${summary.wouldSeed})`);
     process.exit(0);

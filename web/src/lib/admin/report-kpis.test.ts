@@ -63,7 +63,7 @@ describe("loadReportKpis", () => {
   // G19-S46: the admin tile reads the same tbr-quality.jsonl summary /api/status.tbr_quality publishes.
   it("carries the pipeline telemetry summary from the injected reader and null when it fails", async () => {
     setComparablesForTests([]);
-    const pipeline = { last24h: { runs: 3, groundedShareMedian: 0.91, groundedShareLatest: 0.93, costUsdMedian: 0.012, degradedShare: 0, budgetOverruns: 0, verdictTrimmed: 0 }, status: "ok" as const, grounded_share_kpi: 0.85 };
+    const pipeline = { last24h: { runs: 3, groundedShareMedian: 0.91, groundedShareLatest: 0.93, costUsdMedian: 0.012, degradedShare: 0, budgetOverruns: 0, verdictTrimmed: 0 }, status: "ok" as const, grounded_share_kpi: 0.85, last_degraded: null };
     const k = await loadReportKpis(null, { now: () => NOW, readSpend: () => null, readQuality: async () => pipeline });
     expect(k.pipeline).toEqual(pipeline);
     const failed = await loadReportKpis(null, { now: () => NOW, readSpend: () => null, readQuality: async () => { throw new Error("EACCES"); } });

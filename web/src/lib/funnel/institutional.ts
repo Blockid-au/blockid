@@ -20,6 +20,7 @@ import { STALE_AFTER_DAYS, countStaleConnectors } from "@/lib/evidence/freshness
 import { computeLongitudinal, LONGITUDINAL_MIN_GAP_DAYS, type SnapshotDateRow } from "@/lib/outcomes/data-moat";
 import { getStatusRoot, readJsonFile, REPORTS_DIR } from "@/lib/status/jsonl";
 import { readTbrGrounding } from "@/lib/status/tbr-grounding";
+import type { TbrLastDegraded } from "@/lib/report-pipeline/quality-log";
 import { dayString, isQaRow, rowsInWindow, type FunnelEventRow } from "./core";
 
 export type FiMetricStatus = "live" | "p1" | "p2" | "p3";
@@ -101,6 +102,8 @@ export interface InstitutionalDbCounts {
   report_grounding: number | null;
   /** G23-C: the grounding KPI the share is measured against (0.85). */
   report_grounding_kpi: number | null;
+  /** G29-B: set when the LATEST pipeline run produced no report — `report_grounding` is then the last GOOD run's share and the row says so. */
+  report_grounding_degraded: TbrLastDegraded | null;
   mrr_cents: number | null;
   paying_orgs: number | null;
 }
@@ -122,6 +125,7 @@ export function emptyDbCounts(): InstitutionalDbCounts {
     stale_connectors: null,
     report_grounding: null,
     report_grounding_kpi: null,
+    report_grounding_degraded: null,
     mrr_cents: null,
     paying_orgs: null,
   };
@@ -158,6 +162,19 @@ function sum(rows: readonly FunnelEventRow[], name: string, key: string, where: 
 
 /** 0.85 → "85%" (labels only; the value column formats the ratio itself). */
 const pctLabel = (ratio: number): string => `${Math.round(ratio * 100)}%`;
+
+/**
+ * G29-B: "last run degraded (providers struck: deepinfra, groq; deadline hit in wave2) — "
+ * when the latest run produced no report; "" otherwise. The value column keeps
+ * the last GOOD share (never the outage row's placeholder 0).
+ */
+export function degradedRunNote(last: TbrLastDegraded | null | undefined): string {
+  if (!last) return "";
+  const providers = last.providers_struck.length ? last.providers_struck.join(", ") : "none";
+  const wave = last.deadline_hit_wave ? `; deadline hit in ${last.deadline_hit_wave}` : "";
+  const when = last.ts ? ` at ${last.ts.slice(0, 16).replace("T", " ")} UTC` : "";
+  return `last run degraded${when} (providers struck: ${providers}${wave}) — `;
+}
 
 const projectOf = (r: FunnelEventRow) => (typeof p(r, "project_id") === "string" ? (p(r, "project_id") as string) : undefined);
 const isPaidPilot = (r: FunnelEventRow) => p(r, "pilot_source") === "paid";
@@ -235,7 +252,7 @@ export function reduceInstitutional(rowsIn: readonly FunnelEventRow[], db: Insti
         live("evidence_verified_events", "Evidence verified (window)", count(rows, "evidence_verified"), "evidence_verified events (reviewer approvals emit from P1)"),
         later("evidence_level_distribution", "Evidence level distribution", "p1", "per-level share across live evidence rows — the Assessment Card (P1) publishes it"),
         live("stale_connectors", "Stale connectors", db.stale_connectors, `active connections (project × provider) whose last read is older than ${STALE_AFTER_DAYS} days — their EvidenceRecords have expired`),
-        live("report_grounding", `Report grounding / KPI ${db.report_grounding_kpi === null ? "n/a" : pctLabel(db.report_grounding_kpi)}`, db.report_grounding, "groundedShare of the latest Trusted Business Report run (tbr-quality.jsonl; /api/status tbr_quality.grounded_share) — the G19 / G23-A target is ≥ KPI on every run", "ratio"),
+        live("report_grounding", `Report grounding / KPI ${db.report_grounding_kpi === null ? "n/a" : pctLabel(db.report_grounding_kpi)}`, db.report_grounding, `${degradedRunNote(db.report_grounding_degraded)}groundedShare of the latest Trusted Business Report run that produced a report (tbr-quality.jsonl; /api/status tbr_quality.grounded_share) — the G19 / G23-A target is ≥ KPI on every run`, "ratio"),
       ],
     },
     {
@@ -421,7 +438,8 @@ export async function readInstitutionalFunnel(client: InstitutionalClient | null
   const grounding = await readTbrGrounding(root);
   db.report_grounding = grounding.grounded_share;
   db.report_grounding_kpi = grounding.grounded_share_kpi;
-  if (grounding.grounded_share === null) warnings.push("tbr-quality.jsonl: no pipeline run logged — report grounding unavailable");
+  db.report_grounding_degraded = grounding.last_degraded;
+  if (grounding.grounded_share === null) warnings.push(grounding.last_degraded ? "tbr-quality.jsonl: the latest pipeline run degraded and no earlier run produced a report — report grounding unavailable" : "tbr-quality.jsonl: no pipeline run logged — report grounding unavailable");
 
   if (!client) {
     warnings.push("supabase not configured");
