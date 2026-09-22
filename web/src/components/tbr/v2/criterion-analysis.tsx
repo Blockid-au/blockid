@@ -11,7 +11,10 @@ export function CriterionAnalysis({
   if (!detail) return null;
   // Never render withheld text, even if a historical or malformed payload
   // still carries it. Saved model analysis is not independent verification.
-  const readable = detail.status === "supported" && Boolean(detail.narrative.trim());
+  const readable = detail.status === "supported"
+    && detail.source === "post_audit_criterion"
+    && ["model_and_citation", "citation_only"].includes(detail.auditKind)
+    && Boolean(detail.narrative.trim());
   return (
     <div className="mt-4 rounded-xl border border-line-subtle bg-surface-raised p-4" data-criterion-analysis={readable ? "supported" : "withheld"}>
       <h5 className="font-semibold text-primary">
