@@ -1681,3 +1681,12 @@ UI/auth/export and sale acceptance remain open until later review.
 Admission also stops counting a missing, inactive/non-previous quarantined PID
 as a live process; its state, reserved port and artifact pins remain preserved.
 This does not retire live jobs or close O08.14 focused controller tests passed.
+
+### U01/U02 next slice — workspace return navigation
+
+Prepared shared breadcrumbs using existing persona landing routes and hub/tab
+catalogue, with Home and overview available on every WorkspaceLayout page.
+Dynamic business/report IDs are not exposed in labels. Investor views preserve
+their own navigation.21 focused checks passed; source only, not yet deployed.
+[Scope/evidence](../reviews/2026-09-22-g30-workspace-navigation.md).
+Remaining dashboard hierarchy, menu grouping and all-page redesign stay open.

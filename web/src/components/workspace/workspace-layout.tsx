@@ -22,6 +22,7 @@ import { FeatureSpotlight } from "@/components/product-tour/feature-spotlight";
 import { ResellerPill } from "@/components/workspace/reseller-pill";
 import { HeaderAccountMenu } from "@/components/workspace/header-account-menu";
 import { HubTabs } from "@/components/workspace/hub-tabs";
+import { WorkspaceLocation } from "@/components/workspace/workspace-location";
 import { SandboxBanner } from "@/components/workspace/sandbox-banner";
 import { TrialDayWatcher } from "@/components/upsell/trial-day-watcher";
 import { UpgradeModal } from "@/components/upsell/upgrade-modal";
@@ -618,6 +619,7 @@ export function WorkspaceLayout({ children, user, currentPhase: currentPhaseProp
             under a hub layout (`HubTabsProvider`, G13-W2-IA2) and nothing
             otherwise. */}
         <main className="flex-1 min-w-0 overflow-auto">
+          <WorkspaceLocation pathname={pathname} landingHref={persona.landingHref} groups={groups} locale={locale} includeHubs={chrome.hubTabs} />
           {/* Hub tabs are founder IA (§A.1); evaluators / consoles share a few
               routes (settings, projects) but must not see founder tab chrome
               such as "Founder profile · Enterprise" (W2 review). Admins keep
