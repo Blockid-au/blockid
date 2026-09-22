@@ -1,0 +1,41 @@
+/** G30 U06: one reviewed homepage message. Historical experiment arms stay historical. */
+export const HOMEPAGE_COPY_VERSION = "g30-investor-v1";
+export const HOMEPAGE_SAMPLE_HREF = "/tbr/demo";
+export const HOMEPAGE_HERO = {
+  en: {
+    eyebrow: "Business research for investors",
+    title: "Know the business before you invest.",
+    sub: "Start with a website, business documents or a description. Review the business, key risks and questions to investigate.",
+    label: "Add a business to analyse",
+    placeholder: "Paste a website or describe the business",
+    submit: "Analyse a business",
+    upload: "Upload documents",
+    uploadTitle: "Upload documents (PDF, DOCX or PPTX)",
+    helper: "Paste a website, describe the business or upload a PDF, DOCX or PPTX.",
+    tooShort: "Describe what the business does and who it serves.",
+    ready: { url: "Website ready", idea: "Business description ready", deck: "Document selected" },
+    change: "Change input type",
+    sample: "View a sample report",
+    outcomes: "Business context · Key risks · Next questions",
+    close: "Start with the business you want to understand.",
+    closeSub: "Add a website, business documents or a description to begin.",
+  },
+  vi: {
+    eyebrow: "Nghiên cứu doanh nghiệp dành cho nhà đầu tư",
+    title: "Hiểu rõ doanh nghiệp trước khi đầu tư.",
+    sub: "Bắt đầu từ website, tài liệu hoặc mô tả doanh nghiệp. Xem phân tích doanh nghiệp, rủi ro chính và những câu hỏi cần tìm hiểu thêm.",
+    label: "Thêm doanh nghiệp cần phân tích",
+    placeholder: "Dán website hoặc mô tả doanh nghiệp",
+    submit: "Phân tích doanh nghiệp",
+    upload: "Tải tài liệu",
+    uploadTitle: "Tải tài liệu (PDF, DOCX hoặc PPTX)",
+    helper: "Dán website, mô tả doanh nghiệp hoặc tải PDF, DOCX hay PPTX.",
+    tooShort: "Mô tả doanh nghiệp làm gì và phục vụ ai.",
+    ready: { url: "Đã nhận website", idea: "Đã nhận mô tả doanh nghiệp", deck: "Đã chọn tài liệu" },
+    change: "Đổi loại dữ liệu",
+    sample: "Xem báo cáo mẫu",
+    outcomes: "Tổng quan doanh nghiệp · Rủi ro chính · Câu hỏi cần làm rõ",
+    close: "Bắt đầu với doanh nghiệp bạn muốn hiểu rõ.",
+    closeSub: "Thêm website, tài liệu hoặc mô tả doanh nghiệp để bắt đầu.",
+  },
+} as const;

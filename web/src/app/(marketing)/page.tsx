@@ -39,43 +39,12 @@ import {
   HOME_WHY_NOT,
 } from "./home-content";
 
-// Homepage v7 — evidence-backed assessment infrastructure (G21 P0-B,
-// 2026-09-20, docs/plans/g21-fi-upgrade-2026-09-20.md § 0 + § P0-B).
-//
-// WHY THE REWRITE
-//
-// v6 (G17, 2026-09-19) spoke to the evaluator ladder with a "who it's for"
-// card wall, a three-step how-it-works, a sample card and a stat strip.
-// The advisor feedback behind G21 asked for one clearer story: the problem
-// programs actually have, the product as ONE sequence, the three messages,
-// why this is not ChatGPT, who it is built for, one trust band, one close.
-// No feature-card walls, no prices (G17 D3 still holds — the page test pins
-// `/A\$\d/` absent), no agent counts, no "our AI is better".
-//
-// SEVEN BLOCKS, each on the template primitives (docs/design/unicorn-template.md):
-//
-//   1. Hero + search       HeroSection (client island: FI1/FI2 copy, the
-//                          Start a cohort / Score my startup CTAs, the
-//                          omnibox in its colour-changing ring, trust line)
-//   a. Problem             ProblemFlow — three linked steps, SVG arrows
-//   b. Product sequence    SequenceFlow — six steps, whole block → /product
-//   c. Three messages      FeatureGrid ×3 — Screen faster · Trust the
-//                          evidence · Track improvement
-//   d. Why not ChatGPT?    WhyNotChatGPT — two columns + the one line
-//   e. Built for           BuiltFor — six text chips, no logos
-//   f. TrustBand           lane P0-A's primitive (see
-//                          the placeholder comment below)
-//   g. Final CTA + footer  CtaBand (dark), then the one public Footer
-//
-// Every colour is a token; the only client JS is the hero. `PageViewTracker`
-// (root layout) and the GA4 hooks in `hero-section.tsx` are unchanged.
+// G30 U06 updates the hero, metadata and closing actions. Below-fold sections
+// retain their previous content pending the separate homepage content review.
 export const metadata = pageMetadata({
-  // Title = the FI1 H1 shortened to the ≤ 65-char rendered budget
-  // ("… | BlockID.au"); description = the FI2 promise, trimmed to the
-  // 160-character budget the site-meta sweep enforces.
-  title: "Screen startups on one evidence-backed framework",
+  title: "Know the business before you invest",
   description:
-    "BlockID turns applications, pitch decks and company evidence into a comparable Startup Value Index, evaluator dossier and improvement plan for every startup.",
+    "Review a business, its key risks and questions to investigate. Start with a website, business documents or a description, or explore a sample report.",
   path: "/",
   viPath: "/vi",
 });
@@ -107,9 +76,7 @@ export default function HomePage() {
       <NavV2 />
 
       <main id="main-content">
-        {/* 1. Hero — the one H1 (FI1), the FI2 sub-line, the two CTAs, the
-            omnibox in its ring, the trust line. Whatever is typed here
-            carries straight through to a running analysis. */}
+        {/* One investor message and the existing intake handoff. */}
         <HeroSection />
 
         {/* a. PROBLEM — three linked steps with inline SVG arrows. */}
@@ -196,8 +163,8 @@ export default function HomePage() {
         <CtaBand
           title={HOME_FINAL.title}
           sub={HOME_FINAL.sub}
-          primary={{ ...HOME_PRIMARY_CTA, ctaId: "home_final_start_cohort" }}
-          secondary={{ ...HOME_SECONDARY_CTA, ctaId: "home_final_score" }}
+          primary={{ ...HOME_PRIMARY_CTA, ctaId: "home_final_intake" }}
+          secondary={{ ...HOME_SECONDARY_CTA, ctaId: "home_final_sample" }}
           tone="sunken"
         />
       </main>

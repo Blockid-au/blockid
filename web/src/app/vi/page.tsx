@@ -27,14 +27,13 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { NavV2 } from "@/components/landing/nav-v2";
-import { START_COHORT_VI_HREF } from "@/lib/marketing/start-cohort";
+import { HOMEPAGE_HERO, HOMEPAGE_SAMPLE_HREF } from "@/lib/marketing/homepage-hero";
 import { Footer } from "@/components/marketing/footer";
 import {
   BuiltFor,
   CtaBand,
   CtaLink,
   FeatureGrid,
-  PageHero,
   ProblemFlow,
   Section,
   SequenceFlow,
@@ -43,16 +42,15 @@ import {
 } from "@/components/marketing/template";
 import { getMessages, t } from "@/lib/i18n/t";
 import { pageMetadata } from "@/lib/seo/page-meta";
-import { HOME_SAMPLE_LINK, HOME_SECONDARY_CTA, HOME_SEQUENCE } from "../(marketing)/home-content";
-import { ViHeroSearch } from "./vi-hero-search";
+import { HOME_SAMPLE_LINK, HOME_SEQUENCE } from "../(marketing)/home-content";
+import { HeroSection } from "@/components/marketing/hero-section";
 
 export const revalidate = 300;
 
 export async function generateMetadata(): Promise<Metadata> {
-  const m = await getMessages("vi");
   return pageMetadata({
-    title: t(m, "meta.home.title"),
-    description: t(m, "meta.home.description"),
+    title: HOMEPAGE_HERO.vi.title,
+    description: HOMEPAGE_HERO.vi.sub,
     path: "/vi",
     viPath: "/vi",
     lang: "vi",
@@ -94,21 +92,7 @@ export default async function ViHomePage() {
       <NavV2 />
 
       <main id="main-content">
-        <PageHero
-          eyebrow={t(m, "vi.home.eyebrow")}
-          title={t(m, "hero.line.fi1")}
-          sub={t(m, "hero.line.fi2")}
-          ctas={[
-            { href: START_COHORT_VI_HREF, label: t(m, "vi.home.cta.primary"), ctaId: "vi_hero_start_cohort" },
-            { href: HOME_SECONDARY_CTA.href, label: t(m, "vi.home.cta.secondary"), ctaId: "vi_hero_score" },
-          ]}
-          visual={<ViHeroSearch placeholder={t(m, "vi.home.search.placeholder")} />}
-          footnote={
-            <span data-testid="hero-trust-line" className="font-medium tracking-wide text-secondary">
-              {t(m, "vi.home.trustLine")}
-            </span>
-          }
-        />
+        <HeroSection locale="vi" />
 
         <Section
           id="problem"
@@ -212,10 +196,10 @@ export default async function ViHomePage() {
         </Section>
 
         <CtaBand
-          title={t(m, "vi.home.final.title")}
-          sub={t(m, "vi.home.final.sub")}
-          primary={{ href: START_COHORT_VI_HREF, label: t(m, "vi.home.cta.primary"), ctaId: "vi_home_final_start_cohort" }}
-          secondary={{ href: HOME_SECONDARY_CTA.href, label: t(m, "vi.home.cta.secondary"), ctaId: "vi_home_final_score" }}
+          title={HOMEPAGE_HERO.vi.close}
+          sub={HOMEPAGE_HERO.vi.closeSub}
+          primary={{ href: "#smart-intake-input", label: HOMEPAGE_HERO.vi.submit, ctaId: "vi_home_final_intake" }}
+          secondary={{ href: HOMEPAGE_SAMPLE_HREF, label: HOMEPAGE_HERO.vi.sample, ctaId: "vi_home_final_sample" }}
           tone="sunken"
         />
       </main>

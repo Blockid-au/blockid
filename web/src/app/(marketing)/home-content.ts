@@ -13,7 +13,7 @@
  * `/A\$\d/` absent).
  */
 
-import { START_COHORT_HREF, START_COHORT_LABEL } from "@/lib/marketing/start-cohort";
+import { HOMEPAGE_HERO, HOMEPAGE_SAMPLE_HREF } from "@/lib/marketing/homepage-hero";
 
 /** Icon keys resolved to Lucide components in page.tsx (this file stays plain data). */
 export type HomeSequenceIcon = "application" | "evidence" | "score" | "dossier" | "cohort" | "progress";
@@ -21,12 +21,12 @@ export type HomeMessageIcon = "faster" | "evidence" | "improvement";
 
 /** The two home CTAs — the hero, the nav and the closing band all use these. */
 export const HOME_PRIMARY_CTA = {
-  href: START_COHORT_HREF,
-  label: START_COHORT_LABEL,
+  href: "#smart-intake-input",
+  label: HOMEPAGE_HERO.en.submit,
 } as const;
 export const HOME_SECONDARY_CTA = {
-  href: "/analyze",
-  label: "Score my startup",
+  href: HOMEPAGE_SAMPLE_HREF,
+  label: HOMEPAGE_HERO.en.sample,
 } as const;
 
 /** Section ids inside <main>, in order (the page test pins this list). */
@@ -189,6 +189,6 @@ export const HOME_BUILT_FOR: readonly string[] = [
 // ─── g. Closing band ─────────────────────────────────────────────────────────
 
 export const HOME_FINAL = {
-  title: "Run your next intake on one framework.",
-  sub: "Start a cohort on a 14-day trial, or score one startup now. Founders get their own feedback and keep control of their data.",
+  title: HOMEPAGE_HERO.en.close,
+  sub: HOMEPAGE_HERO.en.closeSub,
 } as const;

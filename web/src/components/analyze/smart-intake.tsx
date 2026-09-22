@@ -64,6 +64,18 @@ export interface SmartIntakeSubmission {
   stageGuess?: StageGuess;
 }
 
+/** Optional homepage presentation. Detection and the submitted payload are unchanged. */
+export interface SmartIntakeCopy {
+  label: string;
+  submit: string;
+  upload: string;
+  uploadTitle: string;
+  helper: string;
+  tooShort: string;
+  ready: Record<"url" | "idea" | "deck", string>;
+  change: string;
+}
+
 export interface SmartIntakeProps {
   onSubmit?: (payload: SmartIntakeSubmission) => void;
   /** Called every time the fast classifier settles — useful for telemetry. */
@@ -71,6 +83,7 @@ export interface SmartIntakeProps {
   className?: string;
   /** Placeholder rotation is disabled if a fixed placeholder is provided. */
   placeholder?: string;
+  copy?: SmartIntakeCopy;
 }
 
 function tokenize(text: string): number {
@@ -149,6 +162,7 @@ export function SmartIntake({
   onClassify,
   className,
   placeholder,
+  copy,
 }: SmartIntakeProps) {
   const [text, setText] = React.useState("");
   const [file, setFile] = React.useState<File | null>(null);
@@ -263,10 +277,11 @@ export function SmartIntake({
   // bar at 1440 and truncated the placeholder. The invitation now lives in
   // the helper line under the pill (and in the placeholder); the disabled
   // button just names the action. The classifier contract is untouched.
-  const ctaText = disabled ? "Analyse" : classified.ctaLabel;
+  const ctaText = copy?.submit ?? (disabled ? "Analyse" : classified.ctaLabel);
 
   return (
     <div className={cn("w-full max-w-3xl", className)}>
+      {copy && <label htmlFor="smart-intake-input" className="mb-3 block text-left text-sm font-semibold text-primary">{copy.label}</label>}
       {/* The pill. One row on sm+, two on a phone — see the stacking note
           on the submit button below. `rounded-[inherit]` is load-bearing:
           the ring is AnimatedSearchFrame's padding band, so any radius the
@@ -297,9 +312,9 @@ export function SmartIntake({
                 className="h-5 w-5 shrink-0 text-tertiary"
                 aria-hidden
               />
-              <label htmlFor="smart-intake-input" className="sr-only">
+              {!copy && <label htmlFor="smart-intake-input" className="sr-only">
                 Paste a URL, drop a deck, or type your startup idea
-              </label>
+              </label>}
               <input
                 id="smart-intake-input"
                 ref={inputRef}
@@ -325,11 +340,11 @@ export function SmartIntake({
                   spells the affordance out for sighted phone users. */}
               <label
                 htmlFor="smart-intake-file"
-                title="Upload a pitch deck (PDF, DOCX or PPTX)"
+                title={copy?.uploadTitle ?? "Upload a pitch deck (PDF, DOCX or PPTX)"}
                 className="inline-flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-medium text-muted transition-colors hover:bg-surface-hover hover:text-primary focus-within:ring-2 focus-within:ring-action sm:border sm:border-line-subtle"
               >
                 <Upload className="h-4 w-4" aria-hidden />
-                <span className="sr-only sm:not-sr-only">Upload</span>
+                <span className="sr-only sm:not-sr-only">{copy?.upload ?? "Upload"}</span>
               </label>
             </div>
 
@@ -372,14 +387,14 @@ export function SmartIntake({
         className="mt-3 flex flex-wrap items-center justify-center gap-x-3 gap-y-2 px-2 text-xs"
         aria-live="polite"
       >
-        {classified.chipLabel && <ClassifierChip result={classified} />}
-        {effectiveVariant === "idea" && stageLoading && (
+        {classified.chipLabel && (!copy || classified.variant !== "empty") && <ClassifierChip result={copy ? { ...classified, chipLabel: classified.variant === "empty" ? "" : copy.ready[classified.variant] } : classified} />}
+        {!copy && effectiveVariant === "idea" && stageLoading && (
           <span className="inline-flex items-center gap-1 text-muted">
             <Loader2 className="h-3 w-3 animate-spin" aria-hidden />
             Classifying stage…
           </span>
         )}
-        {effectiveVariant === "idea" && stageGuess && !stageLoading && (
+        {!copy && effectiveVariant === "idea" && stageGuess && !stageLoading && (
           <span
             className="inline-flex items-center gap-1 rounded-full bg-svi-500/10 px-2 py-0.5 text-on-brand"
             data-testid="stage-guess-chip"
@@ -390,10 +405,12 @@ export function SmartIntake({
           </span>
         )}
         <p className="text-muted">
-          {classified.variant === "empty" && !file
-            ? "Drop a PDF, DOCX or PPTX here, paste a link, or just describe the idea."
-            : classified.reason}
-          {file ? ` · ${file.name}` : ""}
+          {copy
+            ? (classified.variant === "empty" && text.trim() ? copy.tooShort : copy.helper)
+            : classified.variant === "empty" && !file
+              ? "Drop a PDF, DOCX or PPTX here, paste a link, or just describe the idea."
+              : classified.reason}
+          {file ? ` · ${file.name}${copy ? ` · ${(file.size / (1024 * 1024)).toFixed(1)} MB` : ""}` : ""}
         </p>
         {classified.variant !== "empty" && (
           <button
@@ -409,7 +426,7 @@ export function SmartIntake({
             }}
             className="font-medium text-action hover:underline"
           >
-            Not right?
+            {copy?.change ?? "Not right?"}
           </button>
         )}
       </div>

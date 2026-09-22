@@ -1,3 +1,4 @@
+import { HOMEPAGE_HERO } from "@/lib/marketing/homepage-hero";
 // Colocated test for the /vi homepage mirror (G21 P0-B; was G17 P2-A).
 // Renders the real page (NavV2's auth hook + next/navigation stubbed, like
 // the English home test) and pins: exactly one H1 = vi `hero.line.fi1`, the
@@ -43,31 +44,25 @@ const out = await html(await ViHomePage());
 describe("/vi homepage — template (G21 P0-B)", () => {
   it("one h1 = hero.line.fi1 (vi), the FI2 sub-line, the search frame, the trust line, no A$ strings", () => {
     expect((out.match(/<h1\b/g) ?? []).length).toBe(1);
-    expect(out).toContain(esc(VI["hero.line.fi1"]!));
-    expect(out).toContain(esc(VI["hero.line.fi2"]!));
+    expect(out).toContain(esc(HOMEPAGE_HERO.vi.title));
+    expect(out).toContain(esc(HOMEPAGE_HERO.vi.sub));
     expect(out).not.toContain(esc(VI["hero.line.e1"]!));
     expect(out).toContain('data-testid="hero-search"');
     expect(out).toContain('data-testid="smart-intake"');
     expect(out).toContain('data-testid="hero-trust-line"');
-    expect(out).toContain(esc(VI["vi.home.trustLine"]!));
+    expect(out).toContain(esc(HOMEPAGE_HERO.vi.outcomes));
     expect(out).toContain('lang="vi"');
     expect(out).toContain('id="main-content"');
     expect(out).not.toMatch(/A\$\d/);
   });
 
-  it("the two CTAs go to the VI programs page rungs (G25 — never a pilot) and /analyze, in the hero and in the closing band", () => {
-    expect(HOME_PRIMARY_CTA.href).toBe("/signup?segment=evaluator&plan=accelerator_starter&trial=1&interval=annual");
-    expect(HOME_SECONDARY_CTA.href).toBe("/analyze");
-    expect(out).toMatch(/data-cta-id="vi_hero_start_cohort"/);
-    expect(out).toMatch(/data-cta-id="vi_hero_score"/);
-    expect(out).toMatch(/data-cta-id="vi_home_final_start_cohort"/);
-    expect(out).toMatch(/data-cta-id="vi_home_final_score"/);
-    // Review P1 (2026-09-20): a Vietnamese visitor stays on the /vi mirror.
-    expect((out.match(/href="\/vi\/solutions\/accelerator#plans"/g) ?? []).length).toBeGreaterThanOrEqual(2);
-    expect(out).not.toMatch(/#pilot|thí điểm/i);
-    expect((out.match(/href="\/analyze"/g) ?? []).length).toBeGreaterThanOrEqual(2);
-    expect(out).toContain(esc(VI["vi.home.cta.primary"]!));
-    expect(out).toContain(esc(VI["vi.home.cta.secondary"]!));
+  it("uses localized intake and returns the closing action to it", () => {
+    expect(HOME_PRIMARY_CTA.href).toBe("#smart-intake-input");
+    expect(HOME_SECONDARY_CTA.href).toBe("/tbr/demo");
+    expect(out).toContain('data-cta-id="vi_home_final_intake"');
+    expect(out).toContain('href="#smart-intake-input"');
+    expect(out).toContain(HOMEPAGE_HERO.vi.submit);
+    expect(out).not.toContain('data-cta-id="vi_hero_start_cohort"');
   });
 
   it("the same section order as the English home (+ the founder notice before the close), the sequence linked to /product, the sample link, the one footer", () => {

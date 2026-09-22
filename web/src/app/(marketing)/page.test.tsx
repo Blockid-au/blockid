@@ -27,9 +27,8 @@ vi.mock("@/components/auth/LogoutButton", () => ({
   LogoutButton: ({ children }: { children?: React.ReactNode }) => <button>{children}</button>,
 }));
 
-import { MENU, PRIMARY_CTA } from "@/components/landing/nav-v2";
-import { HERO_PRIMARY_CTA, HERO_SECONDARY_CTA } from "@/components/marketing/hero-section";
-import { heroLine } from "@/lib/marketing/hero-variants";
+import { MENU } from "@/components/landing/nav-v2";
+import { HOMEPAGE_HERO } from "@/lib/marketing/homepage-hero";
 import { renderedTitle } from "@/lib/seo/page-meta";
 import {
   HOME_BUILT_FOR,
@@ -68,12 +67,12 @@ const mainText = textOf(main);
 
 describe("homepage v7 — metadata", () => {
   it("title is the FI1 line shortened to ≤ 65 with the brand; description 140–160 with no A$; canonical / with the VI twin; ISR 300", () => {
-    expect(renderedTitle(metadata.title)).toBe("Screen startups on one evidence-backed framework | BlockID.au");
+    expect(renderedTitle(metadata.title)).toBe("Know the business before you invest | BlockID.au");
     expect(renderedTitle(metadata.title).length).toBeLessThanOrEqual(65);
     const d = String(metadata.description);
     expect(d.length).toBeGreaterThanOrEqual(140);
     expect(d.length).toBeLessThanOrEqual(160);
-    expect(d).toMatch(/Startup Value Index/);
+    expect(d).toContain("Review a business");
     expect(d).not.toMatch(/A\$/);
     expect(metadata.alternates?.canonical).toBe("https://blockid.au/");
     expect((metadata.alternates?.languages as Record<string, string>).vi).toBe("https://blockid.au/vi");
@@ -85,9 +84,8 @@ describe("homepage v7 — hero (G21 P0-B)", () => {
   it("exactly one h1, and it is the FI1 evidence-backed line", () => {
     const h1s = out.match(/<h1[^>]*>([\s\S]*?)<\/h1>/g) ?? [];
     expect(h1s).toHaveLength(1);
-    expect(textOf(h1s[0]!).trim()).toBe("Screen every startup on the same evidence-backed framework.");
-    expect(textOf(h1s[0]!).trim()).toBe(heroLine("FI1").en);
-    expect(text).toContain(heroLine("FI2").en);
+    expect(textOf(h1s[0]!).trim()).toBe(HOMEPAGE_HERO.en.title);
+    expect(text).toContain(HOMEPAGE_HERO.en.sub);
   });
 
   it("the search box + ring are in the hero (data-testid=hero-search, smart-intake ids kept) and main has id=main-content", () => {
@@ -98,26 +96,18 @@ describe("homepage v7 — hero (G21 P0-B)", () => {
     expect(out).toMatch(/<main[^>]*id="main-content"/);
   });
 
-  it("CTA 1 Start a cohort → the Cohort 25 annual trial sign-up (G25), CTA 2 Score my startup → /analyze; the hero, the nav and the closing band agree", () => {
-    expect(HOME_PRIMARY_CTA).toEqual({ href: "/signup?segment=evaluator&plan=accelerator_starter&trial=1&interval=annual", label: "Start a cohort" });
-    expect(HERO_PRIMARY_CTA.href).toBe(HOME_PRIMARY_CTA.href);
-    expect(HERO_PRIMARY_CTA.label).toBe(HOME_PRIMARY_CTA.label);
-    expect(HERO_SECONDARY_CTA.href).toBe(HOME_SECONDARY_CTA.href);
-    expect(HERO_SECONDARY_CTA.label).toBe(HOME_SECONDARY_CTA.label);
-    expect(PRIMARY_CTA.href).toBe(HOME_PRIMARY_CTA.href);
-    expect(PRIMARY_CTA.label).toBe(HOME_PRIMARY_CTA.label);
-    expect(out).toMatch(/data-cta-id="hero_start_cohort"/);
-    expect(out).toMatch(/data-cta-id="hero_score"/);
-    expect(out).toMatch(/data-cta-id="start_cohort"/);
-    expect(out).toMatch(/data-cta-id="home_final_start_cohort"/);
-    expect(out).toMatch(/data-cta-id="home_final_score"/);
-    expect((out.match(/href="\/signup\?segment=evaluator&amp;plan=accelerator_starter&amp;trial=1&amp;interval=annual"/g) ?? []).length).toBeGreaterThanOrEqual(3);
-    expect(out).not.toMatch(/#pilot|cohort pilot/i);
+  it("uses the intake submit and returns the closing action to that input", () => {
+    expect(HOME_PRIMARY_CTA).toEqual({ href: "#smart-intake-input", label: HOMEPAGE_HERO.en.submit });
+    expect(HOME_SECONDARY_CTA).toEqual({ href: "/tbr/demo", label: HOMEPAGE_HERO.en.sample });
+    expect(out).toContain('data-cta-id="home_final_intake"');
+    expect(out).toContain('href="#smart-intake-input"');
+    expect(out).not.toContain('data-cta-id="hero_start_cohort"');
+    expect(out).not.toContain('data-cta-id="hero_score"');
   });
 
   it("the trust line sits under the search box", () => {
     expect(out).toContain('data-testid="hero-trust-line"');
-    expect(text).toContain("Australian-built · Evidence-backed · Founder-controlled data");
+    expect(text).toContain(HOMEPAGE_HERO.en.outcomes);
   });
 });
 
@@ -251,8 +241,8 @@ describe("homepage v7 — sections in order", () => {
     expect(out).toMatch(/<section[^>]*id="cta"[^>]*data-tone="sunken"/);
     expectLightSurfaces(out, "home");
     const band = out.slice(out.indexOf('id="cta"'));
-    expect(band).toContain("Start a cohort");
-    expect(band).toContain("Score my startup");
+    expect(band).toContain(HOMEPAGE_HERO.en.submit);
+    expect(band).toContain(HOMEPAGE_HERO.en.sample);
   });
 });
 
