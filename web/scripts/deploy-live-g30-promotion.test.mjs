@@ -6,6 +6,29 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 
 const source = readFileSync(new URL('./deploy-live.sh', import.meta.url), 'utf8');
+test('normal admission does not load production credentials or mode into CI gates', () => {
+  const start = source.indexOf('# G30 initial admission:');
+  const end = source.indexOf('# PRE-GATE (G15-R1):', start);
+  assert.ok(start >= 0 && end > start);
+  const result = spawnSync('bash', ['-c', `
+set -euo pipefail
+unset NODE_ENV G30_FAKE_PRODUCTION_SECRET
+PID_FILE=unused CURRENT_LINK=unused WEB_DIR=unused
+load_env() { export NODE_ENV=production G30_FAKE_PRODUCTION_SECRET=loaded; }
+cat() { echo 101; }
+readlink() { echo /tmp/retained-origin; }
+git() { return 0; }
+fail() { echo "$*" >&2; exit 1; }
+g30_state() { case "$1" in --port) echo 4001;; --verify-active) echo '{"sha":"old"}';; --allocate) echo 4100;; esac; }
+g30_json_field() { cat >/dev/null; echo old; }
+g30_configured_port() { echo 4001; }
+${source.slice(start, end)}
+test -z "\${NODE_ENV:-}"
+test -z "\${G30_FAKE_PRODUCTION_SECRET:-}"
+`], { env: process.env, encoding: 'utf8', timeout: 5000 });
+  assert.equal(result.status, 0, result.stderr);
+});
+
 function shellFunction(name) {
   const start = source.indexOf(`${name}() {\n`);
   assert.ok(start >= 0);

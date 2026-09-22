@@ -603,7 +603,9 @@ fi
 # G30 initial admission: establish the healthy legacy origin once; no process
 # is stopped. New migrations need O09 compatibility approval outside this
 # initial controller. Mutation crons pause while phase is switching.
-load_env
+# The state helper reads only its status token from .env itself. Loading the
+# application environment here would leak production mode/credentials into
+# TypeScript, lint and unit-test gates. Load it only when launching a runtime.
 g30_state --init --listen-port 4001 --pid "$(cat "$PID_FILE")" \
   --release "$(readlink -f "$CURRENT_LINK")" --lock-fd 200 >/dev/null || fail "Cannot establish/verify known-good serving state"
 PROD_PORT=$(g30_state --port) || fail "Serving origin is not stable"
