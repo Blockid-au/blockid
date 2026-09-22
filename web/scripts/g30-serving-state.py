@@ -126,6 +126,16 @@ def verify_entry(entry, web=None):
     return entry
 
 
+def schema_compatible(web, source, target):
+    if source['schemaDigest'] == target['schemaDigest']:
+        return True
+    # Only the separately sealed exact0447 additive transition may cross digests.
+    spec = importlib.util.spec_from_file_location('g30_authority_transition', Path(__file__).with_name('g30-authority-schema-transition.py'))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.allowed(web, source, target, type('StateAdapter', (), {'validate_entry': staticmethod(validate_entry), 'verify_entry': staticmethod(verify_entry)}))
+
+
 def make_entry(web, port, pid, release):
     path = release.resolve(strict=True)
     manifest = json.loads((path / '.deploy-manifest.json').read_text())
@@ -280,7 +290,7 @@ def main():
             if not data:
                 raise ValueError('No G30 warm rollback state')
             for port in reversed(data['verifiedGood']):
-                matches = [e for e in data['retained'] if e['port'] == port and (port != data['active']['port'] or data['phase'] == 'switching') and port not in data['quarantined'] and e['schemaDigest'] == data['active']['schemaDigest']]
+                matches = [e for e in data['retained'] if e['port'] == port and (port != data['active']['port'] or data['phase'] == 'switching') and port not in data['quarantined'] and schema_compatible(web, data['active'], e)]
                 if matches:
                     try:
                         print(json.dumps(verify_entry(matches[0], web))); return 0
@@ -322,7 +332,7 @@ def main():
                     data['resourceAdmission'] = extra_slot_authorization(web, data, entry['sha'], entry, 'register')
                 if any(e['port'] == entry['port'] or e['pid'] == entry['pid'] for e in data['retained']):
                     raise ValueError('Candidate PID/port already retained')
-                if entry['schemaDigest'] != data['active']['schemaDigest']:
+                if not schema_compatible(web, data['active'], entry):
                     raise ValueError('Schema change requires expanded compatibility/recovery plan')
                 data['retained'].append(entry)
             elif args.gates_passed:
@@ -360,6 +370,8 @@ def main():
                 if args.listen_port in data['quarantined'] or (args.rollback and args.listen_port not in data['verifiedGood']):
                     raise ValueError('Target is quarantined or rollback is not verified-good')
                 target = verify_entry(targets[0], web)
+                if not schema_compatible(web, data['active'], target):
+                    raise ValueError('Target lacks schema compatibility approval')
                 if target != data['active']:
                     data['previous'] = None if args.rollback else data['active']; data['active'] = target
                 data['phase'] = 'stable'

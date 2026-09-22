@@ -611,8 +611,12 @@ g30_state --init --listen-port 4001 --pid "$(cat "$PID_FILE")" \
 PROD_PORT=$(g30_state --port) || fail "Serving origin is not stable"
 ROLLBACK_TARGET_JSON=$(g30_state --verify-active) || fail "Active origin identity/schema unverified"
 ACTIVE_SHA=$(printf '%s' "$ROLLBACK_TARGET_JSON" | g30_json_field sha) || fail "Missing active SHA"
+G30_AUTHORITY_EXPANSION=0
 if ! git -C "$WEB_DIR" diff --quiet "$ACTIVE_SHA" HEAD -- supabase/migrations; then
-  fail "Migration changes require expanded compatibility/rollback verification before promotion"
+  python3 "$WEB_DIR/scripts/g30-authority-schema-transition.py" --web "$WEB_DIR" preflight \
+    --active-sha "$ACTIVE_SHA" --lock-fd 200 >/dev/null || \
+    fail "Migration changes require expanded compatibility/rollback verification before promotion"
+  G30_AUTHORITY_EXPANSION=1
 fi
 CONFIGURED_PORT=$(g30_configured_port) || fail "Unsupported nginx origin configuration"
 [ "$CONFIGURED_PORT" = "$PROD_PORT" ] || fail "nginx origin differs from stable serving state"
@@ -1462,6 +1466,11 @@ gate "Promote retained candidate through nginx ($PROD_PORT → $TEMP_PORT)"
 # Registration verifies exact PID/start/cwd/listener/SHA/schema and pins all
 # retained releases before state changes. Candidate is not rollback-eligible
 # until the final gate records mark-good.
+if [ "$G30_AUTHORITY_EXPANSION" -eq 1 ]; then
+  python3 "$WEB_DIR/scripts/g30-authority-schema-transition.py" --web "$WEB_DIR" enroll \
+    --candidate-port "$TEMP_PORT" --candidate-pid "$NEW_PID" --candidate-release "$RELEASE_DIR" \
+    --lock-fd 200 >/dev/null || fail "Cannot enroll exact0447 candidate with verified warm recovery"
+fi
 G30_REGISTERED=0
 for G30_REGISTER_ATTEMPT in 1 2 3 4; do
   if G30_REGISTER_RESULT=$(g30_state --register --pid "$NEW_PID" --release "$RELEASE_DIR" \
