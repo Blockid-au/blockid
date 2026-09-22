@@ -4,7 +4,7 @@
 //
 // Body: { pitchdeckId: string, dims: string[] }
 //   pitchdeckId — id from /api/pitchdeck/classify response
-//   dims        — subset of the 8 SVI DIM_KEYS the founder chose to run
+//   dims        — all 8 SVI DIM_KEYS, explicitly selected by the founder
 //
 // Charges the founder for every dim that's flagged `missing` in the
 // classifier coverage map (speculative analyses cost credits; `strong` /
@@ -57,7 +57,7 @@ async function POST_handler(request: Request): Promise<Response> {
     return NextResponse.json({ ok: false, error: "invalid JSON body" }, { status: 400 });
   }
 
-  const pitchdeckId = body.pitchdeckId?.trim() ?? "";
+  const pitchdeckId = typeof body?.pitchdeckId === "string" ? body.pitchdeckId.trim() : "";
   if (!pitchdeckId) {
     return NextResponse.json({ ok: false, error: "missing_pitchdeckId" }, { status: 400 });
   }
@@ -71,6 +71,11 @@ async function POST_handler(request: Request): Promise<Response> {
     return NextResponse.json({ ok: false, error: "no_dims_selected" }, { status: 400 });
   }
   const dims = Array.from(new Set(requested));
+  // The fresh-document stream requires a full run. Reject unsupported input
+  // before any credit check/debit; never expand a paid selection implicitly.
+  if (dims.length !== DIM_KEYS.length) {
+    return NextResponse.json({ ok: false, error: "full_analysis_required", message: "A new deck requires all 8 dimensions. Select all 8 and review the credit cost before starting. No credits were charged." }, { status: 400 });
+  }
 
   const supabase = getSupabaseAdmin();
   if (!supabase) {
@@ -94,6 +99,9 @@ async function POST_handler(request: Request): Promise<Response> {
     return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
   }
   const deck = row as PitchdeckRow;
+  if (typeof deck.extracted_text !== "string" || !deck.extracted_text.trim()) {
+    return NextResponse.json({ ok: false, error: "empty_deck_text", message: "This deck has no readable text. Upload a readable deck before starting. No credits were charged." }, { status: 400 });
+  }
 
   // Identify speculative dims (coverage=missing) that will incur credit
   // charges. `strong` and `partial` are free — the LLM has deck evidence.

@@ -48,7 +48,7 @@ interface CreditsInfo {
 function StepBreadcrumb({ current }: { current: Step }) {
   const steps: Array<{ key: Step; label: string }> = [
     { key: "upload", label: "Upload deck" },
-    { key: "coverage", label: "Pick dimensions" },
+    { key: "coverage", label: "Review coverage & cost" },
     { key: "analyze", label: "Analyse & score" },
   ];
   const idx = steps.findIndex((s) => s.key === current);
@@ -207,7 +207,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
   const speculativeCost = useMemo(() => {
     let total = 0;
     for (const k of selected) {
-      if (coverage[k]?.level === "missing") total += SPECULATIVE_COST[k] ?? 0;
+      if (!coverage[k] || coverage[k].level === "missing") total += SPECULATIVE_COST[k] ?? 0;
     }
     return Math.round(total * 100) / 100;
   }, [selected, coverage]);
@@ -289,7 +289,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
   }, [file, pastedText, projectId, primeSelection]);
 
   const submitAnalyze = useCallback(async () => {
-    if (!pitchdeckId || selected.size === 0) return;
+    if (!pitchdeckId || selected.size !== 8) return;
     setError(null);
     setBusy(true);
     try {
@@ -331,9 +331,8 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
           </h1>
           <p className="text-sm text-ink-600 max-w-3xl">
             Upload your deck. We&rsquo;ll classify how well each of the 8 SVI
-            dimensions is covered, then let you pick which ones to analyse —
-            free where the deck has evidence, credit-gated when you want us
-            to speculate on gaps.
+            dimensions is covered. A new deck needs a full 8-dimension analysis.
+            Review the coverage and credit cost, then select all 8 to start.
           </p>
         </div>
         {credits && (
@@ -499,24 +498,10 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
           <div className="flex items-center justify-end gap-2 flex-wrap">
             <button
               type="button"
-              onClick={() => setSelected(new Set(Object.keys(coverage)))}
+              onClick={() => setSelected(new Set(Object.keys(SPECULATIVE_COST)))}
               className="text-[11px] font-medium text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action rounded px-1"
             >
               Select all 8
-            </button>
-            <span className="text-muted">·</span>
-            <button
-              type="button"
-              onClick={() => {
-                const freeOnly = new Set<string>();
-                for (const [k, v] of Object.entries(coverage)) {
-                  if (v.level !== "missing") freeOnly.add(k);
-                }
-                setSelected(freeOnly);
-              }}
-              className="text-[11px] font-medium text-brand-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action rounded px-1"
-            >
-              Free only
             </button>
             <span className="text-muted">·</span>
             <button
@@ -527,6 +512,10 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
               Clear
             </button>
           </div>
+          <p className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" role="status">
+            New decks require all 8 dimensions. Select all 8 and review the credit cost before starting.
+            Missing-evidence dimensions may cost credits. We will not add paid dimensions automatically.
+          </p>
           <PitchdeckCoverageGrid
             coverage={coverage}
             selected={selected}
@@ -543,7 +532,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
                   you have <span className="tabular-nums">{insufficient.balance.toFixed(2)}</span>
                 </p>
                 <p>
-                  Top up in Billing, or drop the speculative dims from your selection to run only the free ones.
+                  Top up in Billing, or add supporting evidence to your deck and upload it again. A new deck requires all 8 dimensions.
                 </p>
               </div>
               <Link
@@ -583,11 +572,11 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
               <button
                 type="button"
                 onClick={submitAnalyze}
-                disabled={busy || selected.size === 0}
+                disabled={busy || selected.size !== 8}
                 className={cn(
                   "inline-flex items-center justify-center min-h-[44px] rounded-lg px-5 text-sm font-semibold text-primary transition-colors",
                   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-white",
-                  busy || selected.size === 0
+                  busy || selected.size !== 8
                     ? "bg-brand-300 cursor-not-allowed opacity-70"
                     : "bg-action hover:bg-action-hover",
                 )}
@@ -612,7 +601,7 @@ export function PitchdeckAnalyzeClient({ projectId }: { projectId?: string }) {
       {step === "analyze" && analyzeDims && pitchdeckId && (
         <div className="space-y-4">
           <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 px-4 py-2.5 text-xs text-emerald-800">
-            Credits reserved. Streaming analysis for {analyzeDims.length} dimension{analyzeDims.length === 1 ? "" : "s"} below —
+            Analysis started. Streaming analysis for {analyzeDims.length} dimension{analyzeDims.length === 1 ? "" : "s"} below —
             each result appears as the model finishes.
           </div>
           {savedSvi !== null && (
