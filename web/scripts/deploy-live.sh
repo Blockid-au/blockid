@@ -1456,8 +1456,22 @@ gate "Promote retained candidate through nginx ($PROD_PORT → $TEMP_PORT)"
 # Registration verifies exact PID/start/cwd/listener/SHA/schema and pins all
 # retained releases before state changes. Candidate is not rollback-eligible
 # until the final gate records mark-good.
-g30_state --register --pid "$NEW_PID" --release "$RELEASE_DIR" \
-  --listen-port "$TEMP_PORT" --lock-fd 200 >/dev/null || fail "Cannot register verified candidate"
+G30_REGISTERED=0
+for G30_REGISTER_ATTEMPT in 1 2 3 4; do
+  if G30_REGISTER_RESULT=$(g30_state --register --pid "$NEW_PID" --release "$RELEASE_DIR" \
+    --listen-port "$TEMP_PORT" --lock-fd 200 2>&1); then
+    G30_REGISTERED=1
+    break
+  fi
+  case "$G30_REGISTER_RESULT" in
+    *"CPU/memory contention outside admission budget"*|*"insufficient candidate+operating+build memory reserve"*)
+      echo "  ↳ Resource pressure after smoke; retaining current traffic while rechecking ($G30_REGISTER_ATTEMPT/4)"
+      [ "$G30_REGISTER_ATTEMPT" -eq 4 ] || sleep 5
+      ;;
+    *) echo "$G30_REGISTER_RESULT"; fail "Cannot register verified candidate" ;;
+  esac
+done
+[ "$G30_REGISTERED" -eq 1 ] || fail "Candidate resource pressure persisted; current traffic retained"
 python3 "$WEB_DIR/scripts/g30-supervised-launch.py" --web "$WEB_DIR" --release "$RELEASE_DIR" \
   --check "$CANDIDATE_UNIT" --pid "$NEW_PID" --apply --lock-fd 200 >/dev/null \
   || fail "Candidate supervisor identity changed before cutover"
