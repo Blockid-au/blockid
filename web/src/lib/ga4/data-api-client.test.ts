@@ -822,3 +822,20 @@ describe("existing service-account pair", () => {
     expect(runReportMock).not.toHaveBeenCalled();
   });
 });
+
+
+describe("BlockID hostname isolation", () => {
+  it("filters every totals/pages/events/acquisition/trend request to production BlockID hosts", async () => {
+    process.env.GA4_PROPERTY_ID = "123";
+    process.env.GOOGLE_APPLICATION_CREDENTIALS_JSON = VALID_SA;
+    runReportMock.mockResolvedValue({ data: {rows:[]} });
+    const mod = await importModule();
+    const result = await mod.fetchDailySnapshot();
+    expect(result.ok).toBe(true);
+    expect(runReportMock).toHaveBeenCalledTimes(5);
+    for (const [request] of runReportMock.mock.calls) {
+      expect(request.requestBody.dimensionFilter).toEqual({filter:{fieldName:"hostName",inListFilter:{values:["blockid.au","www.blockid.au"],caseSensitive:false}}});
+    }
+    if(result.ok) expect(result.snapshot.hostname_scope).toEqual(["blockid.au","www.blockid.au"]);
+  });
+});

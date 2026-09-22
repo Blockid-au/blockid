@@ -58,6 +58,8 @@ export interface Ga4Snapshot {
   date: string; // YYYY-MM-DD (UTC yesterday)
   range_days: number;
   property_id: string;
+  /** Present on site-filtered snapshots; older property-wide snapshots lack it. */
+  hostname_scope?: string[];
   totals: Ga4Totals;
   topPages: Ga4TopPage[];
   topEvents: Ga4TopEvent[];
@@ -131,6 +133,7 @@ export interface Ga4RunReportRequest {
   metrics: Array<{ name: string }>;
   orderBys?: Array<{ metric?: { metricName: string }; dimension?: { dimensionName: string }; desc?: boolean }>;
   limit?: number;
+  dimensionFilter?: { filter: { fieldName: "hostName"; inListFilter: { values: string[]; caseSensitive: boolean } } };
 }
 
 interface Ga4RunReportRow {
@@ -186,6 +189,13 @@ export async function fetchDailySnapshot(): Promise<Ga4SnapshotResult> {
     };
   }
 
+  // Both products share the configured property. Never label sibling-site
+  // traffic (or staging/unknown hosts) as BlockID acquisition.
+  const hostnameScope = ["blockid.au", "www.blockid.au"];
+  const runSiteReport = (request: Ga4RunReportRequest) => runReport({
+    ...request,
+    dimensionFilter: { filter: { fieldName: "hostName", inListFilter: { values: hostnameScope, caseSensitive: false } } },
+  });
   const property = getGa4PropertyId()!;
   const date = utcYesterday(); // GA4 date arg
   const start7 = utcNDaysAgo(7);
@@ -193,7 +203,7 @@ export async function fetchDailySnapshot(): Promise<Ga4SnapshotResult> {
 
   try {
     // 1) Totals for yesterday
-    const totalsRes = await runReport({
+    const totalsRes = await runSiteReport({
       dateRanges: [{ startDate: date, endDate: date }],
       metrics: [
         { name: "sessions" },
@@ -217,7 +227,7 @@ export async function fetchDailySnapshot(): Promise<Ga4SnapshotResult> {
     };
 
     // 2) Top pages (path + sessions + views)
-    const pagesRes = await runReport({
+    const pagesRes = await runSiteReport({
       dateRanges: [{ startDate: date, endDate: date }],
       dimensions: [{ name: "pagePath" }],
       metrics: [{ name: "sessions" }, { name: "screenPageViews" }],
@@ -231,7 +241,7 @@ export async function fetchDailySnapshot(): Promise<Ga4SnapshotResult> {
     }));
 
     // 3) Top events (name + count)
-    const eventsRes = await runReport({
+    const eventsRes = await runSiteReport({
       dateRanges: [{ startDate: date, endDate: date }],
       dimensions: [{ name: "eventName" }],
       metrics: [{ name: "eventCount" }],
@@ -244,7 +254,7 @@ export async function fetchDailySnapshot(): Promise<Ga4SnapshotResult> {
     }));
 
     // 4) Source / medium
-    const srcRes = await runReport({
+    const srcRes = await runSiteReport({
       dateRanges: [{ startDate: date, endDate: date }],
       dimensions: [{ name: "sessionSource" }, { name: "sessionMedium" }],
       metrics: [{ name: "sessions" }],
@@ -258,7 +268,7 @@ export async function fetchDailySnapshot(): Promise<Ga4SnapshotResult> {
     }));
 
     // 5) 7-day trend by date
-    const trendRes = await runReport({
+    const trendRes = await runSiteReport({
       dateRanges: [{ startDate: start7, endDate: end7 }],
       dimensions: [{ name: "date" }],
       metrics: [{ name: "sessions" }, { name: "activeUsers" }, { name: "conversions" }],
@@ -282,6 +292,7 @@ export async function fetchDailySnapshot(): Promise<Ga4SnapshotResult> {
       date,
       range_days: 1,
       property_id: property,
+        hostname_scope: hostnameScope,
       totals,
       topPages,
       topEvents,
