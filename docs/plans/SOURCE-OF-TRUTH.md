@@ -1327,12 +1327,16 @@ Approval22/09/2026 bắt đầu W0a. Đây là status của cùng45 items, khôn
 
 | Item | Status | Evidence / next gate |
 |---|---|---|
-| P01 | IN PROGRESS | Approval commit168b6fe98; source/live/topology/cron/resource/backup evidence in [W0 inventory](../reviews/2026-09-22-g30-w0-runtime-inventory.md); automate writer coordination next |
+| P01 | IN PROGRESS | Approval commit168b6fe98; source/live/topology/cron/resource/backup evidence in [W0 inventory](../reviews/2026-09-22-g30-w0-runtime-inventory.md). Legacy upgrade/git-sync writers now defer to approved G30 controller; generator/consumer plan mapping remains open |
 | O05 | IMPLEMENTED / RUNTIME VERIFICATION PENDING | Non-stopping controller + frozen runtime + active-origin consumers; independent isolated review passed, first controlled deploy pending |
 | O06 | IN PROGRESS — partial verified | Manual rollback9 tests; protected retention15 tests; shared prune helper integrated. LKG selection/compatibility/quarantine và safe cutover còn pending |
-| O07/O09 | IN PROGRESS | Actual inventory documented; recovery coordination7 isolated tests passed. Offsite backup failed quota; chưa chạy host-failure drill |
+| O07/O09 | IN PROGRESS | Actual inventory documented; recovery coordination17 isolated tests passed. Offsite backup failed quota; chưa chạy host-failure drill |
 | O09 off-host backup/standby | DEFERRED BY FOUNDER (22/09/2026) | User: “chưa cần bây giờ”. No new backup purchase/setup now. Local backup/restore checks remain; host-loss continuity not verified and no HA/absolute24h promise. This scope decision allows independent phased deploys, not a claim off-host DR passed |
 | E03 quote provenance | PARTIAL VERIFIED / NOT RELEASED | Sourcequote authentication fixed, pipeline cacheversion bumped;50files/910tests passed. Numeric/entity/period semantic matching and cited-claim verification remain open. Strict experiment archived, not shipped |
+| F01/F02 foundation | CANDIDATE / NOT RELEASED | Fresh received-deck context/cache identity; explicit save outcome and stale-export suppression, including section retry. Integrated runner/route/storage/UI57 tests, follow-up save UI12 tests passed. Upstream partial-deck debit guard remains a release blocker until integrated and checked. Durable input provenance/atomic save/deck save remain open; [foundation evidence](../reviews/2026-09-22-g30-foundation-evidence.md) |
+| O01 provider scope | PARTIAL CANDIDATE / NOT RELEASED | Four main report adapters enforce existing DeepInfra-only policy; no qualified external fallback yet. Routing tests pass, held-out quality/cost/availability evaluations and legacy direct-route coverage remain open |
+| B02 checkout guard | PARTIAL CANDIDATE / NOT RELEASED | Missing Stripe/price returns503 instead of granting unpaid credits;33 mocked tests passed. Does not close B03 atomic fulfillment, price parity or webhook reconciliation |
+| U03 light foundation | PARTIAL CANDIDATE / NOT RELEASED | Legacy theme migration and shared light tokens;84 unit tests and12 compiled-CSS browser fixture cases passed. Actual site/authenticated-page acceptance and full U06 redesign still pending |
 | Remaining items | PENDING | Theo dependency §12/phase§12.8, chưa có closure evidence |
 
 ## 13. Quality gates và định nghĩa ready for sale
