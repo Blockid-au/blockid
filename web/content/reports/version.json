@@ -1,8 +1,9 @@
 {
-  "version": "v3.32.1",
-  "updated_at": "2026-09-22T12:22:39.202978+00:00",
-  "release_id": "g30-discovery-evaluator-support",
+  "version": "v3.33.0",
+  "updated_at": "2026-09-22T13:29:08.283344+00:00",
+  "release_id": "g30-audited-criterion-analysis",
   "shipped_summary": [
+    "v3.33.0 — Preserve final audited business analysis per criterion, with expandable web detail and paid PDF/DOCX parity. Rejected narratives remain withheld; existing reports are not backfilled. No new research charge or scoring activation.",
     "v3.32.1 — Evaluator pricing default, consistent admin@blockid.au support, private-route discovery exclusions, public-demo crawl correction and factual sitemap dates. Criterion research coverage and quote-consent/free-qualification prerequisites included; paid re-analysis and new scoring activation remain pending.",
     "v3.32.0 — Clearer investor dashboard and criterion/source disclosure; submitted financial context explains unavailable valuation; scoped research/assessment foundations and SVI proxy policy. New paid re-analysis, semantic verification, approved free fallback and full cross-site rollout remain pending.",
     "v3.31.0 — Track scoped origin work and expose authenticated drain controls; bind re-analysis requests to authorized report snapshots, scope and credit quotes. New paid re-analysis execution and database migrations remain disabled. Legacy origin retirement remains unproven.",
