@@ -20,6 +20,34 @@ if [ -z "$ENDPOINT" ]; then
   exit 0
 fi
 
+# G30 ownership admission precedes HTTP, secrets, probes and lock acquisition.
+# These exact legacy endpoints can mutate source/releases or delete caches.
+case "$ENDPOINT" in
+  agent-orchestrator|agent-auto-improve|agent-deploy|agent-healthcheck|agent-guardian)
+    G30_CONTROL="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)/docs/plans/g30-execution-control.json"
+    G30_DECISION=$(python3 - "$G30_CONTROL" <<'G30_PY'
+import json, sys
+try:
+    with open(sys.argv[1]) as handle:
+        value = json.load(handle)
+    valid = (isinstance(value, dict) and type(value.get("version")) is int
+             and value["version"] == 1 and value.get("owner") == "g30"
+             and value.get("source_of_truth") == "docs/plans/SOURCE-OF-TRUTH.md"
+             and value.get("status") in ("active", "released"))
+    print(value["status"] if valid else "invalid")
+except Exception:
+    print("invalid")
+G30_PY
+    ) || G30_DECISION=invalid
+    if [ "$G30_DECISION" != released ]; then
+      # A truthful deferral, not HTTP success or a fabricated health sample.
+      printf '%s %s: deferred (G30 ownership %s; no HTTP request)\n' "$(date -u '+%m-%d %H:%M')" "$ENDPOINT" "$G30_DECISION" >> /tmp/blockid-cron.log
+      exit 0
+    fi
+    ;;
+esac
+# END G30 cron ownership admission
+
 # Per-job lockfile — prevents overlapping runs of the same endpoint (a slow
 # svi-index-populate must not stack). Silent skip on contention (exit 0 so
 # cron doesn't spam), and cap wall time at 90s regardless of anything below.
