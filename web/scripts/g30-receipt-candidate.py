@@ -33,7 +33,7 @@ def roots(source,control):
  if any((source/p).is_symlink() for p in ['.next','.deploy-manifest.json','.next-receipt-stage-backup','content/reports']):raise ValueError('build output must remain isolated')
  return source,control
 
-TOOLING=['deploy-live.sh','g30-receipt-candidate.py','g30-serving-state.py','g30-schema-expansion-controller.py','g30-schema-expansion.py','g30-supervised-launch.py','g30-freeze-runtime.py','g30-resource-admission.py']
+TOOLING=['deploy-live.sh','g30-receipt-candidate.py','g30-receipt-disposition.py','g30-serving-state.py','g30-schema-expansion-controller.py','g30-schema-expansion.py','g30-supervised-launch.py','g30-freeze-runtime.py','g30-resource-admission.py']
 def require_installed_tooling(source,control):
  if any(digest(source/'scripts'/name)!=digest(control/'scripts'/name) for name in TOOLING):raise ValueError('install reviewed canonical tooling prerequisite before staging')
 
@@ -181,12 +181,18 @@ def promotion_commands(record,transition,active,source,control):
 
 def main():
  parser=argparse.ArgumentParser(description=__doc__)
- parser.add_argument('command',choices=['preflight','allocate','pin','inspect','commands','promotion-plan'])
+ parser.add_argument('command',choices=['preflight','allocate','pin','inspect','commands','promotion-plan','dispose'])
  parser.add_argument('--source-web',type=Path,required=True);parser.add_argument('--control-web',type=Path,required=True)
+ parser.add_argument('--expected-stage-sha256',help='Exact inspected stage bytes SHA256; required only for explicit dispose')
  parser.add_argument('--baseline-port',type=int,action='append',default=[])
  parser.add_argument('--lock-fd',type=int,required=True);parser.add_argument('--port',type=int);parser.add_argument('--pid',type=int);parser.add_argument('--release',type=Path)
  args=parser.parse_args();source,control=roots(args.source_web,args.control_web);state.proxy.require_lock(args.lock_fd)
  location=record_path(control)
+ if args.command=='dispose':
+  require_installed_tooling(source,control)
+  result=module('g30-receipt-disposition').dispose(control,args.expected_stage_sha256,state,expansion,args.lock_fd)
+  print(json.dumps(result));return
+ if args.expected_stage_sha256 is not None:raise ValueError('stage hash argument only applies to dispose')
  if args.command=='preflight':
   record=preflight(source,control,args.baseline_port)
   state.atomic_json(location,record)
