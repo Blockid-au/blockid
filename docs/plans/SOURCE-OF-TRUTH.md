@@ -1874,3 +1874,8 @@ Current account evidence:22/09 GA4 custom-dimension read-only inspection returns
 ### G30 analytics attribution / CSP evidence — 2026-09-22
 
 Source-only follow-up distinguishes default Evaluator pricing views from explicit deep links and clicks, deferring attribution until an explicit URL tab is rendered.73 focused checks passed. Browser evidence confirms application hydration and default denied analytics consent; two blocked inline scripts are consistent with an additional Google tag gateway loader. CSP remains intact. Cloudflare gateway inspection returned403 and GA4 Admin inspection `api_disabled`; account configuration, delivery and duplicate-tag verification remain open. [Evidence and remaining checks](../reviews/2026-09-22-g30-analytics-csp-evidence.md).
+
+
+**Current slice12:28UTC:** SVI navigation/support compiled f751a421 is live at4203. Actual4203→4202 rollback and forward passed, including immutable old/new static assets;4202/4002 preserved. The new uncapped engine f02db74 and typed report reader8e63573 remain isolated for the next phase; the current producer does not populate admitted measurements. BlockID v3.32.1 is the next candidate, not live yet.
+
+**GA4 reader repair:** traffic reader now accepts the same configured service-account pair/property normalization as the Admin API;44 focused tests passed. Actual read-only GA4 Data API request succeeded for the configured property, but its last7-day hostname rows did not establish BlockID traffic. Admin API remains disabled; property/web-stream match, account linkage and event delivery/deduplication remain unverified. Do not describe account connection as complete from a successful API response alone.
