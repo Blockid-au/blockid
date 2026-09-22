@@ -50,6 +50,7 @@ next-env.d.ts
 /releases/
 .next-current
 .next-previous
+/.next-candidate
 
 # Playwright output — never commit trace artefacts.
 test-results/
