@@ -341,16 +341,12 @@ load_env() {
 # live server is currently running from (CURRENT_LINK) or the rollback target
 # (PREV_LINK) — they may be older than the keep window but must survive.
 prune_releases() {
-  [ -d "$RELEASES_DIR" ] || return 0
-  local keep_cur keep_prev d
-  keep_cur="$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
-  keep_prev="$(readlink -f "$PREV_LINK" 2>/dev/null || true)"
-  ls -1dt "$RELEASES_DIR"/*/ 2>/dev/null | tail -n +$((RELEASES_KEEP + 1)) | while read -r d; do
-    d="${d%/}"
-    [ "$(readlink -f "$d")" = "$keep_cur" ] && continue
-    [ "$(readlink -f "$d")" = "$keep_prev" ] && continue
-    rm -rf "$d"
-  done
+  # G30/O06: all cleanup callers use the same pins and deployment lease.
+  # Missing LKG metadata defers cleanup; it must never delete a fallback or
+  # convert an otherwise healthy promotion into an outage.
+  python3 "$WEB_DIR/../scripts/cron/g30-release-retention.py" \
+    --web "$WEB_DIR" --keep "$RELEASES_KEEP" --lock-fd 200 \
+    || echo "  ⚠ Release retention deferred: protected state unavailable or lock mismatch"
 }
 
 echo "════════════════════════════════════════════"
@@ -374,6 +370,38 @@ rollback_log() {
       --data-urlencode "text=${msg}" 2>/dev/null || true
   fi
 }
+# Manual rollback verification is deliberately bounded. Starting a process (or
+# receiving a 500 response) is not recovery. Keep transport failure distinct
+# from HTTP status, and always record an outcome before returning to the caller.
+# This verifies liveness only; compatible LKG selection and release identity
+# remain separate promotion/recovery gates.
+verify_manual_rollback() {
+  local src="$1" pid http="000" attempt
+  pid="$(cat "$PID_FILE" 2>/dev/null || true)"
+  ROLLBACK_STATUS="failed"
+  ROLLBACK_HTTP="000"
+  for attempt in {1..20}; do
+    if [ -z "$pid" ] || ! kill -0 "$pid" 2>/dev/null; then
+      break
+    fi
+    if ! http=$(curl -s --connect-timeout 2 --max-time 3 -o /dev/null -w "%{http_code}" \
+      "http://127.0.0.1:$PROD_PORT/" 2>/dev/null); then
+      http="000"
+    fi
+    ROLLBACK_HTTP="$http"
+    if [ "$http" = "200" ] && kill -0 "$pid" 2>/dev/null; then
+      ROLLBACK_STATUS="success"
+      rollback_log "success" "$src" "$http" "$pid"
+      echo "✅ Rollback verified: $src — HTTP $http, PID $pid"
+      return 0
+    fi
+    [ "$attempt" -eq 20 ] || sleep 1
+  done
+  rollback_log "failed" "$src" "$ROLLBACK_HTTP" "${pid:-0}"
+  echo "❌ Rollback failed verification: $src — HTTP $ROLLBACK_HTTP, PID ${pid:-missing}. Check $LOG; recovery is not confirmed."
+  return 1
+}
+
 if [ "${1:-}" = "--rollback" ] && [ "$DEPLOY_DRY_RUN" = "1" ]; then
   # ── Rollback drill (G15-R1): print exactly what --rollback would do. ──
   # Read-only: no lock, no env load, no process signal, no symlink change.
@@ -404,7 +432,7 @@ if [ "${1:-}" = "--rollback" ] && [ "$DEPLOY_DRY_RUN" = "1" ]; then
     else
       echo "    4. (no current link to demote — $PREV_LINK left as is)"
     fi
-    echo "    5. curl http://127.0.0.1:$PROD_PORT/ → expect 200; append to /tmp/blockid-rollback.log; Telegram if creds set"
+    echo "    5. Verify restored PID + HTTP 200 (20 bounded attempts); log outcome; exit 1 if unverified"
   else
     RELEASES_ARCHIVE="/data/blockid-releases"
     SNAP_DIR="$(ls -1dt "$RELEASES_ARCHIVE"/*/ 2>/dev/null | sed -n '2p')"
@@ -446,11 +474,10 @@ if [ "${1:-}" = "--rollback" ]; then
     CUR_BEFORE="$(readlink -f "$CURRENT_LINK" 2>/dev/null || true)"
     ln -sfn "$PREV_DIR" "$CURRENT_LINK"
     [ -n "$CUR_BEFORE" ] && ln -sfn "$CUR_BEFORE" "$PREV_LINK"
-    sleep 3
-    HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$PROD_PORT/)
-    echo "✅ Rolled back to release $(basename "$PREV_DIR"): HTTP $HTTP — PID $(cat "$PID_FILE")"
-    rollback_log "success" "prev-release:$(basename "$PREV_DIR")" "$HTTP" "$(cat "$PID_FILE")"
-    exit 0
+    if verify_manual_rollback "prev-release:$(basename "$PREV_DIR")"; then
+      exit 0
+    fi
+    exit 1
   fi
   # ── G-11 fallback: restore from /data/blockid-releases/ snapshot ──
   RELEASES_ARCHIVE="/data/blockid-releases"
@@ -467,11 +494,10 @@ if [ "${1:-}" = "--rollback" ]; then
       cd "$SNAP_DIR"
       nohup node server.js >> "$LOG" 2>&1 9>&- 200>&- &
       echo $! > "$PID_FILE"
-      sleep 3
-      HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$PROD_PORT/)
-      echo "✅ Rolled back to snapshot $(basename "$SNAP_DIR"): HTTP $HTTP — PID $(cat "$PID_FILE")"
-      rollback_log "success" "snapshot:$(basename "$SNAP_DIR")" "$HTTP" "$(cat "$PID_FILE")"
-      exit 0
+      if verify_manual_rollback "snapshot:$(basename "$SNAP_DIR")"; then
+        exit 0
+      fi
+      exit 1
     fi
   fi
   # ── Legacy fallback: restore .next-backup ──
@@ -491,11 +517,10 @@ if [ "${1:-}" = "--rollback" ]; then
   cd "$STANDALONE"
   nohup node server.js >> "$LOG" 2>&1 9>&- 200>&- &
   echo $! > "$PID_FILE"
-  sleep 3
-  HTTP=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$PROD_PORT/)
-  echo "✅ Rolled back (legacy): HTTP $HTTP — PID $(cat "$PID_FILE")"
-  rollback_log "success" "legacy-backup" "$HTTP" "$(cat "$PID_FILE")"
-  exit 0
+  if verify_manual_rollback "legacy-backup"; then
+    exit 0
+  fi
+  exit 1
 fi
 
 # ══════════════════════════════════════════════════════════════════════

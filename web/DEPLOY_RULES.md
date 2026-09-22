@@ -5,6 +5,15 @@
 
 ---
 
+## G30 authority and current gate list
+
+The approved upgrade authority is `docs/plans/SOURCE-OF-TRUTH.md` (§12.8–12.9).
+Use `docs/ops/deploy.md` and `scripts/deploy-live.sh` for the current 12-gate pipeline.
+The 9-gate list below is historical, not a second release policy. No skip mode
+waives identity, health, compatibility or rollback verification. G30 W0 is
+implementing safe parallel cutover; do not call the existing stop/start swap
+zero downtime merely because builds use release directories.
+
 ## Golden Rule
 
 **NEVER deploy code that hasn't passed ALL 9 gates.**

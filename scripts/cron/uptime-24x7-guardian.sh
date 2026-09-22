@@ -75,21 +75,17 @@ fi
 # ────────────────────────────────────────────────────────────────────────
 DISK_ACTION="none"
 if [ "$DISK_PCT" -ge 85 ]; then
-  # CRITICAL — invoke full cleanup + trim releases aggressively.
+  # Never invoke broad build/cache cleanup while a deploy may be in progress.
+  # Protected releases take precedence over disk/count targets.
   DISK_ACTION="critical"
-  echo "$TS [DISK-CRIT] $DISK_PCT% used — full cleanup" >> "$LOG"
-  bash "$WEB/scripts/server-cleanup.sh" >> "$LOG" 2>&1 || true
-  # Keep only 2 newest releases in the standard release dir.
-  ls -t "$WEB/releases/" 2>/dev/null | tail -n +3 | while read -r r; do
-    [ -n "$r" ] && rm -rf "$WEB/releases/$r"
-  done
+  echo "$TS [DISK-CRIT] $DISK_PCT% used — protected release retention" >> "$LOG"
+  python3 "$REPO/scripts/cron/g30-release-retention.py" --web "$WEB" --keep 2 >> "$LOG" 2>&1 \
+    || echo "$TS [RETENTION-DEFERRED] safety/lock check blocked cleanup; capacity needs review" >> "$LOG"
 elif [ "$DISK_PCT" -ge 75 ]; then
-  # HIGH — trim old releases to 3, log rotate.
   DISK_ACTION="high"
-  echo "$TS [DISK-HIGH] $DISK_PCT% used — trim releases to 3" >> "$LOG"
-  ls -t "$WEB/releases/" 2>/dev/null | tail -n +4 | while read -r r; do
-    [ -n "$r" ] && rm -rf "$WEB/releases/$r"
-  done
+  echo "$TS [DISK-HIGH] $DISK_PCT% used — protected release retention" >> "$LOG"
+  python3 "$REPO/scripts/cron/g30-release-retention.py" --web "$WEB" --keep 3 >> "$LOG" 2>&1 \
+    || echo "$TS [RETENTION-DEFERRED] safety/lock check blocked cleanup; capacity needs review" >> "$LOG"
 elif [ "$DISK_PCT" -ge 60 ]; then
   # WARN — rotate logs only.
   DISK_ACTION="warn"

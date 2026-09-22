@@ -1319,10 +1319,10 @@ Approval22/09/2026 bắt đầu W0a. Đây là status của cùng45 items, khôn
 
 | Item | Status | Evidence / next gate |
 |---|---|---|
-| P01 | IN PROGRESS | Archived approved rev2.3; baseline source977574979/live3396adc00 v3.28.2; freeze actual automation/topology next |
+| P01 | IN PROGRESS | Approval commit168b6fe98; source/live/topology/cron/resource/backup evidence in [W0 inventory](../reviews/2026-09-22-g30-w0-runtime-inventory.md); automate writer coordination next |
 | O05 | IN PROGRESS — inventory | Root + read-only runtime inventory; chưa đổi proxy/process |
-| O06 | IN PROGRESS — implementation | Agents xử lý I42 rollback verification và I43 protected retention, isolated tests; chưa deploy |
-| O07/O09 | IN PROGRESS — inventory | Read-only actual monitoring/backups/resources; chưa chạy failure drill |
+| O06 | IN PROGRESS — partial verified | Manual rollback9 tests; protected retention15 tests; shared prune helper integrated. LKG selection/compatibility/quarantine và safe cutover còn pending |
+| O07/O09 | IN PROGRESS | Actual inventory documented; recovery coordination7 isolated tests passed. Offsite backup failed quota; chưa chạy host-failure drill |
 | Remaining items | PENDING | Theo dependency §12/phase§12.8, chưa có closure evidence |
 
 ## 13. Quality gates và định nghĩa ready for sale
@@ -1567,3 +1567,5 @@ Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi 
 - **22/09/2026 — G30 rev2.3 FINAL REVIEW PROPOSAL:** revalidated live3.28.2 at05:06UTC và source977574979; review deploy/guardian/rollback thêm I41–I46. Thêm O05–O09 nâng queue45 items, ưu tiên W0a/W0b safety→truth/data/money→research→UX→commerce/evidence→sale. §12.8 đặc tả parallel cutover, compatible verified LKG, protected cleanup, independent monitoring, durable jobs và host-failure DR; D20/gates đồng bộ. Chỉ docs, chưa code/test deployment/rollback/DB mutation/spend.
 
 - **22/09/2026 — G30 rev2.4 APPROVED IMPLEMENTATION:** founder cấp implementation, agents, commits và live deployment theo phase/gates. Bắt đầu W0a, archived approved input; chỉ status có evidence mới được closed.
+
+- **22/09/2026 — W0a safety checkpoint:**31 isolated regression cases passed (9 rollback+15 retention+7 recovery), shell syntax/diff checks passed. Root changes shared prune, removes unsafe general build deletion, serializes watchdog and suppresses rollback for healthy-origin external outage. Cron-loaded script changes take effect from source; no application process restart/proxy switch or deployment performed. O05–O09 remain incomplete.

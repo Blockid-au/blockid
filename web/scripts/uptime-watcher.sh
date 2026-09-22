@@ -102,43 +102,30 @@ if [ "$FAILS" -eq 3 ]; then
   ACTION="restart_attempted"
   ALERT_NOW=true
 
-  # Try to restart the standalone server. The new PID will be picked up on
-  # the next deploy-live.sh, but for an immediate restart we just kill the
-  # tracked PID — systemd / supervisor isn't in play, so we cycle via
-  # deploy-live.sh --restart if available, otherwise just rely on monit/the
-  # next deploy to recover. For now: nudge by SIGTERM the live PID; the
-  # standalone server will exit cleanly and a watchdog (or the next
-  # deploy-live.sh) will spin up a fresh one.
-  if [ -f "$PID_FILE" ]; then
-    LIVE_PID=$(cat "$PID_FILE" 2>/dev/null)
-    if [ -n "$LIVE_PID" ] && kill -0 "$LIVE_PID" 2>/dev/null; then
-      log "Killing stale PID $LIVE_PID for clean restart"
-      kill -TERM "$LIVE_PID" 2>/dev/null
-      sleep 2
-      kill -0 "$LIVE_PID" 2>/dev/null && kill -KILL "$LIVE_PID" 2>/dev/null
-    fi
-  fi
-
-  # Spin up a fresh process from the current release
-  CURRENT_LINK="$DEPLOY_DIR/.next-current"
-  if [ -L "$CURRENT_LINK" ] && [ -f "$(readlink -f "$CURRENT_LINK")/server.js" ]; then
-    RELEASE_DIR="$(readlink -f "$CURRENT_LINK")"
-    NEW_LOG="/data/logs/blockid-production.log"   # G15-R2 log home (/tmp path is a symlink)
-    [ -w /data/logs ] || NEW_LOG="/tmp/blockid-production.log"
-    (cd "$RELEASE_DIR" && nohup env PORT=4001 HOSTNAME=0.0.0.0 NODE_ENV=production \
-      node server.js >> "$NEW_LOG" 2>&1 &
-      echo $! > "$PID_FILE") &
-    log "Spun up replacement next-server from $RELEASE_DIR"
+  # G30/O07: an external/CDN failure must not directly kill a healthy
+  # origin. The watchdog verifies local health and serializes any recovery
+  # against deployment; it also loads the correct runtime environment.
+  ACTION="watchdog_requested"
+  if timeout 45 bash "$DEPLOY_DIR/scripts/watchdog.sh" >> "$LOG" 2>&1; then
+    log "Origin watchdog completed; external recovery remains unverified until next probe"
   else
-    log "WARN: no .next-current symlink — can't auto-restart"
+    ACTION="watchdog_failed"
+    log "Origin watchdog failed/timed out; no recovery success claimed"
   fi
 
 elif [ "$FAILS" -ge 5 ] && [ "$LAST_ACTION" != "rollback_attempted" ]; then
-  ACTION="rollback_attempted"
+  # Do not roll back healthy origin code for a CDN/DNS/network failure.
+  ORIGIN_CODE=$(curl -s --connect-timeout 2 --max-time 5 -o /dev/null -w '%{http_code}' http://127.0.0.1:4001/ 2>/dev/null || true)
   ALERT_NOW=true
-  log "5+ consecutive fails — triggering automatic rollback"
-  nohup bash "$DEPLOY_DIR/scripts/deploy-live.sh" --rollback > /tmp/blockid-rollback.log 2>&1 &
-  log "deploy-live.sh --rollback dispatched"
+  if [ "$ORIGIN_CODE" = "200" ]; then
+    ACTION="external_failure_origin_healthy"
+    log "External probe failed but origin is healthy — application rollback suppressed"
+  else
+    ACTION="rollback_attempted"
+    log "5+ external failures plus unhealthy origin — requesting serialized rollback"
+    nohup bash "$DEPLOY_DIR/scripts/deploy-live.sh" --rollback > /tmp/blockid-rollback.log 2>&1 &
+    log "Rollback dispatched; success remains unverified until recovery probes"
+  fi
 fi
 
 # Throttle Telegram so the same incident only pages once per 15 min

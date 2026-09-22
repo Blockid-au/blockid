@@ -41,6 +41,21 @@ if [ "$PID_ALIVE" = "1" ]; then
     exit 0
   fi
 fi
+# G30/O07: hold the SAME deploy lock throughout a recovery, including
+# dead-PID recovery. A point-in-time lock check permits a swap/restart race.
+exec 201>/tmp/blockid-deploy.lock
+if ! flock -n 201; then
+  echo "$(date '+%m-%d %H:%M') recovery deferred — deploy/recovery owns lock" >> "$LOG"
+  exit 0
+fi
+# State may have changed while the initial probes were running.
+if [ -f "$PID_FILE" ]; then
+  PID=$(cat "$PID_FILE")
+  if kill -0 "$PID" 2>/dev/null; then
+    HTTP=$(curl -sf --connect-timeout 3 --max-time 10 -o /dev/null -w "%{http_code}" "http://127.0.0.1:$PORT/" 2>/dev/null)
+    if [ "$HTTP" = "200" ]; then rm -f "$STRIKE_FILE"; exit 0; fi
+  fi
+fi
 rm -f "$STRIKE_FILE"
 
 # Dead or unhealthy — force kill everything on port and restart
@@ -73,7 +88,7 @@ echo "  why: http=${HTTP:-000} pid_alive=$PID_ALIVE port_owner=${PORT_OWNER:-non
 if [ "$DEPLOY_ACTIVE" = "0" ] && [ -f /home/dovanlong/blockid.au/scripts/lib/ops-alert.sh ]; then
   # shellcheck source=/dev/null
   ( . /home/dovanlong/blockid.au/scripts/lib/ops-alert.sh 2>/dev/null && \
-    ops_alert "🚨 Watchdog restarted production" "http=${HTTP:-000} pid_alive=$PID_ALIVE rss_kb=${RSS_KB:-?} mem=${MEM_PCT:-?}% load=${LOAD_1:-?} oom=${OOM_HIT:-none}" ) >/dev/null 2>&1 &
+    ops_alert "🚨 Watchdog restarted production" "http=${HTTP:-000} pid_alive=$PID_ALIVE rss_kb=${RSS_KB:-?} mem=${MEM_PCT:-?}% load=${LOAD_1:-?} oom=${OOM_HIT:-none}" ) >/dev/null 2>&1 201>&- &
 fi
 # Truncate log if > 50KB
 [ -f "$LOG" ] && [ "$(wc -c < "$LOG")" -gt 51200 ] && tail -20 "$LOG" > "${LOG}.tmp" && mv "${LOG}.tmp" "$LOG"
@@ -106,10 +121,12 @@ export SUPABASE_URL=http://127.0.0.1:8000 REDIS_URL=redis://127.0.0.1:6379
 # Override PORT again — .env may contain PORT=3000 (for Docker) which must not win here
 export PORT=4001
 
-nohup node server.js >> /data/logs/blockid-production.log 2>&1 &   # G15-R2 log home
+nohup node server.js >> /data/logs/blockid-production.log 2>&1 201>&- &   # G15-R2 log home
 echo $! > "$PID_FILE"
 
 # Verify restart succeeded
 sleep 3
-HTTP=$(curl -sf --connect-timeout 3 -o /dev/null -w "%{http_code}" http://127.0.0.1:$PORT/ 2>/dev/null)
+HTTP=$(curl -sf --connect-timeout 3 --max-time 10 -o /dev/null -w "%{http_code}" http://127.0.0.1:$PORT/ 2>/dev/null)
 echo "  → PID $(cat "$PID_FILE") HTTP $HTTP" >> "$LOG"
+
+[ "$HTTP" = "200" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null

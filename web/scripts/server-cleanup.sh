@@ -183,44 +183,12 @@ pnpm_cache_clean() {
 }
 
 next_build_prune() {
-  # Keep the newest 3 .next-* dirs directly under WEB_ROOT; delete older ones.
-  local dirs=()
-  local d
-  # Portable: gather + sort by mtime desc via stat.
-  while IFS= read -r -d '' d; do
-    dirs+=("$d")
-  done < <(find "$WEB_ROOT" -maxdepth 1 -mindepth 1 -type d -name '.next-*' -print0 2>/dev/null)
-
-  if [[ ${#dirs[@]} -le 3 ]]; then
-    log "next_build_prune: ${#dirs[@]} .next-* dirs found, nothing to prune"
-    return 0
-  fi
-
-  # Sort by mtime desc
-  local sorted
-  sorted=$(for d in "${dirs[@]}"; do
-    printf '%s\t%s\n' "$(stat -c '%Y' "$d" 2>/dev/null || echo 0)" "$d"
-  done | sort -rn | awk -F'\t' '{print $2}')
-
-  local i=0 freed_total=0
-  while IFS= read -r d; do
-    i=$((i+1))
-    if (( i <= 3 )); then
-      [[ $VERBOSE -eq 1 ]] && log "next_build_prune: keep $d"
-      continue
-    fi
-    assert_safe "$d"
-    local sz
-    sz=$(path_size_bytes "$d")
-    if [[ $DRY_RUN -eq 1 ]]; then
-      log "next_build_prune: DRY-RUN would delete $d (${sz}B)"
-    else
-      rm -rf -- "$d" && freed_total=$(( freed_total + sz ))
-      log "next_build_prune: deleted $d (${sz}B)"
-    fi
-  done <<< "$sorted"
-
-  log_freed "next_build_prune" "$freed_total"
+  # G30/O06: directory age is not proof that a build is unused. Legacy
+  # .next-backup and candidate/draining builds may be required for recovery.
+  # This general cleanup job has no release catalogue or deployment lease;
+  # leave build retention to the release-aware guardian/deploy controller.
+  # In particular, do not restore mtime-based deletion under disk pressure.
+  log "next_build_prune: skipped — build retention belongs to the release controller"
 }
 
 log_rotate() {

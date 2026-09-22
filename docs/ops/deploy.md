@@ -15,6 +15,14 @@ bash scripts/deploy-live.sh --rollback --dry-run                   # print what 
 bash scripts/deploy-live.sh --rollback                             # put the previous release back
 ```
 
+## G30 implementation checkpoint (22 September 2026)
+
+The approved authority is [G30](../plans/SOURCE-OF-TRUTH.md), especially §12.8 and the implementation ledger. Existing directory isolation does **not** make the current stop/start cutover zero downtime. Parallel serving, drained proxy switching, compatible verified-good selection and dependency freezing remain release gates while W0 work proceeds.
+
+Manual rollback now requires the restored PID to remain alive and HTTP200 within bounded attempts; a failed check logs failure and exits nonzero. This does not yet establish release identity, schema compatibility or external availability. Never infer success from a printed restart command.
+
+Release pruning uses `scripts/cron/g30-release-retention.py` under the deployment flock. Current, previous, last-good, candidate/draining and explicit pins survive the recent-release window. Missing/invalid metadata defers cleanup. The general server-cleanup job no longer deletes `.next-*` directories by age. Root reviews isolated regression evidence before each operations commit; no application restart is needed to activate cron-loaded script fixes.
+
 ## 1. The lock — one deploy at a time
 
 * The very first thing the script does is `flock -x -n` on **`/tmp/blockid-deploy.lock`** (fd 200)
