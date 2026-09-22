@@ -37,3 +37,29 @@ describe("/startup-index/listings — light template rules", () => {
     expect(SRC).toMatch(/font-mono bg-surface-sunken[^"]*break-all/);
   });
 });
+
+// G29 lane D (2026-09-22): a row with no prior close prints "new", never
+// "0.0" / "−99.0"; the table is labelled a sample while n < 30; copy keys
+// exist in both catalogues.
+describe("/startup-index/listings — Δ 7d cell + sample label (G29-D)", () => {
+  it("DeltaCell takes number | null and renders the 'new' badge for null", () => {
+    expect(SRC).toMatch(/function DeltaCell\(\{ delta, newLabel, newTitle \}: \{ delta: number \| null;/);
+    expect(SRC).toContain('data-testid="delta-new"');
+    expect(SRC).not.toMatch(/delta\.toFixed\(/);
+    expect(SRC).toContain("{formatDelta(delta)}");
+  });
+  it("labels the table as sample data below the benchmark band", () => {
+    expect(SRC).toContain("isSampleBand(benchmarkBand(data.total))");
+    expect(SRC).toContain('data-testid="index-sample-chip"');
+  });
+  it("copy keys used on the page exist in both catalogues", async () => {
+    const en = (await import("@/lib/i18n/messages/en.json")).default as Record<string, string>;
+    const vi = (await import("@/lib/i18n/messages/vi.json")).default as Record<string, string>;
+    const keys = Array.from(SRC.matchAll(/t\(msgs, "([^"]+)"\)/g), (m) => m[1]);
+    expect(keys.length).toBeGreaterThan(2);
+    for (const k of new Set(keys)) {
+      expect(en[k], `en ${k}`).toBeTruthy();
+      expect(vi[k], `vi ${k}`).toBeTruthy();
+    }
+  });
+});

@@ -26,6 +26,8 @@ import { PageViewTracker } from "@/components/site/page-view-tracker";
 import { NotFinancialAdvice } from "@/components/legal/not-financial-advice";
 import { SampleSviCard } from "@/components/svi/sample-svi-card";
 import { cachedIndexHeadlines } from "@/lib/startup-index-cache";
+import { formatDelta } from "@/lib/startup-index-movers";
+import { getMessagesSync, t } from "@/lib/i18n/t";
 import { notEnoughLine } from "@/lib/benchmarks/publication-rules";
 import { listPublishedSegments } from "@/lib/benchmarks/segments-db";
 
@@ -88,12 +90,43 @@ function Sparkline({ data, color = "stroke-brand-600" }: { data: number[]; color
   );
 }
 
-function DeltaPill({ delta, suffix = "" }: { delta: number; suffix?: string }) {
+/**
+ * G29-D: `delta` is null when there is no prior close (a day with no
+ * analyses). The pill then prints "—" with the reason, never a number taken
+ * against the median filler (the "−99.0 1d" artefact of 2026-09-21).
+ */
+function DeltaPill({ delta, suffix = "", noPriorLabel }: { delta: number | null; suffix?: string; noPriorLabel: string }) {
+  if (delta === null) {
+    return (
+      <span
+        className="inline-flex items-center gap-0.5 text-xs font-bold px-1.5 py-0.5 rounded border bg-ink-50 text-ink-500 border-ink-100"
+        title={noPriorLabel}
+        data-testid="delta-no-prior"
+      >
+        <Minus className="h-3 w-3" aria-hidden="true" />
+        <span aria-hidden="true">—{suffix}</span>
+        <span className="sr-only">{noPriorLabel}{suffix}</span>
+      </span>
+    );
+  }
   const Icon = delta > 0 ? ArrowUpRight : delta < 0 ? ArrowDownRight : Minus;
   return (
     <span className={`inline-flex items-center gap-0.5 text-xs font-bold px-1.5 py-0.5 rounded border ${deltaBg(delta)}`}>
-      <Icon className="h-3 w-3" />
-      {delta > 0 ? "+" : ""}{delta.toFixed(1)}{suffix}
+      <Icon className="h-3 w-3" aria-hidden="true" />
+      {formatDelta(delta)}{suffix}
+    </span>
+  );
+}
+
+/** "Sample data" chip — printed beside every figure while n < 30 (aggregator `isSample`). */
+function SampleChip({ label, title }: { label: string; title: string }) {
+  return (
+    <span
+      className="inline-flex items-center rounded-full border border-line bg-accent-soft px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-primary"
+      title={title}
+      data-testid="index-sample-chip"
+    >
+      {label}
     </span>
   );
 }
@@ -102,6 +135,9 @@ function DeltaPill({ delta, suffix = "" }: { delta: number; suffix?: string }) {
 
 export default async function IndexExchangePage() {
   const data = await cachedIndexHeadlines(90);
+  const msgs = getMessagesSync("en");
+  const noPriorLabel = t(msgs, "index.movers.noPriorClose");
+  const noPriorCloseAnywhere = data.bsiAu.deltaDay === null || data.bsiAu.deltaWeek === null;
   // G21 P3-B: the nightly stage × sector segments (published rows only — n ≥ 10; the same table the Assessment Card and the institutional API read).
   const segments = await listPublishedSegments().catch(() => []);
   const updatedAt = new Date(data.generatedAt).toLocaleTimeString("en-AU", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" });
@@ -127,6 +163,12 @@ export default async function IndexExchangePage() {
                 Australian startup market index — median SVI across the companies tracked{" "}
                 <span className="tabular-nums" data-publication-band={data.bsiAu.band}>({data.bsiAu.label})</span>
               </p>
+              {data.isSample ? (
+                <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink-600" data-testid="index-sample-note">
+                  <SampleChip label={t(msgs, "index.sample.chip")} title={t(msgs, "index.sample.body")} />
+                  <span>{t(msgs, "index.sample.body")}</span>
+                </p>
+              ) : null}
             </div>
 
             <div className="text-right">
@@ -137,10 +179,13 @@ export default async function IndexExchangePage() {
                   {data.bsiAu.value}
                 </p>
               )}
-              <div className="flex items-center justify-end gap-2 mt-2">
-                <DeltaPill delta={data.bsiAu.deltaDay} suffix=" 1d" />
-                <DeltaPill delta={data.bsiAu.deltaWeek} suffix=" 7d" />
+              <div className="flex flex-wrap items-center justify-end gap-2 mt-2">
+                <DeltaPill delta={data.bsiAu.deltaDay} suffix=" 1d" noPriorLabel={noPriorLabel} />
+                <DeltaPill delta={data.bsiAu.deltaWeek} suffix=" 7d" noPriorLabel={noPriorLabel} />
               </div>
+              {noPriorCloseAnywhere ? (
+                <p className="mt-1 max-w-[16rem] text-xs text-ink-500 sm:ml-auto" data-testid="delta-no-prior-note">{t(msgs, "index.movers.noPriorClose.note")}</p>
+              ) : null}
             </div>
           </div>
 
@@ -221,15 +266,17 @@ export default async function IndexExchangePage() {
         </section>
 
         {/* ── TOP MOVERS ─────────────────────────────────────────────── */}
-        <section className="grid lg:grid-cols-2 gap-4 mb-6">
+        {/* G29-D: winners = positive Δ only, drops = negative Δ only, "new" = no prior close (lib/startup-index-movers.ts). */}
+        <section className="grid lg:grid-cols-2 gap-4 mb-6" data-testid="top-movers">
           {/* Winners */}
           <div className="rounded-2xl border border-emerald-200 bg-white p-5">
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
               <ArrowUpRight className="h-4 w-4 text-bull" />
               <h2 className="text-sm font-bold text-ink-900 uppercase tracking-wider">Top winners (7d)</h2>
+              {data.isSample ? <SampleChip label={t(msgs, "index.sample.chip")} title={t(msgs, "index.sample.listings")} /> : null}
             </div>
             {data.topMovers.winners.length === 0 ? (
-              <p className="text-xs text-ink-400 py-4 text-center">Need multiple analyses per company for week-over-week comparison.</p>
+              <p className="text-xs text-ink-500 py-4 text-center">{t(msgs, "index.movers.winners.empty")}</p>
             ) : (
               <table className="w-full text-sm">
                 <thead>
@@ -249,7 +296,7 @@ export default async function IndexExchangePage() {
                       <td className="py-1.5 text-xs text-ink-600 capitalize">{m.sector}</td>
                       <td className="py-1.5 text-xs text-right font-mono">{m.svi}</td>
                       <td className="py-1.5 text-right">
-                        <span className="text-xs font-bold text-bull tabular-nums">+{m.deltaWeek}</span>
+                        <span className="text-xs font-bold text-bull tabular-nums">{formatDelta(m.deltaWeek)}</span>
                       </td>
                     </tr>
                   ))}
@@ -258,14 +305,15 @@ export default async function IndexExchangePage() {
             )}
           </div>
 
-          {/* Losers */}
+          {/* Losers — negative Δ only; a positive mover can never appear here. */}
           <div className="rounded-2xl border border-rose-200 bg-white p-5">
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex flex-wrap items-center gap-2 mb-3">
               <ArrowDownRight className="h-4 w-4 text-bear" />
               <h2 className="text-sm font-bold text-ink-900 uppercase tracking-wider">Biggest drops (7d)</h2>
+              {data.isSample ? <SampleChip label={t(msgs, "index.sample.chip")} title={t(msgs, "index.sample.listings")} /> : null}
             </div>
             {data.topMovers.losers.length === 0 ? (
-              <p className="text-xs text-ink-400 py-4 text-center">No companies with material weekly drops detected.</p>
+              <p className="text-xs text-ink-500 py-4 text-center">{t(msgs, "index.movers.drops.empty")}</p>
             ) : (
               <table className="w-full text-sm">
                 <thead>
@@ -285,7 +333,7 @@ export default async function IndexExchangePage() {
                       <td className="py-1.5 text-xs text-ink-600 capitalize">{m.sector}</td>
                       <td className="py-1.5 text-xs text-right font-mono">{m.svi}</td>
                       <td className="py-1.5 text-right">
-                        <span className={`text-xs font-bold tabular-nums ${deltaColor(m.deltaWeek)}`}>{m.deltaWeek}</span>
+                        <span className={`text-xs font-bold tabular-nums ${deltaColor(m.deltaWeek)}`}>{formatDelta(m.deltaWeek)}</span>
                       </td>
                     </tr>
                   ))}
@@ -294,6 +342,34 @@ export default async function IndexExchangePage() {
             )}
           </div>
         </section>
+
+        {/* ── NEW LISTINGS — a close but no prior close; no Δ is ever printed ── */}
+        {data.topMovers.newListings.length > 0 ? (
+          <section className="rounded-2xl border border-ink-200 bg-white p-5 mb-6" data-testid="new-listings">
+            <div className="flex flex-wrap items-baseline justify-between gap-2 mb-2">
+              <h2 className="text-sm font-bold text-ink-900 uppercase tracking-wider">{t(msgs, "index.movers.newListings.title")}</h2>
+              <p className="text-xs text-ink-500">{t(msgs, "index.movers.newListings.body")}</p>
+            </div>
+            <ul className="flex flex-wrap gap-2">
+              {data.topMovers.newListings.slice(0, 12).map((n) => (
+                <li key={n.ticker}>
+                  <Link
+                    href={`/s/${n.slug}`}
+                    className="inline-flex items-center gap-2 rounded-lg border border-ink-100 bg-ink-50/40 px-2.5 py-1.5 text-xs hover:border-brand-300"
+                    title={t(msgs, "index.movers.new.title")}
+                  >
+                    <span className="font-mono text-brand-700">{n.ticker}</span>
+                    <span className="font-mono text-ink-700 tabular-nums">{n.svi}</span>
+                    <span className="rounded border border-ink-200 bg-white px-1 font-bold uppercase tracking-wider text-ink-500">{t(msgs, "index.movers.new")}</span>
+                  </Link>
+                </li>
+              ))}
+              {data.topMovers.newListings.length > 12 ? (
+                <li className="self-center text-xs text-ink-500">+{data.topMovers.newListings.length - 12} more</li>
+              ) : null}
+            </ul>
+          </section>
+        ) : null}
 
         {/* ── STAGE INDICES ─────────────────────────────────────────── */}
         <section className="rounded-2xl border border-ink-200 bg-white p-5 mb-6">
@@ -401,7 +477,7 @@ export default async function IndexExchangePage() {
             </div>
             <div>
               <p className="font-bold text-ink-700 mb-1">Top movers</p>
-              <p>Per identity hash, compares latest analysis vs the most recent analysis older than 7 days. Movements smaller than ±1 SVI are excluded as noise.</p>
+              <p>Per identity hash, compares latest analysis vs the most recent analysis older than 7 days. Winners are positive moves only, drops are negative moves only; a company with no prior close is listed as “new” with no change; movements smaller than ±1 SVI are excluded as noise. The 1d / 7d index change is only taken between two days that both had analyses — a day with no close prints “—”.</p>
             </div>
             <div>
               <p className="font-bold text-ink-700 mb-1">Citation</p>

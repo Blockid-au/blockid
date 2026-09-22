@@ -1103,5 +1103,16 @@
   "free_report.pay.account_hint": "Báo cáo nằm trong workspace của bạn, nơi bạn có thể chia sẻ kèm huy hiệu tin cậy.",
   "free_report.pay.signup_cta": "Tạo tài khoản miễn phí để mua",
   "free_report.pay.edit": "Sửa nội dung đã nhập",
-  "free_report.ip_limit": "Tối đa {limit} báo cáo miễn phí mỗi ngày từ một mạng — thử lại vào ngày mai, hoặc đăng nhập."
+  "free_report.ip_limit": "Tối đa {limit} báo cáo miễn phí mỗi ngày từ một mạng — thử lại vào ngày mai, hoặc đăng nhập.",
+  "index.movers.new": "mới",
+  "index.movers.new.title": "Điểm chốt đầu tiên — chưa có điểm chốt trước để so sánh",
+  "index.movers.noPriorClose": "chưa có điểm chốt trước",
+  "index.movers.noPriorClose.note": "— nghĩa là chưa có điểm chốt trước để so sánh; mức thay đổi không bao giờ được tính trên giá trị lấp chỗ.",
+  "index.movers.newListings.title": "Niêm yết mới (7 ngày)",
+  "index.movers.newListings.body": "Điểm chốt đầu tiên trong kỳ — chưa in mức thay đổi cho đến khi có điểm chốt trước.",
+  "index.movers.drops.empty": "Không có công ty nào giảm điểm trong tuần.",
+  "index.movers.winners.empty": "Không có công ty nào tăng điểm trong tuần.",
+  "index.sample.chip": "Dữ liệu mẫu",
+  "index.sample.body": "Chưa đến 30 công ty được theo dõi, nên mọi con số trên trang này là mẫu từ các công ty được phân tích lại, không phải tín hiệu thị trường.",
+  "index.sample.listings": "Mẫu — chưa đến 30 công ty được theo dõi; mức thay đổi phản ánh việc phân tích lại trong một tập nhỏ, không phải biến động thị trường."
 }

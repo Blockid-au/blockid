@@ -12,6 +12,10 @@ import { Footer } from "@/components/marketing/footer";
 import { AbnBadge } from "@/components/verification/abn-badge";
 import type { ListingSort, ListingsResult } from "@/lib/startup-index-listings";
 import { cachedListings } from "@/lib/startup-index-cache";
+import { isSampleBand } from "@/lib/startup-index-aggregator";
+import { formatDelta } from "@/lib/startup-index-movers";
+import { benchmarkBand } from "@/lib/benchmarks/publication-rules";
+import { getMessagesSync, t } from "@/lib/i18n/t";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import { FOCUS_RING } from "@/components/marketing/template/primitives";
 
@@ -56,13 +60,25 @@ function MiniSparkline({ data }: { data: number[] }) {
   );
 }
 
-function DeltaCell({ delta }: { delta: number }) {
+/** G29-D: `delta` null = no prior close → "new" (never 0.0 / −99). */
+function DeltaCell({ delta, newLabel, newTitle }: { delta: number | null; newLabel: string; newTitle: string }) {
+  if (delta === null) {
+    return (
+      <span
+        className="inline-flex items-center rounded border border-line-subtle bg-surface-sunken px-1 text-xs font-bold uppercase tracking-wider text-muted"
+        title={newTitle}
+        data-testid="delta-new"
+      >
+        {newLabel}
+      </span>
+    );
+  }
   const Icon = delta > 0 ? ArrowUpRight : delta < 0 ? ArrowDownRight : Minus;
   const cls = delta > 0 ? "text-bull" : delta < 0 ? "text-bear" : "text-muted";
   return (
     <span className={`inline-flex items-center gap-0.5 text-xs font-bold tabular-nums ${cls}`}>
-      <Icon className="h-3 w-3" />
-      {delta > 0 ? "+" : ""}{delta.toFixed(1)}
+      <Icon className="h-3 w-3" aria-hidden="true" />
+      {formatDelta(delta)}
     </span>
   );
 }
@@ -108,6 +124,12 @@ export default async function ListingsPage({ searchParams }: PageProps) {
       generatedAt: new Date().toISOString(),
     };
   }
+
+  const msgs = getMessagesSync("en");
+  const newLabel = t(msgs, "index.movers.new");
+  const newTitle = t(msgs, "index.movers.new.title");
+  // Same threshold as the index hero: below the basic benchmark band (n < 30) the table is a sample.
+  const isSample = isSampleBand(benchmarkBand(data.total));
 
   function urlWith(updates: Record<string, string | number | undefined>): string {
     const next = new URLSearchParams();
@@ -157,6 +179,14 @@ export default async function ListingsPage({ searchParams }: PageProps) {
               <p className="text-sm text-secondary mt-1">
                 {data.total.toLocaleString()} AU startups analysed by BlockID — ranked by SVI score. Anonymous tickers protect founder identity unless they opt in.
               </p>
+              {isSample ? (
+                <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-secondary" data-testid="index-sample-note">
+                  <span className="inline-flex items-center rounded-full border border-line bg-accent-soft px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-primary" data-testid="index-sample-chip">
+                    {t(msgs, "index.sample.chip")}
+                  </span>
+                  <span>{t(msgs, "index.sample.listings")}</span>
+                </p>
+              ) : null}
             </div>
             <Link href="/startup-index" className={`inline-flex min-h-11 items-center rounded-md text-sm text-action underline-offset-2 hover:underline ${FOCUS_RING}`}>← Back to Index</Link>
           </div>
@@ -252,7 +282,7 @@ export default async function ListingsPage({ searchParams }: PageProps) {
                       </span>
                     </td>
                     <td className="py-2 px-2 text-xs font-bold text-right tabular-nums text-primary">{row.svi}</td>
-                    <td className="py-2 px-2 text-right"><DeltaCell delta={row.deltaWeek} /></td>
+                    <td className="py-2 px-2 text-right"><DeltaCell delta={row.deltaWeek} newLabel={newLabel} newTitle={newTitle} /></td>
                     <td className="py-2 px-2 text-xs text-right font-mono tabular-nums text-primary">{fmtAud(row.valuationAud)}</td>
                     <td className="py-2 px-2 text-right">
                       <div className="flex justify-end"><MiniSparkline data={row.sparkline} /></div>

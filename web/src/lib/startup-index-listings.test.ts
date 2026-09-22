@@ -457,7 +457,7 @@ describe("startup-index-listings — row shape", () => {
 // ---------------------------------------------------------------------------
 
 describe("startup-index-listings — sparkline + deltaWeek", () => {
-  it("deltaWeek = latest.total_svi - priorWeek.total_svi (fallback 0 when no prior)", async () => {
+  it("deltaWeek = latest.total_svi - priorWeek.total_svi (null = \"new\" when no prior close — G29-D)", async () => {
     const { computeListings } = await import("./startup-index-listings");
     const now = new Date("2026-07-31T00:00:00Z").getTime();
     vi.useFakeTimers();
@@ -476,7 +476,7 @@ describe("startup-index-listings — sparkline + deltaWeek", () => {
     const result = await computeListings({});
     const byId = new Map(result.rows.map((r) => [r.slug, r]));
     expect(byId.get("an_new")!.deltaWeek).toBe(25); // 70 - 45
-    expect(byId.get("an_solo")!.deltaWeek).toBe(0); // no priorWeek
+    expect(byId.get("an_solo")!.deltaWeek).toBeNull(); // no priorWeek → "new", never 0 / −99
   });
 
   it("sparkline is a 7-slot array populated from the group history", async () => {
@@ -762,28 +762,35 @@ describe("startup-index-listings — sort + pagination", () => {
     expect(r.rows.map((x) => x.slug)).toEqual(["an_new", "an_mid", "an_old"]);
   });
 
-  it("sort=delta orders by deltaWeek (no prior → 0)", async () => {
+  it("sort=delta orders by deltaWeek (no prior → \"new\", sorted last)", async () => {
     const { computeListings } = await import("./startup-index-listings");
     const now = Date.now();
     vi.useFakeTimers();
     vi.setSystemTime(new Date(now));
-    state.queue = [
-      {
-        data: [
-          analysis({ email: "up@x", id: "an_up", total_svi: 80, created_at: new Date(now).toISOString() }),
-          analysis({ email: "up@x", id: "an_up_old", total_svi: 60, created_at: new Date(now - 10 * 86400_000).toISOString() }),
-          analysis({ email: "dn@x", id: "an_dn", total_svi: 40, created_at: new Date(now).toISOString() }),
-          analysis({ email: "dn@x", id: "an_dn_old", total_svi: 55, created_at: new Date(now - 10 * 86400_000).toISOString() }),
-        ],
-      },
-      { data: [] },
-      { data: [] },
-    ];
+    const seed = () => {
+      state.queue = [
+        {
+          data: [
+            analysis({ email: "up@x", id: "an_up", total_svi: 80, created_at: new Date(now).toISOString() }),
+            analysis({ email: "up@x", id: "an_up_old", total_svi: 60, created_at: new Date(now - 10 * 86400_000).toISOString() }),
+            analysis({ email: "dn@x", id: "an_dn", total_svi: 40, created_at: new Date(now).toISOString() }),
+            analysis({ email: "dn@x", id: "an_dn_old", total_svi: 55, created_at: new Date(now - 10 * 86400_000).toISOString() }),
+            analysis({ email: "new@x", id: "an_new", total_svi: 99, created_at: new Date(now).toISOString() }),
+          ],
+        },
+        { data: [] },
+        { data: [] },
+      ];
+    };
+    seed();
     const r = await computeListings({ sort: "delta" });
-    expect(r.rows[0].slug).toBe("an_up"); // +20 highest
-    expect(r.rows[1].slug).toBe("an_dn"); // -15 lowest
+    expect(r.rows.map((x) => x.slug)).toEqual(["an_up", "an_dn", "an_new"]); // +20, −15, then "new" last
     expect(r.rows[0].deltaWeek).toBe(20);
     expect(r.rows[1].deltaWeek).toBe(-15);
+    expect(r.rows[2].deltaWeek).toBeNull();
+    seed();
+    const asc = await computeListings({ sort: "delta", order: "asc" });
+    expect(asc.rows.map((x) => x.slug)).toEqual(["an_dn", "an_up", "an_new"]); // "new" still last
   });
 
   it("pagination slices deterministically (page 2 of pageSize 10 → offset 10)", async () => {

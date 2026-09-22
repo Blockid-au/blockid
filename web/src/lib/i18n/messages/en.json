@@ -1044,5 +1044,16 @@
   "free_report.pay.account_hint": "It lands in your workspace, where you can share it with a trust badge.",
   "free_report.pay.signup_cta": "Create a free account to buy it",
   "free_report.pay.edit": "Change what I entered",
-  "free_report.ip_limit": "Up to {limit} free reports a day from one network — try again tomorrow, or sign in."
+  "free_report.ip_limit": "Up to {limit} free reports a day from one network — try again tomorrow, or sign in.",
+  "index.movers.new": "new",
+  "index.movers.new.title": "First close — no prior close to compare against yet",
+  "index.movers.noPriorClose": "no prior close",
+  "index.movers.noPriorClose.note": "— means no prior close to compare against; a change is never taken against a filler value.",
+  "index.movers.newListings.title": "New listings (7d)",
+  "index.movers.newListings.body": "First close in the window — no change is printed until a prior close exists.",
+  "index.movers.drops.empty": "No companies with a weekly drop in the window.",
+  "index.movers.winners.empty": "No companies with a weekly gain in the window.",
+  "index.sample.chip": "Sample data",
+  "index.sample.body": "Fewer than 30 companies are tracked, so every figure on this page is a sample of re-analysed companies, not a market read.",
+  "index.sample.listings": "Sample — fewer than 30 companies are tracked; changes reflect re-analyses in a small set, not market moves."
 }
