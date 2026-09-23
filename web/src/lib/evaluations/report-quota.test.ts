@@ -415,6 +415,9 @@ describe("#9 idempotent reuse", () => {
 describe("writes + reads", () => {
   it("confirms the canonical document in the same evaluation insert", async () => {
     const document = demoReportV2();
+    const ROW = { id: "r-1", evaluation_id: "e-1", project_id: "p-1", user_id: "u-1",
+      kind: "full", paid_via: "quota", credits_cost: 0, report_ref: "rpt-1", share_token: "tok",
+      svi_total: 72, created_at: "2026-09-23T00:00:00Z" };
     const input = { evaluationId: "e-1", projectId: "p-1", userId: "u-1", kind: "full" as const,
       paidVia: "quota" as const, creditsCost: 0, reportRef: "rpt-1", shareToken: "tok", sviTotal: 72, reportV2: document };
     state.queue.push({ table: "evaluation_reports", data: { ...ROW, report_v2: document } });
