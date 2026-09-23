@@ -43,6 +43,7 @@ export interface SnapshotRowLike {
 }
 
 export const SNAPSHOT_REPORT_COLUMNS = "id, account_id, project_id, svi_total, stage, created_at, criterion_results, dim_results, dimension_scores, analysis_json, report_share_token";
+const REVISION_REPORT_COLUMNS = "id, snapshot_id, account_id, project_id, share_token, report_json, created_at, revoked_at";
 
 const DIM_KEYS = ["ftv", "mpc", "ptd", "tre", "cgh", "iri", "lco", "svm"] as const;
 
@@ -174,6 +175,32 @@ async function accountName(db: SupabaseClient, accountId: string | null | undefi
 /** The report behind a public share token (null = unknown token / no DB). */
 export async function loadReportV2ByShareToken(token: string, ctx: SnapshotReportContext = {}, db: SupabaseClient | null = getSupabaseAdmin()): Promise<LoadedReportV2 | null> {
   if (!db || !token) return null;
+  // Reader-first bridge: once 0410 exists, an immutable revision wins over
+  // the mutable daily snapshot. Missing-table/schema errors deliberately fall
+  // through so the release remains compatible before the migration is applied.
+  try {
+    const { data: revision, error: revisionError } = await db
+      .from("report_revisions")
+      .select(REVISION_REPORT_COLUMNS)
+      .eq("share_token", token)
+      .is("revoked_at", null)
+      .maybeSingle();
+    if (!revisionError && revision) {
+      const row = revision as Row;
+      const report = row.report_json && isReportV2(row.report_json) ? row.report_json : null;
+      if (!report) return null;
+      return {
+        report,
+        snapshotId: String(row.snapshot_id ?? row.id),
+        projectId: typeof row.project_id === "string" ? row.project_id : null,
+        accountId: typeof row.account_id === "string" ? row.account_id : null,
+        shareToken: String(row.share_token),
+        path: "stored",
+      };
+    }
+  } catch {
+    // 0410 is intentionally optional during the reader-first rollout.
+  }
   const { data, error } = await db.from("svi_snapshots").select(SNAPSHOT_REPORT_COLUMNS).eq("report_share_token", token).maybeSingle();
   if (error || !data) return null;
   const row = data as SnapshotRowLike;
