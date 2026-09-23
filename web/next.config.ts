@@ -8,6 +8,13 @@ const nextConfig: NextConfig = {
   outputFileTracingExcludes: {
     "**/*": ["releases/**", ".git/**", ".next-backup/**", "**/*.log", ".next/**"],
   },
+  // sharp 0.35 resolves `import "sharp"` to dist/index.mjs, but the file
+  // tracer only follows the CJS entry — standalone shipped dist/*.cjs alone
+  // and every route importing sharp (/api/intake, /api/svi/docx) threw
+  // ERR_MODULE_NOT_FOUND → 500 on 2026-09-23.
+  outputFileTracingIncludes: {
+    "**/*": ["./node_modules/sharp/dist/*.mjs"],
+  },
   reactStrictMode: true,
   poweredByHeader: false, // Remove X-Powered-By: Next.js
   // Node process gzips HTML/JSON responses. nginx in front usually also
