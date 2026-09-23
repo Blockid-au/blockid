@@ -144,7 +144,7 @@ test.describe("Purchase path — founder Starter (no spend)", () => {
       const page = await ctx.newPage();
       const posted: CapturedPost[] = [];
       await interceptCheckoutRoutes(page, posted);
-      const res = await page.goto("/pricing", { waitUntil: "domcontentloaded" });
+      const res = await page.goto("/pricing?segment=founder", { waitUntil: "domcontentloaded" }); // Evaluator is the default tab since 1e0d7e6d7
       expect(res?.status()).toBe(200);
       const card = page.locator("#tier-starter");
       await expect(card).toBeVisible({ timeout: 30_000 });

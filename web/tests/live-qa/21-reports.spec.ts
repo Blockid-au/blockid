@@ -52,7 +52,7 @@ test.describe("Trust BizReport — price before checkout", () => {
     const cta = page.getByRole("button", { name: /Pay A\$3 & get my report/ }).first(); // G25-D: explicit Pay label; the form renders the CTA twice (hero + "Ready to see your report?")
     await expect(cta).toBeVisible();
     // G21 P0-C: the A$3 line is a footnote under the Founder rungs now.
-    await visit("/pricing");
+    await visit("/pricing?segment=founder"); // /pricing defaults to Evaluator since 1e0d7e6d7
     const payg = page.getByTestId("founder-payg");
     await expect(payg).toBeVisible({ timeout: 30_000 });
     await expect(payg).toContainText(/A\$3/);
@@ -143,7 +143,7 @@ test.describe("Trust BizReport — price before checkout", () => {
       expect(dialogText).toMatch(/Confirm & Pay A\$3/);
       expect(dialogText).toMatch(/\d+ credits/);
       expect(dialogText).toMatch(/inc\.? ?GST/i);
-      await dialog.getByRole("button", { name: /^Cancel$/ }).click();
+      await dialog.getByRole("button", { name: /^Cancel and return to report$/ }).click(); // label since 3073058a0
       await expect(dialog).toBeHidden({ timeout: 10_000 });
     }
     expect(checkoutCalls, "no checkout / redeem request may leave the page without the confirm click").toEqual([]);

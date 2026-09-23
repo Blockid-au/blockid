@@ -66,7 +66,7 @@ test.describe("G21 P0 — home positioning", () => {
     await expect(intake.getByTestId("smart-intake-text")).toHaveAttribute("placeholder", "Dán website hoặc mô tả doanh nghiệp");
     await expect(intake.getByTestId("smart-intake-cta")).toHaveText("Phân tích doanh nghiệp");
     await expect(intake.getByTestId("smart-intake-cta")).toBeDisabled();
-    await expect(intake.locator('[data-cta-id="hero_sample_report"]')).toHaveText("Xem báo cáo mẫu");
+    await expect(intake.locator('[data-cta-id="hero_sample_report"]')).toHaveAccessibleName("Xem báo cáo mẫu"); // the → is aria-hidden decoration
     await expect(intake.locator('[data-cta-id="hero_sample_report"]')).toHaveAttribute("href", "/tbr/demo");
   });
 

@@ -22,7 +22,10 @@ test.describe("Pricing — evaluator segment", () => {
     await visit("/pricing");
     const sw = page.getByTestId("pricing-segment-switch");
     await expect(sw).toBeVisible({ timeout: 30_000 });
-    expect(await sw.getAttribute("data-active-tab")).toBe("founder");
+    // 1e0d7e6d7: /pricing opens on Evaluator; the Founder tab still flips the ladder.
+    expect(await sw.getAttribute("data-active-tab")).toBe("evaluator");
+    await page.locator("#pricing-tab-founder").click();
+    await expect(sw).toHaveAttribute("data-active-tab", "founder");
     await expect(page.getByTestId("founder-ladder")).toBeVisible();
 
     await page.locator("#pricing-tab-evaluator").click();
@@ -30,7 +33,8 @@ test.describe("Pricing — evaluator segment", () => {
     const ladder = page.getByTestId("evaluator-ladder");
     await expect(ladder).toBeVisible();
     await expect(page.locator("#pricing-matrix-heading")).toContainText(/evaluators/i);
-    expect(new URL(page.url()).searchParams.get("segment")).toBe("evaluator");
+    // Evaluator is the default tab, so switching back clears the alias rather than writing ?segment=evaluator.
+    expect(new URL(page.url()).searchParams.get("segment")).toBeNull();
 
     const rows: Array<{ name: string; price: string | null; cta: string | null; trialPill: boolean }> = [];
     for (const tier of LADDER) {
