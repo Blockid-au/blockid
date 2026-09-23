@@ -1560,9 +1560,12 @@ pass "Candidate serves on retained port $PROD_PORT; previous PID remains warm (O
 gate "Post-deploy verification"
 
 sleep 3
-LOCAL=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:$PROD_PORT/)
-PUBLIC=$(curl -s -o /dev/null -w "%{http_code}" https://blockid.au/ 2>/dev/null || echo "skip")
-AUTH=$(curl -s https://blockid.au/api/auth/me 2>/dev/null | python3 -c "import json,sys;d=json.load(sys.stdin);print('ok' if 'ok' in d else 'fail')" 2>/dev/null || echo "fail")
+# Bounded + non-fatal: traffic has already moved, so a dead or hung candidate
+# must reach the LOCAL check below (fail → rollback), not exit under set -e
+# or block forever while holding the deploy lock.
+LOCAL=$(curl -s -m 15 -o /dev/null -w "%{http_code}" http://127.0.0.1:$PROD_PORT/ 2>/dev/null || echo "000")
+PUBLIC=$(curl -s -m 15 -o /dev/null -w "%{http_code}" https://blockid.au/ 2>/dev/null || echo "skip")
+AUTH=$(curl -s -m 15 https://blockid.au/api/auth/me 2>/dev/null | python3 -c "import json,sys;d=json.load(sys.stdin);print('ok' if 'ok' in d else 'fail')" 2>/dev/null || echo "fail")
 
 echo "  Local:  HTTP $LOCAL"
 echo "  Public: HTTP $PUBLIC"
