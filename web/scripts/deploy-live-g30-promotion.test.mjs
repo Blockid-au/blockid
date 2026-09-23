@@ -14,6 +14,10 @@ test('normal admission does not load production credentials or mode into CI gate
 set -euo pipefail
 unset NODE_ENV G30_FAKE_PRODUCTION_SECRET
 PID_FILE=unused CURRENT_LINK=unused WEB_DIR=unused
+# Globals the script sets above the extracted block (line 17). The snippet runs
+# under \`set -u\`, so they must be seeded here or the harness fails on the
+# script's own default rather than on the behaviour under test.
+G30_RECEIPT_STAGE=0 G30_CONTROL_WEB=unused G30_STAGE_BASELINE_PORTS=""
 load_env() { export NODE_ENV=production G30_FAKE_PRODUCTION_SECRET=loaded; }
 cat() { echo 101; }
 readlink() { echo /tmp/retained-origin; }
@@ -124,7 +128,12 @@ test('candidate promotion is non-stopping and independently copies runtime artif
   assert.ok(promotion.indexOf('--register') < promotion.indexOf('--begin'));
   assert.ok(promotion.indexOf('--begin') < promotion.indexOf('g30_proxy_switch'));
   assert.match(source, /cp -a --reflink=auto "\$STANDALONE\/\."/);
-  assert.match(source, /load_env\nexport NODE_PATH="\$RELEASE_DIR\/\$FROZEN_NODE_PATH"/);
+  // The candidate must run against its own frozen dependency snapshot inside the
+  // release dir. Pin that fact, not the line that happens to sit above it:
+  // NODE_PATH now follows the freeze manifest (FROZEN_NODE_PATH), not load_env.
+  assert.match(source, /FROZEN_NODE_PATH=\$\(printf/);
+  assert.match(source, /export NODE_PATH="\$RELEASE_DIR\/\$FROZEN_NODE_PATH"/);
+  assert.ok(source.indexOf('FROZEN_NODE_PATH=$(printf') < source.indexOf('export NODE_PATH="$RELEASE_DIR/$FROZEN_NODE_PATH"'));
   assert.match(source, /export HOSTNAME=127\.0\.0\.1/);
   assert.match(source, /g30_state --gates-passed/);
   assert.match(source, /G30_RECOVERY_EXPECTED_PORT/);
@@ -144,7 +153,7 @@ for (const nonLink of [false, true]) {
       const from = source.indexOf('# Discard leaked release aliases');
       const to = source.indexOf('FREEZE_RESULT=', from);
       assert.ok(from >= 0 && to > from);
-      const result = spawnSync('bash', ['-euc', 'fail() { exit 41; }\n' + source.slice(from, to)], {
+      const result = spawnSync('bash', ['-euc', 'fail() { exit 41; }\nG30_RECEIPT_STAGE=0\n' + source.slice(from, to)], {
         env: { ...process.env, RELEASE_DIR: release }, encoding: 'utf8', timeout: 5000,
       });
       assert.equal(result.status, nonLink ? 41 : 0, result.stderr);
