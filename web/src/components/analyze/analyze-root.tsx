@@ -882,7 +882,14 @@ export function AnalyzeRoot({
           )}
           {intake.inputKind === "website" && (
             <SiteVisitorPanel
-              url={submission?.url ?? submission?.text ?? intake.rawText}
+              seedUrl={submission?.url ?? submission?.text ?? ""}
+              pages={(intake.structured.pages ?? []).map((page) => ({
+                url: page.url,
+                title: page.title,
+                status: page.status === "available" ? "fetched" : "error",
+              }))}
+              totalPages={intake.structured.pages?.length ?? 0}
+              complete
               intake={intake}
               onDone={handleVariantDone}
             />

@@ -71,6 +71,8 @@ export interface FetchTextResult {
   refused?: boolean;
   /** The URL the body came from (after redirects). */
   finalUrl?: string;
+  /** Response media type when a response was obtained. */
+  contentType?: string;
 }
 
 const defaultSleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
@@ -220,7 +222,16 @@ export async function fetchText(url: string, opts: FetchTextOptions = {}): Promi
 
         const { text, truncated } = await readBodyCapped(res, MAX_BODY_BYTES);
         clearTimeout(timer);
-        return { ok: res.ok, status: res.status, text, blocked: false, truncated, attempts, finalUrl: current };
+        return {
+          ok: res.ok,
+          status: res.status,
+          text,
+          blocked: false,
+          truncated,
+          attempts,
+          finalUrl: current,
+          contentType: res.headers.get("content-type") ?? undefined,
+        };
       } catch (err) {
         clearTimeout(timer);
         const name = err instanceof Error ? err.name : "";

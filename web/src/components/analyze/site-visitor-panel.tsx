@@ -43,6 +43,8 @@ export interface SiteVisitorPanelProps {
   signals?: string[];
   /** Estimated total pages. */
   totalPages?: number;
+  /** The caller already completed acquisition and supplied the final pages. */
+  complete?: boolean;
   className?: string;
 }
 
@@ -74,6 +76,7 @@ export function SiteVisitorPanel({
   techStack: techStackProp,
   signals: signalsProp,
   totalPages: totalPagesProp,
+  complete,
   className,
 }: SiteVisitorPanelProps) {
   const effectiveSeed = url ?? seedUrl ?? "";
@@ -192,6 +195,16 @@ export function SiteVisitorPanel({
       src.close();
     };
   }, [url, intake, onDone]);
+
+  // The intake endpoint now owns website acquisition. In this mode the
+  // panel renders that exact corpus for one frame, then advances without
+  // opening a second crawler that could produce a different snapshot.
+  React.useEffect(() => {
+    if (url || !complete || doneCalledRef.current) return;
+    doneCalledRef.current = true;
+    const frame = window.requestAnimationFrame(() => onDone?.(intake));
+    return () => window.cancelAnimationFrame(frame);
+  }, [complete, intake, onDone, url]);
 
   // ── Pick which values to render ─────────────────────────────────────
   const pages = isLive ? livePages : pagesProp ?? [];

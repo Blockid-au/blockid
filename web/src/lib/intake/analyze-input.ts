@@ -15,14 +15,20 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { detectInputType, scrapeUrl } from "@/lib/rnd-input";
+import { detectInputType } from "@/lib/rnd-input";
 import { splitDeckToSections, type DeckSections } from "./deck-sections";
 import { extractSignals, type SVIExtractedSignals } from "@/lib/svi-analysis";
 import { detectContext, type IntakeContext } from "./detect-context";
 import { extractFileText } from "@/lib/guest-analysis/runner";
 import { callAI } from "@/lib/ai-client";
 import { captureInvestorIntent, type InvestorIntentSnapshot } from "./investor-intent";
-import { createBusinessInputSnapshot, type BusinessInputSnapshot, type SnapshotSourceInput } from "./input-snapshot";
+import {
+  createBusinessInputSnapshot,
+  type BusinessInputSnapshot,
+  type SnapshotSourceInput,
+  type SnapshotUnitStatus,
+} from "./input-snapshot";
+import { acquireWebsiteCorpus, type WebsiteCorpus } from "./website-corpus";
 
 export type InputKind =
   | "pitch_deck"
@@ -47,7 +53,13 @@ export interface IntakeInput {
 
 export interface IntakeStructured {
   slides?: string[];
-  pages?: { url: string; text: string }[];
+  pages?: {
+    url: string;
+    text: string;
+    status?: SnapshotUnitStatus;
+    title?: string;
+    error?: string | null;
+  }[];
   deckSections?: DeckSections;
 }
 
@@ -275,43 +287,57 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
   const detectedKind = detectInputType(urlCandidate);
 
   if (input.url || (detectedKind === "url" && URL_LIKE.test(urlCandidate))) {
-    let scraped: { title: string; description: string; text: string; techHints: string[] } | null = null;
+    let corpus: WebsiteCorpus | null = null;
     try {
-      scraped = await scrapeUrl(urlCandidate);
+      corpus = await acquireWebsiteCorpus(urlCandidate);
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      warnings.push(`Scrape failed: ${msg}`);
+      warnings.push(`Website acquisition failed: ${msg}`);
     }
-    const rawText = scraped
-      ? [scraped.title, scraped.description, scraped.text].filter(Boolean).join("\n\n")
-      : urlCandidate;
+    const availablePages = corpus?.pages.filter((page) => page.status === "available") ?? [];
+    if (corpus && !corpus.complete) warnings.push("Website acquisition was partial — unavailable pages are recorded in the input snapshot");
+    const rawText = corpus?.combinedText || urlCandidate;
     const signals = extractSignals({ rawText });
+    const root = availablePages[0] ?? null;
     const context = detectContext(signals, rawText, {
       url: urlCandidate,
-      scraped: scraped
-        ? { title: scraped.title, description: scraped.description, text: scraped.text }
+      scraped: root
+        ? { title: root.title, description: root.description, text: root.text }
         : undefined,
     });
     const inputSnapshot = createBusinessInputSnapshot({
       inputKind: "website",
       createdAt: submittedAt,
-      sources: [{
-        id: "page:root",
-        kind: "page",
-        locator: urlCandidate,
-        status: scraped ? "available" : "failed",
-        ...(scraped ? { text: rawText, observedAt: submittedAt } : {}),
-      }],
+      sources: corpus?.pages.length
+        ? corpus.pages.map((page) => ({
+            id: page.id,
+            kind: "page" as const,
+            locator: page.finalUrl,
+            status: page.status,
+            observedAt: page.observedAt,
+            ...(page.status === "available" ? { text: page.text } : {}),
+          }))
+        : [{ id: "page:root", kind: "page", locator: urlCandidate, status: "failed" }],
     });
     return {
       inputKind: "website",
-      confidence: scraped ? 0.9 : 0.6,
+      confidence: availablePages.length > 0 ? 0.9 : 0.6,
       rawText,
-      structured: scraped ? { pages: [{ url: urlCandidate, text: scraped.text }] } : {},
+      structured: corpus
+        ? {
+            pages: corpus.pages.map((page) => ({
+              url: page.finalUrl,
+              text: page.text,
+              status: page.status,
+              title: page.title,
+              error: page.error,
+            })),
+          }
+        : {},
       signals,
       context,
       classifierMode: "regex",
-      suggestedNext: "Run /api/site-crawl/stream for deeper BFS then request /api/svi/report-estimate.",
+      suggestedNext: "Use this versioned website corpus for the report, then plan independent research for material investor questions.",
       warnings: warnings.length > 0 ? warnings : undefined,
       inputSnapshot,
       investorIntent,

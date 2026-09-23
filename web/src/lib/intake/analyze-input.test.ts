@@ -14,6 +14,20 @@ vi.mock("@/lib/rnd-input", async () => {
   };
 });
 
+vi.mock("./website-corpus", () => ({
+  acquireWebsiteCorpus: vi.fn(async (url: string) => ({
+    version: "website-corpus-v1",
+    seedUrl: url.startsWith("http") ? url : `https://${url}`,
+    pages: [
+      { id: "page:root", requestedUrl: url, finalUrl: url, status: "available", httpStatus: 200, title: `Title for ${url}`, description: "Test description", text: "Body text with product features, customers, pricing, and team.", observedAt: "2026-09-23T00:00:00.000Z", truncated: false, error: null },
+      { id: "page:1", requestedUrl: `${url}/pricing`, finalUrl: `${url}/pricing`, status: "available", httpStatus: 200, title: "Pricing", description: "", text: "A$50 per month", observedAt: "2026-09-23T00:00:00.000Z", truncated: false, error: null },
+    ],
+    combinedText: `Title for ${url}\n\nBody text with product features, customers, pricing, and team.\n\nA$50 per month`,
+    complete: true,
+    limits: { maxPages: 6, pageChars: 12000, corpusChars: 60000 },
+  })),
+}));
+
 vi.mock("@/lib/ai-client", () => ({
   callAI: vi.fn(async (opts: { user: string }) => {
     // Return an existing-company answer for prompts that clearly describe one,
@@ -60,9 +74,14 @@ describe("analyzeInput — regex fast-path", () => {
     expect(result.inputKind).toBe("website");
     expect(result.confidence).toBeGreaterThan(0.5);
     expect(result.classifierMode).toBe("regex");
-    expect(result.inputSnapshot?.sourceUnits).toHaveLength(1);
+    expect(result.inputSnapshot?.sourceUnits).toHaveLength(2);
     expect(result.inputSnapshot?.sourceUnits[0]).toMatchObject({ id: "page:root", status: "available" });
     expect(result.investorIntent?.requestedOutputs).toEqual([{ output: "investment_view", provenance: "inferred", spans: [] }]);
+    expect(result.rawText).toContain("A$50 per month");
+    expect(result.structured.pages).toEqual([
+      expect.objectContaining({ url: "https://stripe.com", status: "available" }),
+      expect.objectContaining({ url: "https://stripe.com/pricing", status: "available", title: "Pricing" }),
+    ]);
   });
 
   it("classifies bare domains as website", async () => {
