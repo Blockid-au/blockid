@@ -28,3 +28,11 @@ The investor result opens with a compact decision brief: current view and confid
 ## Planning consequence
 
 This is a P0 report-quality correction, merged into F01/E01/E02/R01–R04/A02–A03/V02–V03/U01/U02/Q01–Q02. It precedes broad visual redesign and any paid “refresh research” activation. Existing billing/authority gates remain in force. The source-of-truth section 6.8 defines the implementation sequence, acceptance evidence and rollout boundary.
+
+## WT1 source foundation
+
+Commits `a8f511979` and `58b29c4eb` add versioned metadata contracts and attach them to every newly analysed file, URL or text input in source. `InvestorIntentSnapshot` records exact matched user spans, requested investor outputs, stage/geography only when explicit, and labels the default investor view as inferred. It is built only from caller-provided text, never fetched website/document content. `BusinessInputSnapshot` records per-page/slide/text locator, status, content hash and character count without embedding source text; an authorised retention flag requires a grant ID.
+
+The existing intake persistence still stores its legacy bounded `rawText`; this phase does not claim to remove or newly authorise that behaviour. It adds metadata to the existing compact intake payload when deployed. Old stored records remain compatible because the new fields are optional. Current URL acquisition still contributes only the root page to the snapshot, now explicitly represented as such; WT2 must replace the separate display-only multi-page crawl with a single hardened producer before claiming website parity.
+
+Validation: 46 focused intake/snapshot/payload tests passed. A focused strict TypeScript check passed, followed by the full repository TypeScript check with an 8 GiB Node heap. The first default-heap full check exhausted its 4 GiB process heap without a diagnostic; it was rerun successfully with unchanged source. No production build, route deployment, provider call, database migration, customer input, credit operation or website crawl occurred in this phase.
