@@ -20,6 +20,7 @@ import { detectInputType } from "@/lib/rnd-input";
 import { splitDeckToSections, type DeckSections } from "./deck-sections";
 import { extractSignals, type SVIExtractedSignals } from "@/lib/svi-analysis";
 import { detectContext, type IntakeContext } from "./detect-context";
+import { extractPdfTextFromBuffer } from "@/lib/pdf/extract-text";
 import { extractFileText } from "@/lib/guest-analysis/runner";
 import { callAI } from "@/lib/ai-client";
 import { captureInvestorIntent, type InvestorIntentSnapshot } from "./investor-intent";
@@ -55,6 +56,7 @@ export interface IntakeInput {
 
 export interface IntakeStructured {
   slides?: string[];
+  extractedUnits?: Array<{ locator: string; text: string; kind: "page" | "slide" | "text" }>;
   imageSource?: VisualTranscriptSource;
   documentVisuals?: Omit<DocumentVisualResult, "text">;
   pages?: {
@@ -121,52 +123,39 @@ function isPptxBuffer(buf: Buffer): boolean {
 
 // ─── File extractors ───────────────────────────────────────────────────────
 
-async function writeBufferToTemp(buffer: Buffer, filename: string): Promise<string> {
-  const safe = filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-60);
-  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "intake-"));
-  const p = path.join(tmpDir, safe || "upload.bin");
-  await fs.writeFile(p, buffer);
-  return p;
+type NativeUnit = { locator: string; text: string; kind: "page" | "slide" | "text" };
+
+async function withTemporaryDocument<T>(buffer: Buffer, filename: string, read: (file: string) => Promise<T>): Promise<T> {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "intake-"));
+  try {
+    await fs.chmod(directory, 0o700);
+    const file = path.join(directory, filename.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-60) || "upload.bin");
+    await fs.writeFile(file, buffer, { mode: 0o600 });
+    return await read(file);
+  } finally { await fs.rm(directory, { recursive: true, force: true }); }
 }
 
-async function extractPptxSlides(buffer: Buffer): Promise<string[]> {
+async function extractPptxUnits(buffer: Buffer): Promise<NativeUnit[]> {
   try {
-    // node-pptx-parser has an async loader; import dynamically so a missing
-    // dep never breaks type-check or dev boot.
-    const mod = (await import("node-pptx-parser")) as {
-      default?: unknown;
-      PPTXParser?: unknown;
-    };
-    // The package exports a default class in most versions.
-    const Ctor = (mod as { default?: new (path: string) => unknown }).default
-      ?? (mod as { PPTXParser?: new (path: string) => unknown }).PPTXParser;
-    if (typeof Ctor !== "function") return [];
-    const tmpPath = await writeBufferToTemp(buffer, "deck.pptx");
-    const parser = new (Ctor as new (p: string) => {
-      extractText?: () => Promise<Array<{ text?: string; slideNumber?: number }>>;
-    })(tmpPath);
-    if (typeof parser.extractText !== "function") return [];
-    const slides = await parser.extractText();
-    return slides.map(s => (s?.text ?? "").trim()).filter(Boolean);
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.warn("[intake] pptx parse failed", msg);
+    const { default: Parser } = await import("node-pptx-parser");
+    return await withTemporaryDocument(buffer, "deck.pptx", async file => {
+      const slides = await new Parser(file).extractText();
+      // Package order is relationship order, not guaranteed presentation order.
+      // Cite the actual part path; never relabel it as an inferred slide number.
+      return slides.map(slide => ({ locator: slide.path, kind: "slide" as const,
+        text: Array.isArray(slide.text) ? slide.text.filter(t => typeof t === "string").join("\n").trim() : "" }));
+    });
+  } catch {
+    console.warn("[intake] pptx extraction unavailable");
     return [];
   }
 }
 
-async function extractPdfSlides(buffer: Buffer): Promise<{ text: string; slides: string[] }> {
-  const tmpPath = await writeBufferToTemp(buffer, "deck.pdf");
-  const text = await extractFileText(tmpPath, "deck.pdf");
-  // Rough slide split: pdf-parse joins pages with \f (form feed) when present;
-  // otherwise fall back to blank-line clusters of >= 40 chars.
-  const byFormFeed = text.split(/\f/g).map(s => s.trim()).filter(s => s.length > 20);
-  if (byFormFeed.length >= 3) return { text, slides: byFormFeed };
-  const byBlank = text
-    .split(/\n{2,}/g)
-    .map(s => s.trim())
-    .filter(s => s.length >= 40);
-  return { text, slides: byBlank.slice(0, 40) };
+async function extractPdfUnits(buffer: Buffer): Promise<{ text: string; units: NativeUnit[] }> {
+  const result = await extractPdfTextFromBuffer(buffer, { byteScanFallback: false });
+  return { text: result.text, units: result.pageTexts?.length
+    ? result.pageTexts.map(page => ({ locator: `page=${page.page}`, kind: "page", text: page.text }))
+    : result.text.trim() ? [{ locator: "document", kind: "text", text: result.text }] : [] };
 }
 
 // ─── LLM classifier fallback ───────────────────────────────────────────────
@@ -241,6 +230,7 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
     const isPdf = filename.endsWith(".pdf") || isPdfBuffer(input.file.buffer);
 
     let slides: string[] = [];
+    let extractedUnits: NativeUnit[] = [];
     let rawText = "";
     let imageSource: VisualTranscriptSource | undefined;
     if (isImage) {
@@ -248,24 +238,29 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
       imageSource = transcript.source;
       rawText = visualTranscriptContext(transcript.text);
       slides = [rawText];
+      extractedUnits = [{ locator: "image=1", kind: "text", text: rawText }];
       warnings.push(VISUAL_TRANSCRIPT_WARNING, ...(transcript.source.limitations ?? []));
     } else if (isPptx) {
-      slides = await extractPptxSlides(input.file.buffer);
-      rawText = slides.join("\n\n");
+      extractedUnits = await extractPptxUnits(input.file.buffer);
+      slides = extractedUnits.map(unit => unit.text);
+      warnings.push("PPTX references identify slide parts, not presentation-order slide numbers.");
+      rawText = extractedUnits.filter(unit => unit.text.trim()).map(unit => `[Source ${unit.locator}]\n${unit.text}`).join("\n\n");
       if (!rawText) warnings.push("PPTX yielded no extractable text — consider OCR fallback");
     } else if (isPdf) {
-      const out = await extractPdfSlides(input.file.buffer);
-      slides = out.slides;
-      rawText = out.text;
+      const out = await extractPdfUnits(input.file.buffer);
+      extractedUnits = out.units;
+      slides = extractedUnits.map(unit => unit.text);
+      rawText = extractedUnits.filter(unit => unit.text.trim()).map(unit => `[Source ${unit.locator}]\n${unit.text}`).join("\n\n") || out.text;
       if (!rawText.trim()) warnings.push("PDF yielded no extractable text — export a text-selectable PDF or upload individual PNG/JPEG/WebP pages for OCR");
     } else if (/\.docx?$/.test(filename)) {
-      const tmp = await writeBufferToTemp(input.file.buffer, input.file.filename);
-      rawText = await extractFileText(tmp, input.file.filename);
-      slides = rawText.split(/\n{2,}/g).map(s => s.trim()).filter(Boolean).slice(0, 40);
+      rawText = await withTemporaryDocument(input.file.buffer, input.file.filename, file => extractFileText(file, input.file!.filename));
+      slides = rawText.trim() ? [rawText] : [];
+      extractedUnits = [{ locator: "document", kind: "text", text: rawText }];
     } else {
       warnings.push(`Unrecognised file extension for ${input.file.filename}`);
       rawText = input.file.buffer.toString("utf-8").slice(0, 8000);
       slides = [rawText];
+      extractedUnits = [{ locator: "document", kind: "text", text: rawText }];
     }
 
     let documentVisuals: DocumentVisualResult | undefined;
@@ -279,15 +274,14 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
     const combinedText = [rawText, text].filter(Boolean).join("\n\n");
     const signals = extractSignals({ rawText: combinedText, fileName: input.file.filename });
     const context = detectContext(signals, combinedText);
-    const snapshotSources: SnapshotSourceInput[] = slides.length > 0
-      ? slides.map((slide, index) => ({
-          id: `slide:${index + 1}`,
-          kind: "slide",
-          locator: `${input.file!.filename}#${imageSource ? "image" : "slide"}=${index + 1}`,
-          status: slide.trim() ? "available" : "unsupported",
-          ...(slide.trim() ? { text: slide } : {}),
+    const snapshotSources: SnapshotSourceInput[] = extractedUnits.length > 0
+      ? extractedUnits.map(unit => ({
+          id: `native:${unit.locator}`, kind: unit.kind,
+          locator: `${input.file!.filename}#${unit.locator}`,
+          status: unit.text.trim() ? "available" : "unsupported",
+          ...(unit.text.trim() ? { text: unit.text } : {}),
         }))
-      : [{ id: "document:0", kind: "slide", locator: input.file.filename, status: "failed" }];
+      : [{ id: "document:0", kind: "text", locator: input.file.filename, status: "failed" }];
     if (text) snapshotSources.push({ id: "user-context", kind: "text", locator: "user-input", status: "available", text });
     const inputSnapshot = createBusinessInputSnapshot({
       inputKind: "pitch_deck",
@@ -299,7 +293,7 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
       inputKind: "pitch_deck",
       confidence: rawText.length > 200 ? 0.95 : 0.55,
       rawText: combinedText,
-      structured: { slides, deckSections, ...(imageSource ? { imageSource } : {}), ...(documentVisuals ? { documentVisuals: { documentSha256: documentVisuals.documentSha256, units: documentVisuals.units, warnings: documentVisuals.warnings } } : {}) },
+      structured: { slides, extractedUnits, deckSections, ...(imageSource ? { imageSource } : {}), ...(documentVisuals ? { documentVisuals: { documentSha256: documentVisuals.documentSha256, units: documentVisuals.units, warnings: documentVisuals.warnings } } : {}) },
       signals,
       context,
       classifierMode: "file",

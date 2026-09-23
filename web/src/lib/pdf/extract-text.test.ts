@@ -12,13 +12,15 @@ describe("extractPdfTextFromBuffer", () => {
     const r = await extractPdfTextFromBuffer(buf);
     expect(r.engine).toBe("pdf-parse-v2");
     expect(r.pages).toBe(1);
+    expect(r.pageTexts?.[0]).toMatchObject({ page: 1, text: expect.stringContaining("Jane Doe") });
     expect(r.text).toContain("Jane Doe");
     expect(r.text).toContain("Acme Health");
   }, 30_000);
 
-  it("non-PDF bytes: byte-scan by default, empty when the fallback is off", async () => {
+  it("non-PDF bytes stay empty unless a diagnostic byte view is explicitly requested", async () => {
     const junk = Buffer.from("plain text pretending to be a PDF");
-    expect((await extractPdfTextFromBuffer(junk)).engine).toBe("byte-scan");
+    expect((await extractPdfTextFromBuffer(junk)).engine).toBe("none");
+    expect((await extractPdfTextFromBuffer(junk, { byteScanFallback: true })).engine).toBe("byte-scan");
     expect((await extractPdfTextFromBuffer(junk, { byteScanFallback: false })).text).toBe("");
     expect(byteScanText(Buffer.concat([Buffer.from("abc"), Buffer.from([1, 2]), Buffer.from("def")]))).toBe("abc def");
   });

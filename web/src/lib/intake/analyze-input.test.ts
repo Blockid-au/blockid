@@ -49,6 +49,13 @@ vi.mock("@/lib/guest-analysis/runner", () => ({
   extractFileText: vi.fn(async () => "Slide 1 problem\n\nSlide 2 solution\n\nSlide 3 team"),
 }));
 
+vi.mock("@/lib/pdf/extract-text", () => ({
+  extractPdfTextFromBuffer: vi.fn(async () => ({ text: "Problem\n\nSolution", pages: 3, engine: "pdf-parse-v2", pageTexts: [{ page: 1, text: "Problem" }, { page: 2, text: "" }, { page: 3, text: "Solution" }] })),
+}));
+vi.mock("node-pptx-parser", () => ({ default: class {
+  async extractText() { return [{ path: "ppt/slides/slide7.xml", text: ["Problem", "Customer friction"] }, { path: "ppt/slides/slide2.xml", text: [] }]; }
+} }));
+
 vi.mock("./deck-sections", async () => {
   const actual = await vi.importActual<typeof import("./deck-sections")>("./deck-sections");
   return {
@@ -150,7 +157,10 @@ describe("analyzeInput — file path", () => {
       file: { filename: "deck.pdf", buffer },
     });
     expect(result.inputKind).toBe("pitch_deck");
-    expect(result.structured.slides?.length).toBeGreaterThanOrEqual(0);
+    expect(result.structured.slides).toEqual(["Problem", "", "Solution"]);
+    expect(result.inputSnapshot?.sourceUnits.map(s => [s.locator, s.status])).toEqual([
+      ["deck.pdf#page=1", "available"], ["deck.pdf#page=2", "unsupported"], ["deck.pdf#page=3", "available"],
+    ]);
     expect(result.classifierMode).toBe("file");
   });
 
@@ -163,17 +173,14 @@ describe("analyzeInput — file path", () => {
       file: { filename: "pitch.pptx", buffer },
     });
     expect(result.inputKind).toBe("pitch_deck");
+    expect(result.rawText).toContain("Problem\nCustomer friction");
+    expect(result.inputSnapshot?.sourceUnits[0].locator).toBe("pitch.pptx#ppt/slides/slide7.xml");
   });
 
-  it("warns when a PDF yields no extractable text", async () => {
-    const { extractFileText } = await import("@/lib/guest-analysis/runner");
-    (extractFileText as ReturnType<typeof vi.fn>).mockResolvedValueOnce("");
-    const buffer = Buffer.from("%PDF-1.4 empty");
-    const result = await analyzeInput({
-      file: { filename: "empty.pdf", buffer },
-    });
-    expect(result.inputKind).toBe("pitch_deck");
-    expect(result.warnings?.length ?? 0).toBeGreaterThan(0);
+  it("requests input when both native and visual PDF extraction are empty", async () => {
+    const { extractPdfTextFromBuffer } = await import("@/lib/pdf/extract-text");
+    vi.mocked(extractPdfTextFromBuffer).mockResolvedValueOnce({ text: "", pages: 0, engine: "none" });
+    await expect(analyzeInput({ file: { filename: "empty.pdf", buffer: Buffer.from("%PDF-1.4 empty") } })).rejects.toThrow("needs_input");
   });
 });
 

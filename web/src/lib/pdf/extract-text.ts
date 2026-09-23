@@ -13,14 +13,16 @@
 export interface PdfTextResult {
   text: string;
   pages: number;
+  /** Parser-provided page numbers; never inferred from paragraph breaks. */
+  pageTexts?: Array<{ page: number; text: string }>;
   /** "pdf-parse-v2" | "pdf-parse-v1" | "byte-scan" | "none" */
   engine: string;
 }
 
-type V2Ctor = new (opts: { data: Uint8Array | Buffer }) => { getText(): Promise<{ text: string; pages?: unknown[]; total?: number }>; destroy(): Promise<void> };
+type V2Ctor = new (opts: { data: Uint8Array | Buffer }) => { getText(): Promise<{ text: string; pages?: Array<{ num: number; text: string }>; total?: number }>; destroy(): Promise<void> };
 type V1Fn = (b: Buffer) => Promise<{ text: string; numpages?: number }>;
 
-/** Rough fallback: printable ASCII runs from the raw bytes (keywords survive, layout does not). */
+/** Diagnostic byte view only. Never use PDF container bytes as business evidence. */
 export function byteScanText(buffer: Buffer): string {
   return buffer
     .toString("binary")
@@ -39,7 +41,8 @@ export async function extractPdfTextFromBuffer(buffer: Buffer, opts: { byteScanF
       try {
         const r = await parser.getText();
         const pages = Array.isArray(r.pages) ? r.pages.length : typeof r.total === "number" ? r.total : 0;
-        return { text: (r.text ?? "").trim(), pages, engine: "pdf-parse-v2" };
+        const pageTexts = (r.pages ?? []).filter(p => Number.isInteger(p.num) && p.num > 0 && typeof p.text === "string").map(p => ({ page: p.num, text: p.text.trim() }));
+        return { text: pageTexts.length ? pageTexts.map(page => page.text).join("\n\f\n").trim() : (r.text ?? "").trim(), pages, pageTexts, engine: "pdf-parse-v2" };
       } finally {
         await parser.destroy().catch(() => undefined);
       }
@@ -51,6 +54,6 @@ export async function extractPdfTextFromBuffer(buffer: Buffer, opts: { byteScanF
   } catch (err) {
     console.warn("[pdf/extract-text] pdf-parse unavailable/failed", err instanceof Error ? err.message : String(err));
   }
-  if (opts.byteScanFallback === false) return { text: "", pages: 0, engine: "none" };
+  if (opts.byteScanFallback !== true) return { text: "", pages: 0, engine: "none" };
   return { text: byteScanText(buffer), pages: 0, engine: "byte-scan" };
 }

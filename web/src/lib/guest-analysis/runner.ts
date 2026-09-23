@@ -91,14 +91,14 @@ function truncateForModel(text: string): string {
 /** Best-effort PDF text extraction through the shared extractor
  *  (lib/pdf/extract-text — speaks pdf-parse v2's `PDFParse` class AND the
  *  v1 default function; S-R5 fixed the silent v2 fall-through that made
- *  every real PDF land on the ASCII byte-scan). Still fail-soft: the
- *  byte-scan keeps a few keywords alive when the parser is unavailable.
+ *  every real PDF land on the ASCII byte-scan). Fail-soft: unreadable
+ *  input stays empty; PDF container bytes are not business evidence.
  *
  *  Re-exported from `@/lib/intake/deck-sections` for the intake pipeline. */
 export async function extractPdfText(filepath: string): Promise<string> {
   const buffer = await fs.readFile(filepath);
   const { extractPdfTextFromBuffer } = await import("@/lib/pdf/extract-text");
-  const r = await extractPdfTextFromBuffer(buffer, { byteScanFallback: true });
+  const r = await extractPdfTextFromBuffer(buffer, { byteScanFallback: false });
   return r.text;
 }
 
@@ -125,7 +125,7 @@ export async function extractDocxText(filepath: string): Promise<string> {
  * Extract plain text from a PDF or DOCX file on disk.
  *
  * Reused by the pitchdeck coverage-gated analyzer (`/api/pitchdeck/*`).
- * Falls back to a lossy byte-scan if the parser lib isn't available.
+ * Returns empty if the parser cannot read the document.
  */
 export async function extractFileText(
   filepath: string,
