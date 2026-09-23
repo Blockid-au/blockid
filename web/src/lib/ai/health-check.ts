@@ -6,7 +6,27 @@
 // model out of the active chain for `degraded_until` and auto-injects backups
 // from the known-good pool.
 
-export type HealthStatus = "healthy" | "quota_exceeded" | "unauthorized" | "not_found" | "timeout" | "error";
+/** True when an OpenAI-compatible 200 actually carries text in the one field
+ *  the client reads (`choices[0].message.content`). Anthropic-shaped bodies put
+ *  it in `content[].text`. Unparseable bodies count as no answer. */
+export function answeredWithContent(raw: string): boolean {
+  try {
+    const data = JSON.parse(raw) as {
+      choices?: { message?: { content?: unknown } }[];
+      content?: { type?: string; text?: unknown }[];
+    };
+    const openai = data.choices?.[0]?.message?.content;
+    if (typeof openai === "string" && openai.trim().length > 0) return true;
+    for (const block of data.content ?? []) {
+      if (typeof block?.text === "string" && block.text.trim().length > 0) return true;
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+export type HealthStatus = "healthy" | "quota_exceeded" | "unauthorized" | "not_found" | "timeout" | "error" | "empty_response";
 
 export interface ProviderEndpoint {
   provider: string;
@@ -92,13 +112,24 @@ export async function checkModel(
       body: JSON.stringify({
         model,
         messages: [{ role: "user", content: "Reply with just 'ok'" }],
-        max_tokens: 4,
+        // G30 D-A6: 4 was too tight to be meaningful. A reasoning model spends
+        // its budget on a hidden trace and returns an EMPTY `content`, which the
+        // probe scored 200/healthy and the latency sort then promoted to rung 1
+        // — while every real report call on it failed with "Empty response".
+        // 64 is still a trivial spend but leaves room for an actual answer.
+        max_tokens: 64,
       }),
       signal: ctrl.signal,
     });
     const latency = Date.now() - start;
     const text = await res.text();
     if (res.status === 200) {
+      // A 200 is not health: the client reads `choices[0].message.content` and
+      // nothing else, so a model that answers with an empty content field is
+      // unusable no matter what the status line says.
+      if (!answeredWithContent(text)) {
+        return { provider, model, status: "empty_response", healthy: false, quota_exceeded: false, latency_ms: latency, http_status: 200, error: "200 with empty message.content", checked_at: now };
+      }
       return { provider, model, status: "healthy", healthy: true, quota_exceeded: false, latency_ms: latency, http_status: 200, checked_at: now };
     }
     if (res.status === 429 || QUOTA_RE.test(text)) {
