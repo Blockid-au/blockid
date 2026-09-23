@@ -72,7 +72,8 @@ export const ExecutiveSummaryInput = z.object({
       requestedOutputs: z.array(z.string()),
       questions: z.array(z.string()),
     })
-    .nullable(),
+    .nullable()
+    .optional(),
 });
 export type ExecutiveSummaryInput = z.infer<typeof ExecutiveSummaryInput>;
 
