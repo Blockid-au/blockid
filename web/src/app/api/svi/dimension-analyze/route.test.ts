@@ -75,13 +75,18 @@ vi.mock("@/lib/report-pipeline/orchestrator", async () => {
       const dims = (input.dims as string[] | undefined) ?? demo.dimensions.map((d) => d.dim);
       const onEvent = input.onEvent as ((e: unknown) => void) | undefined;
       onEvent?.({ type: "context", industry: "SaaS", stage: 3, stageLabel: "Seed", phaseId: "validation", tier: "standard", estimatedCalls: dims.length, estimatedSeconds: 120, dims });
+      // The partial (per-dimension) path projects its result from
+      // `finalDimensionChapters`; without it `projectFinalSelectedChapters`
+      // returns null and the route answers 500 "could not be finalized".
+      const finalDimensionChapters: unknown[] = [];
       for (const dim of dims) {
         const chapter = { ...demo.dimensions.find((d) => d.dim === dim)!, ...(orch.degraded ? { degraded: true, degradeReason: "budget: monthly AI cap reached — deterministic card" } : {}) };
+        finalDimensionChapters.push(chapter);
         onEvent?.({ type: "dimension_start", dim, ownerAgent: chapter.ownerAgent });
         onEvent?.({ type: "dimension_complete", dim, chapter });
       }
       onEvent?.({ type: "done", reportId: "rpt-test", totalMs: 10, calls: dims.length, costAud: 0.001, costUsd: 0, costReportedCalls: 0, degradedSections: [], deadlineHit: false });
-      return { id: "rpt-test", title: "t", tier: "standard", sections: [], charts: [], executiveSummary: "", qualityScore: 50, totalWords: 0, consistencyIssues: [], agentContributions: {}, markdown: "", createdAt: new Date().toISOString(), llmCalls: dims.length };
+      return { id: "rpt-test", title: "t", tier: "standard", sections: [], charts: [], executiveSummary: "", qualityScore: 50, totalWords: 0, consistencyIssues: [], agentContributions: {}, markdown: "", createdAt: new Date().toISOString(), llmCalls: dims.length, finalDimensionChapters };
     },
   };
 });
