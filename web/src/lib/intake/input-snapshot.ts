@@ -4,7 +4,7 @@ export const BUSINESS_INPUT_SNAPSHOT_VERSION = "business-input-v1" as const;
 
 export type SnapshotInputKind = "pitch_deck" | "website" | "idea_text" | "existing_company_text";
 export type SnapshotUnitKind = "page" | "slide" | "text";
-export type SnapshotUnitStatus = "available" | "blocked" | "timeout" | "not_found" | "unsupported" | "stale";
+export type SnapshotUnitStatus = "available" | "blocked" | "timeout" | "not_found" | "unsupported" | "stale" | "failed";
 
 export interface SnapshotSourceInput {
   id: string;

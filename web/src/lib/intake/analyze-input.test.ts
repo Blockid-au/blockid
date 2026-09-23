@@ -60,6 +60,9 @@ describe("analyzeInput — regex fast-path", () => {
     expect(result.inputKind).toBe("website");
     expect(result.confidence).toBeGreaterThan(0.5);
     expect(result.classifierMode).toBe("regex");
+    expect(result.inputSnapshot?.sourceUnits).toHaveLength(1);
+    expect(result.inputSnapshot?.sourceUnits[0]).toMatchObject({ id: "page:root", status: "available" });
+    expect(result.investorIntent?.requestedOutputs).toEqual([{ output: "investment_view", provenance: "inferred", spans: [] }]);
   });
 
   it("classifies bare domains as website", async () => {
@@ -81,6 +84,18 @@ describe("analyzeInput — regex fast-path", () => {
         "We founded in 2020, our platform is live with 1200 paying customers producing A$45k MRR. Team of 12 employees. Raised $2M in seed.",
     });
     expect(result.inputKind).toBe("existing_company_text");
+    expect(result.inputSnapshot?.inputKind).toBe("existing_company_text");
+    expect(JSON.stringify(result.inputSnapshot)).not.toContain("1200 paying customers");
+  });
+
+  it("captures the user's investor request separately from business input", async () => {
+    const result = await analyzeInput({
+      text: "We sell workflow software to clinics. Analyse valuation, risks and competitors for an investor.",
+    });
+    expect(result.investorIntent?.requestedOutputs.map((x) => x.output)).toEqual(expect.arrayContaining([
+      "investment_view", "valuation", "risks", "competitors",
+    ]));
+    expect(result.inputSnapshot?.sourceUnits[0]?.textSha256).toMatch(/^[a-f0-9]{64}$/);
   });
 
   it("handles the ambiguous 'we built a fintech app' fixture without erroring", async () => {

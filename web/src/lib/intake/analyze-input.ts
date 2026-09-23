@@ -21,6 +21,8 @@ import { extractSignals, type SVIExtractedSignals } from "@/lib/svi-analysis";
 import { detectContext, type IntakeContext } from "./detect-context";
 import { extractFileText } from "@/lib/guest-analysis/runner";
 import { callAI } from "@/lib/ai-client";
+import { captureInvestorIntent, type InvestorIntentSnapshot } from "./investor-intent";
+import { createBusinessInputSnapshot, type BusinessInputSnapshot, type SnapshotSourceInput } from "./input-snapshot";
 
 export type InputKind =
   | "pitch_deck"
@@ -66,6 +68,10 @@ export interface IntakeResult {
   /** Debug / observability. */
   classifierMode: "regex" | "file" | "llm" | "hybrid";
   warnings?: string[];
+  /** Metadata-only input lineage. Raw content retention stays separately authorised. */
+  inputSnapshot?: BusinessInputSnapshot;
+  /** User decision request, kept separate from business claims and fetched content. */
+  investorIntent?: InvestorIntentSnapshot;
 }
 
 // ─── Regex heuristics ──────────────────────────────────────────────────────
@@ -195,6 +201,10 @@ async function classifyWithHaiku(text: string): Promise<LlmClassification | null
 export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
   const warnings: string[] = [];
   const text = (input.text ?? "").trim();
+  const submittedAt = new Date().toISOString();
+  // Only the caller's own text is authority. Never parse fetched pages or
+  // uploaded document content as instructions or investor intent.
+  const investorIntent = captureInvestorIntent({ userText: text, submittedAt });
 
   // ── File path: pitch deck (PDF/PPTX) ───────────────────────────────────
   if (input.file) {
@@ -227,6 +237,21 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
     const combinedText = [rawText, text].filter(Boolean).join("\n\n");
     const signals = extractSignals({ rawText: combinedText, fileName: input.file.filename });
     const context = detectContext(signals, combinedText);
+    const snapshotSources: SnapshotSourceInput[] = slides.length > 0
+      ? slides.map((slide, index) => ({
+          id: `slide:${index + 1}`,
+          kind: "slide",
+          locator: `${input.file!.filename}#slide=${index + 1}`,
+          status: slide.trim() ? "available" : "unsupported",
+          ...(slide.trim() ? { text: slide } : {}),
+        }))
+      : [{ id: "document:0", kind: "slide", locator: input.file.filename, status: "failed" }];
+    if (text) snapshotSources.push({ id: "user-context", kind: "text", locator: "user-input", status: "available", text });
+    const inputSnapshot = createBusinessInputSnapshot({
+      inputKind: "pitch_deck",
+      createdAt: submittedAt,
+      sources: snapshotSources,
+    });
 
     return {
       inputKind: "pitch_deck",
@@ -240,6 +265,8 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
         ? "Run /api/svi/report-estimate with the returned `context` to price the deep dive."
         : "Try /api/pitchdeck/ocr — the PDF appears to be image-only.",
       warnings: warnings.length > 0 ? warnings : undefined,
+      inputSnapshot,
+      investorIntent,
     };
   }
 
@@ -265,6 +292,17 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
         ? { title: scraped.title, description: scraped.description, text: scraped.text }
         : undefined,
     });
+    const inputSnapshot = createBusinessInputSnapshot({
+      inputKind: "website",
+      createdAt: submittedAt,
+      sources: [{
+        id: "page:root",
+        kind: "page",
+        locator: urlCandidate,
+        status: scraped ? "available" : "failed",
+        ...(scraped ? { text: rawText, observedAt: submittedAt } : {}),
+      }],
+    });
     return {
       inputKind: "website",
       confidence: scraped ? 0.9 : 0.6,
@@ -275,11 +313,18 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
       classifierMode: "regex",
       suggestedNext: "Run /api/site-crawl/stream for deeper BFS then request /api/svi/report-estimate.",
       warnings: warnings.length > 0 ? warnings : undefined,
+      inputSnapshot,
+      investorIntent,
     };
   }
 
   // ── Free text: decide idea vs existing-company ────────────────────────
   if (!text) {
+    const inputSnapshot = createBusinessInputSnapshot({
+      inputKind: "idea_text",
+      createdAt: submittedAt,
+      sources: [{ id: "text:0", kind: "text", locator: "user-input", status: "unsupported" }],
+    });
     return {
       inputKind: "idea_text",
       confidence: 0,
@@ -289,6 +334,8 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
       classifierMode: "regex",
       suggestedNext: "No input received — pass `text`, `url`, or `file`.",
       warnings: ["empty input"],
+      inputSnapshot,
+      investorIntent,
     };
   }
 
@@ -323,6 +370,11 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
 
   const signals = extractSignals({ rawText: text });
   const context = detectContext(signals, text);
+  const inputSnapshot = createBusinessInputSnapshot({
+    inputKind: kind,
+    createdAt: submittedAt,
+    sources: [{ id: "text:0", kind: "text", locator: "user-input", status: "available", text }],
+  });
   return {
     inputKind: kind,
     confidence,
@@ -336,5 +388,7 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
         ? "Idea-stage input — recommend /api/svi/report-estimate with stage=idea (skips CFO valuation)."
         : "Existing company — run /api/svi/stage-classify then request the full estimate.",
     warnings: warnings.length > 0 ? warnings : undefined,
+    inputSnapshot,
+    investorIntent,
   };
 }
