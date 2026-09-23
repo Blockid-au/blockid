@@ -1,3 +1,6 @@
+import { prepareVisualImage } from "@/lib/intake/visual-image";
+import { VISUAL_SYSTEM, VISUAL_MODEL, readVisualInterpretation } from "@/lib/intake/visual-interpretation";
+import { createReportAttemptBudget } from "@/lib/ai/report-attempt-budget";
 // Internal AI proxy for startupvalueindex.com — lets the sibling standalone
 // app reuse BlockID's scoped DeepInfra report dispatcher. Free fallback
 // qualification remains pending; local SVI fallback is separate. Server calls from
@@ -26,6 +29,8 @@ function isLocal(req: Request): boolean {
 }
 
 interface Body {
+  reportBudgetScope?: string;
+  imageBase64?: string;
   system?: string;
   user?: string;
   maxTokens?: number;
@@ -97,6 +102,23 @@ async function POST_handler(req: Request) {
   } catch {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
+  const reportScope = body.reportBudgetScope;
+  if (reportScope !== undefined && (!sharedSecret || typeof reportScope !== "string" || !/^svi:run_[A-Za-z0-9_-]{12}$/.test(reportScope))) return NextResponse.json({ error: "invalid_report_budget_scope" }, { status: 400 });
+  if (body.purpose === "visual_extract") {
+    if (!sharedSecret || !reportScope || typeof body.imageBase64 !== "string" || body.imageBase64.length > 27 * 1024 * 1024 || body.imageBase64.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(body.imageBase64)) return NextResponse.json({ error: "invalid_visual_request" }, { status: 400 });
+    const bytes = Buffer.from(body.imageBase64, "base64");
+    if (bytes.toString("base64") !== body.imageBase64) return NextResponse.json({ error: "invalid_visual_request" }, { status: 400 });
+    const image = await prepareVisualImage(bytes);
+    if (!image.ok) return NextResponse.json({ error: image.reason }, { status: 422 });
+    try {
+      const out = await callAI({ policy: "blockid-report-v1", attemptBudget: createReportAttemptBudget(reportScope),
+        system: VISUAL_SYSTEM, user: "Inspect this business image. Separate visible observations, claims, approximate numbers and missing context.",
+        visionImages: [image.bytes], maxTokens: 3000, temperature: 0, timeoutMs: 45000, budgetMs: 45000, agentId: "svi:visual" });
+      if (out.model !== VISUAL_MODEL || (out.via ?? out.provider) !== "deepinfra") throw Error("model_mismatch");
+      const interpreted = readVisualInterpretation(out.text);
+      return NextResponse.json({ ok: true, text: JSON.stringify(interpreted), provider: "deepinfra", model: VISUAL_MODEL, policy: out.policy, purpose: "visual_extract", retried: false });
+    } catch { return NextResponse.json({ ok: false, error: "visual_unavailable_or_budget_exhausted" }, { status: 503 }); }
+  }
   const research = body.purpose === "research_synthesis" || body.purpose === "research_grounded_review";
   if (research) {
     // Caller authentication is not spend consent. This remains disabled until
@@ -122,6 +144,7 @@ async function POST_handler(req: Request) {
   // optional JSON repair. Request JSON cannot select a paid fallback/provider.
   const callOpts: AICallOptions = {
     policy: "blockid-report-v1",
+    ...(reportScope && !research ? { attemptBudget: createReportAttemptBudget(reportScope) } : {}),
     taskClass: body.purpose === "research_synthesis" ? "synthesis" : "report",
     agentId: research ? `svi:${body.purpose}` : "svi:investor-portal",
     budgetMs,

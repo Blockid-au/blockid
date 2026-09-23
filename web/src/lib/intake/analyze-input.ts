@@ -66,6 +66,7 @@ export interface IntakeStructured {
 }
 
 export interface IntakeResult {
+  aiBudgetScope?: string;
   inputKind: InputKind;
   confidence: number;               // 0..1
   rawText: string;                  // canonical text used downstream
@@ -245,7 +246,7 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
       imageSource = transcript.source;
       rawText = visualTranscriptContext(transcript.text);
       slides = [rawText];
-      warnings.push(VISUAL_TRANSCRIPT_WARNING);
+      warnings.push(VISUAL_TRANSCRIPT_WARNING, ...(transcript.source.limitations ?? []));
     } else if (isPptx) {
       slides = await extractPptxSlides(input.file.buffer);
       rawText = slides.join("\n\n");

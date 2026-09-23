@@ -1,3 +1,4 @@
+import { createReportAttemptBudget, currentReportSpendScope } from "@/lib/ai/report-attempt-budget";
 import { ResearchAttemptBudgetError, reserveResearchAttempt, settleResearchAttempt, type ResearchAttemptBudget } from "@/lib/ai/research-attempt-budget";
 import { trackOriginWork } from "@/lib/ops/origin-activity";
 /**
@@ -737,6 +738,7 @@ export const PAID_PRICING_USD_PER_1M: Record<string, { in: number; out: number }
   // DeepInfra — verified 2026-09-15
   "deepinfra:deepseek-ai/DeepSeek-V4-Flash": { in: 0.09, out: 0.18 },
   "deepinfra:deepseek-ai/DeepSeek-V3.2": { in: 0.26, out: 0.38 },
+  "deepinfra:Qwen/Qwen3-VL-235B-A22B-Instruct": { in: 0.20, out: 0.88 },
   "deepinfra:Qwen/Qwen3-235B-A22B-Instruct-2507": { in: 0.09, out: 0.55 },
   "deepinfra:openai/gpt-oss-120b": { in: 0.037, out: 0.17 },
   "deepinfra:meta-llama/Llama-3.3-70B-Instruct-Turbo": { in: 0.10, out: 0.32 },
@@ -826,6 +828,8 @@ export interface AICallOptions {
   policy?: AIReportPolicy;
   system: string;
   user: string;
+  /** Prepared private PNGs, trusted server callsites only. Requires a shared report budget. */
+  visionImages?: readonly Buffer[];
   maxTokens?: number;
   /** Sampling temperature (0-1). Provider-specific defaults apply if omitted. */
   temperature?: number;
@@ -1493,7 +1497,7 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
 
   let lastErr: Error | null = null;
   const scoped = scopedReportPolicy(opts);
-  const models = scoped ? [...REPORT_POLICY_MODELS[cls]] : DEEPINFRA_MODELS_BY_CLASS[cls];
+  const models = opts.visionImages?.length ? ["Qwen/Qwen3-VL-235B-A22B-Instruct"] : scoped ? [...REPORT_POLICY_MODELS[cls]] : DEEPINFRA_MODELS_BY_CLASS[cls];
   const deepinfraRungs = readyPaidModels("deepinfra", models);
   if (deepinfraRungs.length === 0) throw new DeadLadderError("deepinfra", models.length);
   for (const model of deepinfraRungs) {
@@ -1505,7 +1509,10 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
     const maxTokens = Math.min(opts.maxTokens ?? 4096, 16_384);
     const payload = JSON.stringify({ model, max_tokens: maxTokens, temperature: opts.temperature ?? 0.7,
       ...(DEEPINFRA_THINKING_OFF.has(model) ? { chat_template_kwargs: { thinking: false } } : {}),
-      messages: [{ role: "system", content: opts.system }, { role: "user", content: opts.user }] });
+      messages: [{ role: "system", content: opts.system }, { role: "user", content: opts.visionImages?.length ? [
+        { type: "text", text: opts.user },
+        ...opts.visionImages.map(bytes => ({ type: "image_url", image_url: { url: `data:image/png;base64,${bytes.toString("base64")}` } })),
+      ] : opts.user }] });
     const reservationStarted = performance.now();
     const permit = opts.attemptBudget ? await reserveResearchAttempt(opts.attemptBudget, model, payload, maxTokens) : null;
     const reservationMs = Math.round(performance.now() - reservationStarted);
@@ -1518,6 +1525,7 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
 
       const data = JSON.parse(raw);
       if (data.error) throw new Error(data.error.message ?? "DeepInfra error");
+      if (permit && data.model !== model) throw new ResearchAttemptBudgetError("returned model mismatch; reservation retained");
       const text = data.choices?.[0]?.message?.content ?? "";
       if (!text) throw new Error("Empty DeepInfra response");
       const input = Number(data.usage?.prompt_tokens ?? 0);
@@ -2477,6 +2485,11 @@ export async function callAI(opts: AICallOptions): Promise<AICallResult> {
 }
 
 async function callAITracked(opts: AICallOptions): Promise<AICallResult> {
+  const reportScope = currentReportSpendScope();
+  if (reportScope && !opts.attemptBudget) opts = { ...opts, policy: "blockid-report-v1", attemptBudget: createReportAttemptBudget(reportScope) };
+  if (opts.visionImages) {
+    if (!opts.attemptBudget || opts.policy !== "blockid-report-v1" || opts.visionImages.length < 1 || opts.visionImages.length > 4 || opts.visionImages.some(b => !Buffer.isBuffer(b) || b.length > 19 * 1024 * 1024 || !b.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))) || opts.visionImages.reduce((n,b) => n+b.length, 0) > 20 * 1024 * 1024) throw new ResearchAttemptBudgetError("vision input or shared budget missing");
+  }
   // Resolve policy before any gateway/probe I/O. The legacy gateway cannot
   // attest exact model or account eligibility and is outside this scoped chain.
   const scoped = scopedReportPolicy(opts);

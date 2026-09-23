@@ -1,3 +1,4 @@
+import { currentReportSpendScope, withReportSpendScope } from "@/lib/ai/report-attempt-budget";
 import { withCriterionAnalysis } from "@/lib/report-v2/criterion-analysis";
 import { withCriterionResearchCoverage } from "@/lib/report-v2/criterion-research-coverage";
 import { isValuationAvailable, unavailableValuation } from "@/lib/report-v2/schema";
@@ -470,6 +471,10 @@ export function estimateCalls(args: { waves: number; w4Chapters: number; tierV2:
 
 export async function orchestrateReport(input: OrchestratorInput): Promise<AssembledReport> {
   const reportId = generateReportId();
+  return withReportSpendScope(currentReportSpendScope() ?? `blockid:${reportId}`, () => orchestrateReportBudgeted(input, reportId));
+}
+
+async function orchestrateReportBudgeted(input: OrchestratorInput, reportId: string): Promise<AssembledReport> {
   const startedAt = new Date().toISOString();
   const t0 = Date.now();
   const tierV2: ReportTierV2 = input.tierV2 ?? input.tier;

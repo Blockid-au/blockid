@@ -282,7 +282,7 @@ export function SmartIntake({
 
   return (
     <div className={cn("w-full max-w-3xl", className)}>
-      {file && /\.(png|jpe?g|webp)$/i.test(file.name) && <p className="mb-2 text-sm text-muted" role="status">Image text will be read with OCR. Charts and diagrams are not yet interpreted; check numbers against your original.</p>}
+      {file && /\.(png|jpe?g|webp)$/i.test(file.name) && <p className="mb-2 text-sm text-muted" role="status">Images are read with OCR and, within the report budget, visual analysis. Findings are unverified; check numbers against your original.</p>}
       {copy && <label htmlFor="smart-intake-input" className="mb-3 block text-left text-sm font-semibold text-primary">{copy.label}</label>}
       {/* The pill. One row on sm+, two on a phone — see the stacking note
           on the submit button below. `rounded-[inherit]` is load-bearing:

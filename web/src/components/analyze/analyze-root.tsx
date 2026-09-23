@@ -792,7 +792,7 @@ export function AnalyzeRoot({
 
   return (
     <div className="w-full">
-      {intake?.structured.imageSource && <p className="mb-4 rounded-xl border border-warn/40 bg-warn/10 px-4 py-3 text-sm" role="status">Image text is an unverified transcription. Charts and diagrams were not interpreted. Confirm financial figures against the original.</p>}
+      {intake?.structured.imageSource && <p className="mb-4 rounded-xl border border-warn/40 bg-warn/10 px-4 py-3 text-sm" role="status">Image extraction is unverified. {intake.structured.imageSource.visualAnalysis === "not_performed" ? "Only OCR text was read; charts and diagrams were not interpreted." : "Visual observations may be incomplete or approximate."} Confirm financial figures against the original.</p>}
       {ocrOffered && (
         <div
           role="alert"

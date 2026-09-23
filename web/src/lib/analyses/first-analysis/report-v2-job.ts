@@ -1,3 +1,4 @@
+import { withReportSpendScope } from "@/lib/ai/report-attempt-budget";
 import { trackOriginWork, trackedJobDeps } from "@/lib/ops/origin-activity";
 // The ReportV2 job runner for an `analyses` row (G28-C, 2026-09-21).
 //
@@ -314,7 +315,11 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
       // Review v3.27.0 P1: the background budget (420 s / 48 calls) — the
       // interactive default (120 s / 30) degraded every free run to cards.
       ...backgroundRunBudget(),
-      callAI: tallyingCaller(deps.callAI, tally),
+      callAI: tallyingCaller((...args) => {
+        const savedScope = (row.intake as { aiBudgetScope?: unknown } | null)?.aiBudgetScope;
+        const scope = typeof savedScope === "string" && /^blockid:intake:[a-f0-9-]{36}$/.test(savedScope) ? savedScope : `blockid:analysis:${id}`;
+        return withReportSpendScope(scope, () => deps.callAI(...args));
+      }, tally),
       onEvent,
     });
     assertReportUsable(report);

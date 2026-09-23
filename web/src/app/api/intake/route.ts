@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { withReportSpendScope } from "@/lib/ai/report-attempt-budget";
 // POST /api/intake — context-aware backend intake wrapper.
 //
 // Accepts { text?, url?, file? (base64) } and returns the IntakeResult
@@ -344,11 +346,13 @@ async function POST_handler(request: Request) {
   const guestEmail = gate.source === "guest" ? gate.email : null;
 
   try {
-    const result = await analyzeInput({
+    const aiBudgetScope = `blockid:intake:${randomUUID()}`;
+    const result = await withReportSpendScope(aiBudgetScope, () => analyzeInput({
       text: body.text,
       url: body.url,
       file,
-    });
+    }));
+    result.aiBudgetScope = aiBudgetScope;
     const svi = deriveCompactSvi(result);
     const analysisId = await persist(request, anonKey, userId, result, svi, {
       url: body.url,
