@@ -38,11 +38,13 @@ test.describe("Post-deploy hydrated smoke", () => {
   }) => {
     // Post-Workstream B (v3.9.23): /pricing collapsed from 4-tab persona
     // segmentation to a Universal 3-rung ladder + ContactSalesRow below.
-    // G12 (2026-09-10) added a two-way Founder | Evaluator switch; the
-    // Founder tab is the default, so the bare URL must still render the
-    // three canonical founder tier fragment IDs for the deep-link surface.
+    // G12 added a Founder | Evaluator switch and G30 made **evaluator** the
+    // default landing tab (investor-first), so the bare URL now shows the
+    // evaluator ladder. The founder rungs live behind `?tab=founder`; pin the
+    // deep link, which is what the fragment IDs are actually for.
     test.setTimeout(30_000);
-    await page.goto("/pricing", { waitUntil: "domcontentloaded" });
+    await page.goto("/pricing?tab=founder", { waitUntil: "domcontentloaded" });
+    await expect(page.locator('[data-testid="pricing-segment-switch"]')).toHaveAttribute("data-active-tab", "founder");
     for (const id of ["tier-free", "tier-growth", "tier-pro"]) {
       await expect(page.locator(`#${id}`)).toBeVisible({
         timeout: PAGE_TIMEOUT,
@@ -542,7 +544,10 @@ test.describe("Post-deploy hydrated smoke", () => {
         await expect(form.getByTestId("smart-intake-cta")).toHaveText(submit);
         await expect(form.getByTestId("smart-intake-cta")).toBeDisabled();
         const preview = form.locator('[data-cta-id="hero_sample_report"]');
-        await expect(preview).toHaveText(sample);
+        // The link renders `{copy.sample}<span aria-hidden>→</span>`, so pin the
+        // meaningful label and let the decorative arrow be decorative — an exact
+        // toHaveText here failed the gate on both locales ("Xem báo cáo mẫu→").
+        await expect(preview).toContainText(sample);
         await expect(preview).toHaveAttribute("href", "/tbr/demo");
         if (path === "/") {
           await expect(page.locator('[data-cta-id="home_final_intake"]')).toHaveAttribute("href", "#smart-intake-input");
