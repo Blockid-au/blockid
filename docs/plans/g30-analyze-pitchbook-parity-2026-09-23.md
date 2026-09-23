@@ -99,6 +99,31 @@ report trả phí. `analyze-results.tsx` 4-dimension chỉ là **preview trướ
 
 ---
 
+## 5b. Thiết kế UI/UX kết quả (yêu cầu founder 23/09)
+
+> "tổ chức thành dashboard hài hoà, thiết kế giống một bản biz report chuyên nghiệp, nhìn vào là thấy ngay
+> vấn đề / ưu điểm và định giá."
+
+Spec đầy đủ: **[`docs/design/analyze-report-dashboard-spec.md`](../design/analyze-report-dashboard-spec.md)**.
+Tóm tắt quyết định:
+
+- **D-B8 — Quy tắc 3 giây.** Màn hình đầu trả lời đủ 4 câu: *đáng giá bao nhiêu · tốt hay chưa · sai ở đâu ·
+  thiếu gì.* Zone 1 **Verdict bar** = Định giá (số lớn nhất trang) + SVI/band + Verdict A–D/conviction,
+  kèm một câu luận điểm.
+- **D-B9 — Triptych Điểm mạnh / Rủi ro / Cần làm rõ** ngay dưới verdict, mỗi cột tối đa 3 mục có cấu trúc
+  cố định (tiêu đề ≤ 8 từ · một câu bằng chứng có `[ev:id]` · mở rộng tại chỗ). Trên mobile đảo thứ tự
+  **Rủi ro → Điểm mạnh → Cần làm rõ**.
+- **D-B10 — Giống research note, không giống landing page:** masthead (công ty · sector · stage · ngày ·
+  methodology version · report id), đánh số mục 1–8, in ra là tài liệu hợp lệ, web = PDF = DOCX.
+- **D-B11 — Progressive disclosure:** dashboard tóm tắt, mở rộng tại chỗ; không đổ 22 trang vào mặt người đọc.
+- **D-B12 — Thành thật hiển thị ngang hàng:** evidence confidence, claim chưa kiểm chứng và `n` của benchmark
+  nằm **cạnh** con số, không giấu ở phụ lục. Chiều chưa đánh giá in `—`, không in 0.
+- **D-B13 — Không thêm palette/font mới.** Dùng nguyên token light template (navy `#1b2a5e`, cyan `#0e7490`,
+  bull/warn/bear) và primitives `Card`/`Table`/`Section`. Mọi trạng thái = **icon + chữ + màu**, không chỉ màu.
+- **D-B14 — Sửa luôn 4 lỗi đang thấy trên bản demo:** ghép sai cặp tiêu đề/bằng chứng ở "Why back / What
+  weighs against"; mâu thuẫn connector Stripe trong cùng trang; header "no published cohort" trong khi vẫn
+  vẽ dải p25–p75; nhãn nội bộ (`uncited`, `cro`, `Auditor: grounded`) lọt ra giao diện.
+
 ## 6. Hai pha (pha 1 đủ để bán)
 
 **Pha 1 — parity nhìn thấy được, không đổi pipeline:**
