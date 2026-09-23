@@ -1783,7 +1783,9 @@ describe("G30 BlockID report policy", () => {
     process.env.AI_GATEWAY_SECRET = "test-gateway";
     process.env.AI_REPORT_PROVIDER_ORDER = "claude-apikey,groq,openrouter";
     setOAuthFixture();
-    fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(JSON.stringify({
+    // DeepInfra echoes the requested model; callDeepInfra refuses a mismatch under a budget permit.
+    fetchMock = vi.fn(async (_url: string, init?: RequestInit) => new Response(JSON.stringify({
+      model: init?.body ? JSON.parse(String(init.body)).model : undefined,
       choices: [{ message: { content: "Evidence-based analysis" } }],
       usage: { prompt_tokens: 100, completion_tokens: 20 },
     }), { status: 200 }));
@@ -2002,7 +2004,7 @@ describe("G30 BlockID report policy", () => {
   it("retains unknown usage rather than recording a zero-cost reservation", async () => {
     const { callAI } = await loadClient();
     const { budget } = attemptLedger();
-    fetchMock.mockResolvedValue(new Response(JSON.stringify({ choices: [{ message: { content: "answer" } }] })));
+    fetchMock.mockImplementation(async (_url: string, init?: RequestInit) => new Response(JSON.stringify({ model: JSON.parse(String(init?.body)).model, choices: [{ message: { content: "answer" } }] })));
     await callAI({ ...request, attemptBudget: budget });
     expect(budget.settle).toHaveBeenCalledWith(expect.objectContaining({ state: "unknown" }));
     expect(budget.settle.mock.calls[0][0]).not.toHaveProperty("inputTokens");
