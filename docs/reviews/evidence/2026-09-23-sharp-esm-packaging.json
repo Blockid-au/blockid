@@ -1,0 +1,22 @@
+{
+  "package": "sharp",
+  "version": "0.35.4",
+  "compiledSha": "1c30818be0ec2b7714bb5625b04e9aa673aabfa4",
+  "equivalentTracingFix": "048ceb92b0c3337254545bd276867f1679dbe238",
+  "beforeFreeze": true,
+  "files": {
+    "channel.mjs": "6067b0ba5ebcc9682a01d0b450a12b54849a95c8ed017f8485bddb5fd0b9db91",
+    "colour.mjs": "760e7fa8161432a9cc97f0a3d9f3e0b757e66089c967e6b36f3131c9fdafa1b5",
+    "composite.mjs": "16eadc26ba57417e90e4bb73aff1116b56ad26766088793ab0b7c4bbdd2bc9fc",
+    "constructor.mjs": "8be8da679d2a028d0f53b02ce52f07f295134a297caf3068944cd8d0b57ab3d1",
+    "index.mjs": "0e8f955c68a1b0bccf0ba5343c924dbfa6a46a76a0d491ec27fe6b328311363e",
+    "input.mjs": "4b0a51e678f9022cec06a1ffb34e17ea3498cfb707492b54de87541ccac54125",
+    "is.mjs": "d87220e2c4ce04202290fdfd78105a65d32adce3fead64aaaaca15cfe324f95d",
+    "libvips.mjs": "d9984601b0aafe44c393b29ce4b0712b1c40890c3d740d4fda49842a4ea5873d",
+    "operation.mjs": "257872181be8d6b66f3f310fff5f17f3c297ff258ab3005d09a954844b3eeb6b",
+    "output.mjs": "a5ae31763bec9e0a5d41da3d5cbcea3fcfc7d366218c199f9cece530ce48846a",
+    "resize.mjs": "641e7493bd89855605d052a9a6a2a867fbb7291d97242252ecd57aeb9ed62ae0",
+    "sharp.mjs": "994230859dcfa1235dee5bf612069d14844153b997cf7309deb2ea0012ec5419",
+    "utility.mjs": "761566e165bc1fc90bc6dd67a3b560c1a63e6cfe98009b726d35288606d629b9"
+  }
+}
