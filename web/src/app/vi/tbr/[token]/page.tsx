@@ -4,9 +4,8 @@
 
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getSupabaseAdmin } from "@/lib/supabase";
 import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/reports/business/business-report-client";
-import { readSnapshotReportV2 } from "@/lib/report-v2/storage";
+import { loadReportV2ByShareToken } from "@/lib/report-v2/load";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -144,12 +143,6 @@ async function fetchByToken(token: string): Promise<{ row: SnapshotRow; persiste
 }
 
 /** G13-W1-R1: stored ReportV2 for the row (null until migration 0395 + a pipeline write). */
-async function fetchStoredReportV2(snapshotId: string) {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return null;
-  return readSnapshotReportV2(supabase, snapshotId);
-}
-
 export default async function ViTbrSharePage({
   params,
   searchParams,
@@ -161,7 +154,10 @@ export default async function ViTbrSharePage({
   const { pdf } = await searchParams;
   const result = await fetchByToken(token);
   if (!result) notFound();
-  const initialReportV2 = await fetchStoredReportV2(result.row.id);
+  // Keep Vietnamese share pages on the same canonical reader bridge as PDF
+  // and the English share page.
+  const loaded = await loadReportV2ByShareToken(token, { locale: "vi" });
+  const initialReportV2 = loaded?.report ?? null;
 
   const pdfMode = pdf === "1";
   return (

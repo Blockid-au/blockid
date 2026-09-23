@@ -11,12 +11,11 @@
 
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getSupabaseAdmin } from "@/lib/supabase";
 import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/reports/business/business-report-client";
 import { loadAssessmentContext } from "@/lib/svi/assessment-context";
 import { TbrViewBeacon } from "@/components/tbr/tbr-view-beacon";
 import { TbrLeadModal } from "@/components/tbr/tbr-lead-modal";
-import { readSnapshotReportV2 } from "@/lib/report-v2/storage";
+import { loadReportV2ByShareToken } from "@/lib/report-v2/load";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -160,12 +159,6 @@ async function fetchByToken(token: string): Promise<{ row: SnapshotRow; persiste
 }
 
 /** G13-W1-R1: stored ReportV2 for the row (null until migration 0395 + a pipeline write). */
-async function fetchStoredReportV2(snapshotId: string) {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return null;
-  return readSnapshotReportV2(supabase, snapshotId);
-}
-
 export default async function TbrSharePage({
   params,
   searchParams,
@@ -177,7 +170,11 @@ export default async function TbrSharePage({
   const { pdf } = await searchParams;
   const result = await fetchByToken(token);
   if (!result) notFound();
-  const initialReportV2 = await fetchStoredReportV2(result.row.id);
+  // All public readers use the same stored-document/legacy-adapter bridge.
+  // This keeps the web report aligned with PDF and export readers while the
+  // immutable revision table is introduced in a later schema phase.
+  const loaded = await loadReportV2ByShareToken(token);
+  const initialReportV2 = loaded?.report ?? null;
   // G21 P1: benchmark for the Assessment Card, published only under the n-rule.
   const assessmentContext = await loadAssessmentContext(result.row.project_id ?? null, initialReportV2?.cover.stage ?? null, initialReportV2?.cover.sector ?? null);
 
