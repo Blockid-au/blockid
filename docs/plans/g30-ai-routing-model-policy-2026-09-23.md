@@ -1,6 +1,6 @@
 # G30 — AI routing & model policy (DeepInfra primary + qualified free fallback)
 
-**Trạng thái:** PLAN ONLY — chưa code. Viết để đồng bộ với phần Codex đang code.
+**Trạng thái cập nhật23/09:** PARTIALLY IMPLEMENTED / QUALITY NOT YET QUALIFIED. D-A1 report ladder, D-A2/D-A3 và D-A6 đã có trong source; synthesis ladder khác đề xuất. D-A4/D-A5 activation và D-A7 vẫn cần gates. [Review đối chiếu và corrections](../reviews/2026-09-23-report-quality-plan-revalidation.md) là cập nhật mới; bảng đo bên dưới giữ làm evidence lịch sử, không chứng nhận toàn report hoặc worst-case cost.
 **Ngày:** 2026-09-23 · **Ưu tiên:** P0 (chặn report generation → chặn sale)
 **Merge vào:** `docs/plans/SOURCE-OF-TRUTH.md` §11.3 / §11.3.1 (shortlist DeepInfra), §12 O01–O02.
 **Nguồn chẩn đoán:** `docs/reviews/2026-09-23-pre-presentation-review.md`
@@ -8,6 +8,13 @@
 ---
 
 ## 1. Vì sao (evidence, không phải phỏng đoán)
+
+**Scope bổ sung23/09 — vision cho hai site:** [Visual evidence plan](g30-visual-evidence-analysis-2026-09-23.md)
+áp dụng DeepInfra primary cho ảnh trong tài liệu/slide và ảnh upload trực tiếp.
+Vision dùng role/allowlist riêng sau capability + task-quality + cost qualification;
+không coi text ladder bên dưới là model đọc ảnh. Chưa chọn exact vision model hoặc
+bật paid inference. OCR/local extraction, selective crops, permission-scoped cache
+và accounting cả image usage/failed attempts là điều kiện trước activation.
 
 Từ 2026-09-21 11:34 tới nay, **29 lần chạy report liên tiếp ra 0 chữ, hỏng 8/8 chương**
 (`web/content/reports/tbr-quality.jsonl`). `/api/status.tbr_quality.degradedShare = 1`.
@@ -56,7 +63,7 @@ Cùng một prompt chapter thật (40 evidence rows có `[ev:id]`, JSON mode, `m
 
 Giá trong SOT §11.3.1 cần sửa theo catalogue live: V4-Flash **0.09/0.18** (không phải
 0.06/0.18); GLM-5.3-Flash **0.15/0.50** (promotion 50% đã hết); `DeepSeek-V4-Flash-0731`
-không có trong catalogue — id đúng là `deepseek-ai/DeepSeek-V4-Flash`.
+không xuất hiện trong catalogue snapshot của lượt đo đó. **Đính chính review23/09:** [trang official](https://deepinfra.com/deepseek-ai/DeepSeek-V4-Flash-0731) hiện có ID này với giá0.06/0.18; chưa xác minh account inference/quality. Không tự coi hai IDs là alias hoặc thêm model vào ladder.
 V4-Flash/V3.2/V4.1-Flash đều có tag `can-disable-reasoning` → tắt reasoning bằng
 `chat_template_kwargs:{thinking:false}` (đã kiểm chứng hoạt động).
 
@@ -134,6 +141,12 @@ Bề mặt người dùng: `admin/architecture/architecture-client.tsx:131-133`.
 ---
 
 ## 7. Nghiệm thu
+
+**Correction23/09:** các mục1–4 bên dưới chỉ là smoke/operational targets lịch sử,
+không đủ làm release gate. Canonical SOT§13 và [review mới](../reviews/2026-09-23-report-quality-plan-revalidation.md)
+yêu cầu claim/source correctness, question coverage, không critical contradiction,
+holdout và cost/accepted-report bao gồm failures/retries. Không bắt buộc5,000 từ
+cho case thiếu dữ liệu, không gọi USD0.04 là worst-case cap đã chứng minh.
 
 1. `groundedShare > 0` trên một run report thật (không phải fixture `/tbr/demo`).
 2. `tbr-quality.jsonl` có dòng mới `degradedSections: 0`, `words > 5000`.

@@ -10,6 +10,12 @@
 
 ## 1. Mục tiêu một câu
 
+**Bổ sung scope23/09:** tab Files trên BlockID và intake SVI cần nhận ảnh trực tiếp
+và đọc ảnh nằm trong tài liệu/slide theo [visual evidence spec](g30-visual-evidence-analysis-2026-09-23.md).
+Preview/reorder/rotate, processing states, page/region evidence và EN/VI uncertainty
+thuộc intake/report hiện có. Web/PDF/DOCX giữ cùng accepted revision và quyền đọc
+ảnh. Đây là requirement mới; không suy source/live support từ thiết kế giao diện.
+
 > Một bản **Trusted Business Report đủ nghĩa cho investor**, đọc được kết luận trong 3 giây,
 > mở sâu khi cần — **không thêm bước, không rối màn hình**.
 
@@ -80,7 +86,11 @@
 
 ---
 
-## 4. Phạm vi pha 1 (đủ để bán)
+## 4. Phạm vi UI pha 1 (chưa đồng nghĩa đủ điều kiện bán)
+
+**Review23/09:** phạm vi dưới đây là UI milestone. Controlled-sale vẫn phải đạt
+quality, delivery, billing và reliability gates tại SOT§13/S03; xem
+[đối chiếu plan và chất lượng report](../reviews/2026-09-23-report-quality-plan-revalidation.md).
 
 1. Component report dùng chung + Investor view mặc định (A1, A3, B1–B4, B6).
 2. Triptych + verdict bar theo spec thị giác (B2, B3, D1–D4).

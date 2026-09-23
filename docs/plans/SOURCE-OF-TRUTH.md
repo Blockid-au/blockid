@@ -4,6 +4,10 @@
 
 **Trạng thái:** `APPROVED — IMPLEMENTATION IN PROGRESS`. **Phase:** `W1 report foundation live; W1/W2 implementation continuing; broader ops gates open`.
 
+**Chỉ đạo rollout mới nhất23/09:** founder yêu cầu **triển khai tới đâu, deploy live tới đó**. Mỗi phần hoàn chỉnh, đủ dependencies và release gates phải được deploy ngay theo phase nhỏ, không chờ toàn bộ G30 hoặc toàn bộ visual analysis. Áp dụng cho cả BlockID và SVI trong scope đã giao; kiểm tra sau deploy và giữ rollback riêng từng site. Phần foundation chưa đủ điều kiện activation có thể deploy dưới feature flag tắt, nhưng phải ghi rõ chưa dùng được với khách hàng. Chỉ đạo này không bỏ budget/quality/data/billing gates và không tự cấp ngân sách inference mới.
+
+**Review ưu tiên report23/09:** [Đối chiếu toàn plan và góp ý Claude với source/log/tests](../reviews/2026-09-23-report-quality-plan-revalidation.md). Giữ DeepInfra primary; ưu tiên O01/O02 completion/diagnostics → E03/F02/Q02 source/claim/final truth → R01–R04 và V01–V03 → U01/U02. Timeout cùng model không được tự loại mọi model DeepInfra. Word count/citation count và một successful smoke không thay quality gates§13. Giá official/current model IDs và cost-per-accepted-report phải tách khỏi projections. Source fixes của lượt review chưa phải live receipt; chưa đóng incident hoặc qualified model benchmark.
+
 **Current verified checkpoint — 22/09/2026 22:29 UTC:** BlockID **v3.33.3 / `cba40ad1ea49e7447ba4575a5211689462f83391`**, active4111 / warm4110; SVI **`6c728dcfde052b3e40876e4391217f687bac8d93`**, active4205 / warm4204 (`c585147`). Actual rollback→forward drills passed. SVI exposes private accepted detail for all16 questions and preserves the selected question through sign-in; reading does not charge credits. Its latest release also includes immutable admitted-query retry binding and default-off original extracted-input provenance. New customer research production, full-input retention, receipt creation, financial schema expansion and automatic evidence-to-SVI/valuation publication remain **not activated**. Source commits after these compiled SHAs are preparation, not live features. This checkpoint supersedes older “latest” statements below only for the named slices. [BlockID release evidence](../reviews/2026-09-22-receipt-compatibility-live.md).
 
 **Approval22/09/2026:** founder yêu cầu bắt đầu triển khai G30, spawn agents khi cần, commit và deploy live sau mỗi phase phù hợp đã đủ gates. Quyền này thay các câu “plan only / awaiting approval” lịch sử bên dưới; không có nghĩa mọi item đã implemented hoặc verified. Từng item còn pending trừ status ledger ở §12.9. Giữ nguyên gates, existing fee policy và các budget/topology decisions chưa chốt. Root sở hữu release; agent chỉ thực hiện deployment khi được root giao phạm vi cụ thể và dùng cùng deployment lock.
@@ -204,6 +208,26 @@ Mỗi run đóng băng một **Company Context Snapshot**:
 **Extraction gates:** OCR khi cần, đo trang đọc được/không được, giữ bảng và đơn vị; không cắt âm thầm 8.000 ký tự. Dùng chunk theo cấu trúc + retrieval trong toàn bộ tài liệu. Nếu extraction không đủ, trả `needs_input` có trang/vấn đề cần sửa. Website unreachable không được coi URL là business description đủ dùng.
 
 **Privacy của research:** query public không chứa nội dung bí mật của deck, email khách hàng, token hoặc tên chưa công bố; lấy thuật ngữ sản phẩm/sector được phép. Private evidence chỉ đi tới provider được phê duyệt trong processing contract. Không tự liên hệ founder, reference hoặc customer; report sinh request/checklist để người có quyền thực hiện.
+
+### 5.1 Phân tích hình ảnh trên BlockID và Startup Value Index
+
+**Bổ sung theo yêu cầu founder23/09/2026:** phân tích ảnh nằm trong file/slide
+upload và ảnh upload trực tiếp, áp dụng rõ cho **blockid.au và
+startupvalueindex.com**. [Đặc tả visual evidence](g30-visual-evidence-analysis-2026-09-23.md)
+quy định intake JPEG/PNG/WebP, PDF/PPTX/DOCX mixed text/image, OCR + vision cho
+chart/table/diagram/screenshot, citation tới page/slide/region, uncertainty và
+reconciliation. Đây là scope mới được ghi vào plan, **chưa implemented/live verified**.
+
+DeepInfra vẫn primary; vision có qualification riêng theo exact model/endpoint,
+không suy text model đọc được ảnh. Ưu tiên local extraction, dedupe/cache đúng
+quyền và selective crops để tối ưu cost/accepted report. Không biến số đọc xấp xỉ
+thành fact/valuation, không tăng score vì ảnh đẹp hoặc đếm trùng text và ảnh.
+Giữ budget, retention/erase, cross-site permissions và same-final-revision gates.
+
+Phần việc này mở rộng **F01/E01–E03/Q01/Q02/O01/O02/A01–A03/V01–V03/U01/U02/U07/
+T01–T02/F02–F03/O08/B02–B03/O03/S01/S03** trong queue hiện có; không lập backlog
+thứ hai. Contract/corpus làm trước, activation theo dependency và evidence từng
+site. Acceptance visual ở đặc tả bổ sung cho §13, không thay các gate hiện hành.
 
 ## 6. Criteria và câu hỏi: 13 tiêu chí, 52 câu hỏi, 8 chiều tổng hợp
 
@@ -1185,7 +1209,7 @@ T01 tạo **data lineage matrix**: entity/table/bucket → writer → reader →
 |---|---|---|---|---|
 | P01 | P0 · Product/Tech lead | Chốt scope, baseline SHA/live/report fixtures, decision log, source inventory và docs hierarchy | Founder approval | Mọi requirement có ID/owner; không task trùng hoặc “shipped” thiếu evidence |
 | Q01 | P0 · QA/Analyst | Golden/adversarial corpus + source-backed expected claims | P01 | Dataset versioned, train/holdout tách, lỗi review tái hiện được |
-| F01 | P0 · Backend | Full-document extraction, deck/context parity, input quality states | Q01 | Deck A→B đổi đúng signals; không URL-only/OCR loss được chấm như dữ liệu đủ |
+| F01 | P0 · Backend | Full-document extraction, deck/context parity, input quality states; embedded/slide/direct-image analysis cho hai site (§5.1) | Q01 | Deck A→B đổi đúng signals; không URL-only/OCR/visual loss được chấm như dữ liệu đủ; page/region lineage và visual acceptance đạt |
 | E01 | P0 · Data | Versioned question/claim/source model + permission/freshness/migration design | P01 | 52 IDs và overlays, nguồn truy nguyên, old records đọc được |
 | E02 | P0 · Data/Backend | Normalize metric/entity/period/currency, actual vs heuristic vs missing | E01,F01 | Unknown ≠ zero; website estimate không mang nhãn measurement; conflict giữ cả nguồn |
 | E03 | P0 · AI/Data | Citation/excerpt/entailment verification; loại quote tự chứng minh | E02,Q01 | Các repro sai metric/quote/ID/unit/time đều bị chặn |
@@ -1579,6 +1603,8 @@ Approval22/09/2026 bắt đầu W0a. Đây là status của cùng45 items, khôn
 Các ngưỡng dưới đây là **đề xuất acceptance để founder review**, chưa phải kết quả đo hiện tại hoặc SLA công bố. Automated evaluator không được là bằng chứng duy nhất cho factual accuracy.
 
 ### 13.1 Corpus và phương pháp đánh giá
+
+- Visual modality trên cả hai site phải đạt [acceptance bổ sung §7](g30-visual-evidence-analysis-2026-09-23.md#7-acceptance-bắt-buộc): trong corpus dưới đây có ít nhất12 visual development/8 visual holdout; page/region traceability, numeric correctness, readable-fact coverage, abstention, permissions, export parity và cost/accepted-report. Không chứng nhận vision chỉ bằng text-only tests.
 
 - Ít nhất **40 case phát triển + 20 case holdout** trước release; ưu tiên sector được bán. Bao gồm AU pre-revenue/early revenue/seed, data-rich/data-poor, contradictory, dead URL, scanned/table-heavy deck, phần quan trọng ở cuối file, EN/VI, repeated run và multi-project/cache boundaries.
 - Các case ngoài launch sector dùng để kiểm chứng abstention/applicability, không lấy test chung làm chứng minh đã support ngành đó.

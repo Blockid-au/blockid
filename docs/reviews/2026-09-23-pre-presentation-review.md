@@ -1,5 +1,12 @@
 # Pre-presentation & pre-sale review — 2026-09-23
 
+**Historical review — diagnosis corrected:** the token/reasoning root-cause
+claim below was withdrawn by the subsequent routing plan and degradation
+handover. See the [source/log/test revalidation](2026-09-23-report-quality-plan-revalidation.md)
+for the current findings and disposition. This document remains the original
+review record; neither its diagnosis nor its word-count smoke target is a
+current release acceptance gate.
+
 Read-only review of the plan, the source and the live product before the founder
 presentation. No code, DB, Stripe or deploy changes were made. Live at review time:
 **v3.33.3 `cba40ad1e`** (18 commits unreleased; last deploy attempt failed).
