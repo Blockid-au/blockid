@@ -14,7 +14,7 @@ The deploy controller now:
 
 Production units omit `--collect`, use `CollectMode=inactive` and `RemainAfterExit=yes` so failed and unexpected normal exits remain inspectable. An exited service still fails MainPID and HTTP verification; active unit status alone is not health. Only the disposable probe uses `--collect`.
 
-`Restart=no` is deliberate: a crash must trigger verified warm rollback, not an automatic second job runner. `ExitType=cgroup` leaves the service around while descendant work exists. Neither helper nor rollback stops retained services. O08 must establish safe retirement separately.
+`Restart=no` is deliberate: a crash must trigger verified warm rollback, not an automatic second job runner. `ExitType=cgroup` leaves the service around while descendant work exists. Neither helper nor rollback stops retained services. Explicit scoped retirement is handled separately by [g30-origin-retire.py](g30-origin-retire.md); full job quiescence remains an O08 dependency.
 
 Private artifacts are under the application account's `~/.local/state/blockid-runtime/` (0700), resolved from the account database rather than inherited `HOME`. Each unit has an exclusive 0600 EnvironmentFile, log file, and JSON unit locator written BEFORE systemd-run. The locator records the unit, release, port and artifact paths without environment values, including if launch is interrupted before returning. The CLI only returns paths, unit name, PID/start ticks and cgroup. Files remain for retained processes; do not delete or rotate them during this phase. Artifacts survive temporary-file housekeeping, but transient units do not survive reboot. Existing reboot recovery remains a separate operational gate.
 

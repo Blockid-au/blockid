@@ -63,11 +63,18 @@ processes, and a free loopback port from 4100–4199. A pinned unregistered
 candidate blocks the next admission. No process is stopped to reclaim resources.
 Pins are atomically extended before state publication. Existing pins are preserved.
 
+Explicit retirement is available separately through
+[`g30-origin-retire.py`](g30-origin-retire.md). It protects active/previous,
+drains a single registered supervised target under the same lock, and retains
+all artifacts. Current partial job coverage requires an explicit acknowledgement
+of untracked work; deployment itself still never automatically stops origins.
+
 Promotion freezes an independent runtime before launch, binds loopback, verifies
 candidate and registers its identity, enters switching, changes both supported
 nginx origin references, verifies public identity, then activates persisted state.
 Every retained process remains running and pinned. Detached jobs make nginx
-worker exit alone insufficient for application retirement; O08 is deferred.
+worker exit alone insufficient for automatic application retirement; complete
+O08 durable-job coverage remains deferred.
 
 On recovery, the controller verifies a warm target, reads actual nginx routing,
 switches if necessary, and persists locally verified routing before checking
