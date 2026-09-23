@@ -14,6 +14,7 @@
  * `orchestrateReport()`, or the real `findSVI*` fallback lookups.
  */
 
+import { demoReportV2 } from "@/lib/report-v2/fixtures";
 import { describe, it, expect, vi } from "vitest";
 vi.mock("@/lib/ai-client", async (importOriginal) => ({
   ...await importOriginal<typeof import("@/lib/ai-client")>(),
@@ -97,7 +98,7 @@ function makeSupabase(state: FakeState): GeneratorSupabase {
           (state.inserts ??= {})[table] ??= [];
           state.inserts![table].push(payload);
           const err = state.insertError?.[table] ?? null;
-          return Promise.resolve({ error: err });
+          return Object.assign(Promise.resolve({ error: err }), { select: () => ({ single: async () => ({ data: err ? null : payload, error: err }) }) });
         },
       };
     },
@@ -173,6 +174,7 @@ function agentContributions(): AssembledReport["agentContributions"] {
 function baseReport(): AssembledReport {
   return {
     id: "orch-1",
+    reportV2: demoReportV2(),
     title: "Trust Report for Acme AU",
     tier: "standard",
     sections: [
@@ -671,7 +673,7 @@ describe("generateTrustReportForOrder — persistence", () => {
     expect(result).toEqual({
       ok: false,
       transient: true,
-      reason: "assembled_reports_insert_failed: duplicate key",
+      reason: "assembled_report_persistence_unconfirmed",
     });
   });
 

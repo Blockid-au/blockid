@@ -9,12 +9,15 @@
 //     working;
 //   - writes are a best-effort UPDATE after the row exists — never part of
 //     the INSERT — so a missing column can never break snapshot creation.
-// Callers fall back to `adapter.ts` when the read returns null.
+// Legacy callers fall back to `adapter.ts` when the read returns null.
+// New assembled generations use insertCompletedAssembledReport: a complete row
+// without its confirmed canonical document is no longer an accepted result.
 //
 // G19-S47: every read returns the document with `executive.structured`
 // present (a pre-S47 row is parsed on read — `executive-structure.ts`).
 
 import "server-only";
+import { isDeepStrictEqual } from "node:util";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ensureExecutiveStructured } from "./executive-structure";
 import { isReportV2, type ReportV2 } from "./schema";
@@ -35,6 +38,29 @@ function isMissingColumn(message: string | undefined): boolean {
   // A bare "column" match swallowed every other failure (size, format) as
   // "apply 0395" — require the missing-column phrasing.
   return m.includes("does not exist") || m.includes("could not find") || m.includes("schema cache");
+}
+
+/** New report rows and their canonical document commit in one database statement.
+ * No best-effort projection: absence, mismatch or an ambiguous response fails closed.
+ * This does not make subsequent writes immutable or reconcile an unknown commit.
+ */
+export async function insertCompletedAssembledReport(db: Db, row: Record<string, unknown>, report: ReportV2): Promise<boolean> {
+  if (typeof row.id !== "string" || !row.id) return false;
+  try {
+    const document = JSON.parse(JSON.stringify({ ...report, reportId: row.id }));
+    if (!isReportV2(document)) return false;
+    const { data, error } = await db.from("assembled_reports")
+      .insert({ ...row, report_json: document, status: "complete" })
+      .select("id,status,report_json").single();
+    if (error) {
+      console.warn("[report-v2] atomic assembled report insert failed:", error.code);
+      return false;
+    }
+    return data?.id === row.id && data.status === "complete" && isDeepStrictEqual(data.report_json, document);
+  } catch {
+    console.warn("[report-v2] atomic assembled report persistence could not be confirmed");
+    return false;
+  }
 }
 
 /** Stored `svi_snapshots.report_v2` when present and valid, else null. */

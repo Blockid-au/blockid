@@ -25,6 +25,7 @@
  * the guard would have caught the bug, not just that it passes today.
  */
 
+import { demoReportV2 } from "@/lib/report-v2/fixtures";
 import { describe, it, expect } from "vitest";
 import {
   processNextQueuedOrder,
@@ -226,7 +227,7 @@ class FakeDb {
             error: { message?: string } | null;
           }> {
             db.insert(table, payload);
-            return Promise.resolve({ error: null });
+            return Object.assign(Promise.resolve({ error: null }), { select: () => ({ single: async () => ({ data: payload, error: null }) }) });
           },
         };
       },
@@ -321,6 +322,7 @@ function fakeAssembledReport(): AssembledReport {
   };
 
   return {
+    reportV2: demoReportV2(),
     // Deliberately the orchestrator's own `rpt-…` id: the generator must
     // NOT hand this back as report_orders.report_id (that column is uuid).
     id: "rpt-mc3x-ab12cd",

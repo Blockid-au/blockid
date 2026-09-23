@@ -4,7 +4,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { demoReportV2 } from "./fixtures";
-import { __resetReportV2StorageWarnings, readAssembledReportJson, readEvaluationReportV2, readSnapshotReportV2, writeAssembledReportJson, writeSnapshotReportV2 } from "./storage";
+import { __resetReportV2StorageWarnings, insertCompletedAssembledReport, readAssembledReportJson, readEvaluationReportV2, readSnapshotReportV2, writeAssembledReportJson, writeSnapshotReportV2 } from "./storage";
 
 function fakeDb(opts: { selectResult?: { data: unknown; error: { message: string } | null }; updateError?: { message: string } | null; updateRow?: { id: string } | null; throwOn?: "select" | "update" }) {
   const calls: Array<{ table: string; op: string; payload?: unknown }> = [];
@@ -122,6 +122,21 @@ describe("G30 reader-first rollback compatibility", () => {
       expect(result?.valuation).toEqual(report.valuation);
       expect(result?.executive).toEqual(report.executive);
       expect(result?.cover).toEqual(report.cover);
+    }
+  });
+});
+
+describe("atomic completed report persistence", () => {
+  it("stores the document and complete status together with the stored primary key", async () => {
+    const insert = vi.fn((row) => ({ select: () => ({ single: async () => ({ data: row, error: null }) }) }));
+    const db = { from: () => ({ insert }) } as unknown as SupabaseClient;
+    expect(await insertCompletedAssembledReport(db, { id: "stored-report" }, demoReportV2())).toBe(true);
+    expect(insert.mock.calls[0][0]).toMatchObject({ id: "stored-report", status: "complete", report_json: { reportId: "stored-report" } });
+  });
+  it("rejects absent, mismatched and failed returned rows", async () => {
+    for (const data of [null, { id: "other" }, { id: "stored-report", status: "complete", report_json: {} }]) {
+      const db = { from: () => ({ insert: () => ({ select: () => ({ single: async () => ({ data, error: null }) }) }) }) } as unknown as SupabaseClient;
+      expect(await insertCompletedAssembledReport(db, { id: "stored-report" }, demoReportV2())).toBe(false);
     }
   });
 });

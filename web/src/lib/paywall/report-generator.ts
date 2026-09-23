@@ -43,6 +43,8 @@
  * Infrastructure problems (DB down, AI provider hiccup) are transient.
  */
 
+import { createHash } from "node:crypto";
+import { withReportSpendScope } from "@/lib/ai/report-attempt-budget";
 import "server-only";
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -60,7 +62,7 @@ import {
   findLatestAnalysisWithFallback,
 } from "@/lib/projects";
 import type { GenerateInput, GenerateResult } from "./report-order-worker";
-import { writeAssembledReportJson } from "@/lib/report-v2/storage";
+import { insertCompletedAssembledReport } from "@/lib/report-v2/storage";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Narrow Supabase surface
@@ -248,6 +250,12 @@ export async function generateTrustReportForOrder(
   input: GenerateInput,
   deps: GeneratorDeps = {},
 ): Promise<GenerateResult> {
+  // Retries of the same order share one durable budget, including ambiguous saves.
+  const scope = `blockid:order:${createHash("sha256").update(input.orderId).digest("hex")}`;
+  return withReportSpendScope(scope, () => generateTrustReportForOrderScoped(input, deps));
+}
+
+async function generateTrustReportForOrderScoped(input: GenerateInput, deps: GeneratorDeps): Promise<GenerateResult> {
   const supabase =
     deps.supabase !== undefined
       ? deps.supabase
@@ -403,9 +411,8 @@ export async function generateTrustReportForOrder(
   // report-generation-e2e.test.ts).
   const storedReportId = newReportId();
 
-  const { error: insertErr } = await supabase
-    .from("assembled_reports")
-    .insert({
+  if (!report.reportV2) return fail(true, "canonical_report_missing");
+  const stored = await insertCompletedAssembledReport(supabase as unknown as SupabaseClient, {
       id: storedReportId,
       account_id: accountId,
       user_id: userId,
@@ -432,22 +439,9 @@ export async function generateTrustReportForOrder(
       full_markdown: report.markdown,
       status: "complete",
       credits_cost: Number(order.credits_used ?? 0),
-    });
+    }, report.reportV2);
 
-  if (insertErr) {
-    // Nothing was stored — do NOT hand back an id that resolves to
-    // nothing. Transient so the next tick can retry the whole run.
-    return fail(
-      true,
-      `assembled_reports_insert_failed: ${errMessage(insertErr)}`,
-    );
-  }
-
-  // G13-W2-R2: ReportV2 projection with the W4 chapters (migration 0395
-  // column; best effort — a missing column logs once, never fails the order).
-  if (report.reportV2) {
-    await writeAssembledReportJson(supabase as unknown as SupabaseClient, storedReportId, report.reportV2);
-  }
+  if (!stored) return fail(true, "assembled_report_persistence_unconfirmed");
 
   // Per-agent rows are analytics only — never fail the order on them.
   const agentTasks = report.sections

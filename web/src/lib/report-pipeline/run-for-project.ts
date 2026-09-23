@@ -53,7 +53,7 @@ import {
 } from "@/lib/svi-analysis";
 import { findLatestAnalysisWithFallback, findSVIAccountWithFallback, getProjectById } from "@/lib/projects";
 import { fromAssembledReport, fromSnapshot, type SnapshotDimState } from "@/lib/report-v2/adapter";
-import { writeAssembledReportJson, writeSnapshotReportV2 } from "@/lib/report-v2/storage";
+import { insertCompletedAssembledReport, writeSnapshotReportV2 } from "@/lib/report-v2/storage";
 import { loadCapTableInput } from "@/lib/svi/cap-table-input";
 import { effectiveConfidenceLevel } from "@/lib/svi/rescore-from-evidence";
 import { applyFounderExecution } from "@/lib/founder/execution-load";
@@ -428,6 +428,7 @@ export function qualityRowFor(
 export async function generateAndPersistReport(input: GenerateReportInput): Promise<AssembledReport> {
   const { ctx, userId, tier, locale, creditsCost, tierV2 } = input;
   const supabase = getSupabaseAdmin();
+  if (!supabase) throw new Error("report_storage_unavailable");
 
   // G19-S46: capture the orchestrator's `done` event (calls, real cost,
   // wall-clock) for the quality row; the caller's SSE hook still sees every event.
@@ -440,7 +441,7 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
   const onEvent: PipelineEventHandler = (event) => {
     if (event.type === "done") done = event;
     diagnostics.observe(event);
-    input.onEvent?.(event);
+    if (event.type !== "done" && !(event.type === "progress" && event.phase === "complete")) input.onEvent?.(event);
   };
 
   // agentId scoped to this account+project → each report gets its own
@@ -523,12 +524,28 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
       verdictTrimmed: stats?.verdictTrimmed ?? 0,
       autoCited: stats?.autoCited ?? 0,
     };
-    if ((input.qualityLog ?? "record") === "record") {
-      await recordTbrQualityAsync(qualityRowFor(report, ctx, tier, null), input.qualityWriter);
-    }
-
+    const finalDocument = report.reportV2 ??
+          fromAssembledReport(report, {
+            // This is a NEW generation fallback, not a historical snapshot.
+            // Missing reportV2 must not invent a directional valuation.
+            valuationStatus: "unavailable",
+            valuationReason: "Business valuation is unavailable because this generated report has no valuation result.",
+            projectId: ctx.projectId,
+            accountId: ctx.account.id,
+            startupName: ctx.account.startup_name,
+            stageLabel: ctx.sviAnalysis.stageLabel,
+            stage: ctx.sviAnalysis.stage,
+            sviTotal: ctx.sviAnalysis.totalSVI,
+            dimensionScores: ctx.sviAnalysis.dimensionScores ?? null,
+            subs: ctx.sviAnalysis.subs,
+            sviAnalysis: ctx.sviAnalysis,
+            industry: ctx.sviAnalysis.sectorLabel ?? ctx.sviAnalysis.sector ?? null,
+            verificationLevel: ctx.verificationLevel ?? null,
+            tier,
+            locale,
+          });
     if (supabase) {
-      const { error: reportInsertErr } = await supabase.from("assembled_reports").insert({
+      const stored = await insertCompletedAssembledReport(supabase, {
         id: report.id,
         account_id: ctx.account.id,
         user_id: userId,
@@ -555,39 +572,10 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
         full_markdown: report.markdown,
         status: "complete",
         credits_cost: creditsCost,
-      });
-      if (reportInsertErr) {
-        console.error("[blockid:report-pipeline] assembled_reports insert failed", reportInsertErr);
-      } else {
-        // G13-W1-R1: ReportV2 projection (migration 0395 column; best effort —
-        // a missing column logs once and never fails the report).
-        // G13-W2-R2: the orchestrator now attaches the projection WITH the W4
-        // chapters (`report.reportV2`); the adapter is the fallback when W4 is
-        // off (REPORT_PIPELINE_W4=off) or the projection failed validation.
-        await writeAssembledReportJson(
-          supabase,
-          report.id,
-          report.reportV2 ??
-          fromAssembledReport(report, {
-            // This is a NEW generation fallback, not a historical snapshot.
-            // Missing reportV2 must not invent a directional valuation.
-            valuationStatus: "unavailable",
-            valuationReason: "Business valuation is unavailable because this generated report has no valuation result.",
-            projectId: ctx.projectId,
-            accountId: ctx.account.id,
-            startupName: ctx.account.startup_name,
-            stageLabel: ctx.sviAnalysis.stageLabel,
-            stage: ctx.sviAnalysis.stage,
-            sviTotal: ctx.sviAnalysis.totalSVI,
-            dimensionScores: ctx.sviAnalysis.dimensionScores ?? null,
-            subs: ctx.sviAnalysis.subs,
-            sviAnalysis: ctx.sviAnalysis,
-            industry: ctx.sviAnalysis.sectorLabel ?? ctx.sviAnalysis.sector ?? null,
-            verificationLevel: ctx.verificationLevel ?? null,
-            tier,
-            locale,
-          }),
-        );
+      }, finalDocument);
+      if (!stored) throw new Error("report_persistence_unconfirmed");
+      report.reportV2 = { ...finalDocument, reportId: report.id };
+      {
         // G21 P1-A: connector / register rows GATHER minted for this report
         // become evidence_records on the project's claims (0417). Fail-soft.
         if (ctx.projectId) {
@@ -617,13 +605,22 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
           status: "complete",
         }));
       if (agentTasks.length > 0) {
-        const { error: tasksErr } = await supabase.from("agent_report_tasks").insert(agentTasks);
-        if (tasksErr) {
-          console.error("[blockid:report-pipeline] agent_report_tasks insert failed", tasksErr);
-        }
+        try {
+          const { error: tasksErr } = await supabase.from("agent_report_tasks").insert(agentTasks);
+          if (tasksErr) console.warn("[blockid:report-pipeline] analytics write failed", tasksErr.code);
+        } catch { console.warn("[blockid:report-pipeline] analytics unavailable after report save"); }
       }
     }
 
+    if ((input.qualityLog ?? "record") === "record") {
+      try { await recordTbrQualityAsync(qualityRowFor(report, ctx, tier, null), input.qualityWriter); }
+      catch { console.warn("[blockid:report-pipeline] quality telemetry unavailable after report save"); }
+    }
+
+    // Completion is delivery-facing; a listener failure cannot undo a confirmed save.
+    if (done) {
+      try { input.onEvent?.(done); } catch { /* report remains saved */ }
+    }
     return report;
   } catch (err) {
     console.error("[blockid:report-pipeline] orchestration failed:", err);

@@ -31,7 +31,11 @@ function nextResponse(table: string) {
 function makeBuilder(table: string) {
   const c: Captured = { table, op: null, payload: null, eqs: [] };
   state.calls.push(c);
-  const resolve = () => Promise.resolve(nextResponse(table));
+  const resolve = () => {
+    const queued = state.queue.some(q => q.table === table);
+    const result = nextResponse(table);
+    return Promise.resolve(!queued && c.op === "insert" ? { data: c.payload, error: null } : result);
+  };
   const b: Record<string, unknown> = {};
   Object.assign(b, {
     select() { if (c.op === null) c.op = "select"; return b; },
@@ -224,8 +228,8 @@ describe("generateAndPersistReport", () => {
     const tasks = state.calls.find((c) => c.table === "agent_report_tasks")!.payload as Array<Record<string, unknown>>;
     expect(tasks.map((t) => t.criterion_key)).toEqual(["idea", "team"]);
     // G13-W1-R1: ReportV2 projection written best-effort to report_json (0395).
-    const rj = state.calls.find((c) => c.table === "assembled_reports" && c.op === "update")!;
-    expect(rj.eqs).toEqual([{ col: "id", val: "rpt-1" }]);
+    const rj = state.calls.find((c) => c.table === "assembled_reports" && c.op === "insert")!;
+    expect(state.calls.some(c => c.table === "assembled_reports" && c.op === "update")).toBe(false);
     const doc = (rj.payload as { report_json: { schemaVersion: string; dimensions: unknown[]; source: string; valuation: Record<string, unknown>; cover: { threeQuestions: { worth: string } } } }).report_json;
     expect(doc.schemaVersion).toBe("2.0");
     expect(doc.dimensions).toHaveLength(8);
@@ -323,8 +327,21 @@ describe("generateAndPersistReport", () => {
     const document = demoReportV2();
     orchestrateMock.mockResolvedValue({ ...REPORT, reportV2: document });
     await generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 3 });
-    const write = state.calls.find((call) => call.table === "assembled_reports" && call.op === "update")!;
-    expect((write.payload as { report_json: unknown }).report_json).toEqual(document);
+    const write = state.calls.find((call) => call.table === "assembled_reports" && call.op === "insert")!;
+    expect((write.payload as { report_json: unknown }).report_json).toEqual({ ...document, reportId: REPORT.id });
+  });
+
+  it("does not emit completion when canonical persistence fails", async () => {
+    const events: unknown[] = [];
+    orchestrateMock.mockImplementation(async (input: { onEvent?: (event: unknown) => void }) => {
+      input.onEvent?.({ type: "progress", phase: "complete", completed: 100, total: 100 });
+      input.onEvent?.({ type: "done", reportId: "rpt-1", calls: 0, totalMs: 1 });
+      return REPORT;
+    });
+    state.queue.push({ table: "assembled_reports", error: { code: "failure" } });
+    await expect(generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 3, onEvent: e => events.push(e) })).rejects.toThrow("report_persistence_unconfirmed");
+    expect(events).not.toContainEqual(expect.objectContaining({ type: "done" }));
+    expect(events).not.toContainEqual(expect.objectContaining({ phase: "complete" }));
   });
 
   it("writes a failed row and re-throws when the orchestrator fails", async () => {
