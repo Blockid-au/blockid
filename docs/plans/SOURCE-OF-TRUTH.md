@@ -1785,6 +1785,9 @@ Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi 
 
 ## 17. Change log
 
+- **23/09/2026 — G30 rev3.2, PLAN ONLY:** phân tích đề xuất founder "chuyển thẳng kết quả sang `/workspace/reports/business` và cân nhắc bỏ `/analyze`" (§5c của plan parity). Chẩn đoán đúng: `/analyze` đang render hai lớp kết quả chồng nhau nên có bước thừa. Nhưng làm nguyên văn sẽ gãy 5 thứ đã kiểm chứng: workspace 307 → login (mâu thuẫn quy tắc 2 report đầu miễn phí không cần tài khoản), route project-scoped không có slot id trong khi kết quả guest là analysis-scoped, gãy link `/analyze/<id>?t=` trong mọi e-mail đã gửi, mất tenancy guest, và `robots: noindex` làm mất khả năng chia sẻ. Quyết định đề xuất D-B15–D-B20: **một component report dùng chung, hai cửa** (guest `/analyze/[id]` công khai · signed-in `/workspace/reports/business?pid=`), bỏ lớp preview trùng lặp, trạng thái + ↻ phân tích lại theo từng section qua contract §6.7, giữ `/analyze` làm intake + report một trang, claim kết quả về tài khoản khi đăng nhập. Chưa code.
+
+
 - **23/09/2026 — G30 rev3.1, PLAN ONLY:** bổ sung design spec kết quả `/analyze` ([`analyze-report-dashboard-spec.md`](../design/analyze-report-dashboard-spec.md)) và quyết định D-B8–D-B14 trong plan parity: quy tắc 3 giây, verdict bar (định giá là số lớn nhất trang), triptych mạnh/yếu/cần làm rõ, research-note masthead, progressive disclosure, hiển thị thành thật ngang hàng con số, không thêm palette/font mới, và sửa 4 lỗi đang thấy trên bản demo. Chưa code, chưa đổi runtime.
 
 

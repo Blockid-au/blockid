@@ -124,6 +124,44 @@ Tóm tắt quyết định:
   weighs against"; mâu thuẫn connector Stripe trong cùng trang; header "no published cohort" trong khi vẫn
   vẽ dải p25–p75; nhãn nội bộ (`uncited`, `cro`, `Auditor: grounded`) lọt ra giao diện.
 
+## 5c. Đề xuất founder 23/09: chuyển thẳng kết quả sang `/workspace/reports/business`?
+
+> "sau khi nhập nội dung → chuyển ngay kết quả sang `/workspace/reports/business` để có đầy đủ chi tiết;
+> phần chưa có data hiển thị trạng thái đang phân tích hoặc nút re-analyze; cân nhắc bỏ luôn trang
+> `/analyze` vì tốn thêm một bước với bố cục không hiệu quả, nhưng vẫn merge vào report và gửi email."
+
+### Phần chẩn đoán của founder là ĐÚNG
+
+`/analyze` hiện render **hai lớp kết quả chồng nhau**: `analyze-results.tsx` (score ring + radar 8 chiều +
+top gaps + actions) nằm **phía trên** tài liệu canonical `<TbrReportV2>` trong `full-report-panel.tsx` —
+cùng thông tin hai lần, bản ở trên mỏng hơn và tự ẩn bớt khi report cuối về. Đây đúng là "bố cục không
+hiệu quả" và là bước thừa cần bỏ. Một bề mặt report duy nhất cũng đúng về bảo trì và thiết kế.
+
+### Nhưng làm đúng nguyên văn sẽ vỡ 5 thứ (đã kiểm chứng trực tiếp)
+
+| # | Vấn đề | Bằng chứng |
+|---|---|---|
+| 1 | **Gãy phễu guest.** `/workspace/reports/business` **307 → `/auth/login`**. Ép đăng nhập trước khi thấy kết quả là mâu thuẫn chính quy tắc founder đã đặt: *2 report đầu miễn phí theo e-mail, không cần tài khoản.* | `curl` live 23/09; `business/page.tsx:3` `getCurrentUser()` + redirect |
+| 2 | **Route không có chỗ cho id.** Nó là "business report của project đang active" (`?pid=`), tức **project-scoped**; kết quả guest là **analysis-scoped** trong bảng `analyses` (`full_report_json`). Hai đối tượng khác nhau. | `workspace/reports/business/page.tsx:22-25` (chỉ `pid`, `order`); có `/workspace/reports/[id]` nhưng khác nhánh |
+| 3 | **Gãy mọi link đã gửi qua e-mail.** Report guest gửi đi trỏ tới `https://blockid.au/analyze/<id>?t=<signed>` và PDF `/api/analyses/<id>/report.pdf?token=…`. | `report-v2-job.ts` `deliveryLinks()` + test `report-v2-job.test.ts:326` |
+| 4 | **Mất tenancy guest.** anon cookie / signed token / free-report gate / guest A$3 SKU đều bám vào `/analyze`. | `api/intake/route.ts`, `free-report-gate.ts` |
+| 5 | **Mất khả năng chia sẻ công khai.** Trang workspace đặt `robots: { index: false }` — kết quả nằm sau login thì không share/SEO được. | `business/page.tsx:17` |
+
+### Phương án đề xuất: **một report, hai cửa**
+
+| # | Quyết định |
+|---|---|
+| **D-B15** | **Một component report dùng chung** (đúng [design spec dashboard](../design/analyze-report-dashboard-spec.md)). Guest xem tại `/analyze/[id]` (công khai, signed token); người đã đăng nhập vào `/workspace/reports/business?pid=`. Cùng layout, cùng section, cùng thiết kế — khác nhau chỉ ở quyền và chrome. |
+| **D-B16** | **Bỏ lớp preview trùng lặp** (`analyze-results.tsx` phía trên tài liệu) — đây mới đúng là "bước thừa". Sau submit đi thẳng vào khung report. |
+| **D-B17** | **Trạng thái theo từng section**: `đang phân tích` (skeleton đúng hình dạng) · `thiếu dữ liệu` (CTA thêm evidence) · `đã có` · nút **↻ Phân tích lại** ở cấp section — đi qua đúng contract quote/credit của §6.7, **không tạo đường chạy thứ hai** (review 22/09 đã ghi nút ↻ hiện tại POST thẳng, không quote/không idempotency). |
+| **D-B18** | **Không bỏ `/analyze`**, đổi vai: intake + report trong **một trang**, một bước. Giữ e-mail + PDF như hiện tại. |
+| **D-B19** | **Guest đăng nhập → tự nhận kết quả về tài khoản** (đường claim đã có: `lib/analyses/claim.ts`), gắn vào project để workspace hiển thị đúng bản đó. Đây là cầu nối tự nhiên giữa hai cửa. |
+| **D-B20** | Nếu sau này vẫn muốn bỏ hẳn `/analyze`: **bắt buộc** 301 `/analyze/[id]` → URL mới, giữ nguyên signed token, và giữ một bề mặt công khai cho guest. Không đưa kết quả guest vào sau login. |
+
+**Kết quả:** founder được đúng thứ mong muốn — nhập xong thấy ngay bản báo cáo đầy đủ, chi tiết, có trạng
+thái đang phân tích và nút phân tích lại — mà không đánh đổi phễu miễn phí, link e-mail đã gửi và khả năng
+chia sẻ.
+
 ## 6. Hai pha (pha 1 đủ để bán)
 
 **Pha 1 — parity nhìn thấy được, không đổi pipeline:**
