@@ -1,5 +1,9 @@
 # G30 — Phân tích hình ảnh trong tài liệu, slide và ảnh upload
 
+> **Quyết định founder23/09, cập nhật mới nhất:** tối đa **US$0.50/report** cho tổng AI chữ + ảnh, chỉ DeepInfra; không provider trả phí khác. Founder yêu cầu bỏ test và triển khai xong deploy live ngay. Các câu chưa chốt budget/đợi benchmark trước activation bên dưới là lịch sử bị thay bởi chỉ đạo này; quality acceptance vẫn là mục tiêu chưa chứng nhận.
+> **Implementation `6cb2d2db7` (BlockID), `1a1fd3f` (SVI):** shared durable spend ledger, exact vision model `Qwen/Qwen3-VL-235B-A22B-Instruct`, structured unverified observations; direct PNG/JPEG/WebP, tối đa3 trang/ảnh mỗi tài liệu trong55s. PDF render theo trang; PPTX/DOCX chỉ đọc ảnh nhúng, chưa render đầy đủ layout slide. SVI giữ số liệu tài chính từ native text riêng, không dùng OCR/vision chưa xác minh làm financial inputs. Đây là trạng thái source; live receipt ghi riêng sau promotion.
+
+
 Ngày: 23/09/2026. Trạng thái: **REQUIREMENT ADDED / CHƯA IMPLEMENTED HOẶC LIVE VERIFIED**.
 Theo yêu cầu founder, áp dụng cho **blockid.au và startupvalueindex.com**.
 Đây là đặc tả thành phần của [SOT G30 §5.1](SOURCE-OF-TRUTH.md#51-phân-tích-hình-ảnh-trên-blockid-và-startup-value-index), không tạo backlog độc lập.

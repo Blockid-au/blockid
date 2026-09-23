@@ -177,3 +177,14 @@ Không gọi các nhóm chưa kiểm chứng là “done” chỉ vì unit tests
 Chưa thể xác nhận incident đã hết, model nào thắng holdout, chi phí actual mỗi
 accepted report, hoặc live web/PDF/DOCX đạt toàn bộ gates. Các kết luận đó cần
 evidence mới theo đúng các bước còn mở ở trên.
+
+
+## 8. Budget và visual implementation sau review
+
+Founder đã chốt US$0.50/report và chỉ DeepInfra; yêu cầu không chạy test bổ sung, implement xong deploy live. Các kết quả test §7 thuộc source cũ, không phải bằng chứng cho visual/budget phase mới.
+
+Source `6cb2d2db7` và SVI `1a1fd3f` bổ sung intake ảnh trực tiếp, OCR/structured vision, PDF page rendering và Office embedded images. Cùng report scope chia sẻ ledger chữ/ảnh; failed/unknown attempts không được tự hoàn reservation. Model response phải khớp exact ID; không dùng paid provider khác. Native text giữ riêng ở SVI để observation từ ảnh không biến thành verified financial quote.
+
+Giới hạn hiện tại: tối đa3 visual units/document và55s, Office chưa có full-slide rendering, không có region drill-down/cross-tenant cache; chưa qualified bằng holdout hoặc inference probe. Ledger này không hoàn tất durable job checkpoint, billing idempotency hoặc ngân sách tổng account. Scope mới ở intake mới là report attempt mới; chưa gộp mọi lần upload lại của người dùng thành một report. Unknown ledger/lock cần reconciliation, không tự reset.
+
+Giá chuẩn đọc23/09/2026 từ official API pages: [vision](https://deepinfra.com/Qwen/Qwen3-VL-235B-A22B-Instruct/api), [V3.2](https://deepinfra.com/deepseek-ai/DeepSeek-V3.2/api), [Qwen text](https://deepinfra.com/Qwen/Qwen3-235B-A22B-Instruct-2507/api), [V4 Flash](https://deepinfra.com/deepseek-ai/DeepSeek-V4-Flash/api); [vision transport/limits](https://docs.deepinfra.com/chat/vision). Policy hết hạn23/10/2026; chưa đo cost per accepted report hay so sánh chất lượng model thực tế.
