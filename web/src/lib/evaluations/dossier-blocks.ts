@@ -49,9 +49,9 @@ const num = (v: unknown): number | null => {
 export const VALUATION_METHOD_LABEL: Record<ValuationChapter["methods"][number]["method"], string> = {
   revenue_multiple: "Revenue multiple",
   berkus: "Berkus",
-  dcf_proxy: "DCF proxy",
-  comparables: "AU comparables",
-  risk_factor_summation: "Risk-factor summation",
+  dcf_proxy: "Adjusted ARR multiple (heuristic)",
+  comparables: "Sector/growth ARR multiple",
+  risk_factor_summation: "Tax-adjusted ARR multiple (heuristic)",
   scorecard: "Scorecard (reference)",
   stage_baseline: "AU stage baseline",
 };

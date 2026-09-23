@@ -179,9 +179,9 @@ function dimScore(input: ComputedFactsInput, dim: DimKey): number | null {
 const METHOD_LABEL: Record<string, string> = {
   revenue_multiple: "Revenue multiple",
   berkus: "Berkus",
-  dcf_proxy: "DCF proxy",
+  dcf_proxy: "Adjusted ARR multiple (heuristic)",
   comparables: "Comparables",
-  risk_factor_summation: "Risk factor summation",
+  risk_factor_summation: "Tax-adjusted ARR multiple (heuristic)",
   scorecard: "Scorecard",
   stage_baseline: "Stage baseline",
 };

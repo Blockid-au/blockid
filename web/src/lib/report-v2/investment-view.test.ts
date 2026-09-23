@@ -158,7 +158,7 @@ describe("buildInvestmentView on the four band fixtures", () => {
     g.report.phaseGates.blockers = [{ code: "criteria_below_threshold", subject: "documents", detail: "Board minutes missing for two quarters." }];
     const w = build(g.report, { unverifiedMaterialClaims: 2 });
     expect(w.conditions.map((c) => c.kind)).toEqual(["unverified", "ask", "blocker"]);
-    expect(w.conditions[1].text).toBe("Re-anchor the ask: 22 % above the A$6M–A$9.8M consensus");
+    expect(w.conditions[1].text).toBe("Re-anchor the ask: 22 % above the A$6M–A$9.8M weighted estimate");
     expect(w.riskMatrix.find((r) => r.kind === "ask")).toMatchObject({ likelihood: "medium", impact: "high" });
     expect(w.riskMatrix.find((r) => r.kind === "blocker")).toMatchObject({ likelihood: "high", impact: "high" });
   });
@@ -174,7 +174,7 @@ describe("buildInvestmentView on the four band fixtures", () => {
     expect(vi.conditions).toHaveLength(en.conditions.length);
     expect(vi.conditions[0].text).toMatch(/Xác minh 2 tuyên bố/);
     expect(vi.takeaways.ftv).toMatch(/củng cố luận điểm/);
-    expect(vi.keyPoints[3]).toMatch(/Đồng thuận/);
+    expect(vi.keyPoints[3]).toMatch(/Ước tính có trọng số/);
     expect(vi.convictionLine).toMatch(/Độ tin cậy bằng chứng 59 %/);
   });
 
@@ -267,13 +267,13 @@ describe("buildInvestmentView on the four band fixtures", () => {
 
   it("key points: headline, top reason, top gap + lift, the consensus line (with the revenue-methods clause when pre-revenue), verdict + first condition", () => {
     const pre = build(preRevenueFixtureReportV2());
-    expect(pre.keyPoints[3]).toBe("Consensus A$2.3M–A$5M across 3 methods; 4 revenue methods did not run (pre-revenue)");
+    expect(pre.keyPoints[3]).toBe("Weighted estimate A$2.3M–A$5M from 3 methods; 4 revenue methods did not run (pre-revenue)");
     expect(pre.keyPoints[4]).toMatch(/^Investable with conditions — /);
     const demo = build(demoReportV2());
-    expect(demo.keyPoints[3]).toBe("Consensus A$6M–A$9.8M across 5 methods");
+    expect(demo.keyPoints[3]).toBe("Weighted estimate A$6M–A$9.8M from 5 methods");
     expect(demo.keyPoints[2]).toMatch(/\(\+\d+ SVI\)$/);
     expect(demo.whatMovesIt).toContain("Stating the raise and cap adds the ask-alignment check");
-    expect(pre.whatMovesIt[0]).toBe("Connect Stripe or Xero → 4 revenue methods run (+4 methods in the consensus)");
+    expect(pre.whatMovesIt[0]).toBe("Connect Stripe or Xero → 4 revenue methods run (+4 methods in the weighted estimate)");
   });
 });
 

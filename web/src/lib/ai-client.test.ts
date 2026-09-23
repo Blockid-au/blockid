@@ -1836,6 +1836,42 @@ describe("G30 BlockID report policy", () => {
     expect(fetchMock).not.toHaveBeenCalled();
     expect(tierMock.call).not.toHaveBeenCalled();
   });
+  it("two parallel primary-model timeouts do not strike healthy DeepInfra alternatives out of the report run", async () => {
+    const client = await loadClient();
+    const { createRunStrikeLedger } = await import("@/lib/ai/run-strikes");
+    const runStrikes = createRunStrikeLedger();
+    const primary = client.DEEPINFRA_MODELS_BY_CLASS.report[0];
+    const secondary = client.DEEPINFRA_MODELS_BY_CLASS.report[1];
+    let primaryCalls = 0;
+    let release!: () => void;
+    const parallelWave = new Promise<void>(resolve => { release = resolve; });
+    fetchMock.mockImplementation(async (_url: string, init?: RequestInit) => {
+      if (JSON.parse(String(init?.body)).model === primary) {
+        if (++primaryCalls === 2) release();
+        await parallelWave;
+        throw new Error("Worker timeout (60s)");
+      }
+      return new Response(JSON.stringify({ choices: [{ message: { content: "Grounded alternative" } }], usage: { prompt_tokens: 100, completion_tokens: 20 } }));
+    });
+    const results = await Promise.all([client.callAI({ ...request, agentId: "review:one", taskClass: "report", runStrikes }), client.callAI({ ...request, agentId: "review:two", taskClass: "report", runStrikes })]);
+    expect(results.map(r => r.model)).toEqual([secondary, secondary]);
+    expect(runStrikes.struck(`deepinfra/${primary}`)).toBe(true);
+    expect(runStrikes.struck("deepinfra")).toBe(false);
+    expect(runStrikes.struckProviders()).not.toContain(`deepinfra/${primary}`);
+    expect(runStrikes.snapshot()[`deepinfra/${primary}`].timeout).toBe(2);
+    onlyDeepInfra(fetchMock);
+  });
+  it("scoped response-stream failures advance the model without an unbudgeted subprocess replay", async () => {
+    const client = await loadClient();
+    const primary = client.DEEPINFRA_MODELS_BY_CLASS.report[0];
+    fetchMock.mockImplementation(async (_url: string, init?: RequestInit) => {
+      if (JSON.parse(String(init?.body)).model === primary) throw new Error("AI response stream error");
+      return new Response(JSON.stringify({ choices: [{ message: { content: "Alternative" } }], usage: { prompt_tokens: 100, completion_tokens: 20 } }));
+    });
+    await expect(client.callAI({ ...request, taskClass: "report" })).resolves.toMatchObject({ model: client.DEEPINFRA_MODELS_BY_CLASS.report[1] });
+    expect(childProcess.spawn).not.toHaveBeenCalled();
+    onlyDeepInfra(fetchMock);
+  });
   it("never restores discovered or mutated weak defaults after exact rungs fail", async () => {
     const client = await loadClient();
     const exact = [...client.DEEPINFRA_MODELS_BY_CLASS.report];

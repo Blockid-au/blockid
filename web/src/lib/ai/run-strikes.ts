@@ -92,10 +92,12 @@ export class RunStrikeLedger {
   }
 
   struckProviders(): string[] {
-    return [...this.counts.entries()].filter(([, n]) => n >= this.threshold).map(([p]) => p);
+    // Scoped DeepInfra timeouts use provider/model keys. Keep those in the
+    // detailed snapshot without claiming the entire provider is unavailable.
+    return [...this.counts.entries()].filter(([p, n]) => !p.includes("/") && n >= this.threshold).map(([p]) => p);
   }
 
-  /** `{ provider: { strikes, timeout, overloaded } }` for the run's telemetry line. */
+  /** Provider or provider/model scope → failure counts for run telemetry. */
   snapshot(): Record<string, { strikes: number; timeout: number; overloaded: number }> {
     const out: Record<string, { strikes: number; timeout: number; overloaded: number }> = {};
     for (const [p, n] of this.counts) {

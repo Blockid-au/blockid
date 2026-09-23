@@ -134,12 +134,12 @@ describe("buildValuationChapter — S42 inputs, derivation, cross-checks", () =>
   it("backtest cross-check: the quartile bucket for the report's SVI with N, asOf = generated_at, plus the disclosed-valuation row and the stage baseline; the narrative carries one cross-check sentence", () => {
     const ch = buildValuationChapter({ ...base, vc: { ...demoVcValuation(), backtest }, sviIndex: 120 });
     const rows = ch.crossChecks ?? [];
-    expect(rows).toHaveLength(3);
+    expect(rows).toHaveLength(2);
     expect(rows[0]).toMatchObject({ label: expect.stringContaining("Q2"), lowAud: 30_000_000, midAud: 50_000_000, highAud: 79_500_000, asOf: "2026-09-17", n: 11 });
     expect(rows[0].source).toMatch(/N=11/);
-    expect(rows[1]).toMatchObject({ midAud: 250_000_000, n: 1, asOf: "2026-09-17" });
-    expect(rows[2]).toMatchObject({ label: expect.stringContaining("AU stage baseline"), lowAud: 6_000_000, midAud: 10_000_000, highAud: 15_000_000 });
-    expect(ch.narrative).toMatch(/Cross-check: startups in the same SVI quartile \(Q2\) raised at a median of A\$50,000,000 \(N=11; median post-money A\$250,000,000, N=1\)/);
+    expect(rows.some(row => row.midAud === 250_000_000)).toBe(false);
+    expect(rows[1]).toMatchObject({ label: expect.stringContaining("AU stage baseline"), lowAud: 6_000_000, midAud: 10_000_000, highAud: 15_000_000 });
+    expect(ch.narrative).toMatch(/Cross-check: startups in the same SVI quartile \(Q2\) raised at a median of A\$50,000,000 \(N=11\)/);
   });
 
   it("backtest bucket selection: in range → that bucket; gap → nearest; outside → edge; no valuation row when the bucket has none; no backtest → stage baseline only", () => {
@@ -157,6 +157,28 @@ describe("buildValuationChapter — S42 inputs, derivation, cross-checks", () =>
     expect(none.crossChecks?.[0].midAud).toBe(VALUATION_BASELINES_AUD[3].mid);
     expect(none.narrative).toMatch(/Cross-check: the AU stage baseline/);
     expect(none.narrative).not.toMatch(/same SVI quartile/);
+  });
+
+  it("applies the shared sample floor independently to round and valuation medians", () => {
+    const sample = structuredClone(backtest);
+    const bucket = sample.buckets[0];
+    bucket.n = 9;
+    bucket.n_valuation = 3;
+    bucket.median_round_aud = 123_456_789;
+    bucket.median_valuation_aud = 987_654_321;
+    const low = buildValuationChapter({ ...base, vc: { ...demoVcValuation(), backtest: sample }, sviIndex: 110 });
+    expect(low.crossChecks).toHaveLength(1); // authored stage baseline only
+    expect(low.narrative).not.toContain("123,456,789");
+    expect(low.narrative).not.toContain("987,654,321");
+    bucket.n = 10;
+    const roundOnly = buildValuationChapter({ ...base, vc: { ...demoVcValuation(), backtest: sample }, sviIndex: 110 });
+    expect(roundOnly.crossChecks).toHaveLength(2);
+    expect(roundOnly.narrative).toContain("123,456,789");
+    expect(roundOnly.narrative).not.toContain("987,654,321");
+    bucket.n_valuation = 10;
+    const both = buildValuationChapter({ ...base, vc: { ...demoVcValuation(), backtest: sample }, sviIndex: 110 });
+    expect(both.crossChecks).toHaveLength(3);
+    expect(both.narrative).toContain("987,654,321");
   });
 
   it("legacy vc without a stage baseline falls back to VALUATION_BASELINES_AUD[stage]", () => {
@@ -248,7 +270,9 @@ describe("buildValuationChapter — consensus, ask cross-check, multiples, compa
   it("narrative: range + method transparency + the AU discount line, never a single point; grounded only with a revenue evidence row", () => {
     const ch = buildValuationChapter({ ...base, vc: vc(), revenueEvidenceIds: ["ev-stripe"] });
     expect(ch.narrative).toMatch(/range A\$4,000,000–A\$9,000,000/);
-    expect(ch.narrative).toMatch(/Consensus of the 5 weighted methods/);
+    expect(ch.narrative).toMatch(/Weighted estimate from 5 weighted methods/);
+    expect(ch.narrative).toContain("not independent valuation confirmations");
+    expect(ch.narrative).toContain("not a discounted cash-flow model");
     expect(ch.narrative).toMatch(/US multiples are discounted 20–40 %/);
     expect(ch.narrative).toMatch(/connector-evidenced: stripe \(last sync\)/);
     expect(ch.audit.grounded).toBe(true);
@@ -290,7 +314,7 @@ describe("adapter integration", () => {
     expect(report.valuation.inputs?.revenueSource).toBe("connector");
     expect(report.valuation.crossChecks?.[0].n).toBe(11);
     expect(report.appendix.sourcesDated.some((s) => /SVI backtest quartiles \(N=49/.test(s.label) && s.date === "2026-09-17")).toBe(true);
-    expect(report.valuation.visuals[0].title).toBe("Valuation methods and consensus band");
+    expect(report.valuation.visuals[0].title).toBe("Valuation methods and weighted range");
     expect(report.valuation.narrative).not.toMatch(/three-case/i);
   });
 

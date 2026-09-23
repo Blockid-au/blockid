@@ -171,8 +171,8 @@ describe("renderTbrPdf — standard tier (v3 order)", () => {
 
     // Paid detail present (valuation § 4 order: methods → what moves it → inputs → cross-checks → narrative).
     expect(text).toContain("Revenue multiple");
-    expect(text).toContain("Risk-factor summation");
-    expect(text).toContain("Consensus 100 %");
+    expect(text.replace(/(\p{L})-\s+(\p{L})/gu, "$1$2")).toContain("Tax-adjusted ARR multiple (heuristic)");
+    expect(text).toContain("Weighted estimate 100 %");
     expect(text).toContain("What moves it");
     expect(text).toContain("Inputs & assumptions");
     expect(text).toContain("connector");

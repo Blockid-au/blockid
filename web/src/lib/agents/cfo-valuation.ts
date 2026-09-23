@@ -763,7 +763,7 @@ export function buildVcValuationReport(input: BuildVcValuationInput): VcValuatio
     : 0;
   const auTaxPct = (esicQualifies ? AU_MARKET_DATA.esicOffset * 100 : 0) + rdtiLiftPct;
   const rfMid = rfBase * (1 + auTaxPct / 100);
-  let rfsRationale = `Risk Factor Summation; au-tax: ${auTaxPct.toFixed(0)}%`;
+  let rfsRationale = `Tax-adjusted ARR multiple heuristic; au-tax: ${auTaxPct.toFixed(0)}%`;
   if (esicQualifies) rfsRationale += "; ESIC qualified (+20% offset)";
   if (estimatedRdtiRefundAud > 0) rfsRationale += `; Refundable RDTI est. A$${Math.round(estimatedRdtiRefundAud / 1000)}K (+${rdtiLiftPct.toFixed(1)}% proportional lift)`;
   const adjMultiple = bm.medianMultiple * growthTier.factor;
@@ -799,7 +799,7 @@ export function buildVcValuationReport(input: BuildVcValuationInput): VcValuatio
     : [
         { method: "revenue_multiple", lowAud: Math.round(revLow), midAud: Math.round(revMid), highAud: Math.round(revHigh), weight: REVENUE_WEIGHTS.revenue_multiple * revenueWeightFactor, applicable: true, rationale: `AU ${sector} revenue multiples ${multiLow}–${multiHigh}x ARR for ${stage} stage. Multiples: ${bm.sourceLabel}.${founderStatedSuffix}` },
         { method: "berkus", lowAud: Math.round(berkus * 0.7), midAud: Math.round(berkus), highAud: Math.round(berkus * 1.3), weight: REVENUE_WEIGHTS.berkus, applicable: true, rationale: `Berkus milestone-based valuation (A$500K per pillar, AU-adjusted): ${pillarCount} of 5 pillars evidenced.` },
-        { method: "dcf_proxy", lowAud: Math.round(dcfMid * 0.7), midAud: Math.round(dcfMid), highAud: Math.round(dcfMid * 1.4), weight: REVENUE_WEIGHTS.dcf_proxy * revenueWeightFactor, applicable: true, rationale: `Simplified DCF using sector growth rate and AU exit comparables.${growthNote}${founderStatedSuffix}` },
+        { method: "dcf_proxy", lowAud: Math.round(dcfMid * 0.7), midAud: Math.round(dcfMid), highAud: Math.round(dcfMid * 1.4), weight: REVENUE_WEIGHTS.dcf_proxy * revenueWeightFactor, applicable: true, rationale: `Adjusted ARR multiple: ARR × (sector lower multiple + 1). No discounted cash flows are calculated.${growthNote}${founderStatedSuffix}` },
         { method: "comparables", lowAud: Math.round(compMid * 0.75), midAud: Math.round(compMid), highAud: Math.round(compMid * 1.35), weight: REVENUE_WEIGHTS.comparables * revenueWeightFactor, applicable: true, rationale: `Comparable AU ${sector} transactions — growth tier: ${growthTier.tier} (${Math.round(annualGrowth)}% YoY${growthAssumed ? ", assumed" : ""}, Bessemer Cloud Index 2025 adjustment: ${growthTier.factor}x).${founderStatedSuffix}` },
         { method: "risk_factor_summation", lowAud: Math.round(rfMid * 0.75), midAud: Math.round(rfMid), highAud: Math.round(rfMid * 1.4), weight: REVENUE_WEIGHTS.risk_factor_summation * revenueWeightFactor, applicable: true, rationale: `${rfsRationale}.${founderStatedSuffix}` },
         { ...scorecard, method: "scorecard", weight: 0, applicable: false, rationale: `${scorecard.rationale} Reference only (weight 0) once revenue multiples apply.` },
@@ -867,7 +867,7 @@ export function buildVcValuationReport(input: BuildVcValuationInput): VcValuatio
     : {
         revenue_multiple: `ARR ${audShort(arrAud)} × ${multiLow}–${multiHigh} (sector p25–p75, ${bm.sourceLabel})`,
         berkus: `${pillarCount} of 5 pillars × A$500K (${pillarNames.join(", ")}) = ${audShort(berkus)}`,
-        dcf_proxy: `ARR ${audShort(arrAud)} × (${multiLow} + 1) growth-adjusted proxy${growthAssumed ? ` — growth assumed ${assumedGrowthRatePct}%/mo` : ""}`,
+        dcf_proxy: `ARR ${audShort(arrAud)} × (${multiLow} + 1) adjusted multiple heuristic${growthAssumed ? ` — growth assumed ${assumedGrowthRatePct}%/mo` : ""}`,
         comparables: `ARR ${audShort(arrAud)} × sector p50 multiple ${bm.medianMultiple} × growth tier ${growthTier.factor} (${growthTier.tier}${growthAssumed ? ", assumed" : ""})`,
         risk_factor_summation: `ARR ${audShort(arrAud)} × sector p50 multiple ${bm.medianMultiple} × (1 + AU tax ${auTaxPct.toFixed(0)} %)`,
         scorecard: `${scorecard.rationale.replace(/^Bill Payne Scorecard Method anchored to /, "").replace(/\.$/, "")} — reference`,

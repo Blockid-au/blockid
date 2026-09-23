@@ -175,9 +175,9 @@ export function demoVcValuation(): VcValuationLike {
     methods: [
       { method: "revenue_multiple", lowAud: 7_200_000, midAud: 8_100_000, highAud: 9_000_000, weight: 0.35, applicable: true, rationale: `AU saas revenue multiples 6–7.5x ARR for seed stage. Multiples: ${DEMO_SOURCE_LABEL}.` },
       { method: "berkus", lowAud: 1_750_000, midAud: 2_500_000, highAud: 3_250_000, weight: 0.1, applicable: true, rationale: "Berkus milestone-based valuation (A$500K per pillar, AU-adjusted): 5 of 5 pillars evidenced." },
-      { method: "dcf_proxy", lowAud: 5_880_000, midAud: 8_400_000, highAud: 11_760_000, weight: 0.25, applicable: true, rationale: "Simplified DCF using sector growth rate and AU exit comparables." },
+      { method: "dcf_proxy", lowAud: 5_880_000, midAud: 8_400_000, highAud: 11_760_000, weight: 0.25, applicable: true, rationale: "Adjusted ARR multiple: ARR × (sector lower multiple + 1). No discounted cash flows are calculated." },
       { method: "comparables", lowAud: 6_075_000, midAud: 8_100_000, highAud: 10_935_000, weight: 0.15, applicable: true, rationale: "Comparable AU saas transactions — growth tier: standard (54% YoY, Bessemer Cloud Index 2025 adjustment: 1x)." },
-      { method: "risk_factor_summation", lowAud: 6_140_250, midAud: 8_187_000, highAud: 11_461_800, weight: 0.15, applicable: true, rationale: "Risk Factor Summation; au-tax: 1%; Refundable RDTI est. A$87K (+1.1% proportional lift)." },
+      { method: "risk_factor_summation", lowAud: 6_140_250, midAud: 8_187_000, highAud: 11_461_800, weight: 0.15, applicable: true, rationale: "Tax-adjusted ARR multiple heuristic; au-tax: 1%; Refundable RDTI est. A$87K (+1.1% proportional lift)." },
       { method: "scorecard", lowAud: 4_935_000, midAud: 7_050_000, highAud: 9_870_000, weight: 0, applicable: false, rationale: "Bill Payne Scorecard Method anchored to AU seed median A$6M (AVCAL / Cut Through Venture 2024). Composite multiplier: 1.18x. Reference only (weight 0) once revenue multiples apply." },
       { method: "stage_baseline", lowAud: 6_000_000, midAud: 10_000_000, highAud: 15_000_000, weight: 0, applicable: false, rationale: "AU pre-money baseline for SVI stage 3 (Traction / seed) — shown as a cross-check, not blended." },
     ],

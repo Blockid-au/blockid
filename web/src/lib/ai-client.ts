@@ -60,8 +60,7 @@ import { trackOriginWork } from "@/lib/ops/origin-activity";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import * as https from "https";
-import * as http from "http";
+import { AITransportError, inprocessFetch } from "@/lib/ai/http-transport";
 import {
   callAnthropicTier,
   anthropicRequestsRemaining,
@@ -73,7 +72,7 @@ import {
   type AITaskClass,
 } from "@/lib/ai/anthropic-tier";
 import { AICapacityError } from "@/lib/ai/capacity";
-import { type RunStrikeSink, RunStruckError } from "@/lib/ai/run-strikes";
+import { type RunStrikeSink, RunStruckError, classifyRunStrike } from "@/lib/ai/run-strikes";
 import { isDailyCapReached, notifyCapReached, recordPaidSpend } from "@/lib/ai/spend-guard";
 import { cachedProviderStatus, probeProviders, readProviderStatusFile, PROBE_TTL_MS, type ProbeProvider } from "@/lib/ai/provider-status";
 import {
@@ -155,64 +154,8 @@ function resolveWorkerPath(): string {
   return tmp;
 }
 
-// Pooled keep-alive agents — reuse TLS connections across AI calls instead of
-// paying a fresh handshake (or a whole node subprocess) per call.
-
 /**
- * In-process API call via node:https — bypasses Next.js's patched GLOBAL fetch
- * (the reason the subprocess existed: the patched fetch could silently hang on
- * long calls). `https.request` is NOT patched, so we keep that isolation while
- * avoiding a node spawn per call. This is the default transport.
- */
-function inprocessFetch(url: string, headers: Record<string, string>, body: string, timeoutMs: number): Promise<string> {
-  return new Promise((resolve, reject) => {
-    let u: URL;
-    try { u = new URL(url); } catch { reject(new Error(`Invalid URL: ${url}`)); return; }
-    const isHttps = u.protocol === "https:";
-    const lib = isHttps ? https : http;
-    const req = lib.request(
-      {
-        hostname: u.hostname,
-        port: u.port || (isHttps ? 443 : 80),
-        path: u.pathname + u.search,
-        method: "POST",
-        // No connection reuse. Measured 2026-09-23 against DeepInfra with the
-        // real payload (87 KB body, 8 calls in parallel, the shape of one W1
-        // wave): with the shared keep-alive agent exactly one call per wave
-        // hung until the 60 s stage timeout — 7/8 answered in 3–7 s, one never
-        // got a response on its reused socket. Two such stalls strike the
-        // provider out for the whole run (RUN_STRIKE_THRESHOLD = 2), which is
-        // how every chapter came back deterministic. With `agent: false` the
-        // same 8 calls finish in 5.4 s with zero stalls; a socket timeout on
-        // the pooled agent removed the stall but still cost 50 s of wall clock.
-        // A fresh TLS handshake per call is ~100 ms — cheap against a 60 s hang.
-        agent: false,
-        headers: { ...headers, "Content-Length": Buffer.byteLength(body) },
-      },
-      (res) => {
-        let data = "";
-        res.setEncoding("utf8");
-        res.on("data", (c) => { data += c; });
-        res.on("end", () => {
-          clearTimeout(timer);
-          const code = res.statusCode ?? 0;
-          if (code >= 400) reject(new Error(`HTTP ${code}: ${data.slice(0, 200)}`));
-          else if (!data) reject(new Error("Empty response"));
-          else resolve(data);
-        });
-      },
-    );
-    const timer = setTimeout(() => {
-      req.destroy(new Error(`Worker timeout (${Math.round(timeoutMs / 1000)}s)`));
-    }, timeoutMs);
-    req.on("error", (err) => { clearTimeout(timer); reject(err); });
-    req.write(body);
-    req.end();
-  });
-}
-
-/**
- * Default AI transport. Uses the in-process pooled fetch above, with a global
+ * Default AI transport. Uses the in-process HTTP transport, with a global
  * kill-switch (AI_FETCH_MODE=subprocess) and an automatic one-shot fallback to
  * the legacy subprocess worker on any UNEXPECTED failure — so AI can never go
  * fully dark even if the in-process path misbehaves in some environment.
@@ -1505,7 +1448,7 @@ async function callSambaNova(opts: AICallOptions, cls: AITaskClass = "classify")
 //                                   report chapter (it was rung 4 until G30).
 //   Nemotron-3-Super-120B           0 cites · 45s · invalid JSON — not listed.
 // Grounding first (the 0.85 KPI is unmet), then balance, then the fast/cheap
-// rung for load. Worst case ~US$0.033/report against an A$3 SKU.
+// rung for load. Single-prompt projections are not a measured full-report cost ceiling.
 export const DEEPINFRA_MODELS_BY_CLASS: Record<AITaskClass, string[]> = {
   report: [
     "deepseek-ai/DeepSeek-V3.2",
@@ -1556,18 +1499,22 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
   for (const model of deepinfraRungs) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     if (runStruck(opts, "deepinfra")) { lastErr = lastErr ?? runStruckError(opts, "deepinfra"); break; }
+    const modelStrikeKey = `deepinfra/${model}`;
+    if (scoped && opts.runStrikes?.struck(modelStrikeKey)) continue;
     const key = paidKey("deepinfra", model);
     const maxTokens = Math.min(opts.maxTokens ?? 4096, 16_384);
     const payload = JSON.stringify({ model, max_tokens: maxTokens, temperature: opts.temperature ?? 0.7,
       ...(DEEPINFRA_THINKING_OFF.has(model) ? { chat_template_kwargs: { thinking: false } } : {}),
       messages: [{ role: "system", content: opts.system }, { role: "user", content: opts.user }] });
+    const reservationStarted = performance.now();
     const permit = opts.attemptBudget ? await reserveResearchAttempt(opts.attemptBudget, model, payload, maxTokens) : null;
+    const reservationMs = Math.round(performance.now() - reservationStarted);
     let settled = false;
     try {
       if (permit && aiBudgetExpired(opts)) throw new ResearchAttemptBudgetError("deadline expired; reservation retained");
       const raw = await workerFetch("https://api.deepinfra.com/v1/openai/chat/completions", {
         "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json",
-      }, payload, budgetedTimeoutMs(opts), !permit);
+      }, payload, budgetedTimeoutMs(opts), !permit && !scoped);
 
       const data = JSON.parse(raw);
       if (data.error) throw new Error(data.error.message ?? "DeepInfra error");
@@ -1599,7 +1546,13 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
       lastErr = err instanceof Error ? err : new Error(String(err));
       coolDownModel(key, lastErr.message, !scoped);
       noteDeadRung("deepinfra", model, lastErr.message);
-      noteRunStrike(opts, "deepinfra", lastErr);
+      // Parallel failures of one model must not disable healthy alternatives
+      // on our sole scoped provider. Account-wide overload/auth still applies.
+      if (scoped && classifyRunStrike(lastErr) === "timeout") opts.runStrikes?.note(modelStrikeKey, lastErr);
+      else noteRunStrike(opts, "deepinfra", lastErr);
+      if (err instanceof AITransportError) {
+        console.warn("[ai-client:transport]", JSON.stringify({ provider: "deepinfra", model, reservationMs, ...err.transport }));
+      }
       console.warn(`[ai-client] DeepInfra ${model} failed: ${lastErr.message.slice(0, 200)}`);
     }
   }

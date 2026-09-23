@@ -33,6 +33,7 @@
 // are discounted 20–40 % in the AU tables (`AU_MARKET_DATA`), which the
 // narrative says out loud.
 
+import { benchmarkLabel, mayShowPercentile } from "@/lib/benchmarks/publication-rules";
 import { getMultiplesBenchmark, mapSectorToAUIndustry, mapStageToAUStage } from "@/lib/data/au-comparables";
 import { comparablesCounts, topComparables } from "@/lib/valuation/comparables-repo";
 import { VALUATION_METHOD_KEYS, type AvailableValuationChapter, type ValuationCrossCheck, type ValuationInputsV2, type ValuationMethodKey } from "@/lib/report-v2/schema";
@@ -113,9 +114,9 @@ export interface ValuationChapterInput {
 export const METHOD_LABEL: Record<ValuationMethodKey, string> = {
   revenue_multiple: "Revenue multiple",
   berkus: "Berkus",
-  dcf_proxy: "DCF proxy",
-  comparables: "AU comparables",
-  risk_factor_summation: "Risk-factor summation",
+  dcf_proxy: "Adjusted ARR multiple (heuristic)",
+  comparables: "Sector/growth ARR multiple",
+  risk_factor_summation: "Tax-adjusted ARR multiple (heuristic)",
   scorecard: "Scorecard (Bill Payne)",
   stage_baseline: "AU stage baseline",
 };
@@ -335,7 +336,7 @@ export function buildValuationChapter(input: ValuationChapterInput): AvailableVa
   const bucket = backtestBucketFor(vc.backtest, input.sviIndex);
   const backtestAsOf = vc.backtest?.generated_at ? vc.backtest.generated_at.slice(0, 10) : "";
   const crossChecks: ValuationCrossCheck[] = [
-    ...(bucket && typeof bucket.median_round_aud === "number"
+    ...(bucket && mayShowPercentile(bucket.n) && typeof bucket.median_round_aud === "number"
       ? [
           {
             label: `SVI backtest ${bucket.label} (SVI ${bucket.svi_min}–${bucket.svi_max}) — median round raised`,
@@ -346,7 +347,7 @@ export function buildValuationChapter(input: ValuationChapterInput): AvailableVa
             asOf: backtestAsOf,
             n: bucket.n,
           },
-          ...(typeof bucket.median_valuation_aud === "number" && bucket.median_valuation_aud > 0 && bucket.n_valuation > 0
+          ...(typeof bucket.median_valuation_aud === "number" && bucket.median_valuation_aud > 0 && mayShowPercentile(bucket.n_valuation)
             ? [
                 {
                   label: `SVI backtest ${bucket.label} — median post-money where disclosed`,
@@ -375,14 +376,14 @@ export function buildValuationChapter(input: ValuationChapterInput): AvailableVa
     id: "valuation-range-bars",
     kind: "range_bars",
     agentId: "cfo",
-    title: "Valuation methods and consensus band",
+    title: "Valuation methods and weighted range",
     subtitle: preRevenue
       ? `${shown.length} applicable methods (Berkus + scorecard + AU stage baseline); ${hiddenNeedRevenue} need revenue`
       : `${shown.length} weighted methods; scorecard and stage baseline shown as cross-checks`,
     dataState: (input.revenueEvidenceIds?.length ?? 0) > 0 ? "partial" : "benchmark_only",
     data: {
       rows: shown.map((m) => ({ label: METHOD_LABEL[m.method], low: m.lowAud, mid: m.midAud, high: m.highAud, applicable: m.applicable })),
-      consensus: { low: consensus.lowAud, mid: consensus.midAud, high: consensus.highAud, label: "Consensus" },
+      consensus: { low: consensus.lowAud, mid: consensus.midAud, high: consensus.highAud, label: "Weighted estimate" },
       currency: "AUD",
     },
     a11y: { tableFallback: [...shown.map((m) => ({ method: m.method, low: m.lowAud, mid: m.midAud, high: m.highAud, weight: m.weight })), { method: "bear", aud: scenarios.bear }, { method: "base", aud: scenarios.base }, { method: "bull", aud: scenarios.bull }] },
@@ -405,18 +406,21 @@ export function buildValuationChapter(input: ValuationChapterInput): AvailableVa
   const growthLine = inputs.growthAssumed
     ? `Growth assumed at the ${inputs.sector} sector median ${inputs.assumedGrowthRatePct ?? "—"} %/mo — no observed rate; connect a revenue source with history to replace it.`
     : null;
-  const crossCheckLine = bucket && typeof bucket.median_round_aud === "number"
-    ? `Cross-check: startups in the same SVI quartile (${bucket.label}) raised at a median of ${aud(bucket.median_round_aud)} (N=${bucket.n}${typeof bucket.median_valuation_aud === "number" && bucket.n_valuation > 0 ? `; median post-money ${aud(bucket.median_valuation_aud)}, N=${bucket.n_valuation}` : ""}) — rank calibration only, not a valuation.`
+  const crossCheckLine = bucket && mayShowPercentile(bucket.n) && typeof bucket.median_round_aud === "number"
+    ? `Cross-check: startups in the same SVI quartile (${bucket.label}) raised at a median of ${aud(bucket.median_round_aud)} (N=${bucket.n}${typeof bucket.median_valuation_aud === "number" && mayShowPercentile(bucket.n_valuation) ? `; median post-money ${aud(bucket.median_valuation_aud)}, N=${bucket.n_valuation}` : ""}) — rank calibration only, not a valuation.`
     : `Cross-check: the AU stage baseline for ${baseline.stageLabel} is ${aud(baseline.midAud)} pre-money (${aud(baseline.lowAud)}–${aud(baseline.highAud)}).`;
   const narrative = [
     shown.length
-      ? `Consensus of the ${shown.length} ${preRevenue ? "applicable" : "weighted"} methods is ${aud(consensus.midAud)} pre-money (range ${aud(consensus.lowAud)}–${aud(consensus.highAud)}, confidence ${Math.round(consensus.confidence * 100)} %).`
-      : `Directional consensus (no valuation method ran) is ${aud(consensus.midAud)} pre-money (range ${aud(consensus.lowAud)}–${aud(consensus.highAud)}, confidence ${Math.round(consensus.confidence * 100)} %).`,
+      ? `Weighted estimate from ${shown.length} ${preRevenue ? "applicable" : "weighted"} methods is ${aud(consensus.midAud)} pre-money (range ${aud(consensus.lowAud)}–${aud(consensus.highAud)}, confidence ${Math.round(consensus.confidence * 100)} %).`
+      : `Directional estimate (no valuation method ran) is ${aud(consensus.midAud)} pre-money (range ${aud(consensus.lowAud)}–${aud(consensus.highAud)}, confidence ${Math.round(consensus.confidence * 100)} %).`,
     shown.length ? revenueLine : null,
+    !preRevenue && shown.length ? "Revenue-based methods share ARR and sector assumptions; they are not independent valuation confirmations. The adjusted multiple is not a discounted cash-flow model; the tax adjustment is a heuristic, not measured investment risk." : null,
     growthLine,
     `Sector multiples ${sectorMultiples.low}× / ${sectorMultiples.median}× / ${sectorMultiples.high}× ARR — ${sectorMultiples.sourceLabel} (${sectorMultiples.sourceDate}); US multiples are discounted 20–40 % for the AU market.`,
     `Scenarios: bear ${aud(scenarios.bear)} · base ${aud(scenarios.base)} · bull ${aud(scenarios.bull)}.`,
     crossCheckLine,
+    bucket && !mayShowPercentile(bucket.n) ? `Round benchmark withheld: ${benchmarkLabel(bucket.n)}.` : null,
+    bucket && !mayShowPercentile(bucket.n_valuation) ? `Post-money benchmark withheld: ${benchmarkLabel(bucket.n_valuation)}.` : null,
     askNote ? `Ask cross-check: ${askNote}.` : null,
     "Directional, not a formal valuation — a range with method transparency, never a single point.",
   ]

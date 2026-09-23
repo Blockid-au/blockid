@@ -135,7 +135,7 @@ describe("<TbrReportV2> v3 structure (G27)", () => {
     expect(iv).toContain("data-tbr-exec-summary");
     const kp = between(html, TBR_V2_SECTION_IDS.keyPoints, TBR_V2_SECTION_IDS.valuation);
     expect((kp.match(/<li /g) ?? []).length).toBe(5);
-    expect(kp).toContain("Consensus A$6M–A$9.8M across 5 methods");
+    expect(kp).toContain("Weighted estimate A$6M–A$9.8M from 5 methods");
   });
 
   it("the dashboard verdict tile, the investment-view band and the root attribute agree; the evidence-confidence % is the same number on the tile and the verdict line (one number per report)", () => {

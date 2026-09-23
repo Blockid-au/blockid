@@ -8,7 +8,7 @@ import { demoReportV2, demoSnapshotInput, preRevenueFixtureReportV2 } from "./fi
 import { buildValuationView, CONNECTORS_HREF } from "./valuation-view";
 
 describe("buildValuationView", () => {
-  it("demo (connector revenue): 11 input rows with chips, 5 method rows with derivation, unit economics, 3 cross-checks, no ask, no notes", () => {
+  it("demo (connector revenue): 11 input rows with chips, 5 method rows with derivation, unit economics, 2 published cross-checks, no ask, no notes", () => {
     const view = buildValuationView(demoReportV2().valuation, "en");
     expect(view.confidencePct).toBe(85);
     expect(view.inputRows.map((r) => r.key)).toEqual(["mrr", "arr", "growth", "esic", "rdti", "berkus", "stage", "sector", "multiples", "raise"]);
@@ -25,7 +25,8 @@ describe("buildValuationView", () => {
     expect(view.noneApplicable).toBe(false);
     expect(view.unitEconomics.map((r) => r.key)).toEqual(["cacAud", "ltvAud", "ltvCacRatio", "grossMarginPct", "ruleOf40", "cacPaybackMonths", "verdict"]);
     expect(view.unitEconomics.find((r) => r.key === "ltvCacRatio")?.value).toBe("3.4×");
-    expect(view.crossChecks).toHaveLength(3);
+    expect(view.crossChecks).toHaveLength(2);
+    expect(view.crossChecks.every(row => row.n == null || row.n >= 10)).toBe(true);
     expect(view.crossChecks[0]).toMatchObject({ n: 10, asOf: "2026-09-13" });
     expect(view.crossChecks[0].range).toBe("A$5M – A$8.3M – A$10.5M");
     expect(view.askLine).toBeNull();

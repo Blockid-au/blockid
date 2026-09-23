@@ -46,7 +46,7 @@ export interface RunDiagnostics {
   waves: WaveTiming[];
   /** Providers the run-scoped ledger struck out (skipped for the rest of the run). */
   providersStruck: string[];
-  /** provider → strikes / timeout / overloaded counts for the whole run. */
+  /** provider or provider/model scope → failure counts for the whole run. */
   strikes: Record<string, RunStrikeSnapshot>;
   calls: number | null;
   totalMs: number;

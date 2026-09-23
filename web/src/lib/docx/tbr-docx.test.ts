@@ -163,9 +163,9 @@ describe("buildTbrDocx — v3 structure", () => {
     // Key points: the five lines.
     for (const kp of view.keyPoints) expect(text).toContain(kp);
     // Valuation: range line, methods table with Applicable + Consensus row, what moves it, cross-checks with n.
-    assertOrdered(text, ["4 Valuation", "RANGE", "low A$", "mid A$", "high A$", "Applicable", "Consensus", "What moves it", "Cross-checks", "N=10"]);
+    assertOrdered(text, ["4 Valuation", "RANGE", "low A$", "mid A$", "high A$", "Applicable", "Weighted estimate", "What moves it", "Cross-checks", "N=10"]);
     expect(text).toContain("Revenue multiple");
-    expect(text).toContain("Risk-factor summation");
+    expect(text).toContain("Tax-adjusted ARR multiple (heuristic)");
     // Chapter anatomy: kicker, score tile, benchmark line with n, evidence used, criteria, what to improve, investor takeaway.
     const tre = report.dimensions[0]!;
     const chapterText = sectionText(doc, tre.title, report.dimensions[1]!.title);
@@ -301,7 +301,7 @@ describe("buildTbrDocx — v3 structure", () => {
     // Valuation: method names + weights, no A$ per-method columns, no derivation / inputs.
     const valuationText = sectionText(doc, "Valuation", report.dimensions[0]!.title);
     expect(valuationText).toContain("Applicable");
-    expect(valuationText).toContain("Consensus");
+    expect(valuationText).toContain("Weighted estimate");
     expect(valuationText).not.toContain("Inputs & assumptions");
     expect(valuationText).not.toContain("What moves it");
     // Risk rows ≤ 5, plan steps ≤ 5.
@@ -361,7 +361,7 @@ describe("buildTbrDocx — v3 structure", () => {
     const valuationText = sectionText(doc, "Valuation", preRevenueFixtureReportV2().dimensions[0]!.title);
     expect(valuationText).toContain("AU stage baseline");
     expect(valuationText).toContain("Scorecard (Bill Payne)");
-    expect(valuationText).toContain("Risk-factor summation");
+    expect(valuationText).toContain("Tax-adjusted ARR multiple (heuristic)");
     expect(valuationText).toContain("4 methods need revenue");
     expect(valuationText).toContain("Inputs & assumptions");
     expect(text).not.toContain("Ask: ");
