@@ -1488,16 +1488,27 @@ async function callSambaNova(opts: AICallOptions, cls: AITaskClass = "classify")
 // a report. API: https://api.deepinfra.com/v1/openai (OpenAI-compatible),
 // 200 concurrent. Real `usage` → exact cost in the daily ledger.
 
+// Ladder order is a MEASUREMENT, not a preference (2026-09-23, G30 D-A1/D-A2).
+// One real chapter prompt (40 evidence rows, JSON mode, max_tokens 2600) per
+// model; `cites` = citations the model attached itself, the proxy for grounding:
+//   DeepSeek-V3.2                  20 cites · 20.2s · ~$0.033/report
+//   Qwen3-235B-A22B-Instruct-2507  14 cites · 16.4s · ~$0.018/report
+//   DeepSeek-V4-Flash               9 cites ·  6.5s · ~$0.011/report
+//   gpt-oss-120b                    0 cites — ignores the citation contract, so
+//                                   it is CLASSIFY-ONLY and must never write a
+//                                   report chapter (it was rung 4 until G30).
+//   Nemotron-3-Super-120B           0 cites · 45s · invalid JSON — not listed.
+// Grounding first (the 0.85 KPI is unmet), then balance, then the fast/cheap
+// rung for load. Worst case ~US$0.033/report against an A$3 SKU.
 export const DEEPINFRA_MODELS_BY_CLASS: Record<AITaskClass, string[]> = {
   report: [
-    "deepseek-ai/DeepSeek-V4-Flash",
     "deepseek-ai/DeepSeek-V3.2",
     "Qwen/Qwen3-235B-A22B-Instruct-2507",
-    "openai/gpt-oss-120b",
+    "deepseek-ai/DeepSeek-V4-Flash",
   ],
   synthesis: [
-    "deepseek-ai/DeepSeek-V4-Flash",
     "deepseek-ai/DeepSeek-V3.2",
+    "deepseek-ai/DeepSeek-V4-Flash",
     "moonshotai/Kimi-K2.6",
   ],
   classify: [
@@ -1505,6 +1516,17 @@ export const DEEPINFRA_MODELS_BY_CLASS: Record<AITaskClass, string[]> = {
     "meta-llama/Llama-3.3-70B-Instruct-Turbo",
   ],
 };
+
+// D-A3 — models DeepInfra tags `can-disable-reasoning`. Structured report calls
+// send `chat_template_kwargs: {thinking: false}` so the hidden reasoning trace
+// cannot eat the answer's token budget: at max_tokens 400 a reasoning model
+// returned 0 characters of content and 2,042 of reasoning, which the client can
+// only read as "Empty DeepInfra response" — a burnt rung and a degraded chapter.
+export const DEEPINFRA_THINKING_OFF: ReadonlySet<string> = new Set([
+  "deepseek-ai/DeepSeek-V3.2",
+  "deepseek-ai/DeepSeek-V4-Flash",
+  "deepseek-ai/DeepSeek-V4.1-Flash",
+]);
 
 // Initial scoped candidates preserve the existing deployed model IDs. These are
 // not a quality certification. External fallback remains empty until exact model,
@@ -1531,6 +1553,7 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
     const key = paidKey("deepinfra", model);
     const maxTokens = Math.min(opts.maxTokens ?? 4096, 16_384);
     const payload = JSON.stringify({ model, max_tokens: maxTokens, temperature: opts.temperature ?? 0.7,
+      ...(DEEPINFRA_THINKING_OFF.has(model) ? { chat_template_kwargs: { thinking: false } } : {}),
       messages: [{ role: "system", content: opts.system }, { role: "user", content: opts.user }] });
     const permit = opts.attemptBudget ? await reserveResearchAttempt(opts.attemptBudget, model, payload, maxTokens) : null;
     let settled = false;

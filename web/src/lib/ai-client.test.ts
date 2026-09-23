@@ -1286,10 +1286,13 @@ describe("S32-C — MIN_REPORT_MODEL allow-list for report classes", () => {
 describe("S32-C — per-class models on the quality-cost providers + cost table", () => {
   it("deepinfra: V4-Flash → V3.2 → Qwen3-235B → gpt-oss-120b for reports; Kimi for synthesis; gpt-oss/Llama for classify", async () => {
     const { DEEPINFRA_MODELS_BY_CLASS } = await loadClient();
+    // G30 D-A1/D-A2: grounding-first order, measured 2026-09-23. gpt-oss-120b
+    // attached 0 citations to a real chapter prompt, so it is classify-only.
     expect(DEEPINFRA_MODELS_BY_CLASS.report).toEqual([
-      "deepseek-ai/DeepSeek-V4-Flash", "deepseek-ai/DeepSeek-V3.2", "Qwen/Qwen3-235B-A22B-Instruct-2507", "openai/gpt-oss-120b",
+      "deepseek-ai/DeepSeek-V3.2", "Qwen/Qwen3-235B-A22B-Instruct-2507", "deepseek-ai/DeepSeek-V4-Flash",
     ]);
-    expect(DEEPINFRA_MODELS_BY_CLASS.synthesis).toEqual(["deepseek-ai/DeepSeek-V4-Flash", "deepseek-ai/DeepSeek-V3.2", "moonshotai/Kimi-K2.6"]);
+    expect(DEEPINFRA_MODELS_BY_CLASS.report).not.toContain("openai/gpt-oss-120b");
+    expect(DEEPINFRA_MODELS_BY_CLASS.synthesis).toEqual(["deepseek-ai/DeepSeek-V3.2", "deepseek-ai/DeepSeek-V4-Flash", "moonshotai/Kimi-K2.6"]);
     expect(DEEPINFRA_MODELS_BY_CLASS.classify).toEqual(["openai/gpt-oss-120b", "meta-llama/Llama-3.3-70B-Instruct-Turbo"]);
   });
 
@@ -1672,7 +1675,14 @@ describe("G28-B — callAI honours the run-scoped strike ledger", () => {
 describe("G29-A — dead rungs are skipped at runtime without spending a call", () => {
   const STRIKES = "/home/dovanlong/blockid.au/web/content/reports/ai-model-strikes.json";
   const NOW = new Date("2026-09-21T10:30:00Z").getTime();
-  const dead = (until = "2026-09-22T10:00:00.000Z", reason = "model_not_found") =>
+  // A rung that never lapses. This used to default to "2026-09-22T10:00:00.000Z",
+  // which silently expired once the wall clock passed it: `callAI` reads the REAL
+  // clock (not the test's NOW), so "an unfunded provider is never dialled" below
+  // started dialling SambaNova for real and failed on the transport stub. Fixed
+  // and far future keeps it deterministic. Callers that want a LAPSED rung still
+  // pass an explicit past timestamp.
+  const DEAD_FOREVER = "2099-01-01T00:00:00.000Z";
+  const dead = (until = DEAD_FOREVER, reason = "model_not_found") =>
     ({ strikes: 1, last_status: reason, last_at: "2026-09-21T10:00:00.000Z", dead_until: until, dead_reason: reason, dead_at: "2026-09-21T10:00:00.000Z" });
 
   it("readyModels drops dead rungs from the curated ladder (the file prune never reached it) and never resurrects one through the all-cooling fallback", async () => {
@@ -1753,7 +1763,7 @@ describe("G29-A — dead rungs are skipped at runtime without spending a call", 
     _resetDispatcherForTests();
     expect(new DeadLadderError("groq", 2).message).toMatch(/all 2 models are dead rungs/);
     expect(providerBlockReason("groq", NOW)).toBe("unfunded");
-    expect(getProviderHealthSnapshot(NOW).dead_rungs.groq).toEqual({ state: "unfunded", reason: "all_rungs_dead", dead: ["a", "b"], total: 2, until: "2026-09-22T10:00:00.000Z" });
+    expect(getProviderHealthSnapshot(NOW).dead_rungs.groq).toEqual({ state: "unfunded", reason: "all_rungs_dead", dead: ["a", "b"], total: 2, until: DEAD_FOREVER });
   });
 });
 
