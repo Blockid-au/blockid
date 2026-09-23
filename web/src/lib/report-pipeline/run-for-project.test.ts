@@ -34,6 +34,9 @@ function makeBuilder(table: string) {
   const resolve = () => {
     const queued = state.queue.some(q => q.table === table);
     const result = nextResponse(table);
+    if (!queued && c.op === "update" && c.eqs.some(e => e.col === "id")) {
+      return Promise.resolve({ data: { id: c.eqs.find(e => e.col === "id")!.val }, error: null });
+    }
     return Promise.resolve(!queued && c.op === "insert" ? { data: c.payload, error: null } : result);
   };
   const b: Record<string, unknown> = {};

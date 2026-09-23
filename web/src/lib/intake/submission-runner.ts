@@ -1,3 +1,4 @@
+import type { ReportV2 } from "@/lib/report-v2/schema";
 // Program-intake submission runner (G14 S35).
 //
 // One founder application at /apply/<slug> → this pipeline:
@@ -139,7 +140,7 @@ export interface RunnerDeps {
   /** G21 P2-A: the intake's template (questions + consent text); null when none / not migrated. */
   getTemplate?: (templateId: string | null) => Promise<IntakeTemplate | null>;
   previewReportCharge?: (owner: OwnerUser, kind: "full") => Promise<Pick<ReportCharge, "via" | "credits">>;
-  runReport?: (args: { projectId: string; requestedByUserId: string }) => Promise<{ reportId: string; shareToken: string | null; svi: number }>;
+  runReport?: (args: { projectId: string; requestedByUserId: string }) => Promise<{ reportId: string; shareToken: string | null; svi: number; reportV2?: ReportV2 | null }>;
   recordReport?: (args: {
     evaluationId: string;
     projectId: string;
@@ -147,6 +148,7 @@ export interface RunnerDeps {
     reportRef: string | null;
     shareToken: string | null;
     sviTotal: number | null;
+    reportV2?: ReportV2 | null;
   }) => Promise<{ id: string } | null>;
   enqueueWebhook?: (projectId: string | null, payload: IntakeSubmissionReceivedPayload, userIds: string[]) => Promise<unknown>;
   notify?: (text: string) => Promise<unknown>;
@@ -255,10 +257,10 @@ async function defaultPreview(owner: OwnerUser, kind: "full") {
 async function defaultRunReport(args: { projectId: string; requestedByUserId: string }) {
   const { runTrustReportForProject } = await import("@/lib/report-pipeline/run-for-project");
   const run = await runTrustReportForProject({ ...args, tier: "standard", creditsCost: 0 });
-  return { reportId: run.reportId, shareToken: run.shareToken, svi: run.svi };
+  return { reportId: run.reportId, shareToken: run.shareToken, svi: run.svi, reportV2: run.reportV2 };
 }
 
-async function defaultRecordReport(args: { evaluationId: string; projectId: string; userId: string; reportRef: string | null; shareToken: string | null; sviTotal: number | null }) {
+async function defaultRecordReport(args: { evaluationId: string; projectId: string; userId: string; reportRef: string | null; shareToken: string | null; sviTotal: number | null; reportV2?: ReportV2 | null }) {
   const { recordEvaluationReport } = await import("@/lib/evaluations/report-quota");
   return recordEvaluationReport({ ...args, kind: "full", paidVia: "quota", creditsCost: 0 });
 }
@@ -427,8 +429,6 @@ export async function runIntakeSubmission(input: SubmissionInput, deps: RunnerDe
       const charge = await (deps.previewReportCharge ?? defaultPreview)(owner, "full");
       if (charge.via === "quota") {
         const run = await (deps.runReport ?? defaultRunReport)({ projectId, requestedByUserId: owner.id });
-        sviTotal = run.svi;
-        status = "scored";
         const rec = await (deps.recordReport ?? defaultRecordReport)({
           evaluationId,
           projectId,
@@ -436,8 +436,10 @@ export async function runIntakeSubmission(input: SubmissionInput, deps: RunnerDe
           reportRef: run.reportId,
           shareToken: run.shareToken,
           sviTotal: run.svi,
+          reportV2: run.reportV2,
         });
         if (!rec) warnings.push("report_not_recorded");
+        else { sviTotal = run.svi; status = "scored"; }
       } else {
         warnings.push(`auto_report_skipped: quota_${charge.via}`);
       }

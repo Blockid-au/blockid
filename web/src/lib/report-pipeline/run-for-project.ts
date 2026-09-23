@@ -948,6 +948,7 @@ export async function runTrustReportForProject(args: {
   if (!loaded.ok) throw new Error(loaded.error);
   const ctx = loaded.ctx;
 
+  let finalEvent: PipelineEvent | null = null;
   const report = await generateAndPersistReport({
     ctx,
     userId: args.requestedByUserId,
@@ -956,7 +957,10 @@ export async function runTrustReportForProject(args: {
     creditsCost: args.creditsCost ?? 0,
     qualityLog: "defer",
     qualityWriter: args.qualityWriter,
-    onEvent: args.onEvent,
+    onEvent: (event) => {
+      if (event.type === "done") finalEvent = event;
+      else args.onEvent?.(event);
+    },
   });
 
   const shapes = projectReportToSnapshotShapes(report, ctx.sviAnalysis);
@@ -984,9 +988,8 @@ export async function runTrustReportForProject(args: {
     criterionResults: shapes.criterionResults,
   });
 
-  // G13-W1-R1: persist the ReportV2 document the /tbr page renders
-  // (svi_snapshots.report_v2, migration 0395). Best effort — readers fall
-  // back to the adapter when the column is absent or the write fails.
+  // A successful evaluator run must have a readable canonical snapshot.
+  if (!snapshotId || !shareToken) throw new Error("report_snapshot_unconfirmed");
   let reportV2: ReportV2 | null = null;
   if (snapshotId) {
     const db = getSupabaseAdmin();
@@ -1016,13 +1019,20 @@ export async function runTrustReportForProject(args: {
             tier,
             locale,
           });
-      await writeSnapshotReportV2(db, snapshotId, reportV2);
+      if (!await writeSnapshotReportV2(db, snapshotId, reportV2)) {
+        throw new Error("report_snapshot_document_unconfirmed");
+      }
     }
   }
+
+  if (!reportV2) throw new Error("report_snapshot_document_unconfirmed");
 
   // G19-S46: one quality row per run, now that the snapshot id is known.
   const quality = await recordTbrQualityAsync(qualityRowFor(report, ctx, tier, snapshotId, reportV2 ?? report.reportV2 ?? null), args.qualityWriter);
 
+  if (finalEvent) {
+    try { args.onEvent?.(finalEvent); } catch { /* saved report remains complete */ }
+  }
   return {
     kind: "full",
     reportId: report.id,

@@ -1,3 +1,4 @@
+import { demoReportV2 } from "@/lib/report-v2/fixtures";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Colocated vitest for lib/evaluations/report-quota.ts (T0271). Pins:
@@ -412,6 +413,17 @@ describe("#9 idempotent reuse", () => {
 });
 
 describe("writes + reads", () => {
+  it("confirms the canonical document in the same evaluation insert", async () => {
+    const document = demoReportV2();
+    const input = { evaluationId: "e-1", projectId: "p-1", userId: "u-1", kind: "full" as const,
+      paidVia: "quota" as const, creditsCost: 0, reportRef: "rpt-1", shareToken: "tok", sviTotal: 72, reportV2: document };
+    state.queue.push({ table: "evaluation_reports", data: { ...ROW, report_v2: document } });
+    expect(await recordEvaluationReport(input)).not.toBeNull();
+    expect(state.calls[0].payload).toMatchObject({ report_v2: document });
+    state.queue.push({ table: "evaluation_reports", data: { ...ROW, report_v2: null } });
+    expect(await recordEvaluationReport(input)).toBeNull();
+  });
+
   it("recordEvaluationReport inserts the row that is the quota decrement", async () => {
     state.queue.push({
       table: "evaluation_reports",

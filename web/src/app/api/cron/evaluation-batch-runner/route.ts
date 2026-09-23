@@ -181,15 +181,6 @@ export async function GET(request: Request) {
         creditsCost: 0,
       });
       const rawScores = await loadSnapshotDimensionScores(run.snapshotId);
-      await markItem(it.id, {
-        status: "done",
-        reportId: run.reportId,
-        snapshotId: run.snapshotId,
-        shareToken: run.shareToken,
-        sviTotal: run.svi,
-        dimensionScores: flattenDimensionScores(rawScores),
-        error: null,
-      });
       const reportRow = await recordEvaluationReport({
         evaluationId: it.evaluationId,
         projectId: it.projectId,
@@ -200,6 +191,17 @@ export async function GET(request: Request) {
         reportRef: run.reportId,
         shareToken: run.shareToken,
         sviTotal: run.svi,
+        reportV2: run.reportV2,
+      });
+      if (!reportRow) throw new Error("report_record_unconfirmed");
+      await markItem(it.id, {
+        status: "done",
+        reportId: run.reportId,
+        snapshotId: run.snapshotId,
+        shareToken: run.shareToken,
+        sviTotal: run.svi,
+        dimensionScores: flattenDimensionScores(rawScores),
+        error: null,
       });
       // S20-B — `evaluation.report_ready` to the batch owner's endpoints
       // (enqueue only; never the startup owner's).
@@ -215,7 +217,7 @@ export async function GET(request: Request) {
           via: "quota",
         },
         { userIds: [batch.userId], projectEndpoints: false },
-      );
+      ).catch(() => console.warn("[evaluations] saved report webhook enqueue unavailable"));
       done++;
       summaries.push({ ...base, outcome: "done", svi: run.svi });
     } catch (err) {

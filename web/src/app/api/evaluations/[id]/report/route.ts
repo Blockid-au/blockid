@@ -52,9 +52,7 @@ import {
   type EvaluationReportRow,
 } from "@/lib/evaluations/report-quota";
 import { runRescoreForProject, runTrustReportForProject } from "@/lib/report-pipeline/run-for-project";
-import { writeEvaluationReportV2 } from "@/lib/report-v2/storage";
 import type { ReportV2 } from "@/lib/report-v2/schema";
-import { getSupabaseAdmin } from "@/lib/supabase";
 import { apiRoute } from "@/lib/audit/api-route";
 import { enqueueWebhook } from "@/lib/webhooks/registry";
 
@@ -296,15 +294,19 @@ async function POST_handler(request: Request, { params }: Ctx) {
     shareToken,
     sviTotal: svi,
     idempotencyKey,
+    reportV2,
   });
   if (!row) {
-    console.error("[blockid:evaluations:report] evaluation_reports row missing — run not billed", { evaluationId: evaluation.id, reportRef });
-  } else if (reportV2) {
-    // Best effort: the dossier / evaluator exports render exactly this
-    // document even after the founder re-scores. A missing 0401 column
-    // logs once and the readers fall back to the snapshot / adapter.
-    const db = getSupabaseAdmin();
-    if (db) await writeEvaluationReportV2(db, row.id, reportV2);
+    // The insert may have committed despite a lost response. Do not announce
+    // readiness, expose a share link, refund or invite a fresh paid attempt.
+    console.error("[blockid:evaluations:report] saved report record unconfirmed", { evaluationId: evaluation.id, reportRef });
+    return NextResponse.json({
+      ok: false,
+      error: "report_record_unconfirmed",
+      message: "Report persistence could not be confirmed. Check report status before starting another run.",
+      credits_spent: creditsSpent,
+      balance,
+    }, { status: 503 });
   }
 
   // S20-B — `evaluation.report_ready` to the EVALUATOR's endpoints (the
@@ -322,7 +324,7 @@ async function POST_handler(request: Request, { params }: Ctx) {
       via: paidVia,
     },
     { userIds: [user.id], projectEndpoints: false },
-  );
+  ).catch(() => console.warn("[evaluations] saved report webhook enqueue unavailable"));
 
   return NextResponse.json({
     ok: true,

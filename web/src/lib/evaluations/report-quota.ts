@@ -27,6 +27,8 @@
 // by the route instead of re-run (review #9, migration 0325).
 
 import "server-only";
+import { isDeepStrictEqual } from "node:util";
+import { isReportV2, type ReportV2 } from "@/lib/report-v2/schema";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getPlanCached } from "@/lib/plans-db";
 import { LEGACY_PLAN_MAP } from "@/lib/plans";
@@ -526,33 +528,44 @@ export async function recordEvaluationReport(input: {
   sviTotal: number | null;
   /** Client key (review #9); stored so a retried POST finds this row. */
   idempotencyKey?: string | null;
+  /** Canonical result saved in the same insert as the quota/billing record. */
+  reportV2?: ReportV2 | null;
 }): Promise<EvaluationReportRow | null> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
-  const base: Row = {
-    evaluation_id: input.evaluationId,
-    project_id: input.projectId,
-    user_id: input.userId,
-    kind: input.kind,
-    paid_via: input.paidVia,
-    credits_cost: input.creditsCost,
-    report_ref: input.reportRef,
-    share_token: input.shareToken,
-    svi_total: input.sviTotal,
-  };
-  const insertPlain = () => supabase.from("evaluation_reports").insert(base).select(REPORT_COLUMNS).single();
-  const insertKeyed = () =>
-    supabase.from("evaluation_reports").insert({ ...base, idempotency_key: input.idempotencyKey }).select(REPORT_COLUMNS_WITH_KEY).single();
+  try {
+    const document = input.reportV2 ? JSON.parse(JSON.stringify(input.reportV2)) : null;
+    if (input.reportV2 && !isReportV2(document)) return null;
+    const base: Row = {
+      evaluation_id: input.evaluationId,
+      project_id: input.projectId,
+      user_id: input.userId,
+      kind: input.kind,
+      paid_via: input.paidVia,
+      credits_cost: input.creditsCost,
+      report_ref: input.reportRef,
+      share_token: input.shareToken,
+      svi_total: input.sviTotal,
+      ...(document ? { report_v2: document } : {}),
+    };
+    const insertPlain = () => supabase.from("evaluation_reports").insert(base).select(document ? `${REPORT_COLUMNS},report_v2` : REPORT_COLUMNS).single();
+    const insertKeyed = () =>
+      supabase.from("evaluation_reports").insert({ ...base, idempotency_key: input.idempotencyKey }).select(document ? `${REPORT_COLUMNS_WITH_KEY},report_v2` : REPORT_COLUMNS_WITH_KEY).single();
 
-  let res: { data: unknown; error: { code?: string } | null } = input.idempotencyKey ? await insertKeyed() : await insertPlain();
-  // Migration 0325 not applied yet → write the row without the key rather
-  // than lose the quota decrement / billing record.
-  if (res.error && input.idempotencyKey && isMissingColumn(res.error)) {
-    res = await insertPlain();
-  }
-  if (res.error || !res.data) {
-    console.error("[blockid:evaluations:quota] evaluation_reports insert failed", res.error);
+    let res: { data: unknown; error: { code?: string } | null } = input.idempotencyKey ? await insertKeyed() : await insertPlain();
+    // Migration 0325 not applied yet → write the row without the key rather
+    // than lose the quota decrement / billing record.
+    if (res.error && input.idempotencyKey && isMissingColumn(res.error)) {
+      res = await insertPlain();
+    }
+    if (res.error || !res.data) {
+      console.error("[blockid:evaluations:quota] evaluation_reports insert failed", res.error);
+      return null;
+    }
+    if (document && !isDeepStrictEqual((res.data as Row).report_v2, document)) return null;
+    return mapEvaluationReportRow(res.data as unknown as Row);
+  } catch {
+    console.warn("[blockid:evaluations:quota] report persistence could not be confirmed");
     return null;
   }
-  return mapEvaluationReportRow(res.data as unknown as Row);
 }
