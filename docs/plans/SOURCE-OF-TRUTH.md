@@ -1,6 +1,6 @@
 # BlockID.au — SOURCE OF TRUTH: G30 Business Research, Report Quality & Sale Readiness
 
-**Revision:** G30 / 2.8 — APPROVED IMPLEMENTATION — 22/09/2026. **Owner quyết định:** Do Van Long.
+**Revision:** G30 / 2.9 — APPROVED IMPLEMENTATION — 23/09/2026. **Owner quyết định:** Do Van Long.
 
 **Trạng thái:** `APPROVED — IMPLEMENTATION IN PROGRESS`. **Phase:** `W1 report foundation live; W1/W2 implementation continuing; broader ops gates open`.
 
@@ -46,7 +46,7 @@
 | Availability & rollback | Vận hành24/24, không gián đoạn do deploy; phục hồi newest verified-good compatible release; kiểm RTO/RPO và host-failure plan (§12.8) |
 | Approval boundary | Implementation/commit/phased live deploy đã được founder cấp; fee schedule/new spend và release quality gates vẫn áp dụng |
 
-**Critical path đề xuất cuối:** baseline + verified deploy/rollback/monitoring protection (§12.8) → contracts → truth + persistence + financial integrity → proactive research/business lenses/valuation → report/dashboard/full-site UX → paid deep research integration → independent quality/buyer/economics evidence → controlled-sale sign-off. Billing foundation làm sớm, không chờ research/UI mới phát hiện lost credits. P0/P1 ở task table là priority thực hiện, không sửa severity lịch sử của review.
+**Critical path đề xuất cuối:** baseline + verified deploy/rollback/monitoring protection (§12.8) → contracts → truth + persistence + financial integrity → **website/text/deck input parity + investor-intent capture (§6.8)** → proactive research/business lenses/valuation → report/dashboard/full-site UX → paid deep research integration → independent quality/buyer/economics evidence → controlled-sale sign-off. Billing foundation làm sớm, không chờ research/UI mới phát hiện lost credits. P0/P1 ở task table là priority thực hiện, không sửa severity lịch sử của review.
 
 **Hai mốc khác nhau:** có thể demo/kiểm chứng core journey trước khi migrate hết pages, nhưng đó chỉ là milestone nội bộ. G30 full-site completion và final S03 vẫn cần U06 inventory toàn site; muốn sale scope hẹp hơn trước đó phải có founder decision sửa scope rõ, không tự bỏ admin/auth/utility pages.
 
@@ -59,6 +59,8 @@
 ### 1.1 Goal duy nhất
 
 Biến Trusted Business Report thành **báo cáo nghiên cứu và thẩm định sơ bộ có giá trị cho investor**, phân tích đúng doanh nghiệp đang xét, trả lời bộ câu hỏi theo tiêu chí, kiểm chứng các nhận định trọng yếu, trình bày nhiều góc nhìn và định giá có cơ sở; kết quả nhất quán trên web, PDF, DOCX và email, được giao đáng tin cậy qua luồng bán hàng hiện có.
+
+**Goal thực thi ưu tiên bổ sung 23/09:** mọi đầu vào website hoặc text phải đạt cùng chuẩn phân tích như pitch deck sau bước extraction: giữ riêng nội dung doanh nghiệp và ý định/câu hỏi của người dùng; lập snapshot có lineage; nghiên cứu các yếu tố quyết định với investor; làm rõ valuation, strengths, weaknesses, risks và points to clarify; rồi xuất cùng một final ReportV2/revision trên mọi bề mặt. “Cùng chuẩn” là cùng contract và quality gates, không ép URL/text có những bằng chứng mà nguồn không cung cấp.
 
 Investor cần trả lời được trong khoảng 3 phút:
 
@@ -401,6 +403,83 @@ Status dùng coverage contract hiện hành: answered/partial/missing/conflict/n
 | RA4 — targeted QA + root rollout | Q01/Q02/S01: cross-site billing/data/report assertions, measured provider/load behavior, phased flag rollout/rollback | Stored narrative/score/rationale bằng reopened/share/export revision; failed refresh giữ previous; mỗi site có live evidence và rollback |
 
 **Acceptance bắt buộc cho task này:** (1) same business/input + fresh supported market sources tạo nhận định cụ thể và comparison đúng scope; (2) no-source run phân biệt chưa chạy/bị chặn/không tìm thấy, không gọi verified; (3) question-only update không phá criteria khác hoặc hiển thị total chưa recompute; (4) quote được thấy/duyệt trước reserve, exactly-once capture/refund theo operation; (5) retry/double-click/reconnect/expand không duplicate charge; (6) server-cancel, partial failure và saved-result failure giữ report tốt trước đó; (7) public viewer/khác tenant/cross-site account không sửa hoặc trừ ví sai; (8) trước/sau khác biệt có lý do, nguồn và revision, score có thể lên/xuống/không đổi/chưa đủ cơ sở; (9) EN/VI/navigation/mobile không overload; (10) code/runtime/provider behavior và live hai site được chứng minh riêng. Founder hiện cho phép dời broad review để tăng tốc các phase, nhưng không biến chưa kiểm thành đã đạt; gates còn thiếu phải ghi rõ trước mở paid behavior.
+
+### 6.8 Website và text: cùng chuẩn phân tích pitch deck, giữ đúng intent của investor
+
+**Yêu cầu founder 23/09/2026 — P0 report quality, đã merge vào goal chính.** Áp dụng trước hết cho intake URL/text của `blockid.au`, report đang chạy, report hoàn tất, saved/share/export và dashboard link tới report. Khi workflow tương ứng được dùng từ `startupvalueindex.com`, nó phải gọi cùng snapshot/intent/research contract thay vì tạo pipeline thứ hai. [Source review và khoảng trống cụ thể](../reviews/2026-09-23-website-text-investor-intent-review.md).
+
+#### A. Kết luận source review hiện tại
+
+- URL intake hiện chỉ scrape trang gửi vào để tạo `rawText`/signals. `/api/site-crawl/stream` có thể crawl tối đa tám trang cùng host, nhưng dữ liệu này chỉ đi vào UI progress; khi hoàn tất component gọi lại intake cũ, không đưa corpus crawl vào final ReportV2. Vì vậy “đã xem nhiều trang” và “report đã dùng nhiều trang” hiện là hai việc khác nhau.
+- Final ReportV2 job nhận `intake.rawText` nhưng `evidenceItems` rỗng trên luồng intake này. Website result thường dựa vào text của trang gốc và heuristics, chưa có page-level source lineage hoặc independent research tương đương deck evidence.
+- Text input được phân loại idea/existing business bằng hints/độ dài/classifier, nhưng chưa tách **business description/claims** khỏi **user intent** như “đánh giá cho investor”, “tập trung valuation”, “so với đối thủ”, geography, stage hoặc deal context. Instruction của người dùng có nguy cơ bị coi là mô tả doanh nghiệp hoặc bị bỏ qua.
+- Fast result dùng `computeSVI(signals)` giúp trả preview nhanh, nhưng không được trình bày như final researched assessment. Website tự công bố là self-declared source: product/pricing có thể là bằng chứng về nội dung trang, không tự chứng minh traction, leadership hoặc market size.
+
+#### B. Hai snapshot bắt buộc và một pipeline hội tụ
+
+Mọi file/URL/text tạo hai record versioned trước scoring sâu:
+
+1. **`BusinessInputSnapshot`:** input kind, original/extracted content hash, actor/business, permissions/retention grant, fetch/extract status, timestamp/cutoff, pages/sections có locator và content hash, warnings, truncated/unavailable regions. Website giữ từng page; deck giữ page/slide; text giữ nguyên user-provided span. Snapshot immutable; enrichment tạo revision/supplement, không ghi đè nguồn gốc.
+2. **`InvestorIntentSnapshot`:** mục tiêu quyết định của người dùng, góc nhìn investor, câu hỏi ưu tiên, requested depth, geography/sector/stage/time horizon/deal context nếu được nói rõ, accepted assumptions và nội dung cần hỏi lại. Mỗi field có provenance `explicit`, `inferred` hoặc `unknown`; inference confidence không biến intent thành business fact.
+3. **Canonical analysis plan:** resolve entity → map intent và evidence gaps tới13 criteria/52 questions + overlays → xếp materiality → lập research tasks → synthesis/A03 audit → valuation eligibility → final immutable ReportV2. Pitch, URL và text chỉ khác extractor; sau snapshot dùng chung contract, rubric, revision, billing và export.
+
+Intent parser phải chống instruction injection từ website/external text: fetched content luôn là untrusted evidence, không được thay system policy, scope, billing principal hoặc research budget. Intent của user chỉ lấy từ trường user nhập được ký/bind với request, không lấy từ câu “ignore previous instructions” trên website. Nếu text trộn mô tả và yêu cầu, lưu spans riêng; UI cho xem/chỉnh intent trước paid/deep work. Baseline free report có thể dùng intent đã capture mà không hỏi lại khi rõ; ambiguity có ảnh hưởng material thì hỏi một câu ngắn hoặc ghi assumption rõ.
+
+#### C. Website acquisition và evidence contract
+
+- Một server-owned crawler thay cho việc root scrape và UI crawl chạy tách: canonicalize URL, giới hạn same-entity/same-host theo policy, ưu tiên home/about/product/pricing/customers/security/legal/contact, sitemap khi được phép; per-page timeout/byte/type/language/status và overall budget. Không lấy số trang làm quality metric.
+- Áp dụng SSRF/redirect/DNS re-resolution/private-IP block, scheme/content-type/size limit, robots/rate policy và sanitization nhất quán cho root + child pages. Không gửi cookies, auth headers hoặc private deck text tới public URL. External content không điều khiển tools/model.
+- Lưu result status `fetched`, `blocked`, `timeout`, `not_found`, `unsupported`, `stale`; title/publisher/fetchedAt/publishedAt nếu có/content hash/excerpt locator. Crawl partial vẫn có thể tạo report partial, nhưng UI và report nêu chính xác page nào đã/không đọc.
+- Root website claims là `self_declared/public_url`. Sau context extraction, research độc lập tập trung các intent/criteria material: customer/problem, market sizing, 3–5 direct/adjacent/status-quo alternatives khi đủ nguồn, pricing/model, distribution, evidence of traction, team/entity, sector/legal và valuation comparables khi applicable.
+- Reuse snapshot chỉ khi business/entity/scope/permission/freshness phù hợp. Retry không đổi query/snapshot ngầm; new fetch tạo research revision. Source span phải hỗ trợ đúng claim/entity/period, không chỉ URL hợp lệ.
+
+#### D. Text analysis contract
+
+- Giữ nguyên text gốc; tách `businessClaims[]`, `userQuestions[]`, `constraints[]`, `requestedInvestorOutputs[]` và unknowns. Không dùng câu hỏi của user như claim rằng business có metric đó.
+- Resolve company/product/customer/geography/stage/sector aliases; khi thiếu website/company identity thì research bằng hypothesis có scope hẹp hoặc xin thêm dữ liệu, không tự chọn công ty trùng tên.
+- Với text ngắn, trả giá trị bằng problem/customer/business-model hypothesis, comparable/status-quo search và diligence questions; valuation có thể `not_estimable`. Với existing-business text, ưu tiên reconcile revenue/traction/entity/period và tìm public corroboration/counter-evidence.
+- Mọi con số user nhập là founder/user-stated cho tới khi có source đủ điều kiện. Không annualise, convert FX, infer growth/margins hoặc dùng valuation multiple khi thiếu basis. Missing khác zero; “không tìm thấy trên web” khác “không tồn tại”.
+
+#### E. Kết quả investor: đọc nhanh trước, drill-down khi cần
+
+Thứ tự L1 bắt buộc cho final report và dashboard preview của report:
+
+1. **Investment view:** một câu current view/band và confidence basis; chỉ có final recommendation khi A03 đã reconcile.
+2. **Valuation:** range/status, phương pháp đủ điều kiện, inputs/assumptions/sensitivity và dữ liệu có thể làm range đổi; thiếu basis hiển thị `not estimable`, không tạo số đẹp.
+3. **Strengths:** 3–5 yếu tố được support, tại sao có giá trị với investor và nguồn gần nhất.
+4. **Weaknesses / risks:** materiality, likelihood không bịa, tác động, leading indicator và mitigation/evidence cần kiểm tra; tách business weakness khỏi evidence gap.
+5. **Points to clarify:** câu hỏi cụ thể, tài liệu/metric cần xin, ai có thể cung cấp, và câu trả lời nào sẽ thay đổi assessment/valuation.
+6. **Intent coverage:** hiển thị từng câu hỏi user đã nhập là answered/partial/unanswered/conflict và link tới criterion detail; không để report dài nhưng bỏ sót yêu cầu chính.
+
+L2/L3 mở theo progressive disclosure của §6.6/§10: mỗi criterion có finding riêng doanh nghiệp, supporting + contrary evidence, investor implication, limitations, next request và citations. Summary không quá tải; risk/critical caveat không bị giấu. Navigation giữ Report overview/Home/back/anchor/scroll. Light surface, dark text, contrast ≥4.5:1, semantic heading, keyboard, touch ≥44px; chart có text/table alternative. Design direction từ `ui-ux-pro-max`: Trust & Authority, professional navy/blue trên nền sáng, một primary action, tránh AI-gradient/hype/certificate giả và animation metric làm người đọc hiểu sai dữ liệu.
+
+#### F. Goal thực thi WT-P0 và thứ tự implementation
+
+| Phase | Việc thực hiện | Điều kiện hoàn tất |
+|---|---|---|
+| WT0 — freeze + corpus | Freeze source/live, trace URL/text writers/readers, tạo fixtures website multi-page/JS-light/redirect/partial/fail/prompt-injection và text short/long/mixed-intent/ambiguous/entity-collision/EN-VI | Repro chứng minh crawler data đang không vào report; expected intent/questions/forbidden claims được human-label |
+| WT1 — contracts | E01/F01: schema/version cho hai snapshots, source spans, intent states, compatibility adapter từ intake cũ; retention/erase authority default-off nơi chưa đủ quyền | Round-trip + hash/CAS tests; legacy unknown không relabel verified; không lưu full content nếu retention grant chưa có |
+| WT2 — acquisition | Hợp nhất root/multi-page crawler server-side, source ledger và SSRF/content limits; text splitter/intent capture; persist snapshot trước dispatch | Partial/failure/retry deterministic; UI progress đọc cùng job; report mở lại cho biết chính xác nội dung đã dùng |
+| WT3 — material analysis | R01–R04/A02: intent→criteria/question plan, bounded independent research, competitors/counter-evidence, company-specific synthesis và A03 contradiction pass | Mỗi explicit user intent có coverage state; swap-name/generic-gap test; claim material có source hoặc assumption/missing/conflict |
+| WT4 — score + valuation | A01/V02–V03: recompute only from accepted measurements, valuation method eligibility/sensitivity, report revision atomic publish | Không score/valuation từ crawler success, paid run hoặc unsupported claims; change có lineage và before/after reason |
+| WT5 — investor UI/export | U01/U02/U07: L1 decision brief + L2/L3 detail, intent coverage, evidence/source access, web/PDF/DOCX/email parity, EN/VI/mobile/a11y | Investor tìm view/value/strength/weakness/risk/questions trong ≤3 phút; critical caveat visible; exports cùng revision |
+| WT6 — rollout | Feature flags theo input kind; shadow compare current/new; canary URL trước rồi text, active/warm rollback và no-schema-downgrade reader | Build + targeted corpus + actual rollback/forward; previous reports unchanged; no customer/provider charge in deployment checks |
+| WT7 — deep refresh | Chỉ sau RA1–RA4/B03: quote/consent/reserve/job/publish/capture cho research mới; top-up/resume giữ intent | Expand/read existing miễn phí; exactly-once billing; failed refresh giữ last-good report |
+
+**Ưu tiên áp dụng:** WT0–WT3 là nhánh P0 kế tiếp song song với các authority/billing dependencies không xung đột; WT4 chỉ publish sau measurement/valuation gates; WT5 prototype có thể làm sớm nhưng không che thiếu dữ liệu; WT7 không chặn baseline report chất lượng từ input hiện có. Phase này không chờ redesign toàn site mới bắt đầu, nhưng dùng shared ReportV2/design tokens để tránh UI thứ hai.
+
+#### G. Acceptance và quality metrics
+
+1. URL fixture có thông tin quan trọng chỉ ở pricing/about/customer page: final report phải cite đúng page; bỏ page đó phải thay coverage/conclusion, chứng minh crawl thực sự được dùng.
+2. SSE/progress và saved report cùng một job/snapshot ID; không hiện “8 pages analysed” nếu final chỉ dùng root.
+3. Mọi explicit intent của user xuất hiện trong coverage matrix; material intent không answered phải hiện lý do và next request.
+4. Website prompt injection, private-IP/redirect và oversized/unsupported content không đổi policy, gọi tool ngoài scope hoặc leak secret/private input.
+5. Public website claim không tự thành verified traction/market leadership; independent source/counter-evidence và freshness được phân biệt.
+6. Strength/weakness/risk/clarification đều specific cho business, nêu investor implication; generic “clarify TAM/problem” đơn lẻ không đạt final quality.
+7. Valuation chỉ hiện khi inputs/method eligible, giữ units/entity/period/EV-equity/FX; thiếu dữ liệu trả `not estimable` và chính xác thứ cần bổ sung.
+8. Preview/final/saved/share/export có nhãn và revision nhất quán; final mới atomically thay preview, failed run giữ last-good.
+9. Corpus chấm claim precision/citation entailment/intent coverage/contradiction/valuation arithmetic, không chỉ length/schema/build. Gate đề xuất trước controlled sale: zero fabricated material facts/citations; 100% explicit intents có state; 100% valuation material inputs có provenance; reviewer investor usefulness đạt chuẩn §13.
+10. Deploy từng slice có immutable artifact, active/warm health, actual rollback/forward và source-vs-live evidence. Chưa đạt research/retention/billing gate phải được ghi `not activated`, không mô tả là full implementation.
 
 ## 7. Research theo startup: từ câu hỏi tới nguồn và nhận định
 
@@ -1224,8 +1303,8 @@ Các bước dưới đây là **kế hoạch thực hiện sau khi được duy
 |---|---|---|
 | P01 | (1) Freeze source SHA, deployed SHA và affected snapshots; (2) lập coverage map writer→renderer→export và gắn I01–I46; (3) chốt scope/budget/decision IDs; (4) sửa authority pointers và sau approval mới sửa generator đọc trạng thái G30 | Baseline manifest, decision log, issue-owner map; giữ lịch sử G1–G29; không ghi đè unrelated working tree hoặc tự đóng task từ commit subject |
 | Q01 | (1) Dựng fixtures từ repro review bằng dữ liệu được phép; (2) thêm missing/conflict/OCR/deck suffix/old-new/project/locale/provider-failure cases; (3) human-label expected claims, forbidden claims, formulas; (4) khóa development/holdout split | Versioned corpus + oracle và regression failure trước sửa; fixture synthetic ghi rõ, không chép raw customer data vào repo |
-| E01 | (1) Định nghĩa stable question/source/claim IDs và typed metric context; (2) nối claim→source excerpt→document/page/cell/hash; (3) tách answer/support/freshness/reviewer state; (4) thiết kế schema version, compatibility adapter, migration manifest | Schema mapping 13×4 questions + overlays; source permission kế thừa; missing legacy fields trở thành unknown, không default verified |
-| F01 | (1) Extract đầy đủ và ghi extraction completeness; (2) hash toàn input trước clipping; (3) tạo RunInputSnapshot và signals mới cho deck mới; (4) chỉ reuse project evidence theo provenance/version; (5) fail/needs_input nếu không có content dùng được | A→B fixture so signal/score/context; scanned/tables/end-of-deck/URL-only cases; không scoring từ URL string hoặc input cũ |
+| E01 | (1) Định nghĩa stable question/source/claim IDs và typed metric context; (2) nối claim→source excerpt→document/page/cell/hash; (3) tách answer/support/freshness/reviewer state; (4) thêm `BusinessInputSnapshot` + `InvestorIntentSnapshot`/provenance theo §6.8; (5) thiết kế schema version, compatibility adapter, migration manifest | Schema mapping 13×4 questions + overlays; source permission kế thừa; explicit/inferred/unknown intent riêng business facts; missing legacy fields trở thành unknown, không default verified |
+| F01 | (1) Extract đầy đủ và ghi extraction completeness; (2) hash toàn input trước clipping; (3) tạo versioned input snapshot cho deck/URL/text và signals mới; (4) hợp nhất multi-page website corpus với page lineage thay vì UI-only crawl; (5) chỉ reuse evidence theo provenance/version/permission; (6) fail/needs_input nếu không có content dùng được | A→B fixture so signal/score/context; scanned/tables/end-of-deck, URL child-page/partial/fail và mixed-intent text cases; không scoring từ URL string, intent instruction hoặc input cũ |
 | E02 | (1) Normalize metric/entity/unit/currency/period mà vẫn giữ raw; (2) lưu actual/estimated/assumed/missing/conflicting; (3) sửa website analyzer source/time/fetch state; (4) truyền trạng thái qua score/valuation/view | Sessions≠customers, MRR≠ARR, FX/date explicit; fetch fail=null; migrated baseline heuristic giữ estimate, không relabel actual |
 | E03 | (1) Resolve evidence ID trong scope; (2) xác nhận quote nằm trong source snapshot hoặc derivation có lineage; (3) match metric/entity/period/unit, xét negation/qualifiers; (4) semantic entailment khi cần, doubtful→unsupported; (5) tính support ở claim level, không auto-cite từ model quote | Negative và positive controls: không chỉ chặn mọi citation; các repro review bị chặn; verifier không dùng narrative làm nguồn; audit log lý do accepted/rejected |
 | F02 | (1) Tách provisional emissions khỏi final builder; (2) collect toàn bộ rendered claims, audit và reconcile; (3) persist immutable final + read-back; (4) phát final ID/version/payload và client replace preview; (5) derive mọi legacy projection từ final | Inject audit sửa score/claim và persist fail; không `done` trước final saved; consumer cũ có adapter, consumer mới xử lý duplicate/reconnect idempotently |
@@ -1240,11 +1319,11 @@ F02 triển khai cơ chế finalization generic ở M1; A03 bổ sung investment
 
 | ID | Trình tự giải quyết cụ thể | Artifact/kiểm chứng và lưu ý chuyển đổi |
 |---|---|---|
-| R01 | (1) Từ question gaps tạo query plan/entity aliases; (2) ưu tiên first-party/official, research scope/budget; (3) fetch/read/save permitted excerpt+metadata; (4) source availability/freshness/dedup; (5) ghi query attempts không kết quả | Research ledger có source URL/title/date/excerpt và question ID; search snippet/general knowledge chỉ gợi ý tìm kiếm; không gửi private deck text vào public queries |
+| R01 | (1) Từ question gaps **và explicit investor intent** tạo query plan/entity aliases; (2) ưu tiên first-party/official, research scope/budget; (3) fetch/read/save permitted excerpt+metadata; (4) source availability/freshness/dedup; (5) ghi query attempts không kết quả và intent coverage | Research ledger có source URL/title/date/excerpt, question + intent ID; search snippet/general knowledge chỉ gợi ý tìm kiếm; không gửi private deck/text spans vào public queries |
 | R02 | (1) Adapters market/comps/company/team/sector; (2) resolve đúng company và metric basis; (3) kiểm sources độc lập, tránh syndicated double count; (4) tìm counter-evidence; (5) mark blocked/stale/not_found | Fixture tên trùng, price thay đổi, market scope khác; source quality không đồng nghĩa startup quality; không giả vờ đã mở paywall |
 | R03 | (1) Classify applicable questions và materiality; (2) rank evidence requests theo decision impact; (3) hỏi 5–10 mục đầu; (4) bounded search retry/stop conditions; (5) resume chỉ phần input thay đổi | Request checklist startup-specific + cost ledger; unavailable evidence ghi rõ; budget exhausted không thành answered; research refresh có quyền/quota rõ |
 | A01 | (1) Trace criterion→dimension/weights/unknown; (2) kiểm saturation, double count, stage/sector applicability và sample thresholds; (3) phân biệt coverage/conviction/SVI; (4) nếu cần formula mới, version/backtest/side-by-side trước rollout | Score ledger + calibration report theo stage; không giảm missing bằng gán0, không dùng pooled rho làm accuracy; legacy snapshot không đổi score âm thầm |
-| A02 | (1) Mỗi criterion tổng hợp answers/facts; (2) strengths + contrary evidence + uncertainty; (3) phân tích cause→business implication→investor question; (4) attach material claims to sources; (5) cross-criterion consistency pass | 13 criterion analyses + 52 states; startup-name swap test; không copy cùng đoạn chung vào mọi chương; concise synthesis có drill-down |
+| A02 | (1) Mỗi criterion tổng hợp answers/facts và các intent liên quan; (2) strengths + weaknesses/risks + contrary evidence + uncertainty; (3) phân tích cause→business implication→investor question/point to clarify; (4) attach material claims to sources; (5) cross-criterion + intent coverage consistency pass | 13 criterion analyses + 52 states + explicit-intent states; startup-name swap test; không copy cùng đoạn chung vào mọi chương; concise synthesis có drill-down |
 | A03 | (1) Build final assessment từ coverage/material risks; (2) audit structured executive, why-back/why-not, risk, summary, cards và narrative; (3) reconcile contradictions hoặc block final; (4) render bull/bear như scenarios với conditions; (5) reviewer override có reason/history | Một assessment status khắp surfaces; D/back conflict không tồn tại như hai recommendations; unresolved critical contradiction chặn publish, không chỉ thêm footnote |
 | V01 | (1) Loại CAC floor và GM default khỏi factual inputs; (2) giữ valid actual nhỏ; (3) derived ratios cần period/formula/input provenance; (4) giả định chỉ dùng scenario đã ghi rõ | CAC100 giữ100, missing CAC/GM không sinh facts; Rule40 chỉ dùng đúng definition/inputs; không sửa report đã gửi tại chỗ |
 | V02 | (1) Method eligibility theo stage/business/data; (2) accepted/rejected comps log có basis; (3) EV/equity/pre/post/instrument bridge; (4) driver-based scenarios/sensitivity; (5) range hoặc not_estimable và lý do | Calculation oracle, units/FX/date, exclusion reasons; không dùng funding size/SAFE cap làm equity value; không lấy ask làm anchor rồi chứng minh ask |
@@ -1255,7 +1334,7 @@ F02 triển khai cơ chế finalization generic ở M1; A03 bổ sung investment
 | ID | Trình tự giải quyết cụ thể | Artifact/kiểm chứng và lưu ý chuyển đổi |
 |---|---|---|
 | U04 | (1) Inventory source routes/navigation/personas/states; (2) map mỗi page family tới one template; (3) annotated designs cho homepage/report/dashboard/billing/forms/admin; (4) hierarchy/parent/task/content-layer matrix và return journeys theo §10.12; (5) review responsive và content density | Route matrix có owner/retain/redirect/retire proposal; không tự bỏ route; design chuẩn bị sau M0, rollout phụ thuộc data contract |
-| U01 | (1) Build L1 brief từ final snapshot; (2) L2 dimension synthesis; (3) L3 criteria/questions/evidence drawers và anchors; (4) critical caveats cạnh kết luận; (5) permission-safe source access | Brief tìm được thesis/risk/value/next step; keyboard/deep links; collapse không làm mất evidence; unknown state không hiện score0 |
+| U01 | (1) Build L1 investor brief từ final snapshot theo §6.8: view/valuation/strengths/weaknesses-risks/points-to-clarify/intent coverage; (2) L2 dimension synthesis; (3) L3 criteria/questions/evidence drawers và anchors; (4) critical caveats cạnh kết luận; (5) permission-safe source access | Trong ≤3 phút tìm được thesis/value/strength/risk/question/next step; keyboard/deep links; collapse không làm mất evidence; unknown state không hiện score0 |
 | U02 | (1) Shared export projection từ report ID/version; (2) Brief/Full templates; (3) preserve qualifiers, citations và units; (4) pagination/headings/chart fallback; (5) compare extracted text + visual render | Web/PDF/DOCX/email material parity; email link đúng snapshot/quyền; export retry không sinh lại analysis/narrative |
 | U03 | (1) Choose canonical tokens/primitives API; (2) compatibility wrapper old Button; (3) migrate callsites và states; (4) unify overlays/focus/i18n; (5) deprecate docs/CSS aliases sau inventory | Không third Button API; 44px target và accessible states; giữ alias tạm có expiry/owner, không bulk replace thiếu review |
 | U05 | (1) Current→proposed copy matrix từng slot/locale; (2) homepage/hero theo §10.5; (3) persona CTA và terminology; (4) pricing/feature/delivery proof audit; (5) reviewer comprehension rồi chốt | EN/VI equivalent, no unsupported logo/stat/SLA; source-based prices không tự publish trước B01/B02 parity |
@@ -1292,8 +1371,8 @@ F02 triển khai cơ chế finalization generic ở M1; A03 bổ sung investment
 | Wave | Nội dung | Điểm bàn giao/điều kiện sang wave kế |
 |---|---|---|
 | W0 / M0 | P01 → Q01/E01/T01; đồng thời chuẩn bị U04 và B01 inventory | Baseline + issue repro + contracts + inventory được chốt; scope/budget đủ cho bước tương ứng |
-| W1 / M1 | F01→E02→E03; V01; F02→F03/F04→T02; B02/B03 financial foundation sau B01/T01; O01→O02 | Truth/persistence/cache/delivery foundation passes; A03 business reconciliation vẫn pending, chưa sale |
-| W2 / M2 | R01→R02→R03; A01→A02→A03; R04; V02→V03 | Startup-specific golden reports với verified claims và explainable valuation |
+| W1 / M1 | WT0→WT2 (§6.8), F01→E02→E03; V01; F02→F03/F04→T02; B02/B03 financial foundation sau B01/T01; O01→O02 | Deck/URL/text cùng snapshot + intent contract; truth/persistence/cache/delivery foundation passes; A03 business reconciliation vẫn pending, chưa sale |
+| W2 / M2 | WT3→WT4 (§6.8), R01→R02→R03; A01→A02→A03; R04; V02→V03 | Startup-specific golden reports trả explicit intent, có verified claims/counter-evidence và explainable valuation hoặc not-estimable đúng lý do |
 | W3 / M3 | U01→U02; U03/U05→U06; T02+U01→U07; chuẩn bị U08 designs | Finalized report + all-page template/copy + dashboard/library usable; no data/permission regression |
 | W4 / M4 | B02→B03→U08 nghiệm thu end-to-end; O03, Q02, S01→S02; O04 phải verify hoặc có scope disposition trước release | Measured content/payment/data/UX/economics evidence; unresolved failures quay về owning work item |
 | W5 / M5 | S03 controlled-sale packet | Founder review, scoped release authority, support/rollback rõ; no automatic scale |
@@ -1743,6 +1822,8 @@ Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi 
 - **22/09/2026 — W0b candidate preparation:** non-stopping active-origin controller/consumer integration independently reviewed; sourceversion3.29.0 prepared. Full deploy/runtime/30-minute soak gates still pending; no claim uninterrupted cutover proven before actualrun. Legacy4001 retained, no dependencyinstaller changes, max5retained admission.
 
 - **22/09/2026 — Founder bổ sung What we looked at:** thêm §6.6 contract phân tích từng finding, Problem/TAM examples, summary/detail/evidence UX và baseline/deep-credit boundary; nối E01/A02/F02/F03/R01–R04/U01/U02/U05/U07/U08/Q01/Q02/S01 vào45-item queue. Agent source review xác nhận heuristic fallback/4-dimension cap. Plan-only cho yêu cầu này; chưa code tính năng.
+
+- **23/09/2026 — G30 rev2.9 website/text investor-intent priority:** source review xác nhận URL report chủ yếu dùng root scrape trong khi multi-page crawl chỉ hiển thị progress; text chưa tách business claims và user decision intent. Thêm §6.8 với `BusinessInputSnapshot`/`InvestorIntentSnapshot`, canonical deck/URL/text pipeline, website evidence/security policy, investor-first output anatomy, WT0–WT7, acceptance và rollout/rollback. Merge vào E01/F01/R01/A02/U01 và W1/W2 hiện có, không tạo plan cạnh tranh hoặc bật research/credit mới. UI/UX Pro Max định hướng Trust & Authority/light/progressive disclosure; đây là plan/source review, chưa phải feature live.
 
 ### Founder execution update — 22/09/2026: accelerate phases, review after implementation
 
