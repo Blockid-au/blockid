@@ -1061,6 +1061,22 @@ Giữ các UX work items hiện có (tổng queue hiện tại45 theo §12.8), b
 
 QA kiểm representative templates ở375/768/1440, keyboard/screen reader smoke, direct URL/refresh/Back/Forward, deep permission states, long labels EN/VI và empty/loading/error/long-content. Mỗi deep page có visible safe-parent action một lần click và Home truy cập được từ shell (mobile qua menu rõ ràng), focus không bị mất sau drilldown/close. Inventory check bao phủ tất cả retained routes, không bắt mỗi dynamic ID phải có screenshot riêng. S03 chỉ đóng full-site UX khi matrix đầy đủ và blockers được xử lý; đây là mở rộng gates hiện có, không phải queue hoặc goal triển khai thứ hai.
 
+### 10.13 Investor Lens (G31): lớp quyết định investor phía trên SVI
+
+**Yêu cầu founder 23/09/2026 — PLAN ONLY, chưa code.** Bản chi tiết: [`g31-investor-lens-biz-trust-report-2026-09-23.md`](g31-investor-lens-biz-trust-report-2026-09-23.md) · UI/UX: [`investor-lens-report-spec.md`](../design/investor-lens-report-spec.md). Đầu vào: *BlockID Biz Trust Report Upgrade Plan v1.0*.
+
+- **Không thay SVI.** Thêm `ReportV2.investorLens` (optional, xác định, tính khi đọc như `investmentView`). Report có 6 tín hiệu investor: Team · Traction · Moat · Liquidity · Cap Table · IP, cộng ESG tùy theo tính trọng yếu. Mỗi tín hiệu có score, **evidence confidence riêng**, freshness, trend và claim link. Golden regression SVI phải giống hệt trước/sau.
+- **Mặt trước 60 giây:** 4 chỉ số (định giá lớn nhất) · meeting label · Investor Priority Matrix · 3 lý do / 3 điều chặn deal / 3 câu hỏi. Matrix thay Zone 2 “signal strip” của dashboard spec `/analyze`.
+- **Điều chỉnh so với đầu vào:**
+  - Meeting label = **đổi nhãn band A–D**, không phải kết luận thứ hai (D06/A03).
+  - Risk rank = severity × probability, **không nhân confidence**. Thay luật likelihood “missing → high” của G27.
+  - % khảo sát investor chỉ dùng để sắp thứ tự.
+  - Cap table thiếu dữ liệu hiển thị `Insufficient evidence`.
+  - Liquidity không có số A$; tên buyer và comps chỉ xuất hiện khi có nguồn.
+  - Overlay questions MT/TR/LQ/CT/IP/ES, không thêm criterion 14.
+  - Không tạo `claim_evidence` (dùng 0417 + E01).
+- **Release:** R1 Snapshot+Matrix (không migration, không LLM) → R2 signal chapters/freshness → R3 questions + risk → R4 cap table → R5 liquidity → R6 cohort/API → R7 vNext + usability 20 người. Work items IL00–IL14 ở §12.
+
 ## 11. Kiến trúc triển khai và bảo toàn dữ liệu
 
 ### 11.1 Chuyển dần, không rewrite toàn ứng dụng
@@ -1258,6 +1274,10 @@ T01 tạo **data lineage matrix**: entity/table/bucket → writer → reader →
 | O07 | P0 · SRE/Ops | External/core-journey monitoring, recovery coordination, on-call/error budget | P01; recovery integration O05,O06 | Failure detection/recovery measured, no false200 health hoặc rollback loop |
 | O08 | P0 · Backend/Ops | Durable report jobs/checkpoints, graceful drain, bounded queue/retry và side-effect recovery | T01,F02,O01; financial integration B02,B03 | Deploy/restart/disconnect không mất job hoặc duplicate charge/final, outage graceful |
 | O09 | P0 · Data/SRE | Backup/restore drill, failure-domain topology, RTO/RPO và host-failure continuity | P01,T01; final O05,O06,T02 | Restore/data parity measured, topology/cost decision rõ; không claim HA từ single-host backup |
+| IL01–IL05 | P1 · Product/Frontend | G31 R1: `investorLens` schema/derivation, Snapshot + Priority Matrix + Evidence section, nhãn meeting trung tính, overlays + hiệu chỉnh ngưỡng (§10.13) | IL02←E01; IL03←Q01 | Golden SVI bất biến; 4/6/3/3/3; web=PDF=DOCX; chi tiết [g31-investor-lens-biz-trust-report-2026-09-23.md](g31-investor-lens-biz-trust-report-2026-09-23.md) §7.1 |
+| IL06–IL09 | P1 · Data/Frontend | G31 R2–R3: freshness 5 bậc, signal chapters + claim rows, questions engine (`investor_questions`), risk rank không phạt thiếu evidence | E01,E03,A03 | Mọi claim trọng yếu có source/level/freshness; top 3–7 câu hỏi xác định |
+| IL10–IL11 | P1 · Valuation/Research | G31 R4–R5: Cap Table Quality + dilution pro-forma; Path to Liquidity routes/buyer classes/blockers/comps có nguồn | G30 E1; R01/R02 | Thiếu dữ liệu → Insufficient evidence; không có A$ exit |
+| IL12–IL14 | P1 · Frontend/Product | G31 R6–R7: cohort lens + projection `report_investor_signals` + CSV/API v1; report vNext/docs; usability 20 người + flag A/B; IL00 xác minh nguồn slide | IL01–IL11,U02,S01 | KPI G31-1/5/7 |
 
 ### 12.1 Milestones
 
@@ -1812,10 +1832,13 @@ Mỗi thay đổi yêu cầu mới phải sửa chính plan và acceptance liên
 | D12 Site scope | Toàn bộ yêu cầu/review/điều chỉnh áp dụng cho blockid.au và tất cả trang con/routes của site; các tích hợp chỉ trong phạm vi phục vụ site này | Founder xác nhận rõ; chỉ plan, chưa triển khai |
 | D11 Pricing/Stripe/data/dashboard | Full price/link audit, storage/report lifecycle, latest semantics và friendly dashboard (§10.7, §11.4–11.5, §14.1–14.3) | Founder yêu cầu đưa vào plan; chưa cho code, đổi giá/Stripe hoặc sửa dữ liệu |
 | D10 Full-site design & wording | Homepage/hero + wording toàn site + redesign all pages theo một Unicorn template chuyên nghiệp (§10.4–10.6, U04–U06) | Scope founder yêu cầu rõ; copy/design chi tiết chờ review, chưa cho code |
+| D21 Investor Lens (G31) | Lớp 6 tín hiệu + evidence confidence theo tín hiệu phía trên SVI; meeting labels trung tính = band A–D; risk rank không nhân confidence; 01–03 đầy đủ mọi tier; R1→R7 (§10.13) | Founder yêu cầu plan 23/09; chờ duyệt D21-a…e, chưa code |
 
 Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi timestamp và phạm vi được bắt đầu; không coi duyệt plan đồng nghĩa tự động duyệt mọi chi phí, external send hay thay giá chưa được định lượng. Các hạng mục kỹ thuật đã được cho bắt đầu sẽ tiến hành liên tục trong phạm vi đó, không xin lại từng bước thông thường.
 
 ## 17. Change log
+
+- **23/09/2026 — G31 Investor Lens, PLAN ONLY:** phân tích *Biz Trust Report Upgrade Plan v1.0* và lập plan chi tiết [`g31-investor-lens-biz-trust-report-2026-09-23.md`](g31-investor-lens-biz-trust-report-2026-09-23.md) + UI/UX spec [`investor-lens-report-spec.md`](../design/investor-lens-report-spec.md). Thêm §10.13, work items IL00–IL14 (§12), D21 (§16.3). Amend Zone 2 của `analyze-report-dashboard-spec.md`. Không đổi SVI, giá, quota hay budget; chưa code.
 
 - **23/09/2026 — G30 rev3.3, PLAN ONLY (bản chốt):** hợp nhất toàn bộ đề xuất ngày 23/09 thành [`g30-investor-report-surface-2026-09-23.md`](g30-investor-report-surface-2026-09-23.md). Chốt: **một report — hai cửa** (guest `/analyze/[id]` công khai, signed-in `/workspace/reports/business`), `/analyze` = intake + report một trang, **bỏ lớp preview trùng lặp**, mặc định mở ở **Investor view** (masthead → verdict bar → signal strip → triptych ≈ 1,5 màn hình) với phần sâu sau rail/tab mở một cú nhấp, 16 câu hỏi gom 4 nhóm đóng sẵn, trạng thái + ↻ theo từng section qua contract §6.7, intake đa file + XLSX/CSV, không thêm palette/font mới. **Đã BỎ:** chuyển guest vào workspace (307 → login và plan free khoá 8 chương ⇒ thấy ít hơn), bỏ trang `/analyze` (254 tham chiếu + gãy link e-mail đã ký), nhúng/iframe kết quả SVI, lấy `RunState` làm schema. **Đã HOÃN sang pha 2:** hợp nhất pipeline hai site, adoption analysis → project (primitive chưa tồn tại), port SSE. Chưa code.
 

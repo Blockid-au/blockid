@@ -1,6 +1,8 @@
 # BlockID — Startup Value Index (SVI) System Goals
 
 > **Planning authority — 2026-09-22:** the consolidated next goal is [G30 Investor Report Quality & Sale Readiness](docs/plans/SOURCE-OF-TRUTH.md), **PROPOSED / awaiting founder review**. The goals/formula notes below are historical context; current implementation is verified from source, and new priorities/acceptance live only in G30. This update does not start implementation.
+>
+> **2026-09-23 — G31 Investor Lens (plan only):** investor-facing decision layer above the SVI; see [G31 plan](docs/plans/g31-investor-lens-biz-trust-report-2026-09-23.md), registered in SOT §10.13 / §12 IL00–IL14 / D21.
 
 **Sync-status (v3.9.23):** canonical taxonomy is the **12-phase growth model** in
 [`web/src/lib/growth/phase-taxonomy.ts`](./web/src/lib/growth/phase-taxonomy.ts).
