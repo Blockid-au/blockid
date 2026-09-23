@@ -1421,7 +1421,9 @@ fi
 # standalone node_modules has no Playwright — the first run reported
 # "SKIPPED — Playwright not installed" from inside the release dir while the
 # binary sat one directory up. Gate 12 cds to WEB_DIR for the same reason.
-if (cd "$WEB_DIR" && npx --no-install playwright --version >/dev/null 2>&1); then
+if [ "${G30_DEFER_CANDIDATE_TESTS:-0}" = "1" ]; then
+  skip "Candidate Playwright tests deferred by founder; NOT a pass. Origin identity and HTTP/static checks remain"
+elif (cd "$WEB_DIR" && npx --no-install playwright --version >/dev/null 2>&1); then
   echo "  ▶ Running e2e smoke tier against :$TEMP_PORT ..."
   if (cd "$WEB_DIR" && PLAYWRIGHT_BASE_URL="http://127.0.0.1:$TEMP_PORT" \
      npx --no-install playwright test tests/e2e/smoke.*.spec.ts \
