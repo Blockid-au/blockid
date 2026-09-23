@@ -157,10 +157,6 @@ function resolveWorkerPath(): string {
 
 // Pooled keep-alive agents — reuse TLS connections across AI calls instead of
 // paying a fresh handshake (or a whole node subprocess) per call.
-// 128 sockets supports ~10 concurrent analyses × 3 parallel agents × 4 providers
-// without queuing — up from 64 to handle the large-scale startup analysis load.
-const httpsKeepAlive = new https.Agent({ keepAlive: true, maxSockets: 128 });
-const httpKeepAlive = new http.Agent({ keepAlive: true, maxSockets: 128 });
 
 /**
  * In-process API call via node:https — bypasses Next.js's patched GLOBAL fetch
@@ -180,7 +176,17 @@ function inprocessFetch(url: string, headers: Record<string, string>, body: stri
         port: u.port || (isHttps ? 443 : 80),
         path: u.pathname + u.search,
         method: "POST",
-        agent: isHttps ? httpsKeepAlive : httpKeepAlive,
+        // No connection reuse. Measured 2026-09-23 against DeepInfra with the
+        // real payload (87 KB body, 8 calls in parallel, the shape of one W1
+        // wave): with the shared keep-alive agent exactly one call per wave
+        // hung until the 60 s stage timeout — 7/8 answered in 3–7 s, one never
+        // got a response on its reused socket. Two such stalls strike the
+        // provider out for the whole run (RUN_STRIKE_THRESHOLD = 2), which is
+        // how every chapter came back deterministic. With `agent: false` the
+        // same 8 calls finish in 5.4 s with zero stalls; a socket timeout on
+        // the pooled agent removed the stall but still cost 50 s of wall clock.
+        // A fresh TLS handshake per call is ~100 ms — cheap against a 60 s hang.
+        agent: false,
         headers: { ...headers, "Content-Length": Buffer.byteLength(body) },
       },
       (res) => {
