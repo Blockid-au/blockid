@@ -5,6 +5,7 @@
 [`g30-analyze-pitchbook-parity-2026-09-23.md`](g30-analyze-pitchbook-parity-2026-09-23.md) (giữ làm hồ sơ
 điều tra) và [`analyze-report-dashboard-spec.md`](../design/analyze-report-dashboard-spec.md) (giữ làm spec thị giác).
 **Merge trong:** `SOURCE-OF-TRUTH.md` §5, §6.7, §10
+**Đồng bộ G31 (23/09):** B1–B3 và D1–D4 được hiện thực trong `TbrReportV2` bởi [G31 Investor Lens R1](g31-investor-lens-biz-trust-report-2026-09-23.md) (Zone 2 thay bằng Priority Matrix). A1–A3, C1–C3, E1 và D5/D6 vẫn thuộc plan này.
 
 ---
 
