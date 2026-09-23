@@ -393,6 +393,8 @@ export interface OrchestratorInput {
   chapterCache?: ChapterCache | null;
   startupName: string;
   rawText: string;
+  /** Optional admitted text for numeric calculations; empty means no admitted textual figures. */
+  scoringSourceText?: string;
   /** User decision request, kept separate from fetched and founder claims. */
   investorIntent?: import("@/lib/intake/investor-intent").InvestorIntentSnapshot;
   sviAnalysis: import("@/lib/svi-analysis").SVIAnalysis;
@@ -593,6 +595,7 @@ async function orchestrateReportBudgeted(input: OrchestratorInput, reportId: str
       gatherData(context, callAI, {
         ownerUserId: input.ownerUserId ?? input.userId,
         projectId: input.projectId ?? null,
+        scoringSourceText: input.scoringSourceText,
         skipResearch: !researchEnabled(tierV2, Boolean(partialDims)),
         deadline,
         deps: { ...(input.gatherDeps ?? {}), deadlineRemainingMs: () => deadline.remainingMs() },

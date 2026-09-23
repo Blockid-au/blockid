@@ -177,7 +177,9 @@ describe("runReportV2Job", () => {
       input.onEvent({ type: "done", reportId: "rpt-abc", totalMs: 180_000, calls: 16, costAud: 0.11, costUsd: 0.07, costReportedCalls: 16, degradedSections: ["lco"], deadlineHit: false, budgetOverruns: 0, verdictTrimmed: 1, autoCited: 2 });
       return assembled();
     });
-    const h = harness(row(), orchestrate);
+    const r = row();
+    r.intake = { ...r.intake, scoringSourceText: "" };
+    const h = harness(r, orchestrate);
     const out = await runReportV2Job(SAMPLE_ANALYSIS_ID, h.deps);
     expect(out).toMatchObject({ outcome: "done", reportId: "rpt-abc", emailed: "sent", calls: 16, degraded: 1 });
     expect(orchestrate).toHaveBeenCalledTimes(1);
@@ -191,6 +193,7 @@ describe("runReportV2Job", () => {
     expect(input.projectId).toBeUndefined();
     expect(input.accountId).toBe(`analysis:${SAMPLE_ANALYSIS_ID}`);
     expect(input.rawText).toBe(sampleIntake().rawText);
+    expect(input.scoringSourceText).toBe("");
     expect(input.sviAnalysis.subs).toHaveLength(8);
     expect(typeof input.startupName).toBe("string");
 

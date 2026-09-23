@@ -35,7 +35,7 @@ vi.mock("./store", () => ({
 }));
 
 import { AICapacityError } from "@/lib/ai/capacity";
-import { deliverFullReport, recordFreeReportDelivery, runFirstAnalysisJob, type DeliverDeps, type JobDeps } from "./job";
+import { deliverFullReport, intakeFromRow, recordFreeReportDelivery, runFirstAnalysisJob, type DeliverDeps, type JobDeps } from "./job";
 import type { FullReportRow } from "./store";
 import { sampleIntake, sampleReport, SAMPLE_ANALYSIS_ID } from "./fixtures";
 import { FIRST_ANALYSIS_AGENTS, type FirstAnalysisReport } from "./types";
@@ -484,5 +484,13 @@ describe("recordFreeReportDelivery (G25-C)", () => {
     grantsMock.markDelivered.mockClear();
     await recordFreeReportDelivery(row({ full_report_status: "done" }), "failed");
     expect(grantsMock.markDelivered).not.toHaveBeenCalled();
+  });
+});
+
+ describe("stored scoring source", () => {
+  it("preserves an empty admitted source instead of falling back to narrative", () => {
+    const r = row();
+    r.intake = { ...r.intake, scoringSourceText: "" };
+    expect(intakeFromRow(r)?.scoringSourceText).toBe("");
   });
 });

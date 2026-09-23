@@ -198,6 +198,7 @@ export function intakeFromRow(row: FullReportRow): BuildIntake | null {
   return {
     inputKind: row.input_kind ?? "idea_text",
     rawText: row.input_text ?? "",
+    ...(typeof intake.scoringSourceText === "string" ? { scoringSourceText: intake.scoringSourceText } : {}),
     structured: ((intake as { structured?: BuildIntake["structured"] }).structured) ?? undefined,
     // Stored rows carry the compact intake (payload.ts); the signals object
     // is the same shape extractSignals produced.

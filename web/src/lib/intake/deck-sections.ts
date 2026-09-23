@@ -108,6 +108,7 @@ export async function splitDeckToSections(
   const unclassified: Array<{ index: number; text: string }> = [];
 
   slides.forEach((slide, index) => {
+    if (!slide.trim()) return;
     const bucket = classifyByKeyword(slide);
     if (bucket) {
       assignments.set(index, bucket);
@@ -126,6 +127,7 @@ export async function splitDeckToSections(
   }
 
   slides.forEach((slide, index) => {
+    if (!slide.trim()) return;
     const bucket = assignments.get(index) ?? "other";
     out[bucket].push(slide);
   });

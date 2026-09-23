@@ -91,6 +91,12 @@ describe("buildValuationSection", () => {
 });
 
 describe("buildDeterministicReport", () => {
+  it("does not recover visual revenue or a SAFE cap from narrative when scoring text is empty", () => {
+    const { report } = buildDeterministicReport({ analysisId: SAMPLE_ANALYSIS_ID,
+      intake: { ...sampleIntake(), rawText: LIVE_INPUT, scoringSourceText: "", signals: extractSignals({ rawText: "" }) } });
+    expect(report.valuation.basis).toBe("svi_based");
+    expect(report.valuation.statedCapAud).toBeFalsy();
+  });
   it("produces echo, eight dimensions with reasoning, valuation and a Day 0 → Day 30 plan", () => {
     const { report, analysis } = buildDeterministicReport({
       analysisId: SAMPLE_ANALYSIS_ID,

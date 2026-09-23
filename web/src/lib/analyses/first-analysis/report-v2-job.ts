@@ -305,6 +305,7 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
       ownerUserId: row.user_id ?? null,
       startupName: built.echo.company,
       rawText: intake.rawText,
+      scoringSourceText: intake.scoringSourceText,
       investorIntent: investorIntentFromRow(row),
       sviAnalysis: built.analysis,
       evidenceItems: websiteEvidenceFromRow(row),

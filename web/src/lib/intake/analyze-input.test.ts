@@ -151,6 +151,13 @@ describe("analyzeInput — regex fast-path", () => {
 });
 
 describe("analyzeInput — file path", () => {
+  it("keeps image observations in narrative but excludes them and filename claims from scoring", async () => {
+    const result = await analyzeInput({ file: { filename: "MRR AUD 100000 customers team.png", buffer: Buffer.from("image") } });
+    expect(result.rawText).toContain("AUD 100000");
+    expect(result.scoringSourceText).toBe("");
+    expect(result.signals.mrrAud).toBeUndefined();
+    expect(result.signals.arrAud).toBeUndefined();
+  });
   it("classifies a PDF buffer as pitch_deck", async () => {
     const buffer = Buffer.from("%PDF-1.4 fake pdf content");
     const result = await analyzeInput({

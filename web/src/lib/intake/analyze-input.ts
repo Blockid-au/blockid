@@ -71,6 +71,8 @@ export interface IntakeStructured {
 
 export interface IntakeResult {
   aiBudgetScope?: string;
+  /** Native document text + user-entered text only; excludes OCR/vision observations. Empty is intentional. */
+  scoringSourceText?: string;
   inputKind: InputKind;
   confidence: number;               // 0..1
   rawText: string;                  // canonical text used downstream
@@ -263,6 +265,7 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
       extractedUnits = [{ locator: "document", kind: "text", text: rawText }];
     }
 
+    const scoringSourceText = [isImage ? "" : rawText, text].filter(Boolean).join("\n\n");
     let documentVisuals: DocumentVisualResult | undefined;
     if (!isImage && (isPdf || /\.(pptx|docx)$/i.test(filename))) {
       documentVisuals = await extractDocumentVisuals(input.file.buffer, input.file.filename);
@@ -272,8 +275,11 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
     if (!rawText.trim()) throw Error("needs_input");
     const deckSections = slides.length > 0 ? await splitDeckToSections(slides) : undefined;
     const combinedText = [rawText, text].filter(Boolean).join("\n\n");
-    const signals = extractSignals({ rawText: combinedText, fileName: input.file.filename });
-    const context = detectContext(signals, combinedText);
+    // A filename and model-generated observations are not evidence for score or money.
+    const scoringFilename = isPdf ? "upload.pdf" : isPptx ? "upload.pptx" : /\.docx?$/i.test(filename) ? "upload.docx" : undefined;
+    const signals = extractSignals({ rawText: scoringSourceText, fileName: scoringFilename });
+    const context = detectContext(signals, scoringSourceText);
+    if (isImage || documentVisuals?.text) warnings.push("Unverified OCR and visual observations are excluded from automatic scoring and financial calculations. Confirm material figures in the text input or provide native document text; neither is independent verification.");
     const snapshotSources: SnapshotSourceInput[] = extractedUnits.length > 0
       ? extractedUnits.map(unit => ({
           id: `native:${unit.locator}`, kind: unit.kind,
@@ -293,6 +299,7 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
       inputKind: "pitch_deck",
       confidence: rawText.length > 200 ? 0.95 : 0.55,
       rawText: combinedText,
+      scoringSourceText,
       structured: { slides, extractedUnits, deckSections, ...(imageSource ? { imageSource } : {}), ...(documentVisuals ? { documentVisuals: { documentSha256: documentVisuals.documentSha256, units: documentVisuals.units, warnings: documentVisuals.warnings } } : {}) },
       signals,
       context,

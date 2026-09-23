@@ -48,8 +48,13 @@ export function truncateInputText(raw: string | undefined | null): TruncatedText
  * classifier mode — is small and worth keeping verbatim.
  */
 export function compactIntake(result: IntakeResult): Record<string, unknown> {
-  const { rawText: _rawText, structured, context: _context, ...rest } = result;
+  const { rawText: _rawText, scoringSourceText, structured, context: _context, ...rest } = result;
   const out: Record<string, unknown> = { ...rest };
+  if (typeof scoringSourceText === "string") {
+    out.scoringSourceText = scoringSourceText.slice(0, MAX_INPUT_TEXT_CHARS);
+    out.scoringSourceChars = scoringSourceText.length;
+    out.scoringSourceTruncated = scoringSourceText.length > MAX_INPUT_TEXT_CHARS;
+  }
   if (structured) {
     let bytes = 0;
     try {

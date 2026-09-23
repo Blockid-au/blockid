@@ -327,6 +327,7 @@ export function buildActionPlanSection(analysis: SVIAnalysis): ActionPlanSection
 /** A live IntakeResult, or the compact stored one — only these fields are read. */
 export interface BuildIntake extends EchoInput {
   rawText: string;
+  scoringSourceText?: string;
   signals: SVIExtractedSignals;
 }
 
@@ -356,7 +357,7 @@ export function buildDeterministicReport(input: BuildInput): {
     generatedAt: now.toISOString(),
     echo,
     svi: buildSviSection(analysis),
-    valuation: buildValuationSection(analysis, input.intake.rawText ?? ""),
+    valuation: buildValuationSection(analysis, input.intake.scoringSourceText ?? input.intake.rawText ?? ""),
     actionPlan: buildActionPlanSection(analysis),
     agents: {},
     progress: { current: null, completed: [], failed: [] },

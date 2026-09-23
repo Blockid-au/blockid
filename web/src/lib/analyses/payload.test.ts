@@ -94,6 +94,12 @@ describe("truncateInputText", () => {
 // ─── compactIntake ─────────────────────────────────────────────────────────
 
 describe("compactIntake", () => {
+  it("preserves an explicitly empty scoring source and bounds nonempty copies", () => {
+    expect(compactIntake(intakeFixture({ scoringSourceText: "" })).scoringSourceText).toBe("");
+    const out = compactIntake(intakeFixture({ scoringSourceText: "x".repeat(MAX_INPUT_TEXT_CHARS + 1) }));
+    expect(out.scoringSourceText).toHaveLength(MAX_INPUT_TEXT_CHARS);
+    expect(out.scoringSourceTruncated).toBe(true);
+  });
   it("never duplicates rawText into the jsonb (it lives in input_text)", () => {
     const out = compactIntake(intakeFixture());
     expect(out).not.toHaveProperty("rawText");

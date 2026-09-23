@@ -508,6 +508,14 @@ describe("G30 valuation revenue presence", () => {
     expect(out.evidenceRows.find((r) => r.label === "Valuation needs revenue information")).toMatchObject({ status: "missing", value: expect.stringContaining("Provide dated revenue records identifying the business") });
   });
 
+  it("does not label visual revenue as an exact submitted financial quotation", async () => {
+    const context = withoutRevenue();
+    context.rawText = `${context.startupName}: MRR AUD 12,000 as of 2026-08-31`;
+    const out = await gatherData(context, callAI, { scoringSourceText: "", deps: deps() });
+    expect(out.valuation.reason).not.toContain(context.rawText);
+    expect(out.valuation.vc).toBeNull();
+  });
+
   it("carries exact submitted quotations to canonical unavailable output without admitting reported money", async () => {
     const context = withoutRevenue();
     context.rawText = `${context.startupName}: MRR AUD 12,000 as of 2026-08-31`;

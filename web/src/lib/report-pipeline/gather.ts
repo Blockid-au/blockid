@@ -188,6 +188,8 @@ export interface GatherDeps {
 }
 
 export interface GatherOptions {
+  /** Native/user text for submitted finances; never fall back from an explicit empty string. */
+  scoringSourceText?: string;
   /** app_users.id of the project OWNER (svi_signals / shareholders key). Defaults to the report's userId. */
   ownerUserId?: string | null;
   projectId?: string | null;
@@ -861,7 +863,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
     ...(conflict ? ["conflicting_qualified_revenue"] : []),
     ...(typeof signals.mrrAud === "number" || typeof signals.arrAud === "number" ? ["founder_revenue_provenance_missing"] : []),
   ])];
-  const submittedFinancial = submittedFinancialContext({ text: context.rawText, ownerUserId, projectId, businessName: context.startupName, locale: context.locale });
+  const submittedFinancial = submittedFinancialContext({ text: opts.scoringSourceText ?? context.rawText, ownerUserId, projectId, businessName: context.startupName, locale: context.locale });
   results.submittedFinancial = submittedFinancial;
   results.revenueQualification = { status: mrrAud === null ? "unqualified" : "qualified", reasons: qualificationReasons };
   const gm = grantsMatch as GrantsMatch | null;
