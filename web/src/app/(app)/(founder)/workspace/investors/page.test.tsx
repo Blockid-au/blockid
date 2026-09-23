@@ -1,4 +1,5 @@
 import type React from "react";
+import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
 import { renderToReadableStream } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -170,7 +171,11 @@ describe("/workspace/investors — Matches (S-IA2, T0251)", { timeout: 20_000 },
     // Every mailto on the page routes to support, never to the investor.
     const mailtos = out.match(/href="mailto:[^"]+"/g) ?? [];
     expect(mailtos.length).toBeGreaterThan(0);
-    for (const m of mailtos) expect(m).toMatch(/^href="mailto:support@blockid\.au\?/);
+    // Pin the canonical address, not a literal: the support mailbox moved to
+    // admin@ when LEGAL_ENTITY became the single source (G21), and a hardcoded
+    // "support@" here only re-breaks on the next move.
+    const support = LEGAL_ENTITY.supportEmail.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    for (const m of mailtos) expect(m).toMatch(new RegExp(`^href="mailto:${support}\\?`));
   });
 
   it("empty state: queue copy + programs link for the founder's capital (never blank)", async () => {

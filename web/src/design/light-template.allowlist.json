@@ -14,12 +14,6 @@
       "reason": "modal / drawer scrim (40–80 % black over the page) — not a surface."
     },
     {
-      "file": "*",
-      "rule": "dark-surface",
-      "pattern": "<pre\\b|<code\\b",
-      "reason": "code sample blocks keep an editor-dark ground (mono text on ink-900) — a recognised convention, not page chrome."
-    },
-    {
       "file": "components/brand/logo.tsx",
       "rule": "text-on-dark",
       "pattern": "isDark \\? \"text-white\"",

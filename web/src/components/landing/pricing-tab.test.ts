@@ -27,7 +27,10 @@ describe("pricing-tab (server-safe helpers)", () => {
   });
 
   it("maps query values to tabs (Pricing v4: third Programs tab)", () => {
-    expect(resolvePricingTab(undefined)).toBe("founder");
+    // G30 investor-first: no query → the evaluator tab (9437b21e7). "founder"
+    // is still reachable by name, it is just no longer the default landing.
+    expect(resolvePricingTab(undefined)).toBe("evaluator");
+    for (const v of ["founder", "founders", "free", "starter", "growth"]) expect(resolvePricingTab(v), v).toBe("founder");
     expect(resolvePricingTab("investor")).toBe("evaluator");
     for (const v of ["fund", "vc", "advisor", "evaluator"]) expect(resolvePricingTab(v), v).toBe("evaluator");
     for (const v of ["accelerator", "accelerators", "program", "programs", "incubator", "university"]) {
