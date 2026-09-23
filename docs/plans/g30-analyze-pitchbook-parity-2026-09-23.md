@@ -146,6 +146,7 @@ hiệu quả" và là bước thừa cần bỏ. Một bề mặt report duy nh�
 | 3 | **Gãy mọi link đã gửi qua e-mail.** Report guest gửi đi trỏ tới `https://blockid.au/analyze/<id>?t=<signed>` và PDF `/api/analyses/<id>/report.pdf?token=…`. | `report-v2-job.ts` `deliveryLinks()` + test `report-v2-job.test.ts:326` |
 | 4 | **Mất tenancy guest.** anon cookie / signed token / free-report gate / guest A$3 SKU đều bám vào `/analyze`. | `api/intake/route.ts`, `free-report-gate.ts` |
 | 5 | **Mất khả năng chia sẻ công khai.** Trang workspace đặt `robots: { index: false }` — kết quả nằm sau login thì không share/SEO được. | `business/page.tsx:17` |
+| 6 | **Người dùng sẽ thấy ÍT hơn, không phải nhiều hơn.** `/analyze` trao cho guest **toàn bộ** tài liệu standard miễn phí (2 lần đầu theo e-mail). Trang workspace với plan free lại **khoá 8 chương** sau rail mở khoá A$3 (`resolveTbrAccess` → `unlockMode: "buy"`). Chuyển thẳng sang đó = hạ cấp trải nghiệm đúng lúc cần gây ấn tượng nhất. | `business-report-client.tsx:71-100`; `api/reports/access/route.ts:61-80` |
 
 ### Phương án đề xuất: **một report, hai cửa**
 
@@ -155,8 +156,36 @@ hiệu quả" và là bước thừa cần bỏ. Một bề mặt report duy nh�
 | **D-B16** | **Bỏ lớp preview trùng lặp** (`analyze-results.tsx` phía trên tài liệu) — đây mới đúng là "bước thừa". Sau submit đi thẳng vào khung report. |
 | **D-B17** | **Trạng thái theo từng section**: `đang phân tích` (skeleton đúng hình dạng) · `thiếu dữ liệu` (CTA thêm evidence) · `đã có` · nút **↻ Phân tích lại** ở cấp section — đi qua đúng contract quote/credit của §6.7, **không tạo đường chạy thứ hai** (review 22/09 đã ghi nút ↻ hiện tại POST thẳng, không quote/không idempotency). |
 | **D-B18** | **Không bỏ `/analyze`**, đổi vai: intake + report trong **một trang**, một bước. Giữ e-mail + PDF như hiện tại. |
-| **D-B19** | **Guest đăng nhập → tự nhận kết quả về tài khoản** (đường claim đã có: `lib/analyses/claim.ts`), gắn vào project để workspace hiển thị đúng bản đó. Đây là cầu nối tự nhiên giữa hai cửa. |
+| **D-B19** | **Cầu nối guest → tài khoản.** ⚠️ *Đính chính:* `claimAnalyses` (`lib/analyses/store.ts:337-387`) **chỉ đóng dấu `analyses.user_id`**, **không** tạo `projects` row. Bước **adoption (analysis → project + snapshot, hoặc một con trỏ project trên hàng analyses) hiện CHƯA TỒN TẠI** và là primitive còn thiếu cho *mọi* phiên bản của kế hoạch này. Phải dựng nó trước, không giả định đã có. |
+| **D-B19b** | Khi có adoption: `/workspace/reports/business` nhận thêm `?analysis=<id>`, đọc `analyses.full_report_json` qua `getAnalysisForViewer` cho **chủ sở hữu đã đăng nhập** — một URL cho người có tài khoản, trong khi `/analyze/[id]` + signed token tiếp tục phục vụ guest và mail client. Đây là đường rẻ và ít rủi ro nhất. |
 | **D-B20** | Nếu sau này vẫn muốn bỏ hẳn `/analyze`: **bắt buộc** 301 `/analyze/[id]` → URL mới, giữ nguyên signed token, và giữ một bề mặt công khai cho guest. Không đưa kết quả guest vào sau login. |
+
+### Vì sao hai bên không dùng chung bảng (lý do đã ghi trong code)
+
+`report-v2-job.ts:29-33`: *"Tài liệu nằm trên hàng analyses thay vì `svi_snapshots`: một snapshot cần
+`svi_accounts` row (guest không có) và UNIQUE theo (account, ngày), nên lần chạy miễn phí thứ hai trong
+cùng ngày sẽ ghi đè lần đầu."* Đây là quyết định có chủ đích, không phải nợ kỹ thuật.
+
+### Trang workspace có gì mà `/analyze` chưa có (đưa vào component dùng chung — D-B15)
+
+Locale switcher EN/VI/ES/JA · **Share with Investor** (mint `/tbr/<token>`) · export **DOCX** + PDF theo order ·
+sticky TOC 3 nhóm · benchmarks từ `loadAssessmentContext` · clarity survey · `ActionPlan` · **Peer-5 similarity** ·
+QA chat · link corrections. Ngược lại `/analyze` mạnh hơn hẳn về **trạng thái đang chạy** (`progressLineV2`,
+aria-live, đếm chương degraded, nút gửi lại e-mail) — workspace **không** poll report đang chạy.
+
+### Blast radius nếu retire `/analyze` (không khuyến nghị)
+
+**254 tham chiếu** trong `web/src` (404 kể cả test). Gãy chức năng: permalink `/analyze/[id]`, link ký HMAC
+30 ngày trong **mọi e-mail đã gửi**, cookie guest `blockid_anon`, hero handoff `?q=&kind=`, đường quay lại
+`?resume=signup`, hiển thị `?claimed=`, và 301 sẵn có từ `/score` + `/one-click-report`. Còn phải sửa
+~40 CTA, `sitemap.ts:617`, `docs/ops/nginx/blockid-live.conf:37` (rule body-size >1 MB cho upload),
+smoke `hero-to-svi`, live-qa lane 20/43, `tour-runner.mjs`.
+
+### Lỗi phát hiện thêm (sửa được ngay, không phụ thuộc quyết định trên)
+
+`business-report-client.tsx:896` và `:943` gate **Investor Leads** và **Investor Views** theo `shareToken`,
+nhưng route founder **không bao giờ set** `shareToken` → hai mục này **chưa từng render** ở nơi chúng được
+thiết kế cho. Đưa vào danh sách sửa cùng D-B14.
 
 **Kết quả:** founder được đúng thứ mong muốn — nhập xong thấy ngay bản báo cáo đầy đủ, chi tiết, có trạng
 thái đang phân tích và nút phân tích lại — mà không đánh đổi phễu miễn phí, link e-mail đã gửi và khả năng
