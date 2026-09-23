@@ -1,152 +1,63 @@
-// POST /api/pitchdeck/ocr — OCR fallback for image-only pitch decks.
-//
-// Strategy: for each embedded raster (or the whole PDF page rendered as an
-// image), try tesseract.js first (free, on-box). If tesseract yields <30
-// chars for a page it falls back to a vision LLM via callAI (paid — gated
-// at +2 credits).
-
+// Local image transcription only. Vision requires a qualified multimodal policy.
 import { NextResponse } from "next/server";
-import { promises as fs } from "node:fs";
-import os from "node:os";
-import path from "node:path";
-
+import { z } from "zod";
 import { getCurrentUser } from "@/lib/auth";
-import { canAfford, spendCredits } from "@/lib/credits";
-import { callAI } from "@/lib/ai-client";
+import { canAfford } from "@/lib/credits";
 import { apiRoute } from "@/lib/audit/api-route";
+import { prepareVisualImage, VISUAL_IMAGE_LIMITS } from "@/lib/intake/visual-image";
+import { transcribeVisualImage } from "@/lib/intake/visual-ocr";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+const MAX_JSON_BYTES = Math.ceil(VISUAL_IMAGE_LIMITS.bytes / 3) * 4 + 4096;
+const bodySchema = z.object({
+  file: z.object({ filename: z.string().max(200).optional(), base64: z.string().min(4), mimeType: z.string().max(100).optional() }),
+  forceLlm: z.boolean().optional(),
+});
 
-const OCR_FEATURE = "pitchdeck_ocr";
-const OCR_COST_CREDITS = 2;
-
-interface Body {
-  file: {
-    filename: string;
-    base64: string;
-    mimeType?: string;
-  };
-  /** Force LLM vision path even if tesseract would have run. */
-  forceLlm?: boolean;
-}
-
-async function tryTesseract(buffer: Buffer): Promise<string> {
+async function readBody(request: Request): Promise<unknown> {
+  if (!request.body) throw new Error("invalid_json");
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
   try {
-    const mod = (await import("tesseract.js")) as {
-      recognize?: (
-        image: Buffer | string,
-        lang?: string,
-        opts?: unknown,
-      ) => Promise<{ data: { text: string } }>;
-    };
-    if (typeof mod.recognize !== "function") return "";
-    const res = await mod.recognize(buffer, "eng");
-    return res.data.text ?? "";
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.warn("[pitchdeck:ocr] tesseract failed", msg);
-    return "";
-  }
-}
-
-async function tryVisionLlm(buffer: Buffer, mimeType: string): Promise<string> {
-  const b64 = buffer.toString("base64");
-  // Vision via callAI: not every provider supports it. Use a text-prompt
-  // best-effort — the model can transcribe if it's a Claude/Gemini vision
-  // route. If it fails, return empty and the caller degrades cleanly.
-  try {
-    const res = await callAI({
-      system:
-        "You are OCR. Transcribe verbatim every legible word in the supplied image. Return the plain text only, no commentary.",
-      user: `<image mime="${mimeType}">data:${mimeType};base64,${b64.slice(0, 200000)}</image>\n\nTranscribe.`,
-      maxTokens: 1200,
-      temperature: 0,
-      agentId: "pitchdeck-ocr",
-    });
-    return res.text ?? "";
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.warn("[pitchdeck:ocr] vision LLM failed", msg);
-    return "";
-  }
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      size += value.byteLength;
+      if (size > MAX_JSON_BYTES) { await reader.cancel(); throw new Error("body_too_large"); }
+      chunks.push(value);
+    }
+    return JSON.parse(Buffer.concat(chunks).toString("utf8"));
+  } finally { reader.releaseLock(); }
 }
 
 async function POST_handler(request: Request) {
   const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ ok: false, error: "auth required" }, { status: 401 });
-  }
-
-  const afford = await canAfford(user.id, OCR_FEATURE);
-  if (!afford.allowed && afford.balance < OCR_COST_CREDITS) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error: "insufficient credits",
-        required: OCR_COST_CREDITS,
-        balance: afford.balance,
-      },
-      { status: 402 },
-    );
-  }
-
-  let body: Body;
-  try {
-    body = (await request.json()) as Body;
-  } catch {
-    return NextResponse.json({ ok: false, error: "invalid JSON" }, { status: 400 });
-  }
-  if (!body.file?.base64) {
-    return NextResponse.json({ ok: false, error: "file.base64 required" }, { status: 400 });
-  }
-
-  const buffer = Buffer.from(body.file.base64, "base64");
-  const mimeType = body.file.mimeType ?? "image/png";
-  const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "ocr-"));
-  const tmpPath = path.join(tmpDir, body.file.filename || "input.bin");
-  await fs.writeFile(tmpPath, buffer);
-
-  let text = "";
-  let usedLlm = false;
-
-  if (!body.forceLlm) {
-    text = await tryTesseract(buffer);
-  }
-
-  if (body.forceLlm || text.trim().length < 30) {
-    const vision = await tryVisionLlm(buffer, mimeType);
-    if (vision.trim().length > text.trim().length) {
-      text = vision;
-      usedLlm = true;
-    }
-  }
-
-  // Only charge if we actually invoked the vision path.
-  let charged = 0;
-  if (usedLlm) {
-    try {
-      const spent = await spendCredits(user.id, OCR_FEATURE, {
-        reason: "pitchdeck-ocr LLM vision fallback",
-        filename: body.file.filename,
-      });
-      if (spent.ok) charged = OCR_COST_CREDITS;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn("[pitchdeck:ocr] credit spend failed", msg);
-    }
-  }
-
-  await fs.rm(tmpDir, { recursive: true, force: true }).catch(() => undefined);
-
+  if (!user) return NextResponse.json({ ok: false, error: "auth required" }, { status: 401 });
+  // Preserve existing entitlement gate; local OCR still consumes no credits.
+  const afford = await canAfford(user.id, "pitchdeck_ocr");
+  if (!afford.allowed && afford.balance < 2) return NextResponse.json({ ok: false, error: "insufficient credits", required: 2, balance: afford.balance }, { status: 402 });
+  let raw: unknown;
+  try { raw = await readBody(request); }
+  catch (error) { return NextResponse.json({ ok: false, error: error instanceof Error && error.message === "body_too_large" ? "body_too_large" : "invalid JSON" }, { status: error instanceof Error && error.message === "body_too_large" ? 413 : 400 }); }
+  const parsed = bodySchema.safeParse(raw);
+  if (!parsed.success) return NextResponse.json({ ok: false, error: "invalid image request" }, { status: 400 });
+  if (parsed.data.forceLlm) return NextResponse.json({ ok: false, reason: "vision_not_qualified", credits_charged: 0 }, { status: 503 });
+  const base64 = parsed.data.file.base64;
+  if (base64.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(base64)) return NextResponse.json({ ok: false, error: "invalid base64" }, { status: 400 });
+  const bytes = Buffer.from(base64, "base64");
+  if (bytes.toString("base64") !== base64) return NextResponse.json({ ok: false, error: "invalid base64" }, { status: 400 });
+  const image = await prepareVisualImage(bytes);
+  if (!image.ok) return NextResponse.json({ ok: false, reason: image.reason, credits_charged: 0 }, { status: image.reason === "image_too_large" ? 413 : 422 });
+  const result = await transcribeVisualImage(image.bytes);
+  if (!result.ok) return NextResponse.json({ ok: false, reason: result.reason, credits_charged: 0 }, { status: result.reason === "ocr_busy" ? 429 : result.reason === "ocr_timeout" ? 504 : 422 });
   return NextResponse.json({
-    ok: true,
-    text: text.trim(),
-    length: text.trim().length,
-    method: usedLlm ? "vision_llm" : "tesseract",
-    credits_charged: charged,
+    ok: true, text: result.text, length: result.text.length, method: "tesseract", credits_charged: 0,
+    evidenceStatus: "transcribed_unverified", visualAnalysis: "not_performed",
+    source: { originalSha256: image.originalSha256, derivativeSha256: image.derivativeSha256, width: image.width, height: image.height, transformVersion: image.transformVersion },
+    warnings: ["OCR transcribes text only; charts, diagrams and financial claims still require visual interpretation and verification."],
   });
 }
 
-// S20-A — audited via apiRoute (src/lib/audit/api-route.ts); exemptions live in src/lib/audit/allowlist.json.
 export const POST = apiRoute({ route: "api/pitchdeck/ocr/route.ts", method: "POST" }, POST_handler);
