@@ -191,7 +191,7 @@ describe("runIntakeSubmission — pipeline", () => {
     const r = await runIntakeSubmission(base(), { ...d, store });
     expect(r).toMatchObject({ ok: true, status: "scored", sviTotal: 66.5, warnings: [] });
     expect(calls.runReport).toHaveBeenCalledWith({ projectId: "proj-1", requestedByUserId: "owner-1" });
-    expect(calls.recordReport).toHaveBeenCalledWith({ evaluationId: "ev-1", projectId: "proj-1", userId: "owner-1", reportRef: "rep-1", shareToken: "tok", sviTotal: 66.5 });
+    expect(calls.recordReport).toHaveBeenCalledWith({ evaluationId: "ev-1", projectId: "proj-1", userId: "owner-1", reportRef: "rep-1", shareToken: "tok", sviTotal: 66.5, reportV2: undefined });
     expect(store.submissions[0]).toMatchObject({ status: "scored", sviTotal: 66.5 });
     const payload = (calls.enqueueWebhook.mock.calls[0] as unknown as [string, Record<string, unknown>])[1];
     expect(payload).toMatchObject({ status: "scored", svi_total: 66.5 });

@@ -171,7 +171,8 @@ describe("POST /api/evaluations/[id]/report", () => {
     expect(json).toMatchObject({ ok: true, via: "quota", credits_spent: 0, remaining_quota: 0, trial: { active: true, allowance: 1 } });
     expect(recordMock).toHaveBeenCalledWith(expect.objectContaining({ paidVia: "quota", creditsCost: 0 }));
     // S-R4: the run's ReportV2 lands on the billed row (0401), keyed on its id.
-    expect(writeReportV2Mock).toHaveBeenCalledWith(expect.anything(), "r-1", expect.objectContaining({ reportId: "rv2-1" }));
+    expect(recordMock).toHaveBeenCalledWith(expect.objectContaining({ reportV2: expect.objectContaining({ reportId: "rv2-1" }) }));
+    expect(writeReportV2Mock).not.toHaveBeenCalled();
 
     previewMock.mockResolvedValue(creditsCost(5));
     json = await (await POST(post({ kind: "full" }), ctx())).json();
@@ -254,6 +255,17 @@ describe("POST /api/evaluations/[id]/report", () => {
     expect(grantCreditsMock).not.toHaveBeenCalled();
   });
 
+  it("does not publish readiness or a share link when persistence is unconfirmed", async () => {
+    recordMock.mockResolvedValueOnce(null);
+    const response = await POST(post({ kind: "full", confirm: true }), ctx());
+    expect(response.status).toBe(503);
+    const body = await response.json();
+    expect(body).toMatchObject({ ok: false, error: "report_record_unconfirmed" });
+    expect(body.report_url).toBeUndefined();
+    expect(enqueueMock).not.toHaveBeenCalled();
+    expect(grantCreditsMock).not.toHaveBeenCalled();
+  });
+
   it("quota run: pipeline as the evaluator, row written after success, no credit spend", async () => {
     const res = await POST(post({ kind: "full", confirm: true }), ctx());
     expect(res.status).toBe(200);
@@ -261,6 +273,7 @@ describe("POST /api/evaluations/[id]/report", () => {
     expect(recordMock).toHaveBeenCalledWith({
       evaluationId: "e-1", projectId: "p-1", userId: "u-1", kind: "full", paidVia: "quota",
       creditsCost: 0, reportRef: "rpt-1", shareToken: "tok123", sviTotal: 72, idempotencyKey: null,
+      reportV2: { schemaVersion: "2.0", reportId: "rv2-1" },
     });
     expect(spendCreditsMock).not.toHaveBeenCalled();
     expect(await res.json()).toMatchObject({
