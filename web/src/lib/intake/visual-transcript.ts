@@ -12,21 +12,23 @@ export type VisualTranscriptSource = {
 };
 
 /** Transient image bytes are not retained. Vision shares the report's durable US$0.50 budget. */
-export async function extractVisualTranscript(bytes: Buffer): Promise<{ text: string; source: VisualTranscriptSource }> {
+export async function extractVisualTranscript(bytes: Buffer, options: { deadlineAt?: number; ocrTimeoutMs?: number } = {}): Promise<{ text: string; source: VisualTranscriptSource }> {
   const image = await prepareVisualImage(bytes);
   if (!image.ok) throw new Error(image.reason);
-  const result = await transcribeVisualImage(image.bytes);
+  const remaining = () => options.deadlineAt === undefined ? 75000 : Math.max(0, options.deadlineAt - Date.now());
+  if (remaining() < 1000) throw Error("needs_input");
+  const result = await transcribeVisualImage(image.bytes, Math.min(options.ocrTimeoutMs ?? 30000, remaining()));
   const limitations: string[] = result.ok ? [] : [`Local OCR: ${result.reason}`];
   let text = result.ok ? result.text : "";
   const source: VisualTranscriptSource = { originalSha256: image.originalSha256, derivativeSha256: image.derivativeSha256,
     width: image.width, height: image.height, transformVersion: image.transformVersion,
     status: "transcribed_unverified", visualAnalysis: "not_performed" };
-  if (currentReportSpendScope() && image.bytes.length <= 19 * 1024 * 1024) {
+  if (remaining() >= 1000 && currentReportSpendScope() && image.bytes.length <= 19 * 1024 * 1024) {
     try {
       const { callAI } = await import("@/lib/ai-client");
       const response = await callAI({ policy: "blockid-report-v1", system: VISUAL_SYSTEM,
         user: "Read this uploaded business image. Distinguish visible observations, approximate numbers, founder claims and missing context.",
-        visionImages: [image.bytes], maxTokens: 3000, temperature: 0, timeoutMs: 45000, budgetMs: 45000, agentId: "intake:visual" });
+        visionImages: [image.bytes], maxTokens: 3000, temperature: 0, timeoutMs: Math.min(45000, remaining()), budgetMs: Math.min(45000, remaining()), agentId: "intake:visual" });
       if (response.model !== VISUAL_MODEL || (response.via ?? response.provider) !== "deepinfra") throw Error("vision_model_mismatch");
       const interpreted = readVisualInterpretation(response.text);
       if (interpreted.status === "unreadable" || !interpreted.observations.length) limitations.push("Visual content could not be interpreted reliably.");

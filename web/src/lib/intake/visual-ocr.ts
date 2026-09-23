@@ -5,7 +5,7 @@ const TIMEOUT_MS = 30_000;
 type OcrResult = { ok: true; text: string } | { ok: false; reason: "ocr_busy" | "ocr_timeout" | "ocr_failed" | "needs_input" };
 
 /** One bounded worker per process. No AI-provider fallback or claim verification. */
-export async function transcribeVisualImage(image: Buffer): Promise<OcrResult> {
+export async function transcribeVisualImage(image: Buffer, timeoutMs = TIMEOUT_MS): Promise<OcrResult> {
   if (busy) return { ok: false, reason: "ocr_busy" };
   busy = true;
   let worker: Worker | undefined;
@@ -36,7 +36,7 @@ export async function transcribeVisualImage(image: Buffer): Promise<OcrResult> {
         timedOut = true;
         if (worker) void cleanup();
         resolve({ ok: false, reason: "ocr_timeout" });
-      }, TIMEOUT_MS);
+      }, Number.isFinite(timeoutMs) ? Math.max(1, Math.min(TIMEOUT_MS, timeoutMs)) : TIMEOUT_MS);
     })]);
   } finally { clearTimeout(timer); }
 }

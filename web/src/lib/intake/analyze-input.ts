@@ -1,3 +1,4 @@
+import { extractDocumentVisuals, type DocumentVisualResult } from "./visual-document";
 // Context-aware backend intake pipeline — Block 1.
 //
 // Classifies free-form founder input into one of four shapes:
@@ -55,6 +56,7 @@ export interface IntakeInput {
 export interface IntakeStructured {
   slides?: string[];
   imageSource?: VisualTranscriptSource;
+  documentVisuals?: Omit<DocumentVisualResult, "text">;
   pages?: {
     url: string;
     text: string;
@@ -266,6 +268,13 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
       slides = [rawText];
     }
 
+    let documentVisuals: DocumentVisualResult | undefined;
+    if (!isImage && (isPdf || /\.(pptx|docx)$/i.test(filename))) {
+      documentVisuals = await extractDocumentVisuals(input.file.buffer, input.file.filename);
+      if (documentVisuals.text) rawText = [rawText, documentVisuals.text].filter(Boolean).join("\n\n");
+      warnings.push(...documentVisuals.warnings);
+    }
+    if (!rawText.trim()) throw Error("needs_input");
     const deckSections = slides.length > 0 ? await splitDeckToSections(slides) : undefined;
     const combinedText = [rawText, text].filter(Boolean).join("\n\n");
     const signals = extractSignals({ rawText: combinedText, fileName: input.file.filename });
@@ -290,7 +299,7 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
       inputKind: "pitch_deck",
       confidence: rawText.length > 200 ? 0.95 : 0.55,
       rawText: combinedText,
-      structured: { slides, deckSections, ...(imageSource ? { imageSource } : {}) },
+      structured: { slides, deckSections, ...(imageSource ? { imageSource } : {}), ...(documentVisuals ? { documentVisuals: { documentSha256: documentVisuals.documentSha256, units: documentVisuals.units, warnings: documentVisuals.warnings } } : {}) },
       signals,
       context,
       classifierMode: "file",

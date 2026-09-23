@@ -72,6 +72,7 @@ vi.mock("./visual-transcript", () => ({
   VISUAL_TRANSCRIPT_WARNING: "OCR is unverified; charts are not interpreted.",
 }));
 
+vi.mock("./visual-document", () => ({ extractDocumentVisuals: vi.fn(async () => ({ documentSha256: "c".repeat(64), text: "", units: [], warnings: [] })) }));
 import { analyzeInput } from "./analyze-input";
 
 describe("analyzeInput — regex fast-path", () => {
