@@ -1,6 +1,7 @@
 # Trusted Business Report — dashboard spec cho `/analyze`
 
-**Trạng thái:** PLAN ONLY — chưa code · **Ngày:** 2026-09-23 · **Ưu tiên:** P1
+**Trạng thái:** SPEC THỊ GIÁC — PLAN ONLY, chưa code · **Ngày:** 2026-09-23 · **Ưu tiên:** P1
+**Quyết định phạm vi nằm ở** [`g30-investor-report-surface-2026-09-23.md`](../plans/g30-investor-report-surface-2026-09-23.md) (bản chốt). File này mô tả bố cục/thị giác; mặc định trang mở ở **Investor view** (Zone 0–3 + tóm tắt định giá), Zone 4–8 nằm sau rail/tab và mở tại chỗ.
 **Thuộc:** [`g30-analyze-pitchbook-parity-2026-09-23.md`](../plans/g30-analyze-pitchbook-parity-2026-09-23.md) · merge trong `SOURCE-OF-TRUTH.md` §5/§10
 **Design system:** [light template v2](unicorn-template.md) — **không thêm palette/font mới**.
 Token dùng nguyên: `bg-surface` `#ffffff` · `bg-surface-sunken` `#f7f8fa` · `text-primary` · `text-ink-muted`

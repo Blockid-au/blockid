@@ -1,6 +1,6 @@
 # G30 — `/analyze` ↔ SVI PitchBook parity (một cấu trúc kết quả investor)
 
-**Trạng thái:** PLAN ONLY — chưa code. Viết để đồng bộ với phiên Codex đang code cùng vùng.
+**Trạng thái:** HỒ SƠ ĐIỀU TRA — **đã được chốt lại tại [`g30-investor-report-surface-2026-09-23.md`](g30-investor-report-surface-2026-09-23.md)**. Giữ file này làm bằng chứng source/live; các quyết định D-B* ở đây được thay bằng quyết định A/B/C/D/E trong bản chốt (một số đề xuất đã bị BỎ — xem §3 bản chốt). Chưa code.
 **Ngày:** 2026-09-23 · **Ưu tiên:** P1 (ngay sau P0 AI routing) — bề mặt bán hàng chính
 **Merge vào:** `SOURCE-OF-TRUTH.md` §5 (input contract), §6.7 (cross-site), §10.8–10.9 (intake), §12 U07–U08/R01–R04/F02–F04
 **Bối cảnh:** [website/text intent review](../reviews/2026-09-23-website-text-investor-intent-review.md) · [cross-site re-analyze review](../reviews/2026-09-22-g30-cross-site-reanalysis-source-review.md) · [pre-presentation review](../reviews/2026-09-23-pre-presentation-review.md)
