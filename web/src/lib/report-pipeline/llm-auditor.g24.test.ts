@@ -114,13 +114,13 @@ describe("G24-D (run 1 follow-ups) — short ids, declared-estimate tables, pre-
     expect(f.kept).toEqual([`"Brand: 2/5 — worth A$4M of goodwill" — fabricated.`]);
   });
 
-  it("run 3: a citation marker never makes a claim material ('87/100 [ev:…-1076-…]'); a full id with ≤ 2 wrong characters resolves to the one allowed id", () => {
+  it("run 3: a citation marker never makes a claim material ('87/100 [ev:…-1076-…]'); a mistyped full ID is never repaired into an allowed ID", () => {
     const GOOD = "e48e1491-1076-43f4-8f23-0fc57926068c";
     expect(findUncitedClaims("The SVI score of 87/100 in Market & Problem reflects strong work [ev:e48e1491-1076-43f4-8f23-0fc57926068c].", [GOOD])).toEqual([]);
     expect(findUncitedClaims("The SVI score of 87/100 in Market & Problem reflects strong work.", [])).toEqual([]);
     const typo = "The SVI score of 87/100 and a A$12M SAM [ev:e48e1491-1076-43e4-8f23-0fc57926068c].";
-    expect(expandShortCitations(typo, [GOOD])).toBe(`The SVI score of 87/100 and a A$12M SAM [ev:${GOOD}].`);
-    expect(findUncitedClaims(typo, [GOOD])).toEqual([]);
+    expect(expandShortCitations(typo, [GOOD])).toBe(typo);
+    expect(findUncitedClaims(typo, [GOOD])).toHaveLength(1);
     // three wrong characters is not a near miss
     expect(expandShortCitations("x [ev:e48e1491-1076-4f3e-8f23-0fc57926068c].", [GOOD])).toBe("x [ev:e48e1491-1076-4f3e-8f23-0fc57926068c].");
   });
@@ -355,5 +355,17 @@ describe("filterCriticFindings precision (review G24 P2)", () => {
     const draft = "MRR reached A$50K in August.";
     const f = filterCriticFindings([`"MRR reached A$50K in August" — this is an estimate, assuming growth; the evidence says mrr_aud = 0.`], draft, { allowedEvidenceIds: [ID], citable: items });
     expect(f.kept).toHaveLength(1);
+  });
+});
+
+describe("G30 citation identity and numeric compatibility", () => {
+  it("rejects a fabricated identifier when the catalogue is empty", () => {
+    expect(findUncitedClaims("MRR AUD 100000 [ev:invented].", [])).toHaveLength(1);
+  });
+  it("requires the cited source to carry the actual amount and currency", () => {
+    const source = [{ id: "revenue", label: "Revenue", text: "MRR AUD 100000" }];
+    expect(findUncitedClaims("MRR AUD 100000 [ev:revenue].", ["revenue"], 8, source)).toEqual([]);
+    expect(findUncitedClaims("MRR AUD 1000000 [ev:revenue].", ["revenue"], 8, source)).toHaveLength(1);
+    expect(findUncitedClaims("MRR USD 100000 [ev:revenue].", ["revenue"], 8, source)).toHaveLength(1);
   });
 });

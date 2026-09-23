@@ -25,10 +25,12 @@ describe("parseCitations", () => {
     ]);
   });
 
-  it("an unknown id renders nothing (never the raw marker); ids match case-insensitively with surrounding whitespace", () => {
+  it("an unknown id renders an unverified admission (never the raw marker); ids match case-insensitively with surrounding whitespace", () => {
     const segs = parseCitations("Churn is 2 % [ev:not-in-register] and steady [ev: 9f2c1a3b-0000-4000-8000-000000000001 ].", REGISTER);
     expect(segs).toEqual([
-      { kind: "text", text: "Churn is 2 % and steady" },
+      { kind: "text", text: "Churn is 2 % " },
+      { kind: "unevidenced" },
+      { kind: "text", text: " and steady" },
       { kind: "cite", n: 1, id: "9F2C1A3B-0000-4000-8000-000000000001", label: "Data room", level: null },
       { kind: "text", text: "." },
     ]);
@@ -42,10 +44,10 @@ describe("parseCitations", () => {
     expect(parseCitations("[UNCITED] Ten customers.", REGISTER)).toEqual([{ kind: "unevidenced" }, { kind: "text", text: " Ten customers." }]);
   });
 
-  it("no register → every marker is stripped and nothing is numbered", () => {
+  it("no register → every reference is unverified and nothing is numbered", () => {
     const segs = parseCitations("A$1.2M ARR [ev:ev-stripe] and 120 customers [unevidenced].");
     expect(segs.filter((s) => s.kind === "cite")).toEqual([]);
-    expect(segs.filter((s) => s.kind === "unevidenced")).toHaveLength(1);
+    expect(segs.filter((s) => s.kind === "unevidenced")).toHaveLength(2);
     expect(stripCitationMarkers("A$1.2M ARR [ev:ev-stripe] and 120 customers [unevidenced].")).toBe("A$1.2M ARR and 120 customers.");
   });
 

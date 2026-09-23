@@ -319,6 +319,8 @@ export async function auditSections(
     const uncitedClaims = findUncitedClaims(
       section.content,
       section.allowedEvidenceIds ?? [],
+      8,
+      section.citable,
     );
     const grounded = uncitedClaims.length === 0;
 
@@ -392,13 +394,14 @@ export const AUDITOR_CONCURRENCY = 4;
  * citation nor an explicit unevidenced marker.
  *
  * `allowedIds` are the evidence ids the section was permitted to cite. When
- * the list is empty any well-formed uuid counts as a citation — callers that
- * do not track a catalogue still get the "cite something" rule enforced.
+ * the list is empty no identifier counts as authenticated. With source text,
+ * numeric compatibility is also required; this is not semantic verification.
  */
 export function findUncitedClaims(
   text: string,
   allowedIds: string[] = [],
   limit = 8,
+  citable?: CitableItem[],
 ): string[] {
   const allowed = new Set(allowedIds.map(id => id.toLowerCase()));
   const flagged: string[] = [];
@@ -415,7 +418,16 @@ export function findUncitedClaims(
       if (!isMaterialClaim(claim)) continue;
       // G24-D: window-tagged action lines are targets, not claims (claim-gate.ts).
       if (isPrescriptiveClaim(claim)) continue;
-      if (hasCitationOrMarker(claim, allowed)) continue;
+      if (hasCitationOrMarker(claim, allowed)) {
+        if (UNEVIDENCED_MARKERS.test(claim) || citable === undefined) continue;
+        const ids = new Set(Array.from(claim.matchAll(EV_MARKER_RE), m => m[1]!.trim().toLowerCase()));
+        const sources = citable.filter(item => allowed.has(item.id.toLowerCase()) && ids.has(item.id.toLowerCase()));
+        const numbers = numericTokens(claim.replace(EV_MARKER_RE, " ")).filter(token => token.strong);
+        // Currency, magnitude, percentage and count must match cited source text.
+        // A valid ID alone cannot authenticate an invented amount. Matching is
+        // necessary, not proof of matching entity, period or meaning.
+        if (sources.length && numbers.every(token => sources.some(item => itemHasNumber(item.text, token)))) continue;
+      }
 
       flagged.push(claim.length > 220 ? `${claim.slice(0, 217)}...` : claim);
       if (flagged.length >= limit) break outer;

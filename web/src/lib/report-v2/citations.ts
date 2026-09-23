@@ -160,7 +160,7 @@ function pushText(out: CitationSegment[], text: string): void {
 /**
  * Split prose into segments. A citation hugs the word before it (the
  * whitespace before `[ev:]` is dropped, so "4.5 % [ev:x]." reads "4.5 %¹.");
- * an unknown id disappears together with its leading space; an
+ * an unknown id becomes a visible unevidenced admission; an
  * `[unevidenced]` admission keeps one space before it (it renders as a chip).
  * Runs of spaces left behind collapse to one, and a space before closing
  * punctuation is removed.
@@ -178,8 +178,11 @@ export function parseCitations(text: string, register: CitationIndex | readonly 
       const prev = out[out.length - 1];
       // Adjacent duplicates ("[ev:a] [ev:a]") collapse to one footnote.
       if (entry && !(prev && prev.kind === "cite" && prev.n === entry.n)) out.push({ kind: "cite", n: entry.n, id: entry.id, label: entry.label, level: entry.level });
-      // An unknown id renders nothing; keep one space when text continues on both sides.
-      else if (/\S$/u.test(before) && /^\S/u.test(text.slice(start + m[0].length))) pushText(out, " ");
+      // An unresolved reference is visible uncertainty, never silently erased.
+      else if (!entry) {
+        pushText(out, " ");
+        out.push({ kind: "unevidenced" });
+      } else if (/\S$/u.test(before) && /^\S/u.test(text.slice(start + m[0].length))) pushText(out, " ");
     } else {
       before = before.replace(/\s+$/u, "");
       pushText(out, before ? `${before} ` : "");
@@ -210,7 +213,7 @@ export function hasCitationMarkers(text: string): boolean {
  * The plain-string projection for contexts that cannot hold inline elements
  * (titles, table cells, e-mail subjects): a footnote number is `[n]` right
  * after the word, an admission is the localised chip word in parentheses,
- * an unknown id vanishes.
+ * an unknown id becomes an admission too.
  */
 export function citationsToPlainText(text: string, index: CitationIndex | readonly EvidenceRow[] = [], unverifiedWord = "unverified"): string {
   return parseCitations(text, index)

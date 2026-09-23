@@ -80,13 +80,6 @@ export function expandShortCitations(text: string, allowedIds: Iterable<string>)
     if (!/^[0-9a-f]{8,}(?:-[0-9a-f]*)*$/i.test(id) || lower.length < 8) return whole;
     const matches = allowed.filter((a) => a.toLowerCase().startsWith(lower));
     if (matches.length === 1) return `[ev:${matches[0]}]`;
-    // A full-length id with one or two wrong characters ("…-4f3e-…" for
-    // "…-43f4-…") names the one allowed id within Hamming distance 2 — ids are
-    // random hex, so a second id that close does not occur.
-    if (lower.length >= 32) {
-      const near = allowed.filter((a) => a.length === lower.length && hamming(a.toLowerCase(), lower) <= 2);
-      if (near.length === 1) return `[ev:${near[0]}]`;
-    }
     return whole;
   });
 }
@@ -183,16 +176,9 @@ export function isMaterialClaim(claim: string): boolean {
   return MATERIAL_PATTERNS.some(p => p.test(bare));
 }
 
-function hamming(a: string, b: string): number {
-  let d = 0;
-  for (let i = 0; i < a.length && d <= 2; i += 1) if (a[i] !== b[i]) d += 1;
-  return d;
-}
-
 /**
- * True when the claim carries an evidence id from `allowed` (any well-formed
- * uuid when the set is empty — callers without a catalogue still get the
- * cite-something rule) or an explicit unevidenced marker.
+ * True only for an explicitly allowed evidence ID or an unevidenced marker.
+ * An empty catalogue cannot authenticate a model-generated identifier.
  */
 export function hasCitationOrMarker(claim: string, allowed: ReadonlySet<string> | string[] = []): boolean {
   if (UNEVIDENCED_MARKERS.test(claim)) return true;
@@ -201,5 +187,5 @@ export function hasCitationOrMarker(claim: string, allowed: ReadonlySet<string> 
   // uuid-shaped in the pipeline, but demo / fixture rows use readable ids);
   // a bare uuid still counts, as before.
   const ids = [...Array.from(claim.matchAll(EV_MARKER_RE), m => m[1]!.trim()), ...(claim.match(UUID_RE) ?? [])];
-  return set.size === 0 ? ids.length > 0 : ids.some(u => set.has(u.toLowerCase()));
+  return ids.some(u => set.has(u.toLowerCase()));
 }
