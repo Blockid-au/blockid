@@ -1,6 +1,6 @@
 # BlockID.au — SOURCE OF TRUTH: G30 Business Research, Report Quality & Sale Readiness
 
-**Revision:** G30 / 2.9 — APPROVED IMPLEMENTATION — 23/09/2026. **Owner quyết định:** Do Van Long.
+**Revision:** G30 / 3.0 — APPROVED IMPLEMENTATION — 23/09/2026. **Owner quyết định:** Do Van Long.
 
 **Trạng thái:** `APPROVED — IMPLEMENTATION IN PROGRESS`. **Phase:** `W1 report foundation live; W1/W2 implementation continuing; broader ops gates open`.
 
@@ -1783,6 +1783,8 @@ Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi 
 
 ## 17. Change log
 
+- **23/09/2026 — G30 rev3.0 website/text WT2–WT3 source:** một `website-corpus-v1` có giới hạn và page lineage thay root-scrape + UI crawl tách rời; intake/report/SSE dùng cùng producer. Stored investor intent đi riêng vào agents và executive synthesis; website page chỉ là `public_url` low-trust, failure không thành evidence, thiếu support thành point-to-clarify. WT2 source complete; WT3 partial vì research độc lập/citation/coverage state chưa xong. 250 combined tests + full TypeScript pass; chưa tuyên bố live, không provider/credit/DB operation.
+
 - **23/09/2026 — G30 rev2.9, PLAN ONLY:** bổ sung AI routing & model policy đo thật (§11.3.1 + [`g30-ai-routing-model-policy-2026-09-23.md`](g30-ai-routing-model-policy-2026-09-23.md)): chốt DeepInfra primary với 3 model đã benchmark, loại model 0-citation, xếp free fallback mạnh→trung bình và loại provider 404/402, sửa health probe (`max_tokens:4`, chỉ check status 200) và ranking discovery cho family lạ. Ánh xạ vào O01/O02, không tạo lane mới. Nguyên nhân report degrade được đính chính: không phải token budget mà là report policy chỉ-DeepInfra không có fallback. Chưa code, chưa đổi runtime/spend; phân vai với phiên Codex đang code ghi tại §5 của plan doc.
 
 
@@ -2211,3 +2213,9 @@ Priority order remains: (1) evidence/input authority and safe research/credit li
 Primary source now includes `a8f511979` + `58b29c4eb`: metadata-only `BusinessInputSnapshot` and `InvestorIntentSnapshot` contracts are generated for every new deck, URL and text analysis in source. Exact user spans support requested investor outputs; unknown stage/geography remain unknown; fetched pages and uploaded document content cannot become user instructions. Input units carry locator/status/hash/size without embedding raw content, and retention cannot be marked authorised without a grant ID. New fields are optional for legacy readers.
 
 Forty-six focused tests and full TypeScript checking passed; the first default4GiB typecheck exhausted its process heap and the unchanged-source8GiB rerun passed. This source is **not deployed** and does not yet improve live reports: URL acquisition still records only the root page, intent is not yet consumed by the ReportV2 planner, and existing bounded raw-text persistence remains unchanged. WT2 must create one hardened multi-page producer used by progress and final report; WT3 then maps intent to criteria/research and final investor outputs. No DB/Stripe/provider/customer operation occurred. [Evidence and precise limits](../reviews/2026-09-23-website-text-investor-intent-review.md).
+
+### Website/text intent WT2–WT3 source implementation — 23/09/2026
+
+Source commits `8ee814b8d` and `8253cbecf` replace the split root-scrape/display-crawl path with one bounded `website-corpus-v1` producer used by intake, stored report input and the compatibility SSE route. Page lineage and partial statuses are retained; the UI no longer fetches the website twice. The ReportV2 job now passes the stored `InvestorIntentSnapshot` separately from business evidence, supplies available website pages only as low-trust `public_url` items, and injects requested outputs/questions into every analysis agent plus executive synthesis. Unsupported answers must be expressed as points to clarify.
+
+WT2 source acceptance and the intent-to-agent portion of WT3 are complete: 70 WT2 tests, 250 combined tests and full TypeScript checking passed. Deployment remains gated on a coherent release build and active/warm rollback. WT3 is still **partial** until independent market/competitor research, claim-level citations and persisted intent coverage states land. WT4–WT7 remain unchanged; no score/valuation uplift, credit charge or paid research is authorised by these commits. [Implementation evidence and remaining gaps](../reviews/2026-09-23-website-text-investor-intent-review.md).

@@ -36,3 +36,16 @@ Commits `a8f511979` and `58b29c4eb` add versioned metadata contracts and attach 
 The existing intake persistence still stores its legacy bounded `rawText`; this phase does not claim to remove or newly authorise that behaviour. It adds metadata to the existing compact intake payload when deployed. Old stored records remain compatible because the new fields are optional. Current URL acquisition still contributes only the root page to the snapshot, now explicitly represented as such; WT2 must replace the separate display-only multi-page crawl with a single hardened producer before claiming website parity.
 
 Validation: 46 focused intake/snapshot/payload tests passed. A focused strict TypeScript check passed, followed by the full repository TypeScript check with an 8 GiB Node heap. The first default-heap full check exhausted its 4 GiB process heap without a diagnostic; it was rerun successfully with unchanged source. No production build, route deployment, provider call, database migration, customer input, credit operation or website crawl occurred in this phase.
+
+## WT2–WT3 source implementation
+
+Commits `8ee814b8d` and `8253cbecf` complete the source foundation for acquisition and intent-aware synthesis:
+
+- URL intake now uses one hardened, versioned `website-corpus-v1` producer. It follows at most six same-host pages, prioritises pricing/product/customers/about/team/security/legal/contact, removes tracking parameters, caps each page and the aggregate corpus, and records available/blocked/timeout/not-found/unsupported/failed states. The producer inherits the existing DNS/IP/redirect checks from `fetchText`.
+- `/api/intake` persists that exact page ledger and uses the same bounded corpus for signals and the report. The site-visitor panel renders the returned ledger and no longer opens a second crawl. `/api/site-crawl/stream` remains a compatibility stream over the same producer.
+- The ReportV2 job recovers the stored `InvestorIntentSnapshot`, passes it separately to the orchestrator, and turns only available website pages into `public_url` evidence at the lowest founder-provided trust level. Blocked or failed pages are never promoted to evidence.
+- Every agent prompt and executive synthesis sees the requested outputs and exact user questions in a labelled “decision request, not business evidence” block. Missing support must become a specific point to clarify rather than a guessed answer. The executive brief continues to use the existing reasons-to-back, critical gaps/risks, verdict, valuation eligibility and deterministic investment-view contracts.
+
+Validation: 70 focused WT2 tests and 250 combined WT2/WT3 tests passed; full TypeScript checking passed with the repository's 8 GiB script. No model/provider call, paid search, customer credit, database migration or live website request was made by these tests.
+
+Remaining before website/text parity can be claimed live: bounded independent market/competitor research is not yet scheduled from each material intent; explicit per-intent coverage states are not yet stored/rendered; page text source markers are not yet upgraded into claim-level citation rows; WT4 score/valuation revision gates and WT5 investor UI/export parity remain. The source commits are merged but are not described as deployed by this review.
