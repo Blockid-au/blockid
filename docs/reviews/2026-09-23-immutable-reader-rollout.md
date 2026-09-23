@@ -1,0 +1,10 @@
+# Immutable reader bridge rollout — 23 September 2026
+
+BlockID.au is live on the reader-first immutable-report phase. The deployed application source is `0edf8bc62d326470b8543b041c9b2eb08b788178`, release `yBYjduBtYnxn1fvfBObJv`, active origin `4127`, with `4126` retained warm at the previous verified SHA `0cb6d0bda47bd870d0467e7964e35a9cf8fb076c`. Public and local HTTP checks returned 200; startup errors were zero; the production build, type check, static integrity, previous-chunk compatibility, and identity gates completed. The accelerated profile explicitly deferred unit, browser, extended review, and broad crawl suites; those are not reported as passes.
+
+The share-page reader now checks `report_revisions` first and accepts only a non-revoked row whose JSON satisfies the ReportV2 contract. If the table is unavailable, the reader falls back to the existing `svi_snapshots` path and legacy adapter. The database table was applied as migration `0410_report_revisions.sql` before this deploy and an empty REST query returned HTTP 200. The source migration is deliberately deferred from the current release because the serving-state authority controller rejected an unreviewed schema-digest transition; the deployed code therefore remains reader-only and fallback-safe.
+
+No revision writer was enabled, no existing share token was rewritten, and no historical report was backfilled. Existing links continue through the snapshot reader until an authority-approved schema transition and writer rollout are completed. The next implementation step is that writer plus exact migration/rollback review; it must preserve the DeepInfra-only US$0.50/report budget and deploy as a separate live phase.
+
+The failed candidate on port 4127 from the earlier admission attempt was inspected by exact unit/release identity, stopped through systemd supervision, and its temporary pin was removed before the successful build. The active and warm origins were not touched. All prior release artifacts remain retained. O08 quiescence and broad detached-work coverage remain incomplete.
+
