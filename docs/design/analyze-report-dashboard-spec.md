@@ -3,7 +3,7 @@
 **Trạng thái:** SPEC THỊ GIÁC — PLAN ONLY, chưa code · **Ngày:** 2026-09-23 · **Ưu tiên:** P1
 **Quyết định phạm vi nằm ở** [`g30-investor-report-surface-2026-09-23.md`](../plans/g30-investor-report-surface-2026-09-23.md) (bản chốt). File này mô tả bố cục/thị giác; mặc định trang mở ở **Investor view** (Zone 0–3 + tóm tắt định giá), Zone 4–8 nằm sau rail/tab và mở tại chỗ.
 **Thuộc:** [`g30-analyze-pitchbook-parity-2026-09-23.md`](../plans/g30-analyze-pitchbook-parity-2026-09-23.md) · merge trong `SOURCE-OF-TRUTH.md` §5/§10
-**Amend 23/09 (G31):** Zone 2 “Signal strip” được thay bằng Investor Priority Matrix; nhãn triptych và verdict theo [investor-lens-report-spec.md](investor-lens-report-spec.md).
+**Amend 23/09 (G31 rev 1.2):** Zone 1–3 và thứ tự mục theo [Investor Lens UI/UX v2](investor-lens-report-spec.md); Zone 2 “Signal strip” được thay bằng Investor Priority Matrix.
 **Design system:** [light template v2](unicorn-template.md) — **không thêm palette/font mới**.
 Token dùng nguyên: `bg-surface` `#ffffff` · `bg-surface-sunken` `#f7f8fa` · `text-primary` · `text-ink-muted`
 · action navy `#1b2a5e` · secondary cyan `#0e7490` · `text-bull` `#047857` / `text-warn` `#b45309` / `text-bear` `#b91c1c`.

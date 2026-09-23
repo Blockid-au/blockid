@@ -1,190 +1,452 @@
-# Investor Lens — UI/UX spec cho Trusted Business Report
+# Trusted Business Report — thiết kế lại UI/UX v2 (Investor Lens)
 
-**Trạng thái:** `SPEC THỊ GIÁC — PLAN ONLY, chưa code` · **Ngày:** 23/09/2026
-**Phạm vi và quyết định nằm ở:** [G31 Investor Lens plan](../plans/g31-investor-lens-biz-trust-report-2026-09-23.md)
-**Sửa đổi (amend):** [analyze-report-dashboard-spec.md](analyze-report-dashboard-spec.md). Zone 2 “Signal strip” được thay bằng **Investor Priority Matrix**, và Zone 3 triptych đổi nhãn (xem §2). Các phần khác của spec đó giữ nguyên.
-**Kế thừa:** [TBR v3 spec](tbr-v3-investor-report-spec.md) §3 (anatomy dimension), §5 (grid/print), §6 (free/paid).
-**Design system:** [unicorn-template.md](unicorn-template.md), light only. **Không thêm palette hay font.**
+**Trạng thái:** `SPEC THỊ GIÁC v2 — PLAN ONLY, chưa code` · **Ngày:** 23/09/2026 · **Thay:** spec v1 cùng file (rev đầu ngày 23/09)
+**Phạm vi và thứ tự triển khai:** [G31 Investor Lens plan](../plans/g31-investor-lens-biz-trust-report-2026-09-23.md) §5, §7 · SOT §10.13, §12.10
+**Amend:** [analyze-report-dashboard-spec.md](analyze-report-dashboard-spec.md) (Zone 2 → Priority Matrix; Zone 1/3 theo §4 dưới đây) · [tbr-v3-investor-report-spec.md](tbr-v3-investor-report-spec.md) §2 (thứ tự mục) và §5 (dashboard tiles). Anatomy dimension (§3) và print rules (§5) của v3 giữ nguyên, trừ phần ghi rõ ở đây.
+**Design system:** [unicorn-template.md](unicorn-template.md), light only. **Không thêm palette, font hay dark band.**
 
 ---
 
-## 1. Nguyên tắc
+## 0. Hướng thiết kế
 
-| # | Nguyên tắc | Hệ quả |
+**Một câu:** Trusted Business Report trông như **một research note của quỹ đầu tư, in ra được và đọc được trong 60 giây**, không phải một dashboard SaaS hay một landing page.
+
+| Nguyên tắc | Nghĩa trong thiết kế |
+|---|---|
+| **Quyết định trước, phân tích sau** | Người đọc gặp kết luận, giá trị và rủi ro trước; phương pháp và SVI ở cuối |
+| **Theo thứ tự investor ưu tiên** | Mọi danh sách tín hiệu (matrix, chương, rail, drawer, PDF, cohort) theo **một** thứ tự cố định: **Team → Traction → Moat → Liquidity → Cap Table → IP** (+ ESG khi trọng yếu) |
+| **Điểm luôn đi cùng bằng chứng** | Không có ô số nào đứng một mình. Score (thanh đặc navy) và confidence (thước 6 nấc cyan) có hai hình dạng khác nhau |
+| **Thành thật như một tính năng** | Chưa đủ bằng chứng, report bị degraded hay benchmark thiếu `n` đều được nói thẳng, ngay cạnh con số liên quan |
+| **Mật độ có kiểm soát** | Mặt trước bị khóa cứng ở 4 chỉ số · 6 tín hiệu · 3 · 3 · 3. Chiều sâu mở tại chỗ bằng drawer/accordion |
+| **Một nguồn, mọi bề mặt** | Web = PDF = DOCX = e-mail, dựng từ cùng revision |
+
+**Đề xuất bị loại:** công cụ design gợi ý hướng “data dashboard” nền tối (OLED) + Fira Code/Fira Sans + accent xanh lá. **Không dùng**, vì trái light-only (§10.11 SOT, D18) và hệ font đã khóa. Giữ lại từ gợi ý đó: màu trạng thái có icon/chữ, mật độ cao nhưng quét được, radar chỉ là phụ (khả năng tiếp cận hạng B, bắt buộc có bar/table thay thế), lưới <20 ô trình bày bằng bảng.
+
+---
+
+## 1. Kiến trúc thông tin theo tầng đọc
+
+| Tầng | Thời gian | Người đọc hỏi | Mục |
+|---|---|---|---|
+| **L0 Glance** | 5 giây | Có nên mở tiếp không? | Masthead · 4 chỉ số · meeting label |
+| **L1 Brief** | 60 giây | Vì sao, rủi ro gì, hỏi gì? | 02 Priority Matrix · triptych (3 lý do / 3 điều chặn deal / 3 câu hỏi) · 03 Evidence (tóm tắt) |
+| **L2 Analysis** | 3–10 phút | Từng mặt mạnh yếu thế nào? | 04 Business · **05 Team · 06 Traction · 07 Market · 08 Moat & IP · 09 Liquidity · 10 Capital & Governance** · 11 Valuation · 12 Risks · 13 Questions |
+| **L3 Audit** | Khi cần | Dựa vào đâu, tính thế nào? | 14 SVI Detail · 15 90-Day Plan · 16 Evidence Register & Audit |
+
+**Thứ tự 16 mục = thứ tự ưu tiên của plan mới.** Tầng L2 đi theo thứ tự investor: Team trước Traction, Traction trước Market. Market đứng sau Traction vì investor hỏi “khách hàng có kéo không?” trước “thị trường lớn không?”. IP được gộp cạnh Moat vì đó là cùng một câu hỏi phòng thủ. Liquidity và Cap Table đứng trước Valuation vì chúng quyết định valuation có ý nghĩa hay không.
+
+---
+
+## 2. Khung trang (page shell)
+
+### 2.1 Desktop ≥1280 px — ba vùng
+
+```
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│ APP HEADER (giữ shell hiện có)                                                        │
+├──────────────┬──────────────────────────────────────────────────┬────────────────────┤
+│ SECTION RAIL │ MAIN COLUMN  (max 760 px chữ · 1040 px bảng)      │ DECISION RAIL      │
+│ 220 px       │                                                  │ 280 px, sticky     │
+│ sticky       │ Masthead                                         │ ┌────────────────┐ │
+│              │ Top metrics (4)                                  │ │◉ WORTH         │ │
+│ 01 Snapshot  │ Meeting label + luận điểm                        │ │  INVESTIGATING │ │
+│ 02 Priorities│ 02 Investor Priority Matrix                      │ │ A$4.2–8.5M     │ │
+│ 03 Evidence  │ Triptych                                         │ │ Evidence 82%   │ │
+│ ─ Analysis ─ │ 03 Evidence & Confidence                         │ │ ▰▰▰▰▰▱         │ │
+│ 04 Business  │ ...                                              │ ├────────────────┤ │
+│ 05 Team    ● │                                                  │ │ Hỏi trước (3)  │ │
+│ 06 Traction● │                                                  │ │ 1 … 2 … 3 …    │ │
+│ 07 Market  ◐ │                                                  │ ├────────────────┤ │
+│ 08 Moat&IP ◐ │                                                  │ │ [Tải PDF brief]│ │
+│ 09 Liquid. ◌ │                                                  │ │ [Chia sẻ]      │ │
+│ 10 Capital ▲ │                                                  │ │ [Yêu cầu BC]   │ │
+│ 11 Valuation │                                                  │ └────────────────┘ │
+│ 12 Risks     │                                                  │ RPT-8F2A · SVI 2.2 │
+│ 13 Questions │                                                  │ Snapshot 23/09     │
+│ ─ Audit ──── │                                                  │                    │
+│ 14 SVI       │                                                  │                    │
+│ 15 Plan      │                                                  │                    │
+│ 16 Register  │                                                  │                    │
+└──────────────┴──────────────────────────────────────────────────┴────────────────────┘
+```
+
+- **Section rail:** mỗi mục có số, tên và **chấm trạng thái** của tín hiệu tương ứng (icon nhỏ + `aria-label`). Mục đang đọc được đánh dấu bằng thanh navy 3 px bên trái. Nhóm được chia bằng nhãn “Analysis” / “Audit”.
+- **Decision rail:** chỉ xuất hiện sau khi masthead cuộn khỏi màn hình (`IntersectionObserver`), để không lặp dữ liệu ở fold đầu. Rail nhắc lại kết luận, giá trị, confidence, 3 câu hỏi và các hành động. Đây là **nơi duy nhất có nút hành động chính** khi đang đọc sâu.
+- **Main column:** đoạn văn giới hạn 65–75 ký tự/dòng. Bảng được rộng tới 1040 px.
+
+### 2.2 Tablet 768–1279 px
+
+- Section rail thu thành **tab strip ngang dính dưới header** (cuộn ngang, `min-w-0 overflow-x-auto`).
+- Decision rail chuyển thành **thanh tóm tắt dính đầu trang** cao 48 px: meeting label · giá trị · confidence · nút “⋯ Hành động”.
+
+### 2.3 Mobile 375 px
+
+```
+┌ ← Reports   RPT-8F2A  ⋯ ┐   header 48 px
+├─────────────────────────┤
+│ Acme Compliance         │
+│ B2B SaaS · Seed · NSW   │
+├─────────────────────────┤
+│ A$4.2M – A$8.5M         │   định giá luôn là số đầu tiên
+│ base A$6.1M · 4 methods │
+├────────────┬────────────┤
+│ Evidence   │ SVI        │
+│ 82% ▰▰▰▰▰▱ │ 71 Strong  │
+├────────────┴────────────┤
+│ Verified L3 · Financials│
+├─────────────────────────┤
+│ ◉ WORTH INVESTIGATING   │
+│ “Verified recurring …”  │
+├─────────────────────────┤
+│ ▲ Điều có thể chặn (3)  │   rủi ro trước điểm mạnh
+│ ✓ Vì sao đáng xem (3)   │
+│ ? Hỏi trước (3)         │
+├─────────────────────────┤
+│ Team      ✓ Strong    › │   matrix = thẻ 72 px
+│ 84 ████  91% ▰▰▰▰▰▱ ↑   │
+│ Traction  ✓ Strong    › │
+│ …                       │
+├─────────────────────────┤
+│ [Mục lục ▾]  [PDF] [⋯]  │   thanh dưới dính, 56 px + safe area
+└─────────────────────────┘
+```
+
+- **Mục lục** mở dạng bottom sheet liệt kê 16 mục kèm trạng thái. Không dùng bottom nav cho report.
+- Drawer tín hiệu mở toàn màn hình, có nút đóng 44 px ở góc và vuốt xuống để đóng.
+- Không có cuộn ngang ở bất kỳ vùng nào. Bảng rộng chuyển thành danh sách thẻ, không co chữ.
+
+---
+
+## 3. Design tokens (dùng lại, không tạo mới)
+
+### 3.1 Màu theo vai trò
+
+| Vai trò | Token / giá trị | Dùng cho |
 |---|---|---|
-| L1 | **60 giây, một màn hình rưỡi** | Mặt trước chỉ có 4 chỉ số · 6 tín hiệu · 3 lý do · 3 rủi ro · 3 câu hỏi. Không có mục thứ tư |
-| L2 | **Điểm và tin cậy là hai đại lượng, hai hình dạng** | Score dùng **thanh đặc navy**. Confidence dùng **thước 6 nấc cyan có nhãn bậc**. Không bao giờ trộn thành một thanh |
-| L3 | **Ngôn ngữ investor trước, mã SVI sau** | Hiển thị “Team, Traction, Moat, Liquidity, Cap Table, IP”. Mã FTV/TRE… chỉ xuất hiện ở tooltip ánh xạ và mục 14 |
-| L4 | **Mỗi kết luận truy được tới bằng chứng trong 1 click** | Mỗi hàng, mục hoặc câu hỏi đều có liên kết mở drawer claim tại chỗ |
-| L5 | **Thiếu dữ liệu là trạng thái, không phải điểm thấp** | Hiển thị xám `Insufficient evidence` + CTA. Không in 0, không suy “Watch” |
-| L6 | **Research note** | Masthead, đánh số mục, provenance. In ra là tài liệu hợp lệ. Web = PDF = DOCX |
-| L7 | **Màu không bao giờ là kênh duy nhất** | Icon Lucide + nhãn chữ + màu token |
+| Nền trang | `bg-surface` `#ffffff` | Toàn trang |
+| Nền phụ | `bg-surface-sunken` `#f7f8fa` | Zebra, track của thanh, callout |
+| Chữ chính | `text-primary` (ink) | Body, số liệu |
+| Chữ phụ | `text-ink-muted` | Nhãn, caption (≥4.5:1 trên nền trắng) |
+| Hành động chính | navy `#1b2a5e` | 1 nút chính mỗi vùng, thanh score, rule callout, rail active |
+| Accent thông tin | cyan-muted `#0e7490` | Link, thước confidence, trạng thái Moderate/Developing |
+| Tích cực | `text-bull` `#047857` | Strong, điểm mạnh |
+| Cảnh báo | `text-warn` `#b45309` | Watch, cần làm rõ, Stale |
+| Tiêu cực | `text-bear` `#b91c1c` | Material issue, rủi ro |
+| Chart phụ | palette `lib/report-visuals/palette.ts` | Cap table stacked bar, dimension bars |
 
-## 2. Bố cục Investor view (desktop 1440, `max-w-6xl`)
+- Màu trạng thái chỉ dùng cho **icon, viền và nền 8%**. Chữ vẫn là ink để giữ tương phản.
+- Không dùng hex thô trong className (guard hiện có).
 
-```
-┌─ MASTHEAD ───────────────────────────────────────────────────────────────────┐
-│ TRUSTED BUSINESS REPORT                                    [PDF] [Chia sẻ] [↻] │
-│ Acme Compliance Pty Ltd   B2B SaaS · Seed · NSW, AU                          │
-│ Snapshot 23/09/2026 · Methodology SVI 2.2.0 · RPT-8F2A · 42 claims · 2 sources live │
-├─ TOP METRICS (4 ô, grid 12: 5 · 3 · 2 · 2) ──────────────────────────────────┤
-│ INDICATIVE PRE-MONEY      │ EVIDENCE CONFIDENCE │ SVI          │ VERIFICATION │
-│ A$4.2M – A$8.5M           │ 82%                 │ 71 /100      │ L3           │
-│ base A$6.1M · 4 methods   │ ▰▰▰▰▰▱ connected    │ Strong ▲+3   │ Financials   │
-│                           │ 12 claims verified  │ index 128 ⓘ  │ attested     │
-├─ MEETING LABEL ──────────────────────────────────────────────────────────────┤
-│ [◉ WORTH INVESTIGATING]  “Verified recurring revenue; ownership of the core  │
-│  IP and SAFE dilution need answers before a term sheet.”   · evaluators decide │
-├─ 02 INVESTOR PRIORITY MATRIX ────────────────────────────────────────────────┤
-│ Signal      Status          Score          Evidence            Fresh  Trend  Key evidence            │
-│ Team        ✓ Strong        ████████▌ 84   ▰▰▰▰▰▱ 91%          Current  ↑   Prior exit verified     │
-│ Traction    ✓ Strong        ████████  80   ▰▰▰▰▰▰ 94%          Live     ↑   Stripe + Xero ARR       │
-│ Moat        ◐ Moderate      ██████▌   66   ▰▰▰▰▱▱ 68%          Current  →   Product + IP documents  │
-│ Liquidity   ◌ Developing    █████     50   ▰▰▱▱▱▱ 42%          —        →   Buyer map, no comps     │
-│ Cap Table   ▲ Watch         ████▌     45   ▰▰▰▰▱▱ 71%          Aging    ↓   SAFE converts to 14%    │
-│ IP Depth    ✓ Strong        ████████▌ 86   ▰▰▰▰▰▱ 86%          Current  ↑   GitHub + IP assignment  │
-│                                                       [Xem cách tính · ánh xạ SVI ▸]      │
-├─ TRIPTYCH ───────────────────────────────────────────────────────────────────┤
-│ ✓ WHY INVESTIGATE (3)     │ ▲ WHAT COULD STOP THE DEAL (3) │ ? ASK BEFORE THE MEETING (3) │
-│ Repeat founder            │ Customer concentration 28%     │ 1 What supports retention?  │
-│  prior exit · 2 sources ▸ │  Xero · verified ▸             │  gap: no cohort data ▸      │
-│ Verified ARR A$680K       │ SAFE dilution                  │ 2 Who owns the core IP?     │
-│ Proprietary dataset       │ Exit case under-evidenced      │ 3 Which milestone unlocks…  │
-└──────────────────────────────────────────────────────────────────────────────┘
-  Rail trái (≥xl) / tab ngang (<xl): 01 Snapshot · 02 Priorities · 03 Evidence · 04 Business ·
-  05 Team · 06 Traction · 07 Market · 08 Moat & IP · 09 Liquidity · 10 Capital · 11 Valuation ·
-  12 Risks · 13 Questions · 14 SVI · 15 Plan · 16 Register
-```
+### 3.2 Chữ
 
-**Chiều cao mục tiêu:** masthead + metrics + meeting label nằm trọn trong fold đầu ở 1440×900. Matrix và triptych chiếm khoảng 0,5 màn hình tiếp theo.
+| Vai trò | Font | Cỡ / line-height | Weight |
+|---|---|---|---|
+| Display (định giá) | IBM Plex Mono `tabular-nums` | 48/56 (desktop) · 36/44 (mobile) | 600 |
+| H1 tên công ty | Space Grotesk | 32/40 · 26/32 | 600 |
+| H2 mục | Space Grotesk | 24/32 · 20/28 | 600 |
+| H3 khối con | Inter | 18/28 | 600 |
+| Body | Inter | 16/26 | 400 |
+| Phụ | Inter | 14/22 | 400 |
+| Nhãn/kicker | Inter uppercase, tracking +0.04em | 12/16 | 500 |
+| Số trong bảng/tile | IBM Plex Mono `tabular-nums` | 14–32 | 500–600 |
 
-### 2.1 Mobile 375
+Chữ nhỏ nhất là 12 px (web) và 9,5 pt (PDF). Số mục dùng mono (`05`) để tạo nhịp như research note.
 
-```
-┌ Acme Compliance · Seed ┐
-│ RPT-8F2A · 23/09 [⋯]   │
-├────────────────────────┤
-│ A$4.2M – 8.5M          │  ← định giá luôn lên đầu
-│ base 6.1M · 4 methods  │
-├───────────┬────────────┤
-│ Evidence  │ SVI 71     │
-│ 82% ▰▰▰▰▰▱│ Strong ▲+3 │
-├───────────┴────────────┤
-│ Verification L3 · Fin. │
-├────────────────────────┤
-│ ◉ WORTH INVESTIGATING  │
-├────────────────────────┤
-│ ▲ STOP THE DEAL (3)    │  ← rủi ro trước điểm mạnh trên mobile
-│ ✓ WHY INVESTIGATE (3)  │
-│ ? ASK FIRST (3)        │
-├────────────────────────┤
-│ Team      ✓ Strong     │  ← matrix = thẻ; chạm để mở
-│ 84 ▰▰▰▰▰▱ 91% ↑        │
-│ Traction  ✓ Strong …   │
-└────────────────────────┘
-```
+### 3.3 Khoảng cách, bo góc, đổ bóng, lớp
 
-Ở 375 px: thẻ tín hiệu cao 64–72 px và cả thẻ là vùng chạm. Tab section cuộn ngang (`min-w-0 overflow-x-auto`). Không có nút nào nhỏ hơn 44 px.
+- **Spacing** theo thang 4 px:
+  - trong component: 8/12/16;
+  - padding thẻ: 20/24;
+  - giữa khối trong mục: 24/32;
+  - giữa mục: 64 (desktop) / 48 (mobile).
+- **Bo góc:** thẻ 12, chip 999 (pill), nút 10, bảng 12 ở khung ngoài. Theo unicorn-template.
+- **Đổ bóng:** chỉ 2 mức: thẻ (`shadow-sm`) và drawer/sheet (`shadow-xl` + scrim 40%). Không dùng shadow để trang trí.
+- **Z-index:** nội dung 0 · rail dính 10 · thanh dưới mobile 20 · drawer 40 · toast 100.
+- **Icon:** Lucide, stroke 1.75, kích thước 14 (chip) / 16 (hàng) / 20 (tiêu đề). Không dùng emoji.
 
-## 3. Component
+### 3.4 Chuyển động
 
-Đặt trong `components/tbr/v2/lens/`. Dùng primitives `Card`, `Table/Th/Td`, `Section` và `StatTile`/`Callout` của `shared.tsx`.
+- Mở drawer 200 ms ease-out, đóng 140 ms. Accordion 180 ms.
+- Không animate số và thanh. Không có hiệu ứng vào trang.
+- `prefers-reduced-motion`: tắt toàn bộ chuyển động và giữ nguyên trạng thái.
 
-| Component | Mô tả | Chi tiết thị giác |
+---
+
+## 4. Thiết kế từng mục (theo thứ tự ưu tiên)
+
+### 01 Investor Snapshot
+
+**Masthead**
+
+- Kicker: `TRUSTED BUSINESS REPORT`.
+- Tên công ty (H1).
+- Dòng meta: sector · stage · jurisdiction.
+- Dòng provenance mono 12 px: `Snapshot 23/09/2026 · SVI 2.2.0 · RPT-8F2A · 42 claims · 2 sources live`. Click để tới mục 16.
+- Badge phụ: `ABN verified`, `Free report 1/2`, `Bản đã lưu 12/08 — có bản mới hơn ›` khi đang xem revision cũ.
+
+**4 chỉ số** (grid 12 cột, tỷ lệ 5 · 3 · 2 · 2)
+
+| Tile | Giá trị chính | Dòng phụ | Khi thiếu dữ liệu |
+|---|---|---|---|
+| **Indicative pre-money** | `A$4.2M – A$8.5M` 48 px | `base A$6.1M · 4 methods` | “Chưa đủ bằng chứng để định giá” + 2 CTA; không in khoảng mờ |
+| **Evidence confidence** | `82%` + thước 6 nấc | `12 claims verified · 3 founder-stated` | `—` + “Chưa có bằng chứng kiểm chứng” |
+| **SVI** | `71 /100` + band chữ | `▲+3 vs 12/08 · index 128 ⓘ` | `—` + “Chưa đánh giá” |
+| **Verification** | `L3` | nhãn chữ “Financials attested” | `L0 · Chưa xác minh` |
+
+**Meeting label**
+
+- Chip lớn 40 px (icon + nhãn) và câu luận điểm ≤2 dòng.
+- Dòng 12 px bên dưới: “BlockID sắp xếp bằng chứng; nhà đầu tư ra quyết định. Thông tin chung, không phải tư vấn tài chính.”
+- Tooltip của chip hiện **luật đã kích hoạt** (`B: 1 claim trọng yếu chưa kiểm chứng`).
+
+**Triptych** (3 cột; mobile theo thứ tự Rủi ro → Điểm mạnh → Câu hỏi)
+
+| Cột | Tiêu đề | Icon / viền | Mỗi mục |
+|---|---|---|---|
+| 1 | Vì sao đáng tìm hiểu | `ArrowUpRight` / bull | Tiêu đề ≤8 từ · một dòng bằng chứng có footnote · chip tín hiệu (`Team`) · ▸ mở tại chỗ |
+| 2 | Điều có thể chặn thương vụ | `AlertTriangle` / bear | Như trên + chip `Mức độ cao · Chưa kiểm chứng` |
+| 3 | Hỏi trước buổi gặp | `HelpCircle` / warn | Số thứ tự · câu hỏi · “vì sao hỏi” · nút “Yêu cầu bằng chứng” (evaluator) hoặc “Bổ sung” (founder) |
+
+### 02 Investor Priority Matrix (visual đặc trưng)
+
+| Cột | Rộng | Nội dung |
 |---|---|---|
-| `LensMasthead` | Danh tính + provenance rút gọn + hành động | Kicker 12 px uppercase `text-ink-muted`. Tên công ty 32 px Space Grotesk. Dòng provenance 12 px mono; click mở provenance đầy đủ (mục 16) |
-| `LensMetricTile` ×4 | Valuation · Evidence · SVI · Verification | Nhãn 12 px uppercase; giá trị 48 px (valuation) hoặc 32 px (còn lại) IBM Plex Mono `tabular-nums`; một dòng phụ 14 px. Chưa định giá được thì ghi “Chưa đủ bằng chứng để định giá” + 2 CTA, không in khoảng mờ (G30 B2) |
-| `MeetingLabelChip` | Band A–D với nhãn trung tính | Chip 40 px, nền nhạt theo status + chữ ink đậm + icon. Tooltip hiện luật đã kích hoạt (`B:unverified`). Câu luận điểm ≤2 dòng. Sub-line “evaluators decide” 12 px |
-| `PriorityMatrix` | 6 hàng (+ESG khi trọng yếu) | `<table>` thật (a11y), hàng 52 px, zebra `bg-surface-sunken`. Cột số căn phải. Click hàng mở `SignalDrawer`. Cột “Key evidence” cắt 1 dòng + tooltip. <768 px chuyển thành danh sách thẻ |
-| `ScoreBar` | Score 0–100 | Thanh 6 px, track `surface-sunken`, fill navy `#1b2a5e`, nhãn số mono bên phải. Score `null` thì hiện `—` + nhãn “chưa đánh giá”, không có track |
-| `ConfidenceMeter` | 6 nấc theo thang evidence | 6 ô 10×6 px cách 2 px. Ô đầy = cyan `#0e7490`, ô rỗng = viền muted. Nhãn “94% · Transaction evidence”. `aria-label` đầy đủ. Không dùng gradient |
-| `StatusChip` | 6 trạng thái (bảng §4) | Icon 14 px + chữ 13 px medium. Nền 8% màu status; viền đứt cho Insufficient |
-| `FreshnessBadge` | Live/Current/Aging/Stale/Unknown | Chữ + icon (`Radio`, `Clock`, `Hourglass`, `AlertCircle`, `HelpCircle`). Stale dùng warn, các mức khác dùng muted |
-| `TrendGlyph` | ↑ → ↓ | Mũi tên + chữ ẩn cho screen reader (“tăng 6 điểm từ 12/08”). Báo cáo đầu tiên thì ghi “Báo cáo đầu tiên” |
-| `LensTriptych` | Why investigate / Stop the deal / Ask first | Mỗi cột ≤3 mục. Mục = tiêu đề ≤8 từ + dòng bằng chứng có footnote + ▸ mở tại chỗ. Viền trái 4 px bull/bear/warn (callout G27). Tiêu đề và bằng chứng **lấy từ cùng một object**, sửa lỗi ghép theo chỉ số (G30 D5) |
-| `SignalDrawer` | Chi tiết một tín hiệu, mở tại chỗ | Sheet phải 480 px trên desktop, full-screen trên mobile. Nội dung: câu hỏi investor → verdict 1 câu → claims (bảng) → hỗ trợ/thiếu → câu hỏi sinh ra → ánh xạ SVI. Giữ vị trí cuộn; Esc đóng; focus trap |
-| `ClaimRow` | Claim · giá trị · nguồn · ngày · bậc · tin cậy · freshness · trạng thái | Dạng thẻ nhỏ. Giá trị mono lớn. Nguồn là link (quyền đúng). Claim `self_declared` có chip outline “Founder stated” |
-| `NarrativeGapCallout` | Score ≥70, confidence <40 | Callout warn: “Luận điểm mạnh, bằng chứng yếu — 82/100 nhưng 31% tin cậy. Cần: …” |
-| `EvidenceLadder` | Mục 03 | Thang dọc 6 bậc. Mỗi bậc có số claim + thanh đếm. Bậc thấp nhất đặt dưới. Kèm dải freshness 5 ô |
-| `MoatBreakdown` | 5 sub-signal moat | 5 hàng dạng mini-matrix (score + confidence riêng). Không dùng radar |
-| `LiquidityRoutes` | Mục 09 | Tối đa 3 thẻ route, xếp theo khả thi: tên route · khả thi (chip) · lý do · buyer classes (chip) · comps có nguồn hoặc “chưa có”. Bên dưới là danh sách blockers (icon `Lock`). Banner cố định: “Không phải dự báo giá trị thoát vốn” |
-| `CapTableBar` | Mục 10 | Thanh xếp chồng ngang 100%: Founders · ESOP · SAFE/Notes (chuyển đổi) · Investors · Khác. Hai hàng “Hiện tại” và “Sau vòng tới (giả định)”. Kèm bảng thay thế và danh sách giả định. Màu theo palette chart có sẵn trong `report-visuals/palette.ts` |
-| `GovernanceChecklist` | Vesting · SHA · board · IP assignment · ESOP plan | Hàng checklist 3 trạng thái: ✓ có bằng chứng · ✗ thiếu · ? chưa rõ |
-| `RiskMatrix` | Mục 12 | Lưới 3×3 severity × probability (đếm), thêm cột “Chưa xác định”. Bảng top 5 có cột Evidence riêng + mitigation + câu hỏi liên kết |
-| `QuestionList` | Mục 13 | Thẻ đánh số 1–7: câu hỏi · “vì sao hỏi” · tín hiệu · nút “Yêu cầu bằng chứng” · trạng thái (evaluator: open/asked/answered) |
-| `FounderGapsPanel` | Chỉ ở view founder | “3 bằng chứng làm tăng tin cậy investor nhiều nhất” + 1 hành động tác động lớn nhất, kèm CTA connector/upload. Không hứa điểm |
+| Tín hiệu | 180 | Tên + câu hỏi investor (14 px muted, ẩn dưới 1024) |
+| Trạng thái | 150 | `StatusChip` |
+| Điểm | 160 | `ScoreBar` + số |
+| Bằng chứng | 170 | `ConfidenceMeter` + % + tên bậc |
+| Độ mới | 100 | `FreshnessBadge` |
+| Xu hướng | 70 | `TrendGlyph` |
+| Bằng chứng chính | còn lại | 1 dòng, link mở drawer |
 
-## 4. Hệ trạng thái
+- 6 hàng theo đúng thứ tự Team → Traction → Moat → Liquidity → Cap Table → IP. Hàng ESG (nếu có) nằm cuối, có nhãn “Trọng yếu với ngành”.
+- Hàng cao 56 px, zebra, cả hàng là vùng click (mở `SignalDrawer`, tới chương bằng deep link `#signal-traction`).
+- Hàng có narrative gap mang **dải warn 3 px bên trái** kèm tooltip “Luận điểm mạnh, bằng chứng yếu”.
+- Dưới bảng là link “Cách tính và ánh xạ SVI”, mở accordion giải thích 6 tín hiệu ↔ 13 criteria ↔ 8 dimension.
+- Báo cáo đầu tiên không có trend: cột Xu hướng ghi “Lần đầu”.
+- Dưới 768 px bảng chuyển thành thẻ (§2.3).
 
-| Status | Icon | Màu (token) | Nền | Nghĩa |
-|---|---|---|---|---|
-| Strong | `CheckCircle2` | `text-bull` `#047857` | bull 8% | Được hỗ trợ và mạnh |
-| Moderate | `CircleDot` | cyan `#0e7490` | cyan 8% | Chấp nhận được, còn điều kiện |
-| Developing | `CircleDashed` | cyan outline | trong suốt | Đang hình thành, chưa là vấn đề |
-| Watch | `AlertTriangle` | `text-warn` `#b45309` | warn 8% | Cần điều tra |
-| Material issue | `OctagonAlert` | `text-bear` `#b91c1c` | bear 8% | Vấn đề trọng yếu |
-| Insufficient evidence | `HelpCircle` | `text-ink-muted` | viền đứt | Chưa đủ bằng chứng; không phải điểm thấp |
+### 03 Evidence & Confidence
 
-Nhãn EN/VI: Strong/Mạnh · Moderate/Khá · Developing/Đang hình thành · Watch/Cần theo dõi · Material issue/Vấn đề trọng yếu · Insufficient evidence/Chưa đủ bằng chứng.
+- **Trái:** `EvidenceLadder`, thang dọc 6 bậc (cao nhất ở trên). Mỗi bậc gồm nhãn, % bậc, số claim và thanh đếm cyan. Bậc không có claim ghi “0”, không ẩn.
+- **Phải:** dải freshness 5 ô (Live/Current/Aging/Stale/Unknown) có số lượng, và danh sách **3 claim ít tin cậy nhất** (`ClaimRow`), có CTA nâng bậc (“Kết nối Stripe để chuyển từ Founder stated lên Transaction evidence”).
+- Câu tóm tắt: “Traction được hỗ trợ bởi dữ liệu giao dịch; Moat chủ yếu dựa vào lời founder.”
 
-**Meeting labels:**
+### 04 Business Overview
 
-| Band | EN | VI |
+Bốn ô ngắn (Vấn đề · Khách hàng · Sản phẩm · Mô hình doanh thu), mỗi ô ≤60 từ, có footnote. Kèm một dòng “Giai đoạn / thời kỳ số liệu”.
+
+### 05–10 Signal chapters — một anatomy chung
+
+Áp dụng cho Team, Traction, Moat & IP, Liquidity, Capital & Governance. Market (07) dùng anatomy dimension v3.
+
+```
+05  TEAM — Management Track Record                    [✓ Strong]  84 ████  91% ▰▰▰▰▰▱  Current  ↑
+    “Đội này có thực thi được không?”
+┌ Kết luận (≤40 từ, câu đầu mang phán đoán) ─────────────────────────────────────┐
+└────────────────────────────────────────────────────────────────────────────────┘
+ Bằng chứng then chốt (≤5 ClaimRow)          │  Điều hỗ trợ (≤3)  ✓
+  Prior exit verified   A$12M  ASIC · 2019   │  Điều còn thiếu (≤3) ?
+  12 yrs sector         LinkedIn · 35%       │  [Narrative gap callout nếu có]
+ [Khối riêng của tín hiệu — bảng dưới]
+ Câu hỏi sinh ra (≤2) → mục 13
+ Ánh xạ: FTV (chính) · CGH, IRI (phụ) · criteria founder_profile, team, team_structure   (12 px muted)
+```
+
+| Tín hiệu | Khối riêng |
+|---|---|
+| 05 Team | Lưới “độ đầy đủ đội” (CEO/CTO/Commercial/…: ✓ có · ○ trống · ? chưa rõ); chip key-person dependency |
+| 06 Traction | 4 KPI tile nhỏ (ARR/MRR · tăng trưởng · khách trả tiền · khách lớn nhất %), mỗi tile có nguồn + độ mới; sparkline doanh thu khi có ≥3 kỳ (kèm bảng) |
+| 07 Market | Anatomy dimension v3 + bảng đối thủ 3–5 (G30 R04) + khối ESG khi trọng yếu |
+| 08 Moat & IP | `MoatBreakdown`: 5 hàng (Tech · Data · IP · Network · Distribution), mỗi hàng có score + confidence riêng; bên dưới là IP checklist (assignment · patents/TM · data · licences) |
+| 09 Liquidity | Banner cố định “Các con đường khả dĩ — không phải dự báo thoát vốn”; ≤3 `LiquidityRoutes`; chip buyer class; bảng comps có nguồn (tên · năm · bên mua · lý do · link); danh sách blockers (`Lock`). **Không có số A$ exit** |
+| 10 Capital & Governance | `CapTableBar` hai hàng (hiện tại / sau vòng tới, giả định) + bảng + danh sách giả định; `GovernanceChecklist` (vesting · SHA · board · ESOP plan · IP assignment); cờ đỏ dạng callout bear. Không có dữ liệu → thẻ xám “Chưa có cap table” + CTA, và không vẽ chart rỗng |
+
+### 11 Valuation
+
+Giữ thiết kế v3 (range bar + bảng phương pháp + kịch bản), thêm:
+
+- Hàng “Phương pháp **không** dùng + lý do + CTA” (vd. “Revenue multiple — cần doanh thu kiểm chứng: kết nối Xero”).
+- Khối “Biến nhạy nhất” gồm 2–3 biến, mỗi biến có thanh tornado nhỏ và bảng thay thế.
+- Nhãn phương pháp theo đổi tên của G30 (§Zone 5 dashboard spec).
+
+### 12 Key Risks
+
+- **Bên trái:** bảng 3×3 (severity × probability) + cột “Chưa xác định”. Mỗi ô ghi **số lượng**, không dùng gradient nhiệt. Theo quy tắc chart, lưới dưới 20 ô là bảng.
+- **Bên phải:** bảng top 5 với các cột: Rủi ro · Mức độ · Xác suất · Bằng chứng (thước) · Thời gian · Kiểm soát được · Giảm thiểu · Câu hỏi liên kết.
+- Rủi ro thiếu bằng chứng có chip outline “Chưa kiểm chứng” (không dùng màu đỏ).
+
+### 13 Questions to Investigate
+
+- Danh sách 3–7 thẻ đánh số. Mỗi thẻ gồm:
+  - câu hỏi (H3);
+  - “Vì sao hỏi”: khoảng trống hoặc mâu thuẫn cụ thể, có link claim;
+  - chip tín hiệu;
+  - mức ưu tiên (Cao/Trung bình);
+  - hành động theo vai trò.
+- **Evaluator:** “Thêm vào câu hỏi cho founder” + trạng thái (Chưa hỏi / Đã gửi / Đã trả lời).
+- **Founder:** “Trả lời bằng bằng chứng” → evidence hub.
+- Câu hỏi có trạng thái mâu thuẫn luôn lên đầu, viền bear.
+
+### 14 SVI Detail
+
+- Bar ngang 8 dimension + dải p25–p75 và `n` (v3 §5). Khi `n<10` thì ẩn dải và ghi rõ.
+- 8 chương dimension theo anatomy v3 §3, **mặc định đóng trên web** (accordion); PDF Full in đầy đủ.
+- Radar (nếu giữ) là hình phụ có bảng kèm theo.
+
+### 15 90-Day Plan
+
+- Giữ ImprovementPlan v3.
+- Thêm khối founder “**3 bằng chứng tăng niềm tin investor nhiều nhất**”. Mỗi mục: hành động · tín hiệu được nâng · bậc hiện tại → bậc sau (vd. `Founder stated 20% → Transaction evidence 90%`) · CTA.
+- Chỉ in “+N SVI” khi lift là quy tắc xác định.
+- Money on the table là khối con cuối mục.
+
+### 16 Evidence Register & Audit
+
+- Bảng claim có tìm kiếm và lọc (tín hiệu · bậc · độ mới · trạng thái).
+- Provenance card: Report ID · Company ID · Methodology · Engine · Snapshot · sources · evidence count · connector freshness · evaluator overrides · audit ref.
+- Kèm methodology rút gọn và disclaimer.
+
+---
+
+## 5. Trạng thái (phần quyết định cảm giác “chuyên nghiệp”)
+
+| Trạng thái | Nhận diện | Thiết kế |
 |---|---|---|
-| A | Strong case to investigate | Rất đáng tìm hiểu |
-| B | Worth investigating | Đáng tìm hiểu |
-| C | Major issues to resolve | Có vấn đề lớn cần giải quyết |
-| D | Evidence incomplete | Chưa đủ bằng chứng |
+| **Đang chạy** | Job chưa final | Skeleton đúng hình từng khối (masthead, 4 tile, 6 hàng, 3 cột). Timeline stage + ETA (G30 C3). Không dùng spinner giữa trang. Không nhảy layout |
+| **Sơ bộ** | Preview trước final | Nhãn `Sơ bộ` trên meeting label và watermark nhạt “Preliminary” trên bản in |
+| **Degraded** (**đang xảy ra thật**: telemetry 23/09 06:51 và 07:41 ghi 8/8 chương degraded, 0 từ) | `quality.degradedSections > 0` | Banner warn dưới masthead: “Phần phân tích văn bản chưa dựng được cho {n} mục; kết quả dưới đây chỉ dựa trên điểm và bằng chứng đã ghi nhận.” Lens (01–03, matrix) **vẫn hiển thị** vì là derivation xác định. Chương thiếu narrative hiện thẻ “Chưa có phân tích văn bản” + nút “Phân tích lại mục này” (theo contract quote/credit G30 C2). **Không** in đoạn văn rỗng hoặc placeholder |
+| **Chưa đủ bằng chứng** | confidence <35% hoặc score null | Chip xám viền đứt + CTA cụ thể. Không in 0 |
+| **Bị khóa (free sau grant)** | Trim level | 01–03 luôn mở. Chương bị khóa hiện thẻ compact + unlock rail (G19/G25, review-before-pay). Không làm mờ số của lens |
+| **Revision cũ** | Đang xem snapshot cũ | Banner info: “Đang xem bản 12/08. Bản mới nhất 23/09 ›”. Trend so với bản trước của chính revision đó |
+| **Chia sẻ công khai** | `/tbr/[token]` | Ẩn nút sửa/founder CTA; evidence riêng tư hiển thị “Nguồn riêng — cần quyền truy cập”, không leak |
+| **Lỗi tải** | Reader lỗi | Thẻ lỗi có nguyên nhân + “Thử lại”. Không có trang trắng |
 
-## 5. Typography, khoảng cách, chuyển động
+---
 
-- **Font:** Space Grotesk cho tiêu đề, Inter 16/1.6 cho body, IBM Plex Mono `tabular-nums` cho mọi số, % và A$.
-- **Chữ tối thiểu:** 12 px trên web; 9,5 pt trong PDF.
-- **Khoảng cách:** thang 4 px. Khoảng giữa các zone 32 px (desktop) / 24 px (mobile). Padding thẻ 20–24 px. Bo góc theo template.
-- **Chuyển động:** chỉ mở/đóng drawer và accordion (150–200 ms). Không animate số. Tôn trọng `prefers-reduced-motion`.
-- **Trạng thái đang chạy:** skeleton đúng hình từng zone (masthead, 4 tile, 6 hàng, 3 cột). Hàng matrix điền dần, không nhảy layout. Timeline + ETA theo G30 C3.
+## 6. Biến thể theo vai trò
 
-## 6. Chart
+| Vai trò | Khác biệt |
+|---|---|
+| **Investor / public share** | Mặc định như trên; decision rail có PDF brief, chia sẻ |
+| **Evaluator** (workspace/dossier) | Decision rail thêm “Quyết định của bạn” (pass/track/proceed, conviction), badge “Bằng chứng đã đổi sau quyết định”, câu hỏi có trạng thái; override dimension hiện dấu ✎ cạnh score |
+| **Founder** | Khối “3 bằng chứng tăng niềm tin nhiều nhất” đặt ngay sau triptych; CTA connector/upload thay cho “Yêu cầu bằng chứng”; không đổi kết luận hay nhãn |
 
-- **Mục 02:** không dùng chart; matrix là bảng.
-- **Mục 14:** bar ngang 8 dimension + dải p25–p75 (G27 §5). Radar chuyển xuống appendix phụ hoặc bỏ.
-- **Mục 03:** thang evidence là “bar đếm” ngang.
-- **Mục 10:** thanh xếp chồng 100% + bảng.
-- **Mục 12:** lưới 3×3 (heatmap đếm) + bảng.
-- **Mục 11:** range bar (low–base–high + marker ask) giữ như v3.
-- **Quy tắc chung:** mọi chart có `<table>` thay thế; không vẽ benchmark khi n < 10; nhãn giá trị trực tiếp, không cần legend khi ≤2 series.
+Một component chung, khác nhau qua prop `viewer` (không tách trang).
 
-## 7. Print / PDF / DOCX
+---
 
-- **Bản Brief** (01, 02, 03, 12, 13) và **bản Full** (01–16) dựng từ cùng revision. A4, lề 18/16 mm, page number, footer có report ID, methodology, ngày snapshot, “General information, not financial advice”.
-- **Trang 1:** masthead + metrics + meeting label + matrix. **Trang 2:** triptych + evidence ladder.
-- **Tương tác không có trong bản in:** drawer in ra thành bảng claim ở mục tương ứng; link evidence là hyperlink thật; ẩn rail và nút.
-- **DOCX:** 4 tile thành bảng 2×2; matrix thành bảng có header lặp; chip in bằng chữ + ký hiệu (✓ ◐ ◌ ▲ ■ ?) vì DOCX không có icon.
+## 7. Component (thư mục `components/tbr/v2/lens/`)
 
-## 8. Microcopy chính (EN / VI)
+| Component | Vai trò | A11y |
+|---|---|---|
+| `LensMasthead` | §4-01 masthead + provenance | `h1` duy nhất; provenance là `<dl>` |
+| `MetricTiles` / `MetricTile` | 4 tile | Mỗi tile là `<section aria-labelledby>` |
+| `MeetingLabel` | Chip + luận điểm + luật | Tooltip mở bằng focus/tap, không chỉ hover |
+| `LensTriptych` | 3 cột | `<ul>` mỗi cột; mục mở rộng dùng `<details>` |
+| `PriorityMatrix` | Bảng 6 hàng / thẻ trên mobile | `<table>` + `<caption>`, `aria-sort` khi sắp xếp |
+| `ScoreBar` | Score 0–100 | `role="img"` + `aria-label="Điểm 84 trên 100"` |
+| `ConfidenceMeter` | 6 nấc | `aria-label="Bằng chứng 94%, bậc Transaction evidence"` |
+| `StatusChip` | 6 trạng thái | Icon `aria-hidden`, chữ đọc được |
+| `FreshnessBadge` · `TrendGlyph` | Độ mới · xu hướng | Chữ ẩn cho screen reader |
+| `SignalDrawer` | Chi tiết tín hiệu tại chỗ | Dialog, focus trap, Esc, trả focus về hàng |
+| `SignalChapter` | Anatomy chung 05–10 | `section#signal-<type>` deep link |
+| `ClaimRow` · `EvidenceLadder` · `NarrativeGapCallout` | Bằng chứng | Link nguồn có mô tả |
+| `MoatBreakdown` · `LiquidityRoutes` · `CapTableBar` · `GovernanceChecklist` | Khối riêng | Mọi chart có `<table>` thay thế |
+| `RiskGrid` · `RiskTable` · `QuestionList` | 12, 13 | Bảng sắp xếp được |
+| `FounderGapsPanel` · `DecisionRail` · `SectionRail` · `MobileReportBar` | Điều hướng/hành động | `nav aria-label`, `aria-current` |
+| `DegradedBanner` · `RevisionBanner` · `LensSkeleton` | Trạng thái | `role="status"` |
+
+Primitives dùng lại: `Card`, `Table/Th/Td`, `Section`, `StatTile`, `Callout` (`shared.tsx`, `components/marketing/template/ui.tsx`). **Không** tạo Button/Card thứ ba (G30 U03).
+
+---
+
+## 8. Chart và số liệu
+
+| Dữ liệu | Hình | Lý do |
+|---|---|---|
+| 6 tín hiệu | Bảng có thanh (không phải chart) | So sánh chính xác, đọc được trên mobile |
+| Evidence theo bậc | Bar ngang đếm | Xếp hạng/đếm; nhãn trực tiếp |
+| 8 dimension | Bar ngang + dải p25–p75 | Radar chỉ là phụ (khả năng tiếp cận hạng B) |
+| Cap table | Stacked bar 100% hai hàng | Tỷ lệ; ≤5 nhóm; kèm bảng |
+| Rủi ro | Bảng 3×3 đếm | <20 ô: bảng thay heatmap |
+| Doanh thu | Sparkline + bảng | Chỉ khi ≥3 kỳ có nguồn |
+| Valuation | Range bar + tornado nhỏ | Khoảng và độ nhạy |
+
+**Quy tắc chung:**
+
+- Nhãn giá trị đặt trực tiếp trên chart, không cần legend khi có ≤2 series. Gridline nhạt, trục chỉ có các mốc 0/50/100.
+- Số liệu dùng định dạng theo locale (`A$6.1M`, `23/09/2026`).
+- Mọi chart có câu tóm tắt cho screen reader. Khi không có dữ liệu thì hiện empty state có hướng dẫn, không vẽ trục rỗng.
+
+---
+
+## 9. Print / PDF / DOCX
+
+| Trang (A4) | Nội dung |
+|---|---|
+| **Brief** p.1 | Masthead · 4 tile · meeting label · Priority Matrix |
+| Brief p.2 | Triptych · Evidence ladder · 3 claim ít tin cậy nhất |
+| Brief p.3–4 | 12 Risks (top 5) · 13 Questions · disclaimer + provenance |
+| **Full** | Brief + 04–16. Mỗi mục `break-before: page`; chương tín hiệu giữ tiêu đề với nội dung; drawer in ra thành bảng claim |
+
+- **Footer:** `Trusted Business Report · {company} · RPT · SVI 2.2.0 · snapshot {date} · p. X/Y · General information, not financial advice`.
+- **Ẩn khi in:** rail, nút, tooltip.
+- **Thay icon bằng ký tự** (✓ ◐ ◌ ▲ ■ ?) + chữ, vì PDF/DOCX không phụ thuộc font icon.
+- **DOCX:** tile thành bảng 2×2; matrix có header lặp; callout thành bảng một ô có nền nhạt; chart thành SVG raster cùng nguồn.
+- **E-mail:** meeting label · 4 chỉ số dạng bảng · 3/3/3 · nút “Mở báo cáo” (link đúng revision).
+
+---
+
+## 10. Microcopy (EN / VI)
 
 | Key | EN | VI |
 |---|---|---|
+| meeting.A | Strong case to investigate | Rất đáng tìm hiểu |
+| meeting.B | Worth investigating | Đáng tìm hiểu |
+| meeting.C | Major issues to resolve | Có vấn đề lớn cần giải quyết |
+| meeting.D | Evidence incomplete | Chưa đủ bằng chứng |
+| status.* | Strong · Moderate · Developing · Watch · Material issue · Insufficient evidence | Mạnh · Khá · Đang hình thành · Cần theo dõi · Vấn đề trọng yếu · Chưa đủ bằng chứng |
+| signal.* | Team · Traction · Moat · Liquidity · Cap Table · IP Depth | Đội ngũ · Traction · Lợi thế cạnh tranh · Thanh khoản · Cơ cấu vốn · Chiều sâu IP |
 | matrix.title | Investor priorities | Ưu tiên của nhà đầu tư |
-| triptych.why | Why investigate | Vì sao đáng tìm hiểu |
-| triptych.stop | What could stop the deal | Điều có thể chặn thương vụ |
-| triptych.ask | Ask before the meeting | Hỏi trước buổi gặp |
+| triptych.why / stop / ask | Why investigate · What could stop the deal · Ask before the meeting | Vì sao đáng tìm hiểu · Điều có thể chặn thương vụ · Hỏi trước buổi gặp |
 | gap.callout | Strong narrative, weak evidence | Luận điểm mạnh, bằng chứng yếu |
+| degraded.banner | Written analysis is unavailable for {n} sections; results below rely on recorded scores and evidence. | Chưa dựng được phân tích văn bản cho {n} mục; kết quả dưới đây chỉ dựa trên điểm và bằng chứng đã ghi nhận. |
 | liquidity.banner | Possible routes, not an exit forecast | Các con đường khả dĩ, không phải dự báo thoát vốn |
 | captable.missing | No cap table on file — upload to assess | Chưa có cap table — tải lên để đánh giá |
-| evidence.rule | Every score shows the evidence behind it | Mỗi điểm số đều kèm bằng chứng đứng sau |
-| founder.gaps | What would most increase investor confidence | Điều gì sẽ tăng niềm tin của investor nhiều nhất |
+| founder.gaps | What would most increase investor confidence | Điều gì sẽ tăng niềm tin của nhà đầu tư nhiều nhất |
+| rule | Every score shows the evidence behind it | Mỗi điểm số đều kèm bằng chứng đứng sau |
 
-## 9. Checklist nghiệm thu thiết kế
+Mã FTV/MPC/… chỉ xuất hiện ở mục 14 và tooltip ánh xạ.
 
-- [ ] Mặt trước đúng 4/6/3/3/3; không có thêm khối nào.
-- [ ] Score và confidence dùng hai mã hoá khác nhau ở mọi nơi. Không có score tín hiệu nào đứng một mình.
-- [ ] Mã FTV/TRE… không xuất hiện trước mục 14 (trừ tooltip ánh xạ).
-- [ ] 375/768/1440: không cuộn ngang; mọi vùng chạm ≥44 px; tab cuộn được.
-- [ ] Tương phản: body ≥4.5:1; nấc rỗng của thước confidence ≥3:1 với nền.
-- [ ] Mọi trạng thái = icon + chữ + màu; Insufficient evidence có viền đứt, không phải đỏ.
-- [ ] Drawer: Esc/đóng/focus trả về đúng hàng; giữ vị trí cuộn.
-- [ ] Skeleton không gây layout shift (CLS ≈ 0 khi dữ liệu về).
-- [ ] Print: ngắt trang theo zone; Brief 2–4 trang; không có chữ <9,5 pt.
-- [ ] Light-template guard xanh; không có hex thô trong className; không thêm font.
-- [ ] Không lộ nhãn nội bộ (`uncited`, `cro`, `Auditor: grounded`); không có mâu thuẫn trong cùng trang.
+---
+
+## 11. Thiết kế nào ship ở phase nào
+
+| Phase (plan §7) | UI ship |
+|---|---|
+| R0 | Không đổi UI |
+| R1a/b | Masthead mới · 4 tile · meeting label · 02 Matrix · triptych · 03 Evidence · SignalDrawer (bản đầu: claim rows từ citations) · **DegradedBanner** · Brief PDF p.1–2 · e-mail · SectionRail/DecisionRail/MobileReportBar với 01–03 + các mục cũ |
+| R2 | 05 Team · 06 Traction · 08 Moat & IP (`SignalChapter`, `MoatBreakdown`, `ClaimRow`, freshness 5 bậc, trend theo tín hiệu); 14 SVI Detail gom và đóng mặc định |
+| R3 | 12 Risks (`RiskGrid`/`RiskTable`) · 13 Questions · biến thể evaluator (câu hỏi, badge đổi bằng chứng) |
+| R4 | 10 Capital & Governance (`CapTableBar`, `GovernanceChecklist`) |
+| R5 | 09 Liquidity (`LiquidityRoutes`, comps, blockers) |
+| R6 | Cohort: 6 cột chip theo cùng thứ tự + bộ lọc (dùng lại `StatusChip`, `ConfidenceMeter` bản nhỏ) |
+| R7 | 04 Business · 07 Market (bảng đối thủ) · 11 Valuation (không dùng + tornado) · 15 founder gaps · 16 Register đầy đủ · PDF Full · biến thể founder hoàn chỉnh |
+
+Sau mỗi phase, mọi mục chưa được thiết kế lại vẫn hiển thị bằng component v3 hiện có, đặt đúng vị trí trong thứ tự mới. Trang không bao giờ có lỗ hổng hay hai phiên bản của cùng một mục.
+
+---
+
+## 12. Nghiệm thu thiết kế (mỗi phase)
+
+- [ ] Thứ tự tín hiệu Team → Traction → Moat → Liquidity → Cap Table → IP đồng nhất trên matrix, rail, chương, PDF, cohort.
+- [ ] Mặt trước đúng 4/6/3/3/3; không có score tín hiệu thiếu confidence; mã SVI không xuất hiện trước mục 14.
+- [ ] 375/768/1280/1440: không cuộn ngang; vùng chạm ≥44 px, cách nhau ≥8 px; thanh dưới mobile không che nội dung (safe area).
+- [ ] Tương phản body ≥4.5:1, nấc rỗng/viền ≥3:1; mọi trạng thái có icon + chữ.
+- [ ] Keyboard: tab theo thứ tự thị giác; drawer Esc/focus trap/trả focus; skip link tới nội dung; heading không nhảy cấp.
+- [ ] Degraded fixture (8/8) hiện banner + lens, không có khối rỗng; insufficient fixture không in 0.
+- [ ] CLS ≈ 0 khi dữ liệu về; không animate số; reduced motion được tôn trọng.
+- [ ] Print Brief 2–4 trang, Full ngắt đúng mục, không có chữ <9,5 pt; DOCX có cùng thứ tự.
+- [ ] Light-template guard xanh; không có hex thô; không có font mới; không lộ nhãn nội bộ.
+- [ ] Chụp so sánh trước/sau 4 band demo + showcase + 1 report degraded, lưu trong receipt của phase.

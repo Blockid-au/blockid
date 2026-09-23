@@ -2,6 +2,8 @@
 
 > **Scope update — 2026-09-22:** this is the shipped G27 presentation baseline. [G30 SOURCE OF TRUTH](../plans/SOURCE-OF-TRUTH.md) is the single proposed next plan, awaiting founder review. G30 proposes question-led research, brief/detail disclosure, one reconciled recommendation and claim-level validation; see its conflict matrix before reusing the older verdict, risk, lift-ranking or colour rules below. Existing implementation is not changed by this note.
 
+> **Amend 2026-09-23 (G31):** section order (§2) and dashboard tiles (§5) are superseded by the [Investor Lens UI/UX v2 spec](investor-lens-report-spec.md); the per-dimension anatomy (§3) and print rules (§5) remain the baseline for section 14 (SVI Detail).
+
 **Date:** 2026-09-21 · **Lane:** G27 research/spec · **Builds from:** ReportV2 (`web/src/lib/report-v2/schema.ts`), today's render (`web/src/components/tbr/v2/report.tsx`), the light template (G26) · **Wireframes:** `docs/design/tbr-v3/wireframes.md`
 **Founder ask (2026-09-21):** a clear, coherent Trusted Business Report — the 8 dimensions read like a full startup-value + investment report: is it worth investing in, what must improve, key points made obvious, pro layout.
 

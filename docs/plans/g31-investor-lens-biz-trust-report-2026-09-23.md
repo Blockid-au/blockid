@@ -1,6 +1,6 @@
 # G31 — Investor Lens: nâng cấp Trusted Business Report (Biz Trust Report)
 
-**Trạng thái:** `PLAN ONLY — chưa code` · **Ngày:** 23/09/2026 · **Rev 1.1:** đã đối chiếu source `4ed643201` (§1.5), thêm phương án implement và deploy từng phase (§7) · **Owner quyết định:** Do Van Long
+**Trạng thái:** `PLAN ONLY — chưa code` · **Ngày:** 23/09/2026 · **Rev 1.2:** đối chiếu thêm master `0edf8bc62` (§1.6), đưa vào kế hoạch thực thi tiếp theo (§7.5), UI/UX thiết kế lại v2 (§6 + design spec) · Rev 1.1: đối chiếu `4ed643201` (§1.5), playbook deploy từng phase (§7) · **Owner quyết định:** Do Van Long
 **Ưu tiên:** P1. Chạy **sau hoặc song song có điều kiện** với các P0 truth item của G30 (E01/E03/A03/V01), như §7.
 **Đầu vào:** `BlockID_Biz_Trust_Report_Upgrade_Plan.md` v1.0 (founder cung cấp 23/09/2026). Plan này là bản phân tích, điều chỉnh và cụ thể hoá đầu vào đó.
 **Merge trong:** [`SOURCE-OF-TRUTH.md`](SOURCE-OF-TRUTH.md) §10.13, §12 (work items IL00–IL15), §16.3 (D21), §17.
@@ -108,7 +108,7 @@ Kiểm trực tiếp trong `web/src`. Những phát hiện dưới đây **thay 
 | S6 | Chuỗi band nằm ở `lib/i18n/tbr-v3-strings.ts:195–201` (EN) và `:344–350` (VI), re-export ở `tbr-strings.ts:1943`. “Investable” có trong 5 test (`investment-view.test.ts:271`, `report.test.tsx:126`, `investment-view.test.tsx:62,146`, `tbr/demo/page.test.tsx:102`) | Đổi nhãn meeting (D21-a) = sửa 2 khối chuỗi + 5 test; `verdictBand()` và `BAND_TO_EXECUTIVE` giữ nguyên |
 | S7 | `EvidenceRow` (`schema.ts:61`) có `dims`, `confidence?`, `observedAt?` nhưng **không có criterion key**. `CriterionCard.citations[].evidence_id` nối được sang `chapter.evidence` | R1 tính confidence theo tín hiệu bằng **join citations → evidence rows**, fallback theo `dims`. R2 thêm `criterion?` optional ở writer cho report mới |
 | S8 | Risk likelihood = `dimLikelihood` (`investment-view.ts:164`): evidenced → low, partial/stale → medium, **còn lại → high** | R3 thay đúng hàm này; thêm mức `unknown`; `RISK_LEVELS_*` (:484) và `projectInvestmentView` (`free-tier.ts:91`) cập nhật theo |
-| S9 | Trend chỉ có **tổng** (`cover.svi.deltaVsLast`, writer `run-for-project.ts:1114–1121` + `pitchdeck/save-snapshot/route.ts:140–153`). Dimension trước chỉ có ở `api/svi/history/full` | R1 hiện trend tổng. R2 writer lưu `cover.previousDimensionScores?` (optional) cùng truy vấn đó; report cũ ghi “chưa có lịch sử theo tín hiệu” |
+| S9 | Trend chỉ có **tổng** (`cover.svi.deltaVsLast`, writer `run-for-project.ts` (~:1175 tại `0edf8bc62`, trước đó :1114–1121) + `pitchdeck/save-snapshot/route.ts:140–153`). Dimension trước chỉ có ở `api/svi/history/full` | R1 hiện trend tổng. R2 writer lưu `cover.previousDimensionScores?` (optional) cùng truy vấn đó; report cũ ghi “chưa có lịch sử theo tín hiệu” |
 | S10 | **Q01–Q16 không có trong code repo này** (chỉ có trong docs, trỏ tới project khác). Chưa có type trạng thái câu hỏi | Questions engine dựa trên 52 `guidingQuestions` + `EvidenceStatus` + `claims.contradiction_status`. Không chờ Q01–Q16 |
 | S11 | Không có API “request evidence” cho evaluator. Đã có `evaluation_assessments.questions_for_founder` + `api/evaluations/[id]/assessment/share`; `decided_at` không tồn tại (dùng `submitted_at ?? updated_at`, như `outcomes/proposals.ts:324`) | R3 **không tạo bảng hay route mới**: nút “Thêm vào câu hỏi cho founder” ghi vào `questions_for_founder`; cờ “bằng chứng đổi sau quyết định” so `submitted_at` với `evidence_records.observed_at` |
 | S12 | Cap table nằm ở các bảng `share_classes/shareholders/share_transactions/esop_pool` (0029 + `project_id` 0036); đọc bằng `loadCapTable(userId, projectId)` (`lib/investor-pack-assembler.ts` ~361, **cần owner id**). **Chưa có import XLSX/CSV** (`smart-intake.tsx:26–34` chỉ nhận pdf/doc/ppt/ảnh) | R4 đọc cap table **ở writer, trong ngữ cảnh owner**, rồi lưu **chỉ số tổng hợp** (%, số SAFE, pool) vào report. Không lưu tên cổ đông, nên evaluator xem report không thấy dữ liệu riêng. XLSX/CSV là R4b, phụ thuộc G30 E1 |
@@ -118,6 +118,18 @@ Kiểm trực tiếp trong `web/src`. Những phát hiện dưới đây **thay 
 | S16 | Free tier: `projectInvestmentView` (`free-tier.ts:91`) cắt risk/plan; section ids ở `TBR_V2_SECTION_IDS` (`shared.tsx:77`); thứ tự render ở `report.tsx:130–156` | Lens 01–03 không bị cắt. Giữ id cũ (`tbr-dashboard`…) làm **anchor alias** để link e-mail đã gửi vẫn đúng chỗ |
 
 **Đồng bộ với G30 Investor Report Surface:** phần B1–B3/D1–D4 (Investor view mặc định, verdict bar, triptych, research masthead, trạng thái bằng icon + chữ) được **hiện thực trong `TbrReportV2` bởi G31 R1**. A1–A3 (một trang `/analyze`, bỏ lớp preview), C1–C3 và E1 vẫn thuộc G30 theo phân vai Codex/Claude. Hai bên không làm trùng.
+
+### 1.6 Đối chiếu source mới (rev 1.2, master `0edf8bc62`, 23/09/2026 14:03 UTC)
+
+Từ `4ed643201` tới `0edf8bc62` có 12 commit G30, đã live tới `0cb6d0bda` (active 4126). Không commit nào đụng `components/tbr`, `investment-view.ts`, layout PDF/DOCX hay chuỗi band. **Không có xung đột code trực tiếp với G31.** Những thay đổi tác động lên plan:
+
+| # | Thay đổi mới | Tác động lên G31 |
+|---|---|---|
+| N1 | **Reader bridge:** `/tbr/[token]` (EN/VI) chuyển từ `readSnapshotReportV2` sang `loadReportV2ByShareToken` (`load.ts`), cùng reader với PDF/export. Reader này ưu tiên bảng **`report_revisions`** bất biến khi migration có mặt (hiện hoãn tới schema authority rollout, `0edf8bc62`) | S1 được cập nhật: mọi bề mặt web giờ đi qua cùng một reader. Nhánh revision trả `report_json` **không qua** `ensureInvestmentView`, nên tính lens bên trong `TbrReportV2`/PDF/DOCX/e-mail (S1) vẫn đúng và **bắt buộc** giữ như vậy |
+| N2 | **Final persistence nguyên tử:** `insertCompletedAssembledReport` (`storage.ts`) ghi document canonical cùng row trong một câu lệnh; evaluator/batch xác nhận persistence trước khi ready (`report-quota.ts`, `evaluation-batch-runner`) | Khi đóng băng `investorLens` vào revision (sau F02/revisions), phải ghi qua đúng đường nguyên tử này, không thêm UPDATE best-effort |
+| N3 | `run-for-project.ts` bị sửa 105 dòng và đang là **vùng G30 hoạt động** (final save, revision, durable job) | **Đổi R2/R4:** lane G31 không sửa writer. Các field `EvidenceRow.criterion?`, `cover.previousDimensionScores?`, `capTableSummary?` được **bàn giao cho G30 revision writer** (§7.5). Trong lúc chờ, R2 lấy dimension kỳ trước qua reader phía server (`api/svi/history/full`); R4 lấy qua loader owner-context cạnh reader |
+| N4 | Telemetry `tbr-quality.jsonl` 23/09 06:51 và 07:41: **8/8 chương degraded, 0 từ**. Handover `2026-09-23-report-degradation-handover.md`: UNRESOLVED (DeepInfra worker timeout 60 s → strike) | Lens phải có **trạng thái degraded chính thức** (design spec §5) và fixture degraded trong R1. Đây là trạng thái người dùng thật đang gặp. Lens vẫn hữu ích khi narrative hỏng vì nó là derivation xác định |
+| N5 | Ưu tiên G30 kế tiếp (receipt final-report persistence): (1) final persistence toàn bộ caller → immutable revisions; (2) durable job/checkpoint; (3) verification/research/valuation eligibility; (4) billing → UX còn lại | G31 là **lane UX đọc-only** chạy song song (1)–(3), không tranh file hay migration. Vị trí cụ thể ở §7.5 và SOT §12.10 |
 
 ---
 
@@ -352,27 +364,25 @@ Web mặc định mở **Investor view** (mục 01–02 + triptych). Các mục 
 
 ---
 
-## 6. UI/UX — tóm tắt (chi tiết ở design spec)
+## 6. UI/UX — thiết kế lại v2 (tóm tắt)
 
-- **Research note, không phải landing page.** Masthead gồm công ty · sector · stage · jurisdiction · snapshot date · methodology · report ID.
-- **Phân cấp thị giác:** định giá (48 px mono) → meeting label (chip lớn) → 6 hàng matrix → triptych. Mật độ mặt trước bị khóa cứng ở 4/6/3/3/3.
-- **Hai mã hoá khác nhau cho điểm và tin cậy.** Score là **thanh đặc màu navy** 0–100. Confidence là **thước 6 nấc** màu cyan có nhãn bậc (“Connected source · 75%”). Mắt không thể nhầm hai đại lượng.
-- **Trạng thái 6 mức**, mỗi mức = icon + chữ + màu token:
+Chi tiết đầy đủ: [investor-lens-report-spec.md v2](../design/investor-lens-report-spec.md).
 
-| Status | Màu token |
-|---|---|
-| Strong | bull |
-| Moderate | cyan |
-| Developing | cyan outline |
-| Watch | warn |
-| Material issue | bear |
-| Insufficient evidence | xám, viền đứt |
-
-- **Radar thành chi tiết phụ.** Chart chính là bar ngang của G27. Mọi chart có bảng thay thế.
-- **Mobile 375:** matrix chuyển thành thẻ xếp dọc. Rủi ro đứng trước điểm mạnh. Rail chuyển thành tab ngang cuộn được.
-- **Nguyên tắc:** không thêm palette/font; dùng token light template và primitives có sẵn; tuân `light-template-guard`.
-
----
+- **Hướng thiết kế:** research note của quỹ đầu tư, in ra được, đọc hiểu trong 60 giây. Light-only, token và font hiện có. Hướng nền tối/Fira do công cụ design gợi ý **bị loại**.
+- **4 tầng đọc:** L0 Glance 5 giây (masthead + 4 chỉ số + meeting label) → L1 Brief 60 giây (matrix + triptych + evidence) → L2 Analysis (04–13) → L3 Audit (14–16).
+- **Một thứ tự ưu tiên cho mọi nơi:** Team → Traction → Moat → Liquidity → Cap Table → IP (+ESG khi trọng yếu). Áp dụng cho matrix, section rail, chương, drawer, PDF và cohort.
+- **Khung trang 3 vùng (≥1280 px):**
+  - section rail có chấm trạng thái;
+  - main column (65–75 ký tự/dòng, bảng tới 1040 px);
+  - decision rail dính, chỉ hiện khi masthead cuộn qua, mang kết luận, giá trị, confidence, 3 câu hỏi và hành động.
+- **Tablet và mobile:** tablet dùng tab strip + thanh tóm tắt dính. Mobile dùng thẻ, bottom sheet mục lục và thanh dưới dính có safe area.
+- **Score và confidence là hai hình dạng khác nhau:** thanh đặc navy và thước 6 nấc cyan. Có 6 trạng thái, mỗi trạng thái = icon Lucide + chữ + màu token.
+- **Anatomy chung cho chương tín hiệu 05–10:** header (trạng thái/điểm/bằng chứng/độ mới/xu hướng) → kết luận ≤40 từ → claim then chốt → hỗ trợ/thiếu → khối riêng của tín hiệu → câu hỏi sinh ra → ánh xạ SVI (muted).
+- **8 trạng thái được thiết kế riêng:** đang chạy · sơ bộ · **degraded** · chưa đủ bằng chứng · bị khóa · revision cũ · chia sẻ công khai · lỗi.
+- **3 biến thể vai trò** (investor · evaluator · founder) trong một component, chọn qua prop `viewer`.
+- **Chart:** matrix là bảng; rủi ro 3×3 là bảng đếm (<20 ô); radar chỉ là phụ; mọi chart có `<table>` thay thế.
+- **Print:** Brief 2–4 trang, Full 16 mục. DOCX và e-mail theo cùng thứ tự.
+- **Ship theo phase:** design spec §11 ghi rõ thiết kế nào ship ở R1…R7. Mục chưa thiết kế lại vẫn dùng component v3, đặt đúng vị trí trong thứ tự mới.
 
 ## 7. Phương án implementing và deploy live sau mỗi phase
 
@@ -425,7 +435,7 @@ Web mặc định mở **Investor view** (mục 01–02 + triptych). Các mục 
 | Tích hợp | `report.tsx:130–156`: khi mode ≠ off (và với `preview` chỉ trên fixture/showcase), render 01 Snapshot + 02 Priorities + 03 Evidence **thay** Dashboard/InvestmentView/KeyPoints; các chương giữ nguyên thứ tự. `shared.tsx:77`: thêm `tbr-snapshot`, `tbr-priorities`, `tbr-evidence`; `tbr-dashboard`/`tbr-investment-view`/`tbr-key-points` thành anchor alias. `tbrV2Toc`/`tbrV2TocGroups` cập nhật |
 | Tier | `free-tier.ts`: không cắt lens (**D21-c**); `page-estimate.ts`: thêm 3 section |
 | Export | `tbr-pdf.tsx:1622+`: trang 1 = masthead + tiles + meeting + matrix; trang 2 = triptych + evidence ladder. `tbr-docx.ts:940+`: tiles 2×2, matrix có header lặp, ký hiệu chữ thay icon. `email-report.ts:123+`: meeting label + 3/3/3 + link |
-| Test tập trung | `investor-lens.test.ts` (công thức, ngưỡng, insufficient <35%, narrative gap, không có score thiếu confidence); cập nhật 5 test chứa “Investable”; `report.test.tsx` (thứ tự + alias); `tbr-pdf.test.tsx`, `tbr-docx.test.ts`, `email-report.test.ts` (parity field) |
+| Test tập trung | Fixture **degraded 8/8** (N4) + `investor-lens.test.ts` (công thức, ngưỡng, insufficient <35%, narrative gap, không có score thiếu confidence); cập nhật 5 test chứa “Investable”; `report.test.tsx` (thứ tự + alias); `tbr-pdf.test.tsx`, `tbr-docx.test.ts`, `email-report.test.ts` (parity field) |
 | R1a deploy | `BLOCKID_INVESTOR_LENS=preview`: chỉ `/tbr/demo/band/[A–D]`, `/showcase/blockid/report`, `/sample-business-report` |
 | Kiểm live R1a | 4 band demo + showcase ở 375/768/1440; drawer mở/đóng, Esc, focus; PDF và DOCX từ showcase; không lộ nhãn nội bộ; so ảnh trước/sau |
 | R1b deploy | `on` cho mọi report sau khi R1a đạt; deploy riêng |
@@ -437,7 +447,7 @@ Web mặc định mở **Investor view** (mục 01–02 + triptych). Các mục 
 | Hạng mục | Chi tiết |
 |---|---|
 | Freshness | `lib/evidence/freshness.ts`: thêm `freshnessBand(ageDays, source)` 5 bậc Live<7/Current<30/Aging≤90/Stale/Unknown; giữ API cũ `freshnessState` cho connector UI |
-| Writer (report mới) | `EvidenceRow.criterion?: CriterionKey` (optional) set ở bước gather; `cover.previousDimensionScores?` lưu tại `run-for-project.ts:1114–1121` và `pitchdeck/save-snapshot/route.ts:140–153` (cùng truy vấn snapshot trước) |
+| Writer (report mới) — **bàn giao cho G30 revision writer (N3); G31 không sửa `run-for-project.ts`** | Trong lúc chờ: dimension kỳ trước lấy qua reader server (`api/svi/history/full`), criterion suy qua citations (S7). Khi G30 mở writer: `EvidenceRow.criterion?: CriterionKey` (optional) set ở bước gather; `cover.previousDimensionScores?` lưu tại `run-for-project.ts` (~:1175 tại `0edf8bc62`, trước đó :1114–1121) và `pitchdeck/save-snapshot/route.ts:140–153` (cùng truy vấn snapshot trước) |
 | Overlay | **Mới** `lib/report-v2/lens-overlays.ts`: câu hỏi MT1–3, TR1–2, IP1–3 có ID; trả lời xác định từ dữ liệu có sẵn (connector, evidence, criterion) hoặc `missing`; không LLM |
 | UI | Signal chapters 05 Team · 06 Traction · 08 Moat & IP (`MoatBreakdown`, `ClaimRow`, `NarrativeGapCallout`) chèn trước các chương dimension; 8 chương dimension gom vào nhóm “14 SVI detail” (web mặc định đóng, PDF Full vẫn in đủ) |
 | Phụ thuộc G30 | Dùng `EvidenceRow` + citations hiện có. Khi E01 claim ID vào code thì đổi nguồn trong **một** adapter, không đổi UI |
@@ -530,6 +540,35 @@ Tổng cộng 11 lần deploy, mỗi lần đi qua D0–D8. Lịch này là **ư
 | IL13 | R7 | P1 | 16 mục, PDF brief/full, showcase/sample, methodology/API docs | IL01–IL12 | Web = PDF = DOCX = e-mail |
 | IL14 | R7 | P1 | Usability 20 người + A/B `/tbr/demo` | IL13 | KPI G31-1/5 |
 | IL00 | R7 | P2 | Xác minh nguồn slide investor-priority | — | Ghi nguồn hoặc “chưa xác minh” |
+
+---
+
+### 7.5 Đưa vào kế hoạch thực thi tiếp theo (rev 1.2)
+
+G31 vào hàng đợi thực thi của SOT (§12.10) dưới dạng **Lane B — Investor Lens (UX đọc-only)**, chạy song song với **Lane A — G30 truth/persistence** theo ưu tiên N5. Hai lane chia rõ file, migration và thời điểm deploy.
+
+| Lượt | Lane A — G30 (giữ ưu tiên) | Lane B — G31 | Điều kiện bắt đầu Lane B | Deploy B |
+|---|---|---|---|---|
+| **E1** | Final persistence toàn caller → chuẩn bị immutable revisions | **R0** (golden + guard + flag) → **R1a** preview → **R1b** on | Golden xanh; D21-a duyệt trước R1b | 3, xen giữa deploy A, serialize theo lock |
+| **E2** | Durable job/checkpoint; xử lý degraded (N4) | **R2** (Team/Traction/Moat&IP, freshness, trend qua reader) → **R3** (questions + risk, evaluator) | R1b đã mark-good; D21-b trước R3 | 2 |
+| **E3** | Revisions migration + writer; claim/metric verification | **Handoff writer** (`criterion?`, `previousDimensionScores?`, `capTableSummary?`, đóng băng `investorLens` vào revision qua đường nguyên tử N2); **R4** cap table → **R5** liquidity | G30 revision writer đã merge; D21-e | 2 (phần handoff nằm trong deploy của A) |
+| **E4** | Research/valuation eligibility; billing foundation | **R6a/b** cohort projection + UI/API | Số migration ≥0450 được cấp khi merge; không trùng ngày với migration của A | 2 |
+| **E5** | UX toàn site (U01/U02/U06) | **R7a/b** 16 mục đầy đủ, PDF Full, founder view, usability | U02 export projection sẵn sàng | 2 |
+
+**Luật phối hợp hai lane:**
+
+1. **File:** Lane B chỉ sửa:
+   - `components/tbr/v2/**`, `lib/report-v2/{investor-lens*,lens-*}.ts`;
+   - `lib/i18n/tbr-v3-strings.ts`;
+   - `lib/pdf/tbr-pdf.tsx`, `lib/docx/tbr-docx.ts`, `lib/svi/email-report.ts`;
+   - `free-tier.ts`, `page-estimate.ts`;
+   - `lib/evidence/freshness.ts` (additive);
+   - `lib/evaluations/cohort-*`, `components/evaluations/**` (R6).
+
+   Lane B không sửa `run-for-project.ts`, `storage.ts`, `load.ts`, `adapter.ts` hay các file đang chia vai với Codex. Cần đổi các file đó thì mở handoff sang Lane A.
+2. **Deploy:** một deploy tại một thời điểm (lock). Lane B deploy ngay sau khi Lane A mark-good, không chen vào soak của A. Mỗi deploy B theo D0–D8 (§7.1).
+3. **Receipt:** mỗi deploy B có `docs/reviews/2026-09-xx-g31-rN-live.md` và cập nhật SOT §12.9 + §12.10.
+4. **Không che lỗi của Lane A:** report degraded phải hiện banner degraded (N4); không hiển thị lens như thể narrative tồn tại.
 
 ---
 

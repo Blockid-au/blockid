@@ -12,6 +12,8 @@
 
 **Chỉ đạo rollout mới nhất23/09:** founder yêu cầu **triển khai tới đâu, deploy live tới đó**. Mỗi phần hoàn chỉnh, đủ dependencies và release gates phải được deploy ngay theo phase nhỏ, không chờ toàn bộ G30 hoặc toàn bộ visual analysis. Áp dụng cho cả BlockID và SVI trong scope đã giao; kiểm tra sau deploy và giữ rollback riêng từng site. Phần foundation chưa đủ điều kiện activation có thể deploy dưới feature flag tắt, nhưng phải ghi rõ chưa dùng được với khách hàng. Chỉ đạo này không bỏ budget/quality/data/billing gates và không tự cấp ngân sách inference mới.
 
+**Kế hoạch thực thi tiếp theo 23/09 (§12.10):** Lane A G30 truth/persistence giữ ưu tiên; **Lane B G31 Investor Lens** (UX đọc-only, [plan](g31-investor-lens-biz-trust-report-2026-09-23.md), [UI/UX v2](../design/investor-lens-report-spec.md)) chạy song song theo lượt E1–E5, deploy serialize sau mỗi phase. PLAN ONLY, chưa code.
+
 **Review ưu tiên report23/09:** [Đối chiếu toàn plan và góp ý Claude với source/log/tests](../reviews/2026-09-23-report-quality-plan-revalidation.md). Giữ DeepInfra primary; ưu tiên O01/O02 completion/diagnostics → E03/F02/Q02 source/claim/final truth → R01–R04 và V01–V03 → U01/U02. Timeout cùng model không được tự loại mọi model DeepInfra. Word count/citation count và một successful smoke không thay quality gates§13. Giá official/current model IDs và cost-per-accepted-report phải tách khỏi projections. Source fixes của lượt review chưa phải live receipt; chưa đóng incident hoặc qualified model benchmark.
 
 **Current verified checkpoint — 22/09/2026 22:29 UTC:** BlockID **v3.33.3 / `cba40ad1ea49e7447ba4575a5211689462f83391`**, active4111 / warm4110; SVI **`6c728dcfde052b3e40876e4391217f687bac8d93`**, active4205 / warm4204 (`c585147`). Actual rollback→forward drills passed. SVI exposes private accepted detail for all16 questions and preserves the selected question through sign-in; reading does not charge credits. Its latest release also includes immutable admitted-query retry binding and default-off original extracted-input provenance. New customer research production, full-input retention, receipt creation, financial schema expansion and automatic evidence-to-SVI/valuation publication remain **not activated**. Source commits after these compiled SHAs are preparation, not live features. This checkpoint supersedes older “latest” statements below only for the named slices. [BlockID release evidence](../reviews/2026-09-22-receipt-compatibility-live.md).
@@ -1076,6 +1078,7 @@ QA kiểm representative templates ở375/768/1440, keyboard/screen reader smoke
   - Overlay questions MT/TR/LQ/CT/IP/ES, không thêm criterion 14.
   - Không tạo `claim_evidence` (dùng 0417 + E01).
 - **Release (rev 1.1, đã đối chiếu source `4ed643201`):** R0 golden SVI + guard + cờ `BLOCKID_INVESTOR_LENS` → R1a/b Snapshot+Matrix+Evidence (preview → on) → R2 signal chapters/freshness/trend → R3 questions + risk (tái dùng `questions_for_founder`, không route/bảng mới) → R4 cap table (tổng hợp, không tên) → R5 liquidity (`au-benchmark.ts` + `suggestAcquirers`, không LLM) → R6a/b cohort projection ≥0450 + API additive → R7a/b vNext + usability. **11 lần deploy, mỗi lần theo quy trình D0–D8** ([plan §7](g31-investor-lens-biz-trust-report-2026-09-23.md)). Work items IL00–IL15 ở §12.
+- **Rev 1.2 (master `0edf8bc62`):** reader bridge + `report_revisions` (N1), final persistence nguyên tử (N2), `run-for-project.ts` là vùng G30 → writer fields bàn giao cho G30 (N3), report degraded 8/8 thật trên telemetry → lens có trạng thái degraded (N4). **UI/UX thiết kế lại v2:** research-note, 4 tầng đọc, khung 3 vùng, một thứ tự Team → Traction → Moat → Liquidity → Cap Table → IP ở mọi bề mặt, 8 trạng thái, 3 biến thể vai trò ([spec](../design/investor-lens-report-spec.md)).
 - **Sự thật source ảnh hưởng plan:** Q01–Q16 chưa có trong code; chưa có flag cho report UI; chưa có golden SVI; evidence row chưa có criterion key; trend chỉ có ở mức tổng; XLSX cap table chưa có. Lens gắn **trong `TbrReportV2`**, nên không sửa các file đang chia vai với Codex. G31 R1 hiện thực phần B1–B3/D1–D4 của G30 Investor Report Surface trong report component; A1–A3/C/E1 vẫn thuộc G30.
 
 ## 11. Kiến trúc triển khai và bảo toàn dữ liệu
@@ -1628,8 +1631,27 @@ Approval22/09/2026 bắt đầu W0a. Đây là status của cùng45 items, khôn
 | O08 origin activity and drain | EXPLICIT RETIREMENT TOOL LIVE / AUTOMATIC QUIESCENCE OPEN | Registry, drain/resume and separate locked retirement helper live. Scoped retirements preserve artifacts and active/warm origins; latest4121 freed one cap slot. Zero tracked work is not proof against detached/external jobs: explicit unknown-work acknowledgement remains required. Durable jobs/checkpoints and full coverage remain open. [Foundation](../reviews/2026-09-22-g30-origin-drain-foundation.md), [latest retirement](../reviews/2026-09-23-evaluator-persistence-rollout.md) |
 | F01/E02 visual source separation | PARTIAL LIVE / SEMANTIC QUALIFICATION OPEN | Native PDF page/PPTX-part provenance, bounded visual extraction and DeepInfra shared budget live. New BlockID files exclude unverified image observations from deterministic scoring/valuation input; SVI has native financial text separation. Original images are not retained. Full Office slide rendering, region-level lineage and holdout correctness remain open. [Source receipt](../reviews/2026-09-23-document-provenance-rollout.md), [numeric separation](../reviews/2026-09-23-scoring-source-rollout.md) |
 | U02/O01 saved report projection | PARTIAL LIVE / ACCEPTANCE DEFERRED | SVI EN/VI web/print/email coverage visible; saved report charts make no inference call and no longer invent missing50/100 or zero valuation. Recorded risk fields preserved. Shared BlockID citation renderer labels unresolved IDs as unverified. All-surface semantic/permission/layout acceptance remains open. [Latest receipt](../reviews/2026-09-23-citation-and-read-policy-rollout.md) |
-| G31 IL00–IL15 Investor Lens | PLAN ONLY (rev 1.1, 23/09) | Đã đối chiếu source `4ed643201`; playbook implement và deploy từng phase R0→R7 (11 lần deploy) ở [plan §7](g31-investor-lens-biz-trust-report-2026-09-23.md). Chưa code; chờ D21 |
+| G31 IL00–IL15 Investor Lens | PLAN ONLY (rev 1.2, 23/09) | Đã đối chiếu master `0edf8bc62`; xếp vào §12.10 Lane B, lượt E1–E5; UI/UX v2 ở [design spec](../design/investor-lens-report-spec.md); playbook deploy D0–D8 ở [plan §7](g31-investor-lens-biz-trust-report-2026-09-23.md). Chưa code; chờ D21 |
 | Remaining items | OPEN — NOT COMPLETE | Full claim verification, immutable revisions/legacy delivery, question-led research, valuation eligibility, durable jobs/recovery, atomic billing/approved fee integration and whole-site UX still require implementation/integration. Quality/holdout/load/cost/sale readiness unverified; off-host backup explicitly deferred. Existing prepared financial migration candidates are not activation or completion evidence. |
+
+### 12.10 Kế hoạch thực thi tiếp theo (23/09/2026) — hai lane
+
+Kế thừa ưu tiên trong receipt final-report persistence và review 23/09. Không thay §12.8; đây là thứ tự chạy **kế tiếp** của những item còn mở.
+
+| Lượt | Lane A — G30 truth/persistence (ưu tiên cao hơn) | Lane B — G31 Investor Lens (UX đọc-only) |
+|---|---|---|
+| E1 | F02/T02: final persistence toàn bộ caller (legacy snapshot/evaluation/delivery) → chuẩn bị immutable `report_revisions` (reader bridge đã live) | R0 golden SVI + guard + flag → R1a preview (demo/showcase) → R1b on (sau D21-a) |
+| E2 | O08 durable job/checkpoint + final-commit reconciliation; xử lý report degraded 8/8 (DeepInfra timeout/strike, handover UNRESOLVED) | R2 chương Team/Traction/Moat&IP + freshness + trend qua reader → R3 questions + risk + evaluator (sau D21-b) |
+| E3 | Revisions migration + writer; E03/Q02 claim/entity/metric/period verification | Handoff writer fields sang Lane A; R4 cap table → R5 liquidity (sau D21-e) |
+| E4 | R01–R04 question-led research; V02/V03 valuation eligibility; B02/B03 billing sau fee/schema gates | R6a projection (migration ≥0450) → R6b cohort UI/CSV/API v1 additive |
+| E5 | U01/U02/U06 UX toàn site, O03/Q02/S01 bằng chứng bán hàng | R7a 16 mục + PDF Full → R7b nội dung + usability 20 người |
+
+**Luật:**
+
+1. **Deploy:** một deploy tại một thời điểm (`/tmp/blockid-deploy.lock`). Lane B chỉ deploy sau khi deploy trước của Lane A đã mark-good. Mỗi phase là một deploy live theo D0–D8 ([plan §7.1](g31-investor-lens-biz-trust-report-2026-09-23.md)).
+2. **File:** Lane B không sửa `run-for-project.ts`, `storage.ts`, `load.ts`, `adapter.ts` hay các file chia vai với Codex. Writer fields của Lane B đi qua handoff Lane A.
+3. **Lane B không làm chậm Lane A:** nếu tài nguyên deploy hoặc build chật thì Lane A được ưu tiên. Lane B không có migration trước E4.
+4. **Theo chỉ đạo founder 23/09:** fast profile + deploy từng phần, kèm golden SVI, typecheck và build không hoãn. Phần bị hoãn được ghi `DEFERRED`, không ghi pass.
 
 ## 13. Quality gates và định nghĩa ready for sale
 
@@ -1844,6 +1866,8 @@ Mỗi thay đổi yêu cầu mới phải sửa chính plan và acceptance liên
 Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi timestamp và phạm vi được bắt đầu; không coi duyệt plan đồng nghĩa tự động duyệt mọi chi phí, external send hay thay giá chưa được định lượng. Các hạng mục kỹ thuật đã được cho bắt đầu sẽ tiến hành liên tục trong phạm vi đó, không xin lại từng bước thông thường.
 
 ## 17. Change log
+
+- **23/09/2026 — G31 rev 1.2, PLAN ONLY:** đối chiếu với master `0edf8bc62` (N1–N5: reader bridge/`report_revisions`, final persistence nguyên tử, writer thuộc G30, degraded 8/8 thật, ưu tiên G30 kế tiếp). Thêm **§12.10 kế hoạch thực thi tiếp theo hai lane** (G30 Lane A · G31 Lane B, lượt E1–E5). **Thiết kế lại UI/UX Trusted Business Report v2** ([spec](../design/investor-lens-report-spec.md)): research-note, 4 tầng đọc, khung 3 vùng, một thứ tự ưu tiên Team → Traction → Moat → Liquidity → Cap Table → IP, 16 mục, 8 trạng thái, 3 vai trò, print Brief/Full, ship map theo phase. Chưa code.
 
 - **23/09/2026 — G31 rev 1.1, PLAN ONLY:** đối chiếu Investor Lens với source `4ed643201` (16 phát hiện S1–S16: Q01–Q16 chưa có trong code, chưa có flag/golden, evidence row thiếu criterion key, trend chỉ ở mức tổng, không có XLSX cap table, có sẵn comps AU có nguồn). Thêm R0 và phương án implement và deploy live **sau mỗi phase** (D0–D8, 11 lần deploy, rollback theo phase). §10.13, IL rows §12, §12.9 đã đồng bộ. Chưa code.
 
