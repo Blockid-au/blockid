@@ -53,7 +53,7 @@ import {
 } from "@/lib/svi-analysis";
 import { findLatestAnalysisWithFallback, findSVIAccountWithFallback, getProjectById } from "@/lib/projects";
 import { fromAssembledReport, fromSnapshot, type SnapshotDimState } from "@/lib/report-v2/adapter";
-import { insertCompletedAssembledReport, writeSnapshotReportV2 } from "@/lib/report-v2/storage";
+import { insertCompletedAssembledReport, insertImmutableReportRevision, writeSnapshotReportV2 } from "@/lib/report-v2/storage";
 import { loadCapTableInput } from "@/lib/svi/cap-table-input";
 import { effectiveConfidenceLevel } from "@/lib/svi/rescore-from-evidence";
 import { applyFounderExecution } from "@/lib/founder/execution-load";
@@ -965,7 +965,7 @@ export async function runTrustReportForProject(args: {
 
   const shapes = projectReportToSnapshotShapes(report, ctx.sviAnalysis);
   const sviTotal = Math.round(ctx.sviAnalysis.totalSVI);
-  const { snapshotId, shareToken } = await upsertSnapshotWithToken({
+  const { snapshotId } = await upsertSnapshotWithToken({
     accountId: ctx.account.id,
     projectId: project.id,
     sviTotal,
@@ -989,10 +989,10 @@ export async function runTrustReportForProject(args: {
   });
 
   // A successful evaluator run must have a readable canonical snapshot.
-  if (!snapshotId || !shareToken) throw new Error("report_snapshot_unconfirmed");
+  if (!snapshotId) throw new Error("report_snapshot_unconfirmed");
   let reportV2: ReportV2 | null = null;
+  const db = getSupabaseAdmin();
   if (snapshotId) {
-    const db = getSupabaseAdmin();
     if (db) {
       // W2 review P1: the evaluator TBR / dossier read `svi_snapshots.report_v2`
       // — persist the pipeline's own document (with the W4 chapters) when the
@@ -1027,6 +1027,19 @@ export async function runTrustReportForProject(args: {
 
   if (!reportV2) throw new Error("report_snapshot_document_unconfirmed");
 
+  // E1/E3: the daily snapshot is only a compatibility projection. Publish a
+  // separate immutable revision and return its token to every public/export
+  // caller; a missing revision must never silently fall back to the mutable
+  // daily token after a successful paid generation.
+  if (!db) throw new Error("report_revision_db_unavailable");
+  const revision = await insertImmutableReportRevision(db, {
+    snapshotId,
+    accountId: ctx.account.id,
+    projectId: project.id,
+    report: reportV2,
+  });
+  if (!revision) throw new Error("report_revision_unconfirmed");
+
   // G19-S46: one quality row per run, now that the snapshot id is known.
   const quality = await recordTbrQualityAsync(qualityRowFor(report, ctx, tier, snapshotId, reportV2 ?? report.reportV2 ?? null), args.qualityWriter);
 
@@ -1037,7 +1050,7 @@ export async function runTrustReportForProject(args: {
     kind: "full",
     reportId: report.id,
     snapshotId,
-    shareToken,
+    shareToken: revision.shareToken,
     reportV2,
     quality,
     svi: sviTotal,
@@ -1133,7 +1146,7 @@ export async function runRescoreForProject(args: {
     dimensionScores[sub.key] = { score, priority: score < 50 ? "high" : score < 70 ? "medium" : "low" };
   }
 
-  const { snapshotId, shareToken } = await upsertSnapshotWithToken({
+  const { snapshotId } = await upsertSnapshotWithToken({
     accountId: account.id,
     projectId: project.id,
     sviTotal,
@@ -1160,26 +1173,35 @@ export async function runRescoreForProject(args: {
     if (db) {
       const dimStates: Record<string, SnapshotDimState> = {};
       for (const [k, v] of Object.entries(dimensionScores)) dimStates[k] = { status: "complete", score: v.score, priority: v.priority };
-      await writeSnapshotReportV2(
+      const reportV2 = fromSnapshot({
+        snapshotId,
+        projectId: project.id,
+        accountId: account.id,
+        startupName: project.name ?? account.startup_name,
+        industry: project.industry ?? null,
+        stageLabel: analysis.stageLabel,
+        stage: analysis.stage,
+        sviTotal,
+        deltaVsLast: delta,
+        dimStates,
+        verificationLevel: project.verificationLevel ?? null,
+        tier: "standard",
+      });
+      if (!await writeSnapshotReportV2(
         db,
         snapshotId,
-        fromSnapshot({
-          snapshotId,
-          projectId: project.id,
-          accountId: account.id,
-          startupName: project.name ?? account.startup_name,
-          industry: project.industry ?? null,
-          stageLabel: analysis.stageLabel,
-          stage: analysis.stage,
-          sviTotal,
-          deltaVsLast: delta,
-          dimStates,
-          verificationLevel: project.verificationLevel ?? null,
-          tier: "standard",
-        }),
-      );
+        reportV2,
+      )) throw new Error("rescore_snapshot_document_unconfirmed");
+      const revision = await insertImmutableReportRevision(db, {
+        snapshotId,
+        accountId: account.id,
+        projectId: project.id,
+        report: reportV2,
+      });
+      if (!revision) throw new Error("rescore_revision_unconfirmed");
+      return { kind: "rescore", snapshotId, shareToken: revision.shareToken, analysisId, svi: sviTotal, delta, stage: analysis.stage };
     }
   }
 
-  return { kind: "rescore", snapshotId, shareToken, analysisId, svi: sviTotal, delta, stage: analysis.stage };
+  throw new Error("rescore_revision_unconfirmed");
 }

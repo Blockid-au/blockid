@@ -17,7 +17,9 @@
 // present (a pre-S47 row is parsed on read — `executive-structure.ts`).
 
 import "server-only";
+import { randomUUID } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
+import { nanoid } from "nanoid";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ensureExecutiveStructured } from "./executive-structure";
 import { isReportV2, type ReportV2 } from "./schema";
@@ -60,6 +62,57 @@ export async function insertCompletedAssembledReport(db: Db, row: Record<string,
   } catch {
     console.warn("[report-v2] atomic assembled report persistence could not be confirmed");
     return false;
+  }
+}
+
+/**
+ * Commit one immutable public revision after the mutable daily projection has
+ * been confirmed.  A new UUID/token is minted for every finalized document;
+ * the existing snapshot token remains a legacy projection and is never
+ * rewritten.  Fail closed when the authority table is unavailable or the
+ * read-back does not match, so callers cannot publish a mutable link while
+ * claiming immutable history.
+ */
+export async function insertImmutableReportRevision(
+  db: Db,
+  args: {
+    snapshotId: string;
+    accountId: string;
+    projectId: string;
+    report: ReportV2;
+  },
+): Promise<{ revisionId: string; shareToken: string } | null> {
+  if (!args.snapshotId || !args.accountId || !args.projectId || !isReportV2(args.report)) return null;
+  const revisionId = randomUUID();
+  const shareToken = nanoid(32);
+  const document = JSON.parse(JSON.stringify(args.report));
+  try {
+    const { data, error } = await db
+      .from("report_revisions")
+      .insert({
+        id: revisionId,
+        snapshot_id: args.snapshotId,
+        account_id: args.accountId,
+        project_id: args.projectId,
+        share_token: shareToken,
+        report_json: document,
+        report_hash: null,
+        schema_version: "2.0",
+      })
+      .select("id, share_token, report_json, revoked_at")
+      .single();
+    if (error || !data || data.id !== revisionId || data.share_token !== shareToken || data.revoked_at !== null) {
+      console.warn("[report-v2] immutable revision insert/read-back failed:", error?.message ?? "mismatch");
+      return null;
+    }
+    if (!isDeepStrictEqual(data.report_json, document)) {
+      console.warn("[report-v2] immutable revision document read-back mismatch");
+      return null;
+    }
+    return { revisionId, shareToken };
+  } catch (err) {
+    console.warn("[report-v2] immutable revision insert threw:", err instanceof Error ? err.message : String(err));
+    return null;
   }
 }
 
