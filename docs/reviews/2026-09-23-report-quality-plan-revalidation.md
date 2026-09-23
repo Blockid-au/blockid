@@ -1,5 +1,9 @@
 # G30: review lại plan và kết quả Claude Code — chất lượng report trước
 
+**Cập nhật sau review:** các sửa lỗi source được nêu trong lượt này đã được deploy
+theo [live receipt23/09](2026-09-23-report-visual-foundation-live.md). Receipt không
+thay bằng chứng benchmark còn thiếu hoặc đóng toàn bộ findings/plan.
+
 Ngày: 23/09/2026. Baseline source: `f925ad948e698224f755aeace766dbb82d9c7bfc`.
 Review này đối chiếu source, test, log local và tài liệu chính thức; không phải
 biên nhận triển khai hoặc một benchmark inference mới. Thay đổi code bên dưới
