@@ -50,7 +50,7 @@ const OUTPUT_PATTERNS: Record<InvestorOutput, RegExp> = {
   strengths: /\b(strengths?|advantages?|bull case)\b|điểm mạnh|lợi thế/i,
   weaknesses: /\b(weakness(?:es)?|gaps?|bear case)\b|điểm yếu|hạn chế/i,
   risks: /\b(risks?|red flags?|downside)\b|rủi ro|cảnh báo/i,
-  points_to_clarify: /\b(clarif(?:y|ication)|questions? to ask|unknowns?|points? to clarify)\b|làm rõ|câu hỏi cần hỏi|chưa rõ/i,
+  points_to_clarify: /\b(clarif(?:y|ied|ication)|what (?:should|needs? to) be clarif(?:ied|y)|questions? to ask|unknowns?|points? to clarify)\b|làm rõ|câu hỏi cần hỏi|chưa rõ/i,
   competitors: /\b(competitors?|competition|alternatives?|compare)\b|đối thủ|cạnh tranh|so sánh/i,
   market: /\b(market|tam|sam|som|market size)\b|thị trường|quy mô thị trường/i,
 };

@@ -14,6 +14,7 @@ import { describe, expect, it } from "vitest";
 import type { ReportContext } from "./types";
 import { AGENT_ROLES } from "./types";
 import { AGENT_PROMPTS, AU_CONTEXT, buildAgentPrompt } from "./agent-prompts";
+import { captureInvestorIntent } from "@/lib/intake/investor-intent";
 
 const ROLE_ORDER = [
   "ceo",
@@ -247,6 +248,20 @@ describe("buildAgentPrompt — assembly", () => {
     expect(out).toContain("(Stage 5)");
     expect(out).toContain("Scale");
     expect(out).toContain("- Current SVI Score: 187");
+  });
+
+  it("keeps the user's investor request separate from business evidence", () => {
+    const ctx = makeContext();
+    ctx.investorIntent = captureInvestorIntent({
+      userText: "Assess valuation, risks and what an investor should clarify?",
+      submittedAt: "2026-09-23T00:00:00.000Z",
+    });
+    const out = buildAgentPrompt("cfo", ctx);
+    expect(out).toContain("## Investor Decision Request (user supplied; not business evidence)");
+    expect(out).toContain("valuation");
+    expect(out).toContain("risks");
+    expect(out).toContain("points_to_clarify");
+    expect(out).toContain("Do not cite it as evidence about the business");
   });
 
   it("declares English when locale='en'", () => {

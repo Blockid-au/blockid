@@ -54,6 +54,7 @@ import { callAI } from "@/lib/ai-client";
 import { demoReportV2 } from "@/lib/report-v2/fixtures";
 import type { AssembledReport } from "@/lib/report-pipeline/types";
 import { sampleIntake, SAMPLE_ANALYSIS_ID } from "./fixtures";
+import { captureInvestorIntent } from "@/lib/intake/investor-intent";
 import {
   deliverReportV2,
   deliveryLinks,
@@ -63,6 +64,8 @@ import {
   progressFromEvent,
   runReportV2Job,
   tallyingCaller,
+  investorIntentFromRow,
+  websiteEvidenceFromRow,
   type CallTally,
   type DeliverV2Deps,
   type Orchestrate,
@@ -219,6 +222,39 @@ describe("runReportV2Job", () => {
     expect(input.ownerUserId).toBe("u-1");
   });
 
+  it("passes stored investor intent and public website pages to the report without upgrading their trust", async () => {
+    const investorIntent = captureInvestorIntent({
+      userText: "Review valuation, strengths, weaknesses, risks and points to clarify for an investor.",
+      submittedAt: NOW.toISOString(),
+    });
+    const h = harness(row({
+      input_kind: "website",
+      intake: {
+        signals: sampleIntake().signals,
+        investorIntent,
+        structured: {
+          pages: [
+            { url: "https://acme.example/", title: "Acme", status: "available", text: "x" },
+            { url: "https://acme.example/pricing", title: "Pricing", status: "blocked", text: "" },
+          ],
+        },
+      },
+    }));
+    await runReportV2Job(SAMPLE_ANALYSIS_ID, h.deps);
+    const input = h.orchestrate.mock.calls[0][0] as {
+      investorIntent?: typeof investorIntent;
+      evidenceItems: Array<Record<string, unknown>>;
+    };
+    expect(input.investorIntent?.digestSha256).toBe(investorIntent.digestSha256);
+    expect(input.evidenceItems).toEqual([{
+      evidence_type: "url",
+      confidence_level: "public_url",
+      dimension: "ptd",
+      label: "Acme — https://acme.example/",
+      origin: "founder_text",
+    }]);
+  });
+
   it("the cost guard: an envelope that already holds a document is delivered, never orchestrated again", async () => {
     const existing = { ...newEnvelope(SAMPLE_ANALYSIS_ID, "Acme", NOW), report: demoReportV2(), reportId: "rpt-old", completedAt: NOW.toISOString() };
     const h = harness(row({ full_report_status: "failed", full_report_json: existing }));
@@ -252,6 +288,10 @@ describe("runReportV2Job", () => {
 });
 
 describe("pure helpers", () => {
+  it("rejects malformed stored intent and non-website evidence", () => {
+    expect(investorIntentFromRow(row({ intake: { investorIntent: { version: "bad" } } }))).toBeUndefined();
+    expect(websiteEvidenceFromRow(row({ input_kind: "idea_text" }))).toEqual([]);
+  });
   it("progressFromEvent moves the phase / pct forward and never backwards", () => {
     let p = newEnvelope("a", "Acme", NOW).progress;
     p = progressFromEvent(p, { type: "context", industry: "", stage: 0, stageLabel: "", phaseId: "", tier: "standard", estimatedCalls: 0, estimatedSeconds: 0, dims: [] }, NOW);

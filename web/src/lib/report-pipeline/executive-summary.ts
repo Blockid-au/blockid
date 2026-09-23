@@ -67,6 +67,12 @@ export const ExecutiveSummaryInput = z.object({
   lowestDim: z.string().nullable(),
   valuation: z.object({ lowAud: z.number(), midAud: z.number(), highAud: z.number(), confidence: z.number() }).nullable(),
   consistencyIssues: z.array(z.string()),
+  investorIntent: z
+    .object({
+      requestedOutputs: z.array(z.string()),
+      questions: z.array(z.string()),
+    })
+    .nullable(),
 });
 export type ExecutiveSummaryInput = z.infer<typeof ExecutiveSummaryInput>;
 
@@ -98,6 +104,12 @@ export function executiveSummaryInput(context: ReportContext): ExecutiveSummaryI
     lowestDim: lowest?.dim ?? null,
     valuation: v ? { lowAud: v.lowAud, midAud: v.midAud, highAud: v.highAud, confidence: v.confidence } : null,
     consistencyIssues: (context.consistencyIssues ?? []).slice(0, 12),
+    investorIntent: context.investorIntent
+      ? {
+          requestedOutputs: context.investorIntent.requestedOutputs.map((item) => item.output),
+          questions: context.investorIntent.userQuestions.map((item) => item.text),
+        }
+      : null,
   };
 }
 
@@ -126,8 +138,11 @@ export function renderExecutiveUser(input: ExecutiveSummaryInput): string {
     valuation,
     input.lowestDim ? `Lowest dimension: ${input.lowestDim.toUpperCase()} — at least one critical gap must name it.` : "",
     input.consistencyIssues.length ? `\nConsistency Issues:\n${input.consistencyIssues.join("\n")}` : "",
+    input.investorIntent
+      ? `\nInvestor intent (a decision request, not evidence):\n- Requested outputs: ${input.investorIntent.requestedOutputs.join(", ")}\n- Questions: ${input.investorIntent.questions.join(" | ") || "standard investor decision view"}`
+      : "",
     "",
-    "Include: one startup overview (2–3 short paragraphs), the key insight, three reasons to back, three critical gaps, stage benchmarks, phase now with its blockers (exactly the ones listed) and what clears the gate, the verdict with a confidence, and up to five recommended actions.",
+    "Include: one business overview (2–3 short paragraphs), the key insight, three evidence-based reasons to back, three critical gaps or material risks, stage benchmarks, phase now with its blockers (exactly the ones listed) and what clears the gate, the verdict with a confidence, and up to five recommended actions. Cover every requested investor output above. When a requested answer is unsupported, make the missing fact a specific point to clarify rather than guessing.",
   ]
     .filter((line) => line !== null)
     .join("\n");

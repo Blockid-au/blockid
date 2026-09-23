@@ -392,6 +392,8 @@ export interface OrchestratorInput {
   chapterCache?: ChapterCache | null;
   startupName: string;
   rawText: string;
+  /** User decision request, kept separate from fetched and founder claims. */
+  investorIntent?: import("@/lib/intake/investor-intent").InvestorIntentSnapshot;
   sviAnalysis: import("@/lib/svi-analysis").SVIAnalysis;
   evidenceItems: import("@/lib/svi-analysis").EvidenceItem[];
   criteriaData: Record<CriterionKey, CriterionData>;
@@ -508,6 +510,7 @@ export async function orchestrateReport(input: OrchestratorInput): Promise<Assem
     projectId: input.projectId,
     startupName: input.startupName,
     rawText: input.rawText,
+    investorIntent: input.investorIntent,
     sviAnalysis: input.sviAnalysis,
     evidenceItems: input.evidenceItems,
     criteriaData: ensureAllCriteria(input.criteriaData),

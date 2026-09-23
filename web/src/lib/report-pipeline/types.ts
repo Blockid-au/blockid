@@ -1,6 +1,7 @@
 // Report Pipeline Types — Shared interfaces for multi-agent orchestrated report generation.
 
 import type { SVIAnalysis, EvidenceItem } from "@/lib/svi-analysis";
+import type { InvestorIntentSnapshot } from "@/lib/intake/investor-intent";
 import type { CriterionKey } from "@/lib/evaluation-criteria";
 import type { PhaseGateResult } from "@/lib/growth/phase-gate";
 import type { DimensionChapter, EvidenceRow, ExecutiveStructured, ReportV2 } from "@/lib/report-v2/schema";
@@ -194,6 +195,8 @@ export interface ReportContext {
   projectId?: string;
   startupName: string;
   rawText: string;
+  /** User-requested investor questions; never treated as business evidence. */
+  investorIntent?: InvestorIntentSnapshot;
   sviAnalysis: SVIAnalysis;
   evidenceItems: EvidenceItem[];
   criteriaData: Record<CriterionKey, CriterionData>;

@@ -10,6 +10,7 @@ import { demoReportV2 } from "@/lib/report-v2/fixtures";
 import { dispatchExecutiveSummary, draftFromPayload, executiveOutputContract, executiveSummaryInput, ExecutiveSummaryInput, ExecutiveSummaryPayload, renderExecutiveUser } from "./executive-summary";
 import { DIM_ORDER } from "./dimension-owners";
 import type { AgentAnalysisResult, ReportContext } from "./types";
+import { captureInvestorIntent } from "@/lib/intake/investor-intent";
 
 vi.mock("@/lib/supabase", () => ({ getSupabaseAdmin: () => null }));
 vi.mock("@/lib/ai/prompt-registry", () => ({ readCurrentPrompt: vi.fn(async () => null), readOrRegisterPrompt: vi.fn(async () => null) }));
@@ -97,6 +98,21 @@ describe("executiveSummaryInput / renderExecutiveUser / executiveOutputContract"
     expect(c).toContain("at most 60 words");
     expect(c).toMatch(/no markdown syntax inside strings/);
     expect(c).toContain("[ev:«id»]");
+  });
+
+  it("threads requested investor outputs into synthesis without presenting them as evidence", () => {
+    const context = makeContext();
+    context.investorIntent = captureInvestorIntent({
+      userText: "Assess valuation, risks, competitors and what should be clarified?",
+      submittedAt: "2026-09-23T00:00:00.000Z",
+    });
+    const input = executiveSummaryInput(context);
+    const user = renderExecutiveUser(input);
+    expect(input.investorIntent?.requestedOutputs).toEqual(expect.arrayContaining([
+      "valuation", "risks", "competitors", "points_to_clarify",
+    ]));
+    expect(user).toContain("Investor intent (a decision request, not evidence)");
+    expect(user).toContain("make the missing fact a specific point to clarify rather than guessing");
   });
 });
 

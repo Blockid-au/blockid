@@ -22,6 +22,17 @@ describe("captureInvestorIntent", () => {
     expect(result.requestedOutputs.map((x) => x.output)).toEqual(expect.arrayContaining(["valuation", "risks"]));
   });
 
+  it("recognises a natural-language request for points that need clarification", () => {
+    const result = captureInvestorIntent({
+      userText: "Assess valuation, risks and what should be clarified?",
+      submittedAt: at,
+      locale: "en",
+    });
+    expect(result.requestedOutputs.map((x) => x.output)).toEqual(expect.arrayContaining([
+      "valuation", "risks", "points_to_clarify",
+    ]));
+  });
+
   it("uses an explicitly labelled inferred investor view when no request is stated", () => {
     const result = captureInvestorIntent({ userText: "We sell workflow software to clinics.", submittedAt: at });
     expect(result.requestedOutputs).toEqual([{ output: "investment_view", provenance: "inferred", spans: [] }]);

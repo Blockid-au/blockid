@@ -49,6 +49,8 @@ import type { AssembledReport } from "@/lib/report-pipeline/types";
 import { PIPELINE_VERSION } from "@/lib/report-pipeline/version";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import type { SendReportEmailResult } from "@/lib/svi/email-report";
+import type { InvestorIntentSnapshot } from "@/lib/intake/investor-intent";
+import type { EvidenceItem } from "@/lib/svi-analysis";
 import { buildDeterministicReport } from "./build";
 import { downloadPath, mintDownloadToken } from "./download-token";
 import {
@@ -176,6 +178,36 @@ export function tallyCost(tally: CallTally): number {
   return Math.round(total * 10_000) / 10_000;
 }
 
+/** Recover the separately stored user decision request without trusting arbitrary row JSON. */
+export function investorIntentFromRow(row: FullReportRow): InvestorIntentSnapshot | undefined {
+  const candidate = row.intake?.investorIntent as Partial<InvestorIntentSnapshot> | undefined;
+  if (
+    candidate?.version !== "investor-intent-v1" ||
+    !Array.isArray(candidate.requestedOutputs) ||
+    !Array.isArray(candidate.userQuestions) ||
+    typeof candidate.digestSha256 !== "string"
+  ) return undefined;
+  return candidate as InvestorIntentSnapshot;
+}
+
+/** Website pages are public, founder-submitted sources, never verified connector data. */
+export function websiteEvidenceFromRow(row: FullReportRow): EvidenceItem[] {
+  if (row.input_kind !== "website") return [];
+  const structured = row.intake?.structured as { pages?: unknown } | undefined;
+  if (!Array.isArray(structured?.pages)) return [];
+  return structured.pages.flatMap((value) => {
+    const page = value as { url?: unknown; title?: unknown; status?: unknown };
+    if (page.status !== "available" || typeof page.url !== "string") return [];
+    return [{
+      evidence_type: "url",
+      confidence_level: "public_url",
+      dimension: "ptd",
+      label: typeof page.title === "string" && page.title.trim() ? `${page.title.trim()} — ${page.url}` : page.url,
+      origin: "founder_text" as const,
+    }];
+  });
+}
+
 /** Wrap the dispatcher call so every answered call is counted by provider + model. */
 export function tallyingCaller(inner: ReportV2JobDeps["callAI"], tally: CallTally): ReportV2JobDeps["callAI"] {
   return async (system, user, maxTokens, taskClass, hint) => {
@@ -272,8 +304,9 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
       ownerUserId: row.user_id ?? null,
       startupName: built.echo.company,
       rawText: intake.rawText,
+      investorIntent: investorIntentFromRow(row),
       sviAnalysis: built.analysis,
-      evidenceItems: [],
+      evidenceItems: websiteEvidenceFromRow(row),
       criteriaData: buildCriteriaData(null),
       tier: "standard",
       tierV2: "standard",

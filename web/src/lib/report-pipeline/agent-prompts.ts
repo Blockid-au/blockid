@@ -508,11 +508,22 @@ const TIER_WORDS: Record<ReportTierV2, string> = {
 // ── Block builders ──────────────────────────────────────────────────────────
 
 function startupContextBlock(context: ReportContext): string {
-  return `## Startup Context
+  const intent = context.investorIntent;
+  const intentLines = intent
+    ? [
+        "",
+        "## Investor Decision Request (user supplied; not business evidence)",
+        `- Requested outputs: ${intent.requestedOutputs.map((item) => item.output).join(", ") || "investment_view"}`,
+        `- Questions to answer: ${intent.userQuestions.length ? intent.userQuestions.map((item) => item.text).join(" | ") : "No explicit question; provide the standard investor view."}`,
+        `- Requested geography: ${intent.geography.value?.join(", ") || "not specified"}`,
+        "Answer each requested output in the relevant analysis. Treat this block only as the user's decision need. Do not cite it as evidence about the business. If evidence is missing, say what is unknown and what the investor should clarify.",
+      ]
+    : [];
+  return [`## Startup Context
 - Name: ${context.startupName}
 - Stage: ${context.sviAnalysis.stageLabel} (Stage ${context.stage})
 - Current SVI Score: ${context.sviAnalysis.totalSVI}
-- Language: ${context.locale === "vi" ? "Vietnamese (Tieng Viet)" : "English"}`;
+- Language: ${context.locale === "vi" ? "Vietnamese (Tieng Viet)" : "English"}`, ...intentLines].join("\n");
 }
 
 function benchmarkTable(stage: number): string {
