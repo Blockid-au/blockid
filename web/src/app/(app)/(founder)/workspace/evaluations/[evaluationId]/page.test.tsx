@@ -284,7 +284,7 @@ describe("/workspace/evaluations/[evaluationId]", () => {
     expect(b2).toContain('data-visual-kind="range_bars"');
     expect((b2.match(/<svg[^>]*role="img"/g) ?? []).length).toBe(1);
     expect(b2).toContain('data-testid="valuation-methods"');
-    for (const m of ["Revenue multiple", "Berkus", "DCF proxy", "AU comparables", "Risk-factor summation", "Scorecard"]) expect(b2).toContain(m);
+    for (const m of ["Revenue multiple", "Berkus", "Adjusted ARR multiple (heuristic)", "Sector/growth ARR multiple", "Tax-adjusted ARR multiple (heuristic)", "Scorecard"]) expect(b2).toContain(m);
     expect(b2).toContain("lifted from the stored snapshot");
     expect(b2).toContain('href="/tbr/tok-abc"');
     const b5 = out.slice(out.indexOf('data-testid="dossier-block-5"'), out.indexOf('data-testid="dossier-block-6"'));
