@@ -4,6 +4,7 @@
 
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/reports/business/business-report-client";
 import { loadReportV2ByShareToken } from "@/lib/report-v2/load";
 

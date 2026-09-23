@@ -11,6 +11,7 @@
 
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { getSupabaseAdmin } from "@/lib/supabase";
 import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/reports/business/business-report-client";
 import { loadAssessmentContext } from "@/lib/svi/assessment-context";
 import { TbrViewBeacon } from "@/components/tbr/tbr-view-beacon";
