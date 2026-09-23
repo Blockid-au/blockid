@@ -24,7 +24,7 @@ describe("homepage hero", () => {
     expect(html).toContain(`data-hero-arm="${HOMEPAGE_COPY_VERSION}"`);
     expect(html).toContain(`placeholder="${copy.placeholder}"`);
     expect(html).toContain('type="file"');
-    expect(html).toContain('accept=".pdf,.docx,.pptx"');
+    expect(html).toContain('accept=".pdf,.docx,.pptx,.png,.jpg,.jpeg,.webp"');
     expect(html.indexOf('type="submit"')).toBeLessThan(html.indexOf('href="/tbr/demo"'));
     for (const stale of ["Start a cohort", "Score my startup", "Classify my idea", 'href="/analyze"']) expect(html).not.toContain(stale);
   });

@@ -321,7 +321,6 @@ export function AnalyzeRoot({
   const [running, setRunning] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
   const [ocrOffered, setOcrOffered] = React.useState(false);
-  const [ocrLoading, setOcrLoading] = React.useState(false);
   const [guestCheckoutOpen, setGuestCheckoutOpen] = React.useState(false);
   // Bumped when the free-summary card reports a send, so the full-report
   // panel re-polls at once and the guest's locked sections open without a
@@ -482,8 +481,17 @@ export function AnalyzeRoot({
         return;
       }
       if (!res.ok) {
+        const failure = await res.json().catch(() => ({})) as { reason?: string };
+        const imageErrors: Record<string, string> = {
+          needs_input: "Not enough readable text in this image. Upload a clearer image or paste the text.",
+          invalid_image: "This image could not be decoded. Re-export it as PNG, JPEG or WebP.",
+          unsupported_image: "Upload PNG, JPEG or WebP. Other image formats are not supported yet.",
+          animated_image: "Animated images are not supported. Upload a still PNG, JPEG or WebP.",
+          ocr_failed: "Image text could not be read. Upload a clearer image or paste the text.",
+          ocr_timeout: "Reading this image took too long. Crop to the relevant text or paste it.",
+        };
         setErrorMsg(
-          "Something went wrong. Try again or contact support.",
+          imageErrors[failure.reason ?? ""] ?? "Something went wrong. Try again or contact support.",
         );
         setIntakeLoading(false);
         return;
@@ -526,7 +534,7 @@ export function AnalyzeRoot({
       setOcrOffered(
         data.inputKind === "pitch_deck" &&
           Boolean(
-            data.warnings?.some((w) => /pdf.*ocr|image-only/i.test(w)),
+            data.warnings?.some((w) => /pdf.*(?:ocr|no extractable text)|image-only/i.test(w)),
           ),
       );
       // Default to the shared rule rather than to "show the modal". An
@@ -625,30 +633,6 @@ export function AnalyzeRoot({
     },
     [],
   );
-
-  /** Fire OCR fallback for image-only PDFs. */
-  async function runOcr() {
-    if (!submission?.file || ocrLoading) return;
-    setOcrLoading(true);
-    try {
-      const form = new FormData();
-      form.set("file", submission.file);
-      const res = await fetch("/api/pitchdeck/ocr", {
-        method: "POST",
-        body: form,
-      });
-      if (!res.ok) {
-        setErrorMsg("OCR failed — try uploading a text-based PDF instead.");
-        return;
-      }
-      // Re-post intake now that OCR has enriched the text — the intake
-      // endpoint owns the extraction pipeline so we just re-run it.
-      await handleSubmit(submission);
-      setOcrOffered(false);
-    } finally {
-      setOcrLoading(false);
-    }
-  }
 
   function handleReset() {
     clearPendingIntake();
@@ -808,6 +792,7 @@ export function AnalyzeRoot({
 
   return (
     <div className="w-full">
+      {intake?.structured.imageSource && <p className="mb-4 rounded-xl border border-warn/40 bg-warn/10 px-4 py-3 text-sm" role="status">Image text is an unverified transcription. Charts and diagrams were not interpreted. Confirm financial figures against the original.</p>}
       {ocrOffered && (
         <div
           role="alert"
@@ -815,18 +800,9 @@ export function AnalyzeRoot({
           data-testid="analyze-ocr-banner"
         >
           <span>
-            This PDF looks scanned. Run OCR (+2 credits) to extract the
-            text?
+            This PDF has no readable text. Upload a text-selectable PDF, paste the text, or upload individual PNG, JPEG or WebP pages. Image OCR reads text only.
           </span>
-          <button
-            type="button"
-            onClick={() => void runOcr()}
-            disabled={ocrLoading}
-            className="rounded-lg bg-warn px-3 py-1.5 text-xs font-semibold text-on-warn hover:opacity-90 disabled:opacity-60"
-            data-testid="analyze-ocr-run"
-          >
-            {ocrLoading ? "Running OCR…" : "Run OCR"}
-          </button>
+
         </div>
       )}
 

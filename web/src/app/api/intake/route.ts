@@ -467,6 +467,11 @@ async function POST_handler(request: Request) {
       }
     }
     const msg = err instanceof Error ? err.message : String(err);
+    const extractionStatus: Record<string, number> = {
+      image_too_large: 413, unsupported_image: 415, animated_image: 415,
+      invalid_image: 422, needs_input: 422, ocr_failed: 422, ocr_busy: 429, ocr_timeout: 504,
+    };
+    if (extractionStatus[msg]) return NextResponse.json({ ok: false, reason: msg, error: msg }, { status: extractionStatus[msg] });
     return NextResponse.json(
       { ok: false, error: `Intake failed: ${msg}` },
       { status: 500 },

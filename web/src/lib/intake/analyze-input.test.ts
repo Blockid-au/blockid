@@ -66,6 +66,12 @@ vi.mock("./deck-sections", async () => {
   };
 });
 
+vi.mock("./visual-transcript", () => ({
+  extractVisualTranscript: vi.fn(async () => ({ text: "Business revenue stated as AUD 100000 for FY2025, unaudited", source: { originalSha256: "a".repeat(64), derivativeSha256: "b".repeat(64), width: 800, height: 600, transformVersion: "upright-png-v1", status: "transcribed_unverified", visualAnalysis: "not_performed" } })),
+  visualTranscriptContext: (text: string) => `[Image transcription — unverified]\n${text}`,
+  VISUAL_TRANSCRIPT_WARNING: "OCR is unverified; charts are not interpreted.",
+}));
+
 import { analyzeInput } from "./analyze-input";
 
 describe("analyzeInput — regex fast-path", () => {
@@ -167,5 +173,15 @@ describe("analyzeInput — file path", () => {
     });
     expect(result.inputKind).toBe("pitch_deck");
     expect(result.warnings?.length ?? 0).toBeGreaterThan(0);
+  });
+});
+
+describe("image intake provenance", () => {
+  it("keeps OCR evidence separate from user intent and records its limitation", async () => {
+    const result = await analyzeInput({ file: { filename: "financials.png", buffer: Buffer.from("image"), mimeType: "image/png" }, text: "What needs verification?" });
+    expect(result.structured.imageSource?.status).toBe("transcribed_unverified");
+    expect(result.rawText).toContain("unverified");
+    expect(result.inputSnapshot?.sourceUnits[0].locator).toBe("financials.png#image=1");
+    expect(result.warnings?.[0]).toContain("charts");
   });
 });

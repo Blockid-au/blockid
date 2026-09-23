@@ -10,6 +10,11 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { classifyInput, SmartIntake } from "./smart-intake";
 
 describe("classifyInput — truth table", () => {
+  it("accepts direct images through the existing file flow", () => {
+    const r = classifyInput({ file: { name: "financials.png", type: "image/png", size: 2048 } });
+    expect(r.variant).toBe("deck");
+    expect(r.chipLabel).toContain("OCR");
+  });
   it("empty input is empty variant", () => {
     const r = classifyInput({ text: "", file: null });
     expect(r.variant).toBe("empty");

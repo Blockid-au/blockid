@@ -28,6 +28,7 @@ import {
   type SnapshotSourceInput,
   type SnapshotUnitStatus,
 } from "./input-snapshot";
+import { extractVisualTranscript, visualTranscriptContext, VISUAL_TRANSCRIPT_WARNING, type VisualTranscriptSource } from "./visual-transcript";
 import { acquireWebsiteCorpus, type WebsiteCorpus } from "./website-corpus";
 
 export type InputKind =
@@ -53,6 +54,7 @@ export interface IntakeInput {
 
 export interface IntakeStructured {
   slides?: string[];
+  imageSource?: VisualTranscriptSource;
   pages?: {
     url: string;
     text: string;
@@ -93,6 +95,16 @@ const IDEA_HINTS =
   /\b(idea|concept|thinking of building|we plan|we want to build|pre-?revenue|pre-?product|early stage|building an?|going to build|would like to|aim to build)\b/i;
 const EXISTING_HINTS =
   /\b(founded in|incorporated|abn\s*\d|our customers|our users|mrr|arr|revenue of|paying customers|series [abcde]|raised \$|hired|team of \d+|employees|our platform is live|launched in|since 20\d{2})\b/i;
+
+function isRasterBuffer(bytes: Buffer): boolean {
+  const start = bytes.subarray(0, 12);
+  return (start[0] === 0x89 && start.toString("ascii", 1, 4) === "PNG") ||
+    (start[0] === 0xff && start[1] === 0xd8) ||
+    (start.toString("ascii", 0, 4) === "RIFF" && start.toString("ascii", 8, 12) === "WEBP") ||
+    /^GIF8/.test(start.toString("ascii")) ||
+    (start[0] === 73 && start[1] === 73 && start[2] === 42) ||
+    (start[0] === 77 && start[1] === 77 && start[3] === 42);
+}
 
 function isPdfBuffer(buf: Buffer): boolean {
   return buf.length >= 4 && buf.slice(0, 4).toString("ascii") === "%PDF";
@@ -221,12 +233,20 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
   // ── File path: pitch deck (PDF/PPTX) ───────────────────────────────────
   if (input.file) {
     const filename = input.file.filename.toLowerCase();
-    const isPptx = filename.endsWith(".pptx") || isPptxBuffer(input.file.buffer);
+    const isImage = /\.(png|jpe?g|webp|gif|heic|tiff?|bmp|svg)$/i.test(filename) || (input.file.mimeType ?? "").startsWith("image/") || isRasterBuffer(input.file.buffer);
+    const isPptx = filename.endsWith(".pptx") || (!/\.docx$/i.test(filename) && isPptxBuffer(input.file.buffer));
     const isPdf = filename.endsWith(".pdf") || isPdfBuffer(input.file.buffer);
 
     let slides: string[] = [];
     let rawText = "";
-    if (isPptx) {
+    let imageSource: VisualTranscriptSource | undefined;
+    if (isImage) {
+      const transcript = await extractVisualTranscript(input.file.buffer);
+      imageSource = transcript.source;
+      rawText = visualTranscriptContext(transcript.text);
+      slides = [rawText];
+      warnings.push(VISUAL_TRANSCRIPT_WARNING);
+    } else if (isPptx) {
       slides = await extractPptxSlides(input.file.buffer);
       rawText = slides.join("\n\n");
       if (!rawText) warnings.push("PPTX yielded no extractable text — consider OCR fallback");
@@ -234,7 +254,7 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
       const out = await extractPdfSlides(input.file.buffer);
       slides = out.slides;
       rawText = out.text;
-      if (!rawText.trim()) warnings.push("PDF yielded no extractable text — likely image-only, try /api/pitchdeck/ocr");
+      if (!rawText.trim()) warnings.push("PDF yielded no extractable text — export a text-selectable PDF or upload individual PNG/JPEG/WebP pages for OCR");
     } else if (/\.docx?$/.test(filename)) {
       const tmp = await writeBufferToTemp(input.file.buffer, input.file.filename);
       rawText = await extractFileText(tmp, input.file.filename);
@@ -253,7 +273,7 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
       ? slides.map((slide, index) => ({
           id: `slide:${index + 1}`,
           kind: "slide",
-          locator: `${input.file!.filename}#slide=${index + 1}`,
+          locator: `${input.file!.filename}#${imageSource ? "image" : "slide"}=${index + 1}`,
           status: slide.trim() ? "available" : "unsupported",
           ...(slide.trim() ? { text: slide } : {}),
         }))
@@ -269,13 +289,13 @@ export async function analyzeInput(input: IntakeInput): Promise<IntakeResult> {
       inputKind: "pitch_deck",
       confidence: rawText.length > 200 ? 0.95 : 0.55,
       rawText: combinedText,
-      structured: { slides, deckSections },
+      structured: { slides, deckSections, ...(imageSource ? { imageSource } : {}) },
       signals,
       context,
       classifierMode: "file",
       suggestedNext: rawText.trim()
         ? "Run /api/svi/report-estimate with the returned `context` to price the deep dive."
-        : "Try /api/pitchdeck/ocr — the PDF appears to be image-only.",
+        : "Upload a text-selectable PDF, paste the text or upload individual PNG/JPEG/WebP pages.",
       warnings: warnings.length > 0 ? warnings : undefined,
       inputSnapshot,
       investorIntent,

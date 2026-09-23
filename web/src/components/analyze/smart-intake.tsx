@@ -24,13 +24,14 @@ export type IntakeVariant = "url" | "deck" | "idea" | "empty";
 
 const URL_REGEX = /\b(https?:\/\/[^\s]+|(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/[^\s]*)?)\b/i;
 const DECK_MIME_ALLOWLIST = [
+  "image/png", "image/jpeg", "image/webp",
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "application/vnd.openxmlformats-officedocument.presentationml.presentation",
   "application/msword",
   "application/vnd.ms-powerpoint",
 ];
-const DECK_EXT_REGEX = /\.(pdf|docx?|pptx?)$/i;
+const DECK_EXT_REGEX = /\.(pdf|docx?|pptx?|png|jpe?g|webp)$/i;
 // A description only has to be enough to say what the business is — a sentence
 // or two does that. The old 40-word floor turned the hero into a writing task
 // and left the CTA reading "Keep typing…" for most real attempts, which is a
@@ -108,7 +109,7 @@ export function classifyInput(input: {
       return {
         variant: "deck",
         reason: "Detected pitch deck upload",
-        chipLabel: `PDF · ${mb} MB`,
+        chipLabel: `${/\.(png|jpe?g|webp)$/i.test(file.name ?? "") || file.type?.startsWith("image/") ? "Image · OCR" : "Document"} · ${mb} MB`,
         ctaLabel: "Read my deck",
         fileSizeBytes: file.size,
       };
@@ -281,6 +282,7 @@ export function SmartIntake({
 
   return (
     <div className={cn("w-full max-w-3xl", className)}>
+      {file && /\.(png|jpe?g|webp)$/i.test(file.name) && <p className="mb-2 text-sm text-muted" role="status">Image text will be read with OCR. Charts and diagrams are not yet interpreted; check numbers against your original.</p>}
       {copy && <label htmlFor="smart-intake-input" className="mb-3 block text-left text-sm font-semibold text-primary">{copy.label}</label>}
       {/* The pill. One row on sm+, two on a phone — see the stacking note
           on the submit button below. `rounded-[inherit]` is load-bearing:
@@ -321,6 +323,10 @@ export function SmartIntake({
                 type="text"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
+                onPaste={(e) => {
+                  const pasted = Array.from(e.clipboardData.files).find(f => ["image/png", "image/jpeg", "image/webp"].includes(f.type));
+                  if (pasted) { e.preventDefault(); handleFile(pasted); }
+                }}
                 placeholder={placeholderText}
                 className="h-11 min-w-0 flex-1 bg-transparent text-base text-primary placeholder:text-tertiary focus:outline-none"
                 autoComplete="off"
@@ -329,7 +335,7 @@ export function SmartIntake({
               <input
                 id="smart-intake-file"
                 type="file"
-                accept=".pdf,.docx,.pptx"
+                accept=".pdf,.docx,.pptx,.png,.jpg,.jpeg,.webp"
                 className="sr-only"
                 onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
                 data-testid="smart-intake-file"
@@ -340,7 +346,7 @@ export function SmartIntake({
                   spells the affordance out for sighted phone users. */}
               <label
                 htmlFor="smart-intake-file"
-                title={copy?.uploadTitle ?? "Upload a pitch deck (PDF, DOCX or PPTX)"}
+                title="Upload PDF, DOCX, PPTX or an image (PNG, JPEG, WebP)"
                 className="inline-flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3 text-sm font-medium text-muted transition-colors hover:bg-surface-hover hover:text-primary focus-within:ring-2 focus-within:ring-action sm:border sm:border-line-subtle"
               >
                 <Upload className="h-4 w-4" aria-hidden />
