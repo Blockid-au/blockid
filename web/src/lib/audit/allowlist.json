@@ -56,6 +56,10 @@
     {
       "pattern": "api/status/**",
       "reason": "Health / status endpoints have no mutating handlers; listed so a future POST there is a conscious decision."
+    },
+    {
+      "pattern": "api/internal/svi/account-status/**",
+      "reason": "Signed server-to-server READ: startupvalueindex.com asks whether a uid is still active and gets an HMAC-signed yes/no. It is a POST only because the request body carries the signature; it writes nothing, so there is no mutation to audit."
     }
   ]
 }

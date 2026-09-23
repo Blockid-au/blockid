@@ -1,4 +1,8 @@
-import test from 'node:test'
+// Runs under vitest via web/vitest.config.ts's `../scripts/**/*.test.mjs`
+// glob, so the runner must be vitest's `test` — with `node:test` the suite
+// collected zero cases and the whole file was reported FAIL. The node
+// assertions below are unchanged and work as-is inside vitest.
+import { test } from 'vitest'
 import assert from 'node:assert/strict'
 import { ga4Configuration, mergeEnvText, hasScopedSnapshot, collectDailySnapshot, HOSTNAME_SCOPE, cronOptions } from './ga4-daily-helpers.mjs'
 
