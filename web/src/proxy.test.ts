@@ -729,7 +729,7 @@ describe("public-page caching (S31-D) — CSP_PUBLIC_HASH_MODE", () => {
     it("?state=NSW alone → the static per-state route, cached like the base page", async () => {
       process.env.CSP_PUBLIC_HASH_MODE = "1";
       const res = await proxy(pageReq("/funding/grants?state=nsw"));
-      expect(res.headers.get("x-middleware-rewrite")).toBe("https://blockid.au/funding/grants/state/NSW?state=nsw");
+      expect(res.headers.get("x-middleware-rewrite")).toBe("http://blockid.au/funding/grants/state/NSW?state=nsw");
       expect(res.headers.get("x-blockid-csp")).toBe("hash");
       expect(res.headers.get("cache-control")).toBe("public, s-maxage=600, stale-while-revalidate=600");
     });
@@ -737,7 +737,7 @@ describe("public-page caching (S31-D) — CSP_PUBLIC_HASH_MODE", () => {
     it("any other filter combination → the dynamic view (nonce, private); the bare directory is not rewritten", async () => {
       process.env.CSP_PUBLIC_HASH_MODE = "1";
       const view = await proxy(pageReq("/funding/grants?state=NSW&type=voucher"));
-      expect(view.headers.get("x-middleware-rewrite")).toBe("https://blockid.au/funding/grants/view?state=NSW&type=voucher");
+      expect(view.headers.get("x-middleware-rewrite")).toBe("http://blockid.au/funding/grants/view?state=NSW&type=voucher");
       expect(view.headers.get("x-blockid-csp")).toBe("nonce");
       // Not allow-listed and dynamic: Next itself emits `private, no-store` for the render.
       expect(view.headers.get("cache-control")).toBeNull();
@@ -747,15 +747,22 @@ describe("public-page caching (S31-D) — CSP_PUBLIC_HASH_MODE", () => {
 
     it("rewrites happen with the flag off too (the routes exist regardless)", async () => {
       const res = await proxy(pageReq("/funding/grants?state=WA"));
-      expect(res.headers.get("x-middleware-rewrite")).toBe("https://blockid.au/funding/grants/state/WA?state=WA");
+      expect(res.headers.get("x-middleware-rewrite")).toBe("http://blockid.au/funding/grants/state/WA?state=WA");
       expect(res.headers.get("x-blockid-csp")).toBe("nonce");
     });
+  });
+
+  it("rewrite destinations stay on the plain-http origin behind X-Forwarded-Proto: https (Next proxied https://localhost → EPROTO 500)", async () => {
+    const res = await proxy(pageReq("/funding/grants?state=NSW"));
+    const dest = new URL(res.headers.get("x-middleware-rewrite") ?? "");
+    expect(dest.protocol).toBe("http:");
+    expect(dest.pathname).toBe("/funding/grants/state/NSW");
   });
 
   describe("/tbr/demo?band= rewrite (G28-D: the four verdict-band demos stay static)", () => {
     it("?band=a → the static per-band route (case-insensitive); the bare demo and junk bands are not rewritten", async () => {
       const res = await proxy(pageReq("/tbr/demo?band=a"));
-      expect(res.headers.get("x-middleware-rewrite")).toBe("https://blockid.au/tbr/demo/band/A?band=a");
+      expect(res.headers.get("x-middleware-rewrite")).toBe("http://blockid.au/tbr/demo/band/A?band=a");
       expect((await proxy(pageReq("/tbr/demo"))).headers.get("x-middleware-rewrite")).toBeNull();
       expect((await proxy(pageReq("/tbr/demo?band=E"))).headers.get("x-middleware-rewrite")).toBeNull();
       expect((await proxy(pageReq("/tbr/demo/band/D?band=A"))).headers.get("x-middleware-rewrite")).toBeNull();

@@ -357,6 +357,24 @@ function seedJurisdictionCookie(req: NextRequest, res: NextResponse): void {
 const MAIN_DOMAIN = "blockid.au";
 
 /** @internal — exported for unit tests only */
+/**
+ * Rewrite destination on this server's own origin. Next treats a middleware
+ * rewrite as internal only when its origin equals the origin it was reached
+ * on — plain `http://localhost:<port>` behind nginx — but `request.nextUrl`
+ * takes its scheme from `X-Forwarded-Proto: https`. A cloned `nextUrl` is
+ * therefore `https://localhost:<port>/…`, which Next proxies over TLS to a
+ * plain-http port (EPROTO → 500 on every rewritten page, e.g.
+ * `/funding/grants?state=NSW`, `/tbr/demo?band=A`).
+ *
+ * @internal — exported for unit tests only
+ */
+export function internalRewriteUrl(request: NextRequest, pathname: string): URL {
+  const url = request.nextUrl.clone();
+  url.pathname = pathname;
+  url.protocol = "http:";
+  return url;
+}
+
 export function subdomainRewrite(request: NextRequest): NextResponse | null {
   const rawHost = process.env.HOST_OVERRIDE ?? (request.headers.get("host") ?? "");
   // Strip port so localhost:4001 and production work the same way.
@@ -385,10 +403,8 @@ export function subdomainRewrite(request: NextRequest): NextResponse | null {
     return null; // pass-through
   }
 
-  const url = request.nextUrl.clone();
   // Map "/" → "/startup/slug", "/some/deep" → "/startup/slug/some/deep"
-  url.pathname = `/startup/${slug}${pathname === "/" ? "" : pathname}`;
-  return NextResponse.rewrite(url);
+  return NextResponse.rewrite(internalRewriteUrl(request, `/startup/${slug}${pathname === "/" ? "" : pathname}`));
 }
 
 // ── CSRF gate for cookie-authenticated API mutations (S9-A) ─────────────
@@ -623,11 +639,7 @@ export function hasVisitorIdentityCookie(request: NextRequest): boolean {
 function planPageResponse(request: NextRequest, nonce: string, nonceCsp: string): PageResponsePlan {
   const { pathname, searchParams } = request.nextUrl;
   const rewriteTarget = grantsRewriteTarget(pathname, searchParams) ?? demoBandRewriteTarget(pathname, searchParams);
-  let rewriteUrl: URL | null = null;
-  if (rewriteTarget) {
-    rewriteUrl = request.nextUrl.clone();
-    rewriteUrl.pathname = rewriteTarget;
-  }
+  const rewriteUrl = rewriteTarget ? internalRewriteUrl(request, rewriteTarget) : null;
   const servedPath = rewriteTarget ?? pathname;
   const nonceMode: PageResponsePlan = { rewriteUrl, nonce, csp: nonceCsp, cacheControl: null, sharedCacheable: false };
 
