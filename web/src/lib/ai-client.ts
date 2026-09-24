@@ -2730,7 +2730,66 @@ async function callAITracked(opts: AICallOptions): Promise<AICallResult> {
   // G15-R3.3: count budget exhaustion (whether the loop broke on the deadline
   // or a provider ladder surfaced it) for getProviderHealthSnapshot().
   if (lastError instanceof AIBudgetExhaustedError) noteBudgetExhausted();
+  // G33-T16j: founder decision 24/09 — when DeepInfra cannot answer a scoped
+  // synthesis call (the CEO summary), one Groq free-tier call per run may.
+  if (scoped && taskClass === "synthesis") {
+    const fallback = await callGroqReportSynthesisFallback(opts).catch((err) => {
+      console.warn(`[ai-client] groq free synthesis fallback failed: ${err instanceof Error ? err.message.slice(0, 200) : String(err)}`);
+      return null;
+    });
+    if (fallback) return { ...fallback, via: "groq", taskClass, policy: opts.policy } as AICallResult;
+  }
   throw lastError ?? new Error("All AI providers failed");
+}
+
+/**
+ * G33-T16j — Groq free-tier backup for the scoped CEO summary only.
+ *
+ * Founder decision 24/09/2026 after DeepInfra throughput (9–21 tok/s at busy
+ * hours) left the summary timing out. Constraints measured that day:
+ *   • the account is on Groq's free tier (x-ratelimit-limit-tokens 8 000 / min),
+ *     so the call costs US$0 — no paid spillover beyond DeepInfra;
+ *   • a summary prompt is ~3.7–4.7 k input tokens + ≤ 2 600 output, which fits
+ *     the 8 k per-minute window once — hence at most ONE call per report run;
+ *   • openai/gpt-oss-120b ignores the citation contract (G30 measurement), so
+ *     the auditor downstream strips uncited claims — a thinner but honest summary
+ *     instead of the deterministic placeholder.
+ * Off with REPORT_GROQ_FREE_FALLBACK=off. Never used for chapters or criteria.
+ */
+export const REPORT_GROQ_FREE_MODEL = "openai/gpt-oss-120b";
+const groqFallbackUsed = new WeakMap<object, number>();
+async function callGroqReportSynthesisFallback(opts: AICallOptions): Promise<Pick<AICallResult, "text" | "provider" | "model" | "usage" | "cost_usd"> | null> {
+  if (process.env.REPORT_GROQ_FREE_FALLBACK === "off") return null;
+  const apiKey = process.env.GROQ_API_KEY ?? getDBKey("groq")?.api_key ?? "";
+  if (!apiKey || !opts.runStrikes) return null; // run-scoped cap needs the run ledger
+  if ((groqFallbackUsed.get(opts.runStrikes) ?? 0) >= 1) return null;
+  const remaining = typeof opts.deadlineAt === "number" ? opts.deadlineAt - Date.now() : 60_000;
+  if (remaining < DEEPINFRA_MIN_ATTEMPT_MS) return null;
+  groqFallbackUsed.set(opts.runStrikes, 1);
+  const raw = await inprocessStreamChat("https://api.groq.com/openai/v1/chat/completions", {
+    "Authorization": `Bearer ${apiKey}`,
+    "Content-Type": "application/json",
+  }, JSON.stringify({
+    model: REPORT_GROQ_FREE_MODEL,
+    max_tokens: Math.min(opts.maxTokens ?? 2600, 2600),
+    temperature: opts.temperature ?? 0.3,
+    reasoning_effort: "low", // gpt-oss reasoning would otherwise eat the 8 k/min window
+    stream: true,
+    messages: [
+      { role: "system", content: opts.system },
+      { role: "user", content: opts.user },
+    ],
+  }), { firstTokenMs: Math.min(remaining, 30_000), idleMs: Math.min(remaining, 30_000), totalMs: remaining });
+  const data = JSON.parse(raw) as { model?: string; choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } };
+  const text = data.choices?.[0]?.message?.content ?? "";
+  if (!text) throw new Error("Empty Groq response");
+  return {
+    text,
+    provider: "groq",
+    model: data.model ?? REPORT_GROQ_FREE_MODEL,
+    usage: { input_tokens: Number(data.usage?.prompt_tokens ?? 0), output_tokens: Number(data.usage?.completion_tokens ?? 0), cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
+    cost_usd: 0,
+  };
 }
 
 // ── Legacy compat — getAnthropicClient for term-sheet (uses parse() API) ──
