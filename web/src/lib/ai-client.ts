@@ -1497,6 +1497,9 @@ const REPORT_POLICY_MODELS: Readonly<Record<AITaskClass, readonly string[]>> = O
  * the first-token limit (a dead or queued rung still fails fast so the next one
  * gets time); an answering model may use the rest of the call's wall clock.
  */
+/** G33-T16e: DeepInfra's per-model capacity signal (vs an account-wide rate limit). */
+export const DEEPINFRA_MODEL_BUSY_RE = /engine_overloaded|model busy/i;
+
 /** G33-T16b: never start a streamed DeepInfra attempt with less wall clock than this. */
 export const DEEPINFRA_MIN_ATTEMPT_MS = (() => {
   const raw = (process.env.DEEPINFRA_MIN_ATTEMPT_MS ?? "").trim();
@@ -1598,7 +1601,14 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
       noteDeadRung("deepinfra", model, lastErr.message);
       // Parallel failures of one model must not disable healthy alternatives
       // on our sole scoped provider. Account-wide overload/auth still applies.
-      if (scoped && classifyRunStrike(lastErr) === "timeout") opts.runStrikes?.note(modelStrikeKey, lastErr);
+      // G33-T16e: DeepInfra's `engine_overloaded` / "Model busy" names ONE model's
+      // capacity, not the account — 24/09 canary: 18 Qwen 429s struck the whole
+      // provider out of the run and a report came back with 0 words while
+      // V4-Flash was answering. Model-busy strikes the model; other 429s
+      // (account rate limits) still strike the provider.
+      const strikeKind = classifyRunStrike(lastErr);
+      const modelBusy = strikeKind === "overloaded" && DEEPINFRA_MODEL_BUSY_RE.test(lastErr.message);
+      if (scoped && (strikeKind === "timeout" || modelBusy)) opts.runStrikes?.note(modelStrikeKey, lastErr);
       else noteRunStrike(opts, "deepinfra", lastErr);
       if (err instanceof AITransportError) {
         // G33-T16c: a stream that timed out after producing tokens is a speed

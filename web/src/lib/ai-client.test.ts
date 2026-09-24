@@ -1885,6 +1885,25 @@ describe("G30 BlockID report policy", () => {
     expect(runStrikes.snapshot()[`deepinfra/${primary}`].timeout).toBe(2);
     onlyDeepInfra(fetchMock);
   });
+  it("G33-T16e: DeepInfra 'Model busy' 429s strike that model only; an account rate limit still strikes the provider", async () => {
+    const client = await loadClient();
+    const { createRunStrikeLedger } = await import("@/lib/ai/run-strikes");
+    const runStrikes = createRunStrikeLedger();
+    const primary = client.DEEPINFRA_MODELS_BY_CLASS.report[0];
+    fetchMock.mockImplementation(async (_url: string, init?: RequestInit) => {
+      const model = JSON.parse(String(init?.body)).model;
+      if (model === primary) return new Response('{"error":{"message":"Model busy, retry later","type":"invalid_request_error","code":"engine_overloaded"}}', { status: 429 });
+      return new Response(JSON.stringify({ model, choices: [{ message: { content: "Answered by another rung" } }], usage: { prompt_tokens: 100, completion_tokens: 20 } }));
+    });
+    for (const id of ["one", "two", "three"]) {
+      const r = await client.callAI({ ...request, agentId: `busy:${id}`, taskClass: "report", runStrikes });
+      expect(r.model).not.toBe(primary);
+    }
+    expect(runStrikes.struck("deepinfra")).toBe(false);
+    expect(client.DEEPINFRA_MODEL_BUSY_RE.test("HTTP 429: too many requests for this account")).toBe(false);
+    expect(client.DEEPINFRA_MODEL_BUSY_RE.test('HTTP 429: {"code":"engine_overloaded"}')).toBe(true);
+    onlyDeepInfra(fetchMock);
+  });
   it("scoped response-stream failures advance the model without an unbudgeted subprocess replay", async () => {
     const client = await loadClient();
     const primary = client.DEEPINFRA_MODELS_BY_CLASS.report[0];
@@ -1946,15 +1965,31 @@ describe("G30 BlockID report policy", () => {
     } finally { spy.mockRestore(); vi.unstubAllEnvs(); }
   });
   it("honors run strikes without trying an external fallback", async () => {
+    const { callAI, DEEPINFRA_MODELS_BY_CLASS } = await loadClient();
+    const { createRunStrikeLedger } = await import("@/lib/ai/run-strikes");
+    const runStrikes = createRunStrikeLedger();
+    // G33-T16e: every model answers "busy" → each model is struck (threshold 2),
+    // after which the run stops dispatching to DeepInfra and never falls back.
+    fetchMock.mockImplementation(async () => new Response("engine_overloaded", { status: 429 }));
+    await expect(callAI({ ...request, runStrikes })).rejects.toThrow();
+    await expect(callAI({ ...request, runStrikes })).rejects.toThrow();
+    for (const m of DEEPINFRA_MODELS_BY_CLASS.report) expect(runStrikes.struck(`deepinfra/${m}`)).toBe(true);
+    const dispatched = fetchMock.mock.calls.length;
+    expect(dispatched).toBe(2 * DEEPINFRA_MODELS_BY_CLASS.report.length);
+    await expect(callAI({ ...request, runStrikes })).rejects.toThrow();
+    expect(fetchMock).toHaveBeenCalledTimes(dispatched);
+    onlyDeepInfra(fetchMock);
+  });
+  it("an account-wide 429 (not model busy) still strikes the provider for the run", async () => {
     const { callAI } = await loadClient();
     const { createRunStrikeLedger } = await import("@/lib/ai/run-strikes");
     const runStrikes = createRunStrikeLedger();
-    fetchMock.mockImplementation(async () => new Response("engine_overloaded", { status: 429 }));
+    fetchMock.mockImplementation(async () => new Response("rate limit exceeded for this account", { status: 429 }));
     await expect(callAI({ ...request, runStrikes })).rejects.toThrow();
     expect(runStrikes.struck("deepinfra")).toBe(true);
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    const dispatched = fetchMock.mock.calls.length;
     await expect(callAI({ ...request, runStrikes })).rejects.toThrow();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(dispatched);
     onlyDeepInfra(fetchMock);
   });
   it("honors the daily paid-spend cap instead of enabling another provider", async () => {
