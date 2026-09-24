@@ -148,6 +148,7 @@ Review read-only 3 agents. Những điểm dưới đây **thay** các mục tư
 | C9 | Ngưỡng narrative-gap không thống nhất (§1.4 `<35`, §3.2 `<40`) trong khi `<35` đã là `Insufficient evidence` | Đề xuất: callout khi `score ≥70` và `35 ≤ confidence < 50` (hiệu chỉnh ở IL03); `<35` chỉ hiện chip Insufficient |
 | C10 | Migration: `report_revisions` đang live nhưng file nguồn đã xoá (0410 trùng `external_signals`); 0443–0449 đã bị nhánh khác chiếm | R6 giữ ≥0450, cấp số cùng lúc với migration `report_revisions` phục hồi và SV2 (SOT §9.4.7) để không trùng |
 | C11 | Lane A đang có phiên khác commit (`619631e0f`) | D0 bắt buộc chờ phiên kia mark-good trước mỗi deploy Lane B |
+| C12 | G32 (SOT §9.4, D22 approved 24/09): SVI v3 = tổng điểm do AI Agents chấm theo 52 câu, không base/không trần; Investor Score 0–100 tính từ cùng điểm | Khi SV3 có `question_scores`: `signalScore` = Investor Score thu hẹp trên các câu thuộc tín hiệu, `signalConfidence` từ `e_q` của các câu đó (một adapter, không đổi UI). Trước đó giữ công thức R1 theo criterion. Tile SVI hiện tổng điểm v3 khi SV5 bật, trước đó hiện `SVI 2.2.0` |
 
 ---
 

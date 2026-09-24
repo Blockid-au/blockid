@@ -74,6 +74,8 @@ Biến Trusted Business Report thành **báo cáo nghiên cứu và thẩm đị
 
 **Goal thực thi ưu tiên bổ sung 23/09:** mọi đầu vào website hoặc text phải đạt cùng chuẩn phân tích như pitch deck sau bước extraction: giữ riêng nội dung doanh nghiệp và ý định/câu hỏi của người dùng; lập snapshot có lineage; nghiên cứu các yếu tố quyết định với investor; làm rõ valuation, strengths, weaknesses, risks và points to clarify; rồi xuất cùng một final ReportV2/revision trên mọi bề mặt. “Cùng chuẩn” là cùng contract và quality gates, không ép URL/text có những bằng chứng mà nguồn không cung cấp.
 
+**Goal bổ sung 24/09 (G32, D22 approved):** report đạt chất lượng cao nhất có thể với ngân sách hiện có. **SVI là tổng điểm không trần** do các AI Agent BlockID chấm theo từng câu hỏi/tiêu chí có bằng chứng, cộng thêm quy mô và track record đã xác minh theo thời gian, nên mỗi doanh nghiệp có một con số riêng. **Định giá được suy ra từ phân tích cụ thể** của doanh nghiệp đó (driver có nguồn, factor từ điểm agent, engine thuần code), không từ bảng mặc định và không nhân SVI ra tiền (§9.4–9.5).
+
 Investor cần trả lời được trong khoảng 3 phút:
 
 1. Doanh nghiệp bán gì, cho ai, vấn đề có thật và khách hàng có lý do trả tiền không?
@@ -693,9 +695,9 @@ Verifier độc lập với writer; rule engine kiểm số/đơn vị/phép tí
 - Static stage anchor là reference đã ghi nguồn/version, không gọi observed peer cohort. Rank calibration N=49 không chứng minh valuation accuracy hoặc khả năng dự đoán thành công.
 - ~~Chưa tự thay weights/formula SVI trong đợt này.~~ **Amended 24/09 bởi §9.4:** founder yêu cầu SVI không giới hạn điểm, cộng tăng theo tiêu chí đánh giá và theo thời gian. Formula mới là **một version methodology mới** (`svi-v3`) chạy shadow → calibration → activation theo §9.4.7; SVI 2.2.0 và mọi snapshot cũ giữ nguyên, không âm thầm đổi điểm cũ. Nếu A01 chứng minh saturation/keyword bias ở 2.2.0 thì vẫn xử lý bằng version + backtest + side-by-side history như trước.
 
-### 9.4 SVI không trần: cộng dồn theo tiêu chí và theo thời gian (yêu cầu founder 24/09/2026 — PLAN ONLY)
+### 9.4 SVI không trần: tổng điểm do AI Agents BlockID chấm, cộng dồn theo tiêu chí và theo thời gian (founder duyệt D22 24/09/2026 — APPROVED PLAN, chưa code)
 
-**Yêu cầu:** SVI **không có giới hạn điểm**. Điểm **cộng tăng** khi thêm tiêu chí đánh giá có bằng chứng và **theo thời gian** khi doanh nghiệp tiến bộ thật. Mục này là **nguồn duy nhất** về cơ chế SVI. Nó hợp nhất và thay phần công thức của draft 22/09 `svi-evidence-state-v1-draft` ([methodology review](../reviews/2026-09-22-g30-uncapped-svi-methodology.md)) và các ghi chú rải rác ở phần lịch sử (“Versioned uncapped SVI”, “SVI measured business state”, “evidence-qualified SVI/valuation”). Governance của draft được giữ nguyên: fact identity, bitemporal, corrections, profile hash, cổng ranking. Bằng chứng source ở §9.4.1 lấy từ audit read-only 24/09 trên BlockID `619631e0f` và SVI `565250b`.
+**Yêu cầu (founder 24/09, hai lượt):** SVI **không có giới hạn điểm**, không phải thang /100. SVI là **tổng các điểm phân tích được**, do **các AI Agent của BlockID chấm** theo từng câu hỏi/tiêu chí, nên mỗi doanh nghiệp có một con số khác nhau. Điểm **cộng tăng** khi thêm tiêu chí có bằng chứng và **theo thời gian** khi doanh nghiệp tiến bộ thật. Mục tiêu là report chất lượng nhất; định giá dựa trên phân tích cụ thể (§9.5.3). Founder đã cho “làm như đề xuất” (D22 approved). Lượt thứ hai **bỏ base cố định 100**: SVI là tổng điểm thuần. Mục này là **nguồn duy nhất** về cơ chế SVI. Nó hợp nhất và thay phần công thức của draft 22/09 `svi-evidence-state-v1-draft` ([methodology review](../reviews/2026-09-22-g30-uncapped-svi-methodology.md)) và các ghi chú rải rác ở phần lịch sử (“Versioned uncapped SVI”, “SVI measured business state”, “evidence-qualified SVI/valuation”). Governance của draft được giữ nguyên: fact identity, bitemporal, corrections, profile hash, cổng ranking. Bằng chứng source ở §9.4.1 lấy từ audit read-only 24/09 trên BlockID `619631e0f` và SVI `565250b`.
 
 #### 9.4.1 Hiện trạng source — vì sao chưa đạt yêu cầu
 
@@ -709,6 +711,10 @@ Verifier độc lập với writer; rule engine kiểm số/đơn vị/phép tí
 | H6 | SVI repo có 3 thang cùng tên: running SVI 0–100 (`svi-weights.ts`, trọng số dimension khác BlockID), Investor Score 0–100 (`investor-score.ts`, default 50 khi thiếu), draft asinh `svi-longitudinal.ts` (producer chỉ qua operator `POST /api/scoring/admit`, `eligibleForRanking=false`) | Cùng tên “SVI” nhưng 4 nghĩa trên hai site |
 | H7 | Draft 22/09 = `100 + Σ w·asinh(d(x−r)/s)·freshness`: đo **độ lệch so với reference**, dương chỉ khi vượt reference; phần dương giảm dần theo freshness; thêm tiêu chí làm `comparable:false` | Không trần, chống gian lận tốt, nhưng **không cộng dồn**: thêm tiêu chí có thể trừ điểm và index giảm theo thời gian khi không có dữ kiện mới |
 | H8 | `lift` model (`svi-lift.ts:26`) clamp 1–10 theo gap 0–100 | “Hành động nâng điểm” đang dùng đơn vị cũ |
+| H14 | **Agent chưa quyết định SVI:** W1–W3 criterion agents (`agent-dispatcher.ts:300–372`) trả `finding.proposed_score` 0–100 **một số cho mỗi criterion**, chỉ hiện trên thẻ criterion, **không vào `svi_total`** (`run-for-project.ts:824`). W4 dimension owner (CHRO/CMO/CTO/CRO/CFO/CLO/CEO, `dimension-owners.ts:113–473`) chỉ được chỉnh ±10 (`:1430–1443`) rồi gate 1 reset (`consistency-gates.ts:125`) | Muốn “SVI = điểm agent chấm” phải có đường tổng hợp mới; giữ nguyên 2.2.0 cho report cũ |
+| H15 | **Không có điểm/rubric theo câu hỏi:** 52 `guidingQuestions` là chuỗi thuần (`evaluation-criteria.ts:59`). Rubric duy nhất là anchor p25/p50/p75 theo dimension; route `ai-score` dùng 5 band chung chung | Cần rubric có version cho từng câu (0–4, anchors, checklist, loại bằng chứng) |
+| H16 | **Một lần lấy mẫu, không có panel:** mỗi điểm là 1 sample, không self-consistency hay multi-judge; citation kiểm theo câu văn chứ không theo điểm. Report gần nhất phần lớn degraded 8/8; call cap standard 30 đã bị vượt (34–39 calls); deadline 120 s | Chấm điểm phải tách thành stage riêng, có durable job, cache theo evidence hash, và không kích hoạt khi completion chưa đạt |
+| H17 | Override của evaluator là 0–100 theo dimension/`total` (`0423`, `overrides-shared.ts` `.max(100)`); `criterion_ratings` không có số. Chi phí thật ≈US$0.03/report; ràng buộc thực là **reservation theo full context** (V3.2 ≈US$0.043/call) | Cần override theo câu hỏi/tiêu chí với thang điểm; ngân sách US$0.50 đủ cho panel nếu batch theo criterion |
 
 #### 9.4.2 Nguyên tắc (nghiên cứu ngoài, áp dụng có chọn lọc)
 
@@ -720,36 +726,35 @@ Verifier độc lập với writer; rule engine kiểm số/đơn vị/phép tí
    - **Áp dụng:** chỉ đếm **kỳ đo độc lập đã xác minh**. Không đếm lần chạy, lượt mua, upload trùng hay số tháng trôi qua.
 4. **Bằng chứng về giá trị dự báo** còn lẫn lộn: team được investor coi trọng; business/traction ổn định hơn team theo thời gian ([Gompers et al.](https://www.nber.org/papers/w22587), [Kaplan–Sensoy–Strömberg](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=657721)). **Áp dụng:** trọng số là đề xuất có version, phải backtest; không claim SVI dự báo thành công hay giá trị.
 
-#### 9.4.3 Công thức đề xuất `svi-v3` (accumulative evidence index)
+#### 9.4.3 Công thức `svi-v3`: SVI = tổng điểm phân tích (không base, không trần)
 
 ```
-SVI_v3 = 100 + C + S + T − A          (null/“Chưa đánh giá” khi chưa có tiêu chí nào được xác minh)
+SVI_v3 = C + S + T − A          (null/“Chưa đánh giá” khi chưa có câu hỏi nào được chấm có bằng chứng)
 
-C  Coverage-quality  = Σ_criteria  W_c × q_c × e_c × f_c
-S  Scale             = Σ_metrics   W_m × asinh(x_m / s_m) × e_m × f_m
-T  Track record      = Σ_series    W_k × log2(1 + n_k) × consistency_k
-A  Adverse           = Σ findings  P_j   (mâu thuẫn chưa giải quyết, vấn đề trọng yếu, retraction)
+C  Điểm phân tích do agent chấm = Σ_questions  B_q × (L_q / 4) × e_q × f_q
+S  Quy mô đã xác minh           = Σ_metrics    W_m × asinh(x_m / s_m) × e_m × f_m
+T  Track record theo thời gian  = Σ_series     W_k × log2(1 + n_k) × consistency_k
+A  Trừ điểm                     = Σ findings   P_j
 ```
 
 | Thành phần | Ý nghĩa và luật | Vì sao cộng dồn / không trần |
 |---|---|---|
-| **100 (base)** | Mức gốc chung của index, giữ tương thích cách đọc “quanh 100” của BlockID 2.2.0. Không nghĩa là %, không phải “/100” | Là hằng số; chỉ hiện khi đã có ≥1 tiêu chí xác minh. Không có bằng chứng thì `null`, không phải 100 |
-| **C** | Mỗi tiêu chí có ngân sách `W_c` điểm. v3.0 dùng 13 criteria với trọng số draft 22/09 (revenue 16 · customers 12 · market 10 · team 10 · idea 8 · founder 8 · gtm 8 · code 7 · roadmap 7 · structure 5 · documents 4 · dataroom 3 · website 2 = 100). `q_c` ∈ [0,1] là chất lượng theo rubric (mức 0/25/50/75/100 hiện có). `e_c` là thang evidence hiện có (0.20 · 0.35 · 0.50 · 0.75 · 0.90 · 1.00). `f_c` là freshness (§9.4.4). Chưa đánh giá thì đóng góp 0 và hiện `pending`, không phạt | **Mỗi tiêu chí được xác minh cộng thêm điểm** (≥0). Nâng bậc bằng chứng (founder-stated → tài liệu → connector → giao dịch) cũng cộng. Framework thêm tiêu chí (v3.1: overlay MT/TR/LQ/CT/IP/ES của G31, mỗi overlay 3 điểm) thì doanh nghiệp có bằng chứng cho tiêu chí đó được cộng |
-| **S** | Chỉ các đo lường **không bị chặn trên, đã xác minh**: v3.0 gồm recurring revenue theo năm AUD (`W=20`, `s=A$100k`) và paying customers đang hoạt động (`W=10`, `s=50`). Chỉ nhận số có kỳ đo, đơn vị, nguồn qua E02/V01 (không nhận founder-stated làm scale) | **Nguồn không trần toán học:** asinh tăng vô hạn nhưng chậm dần. ARR A$1M → +60, A$10M → +106, A$100M → +152. Doanh thu giảm thì S giảm tương ứng |
-| **T** | Chuỗi kỳ **độc lập đã xác minh**: tháng doanh thu có nguồn (`W=4`), milestone giao đúng hoặc gần kế hoạch (`W=3`), báo cáo định kỳ cho investor/evaluator (`W=1`). `consistency` ∈ [0,1] giảm khi có kỳ gãy (doanh thu tụt, milestone trễ, báo cáo thiếu) | **Tăng theo thời gian** chỉ khi thời gian mang theo kết quả đã kiểm chứng. 24 tháng doanh thu xác minh → +18.6; 60 tháng → +23.7. Tăng không giới hạn nhưng giảm dần |
-| **A** | Danh sách có version trong profile. Ví dụ đề xuất: mâu thuẫn trọng yếu chưa giải quyết −10; IP chưa assign −8; founder không vesting −4; dead equity >5% −4; tranh chấp pháp lý trọng yếu −10. Retraction thì gỡ phần điểm liên quan | Tin xấu không bị giấu bởi floor. Index có thể dưới 100 |
+| **C — điểm agent chấm** | Mỗi câu hỏi có ngân sách `B_q` điểm. v3.0: 52 câu = 13 criteria × 4; `B_q = 10 × W_c / 4` với trọng số criterion draft 22/09 (revenue 16 · customers 12 · market 10 · team 10 · idea 8 · founder 8 · gtm 8 · code 7 · roadmap 7 · structure 5 · documents 4 · dataroom 3 · website 2), nên revenue = 160 điểm/criterion = 40 điểm/câu, tổng C tối đa 1000 ở v3.0. `L_q` ∈ {0,1,2,3,4} là **mức do panel AI Agents chấm** theo rubric (§9.4.8). `e_q` là thang evidence (0.20 · 0.35 · 0.50 · 0.75 · 0.90 · 1.00). `f_q` là freshness. `N/A` (chưa đánh giá, hoặc không áp dụng cho stage/sector) = 0 điểm, hiển thị pending, không phạt | **Mỗi câu hỏi được chấm có bằng chứng cộng thêm điểm.** Nâng bậc bằng chứng cũng cộng. Framework thêm câu hỏi (v3.1: overlay MT/TR/LQ/CT/IP/ES của G31, mỗi câu 20 điểm; tiếp theo là câu diligence §6.3) thì tổng tối đa của C tăng theo và doanh nghiệp có bằng chứng được cộng |
+| **S — quy mô** | Chỉ đo lường **không bị chặn trên, đã xác minh** qua E02/V01 (không lấy số do LLM tự đưa ra hay founder-stated). v3.0: recurring revenue theo năm AUD (`W=200`, `s=A$100k`) và paying customers đang hoạt động (`W=100`, `s=50`) | **Nguồn không trần toán học.** Với e=1: ARR A$1M → +600, A$10M → +1 060, A$100M → +1 520. Doanh thu giảm thì S giảm |
+| **T — theo thời gian** | Chuỗi kỳ **độc lập đã xác minh**: tháng doanh thu có nguồn (`W=40`), milestone giao đúng/gần kế hoạch (`W=30`), báo cáo định kỳ cho investor/evaluator (`W=10`). `consistency` ∈ [0,1] giảm khi có kỳ gãy | Tăng theo thời gian chỉ khi thời gian mang theo kết quả kiểm chứng: 24 tháng doanh thu → +186; 60 tháng → +237 |
+| **A — trừ điểm** | Danh sách có version: mâu thuẫn trọng yếu chưa giải quyết −100; IP chưa assign −80; founder không vesting −40; dead equity >5% −40; tranh chấp pháp lý trọng yếu −100; retraction gỡ điểm liên quan | Tin xấu không bị che; SVI có thể rất thấp nếu rủi ro lớn |
 
-**Ví dụ minh hoạ (số giả định, không phải khách hàng thật):**
+**Ví dụ minh hoạ (số giả định):**
 
 | Giai đoạn | Bằng chứng | Tính | SVI_v3 |
 |---|---|---|---|
-| Chỉ có deck | 10 tiêu chí founder-stated, q≈0.6, ΣW=80 | C = 80×0.6×0.2 ≈ 9.6 | ≈110 (dải bất định rộng) |
-| Thêm tài liệu/nguồn công khai | 12 tiêu chí, e≈0.5, q≈0.65, ΣW=95 | C ≈ 30.9 | ≈131 |
-| Kết nối Stripe/Xero, ARR A$1M, 200 khách | C ≈ 49; S = 54 + 18.9 | 100 + 49 + 73 | ≈222 |
-| 24 tháng sau: ARR A$3M, 600 khách, 24 kỳ doanh thu, 6 milestone đạt | C ≈ 55; S ≈ 102; T ≈ 27 | 100 + 55 + 102 + 27 | ≈284 |
-| Chạy lại, mua thêm credits, upload trùng | Không có fact mới | Δ = 0 | không đổi |
+| Chỉ có deck | 40 câu có trả lời, chỉ founder-stated (e=0.20, level tối đa 2), ΣB=800, L/4≈0.6 | C ≈ 96 | **≈96** (dải bất định rộng) |
+| Thêm tài liệu/nguồn công khai | 48 câu, e≈0.5, L/4≈0.65, ΣB=950 | C ≈ 309 | **≈309** |
+| Kết nối Stripe/Xero, ARR A$1M, 200 khách | C ≈ 490; S ≈ 540 + 189 | 490 + 728 | **≈1 218** |
+| 24 tháng sau: ARR A$3M, 600 khách, 24 kỳ doanh thu, 6 milestone đạt | C ≈ 550; S ≈ 1 023; T ≈ 270 | 550 + 1 023 + 270 | **≈1 843** |
+| Chạy lại, mua credits, upload trùng | Không có fact mới; điểm lấy từ cache theo evidence hash | Δ = 0 | không đổi |
 
-Các hằng số `W`, `s`, `P` là **đề xuất khởi đầu, chưa hiệu chỉnh**. Chúng được chốt ở SV4 (§9.4.7) bằng sensitivity analysis và backtest.
+**Investor Score 0–100** (bị chặn, dùng cho meeting label/band A–D và G31 signals) được tính từ **cùng điểm agent**: `100 × Σ B_q·L_q/4 / Σ B_q` trên các câu đã đánh giá. Coverage và evidence confidence hiển thị riêng. Hằng số `B`, `W`, `s`, `P` là **đề xuất khởi đầu**, chốt ở SV4 bằng sensitivity analysis và backtest.
 
 #### 9.4.4 Luật chống gian lận, thời gian và freshness
 
@@ -764,31 +769,49 @@ Các hằng số `W`, `s`, `P` là **đề xuất khởi đầu, chưa hiệu ch
 - Mỗi snapshot lưu `svi_method` (`svi-2.2.0` | `svi-v3.0`…), `profile_sha256`, `knowledge_cutoff`, contribution ledger (C/S/T/A theo tiêu chí + evidence IDs). Snapshot cũ **không tính lại** khi render.
 - **Delta chỉ tính khi cùng method/profile.** Khác method thì hiện mốc “Đổi phương pháp” trên chart, không có mũi tên tăng/giảm.
 - **Phân rã thay đổi** cho người đọc, cùng method: `Δ = tiến bộ kinh doanh (S, T) + bằng chứng mới/nâng bậc (C) + correction/rủi ro (A) + dữ liệu cũ đi (f)`. Đổi phương pháp được ghi riêng, **không bao giờ tính là tăng trưởng**.
-- **SVI 2.2.0 → v3:** hai thang khác nghĩa dù cùng quanh 100. Giữ 2.2.0 cho report cũ; report mới ghi `SVI v3`. Không so sánh chéo, không convert.
+- **SVI 2.2.0 → v3:** hai thang khác nghĩa (2.2.0 quanh 100; v3 là tổng điểm, thường vài trăm tới vài nghìn). Giữ 2.2.0 cho report cũ; report mới ghi `SVI v3`. Không so sánh chéo, không convert.
 - **BlockID Startup Index (thị trường, G29 movers):** là aggregate của các công ty đủ điều kiện ranking. Dùng **divisor kiểu Nikkei** để level không nhảy khi công ty vào/ra hoặc khi đổi method. Sample/demo/QA runs và rerun không vào aggregate. Thay `svi-index.ts` richness (tháng trôi qua, số evidence) bằng cơ chế này.
 
 #### 9.4.6 Tên gọi, band và consumers (một nghĩa cho mỗi con số)
 
 | Con số | Thang | Dùng cho | Không dùng cho |
 |---|---|---|---|
-| **SVI** (`svi-v3`) | Không trần, quanh base 100, `±U` | Masthead, lịch sử, ledger “điểm đến từ đâu”, BlockID Startup Index, “hành động tăng SVI” (lift theo điểm index/tiêu chí) | Định giá, verdict, “/100”, band 40/70 |
+| **SVI** (`svi-v3`) | Tổng điểm, không base, không trần, `±U` | Masthead, lịch sử, ledger “điểm đến từ đâu”, BlockID Startup Index, “hành động tăng SVI” (lift theo điểm index/tiêu chí) | Định giá, verdict, “/100”, band 40/70 |
 | **Investor Score** (composite hiện tại) | 0–100 bị chặn | Meeting label/verdict band A–D, Investor Lens signal score, cohort filter | Gọi là “SVI” |
 | **Evidence confidence** | 0–100% | Cạnh mọi score (G31) | Nhân vào risk rank |
 | **Vị trí so sánh** | Percentile theo stage cohort | Chỉ khi đạt publication rules n (§9.3) | Tier cố định (“Unicorn Track ≥500”) chưa calibrate |
 
 **Consumers phải migrate trước activation** (danh sách H3 + H6): band và clamp `min(100)` trên index; filter `min_svi`; chuỗi “/100”; 5 bảng tier; `fundraise-checklist.ts:360`; `valuation.ts:71,359`; `clevel-valuation.ts:149`; `email.ts:1018,1781`; `svi-lift.ts`; aggregates/cohort percentile/movers (dedup theo revision, loại rerun). Chỉ SVI repo: đổi tên running SVI 0–100 thành Investor Score hoặc tiến độ đánh giá. Hai site dùng **một engine/profile** `svi-v3`, không giữ hai bộ trọng số dimension.
 
-#### 9.4.7 Thứ tự triển khai (khi được cho code; hiện PLAN ONLY)
+#### 9.4.7 Thứ tự triển khai (APPROVED PLAN; code khi vào lượt thực thi §12.10)
 
 | Phase | Nội dung | Gate |
 |---|---|---|
-| SV0 | Chốt D22 (§16.3); publish methodology draft (công thức, trọng số, scale, penalty, ví dụ) | Founder duyệt |
-| SV1 — reader safety, không đổi điểm | Bỏ band 40/70 và `min(100)` trên index; bỏ “/100”; filter `min_svi` không trần; delta chỉ khi cùng version; hiện `SVI 2.2.0` rõ trên report | Golden SVI (G31 R0) không đổi số; chỉ đổi hiển thị |
-| SV2 — method metadata | Additive migration: `svi_method`, `profile_sha256`, `knowledge_cutoff`, `contribution_ledger` trên snapshot/revision; writer ghi cho report mới (Lane A writer) | Snapshot cũ đọc được; không backfill điểm mới |
-| SV3 — engine shadow | Engine thuần `svi-v3` dùng chung hai site: mở rộng `svi-longitudinal.ts` sang C/S/T/A. Producer lấy evidence ledger E01/E02 (0417 `evidence_records`, connector snapshots) qua admission có kiểm soát; tính song song, không hiển thị | Unit: không trần, rerun +0, dedup fact, correction, freshness, bitemporal; không LLM, không thêm chi phí |
-| SV4 — calibration | Sensitivity trọng số/scale/half-life (OECD/JRC step 7); backtest với outcome sẵn có; chốt hằng số v3.0; `U` | Rank ổn định trong dải tham số; ghi giới hạn; không claim dự báo |
-| SV5 — activation | Masthead/tile SVI v3 `±U` + ledger + chart phân rã; lift theo điểm index; hai site cùng lúc | Consumer migration 100%; guard “không /100, không band trên index” |
-| SV6 — ranking/index | BlockID Startup Index divisor; cohort percentile theo stage; API v1 additive `svi_v3` | Publication rules n; sample/rerun bị loại |
+| SV0 | D22 đã duyệt 24/09. Viết **rubric@v1** cho 52 câu (anchors 0–4, 2–4 checklist nhị phân, ví dụ level 2 và 4, loại bằng chứng yêu cầu, applicability theo stage/sector) + publish methodology draft | Rubric review bởi analyst; không đổi code |
+| SV1 — reader safety, không đổi điểm | Bỏ band 40/70 và `min(100)` trên index; bỏ “/100”; filter `min_svi` không trần; delta chỉ khi cùng version; hiện `SVI 2.2.0` rõ trên report | Golden SVI (G31 R0) không đổi số |
+| SV2 — method metadata | Additive migration: `svi_method`, `profile_sha256`, `rubric_version`, `knowledge_cutoff`, `contribution_ledger` (theo câu hỏi) trên snapshot/revision; writer ghi cho report mới (Lane A writer) | Snapshot cũ đọc được; không backfill |
+| SV3 — agent scoring shadow | (a) W1–W3 agent trả thêm `question_scores[4]` {level\|N/A, evidence_ids, quote, rationale} trong payload hiện có (0 call thêm); (b) stage **SCORE** riêng: 2 judge khác họ model chấm trên evidence pack (13 call batch/criterion mỗi judge), chạy trong durable job O08, ngoài critical path narrative; (c) verify quote + aggregate + cache (§9.4.8); (d) engine thuần `svi-v3` dùng chung hai site (mở rộng `svi-longitudinal.ts`). Chạy song song, không hiển thị | Unit: không trần, rerun +0 (cache hit), dedup fact, correction, freshness; chi phí panel ≤US$0.10/report trong trần US$0.50 |
+| SV4 — calibration | Golden set 30–50 doanh nghiệp (Q01) do 2 người chấm theo rubric; đo agreement; isotonic mapping theo criterion; sensitivity trọng số/scale/half-life; backtest outcome sẵn có; chốt hằng số v3.0 và `U` | Krippendorff α ≥0.67 toàn bộ, κ ≥0.6 mỗi criterion, coverage báo cáo; rank ổn định; không claim dự báo |
+| SV5 — activation | Masthead/tile SVI v3 `±U` + ledger theo câu hỏi (agent, level, quote, nguồn) + chart phân rã; Investor Score từ cùng điểm; lift theo điểm/câu; override evaluator theo câu hỏi; hai site cùng lúc | Consumer migration 100%; completion SLO report đạt (O01/O02, hết degraded 8/8); guard “không /100” |
+| SV6 — ranking/index | BlockID Startup Index divisor; cohort percentile theo stage; API v1 additive `svi_v3` + `investor_score` | Publication rules n; sample/rerun bị loại |
+
+#### 9.4.8 Giao thức chấm điểm của AI Agents BlockID (nghiên cứu 24/09)
+
+**Kiến trúc:** agent vai trò **thu thập bằng chứng và đề xuất mức**; **panel chấm** quyết định mức; **code cộng điểm**. Không agent nào tự viết con số SVI hay con số tiền.
+
+| Bước | Quy tắc | Cơ sở |
+|---|---|---|
+| 1. Agent sở hữu câu hỏi | Dùng owner hiện có (`dimension-owners.ts`, `agent-selector.ts`): CHRO → founder/team/structure · CMO → market/gtm/idea · CTO → code/website · CRO → customers/revenue · CFO → revenue drivers + valuation inputs · CLO → documents/dataroom/IP · CEO → roadmap; overlay MT/TR/LQ/CT/IP theo G31. Agent tạo **evidence pack** {id, nguồn, quote, as_of, bậc: verified / third-party / founder-claim} và đề xuất level có trích dẫn | Role agents mạnh ở thu thập bằng chứng ([FinRobot](https://arxiv.org/html/2405.14767v2), [TradingAgents](https://arxiv.org/abs/2412.20138)) |
+| 2. Thang và rubric | Ordinal **0–4** + `N/A`; anchor chữ cho từng mức, checklist nhị phân, ví dụ tham chiếu; khoá `rubric@v`. Không bao giờ hỏi model điểm 0–100 | Thang 0–5 có agreement cao nhất và phương sai thấp hơn 0–100 ([G-Eval](https://arxiv.org/abs/2303.16634), [Prometheus 2](https://arxiv.org/abs/2405.01535)) |
+| 3. Panel 3 phiếu | Phiếu 1 = agent sở hữu; phiếu 2–3 = judge **khác họ model** (DeepSeek-V3.2 · Qwen3-235B · gpt-oss-120b hoặc Llama-3.3-70B; model thứ ba phải được đưa vào price list của budget — O01). Judge chỉ đọc evidence pack, không đọc narrative của founder. Lập luận trước rồi mới cho mức; temperature 0 | Panel nhiều họ model tốt hơn một judge lớn và giảm self-preference ([PoLL](https://arxiv.org/abs/2404.18796), [self-preference](https://arxiv.org/abs/2404.13076)) |
+| 4. Kiểm chứng máy | Quote phải là đoạn con của evidence đã trích; không khớp thì bỏ phiếu. Điểm chỉ dựa founder-claim bị giới hạn **level ≤2**. Level mâu thuẫn với fact đã xác minh thì chuyển sang A (mâu thuẫn) | LLM bị thiên lệch tin founder claim ([SSFF](https://arxiv.org/abs/2405.19456)); evidence-typed scoring ([RULERS](https://arxiv.org/abs/2601.08654)) |
+| 5. Tổng hợp | **Median** các phiếu hợp lệ. ≥2 phiếu `N/A` hoặc không phiếu nào qua kiểm chứng thì câu hỏi = chưa đánh giá, kèm yêu cầu dữ liệu. Chênh ≥2 mức thì escalate một lần lên model mạnh hơn trong ladder DeepInfra; vẫn chênh thì gắn cờ “cần người xem” (evaluator override) | Bất đồng là tín hiệu, không lấy trung bình |
+| 6. Ổn định | Temperature 0 **không** bảo đảm lặp lại. Cache mỗi điểm theo `hash(question, rubric@v, prompt@v, model@v, evidence_set_hash)`: cùng bằng chứng thì cùng điểm, nên chạy lại = +0 | [Nondeterminism](https://thinkingmachines.ai/blog/defeating-nondeterminism-in-llm-inference/) |
+| 7. Hiệu chỉnh và drift | Golden set Q01; mỗi lần đổi model/prompt/rubric chạy lại golden, chặn release nếu κ giảm hoặc median dịch chuyển mức vượt ngưỡng | JUDGE-BENCH: agreement khác nhau theo domain ([2406.18403](https://arxiv.org/abs/2406.18403)) |
+| 8. Override của người | Grain mới (câu hỏi/criterion, mức 0–4, reason code, note), append-only, hiển thị “agent” và “reviewed” cạnh nhau; không sửa canonical | Mở rộng `assessment_overrides` 0423, bỏ giới hạn `.max(100)` cho grain mới |
+| 9. Chi phí | 13 call × 2 judge × (~10k in, ~1.5k out) + escalations ≈ **US$0.05–0.10/report** theo giá DeepInfra 24/09; agent phiếu 1 không tốn call thêm. Tắt thinking mode. Chạy dưới scoped reservation US$0.50 hiện có; nếu reservation full-context chặn song song thì chạy tuần tự trong durable job | Ước tính, đo lại ở SV3 |
+
+Các nguồn tham khảo ngoài là cơ sở thiết kế; một số arXiv ID gần đây chưa được mở lại để xác minh từng con số. Ngưỡng agreement là mục tiêu đề xuất, không phải kết quả đã đạt.
 
 ### 9.5 Định giá phù hợp nhất: một engine, chọn phương pháp theo dữ liệu, không đổi điểm thành tiền
 
@@ -819,6 +842,20 @@ Các hằng số `W`, `s`, `P` là **đề xuất khởi đầu, chưa hiệu ch
 - **Output bắt buộc** (bổ sung §9.1): EV ↔ equity bridge; pre/post-money; range theo **driver scenarios** (tăng trưởng, churn, multiple, margin); **tornado 3–5 biến**; comps log accepted/rejected có ngày/URL/n; method không dùng + lý do; valuation confidence tách khỏi evidence confidence và SVI.
 - **Mở khoá định giá report (H9) có kiểm soát:** Scorecard/Berkus pre-revenue được chạy khi coverage q×e của nhóm team/opportunity/product đạt ngưỡng (đề xuất ≥50% ΣW có e≥0.35). Output ghi “Ước tính theo phương pháp Scorecard, dựa trên bằng chứng định tính”, có range rộng. Revenue methods chỉ mở khi E02 cho `TRUSTED_REVENUE_PRODUCERS` (connector/tài liệu có kỳ đo).
 - **Một engine** `valuation-core` dùng chung cho report, first-analysis, dashboard founder và SVI site. Bỏ các engine song song. Share price/vesting/dividends lấy từ **giá vòng gần nhất hoặc định giá do founder/board nhập có nhãn**, hoặc từ output engine đã gắn nhãn, **không từ SVI**. Đổi luồng này phải có migration giữ số cũ đã phát hành và cần founder duyệt (D22-e).
+
+#### 9.5.3 Định giá dựa trên phân tích cụ thể của từng doanh nghiệp
+
+Định giá phải được **suy ra từ phân tích của chính doanh nghiệp đó**, không phải bảng mặc định theo stage. Chuỗi xử lý:
+
+1. **CFO agent trích driver có nguồn:** mỗi input được lưu dạng `{value, unit, period, source_id, quote, as_of, bậc bằng chứng, extracted_by model@v}`. Gồm ARR/MRR và kỳ đo, tăng trưởng, churn/retention, gross margin, burn/cash/runway, số khách, ACV, terms vòng gọi vốn (pre/post, SAFE cap/discount), vòng gần nhất và milestone kể từ đó. Quote phải khớp nguồn (như §9.4.8 bước 4). Số không có quote thì không vào engine; founder-stated chỉ vào **kịch bản**, không vào base.
+2. **Hệ số Scorecard lấy từ điểm agent đã chấm:** factor của từng nhóm Payne lấy từ mức `L_q` và bậc `e_q` của đúng các câu hỏi liên quan (team ← câu founder/team/structure; opportunity ← idea/market; product ← code/roadmap/website; competition ← câu cạnh tranh R02/R04; sales ← customers/gtm/revenue). Bằng chứng yếu thì factor co về 1.0. Như vậy định giá phản ánh **từng phát hiện cụ thể**, và mỗi factor truy ngược được tới câu hỏi, quote và nguồn.
+3. **Engine `valuation-core` thuần code** chọn phương pháp theo ma trận §9.5.2, tính range, driver scenarios (bear/base/bull từ giả định tăng trưởng/churn/multiple khác nhau, không nhân ±%), tornado 3–5 biến, EV↔equity bridge, pre/post-money và ownership/dilution bằng `calculateRound`. **LLM không viết con số tiền nào.**
+4. **Calibration theo IPEV 2025:** có vòng priced gần đây thì dùng làm anchor hiệu chỉnh, rồi điều chỉnh theo milestone đạt/trượt kể từ vòng đó (lấy từ chuỗi T của §9.4.3). Không có thì anchor AU có nhãn giả định (§9.5.2).
+5. **Comps cụ thể:** agent R02/R04 đề xuất công ty so sánh kèm lý do; code kiểm stage/sector/địa lý/ngày/metric basis; log accepted/rejected + URL/ngày/n. Dưới publication rules thì chỉ là “tham khảo”, không là primary.
+6. **CFO agent viết phần giải thích** dựa trên output engine: vì sao chọn phương pháp này, giả định nào nhạy nhất, bằng chứng nào sẽ thu hẹp range, và chênh lệch với ask của founder (không dùng ask làm anchor). Audit kiểm mọi con số trong narrative khớp engine (E03).
+7. **Hiển thị:** range là con số lớn nhất report (G31 tile); bảng input có nguồn; phương pháp dùng/không dùng + lý do; valuation confidence riêng. Thiếu input thì `not_estimable` kèm danh sách bằng chứng sẽ mở khoá phương pháp.
+
+Gate: hai người độc lập tính lại được mọi con số từ bảng input (Q02, §13 arithmetic/provenance 100%); cùng input → cùng output trên web/PDF/DOCX/email/SVI site.
 
 ## 10. Báo cáo investor: sâu khi cần, nhanh khi đọc lần đầu
 
@@ -1381,8 +1418,9 @@ T01 tạo **data lineage matrix**: entity/table/bucket → writer → reader →
 | V01 | P0 · Valuation | Input provenance + bỏ fabricated defaults/floors | E02,Q01 | CAC thực không bị clamp; missing GM/CAC không ra actual metrics |
 | V02 | P1 · Valuation | Method eligibility, comps, EV/equity, scenarios/sensitivity | V01,R02 | Method/formula tái tính được; unsupported → not-estimable |
 | V03 | P1 · Valuation/Analyst | Valuation reconciliation/terms/ask không circular, specialist review | V02,A03 | Narrative/bảng/sources nhất quán; critical assumptions nổi bật |
-| A04 | P1 · Analyst/Scoring + Data | SVI `svi-v3` không trần, cộng dồn theo tiêu chí (C) + scale (S) + track record thời gian (T) − adverse (A); method metadata, shadow, calibration, activation hai site (§9.4) | E01,E02,A01,T02; SV1 không phụ thuộc | Rerun/credit +0; không trần toán học; delta chỉ cùng method; consumer migration 100%; sensitivity/backtest công bố |
-| V04 | P0 · Valuation/Backend | Một engine `valuation-core`; gỡ 8 đường SVI→tiền (gồm share price/vesting/dividends); một bảng anchor/multiple/FX có nguồn; Scorecard factor từ ledger q×e; mở định giá pre-revenue có kiểm soát (§9.5) | V01; V02/V03 dùng cùng engine; D22-e cho share price | Không surface nào nhân SVI ra tiền; cùng input → cùng số mọi surface; `not_estimable` theo method |
+| A04 | P1 · Analyst/Scoring + Data | SVI `svi-v3` = tổng điểm không base/không trần: điểm agent theo câu hỏi (C) + scale (S) + track record thời gian (T) − adverse (A); method metadata, engine dùng chung, activation hai site (§9.4) | E01,E02,A01,T02,A05; SV1 không phụ thuộc | Rerun/credit +0; không trần toán học; delta chỉ cùng method; consumer migration 100%; sensitivity/backtest công bố |
+| A05 | P1 · AI/Analyst | Rubric@v1 cho 52 câu (+ overlay G31) và giao thức chấm của AI Agents: `question_scores` trong payload W1–W3, stage SCORE với 2 judge khác họ model, verify quote, median/abstain/escalate, cache theo evidence hash, override theo câu hỏi, golden calibration (§9.4.8) | Q01,E01,O01 (admit model thứ ba),O08 (durable SCORE stage) | α ≥0.67, κ ≥0.6/criterion trên golden; rerun cùng evidence = cùng điểm; chi phí panel ≤US$0.10/report |
+| V04 | P0 · Valuation/Backend | Một engine `valuation-core`; gỡ 8 đường SVI→tiền (gồm share price/vesting/dividends); một bảng anchor/multiple/FX có nguồn; CFO agent trích driver có quote, Scorecard factor từ điểm agent theo câu hỏi, IPEV calibration; mở định giá pre-revenue có kiểm soát (§9.5.2–9.5.3) | V01; V02/V03 dùng cùng engine; D22-e cho share price | Không surface nào nhân SVI ra tiền; cùng input → cùng số mọi surface; `not_estimable` theo method |
 | U01 | P1 · Design/Frontend | Brief + 8 dimensions + 13 expandable criteria/evidence | A03,V03,F03 | Đọc brief tìm thesis/risk/value/requests; drill-down không mất context |
 | U02 | P1 · Export | Web/PDF/DOCX/email same snapshot; brief/full exports | U01 | Key facts/verdict/numbers/qualifiers/permissions parity; visual review đạt |
 | U03 | P1 · Design/Frontend | Light-only theme migration + hợp nhất primitives/docs, fixed controls, EN/VI (§10.11) | U04,U01 | Một component API, responsive/accessibility và persona flows đúng |
@@ -1487,6 +1525,7 @@ Register này là **traceability của cùng backlog §12**, không tạo queue 
 | I50 Anchor stage/multiple/FX mâu thuẫn giữa modules | Source H11 | V04/B01 | Một bảng có version/ngày/nguồn/n; cùng input cùng output |
 | I51 Report không có định giá cho mọi business (kill-switch toàn cục) | Source H9 | V04/V02/E02 | Pre-revenue đủ coverage có Scorecard range có nhãn; revenue methods mở khi có producer tin cậy |
 | I52 “SVI” mang 4 nghĩa trên hai site, trọng số dimension khác nhau | Source H6 | A04 SV5 | Một engine/profile `svi-v3`; Investor Score 0–100 đặt tên riêng |
+| I54 Agent không quyết định SVI; không có điểm/rubric theo câu hỏi; mỗi điểm 1 sample | Source audit 24/09 §9.4.1 H14–H17 | A05/A04 | Ledger theo câu hỏi có agent/level/quote; panel agreement đo được; rerun = cùng điểm |
 | I53 `svi-index.ts` richness thưởng thời gian trôi và số uploads; aggregates đếm rerun | Source H5 | A04 SV6/O04 | Aggregate dedup theo revision; tăng theo thời gian chỉ từ kỳ đo xác minh |
 
 ### 12.3 Implementation playbook: 40 items sản phẩm; O05–O09 chi tiết tại §12.8
@@ -1769,7 +1808,7 @@ Approval22/09/2026 bắt đầu W0a. Đây là status của cùng45 items, khôn
 | F01/E02 visual source separation | PARTIAL LIVE / SEMANTIC QUALIFICATION OPEN | Native PDF page/PPTX-part provenance, bounded visual extraction and DeepInfra shared budget live. New BlockID files exclude unverified image observations from deterministic scoring/valuation input; SVI has native financial text separation. Original images are not retained. Full Office slide rendering, region-level lineage and holdout correctness remain open. [Source receipt](../reviews/2026-09-23-document-provenance-rollout.md), [numeric separation](../reviews/2026-09-23-scoring-source-rollout.md) |
 | U02/O01 saved report projection | PARTIAL LIVE / ACCEPTANCE DEFERRED | SVI EN/VI web/print/email coverage visible; saved report charts make no inference call and no longer invent missing50/100 or zero valuation. Recorded risk fields preserved. Shared BlockID citation renderer labels unresolved IDs as unverified. All-surface semantic/permission/layout acceptance remains open. [Latest receipt](../reviews/2026-09-23-citation-and-read-policy-rollout.md) |
 | G31 IL00–IL15 Investor Lens | PLAN ONLY (rev 1.2, 23/09) | Đã đối chiếu master `0edf8bc62`; xếp vào §12.10 Lane B, lượt E1–E5; UI/UX v2 ở [design spec](../design/investor-lens-report-spec.md); playbook deploy D0–D8 ở [plan §7](g31-investor-lens-biz-trust-report-2026-09-23.md). Chưa code; chờ D21 |
-| A04/V04 SVI không trần + định giá | PLAN ONLY (24/09) | Founder yêu cầu SVI không giới hạn, cộng theo tiêu chí và thời gian; cơ chế `svi-v3` §9.4 và `valuation-core` §9.5, issues I47–I53. Audit read-only BlockID `619631e0f` / SVI `565250b`. Chưa code; chờ D22 |
+| A04/A05/V04 SVI tổng điểm agent + định giá theo phân tích (G32) | APPROVED PLAN (D22 24/09) — CHƯA CODE | `svi-v3` = C+S+T−A không base/không trần, AI Agents chấm 52 câu theo rubric với panel 3 phiếu (§9.4.8), `valuation-core` từ driver có nguồn (§9.5.3); issues I47–I54. Audit read-only BlockID `6a091f52c` / SVI `565250b`. Bước đầu: SV0 rubric + SV1 reader safety |
 | Remaining items | OPEN — NOT COMPLETE | Full claim verification, immutable revisions/legacy delivery, question-led research, valuation eligibility, durable jobs/recovery, atomic billing/approved fee integration and whole-site UX still require implementation/integration. Quality/holdout/load/cost/sale readiness unverified; off-host backup explicitly deferred. Existing prepared financial migration candidates are not activation or completion evidence. |
 
 ### 12.10 Kế hoạch thực thi tiếp theo (23/09/2026) — hai lane
@@ -1780,8 +1819,8 @@ Kế thừa ưu tiên trong receipt final-report persistence và review 23/09. K
 |---|---|---|
 | E1 | F02/T02: final persistence toàn bộ caller (legacy snapshot/evaluation/delivery) → chuẩn bị immutable `report_revisions` (reader bridge đã live) | R0 golden SVI + guard + flag → R1a preview (demo/showcase) → R1b on (sau D21-a) |
 | E2 | O08 durable job/checkpoint + final-commit reconciliation; xử lý report degraded 8/8 (DeepInfra timeout/strike, handover UNRESOLVED) | R2 chương Team/Traction/Moat&IP + freshness + trend qua reader → R3 questions + risk + evaluator (sau D21-b) |
-| E3 | Revisions migration + writer; E03/Q02 claim/entity/metric/period verification; **SV2** method metadata cùng revision writer; **V04a** gỡ SVI→tiền ở report fallback/first-analysis | Handoff writer fields sang Lane A; R4 cap table → R5 liquidity (sau D21-e) |
-| E4 | R01–R04 question-led research; V02/V03 + **V04b** `valuation-core` (Scorecard pre-revenue, comps log, sensitivity); **SV3–SV4** `svi-v3` shadow + calibration; B02/B03 billing sau fee/schema gates | R6a projection (migration ≥0450) → R6b cohort UI/CSV/API v1 additive |
+| E3 | Revisions migration + writer; E03/Q02 claim/entity/metric/period verification; **SV0** rubric@v1 (song song, docs); **SV2** method metadata cùng revision writer; **V04a** gỡ SVI→tiền ở report fallback/first-analysis | Handoff writer fields sang Lane A; R4 cap table → R5 liquidity (sau D21-e) |
+| E4 | R01–R04 question-led research; V02/V03 + **V04b** `valuation-core` (Scorecard pre-revenue, comps log, sensitivity); **SV3–SV4** agent scoring panel + `svi-v3` shadow + calibration (A05); B02/B03 billing sau fee/schema gates | R6a projection (migration ≥0450) → R6b cohort UI/CSV/API v1 additive |
 | E5 | U01/U02/U06 UX toàn site; **SV5–SV6** activation `svi-v3` + BlockID Startup Index divisor; O03/Q02/S01 bằng chứng bán hàng | R7a 16 mục + PDF Full → R7b nội dung + usability 20 người |
 
 **Luật:**
@@ -1789,7 +1828,7 @@ Kế thừa ưu tiên trong receipt final-report persistence và review 23/09. K
 1. **Deploy:** một deploy tại một thời điểm (`/tmp/blockid-deploy.lock`). Lane B chỉ deploy sau khi deploy trước của Lane A đã mark-good. Mỗi phase là một deploy live theo D0–D8 ([plan §7.1](g31-investor-lens-biz-trust-report-2026-09-23.md)).
 2. **File:** Lane B không sửa `run-for-project.ts`, `storage.ts`, `load.ts`, `adapter.ts` hay các file chia vai với Codex. Writer fields của Lane B đi qua handoff Lane A.
 3. **Lane B không làm chậm Lane A:** nếu tài nguyên deploy hoặc build chật thì Lane A được ưu tiên. Lane B không có migration trước E4.
-4. **SVI/định giá (24/09, §9.4–9.5):** SV1 (reader safety, không đổi số) đi cùng Lane B R0/R1 vì cùng chạm tile/band; mọi phase đổi số SVI hoặc định giá thuộc Lane A. Share price/vesting/dividends (V04) chờ D22-e.
+4. **SVI/định giá (24/09, §9.4–9.5):** SV1 (reader safety, không đổi số) đi cùng Lane B R0/R1 vì cùng chạm tile/band; mọi phase đổi số SVI hoặc định giá thuộc Lane A. SV3 (question_scores + SCORE stage) chỉ bắt đầu sau khi degraded 8/8 được xử lý (E2) và O08 có durable job. Share price/vesting/dividends (V04) đã được duyệt theo D22-e, giữ số đã phát hành.
 5. **Theo chỉ đạo founder 23/09:** fast profile + deploy từng phần, kèm golden SVI, typecheck và build không hoãn. Phần bị hoãn được ghi `DEFERRED`, không ghi pass.
 
 ## 13. Quality gates và định nghĩa ready for sale
@@ -2000,12 +2039,14 @@ Mỗi thay đổi yêu cầu mới phải sửa chính plan và acceptance liên
 | D12 Site scope | Toàn bộ yêu cầu/review/điều chỉnh áp dụng cho blockid.au và tất cả trang con/routes của site; các tích hợp chỉ trong phạm vi phục vụ site này | Founder xác nhận rõ; chỉ plan, chưa triển khai |
 | D11 Pricing/Stripe/data/dashboard | Full price/link audit, storage/report lifecycle, latest semantics và friendly dashboard (§10.7, §11.4–11.5, §14.1–14.3) | Founder yêu cầu đưa vào plan; chưa cho code, đổi giá/Stripe hoặc sửa dữ liệu |
 | D10 Full-site design & wording | Homepage/hero + wording toàn site + redesign all pages theo một Unicorn template chuyên nghiệp (§10.4–10.6, U04–U06) | Scope founder yêu cầu rõ; copy/design chi tiết chờ review, chưa cho code |
-| D22 SVI không trần + định giá (24/09) | (a) `SVI_v3 = 100 + C + S + T − A`, null khi chưa có tiêu chí xác minh; (b) thêm tiêu chí có bằng chứng được cộng điểm, đổi phương pháp không tính là tăng trưởng (chain-link chỉ cho index thị trường); (c) tên: SVI = index không trần, Investor Score = 0–100, Evidence confidence = % (G31 tile theo §9.4.6); (d) Scorecard pre-revenue được mở khi đạt coverage, factor từ ledger q×e, anchor AU có nhãn giả định; (e) share price/vesting/dividends thôi dùng SVI, giữ số đã phát hành | Founder yêu cầu (a)–(b) 24/09; hằng số chốt ở SV4; (c)–(e) chờ duyệt, chưa code |
+| D22 SVI không trần + định giá (G32) | (a) `SVI_v3 = C + S + T − A` = **tổng điểm, không base, không trần**, null khi chưa có câu nào được chấm; (b) điểm C do **AI Agents BlockID chấm theo 52 câu hỏi** (panel 3 phiếu, rubric 0–4, quote bắt buộc, code cộng điểm); thêm câu/tiêu chí có bằng chứng thì cộng điểm; đổi phương pháp không tính là tăng trưởng; (c) SVI = tổng điểm, Investor Score = 0–100 từ cùng điểm agent, Evidence confidence = %; (d) định giá từ phân tích cụ thể: CFO agent trích driver có nguồn, factor từ điểm agent, engine thuần code, IPEV calibration; (e) share price/vesting/dividends thôi dùng SVI, giữ số đã phát hành | **APPROVED 24/09/2026** (founder: “hãy làm như bạn đề xuất”, SVI là tổng điểm do AI Agent chấm). Hằng số chốt ở SV4; chưa code, không cấp ngân sách inference mới ngoài trần US$0.50 |
 | D21 Investor Lens (G31) | Lớp 6 tín hiệu + evidence confidence theo tín hiệu phía trên SVI; meeting labels trung tính = band A–D; risk rank không nhân confidence; 01–03 đầy đủ mọi tier; R1→R7 (§10.13) | Founder yêu cầu plan 23/09; chờ duyệt D21-a…e, chưa code |
 
 Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi timestamp và phạm vi được bắt đầu; không coi duyệt plan đồng nghĩa tự động duyệt mọi chi phí, external send hay thay giá chưa được định lượng. Các hạng mục kỹ thuật đã được cho bắt đầu sẽ tiến hành liên tục trong phạm vi đó, không xin lại từng bước thông thường.
 
 ## 17. Change log
+
+- **24/09/2026 — G32 approved plan (D22):** founder duyệt đề xuất và chốt SVI = **tổng điểm do AI Agents BlockID chấm**, không base 100, không trần, khác nhau theo từng doanh nghiệp. §9.4.3 viết lại (`C + S + T − A`, điểm theo 52 câu, ví dụ 96 → 1 843), thêm §9.4.8 giao thức chấm (agent sở hữu câu hỏi + 2 judge khác họ model, 0–4, verify quote, median/abstain/escalate, cache theo evidence hash, golden α/κ, ≈US$0.05–0.10/report), §9.4.7 phases SV0–SV6 cập nhật, §9.5.3 định giá từ phân tích cụ thể. Goal §1.1, work item A05, issue I54, D22 APPROVED, §12.9/§12.10, ROADMAP G32. Chưa code.
 
 - **24/09/2026 — SVI không trần + định giá, PLAN ONLY:** founder yêu cầu SVI không giới hạn, cộng tăng theo tiêu chí và theo thời gian. Thêm §9.4 (`svi-v3 = 100 + C + S + T − A`, chống rerun/credit, freshness, bitemporal, version/delta, divisor cho index thị trường, một nghĩa mỗi con số, SV0–SV6) và §9.5 (một `valuation-core`, ma trận phương pháp, Scorecard từ ledger, anchor AU có nhãn, gỡ 8 đường SVI→tiền). Amend §9.3 dòng cuối. Work items A04 (P1), V04 (P0) — tổng 47 items G30 + IL; issues I47–I53; D22; §12.9/§12.10 đồng bộ. Draft 22/09 `svi-evidence-state-v1-draft` được giữ governance, thay công thức. G31 rev 1.3 đồng bộ tile SVI + đối chiếu source 24/09. Chưa code.
 
