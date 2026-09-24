@@ -16,6 +16,7 @@
 // generated before migration 0395 / S-R3 still renders every chapter.
 
 import "server-only";
+import { createHash } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { fromSnapshot, resolveReportV2, scoreBreakdownFromSub, type SnapshotCriterionState, type SnapshotDimState, type SnapshotInput, type SubScoreLike, type SviAnalysisLike } from "./adapter";
@@ -43,7 +44,7 @@ export interface SnapshotRowLike {
 }
 
 export const SNAPSHOT_REPORT_COLUMNS = "id, account_id, project_id, svi_total, stage, created_at, criterion_results, dim_results, dimension_scores, analysis_json, report_share_token";
-const REVISION_REPORT_COLUMNS = "id, snapshot_id, account_id, project_id, share_token, report_json, created_at, revoked_at";
+const REVISION_REPORT_COLUMNS = "id, snapshot_id, account_id, project_id, share_token, report_json, report_hash, created_at, revoked_at";
 
 const DIM_KEYS = ["ftv", "mpc", "ptd", "tre", "cgh", "iri", "lco", "svm"] as const;
 
@@ -189,6 +190,13 @@ export async function loadReportV2ByShareToken(token: string, ctx: SnapshotRepor
       const row = revision as Row;
       const report = row.report_json && isReportV2(row.report_json) ? row.report_json : null;
       if (!report) return null;
+      // Hashes are optional for the first applied migration rows, but every
+      // writer-created row carries one. Reject a corrupted/tampered payload
+      // before exposing it through public, PDF, DOCX, or email readers.
+      if (typeof row.report_hash === "string" && row.report_hash) {
+        const actualHash = createHash("sha256").update(JSON.stringify(report)).digest("hex");
+        if (actualHash !== row.report_hash) return null;
+      }
       return {
         report,
         snapshotId: String(row.snapshot_id ?? row.id),
