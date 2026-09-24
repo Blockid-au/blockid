@@ -17,7 +17,7 @@
 // present (a pre-S47 row is parsed on read — `executive-structure.ts`).
 
 import "server-only";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 import { nanoid } from "nanoid";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -86,7 +86,21 @@ export async function insertImmutableReportRevision(
   const revisionId = randomUUID();
   const shareToken = nanoid(32);
   const document = JSON.parse(JSON.stringify(args.report));
+  const reportHash = createHash("sha256").update(JSON.stringify(document)).digest("hex");
   try {
+    // O08/T02 unknown-commit recovery: a caller may lose the response after
+    // PostgREST commits. Reuse the exact prior revision before attempting a
+    // second insert, preserving one public token per immutable document.
+    const { data: existing, error: lookupError } = await db
+      .from("report_revisions")
+      .select("id, share_token, report_json, revoked_at")
+      .eq("snapshot_id", args.snapshotId)
+      .eq("report_hash", reportHash)
+      .is("revoked_at", null)
+      .maybeSingle();
+    if (!lookupError && existing && existing.revoked_at === null && isDeepStrictEqual(existing.report_json, document)) {
+      return { revisionId: String(existing.id), shareToken: String(existing.share_token) };
+    }
     const { data, error } = await db
       .from("report_revisions")
       .insert({
@@ -96,7 +110,7 @@ export async function insertImmutableReportRevision(
         project_id: args.projectId,
         share_token: shareToken,
         report_json: document,
-        report_hash: null,
+        report_hash: reportHash,
         schema_version: "2.0",
       })
       .select("id, share_token, report_json, revoked_at")
