@@ -17,13 +17,15 @@ describe("model throughput (G33-T05)", () => {
 
   it("keeps quality order when everything fits, and moves slow models behind when the window is short", () => {
     expect(orderModelsBySpeed(LADDER, 1000, 300_000)).toEqual(LADDER);
-    // W4 reserve of 120 s for a 3 200-token chapter: only Flash (≈100 s) fits.
-    expect(orderModelsBySpeed(LADDER, 3200, 120_000)).toEqual([FLASH, V32, QWEN]);
+    // W4 window of 160 s for a 3 200-token chapter: only Flash (≈100 s × 1.5 safety) fits.
+    expect(orderModelsBySpeed(LADDER, 3200, 160_000)).toEqual([FLASH, V32, QWEN]);
+    // G33-T16b: without headroom (120 s) nothing fits safely → quality order stands.
+    expect(orderModelsBySpeed(LADDER, 3200, 120_000)).toEqual(LADDER);
     // No deadline → unchanged.
     expect(orderModelsBySpeed(LADDER, 3200, undefined)).toEqual(LADDER);
     // Nothing known fits → quality order stands; an unmeasured model never jumps ahead of measured ones.
     expect(orderModelsBySpeed([V32, FLASH, "x/new"], 4096, 60_000)).toEqual([V32, FLASH, "x/new"]);
-    expect(orderModelsBySpeed([V32, "x/new", FLASH], 3200, 120_000)).toEqual([FLASH, V32, "x/new"]);
+    expect(orderModelsBySpeed([V32, "x/new", FLASH], 3200, 160_000)).toEqual([FLASH, V32, "x/new"]);
   });
 
   it("learns from streamed samples (EWMA) and ignores samples too small to measure", () => {
@@ -31,11 +33,11 @@ describe("model throughput (G33-T05)", () => {
     const s = modelSpeed(V32)!;
     expect(s.samples).toBe(1);
     expect(s.tokensPerSecond).toBeCloseTo(13 + 0.3 * (130 - 13), 5);
-    // ≈48 tok/s now: a 3 200-token chapter (~67 s) fits the 120 s W4 window again → quality first.
-    expect(orderModelsBySpeed(LADDER, 3200, 120_000)[0]).toBe(V32);
+    // ≈48 tok/s now: a 3 200-token chapter (~67 s × 1.5) fits a 160 s window again → quality first.
+    expect(orderModelsBySpeed(LADDER, 3200, 160_000)[0]).toBe(V32);
     // A slow sample pulls it back down (13 → 48 → ~34 tok/s … a few slow runs demote it again).
     for (let i = 0; i < 6; i++) recordModelSpeed(V32, { firstTokenMs: 500, totalMs: 500 + 250_000, outputTokens: 2500 }); // 10 tok/s
-    expect(orderModelsBySpeed(LADDER, 3200, 120_000)[0]).toBe(FLASH);
+    expect(orderModelsBySpeed(LADDER, 3200, 160_000)[0]).toBe(FLASH);
     recordModelSpeed(V32, { firstTokenMs: 500, totalMs: 900, outputTokens: 10 });
     recordModelSpeed(V32, { firstTokenMs: null, totalMs: 10_000, outputTokens: 1000 });
     expect(modelSpeed(V32)!.samples).toBe(7);

@@ -19,6 +19,11 @@ export interface ModelSpeed {
 
 const ALPHA = 0.3;
 const MIN_TPS = 1;
+/**
+ * G33-T16b: a model "fits" only with headroom — 24/09 canary: V3.2 was picked for
+ * the CEO summary on an optimistic average and timed out at the 90 s reserve.
+ */
+export const FIT_SAFETY_FACTOR = 1.5;
 
 export const MODEL_SPEED_PRIORS: Readonly<Record<string, Omit<ModelSpeed, "samples">>> = Object.freeze({
   "deepseek-ai/DeepSeek-V3.2": { firstTokenMs: 700, tokensPerSecond: 13 },
@@ -76,7 +81,7 @@ export function orderModelsBySpeed(models: readonly string[], outputTokens: numb
   if (typeof remainingMs !== "number" || !Number.isFinite(remainingMs)) return [...models];
   const fits = models.filter((m) => {
     const est = estimateCompletionMs(m, outputTokens);
-    return est !== null && est <= remainingMs;
+    return est !== null && est * FIT_SAFETY_FACTOR <= remainingMs;
   });
   if (fits.length === 0) return [...models];
   return [...fits, ...models.filter((m) => !fits.includes(m))];

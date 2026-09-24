@@ -87,12 +87,24 @@ export function pipelineCallTimeouts(hint?: PipelineCallHint | null): { timeoutM
 
 export const BACKGROUND_CALL_MAX_DEFAULT = 48;
 export const BACKGROUND_DEADLINE_MS_DEFAULT = 420_000;
-export function backgroundRunBudget(env: NodeJS.ProcessEnv = process.env): { maxCalls: number; deadlineMs: number } {
+/**
+ * G33-T16b: background W4 reserve. 24/09 canary on the 420 s run: eight parallel
+ * chapters on DeepSeek-V4-Flash (~32 tok/s, 3 200 tokens ≈ 100 s + queueing) ran
+ * past a 120 s window twice. The deadline itself stays 420 s — the paid order
+ * drain is capped at 480 s — so W1–W3 give up 30 s instead.
+ */
+export const BACKGROUND_W4_RESERVE_MS_DEFAULT = 150_000;
+export function backgroundRunBudget(env: NodeJS.ProcessEnv = process.env): { maxCalls: number; deadlineMs: number; w4ReserveMs: number } {
   const calls = Number(env.REPORT_ORDER_CALL_MAX ?? "");
   const ms = Number(env.REPORT_ORDER_DEADLINE_MS ?? "");
   return {
     maxCalls: Number.isFinite(calls) && calls > 0 ? Math.floor(calls) : BACKGROUND_CALL_MAX_DEFAULT,
     deadlineMs: Number.isFinite(ms) && ms > 0 ? Math.floor(ms) : BACKGROUND_DEADLINE_MS_DEFAULT,
+    w4ReserveMs: (() => {
+      const raw = (env.REPORT_BACKGROUND_W4_RESERVE_MS ?? "").trim();
+      const r = raw === "" ? Number.NaN : Number(raw); // Number("") is 0 — unset must mean the default
+      return Number.isFinite(r) && r >= 0 ? Math.floor(r) : BACKGROUND_W4_RESERVE_MS_DEFAULT;
+    })(),
   };
 }
 

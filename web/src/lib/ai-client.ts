@@ -1497,6 +1497,13 @@ const REPORT_POLICY_MODELS: Readonly<Record<AITaskClass, readonly string[]>> = O
  * the first-token limit (a dead or queued rung still fails fast so the next one
  * gets time); an answering model may use the rest of the call's wall clock.
  */
+/** G33-T16b: never start a streamed DeepInfra attempt with less wall clock than this. */
+export const DEEPINFRA_MIN_ATTEMPT_MS = (() => {
+  const raw = (process.env.DEEPINFRA_MIN_ATTEMPT_MS ?? "").trim();
+  const n = raw === "" ? Number.NaN : Number(raw);
+  return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 15_000;
+})();
+
 export function deepInfraStreamTimeouts(opts: Pick<AICallOptions, "timeoutMs" | "deadlineAt">, now: number = Date.now()): { firstTokenMs: number; idleMs: number; totalMs: number } {
   const envMs = (name: string, fallback: number) => {
     const n = Number(process.env[name] ?? "");
@@ -1528,6 +1535,9 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
     : readyRungs;
   for (const model of deepinfraRungs) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
+    // G33-T16b: an attempt with almost no wall clock left cannot answer (24/09:
+    // six V4-Flash calls started with 5 s left and died) — stop instead of spending.
+    if (streamed && typeof opts.deadlineAt === "number" && opts.deadlineAt - Date.now() < DEEPINFRA_MIN_ATTEMPT_MS) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     if (runStruck(opts, "deepinfra")) { lastErr = lastErr ?? runStruckError(opts, "deepinfra"); break; }
     const modelStrikeKey = `deepinfra/${model}`;
     if (scoped && opts.runStrikes?.struck(modelStrikeKey)) continue;
