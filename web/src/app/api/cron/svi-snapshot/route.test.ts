@@ -34,9 +34,14 @@ vi.mock("@/lib/supabase", () => ({
       from(table: string) {
         const eqs: Record<string, unknown> = {};
         let payload: Record<string, unknown> | null = null;
+        let selected = "";
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const chain: any = {
-          select: () => chain,
+          select(cols?: string) {
+            if (typeof cols === "string") selected = cols;
+            return chain;
+          },
+          in: () => chain,
           eq(col: string, val: unknown) {
             eqs[col] = val;
             return chain;
@@ -60,7 +65,14 @@ vi.mock("@/lib/supabase", () => ({
           maybeSingle: () => Promise.resolve({ data: null }),
           then(onF: (v: unknown) => unknown, onR?: (e: unknown) => unknown) {
             let result: unknown;
-            if (table === "svi_accounts" && !payload) result = { data: state.accounts, error: null };
+            // G33-T09: the real table has no user_id — selecting it is a 42703 error.
+            if (table === "svi_accounts" && !payload) {
+              result = /\buser_id\b/.test(selected)
+                ? { data: null, error: { code: "42703", message: "column svi_accounts.user_id does not exist" } }
+                : { data: state.accounts.map(({ user_id: _owner, ...row }) => row), error: null };
+            } else if (table === "projects") {
+              result = { data: state.accounts.filter((a) => a.project_id).map((a) => ({ id: a.project_id, user_id: a.user_id })), error: null };
+            }
             else if (table === "svi_evidence") result = { count: 0, data: [] };
             else result = { data: [], error: null };
             return Promise.resolve(result).then(onF, onR);

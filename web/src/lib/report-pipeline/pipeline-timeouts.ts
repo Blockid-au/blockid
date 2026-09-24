@@ -112,3 +112,22 @@ export function w4ReserveMsFor(deadlineMs: number): number {
   const reserve = Number.isFinite(n) && n >= 0 ? Math.floor(n) : W4_RESERVE_MS_DEFAULT;
   return Math.max(0, Math.min(reserve, Math.floor(deadlineMs / 2)));
 }
+
+// ── SYNTH reserve (G33-T16) ─────────────────────────────────────────────────
+//
+// 24/09 canary: both real runs used the whole 420 s background deadline and
+// the CEO summary started with 22–34 s left, so it timed out into the
+// deterministic placeholder while all eight chapters were fine. W4 now stops at
+// `deadline − synth reserve`; the summary (EXECUTIVE_MAX_TOKENS 2 600 ≈ 82 s on
+// DeepSeek-V4-Flash at 32 tok/s) keeps that window. Never more than a quarter
+// of the deadline, so a 120 s interactive run keeps 90 s for the waves.
+
+export const SYNTH_RESERVE_MS_DEFAULT = 90_000;
+export const SYNTH_RESERVE_ENV = "REPORT_SYNTH_RESERVE_MS";
+
+export function synthReserveMsFor(deadlineMs: number): number {
+  const env = process.env[SYNTH_RESERVE_ENV];
+  const n = env ? Number(env) : Number.NaN;
+  const reserve = Number.isFinite(n) && n >= 0 ? Math.floor(n) : SYNTH_RESERVE_MS_DEFAULT;
+  return Math.max(0, Math.min(reserve, Math.floor(deadlineMs / 4)));
+}

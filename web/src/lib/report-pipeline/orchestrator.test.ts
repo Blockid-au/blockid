@@ -1544,6 +1544,7 @@ describe("orchestrateReport() — wall-clock deadline (W2 review a)", () => {
       baseInput({
         callAI: hungCallAI,
         deadlineMs: 1_000,
+        synthReserveMs: 0, // legacy shape: W4 races the hard deadline (the G33-T16 reserve is pinned below)
         onEvent: (e) => {
           events.push(e);
           if (e.type === "done") doneAt = Date.now();
@@ -1942,15 +1943,48 @@ describe("orchestrateReport() — G28-B provider resilience (fake clock, dead pr
     const p1 = orchestrateReport(baseInput({ callAI: chain.callAI, deadlineMs: 480_000 }));
     await vi.advanceTimersByTimeAsync(200_000);
     await p1;
-    expect(chain.hints[0].remainingMs).toBeLessThanOrEqual(360_000);
-    expect(chain.hints[0].remainingMs).toBeGreaterThan(300_000);
+    // G33-T16: 480 s − 120 s W4 reserve − 90 s SYNTH reserve = 270 s for W1–W3.
+    expect(chain.hints[0].remainingMs).toBeLessThanOrEqual(270_000);
+    expect(chain.hints[0].remainingMs).toBeGreaterThan(210_000);
     const ledger2 = createRunStrikeLedger();
     const chain2 = fakeProviderChain(ledger2, { answerMs: 10 });
     const p2 = orchestrateReport(baseInput({ callAI: chain2.callAI, deadlineMs: 120_000 }));
     await vi.advanceTimersByTimeAsync(120_000);
     await p2;
-    // 120 s deadline → reserve capped at 60 s.
-    expect(chain2.hints[0].remainingMs).toBeLessThanOrEqual(60_000);
-    expect(chain2.hints[0].remainingMs).toBeGreaterThan(50_000);
+    // 120 s deadline → W4 reserve capped at 60 s, SYNTH reserve at 30 s (¼) → 30 s for W1.
+    expect(chain2.hints[0].remainingMs).toBeLessThanOrEqual(30_000);
+    expect(chain2.hints[0].remainingMs).toBeGreaterThan(20_000);
+  });
+
+  it("G33-T16: W4 stops at the SYNTH reserve, a late chapter call is refused, and the CEO summary still gets its window", async () => {
+    vi.useFakeTimers();
+    const { meterCallAI, ReportCallBudget, ReportDeadline } = await import("./orchestrator");
+    const budget = new ReportCallBudget(10);
+    // 420 s background run: W1–W3 until 210 s, W4 until 330 s, SYNTH until 420 s.
+    const deadline = new ReportDeadline(420_000, Date.now(), 120_000, 90_000);
+    expect(deadline.softMs).toBe(210_000);
+    const seen: PipelineCallHint[] = [];
+    const inner: AICallerInput = async (_s, _u, _m, _c, hint) => { seen.push(hint!); return "ok"; };
+    const chapter = meterCallAI(inner, budget, { deadline, stage: "chapter" });
+    const synthesis = meterCallAI(inner, budget, { deadline, stage: "synthesis" });
+    await vi.advanceTimersByTimeAsync(300_000);
+    await chapter("s", "u", 100);
+    expect(seen[0]).toEqual({ stage: "chapter", remainingMs: 30_000 }); // a chapter's stream may not eat the summary window
+    await vi.advanceTimersByTimeAsync(31_000);
+    expect(deadline.w4Expired()).toBe(true);
+    expect(deadline.expired()).toBe(false);
+    await expect(chapter("s", "u", 100)).rejects.toThrow(/deadline exceeded \(330000 ms\)/);
+    await synthesis("s", "u", 100);
+    expect(seen[1]).toEqual({ stage: "synthesis", remainingMs: 89_000 });
+    deadline.dispose();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("G33-T16: synthReserveMsFor defaults to 90 s, is capped at a quarter of the deadline and honours the env override", async () => {
+    const { synthReserveMsFor, SYNTH_RESERVE_ENV } = await import("./pipeline-timeouts");
+    expect(synthReserveMsFor(420_000)).toBe(90_000);
+    expect(synthReserveMsFor(120_000)).toBe(30_000);
+    process.env[SYNTH_RESERVE_ENV] = "0";
+    try { expect(synthReserveMsFor(420_000)).toBe(0); } finally { delete process.env[SYNTH_RESERVE_ENV]; }
   });
 });

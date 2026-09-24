@@ -102,7 +102,7 @@ import { dispatchExecutiveSummary, executiveOutputContract } from "./executive-s
 import { isReportV2, type CriterionCard, type DimensionChapter, type ExecutiveStructured, type ReportTierV2, type ReportV2 } from "@/lib/report-v2/schema";
 import { FULLY_DEGRADED_MIN_CHAPTERS, recordFullyDegraded, type DegradedEventWriter, type FullyDegradedReason } from "./pipeline-health";
 import type { RunDiagnostics } from "./run-diagnostics";
-import { w4ReserveMsFor, type PipelineCallHint, type PipelineCallStage } from "./pipeline-timeouts";
+import { synthReserveMsFor, w4ReserveMsFor, type PipelineCallHint, type PipelineCallStage } from "./pipeline-timeouts";
 
 // ── AI caller contract ──────────────────────────────────────────────────────
 
@@ -278,43 +278,72 @@ export class ReportDeadlineExceededError extends Error {
 export class ReportDeadline {
   private hit = false;
   private softHit = false;
+  private w4Hit = false;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private softTimer: ReturnType<typeof setTimeout> | null = null;
+  private w4Timer: ReturnType<typeof setTimeout> | null = null;
   readonly promise: Promise<"deadline">;
-  /** Resolves at `ms − reserveMs` (or with the hard deadline when the reserve is 0). */
+  /** Resolves when W1–W3 must stop (`ms − synthReserveMs − reserveMs`), or with the hard deadline when both reserves are 0. */
   readonly softPromise: Promise<"deadline">;
+  /** G33-T16: resolves when W4 must stop (`ms − synthReserveMs`) so the CEO summary keeps its own window. */
+  readonly w4Promise: Promise<"deadline">;
   readonly reserveMs: number;
-  constructor(readonly ms: number, private readonly startedAt: number = Date.now(), reserveMs = 0) {
-    this.reserveMs = Math.max(0, Math.min(Math.floor(reserveMs), ms));
+  /** G33-T16: wall clock kept for SYNTH (CEO summary) after W4. 0 → W4 races the hard deadline as before. */
+  readonly synthReserveMs: number;
+  constructor(readonly ms: number, private readonly startedAt: number = Date.now(), reserveMs = 0, synthReserveMs = 0) {
+    this.synthReserveMs = Math.max(0, Math.min(Math.floor(synthReserveMs), ms));
+    this.reserveMs = Math.max(0, Math.min(Math.floor(reserveMs), ms - this.synthReserveMs));
     this.promise = new Promise((resolve) => {
       this.timer = setTimeout(() => {
         this.hit = true;
+        this.w4Hit = true;
         this.softHit = true;
         resolve("deadline");
       }, ms);
     });
-    this.softPromise = this.reserveMs === 0
+    this.w4Promise = this.synthReserveMs === 0
       ? this.promise
+      : new Promise((resolve) => {
+          this.w4Timer = setTimeout(() => {
+            this.w4Hit = true;
+            this.softHit = true;
+            resolve("deadline");
+          }, ms - this.synthReserveMs);
+        });
+    this.softPromise = this.reserveMs === 0
+      ? this.w4Promise
       : new Promise((resolve) => {
           this.softTimer = setTimeout(() => {
             this.softHit = true;
             resolve("deadline");
-          }, ms - this.reserveMs);
+          }, this.softMs);
         });
+  }
+  /** Offset (ms from start) at which W1–W3 must stop. */
+  get softMs(): number {
+    return this.ms - this.synthReserveMs - this.reserveMs;
   }
   expired(): boolean {
     return this.hit;
   }
-  /** True once W1–W3 must stop: the W4 reserve has begun (or the hard deadline passed). */
+  /** True once W1–W3 must stop: the W4 reserve has begun (or a later boundary passed). */
   softExpired(): boolean {
-    return this.softHit || this.hit;
+    return this.softHit || this.w4Hit || this.hit;
+  }
+  /** G33-T16: true once W4 must stop — the SYNTH reserve has begun (or the hard deadline passed). */
+  w4Expired(): boolean {
+    return this.w4Hit || this.hit;
   }
   remainingMs(now: number = Date.now()): number {
     return Math.max(0, this.startedAt + this.ms - now);
   }
   /** Wall clock W1–W3 may still use (until the W4 reserve begins). */
   remainingSoftMs(now: number = Date.now()): number {
-    return Math.max(0, this.startedAt + this.ms - this.reserveMs - now);
+    return Math.max(0, this.startedAt + this.softMs - now);
+  }
+  /** G33-T16: wall clock W4 may still use (until the SYNTH reserve begins). */
+  remainingW4Ms(now: number = Date.now()): number {
+    return Math.max(0, this.startedAt + this.ms - this.synthReserveMs - now);
   }
   /** Resolve `work` or the deadline, whichever first; the loser keeps running but its result is dropped. */
   race<T>(work: Promise<T>): Promise<T | "deadline"> {
@@ -324,11 +353,17 @@ export class ReportDeadline {
   raceSoft<T>(work: Promise<T>): Promise<T | "deadline"> {
     return Promise.race([work, this.softPromise]);
   }
+  /** G33-T16: same as `race` against the W4 boundary (start of the SYNTH reserve). */
+  raceW4<T>(work: Promise<T>): Promise<T | "deadline"> {
+    return Promise.race([work, this.w4Promise]);
+  }
   dispose(): void {
     if (this.timer) clearTimeout(this.timer);
     if (this.softTimer) clearTimeout(this.softTimer);
+    if (this.w4Timer) clearTimeout(this.w4Timer);
     this.timer = null;
     this.softTimer = null;
+    this.w4Timer = null;
   }
 }
 
@@ -349,11 +384,13 @@ export function meterCallAI(
   return async (system, user, maxTokens, taskClass) => {
     if (opts.deadline?.expired()) throw new ReportDeadlineExceededError(opts.deadline.ms);
     // G28-B: a criterion call may not start inside the W4 reserve.
-    if (stage === "criterion" && opts.deadline?.softExpired()) throw new ReportDeadlineExceededError(opts.deadline.ms - opts.deadline.reserveMs);
+    if (stage === "criterion" && opts.deadline?.softExpired()) throw new ReportDeadlineExceededError(opts.deadline.softMs);
+    // G33-T16: a chapter call may not start inside the SYNTH reserve.
+    if (stage === "chapter" && opts.deadline?.w4Expired()) throw new ReportDeadlineExceededError(opts.deadline.ms - opts.deadline.synthReserveMs);
     if (!budget.tryAcquire()) throw new CallBudgetExceededError(budget.max);
     const hint: PipelineCallHint = {
       stage,
-      ...(opts.deadline ? { remainingMs: stage === "criterion" ? opts.deadline.remainingSoftMs() : opts.deadline.remainingMs() } : {}),
+      ...(opts.deadline ? { remainingMs: stage === "criterion" ? opts.deadline.remainingSoftMs() : stage === "chapter" ? opts.deadline.remainingW4Ms() : opts.deadline.remainingMs() } : {}),
     };
     const out = await callAI(system, user, maxTokens, taskClass, hint);
     if (typeof out === "string") return out;
@@ -421,6 +458,8 @@ export interface OrchestratorInput {
   maxCalls?: number;
   /** Override the wall-clock deadline in ms (tests). Defaults to deadlineMsForTier(tierV2). */
   deadlineMs?: number;
+  /** G33-T16: override the SYNTH (CEO summary) reserve in ms (tests). Defaults to synthReserveMsFor(deadlineMs). */
+  synthReserveMs?: number;
   /** G28-B: override the W4 reserve in ms (tests). Defaults to w4ReserveMsFor(deadlineMs). */
   w4ReserveMs?: number;
   /** Explicit growth phase (projects.growth_phase_current); inferred from criteria + dims otherwise. */
@@ -483,7 +522,7 @@ async function orchestrateReportBudgeted(input: OrchestratorInput, reportId: str
   const budget = new ReportCallBudget(input.maxCalls ?? callMaxForTier(tierV2));
   const meter = new CostMeter();
   const deadlineMs = input.deadlineMs ?? deadlineMsForTier(tierV2);
-  const deadline = new ReportDeadline(deadlineMs, t0, input.w4ReserveMs ?? w4ReserveMsFor(deadlineMs));
+  const deadline = new ReportDeadline(deadlineMs, t0, input.w4ReserveMs ?? w4ReserveMsFor(deadlineMs), input.synthReserveMs ?? synthReserveMsFor(deadlineMs));
   // G28-B: one metered caller per stage over the SAME call budget — the
   // per-model timeout and the W4-reserve refusal live on the stage
   // (pipeline-timeouts.ts). `callAI` = criterion (gather + W1–W3).
@@ -667,7 +706,7 @@ async function orchestrateReportBudgeted(input: OrchestratorInput, reportId: str
           emit({ type: "dimension_complete", dim, chapter });
         });
       };
-      if (deadline.expired()) {
+      if (deadline.w4Expired()) {
         markDeadline();
         degradeAll(`deadline: wall-clock budget (${Math.round(deadline.ms / 1000)} s) reached before W4`);
       } else if (!monthlyOk() || budget.remaining === 0) {
@@ -676,13 +715,15 @@ async function orchestrateReportBudgeted(input: OrchestratorInput, reportId: str
         const emitted = new Set<DimKey>();
         const live = new Map<DimKey, DimensionChapter>();
         context.dimensionChapters = live;
-        const w4 = deadline.race(
+        // G33-T16: W4 races the start of the SYNTH reserve, not the hard deadline,
+        // so the CEO summary is never left with the last 20–30 s of the run.
+        const w4 = deadline.raceW4(
           dispatchDimensionChapters(context, input.tier, callAIChapter, {
             ...dispatchOpts,
-            isExpired: () => deadline.expired(),
+            isExpired: () => deadline.w4Expired(),
             dims: w4Dims,
             onChapter: (dim, chapter) => {
-              if (deadline.expired() || emitted.has(dim)) return;
+              if (deadline.w4Expired() || emitted.has(dim)) return;
               emitted.add(dim);
               if (chapter.degraded) emit({ type: "error", dim, message: chapter.degradeReason ?? "degraded", degraded: true });
               emit({ type: "dimension_complete", dim, chapter });
@@ -728,13 +769,21 @@ async function orchestrateReportBudgeted(input: OrchestratorInput, reportId: str
       context.executiveSummary = deterministicExecutiveSummary(context, partialDims ? "partial re-run" : "deadline");
       context.executiveStructured = null;
     } else {
-      const ceo = await generateExecutiveSummary(context, callAISynthesis, {
+      // G33-T16: the summary runs inside its own reserve but still races the hard
+      // deadline — a hung provider must not hold the run past `deadline + grace`.
+      const ceo = await deadline.race(generateExecutiveSummary(context, callAISynthesis, {
         allowRepair: () => !deadline.expired() && monthlyOk() && budget.remaining >= 2,
         businessId: input.projectId ?? null,
         userId: input.userId ?? null,
-      });
-      context.executiveSummary = ceo.thesis;
-      context.executiveStructured = ceo.structured;
+      }));
+      if (ceo === "deadline") {
+        markDeadline();
+        context.executiveSummary = deterministicExecutiveSummary(context, "deadline");
+        context.executiveStructured = null;
+      } else {
+        context.executiveSummary = ceo.thesis;
+        context.executiveStructured = ceo.structured;
+      }
     }
     if (valuationUnavailable) {
       context.executiveSummary = withoutUnavailableValuationProse(context.executiveSummary ?? "", context.locale);

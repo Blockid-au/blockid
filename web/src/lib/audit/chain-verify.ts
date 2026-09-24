@@ -94,6 +94,28 @@ export const CHAIN_STATE_MAX_AGE_MS = 48 * 60 * 60 * 1000;
 
 const PAGE = 5000;
 
+/**
+ * G33-T08 — the five historical forks (a parent hash with two children) left by
+ * the pre-0460 trigger race, 18–21/09/2026 (ids 6702/6704, 6721/6723,
+ * 8318/8320, 10672/10674, 11858/11860). Every row's own hash recomputes; the
+ * trigger picked "highest id" as the tip while ids were assigned before the
+ * lock. Migration 0460 assigns ids under the lock, so no new fork can appear;
+ * any other fork is still a break. Evidence: docs/reviews/2026-09-24-live-version-test-review.md.
+ */
+export const KNOWN_AUDIT_FORKS: readonly string[] = Object.freeze([
+  "64390cd9f27fff5160efadf949cce26c8eedcb8e4a857aa5e92690faa620c84f",
+  "c7fc7fa23fded252d82b3d71d96b55b737a8e4775ba48c2d634a91a8ea9ebbde",
+  "4e35ec4a66bfdfac694bc9aab2f28006dd32c33958a88c784c3b4cc9bc109ebb",
+  "87182d3f5a1e0a4a5fe1d9dbd63ef6055d8d064a2fc0e9aca3c28d02f9348228",
+  "0aec9b42571dfde70d749d01c3bc8155aef541dc01c499350dbd56d869edaeb4",
+]);
+
+/** PostgREST / Postgres "function does not exist" (migration not applied yet). */
+function isMissingFunction(error: { message?: string; code?: string } | null | undefined): boolean {
+  if (!error) return false;
+  return error.code === "42883" || error.code === "PGRST202" || /could not find the function|does not exist/i.test(error.message ?? "");
+}
+
 function num(v: number | string | null | undefined): number | null {
   if (v === null || v === undefined) return null;
   const n = typeof v === "number" ? v : Number.parseInt(v, 10);
@@ -123,6 +145,37 @@ export async function verifyAuditChain(opts: {
     pages: 0,
   };
   if (!opts.db) return { ...base, error: "supabase_unavailable" };
+
+  // G33-T08: a full scan verifies the ledger as a hash graph (every hash
+  // recomputes, every parent exists, one genesis, forks only at the pinned
+  // historical parents). The id-ordered page walk stays for incremental scans
+  // and as the fallback before migration 0460 is applied.
+  if (fromId === 0) {
+    try {
+      const { data, error } = await opts.db.rpc("audit_events_verify_graph", { p_known_forks: [...KNOWN_AUDIT_FORKS] });
+      if (!error) {
+        const row = (Array.isArray(data) ? data[0] : data) as RpcRow | undefined;
+        if (row) {
+          const broken = num(row.first_broken_id);
+          return {
+            ok: broken === null,
+            status: broken === null ? "ok" : "broken",
+            checked: row.checked ?? 0,
+            from_id: 0,
+            first_broken_id: broken,
+            reason: broken === null ? null : (row.reason ?? "unknown"),
+            last_id: num(row.last_id),
+            last_hash: row.last_hash ?? null,
+            pages: 1,
+          };
+        }
+      } else if (!isMissingFunction(error)) {
+        return { ...base, pages: 1, error: error.message };
+      }
+    } catch (err) {
+      return { ...base, error: err instanceof Error ? err.message : String(err) };
+    }
+  }
 
   let cursor = fromId;
   let checked = 0;

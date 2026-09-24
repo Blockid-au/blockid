@@ -45,9 +45,20 @@ export async function GET(request: Request) {
     // Get all accounts with recent svi_analyses (each row is a unique email+project pair)
     const { data: accounts, error } = await supabase
       .from("svi_accounts")
-      .select("id, email, user_id, current_svi, current_stage, project_id, index_base_date, index_base_svi");
+      .select("id, email, current_svi, current_stage, project_id, index_base_date, index_base_svi");
 
     if (error) throw error;
+
+    // G33-T09: `svi_accounts` has never had a `user_id` column (0008); selecting it
+    // made this cron fail with 42703 every day since at least 21/09. The owner
+    // (trend alert + webhook audience) is the account's project owner.
+    const projectIds = [...new Set((accounts ?? []).map((a) => (a as { project_id?: string | null }).project_id).filter((id): id is string => typeof id === "string" && id.length > 0))];
+    const ownerByProject = new Map<string, string>();
+    if (projectIds.length > 0) {
+      const { data: owners, error: ownersError } = await supabase.from("projects").select("id, user_id").in("id", projectIds);
+      if (ownersError) console.warn("[blockid:svi-snapshot] project owner lookup failed — alerts/webhooks go without an owner", ownersError.message);
+      for (const o of (owners ?? []) as Array<{ id: string; user_id: string | null }>) if (o.user_id) ownerByProject.set(o.id, o.user_id);
+    }
 
     const today = new Date().toISOString().split("T")[0];
     let processed = 0;
@@ -88,6 +99,7 @@ export async function GET(request: Request) {
       const acctRaw = account as Record<string, unknown>;
       const baseSVI = typeof acctRaw.index_base_svi === "number" ? acctRaw.index_base_svi : null;
       const baseDate = typeof acctRaw.index_base_date === "string" ? acctRaw.index_base_date : null;
+      const ownerId = account.project_id ? ownerByProject.get(account.project_id) ?? null : null;
 
       // Count evidence items and connected sources for data richness
       const { count: evidenceCount } = await supabase
@@ -159,7 +171,7 @@ export async function GET(request: Request) {
       // T0246 — svi_trend_alert when the week's move is ≥ SVI_TREND_ALERT_THRESHOLD.
       // Dedupe key = svi_trend:<project>:<snapshot_date>; a re-run today is a no-op.
       const alerted = await maybeWriteSviTrendAlert({
-        userId: (acctRaw.user_id as string | null | undefined) ?? null,
+        userId: ownerId,
         projectId: account.project_id ?? null,
         accountId: account.id,
         delta,
@@ -184,7 +196,7 @@ export async function GET(request: Request) {
             source: "snapshot",
             snapshot_date: today,
           },
-          acctRaw.user_id ? { userIds: [acctRaw.user_id as string] } : {},
+          ownerId ? { userIds: [ownerId] } : {},
         );
         webhooksQueued += r.queued;
       }

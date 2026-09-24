@@ -19,16 +19,46 @@ import {
 // break, degrades to `unknown` when the migration is missing, and the
 // persisted state ages out after 48h.
 
+// The paged id-walk (audit_events_verify_chain). A full scan tries the G33-T08
+// graph RPC first; these fixtures model a database without migration 0460, so
+// the graph call answers "function not found" and the page walk runs as before.
 function rpcSequence(pages: Array<{ checked: number; first_broken_id?: number | null; reason?: string | null; last_id: number | null; last_hash?: string | null }>) {
-  const rpc = vi.fn();
-  for (const p of pages) {
-    rpc.mockResolvedValueOnce({
-      data: [{ checked: p.checked, first_broken_id: p.first_broken_id ?? null, reason: p.reason ?? null, last_id: p.last_id, last_hash: p.last_hash ?? (p.last_id ? `h${p.last_id}` : null) }],
-      error: null,
-    });
-  }
+  const queue = pages.map((p) => ({
+    data: [{ checked: p.checked, first_broken_id: p.first_broken_id ?? null, reason: p.reason ?? null, last_id: p.last_id, last_hash: p.last_hash ?? (p.last_id ? `h${p.last_id}` : null) }],
+    error: null,
+  }));
+  const rpc = vi.fn(async (fn: string) => {
+    if (fn === "audit_events_verify_graph") return { data: null, error: { code: "PGRST202", message: "Could not find the function public.audit_events_verify_graph" } };
+    return queue.shift() ?? { data: [], error: null };
+  });
   return rpc;
 }
+const pageCalls = (rpc: ReturnType<typeof vi.fn>) => rpc.mock.calls.filter(([fn]) => fn === "audit_events_verify_chain");
+
+describe("verifyAuditChain — G33-T08 graph verification", () => {
+  it("a full scan verifies the ledger as a graph with the five pinned historical forks", async () => {
+    const rpc = vi.fn(async () => ({ data: [{ checked: 13971, first_broken_id: null, reason: null, last_id: 14036, last_hash: "260bc1" }], error: null }));
+    const r = await verifyAuditChain({ db: { rpc } });
+    expect(r).toMatchObject({ ok: true, status: "ok", checked: 13971, last_id: 14036, last_hash: "260bc1", pages: 1 });
+    expect(rpc).toHaveBeenCalledTimes(1);
+    const [fn, args] = rpc.mock.calls[0] as unknown as [string, { p_known_forks: string[] }];
+    expect(fn).toBe("audit_events_verify_graph");
+    expect(args.p_known_forks).toHaveLength(5);
+    expect(args.p_known_forks.every((h) => /^[a-f0-9]{64}$/.test(h))).toBe(true);
+  });
+
+  it("reports a graph break (a new fork, a dangling parent, a tampered row) with its reason", async () => {
+    const rpc = vi.fn(async () => ({ data: [{ checked: 4934, first_broken_id: 5000, reason: "curr_hash_mismatch", last_id: 14036, last_hash: "x" }], error: null }));
+    expect(await verifyAuditChain({ db: { rpc } })).toMatchObject({ ok: false, status: "broken", first_broken_id: 5000, reason: "curr_hash_mismatch" });
+  });
+
+  it("an incremental scan (fromId > 0) keeps the id-ordered page walk", async () => {
+    const rpc = rpcSequence([{ checked: 3, last_id: 14003 }]);
+    const r = await verifyAuditChain({ db: { rpc }, fromId: 14000 });
+    expect(r).toMatchObject({ ok: true, checked: 3 });
+    expect(rpc.mock.calls.every(([fn]) => fn === "audit_events_verify_chain")).toBe(true);
+  });
+});
 
 describe("verifyAuditChain", () => {
   it("walks pages of 5000 until a short page and reports ok", async () => {
@@ -39,9 +69,11 @@ describe("verifyAuditChain", () => {
     ]);
     const r = await verifyAuditChain({ db: { rpc } });
     expect(r).toMatchObject({ ok: true, status: "ok", checked: 10012, last_id: 10012, last_hash: "h10012", pages: 3, from_id: 0 });
-    expect(rpc).toHaveBeenNthCalledWith(1, "audit_events_verify_chain", { p_from_id: 0, p_limit: 5000 });
-    expect(rpc).toHaveBeenNthCalledWith(2, "audit_events_verify_chain", { p_from_id: 5001, p_limit: 5000 });
-    expect(rpc).toHaveBeenNthCalledWith(3, "audit_events_verify_chain", { p_from_id: 10001, p_limit: 5000 });
+    expect(pageCalls(rpc)).toEqual([
+      ["audit_events_verify_chain", { p_from_id: 0, p_limit: 5000 }],
+      ["audit_events_verify_chain", { p_from_id: 5001, p_limit: 5000 }],
+      ["audit_events_verify_chain", { p_from_id: 10001, p_limit: 5000 }],
+    ]);
   });
 
   it("stops at the first broken row", async () => {
@@ -51,7 +83,7 @@ describe("verifyAuditChain", () => {
     ]);
     const r = await verifyAuditChain({ db: { rpc } });
     expect(r).toMatchObject({ ok: false, status: "broken", checked: 5041, first_broken_id: 5042, reason: "curr_hash_mismatch", last_id: 5041 });
-    expect(rpc).toHaveBeenCalledTimes(2);
+    expect(pageCalls(rpc)).toHaveLength(2);
   });
 
   it("honours fromId and an empty table", async () => {
@@ -90,7 +122,7 @@ describe("verifyAuditChain", () => {
     ]);
     const r = await verifyAuditChain({ db: { rpc }, maxRows: 10000 });
     expect(r.checked).toBe(10000);
-    expect(rpc).toHaveBeenCalledTimes(2);
+    expect(pageCalls(rpc)).toHaveLength(2);
   });
 });
 
