@@ -1845,7 +1845,13 @@ describe("G30 BlockID report policy", () => {
     expect(result.cost_usd).toBeGreaterThan(0);
     expect(fetchMock).toHaveBeenCalledTimes(1);
     onlyDeepInfra(fetchMock);
-    expect(calledModels(fetchMock)).toEqual([client.DEEPINFRA_MODELS_BY_CLASS[taskClass][0]]);
+    // G33-T16d: an interactive call (60 s budget, 4 096 tokens) fits no measured
+    // model with headroom, so the fastest measured rung is tried first; the call
+    // still stays inside the class's exact DeepInfra ladder.
+    const called = calledModels(fetchMock);
+    expect(called).toHaveLength(1);
+    expect(client.DEEPINFRA_MODELS_BY_CLASS[taskClass]).toContain(called[0]);
+    if (taskClass !== "classify") expect(called[0]).toBe("deepseek-ai/DeepSeek-V4-Flash");
   });
   it("fails closed when DeepInfra is missing", async () => {
     delete process.env.DEEPINFRA_API_KEY;

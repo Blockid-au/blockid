@@ -72,19 +72,24 @@ export function estimateCompletionMs(model: string, outputTokens: number): numbe
 
 /**
  * Stable re-order: models KNOWN (prior or sample) to finish `outputTokens` within
- * `remainingMs` move ahead, in their (quality) order; every other model follows
- * in its original order. When no known model fits, the order is unchanged —
- * speed cannot rescue the call, so quality order stands, and a model without
- * any measurement never jumps ahead of measured ones.
+ * `remainingMs` (with FIT_SAFETY_FACTOR headroom) move ahead, in their (quality)
+ * order; every other model follows in its original order.
+ *
+ * G33-T16d: when no known model fits, the fastest known model goes first
+ * (ascending estimate), then any unmeasured model — the 24/09 canary sent the CEO
+ * summary to the slowest rung (V3.2, ~9 tok/s) because "nothing fits" kept the
+ * quality order, and it timed out in both runs.
  */
 export function orderModelsBySpeed(models: readonly string[], outputTokens: number, remainingMs: number | null | undefined): string[] {
   if (typeof remainingMs !== "number" || !Number.isFinite(remainingMs)) return [...models];
+  const estimates = new Map(models.map((m) => [m, estimateCompletionMs(m, outputTokens)] as const));
   const fits = models.filter((m) => {
-    const est = estimateCompletionMs(m, outputTokens);
-    return est !== null && est * FIT_SAFETY_FACTOR <= remainingMs;
+    const est = estimates.get(m);
+    return est != null && est * FIT_SAFETY_FACTOR <= remainingMs;
   });
-  if (fits.length === 0) return [...models];
-  return [...fits, ...models.filter((m) => !fits.includes(m))];
+  if (fits.length > 0) return [...fits, ...models.filter((m) => !fits.includes(m))];
+  const known = models.filter((m) => estimates.get(m) != null).sort((a, b) => estimates.get(a)! - estimates.get(b)!);
+  return [...known, ...models.filter((m) => estimates.get(m) == null)];
 }
 
 /**

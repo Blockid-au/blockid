@@ -19,12 +19,12 @@ describe("model throughput (G33-T05)", () => {
     expect(orderModelsBySpeed(LADDER, 1000, 300_000)).toEqual(LADDER);
     // W4 window of 160 s for a 3 200-token chapter: only Flash (≈100 s × 1.5 safety) fits.
     expect(orderModelsBySpeed(LADDER, 3200, 160_000)).toEqual([FLASH, V32, QWEN]);
-    // G33-T16b: without headroom (120 s) nothing fits safely → quality order stands.
-    expect(orderModelsBySpeed(LADDER, 3200, 120_000)).toEqual(LADDER);
+    // G33-T16d: nothing fits with headroom (120 s) → fastest first (24/09: V3.2 took the summary and timed out).
+    expect(orderModelsBySpeed(LADDER, 3200, 120_000)).toEqual([FLASH, QWEN, V32]);
     // No deadline → unchanged.
     expect(orderModelsBySpeed(LADDER, 3200, undefined)).toEqual(LADDER);
-    // Nothing known fits → quality order stands; an unmeasured model never jumps ahead of measured ones.
-    expect(orderModelsBySpeed([V32, FLASH, "x/new"], 4096, 60_000)).toEqual([V32, FLASH, "x/new"]);
+    // Nothing known fits → fastest known first; an unmeasured model never jumps ahead of measured ones.
+    expect(orderModelsBySpeed([V32, "x/new", FLASH], 4096, 60_000)).toEqual([FLASH, V32, "x/new"]);
     expect(orderModelsBySpeed([V32, "x/new", FLASH], 3200, 160_000)).toEqual([FLASH, V32, "x/new"]);
   });
 
