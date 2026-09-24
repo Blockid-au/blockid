@@ -1803,7 +1803,23 @@ describe("G30 BlockID report policy", () => {
           res.statusCode = reply.status;
           res.setEncoding = () => {};
           callback(res);
-          res.emit("data", await reply.text());
+          const text = await reply.text();
+          // G33-T05: DeepInfra text calls stream — answer a `stream: true` request as SSE.
+          let streamedRequest = false;
+          try { streamedRequest = JSON.parse(body).stream === true; } catch { /* not JSON */ }
+          if (streamedRequest && reply.status < 400) {
+            let j: Record<string, unknown> = {};
+            try { j = JSON.parse(text); } catch { /* raw */ }
+            const content = (j.choices as Array<{ message?: { content?: string } }> | undefined)?.[0]?.message?.content;
+            const sse = (o: unknown) => `data: ${JSON.stringify(o)}\n\n`;
+            if (j.error) res.emit("data", sse({ error: j.error }));
+            else {
+              if (typeof content === "string" && content) res.emit("data", sse({ model: j.model, choices: [{ delta: { content } }] }));
+              res.emit("data", sse({ model: j.model, choices: [], ...(j.usage ? { usage: j.usage } : {}) }));
+              res.emit("data", "data: [DONE]\n\n");
+            }
+          } else res.emit("data", text);
+          (res as unknown as { complete: boolean }).complete = true;
           res.emit("end");
         }).catch((err: Error) => req.emit("error", err));
       };

@@ -61,7 +61,8 @@ import { trackOriginWork } from "@/lib/ops/origin-activity";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
-import { AITransportError, inprocessFetch } from "@/lib/ai/http-transport";
+import { AITransportError, inprocessFetch, inprocessStreamChat, type AITransportDiagnostics } from "@/lib/ai/http-transport";
+import { orderModelsBySpeed, recordModelSpeed } from "@/lib/ai/model-throughput";
 import {
   callAnthropicTier,
   anthropicRequestsRemaining,
@@ -1491,6 +1492,24 @@ const REPORT_POLICY_MODELS: Readonly<Record<AITaskClass, readonly string[]>> = O
   classify: Object.freeze([...DEEPINFRA_MODELS_BY_CLASS.classify]),
 });
 
+/**
+ * G33-T05 — streamed DeepInfra timeouts. The per-attempt stage timeout becomes
+ * the first-token limit (a dead or queued rung still fails fast so the next one
+ * gets time); an answering model may use the rest of the call's wall clock.
+ */
+export function deepInfraStreamTimeouts(opts: Pick<AICallOptions, "timeoutMs" | "deadlineAt">, now: number = Date.now()): { firstTokenMs: number; idleMs: number; totalMs: number } {
+  const envMs = (name: string, fallback: number) => {
+    const n = Number(process.env[name] ?? "");
+    return Number.isFinite(n) && n > 0 ? Math.floor(n) : fallback;
+  };
+  const attempt = opts.timeoutMs ?? 30_000;
+  const remaining = typeof opts.deadlineAt === "number" ? Math.max(1_000, opts.deadlineAt - now) : null;
+  const totalMs = remaining ?? Math.max(attempt, envMs("DEEPINFRA_STREAM_MAX_MS", 180_000));
+  const firstTokenMs = Math.min(totalMs, attempt, envMs("DEEPINFRA_FIRST_TOKEN_TIMEOUT_MS", 45_000));
+  const idleMs = Math.min(totalMs, envMs("DEEPINFRA_IDLE_TIMEOUT_MS", 45_000));
+  return { firstTokenMs, idleMs, totalMs };
+}
+
 async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): Promise<AICallResult> {
   const apiKey = process.env.DEEPINFRA_API_KEY ?? getDBKey("deepinfra")?.api_key ?? "";
   if (!apiKey) throw new Error("DeepInfra API key not configured");
@@ -1498,8 +1517,15 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
   let lastErr: Error | null = null;
   const scoped = scopedReportPolicy(opts);
   const models = opts.visionImages?.length ? ["Qwen/Qwen3-VL-235B-A22B-Instruct"] : scoped ? [...REPORT_POLICY_MODELS[cls]] : DEEPINFRA_MODELS_BY_CLASS[cls];
-  const deepinfraRungs = readyPaidModels("deepinfra", models);
-  if (deepinfraRungs.length === 0) throw new DeadLadderError("deepinfra", models.length);
+  const readyRungs = readyPaidModels("deepinfra", models);
+  if (readyRungs.length === 0) throw new DeadLadderError("deepinfra", models.length);
+  // G33-T05: text calls stream, and a model expected to miss the remaining
+  // wall clock at its measured speed moves behind one that can finish.
+  const streamed = !opts.visionImages?.length && process.env.DEEPINFRA_STREAM !== "off";
+  const requestedMaxTokens = Math.min(opts.maxTokens ?? 4096, 16_384);
+  const deepinfraRungs = streamed
+    ? orderModelsBySpeed(readyRungs, requestedMaxTokens, typeof opts.deadlineAt === "number" ? opts.deadlineAt - Date.now() : null)
+    : readyRungs;
   for (const model of deepinfraRungs) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     if (runStruck(opts, "deepinfra")) { lastErr = lastErr ?? runStruckError(opts, "deepinfra"); break; }
@@ -1508,6 +1534,7 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
     const key = paidKey("deepinfra", model);
     const maxTokens = Math.min(opts.maxTokens ?? 4096, 16_384);
     const payload = JSON.stringify({ model, max_tokens: maxTokens, temperature: opts.temperature ?? 0.7,
+      ...(streamed ? { stream: true, stream_options: { include_usage: true } } : {}),
       ...(DEEPINFRA_THINKING_OFF.has(model) ? { chat_template_kwargs: { thinking: false } } : {}),
       messages: [{ role: "system", content: opts.system }, { role: "user", content: opts.visionImages?.length ? [
         { type: "text", text: opts.user },
@@ -1517,11 +1544,15 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
     const permit = opts.attemptBudget ? await reserveResearchAttempt(opts.attemptBudget, model, payload, maxTokens) : null;
     const reservationMs = Math.round(performance.now() - reservationStarted);
     let settled = false;
+    const stream: { diagnostics: AITransportDiagnostics | null } = { diagnostics: null };
     try {
       if (permit && aiBudgetExpired(opts)) throw new ResearchAttemptBudgetError("deadline expired; reservation retained");
-      const raw = await workerFetch("https://api.deepinfra.com/v1/openai/chat/completions", {
-        "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json",
-      }, payload, budgetedTimeoutMs(opts), !permit && !scoped);
+      const headers = { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" };
+      const raw = streamed
+        ? await inprocessStreamChat("https://api.deepinfra.com/v1/openai/chat/completions", headers, payload, deepInfraStreamTimeouts(opts), (d: AITransportDiagnostics) => {
+            stream.diagnostics = d;
+          })
+        : await workerFetch("https://api.deepinfra.com/v1/openai/chat/completions", headers, payload, budgetedTimeoutMs(opts), !permit && !scoped);
 
       const data = JSON.parse(raw);
       if (data.error) throw new Error(data.error.message ?? "DeepInfra error");
@@ -1535,6 +1566,7 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
         await settleResearchAttempt(opts.attemptBudget, permit, data.usage);
       }
       const cost = usageCostUsd("deepinfra", model, input, output);
+      if (stream.diagnostics) recordModelSpeed(model, { firstTokenMs: stream.diagnostics.firstTokenMs, totalMs: stream.diagnostics.elapsedMs, outputTokens: output });
       recordModelOutcome(key, true);
       clearDeadRung("deepinfra", model);
       return {

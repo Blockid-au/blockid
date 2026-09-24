@@ -1,7 +1,7 @@
 import { createServer, type Server, type RequestListener } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterEach, describe, expect, it } from "vitest";
-import { AITransportError, inprocessFetch } from "./http-transport";
+import { AITransportError, applySseLine, inprocessFetch, inprocessStreamChat } from "./http-transport";
 
 const servers: Server[] = [];
 async function endpoint(handler: RequestListener) {
@@ -58,5 +58,74 @@ describe("AI HTTP transport against a local server", () => {
   it("preserves HTTP status errors for quota handling", async () => {
     const url = await endpoint((req, res) => { req.resume(); res.writeHead(429); res.end("quota exceeded"); });
     await expect(inprocessFetch(url, {}, "{}", 1000)).rejects.toThrow("HTTP 429");
+  });
+});
+
+// G33-T05 — streamed chat completions (SSE) with first-token / idle / total timeouts.
+const sse = (o: unknown) => `data: ${JSON.stringify(o)}\n\n`;
+const T = (over: Partial<{ firstTokenMs: number; idleMs: number; totalMs: number }> = {}) => ({ firstTokenMs: 200, idleMs: 200, totalMs: 2000, ...over });
+
+describe("AI streamed chat transport", () => {
+  it("rebuilds the completion (model, content, usage) from SSE chunks, even when lines split across TCP chunks", async () => {
+    const url = await endpoint((req, res) => {
+      req.resume();
+      res.writeHead(200, { "Content-Type": "text/event-stream" });
+      const all = sse({ model: "m-1", choices: [{ delta: { role: "assistant" } }] }) + sse({ choices: [{ delta: { content: "Bằng " } }] }) + sse({ choices: [{ delta: { content: "chứng" }, finish_reason: "stop" }] }) + sse({ choices: [], usage: { prompt_tokens: 11, completion_tokens: 3 } }) + "data: [DONE]\n\n";
+      const cut = Math.floor(all.length / 2);
+      res.write(all.slice(0, cut));
+      setTimeout(() => res.end(all.slice(cut)), 10);
+    });
+    const raw = await inprocessStreamChat(url, {}, "{}", T());
+    expect(JSON.parse(raw)).toEqual({ model: "m-1", choices: [{ message: { content: "Bằng chứng" }, finish_reason: "stop" }], usage: { prompt_tokens: 11, completion_tokens: 3 } });
+  });
+
+  it("a slow but steady stream outlives the first-token window (24/09: 13 tok/s must not time out)", async () => {
+    const url = await endpoint((req, res) => {
+      req.resume();
+      res.writeHead(200);
+      let i = 0;
+      const tick = setInterval(() => {
+        if (i++ < 8) res.write(sse({ choices: [{ delta: { content: "x" } }] }));
+        else { clearInterval(tick); res.end(sse({ choices: [], usage: { prompt_tokens: 1, completion_tokens: 8 } }) + "data: [DONE]\n\n"); }
+      }, 60);
+    });
+    // 8 × 60 ms = 480 ms total > firstToken 200 ms, but each gap < idle 200 ms.
+    const raw = await inprocessStreamChat(url, {}, "{}", T());
+    expect(JSON.parse(raw).choices[0].message.content).toBe("xxxxxxxx");
+  });
+
+  it("no first token → a `Worker timeout (first token …)` with diagnostics and no inputs", async () => {
+    const url = await endpoint((req, res) => { req.resume(); res.writeHead(200); res.write(sse({ model: "m", choices: [{ delta: { role: "assistant" } }] })); });
+    const error = await inprocessStreamChat(url, { Authorization: "private-key" }, "private-prompt", T({ firstTokenMs: 60 })).catch(e => e);
+    expect(error).toBeInstanceOf(AITransportError);
+    expect(error.message).toMatch(/^Worker timeout \(first token/);
+    expect(error.transport).toMatchObject({ statusCode: 200, firstTokenMs: null, outputChars: 0 });
+    expect(JSON.stringify(error.transport)).not.toMatch(/private|hidden/);
+  });
+
+  it("tokens that stop mid-answer → idle timeout; total caps a stream that never ends", async () => {
+    const stall = await endpoint((req, res) => { req.resume(); res.writeHead(200); res.write(sse({ choices: [{ delta: { content: "half" } }] })); });
+    const idle = await inprocessStreamChat(stall, {}, "{}", T({ idleMs: 60 })).catch(e => e);
+    expect(idle.message).toMatch(/^Worker timeout \(idle/);
+    expect(idle.transport.outputChars).toBe(4);
+    const drip = await endpoint((req, res) => { req.resume(); res.writeHead(200); const t = setInterval(() => res.write(sse({ choices: [{ delta: { content: "." } }] })), 20); res.on("close", () => clearInterval(t)); });
+    const total = await inprocessStreamChat(drip, {}, "{}", T({ totalMs: 150 })).catch(e => e);
+    expect(total.message).toMatch(/^Worker timeout \(total/);
+  });
+
+  it("keeps HTTP status errors (429 overload) and in-stream error events", async () => {
+    const busy = await endpoint((req, res) => { req.resume(); res.writeHead(429); res.end('{"error":{"message":"Model busy, retry later","code":"engine_overloaded"}}'); });
+    await expect(inprocessStreamChat(busy, {}, "{}", T())).rejects.toThrow(/HTTP 429: .*engine_overloaded/);
+    const bad = await endpoint((req, res) => { req.resume(); res.writeHead(200); res.end(sse({ error: { message: "upstream failed" } })); });
+    await expect(inprocessStreamChat(bad, {}, "{}", T())).rejects.toThrow("upstream failed");
+  });
+
+  it("applySseLine ignores comments/blank/garbage and stops at [DONE]", () => {
+    const acc = { content: "" } as { content: string; model?: string };
+    expect(applySseLine(": keep-alive", acc)).toBe(true);
+    expect(applySseLine("", acc)).toBe(true);
+    expect(applySseLine("data: {not json", acc)).toBe(true);
+    expect(applySseLine("data: [DONE]", acc)).toBe(false);
+    expect(acc.content).toBe("");
   });
 });

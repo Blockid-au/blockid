@@ -9,6 +9,8 @@ export interface AttemptRequest {
 }
 export interface AttemptPermit {
   dispatchAllowed: boolean; attemptId: string; payloadSha256: string; model: string;
+  /** G33-T06: set when this permit re-dispatches a settled attempt of the same payload (new identity). */
+  retryOf?: string;
   maximumPromptBytes: number; maximumInputTokens: number; maximumOutputTokens: number;
   maximumCostMicroUsd: number; pricePolicyId: string; expiresAt: number;
 }
@@ -41,7 +43,8 @@ export async function reserveResearchAttempt(budget: ResearchAttemptBudget, mode
   catch { throw new ResearchAttemptBudgetError("reservation unavailable; reconciliation required"); }
   const positive = (n: number) => Number.isSafeInteger(n) && n > 0;
   if (!permit?.dispatchAllowed) throw new ResearchAttemptBudgetError("dispatch denied");
-  if (permit.attemptId !== attemptId || permit.payloadSha256 !== payloadSha256 || permit.model !== model ||
+  const identityOk = permit.attemptId === attemptId || (permit.retryOf === attemptId && /^[a-f0-9]{64}$/.test(permit.attemptId) && permit.attemptId !== attemptId);
+  if (!identityOk || permit.payloadSha256 !== payloadSha256 || permit.model !== model ||
       !positive(permit.maximumCostMicroUsd) || !positive(permit.maximumInputTokens) ||
       !positive(permit.maximumPromptBytes) || permit.maximumPromptBytes < request.promptBytes ||
       !positive(permit.maximumOutputTokens) || permit.maximumOutputTokens < maximumOutputTokens ||
