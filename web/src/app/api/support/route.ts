@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 /** Adapter: ADK ModelCaller (system, user, maxTokens) → free callAI(). */
 const adkModel = async (system: string, user: string, maxTokens: number): Promise<string> =>
-  (await callAI({ system, user, maxTokens, timeoutMs: 60_000 })).text;
+  (await callAI({ providerPolicy: "deepinfra-only", system, user, maxTokens, timeoutMs: 60_000 })).text;
 
 // ---------------------------------------------------------------------------
 // POST /api/support — Customer-success agent (Google Agent Garden port).

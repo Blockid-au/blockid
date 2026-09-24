@@ -103,7 +103,7 @@ ${body.prompt ? `Additional founder context: ${body.prompt}` : ""}
 
 Generate a positioning statement in the format: "We're [category] for [segment], [unique_value_prop]"`;
 
-    const { text } = await callAI({
+    const { text } = await callAI({ providerPolicy: "deepinfra-only",
       system: systemPrompt,
       user: userMessage,
       maxTokens: 512,

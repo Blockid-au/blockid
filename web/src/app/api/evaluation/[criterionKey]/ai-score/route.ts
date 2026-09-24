@@ -122,7 +122,7 @@ async function POST_handler(
   ].join("\n\n");
 
   try {
-    const { text } = await callAI({ userId: user.id,
+    const { text } = await callAI({ providerPolicy: "deepinfra-only", userId: user.id,
       system: `You are an expert startup evaluator scoring the "${def.title}" criterion for an Australian startup. You assess evidence quality, completeness, and investor-readiness.
 
 Score on a 0-100 scale:

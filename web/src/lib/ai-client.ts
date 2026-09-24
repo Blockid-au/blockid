@@ -825,7 +825,19 @@ function scopedReportPolicy(opts: AICallOptions): boolean {
   return true;
 }
 
+/** Provider restriction is independent of spend authorization: it never grants
+ * a report budget or admits a new model. Scoped reports are always DeepInfra-only. */
+export function requiresDeepInfra(opts: AICallOptions): boolean {
+  const scoped = scopedReportPolicy(opts);
+  if (opts.providerPolicy !== undefined && opts.providerPolicy !== "deepinfra-only")
+    throw new Error("Unknown AI provider policy");
+  return scoped || opts.providerPolicy === "deepinfra-only";
+}
+
 export interface AICallOptions {
+  /** Trusted customer C-level adapter only; do not copy from request JSON.
+   * Background and unrelated callers keep their existing provider policy. */
+  providerPolicy?: "deepinfra-only";
   /** Trusted server callsite only; never copy this field from request input. */
   policy?: AIReportPolicy;
   system: string;
@@ -1563,7 +1575,7 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report", l
 
   let lastErr: Error | null = null;
   const scoped = scopedReportPolicy(opts);
-  const models = opts.visionImages?.length ? ["Qwen/Qwen3-VL-235B-A22B-Instruct"] : scoped ? [...REPORT_POLICY_MODELS[cls]] : DEEPINFRA_MODELS_BY_CLASS[cls];
+  const models = opts.visionImages?.length ? ["Qwen/Qwen3-VL-235B-A22B-Instruct"] : requiresDeepInfra(opts) ? [...REPORT_POLICY_MODELS[cls]] : DEEPINFRA_MODELS_BY_CLASS[cls];
   const readyRungs = readyPaidModels("deepinfra", models);
   if (readyRungs.length === 0) throw new DeadLadderError("deepinfra", models.length);
   // G33-T05: text calls stream, and a model expected to miss the remaining
@@ -1859,7 +1871,7 @@ async function callClaudeProxy(opts: AICallOptions): Promise<AICallResult> {
 }
 
 async function callProvider(provider: Provider, opts: AICallOptions, cls: AITaskClass = inferTaskClass(opts)): Promise<AICallResult> {
-  if (scopedReportPolicy(opts) && provider !== "deepinfra") {
+  if (requiresDeepInfra(opts) && provider !== "deepinfra") {
     throw new Error("Provider is not eligible for BlockID report policy");
   }
   const noTools = { ...opts, tools: undefined };
@@ -2598,7 +2610,8 @@ async function callAITracked(opts: AICallOptions): Promise<AICallResult> {
   if ((research && (!scoped || !opts.attemptBudget)) || (opts.attemptBudget && !scoped))
     throw new ResearchAttemptBudgetError("research requires scoped durable attempt authorization");
 
-  const gatewayResult = scoped ? null : await callViaGateway(opts);
+  const deepInfraOnly = requiresDeepInfra(opts);
+  const gatewayResult = deepInfraOnly ? null : await callViaGateway(opts);
   if (gatewayResult) return gatewayResult;
 
   // Fallback: local provider chain (existing behavior)
@@ -2608,7 +2621,7 @@ async function callAITracked(opts: AICallOptions): Promise<AICallResult> {
   // provider uses (see header). Inferred from agentId / maxTokens when the
   // caller did not say.
   const taskClass = inferTaskClass(opts);
-  const allProviders: Provider[] = scoped
+  const allProviders: Provider[] = deepInfraOnly
     ? (providerConfigured("deepinfra") ? ["deepinfra"] : [])
     : opts.interactive ? orderForInteractive(getAvailableProviders(taskClass)) : getAvailableProviders(taskClass);
   if (opts.interactive && opts.timeoutMs == null) opts = { ...opts, timeoutMs: INTERACTIVE_TIMEOUT_MS };
@@ -2618,14 +2631,6 @@ async function callAITracked(opts: AICallOptions): Promise<AICallResult> {
   // timeouts can no longer multiply that figure.
   const budgetMs = opts.budgetMs ?? (opts.interactive ? Math.max(INTERACTIVE_BUDGET_MS, opts.timeoutMs ?? 0) : undefined);
   if (budgetMs != null && opts.deadlineAt == null) opts = { ...opts, budgetMs, deadlineAt: Date.now() + budgetMs };
-  // G33-T16k: keep the tail of a scoped synthesis window for the Groq backup —
-  // 24/09 canary on 9f64951b1: DeepInfra lanes used the whole window and the
-  // backup was skipped with < 15 s left. DeepInfra now stops GROQ_SYNTHESIS_RESERVE_MS
-  // earlier whenever the backup is still available for this run.
-  const fallbackOpts = opts;
-  if (scoped && taskClass === "synthesis" && groqSynthesisFallbackAvailable(opts) && typeof opts.deadlineAt === "number" && opts.deadlineAt - Date.now() > GROQ_SYNTHESIS_RESERVE_MS + DEEPINFRA_MIN_ATTEMPT_MS) {
-    opts = { ...opts, deadlineAt: opts.deadlineAt - GROQ_SYNTHESIS_RESERVE_MS };
-  }
 
   if (allProviders.length === 0) {
     throw new Error(
@@ -2640,7 +2645,7 @@ async function callAITracked(opts: AICallOptions): Promise<AICallResult> {
     );
   }
 
-  if (!scoped) maybeKickProviderProbe();
+  if (!deepInfraOnly) maybeKickProviderProbe();
 
   // L5 → L3 → L4: the per-user fairness slot FIRST, then the global slot
   // (priority lane), then the agent slot. Every queue is bounded; overflow
@@ -2738,73 +2743,7 @@ async function callAITracked(opts: AICallOptions): Promise<AICallResult> {
   // G15-R3.3: count budget exhaustion (whether the loop broke on the deadline
   // or a provider ladder surfaced it) for getProviderHealthSnapshot().
   if (lastError instanceof AIBudgetExhaustedError) noteBudgetExhausted();
-  // G33-T16j: founder decision 24/09 — when DeepInfra cannot answer a scoped
-  // synthesis call (the CEO summary), one Groq free-tier call per run may.
-  if (scoped && taskClass === "synthesis") {
-    const fallback = await callGroqReportSynthesisFallback(fallbackOpts).catch((err) => {
-      console.warn(`[ai-client] groq free synthesis fallback failed: ${err instanceof Error ? err.message.slice(0, 200) : String(err)}`);
-      return null;
-    });
-    if (fallback) return { ...fallback, via: "groq", taskClass, policy: fallbackOpts.policy } as AICallResult;
-  }
   throw lastError ?? new Error("All AI providers failed");
-}
-
-/**
- * G33-T16j — Groq free-tier backup for the scoped CEO summary only.
- *
- * Founder decision 24/09/2026 after DeepInfra throughput (9–21 tok/s at busy
- * hours) left the summary timing out. Constraints measured that day:
- *   • the account is on Groq's free tier (x-ratelimit-limit-tokens 8 000 / min),
- *     so the call costs US$0 — no paid spillover beyond DeepInfra;
- *   • a summary prompt is ~3.7–4.7 k input tokens + ≤ 2 600 output, which fits
- *     the 8 k per-minute window once — hence at most ONE call per report run;
- *   • openai/gpt-oss-120b ignores the citation contract (G30 measurement), so
- *     the auditor downstream strips uncited claims — a thinner but honest summary
- *     instead of the deterministic placeholder.
- * Off with REPORT_GROQ_FREE_FALLBACK=off. Never used for chapters or criteria.
- */
-export const REPORT_GROQ_FREE_MODEL = "openai/gpt-oss-120b";
-/** G33-T16k: wall clock kept at the end of a synthesis window for the Groq backup (hundreds of tok/s → 2 600 tokens in well under 40 s). */
-export const GROQ_SYNTHESIS_RESERVE_MS = 40_000;
-const groqFallbackUsed = new WeakMap<object, number>();
-function groqSynthesisFallbackAvailable(opts: AICallOptions): boolean {
-  if (process.env.REPORT_GROQ_FREE_FALLBACK === "off" || !opts.runStrikes) return false;
-  if (!(process.env.GROQ_API_KEY ?? getDBKey("groq")?.api_key)) return false;
-  return (groqFallbackUsed.get(opts.runStrikes) ?? 0) < 1;
-}
-async function callGroqReportSynthesisFallback(opts: AICallOptions): Promise<Pick<AICallResult, "text" | "provider" | "model" | "usage" | "cost_usd"> | null> {
-  if (process.env.REPORT_GROQ_FREE_FALLBACK === "off") return null;
-  const apiKey = process.env.GROQ_API_KEY ?? getDBKey("groq")?.api_key ?? "";
-  if (!apiKey || !opts.runStrikes) return null; // run-scoped cap needs the run ledger
-  if ((groqFallbackUsed.get(opts.runStrikes) ?? 0) >= 1) return null;
-  const remaining = typeof opts.deadlineAt === "number" ? opts.deadlineAt - Date.now() : 60_000;
-  if (remaining < DEEPINFRA_MIN_ATTEMPT_MS) return null;
-  groqFallbackUsed.set(opts.runStrikes, 1);
-  const raw = await inprocessStreamChat("https://api.groq.com/openai/v1/chat/completions", {
-    "Authorization": `Bearer ${apiKey}`,
-    "Content-Type": "application/json",
-  }, JSON.stringify({
-    model: REPORT_GROQ_FREE_MODEL,
-    max_tokens: Math.min(opts.maxTokens ?? 2600, 2600),
-    temperature: opts.temperature ?? 0.3,
-    reasoning_effort: "low", // gpt-oss reasoning would otherwise eat the 8 k/min window
-    stream: true,
-    messages: [
-      { role: "system", content: opts.system },
-      { role: "user", content: opts.user },
-    ],
-  }), { firstTokenMs: Math.min(remaining, 30_000), idleMs: Math.min(remaining, 30_000), totalMs: remaining });
-  const data = JSON.parse(raw) as { model?: string; choices?: Array<{ message?: { content?: string } }>; usage?: { prompt_tokens?: number; completion_tokens?: number } };
-  const text = data.choices?.[0]?.message?.content ?? "";
-  if (!text) throw new Error("Empty Groq response");
-  return {
-    text,
-    provider: "groq",
-    model: data.model ?? REPORT_GROQ_FREE_MODEL,
-    usage: { input_tokens: Number(data.usage?.prompt_tokens ?? 0), output_tokens: Number(data.usage?.completion_tokens ?? 0), cache_read_input_tokens: 0, cache_creation_input_tokens: 0 },
-    cost_usd: 0,
-  };
 }
 
 // ── Legacy compat — getAnthropicClient for term-sheet (uses parse() API) ──
@@ -2840,7 +2779,7 @@ export async function callAIForUpgrade(opts: AICallOptions): Promise<AICallResul
   if (opts.attemptBudget || opts.agentId === "svi:research_synthesis" || opts.agentId === "svi:research_grounded_review")
     throw new ResearchAttemptBudgetError("research requires callAI dispatcher");
   // Report requests must use the budgeted dispatcher, never this legacy chain.
-  if (scopedReportPolicy(opts)) throw new Error("Report policy requires callAI dispatcher");
+  if (requiresDeepInfra(opts)) throw new Error("Report policy requires callAI dispatcher");
   await getDBKeys(); // ensure cache is warm
 
   // Free and subscription providers only — the paid tiers are for customers.

@@ -211,7 +211,7 @@ Focus: ${meta.description}${criteriaSection}${deckSection}
 Score this dimension (0-100) grounded in the deck excerpt. Quote fragments as evidence.
 Respond with ONLY the JSON object.`;
 
-  const result = await callAI({ system, user, maxTokens: 600, timeoutMs: 45_000 });
+  const result = await callAI({ providerPolicy: "deepinfra-only", system, user, maxTokens: 600, timeoutMs: 45_000 });
 
   // Parse — strip any accidental markdown fences
   let raw = result.text.trim();
@@ -298,7 +298,7 @@ ${criteriaList}
 
 Output the JSON array of 13 CriterionResult objects now.`;
 
-  const result = await callAI({ system, user, maxTokens: 3000, timeoutMs: 60_000 });
+  const result = await callAI({ providerPolicy: "deepinfra-only", system, user, maxTokens: 3000, timeoutMs: 60_000 });
 
   let raw = result.text.trim();
   if (raw.startsWith("```")) {

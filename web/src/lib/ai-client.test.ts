@@ -1887,36 +1887,28 @@ describe("G30 BlockID report policy", () => {
     expect(runStrikes.snapshot()[`deepinfra/${primary}`].timeout).toBe(2);
     onlyDeepInfra(fetchMock);
   });
-  it("G33-T16j: when DeepInfra fails a scoped synthesis call, ONE Groq free call per run answers it (US$0); report calls and later syntheses never fall back", async () => {
+  it("fails closed on scoped synthesis failure even when the old Groq fallback is enabled", async () => {
     const client = await loadClient();
     const { createRunStrikeLedger } = await import("@/lib/ai/run-strikes");
-    const runStrikes = createRunStrikeLedger();
-    fetchMock.mockImplementation(async (url: string, init?: RequestInit) => {
-      const body = JSON.parse(String(init?.body));
-      if (String(url).includes("api.groq.com")) {
-        expect(body.model).toBe("openai/gpt-oss-120b");
-        expect(body.reasoning_effort).toBe("low");
-        expect(body.max_tokens).toBeLessThanOrEqual(2600);
-        return new Response(JSON.stringify({ model: body.model, choices: [{ message: { content: "Summary from the free fallback" } }], usage: { prompt_tokens: 3800, completion_tokens: 900 } }));
-      }
-      return new Response("upstream error", { status: 500 });
-    });
-    const r = await client.callAI({ ...request, taskClass: "synthesis", runStrikes, budgetMs: 120_000, maxTokens: 2600 });
-    expect(r).toMatchObject({ text: "Summary from the free fallback", via: "groq", cost_usd: 0 });
-    const groqCalls = () => fetchMock.mock.calls.filter(([u]) => String(u).includes("api.groq.com")).length;
-    expect(groqCalls()).toBe(1);
-    // Second synthesis in the same run: cap reached → the DeepInfra failure surfaces.
-    await expect(client.callAI({ ...request, taskClass: "synthesis", runStrikes, budgetMs: 120_000 })).rejects.toThrow();
-    expect(groqCalls()).toBe(1);
-    // A report-class failure never falls back, even in a fresh run.
-    await expect(client.callAI({ ...request, taskClass: "report", runStrikes: createRunStrikeLedger(), budgetMs: 120_000 })).rejects.toThrow();
-    expect(groqCalls()).toBe(1);
-    // Switched off.
-    process.env.REPORT_GROQ_FREE_FALLBACK = "off";
+    fetchMock.mockImplementation(async () => new Response("upstream error", { status: 500 }));
+    process.env.REPORT_GROQ_FREE_FALLBACK = "on";
     try {
       await expect(client.callAI({ ...request, taskClass: "synthesis", runStrikes: createRunStrikeLedger(), budgetMs: 120_000 })).rejects.toThrow();
-      expect(groqCalls()).toBe(1);
+      onlyDeepInfra(fetchMock);
     } finally { delete process.env.REPORT_GROQ_FREE_FALLBACK; }
+  });
+  it.each(["report", "synthesis", "classify"] as const)("explicit C-level provider policy restricts unscoped %s despite gateway and overrides", async (taskClass) => {
+    const client = await loadClient();
+    const result = await client.callAI({ ...request, policy: undefined, providerPolicy: "deepinfra-only", taskClass, interactive: true });
+    expect(result.via).toBe("deepinfra");
+    onlyDeepInfra(fetchMock);
+    if (taskClass === "classify") expect(calledModels(fetchMock)).toEqual(["deepseek-ai/DeepSeek-V4-Flash"]);
+  });
+  it("explicit C-level policy fails closed without DeepInfra credentials", async () => {
+    delete process.env.DEEPINFRA_API_KEY;
+    const client = await loadClient();
+    await expect(client.callAI({ ...request, policy: undefined, providerPolicy: "deepinfra-only" })).rejects.toThrow("No AI provider configured");
+    expect(fetchMock).not.toHaveBeenCalled();
   });
   it("G33-T16g: a scoped synthesis call with a deadline races the two leading rungs; the first answer wins", async () => {
     const client = await loadClient();

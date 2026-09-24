@@ -282,6 +282,7 @@ describe("POST /api/support — adkModel adapter (callAI seam)", () => {
     expect(captured).not.toBeNull();
     expect(mocks.callAI).toHaveBeenCalledTimes(1);
     expect(mocks.callAI).toHaveBeenCalledWith({
+      providerPolicy: "deepinfra-only",
       system: "sys",
       user: "user",
       maxTokens: 200,

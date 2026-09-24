@@ -239,7 +239,7 @@ ${question}
 Answer per the rules above. Cite the dimension or criterion you're drawing from.`;
 
   try {
-    const result = await callAI({
+    const result = await callAI({ providerPolicy: "deepinfra-only",
       system: SYSTEM_PROMPT,
       user: userPrompt,
       maxTokens: 500,

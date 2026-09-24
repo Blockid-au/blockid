@@ -1,3 +1,4 @@
+import { buildCriteriaSummary, criteriaSummaryStrings, CRITERIA_SUMMARY_ID } from "@/lib/report-v2/criteria-summary";
 import { criterionDetailExport } from "./criterion-detail-export";
 // Trusted Business Report v3 — the PDF surface (G27 PDF twin).
 //
@@ -462,6 +463,7 @@ export function tbrPdfOutline(report: ReportV2, locale: Loc = "en"): Array<{ id:
     { id: TBR_PDF_SECTION_IDS.investmentView, label: sec.investmentView },
     { id: TBR_PDF_SECTION_IDS.keyPoints, label: sec.keyPoints },
     { id: TBR_PDF_SECTION_IDS.valuation, label: sec.valuation },
+    { id: CRITERIA_SUMMARY_ID, label: criteriaSummaryStrings(locale).title },
     ...report.dimensions.map((d) => ({
       id: TBR_PDF_SECTION_IDS.dim(d.dim),
       label: locale === "vi" ? d.titleVi : d.title,
@@ -1644,6 +1646,14 @@ export function TbrReportPdf({ report: rawReport, level = 0, preparedWith, local
   body.push(<InvestmentViewSection key="iv" report={r} view={pv} locale={loc} />);
   body.push(<KeyPoints key="kp" view={pv} locale={loc} />);
   body.push(<ValuationSection key="val" report={r} view={pv} locale={loc} projection={projection} />);
+  const criteriaText = criteriaSummaryStrings(loc);
+  body.push(<View key="criteria-summary" break={!projection.free} minPresenceAhead={120}>
+    <SectionHead no="" title={criteriaText.title} />
+    {buildCriteriaSummary(aligned.report, loc, projection.free).map(row => <View key={row.key} wrap={false} style={{ marginBottom: 5 }}>
+      <Text style={s.body}>{t(`${row.title}: `)}<Cited text={row.finding} /></Text>
+      <Text style={s.small}>{t(`${criteriaText.score}: ${row.score ?? "—"} · ${criteriaText.evidence}: ${row.evidenceCount ?? "—"}`)}</Text>
+    </View>)}
+  </View>);
   r.dimensions.forEach((ch, i) => {
     body.push(
       <View key={ch.dim} break={!projection.free} minPresenceAhead={projection.free ? 110 : 220}>

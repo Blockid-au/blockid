@@ -454,7 +454,7 @@ export async function generateActionPlan(
 
   if (isAIConfigured() && promptTemplate) {
     try {
-      const result = await callAI({
+      const result = await callAI({ providerPolicy: "deepinfra-only",
         system: systemPrompt,
         user: userMessage,
         maxTokens: 1500,

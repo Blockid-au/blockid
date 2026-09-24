@@ -198,7 +198,7 @@ Write a quarterly revaluation report with these sections:
 Use Australian English. Be data-driven and reference the actual numbers. Keep each section to 2-4 sentences. Format with **bold** section headers.`;
 
   try {
-    const result = await callAI({
+    const result = await callAI({ providerPolicy: "deepinfra-only",
       system: "You are a CFA-qualified startup valuation analyst specialising in Australian early-stage companies. You use SVI (Startup Viability Index), revenue multiples, and comparable exits to estimate pre-revenue and early-revenue startup valuations.",
       user: prompt,
       maxTokens: 1200,

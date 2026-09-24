@@ -1,0 +1,162 @@
+{
+  "at": "2026-09-24T13:59:16.668750+00:00",
+  "scope": "Anonymous read-only GET; redirects followed; HTTP success is not business-path certification. Some diagnostic guessed routes may be 404; validate against inventory before treating as defect.",
+  "results": [
+    {
+      "url": "https://blockid.au/",
+      "status": 200,
+      "final_url": "https://blockid.au/",
+      "seconds": 0.192
+    },
+    {
+      "url": "https://blockid.au/analyze",
+      "status": 200,
+      "final_url": "https://blockid.au/analyze",
+      "seconds": 0.249
+    },
+    {
+      "url": "https://blockid.au/tbr/demo",
+      "status": 200,
+      "final_url": "https://blockid.au/tbr/demo",
+      "seconds": 0.295
+    },
+    {
+      "url": "https://blockid.au/pricing",
+      "status": 200,
+      "final_url": "https://blockid.au/pricing",
+      "seconds": 0.108
+    },
+    {
+      "url": "https://blockid.au/methodology",
+      "status": 200,
+      "final_url": "https://blockid.au/methodology",
+      "seconds": 0.173
+    },
+    {
+      "url": "https://blockid.au/startup-index",
+      "status": 200,
+      "final_url": "https://blockid.au/startup-index",
+      "seconds": 0.126
+    },
+    {
+      "url": "https://blockid.au/auth/login",
+      "status": 200,
+      "final_url": "https://blockid.au/auth/login",
+      "seconds": 0.203
+    },
+    {
+      "url": "https://blockid.au/workspace",
+      "status": 200,
+      "final_url": "https://blockid.au/auth/login?next=%2Fworkspace",
+      "seconds": 0.579
+    },
+    {
+      "url": "https://blockid.au/workspace/reports/business",
+      "status": 200,
+      "final_url": "https://blockid.au/auth/login?next=%2Fworkspace%2Freports%2Fbusiness",
+      "seconds": 0.598
+    },
+    {
+      "url": "https://blockid.au/workspace/evidence",
+      "status": 200,
+      "final_url": "https://blockid.au/auth/login?next=%2Fworkspace%2Fevidence",
+      "seconds": 0.505
+    },
+    {
+      "url": "https://blockid.au/workspace/billing",
+      "status": 200,
+      "final_url": "https://blockid.au/auth/login?next=%2Fworkspace%2Fbilling",
+      "seconds": 0.316
+    },
+    {
+      "url": "https://blockid.au/workspace/cap-table",
+      "status": 200,
+      "final_url": "https://blockid.au/auth/login?next=%2Fworkspace%2Fequity%2Fcap-table",
+      "seconds": 0.498
+    },
+    {
+      "url": "https://blockid.au/admin",
+      "status": 200,
+      "final_url": "https://blockid.au/auth/login?next=%2Fadmin",
+      "seconds": 0.3
+    },
+    {
+      "url": "https://blockid.au/api/status",
+      "status": 200,
+      "final_url": "https://blockid.au/api/status",
+      "seconds": 0.417,
+      "public_health": {
+        "ok": true,
+        "version": "v3.33.3",
+        "tbr_quality": {
+          "last24h": {
+            "runs": 27,
+            "groundedShareMedian": 0.67,
+            "groundedShareLatest": 0.89,
+            "costUsdMedian": 0.0252,
+            "degradedShare": 0.56,
+            "noReportRuns": 3,
+            "budgetOverruns": 7,
+            "verdictTrimmed": 60
+          },
+          "status": "watch",
+          "grounded_share_kpi": 0.85,
+          "last_degraded": {
+            "ts": "2026-09-24T08:26:01.877Z",
+            "providers_struck": [],
+            "deadline_hit_wave": null
+          },
+          "grounded_share": 0.89
+        }
+      }
+    },
+    {
+      "url": "https://startupvalueindex.com/",
+      "status": 200,
+      "final_url": "https://startupvalueindex.com/",
+      "seconds": 0.22
+    },
+    {
+      "url": "https://startupvalueindex.com/pitchbook/upload",
+      "status": 200,
+      "final_url": "https://startupvalueindex.com/pitchbook/upload",
+      "seconds": 0.148
+    },
+    {
+      "url": "https://startupvalueindex.com/listings",
+      "status": 200,
+      "final_url": "https://startupvalueindex.com/listings",
+      "seconds": 0.166
+    },
+    {
+      "url": "https://startupvalueindex.com/live",
+      "status": 200,
+      "final_url": "https://startupvalueindex.com/live",
+      "seconds": 0.41
+    },
+    {
+      "url": "https://startupvalueindex.com/about",
+      "status": 200,
+      "final_url": "https://startupvalueindex.com/about",
+      "seconds": 0.107
+    },
+    {
+      "url": "https://startupvalueindex.com/my-reports",
+      "status": 200,
+      "final_url": "https://startupvalueindex.com/my-reports",
+      "seconds": 0.291
+    },
+    {
+      "url": "https://startupvalueindex.com/status",
+      "status": 200,
+      "final_url": "https://startupvalueindex.com/status",
+      "seconds": 0.281
+    },
+    {
+      "url": "https://startupvalueindex.com/api/headlines.json",
+      "status": 200,
+      "final_url": "https://startupvalueindex.com/api/headlines.json",
+      "seconds": 0.252
+    }
+  ]
+}

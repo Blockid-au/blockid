@@ -129,7 +129,7 @@ Output ONLY valid JSON matching this exact schema (no markdown, no explanation o
   const user = `Founders:\n${params.founders.map((f, i) => `${i + 1}. ${f.name} — Role: ${f.role}, Time: ${f.timeCommitment}, Cash: A$${f.cashContributed}, Idea originator: ${f.ideaOriginator}, Sweat months: ${f.sweatMonths}, IP assets: ${f.ipAssets}, Risk: ${f.riskLevel}`).join("\n")}`;
 
   try {
-    const result = await callAI({ system, user, maxTokens: 2000 });
+    const result = await callAI({ providerPolicy: "deepinfra-only", system, user, maxTokens: 2000 });
     const jsonMatch = result.text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return { ok: false, error: "AI returned non-JSON response" };
 
@@ -197,7 +197,7 @@ Output ONLY valid JSON:
   const user = `Shareholder: ${params.shareholderName}, Role: ${params.role}, Equity: ${params.equityPct}%`;
 
   try {
-    const result = await callAI({ system, user, maxTokens: 1000 });
+    const result = await callAI({ providerPolicy: "deepinfra-only", system, user, maxTokens: 1000 });
     const jsonMatch = result.text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return { ok: false, error: "AI returned non-JSON response" };
 
@@ -259,7 +259,7 @@ Output ONLY valid JSON:
   const user = `Please recommend the optimal share structure for this startup.`;
 
   try {
-    const result = await callAI({ system, user, maxTokens: 1000 });
+    const result = await callAI({ providerPolicy: "deepinfra-only", system, user, maxTokens: 1000 });
     const jsonMatch = result.text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return { ok: false, error: "AI returned non-JSON response" };
 
@@ -324,7 +324,7 @@ Output ONLY valid JSON:
     : `No specific hiring plan provided. Suggest based on stage and team size.`;
 
   try {
-    const result = await callAI({ system, user, maxTokens: 1000 });
+    const result = await callAI({ providerPolicy: "deepinfra-only", system, user, maxTokens: 1000 });
     const jsonMatch = result.text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return { ok: false, error: "AI returned non-JSON response" };
 
@@ -386,7 +386,7 @@ Output ONLY valid JSON:
   const user = `Shareholders:\n${params.shareholders.map((s, i) => `${i + 1}. ${s.name} — ${s.role}, ${s.pct}%, Vesting: ${s.vestingMonths ?? "none"}mo, Cliff: ${s.cliffMonths ?? "none"}mo`).join("\n")}`;
 
   try {
-    const result = await callAI({ system, user, maxTokens: 2000 });
+    const result = await callAI({ providerPolicy: "deepinfra-only", system, user, maxTokens: 2000 });
     const jsonMatch = result.text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) return { ok: false, error: "AI returned non-JSON response" };
 
@@ -430,7 +430,7 @@ Output ONLY valid JSON array:
   const user = `Company name: "${params.startupName}"`;
 
   try {
-    const result = await callAI({ system, user, maxTokens: 500 });
+    const result = await callAI({ providerPolicy: "deepinfra-only", system, user, maxTokens: 500 });
     const jsonMatch = result.text.match(/\[[\s\S]*\]/);
     if (!jsonMatch) return { suggestions: [] };
     const suggestions = JSON.parse(jsonMatch[0]);

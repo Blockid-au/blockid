@@ -257,7 +257,7 @@ Target: ~${depthConfig.words} words (${depthConfig.label} depth — ${depthConfi
 
 Return as JSON: { "sections": { "sectionId": "markdown content", ... } }`;
 
-    const { text } = await callAI({ userId: user.id,
+    const { text } = await callAI({ providerPolicy: "deepinfra-only", userId: user.id,
       system: systemPrompt,
       user: userMessage,
       maxTokens,

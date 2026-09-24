@@ -31,6 +31,7 @@ const V3_ORDER = [
   "tbr-investment-view",
   "tbr-key-points",
   "tbr-valuation",
+  "tbr-criteria-summary",
   "tbr-dim-tre",
   "tbr-dim-mpc",
   "tbr-dim-ftv",
@@ -69,7 +70,7 @@ describe("<TbrReportV2> v3 structure (G27)", () => {
   const demo = demoReportV2();
   const html = renderToStaticMarkup(<TbrReportV2 report={demo} />);
 
-  it("renders the 16 sections in the v3 order with the v3 landmarks, 8 primary svg[role=img], and marks the layout + band on the root", () => {
+  it("renders the 17 sections in the v3 order with the v3 landmarks, 8 primary svg[role=img], and marks the layout + band on the root", () => {
     expect(sectionIds(html)).toEqual(V3_ORDER);
     expect(primaryCount(html)).toBe(8);
     expect(html).toContain('data-tbr-layout="v3"');
@@ -84,13 +85,13 @@ describe("<TbrReportV2> v3 structure (G27)", () => {
     expect(TBR_V2_SECTION_IDS.actionPlan).toBe("tbr-plan-90d");
   });
 
-  it("TOC lists the 16 sections in order and groups them overview (1–4) · dimensions (5–12) · closing (13–16); Evidence cited appears only when cited", () => {
+  it("TOC lists 17 sections including the unnumbered criteria summary; Evidence cited appears only when cited", () => {
     expect(tbrV2Toc(demo).map((t) => t.id)).toEqual(V3_ORDER);
     const g = tbrV2TocGroups(demo);
-    expect(g.overview.map((x) => x.id)).toEqual(V3_ORDER.slice(0, 4));
-    expect(g.dimensions.map((x) => x.id)).toEqual(V3_ORDER.slice(4, 12));
-    expect(g.closing.map((x) => x.id)).toEqual(V3_ORDER.slice(12));
-    expect(g.overview.map((x) => x.label)).toEqual(["Dashboard", "Investment view", "Key points", "Valuation"]);
+    expect(g.overview.map((x) => x.id)).toEqual(V3_ORDER.slice(0, 5));
+    expect(g.dimensions.map((x) => x.id)).toEqual(V3_ORDER.slice(5, 13));
+    expect(g.closing.map((x) => x.id)).toEqual(V3_ORDER.slice(13));
+    expect(g.overview.map((x) => x.label)).toEqual(["Dashboard", "Investment view", "Key points", "Valuation", "Assessment criteria summary"]);
     expect(tbrV2Toc(citedDemoReportV2()).at(-1)).toEqual({ id: TBR_V2_SECTION_IDS.evidenceCited, label: "Evidence cited" });
     expect(tbrV2Toc(demo, undefined, "vi").map((x) => x.label)[0]).toBe("Bảng tổng quan");
     // Parity with the PDF outline (ids + labels) in EN and VI, cited and uncited.
@@ -647,5 +648,29 @@ describe("G30 reader-first unavailable document", () => {
       expect(html).not.toContain("data-tbr-valuation-methods");
       expect(html).toContain("A$1.2M ARR");
     }
+  });
+});
+
+
+describe("criteria summary disclosure", () => {
+  it("renders all 13 criteria; absent assessments differ from zero linked evidence", () => {
+    const report = demoReportV2();
+    const retained = report.dimensions[0].criteria[0];
+    for (const ch of report.dimensions) ch.criteria = ch === report.dimensions[0] ? [{ ...retained, verdict: "Stored finding with no evidence", score: 0, citations: [] }] : [];
+    const html = between(renderToStaticMarkup(<TbrReportV2 report={report} />), "tbr-criteria-summary", "tbr-dim-tre");
+    expect((html.match(/data-criterion=/g) ?? [])).toHaveLength(13);
+    expect((html.match(/data-state="missing"/g) ?? [])).toHaveLength(12);
+    expect(html).toContain("Stored finding with no evidence");
+    expect(html).toContain('>0</td>');
+    expect(html).toContain("No saved assessment");
+  });
+  it("does not expose card criterion verdicts or citation counts in free previews", () => {
+    const report = freeFixtureReportV2();
+    const card = report.dimensions.find(ch => ch.renderAs === "card")!;
+    card.criteria[0].verdict = "SECRET_CRITERION_VERDICT";
+    const html = between(renderToStaticMarkup(<TbrReportV2 report={report} unlock={{ mode: "buy" }} />), "tbr-criteria-summary", "tbr-dim-tre");
+    expect(html).not.toContain("SECRET_CRITERION_VERDICT");
+    expect(html).toContain('data-state="locked"');
+    expect(html).toContain("Details in the full report");
   });
 });

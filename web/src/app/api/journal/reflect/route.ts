@@ -179,7 +179,7 @@ Write a 3-paragraph monthly reflection:
 Be specific to the actual entries. If there are few entries, encourage more consistent journaling. Keep the tone warm, direct, and founder-friendly. Use Australian English. Do not use markdown headers — just flowing paragraphs.`;
 
   try {
-    const result = await callAI({
+    const result = await callAI({ providerPolicy: "deepinfra-only",
       system: "You are an experienced startup advisor who has mentored hundreds of Australian founders. Write concise, actionable monthly reflections.",
       user: prompt,
       maxTokens: 800,

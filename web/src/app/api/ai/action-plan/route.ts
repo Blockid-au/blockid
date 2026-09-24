@@ -167,7 +167,7 @@ export async function GET(request: Request) {
     const dimSummary = (analysis.subs ?? [])
       .map((s) => `- ${s.label}: ${s.value}/100. Evidence: ${s.evidence?.slice(0, 2).join("; ") || "none"}. Gaps: ${s.gaps?.slice(0, 2).join("; ") || "none"}`)
       .join("\n");
-    const result = await callAI({
+    const result = await callAI({ providerPolicy: "deepinfra-only",
       system:
         "You are an Australian startup investor and advisor. Reply ONLY with valid JSON. No prose.",
       user: `Founder current SVI: ${analysis.totalSVI}. Stage: ${analysis.stageLabel}.\n\nDimensions:\n${dimSummary}\n\nReturn the top 3 highest-leverage actions this Australian founder should take this week to lift their SVI. Each action must be specific, AU-relevant (e.g. ASIC, ESIC, R&D Tax Incentive, AusIndustry, ESVCLP, AU SAFE/MFN, Series A norms), and link to one of these tools: /workspace/evidence, /workspace/equity/cap-table, /workspace/documents/data-room, /workspace/finance/revenue, /workspace/documents, /workspace/equity/shareholders, /tools/safe-calculator, /tools/dilution, /tools/cap-table, /tools/esic, /tools/rnd-tax, /tools/term-sheet, /tools/idea-valuation.\n\nReturn JSON: {"actions":[{"title":"...","why":"...","how":"...","dimension":"...","impact":"high|medium|low","link":{"label":"...","href":"/workspace/..."}}]}.`,

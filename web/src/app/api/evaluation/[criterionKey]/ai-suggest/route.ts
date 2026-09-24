@@ -109,7 +109,7 @@ async function POST_handler(
   ].join("\n");
 
   try {
-    const { text } = await callAI({ userId: user.id,
+    const { text } = await callAI({ providerPolicy: "deepinfra-only", userId: user.id,
       system: `You are a senior startup advisor specialising in ${def.title} assessment for early-stage Australian startups. Your goal is to help founders strengthen their evidence for investor evaluation.
 
 Return ONLY valid JSON with this exact structure:

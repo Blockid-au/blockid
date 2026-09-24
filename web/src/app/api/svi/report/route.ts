@@ -228,7 +228,7 @@ Write naturally, be thorough, and remember: this founder is trusting you with th
 
     for (const attempt of attempts) {
       try {
-        const result = await callAI({ userId: user.id,
+        const result = await callAI({ providerPolicy: "deepinfra-only", userId: user.id,
           system: systemPrompt,
           user: attempt.label === "full"
             ? userMessage

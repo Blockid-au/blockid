@@ -1,3 +1,4 @@
+import { buildCriteriaSummary, criteriaSummaryStrings } from "@/lib/report-v2/criteria-summary";
 import { criterionDetailExport } from "@/lib/pdf/criterion-detail-export";
 // Trusted Business Report v3 — the DOCX surface (G27, investor-grade twin).
 //
@@ -966,6 +967,9 @@ export async function buildTbrDocx(rawReport: ReportV2, opts: TbrDocxOptions = {
     ...investmentView(ctx),
     ...keyPoints(ctx),
     ...valuation(ctx),
+    h1(criteriaSummaryStrings(locale).title),
+    table([criteriaSummaryStrings(locale).criterion, criteriaSummaryStrings(locale).score, criteriaSummaryStrings(locale).finding, criteriaSummaryStrings(locale).evidence],
+      buildCriteriaSummary(report, locale, projection.free).map(row => [row.title, row.score === null ? "—" : String(row.score), row.finding, row.evidenceCount === null ? "—" : String(row.evidenceCount)]), { widths: [22, 10, 53, 15] }),
     ...r.dimensions.flatMap((ch, i) => chapter(ctx, ch, i)),
     ...riskMatrix(ctx),
     ...improvementPlan(ctx),

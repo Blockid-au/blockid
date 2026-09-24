@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { WorkspaceLayout } from "@/components/workspace/workspace-layout";
 import { CFODashboardClient } from "./cfo-dashboard-client";
 import { getCurrentProjectIsSandbox } from "@/lib/projects";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "AI CFO Dashboard · BlockID",
@@ -21,6 +22,7 @@ export default async function CFODashboardPage() {
 
   return (
     <WorkspaceLayout user={user} isSandbox={isSandbox}>
+      <div className="px-6 pt-4"><Link className="text-sm underline underline-offset-4" href="/workspace/valuation/scenario">Explore a CFO cash-flow valuation scenario</Link></div>
       <CFODashboardClient userEmail={user.email} startupName={user.startupName ?? undefined} />
     </WorkspaceLayout>
   );

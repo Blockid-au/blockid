@@ -1,8 +1,8 @@
 # BlockID — Startup Value Index (SVI) System Goals
 
-> **Planning authority — 2026-09-22:** the consolidated next goal is [G30 Investor Report Quality & Sale Readiness](docs/plans/SOURCE-OF-TRUTH.md), **PROPOSED / awaiting founder review**. The goals/formula notes below are historical context; current implementation is verified from source, and new priorities/acceptance live only in G30. This update does not start implementation.
->
-> **2026-09-23 — G31 Investor Lens (plan only):** investor-facing decision layer above the SVI; see [G31 plan](docs/plans/g31-investor-lens-biz-trust-report-2026-09-23.md), registered in SOT §10.13 / §12 IL00–IL14 / D21.
+> **24/09 — CFO implementation đang thực hiện:** yêu cầu “hãy làm toàn bộ” tiếp nối plan-only. Xem [spec](docs/plans/g32-cfo-projection-valuation-implementation-2026-09-24.md) và [execution receipt](docs/reviews/2026-09-24-cfo-implementation-receipt.md). Source/tests không thay cho nghiệm thu G31/G32/G33; positive producer, calibration và production rollout chưa được xác nhận.
+
+> **Planning authority — 2026-09-24:** [SOURCE-OF-TRUTH](docs/plans/SOURCE-OF-TRUTH.md) is the single active plan. G30 implementation is in progress; G31 has not been implemented; G32 is approved but not implemented; G33 has partial live fixes with acceptance still open. [Full-app audit](docs/reviews/2026-09-24-full-app-g31-g32-g33-reconciliation.md) and SOT §12.12 retain all IL00–IL15, SV0–SV6/V04 and S0–S6/T01–T16k deliverables. [C-level DeepInfra policy](docs/plans/g30-ai-routing-model-policy-2026-09-23.md) adds cheapest-qualified role/task candidates, capacity and budget gates. Historical formulas below do not override approved G32 C+S+T−A. This review does not activate new runtime settings or spending.
 
 **Sync-status (v3.9.23):** canonical taxonomy is the **12-phase growth model** in
 [`web/src/lib/growth/phase-taxonomy.ts`](./web/src/lib/growth/phase-taxonomy.ts).

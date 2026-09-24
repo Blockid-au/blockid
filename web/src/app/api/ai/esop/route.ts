@@ -16,7 +16,7 @@ async function POST_handler(request: Request) {
   const { stage, teamSize, plannedHires, currentPool } = body as Record<string, number | string | undefined>;
 
   try {
-    const result = await callAI({
+    const result = await callAI({ providerPolicy: "deepinfra-only",
       system: "You are an expert ESOP advisor for Australian startups. Return ONLY valid JSON.",
       user: `Recommend ESOP pool for: Stage: ${stage ?? "pre-seed"}, Current team: ${teamSize ?? 1}, Planned hires (12mo): ${plannedHires ?? 3}, Current pool: ${currentPool ?? "none"}%. Return JSON: {"poolPercentage":10,"grantGuidelines":[{"role":"CTO","suggestedEquity":"2-4%","vestingMonths":48}],"rationale":"...","auTaxNotes":"..."}`,
       maxTokens: 600,

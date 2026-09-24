@@ -181,13 +181,13 @@ async function classifyWithHaiku(text: string): Promise<LlmClassification | null
     "Return ONLY JSON: {\"kind\":\"...\",\"confidence\":0..1,\"reason\":\"<12 words\"}",
   ].join("\n");
   try {
-    const res = await callAI({
+    const res = await callAI({ providerPolicy: "deepinfra-only",
       system,
       user: `INPUT:\n${sample}`,
       maxTokens: 120,
       temperature: 0,
       agentId: "intake-classifier",
-      // Prefer Haiku 4.5 for cheap classification when available.
+      // Use the admitted low-cost DeepInfra classification lane.
     });
     // Try to salvage JSON even if wrapped in markdown fencing.
     const match = res.text.match(/\{[\s\S]*\}/);

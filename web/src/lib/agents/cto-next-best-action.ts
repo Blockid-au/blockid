@@ -566,7 +566,7 @@ export async function generateRoadmapItems(
     `Spread items across all four phases. Prioritise items that move SVI. JSON only.`;
 
   try {
-    const result = await callAI({
+    const result = await callAI({ providerPolicy: "deepinfra-only",
       system: CTO_ROADMAP_SYSTEM_PROMPT,
       user,
       maxTokens: 2000,

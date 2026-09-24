@@ -145,7 +145,7 @@ export interface JobDeps {
 /** Wrap the platform dispatcher with the first-analysis defaults. */
 export function makeAgentCaller(userId: string | null | undefined): AgentCaller {
   return async (req) => {
-    const res = await callAI({
+    const res = await callAI({ providerPolicy: "deepinfra-only",
       system: req.system,
       user: req.user,
       maxTokens: req.maxTokens,

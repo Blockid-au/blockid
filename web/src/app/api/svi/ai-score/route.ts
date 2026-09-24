@@ -81,7 +81,7 @@ ${body.rawText.slice(0, 4000)}
 
 The deterministic system scored this startup at SVI ${body.deterministicSVI}. Score it independently using ONLY the text above, then return the JSON.`;
 
-    const { text } = await callAI({ userId: user.id, system: systemPrompt, user: userMessage, maxTokens: 1024 });
+    const { text } = await callAI({ providerPolicy: "deepinfra-only", userId: user.id, system: systemPrompt, user: userMessage, maxTokens: 1024 });
 
     let aiData: {
       aiSVI: number;

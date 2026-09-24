@@ -571,7 +571,7 @@ export async function runLLMAssessment(
     `JSON only, no extra text.`;
 
   try {
-    const result = await callAI({ system, user, maxTokens: 1000, temperature: 0.3 });
+    const result = await callAI({ providerPolicy: "deepinfra-only", system, user, maxTokens: 1000, temperature: 0.3 });
     const parsed = tryParseJSON<Partial<TechAssessment>>(result.text);
 
     if (

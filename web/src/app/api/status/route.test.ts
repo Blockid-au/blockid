@@ -1448,6 +1448,40 @@ describe("tbr_quality (G19-S46) — read from content/reports/tbr-quality.jsonl"
     expect(read((await callGet()).body)).toMatchObject({ last_degraded: null });
   });
 
+  it.each(["public", "trusted"] as const)("G33: report outage vetoes healthy infrastructure on the %s payload, preserving HTTP 200", async (audience) => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    vi.stubEnv("STATUS_FULL_TOKEN", audience === "trusted" ? "test-trusted-token" : "");
+    vi.stubEnv("CRON_SECRET", "");
+    // The two most recent runs produced no report, despite healthy services.
+    fsState.files.set(QUALITY_FILE, [line(3), line(2, { snapshotId: null, words: 0, degradedSections: 8 }), line(1, { snapshotId: null, words: 0, degradedSections: 8 })].join("\n") + "\n");
+    const result = await callGet();
+    expect(result.status).toBe(200);
+    expect(result.body.services.every(s => s.status === "ok")).toBe(true);
+    expect(read(result.body)).toMatchObject({ status: "down", last24h: { noReportRuns: 2 } });
+    expect(result.body.ok).toBe(false);
+    expect(result.headers.get("cache-control")).toBe(audience === "trusted" ? "no-store" : "s-maxage=30, stale-while-revalidate=60");
+  });
+
+  it("G33: partial degradation is watch, not full outage (15/27 degraded versus 3/27 no-report)", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    const rows = Array.from({ length: 27 }, (_, i) => line(0.1 + i * 0.1, {
+      groundedShare: 0.67,
+      degradedSections: i >= 24 ? 8 : i >= 12 ? 1 : 0,
+      ...(i >= 24 ? { snapshotId: null, words: 0 } : {}),
+    }));
+    fsState.files.set(QUALITY_FILE, rows.join("\n") + "\n");
+    const { body } = await callGet();
+    expect(read(body)).toMatchObject({ status: "watch", last24h: { runs: 27, degradedShare: 0.56, noReportRuns: 3 } });
+    expect(body.ok).toBe(true);
+  });
+
+  it("G33: missing report telemetry remains unknown instead of manufacturing an outage", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    const { body } = await callGet();
+    expect(read(body)?.status).toBe("missing");
+    expect(body.ok).toBe(true);
+  });
+
   it("is on both payloads as aggregates only — no snapshot id, project hash or path", async () => {
     fetchState.responder = { kind: "json", body: healthyHealthz() };
     fsState.files.set(QUALITY_FILE, line(1) + "\n");

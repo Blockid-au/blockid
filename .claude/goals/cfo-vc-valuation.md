@@ -1,5 +1,7 @@
 # GOAL — VC-Grade Startup Valuation (CFO-owned)
 
+> **Amendment24/09/2026 — implementation in progress, chưa deploy/accepted:** [CFO projection/valuation implementation spec](../../docs/plans/g32-cfo-projection-valuation-implementation-2026-09-24.md) và SOT §9.5.4 là yêu cầu mới nhất. Nội dung/status phía dưới giữ làm lịch sử nghiên cứu; không chứng minh current integration/compliance. Fixed WACC/g/pillar/FX, score→money, discounted EBITDA/ARR proxy, số methods bắt buộc, credit charges hoặc nightly schedules cũ không tự được kích hoạt. Method-by-method crosswalk quyết định phần tái dùng/sửa/thay; AI đánh giá evidence/driver, code tính projection/valuation; scoring đồng bộ cùng revision.
+
 **Owner:** CFO agent · **Module:** `web/src/lib/agents/cfo-valuation.ts` · **Research:** daily
 **Status:** v1 engine shipped; dashboard + Excel I/O in implementing plan (T0006–T0008)
 

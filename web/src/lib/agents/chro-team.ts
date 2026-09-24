@@ -350,7 +350,7 @@ export async function generateTeamPlan(
     `Anchor salaries to AU market rates. JSON only.`;
 
   try {
-    const result = await callAI({
+    const result = await callAI({ providerPolicy: "deepinfra-only",
       system: CHRO_TEAM_SYSTEM_PROMPT,
       user,
       maxTokens: 2000,

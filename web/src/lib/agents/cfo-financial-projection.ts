@@ -277,6 +277,7 @@ async function llmNarrative(
 
   try {
     const result = await callAI({
+      providerPolicy: "deepinfra-only",
       system: CFO_SYSTEM_PROMPT,
       user,
       maxTokens: 1500,

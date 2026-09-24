@@ -252,7 +252,7 @@ IMPORTANT: The user has already paid for the section analyses above. Build upon 
 ` : ""}
 ${sections}`;
 
-    const { text: report } = await callAI({ userId: user.id,
+    const { text: report } = await callAI({ providerPolicy: "deepinfra-only", userId: user.id,
       system: systemPrompt,
       user: userMessage,
       maxTokens,

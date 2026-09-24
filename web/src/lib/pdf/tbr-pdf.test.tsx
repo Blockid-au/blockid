@@ -119,6 +119,7 @@ describe("renderTbrPdf — standard tier (v3 order)", () => {
       TBR_PDF_SECTION_IDS.investmentView,
       TBR_PDF_SECTION_IDS.keyPoints,
       TBR_PDF_SECTION_IDS.valuation,
+      "tbr-criteria-summary",
       ...report.dimensions.map((d) => `tbr-dim-${d.dim}`),
       TBR_PDF_SECTION_IDS.riskMatrix,
       TBR_PDF_SECTION_IDS.plan,

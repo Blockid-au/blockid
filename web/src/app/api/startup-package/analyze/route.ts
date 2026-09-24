@@ -258,7 +258,7 @@ async function POST_handler(request: Request) {
   // ── Dispatch ONE agent ────────────────────────────────────────────────
   let response = "";
   try {
-    const result = await callAI({ userId: user.id,
+    const result = await callAI({ providerPolicy: "deepinfra-only", userId: user.id,
       system: systemPrompt,
       user: userPrompt,
       maxTokens: tierConfig.maxTokensPerAgent,

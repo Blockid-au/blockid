@@ -247,7 +247,7 @@ async function POST_handler(request: Request) {
 
     const userMessage = `Analyze this evidence item for the startup:\n\n${contextParts.join("\n")}\n\nProvide your ${TIER_LABELS[tier]} analysis.`;
 
-    const { text } = await callAI({
+    const { text } = await callAI({ providerPolicy: "deepinfra-only",
       system: systemPrompt,
       user: userMessage,
       maxTokens: TIER_MAX_TOKENS[tier],

@@ -236,7 +236,7 @@ export async function generateIdeaLab(req: IdeaLabRequest): Promise<IdeaLabRespo
   // Try the AI once, then a single retry on parse failure.
   for (let attempt = 0; attempt < 2; attempt += 1) {
     try {
-      const result = await callAI({
+      const result = await callAI({ providerPolicy: "deepinfra-only",
         system: prompt.system,
         user: attempt === 0
           ? prompt.user

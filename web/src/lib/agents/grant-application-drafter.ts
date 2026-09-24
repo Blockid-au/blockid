@@ -186,7 +186,7 @@ export function systemPromptFor(target: DraftTarget): string {
 async function draftOne(target: DraftTarget, prompt: ApplicationPrompt, ctx: GrantDraftContext): Promise<{ text: string; provider: string | null; model: string | null } | null> {
   const cap = prompt.max_words ?? 250;
   try {
-    const result = await callAI({
+    const result = await callAI({ providerPolicy: "deepinfra-only",
       system: systemPromptFor(target),
       user: buildDraftPrompt(target, prompt, ctx),
       maxTokens: Math.max(400, Math.ceil(cap * 2.2)),

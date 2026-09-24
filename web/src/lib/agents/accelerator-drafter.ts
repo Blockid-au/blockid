@@ -160,7 +160,7 @@ async function draftOne(
     `no "Answer:" prefix. Stay under ${prompt.maxChars} characters.`;
 
   try {
-    const result = await callAI({
+    const result = await callAI({ providerPolicy: "deepinfra-only",
       system: DRAFTER_SYSTEM,
       user,
       // Generous token budget so long-form prompts (1000-char caps) fit.

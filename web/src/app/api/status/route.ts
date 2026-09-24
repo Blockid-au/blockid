@@ -618,12 +618,15 @@ export async function GET(): Promise<Response> {
     latency_p95_ms: extras?.latency ? extras.latency.latency_p95_ms : null,
   };
 
-  // Aggregate ok: all known services ok AND no SLO breach.
+  // Aggregate availability includes the core report product, not just its
+  // infrastructure. `watch` remains advisory and `missing` remains unknown;
+  // only the quality reducer's explicit `down` verdict vetoes availability.
   const servicesOk = services.length === 0 ? true : services.every((s) => s.status === "ok");
   const sloOk =
     (slo.p95_ms === undefined || slo.p95_ms === 0 || slo.p95_ms <= P95_TARGET_MS) &&
     (slo.disk_pct === undefined || slo.disk_pct <= DISK_TARGET_PCT) &&
     (slo.mem_pct === undefined || slo.mem_pct <= MEM_TARGET_PCT);
+  const aggregateOk = servicesOk && sloOk && tbrQualityWindow.status !== "down";
 
   // Public payload is deliberately minimal — enough for a status widget /
   // uptime monitor, but nothing that helps a would-be attacker map the fleet.
@@ -633,7 +636,7 @@ export async function GET(): Promise<Response> {
   // oauth_tokens_sealed, ga4_events), the cron catalogue and sha/release are
   // not on the anonymous payload at all.
   const publicBody: PublicStatusResponse = {
-    ok: servicesOk && sloOk,
+    ok: aggregateOk,
     version: healthz?.version ?? fallbackVersion,
     git_sha: fallbackSha,
     updated_at: new Date().toISOString(),
@@ -655,7 +658,7 @@ export async function GET(): Promise<Response> {
   };
 
   const fullBody: StatusResponse = {
-    ok: servicesOk && sloOk,
+    ok: aggregateOk,
     version: healthz?.version ?? fallbackVersion,
     git_sha: fallbackSha,
     updated_at: new Date().toISOString(),

@@ -92,6 +92,7 @@ describe("tbrDocxOutline", () => {
       TBR_DOCX_SECTION_IDS.investmentView,
       TBR_DOCX_SECTION_IDS.keyPoints,
       TBR_DOCX_SECTION_IDS.valuation,
+      "tbr-criteria-summary",
       "tbr-dim-tre",
       "tbr-dim-mpc",
       "tbr-dim-ftv",
@@ -105,7 +106,7 @@ describe("tbrDocxOutline", () => {
       TBR_DOCX_SECTION_IDS.money,
       TBR_DOCX_SECTION_IDS.appendix,
     ]);
-    expect(outline.map((e) => e.no)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
+    expect(outline.map((e) => e.no)).toEqual([1, 2, 3, 4, null, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]);
     expect(outline[0]!.title).toBe("Dashboard");
     expect(outline[1]!.title).toBe("Investment view");
     const cited = tbrDocxOutline(citedDemoReportV2(), "en");
@@ -139,10 +140,11 @@ describe("buildTbrDocx — v3 structure", () => {
     const h1s = headings1(doc);
     expect(h1s.map((h) => h.replace(/^\d+\s+/, ""))).toEqual(outline.map((e) => e.title));
     expect(h1s.slice(0, 4)).toEqual(["1 Dashboard", "2 Investment view", "3 Key points", "4 Valuation"]);
-    expect(h1s[4]).toBe(`5 ${report.dimensions[0]!.title}`);
-    expect(h1s[12]).toBe("13 Risk matrix");
-    expect(h1s[13]).toBe("14 90-day improvement plan");
-    expect(h1s[15]).toBe("16 Appendix — method, phase gates, ledger, evidence & disclaimers");
+    expect(h1s[4]).toBe("Assessment criteria summary");
+    expect(h1s[5]).toBe(`5 ${report.dimensions[0]!.title}`);
+    expect(h1s[13]).toBe("13 Risk matrix");
+    expect(h1s[14]).toBe("14 90-day improvement plan");
+    expect(h1s[16]).toBe("16 Appendix — method, phase gates, ledger, evidence & disclaimers");
 
     const text = xmlText(doc);
     const t = getTbrV3Strings("en");
@@ -260,7 +262,8 @@ describe("buildTbrDocx — v3 structure", () => {
     expect(h1s).toEqual(tbrDocxOutline(report, "vi").map((e) => e.title));
     expect(h1s[0]).toBe("Bảng tổng quan");
     expect(h1s[1]).toBe("Góc nhìn đầu tư");
-    expect(h1s[4]).toBe(report.dimensions[0]!.titleVi);
+    expect(h1s[4]).toBe("Tổng hợp tiêu chí đánh giá");
+    expect(h1s[5]).toBe(report.dimensions[0]!.titleVi);
     expect(text).toContain(t.subline);
     expect(text).toContain(t.takeawayTitle.toUpperCase());
     expect(text).toContain(t.evidenceUsed);

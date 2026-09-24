@@ -16,7 +16,7 @@ async function POST_handler(request: Request) {
   const { currentSVI, stage, plannedRaise, teamSize } = body as Record<string, number | string | undefined>;
 
   try {
-    const result = await callAI({
+    const result = await callAI({ providerPolicy: "deepinfra-only",
       system: "You are an expert startup share structure advisor for Australian startups. Return ONLY valid JSON.",
       user: `Recommend a share structure for: SVI Score: ${currentSVI ?? 100}, Stage: ${stage ?? "pre-seed"}, Planned raise: A$${plannedRaise ?? "not yet"}, Team size: ${teamSize ?? 1}. Return JSON: {"mode":"fixed_shares","authorizedShares":10000000,"initialSharePrice":0.01,"rationale":"...","dynamicAdvice":"..."}`,
       maxTokens: 500,

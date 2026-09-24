@@ -22,7 +22,7 @@ async function POST_handler(request: Request) {
   ).join("\n");
 
   try {
-    const result = await callAI({
+    const result = await callAI({ providerPolicy: "deepinfra-only",
       system: "You are an expert startup equity advisor for Australian startups. Return ONLY valid JSON.",
       user: `Given these founders:\n${founderDesc}\n\nSuggest a fair equity split using Slicing Pie methodology for AU startups. Return JSON: {"splits":[{"name":"...","percentage":X,"rationale":"..."}],"vestingRecommendation":"...","esopRecommendation":"...","warnings":["..."],"benchmarkComparison":"..."}`,
       maxTokens: 1000,

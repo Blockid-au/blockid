@@ -330,6 +330,8 @@ describe("POST /api/cfo-advisor — adkModel adapter (callAI seam)", () => {
     expect(captured).not.toBeNull();
     expect(mocks.callAI).toHaveBeenCalledTimes(1);
     expect(mocks.callAI).toHaveBeenCalledWith({
+      providerPolicy: "deepinfra-only",
+      agentId: "cfo-advisor",
       system: "sys",
       user: "user",
       maxTokens: 700,

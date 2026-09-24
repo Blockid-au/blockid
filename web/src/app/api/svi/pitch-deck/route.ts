@@ -51,7 +51,7 @@ Key Gaps: ${analysis.evidenceGaps?.slice(0, 3).map(g => g.label).join(", ")}
 
 Return a JSON array of 12 objects with: { "slide": 1-12, "title": "...", "keyMessage": "...", "bullets": ["..."], "speakerNotes": "...", "visual": "..." }`;
 
-    const { text } = await callAI({ userId: user.id, system: systemPrompt, user: userPrompt, maxTokens: 4096 });
+    const { text } = await callAI({ providerPolicy: "deepinfra-only", userId: user.id, system: systemPrompt, user: userPrompt, maxTokens: 4096 });
 
     let slides;
     try {

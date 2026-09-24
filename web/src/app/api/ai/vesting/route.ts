@@ -16,7 +16,7 @@ async function POST_handler(request: Request) {
   const { role, stage, contribution, existingTerms } = body as Record<string, string | undefined>;
 
   try {
-    const result = await callAI({
+    const result = await callAI({ providerPolicy: "deepinfra-only",
       system: "You are an expert startup vesting advisor for Australian startups. Return ONLY valid JSON.",
       user: `Recommend a vesting schedule for: Role: ${role ?? "co-founder"}, Stage: ${stage ?? "pre-seed"}, Contribution: ${contribution ?? "full-time"}, Existing terms: ${existingTerms ?? "none"}. Return JSON: {"vestingType":"linear","cliffMonths":12,"totalMonths":48,"accelerationTerms":"double trigger recommended","rationale":"...","auCompliance":"..."}`,
       maxTokens: 500,

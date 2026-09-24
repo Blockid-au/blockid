@@ -1,4 +1,6 @@
 # Revenue Forecast + Unit Economics Builder (T0121)
+
+> **Amendment24/09/2026 — implementation in progress, chưa deploy/accepted:** [CFO projection/valuation implementation spec](../../g32-cfo-projection-valuation-implementation-2026-09-24.md) và SOT §9.5.4 là yêu cầu mới nhất. Nội dung/status phía dưới giữ làm lịch sử nghiên cứu; không chứng minh current integration/compliance. Fixed WACC/g/pillar/FX, score→money, discounted EBITDA/ARR proxy, số methods bắt buộc, credit charges hoặc nightly schedules cũ không tự được kích hoạt. Method-by-method crosswalk quyết định phần tái dùng/sửa/thay; AI đánh giá evidence/driver, code tính projection/valuation; scoring đồng bộ cùng revision.
 ## P1 Feature Design | 2-week effort | Highest ROI
 
 ---

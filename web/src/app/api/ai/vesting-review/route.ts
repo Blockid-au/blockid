@@ -16,7 +16,7 @@ async function POST_handler(request: Request) {
   const { capTable, vestingSchedules, esopPool } = body as Record<string, unknown>;
 
   try {
-    const result = await callAI({
+    const result = await callAI({ providerPolicy: "deepinfra-only",
       system: "You are a senior startup equity lawyer and advisor reviewing cap table and vesting for Australian startups. Return ONLY valid JSON.",
       user: `Review this startup's equity structure:\nCap Table: ${JSON.stringify(capTable)}\nVesting: ${JSON.stringify(vestingSchedules)}\nESOP: ${JSON.stringify(esopPool)}\n\nReturn JSON: {"overallScore":75,"redFlags":["..."],"improvements":["..."],"auCompliance":{"status":"compliant","notes":"..."},"vestingIssues":["..."],"esopIssues":["..."],"recommendations":["..."]}`,
       maxTokens: 1200,

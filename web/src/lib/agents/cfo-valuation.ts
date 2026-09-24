@@ -395,7 +395,7 @@ export async function generatePricingTiers(
   const name = profile.startupName ?? "Startup";
   try {
     const prompt = `Generate 3 pricing tiers for "${name}", a ${sector} startup at stage ${stage} in Australia. Return ONLY valid JSON array with: name (string), price_aud_monthly (number, 0 for free), features (string array), target_segment (string), positioning (string).`;
-    const result = await callAI({ system: "You are a SaaS pricing strategist.", user: prompt });
+    const result = await callAI({ system: "You are a SaaS pricing strategist.", user: prompt, providerPolicy: "deepinfra-only" });
     const parsed = JSON.parse(result.text) as PricingTierSuggestion[];
     if (!Array.isArray(parsed) || parsed.length === 0) throw new Error("invalid");
     return parsed.map((t) => ({ ...t, monthlyAud: t.price_aud_monthly ?? t.monthlyAud ?? 0 }));

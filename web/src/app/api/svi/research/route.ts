@@ -106,7 +106,7 @@ Name actual companies with real URLs. Return ONLY the JSON object.`;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const webSearchTool = { type: "web_search_20250305", name: "web_search", max_uses: 5 } as any;
 
-    const { text: finalText } = await callAI({ userId: user.id,
+    const { text: finalText } = await callAI({ providerPolicy: "deepinfra-only", userId: user.id,
       system: SYSTEM_PROMPT,
       user: userMessage,
       maxTokens: 4096,

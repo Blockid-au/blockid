@@ -342,7 +342,7 @@ export async function generateAbnTrademarkGuide(
     `Ground everything in Australian trade-mark practice (IP Australia). JSON only.`;
 
   try {
-    const result = await callAI({
+    const result = await callAI({ providerPolicy: "deepinfra-only",
       system: SYSTEM_PROMPT,
       user,
       maxTokens: 1200,

@@ -63,7 +63,7 @@ async function batchClassifyWithLlm(
   ].join("\n");
 
   try {
-    const res = await callAI({
+    const res = await callAI({ providerPolicy: "deepinfra-only",
       system,
       user: `Slides:\n${enumerated}`,
       maxTokens: 400,

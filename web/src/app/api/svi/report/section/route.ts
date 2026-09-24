@@ -72,7 +72,7 @@ async function POST_handler(request: Request) {
     const lang = detectLanguage(rawText);
     const langNote = lang === "vi" ? " Write your response in Vietnamese." : "";
 
-    const { text } = await callAI({ userId: user.id,
+    const { text } = await callAI({ providerPolicy: "deepinfra-only", userId: user.id,
       system: `You are a friendly startup mentor.${langNote} Write in plain language, be encouraging. Use markdown formatting.`,
       user: sectionDef.prompt(analysis, rawText),
       maxTokens: 1024, // Small per section — avoids timeout

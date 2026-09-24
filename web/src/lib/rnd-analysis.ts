@@ -434,7 +434,7 @@ Return JSON with a "pages" array containing one object per page listed above. Ea
         await new Promise(r => setTimeout(r, 3000 * attempt)); // 3s, 6s backoff
       }
 
-      const { text } = await callAI({
+      const { text } = await callAI({ providerPolicy: "deepinfra-only",
         system: systemPrompt + viInstruction,
         user: userPrompt,
         maxTokens,
@@ -551,7 +551,7 @@ Return JSON with an "extendedSections" array. Each element must have: pageId (st
   const results = new Map<string, RndExtendedSection[]>();
 
   try {
-    const { text } = await callAI({
+    const { text } = await callAI({ providerPolicy: "deepinfra-only",
       system: SYSTEM_DEEP_DIVE_EXTENDED + viInstruction,
       user: userPrompt,
       maxTokens: 8192,
@@ -773,7 +773,7 @@ Return JSON with a "pages" array containing one object per page listed above. Ea
     const maxTokens = DEPTH_MAX_TOKENS[depth];
 
     try {
-      const { text } = await callAI({
+      const { text } = await callAI({ providerPolicy: "deepinfra-only",
         system: systemPrompt,
         user: userPrompt,
         maxTokens,

@@ -348,6 +348,7 @@ describe("POST /api/cfo-advisor/commentary — callAI seam", () => {
   it("invokes callAI exactly once with system + user + maxTokens=400 + timeoutMs=30s", async () => {
     await POST(req({ mrr: 1000, burn_rate: 500, cash_balance: 12000, stage: "seed" }));
     expect(mocks.callAI).toHaveBeenCalledTimes(1);
+    expect(mocks.callAI).toHaveBeenCalledWith(expect.objectContaining({ providerPolicy: "deepinfra-only", agentId: "cfo-advisor-commentary" }));
     const opts = mocks.callAI.mock.calls[0]?.[0] as {
       system: string;
       user: string;

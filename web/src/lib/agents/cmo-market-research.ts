@@ -357,7 +357,7 @@ export async function generateCompetitorAnalysis(params: {
   const { sector, description } = params;
   const prompt = `Analyse 3 direct competitors for a ${sector} startup${description ? `: ${description}` : ""}. Return a JSON array of competitor objects with fields: name, website, category, positioning, pricing, strengths (array), weaknesses (array), ourEdge, threatLevel ("low"|"medium"|"high"). Australian market context. No real startup names from the target company's own pitch.`;
   try {
-    const result = await callAI({ system: "You are a competitive intelligence analyst for the Australian startup market.", user: prompt });
+    const result = await callAI({ providerPolicy: "deepinfra-only", system: "You are a competitive intelligence analyst for the Australian startup market.", user: prompt });
     const raw = result?.text;
     if (raw) {
       const match = raw.match(/\[[\s\S]*\]/);
@@ -417,7 +417,7 @@ export async function generateGtmStrategy(params: {
   const { sector, description } = params;
   const prompt = `Create a go-to-market strategy for a ${sector} startup${description ? `: ${description}` : ""}. Return JSON with fields: positioning (string), keyMetrics (string array), first90Days (string array of 3 milestones), channels (array of objects with name, priority ("high"|"medium"|"low"), rationale). Australian B2B SaaS context.`;
   try {
-    const result = await callAI({ system: "You are a go-to-market strategist for Australian B2B startups.", user: prompt });
+    const result = await callAI({ providerPolicy: "deepinfra-only", system: "You are a go-to-market strategist for Australian B2B startups.", user: prompt });
     const raw = result?.text;
     if (raw) {
       const match = raw.match(/\{[\s\S]*\}/);

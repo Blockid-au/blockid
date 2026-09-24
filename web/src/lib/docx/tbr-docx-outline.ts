@@ -1,3 +1,4 @@
+import { criteriaSummaryStrings, CRITERIA_SUMMARY_ID } from "@/lib/report-v2/criteria-summary";
 // tbr-docx-outline — G27: the 16-section v3 outline the DOCX twin emits, as
 // ids + titles in order. The web TOC (`components/tbr/v2/shared.tsx`
 // `TBR_V2_SECTION_IDS`) and the PDF outline use the same ids, so a deep link
@@ -53,6 +54,7 @@ export function tbrDocxOutline(report: ReportV2, locale: string | undefined = re
     { id: TBR_DOCX_SECTION_IDS.investmentView, title: t.sec.investmentView, no: 2 },
     { id: TBR_DOCX_SECTION_IDS.keyPoints, title: t.sec.keyPoints, no: 3 },
     { id: TBR_DOCX_SECTION_IDS.valuation, title: t.sec.valuation, no: 4 },
+    { id: CRITERIA_SUMMARY_ID, title: criteriaSummaryStrings(loc).title, no: null },
     ...report.dimensions.map((d, i) => ({ id: TBR_DOCX_SECTION_IDS.dim(d.dim), title: loc === "vi" ? d.titleVi : d.title, no: 5 + i })),
     { id: TBR_DOCX_SECTION_IDS.riskMatrix, title: t.sec.riskMatrix, no: 13 },
     { id: TBR_DOCX_SECTION_IDS.plan90d, title: t.sec.improvementPlan, no: 14 },

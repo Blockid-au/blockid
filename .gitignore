@@ -88,3 +88,7 @@ web/content/reports/offsite-alert-state.json
 
 # Report-pipeline fully_degraded events (G15-R3.4) — appended by src/lib/report-pipeline/pipeline-health.ts, read by /api/status. Literal filename.
 web/content/reports/report-pipeline-health.jsonl
+
+# Local browser captures and generated review/export artifacts
+.playwright-cli/
+output/

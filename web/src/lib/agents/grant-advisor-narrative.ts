@@ -333,7 +333,7 @@ export function grantAdvisorModelCaller(temperature = 0.2, opts: { deadlineAt?: 
     // narrative's wall-clock deadline — a slow provider ladder must never
     // push the route past Cloudflare's 100 s wall (template beats a 524).
     const budgetMs = opts.deadlineAt ? Math.max(1_000, opts.deadlineAt - Date.now()) : undefined;
-    const res = await callAI({ system, user, maxTokens, temperature, agentId: "grant-advisor", interactive: true, ...(budgetMs ? { budgetMs } : {}) });
+    const res = await callAI({ providerPolicy: "deepinfra-only", system, user, maxTokens, temperature, agentId: "grant-advisor", interactive: true, ...(budgetMs ? { budgetMs } : {}) });
     return res.text ?? "";
   };
 }
@@ -358,7 +358,7 @@ export async function narrateFundingPlan(profile: GrantProfile, top: NarrativeIn
   let draft: string;
   const deadlineAt = Date.now() + NARRATIVE_BUDGET_MS;
   try {
-    const res = await callAI({
+    const res = await callAI({ providerPolicy: "deepinfra-only",
       system: GRANT_ADVISOR_SYSTEM,
       user: buildNarrativePrompt(profile, top),
       maxTokens: 1600,

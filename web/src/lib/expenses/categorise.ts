@@ -517,7 +517,7 @@ export async function categoriseBatch(rows: readonly CategoriseInput[], opts: Ba
 /** Default model call — the same `callAI` the CFO agent uses (dynamic import keeps this module test-light). */
 export async function defaultAi(opts: { system: string; user: string }): Promise<{ text: string }> {
   const { callAI } = await import("@/lib/ai-client");
-  const r = await callAI({ system: opts.system, user: opts.user, maxTokens: 2500, temperature: 0, timeoutMs: 90_000, agentId: "cfo" });
+  const r = await callAI({ providerPolicy: "deepinfra-only", system: opts.system, user: opts.user, maxTokens: 2500, temperature: 0, timeoutMs: 90_000, agentId: "cfo" });
   return { text: r.text };
 }
 

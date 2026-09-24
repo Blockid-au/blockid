@@ -1,3 +1,4 @@
+import { criteriaSummaryStrings, CRITERIA_SUMMARY_ID } from "@/lib/report-v2/criteria-summary";
 // <TbrReportV2> — renders a ReportV2 as the fixed v3 sequence (G27, spec § 2):
 //
 //    1 Dashboard          5–12 the 8 dimension chapters (DIM_ORDER, identical anatomy)
@@ -39,6 +40,7 @@ import { TbrImprovementPlan, TbrRiskMatrix } from "./risk-matrix";
 import { TBR_SURFACE_CLASS, TBR_V2_SECTION_IDS, type TbrUiLocale } from "./shared";
 import { TbrUnlockRail, type TbrUnlockMode, type TbrUnlockOrderStatus } from "./unlock-rail";
 import { TbrValuation } from "./valuation";
+import { TbrCriteriaSummary } from "./criteria-summary";
 
 export { TBR_V2_SECTION_IDS };
 export type { TbrUnlockMode, TbrUnlockOrderStatus, TbrUiLocale, TbrAssessmentBenchmarks };
@@ -132,6 +134,7 @@ export function TbrReportV2({ report: rawReport, locale = "en", upgradeHref, aft
       {afterExecutive}
       <TbrKeyPoints view={view} title={t.keyPoints} locale={locale} />
       <TbrValuation report={report} title={t.valuation} locale={locale} citations={citations} investment={view} />
+      <TbrCriteriaSummary report={report} locale={locale} lockCards={!paid} />
       {report.dimensions.map((ch, i) => (
         <Fragment key={ch.dim}>
           <TbrChapter
@@ -182,6 +185,7 @@ export function tbrV2TocGroups(report: ReportV2, locale: TbrLocale = "en"): { ov
       { id: TBR_V2_SECTION_IDS.investmentView, label: t.investmentView },
       { id: TBR_V2_SECTION_IDS.keyPoints, label: t.keyPoints },
       { id: TBR_V2_SECTION_IDS.valuation, label: t.valuation },
+      { id: CRITERIA_SUMMARY_ID, label: criteriaSummaryStrings(locale).title },
     ],
     dimensions: report.dimensions.map((d) => ({ id: TBR_V2_SECTION_IDS.dim(d.dim), label: locale === "vi" ? d.titleVi : d.title })),
     closing: [

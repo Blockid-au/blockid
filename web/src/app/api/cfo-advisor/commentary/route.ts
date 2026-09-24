@@ -126,6 +126,8 @@ Provide 4 bullet points as plain text starting with "• ":`;
 
   try {
     const result = await callAI({
+      providerPolicy: "deepinfra-only",
+      agentId: "cfo-advisor-commentary",
       system: "You are a CFO advisor providing financial health insights for startups. Be direct, honest, and actionable. Return exactly 4 bullet points starting with •.",
       user: prompt,
       maxTokens: 400,

@@ -237,7 +237,7 @@ export async function analyzeWebsiteCI(
   );
 
   try {
-    const result = await callAI({
+    const result = await callAI({ providerPolicy: "deepinfra-only",
       system: "You are an expert startup analyst specializing in competitive intelligence and go-to-market strategy. Always respond with valid JSON only.",
       user: prompt,
       maxTokens: 3000,

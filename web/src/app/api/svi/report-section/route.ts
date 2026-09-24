@@ -323,7 +323,7 @@ Formatting for visual impact:
   const maxTokens = depth === "summary" ? 1024 : 4096;
 
   try {
-    const { text: content } = await callAI({ userId: user.id,
+    const { text: content } = await callAI({ providerPolicy: "deepinfra-only", userId: user.id,
       system: promptTemplate,
       user: userMessage,
       maxTokens,
