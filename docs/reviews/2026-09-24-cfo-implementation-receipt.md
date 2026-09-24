@@ -2,7 +2,7 @@
 
 ## Authority and scope
 
-Founder’s follow-up “hãy làm toàn bộ” supersedes the prior plan-only instruction for implementation. This receipt records actual work against [V04-P0…P8](../plans/g32-cfo-projection-valuation-implementation-2026-09-24.md), G31 criteria presentation and G33 provider/status correctness. **Source implementation is in progress; no production deployment or full-plan acceptance is claimed.**
+Founder’s follow-up “hãy làm toàn bộ” supersedes the prior plan-only instruction for implementation. This receipt records actual work against [V04-P0…P8](../plans/g32-cfo-projection-valuation-implementation-2026-09-24.md), G31 criteria presentation and G33 provider/status correctness. **The scoped implementation is deployed on both production sites; full-plan acceptance remains open.** See [production deployment evidence](2026-09-24-cfo-production-deployment.md).
 
 Baseline: BlockID `c2e147066`, SVI `565250b`. Existing dirty runtime/content files were not part of these changes. No migrations, paid benchmarks, official score updates, share issuance, vesting rewrites or production connector writes were performed.
 
@@ -30,7 +30,7 @@ Baseline: BlockID `c2e147066`, SVI `565250b`. Existing dirty runtime/content fil
 | P5 calibration | Open | Qualifying transaction corpus, independent reviewers, predeclared holdout thresholds and backtesting |
 | P6 parity/publish | Scenario hash/JSON/CSV; criteria web/export parity implemented/tested | Accepted immutable valuation repository, all CFO narrative/export consumers, full XLSX workbook and official save/read-back |
 | P7 migration | Shared scenario engine on both apps | Retire duplicate official engines after source/calibration gates; preserve historical rights |
-| P8 rollout | Open | Stable G33 runs, exact build/deploy receipts, canary and financial/score acceptance |
+| P8 rollout | Scoped scenario/provider/criteria release live on both apps; operational checks recorded | Stable G33 report runs, extended review, canary and financial/score acceptance |
 
 ## Validation
 
