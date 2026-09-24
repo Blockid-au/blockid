@@ -1809,9 +1809,12 @@ Approval22/09/2026 bắt đầu W0a. Đây là status của cùng45 items, khôn
 | U02/O01 saved report projection | PARTIAL LIVE / ACCEPTANCE DEFERRED | SVI EN/VI web/print/email coverage visible; saved report charts make no inference call and no longer invent missing50/100 or zero valuation. Recorded risk fields preserved. Shared BlockID citation renderer labels unresolved IDs as unverified. All-surface semantic/permission/layout acceptance remains open. [Latest receipt](../reviews/2026-09-23-citation-and-read-policy-rollout.md) |
 | G31 IL00–IL15 Investor Lens | PLAN ONLY (rev 1.2, 23/09) | Đã đối chiếu master `0edf8bc62`; xếp vào §12.10 Lane B, lượt E1–E5; UI/UX v2 ở [design spec](../design/investor-lens-report-spec.md); playbook deploy D0–D8 ở [plan §7](g31-investor-lens-biz-trust-report-2026-09-23.md). Chưa code; chờ D21 |
 | A04/A05/V04 SVI tổng điểm agent + định giá theo phân tích (G32) | APPROVED PLAN (D22 24/09) — CHƯA CODE | `svi-v3` = C+S+T−A không base/không trần, AI Agents chấm 52 câu theo rubric với panel 3 phiếu (§9.4.8), `valuation-core` từ driver có nguồn (§9.5.3); issues I47–I54. Audit read-only BlockID `6a091f52c` / SVI `565250b`. Bước đầu: SV0 rubric + SV1 reader safety |
+| G33 T01–T15 (test live 24/09) | PLAN ONLY — CHƯA CODE | Live-QA 307/0, page/link/typecheck xanh; **report degraded 8/8 trên 2 run thật**, audit chain gãy, `svi-snapshot`/`cron-health` lỗi, 8 unit tests đỏ. Thứ tự S0–S6 ở §12.11. [Receipt](../reviews/2026-09-24-live-version-test-review.md) |
 | Remaining items | OPEN — NOT COMPLETE | Full claim verification, immutable revisions/legacy delivery, question-led research, valuation eligibility, durable jobs/recovery, atomic billing/approved fee integration and whole-site UX still require implementation/integration. Quality/holdout/load/cost/sale readiness unverified; off-host backup explicitly deferred. Existing prepared financial migration candidates are not activation or completion evidence. |
 
 ### 12.10 Kế hoạch thực thi tiếp theo (23/09/2026) — hai lane
+
+> **24/09:** thứ tự thực hiện được thay bằng **§12.11 G33** (S0 → S6) sau test live. Bảng dưới giữ làm tham chiếu phân lane/file.
 
 Kế thừa ưu tiên trong receipt final-report persistence và review 23/09. Không thay §12.8; đây là thứ tự chạy **kế tiếp** của những item còn mở.
 
@@ -1830,6 +1833,53 @@ Kế thừa ưu tiên trong receipt final-report persistence và review 23/09. K
 3. **Lane B không làm chậm Lane A:** nếu tài nguyên deploy hoặc build chật thì Lane A được ưu tiên. Lane B không có migration trước E4.
 4. **SVI/định giá (24/09, §9.4–9.5):** SV1 (reader safety, không đổi số) đi cùng Lane B R0/R1 vì cùng chạm tile/band; mọi phase đổi số SVI hoặc định giá thuộc Lane A. SV3 (question_scores + SCORE stage) chỉ bắt đầu sau khi degraded 8/8 được xử lý (E2) và O08 có durable job. Share price/vesting/dividends (V04) đã được duyệt theo D22-e, giữ số đã phát hành.
 5. **Theo chỉ đạo founder 23/09:** fast profile + deploy từng phần, kèm golden SVI, typecheck và build không hoãn. Phần bị hoãn được ghi `DEFERRED`, không ghi pass.
+
+### 12.11 G33 — Kế hoạch implement tiếp theo hợp nhất (24/09/2026, PLAN ONLY — chưa code)
+
+**Vì sao có mục này:** test toàn bộ bản live ngày 24/09 ([receipt](../reviews/2026-09-24-live-version-test-review.md)) cho thấy site, trang và thanh toán chạy tốt, nhưng **sản phẩm lõi — sinh report — gần như ngừng từ 21/09**. Đồng thời monitoring và QA vẫn báo xanh. Mục này hợp nhất G30 còn mở (§12.9–12.10), G31 (§10.13), G32 (§9.4–9.5) và các lỗi test thành **một thứ tự thực hiện duy nhất**, thay thứ tự lượt E1–E5 ở §12.10 khi khác nhau. IDs cũ giữ nguyên; G33 chỉ đặt thứ tự và thêm các việc mới T-xx. Plan G32 được **giữ nguyên, chưa thực thi** cho tới khi S1 đạt.
+
+**Nguyên tắc:** sửa theo thứ tự **nhìn thấy sự cố → sản phẩm lõi chạy lại → toàn vẹn dữ liệu → hoàn tất nền G30 → giá trị mới (G31/G32)**. Mỗi phase là một hoặc nhiều deploy nhỏ theo D0–D8 (G31 plan §7.1), serialize với phiên khác và chờ mark-good. Không phase nào tăng giá, đổi Stripe hay vượt trần US$0.50/report.
+
+#### A. Bằng chứng đầu vào (live `a0b6f6f7d`, 24/09)
+
+| Khỏe | Lỗi (chi tiết trong receipt) |
+|---|---|
+| Live-QA 307/0 (15 skip cần spend); page sweep public 140/0 và signed-in đạt; link 545 trang 0 broken nội bộ, sitemap 464/464; SVI 46 trang 0 broken; `tsc` 0 lỗi; 42 344 unit tests đạt; uptime 24 h 100 %, errors_1h 0 | **P0:** report degraded 8/8 (DeepInfra không trả byte đầu trong 60 s, 429 overload, reservation “reconciliation required” chặn CEO summary); audit chain gãy từ 18/09 (race trigger, ~7 000 dòng chưa verify); QA/status báo xanh khi sự cố. **P1:** `svi-snapshot` cron lỗi cột `svi_accounts.user_id`; `cron-health` crash (row thiếu `ts`); 8 unit tests đỏ sau writer rollout; cap 6 origin làm deploy fail; `report_revisions` vẫn rỗng, migration source thiếu. **P2/P3:** CVE `image-size`/pptxgenjs, scanner false positive, rate-limit 28/687, mail tới địa chỉ đã xóa, MaxListeners, trang chậm |
+
+#### B. Thứ tự phase
+
+| Phase | Mục tiêu | Việc cụ thể (file chính) | Work items | Exit gate |
+|---|---|---|---|---|
+| **S0 — Nhìn thấy sự cố** (1 deploy, không schema) | Không còn “xanh giả” | (1) `/api/status`: `tbr_quality` = **red** khi `fully_degraded_24h ≥ 3` hoặc `degradedShare ≥ 0.5` với ≥3 runs; `ok` phản ánh sản phẩm lõi (`lib/status/ai.ts`, `lib/status/index.ts`). (2) Spec `43-free-reports`: run `failed`/degraded **là fail**, trừ khi đặt cờ `LIVE_QA_ALLOW_DEGRADED=1` rõ ràng; thêm assertion `degradedSections ≤ 1`, `words > 0`. (3) `cron-health`: đọc `ts ?? at`, bỏ qua row lỗi thay vì crash; sửa writer `ga4-daily-pull` ghi `ts`. (4) Sửa 8 unit tests: fakes có `report_revisions`, cập nhật 2 contract tests theo hành vi mới đã duyệt | T01, T02, T03, T04 (mới); O02, O07 | Status đỏ trên dữ liệu hiện tại; spec fail trên run degraded; `cron-health` ok; vitest xanh toàn bộ |
+| **S1 — Sản phẩm lõi chạy lại** (2–3 deploy nhỏ) | Report thật hoàn tất ổn định trong trần US$0.50 | (1) **Streaming transport** cho DeepInfra: timeout byte đầu ≤20 s, timeout giữa các chunk ≤30 s, tổng thời gian theo `max_tokens` thay vì 60 s cố định (`lib/ai/http-transport.ts`, `lib/ai-client.ts` quanh `:2489`, ladder `:1456–1471`). (2) **Giới hạn đồng thời theo model** (≤3 in-flight/model, hàng đợi có hạn) thay vì 5–10 cùng lúc. (3) **Hạ và chia `max_tokens`**: criterion 2 600–4 000 → theo độ dài thực cần, chương dài chia 2 lượt (`agent-dispatcher.ts:561–590`, `:1572`). (4) 429 `engine_overloaded` → backoff theo **model**, không strike cả provider (`run-strikes.ts`). (5) **Reservation theo `prompt + max_tokens`** thay vì toàn bộ context window (`lib/ai/report-attempt-budget.ts`); job **reconcile** attempt `unknown` theo usage thật/timeout; CEO summary có reservation riêng, không bị research budget chặn (`research-attempt-budget.ts:41`). (6) Health probe với prompt thật cỡ 3k tokens, chọn ladder theo đo lường (O01). (7) Canary: một report thật sau mỗi deploy phase này | T05, T06, T07 (mới); O01, O02, F02 | **5 runs thật liên tiếp** (free path + 1 paid order): degraded ≤1 chương, words > 0, ≤6 phút, cost ≤US$0.10/run; `report_revisions` có row được read-back; status xanh 24 h. Chi tiêu test ≤US$0.50 tổng, ghi trong receipt |
+| **S2 — Toàn vẹn dữ liệu** (1–2 deploy + migrations) | Audit, snapshot, revision đúng | (1) **Audit chain:** migration trigger dùng `pg_advisory_xact_lock` (serialize chaining); verifier đi theo liên kết `prev_hash` và nhận **bản ghi reconciliation được ký** cho đoạn race 18/09 (append-only, không sửa lịch sử); verify lại toàn bộ ~13 700 dòng; cập nhật runbook. (2) `svi-snapshot`: sửa truy vấn theo schema thật (`svi_accounts` không có `user_id`), chạy lại có kiểm soát. (3) Khôi phục file migration `report_revisions` với số mới không trùng, checksum khớp bảng live, cập nhật manifest/authority (§12.9, G31 C10). (4) Chặn gửi mail tới `@erased.blockid.au` ở mailer chung và tìm job gửi | T08, T09, T10, T11 (mới); T02, O09 | Verifier `ok` trên toàn chain; snapshot cron ok 2 ngày liên tiếp; manifest không còn bảng live thiếu nguồn; 0 mail tới địa chỉ đã xóa |
+| **S3 — Hoàn tất nền G30 Lane A** | Mọi đường ghi/giao report dùng revision bất biến; job bền | (1) Writer coverage: paid order (`paywall/report-generator.ts:415`), `enhanced-report`, `pitchdeck/save-snapshot`, email/share links → token revision (helper chung `commitFinalReport()`). (2) O08: lease/heartbeat/reclaim cho order worker và job report; reconcile commit không chắc chắn. (3) **Tự động retire origin an toàn** khi cap đầy (đủ điều kiện quiescence), để deploy không fail vì cap. (4) E03: xác minh claim theo entity/metric/period/phủ định (`claim-gate.ts`) | F02, F04, T02, O05, O06, O08, E03 | Không còn token snapshot mutable trong link mới; job restart không mất/không tính phí lại; deploy không cần retire tay |
+| **S4 — Investor Lens R0–R1 + G32 an toàn hiển thị** (3 deploy) | Report dễ đọc hơn, không đổi số | G31 R0 (golden SVI gồm dossier, guard, cờ `NEXT_PUBLIC_BLOCKID_INVESTOR_LENS`, fixture degraded) → R1a preview → R1b on (sau D21-a), với các sửa C1–C12 (G31 §1.7). Cùng lúc **G32 SV0** (rubric@v1 cho 52 câu, docs) và **SV1** (bỏ band 40/70/`min(100)`/“/100” trên index, delta chỉ khi cùng version) | IL15, IL01, IL04, IL05; A04 (SV0–SV1), A05 (rubric) | Golden SVI giống hệt; 4/6/3/3/3; web = PDF = DOCX = email; không còn “/100” cạnh SVI |
+| **S5 — G32 shadow + gỡ SVI→tiền** | Chấm điểm agent chạy ngầm; định giá không còn từ điểm | SV2 (method metadata cùng revision writer) → SV3 (`question_scores` trong payload W1–W3 + stage SCORE 2 judge, verify quote, cache theo evidence hash, chạy trong job O08) → SV4 (golden 30–50 doanh nghiệp, α/κ, sensitivity). **V04a:** gỡ fallback `three-case` trong adapter và first-analysis `estimateValuation`; hiện `not_estimable` có hướng dẫn. G31 R2–R3 | A04, A05, V04, IL02, IL06–IL09 | Chỉ bắt đầu SV3 khi S1 đạt 7 ngày; panel ≤US$0.10/report; α ≥0.67; không surface nào của report nhân SVI ra tiền |
+| **S6 — Kích hoạt giá trị mới** | SVI tổng điểm + định giá theo phân tích + Lens đầy đủ | SV5 activation hai site; V04b `valuation-core` (Scorecard từ điểm agent, driver có quote, IPEV calibration, comps log, tornado) và share price/vesting/dividends thôi dùng SVI; SV6 BlockID Startup Index; G31 R4–R7; U01/U02/U07; sau đó R01–R04, V02/V03 | A04, A05, V02–V04, IL10–IL14, U-items, R-items | Gates §9.4.7/§9.5.3/G31; Q02 holdout; không claim sale-ready trước S03 |
+
+**Backlog song song khi có chỗ trống (không chặn S0–S3):** T12 nâng pptxgenjs (CVE `image-size`, semver-major, kiểm export PPTX); T13 sửa scanner security posture (nhận helper gate, bỏ tự bắt pattern list) và kế hoạch rate-limit cho route công khai; T14 MaxListeners trên SSE; T15 trang >3 s và `/tbr/demo` 1.09 MB; O09 offsite backup vẫn **deferred theo founder**.
+
+#### C. Luật kiểm thử cho G33 (đề xuất D23)
+
+Chỉ đạo 23/09 “không test, implement xong là deploy” đã để 8 unit tests đỏ và một outage 3 ngày không bị phát hiện. Đề xuất cho **mọi phase chạm pipeline report, billing hoặc dữ liệu**: typecheck + build + **vitest của các file liên quan** + `qa:live` partial của lane liên quan + **1 report canary thật** (S1 trở đi). Chỉ các phase thuần UI/docs dùng fast profile. Phần hoãn ghi `DEFERRED`, không ghi pass. Thời gian thêm ước tính 10–20 phút/deploy.
+
+#### D. Việc mới đăng ký
+
+| ID | P | Việc | Phase |
+|---|---|---|---|
+| T01 | P0 | Status đỏ khi report degraded; `ok` phản ánh sản phẩm lõi | S0 |
+| T02 | P0 | QA không pass khi run degraded/failed (43-free-reports + lanes report) | S0 |
+| T03 | P1 | `cron-health` chịu row thiếu `ts`; writer ghi `ts` | S0 |
+| T04 | P1 | 8 unit tests writer/quota về xanh | S0 |
+| T05 | P0 | Streaming transport + timeout theo byte đầu/chunk + concurrency theo model | S1 |
+| T06 | P0 | Reservation theo prompt+max_tokens, reconcile attempt unknown, reserve riêng cho summary | S1 |
+| T07 | P0 | Canary report thật sau deploy pipeline; 5-run acceptance | S1 |
+| T08 | P0 | Audit chain: serialize trigger + reconciliation record + verify toàn chain | S2 |
+| T09 | P1 | `svi-snapshot` cron theo schema thật | S2 |
+| T10 | P1 | Migration source `report_revisions` số mới + manifest | S2 |
+| T11 | P2 | Chặn mail tới địa chỉ đã xóa | S2 |
+| T12–T15 | P2/P3 | CVE pptxgenjs, scanner/rate-limit, MaxListeners, trang chậm | Backlog |
 
 ## 13. Quality gates và định nghĩa ready for sale
 
@@ -2039,12 +2089,15 @@ Mỗi thay đổi yêu cầu mới phải sửa chính plan và acceptance liên
 | D12 Site scope | Toàn bộ yêu cầu/review/điều chỉnh áp dụng cho blockid.au và tất cả trang con/routes của site; các tích hợp chỉ trong phạm vi phục vụ site này | Founder xác nhận rõ; chỉ plan, chưa triển khai |
 | D11 Pricing/Stripe/data/dashboard | Full price/link audit, storage/report lifecycle, latest semantics và friendly dashboard (§10.7, §11.4–11.5, §14.1–14.3) | Founder yêu cầu đưa vào plan; chưa cho code, đổi giá/Stripe hoặc sửa dữ liệu |
 | D10 Full-site design & wording | Homepage/hero + wording toàn site + redesign all pages theo một Unicorn template chuyên nghiệp (§10.4–10.6, U04–U06) | Scope founder yêu cầu rõ; copy/design chi tiết chờ review, chưa cho code |
+| D23 Kiểm thử cho G33 | Phase chạm pipeline/billing/dữ liệu: typecheck + build + vitest liên quan + qa:live partial + 1 canary report thật; UI/docs dùng fast profile (§12.11 C) | Đề xuất 24/09 sau outage 3 ngày không bị phát hiện; chờ duyệt |
 | D22 SVI không trần + định giá (G32) | (a) `SVI_v3 = C + S + T − A` = **tổng điểm, không base, không trần**, null khi chưa có câu nào được chấm; (b) điểm C do **AI Agents BlockID chấm theo 52 câu hỏi** (panel 3 phiếu, rubric 0–4, quote bắt buộc, code cộng điểm); thêm câu/tiêu chí có bằng chứng thì cộng điểm; đổi phương pháp không tính là tăng trưởng; (c) SVI = tổng điểm, Investor Score = 0–100 từ cùng điểm agent, Evidence confidence = %; (d) định giá từ phân tích cụ thể: CFO agent trích driver có nguồn, factor từ điểm agent, engine thuần code, IPEV calibration; (e) share price/vesting/dividends thôi dùng SVI, giữ số đã phát hành | **APPROVED 24/09/2026** (founder: “hãy làm như bạn đề xuất”, SVI là tổng điểm do AI Agent chấm). Hằng số chốt ở SV4; chưa code, không cấp ngân sách inference mới ngoài trần US$0.50 |
 | D21 Investor Lens (G31) | Lớp 6 tín hiệu + evidence confidence theo tín hiệu phía trên SVI; meeting labels trung tính = band A–D; risk rank không nhân confidence; 01–03 đầy đủ mọi tier; R1→R7 (§10.13) | Founder yêu cầu plan 23/09; chờ duyệt D21-a…e, chưa code |
 
 Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi timestamp và phạm vi được bắt đầu; không coi duyệt plan đồng nghĩa tự động duyệt mọi chi phí, external send hay thay giá chưa được định lượng. Các hạng mục kỹ thuật đã được cho bắt đầu sẽ tiến hành liên tục trong phạm vi đó, không xin lại từng bước thông thường.
 
 ## 17. Change log
+
+- **24/09/2026 — G33 plan hợp nhất sau test live, PLAN ONLY:** test toàn bộ bản live `a0b6f6f7d` ([receipt](../reviews/2026-09-24-live-version-test-review.md)): site/QA/links/typecheck xanh; report lõi degraded (DeepInfra không trả byte đầu trong 60 s, 429, reservation chặn summary), audit chain gãy từ 18/09, `svi-snapshot`/`cron-health` lỗi, 8 unit tests đỏ, QA/status báo xanh giả. Thêm §12.11 G33 S0–S6 (sự cố → lõi → toàn vẹn → nền G30 → G31/G32), T01–T15, D23; §12.10 được thay thứ tự; G32 giữ nguyên chưa thực thi. Chưa code.
 
 - **24/09/2026 — G32 approved plan (D22):** founder duyệt đề xuất và chốt SVI = **tổng điểm do AI Agents BlockID chấm**, không base 100, không trần, khác nhau theo từng doanh nghiệp. §9.4.3 viết lại (`C + S + T − A`, điểm theo 52 câu, ví dụ 96 → 1 843), thêm §9.4.8 giao thức chấm (agent sở hữu câu hỏi + 2 judge khác họ model, 0–4, verify quote, median/abstain/escalate, cache theo evidence hash, golden α/κ, ≈US$0.05–0.10/report), §9.4.7 phases SV0–SV6 cập nhật, §9.5.3 định giá từ phân tích cụ thể. Goal §1.1, work item A05, issue I54, D22 APPROVED, §12.9/§12.10, ROADMAP G32. Chưa code.
 
