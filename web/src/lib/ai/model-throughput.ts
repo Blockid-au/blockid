@@ -86,3 +86,15 @@ export function orderModelsBySpeed(models: readonly string[], outputTokens: numb
   if (fits.length === 0) return [...models];
   return [...fits, ...models.filter((m) => !fits.includes(m))];
 }
+
+/**
+ * G33-T16c: a stream that failed (idle / total timeout, dropped connection)
+ * after producing tokens is still a speed sample — learning only from successes
+ * kept DeepSeek-V3.2 looking fast enough for a 130 s summary window it could not
+ * finish (24/09 canary). ~4 characters per token; tiny partials are ignored by
+ * `recordModelSpeed`'s 50-token floor. Nothing is recorded without a first token.
+ */
+export function recordPartialStreamSpeed(model: string, transport: { firstTokenMs?: number | null; elapsedMs: number; outputChars?: number }): void {
+  if (typeof transport.firstTokenMs !== "number" || !(transport.outputChars && transport.outputChars > 0)) return;
+  recordModelSpeed(model, { firstTokenMs: transport.firstTokenMs, totalMs: transport.elapsedMs, outputTokens: Math.round(transport.outputChars / 4) });
+}

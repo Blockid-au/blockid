@@ -62,7 +62,7 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { AITransportError, inprocessFetch, inprocessStreamChat, type AITransportDiagnostics } from "@/lib/ai/http-transport";
-import { orderModelsBySpeed, recordModelSpeed } from "@/lib/ai/model-throughput";
+import { orderModelsBySpeed, recordModelSpeed, recordPartialStreamSpeed } from "@/lib/ai/model-throughput";
 import {
   callAnthropicTier,
   anthropicRequestsRemaining,
@@ -1601,6 +1601,10 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
       if (scoped && classifyRunStrike(lastErr) === "timeout") opts.runStrikes?.note(modelStrikeKey, lastErr);
       else noteRunStrike(opts, "deepinfra", lastErr);
       if (err instanceof AITransportError) {
+        // G33-T16c: a stream that timed out after producing tokens is a speed
+        // sample too — learning only from successes kept V3.2 looking fast
+        // enough for a 130 s summary window it could not finish (24/09 canary).
+        if (streamed) recordPartialStreamSpeed(model, err.transport);
         console.warn("[ai-client:transport]", JSON.stringify({ provider: "deepinfra", model, reservationMs, ...err.transport }));
       }
       console.warn(`[ai-client] DeepInfra ${model} failed: ${lastErr.message.slice(0, 200)}`);

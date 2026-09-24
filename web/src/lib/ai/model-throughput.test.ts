@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { _resetModelSpeeds, estimateCompletionMs, modelSpeed, orderModelsBySpeed, recordModelSpeed } from "./model-throughput";
+import { _resetModelSpeeds, estimateCompletionMs, modelSpeed, orderModelsBySpeed, recordModelSpeed, recordPartialStreamSpeed } from "./model-throughput";
 
 const V32 = "deepseek-ai/DeepSeek-V3.2";
 const QWEN = "Qwen/Qwen3-235B-A22B-Instruct-2507";
@@ -41,5 +41,17 @@ describe("model throughput (G33-T05)", () => {
     recordModelSpeed(V32, { firstTokenMs: 500, totalMs: 900, outputTokens: 10 });
     recordModelSpeed(V32, { firstTokenMs: null, totalMs: 10_000, outputTokens: 1000 });
     expect(modelSpeed(V32)!.samples).toBe(7);
+  });
+
+  it("G33-T16c: a timed-out stream that produced tokens slows the estimate; no first token records nothing", () => {
+    recordModelSpeed(V32, { firstTokenMs: 500, totalMs: 10_500, outputTokens: 1300 }); // one fast day → ~48 tok/s
+    const before = modelSpeed(V32)!.tokensPerSecond;
+    // 130 s window, 3 000 chars (~750 tokens) streamed before the total timeout → ~5.8 tok/s.
+    recordPartialStreamSpeed(V32, { firstTokenMs: 1_000, elapsedMs: 130_000, outputChars: 3_000 });
+    expect(modelSpeed(V32)!.tokensPerSecond).toBeLessThan(before);
+    expect(modelSpeed(V32)!.samples).toBe(2);
+    recordPartialStreamSpeed(V32, { firstTokenMs: null, elapsedMs: 45_000, outputChars: 0 });
+    recordPartialStreamSpeed(V32, { firstTokenMs: 800, elapsedMs: 45_000, outputChars: 0 });
+    expect(modelSpeed(V32)!.samples).toBe(2);
   });
 });
