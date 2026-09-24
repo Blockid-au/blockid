@@ -52,6 +52,9 @@ vi.mock("@/lib/supabase", () => ({
 }));
 
 // Route import MUST come after mocks are registered.
+// G33-T13: GET is scoped to the signed-in user's own email.
+const currentUserMock = vi.hoisted(() => vi.fn(async () => ({ id: "u-1", email: "founder@x.com" }) as { id: string; email: string } | null));
+vi.mock("@/lib/auth", () => ({ getCurrentUser: () => currentUserMock() }));
 import { POST, GET, dynamic } from "./route";
 
 // --- Fake supabase --------------------------------------------------------
@@ -443,6 +446,22 @@ describe("POST — insert failure", () => {
       "[blockid:actions] insert failed",
       { message: "unique_violation" },
     );
+  });
+});
+
+describe("GET — session scope (G33-T13)", () => {
+  it("401 without a session — no query runs", async () => {
+    currentUserMock.mockResolvedValueOnce(null);
+    const res = await GET(getReq("?email=founder@x.com"));
+    expect(res.status).toBe(401);
+    expect(getSupabaseAdminMock).not.toHaveBeenCalled();
+  });
+  it("403 for another account's email (case-insensitive match allowed)", async () => {
+    const res = await GET(getReq("?email=victim@x.com"));
+    expect(res.status).toBe(403);
+    expect(getSupabaseAdminMock).not.toHaveBeenCalled();
+    currentUserMock.mockResolvedValueOnce({ id: "u-1", email: "Founder@X.com" });
+    expect((await GET(getReq("?email=founder@x.com"))).status).toBe(200);
   });
 });
 

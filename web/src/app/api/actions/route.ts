@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { apiRoute } from "@/lib/audit/api-route";
+import { getCurrentUser } from "@/lib/auth";
 
 // POST /api/actions — Record a user action from SVI report
 // Body: { email, actionType, actionLabel, dimension?, sourceGap?, toolSlug?, metadata? }
@@ -54,13 +55,26 @@ async function POST_handler(request: Request) {
   return NextResponse.json({ ok: true, tracked: true });
 }
 
-// GET /api/actions?email=x — Get action history for a user
+// GET /api/actions?email=x — Get action history for the SIGNED-IN user.
+//
+// G33-T13 (24/09 security review): this answered any `?email=` anonymously —
+// account id, action labels and dates for any address. The only caller is the
+// signed-in workspace (profile-progress.tsx) asking for its own email, so the
+// query now requires a session and must name that session's own address.
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const email = url.searchParams.get("email");
 
   if (!email) {
     return NextResponse.json({ ok: false, reason: "Email required" }, { status: 400 });
+  }
+
+  const user = await getCurrentUser();
+  if (!user) {
+    return NextResponse.json({ ok: false, reason: "Sign in required" }, { status: 401 });
+  }
+  if ((user.email ?? "").trim().toLowerCase() !== email.trim().toLowerCase()) {
+    return NextResponse.json({ ok: false, reason: "Forbidden" }, { status: 403 });
   }
 
   if (!isSupabaseConfigured()) {

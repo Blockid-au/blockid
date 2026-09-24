@@ -1520,7 +1520,38 @@ export function deepInfraStreamTimeouts(opts: Pick<AICallOptions, "timeoutMs" | 
   return { firstTokenMs, idleMs, totalMs };
 }
 
-async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): Promise<AICallResult> {
+/**
+ * G33-T16g — hedged synthesis. DeepInfra throughput swings run to run (24/09:
+ * V4-Flash 13–32 tok/s, V3.2 9–13 tok/s under load), so one CEO summary on one
+ * model timed out at its 90 s window even with speed-aware ordering. A scoped,
+ * streamed synthesis call with a deadline races the two leading rungs; the first
+ * success wins. Each lane has its own budget reservation (different payloads),
+ * so the US$0.50 cap still bounds spend; the losing stream finishes or times out
+ * on its own. `DEEPINFRA_HEDGE_SYNTHESIS=off` disables it.
+ */
+function shouldHedgeDeepInfra(opts: AICallOptions, cls: AITaskClass): boolean {
+  return cls === "synthesis"
+    && scopedReportPolicy(opts)
+    && !opts.visionImages?.length
+    && process.env.DEEPINFRA_STREAM !== "off"
+    && process.env.DEEPINFRA_HEDGE_SYNTHESIS !== "off"
+    && typeof opts.deadlineAt === "number";
+}
+
+async function callDeepInfraHedged(opts: AICallOptions, cls: AITaskClass): Promise<AICallResult> {
+  if (!shouldHedgeDeepInfra(opts, cls)) return callDeepInfra(opts, cls);
+  try {
+    return await Promise.any([
+      callDeepInfra(opts, cls, (ordered) => [ordered[0], ...ordered.slice(2)].filter(Boolean)),
+      callDeepInfra(opts, cls, (ordered) => ordered.slice(1, 2)),
+    ]);
+  } catch (err) {
+    const first = err instanceof AggregateError ? err.errors[0] : err;
+    throw first instanceof Error ? first : new Error(String(first));
+  }
+}
+
+async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report", lane?: (ordered: string[]) => string[]): Promise<AICallResult> {
   const apiKey = process.env.DEEPINFRA_API_KEY ?? getDBKey("deepinfra")?.api_key ?? "";
   if (!apiKey) throw new Error("DeepInfra API key not configured");
 
@@ -1533,9 +1564,11 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report"): 
   // wall clock at its measured speed moves behind one that can finish.
   const streamed = !opts.visionImages?.length && process.env.DEEPINFRA_STREAM !== "off";
   const requestedMaxTokens = Math.min(opts.maxTokens ?? 4096, 16_384);
-  const deepinfraRungs = streamed
+  const orderedRungs = streamed
     ? orderModelsBySpeed(readyRungs, requestedMaxTokens, typeof opts.deadlineAt === "number" ? opts.deadlineAt - Date.now() : null)
     : readyRungs;
+  const deepinfraRungs = lane ? lane(orderedRungs) : orderedRungs;
+  if (deepinfraRungs.length === 0) throw new DeadLadderError("deepinfra", models.length);
   for (const model of deepinfraRungs) {
     if (aiBudgetExpired(opts)) { lastErr = lastErr ?? new AIBudgetExhaustedError(opts.budgetMs ?? 0); break; }
     // G33-T16b: an attempt with almost no wall clock left cannot answer (24/09:
@@ -1836,7 +1869,7 @@ async function callProvider(provider: Provider, opts: AICallOptions, cls: AITask
     case "sambanova":
       return callSambaNova(noTools, cls);
     case "deepinfra":
-      return callDeepInfra(noTools, cls);
+      return callDeepInfraHedged(noTools, cls);
     case "openrouter":
       return callOpenRouter(noTools, cls);
     case "gemini":

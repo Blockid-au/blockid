@@ -206,8 +206,9 @@ describe("GET /api/svi/check-gate — paid plan", () => {
       ok: true,
       canAnalyze: true,
       reason: "paid_plan",
-      plan: "growth",
     });
+    // G33-T13: the anonymous answer never names the account's plan.
+    expect(body).not.toHaveProperty("plan");
   });
 
   it("passes the account plan to getEntitlements (not a hardcoded fallback)", async () => {

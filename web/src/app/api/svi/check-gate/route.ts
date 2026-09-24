@@ -37,7 +37,9 @@ export async function GET(request: Request) {
     // would be empty anyway.
     const flags = await getEntitlements(account.plan);
     if (flags.includes("svi.run")) {
-      return NextResponse.json({ ok: true, canAnalyze: true, reason: "paid_plan", plan: account.plan });
+      // G33-T13: no plan name in the answer — this route is anonymous and keyed by
+      // any e-mail; the client only reads canAnalyze / reason.
+      return NextResponse.json({ ok: true, canAnalyze: true, reason: "paid_plan" });
     }
   }
 

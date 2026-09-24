@@ -87,7 +87,10 @@ async function scoreAuthCoverage(): Promise<DimensionScore> {
     let body = "";
     try { body = fs.readFileSync(file, "utf8"); } catch { continue; }
     const hasBearer = /isCronAuthorised|CRON_SECRET|process\.env\.CRON_SECRET|Bearer/i.test(body);
-    const hasUserAuth = /getCurrentUser|requireUser|getServerSession/.test(body);
+    // G33-T13: the repo's real guards — feature/admin/owner gates, the session
+    // cookie reader and signed webhooks — were counted as "ungated" (e.g.
+    // api/admin/comparables answers 401 anonymously via sectorMultiplesAdminGate).
+    const hasUserAuth = /getCurrentUser|requireUser|getServerSession|gateRequireFeature|requireProjectOwner|[A-Za-z]*AdminGate\s*\(|gateAdmin\s*\(|ndaGate\s*\(|authenticateRequest\s*\(|blockid_session|constructEvent\s*\(|stripe-signature/.test(body);
     const isPublic = /\/\/\s*PUBLIC|@public-route/i.test(body);
     if (hasBearer || hasUserAuth || isPublic) guarded++;
     else ungated.push(file.replace(`${WEB_DIR}/src/app/`, ""));
@@ -125,16 +128,18 @@ async function scoreRateLimit(): Promise<DimensionScore> {
 
 async function scoreSecrets(): Promise<DimensionScore> {
   // Look for likely-leaked secret patterns committed under src/ or content/
+  // G33-T13: a finding needs an actual value after the variable name (the old
+  // prefix-only list matched this scanner's own pattern list — 20 "leaks", 0 real).
   const patterns = [
-    "STRIPE_SECRET_KEY=sk_",
-    "SUPABASE_SERVICE_ROLE_KEY=ey",
-    "LINKEDIN_PAGE_ACCESS_TOKEN=",
-    "GROQ_API_KEY=gsk_",
-    "OPENAI_API_KEY=sk-",
-    "ANTHROPIC_API_KEY=sk-ant",
+    "STRIPE_SECRET_KEY=[\"']?sk_(live|test)_[A-Za-z0-9]{16,}",
+    "SUPABASE_SERVICE_ROLE_KEY=[\"']?eyJ[A-Za-z0-9_-]{20,}",
+    "LINKEDIN_PAGE_ACCESS_TOKEN=[\"']?[A-Za-z0-9_-]{24,}",
+    "GROQ_API_KEY=[\"']?gsk_[A-Za-z0-9]{20,}",
+    "OPENAI_API_KEY=[\"']?sk-[A-Za-z0-9_-]{20,}",
+    "ANTHROPIC_API_KEY=[\"']?sk-ant-[A-Za-z0-9_-]{20,}",
   ];
-  const grepRe = patterns.map(p => `-e "${p}"`).join(" ");
-  const hits = await sh(`grep -rEn ${grepRe} src/ content/ 2>/dev/null | head -20`);
+  const grepRe = patterns.map(p => `-e '${p}'`).join(" ");
+  const hits = await sh(`grep -rEn --exclude='*.test.*' ${grepRe} src/ content/ 2>/dev/null | head -20`);
   const leakLines = hits.split("\n").filter(Boolean);
   const score = leakLines.length === 0 ? 10 : Math.max(0, 10 - leakLines.length * 3);
   return {

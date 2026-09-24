@@ -1843,15 +1843,16 @@ describe("G30 BlockID report policy", () => {
     const result = await client.callAI({ ...request, taskClass, interactive: true });
     expect(result).toMatchObject({ via: "deepinfra", taskClass, policy: request.policy });
     expect(result.cost_usd).toBeGreaterThan(0);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    // G33-T16g: synthesis is hedged across the two leading rungs (both DeepInfra).
+    expect(fetchMock).toHaveBeenCalledTimes(taskClass === "synthesis" ? 2 : 1);
     onlyDeepInfra(fetchMock);
     // G33-T16d: an interactive call (60 s budget, 4 096 tokens) fits no measured
     // model with headroom, so the fastest measured rung is tried first; the call
     // still stays inside the class's exact DeepInfra ladder.
     const called = calledModels(fetchMock);
-    expect(called).toHaveLength(1);
-    expect(client.DEEPINFRA_MODELS_BY_CLASS[taskClass]).toContain(called[0]);
-    if (taskClass !== "classify") expect(called[0]).toBe("deepseek-ai/DeepSeek-V4-Flash");
+    for (const m of called) expect(client.DEEPINFRA_MODELS_BY_CLASS[taskClass]).toContain(m);
+    if (taskClass === "report") expect(called).toEqual(["deepseek-ai/DeepSeek-V4-Flash"]);
+    if (taskClass === "synthesis") expect(called).toContain("deepseek-ai/DeepSeek-V4-Flash");
   });
   it("fails closed when DeepInfra is missing", async () => {
     delete process.env.DEEPINFRA_API_KEY;
@@ -1884,6 +1885,27 @@ describe("G30 BlockID report policy", () => {
     expect(runStrikes.struckProviders()).not.toContain(`deepinfra/${primary}`);
     expect(runStrikes.snapshot()[`deepinfra/${primary}`].timeout).toBe(2);
     onlyDeepInfra(fetchMock);
+  });
+  it("G33-T16g: a scoped synthesis call with a deadline races the two leading rungs; the first answer wins", async () => {
+    const client = await loadClient();
+    const answered: string[] = [];
+    fetchMock.mockImplementation(async (_url: string, init?: RequestInit) => {
+      const model = JSON.parse(String(init?.body)).model;
+      // The slow lane answers late; the other lane answers at once.
+      if (model === "deepseek-ai/DeepSeek-V3.2") await new Promise((r) => setTimeout(r, 150));
+      answered.push(model);
+      return new Response(JSON.stringify({ model, choices: [{ message: { content: `summary from ${model}` } }], usage: { prompt_tokens: 100, completion_tokens: 20 } }));
+    });
+    const r = await client.callAI({ ...request, taskClass: "synthesis", budgetMs: 200_000 });
+    const called = calledModels(fetchMock);
+    expect(new Set(called)).toEqual(new Set(["deepseek-ai/DeepSeek-V3.2", "deepseek-ai/DeepSeek-V4-Flash"]));
+    expect(r.model).toBe(answered[0]);
+    onlyDeepInfra(fetchMock);
+  });
+  it("G33-T16g: report-class calls are not hedged", async () => {
+    const client = await loadClient();
+    await client.callAI({ ...request, taskClass: "report", budgetMs: 200_000 });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
   it("G33-T16e: DeepInfra 'Model busy' 429s strike that model only; an account rate limit still strikes the provider", async () => {
     const client = await loadClient();
