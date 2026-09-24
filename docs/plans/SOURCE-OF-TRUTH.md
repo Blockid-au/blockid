@@ -1809,7 +1809,7 @@ Approval22/09/2026 bắt đầu W0a. Đây là status của cùng45 items, khôn
 | U02/O01 saved report projection | PARTIAL LIVE / ACCEPTANCE DEFERRED | SVI EN/VI web/print/email coverage visible; saved report charts make no inference call and no longer invent missing50/100 or zero valuation. Recorded risk fields preserved. Shared BlockID citation renderer labels unresolved IDs as unverified. All-surface semantic/permission/layout acceptance remains open. [Latest receipt](../reviews/2026-09-23-citation-and-read-policy-rollout.md) |
 | G31 IL00–IL15 Investor Lens | PLAN ONLY (rev 1.2, 23/09) | Đã đối chiếu master `0edf8bc62`; xếp vào §12.10 Lane B, lượt E1–E5; UI/UX v2 ở [design spec](../design/investor-lens-report-spec.md); playbook deploy D0–D8 ở [plan §7](g31-investor-lens-biz-trust-report-2026-09-23.md). Chưa code; chờ D21 |
 | A04/A05/V04 SVI tổng điểm agent + định giá theo phân tích (G32) | APPROVED PLAN (D22 24/09) — CHƯA CODE | `svi-v3` = C+S+T−A không base/không trần, AI Agents chấm 52 câu theo rubric với panel 3 phiếu (§9.4.8), `valuation-core` từ driver có nguồn (§9.5.3); issues I47–I54. Audit read-only BlockID `6a091f52c` / SVI `565250b`. Bước đầu: SV0 rubric + SV1 reader safety |
-| G33 T01–T15 (test live 24/09) | PLAN ONLY — CHƯA CODE | Live-QA 307/0, page/link/typecheck xanh; **report degraded 8/8 trên 2 run thật**, audit chain gãy, `svi-snapshot`/`cron-health` lỗi, 8 unit tests đỏ. Thứ tự S0–S6 ở §12.11. [Receipt](../reviews/2026-09-24-live-version-test-review.md) |
+| G33 T01–T15 (test live 24/09) | **S0 LIVE + S1 LIVE (acceptance 2/5)** — 464e16b14, origin 4132 verified-good | S0 T01–T04 và S1 T05–T06 live 24/09 04:00 UTC. Canary 2 run thật: **0/8 degraded, 6 579 và 4 064 từ** (trước: 8/8, 0 từ). Còn: 3 run nữa cho acceptance S1; **T16** CEO summary hết giờ ở deadline 420 s; grounded 0.60–0.62 < 0.85 (E03/Q02); S2–S6 chưa bắt đầu. [Receipt](../reviews/2026-09-24-g33-s0-s1-live.md) · [test](../reviews/2026-09-24-live-version-test-review.md) |
 | Remaining items | OPEN — NOT COMPLETE | Full claim verification, immutable revisions/legacy delivery, question-led research, valuation eligibility, durable jobs/recovery, atomic billing/approved fee integration and whole-site UX still require implementation/integration. Quality/holdout/load/cost/sale readiness unverified; off-host backup explicitly deferred. Existing prepared financial migration candidates are not activation or completion evidence. |
 
 ### 12.10 Kế hoạch thực thi tiếp theo (23/09/2026) — hai lane
@@ -1880,6 +1880,7 @@ Chỉ đạo 23/09 “không test, implement xong là deploy” đã để 8 uni
 | T10 | P1 | Migration source `report_revisions` số mới + manifest | S2 |
 | T11 | P2 | Chặn mail tới địa chỉ đã xóa | S2 |
 | T12–T15 | P2/P3 | CVE pptxgenjs, scanner/rate-limit, MaxListeners, trang chậm | Backlog |
+| T16 | P0 | Dành cửa sổ thời gian riêng cho SYNTH (CEO summary) như W4 reserve; 24/09 canary: summary chỉ còn 22–34 s trước deadline 420 s | S1 |
 
 ## 13. Quality gates và định nghĩa ready for sale
 
@@ -2096,6 +2097,8 @@ Mỗi thay đổi yêu cầu mới phải sửa chính plan và acceptance liên
 Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi timestamp và phạm vi được bắt đầu; không coi duyệt plan đồng nghĩa tự động duyệt mọi chi phí, external send hay thay giá chưa được định lượng. Các hạng mục kỹ thuật đã được cho bắt đầu sẽ tiến hành liên tục trong phạm vi đó, không xin lại từng bước thông thường.
 
 ## 17. Change log
+
+- **24/09/2026 — G33 S0 + S1 LIVE:** `464e16b14` (origin 4132, verified-good, resource permit do founder duyệt). Status `down` cho outage, QA không pass run degraded, cron-health không crash, 8 unit tests xanh (42 371/42 371); DeepInfra streaming + chọn model theo tốc độ đo, reservation theo byte thay context window. Canary: 0/8 degraded, 6 579/4 064 từ. Thêm T16. [Receipt](../reviews/2026-09-24-g33-s0-s1-live.md).
 
 - **24/09/2026 — G33 plan hợp nhất sau test live, PLAN ONLY:** test toàn bộ bản live `a0b6f6f7d` ([receipt](../reviews/2026-09-24-live-version-test-review.md)): site/QA/links/typecheck xanh; report lõi degraded (DeepInfra không trả byte đầu trong 60 s, 429, reservation chặn summary), audit chain gãy từ 18/09, `svi-snapshot`/`cron-health` lỗi, 8 unit tests đỏ, QA/status báo xanh giả. Thêm §12.11 G33 S0–S6 (sự cố → lõi → toàn vẹn → nền G30 → G31/G32), T01–T15, D23; §12.10 được thay thứ tự; G32 giữ nguyên chưa thực thi. Chưa code.
 
