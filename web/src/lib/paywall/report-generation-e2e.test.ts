@@ -581,10 +581,12 @@ describe("Trust Report generation — failure classification", () => {
       },
     );
 
+    // G30 atomic final persistence (G33-T04): a failed/unconfirmed insert is
+    // one transient reason — no report id escapes, the order retries.
     expect(result).toEqual({
       ok: false,
       transient: true,
-      reason: "assembled_reports_insert_failed: disk full",
+      reason: "assembled_report_persistence_unconfirmed",
     });
   });
 

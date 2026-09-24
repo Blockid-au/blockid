@@ -420,9 +420,10 @@ describe("writes + reads", () => {
       svi_total: 72, created_at: "2026-09-23T00:00:00Z" };
     const input = { evaluationId: "e-1", projectId: "p-1", userId: "u-1", kind: "full" as const,
       paidVia: "quota" as const, creditsCost: 0, reportRef: "rpt-1", shareToken: "tok", sviTotal: 72, reportV2: document };
-    state.queue.push({ table: "evaluation_reports", data: { ...ROW, report_v2: document } });
+    // G33-T04: the database returns JSON — no `undefined` members — so the fixture echoes the JSON form.
+    state.queue.push({ table: "evaluation_reports", data: { ...ROW, report_v2: JSON.parse(JSON.stringify(document)) } });
     expect(await recordEvaluationReport(input)).not.toBeNull();
-    expect(state.calls[0].payload).toMatchObject({ report_v2: document });
+    expect(state.calls[0].payload).toMatchObject({ report_v2: JSON.parse(JSON.stringify(document)) });
     state.queue.push({ table: "evaluation_reports", data: { ...ROW, report_v2: null } });
     expect(await recordEvaluationReport(input)).toBeNull();
   });

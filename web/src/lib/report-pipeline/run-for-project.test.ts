@@ -37,6 +37,11 @@ function makeBuilder(table: string) {
     if (!queued && c.op === "update" && c.eqs.some(e => e.col === "id")) {
       return Promise.resolve({ data: { id: c.eqs.find(e => e.col === "id")!.val }, error: null });
     }
+    // G33-T04: the immutable revision writer reads the inserted row back and
+    // requires `revoked_at: null` (a fresh revision is never revoked).
+    if (!queued && c.op === "insert" && table === "report_revisions") {
+      return Promise.resolve({ data: { ...(c.payload as Record<string, unknown>), revoked_at: null }, error: null });
+    }
     return Promise.resolve(!queued && c.op === "insert" ? { data: c.payload, error: null } : result);
   };
   const b: Record<string, unknown> = {};
@@ -45,6 +50,7 @@ function makeBuilder(table: string) {
     insert(p: unknown) { c.op = "insert"; c.payload = p; return b; },
     update(p: unknown) { c.op = "update"; c.payload = p; return b; },
     eq(col: string, val: unknown) { c.eqs.push({ col, val }); return b; },
+    is(col: string, val: unknown) { c.eqs.push({ col, val }); return b; },
     order() { return b; },
     limit() { return b; },
     single() { return resolve(); },
@@ -378,7 +384,8 @@ describe("runTrustReportForProject (evaluator)", () => {
 
     const qualityWriter = vi.fn();
     const run = await runTrustReportForProject({ projectId: "p-1", requestedByUserId: "u-1", creditsCost: 0, qualityWriter });
-    expect(run).toMatchObject({ kind: "full", reportId: "rpt-1", snapshotId: "snap-1", shareToken: "k".repeat(24), svi: 118, stage: 3, synthesisedAnalysis: true });
+    // G30/G33-T04: the run returns the immutable report_revisions token (32), not the daily snapshot token (24).
+    expect(run).toMatchObject({ kind: "full", reportId: "rpt-1", snapshotId: "snap-1", shareToken: "k".repeat(32), svi: 118, stage: 3, synthesisedAnalysis: true });
     // G19-S46: the quality row carries the snapshot id and the persisted ReportV2's grounded share.
     expect(qualityWriter).toHaveBeenCalledTimes(1);
     expect(run.quality).toBe(qualityWriter.mock.calls[0][0]);
@@ -409,13 +416,17 @@ describe("runTrustReportForProject (evaluator)", () => {
     expect(doc.reportId).toBe("rpt-1");
   });
 
-  it("same-day re-run updates today's snapshot and keeps its share token", async () => {
+  it("same-day re-run updates today's snapshot, keeps its daily token and returns a new immutable revision token", async () => {
     state.queue.push({ table: "app_users", data: { email: "scout@fund.vc" } });
     state.queue.push({ table: "svi_snapshots", data: { id: "snap-old", report_share_token: "existing-token" } });
     state.queue.push({ table: "svi_snapshots", data: null }); // update
     const run = await runTrustReportForProject({ projectId: "p-1", requestedByUserId: "u-1" });
     expect(run.snapshotId).toBe("snap-old");
-    expect(run.shareToken).toBe("existing-token");
+    // The daily snapshot keeps "existing-token" (update payload has no token);
+    // callers get the revision token for this run's immutable document.
+    expect(run.shareToken).toBe("k".repeat(32));
+    const rev = state.calls.find((c) => c.table === "report_revisions" && c.op === "insert")!;
+    expect(rev.payload).toMatchObject({ snapshot_id: "snap-old", share_token: "k".repeat(32) });
     expect(run.synthesisedAnalysis).toBe(false);
     const upd = state.calls.find((c) => c.table === "svi_snapshots" && c.op === "update")!;
     expect(upd.eqs).toEqual([{ col: "id", val: "snap-old" }]);
@@ -460,7 +471,7 @@ describe("runRescoreForProject", () => {
     const run = await runRescoreForProject({ projectId: "p-1", requestedByUserId: "u-1" });
     expect(run.kind).toBe("rescore");
     expect(run.snapshotId).toBe("snap-2");
-    expect(run.shareToken).toBe("k".repeat(24));
+    expect(run.shareToken).toBe("k".repeat(32)); // immutable rescore revision token
     expect(run.analysisId).toBe("slug12345678");
     expect(Number.isFinite(run.svi)).toBe(true);
     expect(run.delta).toBe(run.svi - 118);

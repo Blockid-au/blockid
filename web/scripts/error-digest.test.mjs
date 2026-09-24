@@ -210,8 +210,8 @@ describe("tbr_quality watch (G24-B)", () => {
   const ok = { status: "ok", runs: 3, grounded_share_median: 0.9, degraded_share: 0, grounded_share_kpi: 0.85 };
 
   it("pickTbrQuality reads the /api/status section and rejects non-status bodies", () => {
-    expect(pickTbrQuality({ tbr_quality: { status: "watch", last24h: { runs: 4, groundedShareMedian: 0.41, degradedShare: 0.3 }, grounded_share_kpi: 0.85 } })).toEqual(watch);
-    expect(pickTbrQuality({ tbr_quality: { status: "missing", last24h: { runs: 0, groundedShareMedian: null, degradedShare: null }, grounded_share_kpi: 0.85 } })).toEqual({ status: "missing", runs: 0, grounded_share_median: null, degraded_share: null, grounded_share_kpi: 0.85 });
+    expect(pickTbrQuality({ tbr_quality: { status: "watch", last24h: { runs: 4, groundedShareMedian: 0.41, degradedShare: 0.3 }, grounded_share_kpi: 0.85 } })).toEqual({ ...watch, no_report_runs: null });
+    expect(pickTbrQuality({ tbr_quality: { status: "missing", last24h: { runs: 0, groundedShareMedian: null, degradedShare: null }, grounded_share_kpi: 0.85 } })).toEqual({ status: "missing", runs: 0, grounded_share_median: null, degraded_share: null, no_report_runs: null, grounded_share_kpi: 0.85 });
     expect(pickTbrQuality({})).toBeNull();
     expect(pickTbrQuality(null)).toBeNull();
     expect(pickTbrQuality({ tbr_quality: "watch" })).toBeNull();
@@ -244,6 +244,17 @@ describe("tbr_quality watch (G24-B)", () => {
     expect(evaluateTbrQuality(r8.next, { ...watch, status: "missing" }, base + 85 * H).alert).toMatch(/status=missing for 25 h/);
   });
 
+  it("G33-T01: `down` (no-report outage) alerts after 1 h, then at most every 6 h", () => {
+    const down = { status: "down", runs: 2, grounded_share_median: null, degraded_share: 1, no_report_runs: 2, grounded_share_kpi: 0.85 };
+    expect(pickTbrQuality({ tbr_quality: { status: "down", last24h: { runs: 2, groundedShareMedian: null, degradedShare: 1, noReportRuns: 2 }, grounded_share_kpi: 0.85 } })).toEqual(down);
+    const d1 = evaluateTbrQuality(emptyTbrQualityState(), down, base);
+    expect(d1.alert).toBeNull();
+    const d2 = evaluateTbrQuality(d1.next, down, base + H + 1);
+    expect(d2.alert).toMatch(/^\[tbr_quality\] status=down for 1 h — degraded 1\.00, no-report runs 2, runs 2 \(24 h\)/);
+    expect(evaluateTbrQuality(d2.next, down, base + 5 * H).alert).toBeNull();
+    expect(evaluateTbrQuality(d2.next, down, base + 7 * H + 2).alert).toMatch(/status=down for 7 h/);
+  });
+
   it("an unreadable status (app down) changes nothing and never alerts; prev is not mutated", () => {
     const prev = { status: "watch", not_ok_since: new Date(base).toISOString(), last_alert_at: null };
     const r = evaluateTbrQuality(prev, null, base + 30 * H);
@@ -259,7 +270,7 @@ describe("tbr_quality watch (G24-B)", () => {
 
   it("readTbrQuality: 200 → the picked section; non-200 / network error / timeout → null (never throws)", async () => {
     const okFetch = async () => ({ ok: true, json: async () => ({ tbr_quality: { status: "watch", last24h: { runs: 4, groundedShareMedian: 0.41, degradedShare: 0.3 }, grounded_share_kpi: 0.85 } }) });
-    expect(await readTbrQuality({ env: { STATUS_BASE_URL: "http://127.0.0.1:1/" }, fetchImpl: okFetch })).toEqual(watch);
+    expect(await readTbrQuality({ env: { STATUS_BASE_URL: "http://127.0.0.1:1/" }, fetchImpl: okFetch })).toEqual({ ...watch, no_report_runs: null });
     expect(await readTbrQuality({ env: {}, fetchImpl: async () => ({ ok: false, status: 503, json: async () => ({}) }) })).toBeNull();
     expect(await readTbrQuality({ env: {}, fetchImpl: async () => { throw new Error("ECONNREFUSED"); } })).toBeNull();
     let url = "";

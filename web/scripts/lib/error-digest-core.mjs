@@ -241,6 +241,10 @@ export function toReportRow(digest, tsIso, windowMin = WINDOW_MIN) {
 
 export const TBR_QUALITY_NOT_OK_HOURS = 24;
 export const TBR_QUALITY_ALERT_DEBOUNCE_HOURS = 24;
+// G33-T01: `down` (most runs produced no report) is an outage, not a quality
+// drift — it alerts after one hour and repeats at most every six.
+export const TBR_QUALITY_DOWN_HOURS = 1;
+export const TBR_QUALITY_DOWN_DEBOUNCE_HOURS = 6;
 
 export function emptyTbrQualityState() {
   return { status: null, not_ok_since: null, last_alert_at: null };
@@ -257,6 +261,7 @@ export function pickTbrQuality(statusBody) {
     runs: num(w.runs) ?? 0,
     grounded_share_median: num(w.groundedShareMedian),
     degraded_share: num(w.degradedShare),
+    no_report_runs: num(w.noReportRuns),
     grounded_share_kpi: num(q.grounded_share_kpi),
   };
 }
@@ -271,8 +276,9 @@ export function pickTbrQuality(statusBody) {
  * Pure: returns { next, alert } and never mutates `prev`.
  */
 export function evaluateTbrQuality(prev, verdict, nowMs = Date.now(), opts = {}) {
-  const notOkMs = (opts.notOkHours ?? TBR_QUALITY_NOT_OK_HOURS) * 3_600_000;
-  const debounceMs = (opts.debounceHours ?? TBR_QUALITY_ALERT_DEBOUNCE_HOURS) * 3_600_000;
+  const isDown = verdict?.status === "down";
+  const notOkMs = (opts.notOkHours ?? (isDown ? TBR_QUALITY_DOWN_HOURS : TBR_QUALITY_NOT_OK_HOURS)) * 3_600_000;
+  const debounceMs = (opts.debounceHours ?? (isDown ? TBR_QUALITY_DOWN_DEBOUNCE_HOURS : TBR_QUALITY_ALERT_DEBOUNCE_HOURS)) * 3_600_000;
   const base = { ...emptyTbrQualityState(), ...(prev && typeof prev === "object" ? prev : {}) };
   if (!verdict) return { next: base, alert: null };
   const nowIso = new Date(nowMs).toISOString();
@@ -296,6 +302,7 @@ export function formatTbrQualityAlert(verdict, heldMs) {
     parts.push(`grounded median ${verdict.grounded_share_median.toFixed(2)}${verdict.grounded_share_kpi != null ? ` vs KPI ${verdict.grounded_share_kpi.toFixed(2)}` : ""}`);
   }
   if (verdict.degraded_share !== null && verdict.degraded_share !== undefined) parts.push(`degraded ${verdict.degraded_share.toFixed(2)}`);
+  if (typeof verdict.no_report_runs === "number" && verdict.no_report_runs > 0) parts.push(`no-report runs ${verdict.no_report_runs}`);
   parts.push(`runs ${verdict.runs ?? 0} (24 h)`);
   return `[tbr_quality] status=${verdict.status} for ${hours} h — ${parts.join(", ")} — see /api/status tbr_quality`;
 }

@@ -135,7 +135,7 @@ describe("summariseTbrQuality (24 h window)", () => {
   const ago = (h: number) => new Date(now - h * 3_600_000).toISOString();
 
   it("missing when no run falls inside the window (old rows and junk are ignored)", () => {
-    expect(summariseTbrQuality([], now)).toEqual({ last24h: { runs: 0, groundedShareMedian: null, groundedShareLatest: null, costUsdMedian: null, degradedShare: null, budgetOverruns: 0, verdictTrimmed: 0 }, status: "missing", grounded_share_kpi: 0.85, last_degraded: null });
+    expect(summariseTbrQuality([], now)).toEqual({ last24h: { runs: 0, groundedShareMedian: null, groundedShareLatest: null, costUsdMedian: null, degradedShare: null, noReportRuns: 0, budgetOverruns: 0, verdictTrimmed: 0 }, status: "missing", grounded_share_kpi: 0.85, last_degraded: null });
     expect(summariseTbrQuality([row({ ts: ago(30) }), { ts: "nope" }, null as never, "x" as never], now).status).toBe("missing");
   });
 
@@ -151,7 +151,7 @@ describe("summariseTbrQuality (24 h window)", () => {
       ],
       now,
     );
-    expect(s).toEqual({ last24h: { runs: 5, groundedShareMedian: 0.9, groundedShareLatest: 0.9, costUsdMedian: 0.03, degradedShare: 0.2, budgetOverruns: 0, verdictTrimmed: 0 }, status: "ok", grounded_share_kpi: 0.85, last_degraded: null });
+    expect(s).toEqual({ last24h: { runs: 5, groundedShareMedian: 0.9, groundedShareLatest: 0.9, costUsdMedian: 0.03, degradedShare: 0.2, noReportRuns: 0, budgetOverruns: 0, verdictTrimmed: 0 }, status: "ok", grounded_share_kpi: 0.85, last_degraded: null });
   });
 
   it("watch when the grounded median drops under 0.85 or more than 20 % of runs degraded", () => {
@@ -160,7 +160,7 @@ describe("summariseTbrQuality (24 h window)", () => {
     expect(summariseTbrQuality([row({ ts: ago(1), groundedShare: 0.7 }), row({ ts: ago(2), groundedShare: 0.84 })], now)).toMatchObject({ last24h: { runs: 2, groundedShareMedian: 0.77 }, status: "watch" });
     expect(summariseTbrQuality([row({ ts: ago(1), degradedSections: 2 }), row({ ts: ago(2) }), row({ ts: ago(3) })], now)).toMatchObject({ last24h: { degradedShare: 0.33 }, status: "watch" });
     // A row without a grounded figure still counts as a run but not toward the median.
-    expect(summariseTbrQuality([row({ ts: ago(1), groundedShare: undefined as never })], now)).toEqual({ last24h: { runs: 1, groundedShareMedian: null, groundedShareLatest: null, costUsdMedian: 0.01, degradedShare: 0, budgetOverruns: 0, verdictTrimmed: 0 }, status: "ok", grounded_share_kpi: 0.85, last_degraded: null });
+    expect(summariseTbrQuality([row({ ts: ago(1), groundedShare: undefined as never })], now)).toEqual({ last24h: { runs: 1, groundedShareMedian: null, groundedShareLatest: null, costUsdMedian: 0.01, degradedShare: 0, noReportRuns: 0, budgetOverruns: 0, verdictTrimmed: 0 }, status: "ok", grounded_share_kpi: 0.85, last_degraded: null });
   });
 
   it("readTbrQualityStatus reads content/reports/tbr-quality.jsonl under the root, skips bad lines, and is missing without the file", async () => {
@@ -168,7 +168,7 @@ describe("summariseTbrQuality (24 h window)", () => {
     expect(await readTbrQualityStatus(root, now)).toMatchObject({ status: "missing" });
     await fs.mkdir(path.join(root, "content", "reports"), { recursive: true });
     await fs.writeFile(path.join(root, "content", "reports", TBR_QUALITY_FILE), [JSON.stringify(row({ ts: ago(1), groundedShare: 0.91 })), "{broken", JSON.stringify(row({ ts: ago(2), groundedShare: 0.93 }))].join("\n") + "\n");
-    expect(await readTbrQualityStatus(root, now)).toEqual({ last24h: { runs: 2, groundedShareMedian: 0.92, groundedShareLatest: 0.91, costUsdMedian: 0.01, degradedShare: 0, budgetOverruns: 0, verdictTrimmed: 0 }, status: "ok", grounded_share_kpi: 0.85, last_degraded: null });
+    expect(await readTbrQualityStatus(root, now)).toEqual({ last24h: { runs: 2, groundedShareMedian: 0.92, groundedShareLatest: 0.91, costUsdMedian: 0.01, degradedShare: 0, noReportRuns: 0, budgetOverruns: 0, verdictTrimmed: 0 }, status: "ok", grounded_share_kpi: 0.85, last_degraded: null });
   });
 
   // ── G23-A: KPI export, counters, and the no-report exclusion ──────────────
@@ -197,6 +197,22 @@ describe("summariseTbrQuality (24 h window)", () => {
     expect(seven.last24h).toMatchObject({ runs: 2, groundedShareMedian: 0.9, degradedShare: 0.5 });
     // 6 degraded chapters is a (poor) report — its share stays in the median.
     expect(summariseTbrQuality([row({ ts: ago(1), groundedShare: 0.9 }), row({ ts: ago(2), groundedShare: 0, words: 0, degradedSections: 6 })], now).last24h.groundedShareMedian).toBe(0.45);
+  });
+
+  it("G33-T01: an outage is `down`, not `watch` — half the window or the two latest runs produced no report", () => {
+    const empty = (ts: string) => row({ ts, groundedShare: 0, words: 0, degradedSections: 8 });
+    // 24/09 live shape: two free runs, both fully degraded.
+    const both = summariseTbrQuality([empty(ago(1)), empty(ago(1))], now);
+    expect(both.status).toBe("down");
+    expect(both.last24h.noReportRuns).toBe(2);
+    // 3 of 5 produced nothing → down even when the latest run was fine.
+    expect(summariseTbrQuality([row({ ts: ago(1), groundedShare: 0.9 }), empty(ago(2)), empty(ago(3)), empty(ago(4)), row({ ts: ago(5), groundedShare: 0.9 })], now).status).toBe("down");
+    // The two latest runs produced nothing → down even if older runs were fine.
+    expect(summariseTbrQuality([row({ ts: ago(5), groundedShare: 0.9 }), row({ ts: ago(4), groundedShare: 0.9 }), row({ ts: ago(3), groundedShare: 0.9 }), empty(ago(2)), empty(ago(1))], now).status).toBe("down");
+    // One outage then a good run → still only a watch.
+    expect(summariseTbrQuality([empty(ago(2)), row({ ts: ago(1), groundedShare: 0.9 }), row({ ts: ago(3), groundedShare: 0.9 })], now).status).toBe("watch");
+    // A single no-report run is not yet `down` (needs two).
+    expect(summariseTbrQuality([empty(ago(1))], now).status).toBe("watch");
   });
 
   // ── G29-B: degraded-run diagnostics on the row + last_degraded on the status ──

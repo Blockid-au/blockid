@@ -47,7 +47,7 @@ async function heartbeat(ok, note) {
     await mkdir(REPORTS_DIR, { recursive: true })
     await appendFile(
       HEALTH,
-      JSON.stringify({ cron: 'ga4-daily-pull', ok, note: note ?? null, at: new Date().toISOString() }) + '\n',
+      JSON.stringify({ ts: new Date().toISOString(), endpoint: 'ga4-daily-pull', status: ok ? 'ok' : 'fail', detail: note ?? '' }) + '\n',
       'utf8',
     )
   } catch { /* ignore */ }

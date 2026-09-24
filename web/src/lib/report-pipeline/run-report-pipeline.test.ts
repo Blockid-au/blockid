@@ -419,15 +419,19 @@ describe("runReportPipeline", () => {
     const storage = await import("@/lib/report-v2/storage");
     const upsert = vi.spyOn(legacy, "upsertSnapshotWithToken").mockResolvedValue({ snapshotId: "snap-actual", shareToken: "fixture" });
     const write = vi.spyOn(storage, "writeSnapshotReportV2").mockResolvedValue(acknowledged);
+    // G30 stream revisions (a0b6f6f7d): after the daily projection is confirmed the
+    // adapter also writes the immutable revision; G33-T04 models it as confirmed.
+    const revision = vi.spyOn(storage, "insertImmutableReportRevision").mockResolvedValue({ revisionId: "rev-1", shareToken: "r".repeat(32) });
     persistenceDb.value = {};
     const d = deps({ persistSnapshot: undefined });
     try {
       const res = await runReportPipeline({ userId: "user-1", ownerEmail: "owner@x.test", projectId: "proj-1", tier: "standard", onEvent: () => {}, deps: d });
       expect(write).toHaveBeenCalledWith({}, "snap-actual", expect.objectContaining({ snapshotId: "snap-actual", projectId: "proj-1" }));
       expect(res).toMatchObject({ ok: true, snapshotId: "snap-actual", saveStatus: acknowledged ? "saved" : "save_failed" });
+      expect(revision).toHaveBeenCalledTimes(acknowledged ? 1 : 0);
       expect(d.emailed).toHaveLength(acknowledged ? 1 : 0);
       expect(d.notified).toHaveLength(acknowledged ? 1 : 0);
-    } finally { upsert.mockRestore(); write.mockRestore(); persistenceDb.value = null; }
+    } finally { upsert.mockRestore(); write.mockRestore(); revision.mockRestore(); persistenceDb.value = null; }
   });
   it("default adapter treats unavailable canonical storage as save_failed", async () => {
     const legacy = await import("./run-for-project");

@@ -27,6 +27,8 @@ const CLOUD_WEEKLY = ["cmo", "ir"];
 const CLOUD_DAILY_MAX_AGE_MS = 25 * 3_600_000; // 25h
 const CLOUD_WEEKLY_MAX_AGE_MS = 8 * 86_400_000; // 8 days
 
+import { normaliseCronEntry } from "@/lib/ops/cron-health-entry";
+
 interface CronEntry {
   ts: string;
   endpoint: string;
@@ -56,7 +58,10 @@ export async function GET(request: Request) {
       for (const line of raw.split("\n")) {
         const t = line.trim();
         if (!t) continue;
-        try { entries.push(JSON.parse(t)); } catch { /* skip */ }
+        try {
+          const e = normaliseCronEntry(JSON.parse(t));
+          if (e) entries.push(e);
+        } catch { /* skip */ }
       }
     }
 

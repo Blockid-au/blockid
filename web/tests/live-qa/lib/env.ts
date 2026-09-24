@@ -24,6 +24,8 @@ export const env = {
   elevate: on("LIVE_QA_ELEVATE"),
   /** Allow confirming an action that costs credits. Default: never. */
   spendOk: on("LIVE_QA_SPEND_OK"),
+  /** G33-T02: accept a failed / degraded real run as "not exercised" instead of failing the lane (outage drills only). */
+  allowDegraded: on("LIVE_QA_ALLOW_DEGRADED"),
   /** Debugging only: leave the QA account in place (the teardown still refuses silently-lingering accounts in cron because the runner never sets this). */
   keepAccount: on("LIVE_QA_KEEP_ACCOUNT"),
   /** Reuse an existing run state instead of provisioning (debugging a single spec). */

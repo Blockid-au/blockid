@@ -145,11 +145,17 @@ test.describe("43 — free allowance (G25-C)", () => {
       band: view.reportV2?.cover?.svi?.band ?? null,
       emailedAt: view.emailedAt ?? null,
     });
-    if (view.status === "failed") {
-      // A provider outage is a real finding, not a lane bug: say so and stop here.
-      testInfo.annotations.push({ type: "not-exercised", description: `free run 1 failed on the live pipeline (${view.error ?? "no error"}) — the cron retries; document assertions skipped` });
+    // G33-T02 (24/09 live test): a failed or empty run is the product being down,
+    // not a lane bug to annotate away — it fails the lane unless the operator
+    // explicitly runs an outage drill with LIVE_QA_ALLOW_DEGRADED=1.
+    const degradedCount = Array.isArray(view.reportV2?.quality?.degradedSections) ? view.reportV2!.quality!.degradedSections!.length : null;
+    if (env.allowDegraded && (view.status === "failed" || (degradedCount ?? 0) > 1)) {
+      testInfo.annotations.push({ type: "not-exercised", description: `free run 1 ${view.status === "failed" ? `failed (${view.error ?? "no error"})` : `degraded ${degradedCount}/8`} — accepted under LIVE_QA_ALLOW_DEGRADED` });
       return;
     }
+    expect(view.status, `free run 1 failed on the live pipeline: ${view.error ?? "no error"}`).toBe("done");
+    expect(degradedCount, "free run 1 degraded chapters (≤ 1 allowed)").not.toBeNull();
+    expect(degradedCount!).toBeLessThanOrEqual(1);
     expect(view.kind).toBe("v2");
     expect(view.report ?? null).toBeNull();
     expect(view.reportV2?.dimensions).toHaveLength(8);
