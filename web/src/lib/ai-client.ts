@@ -2618,6 +2618,14 @@ async function callAITracked(opts: AICallOptions): Promise<AICallResult> {
   // timeouts can no longer multiply that figure.
   const budgetMs = opts.budgetMs ?? (opts.interactive ? Math.max(INTERACTIVE_BUDGET_MS, opts.timeoutMs ?? 0) : undefined);
   if (budgetMs != null && opts.deadlineAt == null) opts = { ...opts, budgetMs, deadlineAt: Date.now() + budgetMs };
+  // G33-T16k: keep the tail of a scoped synthesis window for the Groq backup —
+  // 24/09 canary on 9f64951b1: DeepInfra lanes used the whole window and the
+  // backup was skipped with < 15 s left. DeepInfra now stops GROQ_SYNTHESIS_RESERVE_MS
+  // earlier whenever the backup is still available for this run.
+  const fallbackOpts = opts;
+  if (scoped && taskClass === "synthesis" && groqSynthesisFallbackAvailable(opts) && typeof opts.deadlineAt === "number" && opts.deadlineAt - Date.now() > GROQ_SYNTHESIS_RESERVE_MS + DEEPINFRA_MIN_ATTEMPT_MS) {
+    opts = { ...opts, deadlineAt: opts.deadlineAt - GROQ_SYNTHESIS_RESERVE_MS };
+  }
 
   if (allProviders.length === 0) {
     throw new Error(
@@ -2733,11 +2741,11 @@ async function callAITracked(opts: AICallOptions): Promise<AICallResult> {
   // G33-T16j: founder decision 24/09 — when DeepInfra cannot answer a scoped
   // synthesis call (the CEO summary), one Groq free-tier call per run may.
   if (scoped && taskClass === "synthesis") {
-    const fallback = await callGroqReportSynthesisFallback(opts).catch((err) => {
+    const fallback = await callGroqReportSynthesisFallback(fallbackOpts).catch((err) => {
       console.warn(`[ai-client] groq free synthesis fallback failed: ${err instanceof Error ? err.message.slice(0, 200) : String(err)}`);
       return null;
     });
-    if (fallback) return { ...fallback, via: "groq", taskClass, policy: opts.policy } as AICallResult;
+    if (fallback) return { ...fallback, via: "groq", taskClass, policy: fallbackOpts.policy } as AICallResult;
   }
   throw lastError ?? new Error("All AI providers failed");
 }
@@ -2757,7 +2765,14 @@ async function callAITracked(opts: AICallOptions): Promise<AICallResult> {
  * Off with REPORT_GROQ_FREE_FALLBACK=off. Never used for chapters or criteria.
  */
 export const REPORT_GROQ_FREE_MODEL = "openai/gpt-oss-120b";
+/** G33-T16k: wall clock kept at the end of a synthesis window for the Groq backup (hundreds of tok/s → 2 600 tokens in well under 40 s). */
+export const GROQ_SYNTHESIS_RESERVE_MS = 40_000;
 const groqFallbackUsed = new WeakMap<object, number>();
+function groqSynthesisFallbackAvailable(opts: AICallOptions): boolean {
+  if (process.env.REPORT_GROQ_FREE_FALLBACK === "off" || !opts.runStrikes) return false;
+  if (!(process.env.GROQ_API_KEY ?? getDBKey("groq")?.api_key)) return false;
+  return (groqFallbackUsed.get(opts.runStrikes) ?? 0) < 1;
+}
 async function callGroqReportSynthesisFallback(opts: AICallOptions): Promise<Pick<AICallResult, "text" | "provider" | "model" | "usage" | "cost_usd"> | null> {
   if (process.env.REPORT_GROQ_FREE_FALLBACK === "off") return null;
   const apiKey = process.env.GROQ_API_KEY ?? getDBKey("groq")?.api_key ?? "";
