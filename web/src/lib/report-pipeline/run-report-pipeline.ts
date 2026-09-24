@@ -38,7 +38,7 @@ import { readStreamValuation } from "@/lib/svi/stream-valuation";
 import { createHash } from "crypto";
 import { CRITERIA } from "@/lib/evaluation-criteria";
 import type { CriterionCard, DimensionChapter, ReportTierV2, ReportV2 } from "@/lib/report-v2/schema";
-import { writeSnapshotReportV2 } from "@/lib/report-v2/storage";
+import { insertImmutableReportRevision, writeSnapshotReportV2 } from "@/lib/report-v2/storage";
 import { DIM_LEGACY_ORDER, DIM_ORDER, type DimKey } from "./dimension-owners";
 import { PIPELINE_VERSION, assertReportUsable, orchestrateReport, type AICallerInput, type PipelineEvent } from "./orchestrator";
 import { pipelineCallTimeouts } from "./pipeline-timeouts";
@@ -235,7 +235,7 @@ export interface RunPipelineDeps {
   callAI?: AICallerInput;
   /** `undefined` → getSupabaseAdmin(); `null` → no DB (no cache, no persist). */
   db?: RunnerDb | null;
-  persistSnapshot?: (args: PersistSnapshotArgs) => Promise<{ snapshotId: string | null; reportV2Saved: boolean }>;
+  persistSnapshot?: (args: PersistSnapshotArgs) => Promise<{ snapshotId: string | null; reportV2Saved: boolean; reportRevisionSaved?: boolean }>;
   notify?: (args: { userId: string; projectId: string | null; kind: "analysis_done"; payload: Row }) => Promise<unknown>;
   sendEmail?: (args: EmailArgs) => Promise<unknown>;
   now?: () => number;
@@ -327,9 +327,9 @@ async function defaultDb(): Promise<RunnerDb | null> {
 }
 
 /** Today's svi_snapshots row for the account: legacy shapes + the pipeline ReportV2. */
-async function defaultPersistSnapshot(args: PersistSnapshotArgs): Promise<{ snapshotId: string | null; reportV2Saved: boolean }> {
+async function defaultPersistSnapshot(args: PersistSnapshotArgs): Promise<{ snapshotId: string | null; reportV2Saved: boolean; reportRevisionSaved?: boolean }> {
   const { ctx, report, dimResults, criterionResults, reportV2 } = args;
-  if (!ctx.projectId) return { snapshotId: null, reportV2Saved: false };
+  if (!ctx.projectId) return { snapshotId: null, reportV2Saved: false, reportRevisionSaved: false };
   const dimResultsMap: Record<string, Row> = {};
   const dimensionScores: Record<string, { score: number; priority: "high" | "medium" | "low" }> = {};
   dimResults.forEach((d) => {
@@ -358,11 +358,23 @@ async function defaultPersistSnapshot(args: PersistSnapshotArgs): Promise<{ snap
     criterionResults: criterionResults as unknown as Row[],
   });
   let reportV2Saved = false;
+  let reportRevisionSaved = false;
   if (snapshotId && reportV2) {
     const db = await defaultDb();
-    if (db) reportV2Saved = await writeSnapshotReportV2(db as unknown as Parameters<typeof writeSnapshotReportV2>[0], snapshotId, { ...reportV2, snapshotId, projectId: ctx.projectId });
+    if (db) {
+      const document = { ...reportV2, snapshotId, projectId: ctx.projectId };
+      reportV2Saved = await writeSnapshotReportV2(db as unknown as Parameters<typeof writeSnapshotReportV2>[0], snapshotId, document);
+      if (reportV2Saved) {
+        reportRevisionSaved = Boolean(await insertImmutableReportRevision(db as unknown as Parameters<typeof insertImmutableReportRevision>[0], {
+          snapshotId,
+          accountId: ctx.account.id,
+          projectId: ctx.projectId,
+          report: document,
+        }));
+      }
+    }
   }
-  return { snapshotId, reportV2Saved };
+  return { snapshotId, reportV2Saved, reportRevisionSaved };
 }
 
 async function defaultNotify(args: { userId: string; projectId: string | null; kind: "analysis_done"; payload: Row }): Promise<unknown> {
@@ -566,9 +578,9 @@ async function runReportPipelineTracked(input: RunReportPipelineInput): Promise<
       }
     } else {
       try {
-        const { snapshotId, reportV2Saved } = await (deps.persistSnapshot ?? defaultPersistSnapshot)({ ctx, report, dimResults: state.dimResults, criterionResults: state.criteria, reportV2: report.reportV2 ?? null });
+        const { snapshotId, reportV2Saved, reportRevisionSaved } = await (deps.persistSnapshot ?? defaultPersistSnapshot)({ ctx, report, dimResults: state.dimResults, criterionResults: state.criteria, reportV2: report.reportV2 ?? null });
         state.snapshotId = snapshotId;
-        saveStatus = snapshotId && reportV2Saved ? "saved" : "save_failed";
+        saveStatus = snapshotId && reportV2Saved && reportRevisionSaved !== false ? "saved" : "save_failed";
       } catch (err) {
         saveStatus = "save_failed";
         console.warn("[run-report-pipeline] snapshot persist failed", err instanceof Error ? err.message : String(err));
