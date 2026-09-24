@@ -151,7 +151,21 @@ function siteUrl(): string {
 
 type SendResult =
   | { ok: true; id: string }
-  | { ok: false; reason: "not_configured" | "send_error" | "unsubscribed"; error?: unknown };
+  | { ok: false; reason: "not_configured" | "send_error" | "unsubscribed" | "erased_recipient"; error?: unknown };
+
+/**
+ * G33-T11: an erased account's address is rewritten to a tombstone
+ * (`deleted+<hash>@erased.blockid.au`, lib/privacy/erasure-map.ts). 24/09 live
+ * logs showed six mails sent to such addresses — nothing may be delivered to an
+ * erased identity, whichever job still holds the row.
+ */
+export const ERASED_RECIPIENT_DOMAIN = "erased.blockid.au";
+export function isErasedRecipient(to: string): boolean {
+  const at = to.trim().toLowerCase().lastIndexOf("@");
+  if (at < 0) return false;
+  const domain = to.trim().toLowerCase().slice(at + 1).replace(/>$/, "");
+  return domain === ERASED_RECIPIENT_DOMAIN || domain.endsWith(`.${ERASED_RECIPIENT_DOMAIN}`);
+}
 
 // ---------- Resend fallback ---------------------------------------------------
 
@@ -238,6 +252,10 @@ export async function sendEmail(args: {
   /** `cid` marks an inline image (referenced as `<img src="cid:<cid>">`) — S-R4 report visuals. */
   attachments?: { filename: string; content: Buffer | Uint8Array; contentType?: string; cid?: string }[];
 }): Promise<SendResult> {
+  if (isErasedRecipient(args.to)) {
+    console.warn("[blockid:email] refused: recipient is an erased-account tombstone");
+    return { ok: false, reason: "erased_recipient" };
+  }
   // Priority 1: SMTP (Nodemailer)
   const transporter = getTransporter();
   if (transporter) {
