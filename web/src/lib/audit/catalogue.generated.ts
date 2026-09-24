@@ -386,6 +386,7 @@ export const AUDIT_ROUTE_CATALOGUE: readonly AuditCatalogueRow[] = Object.freeze
   { route: "api/valuation/clevel/route.ts", family: "valuation.clevel", methods: ["POST"] },
   { route: "api/valuation/pdf/route.ts", family: "valuation.pdf", methods: ["POST"] },
   { route: "api/valuation/route.ts", family: "valuation", methods: ["POST"] },
+  { route: "api/valuation/scenario/route.ts", family: "valuation.scenario", methods: ["POST"] },
   { route: "api/valuation/vc/route.ts", family: "valuation.vc", methods: ["POST"] },
   { route: "api/verification/abr/route.ts", family: "verification.abr", methods: ["POST"] },
   { route: "api/vesting/[id]/route.ts", family: "vesting", methods: ["PATCH","DELETE"] },

@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
+import { ApiError, UserError, userErrorMessage } from "@/lib/ui/user-error";
 import type { CfoScenarioResult } from "@/lib/valuation/cfo-scenario";
 import type { CfoMethodInput, CfoSourcedNumber } from "@/lib/valuation/cfo-methodology-core";
 import { fcffFromOperatingSchedule } from "@/lib/valuation/cfo-methodology-core";
@@ -25,9 +26,9 @@ export function CfoScenarioClient({ entityId }: { entityId: string }) {
       const form = new FormData(event.currentTarget);
       const text = (name: string) => String(form.get(name) ?? "").trim();
       const amount = (name: string) => {
-        if (!text(name)) throw new Error(`Enter ${name}; use 0 only if explicitly applicable.`);
+        if (!text(name)) throw new UserError(`Enter ${name}; use 0 only if explicitly applicable.`);
         const value = Number(text(name));
-        if (!Number.isFinite(value)) throw new Error(`Invalid ${name}`);
+        if (!Number.isFinite(value)) throw new UserError(`Invalid ${name}`);
         return value;
       };
       const valuationDate = text("date"), currency = text("currency"), reference = text("source");
@@ -54,9 +55,9 @@ export function CfoScenarioClient({ entityId }: { entityId: string }) {
       };
       const response = await fetch("/api/valuation/scenario", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ methods: [method] }) });
       const payload = await response.json();
-      if (!response.ok || !payload.ok) throw new Error(payload.error || "Unable to calculate scenario");
+      if (!response.ok || !payload.ok) throw ApiError.fromBody(response.status, payload);
       setResult(payload.result);
-    } catch (e) { setError(e instanceof Error ? e.message : "Unable to calculate scenario"); }
+    } catch (e) { setError(userErrorMessage(e, "Unable to calculate scenario. Check your financial inputs and try again.")); }
     finally { setBusy(false); }
   }
   function download() {
