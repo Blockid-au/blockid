@@ -65,6 +65,15 @@ describe("report attempt budget (G33-T06)", () => {
     expect(entries[1]).toMatchObject({ state: "reported_usage", retryOf: first.attemptId });
   });
 
+  it("G33-T16f: twenty parallel reservations on one scope all get a permit (lock wait), and a refusal names its reason", async () => {
+    const budget = createReportAttemptBudget(scope());
+    const permits = await Promise.all(Array.from({ length: 20 }, (_, i) => reserveResearchAttempt(budget, FLASH, payload(5_000 + i), 1500)));
+    expect(permits.every((p) => p.dispatchAllowed)).toBe(true);
+    const body = payload(7_777);
+    await reserveResearchAttempt(budget, FLASH, body, 500);
+    await expect(reserveResearchAttempt(budget, FLASH, body, 500)).rejects.toThrow(/reservation unavailable \(report attempt replay denied\)/);
+  });
+
   it("usage above the byte ceiling is not accepted as reported usage", async () => {
     const budget = createReportAttemptBudget(scope());
     const body = payload(100);

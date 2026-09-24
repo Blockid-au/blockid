@@ -40,7 +40,13 @@ export async function reserveResearchAttempt(budget: ResearchAttemptBudget, mode
   const request: AttemptRequest = { attemptId, provider: "deepinfra", model, payloadSha256, promptBytes: Buffer.byteLength(payload), maximumOutputTokens };
   let permit: AttemptPermit;
   try { permit = await bounded(budget.reserve(request)); }
-  catch { throw new ResearchAttemptBudgetError("reservation unavailable; reconciliation required"); }
+  catch (e) {
+    // G33-T16f: keep the coordinator's reason (lock, cap, replay, timeout) —
+    // 24/09 a CEO summary was refused with a healthy US$0.03 ledger and the
+    // generic text hid why. The reason never carries prompts, keys or amounts.
+    const reason = e instanceof ResearchAttemptBudgetError ? e.message.replace(/^Research attempt budget:\s*/, "") : "coordinator error";
+    throw new ResearchAttemptBudgetError(`reservation unavailable (${reason.slice(0, 120)}); reconciliation required`);
+  }
   const positive = (n: number) => Number.isSafeInteger(n) && n > 0;
   if (!permit?.dispatchAllowed) throw new ResearchAttemptBudgetError("dispatch denied");
   const identityOk = permit.attemptId === attemptId || (permit.retryOf === attemptId && /^[a-f0-9]{64}$/.test(permit.attemptId) && permit.attemptId !== attemptId);

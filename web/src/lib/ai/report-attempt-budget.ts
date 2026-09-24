@@ -87,7 +87,10 @@ export function createReportAttemptBudget(scopeId: string): ResearchAttemptBudge
         await syncDirectory(root);
       } catch (e) { if ((e as NodeJS.ErrnoException).code !== "EEXIST") throw e; }
       await privateDirectory(directory);
-      const until = Date.now() + 1500;
+      // G33-T16f: a report fans out ~10 parallel calls on one scope; each ledger
+      // write fsyncs. 1.5 s of lock wait refused calls under that load. Stay under
+      // the 5 s coordinator bound in research-attempt-budget.ts.
+      const until = Date.now() + 3500;
       for (;;) {
         try { await mkdir(lock, { mode: 0o700 }); locked = true; break; }
         catch (e) { if ((e as NodeJS.ErrnoException).code !== "EEXIST" || Date.now() >= until) return fail("lock unavailable"); await new Promise(r => setTimeout(r, 20)); }
