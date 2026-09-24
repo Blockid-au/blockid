@@ -33,8 +33,31 @@ export const MODEL_SPEED_PRIORS: Readonly<Record<string, Omit<ModelSpeed, "sampl
 
 const speeds = new Map<string, ModelSpeed>();
 
+/**
+ * G33-T16i: calls currently streaming per model (this process). 24/09 canary:
+ * eight W4 chapters all went to DeepSeek-V4-Flash (the fastest estimate); with
+ * 7–9 in flight it slowed from ~32 to ~13 tok/s and 2–3 chapters overran. Each
+ * call in flight stretches that model's estimate by LOAD_FACTOR, so parallel
+ * work spreads across the admitted rungs instead of piling onto one.
+ */
+export const LOAD_FACTOR = 0.15;
+const inFlight = new Map<string, number>();
+export function beginModelCall(model: string): () => void {
+  inFlight.set(model, (inFlight.get(model) ?? 0) + 1);
+  let ended = false;
+  return () => {
+    if (ended) return;
+    ended = true;
+    inFlight.set(model, Math.max(0, (inFlight.get(model) ?? 1) - 1));
+  };
+}
+export function modelInFlight(model: string): number {
+  return inFlight.get(model) ?? 0;
+}
+
 export function _resetModelSpeeds(): void {
   speeds.clear();
+  inFlight.clear();
 }
 
 export function modelSpeed(model: string): ModelSpeed | null {
@@ -67,7 +90,8 @@ export function recordModelSpeed(model: string, sample: { firstTokenMs: number |
 export function estimateCompletionMs(model: string, outputTokens: number): number | null {
   const s = modelSpeed(model);
   if (!s) return null;
-  return Math.round(s.firstTokenMs + (Math.max(0, outputTokens) / Math.max(MIN_TPS, s.tokensPerSecond)) * 1000);
+  const load = 1 + LOAD_FACTOR * modelInFlight(model);
+  return Math.round(s.firstTokenMs + (Math.max(0, outputTokens) / Math.max(MIN_TPS, s.tokensPerSecond)) * 1000 * load);
 }
 
 /**

@@ -1850,7 +1850,8 @@ describe("G30 BlockID report policy", () => {
     // model with headroom, so the fastest measured rung is tried first; the call
     // still stays inside the class's exact DeepInfra ladder.
     const called = calledModels(fetchMock);
-    for (const m of called) expect(client.DEEPINFRA_MODELS_BY_CLASS[taskClass]).toContain(m);
+    // G33-T16h: scoped classify has no priced rung of its own → the cheapest admitted rung.
+    for (const m of called) expect(taskClass === "classify" ? ["deepseek-ai/DeepSeek-V4-Flash"] : client.DEEPINFRA_MODELS_BY_CLASS[taskClass]).toContain(m);
     if (taskClass === "report") expect(called).toEqual(["deepseek-ai/DeepSeek-V4-Flash"]);
     if (taskClass === "synthesis") expect(called).toContain("deepseek-ai/DeepSeek-V4-Flash");
   });

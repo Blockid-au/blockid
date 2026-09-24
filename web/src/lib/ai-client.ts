@@ -62,7 +62,8 @@ import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
 import { AITransportError, inprocessFetch, inprocessStreamChat, type AITransportDiagnostics } from "@/lib/ai/http-transport";
-import { orderModelsBySpeed, recordModelSpeed, recordPartialStreamSpeed } from "@/lib/ai/model-throughput";
+import { beginModelCall, orderModelsBySpeed, recordModelSpeed, recordPartialStreamSpeed } from "@/lib/ai/model-throughput";
+import { REPORT_ADMITTED_MODELS } from "@/lib/ai/report-admitted-models";
 import {
   callAnthropicTier,
   anthropicRequestsRemaining,
@@ -1486,10 +1487,15 @@ export const DEEPINFRA_THINKING_OFF: ReadonlySet<string> = new Set([
 // not a quality certification. External fallback remains empty until exact model,
 // account quota and zero-charge eligibility have been qualified. Freeze copies so
 // discovery, provider-order overrides and shared consumer mutations cannot widen it.
+// G33-T16h: only models the US$0.50 report budget prices may appear in a scoped
+// ladder (Kimi-K2.6 / gpt-oss / Llama were refused at reservation time).
+const admitted = (models: readonly string[]) => models.filter((m) => REPORT_ADMITTED_MODELS.has(m));
 const REPORT_POLICY_MODELS: Readonly<Record<AITaskClass, readonly string[]>> = Object.freeze({
-  report: Object.freeze([...DEEPINFRA_MODELS_BY_CLASS.report]),
-  synthesis: Object.freeze([...DEEPINFRA_MODELS_BY_CLASS.synthesis]),
-  classify: Object.freeze([...DEEPINFRA_MODELS_BY_CLASS.classify]),
+  report: Object.freeze(admitted(DEEPINFRA_MODELS_BY_CLASS.report)),
+  synthesis: Object.freeze(admitted(DEEPINFRA_MODELS_BY_CLASS.synthesis)),
+  // No classify rung is priced (gpt-oss-120b / Llama-3.3-70B), so every scoped
+  // classify call was refused; the cheapest admitted rung answers instead.
+  classify: Object.freeze(admitted(DEEPINFRA_MODELS_BY_CLASS.classify).length ? admitted(DEEPINFRA_MODELS_BY_CLASS.classify) : ["deepseek-ai/DeepSeek-V4-Flash"]),
 });
 
 /**
@@ -1594,11 +1600,17 @@ async function callDeepInfra(opts: AICallOptions, cls: AITaskClass = "report", l
     try {
       if (permit && aiBudgetExpired(opts)) throw new ResearchAttemptBudgetError("deadline expired; reservation retained");
       const headers = { "Authorization": `Bearer ${apiKey}`, "Content-Type": "application/json" };
-      const raw = streamed
-        ? await inprocessStreamChat("https://api.deepinfra.com/v1/openai/chat/completions", headers, payload, deepInfraStreamTimeouts(opts), (d: AITransportDiagnostics) => {
-            stream.diagnostics = d;
-          })
-        : await workerFetch("https://api.deepinfra.com/v1/openai/chat/completions", headers, payload, budgetedTimeoutMs(opts), !permit && !scoped);
+      const endLoad = beginModelCall(model); // G33-T16i: count this stream against the model's load
+      let raw: string;
+      try {
+        raw = streamed
+          ? await inprocessStreamChat("https://api.deepinfra.com/v1/openai/chat/completions", headers, payload, deepInfraStreamTimeouts(opts), (d: AITransportDiagnostics) => {
+              stream.diagnostics = d;
+            })
+          : await workerFetch("https://api.deepinfra.com/v1/openai/chat/completions", headers, payload, budgetedTimeoutMs(opts), !permit && !scoped);
+      } finally {
+        endLoad();
+      }
 
       const data = JSON.parse(raw);
       if (data.error) throw new Error(data.error.message ?? "DeepInfra error");

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { _resetModelSpeeds, estimateCompletionMs, modelSpeed, orderModelsBySpeed, recordModelSpeed, recordPartialStreamSpeed } from "./model-throughput";
+import { _resetModelSpeeds, beginModelCall, estimateCompletionMs, modelInFlight, modelSpeed, orderModelsBySpeed, recordModelSpeed, recordPartialStreamSpeed } from "./model-throughput";
 
 const V32 = "deepseek-ai/DeepSeek-V3.2";
 const QWEN = "Qwen/Qwen3-235B-A22B-Instruct-2507";
@@ -53,5 +53,26 @@ describe("model throughput (G33-T05)", () => {
     recordPartialStreamSpeed(V32, { firstTokenMs: null, elapsedMs: 45_000, outputChars: 0 });
     recordPartialStreamSpeed(V32, { firstTokenMs: 800, elapsedMs: 45_000, outputChars: 0 });
     expect(modelSpeed(V32)!.samples).toBe(2);
+  });
+
+  it("G33-T16i: calls in flight slow a model's estimate so parallel chapters spread across rungs", () => {
+    const window = 150_000;
+    // A 2 000-token chapter in a 150 s W4 window: V3.2 does not fit, Qwen and Flash do;
+    // as calls land on one rung its estimate stretches and the next picks elsewhere.
+    const firsts: string[] = [];
+    const ends: Array<() => void> = [];
+    for (let i = 0; i < 8; i++) {
+      const pick = orderModelsBySpeed(LADDER, 2000, window)[0];
+      firsts.push(pick);
+      ends.push(beginModelCall(pick));
+    }
+    expect(new Set(firsts).size).toBeGreaterThan(1);
+    expect(firsts.filter((m) => m === FLASH).length).toBeLessThan(8);
+    ends.forEach((end) => end());
+    expect(modelInFlight(FLASH)).toBe(0);
+    const end = beginModelCall(FLASH);
+    end();
+    end(); // idempotent
+    expect(modelInFlight(FLASH)).toBe(0);
   });
 });

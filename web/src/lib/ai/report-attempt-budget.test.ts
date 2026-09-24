@@ -13,6 +13,7 @@ vi.mock("node:os", async (importOriginal) => {
 
 import { createReportAttemptBudget } from "./report-attempt-budget";
 import { reserveResearchAttempt, settleResearchAttempt } from "./research-attempt-budget";
+import { REPORT_ADMITTED_MODELS } from "./report-admitted-models";
 
 afterAll(() => vi.restoreAllMocks());
 
@@ -91,5 +92,14 @@ describe("report attempt budget (G33-T06)", () => {
       await settleResearchAttempt(budget, p);
     }
     await expect(reserveResearchAttempt(budget, V32, payload(200_100), 1000)).rejects.toThrow("reservation unavailable");
+  });
+
+  it("G33-T16h: every admitted report model is priced, and a non-admitted one is refused", async () => {
+    const budget = createReportAttemptBudget(scope());
+    for (const model of REPORT_ADMITTED_MODELS) {
+      const p = await reserveResearchAttempt(budget, model, payload(1_000 + model.length), 100);
+      expect(p.dispatchAllowed).toBe(true);
+    }
+    await expect(reserveResearchAttempt(budget, "moonshotai/Kimi-K2.6", payload(999), 100)).rejects.toThrow(/not admitted/);
   });
 });
