@@ -188,9 +188,9 @@ Chữ nhỏ nhất là 12 px (web) và 9,5 pt (PDF). Số mục dùng mono (`05`
 
 | Tile | Giá trị chính | Dòng phụ | Khi thiếu dữ liệu |
 |---|---|---|---|
-| **Indicative pre-money** | `A$4.2M – A$8.5M` 48 px | `base A$6.1M · 4 methods` | “Chưa đủ bằng chứng để định giá” + 2 CTA; không in khoảng mờ |
+| **Indicative pre-money** | `A$4.2M – A$8.5M` 48 px | `base A$6.1M · Scorecard + 1 cross-check` (phương pháp theo ma trận SOT §9.5) | **Trạng thái mặc định hiện nay** (report đang `unavailable`): “Chưa đủ bằng chứng để định giá” + bằng chứng mở khoá phương pháp + 2 CTA; không in khoảng mờ |
 | **Evidence confidence** | `82%` + thước 6 nấc | `12 claims verified · 3 founder-stated` | `—` + “Chưa có bằng chứng kiểm chứng” |
-| **SVI** | `71 /100` + band chữ | `▲+3 vs 12/08 · index 128 ⓘ` | `—` + “Chưa đánh giá” |
+| **SVI** (không trần, SOT §9.4) | `SVI 128` + nhãn method nhỏ `v2.2.0` (hoặc `v3 ±U`) — **không in “/100”** | `Investor Score 71/100 · band chữ` · `▲+3 vs 12/08` chỉ khi cùng method, nếu khác method: `Đổi phương pháp ⓘ` | `—` + “Chưa đánh giá” |
 | **Verification** | `L3` | nhãn chữ “Financials attested” | `L0 · Chưa xác minh` |
 
 **Meeting label**

@@ -1,6 +1,6 @@
 # G31 — Investor Lens: nâng cấp Trusted Business Report (Biz Trust Report)
 
-**Trạng thái:** `PLAN ONLY — chưa code` · **Ngày:** 23/09/2026 · **Rev 1.2:** đối chiếu thêm master `0edf8bc62` (§1.6), đưa vào kế hoạch thực thi tiếp theo (§7.5), UI/UX thiết kế lại v2 (§6 + design spec) · Rev 1.1: đối chiếu `4ed643201` (§1.5), playbook deploy từng phase (§7) · **Owner quyết định:** Do Van Long
+**Trạng thái:** `PLAN ONLY — chưa code` · **Ngày:** 23/09/2026 · **Rev 1.3 (24/09):** đối chiếu source `619631e0f` (§1.7: cờ Lens phải là build-time, 5 call sites, trend/valuation thực tế, đường dẫn sai) + đồng bộ SVI không trần/định giá SOT §9.4–9.5 (tile SVI, tên Investor Score) · **Rev 1.2:** đối chiếu thêm master `0edf8bc62` (§1.6), đưa vào kế hoạch thực thi tiếp theo (§7.5), UI/UX thiết kế lại v2 (§6 + design spec) · Rev 1.1: đối chiếu `4ed643201` (§1.5), playbook deploy từng phase (§7) · **Owner quyết định:** Do Van Long
 **Ưu tiên:** P1. Chạy **sau hoặc song song có điều kiện** với các P0 truth item của G30 (E01/E03/A03/V01), như §7.
 **Đầu vào:** `BlockID_Biz_Trust_Report_Upgrade_Plan.md` v1.0 (founder cung cấp 23/09/2026). Plan này là bản phân tích, điều chỉnh và cụ thể hoá đầu vào đó.
 **Merge trong:** [`SOURCE-OF-TRUTH.md`](SOURCE-OF-TRUTH.md) §10.13, §12 (work items IL00–IL15), §16.3 (D21), §17.
@@ -70,7 +70,7 @@ Plan đầu vào **đúng hướng và khớp chiến lược đã chốt**: inv
 
 | # | Plan đầu vào | Vấn đề | Quyết định G31 |
 |---|---|---|---|
-| A | Top metric đầu tiên là “SVI 71/100” | Theo G30 B2, **định giá là con số lớn nhất trang**. `cover.svi.total` là **index không trần** (showcase 135), còn composite 0–100 mới là band input (G27 §4) | Hàng 4 chỉ số, theo thứ tự: **Valuation range** (lớn nhất) · **Evidence confidence** · **SVI composite /100 + band chữ** (index không trần hiển thị phụ, có tooltip) · **Verification L0–L5 + nhãn** |
+| A | Top metric đầu tiên là “SVI 71/100” | Theo G30 B2, **định giá là con số lớn nhất trang**. `cover.svi.total` là **index không trần** (showcase 135), còn composite 0–100 mới là band input (G27 §4). **Rev 1.3:** founder chốt SVI không giới hạn (SOT §9.4) nên không được in “/100” cạnh SVI | Hàng 4 chỉ số, theo thứ tự: **Valuation range** (lớn nhất; khi `not_estimable` thì hiện trạng thái + bằng chứng mở khoá, SOT §9.5) · **Evidence confidence** · **SVI index không trần** (số chính, `SVI 2.2.0`/`v3` ghi rõ, delta chỉ khi cùng method; dòng phụ **Investor Score 0–100** + band chữ) · **Verification L0–L5 + nhãn** |
 | B | “Meeting potential” 4 nhãn, đứng cạnh verdict A–D | Có hai kết luận song song thì vi phạm D06/A03 (“một assessment status”) | **Không thêm kết luận thứ hai. Đổi nhãn hiển thị của band A–D** sang ngôn ngữ trung tính: A → *Strong case to investigate* · B → *Worth investigating* · C → *Major issues to resolve* · D → *Evidence incomplete*. Rubric `verdictBand()` giữ nguyên. Cách này đồng thời bỏ câu “Investable now”, vốn gần với lời khuyên đầu tư |
 | C | `Risk Priority = Severity × Probability × Evidence Confidence` | (1) Nhân với confidence làm **rủi ro nghiêm trọng nhưng ít bằng chứng bị tụt hạng**, đúng những rủi ro investor cần hỏi nhất. (2) G27 đang suy likelihood từ “missing → high”, trái SOT §3 | Rank = **Severity × Probability**. Probability chỉ gán khi có bằng chứng; nếu không có thì ghi `Chưa xác định`, xếp theo severity và gắn chip `Chưa kiểm chứng`. Evidence confidence là **cột hiển thị riêng**, không phải hệ số nhân |
 | D | Các % investor-priority (75/57/56/47/35/30/11) | Chưa rõ nguồn, mẫu, địa lý | Chỉ dùng để **sắp thứ tự hiển thị**. Mở task IL00 xác minh nguồn. Không in các con số % này lên report |
@@ -131,6 +131,24 @@ Từ `4ed643201` tới `0edf8bc62` có 12 commit G30, đã live tới `0cb6d0bda
 | N4 | Telemetry `tbr-quality.jsonl` 23/09 06:51 và 07:41: **8/8 chương degraded, 0 từ**. Handover `2026-09-23-report-degradation-handover.md`: UNRESOLVED (DeepInfra worker timeout 60 s → strike) | Lens phải có **trạng thái degraded chính thức** (design spec §5) và fixture degraded trong R1. Đây là trạng thái người dùng thật đang gặp. Lens vẫn hữu ích khi narrative hỏng vì nó là derivation xác định |
 | N5 | Ưu tiên G30 kế tiếp (receipt final-report persistence): (1) final persistence toàn bộ caller → immutable revisions; (2) durable job/checkpoint; (3) verification/research/valuation eligibility; (4) billing → UX còn lại | G31 là **lane UX đọc-only** chạy song song (1)–(3), không tranh file hay migration. Vị trí cụ thể ở §7.5 và SOT §12.10 |
 
+### 1.7 Đối chiếu source rev 1.3 (HEAD `619631e0f`, 24/09/2026) — sửa trước khi code
+
+Review read-only 3 agents. Những điểm dưới đây **thay** các mục tương ứng ở §1.5–1.6 và §7.2.
+
+| # | Phát hiện | Sửa plan |
+|---|---|---|
+| C1 | `report.tsx` không có `"use client"` nhưng được import vào 3 client component (`full-report-panel`, `business-report-client`, `ReportOrderView`). Cờ server-only `BLOCKID_INVESTOR_LENS` sẽ là `undefined` ở client, gây lệch hydration. `/tbr/demo`, `/tbr/demo/band/[band]`, `/sample-business-report` là `force-static` | **R0:** cờ là `NEXT_PUBLIC_BLOCKID_INVESTOR_LENS=off\|preview\|on` (inline lúc build; đổi cờ = build candidate mới, đã chấp nhận ở §7.1). PDF/DOCX/email đọc cùng biến ở server. `preview` truyền bằng prop `lensPreview` từ 2 call site server (showcase view, demo view). **R1a bỏ `/sample-business-report`** vì trang này đi qua `BusinessReportClient` (file Codex) |
+| C2 | S2 sai: có **5 call site** `<TbrReportV2>` (analyze panel, business-report-client — phục vụ 7 routes gồm `/tbr/[token]` và `/sample-business-report` —, ReportOrderView, showcase view, demo view). `dossier.ts:774` cũng gọi `resolveReportV2`/`ensureInvestmentView` | Golden R0 phủ thêm đường dossier |
+| C3 | PDF/DOCX gọi `buildInvestmentView` rồi mới `projectForTier` (`tbr-pdf.tsx:1631→1633`, `tbr-docx.ts:946→948`); web/email dùng `investmentViewFor` và **tái dùng view đã lưu** có sẵn `bandLabel` | `investorLensFor` chạy **trước** projection ở mọi bề mặt. Đổi meeting label (D21-a) phải bump `investmentView.version` hoặc đọc nhãn từ strings lúc render, nếu không web/email vẫn hiện nhãn cũ |
+| C4 | Full paid run luôn `deltaVsLast: null` (`executive-summary.ts:315`); chỉ rescore/pitchdeck có trend. Delta hiện trừ thẳng khác version (SOT I48) | R1: tile trend hiện “Báo cáo đầu tiên” trên phần lớn report trả phí — chấp nhận, không tự tính. Trend theo tín hiệu (R2) chỉ khi cùng `svi_method` |
+| C5 | Report luôn `valuation.unavailable` (SOT §9.5 H9) | Tile valuation R1 thiết kế trạng thái `not_estimable` là trạng thái **mặc định thật**, không phải edge case |
+| C6 | Đường dẫn sai: `DIMENSION_OWNERS` ở `report-pipeline/dimension-owners.ts:107`; `suggestRoundSize` ở `cap-table.ts:351`; `loadCapTable` **không export** và trả tên holder; `parseCohortFilters` :388–412; comps AU chỉ có **năm**, không ngày | R4 viết aggregator owner-context mới bỏ tên; R5 in năm + URL; sửa tham chiếu §7.2 |
+| C7 | `questions_for_founder` = jsonb `{text ≤300, dimension?, sent_at?}`, không id/evidence link; thêm câu sau submit tạo assessment version mới; “gửi” chỉ hiện trên trang share | R3 lưu `lens_question_id` trong `text`/field additive qua schema zod hiện có; ghi rõ không phải gửi chủ động |
+| C8 | Chưa có fixture degraded; fixtures là **hàm** (`demoReportV2()`…); `compositeScore` nằm trong `InvestmentView`; guard messaging đọc luật từ `docs/design/messaging.md` §11 | R0 thêm `degradedFixtureReportV2()`; regex guard thêm vào messaging.md §11 |
+| C9 | Ngưỡng narrative-gap không thống nhất (§1.4 `<35`, §3.2 `<40`) trong khi `<35` đã là `Insufficient evidence` | Đề xuất: callout khi `score ≥70` và `35 ≤ confidence < 50` (hiệu chỉnh ở IL03); `<35` chỉ hiện chip Insufficient |
+| C10 | Migration: `report_revisions` đang live nhưng file nguồn đã xoá (0410 trùng `external_signals`); 0443–0449 đã bị nhánh khác chiếm | R6 giữ ≥0450, cấp số cùng lúc với migration `report_revisions` phục hồi và SV2 (SOT §9.4.7) để không trùng |
+| C11 | Lane A đang có phiên khác commit (`619631e0f`) | D0 bắt buộc chờ phiên kia mark-good trước mỗi deploy Lane B |
+
 ---
 
 ## 2. Goal và KPI đo được
@@ -146,7 +164,7 @@ Từ `4ed643201` tới `0edf8bc62` có 12 commit G30, đã live tới `0cb6d0bda
 | **G31-1 Hiểu nhanh** | Snapshot đọc hiểu trong <60 giây | ≥80% trong 20 người thử (5 angel · 5 VC associate · 5 accelerator manager · 5 founder) nêu cùng 2 điểm mạnh và 2 rủi ro hàng đầu; trung vị thời gian đạt kết luận đầu tiên <60 giây |
 | **G31-2 Tin được** | Không kết luận nào thiếu bằng chứng | 100% tín hiệu có `evidenceConfidence` + ≥1 claim link, hoặc trạng thái `Insufficient evidence` (kiểm tự động trên corpus Q01) |
 | **G31-3 Điểm ≠ tin cậy** | Score và confidence tách riêng ở mọi nơi | Guard test: không component nào render score tín hiệu mà thiếu confidence bên cạnh; web = PDF = DOCX |
-| **G31-4 SVI bất biến** | Không đổi phương pháp | Golden regression: `total_svi`, composite, 8 dimension scores, band và verdict **giống hệt** trước/sau trên toàn bộ fixtures và showcase |
+| **G31-4 SVI bất biến** | Không đổi phương pháp (G31 không đổi số SVI 2.2.0; `svi-v3` là việc A04 của G30, có version riêng) | Golden regression: `total_svi`, composite, 8 dimension scores, band và verdict **giống hệt** trước/sau trên toàn bộ fixtures và showcase |
 | **G31-5 Hành động được** | Câu hỏi và rủi ro có thứ tự | Top 3–7 câu hỏi xếp theo công thức xác định. ≥80% người thử chọn câu hỏi đầu tiên nằm trong top 3 |
 | **G31-6 Liquidity và cap table rõ ràng** | Hai tín hiệu mới có logic riêng | Mỗi company có route liquidity + blockers, hoặc `Chưa có bằng chứng`; cap table được đánh giá khi có dữ liệu, không suy từ thiếu dữ liệu |
 | **G31-7 Cohort cùng lens** | Evaluator lọc theo tín hiệu | 6 cột tín hiệu + 8 bộ lọc trong `CohortTable`; CSV/API xuất cùng trường |
