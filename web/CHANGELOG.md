@@ -1,5 +1,14 @@
 # BlockID.au Changelog
 
+## v3.33.3 — Current deployment family, reviewed 2026-09-25
+
+- Preserve post-login status and rescued-analysis counts before URL fragments.
+- Distinguish linked source revision from projection output hash in CFO scenarios.
+- Provide explicit scenario-only CFO projections and eligible valuation methods; scenario exports do not establish accepted financial authority.
+- Retain unavailable valuation when qualified inputs are missing. New paid research and trusted connected-revenue promotion remain gated.
+- Deployment identity is published separately from package and report-pipeline versions. Previously saved reports retain their generation metadata.
+
+
 ## v3.32.0 — Clearer investor decisions and report detail
 
 - Prioritize business review on the investor desk, including direct access to unscored businesses; group secondary allowance/preferences into expandable controls.

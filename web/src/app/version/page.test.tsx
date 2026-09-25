@@ -21,6 +21,9 @@ describe("/version", () => {
     // G26: the hero, the phase headers and the CTA are light — no gradient fills, no white text.
     expect(html).not.toMatch(/bg-gradient-to-/);
     expect(html).not.toMatch(/class="[^"]*\btext-white\b/);
+    expect(html).toContain("Report pipeline");
+    expect(html).toContain("Code-default prompts");
+    expect(html).toContain("a deployment does not regenerate them");
     expectLightSurfaces(html, "/version", { whole: true });
   });
 });

@@ -126,15 +126,16 @@ export default async function AgentProfilePage({
             <div className="rounded-xl border border-line-subtle bg-surface p-6 shadow-1 sm:p-8">
               <div className="mb-4 flex items-baseline justify-between">
                 <h2 className="font-display text-lg font-semibold text-primary">
-                  Recent activity
+                  Published activity snapshot
                 </h2>
                 <span className="font-mono text-xs tabular-nums text-secondary">
-                  {detail.last30d_count} last 30d
+                  {detail.last30d_count} records in the stored collection window
                 </span>
               </div>
+              <p className="mb-4 text-sm text-secondary">Counts describe the stored snapshot’s original 30-day window. Refresh time is unavailable; activity records are not verified deployments.</p>
               {detail.activity.length === 0 ? (
                 <p className="text-sm text-secondary">
-                  No activity in the last 30 days.
+                  No activity recorded in this snapshot.
                 </p>
               ) : (
                 <ul className="divide-y divide-line-subtle">
@@ -216,7 +217,7 @@ export default async function AgentProfilePage({
       </Section>
 
       <CtaBand
-        title="See what the whole bench shipped."
+        title="Explore the published advisor roster."
         primary={{ href: "/changelog", label: "Changelog", ctaId: "agent_final_changelog" }}
         secondary={{ href: "/roadmap", label: "Roadmap" }}
       />

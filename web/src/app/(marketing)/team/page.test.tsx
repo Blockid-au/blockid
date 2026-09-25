@@ -27,6 +27,9 @@ describe("/team — template (G17 P2-A)", () => {
     expect(out).toMatch(/<section[^>]*id="founder"/);
     expect(out).toMatch(/<section[^>]*id="bench"/);
     expect(out).toContain('data-testid="stat-strip"');
+    expect(out).toContain("refresh time is unavailable");
+    expect(out).not.toContain("live shipping activity");
+    expect(out).not.toContain("Last shipped");
     expect(out).toContain("PPL Food PTY LTD");
     expect(out).toContain("Auschain PTY LTD");
     expect(out).toContain("ACN 659 615 111");

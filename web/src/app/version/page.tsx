@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { LEGAL_ENTITY, LEGAL_ENTITY_ACN_LABEL } from "@/lib/site/legal-entity";
 import { pageMetadata } from "@/lib/seo/page-meta";
 import Link from "next/link";
-import fs from "node:fs";
-import path from "node:path";
+import pkg from "../../../package.json";
+import { readDeploymentMetadata, deploymentSourceSha } from "@/lib/site/deployment-metadata";
+import { PIPELINE_VERSION, CODE_PROMPT_VERSION } from "@/lib/report-pipeline/version";
 
 export const dynamic = "force-dynamic";
 
@@ -14,30 +15,6 @@ export const metadata: Metadata = pageMetadata({
 });
 
 // --- Live deploy manifest (read at request time) ------------------------
-
-type DeployManifest = {
-  git_sha?: string;
-  deployed_at?: string;
-  next_hash?: string;
-  task_id?: string;
-  version?: string;
-};
-
-function readDeployManifest(): DeployManifest | null {
-  const candidates = [
-    path.join(process.cwd(), "web", ".deploy-manifest.json"),
-    path.join(process.cwd(), ".deploy-manifest.json"),
-    path.join(process.cwd(), "..", "web", ".deploy-manifest.json"),
-  ];
-  for (const p of candidates) {
-    try {
-      return JSON.parse(fs.readFileSync(p, "utf-8")) as DeployManifest;
-    } catch {
-      // try next
-    }
-  }
-  return null;
-}
 
 function relativeAge(iso: string | undefined): string {
   if (!iso) return "unknown";
@@ -64,7 +41,7 @@ const GROWTH_PHASES = [
     features: [
       { name: "Free SVI Analysis", desc: "Get your Startup Value Index score instantly — understand where you stand", link: "/score" },
       { name: "Idea Valuation Tool", desc: "Pre-incorporation valuation using Berkus + Scorecard methods", link: "/tools/idea-valuation" },
-      { name: "AI Mentor Report (Free)", desc: "10-page analysis covering all 8 SVI dimensions with step-by-step guidance", link: "/score" },
+      { name: "AI Mentor Report", desc: "Assessment and guidance based on the submitted evidence", link: "/score" },
       { name: "Market Size Analysis", desc: "TAM/SAM/SOM estimation and competitive landscape mapping" },
       { name: "Problem Clarity Assessment", desc: "Evaluate problem-solution fit with evidence-based scoring" },
     ],
@@ -106,7 +83,7 @@ const GROWTH_PHASES = [
     features: [
       { name: "Investor Data Room", desc: "Organized document repository — pitch deck, financials, legal docs" },
       { name: "Financial Projections", desc: "Monthly revenue/cost forecasts, break-even timeline, payback period" },
-      { name: "Valuation Dashboard", desc: "3-method blended valuation: Berkus + Scorecard + Revenue Multiple" },
+      { name: "Valuation Dashboard", desc: "Source-linked valuation methods and explicit eligibility; missing inputs remain unavailable" },
       { name: "Pitch Deck Review", desc: "AI-powered analysis of your pitch deck with improvement suggestions" },
       { name: "Investor Readiness Score", desc: "Detailed checklist of what investors look for at each stage" },
     ],
@@ -589,8 +566,9 @@ const VERSION_HISTORY = [
 ];
 
 export default function VersionPage() {
-  const manifest = readDeployManifest();
-  const sha7 = manifest?.git_sha ? manifest.git_sha.slice(0, 7) : null;
+  const manifest = readDeploymentMetadata();
+  const sourceSha = deploymentSourceSha(manifest);
+  const sha7 = sourceSha?.slice(0, 7);
   return (
     <div className="min-h-svh bg-surface-100">
       {/* Header */}
@@ -623,11 +601,11 @@ export default function VersionPage() {
                   <dd className="mt-1 font-mono text-sm text-gray-900">{manifest.version ?? "—"}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs uppercase tracking-wider text-gray-500">Git SHA</dt>
+                  <dt className="text-xs uppercase tracking-wider text-gray-500">Built source SHA</dt>
                   <dd className="mt-1 font-mono text-sm">
                     {sha7 ? (
                       <a
-                        href={`https://github.com/Blockid-au/blockid.au/commit/${manifest.git_sha}`}
+                        href={`https://github.com/Blockid-au/blockid.au/commit/${sourceSha}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-brand-700 hover:underline"
@@ -663,6 +641,17 @@ export default function VersionPage() {
               </p>
             )}
           </div>
+        </section>
+
+        <section aria-label="Version definitions" className="rounded-2xl border border-gray-200 bg-white p-6">
+          <h2 className="text-lg font-bold text-gray-900">Package and report versions</h2>
+          <dl className="mt-3 grid gap-4 sm:grid-cols-3">
+            <div><dt>Package</dt><dd className="font-mono text-sm">{pkg.version}</dd></div>
+            <div><dt>Report pipeline</dt><dd className="font-mono text-sm">{PIPELINE_VERSION}</dd></div>
+            <div><dt>Code-default prompts</dt><dd className="font-mono text-sm">{CODE_PROMPT_VERSION}</dd></div>
+          </dl>
+          <p className="mt-3 text-sm text-gray-600">Deployment, package and report pipeline versions have separate meanings. Saved reports retain their own generation metadata; a deployment does not regenerate them.</p>
+          <Link href="/changelog" className="mt-3 inline-block text-brand-700 underline">Read current release notes</Link>
         </section>
 
         {/* Growth Path Features */}
@@ -715,7 +704,7 @@ export default function VersionPage() {
         <section>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">11 C-Level AI Agents</h2>
           <p className="text-gray-600 mb-6">
-            Your virtual board of directors. Each agent specializes in a domain and works daily to improve both the platform and your startup reports.
+            Report roles cover the domains below. The published team roster separately lists operational roles and stored activity records.
           </p>
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             {[
@@ -741,9 +730,9 @@ export default function VersionPage() {
 
         {/* Version History */}
         <section>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Version History</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Selected historical releases</h2>
           <p className="text-gray-600 mb-6">
-            Every update, new feature, and improvement — tracked over time.
+            Selected earlier milestones. Current deployment details and release notes are linked above.
           </p>
 
           <div className="space-y-6">
