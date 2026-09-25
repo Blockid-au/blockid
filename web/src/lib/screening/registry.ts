@@ -10,7 +10,7 @@
 // row, then bump SCREENING_CATALOG_VERSION. Ids are never reused.
 
 import type { AgentRole } from "@/lib/report-pipeline/types";
-import { DIMENSION_LEAD, SCREENING_DIMENSIONS } from "./define";
+import { DIMENSION_EMPHASIS, DIMENSION_LEAD, SCREENING_DIMENSIONS } from "./define";
 import { CGH_ITEMS } from "./modules/cgh";
 import { FTV_ITEMS } from "./modules/ftv";
 import { IRI_ITEMS } from "./modules/iri";
@@ -19,7 +19,7 @@ import { MPC_ITEMS } from "./modules/mpc";
 import { PTD_ITEMS } from "./modules/ptd";
 import { SVM_ITEMS } from "./modules/svm";
 import { TRE_ITEMS } from "./modules/tre";
-import type { ScreeningDimension, ScreeningItem, ScreeningStage } from "./types";
+import type { EmphasisBand, ScreeningDimension, ScreeningItem, ScreeningStage } from "./types";
 
 export const SCREENING_CATALOG_VERSION = "catalog@v1";
 
@@ -48,6 +48,29 @@ export function ownerFor(dim: ScreeningDimension): AgentRole {
 
 export function screeningItem(id: string): ScreeningItem | undefined {
   return SCREENING_ITEMS.find(item => item.id === id);
+}
+
+/**
+ * G34 BT3 — the screening stage for a report: an explicit round label
+ * ("pre-seed", "Seed", "Series A", "Series B") wins; otherwise the stored
+ * benchmark stage (`cover.stage`: 0 idea · 1 pre-seed · 2 seed · 3 post-seed
+ * · 4 Series A · 5+ Series B and later) maps 0–1 → PS, 2–3 → S, 4 → A, 5+ → B+.
+ */
+export function screeningStageFor(benchmarkStage: number | null | undefined, ...labels: Array<string | null | undefined>): ScreeningStage {
+  for (const raw of labels) {
+    const label = (raw ?? "").toLowerCase();
+    if (/pre[\s-]?seed/.test(label)) return "PS";
+    if (/series\s*[b-z]\b|\bgrowth\b|\bscale\b|\blate\b/.test(label)) return "B+";
+    if (/series\s*a\b/.test(label)) return "A";
+    if (/\bseed\b/.test(label)) return "S";
+  }
+  const n = typeof benchmarkStage === "number" && Number.isFinite(benchmarkStage) ? benchmarkStage : 2;
+  return n <= 1 ? "PS" : n <= 3 ? "S" : n === 4 ? "A" : "B+";
+}
+
+/** G34 BT3 — the dimension's published stage emphasis band (§4.3, D24-f: a band, never a number). */
+export function emphasisFor(dim: ScreeningDimension, stage: ScreeningStage): EmphasisBand {
+  return DIMENSION_EMPHASIS[dim][stage];
 }
 
 export type { EmphasisBand, EvidenceTier, ScreeningDimension, ScreeningItem, ScreeningRedFlag, ScreeningStage } from "./types";
