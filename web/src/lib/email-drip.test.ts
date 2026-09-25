@@ -705,7 +705,7 @@ describe("enqueueOnboardingDrip happy path (5-touch sequence)", () => {
     ]);
   });
 
-  it("scheduled_for lands at exactly +1/+3/+7/+14/+30 days from pinned now", async () => {
+  it("scheduled_for: D1 +1 d, team step +4 d, D7 +7 d, D14 +14 d, NPS +30 d — >= 74 h apart, inside the send window (G34-BT4)", async () => {
     await enqueueOnboardingDrip("a@b.co", "user-1", {
       weakestDim: "traction",
       weakestScore: 42,
@@ -718,15 +718,28 @@ describe("enqueueOnboardingDrip happy path (5-touch sequence)", () => {
       campaign: string;
       scheduled_for: string;
     }>;
+    // Pinned now = Sat 01/08/2026 00:00Z. Nominal +1 d is Sunday → Monday
+    // 08:00 AEST (Sun 22:00Z). +4 d = Wed 00:00Z = Wed 10:00 AEST, but it
+    // must be >= D1 + 74 h = Thu 00:00Z (Thu 10:00 AEST, open). D7 nominal
+    // Sat 08/08 → >= Thu + 74 h = Sun 02:00Z → Mon 10/08 08:00 AEST. D14
+    // nominal Sat 15/08 → Sun → Mon 17/08 08:00 AEST. NPS +30 d = Mon
+    // 31/08 00:00Z = 10:00 AEST (open).
     const expected: Record<string, string> = {
-      onboarding_d1: "2026-08-02T00:00:00.000Z",
-      onboarding_d3: "2026-08-04T00:00:00.000Z",
-      onboarding_d7: "2026-08-08T00:00:00.000Z",
-      onboarding_d14: "2026-08-15T00:00:00.000Z",
+      onboarding_d1: "2026-08-02T22:00:00.000Z",
+      onboarding_d3: "2026-08-06T00:00:00.000Z",
+      onboarding_d7: "2026-08-09T22:00:00.000Z",
+      onboarding_d14: "2026-08-16T22:00:00.000Z",
       nps_d30: "2026-08-31T00:00:00.000Z",
     };
     for (const row of rows) {
       expect(row.scheduled_for).toBe(expected[row.campaign]);
+    }
+    const onboarding = rows
+      .filter((r) => r.campaign.startsWith("onboarding_"))
+      .map((r) => Date.parse(r.scheduled_for))
+      .sort((a, b) => a - b);
+    for (let i = 1; i < onboarding.length; i++) {
+      expect(onboarding[i] - onboarding[i - 1]).toBeGreaterThanOrEqual(74 * 3_600_000);
     }
   });
 
@@ -1108,11 +1121,22 @@ describe("dripCategory", () => {
 });
 
 describe("dripEmailClass / dripFlow (G34-BT2)", () => {
-  it("radar deadline alerts are transactional; every other campaign is commercial", () => {
+  it("radar deadline alerts and score_updated are transactional; every other campaign is commercial", () => {
     for (const c of RADAR_CAMPAIGNS) expect(dripEmailClass(c)).toBe("T");
-    for (const c of ALL_DRIP_CAMPAIGNS.filter((x) => !(RADAR_CAMPAIGNS as readonly string[]).includes(x))) {
+    expect(dripEmailClass("score_updated")).toBe("T");
+    for (const c of ALL_DRIP_CAMPAIGNS.filter((x) => !(RADAR_CAMPAIGNS as readonly string[]).includes(x) && x !== "score_updated")) {
       expect(dripEmailClass(c)).toBe("C");
     }
+  });
+
+  it("G34-BT4 lifecycle campaigns: flow keys and categories", () => {
+    expect(dripFlow("evidence_gap_1")).toBe("evidence-gap");
+    expect(dripFlow("evidence_gap_2")).toBe("evidence-gap");
+    expect(dripFlow("intake_abandoned_2")).toBe("intake-abandoned");
+    expect(dripFlow("monthly_digest")).toBe("founder-digest");
+    expect(dripCategory("free_quota_used")).toBe("promotions");
+    expect(dripCategory("score_updated")).toBe("svi_alerts");
+    expect(dripCategory("monthly_digest")).toBe("weekly_reports");
   });
 
   it("groups campaigns into cap flows", () => {
@@ -1389,20 +1413,29 @@ describe("radar campaigns → money_radar category", () => {
 // cannot render. This pins the LATEST migration's list (0327, S11-A) to the
 // TS union (via the runtime ALL_DRIP_CAMPAIGNS mirror) so neither can drift
 // alone; each earlier re-assertion (0320) must be a strict subset.
-function campaignCheckList(file: string): { sql: string; listed: string[] } {
-  const sql = readFileSync(resolve(__dirname, `../../supabase/migrations/${file}`), "utf8");
+function campaignCheckList(file: string, dir = "migrations"): { sql: string; listed: string[] } {
+  const sql = readFileSync(resolve(__dirname, `../../supabase/${dir}/${file}`), "utf8");
   const block = sql.match(/add constraint email_drips_campaign_check[\s\S]*?\]\)\);/i)?.[0] ?? "";
   expect(block, file).not.toBe("");
   return { sql, listed: Array.from(block.matchAll(/'([a-z0-9_]+)'::text/g)).map((m) => m[1]) };
 }
 
-describe("migration 0411 campaign CHECK matches the DripCampaign union", () => {
-  it("lists exactly ALL_DRIP_CAMPAIGNS (onboarding five + radar four + setup two + tbr_unlock_24h)", () => {
-    const { sql, listed } = campaignCheckList("0411_email_drips_tbr_unlock.sql");
+describe("campaign CHECK (pending-authority 0466) matches the DripCampaign union", () => {
+  it("0466 lists exactly ALL_DRIP_CAMPAIGNS (0411's twelve + the nine G34-BT4 lifecycle ids)", () => {
+    const { sql, listed } = campaignCheckList("0466_email_drips_lifecycle_campaigns.sql", "pending-authority");
     expect([...listed].sort()).toEqual([...ALL_DRIP_CAMPAIGNS].sort());
-    expect(listed).toContain("tbr_unlock_24h");
+    expect(listed).toContain("score_updated");
+    expect(listed).toContain("sunset_check");
     expect(sql).toMatch(/drop constraint if exists email_drips_campaign_check/i);
     expect(sql).toMatch(/notify pgrst, 'reload schema'/);
+  });
+
+  it("0411's list is a strict subset (nothing was dropped)", () => {
+    const { sql, listed } = campaignCheckList("0411_email_drips_tbr_unlock.sql");
+    expect(listed.length).toBe(12);
+    expect(listed).toContain("tbr_unlock_24h");
+    for (const c of listed) expect(ALL_DRIP_CAMPAIGNS).toContain(c);
+    expect(sql).toMatch(/drop constraint if exists email_drips_campaign_check/i);
   });
 
   it("0327's list is a strict subset (nothing was dropped)", () => {

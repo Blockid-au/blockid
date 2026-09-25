@@ -65,6 +65,8 @@ const TEMPLATES: Array<{ file: string; fn: string; kind: Kind }> = [
   { file: "lib/email.ts", fn: "sendGuestReport", kind: "receipt" },
   { file: "lib/email.ts", fn: "sendFreeSummary", kind: "report" },
   { file: "lib/email.ts", fn: "sendFirstAnalysisReportEmail", kind: "report" },
+  // G34-BT4 EM12 — "score updated" on the drip engine (the only T-class lifecycle flow).
+  { file: "lib/lifecycle/templates.ts", fn: "renderScoreUpdated", kind: "report" },
   // receipts
   { file: "lib/email.ts", fn: "sendAnalysisPurchaseConfirmation", kind: "receipt" },
   { file: "lib/email.ts", fn: "sendCreditPurchaseConfirmation", kind: "receipt" },

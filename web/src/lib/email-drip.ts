@@ -31,6 +31,10 @@ import { isExcludedAccountEmail } from "@/lib/traction/snapshot";
 import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
 import { PLANS_V2, formatAud } from "@/lib/plans-v2";
 import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
+import { LIFECYCLE_CAMPAIGNS, LIFECYCLE_META, isLifecycleCampaign, type LifecycleCampaign } from "@/lib/lifecycle/campaigns";
+import type { LifecyclePayload } from "@/lib/lifecycle/payload";
+import { renderLifecycleEmail } from "@/lib/lifecycle/templates";
+import { spacedSlot } from "@/lib/lifecycle/send-window";
 
 /** G16-B copy truth: the D14 upsell prices the A$29 rung from plans-v2, never a literal. */
 const STARTER_PRICE_LINE = `${formatAud(PLANS_V2.find((p) => p.id === "founder_starter")?.monthly_aud ?? null)}/mo`;
@@ -59,7 +63,10 @@ export type DripCampaign =
   // first analysis, one touch ever, skipped at send time once the founder
   // has bought or the plan includes the report. Migration 0411 extends
   // the CHECK.
-  | "tbr_unlock_24h";
+  | "tbr_unlock_24h"
+  // G34-BT4 lifecycle flows EM12–EM20 (lib/lifecycle/campaigns.ts);
+  // pending-authority/0466 extends the CHECK.
+  | LifecycleCampaign;
 
 /** G16-B: the one-off unlock nudge campaign id. */
 export const TBR_UNLOCK_CAMPAIGN = "tbr_unlock_24h" as const satisfies DripCampaign;
@@ -100,6 +107,7 @@ export const ALL_DRIP_CAMPAIGNS: readonly DripCampaign[] = [
   ...RADAR_CAMPAIGNS,
   ...RADAR_SETUP_CAMPAIGNS,
   TBR_UNLOCK_CAMPAIGN,
+  ...LIFECYCLE_CAMPAIGNS,
 ];
 
 export function isRadarCampaign(c: DripCampaign): c is RadarDripCampaign {
@@ -171,6 +179,8 @@ export interface DripPayload {
   open_programs?: number | null;
   /** G16-B tbr_unlock_24h: the analysed project (deep link `?pid=`). */
   project_id?: string | null;
+  /** G34-BT4 lifecycle flows — the recipient's own data captured at enqueue time. */
+  lifecycle?: LifecyclePayload;
 }
 
 export interface SviAnalysisSummary {
@@ -238,6 +248,16 @@ export async function enqueueOnboardingDrip(
   if (existing && existing.length > 0) return;
 
   const now = Date.now();
+  // G34-BT4: every onboarding step shares the `onboarding` flow key, and the
+  // per-flow cap allows one send per 72 h. The old +1/+3/+7/+14 day offsets
+  // put D3 48 h after D1, so the cap dropped D3 every time. Each step is now
+  // >= 74 h after the previous one AND snapped into the C-class send window
+  // (weekdays 08:00-19:00 Sydney): D1 ~ +1 d, the "Day 3" team step ~ +4 d,
+  // D7 ~ +7 d, D14 ~ +14 d (later only when a weekend pushes a step).
+  const d1At = spacedSlot(new Date(now + 1 * DAY_MS), null);
+  const d3At = spacedSlot(new Date(now + 4 * DAY_MS), d1At);
+  const d7At = spacedSlot(new Date(now + 7 * DAY_MS), d3At);
+  const d14At = spacedSlot(new Date(now + 14 * DAY_MS), d7At);
   const basePayload: DripPayload = {
     weakestDim: summary.weakestDim,
     weakestScore: summary.weakestScore,
@@ -257,28 +277,28 @@ export async function enqueueOnboardingDrip(
       email: normEmail,
       user_id: userId,
       campaign: "onboarding_d1",
-      scheduled_for: new Date(now + 1 * DAY_MS).toISOString(),
+      scheduled_for: d1At.toISOString(),
       payload: basePayload,
     },
     {
       email: normEmail,
       user_id: userId,
       campaign: "onboarding_d3",
-      scheduled_for: new Date(now + 3 * DAY_MS).toISOString(),
+      scheduled_for: d3At.toISOString(),
       payload: basePayload,
     },
     {
       email: normEmail,
       user_id: userId,
       campaign: "onboarding_d7",
-      scheduled_for: new Date(now + 7 * DAY_MS).toISOString(),
+      scheduled_for: d7At.toISOString(),
       payload: basePayload,
     },
     {
       email: normEmail,
       user_id: userId,
       campaign: "onboarding_d14",
-      scheduled_for: new Date(now + 14 * DAY_MS).toISOString(),
+      scheduled_for: d14At.toISOString(),
       payload: basePayload,
     },
   ];
@@ -299,7 +319,7 @@ export async function enqueueOnboardingDrip(
       email: normEmail,
       user_id: userId,
       campaign: "nps_d30",
-      scheduled_for: new Date(now + 30 * DAY_MS).toISOString(),
+      scheduled_for: spacedSlot(new Date(now + 30 * DAY_MS), null).toISOString(),
       payload: { ...basePayload, npsToken },
     });
   }
@@ -636,6 +656,7 @@ export async function expireStaleDrips(
  * campaign onto the existing categories so `canSendEmail` can decide.
  */
 export function dripCategory(campaign: DripCampaign): EmailCategory {
+  if (isLifecycleCampaign(campaign)) return LIFECYCLE_META[campaign].category;
   if (isRadarCampaign(campaign) || isRadarSetupCampaign(campaign)) return "money_radar";
   return campaign === "onboarding_d14" || campaign === TBR_UNLOCK_CAMPAIGN ? "promotions" : "product_updates";
 }
@@ -648,11 +669,13 @@ export function dripCategory(campaign: DripCampaign): EmailCategory {
  * passes consent, suppression and the global frequency cap.
  */
 export function dripEmailClass(campaign: DripCampaign): EmailClass {
+  if (isLifecycleCampaign(campaign)) return LIFECYCLE_META[campaign].emailClass;
   return isRadarCampaign(campaign) ? "T" : "C";
 }
 
 /** G34-BT2 EM03 — the flow key the per-flow 72 h cap groups campaigns by. */
 export function dripFlow(campaign: DripCampaign): string {
+  if (isLifecycleCampaign(campaign)) return LIFECYCLE_META[campaign].flow;
   if (isRadarCampaign(campaign)) return "radar-deadlines";
   if (isRadarSetupCampaign(campaign)) return "radar-setup";
   if (campaign === TBR_UNLOCK_CAMPAIGN) return "tbr-unlock";
@@ -846,7 +869,7 @@ function d3Copy(email: string, p: DripPayload): RenderedEmail {
   const teamUrl = `${siteUrl()}/workspace/team`;
   const subject = `Add your team to lift your SVI Team score by ~${lift} points`;
   const html = shell(`
-    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#1B2A5E;font-weight:600;">BlockID &middot; Day 3</p>
+    <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:#1B2A5E;font-weight:600;">BlockID &middot; Day 4</p>
     <h1 style="margin:0 0 12px 0;font-size:20px;font-weight:600;color:#0b0f1a;">Bring your team into the workspace</h1>
     <p>Your SVI weights the Founder and Team dimension heavily. Adding co-founders, advisors and early hires with LinkedIn URLs typically lifts the Team component by <strong>${lift} points</strong> and the total SVI along with it.</p>
     <p>It also unlocks role-based dashboards so each person sees the report slice that matters to them.</p>
@@ -1186,6 +1209,7 @@ export function renderDripBody(
   email: string,
   payload: DripPayload,
 ): RenderedEmail {
+  if (isLifecycleCampaign(campaign)) return renderLifecycleEmail(campaign, email, payload);
   switch (campaign) {
     case "radar_setup":
       return radarSetupCopy(email, payload);

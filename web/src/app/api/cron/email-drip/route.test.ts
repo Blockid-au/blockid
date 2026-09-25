@@ -31,7 +31,7 @@
 // markFailed, renderDripBody). The renderer is stubbed to return a per-campaign
 // tag so we can prove the route routes the campaign string through untouched.
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
@@ -64,6 +64,12 @@ vi.mock("@/lib/email-drip", () => ({
     campaign === "onboarding_d14" ? "promotions" : "product_updates",
   dripEmailClass: (campaign: string) => (/^radar_t|^radar_status/.test(campaign) ? "T" : "C"),
   dripFlow: (campaign: string) => (campaign.startsWith("onboarding") ? "onboarding" : campaign),
+}));
+
+// G34-BT4 — lifecycle stop conditions (DB-backed; default: send).
+const stopDecisionMock = vi.fn<(...args: unknown[]) => Promise<{ action: string; reason?: string }>>();
+vi.mock("@/lib/lifecycle/stop-conditions", () => ({
+  lifecycleStopDecision: (...args: unknown[]) => stopDecisionMock(...args),
 }));
 
 // G34-BT2 — the commercial checklist (consent / suppression / cap).
@@ -133,6 +139,17 @@ beforeEach(() => {
 
   process.env.CRON_SECRET = SECRET;
   process.env.NEXT_PUBLIC_SITE_URL = "https://blockid.au";
+
+  stopDecisionMock.mockReset();
+  stopDecisionMock.mockResolvedValue({ action: "send" });
+  // G34-BT4 quiet hours: pin "now" inside the C-class window —
+  // Thursday 24/09/2026 10:30 AEST (00:30 UTC).
+  vi.useFakeTimers({ toFake: ["Date"] });
+  vi.setSystemTime(new Date("2026-09-24T00:30:00Z"));
+});
+
+afterEach(() => {
+  vi.useRealTimers();
 });
 
 describe("/api/cron/email-drip — route module shape", () => {
@@ -197,6 +214,7 @@ describe("POST /api/cron/email-drip — empty queue", () => {
       failed: 0,
       skipped: 0,
       deferred: 0,
+      deferredQuiet: 0,
       cap: 50,
       failures: [],
       wouldSend: [],
@@ -355,6 +373,7 @@ describe("POST /api/cron/email-drip — envelope contract", () => {
         "cap",
         "considered",
         "deferred",
+        "deferredQuiet",
         "dryRun",
         "expired",
         "failed",
@@ -660,5 +679,68 @@ describe("POST /api/cron/email-drip — G34-BT2 commercial gate", () => {
     await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
     expect(checklistMock).not.toHaveBeenCalled();
     expect(sendEmailMock.mock.calls[0][0]).toMatchObject({ emailClass: "T" });
+  });
+});
+
+describe("POST /api/cron/email-drip — G34-BT4 lifecycle pipeline", () => {
+  it("quiet hours: a C-class row due on a Saturday stays pending (no write, no send); T-class still goes", async () => {
+    vi.setSystemTime(new Date("2026-09-26T02:00:00Z")); // Saturday 12:00 AEST
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "c1", campaign: "onboarding_d1" }), drip({ id: "t1", campaign: "radar_t3" })]);
+    const body = await (await POST(req("POST", { authorization: `Bearer ${SECRET}` }))).json();
+    expect(body).toMatchObject({ sent: 1, deferredQuiet: 1 });
+    expect(suppressDripMock).not.toHaveBeenCalled();
+    expect(claimDripMock).toHaveBeenCalledTimes(1);
+    expect(claimDripMock).toHaveBeenCalledWith("t1");
+    expect(checklistMock).not.toHaveBeenCalled();
+  });
+
+  it("quiet hours: 19:30 on a weekday is closed, 08:30 is open", async () => {
+    vi.setSystemTime(new Date("2026-09-24T09:30:00Z")); // Thu 19:30 AEST
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "late" })]);
+    expect((await (await POST(req("POST", { authorization: `Bearer ${SECRET}` }))).json()).deferredQuiet).toBe(1);
+    vi.setSystemTime(new Date("2026-09-23T22:30:00Z")); // Thu 08:30 AEST
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "early" })]);
+    expect((await (await POST(req("POST", { authorization: `Bearer ${SECRET}` }))).json()).sent).toBe(1);
+  });
+
+  it("a reached goal cancels the row (never claimed, never sent)", async () => {
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "g1", campaign: "evidence_gap_1" })]);
+    stopDecisionMock.mockResolvedValueOnce({ action: "cancel", reason: "goal reached: evidence added" });
+    const body = await (await POST(req("POST", { authorization: `Bearer ${SECRET}` }))).json();
+    expect(body).toMatchObject({ sent: 0, skipped: 1 });
+    expect(suppressDripMock).toHaveBeenCalledWith("g1", "stopped: goal reached: evidence added");
+    expect(claimDripMock).not.toHaveBeenCalled();
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("an unreadable goal check leaves the row pending", async () => {
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "g2", campaign: "rerun_prompt" })]);
+    stopDecisionMock.mockResolvedValueOnce({ action: "defer", reason: "analysis lookup unavailable" });
+    const body = await (await POST(req("POST", { authorization: `Bearer ${SECRET}` }))).json();
+    expect(body).toMatchObject({ sent: 0, deferred: 1 });
+    expect(suppressDripMock).not.toHaveBeenCalled();
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("dry run: a reached goal is reported as skipped without a write", async () => {
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "g3", campaign: "free_quota_used" }), drip({ id: "g4", campaign: "score_updated", email: "b@example.com" })]);
+    stopDecisionMock.mockImplementation(async (d: unknown) =>
+      (d as { campaign: string }).campaign === "free_quota_used" ? { action: "cancel", reason: "goal reached: purchase made" } : { action: "send" },
+    );
+    const body = await (await POST(dryReq({ authorization: `Bearer ${SECRET}` }))).json();
+    expect(suppressDripMock).not.toHaveBeenCalled();
+    expect(body.wouldSend).toEqual(["score_updated:b@example.com"]);
+  });
+
+  it("orders one batch by priority: T first, then re-run > evidence > onboarding > digest", async () => {
+    dueDripsMock.mockResolvedValueOnce([
+      drip({ id: "a", campaign: "monthly_digest" }),
+      drip({ id: "b", campaign: "onboarding_d1" }),
+      drip({ id: "c", campaign: "evidence_gap_1" }),
+      drip({ id: "d", campaign: "rerun_prompt" }),
+      drip({ id: "e", campaign: "radar_t3" }),
+    ]);
+    await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
+    expect(claimDripMock.mock.calls.map((c) => c[0])).toEqual(["e", "d", "c", "b", "a"]);
   });
 });

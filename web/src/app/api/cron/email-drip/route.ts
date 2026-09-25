@@ -18,6 +18,19 @@
 //      and only send when the claim is won. A retry claims nothing and
 //      sends nothing.
 //
+// G34-BT4 additions, in the same pipeline:
+//   * the batch is ordered by flow priority (T first, then re-run > evidence
+//     > intake > quota > onboarding > digest > sunset — plan §9.1 EM03), so
+//     when two C-class rows for one address fall due on the same tick the
+//     global cap drops the lower-priority one, not whichever is older;
+//   * quiet hours: a C-class row due outside weekdays 08:00–19:00
+//     Australia/Sydney stays pending (counted `deferredQuiet`) for the next
+//     open hour; T-class is exempt;
+//   * lifecycle stop conditions (lib/lifecycle/stop-conditions.ts): a flow
+//     whose goal is reached (evidence added, onboarding finished, re-run
+//     started, purchase made, signed in again) is cancelled, not sent; an
+//     unreadable goal check leaves the row pending.
+//
 // `?dry=1` walks the whole pipeline except expiry and the send itself and
 // reports exactly which addresses would be mailed.
 //
@@ -42,6 +55,9 @@ import {
 } from "@/lib/email-drip";
 import { emailSendChecklist } from "@/lib/email-preferences";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
+import { campaignPriority } from "@/lib/lifecycle/campaigns";
+import { isInCommercialSendWindow } from "@/lib/lifecycle/send-window";
+import { lifecycleStopDecision } from "@/lib/lifecycle/stop-conditions";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -59,12 +75,19 @@ async function handle(request: Request): Promise<Response> {
   // Expiry guard first — a stale row must never reach the transport. A dry
   // run reports what would expire without writing.
   const expired = dryRun ? 0 : await expireStaleDrips(now);
-  const drips = await dueDrips(now, BATCH_LIMIT);
+  const due = await dueDrips(now, BATCH_LIMIT);
+  // Stable sort: priority first, then the worker's scheduled_for order.
+  const drips = due
+    .map((d, i) => ({ d, i, p: campaignPriority(d.campaign, dripEmailClass(d.campaign)) }))
+    .sort((a, b) => a.p - b.p || a.i - b.i)
+    .map((x) => x.d);
+  const inWindow = isInCommercialSendWindow(now);
 
   let sent = 0;
   let failed = 0;
   let skipped = 0;
   let deferred = 0;
+  let deferredQuiet = 0;
   const failures: string[] = [];
   const wouldSend: string[] = [];
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au").replace(/\/$/, "");
@@ -88,6 +111,11 @@ async function handle(request: Request): Promise<Response> {
       // row (fail-closed) leaves the row pending for a later tick.
       const emailClass = dripEmailClass(drip.campaign);
       const flow = dripFlow(drip.campaign);
+      // G34-BT4 quiet hours: C-class waits for the next open hour (no write).
+      if (emailClass === "C" && !inWindow) {
+        deferredQuiet++;
+        continue;
+      }
       if (emailClass === "C") {
         const check = await emailSendChecklist(drip.email, dripCategory(drip.campaign), undefined, { flow });
         if (!check.ok) {
@@ -104,6 +132,20 @@ async function handle(request: Request): Promise<Response> {
       // G16-B: the A$3 unlock nudge is cancelled (not sent, not claimed)
       // once the founder has bought, the plan includes the report, or the
       // address is a QA account. Other campaigns pass straight through.
+      // G34-BT4 — lifecycle stop conditions (goal reached → cancel;
+      // unreadable → leave pending). Non-lifecycle campaigns answer `send`.
+      const stop = await lifecycleStopDecision(drip);
+      if (stop.action === "cancel") {
+        if (!dryRun) await suppressDrip(drip.id, `stopped: ${stop.reason}`);
+        skipped++;
+        continue;
+      }
+      if (stop.action === "defer") {
+        deferred++;
+        skipped++;
+        continue;
+      }
+
       const unlockSkip = await tbrUnlockSuppression(drip);
       if (unlockSkip) {
         if (!dryRun) await suppressDrip(drip.id, unlockSkip);
@@ -161,6 +203,7 @@ async function handle(request: Request): Promise<Response> {
     failed,
     skipped,
     deferred,
+    deferredQuiet,
     cap: BATCH_LIMIT,
     failures: failures.slice(0, 5),
     wouldSend,
