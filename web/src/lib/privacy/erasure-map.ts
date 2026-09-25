@@ -365,6 +365,10 @@ export const NON_FK_EXTRAS: readonly ExtraEntry[] = Object.freeze([
   { table: "free_report_grants", column: "email_hash", by: "email_hash", mode: "delete", note: "Free-report grants whose typed address differs from the account address (plus tags, gmail dots) — the normalised hash catches them (review v3.26.0 P3)." },
   { table: "analyses", column: "full_report_email", by: "email", mode: "delete", note: "Guest analyses (user_id null) — intake text, summary/full-report e-mail and the v3 document keyed by the delivery address (review v3.27.0 P2)." },
   { table: "analyses", column: "summary_email", by: "email", mode: "delete", note: "Guest analyses keyed by the free-summary address (same rows as above when both were set)." },
+  // G34 DC09 (pending-authority/0464): rows keyed by the address that the
+  // user_id FK walk cannot reach.
+  { table: "email_preferences", column: "email", by: "email", mode: "delete", note: "Email preferences + unsubscribe token written before sign-up / from an unsubscribe link (user_id NULL) — the FK entry only reaches rows carrying the user id." },
+  { table: "svi_notifications", column: "email", by: "email", mode: "delete", note: "Sent-email / nurture log keyed by the recipient address (daily cap + dedupe reads). The RPC skips it where the live table has no `email` column (0008 created none)." },
 ]);
 
 /**

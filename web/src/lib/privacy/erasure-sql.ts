@@ -10,7 +10,14 @@
 import { ERASURE_MAP, NON_FK_EXTRAS, PROJECT_DETACHES, orderedEntries, type ErasureEntry } from "./erasure-map";
 
 /** Latest migration that (re)creates `erase_account()` from this map — tests read it. */
-export const ERASURE_MIGRATION_FILE = "0442_erasure_guest_analyses_by_email.sql";
+export const ERASURE_MIGRATION_FILE = "0464_erase_account_email_preferences_notifications.sql";
+/**
+ * Directory under `web/supabase/` that holds it. G34 DC09: `pending-authority`
+ * — additive SQL after 0447 lives there until the schema-authority
+ * transition admits it (pending-authority/README.md); 0442 in `migrations/`
+ * is the function live until 0464 is applied.
+ */
+export const ERASURE_MIGRATION_DIR = "pending-authority";
 
 export const MAP_BEGIN = "-- BEGIN erasure-map (generated from src/lib/privacy/erasure-map.ts — do not edit by hand)";
 export const MAP_END = "-- END erasure-map";

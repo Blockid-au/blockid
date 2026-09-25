@@ -28,6 +28,7 @@ import {
   DETACH_END,
   EXTRAS_BEGIN,
   EXTRAS_END,
+  ERASURE_MIGRATION_DIR,
   ERASURE_MIGRATION_FILE,
   MAP_BEGIN,
   MAP_END,
@@ -38,7 +39,7 @@ import {
   renderMapBlock,
 } from "./erasure-sql";
 
-const MIGRATION = path.resolve(__dirname, "..", "..", "..", "supabase", "migrations", ERASURE_MIGRATION_FILE);
+const MIGRATION = path.resolve(__dirname, "..", "..", "..", "supabase", ERASURE_MIGRATION_DIR, ERASURE_MIGRATION_FILE);
 const sql = readFileSync(MIGRATION, "utf8");
 
 type Fk = { constraint: string; table: string; column: string; on_delete: string; not_null: boolean };
@@ -74,7 +75,7 @@ describe("erasure map ↔ live-schema fixture", () => {
       expect(child.scope).toBe("blockid_owned_analysis");
       expect(fkByKey.get(entryKey(child))).toMatchObject({ on_delete: "NO ACTION", not_null: true });
     }
-    const authoritySql = readFileSync(path.resolve(path.dirname(MIGRATION), "0447_reanalysis_authority.sql"), "utf8");
+    const authoritySql = readFileSync(path.resolve(__dirname, "..", "..", "..", "supabase", "migrations", "0447_reanalysis_authority.sql"), "utf8");
     expect(authoritySql).toContain("owned_analysis_id uuid REFERENCES public.analyses(id) ON DELETE CASCADE");
     expect(authoritySql).toContain("REFERENCES public.reanalysis_report_associations(id, actor_user_id, site) ON DELETE CASCADE");
     expect(authoritySql).toContain("REFERENCES public.reanalysis_wallet_grants(id, association_id, actor_user_id, wallet_id) ON DELETE CASCADE");
@@ -187,6 +188,20 @@ describe("erasure map ↔ live-schema fixture", () => {
     expect(sql).toMatch(/WHEN v_step\.keyed = 'account'/);
     expect(sql).toMatch(/%I::text IN \(SELECT id::text FROM public\.svi_accounts WHERE lower\(email\) = %L OR project_id IN/);
     for (const d of PROJECT_DETACHES) expect(["projects", "svi_accounts"]).toContain(d.parent);
+  });
+
+  it("G34 DC09: address-keyed rows the FK walk misses are deleted by e-mail (email_preferences with user_id NULL, svi_notifications)", () => {
+    const byEmail = (t: string) => NON_FK_EXTRAS.find((x) => x.table === t && x.by === "email");
+    expect(byEmail("email_preferences")).toMatchObject({ column: "email", mode: "delete" });
+    expect(byEmail("svi_notifications")).toMatchObject({ column: "email", mode: "delete" });
+    // the FK entry for email_preferences stays alongside it
+    expect(ERASURE_MAP.some((e) => e.table === "email_preferences" && e.column === "user_id" && e.mode === "delete")).toBe(true);
+    // each (table, column) extra is listed once
+    const keys = NON_FK_EXTRAS.map((x) => `${x.table}.${x.column}.${x.by}`);
+    expect(new Set(keys).size).toBe(keys.length);
+    // the RPC skips an extra whose table / column is absent live, so a missing svi_notifications.email cannot fail an erasure
+    expect(sql).toMatch(/NOT EXISTS \(SELECT 1 FROM information_schema\.columns/);
+    expect(sql).toMatch(/'table_or_column_missing'/);
   });
 });
 
