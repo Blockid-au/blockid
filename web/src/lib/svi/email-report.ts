@@ -53,7 +53,7 @@ import { loadLatestReportV2ForAccount, loadReportV2BySnapshotId } from "@/lib/re
 import { isReportV2, type DimensionChapter, type InvestmentView, type ReportV2 } from "@/lib/report-v2/schema";
 import { investmentLocale, investmentViewFor, type InvestmentLocale } from "@/lib/report-v2/investment-view";
 import { buildDashboardView, type DashboardView } from "@/lib/report-v2/dashboard-view";
-import { buildDashboardV4, v4PlainText, v4ScoreCell, type DashboardV4, type V4Tile } from "@/lib/report-v2/dashboard-v4";
+import { buildDashboardV4, v4PlainText, v4PositionLine, v4ScoreCell, type DashboardV4, type V4Tile } from "@/lib/report-v2/dashboard-v4";
 import { getTbrV3Strings, type TbrV3Strings } from "@/lib/i18n/tbr-v3-strings";
 import { getTbrStrings } from "@/lib/i18n/tbr-strings";
 import { alignReportWithAssessmentCard, type AssessmentCardData, type AssessmentCardOptions } from "@/lib/svi/assessment-card";
@@ -244,6 +244,7 @@ function pageOneHtml(v4: DashboardV4): string {
         .join("\n      ")}
     </table>
     <p style="margin:6px 0 0 0;font-size:11px;line-height:1.5;color:${MUTED};">${escapeHtml(s.leadFootnote)}</p>
+    <p style="margin:6px 0 0 0;font-size:12px;line-height:1.5;color:${INK};" data-tbr-email-position>${escapeHtml(v4PositionLine(v4))}</p>
     ${flag ? `${h2(s.topRedFlag)}<p style="margin:0;font-size:13px;line-height:1.5;color:${INK};" data-tbr-email-red-flag>▲ ${escapeHtml(flag.text)}</p>` : ""}`;
 }
 
@@ -370,6 +371,7 @@ export function reportEmailSummary(reportIn: ReportV2, localeIn?: string, input:
   for (const m of v4.keyMetrics) lines.push(`${m.label}: ${m.value ?? "—"} · ${m.statusLabel}${m.source ? ` · ${m.source}` : ""}`);
   lines.push("", s4.scorecardTitle);
   for (const row of v4.scorecard) lines.push(`${row.title} · ${s4.leadLine(row.leadCode)} · ${row.emphasisLabel} · ${v4ScoreCell(row)}${row.locked ? ` · ${s4.inFullReport}` : ""}`);
+  lines.push(v4PositionLine(v4));
   if (v4.redFlags[0]) lines.push("", `${s4.topRedFlag}: ${v4.redFlags[0].text}`);
   lines.push("", s4.questions);
   v4.lists.ask.forEach((question, i) => lines.push(`${i + 1}. ${v4PlainText(question.text)}`));

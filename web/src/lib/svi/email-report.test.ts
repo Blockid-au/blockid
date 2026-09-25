@@ -434,6 +434,16 @@ describe("G34 BT3 — page-1 parity (dashboard v4)", () => {
     expect((html.match(/<tr><td style=/g) ?? []).length).toBeGreaterThanOrEqual(6 + 8);
   });
 
+  it("G34 BT6: one position line (stage ladder · peer position) in HTML and plain text", () => {
+    const report = demoReportV2();
+    report.cover.svi = { ...report.cover.svi, cohortPercentile: 62, cohortN: 41 };
+    const line = `Stage ladder: ●●●●○ Scaling · Peer position: p62 of ${report.cover.stageLabel} cohort (n = 41)`;
+    const html = renderReportEmailHtml({ report, dashboardUrl: DASHBOARD, shareUrl: null });
+    expect((html.match(/data-tbr-email-position/g) ?? []).length).toBe(1);
+    expect(textOf(html)).toContain(line);
+    expect(reportEmailSummary(report)).toContain(line);
+  });
+
   it("stays transactional: no price, offer, upgrade or pricing link in the page-1 block", () => {
     const report = demoReportV2(); report.tier = "free";
     const html = renderReportEmailHtml({ report, dashboardUrl: DASHBOARD, shareUrl: null });

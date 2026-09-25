@@ -49,7 +49,6 @@ import { pdfSafeText } from "@/lib/report-visuals/pdf-text";
 import { HELVETICA, pdfFontsForLocale, vietnameseHyphenation, type PdfFontSet } from "@/lib/pdf/fonts";
 import type { Band, DataState, VisualSpecV2 } from "@/lib/report-visuals/types";
 import { levelForEstimate, MAX_TRIM_LEVEL, projectForTier, type FreeTierProjection, type TrimLevel } from "@/lib/report-v2/free-tier";
-import { coverPercentileLine } from "@/lib/report-v2/cover-hero";
 import { coverLedgerCells, isUnassessed, ledgerRowsFor, pendingDimsLine, pendingLine } from "@/lib/report-v2/ledger-rows";
 import { chapterCtaRows, coverEvidenceLine, emptyEvidenceLine, evidenceRowsView, moneyEmptyState, pendingCtasHeading, type EvidenceRowView } from "@/lib/report-v2/evidence-view";
 import { getTbrS43Strings, getTbrStrings } from "@/lib/i18n/tbr-strings";
@@ -60,6 +59,7 @@ import { ensureExecutiveStructured } from "@/lib/report-v2/executive-structure";
 import { buildInvestmentView, chapterGaps, dimName, isAssessed, riskGrid, RISK_LEVELS_ASC, RISK_LEVELS_DESC } from "@/lib/report-v2/investment-view";
 import { buildDashboardView, dashboardDate, type DashboardView } from "@/lib/report-v2/dashboard-view";
 import { buildDashboardV4, v4ScoreCell, type DashboardV4, type V4ListItem, type V4Tile, type V4ValuationTile } from "@/lib/report-v2/dashboard-v4";
+import type { SviBacktestHeadline } from "@/lib/backtest/latest";
 import { proseParagraphs } from "@/lib/report-v2/paragraphs";
 import { buildCitationIndex, citationEntries, createCitationIndex, parseCitations, stripCitationMarkers, type CitationIndex, type CitationSegment } from "@/lib/report-v2/citations";
 import { citationStrings } from "@/lib/report-v2/citation-strings";
@@ -772,13 +772,18 @@ function Dashboard({ report, card, dash, v4, locale, preparedWith }: { report: R
               dash.footer.lastUpdated,
               evidence,
               pending,
-              coverPercentileLine(c.svi),
+              // G34 BT6: stage ladder · peer position (replaces the cover percentile line — same published figure) · spike · round readiness.
+              `${sv.ladderTitle}: ${v4.stageLadder.step}/5 ${v4.stageLadder.label}`,
+              v4.peer ? `${sv.peerTitle}: ${v4.peer.text}` : null,
+              v4.spike ? `${sv.spikeTitle}: ${v4.spike.text}` : null,
+              v4.roundReadiness?.text ?? null,
             ]
               .filter(Boolean)
               .join(" · "),
           )}
         </Text>
-        <Text style={[s.tiny, { marginTop: 1 }]}>{t(`${v4.meeting.subline} ${preparedWith}`)}</Text>
+        {/* G34 BT6 (RQ21): the calibration disclosure (the PDF font has no ρ glyph; the URL is never hyphenated). */}
+        <Text style={[s.tiny, { marginTop: 1 }]} hyphenationCallback={vietnameseHyphenation}>{t(`${v4.calibration.text.replace(/ρ/g, "rho")} blockid.au${v4.calibration.href} · ${v4.meeting.subline} ${preparedWith}`)}</Text>
       </View>
     </View>
   );
@@ -1704,9 +1709,11 @@ export interface TbrPdfProps {
   locale?: Loc;
   /** Server-loaded Assessment Card context (stored evidence confidence, claim count, benchmark) — same numbers as the web card. */
   assessment?: AssessmentCardOptions;
+  /** G34 BT6 (RQ21): the SVI backtest headline (`renderTbrPdf` loads it); omitted → the line prints no figures. */
+  calibration?: SviBacktestHeadline | null;
 }
 
-export function TbrReportPdf({ report: rawReport, level = 0, preparedWith, locale, assessment }: TbrPdfProps) {
+export function TbrReportPdf({ report: rawReport, level = 0, preparedWith, locale, assessment, calibration }: TbrPdfProps) {
   // One evidence-confidence number across the card, the dashboard and the investment view (review P1).
   const aligned = alignReportWithAssessmentCard(rawReport, assessment ?? {});
   // G19-S45: EN / VI font sets + strings only; ES / JA documents render with the English labels.
@@ -1728,7 +1735,7 @@ export function TbrReportPdf({ report: rawReport, level = 0, preparedWith, local
   const verificationLevel = aligned.report.cover.verification?.level ?? null;
   const body: ReactNode[] = [];
   // G34 BT3: page 1 prints the dashboard-v4 projection (the same object the web and e-mail read), gated like the free web view.
-  const v4 = buildDashboardV4(aligned.report, aligned.card, view, { locale: loc, lockCards: projection.free, dash });
+  const v4 = buildDashboardV4(aligned.report, aligned.card, view, { locale: loc, lockCards: projection.free, dash, ...(calibration !== undefined ? { calibration } : {}) });
   body.push(<Dashboard key="dash" report={r} card={aligned.card} dash={dash} v4={v4} locale={loc} preparedWith={prepared} />);
   body.push(<InvestmentViewSection key="iv" report={r} view={pv} locale={loc} />);
   body.push(<KeyPoints key="kp" view={pv} locale={loc} />);
@@ -1776,6 +1783,8 @@ export interface RenderTbrPdfOptions {
   assessment?: AssessmentCardOptions;
   /** Override the free budget (tests). */
   maxPages?: number;
+  /** G34 BT6 (RQ21): the SVI backtest headline; omitted → read from the published JSON, null → "calibration pending". */
+  calibration?: SviBacktestHeadline | null;
 }
 
 export interface RenderTbrPdfResult {
@@ -1815,15 +1824,17 @@ export async function renderTbrPdf(report: ReportV2, opts: RenderTbrPdfOptions =
   // duration of a Vietnamese render only, and restore the default after
   // (W5 review — a VI render used to leave every later EN PDF unhyphenated).
   const vi = opts.locale === "vi";
+  // G34 BT6 (RQ21): the published backtest headline for the page-1 calibration line (server-only read).
+  const calibration = opts.calibration !== undefined ? opts.calibration : await import("@/lib/backtest/latest").then((m) => m.readSviBacktestHeadline()).catch(() => null);
   if (vi) Font.registerHyphenationCallback(vietnameseHyphenation);
   let buffer: Uint8Array;
   let pages: number;
   try {
-    buffer = await renderToBuffer(<TbrReportPdf report={report} level={level} preparedWith={opts.preparedWith} locale={opts.locale} assessment={opts.assessment} />);
+    buffer = await renderToBuffer(<TbrReportPdf report={report} level={level} preparedWith={opts.preparedWith} locale={opts.locale} assessment={opts.assessment} calibration={calibration} />);
     pages = pdfPageCount(buffer);
     while (free && pages > maxPages && level < MAX_TRIM_LEVEL) {
       level = (level + 1) as TrimLevel;
-      buffer = await renderToBuffer(<TbrReportPdf report={report} level={level} preparedWith={opts.preparedWith} locale={opts.locale} assessment={opts.assessment} />);
+      buffer = await renderToBuffer(<TbrReportPdf report={report} level={level} preparedWith={opts.preparedWith} locale={opts.locale} assessment={opts.assessment} calibration={calibration} />);
       pages = pdfPageCount(buffer);
     }
   } finally {

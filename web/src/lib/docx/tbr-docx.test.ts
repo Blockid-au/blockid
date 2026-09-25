@@ -440,6 +440,18 @@ describe("buildTbrDocx — v3 structure", () => {
     const plain = await generateTbrDocx(report, { images });
     expect(plain.subarray(0, 2).toString("latin1")).toBe("PK");
   }, 60_000);
+
+  it("G34 BT6: page 1 carries the position line (stage ladder · peer) and the calibration disclosure; pending when no backtest", async () => {
+    const report = demoReportV2();
+    report.cover.svi = { ...report.cover.svi, cohortPercentile: 62, cohortN: 41 };
+    const images = await rasteriseReportVisuals(report, 400);
+    const { buffer } = await buildTbrDocx(report, { images, calibration: { rho: 0.762, n: 41, asOf: "2026-09-17T00:07:42.936Z" } });
+    const page1 = sectionText((await unzip(buffer)).doc, "Dashboard", "Investment view");
+    expect(page1).toContain(`Stage ladder: ●●●●○ Scaling · Peer position: p62 of ${report.cover.stageLabel} cohort (n = 41)`);
+    expect(page1).toMatch(/Calibration: SVI backtest ρ 0\.76 vs round size \(n = 41, [^)]+\)\. Rank calibration only — not a substitute for diligence\. How the SVI is calibrated: blockid\.au\/methodology\/calibration/);
+    const pending = await buildTbrDocx(demoReportV2(), { images, calibration: null });
+    expect(sectionText((await unzip(pending.buffer)).doc, "Dashboard", "Investment view")).toContain("Calibration pending — not a substitute for diligence. How the SVI is calibrated: blockid.au/methodology/calibration");
+  }, 60_000);
 });
 
 describe("G30 unavailable valuation DOCX", () => {

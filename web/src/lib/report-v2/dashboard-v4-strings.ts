@@ -99,10 +99,9 @@ const EN = {
   spike: (names: string) => `${names} (top 10% of stage)`,
   roundTitle: "Round readiness",
   round: (date: string, months: string, source: string) => `Last round: ${date} · runway: ${months} months (${source})`,
-  calibrationTitle: "Calibration",
-  calibrationPublished: (rho: string, n: number, date: string) => `SVI backtest ρ ${rho} vs round size (n = ${n}, ${date}). Rank calibration only — not a substitute for diligence.`,
+  calibrationPublished: (rho: string, n: number, date: string) => `Calibration: SVI backtest ρ ${rho} vs round size (n = ${n}, ${date}). Rank calibration only — not a substitute for diligence.`,
   calibrationPending: (n: number | null) => `Calibration pending${n ? ` (backtest n = ${n})` : ""} — not a substitute for diligence.`,
-  calibrationUnknown: "SVI rank calibration is published with its limits — not a substitute for diligence.",
+  calibrationUnknown: "Calibration: the SVI backtest and its limits are published — not a substitute for diligence.",
   calibrationLink: "How the SVI is calibrated",
 };
 
@@ -195,10 +194,9 @@ const VI: DashboardV4Strings = {
   spike: (names) => `${names} (top 10% cùng giai đoạn)`,
   roundTitle: "Sẵn sàng gọi vốn",
   round: (date, months, source) => `Vòng gần nhất: ${date} · runway: ${months} tháng (${source})`,
-  calibrationTitle: "Hiệu chuẩn",
-  calibrationPublished: (rho, n, date) => `Backtest SVI ρ ${rho} so với quy mô vòng (n = ${n}, ${date}). Chỉ hiệu chuẩn thứ hạng — không thay thế thẩm định.`,
+  calibrationPublished: (rho, n, date) => `Hiệu chuẩn: backtest SVI ρ ${rho} so với quy mô vòng (n = ${n}, ${date}). Chỉ hiệu chuẩn thứ hạng — không thay thế thẩm định.`,
   calibrationPending: (n) => `Hiệu chuẩn đang chờ${n ? ` (backtest n = ${n})` : ""} — không thay thế thẩm định.`,
-  calibrationUnknown: "Hiệu chuẩn thứ hạng SVI được công bố kèm giới hạn — không thay thế thẩm định.",
+  calibrationUnknown: "Hiệu chuẩn: backtest SVI và giới hạn của nó được công bố — không thay thế thẩm định.",
   calibrationLink: "Cách SVI được hiệu chuẩn",
 };
 

@@ -80,7 +80,8 @@ import { citationStrings } from "@/lib/report-v2/citation-strings";
 import { buildValuationView } from "@/lib/report-v2/valuation-view";
 import { buildInvestmentView, chapterGaps, dimName, isAssessed, PLAN_STEPS_FREE, RISK_LEVELS_ASC, RISK_LEVELS_DESC, RISK_ROWS_FREE, riskGrid } from "@/lib/report-v2/investment-view";
 import { buildDashboardView, type DashboardView } from "@/lib/report-v2/dashboard-view";
-import { buildDashboardV4, v4ScoreCell, type DashboardV4, type V4Tile } from "@/lib/report-v2/dashboard-v4";
+import { buildDashboardV4, v4PositionLine, v4ScoreCell, type DashboardV4, type V4Tile } from "@/lib/report-v2/dashboard-v4";
+import type { SviBacktestHeadline } from "@/lib/backtest/latest";
 import { derivedLift } from "@/lib/svi-lift";
 import { PDF_ENTITY_LINE, PDF_FINANCIAL_PROJECTION_DISCLAIMER, PDF_GENERAL_ADVICE_DISCLAIMER } from "@/lib/pdf/advice-disclaimer";
 import { defaultPreparedWith } from "@/lib/report-v2/prepared-with";
@@ -518,6 +519,8 @@ function dashboard(ctx: Ctx): Block[] {
     out.push(small(v4.signalChips.slice(i, i + 2).map((signal) => `${signal.label}: ${signal.statusLabel}`).join("  ·  ")));
   }
   out.push(small(v4.scopeNote));
+  // G34 BT6: stage ladder · peer · spike · round readiness (RQ19/20/27/28) + the calibration disclosure (RQ21).
+  out.push(small(v4PositionLine(v4)), small(`${v4.calibration.text} ${sv.calibrationLink}: blockid.au${v4.calibration.href}`));
   return out;
 }
 
@@ -971,6 +974,8 @@ export interface TbrDocxOptions {
   images?: TbrDocxImages;
   /** Assessment Card context from `loadAssessmentContext` (review P1: one number on every surface). */
   assessment?: AssessmentCardOptions;
+  /** G34 BT6 (RQ21): the SVI backtest headline; omitted → read from the published JSON, null → "calibration pending". */
+  calibration?: SviBacktestHeadline | null;
 }
 
 export interface TbrDocxResult {
@@ -994,7 +999,8 @@ export async function buildTbrDocx(rawReport: ReportV2, opts: TbrDocxOptions = {
   const projection = projectForTier(report, opts.level ?? 0);
   const r = projection.report;
   // G34 BT3: page 1 is the dashboard-v4 projection (the scorecard replaces the dim_bars chart), gated like the free web view.
-  const v4 = buildDashboardV4(report, aligned.card, view, { locale, lockCards: projection.free, dash });
+  const calibration = opts.calibration !== undefined ? opts.calibration : await import("@/lib/backtest/latest").then((m) => m.readSviBacktestHeadline()).catch(() => null);
+  const v4 = buildDashboardV4(report, aligned.card, view, { locale, lockCards: projection.free, dash, calibration });
   const images = opts.images ?? (await rasteriseReportVisuals(r));
   const prepared = opts.preparedWith?.trim() || defaultPreparedWith(report);
   // G24-A: one footnote numbering per document, walked over the FULL text

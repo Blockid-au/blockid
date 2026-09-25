@@ -389,7 +389,7 @@ describe("buildDashboardV4 — RQ21 calibration disclosure (always present, neve
   it("published backtest → ρ, n, date and 'not a substitute for diligence', linking the methodology", () => {
     const c = v4For(demoReportV2(), {}, { calibration: { rho: 0.762, n: 41, asOf: "2026-09-17T00:07:42.936Z" } }).calibration;
     expect(c).toMatchObject({ state: "published", rho: 0.762, n: 41, asOf: "2026-09-17T00:07:42.936Z", href: "/methodology/calibration", linkLabel: "How the SVI is calibrated" });
-    expect(c.text).toMatch(/^SVI backtest ρ 0\.76 vs round size \(n = 41, 17 Sept? 2026\)\. Rank calibration only — not a substitute for diligence\.$/);
+    expect(c.text).toMatch(/^Calibration: SVI backtest ρ 0\.76 vs round size \(n = 41, 17 Sept? 2026\)\. Rank calibration only — not a substitute for diligence\.$/);
     expect(CALIBRATION_HREF).toBe("/methodology/calibration");
   });
 

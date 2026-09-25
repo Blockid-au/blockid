@@ -327,6 +327,23 @@ describe("renderTbrPdf — standard tier (v3 order)", () => {
     expect(v4.lists.ask.length).toBeLessThanOrEqual(3);
   }, 120_000);
 
+  it("G34 BT6: page 1 prints the stage ladder, the published peer percentile / spike and the calibration line (ρ, n, not a substitute for diligence)", async () => {
+    const report = demoReportV2();
+    report.cover.svi = { ...report.cover.svi, cohortPercentile: 62, cohortN: 41 };
+    for (const d of report.dimensions) d.benchmark = { ...d.benchmark, percentile: d.dim === "tre" ? 95 : 50, n: 41 };
+    const { buffer } = await renderTbrPdf(report, { calibration: { rho: 0.762, n: 41, asOf: "2026-09-17T00:07:42.936Z" } });
+    const p1 = (await pageTexts(buffer))[0]!.replace(/\s+/g, " ");
+    expect(p1).toContain("Stage ladder: 4/5 Scaling");
+    expect(p1).toContain(`Peer position: p62 of ${report.cover.stageLabel} cohort (n = 41)`);
+    expect(p1).toContain("(top 10% of stage)");
+    expect(p1).toMatch(/SVI backtest rho 0\.76 vs round size \(n = 41, /);
+    expect(p1).toContain("not a substitute for diligence");
+    expect(p1).toContain("blockid.au/methodology/calibration");
+    const pending = (await pageTexts((await renderTbrPdf(demoReportV2(), { calibration: null })).buffer))[0]!.replace(/\s+/g, " ");
+    expect(pending).toContain("Calibration pending");
+    expect(pending).not.toContain("Peer position");
+  }, 120_000);
+
   it("keeps a caller-supplied 'Prepared with <model via provider>' line verbatim", async () => {
     const report = demoReportV2();
     const { buffer } = await renderTbrPdf(report, { preparedWith: "Prepared with DeepSeek-V4-Flash via DeepInfra." });
@@ -517,7 +534,8 @@ describe("renderTbrPdf — evidence & data CTAs (G19-S43)", () => {
     const cohort = { sector: "SaaS", sample_size: 14, dim_medians: { tre: 50, mpc: 50 }, dim_top_quartile: { tre: 65, mpc: 65 } };
     const published = fromSnapshot({ ...demoSnapshotInput(), cohortPercentile: 66, cohort });
     const text = await fullText((await renderTbrPdf(published)).buffer);
-    expect(text).toContain("66th percentile (n=14)");
+    // G34 BT6 (RQ19): the page-1 rank prints as the peer position ("p66 of <stage> cohort (n = 14, indicative)").
+    expect(text).toMatch(/Peer position: p66 of .+? cohort \(n = 14, indicative\)/);
     expect(text).toMatch(/stage median \d+ \(n = 14, indicative\) · p25 \d+ · p75 \d+ · \d+th percentile/);
     expect(text).not.toMatch(NEVER_SAY);
     // A rank handed over without a cohort, or below the floor, is dropped.

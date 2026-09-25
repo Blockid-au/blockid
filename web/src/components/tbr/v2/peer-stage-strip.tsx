@@ -49,7 +49,7 @@ export function CalibrationLine({ v4, className }: { v4: DashboardV4; className?
   const c = v4.calibration;
   return (
     <p data-tbr-calibration={c.state} className={cn("text-xs text-secondary", className)}>
-      <span className="font-semibold uppercase tracking-wide text-muted">{v4.strings.calibrationTitle}</span> {c.text}{" "}
+      {c.text}{" "}
       <a href={c.href} className="font-semibold text-action hover:underline">
         {c.linkLabel}
       </a>
