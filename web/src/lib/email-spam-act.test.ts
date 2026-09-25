@@ -77,8 +77,9 @@ function sendEmailCalls(src: string): string[] {
 // under s6 of the Act (they complete a transaction the recipient initiated
 // or secure the account) and deliberately carry no marketing footer. Each
 // entry states the reason so the allow-list cannot grow silently.
+// (G34-BT2 EM07: the core transport `sendEmail` moved to lib/email-core.ts,
+// outside this walk — the footer stays the caller's responsibility.)
 const TRANSACTIONAL_ALLOWLIST: Record<string, string> = {
-  "lib/email.ts#sendEmail": "core transport — the footer is the caller's responsibility",
   "lib/email.ts#sendPasswordReset":
     "credential reset the user requested; carries a temporary password and no commercial content, must never be suppressible by an unsubscribe",
   "lib/email.ts#sendFarewellEmail":
