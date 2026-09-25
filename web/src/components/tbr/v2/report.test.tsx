@@ -25,6 +25,8 @@ import { groundingAudit } from "@/lib/report-v2/grounding";
 import { TBR_GROUNDED_SHARE_KPI } from "@/lib/report-pipeline/quality-log";
 import { PLAN_STEPS_FREE, RISK_ROWS_FREE } from "@/lib/report-v2/investment-view";
 import { tbrPdfOutline } from "@/lib/pdf/tbr-pdf";
+import { buildInvestorScreening } from "@/lib/report-v2/investor-screening";
+import { freeScreeningLeakProbe, LEAK_PROBE_MARK } from "@/lib/report-v2/screening-leak-fixture";
 
 const V3_ORDER = [
   "tbr-dashboard",
@@ -265,6 +267,29 @@ describe("<TbrReportV2> free tier (spec § 6)", () => {
     expect(val).not.toContain("ARR A$1.2M × 6–7.5"); // no derivation on free
     // Full chapters (1–4) keep the full anatomy; compact cards say the criteria live in the paid view.
     expect(html).toContain("Full criterion cards");
+  });
+
+  it("D24-b: page 1 shows each investor-signal status unlocked, detail gated, and no locked-chapter evidence id, finding, bullet or citation", () => {
+    const { report, secrets } = freeScreeningLeakProbe();
+    for (const unlock of [undefined, { mode: "buy" as const }]) {
+      const page1 = between(renderToStaticMarkup(<TbrReportV2 report={report} unlock={unlock} />), "tbr-dashboard", "tbr-investment-view");
+      expect(page1).toContain("data-tbr-investor-screening");
+      expect((page1.match(/data-investor-signal="/g) ?? []).length).toBe(6);
+      expect(page1).not.toContain('data-state="locked"');
+      expect((page1.match(/data-detail="locked"/g) ?? []).length).toBe(6);
+      const text = textOf(page1);
+      for (const signal of buildInvestorScreening(report).signals) {
+        expect(["Related assessments available", "No dedicated assessment"]).toContain(signal.statusLabel);
+        expect(page1).toContain(`data-investor-signal="${signal.key}" data-state="${signal.status}"`);
+      }
+      expect(text).toContain("Related assessments available");
+      expect(text).toContain("No dedicated assessment");
+      expect(page1).not.toContain(LEAK_PROBE_MARK);
+      for (const secret of secrets) expect(text).not.toContain(secret);
+    }
+    // Control: the same probe on a paid document does reach page 1, so the gate is what hides it.
+    const paid = between(renderToStaticMarkup(<TbrReportV2 report={{ ...report, tier: "standard" }} />), "tbr-dashboard", "tbr-investment-view");
+    expect(paid).toContain(LEAK_PROBE_MARK);
   });
 
   describe("G16-B unlock", () => {

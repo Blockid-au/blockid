@@ -16,6 +16,7 @@
 //     and the idempotency stamp.
 
 import * as screeningModel from "@/lib/report-v2/investor-screening";
+import { freeScreeningLeakProbe, LEAK_PROBE_MARK } from "@/lib/report-v2/screening-leak-fixture";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeSupabase } from "@/test/fake-supabase";
 import { demoReportV2, investmentBandFixture, type InvestmentBandFixture } from "@/lib/report-v2/fixtures";
@@ -412,17 +413,30 @@ describe("investor screening email parity", () => {
     expect(textOf(html)).toContain(screening.scopeNote);
     expect(text).toContain(screening.scopeNote);
   });
-  it("keeps every signal locked when the original free chapters are cards", () => {
+  it("shows every signal's status (not 'locked') when the original free chapters are cards, with detail still gated (D24-b)", () => {
     const report = demoReportV2(); report.tier = "free";
     report.dimensions = report.dimensions.map(ch => ({ ...ch, renderAs: "card" }));
     const html = renderReportEmailHtml({ report, dashboardUrl: DASHBOARD, shareUrl: null });
     const text = reportEmailSummary(report);
     for (const signal of screeningModel.buildInvestorScreening(report).signals) {
-      expect(signal.status).toBe("locked");
-      expect(textOf(html)).toContain(`${signal.label}: Details in the full report`);
-      expect(text).toContain(`${signal.label}: Details in the full report`);
+      expect(signal.status).not.toBe("locked");
+      expect(signal.detailLocked).toBe(true);
+      expect(textOf(html)).toContain(`${signal.label}: ${signal.statusLabel}`);
+      expect(text).toContain(`${signal.label}: ${signal.statusLabel}`);
+      expect(textOf(html)).not.toContain(`${signal.label}: Details in the full report`);
+      expect(text).not.toContain(`${signal.label}: Details in the full report`);
     }
     expect(screeningModel.buildInvestorScreening(report).questions).toHaveLength(0);
+  });
+  it("never leaks locked-chapter evidence ids, findings, bullets or citations into the e-mail (D24-b)", () => {
+    const { report, secrets } = freeScreeningLeakProbe();
+    const html = renderReportEmailHtml({ report, dashboardUrl: DASHBOARD, shareUrl: null });
+    const text = reportEmailSummary(report);
+    for (const body of [html, textOf(html), text]) {
+      expect(body).not.toContain(LEAK_PROBE_MARK);
+      for (const secret of secrets) expect(body).not.toContain(secret);
+    }
+    for (const signal of screeningModel.buildInvestorScreening(report).signals) expect(text).toContain(`${signal.label}: ${signal.statusLabel}`);
   });
   it("escapes screening fields in HTML while preserving plain-text content", () => {
     const report = demoReportV2();

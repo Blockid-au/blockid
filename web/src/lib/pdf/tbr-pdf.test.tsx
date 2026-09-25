@@ -13,6 +13,7 @@
 //     verbatim; page counts agree between the two page-count readers.
 
 import { buildInvestorScreening, investorScreeningStrings } from "@/lib/report-v2/investor-screening";
+import { freeScreeningLeakProbe, LEAK_PROBE_MARK } from "@/lib/report-v2/screening-leak-fixture";
 import { describe, expect, it } from "vitest";
 import { PDFParse } from "pdf-parse";
 import { citedDemoReportV2, demoReportV2, demoSnapshotInput, freeFixtureReportV2, investmentBandFixture, preRevenueFixtureReportV2 } from "@/lib/report-v2/fixtures";
@@ -363,6 +364,22 @@ describe("renderTbrPdf — free tier page-count gate", () => {
     expect(text).toContain("· p. 1 ");
     expect(text).not.toContain("[ev:");
     expect(text).not.toMatch(NEVER_SAY);
+    // D24-b: page 1 shows every investor-signal status, never the locked label.
+    const p1 = perPage[0]!.replace(/\s+/g, " ");
+    for (const signal of buildInvestorScreening(report).signals) {
+      expect(signal.status).not.toBe("locked");
+      expect(p1).toContain(`${signal.label}: ${signal.statusLabel}`);
+      expect(p1).not.toContain(`${signal.label}: ${investorScreeningStrings("en").locked}`);
+    }
+  }, 120_000);
+
+  it("D24-b: page 1 carries no locked-chapter evidence id, finding, bullet or citation", async () => {
+    const { report, secrets } = freeScreeningLeakProbe();
+    const { buffer } = await renderTbrPdf(report);
+    const p1 = (await pageTexts(buffer))[0]!.replace(/\s+/g, " ");
+    for (const signal of buildInvestorScreening(report).signals) expect(p1).toContain(`${signal.label}: ${signal.statusLabel}`);
+    expect(p1.replace(/\s/g, "").toUpperCase()).not.toContain(LEAK_PROBE_MARK);
+    for (const secret of secrets) expect(p1).not.toContain(secret);
   }, 120_000);
 
   it("a free report padded with long verdicts still lands within budget by stepping the trim level", async () => {

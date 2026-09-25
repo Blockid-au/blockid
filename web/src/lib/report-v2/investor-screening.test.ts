@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { demoReportV2, freeFixtureReportV2 } from "./fixtures";
 import { buildInvestorScreening, investorScreeningStrings } from "./investor-screening";
 import type { ReportV2, EvidenceRow } from "./schema";
+import { freeScreeningLeakProbe, LEAK_PROBE_MARK } from "./screening-leak-fixture";
 
 function isolated() {
   const report = demoReportV2();
@@ -72,18 +73,48 @@ describe("investor screening stored-report projection", () => {
     expect(view.signals[0].evidence).toEqual([]);
     expect(view.strengths).toEqual([]);
   });
-  it("redacts an entire signal when any duplicate criterion is gated", () => {
+  it("redacts an entire signal's detail when any duplicate criterion is gated, but keeps its status (D24-b)", () => {
     const { report, card, evidence } = isolated();
     report.tier = "free";
     report.dimensions[1].renderAs = "card";
     report.dimensions[1].criteria = [{ ...card, verdict: "PRIVATE duplicate finding" }];
     report.dimensions[1].evidence = [{ ...evidence, label: "PRIVATE source" }];
     const view = buildInvestorScreening(report);
-    expect(view.signals[0]).toMatchObject({ status: "locked", criteria: [], evidence: [], ownerRoles: [], confidence: { state: "locked", levels: [] } });
+    expect(view.signals[0]).toMatchObject({ status: "context_available", statusLabel: "Related assessments available", detailLocked: true, criteria: [], evidence: [], ownerRoles: [], confidence: { state: "locked", levels: [] } });
     expect(view.questions.some(q => q.signalKey === "team")).toBe(false);
+    expect(view.strengths).toEqual([]);
     expect(JSON.stringify(view)).not.toContain("PRIVATE");
     expect(JSON.stringify(view)).not.toContain("Saved founder assessment");
-    expect(buildInvestorScreening(report, "en", false).signals[0].status).toBe("context_available");
+    expect(JSON.stringify(view)).not.toContain("Relevant operating experience");
+    expect(buildInvestorScreening(report, "en", false).signals[0]).toMatchObject({ status: "context_available", detailLocked: false });
+    // Kill switch: revealStatus false restores the pre-D24-b "locked" status.
+    expect(buildInvestorScreening(report, "en", true, { revealStatus: false }).signals[0]).toMatchObject({ status: "locked", statusLabel: "Details in the full report", detailLocked: true, criteria: [] });
+  });
+  it("free fixture: page 1 shows every signal's status, never 'locked', while all detail stays gated (D24-b)", () => {
+    for (const locale of ["en", "vi"] as const) {
+      const strings = investorScreeningStrings(locale);
+      const view = buildInvestorScreening(freeFixtureReportV2(), locale);
+      expect(view.signals).toHaveLength(6);
+      for (const signal of view.signals) {
+        expect(signal.status, signal.key).not.toBe("locked");
+        expect([strings.context, strings.missing], signal.key).toContain(signal.statusLabel);
+        expect(signal.summary, signal.key).not.toBe(strings.locked);
+        expect(signal).toMatchObject({ detailLocked: true, criteria: [], evidence: [], ownerRoles: [], score: null });
+      }
+      expect(view.signals.filter(s => s.status === "context_available").map(s => s.key)).toEqual(["team", "traction", "moat", "ip"]);
+      expect(view.signals.filter(s => s.status === "missing").map(s => s.key)).toEqual(["liquidity", "capital_structure"]);
+      expect([view.strengths, view.gaps, view.questions]).toEqual([[], [], []]);
+    }
+  });
+  it("never leaks locked-chapter evidence ids, findings, bullets or citations into the page-1 model", () => {
+    const { report, secrets } = freeScreeningLeakProbe();
+    expect(secrets.length).toBeGreaterThan(8);
+    const json = JSON.stringify(buildInvestorScreening(report));
+    expect(json).not.toContain(LEAK_PROBE_MARK);
+    for (const secret of secrets) expect(json).not.toContain(secret);
+    // Control: with detail unlocked the same probe does surface, so the test can fail.
+    const open = JSON.stringify(buildInvestorScreening(report, "en", false));
+    expect(open).toContain(LEAK_PROBE_MARK);
   });
   it("does not display criterion scores from an explicitly unassessed chapter", () => {
     const { report, chapter } = isolated();

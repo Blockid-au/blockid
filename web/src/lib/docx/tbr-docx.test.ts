@@ -13,6 +13,7 @@
 //   - a rasteriser outage falls back to SVG embeds and the document opens.
 
 import { buildInvestorScreening, investorScreeningStrings } from "@/lib/report-v2/investor-screening";
+import { freeScreeningLeakProbe, LEAK_PROBE_MARK } from "@/lib/report-v2/screening-leak-fixture";
 import JSZip from "jszip";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getTbrV3Strings } from "@/lib/i18n/tbr-v3-strings";
@@ -296,7 +297,10 @@ describe("buildTbrDocx — v3 structure", () => {
     const brief = sectionText(doc, "Dashboard", "Investment view");
     for (const signal of screening.signals) expect(brief).toContain(`${signal.label}: ${signal.statusLabel}`);
     for (const question of screening.questions) expect(brief).toContain(question.text);
-    expect(screening.signals.some(signal => signal.status === "locked")).toBe(true);
+    // D24-b: statuses show on page 1; the detail behind them stays gated.
+    expect(screening.signals.some(signal => signal.detailLocked)).toBe(true);
+    expect(screening.signals.every(signal => signal.status !== "locked")).toBe(true);
+    for (const signal of screening.signals) expect(brief).not.toContain(`${signal.label}: ${investorScreeningStrings("en").locked}`);
     const cards = report.dimensions.filter((d) => d.renderAs === "card");
     expect(cards.length).toBeGreaterThanOrEqual(4);
     expect((text.match(new RegExp(t.lockedCard.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")) ?? []).length).toBe(cards.length);
@@ -343,6 +347,15 @@ describe("buildTbrDocx — v3 structure", () => {
     // 8 chapter primaries + the dashboard chart + the range bars, de-duplicated by byte identity.
     expect(media.length).toBeGreaterThanOrEqual(8);
     expect(text).not.toMatch(NEVER_SAY);
+  }, 90_000);
+
+  it("D24-b: the free dashboard page shows signal statuses and no locked-chapter evidence id, finding, bullet or citation", async () => {
+    const { report, secrets } = freeScreeningLeakProbe();
+    const { doc } = await unzip((await buildTbrDocx(report)).buffer);
+    const brief = sectionText(doc, "Dashboard", "Investment view");
+    for (const signal of buildInvestorScreening(report).signals) expect(brief).toContain(`${signal.label}: ${signal.statusLabel}`);
+    expect(brief).not.toContain(LEAK_PROBE_MARK);
+    for (const secret of secrets) expect(brief).not.toContain(secret);
   }, 90_000);
 
   it("pending chapter (paid): '— / 100', the one pending card with its CTA rows, the pending takeaway, the pending ledger line in the appendix", async () => {

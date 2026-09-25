@@ -19,6 +19,14 @@ export interface InvestorScreeningSignal {
   evidence: InvestorScreeningEvidence[];
   confidence: { state: "stored" | "unknown" | "locked"; levels: EvidenceConfidence[]; label: string };
   ownerRoles: AgentRole[];
+  /** D24-b: status is visible, but criteria, evidence, confidence, roles and
+   * list points stay gated because a mapped criterion sits in a card chapter. */
+  detailLocked: boolean;
+}
+export interface InvestorScreeningOptions {
+  /** D24-b (founder 25/09): free page 1 shows each signal's status. `false`
+   * restores the pre-D24-b behaviour where a gated signal reads "locked". */
+  revealStatus?: boolean;
 }
 
 const DEFINITIONS: ReadonlyArray<{ key: InvestorSignalKey; en: string; vi: string; criteria: readonly CriterionKey[]; question: [string, string] }> = [
@@ -55,8 +63,10 @@ export function investorScreeningStrings(locale: string) {
 const norm = (id: string) => id.trim().toLowerCase();
 
 /** Free gating is deliberately conservative: any locked occurrence of a mapped
- * criterion locks the entire signal, including evidence, scores and provenance. */
-export function buildInvestorScreening(report: ReportV2, locale: string = report.locale, lockCards = report.tier === "free") {
+ * criterion locks the entire signal's detail, including evidence, scores,
+ * findings, provenance and list points. D24-b: the signal's status (related
+ * assessment saved or not) stays visible; `revealStatus: false` hides it too. */
+export function buildInvestorScreening(report: ReportV2, locale: string = report.locale, lockCards = report.tier === "free", { revealStatus = true }: InvestorScreeningOptions = {}) {
   const strings = investorScreeningStrings(locale), vi = locale === "vi";
   const lockedChapters = lockCards ? report.dimensions.filter(ch => ch.renderAs === "card") : [];
   const lockedCriteria = new Set(lockedChapters.flatMap(ch => ch.criteria.map(c => c.key)));
@@ -78,7 +88,8 @@ export function buildInvestorScreening(report: ReportV2, locale: string = report
   const signals: InvestorScreeningSignal[] = DEFINITIONS.map(def => {
     const locked = def.criteria.some(key => lockedCriteria.has(key));
     const base = { key: def.key, label: vi ? def.vi : def.en, score: null } as const;
-    if (locked) return { ...base, status: "locked", statusLabel: strings.locked, summary: strings.locked, criteria: [], evidence: [], confidence: { state: "locked", levels: [], label: strings.locked }, ownerRoles: [] };
+    const gated = { ...base, criteria: [], evidence: [], confidence: { state: "locked" as const, levels: [], label: strings.locked }, ownerRoles: [], detailLocked: true };
+    if (locked && !revealStatus) return { ...gated, status: "locked", statusLabel: strings.locked, summary: strings.locked };
     const cards: CriterionCard[] = [];
     const criteria: InvestorScreeningSignal["criteria"] = [];
     for (const key of def.criteria) {
@@ -91,6 +102,12 @@ export function buildInvestorScreening(report: ReportV2, locale: string = report
       const title = CRITERIA.find(c => c.key === key)!;
       criteria.push({ key, title: vi ? title.titleVi : title.title, score: Number.isFinite(card.score) ? card.score : null, finding: card.verdict, ownerRole: card.agent });
     }
+    const missing = def.key === "liquidity" || def.key === "capital_structure" || !criteria.length;
+    const summary = def.key === "liquidity" ? strings.liquidity : def.key === "capital_structure" ? strings.capital : !criteria.length ? strings.noCriteria : def.key === "ip" ? strings.ip : strings.related;
+    const status = missing ? "missing" as const : "context_available" as const, statusLabel = missing ? strings.missing : strings.context;
+    // Status and the fixed summary only: no criterion, finding, evidence,
+    // role or list point of a gated signal leaves this function.
+    if (locked) return { ...gated, status, statusLabel, summary };
     const cited = [...new Set(cards.flatMap(c => c.citations.map(cite => norm(cite.evidence_id))))];
     const evidence = cited.flatMap(id => {
       const row = register.get(id);
@@ -111,15 +128,13 @@ export function buildInvestorScreening(report: ReportV2, locale: string = report
         }
       }
     }
-    const missing = def.key === "liquidity" || def.key === "capital_structure" || !criteria.length;
-    const summary = def.key === "liquidity" ? strings.liquidity : def.key === "capital_structure" ? strings.capital : !criteria.length ? strings.noCriteria : def.key === "ip" ? strings.ip : strings.related;
     questions.push({ signalKey: def.key, text: def.question[vi ? 1 : 0], evidenceIds: [] });
-    return { ...base, status: missing ? "missing" : "context_available", statusLabel: missing ? strings.missing : strings.context, summary, criteria, evidence,
-      confidence: { state: levels.length ? "stored" : "unknown", levels, label: levels.length ? strings.confidence : strings.unknown }, ownerRoles: [...new Set(criteria.map(c => c.ownerRole))] };
+    return { ...base, status, statusLabel, summary, criteria, evidence,
+      confidence: { state: levels.length ? "stored" : "unknown", levels, label: levels.length ? strings.confidence : strings.unknown }, ownerRoles: [...new Set(criteria.map(c => c.ownerRole))], detailLocked: false };
   });
   // Missing dedicated signals take precedence over generic prompts. This is
   // fixed presentation order, not a calibrated investment-risk ranking.
   const orderedQuestions = [...questions.filter(q => signals.find(s => s.key === q.signalKey)?.status === "missing"), ...questions.filter(q => signals.find(s => s.key === q.signalKey)?.status !== "missing")].slice(0, 3);
-  for (const signal of signals) if (signal.status === "missing" && gaps.length < 3) gaps.push({ signalKey: signal.key, text: signal.summary, evidenceIds: [] });
+  for (const signal of signals) if (signal.status === "missing" && !signal.detailLocked && gaps.length < 3) gaps.push({ signalKey: signal.key, text: signal.summary, evidenceIds: [] });
   return { signals, strengths, gaps, questions: orderedQuestions, generatedAt: report.generatedAt, scopeNote: strings.scopeNote };
 }
