@@ -11,7 +11,7 @@ vi.mock("nodemailer", () => ({ default: { createTransport: vi.fn(() => ({ sendMa
 
 const gateMock = vi.fn();
 const suppressionMock = vi.fn();
-const recordMock = vi.fn(async () => {});
+const recordMock = vi.fn(async (_row: unknown) => {});
 vi.mock("./email-sends", async (orig) => {
   const real = await orig<typeof import("./email-sends")>();
   return {

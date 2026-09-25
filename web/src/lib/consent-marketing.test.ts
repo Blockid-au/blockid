@@ -30,7 +30,7 @@ vi.mock("@/lib/supabase", () => ({
 }));
 vi.mock("@/lib/audit", () => ({ appendAudit: vi.fn(async () => ({})) }));
 
-const ensureMock = vi.fn(async () => "tok");
+const ensureMock = vi.fn(async (_e: string, _u?: string) => "tok");
 vi.mock("./email-preferences", () => ({
   ensureEmailPreferences: (e: string, u?: string) => ensureMock(e, u),
   commercialPreferenceDefaults: (g: boolean) => ({ weekly_reports: g, product_updates: g, promotions: g, digest_weekly: g }),
@@ -86,7 +86,7 @@ describe("recordMarketingConsent", () => {
     });
   });
 
-  it("before 0464 the consent stamp is dropped but the categories still update", async () => {
+  it("before 0465 the consent stamp is dropped but the categories still update", async () => {
     updateErrors = [{ code: "42703", message: "column marketing_consent_at does not exist" }];
     expect(await recordMarketingConsent({ email: "a@b.co", granted: true, method: "register_password" })).toBe(true);
     expect(updates).toHaveLength(2);

@@ -1,4 +1,4 @@
--- 0464 — G34-BT2 email foundation (25/09/2026). NOT APPLIED — founder/ops
+-- 0465 — G34-BT2 email foundation (25/09/2026). NOT APPLIED — founder/ops
 -- applies it (one transaction, psql) per pending-authority/README.md.
 --
 -- EM02  email_sends: one row per send attempt written best-effort by

@@ -148,7 +148,7 @@ describe("EM03 — frequency cap", () => {
 });
 
 describe("EM04 — suppression", () => {
-  it("reads suppressed_reason; unreadable before 0464 is applied", async () => {
+  it("reads suppressed_reason; unreadable before 0465 is applied", async () => {
     state.queue.push({ data: { suppressed_reason: "hard_bounce" } });
     expect(await getSuppression("a@b.co")).toEqual({ readable: true, reason: "hard_bounce" });
     state.queue.push({ data: null });
@@ -174,7 +174,7 @@ describe("EM04 — suppression", () => {
     });
   });
 
-  it("falls back to the pre-0464 columns so commercial mail still stops", async () => {
+  it("falls back to the pre-0465 columns so commercial mail still stops", async () => {
     state.queue.push({ data: { email: "a@b.co" } });
     state.queue.push({ error: { code: "42703" } }); // suppressed_* missing
     state.queue.push({}); // base update ok
@@ -214,7 +214,7 @@ describe("EM05 — consent (D24-e)", () => {
     expect(await hasCommercialConsent("guest@b.co")).toBe(false);
   });
 
-  it("fails closed when the consent column is missing (0464 not applied)", async () => {
+  it("fails closed when the consent column is missing (0465 not applied)", async () => {
     state.queue.push({ data: null });
     state.queue.push({ error: { code: "42703" } });
     expect(await hasCommercialConsent("guest@b.co")).toBe(false);

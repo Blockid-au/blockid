@@ -127,8 +127,8 @@ export interface MarketingConsentParams {
  * Record an express marketing opt-in from an unticked checkbox.
  *
  *   * email_preferences: the commercial categories go TRUE and
- *     `marketing_consent_at / _method / _version` are stamped (0464). Before
- *     0464 is applied the stamp is skipped; lib/email-sends.ts then reads no
+ *     `marketing_consent_at / _method / _version` are stamped (0465). Before
+ *     0465 is applied the stamp is skipped; lib/email-sends.ts then reads no
  *     consent for a new account or guest and sends nothing commercial
  *     (fail-closed), which is the safe side.
  *   * consent_events (kind `marketing`, the wording's version + sha256) for an

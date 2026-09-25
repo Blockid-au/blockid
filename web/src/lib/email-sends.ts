@@ -1,7 +1,7 @@
 // G34-BT2 — the shared e-mail send log, the commercial (C-class) gate and
 // recipient suppression (EM02 / EM03 / EM04 / EM05 / EM06).
 //
-//   * `email_sends` (pending-authority/0464_email_sends.sql) holds one row per
+//   * `email_sends` (pending-authority/0465_email_sends.sql) holds one row per
 //     send attempt: sha256(lower(email)) — never the address —, the flow, the
 //     class ('T' transactional | 'C' commercial), the template, the provider
 //     message id and a status. `sendEmail` (lib/email.ts) writes it
@@ -139,7 +139,7 @@ export async function checkCommercialFrequencyCap(email: string, flow: string, n
 export type SuppressionReason = "hard_bounce" | "complaint";
 
 export interface SuppressionState {
-  /** false when the preference row could not be read (0464 not applied, DB down). */
+  /** false when the preference row could not be read (0465 not applied, DB down). */
   readable: boolean;
   reason: SuppressionReason | null;
 }
@@ -173,7 +173,7 @@ const COMMERCIAL_OFF = {
 /**
  * Suppress an address after a hard bounce or a complaint (Resend webhook).
  * Every commercial category goes false + `unsubscribed_all`; the reason and
- * time land in `suppressed_reason` / `suppressed_at` (0464). Before 0464 is
+ * time land in `suppressed_reason` / `suppressed_at` (0465). Before 0465 is
  * applied the update is retried without those two columns, so C-class mail
  * still stops. Creates the row when the address has none. Never throws.
  */

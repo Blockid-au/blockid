@@ -4,8 +4,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createHmac } from "node:crypto";
 
 vi.mock("server-only", () => ({}));
-const suppressMock = vi.fn(async () => true);
-const markMock = vi.fn(async () => {});
+const suppressMock = vi.fn(async (_e: string, _r: string) => true);
+const markMock = vi.fn(async (_id: string, _s: string) => {});
 vi.mock("./email-sends", () => ({
   suppressRecipient: (e: string, r: string) => suppressMock(e, r),
   markSendStatusByProviderId: (id: string, s: string) => markMock(id, s),

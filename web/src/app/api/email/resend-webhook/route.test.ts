@@ -4,7 +4,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { createHmac } from "node:crypto";
 
-const handleMock = vi.fn(async () => ({ suppressed: 1, reason: "hard_bounce" }));
+const handleMock = vi.fn(async (_e: unknown) => ({ suppressed: 1, reason: "hard_bounce" }));
 vi.mock("@/lib/email-webhook", async (orig) => ({
   ...(await orig<typeof import("@/lib/email-webhook")>()),
   handleResendEvent: (e: unknown) => handleMock(e),

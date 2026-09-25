@@ -167,7 +167,7 @@ vi.mock("@/lib/stripe", () => ({
   }),
 }));
 
-const consentMock = vi.hoisted(() => vi.fn(async () => true));
+const consentMock = vi.hoisted(() => vi.fn(async (_p: unknown) => true));
 vi.mock("@/lib/consent", () => ({
   recordMarketingConsent: (p: unknown) => consentMock(p),
 }));
