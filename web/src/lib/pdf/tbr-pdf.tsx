@@ -1,4 +1,4 @@
-import { buildInvestorScreening, investorScreeningStrings } from "@/lib/report-v2/investor-screening";
+import { investorScreeningStrings } from "@/lib/report-v2/investor-screening";
 import { buildCriteriaSummary, criteriaSummaryStrings, CRITERIA_SUMMARY_ID } from "@/lib/report-v2/criteria-summary";
 import { criterionDetailExport } from "./criterion-detail-export";
 // Trusted Business Report v3 — the PDF surface (G27 PDF twin).
@@ -58,7 +58,8 @@ import { defaultPreparedWith } from "@/lib/report-v2/prepared-with";
 import type { DimensionChapter, DimKey, InvestmentView, ReportV2, RiskLevel } from "@/lib/report-v2/schema";
 import { ensureExecutiveStructured } from "@/lib/report-v2/executive-structure";
 import { buildInvestmentView, chapterGaps, dimName, isAssessed, riskGrid, RISK_LEVELS_ASC, RISK_LEVELS_DESC } from "@/lib/report-v2/investment-view";
-import { buildDashboardView, dashboardDate, type DashboardTile, type DashboardView } from "@/lib/report-v2/dashboard-view";
+import { buildDashboardView, dashboardDate, type DashboardView } from "@/lib/report-v2/dashboard-view";
+import { buildDashboardV4, v4ScoreCell, type DashboardV4, type V4ListItem, type V4Tile, type V4ValuationTile } from "@/lib/report-v2/dashboard-v4";
 import { proseParagraphs } from "@/lib/report-v2/paragraphs";
 import { buildCitationIndex, citationEntries, createCitationIndex, parseCitations, stripCitationMarkers, type CitationIndex, type CitationSegment } from "@/lib/report-v2/citations";
 import { citationStrings } from "@/lib/report-v2/citation-strings";
@@ -618,31 +619,37 @@ function Paragraphs({ text, style, gap = 4 }: { text: string; style?: PdfStyle; 
   );
 }
 
-// ── 1 · Dashboard ───────────────────────────────────────────────────────────
+// ── 1 · Dashboard (G34 BT3: dashboard v4 page 1, spec §5) ───────────────────
 
-function StatTile({ tile, last }: { tile: DashboardTile; last?: boolean }) {
+/** One page-1 tile: label · value · sub · note (the valuation tile is double width). */
+function V4TilePdf({ tile, wide, last }: { tile: V4Tile; wide?: boolean; last?: boolean }) {
+  const unavailable = tile.id === "valuation" && tile.state === "unavailable";
   return (
-    <View style={[s.tile, ...(last ? [{ marginRight: 0 }] : [])]}>
+    <View style={[s.tile, { flex: wide ? 2 : 1, padding: 5, marginBottom: 4 }, ...(last ? [{ marginRight: 0 }] : [])]}>
       <Text style={s.tileLabel}>{t(tile.label)}</Text>
-      <Text style={s.tileValue}>{t(tile.value)}</Text>
+      <Text style={[s.tileValue, { fontSize: unavailable ? 9 : wide ? 16 : 14 }]}>{t(tile.value)}</Text>
       <View style={[s.row, { alignItems: "center" }]}>
         {tile.band ? <View style={[s.dot, { backgroundColor: bandColour(tile.band) }]} /> : null}
-        <Text style={s.tileSub}>{t(tile.sub)}</Text>
+        {tile.sub ? <Text style={s.tileSub}>{t(tile.sub)}</Text> : null}
       </View>
-      {tile.note ? <Text style={s.tileNote}>{t(tile.note.replace(/\s*↓$/u, ""))}</Text> : null}
+      {tile.note ? <Text style={s.tileNote}>{t(tile.note)}</Text> : null}
+      {unavailable && (tile as V4ValuationTile).unlockHint ? <Text style={s.tileNote}>{t((tile as V4ValuationTile).unlockHint)}</Text> : null}
     </View>
   );
 }
 
-function Dashboard({ report, card, dash, view, locale, preparedWith, screening }: { screening: ReturnType<typeof buildInvestorScreening>; report: ReportV2; card: AssessmentCardData; dash: DashboardView; view: InvestmentView; locale: Loc; preparedWith: string }) {
+function Dashboard({ report, card, dash, v4, locale, preparedWith }: { report: ReportV2; card: AssessmentCardData; dash: DashboardView; v4: DashboardV4; locale: Loc; preparedWith: string }) {
   const c = report.cover;
   const t3 = dash.strings;
+  const sv = v4.strings;
   const phase = GROWTH_PHASE_LABELS[c.phaseId]?.[locale] ?? c.phaseId;
   const verification = c.verification?.label ?? card.verification.label;
   const source = report.source !== "pipeline" ? (report.source === "fixture" ? "demo data" : "built from stored snapshot") : "";
   // G19-S43: "Evidence: mostly self-declared (×0.50)" — the one evidence line under the tiles.
   const evidence = coverEvidenceLine(c, locale);
   const pending = pendingDimsLine(c, locale);
+  const [valuation, ...rest] = v4.tiles;
+  const top = (items: V4ListItem[], n: number) => items.slice(0, n);
   return (
     <View>
       <View style={[s.row, { justifyContent: "space-between", alignItems: "flex-end" }]}>
@@ -650,60 +657,129 @@ function Dashboard({ report, card, dash, view, locale, preparedWith, screening }
         <Text style={s.tiny}>{t(`${dashboardDate(report.generatedAt, locale)} · ${dash.footer.methodology}`)}</Text>
       </View>
       <Text style={s.h1}>{t(c.startupName)}</Text>
-      <View
-        style={[
-          s.row,
-          {
-            alignItems: "center",
-            marginTop: 4,
-            marginBottom: 2,
-            flexWrap: "wrap",
-          },
-        ]}
-      >
+      <View style={[s.row, { alignItems: "center", marginTop: 4, marginBottom: 2, flexWrap: "wrap" }]}>
         <Chip label={verification} colour={c.verification?.abnVerified ? BAND_COLOUR.strong : C.grid} />
         <Chip label={c.stageLabel} />
         <Chip label={c.sector} />
         <Chip label={phase} />
       </View>
       {source ? <Text style={s.tiny}>{t(source)}</Text> : null}
-      <SectionHead no="1" title={t3.sec.dashboard} purpose={t3.purpose.dashboard} />
-      <View wrap={false}>
-        <View style={s.row}>
-          <StatTile tile={dash.tiles[0]} />
-          <StatTile tile={dash.tiles[1]} last />
+      {/* G34 BT3: page 1 is dense; the purpose line lives on the web / DOCX only. */}
+      <SectionHead no="1" title={t3.sec.dashboard} />
+      {v4.degraded ? <Text style={[s.smallInk, { marginBottom: 4 }]}>{t(v4.degraded.banner)}</Text> : null}
+      <View style={s.row} wrap={false}>
+        <V4TilePdf tile={valuation} wide />
+        {rest.map((tile, i) => (
+          <V4TilePdf key={tile.id} tile={tile} last={i === rest.length - 1} />
+        ))}
+      </View>
+      <View style={[s.callout, { marginTop: 0, marginBottom: 6, paddingVertical: 4 }]} wrap={false}>
+        <Text style={[s.smallInk, s.bold]}>{t(`${v4.meeting.label.toUpperCase()} · ${v4.meeting.rule}`)}</Text>
+        {v4.meeting.thesis ? <Text style={s.smallInk}>{t(v4.meeting.thesis)}</Text> : null}
+      </View>
+      <View style={[s.table, { marginBottom: 6 }]} wrap={false}>
+        <View style={[s.tr, s.trHead, { paddingVertical: 2 }]}>
+          <Text style={[s.th, { color: C.navy }]}>{t(sv.metricsTitle)}</Text>
         </View>
-        <View style={s.row}>
-          <StatTile tile={dash.tiles[2]} />
-          <StatTile tile={dash.tiles[3]} last />
+        <View style={[s.tr, { borderBottomWidth: 0 }]}>
+          {v4.keyMetrics.map((m) => (
+            <View key={m.id} style={{ flex: 1, paddingRight: 4 }}>
+              <Text style={s.th}>{t(m.label)}</Text>
+              <Text style={[s.td, s.bold]}>{t(m.value ?? "—")}</Text>
+              <Text style={s.tiny}>{t(m.statusLabel)}</Text>
+              {m.source ? <Text style={s.tiny}>{t(m.source)}</Text> : null}
+            </View>
+          ))}
         </View>
       </View>
-      <View style={[s.figure, { marginTop: 2 }]} wrap={false}>
-        <Text style={[s.th, { alignSelf: "flex-start", marginBottom: 2 }]}>{t(t3.chartTitle)}</Text>
-        <VisualPdf spec={dash.chart} widthPt={CHART_WIDTH} hideBadge />
-        <Text style={s.caption}>{t(dash.chartCaption)}</Text>
-        <Text style={s.caption}>{t(dash.legend.join("  ·  "))}</Text>
+      <View style={[s.table, { marginBottom: 6 }]} wrap={false}>
+        <View style={[s.tr, s.trHead, { paddingVertical: 2 }]}>
+          <Text style={[s.th, s.cell3, { color: C.navy }]}>{t(sv.scorecardTitle)}</Text>
+          <Text style={[s.th, s.cell1]}>Lead</Text>
+          <Text style={[s.th, s.cell1]}>{t(sv.thEmphasis)}</Text>
+          <Text style={[s.th, s.cell2]}>{t(`${sv.thScore} · ${sv.thBand}`)}</Text>
+          <Text style={[s.th, s.cell1, s.right]}>{t(sv.thEvidence)}</Text>
+          <Text style={[s.th, s.cell1, s.right]}>{t(sv.thTrend)}</Text>
+        </View>
+        {v4.scorecard.map((row) => (
+          <View key={row.dim} style={[s.tr, { paddingVertical: 1 }]}>
+            <Text style={[s.td, s.cell3]}>{t(`${row.title}${row.degraded ? ` (${sv.writtenUnavailable})` : ""}${row.locked ? ` · ${sv.inFullReport}` : ""}`)}</Text>
+            <Text style={[s.td, s.cell1]}>{t(row.leadCode)}</Text>
+            <Text style={[s.td, s.cell1]}>{t(row.emphasisLabel)}</Text>
+            <Text style={[s.td, s.cell2]}>{t(v4ScoreCell(row))}</Text>
+            <Text style={[s.td, s.cell1, s.right]}>{t(row.evidencePct === null ? "—" : `${row.evidencePct} %`)}</Text>
+            <Text style={[s.td, s.cell1, s.right]}>{t(row.trend ? row.trend.label : "—")}</Text>
+          </View>
+        ))}
+        <View style={[s.tr, { borderBottomWidth: 0 }]}>
+          <Text style={s.tiny}>{t(`${sv.leadFootnote} ${sv.emphasisNote(v4.stageName)}`)}</Text>
+        </View>
       </View>
-      <View style={s.softBox} wrap={false}>
-        <Text style={s.smallInk}>
-          {dash.footer.topStrength ? <Text style={s.bold}>{t(`${t3.topStrength}  `)}</Text> : null}
-          {dash.footer.topStrength ? t(`${dash.footer.topStrength}   ·   `) : null}
-          {dash.footer.topGap ? <Text style={s.bold}>{t(`${t3.topGap}  `)}</Text> : null}
-          {dash.footer.topGap ? t(dash.footer.topGap) : null}
-        </Text>
-        {/* G21 P1 review: the cohort rank prints only with its n (`coverPercentileLine` is null otherwise). */}
-        <Text style={s.small}>{t([dash.footer.unverified, dash.footer.lastUpdated, dash.footer.methodology, evidence, pending, coverPercentileLine(c.svi)].filter(Boolean).join(" · "))}</Text>
-        <Text style={[s.tiny, { marginTop: 3 }]}>{t(view.subline)}</Text>
+      <View style={s.row} wrap={false}>
+        <View style={[s.box, { flex: 1, marginRight: 6, padding: 6, marginBottom: 6 }]}>
+          <Text style={s.th}>{t(sv.redFlagsTitle)}</Text>
+          {v4.redFlags.length === 0 ? <Text style={s.small}>{t(sv.redFlagsNone)}</Text> : null}
+          {v4.redFlags.slice(0, 3).map((f) => (
+            <Text key={f.id} style={[s.bulletBody, { marginTop: 1 }]}>{t(`^ ${f.text}`)}</Text>
+          ))}
+          {v4.redFlags.length > 3 ? <Text style={s.tiny}>{t(sv.redFlagsMore(v4.redFlags.length - 3))}</Text> : null}
+        </View>
+        <View style={[s.box, { flex: 1, padding: 6, marginBottom: 6 }]}>
+          {(
+            [
+              [sv.why, top(v4.lists.why, 2), v4.lists.why.length],
+              [sv.stop, top(v4.lists.stop, 2), v4.lists.stop.length],
+            ] as const
+          ).map(([title, items, total]) => (
+            <View key={title} style={{ marginBottom: 2 }}>
+              <Text style={s.th}>{t(title)}</Text>
+              {items.length === 0 ? <Text style={s.tiny}>—</Text> : null}
+              {items.map((item, i) => (
+                <Text key={i} style={[s.bulletBody, { fontSize: 8 }]}>
+                  {t(`${i + 1}. `)}
+                  <Cited text={item.text} />
+                </Text>
+              ))}
+              {total > items.length ? <Text style={s.tiny}>{t(`+${total - items.length} on p. 2`)}</Text> : null}
+            </View>
+          ))}
+          {v4.lists.lockedDims > 0 ? <Text style={s.tiny}>{t(sv.lockedMore(v4.lists.lockedDims))}</Text> : null}
+        </View>
       </View>
-      <View style={{ marginTop: 4 }} wrap={false}>
+      {/* Full-width lines: a narrow column would hyphenate the questions. */}
+      <View style={{ marginBottom: 3 }} wrap={false}>
+        <Text style={[s.th]}>{t(sv.ask)}</Text>
+        {v4.lists.ask.map((q, i) => (
+          <Text key={q.signalKey ?? i} style={[s.tiny, { marginTop: 1 }]}>{t(`${i + 1}. ${q.text}`)}</Text>
+        ))}
+      </View>
+      <View style={{ marginBottom: 4 }} wrap={false}>
         <Text style={[s.smallInk, s.bold]}>{t(investorScreeningStrings(locale).title)}</Text>
         <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
-          {screening.signals.map(signal => <Text key={signal.key} style={[s.tiny, { width: "50%", marginTop: 2 }]}>{t(`${signal.label}: ${signal.statusLabel}`)}</Text>)}
+          {v4.signalChips.map((chip) => (
+            <Text key={chip.key} style={[s.tiny, { width: "50%", marginTop: 1 }]}>{t(`${chip.label}: ${chip.statusLabel}`)}</Text>
+          ))}
         </View>
-        <Text style={[s.tiny, { marginTop: 3 }]}>{t(screening.scopeNote)}</Text>
-        {screening.questions.slice(0, 3).map((question, i) => <Text key={question.signalKey} style={[s.tiny, { marginTop: 2 }]}>{t(`${i + 1}. ${question.text}`)}</Text>)}
+        <Text style={[s.tiny, { marginTop: 2 }]}>{t(v4.scopeNote)}</Text>
       </View>
-      <Text style={s.tiny}>{t(preparedWith)}</Text>
+      <View style={[s.softBox, { padding: 5, marginBottom: 4 }]} wrap={false}>
+        <Text style={s.small}>
+          {t(
+            [
+              dash.footer.topStrength ? `${t3.topStrength} ${dash.footer.topStrength}` : null,
+              dash.footer.topGap ? `${t3.topGap} ${dash.footer.topGap}` : null,
+              dash.footer.unverified,
+              dash.footer.lastUpdated,
+              evidence,
+              pending,
+              coverPercentileLine(c.svi),
+            ]
+              .filter(Boolean)
+              .join(" · "),
+          )}
+        </Text>
+        <Text style={[s.tiny, { marginTop: 1 }]}>{t(`${v4.meeting.subline} ${preparedWith}`)}</Text>
+      </View>
     </View>
   );
 }
@@ -1651,7 +1727,9 @@ export function TbrReportPdf({ report: rawReport, level = 0, preparedWith, local
   const prepared = preparedWith?.trim() || defaultPreparedWith(aligned.report);
   const verificationLevel = aligned.report.cover.verification?.level ?? null;
   const body: ReactNode[] = [];
-  body.push(<Dashboard key="dash" screening={buildInvestorScreening(aligned.report, loc, projection.free)} report={r} card={aligned.card} dash={dash} view={pv} locale={loc} preparedWith={prepared} />);
+  // G34 BT3: page 1 prints the dashboard-v4 projection (the same object the web and e-mail read), gated like the free web view.
+  const v4 = buildDashboardV4(aligned.report, aligned.card, view, { locale: loc, lockCards: projection.free, dash });
+  body.push(<Dashboard key="dash" report={r} card={aligned.card} dash={dash} v4={v4} locale={loc} preparedWith={prepared} />);
   body.push(<InvestmentViewSection key="iv" report={r} view={pv} locale={loc} />);
   body.push(<KeyPoints key="kp" view={pv} locale={loc} />);
   body.push(<ValuationSection key="val" report={r} view={pv} locale={loc} projection={projection} />);

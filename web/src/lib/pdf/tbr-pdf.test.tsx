@@ -22,6 +22,9 @@ import { levelForEstimate, projectForTier } from "@/lib/report-v2/free-tier";
 import { FREE_PAGE_BUDGET } from "@/lib/report-v2/schema";
 import { getTbrV3Strings } from "@/lib/i18n/tbr-v3-strings";
 import { pdfPageCount, pdfPageCountsAgree } from "./page-count";
+import { alignReportWithAssessmentCard } from "@/lib/svi/assessment-card";
+import { buildInvestmentView } from "@/lib/report-v2/investment-view";
+import { buildDashboardV4, v4ScoreCell } from "@/lib/report-v2/dashboard-v4";
 import { defaultPreparedWith, renderTbrPdf, TBR_PDF_SECTION_IDS, TBR_PDF_SECTION_TITLES, tbrPdfOutline } from "./tbr-pdf";
 import { pdfFontFiles, pdfFontsForLocale } from "./fonts";
 
@@ -145,13 +148,11 @@ describe("renderTbrPdf — standard tier (v3 order)", () => {
     expect(flat(perPage[1]!)).toMatch(/^\s*2 Investment view/);
     expect(flat(perPage[2]!)).toMatch(/^\s*3 Key points/);
     expect(flat(perPage[2]!)).toContain("4 Valuation");
-    // The four dashboard tiles + the dim_bars chart + the footer line (spec W1).
-    const p1 = flat(perPage[0]!).replace(/\s/g, "");
-    expect(p1).toContain("SVIINDEX");
-    expect(p1).toContain("EVIDENCECONFIDENCE");
-    expect(p1).toContain("VERDICT");
-    expect(p1).toContain("VALUATION(A$,PRE-MONEY)");
-    expect(p1).toContain("8DIMENSIONSVSSTAGEMEDIANBAND");
+    // G34 BT3: the five v4 tiles + key metrics + the 8-row scorecard + red flags + the footer line (spec §5).
+    // Narrow tile labels may hyphenate ("CONFI- DENCE"); join those before comparing.
+    const p1 = flat(perPage[0]!).replace(/(\p{Lu})- (\p{Lu})/gu, "$1$2").replace(/\s/g, "");
+    assertOrdered(p1, ["INDICATIVEPRE-MONEY(A$)", "SVIINDEX", "INVESTORSCORE", "EVIDENCECONFIDENCE", "VERIFICATION", "KEYMETRICS", "8-DIMENSIONSCORECARD", "REDFLAGS(RULE-DERIVED)"]);
+    expect(p1).not.toContain("8DIMENSIONSVSSTAGEMEDIANBAND");
     expect(flat(perPage[0]!)).toContain("Unverified material claims: 2");
     expect(flat(perPage[0]!)).toContain("Top strength");
     // Running footer (spec § 5).
@@ -296,9 +297,34 @@ describe("renderTbrPdf — standard tier (v3 order)", () => {
     low.valuation.consensus.confidence = 0.2;
     const lowPages = await pageTexts((await renderTbrPdf(low)).buffer);
     const lowP1 = lowPages[0]!.replace(/\s+/g, " ");
-    expect(lowP1).toContain("Valuation pending");
+    expect(lowP1).toContain("Not enough evidence to estimate a range");
     expect(lowP1).not.toContain("A$6M – A$9.8M");
     expect(lowPages[2]!.replace(/\s+/g, " ")).toContain("Valuation pending — not enough scored evidence for a range");
+  }, 120_000);
+
+  it("G34 BT3 parity: page 1 prints the dashboard-v4 projection — 5 tiles, 6 key metrics, 8 scorecard rows (name · lead · emphasis · score/— · band), the top red flag and ≤ 3 questions", async () => {
+    const report = demoReportV2();
+    report.dimensions.find((d) => d.dim === "svm")!.scoreBreakdown = { base: 35, signals: [], confidenceMultiplier: 0.2, adjustment: 0, assessed: false };
+    report.dimensions.find((d) => d.dim === "svm")!.band = "pending";
+    report.cover.dims.svm = { ...report.cover.dims.svm, band: "pending" };
+    const { buffer } = await renderTbrPdf(report);
+    const p1 = (await pageTexts(buffer))[0]!.replace(/\s+/g, " ");
+    const aligned = alignReportWithAssessmentCard(report, {});
+    const view = buildInvestmentView(aligned.report, aligned.card, "en");
+    const v4 = buildDashboardV4(aligned.report, aligned.card, view, { locale: "en", lockCards: false });
+    for (const tile of v4.tiles) expect(p1).toContain(tile.value);
+    expect(p1).toContain(v4.meeting.label.toUpperCase());
+    for (const m of v4.keyMetrics) expect(p1).toContain(m.statusLabel);
+    expect((p1.match(/Not evidenced/g) ?? []).length).toBeGreaterThanOrEqual(4);
+    for (const row of v4.scorecard) {
+      expect(p1).toContain(row.title);
+      expect(p1).toContain(v4ScoreCell(row));
+    }
+    expect(p1).toContain("— · Pending");
+    expect(p1).not.toMatch(/Strategic Vision [A-Z]+ \w+ 0 ·/);
+    expect(p1).toContain(v4.redFlags[0]!.text);
+    for (const q of v4.lists.ask) expect(p1).toContain(q.text);
+    expect(v4.lists.ask.length).toBeLessThanOrEqual(3);
   }, 120_000);
 
   it("keeps a caller-supplied 'Prepared with <model via provider>' line verbatim", async () => {

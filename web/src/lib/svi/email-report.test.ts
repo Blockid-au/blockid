@@ -24,6 +24,7 @@ import { EMAIL_THEME } from "@/lib/email/theme";
 import { TBR_V3_STRINGS } from "@/lib/i18n/tbr-v3-strings";
 import { alignReportWithAssessmentCard } from "@/lib/svi/assessment-card";
 import { buildInvestmentView } from "@/lib/report-v2/investment-view";
+import { v4ScoreCell } from "@/lib/report-v2/dashboard-v4";
 
 vi.mock("server-only", () => ({}));
 
@@ -83,17 +84,17 @@ beforeEach(() => {
 });
 
 describe("renderReportEmailHtml — the 1-page investment view", () => {
-  it("carries the intro, the four tiles, the verdict block, conditions, 5 key points, 3 improvements, the CTA + share link and the PDF line", () => {
+  it("carries the intro, the five v4 tiles, the verdict block, conditions, 5 key points, 3 improvements, the CTA + share link and the PDF line", () => {
     const report = demoReportV2();
     const html = renderReportEmailHtml({ report, dashboardUrl: DASHBOARD, shareUrl: SHARE, images: { chart: "chart@x", weakest: "weak@x" }, footerHtml: "<p>FOOTER</p>" });
     const text = textOf(html);
-    const { view, dash } = reportEmailContext(report);
+    const { view, v4 } = reportEmailContext(report);
 
     expect(html).toContain("Sample SME Compliance SaaS (demo)");
     expect(text).toContain(EN.emailIntro(report.cover.startupName));
-    // The four tiles: label · value · sub (· note).
-    expect(dash.tiles).toHaveLength(4);
-    for (const tile of dash.tiles) {
+    // G34 BT3: the five page-1 tiles: label · value · sub (· note).
+    expect(v4.tiles).toHaveLength(5);
+    for (const tile of v4.tiles) {
       expect(text).toContain(tile.label);
       expect(text).toContain(tile.value);
       expect(text).toContain(tile.sub);
@@ -209,9 +210,9 @@ describe("renderReportEmailHtml — the 1-page investment view", () => {
 describe("reportEmailSummary — the plain-text twin", () => {
   it("carries tiles, verdict, conditions, key points, improvements and links", () => {
     const report = demoReportV2();
-    const { view, dash } = reportEmailContext(report);
+    const { view, v4 } = reportEmailContext(report);
     const text = reportEmailSummary(report, "en", { dashboardUrl: DASHBOARD, shareUrl: SHARE });
-    for (const tile of dash.tiles) expect(text).toContain(`${tile.label}: ${tile.value}`);
+    for (const tile of v4.tiles) expect(text).toContain(`${tile.label}: ${tile.value}`);
     expect(text).toContain(`${EN.sec.investmentView}: ${view.band} — ${view.bandLabel}`);
     expect(text).toContain(EN.subline);
     expect(text).toContain(EN.conditions);
@@ -396,6 +397,58 @@ describe("sendReportEmailToAddress (G28-C free-grant path)", () => {
     mail.send.mockResolvedValueOnce({ ok: false, reason: "smtp_down" });
     expect(await sendReportEmailToAddress({ to: "guest@example.com", report, pageUrl: PAGE, pdfUrl: null, pdf: null })).toMatchObject({ ok: false, reason: "smtp_down", pdfAttached: false });
   }, 30_000);
+});
+
+describe("G34 BT3 — page-1 parity (dashboard v4)", () => {
+  function pendingSvm() {
+    const report = demoReportV2();
+    const svm = report.dimensions.find((d) => d.dim === "svm")!;
+    svm.band = "pending";
+    svm.scoreBreakdown = { base: 35, signals: [], confidenceMultiplier: 0.2, adjustment: 0, assessed: false };
+    report.cover.dims.svm = { ...report.cover.dims.svm, band: "pending" };
+    return report;
+  }
+
+  it("HTML + plain text print the same 5 tiles, key metrics, 8-row scorecard (name · lead · emphasis · score/— · band), top red flag and ≤ 3 questions as the projection", () => {
+    const report = pendingSvm();
+    const { v4 } = reportEmailContext(report);
+    const html = renderReportEmailHtml({ report, dashboardUrl: DASHBOARD, shareUrl: null });
+    const body = textOf(html);
+    const text = reportEmailSummary(report);
+    for (const surface of [body, text]) {
+      for (const tile of v4.tiles) expect(surface).toContain(tile.value);
+      expect(surface).toContain(v4.meeting.label);
+      for (const m of v4.keyMetrics) expect(surface).toContain(m.statusLabel);
+      for (const row of v4.scorecard) {
+        expect(surface).toContain(row.title);
+        expect(surface).toContain(`Lead · ${row.leadCode}`);
+        expect(surface).toContain(row.emphasisLabel);
+        expect(surface).toContain(v4ScoreCell(row));
+      }
+      expect(surface).toContain("— · Pending");
+      expect(surface).toContain(v4.redFlags[0]!.text);
+      expect(v4.lists.ask.length).toBeLessThanOrEqual(3);
+      for (const q of v4.lists.ask) expect(surface).toContain(q.text);
+    }
+    expect((html.match(/data-tbr-email-scorecard/g) ?? []).length).toBe(1);
+    expect((html.match(/<tr><td style=/g) ?? []).length).toBeGreaterThanOrEqual(6 + 8);
+  });
+
+  it("stays transactional: no price, offer, upgrade or pricing link in the page-1 block", () => {
+    const report = demoReportV2(); report.tier = "free";
+    const html = renderReportEmailHtml({ report, dashboardUrl: DASHBOARD, shareUrl: null });
+    const text = reportEmailSummary(report);
+    for (const body of [textOf(html), text]) expect(body).not.toMatch(/upgrade|unlock the full|pricing|discount|offer|credits?\b|A\$\d+(\.\d+)? (?:\+ GST|inc)/i);
+    for (const href of hrefs(html)) expect(href).not.toMatch(/pricing|checkout|upgrade/);
+  });
+
+  it("free leak probe: no locked-chapter detail in the page-1 block (lists, flags, metrics, scorecard)", () => {
+    const { report, secrets } = freeScreeningLeakProbe();
+    const { v4 } = reportEmailContext(report);
+    const json = JSON.stringify(v4);
+    expect(json).not.toContain(LEAK_PROBE_MARK);
+    for (const secret of secrets) expect(json).not.toContain(secret);
+  });
 });
 
 describe("investor screening email parity", () => {

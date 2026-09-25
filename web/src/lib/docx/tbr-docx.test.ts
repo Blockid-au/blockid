@@ -1,7 +1,8 @@
 // Trusted Business Report v3 DOCX (G27) — colocated suite.
 //
-//   - the demo report packs to a valid DOCX with one PNG per visual
-//     (+ the dashboard `dim_bars` chart) when sharp is present;
+//   - the demo report packs to a valid DOCX with one PNG per visual when
+//     sharp is present (G34 BT3: page 1 is the dashboard-v4 scorecard table,
+//     no `dim_bars` chart);
 //   - the Heading 1 sequence is the v3 16-section order (`tbrDocxOutline`),
 //     the same ids the web TOC / PDF outline use;
 //   - the four band fixtures build; the verbatim sub-line is present; no
@@ -14,6 +15,7 @@
 
 import { buildInvestorScreening, investorScreeningStrings } from "@/lib/report-v2/investor-screening";
 import { freeScreeningLeakProbe, LEAK_PROBE_MARK } from "@/lib/report-v2/screening-leak-fixture";
+import { buildDashboardV4, v4ScoreCell } from "@/lib/report-v2/dashboard-v4";
 import JSZip from "jszip";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getTbrV3Strings } from "@/lib/i18n/tbr-v3-strings";
@@ -119,7 +121,7 @@ describe("tbrDocxOutline", () => {
 });
 
 describe("buildTbrDocx — v3 structure", () => {
-  it("standard demo: Heading 1 sequence = the v3 outline, one PNG per distinct visual + the dashboard chart, verbatim sub-line, tiles, methods table with a consensus row", async () => {
+  it("standard demo: Heading 1 sequence = the v3 outline, one PNG per distinct visual, verbatim sub-line, v4 tiles + scorecard, methods table with a consensus row", async () => {
     const report = demoReportV2();
     const { buffer, images, outline, sections } = await buildTbrDocx(report);
     expect(buffer.subarray(0, 2).toString("latin1")).toBe("PK");
@@ -139,8 +141,8 @@ describe("buildTbrDocx — v3 structure", () => {
       ...report.moneyOnTable.visuals,
       ...report.actionPlan.visuals,
     ].map((v) => v.id)).size;
-    // + 1: the dashboard `dim_bars` chart is built at render time.
-    expect(images.png).toBe(distinct + 1);
+    // G34 BT3: no dashboard chart any more — the scorecard table replaces it.
+    expect(images.png).toBe(distinct);
     expect(images.svg).toBe(0);
     expect(media.filter((m) => m.endsWith(".png")).length).toBeGreaterThanOrEqual(1);
     expect(sections).toBe(outline.length);
@@ -164,8 +166,14 @@ describe("buildTbrDocx — v3 structure", () => {
     expect(text).toContain("Sample SME Compliance SaaS (demo)");
     // The verbatim sub-line (spec § 4) sits under the verdict.
     expect(text).toContain(t.subline);
-    // Dashboard tiles + chart caption + footer line.
-    assertOrdered(text, ["SVI INDEX", "EVIDENCE CONFIDENCE", "VERDICT", "VALUATION (A$, PRE-MONEY)", t.chartTitle.toUpperCase(), "Top strength:", "Top gap:", "Unverified material claims:", "Last updated", "Methodology"]);
+    // G34 BT3: the five v4 tiles (1×5) → meeting label → key metrics → scorecard → red flags → why / stop / ask → footer line.
+    assertOrdered(text, ["INDICATIVE PRE-MONEY (A$)", "SVI INDEX", "INVESTOR SCORE", "EVIDENCE CONFIDENCE", "VERIFICATION", "WORTH INVESTIGATING", "KEY METRICS", "Not evidenced", "8-DIMENSION SCORECARD", "Lead = AI agent role", "RED FLAGS (RULE-DERIVED)", "Why investigate", "What could stop the deal", "Ask before the meeting", "Top strength:", "Top gap:", "Unverified material claims:", "Last updated", "Methodology"]);
+    expect(text).not.toContain(t.chartTitle.toUpperCase());
+    const aligned4 = alignReportWithAssessmentCard(report, {});
+    const v4 = buildDashboardV4(aligned4.report, aligned4.card, buildInvestmentView(aligned4.report, aligned4.card, "en"), { locale: "en", lockCards: false });
+    const page1 = sectionText(doc, "Dashboard", "Investment view");
+    for (const row of v4.scorecard) expect(page1).toContain(v4ScoreCell(row));
+    for (const tile of v4.tiles) expect(page1).toContain(tile.value);
     // Investment view: band + label + conviction line, conditions, why back / what weighs against, where you are.
     expect(text).toContain(`${view.band} · ${view.bandLabel.toUpperCase()}`);
     expect(text).toContain(view.convictionLine);
@@ -344,8 +352,8 @@ describe("buildTbrDocx — v3 structure", () => {
     expect(l3).toContain("Likelihood \\ Impact");
     expect(l3).not.toContain("Mitigation");
     expect(images.png).toBeGreaterThanOrEqual(media.length);
-    // 8 chapter primaries + the dashboard chart + the range bars, de-duplicated by byte identity.
-    expect(media.length).toBeGreaterThanOrEqual(8);
+    // Chapter primaries + the range bars, de-duplicated by byte identity (G34 BT3: the dashboard chart is gone).
+    expect(media.length).toBeGreaterThanOrEqual(7);
     expect(text).not.toMatch(NEVER_SAY);
   }, 90_000);
 
@@ -421,11 +429,11 @@ describe("buildTbrDocx — v3 structure", () => {
     expect(headings1(doc)[0]).toBe("1 Dashboard");
   }, 60_000);
 
-  it("accepts pre-rasterised images (adds the dashboard chart when missing) and a verbatim prepared-with line; generateTbrDocx returns the buffer", async () => {
+  it("accepts pre-rasterised images (no dashboard chart is added since G34 BT3) and a verbatim prepared-with line; generateTbrDocx returns the buffer", async () => {
     const report = demoReportV2();
     const images = await rasteriseReportVisuals(report, 400);
     const { buffer, images: counts } = await buildTbrDocx(report, { images, preparedWith: "Prepared with DeepSeek-V4-Flash via DeepInfra." });
-    expect(counts.png).toBe(images.pngCount + 1);
+    expect(counts.png).toBe(images.pngCount);
     expect(images.byId.has(`${report.reportId}-dim-bars`)).toBe(false);
     const { doc } = await unzip(buffer);
     expect(xmlText(doc)).toContain("Prepared with DeepSeek-V4-Flash via DeepInfra.");

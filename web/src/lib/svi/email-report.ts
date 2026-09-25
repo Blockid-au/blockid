@@ -8,8 +8,12 @@
 // Called fire-and-forget from the report pipeline after a full run. Sends
 // an HTML email (+ a plain-text twin, `reportEmailSummary`) with:
 //   - intro line (`emailIntro`)
-//   - the four dashboard tiles as a 2×2 table (SVI index · evidence
-//     confidence · verdict band · valuation range)
+//   - G34 BT3 page-1 parity (`buildDashboardV4`, the object the web and the
+//     PDF page 1 read): the 5 tiles as a 2-column table (valuation ·
+//     SVI · Investor Score · evidence · verification), the meeting label,
+//     the 6 key metrics, the 8-row scorecard (name · lead · emphasis ·
+//     score/— · band), the top red flag and ≤ 3 questions; transactional
+//     only (no price, offer or upgrade link); free-tier gated like the web
 //   - the 8-dimension bar chart, inlined as a CID PNG when the rasteriser
 //     is available (skipped otherwise — the numbers are in the tiles)
 //   - the verdict block: band letter + label + rubric wording + conviction
@@ -37,7 +41,7 @@
 // for the account → the adapter over the legacy `dimResults` /
 // `criterionResults` the caller still passes.
 
-import { buildInvestorScreening, investorScreeningStrings } from "@/lib/report-v2/investor-screening";
+import { investorScreeningStrings } from "@/lib/report-v2/investor-screening";
 import { nanoid } from "nanoid";
 import { EMAIL_THEME } from "@/lib/email/theme";
 import { sendEmail, complianceFooter } from "@/lib/email";
@@ -49,6 +53,7 @@ import { loadLatestReportV2ForAccount, loadReportV2BySnapshotId } from "@/lib/re
 import { isReportV2, type DimensionChapter, type InvestmentView, type ReportV2 } from "@/lib/report-v2/schema";
 import { investmentLocale, investmentViewFor, type InvestmentLocale } from "@/lib/report-v2/investment-view";
 import { buildDashboardView, type DashboardView } from "@/lib/report-v2/dashboard-view";
+import { buildDashboardV4, v4PlainText, v4ScoreCell, type DashboardV4, type V4Tile } from "@/lib/report-v2/dashboard-v4";
 import { getTbrV3Strings, type TbrV3Strings } from "@/lib/i18n/tbr-v3-strings";
 import { getTbrStrings } from "@/lib/i18n/tbr-strings";
 import { alignReportWithAssessmentCard, type AssessmentCardData, type AssessmentCardOptions } from "@/lib/svi/assessment-card";
@@ -111,6 +116,8 @@ export interface ReportEmailContext {
   card: AssessmentCardData;
   view: InvestmentView;
   dash: DashboardView;
+  /** G34 BT3: the page-1 projection (tiles, metrics, scorecard, red flags, lists, signal status). */
+  v4: DashboardV4;
   t: TbrV3Strings;
   locale: InvestmentLocale;
 }
@@ -128,7 +135,8 @@ export function reportEmailContext(report: ReportV2, opts?: AssessmentCardOption
   const aligned = alignReportWithAssessmentCard(report, cardOpts);
   const view = investmentViewFor(aligned.report, aligned.card, locale);
   const dash = buildDashboardView(aligned.report, aligned.card, view, locale);
-  return { report: aligned.report, card: aligned.card, view, dash, t: getTbrV3Strings(locale), locale };
+  const v4 = buildDashboardV4(aligned.report, aligned.card, view, { locale, dash });
+  return { report: aligned.report, card: aligned.card, view, dash, v4, t: getTbrV3Strings(locale), locale };
 }
 
 // ── HTML ────────────────────────────────────────────────────────────────────
@@ -198,27 +206,57 @@ function h2(label: string): string {
   return `<p style="margin:22px 0 8px 0;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:${NAVY};font-weight:700;">${escapeHtml(label)}</p>`;
 }
 
-function tileCell(tile: DashboardView["tiles"][number]): string {
-  return `<td width="50%" style="vertical-align:top;padding:12px 14px;background:${SUNKEN};border:1px solid ${LINE};border-radius:8px;">
+function tileCell(tile: V4Tile, colspan = 1): string {
+  return `<td${colspan > 1 ? ` colspan="${colspan}"` : ` width="50%"`} style="vertical-align:top;padding:12px 14px;background:${SUNKEN};border:1px solid ${LINE};border-radius:8px;">
       <p style="margin:0 0 4px 0;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:${MUTED};font-weight:700;">${escapeHtml(tile.label)}</p>
-      <p style="margin:0;font-size:26px;line-height:1.1;font-weight:700;color:${INK};${NUM}">${escapeHtml(tile.value)}</p>
+      <p style="margin:0;font-size:${tile.state === "unavailable" && tile.id === "valuation" ? 17 : 26}px;line-height:1.1;font-weight:700;color:${INK};${NUM}">${escapeHtml(tile.value)}</p>
       <p style="margin:6px 0 0 0;font-size:13px;line-height:1.4;color:${INK};">${escapeHtml(tile.sub)}</p>
       ${tile.note ? `<p style="margin:2px 0 0 0;font-size:12px;line-height:1.4;color:${MUTED};">${escapeHtml(tile.note)}</p>` : ""}
+      ${"unlockHint" in tile && typeof tile.unlockHint === "string" ? `<p style="margin:2px 0 0 0;font-size:12px;line-height:1.4;color:${MUTED};">${escapeHtml(tile.unlockHint)}</p>` : ""}
     </td>`;
+}
+
+const TH = `padding:6px 8px;border-bottom:1px solid ${LINE};font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:${MUTED};`;
+const TD = `padding:6px 8px;border-bottom:1px solid ${LINE};font-size:13px;line-height:1.4;color:${INK};`;
+
+/** G34 BT3 — page 1 in the e-mail: 5 tiles · meeting label · key metrics · 8-row scorecard · top red flag (HTML). */
+function pageOneHtml(v4: DashboardV4): string {
+  const s = v4.strings;
+  const [valuation, svi, investor, evidence, verification] = v4.tiles;
+  const flag = v4.redFlags[0];
+  return `<table role="presentation" cellpadding="0" cellspacing="8" style="width:100%;border-collapse:separate;" data-tbr-email-tiles>
+      <tr>${tileCell(valuation, 2)}</tr>
+      <tr>${tileCell(svi)}${tileCell(investor)}</tr>
+      <tr>${tileCell(evidence)}${tileCell(verification)}</tr>
+    </table>
+    <p style="margin:12px 0 0 0;font-size:14px;line-height:1.5;color:${INK};" data-tbr-email-meeting="${v4.meeting.band}"><strong style="color:${NAVY};text-transform:uppercase;letter-spacing:.06em;">${escapeHtml(v4.meeting.label)}</strong> <span style="font-size:12px;color:${MUTED};${NUM}">${escapeHtml(v4.meeting.rule)}</span>${v4.meeting.thesis ? `<br />${escapeHtml(v4.meeting.thesis)}` : ""}</p>
+    ${h2(s.metricsTitle)}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;" data-tbr-email-metrics>
+      ${v4.keyMetrics
+        .map((m) => `<tr><td style="${TD}width:40%;">${escapeHtml(m.label)}</td><td style="${TD}${NUM}">${escapeHtml(m.value ?? "—")} <span style="font-size:12px;color:${MUTED};font-family:ui-sans-serif,system-ui,sans-serif;">· ${escapeHtml(m.statusLabel)}${m.source ? ` · ${escapeHtml(m.source)}` : ""}</span></td></tr>`)
+        .join("\n      ")}
+    </table>
+    ${h2(s.scorecardTitle)}
+    <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;" data-tbr-email-scorecard>
+      <tr><th align="left" style="${TH}">${escapeHtml(s.thDimension)}</th><th align="left" style="${TH}">${escapeHtml(s.thEmphasis)}</th><th align="left" style="${TH}">${escapeHtml(`${s.thScore} · ${s.thBand}`)}</th></tr>
+      ${v4.scorecard
+        .map((row) => `<tr><td style="${TD}">${escapeHtml(row.title)}<br /><span style="font-size:12px;color:${MUTED};">${escapeHtml(s.leadLine(row.leadCode))}</span></td><td style="${TD}">${escapeHtml(row.emphasisLabel)}</td><td style="${TD}${NUM}">${escapeHtml(v4ScoreCell(row))}${row.locked ? ` <span style="font-size:12px;color:${MUTED};font-family:ui-sans-serif,system-ui,sans-serif;">· ${escapeHtml(s.inFullReport)}</span>` : ""}</td></tr>`)
+        .join("\n      ")}
+    </table>
+    <p style="margin:6px 0 0 0;font-size:11px;line-height:1.5;color:${MUTED};">${escapeHtml(s.leadFootnote)}</p>
+    ${flag ? `${h2(s.topRedFlag)}<p style="margin:0;font-size:13px;line-height:1.5;color:${INK};" data-tbr-email-red-flag>▲ ${escapeHtml(flag.text)}</p>` : ""}`;
 }
 
 /** Pure: the email body for a ReportV2 (tested without SMTP). */
 export function renderReportEmailHtml(input: RenderReportEmailInput): string {
   const { dashboardUrl, shareUrl, images = {}, footerHtml, pdfAttached = true, pdfUrl = null } = input;
   const base = input.baseUrl ?? originOf(dashboardUrl);
-  const { report, view, dash, t, locale } = reportEmailContext(input.report, input.assessment);
+  const { report, view, dash, v4, t, locale } = reportEmailContext(input.report, input.assessment);
   const c = report.cover;
   const s = getTbrStrings(locale);
   const phase = GROWTH_PHASE_LABELS[c.phaseId]?.[locale] ?? c.phaseId;
   const meta = [c.sector, c.stageLabel, phase].filter(Boolean).join(" · ");
-  const [svi, evidence, verdict, valuation] = dash.tiles;
   const weakest = weakestChapter(report);
-  const screening = buildInvestorScreening(report, locale);
 
   const conditionsBlock =
     view.band === "D"
@@ -262,20 +300,18 @@ export function renderReportEmailHtml(input: RenderReportEmailInput): string {
     <h1 style="margin:0 0 4px 0;font-size:20px;color:${NAVY};font-weight:700;">${escapeHtml(c.startupName)}</h1>
     <p style="margin:0 0 12px 0;font-size:12px;color:${MUTED};">${escapeHtml(meta)}</p>
     <p style="margin:0 0 16px 0;font-size:14px;line-height:1.55;color:${INK};">${escapeHtml(t.emailIntro(c.startupName))}</p>
-    <table role="presentation" cellpadding="0" cellspacing="8" style="width:100%;border-collapse:separate;">
-      <tr>${tileCell(svi)}${tileCell(evidence)}</tr>
-      <tr>${tileCell(verdict)}${tileCell(valuation)}</tr>
-    </table>
+    ${pageOneHtml(v4)}
     ${img(images.chart, dash.chart.a11y.title, 600)}
     ${images.chart ? `<p style="margin:4px 0 0 0;font-size:11px;color:${MUTED};">${escapeHtml(dash.chartCaption)}</p>` : ""}
+    ${h2(v4.strings.questions)}
+    <ol style="margin:0;padding:0 0 0 18px;font-size:13px;line-height:1.5;color:${INK};" data-tbr-email-questions>
+      ${v4.lists.ask.map((question) => `<li>${escapeHtml(v4PlainText(question.text))}</li>`).join("")}
+    </ol>
     ${h2(investorScreeningStrings(locale).title)}
     <ul style="margin:0;padding:0 0 0 18px;font-size:12px;line-height:1.5;">
-      ${screening.signals.map(signal => `<li>${escapeHtml(signal.label)}: ${escapeHtml(signal.statusLabel)}</li>`).join("")}
+      ${v4.signalChips.map((signal) => `<li>${escapeHtml(signal.label)}: ${escapeHtml(signal.statusLabel)}</li>`).join("")}
     </ul>
-    <p style="font-size:11px;color:${MUTED};">${escapeHtml(screening.scopeNote)}</p>
-    <ol style="margin:0;padding:0 0 0 18px;font-size:12px;line-height:1.5;">
-      ${screening.questions.slice(0, 3).map(question => `<li>${escapeHtml(question.text)}</li>`).join("")}
-    </ol>
+    <p style="font-size:11px;color:${MUTED};">${escapeHtml(v4.scopeNote)}</p>
     ${h2(t.sec.investmentView)}
     <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-left:4px solid ${NAVY};background:${SUNKEN};border-radius:0 8px 8px 0;">
       <tr>
@@ -321,16 +357,25 @@ export interface ReportEmailSummaryInput {
  */
 export function reportEmailSummary(reportIn: ReportV2, localeIn?: string, input: ReportEmailSummaryInput = {}): string {
   const source = localeIn && investmentLocale(localeIn) !== investmentLocale(reportIn.locale) ? { ...reportIn, locale: investmentLocale(localeIn) } : reportIn;
-  const { report, view, dash, t, locale } = reportEmailContext(source, input.assessment);
+  const { report, view, v4, t, locale } = reportEmailContext(source, input.assessment);
   const base = input.baseUrl ?? (input.dashboardUrl ? originOf(input.dashboardUrl) : baseUrl());
   const lines: string[] = [];
   lines.push(report.cover.startupName, t.emailIntro(report.cover.startupName), "");
-  for (const tile of dash.tiles) lines.push(`${tile.label}: ${tile.value} · ${tile.sub}${tile.note ? ` · ${tile.note}` : ""}`);
-  const screening = buildInvestorScreening(report, locale);
+  // G34 BT3: page 1 from the same projection as the web / PDF (tiles · label · metrics · scorecard · top flag · questions).
+  const s4 = v4.strings;
+  for (const tile of v4.tiles) lines.push(`${tile.label}: ${tile.value}${tile.sub ? ` · ${tile.sub}` : ""}${tile.note ? ` · ${tile.note}` : ""}${"unlockHint" in tile && tile.unlockHint ? ` · ${tile.unlockHint}` : ""}`);
+  lines.push("", `${v4.meeting.label} · ${v4.meeting.rule}`);
+  if (v4.meeting.thesis) lines.push(v4.meeting.thesis);
+  lines.push("", s4.metricsTitle);
+  for (const m of v4.keyMetrics) lines.push(`${m.label}: ${m.value ?? "—"} · ${m.statusLabel}${m.source ? ` · ${m.source}` : ""}`);
+  lines.push("", s4.scorecardTitle);
+  for (const row of v4.scorecard) lines.push(`${row.title} · ${s4.leadLine(row.leadCode)} · ${row.emphasisLabel} · ${v4ScoreCell(row)}${row.locked ? ` · ${s4.inFullReport}` : ""}`);
+  if (v4.redFlags[0]) lines.push("", `${s4.topRedFlag}: ${v4.redFlags[0].text}`);
+  lines.push("", s4.questions);
+  v4.lists.ask.forEach((question, i) => lines.push(`${i + 1}. ${v4PlainText(question.text)}`));
   lines.push("", investorScreeningStrings(locale).title);
-  for (const signal of screening.signals) lines.push(`${signal.label}: ${signal.statusLabel}`);
-  lines.push(screening.scopeNote);
-  screening.questions.slice(0, 3).forEach((question, i) => lines.push(`${i + 1}. ${question.text}`));
+  for (const signal of v4.signalChips) lines.push(`${signal.label}: ${signal.statusLabel}`);
+  lines.push(v4.scopeNote);
   lines.push("", `${t.sec.investmentView}: ${view.band} — ${view.bandLabel}`, view.bandWording, view.convictionLine, view.subline);
   if (view.band === "D") {
     lines.push("", t.evidenceCtas);

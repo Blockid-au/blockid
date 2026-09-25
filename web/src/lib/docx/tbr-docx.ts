@@ -1,4 +1,4 @@
-import { buildInvestorScreening, investorScreeningStrings } from "@/lib/report-v2/investor-screening";
+import { investorScreeningStrings } from "@/lib/report-v2/investor-screening";
 import { buildCriteriaSummary, criteriaSummaryStrings } from "@/lib/report-v2/criteria-summary";
 import { criterionDetailExport } from "@/lib/pdf/criterion-detail-export";
 // Trusted Business Report v3 — the DOCX surface (G27, investor-grade twin).
@@ -15,9 +15,11 @@ import { criterionDetailExport } from "@/lib/pdf/criterion-detail-export";
 //
 // Heading 1 = section, Heading 2 / 3 inside. Every table repeats its header
 // row; callouts (verdict, takeaway, pending card, analyst synthesis) are
-// single-cell shaded tables with a navy left rule; the four dashboard tiles
-// are a 2×2 shaded table; the `dim_bars` chart and every chapter's primary
-// visual go through the shared rasteriser (`report-visuals/png.ts`) and are
+// single-cell shaded tables with a navy left rule; G34 BT3: the dashboard is
+// the page-1 projection `buildDashboardV4` (5 tiles as a 1×5 table, meeting
+// label, key metrics, 8-row scorecard with a repeating header, red flags,
+// why / stop / ask) — the same object the web, PDF and e-mail read; every
+// chapter's primary visual goes through the shared rasteriser (`report-visuals/png.ts`) and are
 // embedded with `ImageRun` (SVG embed with a 1×1 PNG fallback when sharp is
 // unavailable, so the file always opens).
 //
@@ -78,6 +80,7 @@ import { citationStrings } from "@/lib/report-v2/citation-strings";
 import { buildValuationView } from "@/lib/report-v2/valuation-view";
 import { buildInvestmentView, chapterGaps, dimName, isAssessed, PLAN_STEPS_FREE, RISK_LEVELS_ASC, RISK_LEVELS_DESC, RISK_ROWS_FREE, riskGrid } from "@/lib/report-v2/investment-view";
 import { buildDashboardView, type DashboardView } from "@/lib/report-v2/dashboard-view";
+import { buildDashboardV4, v4ScoreCell, type DashboardV4, type V4Tile } from "@/lib/report-v2/dashboard-v4";
 import { derivedLift } from "@/lib/svi-lift";
 import { PDF_ENTITY_LINE, PDF_FINANCIAL_PROJECTION_DISCLAIMER, PDF_GENERAL_ADVICE_DISCLAIMER } from "@/lib/pdf/advice-disclaimer";
 import { defaultPreparedWith } from "@/lib/report-v2/prepared-with";
@@ -399,6 +402,7 @@ interface Ctx {
   card: AssessmentCardData;
   view: InvestmentView;
   dash: DashboardView;
+  v4: DashboardV4;
   images: TbrDocxImages;
   locale: TbrDocxLocale;
   t: TbrV3Strings;
@@ -418,37 +422,36 @@ function ctaText(row: EvidenceRowView): string {
 
 // ── 1 Dashboard ─────────────────────────────────────────────────────────────
 
-function tileCell(tile: DashboardView["tiles"][number]): TableCell {
+function tileCell(tile: V4Tile, width: number): TableCell {
   const children: Paragraph[] = [
-    new Paragraph({ spacing: { after: 20 }, children: [new TextRun({ text: tile.label.toUpperCase(), font: FONT, size: 14, bold: true, color: MUTED })] }),
-    new Paragraph({ spacing: { after: 20 }, children: [new TextRun({ text: tile.value, font: MONO, size: 40, bold: true, color: NAVY })] }),
-    new Paragraph({ spacing: { after: 10 }, children: [new TextRun({ text: tile.sub, font: FONT, size: 17, color: INK })] }),
+    new Paragraph({ spacing: { after: 20 }, children: [new TextRun({ text: tile.label.toUpperCase(), font: FONT, size: 13, bold: true, color: MUTED })] }),
+    new Paragraph({ spacing: { after: 20 }, children: [new TextRun({ text: tile.value, font: MONO, size: tile.id === "valuation" && tile.state === "unavailable" ? 20 : 30, bold: true, color: NAVY })] }),
   ];
-  if (tile.note) children.push(new Paragraph({ spacing: { after: 0 }, children: [new TextRun({ text: tile.note, font: FONT, size: 15, color: MUTED })] }));
+  if (tile.sub) children.push(new Paragraph({ spacing: { after: 10 }, children: [new TextRun({ text: tile.sub, font: FONT, size: 16, color: INK })] }));
+  if (tile.note) children.push(new Paragraph({ spacing: { after: 0 }, children: [new TextRun({ text: tile.note, font: FONT, size: 14, color: MUTED })] }));
+  if ("unlockHint" in tile && typeof tile.unlockHint === "string") children.push(new Paragraph({ spacing: { after: 0 }, children: [new TextRun({ text: tile.unlockHint, font: FONT, size: 14, color: MUTED })] }));
   return new TableCell({
-    width: { size: CONTENT_DXA / 2, type: WidthType.DXA },
+    width: { size: width, type: WidthType.DXA },
     borders: cellBorders,
     shading: { type: ShadingType.CLEAR, fill: SUNKEN, color: "auto" },
-    margins: { top: 120, bottom: 120, left: 160, right: 160 },
+    margins: { top: 100, bottom: 100, left: 120, right: 120 },
     children,
   });
 }
 
-/** The four stat tiles as a 2×2 shaded table (SVI · Evidence / Verdict · Valuation). */
+/** G34 BT3: the five page-1 tiles as a 1×5 shaded table (valuation double width). */
 function tiles(ctx: Ctx): Table {
-  const [a, b, c, d] = ctx.dash.tiles;
+  const widths = [dxa(28), dxa(18), dxa(18), dxa(18), dxa(18)];
   return new Table({
     width: { size: CONTENT_DXA, type: WidthType.DXA },
-    columnWidths: [CONTENT_DXA / 2, CONTENT_DXA / 2],
-    rows: [
-      new TableRow({ cantSplit: true, children: [tileCell(a), tileCell(b)] }),
-      new TableRow({ cantSplit: true, children: [tileCell(c), tileCell(d)] }),
-    ],
+    columnWidths: widths,
+    rows: [new TableRow({ cantSplit: true, children: ctx.v4.tiles.map((tile, i) => tileCell(tile, widths[i]!)) })],
   });
 }
 
 function dashboard(ctx: Ctx): Block[] {
-  const { r, card, dash, t, locale } = ctx;
+  const { r, card, dash, v4, t, locale } = ctx;
+  const sv = v4.strings;
   const c = r.cover;
   const phase = GROWTH_PHASE_LABELS[c.phaseId][locale];
   const sourceNote = r.source === "pipeline" ? "" : r.source === "fixture" ? " · demo" : " · snapshot";
@@ -459,13 +462,49 @@ function dashboard(ctx: Ctx): Block[] {
     p(`${card.verification.label} · ${c.stageLabel} · ${c.sector} · ${phase}`, { size: 18, after: 20 }),
     small(`${fmtDate(r.generatedAt, locale)} · ${dash.footer.methodology}${sourceNote}`),
     small(t.purpose.dashboard),
+  ];
+  if (v4.degraded) out.push(p(v4.degraded.banner, { size: 16, before: 40 }));
+  out.push(
     spacer(60),
     tiles(ctx),
-    spacer(120),
-    kicker(dash.chart.title),
-    ...figure(dash.chart, ctx.images, CONTENT_PX, dash.chartCaption),
-    small(dash.legend.join(" · ")),
-  ];
+    spacer(80),
+    callout([
+      p(`${v4.meeting.label.toUpperCase()} · ${v4.meeting.rule}`, { bold: true, size: 18, after: 20 }),
+      ...(v4.meeting.thesis ? [p(v4.meeting.thesis, { size: 17, after: 20 })] : []),
+      small(v4.meeting.wording),
+    ]),
+    spacer(60),
+    kicker(sv.metricsTitle),
+    table(v4.keyMetrics.map((m) => m.label), [v4.keyMetrics.map((m) => m.value ?? "—"), v4.keyMetrics.map((m) => `${m.statusLabel}${m.source ? ` · ${m.source}` : ""}`)], { size: 15 }),
+    spacer(60),
+    kicker(sv.scorecardTitle),
+    table(
+      [sv.thDimension, sv.thEmphasis, `${sv.thScore} · ${sv.thBand}`, sv.thEvidence, sv.thTrend],
+      v4.scorecard.map((row) => [
+        `${row.title} · ${row.leadCode}${row.degraded ? ` (${sv.writtenUnavailable})` : ""}${row.locked ? ` · ${sv.inFullReport}` : ""}`,
+        row.emphasisLabel,
+        v4ScoreCell(row),
+        row.evidencePct === null ? "—" : `${row.evidencePct} %`,
+        row.trend ? row.trend.label : "—",
+      ]),
+      { widths: [38, 14, 20, 14, 14], numeric: [3] },
+    ),
+    small(`${sv.leadFootnote} ${sv.emphasisNote(v4.stageName)}`),
+    spacer(60),
+    kicker(sv.redFlagsTitle),
+  );
+  if (v4.redFlags.length === 0) out.push(small(sv.redFlagsNone));
+  else out.push(...bulletList(v4.redFlags.map((f) => f.text)));
+  for (const [title, items, empty] of [
+    [sv.why, v4.lists.why, sv.whyEmpty],
+    [sv.stop, v4.lists.stop, sv.stopEmpty],
+    [sv.ask, v4.lists.ask, sv.askEmpty],
+  ] as const) {
+    out.push(p(title, { size: 17, bold: true, before: 60, after: 30 }));
+    if (items.length === 0) out.push(small(empty));
+    else out.push(...numberedList(items.map((item) => item.text)));
+  }
+  if (v4.lists.lockedDims > 0) out.push(small(sv.lockedMore(v4.lists.lockedDims)));
   const footer = [
     dash.footer.topStrength ? `${t.topStrength}: ${dash.footer.topStrength}` : null,
     dash.footer.topGap ? `${t.topGap}: ${dash.footer.topGap}` : null,
@@ -474,13 +513,11 @@ function dashboard(ctx: Ctx): Block[] {
     dash.footer.methodology,
   ].filter((x): x is string => x !== null);
   out.push(spacer(60), p(footer.join("  ·  "), { size: 16, before: 60 }), small(ctx.view.subline, FAINT));
-  const screening = buildInvestorScreening(ctx.report, locale, ctx.free);
   out.push(p(investorScreeningStrings(locale).title, { size: 17, bold: true, before: 60, after: 30 }));
-  for (let i = 0; i < screening.signals.length; i += 2) {
-    out.push(small(screening.signals.slice(i, i + 2).map(signal => `${signal.label}: ${signal.statusLabel}`).join("  ·  ")));
+  for (let i = 0; i < v4.signalChips.length; i += 2) {
+    out.push(small(v4.signalChips.slice(i, i + 2).map((signal) => `${signal.label}: ${signal.statusLabel}`).join("  ·  ")));
   }
-  out.push(small(screening.scopeNote));
-  screening.questions.slice(0, 3).forEach((question, i) => out.push(small(`${i + 1}. ${question.text}`)));
+  out.push(small(v4.scopeNote));
   return out;
 }
 
@@ -956,12 +993,9 @@ export async function buildTbrDocx(rawReport: ReportV2, opts: TbrDocxOptions = {
   const dash = buildDashboardView(report, aligned.card, view, locale);
   const projection = projectForTier(report, opts.level ?? 0);
   const r = projection.report;
-  // The dashboard chart is built at render time, so a caller's pre-rasterised set may lack it.
-  let images = opts.images ?? (await rasteriseReportVisuals(r, undefined, [dash.chart]));
-  if (!images.byId.has(dash.chart.id)) {
-    const chart = await rasteriseReportVisuals({ ...r, cover: { ...r.cover, visuals: [] }, executive: { ...r.executive, visuals: [] }, dimensions: [], valuation: { ...r.valuation, visuals: [] as [] }, phaseGates: { ...r.phaseGates, visuals: [] }, moneyOnTable: { ...r.moneyOnTable, visuals: [] }, actionPlan: { ...r.actionPlan, visuals: [] } }, undefined, [dash.chart]);
-    images = { byId: new Map([...images.byId, ...chart.byId]), pngCount: images.pngCount + chart.pngCount, svgCount: images.svgCount + chart.svgCount };
-  }
+  // G34 BT3: page 1 is the dashboard-v4 projection (the scorecard replaces the dim_bars chart), gated like the free web view.
+  const v4 = buildDashboardV4(report, aligned.card, view, { locale, lockCards: projection.free, dash });
+  const images = opts.images ?? (await rasteriseReportVisuals(r));
   const prepared = opts.preparedWith?.trim() || defaultPreparedWith(report);
   // G24-A: one footnote numbering per document, walked over the FULL text
   // (not the free-tier projection) so web, PDF and DOCX print the same numbers.
@@ -969,7 +1003,7 @@ export async function buildTbrDocx(rawReport: ReportV2, opts: TbrDocxOptions = {
   citeLocale = locale;
   listInstance = 0;
 
-  const ctx: Ctx = { report, r, projection, card: aligned.card, view, dash, images, locale, t: getTbrV3Strings(locale), prepared, free: projection.free };
+  const ctx: Ctx = { report, r, projection, card: aligned.card, view, dash, v4, images, locale, t: getTbrV3Strings(locale), prepared, free: projection.free };
   const children: Block[] = [
     ...dashboard(ctx),
     ...investmentView(ctx),
