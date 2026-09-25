@@ -18,15 +18,22 @@ export interface AnalysisListItem {
   input_filename?: string | null;
   input_url?: string | null;
   full_report_status?: string | null;
+  /** G34 DC01: the project the run was linked to (null = not linked / unknown). */
+  project_id?: string | null;
 }
 
-/** The newest /analyze run strictly newer than the report on screen, or null. Pure — exported for the test. */
-export function newerAnalysis(list: AnalysisListItem[], asOf: string | null): AnalysisListItem | null {
+/**
+ * The newest /analyze run strictly newer than the report on screen, or null.
+ * A run linked to ANOTHER project is never offered; an unlinked run is (it
+ * cannot be told apart). Pure — exported for the test.
+ */
+export function newerAnalysis(list: AnalysisListItem[], asOf: string | null, projectId?: string | null): AnalysisListItem | null {
   const asOfMs = asOf ? Date.parse(asOf) : Number.NaN;
   if (!Number.isFinite(asOfMs)) return null;
   let best: AnalysisListItem | null = null;
   let bestMs = asOfMs;
   for (const a of list) {
+    if (projectId && a.project_id && a.project_id !== projectId) continue;
     const t = Date.parse(a.created_at);
     if (Number.isFinite(t) && t > bestMs) {
       best = a;

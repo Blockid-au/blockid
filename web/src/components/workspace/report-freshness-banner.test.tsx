@@ -32,3 +32,16 @@ describe("ReportFreshnessBanner", () => {
     expect(renderToStaticMarkup(<ReportFreshnessBanner asOf={null} newer={null} />)).toBe("");
   });
 });
+
+describe("newerAnalysis — G34 DC01 project link", () => {
+  it("never offers a run linked to another project; keeps same-project and unlinked runs", () => {
+    const runs = [
+      { id: "other", created_at: "2026-09-25T06:00:00.000Z", project_id: "p-other" },
+      { id: "mine", created_at: "2026-09-25T05:00:00.000Z", project_id: "p-1" },
+      { id: "unlinked", created_at: "2026-09-25T04:00:00.000Z", project_id: null },
+    ];
+    expect(newerAnalysis(runs, "2026-09-24T00:00:00.000Z", "p-1")?.id).toBe("mine");
+    expect(newerAnalysis(runs.slice(2), "2026-09-24T00:00:00.000Z", "p-1")?.id).toBe("unlinked");
+    expect(newerAnalysis(runs.slice(0, 1), "2026-09-24T00:00:00.000Z", "p-1")).toBeNull();
+  });
+});

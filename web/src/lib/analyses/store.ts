@@ -22,7 +22,7 @@ export const GUEST_ANALYSES_TABLE = "guest_analyses";
 
 /** Columns a list view needs. Deliberately excludes `input_text`/`intake`. */
 export const LIST_COLUMNS =
-  "id, created_at, input_kind, input_url, input_filename, stage, stage_label, svi_total, valuation_mid_aud, user_id, full_report_status, full_report_emailed_at";
+  "id, created_at, input_kind, input_url, input_filename, stage, stage_label, svi_total, valuation_mid_aud, user_id, full_report_status, full_report_emailed_at, project_id";
 
 /** Every column, for the single-row read. */
 export const DETAIL_COLUMNS =
@@ -184,6 +184,8 @@ export interface SaveAnalysisInput {
   bytes?: number | null;
   /** G25-C: guest-supplied destination for the full report PDF (see payload.ts). */
   fullReportEmail?: string | null;
+  /** G34 DC01: the project this run is about, when confidently known. */
+  projectId?: string | null;
 }
 
 /**

@@ -67,6 +67,8 @@ import { emitDeckUploaded, emitWebsiteImported } from "@/lib/analytics/fi-events
 import { apiRoute } from "@/lib/audit/api-route";
 import { startAnalysisReportJob } from "@/lib/analyses/first-analysis/dispatch";
 import { cancelQueuedFullReport } from "@/lib/analyses/first-analysis/store";
+import { projectForAnalysis } from "@/lib/analyses/project-link";
+import { buildInputEcho } from "@/lib/analyses/input-echo";
 import { parseMultipart } from "@/lib/http/multipart";
 import { clientIpFromHeaders } from "@/lib/iphash";
 import { maskSummaryEmail } from "@/lib/analyses/free-summary";
@@ -150,6 +152,17 @@ async function persist(
   meta: PersistMeta,
   fullReportEmail: string | null = null,
 ): Promise<string | null> {
+  // G34 DC01 / AF13: a signed-in run about the founder's active project is
+  // linked to it (conservative name match; never guessed, never created).
+  let projectId: string | null = null;
+  if (userId) {
+    try {
+      const company = buildInputEcho(result, { url: meta.url ?? null, filename: meta.filename ?? null }).company;
+      projectId = await projectForAnalysis(company);
+    } catch {
+      projectId = null;
+    }
+  }
   try {
     const key = anonKey ?? (await ensureAnonKey()).key;
     // Review v3.26.0 P3: the trusted hop (the same helper the free-report
@@ -172,6 +185,7 @@ async function persist(
       mimeType: meta.mimeType ?? null,
       bytes: meta.bytes ?? null,
       fullReportEmail,
+      projectId,
     });
   } catch (err) {
     console.error("[intake] persist failed — analysis returned unsaved:", err);

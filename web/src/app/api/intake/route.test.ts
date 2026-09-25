@@ -96,6 +96,8 @@ const freeSubmittedMock = vi.fn<(i: Record<string, unknown>) => void>();
 const canAffordMock = vi.fn<(u: string, f: string) => Promise<{ allowed: boolean; balance: number; cost: number; reason?: string }>>();
 const spendCreditsMock = vi.fn<(u: string, f: string, m?: Record<string, unknown>) => Promise<{ ok: boolean; balance: number }>>();
 const grantCreditsMock = vi.fn<(u: string, a: number, r: string, m?: Record<string, unknown>) => Promise<{ ok: boolean; balance: number }>>();
+const projectForAnalysisMock = vi.fn<(company: string | null | undefined) => Promise<string | null>>(async () => null);
+vi.mock("@/lib/analyses/project-link", () => ({ projectForAnalysis: (c: string | null | undefined) => projectForAnalysisMock(c) }));
 const cancelQueuedMock = vi.fn<(id: string) => Promise<boolean>>();
 vi.mock("@/lib/analyses/first-analysis/store", () => ({ cancelQueuedFullReport: (id: string) => cancelQueuedMock(id) }));
 vi.mock("@/lib/credits", async () => {
@@ -725,5 +727,20 @@ describe("POST /api/intake — AF08 an unsaved run never claims a free report", 
   it("a saved run carries no saveFailed flag", async () => {
     const body = await json(await POST(req({ text: "an idea" })));
     expect(body).not.toHaveProperty("saveFailed");
+  });
+});
+
+describe("POST /api/intake — G34 DC01 project link", () => {
+  it("a signed-in run about the active project is saved with its project id", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1", email: "founder@example.com" } as never);
+    projectForAnalysisMock.mockResolvedValueOnce("p-1");
+    await POST(req({ text: "an idea" }));
+    expect(saveAnalysisMock.mock.calls[0][0]).toMatchObject({ projectId: "p-1" });
+  });
+  it("a guest run never looks up a project", async () => {
+    projectForAnalysisMock.mockClear();
+    await POST(req({ text: "an idea" }));
+    expect(projectForAnalysisMock).not.toHaveBeenCalled();
+    expect(saveAnalysisMock.mock.calls[0][0]).toMatchObject({ projectId: null });
   });
 });

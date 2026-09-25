@@ -142,6 +142,8 @@ export interface AnalysisRowInput {
    * delivery) and for the legacy paths that capture it later.
    */
   fullReportEmail?: string | null;
+  /** G34 DC01: the project this run is about (null = no confident match; the column is then omitted). */
+  projectId?: string | null;
 }
 
 /** The exact object handed to `supabase.from("analyses").insert(...)`. */
@@ -178,6 +180,9 @@ export function buildAnalysisRow(input: AnalysisRowInput): Record<string, unknow
     // stays unqueued so the runner never spins on it.
     full_report_status: input.result.signals ? "queued" : null,
     full_report_email: input.fullReportEmail ?? null,
+    // Only written when known, so a release running before migration 0462
+    // is applied never sends an unknown column.
+    ...(input.projectId ? { project_id: input.projectId } : {}),
   };
 }
 

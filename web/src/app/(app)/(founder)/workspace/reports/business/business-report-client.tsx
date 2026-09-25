@@ -888,7 +888,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
           ) : (
             <>
             {founderMode && report && (
-              <ReportFreshnessBanner asOf={report.generatedAt ?? null} newer={newerAnalysis(analysesList, report.generatedAt ?? null)} />
+              <ReportFreshnessBanner asOf={report.generatedAt ?? null} newer={newerAnalysis(analysesList, report.generatedAt ?? null, report.projectId ?? null)} />
             )}
             <TbrReportV2
               report={report}
