@@ -27,3 +27,10 @@ export function safeNextPath(raw: string | null | undefined, fallback = "/"): st
   }
   return v;
 }
+
+/** Set a post-auth query flag before the fragment, preserving the destination. */
+export function withRedirectQueryParam(target: string, name: string, value: string): string {
+  const url = new URL(safeNextPath(target), "https://blockid.au");
+  url.searchParams.set(name, value);
+  return `${url.pathname}${url.search}${url.hash}`;
+}

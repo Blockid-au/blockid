@@ -184,6 +184,13 @@ describe("withClaimedParam / parseClaimedParam", () => {
     expect(withClaimedParam("/analyze/x?a=1", 2)).toBe("/analyze/x?a=1&claimed=2");
   });
 
+  it("carries the actual claim count before an anchored report destination", () => {
+    expect(withClaimedParam("/analyze/x?logged_in=true#valuation", 2))
+      .toBe("/analyze/x?logged_in=true&claimed=2#valuation");
+    expect(withClaimedParam("/analyze/x?claimed=99#valuation", 2))
+      .toBe("/analyze/x?claimed=2#valuation");
+  });
+
   it("leaves the target alone when nothing was claimed", () => {
     expect(withClaimedParam("/dashboard", 0)).toBe("/dashboard");
     expect(withClaimedParam("/dashboard", Number.NaN)).toBe("/dashboard");

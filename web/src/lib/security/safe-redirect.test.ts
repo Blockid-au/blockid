@@ -1,7 +1,7 @@
 // Colocated vitest for lib/security/safe-redirect.ts (S8-C, 2026-09-11).
 
 import { describe, expect, it } from "vitest";
-import { safeNextPath } from "./safe-redirect";
+import { safeNextPath, withRedirectQueryParam } from "./safe-redirect";
 
 describe("safeNextPath", () => {
   it("keeps same-origin absolute paths, with query and hash", () => {
@@ -24,5 +24,20 @@ describe("safeNextPath", () => {
   it("honours a custom fallback", () => {
     expect(safeNextPath("https://evil.com", "/dashboard")).toBe("/dashboard");
     expect(safeNextPath(null, "/dashboard")).toBe("/dashboard");
+  });
+});
+
+describe("post-auth redirect query flags", () => {
+  it.each(["/workspace#report", "/workspace?tab=valuation#report", "/workspace#report?tab=valuation"])("keeps flags out of the fragment for %s", target => {
+    const before = new URL(target, "https://blockid.au");
+    const after = new URL(withRedirectQueryParam(target, "logged_in", "true"), before.origin);
+    expect(after.searchParams.get("logged_in")).toBe("true");
+    expect(after.hash).toBe(before.hash);
+    expect(after.searchParams.get("tab")).toBe(before.searchParams.get("tab"));
+  });
+  it("replaces stale duplicate flags and retains the same-origin guard", () => {
+    expect(withRedirectQueryParam("/dashboard?logged_in=false&logged_in=false#top", "logged_in", "true"))
+      .toBe("/dashboard?logged_in=true#top");
+    expect(withRedirectQueryParam("//evil.example/", "logged_in", "true")).toBe("/?logged_in=true");
   });
 });

@@ -5,6 +5,7 @@
 // in the workspace, and the header of /analyze/[id]. Keeping them pure means
 // the three surfaces cannot drift into describing the same run differently.
 
+import { withRedirectQueryParam } from "@/lib/security/safe-redirect";
 import { formatAUD } from "@/lib/valuation";
 
 /** One row of GET /api/analyses. */
@@ -168,8 +169,7 @@ export function claimedMessage(count: number): string | null {
  */
 export function withClaimedParam(target: string, claimed: number): string {
   if (!Number.isFinite(claimed) || claimed < 1) return target;
-  const sep = target.includes("?") ? "&" : "?";
-  return `${target}${sep}claimed=${Math.floor(claimed)}`;
+  return withRedirectQueryParam(target, "claimed", String(Math.floor(claimed)));
 }
 
 /** Parse `?claimed=` back into a count. Junk and negatives become 0. */

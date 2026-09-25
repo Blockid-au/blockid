@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { trackEvent } from "@/lib/analytics";
 import { broadcastAuthEvent } from "@/components/auth/auth-sync-logic";
 import { withClaimedParam } from "@/lib/analyses/summary";
-import { safeNextPath } from "@/lib/security/safe-redirect";
+import { safeNextPath, withRedirectQueryParam } from "@/lib/security/safe-redirect";
 import {
   GOOGLE_START_PATH,
   describeGoogleSignInError,
@@ -111,8 +111,7 @@ function GoogleSignIn({
       trackEvent("login_google_success", {});
       broadcastAuthEvent("SIGNED_IN", data.user?.id);
       const target = nextUrl ?? data.redirect ?? "/";
-      const sep = target.includes("?") ? "&" : "?";
-      window.location.href = `${target}${sep}logged_in=true`;
+      window.location.href = withRedirectQueryParam(target, "logged_in", "true");
     },
     [nextUrl, fail],
   );
@@ -621,10 +620,9 @@ function EmailPasswordForm({
             ? "/workspace/score/history"
             : serverRedirect ?? "/dashboard")
         : nextUrl ?? serverRedirect ?? "/";
-      const sep = target.includes("?") ? "&" : "?";
       const withLogged = mode === "register" && !nextUrl
         ? target
-        : `${target}${sep}logged_in=true`;
+        : withRedirectQueryParam(target, "logged_in", "true");
       window.location.href = withClaimedParam(withLogged, claimedCount);
     } catch {
       setError("Network error. Please try again.");
