@@ -16,3 +16,4 @@ authority transition that admits it.
 | `0462_analyses_project_id.sql` | 25/09/2026 (G34 DC01 / AF13), additive nullable FK + partial index | live catalog: `analyses.project_id uuid NULL`, `analyses_project_created_idx`; `docs/reviews/2026-09-25-analyze-upload-failure-review.md` |
 | `0463_evaluations_founder_project_id.sql` | 25/09/2026 (G34 DC05), additive nullable FK + partial index | live catalog: `evaluations.founder_project_id` |
 | `0464_erase_account_email_preferences_notifications.sql` | 25/09/2026 (G34 DC09), `erase_account()` = 0442 + 2 non-FK extras | live def contains email_preferences/svi_notifications extras; dry-run inside ROLLBACK listed both |
+| `0465_email_sends.sql` | 25/09/2026 (G34 BT2 EM02–EM05) | live: `email_sends` table; `email_preferences` suppression + consent columns; commercial category defaults now false |
