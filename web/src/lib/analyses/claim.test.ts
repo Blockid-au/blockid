@@ -49,6 +49,7 @@ describe("claimForCurrentBrowser", () => {
       userId: "u1",
       anonKey: "k".repeat(24),
       email: "a@b.com",
+      emailVerified: false,
     });
   });
 
@@ -80,6 +81,7 @@ describe("claimForCurrentBrowser", () => {
       userId: "u1",
       anonKey: null,
       email: "a@b.com",
+      emailVerified: false,
     });
   });
 
@@ -99,6 +101,18 @@ describe("claimForCurrentBrowser", () => {
     const second = await claimForCurrentBrowser({ userId: "u1", email: "a@b.com" });
     expect(first).toEqual({ analyses: 3, guestAnalyses: 1 });
     expect(second).toEqual({ analyses: 0, guestAnalyses: 0 });
+  });
+
+  it("G34 DC03: forwards emailVerified only when the caller says so", async () => {
+    await claimForCurrentBrowser({ userId: "u1", email: "a@b.com", emailVerified: true });
+    expect(claimAnalysesMock.mock.calls[0][0]).toMatchObject({ emailVerified: true });
+  });
+
+  it("G34 DC03: an e-mail-only claim KEEPS the anon cookie (its own rows may still be in flight)", async () => {
+    claimAnalysesMock.mockResolvedValue({ analyses: 0, guestAnalyses: 0, emailAnalyses: 2 } as never);
+    const out = await claimForCurrentBrowser({ userId: "u1", email: "a@b.com", emailVerified: true });
+    expect(out).toMatchObject({ emailAnalyses: 2 });
+    expect(clearAnonCookieMock).not.toHaveBeenCalled();
   });
 
   it("normalises a missing email to null rather than undefined", async () => {

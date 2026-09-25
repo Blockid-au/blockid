@@ -280,12 +280,19 @@ describe("GET /api/auth/google/callback — happy path", () => {
       { ipHash: "h:1.2.3.4", userAgent: "vitest", referralCode: null, resellerCode: null },
     );
     expect(auth.setSessionCookie).toHaveBeenCalledWith("sess-tok");
-    expect(claim.fn).toHaveBeenCalledWith({ userId: "u1", email: "founder@example.com" });
+    expect(claim.fn).toHaveBeenCalledWith({ userId: "u1", email: "founder@example.com", emailVerified: true });
     expect(clearedStateCookie()).toBe(true);
     // Nothing secret in the logs.
     const logged = errorSpy.mock.calls.map((c) => c.map(String).join(" ")).join("\n");
     expect(logged).not.toContain("ID.TOKEN");
     expect(logged).not.toContain("one-shot-code");
+  });
+
+  it("G34 DC03: a google_id match on an account with ANOTHER address claims by cookie only (emailVerified false)", async () => {
+    auth.loginWithGoogle.mockResolvedValueOnce({ ok: true, sessionToken: "sess-tok", user: { ...USER, email: "old@example.com" } });
+    const nonce = armState();
+    await run(`?code=c&state=${nonce}`);
+    expect(claim.fn).toHaveBeenCalledWith({ userId: "u1", email: "old@example.com", emailVerified: false });
   });
 
   it("without `next`: /onboarding until the flag is set, then /dashboard", async () => {

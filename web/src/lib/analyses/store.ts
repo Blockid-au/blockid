@@ -320,15 +320,27 @@ export async function listAnalysesForViewer(
 export interface ClaimResult {
   analyses: number;
   guestAnalyses: number;
+  /** G34 DC03: guest `analyses` rows claimed by their delivery address (verified e-mail only). */
+  emailAnalyses?: number;
 }
+
+/** G34 DC03: the delivery-address columns a guest run is keyed by. */
+const CLAIM_EMAIL_COLUMNS = ["full_report_email", "summary_email"] as const;
 
 /**
  * Attach prior work to a freshly-authenticated account.
  *
- * Two sources:
+ * Three sources:
  *   1. `analyses` rows written against the browser's anon cookie;
  *   2. `guest_analyses` rows bought with this email — someone paid A$3 for a
- *      report and, before migration 0124, could never reach it again.
+ *      report and, before migration 0124, could never reach it again;
+ *   3. (G34 DC03) guest `analyses` rows whose `full_report_email` or
+ *      `summary_email` is this address (case-insensitive) — the founder who
+ *      ran /analyze on another device. ONLY when `emailVerified` is true:
+ *      the report and its intake text belong to whoever owns the mailbox,
+ *      so an address typed into a password signup (never confirmed) must
+ *      not unlock them. lib/analyses/claim.ts says which sign-in paths
+ *      count as verified.
  *
  * Idempotent by construction: both updates carry `user_id is null`, so a
  * second run matches nothing, updates nothing and returns zero. It never
@@ -340,6 +352,7 @@ export async function claimAnalyses(params: {
   userId: string;
   anonKey?: string | null;
   email?: string | null;
+  emailVerified?: boolean;
 }): Promise<ClaimResult> {
   const result: ClaimResult = { analyses: 0, guestAnalyses: 0 };
   const supabase = getSupabaseAdmin();
@@ -383,6 +396,29 @@ export async function claimAnalyses(params: {
       }
     } catch (err) {
       console.error("[analyses:claim] guest_analyses update threw —", err);
+    }
+  }
+
+  if (email && params.emailVerified) {
+    // ilike for case-insensitivity; % _ \ are escaped so "a_b@x.au" cannot match "aXb@x.au".
+    const pattern = email.replace(/[\\%_]/g, (c) => `\\${c}`);
+    result.emailAnalyses = 0;
+    for (const column of CLAIM_EMAIL_COLUMNS) {
+      try {
+        const { data, error } = await supabase
+          .from(ANALYSES_TABLE)
+          .update({ user_id: params.userId, claimed_at: claimedAt })
+          .ilike(column, pattern)
+          .is("user_id", null)
+          .select("id");
+        if (error) {
+          console.error(`[analyses:claim] analyses by ${column} failed —`, error.message);
+        } else {
+          result.emailAnalyses += (data ?? []).length;
+        }
+      } catch (err) {
+        console.error(`[analyses:claim] analyses by ${column} threw —`, err);
+      }
     }
   }
 

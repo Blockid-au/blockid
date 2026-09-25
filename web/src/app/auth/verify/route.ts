@@ -127,7 +127,7 @@ export async function GET(request: Request) {
 
   // Magic-link login is a login: claim any pre-signup anonymous analyses and
   // paid guest reports for this email. Fail-soft + idempotent.
-  await claimForCurrentBrowser({ userId: user.id, email: user.email });
+  await claimForCurrentBrowser({ userId: user.id, email: user.email, emailVerified: true });
 
   // Determine redirect target: pack page > explicit next > persona
   // (S-IA4: `postLoginHref` = /onboarding until the persona's flow is done,

@@ -106,8 +106,14 @@ export async function completeGoogleLogin(
   await setSessionCookie(result.sessionToken);
 
   // A Google sign-in is a login: claim pre-signup anonymous analyses and paid
-  // guest reports for this email. Fail-soft + idempotent.
-  await claimForCurrentBrowser({ userId: result.user.id, email: result.user.email });
+  // guest reports for this email. Fail-soft + idempotent. G34 DC03: the
+  // account address counts as verified only when it IS the Google-verified
+  // one (a google_id match can sit on an account with a different address).
+  await claimForCurrentBrowser({
+    userId: result.user.id,
+    email: result.user.email,
+    emailVerified: normaliseEmail(result.user.email) === normaliseEmail(profile.email),
+  });
 
   const email = normaliseEmail(result.user.email);
   const isAdmin = email === "admin@blockid.au";

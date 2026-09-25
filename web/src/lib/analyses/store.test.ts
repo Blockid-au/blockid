@@ -52,7 +52,7 @@ function makeClient() {
       state.calls.push(call);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const b: any = {};
-      for (const m of ["insert", "select", "eq", "gte", "is", "order", "limit", "update"]) {
+      for (const m of ["insert", "select", "eq", "ilike", "gte", "is", "order", "limit", "update"]) {
         b[m] = (...args: unknown[]) => {
           call.ops.push({ name: m, args });
           return b;
@@ -335,6 +335,38 @@ describe("claimAnalyses", () => {
     const guest = state.calls.find((c) => c.table === GUEST_ANALYSES_TABLE)!;
     expect(argOf(guest, "eq")).toEqual(["email", "buyer@example.com"]);
     expect(argOf(guest, "is")).toEqual(["user_id", null]);
+  });
+
+  it("G34 DC03: an UNVERIFIED e-mail never touches analyses (password signup can type any address)", async () => {
+    state.list = { data: [{ id: "g1" }], error: null };
+    const out = await claimAnalyses({ userId: "u1", email: "a@b.com" });
+    expect(out.emailAnalyses).toBeUndefined();
+    expect(state.calls.filter((c) => c.table === ANALYSES_TABLE)).toHaveLength(0);
+  });
+
+  it("G34 DC03: a VERIFIED e-mail claims guest analyses by both delivery columns, case-insensitive, user_id IS NULL", async () => {
+    state.list = { data: [{ id: "a1" }], error: null };
+    const out = await claimAnalyses({ userId: "u1", email: " Jo_Doe@Example.com ", emailVerified: true });
+    const calls = state.calls.filter((c) => c.table === ANALYSES_TABLE);
+    expect(calls.map((c) => argOf(c, "ilike"))).toEqual([
+      ["full_report_email", "jo\\_doe@example.com"],
+      ["summary_email", "jo\\_doe@example.com"],
+    ]);
+    for (const c of calls) {
+      expect(argOf(c, "is")).toEqual(["user_id", null]);
+      expect(argOf(c, "update")[0]).toMatchObject({ user_id: "u1", claimed_at: expect.any(String) });
+    }
+    expect(out.emailAnalyses).toBe(2);
+    expect(out.analyses).toBe(0);
+  });
+
+  it("G34 DC03: a failed e-mail claim reports zero, never throws", async () => {
+    state.list = { data: null, error: { message: "down" } };
+    await expect(claimAnalyses({ userId: "u1", email: "a@b.com", emailVerified: true })).resolves.toEqual({
+      analyses: 0,
+      guestAnalyses: 0,
+      emailAnalyses: 0,
+    });
   });
 
   it("is a no-op when there is neither an anon key nor an email", async () => {
