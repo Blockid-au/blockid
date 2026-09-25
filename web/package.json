@@ -101,5 +101,10 @@
     "tsx": "^4.22.3",
     "typescript": "^5",
     "vitest": "^4.1.6"
+  },
+  "overrides": {
+    "pptxgenjs": {
+      "image-size": "^2.0.3"
+    }
   }
 }
