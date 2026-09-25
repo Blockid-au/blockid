@@ -1,37 +1,26 @@
-/**
- * Homepage proof strip — four live figures read at BUILD/ISR time from the
- * content JSONs that the crons already publish (G17 D3 block 5). No client
- * fetch: the band is static, CLS-free and cannot show a spinner.
- *
- *   startups scored     content/reports/traction-snapshot.json   analyses.svi_analyses
- *   register signals    content/reports/external-signals-latest.json  Σ sources[].row_count
- *   backtest ρ          content/reports/svi-backtest-latest.json  rho.round_pooled / valuation_pooled
- *   evaluator orgs      traction-snapshot.json                    Σ users.evaluators_by_plan
- *
- * The same sources feed /api/platform-stats (traction) and /methodology
- * (backtest, signals), so the homepage can never disagree with them. A
- * figure whose file is missing or malformed renders as "—" with its label
- * intact; `null` never throws (SOURCE-OF-TRUTH: empty until real).
- *
- * Pure reducers are exported for the colocated test; `readHomeStats()` is
- * the only fs touch.
+/** Snapshot-backed statistics. Legacy property names are retained, but
+ * startupsScored counts analysis rows and evaluatorOrgs counts user accounts,
+ * never distinct companies/organisations. Unmeasured or stale traction is null.
+ * Per-source timestamps keep historical research figures separate from traction.
  */
-
 import { readFileSync, statSync } from "node:fs";
 import path from "node:path";
+import { countersFromSnapshot, nonNegInt, sumCountRecord, hasSnapshotWarning } from "@/lib/traction/platform-counters";
+import { TRACTION_MAX_AGE_MS } from "@/lib/traction/status";
 
 export interface HomeStatFigures {
-  /** Startup Value Index analyses on the platform (QA / seeded excluded). */
+  /** Stored svi_analyses rows, including reruns and potentially QA records. */
   startupsScored: number | null;
   /** Open AU register rows ingested (ABR bulk etc.). */
   registerSignals: number | null;
   /** Spearman ρ, pooled: round stage / valuation. */
   backtestRhoRound: number | null;
   backtestRhoValuation: number | null;
-  /** Evaluator organisations on a plan (angel / advisor / VC / accelerator). */
+  /** Evaluator user accounts bucketed by plan; not distinct organisations. */
   evaluatorOrgs: number | null;
-  /** ISO date of the newest source file, for the caption. */
+  /** Oldest contributing source date; never presents an old figure as new. */
   asAt: string | null;
+  sourceDates: { traction: string | null; signals: string | null; backtest: string | null };
 }
 
 function num(v: unknown): number | null {
@@ -52,40 +41,36 @@ export function homeStatsFrom(
   traction: Record<string, unknown> | null,
   signals: Record<string, unknown> | null,
   backtest: Record<string, unknown> | null,
+  now: number = Date.now(),
 ): HomeStatFigures {
-  const analyses = (traction?.analyses ?? {}) as Record<string, unknown>;
+  const date = (value: unknown) => typeof value === "string" && Number.isFinite(Date.parse(value))
+    && Date.parse(value) <= now ? value : null;
+  const counters = countersFromSnapshot(traction, now);
   const users = (traction?.users ?? {}) as Record<string, unknown>;
-  const byPlan = users.evaluators_by_plan;
-  let evaluatorOrgs: number | null = null;
-  if (byPlan && typeof byPlan === "object" && !Array.isArray(byPlan)) {
-    evaluatorOrgs = 0;
-    for (const v of Object.values(byPlan as Record<string, unknown>)) evaluatorOrgs += Math.max(0, num(v) ?? 0);
-  }
-
-  let registerSignals: number | null = null;
+  const evaluatorOrgs = counters && traction && nonNegInt(users.total) !== null
+    && !hasSnapshotWarning(traction, ["app_users:"]) ? sumCountRecord(users.evaluators_by_plan) : null;
+  // Inserted rows in one run are not the total register inventory. An unknown
+  // source count means the combined total is unavailable, not silently partial.
   const sources = signals?.sources;
-  if (Array.isArray(sources)) {
-    registerSignals = 0;
-    for (const s of sources) {
-      const row = (s ?? {}) as Record<string, unknown>;
-      registerSignals += Math.max(0, num(row.row_count) ?? num(row.inserted) ?? 0);
-    }
-  }
-
+  const counts = Array.isArray(sources) ? sources.map(s => nonNegInt(s?.row_count)) : null;
+  const signalDate = date(signals?.ran_at);
+  const registerSignals = signalDate && counts && counts.every(c => c !== null)
+    ? nonNegInt(counts.reduce<number>((sum, c) => sum + c!, 0)) : null;
   const rho = (backtest?.rho ?? {}) as Record<string, unknown>;
-
-  const dates = [traction?.generated_at, signals?.ran_at, backtest?.generated_at]
-    .filter((d): d is string => typeof d === "string" && !Number.isNaN(Date.parse(d)))
-    .sort();
-
-  return {
-    startupsScored: num(analyses.svi_analyses),
-    registerSignals,
-    backtestRhoRound: num(rho.round_pooled),
-    backtestRhoValuation: num(rho.valuation_pooled),
-    evaluatorOrgs,
-    asAt: dates.length ? dates[dates.length - 1]!.slice(0, 10) : null,
+  const validRho = (v: unknown) => { const n = num(v); return n !== null && Math.abs(n) <= 1 ? n : null; };
+  const backtestDate = date(backtest?.generated_at);
+  const backtestRhoRound = backtestDate ? validRho(rho.round_pooled) : null;
+  const backtestRhoValuation = backtestDate ? validRho(rho.valuation_pooled) : null;
+  const sourceDates = {
+    traction: counters && (counters.analyses !== null || evaluatorOrgs !== null) ? date(traction?.generated_at) : null,
+    signals: registerSignals === null ? null : signalDate,
+    backtest: backtestRhoRound === null && backtestRhoValuation === null ? null : backtestDate,
   };
+  const dates = Object.values(sourceDates).filter((d): d is string => d !== null).sort((a, b) => Date.parse(a) - Date.parse(b));
+  return { startupsScored: counters?.analyses ?? null, registerSignals,
+    backtestRhoRound, backtestRhoValuation, evaluatorOrgs,
+    asAt: dates[0]?.slice(0, 10) ?? null, sourceDates };
+
 }
 
 /** "12,827" — en-AU grouping, no decimals; "—" for null. */
@@ -107,7 +92,7 @@ export const HOME_STATS_FILES = {
   backtest: path.join("content", "reports", "svi-backtest-latest.json"),
 } as const;
 
-let cached: { key: string; figures: HomeStatFigures } | undefined;
+let cached: { key: string; figures: HomeStatFigures; at: number; expires: number } | undefined;
 
 function statsCacheKey(root: string): string {
   // Keyed on the three files' mtimes so ISR (`revalidate = 300`) picks up the
@@ -125,14 +110,16 @@ function statsCacheKey(root: string): string {
 }
 
 /** Cached per (root, file mtimes) — the page is static + ISR. */
-export function readHomeStats(root: string = process.cwd()): HomeStatFigures {
+export function readHomeStats(root: string = process.cwd(), now: number = Date.now()): HomeStatFigures {
   const key = `${root}|${statsCacheKey(root)}`;
-  if (cached && cached.key === key) return cached.figures;
+  if (cached && cached.key === key && now >= cached.at && now < cached.expires) return cached.figures;
   const figures = homeStatsFrom(
     readJson(root, HOME_STATS_FILES.traction),
     readJson(root, HOME_STATS_FILES.signals),
     readJson(root, HOME_STATS_FILES.backtest),
+    now,
   );
-  cached = { key, figures };
+  const tractionDate = figures.sourceDates.traction;
+  cached = { key, figures, at: now, expires: tractionDate ? Date.parse(tractionDate) + TRACTION_MAX_AGE_MS : now + 60_000 };
   return figures;
 }

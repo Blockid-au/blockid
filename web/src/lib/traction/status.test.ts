@@ -14,6 +14,7 @@ describe("tractionStatusFrom (pure)", () => {
     expect(tractionStatusFrom({}, NOW)).toBe("missing");
     expect(tractionStatusFrom({ generated_at: "not a date" }, NOW)).toBe("missing");
     expect(tractionStatusFrom({ generated_at: 42 }, NOW)).toBe("missing");
+    expect(tractionStatusFrom({ generated_at: new Date(NOW + 1).toISOString() }, NOW)).toBe("missing");
   });
 
   it("ok under 26 h, stale at/after 26 h", () => {

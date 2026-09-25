@@ -1,33 +1,26 @@
-// G14-S33 — /api/platform-stats counters from the traction snapshot.
 import { describe, expect, it } from "vitest";
-import { countersFromSnapshot } from "./platform-counters";
-
-const NOW = Date.parse("2026-09-16T12:00:00Z");
-const fresh = new Date(NOW - 3600e3).toISOString();
-const stale = new Date(NOW - 27 * 3600e3).toISOString();
-
-describe("countersFromSnapshot", () => {
-  it("null when there is no snapshot or it is stale", () => {
-    expect(countersFromSnapshot(null, NOW)).toBeNull();
-    expect(countersFromSnapshot({ generated_at: stale, users: { founders: 9 } }, NOW)).toBeNull();
-    expect(countersFromSnapshot({ users: { founders: 9 } }, NOW)).toBeNull();
+import { countersFromSnapshot, sumCountRecord } from "./platform-counters";
+import { emptyTractionSnapshot } from "./snapshot";
+const NOW = Date.parse("2026-09-25T12:00:00Z");
+const fixture = () => ({ generated_at: new Date(NOW - 3600e3).toISOString(), users: { total: 12, founders: 9 },
+  analyses: { svi_analyses: 41 }, evaluators: { trials: 0, paying_by_plan: { angel: 2, vc: 1 } }, warnings: [] as string[] });
+describe("snapshot count contracts", () => {
+  it("accepts measured counts and explicit zero", () => {
+    expect(countersFromSnapshot(fixture(), NOW)).toEqual({ founders: 9, analyses: 41, paidCustomers: 3 });
+    const raw = fixture(); raw.evaluators.paying_by_plan = {} as typeof raw.evaluators.paying_by_plan;
+    expect(countersFromSnapshot(raw, NOW)?.paidCustomers).toBe(0);
   });
-
-  it("founders / svi_analyses / Σ paying_by_plan from a fresh snapshot", () => {
-    const c = countersFromSnapshot(
-      { generated_at: fresh, users: { founders: 9, total: 12 }, analyses: { svi_analyses: 41, analyses: 7 }, evaluators: { paying_by_plan: { investor_angel: 2, investor_vc_small: 1 } } },
-      NOW,
-    );
-    expect(c).toEqual({ founders: 9, analyses: 41, paidCustomers: 3 });
+  it("empty snapshot is not zero paying customers", () => {
+    expect(countersFromSnapshot(emptyTractionSnapshot(new Date(NOW)), NOW)).toEqual({ founders: null, analyses: null, paidCustomers: null });
   });
-
-  it("null per figure the snapshot could not measure; empty paying map is 0 paid (a measurement, not a gap)", () => {
-    expect(countersFromSnapshot({ generated_at: fresh, users: { founders: null }, analyses: { svi_analyses: null }, evaluators: { paying_by_plan: {} } }, NOW)).toEqual({
-      founders: null,
-      analyses: null,
-      paidCustomers: 0,
-    });
-    expect(countersFromSnapshot({ generated_at: fresh }, NOW)).toEqual({ founders: null, analyses: null, paidCustomers: null });
-    expect(countersFromSnapshot({ generated_at: fresh, users: { founders: -1 }, evaluators: { paying_by_plan: ["x"] } }, NOW)).toEqual({ founders: null, analyses: null, paidCustomers: null });
+  it.each(["app_users: failed", "subscription_trial_state: failed", "subscription_trial_state: scan capped at 5000 rows", "supabase: unavailable"])("source warning invalidates paying total: %s", warning => {
+    const raw = fixture(); raw.warnings = [warning]; expect(countersFromSnapshot(raw, NOW)?.paidCustomers).toBeNull();
+  });
+  it("malformed counts never silently contribute zero or round to new counts", () => {
+    for (const v of [{ angel: -1 }, { angel: 1.2 }, { angel: null }, { angel: "2" }, { angel: Infinity }, [2]]) expect(sumCountRecord(v)).toBeNull();
+    const raw = fixture(); raw.analyses.svi_analyses = 1.2; expect(countersFromSnapshot(raw, NOW)?.analyses).toBeNull();
+  });
+  it("rejects missing, stale and future observations", () => {
+    for (const raw of [null, {}, { ...fixture(), generated_at: new Date(NOW - 27 * 3600e3).toISOString() }, { ...fixture(), generated_at: new Date(NOW + 1).toISOString() }]) expect(countersFromSnapshot(raw, NOW)).toBeNull();
   });
 });

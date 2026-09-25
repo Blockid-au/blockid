@@ -6,8 +6,10 @@
 // and the deck provenance table. Three rules:
 //
 //   1. QA / seeded / erased accounts are never counted (QA_ACCOUNT_EMAIL_PATTERNS).
-//      Every per-user figure filters on the surviving app_users id set so a
-//      qa-live-* run or a seeded evaluator can never inflate traction.
+//      Account figures filter on the surviving app_users id set. Analysis,
+//      report-order, share-token and view totals below are raw table counts;
+//      they may include QA/reruns and must not be called unique startups or
+//      completed customer reports.
 //   2. Nothing is invented: a table that is missing (42P01), a column that
 //      is missing (42703) or a query that fails yields `null` for that
 //      figure plus one `warnings[]` line — never a throw, never a 0 that

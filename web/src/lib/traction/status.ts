@@ -24,7 +24,7 @@ export type TractionStatus = "ok" | "stale" | "missing";
 export function tractionStatusFrom(report: { generated_at?: unknown } | null, now: number = Date.now()): TractionStatus {
   if (!report || typeof report !== "object") return "missing";
   const ts = typeof report.generated_at === "string" ? new Date(report.generated_at).getTime() : Number.NaN;
-  if (!Number.isFinite(ts)) return "missing";
+  if (!Number.isFinite(ts) || ts > now) return "missing";
   return now - ts < TRACTION_MAX_AGE_MS ? "ok" : "stale";
 }
 

@@ -1,206 +1,75 @@
 import { NextResponse } from "next/server";
 import { LEGAL_ENTITY } from "@/lib/site/legal-entity";
-import { getSupabaseAdmin } from "@/lib/supabase";
-import { readTractionSnapshotRaw } from "@/lib/traction/status";
-import { countersFromSnapshot } from "@/lib/traction/platform-counters";
-import { readdirSync } from "fs";
-import { join } from "path";
+import { readTractionSnapshotRaw, tractionStatusFrom } from "@/lib/traction/status";
+import { countersFromSnapshot, nonNegInt, hasSnapshotWarning } from "@/lib/traction/platform-counters";
+import { readdirSync } from "node:fs";
+import { join } from "node:path";
 
 export const dynamic = "force-dynamic";
 
-// G14-S33: the daily traction snapshot (content/reports/traction-snapshot.json)
-// already excludes QA / seeded / erased accounts and counts paying evaluators
-// from subscription_trial_state, so while it is fresh (< 26 h) `founders`,
-// `analyses` and `paidCustomers` come from the file (see
-// lib/traction/platform-counters.ts); a null figure falls back to the live
-// query for that counter only.
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-/** Count .md files in web/content/insights/ at runtime, fallback to 31. */
-function countInsightArticles(): number {
-  try {
-    const dir = join(process.cwd(), "content", "insights");
-    return readdirSync(dir).filter((f) => f.endsWith(".md")).length;
-  } catch {
-    return 31;
-  }
+/** Missing content is unavailable, not an invented inventory count. */
+function countInsightArticles(): number | null {
+  try { return readdirSync(join(process.cwd(), "content", "insights")).filter(f => f.endsWith(".md")).length; }
+  catch { return null; }
 }
 
-/** Format a dollar amount as "$X.XM+" or "$X.XK+". */
-function formatValuation(amount: number): string {
-  if (amount >= 1_000_000) {
-    const millions = amount / 1_000_000;
-    return `$${millions.toFixed(1)}M+`;
-  }
-  if (amount >= 1_000) {
-    const thousands = amount / 1_000;
-    return `$${thousands.toFixed(1)}K+`;
-  }
-  return `$${Math.round(amount)}+`;
-}
-
-// ---------------------------------------------------------------------------
-// Default metrics when Supabase is not available
-// ---------------------------------------------------------------------------
-
-function defaultMetrics() {
-  return {
-    founders: 0,
-    analyses: 0,
-    valuationsTracked: "$0+",
-    tools: 10,
-    articles: countInsightArticles(),
-    monthlyVisitors: 500,
-    evidenceItems: 0,
-    connectedSources: 0,
-    averageSVI: 0,
-    paidCustomers: 0,
-  };
-}
-
-// ---------------------------------------------------------------------------
-// GET /api/platform-stats
-// Public, read-only. Returns live platform metrics for directory profiles.
-// Cached for 1 hour, stale-while-revalidate for 2 hours.
-// ---------------------------------------------------------------------------
-
+// Keep existing metric keys for directory clients. Null means unmeasured;
+// metricDetails supplies scope and source time. Never replace a filtered daily
+// snapshot with unfiltered database totals or convert an index score to money.
 export async function GET() {
-  const headers = {
-    "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200",
+  const requestedAt = new Date().toISOString();
+  const raw = await readTractionSnapshotRaw(process.cwd()).catch(() => null);
+  const snapshotStatus = tractionStatusFrom(raw);
+  const snap = countersFromSnapshot(raw);
+  const sourceTime = snapshotStatus === "ok" && typeof raw?.generated_at === "string" ? raw.generated_at : null;
+  const observed = (section: string, field: string, warning: string) => {
+    if (!snap || !raw || hasSnapshotWarning(raw, [warning])) return null;
+    return nonNegInt((raw[section] as Record<string, unknown> | undefined)?.[field]);
   };
-
-  try {
-    const supabase = getSupabaseAdmin();
-
-    if (!supabase) {
-      return NextResponse.json(
-        {
-          ok: true,
-          metrics: defaultMetrics(),
-          company: companyInfo(),
-          updatedAt: new Date().toISOString(),
-        },
-        { headers },
-      );
-    }
-
-    // G14-S33: serve founders / analyses / paidCustomers from the daily
-    // snapshot while it is fresh; each null figure falls back to live below.
-    const snap = countersFromSnapshot(await readTractionSnapshotRaw(process.cwd()).catch(() => null));
-
-    // Run all queries in parallel for speed
-    const [
-      foundersRes,
-      analysesRes,
-      sviAccountsRes,
-      evidenceRes,
-      connectedRes,
-      paidRes,
-    ] = await Promise.all([
-      // 1. Unique founders (distinct emails in svi_accounts)
-      supabase
-        .from("svi_accounts")
-        .select("email", { count: "exact", head: true }),
-
-      // 2. Total analyses
-      supabase
-        .from("svi_analyses")
-        .select("id", { count: "exact", head: true }),
-
-      // 3. All current_svi values (used for both valuation sum and average)
-      supabase.from("svi_accounts").select("current_svi"),
-
-      // 4. Total evidence items
-      supabase
-        .from("svi_evidence")
-        .select("id", { count: "exact", head: true }),
-
-      // 5. Connected sources
-      supabase
-        .from("svi_evidence")
-        .select("id", { count: "exact", head: true })
-        .eq("confidence_level", "connected_source"),
-
-      // 6. Paid customers (app_users where plan != 'free')
-      supabase
-        .from("app_users")
-        .select("id", { count: "exact", head: true })
-        .neq("plan", "free"),
-    ]);
-
-    // Compute founders count
-    const founders = snap?.founders ?? foundersRes.count ?? 0;
-
-    // Compute analyses count
-    const analyses = snap?.analyses ?? analysesRes.count ?? 0;
-
-    // Compute valuations tracked + average SVI from the same query
-    const sviRows = sviAccountsRes.data as { current_svi: number }[] | null;
-    const safeSviRows = sviRows ?? [];
-    const sviSum = safeSviRows.reduce(
-      (acc, row) => acc + (row.current_svi ?? 0),
-      0,
-    );
-    const valuationsTracked = formatValuation(sviSum * 10_000);
-    const avgSVI =
-      safeSviRows.length > 0 ? Math.round(sviSum / safeSviRows.length) : 0;
-
-    // Evidence items
-    const evidenceItems = evidenceRes.count ?? 0;
-
-    // Connected sources
-    const connectedSources = connectedRes.count ?? 0;
-
-    // Paid customers — snapshot (paying evaluators, QA excluded) when fresh,
-    // else the live `plan != 'free'` proxy.
-    const paidCustomers = snap?.paidCustomers ?? paidRes.count ?? 0;
-
-    const metrics = {
-      founders,
-      analyses,
-      valuationsTracked,
-      tools: 10,
-      articles: countInsightArticles(),
-      monthlyVisitors: 500,
-      evidenceItems,
-      connectedSources,
-      averageSVI: avgSVI,
-      paidCustomers,
-    };
-
-    return NextResponse.json(
-      {
-        ok: true,
-        metrics,
-        company: companyInfo(),
-        updatedAt: new Date().toISOString(),
-        source: snap ? "snapshot+live" : "live",
-      },
-      { headers },
-    );
-  } catch (err) {
-    console.error("[blockid:platform-stats] GET error", err);
-
-    // Graceful degradation: return defaults on failure
-    return NextResponse.json(
-      {
-        ok: true,
-        metrics: defaultMetrics(),
-        company: companyInfo(),
-        updatedAt: new Date().toISOString(),
-        _fallback: true,
-      },
-      { headers },
-    );
-  }
+  const metrics = {
+    founders: snap?.founders ?? null,
+    analyses: snap?.analyses ?? null,
+    valuationsTracked: null,
+    tools: null,
+    articles: countInsightArticles(),
+    monthlyVisitors: null,
+    evidenceItems: null,
+    connectedSources: null,
+    averageSVI: null,
+    paidCustomers: snap?.paidCustomers ?? null,
+    registeredUsers: observed("users", "total", "app_users:"),
+    reportPurchases: observed("tbr", "purchased", "report_orders:"),
+    sharedReportSnapshots: observed("tbr", "shared", "svi_snapshots:"),
+    reportViews: observed("tbr", "views", "tbr_views:"),
+  };
+  const definitions: Record<keyof typeof metrics, string> = {
+    founders: "Non-evaluator app user accounts, excluding known QA, seeded and erased email patterns; not unique companies.",
+    analyses: "All stored svi_analyses rows; includes reruns and may include QA records. Not unique companies or completed customer reports.",
+    valuationsTracked: "Unavailable: no approved comparable monetary valuation aggregate; index scores are not money.",
+    tools: "Unavailable: no versioned public tool inventory is counted by this endpoint.",
+    articles: "Markdown files currently available in content/insights.",
+    monthlyVisitors: "Unavailable: no measured monthly visitor source is attached.",
+    evidenceItems: "Unavailable: no scoped evidence count in the traction snapshot.",
+    connectedSources: "Unavailable: no distinct connected-account count in the traction snapshot.",
+    averageSVI: "Unavailable: no approved same-method, same-revision index cohort aggregate.",
+    paidCustomers: "Active evaluator subscription rows after account exclusions; not distinct paying users or organisations and not receipt-confirmed payments.",
+    registeredUsers: "App user accounts excluding known QA, seeded and erased email patterns; not distinct organisations.",
+    reportPurchases: "Report order rows in PAID, GENERATING, READY or SHARED states; raw count, not QA-filtered distinct reports.",
+    sharedReportSnapshots: "Snapshot rows with a share token; raw count, not unique companies or public readers.",
+    reportViews: "All recorded tbr_views rows; not unique visitors and not QA-filtered.",
+  };
+  const metricDetails = Object.fromEntries(Object.entries(metrics).map(([key, value]) => [key, {
+    status: value === null ? "unavailable" : "measured",
+    definition: definitions[key as keyof typeof metrics],
+    asOf: value === null ? null : key === "articles" ? requestedAt : sourceTime,
+    source: value === null ? null : key === "articles" ? "content_inventory" : "traction_snapshot",
+  }]));
+  return NextResponse.json({
+    ok: true, dataStatus: "partial", metrics, metricDetails, company: companyInfo(),
+    updatedAt: sourceTime, requestedAt, source: snap ? "traction_snapshot" : "unavailable",
+    snapshot: { status: snapshotStatus, generatedAt: typeof raw?.generated_at === "string" ? raw.generated_at : null },
+  }, { headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=300" } });
 }
-
-// ---------------------------------------------------------------------------
-// Static company info
-// ---------------------------------------------------------------------------
 
 function companyInfo() {
   return {

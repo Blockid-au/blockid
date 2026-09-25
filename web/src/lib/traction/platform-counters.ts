@@ -1,16 +1,5 @@
-// /api/platform-stats ← traction snapshot (G14-S33).
-//
-// Reduces the raw daily snapshot to the three public counters the directory
-// widgets show. Only a FRESH snapshot (< 26 h, isTractionFresh) is used; a
-// figure the snapshot could not measure (null + warning) stays null so the
-// route falls back to its live query for that counter only.
-//
-//   founders       users.founders (QA / seeded / erased excluded)
-//   analyses       analyses.svi_analyses
-//   paidCustomers  Σ evaluators.paying_by_plan — active evaluator
-//                  subscriptions, not the live `app_users.plan != 'free'`
-//                  proxy (which counts trialing rows and QA fixtures).
-
+// Public snapshot counters retain source definitions. Analyses are raw stored
+// svi_analyses rows, not unique companies or QA-filtered completed reports.
 import { isTractionFresh } from "./status";
 
 export interface SnapshotCounters {
@@ -18,26 +7,35 @@ export interface SnapshotCounters {
   analyses: number | null;
   paidCustomers: number | null;
 }
-
-function nonNegInt(v: unknown): number | null {
-  return typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.round(v) : null;
+export function nonNegInt(v: unknown): number | null {
+  return typeof v === "number" && Number.isSafeInteger(v) && v >= 0 ? v : null;
 }
-
-/** Pure. `null` when there is no fresh snapshot at all. */
+export function hasSnapshotWarning(raw: Record<string, unknown>, prefixes: readonly string[]): boolean {
+  return Array.isArray(raw.warnings) && raw.warnings.some(w => typeof w === "string"
+    && ["supabase:", ...prefixes].some(prefix => w.startsWith(prefix)));
+}
+export function sumCountRecord(value: unknown): number | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  let sum = 0;
+  for (const v of Object.values(value)) {
+    const count = nonNegInt(v);
+    if (count === null) return null;
+    sum += count;
+  }
+  return nonNegInt(sum);
+}
+/** A failed or incomplete source stays unavailable, including empty maps left
+ * by emptyTractionSnapshot. A measured zero requires successful source scans. */
 export function countersFromSnapshot(raw: Record<string, unknown> | null, now: number = Date.now()): SnapshotCounters | null {
-  if (!raw || !isTractionFresh(raw as { generated_at?: unknown }, now)) return null;
+  if (!raw || !isTractionFresh(raw, now)) return null;
   const users = (raw.users ?? {}) as Record<string, unknown>;
   const analyses = (raw.analyses ?? {}) as Record<string, unknown>;
   const evaluators = (raw.evaluators ?? {}) as Record<string, unknown>;
-  const paying = evaluators.paying_by_plan;
-  let paidCustomers: number | null = null;
-  if (paying && typeof paying === "object" && !Array.isArray(paying)) {
-    paidCustomers = 0;
-    for (const v of Object.values(paying as Record<string, unknown>)) paidCustomers += nonNegInt(v) ?? 0;
-  }
+  const userUnavailable = hasSnapshotWarning(raw, ["app_users:"]) || nonNegInt(users.total) === null;
   return {
-    founders: nonNegInt(users.founders),
-    analyses: nonNegInt(analyses.svi_analyses),
-    paidCustomers,
+    founders: userUnavailable ? null : nonNegInt(users.founders),
+    analyses: hasSnapshotWarning(raw, ["svi_analyses:"]) ? null : nonNegInt(analyses.svi_analyses),
+    paidCustomers: userUnavailable || hasSnapshotWarning(raw, ["subscription_trial_state:"])
+      || nonNegInt(evaluators.trials) === null ? null : sumCountRecord(evaluators.paying_by_plan),
   };
 }
