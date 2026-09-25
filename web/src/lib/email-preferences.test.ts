@@ -118,6 +118,14 @@ function makeChain(table: string) {
 
 vi.mock("server-only", () => ({}));
 
+// G34-BT2 — the C-class gate + cap live in ./email-sends (own suite).
+const gateMock = vi.fn();
+const capMock = vi.fn();
+vi.mock("./email-sends", () => ({
+  commercialSendGate: (e: string, f: string) => gateMock(e, f),
+  checkCommercialFrequencyCap: (e: string, f: string) => capMock(e, f),
+}));
+
 vi.mock("./supabase", () => ({
   getSupabaseAdmin: () => {
     if (!state.adminConfigured) return null;
@@ -134,6 +142,9 @@ beforeEach(() => {
   state.queue = [];
   state.calls = [];
   errorSpy.mockClear();
+  gateMock.mockReset();
+  gateMock.mockResolvedValue({ ok: true });
+  capMock.mockReset();
 });
 
 afterEach(() => {
@@ -299,7 +310,15 @@ describe("email-preferences — ensureEmailPreferences", () => {
     const [precheck, insert] = state.calls;
     expect(precheck.selectCols).toBe("unsubscribe_token");
     expect(precheck.eqs).toEqual([{ col: "email", val: "a@b.co" }]);
-    expect(insert.insertPayload).toEqual({ email: "a@b.co", user_id: "user-1" });
+    // G34-BT2 EM05: commercial categories start FALSE (no consent yet).
+    expect(insert.insertPayload).toEqual({
+      email: "a@b.co",
+      user_id: "user-1",
+      weekly_reports: false,
+      product_updates: false,
+      promotions: false,
+      digest_weekly: false,
+    });
     expect(insert.selectCols).toBe("unsubscribe_token");
     expect(insert.terminal).toBe("single");
   });
@@ -310,7 +329,7 @@ describe("email-preferences — ensureEmailPreferences", () => {
     const { ensureEmailPreferences } = await import("./email-preferences");
     await ensureEmailPreferences("a@b.co");
     const insert = state.calls[1];
-    expect(insert.insertPayload).toEqual({ email: "a@b.co", user_id: null });
+    expect(insert.insertPayload).toMatchObject({ email: "a@b.co", user_id: null, promotions: false });
   });
 
   it("recovers from a 23505 unique-violation race by re-reading the winning row's token", async () => {
@@ -621,75 +640,39 @@ describe("email-preferences — getPreferencesByToken", () => {
 });
 
 // ---------------------------------------------------------------------------
-// canSendMarketingToday — the daily-1-marketing-email cap
+// canSendMarketingToday — G34-BT2 EM03: delegates to the email_sends cap
 // ---------------------------------------------------------------------------
 
-describe("email-preferences — canSendMarketingToday", () => {
-  it("returns true when no admin is configured (fail-open — Stripe receipt path must not deadlock)", async () => {
-    state.adminConfigured = false;
+describe("email-preferences — canSendMarketingToday (email_sends cap)", () => {
+  it("passes the flow through and returns the cap decision", async () => {
+    capMock.mockResolvedValueOnce({ ok: true });
     const { canSendMarketingToday } = await import("./email-preferences");
-    expect(await canSendMarketingToday("a@b.co")).toBe(true);
+    expect(await canSendMarketingToday("a@b.co", "lead-nurture")).toBe(true);
+    expect(capMock).toHaveBeenCalledWith("a@b.co", "lead-nurture");
   });
 
-  it("uses select(id,{count:'exact',head:true}) so no rows are transferred", async () => {
-    state.queue.push({ count: 0 });
-    const { canSendMarketingToday } = await import("./email-preferences");
-    await canSendMarketingToday("a@b.co");
-    const [call] = state.calls;
-    expect(call.selectCols).toBe("id");
-    expect(call.selectOpts).toEqual({ count: "exact", head: true });
-    expect(call.table).toBe("svi_notifications");
-  });
-
-  it("filters by lowercased+trimmed email and gte today-midnight-UTC", async () => {
-    vi.useFakeTimers();
-    vi.setSystemTime(new Date("2026-07-31T15:22:00Z"));
-    state.queue.push({ count: 0 });
-    const { canSendMarketingToday } = await import("./email-preferences");
-    await canSendMarketingToday("  Foo@Bar.io  ");
-    const [call] = state.calls;
-    expect(call.eqs).toEqual([{ col: "email", val: "foo@bar.io" }]);
-    expect(call.gte).toEqual([{ col: "created_at", val: "2026-07-31T00:00:00Z" }]);
-  });
-
-  it("scopes the .in() to the marketing/nurture notification_type union (never counts one-off transactional rows)", async () => {
-    state.queue.push({ count: 0 });
-    const { canSendMarketingToday } = await import("./email-preferences");
-    await canSendMarketingToday("a@b.co");
-    const [call] = state.calls;
-    expect(call.in).toHaveLength(1);
-    const vals = call.in[0].vals as string[];
-    // Regression guard: dropping "weekly_digest" would let the digest cron
-    // double-send on the same day (the exact incident the cap prevents).
-    expect(vals).toContain("weekly_digest");
-    expect(vals).toContain("nurture_free_d2");
-    expect(vals).toContain("reengage_30d");
-    expect(vals).toContain("low_credit");
-    // Never nurture-cap a payment_receipts row.
-    expect(vals).not.toContain("payment_receipts");
-  });
-
-  it("returns true when the day's marketing count is 0", async () => {
-    state.queue.push({ count: 0 });
-    const { canSendMarketingToday } = await import("./email-preferences");
-    expect(await canSendMarketingToday("a@b.co")).toBe(true);
-  });
-
-  it("returns false at the 1-marketing-email cap (count === 1)", async () => {
-    state.queue.push({ count: 1 });
+  it("returns false when the cap is reached", async () => {
+    capMock.mockResolvedValueOnce({ ok: false, reason: "cap_day" });
     const { canSendMarketingToday } = await import("./email-preferences");
     expect(await canSendMarketingToday("a@b.co")).toBe(false);
   });
 
-  it("returns true when count is null (coerces to 0 — no-throw on Supabase-count edge)", async () => {
-    state.queue.push({ count: null });
+  it("fails CLOSED when the send log is unreadable", async () => {
+    capMock.mockResolvedValueOnce({ ok: false, reason: "log_unavailable" });
     const { canSendMarketingToday } = await import("./email-preferences");
-    expect(await canSendMarketingToday("a@b.co")).toBe(true);
+    expect(await canSendMarketingToday("a@b.co")).toBe(false);
+  });
+
+  it("no longer reads svi_notifications for the cap", async () => {
+    capMock.mockResolvedValueOnce({ ok: true });
+    const { canSendMarketingToday } = await import("./email-preferences");
+    await canSendMarketingToday("a@b.co");
+    expect(state.calls).toHaveLength(0);
   });
 });
 
 // ---------------------------------------------------------------------------
-// emailSendChecklist — the pre-send gate every automated email hits
+// emailSendChecklist — the pre-send gate every automated commercial email hits
 // ---------------------------------------------------------------------------
 
 describe("email-preferences — emailSendChecklist", () => {
@@ -709,65 +692,78 @@ describe("email-preferences — emailSendChecklist", () => {
     const { emailSendChecklist } = await import("./email-preferences");
     const res = await emailSendChecklist("a@b.co", "weekly_reports");
     expect(res).toEqual({ ok: false, reason: "user_unsubscribed" });
+    expect(gateMock).not.toHaveBeenCalled();
   });
 
-  it("returns daily_cap_reached when the daily cap is hit", async () => {
+  it("returns frequency_capped when the global cap is hit", async () => {
     state.queue.push({ data: null }); // canSendEmail — no prefs, ok
-    state.queue.push({ count: 1 }); // canSendMarketingToday — cap hit
+    gateMock.mockResolvedValueOnce({ ok: false, reason: "frequency_capped", detail: "cap_day" });
     const { emailSendChecklist } = await import("./email-preferences");
-    const res = await emailSendChecklist("a@b.co", "weekly_reports");
-    expect(res).toEqual({ ok: false, reason: "daily_cap_reached" });
+    const res = await emailSendChecklist("a@b.co", "weekly_reports", undefined, { flow: "weekly-insights" });
+    expect(res).toEqual({ ok: false, reason: "frequency_capped", detail: "cap_day" });
+    expect(gateMock).toHaveBeenCalledWith("a@b.co", "weekly-insights");
   });
 
-  it("skips the daily-cap check entirely for payment_receipts (transactional bypass)", async () => {
-    // No canSendEmail DB read either (payment_receipts short-circuits inside
-    // canSendEmail), so no rows should be enqueued.
+  it("maps an unreadable log / preference row to gate_unavailable (fail-closed, retryable)", async () => {
+    state.queue.push({ data: null });
+    gateMock.mockResolvedValueOnce({ ok: false, reason: "frequency_capped", detail: "log_unavailable" });
+    const { emailSendChecklist } = await import("./email-preferences");
+    expect(await emailSendChecklist("a@b.co", "promotions")).toEqual({
+      ok: false,
+      reason: "gate_unavailable",
+      detail: "log_unavailable",
+    });
+    state.queue.push({ data: null });
+    gateMock.mockResolvedValueOnce({ ok: false, reason: "suppression_unreadable" });
+    expect(await emailSendChecklist("a@b.co", "promotions")).toEqual({
+      ok: false,
+      reason: "gate_unavailable",
+      detail: "suppression_unreadable",
+    });
+  });
+
+  it("returns no_consent / suppressed from the gate", async () => {
+    state.queue.push({ data: null });
+    gateMock.mockResolvedValueOnce({ ok: false, reason: "no_consent" });
+    const { emailSendChecklist } = await import("./email-preferences");
+    expect(await emailSendChecklist("a@b.co", "promotions")).toEqual({ ok: false, reason: "no_consent" });
+    state.queue.push({ data: null });
+    gateMock.mockResolvedValueOnce({ ok: false, reason: "suppressed", detail: "complaint" });
+    expect(await emailSendChecklist("a@b.co", "promotions")).toEqual({
+      ok: false,
+      reason: "suppressed",
+      detail: "complaint",
+    });
+  });
+
+  it("skips the gate entirely for payment_receipts (transactional bypass)", async () => {
     const { emailSendChecklist } = await import("./email-preferences");
     const res = await emailSendChecklist("a@b.co", "payment_receipts");
     expect(res).toEqual({ ok: true });
     expect(state.calls).toHaveLength(0);
+    expect(gateMock).not.toHaveBeenCalled();
   });
 
   it("returns already_sent when the notification_type dedup finds an existing row", async () => {
     state.queue.push({ data: null }); // canSendEmail — no prefs
-    state.queue.push({ count: 0 }); // canSendMarketingToday — under cap
     state.queue.push({ count: 1 }); // dedup — row exists
     const { emailSendChecklist } = await import("./email-preferences");
-    const res = await emailSendChecklist(
-      "a@b.co",
-      "weekly_reports",
-      "weekly_digest",
-    );
+    const res = await emailSendChecklist("a@b.co", "weekly_reports", "weekly_digest");
     expect(res).toEqual({ ok: false, reason: "already_sent" });
-    // Dedup call shape: table svi_notifications, filter (email, notification_type).
     const dedupCall = state.calls[state.calls.length - 1];
     expect(dedupCall.table).toBe("svi_notifications");
     expect(dedupCall.eqs).toEqual([
       { col: "email", val: "a@b.co" },
       { col: "notification_type", val: "weekly_digest" },
     ]);
+    // Without an explicit flow the notification type keys the per-flow cap.
+    expect(gateMock).toHaveBeenCalledWith("a@b.co", "weekly_digest");
   });
 
-  it("returns ok when all three gates pass (opt-in, under cap, not previously sent)", async () => {
+  it("returns ok when every gate passes", async () => {
     state.queue.push({ data: null });
     state.queue.push({ count: 0 });
-    state.queue.push({ count: 0 });
     const { emailSendChecklist } = await import("./email-preferences");
-    const res = await emailSendChecklist(
-      "a@b.co",
-      "weekly_reports",
-      "weekly_digest",
-    );
-    expect(res).toEqual({ ok: true });
-  });
-
-  it("skips the dedup check entirely when no notificationType is provided", async () => {
-    state.queue.push({ data: null }); // canSendEmail
-    state.queue.push({ count: 0 }); // canSendMarketingToday
-    const { emailSendChecklist } = await import("./email-preferences");
-    const res = await emailSendChecklist("a@b.co", "weekly_reports");
-    expect(res).toEqual({ ok: true });
-    // Only the two upstream calls ran, no dedup round-trip.
-    expect(state.calls).toHaveLength(2);
+    expect(await emailSendChecklist("a@b.co", "weekly_reports", "weekly_digest")).toEqual({ ok: true });
   });
 });

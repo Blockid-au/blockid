@@ -234,7 +234,7 @@ describe("sendEmail — SMTP provider ladder", () => {
       unsubscribeUrl: "https://blockid.au/unsubscribe?token=xyz",
     });
     expect(lastMail().headers).toEqual({
-      "List-Unsubscribe": "<https://blockid.au/unsubscribe?token=xyz>",
+      "List-Unsubscribe": "<https://blockid.au/api/unsubscribe?token=xyz>", // G34-BT2 EM06: one-click API route
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
     });
   });
@@ -485,7 +485,7 @@ describe("sendScoreReady (svi_alerts gate)", () => {
     const { sendScoreReady } = await import("./email");
     await sendScoreReady({ to: "a@b.co", slug: "s1", totalScore: 88 });
     expect(lastMail().headers!["List-Unsubscribe"]).toBe(
-      "<https://blockid.au/unsubscribe?token=tok-abc>",
+      "<https://blockid.au/api/unsubscribe?token=tok-abc>",
     );
   });
 });
@@ -548,7 +548,7 @@ describe("Spam Act footer (unsubFooter / complianceFooter)", () => {
       expect(mail.html).toContain("You're receiving this because you have a BlockID account.");
       expect(mail.html).toContain("https://blockid.au/unsubscribe?token=tok-abc");
       expect(mail.html).toContain("https://blockid.au/unsubscribe?token=tok-abc&amp;manage=1".replace("&amp;", "&"));
-      expect(mail.headers?.["List-Unsubscribe"]).toBe("<https://blockid.au/unsubscribe?token=tok-abc>");
+      expect(mail.headers?.["List-Unsubscribe"]).toBe("<https://blockid.au/api/unsubscribe?token=tok-abc>");
     }
   });
 

@@ -31,6 +31,15 @@ import {
   getUnsubscribeUrl,
   getPreferencesUrl,
 } from "./email-preferences";
+import type { EmailCategory } from "./email-preferences";
+import {
+  commercialSendGate,
+  getSuppression,
+  oneClickUnsubscribeUrl,
+  recordEmailSend,
+  toOneClickUnsubscribeUrl,
+  type EmailClass,
+} from "./email-sends";
 import { ADMIN_EMAIL } from "./auth";
 import { getSupabaseAdmin } from "./supabase";
 import { resellerFooterHtml } from "./reseller/email-footer";
@@ -151,7 +160,21 @@ function siteUrl(): string {
 
 type SendResult =
   | { ok: true; id: string }
-  | { ok: false; reason: "not_configured" | "send_error" | "unsubscribed" | "erased_recipient"; error?: unknown };
+  | {
+      ok: false;
+      reason:
+        | "not_configured"
+        | "send_error"
+        | "unsubscribed"
+        | "erased_recipient"
+        /** G34-BT2 EM04 — hard bounce (any class) or bounce/complaint (C-class). */
+        | "suppressed"
+        /** G34-BT2 EM05 — C-class to an address without marketing consent. */
+        | "no_consent"
+        /** G34-BT2 EM03 — C-class over the global cap, or the send log was unreadable (fail-closed). */
+        | "frequency_capped";
+      error?: unknown;
+    };
 
 /**
  * G33-T11: an erased account's address is rewritten to a tombstone
@@ -180,6 +203,8 @@ async function sendViaResend(args: {
   /** Plain-text twin (multipart/alternative) — G14-S34 feedback letter. */
   text?: string;
   fromName?: string | null;
+  /** G34-BT2 EM06 — List-Unsubscribe / List-Unsubscribe-Post, same as the SMTP path. */
+  headers?: Record<string, string>;
   attachments?: { filename: string; content: Buffer | Uint8Array | string; contentType?: string; cid?: string }[];
 }): Promise<SendResult> {
   const apiKey = process.env.RESEND_API_KEY;
@@ -222,6 +247,7 @@ async function sendViaResend(args: {
         subject: args.subject,
         html: args.html,
         ...(args.text && { text: args.text }),
+        ...(args.headers && Object.keys(args.headers).length > 0 && { headers: args.headers }),
         ...(resendAttachments?.length && { attachments: resendAttachments }),
       }),
     });
@@ -240,6 +266,39 @@ async function sendViaResend(args: {
 
 // ---------- Core send function ------------------------------------------------
 
+/**
+ * G34-BT2 EM06 — the List-Unsubscribe headers for one send. C-class always
+ * gets an RFC 8058 one-click pair pointing at `/api/unsubscribe?token=…`
+ * (minted here when the caller passed none). A T-class send keeps the
+ * header only when the caller supplied an unsubscribe URL; a token-bearing
+ * page link is mapped onto the one-click API route, and a token-less link
+ * (`?email=`) is advertised without the One-Click POST it cannot honour.
+ */
+async function unsubscribeHeaders(args: {
+  to: string;
+  unsubscribeUrl?: string;
+  emailClass: EmailClass;
+  category?: EmailCategory;
+}): Promise<Record<string, string>> {
+  const headers: Record<string, string> = {};
+  let oneClick = args.unsubscribeUrl ? toOneClickUnsubscribeUrl(args.unsubscribeUrl) : null;
+  if (!oneClick && args.emailClass === "C") {
+    try {
+      const token = await ensureEmailPreferences(args.to);
+      if (token) oneClick = oneClickUnsubscribeUrl(token, args.category);
+    } catch {
+      /* fall through to the caller's link */
+    }
+  }
+  if (oneClick) {
+    headers["List-Unsubscribe"] = `<${oneClick}>`;
+    headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
+  } else if (args.unsubscribeUrl) {
+    headers["List-Unsubscribe"] = `<${args.unsubscribeUrl}>`;
+  }
+  return headers;
+}
+
 export async function sendEmail(args: {
   to: string;
   subject: string;
@@ -251,21 +310,58 @@ export async function sendEmail(args: {
   fromName?: string | null;
   /** `cid` marks an inline image (referenced as `<img src="cid:<cid>">`) — S-R4 report visuals. */
   attachments?: { filename: string; content: Buffer | Uint8Array; contentType?: string; cid?: string }[];
+  /**
+   * G34-BT2 — "T" transactional (default) or "C" commercial. C-class passes
+   * suppression + consent + the global frequency cap (fail-closed) and always
+   * carries the RFC 8058 one-click List-Unsubscribe pair.
+   */
+  emailClass?: EmailClass;
+  /** G34-BT2 EM02/EM03 — the sequence this send belongs to ("lead-nurture"); the per-flow 72 h cap keys on it. */
+  flow?: string;
+  /** G34-BT2 EM02 — the template / step ("lead_d1"). */
+  template?: string;
+  /** C-class: preference category the one-click unsubscribe is scoped to. */
+  category?: EmailCategory;
 }): Promise<SendResult> {
   if (isErasedRecipient(args.to)) {
     console.warn("[blockid:email] refused: recipient is an erased-account tombstone");
     return { ok: false, reason: "erased_recipient" };
   }
+  const emailClass: EmailClass = args.emailClass ?? "T";
+  const log = (status: Parameters<typeof recordEmailSend>[0]["status"], providerMessageId?: string | null) =>
+    recordEmailSend({ to: args.to, flow: args.flow, emailClass, template: args.template, providerMessageId, status });
+
+  // G34-BT2 EM03/EM04/EM05 — the commercial gate (fail-closed); transactional
+  // mail is stopped only by a hard bounce (fail-open when unreadable).
+  if (emailClass === "C") {
+    const gate = await commercialSendGate(args.to, args.flow ?? "unspecified");
+    if (!gate.ok) {
+      await log(`blocked:${gate.reason}${gate.detail ? `:${gate.detail}` : ""}`);
+      console.info("[blockid:email] commercial send skipped", { reason: gate.reason, flow: args.flow ?? null });
+      return {
+        ok: false,
+        reason: gate.reason === "no_consent" ? "no_consent" : gate.reason === "frequency_capped" ? "frequency_capped" : "suppressed",
+      };
+    }
+  } else {
+    const sup = await getSuppression(args.to);
+    if (sup.reason === "hard_bounce") {
+      await log("blocked:suppressed:hard_bounce");
+      return { ok: false, reason: "suppressed" };
+    }
+  }
+
+  const headers = await unsubscribeHeaders({
+    to: args.to,
+    unsubscribeUrl: args.unsubscribeUrl,
+    emailClass,
+    category: args.category,
+  });
+
   // Priority 1: SMTP (Nodemailer)
   const transporter = getTransporter();
   if (transporter) {
     try {
-      const headers: Record<string, string> = {};
-      if (args.unsubscribeUrl) {
-        headers["List-Unsubscribe"] = `<${args.unsubscribeUrl}>`;
-        headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
-      }
-
       const info = await transporter.sendMail({
         from: withFromName(fromAddress(), args.fromName),
         to: args.to,
@@ -283,6 +379,7 @@ export async function sendEmail(args: {
         }),
       });
       console.log("[blockid:email] sent via SMTP", { to: args.to, messageId: info.messageId });
+      await log("sent", info.messageId ?? null);
       return { ok: true, id: info.messageId ?? "" };
     } catch (error) {
       console.error("[blockid:email] SMTP send failed, trying Resend fallback", error);
@@ -292,17 +389,21 @@ export async function sendEmail(args: {
 
   // Priority 2: Resend API
   if (isResendConfigured()) {
-    return sendViaResend({
+    const result = await sendViaResend({
       to: args.to,
       subject: args.subject,
       html: args.html,
       text: args.text,
       fromName: args.fromName,
+      headers,
       attachments: args.attachments,
     });
+    await log(result.ok ? "sent" : "failed", result.ok ? result.id : null);
+    return result;
   }
 
-  // Neither configured
+  // Neither configured (or SMTP threw with no fallback — logged as failed).
+  if (transporter) await log("failed");
   console.warn("[blockid:email] No email provider configured (set SMTP_USER+SMTP_PASS or RESEND_API_KEY)", { to: args.to, subject: args.subject });
   return { ok: false, reason: "not_configured" };
 }

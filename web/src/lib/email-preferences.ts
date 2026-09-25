@@ -1,5 +1,6 @@
 import "server-only";
 import { getSupabaseAdmin } from "./supabase";
+import { checkCommercialFrequencyCap, commercialSendGate } from "./email-sends";
 
 export type EmailCategory =
   | "weekly_reports"
@@ -57,6 +58,30 @@ export async function getEmailPreferences(
   return data as EmailPreferences | null;
 }
 
+/**
+ * G34-BT2 EM05 (D24-e) — the commercial (C-class) preference columns. A row
+ * created from now on starts with every one of them FALSE: they turn on
+ * only through express consent (lib/consent.ts recordMarketingConsent, from
+ * an unticked checkbox). Existing rows are never touched. `svi_alerts`,
+ * `money_radar` and `payment_receipts` are service mail and keep the
+ * column defaults.
+ */
+export const COMMERCIAL_PREFERENCE_COLUMNS = [
+  "weekly_reports",
+  "product_updates",
+  "promotions",
+  "digest_weekly",
+] as const;
+
+export function commercialPreferenceDefaults(granted: boolean): Record<(typeof COMMERCIAL_PREFERENCE_COLUMNS)[number], boolean> {
+  return {
+    weekly_reports: granted,
+    product_updates: granted,
+    promotions: granted,
+    digest_weekly: granted,
+  };
+}
+
 // ---- Ensure preferences exist (call on user creation / first email) --------
 // Returns the unsubscribe_token. Upserts: creates if not exists.
 
@@ -84,6 +109,8 @@ export async function ensureEmailPreferences(
     .insert({
       email: normEmail,
       user_id: userId ?? null,
+      // G34-BT2 EM05: no commercial mail without express consent.
+      ...commercialPreferenceDefaults(false),
     })
     .select("unsubscribe_token")
     .single();
@@ -233,46 +260,49 @@ export async function getPreferencesByToken(
   return data as EmailPreferences | null;
 }
 
-// ---- Daily email cap — max 1 marketing email per user per day ---------------
-// Prevents over-emailing. Transactional emails (payment_receipts) are exempt.
+// ---- Commercial frequency cap (G34-BT2 EM03) --------------------------------
+// ≤ 1 C-class email per 24 h, ≤ 3 per 7 days, ≤ 1 per flow per 72 h, read from
+// the shared send log `email_sends` (lib/email-sends.ts). Fails CLOSED: an
+// unreadable log means no commercial send. Transactional mail is exempt.
 
-export async function canSendMarketingToday(email: string): Promise<boolean> {
-  const sb = getSupabaseAdmin();
-  if (!sb) return true;
-
-  const today = new Date().toISOString().slice(0, 10);
-  const { count } = await sb
-    .from("svi_notifications")
-    .select("id", { count: "exact", head: true })
-    .eq("email", email.toLowerCase().trim())
-    .gte("created_at", `${today}T00:00:00Z`)
-    .in("notification_type", [
-      "nurture_free_d2", "nurture_free_d4", "nurture_free_d7",
-      "nurture_paid_d1", "nurture_paid_d3", "nurture_paid_d7",
-      "first_report_24h", "evidence_score_boost", "unlock_deeper",
-      "weekly_summary", "weekly_insights", "weekly_digest", "weekly_action",
-      "reengage_30d", "reengage_60d", "reengage_90d", "low_credit",
-    ]);
-
-  return (count ?? 0) < 1;
+export async function canSendMarketingToday(email: string, flow = "unspecified"): Promise<boolean> {
+  const cap = await checkCommercialFrequencyCap(email, flow);
+  return cap.ok;
 }
 
-// ---- Pre-send checklist (call before ANY automated email) -------------------
-// Returns { ok, reason } — only send if ok === true.
+export type EmailChecklistReason =
+  | "user_unsubscribed"
+  | "suppressed"
+  | "no_consent"
+  | "frequency_capped"
+  /** The send log / preference row could not be read — skip now, the row may be retried. */
+  | "gate_unavailable"
+  | "already_sent";
+
+// ---- Pre-send checklist (call before ANY automated commercial email) --------
+// Returns { ok, reason } — only send if ok === true. Order: category
+// preference → suppression + consent + frequency cap (commercialSendGate)
+// → optional svi_notifications dedup. `payment_receipts` bypasses the gate.
 
 export async function emailSendChecklist(
   email: string,
   category: EmailCategory,
   notificationType?: string,
-): Promise<{ ok: boolean; reason?: string }> {
+  opts: { flow?: string } = {},
+): Promise<{ ok: boolean; reason?: EmailChecklistReason; detail?: string }> {
   // 1. Preference check
   const allowed = await canSendEmail(email, category);
   if (!allowed) return { ok: false, reason: "user_unsubscribed" };
 
-  // 2. Daily cap (skip for transactional)
+  // 2. Suppression, consent, global frequency cap (skip for transactional)
   if (category !== "payment_receipts") {
-    const canToday = await canSendMarketingToday(email);
-    if (!canToday) return { ok: false, reason: "daily_cap_reached" };
+    const gate = await commercialSendGate(email, opts.flow ?? notificationType ?? category);
+    if (!gate.ok) {
+      if (gate.reason === "suppression_unreadable" || gate.detail === "log_unavailable") {
+        return { ok: false, reason: "gate_unavailable", detail: gate.detail ?? gate.reason };
+      }
+      return { ok: false, reason: gate.reason as EmailChecklistReason, ...(gate.detail ? { detail: gate.detail } : {}) };
+    }
   }
 
   // 3. Dedup check (if notification type provided)
