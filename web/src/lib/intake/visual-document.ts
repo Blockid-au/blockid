@@ -73,7 +73,7 @@ export async function extractDocumentVisuals(bytes: Buffer, filename: string): P
       }
     } else if (/\.(pptx|docx)$/i.test(filename)) {
       // Loaded only for an Office container; no archive extraction to disk.
-      const { Open } = require("unzipper") as { Open: { buffer(bytes: Buffer): Promise<{ files: ZipEntry[] }> } };
+      const { Open } = await import("unzipper");
       const archive = await Open.buffer(bytes);
       if (archive.files.length > 2000) throw Error("office_entry_limit");
       const media = archive.files.filter(e => /^(ppt|word)\/media\/[^/]+$/i.test(e.path));

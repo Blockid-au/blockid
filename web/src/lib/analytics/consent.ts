@@ -60,6 +60,7 @@ function callGtagConsent(mode: "granted" | "denied"): void {
   // Use the parser-installed bootstrap when present; preserve its queue format
   // if consent is changed before that bootstrap is available.
   const gtag: Gtag = typeof window.gtag === "function" ? window.gtag : function () {
+    // eslint-disable-next-line prefer-rest-params -- Google gtag requires an Arguments object; a rest array is not a command.
     window.dataLayer!.push(arguments);
   };
   gtag("consent", "update", {

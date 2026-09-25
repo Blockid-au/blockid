@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ReportSaveStatusNotice, SavedReportActions } from "./report-save-status";
@@ -39,13 +40,13 @@ describe("report save notice", () => {
     expect(html).not.toContain("tải xuống");
   });
   it("does not render saved-artifact actions after a known failed save", () => {
-    const renderActions = vi.fn(() => <><a href="/workspace/reports/business?pid=p">Full report</a><button>Share report</button><a href="/api/svi/report/pdf?token=old">PDF</a></>);
+    const renderActions = vi.fn(() => <><Link href="/workspace/reports/business?pid=p">Full report</Link><button>Share report</button><Link href="/api/svi/report/pdf?token=old">PDF</Link></>);
     expect(renderToStaticMarkup(<SavedReportActions status="save_failed">{<ActionFixture />}</SavedReportActions>)).toBe("");
     expect(renderActions).not.toHaveBeenCalled();
     function ActionFixture() { return renderActions(); }
   });
   it.each([undefined, "saved", "not_requested"] as const)("preserves saved and legacy action behavior for %s", (status) => {
-    expect(renderToStaticMarkup(<SavedReportActions status={status}><a href="/workspace/reports/business">Full report</a></SavedReportActions>)).toContain("Full report");
+    expect(renderToStaticMarkup(<SavedReportActions status={status}><Link href="/workspace/reports/business">Full report</Link></SavedReportActions>)).toContain("Full report");
   });
 
 });
@@ -53,11 +54,11 @@ describe("report save notice", () => {
 
 describe("unavailable stream result navigation", () => {
   it.each([undefined, "not_requested", "save_failed"] as const)("blocks old-report links and exports when canonical save is %s", (status) => {
-    const html = renderToStaticMarkup(<SavedReportActions status={status} valuationStatus="unavailable"><a href="/workspace/reports/business?pid=demo">Share / PDF / full report</a></SavedReportActions>);
+    const html = renderToStaticMarkup(<SavedReportActions status={status} valuationStatus="unavailable"><Link href="/workspace/reports/business?pid=demo">Share / PDF / full report</Link></SavedReportActions>);
     expect(html).toBe("");
   });
   it("allows the acknowledged saved report with its explicit unavailable valuation", () => {
-    const html = renderToStaticMarkup(<SavedReportActions status="saved" valuationStatus="unavailable"><a href="/workspace/reports/business?pid=demo">Read saved report</a></SavedReportActions>);
+    const html = renderToStaticMarkup(<SavedReportActions status="saved" valuationStatus="unavailable"><Link href="/workspace/reports/business?pid=demo">Read saved report</Link></SavedReportActions>);
     expect(html).toContain("Read saved report");
   });
 });

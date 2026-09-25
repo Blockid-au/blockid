@@ -63,7 +63,7 @@ it("binds context, exact payload, stable attempt id, immutable grant and policy"
  await expect(coordinator(dir,{...context(),jobId:"other"},auth).reserve(r)).rejects.toThrow("authorization scope");
 }));
 it("denies unapproved/expired/missing policy and lexical unknown fields with no ledger mutation",()=>isolated(async dir=>{
- for(const change of [(a:any)=>a.pricePolicy.approved=false,(a:any)=>a.grant.approved=false,(a:any)=>a.pricePolicy.models[0].providerMaxOutputTokens=null,(a:any)=>a.pricePolicy.expiresAt=time,(a:any)=>a.grant.allowedAttempts=[],(a:any)=>a.grant.clientConsent=true]) {
+ for(const change of [(a:ResearchBudgetAuthorization)=>a.pricePolicy.approved=false,(a:ResearchBudgetAuthorization)=>a.grant.approved=false,(a:ResearchBudgetAuthorization)=>Object.assign(a.pricePolicy.models[0],{providerMaxOutputTokens:null}),(a:ResearchBudgetAuthorization)=>a.pricePolicy.expiresAt=time,(a:ResearchBudgetAuthorization)=>a.grant.allowedAttempts=[],(a:ResearchBudgetAuthorization)=>Object.assign(a.grant,{clientConsent:true})]) {
   const auth=authorization();change(auth);await expect(coordinator(dir,context(),auth).reserve(request())).rejects.toThrow();
  }
  expect((await read(dir)).entries).toHaveLength(0);
@@ -87,9 +87,9 @@ it("rejects symlink/hardlink/shared file or directory and never steals a crashed
  await mkdir(join(dir,".research-attempt-lock"),{mode:0o700});await expect(coordinator(dir).reserve(request())).rejects.toThrow("lock requires recovery");
 }));
 it("serializes independent processes sharing the month ledger and denies restart replay",()=>isolated(async dir=>{
- const module=join(process.cwd(),"src/lib/ai/research-attempt-coordinator.ts"),script=join(dir,"worker.ts"),hook=join(dir,"server-only-hook.cjs");
+ const modulePath=join(process.cwd(),"src/lib/ai/research-attempt-coordinator.ts"),script=join(dir,"worker.ts"),hook=join(dir,"server-only-hook.cjs");
  await writeFile(hook,'const M=require("node:module");const load=M._load;M._load=function(id,...args){if(id==="server-only")return {};return load.call(this,id,...args)};');
- await writeFile(script,`import {createResearchAttemptBudget} from ${JSON.stringify(module)};const c=JSON.parse(process.argv[2]),r=JSON.parse(process.argv[3]),a=JSON.parse(process.argv[4]);createResearchAttemptBudget({directory:process.argv[5],context:c,readAuthorization:async()=>a,assertSettlementAuthorized:async()=>{},now:()=>${time}}).reserve(r).then(p=>console.log(JSON.stringify(p))).catch(()=>console.log(JSON.stringify({dispatchAllowed:false})));`);
+ await writeFile(script,`import {createResearchAttemptBudget} from ${JSON.stringify(modulePath)};const c=JSON.parse(process.argv[2]),r=JSON.parse(process.argv[3]),a=JSON.parse(process.argv[4]);createResearchAttemptBudget({directory:process.argv[5],context:c,readAuthorization:async()=>a,assertSettlementAuthorized:async()=>{},now:()=>${time}}).reserve(r).then(p=>console.log(JSON.stringify(p))).catch(()=>console.log(JSON.stringify({dispatchAllowed:false})));`);
  const run=async(n:number)=>{const c=context(n),r=request(c);return JSON.parse((await promisify(execFile)(process.execPath,["--require",hook,join(process.cwd(),"node_modules/tsx/dist/cli.mjs"),script,JSON.stringify(c),JSON.stringify(r),JSON.stringify(authorization(c,r)),dir],{env:{...process.env,NODE_OPTIONS:`--require=${hook}`}})).stdout);};
  const results=await Promise.all(Array.from({length:6},(_,n)=>run(n)));expect(results.filter(r=>r.dispatchAllowed)).toHaveLength(2);expect((await read(dir)).entries).toHaveLength(2);expect((await run(results.findIndex(r=>r.dispatchAllowed))).dispatchAllowed).toBe(false);
 }),20000);

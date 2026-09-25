@@ -48,8 +48,8 @@ it("never steals crashed lock or accepts shared directory", () => isolated(async
   expect(await reserveBraveBudget(dir, req(), async () => policy(), () => time)).toMatchObject({ reason: "unsafe_budget_directory" });
 }));
 it("serializes separate processes and restart retries", () => isolated(async dir => {
-  const script = join(dir, "worker.ts"), module = join(process.cwd(), "src/lib/reanalysis/brave-budget-store.ts");
-  await writeFile(script, `import { reserveBraveBudget } from ${JSON.stringify(module)}; const r=JSON.parse(process.argv[2]); const p=JSON.parse(process.argv[3]); reserveBraveBudget(process.argv[4],r,async()=>p,()=>${time}).then(x=>console.log(JSON.stringify(x)));`);
+  const script = join(dir, "worker.ts"), modulePath = join(process.cwd(), "src/lib/reanalysis/brave-budget-store.ts");
+  await writeFile(script, `import { reserveBraveBudget } from ${JSON.stringify(modulePath)}; const r=JSON.parse(process.argv[2]); const p=JSON.parse(process.argv[3]); reserveBraveBudget(process.argv[4],r,async()=>p,()=>${time}).then(x=>console.log(JSON.stringify(x)));`);
   const hook = join(dir, "server-only-test-hook.cjs");
   await writeFile(hook, 'const M=require("node:module"); const load=M._load; M._load=function(id,...args){if(id==="server-only")return {}; return load.call(this,id,...args)};');
   const run = async (n: number) => JSON.parse((await promisify(execFile)(process.execPath, ["--require", hook, join(process.cwd(), "node_modules/tsx/dist/cli.mjs"), script, JSON.stringify(req(n)), JSON.stringify(policy(req(n))), dir], { env: { ...process.env, NODE_OPTIONS: `--require=${hook}` } }).catch(error => { throw new Error(String(error.stderr || error.message)); })).stdout);
