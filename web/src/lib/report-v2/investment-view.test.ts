@@ -169,7 +169,7 @@ describe("buildInvestmentView on the four band fixtures", () => {
     const vi = build(f.report, f.assessment, "vi");
     expect(vi.band).toBe(en.band);
     expect(vi.locale).toBe("vi");
-    expect(vi.bandWording).toBe("Có thể xem xét đầu tư, kèm điều kiện");
+    expect(vi.bandWording).toBe("Tiếp tục thẩm định theo các điều kiện đã nêu");
     expect(vi.subline).toBe(TBR_V3_STRINGS.vi.subline);
     expect(vi.conditions).toHaveLength(en.conditions.length);
     expect(vi.conditions[0].text).toMatch(/Xác minh 2 tuyên bố/);
@@ -268,7 +268,7 @@ describe("buildInvestmentView on the four band fixtures", () => {
   it("key points: headline, top reason, top gap + lift, the consensus line (with the revenue-methods clause when pre-revenue), verdict + first condition", () => {
     const pre = build(preRevenueFixtureReportV2());
     expect(pre.keyPoints[3]).toBe("Weighted estimate A$2.3M–A$5M from 3 methods; 4 revenue methods did not run (pre-revenue)");
-    expect(pre.keyPoints[4]).toMatch(/^Investable with conditions — /);
+    expect(pre.keyPoints[4]).toMatch(/^Further diligence subject to stated conditions — /);
     const demo = build(demoReportV2());
     expect(demo.keyPoints[3]).toBe("Weighted estimate A$6M–A$9.8M from 5 methods");
     expect(demo.keyPoints[2]).toMatch(/\(\+\d+ SVI\)$/);

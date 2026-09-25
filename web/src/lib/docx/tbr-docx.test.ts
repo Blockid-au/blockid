@@ -12,6 +12,7 @@
 //     with method names / weights only, ≤ 5 risk rows and ≤ 5 plan steps;
 //   - a rasteriser outage falls back to SVG embeds and the document opens.
 
+import { buildInvestorScreening, investorScreeningStrings } from "@/lib/report-v2/investor-screening";
 import JSZip from "jszip";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getTbrV3Strings } from "@/lib/i18n/tbr-v3-strings";
@@ -34,7 +35,8 @@ async function unzip(buffer: Buffer): Promise<{ doc: string; media: string[]; he
   return { doc, media, header, footer };
 }
 
-const decode = (s: string) => s.replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"');
+// `&amp;` last, so an escaped entity (`&amp;apos;`) is not decoded twice.
+const decode = (s: string) => s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
 const xmlText = (xml: string) => decode(xml.replace(/<[^>]+>/g, "")).replace(/\s+/g, " ");
 
 /** Every paragraph of `document.xml` as plain text, with its heading style (Heading1 / Heading2 / … or null). */
@@ -121,6 +123,12 @@ describe("buildTbrDocx — v3 structure", () => {
     const { buffer, images, outline, sections } = await buildTbrDocx(report);
     expect(buffer.subarray(0, 2).toString("latin1")).toBe("PK");
     const { doc, media, header, footer } = await unzip(buffer);
+    const brief = sectionText(doc, "Dashboard", "Investment view");
+    const screening = buildInvestorScreening(report);
+    expect(brief).toContain(investorScreeningStrings("en").title);
+    for (const signal of screening.signals) expect(brief).toContain(`${signal.label}: ${signal.statusLabel}`);
+    for (const question of screening.questions) expect(brief).toContain(question.text);
+    expect(brief).toContain(screening.scopeNote);
     const distinct = new Set([
       ...report.cover.visuals,
       ...report.executive.visuals,
@@ -284,6 +292,11 @@ describe("buildTbrDocx — v3 structure", () => {
     const text = xmlText(doc);
     const t = getTbrV3Strings("en");
     expect(headings1(doc).map((h) => h.replace(/^\d+\s+/, ""))).toEqual(tbrDocxOutline(report, "en").map((e) => e.title));
+    const screening = buildInvestorScreening(report);
+    const brief = sectionText(doc, "Dashboard", "Investment view");
+    for (const signal of screening.signals) expect(brief).toContain(`${signal.label}: ${signal.statusLabel}`);
+    for (const question of screening.questions) expect(brief).toContain(question.text);
+    expect(screening.signals.some(signal => signal.status === "locked")).toBe(true);
     const cards = report.dimensions.filter((d) => d.renderAs === "card");
     expect(cards.length).toBeGreaterThanOrEqual(4);
     expect((text.match(new RegExp(t.lockedCard.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "g")) ?? []).length).toBe(cards.length);

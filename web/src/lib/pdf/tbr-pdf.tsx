@@ -1,3 +1,4 @@
+import { buildInvestorScreening, investorScreeningStrings } from "@/lib/report-v2/investor-screening";
 import { buildCriteriaSummary, criteriaSummaryStrings, CRITERIA_SUMMARY_ID } from "@/lib/report-v2/criteria-summary";
 import { criterionDetailExport } from "./criterion-detail-export";
 // Trusted Business Report v3 — the PDF surface (G27 PDF twin).
@@ -633,7 +634,7 @@ function StatTile({ tile, last }: { tile: DashboardTile; last?: boolean }) {
   );
 }
 
-function Dashboard({ report, card, dash, view, locale, preparedWith }: { report: ReportV2; card: AssessmentCardData; dash: DashboardView; view: InvestmentView; locale: Loc; preparedWith: string }) {
+function Dashboard({ report, card, dash, view, locale, preparedWith, screening }: { screening: ReturnType<typeof buildInvestorScreening>; report: ReportV2; card: AssessmentCardData; dash: DashboardView; view: InvestmentView; locale: Loc; preparedWith: string }) {
   const c = report.cover;
   const t3 = dash.strings;
   const phase = GROWTH_PHASE_LABELS[c.phaseId]?.[locale] ?? c.phaseId;
@@ -693,6 +694,14 @@ function Dashboard({ report, card, dash, view, locale, preparedWith }: { report:
         {/* G21 P1 review: the cohort rank prints only with its n (`coverPercentileLine` is null otherwise). */}
         <Text style={s.small}>{t([dash.footer.unverified, dash.footer.lastUpdated, dash.footer.methodology, evidence, pending, coverPercentileLine(c.svi)].filter(Boolean).join(" · "))}</Text>
         <Text style={[s.tiny, { marginTop: 3 }]}>{t(view.subline)}</Text>
+      </View>
+      <View style={{ marginTop: 4 }} wrap={false}>
+        <Text style={[s.smallInk, s.bold]}>{t(investorScreeningStrings(locale).title)}</Text>
+        <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+          {screening.signals.map(signal => <Text key={signal.key} style={[s.tiny, { width: "50%", marginTop: 2 }]}>{t(`${signal.label}: ${signal.statusLabel}`)}</Text>)}
+        </View>
+        <Text style={[s.tiny, { marginTop: 3 }]}>{t(screening.scopeNote)}</Text>
+        {screening.questions.slice(0, 3).map((question, i) => <Text key={question.signalKey} style={[s.tiny, { marginTop: 2 }]}>{t(`${i + 1}. ${question.text}`)}</Text>)}
       </View>
       <Text style={s.tiny}>{t(preparedWith)}</Text>
     </View>
@@ -1642,7 +1651,7 @@ export function TbrReportPdf({ report: rawReport, level = 0, preparedWith, local
   const prepared = preparedWith?.trim() || defaultPreparedWith(aligned.report);
   const verificationLevel = aligned.report.cover.verification?.level ?? null;
   const body: ReactNode[] = [];
-  body.push(<Dashboard key="dash" report={r} card={aligned.card} dash={dash} view={pv} locale={loc} preparedWith={prepared} />);
+  body.push(<Dashboard key="dash" screening={buildInvestorScreening(aligned.report, loc, projection.free)} report={r} card={aligned.card} dash={dash} view={pv} locale={loc} preparedWith={prepared} />);
   body.push(<InvestmentViewSection key="iv" report={r} view={pv} locale={loc} />);
   body.push(<KeyPoints key="kp" view={pv} locale={loc} />);
   body.push(<ValuationSection key="val" report={r} view={pv} locale={loc} projection={projection} />);

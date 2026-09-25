@@ -59,7 +59,7 @@ describe("<TbrInvestmentView> (G27)", () => {
     expect(html).toContain(`id="${TBR_V2_SECTION_IDS.investmentView}"`);
     expect(html).toContain('data-tbr-verdict="B"');
     expect(html).toContain('data-tbr-verdict-band="B"');
-    expect(html).toContain("Investable with conditions");
+    expect(html).toContain("Further diligence subject to stated conditions");
     expect(html).toMatch(/data-tbr-conviction="(low|medium|high)"/);
     expect(html).toContain("data-tbr-subline");
     expect(html).toContain(TBR_V3_STRINGS.en.subline);
@@ -143,7 +143,7 @@ describe("<TbrInvestmentView> (G27)", () => {
     const html = render(demoReportV2(), "vi");
     const vi = TBR_V3_STRINGS.vi;
     for (const label of [vi.whyBack, vi.whatWeighsAgainst, vi.whereYouAre, vi.blocker, vi.whatItTakes, vi.conditions, vi.subline, vi.sec.investmentView, vi.sec.keyPoints, vi.bandWording.B]) expect(html, label).toContain(label);
-    for (const en of ["Why back", "What weighs against", "Where you are", ">Conditions<", "Investable with conditions", "Key points", "Investment view"]) expect(html, en).not.toContain(en);
+    for (const en of ["Why back", "What weighs against", "Where you are", ">Conditions<", "Further diligence subject to stated conditions", "Key points", "Investment view"]) expect(html, en).not.toContain(en);
     expect((html.match(/[ăâêôơưđạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/g) ?? []).length).toBeGreaterThan(60);
   });
 

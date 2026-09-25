@@ -124,7 +124,7 @@ describe("<TbrReportV2> v3 structure (G27)", () => {
   it("investment view: verdict band + wording, the conviction line, the verbatim sub-line, conditions in order, 3 + 3 points, where you are; key points = 5", () => {
     const iv = between(html, TBR_V2_SECTION_IDS.investmentView, TBR_V2_SECTION_IDS.keyPoints);
     expect(iv).toMatch(/data-tbr-verdict="B"/);
-    expect(iv).toContain("Investable with conditions");
+    expect(iv).toContain("Further diligence subject to stated conditions");
     expect(iv).toMatch(/Evidence confidence \d+ % · conviction: (low|medium|high)/);
     expect(iv).toContain(TBR_V3_STRINGS.en.subline);
     expect(iv).toContain('data-tbr-condition="unverified"');
@@ -338,7 +338,7 @@ describe("<TbrReportV2> locales", () => {
     }
     expect((html.match(/[ăâêôơưđạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/g) ?? []).length).toBeGreaterThan(300);
     expect(html).toMatch(/data-tbr-verdict="[ABCD]"/);
-    expect(html).toContain("Có thể xem xét đầu tư, kèm điều kiện");
+    expect(html).toContain("Tiếp tục thẩm định theo các điều kiện đã nêu");
   });
 
   it("ES / JA locales render (English v3 labels + their own shell strings) without throwing", () => {
@@ -661,7 +661,7 @@ describe("criteria summary disclosure", () => {
     expect((html.match(/data-criterion=/g) ?? [])).toHaveLength(13);
     expect((html.match(/data-state="missing"/g) ?? [])).toHaveLength(12);
     expect(html).toContain("Stored finding with no evidence");
-    expect(html).toContain('>0</td>');
+    expect(html).toContain('Linked evidence: 0');
     expect(html).toContain("No saved assessment");
   });
   it("does not expose card criterion verdicts or citation counts in free previews", () => {

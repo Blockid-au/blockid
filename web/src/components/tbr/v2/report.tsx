@@ -129,7 +129,7 @@ export function TbrReportV2({ report: rawReport, locale = "en", upgradeHref, aft
   const citations = buildCitationIndex(report);
   return (
     <div className={cn("space-y-12", TBR_SURFACE_CLASS)} data-tbr-version={report.schemaVersion} data-tbr-layout="v3" data-tbr-tier={report.tier} data-tbr-source={report.source} data-tbr-unlock={free && unlock ? unlock.mode : undefined} data-tbr-band={view.band}>
-      <TbrDashboard report={report} view={dashboard} title={t.dashboard} locale={locale} />
+      <TbrDashboard report={report} view={dashboard} title={t.dashboard} locale={locale} lockCards={!paid} />
       <TbrInvestmentView report={report} view={view} structured={structured} title={t.investmentView} locale={locale} citations={citations} />
       {afterExecutive}
       <TbrKeyPoints view={view} title={t.keyPoints} locale={locale} />

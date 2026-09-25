@@ -1,3 +1,4 @@
+import { buildInvestorScreening, investorScreeningStrings } from "@/lib/report-v2/investor-screening";
 import { buildCriteriaSummary, criteriaSummaryStrings } from "@/lib/report-v2/criteria-summary";
 import { criterionDetailExport } from "@/lib/pdf/criterion-detail-export";
 // Trusted Business Report v3 — the DOCX surface (G27, investor-grade twin).
@@ -473,6 +474,13 @@ function dashboard(ctx: Ctx): Block[] {
     dash.footer.methodology,
   ].filter((x): x is string => x !== null);
   out.push(spacer(60), p(footer.join("  ·  "), { size: 16, before: 60 }), small(ctx.view.subline, FAINT));
+  const screening = buildInvestorScreening(ctx.report, locale, ctx.free);
+  out.push(p(investorScreeningStrings(locale).title, { size: 17, bold: true, before: 60, after: 30 }));
+  for (let i = 0; i < screening.signals.length; i += 2) {
+    out.push(small(screening.signals.slice(i, i + 2).map(signal => `${signal.label}: ${signal.statusLabel}`).join("  ·  ")));
+  }
+  out.push(small(screening.scopeNote));
+  screening.questions.slice(0, 3).forEach((question, i) => out.push(small(`${i + 1}. ${question.text}`)));
   return out;
 }
 

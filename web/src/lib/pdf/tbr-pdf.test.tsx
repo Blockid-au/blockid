@@ -12,6 +12,7 @@
 //   - a caller-supplied "Prepared with <model via provider>" line is kept
 //     verbatim; page counts agree between the two page-count readers.
 
+import { buildInvestorScreening, investorScreeningStrings } from "@/lib/report-v2/investor-screening";
 import { describe, expect, it } from "vitest";
 import { PDFParse } from "pdf-parse";
 import { citedDemoReportV2, demoReportV2, demoSnapshotInput, freeFixtureReportV2, investmentBandFixture, preRevenueFixtureReportV2 } from "@/lib/report-v2/fixtures";
@@ -134,6 +135,11 @@ describe("renderTbrPdf — standard tier (v3 order)", () => {
     expect(pages).toBeGreaterThanOrEqual(3);
     const flat = (p: string) => p.replace(/\s+/g, " ");
     expect(flat(perPage[0]!)).toContain("1 Dashboard");
+    const screening = buildInvestorScreening(report);
+    expect(flat(perPage[0]!)).toContain(investorScreeningStrings("en").title);
+    for (const signal of screening.signals) expect(flat(perPage[0]!)).toContain(`${signal.label}: ${signal.statusLabel}`);
+    for (const question of screening.questions) expect(flat(perPage[0]!)).toContain(question.text);
+    expect(flat(perPage[0]!)).toContain(screening.scopeNote);
     expect(flat(perPage[0]!)).not.toContain("Investment view");
     expect(flat(perPage[1]!)).toMatch(/^\s*2 Investment view/);
     expect(flat(perPage[2]!)).toMatch(/^\s*3 Key points/);

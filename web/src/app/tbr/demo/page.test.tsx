@@ -99,7 +99,7 @@ describe("/tbr/demo?band= (G28-D: one static variant per verdict band)", () => {
     expect((d.match(/data-tbr-ledger-state="pending"/g) ?? []).length).toBeGreaterThanOrEqual(3);
     expect(d).toContain("Insufficient evidence");
     expect(a).not.toContain('data-tbr-ledger-state="pending"');
-    expect(a).toContain("Investable now");
+    expect(a).toContain("Worth investigating");
   });
 
   it("every href on the demo view resolves to a page under src/app (link-check safe)", async () => {

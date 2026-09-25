@@ -274,7 +274,7 @@ export interface InvestmentView {
   version: 1;
   locale: "en" | "vi";
   band: InvestmentBand;
-  /** Short label ("With conditions") and the rubric wording ("Investable with conditions"). */
+  /** Short label ("With conditions") and the rubric wording ("Further diligence subject to stated conditions"). */
   bandLabel: string;
   bandWording: string;
   /** Which rubric row fired (tests / audit): "D:pending", "D:ec", "C:band", … */

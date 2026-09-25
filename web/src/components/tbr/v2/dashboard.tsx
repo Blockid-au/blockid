@@ -17,6 +17,9 @@ import { getTbrStrings } from "@/lib/i18n/tbr-strings";
 import { cn } from "@/lib/utils";
 import { TBR_V2_SECTION_IDS, TbrSection, phaseLabel, v2Strings, type TbrUiLocale } from "./shared";
 import { DimBarChart, FIGURE_CLASS, StatTile, v3Strings } from "./shared-v3";
+import { TbrNumberNotes } from "./number-notes";
+import { TbrInvestorScreening } from "./investor-screening";
+import { buildCitationIndex } from "@/lib/report-v2/citations";
 
 /** G19-S41 — the ledger strip "base 100 → dims → stage → penalties → total" + "N of 8 dimensions pending" (kept from the cover). */
 export function TbrCoverLedger({ report, locale = "en" }: { report: ReportV2; locale?: TbrUiLocale }) {
@@ -55,7 +58,7 @@ export function TbrCoverLedger({ report, locale = "en" }: { report: ReportV2; lo
   );
 }
 
-export function TbrDashboard({ report, view, title, locale = "en" }: { report: ReportV2; view: DashboardView; title: string; locale?: TbrUiLocale }) {
+export function TbrDashboard({ report, view, title, locale = "en", lockCards }: { report: ReportV2; view: DashboardView; title: string; locale?: TbrUiLocale; lockCards?: boolean }) {
   const c = report.cover;
   const t = v3Strings(locale);
   const tc = getTbrStrings(locale).v2.cover;
@@ -89,6 +92,10 @@ export function TbrDashboard({ report, view, title, locale = "en" }: { report: R
           <StatTile key={tile.id} id={tile.id} label={tile.label} value={tile.value} sub={tile.sub} note={tile.note} band={tile.band} />
         ))}
       </div>
+
+      <TbrNumberNotes report={report} locale={locale} />
+
+      <TbrInvestorScreening report={report} locale={locale} lockCards={lockCards} citations={buildCitationIndex(report)} />
 
       <DimBarChart chart={view.chart} caption={view.chartCaption} legend={view.legend} showBand={view.showBand} locale={locale} />
 

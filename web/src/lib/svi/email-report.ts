@@ -37,6 +37,7 @@
 // for the account → the adapter over the legacy `dimResults` /
 // `criterionResults` the caller still passes.
 
+import { buildInvestorScreening, investorScreeningStrings } from "@/lib/report-v2/investor-screening";
 import { nanoid } from "nanoid";
 import { EMAIL_THEME } from "@/lib/email/theme";
 import { sendEmail, complianceFooter } from "@/lib/email";
@@ -217,6 +218,7 @@ export function renderReportEmailHtml(input: RenderReportEmailInput): string {
   const meta = [c.sector, c.stageLabel, phase].filter(Boolean).join(" · ");
   const [svi, evidence, verdict, valuation] = dash.tiles;
   const weakest = weakestChapter(report);
+  const screening = buildInvestorScreening(report, locale);
 
   const conditionsBlock =
     view.band === "D"
@@ -266,6 +268,14 @@ export function renderReportEmailHtml(input: RenderReportEmailInput): string {
     </table>
     ${img(images.chart, dash.chart.a11y.title, 600)}
     ${images.chart ? `<p style="margin:4px 0 0 0;font-size:11px;color:${MUTED};">${escapeHtml(dash.chartCaption)}</p>` : ""}
+    ${h2(investorScreeningStrings(locale).title)}
+    <ul style="margin:0;padding:0 0 0 18px;font-size:12px;line-height:1.5;">
+      ${screening.signals.map(signal => `<li>${escapeHtml(signal.label)}: ${escapeHtml(signal.statusLabel)}</li>`).join("")}
+    </ul>
+    <p style="font-size:11px;color:${MUTED};">${escapeHtml(screening.scopeNote)}</p>
+    <ol style="margin:0;padding:0 0 0 18px;font-size:12px;line-height:1.5;">
+      ${screening.questions.slice(0, 3).map(question => `<li>${escapeHtml(question.text)}</li>`).join("")}
+    </ol>
     ${h2(t.sec.investmentView)}
     <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-left:4px solid ${NAVY};background:${SUNKEN};border-radius:0 8px 8px 0;">
       <tr>
@@ -311,11 +321,16 @@ export interface ReportEmailSummaryInput {
  */
 export function reportEmailSummary(reportIn: ReportV2, localeIn?: string, input: ReportEmailSummaryInput = {}): string {
   const source = localeIn && investmentLocale(localeIn) !== investmentLocale(reportIn.locale) ? { ...reportIn, locale: investmentLocale(localeIn) } : reportIn;
-  const { report, view, dash, t } = reportEmailContext(source, input.assessment);
+  const { report, view, dash, t, locale } = reportEmailContext(source, input.assessment);
   const base = input.baseUrl ?? (input.dashboardUrl ? originOf(input.dashboardUrl) : baseUrl());
   const lines: string[] = [];
   lines.push(report.cover.startupName, t.emailIntro(report.cover.startupName), "");
   for (const tile of dash.tiles) lines.push(`${tile.label}: ${tile.value} · ${tile.sub}${tile.note ? ` · ${tile.note}` : ""}`);
+  const screening = buildInvestorScreening(report, locale);
+  lines.push("", investorScreeningStrings(locale).title);
+  for (const signal of screening.signals) lines.push(`${signal.label}: ${signal.statusLabel}`);
+  lines.push(screening.scopeNote);
+  screening.questions.slice(0, 3).forEach((question, i) => lines.push(`${i + 1}. ${question.text}`));
   lines.push("", `${t.sec.investmentView}: ${view.band} — ${view.bandLabel}`, view.bandWording, view.convictionLine, view.subline);
   if (view.band === "D") {
     lines.push("", t.evidenceCtas);

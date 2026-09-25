@@ -15,6 +15,7 @@
 //     attachments, the text part, the pipeline document taking precedence,
 //     and the idempotency stamp.
 
+import * as screeningModel from "@/lib/report-v2/investor-screening";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fakeSupabase } from "@/test/fake-supabase";
 import { demoReportV2, investmentBandFixture, type InvestmentBandFixture } from "@/lib/report-v2/fixtures";
@@ -394,4 +395,49 @@ describe("sendReportEmailToAddress (G28-C free-grant path)", () => {
     mail.send.mockResolvedValueOnce({ ok: false, reason: "smtp_down" });
     expect(await sendReportEmailToAddress({ to: "guest@example.com", report, pageUrl: PAGE, pdfUrl: null, pdf: null })).toMatchObject({ ok: false, reason: "smtp_down", pdfAttached: false });
   }, 30_000);
+});
+
+describe("investor screening email parity", () => {
+  it.each(["en", "vi"] as const)("carries six stored-context statuses and no more than three questions in %s", locale => {
+    const report = { ...demoReportV2(), locale };
+    const screening = screeningModel.buildInvestorScreening(report, locale);
+    const html = renderReportEmailHtml({ report, dashboardUrl: DASHBOARD, shareUrl: null });
+    const text = reportEmailSummary(report);
+    for (const signal of screening.signals) {
+      expect(textOf(html)).toContain(`${signal.label}: ${signal.statusLabel}`);
+      expect(text).toContain(`${signal.label}: ${signal.statusLabel}`);
+    }
+    expect(screening.questions.length).toBeLessThanOrEqual(3);
+    for (const question of screening.questions) { expect(textOf(html)).toContain(question.text); expect(text).toContain(question.text); }
+    expect(textOf(html)).toContain(screening.scopeNote);
+    expect(text).toContain(screening.scopeNote);
+  });
+  it("keeps every signal locked when the original free chapters are cards", () => {
+    const report = demoReportV2(); report.tier = "free";
+    report.dimensions = report.dimensions.map(ch => ({ ...ch, renderAs: "card" }));
+    const html = renderReportEmailHtml({ report, dashboardUrl: DASHBOARD, shareUrl: null });
+    const text = reportEmailSummary(report);
+    for (const signal of screeningModel.buildInvestorScreening(report).signals) {
+      expect(signal.status).toBe("locked");
+      expect(textOf(html)).toContain(`${signal.label}: Details in the full report`);
+      expect(text).toContain(`${signal.label}: Details in the full report`);
+    }
+    expect(screeningModel.buildInvestorScreening(report).questions).toHaveLength(0);
+  });
+  it("escapes screening fields in HTML while preserving plain-text content", () => {
+    const report = demoReportV2();
+    const screening = screeningModel.buildInvestorScreening(report);
+    const payload = '<img src=x onerror="bad"> & context';
+    screening.signals[0].label = payload;
+    screening.signals[0].statusLabel = payload;
+    screening.scopeNote = payload;
+    screening.questions = [{ signalKey: "team", text: payload, evidenceIds: [] }];
+    const spy = vi.spyOn(screeningModel, "buildInvestorScreening").mockReturnValue(screening);
+    try {
+      const html = renderReportEmailHtml({ report, dashboardUrl: DASHBOARD, shareUrl: null });
+      expect(html).not.toContain(payload);
+      expect(html).toContain("&lt;img src=x onerror=&quot;bad&quot;&gt; &amp; context");
+      expect(reportEmailSummary(report)).toContain(payload);
+    } finally { spy.mockRestore(); }
+  });
 });
