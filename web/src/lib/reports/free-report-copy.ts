@@ -44,6 +44,8 @@ export interface FreeReportCopy {
     creditsShort: string;
     creditsCta: string;
     creditsError: string;
+    topupCta: string;
+    recheckCta: string;
   };
   ipLimit: string;
 }
@@ -91,6 +93,8 @@ export function freeReportCopy(m: Messages, locale: "en" | "vi" = "en"): FreeRep
       creditsShort: k("free_report.pay.credits_short"),
       creditsCta: k("free_report.pay.credits_cta"),
       creditsError: k("free_report.pay.credits_error"),
+      topupCta: k("free_report.pay.topup_cta"),
+      recheckCta: k("free_report.pay.recheck_cta"),
     },
     ipLimit: fill(k("free_report.ip_limit"), { limit: FREE_REPORTS_PER_IP_PER_DAY }),
   };

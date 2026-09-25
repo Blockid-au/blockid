@@ -147,6 +147,7 @@ function harness(r: FullReportRow | null, orchestrate: ReturnType<typeof vi.fn> 
     deliver,
     qualityWriter: async () => undefined,
     releaseGrant: vi.fn(async () => 1),
+    refundCredits: vi.fn(async () => 3),
     progressEveryMs: 0,
   };
   return { deps, saves, finishes, deliver, orchestrate };
@@ -280,6 +281,17 @@ describe("runReportV2Job", () => {
     // Review v3.27.0 P1: the terminal failure gives the address its free allowance back; a retryable one does not.
     expect(last.deps.releaseGrant).toHaveBeenCalledWith(SAMPLE_ANALYSIS_ID);
     expect(h.deps.releaseGrant).not.toHaveBeenCalled();
+    // AF04: credits a founder paid for the run come back only on the terminal failure.
+    expect(last.deps.refundCredits).toHaveBeenCalledWith(SAMPLE_ANALYSIS_ID);
+    expect(h.deps.refundCredits).not.toHaveBeenCalled();
+  });
+
+  it("AF04: a terminal 'no ReportV2 document' failure also releases the grant and refunds credits", async () => {
+    const h = harness(row({ full_report_attempts: 3 }), vi.fn().mockResolvedValue(assembled({ reportV2: undefined })));
+    const out = await runReportV2Job(SAMPLE_ANALYSIS_ID, h.deps);
+    expect(out).toMatchObject({ outcome: "failed", retryable: false });
+    expect(h.deps.releaseGrant).toHaveBeenCalledWith(SAMPLE_ANALYSIS_ID);
+    expect(h.deps.refundCredits).toHaveBeenCalledWith(SAMPLE_ANALYSIS_ID);
   });
 
   it("a usable run with no ReportV2 projection is a failure, not a silent S32 fallback", async () => {

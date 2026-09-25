@@ -10,6 +10,7 @@
 import { maskSummaryEmail } from "@/lib/analyses/free-summary";
 import type { FullReportRow } from "./store";
 import {
+  FULL_REPORT_MAX_ATTEMPTS,
   firstParagraph,
   isFirstAnalysisReport,
   isReportV2Envelope,
@@ -31,9 +32,18 @@ export function isFullReportLocked(row: Pick<FullReportRow, "user_id" | "full_re
 /** G28-C: poll cadence while the ReportV2 pipeline runs (one document lands at the end, ~2–8 min). */
 export const V2_RUNNING_POLL_SEC = 5;
 
-export function pollAfterSecFor(row: Pick<FullReportRow, "full_report_status" | "full_report_json">): number {
+/** AF05: while a failed run still has retries left, keep polling at the cron cadence so a successful retry appears. */
+export const FAILED_RETRY_POLL_SEC = 45;
+
+export function pollAfterSecFor(
+  row: Pick<FullReportRow, "full_report_status" | "full_report_json"> & { full_report_attempts?: number | null },
+): number {
   const status = row.full_report_status;
-  if (status === "done" || status === "failed" || status === null) return 0;
+  if (status === "failed") {
+    const attempts = row.full_report_attempts ?? FULL_REPORT_MAX_ATTEMPTS;
+    return attempts < FULL_REPORT_MAX_ATTEMPTS ? FAILED_RETRY_POLL_SEC : 0;
+  }
+  if (status === "done" || status === null) return 0;
   const json = row.full_report_json;
   if (isReportV2Envelope(json) || !json) {
     // A v2 run (or a never-started row, which becomes one): no per-section

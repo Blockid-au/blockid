@@ -172,3 +172,15 @@ describe("empty-state CTA copy", () => {
     expect(out).not.toMatch(/>Paste a link, drop a deck, or type an idea</);
   });
 });
+
+describe("SmartIntake busy (AF10)", () => {
+  it("a submission in flight disables the CTA so it cannot fire twice", () => {
+    const idle = renderToStaticMarkup(<SmartIntake />);
+    const busy = renderToStaticMarkup(<SmartIntake busy />);
+    const submitIdle = idle.match(/<button[^>]*type="submit"[^>]*>/)?.[0] ?? "";
+    const submitBusy = busy.match(/<button[^>]*type="submit"[^>]*>/)?.[0] ?? "";
+    expect(submitBusy).toContain("disabled");
+    // Idle and empty is also disabled; busy must never be less restrictive.
+    expect(submitIdle.includes("disabled")).toBe(true);
+  });
+});

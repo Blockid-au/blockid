@@ -26,9 +26,9 @@ import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { ANALYSES_TABLE } from "@/lib/analyses/store";
-import { SECTION_MAX_ATTEMPTS, type FullReportStatus, type StoredFullReport } from "./types";
+import { FULL_REPORT_MAX_ATTEMPTS, SECTION_MAX_ATTEMPTS, type FullReportStatus, type StoredFullReport } from "./types";
 
-export const FULL_REPORT_MAX_ATTEMPTS = 3;
+export { FULL_REPORT_MAX_ATTEMPTS };
 /** Hard ceiling on claims of a `done_partial` row (the per-section cap is the real bound). */
 export const FULL_REPORT_PARTIAL_MAX_CLAIMS = FULL_REPORT_MAX_ATTEMPTS + SECTION_MAX_ATTEMPTS;
 /** A `running` row older than this is treated as abandoned and re-claimed. */
@@ -91,6 +91,28 @@ export async function enqueueFullReport(id: string, email?: string | null): Prom
     .select("id");
   if (error) {
     console.error("[first-analysis:enqueue] failed —", error.message);
+    return false;
+  }
+  return ((data as unknown[] | null) ?? []).length === 1;
+}
+
+/**
+ * Take a never-started row back out of the queue (AF04 race: the credit
+ * debit failed after the row was saved, so no report was paid for). Only a
+ * `queued` row with zero attempts moves; anything already claimed is left.
+ */
+export async function cancelQueuedFullReport(id: string): Promise<boolean> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return false;
+  const { data, error } = await supabase
+    .from(ANALYSES_TABLE)
+    .update({ full_report_status: null })
+    .eq("id", id)
+    .eq("full_report_status", "queued")
+    .eq("full_report_attempts", 0)
+    .select("id");
+  if (error) {
+    console.error("[first-analysis:cancel] failed —", error.message);
     return false;
   }
   return ((data as unknown[] | null) ?? []).length === 1;

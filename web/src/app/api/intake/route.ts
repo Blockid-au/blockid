@@ -66,11 +66,13 @@ import { emitFreeReportSubmitted, emitScoreComputed, emitSviAnalyze } from "@/li
 import { emitDeckUploaded, emitWebsiteImported } from "@/lib/analytics/fi-events";
 import { apiRoute } from "@/lib/audit/api-route";
 import { startAnalysisReportJob } from "@/lib/analyses/first-analysis/dispatch";
+import { cancelQueuedFullReport } from "@/lib/analyses/first-analysis/store";
 import { parseMultipart } from "@/lib/http/multipart";
 import { clientIpFromHeaders } from "@/lib/iphash";
 import { maskSummaryEmail } from "@/lib/analyses/free-summary";
 import { attachAnalysis, releaseGrant } from "@/lib/reports/free-grants";
-import { canAfford, grantCredits, spendCredits } from "@/lib/credits";
+import { canAfford, spendCredits } from "@/lib/credits";
+import { INTAKE_CREDIT_CHANNEL, INTAKE_CREDIT_FEATURE } from "@/lib/analyses/credit-refund";
 import {
   FREE_REPORT_ALLOWANCE_USED,
   FREE_REPORT_HONEYPOT_FIELD,
@@ -89,15 +91,16 @@ import {
 // out of this route). analyze-root.tsx mirrors it as FILE_MAX_MB.
 const DECK_MAX_BYTES = 25 * 1024 * 1024;
 
-/**
+/*
  * 2026-09-25 — a signed-in founder past the two free reports pays for THIS
  * run with credits, from the same page, after seeing the cost. Before this
  * the only way out was a link to the workspace report page, which dropped
  * the uploaded deck and showed the founder's previous report instead.
  * Same feature key (and so the same price) as the workspace Trusted
  * Business Report: FEATURE_COSTS.trust_report, pinned to the A$ SKU.
+ * The debit happens only once the row is saved, tagged with its id, so a
+ * run that later fails for good is refunded by the report job (AF04).
  */
-const INTAKE_CREDIT_FEATURE = "trust_report";
 
 interface CreditQuote {
   feature: string;
@@ -369,7 +372,8 @@ async function POST_handler(request: Request) {
     honeypot: body[FREE_REPORT_HONEYPOT_FIELD],
     clientIp: clientIpFromHeaders(request.headers),
   });
-  // Credits the caller paid for this run (refunded if the analysis fails).
+  // Credits the caller agreed to pay for this run — debited once the row is saved.
+  let creditQuote: CreditQuote | null = null;
   let creditCharge: { cost: number } | null = null;
   let gate: Extract<FreeReportGateResult, { allow: true }>;
   if (gateResult.allow) {
@@ -389,14 +393,7 @@ async function POST_handler(request: Request) {
         { status: 402 },
       );
     }
-    const spent = await spendCredits(userId, INTAKE_CREDIT_FEATURE, { channel: "analyze_intake" }).catch(() => null);
-    if (!spent?.ok) {
-      return NextResponse.json(
-        { ok: false, reason: "insufficient_credits", credits: { ...quote, balance: spent?.balance ?? quote.balance, canAfford: false }, analysisId: null },
-        { status: 402 },
-      );
-    }
-    creditCharge = { cost: quote.cost };
+    creditQuote = quote;
     gate = { allow: true, path: "entitled", email: userEmail, source: "account", grant: null, queued: false, remaining: 0 };
   } else {
     return gatedResponse(gateResult);
@@ -421,6 +418,34 @@ async function POST_handler(request: Request) {
       mimeType: file?.mimeType,
       bytes: file?.buffer.length,
     }, guestEmail);
+    if (creditQuote && userId) {
+      // Charge only for a run that exists: no saved row → no report job →
+      // nothing to pay for (the founder keeps the instant result).
+      if (!analysisId) {
+        creditQuote = null;
+      } else {
+        const spent = await spendCredits(userId, INTAKE_CREDIT_FEATURE, {
+          channel: INTAKE_CREDIT_CHANNEL,
+          analysis_id: analysisId,
+        }).catch(() => null);
+        if (!spent?.ok) {
+          // Balance moved since the check: nothing was charged, so the saved
+          // row is taken out of the queue — otherwise the 5-minute cron would
+          // write (and e-mail) the report for free.
+          await cancelQueuedFullReport(analysisId).catch(() => false);
+          return NextResponse.json(
+            {
+              ok: false,
+              reason: "insufficient_credits",
+              credits: { ...creditQuote, balance: spent?.balance ?? creditQuote.balance, canAfford: false },
+              analysisId: null,
+            },
+            { status: 402 },
+          );
+        }
+        creditCharge = { cost: creditQuote.cost };
+      }
+    }
     // G25-C — the ledger. A saved row is attached to its reservation; a
     // run that never saved gives the reservation back so the address is
     // not charged a free report for nothing. Never affects the response.
@@ -535,14 +560,6 @@ async function POST_handler(request: Request) {
         await releaseGrant(gate.grant.id);
       } catch {
         /* the reservation stays queued with no analysis; the runbook says how to clear it */
-      }
-    }
-    // Nothing was analysed — give the credits back.
-    if (creditCharge && userId) {
-      try {
-        await grantCredits(userId, creditCharge.cost, "refund_intake_failed", { channel: "analyze_intake", feature: INTAKE_CREDIT_FEATURE });
-      } catch (refundErr) {
-        console.error("[intake] credit refund failed —", refundErr instanceof Error ? refundErr.message : String(refundErr));
       }
     }
     const msg = err instanceof Error ? err.message : String(err);

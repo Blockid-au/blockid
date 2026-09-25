@@ -37,6 +37,9 @@ export interface FreeReportCreditQuote {
   canAfford: boolean;
 }
 
+/** Where a signed-in founder buys credits (opened in a new tab so this page keeps the upload). */
+export const CREDITS_TOPUP_HREF = "/workspace/billing#credits";
+
 function formatCreditAmount(n: number): string {
   return Number.isInteger(n) ? String(n) : n.toFixed(2);
 }
@@ -57,6 +60,8 @@ export interface FreeReportPayPanelProps {
   onPayWithCredits?: () => void;
   /** The server refused the charge — the balance moved since the quote. */
   creditsError?: boolean;
+  /** Signed-in: ask the server for a fresh quote for the same input (after a top-up in another tab). */
+  onRecheck?: () => void;
   busy?: boolean;
   className?: string;
 }
@@ -72,6 +77,7 @@ export function FreeReportPayPanel({
   credits,
   onPayWithCredits,
   creditsError = false,
+  onRecheck,
   busy = false,
   className,
 }: FreeReportPayPanelProps) {
@@ -134,13 +140,31 @@ export function FreeReportPayPanel({
             {copy.creditsCta.replace("{cost}", formatCreditAmount(credits?.cost ?? 0))}
           </button>
         ) : authenticated ? (
-          <Link
-            href={payHref}
-            className="inline-flex min-h-11 items-center justify-center rounded-lg bg-action px-4 py-2.5 text-sm font-semibold text-on-action transition-opacity hover:opacity-90"
-            data-testid="analyze-free-report-pay-cta"
-          >
-            {copy.cta}
-          </Link>
+          // AF03: never the workspace report page — that page shows the
+          // founder's PREVIOUS report and this upload would be lost. Top up
+          // in a new tab (this tab keeps the file), then re-check.
+          <>
+            <a
+              href={CREDITS_TOPUP_HREF}
+              target="_blank"
+              rel="noopener"
+              className="inline-flex min-h-11 items-center justify-center rounded-lg bg-action px-4 py-2.5 text-sm font-semibold text-on-action transition-opacity hover:opacity-90"
+              data-testid="analyze-free-report-topup-cta"
+            >
+              {copy.topupCta}
+            </a>
+            {onRecheck && (
+              <button
+                type="button"
+                onClick={onRecheck}
+                disabled={busy}
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-line-subtle px-4 py-2.5 text-sm font-medium text-primary transition-colors hover:border-action disabled:opacity-60"
+                data-testid="analyze-free-report-recheck"
+              >
+                {copy.recheckCta}
+              </button>
+            )}
+          </>
         ) : guestSellable && onGuestCheckout ? (
           <button
             type="button"

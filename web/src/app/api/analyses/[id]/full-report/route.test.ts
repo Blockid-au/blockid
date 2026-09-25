@@ -271,6 +271,13 @@ describe("GET /api/analyses/[id]/full-report", () => {
     expect(body.attempts).toBe(3);
     expect(body.pollAfterSec).toBe(0);
   });
+  it("AF05: a failed job with retries left keeps polling so a successful retry appears", async () => {
+    loadRowMock.mockResolvedValue(row({ user_id: "u1", full_report_status: "failed", full_report_error: "degraded", full_report_attempts: 1 }));
+    getCurrentUserMock.mockResolvedValue({ id: "u1" });
+    const body = await (await req()).json();
+    expect(body.status).toBe("failed");
+    expect(body.pollAfterSec).toBeGreaterThan(0);
+  });
   // S32-E: `report.agents` came back as strings in one shape and objects in
   // another — the payload now carries one object per voice, always.
   describe("payload shape", () => {

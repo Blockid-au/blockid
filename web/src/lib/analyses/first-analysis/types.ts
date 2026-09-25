@@ -36,6 +36,8 @@ export const FULL_REPORT_STATUSES: readonly FullReportStatus[] = [
 export const FULL_REPORT_PARTIAL_MIN_SECTIONS = 4;
 /** Attempts per section (each job run that tries it counts one) before it is `unavailable`. */
 export const SECTION_MAX_ATTEMPTS = 3;
+/** Whole-run attempt cap (store.ts re-exports it; kept here so pure modules can read it). */
+export const FULL_REPORT_MAX_ATTEMPTS = 3;
 
 /** A report the founder can read and download: complete or partial. */
 export function isFullReportReadable(status: FullReportStatus | null | undefined): boolean {

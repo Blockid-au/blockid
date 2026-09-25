@@ -42,6 +42,7 @@ import { createRunStrikeLedger } from "@/lib/ai/run-strikes";
 import { backgroundRunBudget, pipelineCallTimeouts } from "@/lib/report-pipeline/pipeline-timeouts";
 import { callAI } from "@/lib/ai-client";
 import { releaseGrantForFailedAnalysis } from "@/lib/reports/free-grants";
+import { refundIntakeCreditsForFailedAnalysis } from "@/lib/analyses/credit-refund";
 import { writeLastReportProvider, type LastReportProvider } from "@/lib/ai/last-report";
 import { assertReportUsable, orchestrateReport, type AICallerResult, type PipelineEvent } from "@/lib/report-pipeline/orchestrator";
 import { buildCriteriaData } from "@/lib/report-pipeline/run-for-project";
@@ -97,6 +98,8 @@ export interface ReportV2JobDeps {
   qualityWriter?: TbrQualityWriter;
   /** Review v3.27.0 P1: give the address its free allowance back after a terminal failure (rows released). */
   releaseGrant: (analysisId: string) => Promise<number>;
+  /** AF04: give back credits a signed-in founder paid for this run (0 when none). Optional for older test deps. */
+  refundCredits?: (analysisId: string) => Promise<number>;
   /** S32-C — "which model wrote the last report" for /api/status. Optional, never throws. */
   recordLastReport?: (rec: LastReportProvider) => void;
   /** How often the progress envelope is written (ms). */
@@ -360,6 +363,8 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
       // allowance back (nothing was delivered), and the panel says so.
       const released = await deps.releaseGrant(id).catch(() => 0);
       if (released) console.warn("[report-v2-job] free grant released after terminal failure", { analysisId: id, released });
+      const refunded = await (deps.refundCredits?.(id) ?? Promise.resolve(0)).catch(() => 0);
+      if (refunded) console.warn("[report-v2-job] credits refunded after terminal failure", { analysisId: id, refunded });
     }
     return { outcome: "failed", error: message, retryable };
   }
@@ -372,7 +377,12 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
     const error = "pipeline returned no ReportV2 document";
     console.error(`[report-v2-job] ${error}`, { analysisId: id, reportId: report.id });
     await deps.finish(id, { status: "failed", report: envelope, error });
-    return { outcome: "failed", error, retryable: (row.full_report_attempts ?? 0) < FULL_REPORT_MAX_ATTEMPTS };
+    const retryable = (row.full_report_attempts ?? 0) < FULL_REPORT_MAX_ATTEMPTS;
+    if (!retryable) {
+      await deps.releaseGrant(id).catch(() => 0);
+      await (deps.refundCredits?.(id) ?? Promise.resolve(0)).catch(() => 0);
+    }
+    return { outcome: "failed", error, retryable };
   }
 
   const finishedAt = deps.now();
@@ -543,6 +553,7 @@ export function defaultReportV2Deps(): ReportV2JobDeps {
     saveProgress: (id, envelope) => saveFullReportProgress(id, envelope),
     finish: (id, outcome) => finishFullReport(id, outcome),
     releaseGrant: releaseGrantForFailedAnalysis,
+    refundCredits: refundIntakeCreditsForFailedAnalysis,
     orchestrate: (input) => orchestrateReport(input),
     // Bound to the row at start — see `startReportV2Job`.
     callAI: makeReportCaller("unbound", null),

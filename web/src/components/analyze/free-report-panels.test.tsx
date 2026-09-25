@@ -125,10 +125,12 @@ describe("FreeReportPayPanel — the quote before the pay", () => {
     expect(out).toContain("Nothing was run and nothing was charged");
   });
 
-  it("signed-in → a link to the workspace unlock rail with the map's CTA", () => {
-    const out = html(<FreeReportPayPanel {...base} authenticated guestSellable={false} />);
-    expect(out).toContain('href="/workspace/reports/business"');
-    expect(out).toContain("Get the Trusted Business Report");
+  it("AF03: signed-in without a usable credit quote → top up in a NEW tab, never the workspace (old) report", () => {
+    const out = html(<FreeReportPayPanel {...base} authenticated guestSellable={false} onRecheck={() => {}} />);
+    expect(out).toContain('href="/workspace/billing#credits"');
+    expect(out).toContain('target="_blank"');
+    expect(out).toContain('data-testid="analyze-free-report-recheck"');
+    expect(out).not.toContain('href="/workspace/reports/business"');
   });
 
   it("guest with a deck / site → a button that opens the guest checkout; guest with a typed idea → create an account first", () => {
@@ -152,13 +154,14 @@ describe("FreeReportPayPanel — the quote before the pay", () => {
     expect(out).not.toContain('data-testid="analyze-free-report-pay-cta"');
   });
 
-  it("signed-in with a short balance → says so and keeps the workspace link", () => {
+  it("signed-in with a short balance → says so, offers the top-up (new tab) + re-check, never the old report", () => {
     const credits = { feature: "trust_report", cost: 3, balance: 1, canAfford: false };
-    const out = html(<FreeReportPayPanel {...base} authenticated guestSellable={false} credits={credits} />);
+    const out = html(<FreeReportPayPanel {...base} authenticated guestSellable={false} credits={credits} onRecheck={() => {}} />);
     expect(out).toContain('data-can-afford="0"');
     expect(out).toContain("your balance is 1");
     expect(out).not.toContain("analyze-free-report-credits-cta");
-    expect(out).toContain('href="/workspace/reports/business"');
+    expect(out).toContain('data-testid="analyze-free-report-topup-cta"');
+    expect(out).not.toContain('href="/workspace/reports/business"');
   });
 
   it("a refused charge is announced and nothing was charged", () => {

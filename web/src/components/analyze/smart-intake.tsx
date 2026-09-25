@@ -85,6 +85,8 @@ export interface SmartIntakeProps {
   /** Placeholder rotation is disabled if a fixed placeholder is provided. */
   placeholder?: string;
   copy?: SmartIntakeCopy;
+  /** A submission is in flight — the CTA is disabled so it cannot fire twice (AF10). */
+  busy?: boolean;
 }
 
 function tokenize(text: string): number {
@@ -164,6 +166,7 @@ export function SmartIntake({
   className,
   placeholder,
   copy,
+  busy = false,
 }: SmartIntakeProps) {
   const [text, setText] = React.useState("");
   const [file, setFile] = React.useState<File | null>(null);
@@ -256,7 +259,7 @@ export function SmartIntake({
 
   function handleSubmit(e?: React.FormEvent) {
     e?.preventDefault();
-    if (classified.variant === "empty") return;
+    if (classified.variant === "empty" || busy) return;
     onSubmit?.({
       variant: overrideVariant ?? classified.variant,
       text: text || undefined,
@@ -271,7 +274,7 @@ export function SmartIntake({
 
   const effectiveVariant = overrideVariant ?? classified.variant;
   const placeholderText = placeholder ?? PLACEHOLDERS[placeholderIdx];
-  const disabled = classified.variant === "empty";
+  const disabled = classified.variant === "empty" || busy;
   // `classifyInput`'s empty-state ctaLabel is the long invitation ("Paste a
   // link, drop a deck, or type an idea"). That is the right *copy* and the
   // wrong *button* — inside a pill it pushed the input down to a third of the

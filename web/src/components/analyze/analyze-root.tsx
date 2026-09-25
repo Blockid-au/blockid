@@ -323,6 +323,8 @@ export function AnalyzeRoot({
   const [estimateLoading, setEstimateLoading] = React.useState(false);
   const [running, setRunning] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
+  const inFlightRef = React.useRef(false);
+  const [creditsCharged, setCreditsCharged] = React.useState<number | null>(null);
   const [ocrOffered, setOcrOffered] = React.useState(false);
   const [guestCheckoutOpen, setGuestCheckoutOpen] = React.useState(false);
   // Bumped when the free-summary card reports a send, so the full-report
@@ -439,6 +441,9 @@ export function AnalyzeRoot({
     sub: SmartIntakeSubmission,
     opts?: { autoRun?: boolean; guest?: GuestIdentity; payWith?: "credits" },
   ) {
+    // AF10: one submission at a time — a double click or Enter-spam must not
+    // start two runs (two jobs, two free reports).
+    if (inFlightRef.current) return;
     setSubmission(sub);
     setErrorMsg(null);
     // G25-C — a guest is asked where the report goes BEFORE anything runs.
@@ -456,6 +461,15 @@ export function AnalyzeRoot({
       return;
     }
     setIntakeLoading(true);
+    inFlightRef.current = true;
+    // AF01: an error must be visible. A guest submits from the e-mail step,
+    // which never renders `errorMsg` — so every failure goes back to the
+    // intake box, where the error banner is.
+    const fail = (message: string) => {
+      setErrorMsg(message);
+      setPhase("intake");
+      setIntakeLoading(false);
+    };
     try {
       const res = await postIntake(sub, tier, guest, opts?.payWith);
       if (res.status === 402) {
@@ -488,21 +502,21 @@ export function AnalyzeRoot({
       }
       if (res.status === 429) {
         const body = (await res.json().catch(() => null)) as { reason?: string } | null;
-        setErrorMsg(
+        fail(
           body?.reason === FREE_REPORT_IP_LIMIT
             ? freeReportCopy.ipLimit
-            : "Slow down — rate limited. Try again in a minute.",
+            : body?.reason === "ocr_busy"
+              ? "Image reading is busy right now. Try again in a minute, or upload a PDF with selectable text."
+              : "Slow down — rate limited. Try again in a minute.",
         );
-        setIntakeLoading(false);
         return;
       }
       if (res.status === 413) {
         // Either our typed cap or (before 2026-09-19) nginx's bare page —
         // both mean the same thing to the founder.
-        setErrorMsg(
+        fail(
           `That file is too large — the maximum is ${FILE_MAX_MB} MB. Try a compressed PDF or paste the deck text instead.`,
         );
-        setIntakeLoading(false);
         return;
       }
       if (!res.ok) {
@@ -515,10 +529,7 @@ export function AnalyzeRoot({
           ocr_failed: "Image text could not be read. Upload a clearer image or paste the text.",
           ocr_timeout: "Reading this image took too long. Crop to the relevant text or paste it.",
         };
-        setErrorMsg(
-          imageErrors[failure.reason ?? ""] ?? "Something went wrong. Try again or contact support.",
-        );
-        setIntakeLoading(false);
+        fail(imageErrors[failure.reason ?? ""] ?? "Something went wrong. Try again or contact support.");
         return;
       }
       const data = (await res.json()) as {
@@ -527,6 +538,7 @@ export function AnalyzeRoot({
         used?: number;
         price?: FreeReportPayQuote;
         credits?: FreeReportCreditQuote | null;
+        creditsCharged?: number;
         payHref?: string;
         freeReport?: { sequenceNo: number | null; remaining: number; queued: boolean; emailTo: string | null } | null;
         analysisId?: string | null;
@@ -547,8 +559,7 @@ export function AnalyzeRoot({
         return;
       }
       if (!data.ok) {
-        setErrorMsg("Something went wrong. Try again or contact support.");
-        setIntakeLoading(false);
+        fail("Something went wrong. Try again or contact support.");
         return;
       }
       if (guest) {
@@ -561,6 +572,16 @@ export function AnalyzeRoot({
       setAnalysisId(
         typeof data.analysisId === "string" ? data.analysisId : null,
       );
+      setCreditsCharged(typeof data.creditsCharged === "number" ? data.creditsCharged : null);
+      // AF09: the run now has a permalink — a reload reopens THIS run instead
+      // of rebuilding it from `?q=` (a second job and a second free report).
+      if (typeof data.analysisId === "string") {
+        try {
+          window.history.replaceState(window.history.state, "", savedAnalysisPath(data.analysisId));
+        } catch {
+          /* non-browser test env */
+        }
+      }
       setOcrOffered(
         data.inputKind === "pitch_deck" &&
           Boolean(
@@ -573,9 +594,13 @@ export function AnalyzeRoot({
       // a SIGN IN link in place of the run button, which walled run 1 for
       // anyone who typed into the box on /analyze instead of arriving from
       // the hero. Run 1 is meant to be completely unwalled on every path.
+      // AF02: when the server already started the report (a free grant, a
+      // credit-paid run, or an entitled member), a confirm/credits modal
+      // would only be a way to lose it — closing it dropped a running report.
+      const serverStarted = Boolean(data.freeReport) || typeof data.creditsCharged === "number" || authenticated === true;
       const autoRun =
         opts?.autoRun ??
-        shouldAutoRun({ tier, authenticated, resumedFromSignup });
+        (serverStarted ? true : shouldAutoRun({ tier, authenticated, resumedFromSignup }));
       if (autoRun) {
         setPhase("live");
         setRunning(true);
@@ -586,12 +611,9 @@ export function AnalyzeRoot({
       // real estimate rewires them when it resolves.
       void loadEstimate(data.context);
     } catch (e) {
-      setErrorMsg(
-        e instanceof Error
-          ? e.message
-          : "Network error — please retry.",
-      );
+      fail(e instanceof Error ? e.message : "Network error — please retry.");
     } finally {
+      inFlightRef.current = false;
       setAwaitingHandoff(false);
       setIntakeLoading(false);
     }
@@ -665,6 +687,12 @@ export function AnalyzeRoot({
   );
 
   function handleReset() {
+    // The run's permalink (AF09) goes back to the empty intake URL.
+    try {
+      if (window.location.pathname !== "/analyze") window.history.replaceState(window.history.state, "", "/analyze");
+    } catch {
+      /* non-browser test env */
+    }
     clearPendingIntake();
     clearSignupIntake();
     setPayInfo(null);
@@ -677,6 +705,7 @@ export function AnalyzeRoot({
     setSubmission(null);
     setIntake(null);
     setAnalysisId(null);
+    setCreditsCharged(null);
     setEstimate(null);
     setErrorMsg(null);
     setOcrOffered(false);
@@ -725,6 +754,13 @@ export function AnalyzeRoot({
           credits={authenticated === true ? (payInfo?.credits ?? null) : null}
           creditsError={payInfo?.creditsError === true}
           busy={intakeLoading}
+          onRecheck={
+            authenticated === true && submission
+              ? () => {
+                  void handleSubmit(submission);
+                }
+              : undefined
+          }
           onPayWithCredits={
             authenticated === true && submission && payInfo?.credits?.canAfford
               ? () => {
@@ -803,7 +839,7 @@ export function AnalyzeRoot({
             travel in a link. Drop it here once and the analysis starts.
           </div>
         )}
-        <SmartIntake onSubmit={(sub) => void handleSubmit(sub)} />
+        <SmartIntake onSubmit={(sub) => void handleSubmit(sub)} busy={intakeLoading} />
         {intakeLoading && (
           <p className="text-xs text-tertiary">
             Reading your input…
@@ -962,6 +998,7 @@ export function AnalyzeRoot({
               authenticated={authenticated}
               unlockNonce={unlockNonce}
               intake={intake}
+              creditsCharged={creditsCharged}
             />
             {claimedNote && (
               <div

@@ -76,6 +76,8 @@ export interface FullReportPanelProps {
   intake?: IntakeResult | null;
   /** G28-C: the signed link token from the report e-mail (`/analyze/<id>?t=…`) — forwarded to the poll + PDF routes. */
   token?: string | null;
+  /** Credits the founder paid for this run on /analyze (absent = a free run). */
+  creditsCharged?: number | null;
   className?: string;
 }
 
@@ -103,7 +105,7 @@ export function progressLineV2(view: Pick<FullReportView, "status" | "progressV2
     // After the last attempt nothing more happens: say so, and that the free
     // allowance was given back (report-v2-job releases the grant).
     if ((view.attempts ?? 0) >= FREE_REPORT_TERMINAL_ATTEMPTS) {
-      return "The report could not be written after three attempts — the AI providers did not return usable sections. This run did not count against your free reports; please submit again later.";
+      return "The report could not be written after three attempts — the AI providers did not return usable sections. This run did not count against your free reports, and any credits paid for it have been refunded; please submit again later.";
     }
     return "The report could not be written in this run. It is retried automatically and e-mailed when it lands.";
   }
@@ -211,10 +213,12 @@ export function reportApiPath(analysisId: string, leaf: "full-report" | "report.
   return token ? `${base}?token=${encodeURIComponent(token)}` : base;
 }
 
-export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, intake, token = null, className, onFinalReport }: FullReportPanelProps) {
+export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, intake, token = null, creditsCharged = null, className, onFinalReport }: FullReportPanelProps) {
   const [scopedView, setScopedView] = React.useState<{ analysisId: string; intake?: IntakeResult | null; token: string | null; value: FullReportView } | null>(null);
   const view = scopedView?.analysisId === analysisId && scopedView?.intake === intake && scopedView?.token === token ? scopedView.value : null;
   const [failedToLoad, setFailedToLoad] = React.useState(false);
+  // AF07: polling stopped while the job may still be running — say where the report will go.
+  const [gaveUp, setGaveUp] = React.useState(false);
   const [resend, setResend] = React.useState<ResendState>({ kind: "idle" });
 
   // Poll until the server says stop (pollAfterSec 0) or we give up.
@@ -232,23 +236,31 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
         if (!live) return;
         const next = parseView(body);
         if (!next) {
-          onFinalReport?.({ analysisId: analysisId!, intake, token, report: null });
-          setScopedView(null);
           setFailedToLoad(true);
+          // AF06: only a 404 is final. A 5xx / 429 / unreadable body (a
+          // deploy, a restart) keeps what is on screen and tries again.
+          if (res.status === 404) {
+            onFinalReport?.({ analysisId: analysisId!, intake, token, report: null });
+            setScopedView(null);
+            return;
+          }
+          if (Date.now() - startedAt < POLL_GIVE_UP_MS) timer = setTimeout(tick, 8000);
+          else setGaveUp(true);
           return;
         }
         setFailedToLoad(false);
         setScopedView({ analysisId: analysisId!, intake, token, value: next });
         onFinalReport?.({ analysisId: analysisId!, intake, token, report: finalFindingReport(next) });
-        if (next.pollAfterSec > 0 && Date.now() - startedAt < POLL_GIVE_UP_MS) {
-          timer = setTimeout(tick, Math.max(2, next.pollAfterSec) * 1000);
+        if (next.pollAfterSec > 0) {
+          if (Date.now() - startedAt < POLL_GIVE_UP_MS) timer = setTimeout(tick, Math.max(2, next.pollAfterSec) * 1000);
+          else setGaveUp(true);
         }
       } catch {
         if (!live) return;
-        setScopedView(null);
-        onFinalReport?.({ analysisId: analysisId!, intake, token, report: null });
+        // A network blip keeps the report already on screen (AF06).
         setFailedToLoad(true);
         if (Date.now() - startedAt < POLL_GIVE_UP_MS) timer = setTimeout(tick, 6000);
+        else setGaveUp(true);
       }
     }
     void tick();
@@ -330,8 +342,15 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
               )}
               <span>{failedToLoad && !view ? "Could not reach the report just now — retrying." : v2 ? progressLineV2(view) : progressLine(view)}</span>
             </p>
+            {gaveUp && (
+              <p className="mt-1 text-xs text-secondary" role="status" data-testid="analyze-full-report-gave-up">
+                Still being written — we stopped checking from this page. The report is e-mailed the moment it lands, and it stays in your workspace; you can close this page.
+              </p>
+            )}
             <p className="mt-1 text-[11px] text-muted">
-              Free · 0 credits — your first two business reports never cost anything.
+              {typeof creditsCharged === "number" && creditsCharged > 0
+                ? `Paid with ${creditsCharged} credits — refunded automatically if the report cannot be written.`
+                : "Free · 0 credits — your first two business reports never cost anything."}
             </p>
           </div>
           {done && !locked && (

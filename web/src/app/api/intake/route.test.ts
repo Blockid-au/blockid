@@ -96,6 +96,8 @@ const freeSubmittedMock = vi.fn<(i: Record<string, unknown>) => void>();
 const canAffordMock = vi.fn<(u: string, f: string) => Promise<{ allowed: boolean; balance: number; cost: number; reason?: string }>>();
 const spendCreditsMock = vi.fn<(u: string, f: string, m?: Record<string, unknown>) => Promise<{ ok: boolean; balance: number }>>();
 const grantCreditsMock = vi.fn<(u: string, a: number, r: string, m?: Record<string, unknown>) => Promise<{ ok: boolean; balance: number }>>();
+const cancelQueuedMock = vi.fn<(id: string) => Promise<boolean>>();
+vi.mock("@/lib/analyses/first-analysis/store", () => ({ cancelQueuedFullReport: (id: string) => cancelQueuedMock(id) }));
 vi.mock("@/lib/credits", async () => {
   const actual = await vi.importActual<typeof import("@/lib/credits")>("@/lib/credits");
   return {
@@ -156,6 +158,7 @@ beforeEach(() => {
   canAffordMock.mockReset().mockResolvedValue({ allowed: true, balance: 40, cost: 3 });
   spendCreditsMock.mockReset().mockResolvedValue({ ok: true, balance: 37 });
   grantCreditsMock.mockReset().mockResolvedValue({ ok: true, balance: 40 });
+  cancelQueuedMock.mockReset().mockResolvedValue(true);
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
 });
@@ -624,6 +627,8 @@ describe("POST /api/intake — credits after the free allowance", () => {
     expect(body).toMatchObject({ ok: true, analysisId: "row-1", freeReport: null, creditsCharged: 3 });
     expect(spendCreditsMock).toHaveBeenCalledTimes(1);
     expect(spendCreditsMock.mock.calls[0].slice(0, 2)).toEqual(["u1", "trust_report"]);
+    // AF04: the debit is tagged with the saved row so a terminal failure can refund it.
+    expect(spendCreditsMock.mock.calls[0][2]).toMatchObject({ channel: "analyze_intake", analysis_id: "row-1" });
     expect(analyzeInputMock).toHaveBeenCalledTimes(1);
     expect(startJobMock).toHaveBeenCalledWith("row-1", { userId: "u1" });
     expect(attachMock).not.toHaveBeenCalled();
@@ -641,22 +646,39 @@ describe("POST /api/intake — credits after the free allowance", () => {
     expect(analyzeInputMock).not.toHaveBeenCalled();
   });
 
-  it("a debit that fails at spend time (race) → 402, nothing runs", async () => {
+  it("a debit that fails at spend time (race) → 402, the report job never starts, nothing charged", async () => {
     getCurrentUserMock.mockResolvedValue(SIGNED_IN);
     gateState.result = { allow: false, status: 200, reason: "free_allowance_used", used: 2 };
     spendCreditsMock.mockResolvedValue({ ok: false, balance: 2 });
     const res = await POST(req({ text: "an idea", payWith: "credits" }));
     expect(res.status).toBe(402);
-    expect(analyzeInputMock).not.toHaveBeenCalled();
+    expect(await json(res)).toMatchObject({ reason: "insufficient_credits", credits: { balance: 2, canAfford: false } });
+    expect(startJobMock).not.toHaveBeenCalled();
+    // The saved row leaves the queue so the cron never writes it for free.
+    expect(cancelQueuedMock).toHaveBeenCalledWith("row-1");
   });
 
-  it("the analysis throws after the charge → the credits are refunded", async () => {
+  it("the analysis throws → nothing is charged (the debit only follows a saved run)", async () => {
     getCurrentUserMock.mockResolvedValue(SIGNED_IN);
     gateState.result = { allow: false, status: 200, reason: "free_allowance_used", used: 2 };
     analyzeInputMock.mockRejectedValue(new Error("boom"));
     const res = await POST(req({ text: "an idea", payWith: "credits" }));
     expect(res.status).toBe(500);
-    expect(grantCreditsMock).toHaveBeenCalledWith("u1", 3, "refund_intake_failed", expect.objectContaining({ feature: "trust_report" }));
+    expect(spendCreditsMock).not.toHaveBeenCalled();
+    expect(grantCreditsMock).not.toHaveBeenCalled();
+  });
+
+  it("AF04: the row is not saved → nothing is charged, no job, no creditsCharged", async () => {
+    getCurrentUserMock.mockResolvedValue(SIGNED_IN);
+    gateState.result = { allow: false, status: 200, reason: "free_allowance_used", used: 2 };
+    saveAnalysisMock.mockResolvedValue(null);
+    const res = await POST(req({ text: "an idea", payWith: "credits" }));
+    expect(res.status).toBe(200);
+    const body = await json(res);
+    expect(body).toMatchObject({ ok: true, analysisId: null });
+    expect(body).not.toHaveProperty("creditsCharged");
+    expect(spendCreditsMock).not.toHaveBeenCalled();
+    expect(startJobMock).not.toHaveBeenCalled();
   });
 
   it("a guest can never pay with credits: payWith is ignored and the plain quote is returned", async () => {
