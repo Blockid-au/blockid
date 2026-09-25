@@ -364,6 +364,7 @@ describe("POST /api/term-sheet — auth + body validation", () => {
     const res = await POST(jsonPost({ termSheet: LONG_BODY, capTable: null, round: null }));
     expect(res.status).toBe(200);
     expect(mocks.analyzeMock).toHaveBeenCalledWith({
+      userId: "u-42",
       termSheet: LONG_BODY,
       capTable: null,
       round: null,
@@ -418,6 +419,7 @@ describe("POST /api/term-sheet — analysis + spend ordering", () => {
     );
     expect(res.status).toBe(200);
     expect(mocks.analyzeMock).toHaveBeenCalledWith({
+      userId: "u-42",
       termSheet: LONG_BODY,
       capTable: [
         {

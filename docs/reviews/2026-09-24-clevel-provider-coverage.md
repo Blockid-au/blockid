@@ -1,5 +1,7 @@
 # C-level provider coverage — 24/09/2026
 
+Follow-up review: [G33 customer SDK bypass closure](2026-09-24-g33-customer-provider-bypass-closure.md) expands the original 41-file boundary inventory to 43 and records the later SVI scoped-routing source review. The results below describe the original migration slice.
+
 Status: source implementation, not deployed or quality-qualified. This review inventories direct `callAI` customer adapters in BlockID, including the proxy used by SVI. It does not claim every provider in the independent SVI runtime has been migrated.
 
 All `blockid-report-v1` calls now remain DeepInfra-only, including CEO synthesis after exhaustion; the former direct Groq fallback and its 40-second reserve were removed. Explicit trusted `providerPolicy: "deepinfra-only"` covers customer adapters that do not have a report spend scope. It is not a spend authorization, does not fabricate a durable report budget, and leaves pre-existing credit/billing logic unchanged. Generic/background calls retain their existing chain.

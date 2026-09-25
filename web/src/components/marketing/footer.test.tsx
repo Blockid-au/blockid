@@ -8,17 +8,51 @@
 // explicit on every page. No entity literal is spelled out here; the
 // config's own guard test forbids literals outside the config.
 
-import { renderToStaticMarkup } from "react-dom/server";
+import { renderToPipeableStream, renderToStaticMarkup } from "react-dom/server";
+import { Suspense } from "react";
+import { PassThrough } from "node:stream";
 import { describe, expect, it } from "vitest";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { FOOTER_COLUMNS } from "./footer-columns";
 import { Footer, FOOTER_DISCLAIMER, FOOTER_ENTITY, FOOTER_LANGUAGES } from "./footer";
 import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL, marketingLine } from "@/lib/site/legal-entity";
+import { CloudflareEmailOffStart, CloudflareEmailOffEnd, EMAIL_OFF_OPEN, EMAIL_OFF_CLOSE } from "@/components/site/cloudflare-email-off";
 
 const html = renderToStaticMarkup(<Footer />);
 
 describe("Footer — the one public footer", () => {
+  it("keeps its mail link protected when Suspense streams it after the root opt-out closes", async () => {
+    let ready = false;
+    let release!: () => void;
+    const pending = new Promise<void>(resolve => { release = resolve; });
+    function DelayedFooter() {
+      if (!ready) throw pending;
+      return <Footer />;
+    }
+    const wire = await new Promise<string>((resolve, reject) => {
+      const output = new PassThrough();
+      let result = "";
+      output.on("data", chunk => { result += chunk.toString(); });
+      output.on("end", () => resolve(result));
+      output.on("error", reject);
+      const stream = renderToPipeableStream(<div><CloudflareEmailOffStart /><Suspense fallback={<p>Loading</p>}><DelayedFooter /></Suspense><CloudflareEmailOffEnd /></div>, {
+        onShellReady() {
+          stream.pipe(output);
+          setImmediate(() => { ready = true; release(); });
+        },
+        onError(error) { stream.abort(); reject(error); },
+      });
+    });
+    const mail = wire.indexOf('href="mailto:admin@blockid.au"');
+    expect(mail).toBeGreaterThan(wire.indexOf(EMAIL_OFF_CLOSE));
+    // The final rewriter toggle BEFORE the href is a local opening marker,
+    // even though the root body's closing marker was already on the wire.
+    expect(wire.lastIndexOf(EMAIL_OFF_OPEN, mail)).toBeGreaterThan(wire.lastIndexOf(EMAIL_OFF_CLOSE, mail));
+    const linkEnd = wire.indexOf("</a>", mail);
+    expect(wire.indexOf(EMAIL_OFF_CLOSE, mail)).toBeGreaterThan(linkEnd);
+    expect(wire.slice(mail, linkEnd)).toContain("admin@blockid.au");
+  });
   it("renders exactly one <footer> landmark on the LIGHT sunken ground (G26 — no dark scope), with the sr-only heading", () => {
     expect((html.match(/<footer\b/g) ?? []).length).toBe(1);
     expect(html).not.toMatch(/<footer[^>]*data-theme=/);

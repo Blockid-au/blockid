@@ -6,6 +6,8 @@ import { describe, expect, it } from "vitest";
 // These customer adapters must never inherit the unrestricted background chain.
 const adapters = [
   "src/app/api/support/route.ts",
+  "src/app/api/data-room/auto-fill/route.ts",
+  "src/lib/term-sheet/analyze.ts",
   "src/app/api/revaluation/route.ts",
   "src/app/api/competitive-positioning/positioning/route.ts",
   "src/app/api/svi/modular/route.ts",

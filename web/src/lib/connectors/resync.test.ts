@@ -32,7 +32,7 @@ const h = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/oauth-stripe-signals", () => ({
-  fetchStripeConnectMetrics: (t: string) => h.stripeMetrics(t),
+  fetchStripeConnectMetrics: h.stripeMetrics,
 }));
 vi.mock("@/lib/connectors/xero-metrics", async (importOriginal) => {
   const actual = await importOriginal<typeof import("./xero-metrics")>();
@@ -155,6 +155,32 @@ function consoleText(): string {
   return [...warnSpy.mock.calls, ...errorSpy.mock.calls, ...logSpy.mock.calls].map((c) => JSON.stringify(c)).join("\n");
 }
 
+describe("modern Stripe source admission", () => {
+  it("stores source observations without publishing legacy facts, score updates or webhooks", async () => {
+    h.stripeMetrics.mockResolvedValue({ ...STRIPE_METRICS, sourceObservation: { eligibleForValuation: false, mrrAud: 100, activeSubscriptions: 2 } });
+    const { db, ops } = fakeDb(SCOPE_DATA);
+    const result = await resyncConnection(db, v2Stripe({ metadata: { livemode: true } }), { now: NOW });
+    expect(result).toMatchObject({ outcome: "synced", svi_delta: null, webhooks_queued: 0 });
+    const snapshot = ops.find(op => op.table === "connector_snapshots" && op.op === "insert");
+    expect(snapshot?.args[0]).toMatchObject({ user_id: "owner-1", project_id: "proj-1", metrics: { sourceObservation: { eligibleForValuation: false } } });
+    expect((snapshot?.args[0] as { metrics: object }).metrics).not.toHaveProperty("mrrAud");
+    expect(ops.some(op => ["svi_signals", "svi_evidence"].includes(op.table) && op.op === "upsert")).toBe(false);
+    expect(h.rescore).not.toHaveBeenCalled(); expect(h.enqueue).not.toHaveBeenCalled();
+  });
+  it("passes the stored source account and live-mode binding to the strict collector", async () => {
+    const { db } = fakeDb(SCOPE_DATA);
+    await resyncConnection(db, v2Stripe({ metadata: { livemode: true } }), { now: NOW });
+    expect(h.stripeMetrics).toHaveBeenCalledWith(RAW_STRIPE, { sourceAccountId: "acct_123", livemode: true });
+  });
+  it("does not fall back to the linking user when the selected project cannot be resolved", async () => {
+    const { db, ops } = fakeDb({ ...SCOPE_DATA, projects: [] });
+    const result = await resyncConnection(db, v2Stripe(), { now: NOW });
+    expect(result.outcome).toBe("skipped_scope");
+    expect(h.stripeMetrics).not.toHaveBeenCalled();
+    expect(ops.some(op => op.table === "connector_snapshots")).toBe(false);
+  });
+});
+
 describe("resyncConnection — unreadable token", () => {
   it("skips the pull, notifies reconnect once / 30 d, releases the lease, and never logs the token", async () => {
     process.env.OAUTH_TOKEN_ENCRYPTION_KEY = OTHER_KEY;
@@ -248,7 +274,7 @@ describe("resyncConnection — Stripe Connect (v2 vault)", () => {
     const out = await resyncConnection(db, v2Stripe(), { now: NOW });
 
     expect(out).toMatchObject({ outcome: "synced", changed: true, svi_delta: 7, webhooks_queued: 1 });
-    expect(h.stripeMetrics).toHaveBeenCalledWith(RAW_STRIPE);
+    expect(h.stripeMetrics).toHaveBeenCalledWith(RAW_STRIPE, { sourceAccountId: "acct_123", livemode: false });
 
     // Snapshot shape (0349): owner-keyed, dated, provider + metrics + source.
     const snap = ops.find((o) => o.table === "connector_snapshots" && o.op === "insert");

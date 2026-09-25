@@ -44,6 +44,10 @@ describe("evidence-value registry", () => {
 });
 
 describe("connectorEvidenceRows", () => {
+  it("never promotes unqualified contract observations to transaction evidence", () => {
+    const metrics = { ...STRIPE, sourceObservation: { eligibleForValuation: false } };
+    expect(connectorEvidenceRows({ provider: "stripe", metrics }, NOW)).toEqual([]);
+  });
   it("Stripe → revenue / customers / churn at L5 (transaction data), one source_uri per payload", () => {
     const rows = connectorEvidenceRows({ provider: "stripe", metrics: STRIPE }, NOW);
     expect(rows.map((r) => [r.claim_key, r.evidence_type])).toEqual([

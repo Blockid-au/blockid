@@ -37,7 +37,8 @@ export const dealFlowFiltersSchema = z.object({
   state: list(tuple(HQ_STATES)),
   tags: list(tuple(TAGS)),
   min_fit: z.number().int().min(0).max(100).optional(),
-  min_svi: z.number().int().min(0).max(100).optional(),
+  // SVI is an index, not a percentage. Keep fit's independent 0–100 scale.
+  min_svi: z.number().int().min(0).optional(),
   moved: z.boolean().optional(),
   mandate_id: z.uuid().optional(),
   sort: z.enum(DEALFLOW_SORTS).default("fit"),
@@ -136,7 +137,7 @@ export function filtersFromSearchParams(sp: SP): DealFlowFiltersV2 {
     sort: (DEALFLOW_SORTS as readonly string[]).includes(raw.sort ?? "") ? (raw.sort as DealFlowSort) : "fit",
   };
   if (raw.min_fit !== undefined && raw.min_fit >= 0 && raw.min_fit <= 100) out.min_fit = raw.min_fit;
-  if (raw.min_svi !== undefined && raw.min_svi >= 0 && raw.min_svi <= 100) out.min_svi = raw.min_svi;
+  if (raw.min_svi !== undefined && raw.min_svi >= 0 && Number.isSafeInteger(raw.min_svi)) out.min_svi = raw.min_svi;
   if (raw.moved) out.moved = true;
   if (raw.mandate_id && z.uuid().safeParse(raw.mandate_id).success) out.mandate_id = raw.mandate_id;
   return out;

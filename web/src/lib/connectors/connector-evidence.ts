@@ -91,6 +91,7 @@ export function connectorEvidenceRows(input: ConnectorMetricsInput, observedAt: 
   switch (input.provider) {
     case "stripe": {
       const m = input.metrics;
+      if (m.sourceObservation) break;
       const mrr = num(m.mrrAud);
       const arr = num(m.arrAud);
       const customers = num(m.activeCustomers);

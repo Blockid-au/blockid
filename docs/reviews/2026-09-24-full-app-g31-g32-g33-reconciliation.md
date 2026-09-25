@@ -59,7 +59,7 @@ Tất cả rows: **planned; chưa accepted**. Các primitives tái dùng không 
 | Phase | Bằng chứng hiện tại | Việc còn lại / acceptance |
 |---|---|---|
 | SV0 | Rubric được yêu cầu trong SOT, chưa thấy artifact rubric@v1 hoàn chỉnh | 52 question IDs, 0–4/N/A anchors, criticality/source rules và examples; human adjudication |
-| SV1 | `mandates-shared.ts:101`, `saved-views.ts:40`, `cohort-snapshots.ts:212`, adapter còn clamp100 | Gỡ cap ở index consumers/filters/CSV/API, tách confidence % và dimension scale, không so delta khác version |
+| SV1 | `mandates-shared.ts:101`, `saved-views.ts:40`, `cohort-rows.ts` shared range parser và adapter còn cap100 cho index | Gỡ cap chỉ ở index consumers/filters/CSV/API, tách confidence % và dimension scale, không so delta khác version. **Correction sau source recheck:** `cohort-snapshots.ts:212` clamp là `evidence_confidence`, đúng thang0–100, không phải index bug |
 | SV2 | Chưa thấy `svi_method`, `rubric_version`, `contribution_ledger` theo G32 | Versioned metadata/ledger cùng immutable report revision; compatible old readers |
 | SV3 | Chưa có `question_scores`/`svi-v3` | Owner + 2 independent-family judges, quote checks, abstention/escalation; SCORE durable job/cache |
 | SV4 | Chưa có calibration receipt G32 | 30–50 firms, 2 human raters; α≥0.67/κ≥0.6 theo plan; sensitivity, dedupe/freshness/correction; budget panel |

@@ -1,37 +1,20 @@
-/**
- * Term Sheet AI — server-side analysis pipeline.
- *
- * Calls Claude Sonnet 4.6 via `client.messages.parse()` with a Zod schema
- * (no manual JSON parsing). Uses the prompt-cache breakpoint trick to keep
- * the AU market reference data warm at ~0.1× input cost across analyses.
- *
- * Hard rules from the brief:
- *   - Model: claude-sonnet-5 (NOT Opus 4.7)
- *   - thinking: { type: "adaptive" } (NOT budget_tokens)
- *   - effort: "medium" (max is Opus-only)
- *   - No streaming, max_tokens: 8192, no temperature/top_p/top_k
- *   - No beta headers — effort, adaptive thinking, and parse() are GA
- *   - cache_control on the AU reference block ONLY (1h TTL)
- *
- * Failure mode: if no Anthropic credentials available OR the SDK throws a typed
- * Anthropic error, we degrade to demo mode — the funnel must not block on
- * transient API issues. Operators see the cache stats / error in container
- * logs and can verify cache hit rate after the first request.
+/** Customer CLO analysis through the admitted DeepInfra dispatcher.
+ * The existing Zod output contract and deterministic dilution calculation stay
+ * authoritative. Provider/schema failures retain the explicitly labelled demo
+ * fallback. No model-specific cache discount or capability is assumed.
  */
-import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import { z } from "zod";
 import { computeDiff, type CapTableDiff, type Holder, type Round } from "@/lib/cap-table";
-import { getAnthropicClient, isAnthropicConfigured } from "@/lib/ai-client";
+import { callAI, isAIConfigured } from "@/lib/ai-client";
 import { TermSheetAnalysisSchema, type TermSheetAnalysis } from "./schema";
 import { AU_MARKET_REFERENCE } from "./au-market-data";
 import { DEMO_ANALYSIS } from "./demo";
 
-const MODEL_ID = "claude-sonnet-5";
 const MAX_TOKENS = 8192;
 
 /**
- * Static — no timestamps, request IDs, or per-user data may be interpolated
- * into this string. Doing so would silently invalidate the prompt cache.
+ * Stable instructions shared across requests; provider cache availability and
+ * discounts are not assumed.
  */
 const ANALYSIS_INSTRUCTIONS = `You are a senior Australian startup lawyer with prior experience as a partner at an AU early-stage VC. Your job: read a pasted term sheet and produce a founder-friendly analysis that would save an Australian founder AUD $3,000–$10,000 in legal fees and get them to a confident decision in 30 seconds.
 
@@ -93,15 +76,15 @@ export interface AnalyzeResult {
 }
 
 export interface AnalyzeArgs {
+  userId?: string;
   termSheet: string;
   capTable?: Holder[] | null;
   round?: Round | null;
 }
 
 function logCacheLine(usage: UsageStats): void {
-  // Single-line, grep-friendly format the operator can scan in container logs
-  // to confirm prompt caching is working. Should be > 0 on read after the
-  // first request with the same system prefix.
+  // Preserve token telemetry; absent cache counters are zero, not evidence
+  // that this provider/model supports a cache discount.
   console.log(
     `[blockid:termsheet] cache_read=${usage.cache_read_input_tokens} cache_create=${usage.cache_creation_input_tokens} input=${usage.input_tokens} output=${usage.output_tokens}`,
   );
@@ -117,36 +100,28 @@ function maybeDilution(
 }
 
 export async function analyzeTermSheet({
+  userId,
   termSheet,
   capTable,
   round,
 }: AnalyzeArgs): Promise<AnalyzeResult> {
   const dilution = maybeDilution(capTable, round);
 
-  if (!isAnthropicConfigured()) {
+  if (!isAIConfigured()) {
     console.warn(
-      "[blockid:termsheet] No Anthropic credentials — returning demo analysis",
+      "[blockid:termsheet] No AI credentials — returning demo analysis",
     );
     return { analysis: DEMO_ANALYSIS, dilution, mode: "demo" };
   }
 
-  const client = getAnthropicClient();
+  const system = `${ANALYSIS_INSTRUCTIONS}
 
-  // System prompt as TWO blocks: stable instructions first (uncached),
-  // then the bulky AU market reference with cache_control. Render order is
-  // tools → system → messages, so the cache breakpoint sits at the end of
-  // the system prefix and covers everything before the (varying) user msg.
-  const systemBlocks = [
-    {
-      type: "text" as const,
-      text: ANALYSIS_INSTRUCTIONS,
-    },
-    {
-      type: "text" as const,
-      text: `# Australian Private Capital Market — Reference\n\n${AU_MARKET_REFERENCE}`,
-      cache_control: { type: "ephemeral" as const, ttl: "1h" as const },
-    },
-  ];
+# Australian Private Capital Market — Reference
+
+${AU_MARKET_REFERENCE}
+
+Required JSON schema:
+${JSON.stringify(z.toJSONSchema(TermSheetAnalysisSchema))}`;
 
   const userParts: string[] = [
     "Analyse the following pasted term sheet for an Australian founder. Return ONLY the structured analysis matching the provided schema.",
@@ -166,39 +141,37 @@ export async function analyzeTermSheet({
   const userMessage = userParts.join("\n");
 
   try {
-    const response = await client.messages.parse({
-      model: MODEL_ID,
-      max_tokens: MAX_TOKENS,
-      thinking: { type: "adaptive" },
-      output_config: {
-        effort: "medium",
-        format: zodOutputFormat(TermSheetAnalysisSchema),
-      },
-      system: systemBlocks,
-      messages: [
-        {
-          role: "user",
-          content: userMessage,
-        },
-      ],
+    const response = await callAI({
+      providerPolicy: "deepinfra-only",
+      agentId: "clo-term-sheet",
+      userId,
+      taskClass: "report",
+      maxTokens: MAX_TOKENS,
+      system,
+      user: userMessage,
     });
 
     const usage: UsageStats = {
-      input_tokens: response.usage.input_tokens ?? 0,
-      output_tokens: response.usage.output_tokens ?? 0,
-      cache_read_input_tokens: response.usage.cache_read_input_tokens ?? 0,
+      input_tokens: response.usage?.input_tokens ?? 0,
+      output_tokens: response.usage?.output_tokens ?? 0,
+      cache_read_input_tokens: response.usage?.cache_read_input_tokens ?? 0,
       cache_creation_input_tokens:
-        response.usage.cache_creation_input_tokens ?? 0,
+        response.usage?.cache_creation_input_tokens ?? 0,
     };
     logCacheLine(usage);
 
-    const parsed = response.parsed_output;
-    if (!parsed) {
-      console.error(
-        "[blockid:termsheet] parse() returned no parsed_output — degrading to demo",
-      );
+    let decoded: unknown;
+    try {
+      decoded = JSON.parse(response.text);
+    } catch {
+      decoded = null;
+    }
+    const checked = TermSheetAnalysisSchema.safeParse(decoded);
+    if (!checked.success) {
+      console.error("[blockid:termsheet] response failed output schema — degrading to demo");
       return { analysis: DEMO_ANALYSIS, dilution, mode: "demo", usage };
     }
+    const parsed = checked.data;
 
     return {
       analysis: parsed,
@@ -207,22 +180,7 @@ export async function analyzeTermSheet({
       usage,
     };
   } catch (err: unknown) {
-    if (err instanceof Anthropic.RateLimitError) {
-      console.error(
-        "[blockid:termsheet] Anthropic rate limit — returning demo",
-        err.message,
-      );
-    } else if (err instanceof Anthropic.APIError) {
-      console.error(
-        `[blockid:termsheet] Anthropic API error ${err.status} — returning demo`,
-        err.message,
-      );
-    } else {
-      console.error(
-        "[blockid:termsheet] Unexpected error in analyze — returning demo",
-        err,
-      );
-    }
+    console.error("[blockid:termsheet] provider error — returning demo", err);
     return { analysis: DEMO_ANALYSIS, dilution, mode: "demo" };
   }
 }

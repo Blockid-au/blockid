@@ -299,7 +299,7 @@ export type Range = [number, number];
 export interface CohortFilters {
   stage?: number[];
   sector?: string[];
-  /** Canonical SVI range 0–100. */
+  /** Canonical SVI index range; no percentage ceiling. */
   svi?: Range;
   /** Evidence Confidence range 0–100. */
   conf?: Range;
@@ -372,6 +372,16 @@ function parseRange(v: string | null): Range | undefined {
   return lo <= hi ? [lo, hi] : [hi, lo];
 }
 
+function parseIndexRange(v: string | null): Range | undefined {
+  if (!v) return undefined;
+  const m = /^(\d{1,16})-(\d{1,16})$/.exec(v.trim());
+  if (!m) return undefined;
+  const lo = Number(m[1]);
+  const hi = Number(m[2]);
+  if (!Number.isSafeInteger(lo) || !Number.isSafeInteger(hi)) return undefined;
+  return lo <= hi ? [lo, hi] : [hi, lo];
+}
+
 function parseList(v: string | null): string[] {
   return (v ?? "").split(",").map((s) => s.trim()).filter(Boolean);
 }
@@ -392,7 +402,7 @@ export function parseCohortFilters(input: ParamsLike | Record<string, string | s
   if (stage.length) out.stage = [...new Set(stage)];
   const sector = parseList(p.get("sector")).slice(0, 20);
   if (sector.length) out.sector = sector;
-  const svi = parseRange(p.get("svi"));
+  const svi = parseIndexRange(p.get("svi"));
   if (svi) out.svi = svi;
   const conf = parseRange(p.get("conf"));
   if (conf) out.conf = conf;

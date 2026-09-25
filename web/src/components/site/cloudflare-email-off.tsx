@@ -22,6 +22,11 @@
 //
 // The dashboard-level fix (Scrape Shield → Email Address Obfuscation →
 // Off) is the belt to this brace; both are safe together.
+//
+// Streaming caveat: root-body markers only protect bytes emitted between
+// them. Suspense content can arrive later on the wire even when logically
+// inside <body>. Put an adjacent pair around email-bearing markup in such
+// segments (the public Footer does this); root markers alone are insufficient.
 
 export const EMAIL_OFF_OPEN = "<!--email_off-->";
 export const EMAIL_OFF_CLOSE = "<!--/email_off-->";

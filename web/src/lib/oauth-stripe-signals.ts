@@ -1,6 +1,7 @@
 import "server-only";
 
 import { ConnectorHttpError } from "@/lib/connectors/http-error";
+import { fetchStripeRecurringSource, type StripeRecurringObservation } from "@/lib/connectors/stripe-recurring-source";
 
 export interface StripeSignals {
   mrrAud: number;
@@ -147,11 +148,13 @@ export interface StripeConnectMetrics {
   activeSubscriptions: number;
   activeCustomers: number;
   /** Subscriptions whose `canceled_at` falls in the last 90 days. */
-  churnedSubscriptions90d: number;
+  churnedSubscriptions90d: number | null;
   /** churned / (active + churned) × 100, one decimal; null when there is no base. */
   churnRate90dPct: number | null;
   /** Dominant subscription currency (lower-case ISO), "aud" when unknown. */
   currency: string;
+  /** Complete narrow source observation; not an accepted revenue attestation. */
+  sourceObservation?: StripeRecurringObservation;
 }
 
 export const STRIPE_CHURN_WINDOW_DAYS = 90;
@@ -214,7 +217,18 @@ async function stripeGetStrict<T>(path: string, accessToken: string, resource: s
 }
 
 /** Throws `ConnectorHttpError` on any non-2xx from Stripe (S25-review). */
-export async function fetchStripeConnectMetrics(accessToken: string): Promise<StripeConnectMetrics> {
+export async function fetchStripeConnectMetrics(accessToken: string, binding?: { sourceAccountId: string; livemode: boolean }): Promise<StripeConnectMetrics> {
+  if (binding) {
+    const observation = await fetchStripeRecurringSource(accessToken, binding);
+    return {
+      mrrAud: observation.mrrAud,
+      arrAud: Math.round(observation.mrrAud * 12 * 100) / 100,
+      activeSubscriptions: observation.activeSubscriptions,
+      activeCustomers: observation.activeSubscriptionCustomers,
+      churnedSubscriptions90d: null, churnRate90dPct: null, currency: "aud",
+      sourceObservation: observation,
+    };
+  }
   const since = Math.floor(Date.now() / 1000) - STRIPE_CHURN_WINDOW_DAYS * 24 * 60 * 60;
   const [active, canceled, customers] = await Promise.all([
     stripeGetStrict<StripeSubscription>("/v1/subscriptions?limit=100&status=active", accessToken, "subscriptions"),

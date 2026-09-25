@@ -21,6 +21,11 @@ function row(provider: "stripe" | "xero", taken_at: string, metrics: Record<stri
 }
 
 describe("snapshotMrrAud / snapshotChurnPct", () => {
+  it("never promotes a preview source observation through legacy revenue/score readers", () => {
+    const preview = row("stripe", "2026-09-24", { mrrAud: 1000, sourceObservation: { eligibleForValuation: false } });
+    expect(snapshotMrrAud(preview)).toBeNull();
+    expect(snapshotToRevenueSignal(preview, null)).toBeNull();
+  });
   it("stripe reads mrrAud + churn; xero derives income / windowMonths (rounded), churn null", () => {
     expect(snapshotMrrAud(row("stripe", "t", { mrrAud: 8200.4 }))).toBe(8200.4);
     expect(snapshotChurnPct(row("stripe", "t", { churnRate90dPct: 3.3 }))).toBe(3.3);

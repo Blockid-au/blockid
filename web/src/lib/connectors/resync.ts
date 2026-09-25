@@ -275,7 +275,8 @@ export async function resolveScope(db: Db, c: ResyncCandidate): Promise<Resolved
   // v2 — signals were written under the project OWNER's user_id at link time.
   let ownerUserId = c.linkedUserId;
   if (c.projectId) {
-    const { data: p } = await db.from("projects").select("user_id").eq("id", c.projectId).maybeSingle();
+    const { data: p, error } = await db.from("projects").select("user_id").eq("id", c.projectId).maybeSingle();
+    if (error || !p?.user_id) return { ownerUserId: null, projectId: c.projectId, accountId: null, dataEmail: null };
     if (p?.user_id) ownerUserId = p.user_id as string;
   }
   let acct = c.projectId
@@ -469,7 +470,10 @@ export async function resyncConnection(db: Db, c: ResyncCandidate, opts: { now?:
     if (c.provider === "stripe") {
       if (!accessToken) throw new Error("stripe_no_access_token");
       try {
-        metrics = await fetchStripeConnectMetrics(accessToken);
+        metrics = await fetchStripeConnectMetrics(accessToken, c.table === "oauth_connections_v2" ? {
+          sourceAccountId: c.providerAccountId ?? "",
+          livemode: c.metadata.livemode === true,
+        } : undefined);
       } catch (err) {
         if (isConnectorHttpError(err) && err.isAuthRejected) {
           await notifyReconnect(c, scope);
@@ -522,7 +526,7 @@ export async function resyncConnection(db: Db, c: ResyncCandidate, opts: { now?:
       const history = await loadSnapshotHistory(db, { userId: scope.ownerUserId, projectId: scope.projectId, limit: 5 });
       const prev = history[c.provider]?.latest ?? null;
       changed = metricsChanged(c.provider, prev?.metrics ?? null, metrics as unknown as Record<string, unknown>);
-      await insertConnectorSnapshot(db, {
+      const snapshot = await insertConnectorSnapshot(db, {
         userId: scope.ownerUserId,
         projectId: scope.projectId,
         provider: c.provider,
@@ -530,6 +534,14 @@ export async function resyncConnection(db: Db, c: ResyncCandidate, opts: { now?:
         source: "resync",
         takenAt: now.toISOString(),
       });
+      if (c.provider === "stripe" && (metrics as StripeConnectMetrics).sourceObservation && !snapshot) throw new Error("stripe_snapshot_write_failed");
+    }
+
+    // Narrow source collection is a preview observation, not paid-customer,
+    // cash-receipt or eligible valuation evidence. No legacy scoring uplift.
+    if (c.provider === "stripe" && (metrics as StripeConnectMetrics).sourceObservation) {
+      await releaseConnection(db, c, now, null);
+      return { ...base, outcome: changed ? "synced" : "unchanged", changed, svi_delta: null, webhooks_queued: 0 };
     }
 
     // 4. Refresh the dated signal / evidence rows.

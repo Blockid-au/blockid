@@ -423,3 +423,16 @@ describe("blockIdCohortCsv", () => {
     expect(normaliseWeights(undefined)).toEqual(equalWeights());
   });
 });
+
+
+describe("index ranges retain values above percentage bounds", () => {
+  it("round trips above 100 and filters by the actual index", () => {
+    const filters = { svi: [135, 1200] as [number, number] };
+    expect(parseCohortFilters(cohortFiltersToParams(filters))).toEqual(filters);
+    expect(filterCohortRows([mkRow({ svi: 99 }), mkRow({ svi: 150 }), mkRow({ svi: 1300 })], filters).map(row => row.svi)).toEqual([150]);
+  });
+  it("retains percentage bounds and rejects unsafe index values", () => {
+    expect(parseCohortFilters("svi=9007199254740992-1&conf=0-500&traction=0-500")).toEqual({ conf: [0, 100], traction: [0, 100] });
+    expect(parseCohortFilters("svi=1200-135")).toEqual({ svi: [135, 1200] });
+  });
+});

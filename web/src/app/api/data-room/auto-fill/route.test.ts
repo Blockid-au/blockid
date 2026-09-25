@@ -134,27 +134,9 @@ vi.mock("@/lib/projects", async () => {
   });
 });
 
-// ── Anthropic SDK mock — captured constructor + messages.create ────────
-const anthropicCreateMock = vi.fn<
-  (params: Record<string, unknown>) => Promise<{ content: Array<{ type: string; text?: string }> }>
->();
-const { AnthropicCtor } = vi.hoisted(() => {
-  return {
-    AnthropicCtor: vi.fn(function AnthropicCtor(this: unknown) {
-      // Constructor is a no-op; the messages.create function is bound below.
-      (this as { messages: unknown }).messages = { create: (p: Record<string, unknown>) => (globalThis as { __anthropicCreate?: unknown }).__anthropicCreate as unknown };
-    }),
-  };
-});
-// Bind the create fn onto every instance by making messages.create call our mock.
-AnthropicCtor.mockImplementation(function (this: unknown) {
-  (this as { messages: { create: (p: Record<string, unknown>) => unknown } }).messages = {
-    create: (params: Record<string, unknown>) => anthropicCreateMock(params),
-  };
-});
-vi.mock("@anthropic-ai/sdk", () => ({
-  default: AnthropicCtor,
-}));
+// Dispatcher seam: tests never contact a provider.
+const callAIMock = vi.fn<(params: Record<string, unknown>) => Promise<{ text: string }>>();
+vi.mock("@/lib/ai-client", () => ({ callAI: (params: Record<string, unknown>) => callAIMock(params) }));
 
 import { POST } from "./route";
 
@@ -207,7 +189,7 @@ function queueSvi(row: Record<string, unknown> | null) {
   state.responses.push({ data: row, error: null });
 }
 function aiText(text: string) {
-  return { content: [{ type: "text", text }] };
+  return { text };
 }
 
 beforeEach(() => {
@@ -221,8 +203,7 @@ beforeEach(() => {
   spendCreditsMock.mockResolvedValue({ ok: true, balance: 4.75 });
   getProjectIdFromRequestMock.mockReset();
   getProjectIdFromRequestMock.mockResolvedValue("proj-active");
-  anthropicCreateMock.mockReset();
-  AnthropicCtor.mockClear();
+  callAIMock.mockReset();
 });
 
 describe("POST /api/data-room/auto-fill — auth + config guards", () => {
@@ -233,7 +214,7 @@ describe("POST /api/data-room/auto-fill — auth + config guards", () => {
     const body = await res.json();
     expect(body.error).toBe("Authentication required");
     expect(spendCreditsMock).not.toHaveBeenCalled();
-    expect(anthropicCreateMock).not.toHaveBeenCalled();
+    expect(callAIMock).not.toHaveBeenCalled();
   });
 
   it("calls gateRequireFeature with the 'data_room.access' feature key", async () => {
@@ -284,7 +265,7 @@ describe("POST /api/data-room/auto-fill — credits + document lookup", () => {
     expect(body.balance).toBe(0.1);
     expect(body.cost).toBe(0.25);
     // Anthropic must not be called on a 402.
-    expect(anthropicCreateMock).not.toHaveBeenCalled();
+    expect(callAIMock).not.toHaveBeenCalled();
   });
 
   it("spends credits on the 'data_room_auto_fill' feature key with project_id + email metadata", async () => {
@@ -318,7 +299,7 @@ describe("POST /api/data-room/auto-fill — credits + document lookup", () => {
       { col: "account_id", val: "u-1" },
       { col: "data_room_id", val: "room-1" },
     ]);
-    expect(anthropicCreateMock).not.toHaveBeenCalled();
+    expect(callAIMock).not.toHaveBeenCalled();
   });
 
   it("404s (no document lookup) when the active project has no data room", async () => {
@@ -327,7 +308,7 @@ describe("POST /api/data-room/auto-fill — credits + document lookup", () => {
     const res = await POST(jsonReq({ documentId: "doc-1" }));
     expect(res.status).toBe(404);
     expect(state.fromCalls).toEqual(["data_rooms"]);
-    expect(anthropicCreateMock).not.toHaveBeenCalled();
+    expect(callAIMock).not.toHaveBeenCalled();
   });
 
   it("owner with no active project resolves the legacy (project_id IS NULL) room", async () => {
@@ -347,7 +328,7 @@ describe("POST /api/data-room/auto-fill — credits + document lookup", () => {
     queueSvi(null); // svi_accounts empty
     // shareholders (terminal thenable) → empty array response
     state.responses.push({ data: [], error: null });
-    anthropicCreateMock.mockResolvedValue(aiText("filled body"));
+    callAIMock.mockResolvedValue(aiText("filled body"));
     const res = await POST(jsonReq({ templateSlug: "one-pager" }));
     expect(res.status).toBe(200);
     expect(state.fromCalls[0]).toBe("svi_accounts");
@@ -359,7 +340,7 @@ describe("POST /api/data-room/auto-fill — credits + document lookup", () => {
 });
 
 describe("POST /api/data-room/auto-fill — AI success path", () => {
-  it("200 with AI-generated filledContent when Anthropic returns a text block", async () => {
+  it("200 with AI-generated filledContent when the restricted dispatcher returns text", async () => {
     gateMock.mockResolvedValue(gateOk(USER));
     queueDocRow({
       id: "doc-1",
@@ -374,7 +355,7 @@ describe("POST /api/data-room/auto-fill — AI success path", () => {
     state.responses.push({ data: [], error: null }); // shareholders
     state.responses.push({ data: [], error: null }); // svi_evidence
     state.responses.push({ data: null, error: null }); // update
-    anthropicCreateMock.mockResolvedValue(aiText("# Investor One-Pager\nStartup: Acme\nSVI: 720"));
+    callAIMock.mockResolvedValue(aiText("# Investor One-Pager\nStartup: Acme\nSVI: 720"));
 
     const res = await POST(jsonReq({ documentId: "doc-1" }));
     expect(res.status).toBe(200);
@@ -390,15 +371,17 @@ describe("POST /api/data-room/auto-fill — AI success path", () => {
     expect(body.wordsGenerated).toBe(
       "# Investor One-Pager\nStartup: Acme\nSVI: 720".split(/\s+/).length,
     );
-    // Anthropic constructor was instantiated once, messages.create called once.
-    expect(AnthropicCtor).toHaveBeenCalledTimes(1);
-    expect(anthropicCreateMock).toHaveBeenCalledTimes(1);
+    // Only the provider-restricted dispatcher receives customer data.
+    expect(callAIMock).toHaveBeenCalledTimes(1);
     // Model + max_tokens contract pinned so a silent drift doesn't burn credits.
-    const [params] = anthropicCreateMock.mock.calls[0];
-    expect(params.model).toBe("claude-sonnet-5");
-    expect(params.max_tokens).toBe(4096);
+    const [params] = callAIMock.mock.calls[0];
+    expect(params.providerPolicy).toBe("deepinfra-only");
+    expect(params.agentId).toBe("clo-data-room-auto-fill");
+    expect(params.userId).toBe(USER.id);
+    expect(params.taskClass).toBe("report");
+    expect(params.maxTokens).toBe(4096);
     expect(String(params.system)).toContain("Australian startup advisor");
-    expect(String((params.messages as Array<{ content: string }>)[0].content))
+    expect(String(params.user))
       .toContain("Startup Name: Acme");
   });
 
@@ -410,7 +393,7 @@ describe("POST /api/data-room/auto-fill — AI success path", () => {
     state.responses.push({ data: [], error: null }); // shareholders
     state.responses.push({ data: [], error: null }); // svi_evidence
     state.responses.push({ data: null, error: null }); // update
-    anthropicCreateMock.mockResolvedValue(aiText("done"));
+    callAIMock.mockResolvedValue(aiText("done"));
 
     const res = await POST(
       jsonReq({
@@ -419,8 +402,8 @@ describe("POST /api/data-room/auto-fill — AI success path", () => {
       }),
     );
     expect(res.status).toBe(200);
-    const [params] = anthropicCreateMock.mock.calls[0];
-    const prompt = String((params.messages as Array<{ content: string }>)[0].content);
+    const [params] = callAIMock.mock.calls[0];
+    const prompt = String(params.user);
     expect(prompt).toContain("Startup Name: OverrideCo");
     expect(prompt).toContain("SVI Score: 850/1000");
     // Stage 4 → "Growth" per the stageNames map in the route.
@@ -429,17 +412,17 @@ describe("POST /api/data-room/auto-fill — AI success path", () => {
     expect(body.startupName).toBe("OverrideCo");
   });
 
-  it("returns 'Failed to generate content' when Anthropic responds with a non-text first content block", async () => {
+  it("uses the existing template fallback when the dispatcher returns no text", async () => {
     gateMock.mockResolvedValue(gateOk(USER));
     queueDocRow({ id: "doc-1", document_name: "X", template_content: "T", account_id: "u-1" });
     queueSvi(null);
     state.responses.push({ data: [], error: null }); // shareholders
     state.responses.push({ data: null, error: null }); // update
-    anthropicCreateMock.mockResolvedValue({ content: [{ type: "tool_use" }] });
+    callAIMock.mockResolvedValue({ text: "" });
     const res = await POST(jsonReq({ documentId: "doc-1" }));
     expect(res.status).toBe(200);
     const body = await res.json();
-    expect(body.filledContent).toBe("Failed to generate content");
+    expect(body.filledContent).toBe("T");
   });
 
   it("persists filled content back to data_room_documents.status='complete' with account_id + id filters", async () => {
@@ -448,7 +431,7 @@ describe("POST /api/data-room/auto-fill — AI success path", () => {
     queueSvi(null);
     state.responses.push({ data: [], error: null }); // shareholders
     state.responses.push({ data: null, error: null }); // update
-    anthropicCreateMock.mockResolvedValue(aiText("filled body here"));
+    callAIMock.mockResolvedValue(aiText("filled body here"));
 
     const res = await POST(jsonReq({ documentId: "doc-1" }));
     expect(res.status).toBe(200);
@@ -469,7 +452,7 @@ describe("POST /api/data-room/auto-fill — AI success path", () => {
 });
 
 describe("POST /api/data-room/auto-fill — AI failure fallback", () => {
-  it("falls back to the [VARIABLE_NAME] placeholder map when Anthropic throws", async () => {
+  it("falls back to the [VARIABLE_NAME] placeholder map when the dispatcher throws", async () => {
     gateMock.mockResolvedValue(gateOk(USER));
     queueDocRow({
       id: "doc-1",
@@ -482,7 +465,7 @@ describe("POST /api/data-room/auto-fill — AI failure fallback", () => {
     state.responses.push({ data: [], error: null }); // shareholders
     state.responses.push({ data: [], error: null }); // svi_evidence
     state.responses.push({ data: null, error: null }); // update
-    anthropicCreateMock.mockRejectedValue(new Error("network unreachable"));
+    callAIMock.mockRejectedValue(new Error("network unreachable"));
     // Silence the console.error the route emits on the AI failure path.
     const err = vi.spyOn(console, "error").mockImplementation(() => {});
 
@@ -508,12 +491,12 @@ describe("POST /api/data-room/auto-fill — AI failure fallback", () => {
     queueSvi(null);
     state.responses.push({ data: [], error: null }); // shareholders
     state.responses.push({ data: null, error: null }); // update
-    anthropicCreateMock.mockResolvedValue(aiText("generated"));
+    callAIMock.mockResolvedValue(aiText("generated"));
 
     const res = await POST(jsonReq({ documentId: "doc-1" }));
     expect(res.status).toBe(200);
-    const [params] = anthropicCreateMock.mock.calls[0];
-    const prompt = String((params.messages as Array<{ content: string }>)[0].content);
+    const [params] = callAIMock.mock.calls[0];
+    const prompt = String(params.user);
     // Synthesised fallback should mention the document_name so the founder
     // can tell what got filled from the AI's perspective.
     expect(prompt).toContain("Blank Doc");
@@ -549,7 +532,7 @@ describe("POST /api/data-room/auto-fill — S18-A member access", () => {
     state.responses.push({ data: [], error: null }); // shareholders
     state.responses.push({ data: [], error: null }); // svi_evidence
     state.responses.push({ data: null, error: null }); // update
-    anthropicCreateMock.mockResolvedValue(aiText("done"));
+    callAIMock.mockResolvedValue(aiText("done"));
 
     const res = await POST(jsonReq({ documentId: "doc-1" }));
     expect(res.status).toBe(200);
@@ -576,7 +559,7 @@ describe("POST /api/data-room/auto-fill — S18-A member access", () => {
     expect(state.eqCalls).toContainEqual({ col: "user_id", val: "owner-1" });
     expect(state.eqCalls).toContainEqual({ col: "project_id", val: "proj-A" });
     expect(state.eqCalls).toContainEqual({ col: "data_room_id", val: "room-A" });
-    expect(anthropicCreateMock).not.toHaveBeenCalled();
+    expect(callAIMock).not.toHaveBeenCalled();
     expect(state.updatePayload).toBeNull();
   });
 
@@ -589,6 +572,6 @@ describe("POST /api/data-room/auto-fill — S18-A member access", () => {
     );
     const res = await POST(jsonReq({ documentId: "doc-1" }));
     expect(res.status).toBe(404);
-    expect(anthropicCreateMock).not.toHaveBeenCalled();
+    expect(callAIMock).not.toHaveBeenCalled();
   });
 });

@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import crypto from "crypto";
 import { getCurrentUser } from "@/lib/auth";
+import { projectScopeOrRedirect } from "@/lib/project-members/http";
+import { createStripeOAuthState, STRIPE_STATE_COOKIE, STRIPE_STATE_TTL_SECONDS } from "@/lib/connectors/stripe-oauth-state";
 
 export const dynamic = "force-dynamic";
 
@@ -34,13 +35,21 @@ export async function GET(request: Request) {
     );
   }
 
-  const state = crypto.randomBytes(24).toString("base64url");
+  const { scope, denied } = await projectScopeOrRedirect("admin", `${baseUrl()}/workspace/evidence/connectors`, "stripe_forbidden_role");
+  if (denied) return denied;
+  let grant: ReturnType<typeof createStripeOAuthState>;
+  try {
+    grant = createStripeOAuthState({ userId: user.id, projectId: scope?.projectId ?? null, ownerUserId: scope?.ownerUserId ?? user.id });
+  } catch {
+    return NextResponse.redirect(`${baseUrl()}/workspace/evidence/connectors?error=stripe_not_configured`);
+  }
+  const { state } = grant;
   const store = await cookies();
-  store.set("blockid_stripe_state", state, {
+  store.set(STRIPE_STATE_COOKIE, grant.cookie, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    maxAge: 600,
+    maxAge: STRIPE_STATE_TTL_SECONDS,
     path: "/",
   });
 

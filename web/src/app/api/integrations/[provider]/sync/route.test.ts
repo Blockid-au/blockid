@@ -34,7 +34,9 @@ vi.mock("@/lib/oauth-connectors", () => ({
 vi.mock("@/lib/oauth-github-signals", () => ({
   fetchGithubSignals: async () => ({ recentCommits30d: 5, publicRepos: 2, topLanguage: "ts", primaryRepoName: "app", primaryRepoStars: 1 }),
 }));
-vi.mock("@/lib/oauth-stripe-signals", () => ({ fetchStripeSignals: async () => ({}) }));
+const stripe = vi.hoisted(() => ({ fetch: vi.fn(), snapshot: vi.fn() }));
+vi.mock("@/lib/oauth-stripe-signals", () => ({ fetchStripeConnectMetrics: stripe.fetch }));
+vi.mock("@/lib/connectors/snapshots", () => ({ insertConnectorSnapshot: stripe.snapshot }));
 const ga4 = vi.hoisted(() => ({ rich: vi.fn(async () => ({ windowDays: 90, sessions: 1, topChannels: [], funnel: {} })), snapshots: [] as unknown[] }));
 vi.mock("@/lib/oauth-ga4-signals", () => ({
   fetchGa4Signals: async () => ({}),
@@ -121,5 +123,34 @@ describe("POST /api/integrations/ga4/sync — S-R5 rich snapshot", () => {
     expect(res.status).toBe(200);
     expect(ga4.snapshots).toEqual([]);
     expect(conn.markSynced).toHaveBeenCalledWith("conn-1");
+  });
+});
+
+
+describe("Stripe manual sync source boundary", () => {
+  const runStripe = () => POST(new Request("http://x/api/integrations/stripe/sync", { method: "POST" }), { params: Promise.resolve({ provider: "stripe" }) });
+  beforeEach(() => {
+    conn.getConnection.mockResolvedValue({ id: "conn-1", status: "active", accessToken: "t", providerAccountId: "acct_bound", metadata: { livemode: true } });
+    stripe.fetch.mockReset().mockResolvedValue({ sourceObservation: { eligibleForValuation: false } });
+    stripe.snapshot.mockReset().mockResolvedValue({ id: "snapshot" });
+  });
+  it("binds the account and persists an observation without scoring signals", async () => {
+    scopeState.role = "editor";
+    expect((await runStripe()).status).toBe(200);
+    expect(stripe.fetch).toHaveBeenCalledWith("t", { sourceAccountId: "acct_bound", livemode: true });
+    expect(stripe.snapshot).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ userId: "user-owner", projectId: "proj-1", provider: "stripe", source: "resync" }));
+    expect(conn.writeSignals).not.toHaveBeenCalled();
+  });
+  it("does not record a successful sync if persistence fails", async () => {
+    stripe.snapshot.mockResolvedValue(null);
+    expect((await runStripe()).status).toBe(502);
+    expect(conn.markSynced).toHaveBeenCalledWith("conn-1", "stripe_snapshot_write_failed");
+    expect(conn.writeSignals).not.toHaveBeenCalled();
+  });
+  it("does not persist partial results on a rejected source", async () => {
+    stripe.fetch.mockRejectedValue(new Error("invalid_binding"));
+    expect((await runStripe()).status).toBe(502);
+    expect(stripe.snapshot).not.toHaveBeenCalled();
+    expect(conn.writeSignals).not.toHaveBeenCalled();
   });
 });

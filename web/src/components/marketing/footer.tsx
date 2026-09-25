@@ -34,6 +34,7 @@ import { Logo } from "@/components/brand/logo";
 import { PartnerFooterRow } from "@/components/marketing/partner-footer-row";
 import { FOOTER_COLUMNS } from "@/components/marketing/footer-columns";
 import { LEGAL_ENTITY, marketingLine } from "@/lib/site/legal-entity";
+import { CloudflareEmailOffEnd, CloudflareEmailOffStart } from "@/components/site/cloudflare-email-off";
 import versionData from "../../../content/reports/version.json";
 
 function readVersionString(): string | null {
@@ -132,12 +133,17 @@ export function Footer() {
       <div className="border-t border-line-subtle">
         <div className="mx-auto flex max-w-6xl flex-col gap-3 px-6 py-5 text-xs text-secondary sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
           <p className="flex flex-wrap items-center gap-x-4 gap-y-1">
+            {/* The footer can arrive in a late Suspense segment after the root
+                email_off closing marker. Keep the opt-out with the mail link
+                in its own streamed segment, including its href attribute. */}
+            <CloudflareEmailOffStart />
             <a
               href="mailto:admin@blockid.au"
               className="inline-flex min-h-11 items-center rounded-md text-action underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
             >
               admin@blockid.au
             </a>
+            <CloudflareEmailOffEnd />
             <span>Mon&ndash;Fri 9:00&ndash;18:00 AEST</span>
             <span className="inline-flex items-center rounded-full border border-line-subtle px-2 py-0.5 text-xs uppercase tracking-[0.14em] text-secondary">
               AU-based support

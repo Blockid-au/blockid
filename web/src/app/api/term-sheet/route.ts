@@ -109,6 +109,7 @@ async function POST_handler(request: Request) {
 
   try {
     const result = await analyzeTermSheet({
+      userId: user.id,
       termSheet,
       capTable: capTable ?? null,
       round: round ?? null,

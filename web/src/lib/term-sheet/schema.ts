@@ -1,9 +1,9 @@
 /**
  * Term Sheet AI — output schema (v2).
  *
- * Defines the strict Zod shape that Claude Sonnet 4.6 must return for every
- * pasted term sheet. We pass this schema to `client.messages.parse()` so the
- * SDK validates the JSON for us — no manual JSON.parse + try/catch.
+ * Defines the strict Zod shape required from the admitted DeepInfra model.
+ * The analyzer supplies its JSON schema in the prompt and validates decoded
+ * output locally before permitting a live result.
  *
  * All numeric `keyTerms` fields are nullable so the model can leave unknowns
  * blank rather than hallucinate a value. Severity / verdict fields are

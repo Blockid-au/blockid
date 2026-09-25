@@ -2,11 +2,11 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { projectScopeOrRedirect } from "@/lib/project-members/http";
-import { saveConnection, writeSignals, markSynced } from "@/lib/oauth-connectors";
-import { fetchStripeSignals } from "@/lib/oauth-stripe-signals";
-import { emitConnectorEvidence } from "@/lib/connectors/connector-evidence";
+import { saveConnection, markSynced } from "@/lib/oauth-connectors";
+import { fetchStripeConnectMetrics } from "@/lib/oauth-stripe-signals";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { insertConnectorSnapshot } from "@/lib/connectors/snapshots";
+import { STRIPE_STATE_COOKIE, verifyStripeOAuthState } from "@/lib/connectors/stripe-oauth-state";
 
 export const dynamic = "force-dynamic";
 
@@ -41,8 +41,8 @@ export async function GET(request: Request) {
   const errorParam = url.searchParams.get("error");
 
   const store = await cookies();
-  const expected = store.get("blockid_stripe_state")?.value;
-  store.delete("blockid_stripe_state");
+  const expected = store.get(STRIPE_STATE_COOKIE)?.value;
+  store.delete(STRIPE_STATE_COOKIE);
 
   if (errorParam) {
     return NextResponse.redirect(
@@ -50,7 +50,7 @@ export async function GET(request: Request) {
     );
   }
 
-  if (!code || !state || !expected || state !== expected) {
+  if (!code || !state || !expected) {
     return NextResponse.redirect(
       `${baseUrl()}/workspace/evidence/connectors?error=stripe_state_mismatch`,
     );
@@ -66,6 +66,9 @@ export async function GET(request: Request) {
   if (denied) return denied;
   const projectId = scope?.projectId ?? null;
   const signalsUserId = scope?.ownerUserId ?? user.id;
+  if (!verifyStripeOAuthState(expected, state, { userId: user.id, projectId, ownerUserId: signalsUserId })) {
+    return NextResponse.redirect(`${baseUrl()}/workspace/evidence/connectors?error=stripe_state_mismatch`);
+  }
 
   const clientSecret =
     process.env.STRIPE_OAUTH_CLIENT_SECRET ??
@@ -89,8 +92,8 @@ export async function GET(request: Request) {
       body: body.toString(),
     });
     const tokenJson = (await tokenRes.json()) as StripeTokenResponse;
-    if (!tokenJson.access_token || !tokenJson.stripe_user_id) {
-      throw new Error(tokenJson.error_description ?? "no_access_token");
+    if (!tokenRes.ok || !tokenJson.access_token || !tokenJson.stripe_user_id) {
+      throw new Error("stripe_token_exchange_failed");
     }
 
     const conn = await saveConnection({
@@ -106,36 +109,24 @@ export async function GET(request: Request) {
         livemode: tokenJson.livemode ?? false,
       },
     });
+    if (!conn) throw new Error("stripe_connection_write_failed");
 
     try {
-      const signals = await fetchStripeSignals(tokenJson.access_token);
-      await writeSignals(signalsUserId, projectId, "stripe", [
-        { key: "mrr_aud", numeric: signals.mrrAud },
-        { key: "active_customers", numeric: signals.activeCustomers },
-        { key: "recent_payments_30d", numeric: signals.recentPayments30d },
-        { key: "average_order_aud", numeric: signals.averageOrderAud },
-      ]);
-      // S25-A — first dated snapshot (growth baseline for the weekly resync).
+      const signals = await fetchStripeConnectMetrics(tokenJson.access_token, {
+        sourceAccountId: tokenJson.stripe_user_id, livemode: tokenJson.livemode === true,
+      });
+      // Observation only: subscription counts do not prove paying customers,
+      // and contract run-rate is not yet admitted as valuation/score evidence.
       const db = getSupabaseAdmin();
-      if (db) {
-        await insertConnectorSnapshot(db, {
+      if (!db) throw new Error("stripe_snapshot_unavailable");
+      const snapshot = await insertConnectorSnapshot(db, {
           userId: signalsUserId,
           projectId,
           provider: "stripe",
-          metrics: {
-            mrrAud: signals.mrrAud,
-            arrAud: Math.round(signals.mrrAud * 12 * 100) / 100,
-            activeSubscriptions: 0,
-            activeCustomers: signals.activeCustomers,
-            churnedSubscriptions90d: 0,
-            churnRate90dPct: null,
-            currency: "aud",
-          },
+          metrics: signals,
           source: "callback",
-        });
-      }
-      // G21 P3-C — the pull as EvidenceRecords on the claim register (fail-soft).
-      await emitConnectorEvidence({ projectId, input: { provider: "stripe", metrics: signals }, actorUserId: user.id });
+      });
+      if (!snapshot) throw new Error("stripe_snapshot_write_failed");
       if (conn) await markSynced(conn.id);
     } catch (err) {
       if (conn) await markSynced(conn.id, (err as Error).message);

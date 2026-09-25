@@ -3,8 +3,8 @@
  *
  * Generates a 3-year P&L + cash-burn + runway schedule for the Startup
  * Package "Financial projection" deliverable. Deterministic math for the
- * number tables, `callAI()` for the narrative sections (assumptions,
- * commentary, investor takeaways). Falls back to a template narrative on
+ * number tables, `callAI()` to select approved narrative references (assumptions,
+ * commentary, investor takeaways). Only deterministic sentences render. Falls back on
  * LLM failure so the PDF always renders.
  *
  * Roadmap: "Financial projection + GTM auto-fill deliverables (dedicated
@@ -124,9 +124,9 @@ const SOURCES = [
 ];
 
 const CFO_SYSTEM_PROMPT =
-  "You are the CFO agent for BlockID.au. You explain 3-year P&L projections " +
-  "to Australian founders in clear, conservative language. Ground every claim " +
-  "in the numbers provided. No emoji, no hype, plain business English.";
+  "You are the CFO agent for BlockID.au. Select the most relevant approved " +
+  "reference IDs for an Australian founder's projection narrative. Return only " +
+  "the required JSON arrays. Never write prose, numbers, new IDs or changed facts.";
 
 // ── Math ─────────────────────────────────────────────────────────────────
 
@@ -225,55 +225,71 @@ function buildSchedule(
 
 // ── Narrative (LLM + fallback) ───────────────────────────────────────────
 
-function templateNarrative(
+type Narrative = FinancialProjectionOutput["narrative"];
+type NarrativeCatalog = Record<keyof Narrative, Record<string, string>>;
+
+/** Complete sentences keep each value bound to its metric, unit and period.
+ * AI selects references only; no generated prose reaches the report.
+ */
+function narrativeCatalog(
   input: FinancialProjectionInput,
   totals: FinancialProjectionOutput["totals"],
   assumptions: FinancialProjectionOutput["assumptions"],
-): FinancialProjectionOutput["narrative"] {
-  const sector = input.sector ?? "startup";
+): NarrativeCatalog {
+  const aud = (value: number) => `A$${value.toLocaleString("en-AU", { maximumFractionDigits: 20 })}`;
+  const netBurn = assumptions.monthlyBurn - assumptions.startingMrr * assumptions.grossMarginPct / 100;
+  const runway = netBurn <= 0
+    ? "Starting monthly gross profit covers monthly opex, so no finite runway is calculated at that unchanged rate. This does not guarantee future cash sufficiency."
+    : `At starting net monthly burn, cash covers ${totals.runwayMonths === 999 ? "at least " : ""}${totals.runwayMonths} months; this static estimate excludes subsequent growth and opex changes.`;
   return {
-    assumptions:
-      `Assumes ${assumptions.monthlyGrowthPct.toFixed(1)}% MoM revenue growth, ` +
-      `${assumptions.grossMarginPct.toFixed(0)}% gross margin, A$${assumptions.monthlyBurn.toLocaleString()} ` +
-      `monthly opex growing ${assumptions.quarterlyOpexGrowthPct.toFixed(0)}% per quarter, ` +
-      `starting from A$${assumptions.startingMrr.toLocaleString()} MRR and A$${assumptions.startingCash.toLocaleString()} in the bank.`,
-    commentary:
-      `${input.startupName} projects A$${totals.revenueY1.toLocaleString()} in Year 1 revenue, ` +
-      `growing to A$${totals.revenueY3.toLocaleString()} by Year 3. Year 1 net result is A$${totals.netY1.toLocaleString()}; ` +
-      `Year 3 net is A$${totals.netY3.toLocaleString()}. At the stated burn the founder has ` +
-      `${totals.runwayMonths} months of runway before a raise is required.`,
-    investorTakeaway:
-      `For a ${input.stage} ${sector} in Australia, the projection reflects sector-standard ` +
-      `growth assumptions and a conservative opex ramp. Investors will stress-test the growth ` +
-      `assumption first — be ready with a bottoms-up build for at least one Y1 quarter.`,
+    assumptions: {
+      growth: `The model assumes ${assumptions.monthlyGrowthPct}% monthly revenue growth and ${assumptions.grossMarginPct}% gross margin.`,
+      costs: `Monthly opex starts at ${aud(assumptions.monthlyBurn)} and grows ${assumptions.quarterlyOpexGrowthPct}% per quarter.`,
+      opening: `Starting MRR is ${aud(assumptions.startingMrr)} and starting cash is ${aud(assumptions.startingCash)}.`,
+    },
+    commentary: {
+      revenue: `${input.startupName} has projected revenue of ${aud(totals.revenueY1)} in Year 1, ${aud(totals.revenueY2)} in Year 2 and ${aud(totals.revenueY3)} in Year 3.`,
+      net: `Projected net results are ${aud(totals.netY1)} in Year 1, ${aud(totals.netY2)} in Year 2 and ${aud(totals.netY3)} in Year 3.`,
+      runway,
+    },
+    investorTakeaway: {
+      assumptions: "These are conditional model outputs, not verified forecasts. Validate the growth, margin and expense assumptions against operating evidence.",
+      cash: "Review the quarterly cash balances and funding needs under downside assumptions before making a financing decision.",
+    },
   };
+}
+
+function renderReferences(parsed: unknown, catalog: NarrativeCatalog): Narrative | null {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+  const sections = Object.keys(catalog) as (keyof Narrative)[];
+  if (Object.keys(parsed).length !== sections.length) return null;
+  const result = {} as Narrative;
+  for (const section of sections) {
+    const ids = (parsed as Record<string, unknown>)[section];
+    if (!Array.isArray(ids) || ids.length === 0 || ids.length > Object.keys(catalog[section]).length) return null;
+    if (new Set(ids).size !== ids.length) return null;
+    if (!ids.every((id): id is string => typeof id === "string" && Object.hasOwn(catalog[section], id))) return null;
+    result[section] = ids.map(id => catalog[section][id]).join(" ");
+  }
+  return result;
 }
 
 async function llmNarrative(
   input: FinancialProjectionInput,
   totals: FinancialProjectionOutput["totals"],
   assumptions: FinancialProjectionOutput["assumptions"],
-): Promise<FinancialProjectionOutput["narrative"]> {
+): Promise<Narrative> {
+  const catalog = narrativeCatalog(input, totals, assumptions);
+  const fallback = Object.fromEntries(
+    Object.entries(catalog).map(([section, references]) => [section, Object.values(references).join(" ")]),
+  ) as Narrative;
   const user =
-    `Startup: ${input.startupName}\n` +
     `Stage: ${input.stage}\n` +
-    (input.sector ? `Sector: ${input.sector}\n` : "") +
-    `\nAssumptions:\n` +
-    `- Starting MRR: A$${assumptions.startingMrr.toLocaleString()}\n` +
-    `- Monthly growth: ${assumptions.monthlyGrowthPct.toFixed(1)}%\n` +
-    `- Gross margin: ${assumptions.grossMarginPct.toFixed(0)}%\n` +
-    `- Monthly opex: A$${assumptions.monthlyBurn.toLocaleString()} (+${assumptions.quarterlyOpexGrowthPct.toFixed(0)}%/qtr)\n` +
-    `- Starting cash: A$${assumptions.startingCash.toLocaleString()}\n` +
-    `\n3-year totals:\n` +
-    `- Y1 revenue: A$${totals.revenueY1.toLocaleString()}\n` +
-    `- Y2 revenue: A$${totals.revenueY2.toLocaleString()}\n` +
-    `- Y3 revenue: A$${totals.revenueY3.toLocaleString()}\n` +
-    `- Runway from t0: ${totals.runwayMonths} months\n` +
-    `\nReturn a JSON object with three string keys:\n` +
-    `- assumptions: one paragraph, ≤ 500 chars, restating the key assumptions.\n` +
-    `- commentary: one paragraph, ≤ 800 chars, explaining what the numbers mean.\n` +
-    `- investorTakeaway: one paragraph, ≤ 600 chars, framing the story for an AU investor.\n` +
-    `JSON only.`;
+    `Approved references by section:\n${JSON.stringify(catalog)}\n` +
+    `Return a JSON object with exactly assumptions, commentary and investorTakeaway. ` +
+    `Each value must be a non-empty array of unique reference IDs from that section. ` +
+    `Select only relevant references; do not change their meaning. No prose or extra fields. ` +
+    `Example: {"assumptions":["growth","opening"],"commentary":["revenue","runway"],"investorTakeaway":["assumptions"]}`;
 
   try {
     const result = await callAI({
@@ -283,25 +299,9 @@ async function llmNarrative(
       maxTokens: 1500,
       temperature: 0.3,
     });
-    // Attempt JSON extraction.
-    const raw = result.text.trim();
-    const match = raw.match(/\{[\s\S]*\}/);
-    if (!match) return templateNarrative(input, totals, assumptions);
-    const parsed = JSON.parse(match[0]) as Partial<FinancialProjectionOutput["narrative"]>;
-    if (
-      typeof parsed.assumptions !== "string" ||
-      typeof parsed.commentary !== "string" ||
-      typeof parsed.investorTakeaway !== "string"
-    ) {
-      return templateNarrative(input, totals, assumptions);
-    }
-    return {
-      assumptions: parsed.assumptions.slice(0, 800),
-      commentary: parsed.commentary.slice(0, 1200),
-      investorTakeaway: parsed.investorTakeaway.slice(0, 900),
-    };
+    return renderReferences(JSON.parse(result.text.trim()), catalog) ?? fallback;
   } catch {
-    return templateNarrative(input, totals, assumptions);
+    return fallback;
   }
 }
 

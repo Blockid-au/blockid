@@ -18,7 +18,7 @@ import { gateRequireFeature } from "@/lib/feature-gate";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { spendCredits } from "@/lib/credits";
 import { projectScopeOrDeny } from "@/lib/project-members/http";
-import Anthropic from "@anthropic-ai/sdk";
+import { callAI } from "@/lib/ai-client";
 import { apiRoute } from "@/lib/audit/api-route";
 
 export const dynamic = "force-dynamic";
@@ -257,23 +257,21 @@ Replace ALL [VARIABLE_NAME] placeholders with real data from the startup context
 If a value isn't available, write "[NEEDS UPDATE: description of what's needed]".
 Return ONLY the filled document in Markdown format.`;
 
-  // ── Call Claude AI ─────────────────────────────────────────────────────
+  // Customer document generation uses the same admitted DeepInfra policy as C-level reports.
   let filledContent: string;
 
   try {
-    const anthropic = new Anthropic();
-    const response = await anthropic.messages.create({
-      model: "claude-sonnet-5",
-      max_tokens: 4096,
-      messages: [{ role: "user", content: userPrompt }],
+    const response = await callAI({
+      providerPolicy: "deepinfra-only",
+      agentId: "clo-data-room-auto-fill",
+      userId: user.id,
+      taskClass: "report",
+      maxTokens: 4096,
       system: systemPrompt,
+      user: userPrompt,
     });
-
-    const firstContent = response.content[0];
-    filledContent =
-      firstContent.type === "text"
-        ? firstContent.text
-        : "Failed to generate content";
+    if (!response.text?.trim()) throw new Error("Empty document generation response");
+    filledContent = response.text;
   } catch (aiErr) {
     console.error("AI auto-fill error:", aiErr);
     // Fall back to contextual placeholder content

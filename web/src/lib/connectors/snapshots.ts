@@ -45,7 +45,7 @@ function num(v: unknown): number | null {
 /** Provider-normalised MRR (AUD) for a snapshot; null when unusable. */
 export function snapshotMrrAud(row: Pick<ConnectorSnapshotRow, "provider" | "metrics">): number | null {
   const m = row.metrics ?? {};
-  if (row.provider === "stripe") return num(m.mrrAud);
+  if (row.provider === "stripe") return "sourceObservation" in m ? null : num(m.mrrAud);
   if (row.provider === "xero") {
     const income = num(m.totalIncomeAud);
     const months = num(m.windowMonths) ?? 3;
@@ -159,7 +159,11 @@ export async function insertConnectorSnapshot(db: Db, args: InsertSnapshotArgs):
         project_id: args.projectId,
         provider: args.provider,
         taken_at: args.takenAt ?? new Date().toISOString(),
-        metrics: args.metrics as unknown as Record<string, unknown>,
+        // Do not expose unqualified contract run-rate through legacy mrrAud
+        // readers. Keep the complete, explicitly labelled observation only.
+        metrics: args.provider === "stripe" && "sourceObservation" in args.metrics
+          ? { sourceObservation: args.metrics.sourceObservation }
+          : args.metrics as unknown as Record<string, unknown>,
         source: args.source,
       })
       .select("id, user_id, project_id, provider, taken_at, metrics, source")

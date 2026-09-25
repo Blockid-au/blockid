@@ -1,20 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-// ---------------------------------------------------------------------------
-// Term Sheet AI — analyzeTermSheet() branch tests.
-//
-// This file was previously untested; the sibling `demo.ts`, `schema.ts`, and
-// `au-market-data.ts` had colocated tests but the actual analyze pipeline
-// (Anthropic parse call, prompt-cache breakpoint, dilution passthrough,
-// degrade-to-demo error ladder) was not covered.
-//
-// The tests below pin (a) the credential-gate + demo fallback contract,
-// (b) the exact system-block shape the prompt cache depends on
-// (2 blocks, only the AU reference block cached with 1h TTL), (c) the
-// dilution passthrough branch matrix, and (d) every error path in the
-// try/catch ladder so a silent widening of the parse contract or a rename
-// of an Anthropic error class can never let the /tools/term-sheet UI 500.
-// ---------------------------------------------------------------------------
+// Pin the customer provider boundary, schema validation, deterministic
+// dilution passthrough, token usage and explicitly labelled demo fallback.
 
 const mocks = vi.hoisted(() => {
   class MockAPIError extends Error {
@@ -31,32 +18,14 @@ const mocks = vi.hoisted(() => {
       this.name = "RateLimitError";
     }
   }
-  const AnthropicMock = function AnthropicMockCtor() {} as unknown as {
-    APIError: typeof MockAPIError;
-    RateLimitError: typeof MockRateLimitError;
-  };
-  AnthropicMock.APIError = MockAPIError;
-  AnthropicMock.RateLimitError = MockRateLimitError;
-  return { AnthropicMock, MockAPIError, MockRateLimitError };
+  return { MockAPIError, MockRateLimitError };
 });
-
-vi.mock("@anthropic-ai/sdk", () => ({
-  default: mocks.AnthropicMock,
-}));
-
-vi.mock("@anthropic-ai/sdk/helpers/zod", () => ({
-  zodOutputFormat: (schema: unknown) => ({ __zodOutputFormat: true, schema }),
-}));
 
 const parseMock = vi.fn();
 const isConfiguredMock = vi.fn();
-const getClientMock = vi.fn(() => ({
-  messages: { parse: (opts: unknown) => parseMock(opts) },
-}));
-
 vi.mock("@/lib/ai-client", () => ({
-  isAnthropicConfigured: () => isConfiguredMock(),
-  getAnthropicClient: () => getClientMock(),
+  isAIConfigured: () => isConfiguredMock(),
+  callAI: (opts: unknown) => parseMock(opts),
 }));
 
 import { analyzeTermSheet } from "./analyze";
@@ -83,8 +52,8 @@ function makeUsage(over: Partial<Record<string, number>> = {}) {
 function makeParseResponse(over: Partial<Record<string, unknown>> = {}) {
   return {
     usage: makeUsage(),
-    parsed_output: makeAnalysis(),
     ...over,
+    text: JSON.stringify("parsed_output" in over ? over.parsed_output : makeAnalysis()),
   };
 }
 
@@ -104,13 +73,12 @@ const round: Round = {
 beforeEach(() => {
   parseMock.mockReset();
   isConfiguredMock.mockReset();
-  getClientMock.mockClear();
 });
 
 // ── Demo fallback (no credentials) ─────────────────────────────────────
 
 describe("analyzeTermSheet — credential gate", () => {
-  it("returns DEMO_ANALYSIS with mode='demo' when Anthropic is not configured", async () => {
+  it("returns DEMO_ANALYSIS with mode='demo' when no AI is configured", async () => {
     isConfiguredMock.mockReturnValue(false);
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
 
@@ -120,8 +88,7 @@ describe("analyzeTermSheet — credential gate", () => {
     expect(result.mode).toBe("demo");
     expect(result.usage).toBeUndefined();
     expect(parseMock).not.toHaveBeenCalled();
-    expect(getClientMock).not.toHaveBeenCalled();
-    expect(warn).toHaveBeenCalledWith(expect.stringContaining("No Anthropic credentials"));
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("No AI credentials"));
 
     warn.mockRestore();
   });
@@ -196,49 +163,32 @@ describe("analyzeTermSheet — dilution passthrough", () => {
   });
 });
 
-// ── Live-mode wiring (system blocks / model config / cache breakpoint) ──
+// ── Live-mode dispatcher and schema contract ──
 
-describe("analyzeTermSheet — live-mode Anthropic invocation", () => {
+describe("analyzeTermSheet — live-mode dispatcher invocation", () => {
   beforeEach(() => {
     isConfiguredMock.mockReturnValue(true);
     vi.spyOn(console, "log").mockImplementation(() => {});
   });
 
-  it("invokes client.messages.parse exactly once with the pinned model + max_tokens + adaptive thinking + medium effort", async () => {
+  it("invokes the restricted dispatcher once with the existing output budget", async () => {
     parseMock.mockResolvedValue(makeParseResponse());
-
-    await analyzeTermSheet({ termSheet: "hello" });
-
+    await analyzeTermSheet({ termSheet: "hello", userId: "user-ledger-1" });
     expect(parseMock).toHaveBeenCalledTimes(1);
-    const call = parseMock.mock.calls[0][0] as {
-      model: string;
-      max_tokens: number;
-      thinking: { type: string };
-      output_config: { effort: string; format: unknown };
-    };
-    expect(call.model).toBe("claude-sonnet-5");
-    expect(call.max_tokens).toBe(8192);
-    expect(call.thinking).toEqual({ type: "adaptive" });
-    expect(call.output_config.effort).toBe("medium");
-    expect(call.output_config.format).toMatchObject({ __zodOutputFormat: true });
+    expect(parseMock.mock.calls[0][0]).toMatchObject({ providerPolicy: "deepinfra-only", agentId: "clo-term-sheet", userId: "user-ledger-1", taskClass: "report", maxTokens: 8192 });
+    expect(parseMock.mock.calls[0][0]).not.toHaveProperty("model");
   });
 
-  it("emits system as exactly two text blocks with cache_control only on the AU reference block", async () => {
+  it("preserves the AU reference and supplies the complete output schema without assuming cache discounts", async () => {
     parseMock.mockResolvedValue(makeParseResponse());
-
     await analyzeTermSheet({ termSheet: "hello" });
-
-    const call = parseMock.mock.calls[0][0] as {
-      system: Array<{ type: string; text: string; cache_control?: unknown }>;
-    };
-    expect(call.system).toHaveLength(2);
-    expect(call.system[0].type).toBe("text");
-    expect(call.system[0].cache_control).toBeUndefined();
-    expect(call.system[0].text).toContain("senior Australian startup lawyer");
-    expect(call.system[1].type).toBe("text");
-    expect(call.system[1].text).toContain(AU_MARKET_REFERENCE);
-    expect(call.system[1].text.startsWith("# Australian Private Capital Market")).toBe(true);
-    expect(call.system[1].cache_control).toEqual({ type: "ephemeral", ttl: "1h" });
+    const call = parseMock.mock.calls[0][0];
+    expect(call.system).toContain("senior Australian startup lawyer");
+    expect(call.system).toContain(AU_MARKET_REFERENCE);
+    const schema = JSON.parse(call.system.split("Required JSON schema:\n")[1]);
+    expect(schema.properties).toHaveProperty("keyTerms");
+    expect(schema.properties).toHaveProperty("redline");
+    expect(call).not.toHaveProperty("cache_control");
   });
 
   it("wraps the pasted term sheet between BEGIN / END markers in the user message", async () => {
@@ -247,13 +197,11 @@ describe("analyzeTermSheet — live-mode Anthropic invocation", () => {
     await analyzeTermSheet({ termSheet: "MYSHEET-BODY" });
 
     const call = parseMock.mock.calls[0][0] as {
-      messages: Array<{ role: string; content: string }>;
+      user: string;
     };
-    expect(call.messages).toHaveLength(1);
-    expect(call.messages[0].role).toBe("user");
-    expect(call.messages[0].content).toContain("--- TERM SHEET BEGIN ---");
-    expect(call.messages[0].content).toContain("MYSHEET-BODY");
-    expect(call.messages[0].content).toContain("--- TERM SHEET END ---");
+    expect(call.user).toContain("--- TERM SHEET BEGIN ---");
+    expect(call.user).toContain("MYSHEET-BODY");
+    expect(call.user).toContain("--- TERM SHEET END ---");
   });
 
   it("omits the dilution-context clause when no cap table is provided", async () => {
@@ -262,9 +210,9 @@ describe("analyzeTermSheet — live-mode Anthropic invocation", () => {
     await analyzeTermSheet({ termSheet: "hello" });
 
     const call = parseMock.mock.calls[0][0] as {
-      messages: Array<{ role: string; content: string }>;
+      user: string;
     };
-    expect(call.messages[0].content).not.toContain("Cap table provided");
+    expect(call.user).not.toContain("Cap table provided");
   });
 
   it("appends the dilution-context clause when cap table + round are supplied", async () => {
@@ -273,21 +221,21 @@ describe("analyzeTermSheet — live-mode Anthropic invocation", () => {
     const r = await analyzeTermSheet({ termSheet: "hello", capTable, round });
 
     const call = parseMock.mock.calls[0][0] as {
-      messages: Array<{ role: string; content: string }>;
+      user: string;
     };
-    expect(call.messages[0].content).toContain("Cap table provided");
-    expect(call.messages[0].content).toContain("dilution simulation is being computed locally");
+    expect(call.user).toContain("Cap table provided");
+    expect(call.user).toContain("dilution simulation is being computed locally");
     expect(r.dilution).not.toBeNull();
   });
 
-  it("returns the SDK's parsed_output verbatim with mode='live'", async () => {
+  it("returns validated model JSON with mode='live'", async () => {
     const parsed = makeAnalysis({ instrumentType: "Series Seed" });
     parseMock.mockResolvedValue(makeParseResponse({ parsed_output: parsed }));
 
     const r = await analyzeTermSheet({ termSheet: "hello" });
 
     expect(r.mode).toBe("live");
-    expect(r.analysis).toBe(parsed);
+    expect(r.analysis).toEqual(parsed);
     expect(r.analysis.instrumentType).toBe("Series Seed");
   });
 
@@ -316,7 +264,7 @@ describe("analyzeTermSheet — live-mode Anthropic invocation", () => {
   it("defaults missing usage counters to 0 (SDK may omit any of the four fields)", async () => {
     parseMock.mockResolvedValue({
       usage: {}, // deliberately empty — every ?? 0 branch fires
-      parsed_output: makeAnalysis(),
+      text: JSON.stringify(makeAnalysis()),
     });
 
     const r = await analyzeTermSheet({ termSheet: "hello" });
@@ -359,7 +307,7 @@ describe("analyzeTermSheet — degrade-to-demo error ladder", () => {
     vi.spyOn(console, "log").mockImplementation(() => {});
   });
 
-  it("degrades to demo when parse() returns a response without parsed_output", async () => {
+  it("degrades to demo when the dispatcher returns JSON null", async () => {
     const err = vi.spyOn(console, "error").mockImplementation(() => {});
     parseMock.mockResolvedValue(makeParseResponse({ parsed_output: null }));
 
@@ -369,11 +317,11 @@ describe("analyzeTermSheet — degrade-to-demo error ladder", () => {
     expect(r.analysis).toBe(DEMO_ANALYSIS);
     // usage still stamped even on the empty-parsed-output degrade path
     expect(r.usage).toBeDefined();
-    expect(err).toHaveBeenCalledWith(expect.stringContaining("parse() returned no parsed_output"));
+    expect(err).toHaveBeenCalledWith(expect.stringContaining("response failed output schema"));
     err.mockRestore();
   });
 
-  it("degrades to demo on Anthropic.RateLimitError with a rate-limit log line", async () => {
+  it("degrades to demo on a provider rate-limit error", async () => {
     const err = vi.spyOn(console, "error").mockImplementation(() => {});
     parseMock.mockRejectedValue(new mocks.MockRateLimitError("slow down"));
 
@@ -383,13 +331,13 @@ describe("analyzeTermSheet — degrade-to-demo error ladder", () => {
     expect(r.analysis).toBe(DEMO_ANALYSIS);
     expect(r.usage).toBeUndefined();
     expect(err).toHaveBeenCalledWith(
-      expect.stringContaining("Anthropic rate limit"),
-      "slow down",
+      expect.stringContaining("provider error"),
+      expect.objectContaining({ message: "slow down" }),
     );
     err.mockRestore();
   });
 
-  it("degrades to demo on a generic Anthropic.APIError with the HTTP status stamped in the log", async () => {
+  it("degrades to demo on a provider API error", async () => {
     const err = vi.spyOn(console, "error").mockImplementation(() => {});
     parseMock.mockRejectedValue(new mocks.MockAPIError(503, "upstream down"));
 
@@ -398,13 +346,13 @@ describe("analyzeTermSheet — degrade-to-demo error ladder", () => {
     expect(r.mode).toBe("demo");
     expect(r.analysis).toBe(DEMO_ANALYSIS);
     expect(err).toHaveBeenCalledWith(
-      expect.stringContaining("Anthropic API error 503"),
-      "upstream down",
+      expect.stringContaining("provider error"),
+      expect.objectContaining({ message: "upstream down" }),
     );
     err.mockRestore();
   });
 
-  it("degrades to demo on any non-Anthropic thrown value (network error / oom / etc.)", async () => {
+  it("degrades to demo on any other thrown error", async () => {
     const err = vi.spyOn(console, "error").mockImplementation(() => {});
     parseMock.mockRejectedValue(new Error("ETIMEDOUT"));
 
@@ -413,7 +361,7 @@ describe("analyzeTermSheet — degrade-to-demo error ladder", () => {
     expect(r.mode).toBe("demo");
     expect(r.analysis).toBe(DEMO_ANALYSIS);
     expect(err).toHaveBeenCalledWith(
-      expect.stringContaining("Unexpected error in analyze"),
+      expect.stringContaining("provider error"),
       expect.any(Error),
     );
     err.mockRestore();
@@ -459,5 +407,19 @@ describe("analyzeTermSheet — degrade-to-demo error ladder", () => {
     expect(r.mode).toBe("demo");
     expect(r.dilution).not.toBeNull();
     expect(r.usage).toBeDefined();
+  });
+});
+
+
+describe("term-sheet schema boundary", () => {
+  it.each(["not JSON", '{"instrumentType":"Series Seed"}', '<script>alert(1)</script>'])("rejects invalid customer output %s without a second provider call", async text => {
+    isConfiguredMock.mockReturnValue(true);
+    parseMock.mockResolvedValue({ text, usage: makeUsage() });
+    const result = await analyzeTermSheet({ termSheet: "hello", capTable, round });
+    expect(result.mode).toBe("demo");
+    expect(result.analysis).toBe(DEMO_ANALYSIS);
+    expect(result.dilution?.pricing.postMoneyAud).toBe(12_500_000);
+    expect(parseMock).toHaveBeenCalledTimes(1);
+    expect(parseMock.mock.calls[0][0].providerPolicy).toBe("deepinfra-only");
   });
 });
