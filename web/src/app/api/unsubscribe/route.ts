@@ -61,9 +61,38 @@ export async function GET(request: NextRequest) {
   return Response.redirect(redirectUrl, 302);
 }
 
+/**
+ * G34-BT2 EM06 — RFC 8058 one-click unsubscribe. Mail clients POST to the
+ * `List-Unsubscribe` URL (`/api/unsubscribe?token=…[&category=…]`) with the
+ * form body `List-Unsubscribe=One-Click`, no cookie and no login. The token
+ * in the query is the only credential (as for the GET link); the response is
+ * a plain 200 — the client does not follow redirects.
+ */
+function isOneClickUnsubscribe(request: NextRequest): boolean {
+  if (!request.nextUrl.searchParams.get("token")) return false;
+  const type = (request.headers.get("content-type") ?? "").toLowerCase();
+  // The in-app preference forms post JSON; everything else carrying a query
+  // token is a mail client's one-click form post (the body is
+  // `List-Unsubscribe=One-Click`, which RFC 8058 says not to depend on).
+  return !type.includes("application/json");
+}
+
+async function oneClickUnsubscribe(request: NextRequest): Promise<Response> {
+  const token = request.nextUrl.searchParams.get("token") ?? "";
+  const category = request.nextUrl.searchParams.get("category");
+  const result =
+    category && isValidCategory(category)
+      ? await unsubscribeCategoryByToken(token, category)
+      : await unsubscribeByToken(token);
+  if (!result.ok) return Response.json({ ok: false, error: "Invalid token" }, { status: 404 });
+  return Response.json({ ok: true, unsubscribed: category && isValidCategory(category) ? category : "all" });
+}
+
 // POST: update specific preferences
 // Body: { token, preferences: { weekly_reports: false, ... } }
+// …or the RFC 8058 one-click form post (see isOneClickUnsubscribe).
 async function POST_handler(request: NextRequest) {
+  if (isOneClickUnsubscribe(request)) return oneClickUnsubscribe(request);
   let body: { token?: string; preferences?: Record<string, boolean> };
   try {
     body = await request.json();
