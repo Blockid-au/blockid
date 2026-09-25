@@ -48,6 +48,7 @@ const expireStaleDripsMock = vi.fn();
 const canSendDripMock = vi.fn();
 const claimDripMock = vi.fn();
 const suppressDripMock = vi.fn();
+const rescheduleDripMock = vi.fn();
 // G16-B: the tbr_unlock_24h send-time guard (paid / plan-included / QA).
 const tbrUnlockSuppressionMock = vi.fn<(...args: unknown[]) => Promise<string | null>>();
 vi.mock("@/lib/email-drip", () => ({
@@ -59,6 +60,7 @@ vi.mock("@/lib/email-drip", () => ({
   canSendDrip: (...args: unknown[]) => canSendDripMock(...args),
   claimDrip: (...args: unknown[]) => claimDripMock(...args),
   suppressDrip: (...args: unknown[]) => suppressDripMock(...args),
+  rescheduleDrip: (...args: unknown[]) => rescheduleDripMock(...args),
   tbrUnlockSuppression: (...args: unknown[]) => tbrUnlockSuppressionMock(...args),
   dripCategory: (campaign: string) =>
     campaign === "onboarding_d14" ? "promotions" : "product_updates",
@@ -683,11 +685,16 @@ describe("POST /api/cron/email-drip — G34-BT2 commercial gate", () => {
 });
 
 describe("POST /api/cron/email-drip — G34-BT4 lifecycle pipeline", () => {
-  it("quiet hours: a C-class row due on a Saturday stays pending (no write, no send); T-class still goes", async () => {
+  it("quiet hours: a C-class row due on a Saturday stays pending, moved to Monday 08:00 AEST (no send); T-class still goes", async () => {
     vi.setSystemTime(new Date("2026-09-26T02:00:00Z")); // Saturday 12:00 AEST
+    rescheduleDripMock.mockClear();
     dueDripsMock.mockResolvedValueOnce([drip({ id: "c1", campaign: "onboarding_d1" }), drip({ id: "t1", campaign: "radar_t3" })]);
     const body = await (await POST(req("POST", { authorization: `Bearer ${SECRET}` }))).json();
     expect(body).toMatchObject({ sent: 1, deferredQuiet: 1 });
+    // Out of the due set, so deferred rows never crowd T-class out of a batch overnight.
+    expect(rescheduleDripMock).toHaveBeenCalledTimes(1);
+    expect(rescheduleDripMock.mock.calls[0][0]).toBe("c1");
+    expect((rescheduleDripMock.mock.calls[0][1] as Date).toISOString()).toBe("2026-09-27T22:00:00.000Z"); // Mon 08:00 AEST
     expect(suppressDripMock).not.toHaveBeenCalled();
     expect(claimDripMock).toHaveBeenCalledTimes(1);
     expect(claimDripMock).toHaveBeenCalledWith("t1");

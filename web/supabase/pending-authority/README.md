@@ -17,3 +17,4 @@ authority transition that admits it.
 | `0463_evaluations_founder_project_id.sql` | 25/09/2026 (G34 DC05), additive nullable FK + partial index | live catalog: `evaluations.founder_project_id` |
 | `0464_erase_account_email_preferences_notifications.sql` | 25/09/2026 (G34 DC09), `erase_account()` = 0442 + 2 non-FK extras | live def contains email_preferences/svi_notifications extras; dry-run inside ROLLBACK listed both |
 | `0465_email_sends.sql` | 25/09/2026 (G34 BT2 EM02–EM05) | live: `email_sends` table; `email_preferences` suppression + consent columns; commercial category defaults now false |
+| `0466_email_drips_lifecycle_campaigns.sql` | 25/09/2026 (G34 BT4), campaign CHECK = previous 12 + 9 lifecycle ids | live constraint contains `sunset_check`; existing rows unaffected |

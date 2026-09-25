@@ -708,7 +708,10 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # the email_drips engine (`lifecycle-digest` below), which also sends quiet
 # months. The weekly job sent C-class mail outside the engine (EM01) and
 # spent one of the 3-per-7-days cap slots every week.
-# Was: 0 23 * * 0 bash $RUN founder-digest-weekly
+# KEPT RUNNING until LIFECYCLE_EMAIL=live (founder decision pending): with the
+# monthly digest in dry mode, retiring this now would stop every founder digest.
+# Comment this line out in the same change that sets LIFECYCLE_EMAIL=live.
+0 23 * * 0 bash $RUN founder-digest-weekly
 
 # T0273 — Evaluator Progress Radar (G12 sprint S4). Sunday 23:30 UTC = Monday
 # 09:30 AEST, 30 min after the founder digest so an evaluator who is also a

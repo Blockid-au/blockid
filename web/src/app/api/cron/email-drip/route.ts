@@ -48,6 +48,7 @@ import {
   expireStaleDrips,
   markFailed,
   markSent,
+  rescheduleDrip,
   renderDripBody,
   suppressDrip,
   tbrUnlockSuppression,
@@ -56,7 +57,7 @@ import {
 import { emailSendChecklist } from "@/lib/email-preferences";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
 import { campaignPriority } from "@/lib/lifecycle/campaigns";
-import { isInCommercialSendWindow } from "@/lib/lifecycle/send-window";
+import { isInCommercialSendWindow, nextCommercialSendSlot } from "@/lib/lifecycle/send-window";
 import { lifecycleStopDecision } from "@/lib/lifecycle/stop-conditions";
 
 export const dynamic = "force-dynamic";
@@ -111,8 +112,11 @@ async function handle(request: Request): Promise<Response> {
       // row (fail-closed) leaves the row pending for a later tick.
       const emailClass = dripEmailClass(drip.campaign);
       const flow = dripFlow(drip.campaign);
-      // G34-BT4 quiet hours: C-class waits for the next open hour (no write).
+      // G34-BT4 quiet hours: C-class waits for the next open hour. The row
+      // is moved to that slot so deferred rows never crowd T-class mail out
+      // of the batch overnight (a dry run writes nothing).
       if (emailClass === "C" && !inWindow) {
+        if (!dryRun) await rescheduleDrip(drip.id, nextCommercialSendSlot(now));
         deferredQuiet++;
         continue;
       }

@@ -755,6 +755,24 @@ export async function dueDrips(now: Date, limit: number): Promise<EmailDrip[]> {
   return (data ?? []) as EmailDrip[];
 }
 
+/**
+ * Move a pending row to a later slot (G34-BT4 quiet hours). A C-class row
+ * deferred for the night must leave the due set — otherwise the oldest
+ * deferred rows fill every hourly batch and newer T-class rows wait until
+ * 08:00. Only a still-pending, unsent row moves.
+ */
+export async function rescheduleDrip(id: string, at: Date): Promise<void> {
+  const supabase = getSupabaseAdmin();
+  if (!supabase) return;
+  const { error } = await supabase
+    .from("email_drips")
+    .update({ scheduled_for: at.toISOString() })
+    .eq("id", id)
+    .eq("status", "pending")
+    .is("sent_at", null);
+  if (error) console.warn("[email-drip] rescheduleDrip failed", error);
+}
+
 export async function markSent(id: string): Promise<void> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return;
