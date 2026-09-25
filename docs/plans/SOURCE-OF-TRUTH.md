@@ -1891,6 +1891,7 @@ Approval22/09/2026 bắt đầu W0a. Đây là status của cùng45 items, khôn
 | A04/A05/V04 SVI tổng điểm agent + định giá theo phân tích (G32) | PARTIAL DEPLOYED / FULL FINANCIAL ACCEPTANCE OPEN | CFO scenario core/projections/shared source, shadow reducer và bounded score-driver contract deployed trong release23:33; [release receipt](../reviews/2026-09-24-cfo-production-deployment.md). SV0–SV6/V04a/b vẫn chưa hoàn tất: rubric52, live3family panel, ledger,C+S+T−A, official report valuation và all-consumer migration còn mở. Existing SVI base100 draft không phải G32; scenario không thành accepted valuation. §12.12 |
 | G33 T01–T16k (test live24/09) | PARTIAL IMPLEMENTATION/LIVE — FULL ACCEPTANCE OPEN | Aggregate status report-down và DeepInfra-only customer policy đã deployed23:33. T01 còn reconcile threshold semantics; S1 QA13:36fail (2degraded) là canary evidence gần nhất trong receipts, chưa có chuỗi5runs mới. T08graph13,971rows/5pinnedforks; T09cron2days/T10schema authority còn. T13owner fix không đóng rate-limit. T16j/kGroq là baseline lịch sử, không policy hiện hành. S3partial,S4–S6gated,T12–T15open; full suite42,586pass không thay canary. [Latest release](../reviews/2026-09-24-cfo-production-deployment.md),[follow-up](../reviews/2026-09-24-full-plan-followup.md),§12.12 |
 | G34 BT0–BT6 · DC01–DC10 · EM01–EM21 · RQ01–RQ28 Biz Trust Report v4 | PLAN ONLY — NOT STARTED (25/09) | Plan + spec + research annex committed; chờ duyệt D24; BT3 chờ Codex land screening UI; BT5 chờ G33 S1 đạt 7 ngày (§10.14, §12.13) |
+| AF01–AF15 · ER1–ER3 luồng /analyze (25/09) | INCIDENT FIX DEPLOYING (`aac98460c`); Wave A–C OPEN | Receipt 2026-09-25-analyze-upload-failure-review; §12.14 |
 | Remaining items | OPEN — NOT COMPLETE | Full claim verification, immutable revisions/legacy delivery, question-led research, valuation eligibility, durable jobs/recovery, atomic billing/approved fee integration and whole-site UX still require implementation/integration. Quality/holdout/load/cost/sale readiness unverified; off-host backup explicitly deferred. Existing prepared financial migration candidates are not activation or completion evidence. |
 
 ### 12.10 Kế hoạch thực thi tiếp theo (23/09/2026) — hai lane
@@ -2016,6 +2017,30 @@ Chi tiết và acceptance ở [`g34-biz-trust-report-v4-quality-2026-09-25.md`](
 | BT6 | SV4/SV5, RQ22 V04b, RQ19–RQ28, G31 C12, 20-user validation, APP 1.7 | SV4 đạt ngưỡng | = G33 S6 |
 
 **Không bắt đầu BT3 khi Codex còn sửa dở** `report.tsx`, `dashboard.tsx`, `criteria-summary.tsx` và exports. Luật file của §12.10 vẫn áp dụng.
+
+### 12.14 Luồng phân tích /analyze: sửa lỗi ưu tiên và có kết quả sớm (25/09/2026, P0 trước G34 BT3+)
+
+**Sự cố founder báo:** user đã đăng nhập upload tài liệu, bị báo fail và bị đưa về báo cáo cũ.
+
+**Nguyên nhân:**
+- Hết 2 report free và plan `growth` không có `report.*`, nên `/api/intake` trả về báo giá.
+- CTA duy nhất trỏ tới `/workspace/reports/business`, trang hiển thị report cũ.
+- File vừa upload bị bỏ.
+
+**Đã sửa** trong `aac98460c`: trả bằng credits có báo giá trước; hoàn credits khi phân tích lỗi; admin được miễn hạn mức free.
+
+**Review toàn luồng:** [receipt](../reviews/2026-09-25-analyze-upload-failure-review.md).
+- 7 trên 12 run trong 7 ngày `failed` từ 21/09. Sau G33 đạt 3/3, nhưng có run mất 16 phút.
+- Việc ưu tiên:
+  - **Wave A (P0):** AF01 guest không thấy lỗi · AF02 modal credits chặn một run free đang chạy · AF03 thiếu credits vẫn bị trỏ về report cũ · AF04 trừ credits mà không có report hoặc hoàn tiền · AF05 retry thành công nhưng trang không cập nhật · AF10 double-submit.
+  - **Wave B — kết quả sớm:**
+    - ER1: điểm, stage và nội dung đọc được hiện ở T+2 s (dữ liệu đã có sẵn trong intake).
+    - ER2: bản nháp deterministic (định giá, 8 chiều, kế hoạch) ở T+30 s.
+    - ER3: từng chương hiện ngay khi agent viết xong.
+    - Kèm AF06, AF07, AF09.
+  - **Wave C:** AF08, AF11–AF15 (trong đó AF12: trang deck trong workspace hiện run cũ; AF13: report workspace không có ngày "as of").
+- Mỗi wave một deploy, sau đó review → qa:live → fix.
+- AF13 cần G34 DC01 (`analyses.project_id`) để sửa triệt để.
 
 ## 13. Quality gates và định nghĩa ready for sale
 
@@ -2233,6 +2258,11 @@ Mỗi thay đổi yêu cầu mới phải sửa chính plan và acceptance liên
 Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi timestamp và phạm vi được bắt đầu; không coi duyệt plan đồng nghĩa tự động duyệt mọi chi phí, external send hay thay giá chưa được định lượng. Các hạng mục kỹ thuật đã được cho bắt đầu sẽ tiến hành liên tục trong phạm vi đó, không xin lại từng bước thông thường.
 
 ## 17. Change log
+
+- **25/09/2026 — Sự cố upload /analyze + review luồng phân tích:**
+  - User đã đăng nhập, hết report free, bị trỏ về report cũ. Fix `aac98460c`: trả bằng credits có báo giá trước, hoàn credits khi lỗi, admin được miễn hạn mức free.
+  - Review toàn luồng ghi 15 lỗi (AF01–AF15, trong đó 5 lỗi P0) và kế hoạch kết quả sớm ER1–ER3.
+  - Thêm §12.14 và dòng tương ứng ở §12.9.
 
 - **25/09/2026 — G34 Biz Trust Report v4, PLAN ONLY:**
   - **Nghiên cứu:** 15+ hệ thống (CB Insights, PitchBook, Crunchbase, Dealroom, Tracxn, AlphaLens, V7, Hebbia, Equidam, Techboard, VC AU) và tiêu chí investor → catalogue 78 tiêu chí theo 8 dimension, có tier và red flag. Pháp lý email AU (Spam Act, APP 7/1.7, Gmail/Outlook).
