@@ -8,6 +8,8 @@ import { getProjectScope, findSVIAccountWithFallback, findLatestAnalysisWithFall
 import { projectAccessResponse } from "@/lib/project-members/http";
 import { apiRoute } from "@/lib/audit/api-route";
 import { enqueueWebhook } from "@/lib/webhooks/registry";
+import { enqueueScoreUpdated } from "@/lib/lifecycle/enqueue";
+import { dimensionChanges } from "@/lib/lifecycle/score-diff";
 
 // POST /api/svi/rescore
 // Re-calculates SVI based on the original analysis text + accumulated evidence.
@@ -144,6 +146,20 @@ async function POST_handler() {
     },
     { userIds: [scope?.ownerUserId ?? user.id] },
   );
+
+  // G34-BT4 EM12 — "score updated" (T) on the drip engine, to the project
+  // owner: old → new and the dimensions that moved vs the stored analysis.
+  // Fire-and-forget; never fails the re-score.
+  void enqueueScoreUpdated(supabase, {
+    email: dataEmail,
+    userId: scope?.ownerUserId ?? user.id,
+    projectId,
+    startup: (account.startup_name as string | null | undefined) ?? null,
+    previousSvi: baseSVI,
+    newSvi: newSVI,
+    changes: dimensionChanges(latestAnalysis?.analysis_json ?? null, newAnalysis, (evidence ?? []) as Array<{ dimension?: string | null; label?: string | null; created_at?: string | null }>),
+    source: "rescore",
+  }).catch(() => {});
 
   // 7. Check and award milestone badges
   const evidenceItems = evidence ?? [];

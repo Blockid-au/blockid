@@ -32,6 +32,8 @@ import {
 } from "@/lib/svi/connected-revenue-score";
 import { cappedLevel, type ConfidenceLevel, type EvidenceOrigin } from "@/lib/evidence/confidence-cap";
 import { loadVerificationLevel } from "@/lib/verification/load-level";
+import { dimensionChanges } from "@/lib/lifecycle/score-diff";
+import type { DimensionChange } from "@/lib/lifecycle/payload";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Db = SupabaseClient<any, any, any>;
@@ -158,6 +160,8 @@ export interface RescoreResult {
   /** The magnitude contribution applied to TRE, or null when no connected revenue was usable. */
   connectedRevenue: (ConnectedRevenueScore & { provider: string; capturedAt: string }) | null;
   newBadges: string[];
+  /** G34-BT4 EM12 — dimensions that moved vs the stored analysis, with the evidence behind each. */
+  dimensionChanges: DimensionChange[];
 }
 
 export async function rescoreAccountFromEvidence(supabase: Db, args: RescoreArgs): Promise<RescoreResult> {
@@ -174,6 +178,8 @@ export async function rescoreAccountFromEvidence(supabase: Db, args: RescoreArgs
   if (projectId) analysisQuery.eq("project_id", projectId);
   const { data: latestAnalysis } = await analysisQuery.maybeSingle();
   const rawInput = (latestAnalysis?.raw_input as string) ?? "";
+  // G34-BT4 EM12: the stored analysis BEFORE this re-score, for the "what moved" diff.
+  const analysisBefore = (latestAnalysis?.analysis_json as unknown) ?? null;
 
   // 2. Evidence items.
   const { data: evidenceRaw } = await supabase
@@ -347,5 +353,6 @@ export async function rescoreAccountFromEvidence(supabase: Db, args: RescoreArgs
     evidenceBonusApplied: totalEvidenceBonus,
     connectedRevenue,
     newBadges,
+    dimensionChanges: dimensionChanges(analysisBefore, newAnalysis, evidence),
   };
 }

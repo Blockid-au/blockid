@@ -5,6 +5,7 @@ import { getProjectScope } from "@/lib/projects";
 import { projectAccessResponse } from "@/lib/project-members/http";
 import { apiRoute } from "@/lib/audit/api-route";
 import { rescoreAccountFromEvidence } from "@/lib/svi/rescore-from-evidence";
+import { enqueueScoreUpdated } from "@/lib/lifecycle/enqueue";
 
 // POST /api/svi/rescore-from-evidence
 // Re-computes SVI using the original analysis text + all evidence items.
@@ -67,6 +68,19 @@ async function POST_handler() {
     projectId,
     ownerUserId,
   });
+
+  // G34-BT4 EM12 — "score updated" (T) on the drip engine, to the project
+  // owner. Fire-and-forget: a queue failure never fails the re-score, and
+  // re-scores before the worker's next tick fold into one pending e-mail.
+  void enqueueScoreUpdated(supabase, {
+    email: dataEmail,
+    userId: ownerUserId,
+    projectId,
+    previousSvi: result.previousSVI,
+    newSvi: result.newSVI,
+    changes: result.dimensionChanges ?? [],
+    source: "evidence",
+  }).catch(() => {});
 
   return NextResponse.json({
     ok: true,
