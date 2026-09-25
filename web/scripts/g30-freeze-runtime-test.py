@@ -59,6 +59,23 @@ class FreezeRuntimeTest(unittest.TestCase):
     def freeze(self, apply=False):
         return module.freeze(self.web, self.candidate, apply=apply)
 
+    def test_tool_caches_are_not_hashed_or_copied(self):
+        # 2026-09-25: a vitest run elsewhere wrote node_modules/.vite during a
+        # deploy freeze and failed it. Top-level tool caches are not runtime deps.
+        before, _, _ = module.inventory(self.deps)
+        cache = self.deps / ".vite" / "vitest"
+        cache.mkdir(parents=True)
+        (cache / "results.json").write_text("{}")
+        (self.deps / ".cache").mkdir()
+        (self.deps / ".cache" / "x").write_text("1")
+        after, records, _ = module.inventory(self.deps)
+        self.assertEqual(before, after)
+        self.assertFalse(any(k.startswith(".vite") or k.startswith(".cache") for k in records))
+        # A real dependency change still changes the hash.
+        (self.deps / "next" / "index.js").write_text("module.exports = 124;")
+        changed, _, _ = module.inventory(self.deps)
+        self.assertNotEqual(after, changed)
+
     def test_default_read_only_deterministic_plan(self):
         first, second = self.freeze(), self.freeze()
         self.assertEqual(first, second)

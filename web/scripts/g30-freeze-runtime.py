@@ -48,9 +48,18 @@ def signature(info):
             info.st_mtime_ns, info.st_ctime_ns)
 
 
+# Tool caches at the top of node_modules (vitest / vite / generic .cache) are
+# written by test runs and builds, never loaded at runtime. They are neither
+# hashed nor copied, so a test run elsewhere on the host cannot fail the
+# freeze with "dependency/lock/runtime changed" (2026-09-25).
+CACHE_DIRS = frozenset({'.cache', '.vite', '.vitest'})
+
+
 def inventory(root):
     records, stability = {}, {}
     for directory, dirs, files in os.walk(root, followlinks=False):
+        if Path(directory) == Path(root):
+            dirs[:] = [d for d in dirs if d not in CACHE_DIRS]
         dirs.sort()
         files.sort()
         for path in [Path(directory)] + [Path(directory) / name for name in dirs + files]:
@@ -188,7 +197,8 @@ def freeze(web, release, node="node", apply=False):
         snapshot = stage / fingerprint / "node_modules"
         # Full copy: no hardlinks to mutable source. symlinks=True avoids cycles
         # and repeated copies of packages reachable through internal links.
-        shutil.copytree(dependencies, snapshot, symlinks=True)
+        shutil.copytree(dependencies, snapshot, symlinks=True,
+                        ignore=lambda src, names: [n for n in names if n in CACHE_DIRS] if Path(src) == dependencies else [])
         for relative, record in records.items():
             if record[0] == "link":
                 target = snapshot / relative

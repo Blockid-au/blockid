@@ -67,7 +67,7 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # the one commercial-mail engine. Routes stay (retired) for manual callers.
 15 16 * * * bash $RUN vesting
 # Lead nurture D1/D4/D9 — at most 1 email/user/day, opt-out aware, dedup via svi_notifications.
-20 16 * * * bash $RUN lead-nurture
+# PAUSED-EMAIL 25/09/2026 (founder: tạm không gửi email): 20 16 * * * bash $RUN lead-nurture
 # Wave 27B — refresh sector-specific SVI benchmarks nightly from cohort medians.
 # Skips sectors with <5 samples to avoid noisy medians; seeded defaults serve until then.
 30 17 * * * bash $RUN refresh-sector-benchmarks --timeout 120
@@ -86,7 +86,7 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # a view with no return, only where the founder switched auto follow-up on and
 # any NDA is accepted. 21:00 UTC = 07:00 AEST so it lands at the start of the
 # investor's day. ?dry=1 lists without sending.
-0 21 * * * bash $RUN investor-followups --timeout 120
+# PAUSED-EMAIL 25/09/2026 (founder: tạm không gửi email): 0 21 * * * bash $RUN investor-followups --timeout 120
 5 21 * * * bash $RUN refresh-models
 # End-of-day AEST refresh (23:59 AEST = 13:59 UTC): re-rank top-12 free models per
 # provider and rewrite ai-free-models.json. Complements the 07:05 AEST refresh —
@@ -291,7 +291,7 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # ═══════════════════════════════════════════════════════════════
 
 # 6:30am AEST Sunday — Lifecycle follow-up emails
-30 20 * * 0 bash $RUN weekly-insights --timeout 120
+# PAUSED-EMAIL 25/09/2026 (founder: tạm không gửi email): 30 20 * * 0 bash $RUN weekly-insights --timeout 120
 
 # 3:00am AEST Sunday (17:00 UTC Sat) — Disk cleanup (nested releases, npm cache, /tmp, Docker)
 0 17 * * 0 bash /home/dovanlong/blockid.au/web/scripts/clean-disk.sh --apply >> /tmp/blockid-clean-disk.log 2>&1
@@ -312,7 +312,7 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # status_changed · new_round_opened) and writes in-app notifications.
 # Email fan-out is the radar drips (T0246) reading last_notified.pending_email.
 # `?dry=1` on the route previews without writes.
-0 5 * * 0 bash $RUN money-radar-sweep --timeout 300
+# PAUSED-EMAIL 25/09/2026 (founder: tạm không gửi email): 0 5 * * 0 bash $RUN money-radar-sweep --timeout 300
 
 # 4:00pm AEST on the 1st of Jan/Apr/Jul/Oct (06:00 UTC) — Quarterly expert
 # analysis refresh (T0251, G11 §4h Growth row). For every Growth founder ×
@@ -571,7 +571,7 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # checks canSendEmail/email_preferences before claiming, and claims each row
 # with a conditional UPDATE ... WHERE sent_at IS NULL so a retry cannot
 # double-send. --timeout 90 covers a full 50-row batch of SMTP sends.
-25 * * * * bash $RUN email-drip --timeout 90
+# PAUSED-EMAIL 25/09/2026 (founder: tạm không gửi email): 25 * * * * bash $RUN email-drip --timeout 90
 
 # G34-BT4 lifecycle flows (plan §9.2) — queue rows on email_drips; the
 # email-drip worker above sends them (consent, suppression, frequency cap,
@@ -586,8 +586,8 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # written); `live` after pending-authority/0466 is applied and the founder
 # has reviewed a `?dry=1` sample; `off` disables. `?dry=1` by hand lists the
 # would-be recipients.
-40 21 * * * bash $RUN lifecycle-scan --timeout 300
-50 21 1 * * bash $RUN lifecycle-digest --timeout 300
+# PAUSED-EMAIL 25/09/2026 (founder: tạm không gửi email): 40 21 * * * bash $RUN lifecycle-scan --timeout 300
+# PAUSED-EMAIL 25/09/2026 (founder: tạm không gửi email): 50 21 1 * * bash $RUN lifecycle-digest --timeout 300
 
 # Weekly retention snapshots per segment (Mon 09:15 UTC / 19:15 AEST)
 15 9 * * 1 bash $RUN weekly-retention --timeout 90
@@ -644,7 +644,7 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # Reseller weekly leading-signal digest (U.5 P11 + CS advisory §24 rec #3)
 # Mondays 04:15 UTC (14:15 AEST) — one row per reseller with last-login /
 # time-to-first-report leading indicators so CS can act before churn fires.
-15 4 * * 1 bash $RUN reseller-weekly-digest --timeout 300
+# PAUSED-EMAIL 25/09/2026 (founder: tạm không gửi email): 15 4 * * 1 bash $RUN reseller-weekly-digest --timeout 300
 
 # Feature-gate manifest drift (R-09) — nightly 04:30 UTC (14:30 AEST). Runtime
 # check that on-disk mutation routes still match feature-gates.manifest.ts;
@@ -697,7 +697,7 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # `feedback_letter` + email (svi_alerts category) + webhook
 # `feedback_letter.sent` to the founder's endpoints. `?dry=1` lists the
 # eligible projects and sends nothing; `reason: table_missing` before 0406.
-0 22 * * 0 bash $RUN feedback-letters --timeout 300
+# PAUSED-EMAIL 25/09/2026 (founder: tạm không gửi email): 0 22 * * 0 bash $RUN feedback-letters --timeout 300
 
 # Wave 28A — Founder Weekly Digest.
 # Every Monday 09:00 Australia/Sydney == 23:00 UTC Sunday (AEDT UTC+10, DST-safe
@@ -711,7 +711,7 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # KEPT RUNNING until LIFECYCLE_EMAIL=live (founder decision pending): with the
 # monthly digest in dry mode, retiring this now would stop every founder digest.
 # Comment this line out in the same change that sets LIFECYCLE_EMAIL=live.
-0 23 * * 0 bash $RUN founder-digest-weekly
+# PAUSED-EMAIL 25/09/2026 (founder: tạm không gửi email): 0 23 * * 0 bash $RUN founder-digest-weekly
 
 # T0273 — Evaluator Progress Radar (G12 sprint S4). Sunday 23:30 UTC = Monday
 # 09:30 AEST, 30 min after the founder digest so an evaluator who is also a
@@ -720,7 +720,7 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # deadlines/intakes from funding_matches (keyed on evaluations.project_id),
 # new matches; in-app `weekly_next_step` + email (money_radar category);
 # idempotent via evaluator_progress_sends (migration 0321). `?dry=1` for checks.
-30 23 * * 0 bash $RUN evaluator-progress-weekly --timeout 300
+# PAUSED-EMAIL 25/09/2026 (founder: tạm không gửi email): 30 23 * * 0 bash $RUN evaluator-progress-weekly --timeout 300
 
 # S25-A — Connected-revenue resync. Monday 05:00 UTC = 15:00 AEST, after the
 # weekend Stripe/Xero settlement runs. Re-pulls every linked Stripe Connect /
@@ -761,7 +761,7 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # eligible leads to Step 2 (T+2 days, warm+) and Step 3 (T+7 days, all).
 # 4-hourly cadence keeps drift < 4h from the target send window without
 # hammering SMTP or Supabase.
-0 */4 * * * bash $RUN tbr-lead-drip
+# PAUSED-EMAIL 25/09/2026 (founder: tạm không gửi email): 0 */4 * * * bash $RUN tbr-lead-drip
 
 # Abandoned A$3 guest checkout reconcile + single recovery email.
 # The A$3 One-Click Report is the only self-serve purchase on the site, so a
@@ -778,7 +778,7 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # 24h, and the table sees single-digit rows a month. Add ?dry=1 by hand to
 # inspect without writing or sending.
 # Auth: Bearer $CRON_SECRET via cron-runner.sh.
-7 * * * * bash $RUN guest-analysis-reconcile --timeout 120
+# PAUSED-EMAIL 25/09/2026 (founder: tạm không gửi email): 7 * * * * bash $RUN guest-analysis-reconcile --timeout 120
 
 # ── Live QA (S30-A, 2026-09-13): hydrated Playwright journeys against
 # production with a self-provisioned qa-live-<stamp>@blockid.au account,

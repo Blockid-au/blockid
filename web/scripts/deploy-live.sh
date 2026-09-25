@@ -343,6 +343,28 @@ rollback_after_swap() {
   return 1
 }
 
+# 2026-09-25: a candidate that never registered carries no traffic and is not
+# a rollback target. Leaving it running (and pinned) held a capacity slot,
+# kept its cron-triggered side effects alive and blocked every later deploy
+# with "Unregistered candidate remains pinned". Stop it (SIGTERM via systemd)
+# and unpin it; the release directory itself is kept for inspection.
+# DEPLOY_KEEP_FAILED_CANDIDATE=1 keeps the old keep-running-and-pinned behaviour.
+cleanup_unregistered_candidate() {
+  [ -n "${CANDIDATE_UNIT:-}" ] || return 0
+  [ "${G30_REGISTERED:-0}" = "1" ] && return 0
+  if [ "${DEPLOY_KEEP_FAILED_CANDIDATE:-0}" = "1" ]; then
+    echo "  ↳ DEPLOY_KEEP_FAILED_CANDIDATE=1 — candidate $CANDIDATE_UNIT left running and pinned for inspection"
+    return 0
+  fi
+  echo "  ↳ Stopping unregistered candidate $CANDIDATE_UNIT (never served traffic; release kept)"
+  sudo -n systemctl stop "$CANDIDATE_UNIT" >/dev/null 2>&1 || systemctl stop "$CANDIDATE_UNIT" >/dev/null 2>&1 || echo "  ⚠ could not stop $CANDIDATE_UNIT — stop it by hand"
+  if [ -L "$WEB_DIR/.next-candidate" ] && [ -n "${RELEASE_DIR:-}" ] \
+     && [ "$(readlink -f "$WEB_DIR/.next-candidate")" = "$(readlink -f "$RELEASE_DIR")" ]; then
+    rm -f "$WEB_DIR/.next-candidate" "$WEB_DIR/.g30-candidate-unit" "$WEB_DIR/.g30-candidate.pid"
+    echo "  ↳ Candidate pin cleared"
+  fi
+}
+
 fail() {
   local reason="$1"
   echo "  ❌ GATE FAILED: $reason"
@@ -374,6 +396,7 @@ fail() {
     fi
   else
     # Nothing has been swapped yet — today's message is accurate here.
+    cleanup_unregistered_candidate
     echo "════════════════════════════════════════════"
     echo "  DEPLOY ABORTED ($GATE_PASSED/$GATE_TOTAL gates passed)"
     echo "  Old build is still running. No damage."
@@ -1525,7 +1548,10 @@ if [ "$G30_AUTHORITY_EXPANSION" -eq 1 ]; then
     --lock-fd 200 >/dev/null || fail "Cannot enroll exact0447 candidate with verified warm recovery"
 fi
 G30_REGISTERED=0
-for G30_REGISTER_ATTEMPT in 1 2 3 4; do
+# 2026-09-25: transient host load (tests, crons) used to fail the deploy after
+# ~15 s; wait up to ~5 min for the admission budget before giving up.
+G30_REGISTER_MAX="${DEPLOY_REGISTER_ATTEMPTS:-10}"
+for G30_REGISTER_ATTEMPT in $(seq 1 "$G30_REGISTER_MAX"); do
   if G30_REGISTER_RESULT=$(g30_state --register --pid "$NEW_PID" --release "$RELEASE_DIR" \
     --listen-port "$TEMP_PORT" --lock-fd 200 2>&1); then
     G30_REGISTERED=1
@@ -1533,8 +1559,8 @@ for G30_REGISTER_ATTEMPT in 1 2 3 4; do
   fi
   case "$G30_REGISTER_RESULT" in
     *"CPU/memory contention outside admission budget"*|*"insufficient candidate+operating+build memory reserve"*)
-      echo "  ↳ Resource pressure after smoke; retaining current traffic while rechecking ($G30_REGISTER_ATTEMPT/4)"
-      [ "$G30_REGISTER_ATTEMPT" -eq 4 ] || sleep 5
+      echo "  ↳ Resource pressure after smoke; retaining current traffic while rechecking ($G30_REGISTER_ATTEMPT/$G30_REGISTER_MAX, load $(cut -d' ' -f1-3 /proc/loadavg))"
+      [ "$G30_REGISTER_ATTEMPT" -eq "$G30_REGISTER_MAX" ] || sleep "${DEPLOY_REGISTER_WAIT_S:-30}"
       ;;
     *) echo "$G30_REGISTER_RESULT"; fail "Cannot register verified candidate" ;;
   esac
