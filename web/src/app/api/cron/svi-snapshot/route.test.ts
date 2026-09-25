@@ -18,6 +18,7 @@ const { insertMock, state } = vi.hoisted(() => ({
     analyses: {} as Record<string, { total_svi: number; analysis_json: unknown } | null>,
     priorSnapshot: {} as Record<string, { svi_total: number } | null>,
     upserts: [] as Array<Record<string, unknown>>,
+    updates: [] as Array<{ table: string; payload: Record<string, unknown> }>,
   },
 }));
 vi.mock("@/lib/notifications", () => ({ insertNotification: (...a: unknown[]) => insertMock(...a) }));
@@ -51,6 +52,7 @@ vi.mock("@/lib/supabase", () => ({
           limit: () => chain,
           update(p: Record<string, unknown>) {
             payload = p;
+            state.updates.push({ table, payload: p });
             return chain;
           },
           upsert(row: Record<string, unknown>) {
@@ -101,6 +103,7 @@ describe("svi-snapshot cron — svi_trend_alert writer", () => {
     enqueueMock.mockClear();
     state.adminNull = false;
     state.upserts = [];
+    state.updates = [];
     state.accounts = [
       { id: "a-big", email: "big@x.co", user_id: "u-big", current_stage: 2, project_id: "p-big", index_base_date: "2026-01-01", index_base_svi: 50 },
       { id: "a-small", email: "small@x.co", user_id: "u-small", current_stage: 2, project_id: "p-small", index_base_date: "2026-01-01", index_base_svi: 50 },
@@ -151,6 +154,13 @@ describe("svi-snapshot cron — svi_trend_alert writer", () => {
       throttleMs: 7 * 24 * 60 * 60 * 1000,
     });
     expect(SVI_TREND_ALERT_THRESHOLD).toBe(5);
+  });
+
+  it("G34 DC08: the nightly snapshot updates current_svi but never bumps last_active_at (not a user activity signal)", async () => {
+    await GET(req("Bearer s3cret"));
+    const acct = state.updates.filter((u) => u.table === "svi_accounts" && "current_svi" in u.payload);
+    expect(acct).toHaveLength(4);
+    for (const u of state.updates) expect(u.payload).not.toHaveProperty("last_active_at");
   });
 
   it("S20-B: enqueues svi.rescored (source=snapshot) only for accounts whose score moved; first snapshot is silent", async () => {

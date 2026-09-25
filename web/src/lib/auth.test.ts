@@ -276,7 +276,9 @@ import {
   consumePasswordReset,
   hashPasswordResetToken,
   PASSWORD_RESET_TTL_MIN,
+  SESSION_TOUCH_INTERVAL_MS,
   setSessionCookie,
+  shouldTouchSession,
 } from "./auth";
 
 beforeEach(() => {
@@ -862,6 +864,40 @@ describe("auth — getCurrentUser", () => {
       onboardingCompleted: false,
       startupGoals: null,
     });
+  });
+
+  it("G34 DC08: shouldTouchSession — never touched / unparsable / older than the interval → true", () => {
+    const now = Date.parse("2026-09-25T10:00:00Z");
+    expect(shouldTouchSession(null, now)).toBe(true);
+    expect(shouldTouchSession("not-a-date", now)).toBe(true);
+    expect(shouldTouchSession(new Date(now - SESSION_TOUCH_INTERVAL_MS).toISOString(), now)).toBe(true);
+    expect(shouldTouchSession(new Date(now - 60_000).toISOString(), now)).toBe(false);
+  });
+
+  it("G34 DC08: a stale session's last_used_at is actually WRITTEN (the builder is awaited, not dropped)", async () => {
+    state.cookies.set(SESSION_COOKIE, "live-tok");
+    push("sessions", "select", {
+      data: { token: "live-tok", user_id: "u-42", expires_at: new Date(Date.now() + 3600_000).toISOString(), last_used_at: new Date(Date.now() - 3600_000).toISOString() },
+      error: null,
+    });
+    push("app_users", "select", { data: { id: "u-42", email: "founder@example.com", created_at: "2026-01-01" }, error: null });
+    await getCurrentUser();
+    const touch = state.calls.find((c) => c.table === "sessions" && c.op === "update");
+    expect(touch?.payload).toHaveProperty("last_used_at");
+    expect(touch?.eqs).toEqual([{ col: "token", val: "live-tok" }]);
+    expect(touch?.terminal).toBe("await");
+    expect(state.calls.find((c) => c.table === "sessions" && c.op === "select")?.selectCols).toContain("last_used_at");
+  });
+
+  it("G34 DC08: a session touched within the interval is not rewritten", async () => {
+    state.cookies.set(SESSION_COOKIE, "live-tok");
+    push("sessions", "select", {
+      data: { token: "live-tok", user_id: "u-42", expires_at: new Date(Date.now() + 3600_000).toISOString(), last_used_at: new Date(Date.now() - 60_000).toISOString() },
+      error: null,
+    });
+    push("app_users", "select", { data: { id: "u-42", email: "founder@example.com", created_at: "2026-01-01" }, error: null });
+    await getCurrentUser();
+    expect(state.calls.some((c) => c.table === "sessions" && c.op === "update")).toBe(false);
   });
 
   it("mapAppUser coerces role='admin' when the row explicitly says admin", async () => {

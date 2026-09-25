@@ -162,10 +162,11 @@ export async function GET(request: Request) {
         data_richness: sviIndex.dataRichnessFactor,
       }, { onConflict: "account_id,snapshot_date" });
 
-      // Update account current SVI
+      // Update account current SVI. G34 DC08: NOT `last_active_at` — a cron
+      // touching every account made it useless as an activity signal (the
+      // real one is `sessions.last_used_at`, see lib/auth.ts getCurrentUser).
       await supabase.from("svi_accounts").update({
         current_svi: analysis.total_svi,
-        last_active_at: new Date().toISOString(),
       }).eq("id", account.id);
 
       // T0246 — svi_trend_alert when the week's move is ≥ SVI_TREND_ALERT_THRESHOLD.

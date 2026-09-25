@@ -382,6 +382,16 @@ export async function clearSessionCookie(): Promise<void> {
 // unconfigured (returns null without throwing) so dev pages don't crash.
 // -----------------------------------------------------------------------------
 
+/** G34 DC08: `sessions.last_used_at` is written at most this often per session. */
+export const SESSION_TOUCH_INTERVAL_MS = 5 * 60 * 1000;
+
+/** Touch the session when it was never touched, unparsable, or older than the interval. Pure. */
+export function shouldTouchSession(lastUsedAt: string | null | undefined, now: number = Date.now()): boolean {
+  if (!lastUsedAt) return true;
+  const t = new Date(lastUsedAt).getTime();
+  return !Number.isFinite(t) || now - t >= SESSION_TOUCH_INTERVAL_MS;
+}
+
 // Memoised per request (React `cache`): the `(app)` layout, the `(founder)`
 // layout and the page each call this, so without the cache every founder
 // request paid three session + app_users reads and three fire-and-forget
@@ -405,7 +415,7 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<App
 
   const { data: session, error: sessErr } = await supabase
     .from("sessions")
-    .select("token, user_id, expires_at")
+    .select("token, user_id, expires_at, last_used_at")
     .eq("token", cookie.value)
     .maybeSingle();
   if (sessErr) {
@@ -419,11 +429,23 @@ export const getCurrentUser = cache(async function getCurrentUser(): Promise<App
     return null;
   }
 
-  // Touch last_used_at (fire-and-forget; don't block render).
-  void supabase
-    .from("sessions")
-    .update({ last_used_at: new Date().toISOString() })
-    .eq("token", cookie.value);
+  // G34 DC08 — `sessions.last_used_at` is the real "last seen" signal
+  // (app_users has no last_seen_at; svi_accounts.last_active_at is bumped by
+  // jobs). Fire-and-forget, don't block render — but a Supabase builder only
+  // sends its request when `.then` is called, so the old bare `void builder`
+  // never wrote at all. Throttled to one write per SESSION_TOUCH_INTERVAL_MS.
+  if (shouldTouchSession(session.last_used_at as string | null | undefined)) {
+    supabase
+      .from("sessions")
+      .update({ last_used_at: new Date().toISOString() })
+      .eq("token", cookie.value)
+      .then(
+        ({ error }) => {
+          if (error) console.warn("[blockid:auth] sessions touch failed", error.message);
+        },
+        () => {},
+      );
+  }
 
   const { data: user } = await supabase
     .from("app_users")
