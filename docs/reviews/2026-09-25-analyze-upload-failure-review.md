@@ -67,3 +67,26 @@ Everything below uses data that already exists today.
 3. **Wave C:** AF08, AF11–AF15.
 
 After every deploy: review, qa:live partial, fix. Tracked in SOT §12.14.
+
+## 5. Status (25/09/2026)
+
+**Incident fix: live.** Commit `aac98460c`, deployed as `52ccc0880`, runs on origin 4146 with all 12 gates passed.
+- The first attempt failed at Gate 4. The failing test was in the DOCX work Codex had not committed, and it failed Codex's own test.
+- To deploy, the 18 uncommitted Codex files were backed up and set aside. They were restored byte-for-byte after the deploy.
+
+**Wave A: live.** Commit `61030f2df` runs on origin 4147 with all 12 gates passed and is marked good. It fixes:
+- AF01: guest errors are now visible.
+- AF02: the credits modal can no longer drop a run the server already started.
+- AF03: the pay screen never links to the old report; the user tops up in a new tab and checks again.
+- AF04: credits are charged only after the run is saved, tagged with `analysis_id`.
+  - If the charge fails, the run is taken off the queue.
+  - If the job fails for good, the charge is refunded once.
+- AF05/AF06/AF07: polling continues while retries remain, keeps the report visible through a 5xx, and shows a give-up notice.
+- AF09: the permalink replaces `?q=`.
+- AF10: a second submit is blocked while the first is in flight.
+
+929 tests pass and tsc is clean.
+
+**Still open:**
+- Wave B: ER1–ER3.
+- Wave C: AF08, AF11–AF15.
