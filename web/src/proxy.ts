@@ -230,6 +230,10 @@ function requestHeadersFor(
   const { pathname, search } = req.nextUrl;
   h.set("x-pathname", `${pathname}${search}`);
   h.set("x-invoke-path", pathname);
+  // The HTTP method — Server Components cannot read it, and a HEAD must not
+  // count as a share-page view (lib/share/view-notify.ts). Overwrites any
+  // client-supplied value.
+  h.set("x-blockid-method", req.method);
   if (nonce) h.set("x-nonce", nonce);
   else h.delete("x-nonce");
   h.set("Content-Security-Policy", cspHeader);

@@ -25,6 +25,7 @@ import {
   type InvestorLink,
 } from "@/lib/investor-links";
 import { sendScoreViewed } from "@/lib/email";
+import { automatedShareViewReason } from "@/lib/share/view-notify";
 import {
   SVI_STAGE_LABELS,
   SVI_BENCHMARKS,
@@ -162,6 +163,7 @@ async function recordView(slug: string, notify?: {
   ownerEmail: string;
   companyName: string | null;
   viewerLabel?: string;
+  viewerKey?: string | null;
 }) {
   const supabase = getSupabaseAdmin();
   if (!supabase) return;
@@ -206,6 +208,7 @@ async function recordView(slug: string, notify?: {
       slug,
       viewerLabel: notify.viewerLabel,
       companyName: notify.companyName,
+      viewerKey: notify.viewerKey,
     }).catch((e) =>
       console.error("[blockid:s] sendScoreViewed failed", e),
     );
@@ -448,14 +451,22 @@ export default async function ShareScorePage({
           .join(" · ") || undefined
       : undefined;
 
-    await recordView(scoreSlug, {
-      ownerEmail: row.email,
-      companyName: row.company_name ?? null,
-      viewerLabel,
-    });
+    // A HEAD, a prefetch, a loopback / internal request (deploy link-check,
+    // warm-up, smoke) or an automation UA is not a view: record nothing and
+    // e-mail nobody (2026-09-25 incident, lib/share/view-notify.ts).
+    const automated = automatedShareViewReason(await headers());
+
+    if (!automated) {
+      await recordView(scoreSlug, {
+        ownerEmail: row.email,
+        companyName: row.company_name ?? null,
+        viewerLabel,
+        viewerKey: investorLink?.token ?? null,
+      });
+    }
 
     // If this was an investor-link slug, also record in investor_link_views
-    if (investorLink) {
+    if (investorLink && !automated) {
       const h = await headers();
       const ip = clientIpFromHeaders(h);
       void recordInvestorLinkView({

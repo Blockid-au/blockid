@@ -17,6 +17,7 @@ import {
   type InvestorLink,
 } from "@/lib/investor-links";
 import { sendScoreViewed } from "@/lib/email";
+import { automatedShareViewReason } from "@/lib/share/view-notify";
 
 // Force dynamic — every render records a view and the token is opaque.
 export const dynamic = "force-dynamic";
@@ -74,9 +75,10 @@ async function trackAndNotify(link: InvestorLink, score: ScoreRow): Promise<void
   const referer = h.get("referer")?.slice(0, 512) ?? null;
   const ipHash = hashIp(ip);
 
-  // Skip telemetry for known bots so we don't email founders for previewers
-  // (Slack, WhatsApp, LinkedIn unfurlers, etc.).
-  if (ua && /bot|crawler|spider|preview|fetch|curl|httpclient/i.test(ua)) return;
+  // Skip telemetry for anything that is not a human browser view: HEAD,
+  // prefetch, loopback / internal callers (deploy smoke, link-check) and
+  // bots / unfurlers / headless automation (lib/share/view-notify.ts).
+  if (automatedShareViewReason(h)) return;
 
   const result = await recordInvestorLinkView({
     link,
@@ -91,6 +93,7 @@ async function trackAndNotify(link: InvestorLink, score: ScoreRow): Promise<void
       slug: score.id,
       viewerLabel: `by ${investorLabel(link)}`,
       companyName: score.company_name,
+      viewerKey: link.token,
     });
   }
 }

@@ -30,6 +30,7 @@ import {
   getPreferencesUrl,
 } from "./email-preferences";
 import { sendEmail, type SendResult } from "./email-core";
+import { claimScoreViewNotification, isNotifiableRecipient, scoreViewedTemplate, SCORE_VIEWED_FLOW } from "./share/view-notify";
 import { ADMIN_EMAIL } from "./auth";
 import { getSupabaseAdmin } from "./supabase";
 import { resellerFooterHtml } from "./reseller/email-footer";
@@ -565,8 +566,15 @@ export async function sendScoreViewed(args: {
   slug: string;
   viewerLabel?: string;
   companyName?: string | null;
+  /** Identified viewer (investor-link id) — dedupes per score + viewer instead of per score. */
+  viewerKey?: string | null;
 }): Promise<SendResult> {
+  // 2026-09-25 incident (lib/share/view-notify.ts): never to a reserved /
+  // typo domain, and at most one per share per 24 h whatever the viewer IP.
+  if (!isNotifiableRecipient(args.to)) return { ok: false, reason: "suppressed" };
   if (!(await canSendEmail(args.to, "svi_alerts"))) return { ok: false, reason: "unsubscribed" };
+  const template = scoreViewedTemplate(args.slug, args.viewerKey);
+  if (!(await claimScoreViewNotification(template))) return { ok: false, reason: "frequency_capped" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const url = `${siteUrl()}/s/${args.slug}`;
   const who = args.viewerLabel || "by a viewer";
@@ -590,7 +598,7 @@ export async function sendScoreViewed(args: {
     </td></tr>
   </table>
   ${unsubFooter(unsubscribeUrl, preferencesUrl)}`);
-  return sendEmail({ to: args.to, subject: "Your score was just viewed", html, unsubscribeUrl });
+  return sendEmail({ to: args.to, subject: "Your score was just viewed", html, unsubscribeUrl, flow: SCORE_VIEWED_FLOW, template });
 }
 
 // ---------- S26-A: data-room investor activity (founder alert) ---------------

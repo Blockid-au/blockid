@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
 import { sendScoreViewed } from "@/lib/email";
+import { automatedShareViewReason } from "@/lib/share/view-notify";
 
 export const dynamic = "force-dynamic";
 
@@ -114,8 +115,9 @@ export async function POST(request: Request) {
         })
         .eq("id", existing.id);
 
-      // Notify founder if heat crossed the 50+ threshold
-      if (newHeatScore >= 50 && existing.heat_score < 50) {
+      // Notify founder if heat crossed the 50+ threshold — only for a human
+      // browser (never a loopback / headless / scripted POST).
+      if (newHeatScore >= 50 && existing.heat_score < 50 && !automatedShareViewReason(h)) {
         void notifyFounderHotInvestor(supabase, slug, viewerHash, newHeatScore);
       }
     } else {
