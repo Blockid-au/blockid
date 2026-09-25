@@ -317,7 +317,8 @@ export interface ExtraEntry {
    * (`col = p_user_id OR col IN (owner's svi_accounts)`).
    */
   /** `email_hash` (G25-C review): `col = public.free_report_email_hash(<pre-erasure email>)` — the ledger identity, so plus-tag / dot variants of the same inbox are erased too. */
-  by: "email" | "user_id" | "account" | "email_hash";
+  /** `email_sha256` (G34 BT2 send log): `col = sha256(lower(trim(<pre-erasure email>)))` hex — the only recipient key `email_sends` stores (lib/email-sends.ts hashRecipient). */
+  by: "email" | "user_id" | "account" | "email_hash" | "email_sha256";
   mode: "delete" | "anonymise";
   scrub?: string;
   note: string;
@@ -380,6 +381,7 @@ export const NON_FK_EXTRAS: readonly ExtraEntry[] = Object.freeze([
   // G34 DC09 (pending-authority/0464): rows keyed by the address that the
   // user_id FK walk cannot reach.
   { table: "email_preferences", column: "email", by: "email", mode: "delete", note: "Email preferences + unsubscribe token written before sign-up / from an unsubscribe link (user_id NULL) — the FK entry only reaches rows carrying the user id." },
+  { table: "email_sends", column: "recipient_hash", by: "email_sha256", mode: "delete", note: "G34 BT2 send log — rows keyed by sha256(lower(trim(address))); the address itself is never stored." },
   { table: "svi_notifications", column: "email", by: "email", mode: "delete", note: "Sent-email / nurture log keyed by the recipient address (daily cap + dedupe reads). The RPC skips it where the live table has no `email` column (0008 created none)." },
 ]);
 
