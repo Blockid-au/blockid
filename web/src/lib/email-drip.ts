@@ -26,6 +26,7 @@ import {
   getUnsubscribeUrl,
   type EmailCategory,
 } from "@/lib/email-preferences";
+import type { EmailClass } from "@/lib/email-sends";
 import { isExcludedAccountEmail } from "@/lib/traction/snapshot";
 import { trustReportPriceLabel } from "@/lib/pricing/trust-report-price";
 import { PLANS_V2, formatAud } from "@/lib/plans-v2";
@@ -637,6 +638,26 @@ export async function expireStaleDrips(
 export function dripCategory(campaign: DripCampaign): EmailCategory {
   if (isRadarCampaign(campaign) || isRadarSetupCampaign(campaign)) return "money_radar";
   return campaign === "onboarding_d14" || campaign === TBR_UNLOCK_CAMPAIGN ? "promotions" : "product_updates";
+}
+
+/**
+ * G34-BT2 — send class. Radar deadline alerts (`radar_t30/t14/t3`,
+ * `radar_status_changed`) are service mail about a grant the subscriber is
+ * watching (T); every other campaign — onboarding tips, the NPS pulse, the
+ * radar activation nudges, the A$3 unlock nudge — is commercial (C) and
+ * passes consent, suppression and the global frequency cap.
+ */
+export function dripEmailClass(campaign: DripCampaign): EmailClass {
+  return isRadarCampaign(campaign) ? "T" : "C";
+}
+
+/** G34-BT2 EM03 — the flow key the per-flow 72 h cap groups campaigns by. */
+export function dripFlow(campaign: DripCampaign): string {
+  if (isRadarCampaign(campaign)) return "radar-deadlines";
+  if (isRadarSetupCampaign(campaign)) return "radar-setup";
+  if (campaign === TBR_UNLOCK_CAMPAIGN) return "tbr-unlock";
+  if (campaign === "nps_d30") return "nps";
+  return "onboarding";
 }
 
 /** Thin delegate to the single suppression mechanism, `canSendEmail`. */

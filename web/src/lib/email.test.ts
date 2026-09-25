@@ -78,6 +78,14 @@ vi.mock("./supabase", () => ({
   getSupabaseAdmin: () => null,
 }));
 
+// G34-BT2 — the C-class gate (consent / suppression / cap) has its own suites
+// (email-sends.test.ts, email-send-gate.test.ts); here it always passes so
+// the copy tests below exercise the templates.
+vi.mock("./email-sends", async (orig) => ({
+  ...(await orig<typeof import("./email-sends")>()),
+  commercialSendGate: async () => ({ ok: true }),
+}));
+
 vi.mock("./reseller/email-footer", () => ({
   resellerFooterHtml: (name: string | null) =>
     name ? `<div class="reseller-footer">${name}</div>` : "",

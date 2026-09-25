@@ -6,6 +6,9 @@
 // Runs daily. Fires at most one email per user per cron run. Uses svi_notifications
 // table (notification_type) for idempotency, so each step sends exactly once per user.
 // Honours email-preferences "promotions" opt-out (each send* helper checks first).
+// G34-BT2: commercial (C-class) — emailSendChecklist adds consent, suppression and
+// the global frequency cap (fail-closed) before each step; candidates are filtered
+// before MAX_BATCH applies.
 
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
@@ -15,9 +18,13 @@ import {
   sendD9LastCall,
 } from "@/lib/email";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
+import { emailSendChecklist } from "@/lib/email-preferences";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+/** G34-BT2 EM03 — flow key for the global C-class frequency cap (the send* helpers use the same). */
+const FLOW = "lead-nurture";
 
 interface Step {
   type: string;
@@ -54,8 +61,18 @@ export async function GET(request: Request) {
     let skipped = 0;
     let opted_out = 0;
 
-    for (const account of (accounts ?? []).slice(0, MAX_BATCH)) {
-      if (!account.email || !account.created_at) continue;
+    // G34-BT2 EM01: filter BEFORE limiting — the newest 50 accounts used to
+    // be sliced first, so older accounts still inside a step window were
+    // never reached. Only accounts with an open step window are candidates;
+    // MAX_BATCH now bounds the sends of one run.
+    const candidates = (accounts ?? []).filter((account) => {
+      if (!account.email || !account.created_at) return false;
+      const daysSince = Math.floor((now - new Date(account.created_at).getTime()) / 86_400_000);
+      return STEPS.some((s) => daysSince >= s.daysAfter && daysSince <= s.daysAfter + s.window);
+    });
+
+    for (const account of candidates) {
+      if (sent >= MAX_BATCH) break;
 
       const daysSince = Math.floor((now - new Date(account.created_at).getTime()) / 86_400_000);
       const firstName = account.name?.split(" ")[0] ?? null;
@@ -64,12 +81,14 @@ export async function GET(request: Request) {
         if (daysSince < step.daysAfter) continue;
         if (daysSince > step.daysAfter + step.window) continue;
 
-        const { count } = await supabase
-          .from("svi_notifications")
-          .select("id", { count: "exact", head: true })
-          .eq("email", account.email)
-          .eq("notification_type", step.type);
-        if ((count ?? 0) > 0) { skipped++; continue; }
+        // Preference + consent + suppression + global frequency cap
+        // (fail-closed) + svi_notifications dedup (EM03).
+        const check = await emailSendChecklist(account.email, "promotions", step.type, { flow: FLOW });
+        if (!check.ok) {
+          if (check.reason === "user_unsubscribed") opted_out++;
+          else skipped++;
+          continue;
+        }
 
         const result = await step.send({
           to: account.email,

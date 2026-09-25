@@ -29,6 +29,8 @@ import {
   canSendDrip,
   claimDrip,
   dripCategory,
+  dripEmailClass,
+  dripFlow,
   dueDrips,
   expireStaleDrips,
   markFailed,
@@ -38,6 +40,7 @@ import {
   tbrUnlockSuppression,
   type DripPayload,
 } from "@/lib/email-drip";
+import { emailSendChecklist } from "@/lib/email-preferences";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
@@ -61,6 +64,7 @@ async function handle(request: Request): Promise<Response> {
   let sent = 0;
   let failed = 0;
   let skipped = 0;
+  let deferred = 0;
   const failures: string[] = [];
   const wouldSend: string[] = [];
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL ?? "https://blockid.au").replace(/\/$/, "");
@@ -76,6 +80,25 @@ async function handle(request: Request): Promise<Response> {
         }
         skipped++;
         continue;
+      }
+
+      // G34-BT2 EM03/EM04/EM05 — commercial campaigns also pass consent,
+      // suppression and the global frequency cap BEFORE the claim. A loser
+      // is dropped (cancelled), never queued; an unreadable log / preference
+      // row (fail-closed) leaves the row pending for a later tick.
+      const emailClass = dripEmailClass(drip.campaign);
+      const flow = dripFlow(drip.campaign);
+      if (emailClass === "C") {
+        const check = await emailSendChecklist(drip.email, dripCategory(drip.campaign), undefined, { flow });
+        if (!check.ok) {
+          if (check.reason === "gate_unavailable") {
+            deferred++;
+          } else if (!dryRun) {
+            await suppressDrip(drip.id, `suppressed: ${check.reason}${check.detail ? `:${check.detail}` : ""}`);
+          }
+          skipped++;
+          continue;
+        }
       }
 
       // G16-B: the A$3 unlock nudge is cancelled (not sent, not claimed)
@@ -108,6 +131,10 @@ async function handle(request: Request): Promise<Response> {
         subject: rendered.subject,
         html: rendered.html,
         unsubscribeUrl,
+        emailClass,
+        flow,
+        template: drip.campaign,
+        category: dripCategory(drip.campaign),
       });
       if (result.ok) {
         await markSent(drip.id);
@@ -133,6 +160,7 @@ async function handle(request: Request): Promise<Response> {
     sent,
     failed,
     skipped,
+    deferred,
     cap: BATCH_LIMIT,
     failures: failures.slice(0, 5),
     wouldSend,

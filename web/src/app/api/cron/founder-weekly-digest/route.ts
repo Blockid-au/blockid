@@ -235,6 +235,11 @@ export async function GET(req: Request): Promise<NextResponse> {
         subject: digestForSend.subject,
         html: digestForSend.html,
         unsubscribeUrl,
+        // G34-BT2 EM03 — commercial: consent + suppression + global cap (fail-closed) in sendEmail.
+        emailClass: "C",
+        flow: "founder-digest",
+        template: "founder_weekly_digest",
+        category: "weekly_reports",
       });
       if (res && (res as { ok?: boolean }).ok !== false) {
         emailed++;

@@ -276,6 +276,8 @@ import {
   suppressDrip,
   canSendDrip,
   dripCategory,
+  dripEmailClass,
+  dripFlow,
   DRIP_EXPIRY_DAYS,
   TBR_UNLOCK_CAMPAIGN,
   TBR_UNLOCK_DELAY_MS,
@@ -1102,6 +1104,24 @@ describe("dripCategory", () => {
     expect(dripCategory("onboarding_d3")).toBe("product_updates");
     expect(dripCategory("onboarding_d7")).toBe("product_updates");
     expect(dripCategory("nps_d30")).toBe("product_updates");
+  });
+});
+
+describe("dripEmailClass / dripFlow (G34-BT2)", () => {
+  it("radar deadline alerts are transactional; every other campaign is commercial", () => {
+    for (const c of RADAR_CAMPAIGNS) expect(dripEmailClass(c)).toBe("T");
+    for (const c of ALL_DRIP_CAMPAIGNS.filter((x) => !(RADAR_CAMPAIGNS as readonly string[]).includes(x))) {
+      expect(dripEmailClass(c)).toBe("C");
+    }
+  });
+
+  it("groups campaigns into cap flows", () => {
+    expect(dripFlow("onboarding_d1")).toBe("onboarding");
+    expect(dripFlow("onboarding_d14")).toBe("onboarding");
+    expect(dripFlow("nps_d30")).toBe("nps");
+    expect(dripFlow("radar_setup_2")).toBe("radar-setup");
+    expect(dripFlow("radar_t3")).toBe("radar-deadlines");
+    expect(dripFlow(TBR_UNLOCK_CAMPAIGN)).toBe("tbr-unlock");
   });
 });
 

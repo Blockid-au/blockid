@@ -2834,6 +2834,9 @@ export async function sendActionReminder(args: {
 // final Starter-plan last-call (the Founding 100 A$5 promo it used to pitch
 // closed 2026-09-01). Wired via api/cron/lead-nurture.
 // Each step honours email-preferences (promotions opt-out skips silently).
+// G34-BT2: commercial (C-class) — sendEmail adds consent, suppression and the
+// global frequency cap (fail-closed) plus the RFC 8058 one-click headers.
+const LEAD_NURTURE_C = { emailClass: "C", flow: "lead-nurture", category: "promotions" } as const;
 
 export async function sendD1Welcome(args: NurtureArgs): Promise<SendResult> {
   if (!(await canSendEmail(args.to, "promotions"))) return { ok: false, reason: "unsubscribed" };
@@ -2854,7 +2857,7 @@ export async function sendD1Welcome(args: NurtureArgs): Promise<SendResult> {
     ctaLabel: "Open Your Dashboard",
     ctaUrl: dashUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "d1_welcome"));
-  return sendEmail({ to: args.to, subject: "Welcome to BlockID — your first 3 steps", html, unsubscribeUrl });
+  return sendEmail({ to: args.to, subject: "Welcome to BlockID — your first 3 steps", html, unsubscribeUrl, ...LEAD_NURTURE_C, template: "lead_d1" });
 }
 
 export async function sendD4CheckIn(args: NurtureArgs): Promise<SendResult> {
@@ -2878,7 +2881,7 @@ export async function sendD4CheckIn(args: NurtureArgs): Promise<SendResult> {
     ctaLabel: "Upload Evidence",
     ctaUrl: evidenceUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "d4_checkin"));
-  return sendEmail({ to: args.to, subject: "Quick check-in — one upload = +20 SVI points", html, unsubscribeUrl });
+  return sendEmail({ to: args.to, subject: "Quick check-in — one upload = +20 SVI points", html, unsubscribeUrl, ...LEAD_NURTURE_C, template: "lead_d4" });
 }
 
 export async function sendD9LastCall(args: NurtureArgs): Promise<SendResult> {
@@ -2907,7 +2910,7 @@ export async function sendD9LastCall(args: NurtureArgs): Promise<SendResult> {
     ctaLabel: `Start my ${starter.trial_days}-day free trial — ${starterPrice}`,
     ctaUrl: starterUrl,
   }) + unsubFooter(unsubscribeUrl, preferencesUrl) + nurturePx(args.to, "d9_lastcall"));
-  return sendEmail({ to: args.to, subject: `Last call: ${starter.name} plan, ${starterPrice}, ${starter.trial_days}-day free trial`, html, unsubscribeUrl });
+  return sendEmail({ to: args.to, subject: `Last call: ${starter.name} plan, ${starterPrice}, ${starter.trial_days}-day free trial`, html, unsubscribeUrl, ...LEAD_NURTURE_C, template: "lead_d9" });
 }
 
 // ── A$3 One-Click Guest Report (Phase 5) ──────────────────────────────────────

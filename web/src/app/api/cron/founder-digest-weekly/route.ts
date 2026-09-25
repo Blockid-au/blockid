@@ -22,12 +22,15 @@ import { sendEmail, prepareUnsubscribe } from "@/lib/email";
 import { buildFounderDigest, type DigestPayload } from "@/lib/digest/weekly";
 import { renderFounderDigestEmail } from "@/lib/digest/email-template";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
+import { emailSendChecklist } from "@/lib/email-preferences";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 const PERIOD_DAYS = 7;
+/** G34-BT2 EM03 — the digest's flow key for the global C-class frequency cap. */
+const FLOW = "founder-digest";
 
 interface EnrolledRow {
   email: string;
@@ -71,6 +74,7 @@ export async function POST(request: Request): Promise<NextResponse> {
   let skippedEmpty = 0;
   let skippedDupe = 0;
   let failures = 0;
+  let skippedGate = 0;
 
   for (const pref of prefs) {
     try {
@@ -90,6 +94,15 @@ export async function POST(request: Request): Promise<NextResponse> {
       );
       if (!payload) {
         skippedEmpty++;
+        continue;
+      }
+
+      // G34-BT2 EM03/EM05 — commercial gate (consent, suppression, global
+      // frequency cap; fail-closed) BEFORE the week's slot is claimed, so a
+      // capped founder is not recorded as sent.
+      const gate = await emailSendChecklist(pref.email, "weekly_reports", undefined, { flow: FLOW });
+      if (!gate.ok) {
+        skippedGate++;
         continue;
       }
 
@@ -116,6 +129,10 @@ export async function POST(request: Request): Promise<NextResponse> {
         subject: rendered.subject,
         html: rendered.html,
         unsubscribeUrl,
+        emailClass: "C",
+        flow: FLOW,
+        template: "founder_digest_weekly",
+        category: "weekly_reports",
       });
       if (result.ok) {
         sent++;
@@ -140,6 +157,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     sent,
     skipped_empty: skippedEmpty,
     skipped_dupe: skippedDupe,
+    skipped_gate: skippedGate,
     failures,
     period_start: periodStart.toISOString(),
     period_end: periodEnd.toISOString(),

@@ -62,6 +62,14 @@ vi.mock("@/lib/email-drip", () => ({
   tbrUnlockSuppression: (...args: unknown[]) => tbrUnlockSuppressionMock(...args),
   dripCategory: (campaign: string) =>
     campaign === "onboarding_d14" ? "promotions" : "product_updates",
+  dripEmailClass: (campaign: string) => (/^radar_t|^radar_status/.test(campaign) ? "T" : "C"),
+  dripFlow: (campaign: string) => (campaign.startsWith("onboarding") ? "onboarding" : campaign),
+}));
+
+// G34-BT2 — the commercial checklist (consent / suppression / cap).
+const checklistMock = vi.fn();
+vi.mock("@/lib/email-preferences", () => ({
+  emailSendChecklist: (...args: unknown[]) => checklistMock(...args),
 }));
 
 import * as routeModule from "./route";
@@ -106,6 +114,8 @@ beforeEach(() => {
   suppressDripMock.mockReset();
   tbrUnlockSuppressionMock.mockReset();
   tbrUnlockSuppressionMock.mockResolvedValue(null);
+  checklistMock.mockReset();
+  checklistMock.mockResolvedValue({ ok: true });
 
   expireStaleDripsMock.mockResolvedValue(0);
   canSendDripMock.mockResolvedValue(true);
@@ -186,6 +196,7 @@ describe("POST /api/cron/email-drip — empty queue", () => {
       sent: 0,
       failed: 0,
       skipped: 0,
+      deferred: 0,
       cap: 50,
       failures: [],
       wouldSend: [],
@@ -343,6 +354,7 @@ describe("POST /api/cron/email-drip — envelope contract", () => {
       [
         "cap",
         "considered",
+        "deferred",
         "dryRun",
         "expired",
         "failed",
@@ -603,5 +615,50 @@ describe("POST /api/cron/email-drip — tbr_unlock_24h send-time guard (G16-B)",
     expect(body).toMatchObject({ dryRun: true, skipped: 1, sent: 0 });
     expect(body.wouldSend).toEqual([]);
     expect(suppressDripMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/cron/email-drip — G34-BT2 commercial gate", () => {
+  it("runs the commercial checklist with the campaign's category + flow before claiming", async () => {
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "d1", campaign: "onboarding_d14" })]);
+    await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
+    expect(checklistMock).toHaveBeenCalledWith("founder@example.com", "promotions", undefined, { flow: "onboarding" });
+    const args = sendEmailMock.mock.calls[0][0];
+    expect(args).toMatchObject({ emailClass: "C", flow: "onboarding", template: "onboarding_d14", category: "promotions" });
+  });
+
+  it("drops (cancels) a capped row — never claimed, never sent", async () => {
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "d-cap" })]);
+    checklistMock.mockResolvedValueOnce({ ok: false, reason: "frequency_capped", detail: "cap_flow" });
+    const body = await (await POST(req("POST", { authorization: `Bearer ${SECRET}` }))).json();
+    expect(body).toMatchObject({ sent: 0, skipped: 1, deferred: 0 });
+    expect(suppressDripMock).toHaveBeenCalledWith("d-cap", "suppressed: frequency_capped:cap_flow");
+    expect(claimDripMock).not.toHaveBeenCalled();
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("cancels a row with no marketing consent", async () => {
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "d-nc" })]);
+    checklistMock.mockResolvedValueOnce({ ok: false, reason: "no_consent" });
+    await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
+    expect(suppressDripMock).toHaveBeenCalledWith("d-nc", "suppressed: no_consent");
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("leaves the row pending when the send log is unreadable (fail-closed, not destructive)", async () => {
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "d-na" })]);
+    checklistMock.mockResolvedValueOnce({ ok: false, reason: "gate_unavailable", detail: "log_unavailable" });
+    const body = await (await POST(req("POST", { authorization: `Bearer ${SECRET}` }))).json();
+    expect(body).toMatchObject({ sent: 0, skipped: 1, deferred: 1 });
+    expect(suppressDripMock).not.toHaveBeenCalled();
+    expect(claimDripMock).not.toHaveBeenCalled();
+    expect(sendEmailMock).not.toHaveBeenCalled();
+  });
+
+  it("radar deadline alerts are transactional — no commercial checklist", async () => {
+    dueDripsMock.mockResolvedValueOnce([drip({ id: "d-r", campaign: "radar_t14" })]);
+    await POST(req("POST", { authorization: `Bearer ${SECRET}` }));
+    expect(checklistMock).not.toHaveBeenCalled();
+    expect(sendEmailMock.mock.calls[0][0]).toMatchObject({ emailClass: "T" });
   });
 });

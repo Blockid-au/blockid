@@ -12,11 +12,20 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { sendEmail } from "@/lib/email";
-import { canSendEmail, ensureEmailPreferences, getUnsubscribeUrl, getPreferencesUrl } from "@/lib/email-preferences";
+import { emailSendChecklist, ensureEmailPreferences, getUnsubscribeUrl, getPreferencesUrl } from "@/lib/email-preferences";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+
+/** G34-BT2 EM03 — flow key for the global C-class frequency cap. */
+const FLOW = "weekly-insights";
+/**
+ * Days after `daysAfter` a milestone stays sendable. The cron is WEEKLY
+ * (Sunday), so the window must span 7 days or some accounts are never due
+ * (it was 3). Windows stay disjoint: 7–13, 30–36, 90–96.
+ */
+const WINDOW_DAYS = 6;
 
 interface Milestone {
   type: string;
@@ -85,6 +94,16 @@ const MILESTONES: Milestone[] = [
   },
 ];
 
+/** The milestone whose send window is open for this account today, if any. */
+function dueMilestone(
+  account: { email?: string | null; current_svi?: number | null; created_at?: string | null },
+  now: number,
+): Milestone | null {
+  if (!account.email || !account.current_svi || !account.created_at) return null;
+  const days = Math.floor((now - new Date(account.created_at).getTime()) / 86_400_000);
+  return MILESTONES.find((m) => days >= m.daysAfter && days <= m.daysAfter + WINDOW_DAYS) ?? null;
+}
+
 export async function GET(request: Request) {
   if (!isCronAuthorised(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -107,57 +126,58 @@ export async function GET(request: Request) {
     const now = Date.now();
     const MAX_BATCH = 20;
 
-    for (const account of (accounts ?? []).slice(0, MAX_BATCH)) {
-      if (!account.current_svi || !account.created_at) continue;
+    // G34-BT2 EM01: filter BEFORE limiting. The cap used to slice the first
+    // 20 accounts and then filter, so anyone past row 20 was never due.
+    // Now: every account whose milestone window is open is a candidate, and
+    // MAX_BATCH bounds the SENDS of one run. The milestone windows do not
+    // overlap, so an account has at most one due milestone.
+    const due = (accounts ?? []).flatMap((account) => {
+      const milestone = dueMilestone(account, now);
+      return milestone ? [{ account, milestone }] : [];
+    });
 
-      const daysSinceCreation = Math.floor((now - new Date(account.created_at).getTime()) / 86_400_000);
+    for (const { account, milestone } of due) {
+      if (sent >= MAX_BATCH) break;
       const firstName = account.name?.split(" ")[0] ?? "there";
 
-      for (const milestone of MILESTONES) {
-        if (daysSinceCreation < milestone.daysAfter) continue;
-        // Allow 3-day window (e.g. day 7-10 for 1w milestone)
-        if (daysSinceCreation > milestone.daysAfter + 3) continue;
+      // Preference + consent + suppression + global frequency cap
+      // (fail-closed) + svi_notifications dedup, in one checklist (EM03).
+      const check = await emailSendChecklist(account.email, "weekly_reports", milestone.type, { flow: FLOW });
+      if (!check.ok) {
+        if (check.reason !== "already_sent") skipped++;
+        continue;
+      }
 
-        // Check if already sent this milestone
-        const { count } = await supabase
-          .from("svi_notifications")
-          .select("id", { count: "exact", head: true })
-          .eq("email", account.email)
-          .eq("notification_type", milestone.type);
+      // Build email with unsubscribe
+      const token = await ensureEmailPreferences(account.email);
+      const unsubUrl = getUnsubscribeUrl(token, "weekly_reports");
+      const prefsUrl = getPreferencesUrl(token);
 
-        if ((count ?? 0) > 0) continue;
-
-        // Check user preference
-        const allowed = await canSendEmail(account.email, "weekly_reports");
-        if (!allowed) { skipped++; continue; }
-
-        // Build email with unsubscribe
-        const token = await ensureEmailPreferences(account.email);
-        const unsubUrl = getUnsubscribeUrl(token, "weekly_reports");
-        const prefsUrl = getPreferencesUrl(token);
-
-        await sendEmail({
-          to: account.email,
-          subject: milestone.subject(firstName, account.current_svi),
-          html: `<div style="max-width:560px;margin:0 auto;font-family:Arial,sans-serif;color:#1e293b;">
+      const result = await sendEmail({
+        to: account.email,
+        subject: milestone.subject(firstName, account.current_svi),
+        html: `<div style="max-width:560px;margin:0 auto;font-family:Arial,sans-serif;color:#1e293b;">
             <div style="text-align:center;padding:24px 0;">
               <img src="${siteUrl}/images/logo-transparent.png" alt="BlockID.au" style="height:40px;" />
             </div>
             ${milestone.body(firstName, account.current_svi, siteUrl, unsubUrl, prefsUrl)}
           </div>`,
-          unsubscribeUrl: unsubUrl,
-        });
+        unsubscribeUrl: unsubUrl,
+        emailClass: "C",
+        flow: FLOW,
+        template: milestone.type,
+        category: "weekly_reports",
+      });
+      if (!result.ok) { skipped++; continue; }
 
-        // Record to prevent re-sending
-        await supabase.from("svi_notifications").insert({
-          email: account.email,
-          account_id: account.id,
-          notification_type: milestone.type,
-        });
+      // Record to prevent re-sending
+      await supabase.from("svi_notifications").insert({
+        email: account.email,
+        account_id: account.id,
+        notification_type: milestone.type,
+      });
 
-        sent++;
-        break; // Max 1 email per user per cron run
-      }
+      sent++;
     }
 
     return NextResponse.json({ ok: true, sent, skipped, policy: "lifecycle_4_emails_only" });
