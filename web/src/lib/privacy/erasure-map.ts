@@ -365,6 +365,18 @@ export const NON_FK_EXTRAS: readonly ExtraEntry[] = Object.freeze([
   { table: "free_report_grants", column: "email_hash", by: "email_hash", mode: "delete", note: "Free-report grants whose typed address differs from the account address (plus tags, gmail dots) — the normalised hash catches them (review v3.26.0 P3)." },
   { table: "analyses", column: "full_report_email", by: "email", mode: "delete", note: "Guest analyses (user_id null) — intake text, summary/full-report e-mail and the v3 document keyed by the delivery address (review v3.27.0 P2)." },
   { table: "analyses", column: "summary_email", by: "email", mode: "delete", note: "Guest analyses keyed by the free-summary address (same rows as above when both were set)." },
+  // G34-BT4 — DOCUMENTED GAP, not an entry: `email_sends` (pending-authority/
+  // 0465, the EM02 send log) keys the recipient ONLY as `recipient_hash` =
+  // sha256(lower(trim(email))). The one hashed key this map supports,
+  // `by: "email_hash"`, is `public.free_report_email_hash()` — a different
+  // (prefixed, plus-tag / dot-normalised) hash — so the rows cannot be matched
+  // here and erase_account() leaves them. Closing it needs a new
+  // `by: "recipient_hash"` kind plus an RPC branch computing
+  // encode(sha256(convert_to(lower(btrim(<email>)), 'UTF8')), 'hex') (a
+  // 0464-style CREATE OR REPLACE of erase_account). Until then the rows hold
+  // no address — hash, flow, class, template, provider id, status only.
+  // `email_drips` (the lifecycle queue) IS erased: the entry above, by email.
+  //
   // G34 DC09 (pending-authority/0464): rows keyed by the address that the
   // user_id FK walk cannot reach.
   { table: "email_preferences", column: "email", by: "email", mode: "delete", note: "Email preferences + unsubscribe token written before sign-up / from an unsubscribe link (user_id NULL) — the FK entry only reaches rows carrying the user id." },
