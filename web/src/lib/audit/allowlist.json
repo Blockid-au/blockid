@@ -14,6 +14,10 @@
       "reason": "External actor (GitHub HMAC). Push events are appended to content/reports/deploy-log.jsonl which /api/status surfaces."
     },
     {
+      "pattern": "api/email/resend-webhook/route.ts",
+      "reason": "G34-BT2 EM04 — external actor (Resend/Svix HMAC, RESEND_WEBHOOK_SECRET). Bounce/complaint suppression lands in email_preferences.suppressed_* and email_sends.status; no user actor."
+    },
+    {
       "pattern": "api/internal/ai-complete/route.ts",
       "reason": "Internal loopback for scripts/agents (CRON_SECRET bearer, system actor); no state of record is mutated."
     },
