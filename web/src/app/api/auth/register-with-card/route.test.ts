@@ -167,6 +167,11 @@ vi.mock("@/lib/stripe", () => ({
   }),
 }));
 
+const consentMock = vi.hoisted(() => vi.fn(async () => true));
+vi.mock("@/lib/consent", () => ({
+  recordMarketingConsent: (p: unknown) => consentMock(p),
+}));
+
 import { POST } from "./route";
 
 const PLANS: Record<string, PlanRow> = {
@@ -579,5 +584,15 @@ describe("G34 DC04 claim on signup", () => {
     const arg = mocks.claimForCurrentBrowser.mock.calls[0][0];
     expect(arg).toEqual({ userId: "u_new", email: "eva@example.com" });
     expect(arg.emailVerified).toBeUndefined();
+  });
+
+  it("G34-BT2 EM05: marketing consent is optional, unticked by default, recorded when ticked", async () => {
+    consentMock.mockClear();
+    await POST(req(body()));
+    expect(consentMock).toHaveBeenCalledWith(expect.objectContaining({ granted: false, method: "signup_card" }));
+    consentMock.mockClear();
+    const res = await POST(req(body({ email: "eva2@example.com", marketing_consent: true })));
+    expect(res.status).toBe(200);
+    expect(consentMock).toHaveBeenCalledWith(expect.objectContaining({ granted: true, email: "eva2@example.com" }));
   });
 });

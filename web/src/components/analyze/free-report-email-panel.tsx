@@ -21,6 +21,7 @@ import { FOCUS_RING } from "@/components/marketing/template/primitives";
 
 import type { FreeReportCopy } from "@/lib/reports/free-report-copy";
 import { FREE_REPORT_HONEYPOT_FIELD } from "@/lib/reports/free-grants-rules";
+import { MARKETING_CONSENT_LABEL } from "@/lib/email/marketing-consent-copy";
 
 export type FreeReportEmailError = "required" | "invalid" | "disposable" | null;
 
@@ -41,7 +42,12 @@ export interface FreeReportEmailPanelProps {
   /** Server-reported problem with the last address, if any. */
   serverError?: FreeReportEmailError;
   busy?: boolean;
-  onContinue: (email: string, honeypot: string) => void;
+  /**
+   * `marketingConsent` — the separate G34-BT2 EM05 opt-in (D24-e). It starts
+   * UNTICKED: an address typed only for the free report gets the report and
+   * nothing commercial.
+   */
+  onContinue: (email: string, honeypot: string, marketingConsent: boolean) => void;
   onEdit?: () => void;
   className?: string;
 }
@@ -57,6 +63,7 @@ export function FreeReportEmailPanel({
 }: FreeReportEmailPanelProps) {
   const [email, setEmail] = React.useState(initialEmail ?? "");
   const [honeypot, setHoneypot] = React.useState("");
+  const [marketingConsent, setMarketingConsent] = React.useState(false);
   const [localError, setLocalError] = React.useState<FreeReportEmailError>(null);
   const error = localError ?? serverError;
   const inputId = React.useId();
@@ -67,7 +74,7 @@ export function FreeReportEmailPanel({
     const problem = localEmailError(email);
     setLocalError(problem);
     if (problem) return;
-    onContinue(email.trim(), honeypot);
+    onContinue(email.trim(), honeypot, marketingConsent);
   }
 
   const errorText =
@@ -154,6 +161,18 @@ export function FreeReportEmailPanel({
         <p className="text-xs leading-relaxed text-tertiary" data-testid="analyze-free-report-consent">
           {copy.consent}
         </p>
+        {/* G34-BT2 EM05 (D24-e): optional marketing opt-in, never pre-ticked. */}
+        <label className="flex min-h-11 items-start gap-2 text-xs leading-relaxed text-secondary">
+          <input
+            type="checkbox"
+            name="marketing_consent"
+            checked={marketingConsent}
+            onChange={(e) => setMarketingConsent(e.target.checked)}
+            className={`mt-0.5 h-4 w-4 shrink-0 ${FOCUS_RING}`}
+            data-testid="analyze-free-report-marketing-consent"
+          />
+          <span>{MARKETING_CONSENT_LABEL}</span>
+        </label>
         <p className="text-xs leading-relaxed text-tertiary" data-testid="analyze-free-report-principle">
           {copy.principle}
         </p>

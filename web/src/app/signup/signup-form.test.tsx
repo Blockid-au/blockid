@@ -105,6 +105,18 @@ describe("SignupForm — evaluator trial step copy", () => {
     expect(out).not.toContain("evaluator-trial-included");
     expect(out).not.toContain("included during the trial");
   });
+
+  // G34-BT2 EM05 (D24-e): a separate marketing checkbox, never pre-ticked, never required.
+  it("renders an unticked, optional marketing-consent checkbox separate from the terms", () => {
+    const out = renderToStaticMarkup(
+      <SignupForm segment="founder" trialPlans={[FOUNDER]} defaultPlanId="founder_starter" stripePublishableKey="pk_test_x" />,
+    );
+    const input = /<input[^>]*data-testid="signup-marketing-consent"[^>]*>/.exec(out)?.[0] ?? "";
+    expect(input).not.toBe("");
+    expect(input).not.toMatch(/checked/);
+    expect(input).not.toMatch(/required/);
+    expect(out).toContain("Email me occasional tips, product news and offers from BlockID.");
+  });
 });
 
 // 2026-09-16 pricing audit: `?interval=annual` from the pricing card. A rung

@@ -81,6 +81,15 @@ describe("FreeReportEmailPanel", () => {
     expect(out).not.toMatch(/password|credit card|A\$/i);
   });
 
+  it("G34-BT2 EM05: offers a separate, UNTICKED, optional marketing opt-in", () => {
+    const out = html(<FreeReportEmailPanel {...base} />);
+    const input = /<input[^>]*data-testid="analyze-free-report-marketing-consent"[^>]*>/.exec(out)?.[0] ?? "";
+    expect(input).toContain('type="checkbox"');
+    expect(input).not.toMatch(/checked/);
+    expect(input).not.toMatch(/required/);
+    expect(out).toContain("Email me occasional tips, product news and offers from BlockID.");
+  });
+
   it("pre-fills a remembered address and shows the server's verdict", () => {
     const out = html(<FreeReportEmailPanel {...base} initialEmail="founder@example.com" serverError="disposable" />);
     expect(out).toContain('value="founder@example.com"');

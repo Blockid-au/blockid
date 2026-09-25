@@ -85,6 +85,11 @@ vi.mock("@/lib/iphash", () => ({
   clientIpFromHeaders: (h: Headers) => mocks.clientIpFromHeadersMock(h),
 }));
 
+const consentMock = vi.hoisted(() => vi.fn(async () => true));
+vi.mock("@/lib/consent", () => ({
+  recordMarketingConsent: (p: unknown) => consentMock(p),
+}));
+
 // Route import MUST come after mocks are registered.
 import { POST, dynamic } from "./route";
 
@@ -476,6 +481,24 @@ describe("POST /api/auth/register — happy path", () => {
     const call = mocks.registerMock.mock.calls[0]?.[0];
     expect(call?.ipHash).toBe("hash_x");
     expect(call?.userAgent).toBe("TestUA/1");
+  });
+
+  it("G34-BT2 EM05: records marketing consent only when the box was ticked", async () => {
+    consentMock.mockClear();
+    await POST(req({ email: "a@b.co", password: "longenough" }));
+    expect(consentMock).toHaveBeenCalledWith(expect.objectContaining({ granted: false, userId: USER.id, method: "register_password" }));
+    consentMock.mockClear();
+    await POST(req({ email: "a@b.co", password: "longenough", marketingConsent: true }));
+    expect(consentMock).toHaveBeenCalledWith(expect.objectContaining({ granted: true, email: USER.email, userId: USER.id }));
+    consentMock.mockClear();
+    await POST(req({ email: "a@b.co", password: "longenough", marketingConsent: "yes" }));
+    expect(consentMock).toHaveBeenCalledWith(expect.objectContaining({ granted: false }));
+  });
+
+  it("a failing consent write never fails the signup", async () => {
+    consentMock.mockRejectedValueOnce(new Error("db down"));
+    const res = await POST(req({ email: "a@b.co", password: "longenough", marketingConsent: true }));
+    expect(res.status).toBe(200);
   });
 });
 

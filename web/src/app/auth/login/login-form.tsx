@@ -6,6 +6,7 @@ import { trackEvent } from "@/lib/analytics";
 import { broadcastAuthEvent } from "@/components/auth/auth-sync-logic";
 import { withClaimedParam } from "@/lib/analyses/summary";
 import { safeNextPath, withRedirectQueryParam } from "@/lib/security/safe-redirect";
+import { MARKETING_CONSENT_LABEL } from "@/lib/email/marketing-consent-copy";
 import {
   GOOGLE_START_PATH,
   describeGoogleSignInError,
@@ -560,6 +561,8 @@ function EmailPasswordForm({
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  /** G34-BT2 EM05 (D24-e): the marketing opt-in starts unticked. */
+  const [marketingConsent, setMarketingConsent] = useState(false);
   const [mode, setMode] = useState<"login" | "register">(initialMode);
   const [state, setState] = useState<"idle" | "loading" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
@@ -573,7 +576,7 @@ function EmailPasswordForm({
 
     const endpoint = mode === "register" ? "/api/auth/register" : "/api/auth/login-password";
     const body = mode === "register"
-      ? { email, password, displayName: displayName || undefined }
+      ? { email, password, displayName: displayName || undefined, marketingConsent }
       : { email, password };
 
     try {
@@ -702,6 +705,20 @@ function EmailPasswordForm({
           className="w-full rounded-xl border border-surface-300 bg-white px-4 py-2.5 text-sm text-ink-800 placeholder:text-ink-400 focus:border-brand-500 focus:ring-1 focus:ring-brand-200 outline-none transition-all"
         />
       </label>
+
+      {mode === "register" && (
+        <label className="flex items-start gap-2 text-xs text-ink-500">
+          <input
+            type="checkbox"
+            name="marketingConsent"
+            checked={marketingConsent}
+            onChange={(e) => setMarketingConsent(e.target.checked)}
+            className="mt-0.5 shrink-0"
+            data-testid="register-marketing-consent"
+          />
+          <span>{MARKETING_CONSENT_LABEL}</span>
+        </label>
+      )}
 
       {error && (
         <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>

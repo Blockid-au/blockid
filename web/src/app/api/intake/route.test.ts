@@ -110,6 +110,9 @@ vi.mock("@/lib/credits", async () => {
   };
 });
 
+const marketingConsentMock = vi.fn(async (_p: unknown) => true);
+vi.mock("@/lib/consent", () => ({ recordMarketingConsent: (p: unknown) => marketingConsentMock(p) }));
+
 import { POST, dynamic, runtime } from "./route";
 
 const RESULT = {
@@ -163,6 +166,31 @@ beforeEach(() => {
   cancelQueuedMock.mockReset().mockResolvedValue(true);
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
+});
+
+// G34-BT2 EM05 (D24-e) — a guest's address earns commercial mail only when
+// the separate, unticked opt-in was ticked.
+describe("POST /api/intake — guest marketing consent (G34-BT2 EM05)", () => {
+  it("no opt-in → nothing recorded", async () => {
+    marketingConsentMock.mockClear();
+    await POST(req({ text: "an idea" }));
+    expect(marketingConsentMock).not.toHaveBeenCalled();
+  });
+
+  it("ticked opt-in → consent recorded for the gated guest address", async () => {
+    marketingConsentMock.mockClear();
+    await POST(req({ text: "an idea", marketing_consent: "1" }));
+    expect(marketingConsentMock).toHaveBeenCalledWith(
+      expect.objectContaining({ email: "founder@example.com", granted: true, method: "analyze_guest_email" }),
+    );
+  });
+
+  it("a signed-in caller's run never records guest consent", async () => {
+    marketingConsentMock.mockClear();
+    gateState.result = { allow: true, path: "free", email: "member@example.com", source: "account", grant: GRANT, queued: false, remaining: 1 } as typeof gateState.result;
+    await POST(req({ text: "an idea", marketing_consent: "1" }));
+    expect(marketingConsentMock).not.toHaveBeenCalled();
+  });
 });
 
 // G16-A — the funnel's `svi_analyze` / `svi_score_computed` steps are emitted

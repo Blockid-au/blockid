@@ -21,6 +21,7 @@ import { loadStripe, type Stripe } from "@stripe/stripe-js";
 import type { BillingInterval } from "@/lib/plans/billing-interval";
 import { fillCheckoutString } from "@/lib/billing/checkout-review-strings";
 import { calculateGst } from "@/lib/gst";
+import { MARKETING_CONSENT_LABEL } from "@/lib/email/marketing-consent-copy";
 import { EVALUATOR_TRIAL_COPY, TRIAL_COPY, TRIAL_DAYS, TRIAL_WARNING_HOURS_BEFORE, evaluatorTrialIncludedLine, evaluatorTrialLine } from "@/lib/plans/trial-copy";
 import {
   FOUNDER_ACCOUNT_TYPE_OPTIONS,
@@ -185,6 +186,7 @@ function InnerForm(props: SignupFormProps) {
   const defaultAvailable = props.trialPlans.find((p) => p.id === props.defaultPlanId)?.hasStripePrice ? props.defaultPlanId : firstAvailable;
   const [planId, setPlanId] = React.useState(defaultAvailable);
   const [terms, setTerms] = React.useState(false);
+  const [marketingConsent, setMarketingConsent] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -329,6 +331,7 @@ function InnerForm(props: SignupFormProps) {
           interval: effectiveInterval,
           payment_method_id: pm.paymentMethod.id,
           terms_accepted: true,
+          marketing_consent: marketingConsent,
           // Task M2 — pass promo code (validated or raw) so the server
           // stamps app_users.attribution_reseller_id + refreshes cookie.
           promo_code: promoValidation?.code ?? promoCode.trim() ?? undefined,
@@ -539,6 +542,19 @@ function InnerForm(props: SignupFormProps) {
           {" "}and{" "}
           <Link href="/legal/privacy" className="text-action hover:underline">privacy policy</Link>.
         </span>
+      </label>
+
+      {/* G34-BT2 EM05 (D24-e): marketing consent — separate from the terms,
+          never pre-ticked, never required. */}
+      <label className="flex items-start gap-2.5 text-xs text-muted mb-4">
+        <input
+          type="checkbox"
+          checked={marketingConsent}
+          onChange={(e) => setMarketingConsent(e.target.checked)}
+          className="mt-0.5 shrink-0"
+          data-testid="signup-marketing-consent"
+        />
+        <span>{MARKETING_CONSENT_LABEL}</span>
       </label>
 
       {error ? (

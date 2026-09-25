@@ -65,6 +65,7 @@ import { emitSignUp } from "@/lib/analytics/funnel";
 import { initializeCredits } from "@/lib/credits";
 import { sendPaymentConfirmation } from "@/lib/email";
 import { apiRoute } from "@/lib/audit/api-route";
+import { recordMarketingConsent } from "@/lib/consent";
 import { resolvePostLoginHref } from "@/lib/auth/post-login";
 import { resolvePersona } from "@/lib/nav/persona";
 import { claimForCurrentBrowser } from "@/lib/analyses/claim";
@@ -106,6 +107,9 @@ const BodySchema = z.object({
   // `stripe_price_id_annual`; otherwise the subscription is monthly and the
   // response says which cadence was billed.
   interval: z.enum(["monthly", "annual"]).optional().default("monthly"),
+  // G34-BT2 EM05 (D24-e) — the separate, UNTICKED marketing checkbox. Never
+  // required; absent/false leaves every commercial category off.
+  marketing_consent: z.boolean().optional().default(false),
 });
 
 function sanitizeName(raw: string | undefined): string | undefined {
@@ -359,6 +363,15 @@ async function POST_handler(request: Request) {
   await initializeCredits(userId).catch((err) =>
     console.error("[register-with-card] initializeCredits failed", err),
   );
+
+  // 6b. G34-BT2 EM05 — express marketing consent (unticked checkbox). Best-effort.
+  await recordMarketingConsent({
+    email,
+    userId,
+    granted: body.marketing_consent === true,
+    method: "signup_card",
+    ua: request.headers.get("user-agent"),
+  }).catch(() => false);
 
   // 6a. Reseller attribution — task M2. Priority list:
   //   1. explicit body.promo_code (form-typed)

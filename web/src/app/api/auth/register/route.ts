@@ -1,6 +1,6 @@
 // POST /api/auth/register — Email + Password registration
 //
-// Body: { email, password, displayName? }
+// Body: { email, password, displayName?, marketingConsent? (G34-BT2 EM05, unticked by default) }
 // Creates new user with bcrypt-hashed password.
 // Sets blockid_session cookie on success.
 
@@ -11,6 +11,7 @@ import { checkAuthIdentityLimit, checkAuthIpCeiling } from "@/lib/security/auth-
 import { claimForCurrentBrowser } from "@/lib/analyses/claim";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
 import { apiRoute } from "@/lib/audit/api-route";
+import { recordMarketingConsent } from "@/lib/consent";
 
 export const dynamic = "force-dynamic";
 
@@ -87,6 +88,17 @@ async function POST_handler(request: Request) {
     }
 
     await setSessionCookie(result.sessionToken!);
+
+    // G34-BT2 EM05 (D24-e): express marketing consent from the UNTICKED
+    // checkbox. Unticked → nothing written; the new preference row already
+    // has every commercial category off. Never fails the signup.
+    await recordMarketingConsent({
+      email: result.user!.email,
+      userId: result.user!.id,
+      granted: (body ?? {}).marketingConsent === true,
+      method: "register_password",
+      ua: request.headers.get("user-agent"),
+    }).catch(() => false);
 
     // Rescue the work this browser did before it had an account: analyses
     // written against the blockid_anon cookie, plus any paid guest report

@@ -93,3 +93,20 @@ describe("LoginForm — Google redirect fallback", () => {
     expect(out).toContain("Google sign-in failed (unknown).");
   });
 });
+
+// G34-BT2 EM05 (D24-e): the register tab carries an optional, unticked
+// marketing opt-in; the sign-in tab does not.
+describe("LoginForm — marketing consent on register", () => {
+  it("?mode=register renders the unticked, optional checkbox", () => {
+    nav.qs = "mode=register";
+    const out = html();
+    const input = /<input[^>]*data-testid="register-marketing-consent"[^>]*>/.exec(out)?.[0] ?? "";
+    expect(input).not.toBe("");
+    expect(input).not.toMatch(/checked/);
+    expect(input).not.toMatch(/required/);
+  });
+
+  it("the sign-in tab has no marketing checkbox", () => {
+    expect(html()).not.toContain("register-marketing-consent");
+  });
+});

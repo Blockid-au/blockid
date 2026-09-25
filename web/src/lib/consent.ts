@@ -15,6 +15,12 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { getSupabaseAdmin } from "./supabase";
 import { appendAudit } from "./audit";
+import { commercialPreferenceDefaults, ensureEmailPreferences } from "./email-preferences";
+import {
+  MARKETING_CONSENT_LABEL,
+  MARKETING_CONSENT_VERSION,
+  type MarketingConsentMethod,
+} from "./email/marketing-consent-copy";
 
 export type RecordConsentParams = {
   user_id: string;
@@ -100,4 +106,83 @@ export async function recordConsent(
   }
 
   return { id: data.id as string };
+}
+
+// ---------------------------------------------------------------------------
+// G34-BT2 EM05 — express marketing consent (D24-e)
+// ---------------------------------------------------------------------------
+
+export interface MarketingConsentParams {
+  email: string;
+  /** Present for an account; a guest (/analyze free report) has none. */
+  userId?: string | null;
+  /** The checkbox state. Only `true` writes anything — an unticked box leaves the (false-by-default) row alone. */
+  granted: boolean;
+  method: MarketingConsentMethod;
+  ip?: string | null;
+  ua?: string | null;
+}
+
+/**
+ * Record an express marketing opt-in from an unticked checkbox.
+ *
+ *   * email_preferences: the commercial categories go TRUE and
+ *     `marketing_consent_at / _method / _version` are stamped (0464). Before
+ *     0464 is applied the stamp is skipped; lib/email-sends.ts then reads no
+ *     consent for a new account or guest and sends nothing commercial
+ *     (fail-closed), which is the safe side.
+ *   * consent_events (kind `marketing`, the wording's version + sha256) for an
+ *     account, mirrored into the audit chain by recordConsent.
+ *
+ * Best-effort and never throws: a consent write must not break a signup or a
+ * free report. Returns true when the preference row was updated.
+ */
+export async function recordMarketingConsent(params: MarketingConsentParams): Promise<boolean> {
+  if (!params.granted) return false;
+  const email = params.email.trim().toLowerCase();
+  if (!email.includes("@")) return false;
+  let updated = false;
+  try {
+    const admin = getSupabaseAdmin();
+    if (!admin) return false;
+    await ensureEmailPreferences(email, params.userId ?? undefined);
+    const now = new Date().toISOString();
+    const flags = { ...commercialPreferenceDefaults(true), updated_at: now };
+    const full = await admin
+      .from("email_preferences")
+      .update({
+        ...flags,
+        marketing_consent_at: now,
+        marketing_consent_method: params.method,
+        marketing_consent_version: MARKETING_CONSENT_VERSION,
+      })
+      .eq("email", email);
+    if (full.error) {
+      const base = await admin.from("email_preferences").update(flags).eq("email", email);
+      updated = !base.error;
+    } else {
+      updated = true;
+    }
+  } catch (e) {
+    console.error("[consent] marketing preference write failed", e instanceof Error ? e.message : e);
+  }
+
+  if (params.userId) {
+    try {
+      await recordConsent({
+        user_id: params.userId,
+        kind: "marketing",
+        disclaimer_version: MARKETING_CONSENT_VERSION,
+        disclaimer_hash: hashDisclaimerBody(MARKETING_CONSENT_LABEL),
+        ip: params.ip ?? "",
+        ua: params.ua ?? "",
+        jurisdiction: "AU",
+        granted: true,
+        detail: { method: params.method },
+      });
+    } catch (e) {
+      console.error("[consent] marketing consent_events write failed", e instanceof Error ? e.message : e);
+    }
+  }
+  return updated;
 }

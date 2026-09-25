@@ -217,6 +217,8 @@ export interface GuestIdentity {
   email: string;
   /** The hidden field's value — empty for a person. */
   honeypot: string;
+  /** G34-BT2 EM05 — the separate, unticked marketing opt-in. */
+  marketingConsent?: boolean;
 }
 
 async function postIntake(
@@ -238,6 +240,7 @@ async function postIntake(
     if (guest) {
       form.set("email", guest.email);
       form.set(FREE_REPORT_HONEYPOT_FIELD, guest.honeypot);
+      if (guest.marketingConsent) form.set("marketing_consent", "1");
     }
     return fetch("/api/intake", { method: "POST", body: form });
   }
@@ -248,6 +251,7 @@ async function postIntake(
   if (guest) {
     body.email = guest.email;
     body[FREE_REPORT_HONEYPOT_FIELD] = guest.honeypot;
+    if (guest.marketingConsent) body.marketing_consent = "1";
   }
   return fetch("/api/intake", {
     method: "POST",
@@ -749,12 +753,12 @@ export function AnalyzeRoot({
           initialEmail={reportEmail}
           serverError={emailError}
           busy={intakeLoading}
-          onContinue={(email, honeypot) => {
+          onContinue={(email, honeypot, marketingConsent) => {
             if (!submission) return;
             setEmailError(null);
             void handleSubmit(submission, {
               autoRun: pendingAutoRunRef.current ?? shouldAutoRun({ tier, authenticated, resumedFromSignup }),
-              guest: { email, honeypot },
+              guest: { email, honeypot, marketingConsent },
             });
           }}
           onEdit={handleReset}

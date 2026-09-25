@@ -87,6 +87,7 @@ import {
   runFreeReportGate,
   type FreeReportGateResult,
 } from "@/lib/reports/free-report-gate";
+import { recordMarketingConsent } from "@/lib/consent";
 
 // 2026-09-19: same ceiling as the intake-link deck path (DECK_MAX_BYTES in
 // lib/intake/submission-runner — not imported to keep that fs/pitchdeck graph
@@ -123,6 +124,8 @@ interface Body {
   email?: string;
   /** G25-C honeypot (FREE_REPORT_HONEYPOT_FIELD) — a human never fills it. */
   company_website?: string;
+  /** G34-BT2 EM05 — "1" only when the guest ticked the (unticked-by-default) marketing opt-in. */
+  marketing_consent?: string;
   /** "credits" — a signed-in caller past the free allowance confirmed paying for this run with credits. */
   payWith?: string;
   file?: {
@@ -310,6 +313,7 @@ async function POST_handler(request: Request) {
         email: parsed.fields.email ?? undefined,
         [FREE_REPORT_HONEYPOT_FIELD]: parsed.fields[FREE_REPORT_HONEYPOT_FIELD] ?? undefined,
         payWith: parsed.fields.payWith ?? undefined,
+        marketing_consent: parsed.fields.marketing_consent ?? undefined,
       };
       const formFile = parsed.files.find((f) => f.name === "file") ?? parsed.files[0];
       if (formFile) {
@@ -418,6 +422,16 @@ async function POST_handler(request: Request) {
   // page is never locked; a signed-in run resolves the account address at
   // delivery (nothing to stamp).
   const guestEmail = gate.source === "guest" ? gate.email : null;
+  // G34-BT2 EM05 (D24-e): a guest's address earns NO commercial mail unless
+  // the separate, unticked opt-in was ticked. Best-effort, never blocks the run.
+  if (guestEmail && body.marketing_consent === "1") {
+    void recordMarketingConsent({
+      email: guestEmail,
+      granted: true,
+      method: "analyze_guest_email",
+      ua: request.headers.get("user-agent"),
+    }).catch(() => false);
+  }
 
   try {
     const aiBudgetScope = `blockid:intake:${randomUUID()}`;
