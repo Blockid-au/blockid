@@ -38,7 +38,7 @@ function ScoreCell({ row, strings }: { row: V4ScoreRow; strings: DashboardV4["st
   return (
     <span className="flex items-center gap-2">
       <span role="img" aria-label={row.ariaLabel} className="relative hidden h-2 w-20 overflow-hidden rounded-sm bg-surface-sunken sm:inline-block">
-        <span aria-hidden="true" className="absolute inset-y-0 left-0 bg-brand-navy" style={{ width: `${Math.max(0, Math.min(100, row.score))}%` }} />
+        <span aria-hidden="true" className="absolute inset-y-0 left-0 bg-action" style={{ width: `${Math.max(0, Math.min(100, row.score))}%` }} />
       </span>
       <span className={cn("text-sm font-semibold text-primary", FIGURE_CLASS)}>{row.score}</span>
     </span>

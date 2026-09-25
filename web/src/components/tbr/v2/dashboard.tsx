@@ -105,7 +105,7 @@ function RangeBar({ range, label }: { range: { lowAud: number; midAud: number; h
   return (
     <span role="img" aria-label={label} className="relative mt-2 block h-2 w-full rounded-sm bg-surface-sunken">
       <span aria-hidden="true" className="absolute inset-y-0 left-[8%] right-[8%] rounded-sm bg-brand-navy/30" />
-      <span aria-hidden="true" className="absolute -top-1 h-4 w-0.5 bg-brand-navy" style={{ left: `calc(8% + ${(mid * 0.84).toFixed(1)}%)` }} />
+      <span aria-hidden="true" className="absolute -top-1 h-4 w-0.5 bg-action" style={{ left: `calc(8% + ${(mid * 0.84).toFixed(1)}%)` }} />
     </span>
   );
 }
