@@ -310,10 +310,21 @@ async function loadPipeline(
 
 // ---- Main builder ----------------------------------------------------------
 
+export interface BuildFounderDigestOptions {
+  /**
+   * G34-BT4 EM19: build the payload even for a zero-signal period. The
+   * monthly digest is sent in quiet months too (plan §9.2 — the old weekly
+   * digest skipping quiet weeks was the bug); the weekly cron and the
+   * preview keep the default skip.
+   */
+  includeQuiet?: boolean;
+}
+
 export async function buildFounderDigest(
   userId: string,
   periodStart: Date,
   periodEnd: Date,
+  opts: BuildFounderDigestOptions = {},
 ): Promise<DigestPayload | null> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
@@ -494,7 +505,7 @@ export async function buildFounderDigest(
   // Skip decision — no signal, no email.
   const hasSviMovement =
     svi !== null && (svi.newSnapshot || (svi.delta !== null && svi.delta !== 0));
-  if (views.count === 0 && leads.count === 0 && !hasSviMovement && !hasMoneySignal && !hasPipelineMovement) {
+  if (!opts.includeQuiet && views.count === 0 && leads.count === 0 && !hasSviMovement && !hasMoneySignal && !hasPipelineMovement) {
     return null;
   }
 

@@ -573,6 +573,22 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # double-send. --timeout 90 covers a full 50-row batch of SMTP sends.
 25 * * * * bash $RUN email-drip --timeout 90
 
+# G34-BT4 lifecycle flows (plan §9.2) — queue rows on email_drips; the
+# email-drip worker above sends them (consent, suppression, frequency cap,
+# quiet hours 08:00–19:00 Sydney weekdays, per-flow stop condition).
+#   lifecycle-scan   daily 21:40 UTC = 07:40 AEST / 08:40 AEDT: evidence gap
+#                    (EM14), onboarding idle (EM13), re-run prompt (EM15),
+#                    free quota used (EM16), sunset ask + 30-day switch-off (EM20)
+#   lifecycle-digest 1st of the month 21:50 UTC (the 2nd, morning Sydney):
+#                    the monthly digest for the month just ended (EM19)
+# Rollout switch LIFECYCLE_EMAIL in web/.env: unset/`dry` = every run is dry
+# (counts in the health log, masked samples in the service log, nothing
+# written); `live` after pending-authority/0466 is applied and the founder
+# has reviewed a `?dry=1` sample; `off` disables. `?dry=1` by hand lists the
+# would-be recipients.
+40 21 * * * bash $RUN lifecycle-scan --timeout 300
+50 21 1 * * bash $RUN lifecycle-digest --timeout 300
+
 # Weekly retention snapshots per segment (Mon 09:15 UTC / 19:15 AEST)
 15 9 * * 1 bash $RUN weekly-retention --timeout 90
 
@@ -688,7 +704,11 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # window since Sydney sits between UTC+10 and UTC+11 — target the 23:00 UTC
 # slot so the email lands between 09:00 AEST and 10:00 AEDT). POST-only,
 # CRON_SECRET-guarded. Skips silent weeks (no views + no leads + no SVI move).
-0 23 * * 0 bash $RUN founder-digest-weekly
+# G34-BT4 EM19 (2026-09-25): RETIRED — consolidated into the monthly digest on
+# the email_drips engine (`lifecycle-digest` below), which also sends quiet
+# months. The weekly job sent C-class mail outside the engine (EM01) and
+# spent one of the 3-per-7-days cap slots every week.
+# Was: 0 23 * * 0 bash $RUN founder-digest-weekly
 
 # T0273 — Evaluator Progress Radar (G12 sprint S4). Sunday 23:30 UTC = Monday
 # 09:30 AEST, 30 min after the founder digest so an evaluator who is also a

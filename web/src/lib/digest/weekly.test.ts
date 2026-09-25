@@ -169,3 +169,18 @@ describe("buildFounderDigest — pipeline block (S28-B)", () => {
     expect(p?.pipeline?.stage_moves.length).toBe(1);
   });
 });
+
+// ---- G34-BT4 EM19: quiet periods are included on request --------------------
+describe("buildFounderDigest — includeQuiet (G34-BT4 EM19)", () => {
+  it("a zero-signal period returns null by default and a payload with includeQuiet", async () => {
+    state.tables.svi_snapshots = [{ id: "s0", project_id: "p1", report_share_token: null, dim_results: {}, svi_total: 61, created_at: "2026-08-01T00:00:00Z" }];
+    state.tables.funding_matches = [];
+    canMock.mockResolvedValue(false);
+    expect(await buildFounderDigest("u1", PERIOD_START, PERIOD_END)).toBeNull();
+    const p = await buildFounderDigest("u1", PERIOD_START, PERIOD_END, { includeQuiet: true });
+    expect(p).not.toBeNull();
+    expect(p!.views.count).toBe(0);
+    expect(p!.leads.count).toBe(0);
+    expect(p!.svi?.current).toBe(61);
+  });
+});
