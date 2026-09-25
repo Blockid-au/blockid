@@ -207,3 +207,12 @@ the earlier 16-test grouped receipt also included adjacent report checks.
 Full SVI TypeScript check passed again. Neither site was deployed in this
 follow-up. Live canary, source admission, calibration, migration and remaining
 G31/G32/G33 acceptance gates remain as listed above.
+
+
+## Deployment follow-up —25September
+
+The bounded source fixes above are now deployed on both sites; see the
+[bugfix live receipt](2026-09-25-bugfix-live-deployment.md) for final identities,
+full test results, reader-compatible SVI rollout and remaining edge issue.
+Earlier “not deployed” statements describe the source-review checkpoint.
+Full-plan/financial acceptance remains open as recorded in the phase inventory.
