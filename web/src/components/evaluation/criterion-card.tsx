@@ -133,6 +133,8 @@ export function CriterionCard({
   const [suggestLoading, setSuggestLoading] = React.useState(false);
   const [scoreLoading, setScoreLoading] = React.useState(false);
   const [uploadLoading, setUploadLoading] = React.useState(false);
+  // AF15: a file the server refused is named, not silently skipped.
+  const [uploadError, setUploadError] = React.useState<string | null>(null);
   const [saveStatus, setSaveStatus] = React.useState<
     "idle" | "saving" | "saved"
   >("idle");
@@ -203,6 +205,8 @@ export function CriterionCard({
     if (!fileList || fileList.length === 0) return;
     setUploadLoading(true);
 
+    setUploadError(null);
+    const failed: string[] = [];
     try {
       const newFiles = [...data.files];
       for (let i = 0; i < fileList.length; i++) {
@@ -218,11 +222,16 @@ export function CriterionCard({
         if (res.ok) {
           const json = await res.json();
           newFiles.push({ name: file.name, url: json.url ?? json.path ?? "" });
+        } else {
+          const body = (await res.json().catch(() => null)) as { error?: string; reason?: string; message?: string } | null;
+          failed.push(`${file.name}: ${body?.message ?? body?.error ?? body?.reason?.replace(/_/g, " ") ?? `upload failed (${res.status})`}`);
         }
       }
       onSave(criterion.key, { files: newFiles });
+      if (failed.length > 0) setUploadError(`Not uploaded — ${failed.join("; ")}`);
     } catch (err) {
       console.error("File upload failed:", err);
+      setUploadError("Upload failed — check your connection and try again.");
     } finally {
       setUploadLoading(false);
       // Reset file input
@@ -447,6 +456,11 @@ export function CriterionCard({
                 className="hidden"
               />
             </div>
+            {uploadError && (
+              <p role="alert" className="mt-1 text-xs text-danger" data-testid="criterion-upload-error">
+                {uploadError}
+              </p>
+            )}
             {data.files.length > 0 && (
               <div className="space-y-1.5">
                 {data.files.map((file, idx) => (

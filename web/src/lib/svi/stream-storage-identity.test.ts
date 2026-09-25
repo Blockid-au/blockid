@@ -92,3 +92,17 @@ it("bounded identity uses authenticated user and aborts/cancels on input unmount
   expect(signal?.aborted).toBe(true);
   expect(ignored).not.toHaveBeenCalled();
 });
+
+describe("AF12 — the upload (run id) is part of the identity", () => {
+  it("a new upload of the same deck gets a new key; the same upload keeps its key; no run id keeps the old key", async () => {
+    const scope = { userId: "u1", projectId: "p1", deckText: "same deck", tier: "free", locale: "en" };
+    const plain = await streamStorageIdentity(scope);
+    const runA = await streamStorageIdentity({ ...scope, runId: "deck-a" });
+    const runA2 = await streamStorageIdentity({ ...scope, runId: "deck-a" });
+    const runB = await streamStorageIdentity({ ...scope, runId: "deck-b" });
+    expect(runA).toBe(runA2);
+    expect(runA).not.toBe(runB);
+    expect(runA).not.toBe(plain);
+    expect(await streamStorageIdentity({ ...scope, runId: "  " })).toBe(plain);
+  });
+});

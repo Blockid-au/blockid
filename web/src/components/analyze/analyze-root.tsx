@@ -460,6 +460,12 @@ export function AnalyzeRoot({
       setPhase("email");
       return;
     }
+    // AF11: a file over the cap is refused here, before minutes of upload.
+    if (sub.file && sub.file.size > FILE_MAX_MB * 1024 * 1024) {
+      setErrorMsg(`That file is too large — the maximum is ${FILE_MAX_MB} MB. Try a compressed PDF or paste the deck text instead.`);
+      setPhase("intake");
+      return;
+    }
     setIntakeLoading(true);
     inFlightRef.current = true;
     // AF01: an error must be visible. A guest submits from the e-mail step,
@@ -513,7 +519,13 @@ export function AnalyzeRoot({
       }
       if (res.status === 413) {
         // Either our typed cap or (before 2026-09-19) nginx's bare page —
-        // both mean the same thing to the founder.
+        // both mean the same thing to the founder, except an image, whose
+        // reading cap is smaller than the deck cap (AF11).
+        const body413 = (await res.json().catch(() => null)) as { reason?: string } | null;
+        if (body413?.reason === "image_too_large") {
+          fail("This image is too large to read. Crop it to the relevant part or export a smaller PNG, JPEG or WebP.");
+          return;
+        }
         fail(
           `That file is too large — the maximum is ${FILE_MAX_MB} MB. Try a compressed PDF or paste the deck text instead.`,
         );
@@ -529,7 +541,17 @@ export function AnalyzeRoot({
           ocr_failed: "Image text could not be read. Upload a clearer image or paste the text.",
           ocr_timeout: "Reading this image took too long. Crop to the relevant text or paste it.",
         };
-        fail(imageErrors[failure.reason ?? ""] ?? "Something went wrong. Try again or contact support.");
+        const generic: Record<string, string> = {
+          intake_failed: "We could not read this input just now — nothing was charged. Try again in a minute, or paste the text instead.",
+          invalid_body: "The upload did not arrive complete. Please try again.",
+        };
+        fail(
+          imageErrors[failure.reason ?? ""] ??
+            generic[failure.reason ?? ""] ??
+            (res.status >= 500
+              ? "Our server hit a problem reading this input — nothing was charged. Try again in a minute."
+              : "Something went wrong. Try again or contact support."),
+        );
         return;
       }
       const data = (await res.json()) as {

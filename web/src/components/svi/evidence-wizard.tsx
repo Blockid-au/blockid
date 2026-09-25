@@ -514,7 +514,9 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
                     }
 
                     if (!res.ok || !json.ok) {
-                      setSaveError(json.error ?? "Failed to save evidence");
+                      // AF15: the server answers with `reason` (and sometimes `message`), not only `error`.
+                      const failure = json as { error?: string; message?: string; reason?: string };
+                      setSaveError(failure.message ?? failure.error ?? (failure.reason ? `Could not save: ${failure.reason.replace(/_/g, " ")}` : "Failed to save evidence"));
                       return;
                     }
                     trackEvent("evidence_added", { evidence_type: evidenceType, dimension: DIMENSION_MAP[evidenceType] ?? "general", svi_impact: 0 });

@@ -329,7 +329,7 @@ async function POST_handler(request: Request) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return NextResponse.json(
-      { ok: false, error: `Invalid request body: ${msg}` },
+      { ok: false, reason: "invalid_body", error: `Invalid request body: ${msg}` },
       { status: 400 },
     );
   }
@@ -572,7 +572,7 @@ async function POST_handler(request: Request) {
     };
     if (extractionStatus[msg]) return NextResponse.json({ ok: false, reason: msg, error: msg }, { status: extractionStatus[msg] });
     return NextResponse.json(
-      { ok: false, error: `Intake failed: ${msg}` },
+      { ok: false, reason: "intake_failed", error: `Intake failed: ${msg}` },
       { status: 500 },
     );
   }

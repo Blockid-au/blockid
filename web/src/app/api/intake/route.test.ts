@@ -664,6 +664,8 @@ describe("POST /api/intake — credits after the free allowance", () => {
     analyzeInputMock.mockRejectedValue(new Error("boom"));
     const res = await POST(req({ text: "an idea", payWith: "credits" }));
     expect(res.status).toBe(500);
+    // AF11: a typed reason the page can explain ("nothing was charged").
+    expect(await json(res)).toMatchObject({ ok: false, reason: "intake_failed" });
     expect(spendCreditsMock).not.toHaveBeenCalled();
     expect(grantCreditsMock).not.toHaveBeenCalled();
   });

@@ -29,6 +29,7 @@
 // snapshot); `tbr_section_view` (one per section per view) and `tbr_export`
 // (PDF / DOCX) engagement events fire from here.
 
+import { ReportFreshnessBanner, newerAnalysis, type AnalysisListItem } from "@/components/workspace/report-freshness-banner";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -433,6 +434,25 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
       cancelled = true;
     };
   }, [founderMode, projectId]);
+
+  // AF13 — the account's /analyze runs, to say when a newer one exists than the report on screen.
+  const [analysesList, setAnalysesList] = useState<AnalysisListItem[]>([]);
+  useEffect(() => {
+    if (!founderMode) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/analyses", { credentials: "same-origin" });
+        const body = res.ok ? ((await res.json().catch(() => null)) as { ok?: boolean; analyses?: AnalysisListItem[] } | null) : null;
+        if (!cancelled && body?.ok && Array.isArray(body.analyses)) setAnalysesList(body.analyses);
+      } catch {
+        /* the banner simply omits the "newer" line */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [founderMode]);
 
   // Load from localStorage first (fast path), then fall back to Supabase
   // (/api/svi/report/[projectId]) so the report survives beyond the 30-min
@@ -866,6 +886,10 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
               <div className="h-6 w-1/2 rounded bg-surface-sunken" />
             </div>
           ) : (
+            <>
+            {founderMode && report && (
+              <ReportFreshnessBanner asOf={report.generatedAt ?? null} newer={newerAnalysis(analysesList, report.generatedAt ?? null)} />
+            )}
             <TbrReportV2
               report={report}
               strings={t}
@@ -881,6 +905,7 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
                 !pdfMode && snapshotId ? <ActionPlan sviRunId={snapshotId} /> : null
               }
             />
+            </>
           )}
           {unlockNotice && (
             <p role="status" className="rounded-lg border border-amber-300 bg-surface-sunken px-3 py-2 text-xs text-warn">

@@ -1261,13 +1261,13 @@ interface SviStreamAnalysisProps {
 
 /** Resolve identity before mounting stateful UI; stale async hashes cannot restore another input. */
 export function SviStreamAnalysis(props: SviStreamAnalysisProps) {
-  const request = JSON.stringify([props.projectId ?? null, props.initialDeckText ?? null]);
+  const request = JSON.stringify([props.projectId ?? null, props.initialDeckText ?? null, props.pitchdeckId ?? null]);
   const generation = useRef(0);
   const [resolved, setResolved] = useState<{ request: string; key: string | null; generation: number } | null>(null);
   useEffect(() => {
-    return resolveAuthenticatedStreamIdentity({ projectId: props.projectId, deckText: props.initialDeckText, ...STREAM_REQUEST_SCOPE },
+    return resolveAuthenticatedStreamIdentity({ projectId: props.projectId, deckText: props.initialDeckText, runId: props.pitchdeckId, ...STREAM_REQUEST_SCOPE },
       key => setResolved({ request, key, generation: ++generation.current }));
-  }, [request, props.projectId, props.initialDeckText]);
+  }, [request, props.projectId, props.initialDeckText, props.pitchdeckId]);
   if (!resolved || resolved.request !== request) return <div role="status" className="p-4 text-sm text-text-secondary">Preparing analysis…</div>;
   return <SviStreamAnalysisSession key={resolved.generation} {...props} storageIdentity={resolved.key} />;
 }
