@@ -1276,6 +1276,43 @@ QA kiểm representative templates ở375/768/1440, keyboard/screen reader smoke
 - **Rev 1.3 (24/09, source `619631e0f`):** cờ Lens đổi thành build-time `NEXT_PUBLIC_BLOCKID_INVESTOR_LENS` + prop `lensPreview` (report dùng chung server/client, trang demo `force-static`); 5 call sites; lens tính trước tier projection; tile SVI hiện **index không trần** (không “/100”), Investor Score 0–100 là dòng phụ, valuation `not_estimable` là trạng thái mặc định thật (§9.4–9.5). Chi tiết [plan §1.7](g31-investor-lens-biz-trust-report-2026-09-23.md).
 - **Sự thật source ảnh hưởng plan:** Q01–Q16 chưa có trong code; chưa có flag cho report UI; chưa có golden SVI; evidence row chưa có criterion key; trend chỉ có ở mức tổng; XLSX cap table chưa có. Lens gắn **trong `TbrReportV2`**, nên không sửa các file đang chia vai với Codex. G31 R1 hiện thực phần B1–B3/D1–D4 của G30 Investor Report Surface trong report component; A1–A3/C/E1 vẫn thuộc G30.
 
+### 10.14 Biz Trust Report v4 (G34): dashboard investor-first, module 8 dimension, dữ liệu theo profile, lifecycle email
+
+**Yêu cầu founder 25/09/2026, PLAN ONLY, chưa code.**
+- Bản chi tiết: [`g34-biz-trust-report-v4-quality-2026-09-25.md`](g34-biz-trust-report-v4-quality-2026-09-25.md)
+- UI/UX: [`tbr-v4-dashboard-spec.md`](../design/tbr-v4-dashboard-spec.md)
+- Evidence: [research annex](../research/2026-09-25-g34-investor-screening-research.md), gồm 15+ hệ thống so sánh, catalogue 78 tiêu chí có nguồn và pháp lý email AU.
+
+**G34 không phải backlog mới.** G34 thay nội dung cho G33 S4–S6: BT3 ≈ S4, BT5 ≈ S5, BT6 ≈ S6. Ngoài ra G34 thêm hai lane không chạm pipeline report:
+- **DC:** dữ liệu người dùng theo profile.
+- **EM:** email.
+
+**Nội dung chính:**
+- **Trang 1 (D24-d):**
+  - 5 tiles: valuation, SVI không trần, Investor Score 0–100, evidence, verification.
+  - Key metrics: ARR / growth / NRR / GM / runway / burn, có nguồn và tier, hoặc "Not evidenced".
+  - Scorecard 8 chiều, mỗi hàng ghi **lead agent**.
+  - Red flags theo luật, why / stop / ask ≤ 3.
+  - 6 signal Codex chỉ hiện dạng chip status, chưa có điểm.
+  - Trang 1 bản free không khoá (D24-b).
+- **Module registry 8 dimension:** `lib/screening/modules/*`. Mỗi item có owner agent, 2 judge khác họ model, evidence tier, freshness, benchmark, red flag và stage applicability.
+  - CGH và LCO có item overlay riêng.
+  - IRI và LCO dùng nghĩa canonical.
+  - Registry là nguồn owner duy nhất (D24-c).
+- **Chấm cộng dồn:** catalogue = rubric SV0; C + S + T − A theo §9.4. Red flag đã xác minh đi vào A. Ledger theo revision nuôi email "Score updated". Trọng số chuyển sang private config (D24-f).
+- **Dữ liệu (DC01–DC10):**
+  - `analyses.project_id`.
+  - Claim theo email đã xác minh.
+  - `register-with-card` và `svi-handoff` phải claim.
+  - Liên kết project evaluator→founder.
+  - Không fallback `/tmp`.
+  - `last_seen_at` thật.
+  - Erasure phủ `email_preferences` null-user và `svi_notifications`.
+- **Email:**
+  - EM01–EM09: một engine `email_drips`; retire 5 luồng trùng hoặc chết; send log; cap; suppression; consent rõ ràng; RFC 8058; lint T-class.
+  - EM10–EM21: 12 luồng theo hành vi, dùng gap của chính người dùng.
+  - APP 1.7 automated-decision disclosure trước 10/12/2026.
+
 ## 11. Kiến trúc triển khai và bảo toàn dữ liệu
 
 ### 11.1 Chuyển dần, không rewrite toàn ứng dụng
@@ -1853,6 +1890,7 @@ Approval22/09/2026 bắt đầu W0a. Đây là status của cùng45 items, khôn
 | G31 IL00–IL15 Investor Lens | NOT IMPLEMENTED / NOT ACCEPTED — audit24/09 | R0–R7 đầy đủ vẫn trong queue; source baseline `c2e147066` chưa có Lens flag/projection; primitives cũ không thay implementation. [Full traceability](../reviews/2026-09-24-full-app-g31-g32-g33-reconciliation.md); §12.12 |
 | A04/A05/V04 SVI tổng điểm agent + định giá theo phân tích (G32) | PARTIAL DEPLOYED / FULL FINANCIAL ACCEPTANCE OPEN | CFO scenario core/projections/shared source, shadow reducer và bounded score-driver contract deployed trong release23:33; [release receipt](../reviews/2026-09-24-cfo-production-deployment.md). SV0–SV6/V04a/b vẫn chưa hoàn tất: rubric52, live3family panel, ledger,C+S+T−A, official report valuation và all-consumer migration còn mở. Existing SVI base100 draft không phải G32; scenario không thành accepted valuation. §12.12 |
 | G33 T01–T16k (test live24/09) | PARTIAL IMPLEMENTATION/LIVE — FULL ACCEPTANCE OPEN | Aggregate status report-down và DeepInfra-only customer policy đã deployed23:33. T01 còn reconcile threshold semantics; S1 QA13:36fail (2degraded) là canary evidence gần nhất trong receipts, chưa có chuỗi5runs mới. T08graph13,971rows/5pinnedforks; T09cron2days/T10schema authority còn. T13owner fix không đóng rate-limit. T16j/kGroq là baseline lịch sử, không policy hiện hành. S3partial,S4–S6gated,T12–T15open; full suite42,586pass không thay canary. [Latest release](../reviews/2026-09-24-cfo-production-deployment.md),[follow-up](../reviews/2026-09-24-full-plan-followup.md),§12.12 |
+| G34 BT0–BT6 · DC01–DC10 · EM01–EM21 · RQ01–RQ28 Biz Trust Report v4 | PLAN ONLY — NOT STARTED (25/09) | Plan + spec + research annex committed; chờ duyệt D24; BT3 chờ Codex land screening UI; BT5 chờ G33 S1 đạt 7 ngày (§10.14, §12.13) |
 | Remaining items | OPEN — NOT COMPLETE | Full claim verification, immutable revisions/legacy delivery, question-led research, valuation eligibility, durable jobs/recovery, atomic billing/approved fee integration and whole-site UX still require implementation/integration. Quality/holdout/load/cost/sale readiness unverified; off-host backup explicitly deferred. Existing prepared financial migration candidates are not activation or completion evidence. |
 
 ### 12.10 Kế hoạch thực thi tiếp theo (23/09/2026) — hai lane
@@ -1960,6 +1998,24 @@ Chỉ đạo 23/09 “không test, implement xong là deploy” đã để 8 uni
 Mỗi existing ID có5 trạng thái riêng: `planned` → `implemented@SHA` → `validated@receipt` → `deployed@build` → `accepted@gate`. `deferred/blocked/failed/not_verified` không là pass. Exact source/release evidence cần cập nhật khi phiên khác deploy; không dùng version v3.33.3 chung làm identity. Không đếm test draft base100 thành G32, 16sections cũ thành G31, hay tests green thành useful report.
 
 **Review này không đóng G31/G32/G33 hoặc S03.** Founder đã yêu cầu đưa toàn scope vào plan; các ngưỡng/decisions đang pending không được ngầm coi approved, và external usability/account quota/model eval chưa đo vẫn ghi rõ chưa đo. Không thay runtime/giá/fees/credits hoặc tiêu ngân sách trong lượt docs này.
+
+### 12.13 G34: thứ tự implement Biz Trust Report v4 (25/09/2026, PLAN ONLY)
+
+Chi tiết và acceptance ở [`g34-biz-trust-report-v4-quality-2026-09-25.md`](g34-biz-trust-report-v4-quality-2026-09-25.md) §11–§12.
+
+**Chu trình mỗi phase:** implement → test (D23) → deploy live → qa:live → review → fix → mark-good → receipt.
+
+| Phase | Nội dung | Điều kiện bắt đầu | Thay/ghép |
+|---|---|---|---|
+| BT0 | D24 + module registry 78 items (dữ liệu thuần) + guard trọng số | Founder duyệt D24 | Chuẩn bị SV0 |
+| BT1 | DC01–DC09 dữ liệu theo profile + migration additive `pending-authority/` | BT0 | Mới, song song G33 S1–S3 |
+| BT2 | EM01–EM08 nền email (EM09 khi D24-h được duyệt) | Song song BT1 | Mới; gồm T11 G33 |
+| BT3 | RQ01–RQ09 dashboard v4 + parity 4 bề mặt + free trang 1 | Codex land screening UI; G31 R0 golden | = G33 S4 (G31 R0–R1) |
+| BT4 | EM10–EM21 lifecycle flows, từng luồng, dry-run trước | BT1 + BT2 | Mới |
+| BT5 | RQ10–RQ18 rubric/ledger/question_scores shadow, question matrix, key metrics CFO/CRO | G33 S1 đạt 7 ngày | = G33 S5 (SV0/SV2/SV3) |
+| BT6 | SV4/SV5, RQ22 V04b, RQ19–RQ28, G31 C12, 20-user validation, APP 1.7 | SV4 đạt ngưỡng | = G33 S6 |
+
+**Không bắt đầu BT3 khi Codex còn sửa dở** `report.tsx`, `dashboard.tsx`, `criteria-summary.tsx` và exports. Luật file của §12.10 vẫn áp dụng.
 
 ## 13. Quality gates và định nghĩa ready for sale
 
@@ -2169,6 +2225,7 @@ Mỗi thay đổi yêu cầu mới phải sửa chính plan và acceptance liên
 | D12 Site scope | Toàn bộ yêu cầu/review/điều chỉnh áp dụng cho blockid.au và tất cả trang con/routes của site; các tích hợp chỉ trong phạm vi phục vụ site này | Founder xác nhận rõ; chỉ plan, chưa triển khai |
 | D11 Pricing/Stripe/data/dashboard | Full price/link audit, storage/report lifecycle, latest semantics và friendly dashboard (§10.7, §11.4–11.5, §14.1–14.3) | Founder yêu cầu đưa vào plan; chưa cho code, đổi giá/Stripe hoặc sửa dữ liệu |
 | D10 Full-site design & wording | Homepage/hero + wording toàn site + redesign all pages theo một Unicorn template chuyên nghiệp (§10.4–10.6, U04–U06) | Scope founder yêu cầu rõ; copy/design chi tiết chờ review, chưa cho code |
+| D24 Biz Trust Report v4 (G34) | (a) catalogue 8 module là rubric SV0 duy nhất; (b) trang 1 bản free không khoá, chi tiết chương vẫn khoá; (c) registry là nguồn owner duy nhất, lead dimension chịu trách nhiệm tổng dimension; (d) 5 tiles + scorecard 8 chiều, 6 signal dạng chip status; (e) một engine email, C-class cần consent rõ ràng, cap 1/ngày và 3/tuần; (f) trọng số sang private config, chỉ công bố dải; (g) `analyses.project_id` + claim theo email + liên kết project evaluator→founder; (h) subdomain `notify.`/`news.` + DNS; (i) ASIC: bản free trước, trích xuất có phí cần duyệt ngân sách; (j) KPI activation (§10.14, [plan](g34-biz-trust-report-v4-quality-2026-09-25.md) §13) | Đề xuất 25/09; chờ duyệt, chưa code |
 | D23 Kiểm thử cho G33 | Phase chạm pipeline/billing/dữ liệu: typecheck + build + vitest liên quan + qa:live partial + 1 canary report thật; UI/docs dùng fast profile (§12.11 C) | Đề xuất 24/09 sau outage 3 ngày không bị phát hiện; chờ duyệt |
 | D22 SVI không trần + định giá (G32) | (a) `SVI_v3 = C + S + T − A` = **tổng điểm, không base, không trần**, null khi chưa có câu nào được chấm; (b) điểm C do **AI Agents BlockID chấm theo 52 câu hỏi** (panel 3 phiếu, rubric 0–4, quote bắt buộc, code cộng điểm); thêm câu/tiêu chí có bằng chứng thì cộng điểm; đổi phương pháp không tính là tăng trưởng; (c) SVI = tổng điểm, Investor Score = 0–100 từ cùng điểm agent, Evidence confidence = %; (d) định giá từ phân tích cụ thể: CFO agent trích driver có nguồn, factor từ điểm agent, engine thuần code, IPEV calibration; (e) share price/vesting/dividends thôi dùng SVI, giữ số đã phát hành | **APPROVED 24/09/2026** (founder: “hãy làm như bạn đề xuất”, SVI là tổng điểm do AI Agent chấm). Hằng số chốt ở SV4; chưa code, không cấp ngân sách inference mới ngoài trần US$0.50 |
 | D21 Investor Lens (G31) | Lớp 6 tín hiệu + evidence confidence theo tín hiệu phía trên SVI; meeting labels trung tính = band A–D; risk rank không nhân confidence; 01–03 đầy đủ mọi tier; R1→R7 (§10.13) | Founder yêu cầu plan 23/09; chờ duyệt D21-a…e, chưa code |
@@ -2176,6 +2233,13 @@ Mỗi thay đổi yêu cầu mới phải sửa chính plan và acceptance liên
 Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi timestamp và phạm vi được bắt đầu; không coi duyệt plan đồng nghĩa tự động duyệt mọi chi phí, external send hay thay giá chưa được định lượng. Các hạng mục kỹ thuật đã được cho bắt đầu sẽ tiến hành liên tục trong phạm vi đó, không xin lại từng bước thông thường.
 
 ## 17. Change log
+
+- **25/09/2026 — G34 Biz Trust Report v4, PLAN ONLY:**
+  - **Nghiên cứu:** 15+ hệ thống (CB Insights, PitchBook, Crunchbase, Dealroom, Tracxn, AlphaLens, V7, Hebbia, Equidam, Techboard, VC AU) và tiêu chí investor → catalogue 78 tiêu chí theo 8 dimension, có tier và red flag. Pháp lý email AU (Spam Act, APP 7/1.7, Gmail/Outlook).
+  - **Audit source:** report page 1 hiện tại, Codex screening, 13/52, owner mismatch, free-tier lock, 10 lỗ dữ liệu (`analyses` không có `project_id`), 6 luồng email chồng nhau.
+  - **Thêm vào SOT:** §10.14, §12.13 BT0–BT6 (thay nội dung G33 S4–S6 + lane DC/EM), D24 a–j, dòng §12.9.
+  - **Tài liệu:** [plan](g34-biz-trust-report-v4-quality-2026-09-25.md) · [spec](../design/tbr-v4-dashboard-spec.md) · [annex](../research/2026-09-25-g34-investor-screening-research.md).
+  - Chưa code.
 
 - **24/09/2026 — G33 T16–T16e + S2 LIVE:** `964efd3ad` (origin 4137). SYNTH reserve + chọn model có headroom/nhanh nhất khi không vừa + học tốc độ từ stream timeout + model-busy chỉ strike model; audit chain gãy từ 18/09 được sửa (trigger cấp id trong lock, verifier dạng graph, 5 fork lịch sử pin, 13 971 dòng verify, SQL 0460 áp live), svi-snapshot, nguồn `report_revisions` (0461), chặn mail tới tài khoản đã xóa. 5 origin cũ (4127–4131) retire theo standing approval của founder. [Receipt](../reviews/2026-09-24-g33-t16-s2-live.md).
 

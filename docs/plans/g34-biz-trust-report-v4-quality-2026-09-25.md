@@ -45,7 +45,7 @@ Nhận xét chi tiết nằm trong 8 chương dimension. Mỗi câu trả lời 
 | **BT1** | **Dữ liệu người dùng theo profile** DC01–DC10: `analyses.project_id`, claim theo email đã xác minh, chuyển project evaluator→founder, erasure | BT0 | 1–2 deploy + migration additive |
 | **BT2** | **Nền email** EM01–EM09: send log chung, frequency cap, suppression bounce/complaint, consent, RFC 8058, gỡ 5 luồng chết hoặc trùng, lint T-class | Song song BT1 | 1–2 deploy |
 | **BT3** | **Dashboard v4** RQ01–RQ09: 5 tiles, key metrics, scorecard 8 chiều có lead agent, red flags, why/stop/ask, trang 1 free không khoá; parity web/PDF/DOCX/email | Codex land screening UI; G31 R0 golden | 2–3 deploy (flag off → preview → on) |
-| **BT4** | **Lifecycle flows** EM10–EM16: 12 luồng trên `email_drips`, trigger theo hành vi và theo gap của chính người dùng | BT1 + BT2 | Deploy từng luồng, dry-run trước |
+| **BT4** | **Lifecycle flows** EM10–EM21: 12 luồng trên `email_drips`, trigger theo hành vi và theo gap của chính người dùng | BT1 + BT2 | Deploy từng luồng, dry-run trước |
 | **BT5** | **Module chấm điểm cộng dồn** RQ10–RQ18 (= G32 SV0/SV2/SV3): rubric từ catalogue, overlay CGH/LCO/IRI, question matrix có trích dẫn, key metrics CFO/CRO; chạy shadow | G33 S1 ổn định 7 ngày | 2 deploy shadow |
 | **BT6** | **Kích hoạt + tính năng rút ra từ đối thủ** RQ19–RQ28: SV4 calibration, SV5 activation, V04b valuation producer, peer percentile, stage ladder, calibration disclosure, kiểm chéo ABN/ASIC, mandate fit, triage; kiểm định 20 người dùng | BT5 + SV4 đạt ngưỡng | 2–3 deploy |
 
@@ -151,11 +151,11 @@ rubricVersion   rubric@v1 (anchors 0–4, checklist nhị phân)
 
 ### 4.2 Catalogue v1
 
-Có 88 item: FTV 9 · MPC 9 · PTD 8 · TRE 13 · CGH 10 · IRI 9 · LCO 12 · SVM 8. Chi tiết indicator, evidence, red flag và nguồn ở annex §3. **Nội dung pháp lý đã sắp lại theo nghĩa canonical:**
+Có 78 item: FTV 9 · MPC 9 · PTD 8 · TRE 13 · CGH 10 · IRI 9 · LCO 12 · SVM 8. Chi tiết indicator, evidence, red flag và nguồn ở annex §3. **Nội dung pháp lý đã sắp lại theo nghĩa canonical:**
 - **IRI** = sẵn sàng diligence (data room, model, reconcile số liệu, điều khoản vòng, ESIC, R&DTI, lộ trình thanh khoản).
 - **LCO** = pháp lý, IP và tuân thủ.
 
-| Dim | Lead | Items gắn với 52 câu hiện có | Items overlay mới (thay thế và gộp G31 overlay MT/TR/LQ/CT/IP/ES) |
+| Dim | Lead | Items gắn với 52 câu hiện có (map sơ bộ, chốt ở SV0) | Items overlay mới (thay thế và gộp G31 overlay MT/TR/LQ/CT/IP/ES) |
 |---|---|---|---|
 | FTV | CHRO | founder_profile ×4, team ×4, team_structure ×4 → FTV-01…05, 07 | FTV-06 vesting, FTV-08 candour, FTV-09 CEO scaling |
 | MPC | CMO | idea ×4, market ×4, gtm ×4 → MPC-01…07 | MPC-08 ngoài AU, MPC-09 concentration |
@@ -376,7 +376,7 @@ Trigger lấy từ dữ liệu đã gắn profile ở BT1. Nội dung dùng **ga
 
 - **Làm:**
   - Founder duyệt D24.
-  - Tạo `lib/screening/{types,registry}.ts` và 8 module dữ liệu (88 items).
+  - Tạo `lib/screening/{types,registry}.ts` và 8 module dữ liệu (78 items).
   - Guard test (§4.1).
   - Guard "không trọng số số trong repo public" quét `lib/screening`, docs mới và methodology.
   - Cơ chế private config: file ngoài repo, đường dẫn qua env, fallback emphasis → hệ số mặc định an toàn khi thiếu, log cảnh báo.
