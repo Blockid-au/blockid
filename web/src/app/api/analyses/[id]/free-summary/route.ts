@@ -26,7 +26,7 @@
 //
 // SUPPRESSION
 //
-// `canSendEmail(email, "promotions")` over `email_preferences`, which is the
+// `canSendEmail(email, "svi_alerts")` (G34-BT2: was promotions) over `email_preferences`, which is the
 // codebase's one suppression mechanism. It is checked here BEFORE the claim,
 // so an unsubscribed address does not consume the analysis's single send —
 // they can come back with a different address. `sendFreeSummary` checks it
@@ -136,7 +136,7 @@ async function POST_handler(
   // An address that opted out must not burn this analysis's single send.
   let allowed = true;
   try {
-    allowed = await canSendEmail(email, "promotions");
+    allowed = await canSendEmail(email, "svi_alerts"); // G34-BT2: transactional delivery, not promotions
   } catch {
     allowed = true; // fail open: the sender checks again on the way out
   }

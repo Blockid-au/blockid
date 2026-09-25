@@ -1,5 +1,7 @@
 // BlockID email wrapper (server-only).
 //
+// Templates live here; the transport (`sendEmail`) lives in ./email-core
+// (G34-BT2 EM07) and is re-exported below.
 // Uses Gmail SMTP via Nodemailer (admin@blockid.au relay).
 // Falls back to Resend if RESEND_API_KEY is set.
 // Graceful degradation: if neither is configured, log + return
@@ -14,10 +16,7 @@ import {
   sellerOfRecordLine,
   tradingAsLine,
 } from "@/lib/site/legal-entity";
-import {
-  FREE_SUMMARY_PAGES,
-  PAID_REPORT_ADDITIONS,
-} from "@/lib/analyses/free-summary";
+import { FREE_SUMMARY_PAGES } from "@/lib/analyses/free-summary";
 import * as fs from "node:fs";
 import * as path from "node:path";
 import { renderToBuffer } from "@react-pdf/renderer";
@@ -1287,7 +1286,9 @@ export async function sendAnalysisPurchaseConfirmation(args: { to: string }): Pr
 
 export async function sendCreditPurchaseConfirmation(args: { to: string; credits: number }): Promise<SendResult> {
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
-  const billingUrl = `${siteUrl()}/workspace/billing#credits`;
+  // G34-BT2 EM08: a receipt links to the account, not the credit-pack shelf
+  // (/workspace/billing#credits is a purchase surface).
+  const dashUrl = `${siteUrl()}/dashboard`;
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
@@ -1300,7 +1301,7 @@ export async function sendCreditPurchaseConfirmation(args: { to: string; credits
             <p style="margin:0 0 4px 0;color:#6b7280;font-size:12px;text-transform:uppercase;letter-spacing:0.15em;">Credits added</p>
             <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:48px;font-weight:600;color:#1B2A5E;line-height:1;">+${args.credits}</div>
           </div>
-          <p style="margin:0 0 24px 0;text-align:center;"><a href="${billingUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">View Your Credits</a></p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${dashUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Open your dashboard</a></p>
           <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
           <p style="margin:0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
@@ -1315,7 +1316,9 @@ export async function sendCreditPurchaseConfirmation(args: { to: string; credits
 
 export async function sendSubscriptionCancelled(args: { to: string }): Promise<SendResult> {
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
-  const pricingUrl = `${siteUrl()}/#pricing`;
+  // G34-BT2 EM08: transactional notice — the COMEBACK30 "30% off" retention
+  // offer and its /#pricing CTA were removed (offers are C-class only).
+  const dashUrl = `${siteUrl()}/dashboard`;
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
     <tr><td align="center">
@@ -1323,13 +1326,8 @@ export async function sendSubscriptionCancelled(args: { to: string }): Promise<S
         <tr><td>
           <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID</p>
           <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">Your Subscription Has Ended</h1>
-          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Your subscription has been cancelled and your account has been downgraded to the free plan. You can resubscribe at any time to regain access to all features.</p>
-          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
-            <p style="margin:0 0 8px 0;color:#4b5563;font-size:14px;">Use code</p>
-            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:32px;font-weight:600;color:#1B2A5E;line-height:1;letter-spacing:0.05em;">COMEBACK30</div>
-            <p style="margin:8px 0 0 0;color:#4b5563;font-size:14px;">for 30% off your next subscription</p>
-          </div>
-          <p style="margin:0 0 24px 0;text-align:center;"><a href="${pricingUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Resubscribe with 30% Off</a></p>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Your subscription has been cancelled and your account has been moved to the free plan. Your projects, reports and data room stay in your account.</p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${dashUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Open your dashboard</a></p>
           <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
           <p style="margin:0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
@@ -1517,11 +1515,13 @@ export async function sendPaymentReceipt(args: { to: string; amountCents: number
   return sendEmail({ to: args.to, subject: `Payment Receipt \u2014 ${amountFormatted}`, html, unsubscribeUrl });
 }
 
-// ---------- Cancellation email with retention offer -----------------------------
+// ---------- Cancellation notice (scheduled) -------------------------------------
 
 export async function sendCancellationEmail(args: { to: string; activeUntil: string }): Promise<SendResult> {
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
-  const pricingUrl = `${siteUrl()}/#pricing`;
+  // G34-BT2 EM08: transactional notice — the COMEBACK30 retention offer and
+  // its /#pricing CTA were removed (offers are C-class only).
+  const billingUrl = `${siteUrl()}/workspace/billing`;
   const formattedDate = new Date(args.activeUntil).toLocaleDateString("en-AU", { year: "numeric", month: "long", day: "numeric" });
   const html = shell(`
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f7f8fa;padding:32px 16px;">
@@ -1531,13 +1531,8 @@ export async function sendCancellationEmail(args: { to: string; activeUntil: str
           <p style="margin:0 0 8px 0;font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#1B2A5E;font-weight:500;">BlockID</p>
           <h1 style="margin:0 0 8px 0;font-size:24px;font-weight:600;color:#0b0f1a;letter-spacing:-0.01em;">We're Sorry to See You Go</h1>
           <p style="margin:0 0 24px 0;color:#4b5563;font-size:15px;line-height:1.6;">Your subscription has been scheduled for cancellation. Your plan will remain active until <strong style="color:#0b0f1a;">${escapeHtml(formattedDate)}</strong>.</p>
-          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:24px;text-align:center;margin:0 0 24px 0;">
-            <p style="margin:0 0 8px 0;color:#4b5563;font-size:14px;">If you change your mind, use code</p>
-            <div style="font-family:'IBM Plex Mono',ui-monospace,Menlo,Consolas,monospace;font-size:32px;font-weight:600;color:#1B2A5E;line-height:1;letter-spacing:0.05em;">COMEBACK30</div>
-            <p style="margin:8px 0 0 0;color:#4b5563;font-size:14px;">for 30% off your next subscription</p>
-          </div>
-          <p style="margin:0 0 24px 0;text-align:center;"><a href="${pricingUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Resubscribe with 30% Off</a></p>
-          <p style="margin:0 0 24px 0;color:#4b5563;font-size:14px;line-height:1.6;">You will continue to have full access until your plan expires. After that, your account will be downgraded to the free tier.</p>
+          <p style="margin:0 0 24px 0;color:#4b5563;font-size:14px;line-height:1.6;">You will continue to have full access until your plan expires. After that, your account moves to the free plan. Changed your mind? You can keep the subscription from your billing page before that date.</p>
+          <p style="margin:0 0 24px 0;text-align:center;"><a href="${billingUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:10px;font-size:15px;">Manage subscription</a></p>
           <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 16px 0;">
           <p style="margin:0;color:#6b7280;font-size:12px;">BlockID.au — Valuation. Ownership. Growth.</p>
         </td></tr>
@@ -1988,34 +1983,12 @@ export async function sendReportDelivery(args: {
   if (!(await canSendEmail(args.to, "svi_alerts"))) return { ok: false, reason: "unsubscribed" };
   const { unsubscribeUrl, preferencesUrl } = await prepareUnsubscribe(args.to);
   const reportUrl = `${siteUrl()}/s/${args.slug}`;
-  const billingUrl = `${siteUrl()}/workspace/billing#credits`;
   const trackUrl = `${siteUrl()}/api/track/open?slug=${args.slug}&email=${encodeURIComponent(args.to)}`;
 
-  // Next action CTA based on tier
-  let nextAction = "";
-  let nextCtaLabel = "";
-  let nextCtaUrl = billingUrl;
-  if (args.tier === "preview" || args.tier === "scan") {
-    nextAction = "Want the full picture? Unlock the Standard report for deeper analysis, evidence gaps, and actionable recommendations.";
-    nextCtaLabel = "Unlock Full Report (0.50 credits)";
-    nextCtaUrl = reportUrl;
-  } else if (args.tier === "standard") {
-    nextAction = "Ready to go deeper? The Deep Dive report includes benchmarking, competitor context, a detailed action plan, and investor perspective.";
-    nextCtaLabel = "Go Deeper with Deep Dive (1.50 credits)";
-    nextCtaUrl = reportUrl;
-  } else if (args.tier === "deep_dive" || args.tier === "deep") {
-    nextAction = "Take the next step with AI Equity Recommendations — get data-driven guidance on equity splits, vesting, and share structure tailored to your startup.";
-    nextCtaLabel = "Get AI Equity Advice (1.00 credits)";
-    nextCtaUrl = `${siteUrl()}/workspace/equity/setup`;
-  }
-
-  const nextActionHtml = nextAction
-    ? `<div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 24px 0;">
-        <p style="margin:0 0 12px 0;font-size:12px;letter-spacing:0.15em;text-transform:uppercase;color:#6b7280;font-weight:500;">Next Step</p>
-        <p style="margin:0 0 16px 0;color:#4b5563;font-size:14px;line-height:1.6;">${escapeHtml(nextAction)}</p>
-        <p style="margin:0;text-align:center;"><a href="${nextCtaUrl}" style="display:inline-block;background:#eef0f5;color:#0b0f1a;font-weight:600;text-decoration:none;padding:10px 20px;border-radius:10px;font-size:13px;">${escapeHtml(nextCtaLabel)}</a></p>
-      </div>`
-    : "";
+  // G34-BT2 EM08: a report delivery is transactional — the tier-based credit
+  // upsell ("Unlock Full Report (0.50 credits)", "Go Deeper…", "Get AI Equity
+  // Advice…" → /workspace/billing) was removed; offers belong in a C-class flow.
+  const nextActionHtml = "";
 
   const scoreColor = args.sviScore >= 140 ? EMAIL_THEME.success : args.sviScore >= 100 ? EMAIL_THEME.navy : EMAIL_THEME.warn;
   const tierLabel = args.tier === "deep_dive" ? "Deep Dive" : args.tier === "standard" ? "Standard" : args.tier === "preview" ? "Preview" : args.tier.charAt(0).toUpperCase() + args.tier.slice(1);
@@ -2928,13 +2901,16 @@ export async function sendGuestCheckoutRecovery(params: {
 //     Sydney address and a real reply address, in the footer;
 //   * a functional unsubscribe — a live link plus the List-Unsubscribe header,
 //     honoured through the existing `email_preferences` suppression table.
-//     `canSendEmail(email, "promotions")` is checked here as well as by the
+//     `canSendEmail(email, "svi_alerts")` is checked here as well as by the
 //     route, because this function must never be the reason an address that
 //     opted out receives mail.
 //
-// The A$3 upgrade is IN this email, and it is an offer: what the report adds,
-// what it costs, one link. No countdown, no invented discount, no scarcity, no
-// follow-up. If they want it they will click it.
+// G34-BT2 (EM05/EM08): this is a TRANSACTIONAL delivery of what the person
+// asked for. It gates on `svi_alerts` (service mail about their analysis),
+// not `promotions` — new preference rows start with every commercial
+// category off, which would otherwise block the second free summary. The A$3
+// offer block was removed; the unlock offer lives in the C-class
+// `tbr_unlock_24h` drip (lib/email-drip.ts), which passes consent + cap.
 export async function sendFreeSummary(params: {
   email: string;
   /** Rendered PDF — exactly five pages, see `svi-summary-pdf.tsx`. */
@@ -2963,7 +2939,7 @@ export async function sendFreeSummary(params: {
   } = params;
 
   // Defensive second check — the route already gated on this.
-  if (!(await canSendEmail(to, "promotions"))) {
+  if (!(await canSendEmail(to, "svi_alerts"))) {
     return { ok: false, reason: "unsubscribed" };
   }
 
@@ -2983,11 +2959,6 @@ export async function sendFreeSummary(params: {
           <p style="margin:1px 0 0;color:#4b5563;font-size:12px;line-height:1.5;">${escapeHtml(page.blurb)}</p>
         </td>
       </tr>`,
-  ).join("");
-
-  const addsRows = PAID_REPORT_ADDITIONS.map(
-    (line) =>
-      `<li style="margin:0 0 5px;color:#4b5563;font-size:13px;line-height:1.55;">${escapeHtml(line)}</li>`,
   ).join("");
 
   const html = shell(`
@@ -3026,15 +2997,6 @@ export async function sendFreeSummary(params: {
           <p style="margin:0 0 24px;text-align:center;">
             <a href="${analysisUrl}" style="display:inline-block;background:#1B2A5E;color:#ffffff;font-weight:600;text-decoration:none;padding:13px 28px;border-radius:10px;font-size:15px;">Open the run on screen</a>
           </p>
-
-          <div style="background:#f7f8fa;border:1px solid #e5e7eb;border-radius:12px;padding:20px;margin:0 0 16px;">
-            <p style="margin:0 0 6px;color:#0b0f1a;font-size:15px;font-weight:600;">If you want the working behind it — A$3</p>
-            <p style="margin:0 0 10px;color:#4b5563;font-size:13px;line-height:1.6;">
-              The full written report is ten pages or more and adds:
-            </p>
-            <ul style="margin:0 0 12px;padding-left:18px;">${addsRows}</ul>
-            <a href="${siteUrl()}/one-click-report" style="color:#1B2A5E;font-size:13px;font-weight:600;text-decoration:underline;">Get the full report — A$3.00 inc. GST, one payment</a>
-          </div>
 
           <p style="margin:0;color:#6b7280;font-size:12px;line-height:1.6;">
             This is the only email we send about this run. Reference: ${escapeHtml(analysisId.slice(0, 8))}.

@@ -1040,11 +1040,12 @@ describe("ungated payment senders — always fire sendMail", () => {
     expect(lastMail().html).toContain("+25");
   });
 
-  it("sendSubscriptionCancelled sends unconditionally with COMEBACK30 code", async () => {
+  it("sendSubscriptionCancelled sends unconditionally and carries no retention offer (G34-BT2 EM08)", async () => {
     const { sendSubscriptionCancelled } = await import("./email");
     await sendSubscriptionCancelled({ to: "a@b.co" });
     expect(canSendEmailMock).not.toHaveBeenCalled();
-    expect(lastMail().html).toContain("COMEBACK30");
+    expect(lastMail().html).not.toContain("COMEBACK30");
+    expect(lastMail().html).not.toMatch(/30% off|pricing/i);
   });
 
   it("sendFarewellEmail (post-unsubscribe) sends unconditionally", async () => {
@@ -1223,7 +1224,7 @@ describe("sendFreeSummary — the free tier's one email", () => {
     expect(res).toEqual({ ok: false, reason: "unsubscribed" });
     expect(canSendEmailMock).toHaveBeenCalledWith(
       "founder@example.com",
-      "promotions",
+      "svi_alerts",
     );
     expect(sendMailSpy).not.toHaveBeenCalled();
   });
@@ -1278,13 +1279,13 @@ describe("sendFreeSummary — the free tier's one email", () => {
     );
   });
 
-  it("makes the A$3 upgrade an offer, not a nag", async () => {
+  it("is transactional: no A$3 offer, no nag (G34-BT2 EM08 — the offer lives in the C-class unlock drip)", async () => {
     canSendEmailMock.mockResolvedValue(true);
     const { sendFreeSummary } = await import("./email");
     await sendFreeSummary(args);
     const html = lastMail().html ?? "";
-    expect(html).toContain("A$3.00 inc. GST");
-    expect(html).toContain("/one-click-report");
+    expect(html).not.toContain("A$3.00 inc. GST");
+    expect(html).not.toContain("/one-click-report");
     expect(html).not.toMatch(
       /expires? (in|soon)|hurry|last chance|only \d+ left|% off|discount|limited time|act now/i,
     );
