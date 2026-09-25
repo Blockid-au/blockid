@@ -2259,6 +2259,17 @@ Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi 
 
 ## 17. Change log
 
+- **25/09/2026 — Deploy một lệnh + tạm dừng email:**
+  - `web/scripts/deploy-auto.sh` làm trọn quy trình: chờ load, retire origin cũ nhất đủ điều kiện, cấp permit, `deploy-live --quick`, rồi mark-good.
+  - Bản đầu tiên deploy bằng công cụ này: `0ac3943fc` (origin 4157).
+  - Các lỗi deploy đã sửa:
+    - freeze bỏ qua cache `.vite`/`.vitest`/`.cache`;
+    - candidate lỗi tự dừng và tự gỡ pin;
+    - resource pressure retry 10×30 s;
+    - slot của origin chỉ được giải phóng khi procfs chứng minh PID đã bị dùng lại.
+  - Founder: "tạm không gửi email". Đã tạm dừng 13 cron email gửi khách (đánh dấu `PAUSED-EMAIL` ở cả crontab đang cài lẫn `crontab.production`). `LIFECYCLE_EMAIL` vẫn tắt.
+  - Key SambaNova mới: 402 ở cả 7 model (bắt buộc thêm phương thức thanh toán). Founder quyết định không dùng. Key không được lưu.
+
 - **25/09/2026 — Sự cố upload /analyze + review luồng phân tích:**
   - User đã đăng nhập, hết report free, bị trỏ về report cũ. Fix `aac98460c`: trả bằng credits có báo giá trước, hoàn credits khi lỗi, admin được miễn hạn mức free.
   - Review toàn luồng ghi 15 lỗi (AF01–AF15, trong đó 5 lỗi P0) và kế hoạch kết quả sớm ER1–ER3.
