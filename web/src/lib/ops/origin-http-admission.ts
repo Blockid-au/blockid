@@ -3,6 +3,19 @@ import { Server, type IncomingMessage, type ServerResponse } from "node:http";
 import { installOriginActivity, runAdmittedHttp } from "./origin-activity";
 
 const allowedDuringDrain = new Set(["/api/status", "/api/healthz", "/api/ops/origin-drain"]);
+/** Per-response `close` listener ceiling (G33 T14). A proxy rewrite (e.g.
+ * `/funding/grants?state=NSW`, `/tbr/demo?band=A`, tenant subdomains) can
+ * never be an in-process rewrite while the origin listens on HOSTNAME=127.0.0.1:
+ * Next rewrites the loopback host to `localhost`, the origin check then misses
+ * and Next HTTP-proxies the request to itself. On that path Next 16.3 attaches
+ * 10 `close` listeners to the outer response (compression, 2 abort signals,
+ * httpxy x2, proxy-request x3, pipe); the admission listener below is the 11th
+ * and Node printed MaxListenersExceededWarning once per rewritten request.
+ * The count is fixed per request and every listener goes with the response
+ * (a ServerResponse is never reused), so the ceiling is raised on this one
+ * emitter only. It stays finite so a real per-event leak still warns.
+ */
+export const RESPONSE_CLOSE_LISTENER_LIMIT = 16;
 let installed = false;
 /** Installed by Next's node instrumentation before readiness. Response close
  * ends HTTP transport tracking only; report/provider scopes remain separate.
@@ -23,6 +36,7 @@ export function installOriginHttpAdmission(registry = installOriginActivity()) {
     if (event !== "request") return Reflect.apply(original, this, [event, ...args]);
     const request = args[0] as IncomingMessage;
     const response = args[1] as ServerResponse;
+    if (response.getMaxListeners() < RESPONSE_CLOSE_LISTENER_LIMIT) response.setMaxListeners(RESPONSE_CLOSE_LISTENER_LIMIT);
     const pathname = (request.url ?? "").split("?")[0];
     if (allowedDuringDrain.has(pathname)) return runAdmittedHttp(() => Reflect.apply(original, this, [event, ...args]));
     let done: () => void;
