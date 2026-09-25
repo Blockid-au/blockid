@@ -114,6 +114,12 @@ export async function loadConnectedRevenueSignals(
     for (const provider of ["stripe", "xero"] as const) {
       const h = history[provider];
       if (!h) continue;
+      if (provider === "stripe" && "sourceObservation" in (h.latest.metrics ?? {})) {
+        // A newer unqualified observation cannot resurrect older monetary
+        // signals/evidence as official revenue through the legacy fallback.
+        snapshotProviders.add(provider);
+        continue;
+      }
       const s = snapshotToRevenueSignal(h.latest, h.prior);
       if (s) {
         out.push(s);

@@ -57,7 +57,7 @@ export function snapshotMrrAud(row: Pick<ConnectorSnapshotRow, "provider" | "met
 
 /** 90-day churn (Stripe only). */
 export function snapshotChurnPct(row: Pick<ConnectorSnapshotRow, "provider" | "metrics">): number | null {
-  if (row.provider !== "stripe") return null;
+  if (row.provider !== "stripe" || "sourceObservation" in (row.metrics ?? {})) return null;
   return num(row.metrics?.churnRate90dPct);
 }
 
@@ -78,6 +78,24 @@ export function metricsChanged(
   next: Record<string, unknown>,
 ): boolean {
   if (!prev) return true;
+  if (provider === "stripe" && ("sourceObservation" in prev || "sourceObservation" in next)) {
+    // Persisted previews intentionally omit legacy top-level monetary fields.
+    // Compare the labelled observation on both sides, never its wrapper.
+    const observation = (value: unknown): Record<string, unknown> | null =>
+      value !== null && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+    const a = observation(prev.sourceObservation), b = observation(next.sourceObservation);
+    if (!a || !b) return true;
+    for (const field of ["method", "sourceAccountId", "currency", "metric", "complete", "eligibleForValuation", "apiVersion", "consistency"]) {
+      if (a[field] !== b[field]) return true;
+    }
+    for (const field of ["mrrAud", "activeSubscriptions", "activeSubscriptionCustomers", "itemCount"]) {
+      const x = num(a[field]), y = num(b[field]);
+      if (x === null || y === null) { if (x !== y) return true; }
+      else if (Math.abs(x - y) > (field === "mrrAud" ? CHANGE_TOLERANCE_AUD : 0)) return true;
+    }
+    // Capture times, page hashes and request counts may change on every pull.
+    return false;
+  }
   for (const f of COMPARED_FIELDS[provider]) {
     const a = num(prev[f]);
     const b = num(next[f]);

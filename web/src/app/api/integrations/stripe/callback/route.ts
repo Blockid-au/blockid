@@ -130,6 +130,7 @@ export async function GET(request: Request) {
       if (conn) await markSynced(conn.id);
     } catch (err) {
       if (conn) await markSynced(conn.id, (err as Error).message);
+      return NextResponse.redirect(`${baseUrl()}/workspace/evidence/connectors?error=stripe_source_collection_failed`);
     }
 
     return NextResponse.redirect(

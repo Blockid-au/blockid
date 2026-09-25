@@ -80,20 +80,20 @@ describe("Stripe grant → source → unqualified snapshot integration", () => {
   it("upstream failure preserves connection but writes no monetary facts or zero snapshot", async () => {
     const state = await grant(), implementation = h.fetch.getMockImplementation()!;
     h.fetch.mockImplementation(async (url, init) => String(url).includes("/subscriptions") ? new Response("unavailable", { status: 500 }) : implementation(url, init));
-    await finish(state);
+    expect((await finish(state)).headers.get("location")).toContain("error=stripe_source_collection_failed");
     expect(h.save).toHaveBeenCalledOnce(); expect(h.write).not.toHaveBeenCalled(); expect(h.snapshot).not.toHaveBeenCalled(); expect(h.evidence).not.toHaveBeenCalled();
     expect(h.synced).toHaveBeenCalledWith("connection", "stripe recurring_source responded 500");
   });
-  it("test-mode OAuth cannot write financial signals, even for an empty account", async () => {
+  it.each([false, undefined])("test-mode or missing live mode (%s) cannot report collection success", async livemode => {
     const state = await grant();
-    h.fetch.mockResolvedValue(Response.json({ access_token: "test-only-token", stripe_user_id: "acct_123", livemode: false }));
-    await finish(state);
+    h.fetch.mockResolvedValue(Response.json({ access_token: "test-only-token", stripe_user_id: "acct_123", livemode }));
+    expect((await finish(state)).headers.get("location")).toContain("error=stripe_source_collection_failed");
     expect(h.fetch).toHaveBeenCalledOnce(); expect(h.write).not.toHaveBeenCalled(); expect(h.snapshot).not.toHaveBeenCalled();
     expect(h.synced).toHaveBeenCalledWith("connection", "invalid_binding");
   });
   it("does not mark a missing snapshot as successfully synced", async () => {
     const state = await grant(); h.snapshot.mockResolvedValue(null);
-    await finish(state);
+    expect((await finish(state)).headers.get("location")).toContain("error=stripe_source_collection_failed");
     expect(h.synced).toHaveBeenCalledWith("connection", "stripe_snapshot_write_failed");
     expect(h.synced).not.toHaveBeenCalledWith("connection");
   });

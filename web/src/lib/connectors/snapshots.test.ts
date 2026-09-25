@@ -131,3 +131,24 @@ describe("insertConnectorSnapshot / loadSnapshotHistory", () => {
     expect(calls).toContainEqual(["order", "taken_at", { ascending: false }]);
   });
 });
+
+describe("preview observation change detection", () => {
+  const sourceObservation = { method: "stripe-native-aud-fixed-recurring-v1", sourceAccountId: "acct_a", currency: "AUD", metric: "fixed_recurring_contract_monthly_run_rate", complete: true, eligibleForValuation: false, mrrAud: 100, activeSubscriptions: 2, activeSubscriptionCustomers: 1, itemCount: 2, capturedAt: "yesterday" };
+  const stored = { sourceObservation };
+  it("compares persisted observation to fresh wrapper without treating metadata refresh as financial change", () => {
+    expect(metricsChanged("stripe", stored, { mrrAud: 100, activeCustomers: 1, sourceObservation: { ...sourceObservation, capturedAt: "today", requests: 5, sourceDigest: "new", pages: [] } })).toBe(false);
+  });
+  it.each([
+    { mrrAud: 101 }, { activeSubscriptions: 3 }, { activeSubscriptionCustomers: 2 }, { itemCount: 3 },
+    { sourceAccountId: "acct_b" }, { currency: "USD" }, { eligibleForValuation: true }, { complete: false },
+  ])("detects changes within the observation %#", change => {
+    expect(metricsChanged("stripe", stored, { sourceObservation: { ...sourceObservation, ...change } })).toBe(true);
+  });
+  it("detects transitions between legacy and observation-only metrics", () => {
+    expect(metricsChanged("stripe", { mrrAud: 100 }, stored)).toBe(true);
+    expect(metricsChanged("stripe", stored, { mrrAud: 100 })).toBe(true);
+  });
+  it("does not expose stale top-level churn from preview observations", () => {
+    expect(snapshotChurnPct(row("stripe", "today", { ...stored, churnRate90dPct: 10 }))).toBeNull();
+  });
+});

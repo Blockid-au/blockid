@@ -147,6 +147,18 @@ describe("Stripe manual sync source boundary", () => {
     expect(conn.markSynced).toHaveBeenCalledWith("conn-1", "stripe_snapshot_write_failed");
     expect(conn.writeSignals).not.toHaveBeenCalled();
   });
+  it("fails explicitly for an older connection with missing live-mode binding", async () => {
+    conn.getConnection.mockResolvedValue({ id: "conn-1", status: "active", accessToken: "t", providerAccountId: "acct_bound", metadata: {} });
+    stripe.fetch.mockRejectedValue(new Error("invalid_binding"));
+    const result = await runStripe();
+    expect(result.status).toBe(502);
+    expect(await result.json()).toMatchObject({ ok: false, error: "invalid_binding" });
+    expect(stripe.fetch).toHaveBeenCalledWith("t", { sourceAccountId: "acct_bound", livemode: false });
+    expect(conn.markSynced).toHaveBeenCalledWith("conn-1", "invalid_binding");
+    expect(conn.markSynced).not.toHaveBeenCalledWith("conn-1");
+    expect(stripe.snapshot).not.toHaveBeenCalled();
+    expect(conn.writeSignals).not.toHaveBeenCalled();
+  });
   it("does not persist partial results on a rejected source", async () => {
     stripe.fetch.mockRejectedValue(new Error("invalid_binding"));
     expect((await runStripe()).status).toBe(502);

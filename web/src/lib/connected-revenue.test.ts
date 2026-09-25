@@ -198,3 +198,18 @@ describe("loadConnectedRevenueSignals", () => {
     ]);
   });
 });
+
+
+it("a newer unqualified Stripe observation blocks stale legacy revenue without affecting Xero", async () => {
+  const { sb, evidenceCalls } = makeSb({
+    snapshots: [{ id: "preview", user_id: "u", project_id: "p", provider: "stripe", taken_at: "2026-09-25", metrics: { sourceObservation: { eligibleForValuation: false, mrrAud: 9000 } }, source: "resync" }],
+    signals: [
+      { provider: "stripe", signal_value_num: 8000, captured_at: "2026-09-01" },
+      { provider: "xero", signal_value_num: 5000, captured_at: "2026-09-01" },
+    ],
+  });
+  const out = await loadConnectedRevenueSignals(sb, { userId: "u", projectId: "p", accountId: "a" });
+  expect(out.filter(s => s.provider === "stripe")).toEqual([]);
+  expect(out).toContainEqual(expect.objectContaining({ provider: "xero", mrrAud: 5000 }));
+  expect(evidenceCalls).not.toContainEqual({ op: "eq", args: ["evidence_type", "stripe"] });
+});
