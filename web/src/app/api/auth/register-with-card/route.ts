@@ -67,6 +67,7 @@ import { sendPaymentConfirmation } from "@/lib/email";
 import { apiRoute } from "@/lib/audit/api-route";
 import { resolvePostLoginHref } from "@/lib/auth/post-login";
 import { resolvePersona } from "@/lib/nav/persona";
+import { claimForCurrentBrowser } from "@/lib/analyses/claim";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -393,6 +394,10 @@ async function POST_handler(request: Request) {
     console.error("[register-with-card] session row failed for", userId);
   } else {
     await setSessionCookie(sessionToken);
+    // G34 DC04: same claim as /api/auth/register — this browser's pre-signup
+    // runs + paid guest reports. Cookie only for `analyses`: a typed address
+    // is not a verified one (lib/analyses/claim.ts). Fail-soft, idempotent.
+    await claimForCurrentBrowser({ userId, email });
   }
 
   // 8. Send welcome / payment-confirmation email (best-effort).

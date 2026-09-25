@@ -14,6 +14,7 @@
 // can never be bounced to a third party.
 import { NextResponse, type NextRequest } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { claimForCurrentBrowser } from "@/lib/analyses/claim";
 import { mintHandoffToken, safeReturnUrl } from "@/lib/security/svi-handoff";
 
 const PUBLIC_ORIGIN = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://blockid.au";
@@ -35,6 +36,11 @@ export async function GET(request: NextRequest) {
     const self = `/api/auth/svi-handoff?return=${encodeURIComponent(target.toString())}`;
     return NextResponse.redirect(new URL(`/auth/login?next=${encodeURIComponent(self)}`, PUBLIC_ORIGIN), 302);
   }
+
+  // G34 DC04: a founder who ran /analyze as a guest and then crossed to SVI
+  // keeps those runs — same claim as every sign-in path (cookie + paid guest
+  // reports; the session says nothing about e-mail verification). Fail-soft.
+  await claimForCurrentBrowser({ userId: user.id, email: user.email });
 
   target.searchParams.set("svi_token", mintHandoffToken(user.id, secret));
   return NextResponse.redirect(target, 302);

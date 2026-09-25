@@ -3,6 +3,8 @@ import { createHmac } from "node:crypto";
 
 const getCurrentUser = vi.fn();
 vi.mock("@/lib/auth", () => ({ getCurrentUser: () => getCurrentUser() }));
+const claimMock = vi.fn(async (_p: unknown) => ({ analyses: 0, guestAnalyses: 0 }));
+vi.mock("@/lib/analyses/claim", () => ({ claimForCurrentBrowser: (p: unknown) => claimMock(p) }));
 
 async function load() {
   return await import("./route");
@@ -17,6 +19,7 @@ describe("GET /api/auth/svi-handoff", () => {
   beforeEach(() => {
     vi.resetModules();
     getCurrentUser.mockReset();
+    claimMock.mockClear();
     process.env.SVI_HANDOFF_SECRET = "test-secret";
   });
 
@@ -37,6 +40,7 @@ describe("GET /api/auth/svi-handoff", () => {
     expect(loc.origin).toBe("https://blockid.au"); // never the proxied 0.0.0.0:4001 origin
     expect(loc.pathname).toBe("/auth/login");
     expect(loc.searchParams.get("next")).toContain("/api/auth/svi-handoff?return=");
+    expect(claimMock).not.toHaveBeenCalled();
   });
 
   it("redirects a signed-in founder to SVI with a 5-minute HMAC token carrying only the user id", async () => {
@@ -56,6 +60,8 @@ describe("GET /api/auth/svi-handoff", () => {
     expect(body.email).toBeUndefined();
     expect(body.exp - Math.floor(Date.now() / 1000)).toBeGreaterThan(290);
     expect(body.exp - Math.floor(Date.now() / 1000)).toBeLessThanOrEqual(300);
+    // G34 DC04: the signed-in founder's guest runs are claimed on the way through (cookie only).
+    expect(claimMock).toHaveBeenCalledWith({ userId: "u-42", email: "f@x.au" });
   });
 
   it("returns handoff_not_configured when the shared secret is missing", async () => {

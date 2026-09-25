@@ -43,6 +43,7 @@ const mocks = vi.hoisted(() => ({
   initializeCredits: vi.fn(async () => undefined),
   sendPaymentConfirmation: vi.fn(async () => ({ ok: true })),
   processAttribution: vi.fn(async () => undefined),
+  claimForCurrentBrowser: vi.fn(async (_p: { userId: string; email?: string | null; emailVerified?: boolean }) => ({ analyses: 0, guestAnalyses: 0 })),
   // Supabase fake state
   inserted: [] as Record<string, unknown>[],
   trialStateUpserts: [] as Record<string, unknown>[],
@@ -69,6 +70,7 @@ vi.mock("@/lib/iphash", () => ({
 vi.mock("@/lib/plans-db", () => ({ getPlanCached: mocks.getPlanCached }));
 vi.mock("@/lib/credits", () => ({ initializeCredits: mocks.initializeCredits }));
 vi.mock("@/lib/email", () => ({ sendPaymentConfirmation: mocks.sendPaymentConfirmation }));
+vi.mock("@/lib/analyses/claim", () => ({ claimForCurrentBrowser: mocks.claimForCurrentBrowser }));
 vi.mock("@/lib/reseller/attribution", () => ({ extractViaFromCookieHeader: () => null }));
 vi.mock("@/lib/reseller/process-attribution", () => ({
   processAttribution: mocks.processAttribution,
@@ -565,5 +567,17 @@ describe("card stays required", () => {
     const res = await POST(req(body()));
     expect(res.status).toBe(409);
     expect((await json(res)).error).toBe("email_taken");
+    expect(mocks.claimForCurrentBrowser).not.toHaveBeenCalled();
+  });
+});
+
+describe("G34 DC04 claim on signup", () => {
+  it("claims this browser's pre-signup work for the new account — cookie only, the typed address is not verified", async () => {
+    const res = await POST(req(body()));
+    expect(res.status).toBe(200);
+    expect(mocks.claimForCurrentBrowser).toHaveBeenCalledTimes(1);
+    const arg = mocks.claimForCurrentBrowser.mock.calls[0][0];
+    expect(arg).toEqual({ userId: "u_new", email: "eva@example.com" });
+    expect(arg.emailVerified).toBeUndefined();
   });
 });
