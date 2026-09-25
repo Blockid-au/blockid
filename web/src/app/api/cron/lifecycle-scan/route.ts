@@ -12,16 +12,25 @@
 // `?dry=1` lists would-be recipients and writes nothing; `?flows=` overrides.
 // Handler: lib/lifecycle/cron-handler.ts.
 
+import { NextResponse } from "next/server";
+import { isCronAuthorised } from "@/lib/security/cron-auth";
 import { handleLifecycleCron } from "@/lib/lifecycle/cron-handler";
 import { DAILY_SCAN_FLOWS } from "@/lib/lifecycle/scan";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
-export async function GET(request: Request) {
+async function handle(request: Request): Promise<Response> {
+  if (!isCronAuthorised(request)) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
   return handleLifecycleCron(request, DAILY_SCAN_FLOWS);
 }
 
+export async function GET(request: Request) {
+  return handle(request);
+}
+
 export async function POST(request: Request) {
-  return handleLifecycleCron(request, DAILY_SCAN_FLOWS);
+  return handle(request);
 }
