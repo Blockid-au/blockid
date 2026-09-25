@@ -14,3 +14,5 @@ authority transition that admits it.
 | `0460_audit_chain_serialized_ids.sql` | 24/09/2026 (G33-T08) | `docs/reviews/2026-09-24-g33-t16-s2-live.md` |
 | `0461_report_revisions.sql` | 23/09/2026 (as 0410, G30); source restored 24/09 (G33-T10) | live catalog matched column-for-column 24/09 |
 | `0462_analyses_project_id.sql` | 25/09/2026 (G34 DC01 / AF13), additive nullable FK + partial index | live catalog: `analyses.project_id uuid NULL`, `analyses_project_created_idx`; `docs/reviews/2026-09-25-analyze-upload-failure-review.md` |
+| `0463_evaluations_founder_project_id.sql` | 25/09/2026 (G34 DC05), additive nullable FK + partial index | live catalog: `evaluations.founder_project_id` |
+| `0464_erase_account_email_preferences_notifications.sql` | 25/09/2026 (G34 DC09), `erase_account()` = 0442 + 2 non-FK extras | live def contains email_preferences/svi_notifications extras; dry-run inside ROLLBACK listed both |
