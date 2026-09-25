@@ -26,8 +26,20 @@ export function calculateCfoScenario(input: CfoScenarioInput) {
   for (const method of input.methods) {
     if (canonicalJson(method.context) !== canonicalJson(context)) throw new Error("All methods must use the same entity, evidence revision, date, currency and price basis");
   }
-  if (input.projection && (input.projection.currency !== context.currency || input.projection.scenario.evidenceSetHash !== context.evidenceRevision)) {
-    throw new Error("Projection and valuation evidence revision/currency must match");
+  if (input.projection) {
+    if (input.projection.currency !== context.currency) throw new Error("Projection and valuation currency must match");
+    const hash = input.projection.scenario?.evidenceSetHash;
+    if (input.projectionValuation) {
+      // Source revisions may be names (e.g. Budget v3), not content hashes.
+      // The linked adapter provides separate explicit bindings for both.
+      const binding = input.projectionValuation.binding;
+      if (!binding || binding.entityId !== context.entityId || binding.evidenceRevision !== context.evidenceRevision
+        || binding.evidenceSetHash !== hash) throw new Error("Projection entity, evidence revision and hash binding must match");
+    } else if (hash !== context.evidenceRevision) {
+      // Projection-only callers have no separate revision binding: preserve
+      // the existing immutable hash-as-revision contract for those previews.
+      throw new Error("Projection and valuation evidence revision must match");
+    }
   }
   const projection = input.projection ? calculateCfoProjection(input.projection) : null;
   if (input.projectionValuation && !projection) throw new Error("A projection is required for linked cash-flow valuation");

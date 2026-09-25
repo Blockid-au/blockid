@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateCfoScenario, cfoScenarioCsv } from "./cfo-scenario";
+import { calculateCfoScenario, cfoScenarioCsv, type CfoScenarioInput } from "./cfo-scenario";
 import type { CfoMethodInput, CfoSourcedNumber } from "./cfo-methodology-core";
 const context = { entityId: "project", evidenceRevision: "rev1", valuationDate: "2026-09-24", currency: "AUD", priceBasis: "nominal" as const };
 const number = (value: number, unit = "AUD"): CfoSourcedNumber => ({ value, unit, evidence: { id: "memo", entityId: "project", revision: "rev1", observedAt: "2026-09-24", reference: "management memo", locator: "section 1", status: "management_stated" } });
@@ -23,23 +23,43 @@ describe("CFO scenario snapshot", () => {
     expect(() => calculateCfoScenario({ methods: [method(), other] })).toThrow("same entity");
   });
   it("computes a linked projection FCFE from schedules and includes it in export", () => {
-    const revision = "a".repeat(64);
+    const revision = "Budget v3", evidenceHash = "a".repeat(64);
     const context = { entityId: "project", evidenceRevision: revision, valuationDate: "2026-01-01", currency: "AUD", priceBasis: "nominal" as const };
     const evidence = { id: "memo", entityId: "project", revision, observedAt: "2026-01-01", reference: "fixture memo", locator: "budget", status: "assumed" as const, rationale: "finite operation ends after year one; no residual assets" };
     const source = (value: number, unit = "AUD") => ({ value, unit, evidence });
-    const result = calculateCfoScenario({
+    const input: CfoScenarioInput = {
       methods: [{ method: "net_assets", context, adjustedAssets: source(0), adjustedLiabilities: source(0) }],
-      projection: { currency: "AUD", startMonth: "2026-01", scenario: { id: "base", basis: "management", evidenceSetHash: revision, assumptionRefs: ["memo"] },
+      projection: { currency: "AUD", startMonth: "2026-01", scenario: { id: "base", basis: "management", evidenceSetHash: evidenceHash, assumptionRefs: ["memo"] },
         opening: { cash: 0, debt: 0, netFixedAssets: 0, receivables: 0, inventory: 0, payables: 0, taxLossCarryforward: 0 },
         months: Array.from({ length: 12 }, () => ({ revenue: 100, cogs: 0, opex: 0, depreciation: 0, capex: 0, closingReceivables: 0, closingInventory: 0, closingPayables: 0, cashTaxRate: 0, interestExpense: 0, debtDraw: 0, debtRepayment: 0, equityFunding: 0, dividends: 0 })) },
-      projectionValuation: { binding: { entityId: "project", evidenceRevision: revision, evidenceSetHash: revision, projectionEvidence: evidence }, timingConvention: "monthly_cash_flows_aggregated_to_annual_end_period", cashFlowPriceBasis: "nominal", ratePriceBasis: "nominal", discountRate: source(.1, "annual_decimal"), terminalPolicy: "finite_life", finiteLifeEvidence: evidence },
-    });
+      projectionValuation: { binding: { entityId: "project", evidenceRevision: revision, evidenceSetHash: evidenceHash, projectionEvidence: evidence }, timingConvention: "monthly_cash_flows_aggregated_to_annual_end_period", cashFlowPriceBasis: "nominal", ratePriceBasis: "nominal", discountRate: source(.1, "annual_decimal"), terminalPolicy: "finite_life", finiteLifeEvidence: evidence },
+    };
+    const result = calculateCfoScenario(input);
     expect(result.linkedProjectionValuation?.status).toBe("scenario_only");
     if (result.linkedProjectionValuation?.status === "scenario_only") {
       expect(result.linkedProjectionValuation.methodResult.values.equityValue).toBeCloseTo(1200 / 1.1, 8);
     }
     expect(cfoScenarioCsv(result)).toContain('"fcfe"');
     expect(result.status).toBe("scenario_only");
+    for (const field of ["entityId", "evidenceRevision", "evidenceSetHash"] as const) {
+      const wrong = structuredClone(input);
+      wrong.projectionValuation!.binding[field] = field === "evidenceSetHash" ? "b".repeat(64) : "other";
+      expect(() => calculateCfoScenario(wrong), field).toThrow("binding must match");
+    }
+    const unbound = structuredClone(input);
+    delete unbound.projectionValuation;
+    expect(() => calculateCfoScenario(unbound)).toThrow("evidence revision must match");
+    const hashBound = structuredClone(unbound);
+    for (const method of hashBound.methods) {
+      method.context.evidenceRevision = evidenceHash;
+      if (method.method === "net_assets") {
+        method.adjustedAssets.evidence.revision = evidenceHash;
+        method.adjustedLiabilities.evidence.revision = evidenceHash;
+      }
+    }
+    expect(calculateCfoScenario(hashBound).projection).not.toBeNull();
+    hashBound.projection!.currency = "USD";
+    expect(() => calculateCfoScenario(hashBound)).toThrow("currency must match");
   });
   it("does not mutate inputs or turn method-local rejection into a fabricated value", () => {
     const input = method(); input.investorOwnership.value = 0;
