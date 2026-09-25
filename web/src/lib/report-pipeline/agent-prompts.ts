@@ -54,7 +54,7 @@ ATO rulings, ASX listing pathways, and AU venture capital landscape where releva
 
 Writing guidelines:
 - Supportive MENTORING tone — like a senior advisor coaching a founder
-- Be specific: name real competitors; every number comes from the evidence and carries its [ev:<id>] — a figure no evidence row holds is written "we estimate …" or ends with (unevidenced)
+- Be specific: name real competitors; give numbers from the evidence, each with its [ev:<id>] — a figure no evidence row holds is written "we estimate …" or ends with (unevidenced)
 - Frame weaknesses constructively as "gaps between current state and opportunity"
 - Include benchmarks: "companies at your stage typically..." — cite the benchmark row, or end the sentence with (unevidenced)
 - Headlines and section titles carry no figures (a title cannot hold a citation)

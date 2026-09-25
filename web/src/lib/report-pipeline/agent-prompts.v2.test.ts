@@ -81,6 +81,9 @@ describe("buildPromptBlocks — every role × 3 phases stays under the per-block
         expect(built.tokens.ROLE_CARD).toBeLessThanOrEqual(PROMPT_BLOCK_CAPS.ROLE_CARD);
         expect(built.tokens.PHASE_LENS).toBeLessThanOrEqual(PROMPT_BLOCK_CAPS.PHASE_LENS);
         expect(built.tokens.MODULES).toBeLessThanOrEqual(PROMPT_BLOCK_CAPS.MODULES);
+        // G35: modules are cited with the one marker the gate reads.
+        expect(built.blocks.MODULES).toContain("cite as [ev:<module id>]");
+        expect(built.blocks.MODULES).not.toContain("[module:");
         expect(built.totalTokens).toBeLessThanOrEqual(PROMPT_TOTAL_CAP);
         const card = built.blocks.ROLE_CARD;
         expect(card).toContain(owner.title);

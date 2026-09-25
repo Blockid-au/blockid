@@ -89,6 +89,9 @@ describe("AU_CONTEXT", () => {
   it("mandates specificity (named competitors, real data, numbers)", () => {
     expect(AU_CONTEXT).toMatch(/competitors/);
     expect(AU_CONTEXT).toMatch(/numbers/);
+    // G35: specific, but cited — a figure no row holds is declared, and titles carry none.
+    expect(AU_CONTEXT).toContain("give numbers from the evidence, each with its [ev:<id>]");
+    expect(AU_CONTEXT).toContain("Headlines and section titles carry no figures");
   });
 
   it("mandates Markdown output with ### sub-headings + **bold** insights", () => {
