@@ -300,6 +300,8 @@ describe("resyncConnection — Stripe Connect (v2 vault)", () => {
     const evInserts = ops.filter((o) => o.table === "svi_evidence" && o.op === "insert").map((o) => o.args[0] as Row);
     expect(evInserts.map((r) => [r.evidence_type, r.dimension])).toEqual([["stripe", "tre"], ["stripe", "mpc"]]);
     expect(evInserts[0]).toMatchObject({ account_id: "acc-1", confidence_level: "connected_source", verified_at: NOW.toISOString(), svi_impact: 10 });
+    // G34 DC06: new evidence rows carry the connection's project.
+    for (const r of evInserts) expect(r.project_id).toBe("proj-1");
     expect(JSON.parse(evInserts[0].value_or_url as string)).toMatchObject({ mrr: 8200, customerCount: 57, churnRate90dPct: 2.4, source: "connector_resync" });
 
     // Rescore through the shared lib + webhook to the OWNER only.

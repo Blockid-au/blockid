@@ -238,6 +238,7 @@ async function POST_handler(req: NextRequest) {
             confidence_level: "document_uploaded",
             dimension,
             svi_impact: 10,
+            project_id: projectId, // G34 DC06
           })
           .select("id")
           .single();

@@ -713,6 +713,21 @@ export async function findOrCreateSVIAccount(
   const { data: existing } = await query.maybeSingle();
   if (existing) return existing.id as string;
 
+  // G34 DC06: a null-project caller whose email already has an account (a
+  // project-scoped one) reuses it instead of minting a `project_id = NULL`
+  // twin — the split row where evidence and snapshots went missing. Oldest
+  // first so the answer is stable. Still exactly the email given (P1-1).
+  if (!projectId) {
+    const { data: anyForEmail } = await supabase
+      .from("svi_accounts")
+      .select("id")
+      .eq("email", email)
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (anyForEmail) return anyForEmail.id as string;
+  }
+
   // Get project name for the startup_name field
   let startupName: string | null = null;
   if (projectId) {

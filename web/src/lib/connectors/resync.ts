@@ -331,6 +331,7 @@ async function upsertSignals(
 async function upsertEvidence(
   db: Db,
   accountId: string,
+  projectId: string | null,
   match: { evidence_type: string; dimension: string },
   payload: Record<string, unknown>,
   now: Date,
@@ -344,7 +345,8 @@ async function upsertEvidence(
     .maybeSingle();
   const row = { account_id: accountId, ...match, ...payload, confidence_level: "connected_source", verified_at: now.toISOString() };
   if (existing?.id) await db.from("svi_evidence").update(row).eq("id", existing.id);
-  else await db.from("svi_evidence").insert({ ...row, created_at: now.toISOString() });
+  // G34 DC06: a new row carries its project (svi_evidence.project_id, 0036).
+  else await db.from("svi_evidence").insert({ ...row, ...(projectId ? { project_id: projectId } : {}), created_at: now.toISOString() });
 }
 
 function money(v: number): string {
@@ -362,7 +364,7 @@ async function applyStripe(db: Db, scope: ResolvedScope, m: StripeConnectMetrics
   }
   if (scope.accountId) {
     const score = scoreConnectedRevenue({ mrrAud: m.mrrAud, capturedAt: now.toISOString(), churnRate90dPct: m.churnRate90dPct, now });
-    await upsertEvidence(db, scope.accountId, { evidence_type: "stripe", dimension: "tre" }, {
+    await upsertEvidence(db, scope.accountId, scope.projectId, { evidence_type: "stripe", dimension: "tre" }, {
       label: m.mrrAud > 0 ? `Stripe: MRR ${money(m.mrrAud)}, ${m.activeCustomers} customers` : `Stripe: ${m.activeCustomers} customers, no active subscriptions`,
       value_or_url: JSON.stringify({
         mrr: m.mrrAud,
@@ -377,7 +379,7 @@ async function applyStripe(db: Db, scope: ResolvedScope, m: StripeConnectMetrics
     }, now);
     if (m.activeCustomers > 0) {
       const mpcImpact = Math.min(12, Math.max(5, Math.floor(Math.log10(m.activeCustomers + 1) * 5)));
-      await upsertEvidence(db, scope.accountId, { evidence_type: "stripe", dimension: "mpc" }, {
+      await upsertEvidence(db, scope.accountId, scope.projectId, { evidence_type: "stripe", dimension: "mpc" }, {
         label: `Stripe Customers: ${m.activeCustomers} paying customer${m.activeCustomers === 1 ? "" : "s"}`,
         value_or_url: String(m.activeCustomers),
         svi_impact: mpcImpact,
@@ -396,7 +398,7 @@ async function applyXero(db: Db, scope: ResolvedScope, m: XeroMetrics, now: Date
     ], now);
   }
   if (scope.accountId) {
-    await upsertEvidence(db, scope.accountId, { evidence_type: "xero_pl", dimension: XERO_PL_EVIDENCE_DIMENSION }, {
+    await upsertEvidence(db, scope.accountId, scope.projectId, { evidence_type: "xero_pl", dimension: XERO_PL_EVIDENCE_DIMENSION }, {
       label: "Xero P&L (3 months)",
       value_or_url: JSON.stringify({
         totalIncomeAud: m.totalIncomeAud,
@@ -411,7 +413,7 @@ async function applyXero(db: Db, scope: ResolvedScope, m: XeroMetrics, now: Date
     }, now);
     if (m.totalIncomeAud > 0) {
       const score = scoreConnectedRevenue({ mrrAud: mrr, capturedAt: now.toISOString(), now });
-      await upsertEvidence(db, scope.accountId, { evidence_type: "xero_revenue", dimension: XERO_REVENUE_EVIDENCE_DIMENSION }, {
+      await upsertEvidence(db, scope.accountId, scope.projectId, { evidence_type: "xero_revenue", dimension: XERO_REVENUE_EVIDENCE_DIMENSION }, {
         label: "Xero Revenue Verified",
         value_or_url: JSON.stringify({
           totalIncomeAud: m.totalIncomeAud,

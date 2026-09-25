@@ -278,7 +278,7 @@ export async function GET(request: Request) {
     if (existingCfo) {
       await supabase.from("svi_evidence").update(cfoPayload).eq("id", existingCfo.id);
     } else {
-      await supabase.from("svi_evidence").insert({ ...cfoPayload, created_at: new Date().toISOString() });
+      await supabase.from("svi_evidence").insert({ ...cfoPayload, project_id: projectId, created_at: new Date().toISOString() });
     }
 
     // 8. Upsert TRE evidence (xero_revenue → `tre`; was the non-SVI key "traction") — only if income > 0
@@ -315,7 +315,7 @@ export async function GET(request: Request) {
       if (existingTre) {
         await supabase.from("svi_evidence").update(trePayload).eq("id", existingTre.id);
       } else {
-        await supabase.from("svi_evidence").insert({ ...trePayload, created_at: new Date().toISOString() });
+        await supabase.from("svi_evidence").insert({ ...trePayload, project_id: projectId, created_at: new Date().toISOString() });
       }
     }
 

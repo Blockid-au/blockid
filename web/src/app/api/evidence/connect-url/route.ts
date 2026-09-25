@@ -189,6 +189,7 @@ async function POST_handler(request: Request) {
         dimension,
         svi_impact: sviImpact,
         verified_at: new Date().toISOString(),
+        project_id: projectId, // G34 DC06
         created_at: new Date().toISOString(),
       })
       .select()

@@ -224,6 +224,7 @@ async function POST_handler(request: Request) {
           confidence_level: "connected_source",
           dimension: "tre",
           svi_impact: 20,
+          project_id: projectId, // G34 DC06
           created_at: new Date().toISOString(),
         });
 

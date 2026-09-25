@@ -253,7 +253,7 @@ export async function GET(request: Request) {
     if (existingTre) {
       await supabase.from("svi_evidence").update(trePayload).eq("id", existingTre.id);
     } else {
-      await supabase.from("svi_evidence").insert({ ...trePayload, created_at: new Date().toISOString() });
+      await supabase.from("svi_evidence").insert({ ...trePayload, project_id: projectId, created_at: new Date().toISOString() });
     }
 
     // Upsert product-market fit signal (PMF) if engagement rate is strong
@@ -281,7 +281,7 @@ export async function GET(request: Request) {
       if (existingPmf) {
         await supabase.from("svi_evidence").update(pmfPayload).eq("id", existingPmf.id);
       } else {
-        await supabase.from("svi_evidence").insert({ ...pmfPayload, created_at: new Date().toISOString() });
+        await supabase.from("svi_evidence").insert({ ...pmfPayload, project_id: projectId, created_at: new Date().toISOString() });
       }
     }
 

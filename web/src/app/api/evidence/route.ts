@@ -148,6 +148,7 @@ async function POST_handler(request: Request) {
         confidence_level: confidenceLevel,
         dimension: dimension ?? "general",
         svi_impact: sviImpact,
+        project_id: projectId, // G34 DC06
         created_at: new Date().toISOString(),
       })
       .select()

@@ -227,6 +227,7 @@ export async function GET(request: Request) {
         } else {
           await supabase.from("svi_evidence").insert({
             ...evidencePayload,
+            project_id: projectId,
             created_at: new Date().toISOString(),
           });
         }

@@ -393,6 +393,7 @@ export async function GET(request: Request) {
           // Insert new evidence
           await supabase.from("svi_evidence").insert({
             ...evidencePayload,
+            project_id: projectId,
             created_at: new Date().toISOString(),
           });
         }
@@ -431,6 +432,7 @@ export async function GET(request: Request) {
           } else {
             await supabase.from("svi_evidence").insert({
               ...tractionPayload,
+              project_id: projectId,
               created_at: new Date().toISOString(),
             });
           }
@@ -464,7 +466,7 @@ export async function GET(request: Request) {
           if (existingAudit) {
             await supabase.from("svi_evidence").update(auditPtdPayload).eq("id", existingAudit.id);
           } else {
-            await supabase.from("svi_evidence").insert({ ...auditPtdPayload, created_at: new Date().toISOString() });
+            await supabase.from("svi_evidence").insert({ ...auditPtdPayload, project_id: projectId, created_at: new Date().toISOString() });
           }
 
           // Engineering team quality → FTV (Founder & Team)
@@ -491,7 +493,7 @@ export async function GET(request: Request) {
             if (existingFtv) {
               await supabase.from("svi_evidence").update(auditFtvPayload).eq("id", existingFtv.id);
             } else {
-              await supabase.from("svi_evidence").insert({ ...auditFtvPayload, created_at: new Date().toISOString() });
+              await supabase.from("svi_evidence").insert({ ...auditFtvPayload, project_id: projectId, created_at: new Date().toISOString() });
             }
           }
 
@@ -519,7 +521,7 @@ export async function GET(request: Request) {
             if (existingSvm) {
               await supabase.from("svi_evidence").update(auditSvmPayload).eq("id", existingSvm.id);
             } else {
-              await supabase.from("svi_evidence").insert({ ...auditSvmPayload, created_at: new Date().toISOString() });
+              await supabase.from("svi_evidence").insert({ ...auditSvmPayload, project_id: projectId, created_at: new Date().toISOString() });
             }
           }
         }

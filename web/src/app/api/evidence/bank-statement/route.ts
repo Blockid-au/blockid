@@ -96,6 +96,7 @@ async function POST_handler(req: NextRequest) {
             dimension: "iri",
             svi_impact: sviImpact,
             source_provider: "bank_csv",
+            project_id: projectId, // G34 DC06
           })
           .select("id")
           .single();

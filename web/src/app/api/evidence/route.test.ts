@@ -174,6 +174,7 @@ describe("POST /api/evidence — S17-A", () => {
     expect(inserts[0].table).toBe("svi_evidence");
     expect(inserts[0].row.account_id).toBe("acc-owner");
     expect(inserts[0].row.confidence_level).toBe("public_url");
+    expect(inserts[0].row.project_id).toBe("proj-shared"); // G34 DC06
   });
 
   it("owner → own email; 400 when evidenceType/label are missing", async () => {

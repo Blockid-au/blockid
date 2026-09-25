@@ -437,7 +437,7 @@ async function POST_handler(request: Request) {
   const metricDate = `${month}-01`;
   const { data: account } = await supabase
     .from("svi_accounts")
-    .select("id")
+    .select("id, project_id")
     .eq("email", dataEmail)
     .maybeSingle();
 
@@ -468,6 +468,7 @@ async function POST_handler(request: Request) {
           {
             account_id: account.id,
             evidence_type: "stripe",
+            project_id: (account.project_id as string | null) ?? null, // G34 DC06
             confidence_level: "connected_source",
             dimension: "tre",
             label: `Revenue entry: ${month} — $${amount.toLocaleString()} AUD`,

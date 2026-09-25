@@ -583,6 +583,47 @@ describe("S17-A shared startup record — owner email is the data key", () => {
 // user.email) keeps the pre-S17-A split-row behaviour: a viewer on a shared
 // project can only ever touch a row keyed on their OWN email.
 
+describe("G34 DC06 — a null project never mints a per-email svi_accounts twin", () => {
+  beforeEach(() => getSupabaseAdminMock.mockReset());
+
+  it("prefers the email's own project_id IS NULL row when it exists", async () => {
+    const db = seed();
+    getSupabaseAdminMock.mockReturnValue(db.client);
+    expect(await findOrCreateSVIAccount("owner@acme.io", null)).toBe("acc-owner-legacy");
+    expect(db.calls.some((c) => c.table === "svi_accounts" && c.op === "insert")).toBe(false);
+  });
+
+  it("reuses the email's existing (project-scoped) account — oldest first — instead of inserting a null-project row", async () => {
+    const db = makeMemoryDb({
+      svi_accounts: [
+        { id: "acc-b", email: "solo@x.io", project_id: "p-b", created_at: "2026-03-01" },
+        { id: "acc-a", email: "solo@x.io", project_id: "p-a", created_at: "2026-01-01" },
+        { id: "acc-other", email: "other@x.io", project_id: null, created_at: "2025-01-01" },
+      ],
+    });
+    getSupabaseAdminMock.mockReturnValue(db.client);
+    expect(await findOrCreateSVIAccount("solo@x.io", null)).toBe("acc-a");
+    expect(db.calls.some((c) => c.table === "svi_accounts" && c.op === "insert")).toBe(false);
+    expect(db.tables.svi_accounts).toHaveLength(3);
+  });
+
+  it("still creates the first account for an email that has none", async () => {
+    const db = makeMemoryDb({ svi_accounts: [{ id: "acc-other", email: "other@x.io", project_id: null }] });
+    getSupabaseAdminMock.mockReturnValue(db.client);
+    const id = await findOrCreateSVIAccount("new@x.io", null);
+    expect(id).not.toBe("acc-other");
+    expect(db.tables.svi_accounts.find((r) => r.id === id)).toMatchObject({ email: "new@x.io", project_id: null });
+  });
+
+  it("a KNOWN project still gets its own (email, project) row — the reuse is null-project only", async () => {
+    const db = makeMemoryDb({ svi_accounts: [{ id: "acc-a", email: "solo@x.io", project_id: "p-a", created_at: "2026-01-01" }], projects: [] });
+    getSupabaseAdminMock.mockReturnValue(db.client);
+    const id = await findOrCreateSVIAccount("solo@x.io", "p-b");
+    expect(id).not.toBe("acc-a");
+    expect(db.tables.svi_accounts.find((r) => r.id === id)).toMatchObject({ email: "solo@x.io", project_id: "p-b" });
+  });
+});
+
 describe("S17-A review P1-1 — readers use the email they are given, never the owner's", () => {
   beforeEach(() => {
     getSupabaseAdminMock.mockReset();
