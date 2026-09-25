@@ -110,9 +110,18 @@ After every deploy: review, qa:live partial, fix. Tracked in SOT §12.14.
 - **AF15:** Evaluation uploads name each refused file. The evidence wizard reads `message`/`reason`.
 - 1128 related tests pass.
 
-**Remaining**
-- **AF13 full fix:** the workspace report should follow the project itself. This needs G34 DC01 (`analyses.project_id`).
-- **ER2:** the valuation in the draft waits for the V04b valuation producer. It is not shown via SVI→money (H10).
+**Final batch: live.** `973d5d808` runs on origin 4150 and is marked good.
+- **Codex's investor-screening UI is live** on web, PDF, DOCX and e-mail, at the founder's request.
+  - The only failing test was a bug in the test helper: DOCX `&apos;` was not decoded. It was fixed in the test.
+  - The full suite passed with this tree: 2125 files.
+- **G34 DC01 (AF13 full fix):**
+  - Migration 0462 is applied live: `analyses.project_id` is a nullable FK, with a partial index.
+  - A signed-in run is linked to the active project only when two conditions hold:
+    - the normalised company name matches the project name;
+    - the user is the owner, an admin or an editor.
+  - A run is never linked by guesswork, and no project is ever created.
+  - The workspace "newer analysis" link never shows a run from another project.
+- **Remaining:** ER2 (a valuation figure in the draft) waits for the G32 V04b trusted valuation producer. It is deliberately not shown from SVI→money (H10).
 
 **Deploy method used for every wave**
 1. Back up the 18 uncommitted Codex files to the scratchpad.
