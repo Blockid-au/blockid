@@ -176,7 +176,9 @@ export async function auditText(
       model,
     );
 
-    const revised = reviserResult.output.trim();
+    // G35: the reviser echoes the "## DRAFT" heading of its input turn — the
+    // 2026-09-23 live thesis was published starting "## DRAFT". Strip it.
+    const revised = reviserResult.output.trim().replace(/^#{1,4}\s*(?:corrected\s+|revised\s+)?draft\s*:?\s*(?:\n+|$)/i, "").trim();
     return {
       hadIssues: true,
       findings,
