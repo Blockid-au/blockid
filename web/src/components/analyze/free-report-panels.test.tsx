@@ -140,6 +140,39 @@ describe("FreeReportPayPanel — the quote before the pay", () => {
     expect(idea).toContain("mode=register");
     expect(idea).toContain(encodeURIComponent("/workspace/reports/business"));
   });
+
+  // 2026-09-25 — a signed-in founder past the free allowance runs THIS input
+  // with credits instead of being sent to the workspace (old) report.
+  it("signed-in with enough credits → a pay-with-credits button showing cost and balance, not the workspace link", () => {
+    const credits = { feature: "trust_report", cost: 3, balance: 40, canAfford: true };
+    const out = html(<FreeReportPayPanel {...base} authenticated guestSellable={false} credits={credits} onPayWithCredits={() => {}} />);
+    expect(out).toContain('data-testid="analyze-free-report-credits-cta"');
+    expect(out).toContain("Run this analysis — 3 credits");
+    expect(out).toContain("your balance: 40");
+    expect(out).not.toContain('data-testid="analyze-free-report-pay-cta"');
+  });
+
+  it("signed-in with a short balance → says so and keeps the workspace link", () => {
+    const credits = { feature: "trust_report", cost: 3, balance: 1, canAfford: false };
+    const out = html(<FreeReportPayPanel {...base} authenticated guestSellable={false} credits={credits} />);
+    expect(out).toContain('data-can-afford="0"');
+    expect(out).toContain("your balance is 1");
+    expect(out).not.toContain("analyze-free-report-credits-cta");
+    expect(out).toContain('href="/workspace/reports/business"');
+  });
+
+  it("a refused charge is announced and nothing was charged", () => {
+    const credits = { feature: "trust_report", cost: 3, balance: 1, canAfford: false };
+    const out = html(<FreeReportPayPanel {...base} authenticated guestSellable={false} credits={credits} creditsError />);
+    expect(out).toContain('role="alert"');
+    expect(out).toContain("Nothing was charged");
+  });
+
+  it("a guest never sees credits even if a quote leaks through", () => {
+    const credits = { feature: "trust_report", cost: 3, balance: 40, canAfford: true };
+    const out = html(<FreeReportPayPanel {...base} authenticated={false} guestSellable={false} credits={credits} onPayWithCredits={() => {}} />);
+    expect(out).not.toContain("credits");
+  });
 });
 
 describe("guestInputTypeForSubmission — the third run has no classified intake", () => {

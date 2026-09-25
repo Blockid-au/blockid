@@ -182,6 +182,20 @@ describe("signed-in — the same two-free rule on the account address", () => {
     expect(r).toMatchObject({ allow: true, path: "entitled", grant: null });
     expect(d.calls.record).toEqual([]);
   });
+
+  it("an admin (staff QA) never counts against or hits the allowance — 2026-09-25 live bug", async () => {
+    const d = deps({ remaining: async () => ({ used: 2 }) });
+    const r = await runFreeReportGate({ ...guest, user: { ...user, role: "admin" }, bodyEmail: undefined }, d);
+    expect(r).toMatchObject({ allow: true, path: "entitled", grant: null });
+    expect(d.calls.remaining).toEqual([]);
+    expect(d.calls.record).toEqual([]);
+  });
+
+  it("a plain user role is still counted", async () => {
+    const d = deps({ remaining: async () => ({ used: 2 }) });
+    const r = await runFreeReportGate({ ...guest, user: { ...user, role: "user" }, bodyEmail: undefined }, d);
+    expect(r).toEqual({ allow: false, status: 200, reason: "free_allowance_used", used: 2 });
+  });
 });
 
 describe("fail open — a database wobble never walls a founder", () => {

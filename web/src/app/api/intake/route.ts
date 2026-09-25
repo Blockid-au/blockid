@@ -70,6 +70,7 @@ import { parseMultipart } from "@/lib/http/multipart";
 import { clientIpFromHeaders } from "@/lib/iphash";
 import { maskSummaryEmail } from "@/lib/analyses/free-summary";
 import { attachAnalysis, releaseGrant } from "@/lib/reports/free-grants";
+import { canAfford, grantCredits, spendCredits } from "@/lib/credits";
 import {
   FREE_REPORT_ALLOWANCE_USED,
   FREE_REPORT_HONEYPOT_FIELD,
@@ -88,6 +89,23 @@ import {
 // out of this route). analyze-root.tsx mirrors it as FILE_MAX_MB.
 const DECK_MAX_BYTES = 25 * 1024 * 1024;
 
+/**
+ * 2026-09-25 — a signed-in founder past the two free reports pays for THIS
+ * run with credits, from the same page, after seeing the cost. Before this
+ * the only way out was a link to the workspace report page, which dropped
+ * the uploaded deck and showed the founder's previous report instead.
+ * Same feature key (and so the same price) as the workspace Trusted
+ * Business Report: FEATURE_COSTS.trust_report, pinned to the A$ SKU.
+ */
+const INTAKE_CREDIT_FEATURE = "trust_report";
+
+interface CreditQuote {
+  feature: string;
+  cost: number;
+  balance: number;
+  canAfford: boolean;
+}
+
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
@@ -100,6 +118,8 @@ interface Body {
   email?: string;
   /** G25-C honeypot (FREE_REPORT_HONEYPOT_FIELD) — a human never fills it. */
   company_website?: string;
+  /** "credits" — a signed-in caller past the free allowance confirmed paying for this run with credits. */
+  payWith?: string;
   file?: {
     filename: string;
     base64: string;
@@ -168,6 +188,7 @@ async function resolveCaller(): Promise<{
   userId: string | null;
   userEmail: string | null;
   userPlan: string | null;
+  userRole: "user" | "admin" | null;
 }> {
   let anonKey: string | null = null;
   try {
@@ -178,19 +199,24 @@ async function resolveCaller(): Promise<{
   let userId: string | null = null;
   let userEmail: string | null = null;
   let userPlan: string | null = null;
+  let userRole: "user" | "admin" | null = null;
   try {
     const user = await getCurrentUser();
     userId = user?.id ?? null;
     userEmail = user?.email ?? null; // the qa-live-* flag + the account's free allowance (G25-C)
     userPlan = user?.plan ?? null;
+    userRole = user?.role ?? null;
   } catch {
     userId = null; // anonymous is the normal case, not an error
   }
-  return { anonKey, userId, userEmail, userPlan };
+  return { anonKey, userId, userEmail, userPlan, userRole };
 }
 
 /** The body the client branches on when the free-allowance gate declines. */
-function gatedResponse(result: Extract<FreeReportGateResult, { allow: false }>) {
+function gatedResponse(
+  result: Extract<FreeReportGateResult, { allow: false }>,
+  credits: CreditQuote | null = null,
+) {
   if (result.reason === FREE_REPORT_ALLOWANCE_USED) {
     // The third run: not an error — the quote. The client shows the price
     // and hands over to the existing A$3 quote-then-pay path.
@@ -201,6 +227,9 @@ function gatedResponse(result: Extract<FreeReportGateResult, { allow: false }>) 
       price: freeReportPayQuote(),
       next: "pay",
       payHref: FREE_REPORT_PAY_HREF,
+      // Signed-in only: what running THIS input with credits costs, and
+      // whether the balance covers it. Nothing has been charged.
+      ...(credits ? { credits } : {}),
       analysisId: null,
     });
   }
@@ -261,6 +290,7 @@ async function POST_handler(request: Request) {
         tier: parsed.fields.tier ?? undefined,
         email: parsed.fields.email ?? undefined,
         [FREE_REPORT_HONEYPOT_FIELD]: parsed.fields[FREE_REPORT_HONEYPOT_FIELD] ?? undefined,
+        payWith: parsed.fields.payWith ?? undefined,
       };
       const formFile = parsed.files.find((f) => f.name === "file") ?? parsed.files[0];
       if (formFile) {
@@ -303,7 +333,7 @@ async function POST_handler(request: Request) {
 
   // ── The gate. Nothing above this line costs money; nothing below it runs
   // until the gate says so. ────────────────────────────────────────────────
-  const { anonKey, userId, userEmail, userPlan } = await resolveCaller();
+  const { anonKey, userId, userEmail, userPlan, userRole } = await resolveCaller();
   const authenticated = Boolean(userId);
   // G16-A `first` flag: an anonymous run is first when this cookie has no
   // prior saved runs; skipped for a signed-in or un-cookied caller.
@@ -333,13 +363,44 @@ async function POST_handler(request: Request) {
     }
   }
 
-  const gate = await runFreeReportGate({
-    user: userId && userEmail ? { id: userId, email: userEmail, plan: userPlan } : null,
+  const gateResult = await runFreeReportGate({
+    user: userId && userEmail ? { id: userId, email: userEmail, plan: userPlan, role: userRole } : null,
     bodyEmail: body.email,
     honeypot: body[FREE_REPORT_HONEYPOT_FIELD],
     clientIp: clientIpFromHeaders(request.headers),
   });
-  if (!gate.allow) return gatedResponse(gate);
+  // Credits the caller paid for this run (refunded if the analysis fails).
+  let creditCharge: { cost: number } | null = null;
+  let gate: Extract<FreeReportGateResult, { allow: true }>;
+  if (gateResult.allow) {
+    gate = gateResult;
+  } else if (gateResult.reason === FREE_REPORT_ALLOWANCE_USED && userId && userEmail) {
+    // Signed in, free allowance spent: quote the credit price for THIS
+    // input; charge only when the client comes back with payWith=credits
+    // (the founder saw the cost and pressed the button).
+    const afford = await canAfford(userId, INTAKE_CREDIT_FEATURE).catch(() => null);
+    const quote: CreditQuote | null = afford && afford.reason !== "unknown_feature"
+      ? { feature: INTAKE_CREDIT_FEATURE, cost: afford.cost, balance: afford.balance, canAfford: afford.allowed }
+      : null;
+    if (body.payWith !== "credits") return gatedResponse(gateResult, quote);
+    if (!quote || !quote.canAfford) {
+      return NextResponse.json(
+        { ok: false, reason: "insufficient_credits", credits: quote, analysisId: null },
+        { status: 402 },
+      );
+    }
+    const spent = await spendCredits(userId, INTAKE_CREDIT_FEATURE, { channel: "analyze_intake" }).catch(() => null);
+    if (!spent?.ok) {
+      return NextResponse.json(
+        { ok: false, reason: "insufficient_credits", credits: { ...quote, balance: spent?.balance ?? quote.balance, canAfford: false }, analysisId: null },
+        { status: 402 },
+      );
+    }
+    creditCharge = { cost: quote.cost };
+    gate = { allow: true, path: "entitled", email: userEmail, source: "account", grant: null, queued: false, remaining: 0 };
+  } else {
+    return gatedResponse(gateResult);
+  }
   // A guest's address rides on the row so the job e-mails the PDF and the
   // page is never locked; a signed-in run resolves the account address at
   // delivery (nothing to stamp).
@@ -461,13 +522,27 @@ async function POST_handler(request: Request) {
             emailTo: maskSummaryEmail(gate.email),
           }
         : null;
-    return NextResponse.json({ ok: true, analysisId, freeReport, ...result });
+    return NextResponse.json({
+      ok: true,
+      analysisId,
+      freeReport,
+      ...(creditCharge ? { creditsCharged: creditCharge.cost } : {}),
+      ...result,
+    });
   } catch (err) {
     if (gate.grant) {
       try {
         await releaseGrant(gate.grant.id);
       } catch {
         /* the reservation stays queued with no analysis; the runbook says how to clear it */
+      }
+    }
+    // Nothing was analysed — give the credits back.
+    if (creditCharge && userId) {
+      try {
+        await grantCredits(userId, creditCharge.cost, "refund_intake_failed", { channel: "analyze_intake", feature: INTAKE_CREDIT_FEATURE });
+      } catch (refundErr) {
+        console.error("[intake] credit refund failed —", refundErr instanceof Error ? refundErr.message : String(refundErr));
       }
     }
     const msg = err instanceof Error ? err.message : String(err);

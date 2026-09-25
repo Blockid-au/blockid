@@ -27,7 +27,7 @@ import { AnalyzeCostModal, type CostRow } from "./analyze-cost-modal";
 import { SavedAnalysisPanel } from "./saved-analysis-panel";
 import { FreeSummaryPanel } from "./free-summary-panel";
 import { FreeReportEmailPanel, type FreeReportEmailError } from "./free-report-email-panel";
-import { FreeReportPayPanel, type FreeReportPayQuote } from "./free-report-pay-panel";
+import { FreeReportPayPanel, type FreeReportCreditQuote, type FreeReportPayQuote } from "./free-report-pay-panel";
 import { ArtefactGatePanel } from "./artefact-gate-panel";
 import {
   GuestPaidCheckout,
@@ -223,6 +223,7 @@ async function postIntake(
   sub: SmartIntakeSubmission,
   tier: "free" | "paid" = "free",
   guest?: GuestIdentity | null,
+  payWith?: "credits",
 ): Promise<Response> {
   // `tier` rides along so the server-side gate can let a guest heading for
   // the A$3 guest checkout straight through. It only ever widens the gate —
@@ -233,6 +234,7 @@ async function postIntake(
     if (sub.text) form.set("text", sub.text);
     if (sub.url) form.set("url", sub.url);
     form.set("tier", tier);
+    if (payWith) form.set("payWith", payWith);
     if (guest) {
       form.set("email", guest.email);
       form.set(FREE_REPORT_HONEYPOT_FIELD, guest.honeypot);
@@ -240,6 +242,7 @@ async function postIntake(
     return fetch("/api/intake", { method: "POST", body: form });
   }
   const body: Record<string, string> = { tier };
+  if (payWith) body.payWith = payWith;
   if (sub.text) body.text = sub.text;
   if (sub.url) body.url = sub.url;
   if (guest) {
@@ -332,7 +335,14 @@ export function AnalyzeRoot({
   // facts (which of the two, where it goes, whether the cap queued it).
   const [reportEmail, setReportEmail] = React.useState<string | null>(null);
   const [emailError, setEmailError] = React.useState<FreeReportEmailError>(null);
-  const [payInfo, setPayInfo] = React.useState<{ quote: FreeReportPayQuote | null; payHref: string } | null>(null);
+  const [payInfo, setPayInfo] = React.useState<{
+    quote: FreeReportPayQuote | null;
+    payHref: string;
+    /** Signed-in only: the credit price of running THIS input, and whether the balance covers it. */
+    credits: FreeReportCreditQuote | null;
+    /** Server refused the credit charge (balance moved) — shown on the panel. */
+    creditsError?: boolean;
+  } | null>(null);
   const [freeReportInfo, setFreeReportInfo] = React.useState<{
     sequenceNo: number | null;
     remaining: number;
@@ -427,7 +437,7 @@ export function AnalyzeRoot({
    */
   async function handleSubmit(
     sub: SmartIntakeSubmission,
-    opts?: { autoRun?: boolean; guest?: GuestIdentity },
+    opts?: { autoRun?: boolean; guest?: GuestIdentity; payWith?: "credits" },
   ) {
     setSubmission(sub);
     setErrorMsg(null);
@@ -447,7 +457,22 @@ export function AnalyzeRoot({
     }
     setIntakeLoading(true);
     try {
-      const res = await postIntake(sub, tier, guest);
+      const res = await postIntake(sub, tier, guest, opts?.payWith);
+      if (res.status === 402) {
+        // The credit charge was refused (balance changed since the quote).
+        // Stay on the quote with the fresh numbers — nothing ran, nothing
+        // was charged, and the uploaded file is still in hand.
+        const body = (await res.json().catch(() => null)) as { credits?: FreeReportCreditQuote | null } | null;
+        setPayInfo((prev) => ({
+          quote: prev?.quote ?? null,
+          payHref: prev?.payHref ?? "/workspace/reports/business",
+          credits: body?.credits ?? prev?.credits ?? null,
+          creditsError: true,
+        }));
+        setPhase("pay");
+        setIntakeLoading(false);
+        return;
+      }
       if (res.status === 400 && isGuest) {
         // Only an address verdict (required / invalid / disposable) goes back
         // to the ask; any other 400 (a malformed body) is the generic error.
@@ -501,6 +526,7 @@ export function AnalyzeRoot({
         reason?: string;
         used?: number;
         price?: FreeReportPayQuote;
+        credits?: FreeReportCreditQuote | null;
         payHref?: string;
         freeReport?: { sequenceNo: number | null; remaining: number; queued: boolean; emailTo: string | null } | null;
         analysisId?: string | null;
@@ -511,7 +537,11 @@ export function AnalyzeRoot({
       // and must never be rendered as one: the price is shown, then the
       // existing A$3 path takes over.
       if (data.ok === false && data.reason === FREE_REPORT_ALLOWANCE_USED) {
-        setPayInfo({ quote: data.price ?? null, payHref: data.payHref ?? "/workspace/reports/business" });
+        setPayInfo({
+          quote: data.price ?? null,
+          payHref: data.payHref ?? "/workspace/reports/business",
+          credits: data.credits ?? null,
+        });
         setPhase("pay");
         setIntakeLoading(false);
         return;
@@ -692,6 +722,18 @@ export function AnalyzeRoot({
           copy={freeReportCopy.pay}
           quote={payInfo?.quote ?? null}
           payHref={payInfo?.payHref ?? "/workspace/reports/business"}
+          credits={authenticated === true ? (payInfo?.credits ?? null) : null}
+          creditsError={payInfo?.creditsError === true}
+          busy={intakeLoading}
+          onPayWithCredits={
+            authenticated === true && submission && payInfo?.credits?.canAfford
+              ? () => {
+                  // The price was on screen and the founder pressed pay:
+                  // run straight away, no second confirmation.
+                  void handleSubmit(submission, { autoRun: true, payWith: "credits" });
+                }
+              : undefined
+          }
           authenticated={authenticated === true}
           guestSellable={Boolean(sellable)}
           onGuestCheckout={sellable ? () => setGuestCheckoutOpen(true) : undefined}

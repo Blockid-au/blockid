@@ -93,6 +93,18 @@ vi.mock("@/lib/reports/free-grants", () => ({
   releaseGrant: (g: string) => releaseMock(g),
 }));
 const freeSubmittedMock = vi.fn<(i: Record<string, unknown>) => void>();
+const canAffordMock = vi.fn<(u: string, f: string) => Promise<{ allowed: boolean; balance: number; cost: number; reason?: string }>>();
+const spendCreditsMock = vi.fn<(u: string, f: string, m?: Record<string, unknown>) => Promise<{ ok: boolean; balance: number }>>();
+const grantCreditsMock = vi.fn<(u: string, a: number, r: string, m?: Record<string, unknown>) => Promise<{ ok: boolean; balance: number }>>();
+vi.mock("@/lib/credits", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/credits")>("@/lib/credits");
+  return {
+    ...actual,
+    canAfford: (u: string, f: string) => canAffordMock(u, f),
+    spendCredits: (u: string, f: string, m?: Record<string, unknown>) => spendCreditsMock(u, f, m),
+    grantCredits: (u: string, a: number, r: string, m?: Record<string, unknown>) => grantCreditsMock(u, a, r, m),
+  };
+});
 
 import { POST, dynamic, runtime } from "./route";
 
@@ -141,6 +153,9 @@ beforeEach(() => {
   releaseMock.mockReset().mockResolvedValue(undefined);
   gateState.result = { allow: true, path: "free", email: "founder@example.com", source: "guest", grant: GRANT, queued: false, remaining: 1 };
   gateMock.mockReset().mockImplementation(async () => gateState.result);
+  canAffordMock.mockReset().mockResolvedValue({ allowed: true, balance: 40, cost: 3 });
+  spendCreditsMock.mockReset().mockResolvedValue({ ok: true, balance: 37 });
+  grantCreditsMock.mockReset().mockResolvedValue({ ok: true, balance: 40 });
   vi.spyOn(console, "error").mockImplementation(() => {});
   vi.spyOn(console, "warn").mockImplementation(() => {});
 });
@@ -571,5 +586,107 @@ describe("POST /api/intake — anonymous run ceiling", () => {
     const res = await POST(req({ text: "an idea" }, { ip: "9.9.9.9" }));
     expect(res.status).toBe(200);
     expect(checkAnonRunLimitMock).not.toHaveBeenCalled();
+  });
+});
+
+// ── 2026-09-25: signed-in founder past the free allowance pays with credits ──
+//
+// Live bug: a signed-in founder who uploaded a deck after the two free reports
+// was answered with the A$3 quote whose only CTA linked to the workspace
+// report page — the upload was dropped and the OLD report was shown. The
+// quote now carries the credit price of THIS input, and the same request
+// re-sent with payWith=credits charges and runs it.
+
+describe("POST /api/intake — credits after the free allowance", () => {
+  const SIGNED_IN = { id: "u1", email: "founder@example.com", plan: "growth", role: "user" } as never;
+
+  it("signed-in third run → the quote includes the credit price and balance; nothing is charged or run", async () => {
+    getCurrentUserMock.mockResolvedValue(SIGNED_IN);
+    gateState.result = { allow: false, status: 200, reason: "free_allowance_used", used: 2 };
+    const res = await POST(req({ text: "an idea" }));
+    expect(res.status).toBe(200);
+    expect(await json(res)).toMatchObject({
+      ok: false,
+      reason: "free_allowance_used",
+      credits: { feature: "trust_report", cost: 3, balance: 40, canAfford: true },
+    });
+    expect(canAffordMock).toHaveBeenCalledWith("u1", "trust_report");
+    expect(spendCreditsMock).not.toHaveBeenCalled();
+    expect(analyzeInputMock).not.toHaveBeenCalled();
+  });
+
+  it("payWith=credits → charges trust_report once, runs, saves, starts the job, no free grant", async () => {
+    getCurrentUserMock.mockResolvedValue(SIGNED_IN);
+    gateState.result = { allow: false, status: 200, reason: "free_allowance_used", used: 2 };
+    const res = await POST(req({ text: "an idea", payWith: "credits" }));
+    expect(res.status).toBe(200);
+    const body = await json(res);
+    expect(body).toMatchObject({ ok: true, analysisId: "row-1", freeReport: null, creditsCharged: 3 });
+    expect(spendCreditsMock).toHaveBeenCalledTimes(1);
+    expect(spendCreditsMock.mock.calls[0].slice(0, 2)).toEqual(["u1", "trust_report"]);
+    expect(analyzeInputMock).toHaveBeenCalledTimes(1);
+    expect(startJobMock).toHaveBeenCalledWith("row-1", { userId: "u1" });
+    expect(attachMock).not.toHaveBeenCalled();
+    expect(grantCreditsMock).not.toHaveBeenCalled();
+  });
+
+  it("payWith=credits with a short balance → 402 insufficient_credits, nothing charged or run", async () => {
+    getCurrentUserMock.mockResolvedValue(SIGNED_IN);
+    gateState.result = { allow: false, status: 200, reason: "free_allowance_used", used: 2 };
+    canAffordMock.mockResolvedValue({ allowed: false, balance: 1, cost: 3, reason: "insufficient" });
+    const res = await POST(req({ text: "an idea", payWith: "credits" }));
+    expect(res.status).toBe(402);
+    expect(await json(res)).toMatchObject({ ok: false, reason: "insufficient_credits", credits: { cost: 3, balance: 1, canAfford: false } });
+    expect(spendCreditsMock).not.toHaveBeenCalled();
+    expect(analyzeInputMock).not.toHaveBeenCalled();
+  });
+
+  it("a debit that fails at spend time (race) → 402, nothing runs", async () => {
+    getCurrentUserMock.mockResolvedValue(SIGNED_IN);
+    gateState.result = { allow: false, status: 200, reason: "free_allowance_used", used: 2 };
+    spendCreditsMock.mockResolvedValue({ ok: false, balance: 2 });
+    const res = await POST(req({ text: "an idea", payWith: "credits" }));
+    expect(res.status).toBe(402);
+    expect(analyzeInputMock).not.toHaveBeenCalled();
+  });
+
+  it("the analysis throws after the charge → the credits are refunded", async () => {
+    getCurrentUserMock.mockResolvedValue(SIGNED_IN);
+    gateState.result = { allow: false, status: 200, reason: "free_allowance_used", used: 2 };
+    analyzeInputMock.mockRejectedValue(new Error("boom"));
+    const res = await POST(req({ text: "an idea", payWith: "credits" }));
+    expect(res.status).toBe(500);
+    expect(grantCreditsMock).toHaveBeenCalledWith("u1", 3, "refund_intake_failed", expect.objectContaining({ feature: "trust_report" }));
+  });
+
+  it("a guest can never pay with credits: payWith is ignored and the plain quote is returned", async () => {
+    gateState.result = { allow: false, status: 200, reason: "free_allowance_used", used: 2 };
+    const res = await POST(req({ text: "an idea", payWith: "credits" }));
+    expect(res.status).toBe(200);
+    const body = await json(res);
+    expect(body).toMatchObject({ ok: false, reason: "free_allowance_used" });
+    expect(body).not.toHaveProperty("credits");
+    expect(canAffordMock).not.toHaveBeenCalled();
+    expect(spendCreditsMock).not.toHaveBeenCalled();
+    expect(analyzeInputMock).not.toHaveBeenCalled();
+  });
+
+  it("multipart uploads carry payWith too (the deck path the founder actually used)", async () => {
+    getCurrentUserMock.mockResolvedValue(SIGNED_IN);
+    gateState.result = { allow: false, status: 200, reason: "free_allowance_used", used: 2 };
+    const form = new FormData();
+    form.set("file", new File([Buffer.from("%PDF-1.4 deck")], "deck.pdf", { type: "application/pdf" }));
+    form.set("tier", "free");
+    form.set("payWith", "credits");
+    const res = await POST(new Request("http://x/api/intake", { method: "POST", body: form }));
+    expect(res.status).toBe(200);
+    expect(spendCreditsMock).toHaveBeenCalledTimes(1);
+    expect(analyzeInputMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("the gate is told the caller's role (admin runs are staff QA)", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "a1", email: "admin@blockid.au", plan: "growth", role: "admin" } as never);
+    await POST(req({ text: "an idea" }));
+    expect(gateMock.mock.calls[0][0]).toMatchObject({ user: { id: "a1", role: "admin" } });
   });
 });

@@ -56,7 +56,7 @@ export const FREE_REPORT_PAY_HREF = "/workspace/reports/business";
 
 export interface FreeReportGateContext {
   /** Signed-in user, or null. */
-  user: { id: string; email: string; plan: string | null } | null;
+  user: { id: string; email: string; plan: string | null; role?: "user" | "admin" | null } | null;
   /** Raw `email` from the body (guest path). */
   bodyEmail: unknown;
   /** Raw honeypot value from the body. */
@@ -162,6 +162,13 @@ export async function runFreeReportGate(
   // run, a tier=paid submission is counted like any other — its third run
   // is the quote, and the A$3 guest checkout is a separate purchase that
   // never depends on this run.
+
+  // Staff runs (role admin) are platform QA, not a founder's free report —
+  // they never consume or hit the allowance (2026-09-25: an admin upload was
+  // answered with the A$3 quote and bounced to an older workspace report).
+  if (ctx.user?.role === "admin") {
+    return { allow: true, path: "entitled", email, source, grant: null, queued: false, remaining: FREE_REPORTS_PER_EMAIL };
+  }
 
   // A paid report entitlement is never counted against the allowance.
   if (ctx.user) {
