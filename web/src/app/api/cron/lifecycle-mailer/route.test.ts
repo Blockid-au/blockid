@@ -56,7 +56,10 @@ describe("/api/cron/lifecycle-mailer — retired (G34-BT2 EM01)", () => {
     for (const job of ["lifecycle-mailer", "svi-notify", "nurture", "nurture-emails", "onboarding-sequence"]) {
       expect(active.filter((l) => new RegExp(`\\$RUN ${job}(\\s|$)`).test(l))).toEqual([]);
     }
-    // The one engine stays scheduled.
-    expect(active.some((l) => /\$RUN email-drip(\s|$)/.test(l))).toBe(true);
+    // The one engine stays scheduled — or is explicitly founder-paused
+    // (25/09/2026 "tạm không gửi email"), never silently dropped.
+    const scheduled = active.some((l) => /\$RUN email-drip(\s|$)/.test(l));
+    const paused = cron.split("\n").some((l) => /^# PAUSED-EMAIL .*\$RUN email-drip(\s|$)/.test(l.trim()));
+    expect(scheduled || paused).toBe(true);
   });
 });
