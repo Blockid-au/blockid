@@ -102,24 +102,25 @@ describe("<TbrReportV2> v3 structure (G27)", () => {
     }
   });
 
-  it("dashboard: the four tiles in fixed order (SVI · evidence · verdict · valuation), the dim_bars chart (no radar) with legend + table twin, the footer line, the general-advice sentence", () => {
+  it("dashboard (G34 BT3 v4): the five tiles in fixed order (valuation · SVI · Investor Score · evidence · verification), the meeting label, the 8-row scorecard table instead of a chart (no radar), the footer line, the general-advice sentence", () => {
     const dash = between(html, TBR_V2_SECTION_IDS.dashboard, TBR_V2_SECTION_IDS.investmentView);
-    expect([...dash.matchAll(/data-tbr-tile="([a-z]+)"/g)].map((m) => m[1])).toEqual(["svi", "evidence", "verdict", "valuation"]);
+    expect([...dash.matchAll(/data-tbr-tile="([a-z]+)"/g)].map((m) => m[1])).toEqual(["valuation", "svi", "investor", "evidence", "verification"]);
     expect(dash).toContain(">74<"); // SVI index
     expect(dash).toMatch(/>\d+ %</); // evidence confidence
-    expect(dash).toMatch(/data-tbr-tile="verdict"[\s\S]*?>[ABCD]</);
+    expect(dash).toMatch(/data-tbr-meeting-label="[ABCD]"/);
     expect(dash).toContain("A$6M – A$9.8M");
     expect(dash).toContain("5 of 7 methods");
-    expect(dash).toContain('data-visual-kind="dim_bars"');
+    expect((dash.match(/data-tbr-scorecard-row="/g) ?? []).length).toBe(8);
+    expect(dash).not.toContain('data-visual-kind="dim_bars"');
     expect(dash).not.toContain('data-visual-kind="radar"');
-    expect(dash).toContain("Table view");
     expect(dash).toContain("Top strength");
     expect(dash).toContain("Top gap");
     expect(dash).toMatch(/Unverified material claims: \d+/);
     expect(dash).toContain("Last updated");
     expect(dash).toContain("General information only, not financial, legal or investment advice.");
-    // The demo has no published cohort → the caption says so and no band is drawn.
-    expect(dash).toContain("No published cohort for a band");
+    // G34 BT3: the scorecard replaced the dim_bars chart; lead + emphasis band, never a weight.
+    expect(dash).toContain("Lead · CRO");
+    expect(dash).toMatch(/data-tbr-emphasis="(VeryHigh|High|Medium|Low)"/);
     expect(html).toContain('data-tbr-band-chip="');
   });
 
@@ -358,7 +359,7 @@ describe("<TbrReportV2> locales", () => {
     const EN_CHROME = [">Dashboard<", ">Investment view<", ">Key points<", ">Risk matrix<", "Why back", "What weighs against", "Investor takeaway", "How this score was built", "Evidence used", "What to improve", ">Strong<", ">Developing<", ">Pending<", "Auditor:", "Top strength", "Mitigation", "not cumulative", "Table view", "Cover — Where / Worth / Next", "Executive Summary", "90-Day Action Plan", "Phase Gates —"];
     for (const en of EN_CHROME) expect(html, en).not.toContain(en);
     const vi = TBR_V3_STRINGS.vi;
-    for (const s of [vi.sec.dashboard, vi.sec.investmentView, vi.sec.keyPoints, vi.sec.riskMatrix, vi.whyBack, vi.whatWeighsAgainst, vi.takeawayTitle, vi.howBuilt, vi.evidenceUsed, vi.whatToImprove, vi.subline, vi.thMitigation, vi.tableView, TBR_STRINGS.vi.v2.audit.auditor, TBR_STRINGS.vi.v2.appendix.method, TBR_STRINGS.vi.v2.appendix.dataPrinciple]) {
+    for (const s of [vi.sec.dashboard, vi.sec.investmentView, vi.sec.keyPoints, vi.sec.riskMatrix, vi.whyBack, vi.whatWeighsAgainst, vi.takeawayTitle, vi.howBuilt, vi.evidenceUsed, vi.whatToImprove, vi.subline, vi.thMitigation, TBR_STRINGS.vi.v2.audit.auditor, TBR_STRINGS.vi.v2.appendix.method, TBR_STRINGS.vi.v2.appendix.dataPrinciple]) {
       expect(html, s).toContain(s.replace(/&/g, "&amp;"));
     }
     expect((html.match(/[ăâêôơưđạảấầẩẫậắằẳẵặẹẻẽếềểễệỉịọỏốồổỗộớờởỡợụủứừửữựỳỵỷỹ]/g) ?? []).length).toBeGreaterThan(300);
@@ -636,12 +637,11 @@ describe("<TbrReportV2> 375 px layout + markdown-lite (design check 2026-09-21)"
     expect(html).toContain("flex flex-wrap items-baseline gap-x-3 gap-y-1");
   });
 
-  it("the 375 px twin of the dimension chart is drawn at 300 units with 12 px labels (renders ≈ 1:1 in a 343 px card)", () => {
-    const compact = html.match(/<svg[^>]*viewBox="0 0 300 \d+"[^>]*>[\s\S]*?<\/svg>/);
-    expect(compact, "compact dim_bars svg").toBeTruthy();
-    const sizes = [...compact![0].matchAll(/font-size="([\d.]+)"/g)].map((m) => Number(m[1]));
-    expect(sizes.length).toBeGreaterThan(8);
-    expect(Math.min(...sizes)).toBeGreaterThanOrEqual(11);
+  it("G34 BT3: page 1 has no dimension chart; the 375 px scorecard keeps score + chevron and hides the emphasis / band / evidence / trend columns below sm / md / lg (no sideways scroll)", () => {
+    const dash = between(html, TBR_V2_SECTION_IDS.dashboard, TBR_V2_SECTION_IDS.investmentView);
+    expect(dash).not.toMatch(/<svg[^>]*viewBox="0 0 300 \d+"/);
+    const head = dash.slice(dash.indexOf("data-tbr-scorecard"), dash.indexOf("</thead>"));
+    expect((head.match(/hidden (sm|md|lg):table-cell/g) ?? []).length).toBe(4);
   });
 
   it("every <summary> and dimension-chip link carries a 44 px hit area (spec § 5 'footnotes 44 px' extended to the other inline targets)", () => {

@@ -186,7 +186,7 @@ const en: TbrV3Strings = {
     appendix: "Appendix — method, phase gates, ledger, evidence & disclaimers",
   },
   purpose: {
-    dashboard: "One page: index, evidence confidence, verdict band and valuation range, with the eight dimensions against the stage median band.",
+    dashboard: "One page: valuation, SVI index, Investor Score, evidence and verification, then key metrics, the eight-dimension scorecard and rule-derived red flags.",
     investmentView: "The recommendation first: the verdict band, the conditions attached, why to back, what weighs against, and where the company stands.",
     keyPoints: "Five lines a screener can paste into notes.",
     riskMatrix: "The risks that matter, with likelihood, impact and the mitigation each one has.",
@@ -335,7 +335,7 @@ const vi: TbrV3Strings = {
     appendix: "Phụ lục — phương pháp, cổng giai đoạn, sổ điểm, bằng chứng & miễn trừ",
   },
   purpose: {
-    dashboard: "Một trang: chỉ số, độ tin cậy bằng chứng, hạng kết luận và khoảng định giá, cùng tám chiều so với dải trung vị theo giai đoạn.",
+    dashboard: "Một trang: định giá, chỉ số SVI, điểm nhà đầu tư, bằng chứng và mức xác minh, cùng chỉ số chính, bảng điểm tám khía cạnh và cờ đỏ theo quy tắc.",
     investmentView: "Khuyến nghị đặt lên đầu: hạng kết luận, các điều kiện kèm theo, lý do ủng hộ, điều bất lợi và vị trí hiện tại của công ty.",
     keyPoints: "Năm dòng mà người sàng lọc có thể dán vào ghi chú.",
     riskMatrix: "Những rủi ro quan trọng, kèm khả năng xảy ra, mức tác động và biện pháp giảm thiểu.",

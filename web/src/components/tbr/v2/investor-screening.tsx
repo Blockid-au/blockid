@@ -10,8 +10,10 @@ const LEVEL_LABELS: Record<string, [string, string]> = {
   transaction_data: ["Transaction data", "Dữ liệu giao dịch"], third_party_verified: ["Third-party verified", "Bên thứ ba xác minh"],
 };
 
-export function TbrInvestorScreening({ report, locale = "en", lockCards, citations }: {
+export function TbrInvestorScreening({ report, locale = "en", lockCards, citations, brief = true }: {
   report: ReportV2; locale?: string; lockCards?: boolean; citations: CitationIndex;
+  /** G34 BT3: false when page 1 prints the why / stop / ask lists from `buildDashboardV4` instead. */
+  brief?: boolean;
 }) {
   const vi = locale === "vi", strings = investorScreeningStrings(locale);
   const view = buildInvestorScreening(report, locale, lockCards);
@@ -28,7 +30,7 @@ export function TbrInvestorScreening({ report, locale = "en", lockCards, citatio
     </div>
     <p className="max-w-prose text-sm leading-relaxed text-secondary">{vi ? "Sáu ưu tiên để bắt đầu thẩm định. Mở từng mục để đối chiếu tiêu chí, bằng chứng và vai trò phụ trách." : "Six priorities for the first diligence conversation. Expand a priority to inspect its criteria, evidence and recorded assessment roles."}</p>
     <div className="grid items-start gap-3 md:grid-cols-2 xl:grid-cols-3">
-      {view.signals.map((signal, i) => <details key={signal.key} className="group min-w-0 rounded-xl border border-line-subtle bg-surface" data-investor-signal={signal.key} data-state={signal.status} data-detail={signal.detailLocked ? "locked" : "open"}>
+      {view.signals.map((signal, i) => <details key={signal.key} id={`investor-signal-${signal.key}`} className="group min-w-0 rounded-xl border border-line-subtle bg-surface" data-investor-signal={signal.key} data-state={signal.status} data-detail={signal.detailLocked ? "locked" : "open"}>
         <summary className="flex min-h-11 cursor-pointer list-none items-start gap-3 rounded-xl p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action">
           <span className="mt-1 font-mono text-xs text-muted" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
           <span className="min-w-0 flex-1"><span className="block text-base font-semibold text-primary">{signal.label}</span><span className="mt-2 flex items-start gap-1.5 text-xs leading-relaxed text-secondary">{signal.status === "locked" ? <LockKeyhole className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" /> : <CircleHelp className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />}{signal.statusLabel}</span><span className="mt-3 block text-xs font-medium text-action">{vi ? "Xem thêm" : "Read more"}</span></span>
@@ -44,11 +46,11 @@ export function TbrInvestorScreening({ report, locale = "en", lockCards, citatio
         </div>
       </details>)}
     </div>
-    <div className="grid gap-3 lg:grid-cols-3" data-investor-brief>
+    {brief && <div className="grid gap-3 lg:grid-cols-3" data-investor-brief>
       {points(vi ? "Cần làm rõ trước" : "Clarify first", view.gaps, vi ? "Chưa có khoảng trống có dẫn chứng được ghi nhận; không có nghĩa là không có rủi ro." : "No cited gaps recorded; this does not establish an absence of risk.")}
       {points(vi ? "Điểm mạnh có dẫn chứng" : "Cited strengths", view.strengths, vi ? "Chưa đủ bằng chứng được liên kết để nêu bật điểm mạnh." : "Insufficient linked evidence to highlight supported strengths.")}
       {points(vi ? "Câu hỏi cho founder" : "Questions for the founder", view.questions, vi ? "Xem các tiêu chí trong báo cáo đầy đủ." : "Review criteria in the full report.")}
-    </div>
+    </div>}
     <p className="max-w-prose text-xs leading-relaxed text-muted">{view.scopeNote}</p>
   </div>;
 }

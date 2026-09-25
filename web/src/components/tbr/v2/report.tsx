@@ -24,6 +24,7 @@ import type { ReportV2 } from "@/lib/report-v2/schema";
 import { buildCitationIndex } from "@/lib/report-v2/citations";
 import { citationStrings } from "@/lib/report-v2/citation-strings";
 import { buildDashboardView } from "@/lib/report-v2/dashboard-view";
+import { buildDashboardV4 } from "@/lib/report-v2/dashboard-v4";
 import { ensureExecutiveStructured } from "@/lib/report-v2/executive-structure";
 import { investmentViewFor } from "@/lib/report-v2/investment-view";
 import { alignReportWithAssessmentCard } from "@/lib/svi/assessment-card";
@@ -118,6 +119,8 @@ export function TbrReportV2({ report: rawReport, locale = "en", upgradeHref, aft
   const lockCards = free && unlock?.mode === "buy";
   const forceFull = free && Boolean(unlock) && unlock?.mode !== "buy";
   const paid = !free || forceFull;
+  // G34 BT3: the page-1 projection (D24-b: free page 1 unlocked; lists gated like the screening).
+  const v4 = buildDashboardV4(report, aligned.card, view, { locale, lockCards: !paid, dash: dashboard });
   const railFor = (mode: TbrUnlockMode) => (
     <TbrUnlockRail mode={mode} chapterCount={report.dimensions.length} onUnlock={unlock?.onUnlock} orderId={unlock?.orderId} orderStatus={unlock?.orderStatus} generateHref={unlock?.generateHref} locale={locale} />
   );
@@ -129,7 +132,7 @@ export function TbrReportV2({ report: rawReport, locale = "en", upgradeHref, aft
   const citations = buildCitationIndex(report);
   return (
     <div className={cn("space-y-12", TBR_SURFACE_CLASS)} data-tbr-version={report.schemaVersion} data-tbr-layout="v3" data-tbr-tier={report.tier} data-tbr-source={report.source} data-tbr-unlock={free && unlock ? unlock.mode : undefined} data-tbr-band={view.band}>
-      <TbrDashboard report={report} view={dashboard} title={t.dashboard} locale={locale} lockCards={!paid} />
+      <TbrDashboard report={report} view={dashboard} v4={v4} title={t.dashboard} locale={locale} lockCards={!paid} citations={citations} />
       <TbrInvestmentView report={report} view={view} structured={structured} title={t.investmentView} locale={locale} citations={citations} />
       {afterExecutive}
       <TbrKeyPoints view={view} title={t.keyPoints} locale={locale} />
