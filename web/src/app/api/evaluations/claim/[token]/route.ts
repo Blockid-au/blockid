@@ -10,7 +10,8 @@
 // evaluator owning the project. Co-ownership is expressed by the evaluations
 // row (`founder_user_id`) which `canAccessProjectAsEvaluator` honours.
 //
-//   200 { ok, evaluation, already_claimed, project_name }
+//   200 { ok, evaluation, already_claimed, project_name, founder_project_id }
+//        (G34 DC05: the founder's own project the claim linked, or null)
 //   404 { ok:false, error:"not_found" }
 //   403 { ok:false, error:"email_mismatch", message }
 
@@ -56,6 +57,7 @@ async function POST_handler(
     evaluation,
     already_claimed: result.alreadyClaimed,
     project_name: result.projectName,
+    founder_project_id: result.founderProjectId ?? null,
   });
 }
 

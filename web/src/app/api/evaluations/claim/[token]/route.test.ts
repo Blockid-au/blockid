@@ -70,7 +70,7 @@ describe("POST /api/evaluations/claim/[token]", () => {
     const res = await POST(req(), ctx("tok"));
     expect(res.status).toBe(200);
     const json = await res.json();
-    expect(json).toMatchObject({ ok: true, already_claimed: false, project_name: "Acme" });
+    expect(json).toMatchObject({ ok: true, already_claimed: false, project_name: "Acme", founder_project_id: null });
     expect(json.evaluation).toMatchObject({ id: "e-1", ownerKind: "founder_claimed", consentTier: "reports_shared" });
     expect(json.evaluation).not.toHaveProperty("inviteToken");
     expect(claimEvaluationMock).toHaveBeenCalledWith("tok", FOUNDER);

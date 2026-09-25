@@ -70,6 +70,7 @@ function makeBuilder(table: string) {
     update(payload: unknown) { c.op = "update"; c.payload = payload; return b; },
     delete() { c.op = "delete"; return b; },
     eq(col: string, val: unknown) { c.eqs.push({ col, val }); return b; },
+    is(col: string, val: unknown) { c.eqs.push({ col: `is:${col}`, val }); return b; },
     in(col: string, vals: unknown[]) { c.ins.push({ col, vals }); return b; },
     or(expr: string) { c.or = expr; return b; },
     order(col: string, opts: unknown) { c.order = { col, opts }; return b; },
@@ -479,7 +480,62 @@ describe("claimEvaluation", () => {
     });
     expect((upd.payload as { claimed_at: string }).claimed_at).toBeTruthy();
     expect(upd.eqs).toEqual([{ col: "id", val: "e-1" }]);
-    expect(calls("projects")).toHaveLength(0);
+    // G34 DC05: projects are only READ (to find the founder's own one) — never written.
+    expect(calls("projects").every((c) => c.op === "select")).toBe(true);
+    expect(res.founderProjectId).toBeNull();
+  });
+
+  const claimedRow = () =>
+    evalRow({ owner_kind: "founder_claimed", consent_tier: "reports_shared", founder_user_id: "u-f", founder_email: "jo@acme.io", claimed_at: "2026-09-10T02:00:00Z" });
+
+  it("G34 DC05: links the founder's ONE same-name project (a link, never a transfer or copy)", async () => {
+    state.queue.push({ table: "evaluations", data: { ...invited(), projects: { name: "Acme Pty Ltd" } } });
+    state.queue.push({ table: "evaluations", data: claimedRow() });
+    state.queue.push({ table: "projects", data: [{ id: "p-own", name: "ACME" }, { id: "p-other", name: "Side Hustle" }] });
+    state.queue.push({ table: "evaluations", data: null });
+
+    const res = await claimEvaluation("tok", { id: "u-f", email: "jo@acme.io" });
+    expect(res).toMatchObject({ ok: true, alreadyClaimed: false, founderProjectId: "p-own" });
+    const proj = calls("projects");
+    expect(proj).toHaveLength(1);
+    expect(proj[0].op).toBe("select");
+    expect(proj[0].eqs).toEqual([{ col: "user_id", val: "u-f" }, { col: "is:archived_at", val: null }]);
+    const link = calls("evaluations").filter((c) => c.op === "update")[1];
+    expect(link.payload).toEqual({ founder_project_id: "p-own" });
+    expect(link.eqs).toEqual([{ col: "id", val: "e-1" }]);
+  });
+
+  it("G34 DC05: no link when no founder project matches, or when two do (never guessed)", async () => {
+    for (const owned of [[{ id: "p-x", name: "Other Co" }], [{ id: "p-a", name: "Acme" }, { id: "p-b", name: "Acme Ltd" }]]) {
+      state.calls = [];
+      state.queue.push({ table: "evaluations", data: { ...invited(), projects: { name: "Acme" } } });
+      state.queue.push({ table: "evaluations", data: claimedRow() });
+      state.queue.push({ table: "projects", data: owned });
+      const res = await claimEvaluation("tok", { id: "u-f", email: "jo@acme.io" });
+      expect(res).toMatchObject({ ok: true, founderProjectId: null });
+      expect(calls("evaluations").filter((c) => c.op === "update")).toHaveLength(1);
+    }
+  });
+
+  it("G34 DC05: the evaluator's own project row is never the founder's link", async () => {
+    state.queue.push({ table: "evaluations", data: { ...invited(), projects: { name: "Acme" } } });
+    state.queue.push({ table: "evaluations", data: claimedRow() });
+    state.queue.push({ table: "projects", data: [{ id: "p-1", name: "Acme" }] });
+    const res = await claimEvaluation("tok", { id: "u-f", email: "jo@acme.io" });
+    expect(res).toMatchObject({ ok: true, founderProjectId: null });
+  });
+
+  it("G34 DC05: before 0463 is applied the missing column is tolerated — the claim stands", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => {});
+    state.queue.push({ table: "evaluations", data: { ...invited(), projects: { name: "Acme" } } });
+    state.queue.push({ table: "evaluations", data: claimedRow() });
+    state.queue.push({ table: "projects", data: [{ id: "p-own", name: "Acme" }] });
+    state.queue.push({ table: "evaluations", error: { code: "PGRST204", message: "Could not find the 'founder_project_id' column" } });
+    const res = await claimEvaluation("tok", { id: "u-f", email: "jo@acme.io" });
+    expect(res).toMatchObject({ ok: true, alreadyClaimed: false, founderProjectId: null });
+    if (res.ok) expect(res.evaluation.ownerKind).toBe("founder_claimed");
+    expect(info).toHaveBeenCalled();
+    info.mockRestore();
   });
 
   it("is idempotent for the same founder", async () => {

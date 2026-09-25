@@ -39,6 +39,7 @@ import { can } from "./entitlements";
 import type { AppUser } from "./auth";
 import { MENTOR_ACCESS_TIERS, type MentorAccessTier } from "./mentor/access-tiers";
 import { crosswalkIndustry } from "./taxonomy/startup-taxonomy";
+import { isSameCompany } from "./analyses/project-link";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -167,7 +168,14 @@ export type CreateEvaluationResult =
   | { ok: false; error: "service_unavailable" | "create_failed"; message: string };
 
 export type ClaimEvaluationResult =
-  | { ok: true; evaluation: Evaluation; alreadyClaimed: boolean; projectName: string }
+  | {
+      ok: true;
+      evaluation: Evaluation;
+      alreadyClaimed: boolean;
+      projectName: string;
+      /** G34 DC05: the founder's own project this evaluation was linked to (fresh claims only). */
+      founderProjectId?: string | null;
+    }
   | { ok: false; error: "not_found" | "email_mismatch" | "service_unavailable" | "claim_failed"; message: string };
 
 export type EvaluatorProjectAccess =
@@ -843,5 +851,55 @@ export async function claimEvaluation(
     console.error("[blockid:evaluations] claim update failed", updateError);
     return { ok: false, error: "claim_failed", message: "Could not claim this startup" };
   }
-  return { ok: true, evaluation: mapEvaluationRow(updated as Row), alreadyClaimed: false, projectName };
+  const founderProjectId = await linkFounderProject(supabase, current, founder.id, projectName);
+  return { ok: true, evaluation: mapEvaluationRow(updated as Row), alreadyClaimed: false, projectName, founderProjectId };
+}
+
+/**
+ * G34 DC05 — point a freshly claimed evaluation at the founder's OWN
+ * project, so one startup stays one project on the founder's side. A link,
+ * never a transfer or a copy: the evaluator keeps `projects.user_id` and
+ * every evaluator-scoped read. Conservative like the /analyze link
+ * (lib/analyses/project-link.ts): exactly one live founder-owned project
+ * whose name normalises to the evaluated startup's, else no link — never a
+ * created project. Best-effort: `evaluations.founder_project_id` arrives
+ * with pending-authority/0463; until then the write fails on the missing
+ * column (42703 / PGRST204) and the claim stands without the link.
+ */
+async function linkFounderProject(
+  supabase: NonNullable<ReturnType<typeof getSupabaseAdmin>>,
+  evaluation: Evaluation,
+  founderId: string,
+  projectName: string,
+): Promise<string | null> {
+  try {
+    const { data: owned, error } = await supabase
+      .from("projects")
+      .select("id, name")
+      .eq("user_id", founderId)
+      .is("archived_at", null);
+    if (error || !Array.isArray(owned)) return null;
+    const matches = (owned as Row[]).filter(
+      (p) => String(p.id) !== evaluation.projectId && isSameCompany(str(p.name), projectName),
+    );
+    if (matches.length !== 1) return null;
+    const founderProjectId = String(matches[0].id);
+    const { error: linkError } = await supabase
+      .from("evaluations")
+      .update({ founder_project_id: founderProjectId })
+      .eq("id", evaluation.id);
+    if (linkError) {
+      const code = (linkError as { code?: string }).code;
+      if (code === "42703" || code === "PGRST204") {
+        console.info("[blockid:evaluations] founder_project_id not applied yet (0463) — claim kept without the link");
+      } else {
+        console.error("[blockid:evaluations] founder project link failed", linkError);
+      }
+      return null;
+    }
+    return founderProjectId;
+  } catch (err) {
+    console.error("[blockid:evaluations] founder project link threw", err);
+    return null;
+  }
 }
