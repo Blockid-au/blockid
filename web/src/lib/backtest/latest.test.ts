@@ -8,7 +8,9 @@ import {
   SVI_BACKTEST_MAX_AGE_MS,
   isBacktestReport,
   readSviBacktestLatest,
+  readSviBacktestHeadline,
   readSviBacktestStatus,
+  sviBacktestHeadline,
   sviBacktestStatusFrom,
 } from "./latest";
 import { runBacktest } from "./run-backtest";
@@ -76,5 +78,19 @@ describe("readSviBacktestLatest + isBacktestReport", () => {
     expect(isBacktestReport([])).toBe(false);
     expect(isBacktestReport({ generated_at: "x", svi_version: "1", n: 1 })).toBe(false);
     expect(isBacktestReport(runBacktest({ rows: [], gitSha: "x" }))).toBe(true);
+  });
+});
+
+describe("sviBacktestHeadline + readSviBacktestHeadline (G34 BT6 RQ21)", () => {
+  it("pooled round ρ, the rows-with-round n and the run date; null when nothing is published", async () => {
+    expect(sviBacktestHeadline(null)).toBeNull();
+    const report = runBacktest({ rows: [], now: new Date(NOW), gitSha: "abc" });
+    expect(sviBacktestHeadline({ ...report, rho: { ...report.rho, round_pooled: 0.762 }, n_with_round: 41 })).toEqual({ rho: 0.762, n: 41, asOf: report.generated_at });
+    expect(sviBacktestHeadline({ ...report, rho: { ...report.rho, round_pooled: null }, n_with_round: 3 })).toEqual({ rho: null, n: 3, asOf: report.generated_at });
+
+    const root = tmpRoot();
+    expect(await readSviBacktestHeadline(root)).toBeNull();
+    writeFileSync(path.join(root, SVI_BACKTEST_FILE), JSON.stringify({ ...report, rho: { ...report.rho, round_pooled: 0.5 }, n_with_round: 12 }));
+    expect(await readSviBacktestHeadline(root)).toEqual({ rho: 0.5, n: 12, asOf: report.generated_at });
   });
 });

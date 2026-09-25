@@ -9,17 +9,22 @@ import { describe, expect, it } from "vitest";
 import { DIM_ORDER, dimensionOwner } from "@/lib/report-pipeline/dimension-owners";
 import { DIMENSION_EMPHASIS, screeningStageFor, type ScreeningDimension } from "@/lib/screening/registry";
 import { alignReportWithAssessmentCard, type AssessmentCardOptions } from "@/lib/svi/assessment-card";
-import { buildDashboardV4, v4PlainText, v4ScoreCell } from "./dashboard-v4";
+import type { SviBacktestHeadline } from "@/lib/backtest/latest";
+import { buildDashboardV4, CALIBRATION_HREF, v4PlainText, v4PositionLine, v4ScoreCell } from "./dashboard-v4";
 import { demoReportV2, freeFixtureReportV2, investmentBandFixture, preRevenueFixtureReportV2 } from "./fixtures";
 import { investmentViewFor } from "./investment-view";
 import { investorScreeningStrings } from "./investor-screening";
 import { isValuationAvailable, unavailableValuation, type ReportV2 } from "./schema";
 import { freeScreeningLeakProbe, LEAK_PROBE_MARK } from "./screening-leak-fixture";
 
-function v4For(report: ReportV2, opts: AssessmentCardOptions = {}, extra: { lockCards?: boolean; locale?: string } = {}) {
+function v4For(report: ReportV2, opts: AssessmentCardOptions = {}, extra: { lockCards?: boolean; locale?: string; calibration?: SviBacktestHeadline | null } = {}) {
   const aligned = alignReportWithAssessmentCard(report, opts);
   const view = investmentViewFor(aligned.report, aligned.card, extra.locale ?? "en");
-  return buildDashboardV4(aligned.report, aligned.card, view, { locale: extra.locale ?? "en", ...(extra.lockCards === undefined ? {} : { lockCards: extra.lockCards }) });
+  return buildDashboardV4(aligned.report, aligned.card, view, {
+    locale: extra.locale ?? "en",
+    ...(extra.lockCards === undefined ? {} : { lockCards: extra.lockCards }),
+    ...("calibration" in extra ? { calibration: extra.calibration } : {}),
+  });
 }
 
 describe("buildDashboardV4 — tiles and meeting label", () => {
@@ -222,5 +227,186 @@ describe("buildDashboardV4 — free tier (D24-b)", () => {
     expect(v4.tiles[0].label).toBe("Định giá tham khảo trước vốn (A$)");
     expect(v4.meeting.label).toBe("Đáng tìm hiểu");
     expect(v4.keyMetrics[2].statusLabel).toBe("Chưa có bằng chứng");
+  });
+});
+
+// ── G34 BT6: RQ19 peer position · RQ20 stage ladder · RQ21 calibration · RQ27 round readiness · RQ28 spike ──
+
+type Row = ReportV2["appendix"]["evidenceRegister"][number];
+
+/** The document with exactly these evidence rows (register only, chapter rows cleared). */
+function withRows<T extends ReportV2>(report: T, rows: Row[]): T {
+  report.appendix.evidenceRegister = rows;
+  for (const d of report.dimensions) d.evidence = [];
+  return report;
+}
+
+type Bench = { percentile: number | null; n: number | null };
+
+function setBenchmarks(report: ReportV2, per: Partial<Record<string, Bench>>, fallback: Bench | null = null) {
+  for (const d of report.dimensions) {
+    const b = per[d.dim] ?? fallback;
+    if (b) d.benchmark = { ...d.benchmark, percentile: b.percentile, n: b.n };
+    else d.benchmark = { p25: d.benchmark.p25, p50: d.benchmark.p50, p75: d.benchmark.p75, stage: d.benchmark.stage, percentile: null };
+  }
+}
+
+const OBSERVED = "2026-09-10T00:00:00.000Z";
+
+describe("buildDashboardV4 — RQ20 stage ladder (verified evidence only, separate from quality)", () => {
+  it("demo: connector-evidenced ARR ≥ A$1M → Scaling ●●●●○, basis names the source type only", () => {
+    const v4 = v4For(demoReportV2());
+    expect(v4.stageLadder).toMatchObject({ step: 4, label: "Scaling", dots: "●●●●○", text: "●●●●○ Scaling" });
+    expect(v4.stageLadder.basis).toMatch(/^revenue evidence · Stripe · /);
+    expect(v4.stageLadder.ariaLabel).toBe("Stage ladder: step 4 of 5, Scaling");
+    expect(v4PositionLine(v4)).toContain("Stage ladder: ●●●●○ Scaling");
+  });
+
+  it("connector ARR ≥ A$10M → Established; an uploaded revenue document → Early revenue (T3 never climbs past step 3)", () => {
+    const big = demoReportV2();
+    big.valuation.inputs = { ...big.valuation.inputs!, arrAud: 12_000_000 };
+    expect(v4For(big).stageLadder.step).toBe(5);
+
+    const doc = withRows(demoReportV2(), [{ evidence_id: "ev-pnl", source: "upload", label: "FY26 P&L revenue statement", status: "evidenced", observedAt: OBSERVED, dims: ["tre"], confidence: "document_uploaded" }]);
+    doc.valuation.inputs = { ...doc.valuation.inputs!, revenueSource: "document", arrAud: 2_000_000 };
+    const ladder = v4For(doc).stageLadder;
+    expect(ladder).toMatchObject({ step: 3, label: "Early revenue", dots: "●●●○○" });
+    expect(ladder.basis).toMatch(/^revenue evidence · Uploaded document/);
+  });
+
+  it("never infers revenue from founder-stated text: self-declared rows, GA4 sign-ups and founder-stated ARR stay at Idea", () => {
+    const report = withRows(demoReportV2(), [
+      { evidence_id: "ev-said", source: "self_declared", label: "Revenue A$50k MRR, 40 paying customers", status: "evidenced", observedAt: OBSERVED, dims: ["tre", "mpc"], confidence: "self_declared" },
+      { evidence_id: "ev-ga4", source: "ga4", label: "GA4 sign-ups", status: "evidenced", observedAt: OBSERVED, value: "signups = 900", dims: ["mpc", "tre"], confidence: "connected_source" },
+    ]);
+    report.valuation.inputs = { ...report.valuation.inputs!, revenueSource: "founder_stated", arrAud: 600_000 };
+    expect(v4For(report).stageLadder).toMatchObject({ step: 1, label: "Idea", dots: "●○○○○", basis: "no verified customer or revenue evidence on file" });
+  });
+
+  it("verified customer evidence (LOI / pilot document) → Validating, independent of the dimension scores", () => {
+    const report = withRows(demoReportV2(), [{ evidence_id: "ev-loi", source: "upload", label: "Signed LOI from pilot customer", status: "evidenced", observedAt: OBSERVED, dims: ["mpc"], confidence: "document_uploaded" }]);
+    report.valuation.inputs = { ...report.valuation.inputs!, revenueSource: "none", arrAud: 0 };
+    expect(v4For(report).stageLadder).toMatchObject({ step: 2, label: "Validating" });
+    for (const d of report.dimensions) d.score = 5;
+    expect(v4For(report).stageLadder.step).toBe(2);
+  });
+
+  it("VI labels", () => {
+    expect(v4For(demoReportV2(), {}, { locale: "vi" }).stageLadder.label).toBe("Mở rộng");
+  });
+});
+
+describe("buildDashboardV4 — RQ19 peer position (published percentile only)", () => {
+  it("published cover percentile with n ≥ 10 → 'p62 of <stage> cohort (n = 41)'; 10–29 labelled indicative", () => {
+    const report = demoReportV2();
+    report.cover.svi = { ...report.cover.svi, cohortPercentile: 62, cohortN: 41 };
+    expect(v4For(report).peer).toEqual({ state: "published", percentile: 62, n: 41, text: `p62 of ${report.cover.stageLabel} cohort (n = 41)` });
+    report.cover.svi = { ...report.cover.svi, cohortPercentile: 55, cohortN: 14 };
+    expect(v4For(report).peer?.text).toBe(`p55 of ${report.cover.stageLabel} cohort (n = 14, indicative)`);
+  });
+
+  it("no published percentile: 'Peer set too small (n = 6)' from the stored comparison n; omitted when no n; never computed from dimension ranks", () => {
+    const report = demoReportV2();
+    report.cover.svi = { ...report.cover.svi, cohortPercentile: null, cohortN: null };
+    setBenchmarks(report, {}, { percentile: null, n: 6 });
+    expect(v4For(report).peer).toEqual({ state: "too_small", percentile: null, n: 6, text: "Peer set too small (n = 6)" });
+    setBenchmarks(report, {});
+    expect(v4For(report).peer).toBeNull();
+    // Dimension percentiles exist with n ≥ 10 but the cover has none: nothing is averaged here.
+    setBenchmarks(report, {}, { percentile: 70, n: 41 });
+    expect(v4For(report).peer).toBeNull();
+  });
+});
+
+describe("buildDashboardV4 — RQ28 spike (published p90 of the stage cohort)", () => {
+  it("one or two dimensions ≥ p90 → 'Spike: … (top 10% of stage)'; three or more, or none → omitted", () => {
+    const report = demoReportV2();
+    setBenchmarks(report, { tre: { percentile: 95, n: 41 } }, { percentile: 50, n: 41 });
+    const v4 = v4For(report);
+    expect(v4.spike?.dims).toEqual(["tre"]);
+    expect(v4.spike?.text).toMatch(/\(top 10% of stage\)$/);
+    expect(v4PositionLine(v4)).toContain("Spike: ");
+    setBenchmarks(report, { tre: { percentile: 95, n: 41 }, mpc: { percentile: 90, n: 41 } }, { percentile: 50, n: 41 });
+    expect(v4For(report).spike?.dims).toEqual(["tre", "mpc"]);
+    setBenchmarks(report, { tre: { percentile: 95, n: 41 }, mpc: { percentile: 91, n: 41 }, ftv: { percentile: 92, n: 41 } }, { percentile: 50, n: 41 });
+    expect(v4For(report).spike).toBeNull();
+    setBenchmarks(report, {}, { percentile: 50, n: 41 });
+    expect(v4For(report).spike).toBeNull();
+  });
+
+  it("only when the percentile is published (n ≥ 10); a locked chapter's rank stays out of free page 1", () => {
+    const report = demoReportV2();
+    setBenchmarks(report, { tre: { percentile: 97, n: 6 } }, { percentile: 50, n: 6 });
+    expect(v4For(report).spike).toBeNull();
+
+    const free = freeFixtureReportV2();
+    const locked = free.dimensions.find((d) => d.renderAs === "card" && d.band !== "pending")!;
+    const open = free.dimensions.find((d) => d.renderAs === "full" && d.band !== "pending")!;
+    setBenchmarks(free, { [locked.dim]: { percentile: 96, n: 41 } }, { percentile: 50, n: 41 });
+    expect(v4For(free).spike).toBeNull();
+    expect(v4For({ ...free, tier: "standard" }).spike?.dims).toEqual([locked.dim]);
+    setBenchmarks(free, { [open.dim]: { percentile: 96, n: 41 } }, { percentile: 50, n: 41 });
+    expect(v4For(free).spike?.dims).toEqual([open.dim]);
+  });
+});
+
+describe("buildDashboardV4 — RQ27 round readiness (evidence-backed module output only)", () => {
+  function withRoundModule(output: Record<string, unknown>) {
+    const report = demoReportV2();
+    const cgh = report.dimensions.find((d) => d.dim === "cgh")!;
+    cgh.modules = [...cgh.modules, { id: "agents/cfo-runway.ts:roundReadiness", output }];
+    return report;
+  }
+
+  it("omitted when the report carries no round / runway module (today's documents); runway stays 'Not evidenced'", () => {
+    const v4 = v4For(demoReportV2());
+    expect(v4.roundReadiness).toBeNull();
+    expect(v4.keyMetrics[4]).toMatchObject({ id: "runway", status: "not_evidenced" });
+    expect(v4PositionLine(v4)).not.toContain("Last round");
+  });
+
+  it("last round + runway backed by a connected-source row → the line and the runway metric (same source)", () => {
+    const v4 = v4For(withRoundModule({ lastRoundDate: "2026-03-15", runwayMonths: 14.2, evidenceIds: ["ev-connected-xero-pnl"] }));
+    expect(v4.roundReadiness).toMatchObject({ lastRound: "Mar 2026", runwayMonths: 14 });
+    expect(v4.roundReadiness?.text).toMatch(/^Last round: Mar 2026 · runway: 14 months \(Xero · /);
+    expect(v4.keyMetrics[4]).toMatchObject({ id: "runway", value: "14 months", status: "verified" });
+    expect(v4PositionLine(v4)).toContain("Last round: Mar 2026");
+  });
+
+  it("never from assumptions: assumed runway, a self-declared backing row, no evidence id or no date → omitted", () => {
+    expect(v4For(withRoundModule({ lastRoundDate: "2026-03-15", runwayMonths: 18, evidenceIds: ["ev-connected-xero-pnl"], runwayAssumed: true })).roundReadiness).toBeNull();
+    expect(v4For(withRoundModule({ lastRoundDate: "2026-03-15", runwayMonths: 18 })).roundReadiness).toBeNull();
+    expect(v4For(withRoundModule({ runwayMonths: 18, evidenceIds: ["ev-connected-xero-pnl"] })).roundReadiness).toBeNull();
+    const said = withRoundModule({ lastRoundDate: "2026-03-15", runwayMonths: 18, evidenceIds: ["ev-said"] });
+    said.appendix.evidenceRegister.push({ evidence_id: "ev-said", source: "self_declared", label: "Founder says 18 months runway", status: "evidenced", observedAt: OBSERVED, dims: ["cgh"], confidence: "self_declared" });
+    const v4 = v4For(said);
+    expect(v4.roundReadiness).toBeNull();
+    expect(v4.keyMetrics[4].status).toBe("not_evidenced");
+  });
+});
+
+describe("buildDashboardV4 — RQ21 calibration disclosure (always present, never invented)", () => {
+  it("published backtest → ρ, n, date and 'not a substitute for diligence', linking the methodology", () => {
+    const c = v4For(demoReportV2(), {}, { calibration: { rho: 0.762, n: 41, asOf: "2026-09-17T00:07:42.936Z" } }).calibration;
+    expect(c).toMatchObject({ state: "published", rho: 0.762, n: 41, asOf: "2026-09-17T00:07:42.936Z", href: "/methodology/calibration", linkLabel: "How the SVI is calibrated" });
+    expect(c.text).toMatch(/^SVI backtest ρ 0\.76 vs round size \(n = 41, 17 Sept? 2026\)\. Rank calibration only — not a substitute for diligence\.$/);
+    expect(CALIBRATION_HREF).toBe("/methodology/calibration");
+  });
+
+  it("no backtest, too few rows or no ρ → 'calibration pending'; a surface that did not load it prints no figures", () => {
+    expect(v4For(demoReportV2(), {}, { calibration: null }).calibration).toMatchObject({ state: "pending", rho: null, n: null, text: "Calibration pending — not a substitute for diligence." });
+    expect(v4For(demoReportV2(), {}, { calibration: { rho: 0.8, n: 6, asOf: "2026-09-17T00:00:00Z" } }).calibration).toMatchObject({ state: "pending", text: "Calibration pending (backtest n = 6) — not a substitute for diligence." });
+    expect(v4For(demoReportV2(), {}, { calibration: { rho: null, n: 41, asOf: "2026-09-17T00:00:00Z" } }).calibration.state).toBe("pending");
+    const unknown = v4For(demoReportV2()).calibration;
+    expect(unknown.state).toBe("unknown");
+    expect(unknown.text).not.toMatch(/\d/);
+    expect(unknown.href).toBe(CALIBRATION_HREF);
+  });
+
+  it("D24-f: none of the BT6 fields print a numeric dimension weight", () => {
+    const report = demoReportV2();
+    setBenchmarks(report, { tre: { percentile: 95, n: 41 } }, { percentile: 50, n: 41 });
+    const v4 = v4For(report, {}, { calibration: { rho: 0.76, n: 41, asOf: "2026-09-17T00:00:00Z" } });
+    expect(JSON.stringify({ peer: v4.peer, ladder: v4.stageLadder, spike: v4.spike, round: v4.roundReadiness, calibration: v4.calibration })).not.toMatch(/weight/i);
   });
 });

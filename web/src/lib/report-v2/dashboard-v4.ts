@@ -15,7 +15,12 @@
 // 8-row scorecard (lead agent from dimension-owners, stage emphasis BAND from
 // the screening registry — D24-f, no weight), deterministic red flags
 // de-duplicated against the grounded deal-breakers, the why / stop / ask
-// lists (≤ 3 each) and the degraded state. Web, PDF, DOCX and the e-mail
+// lists (≤ 3 each) and the degraded state. G34 BT6 adds the peer position
+// (RQ19, published cohort percentile only), the stage ladder (RQ20, from
+// verified evidence, separate from quality), the calibration disclosure
+// (RQ21, the published backtest the caller loads), round readiness (RQ27,
+// a module output backed by evidence — also the only runway source) and
+// the spike flag (RQ28, published p90). Web, PDF, DOCX and the e-mail
 // summary all print from this object, so page 1 is the same everywhere.
 //
 // Free tier (D24-b): nothing on page 1 is locked — scores, bands, labels and
@@ -23,7 +28,8 @@
 // citation or evidence label enters the lists (the screening gate plus the
 // locked-dimension filter below). Pure, client-safe, adds no new score.
 
-import { mayShowPercentile } from "@/lib/benchmarks/publication-rules";
+import type { SviBacktestHeadline } from "@/lib/backtest/latest";
+import { benchmarkBand, mayShowPercentile } from "@/lib/benchmarks/publication-rules";
 import { getTbrStrings } from "@/lib/i18n/tbr-strings";
 import { getTbrV3Strings } from "@/lib/i18n/tbr-v3-strings";
 import { DIM_ORDER, dimensionOwner, type DimKey } from "@/lib/report-pipeline/dimension-owners";
@@ -144,6 +150,56 @@ export interface V4SignalChip {
   href: string;
 }
 
+/** RQ19: the published cohort percentile (n ≥ 10), or "peer set too small" when only a sub-floor n is stored. */
+export interface V4PeerPosition {
+  state: "published" | "too_small";
+  /** Null when too small — never computed here. */
+  percentile: number | null;
+  n: number;
+  text: string;
+}
+
+export type V4LadderStep = 1 | 2 | 3 | 4 | 5;
+
+/** RQ20: commercial maturity (Idea → Established), separate from the quality scores. */
+export interface V4StageLadder {
+  step: V4LadderStep;
+  label: string;
+  /** "●●●○○" */
+  dots: string;
+  /** "●●●○○ Early revenue" */
+  text: string;
+  /** What moved the ladder: source type + month only (never a row label — D24-b). */
+  basis: string;
+  ariaLabel: string;
+}
+
+/** RQ28: one or two dimensions at or above the published p90 of the stage cohort. */
+export interface V4Spike {
+  dims: DimKey[];
+  text: string;
+}
+
+/** RQ27: last round + runway, only from a module output backed by non-self-declared evidence. */
+export interface V4RoundReadiness {
+  lastRound: string;
+  runwayMonths: number;
+  source: string;
+  text: string;
+}
+
+/** RQ21: the SVI backtest disclosure (always present). */
+export interface V4Calibration {
+  /** published = ρ with n ≥ 10 · pending = no backtest / too few rows · unknown = the surface did not load it. */
+  state: "published" | "pending" | "unknown";
+  rho: number | null;
+  n: number | null;
+  asOf: string | null;
+  text: string;
+  href: string;
+  linkLabel: string;
+}
+
 export interface DashboardV4 {
   locale: InvestmentLocale;
   strings: DashboardV4Strings;
@@ -159,6 +215,12 @@ export interface DashboardV4 {
   scopeNote: string;
   degraded: { sections: string[]; banner: string } | null;
   lockCards: boolean;
+  /** G34 BT6 — null / omitted when the report carries no data for the line. */
+  peer: V4PeerPosition | null;
+  stageLadder: V4StageLadder;
+  spike: V4Spike | null;
+  roundReadiness: V4RoundReadiness | null;
+  calibration: V4Calibration;
 }
 
 export interface DashboardV4Options {
@@ -167,6 +229,12 @@ export interface DashboardV4Options {
   lockCards?: boolean;
   /** A dashboard view the caller already built (same report / card / view). */
   dash?: DashboardView;
+  /**
+   * RQ21: the published SVI backtest headline (server: `readSviBacktestHeadline()`).
+   * null = loaded, nothing published ("calibration pending"); omitted = this
+   * surface did not load it (the line links the methodology without figures).
+   */
+  calibration?: SviBacktestHeadline | null;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -218,6 +286,108 @@ function revenueEvidence(rows: readonly EvidenceRow[]): { row: EvidenceRow; tier
 function pctLabel(n: number): string {
   const rounded = Math.round(n * 10) / 10;
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+}
+
+// ── G34 BT6: peer position, stage ladder, spike, round readiness, calibration ──
+
+export const CALIBRATION_HREF = "/methodology/calibration";
+/** RQ20 ladder thresholds on connector-evidenced (T1) ARR — maturity only, never a quality score. */
+export const LADDER_SCALING_ARR_AUD = 1_000_000;
+export const LADDER_ESTABLISHED_ARR_AUD = 10_000_000;
+/** RQ28: a published dimension percentile at or above this sits in the top 10 % of the stage cohort. */
+export const SPIKE_PERCENTILE = 90;
+/** RQ27: the module output keys a CFO / CGH producer must write (G34 BT5 RQ15) — nothing else is read. */
+export const ROUND_READINESS_KEYS = { lastRoundDate: "lastRoundDate", runwayMonths: "runwayMonths", evidenceIds: "evidenceIds" } as const;
+
+/** Sources that can carry customer evidence (never self-declared, a founder profile or web traffic). */
+const CUSTOMER_SOURCES = new Set<EvidenceRow["source"]>(["stripe", "xero", "upload", "connector_other", "url", "external"]);
+const CUSTOMER_CONFIDENCE = new Set(["document_uploaded", "connected_source", "transaction_data", "third_party_verified"]);
+const CUSTOMER_RE = /\b(customers?|clients?|pilots?|lois?|letters? of intent|wait-?lists?|sign-?ups?|subscribers?|purchase orders?|contracts?|paying)\b/i;
+
+/** Evidenced, non-self-declared row (the bar every BT6 line holds evidence to). */
+function verifiedRow(r: EvidenceRow): boolean {
+  return r.status === "evidenced" && r.source !== "self_declared" && r.source !== "founder_profile" && r.confidence !== undefined && r.confidence !== "self_declared";
+}
+
+function evidenceSourceLabel(row: EvidenceRow, s: DashboardV4Strings, locale: InvestmentLocale): string {
+  return [s.source[row.source] ?? row.source, monthYear(row.observedAt, locale)].filter(Boolean).join(" · ");
+}
+
+function stageLadderFor(report: ReportV2, rows: readonly EvidenceRow[], s: DashboardV4Strings, locale: InvestmentLocale): V4StageLadder {
+  const revenue = revenueEvidence(rows);
+  const v = report.valuation;
+  const inputs = isValuationAvailable(v) ? v.inputs : undefined;
+  // Scaling / Established need the ARR figure itself to come from the connected source.
+  const t1Arr = revenue?.tier === "T1" && inputs?.revenueSource === "connector" && inputs.arrAud > 0 ? inputs.arrAud : 0;
+  const customer = rows.find((r) => verifiedRow(r) && CUSTOMER_SOURCES.has(r.source) && CUSTOMER_CONFIDENCE.has(r.confidence!) && (r.dims.includes("tre") || r.dims.includes("mpc")) && CUSTOMER_RE.test(`${r.label} ${r.value ?? ""}`));
+  let step: V4LadderStep = 1;
+  let basis = s.ladderBasisNone;
+  if (revenue) {
+    step = t1Arr >= LADDER_ESTABLISHED_ARR_AUD ? 5 : t1Arr >= LADDER_SCALING_ARR_AUD ? 4 : 3;
+    basis = s.ladderBasisRevenue(evidenceSourceLabel(revenue.row, s, locale));
+  } else if (customer) {
+    step = 2;
+    basis = s.ladderBasisCustomer(evidenceSourceLabel(customer, s, locale));
+  }
+  const label = s.ladderSteps[step - 1] ?? "";
+  const dots = "●".repeat(step) + "○".repeat(5 - step);
+  return { step, label, dots, text: `${dots} ${label}`, basis, ariaLabel: s.ladderAria(step, label) };
+}
+
+function peerPositionFor(report: ReportV2, s: DashboardV4Strings): V4PeerPosition | null {
+  const svi = report.cover.svi;
+  if (svi.cohortPercentile !== null && typeof svi.cohortN === "number" && mayShowPercentile(svi.cohortN)) {
+    const n = Math.floor(svi.cohortN);
+    return { state: "published", percentile: svi.cohortPercentile, n, text: s.peerPublished(svi.cohortPercentile, s.peerCohort(report.cover.stageLabel), n, benchmarkBand(n) === "indicative") };
+  }
+  // No published percentile: say how small the stored comparison set is — never compute a rank here.
+  const ns = report.dimensions.map((d) => d.benchmark?.n).filter((n): n is number => typeof n === "number" && Number.isFinite(n) && n >= 0);
+  if (ns.length === 0) return null;
+  const n = Math.floor(Math.max(...ns));
+  return mayShowPercentile(n) ? null : { state: "too_small", percentile: null, n, text: s.peerTooSmall(n) };
+}
+
+function spikeFor(report: ReportV2, lockedDims: ReadonlySet<DimKey>, s: DashboardV4Strings, locale: InvestmentLocale): V4Spike | null {
+  const published = report.dimensions.filter((d) => isAssessed(d) && d.band !== "pending" && typeof d.benchmark?.percentile === "number" && typeof d.benchmark.n === "number" && mayShowPercentile(d.benchmark.n));
+  const top = published.filter((d) => (d.benchmark.percentile as number) >= SPIKE_PERCENTILE);
+  if (top.length < 1 || top.length > 2) return null;
+  // D24-b: a locked chapter's benchmark rank stays in the full report.
+  const shown = top.filter((d) => !lockedDims.has(d.dim)).map((d) => d.dim);
+  return shown.length === 0 ? null : { dims: shown, text: s.spike(shown.map((d) => dimName(d, locale)).join(" · ")) };
+}
+
+function roundReadinessFor(report: ReportV2, rows: readonly EvidenceRow[], lockedDims: ReadonlySet<DimKey>, s: DashboardV4Strings, locale: InvestmentLocale): (V4RoundReadiness & { tier: "T1" | "T3" }) | null {
+  const byId = new Map(rows.map((r) => [r.evidence_id.trim().toLowerCase(), r] as const));
+  for (const ch of report.dimensions) {
+    if ((ch.dim !== "cgh" && ch.dim !== "iri") || lockedDims.has(ch.dim)) continue;
+    for (const m of ch.modules ?? []) {
+      const o = m.output ?? {};
+      const date = o[ROUND_READINESS_KEYS.lastRoundDate];
+      const months = o[ROUND_READINESS_KEYS.runwayMonths];
+      const ids = o[ROUND_READINESS_KEYS.evidenceIds];
+      if (typeof date !== "string" || typeof months !== "number" || !Number.isFinite(months) || months <= 0 || o.runwayAssumed === true) continue;
+      const lastRound = monthYear(date, locale);
+      if (!lastRound) continue;
+      const backing = (Array.isArray(ids) ? ids : []).map((id) => (typeof id === "string" ? byId.get(id.trim().toLowerCase()) : undefined)).find((r): r is EvidenceRow => r !== undefined && verifiedRow(r));
+      if (!backing) continue;
+      const tier = T1_SOURCES.has(backing.source) && T1_CONFIDENCE.has(backing.confidence!) ? "T1" : "T3";
+      const runwayMonths = Math.round(months);
+      const source = evidenceSourceLabel(backing, s, locale);
+      return { lastRound, runwayMonths, source, text: s.round(lastRound, String(runwayMonths), source), tier };
+    }
+  }
+  return null;
+}
+
+function calibrationFor(headline: SviBacktestHeadline | null | undefined, s: DashboardV4Strings, locale: InvestmentLocale): V4Calibration {
+  const base = { href: CALIBRATION_HREF, linkLabel: s.calibrationLink };
+  if (headline === undefined) return { ...base, state: "unknown", rho: null, n: null, asOf: null, text: s.calibrationUnknown };
+  if (headline === null || headline.rho === null || !mayShowPercentile(headline.n)) {
+    return { ...base, state: "pending", rho: headline?.rho ?? null, n: headline?.n ?? null, asOf: headline?.asOf ?? null, text: s.calibrationPending(headline?.n ?? null) };
+  }
+  const d = new Date(headline.asOf);
+  const date = Number.isNaN(d.getTime()) ? headline.asOf : d.toLocaleDateString(locale === "vi" ? "vi-VN" : "en-AU", { day: "numeric", month: "short", year: "numeric" });
+  return { ...base, state: "published", rho: headline.rho, n: headline.n, asOf: headline.asOf, text: s.calibrationPublished(headline.rho.toFixed(2), headline.n, date) };
 }
 
 // ── Builder ──────────────────────────────────────────────────────────────────
@@ -327,8 +497,13 @@ export function buildDashboardV4(report: ReportV2, card: AssessmentCardData, vie
     const status: V4MetricStatus = backing ? (backing.tier === "T1" ? "observed" : "company_stated") : "stated";
     growth = { id: "growth", label: s.metric.growth, value: s.perMonth(pctLabel(inputs.monthlyGrowthRatePct)), status, statusLabel: s.metricStatus[status], source: backing ? sourceLabel : null };
   }
-  // NRR, gross margin, runway, burn multiple: never derived (G34 BT5 supplies them with evidence ids).
-  const keyMetrics: DashboardV4["keyMetrics"] = [arr, growth, notEvidenced("nrr"), notEvidenced("gross_margin"), notEvidenced("runway"), notEvidenced("burn_multiple")];
+  // NRR, gross margin, burn multiple: never derived (G34 BT5 supplies them with evidence ids).
+  // Runway only from the RQ27 module output backed by a non-self-declared evidence row.
+  const round = roundReadinessFor(report, rows, lockedDims, s, locale);
+  const runway: V4Metric = round
+    ? { id: "runway", label: s.metric.runway, value: s.runwayValue(round.runwayMonths), status: round.tier === "T1" ? "verified" : "company_stated", statusLabel: round.tier === "T1" ? s.metricStatus.verified : s.metricStatus.company_stated, source: round.source }
+    : notEvidenced("runway");
+  const keyMetrics: DashboardV4["keyMetrics"] = [arr, growth, notEvidenced("nrr"), notEvidenced("gross_margin"), runway, notEvidenced("burn_multiple")];
 
   // ── Scorecard ──
   const stage = screeningStageFor(c.stage, c.stageLabel, inputs?.stage);
@@ -460,7 +635,25 @@ export function buildDashboardV4(report: ReportV2, card: AssessmentCardData, vie
     scopeNote: screening.scopeNote,
     degraded,
     lockCards,
+    peer: peerPositionFor(report, s),
+    stageLadder: stageLadderFor(report, rows, s, locale),
+    spike: spikeFor(report, lockedDims, s, locale),
+    roundReadiness: round ? { lastRound: round.lastRound, runwayMonths: round.runwayMonths, source: round.source, text: round.text } : null,
+    calibration: calibrationFor(opts.calibration, s, locale),
   };
+}
+
+/** The BT6 page-1 position line (stage ladder · peer · spike · round readiness) for the plain surfaces (e-mail, DOCX). */
+export function v4PositionLine(v4: Pick<DashboardV4, "strings" | "stageLadder" | "peer" | "spike" | "roundReadiness">): string {
+  const s = v4.strings;
+  return [
+    `${s.ladderTitle}: ${v4.stageLadder.text}`,
+    v4.peer ? `${s.peerTitle}: ${v4.peer.text}` : null,
+    v4.spike ? `${s.spikeTitle}: ${v4.spike.text}` : null,
+    v4.roundReadiness ? v4.roundReadiness.text : null,
+  ]
+    .filter((x): x is string => x !== null)
+    .join(" · ");
 }
 
 /** Marker-free list / flag text for the plain surfaces (e-mail, DOCX cells); an `[unevidenced]` claim keeps "(unverified)". */

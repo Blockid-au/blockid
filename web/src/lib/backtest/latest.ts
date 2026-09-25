@@ -68,3 +68,31 @@ export async function readSviBacktestStatus(root: string = process.cwd(), now: n
     return "missing";
   }
 }
+
+/**
+ * G34 BT6 (RQ21): the headline a report page prints beside its scores —
+ * pooled Spearman ρ of SVI vs log(round size), the n behind it and the run
+ * date (the figures the /methodology/calibration stats row shows). Pure;
+ * null when nothing is published.
+ */
+export interface SviBacktestHeadline {
+  /** Pooled ρ (SVI vs log round size); null when the run could not compute one. */
+  rho: number | null;
+  /** Rows with a disclosed round (the n behind `rho`). */
+  n: number;
+  /** ISO timestamp of the run. */
+  asOf: string;
+}
+
+export function sviBacktestHeadline(report: Pick<BacktestReport, "rho" | "n_with_round" | "generated_at"> | null): SviBacktestHeadline | null {
+  if (!report) return null;
+  const pooled = report.rho?.round_pooled;
+  const rho = typeof pooled === "number" && Number.isFinite(pooled) ? pooled : null;
+  const n = typeof report.n_with_round === "number" && Number.isFinite(report.n_with_round) ? Math.max(0, Math.floor(report.n_with_round)) : 0;
+  return { rho, n, asOf: report.generated_at };
+}
+
+/** The headline read from the published JSON (server surfaces: report pages, PDF, DOCX). Never throws. */
+export async function readSviBacktestHeadline(root: string = process.cwd()): Promise<SviBacktestHeadline | null> {
+  return sviBacktestHeadline(await readSviBacktestLatest(root));
+}
