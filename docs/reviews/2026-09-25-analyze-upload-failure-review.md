@@ -87,6 +87,15 @@ After every deploy: review, qa:live partial, fix. Tracked in SOT §12.14.
 
 929 tests pass and tsc is clean.
 
-**Still open:**
-- Wave B: ER1–ER3.
-- Wave C: AF08, AF11–AF15.
+**Wave B: live.** `d0b248888` is running on origin 4148 and passed all 12 gates. It adds:
+- **ER1:** The deck-reading animation now finishes within about 1.2 s. It used to take 320 ms per slide. The idea card now holds for 0.5 s.
+- **ER3:** Each chapter appears as soon as its agent finishes, labelled "Chapters written so far · n of 8 (draft)".
+  - A locked guest does not see them.
+  - They disappear once the full report is ready.
+- **ER2:** Partial. The deterministic valuation is deliberately not shown in the draft. It is SVI→money, which SOT H10 is removing. The SVI and dimension scores already show on the results screen.
+- **AF08:** When the run is not saved, the page says so honestly and does not claim a free report was used.
+- **AF14:** On `/analyze/<id>`, a 5xx, a 429 or a network error now shows "could not load just now" and retries automatically. Only 401, 403 and 404 show "not found".
+
+950 related tests pass and tsc is clean.
+
+**Still open:** Wave C, which is AF11–AF13 and AF15.
