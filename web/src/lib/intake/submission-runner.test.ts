@@ -11,11 +11,13 @@
 // report run; classify / evaluation failures never fail the submission
 // (warnings); the webhook is enqueued to the OWNER only; IP is hashed.
 
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { createIntake, memoryIntakeStore } from "./program-intakes";
 import {
   DECK_MAX_BYTES,
+  IntakeStorageUnavailableError,
   SUBMISSION_HTTP_STATUS,
+  resolveIntakeUploadRoot,
   hashIp,
   normaliseSubmission,
   runIntakeSubmission,
@@ -147,6 +149,43 @@ describe("runIntakeSubmission — gates", () => {
     const down = deps({ scan: async () => ({ ok: false, verdict: "scanner_error" }) });
     expect(await runIntakeSubmission(fresh, { ...down.d, store })).toMatchObject({ ok: false, error: "scanner_unavailable" });
     expect(store.submissions).toHaveLength(1);
+  });
+});
+
+describe("G34 DC07 — decks never fall back to /tmp", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("resolveIntakeUploadRoot: INTAKE_UPLOAD_DIR (absolute + existing) wins; else /app/intake-uploads; else null — never /tmp", () => {
+    const has = (paths: string[]) => (p: string) => paths.includes(p);
+    expect(resolveIntakeUploadRoot({ INTAKE_UPLOAD_DIR: "/data/intake/" }, has(["/data/intake"]))).toBe("/data/intake");
+    expect(resolveIntakeUploadRoot({ INTAKE_UPLOAD_DIR: "/data/intake" }, has(["/app/intake-uploads"]))).toBeNull();
+    expect(resolveIntakeUploadRoot({ INTAKE_UPLOAD_DIR: "rel/intake" }, has(["rel/intake"]))).toBeNull();
+    expect(resolveIntakeUploadRoot({}, has(["/app/intake-uploads", "/tmp/intake-uploads"]))).toBe("/app/intake-uploads");
+    expect(resolveIntakeUploadRoot({}, has(["/tmp/intake-uploads", "/tmp"]))).toBeNull();
+  });
+
+  it("storage unavailable → storage_unavailable (503), no submission row, no classify", async () => {
+    const { store } = await seed();
+    const { d, calls } = deps({ storeDeck: async () => { throw new IntakeStorageUnavailableError(); } });
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await runIntakeSubmission(base(), { ...d, store })).toMatchObject({ ok: false, error: "storage_unavailable" });
+    expect(SUBMISSION_HTTP_STATUS.storage_unavailable).toBe(503);
+    expect(store.submissions).toHaveLength(0);
+    expect(calls.classify).not.toHaveBeenCalled();
+    expect(err).toHaveBeenCalled();
+    err.mockRestore();
+  });
+
+  it("the default store with no durable root refuses loudly instead of writing /tmp", async () => {
+    vi.stubEnv("INTAKE_UPLOAD_DIR", "/nonexistent-g34-dc07/intake");
+    const { store } = await seed();
+    const { d } = deps();
+    const { storeDeck: _stub, ...noStore } = d;
+    void _stub;
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(await runIntakeSubmission(base(), { ...noStore, store } as RunnerDeps)).toMatchObject({ ok: false, error: "storage_unavailable" });
+    expect(store.submissions).toHaveLength(0);
+    err.mockRestore();
   });
 });
 

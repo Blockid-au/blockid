@@ -12,7 +12,8 @@
 //   404 not_found | closed (+ reason) | not_migrated   (unknown / closed / not applied)
 //   409 duplicate                           same founder email on this intake
 //   413 deck_too_large · 415 deck_type · 422 deck_infected · 429 rate limit
-//   503 scanner_unavailable | service_unavailable
+//   503 scanner_unavailable | storage_unavailable | service_unavailable
+//       (storage_unavailable: no durable deck root — G34 DC07, never /tmp)
 //
 // Rate limit: 5 per hour per IP (`enforceRateLimit("intake-submit", null, …)`).
 // Multipart is read once; a body we cannot parse is a 400. The multipart

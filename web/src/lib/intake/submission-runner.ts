@@ -7,8 +7,11 @@ import type { ReportV2 } from "@/lib/report-v2/schema";
 //      or `closed` for the route; duplicate (intake, founder_email) → 409;
 //   2. validate the three fields + the deck (25 MB, PDF / DOCX only);
 //   3. malware-scan the deck (clamd, fail-CLOSED like /api/upload) and store
-//      it under a PRIVATE root (/app/intake-uploads or /tmp/intake-uploads —
-//      never the public upload.blockid.au tree: a deck is confidential);
+//      it under a PRIVATE, DURABLE root (INTAKE_UPLOAD_DIR, else
+//      /app/intake-uploads — never the public upload.blockid.au tree: a deck
+//      is confidential). G34 DC07: no /tmp fallback — with no durable root
+//      the submission fails loudly (`storage_unavailable` → 503) rather than
+//      writing a deck the next reboot deletes;
 //   4. insert the `intake_submissions` row (status received) — from here on
 //      every step is best-effort and only appends to `warnings`;
 //   5. `classifyDeck()` (shared with /api/pitchdeck/classify) → coverage map
@@ -32,7 +35,7 @@ import type { ReportV2 } from "@/lib/report-v2/schema";
 import { createHash, randomBytes } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
+import { isAbsolute, join, resolve } from "node:path";
 import type { IntakeStore, IntakeSubmission, ProgramIntake } from "./program-intakes";
 import { intakeAcceptance, IntakeStoreError, supabaseIntakeStore } from "./program-intakes";
 import type { ClassifyDeckResult } from "@/lib/pitchdeck/classify";
@@ -47,7 +50,35 @@ export const DECK_MIME_EXT: Readonly<Record<string, string>> = Object.freeze({
   "application/pdf": "pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
 });
-export const INTAKE_UPLOAD_ROOT = existsSync("/app/intake-uploads") ? "/app/intake-uploads" : "/tmp/intake-uploads";
+
+/**
+ * G34 DC07 — the durable private root for program-intake decks, or null.
+ * `INTAKE_UPLOAD_DIR` (absolute, must already exist — a missing mount must
+ * not be papered over by mkdir on the root disk) wins; else the Docker-era
+ * `/app/intake-uploads` when present. Never /tmp: a deck written there was
+ * silently lost on the next reboot / tmp clean.
+ */
+export function resolveIntakeUploadRoot(
+  env: Record<string, string | undefined> = process.env,
+  exists: (p: string) => boolean = existsSync,
+): string | null {
+  const configured = env.INTAKE_UPLOAD_DIR?.trim();
+  if (configured) {
+    if (!isAbsolute(configured)) return null;
+    const root = resolve(configured);
+    return exists(root) ? root : null;
+  }
+  return exists("/app/intake-uploads") ? "/app/intake-uploads" : null;
+}
+
+/** G34 DC07: no durable deck storage — the runner answers `storage_unavailable` (503). */
+export class IntakeStorageUnavailableError extends Error {
+  readonly code = "storage_unavailable" as const;
+  constructor(message = "No durable intake upload directory (set INTAKE_UPLOAD_DIR)") {
+    super(message);
+    this.name = "IntakeStorageUnavailableError";
+  }
+}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const HONEYPOT_FIELD = "company_website_confirm";
@@ -85,6 +116,7 @@ export type SubmissionErrorCode =
   | "deck_type"
   | "deck_infected"
   | "scanner_unavailable"
+  | "storage_unavailable"
   | "service_unavailable"
   | "not_migrated"
   | "create_failed";
@@ -101,6 +133,7 @@ export const SUBMISSION_HTTP_STATUS: Readonly<Record<SubmissionErrorCode, number
   deck_too_large: 413,
   deck_infected: 422,
   scanner_unavailable: 503,
+  storage_unavailable: 503,
   service_unavailable: 503,
   create_failed: 500,
 });
@@ -211,7 +244,9 @@ async function defaultScan(buf: Buffer) {
 }
 
 async function defaultStoreDeck(deck: DeckInput, intakeId: string): Promise<string> {
-  const dir = join(INTAKE_UPLOAD_ROOT, intakeId.replace(/[^a-zA-Z0-9-]/g, ""));
+  const root = resolveIntakeUploadRoot();
+  if (!root) throw new IntakeStorageUnavailableError();
+  const dir = join(root, intakeId.replace(/[^a-zA-Z0-9-]/g, ""));
   if (!existsSync(dir)) await mkdir(dir, { recursive: true, mode: 0o750 });
   // Extension from the VALIDATED MIME, never the client filename.
   const ext = DECK_MIME_EXT[deck.mimeType] ?? "bin";
@@ -346,6 +381,10 @@ export async function runIntakeSubmission(input: SubmissionInput, deps: RunnerDe
   try {
     deckPath = await (deps.storeDeck ?? defaultStoreDeck)(deck, intake.id);
   } catch (err) {
+    if (err instanceof IntakeStorageUnavailableError) {
+      console.error("[intake:submit] deck storage unavailable — refusing the submission (no /tmp fallback):", err.message);
+      return { ok: false, error: "storage_unavailable", message: "Deck storage is temporarily unavailable — try again shortly" };
+    }
     return { ok: false, error: "create_failed", message: `Could not store the deck: ${err instanceof Error ? err.message : "unknown"}` };
   }
 

@@ -33,7 +33,17 @@ export const MIN_TEXT_CHARS = 40;
 export const STORED_TEXT_CHARS = 40_000;
 
 /** Where /api/upload, the guest flow and the intake runner persist files. */
-export const UPLOAD_ROOTS = ["/app/uploads", "/app/guest-uploads", "/tmp/guest-uploads", "/app/intake-uploads", "/tmp/intake-uploads"];
+// G34 DC07: the intake runner's durable root (INTAKE_UPLOAD_DIR) is readable
+// too; /tmp/intake-uploads stays listed only so decks stored before DC07 resolve.
+const INTAKE_UPLOAD_DIR = process.env.INTAKE_UPLOAD_DIR?.trim();
+export const UPLOAD_ROOTS = [
+  "/app/uploads",
+  "/app/guest-uploads",
+  "/tmp/guest-uploads",
+  "/app/intake-uploads",
+  "/tmp/intake-uploads",
+  ...(INTAKE_UPLOAD_DIR && path.isAbsolute(INTAKE_UPLOAD_DIR) ? [path.resolve(INTAKE_UPLOAD_DIR)] : []),
+];
 
 export function classifyPrompt(text: string): string {
   return `You are the intake analyst at BlockID's Startup Value Index.
