@@ -27,6 +27,7 @@ import { ConfidenceMeter, DimensionScorecard } from "./dimension-scorecard";
 import { KeyMetricsStrip } from "./key-metrics-strip";
 import { RedFlagPanel, WhyStopAskLists } from "./red-flag-panel";
 import { SignalChipStrip } from "./signal-chip-strip";
+import { CalibrationLine, PeerStageStrip } from "./peer-stage-strip";
 
 /** G19-S41 — the ledger strip "base 100 → dims → stage → penalties → total" + "N of 8 dimensions pending" (kept from the cover). */
 export function TbrCoverLedger({ report, locale = "en" }: { report: ReportV2; locale?: TbrUiLocale }) {
@@ -215,7 +216,16 @@ export function TbrDashboard({ report, view, v4, title, locale = "en", lockCards
           <KeyMetricsStrip v4={v4} />
         </div>
         <div className="order-4 min-w-0 lg:order-2 lg:col-span-7">
-          <DimensionScorecard v4={v4} locale={locale} footer={<SignalChipStrip v4={v4} />} />
+          <DimensionScorecard
+            v4={v4}
+            locale={locale}
+            footer={
+              <>
+                <SignalChipStrip v4={v4} />
+                <PeerStageStrip v4={v4} />
+              </>
+            }
+          />
         </div>
         <div className="order-1 min-w-0 lg:order-3 lg:col-span-5">
           <RedFlagPanel v4={v4} />
@@ -224,6 +234,8 @@ export function TbrDashboard({ report, view, v4, title, locale = "en", lockCards
           <WhyStopAskLists v4={v4} citations={cites} locale={locale} />
         </div>
       </div>
+
+      <CalibrationLine v4={v4} />
 
       <TbrNumberNotes report={report} locale={locale} />
 

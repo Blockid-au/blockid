@@ -120,7 +120,8 @@ export function TbrReportV2({ report: rawReport, locale = "en", upgradeHref, aft
   const forceFull = free && Boolean(unlock) && unlock?.mode !== "buy";
   const paid = !free || forceFull;
   // G34 BT3: the page-1 projection (D24-b: free page 1 unlocked; lists gated like the screening).
-  const v4 = buildDashboardV4(report, aligned.card, view, { locale, lockCards: !paid, dash: dashboard });
+  // G34 BT6 (RQ21): the backtest headline the server page loaded (omitted → the line links the methodology, no figures).
+  const v4 = buildDashboardV4(report, aligned.card, view, { locale, lockCards: !paid, dash: dashboard, ...(benchmarks?.calibration !== undefined ? { calibration: benchmarks.calibration } : {}) });
   const railFor = (mode: TbrUnlockMode) => (
     <TbrUnlockRail mode={mode} chapterCount={report.dimensions.length} onUnlock={unlock?.onUnlock} orderId={unlock?.orderId} orderStatus={unlock?.orderStatus} generateHref={unlock?.generateHref} locale={locale} />
   );

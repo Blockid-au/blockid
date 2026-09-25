@@ -8,6 +8,7 @@ import { asReportTierClient, emitReportView, resolveReportTier } from "@/lib/ana
 import { BusinessReportClient } from "./business-report-client";
 import { loadAssessmentContext, resolveProjectStageAndSector } from "@/lib/svi/assessment-context";
 import { orderParam } from "@/lib/paywall/report-delivery";
+import { readSviBacktestHeadline } from "@/lib/backtest/latest";
 
 export const metadata: Metadata = {
   title: "Trusted Business Report — BlockID",
@@ -35,7 +36,9 @@ export default async function BusinessReportPage({
   // report the client resolves, so the benchmark is resolved by stage below.
   const projectStage = projectId !== "default" ? await resolveProjectStageAndSector(projectId) : null;
   const assessmentContext = projectStage ? await loadAssessmentContext(projectId, projectStage.stage, projectStage.sector) : null;
-  const assessmentBenchmarks = assessmentContext ? { total: assessmentContext.benchmark, evidenceConfidence: assessmentContext.evidenceConfidence, unverifiedMaterialClaims: assessmentContext.unverifiedMaterialClaims } : undefined;
+  // G34 BT6 (RQ21): the published SVI backtest headline for the page-1 calibration line.
+  const calibration = await readSviBacktestHeadline();
+  const assessmentBenchmarks = assessmentContext ? { total: assessmentContext.benchmark, evidenceConfidence: assessmentContext.evidenceConfidence, unverifiedMaterialClaims: assessmentContext.unverifiedMaterialClaims, calibration } : { calibration };
 
   // G16-A funnel: `report_view` — the founder opened their Trusted Business
   // Report. Server-side so it fires whether or not the client bundle hydrates

@@ -130,3 +130,41 @@ describe("TbrDashboard — states (RQ07)", () => {
     for (const secret of secrets) expect(textOf(leak)).not.toContain(secret);
   });
 });
+
+describe("TbrDashboard — G34 BT6 position line + calibration (RQ19–RQ21, RQ27, RQ28)", () => {
+  it("stage ladder under the scorecard as text + dots (role=img label); no peer / spike / round line when the report has no data", () => {
+    const html = page1(renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} />));
+    expect(html).toContain('data-tbr-stage-ladder="4"');
+    expect(html).toContain('aria-label="Stage ladder: step 4 of 5, Scaling"');
+    expect(textOf(html)).toContain("Scaling");
+    expect(html).toContain("Commercial maturity from verified evidence only");
+    expect(html).not.toContain("data-tbr-spike");
+    expect(html).not.toContain("data-tbr-round-readiness");
+    expect(html).toMatch(/data-tbr-position[\s\S]*<\/div>/);
+  });
+
+  it("peer position and spike print only when the report publishes them", () => {
+    const report = demoReportV2();
+    report.cover.svi = { ...report.cover.svi, cohortPercentile: 62, cohortN: 41 };
+    for (const d of report.dimensions) d.benchmark = { ...d.benchmark, percentile: d.dim === "tre" ? 95 : 50, n: 41 };
+    const html = page1(renderToStaticMarkup(<TbrReportV2 report={report} />));
+    expect(html).toContain('data-tbr-peer="published"');
+    expect(textOf(html)).toContain(`p62 of ${report.cover.stageLabel} cohort (n = 41)`);
+    expect(html).toContain('data-tbr-spike="tre"');
+    expect(textOf(html)).toMatch(/\(top 10% of stage\)/);
+  });
+
+  it("calibration: the server-loaded backtest headline with the methodology link; pending when none; no figures when the surface did not load it", () => {
+    const published = page1(renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} benchmarks={{ calibration: { rho: 0.762, n: 41, asOf: "2026-09-17T00:07:42.936Z" } }} />));
+    expect(published).toContain('data-tbr-calibration="published"');
+    expect(textOf(published)).toMatch(/SVI backtest ρ 0\.76 vs round size \(n = 41, /);
+    expect(textOf(published)).toContain("not a substitute for diligence");
+    expect(published).toContain('href="/methodology/calibration"');
+    const pending = page1(renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} benchmarks={{ calibration: null }} />));
+    expect(pending).toContain('data-tbr-calibration="pending"');
+    expect(textOf(pending)).toContain("Calibration pending");
+    const unknown = page1(renderToStaticMarkup(<TbrReportV2 report={demoReportV2()} />));
+    expect(unknown).toContain('data-tbr-calibration="unknown"');
+    expect(unknown).toContain('href="/methodology/calibration"');
+  });
+});

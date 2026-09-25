@@ -14,6 +14,7 @@ import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/reports/business/business-report-client";
 import { loadAssessmentContext } from "@/lib/svi/assessment-context";
+import { readSviBacktestHeadline } from "@/lib/backtest/latest";
 import { TbrViewBeacon } from "@/components/tbr/tbr-view-beacon";
 import { TbrLeadModal } from "@/components/tbr/tbr-lead-modal";
 import { loadReportV2ByShareToken } from "@/lib/report-v2/load";
@@ -178,6 +179,8 @@ export default async function TbrSharePage({
   const initialReportV2 = loaded?.report ?? null;
   // G21 P1: benchmark for the Assessment Card, published only under the n-rule.
   const assessmentContext = await loadAssessmentContext(result.row.project_id ?? null, initialReportV2?.cover.stage ?? null, initialReportV2?.cover.sector ?? null);
+  // G34 BT6 (RQ21): the published SVI backtest headline for the page-1 calibration line.
+  const calibration = await readSviBacktestHeadline();
 
   const pdfMode = pdf === "1";
   return (
@@ -188,7 +191,7 @@ export default async function TbrSharePage({
         initialReportV2={initialReportV2}
         shareToken={token}
         pdfMode={pdfMode}
-        benchmarks={{ total: assessmentContext.benchmark, evidenceConfidence: assessmentContext.evidenceConfidence, unverifiedMaterialClaims: assessmentContext.unverifiedMaterialClaims }}
+        benchmarks={{ total: assessmentContext.benchmark, evidenceConfidence: assessmentContext.evidenceConfidence, unverifiedMaterialClaims: assessmentContext.unverifiedMaterialClaims, calibration }}
       />
       {/* Wave 26A — anonymous open-tracking beacon. Never runs in PDF export. */}
       {!pdfMode && <TbrViewBeacon token={token} />}

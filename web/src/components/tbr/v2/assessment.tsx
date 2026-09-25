@@ -9,6 +9,7 @@
 
 import { AssessmentCard } from "@/components/svi/AssessmentCard";
 import { DimensionExplainGrid } from "@/components/svi/DimensionExplainCard";
+import type { SviBacktestHeadline } from "@/lib/backtest/latest";
 import type { DimKey } from "@/lib/report-pipeline/dimension-owners";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import { type AssessmentCardData, assessmentCardFromReport, type AssessmentBenchmark, type AssessmentCardOptions } from "@/lib/svi/assessment-card";
@@ -21,6 +22,8 @@ export interface TbrAssessmentBenchmarks {
   /** Server-loaded context (review P1): the stored evidence confidence + the claim-register count, so every surface prints the same numbers. */
   evidenceConfidence?: number | null;
   unverifiedMaterialClaims?: number | null;
+  /** G34 BT6 (RQ21): the published SVI backtest headline (`readSviBacktestHeadline()`); null = none published. */
+  calibration?: SviBacktestHeadline | null;
 }
 
 export function TbrAssessmentCard({ report, locale = "en", benchmarks, options, data: prebuilt }: { report: ReportV2; locale?: TbrUiLocale; benchmarks?: TbrAssessmentBenchmarks; options?: Omit<AssessmentCardOptions, "benchmark">; data?: AssessmentCardData }) {

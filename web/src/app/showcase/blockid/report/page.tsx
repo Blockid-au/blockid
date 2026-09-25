@@ -18,6 +18,7 @@ import { WebPageJsonLd } from "@/components/seo/json-ld";
 import { ShowcaseBlockidReportView } from "@/components/showcase/blockid-report-view";
 import { loadBlockidShowcaseReport, blockidShowcaseProjectId } from "@/lib/showcase/blockid-report";
 import { loadAssessmentContext } from "@/lib/svi/assessment-context";
+import { readSviBacktestHeadline } from "@/lib/backtest/latest";
 
 const SITE_URL = "https://blockid.au";
 const SHOWCASE = `${SITE_URL}/showcase/blockid`;
@@ -53,6 +54,8 @@ export default async function ShowcaseBlockidReportPage() {
   const loaded = await loadBlockidShowcaseReport();
   // G21 P1: claims count + stage benchmark for the Assessment Card (fail-soft).
   const assessmentContext = await loadAssessmentContext(blockidShowcaseProjectId(), loaded?.report.cover.stage ?? null, loaded?.report.cover.sector ?? null);
+  // G34 BT6 (RQ21): the published SVI backtest headline for the page-1 calibration line.
+  const calibration = await readSviBacktestHeadline();
   return (
     <>
       <PageTracker page="showcase-blockid-report" />
@@ -67,7 +70,7 @@ export default async function ShowcaseBlockidReportPage() {
         ]}
       />
       <MarketingShell>
-        <ShowcaseBlockidReportView loaded={loaded} benchmarks={{ total: assessmentContext.benchmark, evidenceConfidence: assessmentContext.evidenceConfidence, unverifiedMaterialClaims: assessmentContext.unverifiedMaterialClaims }} />
+        <ShowcaseBlockidReportView loaded={loaded} benchmarks={{ total: assessmentContext.benchmark, evidenceConfidence: assessmentContext.evidenceConfidence, unverifiedMaterialClaims: assessmentContext.unverifiedMaterialClaims, calibration }} />
       </MarketingShell>
     </>
   );
