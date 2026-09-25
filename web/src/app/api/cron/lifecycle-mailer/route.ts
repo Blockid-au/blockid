@@ -1,5 +1,12 @@
 // /api/cron/lifecycle-mailer — drip campaign mailer (T-0415).
 //
+// ⛔ RETIRED — G34-BT2 EM01 (2026-09-25). Unscheduled in
+// scripts/crontab.production: it had no enrolments, no email-preference
+// check and a 404 unsubscribe link (`/account/unsubscribe`). `email_drips` +
+// lib/email-drip.ts (`/api/cron/email-drip`) is the one engine. The handler
+// answers `{ retired: true }` after the auth gate and sends nothing; the
+// legacy body below is unreachable and kept only for the history.
+//
 // Runs every 15 minutes. Picks up to LIMIT rows from lifecycle_state
 // whose next_send_at ≤ now(), renders the right template, sends via
 // lib/email.sendEmail, and advances the state machine. Best-effort:
@@ -46,6 +53,8 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 const LIMIT = 100;
+/** G34-BT2 EM01 — see the header. Never flip back without an unsubscribe + preference review. */
+const LIFECYCLE_MAILER_RETIRED = true;
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? "https://blockid.au";
 
 function authorised(request: Request): boolean {
@@ -60,6 +69,9 @@ export const POST = GET;
 export async function GET(request: Request) {
   if (!authorised(request)) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  }
+  if (LIFECYCLE_MAILER_RETIRED) {
+    return NextResponse.json({ ok: true, retired: true, processed: 0, engine: "email-drip" });
   }
   if (!isSupabaseConfigured()) {
     return NextResponse.json({ error: "supabase_not_configured" }, { status: 503 });

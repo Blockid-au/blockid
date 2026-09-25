@@ -1,5 +1,8 @@
 // T_EMAIL_0001 — Post-signup nurture email queue helper (server-only).
 //
+// ⛔ RETIRED — G34-BT2 EM01 (2026-09-25): no signup path calls this any more
+// (nothing drained `nurture_email_queue`; /api/cron/nurture-emails is retired).
+//
 // Enqueues the D+1, D+4, D+9 nurture emails for a new user immediately
 // after account creation. The actual sending is handled by the cron job at
 // /api/cron/nurture-emails (runs hourly, CRON_SECRET-gated).

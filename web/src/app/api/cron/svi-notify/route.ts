@@ -1,5 +1,9 @@
 // POST /api/cron/svi-notify — DISABLED (email spam prevention)
 //
+// ⛔ RETIRED — G34-BT2 EM01 (2026-09-25): unscheduled in scripts/crontab.production.
+// Already a no-op; the envelope is unchanged so old callers keep a 200.
+// `email_drips` + lib/email-drip.ts is the one commercial-mail engine.
+//
 // Email policy: lifecycle-only (4 emails total per user).
 // Previously sent: welcome, weekly reports, nurture sequences, re-engagement.
 // Now all replaced by /api/cron/weekly-insights lifecycle milestones:

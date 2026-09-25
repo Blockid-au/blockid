@@ -1,5 +1,12 @@
 // GET|POST /api/cron/onboarding-sequence
 //
+// ⛔ RETIRED — G34-BT2 EM01 (2026-09-25). Never scheduled in
+// scripts/crontab.production and superseded by `email_drips` +
+// lib/email-drip.ts (`/api/cron/email-drip`), the one commercial-mail engine
+// (global frequency cap, consent, suppression, List-Unsubscribe). The handler
+// answers `{ retired: true }` after the auth gate and sends nothing; the
+// legacy body below is unreachable and kept only for the history.
+//
 // Post-signup onboarding emails for users who have NOT yet run an SVI analysis.
 // Once they run an analysis, the lifecycle sequence (/api/cron/weekly-insights) takes over.
 //
@@ -26,6 +33,8 @@ import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+/** G34-BT2 EM01 — see the header. */
+const RETIRED = true;
 
 // Pricing truth: every figure the D+7 step quotes comes from plans-v2 (price,
 // trial) and plans.csv via plans.generated (monthly credit grant) — never typed.
@@ -127,6 +136,9 @@ const STEPS: OnboardingStep[] = [
 export async function GET(request: Request) {
   if (!isCronAuthorised(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (RETIRED) {
+    return NextResponse.json({ ok: true, retired: true, sent: 0, skipped: 0, engine: "email-drip" });
   }
 
   const supabase = getSupabaseAdmin();

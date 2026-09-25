@@ -32,7 +32,8 @@ import { initializeCredits } from "./credits";
 import { processReferral } from "./referrals";
 import { setAuditActor } from "./audit/context";
 import { processAttribution } from "./reseller/process-attribution";
-import { enqueueNurtureSequence } from "./nurture";
+// G34-BT2 EM01: signup no longer enqueues `nurture_email_queue` (lib/nurture.ts)
+// — nothing drains that queue; `email_drips` (lib/email-drip.ts) is the one engine.
 import { SESSION_COOKIE } from "./auth-cookie";
 // G16-A: `sign_up` fires once per app_users creation (deterministic event_id
 // on the user id) — the only place all four sign-up paths converge.
@@ -277,7 +278,6 @@ export async function consumeMagicLink(
     // Grant free credits to new users.
     await initializeCredits(created.id);
     await seedWelcomeNotification(created.id);
-    await enqueueNurtureSequence(created.id);
     emitSignUp({ userId: created.id, email, method: "magic_link" });
 
     // Process referral if a referral code was passed in the pending payload.
@@ -586,7 +586,6 @@ export async function loginWithGoogle(
     // Grant free credits to new users.
     await initializeCredits(created.id);
     await seedWelcomeNotification(created.id);
-    await enqueueNurtureSequence(created.id);
     emitSignUp({ userId: created.id, email, method: "google" });
 
     // Process referral if a referral code was provided (from cookie/session).
@@ -721,7 +720,6 @@ export async function registerWithPassword(args: {
 
   await initializeCredits(created.id);
   await seedWelcomeNotification(created.id);
-  await enqueueNurtureSequence(created.id);
   emitSignUp({ userId: created.id, email, method: "email" });
   if (args.referralCode) {
     await processReferral(created.id, args.referralCode).catch(() => {});
@@ -867,7 +865,6 @@ export async function autoCreateUserWithTempPassword(
   // Grant free credits to new users
   await initializeCredits(created.id);
   await seedWelcomeNotification(created.id);
-  await enqueueNurtureSequence(created.id);
   emitSignUp({ userId: created.id, email: normalised, method: "temp_password" });
 
   return { ok: true, userId: created.id, tempPassword, isNewUser: true };

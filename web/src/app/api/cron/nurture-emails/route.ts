@@ -1,5 +1,12 @@
 // GET /api/cron/nurture-emails — T_EMAIL_0001 D1/D4/D9 nurture sequence processor.
 //
+// ⛔ RETIRED — G34-BT2 EM01 (2026-09-25). Never scheduled in
+// scripts/crontab.production and superseded by `email_drips` +
+// lib/email-drip.ts (`/api/cron/email-drip`), the one commercial-mail engine
+// (global frequency cap, consent, suppression, List-Unsubscribe). The handler
+// answers `{ retired: true }` after the auth gate and sends nothing; the
+// legacy body below is unreachable and kept only for the history.
+//
 // Picks up pending rows from nurture_email_queue where scheduled_at <= NOW(),
 // sends the appropriate email for each day (1, 4, 9), and marks rows sent/failed.
 // Capped at 50 rows per run. Respects CRON_SECRET header.
@@ -23,6 +30,8 @@ import { GENERATED_PLANS_BY_ID } from "@/config/pricing/plans.generated";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
+/** G34-BT2 EM01 — see the header. */
+const RETIRED = true;
 
 const BATCH_LIMIT = 50;
 
@@ -274,6 +283,9 @@ const TEMPLATES: Record<1 | 4 | 9, EmailTemplate> = {
 export async function GET(request: Request): Promise<Response> {
   if (!isCronAuthorised(request)) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  }
+  if (RETIRED) {
+    return NextResponse.json({ ok: true, retired: true, processed: 0, sent: 0, engine: "email-drip" });
   }
 
   const supabase = getSupabaseAdmin();

@@ -62,8 +62,9 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 
 # ── Phase 1: Data Collection (2:00-2:30am AEST / 16:xx UTC) ──
 0 16 * * * bash $RUN svi-snapshot
-5 16 * * * bash $RUN svi-notify
-10 16 * * * bash $RUN nurture
+# G34-BT2 EM01 (2026-09-25): svi-notify + nurture unscheduled — both were
+# disabled no-op stubs; email_drips (lib/email-drip.ts, `email-drip` below) is
+# the one commercial-mail engine. Routes stay (retired) for manual callers.
 15 16 * * * bash $RUN vesting
 # Lead nurture D1/D4/D9 — at most 1 email/user/day, opt-out aware, dedup via svi_notifications.
 20 16 * * * bash $RUN lead-nurture
@@ -400,8 +401,8 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 #
 # MORNING CYCLE (2am-10:30am AEST):
 #   ┌─ Phase 1: Data ──────────────┐
-#   │ svi-snapshot, svi-notify     │
-#   │ nurture, vesting             │
+#   │ svi-snapshot, vesting        │
+#   │ lead-nurture                 │
 #   └──────────┬───────────────────┘
 #              ▼
 #   ┌─ Phase 2: Health ────────────┐
@@ -503,8 +504,8 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # 12pm,2pm,4pm    | orchestrator (PM)  | 1-3 | orchestrate  | ✅ runner
 # 8pm,10pm        | orchestrator (EVE) | 1-3 | orchestrate  | ✅ runner
 # 2:00am          | svi-snapshot       | 0   | data         | ✅ runner
-# 2:05am          | svi-notify         | 0   | data         | ✅ runner
-# 2:10am          | nurture            | 0   | data         | ✅ runner
+# 2:05am          | svi-notify         | 0   | data         | ⛔ retired G34-BT2
+# 2:10am          | nurture            | 0   | data         | ⛔ retired G34-BT2
 # 2:15am          | vesting            | 0   | data         | ✅ runner
 # 3:00am          | agent-upgrade      | 0-3 | health       | ✅ runner
 # 4:00am          | growth-insights    | 0-1 | intelligence | ✅ runner
@@ -547,8 +548,10 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 # checkout.session.completed — root cause resolved, this is defense-in-depth).
 45 */6 * * * bash $RUN stripe-reconcile --timeout 120
 
-# Lifecycle mailer (day0/3/5/6/7/14/winback drip) — every 15 min
-*/15 * * * * bash $RUN lifecycle-mailer --timeout 90
+# G34-BT2 EM01 (2026-09-25): lifecycle-mailer RETIRED and unscheduled — it
+# had no enrolments, no email-preference check and a 404 unsubscribe link.
+# Was: */15 * * * * bash $RUN lifecycle-mailer --timeout 90
+# The route now answers `retired` and sends nothing.
 
 # CCSO onboarding drip + D30 NPS pulse — the email_drips queue.
 # NOT the same job as lifecycle-mailer above: that one reads app_users /
