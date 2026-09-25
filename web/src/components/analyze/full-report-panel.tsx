@@ -35,7 +35,7 @@ import {
   type ValuationSection,
 } from "@/lib/analyses/first-analysis/types";
 import type { IntakeResult } from "@/lib/intake/analyze-input";
-import type { ReportV2Progress } from "@/lib/analyses/first-analysis/types";
+import type { ReportV2ChapterDraft, ReportV2Progress } from "@/lib/analyses/first-analysis/types";
 import { cn } from "@/lib/utils";
 import { isReportV2, type ReportV2 } from "@/lib/report-v2/schema";
 
@@ -194,6 +194,7 @@ export function parseView(body: unknown): FullReportView | null {
     kind: b.kind === "s32" || (b.kind === undefined && (b.report || b.preview)) ? "s32" : "v2",
     reportV2: b.reportV2 && typeof b.reportV2 === "object" ? b.reportV2 : null,
     progressV2: b.progressV2 && typeof b.progressV2 === "object" ? b.progressV2 : null,
+    chaptersV2: Array.isArray(b.chaptersV2) ? b.chaptersV2.filter((c) => c && typeof c === "object" && typeof c.dim === "string") : [],
     report: normaliseReport(b.report),
     preview: b.preview ?? null,
     emailedAt: b.emailedAt ?? null,
@@ -203,6 +204,41 @@ export function parseView(body: unknown): FullReportView | null {
     pollAfterSec: typeof b.pollAfterSec === "number" ? b.pollAfterSec : 0,
     heldForCap: Boolean(b.heldForCap),
   };
+}
+
+/**
+ * ER3 — chapters as the owner agents finish them, before the whole document
+ * lands. Labelled as a draft: the final report runs the audit + synthesis on
+ * top, so a verdict here can still be tightened. Exported for the test.
+ */
+export function ChaptersLanding({ chapters }: { chapters: ReportV2ChapterDraft[] }) {
+  return (
+    <section className="mt-4 rounded-xl border border-line-subtle bg-surface p-4" data-testid="analyze-chapters-landing" aria-live="polite">
+      <p className="text-xs font-semibold uppercase tracking-wider text-tertiary">
+        Chapters written so far · {chapters.length} of 8
+      </p>
+      <p className="mt-1 text-xs text-muted">Draft — the final report checks every citation and may tighten these verdicts.</p>
+      <ul className="mt-3 space-y-3">
+        {chapters.map((c) => (
+          <li key={c.dim} className="rounded-lg border border-line-subtle bg-surface-raised p-3" data-testid={`analyze-chapter-${c.dim}`}>
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <p className="text-sm font-semibold text-primary">{c.title}</p>
+              <p className="font-mono text-sm tabular-nums text-primary">
+                {c.score}
+                <span className="ml-1 text-xs text-tertiary">/ 100 · {c.band}</span>
+              </p>
+            </div>
+            <p className="mt-0.5 text-[11px] uppercase tracking-wider text-tertiary">Lead · {c.ownerAgent.toUpperCase()}</p>
+            {c.degraded ? (
+              <p className="mt-1 text-xs text-secondary">Written analysis unavailable for this chapter — the scored card stands in.</p>
+            ) : (
+              c.verdict && <p className="mt-1 text-sm leading-relaxed text-secondary">{c.verdict}</p>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
 }
 
 type ResendState = { kind: "idle" } | { kind: "sending" } | { kind: "done"; message: string; ok: boolean };
@@ -403,6 +439,9 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
           <div id="analyze-canonical-report" className="mt-4" data-testid="analyze-report-v2">
             <TbrReportV2 report={reportV2} upgradeHref="/pricing" />
           </div>
+        )}
+        {v2 && !reportV2 && !locked && (view?.chaptersV2?.length ?? 0) > 0 && (
+          <ChaptersLanding chapters={view?.chaptersV2 ?? []} />
         )}
         {v2 && !reportV2 && !locked && status !== "failed" && (
           <div className="mt-4 rounded-xl border border-dashed border-line-subtle bg-surface-sunken p-4" data-testid="analyze-report-v2-pending" aria-busy="true">

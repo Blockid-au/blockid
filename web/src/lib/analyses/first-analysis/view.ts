@@ -93,6 +93,7 @@ export function buildFullReportView(row: FullReportRow): FullReportView {
     // is false for it in practice; the gate still applies by construction.
     reportV2: locked ? null : (envelope?.report ?? null),
     progressV2: envelope?.progress ?? null,
+    chaptersV2: locked || envelope?.report ? [] : (envelope?.draftChapters ?? []),
     report: locked || !isFirstAnalysisReport(json) ? null : toReportView(json),
     preview: buildPreview(row),
     emailedAt: row.full_report_emailed_at,

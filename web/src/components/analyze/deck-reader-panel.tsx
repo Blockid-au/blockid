@@ -64,6 +64,16 @@ const SECTION_ORDER: DeckSection[] = [
 // Kept tight — it's a visual heartbeat driven by real slide count, not a
 // mocked timer over dummy data.
 const SLIDE_TICK_MS = 320;
+/**
+ * ER1 (2026-09-25): the whole walk never takes longer than this — the score
+ * is already computed when the walk starts, so a 20-slide deck must not hold
+ * the result back for 6 s. Short decks keep the 320 ms heartbeat.
+ */
+export const DECK_WALK_MAX_MS = 1200;
+export function slideTickMs(slideCount: number): number {
+  if (slideCount <= 0) return SLIDE_TICK_MS;
+  return Math.max(40, Math.min(SLIDE_TICK_MS, Math.floor(DECK_WALK_MAX_MS / slideCount)));
+}
 
 export interface DeckReaderPanelProps {
   /** Legacy API — caller manages slide list itself. */
@@ -146,9 +156,10 @@ export function DeckReaderPanel({
         }
         return;
       }
-      window.setTimeout(step, SLIDE_TICK_MS);
+      window.setTimeout(step, tick);
     };
-    const t = window.setTimeout(step, SLIDE_TICK_MS);
+    const tick = slideTickMs(intakeSlides.length);
+    const t = window.setTimeout(step, tick);
     return () => {
       cancelled = true;
       window.clearTimeout(t);

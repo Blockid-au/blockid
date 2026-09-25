@@ -992,6 +992,16 @@ export function AnalyzeRoot({
                 valuation working, the seven C-level voices as they land.
                 Renders the echo instantly from the intake; everything else
                 streams in from the job keyed on the saved row. */}
+            {!analysisId && (
+              <div
+                role="status"
+                className="rounded-xl border border-warn/40 bg-warn/10 px-4 py-3 text-sm text-primary"
+                data-testid="analyze-save-failed"
+              >
+                This analysis could not be saved, so the full report did not start. The score above is still yours —
+                nothing was charged and no free report was used. Press “Analyse another” and submit it again in a minute.
+              </div>
+            )}
             <FullReportPanel
               onFinalReport={setFindingReport}
               analysisId={analysisId}

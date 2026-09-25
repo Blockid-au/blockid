@@ -32,6 +32,12 @@ const payload: SavedAnalysisPayload = {
 };
 
 describe("resolveLoadState", () => {
+  it("AF14: a 5xx / 429 is 'unavailable' (retry), never 'not found'", () => {
+    expect(resolveLoadState({ ok: false, status: 502 })).toEqual({ status: "unavailable" });
+    expect(resolveLoadState({ ok: false, status: 429 })).toEqual({ status: "unavailable" });
+    expect(resolveLoadState({ ok: false, status: 403 })).toEqual({ status: "not-found" });
+  });
+
   it("treats a 404 as not found", () => {
     expect(resolveLoadState({ ok: false })).toEqual({ status: "not-found" });
   });

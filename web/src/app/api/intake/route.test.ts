@@ -712,3 +712,16 @@ describe("POST /api/intake — credits after the free allowance", () => {
     expect(gateMock.mock.calls[0][0]).toMatchObject({ user: { id: "a1", role: "admin" } });
   });
 });
+
+describe("POST /api/intake — AF08 an unsaved run never claims a free report", () => {
+  it("save failed → freeReport null + saveFailed, and the grant is given back", async () => {
+    saveAnalysisMock.mockResolvedValue(null);
+    const body = await json(await POST(req({ text: "an idea" })));
+    expect(body).toMatchObject({ ok: true, analysisId: null, freeReport: null, saveFailed: true });
+    expect(releaseMock).toHaveBeenCalledWith("grant-1");
+  });
+  it("a saved run carries no saveFailed flag", async () => {
+    const body = await json(await POST(req({ text: "an idea" })));
+    expect(body).not.toHaveProperty("saveFailed");
+  });
+});

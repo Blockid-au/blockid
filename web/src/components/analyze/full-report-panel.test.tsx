@@ -9,7 +9,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { AgentCard, FullReportPanel, parseView, progressLine, progressLineV2, reportApiPath, stillBeingWritten, V2_PHASE_LABELS } from "./full-report-panel";
+import { AgentCard, ChaptersLanding, FullReportPanel, parseView, progressLine, progressLineV2, reportApiPath, stillBeingWritten, V2_PHASE_LABELS } from "./full-report-panel";
 import { sampleIntake, sampleReport } from "@/lib/analyses/first-analysis/fixtures";
 import { demoReportV2 } from "@/lib/report-v2/fixtures";
 import type { FullReportView } from "@/lib/analyses/first-analysis/types";
@@ -160,5 +160,23 @@ describe("final finding handoff", () => {
     expect(finalFindingReport({ ...view, status: "running" })).toBeNull();
     expect(finalFindingReport({ ...view, reportV2: { schemaVersion: report.schemaVersion } as typeof report })).toBeNull();
     expect(finalFindingReport(null)).toBeNull();
+  });
+});
+
+// ER3 (2026-09-25): chapters written so far render before the document lands.
+describe("ChaptersLanding", () => {
+  const ch = { dim: "tre", title: "Traction & Revenue", ownerAgent: "cro", score: 78, band: "Strong", verdict: "Recurring revenue is evidenced.", degraded: false };
+  it("shows each landed chapter with its lead agent, score and a draft label", () => {
+    const out = renderToStaticMarkup(<ChaptersLanding chapters={[ch, { ...ch, dim: "cgh", title: "Capital", degraded: true, verdict: "" }]} />);
+    expect(out).toContain("Chapters written so far · 2 of 8");
+    expect(out).toContain("Lead · CRO");
+    expect(out).toContain("Recurring revenue is evidenced.");
+    expect(out).toContain("Draft");
+    expect(out).toContain("Written analysis unavailable");
+  });
+
+  it("parseView keeps well-formed chapters and drops junk", () => {
+    const v = parseView({ ok: true, status: "running", kind: "v2", chaptersV2: [ch, null, { nope: 1 }] });
+    expect(v?.chaptersV2).toEqual([ch]);
   });
 });

@@ -538,8 +538,10 @@ async function POST_handler(request: Request) {
         console.error("[intake] could not start the report job —", err);
       }
     }
+    // AF08: an unsaved run has no report job and its grant was given back —
+    // never say "sending report N" for it.
     const freeReport =
-      gate.path === "free"
+      gate.path === "free" && analysisId
         ? {
             sequenceNo: gate.grant?.sequence_no ?? null,
             remaining: gate.remaining,
@@ -551,6 +553,7 @@ async function POST_handler(request: Request) {
       ok: true,
       analysisId,
       freeReport,
+      ...(analysisId ? {} : { saveFailed: true }),
       ...(creditCharge ? { creditsCharged: creditCharge.cost } : {}),
       ...result,
     });

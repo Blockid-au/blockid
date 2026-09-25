@@ -78,7 +78,8 @@ export function IdeaLabPanel({
   classification: classificationProp,
   intake,
   onDone,
-  holdMs = 1400,
+  // ER1: the result is ready — a short beat to read the card, not a wait.
+  holdMs = 500,
   className,
 }: IdeaLabPanelProps) {
   const doneRef = React.useRef(false);

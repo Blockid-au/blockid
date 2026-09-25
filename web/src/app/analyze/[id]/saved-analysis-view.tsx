@@ -73,7 +73,9 @@ export interface SavedAnalysisPayload {
 type LoadState =
   | { status: "loading" }
   | { status: "found"; analysis: SavedAnalysisPayload }
-  | { status: "not-found" };
+  | { status: "not-found" }
+  /** AF14: the server or network failed — not proof the analysis is missing. */
+  | { status: "unavailable" };
 
 /**
  * Map one API response onto a view state.
@@ -86,8 +88,13 @@ type LoadState =
 export function resolveLoadState(res: {
   ok: boolean;
   body?: unknown;
+  /** HTTP status; a 5xx / 429 is "try again", never "not found" (AF14). */
+  status?: number;
 }): LoadState {
-  if (!res.ok) return { status: "not-found" };
+  if (!res.ok) {
+    const code = res.status ?? 404;
+    return code >= 500 || code === 429 || code === 408 ? { status: "unavailable" } : { status: "not-found" };
+  }
   const body = res.body as
     | { ok?: boolean; analysis?: SavedAnalysisPayload }
     | null
@@ -115,6 +122,7 @@ export function savedAnalysisApiPath(id: string, token?: string | null): string 
 export function SavedAnalysisView({ id, claimed = 0, token = null }: SavedAnalysisViewProps) {
   const [findingReport, setFindingReport] = React.useState<FinalReportUpdate | null>(null);
   const [loaded, setLoaded] = React.useState<{ id: string; token: string | null; state: LoadState } | null>(null);
+  const [attempt, setAttempt] = React.useState(0);
   const state: LoadState = loaded?.id === id && loaded?.token === token ? loaded.state : { status: "loading" };
 
   React.useEffect(() => {
@@ -127,17 +135,24 @@ export function SavedAnalysisView({ id, claimed = 0, token = null }: SavedAnalys
         if (!live) return;
         const body = res.ok ? await res.json().catch(() => null) : null;
         if (!live) return;
-        setLoaded({ id, token, state: resolveLoadState({ ok: res.ok, body }) });
+        setLoaded({ id, token, state: resolveLoadState({ ok: res.ok, body, status: res.status }) });
       } catch {
-        // A network failure is not a missing analysis, but the founder can do
-        // exactly the same thing about either: reload, or start a new run.
-        if (live) setLoaded({ id, token, state: { status: "not-found" } });
+        // AF14: a network failure is not a missing analysis.
+        if (live) setLoaded({ id, token, state: { status: "unavailable" } });
       }
     })();
     return () => {
       live = false;
     };
-  }, [id, token]);
+  }, [id, token, attempt]);
+
+  // AF14: one quiet automatic retry for a transient failure (a deploy, a restart).
+  const unavailable = state.status === "unavailable";
+  React.useEffect(() => {
+    if (!unavailable || attempt >= 2) return;
+    const t = window.setTimeout(() => setAttempt((n) => n + 1), 4000);
+    return () => window.clearTimeout(t);
+  }, [unavailable, attempt]);
 
   if (state.status === "loading") {
     return (
@@ -152,6 +167,28 @@ export function SavedAnalysisView({ id, claimed = 0, token = null }: SavedAnalys
           className="h-6 w-6 animate-spin rounded-full border-2 border-line border-t-action motion-reduce:animate-none"
         />
         <p className="text-sm text-secondary">Loading your analysis…</p>
+      </div>
+    );
+  }
+
+  if (state.status === "unavailable") {
+    return (
+      <div className="mx-auto max-w-xl px-4 py-16" data-testid="saved-analysis-unavailable" role="status" aria-live="polite">
+        <div className="rounded-2xl border border-line-subtle bg-surface-raised p-6 text-center">
+          <AlertCircle aria-hidden strokeWidth={1.75} className="mx-auto h-6 w-6 text-warn" />
+          <h1 className="mt-3 text-lg font-semibold text-primary">Could not load your analysis just now</h1>
+          <p className="mt-2 text-sm text-secondary">
+            Your analysis is saved — the server did not answer this time. {attempt < 2 ? "Trying again…" : "Try again in a moment."}
+          </p>
+          <button
+            type="button"
+            onClick={() => setAttempt((n) => n + 1)}
+            className="mt-5 inline-flex items-center gap-2 rounded-lg bg-action px-4 py-2 text-sm font-semibold text-on-action transition-opacity hover:opacity-90"
+            data-testid="saved-analysis-retry"
+          >
+            Try again
+          </button>
+        </div>
       </div>
     );
   }

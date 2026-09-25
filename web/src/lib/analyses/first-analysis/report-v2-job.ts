@@ -49,7 +49,7 @@ import { buildCriteriaData } from "@/lib/report-pipeline/run-for-project";
 import { buildTbrQualityRow, recordTbrQualityAsync, type TbrQualityWriter } from "@/lib/report-pipeline/quality-log";
 import type { AssembledReport } from "@/lib/report-pipeline/types";
 import { PIPELINE_VERSION } from "@/lib/report-pipeline/version";
-import type { ReportV2 } from "@/lib/report-v2/schema";
+import type { DimensionChapter, ReportV2 } from "@/lib/report-v2/schema";
 import type { SendReportEmailResult } from "@/lib/svi/email-report";
 import type { InvestorIntentSnapshot } from "@/lib/intake/investor-intent";
 import type { EvidenceItem } from "@/lib/svi-analysis";
@@ -71,7 +71,7 @@ import {
   saveFullReportProgress,
   type FullReportRow,
 } from "./store";
-import { FULL_REPORT_V2_VERSION, isReportV2Envelope, type FullReportV2Envelope, type ReportV2Progress } from "./types";
+import { FULL_REPORT_V2_VERSION, isReportV2Envelope, type FullReportV2Envelope, type ReportV2ChapterDraft, type ReportV2Progress } from "./types";
 
 export type ReportV2JobOutcome =
   | { outcome: "not_claimable" }
@@ -170,6 +170,21 @@ export function progressFromEvent(prev: ReportV2Progress, ev: PipelineEvent, now
     default:
       return { ...prev, at };
   }
+}
+
+/** ER3: fold a finished chapter into the envelope's draft list (one entry per dimension, latest wins). Exported for the suite. */
+export function upsertChapterDraft(list: ReportV2ChapterDraft[], chapter: DimensionChapter): ReportV2ChapterDraft[] {
+  const verdict = typeof chapter.verdict === "string" ? chapter.verdict : "";
+  const entry: ReportV2ChapterDraft = {
+    dim: chapter.dim,
+    title: chapter.title,
+    ownerAgent: chapter.ownerAgent,
+    score: Math.round(chapter.score),
+    band: String(chapter.band),
+    verdict: verdict.length > 600 ? `${verdict.slice(0, 597)}…` : verdict,
+    degraded: Boolean(chapter.degraded),
+  };
+  return [...list.filter((c) => c.dim !== entry.dim), entry];
 }
 
 /** Provider / model tally over the run's calls (the document itself carries no model names). */
@@ -286,6 +301,7 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
   let done: Extract<PipelineEvent, { type: "done" }> | null = null;
   const onEvent = (ev: PipelineEvent) => {
     if (ev.type === "done") done = ev;
+    if (ev.type === "dimension_complete") envelope.draftChapters = upsertChapterDraft(envelope.draftChapters ?? [], ev.chapter);
     envelope.progress = progressFromEvent(envelope.progress, ev, deps.now());
     const t = deps.now().getTime();
     if (t - lastSaved >= deps.progressEveryMs || ev.type === "dimension_complete" || ev.type === "gather_complete") {

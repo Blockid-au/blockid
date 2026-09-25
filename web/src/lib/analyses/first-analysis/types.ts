@@ -364,6 +364,22 @@ export interface ReportV2Progress {
   chaptersDone: number;
 }
 
+/**
+ * ER3 (2026-09-25): one dimension chapter as the owner agent finishes it —
+ * the page shows chapters landing instead of one document after 3–8 min.
+ * Compact on purpose (the full chapter arrives with the document).
+ */
+export interface ReportV2ChapterDraft {
+  dim: string;
+  title: string;
+  ownerAgent: string;
+  score: number;
+  band: string;
+  verdict: string;
+  /** The agent could not write it; the deterministic card stands in. */
+  degraded: boolean;
+}
+
 export interface FullReportV2Envelope {
   version: typeof FULL_REPORT_V2_VERSION;
   analysisId: string;
@@ -375,6 +391,8 @@ export interface FullReportV2Envelope {
   completedAt?: string;
   /** The v3 document. Null while the pipeline is still running. */
   report: ReportV2 | null;
+  /** ER3: chapters written so far, while `report` is still null. */
+  draftChapters?: ReportV2ChapterDraft[];
   /** assembled report id from the orchestrator (null until it lands). */
   reportId: string | null;
   progress: ReportV2Progress;
@@ -418,6 +436,8 @@ export interface FullReportView {
   reportV2: ReportV2 | null;
   /** Pipeline progress while running (kind "v2"). */
   progressV2: ReportV2Progress | null;
+  /** ER3: chapters already written while the document is still running (empty once it lands, or when locked). */
+  chaptersV2?: ReportV2ChapterDraft[];
   report: FirstAnalysisReportView | null;
   preview: FirstAnalysisPreview | null;
   emailedAt: string | null;

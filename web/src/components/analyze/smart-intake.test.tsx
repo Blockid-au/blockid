@@ -184,3 +184,12 @@ describe("SmartIntake busy (AF10)", () => {
     expect(submitIdle.includes("disabled")).toBe(true);
   });
 });
+
+describe("ER1 — deck walk is capped", () => {
+  it("never holds the result back more than ~1.2 s, keeps the heartbeat for short decks", async () => {
+    const { slideTickMs, DECK_WALK_MAX_MS } = await import("./deck-reader-panel");
+    expect(slideTickMs(3)).toBe(320);
+    expect(slideTickMs(20) * 20).toBeLessThanOrEqual(DECK_WALK_MAX_MS);
+    expect(slideTickMs(200)).toBeGreaterThanOrEqual(40);
+  });
+});

@@ -62,6 +62,7 @@ import {
   newEnvelope,
   makeReportCaller,
   progressFromEvent,
+  upsertChapterDraft,
   runReportV2Job,
   tallyingCaller,
   investorIntentFromRow,
@@ -435,5 +436,25 @@ describe("customer report AI policy", () => {
     const calls = mock.mock.calls.slice(-3);
     expect(calls[1][0].runStrikes).toBe(calls[0][0].runStrikes);
     expect(calls[2][0].runStrikes).toBe(calls[0][0].runStrikes);
+  });
+});
+
+// ER3 (2026-09-25): chapters land on the page as the owner agents finish them.
+describe("upsertChapterDraft", () => {
+  it("adds a compact entry per dimension; a re-emitted chapter replaces the earlier one", () => {
+    const [first, second] = demoReportV2().dimensions;
+    let list = upsertChapterDraft([], first);
+    expect(list).toHaveLength(1);
+    expect(list[0]).toMatchObject({ dim: first.dim, title: first.title, ownerAgent: first.ownerAgent, score: Math.round(first.score) });
+    list = upsertChapterDraft(list, second);
+    list = upsertChapterDraft(list, { ...first, score: 12, degraded: true });
+    expect(list.map((c) => c.dim)).toEqual([second.dim, first.dim]);
+    expect(list[1]).toMatchObject({ score: 12, degraded: true });
+  });
+
+  it("keeps the verdict bounded", () => {
+    const [first] = demoReportV2().dimensions;
+    const [entry] = upsertChapterDraft([], { ...first, verdict: "x".repeat(2000) });
+    expect(entry.verdict.length).toBeLessThanOrEqual(600);
   });
 });
