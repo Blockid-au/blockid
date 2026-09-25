@@ -7,7 +7,10 @@
 // or an explicit unevidenced marker — over the executive thesis, each
 // chapter (verdict + bullets) and each criterion card (its citations count),
 // so the number on the appendix means the same thing on every document.
-// Pure; client-safe.
+// The claim predicates are shared (claim-gate.ts), so the G35 definition
+// notes in report-pipeline/quality-log.ts (statute years, window labels,
+// term lengths, allocation targets, malformed-marker normalisation) apply
+// here too. Pure; client-safe.
 
 import { autoCite, itemsFromEvidenceRows } from "@/lib/report-pipeline/auto-cite";
 import { hasCitationOrMarker, isMaterialClaim, splitClaims } from "@/lib/report-pipeline/claim-gate";

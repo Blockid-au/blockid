@@ -15,7 +15,7 @@
 //
 // Pure and client-safe (no I/O, no model call).
 
-import { expandShortCitations, hasCitationOrMarker, isMaterialClaim, splitClaims } from "./claim-gate";
+import { expandShortCitations, hasCitationOrMarker, isMaterialClaim, splitClaims, stripStatuteYears } from "./claim-gate";
 import { COMPUTED_FACT_IDS } from "./computed-facts";
 
 /** One source-backed evidence-register row (label + value / content). */
@@ -60,8 +60,10 @@ const UNIT: Record<string, NumToken["unit"]> = { "%": "%", percent: "%", "per ce
 const SOURCE_WORDS = ["stripe", "xero", "ga4", "github", "linkedin", "abr", "grantconnect", "asic", "abs", "svi", "benchmark", "valuation", "sector"];
 
 /** Every number in a claim with its currency / unit context. Single plain digits and "NN/100" score echoes are ignored. */
-export function numericTokens(claim: string): NumToken[] {
+export function numericTokens(rawClaim: string): NumToken[] {
   const out: NumToken[] = [];
+  // G35: a statute's title year ("Privacy Act 1988") is a name, not a figure a row must hold (claim-gate stripStatuteYears).
+  const claim = stripStatuteYears(rawClaim);
   for (const m of claim.matchAll(NUMBER_RE)) {
     const currency = Boolean(m[1]);
     const unsignedDigits = m[2]!.replace(/,/g, "").replace(/^[−-]/, "");

@@ -11,6 +11,7 @@
 // kept sentence so the citation gate still sees them. Pure.
 
 import { splitSentences, wordCount } from "@/lib/report-v2/paragraphs";
+import { attachTrailingMarkers } from "./claim-gate";
 
 export interface TrimResult {
   text: string;
@@ -24,7 +25,10 @@ const TRAILING_MARKERS = /((?:\s*\[(?:ev:[^\]]+|unevidenced)\])+)\s*([.!?]?)\s*$
 
 /** Trim `text` to at most `maxWords` words on a sentence boundary (word boundary for a single long sentence). */
 export function trimVerdict(text: string, maxWords: number): TrimResult {
-  const src = (text ?? "").replace(/\s+/g, " ").trim();
+  // G35: "… is 40 %. [ev:x] Next …" — a marker after the full stop belongs to
+  // the sentence before it; attach it first so a sentence-boundary cut never
+  // keeps the claim and drops its citation (or hands it to a dropped sentence).
+  const src = attachTrailingMarkers((text ?? "").replace(/\s+/g, " ").trim());
   const wordsBefore = wordCount(src);
   if (!src || wordsBefore <= maxWords) return { text: src, trimmed: false, wordsBefore, wordsAfter: wordsBefore };
   const sentences = splitSentences(src);

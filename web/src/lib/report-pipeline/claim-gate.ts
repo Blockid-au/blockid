@@ -64,6 +64,45 @@ export function declaredTableRows(text: string): boolean[] {
 }
 
 /**
+ * G35 (grounded share): the marker shapes free models write that the gate
+ * could not read, seen across the stored 2026-09-2x reports — rewritten to
+ * the canonical `[ev:<id>]` ONLY when the id they carry is an allowed id
+ * (exact, case-insensitive); anything else is left as written and stays
+ * uncited. Nothing here makes a number match a row — the Stage-1 gate still
+ * requires every cited figure to be in the cited row's text.
+ *
+ *   `[module:<id>]`            → `[ev:<id>]`  (the chapter prompt asked for this form — 38 markers)
+ *   `[ev:a, ev:b]` `[ev:a; b]` → `[ev:a] [ev:b]` (one marker per id)
+ *   `[ev:<id> output]`         → `[ev:<id>]`  (a trailing word after an exact allowed id)
+ *   `claim. [ev:x] Next …`     → `claim [ev:x]. Next …` (a marker after the full stop
+ *                                 belongs to the sentence before it; the splitter
+ *                                 used to hand it to the next sentence)
+ */
+export function normalizeCitationMarkers(text: string, allowedIds: Iterable<string>): string {
+  if (!/\[(?:ev|module):/i.test(text)) return text;
+  const allowed = new Map(Array.from(allowedIds, (a) => [a.toLowerCase(), a] as const));
+  const exact = (id: string): string | undefined => allowed.get(id.trim().toLowerCase());
+  const out = text.replace(/\[(ev|module):([^\]]+)\]/gi, (whole, kind: string, raw: string) => {
+    const parts = raw.split(/\s*[;,]\s*(?:ev:)?/i).map((p) => p.trim()).filter(Boolean);
+    const fixed = parts.map((p) => {
+      const hit = exact(p) ?? exact(p.split(/\s+/)[0] ?? "");
+      if (hit) return `[ev:${hit}]`;
+      // Unknown ids keep their original kind so nothing unallowed is promoted to [ev:].
+      return `[${kind.toLowerCase() === "module" ? "module" : "ev"}:${p}]`;
+    });
+    if (kind.toLowerCase() === "ev" && parts.length === 1 && !exact(parts[0]!) && !exact(parts[0]!.split(/\s+/)[0] ?? "")) return whole;
+    return fixed.join(" ");
+  });
+  return attachTrailingMarkers(out);
+}
+
+/** A marker run directly after terminal punctuation ("… 40 %. [ev:x] Next") moves inside the sentence it follows ("… 40 % [ev:x]. Next"). Pure; needs no id list. */
+export function attachTrailingMarkers(text: string): string {
+  if (!/[.!?][ \t]*\[(?:ev|module):/i.test(text)) return text;
+  return text.replace(/([.!?])((?:[ \t]*\[(?:ev|module):[^\]]+\])+)(?=[ \t]|$)/gim, (_w, punct: string, markers: string) => ` ${markers.trim()}${punct}`);
+}
+
+/**
  * G24-D: free models shorten a 36-char id to its first block ("[ev:f73c3a4a]").
  * When the prefix (≥ 8 hex chars) names exactly one allowed id, that is the
  * id — rewrite the marker to the full id so the gate, the critic filter and
@@ -72,8 +111,8 @@ export function declaredTableRows(text: string): boolean[] {
  */
 export function expandShortCitations(text: string, allowedIds: Iterable<string>): string {
   const allowed = Array.from(allowedIds);
-  if (!allowed.length || !/\[ev:/i.test(text)) return text;
-  return text.replace(EV_MARKER_RE, (whole, raw: string) => {
+  if (!allowed.length || !/\[(?:ev|module):/i.test(text)) return text;
+  return normalizeCitationMarkers(text, allowed).replace(EV_MARKER_RE, (whole, raw: string) => {
     const id = raw.trim();
     const lower = id.toLowerCase();
     if (allowed.some((a) => a.toLowerCase() === lower)) return whole;
@@ -92,6 +131,15 @@ export function expandShortCitations(text: string, allowedIds: Iterable<string>)
  * is still checked for the facts it carries.
  */
 export const PRESCRIPTIVE_LINE_RE = /^\s*(?:[-*]\s*|\d+\.\s*)?\[(?:\d+\s?d|this_week|30d|60d|90d)\]/i;
+
+/**
+ * G35: the same window tag written as a bold label — "**60 days**: Publish 3
+ * cornerstone articles and launch a Google Ads pilot with A$2,000 budget."
+ * (2026-09-24 live market section). It counts as the action line only when
+ * what follows the label is an imperative / "we recommend" lead with no fact
+ * verb ("**90 days**: Revenue grew 40 %" stays a claim).
+ */
+const WINDOW_LABEL_RE = /^\s*(?:[-*]\s*|\d+\.\s*)?\*\*\s*(?:(?:first|next|within|by)\s+)?(?:\d+\s*(?:days?|weeks?|months?)|(?:day|week|month)\s+\d+|q[1-4])\s*:?\s*\*\*\s*[:—–-]?\s*/i;
 
 /** The dispatcher's risk row: `- **title** (severity) — mitigation`. */
 const RISK_LINE_RE = /^\s*[-*]\s*\*\*[^*]+\*\*\s*\((?:low|medium|high|critical)(?:\/[a-z ]+)?\)\s*[—–-]\s*/i;
@@ -116,6 +164,24 @@ const TARGET_CUE_RE = /(?:\btargets?\b|\btargeting\b|\baim(?:s|ing)?\b|\bgoal\b|
 const TARGET_CUE_AFTER_RE = /^\s?(?:\+(?!\d)|[–-]\s?\d)/;
 const TARGET_CUE_BEFORE_RE = /\d\s?[–-]\s?$/;
 const NUMBER_RE = /(?:A?\$|AUD\s?|USD\s?)?\d[\d,.]*\s?(?:k|m|bn?|x|%|million|billion|thousand|-day|-month|-week)?/gi;
+/**
+ * G35: a hyphenated term length ("a 2-year vest", "a 4-year vesting schedule",
+ * "a 1-year cliff", "a 90-day pilot") qualifies the instrument being advised;
+ * it is not a magnitude and needs no target cue. A spaced duration ("runway
+ * is 6 months") is not skipped.
+ */
+const TERM_LENGTH_AFTER_RE = /^-(?:day|week|month|year|yr)s?\b/i;
+const TERM_LENGTH_TOKEN_RE = /-(?:day|week|month)$/i;
+/**
+ * G35: under an explicit advice LEAD (imperative / "we recommend …"), the
+ * direct object of an allocation verb is the recommended quantity — "We
+ * recommend allocating 10 % initially", "Offer 1 % equity", "Budget A$2,000
+ * for a pilot". Only the verb IMMEDIATELY before the number (optionally
+ * "a / about / up to / at least") counts, so "We recommend building on the
+ * A$1.2M ARR" keeps its figure checked; a sentence with only a modal
+ * ("should") never gets this cue, and the fact-verb veto still applies.
+ */
+const ALLOCATION_CUE_BEFORE_RE = /\b(?:allocat|reserv|offer|budget|spend|earmark|dedicat|grant|charg|invest)\w*\s+(?:(?:a|an|about|around|roughly|approximately|up to|at least)\s+)?[~≈]?\s*$/i;
 
 /**
  * Review v3.27.0 P2: a fact embedded in advice ("We recommend the team, which
@@ -129,13 +195,16 @@ export function isTargetSentence(claim: string): boolean {
   const bare = claim.replace(EV_MARKER_RE, " ").replace(UUID_RE, " ");
   if (!ADVICE_LEAD_RE.test(bare) && !ADVICE_MODAL_RE.test(bare)) return false;
   if (FACT_INDICATOR_RE.test(bare)) return false;
+  const lead = ADVICE_LEAD_RE.test(bare);
   let sawNumber = false;
   for (const m of bare.matchAll(NUMBER_RE)) {
     if (!/\d/.test(m[0])) continue;
-    sawNumber = true;
     const before = bare.slice(Math.max(0, m.index! - 30), m.index!);
     const after = bare.slice(m.index! + m[0].length, m.index! + m[0].length + 30);
+    if (TERM_LENGTH_TOKEN_RE.test(m[0].trim()) || TERM_LENGTH_AFTER_RE.test(after)) continue;
+    sawNumber = true;
     if (TARGET_CUE_RE.test(before) || TARGET_CUE_RE.test(after)) continue;
+    if (lead && ALLOCATION_CUE_BEFORE_RE.test(before)) continue;
     if (TARGET_CUE_AFTER_RE.test(after) || TARGET_CUE_BEFORE_RE.test(before)) continue;
     return false;
   }
@@ -144,6 +213,11 @@ export function isTargetSentence(claim: string): boolean {
 
 export function isPrescriptiveClaim(claim: string): boolean {
   if (PRESCRIPTIVE_LINE_RE.test(claim)) return true;
+  const label = WINDOW_LABEL_RE.exec(claim);
+  if (label) {
+    const rest = claim.slice(label[0].length).replace(EV_MARKER_RE, " ");
+    if (ADVICE_LEAD_RE.test(rest) && !FACT_INDICATOR_RE.test(rest)) return true;
+  }
   if (isTargetSentence(claim)) return true;
   // A risk row whose numbers sit only in the mitigation ("offer 0.5–1 % equity
   // each") is a plan; a number in the title ("leaves A$50K on the table") is
@@ -172,8 +246,25 @@ export function splitClaims(text: string): string[] {
 
 /** A specific, checkable assertion — money, percentage, large count, metric, multiple. The citation markers themselves never count (a uuid's "-1076-" block is not a figure). */
 export function isMaterialClaim(claim: string): boolean {
-  const bare = claim.replace(EV_MARKER_RE, " ").replace(UUID_RE, " ");
+  const bare = stripStatuteYears(claim.replace(EV_MARKER_RE, " ").replace(UUID_RE, " "));
   return MATERIAL_PATTERNS.some(p => p.test(bare));
+}
+
+/**
+ * G35: the year in a statute's title — "Privacy Act 1988", "Corporations Act
+ * 2001 (Cth)", "Fair Work Regulations 2009" — is part of a proper name, not a
+ * figure. The 4-digit count pattern read it as a "large count", so "Compliance
+ * with the Privacy Act 1988 is mandatory" was an uncited material claim (it
+ * was the ONLY flagged claim of the documents section in two of the three
+ * latest stored live reports; the critic found nothing in either). Only a
+ * capitalised Act / Regulation(s) / Rules / Bill immediately followed by an
+ * 18xx–20xx year is stripped; every other number in the sentence is still
+ * measured, so "the Privacy Act 1988 applies above A$3 million turnover"
+ * stays material.
+ */
+const STATUTE_YEAR_RE = /\b(Acts?|Regulations?|Rules|Bill)\s+(?:18|19|20)\d{2}\b/g;
+export function stripStatuteYears(text: string): string {
+  return text.replace(STATUTE_YEAR_RE, "$1");
 }
 
 /**

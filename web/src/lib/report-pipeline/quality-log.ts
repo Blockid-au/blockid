@@ -44,6 +44,27 @@ export const TBR_QUALITY_PATH = path.join("content", "reports", TBR_QUALITY_FILE
  * (executive + 8 chapters + 13 criterion sections) on a run, and the median
  * over the 24 h window for the status verdict. Exported for /api/status
  * (`grounded_share_kpi`) and the admin KPI tile (G23-A / lane C).
+ *
+ * Definition (orchestrator auditAllSections → llm-auditor auditSections): the
+ * unit is a SECTION, not a sentence. A section is grounded when the free
+ * Stage-1 gate (llm-auditor findUncitedClaims) finds no MATERIAL claim —
+ * money, %, a 4+-digit count, a metric with a number, a multiple
+ * (claim-gate MATERIAL_PATTERNS) — without an allowed `[ev:<id>]` whose row
+ * text holds every figure of the sentence, or an explicit unevidenced marker;
+ * AND, when the metered critic ran (standard: only on sections Stage 1
+ * flagged), the critic kept no finding. Action / target lines are not claims.
+ * An empty section counts as grounded. One uncited figure anywhere in a long
+ * agent-written section makes the whole section ungrounded — which is why
+ * degraded (deterministic, short) runs score higher than full ones.
+ *
+ * G35 definitional changes (claim-gate.ts): a statute's title year ("Privacy
+ * Act 1988") is not a figure; a bold window label ("**60 days**: Publish …")
+ * is an action line like "[60d]"; hyphenated term lengths ("2-year vest") and
+ * the direct object of an allocation verb under an advice lead ("We
+ * recommend allocating 10 %") are targets. Malformed markers naming an
+ * allowed id ([module:<id>], "[ev:a, ev:b]", "[ev:<id> output]", a marker
+ * after the full stop) are read as that id — the row must still hold the
+ * figure. An uncited factual figure is never counted as grounded.
  */
 export const TBR_GROUNDED_SHARE_KPI = 0.85;
 /** Status verdict threshold — the KPI itself. */
