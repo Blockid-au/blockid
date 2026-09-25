@@ -15,6 +15,11 @@
 // every rubric number now comes from `benchmarkFor()` (svi-dimension-benchmarks
 // ANCHORS) and every qualitative anchor from `rubric` below.
 //
+// G34 D24-c: the screening catalogue registry (lib/screening/registry.ts) is
+// the owner source of truth for screening items — item owner = the `primary`
+// lead below; criterion `primaryAgent` is a contributor. registry.test.ts pins
+// the two in sync. Behaviour and weights here are unchanged (D24-f).
+//
 // Pure module: no I/O. Benchmarks come from svi-dimension-benchmarks.ts
 // (ANCHORS p50 ± spread); phase floors from growth/phase-gate.ts
 // PHASE_EXIT_RULES — neither is duplicated here.
