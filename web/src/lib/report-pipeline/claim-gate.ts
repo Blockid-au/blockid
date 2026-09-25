@@ -84,6 +84,7 @@ export function normalizeCitationMarkers(text: string, allowedIds: Iterable<stri
   const exact = (id: string): string | undefined => allowed.get(id.trim().toLowerCase());
   const out = text.replace(/\[(ev|module):([^\]]+)\]/gi, (whole, kind: string, raw: string) => {
     const parts = raw.split(/\s*[;,]\s*(?:ev:)?/i).map((p) => p.trim()).filter(Boolean);
+    if (!parts.length) return whole;
     const fixed = parts.map((p) => {
       const hit = exact(p) ?? exact(p.split(/\s+/)[0] ?? "");
       if (hit) return `[ev:${hit}]`;
