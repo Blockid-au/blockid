@@ -98,7 +98,7 @@ Content max-width is 1200 px on a 12-column grid. The G31 section rail and decis
 
 - **ARR** comes from `arrAud` only when a non-self-declared evidence row backs it. Chip: "✓ verified T1" (connector/bank), "◐ company-stated T3" or "○ stated T4".
 - **Growth** comes from `monthlyGrowthRatePct`. When `growthAssumed` is set, show "Sector median assumed, not observed".
-- **NRR, gross margin, runway and burn multiple** show **"○ Not evidenced"** until a CFO/CRO module output with evidence ids supplies them (G34 Q6). Never derive them from assumptions.
+- **NRR, gross margin, runway and burn multiple** show **"○ Not evidenced"** until a CFO/CRO module output with evidence ids supplies them (G34 BT5). Never derive them from assumptions.
 - Cells depend on stage:
   - Pre-seed: NRR, GM and burn are replaced by LOIs, paid pilots and waitlist conversion (TRE-02).
   - Series A and later: add CAC payback and magic number.
@@ -119,7 +119,7 @@ Content max-width is 1200 px on a 12-column grid. The G31 section rail and decis
   - `quality.degradedSections`
   - stale or contradicted evidence
   - missing cap table
-  - ASIC mismatch (Q6)
+  - ASIC mismatch (BT6)
   - the catalogue red-flag rules in research §3, when their evidence triggers them
 - **Deal-breakers** are the grounded `gaps` from `buildInvestorScreening`.
 - If an item's evidence id already appears as a red flag, it is removed from the deal-breakers.
@@ -130,7 +130,7 @@ Content max-width is 1200 px on a 12-column grid. The G31 section rail and decis
 - Tapping a chip opens a popover with its `summary` and linked criteria.
 - No score is shown until G31 C12.
 
-**Peer position and stage ladder** (Q6):
+**Peer position and stage ladder** (BT6):
 
 - **Peer percentile** is shown only when the cohort has n ≥ 10. Otherwise show "Peer set too small (n=6)".
 - **Stage ladder:** Idea → Validating → Early revenue → Scaling → Established, derived from verified evidence.
@@ -318,7 +318,7 @@ Locked free-tier content is never included.
   - Skip link.
 - **No motion on figures.** Disclosures animate for 180–200 ms, turned off under `prefers-reduced-motion`.
 
-## 7. Implementation notes (for G34 Q3; not started)
+## 7. Implementation notes (for G34 BT3; not started)
 
 - **New projection:** `lib/report-v2/dashboard-v4.ts`, composed from `buildDashboardView`, `investmentViewFor` and `buildInvestorScreening`.
   - **Extend Codex's `investor-screening.ts`; do not create a parallel `investor-lens.ts`.**
