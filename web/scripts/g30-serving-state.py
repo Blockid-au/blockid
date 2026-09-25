@@ -215,8 +215,34 @@ def retained_capacity(data):
                 continue
             except OSError:
                 pass
+            if _pid_proven_reused(entry):
+                continue
         count += 1
     return count
+
+
+def _pid_proven_reused(entry):
+    """True only when procfs PROVES the recorded PID now belongs to someone else.
+
+    2026-09-25: a dead quarantined origin's PID was reused as a THREAD id of an
+    unrelated process (/proc/<tid> exists for threads), so the slot was never
+    released. Proof = the task is a thread (Tgid != pid) or its start time
+    differs from the recorded startTicks. Anything unreadable stays counted.
+    """
+    pid = entry.get('pid')
+    ticks = entry.get('startTicks')
+    try:
+        status = Path(f'/proc/{pid}/status').read_text()
+        tgid = re.search(r'^Tgid:\s+(\d+)', status, re.M)
+        if tgid and int(tgid.group(1)) != int(pid):
+            return True
+        if ticks is not None:
+            stat = Path(f'/proc/{pid}/stat').read_text()
+            fields = stat[stat.rindex(')') + 2:].split()
+            return fields[19] != str(ticks)
+    except (OSError, ValueError, IndexError):
+        return False
+    return False
 
 
 def extra_slot_authorization(web, data, candidate_sha=None, entry=None, stage="allocate"):

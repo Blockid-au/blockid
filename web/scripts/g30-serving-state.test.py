@@ -175,5 +175,41 @@ class ServingTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             m.allocate(self.data, self.web)
 
+class PidReuseProofTest(unittest.TestCase):
+    # 2026-09-25: a dead quarantined origin's PID reused as a thread id kept
+    # the capacity slot forever. Only procfs-proven reuse releases it.
+    def _ticks(self, pid):
+        stat = Path(f'/proc/{pid}/stat').read_text()
+        return stat[stat.rindex(')') + 2:].split()[19]
+
+    def test_same_process_is_not_reused(self):
+        import os
+        pid = os.getpid()
+        self.assertFalse(m._pid_proven_reused({'pid': pid, 'startTicks': self._ticks(pid)}))
+
+    def test_different_start_ticks_is_reuse(self):
+        import os
+        self.assertTrue(m._pid_proven_reused({'pid': os.getpid(), 'startTicks': '1'}))
+
+    def test_thread_id_is_reuse(self):
+        import threading
+        ready, done = threading.Event(), threading.Event()
+        box = {}
+        def run():
+            box['tid'] = threading.get_native_id()
+            ready.set()
+            done.wait(5)
+        t = threading.Thread(target=run)
+        t.start()
+        ready.wait(5)
+        try:
+            self.assertTrue(m._pid_proven_reused({'pid': box['tid'], 'startTicks': None}))
+        finally:
+            done.set()
+            t.join()
+
+    def test_unreadable_stays_counted(self):
+        self.assertFalse(m._pid_proven_reused({'pid': 999999999, 'startTicks': '1'}))
+
 if __name__ == '__main__':
     unittest.main()
