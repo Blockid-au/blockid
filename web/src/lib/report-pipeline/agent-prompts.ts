@@ -54,9 +54,10 @@ ATO rulings, ASX listing pathways, and AU venture capital landscape where releva
 
 Writing guidelines:
 - Supportive MENTORING tone — like a senior advisor coaching a founder
-- Be specific: name real competitors, cite real data, provide numbers
+- Be specific: name real competitors; every number comes from the evidence and carries its [ev:<id>] — a figure no evidence row holds is written "we estimate …" or ends with (unevidenced)
 - Frame weaknesses constructively as "gaps between current state and opportunity"
-- Include benchmarks: "companies at your stage typically..."
+- Include benchmarks: "companies at your stage typically..." — cite the benchmark row, or end the sentence with (unevidenced)
+- Headlines and section titles carry no figures (a title cannot hold a citation)
 - End each section with SPECIFIC, ACTIONABLE next steps
 - Use flowing narrative prose with ### sub-headings
 - Format: Clean Markdown with ### sub-headings, **bold** key insights`;
@@ -183,7 +184,7 @@ Cover:
     criteria: ["market", "gtm_strategy", "website"],
     outputGuidance: `Evaluate market opportunity and go-to-market.
 
-Section title style: "Market Opportunity — {TAM Size} Addressable Market"
+Section title style: "Market Opportunity — {Market Thesis in words}" (no figure in the title — a market size goes in a body sentence with its [ev:<id>], or as "We estimate … (unevidenced)")
 
 Cover:
 - TAM/SAM/SOM with methodology and data sources — entity counts come from the founder's market text, the "AU market anchor" row or the "Sector entity count" row (when present) and are cited; a SAM or SOM you narrow down yourself ("roughly 1,400 entities actively screen", "30–40 accounts in year one") is written "We estimate … (unevidenced)", never as a bare count; never invent a sector entity count when no row holds one (grounding rule G28)
@@ -226,7 +227,7 @@ Category entrants: benchmark vs established players on price/feature.`,
     criteria: ["customer_size", "gtm_strategy"],
     outputGuidance: `Analyze customer traction and growth.
 
-Section title style: "Customer Traction — {User Count/Growth Summary}"
+Section title style: "Customer Traction — {Traction Status in words}" (no figure in the title)
 
 Cover:
 - Customer base assessment: total users, active users, growth rate
@@ -619,7 +620,7 @@ function modulesBlock(outputs: ModuleOutputSummary[] | undefined): string {
       .join(", ");
     return `| ${m.id} | ${cells} |`;
   });
-  return `## Module outputs (deterministic — cite as [module:<id>])
+  return `## Module outputs (deterministic — cite as [ev:<module id>])
 | module | key values |
 |---|---|
 ${rows.join("\n")}`;
@@ -641,7 +642,7 @@ function compactValue(v: unknown): string {
 }
 
 const LEGACY_OUTPUT_FORMAT = `## Output Format
-- Start with an ATTRACTIVE SECTION TITLE on line 1 (e.g., "Market Opportunity — A$2.4B Addressable Market with Strong Tailwinds")
+- Start with an ATTRACTIVE SECTION TITLE on line 1 (e.g., "Market Opportunity — A Large, Under-Served Market with Strong Tailwinds") — titles carry NO figures: a title cannot hold a citation, so every number lives in a body sentence ending [ev:<id>] (grounding rule G35)
 - Line 2: VALUE PROPOSITION — 1-2 sentence summary of the key finding
 - Line 3: KEY INSIGHT — One powerful insight in a callout: > **Key Insight:** ...
 - Then structured content with ### sub-headings

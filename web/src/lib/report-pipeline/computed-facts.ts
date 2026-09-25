@@ -123,7 +123,11 @@ export const SAAS_BENCHMARK_FACTS =
 export const AU_CONTEXT_FACTS =
   "R&D Tax Incentive (R&DTI): 43.5% refundable tax offset on eligible R&D spend for companies with aggregated turnover under A$20M (corporate rate 25% + 18.5 percentage points); non-refundable offset above A$20M turnover; registration with AusIndustry within 10 months of year end. " +
   "ESIC (Early Stage Innovation Company): investors receive a 20% non-refundable carry-forward tax offset capped at A$200,000 per investor per year and a modified CGT exemption for shares held 1–10 years; eligibility via the 100-point innovation test or the principles test. " +
-  "GST: 10% on taxable supplies in Australia. Company tax rate: 25% for base-rate entities (turnover under A$50M).";
+  "GST: 10% on taxable supplies in Australia; GST registration is required once GST turnover reaches A$75,000 a year (A$75k; A$150,000 for non-profit bodies). Company tax rate: 25% for base-rate entities (turnover under A$50M).";
+// G35: the GST registration threshold is stated by the CFO template itself
+// ("GST threshold (A$75k)", agent-prompts.ts) — the 2026-09-24 live revenue
+// section cited this row for "turnover exceeds A$75k" and failed the gate
+// because the row did not hold the figure (ATO: A$75,000; A$150,000 non-profit).
 
 export const COMPUTED_FACT_ID_SET: ReadonlySet<string> = new Set(Object.values(COMPUTED_FACT_IDS));
 

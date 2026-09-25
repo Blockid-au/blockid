@@ -155,7 +155,7 @@ export function executiveOutputContract(): string {
   return `## MACHINE-READABLE OUTPUT CONTRACT (mandatory) — executive summary
 Return ONLY one JSON object, no prose outside it, no markdown fences, no markdown syntax inside strings (no #, **, > or <!-- -->). Angle-quoted «…» parts are placeholders:
 {
-  "headline": "«one line, at most ${EXECUTIVE_CAPS.headlineWords} words — the startup in one phrase»",
+  "headline": "«one line, at most ${EXECUTIVE_CAPS.headlineWords} words — the startup in one phrase, no figures»",
   "summary": ["«paragraph 1, at most ${EXECUTIVE_CAPS.paragraphWords} words»", "«paragraph 2»", "«optional paragraph 3»"],
   "key_insight": "«one or two sentences — the single thing an evaluator must know»",
   "reasons_to_back": [{ "title": "«≤ 8 words»", "body": "«one or two sentences, cite [ev:«evidence_id»] where evidence exists»", "dim": "«one of ${DIM_ORDER.join(", ")}»" }],
@@ -167,6 +167,7 @@ Return ONLY one JSON object, no prose outside it, no markdown fences, no markdow
 }
 RULES:
 - 2–3 summary paragraphs; exactly 3 reasons_to_back; exactly 3 critical_gaps (one names the lowest dimension); 3–5 actions ordered by urgency.
+- The headline and every "title" carry NO numbers, money amounts or percentages — they cannot hold a citation; a figure belongs in a "summary" / "body" sentence with its [ev:«id»] (grounding rule G35).
 - Never state a number that is not in the criterion analyses, the chapters or the valuation line. Cite evidence ids as [ev:«id»] inside "body" where the chapters list citable ids; unsupported claims end with [unevidenced].
 - Scores and bands in "benchmarks" are copied from the chapters, never invented. The phase blockers are exactly the ones listed.
 - Plain sentences only — no headings, no bullet characters, no bold.`;
