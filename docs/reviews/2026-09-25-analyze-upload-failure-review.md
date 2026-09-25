@@ -98,4 +98,25 @@ After every deploy: review, qa:live partial, fix. Tracked in SOT §12.14.
 
 950 related tests pass and tsc is clean.
 
-**Still open:** Wave C, which is AF11–AF13 and AF15.
+**Wave C: live.** Commit `1ff499264` runs on origin 4149. All 12/12 release gates passed and the deploy is marked good.
+
+- **AF12:** The stream restore key now includes the pitchdeck id. A new upload of the same deck therefore starts its own run, and reloading the same upload still restores it.
+- **AF13:** The workspace report shows "Report as of <date>" and links to a newer /analyze run when one exists.
+- **AF11:** Error messages are more specific:
+  - File size is checked before upload.
+  - `image_too_large` gets its own message.
+  - A server error returns `reason: intake_failed`, shown as "nothing was charged".
+  - A malformed body returns `invalid_body`.
+- **AF15:** Evaluation uploads name each refused file. The evidence wizard reads `message`/`reason`.
+- 1128 related tests pass.
+
+**Remaining**
+- **AF13 full fix:** the workspace report should follow the project itself. This needs G34 DC01 (`analyses.project_id`).
+- **ER2:** the valuation in the draft waits for the V04b valuation producer. It is not shown via SVI→money (H10).
+
+**Deploy method used for every wave**
+1. Back up the 18 uncommitted Codex files to the scratchpad.
+2. Stash only those files.
+3. Deploy.
+4. Pop the stash.
+5. Verify byte-for-byte against the backup (identical every time).
