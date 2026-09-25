@@ -147,6 +147,12 @@ describe("attachAnalysis / releaseGrant / markDelivered / grantForAnalysis", () 
     expect(db.ops.find((o) => o.op === "eq")?.args).toEqual(["id", "g1"]);
   });
 
+  it("G34 DC02: attach also writes the run's project when one is linked", async () => {
+    db.tables.free_report_grants = {};
+    expect(await attachAnalysis("g1", "a1", "p1")).toBe(true);
+    expect(db.ops.find((o) => o.op === "update")?.args[0]).toEqual({ analysis_id: "a1", project_id: "p1" });
+  });
+
   it("release deletes only an UNATTACHED reservation", async () => {
     db.tables.free_report_grants = {};
     await releaseGrant("g1");

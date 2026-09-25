@@ -86,10 +86,10 @@ vi.mock("@/lib/reports/free-report-gate", async () => {
   const actual = await vi.importActual<typeof import("@/lib/reports/free-report-gate")>("@/lib/reports/free-report-gate");
   return { ...actual, runFreeReportGate: (ctx: Record<string, unknown>) => gateMock(ctx) };
 });
-const attachMock = vi.fn<(g: string, a: string) => Promise<boolean>>();
+const attachMock = vi.fn<(g: string, a: string, p?: string | null) => Promise<boolean>>();
 const releaseMock = vi.fn<(g: string) => Promise<void>>();
 vi.mock("@/lib/reports/free-grants", () => ({
-  attachAnalysis: (g: string, a: string) => attachMock(g, a),
+  attachAnalysis: (g: string, a: string, p?: string | null) => attachMock(g, a, p),
   releaseGrant: (g: string) => releaseMock(g),
 }));
 const freeSubmittedMock = vi.fn<(i: Record<string, unknown>) => void>();
@@ -444,7 +444,7 @@ describe("POST /api/intake — free-allowance gate (G25-C): what the route does 
     expect(body.freeReport).toEqual({ sequenceNo: 1, remaining: 1, queued: false, emailTo: "f******@example.com" });
     expect(analyzeInputMock).toHaveBeenCalledTimes(1);
     expect(saveAnalysisMock.mock.calls[0][0]).toMatchObject({ fullReportEmail: "founder@example.com", userId: null });
-    expect(attachMock).toHaveBeenCalledWith("grant-1", "row-1");
+    expect(attachMock).toHaveBeenCalledWith("grant-1", "row-1", null);
     expect(releaseMock).not.toHaveBeenCalled();
     expect(startJobMock).toHaveBeenCalledWith("row-1", { userId: null });
     expect(freeSubmittedMock.mock.calls[0][0]).toMatchObject({ grantId: "grant-1", sequenceNo: 1, source: "guest", queued: false, analysisId: "row-1", email: "founder@example.com" });
@@ -454,7 +454,7 @@ describe("POST /api/intake — free-allowance gate (G25-C): what the route does 
     await POST(req({ url: "https://example.com", tier: "paid", company_website: "" }, { ip: "9.9.9.9" }));
     expect(gateMock.mock.calls[0][0]).toEqual({ user: null, bodyEmail: "founder@example.com", honeypot: "", clientIp: "9.9.9.9" });
     // the same free path as any run: grant attached, job started
-    expect(attachMock).toHaveBeenCalledWith("grant-1", "row-1");
+    expect(attachMock).toHaveBeenCalledWith("grant-1", "row-1", null);
     expect(startJobMock).toHaveBeenCalledTimes(1);
     gateMock.mockClear();
     gateState.result = { allow: false, status: 200, reason: "free_allowance_used", used: 2 };
@@ -531,7 +531,7 @@ describe("POST /api/intake — free-allowance gate (G25-C): what the route does 
     expect(body.ok).toBe(true);
     expect(body.freeReport).toMatchObject({ queued: true });
     expect(saveAnalysisMock).toHaveBeenCalledTimes(1);
-    expect(attachMock).toHaveBeenCalledWith("grant-1", "row-1");
+    expect(attachMock).toHaveBeenCalledWith("grant-1", "row-1", null);
     expect(startJobMock).not.toHaveBeenCalled();
     expect(freeSubmittedMock.mock.calls[0][0]).toMatchObject({ queued: true });
   });
@@ -742,5 +742,12 @@ describe("POST /api/intake — G34 DC01 project link", () => {
     await POST(req({ text: "an idea" }));
     expect(projectForAnalysisMock).not.toHaveBeenCalled();
     expect(saveAnalysisMock.mock.calls[0][0]).toMatchObject({ projectId: null });
+  });
+  it("DC02: a signed-in free run writes the linked project onto its grant", async () => {
+    getCurrentUserMock.mockResolvedValue({ id: "u1", email: "member@example.com" } as never);
+    gateState.result = { allow: true, path: "free", email: "member@example.com", source: "account", grant: { ...GRANT, source: "account" }, queued: false, remaining: 1 };
+    projectForAnalysisMock.mockResolvedValueOnce("p-1");
+    await POST(req({ text: "an idea" }));
+    expect(attachMock).toHaveBeenCalledWith("grant-1", "row-1", "p-1");
   });
 });

@@ -140,8 +140,9 @@ interface PersistMeta {
 }
 
 /**
- * Save the run and hand back the row id. Swallows everything: the caller has
- * a good result in hand and must return it either way.
+ * Save the run and hand back the row id (and the DC01 project link, so the
+ * free-report grant can carry it too — DC02). Swallows everything: the
+ * caller has a good result in hand and must return it either way.
  */
 async function persist(
   request: Request,
@@ -151,7 +152,7 @@ async function persist(
   svi: CompactSvi | null,
   meta: PersistMeta,
   fullReportEmail: string | null = null,
-): Promise<string | null> {
+): Promise<{ analysisId: string | null; projectId: string | null }> {
   // G34 DC01 / AF13: a signed-in run about the founder's active project is
   // linked to it (conservative name match; never guessed, never created).
   let projectId: string | null = null;
@@ -173,9 +174,9 @@ async function persist(
       console.warn(
         `[intake] write rate-limited (${limit.reason}) — analysis returned but not saved`,
       );
-      return null;
+      return { analysisId: null, projectId };
     }
-    return await saveAnalysis({
+    const analysisId = await saveAnalysis({
       anonKey: key,
       userId,
       result,
@@ -187,9 +188,10 @@ async function persist(
       fullReportEmail,
       projectId,
     });
+    return { analysisId, projectId };
   } catch (err) {
     console.error("[intake] persist failed — analysis returned unsaved:", err);
-    return null;
+    return { analysisId: null, projectId };
   }
 }
 
@@ -426,7 +428,7 @@ async function POST_handler(request: Request) {
     }));
     result.aiBudgetScope = aiBudgetScope;
     const svi = deriveCompactSvi(result);
-    const analysisId = await persist(request, anonKey, userId, result, svi, {
+    const { analysisId, projectId: linkedProjectId } = await persist(request, anonKey, userId, result, svi, {
       url: body.url,
       filename: file?.filename,
       mimeType: file?.mimeType,
@@ -465,7 +467,8 @@ async function POST_handler(request: Request) {
     // not charged a free report for nothing. Never affects the response.
     if (gate.grant) {
       try {
-        if (analysisId) await attachAnalysis(gate.grant.id, analysisId);
+        // G34 DC02: the grant carries the run's project (null for guests).
+        if (analysisId) await attachAnalysis(gate.grant.id, analysisId, linkedProjectId);
         else await releaseGrant(gate.grant.id);
       } catch (err) {
         console.error("[intake] free-report ledger write failed —", err instanceof Error ? err.message : String(err));
