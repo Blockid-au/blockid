@@ -12,18 +12,14 @@ import {
   DIMENSION_EMPHASIS, SCREENING_CATALOG_VERSION, SCREENING_DIMENSIONS, SCREENING_ITEMS, SCREENING_STAGES,
   itemsFor, itemsForStage, ownerFor, screeningItem,
 } from "./registry";
+import { FTV_FORBIDDEN_EN, FTV_FORBIDDEN_VI, collectStrings } from "./fairness";
 
 const EXPECTED_COUNTS = { FTV: 9, MPC: 9, PTD: 8, TRE: 13, CGH: 10, IRI: 9, LCO: 12, SVM: 8 } as const;
 const BANDS = new Set(["VeryHigh", "High", "Medium", "Low"]);
 const TIERS = new Set(["T1", "T2", "T3", "T4"]);
 const SIGNALS = new Set(["team", "traction", "moat", "liquidity", "capital_structure", "ip", null]);
 
-function strings(value: unknown): string[] {
-  if (typeof value === "string") return [value];
-  if (Array.isArray(value)) return value.flatMap(strings);
-  if (value && typeof value === "object") return Object.values(value).flatMap(strings);
-  return [];
-}
+const strings = collectStrings;
 
 describe("screening registry (G34 BT0)", () => {
   it("has 78 items with the planned per-dimension counts and a catalogue version", () => {
@@ -125,8 +121,8 @@ describe("screening registry (G34 BT0)", () => {
   });
 
   it("FTV never references age, education prestige or gender", () => {
-    const EN = /\b(age|aged|ages|young|younger|youth|old|older|elderly|school|schools|university|universities|college|degree|degrees|education|educated|alma|ivy|elite|prestige|prestigious|gender|male|female|man|men|woman|women|sex|mother|father|married)\b/i;
-    const VI = /(tuổi|trẻ tuổi|giới tính|nam giới|nữ giới|phụ nữ|đàn ông|học vấn|bằng cấp|trường học|trường đại học|đại học|danh tiếng)/i;
+    const EN = FTV_FORBIDDEN_EN;
+    const VI = FTV_FORBIDDEN_VI;
     for (const item of itemsFor("FTV")) {
       for (const text of strings(item)) {
         expect(text, item.id).not.toMatch(EN);
