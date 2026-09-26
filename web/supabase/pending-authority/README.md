@@ -20,3 +20,4 @@ authority transition that admits it.
 | `0466_email_drips_lifecycle_campaigns.sql` | 25/09/2026 (G34 BT4), campaign CHECK = previous 12 + 9 lifecycle ids | live constraint contains `sunset_check`; existing rows unaffected |
 | `0467_erase_account_email_sends.sql` | 25/09/2026 (G34 BT2 follow-up), `erase_account()` = 0464 + key kind `email_sha256` + `email_sends` extra | dry-run inside ROLLBACK listed email_sends rows; SQL hash = lib/email-sends hashRecipient |
 | `0471_privacy_v2_4_registry.sql` | 26/09/2026 (APP 1.7 privacy v2.4 — clause 2E automated decisions) | live registry row `privacy_au_v2_4` effective 2026-09-26; `DISCLAIMER_VERSIONS.privacy` = v2.4-2026-09-26 |
+| `0468_score_views_any_subject.sql` | **NOT applied** (26/09/2026, G33 follow-up) — additive nullable `svi_analysis_id` FK + one-subject CHECK; `score_id` NOT NULL relaxed | code (`lib/share/score-views.ts`) tolerates it missing: analysis-share views are skipped as before, score shares unchanged |

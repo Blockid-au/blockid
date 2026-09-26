@@ -27,6 +27,11 @@ import {
 import { sendScoreViewed } from "@/lib/email";
 import { automatedShareViewReason } from "@/lib/share/view-notify";
 import {
+  countRecentShareViews,
+  recordShareView,
+  type ShareSubjectKind,
+} from "@/lib/share/score-views";
+import {
   SVI_STAGE_LABELS,
   SVI_BENCHMARKS,
   type SVIAnalysis,
@@ -159,7 +164,7 @@ async function fetchEvidenceCount(email: string): Promise<number> {
   return count ?? 0;
 }
 
-async function recordView(slug: string, notify?: {
+async function recordView(slug: string, kind: ShareSubjectKind, notify?: {
   ownerEmail: string;
   companyName: string | null;
   viewerLabel?: string;
@@ -176,30 +181,20 @@ async function recordView(slug: string, notify?: {
   let shouldNotify = Boolean(notify?.ownerEmail);
   if (shouldNotify && viewerHash) {
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { count: priorCount } = await supabase
-      .from("score_views")
-      .select("id", { count: "exact", head: true })
-      .eq("score_id", slug)
-      .eq("viewer_ip_hash", viewerHash)
-      .gte("viewed_at", since);
-    if ((priorCount ?? 0) > 0) shouldNotify = false;
+    const priorCount = await countRecentShareViews(supabase, { slug, kind, viewerHash, sinceIso: since });
+    if (priorCount > 0) shouldNotify = false;
   }
 
-  const { error } = await supabase.from("score_views").insert({
-    score_id: slug,
-    viewer_ip_hash: viewerHash,
-    viewer_ua: h.get("user-agent")?.slice(0, 512) ?? null,
-    referer: h.get("referer")?.slice(0, 512) ?? null,
+  // Writes score_id for a `scores` share and svi_analysis_id for an
+  // `svi_analyses` share (0468) — the old score_id-only insert failed FK
+  // 23503 for every analysis share. Never throws; 23503 stays silent.
+  await recordShareView(supabase, {
+    slug,
+    kind,
+    viewerHash,
+    userAgent: h.get("user-agent"),
+    referer: h.get("referer"),
   });
-  if (error) {
-    // 23503 = FK violation. Crawlers routinely hit /s/<stale-or-fake-slug>
-    // where no matching scores row exists — silently drop these to keep the
-    // production log signal-to-noise up. Anything else is a real problem.
-    const code = (error as { code?: string }).code;
-    if (code !== "23503") {
-      console.error("[blockid:s] view insert failed", error);
-    }
-  }
 
   // Fire-and-forget owner notification (respects email_preferences.svi_alerts).
   if (shouldNotify && notify) {
@@ -435,6 +430,9 @@ export default async function ShareScorePage({
       }
     }
 
+    // Which table the slug belongs to decides the score_views column.
+    const subjectKind: ShareSubjectKind = row ? "svi_analysis" : "score";
+
     // Fallback to scores table
     if (!row) {
       row = await fetchScore(scoreSlug);
@@ -457,7 +455,7 @@ export default async function ShareScorePage({
     const automated = automatedShareViewReason(await headers());
 
     if (!automated) {
-      await recordView(scoreSlug, {
+      await recordView(scoreSlug, subjectKind, {
         ownerEmail: row.email,
         companyName: row.company_name ?? null,
         viewerLabel,

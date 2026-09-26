@@ -4,6 +4,7 @@ import { getSupabaseAdmin, isSupabaseConfigured } from "@/lib/supabase";
 import { hashIp, clientIpFromHeaders } from "@/lib/iphash";
 import { sendScoreViewed } from "@/lib/email";
 import { automatedShareViewReason } from "@/lib/share/view-notify";
+import { latestShareViewId } from "@/lib/share/score-views";
 
 export const dynamic = "force-dynamic";
 
@@ -62,16 +63,10 @@ export async function POST(request: Request) {
   // 1. Update the most recent score_views row for this viewer+slug with engagement data
   //    (the server-side recordView already inserted the row on page load).
   if (viewerHash) {
-    const { data: recentView } = await supabase
-      .from("score_views")
-      .select("id")
-      .eq("score_id", slug)
-      .eq("viewer_ip_hash", viewerHash)
-      .order("viewed_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    // score_id (scores share) or svi_analysis_id (svi_analyses share, 0468).
+    const recentViewId = await latestShareViewId(supabase, slug, viewerHash);
 
-    if (recentView) {
+    if (recentViewId) {
       await supabase
         .from("score_views")
         .update({
@@ -81,7 +76,7 @@ export async function POST(request: Request) {
           device_type: safeDeviceType,
           referrer: h.get("referer")?.slice(0, 512) ?? null,
         })
-        .eq("id", recentView.id);
+        .eq("id", recentViewId);
     }
   }
 
