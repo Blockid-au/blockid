@@ -229,16 +229,17 @@ describe("summariseTbrQuality (24 h window)", () => {
     // 24/09 probe shape: 27 runs, 15 with a degraded chapter (0.56), 3 no-report → red on BOTH rules.
     const probe = summariseTbrQuality(Array.from({ length: 27 }, (_, i) => (i >= 24 ? empty(0.5 + i * 0.5) : i >= 12 ? partial(0.5 + i * 0.5) : good(0.5 + i * 0.5))), now);
     expect(probe.status).toBe("down");
-    expect(probe.down_reasons).toEqual(["fully_degraded_runs", "any_degraded_share"]);
+    expect(probe.down_reasons).toEqual(["fully_degraded_runs"]);
     expect(probe.last24h).toMatchObject({ runs: 27, anyDegradedRuns: 15, anyDegradedShare: 0.56, fullyDegradedRuns: 3, degradedShare: 0.56, noReportRuns: 3 });
 
     // 3 fully degraded among many good runs (share 3/20 = 0.15) → down on the count alone.
     const three = summariseTbrQuality([...[1, 3, 5].map(empty), ...Array.from({ length: 17 }, (_, i) => good(i + 0.5))], now);
     expect(three).toMatchObject({ status: "down", down_reasons: ["fully_degraded_runs"], last24h: { fullyDegradedRuns: 3, anyDegradedShare: 0.15 } });
 
-    // Partial degradation only: 2 of 4 runs with a degraded chapter → down (share rule), no run lacked a report.
+    // Partial degradation only: 2 of 4 runs with a degraded chapter still
+    // delivered reports → watch, never down (founder review 2026-09-26).
     const half = summariseTbrQuality([partial(1), good(2), partial(3), good(4)], now);
-    expect(half).toMatchObject({ status: "down", down_reasons: ["any_degraded_share"], last24h: { anyDegradedShare: 0.5, fullyDegradedRuns: 0 } });
+    expect(half).toMatchObject({ status: "watch", down_reasons: [], last24h: { anyDegradedShare: 0.5, fullyDegradedRuns: 0 } });
 
     // Just under the share (1 of 3 = 0.33) → watch, not down.
     expect(summariseTbrQuality([partial(1), good(2), good(3)], now)).toMatchObject({ status: "watch", down_reasons: [] });

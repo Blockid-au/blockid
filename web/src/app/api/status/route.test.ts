@@ -1473,7 +1473,7 @@ describe("tbr_quality (G19-S46) — read from content/reports/tbr-quality.jsonl"
     const { body } = await callGet();
     expect(read(body)).toMatchObject({
       status: "down",
-      down_reasons: ["fully_degraded_runs", "any_degraded_share"],
+      down_reasons: ["fully_degraded_runs"],
       last24h: { runs: 27, anyDegradedRuns: 15, anyDegradedShare: 0.56, fullyDegradedRuns: 3, degradedShare: 0.56, noReportRuns: 3 },
     });
     expect(body.ok).toBe(false);

@@ -18,10 +18,10 @@
 //                             produced no report; legacy alias `noReportRuns`)
 //                             and a one-word verdict: `ok` | `watch` (median
 //                             grounded < 0.85 or anyDegradedShare > 0.2)
-//                             | `down` (G33-T01, SOT §12.11 S0 / §12.12: red when
-//                             fullyDegradedRuns ≥ 3, or anyDegradedShare ≥ 0.5
-//                             over ≥ 3 runs, or the two latest runs both
-//                             produced no report; `down_reasons` names which)
+//                             | `down` (G33-T01: red when fullyDegradedRuns ≥ 3
+//                             or the two latest runs both produced no report;
+//                             `down_reasons` names which — a high anyDegradedShare
+//                             alone is `watch`, since those runs still delivered)
 //                             | `missing` (no run in the window); G29-B adds
 //                             `last_degraded` — the latest no-report run's
 //                             { ts, providers_struck, deadline_hit_wave }.
@@ -367,7 +367,12 @@ export function summariseTbrQuality(rows: RowLike[], now: number = Date.now(), w
     .slice(-2);
   const downReasons: TbrQualityDownReason[] = [];
   if (noReportRuns >= TBR_QUALITY_DOWN_FULLY_DEGRADED_RUNS) downReasons.push("fully_degraded_runs");
-  if (runs >= TBR_QUALITY_DOWN_MIN_RUNS && anyDegradedRatio >= TBR_QUALITY_DOWN_ANY_DEGRADED_SHARE) downReasons.push("any_degraded_share");
+  // 2026-09-26 (founder review of T01): a run with SOME degraded chapters
+  // still delivered a report — that is a quality `watch`, never an outage.
+  // `down` (ok:false for the whole platform) is reserved for runs that
+  // produced nothing. The any-degraded share stays published for readers.
+  void TBR_QUALITY_DOWN_MIN_RUNS;
+  void TBR_QUALITY_DOWN_ANY_DEGRADED_SHARE;
   if (latestTwo.length === 2 && latestTwo.every((o) => o.noReport)) downReasons.push("latest_two_no_report");
   const down = downReasons.length > 0;
   return {
