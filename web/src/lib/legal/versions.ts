@@ -44,7 +44,9 @@ export const DISCLAIMER_VERSIONS: Record<DisclaimerKind, string> = {
   // record + engagement telemetry listed in clause 1, with clause-4
   // retention rows (acceptances: life of the room + 7 years, no sweep;
   // engagement: 12 months, swept). Registry row: 0342_privacy_v2_3_registry.sql.
-  privacy: "v2.3-2026-09-12",
+  // v2.4 (2026-09-26, APP 1.7): clause 2E "Automated decisions and AI
+  // analysis" (EN + VI). Registry row: pending-authority/0471_privacy_v2_4_registry.sql.
+  privacy: "v2.4-2026-09-26",
   general_advice_warning: "v1.0-2026-07-16",
   wholesale_certification: "v1.0-2026-07-16",
   equity_offer_disclaimer: "v1.0-2026-07-16",

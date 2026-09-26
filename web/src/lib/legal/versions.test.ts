@@ -68,14 +68,14 @@ describe("DISCLAIMER_VERSIONS registry integrity", () => {
     }
   });
 
-  it("privacy v2.3 (S21-A review) and tos v2.1 (QA-3 refund policy) are both dated 2026-09-12", () => {
+  it("tos v2.1 (QA-3 refund policy, 2026-09-12); privacy moved on to v2.4 (APP 1.7, 2026-09-26)", () => {
     // tos and privacy shared "v2.0-2026-07-16" until the privacy policy was
     // consolidated (v2.1 T0275, v2.2 S14-A, v2.3 S21-A review). tos moved to
     // v2.1 on 2026-09-12 when the one refund policy (clause 3A) landed and
     // the legacy /terms page was retired. Only step-trial records the tos
     // version; existing consent rows are untouched.
     expect(DISCLAIMER_VERSIONS.tos).toBe("v2.1-2026-09-12");
-    expect(DISCLAIMER_VERSIONS.privacy).toBe("v2.3-2026-09-12");
+    expect(DISCLAIMER_VERSIONS.privacy).toBe("v2.4-2026-09-26");
     expect(DISCLAIMER_VERSIONS.privacy > DISCLAIMER_VERSIONS.tos).toBe(true);
   });
 });
@@ -163,7 +163,7 @@ describe("registry / guard cross-invariants", () => {
     }
   });
 
-  it("shipped release train: tos v2.1 (2026-09-12), privacy v2.3 (2026-09-12), the other 5 kinds on v1.0", () => {
+  it("shipped release train: tos v2.1 (2026-09-12), privacy v2.4 (2026-09-26, APP 1.7 / 0471), the other 5 kinds on v1.0", () => {
     // The 2026-07-16 bulk release stamped tos/privacy at v2.0 and the five
     // AFSL/consent kinds at v1.0; T0275 moved privacy alone to v2.1, S14-A
     // to v2.2 (registry row 0328), the S21-A review to v2.3 (0342); the
@@ -175,10 +175,10 @@ describe("registry / guard cross-invariants", () => {
     const unique = new Set(versions);
     expect(unique.size).toBe(3);
     expect(unique.has("v2.1-2026-09-12")).toBe(true);
-    expect(unique.has("v2.3-2026-09-12")).toBe(true);
+    expect(unique.has("v2.4-2026-09-26")).toBe(true);
     expect(unique.has("v1.0-2026-07-16")).toBe(true);
     expect(DISCLAIMER_VERSIONS.tos).toBe("v2.1-2026-09-12");
-    expect(DISCLAIMER_VERSIONS.privacy).toBe("v2.3-2026-09-12");
+    expect(DISCLAIMER_VERSIONS.privacy).toBe("v2.4-2026-09-26");
     for (const kind of [
       "general_advice_warning",
       "wholesale_certification",
