@@ -22,6 +22,7 @@ import type { BillingInterval } from "@/lib/plans/billing-interval";
 import { fillCheckoutString } from "@/lib/billing/checkout-review-strings";
 import { calculateGst } from "@/lib/gst";
 import { MARKETING_CONSENT_LABEL } from "@/lib/email/marketing-consent-copy";
+import { DataPurposeNote } from "@/components/legal/data-purpose-note";
 import { EVALUATOR_TRIAL_COPY, TRIAL_COPY, TRIAL_DAYS, TRIAL_WARNING_HOURS_BEFORE, evaluatorTrialIncludedLine, evaluatorTrialLine } from "@/lib/plans/trial-copy";
 import {
   FOUNDER_ACCOUNT_TYPE_OPTIONS,
@@ -418,6 +419,8 @@ function InnerForm(props: SignupFormProps) {
           className={inputClass}
         />
       </label>
+      {/* G34 DC10 — purpose line + privacy link under the identity fields. */}
+      <DataPurposeNote context="account" className="-mt-1.5 mb-3.5" testId="signup-data-purpose" />
       <div className="grid grid-cols-2 gap-3 mb-3.5">
         <label>
           {fieldLabel(isEvaluator ? EVALUATOR_TRIAL_COPY.account_type_label : "Account type")}

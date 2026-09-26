@@ -18,6 +18,7 @@ import * as React from "react";
 import { AlertCircle, Mail } from "lucide-react";
 
 import { FOCUS_RING } from "@/components/marketing/template/primitives";
+import { DataPurposeNote } from "@/components/legal/data-purpose-note";
 
 import type { FreeReportCopy } from "@/lib/reports/free-report-copy";
 import { FREE_REPORT_HONEYPOT_FIELD } from "@/lib/reports/free-grants-rules";
@@ -176,6 +177,8 @@ export function FreeReportEmailPanel({
         <p className="text-xs leading-relaxed text-tertiary" data-testid="analyze-free-report-principle">
           {copy.principle}
         </p>
+        {/* G34 DC10 — purpose line + privacy link at the guest address ask. */}
+        <DataPurposeNote testId="analyze-free-report-purpose" />
         {onEdit && (
           <button
             type="button"

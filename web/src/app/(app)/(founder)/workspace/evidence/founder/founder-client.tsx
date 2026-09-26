@@ -5,6 +5,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import { DataPurposeNote } from "@/components/legal/data-purpose-note";
 
 export interface FounderSignalsView {
   source: string;
@@ -124,6 +125,8 @@ export function FounderSignalsClient({ initial, readOnly = false }: Props) {
             <input type="url" value={profileUrl} onChange={(e) => setProfileUrl(e.target.value)} placeholder="https://www.linkedin.com/in/your-name" className="mt-1 w-full rounded-lg border border-surface-300 p-2 text-sm" />
           </label>
           <p className="text-xs text-ink-600">The URL is stored and shown to evaluators as a link. It is never fetched or scraped.</p>
+          {/* G34 DC10 — purpose line + privacy link at the founder/team capture point. */}
+          <DataPurposeNote testId="founder-evidence-data-purpose" />
           {error ? <p className="text-sm text-red-700" role="alert">{error}</p> : null}
           <button type="submit" disabled={busy} className="rounded-lg bg-action px-4 py-2 text-sm font-medium text-on-action disabled:opacity-50">
             {busy ? "Parsing…" : "Save founder evidence"}

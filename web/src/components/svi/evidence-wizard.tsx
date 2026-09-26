@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { trackEvent } from "@/lib/analytics";
 import { probeConnector } from "@/lib/oauth/connector-probe";
+import { DataPurposeNote } from "@/components/legal/data-purpose-note";
 
 // ---------- GitHub OAuth connect step ----------
 
@@ -427,6 +428,9 @@ export function EvidenceWizard({ onClose, onSuccess }: EvidenceWizardProps) {
                 </Button>
               </div>
             )}
+
+            {/* G34 DC10 — purpose line + privacy link at the evidence capture step. */}
+            <DataPurposeNote testId="evidence-wizard-data-purpose" />
 
             <div className="flex gap-2 pt-2">
               <Button variant="secondary" size="sm" onClick={() => setStep(1)} className="flex-1">Back</Button>

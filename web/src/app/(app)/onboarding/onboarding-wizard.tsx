@@ -39,6 +39,8 @@ import {
   type WizardV4InitialParams,
   type WizardV4State,
 } from "@/components/onboarding/wizard-v4";
+import { DataPurposeNote } from "@/components/legal/data-purpose-note";
+import type { SaveState } from "@/lib/privacy/data-purpose-copy";
 
 export type OnboardingInitialParams = WizardV4InitialParams;
 
@@ -61,16 +63,33 @@ function readCachedVia(): string | undefined {
   }
 }
 
-async function saveProgress(state: WizardV4State, completed = false): Promise<void> {
+/** Resolves `true` when the server copy was written (G34 DC10 surfaces it). */
+async function saveProgress(state: WizardV4State, completed = false): Promise<boolean> {
   try {
-    await fetch("/api/onboarding/save-progress", {
+    const res = await fetch("/api/onboarding/save-progress", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ step: state.step, state, persona: state.persona, completed }),
     });
+    return res.ok;
   } catch {
     // Fire-and-forget — localStorage already has the latest state.
+    return false;
   }
+}
+
+/** Outcome of the last autosave, keyed to the exact state object it saved. */
+export interface WizardSaveOutcome {
+  for: WizardV4State;
+  server: boolean;
+  local: boolean;
+}
+
+/** Pure: the visible autosave label — a state newer than the last outcome is still saving. */
+export function wizardSaveState(state: WizardV4State, outcome: WizardSaveOutcome | null): SaveState {
+  if (!outcome || outcome.for !== state) return "saving";
+  if (outcome.server) return "saved";
+  return outcome.local ? "saved-local" : "unsaved";
 }
 
 export interface OnboardingWizardProps {
@@ -92,15 +111,25 @@ export function OnboardingWizard({ user, initialParams, defaultPersona, personaO
   const flow = flowForPersona(state.persona);
   const persona = state.persona ?? "founder";
   const lastStep = React.useRef<WizardStep | null>(null);
+  const [saveOutcome, setSaveOutcome] = React.useState<WizardSaveOutcome | null>(null);
 
-  // Persist + step telemetry on every state change.
+  // Persist + step telemetry on every state change. The outcome is only
+  // surfaced (G34 DC10) — the persistence itself is unchanged.
   React.useEffect(() => {
+    let local = true;
     try {
       window.localStorage.setItem(WIZARD_V4_STORAGE_KEY, JSON.stringify(state));
     } catch {
       // Storage unavailable — resume just won't survive a restart on this device.
+      local = false;
     }
-    void saveProgress(state);
+    let stale = false;
+    void saveProgress(state).then((server) => {
+      if (!stale) setSaveOutcome({ for: state, server, local });
+    });
+    return () => {
+      stale = true;
+    };
   }, [state]);
 
   React.useEffect(() => {
@@ -175,6 +204,15 @@ export function OnboardingWizard({ user, initialParams, defaultPersona, personaO
           )}
           {state.step === 3 && <StepFirstValue persona={state.persona} planId={state.planId} interval={state.interval} onFinish={finish} finishing={finishing} />}
         </div>
+
+        {/* G34 DC10 — purpose line + privacy link, and the autosave state of
+            the progress this wizard already keeps. */}
+        <DataPurposeNote
+          context={flow === "evaluator" ? "account" : "analysis"}
+          saveState={wizardSaveState(state, saveOutcome)}
+          className="mt-4 text-center"
+          testId="onboarding-data-purpose"
+        />
 
         <div className="mt-6 flex items-center justify-between">
           {state.step > 1 ? (

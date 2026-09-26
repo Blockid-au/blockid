@@ -52,6 +52,7 @@ import type { IntakeResult } from "@/lib/intake/analyze-input";
 import type { IntakeContext } from "@/lib/intake/detect-context";
 import type { AgentRole } from "@/lib/report-pipeline/types";
 import { sviStageToCanonical } from "@/lib/journey-vocabulary";
+import { DataPurposeNote } from "@/components/legal/data-purpose-note";
 
 const DeckReaderPanel = dynamic(
   () => import("./deck-reader-panel").then((m) => m.DeckReaderPanel),
@@ -866,6 +867,8 @@ export function AnalyzeRoot({
           </div>
         )}
         <SmartIntake onSubmit={(sub) => void handleSubmit(sub)} busy={intakeLoading} />
+        {/* G34 DC10 — the purpose line at the intake box. */}
+        <DataPurposeNote testId="analyze-data-purpose" />
         {intakeLoading && (
           <p className="text-xs text-tertiary">
             Reading your input…
