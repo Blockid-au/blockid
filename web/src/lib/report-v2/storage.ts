@@ -17,12 +17,13 @@
 // present (a pre-S47 row is parsed on read — `executive-structure.ts`).
 
 import "server-only";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 import { nanoid } from "nanoid";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { ensureExecutiveStructured } from "./executive-structure";
 import { isReportV2, type ReportV2 } from "./schema";
+import { reportRevisionHash } from "./revision-hash";
 
 type Db = SupabaseClient;
 
@@ -86,7 +87,9 @@ export async function insertImmutableReportRevision(
   const revisionId = randomUUID();
   const shareToken = nanoid(32);
   const document = JSON.parse(JSON.stringify(args.report));
-  const reportHash = createHash("sha256").update(JSON.stringify(document)).digest("hex");
+  // Canonical (sorted-key) JSON: Postgres jsonb reorders object keys, so the
+  // reader re-hashes the round-tripped document and must get the same digest.
+  const reportHash = reportRevisionHash(document);
   try {
     // O08/T02 unknown-commit recovery: a caller may lose the response after
     // PostgREST commits. Reuse the exact prior revision before attempting a

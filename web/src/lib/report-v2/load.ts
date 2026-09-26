@@ -22,6 +22,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { fromSnapshot, resolveReportV2, scoreBreakdownFromSub, type SnapshotCriterionState, type SnapshotDimState, type SnapshotInput, type SubScoreLike, type SviAnalysisLike } from "./adapter";
 import { isReportV2, type ReportTierV2, type ReportV2 } from "./schema";
 import { readSnapshotReportV2 } from "./storage";
+import { reportRevisionHash } from "./revision-hash";
 import { primeComparables } from "@/lib/valuation/comparables-repo.server";
 import { loadVerificationLevel } from "@/lib/verification/load-level";
 import { publishedFromCohort } from "@/lib/benchmarks/publication-rules";
@@ -194,8 +195,11 @@ export async function loadReportV2ByShareToken(token: string, ctx: SnapshotRepor
       // writer-created row carries one. Reject a corrupted/tampered payload
       // before exposing it through public, PDF, DOCX, or email readers.
       if (typeof row.report_hash === "string" && row.report_hash) {
-        const actualHash = createHash("sha256").update(JSON.stringify(report)).digest("hex");
-        if (actualHash !== row.report_hash) return null;
+        // jsonb reorders keys, so compare the canonical digest; the insertion-
+        // order digest is still accepted for any row written before that fix.
+        const canonical = reportRevisionHash(report);
+        const legacy = createHash("sha256").update(JSON.stringify(report)).digest("hex");
+        if (canonical !== row.report_hash && legacy !== row.report_hash) return null;
       }
       return {
         report,
