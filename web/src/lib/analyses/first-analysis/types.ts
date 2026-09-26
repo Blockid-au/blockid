@@ -12,6 +12,7 @@
 import type { InputEcho } from "@/lib/analyses/input-echo";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import type { ReportMeta } from "./meta";
+import type { TbrStageRecord, TbrTimelineView } from "./stage-timeline";
 
 export const FIRST_ANALYSIS_REPORT_VERSION = 1 as const;
 
@@ -362,6 +363,8 @@ export interface ReportV2Progress {
   at: string;
   /** Chapters that have landed so far. */
   chaptersDone: number;
+  /** 26/09: AI calls answered so far in this run (kept live by the worker's heartbeat). */
+  calls?: number;
 }
 
 /**
@@ -393,6 +396,16 @@ export interface FullReportV2Envelope {
   report: ReportV2 | null;
   /** ER3: chapters written so far, while `report` is still null. */
   draftChapters?: ReportV2ChapterDraft[];
+  /**
+   * 26/09 — the live stage timeline (./stage-timeline.ts), folded from the
+   * orchestrator's real events and saved on every stage change. Absent on
+   * envelopes written before it existed (the view derives a coarse one).
+   */
+  stages?: TbrStageRecord[];
+  /** ISO — the worker's last heartbeat (written every few seconds while the run is alive). */
+  heartbeatAt?: string;
+  /** ISO — the pipeline's wall-clock deadline for this attempt (it degrades rather than run past it). */
+  deadlineAt?: string;
   /** assembled report id from the orchestrator (null until it lands). */
   reportId: string | null;
   progress: ReportV2Progress;
@@ -438,6 +451,12 @@ export interface FullReportView {
   progressV2: ReportV2Progress | null;
   /** ER3: chapters already written while the document is still running (empty once it lands, or when locked). */
   chaptersV2?: ReportV2ChapterDraft[];
+  /**
+   * 26/09 — the stage timeline for a v2 run: every stage with status,
+   * elapsed, ETA and the one-line result, plus overall percent / remaining
+   * and the worker's last heartbeat. Null for an S32 row.
+   */
+  timeline?: TbrTimelineView | null;
   report: FirstAnalysisReportView | null;
   preview: FirstAnalysisPreview | null;
   emailedAt: string | null;

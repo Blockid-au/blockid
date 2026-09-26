@@ -15,6 +15,12 @@
 //                   nextSteps, provider, model, status, …}), never a string;
 //   * `pollAfterSec` honest backoff — 0 when finished, longer while the AI
 //                   queue is saturated (`progress.queuedForSec`).
+//   * `timeline`    (26/09, v2 rows) the stage timeline — every pipeline
+//                   stage with status / startedAt / finishedAt / etaSec /
+//                   elapsedSec / detail, plus state, percent, elapsedSec,
+//                   remainingSec, overrun, lastUpdateAt (worker heartbeat)
+//                   and serverNow. Present while the report is not readable
+//                   yet and for a locked guest (it carries no report content).
 //
 // A row from before migration 0390 (`status: null`) is enqueued and started
 // on first sight, so the saved view of an older run grows its full report
@@ -29,6 +35,7 @@ import { enqueueFullReport, loadFullReportRow } from "@/lib/analyses/first-analy
 import { startAnalysisReportJob } from "@/lib/analyses/first-analysis/dispatch";
 import { verifyDownloadToken } from "@/lib/analyses/first-analysis/download-token";
 import { buildFullReportView } from "@/lib/analyses/first-analysis/view";
+import { loadStageEtas } from "@/lib/analyses/first-analysis/stage-timings";
 import { isNeverStarted } from "@/lib/analyses/first-analysis/store";
 import { freeReportsCapReached, grantForAnalysis } from "@/lib/reports/free-grants";
 
@@ -104,7 +111,11 @@ export async function GET(
     if (!heldForCap) startAnalysisReportJob(id, { userId: row.user_id, json: row.full_report_json });
   }
 
-  const view = buildFullReportView(row);
+  // 26/09 — the stage timeline rides on every poll (also before the report
+  // is readable): per-stage status / elapsed / ETA, overall percent and the
+  // worker's last heartbeat. ETAs are medians of recent real runs.
+  const etas = await loadStageEtas().catch(() => undefined);
+  const view = buildFullReportView(row, { now: new Date(), etas, heldForCap });
   return NextResponse.json(
     // `heldForCap` — the page prints "queued, we e-mail you when it is
     // ready" instead of the writing timeline; the poll slows to the cron's cadence.

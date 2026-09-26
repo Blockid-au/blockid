@@ -38,6 +38,10 @@ import type { IntakeResult } from "@/lib/intake/analyze-input";
 import type { ReportV2ChapterDraft, ReportV2Progress } from "@/lib/analyses/first-analysis/types";
 import { cn } from "@/lib/utils";
 import { isReportV2, type ReportV2 } from "@/lib/report-v2/schema";
+import { DIM_ORDER } from "@/lib/report-pipeline/dimension-owners";
+import { isTimelineView, type TbrStageKey, type TbrTimelineView } from "@/lib/analyses/first-analysis/stage-timeline";
+import { useLocale } from "@/lib/use-locale";
+import { STAGE_COPY, TIMELINE_TEXT, dimLabel, ownerRoleFor, type TimelineLocale } from "./tbr-stage-copy";
 
 // G28-C — the v3 Trusted Business Report (the same <TbrReportV2> the paid
 // /workspace/reports/business and /tbr/<token> pages render). Loaded on
@@ -78,7 +82,21 @@ export interface FullReportPanelProps {
   token?: string | null;
   /** Credits the founder paid for this run on /analyze (absent = a free run). */
   creditsCharged?: number | null;
+  /**
+   * 26/09 — every poll result goes up, so the page can render the stage
+   * timeline at its top (`TbrStageTimeline`). `receivedAt` is the client
+   * clock at arrival (the timeline's counters tick from it);
+   * `connectionTrouble` is true while polls fail and the last view is kept.
+   */
+  onView?: (update: LiveViewUpdate) => void;
   className?: string;
+}
+
+export interface LiveViewUpdate {
+  analysisId: string;
+  view: FullReportView | null;
+  receivedAt: number;
+  connectionTrouble: boolean;
 }
 
 /** Phase wording for the v2 progress line. Exported for the test. */
@@ -203,6 +221,7 @@ export function parseView(body: unknown): FullReportView | null {
     error: b.error ?? null,
     pollAfterSec: typeof b.pollAfterSec === "number" ? b.pollAfterSec : 0,
     heldForCap: Boolean(b.heldForCap),
+    timeline: isTimelineView(b.timeline) ? b.timeline : null,
   };
 }
 
@@ -249,7 +268,7 @@ export function reportApiPath(analysisId: string, leaf: "full-report" | "report.
   return token ? `${base}?token=${encodeURIComponent(token)}` : base;
 }
 
-export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, intake, token = null, creditsCharged = null, className, onFinalReport }: FullReportPanelProps) {
+export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, intake, token = null, creditsCharged = null, className, onFinalReport, onView }: FullReportPanelProps) {
   const [scopedView, setScopedView] = React.useState<{ analysisId: string; intake?: IntakeResult | null; token: string | null; value: FullReportView } | null>(null);
   const view = scopedView?.analysisId === analysisId && scopedView?.intake === intake && scopedView?.token === token ? scopedView.value : null;
   const [failedToLoad, setFailedToLoad] = React.useState(false);
@@ -273,6 +292,7 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
         const next = parseView(body);
         if (!next) {
           setFailedToLoad(true);
+          if (res.status !== 404) onView?.({ analysisId: analysisId!, view: null, receivedAt: Date.now(), connectionTrouble: true });
           // AF06: only a 404 is final. A 5xx / 429 / unreadable body (a
           // deploy, a restart) keeps what is on screen and tries again.
           if (res.status === 404) {
@@ -286,6 +306,7 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
         }
         setFailedToLoad(false);
         setScopedView({ analysisId: analysisId!, intake, token, value: next });
+        onView?.({ analysisId: analysisId!, view: next, receivedAt: Date.now(), connectionTrouble: false });
         onFinalReport?.({ analysisId: analysisId!, intake, token, report: finalFindingReport(next) });
         if (next.pollAfterSec > 0) {
           if (Date.now() - startedAt < POLL_GIVE_UP_MS) timer = setTimeout(tick, Math.max(2, next.pollAfterSec) * 1000);
@@ -295,6 +316,7 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
         if (!live) return;
         // A network blip keeps the report already on screen (AF06).
         setFailedToLoad(true);
+        onView?.({ analysisId: analysisId!, view: null, receivedAt: Date.now(), connectionTrouble: true });
         if (Date.now() - startedAt < POLL_GIVE_UP_MS) timer = setTimeout(tick, 6000);
         else setGaveUp(true);
       }
@@ -304,7 +326,7 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
       live = false;
       if (timer) clearTimeout(timer);
     };
-  }, [analysisId, unlockNonce, token, intake, onFinalReport]);
+  }, [analysisId, unlockNonce, token, intake, onFinalReport, onView]);
 
   const clientEcho = React.useMemo<InputEcho | null>(() => {
     if (!intake) return null;
@@ -444,16 +466,7 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
           <ChaptersLanding chapters={view?.chaptersV2 ?? []} />
         )}
         {v2 && !reportV2 && !locked && status !== "failed" && (
-          <div className="mt-4 rounded-xl border border-dashed border-line-subtle bg-surface-sunken p-4" data-testid="analyze-report-v2-pending" aria-busy="true">
-            <p className="text-xs font-semibold uppercase tracking-wider text-tertiary">What is being written</p>
-            <ol className="mt-2 space-y-1 text-sm text-secondary">
-              <li>1. Dashboard and investment view — SVI, evidence confidence, verdict band, valuation range</li>
-              <li>2. Valuation — the methods, the consensus and what moves it</li>
-              <li>3. Eight dimension chapters — verdict, evidence, strengths, gaps, what to improve</li>
-              <li>4. Risk matrix, 90-day improvement plan, money on the table, appendix</li>
-            </ol>
-            <p className="mt-3 text-xs text-muted">Usually 3–8 minutes. The report is e-mailed the moment it lands — you can close this page.</p>
-          </div>
+          <PendingSections timeline={view?.timeline ?? null} landed={(view?.chaptersV2 ?? []).map((c) => c.dim)} />
         )}
 
         {locked && (
@@ -516,6 +529,74 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
         )}
       </section>
     </div>
+  );
+}
+
+/**
+ * 26/09 — the sections of the v3 document that have not landed yet, each a
+ * clearly-labelled PLACEHOLDER (never report content): "Being analysed
+ * now…" while its stage runs, "Waiting — fills in when X finishes"
+ * otherwise. Chapters that already landed are shown above (ChaptersLanding)
+ * and drop out of this list. Driven by the poll payload's stage timeline;
+ * with no timeline yet (first paint) everything reads waiting. Exported for
+ * the test.
+ */
+export function PendingSections({ timeline, landed, locale: forcedLocale }: { timeline: TbrTimelineView | null; landed: string[]; locale?: TimelineLocale }) {
+  const [cookieLocale] = useLocale();
+  const locale: TimelineLocale = forcedLocale ?? cookieLocale;
+  const t = TIMELINE_TEXT[locale];
+  const stageOf = (key: TbrStageKey) => timeline?.stages.find((s) => s.key === key) ?? null;
+  const dims = stageOf("dimensions");
+  const writing = new Set(dims?.detail?.writing ?? []);
+  const landedSet = new Set(landed);
+  type Item = { id: string; title: string; lead?: string; stage: TbrStageKey; running: boolean; ready: boolean };
+  const item = (id: string, title: string, stage: TbrStageKey, lead?: string, runningOverride?: boolean): Item => {
+    const st = stageOf(stage);
+    return { id, title, lead, stage, running: runningOverride ?? st?.status === "running", ready: st?.status === "done" };
+  };
+  const items: Item[] = [
+    item("investment", t.sectionInvestment, "synthesis"),
+    item("valuation", t.sectionValuation, "valuation"),
+    ...DIM_ORDER.filter((d) => !landedSet.has(d)).map((d) =>
+      item(`dim-${d}`, dimLabel(d, locale), "dimensions", ownerRoleFor(d), dims?.status === "running" ? writing.has(d) : false),
+    ),
+    item("audit", t.sectionAudit, "audit"),
+    item("risk", t.sectionRisk, "assemble"),
+  ];
+  return (
+    <section className="mt-4 rounded-xl border border-dashed border-line-subtle bg-surface-sunken p-4" data-testid="analyze-report-v2-pending" aria-busy="true">
+      <p className="text-xs font-semibold uppercase tracking-wider text-tertiary">{t.pendingHeading}</p>
+      <p className="mt-1 text-xs text-secondary">{t.pendingNote}</p>
+      <p className="mt-3 text-[11px] font-semibold uppercase tracking-wider text-tertiary">{STAGE_COPY[locale].dimensions.label} · {STAGE_COPY[locale].valuation.label} · {STAGE_COPY[locale].synthesis.label}</p>
+      <ul className="mt-2 space-y-2">
+        {items.map((it) => (
+          <li
+            key={it.id}
+            className="rounded-lg border border-dashed border-line-subtle bg-surface p-3"
+            data-testid={`analyze-pending-${it.id}`}
+            data-state={it.running ? "running" : it.ready ? "ready" : "waiting"}
+          >
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full border border-line-subtle bg-surface-hover px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-tertiary">
+                {t.placeholderBadge}
+              </span>
+              <p className="text-sm font-medium text-secondary">{it.title}</p>
+              {it.lead && <span className="text-[11px] uppercase tracking-wider text-tertiary">{t.lead(it.lead)}</span>}
+            </div>
+            {it.running ? (
+              <div className="mt-2 space-y-1.5" aria-hidden>
+                <div className="h-2.5 w-11/12 animate-pulse rounded bg-surface-hover motion-reduce:animate-none" />
+                <div className="h-2.5 w-3/4 animate-pulse rounded bg-surface-hover motion-reduce:animate-none" />
+              </div>
+            ) : null}
+            <p className={cn("mt-1.5 flex items-center gap-1.5 text-xs", it.running ? "text-action" : "text-muted")}>
+              {it.running && <Loader2 aria-hidden strokeWidth={2} className="h-3 w-3 animate-spin motion-reduce:animate-none" />}
+              {it.running ? t.analysingNow : it.ready ? t.readyPending : t.waitingFor(STAGE_COPY[locale][it.stage].label)}
+            </p>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
 
