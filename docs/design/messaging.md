@@ -19,6 +19,8 @@ Sources of truth this map condenses (it does not replace them): `docs/plans/unic
 
 ## 2. Hero (FI1 / FI2 — verbatim, G21 P0-B; E1/E2 kept as selectable arms via `?hero=`)
 
+> **Live since G30 U06 (2026-09-23), body synced 2026-09-26.** The homepage speaks to investors. Source of truth: `web/src/lib/marketing/homepage-hero.ts` (`g30-investor-v1`). Eyebrow `Business research for investors` · H1 `Know the business before you invest.` · outcome line `Business context · Key risks · Next questions` · CTA `Analyse a business` + `View a sample report` (VI: `Hiểu rõ doanh nghiệp trước khi đầu tư.`). Founder decision 2026-09-26 ("đồng bộ cho nhà đầu tư giữ thông điệp hero"): every section below the hero (`home-content.ts` + `vi.home.*`) addresses the investor and repeats the outcome line (the "What you get" cards are those three words), and pitch decks reuse the eyebrow, H1 and outcome line verbatim. The FI1 / FI2 table below is the G21 history; the program-first lines survive on `/solutions/accelerator` only.
+
 | | EN | VI |
 |---|---|---|
 | **H1 (FI1)** | `Screen every startup on the same evidence-backed framework.` | `Sàng lọc mọi startup trên cùng một khung đánh giá có bằng chứng.` |

@@ -1,11 +1,12 @@
 import {
+  Building2,
   FileInput,
   FileSearch,
   FileText,
   Gauge,
+  MessageCircleQuestion,
   ShieldCheck,
   Table2,
-  Timer,
   TrendingUp,
 } from "lucide-react";
 import { NavV2 } from "@/components/landing/nav-v2";
@@ -61,7 +62,7 @@ const SEQUENCE_ICONS = {
   cohort: Table2,
   progress: TrendingUp,
 } as const;
-const MESSAGE_ICONS = { faster: Timer, evidence: ShieldCheck, improvement: TrendingUp } as const;
+const MESSAGE_ICONS = { faster: Building2, evidence: ShieldCheck, improvement: MessageCircleQuestion } as const;
 
 export default function HomePage() {
   return (
@@ -117,7 +118,7 @@ export default function HomePage() {
           </p>
         </Section>
 
-        {/* c. THREE MESSAGES — Screen faster · Trust the evidence · Track improvement. */}
+        {/* c. WHAT YOU GET — the hero outcome line: context · risks · questions. */}
         <Section
           id="messages"
           eyebrow={HOME_MESSAGES_SECTION.eyebrow}

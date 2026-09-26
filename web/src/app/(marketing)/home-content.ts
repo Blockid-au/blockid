@@ -5,12 +5,12 @@
  * section order, the CTAs, the six product steps and the comparison lists
  * without rendering.
  *
- * POSITIONING: BlockID is evidence-backed startup assessment infrastructure
- * for accelerators, innovation programs and professional evaluators;
- * founders own the data. Three messages everywhere — Screen faster · Trust
- * the evidence · Track improvement. Never "our AI is better", never an agent
- * count, never a price on the home (G17 D3 still holds: the page test pins
- * `/A\$\d/` absent).
+ * POSITIONING (2026-09-26, founder: "đồng bộ cho nhà đầu tư giữ thông điệp
+ * hero"): every section below the hero speaks to the investor the G30 hero
+ * addresses — "Know the business before you invest." — and repeats its
+ * outcome line: Business context · Key risks · Next questions. Founders own
+ * the data. Never "our AI is better", never an agent count, never a price on
+ * the home (G17 D3 still holds: the page test pins `/A\$\d/` absent).
  */
 
 import { HOMEPAGE_HERO, HOMEPAGE_SAMPLE_HREF } from "@/lib/marketing/homepage-hero";
@@ -43,8 +43,8 @@ export const HOME_SECTION_IDS = [
 
 export const HOME_PROBLEM = {
   eyebrow: "The problem",
-  title: "Startup screening was not designed to scale.",
-  lede: "Every program runs intake the same way — and it breaks in the same three places.",
+  title: "Too many decks. Too little time to check them.",
+  lede: "Investors see more businesses than they can research properly — and it breaks in the same three places.",
 } as const;
 
 export interface HomeProblemStep {
@@ -55,19 +55,19 @@ export interface HomeProblemStep {
 
 export const HOME_PROBLEM_STEPS: readonly HomeProblemStep[] = [
   {
-    title: "Different inputs",
-    body: "Every applicant arrives in a different shape, so nothing can be read side by side.",
-    examples: ["PDF", "Forms", "Decks", "E-mails", "Spreadsheets"],
+    title: "Scattered information",
+    body: "Every business arrives in a different shape, so nothing can be read side by side.",
+    examples: ["Decks", "Websites", "PDFs", "E-mails", "Spreadsheets"],
   },
   {
-    title: "Subjective review",
-    body: "Different reviewers apply different criteria to incomplete evidence.",
-    examples: ["Different reviewers", "Inconsistent criteria", "Incomplete evidence"],
+    title: "Unchecked claims",
+    body: "Traction, revenue and team claims arrive without the evidence behind them.",
+    examples: ["Self-reported numbers", "No verification", "Missing documents"],
   },
   {
-    title: "Weak feedback",
-    body: "Founders get a yes or a no; sponsors cannot measure cohort improvement; evaluators cannot easily compare companies.",
-    examples: ["Yes/no to founders", "No cohort measure", "Hard to compare"],
+    title: "Unclear next step",
+    body: "Without a clear view of the risks, it is hard to know what to ask before the first meeting.",
+    examples: ["Hidden risks", "Generic questions", "Wasted meetings"],
   },
 ];
 
@@ -75,8 +75,8 @@ export const HOME_PROBLEM_STEPS: readonly HomeProblemStep[] = [
 
 export const HOME_SEQUENCE = {
   eyebrow: "What BlockID does",
-  title: "From application to a comparable record.",
-  lede: "One pipeline, applied the same way to every company and every point in time.",
+  title: "From a website to an investor-ready report.",
+  lede: "One method, applied the same way to every business you look at.",
   href: "/product",
   linkLabel: "See the product in detail",
   ctaId: "home_sequence_product",
@@ -89,26 +89,26 @@ export interface HomeSequenceStep {
 }
 
 export const HOME_SEQUENCE_STEPS: readonly HomeSequenceStep[] = [
-  { icon: "application", title: "Founder application", caption: "Deck, form, website or a paste" },
+  { icon: "application", title: "Add a business", caption: "Website, documents or a description" },
   { icon: "evidence", title: "Evidence extracted", caption: "Claims separated from proof" },
   { icon: "score", title: "SVI + confidence", caption: "Startup Value Index, eight dimensions" },
-  { icon: "dossier", title: "Evaluator dossier", caption: "What the evidence supports" },
-  { icon: "cohort", title: "Cohort table", caption: "Every applicant, side by side" },
-  { icon: "progress", title: "Progress over time", caption: "Re-assess and measure movement" },
+  { icon: "dossier", title: "Key risks", caption: "What the evidence does not support" },
+  { icon: "cohort", title: "Questions to ask", caption: "Before the first meeting" },
+  { icon: "progress", title: "Track over time", caption: "Re-assess and see what changed" },
 ];
 
 /** The sample link that sits under the sequence (kept from G17: a real anonymised dossier). */
 export const HOME_SAMPLE_LINK = {
   href: "/tbr/demo",
-  label: "Open a sample dossier",
+  label: "Open a sample report",
   ctaId: "home_sample_dossier",
 } as const;
 
 // ─── c. Three messages ───────────────────────────────────────────────────────
 
 export const HOME_MESSAGES_SECTION = {
-  eyebrow: "Three things it changes",
-  title: "Screen faster. Trust the evidence. Track improvement.",
+  eyebrow: "What you get",
+  title: "Business context. Key risks. Next questions.",
 } as const;
 
 export interface HomeMessage {
@@ -120,18 +120,18 @@ export interface HomeMessage {
 export const HOME_MESSAGES: readonly HomeMessage[] = [
   {
     icon: "faster",
-    title: "Screen faster",
-    body: "Every applicant is normalised into the same framework.",
+    title: "Business context",
+    body: "What the business does, who it serves and how far it has come — in minutes, not a weekend.",
   },
   {
     icon: "evidence",
-    title: "Trust the evidence",
-    body: "Scores show what evidence supports them and what remains unverified.",
+    title: "Key risks",
+    body: "What the evidence supports, what remains unverified and where the business could break.",
   },
   {
     icon: "improvement",
-    title: "Track improvement",
-    body: "Re-assess companies through the program and measure movement.",
+    title: "Next questions",
+    body: "The questions to ask before you meet — and a record you can re-check later.",
   },
 ];
 
@@ -149,7 +149,7 @@ export const HOME_WHY_NOT = {
       "No persistent company record",
       "Inconsistent comparison",
       "No evidence hierarchy",
-      "No institutional workflow",
+      "No investor workflow",
     ],
   },
   ours: {
@@ -160,9 +160,9 @@ export const HOME_WHY_NOT = {
       "Common rubric",
       "Evidence provenance",
       "Verification status",
-      "Comparable cohorts",
+      "Comparable companies",
       "Score history",
-      "Evaluator workflow",
+      "Investor workflow",
       "Audit trail",
     ],
   },
@@ -173,17 +173,17 @@ export const HOME_WHY_NOT = {
 
 export const HOME_BUILT_FOR_SECTION = {
   eyebrow: "Built for",
-  title: "Organisations that assess startups again and again.",
+  title: "Investors who look at startups again and again.",
   lede: "Founders take part, keep control of their data and get the improvement plan.",
 } as const;
 
 export const HOME_BUILT_FOR: readonly string[] = [
+  "Angel investors",
+  "Angel groups",
+  "Syndicates",
+  "Early-stage VCs",
+  "Advisory firms",
   "Accelerators",
-  "Incubators",
-  "Universities",
-  "Innovation Programs",
-  "Venture Studios",
-  "Funds",
 ];
 
 // ─── g. Closing band ─────────────────────────────────────────────────────────

@@ -53,9 +53,10 @@ test.describe("G21 P0 — home positioning", () => {
     expect(text).not.toMatch(/A\$\s?\d/);
     expect(text).not.toMatch(/pilot/i);
     expect(text).not.toMatch(/\b\d+\s+(AI\s+)?(C-Level\s+)?agents\b/i);
-    expect(text).toContain("Screen faster");
-    expect(text).toContain("Trust the evidence");
-    expect(text).toContain("Track improvement");
+    // 2026-09-26: the body repeats the hero outcome line for investors.
+    expect(text).toContain("Business context");
+    expect(text).toContain("Key risks");
+    expect(text).toContain("Next questions");
     await evidence(testInfo, "home", { ids, h1: HERO_H1 });
   });
 

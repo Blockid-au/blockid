@@ -149,31 +149,30 @@ describe("homepage v7 — sections in order", () => {
     expect(src.indexOf("<TrustBand />")).toBeLessThan(src.indexOf("<CtaBand"));
   });
 
-  it("a. Problem — the H2, three linked steps (Different inputs → Subjective review → Weak feedback) with inline SVG arrows", () => {
+  it("a. Problem — the investor H2, three linked steps (Scattered information → Unchecked claims → Unclear next step) with inline SVG arrows", () => {
     expect(text).toContain(HOME_PROBLEM.title);
-    expect(HOME_PROBLEM.title).toBe("Startup screening was not designed to scale.");
-    expect(HOME_PROBLEM_STEPS.map((s) => s.title)).toEqual(["Different inputs", "Subjective review", "Weak feedback"]);
+    expect(HOME_PROBLEM.title).toBe("Too many decks. Too little time to check them.");
+    expect(HOME_PROBLEM_STEPS.map((s) => s.title)).toEqual(["Scattered information", "Unchecked claims", "Unclear next step"]);
     expect(out).toContain('data-testid="problem-flow"');
     const flow = out.slice(out.indexOf('data-testid="problem-flow"'), out.indexOf('id="sequence"'));
     expect((flow.match(/data-flow-arrow/g) ?? []).length).toBe(2);
     expect((flow.match(/<svg\b/g) ?? []).length).toBe(2);
     expect(flow).toContain("rotate-90 lg:rotate-0"); // down when stacked at 375, right on lg
-    for (const ex of ["PDF", "Forms", "Decks", "E-mails", "Spreadsheets", "Different reviewers", "Inconsistent criteria", "Incomplete evidence"]) {
+    for (const ex of ["Decks", "Websites", "PDFs", "E-mails", "Spreadsheets", "Self-reported numbers", "No verification", "Missing documents", "Hidden risks"]) {
       expect(text, ex).toContain(ex);
     }
-    expect(text).toMatch(/Founders get a yes or a no/);
-    expect(text).toMatch(/sponsors cannot measure cohort improvement/);
-    expect(text).toMatch(/evaluators cannot easily compare companies/);
+    expect(text).toMatch(/Investors see more businesses than they can research properly/);
+    expect(text).toMatch(/hard to know what to ask before the first meeting/);
   });
 
   it("b. Product sequence — six steps in one flow, the whole block links /product, the sample dossier link under it", () => {
     expect(HOME_SEQUENCE_STEPS.map((s) => s.title)).toEqual([
-      "Founder application",
+      "Add a business",
       "Evidence extracted",
       "SVI + confidence",
-      "Evaluator dossier",
-      "Cohort table",
-      "Progress over time",
+      "Key risks",
+      "Questions to ask",
+      "Track over time",
     ]);
     expect(out).toContain('data-testid="sequence-flow"');
     const flow = out.slice(out.indexOf('data-testid="sequence-flow"'), out.indexOf('id="messages"'));
@@ -186,11 +185,13 @@ describe("homepage v7 — sections in order", () => {
     expect(out).toMatch(/data-cta-id="home_sample_dossier"/);
   });
 
-  it("c. Three messages — Screen faster / Trust the evidence / Track improvement with the approved one-liners", () => {
-    expect(HOME_MESSAGES.map((m) => [m.title, m.body])).toEqual([
-      ["Screen faster", "Every applicant is normalised into the same framework."],
-      ["Trust the evidence", "Scores show what evidence supports them and what remains unverified."],
-      ["Track improvement", "Re-assess companies through the program and measure movement."],
+  it("c. What you get — the hero outcome line (Business context · Key risks · Next questions) as three cards", () => {
+    expect(HOME_MESSAGES.map((m) => m.title)).toEqual(["Business context", "Key risks", "Next questions"]);
+    expect(HOMEPAGE_HERO.en.outcomes).toBe(HOME_MESSAGES.map((m) => m.title).join(" · "));
+    expect(HOME_MESSAGES.map((m) => m.body)).toEqual([
+      "What the business does, who it serves and how far it has come — in minutes, not a weekend.",
+      "What the evidence supports, what remains unverified and where the business could break.",
+      "The questions to ask before you meet — and a record you can re-check later.",
     ]);
     for (const m of HOME_MESSAGES) {
       expect(text).toContain(m.title);
@@ -207,16 +208,16 @@ describe("homepage v7 — sections in order", () => {
       "No persistent company record",
       "Inconsistent comparison",
       "No evidence hierarchy",
-      "No institutional workflow",
+      "No investor workflow",
     ]);
     expect(HOME_WHY_NOT.ours.items).toEqual([
       "Persistent startup record",
       "Common rubric",
       "Evidence provenance",
       "Verification status",
-      "Comparable cohorts",
+      "Comparable companies",
       "Score history",
-      "Evaluator workflow",
+      "Investor workflow",
       "Audit trail",
     ]);
     for (const item of [...HOME_WHY_NOT.other.items, ...HOME_WHY_NOT.ours.items]) expect(text, item).toContain(item);
@@ -228,7 +229,7 @@ describe("homepage v7 — sections in order", () => {
   });
 
   it("e. Built for — six text chips, no logos (no <img> in the section)", () => {
-    expect(HOME_BUILT_FOR).toEqual(["Accelerators", "Incubators", "Universities", "Innovation Programs", "Venture Studios", "Funds"]);
+    expect(HOME_BUILT_FOR).toEqual(["Angel investors", "Angel groups", "Syndicates", "Early-stage VCs", "Advisory firms", "Accelerators"]);
     expect(out).toContain('data-testid="built-for"');
     const band = out.slice(out.indexOf('id="built-for"'), out.indexOf('id="cta"'));
     for (const label of HOME_BUILT_FOR) expect(textOf(band), label).toContain(label);

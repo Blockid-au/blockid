@@ -17,13 +17,14 @@
 
 import type { Metadata } from "next";
 import {
+  Building2,
   FileInput,
   FileSearch,
   FileText,
   Gauge,
+  MessageCircleQuestion,
   ShieldCheck,
   Table2,
-  Timer,
   TrendingUp,
 } from "lucide-react";
 import { NavV2 } from "@/components/landing/nav-v2";
@@ -67,9 +68,9 @@ const SEQUENCE = [
   { key: "progress", icon: TrendingUp },
 ] as const;
 const MESSAGES = [
-  { key: "faster", icon: Timer },
+  { key: "faster", icon: Building2 },
   { key: "evidence", icon: ShieldCheck },
-  { key: "improvement", icon: TrendingUp },
+  { key: "improvement", icon: MessageCircleQuestion },
 ] as const;
 
 /** `|`-separated list values in vi.json. */
