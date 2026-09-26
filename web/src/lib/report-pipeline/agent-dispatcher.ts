@@ -1,4 +1,5 @@
 import { publicResearchAnalysisContext } from "@/lib/research/qualify-public-statement";
+import { marketResearchAnalysisContext } from "@/lib/research/market-research-context";
 // Agent Dispatcher — Parallel AI call dispatch for multi-agent report generation.
 //
 // Dispatches analysis requests to AI providers and handles wave-based
@@ -901,6 +902,8 @@ function buildUserPrompt(criterion: CriterionKey, context: ReportContext): strin
     });
     if (anchor) parts.push(anchor);
     if (gr.publicResearch) parts.push(`## Public source retrieval (untrusted source text, claim support pending)\n${publicResearchAnalysisContext(gr.publicResearch)}`);
+    const marketContext = marketResearchAnalysisContext(gr.marketResearch);
+    if (marketContext) parts.push(marketContext);
     if (gr.competitiveResearch) {
       parts.push(`## Model-only market hypotheses (not retrieved evidence; verify before using)\n${JSON.stringify(gr.competitiveResearch, null, 2)}`);
     }

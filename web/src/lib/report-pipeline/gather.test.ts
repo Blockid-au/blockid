@@ -9,6 +9,7 @@ import { CRITERION_KEYS } from "@/lib/evaluation-criteria";
 import type { CriterionData, ReportContext } from "./types";
 import { GATHER_RESEARCH_CALLS, GatherTimeoutError, gatherData, gatherEvidenceId, loadDimensionEvidenceRows, parseGitHubRepo, resetGatherCache, withTimeout, type GatherDb, type GatherDeps, type GatherQuery } from "./gather";
 import { itemsFromEvidenceRows } from "./auto-cite";
+import { sampleMarketResearch } from "@/lib/research/market-research-fixtures";
 import { signalsForAbn } from "@/lib/signals/external-signals";
 
 type Row = Record<string, unknown>;
@@ -588,5 +589,47 @@ describe("G30 valuation revenue presence", () => {
   it.each(["bad", "2026-09-10T00:00:00Z", "2026-09-11T00:00:00Z"])("does not invent a growth interval for prior timestamp %s", async (priorCapturedAt) => {
     const out = await gatherData(ctx(), callAI, { deps: connectorDeps([{ provider: "stripe", mrrAud: 10000, capturedAt: "2026-09-10T00:00:00Z", priorMrrAud: 5000, priorCapturedAt }]) });
     expect(out.valuation.vc?.inputs?.monthlyGrowthRatePct).toBeUndefined();
+  });
+});
+
+describe("gatherData — market research for valuation", () => {
+  it("passes ONLY public identifiers (name, website, sector category, country, stage) and stores the result", async () => {
+    const runner = vi.fn(async () => sampleMarketResearch());
+    const c = ctx({ criteriaData: criteria({ website: { links: [{ url: "https://acme.com.au", label: "site" }] }, market: { textInput: "SECRET deck market notes: churn 3%" } }) });
+    const out = await gatherData(c, callAI, { deps: deps({ researchMarketForValuation: runner, deepTechAudit: async () => ({}) as never }) });
+    expect(runner).toHaveBeenCalledTimes(1);
+    const [input, opts] = runner.mock.calls[0] as unknown as [Record<string, unknown>, { allowNetwork: boolean; wallMs: number }];
+    expect(input).toEqual({ company: "Acme", website: "https://acme.com.au", sector: "SaaS", country: "Australia", stage: "seed" });
+    expect(JSON.stringify(input)).not.toMatch(/SECRET|churn|widgets|MRR/);
+    expect(opts.allowNetwork).toBe(true);
+    expect(opts.wallMs).toBeLessThanOrEqual(45_000);
+    expect(out.results.marketResearch?.status).toBe("found");
+    expect(out.results.diagnostics?.marketResearch).toMatchObject({ status: "ok", note: "found via claude_cli_websearch" });
+  });
+
+  it("free tier / partial re-run (skipResearch) → cache-only, no network", async () => {
+    const runner = vi.fn(async () => sampleMarketResearch({ status: "skipped", reasons: ["cache_only_miss"], sources: [], facts: { marketSize: [], competitors: [], comparables: [] } }));
+    await gatherData(ctx(), callAI, { deps: deps({ researchMarketForValuation: runner }), skipResearch: true });
+    expect((runner.mock.calls[0] as unknown as [unknown, { allowNetwork: boolean }])[1].allowNetwork).toBe(false);
+  });
+
+  it("references never unlock a valuation the revenue gate refused (no SVI / research → money)", async () => {
+    const buildValuation = vi.fn(vcStub!);
+    const context = ctx();
+    context.rawText = "Business information; revenue not supplied.";
+    context.sviAnalysis = { ...context.sviAnalysis, signals: { raiseAskAud: 1_000_000 } } as ReportContext["sviAnalysis"];
+    const out = await gatherData(context, callAI, { deps: deps({ buildValuation, researchMarketForValuation: async () => sampleMarketResearch() }) });
+    expect(out.results.marketResearch?.status).toBe("found");
+    expect(buildValuation).not.toHaveBeenCalled();
+    expect(out.valuation.vc).toBeNull();
+    expect(out.valuation.status).toBe("unavailable");
+  });
+
+  it("a throwing runner is contained (diagnostic error, report continues); no runner under vitest → skipped", async () => {
+    const out = await gatherData(ctx(), callAI, { deps: deps({ researchMarketForValuation: async () => { throw new Error("boom"); } }) });
+    expect(out.results.diagnostics?.marketResearch?.status).toBe("error");
+    expect(out.results.marketResearch).toBeUndefined();
+    const none = await gatherData(ctx(), callAI, { deps: deps() });
+    expect(none.results.diagnostics?.marketResearch).toMatchObject({ status: "skipped", note: "not configured" });
   });
 });

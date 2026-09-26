@@ -156,6 +156,11 @@ export interface GrantsMatch {
 
 export interface GatherDeps {
   retrievePublicSources?: typeof import("@/lib/research/public-sources").retrievePublicSources;
+  /** Market research for valuation (Brave → Claude CLI → R01 fetch → one extraction). Absent under vitest → skipped. */
+  researchMarketForValuation?: (
+    input: import("@/lib/research/market-research-core").MarketResearchInput,
+    opts: { allowNetwork: boolean; wallMs: number },
+  ) => Promise<import("@/lib/research/market-research-contract").MarketResearchResult>;
   researchMarket?: (input: { startupName: string; description: string; sector?: string }, callAI: AICaller) => Promise<unknown>;
   deepTechAudit?: (url: string) => Promise<Row>;
   auditGitHubRepo?: (repoFullName: string, accessToken: string) => Promise<Row>;
@@ -213,6 +218,8 @@ export const GATHER_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 export const GATHER_RESEARCH_CALLS = 2;
 /** Research = 2 sequential metered LLM calls; own budget (see run()). */
 export const GATHER_RESEARCH_TIMEOUT_MS = 60_000;
+/** Market research for valuation — hard wall clock (mirrors lib/research/market-research.ts). */
+export const MARKET_RESEARCH_WALL_MS = 45_000;
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -550,8 +557,33 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
         diag("publicResearch", results.publicResearch.status === "not_run" ? "skipped" : "ok", t0, results.publicResearch.status);
       });
 
-  // ── 2. Tech audit (website link, cached 24 h by URL) ──────────────────
+  // ── 1c. Market research for valuation (public identifiers only) ───────
+  // Name (only with a public website) + website host + sector category +
+  // country; never deck text. Paid full runs search; the free tier and
+  // partial re-runs read the 7-day cache only (no call is spent). Runs in
+  // parallel with the 60 s research agent, bounded by its own 45 s wall.
   const websiteUrl = firstLink(context, "website");
+  const marketResearch = run("marketResearch", async () => {
+    const t0 = now();
+    const runner = deps.researchMarketForValuation
+      ?? (process.env.VITEST ? null : (await import("@/lib/research/market-research-providers")).researchMarketForValuationDefault);
+    if (!runner) {
+      diag("marketResearch", "skipped", t0, "not configured");
+      return;
+    }
+    const wallMs = Math.max(1_000, Math.min(MARKET_RESEARCH_WALL_MS, deps.deadlineRemainingMs?.() ?? MARKET_RESEARCH_WALL_MS));
+    const out = await runner({
+      company: context.startupName,
+      website: websiteUrl,
+      sector: context.sviAnalysis.sectorLabel ?? context.sviAnalysis.sector ?? null,
+      country: "Australia",
+      stage: STAGE_TO_CFO[Math.max(0, Math.min(7, context.stage))] ?? null,
+    }, { allowNetwork: !opts.skipResearch, wallMs });
+    results.marketResearch = out;
+    diag("marketResearch", out.cached ? "cached" : out.status === "found" || out.status === "no_facts" ? "ok" : "skipped", t0, `${out.status}${out.retrieval !== "none" ? ` via ${out.retrieval}` : ""}`);
+  }, MARKET_RESEARCH_WALL_MS + 2_000);
+
+  // ── 2. Tech audit (website link, cached 24 h by URL) ──────────────────
   const tech = websiteUrl
     ? run("techAudit", async () => {
         const t0 = now();
@@ -842,7 +874,7 @@ export async function gatherData(context: ReportContext, callAI: AICaller, opts:
     totalCriteria: CRITERION_KEYS.length,
   };
 
-  await Promise.allSettled([research, publicResearch, tech, repo, connectors, capTable, founder, founderExecution, ga4, grants, external, evidenceHub]);
+  await Promise.allSettled([research, publicResearch, marketResearch, tech, repo, connectors, capTable, founder, founderExecution, ga4, grants, external, evidenceHub]);
 
   // ── 8. Valuation inputs + CFO 5-method model (deterministic, after connectors)
   const signals = (context.sviAnalysis.signals ?? {}) as Partial<{ mrrAud: number; arrAud: number; raiseAskAud: number; statedCapAud: number; statedCapKind: ValuationAskInput["statedCapKind"]; hasVesting: boolean; hasShareholdersAgreement: boolean; esopAllocated: boolean; hasDataRoom: boolean; customerCount: number }>;

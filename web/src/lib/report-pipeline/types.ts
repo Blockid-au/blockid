@@ -158,6 +158,8 @@ export interface GatherResults {
   repoAudit?: Record<string, unknown>;
   competitiveResearch?: Record<string, unknown>;
   publicResearch?: import("@/lib/research/public-sources").PublicResearchResult;
+  /** Market research for valuation — public web references (tier public_unverified), ≤ 5 sources, verified quotes only. */
+  marketResearch?: import("@/lib/research/market-research-contract").MarketResearchResult;
   scrapedData?: Record<string, unknown>;
   evidenceQuality?: Record<string, unknown>;
   // ── S-R3 §C.3 (un-stubbed GATHER) ──────────────────────────────────

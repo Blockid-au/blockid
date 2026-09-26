@@ -39,6 +39,8 @@ import { comparablesCounts, topComparables } from "@/lib/valuation/comparables-r
 import { VALUATION_METHOD_KEYS, type AvailableValuationChapter, type ValuationCrossCheck, type ValuationInputsV2, type ValuationMethodKey } from "@/lib/report-v2/schema";
 import { makeVisual } from "@/lib/report-visuals";
 import { crossCheckStatedCap, VALUATION_BASELINES_AUD, type CapCrossCheck } from "@/lib/valuation";
+import { marketReferenceCrossCheck, marketReferencesFor } from "@/lib/valuation/market-references";
+import type { MarketResearchResult } from "@/lib/research/market-research-contract";
 
 // ── Inputs ──────────────────────────────────────────────────────────────────
 
@@ -107,6 +109,8 @@ export interface ValuationChapterInput {
   revenueEvidenceIds?: string[];
   /** ISO timestamp for the audit stamp. */
   at: string;
+  /** Researched public market references (appendix.marketResearch) — a cross-check row only, never a method or weight. */
+  marketResearch?: MarketResearchResult | null;
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
@@ -369,6 +373,10 @@ export function buildValuationChapter(input: ValuationChapterInput): AvailableVa
       asOf: "2025",
     },
   ];
+  // Public market references: researched revenue multiples × the company's OWN
+  // qualified ARR, as a reference range beside the estimate (never weighted).
+  const marketRow = preRevenue ? null : marketReferenceCrossCheck(marketReferencesFor(input.marketResearch), inputs.arrAud);
+  if (marketRow) crossChecks.push(marketRow);
 
   // Visuals — deterministic renders of the numbers above.
   const shown = methods.filter((m) => m.applicable);
