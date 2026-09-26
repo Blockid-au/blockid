@@ -33,6 +33,11 @@ interface CacheEntry {
 
 const CACHE_TTL_MS = 60_000;
 let memCache: CacheEntry | null = null;
+// G33 T15 — one request per tab while a snapshot is loading. Every component
+// that calls this hook mounts in the same commit with an empty cache, so the
+// sidebar, gates and banners each fired their own /api/entitlement/me (nginx:
+// 2–9 identical calls in the same second per page load).
+let inflight: Promise<EntitlementSnapshot> | null = null;
 const listeners = new Set<(snap: EntitlementSnapshot) => void>();
 
 async function fetchSnapshot(): Promise<EntitlementSnapshot> {
@@ -87,9 +92,19 @@ async function refresh(force = false): Promise<EntitlementSnapshot> {
   ) {
     return memCache.data;
   }
-  const snap = await fetchSnapshot();
-  broadcast(snap);
-  return snap;
+  // A forced refresh (after checkout) always goes to the network; a normal
+  // one joins the request already on the wire.
+  if (!force && inflight) return inflight;
+  const request = fetchSnapshot().then((snap) => {
+    broadcast(snap);
+    return snap;
+  });
+  inflight = request;
+  try {
+    return await request;
+  } finally {
+    if (inflight === request) inflight = null;
+  }
 }
 
 export interface UseEntitlementResult extends EntitlementSnapshot {

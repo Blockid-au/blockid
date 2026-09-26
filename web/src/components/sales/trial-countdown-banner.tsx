@@ -20,6 +20,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { AlertTriangle, X, ArrowRight } from "lucide-react";
+import { fetchTrialStatusShared } from "@/lib/billing/trial-status-client";
 
 interface TrialStatus {
   ok?: boolean;
@@ -83,16 +84,13 @@ export function TrialCountdownBanner(): React.ReactElement | null {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/stripe/trial-status", {
-          method: "GET",
-          credentials: "include",
-          cache: "no-store",
-        });
+        // Shared with the other trial surfaces in the same layout (G33 T15).
+        const res = await fetchTrialStatusShared();
         if (!res.ok) {
           if (!cancelled) setLoading(false);
           return;
         }
-        const json = (await res.json()) as TrialStatus;
+        const json = res.body as TrialStatus;
         if (!cancelled) {
           setStatus(json);
           setLoading(false);

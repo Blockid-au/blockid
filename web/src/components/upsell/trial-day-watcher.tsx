@@ -15,6 +15,7 @@
 import * as React from "react";
 
 import { useUpgradePrompt, type UpgradeTrigger } from "@/hooks/useUpgradePrompt";
+import { fetchTrialStatusShared } from "@/lib/billing/trial-status-client";
 
 interface TrialStatusResponse {
   ok?: boolean;
@@ -45,12 +46,10 @@ export function TrialDayWatcher(_props: TrialDayWatcherProps = {}): null {
 
     (async () => {
       try {
-        const res = await fetch("/api/stripe/trial-status", {
-          method: "GET",
-          credentials: "same-origin",
-        });
+        // Shared with the two trial banners in the same layout (G33 T15).
+        const res = await fetchTrialStatusShared();
         if (!res.ok) return;
-        const body = (await res.json()) as TrialStatusResponse;
+        const body = res.body as TrialStatusResponse;
         if (cancelled) return;
         if (!body || body.inTrial === false) return;
 

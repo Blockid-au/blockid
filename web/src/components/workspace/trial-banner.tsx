@@ -26,6 +26,7 @@ import Link from "next/link";
 
 import { PLANS_V2 } from "@/lib/plans-v2";
 import { evaluatorPlanLabel } from "@/lib/plans/signup-plans";
+import { fetchTrialStatusShared } from "@/lib/billing/trial-status-client";
 
 interface TrialStatusResponse {
   ok?: boolean;
@@ -122,16 +123,13 @@ export function TrialBanner(): React.ReactElement | null {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/stripe/trial-status", {
-          method: "GET",
-          credentials: "include",
-          cache: "no-store",
-        });
+        // Shared with the other trial surfaces in the same layout (G33 T15).
+        const res = await fetchTrialStatusShared();
         if (!res.ok) {
           if (!cancelled) setLoading(false);
           return;
         }
-        const json = (await res.json()) as TrialStatusResponse;
+        const json = res.body as TrialStatusResponse;
         if (!cancelled) {
           setStatus(json);
           setLoading(false);

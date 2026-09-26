@@ -449,6 +449,37 @@ describe("useEntitlement — TTL cache", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it("G33 T15: components mounting while the first fetch is in flight share it (one request, not one per hook)", async () => {
+    let resolve!: (v: unknown) => void;
+    fetchMock.mockReturnValueOnce(new Promise((r) => (resolve = r)));
+    const useEntitlement = await loadHook();
+    renderHook(() => useEntitlement());
+    resetHookState();
+    renderHook(() => useEntitlement());
+    resetHookState();
+    renderHook(() => useEntitlement());
+    await flushMicrotasks();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    resolve(jsonResponse({ user_id: "u-shared", entitlements: ["x"] }));
+    await flushMicrotasks();
+    resetHookState();
+    const r = renderHook(() => useEntitlement());
+    expect(r.user?.id).toBe("u-shared");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("G33 T15: a failed shared fetch is not pinned — the next mount retries", async () => {
+    fetchMock.mockRejectedValueOnce(new Error("network down"));
+    fetchMock.mockResolvedValueOnce(jsonResponse({ user_id: "u-retry", entitlements: [] }));
+    const useEntitlement = await loadHook();
+    renderHook(() => useEntitlement());
+    await flushMicrotasks();
+    resetHookState();
+    renderHook(() => useEntitlement());
+    await flushMicrotasks();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it("second mount within TTL starts with cached snapshot (isLoading=false)", async () => {
     fetchMock.mockResolvedValueOnce(
       jsonResponse({
