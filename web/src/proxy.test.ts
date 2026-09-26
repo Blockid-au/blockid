@@ -434,6 +434,46 @@ describe("rate-limit buckets — /api/lead contact + waitlist form (QA-3 P1-9)",
   });
 });
 
+describe("rate-limit buckets — public routes that had no limiter (2026-09-26 gap sweep)", () => {
+  async function bucketOf(path: string, method = "POST"): Promise<string | null> {
+    checkRateLimitMock.mockClear();
+    const res = await proxy(req(path, { method, site: "same-origin" }));
+    expect(res.status).toBe(200);
+    const call = checkRateLimitMock.mock.calls[0] as [string, string[]] | undefined;
+    if (call) expect(call[1]).toEqual([path.split("?")[0], expect.stringMatching(/^ip:/)]);
+    return call ? call[0] : null;
+  }
+
+  it.each([
+    ["/api/founding50/waitlist", "lead"],
+    ["/api/index/waitlist", "lead"],
+    ["/api/cofounder-match", "lead"],
+    ["/api/ab/pricing-expose", "public-event"],
+    ["/api/pricing-test/event", "public-event"],
+    ["/api/conversion/track", "public-event"],
+    ["/api/experiments/expose", "public-event"],
+    ["/api/track/view", "public-event"],
+    ["/api/tbr/abc123/view-end", "public-event"],
+    ["/api/coupon/validate", "public-write"],
+    ["/api/reseller/code/validate", "public-write"],
+    ["/api/stripe/analysis", "public-write"],
+    ["/api/proofs/score", "public-write"],
+    ["/api/i18n/translate", "i18n-translate"],
+    ["/api/rnd", "public-ai"],
+    ["/api/rnd/sections", "public-ai"],
+    ["/api/website-tech-audit", "public-ai"],
+    ["/api/auth/google", "auth-login"],
+  ])("%s → %s", async (path, bucket) => {
+    expect(await bucketOf(path)).toBe(bucket);
+  });
+
+  it("neighbours are not swept in: the unsubscribe one-click post, the Stripe webhook, the coupon redeem route", async () => {
+    for (const p of ["/api/unsubscribe", "/api/stripe/webhook", "/api/coupon/redeem", "/api/index/submit", "/api/track/open"]) {
+      expect(await bucketOf(p)).toBeNull();
+    }
+  });
+});
+
 describe("Content-Security-Policy — exactly one enforced policy (release QA-2 F2)", () => {
   const SRC_ROOT = join(__dirname);
 

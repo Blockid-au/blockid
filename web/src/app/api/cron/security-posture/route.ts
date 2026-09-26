@@ -10,7 +10,8 @@
 //                         imports to an auth primitive, lib/security/posture-scan.ts),
 //                         or explicitly public-allowed.
 //   2. Rate-limit       — every /api/* route calls a limiter (directly or via a shared
-//                         helper), sits under a src/proxy.ts bucket prefix, or is
+//                         helper), sits under a src/proxy.ts bucket prefix, refuses
+//                         anonymous callers through a well-known auth gate, or is
 //                         tagged @rate-limit-exempt.
 //   3. Secrets hygiene  — no LINKEDIN_*, STRIPE_*, SUPABASE_SERVICE_*, GROQ_*, etc.
 //                         committed under web/src/ or web/content/.
@@ -134,20 +135,24 @@ async function scoreRateLimit(): Promise<DimensionScore> {
   // src/proxy.ts limits its BUCKET_ROUTES prefixes before any handler runs.
   const proxyPrefixes = parseProxyBucketPrefixes(readSource(`${WEB_DIR}/src/proxy.ts`) ?? "");
   let rated = 0;
+  const byVia: Record<string, number> = {};
   const missing: string[] = [];
   for (const file of routes) {
     const src = readSource(file);
     if (src === null) continue;
     const relative = file.replace(`${WEB_DIR}/src/app/`, "");
-    if (classifyRouteRateLimit({ file, src }, relative, read, proxyPrefixes).limited) rated++;
-    else missing.push(relative);
+    const verdict = classifyRouteRateLimit({ file, src }, relative, read, proxyPrefixes);
+    if (verdict.limited) {
+      rated++;
+      if (verdict.via) byVia[verdict.via] = (byVia[verdict.via] ?? 0) + 1;
+    } else missing.push(relative);
   }
   const ratio = routes.length === 0 ? 1 : rated / routes.length;
   return {
     key: "rate_limit",
     label: "Rate-limit coverage on /api/* routes",
     score: Math.round(ratio * 10),
-    detail: `${rated}/${routes.length} rate-limited (route call, shared helper, proxy bucket or @rate-limit-exempt)`,
+    detail: `${rated}/${routes.length} covered — limiter call ${(byVia.direct ?? 0) + (byVia.shared_helper ?? 0)} · proxy bucket ${byVia.proxy_bucket ?? 0} · auth-gated ${byVia.auth_gated ?? 0} · @rate-limit-exempt ${byVia.exempt ?? 0}`,
     findings: missing.slice(0, 8).map(f => `No rate-limit: ${f}`),
   };
 }

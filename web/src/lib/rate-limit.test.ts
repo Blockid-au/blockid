@@ -10,7 +10,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("server-only", () => ({}));
 
-import { bucketWindowMs, checkRateLimit, type RateLimitBucket, type RateLimitResult } from "./rate-limit";
+import { bucketWindowMs, checkRateLimit, enforceRateLimit, type RateLimitBucket, type RateLimitResult } from "./rate-limit";
 
 type SyncResult = { allowed: boolean; remaining: number; resetIn: number };
 
@@ -165,5 +165,51 @@ describe("checkRateLimit — `limitMultiplier` scales a bucket's limit for the p
       const r = await checkRateLimit("lead", ["/api/lead", `ip:${Math.random()}`], opts);
       expect(r.limit).toBe(10);
     }
+  });
+});
+
+// Rate-limit gap sweep (2026-09-26) — buckets for public routes that had no
+// limiter (wired in src/proxy.ts BUCKET_ROUTES).
+describe("checkRateLimit — public-route buckets (2026-09-26 gap sweep)", () => {
+  it("public-event 60/min, public-write 10/min, i18n-translate 60/min, public-ai 10 per 10 min", async () => {
+    const expected: Array<[RateLimitBucket, number, number]> = [
+      ["public-event", 60, 60_000],
+      ["public-write", 10, 60_000],
+      ["i18n-translate", 60, 60_000],
+      ["public-ai", 10, 10 * 60_000],
+    ];
+    for (const [bucket, limit, windowMs] of expected) {
+      const r = await checkRateLimit(bucket, [`gap:${Math.random()}`]);
+      expect(r.limit).toBe(limit);
+      expect(bucketWindowMs(bucket)).toBe(windowMs);
+    }
+  });
+
+  it("the 11th public-ai call from one identity inside the window is refused", async () => {
+    const key = ["/api/rnd", `ip:${Math.random()}`];
+    for (let i = 0; i < 10; i += 1) expect((await checkRateLimit("public-ai", key)).allowed).toBe(true);
+    expect((await checkRateLimit("public-ai", key)).allowed).toBe(false);
+  });
+});
+
+describe("enforceRateLimit — keyed on the trusted client hop", () => {
+  const req = (headers: Record<string, string>) => new Request("http://localhost/api/x", { method: "POST", headers });
+
+  it("a rotating client-supplied first x-forwarded-for hop does not mint a fresh bucket", () => {
+    const route = `xff:${Math.random()}`;
+    const proxyHop = `10.9.${Math.floor(Math.random() * 250)}.1`;
+    expect(enforceRateLimit(route, null, req({ "x-forwarded-for": `1.1.1.1, ${proxyHop}` }), 2, 60_000)).toBeNull();
+    expect(enforceRateLimit(route, null, req({ "x-forwarded-for": `2.2.2.2, ${proxyHop}` }), 2, 60_000)).toBeNull();
+    const limited = enforceRateLimit(route, null, req({ "x-forwarded-for": `3.3.3.3, ${proxyHop}` }), 2, 60_000);
+    expect(limited?.status).toBe(429);
+    expect(limited?.headers.get("Retry-After")).toBeTruthy();
+  });
+
+  it("an identity still wins over the IP", () => {
+    const route = `xff-id:${Math.random()}`;
+    const r = req({ "cf-connecting-ip": "198.51.100.1" });
+    expect(enforceRateLimit(route, "user-a", r, 1, 60_000)).toBeNull();
+    expect(enforceRateLimit(route, "user-b", r, 1, 60_000)).toBeNull();
+    expect(enforceRateLimit(route, "user-a", r, 1, 60_000)?.status).toBe(429);
   });
 });

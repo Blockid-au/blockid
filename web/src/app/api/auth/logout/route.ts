@@ -3,6 +3,7 @@ import { destroySession } from "@/lib/auth";
 import { apiRoute } from "@/lib/audit/api-route";
 
 // POST /api/auth/logout — clears cookie + deletes session row, then redirect home.
+// @rate-limit-exempt — only ends the caller's own session (no AI, e-mail or outbound call).
 async function POST_handler() {
   await destroySession();
   return NextResponse.redirect(

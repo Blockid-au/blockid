@@ -1,5 +1,6 @@
 import "server-only";
 import { NextResponse } from "next/server";
+import { clientIpFromHeaders } from "@/lib/iphash";
 
 /**
  * Rate limiter with pluggable storage backend.
@@ -249,11 +250,10 @@ export function enforceRateLimit(
   max: number,
   windowMs: number,
 ): NextResponse | null {
-  const ip =
-    request.headers.get("cf-connecting-ip") ??
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("x-real-ip") ??
-    "anon";
+  // Trusted hop only (lib/iphash `clientIpFromHeaders`: cf-connecting-ip,
+  // else the LAST x-forwarded-for hop). The first hop is client-supplied, so
+  // keying on it let a caller rotate `X-Forwarded-For` for a fresh bucket.
+  const ip = clientIpFromHeaders(request.headers) ?? "anon";
   const id = (identity && identity.trim()) || ip;
   const rl = checkRateLimit(`rl:${route}:${id}`, max, windowMs);
   if (!rl.allowed) {
@@ -362,6 +362,22 @@ export type RateLimitBucket =
   // IP per 10 minutes. Anonymous, writes a DB row and (for source=contact)
   // pages support, so it needs a slower window than the per-minute buckets.
   | "lead"
+  // Public (no-session) routes that had no limiter at all (rate-limit gap
+  // sweep, 2026-09-26) — all keyed per IP at the proxy for anonymous
+  // traffic:
+  //   public-event   — fire-and-forget telemetry beacons that write a DB row
+  //                    (A/B exposure, conversion + experiment events, share
+  //                    view tracking, TBR view start/end).
+  //   public-write   — anonymous lookups/writes worth enumerating or that
+  //                    hit an external API (coupon + reseller code checks,
+  //                    Stripe checkout-session creation, score proofs).
+  //   i18n-translate — cache-miss strings go to the AI translator.
+  //   public-ai      — scrape + AI analysis entry points (/api/rnd,
+  //                    /api/website-tech-audit); 10 per 10 minutes.
+  | "public-event"
+  | "public-write"
+  | "i18n-translate"
+  | "public-ai"
   | "default";
 
 export type RateLimitResult = {
@@ -405,12 +421,18 @@ const BUCKET_LIMITS_PER_MINUTE: Record<RateLimitBucket, number> = {
   "auth-register": 30,
   "auth-password-reset": 10,
   lead: 10,
+  "public-event": 60,
+  "public-write": 10,
+  // One Vietnamese page view batches its strings into 1–3 calls.
+  "i18n-translate": 60,
+  "public-ai": 10,
   default: 100,
 };
 
 // Per-bucket window override (ms). Buckets not listed use one minute.
 const BUCKET_WINDOW_MS: Partial<Record<RateLimitBucket, number>> = {
   lead: 10 * 60_000,
+  "public-ai": 10 * 60_000,
 };
 
 /** Window length for a bucket — exported so proxy tests can pin it. */

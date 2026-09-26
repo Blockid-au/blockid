@@ -14,6 +14,7 @@ import { consumePasswordReset } from "@/lib/auth";
 import { checkRateLimit } from "@/lib/rate-limit";
 import { apiRoute } from "@/lib/audit/api-route";
 import { readJsonBody } from "@/lib/security/request-guards";
+import { clientIpFromHeaders } from "@/lib/iphash";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +31,8 @@ async function POST_handler(request: Request) {
   try {
     // 10 attempts per IP per 15 minutes — a token is ~190 bits so this is
     // about noise, not brute force.
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    // Trusted hop only — the first x-forwarded-for hop is client-supplied.
+    const ip = clientIpFromHeaders(request.headers) ?? "unknown";
     const rl = await checkRateLimit(`reset-confirm:${ip}`, 10, 15 * 60 * 1000);
     if (!rl.allowed) {
       return NextResponse.json(

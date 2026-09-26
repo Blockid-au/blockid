@@ -1,4 +1,5 @@
 // /api/accelerator/cohort — RETIRED (G21 P2-A, 2026-09-20).
+// @rate-limit-exempt — every method answers a static 410.
 //
 // Was the W5b "cohort CRUD stub": GET echoed a hard-coded placeholder cohort
 // from lib/accelerator-portal (the `cohorts` table it read never existed)

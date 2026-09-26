@@ -25,7 +25,8 @@ export const dynamic = "force-dynamic";
 async function POST_handler(request: Request) {
   try {
     // Rate limit: 3 resets per IP per 15 minutes (prevent email flooding)
-    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+    // Trusted hop only — the first x-forwarded-for hop is client-supplied.
+    const ip = clientIpFromHeaders(request.headers) ?? "unknown";
     const rl = await checkRateLimit(`reset:${ip}`, 3, 15 * 60 * 1000);
     if (!rl.allowed) {
       return NextResponse.json(

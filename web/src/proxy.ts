@@ -102,6 +102,28 @@ const BUCKET_ROUTES: ReadonlyArray<readonly [prefix: string, bucket: RateLimitBu
   ["/api/upload", "upload"],
   // QA-3 P1-9 — anonymous contact / waitlist form: 10 per IP per 10 min.
   ["/api/lead", "lead"],
+  // Rate-limit gap sweep (2026-09-26) — public POST routes that had no
+  // limiter. Waitlist / cofounder sign-ups share the contact form's slow
+  // `lead` window (cofounder-match also mails the submitter + admin).
+  ["/api/founding50/waitlist", "lead"],
+  ["/api/index/waitlist", "lead"],
+  ["/api/cofounder-match", "lead"],
+  ["/api/ab/pricing-expose", "public-event"],
+  ["/api/pricing-test/event", "public-event"],
+  ["/api/conversion/track", "public-event"],
+  ["/api/experiments/expose", "public-event"],
+  ["/api/track/view", "public-event"],
+  ["/api/tbr/", "public-event"],
+  ["/api/coupon/validate", "public-write"],
+  ["/api/reseller/code/validate", "public-write"],
+  ["/api/stripe/analysis", "public-write"],
+  ["/api/proofs/score", "public-write"],
+  ["/api/i18n/translate", "i18n-translate"],
+  ["/api/rnd", "public-ai"],
+  ["/api/website-tech-audit", "public-ai"],
+  // Google sign-in verifies the ID token / exchanges the code with Google
+  // and creates a session — same per-IP ceiling as password login.
+  ["/api/auth/google", "auth-login"],
   // Auth surfaces — fail-closed (see FAIL_CLOSED_BUCKETS in lib/rate-limit.ts).
   ["/api/auth/login-password", "auth-login"],
   ["/api/auth/register", "auth-register"],

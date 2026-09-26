@@ -57,6 +57,7 @@ import { savedAnalysisUrl } from "@/lib/analyses/summary";
 import { apiRoute } from "@/lib/audit/api-route";
 import { loadFullReportRow, setFullReportEmail } from "@/lib/analyses/first-analysis/store";
 import { deliverAnalysisReport } from "@/lib/analyses/first-analysis/dispatch";
+import { clientIpFromHeaders } from "@/lib/iphash";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -109,9 +110,9 @@ async function POST_handler(
   const email = normaliseSummaryEmail(body.email);
   if (!email) return reply("invalid_email");
 
-  // Same header the intake route reads — one convention for "who is this".
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  // Trusted hop only (lib/iphash) — the first x-forwarded-for hop is
+  // client-supplied, so keying on it made the per-IP send limit rotatable.
+  const ip = clientIpFromHeaders(request.headers) ?? "unknown";
   if (ip && ip !== "unknown") {
     const limit = checkRateLimit(
       `free-summary:ip:${ip}`,

@@ -1,3 +1,4 @@
+// @rate-limit-exempt — stateless pure render of the posted fields (no DB, AI, e-mail or outbound fetch).
 // POST /api/landing-page/preview
 //
 // Guide gap closed: docs/plans/atlassian-standard-mapping-goal.md §1 phase 4

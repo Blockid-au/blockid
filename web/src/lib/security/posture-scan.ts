@@ -35,10 +35,26 @@ export const GATE_AUTH_PRIMITIVE_RE =
 
 export const PUBLIC_TAG_RE = /\/\/\s*PUBLIC|@public-route/i;
 
-/** Rate-limit primitives (route file or shared helper). */
+/** Rate-limit primitives (route file or shared helper). `consumeRateLimit` is the Postgres-backed limiter (lib/rate-limit/persistent). */
 export const RATE_LIMIT_PRIMITIVE_RE =
-  /\b(?:checkRateLimit|checkRateLimitAsync|enforceRateLimit|checkAuthIpCeiling|checkAuthIdentityLimit)\b/;
+  /\b(?:checkRateLimit|checkRateLimitAsync|enforceRateLimit|checkAuthIpCeiling|checkAuthIdentityLimit|consumeRateLimit)\b/;
 export const RATE_LIMIT_EXEMPT_RE = /@rate-limit-exempt/;
+
+/**
+ * Auth gates that make a route count as rate-limit COVERED: an anonymous
+ * caller is refused before any work runs, so abuse needs a session, an API
+ * key, the cron secret or a valid webhook signature — each of which is
+ * throttled or revocable one layer up. Deliberately narrower than
+ * ROUTE_AUTH_RE / GATE_AUTH_PRIMITIVE_RE (conservative, well-known helpers
+ * only):
+ *   - no bare `Bearer` / `blockid_session` (provider clients send Bearer; a
+ *     route can read the cookie and still serve guests — /api/rnd did);
+ *   - `getCurrentUser()` counts only when its result is REFUSED when absent
+ *     (`const user = await getCurrentUser(); if (!user …`) — an optional
+ *     `user?.id ?? null` lookup does not gate anything.
+ */
+export const RATE_LIMIT_AUTH_GATE_RE =
+  /\b(?:requireUser|requireAdmin|requireProjectOwner|isCronAuthorised|gateRequireFeature|gateAdmin|gateIntakeRequest|gateBatchRequest|validateApiKey|authenticateApiKey|authenticateAPIKey|authenticateSviApiKey|constructEvent|verifyWebhookSignature|verifySvixSignature|safeEqualStrings|timingSafeEqual)\b|\b[A-Za-z]+AdminGate\s*\(|\b(?:const|let)\s+(\w+)\s*=\s*await\s+getCurrentUser\(\s*\)\s*;?\s*if\s*\(\s*!\s*\1\b/;
 
 /** Hops followed from the route: route → gate → helper → primitive. */
 export const MAX_GATE_DEPTH = 3;
@@ -216,22 +232,31 @@ export function routeUrlPath(relative: string): string {
   return "/" + parts.join("/");
 }
 
-export type RateLimitVia = "direct" | "shared_helper" | "proxy_bucket" | "exempt";
+export type RateLimitVia = "direct" | "shared_helper" | "proxy_bucket" | "exempt" | "auth_gated";
 export interface RouteRateLimitVerdict {
   limited: boolean;
   via: RateLimitVia | null;
   detail?: string;
 }
 
+/**
+ * A route is rate-limit COVERED when it calls a limiter (directly or through a
+ * shared helper), sits under a src/proxy.ts bucket prefix, is tagged
+ * `@rate-limit-exempt`, or refuses anonymous callers through a well-known
+ * auth gate (RATE_LIMIT_AUTH_GATE_RE, directly or through a shared helper).
+ */
 export function classifyRouteRateLimit(route: SourceFile, relative: string, read: ModuleReader, proxyPrefixes: readonly string[]): RouteRateLimitVerdict {
   if (RATE_LIMIT_EXEMPT_RE.test(route.src)) return { limited: true, via: "exempt" };
   const stripped = stripImports(route.src);
-  const direct = RATE_LIMIT_PRIMITIVE_RE.exec(stripped);
+  // Comments stripped: a note that says "no checkRateLimit here" is not a limiter.
+  const direct = RATE_LIMIT_PRIMITIVE_RE.exec(stripComments(stripped));
   if (direct) return { limited: true, via: "direct", detail: direct[0] };
   const prefix = matchesProxyBucket(routeUrlPath(relative), proxyPrefixes);
   if (prefix) return { limited: true, via: "proxy_bucket", detail: prefix };
   const chain = reachesPrimitive(stripped, route, RATE_LIMIT_PRIMITIVE_RE, read, MAX_GATE_DEPTH);
   if (chain) return { limited: true, via: "shared_helper", detail: chain.join(" → ") };
+  const gate = reachesPrimitive(stripped, route, RATE_LIMIT_AUTH_GATE_RE, read, MAX_GATE_DEPTH);
+  if (gate) return { limited: true, via: "auth_gated", detail: gate.join(" → ") };
   return { limited: false, via: null };
 }
 

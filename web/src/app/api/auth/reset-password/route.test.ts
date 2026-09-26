@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   requestPasswordReset: vi.fn(),
   sendPasswordReset: vi.fn(),
   checkRateLimit: vi.fn(),
+  clientIpFromHeaders: vi.fn<(h: Headers) => string | null>(() => "1.2.3.4"),
 }));
 
 vi.mock("@/lib/auth", () => ({
@@ -30,7 +31,7 @@ vi.mock("@/lib/auth", () => ({
 }));
 vi.mock("@/lib/iphash", () => ({
   hashIp: (ip: string) => `h(${ip})`,
-  clientIpFromHeaders: () => "1.2.3.4",
+  clientIpFromHeaders: (h: Headers) => mocks.clientIpFromHeaders(h),
 }));
 vi.mock("@/lib/email", () => ({
   sendPasswordReset: (args: unknown) => mocks.sendPasswordReset(args),
@@ -190,21 +191,24 @@ describe("POST /api/auth/reset-password", () => {
     expect(body.ok).toBe(false);
   });
 
-  it("rate limit key includes IP from x-forwarded-for", async () => {
+  it("rate limit key is the trusted client hop (lib/iphash), not the client-supplied first x-forwarded-for hop", async () => {
+    mocks.clientIpFromHeaders.mockReturnValueOnce("5.6.7.8");
     const r = new Request("http://x/api/auth/reset-password", {
       method: "POST",
       headers: { "content-type": "application/json", "x-forwarded-for": "1.2.3.4, 5.6.7.8" },
       body: JSON.stringify({ email: "user@example.com" }),
     });
     await POST(r);
+    expect(mocks.clientIpFromHeaders).toHaveBeenCalledWith(r.headers);
     expect(mocks.checkRateLimit).toHaveBeenCalledWith(
-      expect.stringContaining("1.2.3.4"),
+      "reset:5.6.7.8",
       expect.any(Number),
       expect.any(Number),
     );
   });
 
-  it("falls back to unknown IP when x-forwarded-for missing", async () => {
+  it("falls back to unknown IP when no trusted hop is present", async () => {
+    mocks.clientIpFromHeaders.mockReturnValueOnce(null);
     const r = new Request("http://x/api/auth/reset-password", {
       method: "POST",
       headers: { "content-type": "application/json" },
