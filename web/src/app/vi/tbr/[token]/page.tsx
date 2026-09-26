@@ -7,6 +7,8 @@ import { notFound } from "next/navigation";
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { BusinessReportClient } from "@/app/(app)/(founder)/workspace/reports/business/business-report-client";
 import { loadReportV2ByShareToken } from "@/lib/report-v2/load";
+import { loadRevisionPosition, revisionBannerFor, snapshotIdForRevisionToken } from "@/lib/report-v2/revision-position";
+import { getCurrentUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -110,13 +112,17 @@ function fallbackFromScores(raw: unknown): Record<string, DimState> {
 async function fetchByToken(token: string): Promise<{ row: SnapshotRow; persisted: PersistedState } | null> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("svi_snapshots")
-    .select(
-      "id, project_id, created_at, criterion_results, dim_results, dimension_scores, analysis_json",
-    )
+    .select("id, project_id, created_at, criterion_results, dim_results, dimension_scores, analysis_json")
     .eq("report_share_token", token)
     .maybeSingle();
+  // G34 BT3: an immutable revision token (report_revisions, the token a paid
+  // generation returns) resolves to its snapshot, as the PDF / DOCX readers do.
+  if (!error && !data) {
+    const snapshotId = await snapshotIdForRevisionToken(token, supabase);
+    if (snapshotId) ({ data, error } = await supabase.from("svi_snapshots").select("id, project_id, created_at, criterion_results, dim_results, dimension_scores, analysis_json").eq("id", snapshotId).maybeSingle());
+  }
   if (error || !data) return null;
   const row = data as SnapshotRow;
   const dimStates = row.dim_results
@@ -159,6 +165,8 @@ export default async function ViTbrSharePage({
   // and the English share page.
   const loaded = await loadReportV2ByShareToken(token, { locale: "vi" });
   const initialReportV2 = loaded?.report ?? null;
+  // G34 BT3 (spec §3): "Viewing rev N · Latest rev M" — the latest link only for the project owner.
+  const revision = await revisionBannerFor(await loadRevisionPosition(token, getSupabaseAdmin()), (await getCurrentUser().catch(() => null))?.id ?? null, getSupabaseAdmin(), "/vi/tbr");
 
   const pdfMode = pdf === "1";
   return (
@@ -170,6 +178,7 @@ export default async function ViTbrSharePage({
         shareToken={token}
         pdfMode={pdfMode}
         locale="vi"
+        revision={revision}
       />
     </div>
   );

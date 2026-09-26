@@ -9,6 +9,9 @@
 
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
+// G34 BT3: the page-1 "Request evidence from founder" link opens this form at once
+// (an explicit request: no dwell, earlier dismissal ignored), message prefilled.
+import { TBR_REQUEST_EVIDENCE_HASH, TBR_REQUEST_EVIDENCE_MESSAGE } from "@/lib/report-v2/request-evidence";
 
 interface Props {
   token: string;
@@ -32,6 +35,19 @@ export function TbrLeadModal({ token, dwellMs = 30_000 }: Props) {
   const [role, setRole] = useState("");
   const [interest, setInterest] = useState<Interest>("exploring");
   const [message, setMessage] = useState("");
+
+  // Explicit evidence request from the page-1 next step (hash link).
+  useEffect(() => {
+    if (!token || typeof window === "undefined") return;
+    const onHash = () => {
+      if (window.location.hash !== TBR_REQUEST_EVIDENCE_HASH) return;
+      setMessage((m) => m || TBR_REQUEST_EVIDENCE_MESSAGE);
+      setOpen(true);
+    };
+    onHash();
+    window.addEventListener("hashchange", onHash);
+    return () => window.removeEventListener("hashchange", onHash);
+  }, [token]);
 
   useEffect(() => {
     if (!token) return;
@@ -88,6 +104,8 @@ export function TbrLeadModal({ token, dwellMs = 30_000 }: Props) {
     setOpen(false);
     try {
       if (typeof window !== "undefined") {
+        // Clear the request hash so the next "Request evidence" click fires hashchange again.
+        if (window.location.hash === TBR_REQUEST_EVIDENCE_HASH) window.history.replaceState(null, "", window.location.pathname + window.location.search);
         window.localStorage.setItem(STORAGE_KEY(token), String(Date.now()));
       }
     } catch {

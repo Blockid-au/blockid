@@ -149,6 +149,79 @@ function V4Tiles({ v4 }: { v4: DashboardV4 }) {
   );
 }
 
+/** Who reads page 1 — decides the next-step verb (spec §1/§3). Omitted (demo / showcase / PDF) → no next-step bar. */
+export type TbrViewer = "founder" | "evaluator";
+
+export interface TbrNextStepProps {
+  viewer: TbrViewer;
+  /** Evaluator: the existing request path (the share page's founder contact form). Founder: overrides the Evidence Hub deep link. */
+  href?: string;
+}
+
+/** Spec §3 "Old revision": this page's immutable revision vs the project's latest (dates ISO). */
+export interface TbrRevisionInfo {
+  current: { n: number; createdAt: string };
+  latest: { n: number; createdAt: string };
+  /** Null when the viewer may not be handed the latest link (not the owner) — the banner says to ask the founder. */
+  latestHref: string | null;
+}
+
+function shortDate(iso: string, locale: TbrUiLocale): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString(locale === "vi" ? "vi-VN" : "en-AU", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+/** "Viewing rev 2 (12/08/2026). Latest rev 3 (25/09/2026) ›" — only when this revision is older than the latest. */
+export function RevisionBanner({ v4, revision, locale }: { v4: DashboardV4; revision: TbrRevisionInfo; locale: TbrUiLocale }) {
+  if (revision.current.n >= revision.latest.n) return null;
+  const s = v4.strings;
+  const latest = s.revisionLatest(revision.latest.n, shortDate(revision.latest.createdAt, locale));
+  return (
+    <div role="status" data-tbr-revision-banner={revision.current.n} className="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-lg border border-l-[3px] border-line-subtle border-l-brand-navy bg-info-soft px-4 py-3 text-sm text-primary">
+      <span aria-hidden="true">ⓘ</span>
+      <span>{s.revisionViewing(revision.current.n, shortDate(revision.current.createdAt, locale))}</span>
+      {revision.latestHref ? (
+        <a href={revision.latestHref} data-tbr-revision-latest className="inline-flex min-h-11 items-center font-semibold text-action underline-offset-2 hover:underline">
+          {latest} ›
+        </a>
+      ) : (
+        <span>
+          {latest}. {s.revisionAskFounder}
+        </span>
+      )}
+      <span className="basis-full text-xs text-muted">{s.revisionFigures}</span>
+    </div>
+  );
+}
+
+/** Spec §1 bottom row: ONE navy primary — founder "Add evidence" (weakest / pending dimension), evaluator "Request evidence from founder". */
+export function NextStepBar({ v4, nextStep }: { v4: DashboardV4; nextStep: TbrNextStepProps }) {
+  const s = v4.strings;
+  const founder = nextStep.viewer === "founder";
+  const href = nextStep.href ?? (founder ? v4.nextStep.founderHref : null);
+  if (!href) return null;
+  const dim = v4.nextStep.dimTitle;
+  const label = founder ? s.addEvidence : s.requestEvidence;
+  return (
+    <div data-tbr-next-step={nextStep.viewer} className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-line-subtle bg-surface px-4 py-3 print:hidden">
+      <span className="text-xs font-semibold uppercase tracking-wide text-muted">{s.nextStepTitle}</span>
+      <a
+        href={href}
+        data-tbr-next-step-primary
+        aria-label={founder && dim ? s.addEvidenceFor(dim) : undefined}
+        className="inline-flex min-h-11 items-center rounded-lg bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-action"
+      >
+        {label}
+      </a>
+      <a href={`#${TBR_V2_SECTION_IDS.investmentView}`} className="inline-flex min-h-11 items-center text-sm font-medium text-action underline-offset-2 hover:underline">
+        {s.readFullAnalysis}
+      </a>
+      {dim ? <p className="basis-full text-xs text-muted">{founder ? s.addEvidenceFor(dim) : s.requestEvidenceFor(dim)}</p> : null}
+    </div>
+  );
+}
+
 const MEETING_GLYPH: Record<string, string> = { A: "●", B: "◐", C: "▲", D: "○" };
 
 /** G31 neutral meeting label (band A–D) + the one-line thesis + the rule and the advice line. */
@@ -170,7 +243,7 @@ function MeetingLabel({ v4 }: { v4: DashboardV4 }) {
   );
 }
 
-export function TbrDashboard({ report, view, v4, title, locale = "en", lockCards, citations }: { report: ReportV2; view: DashboardView; v4: DashboardV4; title: string; locale?: TbrUiLocale; lockCards?: boolean; citations?: CitationIndex }) {
+export function TbrDashboard({ report, view, v4, title, locale = "en", lockCards, citations, nextStep, revision }: { report: ReportV2; view: DashboardView; v4: DashboardV4; title: string; locale?: TbrUiLocale; lockCards?: boolean; citations?: CitationIndex; nextStep?: TbrNextStepProps | null; revision?: TbrRevisionInfo | null }) {
   const c = report.cover;
   const t = v3Strings(locale);
   const tc = getTbrStrings(locale).v2.cover;
@@ -198,6 +271,8 @@ export function TbrDashboard({ report, view, v4, title, locale = "en", lockCards
           )}
         </p>
       </div>
+
+      {revision ? <RevisionBanner v4={v4} revision={revision} locale={locale} /> : null}
 
       {v4.degraded ? (
         <p role="status" data-tbr-degraded-banner className="flex gap-2 rounded-lg border border-l-[3px] border-line-subtle border-l-warn bg-warn-soft px-4 py-3 text-sm text-primary">
@@ -234,6 +309,8 @@ export function TbrDashboard({ report, view, v4, title, locale = "en", lockCards
           <WhyStopAskLists v4={v4} citations={cites} locale={locale} />
         </div>
       </div>
+
+      {nextStep ? <NextStepBar v4={v4} nextStep={nextStep} /> : null}
 
       <CalibrationLine v4={v4} />
 

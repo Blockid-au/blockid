@@ -17,7 +17,10 @@ import { loadAssessmentContext } from "@/lib/svi/assessment-context";
 import { readSviBacktestHeadline } from "@/lib/backtest/latest";
 import { TbrViewBeacon } from "@/components/tbr/tbr-view-beacon";
 import { TbrLeadModal } from "@/components/tbr/tbr-lead-modal";
+import { TBR_REQUEST_EVIDENCE_HASH } from "@/lib/report-v2/request-evidence";
 import { loadReportV2ByShareToken } from "@/lib/report-v2/load";
+import { loadRevisionPosition, revisionBannerFor, snapshotIdForRevisionToken } from "@/lib/report-v2/revision-position";
+import { getCurrentUser } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -126,13 +129,17 @@ function fallbackFromScores(raw: unknown): Record<string, DimState> {
 async function fetchByToken(token: string): Promise<{ row: SnapshotRow; persisted: PersistedState } | null> {
   const supabase = getSupabaseAdmin();
   if (!supabase) return null;
-  const { data, error } = await supabase
+  let { data, error } = await supabase
     .from("svi_snapshots")
-    .select(
-      "id, project_id, svi_total, created_at, criterion_results, dim_results, dimension_scores, analysis_json",
-    )
+    .select("id, project_id, svi_total, created_at, criterion_results, dim_results, dimension_scores, analysis_json")
     .eq("report_share_token", token)
     .maybeSingle();
+  // G34 BT3: an immutable revision token (report_revisions, the token a paid
+  // generation returns) resolves to its snapshot, as the PDF / DOCX readers do.
+  if (!error && !data) {
+    const snapshotId = await snapshotIdForRevisionToken(token, supabase);
+    if (snapshotId) ({ data, error } = await supabase.from("svi_snapshots").select("id, project_id, svi_total, created_at, criterion_results, dim_results, dimension_scores, analysis_json").eq("id", snapshotId).maybeSingle());
+  }
   if (error || !data) return null;
   const row = data as SnapshotRow;
   const dimStates = row.dim_results
@@ -181,6 +188,8 @@ export default async function TbrSharePage({
   const assessmentContext = await loadAssessmentContext(result.row.project_id ?? null, initialReportV2?.cover.stage ?? null, initialReportV2?.cover.sector ?? null);
   // G34 BT6 (RQ21): the published SVI backtest headline for the page-1 calibration line.
   const calibration = await readSviBacktestHeadline();
+  // G34 BT3 (spec §3): "Viewing rev N · Latest rev M" — the latest link only for the project owner.
+  const revision = await revisionBannerFor(await loadRevisionPosition(token, getSupabaseAdmin()), (await getCurrentUser().catch(() => null))?.id ?? null, getSupabaseAdmin());
 
   const pdfMode = pdf === "1";
   return (
@@ -192,6 +201,8 @@ export default async function TbrSharePage({
         shareToken={token}
         pdfMode={pdfMode}
         benchmarks={{ total: assessmentContext.benchmark, evidenceConfidence: assessmentContext.evidenceConfidence, unverifiedMaterialClaims: assessmentContext.unverifiedMaterialClaims, calibration }}
+        revision={revision}
+        requestEvidenceHref={pdfMode ? null : TBR_REQUEST_EVIDENCE_HASH}
       />
       {/* Wave 26A — anonymous open-tracking beacon. Never runs in PDF export. */}
       {!pdfMode && <TbrViewBeacon token={token} />}

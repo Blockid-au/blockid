@@ -39,7 +39,7 @@ import { TbrInvestorViews } from "@/components/tbr/tbr-investor-views";
 import { TbrQaChat } from "@/components/tbr/tbr-qa-chat";
 import { ActionPlan } from "@/components/score/ActionPlan";
 import type { TbrAssessmentBenchmarks } from "@/components/tbr/v2/assessment";
-import { TbrReportV2, tbrV2TocGroups, type TbrUnlockOrderStatus, type TbrUnlockProps } from "@/components/tbr/v2/report";
+import { TbrReportV2, tbrV2TocGroups, type TbrRevisionInfo, type TbrUnlockOrderStatus, type TbrUnlockProps } from "@/components/tbr/v2/report";
 import { TbrClaritySurvey } from "@/components/tbr/tbr-clarity-survey";
 import { ReportPaywallGate, type ReportPaywallQuote } from "@/components/paywall/ReportPaywallGate";
 import { ReportOrderBlocked, reportOrderExportHref } from "@/components/paywall/ReportOrderView";
@@ -359,9 +359,17 @@ export interface BusinessReportClientProps {
   orderId?: string | null;
   /** G21 P1: the Assessment Card's benchmark (server-loaded under the n-rule). */
   benchmarks?: TbrAssessmentBenchmarks;
+  /** G34 BT3 (spec §3): the share page's revision position — the page-1 "Viewing rev N · Latest rev M" banner. */
+  revision?: TbrRevisionInfo | null;
+  /**
+   * G34 BT3: where a share-link reader's "Request evidence from founder" goes —
+   * the share page passes the anchor of the lead form it mounts (the existing
+   * founder-contact path). Omitted → no evaluator next step.
+   */
+  requestEvidenceHref?: string | null;
 }
 
-export function BusinessReportClient({ projectId, initialData, initialReportV2, shareToken, pdfMode, locale = "en", orderId = null, benchmarks }: BusinessReportClientProps) {
+export function BusinessReportClient({ projectId, initialData, initialReportV2, shareToken, pdfMode, locale = "en", orderId = null, benchmarks, revision = null, requestEvidenceHref = null }: BusinessReportClientProps) {
   const t = getTbrStrings(locale);
   const router = useRouter();
   const [data, setData] = useState<PersistedState | null>(initialData ?? null);
@@ -899,6 +907,10 @@ export function BusinessReportClient({ projectId, initialData, initialReportV2, 
               benchmarks={benchmarks}
               // G21 P1 review: the corrections link is founder-workspace only, never under a share token or on the static sample.
               canCorrect={!shareToken && !initialData}
+              // G34 BT3: founder → "Add evidence"; share-link reader → "Request evidence from founder" through the
+              // share page's existing lead form (never in PDF mode, never on the static sample or the demo).
+              nextStep={founderMode ? { viewer: "founder" } : shareToken && !pdfMode && requestEvidenceHref ? { viewer: "evaluator", href: requestEvidenceHref } : null}
+              revision={revision}
               afterExecutive={showSurvey && surveySnapshotId ? <TbrClaritySurvey snapshotId={surveySnapshotId} surface={surface} locale={locale} /> : null}
               afterChapters={
                 /* Wave 28C: Personalised 30-Day Action Plan (live widget). */

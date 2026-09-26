@@ -33,7 +33,7 @@ import { Fragment } from "react";
 import { TbrAppendix } from "./appendix";
 import type { TbrAssessmentBenchmarks } from "./assessment";
 import { TbrChapter } from "./chapter";
-import { TbrDashboard } from "./dashboard";
+import { TbrDashboard, type TbrNextStepProps, type TbrRevisionInfo } from "./dashboard";
 import { TbrEvidenceCited } from "./evidence-cited";
 import { TbrInvestmentView, TbrKeyPoints } from "./investment-view";
 import { TbrMoney } from "./money";
@@ -44,7 +44,7 @@ import { TbrValuation } from "./valuation";
 import { TbrCriteriaSummary } from "./criteria-summary";
 
 export { TBR_V2_SECTION_IDS };
-export type { TbrUnlockMode, TbrUnlockOrderStatus, TbrUiLocale, TbrAssessmentBenchmarks };
+export type { TbrUnlockMode, TbrUnlockOrderStatus, TbrUiLocale, TbrAssessmentBenchmarks, TbrNextStepProps, TbrRevisionInfo };
 
 /**
  * G16-B — how the reader relates to the paid report. Given only by the
@@ -95,6 +95,14 @@ export interface TbrReportV2Props {
   benchmarks?: TbrAssessmentBenchmarks;
   /** G21 P1 post-ship review: whether the viewer can file a correction (founder workspace only). */
   canCorrect?: boolean;
+  /**
+   * G34 BT3 (spec §1/§3): page-1 next step for this viewer — founder "Add
+   * evidence", evaluator "Request evidence from founder". Omitted (public
+   * demo, showcase, PDF) → no next-step bar.
+   */
+  nextStep?: TbrNextStepProps | null;
+  /** G34 BT3 (spec §3): the viewed immutable revision vs the latest — banner when older. */
+  revision?: TbrRevisionInfo | null;
 }
 
 /** The v3 section titles for a UI locale (EN / VI; ES / JA read EN). */
@@ -102,7 +110,7 @@ export function tbrV3SectionTitles(locale: TbrLocale = "en") {
   return getTbrV3Strings(locale).sec;
 }
 
-export function TbrReportV2({ report: rawReport, locale = "en", upgradeHref, afterChapters, afterExecutive, unlock, benchmarks, canCorrect = false }: TbrReportV2Props) {
+export function TbrReportV2({ report: rawReport, locale = "en", upgradeHref, afterChapters, afterExecutive, unlock, benchmarks, canCorrect = false, nextStep = null, revision = null }: TbrReportV2Props) {
   const t = tbrV3SectionTitles(locale);
   // One evidence-confidence number: the card is built once and the verdict,
   // the tiles and the chapters all read the same value (review P1, 2026-09-20).
@@ -133,7 +141,7 @@ export function TbrReportV2({ report: rawReport, locale = "en", upgradeHref, aft
   const citations = buildCitationIndex(report);
   return (
     <div className={cn("space-y-12", TBR_SURFACE_CLASS)} data-tbr-version={report.schemaVersion} data-tbr-layout="v3" data-tbr-tier={report.tier} data-tbr-source={report.source} data-tbr-unlock={free && unlock ? unlock.mode : undefined} data-tbr-band={view.band}>
-      <TbrDashboard report={report} view={dashboard} v4={v4} title={t.dashboard} locale={locale} lockCards={!paid} citations={citations} />
+      <TbrDashboard report={report} view={dashboard} v4={v4} title={t.dashboard} locale={locale} lockCards={!paid} citations={citations} nextStep={nextStep} revision={revision} />
       <TbrInvestmentView report={report} view={view} structured={structured} title={t.investmentView} locale={locale} citations={citations} />
       {afterExecutive}
       <TbrKeyPoints view={view} title={t.keyPoints} locale={locale} />

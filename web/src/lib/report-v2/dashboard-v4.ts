@@ -146,8 +146,22 @@ export interface V4SignalChip {
   status: InvestorScreeningSignal["status"];
   statusLabel: string;
   summary: string;
+  /** Linked criterion titles for the chip popover (never a score); [] when the detail is gated (D24-b). */
+  criteria: string[];
   detailLocked: boolean;
   href: string;
+}
+
+/**
+ * Spec §1/§3 "Next step": the dimension the evidence CTA targets — the first
+ * pending dimension in chapter order, else the lowest-scored one. The viewer
+ * decides the verb (founder "Add evidence", evaluator "Request evidence").
+ */
+export interface V4NextStep {
+  dim: DimKey | null;
+  dimTitle: string | null;
+  /** Founder Evidence Hub deep link for that dimension (`/workspace/evidence/gaps?dim=…`). */
+  founderHref: string;
 }
 
 /** RQ19: the published cohort percentile (n ≥ 10), or "peer set too small" when only a sub-floor n is stored. */
@@ -221,6 +235,7 @@ export interface DashboardV4 {
   spike: V4Spike | null;
   roundReadiness: V4RoundReadiness | null;
   calibration: V4Calibration;
+  nextStep: V4NextStep;
 }
 
 export interface DashboardV4Options {
@@ -291,6 +306,8 @@ function pctLabel(n: number): string {
 // ── G34 BT6: peer position, stage ladder, spike, round readiness, calibration ──
 
 export const CALIBRATION_HREF = "/methodology/calibration";
+/** The founder Evidence Hub gap list (deep-links `?dim=`), the page-1 "Add evidence" target. */
+export const EVIDENCE_GAPS_HREF = "/workspace/evidence/gaps";
 /** RQ20 ladder thresholds on connector-evidenced (T1) ARR — maturity only, never a quality score. */
 export const LADDER_SCALING_ARR_AUD = 1_000_000;
 export const LADDER_ESTABLISHED_ARR_AUD = 10_000_000;
@@ -612,9 +629,18 @@ export function buildDashboardV4(report: ReportV2, card: AssessmentCardData, vie
     status: sig.status,
     statusLabel: sig.statusLabel,
     summary: sig.summary,
+    criteria: sig.detailLocked ? [] : sig.criteria.map((cr) => cr.title),
     detailLocked: sig.detailLocked,
     href: `#investor-signal-${sig.key}`,
   }));
+
+  // ── Next step (spec §1/§3): the evidence CTA's target dimension ──
+  const target = scorecard.find((r) => r.pending) ?? [...scorecard].sort((a, b) => (a.score ?? 0) - (b.score ?? 0))[0];
+  const nextStep: V4NextStep = {
+    dim: target?.dim ?? null,
+    dimTitle: target?.title ?? null,
+    founderHref: target ? `${EVIDENCE_GAPS_HREF}?dim=${target.dim}` : EVIDENCE_GAPS_HREF,
+  };
 
   // ── Degraded state ──
   const degradedLabels = degradedNames.map((d) => (DIM_ORDER.includes(d.toLowerCase() as DimKey) ? dimName(d.toLowerCase() as DimKey, locale) : d));
@@ -640,6 +666,7 @@ export function buildDashboardV4(report: ReportV2, card: AssessmentCardData, vie
     spike: spikeFor(report, lockedDims, s, locale),
     roundReadiness: round ? { lastRound: round.lastRound, runwayMonths: round.runwayMonths, source: round.source, text: round.text } : null,
     calibration: calibrationFor(opts.calibration, s, locale),
+    nextStep,
   };
 }
 

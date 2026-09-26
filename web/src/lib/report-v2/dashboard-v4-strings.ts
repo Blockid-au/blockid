@@ -103,6 +103,23 @@ const EN = {
   calibrationPending: (n: number | null) => `Calibration pending${n ? ` (backtest n = ${n})` : ""} — not a substitute for diligence.`,
   calibrationUnknown: "Calibration: the SVI backtest and its limits are published — not a substitute for diligence.",
   calibrationLink: "How the SVI is calibrated",
+  // G34 BT3 leftovers — next step (spec §1/§3), signal popover, old-revision banner (spec §3).
+  nextStepTitle: "Next step",
+  addEvidence: "Add evidence",
+  addEvidenceFor: (dim: string) => `Add evidence for ${dim}`,
+  requestEvidence: "Request evidence from founder",
+  requestEvidenceFor: (dim: string) => `Weakest area: ${dim}. Your request reaches the founder through this report's contact form.`,
+  readFullAnalysis: "Read the full analysis ↓",
+  signalCriteria: "Linked criteria",
+  signalNoCriteria: "No related criterion assessment saved.",
+  signalLockedDetail: "Linked criteria are in the full report.",
+  signalOpenCard: "Open signal card",
+  signalPopoverAria: (label: string) => `${label} signal details`,
+  revisionViewing: (n: number, date: string) => `Viewing rev ${n} (${date}).`,
+  revisionLatest: (n: number, date: string) => `Latest rev ${n} (${date})`,
+  revisionOpenLatest: "Open latest",
+  revisionAskFounder: "Ask the founder for the latest link.",
+  revisionFigures: "All figures on this page come from this revision.",
 };
 
 export type DashboardV4Strings = typeof EN;
@@ -198,6 +215,22 @@ const VI: DashboardV4Strings = {
   calibrationPending: (n) => `Hiệu chuẩn đang chờ${n ? ` (backtest n = ${n})` : ""} — không thay thế thẩm định.`,
   calibrationUnknown: "Hiệu chuẩn: backtest SVI và giới hạn của nó được công bố — không thay thế thẩm định.",
   calibrationLink: "Cách SVI được hiệu chuẩn",
+  nextStepTitle: "Bước tiếp theo",
+  addEvidence: "Bổ sung bằng chứng",
+  addEvidenceFor: (dim) => `Bổ sung bằng chứng cho ${dim}`,
+  requestEvidence: "Yêu cầu founder cung cấp bằng chứng",
+  requestEvidenceFor: (dim) => `Khía cạnh yếu nhất: ${dim}. Yêu cầu được gửi tới founder qua biểu mẫu liên hệ của báo cáo này.`,
+  readFullAnalysis: "Đọc phân tích đầy đủ ↓",
+  signalCriteria: "Tiêu chí liên quan",
+  signalNoCriteria: "Chưa lưu đánh giá tiêu chí liên quan.",
+  signalLockedDetail: "Tiêu chí liên quan nằm trong báo cáo đầy đủ.",
+  signalOpenCard: "Mở thẻ tín hiệu",
+  signalPopoverAria: (label) => `Chi tiết tín hiệu ${label}`,
+  revisionViewing: (n, date) => `Đang xem bản ${n} (${date}).`,
+  revisionLatest: (n, date) => `Bản mới nhất ${n} (${date})`,
+  revisionOpenLatest: "Mở bản mới nhất",
+  revisionAskFounder: "Hãy xin founder đường dẫn bản mới nhất.",
+  revisionFigures: "Mọi số liệu trên trang này lấy từ bản này.",
 };
 
 export function dashboardV4Strings(locale: string | undefined): DashboardV4Strings {
