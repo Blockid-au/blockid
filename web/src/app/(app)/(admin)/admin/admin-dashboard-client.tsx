@@ -59,7 +59,7 @@ function ReportKpiTile({ k }: { k: ReportKpis }) {
       value: k.pipeline && k.pipeline.status !== "missing" ? `${k.pipeline.last24h.runs} run${k.pipeline.last24h.runs === 1 ? "" : "s"} · ${k.pipeline.status}` : "—",
       sub:
         k.pipeline && k.pipeline.status !== "missing"
-          ? `grounded ${pct(k.pipeline.last24h.groundedShareMedian)} · US$${(k.pipeline.last24h.costUsdMedian ?? 0).toFixed(3)} / report · ${pct(k.pipeline.last24h.degradedShare)} degraded`
+          ? `grounded ${pct(k.pipeline.last24h.groundedShareMedian)} · US$${(k.pipeline.last24h.costUsdMedian ?? 0).toFixed(3)} / report · ${pct(k.pipeline.last24h.anyDegradedShare ?? k.pipeline.last24h.degradedShare)} of runs with a degraded chapter · ${k.pipeline.last24h.fullyDegradedRuns ?? k.pipeline.last24h.noReportRuns ?? 0} with no report`
           : "no pipeline run logged in 24 h",
     },
   ];

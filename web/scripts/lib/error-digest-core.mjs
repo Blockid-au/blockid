@@ -241,7 +241,8 @@ export function toReportRow(digest, tsIso, windowMin = WINDOW_MIN) {
 
 export const TBR_QUALITY_NOT_OK_HOURS = 24;
 export const TBR_QUALITY_ALERT_DEBOUNCE_HOURS = 24;
-// G33-T01: `down` (most runs produced no report) is an outage, not a quality
+// G33-T01: `down` (≥ 3 no-report runs, ≥ 50 % of ≥ 3 runs with a degraded
+// chapter, or the two latest runs produced nothing) is an outage, not a quality
 // drift — it alerts after one hour and repeats at most every six.
 export const TBR_QUALITY_DOWN_HOURS = 1;
 export const TBR_QUALITY_DOWN_DEBOUNCE_HOURS = 6;

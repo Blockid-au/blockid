@@ -1420,7 +1420,7 @@ describe("tbr_quality (G19-S46) — read from content/reports/tbr-quality.jsonl"
 
   it("missing when no run has been logged (or the file is unparsable)", async () => {
     fetchState.responder = { kind: "json", body: healthyHealthz() };
-    expect(read((await callGet()).body)).toEqual({ last24h: { runs: 0, groundedShareMedian: null, groundedShareLatest: null, costUsdMedian: null, degradedShare: null, noReportRuns: 0, budgetOverruns: 0, verdictTrimmed: 0 }, status: "missing", grounded_share: null, grounded_share_kpi: 0.85, last_degraded: null });
+    expect(read((await callGet()).body)).toEqual({ last24h: { runs: 0, groundedShareMedian: null, groundedShareLatest: null, costUsdMedian: null, degradedShare: null, noReportRuns: 0, anyDegradedRuns: 0, anyDegradedShare: null, fullyDegradedRuns: 0, budgetOverruns: 0, verdictTrimmed: 0 }, status: "missing", grounded_share: null, grounded_share_kpi: 0.85, last_degraded: null, down_reasons: [] });
     fsState.files.set(QUALITY_FILE, "{nope\n");
     expect(read((await callGet()).body)?.status).toBe("missing");
   });
@@ -1428,7 +1428,7 @@ describe("tbr_quality (G19-S46) — read from content/reports/tbr-quality.jsonl"
   it("ok with medians over the last 24 h; watch when the grounded median < 0.85 or > 20 % of runs degraded", async () => {
     fetchState.responder = { kind: "json", body: healthyHealthz() };
     fsState.files.set(QUALITY_FILE, [line(1, { groundedShare: 0.9, costUsd: 0.02 }), line(2, { groundedShare: 0.95, costUsd: 0.01 }), line(30, { groundedShare: 0.1, degradedSections: 8 })].join("\n") + "\n");
-    expect(read((await callGet()).body)).toEqual({ last24h: { runs: 2, groundedShareMedian: 0.93, groundedShareLatest: 0.9, costUsdMedian: 0.015, degradedShare: 0, noReportRuns: 0, budgetOverruns: 0, verdictTrimmed: 0 }, status: "ok", grounded_share: 0.9, grounded_share_kpi: 0.85, last_degraded: null });
+    expect(read((await callGet()).body)).toEqual({ last24h: { runs: 2, groundedShareMedian: 0.93, groundedShareLatest: 0.9, costUsdMedian: 0.015, degradedShare: 0, noReportRuns: 0, anyDegradedRuns: 0, anyDegradedShare: 0, fullyDegradedRuns: 0, budgetOverruns: 0, verdictTrimmed: 0 }, status: "ok", grounded_share: 0.9, grounded_share_kpi: 0.85, last_degraded: null, down_reasons: [] });
     fsState.files.set(QUALITY_FILE, [line(1, { groundedShare: 0.6 }), line(2, { groundedShare: 0.7 })].join("\n") + "\n");
     expect(read((await callGet()).body)?.status).toBe("watch");
     // G23-C: grounded_share is the LATEST run (1 h ago → 0.6), not the median; the KPI rides beside it.
@@ -1462,7 +1462,7 @@ describe("tbr_quality (G19-S46) — read from content/reports/tbr-quality.jsonl"
     expect(result.headers.get("cache-control")).toBe(audience === "trusted" ? "no-store" : "s-maxage=30, stale-while-revalidate=60");
   });
 
-  it("G33: partial degradation is watch, not full outage (15/27 degraded versus 3/27 no-report)", async () => {
+  it("G33-T01 (SOT §12.11 S0): 15/27 runs with a degraded chapter (0.56) and 3/27 no-report is red — both written rules fire, metrics named honestly", async () => {
     fetchState.responder = { kind: "json", body: healthyHealthz() };
     const rows = Array.from({ length: 27 }, (_, i) => line(0.1 + i * 0.1, {
       groundedShare: 0.67,
@@ -1471,7 +1471,19 @@ describe("tbr_quality (G19-S46) — read from content/reports/tbr-quality.jsonl"
     }));
     fsState.files.set(QUALITY_FILE, rows.join("\n") + "\n");
     const { body } = await callGet();
-    expect(read(body)).toMatchObject({ status: "watch", last24h: { runs: 27, degradedShare: 0.56, noReportRuns: 3 } });
+    expect(read(body)).toMatchObject({
+      status: "down",
+      down_reasons: ["fully_degraded_runs", "any_degraded_share"],
+      last24h: { runs: 27, anyDegradedRuns: 15, anyDegradedShare: 0.56, fullyDegradedRuns: 3, degradedShare: 0.56, noReportRuns: 3 },
+    });
+    expect(body.ok).toBe(false);
+  });
+
+  it("G33-T01: partial degradation under the written thresholds stays an advisory watch (1/4 degraded, 0 no-report)", async () => {
+    fetchState.responder = { kind: "json", body: healthyHealthz() };
+    fsState.files.set(QUALITY_FILE, [line(1, { degradedSections: 1 }), line(2), line(3), line(4)].join("\n") + "\n");
+    const { body } = await callGet();
+    expect(read(body)).toMatchObject({ status: "watch", down_reasons: [], last24h: { anyDegradedShare: 0.25, fullyDegradedRuns: 0 } });
     expect(body.ok).toBe(true);
   });
 

@@ -120,7 +120,12 @@ type PublicStatusResponse = {
    * grounding goal is readable without the jsonl. G29-B adds
    * `last_degraded` — the latest no-report run in the window as
    * `{ ts, providers_struck, deadline_hit_wave }` (provider names only),
-   * null when every run produced a report.
+   * null when every run produced a report. G33-T01 (SOT §12.11 S0): the
+   * honest names `anyDegradedShare` (runs with ≥ 1 degraded chapter — alias
+   * `degradedShare`) and `fullyDegradedRuns` (runs with no report — alias
+   * `noReportRuns`); `down` (→ top-level `ok:false`) when fullyDegradedRuns
+   * ≥ 3, anyDegradedShare ≥ 0.5 over ≥ 3 runs, or the two latest runs
+   * produced nothing, with `down_reasons` naming the rule.
    */
   tbr_quality: TbrQualityStatus & TbrGrounding;
   /**

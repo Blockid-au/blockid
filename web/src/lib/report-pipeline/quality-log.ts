@@ -12,12 +12,16 @@
 // Readers:
 //   /api/status.tbr_quality   summariseTbrQuality() over the last 24 h —
 //                             runs, groundedShare median, costUsd median,
-//                             degradedShare (runs with ≥ 1 degraded chapter ÷
-//                             runs) and a one-word verdict: `ok` | `watch`
-//                             (median grounded < 0.85 or degradedShare > 0.2)
-//                             | `down` (G33-T01: most runs produced no report —
-//                             ≥ 2 no-report runs and at least half the window,
-//                             or the two latest runs both produced none)
+//                             anyDegradedShare (runs with ≥ 1 degraded chapter
+//                             ÷ runs — NOT a fully-degraded share; legacy alias
+//                             `degradedShare`), fullyDegradedRuns (runs that
+//                             produced no report; legacy alias `noReportRuns`)
+//                             and a one-word verdict: `ok` | `watch` (median
+//                             grounded < 0.85 or anyDegradedShare > 0.2)
+//                             | `down` (G33-T01, SOT §12.11 S0 / §12.12: red when
+//                             fullyDegradedRuns ≥ 3, or anyDegradedShare ≥ 0.5
+//                             over ≥ 3 runs, or the two latest runs both
+//                             produced no report; `down_reasons` names which)
 //                             | `missing` (no run in the window); G29-B adds
 //                             `last_degraded` — the latest no-report run's
 //                             { ts, providers_struck, deadline_hit_wave }.
@@ -72,8 +76,15 @@ export const TBR_QUALITY_GROUNDED_WATCH = TBR_GROUNDED_SHARE_KPI;
 /** More than one run in five with a degraded chapter → `watch`. */
 export const TBR_QUALITY_DEGRADED_WATCH = 0.2;
 export const TBR_QUALITY_WINDOW_MS = 24 * 60 * 60 * 1000;
-/** G33-T01: fewest no-report runs in the window before the verdict can be `down`. */
-export const TBR_QUALITY_DOWN_MIN_RUNS = 2;
+/**
+ * G33-T01 (SOT §12.11 S0): `down` when this many runs in the window produced
+ * no report at all (fully degraded).
+ */
+export const TBR_QUALITY_DOWN_FULLY_DEGRADED_RUNS = 3;
+/** G33-T01: `down` when at least this share of runs had ≥ 1 degraded chapter … */
+export const TBR_QUALITY_DOWN_ANY_DEGRADED_SHARE = 0.5;
+/** … over at least this many runs (a 1-of-2 window is noise, not an outage). */
+export const TBR_QUALITY_DOWN_MIN_RUNS = 3;
 /** Tail read for the 24 h window — far more than a day of runs at the current volume. */
 export const TBR_QUALITY_TAIL_LINES = 2000;
 
@@ -121,16 +132,29 @@ export interface TbrQualityWindow {
   /** groundedShare of the most recent run that produced a report, null without one. */
   groundedShareLatest: number | null;
   costUsdMedian: number | null;
-  /** Runs with ≥ 1 degraded chapter ÷ runs; null when there were no runs. */
+  /**
+   * Legacy alias of `anyDegradedShare` (kept for existing readers): runs with
+   * ≥ 1 degraded chapter ÷ runs — a PARTIAL-degradation share, never the
+   * share of runs that produced no report. Null when there were no runs.
+   */
   degradedShare: number | null;
-  /** G33-T01: runs that produced no report at all (fully degraded) — the outage count behind `down`. */
+  /** Legacy alias of `fullyDegradedRuns`. */
   noReportRuns: number;
+  /** G33-T01: runs with ≥ 1 degraded chapter (partial or full). */
+  anyDegradedRuns: number;
+  /** G33-T01: anyDegradedRuns ÷ runs (2 dp); null when there were no runs. */
+  anyDegradedShare: number | null;
+  /** G33-T01: runs that produced no report at all (fully degraded, isNoReportRow). */
+  fullyDegradedRuns: number;
   /** G23-A counters summed over the window. */
   budgetOverruns: number;
   verdictTrimmed: number;
 }
 
 export type TbrQualityVerdict = "ok" | "watch" | "down" | "missing";
+
+/** G33-T01: which written rule made the verdict `down` (empty otherwise). */
+export type TbrQualityDownReason = "fully_degraded_runs" | "any_degraded_share" | "latest_two_no_report";
 
 export interface TbrQualityStatus {
   last24h: TbrQualityWindow;
@@ -139,13 +163,15 @@ export interface TbrQualityStatus {
   grounded_share_kpi: number;
   /** G29-B: the latest no-report run in the window (excluded from the grounding median, named here); null when every run produced a report. */
   last_degraded: TbrLastDegraded | null;
+  /** G33-T01: the rules that fired for `down`; [] for every other verdict. */
+  down_reasons: TbrQualityDownReason[];
 }
 
-const EMPTY_WINDOW: TbrQualityWindow = { runs: 0, groundedShareMedian: null, groundedShareLatest: null, costUsdMedian: null, degradedShare: null, noReportRuns: 0, budgetOverruns: 0, verdictTrimmed: 0 };
+const EMPTY_WINDOW: TbrQualityWindow = { runs: 0, groundedShareMedian: null, groundedShareLatest: null, costUsdMedian: null, degradedShare: null, noReportRuns: 0, anyDegradedRuns: 0, anyDegradedShare: null, fullyDegradedRuns: 0, budgetOverruns: 0, verdictTrimmed: 0 };
 
 /** The `missing` status (no run in the window / unreadable file) — shared with the /api/status fallback. */
 export function emptyTbrQualityStatus(): TbrQualityStatus {
-  return { last24h: { ...EMPTY_WINDOW }, status: "missing", grounded_share_kpi: TBR_GROUNDED_SHARE_KPI, last_degraded: null };
+  return { last24h: { ...EMPTY_WINDOW }, status: "missing", grounded_share_kpi: TBR_GROUNDED_SHARE_KPI, last_degraded: null, down_reasons: [] };
 }
 
 export type TbrQualityWriter = (row: TbrQualityRow) => void | Promise<void>;
@@ -323,35 +349,45 @@ export function summariseTbrQuality(rows: RowLike[], now: number = Date.now(), w
     if (typeof row.budgetOverruns === "number" && Number.isFinite(row.budgetOverruns)) budgetOverruns += Math.max(0, row.budgetOverruns);
     if (typeof row.verdictTrimmed === "number" && Number.isFinite(row.verdictTrimmed)) verdictTrimmed += Math.max(0, row.verdictTrimmed);
   }
-  if (runs === 0) return { last24h: { ...EMPTY_WINDOW }, status: "missing", grounded_share_kpi: TBR_GROUNDED_SHARE_KPI, last_degraded: null };
+  if (runs === 0) return emptyTbrQualityStatus();
   const groundedMed = median(grounded.map((g) => g.share));
   const latest = grounded.length ? [...grounded].sort((a, b) => a.ts.localeCompare(b.ts))[grounded.length - 1]!.share : null;
   const costMed = median(cost);
-  const degradedShare = Math.round((degradedRuns / runs) * 100) / 100;
-  const watch = (groundedMed !== null && groundedMed < TBR_QUALITY_GROUNDED_WATCH) || degradedShare > TBR_QUALITY_DEGRADED_WATCH;
-  // G33-T01: an outage is not a "watch". Most of the window produced nothing, or
-  // the two latest runs both produced nothing (stable sort keeps file order on ties).
+  // Published at 2 dp; the `down` rule compares the unrounded ratio.
+  const anyDegradedRatio = degradedRuns / runs;
+  const anyDegradedShare = Math.round(anyDegradedRatio * 100) / 100;
+  const watch = (groundedMed !== null && groundedMed < TBR_QUALITY_GROUNDED_WATCH) || anyDegradedShare > TBR_QUALITY_DEGRADED_WATCH;
+  // G33-T01 (SOT §12.11 S0 / §12.12): an outage is not a "watch". The written
+  // rule — ≥ 3 fully degraded runs, or ≥ 50 % of ≥ 3 runs with ANY degraded
+  // chapter — plus the fast path: the two latest runs both produced nothing
+  // (stable sort keeps file order on ties).
   const latestTwo = outcomes
     .map((o, i) => ({ ...o, i }))
     .sort((a, b) => a.ts - b.ts || a.i - b.i)
     .slice(-2);
-  const down =
-    (noReportRuns >= TBR_QUALITY_DOWN_MIN_RUNS && noReportRuns * 2 >= runs) ||
-    (latestTwo.length === 2 && latestTwo.every((o) => o.noReport));
+  const downReasons: TbrQualityDownReason[] = [];
+  if (noReportRuns >= TBR_QUALITY_DOWN_FULLY_DEGRADED_RUNS) downReasons.push("fully_degraded_runs");
+  if (runs >= TBR_QUALITY_DOWN_MIN_RUNS && anyDegradedRatio >= TBR_QUALITY_DOWN_ANY_DEGRADED_SHARE) downReasons.push("any_degraded_share");
+  if (latestTwo.length === 2 && latestTwo.every((o) => o.noReport)) downReasons.push("latest_two_no_report");
+  const down = downReasons.length > 0;
   return {
     last24h: {
       runs,
       groundedShareMedian: groundedMed === null ? null : Math.round(groundedMed * 100) / 100,
       groundedShareLatest: latest === null ? null : Math.round(latest * 100) / 100,
       costUsdMedian: costMed === null ? null : r4(costMed),
-      degradedShare,
+      degradedShare: anyDegradedShare,
       noReportRuns,
+      anyDegradedRuns: degradedRuns,
+      anyDegradedShare,
+      fullyDegradedRuns: noReportRuns,
       budgetOverruns,
       verdictTrimmed,
     },
     status: down ? "down" : watch ? "watch" : "ok",
     grounded_share_kpi: TBR_GROUNDED_SHARE_KPI,
     last_degraded: lastDegraded ? lastDegradedOf(lastDegraded.row) : null,
+    down_reasons: down ? downReasons : [],
   };
 }
 
@@ -361,6 +397,6 @@ export async function readTbrQualityStatus(root: string = getStatusRoot(), now: 
     const rows = await readJsonlTail<RowLike>(root, TBR_QUALITY_FILE, TBR_QUALITY_TAIL_LINES);
     return summariseTbrQuality(rows, now);
   } catch {
-    return { last24h: { ...EMPTY_WINDOW }, status: "missing", grounded_share_kpi: TBR_GROUNDED_SHARE_KPI, last_degraded: null };
+    return { last24h: { ...EMPTY_WINDOW }, status: "missing", grounded_share_kpi: TBR_GROUNDED_SHARE_KPI, last_degraded: null, down_reasons: [] };
   }
 }
