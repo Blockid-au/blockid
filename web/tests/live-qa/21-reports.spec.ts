@@ -285,7 +285,7 @@ test.describe("TBR cover — business verification badge (S36)", () => {
 // exactly one 90-day plan (chapter 13 — the live widget only appears when the
 // plan is empty) and one floors row instead of 8 phase-lens sentences.
 test.describe("TBR cover hero + one plan (G19-S44)", () => {
-  test("/tbr/demo opens with the v3 Dashboard — four tiles (SVI, evidence, verdict, valuation range), 8 floor chips, one 90-day plan (G27)", async ({ page, visit }, testInfo) => {
+  test("/tbr/demo opens with the v4 Dashboard — five tiles (valuation range, SVI, investor score, evidence, verification), 8 floor chips, one 90-day plan (G34)", async ({ page, visit }, testInfo) => {
     await visit("/tbr/demo");
     const dash = page.locator("#tbr-dashboard");
     await expect(dash).toBeVisible({ timeout: 30_000 });
@@ -297,7 +297,7 @@ test.describe("TBR cover hero + one plan (G19-S44)", () => {
     const floorsRows = await page.locator("[data-tbr-floors-row]").count();
     const floorChips = await page.locator("[data-tbr-floor-chip]").count();
     await evidence(testInfo, "dashboard", { tiles, valuation, svi, phase, plans, floorsRows, floorChips });
-    expect(tiles).toEqual(["svi", "evidence", "verdict", "valuation"]);
+    expect(tiles).toEqual(["valuation", "svi", "investor", "evidence", "verification"]);
     expect(valuation).toMatch(/A\$[\d.]+[kMB]?\s*[–-]\s*A\$[\d.]+[kMB]?/);
     expect(svi).toMatch(/\d+/);
     expect(phase.trim().length).toBeGreaterThan(0);
