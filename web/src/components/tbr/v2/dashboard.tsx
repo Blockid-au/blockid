@@ -129,6 +129,11 @@ function V4Tiles({ v4 }: { v4: DashboardV4 }) {
             <TileLines tile={valuation} />
           </>
         )}
+        {valuation.marketRefsHint ? (
+          <p data-tbr-market-refs-hint className="text-xs text-muted">
+            {valuation.marketRefsHint}
+          </p>
+        ) : null}
       </TileShell>
       {[svi, investor].map((tile) => (
         <TileShell key={tile.id} id={tile.id} label={tile.label} className="lg:col-span-2">

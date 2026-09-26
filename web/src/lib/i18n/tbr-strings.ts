@@ -1682,6 +1682,12 @@ export interface TbrValuationStrings {
   sectorMultiplesTitle: (sector: string) => string;
   sectorMultiplesLine: (low: number, median: number, high: number, label: string, date: string) => string;
   comparablesLine: (n: number, withMultiples: number, date: string) => string;
+  // Market references (public web research, reference only)
+  marketRefsTitle: (n: number) => string;
+  marketRefsNote: string;
+  marketRefsNotValuation: string;
+  marketRefsInAppendix: (n: number) => string;
+  marketRefsKind: Record<"market_size" | "competitor" | "comparable", string>;
 }
 
 const valuationEn: TbrValuationStrings = {
@@ -1742,6 +1748,11 @@ const valuationEn: TbrValuationStrings = {
   sectorMultiplesTitle: (sector) => `Sector multiples · ${sector}`,
   sectorMultiplesLine: (low, median, high, label, date) => `${low}× / ${median}× / ${high}× ARR — ${label} (${date})`,
   comparablesLine: (n, withMultiples, date) => `AU comparables: ${n} raises tracked, ${withMultiples} with disclosed multiples (sources dated ${date}).`,
+  marketRefsTitle: (n) => `Market references (${n} public source${n === 1 ? "" : "s"})`,
+  marketRefsNote: "Public web pages; each figure is quoted from the linked page and checked against it, not verified by BlockID. Reference only — not part of the weighted estimate.",
+  marketRefsNotValuation: "These figures describe the market and other companies, not the value of this business.",
+  marketRefsInAppendix: (n) => `${n} public market reference${n === 1 ? "" : "s"} (market size, competitors, comparable rounds) are listed in the appendix — reference only, not a value for this business.`,
+  marketRefsKind: { market_size: "Market size", competitor: "Competitor", comparable: "Comparable" },
 };
 
 const valuationVi: TbrValuationStrings = {
@@ -1802,6 +1813,11 @@ const valuationVi: TbrValuationStrings = {
   sectorMultiplesTitle: (sector) => `Hệ số ngành · ${sector}`,
   sectorMultiplesLine: (low, median, high, label, date) => `${low}× / ${median}× / ${high}× ARR — ${label} (${date})`,
   comparablesLine: (n, withMultiples, date) => `So sánh Úc: ${n} vòng gọi vốn được theo dõi, ${withMultiples} có công bố hệ số (nguồn tính đến ${date}).`,
+  marketRefsTitle: (n) => `Tham chiếu thị trường (${n} nguồn công khai)`,
+  marketRefsNote: "Trang web công khai; mỗi số liệu được trích từ trang có liên kết và đã đối chiếu với trang đó, BlockID chưa xác minh. Chỉ để tham khảo — không nằm trong ước tính có trọng số.",
+  marketRefsNotValuation: "Các số liệu này mô tả thị trường và công ty khác, không phải giá trị của doanh nghiệp này.",
+  marketRefsInAppendix: (n) => `${n} tham chiếu thị trường công khai (quy mô thị trường, đối thủ, vòng gọi vốn tương đương) được liệt kê ở phụ lục — chỉ để tham khảo, không phải giá trị của doanh nghiệp này.`,
+  marketRefsKind: { market_size: "Quy mô thị trường", competitor: "Đối thủ", comparable: "Công ty so sánh" },
 };
 
 export const TBR_VALUATION_STRINGS: Record<TbrValuationLocale, TbrValuationStrings> = { en: valuationEn, vi: valuationVi };

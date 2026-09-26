@@ -12,6 +12,7 @@ import { VALUATION_BASELINES_AUD } from "@/lib/valuation";
 import { VALUATION_METHOD_KEYS, isReportV2 } from "@/lib/report-v2/schema";
 import { fromSnapshot } from "@/lib/report-v2/adapter";
 import { demoVcValuation, preRevenueVcValuation } from "@/lib/report-v2/fixtures";
+import { sampleMarketResearch } from "@/lib/research/market-research-fixtures";
 import { backtestBucketFor, buildValuationChapter, isPreRevenue, revenueSourceFromLabel, sourceDateFromLabel, type BacktestLike, type VcValuationLike } from "./valuation-chapter";
 
 /** A legacy (pre-S42) CFO row: 6 methods, no `applicable`, scorecard at 0. */
@@ -329,5 +330,27 @@ describe("adapter integration", () => {
     expect(report.valuation.crossChecks?.[0]).toMatchObject({ midAud: VALUATION_BASELINES_AUD[2].mid });
     expect(report.valuation.narrative).toMatch(/No CFO method ran on this snapshot/);
     expect(report.valuation.visuals[0].title).toMatch(/three cases/);
+  });
+});
+
+describe("buildValuationChapter — public market references (support, never replace)", () => {
+  it("adds ONE labelled cross-check row from researched multiples × the company's ARR; methods, weights and consensus are unchanged", () => {
+    const without = buildValuationChapter({ ...base, vc: vc(), revenueEvidenceIds: ["ev-stripe"] });
+    const withRefs = buildValuationChapter({ ...base, vc: vc(), revenueEvidenceIds: ["ev-stripe"], marketResearch: sampleMarketResearch() });
+    expect(withRefs.methods).toEqual(without.methods);
+    expect(withRefs.consensus).toEqual(without.consensus);
+    expect(withRefs.scenarios).toEqual(without.scenarios);
+    expect(withRefs.crossChecks).toHaveLength((without.crossChecks?.length ?? 0) + 1);
+    const row = withRefs.crossChecks!.at(-1)!;
+    expect(row.label).toMatch(/^Public market references \(2 sources\)/);
+    expect(row.midAud).toBe(1_200_000 * 8);
+    expect(row.source).toMatch(/reference range only, not part of the weighted estimate/);
+  });
+
+  it("pre-revenue: no reference row (no ARR to scale); research without facts adds nothing", () => {
+    const pre = buildValuationChapter({ ...base, vc: preRevenueVcValuation(), revenueEvidenceIds: [], marketResearch: sampleMarketResearch() });
+    expect(pre.crossChecks?.some((c) => c.label.startsWith("Public market references"))).toBe(false);
+    const none = buildValuationChapter({ ...base, vc: vc(), revenueEvidenceIds: ["ev-stripe"], marketResearch: sampleMarketResearch({ status: "unavailable" }) });
+    expect(none.crossChecks?.some((c) => c.label.startsWith("Public market references"))).toBe(false);
   });
 });

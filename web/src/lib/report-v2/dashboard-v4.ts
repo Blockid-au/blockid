@@ -40,6 +40,7 @@ import { emphasisFor, screeningStageFor, type EmphasisBand, type ScreeningDimens
 import type { AssessmentCardData } from "@/lib/svi/assessment-card";
 import { stripCitationMarkers } from "./citations";
 import { coverValuationPending } from "./cover-hero";
+import { marketReferenceSourceCount } from "@/lib/research/market-research-contract";
 import { buildDashboardView, type DashboardView } from "./dashboard-view";
 import { dashboardV4Strings, type DashboardV4Strings } from "./dashboard-v4-strings";
 import { ensureExecutiveStructured } from "./executive-structure";
@@ -69,6 +70,8 @@ export interface V4ValuationTile extends V4Tile {
   range: { lowAud: number; midAud: number; highAud: number } | null;
   /** What evidence would unlock a method (unavailable state only). */
   unlockHint: string | null;
+  /** "n public market references" when appendix.marketResearch backs ≥ 1 figure (count only, both states). */
+  marketRefsHint: string | null;
 }
 
 export interface V4EvidenceTile extends V4Tile {
@@ -435,6 +438,7 @@ export function buildDashboardV4(report: ReportV2, card: AssessmentCardData, vie
       : !inputs || inputs.revenueSource !== "connector"
         ? s.unlockRevenue
         : s.unlockEvidence;
+  const marketRefCount = marketReferenceSourceCount(report.appendix.marketResearch);
   const valuationTile: V4ValuationTile = {
     id: "valuation",
     label: s.tileValuation,
@@ -444,6 +448,7 @@ export function buildDashboardV4(report: ReportV2, card: AssessmentCardData, vie
     state: valuationPending ? "unavailable" : "ok",
     range: !valuationPending && isValuationAvailable(v) ? { lowAud: v.consensus.lowAud, midAud: v.consensus.midAud, highAud: v.consensus.highAud } : null,
     unlockHint,
+    marketRefsHint: marketRefCount > 0 ? s.marketRefs(marketRefCount) : null,
   };
   const percentile = c.svi.cohortPercentile !== null && typeof c.svi.cohortN === "number" && mayShowPercentile(c.svi.cohortN) ? `${t3.benchPercentile(c.svi.cohortPercentile)} (n = ${c.svi.cohortN})` : "";
   const sviTile: V4Tile = {

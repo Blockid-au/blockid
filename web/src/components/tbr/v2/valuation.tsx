@@ -13,6 +13,9 @@ import { aud } from "@/lib/report-visuals";
 import { VisualFigure } from "@/lib/report-visuals/react";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import { buildValuationView, CONNECTORS_HREF, type ValuationSourceChip } from "@/lib/report-v2/valuation-view";
+import { getTbrValuationStrings } from "@/lib/i18n/tbr-strings";
+import { marketReferencesFor } from "@/lib/valuation/market-references";
+import { marketReferenceSourceCount } from "@/lib/research/market-research-contract";
 import { cn } from "@/lib/utils";
 import { AgentBadge, AuditStampLine, Prose, TABLE_CLASS, TBR_V2_SECTION_IDS, THEAD_CLASS, TbrSection, stateLabel, valuationLocale, zebraRow, type TbrUiLocale } from "./shared";
 import { FIGURE_CLASS, STICKY_COL_CLASS, TABLE_MIN_CLASS, TABLE_SCROLL_CLASS, TD_CLASS, TH_CLASS, v3Strings } from "./shared-v3";
@@ -41,11 +44,47 @@ function SubTitle({ children }: { children: React.ReactNode }) {
   return <p className="text-xs font-semibold uppercase tracking-wide text-muted">{children}</p>;
 }
 
+/** Public market references (appendix.marketResearch): ≤ 5 sources, figures with links + dates, reference only. */
+export function MarketReferencesBlock({ report, locale = "en" }: { report: ReportV2; locale?: TbrUiLocale }) {
+  const block = marketReferencesFor(report.appendix.marketResearch);
+  if (!block) return null;
+  const s = getTbrValuationStrings(valuationLocale(locale));
+  const available = report.valuation.status !== "unavailable";
+  return (
+    <div data-tbr-market-references className="rounded-lg border border-line-subtle p-3 text-xs print:break-inside-avoid">
+      <SubTitle>{s.marketRefsTitle(block.sourceCount)}</SubTitle>
+      <ul className="mt-1 space-y-1.5">
+        {block.rows.map((r, i) => (
+          <li key={i} data-tbr-market-ref={r.kind} className="text-secondary">
+            <span className="text-muted">{s.marketRefsKind[r.kind]}</span> · <span className="font-medium">{r.subject}</span>: <span className="tabular-nums">{r.figure}</span>
+            {r.date ? <span className="text-muted"> ({r.date})</span> : null}
+            <span className="block truncate">
+              <a href={r.url} target="_blank" rel="noopener noreferrer nofollow" className="text-action underline underline-offset-2">
+                {r.sourceTitle}
+              </a>
+            </span>
+          </li>
+        ))}
+      </ul>
+      <p className="mt-2 text-muted">
+        {s.marketRefsNote}
+        {available ? "" : ` ${s.marketRefsNotValuation}`}
+      </p>
+    </div>
+  );
+}
+
 export function TbrValuation({ report, title, locale = "en", citations, investment }: { report: ReportV2; title: string; locale?: TbrUiLocale; /** G24-A: footnote numbering (report.tsx). */ citations?: CitationIndex; /** G27: "what moves it" rows. */ investment?: InvestmentView }) {
   const v = report.valuation;
   if (v.status === "unavailable") return (
     <TbrSection id={TBR_V2_SECTION_IDS.valuation} kicker="4" title={title} pageBreak>
       <p role="status" data-valuation-unavailable className="rounded-xl border border-dashed border-line p-4 text-sm text-secondary">{v.narrative}</p>
+      {/* Not estimable: no figures here (D22 / H10) — the references live in the appendix. */}
+      {report.tier !== "free" && marketReferenceSourceCount(report.appendix.marketResearch) > 0 && (
+        <p data-tbr-market-refs-appendix className="text-xs text-muted">
+          {getTbrValuationStrings(valuationLocale(locale)).marketRefsInAppendix(marketReferenceSourceCount(report.appendix.marketResearch))}
+        </p>
+      )}
       <AuditStampLine audit={v.audit} locale={locale} />
     </TbrSection>
   );
@@ -238,6 +277,7 @@ export function TbrValuation({ report, title, locale = "en", citations, investme
               </ul>
             </div>
           )}
+          <MarketReferencesBlock report={report} locale={locale} />
           {view.consistency.length > 0 && (
             <div className="rounded-lg border border-orange-300 dark:border-orange-800 bg-surface-sunken p-3 text-xs" data-tbr-valuation-consistency>
               <SubTitle>{s.consistencyTitle}</SubTitle>
