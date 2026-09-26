@@ -964,6 +964,7 @@ function valuationChapterFor(v: GatherOutput["valuation"], input: OrchestratorIn
       ask: v.ask,
       revenueEvidenceIds: v.revenueEvidenceIds,
       at: new Date().toISOString(),
+      marketResearch: context.gatherResults.marketResearch ?? null,
     });
   } catch (err) {
     console.warn("[report-pipeline] valuation chapter failed:", err instanceof Error ? err.message : String(err));
@@ -1361,6 +1362,7 @@ export function buildReportV2(
     });
     // Preserve retrieval provenance even when the report falls back before all eight chapters exist.
     if (context.gatherResults.publicResearch) base.appendix.publicResearch = context.gatherResults.publicResearch;
+    if (context.gatherResults.marketResearch) base.appendix.marketResearch = context.gatherResults.marketResearch;
     // §C.5: the gated valuation chapter (consistency-gates may have annotated it).
     const withValuation: ReportV2 = isValuationAvailable(base.valuation) && context.valuationChapter ? { ...base, valuation: context.valuationChapter } : base;
     const chapters = context.dimensionChapters;
@@ -1389,7 +1391,7 @@ export function buildReportV2(
         // PIPELINE chapters (the adapter's own block was built on its fallback chapters).
         structured: context.executiveStructured ?? structuredFromThesis(context, base, withValuation, dimensions, fromCards.confidence ?? base.executive.confidence),
       },
-      appendix: { ...base.appendix, evidenceRegister: context.evidenceRows ?? [], auditLog: context.sectionAudits ?? [], ...(context.gatherResults.publicResearch ? { publicResearch: context.gatherResults.publicResearch } : {}) },
+      appendix: { ...base.appendix, evidenceRegister: context.evidenceRows ?? [], auditLog: context.sectionAudits ?? [], ...(context.gatherResults.publicResearch ? { publicResearch: context.gatherResults.publicResearch } : {}), ...(context.gatherResults.marketResearch ? { marketResearch: context.gatherResults.marketResearch } : {}) },
       quality: { ...base.quality, score: context.qualityScore ?? base.quality.score, groundedShare, degradedSections: degraded, consistencyIssues: report.consistencyIssues },
     };
     const safe = withCriterionResearchCoverage(withCriterionAnalysis(ensureExecutiveStructured(v2), context.criterionResults, context.sectionAudits ?? []));

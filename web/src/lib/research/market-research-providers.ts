@@ -13,7 +13,7 @@ import "server-only";
 
 import { spawn as nodeSpawn, type ChildProcess, type SpawnOptions } from "node:child_process";
 import { constants } from "node:fs";
-import { lstat, mkdir, open, readdir, readFile, rename, unlink } from "node:fs/promises";
+import { lstat, mkdir, open, readdir, rename, unlink } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
@@ -300,7 +300,7 @@ export function createClaudeCliMarketSearch(opts: { bin?: string; cwd?: string; 
           let stdout = "", size = 0, timedOut = false, done = false;
           let child: ChildProcess;
           // Minimal environment: HOME for the subscription credentials, PATH for the binary. No app secrets.
-          const env: NodeJS.ProcessEnv = { HOME: process.env.HOME ?? homedir(), PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin", LANG: "C.UTF-8" };
+          const env = { HOME: process.env.HOME ?? homedir(), PATH: process.env.PATH ?? "/usr/local/bin:/usr/bin:/bin", LANG: "C.UTF-8" } as unknown as NodeJS.ProcessEnv;
           try { child = doSpawn(bin, claudeCliSearchArgs(claudeCliSearchPrompt(queries)), { cwd, env, stdio: ["ignore", "pipe", "ignore"] }); }
           catch { resolveRun({ code: null, stdout: "", timedOut: false, spawnError: true }); return; }
           const finish = (code: number | null, spawnError = false) => { if (done) return; done = true; clearTimeout(timer); ctx.signal.removeEventListener("abort", kill); resolveRun({ code, stdout, timedOut, spawnError }); };

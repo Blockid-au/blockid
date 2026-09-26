@@ -1,4 +1,5 @@
 import { publicResearchSchema, type PublicResearchResult } from "@/lib/research/public-source-contract";
+import { marketResearchSchema, type MarketResearchResult } from "@/lib/research/market-research-contract";
 // ReportV2 — the one JSON contract every Trusted Business Report surface
 // renders from (web, PDF, DOCX, Investor Dossier, email).
 //
@@ -580,6 +581,8 @@ export interface ReportV2 {
     disclaimer: string;
     evidenceRegister: EvidenceRow[];
     publicResearch?: PublicResearchResult;
+    /** Market research for valuation — public, unverified references (≤ 5 sources, verified quotes). */
+    marketResearch?: MarketResearchResult;
     auditLog: SectionAuditRecord[];
     comparablesN: number;
     comparablesWithMultiplesN: number;
@@ -1068,6 +1071,7 @@ export const reportV2Schema = z.object({
     disclaimer: z.string(),
     evidenceRegister: z.array(evidenceRow),
     publicResearch: publicResearchSchema.optional(),
+    marketResearch: marketResearchSchema.optional(),
     auditLog: z.array(
       z.object({
         sectionId: z.string(),
