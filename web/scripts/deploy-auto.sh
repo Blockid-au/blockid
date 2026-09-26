@@ -28,6 +28,13 @@ say() { printf '[deploy-auto] %s\n' "$*"; }
 
 if ps -eo args | grep -q "[d]eploy-live.sh"; then say "another deploy is running — aborting"; exit 2; fi
 
+# 0 — refuse BEFORE touching capacity: runtime-written paths (content/,
+# .deploy-manifest.json) are always dirty on the server; any OTHER
+# uncommitted change aborts here, so no origin is retired for nothing.
+OTHER_DIRTY=$(git status --porcelain | awk '{print $2}' | grep -vE '^"?(web/)?content/|^(web/)?\.deploy-manifest\.json$' || true)
+if [ -n "$OTHER_DIRTY" ]; then say "uncommitted source changes — commit or stash first:"; echo "$OTHER_DIRTY" | head -10; exit 2; fi
+export DEPLOY_ALLOW_DIRTY=1
+
 # 1 — load
 max_load="${DEPLOY_MAX_LOAD:-3.0}"; waited=0; limit=$(( ${DEPLOY_LOAD_WAIT_MIN:-30} * 60 ))
 until awk -v m="$max_load" '{exit !($2 < m)}' /proc/loadavg; do
@@ -96,11 +103,7 @@ rc=$?; rm -rf scripts/__pycache__
 say "prepare: $PREP"
 [ $rc -eq 0 ] || { say "preflight refused"; exit 2; }
 
-# 4 — deploy. Runtime-written paths (content/, .deploy-manifest.json) are
-# always dirty on the server; any OTHER uncommitted change refuses the run.
-OTHER_DIRTY=$(git status --porcelain | awk '{print $2}' | grep -vE '^"?(web/)?content/|^(web/)?\.deploy-manifest\.json$' || true)
-if [ -n "$OTHER_DIRTY" ]; then say "uncommitted source changes — commit or stash first:"; echo "$OTHER_DIRTY" | head -10; exit 2; fi
-export DEPLOY_ALLOW_DIRTY=1
+# 4 — deploy (the tree was checked clean before anything changed).
 LOGF="/tmp/blockid-deploy-auto-$(date -u +%Y%m%dT%H%M%S).log"
 say "deploying $(git rev-parse --short HEAD) — log $LOGF"
 bash scripts/deploy-live.sh --quick > "$LOGF" 2>&1
