@@ -27,10 +27,11 @@ const DATA_PRINCIPLE =
   "Your data belongs to your startup. We store it so every report builds on your own evidence and the AI reasons on your case. Founder-consented access tiers control who sees what.";
 
 describe("/legal/privacy — the one privacy policy (T0275)", () => {
-  it("renders version 2.3, effective 12 September 2026", async () => {
+  it("renders version 2.4, effective and last updated 26 September 2026", async () => {
     const html = await render("privacy");
-    expect(html).toContain("This version 2.3 takes effect on");
-    expect(html).toContain("12 September 2026");
+    expect(html).toContain("This version 2.4 takes effect on");
+    expect(html).toContain("Last updated: 26 September 2026");
+    expect(html).not.toContain("This version 2.3 takes effect on");
     expect(html).not.toContain("This version 2.2 takes effect on");
     expect(html).not.toContain("This version 2.1 takes effect on");
   });
@@ -287,5 +288,56 @@ describe("/legal/* — exactly one <h1> per page (release QA-1 #16)", () => {
     const files = readdirSync(join(process.cwd(), "content", "legal", "disclaimers")).filter((f) => f.endsWith("-en.mdx"));
     expect(files.length).toBeGreaterThanOrEqual(5);
     expect(docTitles.length).toBe(files.length);
+  });
+});
+
+describe("/legal/privacy v2.4 — automated decisions and AI analysis (APP 1.7, G34)", () => {
+  it("has the clause 2E heading in English and Vietnamese, with anchors and a changelog entry", async () => {
+    const html = await render("privacy");
+    expect(html).toContain('id="automated-decisions"');
+    expect(html).toContain('id="automated-decisions-vi"');
+    expect(html).toContain("2E. Automated decisions and AI analysis");
+    expect(html).toContain("2E (Tiếng Việt). Quyết định tự động và phân tích AI");
+    expect(html).toContain("v2.4 — effective 26 September 2026");
+  });
+
+  it("names what is scored automatically and the personal information it may use", async () => {
+    const html = await render("privacy");
+    for (const s of ["Startup Value Index (SVI)", "Investor Score", "evidence confidence", "meeting labels and verdict bands", "valuation range"]) {
+      expect(html, s).toContain(s);
+    }
+    expect(html).toMatch(/Founder and team details\s+supplied by you/);
+    expect(html).toMatch(/the documents you upload/);
+    expect(html).toMatch(/sources you choose to connect/);
+  });
+
+  it("says outputs are general information evaluators may rely on — not advice", async () => {
+    const html = await render("privacy");
+    expect(html).toMatch(/general information only/);
+    expect(html).toMatch(/not financial,\s+investment, legal, or tax advice/);
+    expect(html).toMatch(/may\s+rely on these results/);
+  });
+
+  it("links methodology, calibration, corrections and contact as real same-site links", async () => {
+    const html = await render("privacy");
+    for (const href of ["/methodology", "/methodology/calibration", "/vi/methodology", "/vi/methodology/calibration", "/workspace/evidence/corrections", "/contact?topic=legal"]) {
+      expect(html, href).toContain(`<a href="${href}"`);
+    }
+    // No markdown link syntax leaks into the visible text.
+    expect(html).not.toMatch(/\]\(\//);
+  });
+
+  it("routes human review through the corrections workflow and the entity's privacy contact", async () => {
+    const html = await render("privacy");
+    expect(html).toMatch(/reviewed by a person/);
+    expect(html).toMatch(/A member of our team reviews every correction/);
+    expect(html).toContain("privacy&#64;blockid.au");
+    expect(html).toMatch(/responsible for these\s+decisions is Auschain PTY LTD \(ABN 79 659 615 111\)/);
+    expect(html).not.toContain("{{LEGAL_ENTITY");
+  });
+
+  it("carries the approved Vietnamese data-principle sentence in the Vietnamese twin", async () => {
+    const html = await render("privacy");
+    expect(html).toMatch(/Dữ liệu của bạn thuộc về\s+startup của bạn/);
   });
 });

@@ -185,6 +185,14 @@ function renderInline(input: string): string {
       // email addresses inside <code> with broken /cdn-cgi/l/email-protection links.
       `<code class="rounded bg-surface-raised px-1.5 py-0.5 text-[0.85em] text-action break-words [overflow-wrap:anywhere]">${inner.replace(/@/g, "&#64;")}</code>`,
   );
+  // `[label](/internal/path)` → a same-site link (APP 1.7 clause 2E links
+  // /methodology and the corrections page). Only root-relative hrefs are
+  // honoured — an external, protocol-relative (`//host`) or `javascript:`
+  // target stays literal text.
+  s = s.replace(
+    /\[([^\]]+)\]\((\/(?!\/)[A-Za-z0-9/_#?=&;.-]*)\)/g,
+    '<a href="$2" class="font-medium text-action underline underline-offset-2 break-words [overflow-wrap:anywhere]">$1</a>',
+  );
   s = s.replace(
     /\*\*([^*]+)\*\*/g,
     '<strong class="font-semibold text-primary">$1</strong>',
