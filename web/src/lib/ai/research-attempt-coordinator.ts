@@ -4,7 +4,7 @@ import { lstat, mkdir, open, realpath, rename, rmdir, unlink } from "node:fs/pro
 import { createHash, randomUUID } from "node:crypto";
 import { join, resolve } from "node:path";
 import { z } from "zod";
-import { ResearchAttemptBudgetError, type AttemptRequest, type AttemptPermit, type ResearchAttemptBudget } from "./research-attempt-budget";
+import { ResearchAttemptBudgetError, type AttemptRequest, type AttemptPermit, type BudgetRefusalDetail, type ResearchAttemptBudget } from "./research-attempt-budget";
 
 const digest=z.string().regex(/^[a-f0-9]{64}$/);
 const integer=z.number().int().min(0).max(Number.MAX_SAFE_INTEGER);
@@ -38,7 +38,7 @@ const ledgerSchema=z.object({version:z.literal(1),account:digest,month,entries:z
 type Entry=z.infer<typeof entrySchema>;
 type Ledger=z.infer<typeof ledgerSchema>;
 const hash=(value:unknown)=>createHash("sha256").update(JSON.stringify(value)).digest("hex");
-const reject=(reason:string):never=>{throw new ResearchAttemptBudgetError(reason);};
+const reject=(reason:string,detail?:BudgetRefusalDetail):never=>{throw new ResearchAttemptBudgetError(reason,detail);};
 function cost(price:z.infer<typeof modelSchema>,input:number,output:number) {
   const amount=(BigInt(input)*BigInt(price.inputNanoUsdPerToken)+BigInt(output)*BigInt(price.outputNanoUsdPerToken)+999n)/1000n;
   if(amount>BigInt(Number.MAX_SAFE_INTEGER))return reject("cost overflow");
@@ -143,7 +143,11 @@ export function createResearchAttemptBudget(options:{
         for(const level of ["month","job","call"] as const) {
           const entries=ledger.entries.filter(e=>level==="month"||level==="job"&&e.job===job||level==="call"&&e.call===call);
           const total=entries.reduce((sum,e)=>sum+BigInt(e.heldCostMicroUsd),BigInt(externalUsage[level].costMicroUsd));
-          if(total+BigInt(maximum)>BigInt(a.limits[level].costMicroUsd)||BigInt(entries.length)+BigInt(externalUsage[level].attempts)+1n>BigInt(a.limits[level].attempts))return reject(`${level} budget exhausted`);
+          if(total+BigInt(maximum)>BigInt(a.limits[level].costMicroUsd)||BigInt(entries.length)+BigInt(externalUsage[level].attempts)+1n>BigInt(a.limits[level].attempts)) {
+            // G33-T16f: which budget, requested vs available (amounts only).
+            const cap=a.limits[level].costMicroUsd,usedAttempts=entries.length+externalUsage[level].attempts;
+            return reject(`${level} budget exhausted`,{budget:`research_${level}`,requestedMicroUsd:maximum,availableMicroUsd:Math.max(0,Number(BigInt(cap)-total)),capMicroUsd:cap,heldMicroUsd:Number(total),requestedAttempts:1,availableAttempts:Math.max(0,a.limits[level].attempts-usedAttempts)});
+          }
         }
         ledger.entries.push({id:request.attemptId,binding:fullBinding,job,call,grant,grantBinding,jobLimitsBinding,callLimitsBinding,model:request.model,payloadSha256:request.payloadSha256,policy:policyId,policyBinding,price, promptBytes:request.promptBytes,requestedOutputTokens:request.maximumOutputTokens,maximumCostMicroUsd:maximum,heldCostMicroUsd:maximum,state:"reserved",settlement:null,conflictSettlement:null,inputTokens:null,outputTokens:null});
         return {result:permit,write:true};

@@ -6,7 +6,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { userInfo } from "node:os";
 import { join } from "node:path";
 import { z } from "zod";
-import { ResearchAttemptBudgetError, type ResearchAttemptBudget, type AttemptRequest } from "./research-attempt-budget";
+import { ResearchAttemptBudgetError, type BudgetRefusalDetail, type ResearchAttemptBudget, type AttemptRequest } from "./research-attempt-budget";
 
 /** Founder approval 2026-09-23: total AI spend <= US$0.50/report, DeepInfra only. */
 const context = new AsyncLocalStorage<string>();
@@ -31,7 +31,7 @@ const integer = z.number().int().nonnegative().max(Number.MAX_SAFE_INTEGER);
 const entrySchema = z.object({ id: z.string().regex(/^[a-f0-9]{64}$/), model: z.string(), payload: z.string().regex(/^[a-f0-9]{64}$/), output: integer.min(1).max(16384), input: integer.min(1).optional(), retryOf: z.string().regex(/^[a-f0-9]{64}$/).optional(), maximum: integer.min(1), held: integer, inputUsed: integer.nullable(), outputUsed: integer.nullable(), state: z.enum(["reserved", "unknown", "reported_usage"]), settlement: z.string().nullable() }).strict();
 const ledgerSchema = z.object({ version: z.literal(1), scope: z.string(), cap: z.literal(500000), policy: z.literal(REPORT_PRICE_POLICY), blocked: z.boolean(), entries: z.array(entrySchema).max(512) }).strict();
 type Ledger = z.infer<typeof ledgerSchema>;
-const fail = (reason: string): never => { throw new ResearchAttemptBudgetError(`report ${reason}`); };
+const fail = (reason: string, detail?: BudgetRefusalDetail): never => { throw new ResearchAttemptBudgetError(`report ${reason}`, detail); };
 function cost(model: string, input: number, output: number): number {
   const price = PRICES[model]; if (!price) return fail("model not admitted");
   return Number((BigInt(input) * BigInt(price.input) + BigInt(output) * BigInt(price.output) + 999n) / 1000n);
@@ -93,7 +93,7 @@ export function createReportAttemptBudget(scopeId: string): ResearchAttemptBudge
       const until = Date.now() + 3500;
       for (;;) {
         try { await mkdir(lock, { mode: 0o700 }); locked = true; break; }
-        catch (e) { if ((e as NodeJS.ErrnoException).code !== "EEXIST" || Date.now() >= until) return fail("lock unavailable"); await new Promise(r => setTimeout(r, 20)); }
+        catch (e) { if ((e as NodeJS.ErrnoException).code !== "EEXIST" || Date.now() >= until) return fail("lock unavailable", { budget: "report_ledger_lock" }); await new Promise(r => setTimeout(r, 20)); }
       }
       const handle = await open(file, constants.O_RDONLY | constants.O_NOFOLLOW);
       let raw: string;
@@ -115,17 +115,17 @@ export function createReportAttemptBudget(scopeId: string): ResearchAttemptBudge
     callId: scopeId,
     async reserve(request: AttemptRequest) {
       const price = PRICES[request.model];
-      if (Date.now() >= EXPIRES || !price || request.provider !== "deepinfra" || !Number.isSafeInteger(request.maximumOutputTokens) || request.maximumOutputTokens < 1 || request.maximumOutputTokens > 16384 || request.promptBytes > 32 * 1024 * 1024) return fail("price or request not admitted");
+      if (Date.now() >= EXPIRES || !price || request.provider !== "deepinfra" || !Number.isSafeInteger(request.maximumOutputTokens) || request.maximumOutputTokens < 1 || request.maximumOutputTokens > 16384 || request.promptBytes > 32 * 1024 * 1024) return fail("price or request not admitted", { budget: "report_price_admission", requestedOutputTokens: request.maximumOutputTokens, maxOutputTokens: 16384, promptBytes: request.promptBytes, maxPromptBytes: 32 * 1024 * 1024 });
       const expected = hash(JSON.stringify(["research-attempt-v1", scopeId, "deepinfra", request.model, request.payloadSha256]));
       if (expected !== request.attemptId) return fail("attempt binding mismatch");
       return transaction(ledger => {
-        if (ledger.blocked) return fail("scope requires reconciliation");
+        if (ledger.blocked) return fail("scope requires reconciliation", { budget: "report_scope_blocked" });
         // G33-T06: an identical payload may be dispatched again only once every
         // earlier attempt of it is settled (its hold stays in the ledger either
         // way, so the US$0.50 cap still bounds all spend). A still-reserved
         // (in-flight) attempt is never duplicated.
         const family = ledger.entries.filter(e => e.id === request.attemptId || e.retryOf === request.attemptId);
-        if (family.some(e => e.settlement === null)) return fail("attempt replay denied");
+        if (family.some(e => e.settlement === null)) return fail("attempt replay denied", { budget: "report_attempt_replay" });
         const id = family.length === 0 ? request.attemptId : hash(JSON.stringify(["research-attempt-retry-v1", request.attemptId, family.length]));
         // G33-T06: the input ceiling is the request's byte count, not the whole
         // context window. 24/09: seven timed-out calls each held a full-context
@@ -133,7 +133,8 @@ export function createReportAttemptBudget(scopeId: string): ResearchAttemptBudge
         // US$0.50 scope after eight dispatches, so the CEO summary was refused.
         const input = Math.max(1, Math.min(price.context, request.promptBytes));
         const maximum = cost(request.model, input, request.maximumOutputTokens);
-        if (ledger.entries.reduce((n, e) => n + e.held, 0) + maximum > ledger.cap) return fail("US$0.50 limit reached");
+        const held = ledger.entries.reduce((n, e) => n + e.held, 0);
+        if (held + maximum > ledger.cap) return fail("US$0.50 limit reached", { budget: "report_usd_cap", requestedMicroUsd: maximum, availableMicroUsd: Math.max(0, ledger.cap - held), capMicroUsd: ledger.cap, heldMicroUsd: held, requestedOutputTokens: request.maximumOutputTokens, promptBytes: request.promptBytes });
         ledger.entries.push({ id, model: request.model, payload: request.payloadSha256, output: request.maximumOutputTokens, input, ...(id !== request.attemptId ? { retryOf: request.attemptId } : {}), maximum, held: maximum, inputUsed: null, outputUsed: null, state: "reserved", settlement: null });
         return { dispatchAllowed: true, attemptId: id, ...(id !== request.attemptId ? { retryOf: request.attemptId } : {}), payloadSha256: request.payloadSha256, model: request.model, maximumPromptBytes: request.promptBytes, maximumInputTokens: input, maximumOutputTokens: request.maximumOutputTokens, maximumCostMicroUsd: maximum, pricePolicyId: REPORT_PRICE_POLICY, expiresAt: Math.min(EXPIRES, Date.now() + 300000) };
       });

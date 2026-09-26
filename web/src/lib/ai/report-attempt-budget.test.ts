@@ -94,12 +94,45 @@ describe("report attempt budget (G33-T06)", () => {
     await expect(reserveResearchAttempt(budget, V32, payload(200_100), 1000)).rejects.toThrow("reservation unavailable");
   });
 
+  it("G33-T16f: a cap refusal logs ONE structured line — which budget, requested vs available — and the error carries the same detail", async () => {
+    const budget = createReportAttemptBudget(scope());
+    const V32 = "deepseek-ai/DeepSeek-V3.2";
+    for (let i = 0; i < 11; i++) {
+      const p = await reserveResearchAttempt(budget, V32, payload(200_000 + i), 1000);
+      await settleResearchAttempt(budget, p);
+    }
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      const err = await reserveResearchAttempt(budget, V32, payload(200_100), 1000).catch((e) => e);
+      expect(err.detail).toMatchObject({ budget: "report_usd_cap", capMicroUsd: 500_000 });
+      const lines = warn.mock.calls.map((c) => String(c[0])).filter((l) => l.includes("ai.budget.refused"));
+      expect(lines).toHaveLength(1);
+      const line = JSON.parse(lines[0]);
+      expect(line).toMatchObject({ event: "ai.budget.refused", budget: "report_usd_cap", model: V32, cap_micro_usd: 500_000, requested_output_tokens: 1000 });
+      expect(line.requested_micro_usd).toBeGreaterThan(line.available_micro_usd);
+      expect(line.held_micro_usd + line.available_micro_usd).toBe(500_000);
+      expect(line.reason).toContain("US$0.50 limit reached");
+      // Never the raw scope id or the prompt.
+      expect(line.scope).toMatch(/^[a-f0-9]{12}$/);
+      expect(lines[0]).not.toContain("blockid:analysis");
+      expect(lines[0]).not.toContain("xxxx");
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
   it("G33-T16h: every admitted report model is priced, and a non-admitted one is refused", async () => {
     const budget = createReportAttemptBudget(scope());
     for (const model of REPORT_ADMITTED_MODELS) {
       const p = await reserveResearchAttempt(budget, model, payload(1_000 + model.length), 100);
       expect(p.dispatchAllowed).toBe(true);
     }
-    await expect(reserveResearchAttempt(budget, "moonshotai/Kimi-K2.6", payload(999), 100)).rejects.toThrow(/not admitted/);
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    try {
+      await expect(reserveResearchAttempt(budget, "moonshotai/Kimi-K2.6", payload(999), 100)).rejects.toThrow(/not admitted/);
+      expect(JSON.parse(String(warn.mock.calls.at(-1)?.[0]))).toMatchObject({ event: "ai.budget.refused", budget: "report_price_admission", max_output_tokens: 16384, requested_output_tokens: 100 });
+    } finally {
+      warn.mockRestore();
+    }
   });
 });
