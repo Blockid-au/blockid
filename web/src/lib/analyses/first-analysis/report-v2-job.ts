@@ -72,6 +72,15 @@ import {
   type FullReportRow,
 } from "./store";
 import { FULL_REPORT_V2_VERSION, isReportV2Envelope, type FullReportV2Envelope, type ReportV2ChapterDraft, type ReportV2Progress } from "./types";
+import {
+  applyPipelineEvent,
+  documentDetail,
+  failStages,
+  finalizeStages,
+  initialStages,
+  stageDurationsMs,
+} from "./stage-timeline";
+import { recordStageTimings, type StageTimingsRow } from "./stage-timings";
 
 export type ReportV2JobOutcome =
   | { outcome: "not_claimable" }
@@ -104,6 +113,14 @@ export interface ReportV2JobDeps {
   recordLastReport?: (rec: LastReportProvider) => void;
   /** How often the progress envelope is written (ms). */
   progressEveryMs: number;
+  /**
+   * 26/09 — how often the worker stamps `heartbeatAt` (+ the live call
+   * count) while the pipeline runs, so the page can tell "working" from
+   * "stalled" between stage events. 0 = off (the suite).
+   */
+  heartbeatEveryMs?: number;
+  /** 26/09 — append the finished run's stage durations to the ETA ledger. Optional, never throws. */
+  recordStageTimings?: (row: StageTimingsRow) => Promise<void>;
 }
 
 /**
@@ -295,23 +312,57 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
     now: deps.now(),
   });
   const envelope = newEnvelope(id, built.echo.company, deps.now());
+  const runBudget = backgroundRunBudget();
+  // 26/09 — the stage timeline: upload, reading and the baseline score are
+  // already done (real numbers from the saved row); the pipeline stages
+  // flip as the orchestrator's events arrive. The deadline caps the ETA.
+  const claimedAt = deps.now().toISOString();
+  envelope.stages = initialStages({
+    createdAt: row.created_at || claimedAt,
+    claimedAt,
+    document: documentDetail(row),
+    company: built.echo.company,
+    baselineSvi: built.analysis.totalSVI,
+    stageLabel: built.analysis.stageLabel,
+  });
+  envelope.deadlineAt = new Date(deps.now().getTime() + runBudget.deadlineMs).toISOString();
+  envelope.heartbeatAt = claimedAt;
   await deps.saveProgress(id, envelope);
 
+  const tally: CallTally = new Map();
+  const callsSoFar = () => {
+    let n = 0;
+    for (const t of tally.values()) n += t.n;
+    return n;
+  };
   let lastSaved = deps.now().getTime();
   let done: Extract<PipelineEvent, { type: "done" }> | null = null;
   const onEvent = (ev: PipelineEvent) => {
     if (ev.type === "done") done = ev;
     if (ev.type === "dimension_complete") envelope.draftChapters = upsertChapterDraft(envelope.draftChapters ?? [], ev.chapter);
-    envelope.progress = progressFromEvent(envelope.progress, ev, deps.now());
+    envelope.progress = { ...progressFromEvent(envelope.progress, ev, deps.now()), calls: callsSoFar() };
+    const stageChanged = envelope.stages ? applyPipelineEvent(envelope.stages, ev, deps.now().toISOString()) : false;
     const t = deps.now().getTime();
-    if (t - lastSaved >= deps.progressEveryMs || ev.type === "dimension_complete" || ev.type === "gather_complete") {
+    if (stageChanged || t - lastSaved >= deps.progressEveryMs || ev.type === "dimension_complete" || ev.type === "gather_complete") {
       lastSaved = t;
       void trackOriginWork("report_progress", () => deps.saveProgress(id, envelope)).catch(() => undefined);
     }
   };
 
+  // 26/09 — the heartbeat: while the pipeline is inside a long model call no
+  // event fires for a minute or more; the worker still says it is alive (and
+  // how many AI calls have answered) so the page never looks hung.
+  const heartbeat =
+    (deps.heartbeatEveryMs ?? 0) > 0
+      ? setInterval(() => {
+          envelope.heartbeatAt = deps.now().toISOString();
+          envelope.progress = { ...envelope.progress, calls: callsSoFar() };
+          void trackOriginWork("report_progress", () => deps.saveProgress(id, envelope)).catch(() => undefined);
+        }, deps.heartbeatEveryMs)
+      : null;
+  (heartbeat as { unref?: () => void } | null)?.unref?.();
+
   const t0 = deps.now().getTime();
-  const tally: CallTally = new Map();
   let report: AssembledReport;
   try {
     report = await deps.orchestrate({
@@ -334,7 +385,7 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
       locale: "en",
       // Review v3.27.0 P1: the background budget (420 s / 48 calls) — the
       // interactive default (120 s / 30) degraded every free run to cards.
-      ...backgroundRunBudget(),
+      ...runBudget,
       callAI: tallyingCaller((...args) => {
         const savedScope = (row.intake as { aiBudgetScope?: unknown } | null)?.aiBudgetScope;
         const scope = typeof savedScope === "string" && /^blockid:intake:[a-f0-9-]{36}$/.test(savedScope) ? savedScope : `blockid:analysis:${id}`;
@@ -370,7 +421,9 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
         deps.qualityWriter,
       ).catch(() => undefined);
     }
-    envelope.progress = { ...envelope.progress, phase: "failed", at: deps.now().toISOString() };
+    envelope.progress = { ...envelope.progress, phase: "failed", at: deps.now().toISOString(), calls: callsSoFar() };
+    // 26/09: the stage it stopped at reads failed — a machine reason, never the raw error.
+    if (envelope.stages) failStages(envelope.stages, deps.now().toISOString(), fully ? "degraded" : /deadline/i.test(message) ? "deadline" : "error");
     await deps.finish(id, { status: "failed", report: envelope, error: message });
     // The cron re-claims a `failed` row while attempts < FULL_REPORT_MAX_ATTEMPTS.
     const retryable = (row.full_report_attempts ?? 0) < FULL_REPORT_MAX_ATTEMPTS;
@@ -383,6 +436,8 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
       if (refunded) console.warn("[report-v2-job] credits refunded after terminal failure", { analysisId: id, refunded });
     }
     return { outcome: "failed", error: message, retryable };
+  } finally {
+    if (heartbeat) clearInterval(heartbeat);
   }
 
   const stats = done as Extract<PipelineEvent, { type: "done" }> | null;
@@ -392,6 +447,7 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
     // missing document is a bug, not a degraded report — say so and retry.
     const error = "pipeline returned no ReportV2 document";
     console.error(`[report-v2-job] ${error}`, { analysisId: id, reportId: report.id });
+    if (envelope.stages) failStages(envelope.stages, deps.now().toISOString(), "error");
     await deps.finish(id, { status: "failed", report: envelope, error });
     const retryable = (row.full_report_attempts ?? 0) < FULL_REPORT_MAX_ATTEMPTS;
     if (!retryable) {
@@ -405,7 +461,8 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
   envelope.report = { ...reportV2, snapshotId: reportV2.snapshotId || `analysis:${id}`, source: "pipeline" };
   envelope.reportId = report.id;
   envelope.completedAt = finishedAt.toISOString();
-  envelope.progress = { ...envelope.progress, phase: "done", pct: 100, at: finishedAt.toISOString(), chaptersDone: reportV2.dimensions.length };
+  envelope.progress = { ...envelope.progress, phase: "done", pct: 100, at: finishedAt.toISOString(), chaptersDone: reportV2.dimensions.length, calls: callsSoFar() };
+  if (envelope.stages) finalizeStages(envelope.stages, finishedAt.toISOString());
   envelope.pipeline = {
     calls: stats?.calls ?? report.llmCalls ?? 0,
     costUsd: stats?.costUsd ?? 0,
@@ -440,6 +497,12 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
     deps.recordLastReport?.(lastReportRecordV2(id, reportV2, tally, finishedAt));
   } catch {
     /* observability never blocks delivery */
+  }
+  // 26/09 — the ETA ledger behind "usually ~Xs" (medians of recent real runs).
+  if (envelope.stages && deps.recordStageTimings) {
+    await deps
+      .recordStageTimings({ ts: finishedAt.toISOString(), totalMs: finishedAt.getTime() - t0, stages: stageDurationsMs(envelope.stages) })
+      .catch(() => undefined);
   }
 
   await deps.finish(id, { status: "done", report: envelope, error: null });
@@ -576,6 +639,8 @@ export function defaultReportV2Deps(): ReportV2JobDeps {
     deliver: (row, envelope, opts) => deliverReportV2(row, envelope, opts),
     recordLastReport: writeLastReportProvider,
     progressEveryMs: 4_000,
+    heartbeatEveryMs: 10_000,
+    recordStageTimings,
   };
 }
 

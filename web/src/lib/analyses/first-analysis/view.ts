@@ -10,6 +10,18 @@
 import { maskSummaryEmail } from "@/lib/analyses/free-summary";
 import type { FullReportRow } from "./store";
 import {
+  defaultStageEtas,
+  documentDetail,
+  latestIso,
+  queuedStages,
+  stagesFromLegacyPhase,
+  summariseTimeline,
+  type StageEtas,
+  type TbrRunState,
+  type TbrStageRecord,
+  type TbrTimelineView,
+} from "./stage-timeline";
+import {
   FULL_REPORT_MAX_ATTEMPTS,
   firstParagraph,
   isFirstAnalysisReport,
@@ -78,7 +90,72 @@ export function buildPreview(row: Pick<FullReportRow, "full_report_json">): Firs
   };
 }
 
-export function buildFullReportView(row: FullReportRow): FullReportView {
+export interface BuildViewOptions {
+  /** The server clock (the route passes `new Date()`; tests pin it). */
+  now?: Date;
+  /** Stage ETA medians (stage-timings.ts `loadStageEtas`); defaults when absent. */
+  etas?: StageEtas;
+  /** G25-C: the never-started row is held for today's free cap. */
+  heldForCap?: boolean;
+}
+
+function runStateFor(row: Pick<FullReportRow, "full_report_status" | "full_report_attempts">, heldForCap: boolean): TbrRunState {
+  switch (row.full_report_status) {
+    case "done":
+    case "done_partial":
+      return "done";
+    case "running":
+      return "running";
+    case "failed":
+      return (row.full_report_attempts ?? FULL_REPORT_MAX_ATTEMPTS) < FULL_REPORT_MAX_ATTEMPTS ? "retrying" : "failed";
+    default:
+      return heldForCap ? "held" : "queued";
+  }
+}
+
+/**
+ * 26/09 — the stage timeline of a v2 row, whatever the row holds: the
+ * envelope's own stages (a run since this shipped), a coarse one from the
+ * legacy phase label (a run in flight across the deploy), or the queued
+ * shape (no worker has claimed it yet). Null for an S32 row. Exported for
+ * the suite.
+ */
+export function buildTimeline(row: FullReportRow, opts: BuildViewOptions = {}): TbrTimelineView | null {
+  const json = row.full_report_json;
+  if (isFirstAnalysisReport(json)) return null;
+  const envelope = isReportV2Envelope(json) ? json : null;
+  const now = opts.now ?? new Date();
+  const heldForCap = Boolean(opts.heldForCap);
+  const state = runStateFor(row, heldForCap);
+  const createdAt = row.created_at || envelope?.generatedAt || now.toISOString();
+  const document = documentDetail(row);
+  let stages: TbrStageRecord[] | null = envelope?.stages && envelope.stages.length > 0 ? envelope.stages.map((s) => ({ ...s, detail: s.detail ? { ...s.detail } : undefined })) : null;
+  if (!stages) {
+    stages =
+      envelope && state !== "queued" && state !== "held"
+        ? stagesFromLegacyPhase(createdAt, document, envelope.progress?.phase ?? "starting", envelope.progress?.chaptersDone ?? 0)
+        : queuedStages(createdAt, document, { heldForCap });
+    // A report finished before stages existed: every stage ran; no timings invented.
+    if (state === "done") for (const s of stages) s.status = "done";
+  }
+  // A failed attempt that will be retried reads "retrying" on the stage it stopped at.
+  if (state === "retrying") {
+    for (const s of stages) if (s.status === "failed") s.detail = { ...(s.detail ?? {}), reason: "retrying" };
+  }
+  return summariseTimeline({
+    stages,
+    etas: opts.etas ?? defaultStageEtas(),
+    now,
+    state,
+    createdAt,
+    completedAt: envelope?.completedAt ?? row.full_report_finished_at,
+    deadlineAt: envelope?.deadlineAt ?? null,
+    lastUpdateAt: latestIso(envelope?.heartbeatAt, envelope?.progress?.at, row.full_report_started_at),
+    calls: envelope?.progress?.calls ?? envelope?.pipeline?.calls ?? null,
+  });
+}
+
+export function buildFullReportView(row: FullReportRow, opts: BuildViewOptions = {}): FullReportView {
   const locked = isFullReportLocked(row);
   const emailTo = row.full_report_email ? maskSummaryEmail(row.full_report_email) : null;
   const json = row.full_report_json;
@@ -101,5 +178,6 @@ export function buildFullReportView(row: FullReportRow): FullReportView {
     attempts: row.full_report_attempts ?? 0,
     error: row.full_report_status === "failed" || row.full_report_status === "done_partial" ? row.full_report_error : null,
     pollAfterSec: pollAfterSecFor(row),
+    timeline: buildTimeline(row, opts),
   };
 }
