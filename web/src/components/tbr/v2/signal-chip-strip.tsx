@@ -13,7 +13,8 @@
 // (`criteria: []` when `detailLocked`).
 
 import { useEffect, useRef, useState } from "react";
-import type { DashboardV4, V4SignalChip } from "@/lib/report-v2/dashboard-v4";
+import type { V4SignalChip } from "@/lib/report-v2/dashboard-v4";
+import type { SignalChipStripData } from "@/lib/report-v2/signal-chip-data";
 import { cn } from "@/lib/utils";
 
 const GLYPH: Record<V4SignalChip["status"], string> = { context_available: "◐", missing: "○", locked: "🔒" };
@@ -37,8 +38,8 @@ export function signalPopoverReduce(open: string | null, action: SignalPopoverAc
   }
 }
 
-export function SignalChipStrip({ v4, initialOpenKey = null }: { v4: DashboardV4; /** Server-render / test hook: a chip rendered open. */ initialOpenKey?: string | null }) {
-  const s = v4.strings;
+export function SignalChipStrip({ data, initialOpenKey = null }: { data: SignalChipStripData; /** Server-render / test hook: a chip rendered open. */ initialOpenKey?: string | null }) {
+  const s = data.labels;
   const [openKey, setOpenKey] = useState<string | null>(initialOpenKey);
   const rootRef = useRef<HTMLDivElement>(null);
   const buttons = useRef<Map<string, HTMLButtonElement>>(new Map());
@@ -72,7 +73,7 @@ export function SignalChipStrip({ v4, initialOpenKey = null }: { v4: DashboardV4
     <div ref={rootRef} data-tbr-signal-chips className="space-y-1.5">
       <p className="text-xs font-semibold uppercase tracking-wide text-muted">{s.signalsTitle}</p>
       <ul className="flex flex-wrap gap-2">
-        {v4.signalChips.map((chip) => {
+        {data.chips.map((chip) => {
           const open = openKey === chip.key;
           const popId = `tbr-signal-pop-${chip.key}`;
           return (
@@ -104,7 +105,7 @@ export function SignalChipStrip({ v4, initialOpenKey = null }: { v4: DashboardV4
               <div
                 id={popId}
                 role="region"
-                aria-label={s.signalPopoverAria(chip.label)}
+                aria-label={data.popoverAria[chip.key] ?? chip.label}
                 hidden={!open}
                 data-tbr-signal-popover={chip.key}
                 className="absolute left-0 top-full z-20 mt-1 w-72 max-w-[calc(100vw-2rem)] space-y-2 rounded-lg border border-line-subtle bg-surface p-3 text-xs text-secondary shadow-md print:hidden"

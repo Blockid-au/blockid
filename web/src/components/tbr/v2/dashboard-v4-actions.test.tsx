@@ -15,6 +15,7 @@ import { TBR_REQUEST_EVIDENCE_HASH } from "@/lib/report-v2/request-evidence";
 import type { ReportV2 } from "@/lib/report-v2/schema";
 import { TbrReportV2 } from "./report";
 import { SignalChipStrip, signalPopoverReduce } from "./signal-chip-strip";
+import { signalChipStripData } from "@/lib/report-v2/signal-chip-data";
 
 const page1 = (html: string) => html.slice(html.indexOf('id="tbr-dashboard"'), html.indexOf('id="tbr-investment-view"'));
 const textOf = (html: string) => html.replace(/<svg[\s\S]*?<\/svg>/g, "").replace(/<[^>]+>/g, "\n").replace(/&amp;/g, "&").replace(/&#x27;/g, "'").replace(/&quot;/g, '"');
@@ -79,7 +80,7 @@ describe("TbrDashboard — next step bar", () => {
 
 describe("SignalChipStrip — popover", () => {
   it("each chip is a button with aria-expanded=false + aria-controls; the popover is in the DOM but hidden", () => {
-    const html = renderToStaticMarkup(<SignalChipStrip v4={v4For(demoReportV2())} />);
+    const html = renderToStaticMarkup(<SignalChipStrip data={signalChipStripData(v4For(demoReportV2()))} />);
     expect((html.match(/<button type="button" aria-expanded="false" aria-controls="tbr-signal-pop-/g) ?? []).length).toBe(6);
     expect((html.match(/hidden="" data-tbr-signal-popover="[a-z_]+"/g) ?? []).length).toBe(6);
     expect(html).toContain('href="#investor-signal-team"');
@@ -89,7 +90,7 @@ describe("SignalChipStrip — popover", () => {
     const v4 = v4For(demoReportV2());
     const chip = v4.signalChips.find((c) => c.criteria.length > 0)!;
     expect(chip).toBeDefined();
-    const html = renderToStaticMarkup(<SignalChipStrip v4={v4} initialOpenKey={chip.key} />);
+    const html = renderToStaticMarkup(<SignalChipStrip data={signalChipStripData(v4)} initialOpenKey={chip.key} />);
     expect(html).toContain(`aria-expanded="true" aria-controls="tbr-signal-pop-${chip.key}"`);
     const pop = html.slice(html.indexOf(`data-tbr-signal-popover="${chip.key}"`), html.indexOf("</div>", html.indexOf(`data-tbr-signal-popover="${chip.key}"`)));
     expect(html).not.toContain(`hidden="" data-tbr-signal-popover="${chip.key}"`);
@@ -105,7 +106,7 @@ describe("SignalChipStrip — popover", () => {
     const gated = v4.signalChips.filter((c) => c.detailLocked);
     for (const chip of gated) {
       expect(chip.criteria).toEqual([]);
-      const html = renderToStaticMarkup(<SignalChipStrip v4={v4} initialOpenKey={chip.key} />);
+      const html = renderToStaticMarkup(<SignalChipStrip data={signalChipStripData(v4)} initialOpenKey={chip.key} />);
       const pop = html.slice(html.indexOf(`data-tbr-signal-popover="${chip.key}"`), html.indexOf("</div>", html.indexOf(`data-tbr-signal-popover="${chip.key}"`)));
       expect(textOf(pop)).toContain("Linked criteria are in the full report.");
       expect(pop).not.toContain("data-tbr-signal-criteria");

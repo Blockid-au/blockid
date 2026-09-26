@@ -27,6 +27,7 @@ import { ConfidenceMeter, DimensionScorecard } from "./dimension-scorecard";
 import { KeyMetricsStrip } from "./key-metrics-strip";
 import { RedFlagPanel, WhyStopAskLists } from "./red-flag-panel";
 import { SignalChipStrip } from "./signal-chip-strip";
+import { signalChipStripData } from "@/lib/report-v2/signal-chip-data";
 import { CalibrationLine, PeerStageStrip } from "./peer-stage-strip";
 
 /** G19-S41 — the ledger strip "base 100 → dims → stage → penalties → total" + "N of 8 dimensions pending" (kept from the cover). */
@@ -296,7 +297,7 @@ export function TbrDashboard({ report, view, v4, title, locale = "en", lockCards
             locale={locale}
             footer={
               <>
-                <SignalChipStrip v4={v4} />
+                <SignalChipStrip data={signalChipStripData(v4)} />
                 <PeerStageStrip v4={v4} />
               </>
             }
