@@ -124,6 +124,57 @@ describe("classifyRouteRateLimit", () => {
   });
 });
 
+describe("classifyRouteRateLimit — auth gates and the persistent limiter (2026-09-26)", () => {
+  const GATES = {
+    ...LIB,
+    "src/lib/feature-gate.ts": `export async function gateRequireFeature(f: string) { return { ok: false as const, response: new Response(null, { status: 401 }) }; }\n`,
+    "src/lib/rate-limit/persistent.ts": `export async function consumeRateLimit(o: unknown) { return { allowed: true }; }\n`,
+    "src/lib/founder-crud.ts": [
+      `import { getCurrentUser } from "@/lib/auth";`,
+      `export function listHandler(table: string) {`,
+      `  return async () => {`,
+      `    const user = await getCurrentUser();`,
+      `    if (!user) return new Response(null, { status: 401 });`,
+      `    return Response.json({ table });`,
+      `  };`,
+      `}`,
+    ].join("\n"),
+  };
+  const readG = memReader(GATES);
+  const rl = (body: string, rel = "api/z/route.ts") => classifyRouteRateLimit({ file: "src/app/api/z/route.ts", src: body }, rel, readG, []);
+
+  it("a well-known gate in the route counts as covered (auth_gated)", () => {
+    expect(rl(`import { gateRequireFeature } from "@/lib/feature-gate";\nexport async function POST() { const g = await gateRequireFeature("x"); if (!g.ok) return g.response; return Response.json({}); }`)).toMatchObject({ limited: true, via: "auth_gated" });
+    expect(rl(`import { isCronAuthorised } from "@/lib/security/cron-auth";\nexport async function POST(r: Request) { if (!isCronAuthorised(r)) return new Response(null, { status: 401 }); return Response.json({}); }`).via).toBe("auth_gated");
+  });
+
+  it("getCurrentUser() counts only when an absent user is refused", () => {
+    expect(rl(`import { getCurrentUser } from "@/lib/auth";\nexport async function POST() {\n  const user = await getCurrentUser();\n  if (!user) return new Response(null, { status: 401 });\n  return Response.json({});\n}`).via).toBe("auth_gated");
+    // Optional lookup — guests still get through (the /api/conversion/track shape).
+    expect(rl(`import { getCurrentUser } from "@/lib/auth";\nexport async function POST() {\n  const user = await getCurrentUser();\n  await record({ userId: user?.id ?? null });\n  return Response.json({});\n}`)).toEqual({ limited: false, via: null });
+  });
+
+  it("reading the session cookie or sending a Bearer header is not a gate (the /api/rnd shape)", () => {
+    expect(rl(`export async function POST() { const t = (await cookies()).get("blockid_session")?.value; const r = await fetch("https://ai.example", { headers: { Authorization: \`Bearer \${k}\` } }); return Response.json({ t, r }); }`)).toEqual({ limited: false, via: null });
+  });
+
+  it("a shared handler that refuses anonymous callers counts (founder-crud listHandler)", () => {
+    const v = rl(`import { listHandler } from "@/lib/founder-crud";\nexport const POST = listHandler("founder_team");`);
+    expect(v.via).toBe("auth_gated");
+    expect(v.detail).toMatch(/^listHandler → /);
+  });
+
+  it("consumeRateLimit (Postgres limiter) is a limiter; a comment naming checkRateLimit is not", () => {
+    expect(rl(`import { consumeRateLimit } from "@/lib/rate-limit/persistent";\nexport async function POST() { await consumeRateLimit({ bucket: "b", actorId: "ip", limit: 3, windowSeconds: 60 }); return Response.json({}); }`)).toMatchObject({ limited: true, via: "direct", detail: "consumeRateLimit" });
+    expect(rl(`// TODO: add checkRateLimit here\nexport async function POST() { return Response.json({}); }`)).toEqual({ limited: false, via: null });
+  });
+
+  it("a limiter or proxy bucket still wins over the auth gate (the more specific verdict)", () => {
+    const src = `import { gateRequireFeature } from "@/lib/feature-gate";\nexport async function POST() { await gateRequireFeature("x"); return Response.json({}); }`;
+    expect(classifyRouteRateLimit({ file: "src/app/api/svi/x/route.ts", src }, "api/svi/x/route.ts", readG, ["/api/svi"]).via).toBe("proxy_bucket");
+  });
+});
+
 describe("helpers", () => {
   it("parseImports skips type-only imports and keeps aliases", () => {
     expect(parseImports(`import type { A } from "a";\nimport { type B, c, d as e } from "@/x";\nimport f from "g";`)).toEqual([
@@ -171,6 +222,39 @@ describe("live tree (G33-T13 false positives)", () => {
   it("recognises the proxy buckets of the real src/proxy.ts", () => {
     const prefixes = parseProxyBucketPrefixes(readFileSync(path.join(srcDir, "proxy.ts"), "utf8"));
     expect(prefixes).toEqual(expect.arrayContaining(["/api/svi", "/api/lead", "/api/auth/reset-password"]));
+  });
+
+  // 2026-09-26 gap sweep: every public mutating route that had no limiter is
+  // now limited (proxy bucket), tagged exempt with a reason, or fixed in-route.
+  it.each([
+    ["api/rnd/route.ts", "proxy_bucket"],
+    ["api/website-tech-audit/route.ts", "proxy_bucket"],
+    ["api/i18n/translate/route.ts", "proxy_bucket"],
+    ["api/cofounder-match/route.ts", "proxy_bucket"],
+    ["api/founding50/waitlist/route.ts", "proxy_bucket"],
+    ["api/index/waitlist/route.ts", "proxy_bucket"],
+    ["api/stripe/analysis/route.ts", "proxy_bucket"],
+    ["api/coupon/validate/route.ts", "proxy_bucket"],
+    ["api/reseller/code/validate/route.ts", "proxy_bucket"],
+    ["api/proofs/score/route.ts", "proxy_bucket"],
+    ["api/conversion/track/route.ts", "proxy_bucket"],
+    ["api/experiments/expose/route.ts", "proxy_bucket"],
+    ["api/ab/pricing-expose/route.ts", "proxy_bucket"],
+    ["api/pricing-test/event/route.ts", "proxy_bucket"],
+    ["api/track/view/route.ts", "proxy_bucket"],
+    ["api/tbr/[token]/view-end/route.ts", "proxy_bucket"],
+    ["api/auth/google/route.ts", "proxy_bucket"],
+    ["api/startup/[slug]/contact/route.ts", "direct"],
+    ["api/auth/logout/route.ts", "exempt"],
+    ["api/landing-page/preview/route.ts", "exempt"],
+    ["api/accelerator/cohort/route.ts", "exempt"],
+    ["api/unsubscribe/route.ts", "exempt"],
+    ["api/founder/team/route.ts", "auth_gated"],
+    ["api/ai/esop/route.ts", "auth_gated"],
+  ])("%s is rate-limit covered via %s", (rel, via) => {
+    const prefixes = parseProxyBucketPrefixes(readFileSync(path.join(srcDir, "proxy.ts"), "utf8"));
+    const file = path.join(srcDir, "app", rel);
+    expect(classifyRouteRateLimit({ file, src: readFileSync(file, "utf8") }, rel, readFs, prefixes).via).toBe(via);
   });
 
   it("the posture route uses the classifier, not a grep list", () => {

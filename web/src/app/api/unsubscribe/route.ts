@@ -91,6 +91,9 @@ async function oneClickUnsubscribe(request: NextRequest): Promise<Response> {
 // POST: update specific preferences
 // Body: { token, preferences: { weekly_reports: false, ... } }
 // …or the RFC 8058 one-click form post (see isOneClickUnsubscribe).
+// @rate-limit-exempt — deliberately NOT per-IP limited: one-click posts arrive
+// from the mail provider's shared egress IPs, and a ceiling there would drop
+// legitimate unsubscribes. The secret per-recipient token is the gate.
 async function POST_handler(request: NextRequest) {
   if (isOneClickUnsubscribe(request)) return oneClickUnsubscribe(request);
   let body: { token?: string; preferences?: Record<string, boolean> };

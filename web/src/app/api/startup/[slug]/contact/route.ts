@@ -19,6 +19,7 @@ import { getSupabaseAdmin } from "@/lib/supabase";
 import { consumeRateLimit } from "@/lib/rate-limit/persistent";
 import { sendEmail } from "@/lib/email";
 import { apiRoute } from "@/lib/audit/api-route";
+import { clientIpFromHeaders } from "@/lib/iphash";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -60,10 +61,9 @@ async function POST_handler(
 
   // Fail-open rate-limit anchor: prefer the x-forwarded-for, fall back to
   // the connection-info header set by Next.js (available in Node runtime).
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    request.headers.get("x-real-ip") ||
-    "anon";
+  // Trusted hop only (lib/iphash) — the first x-forwarded-for hop is
+  // client-supplied, so keying on it made this 3-per-5-min limit rotatable.
+  const ip = clientIpFromHeaders(request.headers) || "anon";
   const rl = await consumeRateLimit({
     bucket: "startup_listing.contact",
     actorId: ip,
