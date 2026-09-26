@@ -180,11 +180,20 @@ export async function GET(request: Request) {
           .select("id", { count: "exact", head: true })
           .eq("account_id", account.id);
 
-        // Score view count
-        const { count: scoreViewCount } = await supabase
-          .from("score_views")
-          .select("id", { count: "exact", head: true })
-          .eq("email", email);
+        // Score view count — score_views has no email column; views hang off
+        // the account's public score cards (scores.email).
+        const { data: scoreRows } = await supabase
+          .from("scores")
+          .select("id")
+          .eq("email", email)
+          .limit(200);
+        const scoreIds = (scoreRows ?? []).map((r) => r.id);
+        const { count: scoreViewCount } = scoreIds.length
+          ? await supabase
+              .from("score_views")
+              .select("id", { count: "exact", head: true })
+              .in("score_id", scoreIds)
+          : { count: 0 };
 
         // Already earned badges
         const { data: earnedBadgeRows } = await supabase

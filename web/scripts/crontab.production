@@ -77,7 +77,7 @@ RUN=/home/dovanlong/blockid.au/web/scripts/cron-runner.sh
 
 # ── Phase 3: Intelligence (4:00-6:00am AEST / 18-20 UTC) ─────
 0 18 * * * bash $RUN growth-insights --timeout 120
-0 19 * * * bash $RUN svi-review
+# PAUSED-EMAIL 26/09/2026 (founder: tạm không gửi email): 0 19 * * * bash $RUN svi-review
 0 20 * * * bash $RUN agent-research --timeout 300
 
 # ── Phase 4: Auto-Improve + CI/CD (7:00am AEST / 21:00 UTC) ──
