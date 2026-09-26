@@ -649,3 +649,64 @@ export function isTimelineView(v: unknown): v is TbrTimelineView {
   const t = v as Partial<TbrTimelineView>;
   return Array.isArray(t.stages) && t.stages.every((s) => s && typeof s === "object" && isTbrStageKey((s as { key?: unknown }).key)) && typeof t.percent === "number" && typeof t.state === "string";
 }
+
+// Before the row exists: the upload itself.
+
+/** What the browser knows while the intake request is in flight (XHR upload events + its own clock). */
+export interface IntakeUploadProgress {
+  /** A file is being uploaded (false: typed text / a URL — nothing to upload). */
+  hasFile: boolean;
+  filename: string | null;
+  loaded: number;
+  total: number;
+  /** The last byte left the browser; the server is extracting the text now. */
+  uploaded: boolean;
+  /** Client ms — the visitor pressed Analyse. */
+  startedAt: number;
+  /** Client ms — the upload finished (null while it is still going). */
+  uploadedAt: number | null;
+  /** Client ms — the last progress event (the card's counters tick from here). */
+  at: number;
+}
+
+/** Usual seconds for the server to read a deck after the upload (extraction + OCR fallback). */
+export const INTAKE_READ_SECONDS = 10;
+
+/**
+ * The timeline the page shows while the upload / reading request is in
+ * flight: real upload bytes from the XHR, the reading step running once the
+ * last byte left, every pipeline stage still waiting. Pure — built from the
+ * progress snapshot, never from a timer.
+ */
+export function clientIntakeTimeline(p: IntakeUploadProgress): TbrTimelineView {
+  const iso = (ms: number) => new Date(ms).toISOString();
+  const uploading = p.hasFile && !p.uploaded;
+  const readStart = p.hasFile ? p.uploadedAt : p.startedAt;
+  const stages: TbrStageRecord[] = TBR_STAGE_KEYS.map((key): TbrStageRecord => {
+    if (key === "received") {
+      const detail: TbrStageDetail = {};
+      if (p.filename) detail.filename = p.filename;
+      if (p.hasFile && p.total > 0) {
+        detail.bytesLoaded = p.loaded;
+        detail.bytesTotal = p.total;
+      }
+      return uploading
+        ? { key, status: "running", startedAt: iso(p.startedAt), detail }
+        : { key, status: "done", startedAt: iso(p.startedAt), finishedAt: iso(p.uploadedAt ?? p.startedAt), detail };
+    }
+    if (key === "read") {
+      return uploading || readStart === null ? { key, status: "waiting" } : { key, status: "running", startedAt: iso(readStart) };
+    }
+    return { key, status: "waiting" };
+  });
+  const etas = defaultStageEtas();
+  etas.stages.read = INTAKE_READ_SECONDS;
+  return summariseTimeline({
+    stages,
+    etas,
+    now: new Date(p.at),
+    state: "running",
+    createdAt: iso(p.startedAt),
+    lastUpdateAt: iso(p.at),
+  });
+}

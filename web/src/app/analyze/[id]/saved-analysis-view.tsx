@@ -1,6 +1,7 @@
 "use client";
 
-import type { FinalReportUpdate } from "@/components/analyze/full-report-panel";
+import type { FinalReportUpdate, LiveViewUpdate } from "@/components/analyze/full-report-panel";
+import { LiveRunTimeline, mergeLiveView } from "@/components/analyze/tbr-stage-timeline";
 
 // SavedAnalysisView — renders one saved run at /analyze/[id].
 //
@@ -121,6 +122,11 @@ export function savedAnalysisApiPath(id: string, token?: string | null): string 
 
 export function SavedAnalysisView({ id, claimed = 0, token = null }: SavedAnalysisViewProps) {
   const [findingReport, setFindingReport] = React.useState<FinalReportUpdate | null>(null);
+  // 26/09 — the latest poll of the report job, for the stage timeline on top (resume view).
+  const [liveView, setLiveView] = React.useState<LiveViewUpdate | null>(null);
+  const onLiveView = React.useCallback((u: LiveViewUpdate) => {
+    setLiveView((prev) => mergeLiveView(prev && prev.analysisId === u.analysisId ? prev : null, u));
+  }, []);
   const [loaded, setLoaded] = React.useState<{ id: string; token: string | null; state: LoadState } | null>(null);
   const [attempt, setAttempt] = React.useState(0);
   const state: LoadState = loaded?.id === id && loaded?.token === token ? loaded.state : { status: "loading" };
@@ -299,6 +305,11 @@ export function SavedAnalysisView({ id, claimed = 0, token = null }: SavedAnalys
         />
       </div>
 
+      {/* 26/09 — the live stage timeline (resume): where the report run is, stage by stage. */}
+      <div className="mx-auto mt-6 max-w-6xl px-4">
+        <LiveRunTimeline live={liveView?.analysisId === analysis.id ? liveView : null} authenticated={analysis.owned} />
+      </div>
+
       <div className="mt-6">
         <AnalyzeResults intake={analysis.intake} finalReport={findingReport?.analysisId === id && findingReport?.intake === analysis.intake && findingReport?.token === token ? findingReport.report : null} />
       </div>
@@ -306,6 +317,7 @@ export function SavedAnalysisView({ id, claimed = 0, token = null }: SavedAnalys
       <div className="mx-auto mt-6 max-w-6xl px-4">
         <FullReportPanel
           onFinalReport={setFindingReport}
+          onView={onLiveView}
           analysisId={analysis.id}
           authenticated={analysis.owned}
           intake={analysis.intake}

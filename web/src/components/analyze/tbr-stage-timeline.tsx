@@ -26,7 +26,8 @@ import { AlertCircle, Check, Loader2, Minus } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/use-locale";
-import type { TbrStageView, TbrTimelineView } from "@/lib/analyses/first-analysis/stage-timeline";
+import { clientIntakeTimeline, type IntakeUploadProgress, type TbrStageView, type TbrTimelineView } from "@/lib/analyses/first-analysis/stage-timeline";
+import type { LiveViewUpdate } from "./full-report-panel";
 import { STAGE_COPY, TIMELINE_TEXT, fmtDuration, stageChips, type TimelineLocale } from "./tbr-stage-copy";
 
 export interface TbrStageTimelineProps {
@@ -45,7 +46,24 @@ export interface TbrStageTimelineProps {
   emailsAccount?: boolean;
   /** Force a locale (tests); defaults to the visitor's cookie. */
   locale?: TimelineLocale;
+  /** A header line of the caller's own (the upload card: "Uploading and reading your document"). */
+  titleOverride?: string;
+  /** The worker heartbeat line — off for the upload card (no worker yet). */
+  showHeartbeat?: boolean;
+  /** The "you can leave this page" note — off while the upload is still in the browser. */
+  showLeaveNote?: boolean;
   className?: string;
+}
+
+/**
+ * Fold one poll result into what the page shows: a good payload replaces
+ * the last one; a failed poll keeps the last payload and raises the
+ * connection flag (AF06 — a blip never blanks the card). Exported for the suite.
+ */
+export function mergeLiveView<V extends { view: unknown; receivedAt: number; connectionTrouble: boolean }>(prev: V | null, next: V): V {
+  if (next.view) return next;
+  if (!prev) return next;
+  return { ...prev, connectionTrouble: true };
 }
 
 /** Liveness band from the seconds since the worker last wrote. Exported for the suite. */
@@ -75,6 +93,9 @@ export function TbrStageTimeline({
   emailTo = null,
   emailsAccount = false,
   locale: forcedLocale,
+  titleOverride,
+  showHeartbeat = true,
+  showLeaveNote = true,
   className,
 }: TbrStageTimelineProps) {
   const [cookieLocale] = useLocale();
@@ -114,8 +135,10 @@ export function TbrStageTimeline({
   const remaining = timeline.remainingSec === null ? null : Math.max(0, timeline.remainingSec - tickSec);
   const ago = secondsAgo(timeline, tickSec);
   const band = livenessBand(ago);
+  // The company name the pipeline identified (score stage), unless the caller knows better.
+  const knownCompany = company ?? timeline.stages.find((s) => s.key === "score")?.detail?.company ?? null;
   const title =
-    timeline.state === "running" && company ? t.titleRunningCompany(company) : t.title[timeline.state];
+    titleOverride ?? (timeline.state === "running" && knownCompany ? t.titleRunningCompany(knownCompany) : t.title[timeline.state]);
   const liveLabel = done ? t.srDone : running ? t.srRunning(STAGE_COPY[locale][running.key].label, timeline.percent) : t.title[timeline.state];
   const stageList = (
     <ol className="space-y-3 px-4 py-4 sm:px-5" data-testid="tbr-timeline-stages">
@@ -176,7 +199,7 @@ export function TbrStageTimeline({
           <p className="text-muted">
             {timeline.percent}% · {t.typical(fmtDuration(timeline.typicalTotalSec), timeline.samples)}
           </p>
-          {active && (
+          {active && showHeartbeat && (
             <p
               className={cn("flex items-center gap-1.5", band === "stale" ? "text-warn" : "text-secondary")}
               data-testid="tbr-timeline-heartbeat"
@@ -209,7 +232,7 @@ export function TbrStageTimeline({
         stageList
       )}
 
-      {active && (
+      {active && showLeaveNote && (
         <p className="border-t border-line-subtle px-4 py-3 text-xs text-secondary sm:px-5" data-testid="tbr-timeline-leave">
           {t.leave(hasLink)}
           {emailTo ? t.emailed(emailTo) : emailsAccount ? t.emailedAccount : ""}
@@ -284,6 +307,46 @@ function StageRow({ stage, index, locale, tickSec }: { stage: TbrStageView; inde
         )}
       </div>
     </li>
+  );
+}
+
+/**
+ * The upload card: while POST /api/intake is in flight, the same timeline
+ * with the upload row driven by real XHR bytes and the reading row running
+ * once the last byte left. No heartbeat and no "you can leave" note —
+ * leaving now would cancel the upload.
+ */
+export function IntakeProgressCard({ progress, className }: { progress: IntakeUploadProgress; className?: string }) {
+  const [locale] = useLocale();
+  return (
+    <TbrStageTimeline
+      timeline={clientIntakeTimeline(progress)}
+      receivedAt={progress.at}
+      titleOverride={TIMELINE_TEXT[locale].intakeTitle}
+      showHeartbeat={false}
+      showLeaveNote={false}
+      className={className}
+    />
+  );
+}
+
+/**
+ * The run card on /analyze and /analyze/[id]: the latest poll of the report
+ * job (FullReportPanel "onView"). Before the first poll it says it is
+ * connecting; a pre-G28 seven-voice row (no timeline) renders nothing.
+ */
+export function LiveRunTimeline({ live, authenticated, className }: { live: LiveViewUpdate | null; authenticated?: boolean; className?: string }) {
+  if (live?.view && live.view.kind === "s32") return null;
+  return (
+    <TbrStageTimeline
+      timeline={live?.view?.timeline ?? null}
+      receivedAt={live?.receivedAt ?? 0}
+      connectionTrouble={Boolean(live?.connectionTrouble)}
+      hasLink
+      emailTo={live?.view?.emailTo ?? null}
+      emailsAccount={authenticated === true}
+      className={className}
+    />
   );
 }
 

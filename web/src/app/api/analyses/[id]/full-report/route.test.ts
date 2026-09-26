@@ -45,6 +45,7 @@ import { mintDownloadToken } from "@/lib/analyses/first-analysis/download-token"
 import { V2_RUNNING_POLL_SEC } from "@/lib/analyses/first-analysis/view";
 import { demoReportV2 } from "@/lib/report-v2/fixtures";
 import type { FullReportV2Envelope } from "@/lib/analyses/first-analysis/types";
+import { initialStages } from "@/lib/analyses/first-analysis/stage-timeline";
 
 const ID = SAMPLE_ANALYSIS_ID;
 
@@ -240,6 +241,41 @@ describe("GET /api/analyses/[id]/full-report", () => {
       body = await (await req()).json();
       expect(body.kind).toBe("v2");
       expect(body.progressV2).toBeNull();
+    });
+
+    // 26/09 — the stage timeline rides on every poll, before the report is readable.
+    it("a running v2 row carries the stage timeline: per-stage status / ETA / elapsed, percent, remaining, heartbeat", async () => {
+      const e = envelope();
+      e.report = null;
+      e.completedAt = undefined;
+      e.stages = initialStages({ createdAt: "2026-09-21T00:00:00Z", claimedAt: "2026-09-21T00:00:03Z", document: { units: 9, unitLabel: "slides" }, company: "Acme" });
+      e.stages[3] = { key: "evidence", status: "done", startedAt: "2026-09-21T00:00:04Z", finishedAt: "2026-09-21T00:00:40Z", detail: { evidenceRows: 11 } };
+      e.stages[4] = { key: "agents", status: "running", startedAt: "2026-09-21T00:00:41Z", detail: { wave: 2 } };
+      e.heartbeatAt = "2026-09-21T00:01:30Z";
+      e.progress = { phase: "wave2", pct: 45, at: "2026-09-21T00:01:00Z", chaptersDone: 0, calls: 7 };
+      loadRowMock.mockResolvedValue(row({ full_report_status: "running", full_report_json: e, full_report_email: "founder@example.com" }));
+      const body = await (await req()).json();
+      expect(body.timeline).toMatchObject({ state: "running", current: "agents", lastUpdateAt: "2026-09-21T00:01:30Z", calls: 7, samples: 0 });
+      expect(body.timeline.stages.map((s: { key: string }) => s.key)).toEqual(["received", "read", "score", "evidence", "agents", "dimensions", "valuation", "synthesis", "audit", "assemble"]);
+      expect(body.timeline.stages[3]).toMatchObject({ status: "done", elapsedSec: 36, detail: { evidenceRows: 11 } });
+      expect(body.timeline.stages[4]).toMatchObject({ status: "running", etaSec: expect.any(Number), detail: { wave: 2 } });
+      expect(body.timeline.percent).toBeGreaterThan(0);
+      expect(body.timeline.percent).toBeLessThan(100);
+      expect(typeof body.timeline.remainingSec).toBe("number");
+      expect(typeof body.timeline.serverNow).toBe("string");
+    });
+
+    it("a row held for the free cap reads timeline state held; an S32 row has no timeline", async () => {
+      loadRowMock.mockResolvedValue(row({ full_report_status: "queued", full_report_attempts: 0, full_report_json: null, full_report_email: "founder@example.com" }));
+      capMock.mockResolvedValue(true);
+      let body = await (await req()).json();
+      expect(body.heldForCap).toBe(true);
+      expect(body.timeline).toMatchObject({ state: "held", current: "score", remainingSec: null });
+      capMock.mockResolvedValue(false);
+      loadRowMock.mockResolvedValue(row());
+      body = await (await req()).json();
+      expect(body.kind).toBe("s32");
+      expect(body.timeline).toBeNull();
     });
 
     it("the signed ?token= (the e-mail's page link) opens the row with no cookie and no session; a bad token falls to tenancy (404)", async () => {

@@ -18,6 +18,7 @@ import {
   summariseTimeline,
   type StageEtas,
   type TbrRunState,
+  type TbrStageRecord,
   type TbrTimelineView,
 } from "./stage-timeline";
 import {
@@ -128,12 +129,14 @@ export function buildTimeline(row: FullReportRow, opts: BuildViewOptions = {}): 
   const state = runStateFor(row, heldForCap);
   const createdAt = row.created_at || envelope?.generatedAt || now.toISOString();
   const document = documentDetail(row);
-  let stages = envelope?.stages && envelope.stages.length > 0 ? envelope.stages.map((s) => ({ ...s, detail: s.detail ? { ...s.detail } : undefined })) : null;
+  let stages: TbrStageRecord[] | null = envelope?.stages && envelope.stages.length > 0 ? envelope.stages.map((s) => ({ ...s, detail: s.detail ? { ...s.detail } : undefined })) : null;
   if (!stages) {
     stages =
       envelope && state !== "queued" && state !== "held"
         ? stagesFromLegacyPhase(createdAt, document, envelope.progress?.phase ?? "starting", envelope.progress?.chaptersDone ?? 0)
         : queuedStages(createdAt, document, { heldForCap });
+    // A report finished before stages existed: every stage ran; no timings invented.
+    if (state === "done") for (const s of stages) s.status = "done";
   }
   // A failed attempt that will be retried reads "retrying" on the stage it stopped at.
   if (state === "retrying") {

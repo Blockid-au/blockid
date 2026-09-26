@@ -9,7 +9,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { AgentCard, ChaptersLanding, FullReportPanel, parseView, progressLine, progressLineV2, reportApiPath, stillBeingWritten, V2_PHASE_LABELS } from "./full-report-panel";
+import { AgentCard, ChaptersLanding, FullReportPanel, PendingSections, parseView, progressLine, progressLineV2, reportApiPath, stillBeingWritten, V2_PHASE_LABELS } from "./full-report-panel";
 import { sampleIntake, sampleReport } from "@/lib/analyses/first-analysis/fixtures";
 import { demoReportV2 } from "@/lib/report-v2/fixtures";
 import type { FullReportView } from "@/lib/analyses/first-analysis/types";
@@ -178,5 +178,51 @@ describe("ChaptersLanding", () => {
   it("parseView keeps well-formed chapters and drops junk", () => {
     const v = parseView({ ok: true, status: "running", kind: "v2", chaptersV2: [ch, null, { nope: 1 }] });
     expect(v?.chaptersV2).toEqual([ch]);
+  });
+});
+
+// 26/09 — sections not yet written are clearly-labelled placeholders, driven by the stage timeline.
+describe("PendingSections", () => {
+  const timelineWith = (stages: Array<{ key: string; status: string; detail?: Record<string, unknown> }>) =>
+    ({ state: "running", stages: stages.map((s) => ({ etaSec: 10, elapsedSec: null, ...s })), current: null, percent: 40, elapsedSec: 100, remainingSec: 200, overrun: false, typicalTotalSec: 376, samples: 0, lastUpdateAt: null, serverNow: "2026-09-26T00:00:00Z", calls: null }) as unknown as import("@/lib/analyses/first-analysis/stage-timeline").TbrTimelineView;
+
+  it("first paint (no timeline): every section is a waiting placeholder, labelled as such", () => {
+    const html = renderToStaticMarkup(<PendingSections timeline={null} landed={[]} locale="en" />);
+    expect(html).toContain("Placeholders below are NOT report content");
+    expect((html.match(/>Placeholder</g) ?? []).length).toBe(12);
+    expect(html).toContain("Waiting — fills in when “Eight dimension chapters” finishes");
+    expect(html).not.toContain("Being analysed now");
+  });
+
+  it("marks the chapters being written now, drops the ones that landed, and says which are ready", () => {
+    const tl = timelineWith([
+      { key: "dimensions", status: "running", detail: { writing: ["tre"] } },
+      { key: "valuation", status: "done" },
+      { key: "synthesis", status: "waiting" },
+    ]);
+    const html = renderToStaticMarkup(<PendingSections timeline={tl} landed={["mpc"]} locale="en" />);
+    expect(html).toContain("analyze-pending-dim-tre");
+    expect(html).toMatch(/analyze-pending-dim-tre" data-state="running"/);
+    expect(html).toMatch(/analyze-pending-dim-ftv" data-state="waiting"/);
+    expect(html).not.toContain("analyze-pending-dim-mpc");
+    expect(html).toMatch(/analyze-pending-valuation" data-state="ready"/);
+    expect(html).toContain("Being analysed now…");
+    expect(html).toContain("Done — appears when the report is assembled");
+    expect(html).toContain("Lead · CRO");
+  });
+
+  it("renders in Vietnamese", () => {
+    const html = renderToStaticMarkup(<PendingSections timeline={null} landed={[]} locale="vi" />);
+    expect(html).toContain("Chỗ giữ chỗ");
+    expect(html).toContain("chưa phải nội dung báo cáo");
+  });
+});
+
+describe("parseView — timeline", () => {
+  it("passes a well-formed timeline through and drops a foreign one", () => {
+    const timeline = { state: "running", percent: 12, stages: [{ key: "evidence", status: "running" }] };
+    expect(parseView({ ok: true, status: "running", timeline })?.timeline).toEqual(timeline);
+    expect(parseView({ ok: true, status: "running", timeline: { stages: "x" } })?.timeline).toBeNull();
+    expect(parseView({ ok: true, status: "running" })?.timeline).toBeNull();
   });
 });

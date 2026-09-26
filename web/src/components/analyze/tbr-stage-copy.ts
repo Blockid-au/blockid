@@ -151,6 +151,7 @@ export interface TimelineText {
   placeholderBadge: string;
   analysingNow: string;
   readyPending: string;
+  intakeTitle: string;
   waitingFor: (stage: string) => string;
   sectionInvestment: string;
   sectionValuation: string;
@@ -226,6 +227,7 @@ export const TIMELINE_TEXT: Record<TimelineLocale, TimelineText> = {
     placeholderBadge: "Placeholder",
     analysingNow: "Being analysed now…",
     readyPending: "Done — appears when the report is assembled",
+    intakeTitle: "Uploading and reading your document",
     waitingFor: (s) => `Waiting — fills in when “${s}” finishes`,
     sectionInvestment: "Dashboard & investment view",
     sectionValuation: "Valuation — methods, consensus and what moves it",
@@ -299,6 +301,7 @@ export const TIMELINE_TEXT: Record<TimelineLocale, TimelineText> = {
     placeholderBadge: "Chỗ giữ chỗ",
     analysingNow: "Đang phân tích…",
     readyPending: "Đã xong — hiển thị khi báo cáo được hoàn thiện",
+    intakeTitle: "Đang tải lên và đọc tài liệu",
     waitingFor: (s) => `Đang chờ — sẽ điền khi “${s}” hoàn tất`,
     sectionInvestment: "Bảng tổng quan & góc nhìn đầu tư",
     sectionValuation: "Định giá — phương pháp, đồng thuận và yếu tố tác động",

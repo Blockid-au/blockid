@@ -92,3 +92,17 @@ describe("guestUrlFor", () => {
     expect(guestUrlFor(ideaIntake, { variant: "idea", text: "not a url" })).toBe("");
   });
 });
+
+// 26/09 — the upload card starts from what the visitor handed over, nothing invented.
+describe("initialIntakeProgress", () => {
+  it("a file: its name and size, nothing uploaded yet", async () => {
+    const { initialIntakeProgress } = await import("./analyze-root");
+    const file = new File(["0123456789"], "deck.pdf", { type: "application/pdf" });
+    expect(initialIntakeProgress(file, 5)).toEqual({ hasFile: true, filename: "deck.pdf", loaded: 0, total: 10, uploaded: false, startedAt: 5, uploadedAt: null, at: 5 });
+  });
+
+  it("typed text or a URL: no upload row", async () => {
+    const { initialIntakeProgress } = await import("./analyze-root");
+    expect(initialIntakeProgress(null, 7)).toMatchObject({ hasFile: false, filename: null, total: 0 });
+  });
+});

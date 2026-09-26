@@ -458,3 +458,84 @@ describe("upsertChapterDraft", () => {
     expect(entry.verdict.length).toBeLessThanOrEqual(600);
   });
 });
+
+// 26/09 — the live stage timeline the /analyze page renders.
+describe("runReportV2Job — live stage timeline", () => {
+  type Ev = (e: unknown) => void;
+  const chapterDraft = { dim: "tre", title: "Traction", ownerAgent: "cro", score: 51, band: "developing", verdict: "v", degraded: false };
+
+  it("saves the timeline as stages flip, stamps deadline + heartbeat, finalises it and feeds the ETA ledger", async () => {
+    const orchestrate = vi.fn(async (input: { onEvent: Ev }) => {
+      input.onEvent({ type: "context", industry: "SaaS", stage: 2, stageLabel: "Seed", phaseId: "p", tier: "standard", estimatedCalls: 16, estimatedSeconds: 420, dims: ["tre"] });
+      input.onEvent({ type: "gather_complete", evidenceRows: 3, connectors: [], diagnostics: { marketResearch: { ms: 10, status: "ok" } } });
+      input.onEvent({ type: "progress", completed: 15, total: 100, phase: "wave1" });
+      input.onEvent({ type: "progress", completed: 80, total: 100, phase: "wave4" });
+      input.onEvent({ type: "dimension_start", dim: "tre", ownerAgent: "cro" });
+      input.onEvent({ type: "dimension_complete", dim: "tre", chapter: chapterDraft });
+      input.onEvent({ type: "progress", completed: 85, total: 100, phase: "synthesizing" });
+      input.onEvent({ type: "executive_complete", summary: "s" });
+      input.onEvent({ type: "audit_complete", groundedShare: 0.9, revised: 1 });
+      input.onEvent({ type: "done", reportId: "rpt-abc", totalMs: 1000, calls: 16, costAud: 0, costUsd: 0, costReportedCalls: 0, degradedSections: [], deadlineHit: false, budgetOverruns: 0, verdictTrimmed: 0, autoCited: 0 });
+      return assembled();
+    });
+    const r = row({ input_filename: "deck.pdf", intake: { signals: sampleIntake().signals, structured: { slides: ["a", "b", "c"] } } });
+    const h = harness(r, orchestrate);
+    const timings = vi.fn(async () => undefined);
+    h.deps.recordStageTimings = timings;
+    await runReportV2Job(SAMPLE_ANALYSIS_ID, h.deps);
+
+    const first = h.saves[0];
+    expect(first.stages?.slice(0, 3).map((s) => s.status)).toEqual(["done", "done", "done"]);
+    expect(first.stages?.find((s) => s.key === "read")?.detail).toMatchObject({ filename: "deck.pdf", units: 3, unitLabel: "slides" });
+    expect(first.stages?.find((s) => s.key === "score")?.detail?.baselineSvi).toEqual(expect.any(Number));
+    expect(first.stages?.slice(3).every((s) => s.status === "waiting")).toBe(true);
+    expect(Date.parse(first.deadlineAt ?? "")).toBeGreaterThan(Date.parse(first.generatedAt));
+    expect(first.heartbeatAt).toBeTruthy();
+
+    // Every flip was saved: the page sees agents running, then 1 of 1 chapters in.
+    expect(h.saves.some((s) => s.stages?.find((x) => x.key === "agents")?.status === "running")).toBe(true);
+    expect(h.saves.some((s) => s.stages?.find((x) => x.key === "dimensions")?.detail?.done === 1)).toBe(true);
+    expect(h.saves.some((s) => s.stages?.find((x) => x.key === "audit")?.status === "running")).toBe(true);
+
+    const env = h.deliver.mock.calls[0][1] as FullReportV2Envelope;
+    expect(env.stages?.every((s) => s.status === "done" || s.status === "skipped")).toBe(true);
+    expect(env.stages?.find((s) => s.key === "audit")?.detail).toMatchObject({ groundedPct: 90, revised: 1 });
+    expect(env.stages?.find((s) => s.key === "evidence")?.detail?.sources).toEqual([{ name: "marketResearch", status: "ok", ms: 10 }]);
+    expect(env.progress.calls).toBe(0);
+    expect(timings).toHaveBeenCalledTimes(1);
+    expect(timings.mock.calls[0]).toEqual([expect.objectContaining({ totalMs: expect.any(Number), stages: expect.objectContaining({ evidence: expect.any(Number), dimensions: expect.any(Number) }) })]);
+  });
+
+  it("a failed run marks the stage it stopped at with a machine reason — never the raw error", async () => {
+    const orchestrate = vi.fn(async (input: { onEvent: Ev }) => {
+      input.onEvent({ type: "progress", completed: 15, total: 100, phase: "wave1" });
+      throw new Error("engine_overloaded: provider said something private");
+    });
+    const h = harness(row(), orchestrate);
+    let stored: FullReportV2Envelope | null = null;
+    h.deps.finish = async (_id, o) => {
+      stored = o.report;
+      return true;
+    };
+    await runReportV2Job(SAMPLE_ANALYSIS_ID, h.deps);
+    const stages = (stored as FullReportV2Envelope | null)?.stages ?? [];
+    expect(stages.find((s) => s.key === "agents")).toMatchObject({ status: "failed", detail: { reason: "error" } });
+    expect(stages.find((s) => s.key === "synthesis")?.status).toBe("waiting");
+    expect(JSON.stringify(stages)).not.toContain("engine_overloaded");
+  });
+
+  it("the heartbeat keeps stamping while a long step runs, and stops when the run ends", async () => {
+    const orchestrate = vi.fn(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      return assembled();
+    });
+    const h = harness(row(), orchestrate);
+    h.deps.heartbeatEveryMs = 10;
+    await runReportV2Job(SAMPLE_ANALYSIS_ID, h.deps);
+    const beats = new Set(h.saves.map((s) => s.heartbeatAt));
+    expect(beats.size).toBeGreaterThan(2);
+    const saved = h.saves.length;
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(h.saves.length).toBe(saved);
+  });
+});

@@ -17,7 +17,7 @@ import "server-only";
 
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { getStatusRoot, readJsonlTail } from "@/lib/status/jsonl";
+import { getStatusRoot } from "@/lib/status/jsonl";
 import { DEFAULT_STAGE_SECONDS, TBR_STAGE_KEYS, defaultStageEtas, type StageEtas, type TbrStageKey } from "./stage-timeline";
 
 export const TBR_STAGE_TIMINGS_FILE = "tbr-stage-timings.jsonl";
@@ -63,6 +63,26 @@ export function etasFromRows(rows: StageTimingsRow[]): StageEtas {
   };
 }
 
+/** The last `n` parseable rows of the ledger; a missing file or a bad line yields fewer rows, never a throw. */
+async function readTail(file: string, n: number): Promise<StageTimingsRow[]> {
+  let raw: string;
+  try {
+    raw = await fs.readFile(file, "utf8");
+  } catch {
+    return [];
+  }
+  const out: StageTimingsRow[] = [];
+  for (const line of raw.split(/\r?\n/).filter((l) => l.trim().length > 0).slice(-n)) {
+    try {
+      const v = JSON.parse(line) as StageTimingsRow;
+      if (v && typeof v === "object") out.push(v);
+    } catch {
+      // skip a half-written line
+    }
+  }
+  return out;
+}
+
 let cache: { at: number; etas: StageEtas } | null = null;
 
 /** The ETA medians the poll route attaches to every timeline. Never throws. */
@@ -71,9 +91,7 @@ export async function loadStageEtas(now: number = Date.now()): Promise<StageEtas
   let etas = defaultStageEtas();
   if (!isTestEnv() || process.env.TBR_STAGE_TIMINGS_FILE) {
     try {
-      const file = ledgerPath();
-      const rows = await readJsonlTail<StageTimingsRow>(path.dirname(file), path.basename(file), ETA_SAMPLE_RUNS);
-      etas = etasFromRows(rows);
+      etas = etasFromRows(await readTail(ledgerPath(), ETA_SAMPLE_RUNS));
     } catch {
       etas = defaultStageEtas();
     }

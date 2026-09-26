@@ -53,6 +53,11 @@ import type { IntakeContext } from "@/lib/intake/detect-context";
 import type { AgentRole } from "@/lib/report-pipeline/types";
 import { sviStageToCanonical } from "@/lib/journey-vocabulary";
 import { DataPurposeNote } from "@/components/legal/data-purpose-note";
+// 26/09 — the live stage timeline: the upload card while the intake request
+// is in flight, then the pipeline timeline at the top of the results.
+import { IntakeProgressCard, LiveRunTimeline, mergeLiveView } from "./tbr-stage-timeline";
+import type { LiveViewUpdate } from "./full-report-panel";
+import type { IntakeUploadProgress } from "@/lib/analyses/first-analysis/stage-timeline";
 
 const DeckReaderPanel = dynamic(
   () => import("./deck-reader-panel").then((m) => m.DeckReaderPanel),
@@ -227,6 +232,7 @@ async function postIntake(
   tier: "free" | "paid" = "free",
   guest?: GuestIdentity | null,
   payWith?: "credits",
+  onUpload?: (loaded: number, total: number, uploaded: boolean) => void,
 ): Promise<Response> {
   // `tier` rides along so the server-side gate can let a guest heading for
   // the A$3 guest checkout straight through. It only ever widens the gate —
@@ -243,6 +249,9 @@ async function postIntake(
       form.set(FREE_REPORT_HONEYPOT_FIELD, guest.honeypot);
       if (guest.marketingConsent) form.set("marketing_consent", "1");
     }
+    // 26/09: a file goes up through XHR so the page can show real upload
+    // bytes (fetch has no upload progress); same request, same cookies.
+    if (onUpload && typeof XMLHttpRequest !== "undefined") return xhrPost("/api/intake", form, onUpload);
     return fetch("/api/intake", { method: "POST", body: form });
   }
   const body: Record<string, string> = { tier };
@@ -258,6 +267,41 @@ async function postIntake(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+  });
+}
+
+/** The upload card's first snapshot, taken when the visitor presses Analyse (26/09). Exported for the test. */
+export function initialIntakeProgress(file: File | null | undefined, now: number = Date.now()): IntakeUploadProgress {
+  return {
+    hasFile: Boolean(file),
+    filename: file?.name ?? null,
+    loaded: 0,
+    total: file?.size ?? 0,
+    uploaded: false,
+    startedAt: now,
+    uploadedAt: null,
+    at: now,
+  };
+}
+
+/**
+ * POST a form through XMLHttpRequest, reporting upload progress, and hand
+ * the answer back as a fetch Response so every caller reads it the same way.
+ */
+function xhrPost(url: string, body: FormData, onUpload: (loaded: number, total: number, uploaded: boolean) => void): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+    xhr.upload.onprogress = (e) => onUpload(e.loaded, e.lengthComputable ? e.total : 0, false);
+    xhr.upload.onload = (e) => onUpload(e.loaded, e.lengthComputable ? e.total : e.loaded, true);
+    xhr.onload = () => {
+      const code = xhr.status;
+      const noBody = code === 204 || code === 205 || code === 304;
+      resolve(new Response(noBody ? null : xhr.responseText, { status: code, headers: { "content-type": xhr.getResponseHeader("content-type") ?? "application/json" } }));
+    };
+    xhr.onerror = () => reject(new Error("Network error — please retry."));
+    xhr.onabort = () => reject(new Error("The upload was interrupted — please retry."));
+    xhr.send(body);
   });
 }
 
@@ -336,6 +380,13 @@ export function AnalyzeRoot({
   // panel re-polls at once and the guest's locked sections open without a
   // reload.
   const [unlockNonce, setUnlockNonce] = React.useState(0);
+  // 26/09 — the upload in flight (real XHR bytes) and the latest poll of
+  // the report job, for the stage timelines at the top of the page.
+  const [intakeProgress, setIntakeProgress] = React.useState<IntakeUploadProgress | null>(null);
+  const [liveView, setLiveView] = React.useState<LiveViewUpdate | null>(null);
+  const onLiveView = React.useCallback((u: LiveViewUpdate) => {
+    setLiveView((prev) => mergeLiveView(prev && prev.analysisId === u.analysisId ? prev : null, u));
+  }, []);
   // G25-C — the address a guest gave for the report (remembered on this
   // browser so the second run is one click), the server's verdict on it,
   // the quote when the allowance is used, and the run's own free-report
@@ -473,6 +524,20 @@ export function AnalyzeRoot({
     }
     setIntakeLoading(true);
     inFlightRef.current = true;
+    setIntakeProgress(initialIntakeProgress(sub.file));
+    const onUpload = (loaded: number, total: number, uploaded: boolean) =>
+      setIntakeProgress((prev) =>
+        prev
+          ? {
+              ...prev,
+              loaded,
+              total: total || prev.total,
+              uploaded: prev.uploaded || uploaded,
+              uploadedAt: prev.uploadedAt ?? (uploaded ? Date.now() : null),
+              at: Date.now(),
+            }
+          : prev,
+      );
     // AF01: an error must be visible. A guest submits from the e-mail step,
     // which never renders `errorMsg` — so every failure goes back to the
     // intake box, where the error banner is.
@@ -482,7 +547,7 @@ export function AnalyzeRoot({
       setIntakeLoading(false);
     };
     try {
-      const res = await postIntake(sub, tier, guest, opts?.payWith);
+      const res = await postIntake(sub, tier, guest, opts?.payWith, onUpload);
       if (res.status === 402) {
         // The credit charge was refused (balance changed since the quote).
         // Stay on the quote with the fresh numbers — nothing ran, nothing
@@ -643,6 +708,7 @@ export function AnalyzeRoot({
       inFlightRef.current = false;
       setAwaitingHandoff(false);
       setIntakeLoading(false);
+      setIntakeProgress(null);
     }
   }
 
@@ -733,6 +799,7 @@ export function AnalyzeRoot({
     setIntake(null);
     setAnalysisId(null);
     setCreditsCharged(null);
+    setLiveView(null);
     setEstimate(null);
     setErrorMsg(null);
     setOcrOffered(false);
@@ -764,6 +831,8 @@ export function AnalyzeRoot({
           }}
           onEdit={handleReset}
         />
+        {/* 26/09 — the upload and reading, live, while the request is in flight. */}
+        {intakeLoading && intakeProgress && <IntakeProgressCard progress={intakeProgress} className="w-full max-w-2xl text-left" />}
       </div>
     );
   }
@@ -837,6 +906,7 @@ export function AnalyzeRoot({
           <p className="text-xs text-muted">
             Using what you already entered — no need to type it again.
           </p>
+          {intakeProgress && <IntakeProgressCard progress={intakeProgress} className="mt-2 w-full max-w-2xl text-left" />}
           {claimedNote && (
             <p className="text-xs text-secondary" data-testid="analyze-claimed-note">
               {claimedNote}
@@ -869,11 +939,13 @@ export function AnalyzeRoot({
         <SmartIntake onSubmit={(sub) => void handleSubmit(sub)} busy={intakeLoading} />
         {/* G34 DC10 — the purpose line at the intake box. */}
         <DataPurposeNote testId="analyze-data-purpose" />
-        {intakeLoading && (
+        {intakeLoading && (intakeProgress ? (
+          <IntakeProgressCard progress={intakeProgress} className="w-full text-left" />
+        ) : (
           <p className="text-xs text-tertiary">
             Reading your input…
           </p>
-        )}
+        ))}
         {errorMsg && (
           <div
             role="alert"
@@ -991,6 +1063,14 @@ export function AnalyzeRoot({
 
       {phase === "results" && intake && (
         <>
+          {/* 26/09 — the live stage timeline, first thing on the page: every
+              pipeline stage with its status, elapsed time, usual time and
+              result, plus a heartbeat, until the report lands below. */}
+          {analysisId && (
+            <div className="mx-auto mb-6 max-w-6xl px-4 text-left">
+              <LiveRunTimeline live={liveView?.analysisId === analysisId ? liveView : null} authenticated={authenticated} />
+            </div>
+          )}
           <AnalyzeResults intake={intake} finalReport={findingReport?.analysisId === analysisId && findingReport?.intake === intake ? findingReport.report : null} />
           <div className="mx-auto mt-6 flex max-w-6xl flex-col gap-4 px-4 text-left">
             {/* G25-C — which free report this is and where it goes. Facts
@@ -1033,6 +1113,7 @@ export function AnalyzeRoot({
             )}
             <FullReportPanel
               onFinalReport={setFindingReport}
+              onView={onLiveView}
               analysisId={analysisId}
               authenticated={authenticated}
               unlockNonce={unlockNonce}

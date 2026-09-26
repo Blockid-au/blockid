@@ -2259,6 +2259,18 @@ Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi 
 
 ## 17. Change log
 
+- **26/09/2026 — /analyze: timeline tiến độ Biz Trust Report theo từng giai đoạn (khiếu nại của founder: sau khi upload deck trang trông như bị treo). Đã commit trên branch worktree, CHƯA deploy:**
+  - **Server:** mỗi lần chạy TBR ghi `full_report_json.stages` (envelope `tbr-v2`, không cần migration) gồm 10 giai đoạn theo đúng thứ tự pipeline: nhận tài liệu → đọc deck (số slide/trang/từ) → công ty & điểm nền → bằng chứng công khai & nghiên cứu thị trường → C-level W1–W3 → 8 chương (n/8, chương nào đang viết, chương nào rơi về thẻ điểm) → định giá → góc nhìn đầu tư → kiểm tra căn cứ → hoàn thiện. Chỉ đổi trạng thái khi orchestrator phát event thật; không có timer giả. Có thêm `heartbeatAt` (10 s/lần) + số lượt gọi AI, `deadlineAt` dùng để giới hạn ETA. Module: `lib/analyses/first-analysis/stage-timeline.ts`.
+  - **ETA:** trung vị của 30 lần chạy gần nhất, lấy từ `content/reports/tbr-stage-timings.jsonl` (gitignored; `stage-timings.ts`). Chưa có lịch sử thì dùng mặc định và ghi rõ là "usually ~Xs".
+  - **Payload:** `GET /api/analyses/[id]/full-report` trả thêm `timeline`, kể cả khi report chưa đọc được và với guest bị khoá: state (queued/held/running/done/retrying/failed), stages (status, startedAt, finishedAt, etaSec, elapsedSec, detail), percent, elapsedSec, remainingSec, overrun, lastUpdateAt, serverNow, calls.
+  - **UI** (`components/analyze/tbr-stage-timeline.tsx`, EN+VI, light template):
+    - Card timeline ở đầu `/analyze` và `/analyze/[id]`: mỗi giai đoạn có icon (xong / đang chạy / chờ / dừng / bỏ qua kèm lý do), thời gian đã chạy, "usually ~Xs" và kết quả một dòng.
+    - Thanh tiến độ tổng, thời gian còn lại, heartbeat "Server working · last update Ns ago" (chuyển amber sau 3 phút không có cập nhật), `aria-live` polite.
+    - Ghi chú "có thể rời trang". Chỉ hứa gửi email khi đã biết địa chỉ nhận (email giao report).
+    - Khi upload: upload % thật qua XHR, rồi đến bước "server đang trích xuất văn bản".
+    - Các phần chưa viết hiện placeholder có nhãn rõ "Placeholder / Chỗ giữ chỗ", ghi "Đang phân tích…" hoặc "Đang chờ — sẽ điền khi X xong".
+  - **Test:** `stage-timeline`, `stage-timings`, `view`, route `full-report`, `report-v2-job`, `tbr-stage-timeline`, `full-report-panel`, `analyze-root`.
+
 - **26/09/2026 — Nhóm việc làm được ngay: LIVE `c0583291c` (origin 4159)** qua `deploy-auto.sh`:
   - **Privacy policy v2.4:** thêm clause 2E "Automated decisions and AI analysis" (EN+VI, theo APP 1.7). Registry `privacy_au_v2_4` (0471) đã áp dụng; consent version đổi thành `v2.4-2026-09-26`.
   - **DC10:** hiện một dòng nêu mục đích sử dụng dữ liệu ở 6 điểm thu thập, và hiển thị trạng thái autosave của onboarding.
