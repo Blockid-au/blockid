@@ -1548,7 +1548,7 @@ describe("G15-R2 — errors_1h / ai / queues / backups_detail / slo.latency_p95_
     const { body } = await callGet();
     const raw = body as unknown as Record<string, unknown>;
     expect(raw.errors_1h).toMatchObject({ total: 6, classes: [{ tag: "ai-client", count: 6 }] });
-    expect((raw.slo as Record<string, unknown>).latency_p95_ms).toEqual({ marketing: 410, workspace: null, api_ai: null, api_other: null, tbr: null });
+    expect((raw.slo as Record<string, unknown>).latency_p95_ms).toEqual({ marketing: 410, workspace: null, api_ai: null, api_other: null, api_cron: null, tbr: null });
     expect(raw.crons_failed_24h).toEqual([{ endpoint: "db-backup-offsite", count: 1, last_ts: expect.any(String), last_error: "Service account has no Drive quota — see <path>" }]);
     expect(raw.backups_detail).toMatchObject({ local_age_h: 3, offsite_status: "founder_action_required" });
     // ai: the dispatcher mock in this suite has no getProviderHealthSnapshot → providers null, file-backed fields present

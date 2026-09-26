@@ -15,10 +15,12 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   breaches,
+  CLASS_NAMES,
   classifyPath,
   emptyState,
   evaluate,
   formatAlert,
+  isLongLived,
   parseLine,
   parseTimeLocal,
   percentile,
@@ -70,6 +72,30 @@ describe("classifyPath", () => {
     expect(classifyPath("/api/cfo-advisor")).toBe("api_ai");
     expect(classifyPath("/api/status")).toBe("api_other");
     expect(classifyPath("/api/svi-index")).toBe("api_other");
+    expect(classifyPath("/api/entitlement/me")).toBe("api_other");
+    expect(classifyPath("/api/revenue")).toBe("api_other");
+  });
+  it("G33 T15: cron jobs get api_cron (even ai-* cron paths); LLM routes join api_ai", () => {
+    expect(classifyPath("/api/cron/ai-health")).toBe("api_cron");
+    expect(classifyPath("/api/cron/discover-models")).toBe("api_cron");
+    expect(classifyPath("/api/i18n/translate")).toBe("api_ai");
+    expect(classifyPath("/api/ai/equity-split")).toBe("api_ai");
+    expect(classifyPath("/api/evaluation/ftv/ai-score")).toBe("api_ai");
+    expect(classifyPath("/api/founder/gtm/ai-fill")).toBe("api_ai");
+    expect(classifyPath("/api/investor-portal/ai-generate")).toBe("api_ai");
+    expect(classifyPath("/api/funding/draft")).toBe("api_ai");
+    expect(classifyPath("/api/rnd/sections")).toBe("api_ai");
+    expect(classifyPath("/api/aid-programs")).toBe("api_other"); // no false /api/ai prefix match
+    expect(CLASS_NAMES).toContain("api_cron");
+  });
+  it("G33 T15: isLongLived matches stream / SSE paths only", () => {
+    expect(isLongLived("/api/site-crawl/stream?x=1")).toBe(true);
+    expect(isLongLived("/api/svi/dimensions/stream")).toBe(true);
+    expect(isLongLived("/api/analysis/run_1/stream")).toBe(true);
+    expect(isLongLived("/api/rnd")).toBe(true);
+    expect(isLongLived("/api/rnd/sections")).toBe(true);
+    expect(isLongLived("/api/streams-overview")).toBe(false);
+    expect(isLongLived("/api/entitlement/me")).toBe(false);
     expect(classifyPath("/tbr/abc")).toBe("tbr");
     expect(classifyPath("/s/xyz")).toBe("tbr");
     expect(classifyPath("/workspace/projects")).toBe("workspace");
@@ -107,14 +133,42 @@ describe("sampleWindow", () => {
     expect(s.classes.marketing.n).toBe(21);
     expect(s.classes.marketing.err_rate_5xx).toBeCloseTo(1 / 21, 4);
     expect(s.classes.marketing.p95_ms).toBe(280); // nearest-rank: 20th of 21 sorted (50,100,110,…,290)
-    expect(s.classes.api_ai).toEqual({ n: 1, p50_ms: 40000, p95_ms: 40000, err_rate_5xx: 0 });
+    expect(s.classes.api_ai).toEqual({ n: 1, n_timed: 1, p50_ms: 40000, p95_ms: 40000, err_rate_5xx: 0 });
     expect(s.classes.api_other.p50_ms).toBe(300);
-    expect(s.classes.tbr).toEqual({ n: 0, p50_ms: null, p95_ms: null, err_rate_5xx: null });
+    expect(s.classes.tbr).toEqual({ n: 0, n_timed: 0, p50_ms: null, p95_ms: null, err_rate_5xx: null });
   });
   it("combined format → n + 5xx only, p50/p95 null, timing false", () => {
     const s = sampleWindow([combined(10, "GET", "/", 200), combined(9, "GET", "/", 500)], NOW);
     expect(s.timing).toBe(false);
-    expect(s.classes.marketing).toEqual({ n: 2, p50_ms: null, p95_ms: null, err_rate_5xx: 0.5 });
+    expect(s.classes.marketing).toEqual({ n: 2, n_timed: 0, p50_ms: null, p95_ms: null, err_rate_5xx: 0.5 });
+  });
+  it("G33 T15: untimed lines (other vhosts' health probes) count for n, never for n_timed / p95", () => {
+    const lines = [
+      ...Array.from({ length: 25 }, (_, i) => combined(100 + i, "GET", "/api/health?g30_probe=1", 200)),
+      timed(40, "GET", "/api/credits", 200, 0.12),
+      timed(30, "GET", "/api/projects", 200, 0.2),
+    ];
+    const s = sampleWindow(lines, NOW);
+    expect(s.classes.api_other).toMatchObject({ n: 27, n_timed: 2, p95_ms: 200 });
+  });
+  it("G33 T15: /api/cron/* lands in api_cron, so a 15 s AI probe no longer owns api_other's p95", () => {
+    const lines = [
+      timed(50, "GET", "/api/cron/ai-health", 200, 14.808),
+      ...Array.from({ length: 6 }, (_, i) => timed(20 + i, "GET", "/api/entitlement/me", 200, 0.1 + i * 0.01)),
+    ];
+    const s = sampleWindow(lines, NOW);
+    expect(s.classes.api_cron).toMatchObject({ n: 1, n_timed: 1, p95_ms: 14808 });
+    expect(s.classes.api_other).toMatchObject({ n: 6, n_timed: 6, p95_ms: 150 });
+  });
+  it("G33 T15: SSE / stream durations are counted (n, 5xx) but excluded from the percentiles", () => {
+    const lines = [
+      timed(50, "GET", "/api/site-crawl/stream?id=1", 200, 95.5),
+      timed(40, "GET", "/api/analysis/run_x/stream", 502, 12),
+      timed(30, "GET", "/api/status", 200, 0.3),
+    ];
+    const s = sampleWindow(lines, NOW);
+    expect(s.classes.api_other).toMatchObject({ n: 3, n_timed: 1, p95_ms: 300 });
+    expect(s.classes.api_other.err_rate_5xx).toBeCloseTo(1 / 3, 4);
   });
 });
 
@@ -133,7 +187,14 @@ describe("breaches + evaluate (3 consecutive windows)", () => {
     },
   });
   it("targets match docs/ops/slo.md", () => {
-    expect(SLO).toMatchObject({ marketing: { p95_ms: 800 }, workspace: { p95_ms: 1500 }, api_ai: { p95_ms: 60_000 }, api_other: { p95_ms: 2000 }, err_rate_5xx: 0.005 });
+    expect(SLO).toMatchObject({ marketing: { p95_ms: 800 }, workspace: { p95_ms: 1500 }, api_ai: { p95_ms: 60_000 }, api_other: { p95_ms: 2000 }, api_cron: { p95_ms: 60_000 }, err_rate_5xx: 0.005 });
+  });
+  it("G33 T15: a p95 breach needs ≥ 20 TIMED samples; the 5xx breach still uses n", () => {
+    const s = sample(5000, 0.5, 50);
+    s.classes.marketing.n_timed = 3;
+    expect(breaches(s).map((b) => b.key)).toEqual(["marketing.5xx"]);
+    s.classes.marketing.n_timed = 20;
+    expect(breaches(s).map((b) => b.key)).toEqual(["marketing.p95", "marketing.5xx"]);
   });
   it("needs ≥ 20 samples to breach", () => {
     expect(breaches(sample(5000, 0.5, 10))).toEqual([]);

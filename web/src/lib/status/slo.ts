@@ -4,13 +4,18 @@
 // class; a class with no timing data (nginx still on the combined log_format)
 // or fewer than MIN_N requests is null. `null` overall when the sampler has
 // never run or the newest row is stale.
+//
+// G33 T15: p95 needs MIN_N *timed* requests (`n_timed`) — the access log mixes
+// in untimed lines (other vhosts' health probes), and with `n` alone a quiet
+// window published the one slow cron call as "p95". /api/cron/* has its own
+// class (`api_cron`), and SSE/stream durations never enter a percentile.
 
 import { readJsonlTail, withinLast, getStatusRoot } from "./jsonl";
 
 export const LATENCY_FILE = "latency.jsonl";
 export const LATENCY_STALE_MS = 30 * 60 * 1000;
 export const LATENCY_MIN_N = 5;
-export const LATENCY_CLASSES = ["marketing", "workspace", "api_ai", "api_other", "tbr"] as const;
+export const LATENCY_CLASSES = ["marketing", "workspace", "api_ai", "api_other", "api_cron", "tbr"] as const;
 export type LatencyClass = (typeof LATENCY_CLASSES)[number];
 
 export type LatencyP95 = Record<LatencyClass, number | null>;
@@ -23,7 +28,7 @@ export type LatencySummary = {
 };
 
 type Row = { ts?: unknown; timing?: unknown; classes?: unknown };
-type ClassRow = { n?: unknown; p95_ms?: unknown; err_rate_5xx?: unknown };
+type ClassRow = { n?: unknown; n_timed?: unknown; p95_ms?: unknown; err_rate_5xx?: unknown };
 
 /** Pure reducer — exported for tests. */
 export function summariseLatency(rows: Row[], now: number = Date.now()): LatencySummary | null {
@@ -42,7 +47,9 @@ export function summariseLatency(rows: Row[], now: number = Date.now()): Latency
     const n = c && typeof c.n === "number" ? c.n : 0;
     requests += n;
     const enough = n >= LATENCY_MIN_N;
-    p95[name] = enough && c && typeof c.p95_ms === "number" && Number.isFinite(c.p95_ms) ? Math.round(c.p95_ms) : null;
+    // Rows written before n_timed existed fall back to n (old behaviour).
+    const timedN = c && typeof c.n_timed === "number" ? c.n_timed : n;
+    p95[name] = timedN >= LATENCY_MIN_N && c && typeof c.p95_ms === "number" && Number.isFinite(c.p95_ms) ? Math.round(c.p95_ms) : null;
     err[name] = enough && c && typeof c.err_rate_5xx === "number" && Number.isFinite(c.err_rate_5xx) ? c.err_rate_5xx : null;
   }
   return { ts: String(newest.ts), latency_p95_ms: p95, err_rate_5xx: err, requests, timing: newest.timing === true };

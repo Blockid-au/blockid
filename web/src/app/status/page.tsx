@@ -58,7 +58,7 @@ type CronRow = {
 };
 
 // G15-R2 v2 sections — the shape of lib/status publicStatusExtras.
-type LatencyClass = "marketing" | "workspace" | "api_ai" | "api_other" | "tbr";
+type LatencyClass = "marketing" | "workspace" | "api_ai" | "api_other" | "api_cron" | "tbr";
 type Errors1h = { total: number; classes: Array<{ tag: string; msg: string; count: number }> } | null;
 type AiPublic = {
   providers: Array<{ name: string; state: string }> | null;
@@ -105,6 +105,7 @@ const LATENCY_CLASSES: Array<{ key: LatencyClass; label: string; target_ms: numb
   { key: "workspace", label: "Workspace", target_ms: 1500 },
   { key: "api_ai", label: "AI routes", target_ms: 60_000 },
   { key: "api_other", label: "Other API", target_ms: 2000 },
+  { key: "api_cron", label: "Scheduled jobs", target_ms: 60_000 },
   { key: "tbr", label: "Public reports", target_ms: 1500 },
 ];
 const BACKUP_LOCAL_MAX_AGE_H = 26;
@@ -550,7 +551,7 @@ export default async function StatusPage() {
           <p className="mt-2 text-xs text-secondary">
             Sampled every 10 minutes from the edge access log. A dash means no timing data in the window.
           </p>
-          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mt-3 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {LATENCY_CLASSES.map((c) => {
               const ms = status.slo.latency_p95_ms?.[c.key] ?? null;
               return (

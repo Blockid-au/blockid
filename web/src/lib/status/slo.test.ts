@@ -25,8 +25,8 @@ describe("summariseLatency", () => {
     );
     expect(s).toEqual({
       ts: new Date(NOW - 5 * 60_000).toISOString(),
-      latency_p95_ms: { marketing: 413, workspace: null, api_ai: 41000, api_other: null, tbr: null },
-      err_rate_5xx: { marketing: 0.0125, workspace: null, api_ai: 0, api_other: 0, tbr: null },
+      latency_p95_ms: { marketing: 413, workspace: null, api_ai: 41000, api_other: null, api_cron: null, tbr: null },
+      err_rate_5xx: { marketing: 0.0125, workspace: null, api_ai: 0, api_other: 0, api_cron: null, tbr: null },
       requests: 109,
       timing: true,
     });
@@ -35,6 +35,16 @@ describe("summariseLatency", () => {
     const s = summariseLatency([row(1, false, { marketing: cls(100, null), api_other: cls(10, null) })], NOW);
     expect(s?.timing).toBe(false);
     expect(Object.values(s!.latency_p95_ms).every((v) => v === null)).toBe(true);
+  });
+  it("G33 T15: p95 needs ≥ 5 TIMED requests — 25 untimed health probes + 2 timed calls publish null, not max()", () => {
+    const s = summariseLatency([row(2, true, { api_other: { ...cls(27, 14808), n_timed: 2 }, api_cron: { ...cls(6, 14808), n_timed: 6 } })], NOW);
+    expect(s?.latency_p95_ms.api_other).toBeNull();
+    expect(s?.err_rate_5xx.api_other).toBe(0); // the 5xx rate still uses every request
+    expect(s?.latency_p95_ms.api_cron).toBe(14808);
+  });
+  it("G33 T15: rows written before n_timed existed keep the old n-based gate", () => {
+    const s = summariseLatency([row(2, true, { api_other: cls(9, 250) })], NOW);
+    expect(s?.latency_p95_ms.api_other).toBe(250);
   });
 });
 

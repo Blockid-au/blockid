@@ -9,7 +9,8 @@ contractual SLA; no plan includes uptime credits (`/status` says the same).
 |---|---|---|---|---|
 | `marketing` | every route not listed below (`/`, `/pricing`, `/funding`, `/insights/*` …) — static assets (`/_next/*`, images, fonts) are excluded | **< 800 ms** | < 0.5 % | 99.9 % / 30 d |
 | `workspace` | `/workspace/*`, `/dashboard*` | **< 1.5 s** | < 0.5 % | — |
-| `api_ai` | `/api/svi*`, `/api/funding/report`, `/api/analyses*`, `/api/cfo-advisor` (LLM-backed, `callAI` `budgetMs`) | **< 60 s** | < 0.5 % | — |
+| `api_ai` | `/api/svi*`, `/api/funding/report`, `/api/funding/draft`, `/api/analyses*`, `/api/cfo-advisor`, `/api/ai/*`, `/api/i18n/translate`, `/api/rnd*`, any `/api/**/ai-*` segment, `/api/internal/ai-complete` (LLM-backed, `callAI` `budgetMs`) | **< 60 s** | < 0.5 % | — |
+| `api_cron` | `/api/cron/*` — scheduled jobs (AI health probes, digests, model discovery); machine traffic, never a user wait (G33 T15) | **< 60 s** | < 0.5 % | — |
 | `api_other` | every other `/api/*` | **< 2 s** | < 0.5 % | — |
 | `tbr` | `/tbr/*`, `/s/*` (public Trust BizReport + share pages) | < 1.5 s | < 0.5 % | — |
 
@@ -36,7 +37,14 @@ figure on `/api/status.slo.uptime_pct_24h` is the cron-fleet proxy that predates
   it on the server (http-level `log_format` + `access_log … blockid_timing;`
   in the blockid.au `server{}`, then `nginx -t && systemctl reload nginx`);
   the parser accepts both shapes so mixed files are fine.
-- A window needs ≥ 20 requests in a class before it can count as a breach.
+- A window needs ≥ 20 requests in a class before it can count as a breach; a
+  **p95** breach additionally needs ≥ 20 *timed* requests (`n_timed`), and
+  `/api/status` publishes a class p95 only from ≥ 5 timed requests. The log
+  also carries untimed lines (other vhosts' `/api/health` probes in the
+  combined format) — before G33 T15 those counted toward `n`, so a quiet
+  window with 25 probes + 2 timed calls published the slower call as "p95".
+- Long-lived responses (`…/stream`, `…/sse`, `/api/rnd*` SSE) count toward
+  `n` and the 5xx rate only: their `$request_time` is the connection lifetime.
 
 ## 3. Alerting
 

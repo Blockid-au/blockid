@@ -21,19 +21,47 @@ export const SLO = {
   workspace: { p95_ms: 1500 },
   api_ai: { p95_ms: 60_000 },
   api_other: { p95_ms: 2000 },
+  // G33 T15 — scheduled jobs (/api/cron/*) run AI probes, digests and model
+  // discovery by design (ai-health: 5–15 s). They are machine traffic, so they
+  // get their own bucket instead of owning api_other's p95 in quiet windows.
+  api_cron: { p95_ms: 60_000 },
   tbr: { p95_ms: 1500 },
   err_rate_5xx: 0.005,
 };
 
-export const CLASS_NAMES = ["marketing", "api_ai", "api_other", "tbr", "workspace"];
+export const CLASS_NAMES = ["marketing", "api_ai", "api_other", "api_cron", "tbr", "workspace"];
 
-const AI_ROUTES = [/^\/api\/svi(\/|$|\?)/, /^\/api\/funding\/report(\/|$|\?)/, /^\/api\/analyses(\/|$|\?)/, /^\/api\/cfo-advisor(\/|$|\?)/];
+const AI_ROUTES = [
+  /^\/api\/svi(\/|$|\?)/,
+  /^\/api\/funding\/(report|draft)(\/|$|\?)/,
+  /^\/api\/analyses(\/|$|\?)/,
+  /^\/api\/cfo-advisor(\/|$|\?)/,
+  // G33 T15 — further LLM-on-the-request-path routes (callAI / translateBatch).
+  /^\/api\/ai\//,
+  /^\/api\/i18n\/translate(\/|$)/,
+  /^\/api\/rnd(\/|$)/,
+  /^\/api\/.*\/ai-[a-z-]+(\/|$)/, // evaluation/*/ai-score|ai-suggest, founder/*/ai-fill, investor-portal/ai-generate …
+  /^\/api\/internal\/ai-complete(\/|$)/,
+];
+const CRON_ROUTES = /^\/api\/cron\//;
+/**
+ * Long-lived responses (SSE / streamed progress): $request_time is the
+ * connection lifetime, not latency. Counted for n + 5xx, never for p50/p95.
+ */
+const LONG_LIVED = [/\/stream(\/|$)/, /\/sse(\/|$)/, /^\/api\/rnd(\/sections)?$/];
 const STATIC = /^\/(_next\/|favicon|robots\.txt|sitemap|manifest\.|apple-touch|icons?\/|images?\/|fonts?\/)|\.(js|css|map|png|jpe?g|gif|svg|webp|avif|ico|woff2?|ttf|txt|xml|json)(\?|$)/i;
+
+/** True when the path is a stream whose duration must not enter a percentile. */
+export function isLongLived(rawPath) {
+  const p = (rawPath ?? "").split("?")[0] || "/";
+  return LONG_LIVED.some((re) => re.test(p));
+}
 
 /** Route → class name; null for static assets that must not skew a class. */
 export function classifyPath(rawPath) {
   const p = (rawPath ?? "").split("?")[0] || "/";
   if (STATIC.test(p)) return null;
+  if (CRON_ROUTES.test(p)) return "api_cron"; // before AI: /api/cron/ai-health is a job, not a user wait
   if (AI_ROUTES.some((re) => re.test(p))) return "api_ai";
   if (p.startsWith("/api/")) return "api_other";
   if (p.startsWith("/tbr/") || p.startsWith("/s/")) return "tbr";
@@ -61,7 +89,7 @@ export function parseLine(line) {
   const ts = parseTimeLocal(m[2]);
   if (!Number.isFinite(ts)) return null;
   const cls = classifyPath(m[4]);
-  const rt = m[7] !== undefined && m[7] !== "-" ? Number(m[7]) : NaN;
+  const rt = m[7] !== undefined && m[7] !== "-" && !isLongLived(m[4]) ? Number(m[7]) : NaN;
   return { ts, method: m[3], path: m[4], status: Number(m[5]), class: cls, ms: Number.isFinite(rt) ? Math.round(rt * 1000) : null };
 }
 
@@ -75,7 +103,7 @@ export function percentile(values, p) {
 
 /**
  * Aggregate the lines that fall inside [nowMs - windowMin, nowMs].
- * → { ts, window_min, timing: boolean, classes: { name: { n, p50_ms, p95_ms, err_rate_5xx } } }
+ * → { ts, window_min, timing: boolean, classes: { name: { n, n_timed, p50_ms, p95_ms, err_rate_5xx } } }
  */
 export function sampleWindow(lines, nowMs = Date.now(), windowMin = WINDOW_MIN) {
   const from = nowMs - windowMin * 60_000;
@@ -99,6 +127,10 @@ export function sampleWindow(lines, nowMs = Date.now(), windowMin = WINDOW_MIN) 
     const b = buckets[name];
     classes[name] = {
       n: b.n,
+      // G33 T15 — requests that carried $request_time. The access log also
+      // holds untimed lines (other vhosts' health probes, streams); n alone
+      // let a window of 25 probes + 2 timed requests publish max() as "p95".
+      n_timed: b.ms.length,
       p50_ms: b.ms.length ? percentile(b.ms, 50) : null,
       p95_ms: b.ms.length ? percentile(b.ms, 95) : null,
       err_rate_5xx: b.n ? Math.round((b.e5 / b.n) * 10_000) / 10_000 : null,
@@ -114,7 +146,8 @@ export function breaches(sample) {
     const c = sample.classes[name];
     if (!c || c.n < MIN_SAMPLES) continue;
     const target = SLO[name]?.p95_ms;
-    if (target && c.p95_ms !== null && c.p95_ms > target) out.push({ key: `${name}.p95`, class: name, metric: "p95_ms", value: c.p95_ms, target });
+    const timedN = typeof c.n_timed === "number" ? c.n_timed : c.n; // rows before G33 T15 carry n only
+    if (target && timedN >= MIN_SAMPLES && c.p95_ms !== null && c.p95_ms > target) out.push({ key: `${name}.p95`, class: name, metric: "p95_ms", value: c.p95_ms, target });
     if (c.err_rate_5xx !== null && c.err_rate_5xx > SLO.err_rate_5xx) out.push({ key: `${name}.5xx`, class: name, metric: "err_rate_5xx", value: c.err_rate_5xx, target: SLO.err_rate_5xx });
   }
   return out;
@@ -166,7 +199,7 @@ export function formatAlert(alerts, sample) {
   return [`BlockID latency SLO — ${alerts.length} change${alerts.length === 1 ? "" : "s"} (${sample.requests} requests / ${sample.window_min} min${sample.timing ? "" : ", no timing fields yet"})`, ...rows].join("\n");
 }
 
-/** JSONL row: {ts, window_min, classes:{name:{n,p50_ms,p95_ms,err_rate_5xx}}}. */
+/** JSONL row: {ts, window_min, classes:{name:{n,n_timed,p50_ms,p95_ms,err_rate_5xx}}}. */
 export function toReportRow(sample) {
   return { ts: sample.ts, window_min: sample.window_min, timing: sample.timing, classes: sample.classes };
 }

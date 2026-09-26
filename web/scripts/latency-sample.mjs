@@ -8,8 +8,8 @@
 // Reads the tail of /var/log/nginx/access.log (www-data:adm 0640 — the app
 // user must be in `adm`; if it is not, exits 0 with {skipped:"no_access"} and
 // docs/ops/slo.md has the one-line usermod), keeps the last 10 minutes, groups
-// by route class (marketing / api_ai / api_other / tbr / workspace), computes
-// n, p50, p95, 5xx rate → content/reports/latency.jsonl. p50/p95 need the
+// by route class (marketing / api_ai / api_other / api_cron / tbr / workspace), computes
+// n, n_timed, p50, p95, 5xx rate → content/reports/latency.jsonl. p50/p95 need the
 // `blockid_timing` log_format ($request_time appended) — until nginx is
 // switched they are null and only the error rate is tracked.
 //
