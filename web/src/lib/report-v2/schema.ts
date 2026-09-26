@@ -589,6 +589,30 @@ export interface ReportV2 {
   pageBudget: { free: typeof FREE_PAGE_BUDGET; renderedPages?: number };
   /** G27 — always present at render (`ensureInvestmentView`); optional on stored rows. */
   investmentView?: InvestmentView;
+  /**
+   * G32 SV2 — how the scores in this document were produced (SOT §9.4.5).
+   * Stamped by the snapshot / revision / assembled-report writers on new
+   * documents only; absent on older rows (never backfilled, never recomputed).
+   */
+  methodMeta?: ReportMethodMeta;
+}
+
+/**
+ * G32 SV2 method metadata. Keys use the SOT column names so a later additive
+ * column can project them 1:1. `contribution_ledger` is keyed by rubric entry
+ * id (scope.ts question id or overlay item id) and stays `{}` until SV3
+ * shadow scoring writes per-question contributions.
+ */
+export interface ReportMethodMeta {
+  /** e.g. "svi-2.2.0" — the method behind `cover.svi.total`. */
+  svi_method: string;
+  /** e.g. "rubric@v1". */
+  rubric_version: string;
+  /** SHA-256 of the screening catalogue + rubric content (lib/screening/profile.ts). */
+  profile_sha256: string;
+  /** ISO time: nothing learned after this moment informed the scores. */
+  knowledge_cutoff: string;
+  contribution_ledger: Record<string, Record<string, unknown>>;
 }
 
 // ── Zod ─────────────────────────────────────────────────────────────────────
@@ -958,6 +982,14 @@ const matched = z.object({
   url: z.string().optional(),
 });
 
+const reportMethodMeta = z.object({
+  svi_method: z.string().min(1),
+  rubric_version: z.string().min(1),
+  profile_sha256: z.string().regex(/^[0-9a-f]{64}$/),
+  knowledge_cutoff: z.string().min(1),
+  contribution_ledger: z.record(z.string(), z.record(z.string(), z.unknown())),
+});
+
 export const reportV2Schema = z.object({
   schemaVersion: z.literal(REPORT_V2_SCHEMA_VERSION),
   reportId: z.string().min(1),
@@ -1069,6 +1101,7 @@ export const reportV2Schema = z.object({
   }),
   pageBudget: z.object({ free: z.literal(FREE_PAGE_BUDGET), renderedPages: z.number().optional() }),
   investmentView: investmentViewSchema.optional(),
+  methodMeta: reportMethodMeta.optional(),
 });
 
 export class ReportV2ValidationError extends Error {

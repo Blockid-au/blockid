@@ -337,7 +337,12 @@ describe("generateAndPersistReport", () => {
     orchestrateMock.mockResolvedValue({ ...REPORT, reportV2: document });
     await generateAndPersistReport({ ctx: ctx(), userId: "u-1", tier: "standard", locale: "en", creditsCost: 3 });
     const write = state.calls.find((call) => call.table === "assembled_reports" && call.op === "insert")!;
-    expect((write.payload as { report_json: unknown }).report_json).toEqual({ ...document, reportId: REPORT.id });
+    // G32 SV2: the only addition is method metadata; every score and the valuation are untouched.
+    expect((write.payload as { report_json: unknown }).report_json).toEqual({
+      ...document,
+      reportId: REPORT.id,
+      methodMeta: { svi_method: expect.stringMatching(/^svi-\d+\.\d+\.\d+$/), rubric_version: "rubric@v1", profile_sha256: expect.stringMatching(/^[0-9a-f]{64}$/), knowledge_cutoff: document.generatedAt, contribution_ledger: {} },
+    });
   });
 
   it("does not emit completion when canonical persistence fails", async () => {
@@ -414,6 +419,12 @@ describe("runTrustReportForProject (evaluator)", () => {
     expect(doc.schemaVersion).toBe("2.0");
     expect(doc.snapshotId).toBe("snap-1");
     expect(doc.reportId).toBe("rpt-1");
+    // G32 SV2: snapshot projection and immutable revision carry the same method metadata.
+    const meta = (doc as { methodMeta?: Record<string, unknown> }).methodMeta;
+    expect(meta).toMatchObject({ rubric_version: "rubric@v1", contribution_ledger: {} });
+    expect(String(meta?.svi_method)).toMatch(/^svi-/);
+    const rev = state.calls.find((c) => c.table === "report_revisions" && c.op === "insert")!;
+    expect((rev.payload as { report_json: { methodMeta?: unknown } }).report_json.methodMeta).toEqual(meta);
   });
 
   it("same-day re-run updates today's snapshot, keeps its daily token and returns a new immutable revision token", async () => {

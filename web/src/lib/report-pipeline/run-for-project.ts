@@ -54,6 +54,7 @@ import {
 import { findLatestAnalysisWithFallback, findSVIAccountWithFallback, getProjectById } from "@/lib/projects";
 import { fromAssembledReport, fromSnapshot, type SnapshotDimState } from "@/lib/report-v2/adapter";
 import { insertCompletedAssembledReport, insertImmutableReportRevision, writeSnapshotReportV2 } from "@/lib/report-v2/storage";
+import { withMethodMeta } from "@/lib/report-v2/method-meta";
 import { loadCapTableInput } from "@/lib/svi/cap-table-input";
 import { effectiveConfidenceLevel } from "@/lib/svi/rescore-from-evidence";
 import { applyFounderExecution } from "@/lib/founder/execution-load";
@@ -524,7 +525,9 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
       verdictTrimmed: stats?.verdictTrimmed ?? 0,
       autoCited: stats?.autoCited ?? 0,
     };
-    const finalDocument = report.reportV2 ??
+    // G32 SV2: method metadata rides on the one document the assembled row,
+    // the snapshot projection and the immutable revision all store.
+    const finalDocument = withMethodMeta(report.reportV2 ??
           fromAssembledReport(report, {
             // This is a NEW generation fallback, not a historical snapshot.
             // Missing reportV2 must not invent a directional valuation.
@@ -543,7 +546,7 @@ export async function generateAndPersistReport(input: GenerateReportInput): Prom
             verificationLevel: ctx.verificationLevel ?? null,
             tier,
             locale,
-          });
+          }), ctx.sviAnalysis.version);
     if (supabase) {
       const stored = await insertCompletedAssembledReport(supabase, {
         id: report.id,
@@ -997,7 +1000,7 @@ export async function runTrustReportForProject(args: {
       // W2 review P1: the evaluator TBR / dossier read `svi_snapshots.report_v2`
       // — persist the pipeline's own document (with the W4 chapters) when the
       // orchestrator produced one; the adapter projection is the fallback.
-      reportV2 = report.reportV2
+      reportV2 = withMethodMeta(report.reportV2
         ? { ...report.reportV2, snapshotId, projectId: project.id }
         : fromAssembledReport(report, {
             // This is a NEW generation fallback, not a historical snapshot.
@@ -1018,7 +1021,7 @@ export async function runTrustReportForProject(args: {
             verificationLevel: project.verificationLevel ?? null,
             tier,
             locale,
-          });
+          }), ctx.sviAnalysis.version);
       if (!await writeSnapshotReportV2(db, snapshotId, reportV2)) {
         throw new Error("report_snapshot_document_unconfirmed");
       }
@@ -1173,7 +1176,7 @@ export async function runRescoreForProject(args: {
     if (db) {
       const dimStates: Record<string, SnapshotDimState> = {};
       for (const [k, v] of Object.entries(dimensionScores)) dimStates[k] = { status: "complete", score: v.score, priority: v.priority };
-      const reportV2 = fromSnapshot({
+      const reportV2 = withMethodMeta(fromSnapshot({
         snapshotId,
         projectId: project.id,
         accountId: account.id,
@@ -1186,7 +1189,7 @@ export async function runRescoreForProject(args: {
         dimStates,
         verificationLevel: project.verificationLevel ?? null,
         tier: "standard",
-      });
+      }), analysis.version);
       if (!await writeSnapshotReportV2(
         db,
         snapshotId,

@@ -39,6 +39,7 @@ import { createHash } from "crypto";
 import { CRITERIA } from "@/lib/evaluation-criteria";
 import type { CriterionCard, DimensionChapter, ReportTierV2, ReportV2 } from "@/lib/report-v2/schema";
 import { insertImmutableReportRevision, writeSnapshotReportV2 } from "@/lib/report-v2/storage";
+import { withMethodMeta } from "@/lib/report-v2/method-meta";
 import { DIM_LEGACY_ORDER, DIM_ORDER, type DimKey } from "./dimension-owners";
 import { PIPELINE_VERSION, assertReportUsable, orchestrateReport, type AICallerInput, type PipelineEvent } from "./orchestrator";
 import { pipelineCallTimeouts } from "./pipeline-timeouts";
@@ -362,7 +363,7 @@ async function defaultPersistSnapshot(args: PersistSnapshotArgs): Promise<{ snap
   if (snapshotId && reportV2) {
     const db = await defaultDb();
     if (db) {
-      const document = { ...reportV2, snapshotId, projectId: ctx.projectId };
+      const document = withMethodMeta({ ...reportV2, snapshotId, projectId: ctx.projectId }, ctx.sviAnalysis.version);
       reportV2Saved = await writeSnapshotReportV2(db as unknown as Parameters<typeof writeSnapshotReportV2>[0], snapshotId, document);
       if (reportV2Saved) {
         reportRevisionSaved = Boolean(await insertImmutableReportRevision(db as unknown as Parameters<typeof insertImmutableReportRevision>[0], {
