@@ -31,6 +31,7 @@ import type { EvaluationAssessment } from "@/lib/evaluations/assessments";
 import { buildEvaluatorProgress, createSupabaseProgressStore, type EvaluatorProgressItem, type ProgressDeadline } from "@/lib/evaluations/progress-radar";
 import { listMandates } from "@/lib/investors/mandates";
 import { scoreFit, type FitMandate, type FitResult, type FitStartup } from "@/lib/investors/fit-v2";
+import { mandateAxesFrom, type MandateAxis } from "./triage-verdict";
 import { stageKeyFromNumber } from "@/lib/investors/fit-refresh";
 import type { StartupTaxonomyRow } from "@/lib/taxonomy/startup-taxonomy";
 import { makeVisual } from "@/lib/report-visuals";
@@ -236,6 +237,8 @@ export interface DossierMandateFit {
   /** "persisted" = nightly mandate_fit_scores row; "computed" = scoreFit on read (no row yet). */
   source: "persisted" | "computed";
   computedAt: string | null;
+  /** G34 RQ25: stage · sector · ticket · geography from the same scorer's axis breakdown (live inputs). */
+  axes?: MandateAxis[];
 }
 
 export interface FitInputs {
@@ -279,7 +282,7 @@ export function fitStartupFrom(input: Pick<FitInputs, "projectId" | "taxonomy" |
 
 /** Pure: a fit summary from a computed result. */
 export function fitFromResult(mandate: Pick<FitMandate, "id"> & { label: string }, r: FitResult, source: DossierMandateFit["source"], computedAt: string | null): DossierMandateFit {
-  return { mandateId: String(mandate.id ?? ""), mandateLabel: mandate.label, score: r.score, passesFloor: r.passes_floor, reasons: r.reasons, gaps: r.gaps, blockers: r.blockers, source, computedAt };
+  return { mandateId: String(mandate.id ?? ""), mandateLabel: mandate.label, score: r.score, passesFloor: r.passes_floor, reasons: r.reasons, gaps: r.gaps, blockers: r.blockers, source, computedAt, axes: mandateAxesFrom(r.breakdown) };
 }
 
 /** Header fit reader (assessor only): persisted row for the primary mandate, else scoreFit on read. */
@@ -287,6 +290,7 @@ export async function readMandateFit(input: FitInputs): Promise<DossierMandateFi
   const list = await listMandates(input.viewerUserId).catch(() => null);
   const mandate = list?.primary ?? null;
   if (!mandate) return null;
+  const live = scoreFit(mandate, fitStartupFrom(input));
   const db = getSupabaseAdmin();
   if (db) {
     try {
@@ -304,13 +308,15 @@ export async function readMandateFit(input: FitInputs): Promise<DossierMandateFi
           blockers: Array.isArray(r.blockers) ? (r.blockers as string[]) : [],
           source: "persisted",
           computedAt: typeof r.computed_at === "string" ? r.computed_at : null,
+          // G34 RQ25: the per-axis ticks come from the same scorer on today's inputs (the row stores no breakdown).
+          axes: mandateAxesFrom(live.breakdown),
         };
       }
     } catch {
       /* 0393 not applied — compute below */
     }
   }
-  return fitFromResult(mandate, scoreFit(mandate, fitStartupFrom(input)), "computed", null);
+  return fitFromResult(mandate, live, "computed", null);
 }
 
 // ─── Header — Δ since last view ──────────────────────────────────────────────

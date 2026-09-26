@@ -297,6 +297,21 @@ describe("/workspace/evaluations/[evaluationId]", () => {
     expect(out).toMatch(/data-testid="since-last-view"[\s\S]*?▲ \+<!-- -->2<!-- --> SVI|data-testid="since-last-view"[\s\S]*?\+2 SVI/);
   });
 
+  it("G34 RQ25/RQ26: assessor gets mandate fit per axis + a triage verdict with the rule, missing items and the not-advice note", async () => {
+    const out = await html();
+    const t = out.slice(out.indexOf('data-testid="dossier-triage"'), out.indexOf('data-testid="dossier-block-1"'));
+    expect(t).toMatch(/data-testid="dossier-triage" data-verdict="(read_further|needs_evidence|outside_mandate)"/);
+    for (const axis of ["stage", "sector", "ticket", "geography"]) expect(t).toMatch(new RegExp(`data-axis="${axis}" data-status="(fit|partial|miss|unknown)"`));
+    expect(t).toContain("Mandate fit: ");
+    expect(t).toMatch(/data-testid="triage-verdict"[\s\S]*?(Read further|Needs more evidence|Outside mandate)/);
+    expect(t).toContain('data-testid="triage-rule"');
+    expect(t).toContain("not a second investment conclusion");
+    expect(t).toContain("General information only, not financial, legal or investment advice.");
+    // The mandate sets no cheque range → the ticket axis fits; it is never a miss on unknown data.
+    expect(t).toMatch(/data-axis="ticket" data-status="(fit|unknown)"/);
+    expect((out.match(/data-testid="dossier-triage"/g) ?? []).length).toBe(1);
+  });
+
   it("G21 P3-A: block 7 outcomes & trajectory — assessor gets the record form (evaluator source), the compact trajectory, the consent tier line; founder preview is read-only", async () => {
     state.tables.startup_outcomes = [{ id: "o-1", project_id: "p-1", kind: "grant_success", observed_at: "2026-09-05T00:00:00.000Z", value: { program: "AEA Ignite", source_url: "https://grants.gov.au/x" }, source: "external_signal", confidence: 90, recorded_by: null, status: "confirmed", confirmed_by: "a", confirmed_at: "2026-09-06", note: "checked", created_at: "2026-09-05", updated_at: "2026-09-06" }];
     const out = await html();
@@ -346,6 +361,9 @@ describe("/workspace/evaluations/[evaluationId]", () => {
     expect((out.match(/data-testid="weight-cell"/g) ?? []).length).toBe(8);
     // S-R4 founder preview: no mandate fit, no "since my assessment", no assessor overlay.
     expect(out).not.toContain('data-testid="mandate-fit"');
+    // G34 RQ25/RQ26: never on the founder preview.
+    expect(out).not.toContain('data-testid="dossier-triage"');
+    expect(out).not.toContain("Mandate fit: ");
     expect(out).not.toContain('data-testid="progress-since-assessment"');
     expect(out).not.toContain("Seed deep-tech AU");
     expect(out).toContain('data-testid="since-last-view"');

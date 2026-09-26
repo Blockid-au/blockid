@@ -52,6 +52,8 @@ import { CANONICAL_STAGE_LABELS, sviStageToCanonical } from "@/lib/journey-vocab
 import { coverVerificationFor, resolveReportV2, type SnapshotDimState, type SnapshotCriterionState } from "@/lib/report-v2/adapter";
 import { isReportV2, type CoverVerification, type ReportV2 } from "@/lib/report-v2/schema";
 import { readEvaluationReportV2 } from "@/lib/report-v2/storage";
+import { buildDashboardV4 } from "@/lib/report-v2/dashboard-v4";
+import { buildEvaluatorTriage, type EvaluatorTriage } from "./triage-verdict";
 import { DIMENSION_OWNERS, DIM_ORDER, type DimKey } from "@/lib/report-pipeline/dimension-owners";
 import { CRITERIA, CRITERION_KEYS, type CriterionKey } from "@/lib/evaluation-criteria";
 import { bandFor } from "@/lib/report-visuals/palette";
@@ -240,6 +242,13 @@ export interface DossierView {
   /** G21-P1-B: the BlockID Assessment Card (SVI · Evidence Confidence · BlockID Verified · strength / gap · unverified claims); null without a report. */
   assessmentCard: AssessmentCardData | null;
   report: DossierReportBlock;
+  /**
+   * G34 RQ25 + RQ26, assessor only: mandate fit (stage · sector · ticket ·
+   * geography) + the triage relabel (read further / needs more evidence /
+   * outside mandate) + what is missing. Null for the founder preview and
+   * without a report — masked here, not by CSS.
+   */
+  triage?: EvaluatorTriage | null;
   /** block 2 — S-R4 */
   valuation: DossierValuationBlock;
   evidence: DossierEvidenceBlock;
@@ -906,11 +915,24 @@ export async function loadDossier(evaluationId: string, userId: string): Promise
     ? assessmentCardFromReport(report, { evidence: dossierEvidenceByDim(evidenceRows), ...(assessmentContext ? assessmentCardOptionsFromContext(assessmentContext) : {}), staleConnectors })
     : null;
 
+  // G34 RQ25/RQ26: the evaluator triage reads the same page-1 projection the
+  // report prints (free tier gated as the reader sees it) — assessor only.
+  let triage: EvaluatorTriage | null = null;
+  if (role === "assessor" && report && assessmentCard) {
+    try {
+      const aligned: ReportV2 = { ...report, executive: { ...report.executive, confidence: Math.max(0, Math.min(1, assessmentCard.evidenceConfidence / 100)) } };
+      triage = buildEvaluatorTriage(buildDashboardV4(aligned, assessmentCard, null, { locale: "en" }), mandateFit);
+    } catch (err) {
+      warn("triage")(err);
+    }
+  }
+
   return {
     viewer: { role, userId, viaBatchId: access.viaBatchId, readOnly: access.readOnly },
     header,
     assessmentCard,
     report: reportBlock,
+    triage,
     valuation: buildValuationBlock(report, mine),
     evidence,
     assessment: {

@@ -49,6 +49,8 @@ import { SignatureBlock } from "./dossier/signature-block";
 import { DossierViewTracker } from "./dossier/dossier-view-tracker";
 import { AssessmentCard } from "@/components/svi/AssessmentCard";
 import { OutcomesBlock } from "./dossier/outcomes-block";
+import { TriageBlock } from "./dossier/triage-block";
+import { dossierFieldsUnlockedBy } from "@/lib/mentor/access-tiers";
 
 export const metadata: Metadata = {
   title: "Investor Dossier | BlockID",
@@ -99,6 +101,10 @@ export default async function InvestorDossierPage({ params }: PageProps) {
       <DossierViewTracker evaluationId={dossier.header.evaluationId} consentTier={dossier.header.consentTier} plan={user.plan ?? "free"} role={dossier.viewer.role} />
       <div className="mx-auto max-w-6xl space-y-6 p-6" data-testid="investor-dossier" data-viewer-role={dossier.viewer.role}>
         <DossierHeader header={dossier.header} role={dossier.viewer.role} icKind={clampIcKind(user.plan, undefined)} />
+        {/* G34 RQ25/RQ26 — mandate fit + triage relabel, evaluator only (the loader never builds it for the founder). */}
+        {dossier.viewer.role === "assessor" && dossier.triage ? (
+          <TriageBlock triage={dossier.triage} requestHref={dossierFieldsUnlockedBy(dossier.evidence.tier).next ? "#dossier-block-3" : null} />
+        ) : null}
         {/* G21-P1-B — the BlockID Assessment Card above the report summary. */}
         {dossier.assessmentCard && <AssessmentCard data={dossier.assessmentCard} headingLevel={2} />}
         <ReportSummary report={dossier.report} />
