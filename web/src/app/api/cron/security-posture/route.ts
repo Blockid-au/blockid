@@ -6,8 +6,12 @@
 //
 // Scored dimensions (each 0-10):
 //   1. Auth coverage    — every /api/* route either Bearer-secret-gated, user-auth,
+//                         behind a shared gate it imports (G33-T13: followed through
+//                         imports to an auth primitive, lib/security/posture-scan.ts),
 //                         or explicitly public-allowed.
-//   2. Rate-limit       — every /api/* route calls checkRateLimit OR is public-static.
+//   2. Rate-limit       — every /api/* route calls a limiter (directly or via a shared
+//                         helper), sits under a src/proxy.ts bucket prefix, or is
+//                         tagged @rate-limit-exempt.
 //   3. Secrets hygiene  — no LINKEDIN_*, STRIPE_*, SUPABASE_SERVICE_*, GROQ_*, etc.
 //                         committed under web/src/ or web/content/.
 //   4. CSP / headers    — proxy.ts (Next 16) or middleware.ts present + sets CSP + X-Frame + X-Content-Type.
@@ -28,6 +32,13 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { sendTelegram, mdEscape } from "@/lib/telegram";
 import { isCronAuthorised } from "@/lib/security/cron-auth";
 import { readOAuthTokenHealth } from "@/lib/security/oauth-token-health";
+import {
+  classifyRouteAuth,
+  classifyRouteRateLimit,
+  createFsModuleReader,
+  parseProxyBucketPrefixes,
+  type ModuleReader,
+} from "@/lib/security/posture-scan";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -79,21 +90,32 @@ function listRouteFiles(): string[] {
   return files;
 }
 
+function readSource(path: string): string | null {
+  try { return fs.readFileSync(path, "utf8"); } catch { return null; }
+}
+
+// G33-T13: one reader per scan — it follows `@/…` / relative imports so a
+// route that delegates to a shared gate (gateIntakeRequest, founder-crud
+// handlers, authenticateInstitutional, verifySvixSignature, …) is recognised
+// instead of being reported "Ungated" (lib/security/posture-scan.ts).
+function moduleReader(): ModuleReader {
+  return createFsModuleReader(`${WEB_DIR}/src`, readSource);
+}
+
 async function scoreAuthCoverage(): Promise<DimensionScore> {
   const routes = listRouteFiles();
+  const read = moduleReader();
   let guarded = 0;
+  let shared = 0;
   const ungated: string[] = [];
   for (const file of routes) {
-    let body = "";
-    try { body = fs.readFileSync(file, "utf8"); } catch { continue; }
-    const hasBearer = /isCronAuthorised|CRON_SECRET|process\.env\.CRON_SECRET|Bearer/i.test(body);
-    // G33-T13: the repo's real guards — feature/admin/owner gates, the session
-    // cookie reader and signed webhooks — were counted as "ungated" (e.g.
-    // api/admin/comparables answers 401 anonymously via sectorMultiplesAdminGate).
-    const hasUserAuth = /getCurrentUser|requireUser|getServerSession|gateRequireFeature|requireProjectOwner|[A-Za-z]*AdminGate\s*\(|gateAdmin\s*\(|ndaGate\s*\(|authenticateRequest\s*\(|blockid_session|constructEvent\s*\(|stripe-signature/.test(body);
-    const isPublic = /\/\/\s*PUBLIC|@public-route/i.test(body);
-    if (hasBearer || hasUserAuth || isPublic) guarded++;
-    else ungated.push(file.replace(`${WEB_DIR}/src/app/`, ""));
+    const src = readSource(file);
+    if (src === null) continue;
+    const verdict = classifyRouteAuth({ file, src }, read);
+    if (verdict.gated) {
+      guarded++;
+      if (verdict.via === "shared_gate") shared++;
+    } else ungated.push(file.replace(`${WEB_DIR}/src/app/`, ""));
   }
   const ratio = routes.length === 0 ? 1 : guarded / routes.length;
   const score = Math.round(ratio * 10);
@@ -101,27 +123,31 @@ async function scoreAuthCoverage(): Promise<DimensionScore> {
     key: "auth_coverage",
     label: "Auth coverage on /api/* routes",
     score,
-    detail: `${guarded}/${routes.length} guarded (Bearer / user-auth / public-tagged)`,
+    detail: `${guarded}/${routes.length} guarded (direct / shared gate ${shared} / public-tagged); ${ungated.length} reach no auth primitive and carry no // PUBLIC tag`,
     findings: ungated.slice(0, 8).map(f => `Ungated: ${f}`),
   };
 }
 
 async function scoreRateLimit(): Promise<DimensionScore> {
   const routes = listRouteFiles();
+  const read = moduleReader();
+  // src/proxy.ts limits its BUCKET_ROUTES prefixes before any handler runs.
+  const proxyPrefixes = parseProxyBucketPrefixes(readSource(`${WEB_DIR}/src/proxy.ts`) ?? "");
   let rated = 0;
   const missing: string[] = [];
   for (const file of routes) {
-    let body = "";
-    try { body = fs.readFileSync(file, "utf8"); } catch { continue; }
-    if (/checkRateLimit\s*\(|@rate-limit-exempt/.test(body)) rated++;
-    else missing.push(file.replace(`${WEB_DIR}/src/app/`, ""));
+    const src = readSource(file);
+    if (src === null) continue;
+    const relative = file.replace(`${WEB_DIR}/src/app/`, "");
+    if (classifyRouteRateLimit({ file, src }, relative, read, proxyPrefixes).limited) rated++;
+    else missing.push(relative);
   }
   const ratio = routes.length === 0 ? 1 : rated / routes.length;
   return {
     key: "rate_limit",
     label: "Rate-limit coverage on /api/* routes",
     score: Math.round(ratio * 10),
-    detail: `${rated}/${routes.length} call checkRateLimit (or @rate-limit-exempt)`,
+    detail: `${rated}/${routes.length} rate-limited (route call, shared helper, proxy bucket or @rate-limit-exempt)`,
     findings: missing.slice(0, 8).map(f => `No rate-limit: ${f}`),
   };
 }
