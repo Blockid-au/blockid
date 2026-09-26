@@ -53,17 +53,13 @@ export async function GET(): Promise<NextResponse> {
   }
 
   const plan = user.plan ?? "free";
-  const { segment, accountType } = await resolveSegmentAndAccountType(user.id);
-  const jurisdiction = await resolveJurisdiction(user.id);
 
-  const uwp: UserWithPlan = {
-    id: user.id,
-    plan,
-    segment,
-    jurisdiction: jurisdiction ?? undefined,
-  };
-
-  const [entitlements, trialState, isResellerMember] = await Promise.all([
+  // G33 T15 — one stage instead of three: the profile read (segment +
+  // account_type + jurisdiction, formerly two sequential app_users reads) is
+  // independent of the entitlement / trial / reseller lookups, so all four
+  // run together. This route is polled by every signed-in tab.
+  const [{ segment, accountType, jurisdiction }, entitlements, trialState, isResellerMember] = await Promise.all([
+    resolveProfile(user.id),
     // user.id makes this add-on-aware: a founder paying for the Equity
     // add-on gets its features unioned onto their plan bundle here, so the
     // client hook and the sidebar see the same set the server gates on.
@@ -71,6 +67,13 @@ export async function GET(): Promise<NextResponse> {
     loadTrialState(user.id),
     hasActiveResellerMembership(user.id),
   ]);
+
+  const uwp: UserWithPlan = {
+    id: user.id,
+    plan,
+    segment,
+    jurisdiction: jurisdiction ?? undefined,
+  };
 
   // Reseller owners often keep a founder plan (growth / enterprise) so they
   // can also run their own startup on the same account. Their plan bundle
@@ -105,51 +108,41 @@ export async function GET(): Promise<NextResponse> {
 }
 
 // ---------------------------------------------------------------------------
-// resolveSegment — read `app_users.segment` (added in 0073_user_segments.sql).
-// Falls back to 'founder' if the column is missing (pre-migration DB) or the
-// value is out of range.
+// resolveProfile — read `app_users.segment` (added in 0073_user_segments.sql),
+// `account_type` and `jurisdiction`. Falls back to 'founder' / null if a
+// column is missing (pre-migration DB) or the value is out of range.
 // ---------------------------------------------------------------------------
 
 /**
- * `segment` + `account_type` in one read. `account_type` (reseller /
- * affiliate / journalist / investor / …) is what `resolvePersona()` needs to
- * pick the console bridge; without it every reseller rendered the founder
- * sidebar (W1 review P2).
+ * `segment` + `account_type` + `jurisdiction` in one app_users read.
+ * `account_type` (reseller / affiliate / journalist / investor / …) is what
+ * `resolvePersona()` needs to pick the console bridge; without it every
+ * reseller rendered the founder sidebar (W1 review P2). Every field falls
+ * back independently (segment → 'founder', the others → null).
  */
-async function resolveSegmentAndAccountType(userId: string): Promise<{ segment: string; accountType: string | null }> {
+async function resolveProfile(
+  userId: string,
+): Promise<{ segment: string; accountType: string | null; jurisdiction: string | null }> {
+  const fallback = { segment: "founder", accountType: null, jurisdiction: null };
   const supabase = getSupabaseAdmin();
-  if (!supabase) return { segment: "founder", accountType: null };
+  if (!supabase) return fallback;
   try {
     const { data } = await supabase
       .from("app_users")
-      .select("segment, account_type")
+      .select("segment, account_type, jurisdiction")
       .eq("id", userId)
       .maybeSingle();
-    const row = data as { segment?: string | null; account_type?: string | null } | null;
+    const row = data as { segment?: string | null; account_type?: string | null; jurisdiction?: string | null } | null;
     const seg = row?.segment;
     const at = row?.account_type;
+    const j = row?.jurisdiction;
     return {
       segment: typeof seg === "string" && seg.length > 0 ? seg : "founder",
       accountType: typeof at === "string" && at.length > 0 ? at : null,
+      jurisdiction: typeof j === "string" && j.length > 0 ? j : null,
     };
   } catch {
-    return { segment: "founder", accountType: null };
-  }
-}
-
-async function resolveJurisdiction(userId: string): Promise<string | null> {
-  const supabase = getSupabaseAdmin();
-  if (!supabase) return null;
-  try {
-    const { data } = await supabase
-      .from("app_users")
-      .select("jurisdiction")
-      .eq("id", userId)
-      .maybeSingle();
-    const j = (data as { jurisdiction?: string | null } | null)?.jurisdiction;
-    return typeof j === "string" && j.length > 0 ? j : null;
-  } catch {
-    return null;
+    return fallback;
   }
 }
 

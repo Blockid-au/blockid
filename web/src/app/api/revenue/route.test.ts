@@ -151,3 +151,41 @@ describe("GET /api/revenue — connector-fed P&L (S25-A)", () => {
     expect(body.sources.netIncome.label).toBe("estimate");
   });
 });
+
+describe("GET /api/revenue — one parallel stage (G33 T15)", () => {
+  it("charges + subscriptions run together once the customer is known, and the platform figures + manual entries still merge", async () => {
+    const started: string[] = [];
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    h.stripe = {
+      customers: { list: async () => { started.push("customers"); return { data: [{ id: "cus_1" }] }; } },
+      charges: { list: async () => { started.push("charges"); await gate; return { data: [{ id: "ch_1", created: Date.parse("2026-08-10T00:00:00Z") / 1000, status: "succeeded", amount: 10000, refunded: true, amount_refunded: 2500 }], has_more: false }; } },
+      subscriptions: { list: async () => { started.push("subscriptions"); await gate; return { data: [{ items: { data: [{ price: { recurring: { interval: "year" }, unit_amount: 120000 }, quantity: 1 }] } }] }; } },
+    };
+    h.manualEntries = [{ month: "2026-08", amount: 500, source: "manual" }];
+    const pending = GET();
+    for (let i = 0; i < 20; i++) await Promise.resolve();
+    expect(started).toEqual(["customers", "charges", "subscriptions"]);
+    release();
+    const body = await (await pending).json();
+    expect(body.hasStripe).toBe(true);
+    expect(body.revenue.total).toBe(600); // 100 charge + 500 manual, same as the sequential path
+    expect(body.revenue.monthly).toEqual([{ month: "2026-08", revenue: 600, refunds: 25, net: 575 }]);
+    expect(body.manualEntryCount).toBe(1);
+  });
+
+  it("a subscriptions.list failure still degrades quietly; a charges.list failure still fails the request", async () => {
+    h.stripe = {
+      customers: { list: async () => ({ data: [{ id: "cus_1" }] }) },
+      charges: { list: async () => ({ data: [], has_more: false }) },
+      subscriptions: { list: async () => { throw new Error("stripe down"); } },
+    };
+    expect((await GET()).status).toBe(200);
+    h.stripe = {
+      customers: { list: async () => ({ data: [{ id: "cus_1" }] }) },
+      charges: { list: async () => { throw new Error("charges down"); } },
+      subscriptions: { list: async () => ({ data: [] }) },
+    };
+    await expect(GET()).rejects.toThrow("charges down");
+  });
+});

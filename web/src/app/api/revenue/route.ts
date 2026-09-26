@@ -71,90 +71,45 @@ export async function GET() {
     if (denied) return denied;
     throw err;
   }
-  const snapshots = await loadSnapshotHistory(supabase, { userId: ownerUserId, projectId });
+  // G33 T15 — every read below is independent of the others, so they run as
+  // ONE parallel stage (was ~9 sequential stages incl. 3 Stripe calls; p95
+  // 3.2 s). Merge order and fallbacks are unchanged: charges first, then the
+  // manual entries; a charges.list failure still fails the request.
+  const [snapshots, platform, manualRes, metricRes, bankCsv, countRes] = await Promise.all([
+    loadSnapshotHistory(supabase, { userId: ownerUserId, projectId }),
+    loadPlatformStripe(stripe, user.email),
+    // ── 2b. Manual revenue entries from revenue_entries table ────────────
+    supabase
+      .from("revenue_entries")
+      .select("month, amount, source")
+      .eq("email", dataEmail)
+      .order("month", { ascending: true }),
+    // startup_metrics (manual MRR + burn rate) — fallback inputs.
+    supabase
+      .from("startup_metrics")
+      .select("mrr_aud, arr_aud, burn_rate_aud")
+      .eq("email", dataEmail)
+      .order("metric_date", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    // S28-C — categorised bank lines (/workspace/finance/expenses) are the fallback
+    // source after the connectors: average monthly income / spend over the
+    // last 12 months, labelled "from bank CSV, <date>".
+    projectId ? bankCsvFigures(supabase, projectId) : Promise.resolve(null),
+    // ── 5 (input). COGS: AI analysis count ───────────────────────────────
+    supabase
+      .from("svi_analyses")
+      .select("id", { count: "exact", head: true })
+      .eq("email", dataEmail),
+  ]);
   const stripeSnapshot = snapshots.stripe?.latest ?? null;
   const stripePrior = snapshots.stripe?.prior ?? null;
   const xeroSnapshot = snapshots.xero?.latest ?? null;
 
-  // ── 1. Find Stripe customer by email (if Stripe configured) ───────────
-  let customer: { id: string } | null = null;
-  if (stripe) {
-    try {
-      const customers = await stripe.customers.list({
-        email: user.email,
-        limit: 1,
-      });
-      customer = customers.data[0] ?? null;
-    } catch {
-      // Stripe not reachable — proceed without it
-    }
-  }
+  const { customer, monthlyMap, totalRefunds, mrr, activeSubscriptions } = platform;
+  let totalRevenue = platform.totalRevenue;
 
-  // ── 2. Fetch charges (last 12 months) ─────────────────────────────────
-  const twelveMonthsAgo = Math.floor(
-    new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).getTime() / 1000,
-  );
-
-  let totalRevenue = 0;
-  let totalRefunds = 0;
-  const monthlyMap = new Map<string, { revenue: number; refunds: number }>();
-
-  if (stripe && customer) {
-    // Paginate through all charges
-    let hasMore = true;
-    let startingAfter: string | undefined;
-
-    while (hasMore) {
-      const params: {
-        customer: string;
-        created: { gte: number };
-        limit: number;
-        starting_after?: string;
-      } = {
-        customer: customer.id,
-        created: { gte: twelveMonthsAgo },
-        limit: 100,
-      };
-      if (startingAfter) params.starting_after = startingAfter;
-
-      const charges = await stripe.charges.list(params);
-
-      for (const charge of charges.data) {
-        const date = new Date(charge.created * 1000);
-        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-        const entry = monthlyMap.get(monthKey) ?? { revenue: 0, refunds: 0 };
-
-        if (charge.status === "succeeded") {
-          const amountAud = charge.amount / 100; // Stripe amounts are in cents
-          entry.revenue += amountAud;
-          totalRevenue += amountAud;
-
-          if (charge.refunded || charge.amount_refunded > 0) {
-            const refundAud = charge.amount_refunded / 100;
-            entry.refunds += refundAud;
-            totalRefunds += refundAud;
-          }
-        }
-
-        monthlyMap.set(monthKey, entry);
-      }
-
-      hasMore = charges.has_more;
-      if (charges.data.length > 0) {
-        startingAfter = charges.data[charges.data.length - 1]!.id;
-      } else {
-        hasMore = false;
-      }
-    }
-  }
-
-  // ── 2b. Merge manual revenue entries from revenue_entries table ────────
-  const { data: manualEntries } = await supabase
-    .from("revenue_entries")
-    .select("month, amount, source")
-    .eq("email", dataEmail)
-    .order("month", { ascending: true });
-
+  const manualEntries = manualRes.data;
   if (manualEntries && manualEntries.length > 0) {
     for (const entry of manualEntries) {
       const monthKey = entry.month as string;
@@ -166,53 +121,10 @@ export async function GET() {
     }
   }
 
-  // ── 3. Active subscriptions + MRR ─────────────────────────────────────
-  let mrr = 0;
-  let activeSubscriptions = 0;
-
-  if (stripe && customer) {
-    try {
-      const subs = await stripe.subscriptions.list({
-        customer: customer.id,
-        status: "active",
-        limit: 100,
-      });
-
-      activeSubscriptions = subs.data.length;
-
-      for (const sub of subs.data) {
-        for (const item of sub.items.data) {
-          const price = item.price;
-          if (price.recurring && price.unit_amount) {
-            const amount = price.unit_amount / 100;
-            if (price.recurring.interval === "month") {
-              mrr += amount * (item.quantity ?? 1);
-            } else if (price.recurring.interval === "year") {
-              mrr += (amount / 12) * (item.quantity ?? 1);
-            }
-          }
-        }
-      }
-    } catch {
-      // Stripe error — proceed without subscription data
-    }
-  }
-
-  // startup_metrics (manual MRR + burn rate) — fallback inputs.
-  const { data: latestMetric } = await supabase
-    .from("startup_metrics")
-    .select("mrr_aud, arr_aud, burn_rate_aud")
-    .eq("email", dataEmail)
-    .order("metric_date", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const latestMetric = metricRes.data;
   const metricsMrr = Number(latestMetric?.mrr_aud ?? 0) || 0;
   const metricsBurn = Number(latestMetric?.burn_rate_aud ?? 0) || 0;
 
-  // S28-C — categorised bank lines (/workspace/finance/expenses) are the fallback
-  // source after the connectors: average monthly income / spend over the
-  // last 12 months, labelled "from bank CSV, <date>".
-  const bankCsv = projectId ? await bankCsvFigures(supabase, projectId) : null;
   // S29-hardening: ONE burn precedence (Xero → bank CSV → metrics → none),
   // shared with /api/pnl and /api/valuation* — the same figure the P&L opex
   // line below is built on.
@@ -243,14 +155,7 @@ export async function GET() {
 
   // ── 5. COGS: AI analysis costs ────────────────────────────────────────
   const AI_COST_PER_ANALYSIS = 0.05; // A$0.05 per analysis
-  let analysisCount = 0;
-
-  const { count } = await supabase
-    .from("svi_analyses")
-    .select("id", { count: "exact", head: true })
-    .eq("email", dataEmail);
-
-  analysisCount = count ?? 0;
+  const analysisCount = countRes.count ?? 0;
 
   const aiCosts = Math.round(analysisCount * AI_COST_PER_ANALYSIS * 100) / 100;
 
@@ -343,6 +248,124 @@ export async function GET() {
     },
     manualEntryCount: manualEntries?.length ?? 0,
   });
+}
+
+type StripeClient = NonNullable<ReturnType<typeof getStripe>>;
+
+interface PlatformStripe {
+  customer: { id: string } | null;
+  monthlyMap: Map<string, { revenue: number; refunds: number }>;
+  totalRevenue: number;
+  totalRefunds: number;
+  mrr: number;
+  activeSubscriptions: number;
+}
+
+/**
+ * Steps 1–3 of GET: the platform Stripe customer (by e-mail), its last-12-month
+ * charges and its active subscriptions. Charges and subscriptions only need
+ * the customer id, so they run in parallel (G33 T15). Error handling is as
+ * before: a customer-lookup or subscriptions failure degrades to "no Stripe",
+ * a charges.list failure propagates.
+ */
+async function loadPlatformStripe(stripe: StripeClient | null, email: string): Promise<PlatformStripe> {
+  const out: PlatformStripe = { customer: null, monthlyMap: new Map(), totalRevenue: 0, totalRefunds: 0, mrr: 0, activeSubscriptions: 0 };
+  if (!stripe) return out;
+
+  // ── 1. Find Stripe customer by email ──────────────────────────────────
+  try {
+    const customers = await stripe.customers.list({ email, limit: 1 });
+    out.customer = customers.data[0] ?? null;
+  } catch {
+    // Stripe not reachable — proceed without it
+  }
+  const customer = out.customer;
+  if (!customer) return out;
+
+  // ── 2. Fetch charges (last 12 months) ─────────────────────────────────
+  const twelveMonthsAgo = Math.floor(
+    new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).getTime() / 1000,
+  );
+  const loadCharges = async () => {
+    // Paginate through all charges
+    let hasMore = true;
+    let startingAfter: string | undefined;
+
+    while (hasMore) {
+      const params: {
+        customer: string;
+        created: { gte: number };
+        limit: number;
+        starting_after?: string;
+      } = {
+        customer: customer.id,
+        created: { gte: twelveMonthsAgo },
+        limit: 100,
+      };
+      if (startingAfter) params.starting_after = startingAfter;
+
+      const charges = await stripe.charges.list(params);
+
+      for (const charge of charges.data) {
+        const date = new Date(charge.created * 1000);
+        const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+        const entry = out.monthlyMap.get(monthKey) ?? { revenue: 0, refunds: 0 };
+
+        if (charge.status === "succeeded") {
+          const amountAud = charge.amount / 100; // Stripe amounts are in cents
+          entry.revenue += amountAud;
+          out.totalRevenue += amountAud;
+
+          if (charge.refunded || charge.amount_refunded > 0) {
+            const refundAud = charge.amount_refunded / 100;
+            entry.refunds += refundAud;
+            out.totalRefunds += refundAud;
+          }
+        }
+
+        out.monthlyMap.set(monthKey, entry);
+      }
+
+      hasMore = charges.has_more;
+      if (charges.data.length > 0) {
+        startingAfter = charges.data[charges.data.length - 1]!.id;
+      } else {
+        hasMore = false;
+      }
+    }
+  };
+
+  // ── 3. Active subscriptions + MRR ─────────────────────────────────────
+  const loadSubscriptions = async () => {
+    try {
+      const subs = await stripe.subscriptions.list({
+        customer: customer.id,
+        status: "active",
+        limit: 100,
+      });
+
+      out.activeSubscriptions = subs.data.length;
+
+      for (const sub of subs.data) {
+        for (const item of sub.items.data) {
+          const price = item.price;
+          if (price.recurring && price.unit_amount) {
+            const amount = price.unit_amount / 100;
+            if (price.recurring.interval === "month") {
+              out.mrr += amount * (item.quantity ?? 1);
+            } else if (price.recurring.interval === "year") {
+              out.mrr += (amount / 12) * (item.quantity ?? 1);
+            }
+          }
+        }
+      }
+    } catch {
+      // Stripe error — proceed without subscription data
+    }
+  };
+
+  await Promise.all([loadCharges(), loadSubscriptions()]);
+  return out;
 }
 
 // ---------------------------------------------------------------------------

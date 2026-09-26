@@ -377,12 +377,37 @@ describe("GET /api/entitlement/me — resolveSegment", () => {
     tableState("app_users").data = { segment: "growth", jurisdiction: null };
     await GET();
     const ts = tableState("app_users");
-    // resolveSegment + resolveJurisdiction both hit app_users. The segment
-    // resolver runs first, so its (select, eq) is overwritten by the
-    // jurisdiction one — assert only the final call carries user.id.
+    // G33 T15 — segment + account_type + jurisdiction come from ONE read
+    // (was two sequential app_users round trips on every poll).
+    expect(ts.selectCols).toBe("segment, account_type, jurisdiction");
     expect(ts.eqCol).toBe("id");
     expect(ts.eqVal).toBe("founder-42");
-    expect(ts.maybeSingleCalls).toBeGreaterThanOrEqual(2);
+    expect(ts.maybeSingleCalls).toBe(1);
+  });
+
+  it("G33 T15: the profile, entitlement, trial and reseller lookups all start before any of them settles (one parallel stage)", async () => {
+    const started: string[] = [];
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    getEntitlementsMock.mockImplementation(async () => {
+      started.push("entitlements");
+      await gate;
+      return ["feature.a"];
+    });
+    hasActiveResellerMembershipMock.mockImplementation(async () => {
+      started.push("reseller");
+      await gate;
+      return false;
+    });
+    tableState("app_users").data = { segment: "growth", jurisdiction: "AU" };
+    const pending = GET();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(started.sort()).toEqual(["entitlements", "reseller"]);
+    expect(tableState("app_users").maybeSingleCalls).toBe(1);
+    expect(tableState("subscription_trial_state").maybeSingleCalls).toBe(1);
+    release();
+    const body = await (await pending).json();
+    expect(body).toMatchObject({ segment: "growth", jurisdiction: "AU", entitlements: ["feature.a"] });
   });
 
   it("body.account_type mirrors app_users.account_type (persona resolution needs it — W1 review P2); null when absent", async () => {
