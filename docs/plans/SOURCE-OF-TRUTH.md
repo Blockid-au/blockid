@@ -2259,6 +2259,31 @@ Founder có thể duyệt toàn bộ hoặc sửa từng D-ID. Khi duyệt, ghi 
 
 ## 17. Change log
 
+- **26/09/2026 — Nhóm việc làm được ngay: LIVE `c0583291c` (origin 4159)** qua `deploy-auto.sh`:
+  - **Privacy policy v2.4:** thêm clause 2E "Automated decisions and AI analysis" (EN+VI, theo APP 1.7). Registry `privacy_au_v2_4` (0471) đã áp dụng; consent version đổi thành `v2.4-2026-09-26`.
+  - **DC10:** hiện một dòng nêu mục đích sử dụng dữ liệu ở 6 điểm thu thập, và hiển thị trạng thái autosave của onboarding.
+  - **G33 T15:**
+    - SLO tính trung thực hơn: tách `api_cron` riêng; chỉ đo request có timing; stream không còn nằm trong percentile.
+    - `/api/revenue` và `/api/entitlement/me` gọi song song; client dùng chung các fetch đang chờ.
+  - **G33 T01:** `down` chỉ khi có run không ra report. Tỷ lệ chương degraded cao chỉ đưa về `watch` — theo founder review, không tính là outage.
+  - **G33 T16f:** log một dòng mỗi lần từ chối ngân sách AI.
+  - **G33 T13:** scanner nhận ra shared auth gate; 73 route vẫn công khai hoặc chưa gắn tag. Danh sách route public chưa có rate limit ghi trong receipt của agent.
+  - **`score_views`:** thêm `svi_analysis_id` (0468 đã áp dụng), nên lượt xem link `svi_analyses` được ghi lại.
+  - **BT3:**
+    - CTA Add/Request evidence.
+    - Popover cho chip tín hiệu (props thuần dữ liệu, sửa lỗi prerender).
+    - Banner "xem bản cũ" trên `/tbr/[token]`; token của revision giờ resolve được.
+  - **RQ25/26:** mandate fit theo từng trục và triage verdict trên Investor Dossier, chỉ evaluator thấy.
+  - **G32:**
+    - SV0 `rubric@v1`: 52 câu hỏi hướng dẫn + 51 overlay; methodology draft ở `docs/research/2026-09-26-g32-sv0-rubric-v1-methodology.md`.
+    - SV2: `methodMeta` trong ReportV2 (không cần migration); SVI không đổi.
+  - **Telegram:** token cũ bị vô hiệu (401), đã comment trong `.env`; alert chuyển sang email fallback.
+  - **Email gửi khách:** vẫn tạm dừng.
+  - **Mục mở:**
+    - Research thị trường cho định giá: Brave → Claude CLI → DeepInfra; agent đang làm.
+    - Brave key hết quota tháng (0) — founder cần nâng gói.
+    - Nghi `load.ts` hash revision sau khi jsonb đảo thứ tự key — cần kiểm tra khi có revision thật.
+
 - **25/09/2026 — Deploy một lệnh + tạm dừng email:**
   - `web/scripts/deploy-auto.sh` làm trọn quy trình: chờ load, retire origin cũ nhất đủ điều kiện, cấp permit, `deploy-live --quick`, rồi mark-good.
   - Bản đầu tiên deploy bằng công cụ này: `0ac3943fc` (origin 4157).
