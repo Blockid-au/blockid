@@ -67,6 +67,7 @@ import {
   tallyingCaller,
   investorIntentFromRow,
   websiteEvidenceFromRow,
+  criteriaDataFromRow,
   type CallTally,
   type DeliverV2Deps,
   type Orchestrate,
@@ -307,6 +308,14 @@ describe("pure helpers", () => {
   it("rejects malformed stored intent and non-website evidence", () => {
     expect(investorIntentFromRow(row({ intake: { investorIntent: { version: "bad" } } }))).toBeUndefined();
     expect(websiteEvidenceFromRow(row({ input_kind: "idea_text" }))).toEqual([]);
+  });
+  it("criteriaDataFromRow hands GATHER the website a visitor typed — and nothing for a deck", () => {
+    expect(criteriaDataFromRow({ input_kind: "website", input_url: "00z.ai" }).website.links).toEqual([{ url: "https://00z.ai/", label: "Website" }]);
+    expect(criteriaDataFromRow({ input_kind: "website", input_url: "https://acme.com.au/about" }).website.links[0]?.url).toBe("https://acme.com.au/about");
+    expect(criteriaDataFromRow({ input_kind: "website", input_url: "ftp://acme.com" }).website.links).toEqual([]);
+    expect(criteriaDataFromRow({ input_kind: "website", input_url: "https://user:pw@acme.com" }).website.links).toEqual([]);
+    expect(criteriaDataFromRow({ input_kind: "pitch_deck", input_url: "https://acme.com" }).website.links).toEqual([]);
+    expect(criteriaDataFromRow({ input_kind: "website", input_url: null }).market.links).toEqual([]);
   });
   it("progressFromEvent moves the phase / pct forward and never backwards", () => {
     let p = newEnvelope("a", "Acme", NOW).progress;

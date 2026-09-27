@@ -273,7 +273,9 @@ export function buildInputEcho(intake: EchoInput, meta: EchoMeta = {}): InputEch
   let company: string | null = null;
   let companySource: string | null = null;
   try {
-    const scrapedTitle = inputKind === "website" ? rawText.split(/\n\n/)[0]?.trim() : undefined;
+    // The website corpus prefixes every page with a "[Source: <url>]" line —
+    // provenance, not part of the page title.
+    const scrapedTitle = inputKind === "website" ? rawText.replace(/^\s*\[Source: [^\]\n]*\]\s*/, "").split(/\n\n/)[0]?.trim() : undefined;
     const name = extractProjectName({
       rawText,
       fileName: meta.filename ?? undefined,

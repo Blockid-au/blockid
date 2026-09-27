@@ -244,6 +244,31 @@ export function websiteEvidenceFromRow(row: FullReportRow): EvidenceItem[] {
   });
 }
 
+/**
+ * The criteria data a first analysis can honestly supply: the website the
+ * visitor typed for a website analysis. Without it GATHER had no link, so the
+ * tech audit, public research (R01) and market research all skipped on every
+ * website run. A URL inside a deck is NOT promoted — R01 only follows links
+ * the visitor supplied explicitly.
+ */
+export function criteriaDataFromRow(row: Pick<FullReportRow, "input_kind" | "input_url">): ReturnType<typeof buildCriteriaData> {
+  const data = buildCriteriaData(null);
+  const url = row.input_kind === "website" ? publicWebsiteUrl(row.input_url) : null;
+  if (url) data.website = { ...data.website, links: [{ url, label: "Website" }] };
+  return data;
+}
+
+function publicWebsiteUrl(raw: string | null | undefined): string | null {
+  if (typeof raw !== "string" || !raw.trim() || raw.length > 2048) return null;
+  try {
+    const u = new URL(/^https?:\/\//i.test(raw.trim()) ? raw.trim() : `https://${raw.trim()}`);
+    if (!/^https?:$/.test(u.protocol) || u.username || u.password || !u.hostname.includes(".")) return null;
+    return u.toString();
+  } catch {
+    return null;
+  }
+}
+
 /** Wrap the dispatcher call so every answered call is counted by provider + model. */
 export function tallyingCaller(inner: ReportV2JobDeps["callAI"], tally: CallTally): ReportV2JobDeps["callAI"] {
   return async (system, user, maxTokens, taskClass, hint) => {
@@ -379,7 +404,7 @@ async function runReportV2JobTracked(id: string, deps: ReportV2JobDeps): Promise
       investorIntent: investorIntentFromRow(row),
       sviAnalysis: built.analysis,
       evidenceItems: websiteEvidenceFromRow(row),
-      criteriaData: buildCriteriaData(null),
+      criteriaData: criteriaDataFromRow(row),
       tier: "standard",
       tierV2: "standard",
       locale: "en",

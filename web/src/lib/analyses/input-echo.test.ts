@@ -19,6 +19,15 @@ const SIGNALS_BASE = {
 };
 
 describe("buildInputEcho", () => {
+  it("a website corpus's [Source: <url>] provenance line never leaks into the company name", () => {
+    const echo = buildInputEcho(
+      { inputKind: "website", rawText: "[Source: https://00z.ai/]\n00z.ai | From Stage Zero to One\n\nOwn the business model before you build the business." },
+      { url: "00z.ai" },
+    );
+    expect(echo.company).toBe("00z.ai");
+    expect(echo.company).not.toMatch(/\[Source:/);
+  });
+
   it("renders every row as not provided for an empty input, and still names the company", () => {
     const echo = buildInputEcho({ inputKind: "idea_text", rawText: "", structured: {}, signals: SIGNALS_BASE });
     expect(echo.total).toBe(11);
