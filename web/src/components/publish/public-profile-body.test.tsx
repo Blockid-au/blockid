@@ -116,11 +116,15 @@ describe("what a published page must carry to be worth indexing", () => {
     }
   });
 
-  it("shows the valuation range and the methods behind it", () => {
-    expect(html).toContain("A$1.20M");
-    expect(html).toContain("A$3.60M");
-    expect(html).toContain("Berkus");
-    expect(html).toContain("Scorecard");
+  // V04a (D22): the stored range was derived from the SVI (Berkus/Scorecard
+  // over the dimension scores); a published page never prints it — the
+  // company value reads "not estimable" with what would unlock a method.
+  it("never shows an SVI-derived valuation range — the company value is not estimable", () => {
+    expect(html).not.toContain("A$1.20M");
+    expect(html).not.toContain("A$3.60M");
+    expect(html).not.toContain("Berkus");
+    expect(html).toContain("Not estimable");
+    expect(html).toContain("to unlock a valuation method");
   });
 
   // "No methodology weighting on customer surfaces."
@@ -157,7 +161,7 @@ describe("preview parity", () => {
     // The preview drops only the back-link to the directory; everything a
     // reader would see is identical, because the preview IS the page.
     expect(preview).toContain("Corella Health");
-    expect(preview).toContain("A$1.20M");
+    expect(preview).toContain("Not estimable");
     expect(preview).toContain("Get your first paying customer");
     expect(preview).not.toContain("Browse every published Australian startup");
   });

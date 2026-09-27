@@ -36,7 +36,7 @@ const DIMENSION_GUIDES: Record<string, { title: string; whyItMatters: string; qu
   },
   mpc: {
     title: "Market & Problem Clarity",
-    whyItMatters: "Without a clear problem-customer fit, valuation drops to TAM-percentile fallbacks. This is the highest-leverage dimension at idea/early stage.",
+    whyItMatters: "Without a clear problem-customer fit, investors have nothing to underwrite. This is the highest-leverage dimension at idea/early stage.",
     quickWins: [
       "Run 10 customer-discovery calls (Mom Test framework)",
       "Publish a Problem-Customer-Solution canvas",
@@ -56,7 +56,7 @@ const DIMENSION_GUIDES: Record<string, { title: string; whyItMatters: string; qu
   },
   tre: {
     title: "Traction & Revenue Evidence",
-    whyItMatters: "The single biggest valuation multiplier. A$1 of paying revenue moves you from anchor-based pricing to multiple-based pricing.",
+    whyItMatters: "The strongest evidence you can add. Verified paying revenue (Stripe or Xero connected) is what unlocks a revenue-based valuation method.",
     quickWins: [
       "Log your first revenue via /workspace/finance",
       "Connect Stripe for real-time MRR",

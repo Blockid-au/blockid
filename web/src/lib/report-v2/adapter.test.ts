@@ -151,16 +151,34 @@ describe("fromSnapshot — shapes the platform stores today", () => {
     expect(small.cover.dims.tre.p50).toBe(52);
   });
 
-  it("valuation: 7 methods, non-applicable without a CFO report, consensus from the three-case model", () => {
+  // V04a (D22): the read-time three-case band (SVI × stage multiplier) is
+  // gone — without a CFO report the chapter is "not estimable" with the
+  // evidence that unlocks a method, and the cover's worth line says so.
+  it("valuation: without a CFO report the chapter is not estimable — no SVI-derived range (V04a)", () => {
     const r = fromSnapshot({ ...demoSnapshotInput(), vc: null, revenueEvidenceIds: [] });
-    expect(r.valuation.methods).toHaveLength(7);
-    expect(r.valuation.methods.every((m) => !m.applicable)).toBe(true);
-    expect(r.valuation.inputs).toBeUndefined();
-    expect(r.valuation.crossChecks).toHaveLength(1);
-    expect(r.valuation.consensus.midAud).toBeGreaterThan(0);
-    expect(r.valuation.scenarios.bear).toBeLessThan(r.valuation.scenarios.bull);
-    expect(r.valuation.comparables.n).toBeGreaterThan(0);
-    expect(r.valuation.visuals.map((v) => v.kind)).toEqual(["range_bars", "scatter"]);
+    expect(r.valuation).toMatchObject({ status: "unavailable", reason: "not_estimable", visuals: [] });
+    expect(r.valuation).not.toHaveProperty("consensus");
+    expect(r.valuation).not.toHaveProperty("scenarios");
+    if (r.valuation.status !== "unavailable") throw new Error("expected unavailable");
+    expect(r.valuation.missingInputs.length).toBeGreaterThan(0);
+    expect(r.valuation.narrative).toMatch(/^Not estimable — add .* to unlock a valuation method\./);
+    expect(r.cover.threeQuestions.worth).toMatch(/^Not estimable/);
+    expect(JSON.stringify(r.cover)).not.toMatch(/A\$\s?\d/);
+    const vi = fromSnapshot({ ...demoSnapshotInput(), vc: null, locale: "vi" });
+    expect(vi.valuation.narrative).toMatch(/^Chưa ước tính được — bổ sung/);
+  });
+
+  it("SV1: the uncapped index is never clamped to 100 on the cover ring, and the band reads the dimension profile", () => {
+    const dims = Object.fromEntries(DIM_ORDER.map((d) => [d, { score: 50 }]));
+    const r = fromSnapshot({ dimStates: dims, sviTotal: 132 });
+    expect(r.cover.svi.total).toBe(132);
+    // An index of 132 over a 50-point profile is "developing", not "strong by construction".
+    expect(r.cover.svi.band).toBe("developing");
+    const ring = r.cover.visuals.find((v) => v.id === "cover-score-ring")!;
+    expect((ring.data as { display?: string }).display).toBe("132");
+    expect((ring.data as { value: number }).value).toBe(50);
+    expect(ring.svg).toContain(">132<");
+    expect(ring.svg).not.toContain(">100<");
   });
 
   it("valuation: a CFO VcValuationReport fills the 5 methods", () => {

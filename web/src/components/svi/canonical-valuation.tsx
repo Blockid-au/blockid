@@ -1,5 +1,12 @@
 import type { StreamValuation } from "@/lib/svi/stream-valuation";
-import { formatAud } from "@/lib/svi/three-case-valuation";
+
+/** Compact AUD, e.g. A$2.4M / A$850k (the report's CFO figures only). */
+function formatAud(n: number): string {
+  if (n >= 1_000_000_000) return `A$${(n / 1_000_000_000).toFixed(1).replace(/\.0$/, "")}B`;
+  if (n >= 1_000_000) return `A$${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  if (n >= 1_000) return `A$${(n / 1_000).toFixed(0)}k`;
+  return `A$${n}`;
+}
 
 export function CanonicalValuation({ valuation }: { valuation: StreamValuation }) {
   const { consensus: c, scenarios: s } = valuation;

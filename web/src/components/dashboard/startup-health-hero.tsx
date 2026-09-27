@@ -4,7 +4,7 @@ import Link from "next/link";
 import { RefreshCw } from "lucide-react";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
-import { estimateValuation, formatAUD } from "@/lib/valuation";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 import { cn } from "@/lib/utils";
 
 interface Props {
@@ -45,8 +45,8 @@ export function StartupHealthHero({ analysis, lastAnalysisDate, previousSVI }: P
   const stage = analysis.stage ?? 0;
   const stageLabel = SVI_STAGE_LABELS[stage] ?? "Concept";
   const delta = previousSVI != null ? svi - previousSVI : undefined;
-  const dims = analysis.dimensionScores ?? Object.fromEntries((analysis.subs ?? []).map(s => [s.key, s.value]));
-  const val = estimateValuation(svi, stage, { sector: analysis.sector ?? analysis.signals?.sector }, dims);
+  // V04a (D22): no dollar range is derived from the SVI.
+  const val = valuationNotEstimable();
   const percentile = analysis.percentileRank ?? 50;
 
   // Ring progress (capped at 250 for visual)
@@ -100,12 +100,11 @@ export function StartupHealthHero({ analysis, lastAnalysisDate, previousSVI }: P
             </div>
           )}
 
-          {/* Valuation estimate */}
+          {/* Company value — never derived from the SVI (V04a / D22) */}
           <div className="rounded-lg bg-surface-50 border border-surface-200 px-3 py-2">
-            <p className="text-[10px] uppercase tracking-wider text-ink-500">Est. Valuation</p>
-            <p className="text-sm font-semibold text-ink-800">
-              {formatAUD(val.low)} – {formatAUD(val.high)}
-            </p>
+            <p className="text-[10px] uppercase tracking-wider text-ink-500">Company value</p>
+            <p className="text-sm font-semibold text-ink-800">{val.label}</p>
+            <p className="text-[10px] text-ink-500">{val.hint}</p>
           </div>
 
           {/* Percentile */}

@@ -383,13 +383,12 @@ describe("startup-index-listings — row shape", () => {
     expect(result.rows[0].stageLabel).toBe("Concept");
   });
 
-  it("valuation is clamped to [0..2_000_000_000]", async () => {
+  it("never publishes a valuation — even when a stored deep-valuation blend exists (V04a / D22)", async () => {
     const { computeListings } = await import("./startup-index-listings");
     state.queue = [
       {
         data: [
           analysis({ email: "a@x", id: "an_hi", valuationMidAud: 5_000_000_000 }),
-          analysis({ email: "b@x", id: "an_lo", valuationMidAud: -500 }),
           analysis({ email: "c@x", id: "an_ok", valuationMidAud: 1_234_000 }),
         ],
       },
@@ -397,18 +396,7 @@ describe("startup-index-listings — row shape", () => {
       { data: [] },
     ];
     const result = await computeListings({ sort: "valuation", order: "asc" });
-    expect(result.rows.map((r) => r.valuationAud)).toEqual([0, 1_234_000, 2_000_000_000]);
-  });
-
-  it("valuation defaults to 0 when deepValuation is missing", async () => {
-    const { computeListings } = await import("./startup-index-listings");
-    state.queue = [
-      { data: [analysis({ email: "a@x", id: "an_1" })] },
-      { data: [] },
-      { data: [] },
-    ];
-    const result = await computeListings({});
-    expect(result.rows[0].valuationAud).toBe(0);
+    expect(result.rows.map((r) => r.valuationAud)).toEqual([null, null]);
   });
 
   it("hasRevenue is Boolean-coerced from signals.hasRevenue", async () => {
@@ -724,17 +712,12 @@ describe("startup-index-listings — sort + pagination", () => {
     expect(r.rows.map((x) => x.svi)).toEqual([10, 20, 40, 70, 90]);
   });
 
-  it("sort=valuation desc orders by valuationAud", async () => {
+  it("sort=valuation is accepted but no price exists — rows keep the SVI order (V04a / D22)", async () => {
     const { computeListings } = await import("./startup-index-listings");
     state.queue = [fiveRows(), { data: [] }, { data: [] }];
     const r = await computeListings({ sort: "valuation" });
-    expect(r.rows.map((x) => x.valuationAud)).toEqual([
-      5_000_000,
-      1_000_000,
-      500_000,
-      200_000,
-      50_000,
-    ]);
+    expect(r.rows.map((x) => x.svi)).toEqual([90, 70, 40, 20, 10]);
+    expect(r.rows.every((x) => x.valuationAud === null)).toBe(true);
   });
 
   it("sort=stage asc orders by numeric stage", async () => {
@@ -879,7 +862,8 @@ describe("startup-index-listings — computeListingDetail", () => {
     expect(r!.stage).toBe(3);
     expect(r!.stageLabel).toBe("Traction");
     expect(r!.svi).toBe(65);
-    expect(r!.valuationAud).toBe(750_000);
+    expect(r!.valuationAud).toBeNull(); // V04a: the stored deep-valuation blend is never published
+    expect(r!.perspectives).toBeNull();
     expect(r!.publicName).toBe("Alice");
     expect(r!.publicVisible).toBe(true);
     expect(r!.antlerSignals).toEqual([{ key: "team", label: "Team", score: 82 }]);
@@ -888,8 +872,6 @@ describe("startup-index-listings — computeListingDetail", () => {
     // Only top 3 gaps surface
     expect(r!.acceleratorReadiness!.topGaps).toHaveLength(3);
     expect(r!.acceleratorReadiness!.topGaps[0]).toEqual({ criterion: "Traction", source: "YC Rubric" });
-    expect(r!.perspectives).toHaveLength(1);
-    expect(r!.perspectives![0].label).toBe("Investor");
     expect(r!.inputSummaryProjectName).toBe("MyCo");
     expect(r!.sviHistory).toEqual([
       { date: "2026-07-01", svi: 50 },

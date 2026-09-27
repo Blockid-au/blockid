@@ -74,18 +74,13 @@ export function clipRaw(rawText: string | null | undefined): string {
   return v.length <= RAW_EXCERPT_CHARS ? v : `${v.slice(0, RAW_EXCERPT_CHARS)}\n[… input continues; ${v.length - RAW_EXCERPT_CHARS} more characters were read for the score]`;
 }
 
-function aud(n: number): string {
-  if (n >= 1_000_000) return `A$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `A$${Math.round(n / 1_000)}K`;
-  return `A$${Math.round(n).toLocaleString("en-AU")}`;
-}
 
 /** Per-role focus on top of the shared rules. Short, because the role prompt already carries the expertise. */
 const ROLE_FOCUS: Record<FirstAnalysisAgent, string> = {
   ceo:
-    "Write the strategy summary a founder reads first. Say plainly where this startup is (the stage and what the index means at that stage), the single biggest gap between the current evidence and the next milestone, and the one thing to do this week. Refer to the valuation range as indicative and explain in one sentence what would move it.",
+    "Write the strategy summary a founder reads first. Say plainly where this startup is (the stage and what the index means at that stage), the single biggest gap between the current evidence and the next milestone, and the one thing to do this week. The company value is not estimable in this report: say so in one sentence and name the input that would unlock a valuation method. Never state or imply a dollar value for the company.",
   cfo:
-    "Explain what the indicative valuation rests on (which methods, which assumptions, which inputs were missing), what a revenue figure or a signed customer would change, and lay out a money plan for the next 90 days: what to spend on, what to track (MRR, burn, runway) and which AU programme (R&D Tax Incentive, ESIC) is worth checking now. Do not invent revenue, burn or runway numbers.",
+    "Explain why a valuation is not estimable yet (no valuation method has verified inputs: which are missing), what connected revenue, financial statements or a priced round would unlock, and lay out a money plan for the next 90 days: what to spend on, what to track (MRR, burn, runway) and which AU programme (R&D Tax Incentive, ESIC) is worth checking now. Do not invent revenue, burn or runway numbers, and never state or imply a dollar value for the company: the SVI is an index, not a valuation.",
   cmo:
     "Describe the customer and the buying trigger as far as the input supports it, name what is missing to size the market honestly, and give a first-customers plan: three channels that suit this sector in Australia, the message to test, and how to know in 30 days whether it worked.",
   cto:
@@ -140,9 +135,10 @@ Strongest: ${strongest}. Weakest: ${weakest}.
 Evidence gaps:
 ${gaps || "- none flagged"}
 
-# INDICATIVE VALUATION
-Range ${aud(g.valuation.lowAud)} – ${aud(g.valuation.highAud)} (mid ${aud(g.valuation.midAud)}), method: ${g.valuation.method}, basis: ${g.valuation.basis === "revenue" ? "a revenue figure from the input" : "SVI-based — no revenue figure was provided"}.
-Assumptions: ${g.valuation.assumptions.join(" ")}
+# VALUATION
+${g.valuation.note}
+The company value is NOT estimable in this report: do not state, estimate or imply a valuation, a valuation range or a price for the company, and never convert the SVI into dollars (it is an index, not a dollar figure).
+What we read: ${g.valuation.assumptions.join(" ")}
 
 # INPUT EXCERPT
 """
@@ -274,17 +270,16 @@ export function parseAgentText(text: string): ParsedAgentText | null {
 //   1. OWN-FACT figures — a dollar amount the sentence asserts as the
 //      company's own number ("your valuation is A$42M", "valued at",
 //      "is worth", "you have generated A$…", "your cap of A$…") — must
-//      match an input figure or a figure the deterministic valuation
-//      produced, within ±10 %. Anything else is rejected and retried with
+//      match an input figure, within ±10 %. Anything else is rejected and retried with
 //      a correction; a second miss fails the section.
 //   2. Any OTHER A$/$ figure is allowed and tagged "(benchmark — not from
 //      your data)" on its first occurrence in the section, and the section
 //      carries the list so the page and the PDF can print the footer
 //      "Figures marked as benchmarks are market references, not your data".
 //   3. A figure presented as THE valuation ("valuation of A$X", "valued at
-//      A$X", "worth A$X" with no benchmark word in reach) must be one of
-//      the range's own figures — the founder's ask or cap can never be
-//      restated as the valuation.
+//      A$X", "worth A$X" with no benchmark word in reach) is always
+//      misstated: V04a / D22 — the report has no valuation, and the
+//      founder's ask or cap can never be restated as one.
 
 const AMOUNT_RE = /(?:A\$|AUD\s?|\$)\s?\d[\d,]*(?:\.\d+)?\s?(?:k|m|b|bn|million|thousand|billion)?/gi;
 /** Words that mark a figure as a benchmark or a cost rather than the founder's number. */
@@ -346,19 +341,15 @@ export function sameAmount(a: number, b: number, tolerance = 0.1): boolean {
 const FOUNDER_FIGURE_TOLERANCE = 0.05;
 
 /**
- * The founder's own figures: what the input says, and the range the
- * deterministic valuation produced from it. A figure that matches one of
- * these is never tagged as a benchmark.
+ * The founder's own figures: what the input says (and the stated ask / cap).
+ * A figure that matches one of these is never tagged as a benchmark. There is
+ * no deterministic valuation range any more (V04a / D22).
  */
 export function founderFigures(g: AgentGrounding): number[] {
   return [
     ...amountsIn(g.rawExcerpt),
     ...g.echo.rows.flatMap((r) => amountsIn(r.value ?? "")),
     ...g.echo.claims.flatMap((c) => amountsIn(c.text)),
-    ...g.valuation.methods.flatMap((m) => [m.lowAud, m.midAud, m.highAud]),
-    g.valuation.lowAud,
-    g.valuation.midAud,
-    g.valuation.highAud,
     ...(g.valuation.askAud ? [g.valuation.askAud] : []),
     ...(g.valuation.statedCapAud ? [g.valuation.statedCapAud] : []),
   ].filter((n) => Number.isFinite(n) && n > 0);
@@ -366,8 +357,8 @@ export function founderFigures(g: AgentGrounding): number[] {
 
 /**
  * Every figure the writer may state as the company's own: the founder's
- * figures plus what the valuation's stated assumptions derive from them
- * (ARR from MRR, the stage medians, the Berkus caps). Wider than
+ * figures plus what the section's read-back derives from them (ARR from
+ * MRR). Wider than
  * `founderFigures` because "your ARR is A$112,800" is a fair own-fact when
  * the input gave MRR A$9,400 — but those derived numbers are still tagged
  * when quoted as advice, because they are not the founder's data.
@@ -376,8 +367,6 @@ export function groundedFigures(g: AgentGrounding): number[] {
   return [
     ...founderFigures(g),
     ...g.valuation.assumptions.flatMap(amountsIn),
-    ...g.valuation.methods.flatMap((m) => m.assumptions.flatMap(amountsIn)),
-    2_000_000, // the Berkus pillar cap named in the assumptions
   ].filter((n) => Number.isFinite(n) && n > 0);
 }
 
@@ -396,7 +385,8 @@ export interface GroundingVerdict {
 export function checkGrounding(body: string, g: AgentGrounding): GroundingVerdict {
   const allowed = groundedFigures(g);
   const founders = founderFigures(g);
-  const rangeOnly = [g.valuation.lowAud, g.valuation.midAud, g.valuation.highAud];
+  // V04a: no range exists, so ANY figure presented as the valuation is misstated.
+  const rangeOnly: number[] = [];
 
   const ungrounded: string[] = [];
   const misstated: string[] = [];
@@ -512,7 +502,7 @@ export async function writeAgentSection(
         : parsed.nextSteps.length < AGENT_NEXT_STEPS
           ? `your previous answer had ${parsed.nextSteps.length} next steps; exactly ${AGENT_NEXT_STEPS} are required`
           : grounded?.misstatedValuation.length
-            ? `your previous answer presented ${grounded.misstatedValuation.join(", ")} as the valuation; the indicative range is ${aud(grounding.valuation.lowAud)} – ${aud(grounding.valuation.highAud)} and no other figure may be called the valuation`
+            ? `your previous answer presented ${grounded.misstatedValuation.join(", ")} as the valuation; the company value is not estimable in this report and no figure may be called the valuation`
             : `your previous answer stated ${grounded?.ungrounded.join(", ")} as this company's own figure, but that figure is not in the facts above; state only the figures given as the founder's, or say the figure was not provided (a market benchmark is fine when you name it as one)`;
     const second = await call({
       system,

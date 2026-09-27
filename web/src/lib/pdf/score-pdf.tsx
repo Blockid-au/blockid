@@ -365,7 +365,7 @@ export function ScorePDF({ data }: { data: ScorePdfData }) {
             <Text style={styles.scoreOutOf}>/100</Text>
           </View>
           <Text style={styles.scoreCaption}>
-            Top quartile for AU seed-stage SaaS · sector median 71
+            Investor-Ready Score, 0–100 scale (not the uncapped SVI index)
           </Text>
           {data.subScores.map((s) => (
             <View key={s.label} style={styles.subRow}>

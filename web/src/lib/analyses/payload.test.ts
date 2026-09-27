@@ -32,7 +32,6 @@ import {
   type StoredAnalysisRow,
 } from "./payload";
 import { computeSVI, extractSignals } from "@/lib/svi-analysis";
-import { estimateValuation } from "@/lib/valuation";
 import type { IntakeResult } from "@/lib/intake/analyze-input";
 
 const SAMPLE_TEXT =
@@ -138,13 +137,14 @@ describe("compactIntake", () => {
 describe("compactSvi", () => {
   it("stores a summary, not the whole SVIAnalysis", () => {
     const analysis = computeSVI(extractSignals({ rawText: SAMPLE_TEXT }));
-    const valuation = estimateValuation(analysis.totalSVI, analysis.stage, {}, {});
-    const out = compactSvi(analysis, valuation);
+    const out = compactSvi(analysis);
     expect(out).not.toHaveProperty("subs");
     expect(out).not.toHaveProperty("signals");
     expect(out).not.toHaveProperty("evidenceGaps");
     expect(out.totalSVI).toBe(analysis.totalSVI);
-    expect(out.valuation.mid).toBe(valuation.mid);
+    // V04a (D22): the stored valuation is "not estimable", never an SVI-derived range.
+    expect(out.valuation.status).toBe("not_estimable");
+    expect(out.valuation).not.toHaveProperty("mid");
   });
 
   it("caps stored next actions so a chatty analysis cannot bloat the row", () => {
@@ -155,8 +155,7 @@ describe("compactSvi", () => {
       detail: "d",
       impact: "i",
     }));
-    const valuation = estimateValuation(analysis.totalSVI, analysis.stage, {}, {});
-    expect(compactSvi(analysis, valuation).nextActions).toHaveLength(
+    expect(compactSvi(analysis).nextActions).toHaveLength(
       MAX_STORED_ACTIONS,
     );
   });
@@ -164,8 +163,7 @@ describe("compactSvi", () => {
   it("falls back to subs when dimensionScores is absent", () => {
     const analysis = computeSVI(extractSignals({ rawText: SAMPLE_TEXT }));
     delete analysis.dimensionScores;
-    const valuation = estimateValuation(analysis.totalSVI, analysis.stage, {}, {});
-    const out = compactSvi(analysis, valuation);
+    const out = compactSvi(analysis);
     expect(Object.keys(out.dimensions).length).toBe(analysis.subs.length);
   });
 });
@@ -179,11 +177,14 @@ describe("deriveCompactSvi", () => {
     expect(derived?.stage).toBe(expected.stage);
   });
 
-  it("produces a valuation range that is ordered low <= mid <= high", () => {
+  // V04a (D22): the /analyze row used to store estimateValuation(SVI, stage,
+  // dims) — an SVI→dollar range. It now stores "not estimable" + unlock list.
+  it("stores no dollar range — the valuation is not estimable with an unlock list", () => {
     const d = deriveCompactSvi(intakeFixture());
     expect(d).not.toBeNull();
-    expect(d!.valuation.low).toBeLessThanOrEqual(d!.valuation.mid);
-    expect(d!.valuation.mid).toBeLessThanOrEqual(d!.valuation.high);
+    expect(d!.valuation.status).toBe("not_estimable");
+    expect(d!.valuation.unlock.length).toBeGreaterThan(0);
+    expect(JSON.stringify(d!.valuation)).not.toMatch(/A\$\s?\d|"(low|mid|high)"/);
   });
 
   it("returns null rather than throwing when signals are missing", () => {
@@ -240,14 +241,14 @@ describe("buildAnalysisRow", () => {
     expect(row.input_bytes).toBe(1234);
   });
 
-  it("denormalises score + valuation for the list view", () => {
+  it("denormalises the score for the list view; valuation_mid_aud is always null (V04a)", () => {
     const result = intakeFixture();
     const svi = deriveCompactSvi(result)!;
     const row = buildAnalysisRow({ anonKey: "k", result, svi });
     expect(row.svi_total).toBeCloseTo(Math.round(svi.totalSVI * 100) / 100, 5);
     expect(row.stage).toBe(svi.stage);
     expect(row.stage_label).toBe(svi.stageLabel);
-    expect(row.valuation_mid_aud).toBe(Math.round(svi.valuation.mid));
+    expect(row.valuation_mid_aud).toBeNull();
   });
 
   it("still builds a row when scoring produced nothing", () => {
@@ -307,6 +308,13 @@ describe("toClientAnalysis", () => {
     expect(
       (toClientAnalysis({ ...row, user_id: "u1" }) as { owned: boolean }).owned,
     ).toBe(true);
+  });
+
+  it("never serves a pre-V04a SVI-derived valuation stored on the row", () => {
+    const legacy = { ...row, svi: { valuation: { low: 1_000_000, mid: 2_000_000, high: 3_000_000, method: "Berkus (50%) + Scorecard (50%)", confidence: 40, currency: "AUD" } } as unknown as StoredAnalysisRow["svi"] };
+    const out = toClientAnalysis(legacy) as { svi: { valuation: { status: string } } };
+    expect(out.svi.valuation.status).toBe("not_estimable");
+    expect(JSON.stringify(out)).not.toMatch(/2000000|Berkus/);
   });
 
   it("re-attaches the detected context inside intake for the UI", () => {

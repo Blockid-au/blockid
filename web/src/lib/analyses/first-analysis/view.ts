@@ -23,6 +23,7 @@ import {
 } from "./stage-timeline";
 import {
   FULL_REPORT_MAX_ATTEMPTS,
+  readValuationSection,
   firstParagraph,
   isFirstAnalysisReport,
   isReportV2Envelope,
@@ -75,7 +76,9 @@ export function pollAfterSecFor(
 /** One shape for the payload's `report.agents`: every voice, always an object. */
 export function toReportView(report: FirstAnalysisReport | null): FirstAnalysisReportView | null {
   if (!report) return null;
-  return { ...report, agents: normaliseAgentSections(report) };
+  // V04a: a report stored before D22 carries an SVI-derived range; it is
+  // mapped onto the not-estimable section and never served.
+  return { ...report, valuation: readValuationSection(report.valuation), agents: normaliseAgentSections(report) };
 }
 
 export function buildPreview(row: Pick<FullReportRow, "full_report_json">): FirstAnalysisPreview | null {
@@ -85,7 +88,7 @@ export function buildPreview(row: Pick<FullReportRow, "full_report_json">): Firs
     company: r.company,
     echo: r.echo,
     svi: r.svi,
-    valuation: r.valuation,
+    valuation: readValuationSection(r.valuation),
     ceoParagraph: firstParagraph(r.agents?.ceo?.body),
   };
 }

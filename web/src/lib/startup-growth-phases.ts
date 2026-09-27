@@ -525,11 +525,11 @@ export function renderThreeQuestionsSVG(data: {
   <!-- Question 2: What Am I Worth? -->
   <rect x="240" y="75" width="200" height="220" rx="12" fill="url(#q2)"/>
   <text x="340" y="105" text-anchor="middle" font-size="13" font-family="Arial" fill="white" font-weight="bold">What Am I Worth?</text>
-  <text x="340" y="155" text-anchor="middle" font-size="10" font-family="Arial" fill="rgba(255,255,255,0.7)">Estimated Range</text>
+  <text x="340" y="155" text-anchor="middle" font-size="10" font-family="Arial" fill="rgba(255,255,255,0.7)">Company value</text>
   <text x="340" y="180" text-anchor="middle" font-size="16" font-family="Arial" fill="white" font-weight="bold">${valuationRange}</text>
-  <text x="340" y="220" text-anchor="middle" font-size="10" font-family="Arial" fill="rgba(255,255,255,0.8)">SVI Market Index</text>
-  <text x="340" y="240" text-anchor="middle" font-size="9" font-family="Arial" fill="rgba(255,255,255,0.7)">Revenue multiples + comparables</text>
-  <text x="340" y="258" text-anchor="middle" font-size="9" font-family="Arial" fill="rgba(255,255,255,0.7)">Updated with each data point</text>
+  <text x="340" y="220" text-anchor="middle" font-size="10" font-family="Arial" fill="rgba(255,255,255,0.8)">Needs a CFO method</text>
+  <text x="340" y="240" text-anchor="middle" font-size="9" font-family="Arial" fill="rgba(255,255,255,0.7)">Connect revenue or add financials</text>
+  <text x="340" y="258" text-anchor="middle" font-size="9" font-family="Arial" fill="rgba(255,255,255,0.7)">The SVI is an index, not A$</text>
 
   <!-- Question 3: What Should I Do Next? -->
   <rect x="460" y="75" width="220" height="220" rx="12" fill="url(#q3)"/>

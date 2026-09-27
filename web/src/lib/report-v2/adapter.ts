@@ -1,4 +1,6 @@
-import { isValuationAvailable, unavailableValuation, type AvailableValuationChapter } from "./schema";
+import { isValuationAvailable, unavailableValuation } from "./schema";
+import { VALUATION_NOT_ESTIMABLE, defaultUnlockInputs, valuationNotEstimable } from "@/lib/valuation/not-estimable";
+import { comparablesCounts } from "@/lib/valuation/comparables-repo";
 // ReportV2 adapter — builds a valid ReportV2 from what the platform stores
 // TODAY (svi_snapshots.dim_results / criterion_results / dimension_scores,
 // or an `AssembledReport` from the C-level pipeline), so every stored report
@@ -16,8 +18,6 @@ import { isValuationAvailable, unavailableValuation, type AvailableValuationChap
 // `VcValuationReport` through `input.vc` to fill the 5-method chapter.
 
 import { CRITERIA, type CriterionKey, type QualityLevel } from "@/lib/evaluation-criteria";
-import { getMultiplesBenchmark, mapSectorToAUIndustry, mapStageToAUStage } from "@/lib/data/au-comparables";
-import { comparablesCounts, topComparables } from "@/lib/valuation/comparables-repo";
 import { PHASE_EXIT_RULES, type PhaseGateResult } from "@/lib/growth/phase-gate";
 import { inferPhase } from "@/lib/growth/infer-phase";
 import { derivedLift } from "@/lib/svi-lift";
@@ -27,11 +27,8 @@ import { groundingAudit } from "./grounding";
 import { GROWTH_PHASE_IDS, GROWTH_PHASE_LABELS, type GrowthPhaseId } from "@/lib/growth/phase-taxonomy";
 import { DIMENSION_OWNERS, DIM_ORDER, criteriaForDimension, type DimKey } from "@/lib/report-pipeline/dimension-owners";
 import { buildValuationChapter, type ValuationAskInput, type VcValuationLike } from "@/lib/report-pipeline/valuation-chapter";
-import { VALUATION_BASELINES_AUD } from "@/lib/valuation";
 import type { AssembledReport, ReportSection } from "@/lib/report-pipeline/types";
 import { bandFor, makeVisual, type Band, type VisualSpecV2 } from "@/lib/report-visuals";
-import { computeThreeCaseValuation } from "@/lib/svi/three-case-valuation";
-import { inferTractionFromTreScore, selectValuationMethod } from "@/lib/svi/valuation-method-selector";
 import { DIMENSION_BENCHMARKS_BY_STAGE } from "@/lib/svi-dimension-benchmarks";
 import { mayShowPercentile, publishPercentile, publishedFromCohort, type PublishedPercentile } from "@/lib/benchmarks/publication-rules";
 import {
@@ -39,7 +36,6 @@ import {
   EVIDENCE_CONFIDENCE_LEVELS,
   FREE_PAGE_BUDGET,
   REPORT_V2_SCHEMA_VERSION,
-  VALUATION_METHOD_KEYS,
   type ActionStep,
   type AuditStamp,
   type CoverEvidenceLevel,
@@ -808,86 +804,18 @@ export function executiveFromChapters(dimensions: readonly DimensionChapter[], l
 
 // ── Valuation ───────────────────────────────────────────────────────────────
 
-function buildValuation(args: { sviTotal: number; sviIndex: number; stageLabel: string; stage: number; industry: string | null; treScore: number | null; vc?: VcValuationLike | null; ask?: ValuationAskInput | null; revenueEvidenceIds?: string[]; at: string }): ValuationChapter {
+function buildValuation(args: { sviIndex: number; stageLabel: string; stage: number; industry: string | null; vc?: VcValuationLike | null; ask?: ValuationAskInput | null; revenueEvidenceIds?: string[]; locale?: ReportV2["locale"]; at: string }): ValuationChapter {
   // S-R3 §C.5: with a CFO valuation the chapter is the real thing — methods,
   // inputs, derivation, cross-checks, consensus, ask cross-check, dated sector
   // multiples, comparables N, three-case scenarios (report-pipeline/valuation-chapter.ts).
   if (args.vc) {
     return buildValuationChapter({ vc: args.vc, stage: args.stage, stageLabel: args.stageLabel, industry: args.industry, sviIndex: args.sviIndex, ask: args.ask ?? null, revenueEvidenceIds: args.revenueEvidenceIds ?? [], at: args.at });
   }
-  // Read-time fallback for stored rows that never ran the pipeline (no vc):
-  // a directional three-case band, clearly labelled as such.
-  const three = computeThreeCaseValuation(args.sviTotal, args.stageLabel, args.industry);
-  const sel = selectValuationMethod(three.stage, args.sviTotal, inferTractionFromTreScore(args.treScore));
-  const auIndustry = mapSectorToAUIndustry(args.industry ?? undefined);
-  const auStage = mapStageToAUStage(args.stageLabel || args.stage);
-  const mult = getMultiplesBenchmark(auIndustry, auStage);
-  const live = comparablesCounts();
-  const comps = topComparables(auIndustry, auStage, 5);
-  // G19-S42: same shape as the pipeline chapter — every method non-applicable,
-  // one honest line, the stage baseline as the only cross-check, no ask.
-  const methods: AvailableValuationChapter["methods"] = VALUATION_METHOD_KEYS.map((key) => ({
-    method: key,
-    lowAud: 0,
-    midAud: 0,
-    highAud: 0,
-    weight: 0,
-    rationale: "Not computed for this snapshot — run the analysis to get the CFO valuation; the three-case directional range below is shown instead.",
-    applicable: false,
-  }));
-  const consensus = { lowAud: three.average.low, midAud: three.average.mid, highAud: three.average.high, confidence: 0.35 };
-  const baselineStage = Math.max(0, Math.min(7, Math.round(Number.isFinite(args.stage) ? args.stage : 0)));
-  const baseline = VALUATION_BASELINES_AUD[baselineStage];
-  const crossChecks: AvailableValuationChapter["crossChecks"] = [
-    { label: `AU stage baseline — SVI stage ${baselineStage} pre-money`, lowAud: baseline.low, midAud: baseline.mid, highAud: baseline.high, source: "Cut Through Venture — State of Australian Startup Funding 2024/25 medians", asOf: "2025" },
-  ];
-  const scenarios = { bear: three.worst.mid, base: three.average.mid, bull: three.best.mid };
-  const rangeBars = makeVisual({
-    id: "valuation-range-bars",
-    kind: "range_bars",
-    agentId: "cfo",
-    title: "Directional valuation — three cases and consensus",
-    subtitle: `${sel.meta.shortLabel}; ${sel.rationale}`,
-    dataState: "benchmark_only",
-    data: {
-      rows: [
-        { label: "Bear case", low: three.worst.low, mid: three.worst.mid, high: three.worst.high },
-        { label: "Base case", low: three.average.low, mid: three.average.mid, high: three.average.high },
-        { label: "Bull case", low: three.best.low, mid: three.best.mid, high: three.best.high },
-      ],
-      consensus: { low: consensus.lowAud, mid: consensus.midAud, high: consensus.highAud, label: "Consensus" },
-      currency: "AUD",
-    },
-    a11y: { tableFallback: [{ case: "bear", aud: scenarios.bear }, { case: "base", aud: scenarios.base }, { case: "bull", aud: scenarios.bull }] },
-  });
-  const scatter = makeVisual({
-    id: "valuation-comparables",
-    kind: "scatter",
-    agentId: "cfo",
-    title: `AU comparables — ${comps.length} nearest by sector / stage (ARR multiple)`,
-    subtitle: `${live.n} raises tracked, ${live.withMultiplesN} with disclosed multiples (sources dated ${live.sourceWindow})`,
-    dataState: "partial",
-    data: { xLabel: "Founded year", yLabel: "ARR multiple (×)", points: comps.map((cp) => ({ label: cp.industry, x: cp.founded_year - 2000, y: cp.arr_multiple })) },
-    a11y: { tableFallback: comps.map((cp) => ({ industry: cp.industry, stage: cp.stage, year: cp.founded_year, arr_multiple: cp.arr_multiple })) },
-  });
-  return {
-    currency: "AUD",
-    methods,
-    consensus,
-    // Key order mirrors the Zod schema so a parsed fixture serialises identically (fixtures.test).
-    crossChecks,
-    consistencyNotes: [],
-    sectorMultiples: { sector: auIndustry, low: mult.low, median: mult.median, high: mult.high, sourceLabel: live.source === "table" ? "BlockID AU comparables (verified table)" : "BlockID AU comparables (code table)", sourceDate: live.sourceWindow },
-    comparables: {
-      n: live.n,
-      withMultiplesN: live.withMultiplesN,
-      rows: comps.map((cp) => ({ name: "anonymised", stage: cp.stage, industry: cp.industry, year: cp.founded_year, arrMultiple: cp.arr_multiple, source: live.sourceLabel })),
-    },
-    scenarios,
-    visuals: [rangeBars, scatter],
-    narrative: `${sel.meta.shortLabel}: ${sel.rationale} ${three.disclaimer} No CFO method ran on this snapshot — connect Stripe or Xero, or state MRR, and re-run the analysis to get the method table, inputs and cross-checks.`,
-    audit: stamp(args.at),
-  };
+  // V04a (D22): a stored row that never ran the CFO pipeline has no
+  // valuation. The read-time three-case band (SVI × stage multiplier) is
+  // gone — the chapter is "not estimable" and names the evidence that
+  // unlocks a CFO method.
+  return unavailableValuation(VALUATION_NOT_ESTIMABLE, args.at, defaultUnlockInputs(args.locale === "vi" ? "vi" : "en"), args.locale);
 }
 
 // ── Main adapter ────────────────────────────────────────────────────────────
@@ -982,7 +910,10 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
   const totalWeight = scoredDims.reduce((a, c) => a + DIMENSION_OWNERS[c.dim].weight, 0);
   const derivedTotal = totalWeight > 0 ? Math.round(scoredDims.reduce((a, c) => a + (c.score * DIMENSION_OWNERS[c.dim].weight) / totalWeight, 0)) : 0;
   const sviTotal = typeof input.sviTotal === "number" && Number.isFinite(input.sviTotal) && input.sviTotal > 0 ? Math.round(input.sviTotal) : derivedTotal;
-  const sviBand: Band = scoredDims.length ? bandFor(Math.min(100, sviTotal)) : "pending";
+  // SV1 (D22): the SVI is an uncapped index, so the 40/70 band is never read
+  // off it (an index of 120 was "strong" by construction). The band describes
+  // the weighted dimension profile — every dimension IS a 0–100 score.
+  const sviBand: Band = scoredDims.length ? bandFor(derivedTotal) : "pending";
 
   // Phase gate from stored criteria + dims (deterministic).
   const criteriaQuality = Array.from(cardsByKey.values()).map((c) => ({ criterion_key: c.key, quality_level: c.quality }));
@@ -1032,8 +963,8 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
             : L.thesisPending);
   const valuation = input.valuationStatus === "unavailable"
     ? unavailableValuation(input.valuationReason ?? "Valuation unavailable: sufficient verified inputs were not available.", at, input.valuationMissingInputs ?? [])
-    : buildValuation({ sviTotal: Math.min(100, sviTotal), sviIndex: sviTotal, stageLabel, stage, industry, treScore: dimScores.tre ?? null, vc: input.vc, ask: input.valuationAsk ?? null, revenueEvidenceIds: input.revenueEvidenceIds ?? [], at });
-  const worthLine = isValuationAvailable(valuation) ? L.worthLine(fmtShort(valuation.consensus.lowAud), fmtShort(valuation.consensus.highAud), industry ?? L.sectorNeutral, stageLabel) : (input.locale === "vi" ? "Chưa có định giá: cần thêm dữ liệu đáng tin cậy." : "Valuation unavailable: more reliable inputs are needed.");
+    : buildValuation({ sviIndex: sviTotal, stageLabel, stage, industry, vc: input.vc, ask: input.valuationAsk ?? null, revenueEvidenceIds: input.revenueEvidenceIds ?? [], locale: input.locale, at });
+  const worthLine = isValuationAvailable(valuation) ? L.worthLine(fmtShort(valuation.consensus.lowAud), fmtShort(valuation.consensus.highAud), industry ?? L.sectorNeutral, stageLabel) : valuationNotEstimable({ locale: input.locale }).short;
   const nextLine = roadmap[0] ? L.nextLine(dimensions.find((d) => d.dim === roadmap[0].c.dim)?.nextAction.title ?? L.addEvidence, roadmap[0].lift, DIMENSION_OWNERS[roadmap[0].c.dim].shortLabel) : L.nextFallback;
   // G19-S44 (D5): the where-sentence names the 12-phase label only — the SVI stage label is benchmark-internal.
   const whereLine = L.whereLine(industry ?? L.startup, sviTotal, getTbrStrings(input.locale).v2.band[sviBand].toLowerCase(), phaseLabelFor(phase.currentPhase, input.locale), phase.completionPct);
@@ -1077,7 +1008,7 @@ export function fromSnapshot(input: SnapshotInput): ReportV2 {
     dims: coverDims,
     threeQuestions: { where: words(whereLine, 30), worth: words(worthLine, 30), next: words(nextLine, 30) },
     visuals: [
-      makeVisual({ id: "cover-score-ring", kind: "score_ring", agentId: "cdo", title: `SVI ${sviTotal}`, dataState: "real", data: { value: Math.min(100, sviTotal), label: "SVI", sublabel: sviBand, band: sviBand }, a11y: { tableFallback: [{ metric: "SVI", value: sviTotal, band: sviBand }] } }),
+      makeVisual({ id: "cover-score-ring", kind: "score_ring", agentId: "cdo", title: `SVI ${sviTotal}`, dataState: "real", data: { value: derivedTotal, display: String(sviTotal), label: "SVI index", sublabel: sviBand, band: sviBand }, a11y: { tableFallback: [{ metric: "SVI", value: sviTotal, band: sviBand }] } }),
       makeVisual({
         id: "cover-radar",
         kind: "radar",

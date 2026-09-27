@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 
 type Plan = NonNullable<SVIAnalysis["scnActionPlan"]>;
 type Layer = Plan["layers"][number];
@@ -30,12 +31,8 @@ interface Props {
   analysis: SVIAnalysis;
 }
 
-function fmtAud(v: number): string {
-  if (v >= 1_000_000_000) return `A$${(v / 1_000_000_000).toFixed(2)}B`;
-  if (v >= 1_000_000) return `A$${(v / 1_000_000).toFixed(2)}M`;
-  if (v >= 1_000) return `A$${(v / 1_000).toFixed(0)}K`;
-  return `A$${Math.round(v).toLocaleString("en-AU")}`;
-}
+/** A plan stored before V04a priced the company off the SVI in its prose. */
+const LEGACY_DOLLAR = /A\$\s?\d/;
 
 const LAYER_META: Record<Layer["code"], { icon: typeof Compass; color: string; bg: string }> = {
   validation: { icon: Sparkles, color: "text-purple-600", bg: "bg-purple-50" },
@@ -69,6 +66,7 @@ function YourNumberHero({ yn, maturity }: {
   yn: Plan["yourNumber"];
   maturity?: SVIAnalysis["maturitySignal"];
 }) {
+  const notEstimable = valuationNotEstimable();
   return (
     <div className="rounded-2xl border border-blue-200 bg-gradient-to-br from-blue-50 via-emerald-50 to-amber-50 p-6 sm:p-8 shadow-sm">
       <div className="flex items-center gap-2 text-[11px] font-semibold text-blue-700 uppercase tracking-[0.18em] mb-3">
@@ -82,15 +80,15 @@ function YourNumberHero({ yn, maturity }: {
             Established / scale-up signals detected ({maturity.confidence} confidence)
           </p>
           <p className="text-xs text-amber-900">
-            The number below is anchored to public-page signals only. For accurate
-            pricing, connect Stripe/Xero or upload current financials.
+            BlockID does not price a company from public-page signals. Connect
+            Stripe/Xero or upload current financials to unlock a valuation method.
           </p>
         </div>
       )}
 
       <div className="grid md:grid-cols-2 gap-6 items-end">
         <div>
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">SVI Score</p>
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">SVI index</p>
           <p className="text-5xl font-bold mt-1">{yn.sviScore}</p>
           <p className="text-sm text-muted-foreground mt-1">
             {/* G21 P1 review: the label already carries the band + n (or the no-benchmark line). */}
@@ -98,16 +96,16 @@ function YourNumberHero({ yn, maturity }: {
           </p>
         </div>
         <div className="md:text-right md:border-l md:border-blue-200 md:pl-6">
-          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Blended Valuation</p>
-          <p className="text-4xl font-bold mt-1 text-blue-700">{fmtAud(yn.valuationMidAud)}</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            Range: {fmtAud(yn.valuationLowAud)}–{fmtAud(yn.valuationHighAud)} &middot; <span className="font-medium capitalize">{yn.valuationConfidence}</span> confidence
-          </p>
+          {/* V04a (D22): never a dollar figure off the SVI — stored plans from
+              before the change still carry one; it is not read. */}
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">Company value</p>
+          <p className="text-2xl font-bold mt-1 text-blue-700" data-testid="scn-valuation-not-estimable">{notEstimable.label}</p>
+          <p className="text-sm text-muted-foreground mt-1">{notEstimable.line}</p>
         </div>
       </div>
 
       <div className="mt-6 pt-5 border-t border-blue-200/60">
-        <p className="text-sm font-medium text-foreground leading-relaxed">{yn.plainEnglish}</p>
+        <p className="text-sm font-medium text-foreground leading-relaxed">{LEGACY_DOLLAR.test(yn.plainEnglish) ? notEstimable.why : yn.plainEnglish}</p>
       </div>
     </div>
   );
@@ -182,7 +180,7 @@ function LayerCard({ layer }: { layer: Layer }) {
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-0.5">{layer.question}</p>
-          <p className="text-xs text-foreground mt-2">{layer.statusReason}</p>
+          <p className="text-xs text-foreground mt-2">{LEGACY_DOLLAR.test(layer.statusReason) ? valuationNotEstimable().line : layer.statusReason}</p>
         </div>
         {open ? <ChevronUp className="h-4 w-4 text-muted-foreground shrink-0" /> : <ChevronDown className="h-4 w-4 text-muted-foreground shrink-0" />}
       </button>
@@ -256,7 +254,7 @@ function LeversTable({ levers }: { levers: Plan["valuationLevers"] }) {
     <div className="rounded-xl border border-border bg-card p-5">
       <h4 className="text-sm font-bold mb-3 flex items-center gap-2">
         <TrendingUp className="h-4 w-4 text-emerald-500" />
-        How to push your number up
+        Levers that strengthen your evidence
       </h4>
       <div className="space-y-2">
         {levers.map((l, i) => (
@@ -266,7 +264,7 @@ function LeversTable({ levers }: { levers: Plan["valuationLevers"] }) {
               <p className="text-sm font-semibold text-foreground">{l.lever}</p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 <span className={cn("inline-block mr-2", EFFORT_BADGE[l.effort], "rounded px-1 text-[10px] font-semibold")}>{l.effort}</span>
-                <span className="text-emerald-600 font-medium">{l.upliftAud}</span> &middot; {l.timeframe}
+                {l.effect ? <><span className="text-emerald-600 font-medium">{l.effect}</span> &middot; </> : null}{l.timeframe}
               </p>
             </div>
           </div>

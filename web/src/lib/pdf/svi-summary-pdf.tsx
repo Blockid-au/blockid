@@ -5,7 +5,7 @@
  * `svi-report-pdf.tsx`: the palette, the stylesheet, the header bar and
  * footer, the page title rule, the score gauge, the metric cards, the
  * dimension bars, the bullets and action rows, and the three SVG charts
- * (radar, valuation range, percentile band). The free summary is a shorter
+ * (radar, percentile band). The free summary is a shorter
  * cut of the same document, and it looks like one because it is drawn with
  * the same pieces.
  *
@@ -28,7 +28,7 @@
  *
  * WHAT IS DELIBERATELY NOT HERE
  *
- * The four-method valuation working, the per-dimension rationale pages, the
+ * A valuation (V04a: never derived from the SVI), the per-dimension rationale pages, the
  * cohort comparison set, the accelerator checklist, the risk landscape and the
  * 90-day roadmap. Those are the A$3 report. Page five names them in plain
  * words instead of teasing them — the free artefact is smaller, not broken,
@@ -40,7 +40,7 @@ import { LEGAL_ENTITY, LEGAL_ENTITY_ABN_LABEL, LEGAL_ENTITY_ACN_LABEL } from "@/
 
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { formatBenchmarkLine, noBenchmarkYetLine, notEnoughLine, publishBenchmark, publishedFromCohort } from "@/lib/benchmarks/publication-rules";
-import { estimateValuation } from "@/lib/valuation";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 import {
   FREE_SUMMARY_PAGES,
   PAID_REPORT_ADDITIONS,
@@ -59,9 +59,7 @@ import {
   PercentileBandSVG,
   RadarChartSVG,
   ScoreGauge,
-  ValuationRangeSVG,
   barColor,
-  formatAud,
   s,
   sviLabel,
 } from "./svi-report-pdf";
@@ -188,15 +186,8 @@ export function SVISummaryPDF({
     });
 
   const svi = analysis.totalSVI;
-  const dims =
-    analysis.dimensionScores ??
-    Object.fromEntries((analysis.subs ?? []).map((sub) => [sub.key, sub.value]));
-  const valuation = estimateValuation(
-    svi,
-    analysis.stage,
-    { sector: analysis.sector ?? analysis.signals?.sector },
-    dims,
-  );
+  // V04a (D22): the SVI is an index, never a dollar range.
+  const valuation = valuationNotEstimable();
   // G21 P1 review: the rank and the stage median come from the stored
   // cohort result and only when published (lib/benchmarks/publication-rules.ts)
   // — never `percentileRank` (a static-table estimate) and never the static
@@ -314,41 +305,15 @@ export function SVISummaryPDF({
 
         <View style={{ height: 12 }} />
 
-        <Eyebrow>Indicative valuation range</Eyebrow>
-        <ValuationRangeSVG
-          low={valuation.low}
-          mid={valuation.mid}
-          high={valuation.high}
-          width={500}
-          height={30}
-        />
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            marginTop: 2,
-            marginBottom: 10,
-          }}
-        >
-          <Text style={{ fontSize: 8.5, color: C.ink600 }}>
-            {`Low ${formatAud(valuation.low)}`}
-          </Text>
-          <Text
-            style={{
-              fontSize: 11,
-              fontFamily: "Helvetica-Bold",
-              color: C.brand700,
-            }}
-          >
-            {formatAud(valuation.mid)}
-          </Text>
-          <Text style={{ fontSize: 8.5, color: C.ink600 }}>
-            {`High ${formatAud(valuation.high)}`}
-          </Text>
-        </View>
+        <Eyebrow>Company value</Eyebrow>
+        <Text style={{ fontSize: 11, fontFamily: "Helvetica-Bold", color: C.brand700, marginBottom: 3 }}>
+          {valuation.label}
+        </Text>
+        <Text style={{ fontSize: 8.5, color: C.ink600, lineHeight: 1.55, marginBottom: 2 }}>{valuation.line}</Text>
+        <Text style={{ fontSize: 7.5, color: C.ink500, lineHeight: 1.5, marginBottom: 10 }}>{valuation.why}</Text>
 
         <InsightBox
-          label="READ THIS AS A RANGE"
+          label="WHAT THE INDEX SAYS"
           text={clip(analysis.summary, 320)}
         />
 
@@ -360,8 +325,8 @@ export function SVISummaryPDF({
             marginTop: 10,
           }}
         >
-          Indicative only. This is a directional estimate for a conversation,
-          not a formal valuation, and BlockID.au does not hold an AFSL. Seek
+          Indicative only. The SVI is a directional index for a conversation,
+          not a valuation, and BlockID.au does not hold an AFSL. Seek
           independent professional advice before acting on it.
         </Text>
 

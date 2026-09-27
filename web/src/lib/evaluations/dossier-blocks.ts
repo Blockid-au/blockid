@@ -70,7 +70,7 @@ export interface DossierValuationMethod {
 
 export interface DossierValuationBlock {
   available: boolean;
-  /** "pipeline" = the CFO 5-method run persisted at snapshot time; "adapter" = three-case model lifted on read. */
+  /** "pipeline" = the CFO 5-method run persisted at snapshot time; "adapter" = the stored CFO run read back (V04a: no SVI-derived fallback — without one the block is pending). */
   source: ReportV2["source"] | null;
   /** True when no dimension is scored — the range would be the SVI-0 model, so it is withheld. */
   pending: boolean;

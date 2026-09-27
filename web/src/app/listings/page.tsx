@@ -60,8 +60,8 @@ export async function generateMetadata({
     ? fitTitle(`${SECTOR_LABELS[sector]} startups in Australia — scored and valued`)
     : "Australian startup directory — scored and valued";
   const description = sector
-    ? fitDescription([`Australian ${SECTOR_LABELS[sector]} startups with a published Startup Value Index profile: score across eight dimensions, indicative valuation range and stage.`], { min: 70, max: 165 })
-    : "Every Australian startup with a published Startup Value Index profile: a score across eight dimensions, an indicative valuation range, its stage and what comes next.";
+    ? fitDescription([`Australian ${SECTOR_LABELS[sector]} startups with a published Startup Value Index profile: an index across eight dimensions, the stage and what comes next.`], { min: 70, max: 165 })
+    : "Every Australian startup with a published Startup Value Index profile: an index across eight dimensions, its stage and what comes next.";
 
   return {
     title,
@@ -207,10 +207,9 @@ export default async function ListingsDirectoryPage({ searchParams }: PageProps)
           <p className="mt-4 max-w-2xl text-base leading-relaxed text-secondary">
             Every profile here belongs to an Australian startup whose founder
             ran a Startup Value Index analysis and then chose to make it
-            public. Each one carries a score across eight dimensions, an
-            indicative valuation range with the methods behind it, the stage
-            the company is at, and what that stage calls for next. Nothing is
-            scraped and nothing is invented.
+            public. Each one carries an index across eight dimensions, the
+            stage the company is at, and what that stage calls for next.
+            Nothing is scraped and nothing is invented.
           </p>
         </header>
 
@@ -248,11 +247,11 @@ export default async function ListingsDirectoryPage({ searchParams }: PageProps)
             </div>
             <div>
               <dt className="text-sm font-semibold text-primary">
-                A valuation range
+                No price tag
               </dt>
               <dd className="mt-1 text-sm leading-relaxed text-secondary">
-                A modelled band in Australian dollars, with the named methods
-                that produced it. Orientation, not a price and not advice.
+                The index is not a dollar figure. A valuation needs a CFO
+                method with verified inputs, so profiles show none.
               </dd>
             </div>
           </dl>

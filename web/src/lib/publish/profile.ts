@@ -12,6 +12,7 @@
 // `intake`, so no published page can carry an email address, a filename or a
 // line of somebody's deck.
 
+import { valuationNotEstimable, type ValuationNotEstimable } from "@/lib/valuation/not-estimable";
 import type { CompactSvi } from "@/lib/analyses/payload";
 import { SECTOR_LABELS, SVI_BENCHMARKS } from "@/lib/svi-analysis";
 import {
@@ -32,15 +33,12 @@ export interface ProfileDimension {
   bandLabel: string;
 }
 
-export interface ProfileValuation {
-  low: number;
-  mid: number;
-  high: number;
-  /** Method names, weighting stripped — e.g. ["Berkus", "Scorecard"]. */
-  methods: string[];
-  confidencePct: number;
-  currency: string;
-}
+/**
+ * V04a (D22): a published profile never carries a dollar figure. Every
+ * compact valuation on an analyses row was derived from the SVI, so the
+ * profile shows "not estimable" plus the evidence that unlocks a CFO method.
+ */
+export type ProfileValuation = ValuationNotEstimable;
 
 export interface ProfileNextAction {
   priority: string;
@@ -65,7 +63,7 @@ export interface PublicProfile {
   dimensions: ProfileDimension[];
   strongest: ProfileDimension | null;
   weakest: ProfileDimension | null;
-  valuation: ProfileValuation | null;
+  valuation: ProfileValuation;
   nextActions: ProfileNextAction[];
   analysedAt: string;
   publishedAt: string;
@@ -88,21 +86,6 @@ function bandFor(value: number): { band: DimensionBand; label: string } {
   if (value >= 70) return { band: "strong", label: "Strong" };
   if (value >= 40) return { band: "developing", label: "Developing" };
   return { band: "early", label: "Early" };
-}
-
-/**
- * "Berkus (50%) + Scorecard (50%)" → ["Berkus", "Scorecard"].
- *
- * The named methods are the useful half — they tell a reader which published
- * valuation approach produced the range. The percentage split is internal
- * weighting and does not belong on a customer-facing page.
- */
-export function splitValuationMethods(method: string | undefined): string[] {
-  if (!method) return [];
-  return method
-    .split(/\s*[+/,]\s*/)
-    .map((part) => part.replace(/\s*\(\s*\d+(\.\d+)?\s*%\s*\)\s*/g, "").trim())
-    .filter((part) => part.length > 0);
 }
 
 /** Where an index value sits inside the published band for its stage. */
@@ -156,18 +139,7 @@ export function buildPublicProfile(input: BuildProfileInput): PublicProfile {
   const total = Math.round(svi.totalSVI ?? 0);
   const benchBand = SVI_BENCHMARKS[stage];
 
-  const val = svi.valuation;
-  const valuation: ProfileValuation | null =
-    val && Number.isFinite(val.mid) && val.mid > 0
-      ? {
-          low: Math.round(val.low),
-          mid: Math.round(val.mid),
-          high: Math.round(val.high),
-          methods: splitValuationMethods(val.method),
-          confidencePct: Math.max(0, Math.min(100, Math.round(val.confidence ?? 0))),
-          currency: val.currency || "AUD",
-        }
-      : null;
+  const valuation: ProfileValuation = valuationNotEstimable();
 
   return {
     slug: input.slug,
@@ -209,10 +181,7 @@ export function profileTitle(p: PublicProfile): string {
 }
 
 export function profileDescription(p: PublicProfile): string {
-  const range = p.valuation
-    ? ` Indicative valuation ${formatAud(p.valuation.low)}–${formatAud(p.valuation.high)}.`
-    : "";
-  return `${p.oneLiner} Scored ${p.sviTotal} on the Startup Value Index across eight dimensions at ${p.stageLabel} stage.${range}`.slice(
+  return `${p.oneLiner} Scored ${p.sviTotal} on the Startup Value Index across eight dimensions at ${p.stageLabel} stage.`.slice(
     0,
     300,
   );
@@ -249,22 +218,6 @@ export function buildProfileJsonLd(p: PublicProfile): Record<string, unknown> {
       maxValue: 100,
     })),
   ];
-  if (p.valuation) {
-    variables.push(
-      {
-        "@type": "PropertyValue",
-        name: "Indicative valuation (low)",
-        value: p.valuation.low,
-        unitText: p.valuation.currency,
-      },
-      {
-        "@type": "PropertyValue",
-        name: "Indicative valuation (high)",
-        value: p.valuation.high,
-        unitText: p.valuation.currency,
-      },
-    );
-  }
 
   return {
     "@context": "https://schema.org",
@@ -289,7 +242,7 @@ export function buildProfileJsonLd(p: PublicProfile): Record<string, unknown> {
           url: SITE_URL,
         },
         keywords: [
-          "Australian startup valuation",
+          "Australian startup index",
           `${p.sectorLabel} startup Australia`,
           `${p.stageLabel} stage startup`,
           "startup value index",

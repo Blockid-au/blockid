@@ -135,8 +135,8 @@ export function ScnPositionHero({
       {hasScore && (
         <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-brand-100 pt-4 text-xs text-ink-500">
           <span>
-            Estimated value: <span className="font-semibold text-ink-700">{valuationLabel}</span>
-            <span className="ml-1 text-muted">(an output of your position, not the goal)</span>
+            Company value: <span className="font-semibold text-ink-700">{valuationLabel}</span>
+            <span className="ml-1 text-muted">(the SVI is an index, not a dollar figure)</span>
           </span>
         </div>
       )}

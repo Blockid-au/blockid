@@ -1,5 +1,6 @@
 "use client";
 
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 import * as React from "react";
 import {
   BarChart3,
@@ -628,42 +629,12 @@ export function JournalClient() {
                               </div>
                             )}
 
-                            {/* Revaluation metadata */}
-                            {isRevaluation && entry.metadata && isSelected && (
-                              <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
-                                {entry.metadata.lowValuation != null && (
-                                  <div className="rounded-xl bg-surface-50 px-3 py-2 text-center">
-                                    <div className="text-[10px] text-muted">Conservative</div>
-                                    <div className="text-sm font-semibold text-ink-700">
-                                      ${(Number(entry.metadata.lowValuation) / 1_000_000).toFixed(2)}M
-                                    </div>
-                                  </div>
-                                )}
-                                {entry.metadata.midValuation != null && (
-                                  <div className="rounded-xl bg-emerald-50 px-3 py-2 text-center">
-                                    <div className="text-[10px] text-emerald-600">Mid</div>
-                                    <div className="text-sm font-semibold text-emerald-700">
-                                      ${(Number(entry.metadata.midValuation) / 1_000_000).toFixed(2)}M
-                                    </div>
-                                  </div>
-                                )}
-                                {entry.metadata.highValuation != null && (
-                                  <div className="rounded-xl bg-brand-50 px-3 py-2 text-center">
-                                    <div className="text-[10px] text-brand-600">Optimistic</div>
-                                    <div className="text-sm font-semibold text-brand-700">
-                                      ${(Number(entry.metadata.highValuation) / 1_000_000).toFixed(2)}M
-                                    </div>
-                                  </div>
-                                )}
-                                {entry.metadata.revenueMultiple != null && (
-                                  <div className="rounded-xl bg-surface-50 px-3 py-2 text-center">
-                                    <div className="text-[10px] text-muted">Multiple</div>
-                                    <div className="text-sm font-semibold text-ink-700">
-                                      {String(entry.metadata.revenueMultiple)}x
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
+                            {/* Revaluation metadata — V04a (D22): the SVI-derived dollar
+                                range stored on older entries is never shown. */}
+                            {isRevaluation && isSelected && (
+                              <p className="mt-3 rounded-xl bg-surface-50 px-3 py-2 text-xs text-ink-700">
+                                Company value: {valuationNotEstimable().line}
+                              </p>
                             )}
                           </div>
                         </div>

@@ -43,10 +43,10 @@ export function formatIsoDate(iso: string): string {
 
 export const ASSESSMENT_CARD_PDF_TITLE = "BlockID Assessment Card";
 
-/** One line for the slim (free-tier, high trim level) form: "SVI 74 / 100 · Evidence Confidence 55 % · BlockID Verified L2 · …". */
+/** One line for the slim (free-tier, high trim level) form: "SVI index 74 · Evidence Confidence 55 % · BlockID Verified L2 · …" (SV1: the index is uncapped — never "/ 100"). */
 export function assessmentCardSummaryLine(data: AssessmentCardData): string {
   const parts = [
-    `SVI ${data.svi === null ? "—" : `${data.svi} / 100`}`,
+    `SVI index ${data.svi === null ? "—" : `${data.svi}`}`,
     `Evidence Confidence ${data.evidenceConfidence} %`,
     data.verification.label,
     data.topStrength ? `Top strength ${data.topStrength.dim.toUpperCase()} ${data.topStrength.score}` : null,
@@ -88,8 +88,8 @@ export function AssessmentCardPdf({ data, font, unicode = false, marginBottom = 
       <Text style={st.name}>{t(data.startupName)}</Text>
       <View style={st.row}>
         <View style={st.tile}>
-          <Text style={st.tileLabel}>SVI</Text>
-          <Text style={[st.tileValue, { color: data.svi === null ? INK.muted : BAND_COLOUR[data.sviBand] }]}>{data.svi === null ? "—" : `${data.svi} / 100`}</Text>
+          <Text style={st.tileLabel}>SVI index (uncapped)</Text>
+          <Text style={[st.tileValue, { color: data.svi === null ? INK.muted : BAND_COLOUR[data.sviBand] }]}>{data.svi === null ? "—" : `${data.svi}`}</Text>
           <Text style={st.tileSub}>{t(data.sviBand === "pending" ? "Pending" : data.sviBand)}</Text>
         </View>
         <View style={[st.tile, { marginRight: 0 }]}>

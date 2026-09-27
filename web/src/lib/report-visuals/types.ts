@@ -61,7 +61,10 @@ export interface VisualA11y {
 //    VisualSpec.data: Record<string, unknown>) ────────────────────────────
 
 export type ScoreRingData = {
+  /** Arc fill, 0..max. For the uncapped SVI index this is the weighted dimension profile (0–100), never a clamp of the index. */
   value: number;
+  /** Text printed in the centre when it differs from `value` (e.g. the uncapped SVI index). */
+  display?: string;
   max?: number;
   label?: string;
   sublabel?: string;

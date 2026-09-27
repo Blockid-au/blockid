@@ -36,7 +36,6 @@ export interface IndexHeadlines {
     band: BenchmarkBand;
     /** "benchmark (n = 138)" · "not enough comparable companies (n = 4)". */
     label: string;
-    totalCoverageAud: number;  // sum of blended valuations
     analysesToday: number;
     analysesYesterday: number;
   };
@@ -129,10 +128,8 @@ function extractStage(row: AnalysisRow): number {
   return typeof a.stage === "number" ? a.stage : 0;
 }
 
-function extractBlendedValuation(row: AnalysisRow): number {
-  const a = (row.analysis_json ?? {}) as { deepValuation?: { blendedValuation?: { midAud?: number } } };
-  return Math.max(0, Math.min(2_000_000_000, a.deepValuation?.blendedValuation?.midAud ?? 0));
-}
+// V04a (D22): the index headline carries no dollar "coverage" — it summed the
+// deep-valuation blends, which multiplied the SVI into dollars.
 
 // Hash email so we can group an identity without exposing PII.
 function hashEmail(email: string): string {
@@ -153,7 +150,6 @@ export async function computeIndexHeadlines(windowDays = 90): Promise<IndexHeadl
   const weekAgoTs = todayTs - 7 * 24 * 60 * 60 * 1000;
 
   const allSvis: number[] = [];
-  let coverageAud = 0;
   let analysesToday = 0;
   let analysesYesterday = 0;
 
@@ -170,7 +166,6 @@ export async function computeIndexHeadlines(windowDays = 90): Promise<IndexHeadl
     if (row.total_svi == null) continue;
     const svi = row.total_svi;
     allSvis.push(svi);
-    coverageAud += extractBlendedValuation(row);
 
     const rowTs = new Date(row.created_at).getTime();
     if (rowTs >= todayTs) analysesToday++;
@@ -274,7 +269,6 @@ export async function computeIndexHeadlines(windowDays = 90): Promise<IndexHeadl
       totalCompanies: identityBuckets.size,
       band: benchmarkBand(identityBuckets.size),
       label: benchmarkLabel(identityBuckets.size),
-      totalCoverageAud: Math.round(coverageAud),
       analysesToday,
       analysesYesterday,
     },

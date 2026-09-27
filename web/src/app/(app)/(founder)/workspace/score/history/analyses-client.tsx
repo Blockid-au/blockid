@@ -16,7 +16,7 @@ import {
   describeInput,
   formatRunDate,
   formatSviTotal,
-  formatValuationMid,
+  analysisValuationText,
   fullReportStatusText,
   inputKindLabel,
   savedAnalysisPath,
@@ -234,8 +234,8 @@ export function AnalysesClient({ claimed = 0 }: AnalysesClientProps) {
                         <p className="text-[11px] uppercase tracking-[0.16em] text-tertiary">
                           Valuation
                         </p>
-                        <p className="text-base font-semibold tabular-nums text-primary">
-                          {formatValuationMid(row.valuation_mid_aud)}
+                        <p className="text-sm font-medium text-secondary">
+                          {analysisValuationText()}
                         </p>
                       </div>
                     </div>

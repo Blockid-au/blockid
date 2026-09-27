@@ -13,7 +13,7 @@ import {
   formatRunDate,
   formatRunDateTime,
   formatSviTotal,
-  formatValuationMid,
+  analysisValuationText,
   fullReportStatusText,
   inputKindLabel,
   savedAnalysisPath,
@@ -121,16 +121,12 @@ describe("date formatting", () => {
   });
 });
 
-describe("formatValuationMid", () => {
-  it("formats a real midpoint", () => {
-    expect(formatValuationMid(1_500_000)).toBe("A$1.5M");
-    expect(formatValuationMid(250_000)).toBe("A$250K");
-  });
-
-  it("shows a dash rather than A$0 for a missing valuation", () => {
-    expect(formatValuationMid(null)).toBe("—");
-    expect(formatValuationMid(0)).toBe("—");
-    expect(formatValuationMid(Number.NaN)).toBe("—");
+describe("analysisValuationText", () => {
+  // V04a (D22): the saved-analysis valuation cell used to print
+  // valuation_mid_aud (an SVI-derived estimate). It now always reads
+  // "Not estimable" — the row never carries a CFO-method figure.
+  it("reads not estimable, never a dollar figure", () => {
+    expect(analysisValuationText()).toBe("Not estimable");
   });
 });
 

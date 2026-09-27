@@ -144,6 +144,19 @@ const LATEST: Row = {
   analysis_json: { industry: "DeepTech", stageLabel: "Seed" },
   report_v2: null,
 };
+/** A stored CFO valuation (V04a: the only source of a valuation figure). */
+const CFO_VC = {
+  blended: { lowAud: 1_000_000, midAud: 2_000_000, highAud: 3_000_000, confidence: 60 },
+  scenarios: { bear: 700_000, base: 2_000_000, bull: 3_900_000 },
+  methods: [
+    { method: "revenue_multiple", lowAud: 1e6, midAud: 2e6, highAud: 3e6, weight: 0.35, rationale: "rm" },
+    { method: "berkus", lowAud: 8e5, midAud: 1.5e6, highAud: 2e6, weight: 0.1, rationale: "b" },
+    { method: "dcf_proxy", lowAud: 9e5, midAud: 1.8e6, highAud: 2.8e6, weight: 0.25, rationale: "d" },
+    { method: "comparables", lowAud: 1.1e6, midAud: 2.1e6, highAud: 3.1e6, weight: 0.15, rationale: "c" },
+    { method: "risk_factor_summation", lowAud: 1e6, midAud: 1.9e6, highAud: 2.9e6, weight: 0.15, rationale: "r" },
+    { method: "scorecard", lowAud: 1e6, midAud: 1.7e6, highAud: 2.4e6, weight: 0, rationale: "s" },
+  ],
+};
 const OLDER: Row = { id: "s-1", project_id: "p-1", svi_total: 58, stage: 3, created_at: "2026-08-01T00:00:00Z", dim_results: null, dimension_scores: { ...DIMS, tre: 50, lco: 44 } };
 
 const EVIDENCE: Row[] = [
@@ -485,7 +498,12 @@ describe("loadDossier — evaluator", () => {
 });
 
 describe("loadDossier — S-R4 blocks 2 / 5 + header fit / Δ since last view", () => {
+  // V04a (D22): a snapshot without a CFO run no longer lifts a three-case
+  // SVI band on read (block 2 is then empty — see the degrade test). Block 2
+  // renders a stored CFO valuation chapter; the fixture stores one.
   it("block 2: valuation from the report with the assessor's own view overlaid on the range bars", async () => {
+    const cfo = fromSnapshot({ snapshotId: "s-2", projectId: "p-1", startupName: "Acme", stage: 3, sviTotal: 62, dimStates: { tre: { score: 61 } }, tier: "standard", vc: CFO_VC });
+    state.tables.svi_snapshots = [{ ...LATEST, report_v2: cfo }, OLDER];
     const d = await loadDossier("e-1", "u-eval");
     const v = d!.valuation;
     expect(v.available).toBe(true);
@@ -563,7 +581,7 @@ describe("loadDossier — founder preview (§C.1)", () => {
     expect(d!.header.mandateFit).toBeNull();
     expect(listMandatesMock).not.toHaveBeenCalled();
     expect(d!.valuation.myView).toBeNull();
-    expect(d!.valuation.rangeBars?.id).not.toMatch(/-mine$/);
+    expect(d!.valuation.rangeBars?.id ?? "").not.toMatch(/-mine$/);
     expect(d!.progress.sinceAssessment).toBeNull();
     expect((progressMock.mock.calls[0][0] as { userId: string }).userId).toBe("u-eval");
     // the report block is the same block 1 the evaluator sees

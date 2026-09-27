@@ -59,14 +59,17 @@ describe("buildValuationView", () => {
     expect(view.inputRows.find((r) => r.key === "raise")).toMatchObject({ value: "A$750k", source: "founder_stated" });
   });
 
-  it("adapter fallback: no inputs, no method rows, noneApplicable, stage baseline only", () => {
+  // V04a (D22): the adapter fallback used to lift a three-case SVI band with a
+  // stage-baseline cross-check; without a CFO run the chapter is now
+  // "not estimable" — no inputs, no methods, no cross-check figures.
+  it("adapter fallback: not estimable — no inputs, no method rows, no cross-check", () => {
     const report = fromSnapshot({ snapshotId: "s", stageLabel: "Seed", stage: 2, sviTotal: 100, dimStates: { tre: { score: 40 } } });
+    expect(report.valuation.status).toBe("unavailable");
     const view = buildValuationView(report.valuation, "en");
     expect(view.inputRows).toEqual([]);
     expect(view.methodRows).toEqual([]);
     expect(view.noneApplicable).toBe(true);
-    expect(view.needRevenueLine).toBeNull();
-    expect(view.crossChecks).toHaveLength(1);
+    expect(view.crossChecks).toEqual([]);
     expect(view.unitEconomics).toEqual([]);
   });
 

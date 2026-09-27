@@ -8,7 +8,8 @@
 // Data sources:
 //   - projects                → project name + sector (via getProjectById)
 //   - svi_analyses            → latest analysis (grade, dimension scores)
-//   - lib/valuation           → estimateValuation() from SVI + stage
+//   - lib/valuation/not-estimable → company value is "not estimable" (V04a /
+//                                D22: never derived from the SVI)
 //   - lib/fundraise-checklist → snapshot + readiness score
 //   - lib/au-comparable-raises → sector- + stage-matched comps
 //   - founder_profiles        → team snapshot (founder + co-founders)
@@ -19,7 +20,7 @@ import "server-only";
 
 import { getSupabaseAdmin } from "@/lib/supabase";
 import { getProjectById } from "@/lib/projects";
-import { estimateValuation } from "@/lib/valuation";
+import { valuationNotEstimable, type ValuationNotEstimable } from "@/lib/valuation/not-estimable";
 import { loadFounderProfile } from "@/lib/founder-profile";
 import {
   buildChecklist,
@@ -95,12 +96,12 @@ export interface InvestorPackData {
     grade: string;
     dimensions: Array<{ label: string; score: number }>;
   };
-  valuation: {
-    lowAud: number;
-    midAud: number;
-    highAud: number;
-    method: string;
-  };
+  /**
+   * V04a (D22): the pack never prices the company off the SVI. No CFO
+   * method runs here, so the value is "not estimable" plus the evidence
+   * that unlocks a method.
+   */
+  valuation: ValuationNotEstimable;
   checklist: {
     score: number;
     band: string;
@@ -184,19 +185,6 @@ function stageFromSvi(total: number): "preseed" | "seed" | "seriesA" {
   if (total < 100) return "preseed";
   if (total < 140) return "seed";
   return "seriesA";
-}
-
-function stageNumberFromSvi(total: number): number {
-  // Mirrors the STAGE_BONUSES ladder in svi-analysis so downstream
-  // valuation() sits in the right baseline band.
-  if (total >= 185) return 7;
-  if (total >= 168) return 6;
-  if (total >= 155) return 5;
-  if (total >= 140) return 4;
-  if (total >= 125) return 3;
-  if (total >= 110) return 2;
-  if (total >= 90) return 1;
-  return 0;
 }
 
 /* ─── Funding Readiness section builder. ───────────────────────────────── */
@@ -650,14 +638,8 @@ export async function assemblePackData(
   const svi = userEmail ? await loadLatestSvi(userEmail, projectId) : null;
   const sviTotal = svi?.total ?? 0;
 
-  // Valuation range from SVI + stage. Falls back to zero band when no SVI.
-  const stageNum = stageNumberFromSvi(sviTotal);
-  const valuation = estimateValuation(
-    sviTotal,
-    stageNum,
-    { sector: sector ?? svi?.sector ?? undefined },
-    svi?.dimensionsMap,
-  );
+  // V04a (D22): no dollar range from the SVI — "not estimable" + unlock list.
+  const valuation = valuationNotEstimable();
 
   // Fundraise readiness checklist snapshot.
   const stageStr = stageFromSvi(sviTotal);
@@ -821,12 +803,7 @@ export async function assemblePackData(
       grade: sviGrade(sviTotal),
       dimensions: svi?.dimensions ?? [],
     },
-    valuation: {
-      lowAud: valuation.low,
-      midAud: valuation.mid,
-      highAud: valuation.high,
-      method: valuation.method,
-    },
+    valuation,
     checklist: {
       score: readiness.score,
       band: readiness.band,

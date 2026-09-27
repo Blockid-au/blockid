@@ -4,13 +4,15 @@
 //
 // Renders a horizontal banner with 4 stat chips:
 //   • SVI growth since first analysis (with trend arrow)
-//   • Estimated valuation gain (derived from SVI delta)
+//   • Company value — "not estimable" + unlock hint (V04a/D22: never derived
+//     from the SVI; a valuation comes only from a CFO method)
 //   • Investor Readiness score (from health score or readiness pct)
 //   • Milestones completed (evidence count + actions)
 //
 // Purely presentational — receives props from the server page, no client fetch.
 
 import { TrendingUp, Award, Target, Sparkles } from "lucide-react";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 
 interface Props {
   sviFirst:    number | null;
@@ -19,21 +21,6 @@ interface Props {
   evidenceCount: number;
   actionsCompleted?: number;
   startupName?: string | null;
-}
-
-function estimateValuation(score: number): number {
-  if (score < 30)        return Math.round(score * 3000);
-  if (score <= 50)       return Math.round(50_000   + (score - 30)  * 22_500);
-  if (score <= 70)       return Math.round(500_000  + (score - 50)  * 75_000);
-  if (score <= 85)       return Math.round(2_000_000 + (score - 70) * 200_000);
-  if (score <= 120)      return Math.round(5_000_000 + (score - 85) * 142_857);
-  return Math.round(10_000_000 + (score - 120) * 250_000);
-}
-
-function fmtVal(raw: number): string {
-  if (raw >= 1_000_000) return `A$${(raw / 1_000_000).toFixed(1)}M`;
-  if (raw >= 1_000)     return `A$${(raw / 1_000).toFixed(0)}K`;
-  return `A$${raw.toLocaleString()}`;
 }
 
 function fmtDelta(delta: number): string {
@@ -81,9 +68,7 @@ export function ValueImpactBanner({
     ? sviCurrent - sviFirst
     : null;
 
-  const currentVal = estimateValuation(sviCurrent);
-  const firstVal   = sviFirst ? estimateValuation(sviFirst) : null;
-  const valDelta   = firstVal ? currentVal - firstVal : null;
+  const valuation = valuationNotEstimable();
 
   const milestones = evidenceCount + actionsCompleted;
 
@@ -102,18 +87,18 @@ export function ValueImpactBanner({
         {/* SVI growth */}
         <Chip
           icon={<TrendingUp className="h-4 w-4" />}
-          label="SVI Score"
+          label="SVI index"
           value={String(sviCurrent)}
-          sub={delta != null ? `${fmtDelta(delta)} pts since first analysis` : "Current score"}
+          sub={delta != null ? `${fmtDelta(delta)} pts since first analysis` : "Current index"}
           accent="var(--ds-accent)"
         />
 
-        {/* Estimated valuation */}
+        {/* Company value — never derived from the SVI (V04a / D22) */}
         <Chip
           icon={<Award className="h-4 w-4" />}
-          label="Est. Value"
-          value={fmtVal(currentVal)}
-          sub={valDelta != null && valDelta > 0 ? `+${fmtVal(valDelta)} gained` : "Your startup value"}
+          label="Company value"
+          value={valuation.label}
+          sub={valuation.hint}
           accent="var(--ds-success)"
         />
 

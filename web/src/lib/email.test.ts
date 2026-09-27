@@ -1210,8 +1210,6 @@ describe("sendFreeSummary — the free tier's one email", () => {
     pdf: Buffer.from("%PDF-1.3 fake"),
     svi: 142,
     stageLabel: "Traction",
-    valuationLow: 850_000,
-    valuationHigh: 2_100_000,
     startupName: "Northwind Freight",
     analysisUrl: "https://blockid.au/analyze/abc123",
     analysisId: "e3a3e793-4cd5-47ff-86e4-20b5e8ed339c",
@@ -1239,7 +1237,7 @@ describe("sendFreeSummary — the free tier's one email", () => {
     expect(mail.attachments?.[0].contentType).toBe("application/pdf");
   });
 
-  it("puts the score and the range in the subject and the body", async () => {
+  it("puts the score in the subject and the body; the company value reads not estimable (V04a)", async () => {
     canSendEmailMock.mockResolvedValue(true);
     const { sendFreeSummary } = await import("./email");
     await sendFreeSummary(args);
@@ -1250,6 +1248,9 @@ describe("sendFreeSummary — the free tier's one email", () => {
     expect(mail.html).toContain("142");
     expect(mail.html).toContain("Traction");
     expect(mail.html).toContain(args.analysisUrl);
+    // V04a (D22): the e-mail used to print an SVI-derived "Valuation range".
+    expect(mail.html).toContain("Not estimable");
+    expect(mail.html).not.toContain("Valuation range");
   });
 
   it("lists all five pages, from the single definition", async () => {

@@ -22,7 +22,6 @@ import {
   formatAuDate,
   profileDescription,
   profileTitle,
-  splitValuationMethods,
 } from "./profile";
 
 const svi: CompactSvi = {
@@ -141,22 +140,6 @@ describe("buildPublicProfile", () => {
   });
 });
 
-describe("splitValuationMethods", () => {
-  // "No methodology weighting on customer surfaces" — the named methods are
-  // the useful half; the percentage split is internal.
-  it("keeps the method names and drops the weighting", () => {
-    expect(splitValuationMethods("Berkus (50%) + Scorecard (50%)")).toEqual([
-      "Berkus",
-      "Scorecard",
-    ]);
-  });
-
-  it("handles a single method and an empty one", () => {
-    expect(splitValuationMethods("Berkus")).toEqual(["Berkus"]);
-    expect(splitValuationMethods(undefined)).toEqual([]);
-  });
-});
-
 describe("describeStanding", () => {
   it("places an index value inside the published band for its stage", () => {
     // Stage 2 band: p10 85, p25 100, p50 115, p75 130, p90 145.
@@ -212,8 +195,10 @@ describe("buildProfileJsonLd", () => {
     };
     const dataset = graph["@graph"][1];
     const measured = dataset.variableMeasured as { name: string }[];
-    // 1 index value + 8 dimensions + 2 valuation bounds.
-    expect(measured).toHaveLength(11);
+    // 1 index value + 8 dimensions — no valuation bounds (V04a / D22: the
+    // stored range was SVI-derived and is never published).
+    expect(measured).toHaveLength(9);
+    expect(measured.map((m) => m.name).join(" ")).not.toMatch(/valuation/i);
     expect(measured.map((m) => m.name)).toContain("Traction & Revenue");
   });
 
@@ -224,6 +209,14 @@ describe("buildProfileJsonLd", () => {
     expect(graph["@graph"][1].about).toEqual({
       "@id": "https://blockid.au/listings/corella-health#organization",
     });
+  });
+
+  it("never publishes a dollar valuation — even from a stored pre-V04a range", () => {
+    const p = build();
+    expect(p.valuation.status).toBe("not_estimable");
+    expect(p.valuation.line).toMatch(/^Not estimable — add /);
+    expect(JSON.stringify(p)).not.toMatch(/2400000|Berkus/);
+    expect(profileDescription(p)).not.toMatch(/A\$\s?\d/);
   });
 
   it("never leaks a founder contact point into structured data", () => {

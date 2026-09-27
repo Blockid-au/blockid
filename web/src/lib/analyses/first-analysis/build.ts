@@ -1,27 +1,18 @@
 // Deterministic sections of the first analysis (S32-B).
 //
 // Everything here is a pure function of the stored intake — the same
-// `computeSVI(signals)` the screen used, the same `estimateValuation` the row
-// was stamped with — so the report, the page and the database can never
-// disagree about what the founder was shown. No model call, no I/O, no
+// `computeSVI(signals)` the screen used — so the report, the page and the
+// database can never disagree about what the founder was shown. No model call, no I/O, no
 // `server-only`: the job runner writes these first (they cost nothing), then
 // starts the agents.
 //
 // The rule that governs every number: it traces to an input or to a stated
-// assumption. A revenue multiple is used ONLY when the founder's own text
-// carries a revenue figure; otherwise the range is SVI-based and says so.
+// assumption. No dollar valuation is derived from the SVI (V04a / D22): the
+// valuation section is "not estimable" with what would unlock a method.
 
 import { computeSVI, type SVIAnalysis, type SVIExtractedSignals } from "@/lib/svi-analysis";
-import {
-  BERKUS_PILLAR_CAP_AUD,
-  ARR_CLAMP_MULTIPLE,
-  ARR_CLAMP_THRESHOLD_AUD,
-  estimateValuation,
-  formatAUD,
-  valuationMetricsFromSignals,
-} from "@/lib/valuation";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 import { formatFigureAud, parseFinancialFigures, type RevenueKind } from "@/lib/intake/financial-figures";
-import { buildDeepValuationAnalysis } from "@/lib/agents/deep-valuation";
 import { buildScnActionPlan, type ScnAction } from "@/lib/agents/scn-action-plan";
 import { buildInputEcho, type EchoInput, type EchoMeta, type InputEcho } from "@/lib/analyses/input-echo";
 import {
@@ -32,7 +23,6 @@ import {
   type DimensionReasoning,
   type FirstAnalysisReport,
   type SviSection,
-  type ValuationMethodRow,
   type ValuationSection,
 } from "./types";
 
@@ -130,128 +120,55 @@ export function buildSviSection(analysis: SVIAnalysis): SviSection {
 
 // ── Valuation ────────────────────────────────────────────────────────────
 
-const STAGE_BAND: Record<number, number> = { 0: 50, 1: 50, 2: 40, 3: 40, 4: 30, 5: 30, 6: 25, 7: 25 };
-
+/**
+ * V04a (founder decision D22): the valuation section is always "not
+ * estimable". The SVI is an uncapped index, not a dollar valuation, and the
+ * intake carries no qualified input a CFO method can run on (a founder-typed
+ * revenue figure is company-stated, not verified — §9.5.3). The section says
+ * what would unlock a method and reports what the founder stated (revenue,
+ * cap, ask) exactly as read, without turning any of it into a value.
+ */
 export function buildValuationSection(
   analysis: SVIAnalysis,
   rawText: string,
 ): ValuationSection {
-  const dims =
-    analysis.dimensionScores ??
-    Object.fromEntries(analysis.subs.map((s) => [s.key, s.value]));
-  const sector = analysis.sector ?? analysis.signals?.sector;
   const figures = parseFinancialFigures(rawText);
   const figure = parseRevenueFigure(rawText);
-  // The figures come from the same parser the signals used; the signals win
-  // when connected metrics overrode the text, the text wins otherwise.
-  const metrics = valuationMetricsFromSignals(
-    {
-      mrrAud: analysis.signals?.mrrAud ?? figure?.mrrAud,
-      arrAud: analysis.signals?.arrAud ?? figure?.arrAud,
-      statedCapAud: analysis.signals?.statedCapAud ?? figures.cap?.amountAud,
-      statedCapKind: analysis.signals?.statedCapKind ?? figures.cap?.kind,
-    },
-    sector,
-  );
-  const estimate = estimateValuation(analysis.totalSVI, analysis.stage ?? 0, metrics, dims);
-  const basis: ValuationSection["basis"] = figure ? "revenue" : "svi_based";
-  const stage = analysis.stage ?? 0;
-  const band = STAGE_BAND[Math.max(0, Math.min(7, stage))] ?? 40;
+  const ne = valuationNotEstimable();
 
   const assumptions: string[] = [];
   if (figure) {
     assumptions.push(
-      `Revenue figure read from your input: "${figure.quote}" — treated as ${describeRevenue(figure)}.`,
+      `Revenue figure read from your input: "${figure.quote}" — ${describeRevenue(figure)}. It is company-stated, so it cannot anchor a valuation until it is verified (connect Stripe or Xero, or add financial statements with a stated period).`,
     );
-    if (figures.pilots) {
-      assumptions.push(
-        `Paid pilots ("${figures.pilots.quote}") count as traction, not recurring revenue — they are not in the revenue multiple.`,
-      );
-    }
-    assumptions.push(
-      `Sector multiple: ${sector ? `${sector} band` : "generic band (no sector detected)"} from the AU 2024–25 calibration table; growth and churn were not provided, so no growth premium or churn discount was applied.`,
-    );
-    if (estimate.arrClamp) {
-      assumptions.push(
-        `Sanity clamp: annualised revenue ${formatFigureAud(estimate.arrClamp.arrAud)} is under ${formatFigureAud(ARR_CLAMP_THRESHOLD_AUD)}, so the mid-point is capped at the larger of the AU pre-seed high and ${ARR_CLAMP_MULTIPLE}× ARR (${formatAUD(estimate.arrClamp.capAud)}); the unclamped blend was ${formatAUD(estimate.arrClamp.unclampedMidAud)}.`,
-      );
-    }
   } else {
-    assumptions.push(
-      "No revenue figure was provided, so no revenue multiple was used. The range rests on the Berkus and Scorecard methods, each mapped from your SVI dimension scores.",
-    );
-    if (figures.pilots) {
-      assumptions.push(
-        `Paid pilots ("${figures.pilots.quote}") count as traction, not recurring revenue — say what you have billed over how many months to get a revenue-based range.`,
-      );
-    }
+    assumptions.push("No revenue figure was provided.");
   }
-  assumptions.push(
-    `Stage baseline: the AU pre-money median for the "${analysis.stageLabel}" stage (Cut Through Venture "State of Australian Startup Funding" 2024–25 medians: pre-seed ≈ A$4–6M, seed ≈ A$8–12M, Series A ≈ A$25–35M). Your stage was detected from the evidence in the input; "Revenue" stage needs ARR ≥ A$250k or 12 months of revenue.`,
-  );
-  if (estimate.capCrossCheck) {
-    assumptions.push(`${estimate.capCrossCheck.note}. Your number is reported as you gave it and was not used to set the range.`);
+  if (figures.pilots) {
+    assumptions.push(
+      `Paid pilots ("${figures.pilots.quote}") count as traction, not recurring revenue.`,
+    );
+  }
+  const statedCapAud = analysis.signals?.statedCapAud ?? figures.cap?.amountAud;
+  const statedCapKind = analysis.signals?.statedCapKind ?? figures.cap?.kind;
+  if (statedCapAud != null && statedCapAud > 0) {
+    assumptions.push(
+      `Your stated ${statedCapKind === "pre_money" ? "pre-money" : statedCapKind === "post_money" ? "post-money" : statedCapKind === "valuation" ? "valuation" : "cap"}: ${formatFigureAud(statedCapAud)}. Reported as you gave it; BlockID does not confirm or contest it.`,
+    );
   }
   if (figures.ask) {
-    assumptions.push(`The ask read from your input: "${figures.ask.quote}" (${formatFigureAud(figures.ask.amountAud)}). It does not move the range.`);
+    assumptions.push(`The ask read from your input: "${figures.ask.quote}" (${formatFigureAud(figures.ask.amountAud)}).`);
   }
-  assumptions.push(
-    `Berkus pillars capped at ${formatFigureAud(BERKUS_PILLAR_CAP_AUD)} each (five pillars, ≤ A$2.5M — Berkus method, applied in AUD as a calibration assumption); Scorecard weights FTV 30%, MPC 25%, PTD 15%, SVM 10%, TRE 10%, IRI 5%, LCO 2.5%, CGH 2.5%.`,
-  );
-  assumptions.push(
-    `Band: ±${band}% around the mid-point — the uncertainty we assign to this stage. A narrower band needs more evidence, not a different formula.`,
-  );
-  assumptions.push(
-    `Evidence confidence ${Math.round(analysis.confidenceMultiplier * 100)}%: the score is scaled by how much of the eight dimensions your input actually evidences.`,
-  );
-
-  // Four-perspective cross-check (investor / market / operational / ecosystem).
-  let methods: ValuationMethodRow[] = [];
-  try {
-    const deep = buildDeepValuationAnalysis({
-      sviAnalysis: analysis,
-      rawText,
-      mrrAud: figure?.mrrAud,
-    });
-    methods = deep.perspectives.map((p) => ({
-      name: p.label,
-      lowAud: p.lowAud,
-      midAud: p.midAud,
-      highAud: p.highAud,
-      weight: p.weight,
-      rationale: p.rationale,
-      assumptions: p.assumptions,
-    }));
-  } catch {
-    methods = [];
-  }
-
-  const note = figure
-    ? "Indicative only. Built from the revenue figure you gave and your SVI; not a formal valuation."
-    : "Indicative only. No revenue was provided, so this is an SVI-based range under the assumptions listed — not a formal valuation.";
+  assumptions.push(ne.why);
 
   return {
-    lowAud: estimate.low,
-    midAud: estimate.mid,
-    highAud: estimate.high,
-    method: estimate.method,
-    confidence: estimate.confidence,
-    basis,
+    status: "not_estimable",
+    unlock: ne.unlock,
     assumptions,
-    methods,
-    note,
+    note: ne.line,
     ...(figures.ask ? { askAud: figures.ask.amountAud } : {}),
-    ...(estimate.capCrossCheck
-      ? {
-          statedCapAud: estimate.capCrossCheck.statedAud,
-          capCrossCheck: {
-            kind: estimate.capCrossCheck.kind,
-            ratio: estimate.capCrossCheck.ratio,
-            verdict: estimate.capCrossCheck.verdict,
-            note: estimate.capCrossCheck.note,
-          },
-        }
-      : {}),
+    ...(statedCapAud != null && statedCapAud > 0 ? { statedCapAud } : {}),
+    ...(statedCapAud != null && statedCapAud > 0 && statedCapKind ? { statedCapKind } : {}),
   };
 }
 

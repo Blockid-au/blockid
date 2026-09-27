@@ -44,7 +44,7 @@ import { trackEvent } from "@/lib/analytics";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
 import { AIThinkingStatus, useAIThinking, FULL_REPORT_STEPS, DIMENSION_ANALYSIS_STEPS } from "@/components/ui/ai-thinking-status";
-import { estimateValuation, formatAUD } from "@/lib/valuation";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 import { ResearchPanel } from "@/components/svi/research-panel";
 import type { SVIAction } from "@/lib/svi-actions";
 import {
@@ -331,30 +331,16 @@ function MetricCard({
   );
 }
 
-function ValuationRangeCard({ sviScore, stage, analysis }: { sviScore: number; stage: number; analysis?: import("@/lib/svi-analysis").SVIAnalysis }) {
-  const dims = analysis?.dimensionScores ?? Object.fromEntries((analysis?.subs ?? []).map(s => [s.key, s.value]));
-  const est = estimateValuation(
-    sviScore,
-    stage,
-    { sector: analysis?.sector ?? analysis?.signals?.sector },
-    Object.keys(dims).length > 0 ? dims : undefined,
-  );
+/** V04a (D22): the SVI is an index, never a dollar range — this card says
+ *  "not estimable" and names the evidence that unlocks a CFO method. */
+function ValuationRangeCard() {
+  const ne = valuationNotEstimable();
   return (
-    <div className="mt-6 rounded-xl bg-surface-50 border border-surface-200 p-4">
-      <p className="text-xs text-ink-500 mb-2">Estimated Valuation Range</p>
-      <div className="flex items-baseline gap-3 justify-center">
-        <span className="text-sm text-muted">{formatAUD(est.low)}</span>
-        <span className="text-2xl font-bold text-brand-600">{formatAUD(est.mid)}</span>
-        <span className="text-sm text-muted">{formatAUD(est.high)}</span>
-      </div>
-      <div className="flex gap-1 mt-2">
-        <div className="h-1.5 flex-1 rounded-full bg-surface-200" />
-        <div className="h-1.5 flex-[2] rounded-full bg-brand-500" />
-        <div className="h-1.5 flex-1 rounded-full bg-surface-200" />
-      </div>
-      <p className="text-[10px] text-muted mt-2 text-center">
-        Based on SVI score, stage, and available metrics. Not financial advice.
-      </p>
+    <div className="mt-6 rounded-xl bg-surface-50 border border-surface-200 p-4" data-testid="svi-valuation-not-estimable">
+      <p className="text-xs text-ink-500 mb-2">Company value</p>
+      <p className="text-center text-lg font-bold text-ink-800">{ne.label}</p>
+      <p className="mt-1 text-center text-xs text-ink-600">{ne.line}</p>
+      <p className="text-[10px] text-muted mt-2 text-center">{ne.why}</p>
     </div>
   );
 }
@@ -1911,7 +1897,7 @@ export function SVIResultsPanel({
             )}
 
             {/* Estimated Valuation Range */}
-            <ValuationRangeCard sviScore={analysis.totalSVI} stage={analysis.stage} analysis={analysis} />
+            <ValuationRangeCard />
 
             <PageNavigation currentPage={1} onNavigate={navigateToPageNum} />
           </PageSection>

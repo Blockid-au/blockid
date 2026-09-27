@@ -222,11 +222,14 @@ describe("<TbrReportV2> v3 structure (G27)", () => {
     expect((html.match(/print:break-before-page/g) ?? []).length).toBeGreaterThanOrEqual(14);
   });
 
-  it("a report with no scored dimension shows the valuation as pending instead of the SVI-0 three-case range, and band D", () => {
+  // V04a (D22): with no CFO run the chapter is "not estimable" (the SVI-0
+  // three-case range no longer exists to hide behind a pending notice).
+  it("a report with no scored dimension shows the valuation as not estimable — never an SVI-0 range — and band D", () => {
     const empty = assertReportV2(fromSnapshot({ dimStates: {} }));
     expect(empty.cover.svi.band).toBe("pending");
     const out = renderToStaticMarkup(<TbrReportV2 report={empty} />);
-    expect(out).toContain("data-valuation-pending");
+    expect(out).toContain("data-valuation-unavailable");
+    expect(out).toContain("Not estimable");
     expect(out).not.toMatch(/A\$\s?0\.[6-9]M/);
     expect(out).toContain('data-tbr-band="D"');
     expect(out).toContain("Not enough evidence to form a view");

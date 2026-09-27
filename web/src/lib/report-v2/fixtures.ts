@@ -405,10 +405,13 @@ export function investmentBandFixture(band: InvestmentBandFixture): BandFixture 
   // The stored thesis was written before the three dimensions went pending —
   // rewrite its opening line so the summary never says "investor-ready" beside
   // a band-D verdict (G28 UI lane; same rule as the adapter's thesisPartial).
+  // SV1: the band now reads the dimension profile (the pre-revenue fixture is
+  // "developing", no longer "strong" off its index of 104), so the opening
+  // sentence is replaced whatever band it was written for.
   const partial = getTbrStrings("en").v2.adapter.thesisPartial(report.cover.svi.total, 3);
-  const strong = getTbrStrings("en").v2.adapter.thesisStrong(report.cover.svi.total, 6);
-  report.executive.thesis = report.executive.thesis.replace(strong, partial);
-  if (report.executive.structured) report.executive.structured.summary = report.executive.structured.summary.map((p) => p.replace(strong, partial));
+  const opening = new RegExp(`^SVI ${report.cover.svi.total} — [^.]*\\.`);
+  report.executive.thesis = report.executive.thesis.replace(opening, partial);
+  if (report.executive.structured) report.executive.structured.summary = report.executive.structured.summary.map((p) => p.replace(opening, partial));
   return { report, assessment: { evidenceConfidence: 42, unverifiedMaterialClaims: 3 } };
 }
 

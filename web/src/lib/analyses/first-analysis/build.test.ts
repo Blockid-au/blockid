@@ -1,7 +1,8 @@
 // Colocated suite for the deterministic report sections (S32-B).
 //
-// Pins the honesty rules: a revenue multiple only when the text carries a
-// figure; SVI-based otherwise with the assumptions saying so; every
+// Pins the honesty rules: the valuation is "not estimable" (V04a / D22 — the
+// SVI is never turned into dollars; a founder-typed revenue figure is read
+// back but cannot anchor a value until verified); every
 // dimension present with reasoning; the 30-day plan starts at Day 0 and
 // ends with a re-run; nothing throws on a thin input.
 
@@ -33,58 +34,56 @@ describe("parseRevenueFigure", () => {
   });
 });
 
+// V04a (D22, 2026-09-27): this section used to run estimateValuation(SVI,
+// stage, metrics, dims) — a Berkus/Scorecard blend of the SVI dimensions
+// (plus a revenue multiple on founder-typed revenue) — and pinned its A$
+// ranges (the 2026-09-15 live input "in the A$4–12M band", the cap
+// cross-check verdicts, the four deep-valuation views). Those pins encoded
+// an SVI→dollar path the founder retired; the section now reports what was
+// read and what would unlock a CFO valuation method.
 describe("buildValuationSection", () => {
-  it("is SVI-based with stated assumptions when no figure is provided", () => {
+  it("is not estimable, with the unlock list, when no figure is provided", () => {
     const rawText = "An idea for a marketplace for surplus building materials. Pre-revenue, two founders.";
     const analysis = computeSVI(extractSignals({ rawText }));
     const v = buildValuationSection(analysis, rawText);
-    expect(v.basis).toBe("svi_based");
+    expect(v.status).toBe("not_estimable");
+    expect(v.unlock.length).toBeGreaterThan(0);
+    expect(v.note).toMatch(/^Not estimable — add .* to unlock a valuation method\.$/);
     expect(v.assumptions[0]).toMatch(/No revenue figure was provided/);
-    expect(v.method).not.toMatch(/Revenue/);
-    expect(v.lowAud).toBeGreaterThan(0);
-    expect(v.midAud).toBeGreaterThanOrEqual(v.lowAud);
-    expect(v.highAud).toBeGreaterThanOrEqual(v.midAud);
-    expect(v.note).toMatch(/No revenue was provided/);
-    expect(v.methods.length).toBe(4);
+    expect(v).not.toHaveProperty("midAud");
+    expect(v).not.toHaveProperty("methods");
   });
 
-  it("prices the 2026-09-15 live input at stage 3 in the A$4–12M band and cross-checks the stated cap", () => {
+  it("reads the 2026-09-15 live input back (revenue, pilots, cap, ask) without turning any of it into a value", () => {
     const analysis = computeSVI(extractSignals({ rawText: LIVE_INPUT }));
     const v = buildValuationSection(analysis, LIVE_INPUT);
-    expect(analysis.stage).toBe(3);
-    expect(v.basis).toBe("revenue");
-    expect(v.midAud).toBeGreaterThanOrEqual(4_000_000);
-    expect(v.midAud).toBeLessThanOrEqual(12_000_000);
-    expect(v.lowAud).toBeLessThan(v.midAud);
-    expect(v.highAud).toBeGreaterThan(v.midAud);
+    expect(v.status).toBe("not_estimable");
     expect(v.assumptions[0]).toContain("A$36,000 in the last 6 months");
     expect(v.assumptions[0]).toContain("MRR A$6,000 (ARR A$72,000 annualised)");
+    expect(v.assumptions[0]).toMatch(/company-stated/);
     expect(v.assumptions.some((a) => /Paid pilots .* traction, not recurring revenue/.test(a))).toBe(true);
-    expect(v.assumptions.some((a) => a.startsWith("Your stated cap A$6.0M · indicative A$"))).toBe(true);
-    expect(v.assumptions.some((a) => /Berkus pillars capped at A\$500,000 each/.test(a))).toBe(true);
-    expect(v.assumptions.some((a) => /No revenue figure was provided/.test(a))).toBe(false);
+    expect(v.assumptions.some((a) => /Your stated cap: A\$6/.test(a))).toBe(true);
     expect(v.askAud).toBe(1_200_000);
     expect(v.statedCapAud).toBe(6_000_000);
-    expect(v.capCrossCheck?.verdict).toBe("consistent");
-    expect(v.capCrossCheck?.note).toMatch(/→ consistent$/);
+    expect(v.statedCapKind).toBe("cap");
+    // No figure other than the founder's own ever appears.
+    const amounts = v.assumptions.join(" ").match(/A\$[\d.,]+[MK]?/g) ?? [];
+    for (const a of amounts) expect(["A$36,000", "A$18,000", "A$6,000", "A$72,000", "A$6M", "A$6.0M", "A$6,000,000", "A$1.2M", "A$1,200,000"]).toContain(a);
   });
 
-  it("flags a stated cap far above the indicative range without overriding it", () => {
+  it("reports a founder-stated cap as given — never confirmed or contested", () => {
     const rawText = "An idea for a marketplace for surplus building materials. Pre-revenue, two founders, raising A$500k on a SAFE at A$40M cap.";
     const analysis = computeSVI(extractSignals({ rawText }));
     const v = buildValuationSection(analysis, rawText);
-    expect(v.basis).toBe("svi_based");
     expect(v.statedCapAud).toBe(40_000_000);
-    expect(v.capCrossCheck?.verdict).toBe("indicative_below");
-    expect(v.midAud).toBeLessThan(40_000_000 * 0.5);
+    expect(v).not.toHaveProperty("capCrossCheck");
   });
 
-  it("anchors on the founder's revenue figure when one is in the text", () => {
+  it("reads the founder's revenue figure back when one is in the text", () => {
     const intake = sampleIntake();
     const analysis = computeSVI(intake.signals);
     const v = buildValuationSection(analysis, intake.rawText);
-    expect(v.basis).toBe("revenue");
-    expect(v.method).toMatch(/Revenue/);
+    expect(v.status).toBe("not_estimable");
     expect(v.assumptions[0]).toContain("A$18,500");
     expect(v.assumptions[0]).toMatch(/read from your input/);
   });
@@ -94,7 +93,7 @@ describe("buildDeterministicReport", () => {
   it("does not recover visual revenue or a SAFE cap from narrative when scoring text is empty", () => {
     const { report } = buildDeterministicReport({ analysisId: SAMPLE_ANALYSIS_ID,
       intake: { ...sampleIntake(), rawText: LIVE_INPUT, scoringSourceText: "", signals: extractSignals({ rawText: "" }) } });
-    expect(report.valuation.basis).toBe("svi_based");
+    expect(report.valuation.status).toBe("not_estimable");
     expect(report.valuation.statedCapAud).toBeFalsy();
   });
   it("produces echo, eight dimensions with reasoning, valuation and a Day 0 → Day 30 plan", () => {
@@ -129,6 +128,6 @@ describe("buildDeterministicReport", () => {
       intake: { inputKind: "idea_text", rawText, structured: {}, signals: extractSignals({ rawText }), context: undefined, warnings: ["empty input"] },
     });
     expect(report.echo.provided).toBe(0);
-    expect(report.valuation.basis).toBe("svi_based");
+    expect(report.valuation.status).toBe("not_estimable");
   });
 });

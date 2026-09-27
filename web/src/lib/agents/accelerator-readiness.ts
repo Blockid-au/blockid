@@ -36,7 +36,12 @@ export interface CriterionEvaluation {
   entry: KnowledgeEntry;
   status: CriterionStatus;
   reasoning: string;
-  estLiftAud?: number; // valuation_lift_pct applied to the user's blended valuation
+  /**
+   * V04a (D22): never set. It applied `valuation_lift_pct` to the
+   * deep-valuation blend, which multiplied the SVI into dollars. Kept optional
+   * so stored results still type-check; readers never print it.
+   */
+  estLiftAud?: number;
 }
 
 export interface SourceReadiness {
@@ -144,16 +149,11 @@ export async function evaluateAcceleratorReadiness(
     analysis.inputSummary?.keyFindings?.join(" ") ?? "",
   ].join(" ");
 
-  const blendedMid = analysis.deepValuation?.blendedValuation?.midAud;
-
   // Per-criterion evaluation
   const evals: CriterionEvaluation[] = rows.map((r) => {
     const entry = r as unknown as KnowledgeEntry;
     const { status, reasoning } = detectStatus(entry, analysis, blob);
-    const estLiftAud = (blendedMid && entry.valuation_lift_pct > 0 && status !== "met")
-      ? Math.round((blendedMid * entry.valuation_lift_pct / 100) / 1000) * 1000
-      : undefined;
-    return { entry, status, reasoning, estLiftAud };
+    return { entry, status, reasoning };
   });
 
   // Group by source

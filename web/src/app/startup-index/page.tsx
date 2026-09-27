@@ -44,13 +44,6 @@ export const revalidate = 300;
 
 // ─── Helpers ────────────────────────────────────────────────────────────
 
-function fmtAud(v: number): string {
-  if (v >= 1_000_000_000) return `A$${(v / 1_000_000_000).toFixed(2)}B`;
-  if (v >= 1_000_000) return `A$${(v / 1_000_000).toFixed(2)}M`;
-  if (v >= 1_000) return `A$${(v / 1_000).toFixed(0)}K`;
-  return `A$${Math.round(v).toLocaleString("en-AU")}`;
-}
-
 function deltaColor(delta: number): string {
   if (delta > 0) return "text-bull";
   if (delta < 0) return "text-bear";
@@ -205,8 +198,8 @@ export default async function IndexExchangePage() {
               <p className="text-xl font-bold text-ink-900 tabular-nums">{data.bsiAu.totalCompanies.toLocaleString()}</p>
             </div>
             <div>
-              <p className="text-xs text-ink-500 uppercase tracking-wider font-medium">Coverage</p>
-              <p className="text-xl font-bold text-ink-900 tabular-nums">{fmtAud(data.bsiAu.totalCoverageAud)}</p>
+              <p className="text-xs text-ink-500 uppercase tracking-wider font-medium">Sectors</p>
+              <p className="text-xl font-bold text-ink-900 tabular-nums">{data.sectorIndices.length}</p>
             </div>
             <div>
               <p className="text-xs text-ink-500 uppercase tracking-wider font-medium">Analyses today</p>

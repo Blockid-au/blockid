@@ -1,7 +1,8 @@
 // P5-investor-pack-assembler-lib-test — colocated vitest for the
 // server-only pack assembler that feeds POST /api/investor-pack and the
 // /workspace/reports/investor-pack rendering path. Pins the SVI-total → grade
-// ladder, the SVI-total → valuation-stage-number ladder, the cap-table
+// ladder, the "not estimable" company value (V04a / D22 — the SVI-total →
+// stage-number → estimateValuation ladder was removed), the cap-table
 // fully-diluted %-round + ESOP-tail contract, the contact-name three-
 // step fallback (founder profile → app_users.display_name → email
 // prefix), the sector-source preference (project.industry preferred over
@@ -315,32 +316,16 @@ describe("assemblePackData — sviGrade ladder", () => {
   });
 });
 
-// ── Stage-number ladder driving estimateValuation ───────────────────────
+// ── V04a (D22): the pack never prices the company off the SVI ─────────────
 
-describe("assemblePackData — stageNumberFromSvi ladder", () => {
-  it.each([
-    [200, 7],
-    [185, 7],
-    [184, 6],
-    [168, 6],
-    [167, 5],
-    [155, 5],
-    [154, 4],
-    [140, 4],
-    [139, 3],
-    [125, 3],
-    [124, 2],
-    [110, 2],
-    [109, 1],
-    [90, 1],
-    [89, 0],
-    [0, 0],
-  ])("total=%i → estimateValuation stage arg=%i", async (total, stageNum) => {
+describe("assemblePackData — company value is not estimable", () => {
+  it.each([200, 140, 90, 0])("total=%i → no SVI engine call, valuation = not estimable", async (total) => {
     state.sviAnalysis = { total_svi: total, analysis_json: {} };
-    await assemblePackData("u1", "p1");
-    const call = estimateValuationMock.mock.calls[0];
-    expect(call[0]).toBe(total);
-    expect(call[1]).toBe(stageNum);
+    const out = await assemblePackData("u1", "p1");
+    expect(estimateValuationMock).not.toHaveBeenCalled();
+    expect(out.valuation.status).toBe("not_estimable");
+    expect(out.valuation.line).toMatch(/^Not estimable — add /);
+    expect(JSON.stringify(out.valuation)).not.toMatch(/A\$\s?\d/);
   });
 });
 
@@ -594,7 +579,7 @@ describe("assemblePackData — sector source preference", () => {
     expect(out.project.sector).toBeNull();
   });
 
-  it("falls back to analysis.sector when project.industry is missing (for comparables + valuation)", async () => {
+  it("falls back to analysis.sector when project.industry is missing (for comparables)", async () => {
     getProjectByIdMock.mockResolvedValueOnce({
       id: "p1",
       name: "Startup",
@@ -605,12 +590,6 @@ describe("assemblePackData — sector source preference", () => {
       analysis_json: { sector: "HealthTech" },
     };
     await assemblePackData("u1", "p1");
-    expect(estimateValuationMock).toHaveBeenCalledWith(
-      120,
-      expect.any(Number),
-      { sector: "HealthTech" },
-      expect.any(Object),
-    );
     expect(getComparableRaisesMock).toHaveBeenCalledWith({
       sector: "HealthTech",
       stage: "seed",
@@ -692,7 +671,7 @@ describe("assemblePackData — SVI dimensions", () => {
     ]);
   });
 
-  it("dimensionsMap keys forwarded to estimateValuation as dims arg", async () => {
+  it("dimensionsMap keys forwarded to the checklist scores (never to a valuation engine)", async () => {
     state.sviAnalysis = {
       total_svi: 120,
       analysis_json: {
@@ -703,12 +682,10 @@ describe("assemblePackData — SVI dimensions", () => {
       },
     };
     await assemblePackData("u1", "p1");
-    expect(estimateValuationMock).toHaveBeenCalledWith(
-      120,
-      expect.any(Number),
-      expect.any(Object),
-      expect.objectContaining({ ftv: 70, mpc: 55 }),
+    expect(buildChecklistMock).toHaveBeenCalledWith(
+      expect.objectContaining({ sviAnalysis: expect.objectContaining({ dimensions: expect.objectContaining({ ftv: 70, mpc: 55 }) }) }),
     );
+    expect(estimateValuationMock).not.toHaveBeenCalled();
   });
 
   it("dimensionScores overrides subs values in the map", async () => {
@@ -720,11 +697,8 @@ describe("assemblePackData — SVI dimensions", () => {
       },
     };
     await assemblePackData("u1", "p1");
-    expect(estimateValuationMock).toHaveBeenCalledWith(
-      130,
-      expect.any(Number),
-      expect.any(Object),
-      expect.objectContaining({ ftv: 90 }),
+    expect(buildChecklistMock).toHaveBeenCalledWith(
+      expect.objectContaining({ sviAnalysis: expect.objectContaining({ dimensions: expect.objectContaining({ ftv: 90 }) }) }),
     );
   });
 
@@ -738,22 +712,10 @@ describe("assemblePackData — SVI dimensions", () => {
 // ── Checklist / valuation / comparables pass-through ───────────────────
 
 describe("assemblePackData — pass-throughs", () => {
-  it("valuation payload copied verbatim from estimateValuation return", async () => {
-    estimateValuationMock.mockReturnValueOnce({
-      low: 1_000_000,
-      mid: 2_000_000,
-      high: 3_000_000,
-      method: "custom-blend",
-      confidence: 0.75,
-      currency: "AUD",
-    });
+  it("valuation is the shared not-estimable state (V04a) — never an SVI-derived range", async () => {
     const out = await assemblePackData("u1", "p1");
-    expect(out.valuation).toEqual({
-      lowAud: 1_000_000,
-      midAud: 2_000_000,
-      highAud: 3_000_000,
-      method: "custom-blend",
-    });
+    expect(out.valuation).toMatchObject({ status: "not_estimable", label: "Not estimable" });
+    expect(out.valuation).not.toHaveProperty("midAud");
   });
 
   it("checklist grouping only includes the 6 canonical categories", async () => {

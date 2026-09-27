@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { SVIAnalysis } from "@/lib/svi-analysis";
 import { SVI_STAGE_LABELS } from "@/lib/svi-analysis";
-import { estimateValuation, formatAUD } from "@/lib/valuation";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 import { EvidenceWizard } from "@/components/svi/evidence-wizard";
 import { SVIChart } from "@/components/svi/svi-chart";
 import { SVIDimensionCompare } from "@/components/svi/svi-dimension-compare";
@@ -410,14 +410,8 @@ export function SVIDashboard({
   const deltaValue = analysis.weeklyDelta ?? (previousSVI != null ? analysis.totalSVI - previousSVI : 0);
   const deltaPositive = deltaValue >= 0;
 
-  // Valuation estimate — pass dimensions and sector for idea-specific accuracy
-  const dims = analysis.dimensionScores ?? Object.fromEntries((analysis.subs ?? []).map(s => [s.key, s.value]));
-  const est = estimateValuation(
-    analysis.totalSVI,
-    analysis.stage ?? 0,
-    { sector: analysis.sector ?? analysis.signals?.sector },
-    dims,
-  );
+  // V04a (D22): no dollar range is derived from the SVI or its dimensions.
+  const est = valuationNotEstimable();
 
   // Sort dimensions by score (lowest first) for prioritized improvement suggestions
   const sortedSubs = [...analysis.subs].sort((a, b) => a.value - b.value);
@@ -462,9 +456,9 @@ export function SVIDashboard({
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {/* Estimated valuation */}
               <div className="rounded-xl bg-white border border-surface-200 px-5 py-4">
-                <p className="text-[10px] uppercase tracking-[0.15em] text-ink-500 font-medium mb-1">Estimated Valuation</p>
-                <p className="text-2xl font-extrabold text-brand-600 leading-tight">{formatAUD(est.mid)}</p>
-                <p className="text-xs text-ink-500 mt-0.5">{formatAUD(est.low)} — {formatAUD(est.high)} range</p>
+                <p className="text-[10px] uppercase tracking-[0.15em] text-ink-500 font-medium mb-1">Company value</p>
+                <p className="text-2xl font-extrabold text-brand-600 leading-tight">{est.label}</p>
+                <p className="text-xs text-ink-500 mt-0.5">{est.hint}</p>
               </div>
 
               {/* Stats grid */}

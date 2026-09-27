@@ -185,11 +185,15 @@ function revenueMultipleMethod(
   return { value, multiple };
 }
 
-// ─── Blended Valuation ──────────────────────────────────────────────────────
-
-// ─── Quick Estimate (SVI + Stage) ───────────────────────────────────────────
-// A lightweight valuation estimate driven by the SVI score and stage number.
-// Used by the dashboard widget — not a substitute for computeValuation().
+// ─── Quick Estimate (removed — V04a / D22, 2026-09-27) ──────────────────────
+// `estimateValuation(svi, stage, metrics, dims)` priced the company off the
+// SVI and its dimension scores (Berkus = dim/100 × A$500k, Scorecard against
+// the stage median). Founder decision D22: the SVI is an uncapped index, not a
+// dollar valuation — a figure may only come from a CFO method with qualified
+// inputs (`lib/agents/cfo-valuation.ts`, `lib/valuation/cfo-*`). Surfaces
+// that used the quick estimate render `valuationNotEstimable()` from
+// `lib/valuation/not-estimable.ts`. The guard test
+// `lib/valuation/no-svi-dollar.guard.test.ts` keeps it from coming back.
 
 /** How the indicative range compares with a figure the founder stated. */
 export interface CapCrossCheck {
@@ -202,24 +206,6 @@ export interface CapCrossCheck {
   verdict: "consistent" | "indicative_above" | "indicative_below";
   /** One founder-facing line, e.g. "Your stated cap A$6M · indicative A$4–9M → consistent". */
   note: string;
-}
-
-export interface ValuationEstimate {
-  low: number;
-  mid: number;
-  high: number;
-  method: string;
-  confidence: number;
-  currency: "AUD";
-  /** AU comparable companies benchmark for the startup's industry and stage. */
-  comparablesBenchmark?: ComparablesBenchmark;
-  /**
-   * Set when the ARR sanity clamp lowered the mid: a business with under
-   * A$250k ARR cannot be priced above max(pre-seed high, 40 × ARR).
-   */
-  arrClamp?: { arrAud: number; capAud: number; unclampedMidAud: number };
-  /** Present when the founder stated a cap / pre-money; never overrides the range. */
-  capCrossCheck?: CapCrossCheck;
 }
 
 // ─── Calibration (2026-09-15) ────────────────────────────────────────────────
@@ -236,16 +222,9 @@ export interface ValuationEstimate {
 //   pre-seed ≈ A$4–6M, seed ≈ A$8–12M, Series A ≈ A$25–35M.
 // Stages 5–7 (Growth / Scale / Corporation) are left where they were.
 //
-// Berkus method (Dave Berkus, "The Berkus Method: Valuing an Early Stage
-// Investment"): five pillars, up to US$500k each, ≤ US$2.5M pre-money for a
-// pre-revenue company. Applied here as A$500k per pillar with no FX uplift —
-// the AU calibration assumption is that the AUD figure is the conservative
-// end of an AU pre-seed, which the CTV medians above bear out.
-//
-// Sanity clamp: with a known ARR below A$250k the mid cannot exceed
-// max(stage-2 high, 40 × ARR). 40× is above every public SaaS multiple
-// (Bessemer Cloud Index medians run single digits to low teens) and exists
-// only to stop a small revenue figure being priced as a Series A.
+// Consumers today: the CFO valuation chapter's stage cross-check
+// (`report-pipeline/valuation-chapter.ts`), `agents/cfo-valuation.ts` and the
+// consistency gates. None of them derives a figure from the SVI.
 
 /** AU pre-money baselines by SVI stage, AUD — see calibration note above. */
 export const VALUATION_BASELINES_AUD: Readonly<Record<number, { low: number; mid: number; high: number }>> = {
@@ -258,26 +237,6 @@ export const VALUATION_BASELINES_AUD: Readonly<Record<number, { low: number; mid
   6: { low: 100_000_000, mid: 250_000_000, high: 500_000_000 }, // Scale (unchanged)
   7: { low: 300_000_000, mid: 750_000_000, high: 2_000_000_000 }, // Corporation (unchanged)
 };
-
-/** Berkus pillar cap, AUD — US$500k per pillar applied as A$500k (see note). */
-export const BERKUS_PILLAR_CAP_AUD = 500_000;
-/** ARR below this triggers the sanity clamp. */
-export const ARR_CLAMP_THRESHOLD_AUD = 250_000;
-/** Multiple of ARR the clamped mid may not exceed. */
-export const ARR_CLAMP_MULTIPLE = 40;
-
-export interface ValuationMetrics {
-  mrr?: number;
-  arr?: number;
-  users?: number;
-  sector?: string;
-  growthPctYoY?: number;
-  churnPct?: number;
-  isAINative?: boolean;
-  /** A founder-stated SAFE cap / pre-money / post-money, AUD. Reported, never applied. */
-  statedCapAud?: number;
-  statedCapKind?: CapCrossCheck["kind"];
-}
 
 /**
  * Compare the indicative range with the founder's own cap / pre-money.
@@ -311,200 +270,6 @@ export function crossCheckStatedCap(
   };
 }
 
-/**
- * Evidence-based startup valuation V3 (recalibrated 2026-09-15).
- *
- * Blends 3 methods with stage-dependent weights:
- *   - Berkus Method (A$500k per pillar, 5 pillars = A$2.5M cap)
- *   - Scorecard Method (Bill Payne weights against the AU stage median)
- *   - Revenue Multiple (sector-specific, with growth/AI/churn adjustments)
- *
- * Stage baselines: Cut Through Venture "State of Australian Startup
- * Funding" 2024 / 2025 medians (see VALUATION_BASELINES_AUD). A known ARR
- * under A$250k clamps the mid; a founder-stated cap is cross-checked and
- * reported, never applied.
- */
-export function estimateValuation(
-  svi: number,
-  stage: number,
-  metrics?: ValuationMetrics,
-  dimensions?: Record<string, number>,
-): ValuationEstimate {
-  const s = clamp(stage, 0, 7);
-
-  const BASELINES = VALUATION_BASELINES_AUD;
-  const PILLAR_CAP = BERKUS_PILLAR_CAP_AUD;
-
-  const SCORECARD_WEIGHTS: Record<string, number> = {
-    ftv: 0.30, mpc: 0.25, ptd: 0.15, svm: 0.10, tre: 0.10, iri: 0.05, lco: 0.025, cgh: 0.025,
-  };
-
-  // Revenue multiples by sector — calibrated to 2024-2025 AU market
-  // SaaS raised: Operata ~52x ARR, Splose ~10-15x ARR at growth stage
-  const MULTIPLES: Record<string, { low: number; mid: number; high: number }> = {
-    saas: { low: 10, mid: 20, high: 40 },     // Raised from 5-15x (market shows 20-50x for hot SaaS)
-    fintech: { low: 8, mid: 15, high: 30 },    // Block Earner, WeMoney at high multiples
-    marketplace: { low: 3, mid: 6, high: 12 },
-    healthtech: { low: 8, mid: 15, high: 25 }, // Splose A$46M Series A
-    deeptech: { low: 5, mid: 12, high: 25 },   // Breaker defence A$9M seed at A$36M+
-    ecommerce: { low: 2, mid: 4, high: 8 },
-    other: { low: 5, mid: 10, high: 20 },
-  };
-
-  const regionalMedian = BASELINES[s]!.mid;
-
-  // Helper: get dimension score or derive from SVI
-  const getDim = (key: string): number => {
-    if (dimensions?.[key] != null) return clamp(dimensions[key], 0, 100);
-    return clamp(Math.round((svi / 200) * 100), 10, 90);
-  };
-
-  // ── Berkus Method ──────────────────────────────────────────────────────
-  const berkusPillars = {
-    "Sound Idea": getDim("mpc") / 100 * PILLAR_CAP,
-    "Prototype": getDim("ptd") / 100 * PILLAR_CAP,
-    "Quality Team": getDim("ftv") / 100 * PILLAR_CAP,
-    "Strategic Relations": ((getDim("iri") + getDim("svm")) / 2) / 100 * PILLAR_CAP,
-    "Product Rollout": getDim("tre") / 100 * PILLAR_CAP,
-  };
-  const berkusTotal = Object.values(berkusPillars).reduce((a, b) => a + b, 0);
-
-  // ── Scorecard Method ───────────────────────────────────────────────────
-  let scorecardMult = 0;
-  for (const [key, weight] of Object.entries(SCORECARD_WEIGHTS)) {
-    scorecardMult += weight * (0.50 + getDim(key) / 100); // 0.5-1.5 range
-  }
-  scorecardMult = clamp(scorecardMult, 0.4, 1.8);
-  // AI-native premium: +50% on scorecard (market data shows 2-3x for AI startups)
-  if (metrics?.isAINative) scorecardMult *= 1.5;
-  const scorecardTotal = Math.round(regionalMedian * scorecardMult);
-
-  // ── Revenue Multiple ───────────────────────────────────────────────────
-  const hasRevenue = (metrics?.mrr ?? 0) > 0;
-  let revTotal = 0;
-  let revMultiple = 0;
-  if (hasRevenue) {
-    const arr = metrics!.arr ?? metrics!.mrr! * 12;
-    const sector = metrics?.sector ?? "other";
-    const mults = MULTIPLES[sector] ?? MULTIPLES.other;
-    revMultiple = mults.mid;
-    if ((metrics?.growthPctYoY ?? 0) > 50) revMultiple += Math.floor(((metrics?.growthPctYoY ?? 0) - 50) / 25);
-    if (metrics?.isAINative) revMultiple = Math.round(revMultiple * 1.8); // AI startups: 2-3x premium (Carta 2025)
-    if ((metrics?.churnPct ?? 0) > 3) revMultiple -= Math.floor(((metrics?.churnPct ?? 0) - 3) / 5);
-    revMultiple = clamp(revMultiple, mults.low, mults.high + 5);
-    revTotal = Math.round(arr * revMultiple);
-  }
-
-  // ── Blend (First Chicago-style) ────────────────────────────────────────
-  let midAud: number;
-  let method: string;
-  if (s <= 2 && !hasRevenue) {
-    midAud = Math.round(berkusTotal * 0.50 + scorecardTotal * 0.50);
-    method = "Berkus (50%) + Scorecard (50%)";
-  } else if (s <= 3 && !hasRevenue) {
-    midAud = Math.round(berkusTotal * 0.30 + scorecardTotal * 0.70);
-    method = "Berkus (30%) + Scorecard (70%)";
-  } else if (hasRevenue && s >= 5) {
-    midAud = Math.round(berkusTotal * 0.05 + scorecardTotal * 0.20 + revTotal * 0.75);
-    method = `Revenue ${revMultiple}x (75%) + Scorecard (20%)`;
-  } else if (hasRevenue) {
-    midAud = Math.round(berkusTotal * 0.15 + scorecardTotal * 0.35 + revTotal * 0.50);
-    method = `Revenue ${revMultiple}x (50%) + Scorecard (35%) + Berkus (15%)`;
-  } else {
-    midAud = Math.round(berkusTotal * 0.30 + scorecardTotal * 0.70);
-    method = "Scorecard (70%) + Berkus (30%)";
-  }
-
-  // ── ARR sanity clamp ───────────────────────────────────────────────────
-  // A known ARR under A$250k is a small business whatever the stage label
-  // says: the mid may not exceed max(pre-seed high, 40 × ARR).
-  let arrClamp: ValuationEstimate["arrClamp"];
-  if (hasRevenue) {
-    const arr = metrics!.arr ?? metrics!.mrr! * 12;
-    if (arr < ARR_CLAMP_THRESHOLD_AUD) {
-      const capAud = Math.max(BASELINES[2]!.high, Math.round(arr * ARR_CLAMP_MULTIPLE));
-      if (midAud > capAud) {
-        arrClamp = { arrAud: arr, capAud, unclampedMidAud: midAud };
-        midAud = capAud;
-        method = `${method} · ARR-clamped`;
-      }
-    }
-  }
-
-  // ── Band width (uncertainty by stage) ──────────────────────────────────
-  const band = s <= 1 ? 0.50 : s <= 3 ? 0.40 : s <= 5 ? 0.30 : 0.25;
-  const base = BASELINES[s]!;
-  // The stage floor only applies when the mid itself sits at or above it —
-  // a revenue-anchored or ARR-clamped mid under the stage's baseline low
-  // keeps its full band rather than collapsing low onto mid.
-  const rawLow = Math.round(midAud * (1 - band));
-  const lowAud = midAud >= base.low ? Math.max(rawLow, base.low) : rawLow;
-  const highAud = Math.max(
-    Math.min(Math.round(midAud * (1 + band)), (BASELINES[Math.min(s + 1, 7)]?.high ?? base.high) * 1.2),
-    midAud,
-  );
-
-  // ── Confidence ─────────────────────────────────────────────────────────
-  let confidence = 10;
-  if (dimensions) confidence += Object.values(dimensions).filter(v => v != null).length * 5;
-  if (hasRevenue) confidence += 15;
-  if (metrics?.growthPctYoY != null) confidence += 5;
-  if (metrics?.sector) confidence += 5;
-  confidence = clamp(confidence, 5, 95);
-
-  const comparablesBenchmark = buildComparablesBenchmark(metrics?.sector, stage);
-
-  // ── Founder-stated cap / pre-money: reported alongside, never applied ──
-  const capCrossCheck =
-    metrics?.statedCapAud != null
-      ? crossCheckStatedCap({ low: lowAud, mid: midAud, high: highAud }, metrics.statedCapAud, metrics.statedCapKind ?? "cap")
-      : undefined;
-
-  return {
-    low: lowAud,
-    mid: midAud,
-    high: highAud,
-    method,
-    confidence,
-    currency: "AUD",
-    comparablesBenchmark,
-    ...(arrClamp ? { arrClamp } : {}),
-    ...(capCrossCheck ? { capCrossCheck } : {}),
-  };
-}
-
-/**
- * The metrics `estimateValuation` should see for a set of extracted signals:
- * the founder's own revenue figure and stated cap, plus the sector. One
- * place, so the stored row, the free summary, the hero widget and the first
- * analysis all price the same numbers.
- */
-export function valuationMetricsFromSignals(
-  signals:
-    | {
-        sector?: string;
-        mrrAud?: number;
-        arrAud?: number;
-        statedCapAud?: number;
-        statedCapKind?: CapCrossCheck["kind"];
-      }
-    | null
-    | undefined,
-  sectorOverride?: string,
-): ValuationMetrics {
-  const out: ValuationMetrics = {};
-  const sector = sectorOverride ?? signals?.sector;
-  if (sector) out.sector = sector;
-  if (signals?.mrrAud != null && signals.mrrAud > 0) out.mrr = signals.mrrAud;
-  if (signals?.arrAud != null && signals.arrAud > 0) out.arr = signals.arrAud;
-  if (out.arr != null && out.mrr == null) out.mrr = out.arr / 12;
-  if (signals?.statedCapAud != null && signals.statedCapAud > 0) {
-    out.statedCapAud = signals.statedCapAud;
-    if (signals.statedCapKind) out.statedCapKind = signals.statedCapKind;
-  }
-  return out;
-}
-
 export function formatAUD(value: number): string {
   if (value >= 1_000_000) return `A$${(value / 1_000_000).toFixed(1)}M`;
   if (value >= 1_000) return `A$${(value / 1_000).toFixed(0)}K`;
@@ -513,6 +278,14 @@ export function formatAUD(value: number): string {
 
 // ─── Blended Valuation ──────────────────────────────────────────────────────
 
+/**
+ * Berkus + Scorecard (+ revenue multiple) blend whose pillars are the SVI
+ * dimension scores — an SVI→dollar path. Founder decision D22 retires it;
+ * the only remaining consumer is the share-price / vesting / dividend chain
+ * (`lib/share-price.ts`), whose migration is D22-e and gated on V04b so that
+ * already-issued figures stay reproducible. Do not add new callers — the
+ * guard test `lib/valuation/no-svi-dollar.guard.test.ts` pins the list.
+ */
 export function computeValuation(input: ValuationInput): ValuationResult {
   const berkus = berkusMethod(input);
   const scorecard = scorecardMethod(input);

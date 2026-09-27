@@ -454,17 +454,10 @@ describe("sectionsToMarkdown() — via assembleReport", () => {
     expect(r.markdown).toContain("*Score: 71/100*");
   });
 
-  it.each<[number, string]>([
-    [0, "A$50K – A$250K"],
-    [1, "A$50K – A$250K"],
-    [2, "A$250K – A$1M"],
-    [3, "A$500K – A$3M"],
-    [4, "A$1M – A$10M"],
-    [5, "A$5M – A$50M"],
-    [6, "A$20M – A$200M"],
-    [7, "A$100M+"],
-    [12, "A$100M+"],
-  ])("prints the valuation range %s → %s in the three-questions SVG", (stage, expected) => {
+  // V04a (D22): the three-questions SVG used to print a stage-bucket dollar
+  // band (stage 0–1 → "A$50K – A$250K" … 7+ → "A$100M+"), a price derived
+  // from the SVI stage. It now prints "Not estimable" at every stage.
+  it.each([0, 1, 2, 3, 4, 5, 6, 7, 12])("prints no dollar band at stage %s — the worth box reads Not estimable", (stage) => {
     const ctx = makeContext({
       stage,
       sviAnalysis: {
@@ -476,7 +469,9 @@ describe("sectionsToMarkdown() — via assembleReport", () => {
       } as unknown as ReportContext["sviAnalysis"],
     });
     const r = assembleReport(ctx, "standard", `rep_val_${stage}`);
-    expect(r.markdown).toContain(expected);
+    const svg = r.markdown.slice(r.markdown.indexOf("<!-- three-questions-svg -->"), r.markdown.indexOf("<!-- /three-questions-svg -->"));
+    expect(svg).toContain("Not estimable");
+    expect(svg).not.toMatch(/A\$\d/);
   });
 });
 

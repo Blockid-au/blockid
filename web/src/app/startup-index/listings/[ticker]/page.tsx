@@ -13,6 +13,10 @@ import { computeListingDetail } from "@/lib/startup-index-listings";
 import { formatDelta } from "@/lib/startup-index-movers";
 import { getMessagesSync, t } from "@/lib/i18n/t";
 import { pageMetadata } from "@/lib/seo/page-meta";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
+
+/** V04a (D22): the public index never prices a company. */
+const notEstimable = valuationNotEstimable();
 
 // S31-D: ISR 300 s (the `force-dynamic` that used to sit above it made
 // this `revalidate` inert — capacity audit §3). Data reads go through the
@@ -68,17 +72,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { ticker } = await params;
   return pageMetadata({
     title: `${ticker} · Startup Listing`,
-    description: `Live SVI score, blended valuation, growth chart and Antler signals for ${ticker} on the BlockID Startup Value Index.`,
+    description: `Live SVI index, growth chart and Antler signals for ${ticker} on the BlockID Startup Value Index.`,
     path: `/startup-index/listings/${encodeURIComponent(ticker)}`,
   });
-}
-
-function fmtAud(v: number): string {
-  if (v >= 1_000_000_000) return `A$${(v / 1_000_000_000).toFixed(2)}B`;
-  if (v >= 1_000_000) return `A$${(v / 1_000_000).toFixed(2)}M`;
-  if (v >= 1_000) return `A$${(v / 1_000).toFixed(0)}K`;
-  if (v <= 0) return "—";
-  return `A$${Math.round(v).toLocaleString("en-AU")}`;
 }
 
 function HistoryChart({ data }: { data: Array<{ date: string; svi: number }> }) {
@@ -211,8 +207,9 @@ export default async function TickerDetailPage({ params }: PageProps) {
 
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-6 border-t border-brand-100">
             <div>
-              <p className="text-[10px] text-ink-500 uppercase tracking-wider font-medium">Blended valuation</p>
-              <p className="text-xl font-bold text-ink-900 tabular-nums">{fmtAud(detail.valuationAud)}</p>
+              {/* V04a (D22): the index never publishes a price for a company. */}
+              <p className="text-[10px] text-ink-500 uppercase tracking-wider font-medium">Company value</p>
+              <p className="text-sm font-bold text-ink-900">{notEstimable.label}</p>
             </div>
             <div>
               <p className="text-[10px] text-ink-500 uppercase tracking-wider font-medium">Analyses on record</p>
@@ -281,35 +278,6 @@ export default async function TickerDetailPage({ params }: PageProps) {
                 </ul>
               </div>
             )}
-          </section>
-        )}
-
-        {/* Valuation perspectives */}
-        {detail.perspectives && detail.perspectives.length > 0 && (
-          <section className="rounded-2xl border border-ink-200 bg-white p-5 mb-6">
-            <h2 className="text-sm font-bold text-ink-900 uppercase tracking-wider mb-3">Valuation — 4 lens triangulation</h2>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-ink-100">
-                  <th className="py-1 text-left text-[10px] uppercase tracking-wider font-semibold text-ink-400">Lens</th>
-                  <th className="py-1 text-right text-[10px] uppercase tracking-wider font-semibold text-ink-400">Low</th>
-                  <th className="py-1 text-right text-[10px] uppercase tracking-wider font-semibold text-ink-400">Mid</th>
-                  <th className="py-1 text-right text-[10px] uppercase tracking-wider font-semibold text-ink-400">High</th>
-                  <th className="py-1 text-right text-[10px] uppercase tracking-wider font-semibold text-ink-400">Weight</th>
-                </tr>
-              </thead>
-              <tbody>
-                {detail.perspectives.map((p, i) => (
-                  <tr key={i} className="border-b border-ink-50 last:border-0">
-                    <td className="py-1.5 text-xs text-ink-700">{p.label}</td>
-                    <td className="py-1.5 text-xs text-right font-mono tabular-nums">{fmtAud(p.lowAud)}</td>
-                    <td className="py-1.5 text-xs font-bold text-right font-mono tabular-nums">{fmtAud(p.midAud)}</td>
-                    <td className="py-1.5 text-xs text-right font-mono tabular-nums">{fmtAud(p.highAud)}</td>
-                    <td className="py-1.5 text-xs text-right tabular-nums text-ink-500">{Math.round(p.weight * 100)}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
           </section>
         )}
 

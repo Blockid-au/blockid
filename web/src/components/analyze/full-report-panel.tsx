@@ -28,6 +28,7 @@ import {
   FIRST_ANALYSIS_AGENTS,
   isFullReportReadable,
   normaliseAgentSections,
+  readValuationSection,
   type AgentSectionView,
   type FirstAnalysisAgent,
   type FirstAnalysisReportView,
@@ -37,6 +38,7 @@ import {
 import type { IntakeResult } from "@/lib/intake/analyze-input";
 import type { ReportV2ChapterDraft, ReportV2Progress } from "@/lib/analyses/first-analysis/types";
 import { cn } from "@/lib/utils";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 import { isReportV2, type ReportV2 } from "@/lib/report-v2/schema";
 import { DIM_ORDER } from "@/lib/report-pipeline/dimension-owners";
 import { isTimelineView, type TbrStageKey, type TbrTimelineView } from "@/lib/analyses/first-analysis/stage-timeline";
@@ -149,12 +151,6 @@ export function progressLineV2(view: Pick<FullReportView, "status" | "progressV2
 
 /** How long we keep polling a job that never finishes before going quiet. */
 export const POLL_GIVE_UP_MS = 20 * 60 * 1000;
-
-function aud(n: number): string {
-  if (n >= 1_000_000) return `A$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `A$${Math.round(n / 1_000)}K`;
-  return `A$${Math.round(n).toLocaleString("en-AU")}`;
-}
 
 /** Voices not yet written and not given up on, from the normalised payload. */
 export function stillBeingWritten(report: FirstAnalysisReportView | null): FirstAnalysisAgent[] {
@@ -352,7 +348,9 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
   const report = view?.report ?? null;
   const preview = view?.preview ?? null;
   const echo = report?.echo ?? preview?.echo ?? clientEcho;
-  const valuation: ValuationSection | null = report?.valuation ?? preview?.valuation ?? null;
+  // V04a: whatever the payload carries is read as the not-estimable section.
+  const rawValuation: unknown = report?.valuation ?? preview?.valuation ?? null;
+  const valuation: ValuationSection | null = rawValuation ? readValuationSection(rawValuation) : null;
   const locked = Boolean(view?.locked);
   const status = view?.status ?? null;
   // G28-C: a v2 row renders the v3 document; an S32 row the seven voices.
@@ -490,10 +488,8 @@ export function FullReportPanel({ analysisId, authenticated, unlockNonce = 0, in
 
         {!v2 && valuation && (
           <div className="mt-4 rounded-xl border border-line-subtle bg-surface p-3" data-testid="analyze-full-report-valuation">
-            <p className="text-xs font-semibold uppercase tracking-wider text-tertiary">Indicative valuation — how it was built</p>
-            <p className="mt-1 text-sm text-primary">
-              {aud(valuation.lowAud)} – {aud(valuation.highAud)} <span className="text-muted">(mid {aud(valuation.midAud)})</span>
-            </p>
+            <p className="text-xs font-semibold uppercase tracking-wider text-tertiary">Company value</p>
+            <p className="mt-1 text-sm font-semibold text-primary">{valuationNotEstimable().label}</p>
             <p className="mt-1 text-xs text-secondary">{valuation.note}</p>
             <ul className="mt-2 space-y-1">
               {valuation.assumptions.map((a, i) => (

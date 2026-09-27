@@ -17,14 +17,6 @@ interface Props {
   preview: InvestorPackData;
 }
 
-function formatAud(v: number): string {
-  if (!Number.isFinite(v) || v <= 0) return "—";
-  if (v >= 1_000_000_000) return `A$${(v / 1_000_000_000).toFixed(2)}B`;
-  if (v >= 1_000_000) return `A$${(v / 1_000_000).toFixed(2)}M`;
-  if (v >= 1_000) return `A$${(v / 1_000).toFixed(1)}K`;
-  return `A$${Math.round(v).toLocaleString("en-AU")}`;
-}
-
 function bandLabel(band: string): string {
   if (band === "ready") return "Investor ready";
   if (band === "nearly-ready") return "Nearly ready";
@@ -52,8 +44,9 @@ export function InvestorPackGenerateClient({ preview }: Props): React.ReactEleme
         ok: preview.checklist.score > 0,
       },
       {
-        label: `Valuation range (${formatAud(preview.valuation.midAud)} mid)`,
-        ok: preview.valuation.midAud > 0,
+        // V04a (D22): the pack never prices the company off the SVI.
+        label: `Company value (${preview.valuation.label.toLowerCase()})`,
+        ok: false,
       },
       {
         label: `AU comparables (${preview.comparables.length})`,
@@ -161,8 +154,7 @@ export function InvestorPackGenerateClient({ preview }: Props): React.ReactEleme
               Valuation
             </dt>
             <dd className="mt-1 text-sm font-semibold text-ink-800">
-              {formatAud(preview.valuation.lowAud)} –{" "}
-              {formatAud(preview.valuation.highAud)}
+              {preview.valuation.label}
             </dd>
           </div>
           <div>

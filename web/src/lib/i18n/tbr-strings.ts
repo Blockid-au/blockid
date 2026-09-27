@@ -1111,11 +1111,11 @@ const en: TbrStrings = {
   bandEarly: "Early-Stage",
 
   verdictStrong: (svi, above70) =>
-    `This business scores ${svi}/100 on the BlockID Startup Value Index — placing it in investor-ready territory. The analysis identified ${above70} dimensions above the 70-point threshold with strong evidence.`,
+    `This business has an index of ${svi} on the BlockID Startup Value Index (uncapped) — placing it in investor-ready territory. The analysis identified ${above70} dimensions above the 70-point threshold with strong evidence.`,
   verdictDeveloping: (svi, riskCount) =>
-    `This business scores ${svi}/100 on the BlockID Startup Value Index — developing, with meaningful gaps to close before Series A or significant angel capital. ${riskCount} dimension${riskCount !== 1 ? "s" : ""} flagged as high-priority focus areas.`,
+    `This business has an index of ${svi} on the BlockID Startup Value Index (uncapped) — developing, with meaningful gaps to close before Series A or significant angel capital. ${riskCount} dimension${riskCount !== 1 ? "s" : ""} flagged as high-priority focus areas.`,
   verdictEarly: (svi) =>
-    `This business scores ${svi}/100 on the BlockID Startup Value Index — early-stage, indicating significant evidence gaps that will limit fundraising options at this point. Concrete evidence-building actions are recommended before approaching investors.`,
+    `This business has an index of ${svi} on the BlockID Startup Value Index (uncapped) — early-stage, indicating significant evidence gaps that will limit fundraising options at this point. Concrete evidence-building actions are recommended before approaching investors.`,
 
   secExecutive: "Executive Summary",
   secSvi: "Business SVI — Weighted Score Breakdown",
@@ -1241,11 +1241,11 @@ const vi: TbrStrings = {
   bandEarly: "Giai đoạn sớm",
 
   verdictStrong: (svi, above70) =>
-    `Doanh nghiệp đạt ${svi}/100 trên BlockID Startup Value Index — thuộc nhóm sẵn sàng gọi vốn. Phân tích xác định ${above70} khía cạnh vượt ngưỡng 70 điểm với bằng chứng vững chắc.`,
+    `Doanh nghiệp đạt chỉ số ${svi} trên BlockID Startup Value Index (không giới hạn) — thuộc nhóm sẵn sàng gọi vốn. Phân tích xác định ${above70} khía cạnh vượt ngưỡng 70 điểm với bằng chứng vững chắc.`,
   verdictDeveloping: (svi, riskCount) =>
-    `Doanh nghiệp đạt ${svi}/100 trên BlockID Startup Value Index — đang phát triển, còn nhiều khoảng trống cần lấp trước Series A hoặc vòng angel lớn. ${riskCount} khía cạnh được đánh dấu là ưu tiên cao.`,
+    `Doanh nghiệp đạt chỉ số ${svi} trên BlockID Startup Value Index (không giới hạn) — đang phát triển, còn nhiều khoảng trống cần lấp trước Series A hoặc vòng angel lớn. ${riskCount} khía cạnh được đánh dấu là ưu tiên cao.`,
   verdictEarly: (svi) =>
-    `Doanh nghiệp đạt ${svi}/100 trên BlockID Startup Value Index — giai đoạn sớm, cho thấy thiếu bằng chứng đáng kể làm hạn chế khả năng gọi vốn hiện tại. Nên thu thập bằng chứng cụ thể trước khi tiếp cận nhà đầu tư.`,
+    `Doanh nghiệp đạt chỉ số ${svi} trên BlockID Startup Value Index (không giới hạn) — giai đoạn sớm, cho thấy thiếu bằng chứng đáng kể làm hạn chế khả năng gọi vốn hiện tại. Nên thu thập bằng chứng cụ thể trước khi tiếp cận nhà đầu tư.`,
 
   secExecutive: "Tóm tắt Điều hành",
   secSvi: "SVI Doanh nghiệp — Điểm trọng số chi tiết",
@@ -1376,11 +1376,11 @@ const es: TbrStrings = {
   bandEarly: "Etapa Temprana",
 
   verdictStrong: (svi, above70) =>
-    `Este negocio obtiene ${svi}/100 en el BlockID Startup Value Index — situándose en territorio listo para inversores. El análisis identificó ${above70} dimensiones por encima del umbral de 70 puntos con evidencia sólida.`,
+    `Este negocio obtiene un índice de ${svi} en el BlockID Startup Value Index (sin tope) — situándose en territorio listo para inversores. El análisis identificó ${above70} dimensiones por encima del umbral de 70 puntos con evidencia sólida.`,
   verdictDeveloping: (svi, riskCount) =>
-    `Este negocio obtiene ${svi}/100 en el BlockID Startup Value Index — en desarrollo, con brechas relevantes que cerrar antes de una Series A o de una ronda angel significativa. ${riskCount} dimensión${riskCount !== 1 ? "es" : ""} marcada${riskCount !== 1 ? "s" : ""} como foco de alta prioridad.`,
+    `Este negocio obtiene un índice de ${svi} en el BlockID Startup Value Index (sin tope) — en desarrollo, con brechas relevantes que cerrar antes de una Series A o de una ronda angel significativa. ${riskCount} dimensión${riskCount !== 1 ? "es" : ""} marcada${riskCount !== 1 ? "s" : ""} como foco de alta prioridad.`,
   verdictEarly: (svi) =>
-    `Este negocio obtiene ${svi}/100 en el BlockID Startup Value Index — etapa temprana, con brechas de evidencia significativas que limitarán las opciones de captación de capital en este momento. Se recomiendan acciones concretas de construcción de evidencia antes de acercarse a los inversores.`,
+    `Este negocio obtiene un índice de ${svi} en el BlockID Startup Value Index (sin tope) — etapa temprana, con brechas de evidencia significativas que limitarán las opciones de captación de capital en este momento. Se recomiendan acciones concretas de construcción de evidencia antes de acercarse a los inversores.`,
 
   secExecutive: "Resumen Ejecutivo",
   secSvi: "SVI del Negocio — Desglose Ponderado",
@@ -1511,11 +1511,11 @@ const ja: TbrStrings = {
   bandEarly: "アーリーステージ",
 
   verdictStrong: (svi, above70) =>
-    `本事業は BlockID Startup Value Index で ${svi}/100 を獲得し、投資家対応レベルに位置しております。分析では、確かな根拠に基づき ${above70} 項目が70点の基準値を上回りました。`,
+    `本事業は BlockID Startup Value Index（上限なしの指数）で ${svi} を獲得し、投資家対応レベルに位置しております。分析では、確かな根拠に基づき ${above70} 項目が70点の基準値を上回りました。`,
   verdictDeveloping: (svi, riskCount) =>
-    `本事業は BlockID Startup Value Index で ${svi}/100 を獲得し、成長段階にあります。Series A や本格的なエンジェルラウンドに進む前に埋めるべき重要なギャップが存在します。${riskCount} 項目が優先度の高い注力領域として特定されました。`,
+    `本事業は BlockID Startup Value Index（上限なしの指数）で ${svi} を獲得し、成長段階にあります。Series A や本格的なエンジェルラウンドに進む前に埋めるべき重要なギャップが存在します。${riskCount} 項目が優先度の高い注力領域として特定されました。`,
   verdictEarly: (svi) =>
-    `本事業は BlockID Startup Value Index で ${svi}/100 を獲得し、アーリーステージにあります。現時点での資金調達の選択肢を制約する重大な根拠不足が見られます。投資家にアプローチする前に、具体的なエビデンス構築の取り組みを推奨いたします。`,
+    `本事業は BlockID Startup Value Index（上限なしの指数）で ${svi} を獲得し、アーリーステージにあります。現時点での資金調達の選択肢を制約する重大な根拠不足が見られます。投資家にアプローチする前に、具体的なエビデンス構築の取り組みを推奨いたします。`,
 
   secExecutive: "エグゼクティブサマリー",
   secSvi: "事業SVI — 加重スコアの内訳",

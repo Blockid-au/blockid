@@ -11,9 +11,12 @@ describe("stream valuation availability", () => {
     expect(html).not.toContain("Directional");
     expect(html).toContain("80");
   });
-  it("retains legacy missing-flag compatibility", () => {
+  // V04a (D22): a legacy run without a valuation status used to show a
+  // three-case A$ range derived from the running SVI; it now reads not estimable.
+  it("legacy missing-flag runs read not estimable — never an SVI-derived A$ range", () => {
     const html = renderToStaticMarkup(<RunningSviHero dims={dims} stage="Seed" industry="SaaS" totalCount={8} running={false} done />);
-    expect(html).toContain("A$");
+    expect(html).not.toContain("A$");
+    expect(html).toContain("Not estimable");
   });
 });
 

@@ -1,16 +1,11 @@
 import { describe, it, expect } from "vitest";
 import {
-  ARR_CLAMP_THRESHOLD_AUD,
-  BERKUS_PILLAR_CAP_AUD,
   VALUATION_BASELINES_AUD,
   computeValuation,
   crossCheckStatedCap,
-  estimateValuation,
   formatAUD,
-  valuationMetricsFromSignals,
   type ValuationInput,
 } from "./valuation";
-import { computeSVI, extractSignals } from "./svi-analysis";
 
 // Baseline dimensions at the neutral midpoint so blends land near the
 // scorecard baseline for the given stage.
@@ -34,17 +29,6 @@ const STRONG_DIMS = {
   iri: 90,
   lco: 90,
   svm: 90,
-} as const;
-
-const WEAK_DIMS = {
-  ftv: 10,
-  mpc: 10,
-  ptd: 10,
-  tre: 10,
-  cgh: 10,
-  iri: 10,
-  lco: 10,
-  svm: 10,
 } as const;
 
 // ─── formatAUD ──────────────────────────────────────────────────────────────
@@ -72,307 +56,17 @@ describe("formatAUD", () => {
   });
 });
 
-// ─── estimateValuation — shape + basic invariants ───────────────────────────
-
-describe("estimateValuation shape", () => {
-  it("returns an AUD result with low <= mid <= high for every canonical stage", () => {
-    for (let stage = 0; stage <= 7; stage++) {
-      const est = estimateValuation(80, stage, undefined, { ...NEUTRAL_DIMS });
-      expect(est.currency).toBe("AUD");
-      expect(est.low).toBeGreaterThan(0);
-      expect(est.mid).toBeGreaterThanOrEqual(est.low);
-      expect(est.high).toBeGreaterThanOrEqual(est.mid);
-      expect(est.confidence).toBeGreaterThanOrEqual(5);
-      expect(est.confidence).toBeLessThanOrEqual(95);
-      expect(typeof est.method).toBe("string");
-      expect(est.method.length).toBeGreaterThan(0);
-    }
-  });
-
-  it("clamps a negative stage argument to stage 0", () => {
-    const neg = estimateValuation(80, -3, undefined, { ...NEUTRAL_DIMS });
-    const zero = estimateValuation(80, 0, undefined, { ...NEUTRAL_DIMS });
-    expect(neg.low).toBe(zero.low);
-    expect(neg.mid).toBe(zero.mid);
-    expect(neg.high).toBe(zero.high);
-  });
-
-  it("clamps an oversized stage argument to stage 7", () => {
-    const huge = estimateValuation(80, 42, undefined, { ...NEUTRAL_DIMS });
-    const seven = estimateValuation(80, 7, undefined, { ...NEUTRAL_DIMS });
-    expect(huge.low).toBe(seven.low);
-    expect(huge.mid).toBe(seven.mid);
-    expect(huge.high).toBe(seven.high);
-  });
-
-  it("includes a comparables benchmark object", () => {
-    const est = estimateValuation(80, 2, { sector: "saas" });
-    expect(est.comparablesBenchmark).toBeDefined();
-    expect(est.comparablesBenchmark?.industry).toBe("SaaS");
-    expect(est.comparablesBenchmark?.multiples.median).toBeGreaterThan(0);
-  });
-});
-
-// ─── estimateValuation — dimension handling ─────────────────────────────────
-
-describe("estimateValuation dimension handling", () => {
-  it("stronger dimension scores yield a higher mid than weaker ones at the same stage", () => {
-    const strong = estimateValuation(160, 2, undefined, { ...STRONG_DIMS });
-    const weak = estimateValuation(40, 2, undefined, { ...WEAK_DIMS });
-    expect(strong.mid).toBeGreaterThan(weak.mid);
-  });
-
-  it("clamps dimension scores above 100 to 100 internally", () => {
-    // dims=999 must behave identically to dims=100 (the clamp ceiling).
-    const oversaturated = estimateValuation(
-      160,
-      2,
-      undefined,
-      { ftv: 999, mpc: 999, ptd: 999, tre: 999, svm: 999, iri: 999, lco: 999, cgh: 999 },
-    );
-    const clamped = estimateValuation(
-      160,
-      2,
-      undefined,
-      { ftv: 100, mpc: 100, ptd: 100, tre: 100, svm: 100, iri: 100, lco: 100, cgh: 100 },
-    );
-    expect(oversaturated.mid).toBe(clamped.mid);
-    expect(oversaturated.low).toBe(clamped.low);
-    expect(oversaturated.high).toBe(clamped.high);
-  });
-
-  it("clamps negative dimension scores to 0 internally", () => {
-    const negative = estimateValuation(
-      40,
-      2,
-      undefined,
-      { ftv: -50, mpc: -50, ptd: -50, tre: -50, svm: -50, iri: -50, lco: -50, cgh: -50 },
-    );
-    // With the floor multiplier, the mid must remain a positive AUD figure.
-    expect(negative.mid).toBeGreaterThan(0);
-  });
-
-  it("falls back to deriving each dim from SVI when no dimensions provided", () => {
-    const withoutDims = estimateValuation(100, 2);
-    const withNeutralDims = estimateValuation(100, 2, undefined, { ...NEUTRAL_DIMS });
-    // SVI 100 → derived 50, matching neutral dims within rounding tolerance.
-    expect(Math.abs(withoutDims.mid - withNeutralDims.mid)).toBeLessThanOrEqual(
-      withNeutralDims.mid * 0.05,
-    );
-  });
-});
-
-// ─── estimateValuation — revenue multiple pathway ───────────────────────────
-
-describe("estimateValuation revenue multiple", () => {
-  it("uses a revenue-heavy blend once MRR > 0 at growth stage", () => {
-    const est = estimateValuation(140, 5, {
-      mrr: 100_000,
-      sector: "saas",
-      growthPctYoY: 100,
-    }, { ...STRONG_DIMS });
-    expect(est.method.toLowerCase()).toContain("revenue");
-  });
-
-  it("skips the revenue path entirely when MRR is zero", () => {
-    const est = estimateValuation(140, 5, { mrr: 0 }, { ...STRONG_DIMS });
-    expect(est.method.toLowerCase()).not.toContain("revenue");
-  });
-
-  it("applies an AI-native premium — same inputs give a higher mid with isAINative", () => {
-    const base = estimateValuation(120, 3, { mrr: 40_000, sector: "saas" }, { ...STRONG_DIMS });
-    const ai = estimateValuation(
-      120,
-      3,
-      { mrr: 40_000, sector: "saas", isAINative: true },
-      { ...STRONG_DIMS },
-    );
-    expect(ai.mid).toBeGreaterThan(base.mid);
-  });
-
-  it("adds a growth premium when YoY growth exceeds 50%", () => {
-    const flat = estimateValuation(120, 4, { mrr: 50_000, sector: "saas" }, { ...STRONG_DIMS });
-    const hot = estimateValuation(
-      120,
-      4,
-      { mrr: 50_000, sector: "saas", growthPctYoY: 150 },
-      { ...STRONG_DIMS },
-    );
-    expect(hot.mid).toBeGreaterThanOrEqual(flat.mid);
-  });
-
-  it("applies a churn penalty when churn exceeds 3%", () => {
-    const clean = estimateValuation(120, 4, { mrr: 50_000, sector: "saas" }, { ...STRONG_DIMS });
-    const churny = estimateValuation(
-      120,
-      4,
-      { mrr: 50_000, sector: "saas", churnPct: 25 },
-      { ...STRONG_DIMS },
-    );
-    expect(churny.mid).toBeLessThanOrEqual(clean.mid);
-  });
-
-  it("defaults ARR to mrr * 12 when arr not supplied", () => {
-    const est = estimateValuation(120, 4, { mrr: 10_000, sector: "saas" }, { ...STRONG_DIMS });
-    expect(est.mid).toBeGreaterThan(0);
-  });
-
-  it("respects explicit ARR when provided", () => {
-    const derived = estimateValuation(120, 4, { mrr: 10_000, sector: "saas" }, { ...STRONG_DIMS });
-    const explicit = estimateValuation(
-      120,
-      4,
-      { mrr: 10_000, arr: 240_000, sector: "saas" },
-      { ...STRONG_DIMS },
-    );
-    expect(explicit.mid).toBeGreaterThan(derived.mid);
-  });
-});
-
-// ─── estimateValuation — sector-specific multiples ──────────────────────────
-
-describe("estimateValuation sector multiples", () => {
-  const sectors = ["saas", "fintech", "marketplace", "healthtech", "deeptech", "ecommerce"];
-
-  it.each(sectors)("returns a positive mid for sector %s at revenue stage", (sector) => {
-    const est = estimateValuation(120, 4, { mrr: 30_000, sector }, { ...STRONG_DIMS });
-    expect(est.mid).toBeGreaterThan(0);
-  });
-
-  it("saas commands a higher mid than ecommerce at the same inputs", () => {
-    const saas = estimateValuation(120, 4, { mrr: 30_000, sector: "saas" }, { ...STRONG_DIMS });
-    const ec = estimateValuation(120, 4, { mrr: 30_000, sector: "ecommerce" }, { ...STRONG_DIMS });
-    expect(saas.mid).toBeGreaterThan(ec.mid);
-  });
-
-  it("falls back to the 'other' multiple bucket for an unknown sector", () => {
-    const est = estimateValuation(120, 4, { mrr: 30_000, sector: "quantum-toothpaste" }, {
-      ...STRONG_DIMS,
-    });
-    expect(est.mid).toBeGreaterThan(0);
-  });
-});
-
-// ─── estimateValuation — blend method chosen ────────────────────────────────
-
-describe("estimateValuation blend method labels", () => {
-  it("uses the 50/50 Berkus+Scorecard blend at stage 0 with no revenue", () => {
-    const est = estimateValuation(80, 0, undefined, { ...NEUTRAL_DIMS });
-    expect(est.method.toLowerCase()).toContain("berkus");
-    expect(est.method.toLowerCase()).toContain("scorecard");
-  });
-
-  it("uses the 30/70 Berkus/Scorecard blend at stage 3 with no revenue", () => {
-    const est = estimateValuation(80, 3, undefined, { ...NEUTRAL_DIMS });
-    expect(est.method).toMatch(/Berkus \(30%\)/);
-    expect(est.method).toMatch(/Scorecard \(70%\)/);
-  });
-
-  it("uses the revenue-dominated blend at growth stage with revenue", () => {
-    const est = estimateValuation(
-      140,
-      5,
-      { mrr: 80_000, sector: "saas" },
-      { ...STRONG_DIMS },
-    );
-    expect(est.method.toLowerCase()).toContain("75%");
-  });
-
-  it("uses the mid-blend revenue formula for mid-stages with revenue", () => {
-    const est = estimateValuation(
-      120,
-      3,
-      { mrr: 20_000, sector: "saas" },
-      { ...STRONG_DIMS },
-    );
-    expect(est.method.toLowerCase()).toContain("50%");
-  });
-
-  it("falls back to the scorecard-heavy label for late stages without revenue", () => {
-    const est = estimateValuation(120, 6, undefined, { ...NEUTRAL_DIMS });
-    expect(est.method).toMatch(/Scorecard \(70%\)/);
-  });
-});
-
-// ─── estimateValuation — confidence ─────────────────────────────────────────
-
-describe("estimateValuation confidence", () => {
-  it("bare inputs produce a low but non-zero confidence", () => {
-    const est = estimateValuation(80, 1);
-    expect(est.confidence).toBeGreaterThanOrEqual(5);
-    expect(est.confidence).toBeLessThan(30);
-  });
-
-  it("supplying full dimensions raises confidence over bare inputs", () => {
-    const bare = estimateValuation(80, 1);
-    const full = estimateValuation(80, 1, undefined, { ...NEUTRAL_DIMS });
-    expect(full.confidence).toBeGreaterThan(bare.confidence);
-  });
-
-  it("adding revenue data raises confidence further", () => {
-    const noRev = estimateValuation(80, 3, undefined, { ...NEUTRAL_DIMS });
-    const rev = estimateValuation(
-      80,
-      3,
-      { mrr: 10_000, sector: "saas", growthPctYoY: 60 },
-      { ...NEUTRAL_DIMS },
-    );
-    expect(rev.confidence).toBeGreaterThan(noRev.confidence);
-  });
-
-  it("caps confidence at 95", () => {
-    const est = estimateValuation(
-      160,
-      5,
-      { mrr: 500_000, arr: 6_000_000, sector: "saas", growthPctYoY: 200, isAINative: true },
-      { ...STRONG_DIMS },
-    );
-    expect(est.confidence).toBeLessThanOrEqual(95);
-  });
-});
-
-// ─── estimateValuation — band width by stage ────────────────────────────────
-
-describe("estimateValuation band width", () => {
-  function width(low: number, mid: number, high: number) {
-    return (high - low) / mid;
-  }
-
-  it("stage 0 or 1 has a wider band than a growth stage", () => {
-    const early = estimateValuation(80, 0, undefined, { ...NEUTRAL_DIMS });
-    const late = estimateValuation(80, 5, undefined, { ...NEUTRAL_DIMS });
-    expect(width(early.low, early.mid, early.high)).toBeGreaterThan(
-      width(late.low, late.mid, late.high),
-    );
-  });
-
-  it("clamps the low bound at the stage baseline low when the mid sits above it", () => {
-    // Stage-3 baseline low = A$6M (CTV 2024/25 seed median ≈ A$8–12M, low end
-    // of the band). With strong dims the mid is above the floor, so the ±40%
-    // band's low is lifted to the floor.
-    const est = estimateValuation(160, 3, undefined, { ...STRONG_DIMS });
-    expect(est.mid).toBeGreaterThanOrEqual(VALUATION_BASELINES_AUD[3].low);
-    expect(est.low).toBeGreaterThanOrEqual(VALUATION_BASELINES_AUD[3].low);
-    expect(est.low).toBeLessThanOrEqual(est.mid);
-  });
-
-  it("does not lift the low above a mid that itself sits under the stage floor", () => {
-    const est = estimateValuation(20, 2, undefined, { ...WEAK_DIMS });
-    expect(est.low).toBeLessThanOrEqual(est.mid);
-    expect(est.low).toBeGreaterThan(0);
-  });
-});
-
-// ─── estimateValuation — AU calibration (2026-09-15) ────────────────────────
+// ─── Stage baselines + stated-cap cross-check (2026-09-15) ────────────────
 //
-// Sources for every pin below (calibration assumptions, cited in valuation.ts):
-//   * Cut Through Venture, "State of Australian Startup Funding" 2024 & 2025 —
-//     pre-money medians: pre-seed ≈ A$4–6M, seed ≈ A$8–12M, Series A ≈ A$25–35M.
-//   * Berkus method — five pillars ≤ US$500k each, ≤ US$2.5M pre-revenue,
-//     applied as A$500k per pillar without FX uplift.
-//   * ARR sanity clamp — under A$250k ARR the mid ≤ max(pre-seed high, 40 × ARR).
+// V04a (D22, 2026-09-27): `estimateValuation` — the SVI/dimension-driven
+// quick estimate — was removed with its suites (shape, dimension handling,
+// revenue multiple, sector multiples, blend labels, confidence, band width,
+// Berkus cap, ARR clamp, the 2026-09-15 live-input pin). Those pinned an
+// SVI→dollar path the founder retired; no surface prices off the SVI now.
+// What stays is shared with the CFO valuation chapter: the dated stage
+// baselines and the founder-stated cap cross-check.
 
-describe("estimateValuation AU calibration", () => {
+describe("AU stage baselines + stated-cap cross-check", () => {
   it("pins the stage baselines to the CTV 2024/25 medians", () => {
     expect(VALUATION_BASELINES_AUD[2]).toEqual({ low: 3_000_000, mid: 5_000_000, high: 8_000_000 }); // pre-seed
     expect(VALUATION_BASELINES_AUD[3]).toEqual({ low: 6_000_000, mid: 10_000_000, high: 15_000_000 }); // seed
@@ -381,65 +75,9 @@ describe("estimateValuation AU calibration", () => {
     expect(VALUATION_BASELINES_AUD[5].mid).toBe(100_000_000);
     expect(VALUATION_BASELINES_AUD[6].mid).toBe(250_000_000);
     expect(VALUATION_BASELINES_AUD[7].mid).toBe(750_000_000);
-    // Monotonic.
     for (let s = 1; s <= 7; s++) {
       expect(VALUATION_BASELINES_AUD[s].mid).toBeGreaterThan(VALUATION_BASELINES_AUD[s - 1].mid);
     }
-  });
-
-  it("caps Berkus at A$500k per pillar — a perfect pre-revenue concept is ≤ A$2.5M from Berkus", () => {
-    expect(BERKUS_PILLAR_CAP_AUD).toBe(500_000);
-    // Stage 0 blends Berkus 50% + Scorecard 50%; with every dim at 100 the
-    // Berkus half is exactly 5 × A$500k = A$2.5M and the scorecard half is
-    // the A$1M concept baseline × 1.5, so the mid is A$2.0M.
-    const perfect = { ftv: 100, mpc: 100, ptd: 100, tre: 100, svm: 100, iri: 100, lco: 100, cgh: 100 };
-    const est = estimateValuation(200, 0, undefined, perfect);
-    expect(est.mid).toBe(2_000_000);
-  });
-
-  it("lands a neutral pre-seed near the CTV pre-seed median band, not at Series A", () => {
-    const est = estimateValuation(100, 2, undefined, { ...NEUTRAL_DIMS });
-    // Berkus 50% (5 × A$250k) + Scorecard 50% (A$5M × 1.0) = A$3.125M.
-    expect(est.mid).toBe(3_125_000);
-    expect(est.high).toBeLessThan(10_000_000);
-  });
-
-  it("clamps the mid when a known ARR is under A$250k, and says so in the method", () => {
-    expect(ARR_CLAMP_THRESHOLD_AUD).toBe(250_000);
-    // Stage 4 with A$60k ARR: the unclamped revenue blend would price the
-    // Series-A baseline in; the clamp holds it at max(A$8M, 40 × A$60k) = A$8M.
-    const est = estimateValuation(140, 4, { mrr: 5_000, sector: "saas" }, { ...STRONG_DIMS });
-    expect(est.arrClamp).toBeDefined();
-    expect(est.arrClamp?.arrAud).toBe(60_000);
-    expect(est.arrClamp?.capAud).toBe(8_000_000);
-    expect(est.mid).toBe(8_000_000);
-    expect(est.arrClamp!.unclampedMidAud).toBeGreaterThan(est.mid);
-    expect(est.method).toMatch(/ARR-clamped/);
-    expect(est.low).toBeLessThanOrEqual(est.mid);
-    expect(est.high).toBeGreaterThanOrEqual(est.mid);
-  });
-
-  it("uses 40 × ARR as the cap once that exceeds the pre-seed high", () => {
-    // ARR A$240k → 40× = A$9.6M > A$8M.
-    const est = estimateValuation(140, 4, { mrr: 20_000, sector: "saas" }, { ...STRONG_DIMS });
-    expect(est.arrClamp?.capAud).toBe(9_600_000);
-    expect(est.mid).toBeLessThanOrEqual(9_600_000);
-  });
-
-  it("does not clamp at or above A$250k ARR", () => {
-    const est = estimateValuation(140, 4, { mrr: 25_000, sector: "saas" }, { ...STRONG_DIMS });
-    expect(est.arrClamp).toBeUndefined();
-    expect(est.method).not.toMatch(/ARR-clamped/);
-  });
-
-  it("reports a founder-stated cap alongside the range and never applies it", () => {
-    const withCap = estimateValuation(100, 3, { mrr: 6_000, sector: "deeptech", statedCapAud: 6_000_000, statedCapKind: "cap" }, { ...NEUTRAL_DIMS });
-    const without = estimateValuation(100, 3, { mrr: 6_000, sector: "deeptech" }, { ...NEUTRAL_DIMS });
-    expect(withCap.mid).toBe(without.mid);
-    expect(withCap.low).toBe(without.low);
-    expect(withCap.capCrossCheck).toBeDefined();
-    expect(withCap.capCrossCheck?.statedAud).toBe(6_000_000);
-    expect(withCap.capCrossCheck?.note).toMatch(/^Your stated cap A\$6\.0M · indicative A\$/);
   });
 
   it("flags the cross-check only outside 0.5×–2× of the founder's number", () => {
@@ -451,23 +89,6 @@ describe("estimateValuation AU calibration", () => {
     expect(crossCheckStatedCap(est, 15_000_000)?.verdict).toBe("indicative_below");
     expect(crossCheckStatedCap(est, 15_000_000, "pre_money")?.note).toMatch(/stated pre-money A\$15\.0M/);
     expect(crossCheckStatedCap(est, 0)).toBeUndefined();
-  });
-
-  it("prices the 2026-09-15 live input (2 pilots, A$36k over 6 months, A$6M cap) in the A$4–12M band", () => {
-    const rawText =
-      "Brisbane agri-robotics pre-seed, 3 founders. Traction: 2 paid pilots (A$18,000 each), 14 orchards waitlist, LOIs from 2 co-ops. " +
-      "Revenue: A$36,000 in the last 6 months. Raising A$1.2M seed on a SAFE at A$6M cap.";
-    const signals = extractSignals({ rawText });
-    const analysis = computeSVI(signals);
-    const metrics = valuationMetricsFromSignals(signals, analysis.sector);
-    expect(metrics).toMatchObject({ mrr: 6_000, arr: 72_000, statedCapAud: 6_000_000, statedCapKind: "cap" });
-    const est = estimateValuation(analysis.totalSVI, analysis.stage, metrics, analysis.dimensionScores);
-    expect(analysis.stage).toBe(3);
-    expect(est.mid).toBeGreaterThanOrEqual(4_000_000);
-    expect(est.mid).toBeLessThanOrEqual(12_000_000);
-    expect(est.high).toBeLessThan(15_000_000);
-    expect(est.method).toMatch(/Revenue/);
-    expect(est.capCrossCheck?.verdict).toBe("consistent");
   });
 });
 

@@ -7,12 +7,7 @@ import { retainReportSaveOutcome, type ReportSaveStatus } from "@/lib/report-sav
 import { ReportSaveStatusNotice, SavedReportActions } from "./report-save-status";
 
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import { computeThreeCaseValuation, formatAud } from "@/lib/svi/three-case-valuation";
-import {
-  selectValuationMethod,
-  inferTractionFromTreScore,
-  type MethodMeta,
-} from "@/lib/svi/valuation-method-selector";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 import { readStreamValuation, valuationForRun, type StreamValuation } from "@/lib/svi/stream-valuation";
 import { CanonicalValuation } from "./canonical-valuation";
 import { RunningSviHero } from "./running-svi-hero";
@@ -673,121 +668,16 @@ function SectorCohortWidget({ userTotal, industry }: { userTotal: number; indust
   );
 }
 
-// ── Three-case valuation cards ───────────────────────────────────────────────
-// Renders worst / average / best case ranges (AUD) computed from the SVI
-// total + stage + industry. Deterministic — same inputs → same output.
-
-function MethodBadge({ meta }: { meta: MethodMeta }) {
+/** V04a (D22): a historical run without a valuation status used to show a
+ *  three-case range derived from the SVI; it now reads "not estimable". */
+function ValuationNotEstimableCard() {
+  const ne = valuationNotEstimable();
   return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full border border-brand-200 bg-brand-50/60 px-2 py-0.5 text-[10px] font-semibold text-brand-700"
-      title={meta.description}
-    >
-      {meta.shortLabel}
-    </span>
-  );
-}
-
-function ThreeCaseValuationCards({
-  svi,
-  stage,
-  industry,
-  treScore,
-}: {
-  svi: number;
-  stage: string | null;
-  industry: string | null;
-  treScore?: number | null;
-}) {
-  const v = computeThreeCaseValuation(svi, stage, industry);
-  const traction = inferTractionFromTreScore(treScore ?? null);
-  const { normaliseStage } = (() => {
-    // Inline stage-normaliser identical to three-case-valuation so we don't
-    // need to export it just for this use.
-    const normStage = (s: string | null | undefined): "idea" | "pre_seed" | "seed" | "series_a" | "series_b" | "growth" => {
-      if (!s) return "seed";
-      const l = s.toLowerCase().replace(/[-\s]/g, "_");
-      if (l.startsWith("idea") || l === "pre_launch") return "idea";
-      if (l.startsWith("pre_seed") || l === "preseed") return "pre_seed";
-      if (l.startsWith("seed")) return "seed";
-      if (l === "a" || l.includes("series_a")) return "series_a";
-      if (l === "b" || l.includes("series_b")) return "series_b";
-      return "growth";
-    };
-    return { normaliseStage: normStage };
-  })();
-  const methodSel = selectValuationMethod(normaliseStage(stage), svi, traction);
-  const cards: Array<{
-    key: "worst" | "average" | "best";
-    label: string;
-    range: { low: number; mid: number; high: number };
-    tone: string;
-    swatch: string;
-  }> = [
-    {
-      key: "worst",
-      label: "Worst case",
-      range: v.worst,
-      tone: "border-red-200 bg-red-50/40",
-      swatch: "text-red-700",
-    },
-    {
-      key: "average",
-      label: "Average case",
-      range: v.average,
-      tone: "border-brand-200 bg-brand-50/60",
-      swatch: "text-brand-700",
-    },
-    {
-      key: "best",
-      label: "Best case",
-      range: v.best,
-      tone: "border-emerald-200 bg-emerald-50/50",
-      swatch: "text-emerald-700",
-    },
-  ];
-  return (
-    <div className="border-t border-brand-200/50 pt-3 space-y-2">
-      <div className="flex items-start justify-between gap-2 flex-wrap">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-xs uppercase tracking-[0.14em] text-ink-600 font-semibold">
-              Directional pre-money valuation
-            </p>
-            <MethodBadge meta={methodSel.meta} />
-          </div>
-          <p className="text-[10px] text-ink-500">
-            {v.stage.replace("_", " ")} · {v.sector} · {methodSel.rationale}
-          </p>
-        </div>
-        <span className="text-[10px] text-ink-500 shrink-0">
-          {v.currency} · rounded
-        </span>
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-        {cards.map((c) => (
-          <div
-            key={c.key}
-            className={cn(
-              "rounded-lg border px-3 py-2.5",
-              c.tone,
-            )}
-          >
-            <p className="text-[11px] uppercase tracking-wider font-semibold text-ink-600">
-              {c.label}
-            </p>
-            <p className={cn("mt-1 text-lg font-bold tabular-nums leading-tight", c.swatch)}>
-              {formatAud(c.range.mid)}
-            </p>
-            <p className="text-[11px] text-ink-500 tabular-nums">
-              {formatAud(c.range.low)} – {formatAud(c.range.high)}
-            </p>
-          </div>
-        ))}
-      </div>
-      <p className="text-[10px] text-ink-500 leading-snug">
-        {v.disclaimer}
-      </p>
+    <div className="border-t border-brand-200/50 pt-3 space-y-1" data-testid="stream-valuation-not-estimable">
+      <p className="text-xs uppercase tracking-[0.14em] text-ink-600 font-semibold">Company value</p>
+      <p className="text-lg font-bold text-ink-800">{ne.label}</p>
+      <p className="text-[11px] text-ink-500 leading-snug">{ne.line}</p>
+      <p className="text-[10px] text-ink-500 leading-snug">{ne.why}</p>
     </div>
   );
 }
@@ -2102,13 +1992,8 @@ function SviStreamAnalysisSession({
               </div>
             )}
             <SectorCohortWidget userTotal={totalSvi} industry={industry} />
-            {/* New runs display the canonical report. Missing-status historical runs retain their legacy projection. */}
-            {valuationStatus === "available" && valuation ? <CanonicalValuation valuation={valuation} /> : valuationStatus === undefined ? <ThreeCaseValuationCards
-              svi={totalSvi}
-              stage={stage}
-              industry={industry}
-              treScore={dimStates["tre"]?.score ?? null}
-            /> : <p role="status" data-stream-valuation-unavailable className="rounded-xl border border-line p-4 text-sm text-secondary">Business value is not available for this result. Review the report financial inputs before relying on a valuation.</p>}
+            {/* New runs display the canonical report. Missing-status historical runs read "not estimable" (V04a: no SVI-derived range). */}
+            {valuationStatus === "available" && valuation ? <CanonicalValuation valuation={valuation} /> : valuationStatus === undefined ? <ValuationNotEstimableCard /> : <p role="status" data-stream-valuation-unavailable className="rounded-xl border border-line p-4 text-sm text-secondary">Business value is not available for this result. Review the report financial inputs before relying on a valuation.</p>}
             {/* Email-me-this-report opt-in + deeper 13-criteria CTA (Wave 21).
                 The CTA anchors the founder in "we already ran the 13 canonical
                 investor criteria per dim" (Wave 15) but presents an obvious

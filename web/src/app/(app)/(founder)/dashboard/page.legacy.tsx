@@ -46,6 +46,7 @@ import { AIConfidenceActionPlan } from "@/components/dashboard/ai-confidence-act
 import { GitHubEvidenceCard } from "@/components/dashboard/github-evidence-card";
 import { ScoreHistoryChart } from "@/components/svi/score-history-chart";
 import { AIEvaluationSummary } from "@/components/dashboard/ai-evaluation-summary";
+import { valuationNotEstimable } from "@/lib/valuation/not-estimable";
 import { getAllStartupSummaries } from "@/lib/analysis/aggregate-startup-summary";
 import { ValueImpactBanner } from "@/components/dashboard/value-impact-banner";
 import { SviDimensionChart } from "@/components/dashboard/svi-dimension-chart";
@@ -172,26 +173,8 @@ function computeNextAction(sviScore: number | null): {
 // `resolveFounderNavPhase()` = max(SVI band, growth phase) — the same number
 // the `(founder)` layout publishes to every other workspace page.
 
-/* ─── Estimated Valuation from SVI ──────────────────────────────────────────── */
-
-function estimateValuation(sviScore: number | null): { value: string; raw: number } {
-  if (sviScore == null || sviScore < 10) return { value: "—", raw: 0 };
-  // SVI-to-valuation mapping based on stage + market comparables
-  // Idea (0-30): $10K-$100K | Validation (30-50): $50K-$500K
-  // Build (50-70): $200K-$2M | Pre-fundraise (70-85): $500K-$5M
-  // Traction (85-120): $1M-$10M | Growth (120+): $5M+
-  let raw: number;
-  if (sviScore < 30) raw = Math.round(sviScore * 3000);
-  else if (sviScore <= 50) raw = Math.round(50_000 + (sviScore - 30) * 22_500);
-  else if (sviScore <= 70) raw = Math.round(500_000 + (sviScore - 50) * 75_000);
-  else if (sviScore <= 85) raw = Math.round(2_000_000 + (sviScore - 70) * 200_000);
-  else if (sviScore <= 120) raw = Math.round(5_000_000 + (sviScore - 85) * 142_857);
-  else raw = Math.round(10_000_000 + (sviScore - 120) * 250_000);
-
-  if (raw >= 1_000_000) return { value: `A$${(raw / 1_000_000).toFixed(1)}M`, raw };
-  if (raw >= 1_000) return { value: `A$${(raw / 1_000).toFixed(0)}K`, raw };
-  return { value: `A$${raw.toLocaleString()}`, raw };
-}
+/* V04a (D22): the "Company value" slots show "not estimable" — the SVI is an
+   uncapped index and is never mapped to dollars. */
 
 /* ─── Quick Actions ─────────────────────────────────────────────────────────── */
 
@@ -672,7 +655,7 @@ export async function LegacyDashboardPage({
         ? `All exit conditions for "${phaseGateResult.currentPhaseLabel}" are met — you're ready to advance.`
         : null;
   const readiness = sviScore != null ? Math.min(100, Math.round(sviScore * 0.8 + evidenceCount * 2)) : 0;
-  const valuation = estimateValuation(sviScore);
+  const valuation = valuationNotEstimable();
   const nextAction = computeNextAction(sviScore);
   // SCN POSITION: rank the founder's SVI against the AU cohort distribution for their stage.
   const scnStage = analysis?.stage ?? phase;
@@ -802,7 +785,7 @@ export async function LegacyDashboardPage({
               sviScore={sviScore}
               stageLabel={phaseName}
               percentile={scnPercentile}
-              valuationLabel={valuation.value}
+              valuationLabel={valuation.label}
               phase6={phase}
             />
           </div>
@@ -886,9 +869,9 @@ export async function LegacyDashboardPage({
             className="grid grid-cols-2 lg:grid-cols-5 gap-4"
           >
             <MetricCard
-              title="Company Value"
-              value={valuation.value}
-              trend={delta && sviScore ? Math.round(delta * (valuation.raw / (sviScore || 1)) / 1000) : undefined}
+              title="Company value"
+              value={valuation.label}
+              subtitle={valuation.hint}
               icon={BarChart3}
             />
             <MetricCard
